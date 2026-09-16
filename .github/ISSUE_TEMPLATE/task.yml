@@ -1,0 +1,67 @@
+name: 작업 · 실습 · 검증
+description: 담당자 자동 배정과 마감 관리를 사용하는 팀 작업
+title: "[미니/메인/공통] 작업 제목"
+body:
+  - type: markdown
+    attributes:
+      value: |
+        한 번에 결과 하나를 남길 작업으로 작성하세요. 실기 검증은 구현과 별도 Issue로 등록합니다.
+        등록 후 봇의 운영 현황 댓글에서 담당자·확정 마감을 확인하세요.
+  - type: dropdown
+    id: area
+    attributes:
+      label: 프로젝트
+      options: [mini, main, common]
+    validations:
+      required: true
+  - type: dropdown
+    id: role
+    attributes:
+      label: 담당 분야
+      description: 역할 미정 기간에는 general을 선택합니다.
+      options: [general, ros, robot, gripper, hmi, validation]
+    validations:
+      required: true
+  - type: dropdown
+    id: kind
+    attributes:
+      label: 작업 종류
+      options: [implementation, bug, docs, hardware-validation]
+    validations:
+      required: true
+  - type: input
+    id: due
+    attributes:
+      label: 최초 마감일
+      description: 한국 날짜 YYYY-MM-DD. 이후 변경은 댓글로 요청하고 팀장 승인을 받습니다.
+      placeholder: "2026-09-21"
+    validations:
+      required: true
+  - type: textarea
+    id: goal
+    attributes:
+      label: 목표와 완료 조건
+      description: 결과·검증 환경·확인 방법을 작성합니다. 보통 30~90분, 크면 3시간 이내 작업으로 나눕니다.
+      value: |
+        목표:
+        예상 소요 시간:
+        - [ ] 확인 가능한 결과:
+        - [ ] 실제 수행한 검증·증거 기록:
+    validations:
+      required: true
+  - type: textarea
+    id: dependencies
+    attributes:
+      label: 선행 작업과 검토
+      value: |
+        선행 Issue:
+        동료 검토자:
+        장비 예약 필요 여부:
+  - type: textarea
+    id: evidence
+    attributes:
+      label: 결과
+      value: |
+        PR / 코드 커밋:
+        실제 수행한 검증·증거:
+        막힌 점 / 다음 행동:

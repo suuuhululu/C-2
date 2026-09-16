@@ -1,0 +1,47 @@
+# ROS 2 generated files (class, robot runtime, project)
+**/build/
+**/install/
+**/log/
+
+# External sources: prepare reviewed versions separately; see docs/DEPENDENCIES.md
+/ros2_ws/src/DoosanBootcamInt1/
+/ros2_ws/src/doosan-robot2/
+/ros2_ws/src/onrobot_rg2/
+/ws_cobot_pjt/ws_dsr/src/DoosanBootcamInt1/
+/ws_cobot_pjt/ws_dsr/src/doosan-robot2/
+/ws_cobot_pjt/ws_dsr/src/onrobot_rg2/
+
+# Local Dart installation; retain only the shared installation guide
+/ws_cobot_pjt/DartPlatform/*
+!/ws_cobot_pjt/DartPlatform/README.md
+
+# Web dependencies, generated output and local backend environments
+**/node_modules/
+/ws_cobot_pjt/frontend/dist/
+/ws_cobot_pjt/frontend/.next/
+/ws_cobot_pjt/frontend/coverage/
+/ws_cobot_pjt/backend/venv/
+
+# Local configuration and credentials
+.env
+.env.*
+!.env.example
+*.local.yaml
+*.local.yml
+
+# Python and editors
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+.ruff_cache/
+.idea/
+.vscode/
+*.swp
+.DS_Store
+
+# Large local capture outputs; publish selected evidence through reviewed links
+**/recordings/
+*.bag
+*.db3
+*.mcap
