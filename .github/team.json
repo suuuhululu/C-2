@@ -1,0 +1,11 @@
+{
+  "repository": "suuuhululu/C-2",
+  "enabled": true,
+  "timezone": "Asia/Seoul",
+  "members": [
+    {"name": "이수현", "login": "suuuhululu", "leader": true, "active": true, "roles": ["general"], "max_open_issues": 2},
+    {"name": "김세은", "login": "gimseeun", "leader": false, "active": true, "roles": ["general"], "max_open_issues": 2},
+    {"name": "노홍동", "login": "roh4195", "leader": false, "active": true, "roles": ["general"], "max_open_issues": 2},
+    {"name": "이시율", "login": "sskywalker1209-prog", "leader": false, "active": true, "roles": ["general"], "max_open_issues": 2}
+  ]
+}

@@ -1,0 +1,33 @@
+name: Repository checks
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches-ignore: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  repository-checks:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Check authored files
+        run: python3 tools/check_repository.py
+      - name: Check shell syntax
+        run: |
+          sh -n .githooks/pre-push
+          sh -n tools/setup-git-hooks.sh
+      - name: Verify push guard without network or commits
+        run: python3 tools/test_git_hooks.py
+      - name: Validate team configuration and issue automation offline
+        run: |
+          python3 tools/issue_manager.py
+          python3 tools/test_issue_manager.py
