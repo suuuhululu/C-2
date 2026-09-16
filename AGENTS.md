@@ -4,6 +4,7 @@
 
 ## 작업 전
 
+- [현재 설정 상태](docs/REVIEW_STATUS.md)를 확인하고 작업 전 실제 GitHub 브랜치·PR·Actions 상태와 대조한다. 문서의 준비 완료와 원격 자동화의 실행 성공을 구분한다.
 - [프로젝트 운영](docs/PROJECT_GUIDE.md), [환경](docs/WORKSPACES.md), [Git 협업](docs/GIT_GUIDE.md), 작업 대상의 README를 읽는다.
 - 장비·제어기·그리퍼의 미확정 정보를 추정하지 않는다. [참고 자료](docs/REFERENCES.md)의 질문과 관련된 원문을 확인한다.
 - 2026-09-16 사용자가 준비된 초안의 commit·push를 승인했다. 작업 브랜치에 게시하며 main 직접 push·보호 우회·PR 자동 병합은 하지 않는다. 이후 작업은 해당 사용자 요청과 Git 협업 규칙을 따른다.
