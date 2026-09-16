@@ -7,9 +7,8 @@
 /ros2_ws/src/DoosanBootcamInt1/
 /ros2_ws/src/doosan-robot2/
 /ros2_ws/src/onrobot_rg2/
-/ws_cobot_pjt/ws_dsr/src/DoosanBootcamInt1/
-/ws_cobot_pjt/ws_dsr/src/doosan-robot2/
-/ws_cobot_pjt/ws_dsr/src/onrobot_rg2/
+# 로봇·그리퍼 외부 원본: 각 PC에서 cobot_rg2를 준비한다. docs/DEPENDENCIES.md 참조
+/ws_cobot_pjt/ws_dsr/src/
 
 # Local Dart installation; retain only the shared installation guide
 /ws_cobot_pjt/DartPlatform/*

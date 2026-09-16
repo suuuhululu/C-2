@@ -34,7 +34,7 @@ C-2/                              현재 로컬 clone 폴더명: collaborative
 │   │   ├── doc/                  실행·설정 문서
 │   │   └── src/                  팀 공정·노드·launch 패키지
 │   └── ws_dsr/                   로봇·그리퍼 실행환경 워크스페이스
-│       └── src/                  드라이버·실행환경 패키지
+│       └── src/                  외부 cobot_rg2 원본 (로컬 전용, Git 제외)
 ├── docs/                         팀 공통 운영·환경·Git 가이드
 ├── .github/                      PR·Issue 양식, 팀 계정, 자동화
 ├── .githooks/                    main 직접 push 방지
@@ -45,7 +45,7 @@ C-2/                              현재 로컬 clone 폴더명: collaborative
 
 ROS 워크스페이스는 `ros2_ws`, `ws_cobot_pjt/ws_cobot1`, `ws_cobot_pjt/ws_dsr` 세 곳입니다. 수업 환경과 메인 환경을 섞지 않으며, 메인은 준비된 `ws_dsr` 위에서 `ws_cobot1`을 빌드하도록 구분합니다. [경로 변경·준비·공유 방법](docs/WORKSPACES.md)을 먼저 확인하세요.
 
-현재는 폴더와 문서만 준비했습니다. 강사 제공 패키지·그리퍼 드라이버·Dart Platform·웹 프레임워크는 설치하지 않았습니다. `build/`, `install/`, `log/`, `node_modules/`, Dart 로그는 설치·빌드 후 각 PC에 생기며 Git에서 제외합니다.
+저장소에는 팀 코드·문서·설정만 공유합니다. `ws_cobot_pjt/ws_dsr/src` 전체는 각 PC에서 준비하는 외부 `cobot_rg2` 원본이므로 Git에서 제외하며, 새로 clone한 C-2에는 이 폴더가 없습니다. 이미 설치한 PC는 그대로 사용하고, 출처·버전·새 PC 준비 방법은 [의존성 기록](docs/DEPENDENCIES.md)을 따릅니다. `build/`, `install/`, `log/`, `node_modules/`, Dart 로그도 각 PC에서 생성하며 Git에서 제외합니다.
 
 ## 팀원 시작 순서
 
