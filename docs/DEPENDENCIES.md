@@ -33,7 +33,9 @@
 | 원본 조회 기준 커밋 | [`4d5657f36a160eedb533ab1c975cd8a30c3e53b2`](https://github.com/ahnisinc/cobot_rg2/commit/4d5657f36a160eedb533ab1c975cd8a30c3e53b2) — 2026-09-16 원격 존재 확인 |
 | 팀 실사용 고정 커밋·로컬 수정 여부 | 확인 대기. 위 조회 기준 커밋이 모든 PC에 설치됐다고 가정하지 않음 |
 | 사용자 확인 내용 | MSI Ubuntu에서 Docker 에뮬레이터 설치 후 시뮬레이터를 켜고 로봇을 움직였다고 보고함 (2026-09-16) |
-| 아직 미확인 | 정확한 OS·ROS·Docker·에뮬레이터 설치 버전, 팀원별 소스 커밋·로컬 변경, 실제 장비 동작 |
+| 이시율 PC의 소스 확인 보고 | Ubuntu 24.04·ROS 2 Jazzy, `main`의 `4d5657f36a160eedb533ab1c975cd8a30c3e53b2`. 추적된 소스 수정은 없으며 `.gitkeep`·`__pycache__`만 표시됐다고 보고함. [Issue #2 확인 기록](https://github.com/suuuhululu/C-2/issues/2#issuecomment-5691159901) (2026-09-16) |
+| 이시율 PC의 실행 보고 | Docker·dsr_emulator 3.0.1 설치, `colcon build --symlink-install` 35개 패키지 성공, `mode:=virtual` 브링업과 `/dsr01/dsr_controller2/motion/move_joint` 호출로 가상 로봇 이동 확인. 위 Issue 댓글의 보고이며 이번 문서 작업에서 직접 실행하지 않음 |
+| 아직 미확인 | 공용 MSI의 정확한 OS·ROS·Docker·에뮬레이터 설치 버전과 소스 커밋·로컬 변경, 나머지 팀원 환경, 실제 장비 동작. 이시율 PC 보고만으로 팀 전체의 고정 버전을 확정하지 않음 |
 
 원본에는 `doosan-robot2`, `onrobot-ros2`, `rg2`, `rokey`가 포함된다. 기존 예시의 `onrobot_rg2`와 실제 `onrobot-ros2`는 폴더명이 다르므로 메인 실행환경은 하위 폴더를 따로 열거하지 않고 `src/` 전체를 제외한다. 원본 조회와 사용자 보고를 이 작업에서 직접 수행한 설치·실기 시험으로 표현하지 않는다.
 
