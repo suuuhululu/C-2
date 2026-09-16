@@ -12,6 +12,7 @@
 ## 범위와 환경
 
 - 미니 실습은 `ros2_ws`, 메인은 `ws_cobot_pjt`다. 메인의 ROS 공정 코드는 `ws_cobot_pjt/ws_cobot1`, 로봇·그리퍼 실행환경은 `ws_cobot_pjt/ws_dsr`를 사용한다. 각 워크스페이스의 build/install/log를 섞지 않는다.
+- `ws_cobot_pjt/ws_dsr/src` 전체는 각 PC의 `cobot_rg2` 외부 원본 전용이며 Git에서 제외한다. 외부 저장소의 `.git`과 설치 파일을 보존한다. 팀이 작성하는 메인 ROS 패키지는 `ws_cobot_pjt/ws_cobot1/src`에 두며, 외부 소스의 출처·정확한 커밋·로컬 수정 여부는 `docs/DEPENDENCIES.md`에 구분해 기록한다.
 - 메인의 서버·화면·컨테이너 코드는 각각 backend/app, frontend, docker에 둔다. 공통 규칙은 루트 docs, 메인 설계·검증은 ws_cobot_pjt/docs, ROS 실행 방법은 ws_cobot_pjt/ws_cobot1/doc에 기록한다.
 - 강사 구조의 DoosanBootcamInt1·onrobot_rg2·DartPlatform 이름은 배치 참고다. 제공 소스·버전·실제 그리퍼가 확인된 것으로 취급하지 않는다. 외부 소스 준비 전 docs/DEPENDENCIES.md를 확인한다.
 - ROS 2 기준은 Jazzy이며 공식 `doosan-robot2`의 `jazzy` 계열을 사용한다. Humble의 의존성·인터페이스 경로를 혼용하지 않는다.

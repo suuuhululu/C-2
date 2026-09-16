@@ -1,12 +1,12 @@
 # 외부 패키지·설치물 기록
 
-2026-09-16 기준. 현재 구조만 준비했으며 외부 소스·설치물을 다운로드하거나 설치하지 않았다. 같은 폴더 이름이 같은 버전을 보장하지 않으므로 팀원은 확인된 출처·버전을 맞춘다.
+2026-09-16 기준. 외부 실행환경은 각 PC에 설치하고 C-2에는 출처·버전·재현 방법을 기록한다. 같은 폴더 이름이나 같은 날짜에 받은 소스가 같은 버전을 보장하지 않으므로 정확한 커밋을 확인한다.
 
 | 대상 | 위치 | 확인 상태 |
 | --- | --- | --- |
 | 강사 두산 교육 패키지 | ros2_ws/src/DoosanBootcamInt1 | 폴더명·패키지 목록만 제공. 원본 URL·브랜치·커밋·Jazzy 호환성 미확인 |
 | 강사 그리퍼 패키지 | ros2_ws/src/onrobot_rg2 | 이름만 제공. 출처·버전·실제 장비 대응 미확인 |
-| 메인 로봇·그리퍼 환경 | ws_cobot_pjt/ws_dsr/src | 사용할 공급자 소스와 버전 미확정 |
+| 메인 로봇·그리퍼 환경 | ws_cobot_pjt/ws_dsr/src | 수업 지정 [ahnisinc/cobot_rg2](https://github.com/ahnisinc/cobot_rg2). 폴더 전체 Git 제외. 팀 실사용 커밋·로컬 수정 여부는 확인 대기 |
 | 공식 두산 참고 소스 | 대상 src 아래 doosan-robot2 | 공식 Jazzy 소스 확인. 강사 수정본과 동일한 것으로 취급하지 않음 |
 | Dart Platform | ws_cobot_pjt/DartPlatform | 교육 자료의 2.12.1 표기. 실제 배포 파일·OS·설치본은 확인 필요 |
 | Backend·Frontend·Docker | ws_cobot_pjt의 각 폴더 | 프레임워크·의존성·이미지 미정 |
@@ -16,11 +16,66 @@
 ## 설치·공유 규칙
 
 - 같은 워크스페이스에 DoosanBootcamInt1과 doosan-robot2의 중복 dsr 패키지를 함께 넣지 않는다. 사용할 원본을 먼저 정한다.
-- ros2_ws/src와 ws_dsr/src의 DoosanBootcamInt1, doosan-robot2, onrobot_rg2 원본 폴더는 Git에서 제외한다. 팀이 만드는 별도 고유 이름의 패키지는 공유한다.
+- `ws_cobot_pjt/ws_dsr/src/` 전체는 외부 원본 전용이며 Git에서 제외한다. 내부 폴더 이름에 관계없이 같은 규칙을 적용한다. 수업용 `ros2_ws/src`는 기존에 지정한 외부 원본 폴더만 제외한다.
+- 팀이 만드는 메인 ROS 패키지·launch 파일은 `ws_cobot_pjt/ws_cobot1/src`에 둔다. `ws_dsr/src` 안의 팀 코드는 C-2에 공유되지 않는다. 설치 스크립트·실행 문서는 각각 `ws_cobot_pjt/docker`, `ws_cobot_pjt/ws_cobot1/doc`에서 별도 PR로 검토한다.
 - 실제 그리퍼 모델·강사 소스 출처를 확인하기 전 다른 드라이버 저장소를 임의로 선택하지 않는다.
 - 외부 원본을 수정해야 하면 수정·배포·버전 고정 방법을 먼저 PR에서 합의한다.
 - Dart 설치 파일·로그 대신 배포 위치·설치 버전·재현 절차를 공유한다.
 - 이전 초안의 vendor_ws 제안은 ws_dsr로 대체했다. 아직 이동할 공급자 소스는 없었다.
+
+## 수업 지정 cobot_rg2
+
+| 항목 | 기록 |
+| --- | --- |
+| 원본 URL | `https://github.com/ahnisinc/cobot_rg2.git` |
+| 원본 브랜치 | `main` |
+| 로컬 설치 위치 | C-2 루트 기준 `ws_cobot_pjt/ws_dsr/src` |
+| 원본 조회 기준 커밋 | [`4d5657f36a160eedb533ab1c975cd8a30c3e53b2`](https://github.com/ahnisinc/cobot_rg2/commit/4d5657f36a160eedb533ab1c975cd8a30c3e53b2) — 2026-09-16 원격 존재 확인 |
+| 팀 실사용 고정 커밋·로컬 수정 여부 | 확인 대기. 위 조회 기준 커밋이 모든 PC에 설치됐다고 가정하지 않음 |
+| 사용자 확인 내용 | MSI Ubuntu에서 Docker 에뮬레이터 설치 후 시뮬레이터를 켜고 로봇을 움직였다고 보고함 (2026-09-16) |
+| 아직 미확인 | 정확한 OS·ROS·Docker·에뮬레이터 설치 버전, 팀원별 소스 커밋·로컬 변경, 실제 장비 동작 |
+
+원본에는 `doosan-robot2`, `onrobot-ros2`, `rg2`, `rokey`가 포함된다. 기존 예시의 `onrobot_rg2`와 실제 `onrobot-ros2`는 폴더명이 다르므로 메인 실행환경은 하위 폴더를 따로 열거하지 않고 `src/` 전체를 제외한다. 원본 조회와 사용자 보고를 이 작업에서 직접 수행한 설치·실기 시험으로 표현하지 않는다.
+
+### 이미 설치한 PC
+
+기존 `src`, `src/.git`, build/install/log와 Docker 설치를 그대로 둔다. 이번 Git 제외 변경을 위해 재설치·재clone·버전 변경을 할 필요는 없다. 추후 같은 환경을 재현할 때 설치된 외부 저장소에서 커밋과 수정 여부를 확인해 위 표를 갱신한다. 다음은 C-2 루트에서 실행하는 읽기 전용 확인이다.
+
+```bash
+if [ -e ws_cobot_pjt/ws_dsr/src/.git ]; then
+  git -C ws_cobot_pjt/ws_dsr/src rev-parse --show-toplevel
+  git -C ws_cobot_pjt/ws_dsr/src rev-parse HEAD
+  git -C ws_cobot_pjt/ws_dsr/src status --short
+else
+  printf '%s\n' '이 위치에는 외부 Git 저장소가 없습니다. 실제 설치 위치를 확인하세요.'
+fi
+```
+
+수정 내역이 있으면 SHA만으로 같은 소스를 재현할 수 없다. 변경 파일·patch 또는 별도 fork·커밋을 검토해 기록하며 `.git`을 지워 C-2에 통째로 올리지 않는다.
+
+### 새 PC에서 원본 받기
+
+팀의 실사용 고정 커밋을 확인한 후 진행한다. 아래는 `src`가 없는 새 환경에서 원본을 받는 수업 절차이며 설치·빌드·실행 명령은 아니다. C-2 저장소의 실제 루트에서 시작하고 개인 홈 경로를 하드코딩하지 않는다.
+
+```bash
+cd ws_cobot_pjt/ws_dsr
+git clone --branch main https://github.com/ahnisinc/cobot_rg2.git src
+```
+
+복제에 성공한 새 `src`에서는 `git -C src checkout --detach 확인한_커밋_SHA`의 마지막 값을 팀에서 확인한 정확한 SHA로 바꿔 버전을 고정한다. `main`이나 “2026-09-16 최신”이라는 표현만으로 버전 고정을 대신하지 않는다. 이미 설치된 PC는 이 절차를 반복하지 않는다.
+
+이전 C-2의 `src/.gitkeep`은 Git 추적에서 제거했다. 기존 clone에 자리표시자만 남아 새 clone을 방해하면 그 파일이 자리표시자인지 확인하고 `.gitkeep`만 정리한다. 기존 외부 소스 폴더 전체를 삭제하지 않는다.
+
+### Git 제외 확인
+
+C-2 루트에서 다음을 확인한다.
+
+```bash
+git check-ignore -v --no-index ws_cobot_pjt/ws_dsr/src/
+git ls-files --stage -- ws_cobot_pjt/ws_dsr/src
+```
+
+첫 명령에는 `.gitignore`의 `/ws_cobot_pjt/ws_dsr/src/` 규칙이 표시되고 두 번째에는 출력이 없어야 한다. `git status`가 깨끗하다는 사실만으로 추적되지 않는다고 판단하지 않는다. 이미 파일이나 저장소 포인터가 추적된 PC에서는 내용을 보존한 채 추적 해제 범위를 검토한다. `.gitignore`는 일반적인 `git add` 실수를 막는 규칙이며 강제 추가나 이미 추적된 파일까지 차단하지는 않는다.
 
 ## 설치가 확정되면 채울 항목
 
