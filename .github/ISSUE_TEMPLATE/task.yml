@@ -1,6 +1,6 @@
-name: 작업 · 실습 · 검증
+name: 작업 · 검증
 description: 담당자 자동 배정과 마감 관리를 사용하는 팀 작업
-title: "[미니/메인/공통] 작업 제목"
+title: "[메인/공통] 작업 제목"
 body:
   - type: markdown
     attributes:
@@ -11,7 +11,7 @@ body:
     id: area
     attributes:
       label: 프로젝트
-      options: [mini, main, common]
+      options: [main, common]
     validations:
       required: true
   - type: dropdown

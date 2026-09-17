@@ -4,7 +4,7 @@
 
 ## 먼저 읽기
 
-1. [현재 준비 상태와 검토 항목](docs/REVIEW_STATUS.md)
+1. [진행 현황과 남은 작업](docs/REVIEW_STATUS.md)
 2. [프로젝트 운영·학습·분업 가이드](docs/PROJECT_GUIDE.md)
 3. [워크스페이스·환경 가이드](docs/WORKSPACES.md)
 4. [Git·PR 협업 가이드](docs/GIT_GUIDE.md)
@@ -14,14 +14,16 @@
 8. [기술 참고 자료와 확인 범위](docs/REFERENCES.md)
 9. [AI 공통 지침](AGENTS.md)
 
+## 현재 진행 상황
+
+2026-09-17 확인: 초기 구성 [PR #1](https://github.com/suuuhululu/C-2/pull/1)과 외부 실행환경 제외 [PR #3](https://github.com/suuuhululu/C-2/pull/3)은 동료 승인 후 main에 병합됐습니다. [Issue #2](https://github.com/suuuhululu/C-2/issues/2)도 종료됐고, Issue 자동화가 실제 실행 중입니다.
+
+아래 메인 중심 구조와 양식 정리는 현재 `chore/remove-mini-workspace`의 로컬 변경이며 아직 커밋·push·PR 전입니다. 팀원은 병합 전까지 원격 main과 로컬 안내가 다를 수 있음을 확인하세요. 완료된 일과 남은 검증은 [진행 현황](docs/REVIEW_STATUS.md)에 모았습니다.
+
 ## 폴더 구조
 
 ```text
 C-2/                              현재 로컬 clone 폴더명: collaborative
-├── ros2_ws/                      수업·미니 실습 ROS 2 워크스페이스
-│   ├── docs/                     실습 결과·복습 기록
-│   ├── exercises/                DRL 등 ROS 패키지가 아닌 실습
-│   └── src/                      실습 ROS 2 패키지
 ├── ws_cobot_pjt/                 메인 프로젝트
 │   ├── DartPlatform/             설치 위치 안내 (프로그램·Logs는 로컬 전용)
 │   ├── backend/app/              서버 코드
@@ -41,15 +43,15 @@ C-2/                              현재 로컬 clone 폴더명: collaborative
 └── tools/                        Git hook 설치, 로컬 검사, Issue 처리
 ```
 
-2026-09-16 전달받은 강사 디렉토리 구조에 맞췄습니다. 미니 실습은 [ros2_ws](ros2_ws/README.md), 메인은 [ws_cobot_pjt](ws_cobot_pjt/README.md)에서 진행합니다. Git 저장소는 하나이며 `ws_cobot_pjt` 폴더와 Git의 `main` 브랜치는 다른 개념입니다.
+2026-09-17 사용자 요청에 따라 [ws_cobot_pjt](ws_cobot_pjt/README.md)의 메인 프로젝트 중심으로 정리했습니다. Git 저장소는 하나이며 `ws_cobot_pjt` 폴더와 Git의 `main` 브랜치는 다른 개념입니다.
 
-ROS 워크스페이스는 `ros2_ws`, `ws_cobot_pjt/ws_cobot1`, `ws_cobot_pjt/ws_dsr` 세 곳입니다. 수업 환경과 메인 환경을 섞지 않으며, 메인은 준비된 `ws_dsr` 위에서 `ws_cobot1`을 빌드하도록 구분합니다. [경로 변경·준비·공유 방법](docs/WORKSPACES.md)을 먼저 확인하세요.
+ROS 워크스페이스는 `ws_cobot_pjt/ws_cobot1`, `ws_cobot_pjt/ws_dsr` 두 곳입니다. 준비된 `ws_dsr` 위에서 팀 코드인 `ws_cobot1`을 빌드합니다. [환경 준비·공유 방법](docs/WORKSPACES.md)을 먼저 확인하세요.
 
 저장소에는 팀 코드·문서·설정만 공유합니다. `ws_cobot_pjt/ws_dsr/src` 전체는 각 PC에서 준비하는 외부 `cobot_rg2` 원본이므로 Git에서 제외하며, 새로 clone한 C-2에는 이 폴더가 없습니다. 이미 설치한 PC는 그대로 사용하고, 출처·버전·새 PC 준비 방법은 [의존성 기록](docs/DEPENDENCIES.md)을 따릅니다. `build/`, `install/`, `log/`, `node_modules/`, Dart 로그도 각 PC에서 생성하며 Git에서 제외합니다.
 
 ## 팀원 시작 순서
 
-최초 저장소 초기화와 이 문서의 PR 병합이 완료된 뒤 적용합니다.
+새 팀원은 현재 main을 clone해 시작합니다. 이미 clone한 팀원은 기존 작업을 보존하고 [Git 가이드](docs/GIT_GUIDE.md)에 따라 최신 변경을 받습니다.
 
 ```sh
 git clone https://github.com/suuuhululu/C-2.git
@@ -63,4 +65,4 @@ python3 tools/test_git_hooks.py
 
 GitHub Actions의 `repository-checks`는 문서·소스 구문·hook 동작을 검사합니다. **ROS 빌드·시뮬레이터·실기 시험을 대신하지 않습니다.**
 
-`Issue management`는 미배정 작업 분배, 댓글을 통한 상태 변경, 팀장 승인 후 마감 변경, 마감 임박·지연 표시를 처리합니다. 네 팀원 계정을 등록했으며 역할은 아직 모두 general입니다. **2026-09-16 작업 브랜치의 commit·push가 승인되었습니다. Issue 자동화는 기본 브랜치 main에 반영된 뒤 활성화합니다.** 팀원 권한 확인과 main 반영 후 [활성화 절차](docs/ISSUE_AUTOMATION.md)를 진행합니다.
+`Issue management`는 main에서 활성화됐습니다. Issue #2에서 분류·마감 기록·검토 상태·종료 반영을 확인했습니다. 네 팀원의 역할은 아직 모두 general이며, 미배정 작업의 자동 분배와 일정 변경 승인 전체 과정은 [팀원 연습](docs/TEAM_ONBOARDING.md)으로 원격 검증해야 합니다. 사용법은 [Issue 자동화](docs/ISSUE_AUTOMATION.md)를 따릅니다.

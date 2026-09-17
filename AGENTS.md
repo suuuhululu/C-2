@@ -4,17 +4,17 @@
 
 ## 작업 전
 
-- [현재 설정 상태](docs/REVIEW_STATUS.md)를 확인하고 작업 전 실제 GitHub 브랜치·PR·Actions 상태와 대조한다. 문서의 준비 완료와 원격 자동화의 실행 성공을 구분한다.
+- [진행 현황](docs/REVIEW_STATUS.md)을 확인하고 작업 전 실제 GitHub 브랜치·PR·Actions 상태와 대조한다. 로컬 미게시 변경, 원격 병합, 자동화 실행 성공, 장비 검증을 구분한다.
 - [프로젝트 운영](docs/PROJECT_GUIDE.md), [환경](docs/WORKSPACES.md), [Git 협업](docs/GIT_GUIDE.md), 작업 대상의 README를 읽는다.
 - 장비·제어기·그리퍼의 미확정 정보를 추정하지 않는다. [참고 자료](docs/REFERENCES.md)의 질문과 관련된 원문을 확인한다.
-- 2026-09-16 사용자가 준비된 초안의 commit·push를 승인했다. 작업 브랜치에 게시하며 main 직접 push·보호 우회·PR 자동 병합은 하지 않는다. 이후 작업은 해당 사용자 요청과 Git 협업 규칙을 따른다.
+- 초기 구성과 외부 실행환경 제외 변경은 PR #1·#3으로 병합됐다. 이후 작업의 commit·push는 해당 사용자 요청과 검토 범위를 따른다. main 직접 push·보호 우회·PR 자동 병합은 하지 않는다.
 
 ## 범위와 환경
 
-- 미니 실습은 `ros2_ws`, 메인은 `ws_cobot_pjt`다. 메인의 ROS 공정 코드는 `ws_cobot_pjt/ws_cobot1`, 로봇·그리퍼 실행환경은 `ws_cobot_pjt/ws_dsr`를 사용한다. 각 워크스페이스의 build/install/log를 섞지 않는다.
+- 이 저장소는 `ws_cobot_pjt`의 메인 프로젝트를 관리한다. ROS 공정 코드는 `ws_cobot_pjt/ws_cobot1`, 로봇·그리퍼 실행환경은 `ws_cobot_pjt/ws_dsr`를 사용한다. 각 워크스페이스의 build/install/log를 섞지 않는다.
 - `ws_cobot_pjt/ws_dsr/src` 전체는 각 PC의 `cobot_rg2` 외부 원본 전용이며 Git에서 제외한다. 외부 저장소의 `.git`과 설치 파일을 보존한다. 팀이 작성하는 메인 ROS 패키지는 `ws_cobot_pjt/ws_cobot1/src`에 두며, 외부 소스의 출처·정확한 커밋·로컬 수정 여부는 `docs/DEPENDENCIES.md`에 구분해 기록한다.
 - 메인의 서버·화면·컨테이너 코드는 각각 backend/app, frontend, docker에 둔다. 공통 규칙은 루트 docs, 메인 설계·검증은 ws_cobot_pjt/docs, ROS 실행 방법은 ws_cobot_pjt/ws_cobot1/doc에 기록한다.
-- 강사 구조의 DoosanBootcamInt1·onrobot_rg2·DartPlatform 이름은 배치 참고다. 제공 소스·버전·실제 그리퍼가 확인된 것으로 취급하지 않는다. 외부 소스 준비 전 docs/DEPENDENCIES.md를 확인한다.
+- 강사 구조는 배치 참고다. 제공 소스·버전·실제 그리퍼가 확인된 것으로 취급하지 않는다. 외부 소스 준비 전 docs/DEPENDENCIES.md를 확인한다.
 - ROS 2 기준은 Jazzy이며 공식 `doosan-robot2`의 `jazzy` 계열을 사용한다. Humble의 의존성·인터페이스 경로를 혼용하지 않는다.
 - 두산 소스 버전은 확인한 커밋으로 고정한다. 제공 패키지를 전면 수정하거나 자동 업데이트하지 않는다.
 - 편집 PC와 로봇 실행 PC를 구분한다. 현재 편집 PC에서 ROS·시뮬레이터·실기 실행이 검증되었다고 가정하지 않는다.
@@ -41,6 +41,7 @@
 - 변경 전 [자동화 규칙](docs/ISSUE_AUTOMATION.md)과 [팀장 가이드](docs/TEAM_LEAD_GUIDE.md)를 읽는다.
 - team.json의 계정·역할·활성 상태를 기준으로 하고 이메일이나 GitHub 표시 이름을 login으로 추정하지 않는다.
 - 확정 마감은 봇 운영 현황 댓글이 원본이다. 일정 변경 승인과 실제 검증 완료를 AI가 대신했다고 기록하지 않는다.
+- `/team start`, `/team review`, `/team todo`는 명령만 적은 별도 댓글로 제출한다. 설명·PR 링크를 같은 댓글에 붙이지 않는다.
 - Issue·댓글 입력을 셸이나 코드로 실행하지 않는다. 쓰기 토큰을 쓰는 워크플로는 기본 브랜치의 검토된 코드만 사용한다.
 - 로컬 테스트와 원격 실행을 구분한다. Issue 자동화는 기본 브랜치가 main이고 main의 실행일 때만 허용한다. 최초 작업 브랜치가 기본 브랜치가 되더라도 이 자동화는 시작하지 않는다.
 

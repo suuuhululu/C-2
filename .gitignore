@@ -1,12 +1,8 @@
-# ROS 2 generated files (class, robot runtime, project)
+# ROS 2 generated files (robot runtime, project)
 **/build/
 **/install/
 **/log/
 
-# External sources: prepare reviewed versions separately; see docs/DEPENDENCIES.md
-/ros2_ws/src/DoosanBootcamInt1/
-/ros2_ws/src/doosan-robot2/
-/ros2_ws/src/onrobot_rg2/
 # 로봇·그리퍼 외부 원본: 각 PC에서 cobot_rg2를 준비한다. docs/DEPENDENCIES.md 참조
 /ws_cobot_pjt/ws_dsr/src/
 

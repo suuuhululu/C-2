@@ -1,76 +1,67 @@
-# 최초 설정 진행 상태
+# 진행 현황과 남은 작업
 
-작성일: 2026-09-15. 원격 설정 확인: 2026-09-16. 이 문서는 확인 시점의 기록이며 GitHub와 자동 동기화되지 않는다. 이후 작업 전 실제 PR·Actions·권한 상태도 확인한다.
+확인일: 2026-09-17 (한국 시간). GitHub의 PR·Issue·Actions·main 보호 규칙과 현재 로컬 작업을 대조한 기록이다. 문서는 자동 동기화되지 않으므로 후속 작업 때 실제 상태를 다시 확인한다.
 
-## 파일과 Git
+## GitHub에 반영된 작업
 
-- 저장소: `https://github.com/suuuhululu/C-2.git`.
-- 구성: 수업·미니 ros2_ws, 메인 ws_cobot_pjt. ROS 워크스페이스는 ros2_ws·ws_cobot1·ws_dsr 3곳, Git 저장소 1개.
-- 기본 브랜치: `main`. 빈 기준 커밋 `46e0d1b0abe78b663fc4f8541845ade64d84382f`에서 생성했다.
-- 작업 브랜치: `docs/workspace-setup`. 초기 구성 `0c125252fee97c721ee7c653337985295a8b5695`를 게시했다.
-- [첫 PR #1](https://github.com/suuuhululu/C-2/pull/1): 작업 브랜치에서 main으로 반영 요청. `gimseeun`에게 동료 검토를 요청했으며 아직 승인·병합 전이다. 병합 전 main에 프로젝트 파일이 없는 것은 정상이다.
-- 2026-09-16 사용자 요청으로 commit·push가 승인되었다. main 직접 push·규칙 우회·자동 병합은 하지 않는다.
-- ROS 패키지·장비 연결·빌드는 아직 수행하지 않았다.
+| 항목 | 확인한 결과 | 근거 |
+| --- | --- | --- |
+| 초기 폴더·협업·자동화 구성 | 9/16 `gimseeun` 승인 후 PR #1 병합 | [PR #1](https://github.com/suuuhululu/C-2/pull/1) |
+| 외부 로봇 실행환경 Git 제외 | 9/16 `sskywalker1209-prog` 승인 후 PR #3 병합. `ws_dsr/src/` 전체 제외, 자리표시자 추적 해제, 출처·환경 기록 반영 | [PR #3](https://github.com/suuuhululu/C-2/pull/3) |
+| 관련 Issue | #2 닫힘, 봇 운영 현황과 라벨 모두 `done` | [Issue #2](https://github.com/suuuhululu/C-2/issues/2) |
+| 기본 브랜치 | `main`, 확인한 커밋 `fbc24045d9e8e9de0c4c0384fc3867c03aba524c` | [main 확인 커밋](https://github.com/suuuhululu/C-2/commit/fbc24045d9e8e9de0c4c0384fc3867c03aba524c) |
+| 원격 작업 목록 | 조회 시 열린 PR 0개, 열린 Issue 0개. 프로젝트 구현 완료를 뜻하지 않음 | [PR 목록](https://github.com/suuuhululu/C-2/pulls), [Issue 목록](https://github.com/suuuhululu/C-2/issues) |
 
-## 보호와 검사 상태
+main에는 이미 초기 파일과 외부 소스 제외 변경이 있다. 저장소 초기화나 첫 PR 병합을 다시 할 필요는 없다.
 
-| 항목 | 현재 상태 |
+## 로컬에만 준비된 변경
+
+현재 브랜치는 `chore/remove-mini-workspace`이며 위 main 커밋에서 시작했다. 아래 변경은 **커밋·push·PR 전의 검토용 작업**이다.
+
+- 사용자 요청으로 연습용 워크스페이스와 전용 실습 문서·빈 폴더를 삭제했다.
+- 메인 프로젝트 `ws_cobot_pjt`와 공통 운영 문서를 중심으로 경로·안내를 정리했다.
+- Issue/PR 양식과 처리 코드의 프로젝트 분류를 `main`·`common`으로 정리했다.
+- 현재 진행 상황에 맞게 완료·확인 대기·로컬 변경을 문서에 구분했다.
+
+따라서 현재 로컬 구조와 원격 main의 구조·양식은 일부 다르다. 팀원에게 일괄 삭제를 요청하기 전에 이 변경을 검토·커밋하고 작업 브랜치 push → PR → 동료 승인 → main 병합으로 공유한다. 원격 CI 성공 기록을 이 미게시 변경의 검사 결과로 사용하지 않는다.
+
+## 보호와 자동 검사
+
+- 9/17 재확인: main의 `protected` 상태와 `main-pr-only` 규칙이 활성 상태다. [서버 규칙](https://github.com/suuuhululu/C-2/rules/23389654).
+- PR 필수, 승인 최소 1명, 새 커밋 시 이전 승인 무효화, 검토 대화 해결, main 삭제·강제 push 차단이 설정되어 있다.
+- 필수 검사 `repository-checks`는 GitHub Actions 출처(ID 15368)와 최신 main 반영을 요구한다. 우회 대상 없음은 9/16 인증 조회에서 확인한 기록이며, 이번 공개 조회에서는 우회 목록을 재확인하지 않았다.
+- 이 clone의 `core.hooksPath=.githooks`를 확인했다. 다른 팀원은 각 clone에서 [hook 설치](GIT_GUIDE.md)를 해야 한다.
+- PR #3 최종 커밋 `09f2be641ab838f06a9ba0e2025b93f754b8f184`의 [push 검사](https://github.com/suuuhululu/C-2/actions/runs/35049166460)와 [PR 검사](https://github.com/suuuhululu/C-2/actions/runs/35049169231)가 성공했다.
+- 현재 로컬 검사: 문서·Python 구문·상대 링크 30개 파일, Git hook 시험 8개, Issue 자동화 시험 27개, 팀 설정 형식·셸 구문·공백 검사 통과. 네트워크·로봇에 연결하지 않는 검사다.
+
+## Issue 자동화의 실제 확인 범위
+
+`Repository checks`와 `Issue management` 워크플로는 모두 활성 상태다. Issue·댓글 이벤트와 [예약 실행](https://github.com/suuuhululu/C-2/actions/runs/35107869058)의 성공을 확인했다. 예약 설정은 평일 18:40 KST이며 실제 실행은 지연될 수 있다.
+
+| 확인한 동작 | 증거·한계 |
 | --- | --- |
-| 로컬 main push 차단 hook | 이 clone에서 활성화. `core.hooksPath=.githooks` |
-| GitHub main Ruleset | `main-pr-only` 생성·Active 저장 확인, ID `23389654` |
-| 문서·구문·상대 링크 검사 | 통과 |
-| hook 입력 시험 | 8개 통과. 원격 push나 테스트 커밋 없이 표준입력으로 검사 |
-| GitHub Actions | 초기 구성의 [push 검사](https://github.com/suuuhululu/C-2/actions/runs/35043094825)와 [PR 검사](https://github.com/suuuhululu/C-2/actions/runs/35045950773) 성공. 이후 문서 갱신 커밋의 최신 검사는 PR Checks에서 확인 |
-| Issue 자동 배정·일정 승인 | 워크플로·양식·처리 코드 작성, 27개 로컬 동작 시험 통과. 원격 미실행 |
-| 팀원 설정 | 4명 연결, 분야 general. 팀장 Admin, 나머지 3명 초대 수락·Write 권한 확인. 대기 중 초대 없음 |
-| GitHub Projects·외부 일정 동기화 | 미구성. Issue 라벨·봇 댓글을 기준으로 운영하도록 준비 |
-| 필수 CI 상태 검사 | `repository-checks` 적용 완료. GitHub Actions가 보고한 검사만 인정하고 최신 main 반영 요구 |
-| Codex 자동 PR 리뷰 | 미설정·연결 상태 미확인 |
+| 운영 현황 댓글·분류 라벨·최초 마감·임박 안내 | [Issue #2](https://github.com/suuuhululu/C-2/issues/2)에서 생성됨 |
+| 기존 담당자 유지 | #2는 처음부터 `suuuhululu`가 지정되어 있었음. 미배정 작업 자동 분배를 원격 검증한 사례는 아님 |
+| 검토 상태 명령 | 한 줄짜리 `/team review`로 `todo → review` 반영. [봇 응답](https://github.com/suuuhululu/C-2/issues/2#issuecomment-5691224662) |
+| 종료 상태 반영 | PR #3 병합으로 #2가 닫힌 뒤 봇이 `done`과 일정 라벨을 정리. [실행 결과](https://github.com/suuuhululu/C-2/actions/runs/35059330474) |
+| 아직 원격 연습이 필요한 동작 | 미배정 자동 분배, 시작·막힘·재열기, 일정 변경 요청과 팀장 승인·반려. 로컬 시험 통과와 구분 |
 
-### 저장한 서버 규칙
+상태 명령에 설명·PR 링크를 같은 댓글로 붙이면 거절된다. `/team start`, `/team review`, `/team todo`는 **명령만 적은 별도 댓글**로 작성한다. 결과 설명과 링크는 다른 댓글에 남긴다. [자동화 사용법](ISSUE_AUTOMATION.md).
 
-[main-pr-only 설정](https://github.com/suuuhululu/C-2/settings/rules/23389654)에서 2026-09-15 다음 값을 저장·확인했다.
+## 팀·환경·구현 상태
 
-- 이름 `main-pr-only`, Enforcement `Active`, 대상 `refs/heads/main`.
-- PR 필수, 동료 승인 1명, 새 커밋 시 기존 승인 무효화, 검토 대화 해결 필수.
-- 브랜치 삭제·강제 push 차단, 우회 대상 없음.
-- 생성 제한·업데이트 전체 제한·Code Owners 승인은 설정하지 않음.
-- 2026-09-16 필수 상태 검사 `repository-checks` 추가. 출처는 GitHub Actions 앱(ID 15368), 최신 main 반영 요구. 기존 PR 승인·삭제·강제 push 차단 규칙은 모두 유지.
+- 팀 계정 4명은 `.github/team.json`에 활성·`general`로 등록되어 있다. 담당 분야는 아직 미정이다. 팀장 Admin, 나머지 세 명의 초대 수락·Write 권한은 9/16 확인 기록이며 이번에는 권한 변경을 하지 않았다.
+- 공용 MSI Ubuntu: 사용자가 Docker 에뮬레이터를 통한 가상 로봇 동작을 보고했다. 정확한 소스 커밋·설치 버전·로컬 수정 여부는 확인 대기다.
+- 이시율 PC: Ubuntu 24.04·Jazzy, `cobot_rg2` 커밋 `4d5657f36a160eedb533ab1c975cd8a30c3e53b2`, dsr_emulator 3.0.1, 35개 패키지 빌드·가상 로봇 이동 성공을 [팀원이 보고](https://github.com/suuuhululu/C-2/issues/2#issuecomment-5691159901)했다. 문서 작성자가 직접 수행한 시험이나 팀 전체의 버전 확정은 아니다.
+- Mac은 편집·Git 관리에 사용한다. 이 작업에서 ROS·Docker·시뮬레이터를 설치하거나 로봇을 구동하지 않았다. 환경별 자세한 기록은 [DEPENDENCIES.md](DEPENDENCIES.md)를 따른다.
+- C-2에는 팀 ROS 패키지·서버·화면 구현이 아직 없고 기획·검증 양식이 준비되어 있다. 서비스 주제·공작물·성공 기준·역할은 [프로젝트 계획](../ws_cobot_pjt/docs/PROJECT_PLAN.md)에서 확정해야 한다.
+- 실제 그리퍼·제어기·배선과 실기 동작은 확인 대기다. 가상 이동과 PR 병합을 실제 파지·공정 완료로 표현하지 않는다.
+- GitHub Projects·외부 캘린더 동기화와 AI 자동 PR 리뷰는 이 작업에서 구성한 기록이 없다. 연결 상태는 별도 확인이 필요하며, 현재 자동화의 기준은 Issue 라벨과 봇 댓글이다.
 
-2026-09-16 사용자 요청으로 기준 커밋에서 GitHub API를 통해 main을 생성하고 기본 브랜치를 지정했다. 로컬 hook이나 서버 규칙을 변경·우회하지 않았다. main의 protected 상태와 기존 규칙 유지, 우회 대상 없음, 동료 승인 수 1을 다시 확인했다. 실제 main push를 시도하는 시험은 수행하지 않았다.
+## 다음에 할 일
 
-이 문서와 서버 설정은 자동 동기화되지 않는다. 설정을 변경하면 상태 기록도 갱신한다. 로컬 hook은 이 clone의 push를 추가로 막으며 다른 팀원은 각 clone에서 설치해야 한다.
-
-### 수행한 검사
-
-```sh
-python3 tools/check_repository.py
-python3 tools/test_git_hooks.py
-python3 tools/issue_manager.py
-python3 tools/test_issue_manager.py
-sh -n .githooks/pre-push
-sh -n tools/setup-git-hooks.sh
-```
-
-hook 시험: main 갱신·다른 출발점에서 main 갱신·최초 main 생성·main 삭제·여러 참조 중 main 포함을 차단하고, 작업 브랜치·동명의 태그·변경 없음은 허용한다. 이 결과는 로컬 hook의 동작 확인이며 GitHub의 실제 push 거절 시험은 아니다.
-
-Issue 시험: 담당자 분배·한도·기존 배정 유지·실제 권한 필터, 팀장 승인·반려·과거 요청 거절, 한국 날짜 기준 임박·지연, 반복 실행·중복 댓글 방지·실패 후 복구, 외부 사용자 명령 차단, 실기 Issue 자동 종료 방지를 모의 GitHub 환경에서 확인했다. 실제 GitHub Issue 생성·변경 시험은 첫 PR 병합 후 진행해야 한다.
-
-GitHub 계정 suuuhululu, gimseeun, roh4195, sskywalker1209-prog의 저장소 권한을 인증된 API로 확인했다. 전달받은 이메일과 토큰은 저장소 파일에 넣지 않았다.
-
-## 검토할 결정
-
-- 강사 구조에 맞춘 ros2_ws·ws_cobot_pjt 구분과 메인의 ws_dsr·ws_cobot1 구성.
-- 실제 팀원·검토자, 최소 승인 1명 운영.
-- 미정인 그리퍼·제어기와 실행 PC의 설치 버전. 사용자는 공용 MSI Ubuntu에서 별도 설치 중이라고 확인했으며, 해당 PC의 설치·구동 상태는 이 작업에서 검증하지 않았다.
-- 첫 PR의 동료 승인과 병합, 이후 연습 Issue 원격 검증.
-- 별도 AI 자동 리뷰 연결 여부와 활성화할 시점.
-- 자동 배정 한도(열린 Issue 2개·진행 1개), 평일 18:40 점검, 팀장 승인 방식.
-
-새 자동화는 [Issue 운영 문서](ISSUE_AUTOMATION.md), 팀장·팀원 역할은 [팀장 가이드](TEAM_LEAD_GUIDE.md)와 [팀원 시작 가이드](TEAM_ONBOARDING.md)를 검토한다. 협업자 권한 확인은 끝났으며, 동료 승인·main 병합·연습 Issue 원격 검증이 남아 있다. 승인 조건을 없애거나 AI가 동료 대신 승인하지 않는다.
-
-초기화 제약과 일상 작업 순서는 [Git 가이드](GIT_GUIDE.md)를 확인한다.
-
-## 2026-09-16 폴더 구조 변경
-
-기존 실습·기획·검증 문서를 새 경로로 옮기고 메인에 backend/app·frontend/src/public·docker·DartPlatform·ws_cobot1/doc·ws_dsr/src를 준비했다. 설치물·생성 파일의 Git 제외 규칙과 경로 안내도 갱신하고 작업 브랜치에 게시했다. 이 GitHub 초기 구성 작업에는 강사 소스·Dart·웹 프레임워크 설치가 포함되지 않는다. [환경·공유 안내](WORKSPACES.md)와 [외부 소스 기록](DEPENDENCIES.md)을 따른다.
+1. 로컬 폴더 정리와 문서 변경을 검토하고 별도 PR로 공유한다.
+2. 팀원이 연습용 Issue로 미배정 자동 분배 → 시작 → 일정 요청·승인 → 검토 → 종료를 확인하고 실제 결과를 기록한다.
+3. 프로젝트 주제·최소 시연 기능·성공 기준과 담당자·검토자를 정하고 구현 Issue를 만든다.
+4. 공용 MSI의 실제 소스 버전과 수정 여부를 기록한다. 동작 중인 설치를 이번 문서 정리 때문에 재설치하지 않는다.
+5. 제안된 `setup_host.sh`와 `setup_and_run.md`는 아직 C-2에 없다. 팀원이 제공하면 설치 스크립트와 실행 문서를 별도 PR로 검토한다.

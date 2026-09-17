@@ -1,27 +1,26 @@
 # 외부 패키지·설치물 기록
 
-2026-09-16 기준. 외부 실행환경은 각 PC에 설치하고 C-2에는 출처·버전·재현 방법을 기록한다. 같은 폴더 이름이나 같은 날짜에 받은 소스가 같은 버전을 보장하지 않으므로 정확한 커밋을 확인한다.
+2026-09-17 기록 정리. 설치·동작 보고는 아래에 명시한 9/16 사용자·팀원 보고를 기준으로 하며 이번에 장비 시험을 추가 수행하지 않았다. 외부 실행환경은 실행 PC에 설치하고 C-2에는 출처·버전·재현 방법을 기록한다. 같은 폴더 이름이나 같은 날짜에 받은 소스가 같은 버전을 보장하지 않으므로 정확한 커밋을 확인한다.
 
 | 대상 | 위치 | 확인 상태 |
 | --- | --- | --- |
-| 강사 두산 교육 패키지 | ros2_ws/src/DoosanBootcamInt1 | 폴더명·패키지 목록만 제공. 원본 URL·브랜치·커밋·Jazzy 호환성 미확인 |
-| 강사 그리퍼 패키지 | ros2_ws/src/onrobot_rg2 | 이름만 제공. 출처·버전·실제 장비 대응 미확인 |
-| 메인 로봇·그리퍼 환경 | ws_cobot_pjt/ws_dsr/src | 수업 지정 [ahnisinc/cobot_rg2](https://github.com/ahnisinc/cobot_rg2). 폴더 전체 Git 제외. 팀 실사용 커밋·로컬 수정 여부는 확인 대기 |
+| 메인 로봇·그리퍼 환경 | ws_cobot_pjt/ws_dsr/src | 수업 지정 [ahnisinc/cobot_rg2](https://github.com/ahnisinc/cobot_rg2). 폴더 전체 Git 제외는 PR #3 병합 완료. 이시율 PC의 커밋·수정 여부 보고 확보, 공용 MSI와 팀 공통 고정 버전은 확인 대기 |
 | 공식 두산 참고 소스 | 대상 src 아래 doosan-robot2 | 공식 Jazzy 소스 확인. 강사 수정본과 동일한 것으로 취급하지 않음 |
 | Dart Platform | ws_cobot_pjt/DartPlatform | 교육 자료의 2.12.1 표기. 실제 배포 파일·OS·설치본은 확인 필요 |
-| Backend·Frontend·Docker | ws_cobot_pjt의 각 폴더 | 프레임워크·의존성·이미지 미정 |
+| Backend·Frontend·팀 컨테이너 구성 | ws_cobot_pjt의 각 폴더 | 팀 앱 프레임워크·의존성·Dockerfile·Compose 미정 |
+| 외부 Docker 에뮬레이터 | 각 실행 PC의 설치 위치 | MSI에서 가상 동작 보고. 이시율 PC의 dsr_emulator 3.0.1 보고는 아래 표 참조 |
 
 상위 개인 프로젝트의 doosan은 [공식 저장소](https://github.com/DoosanRobotics/doosan-robot2/tree/jazzy)의 jazzy 브랜치다. 2026-09-16 로컬 커밋 `8e033f0e2284be0a25b655266e02878ebc915c50`을 재확인했다. 이번 작업에서는 이동·복사하지 않았다. 강사 수정본의 dsr_rokey 같은 패키지를 공식 원본이 제공한다고 가정하지 않는다.
 
 ## 설치·공유 규칙
 
-- 같은 워크스페이스에 DoosanBootcamInt1과 doosan-robot2의 중복 dsr 패키지를 함께 넣지 않는다. 사용할 원본을 먼저 정한다.
-- `ws_cobot_pjt/ws_dsr/src/` 전체는 외부 원본 전용이며 Git에서 제외한다. 내부 폴더 이름에 관계없이 같은 규칙을 적용한다. 수업용 `ros2_ws/src`는 기존에 지정한 외부 원본 폴더만 제외한다.
+- 같은 워크스페이스에 서로 다른 원본의 dsr 패키지를 중복으로 넣지 않는다. 사용할 원본을 먼저 정한다.
+- `ws_cobot_pjt/ws_dsr/src/` 전체는 외부 원본 전용이며 Git에서 제외한다. 내부 폴더 이름에 관계없이 같은 규칙을 적용한다.
 - 팀이 만드는 메인 ROS 패키지·launch 파일은 `ws_cobot_pjt/ws_cobot1/src`에 둔다. `ws_dsr/src` 안의 팀 코드는 C-2에 공유되지 않는다. 설치 스크립트·실행 문서는 각각 `ws_cobot_pjt/docker`, `ws_cobot_pjt/ws_cobot1/doc`에서 별도 PR로 검토한다.
 - 실제 그리퍼 모델·강사 소스 출처를 확인하기 전 다른 드라이버 저장소를 임의로 선택하지 않는다.
 - 외부 원본을 수정해야 하면 수정·배포·버전 고정 방법을 먼저 PR에서 합의한다.
 - Dart 설치 파일·로그 대신 배포 위치·설치 버전·재현 절차를 공유한다.
-- 이전 초안의 vendor_ws 제안은 ws_dsr로 대체했다. 아직 이동할 공급자 소스는 없었다.
+- Mac은 편집·Git 관리용이며 외부 실행환경을 설치하지 않는다. 공용 MSI 등 이미 동작하는 실행 PC는 설치를 유지한다.
 
 ## 수업 지정 cobot_rg2
 

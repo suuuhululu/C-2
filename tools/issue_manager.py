@@ -17,7 +17,7 @@ from zoneinfo import ZoneInfo
 
 
 ROOT = Path(__file__).resolve().parents[1]
-AREAS = {"mini", "main", "common"}
+AREAS = {"main", "common"}
 ROLES = {"general", "ros", "robot", "gripper", "hmi", "validation"}
 KINDS = {"implementation", "bug", "docs", "hardware-validation"}
 STATUSES = {"todo", "doing", "review", "blocked", "done"}
