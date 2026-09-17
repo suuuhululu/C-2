@@ -27,6 +27,8 @@
 
 ## 기술 기록 규칙
 
+2026-09-17 음각 서비스 문서화에는 사용자 대화, 개인 작업 폴더의 이전 오프라인 검증 기록, 두산 공식 DRL·모션·힘 서비스 및 ROS 공식 Jazzy 설치·RViz 문서를 반영했다. [시스템 아키텍처](../ws_cobot_pjt/docs/SYSTEM_ARCHITECTURE.md)와 [알고리즘 검증 보고서](../ws_cobot_pjt/docs/ALGORITHM_VALIDATION.md)에 직접 근거와 검증 한계를 연결했다. 이번 GitHub 게시 작업은 기록 정리이며 실기나 알고리즘 성능 시험을 새로 수행한 것은 아니다.
+
 API를 기록할 때 `제어 계층 / 문서 버전 / 설치본 버전 / 함수·타입 / 단위·좌표계 / 반환·완료 판단 / 원문 절 / 확인 날짜`를 함께 적는다.
 
 예를 들어 ROS 2 `MoveJoint`와 DRL `movej()`의 문법을 서로 복사하지 않는다. Jazzy 서비스 소스 경로는 `dsr_msgs2/srv/MoveJoint.srv`이며 Humble의 이전 경로를 기준으로 안내하지 않는다.

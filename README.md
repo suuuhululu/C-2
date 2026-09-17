@@ -1,6 +1,17 @@
 # C-2 협동로봇 프로젝트
 
-두산 M0609와 2점 그리퍼를 사용하는 교육·팀 프로젝트 저장소입니다. ROS 2 기준은 **Jazzy**입니다.
+두산 M0609와 2점 그리퍼를 사용하는 교육·팀 프로젝트 저장소입니다. 현재 서비스 방향은 **고객 도안을 원기둥 표면에 새기는 맞춤 음각**이며 ROS 2 기준은 **Jazzy**입니다.
+
+## 음각 프로젝트 문서
+
+- [서비스 목표·기능별 구현 상태](ws_cobot_pjt/docs/PROJECT_PLAN.md)
+- [전체 기능 흐름: 가공·세척·오류 처리](ws_cobot_pjt/docs/SERVICE_FLOW.md)
+- [시스템 아키텍처: PC·웹앱·모니터·ROS 역할](ws_cobot_pjt/docs/SYSTEM_ARCHITECTURE.md)
+- [알고리즘 적용과 세 차례 오프라인 검증](ws_cobot_pjt/docs/ALGORITHM_VALIDATION.md)
+- [실험과 정량 기록 계획](ws_cobot_pjt/docs/EXPERIMENT_PLAN.md)
+- [현장 설정과 DRL 초안의 확인 범위](ws_cobot_pjt/docs/HARDWARE_STATUS.md)
+
+이 문서들은 사용자와의 기획·설계 및 기존 오프라인 결과를 공유한 것입니다. 원기둥 실기, 자동 파지·세척·반납, 웹앱·상태 모니터가 구현·검증됐다는 의미는 아닙니다.
 
 ## 먼저 읽기
 
@@ -18,7 +29,7 @@
 
 2026-09-17 확인: 초기 구성 [PR #1](https://github.com/suuuhululu/C-2/pull/1)과 외부 실행환경 제외 [PR #3](https://github.com/suuuhululu/C-2/pull/3)은 동료 승인 후 main에 병합됐습니다. [Issue #2](https://github.com/suuuhululu/C-2/issues/2)도 종료됐고, Issue 자동화가 실제 실행 중입니다.
 
-아래 메인 중심 구조와 양식 정리는 현재 `chore/remove-mini-workspace`의 로컬 변경이며 아직 커밋·push·PR 전입니다. 팀원은 병합 전까지 원격 main과 로컬 안내가 다를 수 있음을 확인하세요. 완료된 일과 남은 검증은 [진행 현황](docs/REVIEW_STATUS.md)에 모았습니다.
+메인 중심 구조와 양식 정리는 `chore/remove-mini-workspace`에서 커밋했고, 음각 설계 문서를 같은 작업 브랜치에 정리했습니다. 게시·PR·병합 상태는 [진행 현황](docs/REVIEW_STATUS.md)을 확인하세요. 작업 브랜치의 내용과 병합 전 원격 main을 구분합니다.
 
 ## 폴더 구조
 

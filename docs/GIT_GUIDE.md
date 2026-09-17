@@ -14,7 +14,7 @@ Issue 등록은 [작업 양식](../.github/ISSUE_TEMPLATE/task.yml)을 사용한
 
 팀원 `gimseeun`, `roh4195`, `sskywalker1209-prog`의 초대 수락·Write 권한은 2026-09-16에 확인했다. 초기화를 다시 하거나 작업 브랜치 이름을 main으로 바꾸지 않는다.
 
-2026-09-17 현재 `chore/remove-mini-workspace`의 폴더·양식 정리와 문서 갱신은 로컬 검토 중이다. 아직 commit·push·PR을 하지 않았으며 원격 반영 여부와 검사 근거는 [진행 현황](REVIEW_STATUS.md)을 확인한다.
+2026-09-17 사용자의 게시 요청에 따라 `chore/remove-mini-workspace`의 기존 폴더·양식 정리를 커밋하고 음각 설계 문서를 추가했다. 현재 push·PR·병합 상태와 검사 근거는 [진행 현황](REVIEW_STATUS.md)을 확인한다.
 
 로컬 hook은 최초 main 생성 push도 차단한다. 이후에는 main 직접 push 없이 작업 브랜치와 PR을 사용하며, hook이나 서버 규칙을 우회하지 않는다.
 

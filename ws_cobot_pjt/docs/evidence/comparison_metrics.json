@@ -1,0 +1,170 @@
+{
+  "scope": "Saved offline experiments reconciled; no new robot, native DRL or timing trial.",
+  "three_round_definition": [
+    "ornament raster extraction and original ordering",
+    "physical cylinder size and footprint study",
+    "graph cleanup, anchored Bezier, de Casteljau and vpype ordering"
+  ],
+  "flower_preliminary": {
+    "baseline_travel_mm": 939.9201225719587,
+    "greedy_travel_mm": 589.9617210067888,
+    "optimized_travel_mm": 464.45401943083493,
+    "travel_definition": "XY only, including start and return to design origin",
+    "directions_reversed": false,
+    "first_id": "main-stem",
+    "stroke_count": 50,
+    "point_count": 1077,
+    "cut_length_mm": 1152.9284611351015
+  },
+  "first_run": {
+    "baseline_travel_mm": 19971.06505087726,
+    "greedy_travel_mm": 3396.3446767298788,
+    "optimized_travel_mm": 3269.4911924826038,
+    "travel_definition": "XY only, including start and return to design origin",
+    "directions_reversed": false,
+    "first_id": null,
+    "stroke_count": 4279,
+    "point_count": 15346,
+    "cut_length_mm": 3828.711993743487
+  },
+  "first_rdp_source_points": {
+    "before": 20825,
+    "after": 15330,
+    "absolute_reduction": 5495,
+    "reduction_percent": 26.386554621848738
+  },
+  "first_ordering": {
+    "before": 19971.06505087726,
+    "after": 3269.4911924826038,
+    "absolute_reduction": 16701.573858394655,
+    "reduction_percent": 83.62885913118096
+  },
+  "cylinder_run": {
+    "path_reduction_percent": 0,
+    "paths": 4279,
+    "height_mm": 180,
+    "width_mm": 100.36866359447004,
+    "cut_mm": 7241.029503374788
+  },
+  "normalization": {
+    "image_box_mm": [
+      114.0552995391705,
+      189.12442396313364
+    ],
+    "pattern_height_mm": 180,
+    "sampling_tolerance_mm": 0.05,
+    "maximum_step_mm": 1.0,
+    "origin": "bottom-left of full image box, Y up; identical for old/new",
+    "old_order": "preserved from first run; not optimized again"
+  },
+  "old_normalized": {
+    "paths": 4279,
+    "points": 16959,
+    "cut_mm": 7241.02950337478,
+    "travel_mm": 6118.644190753587
+  },
+  "clean_before_bezier_normalized": {
+    "paths": 1140,
+    "points": 15697,
+    "cut_mm": 6489.988265691512,
+    "travel_mm": 22097.15330657621
+  },
+  "reductions": {
+    "paths": {
+      "before": 4279,
+      "after": 1140,
+      "absolute_reduction": 3139,
+      "reduction_percent": 73.35826127599907
+    },
+    "final_points_vs_prior_rdp_pipeline": {
+      "before": 16959,
+      "after": 14857,
+      "absolute_reduction": 2102,
+      "reduction_percent": 12.394598738133144
+    },
+    "final_points_vs_raw_pixel_graph": {
+      "before": 20825,
+      "after": 14857,
+      "absolute_reduction": 5968,
+      "reduction_percent": 28.657863145258105
+    },
+    "points_clean_polyline_to_bezier_sample": {
+      "before": 15697,
+      "after": 14857,
+      "absolute_reduction": 840,
+      "reduction_percent": 5.3513410205771805
+    },
+    "prior_optimized_travel_to_new_optimized_travel": {
+      "before": 6118.644190753587,
+      "after": 1817.5371491244157,
+      "absolute_reduction": 4301.107041629171,
+      "reduction_percent": 70.2950998217701
+    },
+    "new_ordering_effect": {
+      "before": 22097.15330657621,
+      "after": 1817.5371491244157,
+      "absolute_reduction": 20279.616157451794,
+      "reduction_percent": 91.77479051754821
+    },
+    "new_greedy_to_two_opt_and_reversal": {
+      "before": 4775.12468996853,
+      "after": 1817.5371491244157,
+      "absolute_reduction": 2957.5875408441143,
+      "reduction_percent": 61.937388714840154
+    },
+    "cut_length_descriptive_not_all_efficiency": {
+      "before": 7241.02950337478,
+      "after": 6144.761984159044,
+      "absolute_reduction": 1096.2675192157358,
+      "reduction_percent": 15.139663755061425
+    }
+  },
+  "cleanup_steps": [
+    {
+      "step": "1px 구멍 정리",
+      "before": 4279,
+      "after": 2572,
+      "absolute_reduction": 1707,
+      "reduction_percent": 39.89249824725403,
+      "cumulative_reduction_percent": 39.89249824725403
+    },
+    {
+      "step": "분기점 묶음 정리",
+      "before": 2572,
+      "after": 2329,
+      "absolute_reduction": 243,
+      "reduction_percent": 9.447900466562986,
+      "cumulative_reduction_percent": 45.571395185791076
+    },
+    {
+      "step": "짧은 끝 가지 정리",
+      "before": 2329,
+      "after": 2285,
+      "absolute_reduction": 44,
+      "reduction_percent": 1.8892228424216402,
+      "cumulative_reduction_percent": 46.59967282075251
+    },
+    {
+      "step": "연속선 연결",
+      "before": 2285,
+      "after": 1140,
+      "absolute_reduction": 1145,
+      "reduction_percent": 50.10940919037199,
+      "cumulative_reduction_percent": 73.35826127599907
+    }
+  ],
+  "quality": {
+    "fit_to_cleaned_max_mm": 0.24060716990565675,
+    "sampling_max_mm": 0.03722388973327269,
+    "old_to_new_max_mm": 2.0748236475330697,
+    "pair_contacts_before": 2204,
+    "pair_contacts_after": 2204,
+    "new_pair_contacts": 0,
+    "lost_pair_contacts": 0,
+    "vpype_reversed_strokes": 591
+  },
+  "source_hashes": {
+    "outputs/ornament_engraving_validation/extracted.svg": "8be2cd3f04102ecaa14501a975636d687e94470153b22aec293405346e46572d",
+    "outputs/ornament_bezier_validation/fitted.svg": "7a0bceae42e8b5b331d86f39a82addf068d94fb0b3a60c6fa8f4211f33f58648"
+  }
+}
