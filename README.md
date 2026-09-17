@@ -4,6 +4,7 @@
 
 ## 음각 프로젝트 문서
 
+- [0917 개발 일지: 지점토 단위 실기·측정 기능·알고리즘 검토](ws_cobot_pjt/docs/daily/2026-09-17.md)
 - [서비스 목표·기능별 구현 상태](ws_cobot_pjt/docs/PROJECT_PLAN.md)
 - [전체 기능 흐름: 가공·세척·오류 처리](ws_cobot_pjt/docs/SERVICE_FLOW.md)
 - [시스템 아키텍처: PC·웹앱·모니터·ROS 역할](ws_cobot_pjt/docs/SYSTEM_ARCHITECTURE.md)
@@ -11,7 +12,7 @@
 - [실험과 정량 기록 계획](ws_cobot_pjt/docs/EXPERIMENT_PLAN.md)
 - [현장 설정과 DRL 초안의 확인 범위](ws_cobot_pjt/docs/HARDWARE_STATUS.md)
 
-이 문서들은 사용자와의 기획·설계 및 기존 오프라인 결과를 공유한 것입니다. 원기둥 실기, 자동 파지·세척·반납, 웹앱·상태 모니터가 구현·검증됐다는 의미는 아닙니다.
+2026-09-17 지점토 평면의 선분·정사각형·원·별 그리기 수행 보고와 시율의 사전 작업 기능 개발을 일지에 추가했습니다. 원기둥 실기, 자동 파지·세척·반납, 웹앱·상태 모니터의 통합 완료와는 구분합니다. 정량 측정값·시험 코드 버전의 확보 여부는 일지에 표시했습니다.
 
 ## 먼저 읽기
 
@@ -29,7 +30,7 @@
 
 2026-09-17 확인: 초기 구성 [PR #1](https://github.com/suuuhululu/C-2/pull/1)과 외부 실행환경 제외 [PR #3](https://github.com/suuuhululu/C-2/pull/3)은 동료 승인 후 main에 병합됐습니다. [Issue #2](https://github.com/suuuhululu/C-2/issues/2)도 종료됐고, Issue 자동화가 실제 실행 중입니다.
 
-메인 중심 구조와 양식 정리는 `chore/remove-mini-workspace`에서 커밋했고, 음각 설계 문서를 같은 작업 브랜치에 정리했습니다. 게시·PR·병합 상태는 [진행 현황](docs/REVIEW_STATUS.md)을 확인하세요. 작업 브랜치의 내용과 병합 전 원격 main을 구분합니다.
+메인 중심 구조와 음각 설계 문서는 [PR #4](https://github.com/suuuhululu/C-2/pull/4)로 9/17 main에 병합됐습니다. 추가 0917 일지는 `docs/0917-unit-function-log` 작업 브랜치에서 정리합니다. 게시·PR·병합 상태와 실기 확인 범위는 [진행 현황](docs/REVIEW_STATUS.md)을 확인하세요.
 
 ## 폴더 구조
 
