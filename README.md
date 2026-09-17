@@ -8,7 +8,8 @@
 - [서비스 목표·기능별 구현 상태](ws_cobot_pjt/docs/PROJECT_PLAN.md)
 - [전체 기능 흐름: 가공·세척·오류 처리](ws_cobot_pjt/docs/SERVICE_FLOW.md)
 - [시스템 아키텍처: PC·웹앱·모니터·ROS 역할](ws_cobot_pjt/docs/SYSTEM_ARCHITECTURE.md)
-- [알고리즘 적용과 세 차례 오프라인 검증](ws_cobot_pjt/docs/ALGORITHM_VALIDATION.md)
+- [기존 중심선·가공 경로의 세 차례 오프라인 검증](ws_cobot_pjt/docs/ALGORITHM_VALIDATION.md)
+- [PNG·JPEG → SVG 비교와 Potrace 선택: 영역·굵기 보존](ws_cobot_pjt/docs/SVG_VECTORIZATION_VALIDATION.md)
 - [실험과 정량 기록 계획](ws_cobot_pjt/docs/EXPERIMENT_PLAN.md)
 - [현장 설정과 DRL 초안의 확인 범위](ws_cobot_pjt/docs/HARDWARE_STATUS.md)
 
