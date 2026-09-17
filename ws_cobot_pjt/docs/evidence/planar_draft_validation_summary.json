@@ -1,0 +1,24 @@
+{
+  "source_job_sha256": "832858e5242da07f01a3a0399551b871f17cc30d636df99ccd351d5e369fbffb",
+  "output_sha256": "2f72d591ff855c2609e8e8e21b951624fbc2054b9ffcd69c7b23c5bcfc3215bf",
+  "output_bytes": 613029,
+  "stroke_count": 1140,
+  "point_count": 14857,
+  "source_coordinates_preserved": true,
+  "default_disabled_check": {
+    "motion_call_count": 0,
+    "tool_selection_count": 0,
+    "status": "DISABLED"
+  },
+  "enabled_but_missing_settings_check": {
+    "motion_call_count": 0,
+    "tool_selection_count": 0,
+    "status": "UNCONFIGURED"
+  },
+  "verification": "Python substitute only; not native DRL",
+  "native_drl_verified": false,
+  "robot_connection_or_motion": false,
+  "real_workpiece_dimensions_confirmed": false,
+  "robot_ready": false,
+  "scope": "Historical planar draft checks only; public summary omits local equipment settings. No new robot test in this documentation update."
+}

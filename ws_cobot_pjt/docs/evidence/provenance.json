@@ -1,0 +1,18 @@
+{
+  "recorded_on": "2026-09-17",
+  "scope": "Selected prior offline artifacts copied for documentation; not a full runnable experiment package.",
+  "files": [
+    {
+      "file": "comparison_metrics.json",
+      "source_artifact": "outputs/engraving_three_stage_report/comparison_metrics.json",
+      "sha256": "add327376492d596e3c7a50c40b15bde56bb51088989b70b8215a1c6fa71a7d4",
+      "bytes": 5303
+    },
+    {
+      "file": "efficiency_summary.png",
+      "source_artifact": "outputs/engraving_three_stage_report/efficiency_summary.png",
+      "sha256": "643f736bb263b6f8299fe0ad103c34b37cd3bfdf6355d3a38083599da3abe254",
+      "bytes": 78483
+    }
+  ]
+}
