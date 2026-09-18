@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="400" height="400">
+<!-- 지점토 도안: 꽃. 각 path 가 송곳 한 획(내려서 긋고 올림). 단위는 상대값, 노드 4 가 지점토 짧은 변 비율로 맞춘다. -->
+<rect width="100" height="100" fill="white"/>
+<path id="petal1" d="M 50.00 33.00 C 41.00 27.00 43.00 18.00 50.00 14.00 C 57.00 18.00 59.00 27.00 50.00 33.00 Z" fill="none" stroke="#333" stroke-width="0.8" stroke-linecap="round"/>
+<path id="petal2" d="M 43.94 36.50 C 34.24 41.29 27.45 35.06 27.48 27.00 C 34.45 22.94 43.24 25.71 43.94 36.50 Z" fill="none" stroke="#333" stroke-width="0.8" stroke-linecap="round"/>
+<path id="petal3" d="M 43.94 43.50 C 43.24 54.29 34.45 57.06 27.48 53.00 C 27.45 44.94 34.24 38.71 43.94 43.50 Z" fill="none" stroke="#333" stroke-width="0.8" stroke-linecap="round"/>
+<path id="petal4" d="M 50.00 47.00 C 59.00 53.00 57.00 62.00 50.00 66.00 C 43.00 62.00 41.00 53.00 50.00 47.00 Z" fill="none" stroke="#333" stroke-width="0.8" stroke-linecap="round"/>
+<path id="petal5" d="M 56.06 43.50 C 65.76 38.71 72.55 44.94 72.52 53.00 C 65.55 57.06 56.76 54.29 56.06 43.50 Z" fill="none" stroke="#333" stroke-width="0.8" stroke-linecap="round"/>
+<path id="petal6" d="M 56.06 36.50 C 56.76 25.71 65.55 22.94 72.52 27.00 C 72.55 35.06 65.76 41.29 56.06 36.50 Z" fill="none" stroke="#333" stroke-width="0.8" stroke-linecap="round"/>
+<path id="center" d="M 56.50 40.00 C 56.50 43.59 53.59 46.50 50.00 46.50 C 46.41 46.50 43.50 43.59 43.50 40.00 C 43.50 36.41 46.41 33.50 50.00 33.50 C 53.59 33.50 56.50 36.41 56.50 40.00 Z" fill="none" stroke="#333" stroke-width="0.8" stroke-linecap="round"/>
+<path id="stem" d="M 50.00 47.00 C 51.50 60.00 48.50 74.00 50.00 90.00" fill="none" stroke="#333" stroke-width="0.8" stroke-linecap="round"/>
+<path id="leaf-left" d="M 49.20 70.00 C 42.00 66.00 33.00 68.00 30.00 74.00 C 36.00 77.00 45.00 76.00 49.20 70.00 Z" fill="none" stroke="#333" stroke-width="0.8" stroke-linecap="round"/>
+<path id="leaf-right" d="M 50.80 78.00 C 58.00 74.00 67.00 76.00 70.00 82.00 C 64.00 85.00 55.00 84.00 50.80 78.00 Z" fill="none" stroke="#333" stroke-width="0.8" stroke-linecap="round"/>
+</svg>
