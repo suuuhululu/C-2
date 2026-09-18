@@ -4,7 +4,7 @@
 
 팀에서 개발할 노드는 `monitor_gateway_node`, `path_planner_node`, `process_controller_node`의 3개다. ROS 패키지는 공통 인터페이스 `c2_interfaces`와 기능 패키지 `c2_path`, `c2_process`의 3개다. 모니터 노드는 백엔드에 개발할 ROS 연결 모듈에 둔다. 두산 및 필요한 장치 공급자 드라이버는 팀 노드 수와 별개다.
 
-아래는 **구현 목표 디렉토리**다. 현재 저장소에 있는 `clay_carving`·`clay_hmi`를 수정하거나 이 3개 패키지를 생성한 상태는 아니다. 기존 패키지 실행 방법은 [clay_run.md](../ws_cobot1/doc/clay_run.md), 기존 구현과 새 계약의 관계는 [팀 인터페이스 안내](INTERFACE_GUIDE.md)를 참고한다. 9/17 [시스템 아키텍처](SYSTEM_ARCHITECTURE.md)의 고객 웹앱을 포함한 기능 배치는 이번 축소 설계로 갱신한다.
+아래는 **구현 목표 디렉토리와 파일**이다. 세 패키지의 [개발 폴더](../ws_cobot1/src/README.md)는 README·`.gitkeep`으로 준비했으며, 아래의 빌드 설정·Python 모듈·메시지·설정 파일은 아직 구현 대상이다. 폴더가 있다는 이유로 빌드·실행 가능한 ROS 패키지로 취급하지 않는다. 기존 `clay_carving`·`clay_hmi`는 변경하지 않았다. 기존 실행 방법은 [clay_run.md](../ws_cobot1/doc/clay_run.md), 기존 구현과 새 계약의 관계는 [팀 인터페이스 안내](INTERFACE_GUIDE.md)를 참고한다. 9/17 [시스템 아키텍처](SYSTEM_ARCHITECTURE.md)의 고객 웹앱을 포함한 기능 배치는 이번 축소 설계로 갱신한다.
 
 ## 디렉토리
 
