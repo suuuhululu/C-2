@@ -78,3 +78,13 @@ bag 기록: `.bashrc` 의 `sodbag <접두어>` 함수 (`/dsr01/joint_states /dsr
 - 옆면(기둥·원통) 그리기와 원통 스캔은 HMI 설정·미리보기만 있고 로봇 동작은 미구현.
 - 상태 파일 경로와 HMI 의 브링업 주소(192.168.1.100)가 코드에 고정.
 - 실기 검증 기록: 노드 1~4 는 2026-09-17 완주 (`bag_full_0917_1742`, `bag_full_0917_1758`, 도안 `bag_draw_0917_1939`). HMI 연동 실기는 미수행.
+
+## 9/18 추가 옵션 (양초 등 높은 물체)
+
+- `clay_scan2 --lift <mm>`: 홈 관절로 가지 않고 직선 상승 뒤 '올린 홈'으로. 물체가 홈 손끝보다 높을 때 필수.
+- `clay_scan2 --from-here`: 지금 자세에서 기울이고 바로 시작. `--top-z <mm>` 로 윗면을 주면 중심 하강 생략.
+- `clay_scan2 --cylinder`: X 현 3개로 축·반지름. `--no-stand --height <mm>` 로 받침대 탐색 생략.
+- `clay_scan2 --upright --diameter <mm>`: 45° 기울임 없이 그리퍼를 세운 지금 자세에서 옆면부터. 지름을 주면 손끝 폭을 자동 보정. 중심 y 는 못 구함 (LESSONS L6).
+  예: `ros2 run clay_carving clay_scan2 --upright --cylinder --top-z 204.4 --side-depth 15 --no-stand --height 150 --diameter 68 --start-now`
+- `force_probe <cx> <cy> <z_top> --no-home`: 홈으로 가지 않고 지금 자세에서 올라가 중심 위로 (눕힌 홈 방향 유지).
+- 옆면 측정·조각 보조 스크립트: `src/clay_carving/scripts/README.md`.

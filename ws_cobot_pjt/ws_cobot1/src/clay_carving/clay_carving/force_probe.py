@@ -38,10 +38,18 @@ def main(args=None):
             log.error("No clay data on /clay/data; run clay_scan first"); return
     rb = Robot(node, "force_probe")
     posx = rb.posx
+    no_home = "--no-home" in sys.argv       # 물체가 홈 손끝보다 높을 때: 홈 관절로 가지 않고 지금 자세에서 위로 올라가 중심 위로 (9/18 양초)
     try:
-        rb.go_home()
-        home = rb.posx_now()
-        A, B, C = home[3], home[4], home[5]
+        if no_home:
+            from clay_carving.clay_common import HOME_TCP_XY
+            home = rb.posx_now()
+            A, B, C = 90.3, 88.6, 90.9        # 홈 자세의 방향 (툴 -Y = 아래)
+            log.info(f"--no-home: 지금 자세 {[round(v, 1) for v in home[:3]]} 에서 시작, 홈 방향 (A,B,C)=({A},{B},{C})")
+            _ = HOME_TCP_XY
+        else:
+            rb.go_home()
+            home = rb.posx_now()
+            A, B, C = home[3], home[4], home[5]
         cx, cy, z_top = clay["cx"], clay["cy"], clay["z_top"]
         # z_top = 1번 노드가 잰 실제 윗면 높이(패드 접촉점). 홈 자세에서 TCP 는 패드보다 60 mm 아래이고 송곳 끝은 패드에서
         # L 아래이므로, 송곳 끝이 표면에 닿을 때 TCP = z_top - 60 + L. L 은 모르니 AWL_MAX 기준으로 출발 높이를 잡는다.
@@ -50,7 +58,7 @@ def main(args=None):
                  f"start z={travel_z:.1f} (home z={home[2]:.1f})")
         if travel_z > home[2]:
             rb.lift_straight_up(travel_z - home[2])
-        rb.movel(posx(cx, cy, travel_z, A, B, C))
+        rb.movel(posx(cx, cy, travel_z, A, B, C), vel=[15.0, 10.0], acc=[20.0, 10.0])
         # 앞 FAST_MM 은 빠르게(접촉 예상 높이보다 START_ABOVE-FAST_MM 위까지), 그 뒤 저속
         z_floor = z_top - TCP_Y_OFF + FLOOR_ABOVE       # 패드가 윗면 FLOOR_ABOVE 위에 올 때의 TCP 높이 (송곳 없어도 안 닿게)
         probe_travel = travel_z - z_floor
