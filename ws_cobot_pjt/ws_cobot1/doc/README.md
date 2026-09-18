@@ -2,6 +2,8 @@
 
 `ws_cobot1/src/`는 팀 공정·노드·launch 패키지 위치다. `ws_dsr`의 로봇·그리퍼 실행환경을 준비한 뒤 사용하는 별도 워크스페이스다. 2026-09-18 기준 팀 패키지는 `clay_carving`(지점토 조각 노드 1~4)과 `clay_hmi`(PyQt5 관리자 HMI)이며(PR #7), 빌드·실행 절차는 [clay_run.md](clay_run.md)에 있다.
 
+시스템 모니터·좌표 생성·공정 제어의 3개 노드로 정리한 구현 목표는 [팀 인터페이스 안내](../../docs/INTERFACE_GUIDE.md), [디렉토리·파일 역할](../../docs/SYSTEM_STRUCTURE.md), [상세 통신 계약](../../docs/INTERFACE_RECOMMENDATION.md)을 따른다. 이 문서 변경으로 기존 패키지를 이동·변경하거나 `/c2/*` 인터페이스를 구현한 것은 아니다. 새 실행 절차는 해당 구현과 검증 후 추가한다.
+
 외부 환경의 빌드·가상 이동 보고는 [의존성 기록](../../../docs/DEPENDENCIES.md)에 있다. 이시율이 공유를 제안한 `setup_and_run.md`는 아직 저장소에 없으며 제공 후 별도 PR로 검토한다.
 
 빌드·환경 적용 순서는 [공통 환경 가이드](../../../docs/WORKSPACES.md)를 따른다. 실제 실행 코드가 생기면 이 문서에 다음 항목을 채운다.
