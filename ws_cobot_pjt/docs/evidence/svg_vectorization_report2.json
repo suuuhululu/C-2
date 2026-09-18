@@ -1,0 +1,177 @@
+{
+  "record_type": "transcribed_from_report_not_raw_experiment_output",
+  "activity_date": "2026-09-17",
+  "source_page": "https://app.notion.com/p/2-3de521181139800794d4e7e595a127b0",
+  "attachment_name": "검증보고서.md",
+  "attachment_sha256": "2f00465e8c0718487c2a0ac203ef5d2b30f3caa7af9cfc3662daa068c82beb04",
+  "verification_scope": "Read source Markdown and Notion summary; no experiment rerun, robot execution, raw metrics or image reinspection in this documentation change.",
+  "selected": {
+    "engine": "Potrace",
+    "version": "1.16",
+    "options": {
+      "turdsize": 0,
+      "alphamax": 0.85,
+      "opttolerance": 0.1,
+      "turnpolicy": "black",
+      "unit": 100
+    },
+    "input_upscale": 1
+  },
+  "scope": {
+    "unique_designs": 4,
+    "base_runs": 48,
+    "potrace_sensitivity_runs": 16,
+    "synthetic_runs": 7,
+    "selected_degraded_runs": 8,
+    "independent_samples": false,
+    "holdout_dataset": false
+  },
+  "measurement": {
+    "reference": "per-input foreground mask, not ground-truth SVG for real designs",
+    "iou_average": "unweighted mean across designs",
+    "component_connectivity": 8,
+    "hole_connectivity": 4,
+    "min_reference_component_area_pixels": 4,
+    "matching_iou_threshold": 0.5,
+    "render_engine": "librsvg 2.58.0",
+    "render_scale": 4,
+    "foreground_occupancy_threshold": 0.5
+  },
+  "candidate_results": [
+    {
+      "candidate": "contour_rdp",
+      "mean_iou_percent": 95.97,
+      "components_matched": 136,
+      "components_total": 140,
+      "holes_matched": 259,
+      "holes_total": 263,
+      "svg_total_kib": 287.1
+    },
+    {
+      "candidate": "contour_schneider_bezier",
+      "mean_iou_percent": 96.5,
+      "components_matched": 139,
+      "components_total": 140,
+      "holes_matched": 252,
+      "holes_total": 263,
+      "svg_total_kib": 640.7
+    },
+    {
+      "candidate": "potrace_default",
+      "mean_iou_percent": 88.5,
+      "components_matched": 137,
+      "components_total": 140,
+      "holes_matched": 245,
+      "holes_total": 263,
+      "svg_total_kib": 140.1
+    },
+    {
+      "candidate": "vtracer_0.6.12",
+      "mean_iou_percent": 76.89,
+      "components_matched": 123,
+      "components_total": 140,
+      "holes_matched": 148,
+      "holes_total": 263,
+      "svg_total_kib": 264.4
+    },
+    {
+      "candidate": "potrace_selected",
+      "mean_iou_percent": 89.24,
+      "components_matched": 140,
+      "components_total": 140,
+      "holes_matched": 254,
+      "holes_total": 263,
+      "svg_total_kib": 161.4,
+      "mean_ink_area_ratio_percent": 101.74
+    }
+  ],
+  "selected_per_design": [
+    {
+      "name": "꽃 테두리",
+      "input_pixels": [
+        236,
+        456
+      ],
+      "iou_percent": 81.33,
+      "components_matched": 2,
+      "components_total": 2,
+      "holes_matched": 107,
+      "holes_total": 112,
+      "area_ratio_percent": 104.92,
+      "placed_size_mm": [
+        103.51,
+        200.0
+      ]
+    },
+    {
+      "name": "종이 위 꽃",
+      "input_pixels": [
+        236,
+        446
+      ],
+      "iou_percent": 87.82,
+      "components_matched": 3,
+      "components_total": 3,
+      "holes_matched": 92,
+      "holes_total": 94,
+      "area_ratio_percent": 103.51,
+      "placed_size_mm": [
+        105.83,
+        200.0
+      ]
+    },
+    {
+      "name": "원형 장식",
+      "input_pixels": [
+        450,
+        450
+      ],
+      "iou_percent": 94.63,
+      "components_matched": 110,
+      "components_total": 110,
+      "holes_matched": 20,
+      "holes_total": 20,
+      "area_ratio_percent": 98.16,
+      "placed_size_mm": [
+        200.0,
+        200.0
+      ]
+    },
+    {
+      "name": "새 반복 무늬",
+      "input_pixels": [
+        554,
+        554
+      ],
+      "iou_percent": 93.19,
+      "components_matched": 25,
+      "components_total": 25,
+      "holes_matched": 35,
+      "holes_total": 37,
+      "area_ratio_percent": 100.39,
+      "placed_size_mm": [
+        200.0,
+        200.0
+      ]
+    }
+  ],
+  "unmatched_holes": 9,
+  "layout": {
+    "cylinder_diameter_mm": 70,
+    "cylinder_height_mm": 200,
+    "canvas_mm": [
+      219.911485751,
+      200
+    ],
+    "fit": "uniform scale of entire source image, centered",
+    "extra_margin": false,
+    "repeat_added": false
+  },
+  "limitations": [
+    "Selection is limited to four designs and tested settings.",
+    "Visual preference is reported by the source author, not re-evaluated here.",
+    "Match counts do not establish exact width, topology or artistic reconstruction.",
+    "No machining depth, force, speed, 3D execution or robot quality validation.",
+    "Raw images, SVGs, benchmark code, metrics CSV and hotspot coordinates are not included."
+  ]
+}

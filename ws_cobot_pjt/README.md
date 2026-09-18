@@ -4,6 +4,8 @@
 
 2026-09-17 기준 C-2에는 서비스·시스템 설계, 알고리즘 검증 결과와 시험 계획을 문서화했다. 알고리즘과 평면 DRL 초안은 개인 작업 폴더에서 수행한 기록이며 이번 문서 반영에 실행 코드를 가져오지 않았다. C-2의 팀 공정·서버·화면 구현과 원기둥 실기는 아직 완료되지 않았다. 외부 환경의 가상 로봇 이동 보고도 메인 공정 완료와 구분한다. [현재 진행 현황](../docs/REVIEW_STATUS.md).
 
+9/17 추가 기록: 지점토 평면의 선분·정사각형·원·별 그리기 수행 보고, 시율의 접촉식 위치·치수 측정과 공구 전달 기능 개발, 팀별 알고리즘 검토를 [0917 일지](docs/daily/2026-09-17.md)에 정리했다. 단위 실기의 정량 품질·반복성, 자동화 전체 연결과 원통 실기는 별도 검증 대상이다.
+
 ## 배치
 
 - `ws_cobot1/src/`: 팀 공정·ROS 노드·launch 패키지. 패키지명 예시는 `c2_process`, `c2_hmi`이며 아직 생성되지 않았다.
@@ -26,10 +28,12 @@
 
 ## 시작할 문서
 
+- [0917 단위기능 테스트·개발 일지](docs/daily/2026-09-17.md)
 - [서비스·인터페이스 계획](docs/PROJECT_PLAN.md)
 - [서비스 흐름과 세척·오류 처리](docs/SERVICE_FLOW.md)
 - [시스템 아키텍처와 실행 배치](docs/SYSTEM_ARCHITECTURE.md)
-- [알고리즘 검증 결과](docs/ALGORITHM_VALIDATION.md)
+- [기존 중심선·경로 최적화 검증](docs/ALGORITHM_VALIDATION.md)
+- [SVG 영역·굵기 보존 비교와 Potrace 선택](docs/SVG_VECTORIZATION_VALIDATION.md)
 - [실험·기록 계획](docs/EXPERIMENT_PLAN.md)
 - [현장 설정 확인 범위](docs/HARDWARE_STATUS.md)
 - [통합·실기 시험 기록 양식](docs/VALIDATION_TEMPLATE.md)

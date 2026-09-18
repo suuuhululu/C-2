@@ -29,6 +29,10 @@
 
 2026-09-17 음각 서비스 문서화에는 사용자 대화, 개인 작업 폴더의 이전 오프라인 검증 기록, 두산 공식 DRL·모션·힘 서비스 및 ROS 공식 Jazzy 설치·RViz 문서를 반영했다. [시스템 아키텍처](../ws_cobot_pjt/docs/SYSTEM_ARCHITECTURE.md)와 [알고리즘 검증 보고서](../ws_cobot_pjt/docs/ALGORITHM_VALIDATION.md)에 직접 근거와 검증 한계를 연결했다. 이번 GitHub 게시 작업은 기록 정리이며 실기나 알고리즘 성능 시험을 새로 수행한 것은 아니다.
 
+2026-09-17 추가 일지 작업에서는 [팀 Notion](https://app.notion.com/p/1-M0609-3de52118113980728852e200d8b9610a)에서 평면 1차 검증·하드웨어 메모·시율의 사전 작업 자동화·홍동/수현 보고서·세은의 2D→3D 변환 본문을 읽었다. 구체 출처와 본문·코드·첨부 존재·사용자 보고의 확인 범위는 [0917 일지](../ws_cobot_pjt/docs/daily/2026-09-17.md)에 구분했다. 원본 bag·첨부 실행 코드를 재실행하지 않았으며 새 로봇 구동이나 실측을 수행하지 않았다. GitHub의 PR #4 병합·main 커밋·해당 작업 브랜치 CI 성공도 읽기 전용으로 재확인했다.
+
+같은 날 [수현 — 검증보고서 2](https://app.notion.com/p/2-3de521181139800794d4e7e595a127b0)의 본문 비교표와 첨부 Markdown 전체를 추가로 읽었다. 네 도안의 Potrace 선택, 비교 조건·수치·미달 빈 영역 9곳을 [SVG 비교 문서](../ws_cobot_pjt/docs/SVG_VECTORIZATION_VALIDATION.md)와 [출처·전사 수치](../ws_cobot_pjt/docs/evidence/svg_vectorization_report2.json)에 정리했다. 원본 지표 파일·이미지·SVG·그림·실험 코드의 재검증과는 구분한다.
+
 API를 기록할 때 `제어 계층 / 문서 버전 / 설치본 버전 / 함수·타입 / 단위·좌표계 / 반환·완료 판단 / 원문 절 / 확인 날짜`를 함께 적는다.
 
 예를 들어 ROS 2 `MoveJoint`와 DRL `movej()`의 문법을 서로 복사하지 않는다. Jazzy 서비스 소스 경로는 `dsr_msgs2/srv/MoveJoint.srv`이며 Humble의 이전 경로를 기준으로 안내하지 않는다.
