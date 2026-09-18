@@ -11,6 +11,12 @@
 - 세 패키지의 [개발 디렉토리](ws_cobot_pjt/ws_cobot1/src/README.md)는 README·`.gitkeep`으로 준비했다. 빌드 설정·메시지 정의·노드 코드는 별도 구현 대상이다. 폴더 존재와 빌드·실행 가능 상태를 구분한다.
 - 새 구현은 아래 인터페이스를 따른다. 기존 패키지 수정은 이관 범위·재사용할 기능·기존 실행에 미치는 영향을 먼저 명시한다. 요청받지 않은 전체 재작성·패키지 삭제·이름 변경은 하지 않는다.
 
+### 후속 상태 · 최신 main `c414821` 기반
+
+- PR #13으로 `c2_process/robot_adapter.py`와 시험 소스가 main에 추가됐다. 공통 타입·새 노드·빌드 설정은 여전히 미구현이다.
+- 사용자 요청으로 기존 `clay_carving`·`clay_hmi`·전용 실행 안내를 로컬 보관하고 Git 관리 대상에서 제거했다. [보관·복구 기록](ws_cobot_pjt/docs/LEGACY_CLAY_ARCHIVE.md)을 따른다. 이전 문단의 “기존 패키지”는 이관 전 기록이다.
+- [draw.io 시스템 아키텍처](ws_cobot_pjt/docs/architecture/README.md)는 최신 세 노드 계약과 현재 구현 차이를 정리한다. PR #15의 조각·청소 코드는 `feat/12-robot-adapter`로 병합됐으며 기준 main에는 없다.
+
 ## 작업 시작: GitHub와 로컬의 기준 맞추기
 
 1. `git status --short --branch`, 현재 브랜치·커밋·원격 저장소를 확인한다. 미커밋 변경과 다른 팀원의 작업을 보존한다. 파일이 수정된 상태에서 강제 checkout·reset·clean으로 기준을 맞추지 않는다.
