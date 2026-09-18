@@ -4,16 +4,20 @@
 
 ## 음각 프로젝트 문서
 
+- [현재 축소 시나리오: 3개 노드 인터페이스·팀 협업 안내](ws_cobot_pjt/docs/INTERFACE_GUIDE.md)
+- [목표 디렉토리·파일별 역할](ws_cobot_pjt/docs/SYSTEM_STRUCTURE.md) · [통신 필드·완료 조건 권장안 v1](ws_cobot_pjt/docs/INTERFACE_RECOMMENDATION.md)
 - [0917 개발 일지: 지점토 단위 실기·측정 기능·알고리즘 검토](ws_cobot_pjt/docs/daily/2026-09-17.md)
 - [서비스 목표·기능별 구현 상태](ws_cobot_pjt/docs/PROJECT_PLAN.md)
 - [전체 기능 흐름: 가공·세척·오류 처리](ws_cobot_pjt/docs/SERVICE_FLOW.md)
-- [시스템 아키텍처: PC·웹앱·모니터·ROS 역할](ws_cobot_pjt/docs/SYSTEM_ARCHITECTURE.md)
+- [9/17 이전 설계: PC·웹앱·모니터·ROS 역할](ws_cobot_pjt/docs/SYSTEM_ARCHITECTURE.md)
 - [기존 중심선·가공 경로의 세 차례 오프라인 검증](ws_cobot_pjt/docs/ALGORITHM_VALIDATION.md)
 - [PNG·JPEG → SVG 비교와 Potrace 선택: 영역·굵기 보존](ws_cobot_pjt/docs/SVG_VECTORIZATION_VALIDATION.md)
 - [실험과 정량 기록 계획](ws_cobot_pjt/docs/EXPERIMENT_PLAN.md)
 - [현장 설정과 DRL 초안의 확인 범위](ws_cobot_pjt/docs/HARDWARE_STATUS.md)
 
-2026-09-17 지점토 평면의 선분·정사각형·원·별 그리기 수행 보고와 시율의 사전 작업 기능 개발을 일지에 추가했습니다. 원기둥 실기, 자동 파지·세척·반납, 웹앱·상태 모니터의 통합 완료와는 구분합니다. 정량 측정값·시험 코드 버전의 확보 여부는 일지에 표시했습니다.
+2026-09-18 설계 범위는 고객용 웹앱 없이 시스템 모니터에서 입력·실행·상태 확인을 수행하는 구조입니다. 작업대·대상은 고정 좌표, 그리퍼는 고정 장치이며 교체 도구를 사용합니다. 새 3개 노드 계약은 구현 목표이고, main에 반영된 `clay_carving`·`clay_hmi`의 현재 실행 방법은 [ROS 실행 안내](ws_cobot_pjt/ws_cobot1/doc/README.md)를 따릅니다.
+
+2026-09-17 지점토 평면의 선분·정사각형·원·별 그리기 수행 보고와 시율의 사전 작업 기능 개발을 일지에 추가했습니다. 원기둥 실기, 자동 파지·세척·반납, 시스템 모니터의 통합 완료와는 구분합니다. 정량 측정값·시험 코드 버전의 확보 여부는 일지에 표시했습니다.
 
 ## 먼저 읽기
 
