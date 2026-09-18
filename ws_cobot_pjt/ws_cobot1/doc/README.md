@@ -1,6 +1,6 @@
 # 프로젝트 ROS 실행·설정 기록
 
-`ws_cobot1/src/`는 팀 공정·노드·launch 패키지 위치다. `ws_dsr`의 로봇·그리퍼 실행환경을 준비한 뒤 사용하는 별도 워크스페이스다. 2026-09-17 C-2의 이 src에는 팀 패키지가 아직 없다.
+`ws_cobot1/src/`는 팀 공정·노드·launch 패키지 위치다. `ws_dsr`의 로봇·그리퍼 실행환경을 준비한 뒤 사용하는 별도 워크스페이스다. 2026-09-18 기준 팀 패키지는 `clay_carving`(지점토 조각 노드 1~4)과 `clay_hmi`(PyQt5 관리자 HMI)이며(PR #7), 빌드·실행 절차는 [clay_run.md](clay_run.md)에 있다.
 
 외부 환경의 빌드·가상 이동 보고는 [의존성 기록](../../../docs/DEPENDENCIES.md)에 있다. 이시율이 공유를 제안한 `setup_and_run.md`는 아직 저장소에 없으며 제공 후 별도 PR로 검토한다.
 
@@ -10,10 +10,10 @@
 | --- | --- |
 | 실행 PC·ROS 배포판·소스 커밋 | 공용 MSI Ubuntu 사용 보고, 정확한 설치 버전 대기. 이시율 PC의 Jazzy·소스 커밋 보고는 의존성 기록 참조 |
 | 필요한 ws_dsr 패키지·버전 | 외부 cobot_rg2 사용. PC별 버전 보고는 의존성 기록에 구분, 팀 공통 고정 버전은 확인 대기 |
-| 팀 패키지명·launch·실행 순서 | 미정 |
-| 로봇 ID·네임스페이스·연결 설정 | 팀 메인 실행 설정은 미정. 이시율의 가상 호출 경로 보고를 모든 PC·실기에 그대로 적용하지 않음 |
+| 팀 패키지명·launch·실행 순서 | `clay_carving`, `clay_hmi`. 실행 순서는 [clay_run.md](clay_run.md) 3절 |
+| 로봇 ID·네임스페이스·연결 설정 | `dsr01`, 실물 브링업 `mode:=real host:=192.168.1.100 port:=12345 model:=m0609`. 툴 `ToolWeight_1`, TCP `GripperDA_v3` ([clay_run.md](clay_run.md) 4절) |
 | DRL·DRFL·ROS 서비스·Python 래퍼 구분 | 기능별 확인 필요 |
-| 시작 전 확인·종료·오류 후 복구 | 구현·현장 확인 후 기록 |
-| 확인한 로그·시험 결과 | 팀 공정의 시험 기록 없음. 외부 환경의 가상 이동 보고와 구분 |
+| 시작 전 확인·종료·오류 후 복구 | [clay_run.md](clay_run.md) 4·5절 |
+| 확인한 로그·시험 결과 | 노드 1~4 실기 완주 2026-09-17 (bag 파일명은 [clay_run.md](clay_run.md) 6절). HMI 연동 실기 미수행 |
 
 실제 장비 값은 로컬 설정에 두고 공유 예제에는 필요한 항목만 표시한다. 프로젝트 설계는 [프로젝트 계획](../../docs/PROJECT_PLAN.md), 실제 결과는 [검증 기록](../../docs/VALIDATION_TEMPLATE.md)에 연결한다.
