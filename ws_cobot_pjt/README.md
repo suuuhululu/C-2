@@ -10,7 +10,7 @@
 
 ## 배치
 
-- `ws_cobot1/src/`: 팀 공정·ROS 노드·launch 패키지. 현재 `clay_carving`·`clay_hmi`가 있고, 새 계약의 구현 목표는 `c2_interfaces`·`c2_path`·`c2_process`다.
+- `ws_cobot1/src/`: 팀 공정·ROS 노드·launch 패키지. 현재 구현은 `clay_carving`·`clay_hmi`다. `c2_interfaces`·`c2_path`·`c2_process`는 [개발 폴더·역할 안내](ws_cobot1/src/README.md)를 준비했고, 빌드 설정·메시지·노드는 구현할 대상이다.
 - `ws_cobot1/doc/`: 실제 ROS 실행 순서·필요 설정·종료·재현 절차.
 - `ws_dsr/src/`: 로컬 외부 로봇·그리퍼 실행환경. 폴더 전체는 Git 제외이며 `ws_cobot1`과 같은 패키지를 중복 복사하지 않는다.
 - `backend/app/`: 웹 API·서버 코드. FastAPI·Flask 중 어느 것도 아직 선택·설치하지 않았다.
