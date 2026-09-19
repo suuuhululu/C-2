@@ -37,9 +37,9 @@ def generated(c,**overrides):
     upload=c.post('/api/operator/assets',files={'file':('test.png',buf.getvalue(),'image/png')})
     assert upload.status_code==201,upload.text
     a=upload.json();profile=c.get('/api/operator/snapshot').json()['profile']
-    body=dict(schema_version=1,request_id=str(uuid4()),source_mode='SIMULATION',asset_id=a['asset_id'],
+    body=dict(schema_version=2,request_id=str(uuid4()),source_mode='SIMULATION',asset_id=a['asset_id'],
               asset_sha256=a['asset_sha256'],width_mm=70,height_mm=108,offset_u_mm=0,offset_v_mm=75,
-              rotation_deg=0,conversion_preset='simulation_centerline',tool_id='engraving_knife',
+              rotation_deg=0,conversion_preset='simulation_centerline',tool_id='engraving_drill',
               profile_snapshot_id=profile['id'],profile_sha256=profile['sha256'])
     body.update(overrides)
     response=c.post('/api/operator/path-generations',json=body)
@@ -52,7 +52,7 @@ def generated(c,**overrides):
 
 
 def run_body(p):
-    return dict(schema_version=1,request_id=str(uuid4()),source_mode='SIMULATION',path_id=p['path_id'],
+    return dict(schema_version=2,request_id=str(uuid4()),source_mode='SIMULATION',path_id=p['path_id'],
                 path_version=1,path_sha256=p['path_sha256'],operator_confirmed_fixture=True)
 
 
@@ -116,7 +116,7 @@ def test_grip_failure_and_unknown_stop_blocking(client):
     c.post('/api/operator/simulation/scenario',json={'scenario':'grip_failure'})
     rid=c.post('/api/operator/runs',json=run_body(p)).json()['run_id']
     done=wait(c,f'/api/operator/runs/{rid}',lambda r:r['status']=='FAILED')
-    assert done['phase']=='PICK_TOOL' and done['engraving_progress']==0
+    assert done['phase']=='PRECHECK' and done['engraving_progress']==0
     wait(c,'/api/operator/alarms',lambda a:bool(a))
     c.post('/api/operator/simulation/scenario',json={'scenario':'stop_unknown'})
     rid=c.post('/api/operator/runs',json=run_body(p)).json()['run_id']
@@ -240,3 +240,88 @@ def test_interrupted_segment_is_unknown_not_passed(client):
     c.post(f'/api/operator/runs/{rid}/stop',json={'request_id':str(uuid4())})
     r=wait(c,f'/api/operator/runs/{rid}',lambda r:r['status']=='STOPPED')
     assert any(o['verdict']=='UNKNOWN' for o in r['execution_preview']['observations'])
+
+
+def observe_peer(client):
+    """실제 UI 전송 경계의 상태·이벤트를 모아 금지 단계와 열기 여부를 검사한다."""
+    from copy import deepcopy
+    peer=client.app.state.service.peer
+    emit=peer.emit
+    packets=[]
+    async def capture(kind,data):
+        packets.append((kind,deepcopy(data)))
+        await emit(kind,data)
+    peer.emit=capture
+    return packets
+
+
+def test_fixed_drill_finishes_without_pick_clean_place_or_open(client):
+    c=client;_,p=generated(c);packets=observe_peer(c)
+    rid=c.post('/api/operator/runs',json=run_body(p)).json()['run_id']
+    wait(c,f'/api/operator/runs/{rid}',lambda r:r['status']=='SUCCEEDED')
+    phases=[v['phase'] for k,v in packets if k=='event' and v['event_type']=='PHASE_CHANGED']
+    assert phases==['PRECHECK','TOOL_CHECK','APPROACH','ENGRAVE','RETRACT','FINISH']
+    states=[v for k,v in packets if k=='state']
+    assert not any(s['grip_state'] in ('OPEN','OPENING') for s in states)
+    assert states[-1]['mounted_tool_id']=='engraving_drill' and states[-1]['grip_state']=='GRIPPED'
+    snapshot=c.get('/api/operator/snapshot').json()
+    assert snapshot['schema_version']==2
+    assert snapshot['profile']['payload']['gripper_open_allowed'] is False
+    assert p['preview']['frame_id']=='c2_base'
+
+
+def test_calibration_failure_does_not_rewrite_path_or_advance(client):
+    c=client;_,p=generated(c);packets=observe_peer(c)
+    before=c.app.state.store.read_asset(p['path_asset_id'])
+    c.post('/api/operator/simulation/scenario',json={'scenario':'calibration_failure'})
+    rid=c.post('/api/operator/runs',json=run_body(p)).json()['run_id']
+    done=wait(c,f'/api/operator/runs/{rid}',lambda r:r['status']=='FAILED')
+    assert done['phase']=='TOOL_CHECK' and done['engraving_progress']==0
+    assert done['error_code']=='PROFILE_MISMATCH'
+    assert c.app.state.store.read_asset(p['path_asset_id'])==before
+    assert not any(v.get('phase') in ('APPROACH','ENGRAVE') for _,v in packets)
+    assert not any(v.get('grip_state') in ('OPEN','OPENING') for _,v in packets)
+
+
+def test_stop_during_tool_check_never_enters_engraving_or_opens(client):
+    c=client;_,p=generated(c);packets=observe_peer(c)
+    c.app.state.service.peer.tick=.10
+    rid=c.post('/api/operator/runs',json=run_body(p)).json()['run_id']
+    wait(c,f'/api/operator/runs/{rid}',lambda r:r['phase']=='TOOL_CHECK')
+    c.post(f'/api/operator/runs/{rid}/stop',json={'schema_version':2,'request_id':str(uuid4())})
+    wait(c,f'/api/operator/runs/{rid}',lambda r:r['status']=='STOPPED')
+    assert not any(v.get('phase') in ('APPROACH','ENGRAVE') for _,v in packets)
+    assert not any(v.get('grip_state') in ('OPEN','OPENING') for _,v in packets)
+
+
+def test_v1_requests_and_stored_paths_cannot_start_new_execution(client):
+    c=client;goal,p=generated(c)
+    assert c.post('/api/operator/path-generations',json={**goal,'schema_version':1,'request_id':str(uuid4())}).status_code==422
+    assert c.post('/api/operator/path-generations',json={**goal,'tool_id':'engraving_knife','request_id':str(uuid4())}).status_code==422
+    assert c.post('/api/operator/runs',json={**run_body(p),'schema_version':1}).status_code==422
+    # v1 과거 경로가 남은 DB를 재현한다. 조회는 유지하고 v2 새 실행만 차단한다.
+    with sqlite3.connect(c.app.state.store.db_path) as db:
+        row=db.execute('SELECT payload FROM path_versions WHERE path_id=?',(p['path_id'],)).fetchone()
+        old=json.loads(row[0]);old['input']['schema_version']=1
+        db.execute('UPDATE path_versions SET payload=? WHERE path_id=?',(json.dumps(old),p['path_id']))
+    assert c.get(f'/api/operator/paths/{p["path_id"]}/versions/1').status_code==200
+    response=c.post('/api/operator/runs',json=run_body(p))
+    assert response.status_code==409 and response.json()['error_code']=='UNSUPPORTED_SCHEMA_VERSION'
+    assert c.get('/api/operator/snapshot').json()['state']['run_id']==''
+
+
+def test_v1_state_is_not_treated_as_fresh_v2(client):
+    c=client;s=c.app.state.service
+    s.peer.scenario='communication_loss'
+    c.portal.call(s.receive,'state',{**s.peer.state,'schema_version':1,'seq':999})
+    snapshot=c.get('/api/operator/snapshot').json()
+    assert snapshot['connection']=='STALE' and 'v2' in snapshot['contract_status']
+
+
+def test_stroke_span_over_180_degrees_is_diagnostic_only(client,monkeypatch):
+    # U=-60..60 mm는 양쪽 이음매 ±106.8 안이지만 한 획의 180° 범위를 초과한다.
+    monkeypatch.setattr('app.mock_peer.sample_strokes',lambda:[[(-.5,0),(.5,0)]])
+    c=client;_,g=generated(c,width_mm=120,height_mm=50)
+    assert g['state']=='FAILED'
+    assert any(i['reason']=='MOCK_STROKE_SPAN_EXCEEDED' for i in g['result']['issues'])
+    assert 'path_id' not in g['result']

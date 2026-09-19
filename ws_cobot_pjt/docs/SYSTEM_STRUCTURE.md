@@ -1,174 +1,106 @@
-# 시스템 모니터·좌표 생성·공정 제어 디렉토리 구조
+# 시스템 모니터·좌표 생성·고정 드릴 공정 구조
 
-2026-09-18 사용자 수정사항을 반영한 현재 설계다. 고객 웹앱 없이 운영자가 시스템 모니터에서 이미지와 설정을 입력하고 경로를 확인한 뒤 실행을 요청한다. 그리퍼는 한 장치로 고정하고, 그리퍼가 잡는 도구가 바뀌는 조건이다. 작업대와 작업대상의 기준 좌표는 고정되어 있으며, 매 작업마다 위치를 탐색·추정하는 공정은 두지 않는다.
+2026-09-19, 기준 main `301ea6e`. [고정 드릴 운영 결정](C2_FIXED_DRILL_20260919.md)을 반영한다. 고객 웹앱 없이 HMI에서 이미지·배치를 입력하고 생성 경로를 확인한 뒤 실행한다. 고정 좌표 매핑은 유지하며, 드릴은 철사로 고정해 자동 집기·청소·반납을 하지 않는다. **그리퍼 열기는 초기화·종료·오류 복구·보정에도 금지한다.**
 
-팀에서 개발할 노드는 `monitor_gateway_node`, `path_planner_node`, `process_controller_node`의 3개다. ROS 패키지는 공통 인터페이스 `c2_interfaces`와 기능 패키지 `c2_path`, `c2_process`의 3개다. 모니터 노드는 백엔드에 개발할 ROS 연결 모듈에 둔다. 두산 및 필요한 장치 공급자 드라이버는 팀 노드 수와 별개다.
+팀 노드는 `monitor_gateway_node`, `path_planner_node`, `process_controller_node` 3개다. 로봇의 모든 공정·보정 모션은 공정 제어의 단일 소유권 아래에 둔다. 내부 파일이 늘어나도 별도 노드·Topic·Service를 만들지 않는다.
 
-아래는 **구현 목표 디렉토리와 파일**이다. 세 패키지의 [개발 폴더](../ws_cobot1/src/README.md)는 README·`.gitkeep`으로 준비했으며, 아래의 빌드 설정·Python 모듈·메시지·설정 파일은 아직 구현 대상이다. 폴더가 있다는 이유로 빌드·실행 가능한 ROS 패키지로 취급하지 않는다. 2026-09-18 후속 작업에서 `robot_adapter.py`와 시험 소스가 추가됐고, 기존 Clay 코드·실행 안내는 사용자 요청으로 로컬 보관 후 제거했다. [현재 draw.io 아키텍처](architecture/README.md)와 [보관·복구 기록](LEGACY_CLAY_ARCHIVE.md)을 참고한다. 9/17 [시스템 아키텍처](SYSTEM_ARCHITECTURE.md)의 고객 웹앱을 포함한 기능 배치는 이번 축소 설계로 갱신한다.
+## 현재 구현과 목표 구조
 
-## 디렉토리
-
-**2026-09-19 구현 반영:** [c2_interfaces](../ws_cobot1/src/c2_interfaces/README.md)의 `package.xml`·`CMakeLists.txt`와 공통 타입 5개는 구현·Jazzy 빌드 완료다. HMI·서버·MOCK·게이트웨이 코드의 실제 위치는 [모니터 구현 안내](HMI_MONITOR_IMPLEMENTATION.md)를 따른다. 아래 트리의 나머지 목표 파일 전체가 구현됐다는 뜻은 아니며, `c2_path`·`c2_process`의 노드·패키지 빌드 설정은 계속 구현 대상이다.
+공통 타입·HMI·서버·MOCK·ROS 클라이언트가 존재한다. `c2_process`의 실제 모듈은 `robot_adapter.py`와 `__init__.py`뿐이며 공정 노드·패키지 빌드 설정은 아직 없다. `engraving.py` 이관은 [PR #25](https://github.com/suuuhululu/C-2/pull/25), `tool_calibration.py` 추가는 [PR #27](https://github.com/suuuhululu/C-2/pull/27)에서 진행 중이며 아직 미병합이다. 어댑터의 c2_base 기본값은 [PR #23](https://github.com/suuuhululu/C-2/pull/23)에서 변경한다. 이번 변경은 이 세 PR의 코드를 중복 반영하지 않으며 cleaning은 feat/12-robot-adapter의 4b6416d에 보존한다. 아래에서 “목표”라고 한 파일은 구현해야 할 위치다.
 
 ```text
 ws_cobot_pjt/
-├── frontend/
-│   └── src/
-│       ├── main.tsx                      # 모니터 화면 진입
-│       ├── Operator.tsx                  # 이미지·설정 입력, 미리보기, 실행 요청, 상태·검사
-│       └── api.ts                        # HTTP 요청·WebSocket 수신
-│
-├── backend/
-│   └── app/
-│       ├── main.py                       # 서버 실행·업로드·설정 입력
-│       ├── gateway.py                    # 경로 생성·실행·정지 API
-│       ├── ros_bridge.py                 # monitor_gateway_node
-│       └── storage.py                    # 원본·경로·실행·알람·검사 기록
-│
-├── ws_cobot1/
-│   ├── doc/
-│   │   └── README.md                     # ROS 실행·설정·검증 기록
-│   └── src/
-│       ├── c2_interfaces/                # 통신 형식, 실행 노드 없음
-│       │   ├── package.xml
-│       │   ├── CMakeLists.txt
-│       │   ├── action/
-│       │   │   ├── GeneratePath.action
-│       │   │   └── ExecuteProcess.action
-│       │   ├── srv/
-│       │   │   └── StopProcess.srv
-│       │   └── msg/
-│       │       ├── ProcessState.msg
-│       │       └── ProcessEvent.msg
-│       │
-│       ├── c2_path/
-│       │   ├── package.xml
-│       │   ├── setup.py
-│       │   ├── setup.cfg
-│       │   ├── resource/
-│       │   │   └── c2_path
-│       │   └── c2_path/
-│       │       ├── __init__.py
-│       │       ├── node.py               # path_planner_node
-│       │       ├── image_to_svg.py       # 이미지 정규화·SVG 변환
-│       │       ├── extract_2d.py         # SVG → 2D 좌표
-│       │       ├── optimize_2d.py        # 좌표·작업선 순서 최적화
-│       │       ├── map_3d.py             # 표면·로봇 좌표계 변환
-│       │       ├── generate_path.py      # 공구 자세·접근·가공·이탈 경로
-│       │       └── validate_path.py      # 경로 검증
-│       │
-│       └── c2_process/
-│           ├── package.xml
-│           ├── setup.py
-│           ├── setup.cfg
-│           ├── resource/
-│           │   └── c2_process
-│           ├── c2_process/
-│           │   ├── __init__.py
-│           │   ├── node.py               # process_controller_node
-│           │   ├── state_machine.py      # 공정 순서·상태 전이
-│           │   ├── preconditions.py      # 준비 조건·경로·도구 설정 검사
-│           │   ├── robot_adapter.py      # 두산 드라이버 호출·결과 확인
-│           │   ├── gripper_adapter.py    # 고정 그리퍼 제어·파지·해제 확인
-│           │   ├── tool_sequence.py      # 도구별 집기·반납 순서
-│           │   ├── engraving.py          # 생성된 경로에 따른 조각 실행
-│           │   └── cleaning.py           # 뭉침 제거 순서
-│           ├── config/
-│           │   ├── workcell.yaml         # 작업대·작업대상 고정 좌표·형상·연결 설정
-│           │   └── tools.yaml            # 도구별 파지·TCP·하중·가공·청소 설정
-│           └── launch/
-│               └── process.launch.py     # 좌표·공정 노드 실행
-│
-├── ws_dsr/
-│   └── src/                             # 외부 cobot_rg2 원본, 로컬 전용·Git 제외
-│                                        # 두산·그리퍼 드라이버는 확인된 원본 구조 유지
-│
-└── docs/
-    ├── INTERFACE_GUIDE.md                # 팀 협업용 전체 흐름·통신 개념
-    ├── SYSTEM_STRUCTURE.md               # 목표 디렉토리·역할 정의
-    └── INTERFACE_RECOMMENDATION.md        # 통신 필드·완료 조건 권장안
+├── frontend/src/monitor/          # 구현: 운영자 HMI, 직접 모션 명령 없음
+│   ├── Monitor.tsx
+│   ├── Previews.tsx
+│   ├── LivePathPreview.tsx
+│   └── api.ts
+├── backend/app/                  # 구현: HTTP·DB·모의 상대·ROS 클라이언트
+│   ├── monitor.py
+│   ├── monitor_service.py
+│   ├── monitor_contract.py
+│   ├── ros_bridge.py             # monitor_gateway_node
+│   ├── mock_peer.py
+│   └── storage.py
+├── ws_cobot1/src/
+│   ├── c2_interfaces/            # 구현: v2 공통 타입, 실행 노드 없음
+│   │   ├── package.xml
+│   │   ├── CMakeLists.txt
+│   │   ├── action/               # GeneratePath, ExecuteProcess
+│   │   ├── srv/                  # StopProcess
+│   │   └── msg/                  # ProcessState, ProcessEvent
+│   ├── c2_path/                  # 아래 계산·노드·빌드 설정은 목표
+│   │   └── c2_path/
+│   │       ├── node.py
+│   │       ├── image_to_svg.py
+│   │       ├── extract_2d.py
+│   │       ├── optimize_2d.py
+│   │       ├── map_3d.py
+│   │       ├── generate_path.py
+│   │       └── validate_path.py
+│   └── c2_process/
+│       ├── package.xml           # 목표
+│       ├── setup.py              # 목표: launch/config 설치 포함
+│       ├── setup.cfg             # 목표
+│       ├── resource/c2_process   # 목표
+│       ├── c2_process/
+│       │   ├── __init__.py        # 구현
+│       │   ├── node.py            # 목표: process_controller_node
+│       │   ├── state_machine.py   # 목표: 공정 순서·정지·실패 처리
+│       │   ├── preconditions.py   # 목표: 경로·장착·닫힘·보정·J6 검사
+│       │   ├── robot_adapter.py   # 구현: 두산 호출; c2_base 기본값은 PR #23
+│       │   ├── engraving.py       # 목표: 담당 브랜치에서 검토 후 이관
+│       │   └── tool_calibration.py # 목표: 전체 보정·실행 전 확인
+│       ├── test/                 # 기존 어댑터 모의 시험·별도 실기 확인 소스
+│       ├── config/
+│       │   ├── README.md          # 확정/미확정 설정 안내
+│       │   ├── workcell.yaml      # 목표: 실측 후 작성, 청소면 없음
+│       │   └── tools.yaml         # 목표: 고정 드릴·TCP·하중·가공·보정
+│       └── launch/process.launch.py # 목표: 좌표·공정 노드
+└── ws_dsr/src/                   # 공급자 원본, 로컬 전용·Git 제외
 ```
 
-`c2_process`의 `setup.py`에서 launch·config도 설치 대상으로 포함한다. 백엔드가 자신의 실행 과정에서 모니터 ROS 노드를 구동하며, `process.launch.py`는 좌표·공정 노드를 구동한다. 공급자 드라이버는 `ws_dsr`의 확인된 실행 절차를 따른다. 각 워크스페이스의 build/install/log는 분리한다.
+6개 공정 모듈은 node/state_machine/preconditions/robot_adapter/engraving/tool_calibration을 센 것이다. `__init__.py`, 패키지 설정, 시험 파일은 모듈 수와 별개다. 없던 Python 파일을 빈 구현으로 만들어 완료처럼 표시하지 않는다.
 
-이미지 변환 구현은 `c2_path/image_to_svg.py`에 모으는 설계다. 기존 알고리즘을 재사용할 때는 입력·출력과 단위를 이 계약에 맞춰 검증한다. 백엔드는 파일 수신·보관과 요청 전달을 담당하며 좌표 계산을 중복 구현하지 않는다. 외부 드라이버 배치는 [의존성 기록](../../docs/DEPENDENCIES.md)을 따른다.
+## 노드·모듈 책임
 
-## 노드별 역할
+| 영역 | 책임 | 담당 제안·현황 |
+| --- | --- | --- |
+| monitor_gateway_node | HTTP 요청을 기존 ROS 5개 통신에 연결, 상태·파일 결과를 서버/HMI에 전달 | 모니터 영역 |
+| path_planner_node | 이미지→가공 중심선 SVG→2D 최적화→표면 매핑→도구 끝 경로·검증 | 좌표 영역 |
+| process_controller_node (`node.py`) | ExecuteProcess·StopProcess 수신, ProcessState·ProcessEvent 발행 | 세은 제안, 최종 배정 대기 |
+| state_machine.py | PRECHECK→TOOL_CHECK→경로 실행→FINISH; 실패·정지 시 후속 진입 차단 | 세은 제안 |
+| preconditions.py | 버전·경로/설정 해시·모드·STANDBY·제어권·드릴 고정/닫힘 근거·보정·J6 범위 검사 | 세은 제안 |
+| robot_adapter.py | 두산 이동·접촉 접근·정지·관측·TCP/하중·도구 오프셋 변환 | 이시율 제안, 소스 존재 |
+| engraving.py | 확정 경로의 획별 접근·힘 터치·가공·이탈과 진행·취소·실패 보고 | 이시율 제안, main 이관 대기 |
+| tool_calibration.py | 장착 시 3점 전체 측정, 실행 전 기존 보정의 1점 확인 | 이시율 제안, PR #27 미병합 |
 
-| 노드 | 위치 | 담당 기능 | 주요 결과 |
-| --- | --- | --- | --- |
-| `monitor_gateway_node` | `backend/app/ros_bridge.py` | 화면 요청을 ROS 호출로 연결, 경로 결과·공정·장비 상태 수집, 서버의 저장·화면 전달 기능에 연결 | 경로 미리보기, 진행·알람·결과 |
-| `path_planner_node` | `c2_path/node.py` | 이미지 → SVG → 2D 추출·최적화 → 표면 3D 변환 → 선택 도구에 맞는 실행 경로 생성·검증 | SVG, 미리보기 데이터, 경로 ID·버전·해시·검증 결과 |
-| `process_controller_node` | `c2_process/node.py` | 준비·버전·도구 조건 검사, 로봇·그리퍼 제어, 집기·가공·청소·반납, 완료·실패·정지 처리 | 공정 상태, 파지 상태, 실행 결과·로그 |
+담당 제안을 확정 배정으로 기록하거나 Issue를 자동 재배정하지 않는다. `gripper_adapter.py`·`tool_sequence.py`는 현재 만들지 않으며 `cleaning.py`는 담당 브랜치에 예비 보관한다. 그리퍼 닫힘·장착을 확인하는 책임은 남아 있고, 실제 관측은 확인된 장치 입력을 사용한다. 닫혔다는 이유만으로 고정 장착이나 접촉·가공 성공을 판단하지 않는다.
 
-모니터 화면은 입력·표시·요청을, 공정 제어는 실행 여부와 작업 순서를 책임진다. 공정 제어의 내부 모듈은 별도 ROS 노드가 아니다. 긴 이동이나 그리퍼 피드백을 기다리는 중에도 상태 발행·통신 감시·정지 처리가 계속 가능하도록 구성한다.
+## 보정·조각 호출과 설정
 
-## 공정 제어 내부의 기능 분리
-
-| 모듈 | 담당 범위 |
-| --- | --- |
-| `state_machine.py` | 준비 → 도구 집기 → 조각 → 필요한 청소 → 반납 → 완료의 전체 순서를 관리하고 단계 결과에 따라 진행·중단한다. |
-| `gripper_adapter.py` | 그리퍼 자체의 열기·닫기 명령과 피드백 확인을 담당한다. 로봇팔의 보관대 접근·이탈 이동은 담당하지 않는다. 실제 피드백·신선도·제한 시간·실패를 확인한다. |
-| `tool_sequence.py` | 도구를 집고 놓는 복합 작업을 담당한다. `robot_adapter.py`로 접근·정렬·이탈하고 `gripper_adapter.py`로 열기·닫기·파지·해제를 확인한다. 장착 전후 TCP·하중 전환도 이 순서에서 처리한다. |
-| `engraving.py` | 확정된 실행 경로의 접근·가공·이탈 구간을 순서대로 실행한다. `robot_adapter.py`로 이동을 요청하고 구간 완료·오류·중단을 확인해 조각 진행을 보고한다. 좌표를 새로 생성하지 않는다. |
-| `robot_adapter.py` | 로봇 이동·정지·상태·TCP·하중 관련 요청을 확인된 두산 드라이버 인터페이스로 전달하고 결과를 반환한다. 도구 집기나 조각의 작업 순서는 호출 모듈이 결정한다. |
-| `cleaning.py` | 해당 도구의 정해진 조건에 따라 청소 위치 접근·뭉침 제거·작업 복귀 순서를 관리한다. |
-| `preconditions.py` | 경로에 지정된 도구·설정 버전과 준비·장착 상태를 검사한다. |
-
-도구 집기 호출 예시는 `state_machine.py → tool_sequence.py → robot_adapter.py(접근) → gripper_adapter.py(닫기·파지 확인) → robot_adapter.py(이탈)`이다. 놓기도 `tool_sequence.py`가 반납 위치 이동·지지 조건 확인·열기·해제 확인·이탈을 순서대로 담당한다. 단순 그리퍼 열기·닫기와 도구 집기·놓기는 같은 기능이 아니다.
-
-조각 호출은 `state_machine.py → engraving.py → robot_adapter.py → 두산 드라이버 → M0609`다. `engraving.py`는 원래 공정에 있던 조각 실행을 명시적으로 분리한 내부 파일이며 별도 노드나 새 공정이 아니다. 전체 모션 명령의 소유자는 여전히 `process_controller_node` 하나다.
-
-팀의 별도 `c2_gripper` 패키지와 `gripper_controller_node`, `OperateGripper.action`은 이 구조에 두지 않는다. 공정 내부 모듈 호출로 연결한다. 실제 그리퍼 통신에 공급자 ROS 드라이버가 필요하면 `gripper_adapter.py`가 그 드라이버를 호출한다.
-
-`tools.yaml`은 도구 ID별로 다음 항목을 관리하는 설정 원본이다.
-
-- 설정 버전, 도구 형상·가공에 필요한 치수
-- 보관·집기·반납 위치와 접근·이탈 조건
-- 파지 명령 조건과 실제 파지·해제 확인 기준
-- 장착 전후 TCP와 하중 프로파일, 전환 단계
-- 가공 조건과 뭉침 제거 조건
-
-장치가 고정되었다는 사실로 모델·배선·통신·피드백의 미확정 값이 확정되는 것은 아니다. 위치·힘·TCP·하중·I/O 번호는 현장에서 확인한 값으로 채운다. 그리퍼 명령 접수와 실제 파지·해제 성공을 구분하며 실패 후 다음 단계로 진행하지 않는다.
-
-모니터가 선택한 `tool_id`와 해당 설정 버전의 스냅샷을 경로 생성 입력에 포함하고, 경로 결과에도 기록한다. 공정 제어는 같은 도구·설정으로 집기와 실행을 수행한다. 도구·TCP·공작물 보정 변경 시 기존 실행 경로를 재검증한다.
-
-## 작업대·작업대상의 고정 좌표
-
-`workcell.yaml`에 작업대 기준 프레임과 로봇 base에서 작업대·작업대상 기준 프레임으로의 고정 변환, 작업대상 표면 형상·유효 작업 영역, 좌표 설정 버전을 보관한다. 변환에 필요한 위치·방향·단위를 명시하되 실제 수치는 사용자 제공 또는 현장 확인값으로 채운다. 도구의 보관·집기·반납 위치는 해당 기준 프레임을 명시하여 `tools.yaml`에 둔다.
-
-`map_3d.py`는 도안 좌표를 작업대상 표면의 좌표·자세로 변환한 뒤 이 고정 변환으로 로봇 base 기준에 배치한다. 작업대상의 위치가 고정이라는 것은 도안에 따라 움직일 모든 가공점이 동일하거나 표면이 평면이라는 뜻은 아니다. 2D 도안의 표면 매핑과 도구 자세 계산은 그대로 필요하다.
-
-설정은 경로 생성 시 스냅샷·버전으로 전달하고 공정 시작 시 같은 버전인지 확인한다. 작업 준비에서는 대상이 정해진 위치에 놓여 고정되었는지 확인하며 좌표를 매번 새로 추정하지 않는다. 지그·설치 위치가 변경되면 고정 좌표 설정을 갱신하고 경로를 재검증한다.
-
-## 통신과 공정 흐름
-
-노드별 요청·응답 필드, 경로 파일 형식, 성공·실패·정지 조건, 제한 시간·QoS와 내부 함수 계약은 [인터페이스 권장안 v1](INTERFACE_RECOMMENDATION.md)을 따른다.
+장착 전체 보정은 승인된 준비 절차에서 수행해 **새 불변 설정 스냅샷을 만든 뒤** 경로를 생성한다. 실행 전 TOOL_CHECK는 같은 저장 보정이 유효한지 확인한다. 실패하면 중단하고 필요 시 전체 보정→새 스냅샷→경로 재생성→미리보기 확인으로 돌아간다. 실행 요청 뒤 설정을 덮어쓰고 같은 경로 ID로 조각하지 않는다.
 
 ```text
-시스템 모니터 화면
-    ↕ HTTP / WebSocket
-monitor_gateway_node
-    ├─ GeneratePath Action ─→ path_planner_node
-    │                           └─ 경로·미리보기 반환
-    ├─ ExecuteProcess Action → process_controller_node
-    └─ StopProcess Service ─→ process_controller_node
-                                ├─ robot_adapter.py → 두산 드라이버 → M0609
-                                └─ gripper_adapter.py → 확인된 장치 통신
-
-공정 상태·이벤트 ── Topic ──→ monitor_gateway_node → 화면·저장
+state_machine → preconditions
+              → tool_calibration(저장값 확인) → robot_adapter
+              → engraving(접근·가공·이탈)      → robot_adapter → 두산 드라이버
 ```
 
-| 인터페이스 | 내용 |
-| --- | --- |
-| `GeneratePath.action` | 이미지·크기·배치·작업대상 형상·등록된 고정 좌표·도구 설정 입력, 생성 단계 피드백, 경로·검증 결과 반환 |
-| `ExecuteProcess.action` | 확인한 경로 ID·버전으로 실행 요청, 진행 피드백, 완료·실패·취소 결과 |
-| `StopProcess.srv` | 정지 요청을 신속히 접수하고 실제 정지 완료는 상태로 별도 통지 |
-| `ProcessState.msg` | 실행 ID·단계·진행·정지 상태와 도구 ID·파지 상태·신선도 |
-| `ProcessEvent.msg` | 실행·단계 전환·알람·오류의 식별자·시각·기록 내용 |
+APPROACH/ENGRAVE/RETRACT는 engraving이 실제 경로 구간을 보고한 단계다. state_machine이 접근·이탈을 중복 실행하지 않는다. robot_adapter의 현재 동기 함수를 작업 스레드 등에서 호출해도 정지·상태 처리는 계속 가능해야 한다. 정지 접수·정지 명령·실제 정지 확인은 별도이며 실패 뒤 자동 열기·손목 풀기·홈 이동을 넣지 않는다.
 
-실행 파일은 서버가 관리하는 파일 ID·버전·해시로 연결한다. 같은 PC의 로컬 파일 구성을 기준으로 하며, 미리보기와 실행이 같은 경로를 참조해야 한다. 그리퍼 상태는 공정 상태에 포함해 전달한다.
+- workcell.yaml: `c2_base`가 실제 로봇 base와 일치하는 등록, 고정 변환, 대상 형상·유효 영역·이음매·버전. 이름 변경만으로 TF나 좌표 변환이 생기지 않는다.
+- tools.yaml: `engraving_drill`, 철사 고정·열기 금지 정책, 장착/닫힘 확인 근거, `GripperDA_v1`·하중, 가공·보정 프로파일과 측정 근거. 집기·반납·청소는 미사용이다.
+- `clearance_m`·도구 끝 오프셋은 m, 자세는 quaternion xyzw. 어댑터 프로파일은 vel_mm_s·acc_mm_s2·pos_tol_mm으로 단위를 구분한다.
+- 자세: 툴 −Y가 표면 안쪽 법선, 툴 +Z가 원통 축 아래. 좌표 담당자가 정규화 quaternion과 실제 프레임을 생성하며 어댑터만 제어기 TCP로 변환한다.
+- 획은 180° 이내·이음매 금지·J6 왕복 원칙. IK·현재 관절·전체 이동 구간 검사는 별도 필수다. 상세 순서/한계값은 담당자가 합의 후 명세·설정으로 제출한다.
 
-`이미지·설정 입력 → 경로 생성 → 미리보기 확인 → 시작 요청 → 공정 준비 검사 → 선택 도구 집기·파지 확인 → 가공·필요한 청소 → 정상 종료·반납 → 실행 결과 표시·검사 기록`
+받침대 50 mm 변경 보고와 z≈234.4 mm 예상치는 [설정 대기 목록](../ws_cobot1/src/c2_process/config/README.md)에 구분한다. 9/18 evidence를 새 실측값으로 덮어쓰지 않는다. 전체 실행 환경은 Jazzy·M0609이고 ws_dsr와 ws_cobot1의 build/install/log를 분리한다.
 
-중단·실패 시에는 정상 종료용 반납·복귀 순서를 무조건 실행하지 않는다. 모니터의 소프트웨어 정지 요청과 물리 비상정지는 구분하며, 정지 요청 접수·Action 취소 수락만으로 실제 정지 완료를 기록하지 않는다.
+## 외부 통신
+
+[인터페이스 권장안 v2](INTERFACE_RECOMMENDATION.md)의 기존 5개 이름·형식을 유지한다. 내부 보정 모듈을 이유로 새 보정 노드·Action을 추가하지 않는다.
+
+`이미지·설정 → GeneratePath → 미리보기 확인 → ExecuteProcess → PRECHECK → TOOL_CHECK → APPROACH/ENGRAVE/RETRACT → FINISH → 별도 검사`
+
+StopProcess는 모든 단계에서 우선 처리한다. ProcessState의 파지·도구 필드는 계속 필요하며 열기 계열 관측값은 이상 진단용으로 남긴다. 그 필드가 존재한다고 열기 동작이 허용되는 것은 아니다. 과거 draw.io 도면은 9/18 보관본이며 이 문서와 [운영 결정](C2_FIXED_DRILL_20260919.md)이 현재 기준이다.

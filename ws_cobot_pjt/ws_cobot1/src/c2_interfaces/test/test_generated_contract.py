@@ -74,6 +74,8 @@ def test_state_measurements_keep_units_frames_and_separate_timestamps():
 
 
 def test_unfilled_messages_do_not_report_success_or_valid_signals():
+    for kind in (GeneratePath.Goal, ExecuteProcess.Goal, StopProcess.Request, ProcessState, ProcessEvent):
+        assert kind.SCHEMA_VERSION == kind().schema_version == 2
     assert not GeneratePath.Result().success
     assert not GeneratePath.Result().validation_passed
     assert GeneratePath.Result().path_version == 0

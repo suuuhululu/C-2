@@ -1,5 +1,14 @@
 # 진행 현황과 남은 작업
 
+## 2026-09-19 현재 확인
+
+main `301ea6e`에서 PR #16·#17·#18·#20·#21 병합을 확인했다. 공통 타입 v1·HMI·SQLite·MOCK·로봇 어댑터가 있으며 전체 좌표/공정 노드·보정·실기 통합은 미완료다. 작업 중 재조회에서 [PR #23](https://github.com/suuuhululu/C-2/pull/23)(frame), [PR #25](https://github.com/suuuhululu/C-2/pull/25)(engraving), [PR #27](https://github.com/suuuhululu/C-2/pull/27)(tool_calibration)이 추가됐으며 아직 미병합이다. 세 PR의 repository-checks는 성공했고 실기 통합 완료는 아니다.
+
+이번 `codex/fixed-drill-contract` 변경은 [고정 드릴 6개 모듈·통신 v2](../ws_cobot_pjt/docs/C2_FIXED_DRILL_20260919.md)와 HMI 모의 흐름·문서 정합성을 반영한다. 이 문서 작성만으로 main 병합 완료를 뜻하지 않는다. 담당자 배정은 제안이며 Issue·일정 자동화를 바꾸지 않았다. [문서 점검 목록](../ws_cobot_pjt/docs/DOCS_AUDIT_20260919.md).
+
+아래 9/18·9/17 PR·역할·구현 상태는 당시 기록이다. 현재 기준으로 재사용하지 않는다.
+
+
 ## 2026-09-18 일지 기준 현황
 
 Notion과 GitHub를 대조한 [0918 개발 일지](../ws_cobot_pjt/docs/daily/2026-09-18.md)를 추가했다. 기준 main은 `c414821`이며 PR #5·#7·#9·#10·#11·#13이 9/18 main에 병합됐다. 로봇 어댑터는 main에 있고, PR #15의 조각·청소는 `feat/12-robot-adapter`에만 병합됐다. PR #16(아키텍처·Clay 보관/제거)과 #17(HMI·SQLite·모의 게이트웨이)은 확인 시점 Draft·미병합이다.

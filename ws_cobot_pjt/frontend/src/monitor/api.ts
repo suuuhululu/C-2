@@ -1,3 +1,5 @@
+export const SCHEMA_VERSION = 2;
+
 export type Placement = {
   width_mm: number;
   height_mm: number;
@@ -203,12 +205,10 @@ export const initialPlacement: Placement = {
 };
 export const phaseNames: Record<string, string> = {
   PRECHECK: "준비 검사",
-  PICK_TOOL: "도구 집기·확인",
+  TOOL_CHECK: "드릴 보정 확인",
   APPROACH: "표면 접근",
   ENGRAVE: "조각",
-  CLEAN_TOOL: "도구 청소",
   RETRACT: "표면 이탈",
-  PLACE_TOOL: "도구 반납",
   FINISH: "공정 완료",
 };
 export const statusNames: Record<string, string> = {

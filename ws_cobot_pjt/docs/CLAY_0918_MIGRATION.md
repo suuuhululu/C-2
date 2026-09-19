@@ -1,5 +1,7 @@
 # 9/18 Clay 수정본 보관과 새 구조로의 이관 검토
 
+9/19 후속: 이관 시 [고정 드릴 정책](C2_FIXED_DRILL_20260919.md)을 적용한다. tool_calibration/engraving만 현재 책임에 맞춰 검토하고 자동 열기·집기·청소·반납 루틴은 이관하지 않는다. 아래 보관 원본 해시·복구 경로는 당시 증거로 유지한다.
+
 2026-09-19, 관련 [Issue #19](https://github.com/suuuhululu/C-2/issues/19)·[PR #20](https://github.com/suuuhululu/C-2/pull/20). main `23eec53`은 PR #16에서 기존 Clay 코드·실행 안내를 제거했고, PR #20 `db54a28`은 같은 파일 3개를 수정했다. 사용자 승인에 따라 최신 원본을 먼저 보관한 뒤 main의 제거 방향으로 충돌을 해결한다.
 
 ## 보존한 원본과 복구
@@ -38,7 +40,7 @@ PR #16의 [기존 보관 기록](LEGACY_CLAY_ARCHIVE.md)은 `c414821` 기준 32�
 | `force_probe.py`의 접촉 관측 | `c2_process`의 도구 보정·가공 조건 및 `robot_adapter.py` 경계 | 힘 프레임·유효 시각·판정 근거·완료·정지 조건. 임시 임계값 복사 금지 |
 | `side_heart.py`의 곡면 기하와 실행 순서 | 기하는 `c2_path/map_3d.py`·경로 생성, 실행은 `c2_process/engraving.py` | 도구 끝 m·quaternion xyzw 경로와 실제 제어기 TCP 변환 분리. 하트 점 생성과 로봇 호출을 한 함수로 이관하지 않음 |
 | `orbit_wave.py`의 회전 범위·드리프트 실패 사례 | `c2_path` 경로 검증, `c2_process` 준비·완료 검사 | J6·이음매·도구 오프셋·거짓 접촉 사례 재현. 수정본 실기 미검증 유지 |
-| `goto_home2.py`의 접근·이탈 문제 | `tool_sequence.py` 또는 명시된 APPROACH/RETRACT 경로 | 물체·장착 도구·이동 영역을 검증한 프로파일, 자동 오류 복귀 금지 |
+| `goto_home2.py`의 접근·이탈 문제 | 명시된 APPROACH/RETRACT 경로(고정 드릴 공정에서는 tool_sequence 제외) | 물체·장착 도구·이동 영역을 검증한 프로파일, 자동 오류 복귀 금지 |
 | `fk.py`의 읽기용 정운동학 | 별도 진단 도구 검토 | URDF·관절 단위·프레임·TCP 대조. 계산 자세를 장치의 실제 완료 피드백으로 대체하지 않음 |
 | `scripts/README.md`, `clay_run.md` | 이 기록과 고정 커밋 링크 | 과거 실행 명령을 현재 시작 절차로 되살리지 않음 |
 

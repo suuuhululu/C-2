@@ -1,7 +1,7 @@
 # /c2/generate_path: 모니터 → 좌표 노드. 이미지·설정의 관리 ID만 전달한다.
 # 스키마·UUID·SHA-256·유한 수치·양수 크기·지원 preset 검증은 수신 노드 책임.
-uint16 SCHEMA_VERSION=1
-uint16 schema_version 1
+uint16 SCHEMA_VERSION=2
+uint16 schema_version 2
 string request_id
 # SIMULATION 또는 REAL. 노드의 실제 실행 설정과 일치해야 한다.
 string source_mode

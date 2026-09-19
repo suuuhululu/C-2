@@ -1,8 +1,8 @@
 <?xml version="1.0"?>
 <package format="3">
   <name>c2_interfaces</name>
-  <version>0.1.0</version>
-  <description>C-2 시스템 모니터·좌표 생성·공정 제어의 공통 ROS 2 인터페이스 v1.</description>
+  <version>0.2.0</version>
+  <description>C-2 시스템 모니터·좌표 생성·공정 제어의 공통 ROS 2 인터페이스 v2.</description>
   <maintainer email="167942097+suuuhululu@users.noreply.github.com">C-2 team</maintainer>
   <license>Apache-2.0</license>
 

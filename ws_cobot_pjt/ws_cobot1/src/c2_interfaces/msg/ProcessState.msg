@@ -1,11 +1,11 @@
 # /c2/process_state: reliable / volatile / keep-last 1, 초기 5 Hz.
 # 모션 완료·파지·정지 확인·검사 합격을 서로 대체하지 않는다.
-uint16 SCHEMA_VERSION=1
+uint16 SCHEMA_VERSION=2
 string QUALITY_VALID=VALID
 string QUALITY_STALE=STALE
 string QUALITY_UNKNOWN=UNKNOWN
 string QUALITY_UNSUPPORTED=UNSUPPORTED
-uint16 schema_version 1
+uint16 schema_version 2
 string source_mode
 string source_epoch
 uint64 seq
@@ -16,6 +16,8 @@ string path_id
 uint32 path_version
 # IDLE, RUNNING, STOPPING, STOPPED, SUCCEEDED, FAILED, UNKNOWN
 string status "UNKNOWN"
+# 고정 드릴 v2: PRECHECK, TOOL_CHECK, APPROACH, ENGRAVE, RETRACT, FINISH.
+# TOOL_CHECK는 저장된 보정 확인이다. 새 보정값으로 실행 경로를 바꾸지 않는다.
 string phase
 float64 engraving_progress
 float64 elapsed_s
@@ -27,7 +29,8 @@ string requested_tool_id
 string mounted_tool_id
 # SENSOR, OPERATOR, UNKNOWN. 모의값도 source_mode로 명확히 구분한다.
 string tool_confirmation_source "UNKNOWN"
-# UNKNOWN, OPENING, OPEN, CLOSING, GRIPPED, EMPTY, ERROR
+# 관측: UNKNOWN, OPENING, OPEN, CLOSING, GRIPPED, EMPTY, ERROR.
+# OPEN 계열은 관측 오류 진단용이며 열기 명령 허용을 뜻하지 않는다.
 string grip_state "UNKNOWN"
 string grip_quality "UNKNOWN"
 builtin_interfaces/Time grip_measured_at

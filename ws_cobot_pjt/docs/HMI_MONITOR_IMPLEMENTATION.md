@@ -1,5 +1,7 @@
 # 새 모니터 구현·인계 안내
 
+**9/19 고정 드릴 후속 반영:** 통신 v2, engraving_drill/c2_base, PRECHECK→TOOL_CHECK→APPROACH→ENGRAVE→RETRACT→FINISH로 변경했다. 완료·실패·정지 후 자동 열기·반납은 없고 보정 확인 실패는 조각을 차단한다. 장착 3점 측정·실행 전 1점 확인 소스는 PR #27에서 개발 중이며 main 통합·HMI 연결·실기·J6 검증은 미완료다. mock 경로의 identity 자세는 이번에도 시각화용이며 새 자세 규칙을 검증한 결과가 아니다. [운영 변경](C2_FIXED_DRILL_20260919.md), [이번 검증](validation/2026-09-19-fixed-drill.md). 아래 과거 시험 수치는 당시 기록이다.
+
 2026-09-18. 기준 Git: `main c414821` (PR #13 포함). 작업 브랜치: `codex/hmi-monitor-simulation`.
 
 사용자의 ‘개발 시작’ 요청과 좌표 담당자의 미리보기 답변을 반영한 **모의 데이터 기반 HMI·서버·DB**다. 이전 고객 웹앱·주문 DB와 분리했다. [팀 계약](INTERFACE_RECOMMENDATION.md)을 유지하고, 아직 합의되지 않은 파일 형식은 `mock-*` 계약으로 명시했다. 이 문서의 모의 JSON을 팀 확정 인터페이스로 취급하지 않는다.
@@ -14,7 +16,7 @@
 | ROS 게이트웨이 | Jazzy Action/Service 클라이언트, Topic 구독, 별도 executor, 시간 제한, 늦은 접수 취소 처리. 9/19 공통 타입 빌드·시각/품질 변환 시험 추가 | 파일 해석 어댑터, ROS 상대 노드 통합 시험 |
 | 실기 | 명령 발행 없음. REAL 기동 거절 | 현장 설정·센서·장비 검증 전부 별도 |
 
-기본 실행기는 `MOCK`만 기동한다. React 화면의 역할은 관제 HMI이며 고객 웹앱이나 모바일 앱을 추가한 것이 아니다. 기존 PyQt `clay_hmi`와 이전 React 소스는 보존했다.
+기본 실행기는 `MOCK`만 기동한다. React 화면의 역할은 관제 HMI이며 고객 웹앱이나 모바일 앱을 추가한 것이 아니다. 기존 PyQt Clay와 이전 고객 React 소스는 개발 PC 보관본이며 현재 배포에 포함하지 않는다.
 
 ## 2. 구조와 파일 소유
 
@@ -114,7 +116,7 @@ ROS 이름은 팀 문서 그대로 사용한다. 공통 타입은 `c2_interfaces
 | 전개면 | r=34mm, U=±34π, 앞면 U=0, 이음매 ±180°. H150 및 유효 V10~140은 명시적인 모의 값 |
 | 표면 정보 | 미리보기는 `profile_snapshot_id` 참조. 수치 원본은 스냅샷에서 조회 |
 | 자세 | 전체 샘플 경로는 m / quaternion xyzw / `pose_reference=tool_tip`. identity 자세는 모의 값이며 칼 자세 검증 아님 |
-| TCP | `GripperDA_v1` = 그리퍼 끝점. 칼끝→TCP 변환은 robot_adapter 책임 |
+| TCP | `GripperDA_v1` = 그리퍼 끝점. 드릴 끝→TCP 변환은 robot_adapter 책임 |
 | 같은 결과 | path ID·버전·해시, 이미지 ID·해시, 프로파일 ID·해시로 연결 |
 | 3D | 전체 파일 참조와 렌더용 점 분리. 현재는 축소 없음(`decimation=none`); 뷰어는 점만 투영 |
 | 획 | stroke_id·segment_id 유지, 서로 다른 획을 연결해 그리지 않음 |
@@ -126,7 +128,7 @@ ROS 이름은 팀 문서 그대로 사용한다. 공통 타입은 `c2_interfaces
 
 ## 6. 합의 후 연결 순서
 
-1. [c2_interfaces v1](../ws_cobot1/src/c2_interfaces/README.md)을 같은 커밋으로 받고 빌드·source한다. 9/19 타입 생성·직렬화·게이트웨이 변환은 확인했으며 각 담당 PC도 이 단계를 수행한다.
+1. [c2_interfaces v2](../ws_cobot1/src/c2_interfaces/README.md)을 같은 커밋으로 받고 빌드·source한다. 9/19 타입 생성·직렬화·게이트웨이 변환은 확인했으며 각 담당 PC도 이 단계를 수행한다.
 2. 정상·이음매 분할·실패 예제의 GeneratePath Goal/Feedback/Result 및 SVG·경로·미리보기·스냅샷을 받는다.
 3. 관리 ID→파일 해석 어댑터를 작성한다. 확정된 허용 경로/전달 수단·최대 바이트·점 개수·파일 해시를 검사한 뒤 로컬 자산으로 등록한다. 임의 URL이나 파일 경로를 그대로 신뢰하지 않는다.
 4. `RosBridge.artifact_loader`에서 실제 산출물을 HMI 내부 모델에 정규화한다. `mock-preview/1` 표시기를 팀 계약용 어댑터로 바꾼다. 모의 프로파일도 실제 등록 스냅샷 저장소로 교체한다.

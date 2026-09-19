@@ -1,15 +1,17 @@
 # C-2 협동로봇 프로젝트
 
+**2026-09-19 현재:** [고정 드릴 운영·6개 공정 모듈·통신 v2](ws_cobot_pjt/docs/C2_FIXED_DRILL_20260919.md)를 적용하는 변경입니다. 철사 고정 중 그리퍼 열기·자동 집기·청소·반납은 금지합니다. [최신 구조](ws_cobot_pjt/docs/SYSTEM_STRUCTURE.md), [문서 점검](ws_cobot_pjt/docs/DOCS_AUDIT_20260919.md)을 먼저 확인하세요. 아래 과거 기획·연구·실기 기록은 작성 당시 범위로 보존합니다.
+
 두산 M0609와 2점 그리퍼를 사용하는 교육·팀 프로젝트 저장소입니다. 현재 서비스 방향은 **고객 도안을 원기둥 표면에 새기는 맞춤 음각**이며 ROS 2 기준은 **Jazzy**입니다.
 
 ## 음각 프로젝트 문서
 
 - [현재 축소 시나리오: 3개 노드 인터페이스·팀 협업 안내](ws_cobot_pjt/docs/INTERFACE_GUIDE.md)
-- [목표 디렉토리·파일별 역할](ws_cobot_pjt/docs/SYSTEM_STRUCTURE.md) · [통신 필드·완료 조건 권장안 v1](ws_cobot_pjt/docs/INTERFACE_RECOMMENDATION.md)
+- [목표 디렉토리·파일별 역할](ws_cobot_pjt/docs/SYSTEM_STRUCTURE.md) · [통신 필드·완료 조건 권장안 v2](ws_cobot_pjt/docs/INTERFACE_RECOMMENDATION.md)
 - [0917 개발 일지: 지점토 단위 실기·측정 기능·알고리즘 검토](ws_cobot_pjt/docs/daily/2026-09-17.md)
 - [0918 개발 일지: 3개 노드 계약·곡면 검증·공정 모듈·HMI 초안](ws_cobot_pjt/docs/daily/2026-09-18.md)
 - [서비스 목표·기능별 구현 상태](ws_cobot_pjt/docs/PROJECT_PLAN.md)
-- [전체 기능 흐름: 가공·세척·오류 처리](ws_cobot_pjt/docs/SERVICE_FLOW.md)
+- [과거 기능 흐름: 가공·세척·오류 처리 (보관)](ws_cobot_pjt/docs/SERVICE_FLOW.md)
 - [9/17 이전 설계: PC·웹앱·모니터·ROS 역할](ws_cobot_pjt/docs/SYSTEM_ARCHITECTURE.md)
 - [기존 중심선·가공 경로의 세 차례 오프라인 검증](ws_cobot_pjt/docs/ALGORITHM_VALIDATION.md)
 - [PNG·JPEG → SVG 비교와 Potrace 선택: 영역·굵기 보존](ws_cobot_pjt/docs/SVG_VECTORIZATION_VALIDATION.md)
@@ -22,7 +24,7 @@
 
 ## 먼저 읽기
 
-2026-09-19 [공통 인터페이스 v1](ws_cobot_pjt/ws_cobot1/src/c2_interfaces/README.md)의 Action 2개·Service 1개·Message 2개와 빌드 설정을 구현했습니다. Jazzy 빌드·타입 직렬화·서버 변환을 확인했으며 팀원은 같은 패키지를 빌드해 사용할 수 있습니다. 실제 좌표·공정 노드 통합과 실기 시험은 후속 작업입니다.
+2026-09-19 [공통 인터페이스 v2](ws_cobot_pjt/ws_cobot1/src/c2_interfaces/README.md)의 Action 2개·Service 1개·Message 2개와 빌드 설정을 구현했습니다. Jazzy 빌드·타입 직렬화·서버 변환을 확인했으며 팀원은 같은 패키지를 빌드해 사용할 수 있습니다. 실제 좌표·공정 노드 통합과 실기 시험은 후속 작업입니다.
 
 1. [진행 현황과 남은 작업](docs/REVIEW_STATUS.md)
 2. [프로젝트 운영·학습·분업 가이드](docs/PROJECT_GUIDE.md)

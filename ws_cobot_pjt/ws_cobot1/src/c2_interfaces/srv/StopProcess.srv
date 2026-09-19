@@ -1,6 +1,6 @@
 # /c2/stop_process: 현재 실행의 정지 접수. DB 쓰기보다 실제 정지 전달 우선.
-uint16 SCHEMA_VERSION=1
-uint16 schema_version 1
+uint16 SCHEMA_VERSION=2
+uint16 schema_version 2
 string request_id
 string run_id
 string reason

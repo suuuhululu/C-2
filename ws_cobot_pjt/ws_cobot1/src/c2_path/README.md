@@ -1,5 +1,7 @@
 # c2_path · 좌표·경로 생성 개발 위치
 
+9/19 입력 계약은 v2, tool_id=engraving_drill, frame_id=c2_base다. 툴 −Y=안쪽 법선·+Z=축 아래, 획 180° 이내·이음매 금지·J6 왕복 조건을 [상세 계약](../../../docs/INTERFACE_RECOMMENDATION.md)에 따라 검증한다. 미확정 J6 수치·파일 형식은 담당 PR에서 정의한다.
+
 개발 폴더만 준비된 상태다. `path_planner_node` 하나가 내부 계산 모듈을 호출하는 구조로 구현한다. 파일별 역할은 [목표 구조](../../../docs/SYSTEM_STRUCTURE.md), 입력·출력은 [GeneratePath 계약](../../../docs/INTERFACE_RECOMMENDATION.md)을 따른다.
 
 | 구현 위치 | 담당 기능 |

@@ -23,6 +23,7 @@ import {
   X,
 } from "lucide-react";
 import {
+  SCHEMA_VERSION,
   active,
   ApiError,
   initialPlacement,
@@ -53,7 +54,8 @@ const navItems = [
 const scenarios: Record<string, string> = {
   normal: "정상 공정",
   generation_failure: "경로 검증 실패",
-  grip_failure: "도구 확인 실패",
+  grip_failure: "드릴 장착·닫힘 확인 실패",
+  calibration_failure: "드릴 보정 확인 실패",
   cut_quality_failure: "모의 압력 확인 실패",
   stop_unknown: "정지 확인 불가",
   communication_loss: "상태 통신 단절",
@@ -150,7 +152,7 @@ export default function Monitor() {
       ws.onmessage = (e) => {
         try {
           const packet = JSON.parse(e.data);
-          if (packet.type === "snapshot" && packet.data.schema_version === 1) {
+          if (packet.type === "snapshot" && packet.data.schema_version === SCHEMA_VERSION) {
             accept(packet.data);
             retry = 0;
           }
@@ -293,7 +295,7 @@ export default function Monitor() {
       generationRequest.current?.revision === rev
         ? generationRequest.current.body
         : {
-            schema_version: 1,
+            schema_version: SCHEMA_VERSION,
             request_id: crypto.randomUUID(),
             source_mode: "SIMULATION",
             asset_id: asset.asset_id,
@@ -355,7 +357,7 @@ export default function Monitor() {
     setError("");
     if (!startBody.current)
       startBody.current = {
-        schema_version: 1,
+        schema_version: SCHEMA_VERSION,
         request_id: crypto.randomUUID(),
         source_mode: "SIMULATION",
         path_id: result.path_id,
@@ -387,7 +389,7 @@ export default function Monitor() {
       const response = await request<{ message: string }>(
         `/runs/${run.run_id}/stop`,
         {
-          schema_version: 1,
+          schema_version: SCHEMA_VERSION,
           request_id: stopId.current.id,
           reason: "운영자 정지 요청",
         },
@@ -515,7 +517,7 @@ export default function Monitor() {
                 {nav === "prepare"
                   ? "이미지를 불러오고, 원기둥 위에 도안의 자리를 정하세요."
                   : nav === "process"
-                    ? "준비부터 반납까지, 공정의 흐름을 확인합니다."
+                    ? "고정 드릴의 준비·보정 확인부터 조각 완료까지 확인합니다."
                     : nav === "history"
                       ? "각 실행에 사용한 경로와 결과를 함께 보관합니다."
                       : nav === "alarms"
@@ -680,7 +682,7 @@ export default function Monitor() {
                   </div>
                   <div>
                     <dt>도구</dt>
-                    <dd>조각칼 01</dd>
+                    <dd>고정 드릴</dd>
                   </div>
                   <div>
                     <dt>이미지 처리</dt>
@@ -816,14 +818,14 @@ export default function Monitor() {
                     </div>
                     <div>
                       <dt>선택 도구</dt>
-                      <dd>조각칼 01</dd>
+                      <dd>고정 드릴</dd>
                     </div>
                     <div>
                       <dt>장착 도구</dt>
                       <dd>
                         {snapshot?.state?.mounted_tool_id
-                          ? "조각칼 01 · 모의 확인"
-                          : "미확인 · 집기 전"}
+                          ? "고정 드릴 · 모의 확인"
+                          : "장착·닫힘 확인 전"}
                       </dd>
                     </div>
                     <div>
@@ -915,7 +917,7 @@ export default function Monitor() {
                   />
                 </div>
                 <div className="process-meta">
-                  <span>조각 구간 진행률 · 반납/검사와 별도</span>
+                  <span>조각 구간 진행률 · 이탈/검사와 별도</span>
                   <span>{Math.floor(run?.elapsed_s || 0)}초 경과</span>
                 </div>
                 {run && (
@@ -927,24 +929,22 @@ export default function Monitor() {
                   />
                 )}
                 <div className="phase-grid">
-                  {Object.entries(phaseNames)
-                    .filter(([key]) => key !== "CLEAN_TOOL")
-                    .map(([key, name], i) => (
-                      <div
-                        key={key}
-                        className={run?.phase === key ? "current" : ""}
-                      >
-                        <span>{String(i + 1).padStart(2, "0")}</span>
-                        <b>{name}</b>
-                        <small>{key}</small>
-                      </div>
-                    ))}
+                  {Object.entries(phaseNames).map(([key, name], i) => (
+                    <div
+                      key={key}
+                      className={run?.phase === key ? "current" : ""}
+                    >
+                      <span>{String(i + 1).padStart(2, "0")}</span>
+                      <b>{name}</b>
+                      <small>{key}</small>
+                    </div>
+                  ))}
                 </div>
                 <div className="process-facts">
                   <div>
                     <span>선택 / 장착 도구</span>
                     <b>
-                      조각칼 01 /{" "}
+                      고정 드릴 /{" "}
                       {snapshot?.state?.mounted_tool_id
                         ? "모의 확인"
                         : "미확인"}
@@ -1136,7 +1136,11 @@ export default function Monitor() {
                   </div>
                   <div>
                     <dt>도구 / 제어기 TCP</dt>
-                    <dd>engraving_knife / GripperDA_v1</dd>
+                    <dd>engraving_drill / GripperDA_v1</dd>
+                  </div>
+                  <div>
+                    <dt>장착 정책</dt>
+                    <dd>철사 고정 · 그리퍼 열기 금지</dd>
                   </div>
                   <div>
                     <dt>TCP 기준점</dt>
@@ -1144,7 +1148,7 @@ export default function Monitor() {
                   </div>
                   <div>
                     <dt>경로 기준점</dt>
-                    <dd>칼끝 · m / quaternion xyzw</dd>
+                    <dd>드릴 끝 · m / quaternion xyzw</dd>
                   </div>
                   <div>
                     <dt>스냅샷 ID</dt>
@@ -1158,7 +1162,7 @@ export default function Monitor() {
                 <div className="info-box">
                   {profile?.payload.note}
                   <br />
-                  그리퍼 TCP와 칼끝의 변환은 robot_adapter 책임입니다.
+                  그리퍼 TCP와 드릴 끝의 변환은 robot_adapter 책임입니다.
                 </div>
               </section>
               <section className="panel">

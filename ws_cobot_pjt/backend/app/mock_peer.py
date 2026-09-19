@@ -7,14 +7,16 @@ import json
 import math
 from copy import deepcopy
 
-from .monitor_contract import now, uid
+from .monitor_contract import SCHEMA_VERSION, now, uid
 
 PROFILE = {
-    'contract': 'mock-profile/1', 'schema_version': 1, 'source_mode': 'SIMULATION',
-    'label': '파라핀 양초 · 모의 프로파일', 'workcell_id': 'simulation-cell', 'workcell_version': 1,
-    'tool_id': 'engraving_knife', 'tool_version': 1, 'tool_label': '조각칼 01',
+    'contract': 'mock-profile/1', 'schema_version': SCHEMA_VERSION, 'source_mode': 'SIMULATION',
+    'label': '파라핀 양초 · 고정 드릴 모의 프로파일', 'workcell_id': 'simulation-cell', 'workcell_version': 2,
+    'tool_id': 'engraving_drill', 'tool_version': 2, 'tool_label': '고정 드릴',
+    'process_recipe': 'fixed_drill', 'gripper_open_allowed': False,
+    'calibration_status': 'SIMULATION_ONLY',
     'tcp_id': 'GripperDA_v1', 'tcp_reference': '그리퍼 끝점', 'tcp_version': 1,
-    'load_id': 'SIMULATION_ONLY', 'load_version': 1, 'frame_id': 'simulation_base',
+    'load_id': 'SIMULATION_ONLY', 'load_version': 1, 'frame_id': 'c2_base',
     'measurement_status': 'SIMULATION_ONLY',
     'surface': {'kind': 'cylinder', 'radius_mm': 34, 'height_mm': 150,
                 'u_range_mm': [-math.pi*34, math.pi*34], 'v_range_mm': [0, 150],
@@ -63,10 +65,13 @@ def diagnostic(goal, profile, store, strokes, message):
     for stroke in strokes:
         pts=stroke['points_uv_mm']
         outside=any(abs(u)>half or not 10<=v<=140 for u,v in pts)
+        too_wide=max(u for u,v in pts)-min(u for u,v in pts)>half
         if outside:issues.append({'reason':'OUT_OF_MOCK_BOUNDS','stroke_id':stroke['stroke_id'],
                                   'segment_id':stroke['segment_id'],'location_uv_mm':next(p for p in pts if abs(p[0])>half or not 10<=p[1]<=140)})
+        if too_wide:issues.append({'reason':'MOCK_STROKE_SPAN_EXCEEDED','stroke_id':stroke['stroke_id'],
+                                  'segment_id':stroke['segment_id'],'location_uv_mm':pts[0]})
         coords=' '.join(f'{u},{150-v}' for u,v in pts)
-        color='#b04533' if outside else '#345e4c'
+        color='#b04533' if outside or too_wide else '#345e4c'
         paths.append(f'<polyline points="{coords}" fill="none" stroke="{color}" stroke-width="0.7"/>')
     svg=(f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="-270 -140 540 420">'
          f'<rect x="{-half}" y="10" width="{half*2}" height="130" fill="#f2f4ec" stroke="#a0b29f"/>'
@@ -90,6 +95,7 @@ def artifacts(goal, profile, store, force_failure=False):
             v = x*math.sin(a)+y*math.cos(a)+goal['offset_v_mm']
             out |= abs(u) > math.pi*r or not 10 <= v <= 140
             uv.append([round(u,5), round(v,5)])
+        out |= max(u for u,v in uv)-min(u for u,v in uv)>math.pi*r
         xyz = [[r/1000*math.sin(u/r), -r/1000*math.cos(u/r), v/1000, 0,0,0,1] for u,v in uv]
         sid = f'cut-{n+1:03d}'
         strokes.append({'stroke_id':f'stroke-{n+1:03d}', 'segment_id':sid, 'kind':'CUT',
@@ -97,22 +103,22 @@ def artifacts(goal, profile, store, force_failure=False):
         segments.append({'segment_id':sid,'stroke_id':f'stroke-{n+1:03d}', 'kind':'CUT',
                          'motion_profile_id':'simulation-only','waypoints':xyz})
     if out or force_failure:
-        return diagnostic(goal,profile,store,strokes,'도안이 모의 작업 영역을 벗어났습니다. 크기·중심·회전을 조정하세요.' if out else '모의 검증 실패 시나리오. 진단 그림은 실행할 수 없습니다.')
+        return diagnostic(goal,profile,store,strokes,'도안이 모의 작업 영역 또는 한 획 180° 범위를 벗어났습니다. 크기·중심·회전을 조정하세요.' if out else '모의 검증 실패 시나리오. 진단 그림은 실행할 수 없습니다.')
     pid, version = uid(), 1
-    path = dict(schema_version=1, path_id=pid, path_version=version, source_mode='SIMULATION',
+    path = dict(schema_version=SCHEMA_VERSION, path_id=pid, path_version=version, source_mode='SIMULATION',
                 asset_id=goal['asset_id'], asset_sha256=goal['asset_sha256'], profile_snapshot_id=profile['id'],
-                profile_sha256=profile['sha256'], workcell_id='simulation-cell', workcell_version=1,
-                tool_id=goal['tool_id'], tool_version=1, tcp_profile_id='GripperDA_v1', tcp_profile_version=1,
-                load_profile_id='SIMULATION_ONLY', load_profile_version=1, frame_id='simulation_base',
+                profile_sha256=profile['sha256'], workcell_id='simulation-cell', workcell_version=2,
+                tool_id=goal['tool_id'], tool_version=2, tcp_profile_id='GripperDA_v1', tcp_profile_version=1,
+                load_profile_id='SIMULATION_ONLY', load_profile_version=1, frame_id='c2_base',
                 position_unit='m',orientation='quaternion_xyzw', pose_reference='tool_tip',
                 simulation_fixture=True, real_execution_allowed=False, segments=segments)
     path_asset = store.put_json(path,'path','simulation-path.json')
     svg = store.put_asset(sample_svg(),'svg','image/svg+xml','simulation-centerline.svg')
-    preview = dict(contract='mock-preview/1',schema_version=1,source_mode='SIMULATION',
+    preview = dict(contract='mock-preview/1',schema_version=SCHEMA_VERSION,source_mode='SIMULATION',
                    path_id=pid,path_version=version,path_sha256=path_asset['sha256'],
                    path_asset_id=path_asset['id'],asset_id=goal['asset_id'],asset_sha256=goal['asset_sha256'],
                    profile_snapshot_id=profile['id'],profile_sha256=profile['sha256'],
-                   frame_id='simulation_base',pose_reference='tool_tip',render_only=True,
+                   frame_id='c2_base',pose_reference='tool_tip',render_only=True,
                    decimation='none',input=goal,strokes=strokes,
                    note='모의 중심선 샘플입니다. 첨부 이미지를 SVG로 변환한 결과가 아닙니다.')
     pv = store.put_json(preview,'preview','simulation-preview.json')
@@ -134,10 +140,10 @@ class MockPeer:
     def __init__(self, store, profile, emit, tick=.4):
         self.store,self.profile,self.emit,self.tick = store,profile,emit,tick
         self.epoch=uid();self.seq=0;self.event_seq=0;self.scenario='normal';self.stop_event=asyncio.Event()
-        self.state=dict(schema_version=1,source_mode='SIMULATION',source_epoch=self.epoch,seq=0,
+        self.state=dict(schema_version=SCHEMA_VERSION,source_mode='SIMULATION',source_epoch=self.epoch,seq=0,
                         run_id='',path_id='',path_version=0,status='IDLE',phase='',engraving_progress=0,
                         elapsed_s=0,stop_state='NONE',error_code='NONE',message='모의 공정 대기',
-                        requested_tool_id='engraving_knife',mounted_tool_id='',tool_confirmation_source='UNKNOWN',
+                        requested_tool_id='engraving_drill',mounted_tool_id='',tool_confirmation_source='UNKNOWN',
                         grip_state='UNKNOWN',joints=None,tcp=None,temperature=None,quality='UNSUPPORTED')
 
     async def start(self):
@@ -161,7 +167,7 @@ class MockPeer:
 
     async def event(self,kind,message,code='NONE',severity='INFO'):
         self.event_seq+=1
-        await self.emit('event',dict(schema_version=1,source_mode='SIMULATION',event_id=uid(),source_epoch=self.epoch,
+        await self.emit('event',dict(schema_version=SCHEMA_VERSION,source_mode='SIMULATION',event_id=uid(),source_epoch=self.epoch,
              event_seq=self.event_seq,occurred_at=now(),run_id=self.state['run_id'],request_id=self.state.get('request_id',''),
              event_type=kind,phase=self.state['phase'],severity=severity,code=code,message=message,segment_id=''))
 
@@ -187,7 +193,7 @@ class MockPeer:
                            end_point_index=len(s['points_m'])-1,verdict='PENDING',motion_status='NOT_STARTED',
                            reason='',pressure_n=None,observed_at=now(),quality_source='SIMULATION_FIXTURE')
                       for s in preview['strokes']]
-        evidence=dict(contract='mock-execution-preview/1',schema_version=1,source_mode='SIMULATION',
+        evidence=dict(contract='mock-execution-preview/1',schema_version=SCHEMA_VERSION,source_mode='SIMULATION',
                       **{k:goal[k] for k in ('run_id','path_id','path_version','path_sha256')},
                       observations=observations)
         async def observation(index,verdict,reason=''):
@@ -196,7 +202,7 @@ class MockPeer:
             await self.emit('mock_execution_preview',deepcopy(evidence))
         await self.emit('mock_execution_preview',deepcopy(evidence))
         start=asyncio.get_running_loop().time()
-        phases=['PRECHECK','PICK_TOOL','APPROACH','ENGRAVE','RETRACT','PLACE_TOOL','FINISH']
+        phases=['PRECHECK','TOOL_CHECK','APPROACH','ENGRAVE','RETRACT','FINISH']
         for phase in phases:
             if self.stop_event.is_set():break
             self.state.update(phase=phase)
@@ -219,13 +225,16 @@ class MockPeer:
                     await observation(i,'PASSED')
                 await self.publish()
             if self.stop_event.is_set() or self.state['status']=='FAILED':break
-            if phase=='PICK_TOOL':
+            if phase=='PRECHECK':
                 if scenario=='grip_failure':
-                    self.state.update(status='FAILED',grip_state='ERROR',error_code='GRIP_NOT_CONFIRMED',message='모의 도구 확인 실패. 조각으로 진행하지 않습니다.')
+                    self.state.update(status='FAILED',grip_state='UNKNOWN',error_code='GRIP_NOT_CONFIRMED',message='모의 드릴 장착·닫힘 미확인. 열기·조각 없이 중단합니다.')
                     await self.event('ALARM_RAISED',self.state['message'],'GRIP_NOT_CONFIRMED','ERROR')
                     break
-                self.state.update(mounted_tool_id='engraving_knife',tool_confirmation_source='SIMULATION_FIXTURE',grip_state='GRIPPED')
-            if phase=='PLACE_TOOL':self.state.update(mounted_tool_id='',grip_state='OPEN',tool_confirmation_source='SIMULATION_FIXTURE')
+                self.state.update(mounted_tool_id='engraving_drill',tool_confirmation_source='OPERATOR',grip_state='GRIPPED')
+            if phase=='TOOL_CHECK' and scenario=='calibration_failure':
+                self.state.update(status='FAILED',error_code='PROFILE_MISMATCH',message='모의 드릴 보정 확인 실패. 저장된 보정값·경로를 수정하지 않고 중단합니다.')
+                await self.event('ALARM_RAISED',self.state['message'],'PROFILE_MISMATCH','ERROR')
+                break
         if self.stop_event.is_set():
             self.state.update(status='STOPPING',stop_state='STOPPING')
             await self.publish()
