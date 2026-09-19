@@ -86,3 +86,27 @@ def test_verify_passes_then_fails_after_shift():
     ad.surface_fn = candle_surface(side, proj - 0.003, lat)         # 드릴이 3 mm 밀려 들어감
     r3 = verify_tool_tip(ad, WORKCELL, PROFILES, calib, Ctx())
     assert r3.outcome == "FAILED" and abs(r3.observed_state["error_m"] - 0.003) < 0.0005, r3
+
+
+def test_measure_failure_restores_previous_offset():
+    ad = MockRobotAdapter(surface_fn=lambda p, d: None, fail_at="probe_touch")
+    start_upright(ad, -1)
+    ad.set_tool_offset([0.001, -0.05, 0.0])
+    r = measure_tool_tip(ad, WORKCELL, PROFILES, Ctx())
+    assert r.outcome == "FAILED" and r.error_code == "NOT_READY" and r.completed_step == "touch0", r   # 모의 실패 그대로
+    assert ad.tool_offset_m == [0.001, -0.05, 0.0]
+
+
+def test_verify_passes_stop_and_retreat_failure_through():
+    side, proj, lat = -1, 0.0633, -0.0025
+    ad = MockRobotAdapter(surface_fn=candle_surface(side, proj, lat))
+    start_upright(ad, side)
+    calib = TipCalibration(**measure_tool_tip(ad, WORKCELL, PROFILES, Ctx()).observed_state["calibration"])
+    ctx = Ctx(); ctx.cancel.set()
+    r = verify_tool_tip(ad, WORKCELL, PROFILES, calib, ctx)
+    assert r.outcome == "STOPPED", r                                   # 취소는 STOPPED 그대로
+    assert ad.tool_offset_m == calib.offset_tool_m
+    ad2 = MockRobotAdapter(surface_fn=candle_surface(side, proj, lat), fail_at="move")
+    start_upright(ad2, side)
+    r = verify_tool_tip(ad2, WORKCELL, PROFILES, calib, Ctx())
+    assert r.outcome == "FAILED" and r.error_code == "NOT_READY", r     # 이동(이탈 포함) 실패는 그 결과 그대로
