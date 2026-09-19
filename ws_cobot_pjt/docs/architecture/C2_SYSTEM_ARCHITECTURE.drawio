@@ -1,0 +1,865 @@
+<?xml version='1.0' encoding='utf-8'?>
+<mxfile host="app.diagrams.net" modified="2026-09-18T11:43:25.926339+00:00" agent="C-2 architecture documentation" version="29.0.0" type="device" compressed="false">
+  <diagram id="c2-page-01" name="01 시스템 전체 구성과 데이터 흐름">
+    <mxGraphModel dx="1800" dy="1120" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1800" pageHeight="1120" math="0" shadow="0" background="#FFFFFF">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="p1-v1" value="01  시스템 전체 구성과 데이터 흐름" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=none;strokeColor=none;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=32;align=left;verticalAlign=top;spacing=12;shadow=0;rounded=0;spacing=0;verticalAlign=middle;fontColor=#182B49;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="24" width="1600" height="52" as="geometry" />
+        </mxCell>
+        <mxCell id="p1-v2" value="운영 PC 1대 · ROS 2 Jazzy · 고정 좌표의 작업대상 · 고정 그리퍼 1개 + 교체 도구 | 본 페이지는 구현 목표" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=none;strokeColor=none;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=18;align=left;verticalAlign=top;spacing=12;shadow=0;rounded=0;spacing=0;verticalAlign=middle;fontColor=#52657F;fontStyle=0;" vertex="1" parent="1">
+          <mxGeometry x="42" y="82" width="1690" height="46" as="geometry" />
+        </mxCell>
+        <mxCell id="p1-v3" value="" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=#182B49;strokeColor=none;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=17;align=left;verticalAlign=top;spacing=12;shadow=0;" vertex="1" parent="1">
+          <mxGeometry x="40" y="137" width="1720" height="3" as="geometry" />
+        </mxCell>
+        <mxCell id="p1-v4" value="C-2  |  2026-09-18  |  기준 main c414821 + Clay 로컬 이관  |  설계 v1  |  01 / 08" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=none;strokeColor=none;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=13;align=left;verticalAlign=top;spacing=12;shadow=0;rounded=0;spacing=0;verticalAlign=middle;fontColor=#52657F;fontStyle=0;" vertex="1" parent="1">
+          <mxGeometry x="40" y="1080" width="1720" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="p1-v5" value="" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=#F5F7FA;strokeColor=#CAD5E3;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=17;align=left;verticalAlign=top;spacing=12;shadow=0;dashed=1;dashPattern=6 4;" vertex="1" parent="1">
+          <mxGeometry x="40" y="170" width="1320" height="770" as="geometry" />
+        </mxCell>
+        <mxCell id="p1-v6" value="팀 소프트웨어 영역  |  운영 PC 1대에서 실행" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=none;strokeColor=none;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=18;align=left;verticalAlign=top;spacing=12;shadow=0;rounded=0;spacing=0;verticalAlign=middle;fontColor=#52657F;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="60" y="180" width="1200" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="p1-v7" value="" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=#F5F7FA;strokeColor=#CAD5E3;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=17;align=left;verticalAlign=top;spacing=12;shadow=0;dashed=1;dashPattern=6 4;" vertex="1" parent="1">
+          <mxGeometry x="1400" y="170" width="360" height="770" as="geometry" />
+        </mxCell>
+        <mxCell id="p1-v8" value="장치 연결 계층" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=none;strokeColor=none;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=18;align=left;verticalAlign=top;spacing=12;shadow=0;rounded=0;spacing=0;verticalAlign=middle;fontColor=#52657F;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="1420" y="180" width="300" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="p1-v9" value="&lt;div style=&quot;font-family:Arial,Apple SD Gothic Neo,Malgun Gothic,sans-serif;line-height:1.32&quot;&gt;&lt;div style=&quot;font-size:20px;font-weight:700;margin-bottom:8px&quot;&gt;운영자 시스템 모니터&lt;/div&gt;&lt;div style=&quot;font-size:17px&quot;&gt;frontend/src/&lt;br&gt;이미지·크기·배치·도구 선택&lt;br&gt;미리보기 확인 / 시작·정지 / 검사&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=#EEF5FF;strokeColor=#2667C9;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=17;align=left;verticalAlign=top;spacing=12;shadow=0;dashed=1;dashPattern=6 4;" vertex="1" parent="1">
+          <mxGeometry x="75" y="230" width="355" height="155" as="geometry" />
+        </mxCell>
+        <mxCell id="p1-v10" value="&lt;div style=&quot;font-family:Arial,Apple SD Gothic Neo,Malgun Gothic,sans-serif;line-height:1.32&quot;&gt;&lt;div style=&quot;font-size:20px;font-weight:700;margin-bottom:8px&quot;&gt;① monitor_gateway_node&lt;/div&gt;&lt;div style=&quot;font-size:17px&quot;&gt;backend/app/ros_bridge.py&lt;br&gt;HTTP 요청 ↔ ROS 호출&lt;br&gt;경로 결과·공정 상태 → 화면&lt;br&gt;storage.py → 파일·DB 저장&lt;br&gt;ROS Action Client / Service Client&lt;br&gt;상태·이벤트 Subscriber&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=#EEF5FF;strokeColor=#2667C9;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=17;align=left;verticalAlign=top;spacing=12;shadow=0;dashed=1;dashPattern=6 4;" vertex="1" parent="1">
+          <mxGeometry x="75" y="505" width="355" height="255" as="geometry" />
+        </mxCell>
+        <mxCell id="p1-v11" value="&lt;div style=&quot;font-family:Arial,Apple SD Gothic Neo,Malgun Gothic,sans-serif;line-height:1.32&quot;&gt;&lt;div style=&quot;font-size:20px;font-weight:700;margin-bottom:8px&quot;&gt;② path_planner_node&lt;/div&gt;&lt;div style=&quot;font-size:17px&quot;&gt;ws_cobot1/src/c2_path/c2_path/node.py&lt;br&gt;이미지 → SVG → 2D 추출·최적화&lt;br&gt;표면 3D 변환 → 경로 생성·검증&lt;br&gt;A1 Action Server / 로봇 실행 없음&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=#F3EFFB;strokeColor=#7551B8;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=17;align=left;verticalAlign=top;spacing=12;shadow=0;dashed=1;dashPattern=6 4;" vertex="1" parent="1">
+          <mxGeometry x="825" y="230" width="495" height="220" as="geometry" />
+        </mxCell>
+        <mxCell id="p1-v12" value="&lt;div style=&quot;font-family:Arial,Apple SD Gothic Neo,Malgun Gothic,sans-serif;line-height:1.32&quot;&gt;&lt;div style=&quot;font-size:20px;font-weight:700;margin-bottom:8px&quot;&gt;③ process_controller_node&lt;/div&gt;&lt;div style=&quot;font-size:17px&quot;&gt;ws_cobot1/src/c2_process/c2_process/node.py&lt;br&gt;준비 검사 → 집기 → 조각 ↔ 청소 → 반납&lt;br&gt;전체 공정 모션 명령의 단일 소유자&lt;br&gt;A2 Action Server / S1 Service Server&lt;br&gt;T1·T2 Publisher&lt;br&gt;내부: 상태 기계·실행 모듈·장치 어댑터&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=#EAF7EF;strokeColor=#18764C;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=17;align=left;verticalAlign=top;spacing=12;shadow=0;dashed=1;dashPattern=6 4;" vertex="1" parent="1">
+          <mxGeometry x="825" y="540" width="495" height="260" as="geometry" />
+        </mxCell>
+        <mxCell id="p1-v13" value="&lt;div style=&quot;font-family:Arial,Apple SD Gothic Neo,Malgun Gothic,sans-serif;line-height:1.32&quot;&gt;&lt;div style=&quot;font-size:20px;font-weight:700;margin-bottom:8px&quot;&gt;ws_dsr / 공급자 드라이버&lt;/div&gt;&lt;div style=&quot;font-size:17px&quot;&gt;같은 운영 PC / DSR_ROBOT2&lt;br&gt;외부 cobot_rg2 원본은 Git 제외&lt;br&gt;실행 PC의 설치본·버전 확인&lt;br&gt;팀 3개 노드 수와 별도&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#52657F;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=17;align=left;verticalAlign=top;spacing=12;shadow=0;" vertex="1" parent="1">
+          <mxGeometry x="1430" y="280" width="300" height="190" as="geometry" />
+        </mxCell>
+        <mxCell id="p1-v14" value="&lt;div style=&quot;font-family:Arial,Apple SD Gothic Neo,Malgun Gothic,sans-serif;line-height:1.32&quot;&gt;&lt;div style=&quot;font-size:20px;font-weight:700;margin-bottom:8px&quot;&gt;두산 제어기 · M0609&lt;/div&gt;&lt;div style=&quot;font-size:17px&quot;&gt;유선 연결 / 장비 상태·동작&lt;br&gt;주소·제어 조건은 현장 설정&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#52657F;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=17;align=left;verticalAlign=top;spacing=12;shadow=0;" vertex="1" parent="1">
+          <mxGeometry x="1430" y="540" width="300" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="p1-v15" value="&lt;div style=&quot;font-family:Arial,Apple SD Gothic Neo,Malgun Gothic,sans-serif;line-height:1.32&quot;&gt;&lt;div style=&quot;font-size:20px;font-weight:700;margin-bottom:8px&quot;&gt;고정 2점 그리퍼 + 도구&lt;/div&gt;&lt;div style=&quot;font-size:17px&quot;&gt;gripper_adapter.py 연결 목표&lt;br&gt;통신·피드백·모델 확인 필요&lt;br&gt;공급자 연결 방식은 확정 전&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=#FFF7E5;strokeColor=#AE730C;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=17;align=left;verticalAlign=top;spacing=12;shadow=0;dashed=1;dashPattern=6 4;" vertex="1" parent="1">
+          <mxGeometry x="1430" y="745" width="300" height="145" as="geometry" />
+        </mxCell>
+        <mxCell id="p1-v16" value="&lt;div style=&quot;font-family:Arial,Apple SD Gothic Neo,Malgun Gothic,sans-serif;line-height:1.32&quot;&gt;&lt;div style=&quot;font-size:19px;font-weight:700;margin-bottom:8px&quot;&gt;관리된 로컬 저장소&lt;/div&gt;&lt;div style=&quot;font-size:16px&quot;&gt;&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#52657F;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=17;align=left;verticalAlign=top;spacing=12;shadow=0;" vertex="1" parent="1">
+          <mxGeometry x="75" y="855" width="1245" height="65" as="geometry" />
+        </mxCell>
+        <mxCell id="p1-v17" value="원본 · 설정 스냅샷 · SVG/미리보기 · path.json · 실행 저널 · DB" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=none;strokeColor=none;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=16;align=left;verticalAlign=top;spacing=12;shadow=0;rounded=0;spacing=0;verticalAlign=middle;fontColor=#52657F;fontStyle=0;" vertex="1" parent="1">
+          <mxGeometry x="380" y="871" width="900" height="35" as="geometry" />
+        </mxCell>
+        <mxCell id="p1-e18" value="HTTP 요청 ↓   WS/조회 결과 ↑" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#2667C9;fontColor=#2667C9;fontSize=16;fontFamily=Arial;labelBackgroundColor=#FFFFFF;exitX=0.5;exitY=1;entryX=0.5;entryY=0;startArrow=block;startFill=1;" edge="1" parent="1" source="p1-v9" target="p1-v10">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="p1-e19" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#7551B8;fontColor=#7551B8;fontSize=16;fontFamily=Arial;labelBackgroundColor=#FFFFFF;exitX=1;exitY=0.2;entryX=0;entryY=0.5;dashed=1;dashPattern=6 4;startArrow=block;startFill=1;" edge="1" parent="1" source="p1-v10" target="p1-v11">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="640" y="556" />
+              <mxPoint x="640" y="340" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="p1-v20" value="&lt;div style=&quot;font-family:Arial,Apple SD Gothic Neo,Malgun Gothic,sans-serif;line-height:1.32&quot;&gt;&lt;div style=&quot;font-size:18px;font-weight:700;margin-bottom:8px&quot;&gt;A1 /c2/generate_path&lt;/div&gt;&lt;div style=&quot;font-size:15px&quot;&gt;Goal: 입력·설정 ID / 크기·배치&lt;br&gt;← Feedback: 생성 단계&lt;br&gt;← Result: 경로 ID·버전·해시&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#7551B8;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=17;align=left;verticalAlign=top;spacing=12;shadow=0;" vertex="1" parent="1">
+          <mxGeometry x="460" y="372" width="335" height="125" as="geometry" />
+        </mxCell>
+        <mxCell id="p1-e21" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#7551B8;fontColor=#7551B8;fontSize=16;fontFamily=Arial;labelBackgroundColor=#FFFFFF;exitX=1;exitY=0.57;entryX=0;entryY=0.4;dashed=1;dashPattern=6 4;" edge="1" parent="1" source="p1-v10" target="p1-v12">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="p1-v22" value="A2 실행 Action →&#10;S1 정지 Service →" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=none;strokeColor=none;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=17;align=left;verticalAlign=top;spacing=12;shadow=0;rounded=0;spacing=0;verticalAlign=middle;fontColor=#7551B8;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="455" y="600" width="345" height="44" as="geometry" />
+        </mxCell>
+        <mxCell id="p1-e23" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#087F8C;fontColor=#087F8C;fontSize=16;fontFamily=Arial;labelBackgroundColor=#FFFFFF;exitX=0;exitY=0.8;entryX=1;entryY=0.94;dashed=1;dashPattern=6 4;" edge="1" parent="1" source="p1-v12" target="p1-v10">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="p1-v24" value="← A2 진행·결과 / S1 접수&#10;← T1 상태 · T2 이벤트" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=none;strokeColor=none;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=17;align=left;verticalAlign=top;spacing=12;shadow=0;rounded=0;spacing=0;verticalAlign=middle;fontColor=#087F8C;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="458" y="680" width="330" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="p1-e25" value="호출·조회" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#2667C9;fontColor=#2667C9;fontSize=16;fontFamily=Arial;labelBackgroundColor=#FFFFFF;exitX=1;exitY=0.18;entryX=0;entryY=0.7;startArrow=block;startFill=1;" edge="1" parent="1" source="p1-v12" target="p1-v13">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1380" y="587" />
+              <mxPoint x="1380" y="413" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="p1-e26" value="명령 / 피드백" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#52657F;fontColor=#52657F;fontSize=16;fontFamily=Arial;labelBackgroundColor=#FFFFFF;exitX=0.5;exitY=1;entryX=0.5;entryY=0;startArrow=block;startFill=1;" edge="1" parent="1" source="p1-v13" target="p1-v14">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="p1-e27" value="요청 / 확인" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#AE730C;fontColor=#AE730C;fontSize=16;fontFamily=Arial;labelBackgroundColor=#FFFFFF;exitX=1;exitY=0.9;entryX=0;entryY=0.3;dashed=1;dashPattern=6 4;startArrow=block;startFill=1;" edge="1" parent="1" source="p1-v12" target="p1-v15">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="p1-e28" value="서버 저장·조회" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#52657F;fontColor=#52657F;fontSize=16;fontFamily=Arial;labelBackgroundColor=#FFFFFF;exitX=0.3;exitY=1;entryX=0.08;entryY=0;dashed=1;dashPattern=6 4;" edge="1" parent="1" source="p1-v10" target="p1-v16">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="p1-e29" value="파일 읽기 / 저널 쓰기" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#52657F;fontColor=#52657F;fontSize=16;fontFamily=Arial;labelBackgroundColor=#FFFFFF;exitX=0.5;exitY=1;entryX=0.8;entryY=0;dashed=1;dashPattern=6 4;" edge="1" parent="1" source="p1-v12" target="p1-v16">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="p1-v30" value="&lt;div style=&quot;font-family:Arial,Apple SD Gothic Neo,Malgun Gothic,sans-serif;line-height:1.32&quot;&gt;&lt;div style=&quot;font-size:20px;font-weight:700;margin-bottom:8px&quot;&gt;읽는 방법&lt;/div&gt;&lt;div style=&quot;font-size:17px&quot;&gt;A=Action(요청·진행·결과)  S=Service(요청·응답)  T=Topic(발행→구독) | 점선=구현 목표·미확정 연결, 실선=확인된 소스/API 계층&lt;br&gt;색은 역할을 구분합니다. 실제 어댑터 호출은 07쪽, 목표 대비 구현 상태와 로컬 보관 범위는 08쪽을 확인하세요.&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=#FFF7E5;strokeColor=#AE730C;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=17;align=left;verticalAlign=top;spacing=12;shadow=0;" vertex="1" parent="1">
+          <mxGeometry x="40" y="965" width="1720" height="100" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram id="c2-page-02" name="02 노드 간 계약 · 경로 생성과 실행">
+    <mxGraphModel dx="1800" dy="1120" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1800" pageHeight="1120" math="0" shadow="0" background="#FFFFFF">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="p2-v1" value="02  노드 간 계약 · 경로 생성과 실행" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=none;strokeColor=none;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=32;align=left;verticalAlign=top;spacing=12;shadow=0;rounded=0;spacing=0;verticalAlign=middle;fontColor=#182B49;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="24" width="1600" height="52" as="geometry" />
+        </mxCell>
+        <mxCell id="p2-v2" value="A1·A2는 서로 다른 장시간 작업(Action)이다. 경로 생성 완료 후 운영자 확인을 거쳐 별도의 실행 요청을 보낸다." style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=none;strokeColor=none;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=18;align=left;verticalAlign=top;spacing=12;shadow=0;rounded=0;spacing=0;verticalAlign=middle;fontColor=#52657F;fontStyle=0;" vertex="1" parent="1">
+          <mxGeometry x="42" y="82" width="1690" height="46" as="geometry" />
+        </mxCell>
+        <mxCell id="p2-v3" value="" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=#182B49;strokeColor=none;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=17;align=left;verticalAlign=top;spacing=12;shadow=0;" vertex="1" parent="1">
+          <mxGeometry x="40" y="137" width="1720" height="3" as="geometry" />
+        </mxCell>
+        <mxCell id="p2-v4" value="C-2  |  2026-09-18  |  기준 main c414821 + Clay 로컬 이관  |  설계 v1  |  02 / 08" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=none;strokeColor=none;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=13;align=left;verticalAlign=top;spacing=12;shadow=0;rounded=0;spacing=0;verticalAlign=middle;fontColor=#52657F;fontStyle=0;" vertex="1" parent="1">
+          <mxGeometry x="40" y="1080" width="1720" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="p2-v5" value="&lt;div style=&quot;font-family:Arial,Apple SD Gothic Neo,Malgun Gothic,sans-serif;line-height:1.32&quot;&gt;&lt;div style=&quot;font-size:20px;font-weight:700;margin-bottom:8px&quot;&gt;A1  /c2/generate_path&lt;/div&gt;&lt;div style=&quot;font-size:17px&quot;&gt;c2_interfaces/action/GeneratePath  [타입 파일·서버 구현 전]&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=#F3EFFB;strokeColor=#7551B8;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=17;align=left;verticalAlign=top;spacing=12;shadow=0;dashed=1;dashPattern=6 4;" vertex="1" parent="1">
+          <mxGeometry x="40" y="170" width="840" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="p2-v6" value="&lt;div style=&quot;font-family:Arial,Apple SD Gothic Neo,Malgun Gothic,sans-serif;line-height:1.32&quot;&gt;&lt;div style=&quot;font-size:20px;font-weight:700;margin-bottom:8px&quot;&gt;A2  /c2/execute_process&lt;/div&gt;&lt;div style=&quot;font-size:17px&quot;&gt;c2_interfaces/action/ExecuteProcess  [타입 파일·서버 구현 전]&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=#EAF7EF;strokeColor=#18764C;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=17;align=left;verticalAlign=top;spacing=12;shadow=0;dashed=1;dashPattern=6 4;" vertex="1" parent="1">
+          <mxGeometry x="920" y="170" width="840" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="p2-v7" value="monitor_gateway_node → path_planner_node" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=none;strokeColor=none;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=20;align=left;verticalAlign=top;spacing=12;shadow=0;rounded=0;spacing=0;verticalAlign=middle;fontColor=#7551B8;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="60" y="290" width="800" height="35" as="geometry" />
+        </mxCell>
+        <mxCell id="p2-v8" value="monitor_gateway_node → process_controller_node" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=none;strokeColor=none;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=20;align=left;verticalAlign=top;spacing=12;shadow=0;rounded=0;spacing=0;verticalAlign=middle;fontColor=#18764C;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="940" y="290" width="800" height="35" as="geometry" />
+        </mxCell>
+        <mxCell id="p2-v9" value="&lt;div style=&quot;font-family:Arial,Apple SD Gothic Neo,Malgun Gothic,sans-serif;line-height:1.32&quot;&gt;&lt;div style=&quot;font-size:21px;font-weight:700;margin-bottom:8px&quot;&gt;Goal  →  요청 필드&lt;/div&gt;&lt;div style=&quot;font-size:18px&quot;&gt;schema_version, request_id, source_mode&lt;br&gt;asset_id, asset_sha256&lt;br&gt;width_mm, height_mm, offset_u_mm, offset_v_mm, rotation_deg&lt;br&gt;conversion_preset&lt;br&gt;tool_id, profile_snapshot_id, profile_sha256&lt;br&gt;크기는 양수 float64 / 배치 mm / 화면 회전 deg&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=#F5F7FA;strokeColor=#7551B8;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=17;align=left;verticalAlign=top;spacing=12;shadow=0;" vertex="1" parent="1">
+          <mxGeometry x="40" y="345" width="840" height="240" as="geometry" />
+        </mxCell>
+        <mxCell id="p2-v10" value="&lt;div style=&quot;font-family:Arial,Apple SD Gothic Neo,Malgun Gothic,sans-serif;line-height:1.32&quot;&gt;&lt;div style=&quot;font-size:21px;font-weight:700;margin-bottom:8px&quot;&gt;Goal  →  요청 필드&lt;/div&gt;&lt;div style=&quot;font-size:18px&quot;&gt;schema_version, request_id, run_id, source_mode&lt;br&gt;path_id, path_version, path_sha256&lt;br&gt;operator_confirmed_fixture (bool)&lt;br&gt;operator_id, confirmed_at&lt;br&gt;미리보기와 같은 경로 식별자를 전달한다.&lt;br&gt;운영자 확인은 서버가 기록하며 센서 확인과 구분한다.&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=#F5F7FA;strokeColor=#18764C;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=17;align=left;verticalAlign=top;spacing=12;shadow=0;" vertex="1" parent="1">
+          <mxGeometry x="920" y="345" width="840" height="240" as="geometry" />
+        </mxCell>
+        <mxCell id="p2-v11" value="&lt;div style=&quot;font-family:Arial,Apple SD Gothic Neo,Malgun Gothic,sans-serif;line-height:1.32&quot;&gt;&lt;div style=&quot;font-size:21px;font-weight:700;margin-bottom:8px&quot;&gt;Feedback  ←  진행&lt;/div&gt;&lt;div style=&quot;font-size:18px&quot;&gt;request_id, stage, progress (0~1, 처리 진행 추정치)&lt;br&gt;CONVERTING → EXTRACTING_2D → OPTIMIZING_2D&lt;br&gt;→ MAPPING_3D → BUILDING_PATH → VALIDATING&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#7551B8;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=17;align=left;verticalAlign=top;spacing=12;shadow=0;" vertex="1" parent="1">
+          <mxGeometry x="40" y="605" width="840" height="150" as="geometry" />
+        </mxCell>
+        <mxCell id="p2-v12" value="&lt;div style=&quot;font-family:Arial,Apple SD Gothic Neo,Malgun Gothic,sans-serif;line-height:1.32&quot;&gt;&lt;div style=&quot;font-size:21px;font-weight:700;margin-bottom:8px&quot;&gt;Feedback  ←  진행&lt;/div&gt;&lt;div style=&quot;font-size:18px&quot;&gt;run_id, phase, engraving_progress&lt;br&gt;completed_segment_id, elapsed_s&lt;br&gt;조각 진행률 = 확인된 완료 CUT 길이 / 전체 CUT 길이&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#18764C;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=17;align=left;verticalAlign=top;spacing=12;shadow=0;" vertex="1" parent="1">
+          <mxGeometry x="920" y="605" width="840" height="150" as="geometry" />
+        </mxCell>
+        <mxCell id="p2-v13" value="&lt;div style=&quot;font-family:Arial,Apple SD Gothic Neo,Malgun Gothic,sans-serif;line-height:1.32&quot;&gt;&lt;div style=&quot;font-size:21px;font-weight:700;margin-bottom:8px&quot;&gt;Result  ←  생성 결과&lt;/div&gt;&lt;div style=&quot;font-size:18px&quot;&gt;success, error_code, message&lt;br&gt;path_id, path_version, path_sha256&lt;br&gt;svg_asset_id, preview_asset_id&lt;br&gt;segment_count, cut_length_m&lt;br&gt;validation_passed, validation_report_id&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#7551B8;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=17;align=left;verticalAlign=top;spacing=12;shadow=0;" vertex="1" parent="1">
+          <mxGeometry x="40" y="775" width="840" height="210" as="geometry" />
+        </mxCell>
+        <mxCell id="p2-v14" value="&lt;div style=&quot;font-family:Arial,Apple SD Gothic Neo,Malgun Gothic,sans-serif;line-height:1.32&quot;&gt;&lt;div style=&quot;font-size:21px;font-weight:700;margin-bottom:8px&quot;&gt;Result  ←  실행 결과&lt;/div&gt;&lt;div style=&quot;font-size:18px&quot;&gt;run_id, outcome, error_code, message&lt;br&gt;last_completed_segment_id, log_id&lt;br&gt;outcome: SUCCEEDED / FAILED / STOPPED / UNKNOWN&lt;br&gt;SUCCEEDED = 이탈·필요한 청소·반납까지 완료 확인&lt;br&gt;제품 검사 PASS는 별도 기록이다.&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#18764C;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=17;align=left;verticalAlign=top;spacing=12;shadow=0;" vertex="1" parent="1">
+          <mxGeometry x="920" y="775" width="840" height="210" as="geometry" />
+        </mxCell>
+        <mxCell id="p2-v15" value="공통: schema_version=1(uint16) · request_id/run_id=UUID 문자열 · path_version=uint32 · source_mode=SIMULATION|REAL&#10;입력·설정·경로는 관리 ID와 SHA-256으로 연결한다. 나머지 자료형의 최종 확정은 공통 .action 정의 PR에서 검토한다." style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=none;strokeColor=none;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=17;align=left;verticalAlign=top;spacing=12;shadow=0;rounded=0;spacing=0;verticalAlign=middle;fontColor=#52657F;fontStyle=0;" vertex="1" parent="1">
+          <mxGeometry x="40" y="1005" width="1720" height="60" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram id="c2-page-03" name="03 노드 간 계약 · 정지, 상태, 이벤트">
+    <mxGraphModel dx="1800" dy="1120" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1800" pageHeight="1120" math="0" shadow="0" background="#FFFFFF">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="p3-v1" value="03  노드 간 계약 · 정지, 상태, 이벤트" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=none;strokeColor=none;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=32;align=left;verticalAlign=top;spacing=12;shadow=0;rounded=0;spacing=0;verticalAlign=middle;fontColor=#182B49;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="24" width="1600" height="52" as="geometry" />
+        </mxCell>
+        <mxCell id="p3-v2" value="S1은 정지 접수 응답이다. 실제 정지 완료는 T1과 A2 결과로 확인한다. T1·T2 모두 공정 제어 → 모니터 방향이다." style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=none;strokeColor=none;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=18;align=left;verticalAlign=top;spacing=12;shadow=0;rounded=0;spacing=0;verticalAlign=middle;fontColor=#52657F;fontStyle=0;" vertex="1" parent="1">
+          <mxGeometry x="42" y="82" width="1690" height="46" as="geometry" />
+        </mxCell>
+        <mxCell id="p3-v3" value="" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=#182B49;strokeColor=none;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=17;align=left;verticalAlign=top;spacing=12;shadow=0;" vertex="1" parent="1">
+          <mxGeometry x="40" y="137" width="1720" height="3" as="geometry" />
+        </mxCell>
+        <mxCell id="p3-v4" value="C-2  |  2026-09-18  |  기준 main c414821 + Clay 로컬 이관  |  설계 v1  |  03 / 08" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=none;strokeColor=none;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=13;align=left;verticalAlign=top;spacing=12;shadow=0;rounded=0;spacing=0;verticalAlign=middle;fontColor=#52657F;fontStyle=0;" vertex="1" parent="1">
+          <mxGeometry x="40" y="1080" width="1720" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="p3-v5" value="&lt;div style=&quot;font-family:Arial,Apple SD Gothic Neo,Malgun Gothic,sans-serif;line-height:1.32&quot;&gt;&lt;div style=&quot;font-size:20px;font-weight:700;margin-bottom:8px&quot;&gt;S1  /c2/stop_process&lt;/div&gt;&lt;div style=&quot;font-size:17px&quot;&gt;c2_interfaces/srv/StopProcess&lt;br&gt;모니터 → 공정 제어 → 모니터&lt;br&gt;&lt;br&gt;Request&lt;br&gt;schema_version, request_id, run_id, reason&lt;br&gt;&lt;br&gt;Response&lt;br&gt;accepted, run_id, stop_state&lt;br&gt;error_code, message&lt;br&gt;&lt;br&gt;Action 취소도 같은 정지 절차를 사용한다.&lt;br&gt;같은 run_id 확인 / 정지 latch 우선 처리&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=#FFF1F0;strokeColor=#C54245;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=17;align=left;verticalAlign=top;spacing=12;shadow=0;dashed=1;dashPattern=6 4;" vertex="1" parent="1">
+          <mxGeometry x="40" y="170" width="540" height="440" as="geometry" />
+        </mxCell>
+        <mxCell id="p3-v6" value="&lt;div style=&quot;font-family:Arial,Apple SD Gothic Neo,Malgun Gothic,sans-serif;line-height:1.32&quot;&gt;&lt;div style=&quot;font-size:20px;font-weight:700;margin-bottom:8px&quot;&gt;T1  /c2/process_state&lt;/div&gt;&lt;div style=&quot;font-size:17px&quot;&gt;c2_interfaces/msg/ProcessState&lt;br&gt;공정 제어 Publisher → 모니터 Subscriber&lt;br&gt;&lt;br&gt;식별: schema_version, source_mode,&lt;br&gt;source_epoch, seq(uint64), 발행 시각&lt;br&gt;실행: run_id, path_id/version, status, phase,&lt;br&gt;engraving_progress, elapsed_s&lt;br&gt;정지·오류: stop_state, error_code, message&lt;br&gt;도구: requested_tool_id, mounted_tool_id,&lt;br&gt;tool_confirmation_source, grip_state&lt;br&gt;로봇: 관절 rad / TCP Pose·frame / 운전·연결&lt;br&gt;신호별 quality + 측정 시각&lt;br&gt;&lt;br&gt;status&lt;br&gt;IDLE / RUNNING / STOPPING / STOPPED&lt;br&gt;SUCCEEDED / FAILED / UNKNOWN&lt;br&gt;&lt;br&gt;quality&lt;br&gt;VALID / STALE / UNKNOWN / UNSUPPORTED&lt;br&gt;&lt;br&gt;grip_state&lt;br&gt;UNKNOWN / OPENING / OPEN / CLOSING&lt;br&gt;GRIPPED / EMPTY / ERROR&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=#EEF5FF;strokeColor=#087F8C;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=17;align=left;verticalAlign=top;spacing=12;shadow=0;dashed=1;dashPattern=6 4;" vertex="1" parent="1">
+          <mxGeometry x="610" y="170" width="570" height="660" as="geometry" />
+        </mxCell>
+        <mxCell id="p3-v7" value="&lt;div style=&quot;font-family:Arial,Apple SD Gothic Neo,Malgun Gothic,sans-serif;line-height:1.32&quot;&gt;&lt;div style=&quot;font-size:20px;font-weight:700;margin-bottom:8px&quot;&gt;T2  /c2/process_events&lt;/div&gt;&lt;div style=&quot;font-size:17px&quot;&gt;c2_interfaces/msg/ProcessEvent&lt;br&gt;공정 제어 Publisher → 모니터 Subscriber&lt;br&gt;&lt;br&gt;schema_version, source_mode, event_id&lt;br&gt;source_epoch, event_seq, run_id, request_id&lt;br&gt;occurred_at, event_type, phase, severity&lt;br&gt;code, message, segment_id, 설정·경로 식별자&lt;br&gt;&lt;br&gt;event_type&lt;br&gt;COMMAND / PHASE_CHANGED&lt;br&gt;ALARM_RAISED / ALARM_CLEARED&lt;br&gt;RUN_FINISHED&lt;br&gt;&lt;br&gt;발생 시각과 서버 수신 시각을 구분한다.&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=#F3EFFB;strokeColor=#7551B8;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=17;align=left;verticalAlign=top;spacing=12;shadow=0;dashed=1;dashPattern=6 4;" vertex="1" parent="1">
+          <mxGeometry x="1210" y="170" width="550" height="440" as="geometry" />
+        </mxCell>
+        <mxCell id="p3-v8" value="&lt;div style=&quot;font-family:Arial,Apple SD Gothic Neo,Malgun Gothic,sans-serif;line-height:1.32&quot;&gt;&lt;div style=&quot;font-size:21px;font-weight:700;margin-bottom:8px&quot;&gt;정지 상태&lt;/div&gt;&lt;div style=&quot;font-size:18px&quot;&gt;NONE → REQUESTED → ACCEPTED&lt;br&gt;→ STOPPING → CONFIRMED&lt;br&gt;별도 FAILED / UNKNOWN&lt;br&gt;접수 수락 ≠ 실제 정지&lt;br&gt;확인 불가 시 새 실행 차단&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#C54245;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=17;align=left;verticalAlign=top;spacing=12;shadow=0;" vertex="1" parent="1">
+          <mxGeometry x="40" y="635" width="540" height="195" as="geometry" />
+        </mxCell>
+        <mxCell id="p3-v9" value="&lt;div style=&quot;font-family:Arial,Apple SD Gothic Neo,Malgun Gothic,sans-serif;line-height:1.32&quot;&gt;&lt;div style=&quot;font-size:20px;font-weight:700;margin-bottom:8px&quot;&gt;이벤트 복구와 화면 표시&lt;/div&gt;&lt;div style=&quot;font-size:17px&quot;&gt;중요 사건: 실행 저널에 기록 → 서버 DB 반영&lt;br&gt;event_id로 중복 제거 / 누락 저널 재조회&lt;br&gt;source_epoch·seq로 오래된 상태 제외&lt;br&gt;무효 센서값은 JSON null + quality&lt;br&gt;heartbeat와 센서 측정 시각은 별개&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#7551B8;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=17;align=left;verticalAlign=top;spacing=12;shadow=0;" vertex="1" parent="1">
+          <mxGeometry x="1210" y="635" width="550" height="195" as="geometry" />
+        </mxCell>
+        <mxCell id="p3-v10" value="&lt;div style=&quot;font-family:Arial,Apple SD Gothic Neo,Malgun Gothic,sans-serif;line-height:1.32&quot;&gt;&lt;div style=&quot;font-size:16px&quot;&gt;구분&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=#182B49;strokeColor=#FFFFFF;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=17;align=left;verticalAlign=top;spacing=12;shadow=0;rounded=0;fontColor=#FFFFFF;fontStyle=1;spacing=12;" vertex="1" parent="1">
+          <mxGeometry x="40" y="865" width="330" height="48" as="geometry" />
+        </mxCell>
+        <mxCell id="p3-v11" value="&lt;div style=&quot;font-family:Arial,Apple SD Gothic Neo,Malgun Gothic,sans-serif;line-height:1.32&quot;&gt;&lt;div style=&quot;font-size:16px&quot;&gt;v1 초기 제안&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=#182B49;strokeColor=#FFFFFF;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=17;align=left;verticalAlign=top;spacing=12;shadow=0;rounded=0;fontColor=#FFFFFF;fontStyle=1;spacing=12;" vertex="1" parent="1">
+          <mxGeometry x="370" y="865" width="610" height="48" as="geometry" />
+        </mxCell>
+        <mxCell id="p3-v12" value="&lt;div style=&quot;font-family:Arial,Apple SD Gothic Neo,Malgun Gothic,sans-serif;line-height:1.32&quot;&gt;&lt;div style=&quot;font-size:16px&quot;&gt;초과·오류 시 동작&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=#182B49;strokeColor=#FFFFFF;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=17;align=left;verticalAlign=top;spacing=12;shadow=0;rounded=0;fontColor=#FFFFFF;fontStyle=1;spacing=12;" vertex="1" parent="1">
+          <mxGeometry x="980" y="865" width="780" height="48" as="geometry" />
+        </mxCell>
+        <mxCell id="p3-v13" value="&lt;div style=&quot;font-family:Arial,Apple SD Gothic Neo,Malgun Gothic,sans-serif;line-height:1.32&quot;&gt;&lt;div style=&quot;font-size:16px&quot;&gt;상태 / 이벤트 QoS&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=#F5F7FA;strokeColor=#CAD5E3;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=17;align=left;verticalAlign=top;spacing=12;shadow=0;rounded=0;spacing=12;" vertex="1" parent="1">
+          <mxGeometry x="40" y="913" width="330" height="48" as="geometry" />
+        </mxCell>
+        <mxCell id="p3-v14" value="&lt;div style=&quot;font-family:Arial,Apple SD Gothic Neo,Malgun Gothic,sans-serif;line-height:1.32&quot;&gt;&lt;div style=&quot;font-size:16px&quot;&gt;reliable · volatile · keep-last 1 / 100&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=#F5F7FA;strokeColor=#CAD5E3;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=17;align=left;verticalAlign=top;spacing=12;shadow=0;rounded=0;spacing=12;" vertex="1" parent="1">
+          <mxGeometry x="370" y="913" width="610" height="48" as="geometry" />
+        </mxCell>
+        <mxCell id="p3-v15" value="&lt;div style=&quot;font-family:Arial,Apple SD Gothic Neo,Malgun Gothic,sans-serif;line-height:1.32&quot;&gt;&lt;div style=&quot;font-size:16px&quot;&gt;Topic은 저장소가 아님. 이벤트 유실은 실행 저널·DB로 복구&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=#F5F7FA;strokeColor=#CAD5E3;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=17;align=left;verticalAlign=top;spacing=12;shadow=0;rounded=0;spacing=12;" vertex="1" parent="1">
+          <mxGeometry x="980" y="913" width="780" height="48" as="geometry" />
+        </mxCell>
+        <mxCell id="p3-v16" value="&lt;div style=&quot;font-family:Arial,Apple SD Gothic Neo,Malgun Gothic,sans-serif;line-height:1.32&quot;&gt;&lt;div style=&quot;font-size:16px&quot;&gt;주기 / 통신 제한&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CAD5E3;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=17;align=left;verticalAlign=top;spacing=12;shadow=0;rounded=0;spacing=12;" vertex="1" parent="1">
+          <mxGeometry x="40" y="961" width="330" height="48" as="geometry" />
+        </mxCell>
+        <mxCell id="p3-v17" value="&lt;div style=&quot;font-family:Arial,Apple SD Gothic Neo,Malgun Gothic,sans-serif;line-height:1.32&quot;&gt;&lt;div style=&quot;font-size:16px&quot;&gt;상태 5 Hz + 변경 즉시 / 신선도 2 s / 정지 응답 1 s&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CAD5E3;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=17;align=left;verticalAlign=top;spacing=12;shadow=0;rounded=0;spacing=12;" vertex="1" parent="1">
+          <mxGeometry x="370" y="961" width="610" height="48" as="geometry" />
+        </mxCell>
+        <mxCell id="p3-v18" value="&lt;div style=&quot;font-family:Arial,Apple SD Gothic Neo,Malgun Gothic,sans-serif;line-height:1.32&quot;&gt;&lt;div style=&quot;font-size:16px&quot;&gt;오래된 상태와 정지 미확인을 UNKNOWN으로 표시&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CAD5E3;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=17;align=left;verticalAlign=top;spacing=12;shadow=0;rounded=0;spacing=12;" vertex="1" parent="1">
+          <mxGeometry x="980" y="961" width="780" height="48" as="geometry" />
+        </mxCell>
+        <mxCell id="p3-v19" value="&lt;div style=&quot;font-family:Arial,Apple SD Gothic Neo,Malgun Gothic,sans-serif;line-height:1.32&quot;&gt;&lt;div style=&quot;font-size:16px&quot;&gt;Action / 장치 제한&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=#F5F7FA;strokeColor=#CAD5E3;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=17;align=left;verticalAlign=top;spacing=12;shadow=0;rounded=0;spacing=12;" vertex="1" parent="1">
+          <mxGeometry x="40" y="1009" width="330" height="48" as="geometry" />
+        </mxCell>
+        <mxCell id="p3-v20" value="&lt;div style=&quot;font-family:Arial,Apple SD Gothic Neo,Malgun Gothic,sans-serif;line-height:1.32&quot;&gt;&lt;div style=&quot;font-size:16px&quot;&gt;Goal 응답 3 s / 경로 생성 120 s / 장치 deadline 필수&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=#F5F7FA;strokeColor=#CAD5E3;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=17;align=left;verticalAlign=top;spacing=12;shadow=0;rounded=0;spacing=12;" vertex="1" parent="1">
+          <mxGeometry x="370" y="1009" width="610" height="48" as="geometry" />
+        </mxCell>
+        <mxCell id="p3-v21" value="&lt;div style=&quot;font-family:Arial,Apple SD Gothic Neo,Malgun Gothic,sans-serif;line-height:1.32&quot;&gt;&lt;div style=&quot;font-size:16px&quot;&gt;명령 재전송·자동 재개 금지. 수치는 초기 모의 통합 제안&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=#F5F7FA;strokeColor=#CAD5E3;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=17;align=left;verticalAlign=top;spacing=12;shadow=0;rounded=0;spacing=12;" vertex="1" parent="1">
+          <mxGeometry x="980" y="1009" width="780" height="48" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram id="c2-page-04" name="04 노드 내부 모듈과 장치 연결">
+    <mxGraphModel dx="1800" dy="1120" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1800" pageHeight="1120" math="0" shadow="0" background="#FFFFFF">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="p4-v1" value="04  노드 내부 모듈과 장치 연결" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=none;strokeColor=none;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=32;align=left;verticalAlign=top;spacing=12;shadow=0;rounded=0;spacing=0;verticalAlign=middle;fontColor=#182B49;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="24" width="1600" height="52" as="geometry" />
+        </mxCell>
+        <mxCell id="p4-v2" value="박스 안 파일은 내부 함수 호출로 연결된다. 파일마다 ROS 노드를 추가하지 않는다. 좌표 계산과 실행 책임을 분리한다." style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=none;strokeColor=none;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=18;align=left;verticalAlign=top;spacing=12;shadow=0;rounded=0;spacing=0;verticalAlign=middle;fontColor=#52657F;fontStyle=0;" vertex="1" parent="1">
+          <mxGeometry x="42" y="82" width="1690" height="46" as="geometry" />
+        </mxCell>
+        <mxCell id="p4-v3" value="" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=#182B49;strokeColor=none;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=17;align=left;verticalAlign=top;spacing=12;shadow=0;" vertex="1" parent="1">
+          <mxGeometry x="40" y="137" width="1720" height="3" as="geometry" />
+        </mxCell>
+        <mxCell id="p4-v4" value="C-2  |  2026-09-18  |  기준 main c414821 + Clay 로컬 이관  |  설계 v1  |  04 / 08" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=none;strokeColor=none;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=13;align=left;verticalAlign=top;spacing=12;shadow=0;rounded=0;spacing=0;verticalAlign=middle;fontColor=#52657F;fontStyle=0;" vertex="1" parent="1">
+          <mxGeometry x="40" y="1080" width="1720" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="p4-v5" value="" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=#F3EFFB;strokeColor=#7551B8;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=17;align=left;verticalAlign=top;spacing=12;shadow=0;dashed=1;dashPattern=6 4;" vertex="1" parent="1">
+          <mxGeometry x="40" y="165" width="675" height="815" as="geometry" />
+        </mxCell>
+        <mxCell id="p4-v6" value="path_planner_node  |  c2_path/c2_path/" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=none;strokeColor=none;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=22;align=left;verticalAlign=top;spacing=12;shadow=0;rounded=0;spacing=0;verticalAlign=middle;fontColor=#7551B8;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="65" y="180" width="615" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="p4-v7" value="&lt;div style=&quot;font-family:Arial,Apple SD Gothic Neo,Malgun Gothic,sans-serif;line-height:1.32&quot;&gt;&lt;div style=&quot;font-size:19px;font-weight:700;margin-bottom:8px&quot;&gt;image_to_svg.py&lt;/div&gt;&lt;div style=&quot;font-size:16px&quot;&gt;asset·설정 → 정규화 SVG&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#7551B8;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=17;align=left;verticalAlign=top;spacing=12;shadow=0;dashed=1;dashPattern=6 4;" vertex="1" parent="1">
+          <mxGeometry x="80" y="255" width="590" height="78" as="geometry" />
+        </mxCell>
+        <mxCell id="p4-v8" value="&lt;div style=&quot;font-family:Arial,Apple SD Gothic Neo,Malgun Gothic,sans-serif;line-height:1.32&quot;&gt;&lt;div style=&quot;font-size:19px;font-weight:700;margin-bottom:8px&quot;&gt;extract_2d.py&lt;/div&gt;&lt;div style=&quot;font-size:16px&quot;&gt;SVG y축 변환 → u/v 2D 좌표&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#7551B8;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=17;align=left;verticalAlign=top;spacing=12;shadow=0;dashed=1;dashPattern=6 4;" vertex="1" parent="1">
+          <mxGeometry x="80" y="360" width="590" height="78" as="geometry" />
+        </mxCell>
+        <mxCell id="p4-e9" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#7551B8;fontColor=#7551B8;fontSize=16;fontFamily=Arial;labelBackgroundColor=#FFFFFF;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="1" source="p4-v7" target="p4-v8">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="p4-v10" value="&lt;div style=&quot;font-family:Arial,Apple SD Gothic Neo,Malgun Gothic,sans-serif;line-height:1.32&quot;&gt;&lt;div style=&quot;font-size:19px;font-weight:700;margin-bottom:8px&quot;&gt;optimize_2d.py&lt;/div&gt;&lt;div style=&quot;font-size:16px&quot;&gt;작업선·좌표·순서 최적화&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#7551B8;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=17;align=left;verticalAlign=top;spacing=12;shadow=0;dashed=1;dashPattern=6 4;" vertex="1" parent="1">
+          <mxGeometry x="80" y="465" width="590" height="78" as="geometry" />
+        </mxCell>
+        <mxCell id="p4-e11" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#7551B8;fontColor=#7551B8;fontSize=16;fontFamily=Arial;labelBackgroundColor=#FFFFFF;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="1" source="p4-v8" target="p4-v10">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="p4-v12" value="&lt;div style=&quot;font-family:Arial,Apple SD Gothic Neo,Malgun Gothic,sans-serif;line-height:1.32&quot;&gt;&lt;div style=&quot;font-size:19px;font-weight:700;margin-bottom:8px&quot;&gt;map_3d.py&lt;/div&gt;&lt;div style=&quot;font-size:16px&quot;&gt;대상 표면 매핑 + 고정 base 변환&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#7551B8;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=17;align=left;verticalAlign=top;spacing=12;shadow=0;dashed=1;dashPattern=6 4;" vertex="1" parent="1">
+          <mxGeometry x="80" y="570" width="590" height="78" as="geometry" />
+        </mxCell>
+        <mxCell id="p4-e13" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#7551B8;fontColor=#7551B8;fontSize=16;fontFamily=Arial;labelBackgroundColor=#FFFFFF;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="1" source="p4-v10" target="p4-v12">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="p4-v14" value="&lt;div style=&quot;font-family:Arial,Apple SD Gothic Neo,Malgun Gothic,sans-serif;line-height:1.32&quot;&gt;&lt;div style=&quot;font-size:19px;font-weight:700;margin-bottom:8px&quot;&gt;generate_path.py&lt;/div&gt;&lt;div style=&quot;font-size:16px&quot;&gt;TCP 자세·접근·CUT·이동·이탈&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#7551B8;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=17;align=left;verticalAlign=top;spacing=12;shadow=0;dashed=1;dashPattern=6 4;" vertex="1" parent="1">
+          <mxGeometry x="80" y="675" width="590" height="78" as="geometry" />
+        </mxCell>
+        <mxCell id="p4-e15" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#7551B8;fontColor=#7551B8;fontSize=16;fontFamily=Arial;labelBackgroundColor=#FFFFFF;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="1" source="p4-v12" target="p4-v14">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="p4-v16" value="&lt;div style=&quot;font-family:Arial,Apple SD Gothic Neo,Malgun Gothic,sans-serif;line-height:1.32&quot;&gt;&lt;div style=&quot;font-size:19px;font-weight:700;margin-bottom:8px&quot;&gt;validate_path.py&lt;/div&gt;&lt;div style=&quot;font-size:16px&quot;&gt;범위·자세·실행 가능성 검사&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#7551B8;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=17;align=left;verticalAlign=top;spacing=12;shadow=0;dashed=1;dashPattern=6 4;" vertex="1" parent="1">
+          <mxGeometry x="80" y="780" width="590" height="78" as="geometry" />
+        </mxCell>
+        <mxCell id="p4-e17" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#7551B8;fontColor=#7551B8;fontSize=16;fontFamily=Arial;labelBackgroundColor=#FFFFFF;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="1" source="p4-v14" target="p4-v16">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="p4-v18" value="출력: path.json + SVG + preview + validation report&#10;검증·저장 완료 후 A1 Result 공개" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=none;strokeColor=none;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=17;align=left;verticalAlign=top;spacing=12;shadow=0;rounded=0;spacing=0;verticalAlign=middle;fontColor=#7551B8;fontStyle=0;" vertex="1" parent="1">
+          <mxGeometry x="80" y="907" width="590" height="48" as="geometry" />
+        </mxCell>
+        <mxCell id="p4-v19" value="" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=#EAF7EF;strokeColor=#18764C;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=17;align=left;verticalAlign=top;spacing=12;shadow=0;dashed=1;dashPattern=6 4;" vertex="1" parent="1">
+          <mxGeometry x="755" y="165" width="1005" height="815" as="geometry" />
+        </mxCell>
+        <mxCell id="p4-v20" value="process_controller_node  |  c2_process/c2_process/" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=none;strokeColor=none;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=22;align=left;verticalAlign=top;spacing=12;shadow=0;rounded=0;spacing=0;verticalAlign=middle;fontColor=#18764C;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="780" y="180" width="950" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="p4-v21" value="&lt;div style=&quot;font-family:Arial,Apple SD Gothic Neo,Malgun Gothic,sans-serif;line-height:1.32&quot;&gt;&lt;div style=&quot;font-size:19px;font-weight:700;margin-bottom:8px&quot;&gt;node.py&lt;/div&gt;&lt;div style=&quot;font-size:16px&quot;&gt;A2·S1 수신 / T1·T2 발행&lt;br&gt;정지·상태 처리는 긴 작업과 독립&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#18764C;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=17;align=left;verticalAlign=top;spacing=12;shadow=0;dashed=1;dashPattern=6 4;" vertex="1" parent="1">
+          <mxGeometry x="790" y="250" width="390" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="p4-v22" value="&lt;div style=&quot;font-family:Arial,Apple SD Gothic Neo,Malgun Gothic,sans-serif;line-height:1.32&quot;&gt;&lt;div style=&quot;font-size:19px;font-weight:700;margin-bottom:8px&quot;&gt;preconditions.py&lt;/div&gt;&lt;div style=&quot;font-size:16px&quot;&gt;경로·해시·설정·모드·장치·latch&lt;br&gt;검사 실패 시 모션 진입 차단&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#18764C;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=17;align=left;verticalAlign=top;spacing=12;shadow=0;dashed=1;dashPattern=6 4;" vertex="1" parent="1">
+          <mxGeometry x="1310" y="250" width="415" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="p4-v23" value="&lt;div style=&quot;font-family:Arial,Apple SD Gothic Neo,Malgun Gothic,sans-serif;line-height:1.32&quot;&gt;&lt;div style=&quot;font-size:20px;font-weight:700;margin-bottom:8px&quot;&gt;state_machine.py&lt;/div&gt;&lt;div style=&quot;font-size:17px&quot;&gt;실행 context · 단계 전이 · 정지·오류 · 실행 저널&lt;br&gt;아래 모듈의 StepResult를 확인하여 다음 단계 결정&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#18764C;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=17;align=left;verticalAlign=top;spacing=12;shadow=0;dashed=1;dashPattern=6 4;" vertex="1" parent="1">
+          <mxGeometry x="900" y="430" width="670" height="105" as="geometry" />
+        </mxCell>
+        <mxCell id="p4-e24" value="검사" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#18764C;fontColor=#18764C;fontSize=16;fontFamily=Arial;labelBackgroundColor=#FFFFFF;exitX=1;exitY=0.5;entryX=0;entryY=0.5;dashed=1;dashPattern=6 4;" edge="1" parent="1" source="p4-v21" target="p4-v22">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="p4-e25" value="실행" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#18764C;fontColor=#18764C;fontSize=16;fontFamily=Arial;labelBackgroundColor=#FFFFFF;exitX=0.5;exitY=1;entryX=0.3;entryY=0;dashed=1;dashPattern=6 4;" edge="1" parent="1" source="p4-v21" target="p4-v23">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="p4-e26" value="통과 / 실패" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#18764C;fontColor=#18764C;fontSize=16;fontFamily=Arial;labelBackgroundColor=#FFFFFF;exitX=0.5;exitY=1;entryX=0.85;entryY=0;dashed=1;dashPattern=6 4;" edge="1" parent="1" source="p4-v22" target="p4-v23">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="p4-v27" value="&lt;div style=&quot;font-family:Arial,Apple SD Gothic Neo,Malgun Gothic,sans-serif;line-height:1.32&quot;&gt;&lt;div style=&quot;font-size:19px;font-weight:700;margin-bottom:8px&quot;&gt;tool_sequence.py&lt;/div&gt;&lt;div style=&quot;font-size:16px&quot;&gt;pick_tool() / place_tool()&lt;br&gt;팔 접근·정렬 + 파지/해제&lt;br&gt;TCP·하중 적용·이탈&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#18764C;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=17;align=left;verticalAlign=top;spacing=12;shadow=0;dashed=1;dashPattern=6 4;" vertex="1" parent="1">
+          <mxGeometry x="790" y="610" width="295" height="125" as="geometry" />
+        </mxCell>
+        <mxCell id="p4-v28" value="&lt;div style=&quot;font-family:Arial,Apple SD Gothic Neo,Malgun Gothic,sans-serif;line-height:1.32&quot;&gt;&lt;div style=&quot;font-size:19px;font-weight:700;margin-bottom:8px&quot;&gt;engraving.py  [브랜치]&lt;/div&gt;&lt;div style=&quot;font-size:16px&quot;&gt;execute_path()&lt;br&gt;확정 구간 실행·진행 보고&lt;br&gt;좌표 생성 없음&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=#FFF7E5;strokeColor=#AE730C;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=17;align=left;verticalAlign=top;spacing=12;shadow=0;dashed=1;dashPattern=6 4;" vertex="1" parent="1">
+          <mxGeometry x="1110" y="610" width="295" height="125" as="geometry" />
+        </mxCell>
+        <mxCell id="p4-v29" value="&lt;div style=&quot;font-family:Arial,Apple SD Gothic Neo,Malgun Gothic,sans-serif;line-height:1.32&quot;&gt;&lt;div style=&quot;font-size:19px;font-weight:700;margin-bottom:8px&quot;&gt;cleaning.py  [브랜치]&lt;/div&gt;&lt;div style=&quot;font-size:16px&quot;&gt;clean_tool()&lt;br&gt;뭉침 제거·검증된 재진입&lt;br&gt;실패하면 조각 재개 차단&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=#FFF7E5;strokeColor=#AE730C;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=17;align=left;verticalAlign=top;spacing=12;shadow=0;dashed=1;dashPattern=6 4;" vertex="1" parent="1">
+          <mxGeometry x="1430" y="610" width="295" height="125" as="geometry" />
+        </mxCell>
+        <mxCell id="p4-e30" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#18764C;fontColor=#18764C;fontSize=16;fontFamily=Arial;labelBackgroundColor=#FFFFFF;exitX=0.2;exitY=1;entryX=0.5;entryY=0;dashed=1;dashPattern=6 4;" edge="1" parent="1" source="p4-v23" target="p4-v27">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="p4-e31" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#18764C;fontColor=#18764C;fontSize=16;fontFamily=Arial;labelBackgroundColor=#FFFFFF;exitX=0.5;exitY=1;entryX=0.5;entryY=0;dashed=1;dashPattern=6 4;" edge="1" parent="1" source="p4-v23" target="p4-v28">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="p4-e32" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#18764C;fontColor=#18764C;fontSize=16;fontFamily=Arial;labelBackgroundColor=#FFFFFF;exitX=0.8;exitY=1;entryX=0.5;entryY=0;dashed=1;dashPattern=6 4;" edge="1" parent="1" source="p4-v23" target="p4-v29">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="p4-v33" value="&lt;div style=&quot;font-family:Arial,Apple SD Gothic Neo,Malgun Gothic,sans-serif;line-height:1.32&quot;&gt;&lt;div style=&quot;font-size:19px;font-weight:700;margin-bottom:8px&quot;&gt;gripper_adapter.py&lt;/div&gt;&lt;div style=&quot;font-size:16px&quot;&gt;open() / close()&lt;br&gt;명령 뒤 실제 피드백 확인&lt;br&gt;연결 방식·모델 확인 전&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#AE730C;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=17;align=left;verticalAlign=top;spacing=12;shadow=0;dashed=1;dashPattern=6 4;" vertex="1" parent="1">
+          <mxGeometry x="790" y="830" width="295" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="p4-v34" value="&lt;div style=&quot;font-family:Arial,Apple SD Gothic Neo,Malgun Gothic,sans-serif;line-height:1.32&quot;&gt;&lt;div style=&quot;font-size:20px;font-weight:700;margin-bottom:8px&quot;&gt;robot_adapter.py  [main 소스 있음]&lt;/div&gt;&lt;div style=&quot;font-size:17px&quot;&gt;move() / move_spline() / stop() / observe()&lt;br&gt;select_tool_profile() / 단위·회전 변환 / StepResult&lt;br&gt;DoosanRobotAdapter와 MockRobotAdapter&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#18764C;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=17;align=left;verticalAlign=top;spacing=12;shadow=0;" vertex="1" parent="1">
+          <mxGeometry x="1110" y="830" width="615" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="p4-e35" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#AE730C;fontColor=#AE730C;fontSize=16;fontFamily=Arial;labelBackgroundColor=#FFFFFF;exitX=0.5;exitY=1;entryX=0.5;entryY=0;dashed=1;dashPattern=6 4;" edge="1" parent="1" source="p4-v27" target="p4-v33">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="p4-e36" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#18764C;fontColor=#18764C;fontSize=16;fontFamily=Arial;labelBackgroundColor=#FFFFFF;exitX=0.85;exitY=1;entryX=0.1;entryY=0;dashed=1;dashPattern=6 4;" edge="1" parent="1" source="p4-v27" target="p4-v34">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1060" y="790" />
+              <mxPoint x="1170" y="790" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="p4-e37" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#18764C;fontColor=#18764C;fontSize=16;fontFamily=Arial;labelBackgroundColor=#FFFFFF;exitX=0.5;exitY=1;entryX=0.45;entryY=0;" edge="1" parent="1" source="p4-v28" target="p4-v34">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="p4-e38" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#18764C;fontColor=#18764C;fontSize=16;fontFamily=Arial;labelBackgroundColor=#FFFFFF;exitX=0.5;exitY=1;entryX=0.9;entryY=0;" edge="1" parent="1" source="p4-v29" target="p4-v34">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="p4-v39" value="&lt;div style=&quot;font-family:Arial,Apple SD Gothic Neo,Malgun Gothic,sans-serif;line-height:1.32&quot;&gt;&lt;div style=&quot;font-size:20px;font-weight:700;margin-bottom:8px&quot;&gt;같은 실행 context와 내부 결과 객체&lt;/div&gt;&lt;div style=&quot;font-size:17px&quot;&gt;입력: Pose · frame · profile · deadline · cancel → 결과: outcome · error_code · message · completed_step · observed_state | 조각·청소는 4b6416d 브랜치 소스.&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=#FFF7E5;strokeColor=#AE730C;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=17;align=left;verticalAlign=top;spacing=12;shadow=0;" vertex="1" parent="1">
+          <mxGeometry x="40" y="985" width="1720" height="90" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram id="c2-page-05" name="05 파일·좌표·화면 API의 연결">
+    <mxGraphModel dx="1800" dy="1120" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1800" pageHeight="1120" math="0" shadow="0" background="#FFFFFF">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="p5-v1" value="05  파일·좌표·화면 API의 연결" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=none;strokeColor=none;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=32;align=left;verticalAlign=top;spacing=12;shadow=0;rounded=0;spacing=0;verticalAlign=middle;fontColor=#182B49;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="24" width="1600" height="52" as="geometry" />
+        </mxCell>
+        <mxCell id="p5-v2" value="원본과 경로 본문은 로컬 파일로 저장한다. ROS에는 관리 ID·버전·해시를 전달하며 임의 절대 경로를 입력받지 않는다." style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=none;strokeColor=none;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=18;align=left;verticalAlign=top;spacing=12;shadow=0;rounded=0;spacing=0;verticalAlign=middle;fontColor=#52657F;fontStyle=0;" vertex="1" parent="1">
+          <mxGeometry x="42" y="82" width="1690" height="46" as="geometry" />
+        </mxCell>
+        <mxCell id="p5-v3" value="" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=#182B49;strokeColor=none;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=17;align=left;verticalAlign=top;spacing=12;shadow=0;" vertex="1" parent="1">
+          <mxGeometry x="40" y="137" width="1720" height="3" as="geometry" />
+        </mxCell>
+        <mxCell id="p5-v4" value="C-2  |  2026-09-18  |  기준 main c414821 + Clay 로컬 이관  |  설계 v1  |  05 / 08" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=none;strokeColor=none;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=13;align=left;verticalAlign=top;spacing=12;shadow=0;rounded=0;spacing=0;verticalAlign=middle;fontColor=#52657F;fontStyle=0;" vertex="1" parent="1">
+          <mxGeometry x="40" y="1080" width="1720" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="p5-v5" value="&lt;div style=&quot;font-family:Arial,Apple SD Gothic Neo,Malgun Gothic,sans-serif;line-height:1.32&quot;&gt;&lt;div style=&quot;font-size:20px;font-weight:700;margin-bottom:8px&quot;&gt;① 서버가 원본·설정 보관&lt;/div&gt;&lt;div style=&quot;font-size:17px&quot;&gt;asset_id / asset_sha256&lt;br&gt;profile_snapshot_id / profile_sha256&lt;br&gt;workcell.yaml: 고정 변환·표면·영역&lt;br&gt;tools.yaml: 도구·TCP·하중·가공·청소&lt;br&gt;스냅샷은 불변 파일로 보관&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=#EEF5FF;strokeColor=#2667C9;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=17;align=left;verticalAlign=top;spacing=12;shadow=0;dashed=1;dashPattern=6 4;" vertex="1" parent="1">
+          <mxGeometry x="40" y="170" width="440" height="190" as="geometry" />
+        </mxCell>
+        <mxCell id="p5-v6" value="&lt;div style=&quot;font-family:Arial,Apple SD Gothic Neo,Malgun Gothic,sans-serif;line-height:1.32&quot;&gt;&lt;div style=&quot;font-size:20px;font-weight:700;margin-bottom:8px&quot;&gt;② 경로 생성과 파일 공개&lt;/div&gt;&lt;div style=&quot;font-size:17px&quot;&gt;path.json: schema / path_id / version&lt;br&gt;asset·profile 참조 + mode + frame_id&lt;br&gt;segments: segment_id / stroke_id / kind&lt;br&gt;waypoints / motion_profile_id / 완료 검증&lt;br&gt;SVG / preview / validation_report&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=#F3EFFB;strokeColor=#7551B8;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=17;align=left;verticalAlign=top;spacing=12;shadow=0;dashed=1;dashPattern=6 4;" vertex="1" parent="1">
+          <mxGeometry x="650" y="170" width="520" height="190" as="geometry" />
+        </mxCell>
+        <mxCell id="p5-v7" value="&lt;div style=&quot;font-family:Arial,Apple SD Gothic Neo,Malgun Gothic,sans-serif;line-height:1.32&quot;&gt;&lt;div style=&quot;font-size:20px;font-weight:700;margin-bottom:8px&quot;&gt;③ 미리보기·실행 일치&lt;/div&gt;&lt;div style=&quot;font-size:17px&quot;&gt;확인한 path_id·version·sha256&lt;br&gt;실행 의존 파일을 해시로 묶음&lt;br&gt;시작 전 고정 사본 로딩&lt;br&gt;설정·해시 불일치 → 실행 거절&lt;br&gt;path.json 내부에 자기 해시 제외&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=#EAF7EF;strokeColor=#18764C;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=17;align=left;verticalAlign=top;spacing=12;shadow=0;dashed=1;dashPattern=6 4;" vertex="1" parent="1">
+          <mxGeometry x="1340" y="170" width="420" height="190" as="geometry" />
+        </mxCell>
+        <mxCell id="p5-e8" value="A1 Goal" style="html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#7551B8;fontSize=16;fontColor=#7551B8;labelBackgroundColor=#FFFFFF;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="485" y="265" as="sourcePoint" />
+            <mxPoint x="645" y="265" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="p5-e9" value="A1 Result → A2" style="html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#7551B8;fontSize=16;fontColor=#7551B8;labelBackgroundColor=#FFFFFF;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1175" y="265" as="sourcePoint" />
+            <mxPoint x="1335" y="265" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="p5-v10" value="&lt;div style=&quot;font-family:Arial,Apple SD Gothic Neo,Malgun Gothic,sans-serif;line-height:1.32&quot;&gt;&lt;div style=&quot;font-size:21px;font-weight:700;margin-bottom:8px&quot;&gt;좌표·단위 변환 경계&lt;/div&gt;&lt;div style=&quot;font-size:18px&quot;&gt;입력: 크기·배치 mm, 회전 deg → SVG y축 정규화(u 오른쪽 / v 위쪽) → 2D 최적화 → 표면 매핑·고정 base 변환 → 3D 위치 m + quaternion(x,y,z,w)&lt;br&gt;실행 경로 frame_id는 승인된 base 프레임. 실행기에서 고정 변환을 다시 적용하지 않는다. 두산 mm·ZYZ deg 변환은 robot_adapter.py 소스에 위치한다.&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=#F5F7FA;strokeColor=#52657F;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=17;align=left;verticalAlign=top;spacing=12;shadow=0;" vertex="1" parent="1">
+          <mxGeometry x="40" y="385" width="1720" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="p5-v11" value="&lt;div style=&quot;font-family:Arial,Apple SD Gothic Neo,Malgun Gothic,sans-serif;line-height:1.32&quot;&gt;&lt;div style=&quot;font-size:16px&quot;&gt;화면 ↔ 서버 · 구현 목표&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=#182B49;strokeColor=#FFFFFF;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=17;align=left;verticalAlign=top;spacing=12;shadow=0;rounded=0;fontColor=#FFFFFF;fontStyle=1;spacing=12;" vertex="1" parent="1">
+          <mxGeometry x="40" y="535" width="220" height="48" as="geometry" />
+        </mxCell>
+        <mxCell id="p5-v12" value="&lt;div style=&quot;font-family:Arial,Apple SD Gothic Neo,Malgun Gothic,sans-serif;line-height:1.32&quot;&gt;&lt;div style=&quot;font-size:16px&quot;&gt;HTTP / WebSocket 계약&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=#182B49;strokeColor=#FFFFFF;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=17;align=left;verticalAlign=top;spacing=12;shadow=0;rounded=0;fontColor=#FFFFFF;fontStyle=1;spacing=12;" vertex="1" parent="1">
+          <mxGeometry x="260" y="535" width="830" height="48" as="geometry" />
+        </mxCell>
+        <mxCell id="p5-v13" value="&lt;div style=&quot;font-family:Arial,Apple SD Gothic Neo,Malgun Gothic,sans-serif;line-height:1.32&quot;&gt;&lt;div style=&quot;font-size:16px&quot;&gt;ROS 연결 또는 저장 동작&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=#182B49;strokeColor=#FFFFFF;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=17;align=left;verticalAlign=top;spacing=12;shadow=0;rounded=0;fontColor=#FFFFFF;fontStyle=1;spacing=12;" vertex="1" parent="1">
+          <mxGeometry x="1090" y="535" width="670" height="48" as="geometry" />
+        </mxCell>
+        <mxCell id="p5-v14" value="&lt;div style=&quot;font-family:Arial,Apple SD Gothic Neo,Malgun Gothic,sans-serif;line-height:1.32&quot;&gt;&lt;div style=&quot;font-size:16px&quot;&gt;업로드&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=#F5F7FA;strokeColor=#CAD5E3;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=17;align=left;verticalAlign=top;spacing=12;shadow=0;rounded=0;spacing=12;" vertex="1" parent="1">
+          <mxGeometry x="40" y="583" width="220" height="46" as="geometry" />
+        </mxCell>
+        <mxCell id="p5-v15" value="&lt;div style=&quot;font-family:Arial,Apple SD Gothic Neo,Malgun Gothic,sans-serif;line-height:1.32&quot;&gt;&lt;div style=&quot;font-size:16px&quot;&gt;POST /api/operator/assets&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=#F5F7FA;strokeColor=#CAD5E3;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=17;align=left;verticalAlign=top;spacing=12;shadow=0;rounded=0;spacing=12;" vertex="1" parent="1">
+          <mxGeometry x="260" y="583" width="830" height="46" as="geometry" />
+        </mxCell>
+        <mxCell id="p5-v16" value="&lt;div style=&quot;font-family:Arial,Apple SD Gothic Neo,Malgun Gothic,sans-serif;line-height:1.32&quot;&gt;&lt;div style=&quot;font-size:16px&quot;&gt;파일 검증·저장 → asset ID·해시 (미지원 415)&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=#F5F7FA;strokeColor=#CAD5E3;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=17;align=left;verticalAlign=top;spacing=12;shadow=0;rounded=0;spacing=12;" vertex="1" parent="1">
+          <mxGeometry x="1090" y="583" width="670" height="46" as="geometry" />
+        </mxCell>
+        <mxCell id="p5-v17" value="&lt;div style=&quot;font-family:Arial,Apple SD Gothic Neo,Malgun Gothic,sans-serif;line-height:1.32&quot;&gt;&lt;div style=&quot;font-size:16px&quot;&gt;생성 요청&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CAD5E3;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=17;align=left;verticalAlign=top;spacing=12;shadow=0;rounded=0;spacing=12;" vertex="1" parent="1">
+          <mxGeometry x="40" y="629" width="220" height="46" as="geometry" />
+        </mxCell>
+        <mxCell id="p5-v18" value="&lt;div style=&quot;font-family:Arial,Apple SD Gothic Neo,Malgun Gothic,sans-serif;line-height:1.32&quot;&gt;&lt;div style=&quot;font-size:16px&quot;&gt;POST /api/operator/path-generations&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CAD5E3;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=17;align=left;verticalAlign=top;spacing=12;shadow=0;rounded=0;spacing=12;" vertex="1" parent="1">
+          <mxGeometry x="260" y="629" width="830" height="46" as="geometry" />
+        </mxCell>
+        <mxCell id="p5-v19" value="&lt;div style=&quot;font-family:Arial,Apple SD Gothic Neo,Malgun Gothic,sans-serif;line-height:1.32&quot;&gt;&lt;div style=&quot;font-size:16px&quot;&gt;A1 Goal → HTTP 202 + request_id&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CAD5E3;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=17;align=left;verticalAlign=top;spacing=12;shadow=0;rounded=0;spacing=12;" vertex="1" parent="1">
+          <mxGeometry x="1090" y="629" width="670" height="46" as="geometry" />
+        </mxCell>
+        <mxCell id="p5-v20" value="&lt;div style=&quot;font-family:Arial,Apple SD Gothic Neo,Malgun Gothic,sans-serif;line-height:1.32&quot;&gt;&lt;div style=&quot;font-size:16px&quot;&gt;생성·경로 조회&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=#F5F7FA;strokeColor=#CAD5E3;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=17;align=left;verticalAlign=top;spacing=12;shadow=0;rounded=0;spacing=12;" vertex="1" parent="1">
+          <mxGeometry x="40" y="675" width="220" height="68" as="geometry" />
+        </mxCell>
+        <mxCell id="p5-v21" value="&lt;div style=&quot;font-family:Arial,Apple SD Gothic Neo,Malgun Gothic,sans-serif;line-height:1.32&quot;&gt;&lt;div style=&quot;font-size:16px&quot;&gt;GET /api/operator/path-generations/{request_id}&lt;br&gt;GET /api/operator/paths/{path_id}/versions/{version}&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=#F5F7FA;strokeColor=#CAD5E3;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=17;align=left;verticalAlign=top;spacing=12;shadow=0;rounded=0;spacing=12;" vertex="1" parent="1">
+          <mxGeometry x="260" y="675" width="830" height="68" as="geometry" />
+        </mxCell>
+        <mxCell id="p5-v22" value="&lt;div style=&quot;font-family:Arial,Apple SD Gothic Neo,Malgun Gothic,sans-serif;line-height:1.32&quot;&gt;&lt;div style=&quot;font-size:16px&quot;&gt;진행·결과·해시·관리된 preview URL&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=#F5F7FA;strokeColor=#CAD5E3;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=17;align=left;verticalAlign=top;spacing=12;shadow=0;rounded=0;spacing=12;" vertex="1" parent="1">
+          <mxGeometry x="1090" y="675" width="670" height="68" as="geometry" />
+        </mxCell>
+        <mxCell id="p5-v23" value="&lt;div style=&quot;font-family:Arial,Apple SD Gothic Neo,Malgun Gothic,sans-serif;line-height:1.32&quot;&gt;&lt;div style=&quot;font-size:16px&quot;&gt;실행·결과&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CAD5E3;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=17;align=left;verticalAlign=top;spacing=12;shadow=0;rounded=0;spacing=12;" vertex="1" parent="1">
+          <mxGeometry x="40" y="743" width="220" height="68" as="geometry" />
+        </mxCell>
+        <mxCell id="p5-v24" value="&lt;div style=&quot;font-family:Arial,Apple SD Gothic Neo,Malgun Gothic,sans-serif;line-height:1.32&quot;&gt;&lt;div style=&quot;font-size:16px&quot;&gt;POST /api/operator/runs&lt;br&gt;GET /api/operator/runs/{run_id}&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CAD5E3;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=17;align=left;verticalAlign=top;spacing=12;shadow=0;rounded=0;spacing=12;" vertex="1" parent="1">
+          <mxGeometry x="260" y="743" width="830" height="68" as="geometry" />
+        </mxCell>
+        <mxCell id="p5-v25" value="&lt;div style=&quot;font-family:Arial,Apple SD Gothic Neo,Malgun Gothic,sans-serif;line-height:1.32&quot;&gt;&lt;div style=&quot;font-size:16px&quot;&gt;A2 요청: 202 + request/run ID / 결과·로그 조회&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CAD5E3;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=17;align=left;verticalAlign=top;spacing=12;shadow=0;rounded=0;spacing=12;" vertex="1" parent="1">
+          <mxGeometry x="1090" y="743" width="670" height="68" as="geometry" />
+        </mxCell>
+        <mxCell id="p5-v26" value="&lt;div style=&quot;font-family:Arial,Apple SD Gothic Neo,Malgun Gothic,sans-serif;line-height:1.32&quot;&gt;&lt;div style=&quot;font-size:16px&quot;&gt;정지&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=#F5F7FA;strokeColor=#CAD5E3;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=17;align=left;verticalAlign=top;spacing=12;shadow=0;rounded=0;spacing=12;" vertex="1" parent="1">
+          <mxGeometry x="40" y="811" width="220" height="46" as="geometry" />
+        </mxCell>
+        <mxCell id="p5-v27" value="&lt;div style=&quot;font-family:Arial,Apple SD Gothic Neo,Malgun Gothic,sans-serif;line-height:1.32&quot;&gt;&lt;div style=&quot;font-size:16px&quot;&gt;POST /api/operator/runs/{run_id}/stop&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=#F5F7FA;strokeColor=#CAD5E3;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=17;align=left;verticalAlign=top;spacing=12;shadow=0;rounded=0;spacing=12;" vertex="1" parent="1">
+          <mxGeometry x="260" y="811" width="830" height="46" as="geometry" />
+        </mxCell>
+        <mxCell id="p5-v28" value="&lt;div style=&quot;font-family:Arial,Apple SD Gothic Neo,Malgun Gothic,sans-serif;line-height:1.32&quot;&gt;&lt;div style=&quot;font-size:16px&quot;&gt;S1 접수 → 실제 정지는 T1 / A2로 확인&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=#F5F7FA;strokeColor=#CAD5E3;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=17;align=left;verticalAlign=top;spacing=12;shadow=0;rounded=0;spacing=12;" vertex="1" parent="1">
+          <mxGeometry x="1090" y="811" width="670" height="46" as="geometry" />
+        </mxCell>
+        <mxCell id="p5-v29" value="&lt;div style=&quot;font-family:Arial,Apple SD Gothic Neo,Malgun Gothic,sans-serif;line-height:1.32&quot;&gt;&lt;div style=&quot;font-size:16px&quot;&gt;상태·이력&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CAD5E3;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=17;align=left;verticalAlign=top;spacing=12;shadow=0;rounded=0;spacing=12;" vertex="1" parent="1">
+          <mxGeometry x="40" y="857" width="220" height="68" as="geometry" />
+        </mxCell>
+        <mxCell id="p5-v30" value="&lt;div style=&quot;font-family:Arial,Apple SD Gothic Neo,Malgun Gothic,sans-serif;line-height:1.32&quot;&gt;&lt;div style=&quot;font-size:16px&quot;&gt;GET /api/operator/snapshot&lt;br&gt;GET /api/operator/runs · GET /api/operator/alarms&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CAD5E3;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=17;align=left;verticalAlign=top;spacing=12;shadow=0;rounded=0;spacing=12;" vertex="1" parent="1">
+          <mxGeometry x="260" y="857" width="830" height="68" as="geometry" />
+        </mxCell>
+        <mxCell id="p5-v31" value="&lt;div style=&quot;font-family:Arial,Apple SD Gothic Neo,Malgun Gothic,sans-serif;line-height:1.32&quot;&gt;&lt;div style=&quot;font-size:16px&quot;&gt;최신 상태·실행·알람 기록&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CAD5E3;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=17;align=left;verticalAlign=top;spacing=12;shadow=0;rounded=0;spacing=12;" vertex="1" parent="1">
+          <mxGeometry x="1090" y="857" width="670" height="68" as="geometry" />
+        </mxCell>
+        <mxCell id="p5-v32" value="&lt;div style=&quot;font-family:Arial,Apple SD Gothic Neo,Malgun Gothic,sans-serif;line-height:1.32&quot;&gt;&lt;div style=&quot;font-size:16px&quot;&gt;실시간·재접속&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=#F5F7FA;strokeColor=#CAD5E3;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=17;align=left;verticalAlign=top;spacing=12;shadow=0;rounded=0;spacing=12;" vertex="1" parent="1">
+          <mxGeometry x="40" y="925" width="220" height="46" as="geometry" />
+        </mxCell>
+        <mxCell id="p5-v33" value="&lt;div style=&quot;font-family:Arial,Apple SD Gothic Neo,Malgun Gothic,sans-serif;line-height:1.32&quot;&gt;&lt;div style=&quot;font-size:16px&quot;&gt;WS /api/operator/stream&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=#F5F7FA;strokeColor=#CAD5E3;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=17;align=left;verticalAlign=top;spacing=12;shadow=0;rounded=0;spacing=12;" vertex="1" parent="1">
+          <mxGeometry x="260" y="925" width="830" height="46" as="geometry" />
+        </mxCell>
+        <mxCell id="p5-v34" value="&lt;div style=&quot;font-family:Arial,Apple SD Gothic Neo,Malgun Gothic,sans-serif;line-height:1.32&quot;&gt;&lt;div style=&quot;font-size:16px&quot;&gt;진행·상태·사건 / 재접속 시 snapshot·이력 대조&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=#F5F7FA;strokeColor=#CAD5E3;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=17;align=left;verticalAlign=top;spacing=12;shadow=0;rounded=0;spacing=12;" vertex="1" parent="1">
+          <mxGeometry x="1090" y="925" width="670" height="46" as="geometry" />
+        </mxCell>
+        <mxCell id="p5-v35" value="&lt;div style=&quot;font-family:Arial,Apple SD Gothic Neo,Malgun Gothic,sans-serif;line-height:1.32&quot;&gt;&lt;div style=&quot;font-size:16px&quot;&gt;검사&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CAD5E3;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=17;align=left;verticalAlign=top;spacing=12;shadow=0;rounded=0;spacing=12;" vertex="1" parent="1">
+          <mxGeometry x="40" y="971" width="220" height="46" as="geometry" />
+        </mxCell>
+        <mxCell id="p5-v36" value="&lt;div style=&quot;font-family:Arial,Apple SD Gothic Neo,Malgun Gothic,sans-serif;line-height:1.32&quot;&gt;&lt;div style=&quot;font-size:16px&quot;&gt;POST /api/operator/inspections&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CAD5E3;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=17;align=left;verticalAlign=top;spacing=12;shadow=0;rounded=0;spacing=12;" vertex="1" parent="1">
+          <mxGeometry x="260" y="971" width="830" height="46" as="geometry" />
+        </mxCell>
+        <mxCell id="p5-v37" value="&lt;div style=&quot;font-family:Arial,Apple SD Gothic Neo,Malgun Gothic,sans-serif;line-height:1.32&quot;&gt;&lt;div style=&quot;font-size:16px&quot;&gt;run_id + PASS/HOLD/REJECT + 근거 / 검사자·시각 서버 기록&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CAD5E3;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=17;align=left;verticalAlign=top;spacing=12;shadow=0;rounded=0;spacing=12;" vertex="1" parent="1">
+          <mxGeometry x="1090" y="971" width="670" height="46" as="geometry" />
+        </mxCell>
+        <mxCell id="p5-v38" value="storage.py: 원본·설정·경로 + 실행/알람/검사 DB. 공정 로컬 저널 → 서버가 DB 누락 복구. DB 엔진·웹 프레임워크·파일 배치 상세는 미정." style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=none;strokeColor=none;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=17;align=left;verticalAlign=top;spacing=12;shadow=0;rounded=0;spacing=0;verticalAlign=middle;fontColor=#52657F;fontStyle=0;" vertex="1" parent="1">
+          <mxGeometry x="40" y="1031" width="1720" height="42" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram id="c2-page-06" name="06 정상 공정과 정지·오류 처리">
+    <mxGraphModel dx="1800" dy="1120" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1800" pageHeight="1120" math="0" shadow="0" background="#FFFFFF">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="p6-v1" value="06  정상 공정과 정지·오류 처리" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=none;strokeColor=none;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=32;align=left;verticalAlign=top;spacing=12;shadow=0;rounded=0;spacing=0;verticalAlign=middle;fontColor=#182B49;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="24" width="1600" height="52" as="geometry" />
+        </mxCell>
+        <mxCell id="p6-v2" value="모니터는 요청하고 공정 제어가 시작 조건·단계 진행을 판단한다. 각 단계의 완료 확인이 다음 단계의 진입 조건이다." style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=none;strokeColor=none;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=18;align=left;verticalAlign=top;spacing=12;shadow=0;rounded=0;spacing=0;verticalAlign=middle;fontColor=#52657F;fontStyle=0;" vertex="1" parent="1">
+          <mxGeometry x="42" y="82" width="1690" height="46" as="geometry" />
+        </mxCell>
+        <mxCell id="p6-v3" value="" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=#182B49;strokeColor=none;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=17;align=left;verticalAlign=top;spacing=12;shadow=0;" vertex="1" parent="1">
+          <mxGeometry x="40" y="137" width="1720" height="3" as="geometry" />
+        </mxCell>
+        <mxCell id="p6-v4" value="C-2  |  2026-09-18  |  기준 main c414821 + Clay 로컬 이관  |  설계 v1  |  06 / 08" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=none;strokeColor=none;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=13;align=left;verticalAlign=top;spacing=12;shadow=0;rounded=0;spacing=0;verticalAlign=middle;fontColor=#52657F;fontStyle=0;" vertex="1" parent="1">
+          <mxGeometry x="40" y="1080" width="1720" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="p6-v5" value="&lt;div style=&quot;font-family:Arial,Apple SD Gothic Neo,Malgun Gothic,sans-serif;line-height:1.32&quot;&gt;&lt;div style=&quot;font-size:21px;font-weight:700;margin-bottom:8px&quot;&gt;입력·설정&lt;/div&gt;&lt;div style=&quot;font-size:18px&quot;&gt;서버 저장&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=#EEF5FF;strokeColor=#2667C9;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=17;align=left;verticalAlign=top;spacing=12;shadow=0;dashed=1;dashPattern=6 4;" vertex="1" parent="1">
+          <mxGeometry x="40" y="180" width="385" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="p6-v6" value="&lt;div style=&quot;font-family:Arial,Apple SD Gothic Neo,Malgun Gothic,sans-serif;line-height:1.32&quot;&gt;&lt;div style=&quot;font-size:21px;font-weight:700;margin-bottom:8px&quot;&gt;A1 경로 생성&lt;/div&gt;&lt;div style=&quot;font-size:18px&quot;&gt;검증·파일 확정&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=#EEF5FF;strokeColor=#2667C9;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=17;align=left;verticalAlign=top;spacing=12;shadow=0;dashed=1;dashPattern=6 4;" vertex="1" parent="1">
+          <mxGeometry x="485" y="180" width="385" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="p6-v7" value="&lt;div style=&quot;font-family:Arial,Apple SD Gothic Neo,Malgun Gothic,sans-serif;line-height:1.32&quot;&gt;&lt;div style=&quot;font-size:21px;font-weight:700;margin-bottom:8px&quot;&gt;미리보기 확인&lt;/div&gt;&lt;div style=&quot;font-size:18px&quot;&gt;운영자 고정 확인&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=#EEF5FF;strokeColor=#2667C9;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=17;align=left;verticalAlign=top;spacing=12;shadow=0;dashed=1;dashPattern=6 4;" vertex="1" parent="1">
+          <mxGeometry x="930" y="180" width="385" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="p6-v8" value="&lt;div style=&quot;font-family:Arial,Apple SD Gothic Neo,Malgun Gothic,sans-serif;line-height:1.32&quot;&gt;&lt;div style=&quot;font-size:21px;font-weight:700;margin-bottom:8px&quot;&gt;A2 실행 요청&lt;/div&gt;&lt;div style=&quot;font-size:18px&quot;&gt;run_id 예약·중복 검사&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=#EEF5FF;strokeColor=#2667C9;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=17;align=left;verticalAlign=top;spacing=12;shadow=0;dashed=1;dashPattern=6 4;" vertex="1" parent="1">
+          <mxGeometry x="1375" y="180" width="385" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="p6-e9" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#2667C9;fontColor=#2667C9;fontSize=16;fontFamily=Arial;labelBackgroundColor=#FFFFFF;exitX=1;exitY=0.5;entryX=0;entryY=0.5;dashed=1;dashPattern=6 4;" edge="1" parent="1" source="p6-v5" target="p6-v6">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="p6-e10" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#2667C9;fontColor=#2667C9;fontSize=16;fontFamily=Arial;labelBackgroundColor=#FFFFFF;exitX=1;exitY=0.5;entryX=0;entryY=0.5;dashed=1;dashPattern=6 4;" edge="1" parent="1" source="p6-v6" target="p6-v7">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="p6-e11" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#2667C9;fontColor=#2667C9;fontSize=16;fontFamily=Arial;labelBackgroundColor=#FFFFFF;exitX=1;exitY=0.5;entryX=0;entryY=0.5;dashed=1;dashPattern=6 4;" edge="1" parent="1" source="p6-v7" target="p6-v8">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="p6-v12" value="정상 흐름  |  process_controller_node 내부" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=none;strokeColor=none;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=21;align=left;verticalAlign=top;spacing=12;shadow=0;rounded=0;spacing=0;verticalAlign=middle;fontColor=#18764C;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="315" width="1720" height="35" as="geometry" />
+        </mxCell>
+        <mxCell id="p6-v13" value="&lt;div style=&quot;font-family:Arial,Apple SD Gothic Neo,Malgun Gothic,sans-serif;line-height:1.32&quot;&gt;&lt;div style=&quot;font-size:20px;font-weight:700;margin-bottom:8px&quot;&gt;PRECHECK&lt;/div&gt;&lt;div style=&quot;font-size:17px&quot;&gt;해시·설정·모드·장치&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=#EAF7EF;strokeColor=#18764C;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=17;align=left;verticalAlign=top;spacing=12;shadow=0;dashed=1;dashPattern=6 4;" vertex="1" parent="1">
+          <mxGeometry x="40" y="375" width="320" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="p6-v14" value="&lt;div style=&quot;font-family:Arial,Apple SD Gothic Neo,Malgun Gothic,sans-serif;line-height:1.32&quot;&gt;&lt;div style=&quot;font-size:20px;font-weight:700;margin-bottom:8px&quot;&gt;PICK_TOOL&lt;/div&gt;&lt;div style=&quot;font-size:17px&quot;&gt;접근·파지 확인·TCP&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=#EAF7EF;strokeColor=#18764C;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=17;align=left;verticalAlign=top;spacing=12;shadow=0;dashed=1;dashPattern=6 4;" vertex="1" parent="1">
+          <mxGeometry x="390" y="375" width="320" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="p6-v15" value="&lt;div style=&quot;font-family:Arial,Apple SD Gothic Neo,Malgun Gothic,sans-serif;line-height:1.32&quot;&gt;&lt;div style=&quot;font-size:20px;font-weight:700;margin-bottom:8px&quot;&gt;APPROACH&lt;/div&gt;&lt;div style=&quot;font-size:17px&quot;&gt;확정 경로의 접근&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=#EAF7EF;strokeColor=#18764C;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=17;align=left;verticalAlign=top;spacing=12;shadow=0;dashed=1;dashPattern=6 4;" vertex="1" parent="1">
+          <mxGeometry x="740" y="375" width="320" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="p6-v16" value="&lt;div style=&quot;font-family:Arial,Apple SD Gothic Neo,Malgun Gothic,sans-serif;line-height:1.32&quot;&gt;&lt;div style=&quot;font-size:20px;font-weight:700;margin-bottom:8px&quot;&gt;ENGRAVE&lt;/div&gt;&lt;div style=&quot;font-size:17px&quot;&gt;CUT / TRAVEL 실행&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=#EAF7EF;strokeColor=#18764C;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=17;align=left;verticalAlign=top;spacing=12;shadow=0;dashed=1;dashPattern=6 4;" vertex="1" parent="1">
+          <mxGeometry x="1090" y="375" width="320" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="p6-v17" value="&lt;div style=&quot;font-family:Arial,Apple SD Gothic Neo,Malgun Gothic,sans-serif;line-height:1.32&quot;&gt;&lt;div style=&quot;font-size:20px;font-weight:700;margin-bottom:8px&quot;&gt;RETRACT&lt;/div&gt;&lt;div style=&quot;font-size:17px&quot;&gt;이탈 완료 확인&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=#EAF7EF;strokeColor=#18764C;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=17;align=left;verticalAlign=top;spacing=12;shadow=0;dashed=1;dashPattern=6 4;" vertex="1" parent="1">
+          <mxGeometry x="1440" y="375" width="320" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="p6-e18" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#18764C;fontColor=#18764C;fontSize=16;fontFamily=Arial;labelBackgroundColor=#FFFFFF;exitX=1;exitY=0.5;entryX=0;entryY=0.5;dashed=1;dashPattern=6 4;" edge="1" parent="1" source="p6-v13" target="p6-v14">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="p6-e19" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#18764C;fontColor=#18764C;fontSize=16;fontFamily=Arial;labelBackgroundColor=#FFFFFF;exitX=1;exitY=0.5;entryX=0;entryY=0.5;dashed=1;dashPattern=6 4;" edge="1" parent="1" source="p6-v14" target="p6-v15">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="p6-e20" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#18764C;fontColor=#18764C;fontSize=16;fontFamily=Arial;labelBackgroundColor=#FFFFFF;exitX=1;exitY=0.5;entryX=0;entryY=0.5;dashed=1;dashPattern=6 4;" edge="1" parent="1" source="p6-v15" target="p6-v16">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="p6-e21" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#18764C;fontColor=#18764C;fontSize=16;fontFamily=Arial;labelBackgroundColor=#FFFFFF;exitX=1;exitY=0.5;entryX=0;entryY=0.5;dashed=1;dashPattern=6 4;" edge="1" parent="1" source="p6-v16" target="p6-v17">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="p6-e22" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#18764C;fontColor=#18764C;fontSize=16;fontFamily=Arial;labelBackgroundColor=#FFFFFF;exitX=0.5;exitY=1;entryX=0;entryY=0.5;dashed=1;dashPattern=6 4;" edge="1" parent="1" source="p6-v8" target="p6-v13">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1567" y="302" />
+              <mxPoint x="20" y="302" />
+              <mxPoint x="20" y="425" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="p6-v23" value="&lt;div style=&quot;font-family:Arial,Apple SD Gothic Neo,Malgun Gothic,sans-serif;line-height:1.32&quot;&gt;&lt;div style=&quot;font-size:20px;font-weight:700;margin-bottom:8px&quot;&gt;CLEAN_TOOL&lt;/div&gt;&lt;div style=&quot;font-size:17px&quot;&gt;설정된 청소·검증된 재진입&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=#FFF7E5;strokeColor=#AE730C;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=17;align=left;verticalAlign=top;spacing=12;shadow=0;dashed=1;dashPattern=6 4;" vertex="1" parent="1">
+          <mxGeometry x="1090" y="555" width="320" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="p6-e24" value="청소 조건" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#AE730C;fontColor=#AE730C;fontSize=16;fontFamily=Arial;labelBackgroundColor=#FFFFFF;exitX=0.25;exitY=1;entryX=0.25;entryY=0;dashed=1;dashPattern=6 4;" edge="1" parent="1" source="p6-v16" target="p6-v23">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="p6-e25" value="재진입 확인" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#AE730C;fontColor=#AE730C;fontSize=16;fontFamily=Arial;labelBackgroundColor=#FFFFFF;exitX=0.78;exitY=0;entryX=0.78;entryY=1;dashed=1;dashPattern=6 4;" edge="1" parent="1" source="p6-v23" target="p6-v16">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="p6-v26" value="&lt;div style=&quot;font-family:Arial,Apple SD Gothic Neo,Malgun Gothic,sans-serif;line-height:1.32&quot;&gt;&lt;div style=&quot;font-size:20px;font-weight:700;margin-bottom:8px&quot;&gt;PLACE_TOOL → FINISH&lt;/div&gt;&lt;div style=&quot;font-size:17px&quot;&gt;해제·이탈·전체 완료 확인&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=#EAF7EF;strokeColor=#18764C;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=17;align=left;verticalAlign=top;spacing=12;shadow=0;dashed=1;dashPattern=6 4;" vertex="1" parent="1">
+          <mxGeometry x="1440" y="555" width="320" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="p6-e27" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#18764C;fontColor=#18764C;fontSize=16;fontFamily=Arial;labelBackgroundColor=#FFFFFF;exitX=0.5;exitY=1;entryX=0.5;entryY=0;dashed=1;dashPattern=6 4;" edge="1" parent="1" source="p6-v17" target="p6-v26">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="p6-v28" value="&lt;div style=&quot;font-family:Arial,Apple SD Gothic Neo,Malgun Gothic,sans-serif;line-height:1.32&quot;&gt;&lt;div style=&quot;font-size:20px;font-weight:700;margin-bottom:8px&quot;&gt;성공을 구분해서 표시한다&lt;/div&gt;&lt;div style=&quot;font-size:17px&quot;&gt;HTTP 202(서버 접수) → ROS Goal 수락 → 모션 완료 → 파지 확인 → 공정 성공 → 별도 검사&lt;br&gt;조각 100%는 전체 완료가 아니다. 반납까지 확인한 후 A2 SUCCEEDED를 보낸다.&lt;br&gt;APPROACH·RETRACT는 engraving의 경로 단계다. 상태 기계에서 같은 이동을 중복 실행하지 않는다.&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#18764C;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=17;align=left;verticalAlign=top;spacing=12;shadow=0;" vertex="1" parent="1">
+          <mxGeometry x="40" y="530" width="960" height="140" as="geometry" />
+        </mxCell>
+        <mxCell id="p6-v29" value="정지·실패 분기  |  실행 어느 단계에서든 적용" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=none;strokeColor=none;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=21;align=left;verticalAlign=top;spacing=12;shadow=0;rounded=0;spacing=0;verticalAlign=middle;fontColor=#C54245;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="700" width="1720" height="35" as="geometry" />
+        </mxCell>
+        <mxCell id="p6-v30" value="&lt;div style=&quot;font-family:Arial,Apple SD Gothic Neo,Malgun Gothic,sans-serif;line-height:1.32&quot;&gt;&lt;div style=&quot;font-size:20px;font-weight:700;margin-bottom:8px&quot;&gt;S1 또는 Action 취소&lt;/div&gt;&lt;div style=&quot;font-size:17px&quot;&gt;run_id 확인·중복 정지 연결&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=#FFF1F0;strokeColor=#C54245;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=17;align=left;verticalAlign=top;spacing=12;shadow=0;dashed=1;dashPattern=6 4;" vertex="1" parent="1">
+          <mxGeometry x="40" y="765" width="340" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="p6-v31" value="&lt;div style=&quot;font-family:Arial,Apple SD Gothic Neo,Malgun Gothic,sans-serif;line-height:1.32&quot;&gt;&lt;div style=&quot;font-size:20px;font-weight:700;margin-bottom:8px&quot;&gt;접수 → STOPPING&lt;/div&gt;&lt;div style=&quot;font-size:17px&quot;&gt;latch 설정·새 모션 차단&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=#FFF1F0;strokeColor=#C54245;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=17;align=left;verticalAlign=top;spacing=12;shadow=0;dashed=1;dashPattern=6 4;" vertex="1" parent="1">
+          <mxGeometry x="450" y="765" width="380" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="p6-v32" value="&lt;div style=&quot;font-family:Arial,Apple SD Gothic Neo,Malgun Gothic,sans-serif;line-height:1.32&quot;&gt;&lt;div style=&quot;font-size:20px;font-weight:700;margin-bottom:8px&quot;&gt;하위 정지 → 상태 확인&lt;/div&gt;&lt;div style=&quot;font-size:17px&quot;&gt;정지 프로파일·확인 deadline&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=#FFF1F0;strokeColor=#C54245;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=17;align=left;verticalAlign=top;spacing=12;shadow=0;dashed=1;dashPattern=6 4;" vertex="1" parent="1">
+          <mxGeometry x="900" y="765" width="400" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="p6-v33" value="&lt;div style=&quot;font-family:Arial,Apple SD Gothic Neo,Malgun Gothic,sans-serif;line-height:1.32&quot;&gt;&lt;div style=&quot;font-size:20px;font-weight:700;margin-bottom:8px&quot;&gt;CONFIRMED / UNKNOWN&lt;/div&gt;&lt;div style=&quot;font-size:17px&quot;&gt;A2 결과 + T1 + 이벤트·저널&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=#FFF1F0;strokeColor=#C54245;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=17;align=left;verticalAlign=top;spacing=12;shadow=0;dashed=1;dashPattern=6 4;" vertex="1" parent="1">
+          <mxGeometry x="1370" y="765" width="390" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="p6-e34" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#C54245;fontColor=#C54245;fontSize=16;fontFamily=Arial;labelBackgroundColor=#FFFFFF;exitX=1;exitY=0.5;entryX=0;entryY=0.5;dashed=1;dashPattern=6 4;" edge="1" parent="1" source="p6-v30" target="p6-v31">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="p6-e35" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#C54245;fontColor=#C54245;fontSize=16;fontFamily=Arial;labelBackgroundColor=#FFFFFF;exitX=1;exitY=0.5;entryX=0;entryY=0.5;dashed=1;dashPattern=6 4;" edge="1" parent="1" source="p6-v31" target="p6-v32">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="p6-e36" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#C54245;fontColor=#C54245;fontSize=16;fontFamily=Arial;labelBackgroundColor=#FFFFFF;exitX=1;exitY=0.5;entryX=0;entryY=0.5;dashed=1;dashPattern=6 4;" edge="1" parent="1" source="p6-v32" target="p6-v33">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="p6-v37" value="&lt;div style=&quot;font-family:Arial,Apple SD Gothic Neo,Malgun Gothic,sans-serif;line-height:1.32&quot;&gt;&lt;div style=&quot;font-size:15px&quot;&gt;상황&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=#182B49;strokeColor=#FFFFFF;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=17;align=left;verticalAlign=top;spacing=12;shadow=0;rounded=0;fontColor=#FFFFFF;fontStyle=1;spacing=12;" vertex="1" parent="1">
+          <mxGeometry x="40" y="915" width="350" height="48" as="geometry" />
+        </mxCell>
+        <mxCell id="p6-v38" value="&lt;div style=&quot;font-family:Arial,Apple SD Gothic Neo,Malgun Gothic,sans-serif;line-height:1.32&quot;&gt;&lt;div style=&quot;font-size:15px&quot;&gt;ROS Action / 도메인 결과&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=#182B49;strokeColor=#FFFFFF;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=17;align=left;verticalAlign=top;spacing=12;shadow=0;rounded=0;fontColor=#FFFFFF;fontStyle=1;spacing=12;" vertex="1" parent="1">
+          <mxGeometry x="390" y="915" width="470" height="48" as="geometry" />
+        </mxCell>
+        <mxCell id="p6-v39" value="&lt;div style=&quot;font-family:Arial,Apple SD Gothic Neo,Malgun Gothic,sans-serif;line-height:1.32&quot;&gt;&lt;div style=&quot;font-size:15px&quot;&gt;진행 원칙&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=#182B49;strokeColor=#FFFFFF;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=17;align=left;verticalAlign=top;spacing=12;shadow=0;rounded=0;fontColor=#FFFFFF;fontStyle=1;spacing=12;" vertex="1" parent="1">
+          <mxGeometry x="860" y="915" width="900" height="48" as="geometry" />
+        </mxCell>
+        <mxCell id="p6-v40" value="&lt;div style=&quot;font-family:Arial,Apple SD Gothic Neo,Malgun Gothic,sans-serif;line-height:1.32&quot;&gt;&lt;div style=&quot;font-size:15px&quot;&gt;Action 취소 + 정지 확인&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=#F5F7FA;strokeColor=#CAD5E3;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=17;align=left;verticalAlign=top;spacing=12;shadow=0;rounded=0;spacing=12;" vertex="1" parent="1">
+          <mxGeometry x="40" y="963" width="350" height="36" as="geometry" />
+        </mxCell>
+        <mxCell id="p6-v41" value="&lt;div style=&quot;font-family:Arial,Apple SD Gothic Neo,Malgun Gothic,sans-serif;line-height:1.32&quot;&gt;&lt;div style=&quot;font-size:15px&quot;&gt;CANCELED / STOPPED&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=#F5F7FA;strokeColor=#CAD5E3;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=17;align=left;verticalAlign=top;spacing=12;shadow=0;rounded=0;spacing=12;" vertex="1" parent="1">
+          <mxGeometry x="390" y="963" width="470" height="36" as="geometry" />
+        </mxCell>
+        <mxCell id="p6-v42" value="&lt;div style=&quot;font-family:Arial,Apple SD Gothic Neo,Malgun Gothic,sans-serif;line-height:1.32&quot;&gt;&lt;div style=&quot;font-size:15px&quot;&gt;취소 수락만으로 종료하지 않음&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=#F5F7FA;strokeColor=#CAD5E3;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=17;align=left;verticalAlign=top;spacing=12;shadow=0;rounded=0;spacing=12;" vertex="1" parent="1">
+          <mxGeometry x="860" y="963" width="900" height="36" as="geometry" />
+        </mxCell>
+        <mxCell id="p6-v43" value="&lt;div style=&quot;font-family:Arial,Apple SD Gothic Neo,Malgun Gothic,sans-serif;line-height:1.32&quot;&gt;&lt;div style=&quot;font-size:15px&quot;&gt;S1 정지 + 정지 확인&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CAD5E3;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=17;align=left;verticalAlign=top;spacing=12;shadow=0;rounded=0;spacing=12;" vertex="1" parent="1">
+          <mxGeometry x="40" y="999" width="350" height="36" as="geometry" />
+        </mxCell>
+        <mxCell id="p6-v44" value="&lt;div style=&quot;font-family:Arial,Apple SD Gothic Neo,Malgun Gothic,sans-serif;line-height:1.32&quot;&gt;&lt;div style=&quot;font-size:15px&quot;&gt;ABORTED / STOPPED&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CAD5E3;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=17;align=left;verticalAlign=top;spacing=12;shadow=0;rounded=0;spacing=12;" vertex="1" parent="1">
+          <mxGeometry x="390" y="999" width="470" height="36" as="geometry" />
+        </mxCell>
+        <mxCell id="p6-v45" value="&lt;div style=&quot;font-family:Arial,Apple SD Gothic Neo,Malgun Gothic,sans-serif;line-height:1.32&quot;&gt;&lt;div style=&quot;font-size:15px&quot;&gt;지연된 모션 성공 응답으로 다음 단계 진입 금지&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CAD5E3;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=17;align=left;verticalAlign=top;spacing=12;shadow=0;rounded=0;spacing=12;" vertex="1" parent="1">
+          <mxGeometry x="860" y="999" width="900" height="36" as="geometry" />
+        </mxCell>
+        <mxCell id="p6-v46" value="&lt;div style=&quot;font-family:Arial,Apple SD Gothic Neo,Malgun Gothic,sans-serif;line-height:1.32&quot;&gt;&lt;div style=&quot;font-size:15px&quot;&gt;정지 확인 실패·통신 불명&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=#F5F7FA;strokeColor=#CAD5E3;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=17;align=left;verticalAlign=top;spacing=12;shadow=0;rounded=0;spacing=12;" vertex="1" parent="1">
+          <mxGeometry x="40" y="1035" width="350" height="36" as="geometry" />
+        </mxCell>
+        <mxCell id="p6-v47" value="&lt;div style=&quot;font-family:Arial,Apple SD Gothic Neo,Malgun Gothic,sans-serif;line-height:1.32&quot;&gt;&lt;div style=&quot;font-size:15px&quot;&gt;ABORTED / UNKNOWN&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=#F5F7FA;strokeColor=#CAD5E3;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=17;align=left;verticalAlign=top;spacing=12;shadow=0;rounded=0;spacing=12;" vertex="1" parent="1">
+          <mxGeometry x="390" y="1035" width="470" height="36" as="geometry" />
+        </mxCell>
+        <mxCell id="p6-v48" value="&lt;div style=&quot;font-family:Arial,Apple SD Gothic Neo,Malgun Gothic,sans-serif;line-height:1.32&quot;&gt;&lt;div style=&quot;font-size:15px&quot;&gt;새 실행 차단·현장 상태 확인 / 자동 재개·자동 반납 없음&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=#F5F7FA;strokeColor=#CAD5E3;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=17;align=left;verticalAlign=top;spacing=12;shadow=0;rounded=0;spacing=12;" vertex="1" parent="1">
+          <mxGeometry x="860" y="1035" width="900" height="36" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram id="c2-page-07" name="07 로봇 어댑터와 하위 API 경계">
+    <mxGraphModel dx="1800" dy="1120" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1800" pageHeight="1120" math="0" shadow="0" background="#FFFFFF">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="p7-v1" value="07  로봇 어댑터와 하위 API 경계" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=none;strokeColor=none;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=32;align=left;verticalAlign=top;spacing=12;shadow=0;rounded=0;spacing=0;verticalAlign=middle;fontColor=#182B49;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="24" width="1600" height="52" as="geometry" />
+        </mxCell>
+        <mxCell id="p7-v2" value="robot_adapter.py는 최신 main에 존재한다. 아래는 소스에서 확인한 호출 관계이며 실행 PC의 서비스·제어기 버전은 별도 확인한다." style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=none;strokeColor=none;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=18;align=left;verticalAlign=top;spacing=12;shadow=0;rounded=0;spacing=0;verticalAlign=middle;fontColor=#52657F;fontStyle=0;" vertex="1" parent="1">
+          <mxGeometry x="42" y="82" width="1690" height="46" as="geometry" />
+        </mxCell>
+        <mxCell id="p7-v3" value="" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=#182B49;strokeColor=none;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=17;align=left;verticalAlign=top;spacing=12;shadow=0;" vertex="1" parent="1">
+          <mxGeometry x="40" y="137" width="1720" height="3" as="geometry" />
+        </mxCell>
+        <mxCell id="p7-v4" value="C-2  |  2026-09-18  |  기준 main c414821 + Clay 로컬 이관  |  설계 v1  |  07 / 08" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=none;strokeColor=none;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=13;align=left;verticalAlign=top;spacing=12;shadow=0;rounded=0;spacing=0;verticalAlign=middle;fontColor=#52657F;fontStyle=0;" vertex="1" parent="1">
+          <mxGeometry x="40" y="1080" width="1720" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="p7-v5" value="&lt;div style=&quot;font-family:Arial,Apple SD Gothic Neo,Malgun Gothic,sans-serif;line-height:1.32&quot;&gt;&lt;div style=&quot;font-size:21px;font-weight:700;margin-bottom:8px&quot;&gt;공정 내부 호출자  [목표]&lt;/div&gt;&lt;div style=&quot;font-size:18px&quot;&gt;tool_sequence / engraving / cleaning&lt;br&gt;Pose: [x,y,z,qx,qy,qz,qw] + frame_id&lt;br&gt;profile + deadline_s + cancel&lt;br&gt;단위: m / quaternion_xyzw / 관절 rad&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=#EAF7EF;strokeColor=#18764C;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=17;align=left;verticalAlign=top;spacing=12;shadow=0;dashed=1;dashPattern=6 4;" vertex="1" parent="1">
+          <mxGeometry x="40" y="180" width="480" height="180" as="geometry" />
+        </mxCell>
+        <mxCell id="p7-v6" value="&lt;div style=&quot;font-family:Arial,Apple SD Gothic Neo,Malgun Gothic,sans-serif;line-height:1.32&quot;&gt;&lt;div style=&quot;font-size:21px;font-weight:700;margin-bottom:8px&quot;&gt;RobotAdapter  [main 소스]&lt;/div&gt;&lt;div style=&quot;font-size:18px&quot;&gt;DoosanRobotAdapter / MockRobotAdapter&lt;br&gt;pose_to_posx() / posx_to_pose()&lt;br&gt;m ↔ mm / quaternion ↔ ZYZ deg&lt;br&gt;도구 offset 적용은 이 경계에서 관리&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=#EEF5FF;strokeColor=#2667C9;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=17;align=left;verticalAlign=top;spacing=12;shadow=0;" vertex="1" parent="1">
+          <mxGeometry x="660" y="180" width="530" height="180" as="geometry" />
+        </mxCell>
+        <mxCell id="p7-v7" value="&lt;div style=&quot;font-family:Arial,Apple SD Gothic Neo,Malgun Gothic,sans-serif;line-height:1.32&quot;&gt;&lt;div style=&quot;font-size:21px;font-weight:700;margin-bottom:8px&quot;&gt;ws_dsr 두산 드라이버&lt;/div&gt;&lt;div style=&quot;font-size:18px&quot;&gt;DSR_ROBOT2 + dsr_msgs2&lt;br&gt;서비스 prefix:&lt;br&gt;/dsr01/dsr_controller2/&lt;br&gt;외부 설치본과 로컬 공식 소스 구분&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=#F5F7FA;strokeColor=#52657F;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=17;align=left;verticalAlign=top;spacing=12;shadow=0;" vertex="1" parent="1">
+          <mxGeometry x="1330" y="180" width="430" height="180" as="geometry" />
+        </mxCell>
+        <mxCell id="p7-e8" value="함수 호출" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#18764C;fontColor=#18764C;fontSize=16;fontFamily=Arial;labelBackgroundColor=#FFFFFF;exitX=1;exitY=0.5;entryX=0;entryY=0.5;dashed=1;dashPattern=6 4;" edge="1" parent="1" source="p7-v5" target="p7-v6">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="p7-e9" value="호출·조회" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#2667C9;fontColor=#2667C9;fontSize=16;fontFamily=Arial;labelBackgroundColor=#FFFFFF;exitX=1;exitY=0.5;entryX=0;entryY=0.5;startArrow=block;startFill=1;" edge="1" parent="1" source="p7-v6" target="p7-v7">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="p7-v10" value="&lt;div style=&quot;font-family:Arial,Apple SD Gothic Neo,Malgun Gothic,sans-serif;line-height:1.32&quot;&gt;&lt;div style=&quot;font-size:16px&quot;&gt;내부 API · 현재 소스&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=#182B49;strokeColor=#FFFFFF;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=17;align=left;verticalAlign=top;spacing=12;shadow=0;rounded=0;fontColor=#FFFFFF;fontStyle=1;spacing=12;" vertex="1" parent="1">
+          <mxGeometry x="40" y="410" width="335" height="48" as="geometry" />
+        </mxCell>
+        <mxCell id="p7-v11" value="&lt;div style=&quot;font-family:Arial,Apple SD Gothic Neo,Malgun Gothic,sans-serif;line-height:1.32&quot;&gt;&lt;div style=&quot;font-size:16px&quot;&gt;하위 연결 (prefix 생략)&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=#182B49;strokeColor=#FFFFFF;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=17;align=left;verticalAlign=top;spacing=12;shadow=0;rounded=0;fontColor=#FFFFFF;fontStyle=1;spacing=12;" vertex="1" parent="1">
+          <mxGeometry x="375" y="410" width="505" height="48" as="geometry" />
+        </mxCell>
+        <mxCell id="p7-v12" value="&lt;div style=&quot;font-family:Arial,Apple SD Gothic Neo,Malgun Gothic,sans-serif;line-height:1.32&quot;&gt;&lt;div style=&quot;font-size:16px&quot;&gt;전달 데이터·반환&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=#182B49;strokeColor=#FFFFFF;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=17;align=left;verticalAlign=top;spacing=12;shadow=0;rounded=0;fontColor=#FFFFFF;fontStyle=1;spacing=12;" vertex="1" parent="1">
+          <mxGeometry x="880" y="410" width="480" height="48" as="geometry" />
+        </mxCell>
+        <mxCell id="p7-v13" value="&lt;div style=&quot;font-family:Arial,Apple SD Gothic Neo,Malgun Gothic,sans-serif;line-height:1.32&quot;&gt;&lt;div style=&quot;font-size:16px&quot;&gt;완료 해석 / 확인점&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=#182B49;strokeColor=#FFFFFF;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=17;align=left;verticalAlign=top;spacing=12;shadow=0;rounded=0;fontColor=#FFFFFF;fontStyle=1;spacing=12;" vertex="1" parent="1">
+          <mxGeometry x="1360" y="410" width="400" height="48" as="geometry" />
+        </mxCell>
+        <mxCell id="p7-v14" value="&lt;div style=&quot;font-family:Arial,Apple SD Gothic Neo,Malgun Gothic,sans-serif;line-height:1.32&quot;&gt;&lt;div style=&quot;font-size:16px&quot;&gt;move()&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=#F5F7FA;strokeColor=#CAD5E3;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=17;align=left;verticalAlign=top;spacing=12;shadow=0;rounded=0;spacing=12;" vertex="1" parent="1">
+          <mxGeometry x="40" y="458" width="335" height="74" as="geometry" />
+        </mxCell>
+        <mxCell id="p7-v15" value="&lt;div style=&quot;font-family:Arial,Apple SD Gothic Neo,Malgun Gothic,sans-serif;line-height:1.32&quot;&gt;&lt;div style=&quot;font-size:16px&quot;&gt;DSR_ROBOT2.amovel → motion/move_line&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=#F5F7FA;strokeColor=#CAD5E3;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=17;align=left;verticalAlign=top;spacing=12;shadow=0;rounded=0;spacing=12;" vertex="1" parent="1">
+          <mxGeometry x="375" y="458" width="505" height="74" as="geometry" />
+        </mxCell>
+        <mxCell id="p7-v16" value="&lt;div style=&quot;font-family:Arial,Apple SD Gothic Neo,Malgun Gothic,sans-serif;line-height:1.32&quot;&gt;&lt;div style=&quot;font-size:16px&quot;&gt;목표 posx · vel/acc · ref/mode&lt;br&gt;서비스 success → 위치·상태 감시&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=#F5F7FA;strokeColor=#CAD5E3;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=17;align=left;verticalAlign=top;spacing=12;shadow=0;rounded=0;spacing=12;" vertex="1" parent="1">
+          <mxGeometry x="880" y="458" width="480" height="74" as="geometry" />
+        </mxCell>
+        <mxCell id="p7-v17" value="&lt;div style=&quot;font-family:Arial,Apple SD Gothic Neo,Malgun Gothic,sans-serif;line-height:1.32&quot;&gt;&lt;div style=&quot;font-size:16px&quot;&gt;동기 함수 반환, 내부 비동기 이동&lt;br&gt;XYZ 허용오차·상태 중심&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=#F5F7FA;strokeColor=#CAD5E3;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=17;align=left;verticalAlign=top;spacing=12;shadow=0;rounded=0;spacing=12;" vertex="1" parent="1">
+          <mxGeometry x="1360" y="458" width="400" height="74" as="geometry" />
+        </mxCell>
+        <mxCell id="p7-v18" value="&lt;div style=&quot;font-family:Arial,Apple SD Gothic Neo,Malgun Gothic,sans-serif;line-height:1.32&quot;&gt;&lt;div style=&quot;font-size:16px&quot;&gt;move_spline()&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CAD5E3;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=17;align=left;verticalAlign=top;spacing=12;shadow=0;rounded=0;spacing=12;" vertex="1" parent="1">
+          <mxGeometry x="40" y="532" width="335" height="74" as="geometry" />
+        </mxCell>
+        <mxCell id="p7-v19" value="&lt;div style=&quot;font-family:Arial,Apple SD Gothic Neo,Malgun Gothic,sans-serif;line-height:1.32&quot;&gt;&lt;div style=&quot;font-size:16px&quot;&gt;DSR_ROBOT2.amovesx → motion/move_spline_task&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CAD5E3;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=17;align=left;verticalAlign=top;spacing=12;shadow=0;rounded=0;spacing=12;" vertex="1" parent="1">
+          <mxGeometry x="375" y="532" width="505" height="74" as="geometry" />
+        </mxCell>
+        <mxCell id="p7-v20" value="&lt;div style=&quot;font-family:Arial,Apple SD Gothic Neo,Malgun Gothic,sans-serif;line-height:1.32&quot;&gt;&lt;div style=&quot;font-size:16px&quot;&gt;여러 목표 posx · 속도/가속도&lt;br&gt;MoveSplineTask 서비스&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CAD5E3;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=17;align=left;verticalAlign=top;spacing=12;shadow=0;rounded=0;spacing=12;" vertex="1" parent="1">
+          <mxGeometry x="880" y="532" width="480" height="74" as="geometry" />
+        </mxCell>
+        <mxCell id="p7-v21" value="&lt;div style=&quot;font-family:Arial,Apple SD Gothic Neo,Malgun Gothic,sans-serif;line-height:1.32&quot;&gt;&lt;div style=&quot;font-size:16px&quot;&gt;최종 위치·상태 감시&lt;br&gt;자세 완료 검증 보완 필요&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CAD5E3;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=17;align=left;verticalAlign=top;spacing=12;shadow=0;rounded=0;spacing=12;" vertex="1" parent="1">
+          <mxGeometry x="1360" y="532" width="400" height="74" as="geometry" />
+        </mxCell>
+        <mxCell id="p7-v22" value="&lt;div style=&quot;font-family:Arial,Apple SD Gothic Neo,Malgun Gothic,sans-serif;line-height:1.32&quot;&gt;&lt;div style=&quot;font-size:16px&quot;&gt;observe()&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=#F5F7FA;strokeColor=#CAD5E3;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=17;align=left;verticalAlign=top;spacing=12;shadow=0;rounded=0;spacing=12;" vertex="1" parent="1">
+          <mxGeometry x="40" y="606" width="335" height="92" as="geometry" />
+        </mxCell>
+        <mxCell id="p7-v23" value="&lt;div style=&quot;font-family:Arial,Apple SD Gothic Neo,Malgun Gothic,sans-serif;line-height:1.32&quot;&gt;&lt;div style=&quot;font-size:16px&quot;&gt;aux_control/get_current_posj&lt;br&gt;get_current_posx · get_tool_force&lt;br&gt;system/get_robot_state&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=#F5F7FA;strokeColor=#CAD5E3;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=17;align=left;verticalAlign=top;spacing=12;shadow=0;rounded=0;spacing=12;" vertex="1" parent="1">
+          <mxGeometry x="375" y="606" width="505" height="92" as="geometry" />
+        </mxCell>
+        <mxCell id="p7-v24" value="&lt;div style=&quot;font-family:Arial,Apple SD Gothic Neo,Malgun Gothic,sans-serif;line-height:1.32&quot;&gt;&lt;div style=&quot;font-size:16px&quot;&gt;RobotState: joints_rad, tcp_pose,&lt;br&gt;frame_id, robot_state, force_n,&lt;br&gt;measured_at, quality&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=#F5F7FA;strokeColor=#CAD5E3;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=17;align=left;verticalAlign=top;spacing=12;shadow=0;rounded=0;spacing=12;" vertex="1" parent="1">
+          <mxGeometry x="880" y="606" width="480" height="92" as="geometry" />
+        </mxCell>
+        <mxCell id="p7-v25" value="&lt;div style=&quot;font-family:Arial,Apple SD Gothic Neo,Malgun Gothic,sans-serif;line-height:1.32&quot;&gt;&lt;div style=&quot;font-size:16px&quot;&gt;측정 실패 시 UNKNOWN&lt;br&gt;source_epoch/seq 포장은 node 책임&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=#F5F7FA;strokeColor=#CAD5E3;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=17;align=left;verticalAlign=top;spacing=12;shadow=0;rounded=0;spacing=12;" vertex="1" parent="1">
+          <mxGeometry x="1360" y="606" width="400" height="92" as="geometry" />
+        </mxCell>
+        <mxCell id="p7-v26" value="&lt;div style=&quot;font-family:Arial,Apple SD Gothic Neo,Malgun Gothic,sans-serif;line-height:1.32&quot;&gt;&lt;div style=&quot;font-size:16px&quot;&gt;select_tool_profile()&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CAD5E3;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=17;align=left;verticalAlign=top;spacing=12;shadow=0;rounded=0;spacing=12;" vertex="1" parent="1">
+          <mxGeometry x="40" y="698" width="335" height="92" as="geometry" />
+        </mxCell>
+        <mxCell id="p7-v27" value="&lt;div style=&quot;font-family:Arial,Apple SD Gothic Neo,Malgun Gothic,sans-serif;line-height:1.32&quot;&gt;&lt;div style=&quot;font-size:16px&quot;&gt;tcp/get_current_tcp · set_current_tcp&lt;br&gt;tool/get_current_tool · set_current_tool&lt;br&gt;system/set_robot_mode&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CAD5E3;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=17;align=left;verticalAlign=top;spacing=12;shadow=0;rounded=0;spacing=12;" vertex="1" parent="1">
+          <mxGeometry x="375" y="698" width="505" height="92" as="geometry" />
+        </mxCell>
+        <mxCell id="p7-v28" value="&lt;div style=&quot;font-family:Arial,Apple SD Gothic Neo,Malgun Gothic,sans-serif;line-height:1.32&quot;&gt;&lt;div style=&quot;font-size:16px&quot;&gt;TCP·하중 ID / 기대 profile 버전&lt;br&gt;다시 읽어 기대 이름과 대조&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CAD5E3;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=17;align=left;verticalAlign=top;spacing=12;shadow=0;rounded=0;spacing=12;" vertex="1" parent="1">
+          <mxGeometry x="880" y="698" width="480" height="92" as="geometry" />
+        </mxCell>
+        <mxCell id="p7-v29" value="&lt;div style=&quot;font-family:Arial,Apple SD Gothic Neo,Malgun Gothic,sans-serif;line-height:1.32&quot;&gt;&lt;div style=&quot;font-size:16px&quot;&gt;프로파일 선택 확인과&lt;br&gt;실제 도구 장착 확인은 별개&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CAD5E3;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=17;align=left;verticalAlign=top;spacing=12;shadow=0;rounded=0;spacing=12;" vertex="1" parent="1">
+          <mxGeometry x="1360" y="698" width="400" height="92" as="geometry" />
+        </mxCell>
+        <mxCell id="p7-v30" value="&lt;div style=&quot;font-family:Arial,Apple SD Gothic Neo,Malgun Gothic,sans-serif;line-height:1.32&quot;&gt;&lt;div style=&quot;font-size:16px&quot;&gt;stop()&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=#F5F7FA;strokeColor=#CAD5E3;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=17;align=left;verticalAlign=top;spacing=12;shadow=0;rounded=0;spacing=12;" vertex="1" parent="1">
+          <mxGeometry x="40" y="790" width="335" height="78" as="geometry" />
+        </mxCell>
+        <mxCell id="p7-v31" value="&lt;div style=&quot;font-family:Arial,Apple SD Gothic Neo,Malgun Gothic,sans-serif;line-height:1.32&quot;&gt;&lt;div style=&quot;font-size:16px&quot;&gt;motion/move_stop → system/get_robot_state&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=#F5F7FA;strokeColor=#CAD5E3;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=17;align=left;verticalAlign=top;spacing=12;shadow=0;rounded=0;spacing=12;" vertex="1" parent="1">
+          <mxGeometry x="375" y="790" width="505" height="78" as="geometry" />
+        </mxCell>
+        <mxCell id="p7-v32" value="&lt;div style=&quot;font-family:Arial,Apple SD Gothic Neo,Malgun Gothic,sans-serif;line-height:1.32&quot;&gt;&lt;div style=&quot;font-size:16px&quot;&gt;stop_profile · deadline_s&lt;br&gt;MoveStop 접수 + STANDBY 확인&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=#F5F7FA;strokeColor=#CAD5E3;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=17;align=left;verticalAlign=top;spacing=12;shadow=0;rounded=0;spacing=12;" vertex="1" parent="1">
+          <mxGeometry x="880" y="790" width="480" height="78" as="geometry" />
+        </mxCell>
+        <mxCell id="p7-v33" value="&lt;div style=&quot;font-family:Arial,Apple SD Gothic Neo,Malgun Gothic,sans-serif;line-height:1.32&quot;&gt;&lt;div style=&quot;font-size:16px&quot;&gt;접수 실패 FAILED / 확인 실패 UNKNOWN&lt;br&gt;mode 숫자는 설치본 대조 필요&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=#F5F7FA;strokeColor=#CAD5E3;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=17;align=left;verticalAlign=top;spacing=12;shadow=0;rounded=0;spacing=12;" vertex="1" parent="1">
+          <mxGeometry x="1360" y="790" width="400" height="78" as="geometry" />
+        </mxCell>
+        <mxCell id="p7-v34" value="&lt;div style=&quot;font-family:Arial,Apple SD Gothic Neo,Malgun Gothic,sans-serif;line-height:1.32&quot;&gt;&lt;div style=&quot;font-size:16px&quot;&gt;probe_touch() / set_tool_offset()&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CAD5E3;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=17;align=left;verticalAlign=top;spacing=12;shadow=0;rounded=0;spacing=12;" vertex="1" parent="1">
+          <mxGeometry x="40" y="868" width="335" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="p7-v35" value="&lt;div style=&quot;font-family:Arial,Apple SD Gothic Neo,Malgun Gothic,sans-serif;line-height:1.32&quot;&gt;&lt;div style=&quot;font-size:16px&quot;&gt;힘 감시 접촉 / 도구 기준점 보정&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CAD5E3;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=17;align=left;verticalAlign=top;spacing=12;shadow=0;rounded=0;spacing=12;" vertex="1" parent="1">
+          <mxGeometry x="375" y="868" width="505" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="p7-v36" value="&lt;div style=&quot;font-family:Arial,Apple SD Gothic Neo,Malgun Gothic,sans-serif;line-height:1.32&quot;&gt;&lt;div style=&quot;font-size:16px&quot;&gt;어댑터에 존재하는 추가 기능&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CAD5E3;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=17;align=left;verticalAlign=top;spacing=12;shadow=0;rounded=0;spacing=12;" vertex="1" parent="1">
+          <mxGeometry x="880" y="868" width="480" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="p7-v37" value="&lt;div style=&quot;font-family:Arial,Apple SD Gothic Neo,Malgun Gothic,sans-serif;line-height:1.32&quot;&gt;&lt;div style=&quot;font-size:16px&quot;&gt;매 작업 위치 탐색 공정으로&lt;br&gt;자동 편입하지 않음&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CAD5E3;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=17;align=left;verticalAlign=top;spacing=12;shadow=0;rounded=0;spacing=12;" vertex="1" parent="1">
+          <mxGeometry x="1360" y="868" width="400" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="p7-v38" value="&lt;div style=&quot;font-family:Arial,Apple SD Gothic Neo,Malgun Gothic,sans-serif;line-height:1.32&quot;&gt;&lt;div style=&quot;font-size:20px;font-weight:700;margin-bottom:8px&quot;&gt;결과는 공정 상태 기계로 반환&lt;/div&gt;&lt;div style=&quot;font-size:17px&quot;&gt;StepResult: outcome / error_code / message / completed_step / observed_state. 정지 요청·이동 완료·실제 파지·전체 성공을 구분한다.&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=#FFF7E5;strokeColor=#AE730C;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=17;align=left;verticalAlign=top;spacing=12;shadow=0;" vertex="1" parent="1">
+          <mxGeometry x="40" y="1000" width="1720" height="75" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram id="c2-page-08" name="08 구현 범위, 통합 확인점, 근거">
+    <mxGraphModel dx="1800" dy="1120" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1800" pageHeight="1120" math="0" shadow="0" background="#FFFFFF">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="p8-v1" value="08  구현 범위, 통합 확인점, 근거" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=none;strokeColor=none;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=32;align=left;verticalAlign=top;spacing=12;shadow=0;rounded=0;spacing=0;verticalAlign=middle;fontColor=#182B49;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="24" width="1600" height="52" as="geometry" />
+        </mxCell>
+        <mxCell id="p8-v2" value="최신 main을 도면의 기준으로 고정하고 원격 작업 브랜치의 추가 구현을 별도 표기했다. 색상은 검증 완료를 의미하지 않는다." style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=none;strokeColor=none;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=18;align=left;verticalAlign=top;spacing=12;shadow=0;rounded=0;spacing=0;verticalAlign=middle;fontColor=#52657F;fontStyle=0;" vertex="1" parent="1">
+          <mxGeometry x="42" y="82" width="1690" height="46" as="geometry" />
+        </mxCell>
+        <mxCell id="p8-v3" value="" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=#182B49;strokeColor=none;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=17;align=left;verticalAlign=top;spacing=12;shadow=0;" vertex="1" parent="1">
+          <mxGeometry x="40" y="137" width="1720" height="3" as="geometry" />
+        </mxCell>
+        <mxCell id="p8-v4" value="C-2  |  2026-09-18  |  기준 main c414821 + Clay 로컬 이관  |  설계 v1  |  08 / 08" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=none;strokeColor=none;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=13;align=left;verticalAlign=top;spacing=12;shadow=0;rounded=0;spacing=0;verticalAlign=middle;fontColor=#52657F;fontStyle=0;" vertex="1" parent="1">
+          <mxGeometry x="40" y="1080" width="1720" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="p8-v5" value="&lt;div style=&quot;font-family:Arial,Apple SD Gothic Neo,Malgun Gothic,sans-serif;line-height:1.32&quot;&gt;&lt;div style=&quot;font-size:16px&quot;&gt;상태&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=#182B49;strokeColor=#FFFFFF;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=17;align=left;verticalAlign=top;spacing=12;shadow=0;rounded=0;fontColor=#FFFFFF;fontStyle=1;spacing=12;" vertex="1" parent="1">
+          <mxGeometry x="40" y="170" width="320" height="48" as="geometry" />
+        </mxCell>
+        <mxCell id="p8-v6" value="&lt;div style=&quot;font-family:Arial,Apple SD Gothic Neo,Malgun Gothic,sans-serif;line-height:1.32&quot;&gt;&lt;div style=&quot;font-size:16px&quot;&gt;경로 / 구성&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=#182B49;strokeColor=#FFFFFF;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=17;align=left;verticalAlign=top;spacing=12;shadow=0;rounded=0;fontColor=#FFFFFF;fontStyle=1;spacing=12;" vertex="1" parent="1">
+          <mxGeometry x="360" y="170" width="830" height="48" as="geometry" />
+        </mxCell>
+        <mxCell id="p8-v7" value="&lt;div style=&quot;font-family:Arial,Apple SD Gothic Neo,Malgun Gothic,sans-serif;line-height:1.32&quot;&gt;&lt;div style=&quot;font-size:16px&quot;&gt;현재 확인한 범위&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=#182B49;strokeColor=#FFFFFF;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=17;align=left;verticalAlign=top;spacing=12;shadow=0;rounded=0;fontColor=#FFFFFF;fontStyle=1;spacing=12;" vertex="1" parent="1">
+          <mxGeometry x="1190" y="170" width="570" height="48" as="geometry" />
+        </mxCell>
+        <mxCell id="p8-v8" value="&lt;div style=&quot;font-family:Arial,Apple SD Gothic Neo,Malgun Gothic,sans-serif;line-height:1.32&quot;&gt;&lt;div style=&quot;font-size:16px&quot;&gt;로컬 보관 · Git 제거&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=#F5F7FA;strokeColor=#CAD5E3;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=17;align=left;verticalAlign=top;spacing=12;shadow=0;rounded=0;spacing=12;" vertex="1" parent="1">
+          <mxGeometry x="40" y="218" width="320" height="66" as="geometry" />
+        </mxCell>
+        <mxCell id="p8-v9" value="&lt;div style=&quot;font-family:Arial,Apple SD Gothic Neo,Malgun Gothic,sans-serif;line-height:1.32&quot;&gt;&lt;div style=&quot;font-size:16px&quot;&gt;기존 clay_carving · clay_hmi · clay_run.md&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=#F5F7FA;strokeColor=#CAD5E3;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=17;align=left;verticalAlign=top;spacing=12;shadow=0;rounded=0;spacing=12;" vertex="1" parent="1">
+          <mxGeometry x="360" y="218" width="830" height="66" as="geometry" />
+        </mxCell>
+        <mxCell id="p8-v10" value="&lt;div style=&quot;font-family:Arial,Apple SD Gothic Neo,Malgun Gothic,sans-serif;line-height:1.32&quot;&gt;&lt;div style=&quot;font-size:16px&quot;&gt;32개 파일 SHA-256 일치 확인 후 제거&lt;br&gt;이전 커밋 이력과 로컬 보관본으로 복구 가능&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=#F5F7FA;strokeColor=#CAD5E3;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=17;align=left;verticalAlign=top;spacing=12;shadow=0;rounded=0;spacing=12;" vertex="1" parent="1">
+          <mxGeometry x="1190" y="218" width="570" height="66" as="geometry" />
+        </mxCell>
+        <mxCell id="p8-v11" value="&lt;div style=&quot;font-family:Arial,Apple SD Gothic Neo,Malgun Gothic,sans-serif;line-height:1.32&quot;&gt;&lt;div style=&quot;font-size:16px&quot;&gt;MAIN · 부분 구현&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CAD5E3;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=17;align=left;verticalAlign=top;spacing=12;shadow=0;rounded=0;spacing=12;" vertex="1" parent="1">
+          <mxGeometry x="40" y="284" width="320" height="66" as="geometry" />
+        </mxCell>
+        <mxCell id="p8-v12" value="&lt;div style=&quot;font-family:Arial,Apple SD Gothic Neo,Malgun Gothic,sans-serif;line-height:1.32&quot;&gt;&lt;div style=&quot;font-size:16px&quot;&gt;c2_process/c2_process/robot_adapter.py&lt;br&gt;c2_process/test/test_robot_adapter_mock.py · real_adapter_check.py&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CAD5E3;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=17;align=left;verticalAlign=top;spacing=12;shadow=0;rounded=0;spacing=12;" vertex="1" parent="1">
+          <mxGeometry x="360" y="284" width="830" height="66" as="geometry" />
+        </mxCell>
+        <mxCell id="p8-v13" value="&lt;div style=&quot;font-family:Arial,Apple SD Gothic Neo,Malgun Gothic,sans-serif;line-height:1.32&quot;&gt;&lt;div style=&quot;font-size:16px&quot;&gt;어댑터·시험 소스 존재 / c2_process 패키지 빌드 설정 없음&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CAD5E3;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=17;align=left;verticalAlign=top;spacing=12;shadow=0;rounded=0;spacing=12;" vertex="1" parent="1">
+          <mxGeometry x="1190" y="284" width="570" height="66" as="geometry" />
+        </mxCell>
+        <mxCell id="p8-v14" value="&lt;div style=&quot;font-family:Arial,Apple SD Gothic Neo,Malgun Gothic,sans-serif;line-height:1.32&quot;&gt;&lt;div style=&quot;font-size:16px&quot;&gt;브랜치 · main 미포함&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=#F5F7FA;strokeColor=#CAD5E3;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=17;align=left;verticalAlign=top;spacing=12;shadow=0;rounded=0;spacing=12;" vertex="1" parent="1">
+          <mxGeometry x="40" y="350" width="320" height="75" as="geometry" />
+        </mxCell>
+        <mxCell id="p8-v15" value="&lt;div style=&quot;font-family:Arial,Apple SD Gothic Neo,Malgun Gothic,sans-serif;line-height:1.32&quot;&gt;&lt;div style=&quot;font-size:16px&quot;&gt;feat/12-robot-adapter @ 4b6416d&lt;br&gt;engraving.py · cleaning.py · test_engraving_mock.py&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=#F5F7FA;strokeColor=#CAD5E3;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=17;align=left;verticalAlign=top;spacing=12;shadow=0;rounded=0;spacing=12;" vertex="1" parent="1">
+          <mxGeometry x="360" y="350" width="830" height="75" as="geometry" />
+        </mxCell>
+        <mxCell id="p8-v16" value="&lt;div style=&quot;font-family:Arial,Apple SD Gothic Neo,Malgun Gothic,sans-serif;line-height:1.32&quot;&gt;&lt;div style=&quot;font-size:16px&quot;&gt;PR #15는 feat/12-robot-adapter로 병합&lt;br&gt;main 병합으로 간주하지 않음&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=#F5F7FA;strokeColor=#CAD5E3;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=17;align=left;verticalAlign=top;spacing=12;shadow=0;rounded=0;spacing=12;" vertex="1" parent="1">
+          <mxGeometry x="1190" y="350" width="570" height="75" as="geometry" />
+        </mxCell>
+        <mxCell id="p8-v17" value="&lt;div style=&quot;font-family:Arial,Apple SD Gothic Neo,Malgun Gothic,sans-serif;line-height:1.32&quot;&gt;&lt;div style=&quot;font-size:16px&quot;&gt;목표 · 타입 미구현&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CAD5E3;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=17;align=left;verticalAlign=top;spacing=12;shadow=0;rounded=0;spacing=12;" vertex="1" parent="1">
+          <mxGeometry x="40" y="425" width="320" height="52" as="geometry" />
+        </mxCell>
+        <mxCell id="p8-v18" value="&lt;div style=&quot;font-family:Arial,Apple SD Gothic Neo,Malgun Gothic,sans-serif;line-height:1.32&quot;&gt;&lt;div style=&quot;font-size:16px&quot;&gt;c2_interfaces/action · srv · msg&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CAD5E3;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=17;align=left;verticalAlign=top;spacing=12;shadow=0;rounded=0;spacing=12;" vertex="1" parent="1">
+          <mxGeometry x="360" y="425" width="830" height="52" as="geometry" />
+        </mxCell>
+        <mxCell id="p8-v19" value="&lt;div style=&quot;font-family:Arial,Apple SD Gothic Neo,Malgun Gothic,sans-serif;line-height:1.32&quot;&gt;&lt;div style=&quot;font-size:16px&quot;&gt;README·.gitkeep만 있음 / 5개 /c2/* 정의 없음&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CAD5E3;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=17;align=left;verticalAlign=top;spacing=12;shadow=0;rounded=0;spacing=12;" vertex="1" parent="1">
+          <mxGeometry x="1190" y="425" width="570" height="52" as="geometry" />
+        </mxCell>
+        <mxCell id="p8-v20" value="&lt;div style=&quot;font-family:Arial,Apple SD Gothic Neo,Malgun Gothic,sans-serif;line-height:1.32&quot;&gt;&lt;div style=&quot;font-size:16px&quot;&gt;목표 · 노드 미구현&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=#F5F7FA;strokeColor=#CAD5E3;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=17;align=left;verticalAlign=top;spacing=12;shadow=0;rounded=0;spacing=12;" vertex="1" parent="1">
+          <mxGeometry x="40" y="477" width="320" height="68" as="geometry" />
+        </mxCell>
+        <mxCell id="p8-v21" value="&lt;div style=&quot;font-family:Arial,Apple SD Gothic Neo,Malgun Gothic,sans-serif;line-height:1.32&quot;&gt;&lt;div style=&quot;font-size:16px&quot;&gt;c2_path/c2_path/node.py · c2_process/c2_process/node.py&lt;br&gt;backend/app/ros_bridge.py&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=#F5F7FA;strokeColor=#CAD5E3;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=17;align=left;verticalAlign=top;spacing=12;shadow=0;rounded=0;spacing=12;" vertex="1" parent="1">
+          <mxGeometry x="360" y="477" width="830" height="68" as="geometry" />
+        </mxCell>
+        <mxCell id="p8-v22" value="&lt;div style=&quot;font-family:Arial,Apple SD Gothic Neo,Malgun Gothic,sans-serif;line-height:1.32&quot;&gt;&lt;div style=&quot;font-size:16px&quot;&gt;경로·공정·모니터 노드 없음 / 통합 실행 불가&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=#F5F7FA;strokeColor=#CAD5E3;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=17;align=left;verticalAlign=top;spacing=12;shadow=0;rounded=0;spacing=12;" vertex="1" parent="1">
+          <mxGeometry x="1190" y="477" width="570" height="68" as="geometry" />
+        </mxCell>
+        <mxCell id="p8-v23" value="&lt;div style=&quot;font-family:Arial,Apple SD Gothic Neo,Malgun Gothic,sans-serif;line-height:1.32&quot;&gt;&lt;div style=&quot;font-size:16px&quot;&gt;목표 · 설정·화면 미구현&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CAD5E3;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=17;align=left;verticalAlign=top;spacing=12;shadow=0;rounded=0;spacing=12;" vertex="1" parent="1">
+          <mxGeometry x="40" y="545" width="320" height="68" as="geometry" />
+        </mxCell>
+        <mxCell id="p8-v24" value="&lt;div style=&quot;font-family:Arial,Apple SD Gothic Neo,Malgun Gothic,sans-serif;line-height:1.32&quot;&gt;&lt;div style=&quot;font-size:16px&quot;&gt;config/workcell.yaml · config/tools.yaml · process.launch.py&lt;br&gt;frontend/src · backend/app · storage.py&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CAD5E3;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=17;align=left;verticalAlign=top;spacing=12;shadow=0;rounded=0;spacing=12;" vertex="1" parent="1">
+          <mxGeometry x="360" y="545" width="830" height="68" as="geometry" />
+        </mxCell>
+        <mxCell id="p8-v25" value="&lt;div style=&quot;font-family:Arial,Apple SD Gothic Neo,Malgun Gothic,sans-serif;line-height:1.32&quot;&gt;&lt;div style=&quot;font-size:16px&quot;&gt;프레임워크·DB·운영 설정 미확정&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=#FFFFFF;strokeColor=#CAD5E3;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=17;align=left;verticalAlign=top;spacing=12;shadow=0;rounded=0;spacing=12;" vertex="1" parent="1">
+          <mxGeometry x="1190" y="545" width="570" height="68" as="geometry" />
+        </mxCell>
+        <mxCell id="p8-v26" value="&lt;div style=&quot;font-family:Arial,Apple SD Gothic Neo,Malgun Gothic,sans-serif;line-height:1.32&quot;&gt;&lt;div style=&quot;font-size:20px;font-weight:700;margin-bottom:8px&quot;&gt;통합 시 먼저 확인할 차이&lt;/div&gt;&lt;div style=&quot;font-size:17px&quot;&gt;1. 공통 타입의 전체 자료형·시각·중첩 신호 품질 표현을 확정한다.&lt;br&gt;2. 어댑터 호출은 현재 동기 반환이다. 정지·상태를 막지 않도록 연결한다.&lt;br&gt;3. 현재 이동 취소 경로는 _qstop() 뒤 STOPPED를 반환한다.&lt;br&gt;   v1은 실제 정지 확인을 요구하므로 상위 연결·검증이 필요하다.&lt;br&gt;4. 현재 이동 완료는 XYZ 오차·로봇 상태 중심이다. 자세 완료 검증 보완.&lt;br&gt;5. Stop mode 숫자·명칭: 현재 코드 주석과 공식 Jazzy 정의가 다르다.&lt;br&gt;   설치본 대조 전 특정 stop_mode를 팀 공통값으로 확정하지 않는다.&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=#FFF7E5;strokeColor=#AE730C;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=17;align=left;verticalAlign=top;spacing=12;shadow=0;" vertex="1" parent="1">
+          <mxGeometry x="40" y="635" width="830" height="240" as="geometry" />
+        </mxCell>
+        <mxCell id="p8-v27" value="&lt;div style=&quot;font-family:Arial,Apple SD Gothic Neo,Malgun Gothic,sans-serif;line-height:1.32&quot;&gt;&lt;div style=&quot;font-size:20px;font-weight:700;margin-bottom:8px&quot;&gt;팀이 공유할 구현 경계&lt;/div&gt;&lt;div style=&quot;font-size:17px&quot;&gt;모니터·서버: 파일/설정 ID, A1·A2·S1 요청, 상태·기록·검사&lt;br&gt;좌표·경로: 동일 path ID·version·hash의 preview와 실행 경로&lt;br&gt;공정 제어: 단일 실행 소유권·단계 완료·정지 확인·저널&lt;br&gt;공통 타입: 세 송수신자가 같은 c2_interfaces 정의 사용&lt;br&gt;장치: 확정된 profile·frame·feedback·deadline으로 어댑터 연결&lt;br&gt;개인 담당은 해당 Issue·PR에서 배정. 이름을 임의 지정하지 않음.&lt;br&gt;계약 변경 시 명세 + 공통 타입 + 송수신 코드 + 시험을 함께 변경&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=#EEF5FF;strokeColor=#2667C9;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=17;align=left;verticalAlign=top;spacing=12;shadow=0;" vertex="1" parent="1">
+          <mxGeometry x="900" y="635" width="860" height="240" as="geometry" />
+        </mxCell>
+        <mxCell id="p8-v28" value="&lt;div style=&quot;font-family:Arial,Apple SD Gothic Neo,Malgun Gothic,sans-serif;line-height:1.32&quot;&gt;&lt;div style=&quot;font-size:20px;font-weight:700;margin-bottom:8px&quot;&gt;도면의 기준과 검증 범위&lt;/div&gt;&lt;div style=&quot;font-size:17px&quot;&gt;기준: origin/main c414821d23c3083a0b160efc8d523e1739e7dd1d  |  별도 참고: origin/feat/12-robot-adapter 4b6416dff6cfb31218d9ec28739812079f3fe68e&lt;br&gt;명세: INTERFACE_GUIDE.md · SYSTEM_STRUCTURE.md · INTERFACE_RECOMMENDATION.md (2026-09-18 v1)&lt;br&gt;로컬 공식 참고: doosan jazzy 8e033f0 (버전 유지) + Jazzy Motion Services / ROS 2 Action·QoS 원문&lt;br&gt;확인: Git·소스·명세 대조 / 도면 XML·실제 렌더링 검증. ROS 빌드·시뮬레이션·실기·통합 시험은 수행하지 않음.&lt;br&gt;원문 링크·파일 경로·현재 코드와 계약의 차이는 함께 제공한 README.md에서 확인한다.&lt;/div&gt;&lt;/div&gt;" style="rounded=1;arcSize=9;whiteSpace=wrap;html=1;fillColor=#F5F7FA;strokeColor=#52657F;strokeWidth=1.5;fontColor=#182B49;fontFamily=Arial;fontSize=17;align=left;verticalAlign=top;spacing=12;shadow=0;" vertex="1" parent="1">
+          <mxGeometry x="40" y="895" width="1720" height="175" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
