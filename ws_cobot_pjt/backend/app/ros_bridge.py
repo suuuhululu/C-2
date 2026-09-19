@@ -4,17 +4,67 @@
 파일 ID 해석 계약 확정 후 artifact_loader를 주입해 생성 결과 수신을 연결한다.
 """
 import asyncio
+from datetime import datetime, timedelta, timezone
 import math
+import re
 import threading
 
 
 def json_values(value):
-    """비유한 측정값은 JSON null. 신호별 quality 매핑은 설치 메시지 계약에서 확정한다."""
+    """비유한 측정값은 JSON null."""
     if isinstance(value,float) and not math.isfinite(value):return None
     if isinstance(value,dict):return {k:json_values(v) for k,v in value.items()}
     if isinstance(value,(list,tuple)):return [json_values(v) for v in value]
     if hasattr(value,'tolist'):return json_values(value.tolist())
     return value
+
+
+def ros_time_from_iso(value):
+    """HTTP UTC/offset 포함 RFC3339 시각을 정수 나노초의 ROS Time으로 변환한다."""
+    from builtin_interfaces.msg import Time
+
+    match = re.fullmatch(
+        r'(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2})(?:\.(\d{1,9}))?(Z|[+-]\d{2}:\d{2})',
+        value,
+    )
+    if match is None:
+        raise ValueError('시각은 시간대가 포함된 RFC3339 문자열이어야 합니다.')
+    date = datetime.fromisoformat(match[1] + match[3].replace('Z', '+00:00'))
+    elapsed = date - datetime(1970, 1, 1, tzinfo=timezone.utc)
+    seconds = elapsed.days * 86400 + elapsed.seconds
+    if not -(2**31) <= seconds < 2**31:
+        raise ValueError('시각이 builtin_interfaces/Time의 int32 초 범위를 벗어났습니다.')
+    return Time(sec=seconds, nanosec=int((match[2] or '').ljust(9, '0')))
+
+
+def ros_message_values(message):
+    """ROS 시각은 RFC3339, 미확인·오래된 수치 신호는 null로 전달한다."""
+    from builtin_interfaces.msg import Time
+
+    def convert(value):
+        if isinstance(value, Time):
+            if value.sec == 0 and value.nanosec == 0:
+                return None  # 계약상 시각 미확인. 현재 시각으로 채우지 않는다.
+            if not 0 <= value.nanosec < 1_000_000_000:
+                raise ValueError('ROS Time.nanosec은 0 이상 1e9 미만이어야 합니다.')
+            date = datetime(1970, 1, 1, tzinfo=timezone.utc) + timedelta(seconds=value.sec)
+            return f'{date:%Y-%m-%dT%H:%M:%S}.{value.nanosec:09d}Z'
+        if hasattr(value, 'get_fields_and_field_types'):
+            return {key: convert(getattr(value, key)) for key in value.get_fields_and_field_types()}
+        return json_values(value)
+
+    result = convert(message)
+    # ProcessState의 신호별 품질. 정상 heartbeat가 오래된 측정값을 살리지 않는다.
+    if 'source_epoch' in result and 'joints_quality' in result:
+        for signal in ('joints', 'tcp', 'temperature'):
+            if result[f'{signal}_quality'] != 'VALID':
+                result[signal] = None
+        if result['grip_quality'] != 'VALID':
+            result['grip_state'] = 'UNKNOWN'
+        if result['robot_quality'] != 'VALID':
+            result['robot_connection_state'] = 'UNKNOWN'
+            result['robot_mode'] = 'UNKNOWN'
+    return result
 
 
 async def await_ros(future, timeout):
@@ -34,7 +84,10 @@ def fill_message(message, values):
     fields=message.get_fields_and_field_types()
     missing=set(values)-set(fields)
     if missing:raise ValueError(f'c2_interfaces 필드 불일치: {sorted(missing)}')
-    for key,value in values.items():setattr(message,key,value)
+    for key,value in values.items():
+        if fields[key] == 'builtin_interfaces/Time' and isinstance(value, str):
+            value = ros_time_from_iso(value)
+        setattr(message,key,value)
     return message
 
 
@@ -53,13 +106,12 @@ class RosBridge:
             from rclpy.callback_groups import ReentrantCallbackGroup
             from rclpy.action import ActionClient
             from rclpy.qos import QoSProfile, ReliabilityPolicy, DurabilityPolicy
-            from rosidl_runtime_py.convert import message_to_ordereddict
             from c2_interfaces.action import GeneratePath, ExecuteProcess
             from c2_interfaces.srv import StopProcess
             from c2_interfaces.msg import ProcessState, ProcessEvent
         except ImportError as exc:
             raise RuntimeError('ROS 모드는 Jazzy와 팀 c2_interfaces 빌드·source가 필요합니다. 임의 메시지로 대체하지 않습니다.') from exc
-        self.rclpy=rclpy;self.loop=asyncio.get_running_loop();self.convert=message_to_ordereddict
+        self.rclpy=rclpy;self.loop=asyncio.get_running_loop();self.convert=ros_message_values
         self.types=(GeneratePath,ExecuteProcess,StopProcess)
         self.context=Context();rclpy.init(context=self.context)
         self.node=Node('monitor_gateway_node',context=self.context)

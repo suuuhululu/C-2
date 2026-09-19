@@ -1,0 +1,15 @@
+# /c2/stop_process: 현재 실행의 정지 접수. DB 쓰기보다 실제 정지 전달 우선.
+uint16 SCHEMA_VERSION=1
+uint16 schema_version 1
+string request_id
+string run_id
+string reason
+---
+# accepted=true는 실제 정지 완료가 아니다. 상태 Topic 또는 실행 Result로 확인.
+bool accepted false
+string run_id
+# 접수 응답: NONE, REQUESTED, ACCEPTED, STOPPING, FAILED, UNKNOWN.
+# CONFIRMED는 실제 정지를 확인한 ProcessState에서만 발행한다.
+string stop_state "UNKNOWN"
+string error_code "UNKNOWN"
+string message

@@ -180,7 +180,7 @@ class DoosanRobotAdapter(RobotAdapter):
     ROBOT_ID, ROBOT_MODEL = "dsr01", "m0609"
     STATE_STANDBY, STATE_MOVING = 1, 2
 
-    def __init__(self, node, frame_id="dsr01_base", logger=None):
+    def __init__(self, node, frame_id="c2_base", logger=None):
         import DR_init
         setattr(DR_init, "__dsr__id", self.ROBOT_ID)
         setattr(DR_init, "__dsr__model", self.ROBOT_MODEL)
@@ -484,7 +484,7 @@ class MockRobotAdapter(RobotAdapter):
     """로봇 없이 흐름을 검증한다. 호출 기록(calls)을 남기고, probe_touch 는 surface_fn(start_pose, direction) 이 주는
     거리(m)에서 접촉한 것으로 답한다. fail_at / stop_at 으로 실패·취소 사례를 흉내 낸다."""
 
-    def __init__(self, frame_id="dsr01_base", surface_fn: Optional[Callable] = None, fail_at: Optional[str] = None,
+    def __init__(self, frame_id="c2_base", surface_fn: Optional[Callable] = None, fail_at: Optional[str] = None,
                  delay_s: float = 0.0, move_time_s: float = 0.0):
         self.frame_id, self.surface_fn, self.fail_at, self.delay_s = frame_id, surface_fn, fail_at, delay_s
         self.move_time_s = move_time_s                  # > 0 이면 이동이 이 시간 동안 진행되며 도중 취소를 받는다

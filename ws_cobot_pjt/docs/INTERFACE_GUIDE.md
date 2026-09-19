@@ -20,6 +20,8 @@
 
 ## 2. 세 노드의 책임
 
+**2026-09-19 후속 구현:** main `42e8416` 기반으로 [c2_interfaces v1](../ws_cobot1/src/c2_interfaces/README.md)의 타입 5개·빌드 설정과 게이트웨이 시각/품질 변환을 추가하고 시험했다. 위의 타입 미구현 문장은 이전 시점 기록이다. HMI·서버·MOCK도 현재 존재하며, 좌표·공정 노드와 전체 ROS 공정은 아직 구현·통합 대상이다. [현재 구현 안내](HMI_MONITOR_IMPLEMENTATION.md), [검증 기록](validation/2026-09-19-c2-interfaces.md)을 함께 확인한다.
+
 | 노드 | 구현 위치·패키지 | 담당 | 반환·전달 |
 | --- | --- | --- | --- |
 | `monitor_gateway_node` | 서버 `backend/app/ros_bridge.py` | 화면의 경로 생성·실행·정지 요청을 ROS로 연결하고 수신 결과를 화면·저장 기능으로 전달 | 미리보기, 공정·장비 상태, 실행·알람·검사 기록 표시 |

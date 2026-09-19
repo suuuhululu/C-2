@@ -57,6 +57,17 @@ env -u PYTHONPATH PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 \
 
 `app/ros_bridge.py`에 Jazzy `monitor_gateway_node` 클라이언트를 구현했다. `/c2/generate_path`, `/c2/execute_process`, `/c2/stop_process`와 상태·이벤트 두 Topic을 사용한다. 임의 `.msg/.action/.srv`를 새로 정의하지 않는다.
 
-현재 체크아웃의 `c2_interfaces`에는 실제 생성 타입이 없다. 공통 패키지 빌드, 좌표 담당자의 ID→파일 및 미리보기 계약, `artifact_loader` 구현을 마친 뒤 연결 시험해야 한다. 이 상태를 ROS 통합 완료로 취급하지 않는다. MOCK 경로 파일은 ROS 상대 노드에 전달하지 않도록 차단했다.
+2026-09-19 [c2_interfaces v1](../ws_cobot1/src/c2_interfaces/README.md)의 실제 타입·빌드 설정을 추가했다. 해당 안내대로 빌드·source하면 import할 수 있다. 게이트웨이는 HTTP의 RFC3339 확인 시각을 ROS Time으로 변환하고, 수신 시각은 UTC 문자열로 되돌린다. 신호 품질이 VALID가 아닌 수치 데이터는 null로 전달한다. 기존 DB 스키마와 MOCK 실행 방식은 유지한다.
+
+생성 타입 경계 시험은 빌드 후 저장소 루트에서 실행한다. ROS 환경이 없는 일반 모의 시험에서는 이 시험 파일만 skip된다.
+
+```bash
+source /opt/ros/jazzy/setup.bash
+source ws_cobot_pjt/ws_cobot1/install/local_setup.bash
+cd ws_cobot_pjt/backend
+PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 .venv/bin/python -m pytest -q tests/test_ros_contract.py
+```
+
+좌표 담당자의 ID→파일 및 미리보기 계약, `artifact_loader`, 실제 좌표·공정 노드를 연결한 뒤 통합 시험해야 한다. 공통 타입 빌드를 ROS 전체 통합 완료로 취급하지 않는다. MOCK 경로 파일은 ROS 상대 노드에 전달하지 않도록 차단했다.
 
 이전 고객 웹앱·서버 초안은 개발 PC에 별도로 보존했다. 이 게시본에는 새 모니터를 실행하는 코드만 포함한다.

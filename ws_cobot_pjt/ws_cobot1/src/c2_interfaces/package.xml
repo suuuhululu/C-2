@@ -1,0 +1,23 @@
+<?xml version="1.0"?>
+<package format="3">
+  <name>c2_interfaces</name>
+  <version>0.1.0</version>
+  <description>C-2 시스템 모니터·좌표 생성·공정 제어의 공통 ROS 2 인터페이스 v1.</description>
+  <maintainer email="167942097+suuuhululu@users.noreply.github.com">C-2 team</maintainer>
+  <license>Apache-2.0</license>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+  <buildtool_depend>rosidl_default_generators</buildtool_depend>
+  <depend>action_msgs</depend>
+  <depend>builtin_interfaces</depend>
+  <depend>geometry_msgs</depend>
+  <exec_depend>rosidl_default_runtime</exec_depend>
+  <member_of_group>rosidl_interface_packages</member_of_group>
+
+  <test_depend>ament_cmake_pytest</test_depend>
+  <test_depend>rclpy</test_depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>
