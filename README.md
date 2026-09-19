@@ -7,6 +7,7 @@
 - [현재 축소 시나리오: 3개 노드 인터페이스·팀 협업 안내](ws_cobot_pjt/docs/INTERFACE_GUIDE.md)
 - [목표 디렉토리·파일별 역할](ws_cobot_pjt/docs/SYSTEM_STRUCTURE.md) · [통신 필드·완료 조건 권장안 v1](ws_cobot_pjt/docs/INTERFACE_RECOMMENDATION.md)
 - [0917 개발 일지: 지점토 단위 실기·측정 기능·알고리즘 검토](ws_cobot_pjt/docs/daily/2026-09-17.md)
+- [0918 개발 일지: 3개 노드 계약·곡면 검증·공정 모듈·HMI 초안](ws_cobot_pjt/docs/daily/2026-09-18.md)
 - [서비스 목표·기능별 구현 상태](ws_cobot_pjt/docs/PROJECT_PLAN.md)
 - [전체 기능 흐름: 가공·세척·오류 처리](ws_cobot_pjt/docs/SERVICE_FLOW.md)
 - [9/17 이전 설계: PC·웹앱·모니터·ROS 역할](ws_cobot_pjt/docs/SYSTEM_ARCHITECTURE.md)
