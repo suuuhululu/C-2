@@ -1,12 +1,18 @@
 # 프로젝트 ROS 실행·설정 기록
 
-`ws_cobot1/src/`는 팀 공정·노드·launch 패키지 위치다. `ws_dsr`의 로봇·그리퍼 실행환경을 준비한 뒤 사용하는 별도 워크스페이스다. 2026-09-18 기준 팀 패키지는 `clay_carving`(지점토 조각 노드 1~4)과 `clay_hmi`(PyQt5 관리자 HMI)이며(PR #7), 빌드·실행 절차는 [clay_run.md](clay_run.md)에 있다.
+2026-09-18, 기준 main `c414821`. 팀 공정은 `ws_cobot1`, 외부 로봇·그리퍼 환경은 `ws_dsr`로 분리한다. 기존 Clay 코드와 전용 실행 안내는 사용자 요청으로 로컬 보관 후 저장소에서 제거했다. [보관·복구 기록](../../docs/LEGACY_CLAY_ARCHIVE.md).
 
-시스템 모니터·좌표 생성·공정 제어의 3개 노드로 정리한 구현 목표는 [팀 인터페이스 안내](../../docs/INTERFACE_GUIDE.md), [디렉토리·파일 역할](../../docs/SYSTEM_STRUCTURE.md), [상세 통신 계약](../../docs/INTERFACE_RECOMMENDATION.md)을 따른다. 이 문서 변경으로 기존 패키지를 이동·변경하거나 `/c2/*` 인터페이스를 구현한 것은 아니다. 새 실행 절차는 해당 구현과 검증 후 추가한다.
+## 현재 구현과 실행 가능 범위
 
-세 패키지의 [개발 폴더](../src/README.md)는 준비되어 있다. 현재는 README·`.gitkeep` 단계로 ROS 빌드 설정과 실행 노드는 없으며, 기존 패키지 실행 명령을 새 패키지 이름으로 바꿔 실행하지 않는다.
+| 대상 | 확인한 상태 |
+| --- | --- |
+| `c2_interfaces` | 개발 폴더만 있음. `.action`·`.srv`·`.msg`와 빌드 설정 미구현 |
+| `c2_path` | 개발 폴더만 있음. 노드·계산 모듈·빌드 설정 미구현 |
+| `c2_process` | `robot_adapter.py`, `__init__.py`, 시험 소스 존재. 공정 노드·빌드 설정 미구현 |
+| `monitor_gateway_node` | `backend/app/ros_bridge.py`에 개발할 목표. 서버 코드 미구현 |
+| 조각·청소 | `feat/12-robot-adapter`의 `4b6416d`에 소스 존재. 기준 main에는 미포함 |
 
-외부 환경의 빌드·가상 이동 보고는 [의존성 기록](../../../docs/DEPENDENCIES.md)에 있다. 이시율이 공유를 제안한 `setup_and_run.md`는 아직 저장소에 없으며 제공 후 별도 PR로 검토한다.
+현재 C-2를 clone한 것만으로 새 세 노드 공정을 실행할 수 없다. 실제 launch·설정·종료 절차는 구현과 검증 후 이 문서에 추가한다. 기존 Clay의 실행 명령을 새 패키지 이름으로 바꾸어 사용하지 않는다.
 
 현재 구현 예정 패키지는 `c2_interfaces`, `c2_path`, `c2_process`다. 그리퍼 제어·파지 확인과 도구 집기·반납은 `c2_process` 내부 모듈로 둔다. 모니터 게이트웨이 노드는 백엔드에 둔다. 전체 배치와 도구별 설정은 [현재 디렉토리 구조](../../docs/SYSTEM_STRUCTURE.md)를 따른다.
 

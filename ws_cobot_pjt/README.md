@@ -10,7 +10,7 @@
 
 목표는 고객 도안을 M0609와 헤라로 원기둥 표면에 음각하는 공정을 도안 입력부터 결과 확인까지 연결하는 것이다. 현재 목표 형상은 지름 70mm·높이 200mm이며 지점토·비누베이스를 재료 후보로 둔다. 팀 담당 배정과 실기 합격 기준은 추가 확정한다.
 
-2026-09-18 축소 설계는 **고객용 웹앱 없이 시스템 모니터 → 좌표·경로 생성 → 공정 제어**의 세 노드로 구성한다. 작업대·대상의 고정 좌표와 고정 그리퍼·교체 도구 조건을 반영했다. [팀 인터페이스 안내](docs/INTERFACE_GUIDE.md), [목표 디렉토리](docs/SYSTEM_STRUCTURE.md), [상세 통신 계약](docs/INTERFACE_RECOMMENDATION.md)을 개발 기준 초안으로 사용한다. 현재 `clay_carving`·`clay_hmi` 코드의 구현 상태와 새 계약의 구현 목표를 구분한다.
+2026-09-18 축소 설계는 **고객용 웹앱 없이 시스템 모니터 → 좌표·경로 생성 → 공정 제어**의 세 노드로 구성한다. 작업대·대상의 고정 좌표와 고정 그리퍼·교체 도구 조건을 반영했다. [팀 인터페이스 안내](docs/INTERFACE_GUIDE.md), [목표 디렉토리](docs/SYSTEM_STRUCTURE.md), [상세 통신 계약](docs/INTERFACE_RECOMMENDATION.md)을 개발 기준 초안으로 사용한다. [draw.io 시스템 아키텍처](docs/architecture/README.md)에 전체 구조·통신 계약·구현 상태를 정리했다. 기존 Clay 코드는 사용자 요청으로 로컬 보관 후 저장소에서 제거했다. [보관·복구 기록](docs/LEGACY_CLAY_ARCHIVE.md).
 
 이전 고객 웹앱·HMI 초안은 개발 PC에 별도로 보존했다. GitHub의 이번 모니터 초안에는 고객용 흐름을 포함하지 않는다. 현재 구현과 ROS 통합 대기 범위는 위 모니터 구현 안내를 따른다.
 
@@ -20,7 +20,7 @@
 
 ## 배치
 
-- `ws_cobot1/src/`: 팀 공정·ROS 노드·launch 패키지. 현재 구현은 `clay_carving`·`clay_hmi`다. `c2_interfaces`·`c2_path`·`c2_process`는 [개발 폴더·역할 안내](ws_cobot1/src/README.md)를 준비했고, 빌드 설정·메시지·노드는 구현할 대상이다.
+- `ws_cobot1/src/`: 팀 공정·ROS 노드·launch 패키지. `c2_interfaces`·`c2_path`·`c2_process`의 [개발 폴더·역할 안내](ws_cobot1/src/README.md)를 따른다. `c2_process`의 로봇 어댑터·시험 소스는 존재하며, 빌드 설정·메시지·실행 노드는 아직 구현할 대상이다.
 - `ws_cobot1/doc/`: 실제 ROS 실행 순서·필요 설정·종료·재현 절차.
 - `ws_dsr/src/`: 로컬 외부 로봇·그리퍼 실행환경. 폴더 전체는 Git 제외이며 `ws_cobot1`과 같은 패키지를 중복 복사하지 않는다.
 - `backend/app/`: 새 모니터의 FastAPI API·DB·모의 상대·ROS 게이트웨이 연결 코드. 기본 실행은 MOCK이며 ROS 통합은 대기 중이다. [서버 실행 방법](backend/README.md).
