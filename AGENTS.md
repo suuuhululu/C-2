@@ -19,6 +19,8 @@
 
 ## 작업 시작: GitHub와 로컬의 기준 맞추기
 
+2026-09-19, main `42e8416` 기반 후속 구현: [c2_interfaces v1](ws_cobot_pjt/ws_cobot1/src/c2_interfaces/README.md)의 공통 타입 5개와 빌드 설정을 작성하고 Jazzy에서 검증했다. 위의 공통 타입 미구현 문구는 이전 시점 기록이다. HMI·서버·MOCK와 ROS 클라이언트도 존재하지만 `c2_path`·`c2_process`의 노드·패키지 설정, 파일 해석 연동, 실제 상대 통합은 별도 구현 대상이다. 타입 수정 시 [명세 12절](ws_cobot_pjt/docs/INTERFACE_RECOMMENDATION.md#12-공통-타입-구현과-배포--2026-09-19)의 동일 버전 배포 절차를 따른다.
+
 1. `git status --short --branch`, 현재 브랜치·커밋·원격 저장소를 확인한다. 미커밋 변경과 다른 팀원의 작업을 보존한다. 파일이 수정된 상태에서 강제 checkout·reset·clean으로 기준을 맞추지 않는다.
 2. 가능하면 `git fetch origin`으로 최신 원격 참조를 확인하고 작업 브랜치와 `origin/main`의 차이, 관련 PR·Issue·Actions 상태를 확인한다. fetch가 작업 파일을 최신 main으로 바꾸는 것은 아니다. 새 작업은 최신 main 기반의 별도 브랜치 또는 worktree에서 준비한다.
 3. 아래 필수 문서와 작업 대상 README·소스·시험을 실제로 읽는다. [진행 현황](docs/REVIEW_STATUS.md) 등의 날짜가 오래됐으면 현재 파일·커밋·PR과 대조한다. 이전 채팅·개인 메모만으로 현재 구조를 결정하지 않는다.
