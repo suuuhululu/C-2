@@ -104,9 +104,15 @@ def measure_tool_tip(adapter: RobotAdapter, workcell: Dict, profiles: Dict, cont
     if s is None:
         return StepResult("FAILED", "NOT_READY", "그리퍼가 세운 자세(툴 +Z 아래, 툴 Y = ±base Y)가 아님", "measure_tool_tip")
     q = upright_quat(s)
-    adapter.set_tool_offset(None)                                   # 측정은 패드 기준
+    prev_offset = list(adapter.tool_offset_m) if getattr(adapter, "tool_offset_m", None) else None
+    adapter.set_tool_offset(None)                                   # 측정은 패드 기준. 실패하면 prev_offset 으로 되돌린다
     y_far = cy + s * (R + max_projection_m + clear_m)
     frame = adapter.frame_id
+
+    def fail(r: StepResult) -> StepResult:
+        """중간 실패·정지·시간 초과: 결과(outcome·error_code)는 그대로 넘기고 오프셋만 이전 값으로 복원."""
+        adapter.set_tool_offset(prev_offset)
+        return r
 
     def move(x, y, zz, step):
         r = adapter.move([x, y, zz, *q], frame, travel, float(travel.get("completion_timeout_s", 60.0)), cancel)
@@ -118,10 +124,10 @@ def measure_tool_tip(adapter: RobotAdapter, workcell: Dict, profiles: Dict, cont
     cur = st.tcp_pose
     r = move(cur[0], y_far, cur[2], "go_out")
     if not r.ok:
-        return r
+        return fail(r)
     r = move(cx, y_far, z, "go_down")
     if not r.ok:
-        return r
+        return fail(r)
     points, forces = [], []
     for i, u in enumerate(CHORD_OFFSETS_M):
         if i == 0:
@@ -130,21 +136,21 @@ def measure_tool_tip(adapter: RobotAdapter, workcell: Dict, profiles: Dict, cont
             # 첫 접촉 y 보다 8.5 mm 바깥에서 (곡률로 3.5 mm 더 안쪽에 표면) 2 mm/s
             r = move(cx + u, points[0][1] + s * (0.012 - 0.0035), z, f"go_chord{i}")
             if not r.ok:
-                return r
+                return fail(r)
             travel_m, speed, long_ap = 0.025, 2.0, False
         prof = _touch_profile(profiles, speed, long_ap)
         deadline = travel_m * 1000.0 / speed + 10.0
         r = adapter.probe_touch([0.0, -float(s), 0.0], travel_m, prof, deadline, cancel)
-        if not r.ok or not r.observed_state.get("contact"):
+        if not r.ok:                                                # STOPPED / UNKNOWN(TIMEOUT) / FAILED 는 그대로 상위로
             r.completed_step = f"touch{i}"
-            if r.outcome == "SUCCEEDED":
-                return StepResult("FAILED", "VALIDATION_FAILED", f"touch{i}: {travel_m * 1000:.0f} mm 안에 접촉 없음", f"touch{i}")
-            return r
+            return fail(r)
+        if not r.observed_state.get("contact"):
+            return fail(StepResult("FAILED", "VALIDATION_FAILED", f"touch{i}: {travel_m * 1000:.0f} mm 안에 접촉 없음", f"touch{i}"))
         pxy = _pad_xy(r)
         points.append(pxy); forces.append(float(r.observed_state.get("force_n", 0.0)))
         r = move(pxy[0], pxy[1] + s * 0.012, z, f"back{i}")            # 12 mm 물러남
         if not r.ok:
-            return r
+            return fail(r)
     cx_fit, yoff, rms = _fit_circle(points, cx, R, s)
     projection = s * (yoff - cy)                                        # 패드 y(축 위 접촉) − 표면 y = 돌출 길이
     lateral_x = s * (cx_fit - cx)                                       # 툴 X = base (−side, 0, 0)
@@ -153,10 +159,9 @@ def measure_tool_tip(adapter: RobotAdapter, workcell: Dict, profiles: Dict, cont
                            axis_fit_xy_m=[cx_fit, yoff], side=s, z_m=z, points_pad_m=points, forces_n=forces,
                            measured_at=time.time())
     if projection <= 0.0 or projection > max_projection_m:
-        return StepResult("FAILED", "VALIDATION_FAILED", f"돌출 길이 {projection * 1000:.1f} mm 비정상", "fit",
-                          dict(calibration=calib.to_dict()))
-    if apply:
-        adapter.set_tool_offset(calib.offset_tool_m)
+        return fail(StepResult("FAILED", "VALIDATION_FAILED", f"돌출 길이 {projection * 1000:.1f} mm 비정상", "fit",
+                               dict(calibration=calib.to_dict())))
+    adapter.set_tool_offset(calib.offset_tool_m if apply else prev_offset)
     return StepResult("SUCCEEDED", "NONE", f"돌출 {projection * 1000:.1f} mm, 툴X 어긋남 {lateral_x * 1000:+.1f} mm, "
                       f"잔차 {rms * 1000:.2f} mm", "measure_tool_tip", dict(calibration=calib.to_dict()))
 
@@ -181,14 +186,20 @@ def verify_tool_tip(adapter: RobotAdapter, workcell: Dict, profiles: Dict, calib
             return r
         prof = _touch_profile(profiles, 2.0, False)
         r = adapter.probe_touch([0.0, -float(s), 0.0], 0.020, prof, 20.0, cancel)
-        if not r.ok or not r.observed_state.get("contact"):
-            return StepResult("FAILED", "VALIDATION_FAILED", "확인 터치: 20 mm 안에 접촉 없음 → 3점 재측정", "verify_tool_tip")
+        if not r.ok:                                                        # STOPPED / UNKNOWN(TIMEOUT) / FAILED 그대로 상위로
+            r.completed_step = "verify_touch"
+            return r
+        if not r.observed_state.get("contact"):
+            return StepResult("FAILED", "VALIDATION_FAILED", "확인 터치: 20 mm 안에 접촉 없음 → 3점 재측정", "verify_touch")
         y_got = _pad_xy(r)[1]
         err = -s * (y_got - y_expect)                                       # + 면 패드가 더 안쪽까지 가야 닿음 (도구가 짧아짐·밀려 들어감)
-        adapter.move([calib.axis_fit_xy_m[0], y_got + s * 0.012, z, *q], frame, travel, 60.0, cancel)
+        obs = dict(error_m=err, contact_pad_y_m=y_got, expected_pad_y_m=y_expect)
+        r = adapter.move([calib.axis_fit_xy_m[0], y_got + s * 0.012, z, *q], frame, travel, 60.0, cancel)
+        if not r.ok:                                                        # 이탈 실패도 그 결과 그대로 (오차값은 같이 넘김)
+            r.completed_step = "verify_retreat"; r.observed_state.update(obs)
+            return r
         ok = abs(err) <= tol_m
         return StepResult("SUCCEEDED" if ok else "FAILED", "NONE" if ok else "VALIDATION_FAILED",
-                          f"확인 터치 오차 {err * 1000:+.2f} mm (허용 ±{tol_m * 1000:.1f})", "verify_tool_tip",
-                          dict(error_m=err, contact_pad_y_m=y_got, expected_pad_y_m=y_expect))
+                          f"확인 터치 오차 {err * 1000:+.2f} mm (허용 ±{tol_m * 1000:.1f})", "verify_tool_tip", obs)
     finally:
         adapter.set_tool_offset(saved)
