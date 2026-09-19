@@ -35,7 +35,7 @@ def test_cancel_during_motion():
     ad = MockRobotAdapter(move_time_s=0.3)
     cancel = threading.Event()
     threading.Timer(0.1, cancel.set).start()
-    r = ad.move([0.4, 0.0, 0.3, 0, 1, 0, 0], "dsr01_base", PROFILE, 30.0, cancel)
+    r = ad.move([0.4, 0.0, 0.3, 0, 1, 0, 0], "c2_base", PROFILE, 30.0, cancel)
     assert r.outcome == "STOPPED" and ad.stopped and "대기 중" in r.message, r
     assert 0.0 < ad.pose[2] < 0.3                                       # 도중에 섰다
 
@@ -57,7 +57,7 @@ def test_probe_touch_mock():
 
 def test_spline_point_limit():
     ad = MockRobotAdapter()
-    r = ad.move_spline([[0.4, 0, 0.3, 0, 1, 0, 0]] * 81, "dsr01_base", PROFILE, 30.0, None)
+    r = ad.move_spline([[0.4, 0, 0.3, 0, 1, 0, 0]] * 81, "c2_base", PROFILE, 30.0, None)
     assert r.outcome == "FAILED" and r.error_code == "INVALID_INPUT"
 
 
