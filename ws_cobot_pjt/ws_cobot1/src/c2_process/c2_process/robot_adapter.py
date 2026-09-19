@@ -224,18 +224,27 @@ class DoosanRobotAdapter(RobotAdapter):
         """제어기 ikin(posx, sol_space) 로 관절해 [deg]. sol_space 는 처음 8개 중 ref 에 가장 가까운 것을 고르고 이후 유지한다."""
         px = pose_to_posx(pose, tool_offset_m)
         best = None
-        spaces = [self._ik_space] if getattr(self, "_ik_space", None) is not None else list(range(8))
+        if getattr(self, "_ik_space", None) is None:
+            try:                                                                # 현재(기준) 관절의 해 공간을 제어기에 물어 그것부터
+                self._ik_space = int(self.R.get_solution_space(self.R.posj(*[float(v) for v in ref_joints_deg])))
+            except Exception:
+                self._ik_space = None
+        spaces = ([self._ik_space] if self._ik_space is not None else []) + [k for k in range(8) if k != self._ik_space]
         for sp in spaces:
             try:
                 q = self.R.ikin(self.posx(*px), sp, self.R.DR_BASE)
             except Exception:
                 q = None
-            if not q or len(q) < 6:
+            if isinstance(q, tuple) and len(q) and hasattr(q[0], "__len__"):   # (posj, status) 형태 대비
+                q = q[0]
+            if q is None or len(q) < 6:                                          # numpy 배열이라 `not q` 는 쓰지 않는다 (9/19 실기)
                 continue
-            q = [float(v) for v in q[:6]]
+            q = [float(v) for v in list(q)[:6]]
             d = max(abs(q[k] - ref_joints_deg[k]) for k in range(6))
             if best is None or d < best[0]:
                 best = (d, sp, q)
+            if d < 5.0:                                                         # 기준 관절과 사실상 같은 해 → 더 볼 필요 없음
+                break
         if best is None:
             return None
         self._ik_space = best[1]
