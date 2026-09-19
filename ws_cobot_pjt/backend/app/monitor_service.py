@@ -5,7 +5,7 @@ import time
 from collections import deque
 
 from .mock_peer import MockPeer, PROFILE
-from .monitor_contract import now, uid
+from .monitor_contract import SCHEMA_VERSION, now, uid
 
 
 class DomainError(Exception):
@@ -19,7 +19,7 @@ class MonitorService:
         self.store=store;self.transport=transport;self.tick=tick
         self.state=None;self.last_state=0.;self.retired_epochs=set()
         self.run=None;self.generating=None;self.generation_status={};self.stops={}
-        self.stop_watch=None;self.stop_confirmation_timeout=3.
+        self.stop_watch=None;self.stop_confirmation_timeout=3.;self.contract_error=None
         self.events=deque(maxlen=60);self.event_ids=set();self.tasks=set()
         self.lock=asyncio.Lock();self.writes=asyncio.Queue();self.storage_error=None;self.closed=False
 
@@ -64,13 +64,14 @@ class MonitorService:
     def record(self,method,*args):self.writes.put_nowait((method,args))
 
     async def notice(self,message,kind='COMMAND',code='NONE',severity='INFO'):
-        e=dict(event_id=uid(),source_mode='SIMULATION',schema_version=1,source_epoch='gateway',event_seq=0,
+        e=dict(event_id=uid(),source_mode='SIMULATION',schema_version=SCHEMA_VERSION,source_epoch='gateway',event_seq=0,
                run_id=self.run['run_id'] if self.run else '',occurred_at=now(),event_type=kind,
                severity=severity,code=code,message=message,phase='')
         await self.receive('event',e)
 
     async def receive(self,kind,data):
-        if data.get('schema_version')!=1 or data.get('source_mode')!='SIMULATION':
+        if data.get('schema_version')!=SCHEMA_VERSION or data.get('source_mode')!='SIMULATION':
+            self.contract_error='통신 계약 또는 모드 불일치. 고정 드릴 v2/SIMULATION 상대를 확인하세요.'
             self.last_state=0
             return
         if kind=='mock_execution_preview':
@@ -91,7 +92,7 @@ class MonitorService:
                     if self.run and self.run['status'] in ('ACCEPTED','RUNNING','STOPPING'):
                         self.run.update(status='UNKNOWN',error_code='COMMUNICATION_LOST',message='공정 노드 재시작. 실행 결과 미확인')
                         self.record(self.store.save_run,dict(self.run))
-            self.state=data;self.last_state=time.monotonic()
+            self.state=data;self.last_state=time.monotonic();self.contract_error=None
             if self.run and data.get('run_id')==self.run['run_id'] and self.run['status']!='UNKNOWN':
                 for key in ['phase','engraving_progress','elapsed_s','stop_state']:
                     self.run[key]=data.get(key)
@@ -106,11 +107,11 @@ class MonitorService:
     def busy(self):return self.run and self.run['status'] in ('ACCEPTED','RUNNING','STOPPING','UNKNOWN')
 
     def snapshot(self):
-        return dict(schema_version=1,source_mode='SIMULATION',transport=self.peer.transport,server_time=now(),
+        return dict(schema_version=SCHEMA_VERSION,source_mode='SIMULATION',transport=self.peer.transport,server_time=now(),
                     connection='CONNECTED' if self.fresh() else 'STALE',state=self.state,active_run=self.run,
                     profile=self.profile,events=list(self.events),generation=self.generation_status.get(self.generating),
                     storage_error=self.storage_error,scenario=getattr(self.peer,'scenario',None),
-                    contract_status='미리보기 세부 형식은 모의 계약 · 팀 PR 반영 대기')
+                    contract_status=self.contract_error or '고정 드릴 통신 v2 · 미리보기 세부 형식은 모의 계약')
 
     async def generate(self,goal):
         async with self.lock:
@@ -165,6 +166,8 @@ class MonitorService:
             if self.busy() or self.generating:raise DomainError('BUSY','활성 또는 미확인 작업이 있습니다.')
             if not self.fresh() or self.storage_error:raise DomainError('NOT_READY','상태 통신 또는 기록 저장을 확인하세요.')
             path=await asyncio.to_thread(self.store.path,body['path_id'],body['path_version'])
+            if path.get('input',{}).get('schema_version')!=SCHEMA_VERSION:
+                raise DomainError('UNSUPPORTED_SCHEMA_VERSION','이전 계약의 경로입니다. 고정 드릴 v2로 다시 생성·확인하세요.')
             if self.transport!='mock' and path.get('simulation_fixture'):
                 raise DomainError('NOT_READY','모의 경로 파일은 ROS 상대 노드로 전달하지 않습니다. 좌표 노드 산출물 연결이 필요합니다.')
             if path['path_sha256']!=body['path_sha256']:raise DomainError('HASH_MISMATCH','확인한 경로 해시와 다릅니다.')

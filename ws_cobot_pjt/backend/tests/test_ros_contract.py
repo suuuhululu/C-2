@@ -10,18 +10,26 @@ from c2_interfaces.action import ExecuteProcess, GeneratePath
 from c2_interfaces.msg import ProcessEvent, ProcessState
 from c2_interfaces.srv import StopProcess
 
-from app.ros_bridge import fill_message, ros_message_values, ros_time_from_iso
+from app.ros_bridge import check_installed_contract, fill_message, ros_message_values, ros_time_from_iso
+
+
+def test_installed_v1_types_are_rejected_before_gateway_start():
+    check_installed_contract((GeneratePath.Goal, ExecuteProcess.Goal, StopProcess.Request, ProcessState, ProcessEvent))
+    class OldGoal:
+        SCHEMA_VERSION = 1
+    with pytest.raises(RuntimeError, match='v2'):
+        check_installed_contract((OldGoal,))
 
 
 def test_generate_and_stop_fields_match_monitor_payloads():
     payload = dict(
-        schema_version=1, request_id='request', source_mode='SIMULATION', asset_id='asset',
+        schema_version=2, request_id='request', source_mode='SIMULATION', asset_id='asset',
         asset_sha256='a' * 64, width_mm=40.0, height_mm=50.0, offset_u_mm=0.0,
         offset_v_mm=60.0, rotation_deg=0.0, conversion_preset='simulation_centerline',
         tool_id='test-tool', profile_snapshot_id='profile', profile_sha256='b' * 64,
     )
     assert ros_message_values(fill_message(GeneratePath.Goal(), payload)) == payload
-    stop = dict(schema_version=1, request_id='stop', run_id='run', reason='운영자 정지 요청')
+    stop = dict(schema_version=2, request_id='stop', run_id='run', reason='운영자 정지 요청')
     assert ros_message_values(fill_message(StopProcess.Request(), stop)) == stop
     with pytest.raises(ValueError, match='필드 불일치'):
         fill_message(GeneratePath.Goal(), {'unagreed_field': True})
@@ -29,7 +37,7 @@ def test_generate_and_stop_fields_match_monitor_payloads():
 
 def test_execution_confirmation_time_converts_without_unit_or_timezone_loss():
     payload = dict(
-        schema_version=1, request_id='request', run_id='run', source_mode='SIMULATION',
+        schema_version=2, request_id='request', run_id='run', source_mode='SIMULATION',
         path_id='path', path_version=1, path_sha256='c' * 64,
         operator_confirmed_fixture=True, operator_id='local-operator',
         confirmed_at='2026-09-19T14:00:00.123456789+09:00',

@@ -1,5 +1,7 @@
 # 팀 ROS 개발 디렉토리
 
+9/19 현재 c2_process는 [고정 드릴 6개 모듈](../../docs/SYSTEM_STRUCTURE.md)을 목표로 한다. 집기·그리퍼 제어 모듈은 만들지 않고 cleaning은 담당 브랜치 보관 대상으로 둔다. 아래 실제 파일과 목표 파일을 구분한다.
+
 `c2_interfaces`·`c2_path`·`c2_process`의 개발 폴더를 합의한 [목표 구조](../../docs/SYSTEM_STRUCTURE.md)에 맞춰 준비했다. Git은 빈 디렉토리를 기록하지 않으므로 아직 소스가 없는 하위 폴더는 `.gitkeep`으로 보존한다. 실제 구현 파일이 들어오면 해당 `.gitkeep`을 제거할 수 있다.
 
 **2026-09-19 확인:** `c2_interfaces`의 공통 타입 5개·패키지 빌드 설정을 구현하고 Jazzy에서 확인했다. `c2_process`에는 `robot_adapter.py`와 시험 소스가 있다. `c2_path`·`c2_process`의 노드·패키지 빌드 설정과 전체 공정 연동은 미구현이다. 기존 `clay_carving`·`clay_hmi`·전용 실행 문서는 사용자 요청으로 로컬 보관 후 제거했다. [보관·복구 기록](../../docs/LEGACY_CLAY_ARCHIVE.md), [시스템 아키텍처](../../docs/architecture/README.md).

@@ -1,7 +1,7 @@
 # /c2/process_events: reliable / volatile / keep-last 100.
 # event_id로 중복 제거. Topic 자체는 영구 저장소가 아니며 저널·DB에 기록한다.
-uint16 SCHEMA_VERSION=1
-uint16 schema_version 1
+uint16 SCHEMA_VERSION=2
+uint16 schema_version 2
 string source_mode
 string event_id
 string source_epoch

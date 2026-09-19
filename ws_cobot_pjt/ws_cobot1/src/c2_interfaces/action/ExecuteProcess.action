@@ -1,7 +1,8 @@
 # /c2/execute_process: 미리보기로 확인한 동일 경로 ID·버전·해시를 실행 요청.
 # 수락, 실제 공정 완료, 검사 합격은 별도. 같은 request_id는 중복 실행 금지.
-uint16 SCHEMA_VERSION=1
-uint16 schema_version 1
+# v2 고정 드릴: 집기·청소·반납·그리퍼 열기 금지. 기존 v1 요청과 혼용하지 않는다.
+uint16 SCHEMA_VERSION=2
+uint16 schema_version 2
 string request_id
 string run_id
 string source_mode
@@ -25,7 +26,8 @@ string last_completed_segment_id
 string log_id
 ---
 string run_id
-# PRECHECK, PICK_TOOL, APPROACH, ENGRAVE, CLEAN_TOOL, RETRACT, PLACE_TOOL, FINISH
+# PRECHECK, TOOL_CHECK, APPROACH, ENGRAVE, RETRACT, FINISH
+# TOOL_CHECK: 기존 보정의 1점 확인. 재보정 필요 시 중단하고 새 경로를 준비한다.
 string phase
 # 완료를 확인한 CUT 길이 / 전체 CUT 길이, 0..1. 공정 성공·실물 검사와 별개.
 float64 engraving_progress

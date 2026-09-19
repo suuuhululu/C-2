@@ -1,5 +1,7 @@
 # 외부 패키지·설치물 기록
 
+2026-09-19 후속: 팀 앱은 React·Vite·FastAPI·SQLite를 사용하며 잠금 파일은 frontend/package-lock.json·backend/requirements.lock.txt에 있다. 공통 타입 의존성은 c2_interfaces/package.xml의 Jazzy·rosidl·geometry_msgs·builtin_interfaces 등으로 관리한다. 이번 고정 드릴 변경은 외부 드라이버·제어기 설치나 버전을 변경하지 않는다. 아래 9/16~17 표는 당시 보고다. [현재 구현](../ws_cobot_pjt/docs/HMI_MONITOR_IMPLEMENTATION.md).
+
 2026-09-17 기록 정리. 설치·동작 보고는 아래에 명시한 9/16 사용자·팀원 보고를 기준으로 하며 이번에 장비 시험을 추가 수행하지 않았다. 외부 실행환경은 실행 PC에 설치하고 C-2에는 출처·버전·재현 방법을 기록한다. 같은 폴더 이름이나 같은 날짜에 받은 소스가 같은 버전을 보장하지 않으므로 정확한 커밋을 확인한다.
 
 | 대상 | 위치 | 확인 상태 |

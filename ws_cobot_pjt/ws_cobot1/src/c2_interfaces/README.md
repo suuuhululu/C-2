@@ -1,6 +1,8 @@
-# c2_interfaces · 공통 ROS 2 통신 정의 v1
+# c2_interfaces · 공통 ROS 2 통신 정의 v2
 
-2026-09-19. [인터페이스 권장안 v1](../../../docs/INTERFACE_RECOMMENDATION.md)의 공통 타입을 구현했다. 실행 노드 없이 세 노드가 공유하는 Python·C/C++ 타입을 생성하는 `ament_cmake` 패키지다. Jazzy 빌드·직렬화 시험을 완료했으며, 실제 상대 노드 통합·로봇 동작은 별도 구현·검증 대상이다. [검증 기록](../../../docs/validation/2026-09-19-c2-interfaces.md).
+현재 v2는 고정 드릴 전용이다. 통신 이름·필드 배치는 v1과 같지만 집기·반납·청소를 없애고 TOOL_CHECK를 추가했다. [v1→v2 전환](../../../docs/C2_FIXED_DRILL_20260919.md)을 따라 모든 소비자를 함께 갱신한다. 아래 최초 타입 시험 기록은 v1 시점이며 이번 검증은 [고정 드릴 검증 기록](../../../docs/validation/2026-09-19-fixed-drill.md)을 따른다.
+
+2026-09-19. [인터페이스 권장안 v2](../../../docs/INTERFACE_RECOMMENDATION.md)의 공통 타입을 구현했다. 실행 노드 없이 세 노드가 공유하는 Python·C/C++ 타입을 생성하는 `ament_cmake` 패키지다. Jazzy 빌드·직렬화 시험을 완료했으며, 실제 상대 노드 통합·로봇 동작은 별도 구현·검증 대상이다. [검증 기록](../../../docs/validation/2026-09-19-c2-interfaces.md).
 
 | 디렉토리 | 파일 | 연결 |
 | --- | --- | --- |
@@ -28,7 +30,7 @@ c2_interfaces/
 
 ## 받기·빌드·타입 확인
 
-main 병합 전에는 `codex/c2-interfaces-v1` 브랜치를 받고, 병합 후에는 최신 main을 사용한다. 자신의 미커밋 작업을 보존한 상태에서 팀 Git 절차에 따라 가져온다. 다른 ROS 패키지에 타입 파일을 복사하지 않는다.
+main 병합 전에는 `codex/fixed-drill-contract` 브랜치를 받고, 병합 후에는 최신 main을 사용한다. 자신의 미커밋 작업을 보존한 상태에서 팀 Git 절차에 따라 가져온다. 다른 ROS 패키지에 타입 파일을 복사하지 않는다.
 
 ROS 2 Jazzy 개발 환경에서 저장소 루트 기준:
 
@@ -62,7 +64,7 @@ from c2_interfaces.msg import ProcessState, ProcessEvent
 
 # 전송·모션 없이 타입만 생성하는 예시
 goal = GeneratePath.Goal()
-goal.schema_version = 1
+goal.schema_version = 2
 goal.source_mode = 'SIMULATION'
 # 실제 전송 전 ID·해시·크기·도구·프로파일 등 필수 필드를 채운다.
 ```
@@ -71,7 +73,7 @@ goal.source_mode = 'SIMULATION'
 
 ## 이번에 구체화한 규칙
 
-- `schema_version=1`, 패키지 버전은 `0.1.0`이다. 서로 다른 용도다. ROS는 schema_version·UUID·해시·진행률 범위를 자동 검사하지 않으므로 송수신 노드가 명세대로 검사해야 한다.
+- `schema_version=2`, 패키지 버전은 `0.2.0`이다. 서로 다른 용도다. ROS는 schema_version·UUID·해시·진행률 범위를 자동 검사하지 않으므로 송수신 노드가 명세대로 검사해야 한다.
 - `.action`의 세 구역은 **Goal / Result / Feedback**, `.srv`는 **Request / Response** 순서다.
 - 시각은 `builtin_interfaces/Time`, UTC Unix epoch 기준이다. `{sec: 0, nanosec: 0}`은 미확인이며 실행 고정 확인 시각으로 허용하지 않는다. HMI JSON·DB는 시간대가 포함된 RFC3339 문자열을 쓰고 `ros_bridge.py`에서 변환한다. 경과 시간은 별도의 `float64` 초다.
 - 도안 값은 mm·deg, 길이는 m, 관절은 rad다. `ProcessState.tcp`는 `geometry_msgs/PoseStamped`로 제어기 TCP의 측정값·프레임·실제 측정 시각을 담는다. 경로 waypoint는 도구 끝 기준이며, `GripperDA_v1` 그리퍼 끝점으로의 변환은 공정의 `robot_adapter.py` 책임이다.
@@ -93,4 +95,4 @@ colcon test-result --verbose
 
 생성 타입 직렬화·역직렬화, 기본값, 측정 시각·프레임 보존을 시험한다. 노드·네트워크·로봇은 실행하지 않는다. 서버 변환 시험은 [서버 README](../../../backend/README.md#ros-게이트웨이-연결-상태)를 따른다.
 
-타입을 수정할 때는 명세와 송수신 코드·시험을 같은 변경으로 검토한다. 모든 담당자가 같은 커밋의 `c2_interfaces`를 다시 빌드하고 노드를 재시작한 뒤 연결한다. `schema_version=1`이 같아도 다른 ROS 타입 정의를 혼용할 수 없다.
+타입을 수정할 때는 명세와 송수신 코드·시험을 같은 변경으로 검토한다. 모든 담당자가 같은 커밋의 `c2_interfaces`를 다시 빌드하고 노드를 재시작한 뒤 연결한다. `schema_version=2`이 같아도 다른 ROS 타입 정의를 혼용할 수 없다.

@@ -6,6 +6,9 @@ from uuid import UUID, uuid4
 from pydantic import BaseModel, ConfigDict, Field
 
 
+SCHEMA_VERSION = 2
+
+
 def now():
     return datetime.now(timezone.utc).isoformat()
 
@@ -19,7 +22,7 @@ class Input(BaseModel):
 
 
 class GenerateInput(Input):
-    schema_version: Literal[1] = 1
+    schema_version: Literal[2] = 2
     request_id: UUID
     source_mode: Literal['SIMULATION'] = 'SIMULATION'
     asset_id: UUID
@@ -30,13 +33,13 @@ class GenerateInput(Input):
     offset_v_mm: float = Field(ge=-500, le=500)
     rotation_deg: float = Field(ge=-180, le=180)
     conversion_preset: Literal['simulation_centerline'] = 'simulation_centerline'
-    tool_id: Literal['engraving_knife'] = 'engraving_knife'
+    tool_id: Literal['engraving_drill'] = 'engraving_drill'
     profile_snapshot_id: UUID
     profile_sha256: str = Field(pattern=r'^[0-9a-f]{64}$')
 
 
 class RunInput(Input):
-    schema_version: Literal[1] = 1
+    schema_version: Literal[2] = 2
     request_id: UUID
     source_mode: Literal['SIMULATION'] = 'SIMULATION'
     path_id: UUID
@@ -46,7 +49,7 @@ class RunInput(Input):
 
 
 class StopInput(Input):
-    schema_version: Literal[1] = 1
+    schema_version: Literal[2] = 2
     request_id: UUID
     reason: str = Field(default='운영자 정지 요청', min_length=1, max_length=300)
 
@@ -58,4 +61,4 @@ class InspectionInput(Input):
 
 
 class ScenarioInput(Input):
-    scenario: Literal['normal', 'generation_failure', 'grip_failure', 'cut_quality_failure', 'stop_unknown', 'communication_loss']
+    scenario: Literal['normal', 'generation_failure', 'grip_failure', 'calibration_failure', 'cut_quality_failure', 'stop_unknown', 'communication_loss']

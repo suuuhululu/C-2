@@ -1,5 +1,7 @@
 # 새김 시스템 모니터 서버
 
+2026-09-19 고정 드릴 반영: 통신 schema_version=2, engraving_drill/c2_base, 준비→보정 확인→접근·조각·이탈→완료를 모의 실행한다. 그리퍼 열기·집기·청소·반납은 없다. SQLite 테이블 버전은 1을 유지하며 과거 기록은 보존하고 이전 계약 경로의 새 실행은 거절한다. [변경·배포](../docs/C2_FIXED_DRILL_20260919.md).
+
 2026-09-18. 운영자 HMI 전용 FastAPI + SQLite + 모의 게이트웨이. 고객 주문·대기열은 사용하지 않는다. 상세 DB·통신·검증 범위는 [모니터 구현 안내](../docs/HMI_MONITOR_IMPLEMENTATION.md)를 따른다.
 
 ## 실행
@@ -57,7 +59,7 @@ env -u PYTHONPATH PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 \
 
 `app/ros_bridge.py`에 Jazzy `monitor_gateway_node` 클라이언트를 구현했다. `/c2/generate_path`, `/c2/execute_process`, `/c2/stop_process`와 상태·이벤트 두 Topic을 사용한다. 임의 `.msg/.action/.srv`를 새로 정의하지 않는다.
 
-2026-09-19 [c2_interfaces v1](../ws_cobot1/src/c2_interfaces/README.md)의 실제 타입·빌드 설정을 추가했다. 해당 안내대로 빌드·source하면 import할 수 있다. 게이트웨이는 HTTP의 RFC3339 확인 시각을 ROS Time으로 변환하고, 수신 시각은 UTC 문자열로 되돌린다. 신호 품질이 VALID가 아닌 수치 데이터는 null로 전달한다. 기존 DB 스키마와 MOCK 실행 방식은 유지한다.
+2026-09-19 [c2_interfaces v2](../ws_cobot1/src/c2_interfaces/README.md)의 실제 타입·빌드 설정을 추가했다. 해당 안내대로 빌드·source하면 import할 수 있다. 게이트웨이는 HTTP의 RFC3339 확인 시각을 ROS Time으로 변환하고, 수신 시각은 UTC 문자열로 되돌린다. 신호 품질이 VALID가 아닌 수치 데이터는 null로 전달한다. 기존 DB 스키마와 MOCK 실행 방식은 유지한다.
 
 생성 타입 경계 시험은 빌드 후 저장소 루트에서 실행한다. ROS 환경이 없는 일반 모의 시험에서는 이 시험 파일만 skip된다.
 

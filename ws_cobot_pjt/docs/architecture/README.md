@@ -1,5 +1,7 @@
 # C-2 시스템 아키텍처 · 팀 협업용 세부 설계도
 
+> **보관 도면 · 9/18 기준:** 아래 draw.io와 overview.png에는 이전 집기·청소·반납 구조가 남아 있다. 현재 설계도로 사용하지 않는다. 9/19 고정 드릴 6개 모듈·통신 v2·열기 금지는 [현재 구조](../SYSTEM_STRUCTURE.md)와 [운영 결정](../C2_FIXED_DRILL_20260919.md)이 원본이다. 이번 점검에서 도형·PNG 자체를 재작성하거나 최신 검증본으로 표시하지 않았다.
+
 **편집 원본: [C2_SYSTEM_ARCHITECTURE.drawio](C2_SYSTEM_ARCHITECTURE.drawio)** · [전체 구성 미리보기](overview.png)
 
 [diagrams.net](https://app.diagrams.net/) 또는 draw.io 데스크톱에서 원본을 열면 아래 8개 페이지를 편집할 수 있다. 모든 박스·표·연결선·텍스트는 편집 가능한 도형이며 이미지 한 장으로 합친 파일이 아니다. 하단 페이지 탭에서 전체 구조 → 통신 → 내부 모듈 → 실행 흐름 순으로 확인한다.

@@ -9,6 +9,8 @@ import math
 import re
 import threading
 
+from .monitor_contract import SCHEMA_VERSION
+
 
 def json_values(value):
     """비유한 측정값은 JSON null."""
@@ -91,6 +93,12 @@ def fill_message(message, values):
     return message
 
 
+def check_installed_contract(message_types):
+    """이전 집기·반납 타입 설치본으로 고정 드릴 게이트웨이를 기동하지 않는다."""
+    if any(getattr(kind, 'SCHEMA_VERSION', None) != SCHEMA_VERSION for kind in message_types):
+        raise RuntimeError('c2_interfaces v2를 같은 커밋으로 빌드·source해야 합니다.')
+
+
 class RosBridge:
     transport='ROS2'
 
@@ -111,6 +119,7 @@ class RosBridge:
             from c2_interfaces.msg import ProcessState, ProcessEvent
         except ImportError as exc:
             raise RuntimeError('ROS 모드는 Jazzy와 팀 c2_interfaces 빌드·source가 필요합니다. 임의 메시지로 대체하지 않습니다.') from exc
+        check_installed_contract((GeneratePath.Goal, ExecuteProcess.Goal, StopProcess.Request, ProcessState, ProcessEvent))
         self.rclpy=rclpy;self.loop=asyncio.get_running_loop();self.convert=ros_message_values
         self.types=(GeneratePath,ExecuteProcess,StopProcess)
         self.context=Context();rclpy.init(context=self.context)
@@ -135,6 +144,8 @@ class RosBridge:
         self.loop.call_soon_threadsafe(enqueue)
 
     async def action(self,client,msg,values,feedback=None):
+        if values.get('schema_version') != SCHEMA_VERSION:
+            raise ValueError('고정 드릴 v2 요청만 지원합니다.')
         if values.get('source_mode')!='SIMULATION':raise ValueError('이 게이트웨이 초안은 SIMULATION 전용입니다.')
         if not client.server_is_ready():raise ConnectionError('ROS Action 서버가 준비되지 않았습니다.')
         goal=fill_message(msg.Goal(),values)
@@ -181,6 +192,8 @@ class RosBridge:
         return await self.action(self.execute_client,self.types[1],goal)
 
     async def stop(self,body):
+        if body.get('schema_version') != SCHEMA_VERSION:
+            raise ValueError('고정 드릴 v2 정지 요청만 지원합니다.')
         if not self.stop_client.service_is_ready():raise ConnectionError('ROS 정지 Service 연결 불가')
         request=fill_message(self.types[2].Request(),body)
         response=await await_ros(self.stop_client.call_async(request),1)

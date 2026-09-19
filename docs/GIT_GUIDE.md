@@ -98,7 +98,7 @@ GitHub 관리자는 규칙 자체를 수정할 권한이 있다. 우회 대상�
 
 - 작성자 외 Write 권한을 가진 동료 최소 1명이 검토한다. 본인 PR을 본인이 승인하는 방식으로 대체하지 않는다.
 - [PR 양식](../.github/PULL_REQUEST_TEMPLATE.md)에 변경 이유·실행한 검사·미검증 범위·실기 증거를 적는다.
-- `repository-checks`는 문서 링크·텍스트·Python 구문·hook 동작·Issue 자동화 로컬 시험을 수행한다. C-2에는 팀 ROS 패키지가 아직 없으므로 이 검사를 ROS 빌드나 실기 성공으로 보고하지 않는다.
+- `repository-checks`는 문서 링크·텍스트·Python 구문·hook 동작·Issue 자동화 로컬 시험을 수행한다. c2_interfaces는 Jazzy 빌드 가능한 패키지지만 이 CI는 ROS 빌드를 실행하지 않으므로 ROS 빌드나 실기 성공으로 보고하지 않는다.
 - GitHub에서 `repository-checks` 실행 성공을 확인했다. 필수 검사 적용과 최신 PR 실행 결과는 [준비 상태](REVIEW_STATUS.md) 및 해당 PR의 Checks에서 확인한다.
 - 코드 검토 통과와 실기 완료를 다른 Issue로 관리한다. 병합 후 자동으로 실기 완료 처리하지 않는다.
 
