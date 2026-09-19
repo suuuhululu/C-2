@@ -1,8 +1,62 @@
-# Backend
+# 새김 시스템 모니터 서버
 
-팀 서버·웹 API 코드는 `app/`에 둔다. FastAPI 또는 Flask는 팀이 선택한 뒤 의존성·버전과 실행 방법을 이 문서에 기록한다. 현재 실행 가능한 서버 코드는 없다.
+2026-09-18. 운영자 HMI 전용 FastAPI + SQLite + 모의 게이트웨이. 고객 주문·대기열은 사용하지 않는다. 상세 DB·통신·검증 범위는 [모니터 구현 안내](../docs/HMI_MONITOR_IMPLEMENTATION.md)를 따른다.
 
-- 공유: app 소스, 의존성·버전 파일, 테스트, 값이 비어 있는 설정 예제.
-- 로컬 전용: `.env`, 가상환경, 실제 장비 주소·인증 정보.
-- 화면·ROS와의 입출력은 [프로젝트 계획](../docs/PROJECT_PLAN.md)에 기록했다. 작업 관리·상태 수집·경로 처리의 배치는 [시스템 아키텍처](../docs/SYSTEM_ARCHITECTURE.md)를 따른다. 구현 인터페이스는 아직 확정 전이다.
-- 실행할 서버 주소·포트·로봇 제어 연결은 현재 미정이다.
+## 실행
+
+Python 3.12, Node.js 22 이상이 필요하다. 새 PC는 아래와 [화면 설치](../frontend/README.md)를 먼저 수행한다.
+
+```bash
+cd ws_cobot_pjt/backend
+python3 -m venv .venv
+.venv/bin/python -m pip install -r requirements.lock.txt
+```
+
+저장소 루트에서 화면과 서버를 함께 실행한다.
+
+```bash
+python3 ws_cobot_pjt/run_monitor.py
+```
+
+- 화면: http://127.0.0.1:5174/operator
+- API·API 문서: http://127.0.0.1:8010/docs
+- SIMULATION / MOCK 전용. 실제 로봇·이전 서버는 기동하지 않는다.
+- 접근 키는 없다. 루프백 주소의 한 운영자용 모의 개발 화면이다. 외부 공개·다중 사용자 인증은 구현 범위 밖이다.
+- 종료: 실행 터미널에서 Ctrl+C. 데이터는 유지된다.
+
+서버만 실행하려면:
+
+```bash
+cd ws_cobot_pjt/backend
+C2_MONITOR_MODE=SIMULATION C2_MONITOR_TRANSPORT=mock \
+  .venv/bin/python -m uvicorn app.monitor:app --host 127.0.0.1 --port 8010
+```
+
+화면을 빌드해 두면 같은 서버의 http://127.0.0.1:8010/operator 에서도 사용 가능하다. `--workers`는 1만 지원하며 같은 DB의 중복 서버는 파일 잠금으로 거절한다.
+
+## DB와 환경
+
+- 새 DB: `monitor_data/monitor.sqlite3`. 최초 기동 때 스키마 v1과 모의 설정 스냅샷을 만든다.
+- 관리 파일: `monitor_data/assets/<UUID>.bin`. 원본·SVG·경로·진단·미리보기는 UUID 및 SHA-256으로 참조한다.
+- 이전 `data/saegim.sqlite3`는 열거나 마이그레이션하지 않는다.
+- `C2_MONITOR_DATA`로 새 저장 디렉토리를 지정할 수 있다. 기본 `monitor_data`는 Git 제외다.
+- `C2_MONITOR_MODE=REAL`은 기동 거절. `C2_MONITOR_TRANSPORT=ros`는 아래 연동 조건이 먼저 필요하다. 통합 실행기는 항상 MOCK을 선택한다.
+- 백업은 서버를 정상 종료한 다음 `monitor_data` 전체를 복사한다. 자동 삭제·보관 만료는 구현하지 않았다.
+
+## 시험
+
+```bash
+cd ws_cobot_pjt/backend
+env -u PYTHONPATH PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 \
+  .venv/bin/python -m pytest -q tests/test_monitor.py
+```
+
+임시 DB를 사용한다. ROS나 로봇에 연결하지 않는다. 신규 모니터에는 이전 Potrace·OpenCV 변환기를 사용하지 않는다. 기존 의존성 잠금은 이전 초안과의 호환성을 위해 보존했다.
+
+## ROS 게이트웨이 연결 상태
+
+`app/ros_bridge.py`에 Jazzy `monitor_gateway_node` 클라이언트를 구현했다. `/c2/generate_path`, `/c2/execute_process`, `/c2/stop_process`와 상태·이벤트 두 Topic을 사용한다. 임의 `.msg/.action/.srv`를 새로 정의하지 않는다.
+
+현재 체크아웃의 `c2_interfaces`에는 실제 생성 타입이 없다. 공통 패키지 빌드, 좌표 담당자의 ID→파일 및 미리보기 계약, `artifact_loader` 구현을 마친 뒤 연결 시험해야 한다. 이 상태를 ROS 통합 완료로 취급하지 않는다. MOCK 경로 파일은 ROS 상대 노드에 전달하지 않도록 차단했다.
+
+이전 고객 웹앱·서버 초안은 개발 PC에 별도로 보존했다. 이 게시본에는 새 모니터를 실행하는 코드만 포함한다.

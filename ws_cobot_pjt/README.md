@@ -1,8 +1,18 @@
 # ws_cobot_pjt · 메인 프로젝트
 
+## 현재 로컬 모니터 구현 · 2026-09-18
+
+사용자 승인에 따라 **새 모니터 HMI·FastAPI·SQLite·모의 게이트웨이**를 구현했다. 저장소 루트에서 `python3 ws_cobot_pjt/run_monitor.py`로 실행하고 http://127.0.0.1:5174/operator 를 연다. 새 DB는 `backend/monitor_data/monitor.sqlite3`다. [구현·DB·계약 인계](docs/HMI_MONITOR_IMPLEMENTATION.md), [서버](backend/README.md), [화면](frontend/README.md).
+
+현재 기본 화면은 운영자 전용이며 고객 웹앱·주문·대기열을 사용하지 않는다. 좌표 담당자 답변의 r34mm 및 GripperDA_v1/칼끝 구분을 반영했다. 나머지 높이·유효 구간은 모의 값이다. ROS 연결 코드는 작성했으나 공통 타입·파일 계약 연동과 실기 검증은 남아 있다. 아래 이전 진행 기록의 치수·재료·이관 상태와 구분한다.
+
+## 이전 진행 기록
+
 목표는 고객 도안을 M0609와 헤라로 원기둥 표면에 음각하는 공정을 도안 입력부터 결과 확인까지 연결하는 것이다. 현재 목표 형상은 지름 70mm·높이 200mm이며 지점토·비누베이스를 재료 후보로 둔다. 팀 담당 배정과 실기 합격 기준은 추가 확정한다.
 
 2026-09-18 축소 설계는 **고객용 웹앱 없이 시스템 모니터 → 좌표·경로 생성 → 공정 제어**의 세 노드로 구성한다. 작업대·대상의 고정 좌표와 고정 그리퍼·교체 도구 조건을 반영했다. [팀 인터페이스 안내](docs/INTERFACE_GUIDE.md), [목표 디렉토리](docs/SYSTEM_STRUCTURE.md), [상세 통신 계약](docs/INTERFACE_RECOMMENDATION.md)을 개발 기준 초안으로 사용한다. [draw.io 시스템 아키텍처](docs/architecture/README.md)에 전체 구조·통신 계약·구현 상태를 정리했다. 기존 Clay 코드는 사용자 요청으로 로컬 보관 후 저장소에서 제거했다. [보관·복구 기록](docs/LEGACY_CLAY_ARCHIVE.md).
+
+이전 고객 웹앱·HMI 초안은 개발 PC에 별도로 보존했다. GitHub의 이번 모니터 초안에는 고객용 흐름을 포함하지 않는다. 현재 구현과 ROS 통합 대기 범위는 위 모니터 구현 안내를 따른다.
 
 2026-09-17 기준 C-2에는 서비스·시스템 설계, 알고리즘 검증 결과와 시험 계획을 문서화했다. 알고리즘과 평면 DRL 초안은 개인 작업 폴더에서 수행한 기록이며 이번 문서 반영에 실행 코드를 가져오지 않았다. C-2의 팀 공정·서버·화면 구현과 원기둥 실기는 아직 완료되지 않았다. 외부 환경의 가상 로봇 이동 보고도 메인 공정 완료와 구분한다. [현재 진행 현황](../docs/REVIEW_STATUS.md).
 
@@ -13,8 +23,8 @@
 - `ws_cobot1/src/`: 팀 공정·ROS 노드·launch 패키지. `c2_interfaces`·`c2_path`·`c2_process`의 [개발 폴더·역할 안내](ws_cobot1/src/README.md)를 따른다. `c2_process`의 로봇 어댑터·시험 소스는 존재하며, 빌드 설정·메시지·실행 노드는 아직 구현할 대상이다.
 - `ws_cobot1/doc/`: 실제 ROS 실행 순서·필요 설정·종료·재현 절차.
 - `ws_dsr/src/`: 로컬 외부 로봇·그리퍼 실행환경. 폴더 전체는 Git 제외이며 `ws_cobot1`과 같은 패키지를 중복 복사하지 않는다.
-- `backend/app/`: 웹 API·서버 코드. FastAPI·Flask 중 어느 것도 아직 선택·설치하지 않았다.
-- `frontend/src/`, `frontend/public/`: 화면 코드·정적 파일. 웹 프레임워크는 미정이다. ROS 기반 PyQt 화면을 선택하면 해당 ROS 패키지는 `ws_cobot1/src/`에 둔다.
+- `backend/app/`: 새 모니터의 FastAPI API·DB·모의 상대·ROS 게이트웨이 연결 코드. 기본 실행은 MOCK이며 ROS 통합은 대기 중이다. [서버 실행 방법](backend/README.md).
+- `frontend/src/monitor/`, `frontend/public/`: React·TypeScript 운영자 HMI와 모의 샘플. 기존 PyQt HMI는 저장소 밖에 보관했으며 [Clay 보관·복구 기록](docs/LEGACY_CLAY_ARCHIVE.md)에서 확인한다. [화면 실행 방법](frontend/README.md).
 - `docker/`: 팀에서 합의한 Dockerfile·Compose·이미지 버전 기록.
 - `DartPlatform/`: 로컬 설치 위치. 설치 프로그램·로그는 Git에서 제외하고 안내만 공유한다.
 - `docs/`: 기획, 구성도, 인터페이스 합의, 통합·실기 시험 결과.
