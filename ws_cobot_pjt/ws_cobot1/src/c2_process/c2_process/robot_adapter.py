@@ -67,9 +67,13 @@ def matrix_to_zyz_deg(M):
     if abs(M[2][2]) < 1.0 - 1e-9:
         A = math.degrees(math.atan2(M[1][2], M[0][2]))
         C = math.degrees(math.atan2(M[2][1], -M[2][0]))
-    else:                                              # B ≈ 0 또는 180: A 와 C 가 같은 축 → C = 0 으로 둔다
-        A = math.degrees(math.atan2(M[1][0], M[0][0]))
-        C = 0.0
+    elif M[2][2] > 0:                                  # B ≈ 0: R = Rz(A+C) → A = 0, C = A+C
+        A = 0.0
+        C = math.degrees(math.atan2(M[1][0], M[0][0]))
+    else:                                              # B ≈ 180: R = Ry(180)·Rz(C−A) = [[-cos, sin, 0],[sin, cos, 0],[0,0,-1]] → A = 0, C = C−A
+        # 9/19 실기 버그: 여기서 A = atan2(M10, M00), C = 0 을 쓰면 툴 Y 가 180° 뒤집힌 자세가 나온다 (그리퍼 수직일 때 드릴이 반대로 향함)
+        A = 0.0
+        C = math.degrees(math.atan2(M[1][0], M[1][1]))
     return A, B, C
 
 
