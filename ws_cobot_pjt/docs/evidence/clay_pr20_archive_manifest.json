@@ -1,0 +1,191 @@
+{
+  "source_commit": "db54a28cb995befd33bcca74e11a12a2f00837a7",
+  "file_count": 37,
+  "files": [
+    {
+      "path": "ws_cobot_pjt/ws_cobot1/doc/clay_run.md",
+      "bytes": 6749,
+      "sha256": "033b75936423da1a1c1a6bd73bde3a6f80991734deccef5e3a46b7194cc6067a"
+    },
+    {
+      "path": "ws_cobot_pjt/ws_cobot1/src/clay_carving/LICENSE",
+      "bytes": 1023,
+      "sha256": "e4da13b8ee8adf3c184f3cfaa765c1b002efd9e1b7a200fe7c507a30391f8fb9"
+    },
+    {
+      "path": "ws_cobot_pjt/ws_cobot1/src/clay_carving/clay_carving/__init__.py",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "ws_cobot_pjt/ws_cobot1/src/clay_carving/clay_carving/clay_common.py",
+      "bytes": 31208,
+      "sha256": "e1dfdcd3c5558f624462fb507b5dea9e33b67af40aa7336fb1f1d2c5bb2d5117"
+    },
+    {
+      "path": "ws_cobot_pjt/ws_cobot1/src/clay_carving/clay_carving/clay_heart.py",
+      "bytes": 17152,
+      "sha256": "19aed30dcceb0eb07d1cdc164d445451e895fd83adc1f63629308c135eafd5c0"
+    },
+    {
+      "path": "ws_cobot_pjt/ws_cobot1/src/clay_carving/clay_carving/clay_scan.py",
+      "bytes": 15595,
+      "sha256": "44811e6425041ae1cb8b8ff94d2fc248321247c386c44d76135f0491f6ceb490"
+    },
+    {
+      "path": "ws_cobot_pjt/ws_cobot1/src/clay_carving/clay_carving/clay_scan2.py",
+      "bytes": 34856,
+      "sha256": "f70a40966d68d5effb4056b8491c07c7c598602d1664ce9d1b4f6f327d6f54b5"
+    },
+    {
+      "path": "ws_cobot_pjt/ws_cobot1/src/clay_carving/clay_carving/clay_start.py",
+      "bytes": 1288,
+      "sha256": "e201773a5f9b674d3f2ea604e8c59de7017d124d1ba9cda3404404b1e2302fbc"
+    },
+    {
+      "path": "ws_cobot_pjt/ws_cobot1/src/clay_carving/clay_carving/designs/flower.svg",
+      "bytes": 2183,
+      "sha256": "d3b60ffc25a41834477720b7d9e00f2bc53e64fb01f0eb6bf6a146e4e41fd9cc"
+    },
+    {
+      "path": "ws_cobot_pjt/ws_cobot1/src/clay_carving/clay_carving/force_probe.py",
+      "bytes": 7102,
+      "sha256": "a1c5030a6dd88fb42be097d7b419effc73e3482d5758b6307c21182da06d5908"
+    },
+    {
+      "path": "ws_cobot_pjt/ws_cobot1/src/clay_carving/clay_carving/gripper_ui.py",
+      "bytes": 1302,
+      "sha256": "0c06e1cce15be5dbc0ee0108cad225d294721064bac4370bcdf29135118e71b2"
+    },
+    {
+      "path": "ws_cobot_pjt/ws_cobot1/src/clay_carving/clay_carving/svg_design.py",
+      "bytes": 8903,
+      "sha256": "6c7694afba4d22f6a44661a670cd96925cf3844aef6c817c092785c6eebf1405"
+    },
+    {
+      "path": "ws_cobot_pjt/ws_cobot1/src/clay_carving/package.xml",
+      "bytes": 900,
+      "sha256": "95c9c14d80f89cb1314889f1aac5ae4678c338bed55e69023cb2c05026a3a69e"
+    },
+    {
+      "path": "ws_cobot_pjt/ws_cobot1/src/clay_carving/resource/clay_carving",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "ws_cobot_pjt/ws_cobot1/src/clay_carving/scripts/README.md",
+      "bytes": 1430,
+      "sha256": "b8d5f273b35a6473fae260c43879da151d50c06ad142e94bbb5f5f0ef981925f"
+    },
+    {
+      "path": "ws_cobot_pjt/ws_cobot1/src/clay_carving/scripts/fk.py",
+      "bytes": 2343,
+      "sha256": "3cb31616a3a7e45e76108d431d84ecfa1cf31af31b6540ebb96906569f0c7f69"
+    },
+    {
+      "path": "ws_cobot_pjt/ws_cobot1/src/clay_carving/scripts/goto_home2.py",
+      "bytes": 3721,
+      "sha256": "ef7dd641b75f6dd6832685698c3fa60ca9453ba2a1bfcd5977190a843d74d724"
+    },
+    {
+      "path": "ws_cobot_pjt/ws_cobot1/src/clay_carving/scripts/orbit_wave.py",
+      "bytes": 10877,
+      "sha256": "6c83cc808c825dd3da5b429f0cce7769ce3b13d7f7c7c2e13afea9b5a3f48145"
+    },
+    {
+      "path": "ws_cobot_pjt/ws_cobot1/src/clay_carving/scripts/side_heart.py",
+      "bytes": 8603,
+      "sha256": "001543024843840c242263812941ecf55056257b8f7668b2a1810b0fef866599"
+    },
+    {
+      "path": "ws_cobot_pjt/ws_cobot1/src/clay_carving/setup.cfg",
+      "bytes": 93,
+      "sha256": "1d6ed2b2f1fbbd79ab64dcd6435fed504b08fd749a6e02a58fa8e385f92c9a55"
+    },
+    {
+      "path": "ws_cobot_pjt/ws_cobot1/src/clay_carving/setup.py",
+      "bytes": 1449,
+      "sha256": "f3a2635d2e3c96e88d11b09a24dd8ed646e99cbb4b7dd029cca87be5bba4a485"
+    },
+    {
+      "path": "ws_cobot_pjt/ws_cobot1/src/clay_carving/test/test_copyright.py",
+      "bytes": 962,
+      "sha256": "ea71bbbc6247b5c14d176ed09f39ee274d563cc9b2ec355828ea451ceff31757"
+    },
+    {
+      "path": "ws_cobot_pjt/ws_cobot1/src/clay_carving/test/test_flake8.py",
+      "bytes": 884,
+      "sha256": "37a813a0507f0ce51a2d0b57312d2cc078a0307a3ca85580ea801b0d2f9755d2"
+    },
+    {
+      "path": "ws_cobot_pjt/ws_cobot1/src/clay_carving/test/test_pep257.py",
+      "bytes": 803,
+      "sha256": "e8b88d49ee296987b1b40069f81019b5fa09b1aa1bfee9a1faae45bb5cf53eda"
+    },
+    {
+      "path": "ws_cobot_pjt/ws_cobot1/src/clay_hmi/LICENSE",
+      "bytes": 1023,
+      "sha256": "e4da13b8ee8adf3c184f3cfaa765c1b002efd9e1b7a200fe7c507a30391f8fb9"
+    },
+    {
+      "path": "ws_cobot_pjt/ws_cobot1/src/clay_hmi/clay_hmi/__init__.py",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "ws_cobot_pjt/ws_cobot1/src/clay_hmi/clay_hmi/clay_hmi.ui",
+      "bytes": 13690,
+      "sha256": "ad3bff1343843ace69aa40521ebf11471ec8dd6c4dd8cbbe5b00b6b5112f11ba"
+    },
+    {
+      "path": "ws_cobot_pjt/ws_cobot1/src/clay_hmi/clay_hmi/hmi_gui.py",
+      "bytes": 25036,
+      "sha256": "564338c24508748047267556159f184379669fafb653dfa24e53a9c671cb7474"
+    },
+    {
+      "path": "ws_cobot_pjt/ws_cobot1/src/clay_hmi/clay_hmi/hmi_main.py",
+      "bytes": 823,
+      "sha256": "2c70deda030eb67e02b2f533a2b159bfba2feaa07a74eb6915878c8166978838"
+    },
+    {
+      "path": "ws_cobot_pjt/ws_cobot1/src/clay_hmi/clay_hmi/hmi_ros2.py",
+      "bytes": 10088,
+      "sha256": "807dd4a2fc110f1cbb6b6f7c3938c803711949bd02cdf3c6d3413b81b893b31f"
+    },
+    {
+      "path": "ws_cobot_pjt/ws_cobot1/src/clay_hmi/package.xml",
+      "bytes": 856,
+      "sha256": "fd4251a706b45afd3db8b6172e4008fdb0c72e46475f9f5fbe503015a3bf0526"
+    },
+    {
+      "path": "ws_cobot_pjt/ws_cobot1/src/clay_hmi/resource/clay_hmi",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "ws_cobot_pjt/ws_cobot1/src/clay_hmi/setup.cfg",
+      "bytes": 85,
+      "sha256": "1d23041cda11184f18bbd6bbbc5f8dbcfe192e1b95ffd3225696d09c04335c44"
+    },
+    {
+      "path": "ws_cobot_pjt/ws_cobot1/src/clay_hmi/setup.py",
+      "bytes": 852,
+      "sha256": "6d1aca59f080194f36b2a802ac2f4c25ef778062a85a8bfee8f72de9829d16b8"
+    },
+    {
+      "path": "ws_cobot_pjt/ws_cobot1/src/clay_hmi/test/test_copyright.py",
+      "bytes": 962,
+      "sha256": "ea71bbbc6247b5c14d176ed09f39ee274d563cc9b2ec355828ea451ceff31757"
+    },
+    {
+      "path": "ws_cobot_pjt/ws_cobot1/src/clay_hmi/test/test_flake8.py",
+      "bytes": 884,
+      "sha256": "37a813a0507f0ce51a2d0b57312d2cc078a0307a3ca85580ea801b0d2f9755d2"
+    },
+    {
+      "path": "ws_cobot_pjt/ws_cobot1/src/clay_hmi/test/test_pep257.py",
+      "bytes": 803,
+      "sha256": "e8b88d49ee296987b1b40069f81019b5fa09b1aa1bfee9a1faae45bb5cf53eda"
+    }
+  ]
+}
