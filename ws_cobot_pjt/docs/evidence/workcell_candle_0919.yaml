@@ -1,0 +1,35 @@
+# workcell.yaml 후보값 — 2026-09-19 실측 (이시율). 0918 파일을 대체한다 (받침대 20 → 50 mm, 양초 재장착).
+# 기준: 닫힌 그리퍼 손끝 = 제어기 TCP GripperDA_v1 (0, 0, 208). 세운 자세(툴 +Z 아래). frame_id = c2_base (팀장 9/19 확정).
+# 근거: docs/daily/2026-09-19.md, evidence/tool_calibration_check_0919.json, evidence/top_touch_0919.json, bag_calib_0919
+schema_version: 1
+workcell_id: candle_test_0919
+frame_id: c2_base
+verification_status: measured_2026_09_19
+target:
+  shape: cylinder
+  material: paraffin_candle
+  tool_id: engraving_drill
+  axis_direction_base: {x: 0.0, y: 0.0, z: 1.0}
+  axis_point_base_m: {x: 0.4218, y: 0.0001}          # +Y·−Y 면 3점 측정 두 벌을 합쳐 중심 오차 상쇄 (어제 422.4, −2.6 에서 x −0.6, y +2.7)
+  radius_m: 0.034                                    # 자로 잰 지름 68
+  top_z_base_m: 0.2334                               # 손끝 수직 터치 4.9 N (추정 234.4 보다 −1.0)
+  height_m: 0.150
+  bottom_z_base_m: 0.0834                            # 추정 = top − height
+  seam_angle_deg: 0
+  usable_height_band_m: {from_top: 0.020, to_top: 0.065}
+  measured_faces_mm: {plus_y: 31.8, minus_y: -31.2, minus_x: 390.0}   # 실측 표면 좌표 (손끝 기준 환산)
+  tolerance_proposal_m: {axis: 0.003, top: 0.003}    # preconditions 1점 확인용 제안. 실측 근거는 오늘 1회
+stand:
+  height_m: 0.050
+  top_z_base_m: 0.0834
+process_home:                                        # 조각 시작·복귀 자세 (손끝이 축 위 30 mm, 그리퍼 수직, 툴 Y = +Y)
+  fingertip_base_m: {x: 0.4221, y: -0.0026, z: 0.2644}
+  posx_v1_mm_deg: [422.1, -2.6, 264.4, 3.2, -179.5, 3.9]
+tool_engraving_drill:                                # 철사 고정 드릴. 재고정 전까지 불변
+  tip_axis_tool: "-y"
+  tip_projection_m: 0.0998                           # +Y 면 102.5 / −Y 면 97.1 의 평균 (중심 y 오차 상쇄)
+  tip_lateral_x_m: 0.00085                           # +0.2 / +1.5 의 평균
+  set_tool_offset_m: [0.00085, -0.0998, 0.0]
+  tip_projection_tolerance_m: 0.002
+  verify_tol_m: 0.001                                # 매 실행 1점 확인 (9/19 실기 오차 +0.07 mm)
+  rear_protrusion_m: 0.074                           # 드릴 뒷단이 패드 +툴Y 쪽으로 약 74 mm 나옴 (반대로 향하면 이게 먼저 닿음)
