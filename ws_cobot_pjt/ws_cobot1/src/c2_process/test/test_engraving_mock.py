@@ -152,7 +152,7 @@ if __name__ == "__main__":
 
 def test_reject_tool_id_mismatch():
     ctx = make_ctx()
-    p = make_path(); p["tool_id"] = "awl"
+    p = sample_path(); p["tool_id"] = "awl"
     r = validate_path(p, ctx)
     assert r is not None and r.error_code == "PROFILE_MISMATCH", r
     p["tool_id"] = "engraving_drill"
