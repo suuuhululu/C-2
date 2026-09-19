@@ -35,6 +35,14 @@ __pycache__/
 *.swp
 .DS_Store
 
+# 새김 로컬 데모: 업로드·SQLite·실행 잠금·외부 바이너리
+/ws_cobot_pjt/backend/data/
+/ws_cobot_pjt/backend/monitor_data/
+/ws_cobot_pjt/backend/.tools/
+/ws_cobot_pjt/frontend/test-results/
+/ws_cobot_pjt/frontend/.vite/
+*.tsbuildinfo
+
 # Large local capture outputs; publish selected evidence through reviewed links
 **/recordings/
 *.bag
