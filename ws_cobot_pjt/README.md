@@ -24,7 +24,7 @@
 - `ws_cobot1/doc/`: 실제 ROS 실행 순서·필요 설정·종료·재현 절차.
 - `ws_dsr/src/`: 로컬 외부 로봇·그리퍼 실행환경. 폴더 전체는 Git 제외이며 `ws_cobot1`과 같은 패키지를 중복 복사하지 않는다.
 - `backend/app/`: 새 모니터의 FastAPI API·DB·모의 상대·ROS 게이트웨이 연결 코드. 기본 실행은 MOCK이며 ROS 통합은 대기 중이다. [서버 실행 방법](backend/README.md).
-- `frontend/src/monitor/`, `frontend/public/`: React·TypeScript 운영자 HMI와 모의 샘플. 기존 PyQt HMI는 `ws_cobot1/src/clay_hmi`에 보존한다. [화면 실행 방법](frontend/README.md).
+- `frontend/src/monitor/`, `frontend/public/`: React·TypeScript 운영자 HMI와 모의 샘플. 기존 PyQt HMI는 저장소 밖에 보관했으며 [Clay 보관·복구 기록](docs/LEGACY_CLAY_ARCHIVE.md)에서 확인한다. [화면 실행 방법](frontend/README.md).
 - `docker/`: 팀에서 합의한 Dockerfile·Compose·이미지 버전 기록.
 - `DartPlatform/`: 로컬 설치 위치. 설치 프로그램·로그는 Git에서 제외하고 안내만 공유한다.
 - `docs/`: 기획, 구성도, 인터페이스 합의, 통합·실기 시험 결과.
