@@ -161,6 +161,10 @@ class RobotAdapter:
     def observe(self) -> RobotState:
         raise NotImplementedError
 
+    def inverse_kinematics(self, pose, tool_offset_m, ref_joints_deg):
+        """도구 끝 pose(m·quat) → 관절 [deg] 6개. 해가 없으면 None. ref_joints_deg 로 해 공간을 고른다 (연속성). 로봇을 움직이지 않는다."""
+        raise NotImplementedError
+
     def set_tool_offset(self, offset_tool_m):
         """제어기 TCP(패드 기본값) 에서 송곳 끝까지의 도구 좌표계 오프셋 [ox,oy,oz] (m). 집기 뒤 측정한 송곳 길이로
         tool_sequence/상태 기계가 설정한다. 이후 move/move_spline/observe 는 모두 '송곳 끝' 기준으로 동작한다."""
@@ -215,6 +219,27 @@ class DoosanRobotAdapter(RobotAdapter):
 
     def _frame_ok(self, frame_id):
         return frame_id == self.frame_id
+
+    def inverse_kinematics(self, pose, tool_offset_m, ref_joints_deg):
+        """제어기 ikin(posx, sol_space) 로 관절해 [deg]. sol_space 는 처음 8개 중 ref 에 가장 가까운 것을 고르고 이후 유지한다."""
+        px = pose_to_posx(pose, tool_offset_m)
+        best = None
+        spaces = [self._ik_space] if getattr(self, "_ik_space", None) is not None else list(range(8))
+        for sp in spaces:
+            try:
+                q = self.R.ikin(self.posx(*px), sp, self.R.DR_BASE)
+            except Exception:
+                q = None
+            if not q or len(q) < 6:
+                continue
+            q = [float(v) for v in q[:6]]
+            d = max(abs(q[k] - ref_joints_deg[k]) for k in range(6))
+            if best is None or d < best[0]:
+                best = (d, sp, q)
+        if best is None:
+            return None
+        self._ik_space = best[1]
+        return best[2]
 
     def set_tool_offset(self, offset_tool_m):
         self.tool_offset_m = list(offset_tool_m) if offset_tool_m else None
@@ -500,6 +525,16 @@ class MockRobotAdapter(RobotAdapter):
         if self.fail_at == name:
             return StepResult("FAILED", "NOT_READY", f"모의 실패 {name}", name)
         return None
+
+    def inverse_kinematics(self, pose, tool_offset_m, ref_joints_deg):
+        """모의 IK: J6 = 툴 Y 의 base 방위각(deg) + ik_j6_offset, 나머지는 ref 그대로. ik_fail_at_call 번째 호출부터 None."""
+        self.calls.append(dict(fn="ik"))
+        if getattr(self, "ik_fail_at_call", None) is not None and self.calls.count(dict(fn="ik")) >= self.ik_fail_at_call:
+            return None
+        ty = tool_axis_in_base(pose, "+y")
+        j6 = math.degrees(math.atan2(ty[1], ty[0])) + getattr(self, "ik_j6_offset", 0.0)
+        q = list(ref_joints_deg); q[5] = j6
+        return q
 
     def set_tool_offset(self, offset_tool_m):
         self.tool_offset_m = list(offset_tool_m) if offset_tool_m else None
