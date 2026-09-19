@@ -120,9 +120,14 @@ def measure_tool_tip(adapter: RobotAdapter, workcell: Dict, profiles: Dict, cont
             r.completed_step = step
         return r
 
-    # 1) 지금 높이에서 바깥으로 → 측정 높이로 (대각선 금지: 도구 끝이 윗모서리에 걸림, LESSONS L7)
+    # 1) 안전 높이(윗면 +90 mm)로 수직 상승 → 그 높이에서 바깥 y_far 로 이동하며 자세 맞춤 → 수직 하강.
+    #    (9/19: 지금 높이에서 옆으로 가면 반대편에 있을 때 원통을 가로지르고, 자세 회전 중 드릴이 원통을 쓸고 지나간다. LESSONS L7·L12)
     cur = st.tcp_pose
-    r = move(cur[0], y_far, cur[2], "go_out")
+    z_safe = max(top + 0.090, cur[2])
+    r = adapter.move([cur[0], cur[1], z_safe, *cur[3:7]], frame, travel, float(travel.get("completion_timeout_s", 60.0)), cancel)
+    if not r.ok:
+        r.completed_step = "go_up"; return r
+    r = move(cur[0], y_far, z_safe, "go_out")
     if not r.ok:
         return fail(r)
     r = move(cx, y_far, z, "go_down")
@@ -178,7 +183,11 @@ def verify_tool_tip(adapter: RobotAdapter, workcell: Dict, profiles: Dict, calib
     y_expect = calib.axis_fit_xy_m[1] + s * float(workcell["radius_m"])      # 축 위에서 패드가 닿는 y
     try:
         st = adapter.observe(); cur = st.tcp_pose
-        r = adapter.move([cur[0], y_expect + s * 0.020, cur[2], *q], frame, travel, 60.0, cancel)
+        z_safe = max(float(workcell["top_z_m"]) + 0.090, cur[2])
+        r = adapter.move([cur[0], cur[1], z_safe, *cur[3:7]], frame, travel, 60.0, cancel)        # 먼저 위로 (L12)
+        if not r.ok:
+            r.completed_step = "verify_go_up"; return r
+        r = adapter.move([calib.axis_fit_xy_m[0], y_expect + s * 0.030, z_safe, *q], frame, travel, 60.0, cancel)
         if not r.ok:
             return r
         r = adapter.move([calib.axis_fit_xy_m[0], y_expect + s * 0.010, z, *q], frame, travel, 60.0, cancel)

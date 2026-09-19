@@ -65,3 +65,21 @@ if __name__ == "__main__":
     for name, fn in list(globals().items()):
         if name.startswith("test_"):
             fn(); print("ok", name)
+
+
+def test_zyz_roundtrip_at_upright_singularity():
+    """9/19 실기 버그: B=180 (그리퍼 수직) 에서 quat→ZYZ 가 툴 Y 를 뒤집었다. 세운 자세 여러 방향 + 근처 자세 왕복 검증."""
+    import math
+    from c2_process.robot_adapter import zyz_deg_to_matrix, matrix_to_zyz_deg, matrix_to_quat, tool_axis_in_base
+    for yaw in (0.0, 90.0, 180.0, -90.0, 37.0):
+        t = math.radians(yaw)
+        x = [-math.cos(t), -math.sin(t), 0.0]; y = [-math.sin(t), math.cos(t), 0.0]; z = [0.0, 0.0, -1.0]
+        M = [[x[0], y[0], z[0]], [x[1], y[1], z[1]], [x[2], y[2], z[2]]]
+        A, B, C = matrix_to_zyz_deg(M)
+        M2 = zyz_deg_to_matrix(A, B, C)
+        assert all(abs(M[i][j] - M2[i][j]) < 1e-6 for i in range(3) for j in range(3)), (yaw, A, B, C)
+        ty = tool_axis_in_base([0, 0, 0, *matrix_to_quat(M)], "+y")
+        assert abs(ty[0] - y[0]) < 1e-6 and abs(ty[1] - y[1]) < 1e-6
+    for abc in ((3.2, -179.5, 3.9), (0.0, 180.0, 0.0), (10.0, 0.0, -20.0), (91.2, 133.6, 91.2)):
+        M = zyz_deg_to_matrix(*abc); A, B, C = matrix_to_zyz_deg(M); M2 = zyz_deg_to_matrix(A, B, C)
+        assert all(abs(M[i][j] - M2[i][j]) < 1e-6 for i in range(3) for j in range(3)), abc
