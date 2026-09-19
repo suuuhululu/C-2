@@ -8,6 +8,8 @@
 
 ## 디렉토리
 
+**2026-09-19 구현 반영:** [c2_interfaces](../ws_cobot1/src/c2_interfaces/README.md)의 `package.xml`·`CMakeLists.txt`와 공통 타입 5개는 구현·Jazzy 빌드 완료다. HMI·서버·MOCK·게이트웨이 코드의 실제 위치는 [모니터 구현 안내](HMI_MONITOR_IMPLEMENTATION.md)를 따른다. 아래 트리의 나머지 목표 파일 전체가 구현됐다는 뜻은 아니며, `c2_path`·`c2_process`의 노드·패키지 빌드 설정은 계속 구현 대상이다.
+
 ```text
 ws_cobot_pjt/
 ├── frontend/
