@@ -1,5 +1,9 @@
 # 진행 현황과 남은 작업
 
+## 2026-09-18 아키텍처·Clay 이관 작업
+
+최신 원격 main `c414821`을 로컬 main에 fast-forward하고 `docs/system-architecture-drawio`에서 작업했다. PR #13은 main 병합, PR #15는 `feat/12-robot-adapter` 병합으로 확인했다. 후자의 조각·청소 코드는 기준 main에 포함되지 않는다. [draw.io 아키텍처와 확인 범위](../ws_cobot_pjt/docs/architecture/README.md), [Clay 로컬 보관·제거 범위](../ws_cobot_pjt/docs/LEGACY_CLAY_ARCHIVE.md)를 확인한다. 아래 내용은 앞선 확인 기록이며 이후 구현·삭제를 자동 반영하지 않는다.
+
 확인일: 2026-09-17 (한국 시간). 0917 일지 작업에서 GitHub의 main·PR·최근 Actions를 다시 조회하고 로컬 기준 커밋과 대조했다. Issue·상세 보호 규칙은 아래에 표시한 앞선 확인 기록을 유지한다. 문서는 자동 동기화되지 않으므로 후속 작업 때 실제 상태를 다시 확인한다.
 
 ## GitHub에 반영된 작업

@@ -2,28 +2,27 @@
 
 `c2_interfaces`·`c2_path`·`c2_process`의 개발 폴더를 합의한 [목표 구조](../../docs/SYSTEM_STRUCTURE.md)에 맞춰 준비했다. Git은 빈 디렉토리를 기록하지 않으므로 아직 소스가 없는 하위 폴더는 `.gitkeep`으로 보존한다. 실제 구현 파일이 들어오면 해당 `.gitkeep`을 제거할 수 있다.
 
-**현재 추가된 것은 개발 폴더와 안내 문서다.** 세 폴더에는 아직 `package.xml`, 빌드 설정, 메시지 정의, 실행 노드가 없다. `colcon`에 등록되는 완성된 ROS 패키지나 실행 가능한 공정으로 취급하지 않는다. 기존 `clay_carving`·`clay_hmi`의 실행은 [기존 실행 안내](../doc/clay_run.md)를 따른다.
+**2026-09-18 확인:** `c2_process`에는 `robot_adapter.py`와 시험 소스가 추가됐다. 세 패키지에는 아직 `package.xml`, 빌드 설정, 공통 메시지 정의, 실행 노드가 없어 완성된 ROS 공정으로 취급하지 않는다. 기존 `clay_carving`·`clay_hmi`·전용 실행 문서는 사용자 요청으로 로컬 보관 후 제거했다. [보관·복구 기록](../../docs/LEGACY_CLAY_ARCHIVE.md), [시스템 아키텍처](../../docs/architecture/README.md).
 
 ```text
 src/
 ├── README.md
-├── c2_interfaces/          # 공통 Action·Service·Topic 정의를 개발할 위치
+├── c2_interfaces/          # 공통 Action·Service·Topic 정의 개발 위치
 │   ├── README.md
 │   ├── action/
 │   ├── srv/
 │   └── msg/
-├── c2_path/                # 좌표·경로 생성 노드를 개발할 위치
+├── c2_path/                # 좌표·경로 생성 개발 위치
 │   ├── README.md
 │   ├── c2_path/
 │   └── resource/
-├── c2_process/             # 전체 공정 제어 노드를 개발할 위치
-│   ├── README.md
-│   ├── c2_process/
-│   ├── config/
-│   ├── launch/
-│   └── resource/
-├── clay_carving/           # 기존 구현
-└── clay_hmi/               # 기존 구현
+└── c2_process/             # 어댑터 소스 존재, 노드·빌드 설정 미구현
+    ├── README.md
+    ├── c2_process/         # __init__.py · robot_adapter.py
+    ├── test/              # 모의 시험 · 별도 실기 확인 스크립트
+    ├── config/
+    ├── launch/
+    └── resource/
 ```
 
 | 개발 위치 | 시작할 작업 |

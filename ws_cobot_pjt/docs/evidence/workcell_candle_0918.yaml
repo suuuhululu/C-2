@@ -1,7 +1,8 @@
+# 과거 실험 후보값 기록이며 실행 설정이 아님. 해석·미합의 항목: CANDLE_0918_EVIDENCE.md
 # workcell.yaml 후보값 — 2026-09-18 실측 (이시율). c2_path 담당(노홍동)이 workcell.yaml 에 옮길 때 참고.
 # 좌표계: 로봇 base (frame_id 는 팀 규약대로 지정). 단위는 팀 계약(m)으로 적었고 괄호에 mm 원값.
 # 기준: 닫힌 그리퍼 손끝 = 제어기 TCP GripperDA_v1 (0, 0, 208) 위치. 측정 자세는 그리퍼 수직(툴 +Z 아래).
-# 근거: docs/daily/2026-09-18.md 2절, evidence/clay_state_0918_candle.json, bag_scan_upright_0918_2130
+# 근거: docs/daily/2026-09-18-candle.md 2절, evidence/clay_state_0918_candle.json, bag_scan_upright_0918_2130
 schema_version: 1
 workcell_id: candle_test_0918
 verification_status: measured_2026_09_18   # 실측값. 양초를 옮기면 무효

@@ -1,6 +1,6 @@
 # c2_process · 전체 공정 제어 개발 위치
 
-개발 폴더만 준비된 상태다. `process_controller_node` 하나가 공정 전체와 모션 명령을 소유하도록 구현한다. [목표 구조](../../../docs/SYSTEM_STRUCTURE.md)와 [실행·정지·상태 계약](../../../docs/INTERFACE_RECOMMENDATION.md)을 따른다.
+2026-09-18 기준 `robot_adapter.py`, `__init__.py`, 모의·실기 확인용 시험 소스가 존재한다. ROS 실행 노드·패키지 빌드 설정은 아직 없다. `process_controller_node` 하나가 공정 전체와 모션 명령을 소유하도록 구현한다. [목표 구조](../../../docs/SYSTEM_STRUCTURE.md)와 [실행·정지·상태 계약](../../../docs/INTERFACE_RECOMMENDATION.md)을 따른다.
 
 | 구현 위치 | 담당 기능 |
 | --- | --- |
@@ -16,7 +16,7 @@
 | `config/tools.yaml` | 도구별 보관·파지·TCP·하중·가공·청소 설정 |
 | `launch/process.launch.py` | 좌표·공정 노드 실행 구성 |
 
-구현 시 `package.xml`·`setup.py`·`setup.cfg`, `c2_process/__init__.py`, `resource/c2_process`와 실제 모듈을 작성하고 launch·config의 설치를 포함한다. 아직 이 파일들은 없으며 `.gitkeep`은 디렉토리 보존용이다.
+구현 시 `package.xml`·`setup.py`·`setup.cfg`, `c2_process/__init__.py`, `resource/c2_process`와 실제 모듈을 작성하고 launch·config의 설치를 포함한다. `__init__.py`와 로봇 어댑터를 제외한 위 빌드·실행 설정은 아직 없으며 `.gitkeep`은 디렉토리 보존용이다.
 
 내부 모듈은 같은 디렉토리의 형제 파일이며 함수 결과로 연결한다. 도구 집기·놓기는 `tool_sequence.py`, 그리퍼 자체 제어는 `gripper_adapter.py`가 담당한다. 별도 그리퍼 노드를 추가하지 않는다.
 
