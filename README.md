@@ -22,6 +22,8 @@
 
 ## 먼저 읽기
 
+2026-09-19 [공통 인터페이스 v1](ws_cobot_pjt/ws_cobot1/src/c2_interfaces/README.md)의 Action 2개·Service 1개·Message 2개와 빌드 설정을 구현했습니다. Jazzy 빌드·타입 직렬화·서버 변환을 확인했으며 팀원은 같은 패키지를 빌드해 사용할 수 있습니다. 실제 좌표·공정 노드 통합과 실기 시험은 후속 작업입니다.
+
 1. [진행 현황과 남은 작업](docs/REVIEW_STATUS.md)
 2. [프로젝트 운영·학습·분업 가이드](docs/PROJECT_GUIDE.md)
 3. [워크스페이스·환경 가이드](docs/WORKSPACES.md)

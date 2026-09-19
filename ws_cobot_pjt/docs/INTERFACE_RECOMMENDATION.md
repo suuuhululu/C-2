@@ -1,6 +1,6 @@
 # 3개 노드의 인터페이스 권장안 v1
 
-2026-09-18. [목표 디렉토리 구조](SYSTEM_STRUCTURE.md)의 `monitor_gateway_node`, `path_planner_node`, `process_controller_node`를 연결하기 위한 팀 검토용 계약 초안이다. 먼저 [팀 인터페이스 안내](INTERFACE_GUIDE.md)에서 전체 흐름과 노드·파일의 차이를 확인한다. 아래 이름·필드·함수는 팀이 구현할 계약이며 두산 제조사 API가 아니다. 이 계약의 메시지·노드 구현, ROS 빌드, 로봇 시험을 완료한 상태는 아니다.
+2026-09-18 작성, 2026-09-19 공통 타입 구현 반영. [목표 디렉토리 구조](SYSTEM_STRUCTURE.md)의 `monitor_gateway_node`, `path_planner_node`, `process_controller_node`를 연결하기 위한 팀 계약 초안이다. 먼저 [팀 인터페이스 안내](INTERFACE_GUIDE.md)에서 전체 흐름과 노드·파일의 차이를 확인한다. 아래 이름·필드·함수는 팀 계약이며 두산 제조사 API가 아니다. 공통 타입 5개의 Jazzy 빌드·직렬화와 서버 변환을 확인했다. 전체 노드 통합·로봇 시험은 완료하지 않았다. 구체화한 자료형과 배포 방법은 12절을 따른다.
 
 그리퍼는 고정 장치이고 잡는 도구가 바뀐다. 작업대·작업대상은 등록된 고정 좌표를 사용한다. 고객 주문·대기열·별도 그리퍼 노드를 추가하지 않는다. 같은 PC에서 서버와 ROS가 관리되는 파일 저장소를 사용하는 구성을 기준으로 한다.
 
@@ -83,10 +83,12 @@ ROS의 필수 필드는 아니며 팀 전체를 동일 버전으로만 배포한
 | 좌표 | `frame_id`, `position_unit=m`, `orientation=quaternion_xyzw` |
 | 구간 | 순서가 고정된 `segments` 배열: `segment_id`, `stroke_id`, `kind`, `waypoints`, `motion_profile_id` |
 | 구간 종류 | `APPROACH`, `CUT`, `TRAVEL`, `RETRACT`. 서로 떨어진 작업선을 암묵적으로 연결하지 않음 |
-| waypoint | base 기준 위치와 공구 TCP 방향. driver별 명령 형식은 포함하지 않음 |
+| waypoint | base 기준 도구 끝(칼끝)의 위치·자세. 제어기 TCP 좌표가 아니며 driver별 명령 형식은 포함하지 않음 |
 | 이동 조건 | `motion_profile_id`가 스냅샷의 속도·가속도·가공 조건을 참조. 작업 시 임의 기본값을 주입하지 않음 |
 | 완료 검증 | 구간별 목표·허용 오차·확인 방식, 실행기 지원 여부 |
 | 미리보기·검증 | 미리보기 데이터의 경로 ID·버전 연결, 검사 항목·결과·범위 |
+
+제어기 TCP `GripperDA_v1`은 그리퍼 끝점이다. 경로의 도구 끝 자세를 제어기 TCP로 변환하는 책임은 `robot_adapter.py`에 있으며 좌표 노드·모니터가 중복 변환하지 않는다.
 
 경로 해시는 파일 바이트로 계산해 결과·저장 메타데이터에 둔다. 해시 계산 대상 파일 안에 그 파일 자신의 해시를 넣지 않는다. 모든 실행 의존 파일은 해시로 묶이고 시작 전에 고정된 사본을 로딩한다.
 
@@ -222,3 +224,55 @@ HTTP 접수 응답과 ROS Goal 수락, 공정 성공은 서로 다른 상태로 
 이름·데이터 흐름·ID·파일 형식·기본 상태와 소프트웨어 통신 계약은 이 초안으로 개발을 시작할 수 있다. 실제 좌표·그리퍼 피드백 기준·TCP·하중·가공 조건·모션 완료 오차·실제 동작 제한 시간·정지 확인 조건은 현장에서 확정해야 한다. 값이 없으면 테스트용 모의 데이터와 구분하고 REAL 동작을 시작하지 않는다.
 
 Action의 장시간 처리·피드백·취소 성격은 [ROS 2 Jazzy Action 원문](https://raw.githubusercontent.com/ros2/ros2_documentation/jazzy/source/Concepts/Basic/About-Actions.rst)을, ROS 표준 좌표·단위는 [REP-103 원문](https://raw.githubusercontent.com/ros-infrastructure/rep/master/rep-0103.rst)을 확인했다. 이 문서의 구체적인 이름·필드·기한은 팀 설계 제안이다.
+
+## 12. 공통 타입 구현과 배포 · 2026-09-19
+
+사용자 요청에 따라 문서의 5개 통신 정의를 [c2_interfaces](../ws_cobot1/src/c2_interfaces/README.md)에 구현했다. 통신 이름·방향·단계·성공/실패 의미·QoS·제한 시간은 유지한다. 이전 문서에서 시각과 장비 표시를 개념으로만 적어 담당자별로 다른 타입을 만들 수 있었던 부분을 아래처럼 구체화했다. 공통 타입 초안은 `schema_version=1`, ROS 패키지는 `0.1.0`이다. 검토 후 수정할 때도 아래 전환 절차를 따른다.
+
+### 이전/이후 계약과 영향 범위
+
+| 항목 | 이전 | 이번 구현 | 영향받는 곳 |
+| --- | --- | --- | --- |
+| ROS 파일 | 개발 폴더와 필드 표 | Action 2개·Service 1개·Message 2개 및 생성 설정 | 세 노드의 공통 의존 패키지 |
+| 발생·확인·측정 시각 | ROS 자료형 미정, HMI는 RFC3339 문자열 | `builtin_interfaces/Time` ↔ UTC RFC3339 변환 | 공정 발행자, ExecuteProcess 수신자, `backend/app/ros_bridge.py` |
+| 발행 시각 | 이름 없이 '발행 시각' | `published_at` | ProcessState 발행자·게이트웨이 |
+| 장비 표시·품질 | 관절·TCP·온도·운전/연결 상태 개념 | 아래 필드와 신호별 품질·시각 | 공정 발행자·게이트웨이·HMI 후속 표시 |
+| 이벤트 관련 식별자 | '필요한 설정/경로 식별자' | `path_id/version/sha256`, `profile_snapshot_id/sha256`, `tool_id` | 이벤트 발행자·서버 저장 |
+
+`c2_path`의 ActionServer와 `c2_process`의 ActionServer·ServiceServer·Publisher는 아직 구현 대상이다. 이 변경에서 해당 노드나 별도 통신 채널을 만들지 않는다. 모니터의 가짜 상대는 유지하고 실제 ROS 타입 경계만 맞춘다. 미리보기 파일 상세, 관리 ID→파일 해석, 구간별 압력/가공 판정은 별도 합의·구현 대상이며 이번 `.msg`에 임의로 포함하지 않는다.
+
+### 공통 자료형·초기값
+
+정확한 필드 순서·선언은 패키지의 `.action`·`.srv`·`.msg`가 원본이다. 식별자·해시·상태·단계·오류·설명은 `string`, `schema_version`은 `uint16`, 경로 버전과 `segment_count`는 `uint32`, `seq/event_seq`는 `uint64`다. 크기·배치·회전·진행률·경과 시간·CUT 길이는 `float64`, 성공·검증·고정 확인·접수는 `bool`이다. SHA-256은 소문자 16진수 64자다. 진행률은 유한한 0~1, 길이·경과 시간은 유한한 0 이상이어야 한다.
+
+시각은 UTC Unix epoch 기준 `builtin_interfaces/Time(sec, nanosec)`이다. `nanosec`은 0 이상 1,000,000,000 미만이다. `{0,0}`은 미확인을 나타내며 실행 요청의 `confirmed_at`으로 사용할 수 없다. 이 계약의 절대 시각을 ROS `/clock`의 시뮬레이터 경과 시간으로 대체하지 않는다. 제한 시간 계산은 기존대로 monotonic 시계를 사용한다.
+
+실패·취소한 GeneratePath는 `success=false`, `validation_passed=false`, 빈 `path_id/path_sha256`, `path_version=0`으로 실행 경로를 공개하지 않는다. 진단 자산·검증 보고서는 제공할 수 있으나 실행 경로로 등록하지 않는다. 관련 없는 선택 식별자는 빈 문자열, 관련 경로 버전은 0이다. 정상 결과는 `error_code=NONE`을 명시한다. 기본 생성자의 UNKNOWN·false·빈 문자열·0을 정상 응답으로 그대로 보내지 않는다.
+
+ROS 선언의 상수는 참고 값이며 허용 문자열·UUID·해시·길이·버전·상호 필드 조건을 강제하는 enum이나 검증기가 아니다. 송수신 구현에서 2~8절의 검사·실패·중복 방지·정지 처리를 수행한다.
+
+### ProcessState의 측정 필드
+
+| 신호 | 값 | 품질 | 측정 시각·해석 |
+| --- | --- | --- | --- |
+| 파지 | `string grip_state` | `grip_quality` | `grip_measured_at` |
+| 관절 | `float64[] joints` | `joints_quality` | `joints_measured_at`; VALID이면 M0609 1~6 순서, 유한한 rad 6개 |
+| 제어기 TCP | `geometry_msgs/PoseStamped tcp`, `string tcp_profile_id` | `tcp_quality` | `tcp.header.stamp`, `header.frame_id`; m·정규화 quaternion xyzw. 프로파일 미확인 시 ID는 빈 문자열 |
+| 모터 온도 | `float64[] temperature` | `temperature_quality` | `temperature_measured_at`; VALID이면 모터 1~6 순서의 유한한 섭씨 6개 |
+| 로봇 상태 | `string robot_connection_state`, `string robot_mode` | `robot_quality` | `robot_measured_at`; 모드는 확인된 공급자 운전 모드 이름을 전달하며 임의 숫자 해석을 하지 않음 |
+
+품질 필드는 모두 `string`이고 `VALID/STALE/UNKNOWN/UNSUPPORTED`를 사용한다. 연결 상태는 `CONNECTED/DISCONNECTED/UNKNOWN`, 도구 확인 출처는 `SENSOR/OPERATOR/UNKNOWN`이다. 그 밖의 공정·정지·파지 상태는 6~7절을 따른다. 로봇 운전 모드의 공급자별 이름 매핑은 장치 어댑터 연결 시 문서화해야 하며, 단순 표시값만으로 실행 준비 완료를 판단하지 않는다.
+
+발행 heartbeat는 `published_at`이고 센서별 측정 시각을 덮어쓰지 않는다. TCP 시각만 `PoseStamped.header.stamp`를 사용하며 별도의 중복 시각 필드를 만들지 않는다. 아직 측정하지 못한 배열은 비우고, 고정 구조인 Pose는 품질 `UNKNOWN`으로 구별한다. 미지원 온도를 0°C로 채우지 않는다.
+
+게이트웨이는 `VALID`가 아닌 관절·TCP·온도 값을 JSON `null`로 바꾸고 품질·원래 측정 시각을 유지한다. 무효한 파지/로봇 상태는 UNKNOWN으로 전달한다. 시각 미확인은 JSON `null`, 알려진 시각은 나노초를 보존한 UTC RFC3339 문자열이며 비유한 숫자는 `null`이다. 발행자는 측정 신선도·프레임·배열 길이·유한값·quaternion을 검사해야 한다. 이 변환만으로 장비 상태 검증을 대신하지 않는다.
+
+### 팀 적용·향후 수정 절차
+
+1. 모든 담당자가 동일 커밋의 `c2_interfaces`를 받고 Jazzy에서 빌드·source한다. `c2_path`와 `c2_process`는 이 패키지를 의존성으로 선언한다.
+2. 모니터는 기존 HTTP/SQLite 시각 형식을 유지한다. `ros_bridge.py`가 ExecuteProcess의 확인 시각을 ROS Time으로, 상태·이벤트를 JSON으로 변환한다. DB 스키마 변경은 없다.
+3. 경로·공정 담당자는 제공한 타입으로 요청·Feedback·Result·상태·이벤트를 연결한다. 지원 버전·입력·설정 해시·모드·정지 조건을 수신 코드에서 검사한다. 모의 상대 통합 후 실기 시험을 별도로 진행한다.
+4. 타입·의미 변경은 이유, 이전/이후, 영향받는 파일, 버전, 전환 순서를 PR에 기록하고 송수신 담당자가 검토한다. 호환되지 않는 변경은 schema_version 처리와 모든 소비자의 배포 순서를 함께 정한다. 다른 타입 정의에 같은 schema_version 숫자만 넣어 호환된다고 주장하지 않는다.
+5. 변경된 타입을 사용하는 모든 노드를 정지·재빌드·재시작하여 같은 설치본을 사용한다. 문제가 있으면 소비자와 타입을 같은 이전 커밋으로 함께 되돌린다. 자동 main 병합이나 실기 기동은 하지 않는다.
+
+빌드 설정은 [ROS 2 Jazzy 공통 인터페이스 작성 안내](https://raw.githubusercontent.com/ros2/ros2_documentation/jazzy/source/Tutorials/Beginner-Client-Libraries/Custom-ROS2-Interfaces.rst)와 설치된 `rosidl_cmake`를 기준으로 했다. 실제 검사 결과와 한계는 [검증 기록](validation/2026-09-19-c2-interfaces.md)에 남긴다.
