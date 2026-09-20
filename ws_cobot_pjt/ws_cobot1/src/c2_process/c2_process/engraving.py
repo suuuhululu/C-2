@@ -19,7 +19,7 @@ from typing import Callable, Dict, List, Optional
 
 from .robot_adapter import RobotAdapter, StepResult, tool_axis_in_base
 
-SUPPORTED_SCHEMA = (1,)
+SUPPORTED_SCHEMA = (2,)                 # 9/19 고정 드릴 계약 v2 (INTERFACE_RECOMMENDATION 13절). v1 은 묵시 변환 없이 거절
 SEGMENT_KINDS = ("APPROACH", "CUT", "TRAVEL", "RETRACT")
 CONTACT_MODES = ("force_touch", "fixed_depth")
 MAX_SPLINE_POINTS = 80                 # 제어기 movesx 한도 100 (9/17 실측) 에 여유
@@ -60,6 +60,17 @@ def _shift(pose, direction, meters):
 
 
 # ---------------------------------------------------------------- 검사 ----
+def _m(profile: Dict, name: str, default=None):
+    """거리 필드를 m 로 읽는다: `<name>_m` 우선, 없으면 `<name>_mm`/1000 (v1 호환), 둘 다 없으면 default.
+    clearance_m 은 세은님 tools.yaml 에서 {stroke, process_entry_exit} 딕셔너리일 수 있어 stroke 값을 쓴다."""
+    v = profile.get(f"{name}_m")
+    if isinstance(v, dict):
+        v = v.get("stroke", v.get("value"))
+    if v is None and profile.get(f"{name}_mm") is not None:
+        v = float(profile[f"{name}_mm"]) / 1000.0
+    return default if v is None else float(v)
+
+
 def validate_path(path: Dict, context: ExecutionContext) -> Optional[StepResult]:
     """실행 전 형식 검사. 문제가 있으면 StepResult(FAILED, ...) 를, 없으면 None 을 반환. 로봇을 건드리지 않는다."""
     if path.get("schema_version") not in SUPPORTED_SCHEMA:
@@ -77,8 +88,10 @@ def validate_path(path: Dict, context: ExecutionContext) -> Optional[StepResult]
     mode = tp.get("contact_mode")
     if mode not in CONTACT_MODES:
         return StepResult("FAILED", "UNSUPPORTED_RECIPE", f"contact_mode {mode!r} 미지원 ({CONTACT_MODES})", "validate")
-    if mode == "fixed_depth" and tp.get("depth_mm") is None:
-        return StepResult("FAILED", "UNSUPPORTED_RECIPE", "fixed_depth 인데 depth_mm 없음", "validate")
+    if mode == "fixed_depth" and _m(tp, "depth") is None:
+        return StepResult("FAILED", "UNSUPPORTED_RECIPE", "fixed_depth 인데 depth_m 없음", "validate")
+    if context.source_mode == "REAL" and _m(tp, "clearance") is None:
+        return StepResult("FAILED", "UNSUPPORTED_RECIPE", "가공 프로파일에 clearance_m 없음 (REAL 은 기본값 주입 안 함)", "validate")
     if mode == "force_touch" and context.source_mode == "REAL":
         for k in ("touch_force_n", "touch_speed_mm_s"):
             if tp.get(k) is None:
@@ -115,9 +128,9 @@ def execute_path(path: Dict, context: ExecutionContext, on_progress: Optional[Ca
     tp = context.tool_profile
     axis_name = tp.get("tool_axis", "-y")            # 도구가 향하는 축 (9/19 팀 규칙: 툴 -Y = 표면 안쪽). tools.yaml 값이 우선 (경로 자세에서 표면 법선 안쪽을 가리켜야 함)
     mode = tp["contact_mode"]
-    clearance_m = float(tp.get("clearance_mm", 10.0)) / 1000.0
-    touch_extra_m = float(tp.get("touch_extra_mm", 8.0)) / 1000.0
-    depth_m = float(tp.get("depth_mm", 0.0)) / 1000.0
+    clearance_m = _m(tp, "clearance", 0.010)          # v2: 거리 필드는 m (clearance_m). *_mm 는 과도기 호환
+    touch_extra_m = _m(tp, "touch_extra", 0.008)
+    depth_m = _m(tp, "depth", 0.0)
     frame = path["frame_id"]
     segs = path["segments"]
     prog = _Progress(total_cut_m=sum(_seg_length(s["waypoints"]) for s in segs if s["kind"] == "CUT"))

@@ -39,7 +39,7 @@ def sample_path(n_cut=30, arc_deg=40.0):
     seg.append(dict(segment_id="s2_app", stroke_id="st2", kind="APPROACH", motion_profile_id="travel", waypoints=[_out(arc[0], 0.01)]))
     seg.append(dict(segment_id="s2_cut", stroke_id="st2", kind="CUT", motion_profile_id="cut", waypoints=arc))
     seg.append(dict(segment_id="s2_ret", stroke_id="st2", kind="RETRACT", motion_profile_id="travel", waypoints=[_out(arc[-1], 0.03)]))
-    return dict(schema_version=1, path_id="p-test", path_version=1, source_mode="SIMULATION", frame_id="c2_base",
+    return dict(schema_version=2, path_id="p-test", path_version=1, source_mode="SIMULATION", frame_id="c2_base",
                 position_unit="m", orientation="quaternion_xyzw", segments=seg)
 
 
@@ -54,7 +54,7 @@ def make_ctx(mode="force_touch", source="SIMULATION"):
         run_id="run-test", source_mode=source, cancel=threading.Event(),
         motion_profiles={"travel": dict(id="travel", vel_mm_s=26.0, completion_timeout_s=60.0),
                          "cut": dict(id="cut", vel_mm_s=6.6, completion_timeout_s=60.0)},
-        tool_profile=dict(contact_mode=mode, tool_axis="+z", depth_mm=0.5, clearance_mm=10.0, touch_extra_mm=8.0,
+        tool_profile=dict(contact_mode=mode, tool_axis="+z", depth_m=0.0005, clearance_m=0.010, touch_extra_m=0.008,
                           touch_force_n=0.8, touch_speed_mm_s=1.5, frame_id="c2_base", tool_id="engraving_drill"))
 
 
@@ -90,8 +90,22 @@ def test_reject_without_profile():
     assert r.outcome == "FAILED" and r.error_code == "UNSUPPORTED_RECIPE" and not ad.calls
 
 
+def test_reject_schema_v1_and_clearance_required_in_real():
+    ctx = make_ctx()
+    p = sample_path(); p["schema_version"] = 1
+    r = validate_path(p, ctx)
+    assert r is not None and r.error_code == "UNSUPPORTED_SCHEMA_VERSION"
+    ctx_real = make_ctx(source="REAL"); ctx_real.tool_profile.pop("clearance_m")
+    ctx_real.motion_profiles["travel"]["completion_timeout_s"] = 60.0
+    p2 = sample_path(); p2["source_mode"] = "REAL"
+    r = validate_path(p2, ctx_real)
+    assert r is not None and r.error_code == "UNSUPPORTED_RECIPE", r
+    ctx_real.tool_profile["clearance_m"] = dict(stroke=0.006, process_entry_exit=0.025)   # 세은님 tools.yaml 형태
+    assert validate_path(p2, ctx_real) is None
+
+
 def test_reject_schema():
-    p = sample_path(); p["schema_version"] = 2
+    p = sample_path(); p["schema_version"] = 3
     r = execute_path(p, make_ctx(), None, MockRobotAdapter())
     assert r.error_code == "UNSUPPORTED_SCHEMA_VERSION"
 
