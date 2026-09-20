@@ -1,0 +1,5 @@
+# Jazzy와 c2_interfaces/c2_path는 ROS 환경에서 별도 설치·빌드한다.
+# HMI와 함께 실행하는 c2_path의 추가 Python 의존성. 시험한 직접 의존성 버전.
+-r requirements.lock.txt
+scikit-image==0.25.2
+networkx==3.5

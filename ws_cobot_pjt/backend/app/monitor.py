@@ -113,7 +113,12 @@ def create_app(data_dir=None,tick=.4):
     @app.get('/api/operator/paths/{pid}/versions/{version}')
     async def path(pid:str,version:int):
         meta=await asyncio.to_thread(app.state.store.path,pid,version)
-        try:preview=await asyncio.to_thread(app.state.store.read_asset,meta['preview_asset_id'])
+        try:
+            # 등록 당시 검증한 해시를 사용한다. DB의 파일 해시만 새 값으로 바뀌어도 거절한다.
+            for aid, expected in meta.get('artifact_sha256',{}).items():
+                await asyncio.to_thread(app.state.store.read_asset,aid,expected)
+            preview=await asyncio.to_thread(app.state.store.read_asset,meta['preview_asset_id'],
+                meta.get('artifact_sha256',{}).get(meta['preview_asset_id']))
         except ValueError:raise DomainError('HASH_MISMATCH','미리보기 파일이 변경됐습니다. 실행할 수 없습니다.')
         import json
         return {**meta,'preview':json.loads(preview),'svg_url':f'/api/operator/assets/{meta["svg_asset_id"]}/content',

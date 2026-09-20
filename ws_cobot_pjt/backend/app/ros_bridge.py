@@ -1,7 +1,7 @@
 """Jazzy monitor_gateway_node. 팀 c2_interfaces 설치본만 사용하며 자체 메시지를 만들지 않는다.
 
 실제 장치 연결은 이 초안 범위가 아니다. source_mode=SIMULATION만 허용한다.
-파일 ID 해석 계약 확정 후 artifact_loader를 주입해 생성 결과 수신을 연결한다.
+MonitorService가 PR #38의 관리 파일 계약을 읽는 artifact_loader를 주입한다.
 """
 import asyncio
 from datetime import datetime, timedelta, timezone

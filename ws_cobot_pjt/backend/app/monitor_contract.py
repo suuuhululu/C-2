@@ -32,7 +32,7 @@ class GenerateInput(Input):
     offset_u_mm: float = Field(ge=-500, le=500)
     offset_v_mm: float = Field(ge=-500, le=500)
     rotation_deg: float = Field(ge=-180, le=180)
-    conversion_preset: Literal['simulation_centerline'] = 'simulation_centerline'
+    conversion_preset: Literal['simulation_centerline', 'raster_centerline_bezier'] = 'simulation_centerline'
     tool_id: Literal['engraving_drill'] = 'engraving_drill'
     profile_snapshot_id: UUID
     profile_sha256: str = Field(pattern=r'^[0-9a-f]{64}$')
