@@ -191,6 +191,8 @@ class MonitorService:
             if self.busy() or self.generating:raise DomainError('BUSY','활성 또는 미확인 작업이 있습니다.')
             if not self.fresh() or self.storage_error:raise DomainError('NOT_READY','상태 통신 또는 기록 저장을 확인하세요.')
             path=await asyncio.to_thread(self.store.path,body['path_id'],body['path_version'])
+            if path.get('test_only') or path.get('origin')=='FILE_BUNDLE':
+                raise DomainError('NOT_READY','가져온 파일 경로는 미리보기·공정팀 전달용입니다. HMI 실행은 지원하지 않습니다.')
             if path.get('input',{}).get('schema_version')!=SCHEMA_VERSION:
                 raise DomainError('UNSUPPORTED_SCHEMA_VERSION','이전 계약의 경로입니다. 고정 드릴 v2로 다시 생성·확인하세요.')
             if self.transport!='mock' and path.get('simulation_fixture'):

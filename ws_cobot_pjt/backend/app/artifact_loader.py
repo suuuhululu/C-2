@@ -131,6 +131,14 @@ class PathArtifactLoader:
         require(any(s['kind'] == 'CUT' for s in segments), '절삭 구간이 없습니다.')
         surface = profile['surface']
         origin = surface['axis_origin_m']
+        require(all(finite(surface.get(k)) and surface[k] > 0 for k in ('radius_mm', 'height_mm')),
+                '표면 반지름·높이는 유한 양수여야 합니다.')
+        require(isinstance(origin, list) and len(origin) == 3 and all(finite(v) for v in origin),
+                '축 원점은 유한 XYZ 좌표여야 합니다.')
+        limits = surface.get('valid_v_range_mm')
+        require(isinstance(limits, list) and len(limits) == 2 and all(finite(v) for v in limits)
+                and limits[0] < limits[1], '표면 유효 높이 범위가 올바르지 않습니다.')
+        require(finite(surface.get('u_origin_angle_deg')), '표면 기준 각도가 올바르지 않습니다.')
         require(surface['axis_direction'] == [0.0, 0.0, 1.0], '현재 미리보기는 +Z 원통 축만 지원합니다.')
         for segment, shown in zip(segments, preview['segments']):
             require(segment['kind'] in ('APPROACH', 'CUT', 'TRAVEL', 'RETRACT'), '미지원 구간 종류')

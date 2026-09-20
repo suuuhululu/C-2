@@ -15,6 +15,8 @@ from PIL import Image, ImageOps, UnidentifiedImageError
 from .monitor_contract import GenerateInput, RunInput, StopInput, InspectionInput, ScenarioInput
 from .monitor_service import MonitorService, DomainError
 from .storage import Storage
+from .artifact_loader import ArtifactLoadError
+from .file_integration import FileIntegration, MAX_PROFILE, MAX_ZIP
 
 ROOT=Path(__file__).resolve().parents[1]
 MAX_BYTES=10*1024*1024
@@ -45,6 +47,7 @@ def create_app(data_dir=None,tick=.4):
             lock.close();raise RuntimeError('같은 모니터 DB를 사용하는 서버가 이미 있습니다.')
         store=Storage(directory);service=MonitorService(store,os.getenv('C2_MONITOR_TRANSPORT','mock'),tick)
         app.state.store=store;app.state.service=service
+        app.state.integration=FileIntegration(store)
         try:
             await service.start()
             yield
@@ -69,6 +72,68 @@ def create_app(data_dir=None,tick=.4):
 
     @app.exception_handler(DomainError)
     async def domain_error(request,exc):return JSONResponse({'error_code':exc.code,'message':exc.message},status_code=exc.status)
+
+    @app.exception_handler(ArtifactLoadError)
+    async def artifact_error(request,exc):
+        return JSONResponse({'error_code':exc.code,'message':str(exc)},status_code=409)
+
+    async def integration_call(method, *args, mutate=False):
+        async def invoke():
+            try:
+                return await asyncio.to_thread(method, *args)
+            except ArtifactLoadError:
+                raise
+            except ValueError as exc:
+                raise ArtifactLoadError('HASH_MISMATCH' if str(exc)=='HASH_MISMATCH' else 'VALIDATION_FAILED',
+                                        '등록 파일의 내용·해시를 확인하세요.') from exc
+        if not mutate:
+            return await invoke()
+        service=app.state.service
+        async with service.lock:
+            if service.busy() or service.generating:
+                raise DomainError('BUSY','생성·실행 또는 미확인 작업이 끝난 뒤 파일을 등록하세요.')
+            return await invoke()
+
+    @app.get('/api/operator/integration/profiles')
+    async def integration_profiles():
+        return await integration_call(app.state.integration.profiles)
+
+    @app.post('/api/operator/integration/profiles',status_code=201)
+    async def register_profile(file:UploadFile=File(...)):
+        raw=await file.read(MAX_PROFILE+1)
+        await file.close()
+        return await integration_call(app.state.integration.register_profile,raw,mutate=True)
+
+    @app.post('/api/operator/integration/profiles/{pid}/select')
+    async def select_profile(pid:str):
+        return await integration_call(app.state.integration.select_profile,pid,mutate=True)
+
+    @app.post('/api/operator/integration/inputs',status_code=201)
+    async def integration_input(body:GenerateInput):
+        return await integration_call(app.state.integration.prepare_input,body.model_dump(mode='json'),mutate=True)
+
+    def zip_response(raw,name):
+        return Response(raw,media_type='application/zip',headers={'Content-Disposition':f'attachment; filename="{name}.zip"'})
+
+    @app.get('/api/operator/integration/inputs/{rid}')
+    async def download_input(rid:str):
+        raw=await integration_call(app.state.integration.export_input,rid)
+        return zip_response(raw,'c2-input')
+
+    @app.post('/api/operator/integration/results',status_code=201)
+    async def import_result(file:UploadFile=File(...)):
+        raw=await file.read(MAX_ZIP+1)
+        await file.close()
+        return await integration_call(app.state.integration.import_bundle,raw,mutate=True)
+
+    @app.get('/api/operator/integration/paths')
+    async def imported_paths():
+        return await integration_call(app.state.integration.paths)
+
+    @app.get('/api/operator/integration/paths/{pid}/versions/{version}/bundle')
+    async def download_result(pid:str,version:int):
+        raw=await integration_call(app.state.integration.export_path,pid,version)
+        return zip_response(raw,'c2-result')
 
     @app.exception_handler(KeyError)
     async def not_found(request,exc):return JSONResponse({'error_code':'ASSET_NOT_FOUND','message':'요청한 기록·파일이 없습니다.'},status_code=404)
