@@ -1,0 +1,26 @@
+[
+  {
+    "stage": "CONVERTING",
+    "progress": 0.167
+  },
+  {
+    "stage": "EXTRACTING_2D",
+    "progress": 0.333
+  },
+  {
+    "stage": "OPTIMIZING_2D",
+    "progress": 0.5
+  },
+  {
+    "stage": "MAPPING_3D",
+    "progress": 0.667
+  },
+  {
+    "stage": "BUILDING_PATH",
+    "progress": 0.833
+  },
+  {
+    "stage": "VALIDATING",
+    "progress": 1.0
+  }
+]

@@ -1,0 +1,16 @@
+{
+  "schema_version": 2,
+  "request_id": "req-heart-0001",
+  "source_mode": "SIMULATION",
+  "asset_id": "asset-heart-0001",
+  "asset_sha256": "cc894bdf8f4fc150956fa1bec6cbfda5035656ae2b603b2d551ef4e5e2f9a6ff",
+  "width_mm": 24.0,
+  "height_mm": 24.0,
+  "offset_u_mm": -53.7998,
+  "offset_v_mm": 105.0,
+  "rotation_deg": 0.0,
+  "conversion_preset": "svg_centerline_bezier",
+  "tool_id": "engraving_drill",
+  "profile_snapshot_id": "snap-candle-0919",
+  "profile_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+}

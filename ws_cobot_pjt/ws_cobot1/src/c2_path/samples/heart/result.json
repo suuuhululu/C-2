@@ -1,0 +1,14 @@
+{
+  "success": true,
+  "error_code": "NONE",
+  "message": "하트 1개. 시율님 9/18 드릴 하트와 같은 조건(폭 24mm, 윗면 아래 45mm, -Y 면).",
+  "path_id": "path-heart-0001",
+  "path_version": 1,
+  "svg_asset_id": "svg-heart-0001",
+  "preview_asset_id": "preview-heart-0001",
+  "segment_count": 4,
+  "cut_length_m": 0.072673,
+  "validation_passed": true,
+  "validation_report_id": "val-heart-0001",
+  "path_sha256": "7aecef6efac2a9ce2f411fd133d08f10533100e8dda2316ebd5d19a8c8454e65"
+}
