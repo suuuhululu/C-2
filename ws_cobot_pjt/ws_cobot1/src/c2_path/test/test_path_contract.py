@@ -51,7 +51,8 @@ def _rasterize_polyline(points, closed, size=400, thickness=3, margin=0.1):
 
 
 def _heart_centerline_points():
-    svg = open(os.path.join(SAMPLES, "heart.svg"), encoding="utf-8").read()
+    with open(os.path.join(SAMPLES, "heart.svg"), encoding="utf-8") as stream:
+        svg = stream.read()
     subs = extract_2d.parse_svg_subpaths(svg)
     return extract_2d.subpath_to_points(subs[0], chord_tol=0.05, max_step=0.5)
 
@@ -389,9 +390,9 @@ class TestAlgorithms(unittest.TestCase):
 
     def test_no_rdp_or_bspline_used(self):
         """RDP·B-spline 은 쓰지 않는다 (원본 도안 이탈 위험)."""
-        _, st = extract_2d.extract(
-            open(os.path.join(SAMPLES, "heart.svg"), encoding="utf-8").read(),
-            24.0, 24.0, 0.0, 105.0)
+        with open(os.path.join(SAMPLES, "heart.svg"), encoding="utf-8") as stream:
+            svg = stream.read()
+        _, st = extract_2d.extract(svg, 24.0, 24.0, 0.0, 105.0)
         self.assertFalse(st["refit_applied"])
 
 
@@ -554,7 +555,8 @@ class TestImageToSvg(unittest.TestCase):
         conv_strokes, _ = extract_2d.extract(svg, 24.0, 24.0, 0.0, 0.0)
         self.assertEqual(len(conv_strokes), 1)
 
-        orig_svg = open(os.path.join(SAMPLES, "heart.svg"), encoding="utf-8").read()
+        with open(os.path.join(SAMPLES, "heart.svg"), encoding="utf-8") as stream:
+            orig_svg = stream.read()
         orig_strokes, _ = extract_2d.extract(orig_svg, 24.0, 24.0, 0.0, 0.0)
         orig, conv = orig_strokes[0], conv_strokes[0]
         max_dev = max(min(math.dist(p, q) for q in orig) for p in conv)

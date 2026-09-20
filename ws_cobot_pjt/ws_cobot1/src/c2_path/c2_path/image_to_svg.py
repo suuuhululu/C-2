@@ -18,6 +18,7 @@
     - 선 굵기·필압 정보는 버려진다 (로봇이 일정 깊이로 파므로 원래 불필요).
 """
 import math
+import os
 
 import cv2
 import networkx as nx
@@ -389,7 +390,9 @@ def beziers_to_path_d(beziers, closed):
     return " ".join(d)
 
 
-def convert(image_path, spur_min_len_px=4.0, fit_error_px=0.6, invert=None):
+def convert(image_path, spur_min_len_px=4.0, fit_error_px=0.6, invert=None,
+            max_pixels=16_000_000, max_side_px=6000, max_foreground_pixels=1_000_000,
+            source_name=None):
     """이미지 파일 -> (svg_text, stats).
 
     fit_error_px: Schneider 근사 허용 오차(px). 팀 검증값(허용거리 0.5px)에
@@ -399,8 +402,14 @@ def convert(image_path, spur_min_len_px=4.0, fit_error_px=0.6, invert=None):
     if gray is None:
         raise ValueError(f"이미지를 읽을 수 없습니다: {image_path}")
     h, w = gray.shape
+    source_name = source_name or os.path.basename(image_path)
+    if h * w > max_pixels or max(h, w) > max_side_px:
+        raise ValueError("이미지는 16MP 이하이고 한 변이 6000px 이하여야 합니다.")
 
     fg = binarize(gray, invert=invert)
+    foreground_pixels = int(np.count_nonzero(fg))
+    if foreground_pixels > max_foreground_pixels:
+        raise ValueError("전경 픽셀이 너무 많아 안전한 시간 안에 중심선을 만들 수 없습니다.")
     skel = skeletonize(fg)
 
     raw_strokes = trace_strokes(skel, spur_min_len_px=spur_min_len_px)
@@ -421,14 +430,15 @@ def convert(image_path, spur_min_len_px=4.0, fit_error_px=0.6, invert=None):
     body = "\n  ".join(f'<path fill="none" stroke="#000" stroke-width="1" d="{d}" />' for d in paths)
     svg = (
         '<?xml version="1.0" encoding="UTF-8"?>\n'
-        f'<!-- image_to_svg.py 자동 생성. 원본: {image_path} ({w}x{h}px). '
+        f'<!-- image_to_svg.py 자동 생성 ({w}x{h}px). '
         "세선화 기반 중심선 변환 (docs/ALGORITHM_VALIDATION.md 3차 조합). -->\n"
         f'<svg xmlns="http://www.w3.org/2000/svg" width="{w}" height="{h}" viewBox="0 0 {w} {h}">\n  '
         f"{body}\n</svg>\n"
     )
     stats = {
-        "source_image": image_path,
+        "source_image": source_name,
         "image_size_px": [w, h],
+        "foreground_pixels": foreground_pixels,
         "stroke_count": len(paths),
         "strokes": stroke_stats,
         "spur_min_len_px": spur_min_len_px,

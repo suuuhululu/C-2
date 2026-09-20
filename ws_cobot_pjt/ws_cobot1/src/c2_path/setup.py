@@ -22,7 +22,7 @@ setup(
     tests_require=["pytest"],
     entry_points={
         "console_scripts": [
-            # node.py 구현 후 등록: "path_planner_node = c2_path.node:main",
+            "path_planner_node = c2_path.node:main",
         ],
     },
 )

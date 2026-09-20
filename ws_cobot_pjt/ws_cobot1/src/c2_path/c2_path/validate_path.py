@@ -77,7 +77,29 @@ def _quat_axes(q):
 
 def validate(path):
     errors, checks = [], []
-    segs = path["segments"]
+    if not isinstance(path, dict):
+        return {"passed": False, "checks": [{"code": "PATH_STRUCTURE", "passed": False}],
+                "not_checked": NOT_CHECKED, "errors": ["PATH_STRUCTURE: 최상위 객체가 아님"]}
+    segs = path.get("segments")
+    if not isinstance(segs, list) or not segs:
+        return {"passed": False, "checks": [{"code": "NON_EMPTY_PATH", "passed": False}],
+                "not_checked": NOT_CHECKED, "errors": ["EMPTY_PATH: 실행 segment가 없습니다."]}
+    malformed = [i for i, segment in enumerate(segs)
+                 if not isinstance(segment, dict)
+                 or segment.get("kind") not in ("APPROACH", "CUT", "TRAVEL", "RETRACT")
+                 or not segment.get("segment_id")
+                 or not segment.get("motion_profile_id")
+                 or (segment.get("kind") == "CUT" and not segment.get("stroke_id"))
+                 or not isinstance(segment.get("waypoints"), list)
+                 or len(segment["waypoints"]) < 2]
+    if malformed:
+        return {"passed": False, "checks": [{"code": "PATH_STRUCTURE", "passed": False,
+                                                "observed_bad": len(malformed)}],
+                "not_checked": NOT_CHECKED,
+                "errors": [f"PATH_STRUCTURE: 잘못된 segment {len(malformed)}개 (예: index {malformed[0]})"]}
+    if not any(segment["kind"] == "CUT" for segment in segs):
+        return {"passed": False, "checks": [{"code": "NON_EMPTY_CUT", "passed": False}],
+                "not_checked": NOT_CHECKED, "errors": ["EMPTY_PATH: CUT segment가 없습니다."]}
     stroke_theta = {}
 
     # ---- 설정 일치 (금지 조건) ----
