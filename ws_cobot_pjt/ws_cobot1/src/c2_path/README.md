@@ -1,39 +1,79 @@
 # c2_path · 좌표·경로 생성
 
-2026-09-20. `path_planner_node`가 호출할 계산 모듈(이미지 → SVG → 2D → 3D → 실행 경로 → 검증)과 샘플·시험을 구현했다. **`node.py`(GeneratePath Action 서버)는 아직 없다** — 팀 규칙상 빈 스텁을 두지 않는다. 입력·출력은 [GeneratePath 계약](../../../docs/INTERFACE_RECOMMENDATION.md), 파일 역할은 [목표 구조](../../../docs/SYSTEM_STRUCTURE.md)를 따른다. 검증 범위와 한계는 [검증 기록](../../../docs/validation/2026-09-20-c2-path.md).
+`path_planner_node`는 HMI가 등록한 PNG/JPEG를 읽어 중심선 SVG → 2D 좌표 →
+원통 3D 도구 끝 경로 → 기하 검증 산출물을 만드는 ROS 2 Jazzy Action 서버다.
+이 패키지는 로봇·그리퍼·두산 API를 호출하지 않는다.
 
-| 구현 위치 | 담당 기능 | 상태 |
-| --- | --- | --- |
-| `c2_path/node.py` | GeneratePath Action 수신, 진행·결과·취소 처리 | 미구현 |
-| `c2_path/image_to_svg.py` | 입력 이미지(PNG/JPEG) → 중심선 SVG (Otsu → 세선화 → 골격 그래프 → 베지어 근사) | 구현 |
-| `c2_path/extract_2d.py` | SVG → 2D 좌표(mm), 크기·배치·회전 적용, 적응형 샘플링 | 구현 |
-| `c2_path/optimize_2d.py` | 획 방문 순서 최적화(NN + 2-opt, 형상·진행 방향 보존) | 구현 |
-| `c2_path/map_3d.py` | 원통 iso-parametric 매핑, 이음매·획당 180° 분할, 도구 자세 | 구현 |
-| `c2_path/generate_path.py` | 안전비용 정렬, 오프셋 원통 TRAVEL, APPROACH/CUT/RETRACT 구간, path.json | 구현 |
-| `c2_path/validate_path.py` | 실행 경로 검증 (형식·설정·표면·높이·간격·180°·이음매·관통·자세) | 구현 |
-| `c2_path/workcell.py` | 워크셀·도구 상수, 원통 기하 | 구현 (test_only 값, 아래 "미확정값" 참고) |
+## 구현 구성
 
-## 계약·기준
+| 위치 | 담당 기능 |
+| --- | --- |
+| `c2_path/node.py` | `/c2/generate_path` Action 수신, 진행·결과·취소·중복/동시 요청 처리 |
+| `c2_path/pipeline.py` | 계산 단계 조합, 입력/프로파일 검사, 일부 획 실패·빈 경로 차단, 산출물 확정 |
+| `c2_path/artifacts.py` | HMI 관리 UUID→파일 해석·해시 검사, 산출물 묶음 원자적 등록 |
+| `c2_path/image_to_svg.py` | PNG/JPEG → 중심선 SVG(Otsu·세선화·골격·Bézier) |
+| `c2_path/extract_2d.py` | SVG → 2D 좌표(mm), 크기·배치·회전, 적응형 샘플링 |
+| `c2_path/optimize_2d.py` | NN+2-opt 획 방문 순서 최적화(형상·진행 방향 보존) |
+| `c2_path/map_3d.py` | 원통 해석 매핑, 이음매·180° 분할, 도구 자세 |
+| `c2_path/generate_path.py` | 안전비용 정렬, offset-cylinder 이동, pose7 경로 구성 |
+| `c2_path/validate_path.py` | 형식·표면·높이·간격·이음매·자세·빈 경로 검증 |
+| `c2_path/workcell.py` | 현재 test_only 워크셀·도구 값 |
 
-- 경로 파일: `schema_version` 2, `frame_id` `c2_base`, `tool_id` `engraving_drill`, waypoint `[x, y, z, qx, qy, qz, qw]`(base 기준 드릴 끝, m + 정규화 quaternion). `c2_process/engraving.py`·`joint_check.py`(PR #34)와 같은 형식이며 두 코드로 직접 교차 확인했다(아래 검증 참고).
-- 도구 자세: 툴 −Y = 표면 안쪽 법선, 툴 +Z = base −Z.
-- 각도: 0° = base +X(로봇 반대편), 반시계 양수. 도안 원점 u=0 → 0°. 이음매 ±180°(−X, 로봇 쪽). 획·TRAVEL 모두 이음매를 넘지 않고(분할), 획당 둘레 180° 이내.
+## 계약과 안전 범위
 
-## 미확정값 (이 PR로 확정되지 않음)
+- Action: `/c2/generate_path`, `c2_interfaces/action/GeneratePath`, schema version 2.
+- 출력 waypoint: `[x, y, z, qx, qy, qz, qw]`, `c2_base`, m,
+  드릴 끝 기준 정규화 quaternion.
+- 도구 자세: tool −Y=표면 안쪽, tool +Z=base −Z.
+- 원통: 반지름 34.25 mm, 도안 u=0은 +X(0°), 이음매는 −X(±180°).
+- CUT 잠정 허용각: −135°~135°. J5 정밀값은 아직 확정 전이다.
+- `workcell.py`는 승인 REAL 설정 파일이 아니므로 노드는 `SIMULATION`만 허용한다.
+- 성공 경로에도 `J6_RANGE`는 미검사로 남는다. 실행 전 공정팀의 전체 경로
+  IK/J5/J6·충돌·보정 확인이 별도로 필요하다.
+- 매핑 실패 획이 하나라도 있거나 CUT가 비면 전체 생성이 실패한다. 실패/취소 시
+  `path_id/path_sha256`을 공개하지 않는다.
 
-- **반지름**: 자로 잰 34 mm를 쓴다. 옆면 접촉 실측으로는 `반지름+드릴 돌출=133.8mm` 합만 확정되고 반지름을 독립적으로 분리할 수 없다(보정 3점이 x ±14mm 범위에만 있어 측정 잡음 0.3mm로도 반지름 추정이 34~57mm까지 흔들림). 캘리퍼스로 지름을 직접 재기 전까지는 34mm를 쓴다.
-- **이음매 각도**: 이 PR은 ±180°(−X, 로봇 쪽)를 가정한다. 병합된 [`workcell_candle_0919.yaml`](../../../docs/evidence/workcell_candle_0919.yaml)(PR #32)에는 아직 `seam_angle_deg: 0`으로 남아 있어 **문서와 이 PR의 가정이 다르다**. 이음매 위치가 최종 확정되면 `workcell.py`의 `SEAM_ANGLE_DEG`(현재 180.0)만 바꾸면 되고, yaml도 같이 갱신해야 한다.
-- 워크셀 축·바닥/윗면 z는 [`workcell_candle_0919.yaml`](../../../docs/evidence/workcell_candle_0919.yaml)과 같다(PR #32, 병합됨).
-- `profile_snapshot_id`("snap-candle-0919")·`profile_sha256`(0으로 채움)은 서버가 발급하는 값이 아니라 샘플용 문자열이다.
-- J6/J5·IK는 이 패키지가 검사하지 않는다(`not_checked: J6_RANGE`). 공정 준비의 `joint_check.check_path_joints`(PR #34)가 담당한다. J5 안전 θ 범위가 정해지면 `workcell.REACHABLE_ANGLE_DEG`(현재 −180~180, 전 범위)에 반영한다.
+지원 입력 preset은 실제 PNG/JPEG 중심선 변환을 뜻하는
+`raster_centerline_bezier` 하나다. 기존 HMI의 `simulation_centerline`은 고정 모의
+샘플 이름이므로 실제 이미지 변환으로 묵시 해석하지 않는다.
 
-## 시험·샘플
+## 관리 파일 연결
 
-패키지 루트에서:
+노드는 브라우저 경로나 임의 절대 경로를 Goal에서 받지 않는다. HMI의
+`monitor_data/monitor.sqlite3`에 등록된 UUID와 `assets/<UUID>.bin`만 읽으며
+바이트 SHA-256을 다시 확인한다. 산출물(path/SVG/preview/validation)도 같은
+`assets` 테이블과 디렉터리에 한 묶음으로 등록한다.
+
+현재 HMI의 `mock-profile/1`은 반지름·유효 높이·워크셀 버전이 이 패키지 값과
+다르므로 노드가 `PROFILE_MISMATCH`로 거절하는 것이 정상이다. 통합 시험에는
+`pipeline.matching_test_profile()`과 동일한 내용을 서버가 불변 프로파일로 등록해야
+한다. REAL 프로파일로 사용하면 안 된다.
+
+## 빌드·실행
+
+저장소 루트 기준:
 
 ```bash
-python3 -m unittest discover -s test -v   # 43개
-python3 build_samples.py                  # samples/ 의 하트 샘플 3종 재생성
+source /opt/ros/jazzy/setup.bash
+cd ws_cobot_pjt/ws_cobot1
+colcon build --packages-select c2_interfaces c2_path --symlink-install
+source install/local_setup.bash
+
+ros2 run c2_path path_planner_node --ros-args \
+  -p managed_data_dir:=/절대/경로/ws_cobot_pjt/backend/monitor_data
 ```
 
-로봇·ROS·네트워크를 쓰지 않는다. 샘플 설명은 [samples/README.md](samples/README.md). 이 노드에서 로봇을 움직이지 않으며, 필수 검증이 구현되지 않은 항목은 통과로 보고하지 않는다.
+`managed_data_dir`를 지정하지 않았거나 HMI 저장소가 초기화되지 않았으면 노드는
+기동하되 Goal을 `NOT_READY`로 실패시킨다. 생성 제한 시간 기본값은 120초다.
+
+순수 계산 시험:
+
+```bashd
+cd ws_cobot_pjt/ws_cobot1/src/c2_path
+python3 -m unittest discover -s test -v
+```
+
+ROS 빌드 후 Action 서버/클라이언트 통합 시험은 별도로 수행한다. 노드가 생겼다는
+사실만으로 HMI 전체 연동이 완료되는 것은 아니다. 백엔드 `RosBridge`의
+`artifact_loader`, 실제 preset 허용, 이 test_only 프로파일 등록을 같은 계약으로
+연결해야 한다.

@@ -11,10 +11,8 @@
 
   <buildtool_depend>ament_python</buildtool_depend>
 
-  <!--
-    node.py 가 아직 없어 rclpy·c2_interfaces 를 실행 의존성으로 넣지 않는다.
-    GeneratePath Action 을 받는 노드를 구현하면 그때 추가한다.
-  -->
+  <exec_depend>rclpy</exec_depend>
+  <exec_depend>c2_interfaces</exec_depend>
 
   <!-- image_to_svg.py (이미지 -> 중심선 SVG 변환) 가 쓰는 실행 의존성 -->
   <exec_depend>python3-opencv</exec_depend>

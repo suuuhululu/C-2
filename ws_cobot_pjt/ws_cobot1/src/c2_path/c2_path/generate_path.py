@@ -194,6 +194,8 @@ def chunk(points, max_points):
 
 def build(mapped, path_id, path_version, asset_id, asset_sha256,
           snapshot_id, profile_sha256, source_mode="SIMULATION"):
+    if not mapped:
+        raise ValueError("EMPTY_PATH: 매핑된 3D 획이 없습니다.")
     order, order_stats = order_safety_cost(mapped, wc.CLEARANCE_STROKE_M,
                                            initial_order=list(range(len(mapped))))
     strokes = [mapped[i] for i in order]
