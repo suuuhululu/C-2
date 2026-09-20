@@ -6,6 +6,7 @@ from collections import deque
 
 from .mock_peer import MockPeer, PROFILE
 from .monitor_contract import SCHEMA_VERSION, now, uid
+from .artifact_loader import ArtifactLoadError, PathArtifactLoader
 
 
 class DomainError(Exception):
@@ -24,7 +25,14 @@ class MonitorService:
         self.lock=asyncio.Lock();self.writes=asyncio.Queue();self.storage_error=None;self.closed=False
 
     async def start(self):
-        self.profile=await asyncio.to_thread(self.store.profile,PROFILE)
+        if self.transport not in ('mock', 'ros'):
+            raise RuntimeError('C2_MONITOR_TRANSPORT는 mock 또는 ros여야 합니다.')
+        profile = PROFILE
+        if self.transport == 'ros':
+            # PR #38의 원본을 그대로 등록. 별도 수치·버전의 복제 프로파일을 만들지 않는다.
+            from c2_path.pipeline import matching_test_profile
+            profile = matching_test_profile()
+        self.profile=await asyncio.to_thread(self.store.profile,profile)
         self.run=await asyncio.to_thread(self.store.recover)
         self.stops=await asyncio.to_thread(self.store.stop_requests)
         self.events.extend(await asyncio.to_thread(self.store.events))
@@ -34,7 +42,7 @@ class MonitorService:
             self.peer=MockPeer(self.store,self.profile,self.receive,self.tick)
         else:
             from .ros_bridge import RosBridge
-            self.peer=RosBridge(self.receive)
+            self.peer=RosBridge(self.receive,artifact_loader=PathArtifactLoader(self.store))
         await self.peer.start()
 
     def launch(self,coro):
@@ -111,10 +119,25 @@ class MonitorService:
                     connection='CONNECTED' if self.fresh() else 'STALE',state=self.state,active_run=self.run,
                     profile=self.profile,events=list(self.events),generation=self.generation_status.get(self.generating),
                     storage_error=self.storage_error,scenario=getattr(self.peer,'scenario',None),
-                    contract_status=self.contract_error or '고정 드릴 통신 v2 · 미리보기 세부 형식은 모의 계약')
+                    path_generation=self.path_capabilities(),
+                    contract_status=self.contract_error or ('고정 드릴 v2 · c2-path-preview/1 · 경로 시험 전용'
+                        if self.transport == 'ros' else '고정 드릴 v2 · mock-preview/1'))
+
+    def path_capabilities(self):
+        ros = self.transport == 'ros'
+        low, high = self.profile['payload']['surface']['valid_v_range_mm']
+        return dict(preset='raster_centerline_bezier' if ros else 'simulation_centerline',
+                    preview_contract='c2-path-preview/1' if ros else 'mock-preview/1',
+                    ready=self.peer.generate_client.server_is_ready() if ros else True,
+                    execution_enabled=not ros,
+                    execution_block_reason='경로 생성·미리보기 시험 전용입니다. J6/IK·보정·공정 실행 검증이 남아 있습니다.' if ros else '',
+                    default_placement=dict(width_mm=24 if ros else 70, height_mm=24 if ros else 108,
+                        offset_u_mm=0, offset_v_mm=(low+high)/2, rotation_deg=0))
 
     async def generate(self,goal):
         async with self.lock:
+            if goal['conversion_preset'] != self.path_capabilities()['preset']:
+                raise DomainError('UNSUPPORTED_FORMAT','현재 연결 모드가 지원하는 이미지 변환 방식을 사용하세요.',422)
             old=await asyncio.to_thread(self.store.generation,goal['request_id'])
             if old:
                 if old['payload']!=goal:raise DomainError('REQUEST_CONFLICT','같은 요청 ID에 다른 입력이 있습니다.')
@@ -128,7 +151,7 @@ class MonitorService:
             except KeyError:raise DomainError('ASSET_NOT_FOUND','입력 파일 또는 설정을 찾을 수 없습니다.',404)
             except ValueError:raise DomainError('HASH_MISMATCH','파일 또는 설정 해시가 일치하지 않습니다.')
             if goal['profile_snapshot_id']!=self.profile['id'] or goal['profile_sha256']!=self.profile['sha256']:
-                raise DomainError('PROFILE_MISMATCH','현재 지원하는 모의 프로파일과 다릅니다.')
+                raise DomainError('PROFILE_MISMATCH','현재 연결 모드의 설정 스냅샷과 다릅니다.')
             self.generating=goal['request_id']
             try:await asyncio.to_thread(self.store.create_generation,goal)
             except Exception:
@@ -150,8 +173,8 @@ class MonitorService:
             self.generation_status[rid].update(state=status,result=result,progress=1)
             await self.notice(result['message'],code=result['error_code'],severity='INFO' if result['success'] else 'WARNING')
         except Exception as exc:
-            result=dict(success=False,error_code='TIMEOUT' if isinstance(exc,asyncio.TimeoutError) else 'NOT_READY' if isinstance(exc,(RuntimeError,ConnectionError)) else 'STORAGE_ERROR',
-                        message='생성 결과를 확정하지 못했습니다. 다시 조회하거나 연결 상태를 확인하세요.')
+            result=dict(success=False,error_code=exc.code if isinstance(exc,ArtifactLoadError) else 'TIMEOUT' if isinstance(exc,asyncio.TimeoutError) else 'NOT_READY' if isinstance(exc,(RuntimeError,ConnectionError)) else 'STORAGE_ERROR',
+                        message=str(exc) if isinstance(exc,ArtifactLoadError) else '생성 결과를 확정하지 못했습니다. 다시 조회하거나 연결 상태를 확인하세요.')
             self.generation_status[rid].update(state='FAILED',result=result)
             try:await asyncio.to_thread(self.store.finish_generation,rid,'FAILED',result)
             except Exception:self.storage_error='생성 실패 기록 저장 불가'
@@ -159,6 +182,8 @@ class MonitorService:
 
     async def start_run(self,body):
         async with self.lock:
+            if self.transport == 'ros':
+                raise DomainError('NOT_READY','현재 ROS 연결은 test_only 경로 미리보기 전용입니다. 공정 실행은 지원하지 않습니다.')
             old=await asyncio.to_thread(self.store.request,body['request_id'])
             if old:
                 if old['payload']!=body:raise DomainError('REQUEST_CONFLICT','같은 요청 ID에 다른 실행 입력이 있습니다.')

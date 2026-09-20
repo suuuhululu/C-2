@@ -1,6 +1,7 @@
 import { useRef, useState } from "react";
 import { Grid3X3, Maximize2, Minus, Plus, RotateCcw } from "lucide-react";
 import type { Asset, PathResult, Placement, Profile } from "./api";
+import { cutStrokes, cylinderPoint, previewSegments } from "./preview";
 
 function transformPoint(point: number[], from: Placement, to: Placement) {
   const a = (-from.rotation_deg * Math.PI) / 180;
@@ -41,6 +42,14 @@ export function UnwrappedPreview({
   const drag = useRef<{ u: number; v: number; draft: Placement } | null>(null);
   const s = profile?.payload.surface;
   const half = s ? s.radius_mm * Math.PI : 106.814;
+  const height = s?.height_mm ?? 150;
+  const [minV, maxV] = (s?.valid_v_range_mm ?? [10, 140]).map(
+    (v) => +v.toFixed(2),
+  );
+  const actual = profile?.payload.contract === "c2-path-test-profile/1";
+  const reachableU = s?.reachable_angle_deg?.map(
+    (v) => ((v * Math.PI) / 180) * s.radius_mm,
+  );
   function point(e: React.PointerEvent) {
     const matrix = svg.current?.getScreenCTM();
     if (!matrix) return [0, 0];
@@ -130,9 +139,13 @@ export function UnwrappedPreview({
       <div className="unwrap-stage">
         <svg
           ref={svg}
-          viewBox={`${-135 / zoom} ${-78 - 98 / zoom} ${270 / zoom} ${196 / zoom}`}
+          viewBox={`${-(half + 28) / zoom} ${-height / 2 - (height / 2 + 23) / zoom} ${((half + 28) * 2) / zoom} ${(height + 46) / zoom}`}
           role="img"
-          aria-label="원기둥 전개면. U 중심은 앞면 0도입니다."
+          aria-label={
+            actual
+              ? "원기둥 전개면. U=0은 base +X입니다."
+              : "원기둥 전개면. U 중심은 앞면 0도입니다."
+          }
         >
           <defs>
             <pattern
@@ -182,7 +195,7 @@ export function UnwrappedPreview({
           </defs>
           <text
             x="0"
-            y="-163"
+            y={-height - 13}
             textAnchor="middle"
             className="drawing-dimension"
           >
@@ -191,37 +204,55 @@ export function UnwrappedPreview({
           <line
             x1={-half}
             x2={half}
-            y1="-157"
-            y2="-157"
+            y1={-height - 7}
+            y2={-height - 7}
             className="dimension-line"
           />
           <rect
             x={-half}
-            y="-150"
+            y={-height}
             width={half * 2}
-            height="150"
+            height={height}
             fill={grid ? "url(#major-grid)" : "#fbfcf9"}
             stroke="#9cae9f"
             strokeWidth=".5"
           />
           <rect
             x={-half}
-            y="-150"
+            y={-height}
             width={half * 2}
-            height="10"
+            height={height - maxV}
             fill="url(#excluded)"
           />
           <rect
             x={-half}
-            y="-10"
+            y={-minV}
             width={half * 2}
-            height="10"
+            height={minV}
             fill="url(#excluded)"
           />
+          {reachableU && (
+            <>
+              <rect
+                x={-half}
+                y={-maxV}
+                width={Math.max(0, reachableU[0] + half)}
+                height={maxV - minV}
+                fill="url(#excluded)"
+              />
+              <rect
+                x={reachableU[1]}
+                y={-maxV}
+                width={Math.max(0, half - reachableU[1])}
+                height={maxV - minV}
+                fill="url(#excluded)"
+              />
+            </>
+          )}
           <line
             x1="0"
             x2="0"
-            y1="-150"
+            y1={-height}
             y2="0"
             stroke="#79a391"
             strokeWidth=".35"
@@ -234,13 +265,13 @@ export function UnwrappedPreview({
             className="drawing-dimension"
             textAnchor="middle"
           >
-            150 mm / 높이
+            {height} mm / 높이
           </text>
           <text x={-half} y="8" className="drawing-note">
             −180° · 이음매
           </text>
           <text x="0" y="8" className="drawing-note" textAnchor="middle">
-            0° · 앞면 · U=0
+            {actual ? "0° · base +X · U=0" : "0° · 앞면 · U=0"}
           </text>
           <text x={half} y="8" className="drawing-note" textAnchor="end">
             +180° · 이음매
@@ -273,7 +304,8 @@ export function UnwrappedPreview({
                 />
               )}
               {!original &&
-                result?.preview.strokes.map((st) => (
+                result &&
+                cutStrokes(result).map((st) => (
                   <polyline
                     key={st.segment_id}
                     points={st.points_uv_mm
@@ -359,7 +391,9 @@ export function UnwrappedPreview({
             <b>
               {stale
                 ? "입력이 바뀌었습니다. 경로를 다시 생성하세요."
-                : "모의 중심선 샘플 · 첨부 이미지의 실제 변환 결과가 아닙니다."}
+                : result.preview.contract === "c2-path-preview/1"
+                  ? "첨부 이미지의 중심선 경로 · 기하 검증 완료 · 실기 미검증"
+                  : "모의 중심선 샘플 · 첨부 이미지의 실제 변환 결과가 아닙니다."}
             </b>
             <span>
               {result.path_id.slice(0, 8)} · v{result.path_version} ·{" "}
@@ -369,7 +403,11 @@ export function UnwrappedPreview({
         ) : (
           <>
             <b>마우스로 도안을 이동하거나 왼쪽에서 수치를 입력하세요.</b>
-            <span>위·아래 음영은 모의 제외 영역입니다.</span>
+            <span>
+              {actual
+                ? `음영은 시험 가공 범위 밖입니다. V=${minV}~${maxV} mm, 각도 ${s?.reachable_angle_deg?.join("~")}°는 잠정 범위입니다.`
+                : "위·아래 음영은 모의 제외 영역입니다."}
+            </span>
           </>
         )}
       </div>
@@ -380,7 +418,7 @@ export function UnwrappedPreview({
 export function CylinderPreview({
   result,
   stale,
-  profile,
+  profile: currentProfile,
 }: {
   result: PathResult | null;
   stale: boolean;
@@ -388,20 +426,23 @@ export function CylinderPreview({
 }) {
   const [yaw, setYaw] = useState(0);
   const drag = useRef<number | null>(null);
+  const profile = result?.profile_snapshot ?? currentProfile;
   const radius = (profile?.payload.surface.radius_mm || 34) / 1000,
     scale = 1460,
     cx = 180,
     cy = 153;
+  const height = (profile?.payload.surface.height_mm ?? 150) / 1000;
   const rad = radius * scale,
     tilt = 0.22,
-    top = cy - 0.075 * scale,
-    bottom = cy + 0.075 * scale;
-  const project = (p: number[]) => {
+    top = cy - (height / 2) * scale,
+    bottom = cy + (height / 2) * scale;
+  const project = (point: number[]) => {
+    const p = cylinderPoint(point, profile);
     const x = p[0] * Math.cos(yaw) - p[1] * Math.sin(yaw);
     const depth = p[0] * Math.sin(yaw) + p[1] * Math.cos(yaw);
     return [
       cx + x * scale,
-      cy - (p[2] - 0.075) * scale + depth * scale * tilt,
+      cy - (p[2] - height / 2) * scale + depth * scale * tilt,
       depth,
     ];
   };
@@ -440,7 +481,7 @@ export function CylinderPreview({
           drag.current = null;
         }}
         role="img"
-        aria-label="칼끝 경로를 표시한 원기둥. 마우스로 관찰 방향을 회전합니다."
+        aria-label="드릴 끝 경로를 표시한 원기둥. 마우스로 관찰 방향을 회전합니다."
       >
         <defs>
           <linearGradient id="wax">
@@ -470,7 +511,7 @@ export function CylinderPreview({
           stroke="#b4bdb0"
           strokeWidth=".8"
         />
-        {result?.preview.strokes.flatMap((st) =>
+        {previewSegments(result).flatMap((st) =>
           st.points_m.slice(1).map((pt, i) => {
             const a = project(st.points_m[i]),
               b = project(pt);
@@ -482,7 +523,8 @@ export function CylinderPreview({
                 y1={a[1]}
                 x2={b[0]}
                 y2={b[1]}
-                stroke="#365849"
+                stroke={st.kind === "CUT" ? "#365849" : "#929b96"}
+                strokeDasharray={st.kind === "CUT" ? undefined : "2 2"}
                 strokeWidth="1.05"
                 strokeLinecap="round"
               />
@@ -490,7 +532,7 @@ export function CylinderPreview({
           }),
         )}
         <text x="308" y="144" className="cylinder-label" textAnchor="middle">
-          150
+          {height * 1000}
         </text>
         <text x="308" y="158" className="cylinder-label" textAnchor="middle">
           mm
@@ -501,16 +543,19 @@ export function CylinderPreview({
           fill="none"
         />
         <text x="180" y="291" className="cylinder-label" textAnchor="middle">
-          Ø 68 mm · 명목 규격
+          Ø {(radius * 2000).toFixed(1)} mm ·{" "}
+          {profile?.payload.contract === "c2-path-test-profile/1"
+            ? "시험 프로파일"
+            : "모의 규격"}
         </text>
       </svg>
       <div className="cylinder-note">
         {result
           ? stale
             ? "이전 생성 결과 · 다시 생성 필요"
-            : "전개면과 동일 경로 · 칼끝 기준"
+            : "전개면과 동일 경로 · 드릴 끝 기준"
           : "경로 생성 후 적용 모습이 표시됩니다."}
-        <span>드래그하여 관찰 방향 회전</span>
+        <span>드래그하여 관찰 방향 회전 · 점선은 비절삭 이동</span>
       </div>
     </section>
   );

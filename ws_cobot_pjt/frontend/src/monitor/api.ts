@@ -18,24 +18,29 @@ export type Profile = {
   id: string;
   sha256: string;
   payload: {
-    label: string;
+    label?: string;
+    contract: string;
     tool_id: string;
-    tool_label: string;
+    tool_label?: string;
     tcp_id: string;
-    tcp_reference: string;
-    note: string;
+    tcp_reference?: string;
+    note?: string;
     frame_id: string;
     surface: {
       radius_mm: number;
       height_mm: number;
-      u_range_mm: number[];
-      v_range_mm: number[];
+      u_range_mm?: number[];
+      v_range_mm?: number[];
       valid_v_range_mm: number[];
+      axis_origin_m?: number[];
+      axis_direction?: number[];
+      u_origin_angle_deg?: number;
+      reachable_angle_deg?: number[];
     };
   };
 };
 export type Stroke = {
-  stroke_id: string;
+  stroke_id: string | null;
   segment_id: string;
   kind: string;
   points_uv_mm: number[][];
@@ -53,10 +58,14 @@ export type PathResult = {
   segment_count: number;
   cut_length_m: number;
   input: Placement & { asset_id: string };
+  test_only?: boolean;
+  validation_not_checked?: string[];
+  profile_snapshot?: Profile;
   preview: {
     contract: string;
-    note: string;
-    strokes: Stroke[];
+    note?: string;
+    strokes?: Stroke[];
+    segments?: (Omit<Stroke, "points_uv_mm"> & { points_uv_mm?: number[][] })[];
     profile_snapshot_id: string;
     path_id: string;
     path_version: number;
@@ -121,8 +130,16 @@ export type Snapshot = {
   profile: Profile;
   active_run: Run | null;
   storage_error: string | null;
-  scenario: string;
+  scenario: string | null;
   contract_status: string;
+  path_generation: {
+    preset: string;
+    preview_contract: string;
+    ready: boolean;
+    execution_enabled: boolean;
+    execution_block_reason: string;
+    default_placement: Placement;
+  };
   events: Event[];
   state: {
     status: string;
@@ -148,6 +165,8 @@ export type Generation = {
     message: string;
     error_code: string;
     diagnostic_asset_id?: string;
+    svg_asset_id?: string;
+    validation_report_id?: string;
   } | null;
 };
 
@@ -222,12 +241,12 @@ export const statusNames: Record<string, string> = {
   UNKNOWN: "미확인",
 };
 export const stageNames: Record<string, string> = {
-  CONVERTING: "SVG 샘플 준비",
-  EXTRACTING_2D: "2D 선 준비",
-  OPTIMIZING_2D: "샘플 정리",
+  CONVERTING: "중심선 SVG 변환",
+  EXTRACTING_2D: "2D 경로 추출",
+  OPTIMIZING_2D: "획 순서 정리",
   MAPPING_3D: "표면 배치",
-  BUILDING_PATH: "경로 샘플 생성",
-  VALIDATING: "모의 범위 검사",
+  BUILDING_PATH: "3D 경로 생성",
+  VALIDATING: "경로 기하 검사",
 };
 export const active = (run?: Run | null) =>
   !!run && ["ACCEPTED", "RUNNING", "STOPPING", "UNKNOWN"].includes(run.status);
