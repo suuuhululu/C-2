@@ -1,0 +1,30 @@
+<?xml version="1.0"?>
+<package format="3">
+  <name>c2_path</name>
+  <version>0.1.0</version>
+  <description>
+    C-2 좌표 생성 패키지. 이미지·SVG를 2D로 추출·최적화하고 원통 표면에 매핑해
+    실행 경로(GeneratePath v2 계약)를 만든다. 로봇을 실행하지 않는다.
+  </description>
+  <maintainer email="167942097+suuuhululu@users.noreply.github.com">C-2 team</maintainer>
+  <license>Apache-2.0</license>
+
+  <buildtool_depend>ament_python</buildtool_depend>
+
+  <!--
+    node.py 가 아직 없어 rclpy·c2_interfaces 를 실행 의존성으로 넣지 않는다.
+    GeneratePath Action 을 받는 노드를 구현하면 그때 추가한다.
+  -->
+
+  <!-- image_to_svg.py (이미지 -> 중심선 SVG 변환) 가 쓰는 실행 의존성 -->
+  <exec_depend>python3-opencv</exec_depend>
+  <exec_depend>python3-skimage</exec_depend>
+  <exec_depend>python3-networkx</exec_depend>
+  <exec_depend>python3-numpy</exec_depend>
+
+  <test_depend>python3-pytest</test_depend>
+
+  <export>
+    <build_type>ament_python</build_type>
+  </export>
+</package>

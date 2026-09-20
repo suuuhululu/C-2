@@ -1,0 +1,89 @@
+{
+  "passed": true,
+  "checks": [
+    {
+      "code": "SCHEMA_VERSION",
+      "passed": true,
+      "expected": 2,
+      "observed": 2
+    },
+    {
+      "code": "WAYPOINT_FORMAT",
+      "passed": true,
+      "format": "[x,y,z,qx,qy,qz,qw]"
+    },
+    {
+      "code": "CONFIG_MATCH",
+      "passed": true,
+      "frame_id": "c2_base",
+      "tool_id": "engraving_drill"
+    },
+    {
+      "code": "HEIGHT_IN_RANGE",
+      "passed": true,
+      "limit_m": [
+        0.08499999999999999,
+        0.13
+      ]
+    },
+    {
+      "code": "CUT_ON_SURFACE",
+      "passed": true,
+      "observed_max_chord_error_m": 2.06e-06
+    },
+    {
+      "code": "CUT_SPACING_MAX",
+      "passed": true,
+      "limit_m": 0.002,
+      "observed_max_m": 0.000885
+    },
+    {
+      "code": "SEGMENT_POINTS_MAX",
+      "passed": true,
+      "limit": 80,
+      "observed_max": 80
+    },
+    {
+      "code": "STROKE_ARC_MAX",
+      "passed": true,
+      "limit_deg": 180.0,
+      "observed_max_deg": 40.443
+    },
+    {
+      "code": "SEAM_NOT_CROSSED",
+      "passed": true,
+      "seam_angle_deg": 180.0,
+      "applies_to": [
+        "CUT",
+        "TRAVEL"
+      ]
+    },
+    {
+      "code": "ANGLE_IN_REACHABLE_RANGE",
+      "passed": true,
+      "limit_deg": [
+        -180.0,
+        180.0
+      ],
+      "note": "J5 안전 범위 확정 전 — 현재 전 범위"
+    },
+    {
+      "code": "NO_CYLINDER_PENETRATION",
+      "passed": true,
+      "observed_min_travel_clearance_m": 0.009906
+    },
+    {
+      "code": "QUAT_NORMALIZED_AND_CONTINUOUS",
+      "passed": true,
+      "observed_sign_flips": 0
+    },
+    {
+      "code": "SEGMENT_CONTINUITY",
+      "passed": true
+    }
+  ],
+  "not_checked": [
+    "J6_RANGE"
+  ],
+  "errors": []
+}

@@ -1,0 +1,14 @@
+{
+  "success": true,
+  "error_code": "NONE",
+  "message": "하트 2개를 180도 떨어뜨렸다. 획 정렬과 오프셋 원통 TRAVEL 검증용.",
+  "path_id": "path-heart_pair-0001",
+  "path_version": 1,
+  "svg_asset_id": "svg-heart_pair-0001",
+  "preview_asset_id": "preview-heart_pair-0001",
+  "segment_count": 9,
+  "cut_length_m": 0.145346,
+  "validation_passed": true,
+  "validation_report_id": "val-heart_pair-0001",
+  "path_sha256": "7d9f678f6f9d8398c80e7e3aaee7484d8b11da96ebabc98a6b771d97745cd746"
+}
