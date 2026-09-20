@@ -14,7 +14,7 @@
   },
   "config": {
     "profile_snapshot_id": "snap-candle-0919",
-    "profile_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+    "profile_sha256": "cac70813b4b791046a52c0ad0ea82ad147e345f581db48fb2fb17290557ae731",
     "workcell_id": "candle_test_0919",
     "workcell_version": 1,
     "tools_config_id": "c2_tools",
@@ -2711,7 +2711,7 @@
           -135.0,
           135.0
         ],
-        "note": "J5 안전 범위 잠정치(9/20 실측) — 정밀 재실측 후 갱신 예정"
+        "note": "J5 안전 범위 확정 전 — 현재 전 범위"
       },
       {
         "code": "NO_CYLINDER_PENETRATION",

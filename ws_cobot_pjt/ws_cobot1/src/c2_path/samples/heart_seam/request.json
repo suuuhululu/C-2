@@ -9,8 +9,8 @@
   "offset_u_mm": 107.5995,
   "offset_v_mm": 105.0,
   "rotation_deg": 0.0,
-  "conversion_preset": "svg_centerline_bezier",
+  "conversion_preset": "raster_centerline_bezier",
   "tool_id": "engraving_drill",
   "profile_snapshot_id": "snap-candle-0919",
-  "profile_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+  "profile_sha256": "cac70813b4b791046a52c0ad0ea82ad147e345f581db48fb2fb17290557ae731"
 }

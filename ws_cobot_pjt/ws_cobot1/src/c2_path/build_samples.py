@@ -17,6 +17,8 @@ path_sha256 은 path.json 을 저장한 뒤 그 바이트로 계산해 result.js
 import json, math, os, hashlib, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from c2_path import extract_2d, optimize_2d, map_3d, generate_path, validate_path, workcell as wc
+from c2_path import pipeline as ppl
+from c2_path.artifacts import json_bytes as _json_bytes, sha256_bytes as _sha256_bytes
 
 BASE = os.path.dirname(os.path.abspath(__file__))
 with open(os.path.join(BASE, "samples", "heart.svg"), "rb") as f:
@@ -25,6 +27,15 @@ SVG = SVG_BYTES.decode("utf-8")
 ASSET_SHA = hashlib.sha256(SVG_BYTES).hexdigest()     # 파일 바이트 기준
 V_CENTER = (wc.HEIGHT_TOTAL_M - 0.045) * 1000.0     # 윗면 아래 45mm
 U_OF = lambda deg: wc.u_mm_from_theta_deg(deg)       # 원하는 도안 중심 각도 -> offset_u(mm)
+
+# 프로필 스냅샷: pipeline.matching_test_profile() 로 만든 실제 test_only 스냅샷을
+# 한 번만 만들어서 모든 샘플이 같은 ID·해시를 공유한다 ("0" * 64 자리표시값을 쓰지 않는다).
+PROFILE_ID = "snap-candle-0919"
+PROFILE = ppl.matching_test_profile()
+PROFILE_BYTES = _json_bytes(PROFILE)
+PROFILE_SHA = _sha256_bytes(PROFILE_BYTES)
+with open(os.path.join(BASE, "samples", "profile_snapshot.json"), "wb") as f:
+    f.write(PROFILE_BYTES)
 
 
 def build(name, placements, note):
@@ -42,7 +53,7 @@ def build(name, placements, note):
     mapped, failures, st_map = map_3d.map_strokes(ordered)
     path, st_gen = generate_path.build(mapped, f"path-{name}-0001", 1,
                                        f"asset-{name}-0001", ASSET_SHA,
-                                       "snap-candle-0919", "0" * 64)
+                                       PROFILE_ID, PROFILE_SHA)
     rep = validate_path.validate(path)
     path["validation"] = {"report_id": f"val-{name}-0001", "passed": rep["passed"],
                           "checks": rep["checks"], "not_checked": rep["not_checked"]}
@@ -52,9 +63,9 @@ def build(name, placements, note):
            "asset_id": f"asset-{name}-0001", "asset_sha256": ASSET_SHA,
            "width_mm": 24.0, "height_mm": 24.0,
            "offset_u_mm": round(placements[0][0], 4), "offset_v_mm": round(placements[0][1], 4),
-           "rotation_deg": 0.0, "conversion_preset": "svg_centerline_bezier",
-           "tool_id": wc.TOOL_ID, "profile_snapshot_id": "snap-candle-0919",
-           "profile_sha256": "0" * 64}
+           "rotation_deg": 0.0, "conversion_preset": "raster_centerline_bezier",
+           "tool_id": wc.TOOL_ID, "profile_snapshot_id": PROFILE_ID,
+           "profile_sha256": PROFILE_SHA}
     if len(placements) > 1:
         req["note"] = f"샘플 편의상 도안 {len(placements)}개를 한 경로에 넣었다. 실제 Goal 은 배치 1개다."
     fb = [{"stage": s, "progress": round((i + 1) / 6, 3)} for i, s in enumerate(

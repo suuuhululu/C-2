@@ -127,6 +127,8 @@ def validate_profile(profile: Mapping) -> None:
     _same(profile.get("frame_id"), wc.FRAME_ID, "frame_id", errors)
     _same(profile.get("workcell_id"), wc.WORKCELL_ID, "workcell_id", errors)
     _same(profile.get("workcell_version"), wc.WORKCELL_VERSION, "workcell_version", errors)
+    _same(profile.get("tools_config_id"), wc.TOOLS_CONFIG_ID, "tools_config_id", errors)
+    _same(profile.get("tools_config_version"), wc.TOOLS_CONFIG_VERSION, "tools_config_version", errors)
     _same(profile.get("tool_id"), wc.TOOL_ID, "tool_id", errors)
     _same(profile.get("tool_version"), wc.TOOL_VERSION, "tool_version", errors)
     _same(profile.get("tcp_id"), wc.TCP_PROFILE_ID, "tcp_id", errors)
@@ -159,6 +161,8 @@ def matching_test_profile() -> dict:
         "source_mode": "SIMULATION",
         "workcell_id": wc.WORKCELL_ID,
         "workcell_version": wc.WORKCELL_VERSION,
+        "tools_config_id": wc.TOOLS_CONFIG_ID,
+        "tools_config_version": wc.TOOLS_CONFIG_VERSION,
         "tool_id": wc.TOOL_ID,
         "tool_version": wc.TOOL_VERSION,
         "tcp_id": wc.TCP_PROFILE_ID,
