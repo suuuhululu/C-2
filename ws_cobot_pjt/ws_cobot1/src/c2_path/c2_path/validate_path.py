@@ -176,7 +176,7 @@ def validate(path):
         # 이음매(seam + 360k): 편 각도에서 연속한 두 점 사이에 이음매가 있으면 통과한 것.
         if _crosses_seam(unw):
             errors.append(f"SEAM_CROSSED: {sid}")
-        # CUT 허용 각도 범위 (J5 안전 범위 — 수치 확정 전까지 전 범위)
+        # CUT 허용 각도 범위 (J5 안전 범위 — 9/20 시율님 실측 기준 잠정치, 오늘 정밀 실측 후 갱신 예정)
         lo_r, hi_r = wc.REACHABLE_ANGLE_DEG
         for t in ths:
             if not (lo_r - 1e-6 <= t <= hi_r + 1e-6):
@@ -217,7 +217,7 @@ def validate(path):
         {"code": "SEAM_NOT_CROSSED", "passed": not any("SEAM_CROSSED" in e for e in errors),
          "seam_angle_deg": wc.SEAM_ANGLE_DEG, "applies_to": ["CUT", "TRAVEL"]},
         {"code": "ANGLE_IN_REACHABLE_RANGE", "passed": not any("ANGLE_OUT_OF_RANGE" in e for e in errors),
-         "limit_deg": list(wc.REACHABLE_ANGLE_DEG), "note": "J5 안전 범위 확정 전 — 현재 전 범위"},
+         "limit_deg": list(wc.REACHABLE_ANGLE_DEG), "note": "J5 안전 범위 잠정치(9/20 실측) — 정밀 재실측 후 갱신 예정"},
         {"code": "NO_CYLINDER_PENETRATION", "passed": not any("PENETRATION" in e for e in errors),
          "observed_min_travel_clearance_m": (round(min_travel_clear, 6)
                                              if min_travel_clear < math.inf else None)},

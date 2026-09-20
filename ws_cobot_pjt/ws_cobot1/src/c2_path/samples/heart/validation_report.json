@@ -29,7 +29,7 @@
     {
       "code": "CUT_ON_SURFACE",
       "passed": true,
-      "observed_max_chord_error_m": 2.06e-06
+      "observed_max_chord_error_m": 2.09e-06
     },
     {
       "code": "CUT_SPACING_MAX",
@@ -47,7 +47,7 @@
       "code": "STROKE_ARC_MAX",
       "passed": true,
       "limit_deg": 180.0,
-      "observed_max_deg": 40.443
+      "observed_max_deg": 40.149
     },
     {
       "code": "SEAM_NOT_CROSSED",
@@ -62,10 +62,10 @@
       "code": "ANGLE_IN_REACHABLE_RANGE",
       "passed": true,
       "limit_deg": [
-        -180.0,
-        180.0
+        -135.0,
+        135.0
       ],
-      "note": "J5 안전 범위 확정 전 — 현재 전 범위"
+      "note": "J5 안전 범위 잠정치(9/20 실측) — 정밀 재실측 후 갱신 예정"
     },
     {
       "code": "NO_CYLINDER_PENETRATION",

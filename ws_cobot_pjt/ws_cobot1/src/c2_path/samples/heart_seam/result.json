@@ -1,14 +1,14 @@
 {
-  "success": true,
-  "error_code": "NONE",
+  "success": false,
+  "error_code": "VALIDATION_FAILED",
   "message": "하트를 이음매(180도, −X 면 = 로봇 쪽) 위에 놓아 이음매 분할을 재현한다. J5 위험 구역 — 실기 금지, 분할 확인용.",
-  "path_id": "path-heart_seam-0001",
-  "path_version": 1,
+  "path_id": "",
+  "path_version": 0,
   "svg_asset_id": "svg-heart_seam-0001",
   "preview_asset_id": "preview-heart_seam-0001",
   "segment_count": 7,
   "cut_length_m": 0.072673,
-  "validation_passed": true,
+  "validation_passed": false,
   "validation_report_id": "val-heart_seam-0001",
-  "path_sha256": "47b0ffde983baf029efbe1009194b8ce1b4988636a5c7e9d31bdf33d33e75e0e"
+  "path_sha256": ""
 }

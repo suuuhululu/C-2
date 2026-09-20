@@ -21,7 +21,8 @@ import numpy as np
 import cv2
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from c2_path import extract_2d, generate_path, image_to_svg, map_3d, optimize_2d, workcell as wc  # noqa: E402
+from c2_path import (extract_2d, generate_path, image_to_svg, map_3d, optimize_2d,
+                     validate_path, workcell as wc)  # noqa: E402
 
 SAMPLES = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "samples")
 SAMPLE_NAMES = ("heart", "heart_pair", "heart_seam")
@@ -452,11 +453,35 @@ class TestSeamAndOrigin(unittest.TestCase):
                                      f"{name}/{s['segment_id']}: TRAVEL 이 이음매 통과")
 
     def test_workcell_matches_0919_yaml(self):
-        """workcell_candle_0919.yaml (PR #32) 과 같은 값."""
+        """축 위치·바닥/윗면 z 는 workcell_candle_0919.yaml (PR #32) 과 같은 값이다.
+
+        반지름은 예외다: yaml 은 아직 9/19 자로 잰 0.034 인데, 9/20 캘리퍼스 재측정(지름
+        68.5mm±0.3)으로 0.03425 로 갱신됐다 (시율님 확인). yaml 자체는 팀이 별도로 갱신해야
+        한다 — 이 시험은 코드가 최신 실측값을 쓰는지 확인한다."""
         self.assertEqual(wc.AXIS_ORIGIN_XY_M, (0.4218, 0.0001))
         self.assertAlmostEqual(wc.TOP_Z_BASE_M, 0.2334)
         self.assertAlmostEqual(wc.AXIS_ORIGIN_Z_M, 0.0834)
-        self.assertAlmostEqual(wc.RADIUS_M, 0.034)
+        self.assertAlmostEqual(wc.RADIUS_M, 0.03425)
+
+    def test_reachable_angle_deg_is_j5_provisional_limit(self):
+        """9/20 시율님 J5 실측(θ=180°→J5=175°, ±135° 초과; 0°·±90° 는 정상, 사이는 미실측)
+        기준 잠정치. 오늘 5도 간격 실측이 나오면 갱신될 값이다."""
+        self.assertEqual(wc.REACHABLE_ANGLE_DEG, (-135.0, 135.0))
+
+    def test_degenerate_seam_stub_is_dropped(self):
+        """이음매를 짧은 구간에 두 번 넘나드는 획은 이음매 위에 점이 찍혀 길이 거의 0인
+        조각을 만들 수 있다 (9/20 시율님 heart_seam 실기 보고). 그런 퇴화 조각은
+        MIN_STROKE_LEN_M 미만이면 버려야 한다 — 실제 절삭 의미가 없고 제어기가 동일점
+        movesx 를 거부할 수 있다."""
+        v = (wc.WORKABLE_HEIGHT_RANGE_M[0] + 0.01) * 1000.0
+        thetas = [170.0, 180.5, 179.9, 190.0]
+        pts = [(wc.u_mm_from_theta_deg(t), v) for t in thetas]
+        mapped, failures, st = map_3d.map_strokes([pts])
+        self.assertEqual(failures, [])
+        self.assertEqual(st["degenerate_parts_dropped"], 2)
+        self.assertEqual(len(mapped), 2)
+        for part in mapped:
+            self.assertEqual(len(part["waypoints"]), 5)
 
 
 class TestFailureResultFormat(unittest.TestCase):
@@ -484,11 +509,24 @@ class TestValidationReport(unittest.TestCase):
     """검증 결과가 확인하지 않은 항목을 밝히는가."""
 
     def test_not_checked_declares_j6(self):
-        """c2_path 는 J6 를 계산하지 않는다. 실행 측이 봐야 한다는 걸 파일이 밝혀야 한다."""
+        """c2_path 는 J6 를 계산하지 않는다. 실행 측이 봐야 한다는 걸 파일이 밝혀야 한다.
+
+        (모든 샘플이 통과한다는 뜻은 아니다 — heart_seam 은 REACHABLE_ANGLE_DEG 적용 후
+        의도적으로 실패한다. 별도 시험 test_heart_seam_now_fails_angle_range 참고.)"""
         for name in SAMPLE_NAMES:
             v = load(name)["validation"]
             self.assertIn("J6_RANGE", v["not_checked"])
-            self.assertTrue(v["passed"])
+
+    def test_heart_seam_now_fails_angle_range(self):
+        """heart_seam 은 이음매(180°) 위에 놓여 J5 위험 구역에 들어간다. REACHABLE_ANGLE_DEG
+        가 잠정치(±135°)로 정해진 지금은 ANGLE_OUT_OF_RANGE 로 실패해야 정상이다 (samples/README.md
+        "알려진 한계"에서 이미 예고된 동작 — 회귀가 아니다). heart·heart_pair 는 계속 통과해야 한다."""
+        v = load("heart_seam")["validation"]
+        self.assertFalse(v["passed"])
+        rep = validate_path.validate(load("heart_seam"))
+        self.assertTrue(any("ANGLE_OUT_OF_RANGE" in e for e in rep["errors"]), rep["errors"])
+        for name in ("heart", "heart_pair"):
+            self.assertTrue(load(name)["validation"]["passed"], f"{name} 은 계속 통과해야 한다")
 
 
 class TestImageToSvg(unittest.TestCase):

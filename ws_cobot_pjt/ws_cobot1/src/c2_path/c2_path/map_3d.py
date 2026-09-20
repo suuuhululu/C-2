@@ -92,6 +92,11 @@ def _pos(theta, h):
     return wc.surface_point(theta, h)
 
 
+def _part_length_m(part):
+    """(theta,h) 조각의 3D 실측 길이 (표면 위, 직선 근사가 아니라 각 인접 점의 실제 표면 거리)."""
+    return sum(math.dist(_pos(*part[i]), _pos(*part[i + 1])) for i in range(len(part) - 1))
+
+
 def _chord_error_3d(t0, h0, t1, h1):
     """(theta,h) 두 점을 직선으로 이었을 때 실제 표면과의 최대 이탈(근사).
     중점에서의 거리로 본다 — 원통에서는 이게 sagitta 와 같다."""
@@ -137,7 +142,7 @@ def resample_adaptive(tv, chord_tol_m, max_step_m, min_step_m, max_depth=12):
 def map_strokes(strokes_uv, check_height=True):
     """u/v(mm) 획 -> 3D 획. 반환: (mapped, failures, stats)"""
     mapped, failures = [], []
-    n_seam = n_arc = 0
+    n_seam = n_arc = n_dropped = 0
     pts_before = pts_after = 0
 
     for idx, pts in enumerate(strokes_uv):
@@ -167,6 +172,14 @@ def map_strokes(strokes_uv, check_height=True):
             if len(ap) > 1:
                 n_arc += 1
             parts.extend(ap)
+
+        # 이음매 분할 등으로 생긴 퇴화 조각(점이 정확히 이음매 위에 찍혀 길이 거의 0)은 버린다.
+        # 원래 조각이 하나뿐이면(분할 안 됨) 건드리지 않는다 — 정상적으로 짧은 획까지 지우면 안 된다.
+        if len(parts) > 1:
+            kept = [p for p in parts if _part_length_m(p) >= wc.MIN_STROKE_LEN_M]
+            n_dropped += len(parts) - len(kept)
+            if kept:
+                parts = kept
 
         for pi, part in enumerate(parts):
             part = resample_adaptive(part, wc.CHORD_TOLERANCE_M,
@@ -199,6 +212,7 @@ def map_strokes(strokes_uv, check_height=True):
         "mapped_strokes": len(mapped),
         "strokes_split_at_seam": n_seam,
         "strokes_split_by_arc_limit": n_arc,
+        "degenerate_parts_dropped": n_dropped,
         "failed_strokes": len(failures),
         "points_before_resample": pts_before,
         "points_after_resample": pts_after,
