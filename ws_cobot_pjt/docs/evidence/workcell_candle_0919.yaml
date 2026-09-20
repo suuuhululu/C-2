@@ -11,23 +11,24 @@ target:
   tool_id: engraving_drill
   axis_direction_base: {x: 0.0, y: 0.0, z: 1.0}
   axis_point_base_m: {x: 0.4218, y: 0.0001}          # +Y·−Y 면 3점 측정 두 벌을 합쳐 중심 오차 상쇄 (어제 422.4, −2.6 에서 x −0.6, y +2.7)
-  radius_m: 0.034                                    # 자로 잰 지름 68
+  radius_m: 0.034                                    # 자로 잰 지름 68. 옆면 터치로는 (반지름 + 드릴 돌출) = 0.1338 만 확정되고 둘을 분리 못 함 (아래 참고)
+  radius_plus_tip_projection_m: 0.1338               # +Y/−Y 면 접촉 실측: 축에서 패드 중심까지 133.8 mm (드릴 끝이 표면에 닿을 때). R 과 L 은 이 합으로만 쓴다
   top_z_base_m: 0.2334                               # 손끝 수직 터치 4.9 N (추정 234.4 보다 −1.0)
   height_m: 0.150
   bottom_z_base_m: 0.0834                            # 추정 = top − height
   seam_angle_deg: 0
   usable_height_band_m: {from_top: 0.020, to_top: 0.065}
-  measured_faces_mm: {plus_y: 31.8, minus_y: -31.2, minus_x: 390.0}   # 실측 표면 좌표 (손끝 기준 환산)
+  measured_faces_mm: {plus_y: 31.8, minus_y: -31.2, minus_x: 390.0}   # 드릴 끝 위치 (돌출 102.5 가정으로 환산한 값이라 독립 반지름 측정이 아님. R 계산에 쓰지 말 것)
   tolerance_proposal_m: {axis: 0.003, top: 0.003}    # preconditions 1점 확인용 제안. 실측 근거는 오늘 1회
 stand:
   height_m: 0.050
   top_z_base_m: 0.0834
-process_home:                                        # 조각 시작·복귀 자세 (손끝이 축 위 30 mm, 그리퍼 수직, 툴 Y = +Y)
-  fingertip_base_m: {x: 0.4221, y: -0.0026, z: 0.2644}
-  posx_v1_mm_deg: [422.1, -2.6, 264.4, 3.2, -179.5, 3.9]
+process_home:                                        # 조각 시작·복귀 자세 (손끝이 축 위 31 mm, 그리퍼 수직, 툴 Y = +Y). 9/19 축 갱신 반영
+  fingertip_base_m: {x: 0.4218, y: 0.0001, z: 0.2644}
+  posx_v1_mm_deg: [421.8, 0.1, 264.4, 3.2, -179.5, 3.9]
 tool_engraving_drill:                                # 철사 고정 드릴. 재고정 전까지 불변
   tip_axis_tool: "-y"
-  tip_projection_m: 0.0998                           # +Y 면 102.5 / −Y 면 97.1 의 평균 (중심 y 오차 상쇄)
+  tip_projection_m: 0.0998                           # = 0.1338 − radius_m(0.034). 반지름을 바꾸면 이 값도 같이 바뀐다 (합 0.1338 이 실측)
   tip_lateral_x_m: 0.00085                           # +0.2 / +1.5 의 평균
   set_tool_offset_m: [0.00085, -0.0998, 0.0]
   tip_projection_tolerance_m: 0.002
