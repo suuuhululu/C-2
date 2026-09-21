@@ -6,6 +6,8 @@ REAL 전제: 실제 TCP/하중/장착 기준, 그리퍼 밑면 오프셋, 전 �
 """
 import collections
 from copy import deepcopy
+import json
+import logging
 import math
 import statistics
 import threading
@@ -186,7 +188,33 @@ class GuardedMeasurementAdapter:
             raise MeasurementError('NOT_READY','준비 조건 확인 만료')
 
     def preflight_measurement(self,steps,workcell,profiles,context):
-        self._ready(context)
+        """계측은 로컬 로그에만 남기고 계산 캐시는 이번 검사 안에서만 사용한다."""
+        metrics=dict(measurement_id=context.measurement_id,segments=len(steps),
+                     samples=0,ik_cache_hits=0,fk_cache_hits=0,calls={},seconds={})
+        self.last_preflight_metrics=metrics
+        started=time.perf_counter()
+        def timed(name, function, *args):
+            began=time.perf_counter()
+            metrics['calls'][name]=metrics['calls'].get(name,0)+1
+            try:return function(*args)
+            finally:metrics['seconds'][name]=metrics['seconds'].get(name,0.)+time.perf_counter()-began
+        try:
+            result=self._preflight_measurement(steps,workcell,profiles,context,metrics,timed)
+            metrics['outcome']=result.outcome
+            return result
+        except Exception as exc:
+            metrics['outcome']=getattr(exc,'outcome','FAILED')
+            metrics['error_code']=getattr(exc,'code',type(exc).__name__)
+            raise
+        finally:
+            metrics['elapsed_s']=time.perf_counter()-started
+            # 상태/Action 필드나 별도 토픽을 추가하지 않는다. 기존 ROS 로그로 계측.
+            node=getattr(self.io,'node',None)
+            logger=node.get_logger() if node is not None else logging.getLogger(__name__)
+            logger.info('measurement_preflight '+json.dumps(metrics,sort_keys=True))
+
+    def _preflight_measurement(self,steps,workcell,profiles,context,metrics,timed):
+        timed('readiness',self._ready,context)
         for profile_name in dict.fromkeys(('travel','approach','retract','top_touch','side_touch',workcell.get('outer_move_profile','approach'))):
             profile=profiles[profile_name]
             if 'soft_force_n' in profile:
@@ -203,19 +231,21 @@ class GuardedMeasurementAdapter:
         self.expected.clear();self.native_targets.clear()
         if self.offset!=workcell['tool_offset_m']:
             raise MeasurementError('PROFILE_MISMATCH','어댑터/측정 설정 도구 오프셋 불일치')
-        metadata=self.io.metadata()
+        metadata=timed('metadata',self.io.metadata)
         if metadata['tcp_id']!=workcell['tcp_id'] or metadata['load_id']!=workcell['load_id'] or metadata['robot_mode']!=1 or metadata['robot_system']!=0:
             raise MeasurementError('PROFILE_MISMATCH','실제 장치의 TCP/하중/REAL/AUTO 불일치')
         self.space=metadata['solution_space']
-        initial=self._read(); prev=initial['posx']; q=initial['joints_deg'];self._joint_guard(q)
+        initial=timed('observation',self._read); prev=initial['posx']; q=initial['joints_deg'];self._joint_guard(q)
         if initial['robot_state']!=1 or initial['motion_status']!=0:
             raise MeasurementError('NOT_READY','이동 검사 시작 시 정지 미확인')
         # 그리퍼/드릴/철사/양초/작업대의 전체 경로와 접촉 구간 후퇴를 승인하는 검사기.
         # 좌표가 유한하다는 이유만으로 간섭 검사를 통과시키지 않는다.
-        scene=self.scene_check(steps,workcell,initial)
+        scene=timed('scene',self.scene_check,steps,workcell,initial)
         if scene.get('path_checked') is not True or scene.get('probe_envelopes_checked') is not True:
             raise MeasurementError('NOT_READY','진입/원호/접촉/후퇴의 현장 간섭 검사 미완료')
         count=0
+        # TCP/해 공간/설정이 다른 다음 검사에는 재사용하지 않는다. 좌표 반올림 금지.
+        ik_cache={};fk_cache={}
         for step in steps:
             target=continuous_target(step['target_pose'],self.offset,prev)
             self.native_targets[tuple(step['target_pose'])]=target[:]
@@ -224,21 +254,35 @@ class GuardedMeasurementAdapter:
             if n>self.g['max_samples_per_segment']:
                 raise MeasurementError('PLAN_TOO_LARGE','ZYZ 회전 또는 경로 분할 범위 초과')
             for i in range(1,n+1):
-                self._ready(context)
+                timed('readiness',self._ready,context)
                 if self.clock()>=deadline:raise MeasurementError('TIMEOUT','측정 이동 사전 검사 시간 초과')
                 point=interpolate(prev,target,i/n)
-                nxt=self.io.ik(point,self.space)
+                ik_key=(self.space,tuple(point))
+                if ik_key in ik_cache:
+                    raw=ik_cache[ik_key]
+                    metrics['ik_cache_hits']+=1
+                else:
+                    raw=tuple(vector(timed('ik',self.io.ik,point,self.space),6,'IK joints'))
+                    ik_cache[ik_key]=raw
+                # 같은 IK 결과도 직전 관절에 맞춘 회전수·연속성 검사는 다시 수행.
+                nxt=list(raw)
                 for axis in (0,3,5):nxt[axis]+=360*round((q[axis]-nxt[axis])/360)
                 self._joint_guard(nxt)
                 if max(abs(a-b) for a,b in zip(q,nxt))>self.g['max_joint_step_deg']:
                     raise MeasurementError('IK_DISCONTINUITY','IK 해 불연속')
-                fk=self.io.fk(nxt)
+                fk_key=(tuple(point),tuple(nxt))
+                if fk_key in fk_cache:
+                    fk=fk_cache[fk_key]
+                    metrics['fk_cache_hits']+=1
+                else:
+                    fk=tuple(vector(timed('fk',self.io.fk,nxt),6,'FK pose'))
+                    fk_cache[fk_key]=fk
                 if math.dist(fk[:3],point[:3])>self.g['fk_position_mm'] or rotation_distance(posx_to_pose(fk),posx_to_pose(point))>math.radians(self.g['fk_angle_deg']):
                     raise MeasurementError('IK_FK_MISMATCH','IK/FK 대조 실패')
-                q=nxt;count+=1
+                q=nxt;count+=1;metrics['samples']=count
                 self._emit_trace("ik_sample",dict(label=step["label"],sample=count,native_tcp=point,joints_deg=q))
             self.expected[tuple(step['target_pose'])]=q[:];prev=target
-        self._ready(context)
+        timed('readiness',self._ready,context)
         return StepResult('SUCCEEDED',observed_state=dict(all_segments_checked=True,probe_envelopes_checked=True,
             ownership_confirmed=True,tcp_load_match=True,
             validation_level='SAMPLED_CONTROLLER_IK_FK_AND_EXTERNAL_SCENE_CHECK',sample_count=count,

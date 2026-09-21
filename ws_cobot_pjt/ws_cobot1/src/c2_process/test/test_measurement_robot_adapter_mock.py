@@ -426,3 +426,85 @@ def test_overhead_actual_scene_rejection_never_resends(setup):
     with pytest.raises(MeasurementError,match='간섭 검사 실패'):
         ad.execute_measurement_step(step,c['profiles']['travel'],ctx,10.)
     assert len(io.moves)==1
+
+
+def straight_repeated_plan(setup):
+    ad,io,ctx,c,step,clock=setup
+    start=io.p[:]
+    calls={'ik':0,'fk':0}
+    def ik(point,space):
+        calls['ik']+=1
+        return [point[0]-start[0],20.,60.,0.,90.,0.]
+    def fk(q):
+        calls['fk']+=1
+        return [start[0]+q[0],*start[1:]]
+    io.ik=ik;io.fk=fk
+    poses=[posx_to_pose([x,*start[1:]],ad.offset) for x in (436.,426.,436.)]
+    steps=[dict(step,target_pose=p) for p in poses]
+    return steps,calls
+
+
+def test_exact_cache_reduces_queries_but_checks_every_sample(setup):
+    ad,io,ctx,c,_,clock=setup
+    steps,calls=straight_repeated_plan(setup)
+    trace=[];ad.trace=lambda event,data:trace.append((event,data))
+    r=ad.preflight_measurement(steps,c['workcell'],c['profiles'],ctx)
+    m=ad.last_preflight_metrics
+    assert r.ok and not io.moves
+    assert calls['ik']==calls['fk']<r.observed_state['sample_count']
+    assert m['samples']==len([x for x in trace if x[0]=='ik_sample'])
+    assert calls['ik']+m['ik_cache_hits']==m['samples']
+    assert calls['fk']+m['fk_cache_hits']==m['samples']
+    assert m['calls']['readiness']==m['samples']+2
+    assert m['elapsed_s']>=sum(m['seconds'].values())
+    expected=deepcopy(ad.expected)
+    # 새 검사에서는 설정/현재 상태가 바뀔 수 있으므로 다시 제어기에 조회한다.
+    first=calls.copy()
+    ad.preflight_measurement(steps,c['workcell'],c['profiles'],ctx)
+    assert calls=={k:2*v for k,v in first.items()}
+    assert ad.expected==expected
+
+
+def test_nearby_points_are_not_rounded_into_cache(setup):
+    ad,io,ctx,c,step,clock=setup
+    steps,calls=straight_repeated_plan(setup)
+    first=posx_to_pose([426.001,*io.p[1:]],ad.offset)
+    nearby=posx_to_pose([426.00100001,*io.p[1:]],ad.offset)
+    steps=[dict(step,target_pose=p) for p in (first,nearby)]
+    r=ad.preflight_measurement(steps,c['workcell'],c['profiles'],ctx)
+    assert r.ok and calls=={'ik':2,'fk':2}
+    assert ad.last_preflight_metrics['ik_cache_hits']==0
+
+
+def test_cached_route_still_honours_cancel_and_logs_failure(setup):
+    ad,io,ctx,c,_,clock=setup
+    steps,calls=straight_repeated_plan(setup)
+    def trace(event,data):
+        if ad.last_preflight_metrics['ik_cache_hits']:
+            ctx.cancel.set()
+    ad.trace=trace
+    with pytest.raises(MeasurementError,match='취소'):
+        ad.preflight_measurement(steps,c['workcell'],c['profiles'],ctx)
+    assert ad.last_preflight_metrics['outcome']=='STOPPED'
+    assert ad.last_preflight_metrics['error_code']=='CANCELLED'
+    assert not io.moves
+
+
+def test_cached_ik_still_checks_continuity_against_current_previous_joint(setup):
+    ad,io,ctx,c,step,clock=setup
+    steps,calls=straight_repeated_plan(setup)
+    original=io.ik
+    ad.g['max_joint_step_deg']=5.
+    # A -> B의 첫 표본에서만 관절 2를 조금씩 바꾸고, 재사용된 A에서 급변하게 한다.
+    # 동일 점을 다시 쓰더라도 이전 관절과의 연속성 검사는 생략하면 안 된다.
+    steps=[dict(step,target_pose=posx_to_pose([x,*io.p[1:]],ad.offset))
+           for x in (426.1,426.2,426.3,426.1)]
+    def ik(point,space):
+        q=original(point,space)
+        q[1]=20.+round((point[0]-426.1)*10)*4.
+        return q
+    io.ik=ik
+    with pytest.raises(MeasurementError,match='불연속'):
+        ad.preflight_measurement(steps,c['workcell'],c['profiles'],ctx)
+    assert ad.last_preflight_metrics['ik_cache_hits']==1
+    assert not io.moves
