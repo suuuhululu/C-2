@@ -1,6 +1,6 @@
 """Jazzy monitor_gateway_node. 팀 c2_interfaces 설치본만 사용하며 자체 메시지를 만들지 않는다.
 
-실제 장치 연결은 이 초안 범위가 아니다. source_mode=SIMULATION만 허용한다.
+REAL 모드는 준비 MEASURE만 허용한다. 로봇 동작은 공정 노드가 소유한다.
 MonitorService가 PR #38의 관리 파일 계약을 읽는 artifact_loader를 주입한다.
 """
 import asyncio
@@ -53,6 +53,8 @@ def ros_message_values(message):
             return f'{date:%Y-%m-%dT%H:%M:%S}.{value.nanosec:09d}Z'
         if hasattr(value, 'get_fields_and_field_types'):
             return {key: convert(getattr(value, key)) for key in value.get_fields_and_field_types()}
+        if isinstance(value, (list, tuple)):
+            return [convert(item) for item in value]
         return json_values(value)
 
     result = convert(message)
@@ -67,6 +69,24 @@ def ros_message_values(message):
             result['robot_connection_state'] = 'UNKNOWN'
             result['robot_mode'] = 'UNKNOWN'
     return result
+
+
+def ros_wire_values(value):
+    """BIND 대조용 원본. Time={sec,nanosec}, Pose/배열을 그대로 보존한다.
+
+    화면용 ros_message_values의 RFC3339/null 변환을 측정 원본에 적용하지 않는다.
+    """
+    if hasattr(value, 'get_fields_and_field_types'):
+        return {key: ros_wire_values(getattr(value, key)) for key in value.get_fields_and_field_types()}
+    if isinstance(value, dict):
+        return {key: ros_wire_values(item) for key, item in value.items()}
+    if hasattr(value, 'tolist'):
+        return ros_wire_values(value.tolist())
+    if isinstance(value, (list, tuple)):
+        return [ros_wire_values(item) for item in value]
+    if isinstance(value, float) and not math.isfinite(value):
+        raise ValueError('준비 원본에 비유한 값이 있습니다.')
+    return value
 
 
 async def await_ros(future, timeout):
@@ -102,7 +122,9 @@ def check_installed_contract(message_types):
 class RosBridge:
     transport='ROS2'
 
-    def __init__(self,emit,artifact_loader=None):
+    def __init__(self,emit,artifact_loader=None,*,mode='SIMULATION'):
+        if mode not in ('SIMULATION', 'REAL'): raise ValueError('지원하지 않는 모드')
+        self.mode = mode
         self.emit=emit;self.artifact_loader=artifact_loader;self.handles={};self.pending=set();self.generation_cancels=set()
 
     async def start(self):
@@ -127,6 +149,15 @@ class RosBridge:
         self.group=ReentrantCallbackGroup()
         self.generate_client=ActionClient(self.node,GeneratePath,'/c2/generate_path',callback_group=self.group)
         self.execute_client=ActionClient(self.node,ExecuteProcess,'/c2/execute_process',callback_group=self.group)
+        self.preparation_client = self.preparation_type = None
+        try:
+            from c2_interfaces.action import PrepareWorkpiece
+        except ImportError:
+            self.node.get_logger().warn('PrepareWorkpiece 설치본 없음: 기존 경로 시험만 지원')
+        else:
+            check_installed_contract((PrepareWorkpiece.Goal,))
+            self.preparation_type = PrepareWorkpiece
+            self.preparation_client = ActionClient(self.node, PrepareWorkpiece, '/c2/prepare_workpiece', callback_group=self.group)
         self.stop_client=self.node.create_client(StopProcess,'/c2/stop_process',callback_group=self.group)
         for msg,name,kind,depth in [(ProcessState,'/c2/process_state','state',1),(ProcessEvent,'/c2/process_events','event',100)]:
             qos=QoSProfile(depth=depth,reliability=ReliabilityPolicy.RELIABLE,durability=DurabilityPolicy.VOLATILE)
@@ -143,10 +174,13 @@ class RosBridge:
             self.pending.add(task);task.add_done_callback(self.pending.discard)
         self.loop.call_soon_threadsafe(enqueue)
 
-    async def action(self,client,msg,values,feedback=None):
+    async def action(self,client,msg,values,feedback=None,*,wire_result=False):
         if values.get('schema_version') != SCHEMA_VERSION:
             raise ValueError('고정 드릴 v2 요청만 지원합니다.')
-        if values.get('source_mode')!='SIMULATION':raise ValueError('이 게이트웨이 초안은 SIMULATION 전용입니다.')
+        if values.get('source_mode') != self.mode:
+            raise ValueError('게이트웨이와 요청 모드가 다릅니다.')
+        if self.mode == 'REAL' and (client is not self.preparation_client or values.get('operation') != 'MEASURE'):
+            raise ValueError('REAL에서는 준비 MEASURE만 허용합니다. 경로·등록·조각은 차단합니다.')
         if not client.server_is_ready():raise ConnectionError('ROS Action 서버가 준비되지 않았습니다.')
         goal=fill_message(msg.Goal(),values)
         def on_feedback(packet):
@@ -165,11 +199,11 @@ class RosBridge:
             raise
         if not handle.accepted:raise RuntimeError('ROS Goal이 거절되었습니다.')
         self.handles[values['request_id']]=handle
-        if client is self.generate_client and values['request_id'] in self.generation_cancels:
+        if values['request_id'] in self.generation_cancels:
             handle.cancel_goal_async()
         try:
             result=await await_ros(handle.get_result_async(),None if client is self.generate_client else 3600)
-            return dict(self.convert(result.result))
+            return dict(ros_wire_values(result.result) if wire_result else self.convert(result.result))
         except (asyncio.CancelledError,asyncio.TimeoutError):
             handle.cancel_goal_async()  # 수락을 정지 확인으로 간주하지 않는다.
             raise
@@ -187,6 +221,36 @@ class RosBridge:
         if handle is not None:
             await await_ros(handle.cancel_goal_async(), 3)
         # 취소 응답은 종료 증거가 아니다. action()의 최종 Result를 계속 기다린다.
+
+    async def cancel_preparation(self, request_id):
+        # PrepareWorkpiece의 표준 CancelGoal. StopProcess에 준비 ID를 넣지 않는다.
+        await self.cancel_generation(request_id)
+
+    async def prepare_raw(self, goal, feedback=None):
+        """기존 MEASURE/BIND 전송 경계. HTTP 활성화는 PreparationService의 SIM 옵션으로 제어.
+
+        REAL은 MEASURE만 허용. 로봇을 직접 조회하거나 자동 재시도하지 않는다.
+        """
+        if self.preparation_client is None or self.preparation_type is None:
+            raise ConnectionError('PrepareWorkpiece 설치·서버 연결이 필요합니다.')
+        if set(goal) != set(self.preparation_type.Goal().get_fields_and_field_types()):
+            raise ValueError('PrepareWorkpiece Goal 필드가 설치 타입과 다릅니다.')
+        if goal['operation'] not in ('MEASURE', 'BIND_SNAPSHOT'):
+            raise ValueError('지원하지 않는 준비 operation입니다.')
+        async def checked_feedback(value):
+            if all(value.get(k) == goal[k] for k in ('request_id','preparation_id','measurement_id','operation')) and feedback:
+                await feedback(value)
+        result = await self.action(self.preparation_client,self.preparation_type,goal,checked_feedback,wire_result=True)
+        if any(result.get(k) != goal[k] for k in goal if k != 'schema_version'):
+            raise ValueError('준비 Result의 요청·설정 참조가 다릅니다.')
+        if result.get('outcome') not in ('SUCCEEDED','FAILED','STOPPED','UNKNOWN'):
+            raise ValueError('준비 Result 상태가 올바르지 않습니다.')
+        if goal['operation'] == 'BIND_SNAPSHOT' and result['outcome'] == 'SUCCEEDED':
+            if (result.get('snapshot_bound') is not True or result.get('geometry_ready') is not True
+                    or result.get('stop_confirmed') is not True or result.get('partial') is not False
+                    or result.get('error_code') != 'NONE'):
+                raise ValueError('스냅샷 등록 완료 근거가 없습니다.')
+        return result
 
     async def generate_raw(self,goal,feedback):
         return await self.action(self.generate_client,self.types[0],goal,feedback)

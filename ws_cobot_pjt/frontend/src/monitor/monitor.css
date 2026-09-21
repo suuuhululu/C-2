@@ -1882,3 +1882,80 @@ small {
   background: #fcf5e9;
   color: #8f591e;
 }
+.preparation-panel {
+  margin-bottom: 18px;
+  padding: 22px;
+}
+.preparation-columns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 32px;
+  margin: 16px 0;
+}
+.preparation-check {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin: 12px 0;
+  font-size: 13px;
+}
+.preparation-check input {
+  accent-color: #346b56;
+}
+.measurement-points {
+  display: flex;
+  gap: 9px;
+  margin: 14px 0;
+}
+.measurement-points span {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  border: 1px solid #b9c5b5;
+  color: #66796d;
+}
+.measurement-points .point-succeeded {
+  background: #346b56;
+  color: #fff;
+}
+.measurement-points .point-running {
+  background: #f6e9cd;
+  border-color: #bb853d;
+}
+.measurement-points .point-failed,
+.measurement-points .point-unknown {
+  background: #f8e5df;
+  border-color: #b4543e;
+}
+.preparation-values div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 4px 0;
+  font-size: 12px;
+}
+.preparation-values dd {
+  margin: 0;
+}
+
+.observation-panel {
+  padding: 20px;
+  margin-bottom: 16px;
+}
+.observation-panel h2 small {
+  font-size: 12px;
+  font-weight: 400;
+}
+.preparation-panel details {
+  margin-top: 12px;
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+@media (max-width: 1100px) {
+  .preparation-columns {
+    grid-template-columns: 1fr;
+    gap: 18px;
+  }
+}

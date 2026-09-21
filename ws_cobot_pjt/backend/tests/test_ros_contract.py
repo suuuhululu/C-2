@@ -88,3 +88,21 @@ def test_valid_pose_retains_frame_stamp_and_nonfinite_values_become_null():
     assert result['tcp']['pose']['position']['x'] == 0.25
     assert result['joints'][1] is None
     json.dumps(result, allow_nan=False)
+
+
+def test_prepare_result_original_time_and_pose_arrays_survive_wire_conversion():
+    from c2_interfaces import action
+    if not hasattr(action, 'PrepareWorkpiece'):
+        pytest.skip('준비 Action 생성 타입 설치 후 실행')
+    from geometry_msgs.msg import Pose
+    from app.ros_bridge import ros_wire_values
+    result=action.PrepareWorkpiece.Result(
+        contact_indices=[0], contact_received_at=[Time(sec=100,nanosec=123456789)],
+        contact_tip_poses=[Pose()], contact_normal_force_n=[1.0],
+        contact_monotonic_s=[10.0],contact_sources=['SIMULATED'])
+    raw=ros_wire_values(result)
+    assert raw['contact_received_at']==[{'sec':100,'nanosec':123456789}]
+    assert raw['contact_indices']==[0]
+    assert raw['contact_tip_poses'][0]['orientation']['w']==result.contact_tip_poses[0].orientation.w
+    assert raw['measured_at']=={'sec':0,'nanosec':0}
+    json.dumps(raw,allow_nan=False)
