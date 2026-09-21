@@ -179,9 +179,13 @@ export class ApiError extends Error {
   }
 }
 
-export async function request<T>(url: string, body?: unknown): Promise<T> {
+export async function request<T>(
+  url: string,
+  body?: unknown,
+  timeoutMs = 7000,
+): Promise<T> {
   const controller = new AbortController();
-  const timer = window.setTimeout(() => controller.abort(), 7000);
+  const timer = window.setTimeout(() => controller.abort(), timeoutMs);
   try {
     const form = body instanceof FormData;
     const response = await fetch("/api/operator" + url, {

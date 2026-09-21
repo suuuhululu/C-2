@@ -26,6 +26,11 @@ pnpm exec prettier --check 'src/monitor/*.{ts,tsx,css}' src/main.tsx vite.config
 
 ## 사용 순서
 
+**파일 통합 시험**에서는 SIM 스냅샷 등록·선택 → 입력 ZIP 전달 → 결과 ZIP 가져오기 →
+전개면/원기둥 미리보기 → 공정팀 전달 ZIP을 사용할 수 있다.
+파일 교환용 선택은 아래 ROS/MOCK 기본 생성 설정과 별도이며, 공통 공정 필드의 승인으로 취급하지 않는다.
+[파일 형식·담당별 후속 작업](../docs/HMI_FILE_INTEGRATION.md)을 확인한다.
+
 1. **작업 준비**에서 PNG/JPEG 첨부 또는 ‘샘플로 둘러보기’.
 2. 가로·세로·중심 U/V·회전 입력. 전개면에서 마우스로 위치를 바꿀 수도 있다.
 3. **경로 생성**. 전개면과 원기둥의 동일 경로를 확인한다. 원기둥 드래그는 관찰 방향만 바꾼다.
@@ -47,6 +52,7 @@ ROS 모드는 PR #38의 `raster_centerline_bezier`로 첨부 이미지를 실제
 
 - `src/main.tsx`: 새 모니터 진입점
 - `src/monitor/Monitor.tsx`: 작업 준비·관제·이력·알람·설정
+- `src/monitor/FileIntegration.tsx`: SIM 스냅샷·입력/결과 ZIP·등록 결과 미리보기
 - `src/monitor/LivePathPreview.tsx`: 실시간 경로·모의 가공 판정 표시
 - `src/monitor/Previews.tsx`: U/V 전개면과 3D 점의 원기둥 투영
 - `src/monitor/preview.ts`: 실제/모의 preview 선택·원통 표시 좌표 변환(경로 파일 변경 없음)

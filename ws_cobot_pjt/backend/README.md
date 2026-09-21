@@ -1,5 +1,9 @@
 # 새김 시스템 모니터 서버
 
+2026-09-21: 공통 SIM 스냅샷 등록·선택, 입력 ZIP 내보내기, 결과 ZIP 검증·등록을 추가했다.
+화면의 **파일 통합 시험**을 사용한다. 전달 규격·API·공통 스키마의 미정 범위는
+[HMI 파일 통합 안내](../docs/HMI_FILE_INTEGRATION.md)를 따른다. 가져온 경로의 HMI 실행은 차단한다.
+
 2026-09-20: PR #38의 `c2_path` 계약에 맞춰 실제 이미지 경로 생성·관리 파일 로더·미리보기를 연결했다.
 한 PC에서 `python3 ws_cobot_pjt/run_monitor.py --transport ros`로 실행한다.
 Jazzy/공통 타입/계산 의존성 준비와 검증 범위는 [HMI 경로 통합 안내](../docs/HMI_PATH_INTEGRATION.md)를 따른다.
