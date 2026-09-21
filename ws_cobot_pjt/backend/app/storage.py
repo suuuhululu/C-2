@@ -196,7 +196,7 @@ class Storage:
 
     def recover(self):
         with self.db() as c:
-            c.execute("UPDATE path_generations SET state='FAILED',result=? WHERE state='ACCEPTED'",
+            c.execute("UPDATE path_generations SET state='FAILED',result=? WHERE state IN ('ACCEPTED','CANCELING','UNKNOWN')",
                       (encoded(dict(success=False,error_code='COMMUNICATION_LOST',message='서버 재시작으로 생성 결과 미확인')).decode(),))
         active = None
         for run in self.runs():

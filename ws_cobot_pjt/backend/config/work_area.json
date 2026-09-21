@@ -1,0 +1,8 @@
+{
+  "contract": "hmi-work-area-policy/1",
+  "revision": "2026-09-21-top-bottom-10mm",
+  "top_exclusion_mm": 10,
+  "bottom_exclusion_mm": 10,
+  "reference": "surface.height_mm",
+  "note": "상하 20mm 제외 기준을 대체합니다. 작업 영역 설정이며 실기 도달 가능 판정이 아닙니다."
+}

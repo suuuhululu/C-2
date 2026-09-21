@@ -60,21 +60,23 @@ def sample_svg():
 def diagnostic(goal, profile, store, strokes, message):
     """진단용 SVG는 path_versions에 등록하지 않으며 실행 참조를 갖지 않는다."""
     half=profile['payload']['surface']['radius_mm']*math.pi
+    low, high = profile['payload']['surface']['valid_v_range_mm']
+    height = profile['payload']['surface']['height_mm']
     paths=[]
     issues=[]
     for stroke in strokes:
         pts=stroke['points_uv_mm']
-        outside=any(abs(u)>half or not 10<=v<=140 for u,v in pts)
+        outside=any(abs(u)>half or not low<=v<=high for u,v in pts)
         too_wide=max(u for u,v in pts)-min(u for u,v in pts)>half
         if outside:issues.append({'reason':'OUT_OF_MOCK_BOUNDS','stroke_id':stroke['stroke_id'],
-                                  'segment_id':stroke['segment_id'],'location_uv_mm':next(p for p in pts if abs(p[0])>half or not 10<=p[1]<=140)})
+                                  'segment_id':stroke['segment_id'],'location_uv_mm':next(p for p in pts if abs(p[0])>half or not low<=p[1]<=high)})
         if too_wide:issues.append({'reason':'MOCK_STROKE_SPAN_EXCEEDED','stroke_id':stroke['stroke_id'],
                                   'segment_id':stroke['segment_id'],'location_uv_mm':pts[0]})
-        coords=' '.join(f'{u},{150-v}' for u,v in pts)
+        coords=' '.join(f'{u},{height-v}' for u,v in pts)
         color='#b04533' if outside or too_wide else '#345e4c'
         paths.append(f'<polyline points="{coords}" fill="none" stroke="{color}" stroke-width="0.7"/>')
     svg=(f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="-270 -140 540 420">'
-         f'<rect x="{-half}" y="10" width="{half*2}" height="130" fill="#f2f4ec" stroke="#a0b29f"/>'
+         f'<rect x="{-half}" y="{height-high}" width="{half*2}" height="{high-low}" fill="#f2f4ec" stroke="#a0b29f"/>'
          +''.join(paths)+'</svg>').encode()
     a=store.put_asset(svg,'diagnostic_svg','image/svg+xml','non-executable-diagnostic.svg')
     return None,dict(success=False,error_code='VALIDATION_FAILED',message=message,
@@ -85,6 +87,7 @@ def diagnostic(goal, profile, store, strokes, message):
 def artifacts(goal, profile, store, force_failure=False):
     """모의 GeneratePath 결과. 배치와 곡면은 화면 동작 시험용으로만 계산한다."""
     a = math.radians(goal['rotation_deg']); r = profile['payload']['surface']['radius_mm']
+    low, high = profile['payload']['surface']['valid_v_range_mm']
     strokes, segments = [], []
     out = False
     for n, points in enumerate(sample_strokes()):
@@ -93,7 +96,7 @@ def artifacts(goal, profile, store, force_failure=False):
             x *= goal['width_mm']; y *= goal['height_mm']
             u = x*math.cos(a)-y*math.sin(a)+goal['offset_u_mm']
             v = x*math.sin(a)+y*math.cos(a)+goal['offset_v_mm']
-            out |= abs(u) > math.pi*r or not 10 <= v <= 140
+            out |= abs(u) > math.pi*r or not low <= v <= high
             uv.append([round(u,5), round(v,5)])
         out |= max(u for u,v in uv)-min(u for u,v in uv)>math.pi*r
         xyz = [[r/1000*math.sin(u/r), -r/1000*math.cos(u/r), v/1000, 0,0,0,1] for u,v in uv]
@@ -171,11 +174,23 @@ class MockPeer:
              event_seq=self.event_seq,occurred_at=now(),run_id=self.state['run_id'],request_id=self.state.get('request_id',''),
              event_type=kind,phase=self.state['phase'],severity=severity,code=code,message=message,segment_id=''))
 
+    async def cancel_generation(self, request_id):
+        if not hasattr(self, 'generation_cancels'):
+            self.generation_cancels = set()
+        self.generation_cancels.add(request_id)
+
     async def generate(self,goal,feedback):
         scenario=self.scenario
         for i,stage in enumerate(STAGES):
             await feedback(dict(request_id=goal['request_id'],stage=stage,progress=(i+1)/len(STAGES)))
             await asyncio.sleep(self.tick)
+            if goal['request_id'] in getattr(self, 'generation_cancels', set()):
+                self.generation_cancels.discard(goal['request_id'])
+                return None, dict(success=False, validation_passed=False, error_code='CANCELED',
+                    message='경로 생성 요청이 취소되었습니다.', path_id='', path_version=0,
+                    path_sha256='', svg_asset_id='', preview_asset_id='', validation_report_id='',
+                    segment_count=0, cut_length_m=0.0)
+        # 저장이 시작되면 완료 결과를 기다린다. 파일 쓰기 스레드를 취소하지 않는다.
         return await asyncio.to_thread(artifacts,goal,self.profile,self.store,scenario=='generation_failure')
 
     def prepare(self,run):
