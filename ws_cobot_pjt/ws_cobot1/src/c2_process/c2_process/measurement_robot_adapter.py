@@ -272,6 +272,24 @@ class GuardedMeasurementAdapter:
             pass
         return StepResult('UNKNOWN','STOP_UNCONFIRMED',observed_state={'stop_confirmed':False})
 
+    def _move_line_limit(self, step, start_native, target_native):
+        """상공의 자세 유지 이동만 별도 편차 허용. 표면 접근/회전에는 적용하지 않는다."""
+        strict=self.g['line_error_mm']
+        limit=self.g.get('overhead_line_error_mm',strict)
+        if isinstance(limit,bool) or not isinstance(limit,(int,float)) or not math.isfinite(limit) or limit<strict:
+            raise MeasurementError('PROFILE_MISMATCH','상공 선분 허용폭 설정 오류')
+        scene=self.workcell.get('trial_scene')
+        if not scene or step['kind']!='MOVE' or step['profile']!='travel':return strict
+        start=posx_to_pose(start_native,self.offset);target=posx_to_pose(target_native,self.offset)
+        if rotation_distance(start,target)>self.workcell['angle_tolerance_rad']:return strict
+        # 자세 변화의 도구 끝 회전 반경까지 포함한 여유가 있어야 허용폭을 넓힌다.
+        margin=limit/1000.+math.dist(self.offset,[0.,0.,0.])*self.workcell['angle_tolerance_rad']
+        for native,tip in ((start_native,start),(target_native,target)):
+            tcp=[v/1000. for v in native[:3]]
+            if min(tcp[2],tip[2])-margin<scene['overhead_clearance_z_m']:return strict
+            if any(not low+margin<=v<=high-margin for v,low,high in zip(tcp,scene['tcp_min_m'],scene['tcp_max_m'])):return strict
+        return limit
+
     def execute_measurement_step(self,step,profile,context,timeout_s):
         deadline=self.clock()+min(profile['timeout_s'],timeout_s)
         o=self._read();self._check(o,profile,context,deadline)
@@ -323,7 +341,9 @@ class GuardedMeasurementAdapter:
                 self.sleep(self.g['poll_s'])
         elif math.dist(start[:3],target[:3])<=self.g['skip_position_m'] and rotation_distance(start,target)<=math.radians(self.g['skip_angle_deg']) and max(abs(a-b) for a,b in zip(o['joints_deg'],self.expected[tuple(target)]))<=self.g['completion_joint_deg']:
             return StepResult('SUCCEEDED',observed_state={'stop_confirmed':True})
-        self._emit_trace('command',dict(step=step,profile=profile,native_target=self.native_targets[tuple(target)]))
+        start_native=o['posx'][:]
+        line_limit=self.g['line_error_mm'] if probe else self._move_line_limit(step,start_native,self.native_targets[tuple(target)])
+        self._emit_trace('command',dict(step=step,profile=profile,native_target=self.native_targets[tuple(target)],line_error_limit_mm=line_limit))
         self.io.move(self.native_targets[tuple(target)],profile['speed_m_s']*1000,
                      profile['acceleration_m_s2']*1000,self.g['angular_speed_deg_s'],self.g['angular_acc_deg_s2'])
         began=self.clock();moved=False;stable=None;moving_samples=collections.deque();moving_bias=None
@@ -388,10 +408,19 @@ class GuardedMeasurementAdapter:
                     raise MeasurementError('CONTACT_NOT_FOUND','표면 접촉 없이 탐색 종료')
             else:
                 # 제어기 TCP 선분 감시. 회전 중 드릴 끝 궤적은 선형이 아니다.
-                a=pose_to_posx(start,self.offset);b=pose_to_posx(target,self.offset);v=[b[k]-a[k] for k in range(3)]
+                a=start_native;b=self.native_targets[tuple(target)];v=[b[k]-a[k] for k in range(3)]
                 length=sum(x*x for x in v);fraction=max(0,min(1,sum((o['posx'][k]-a[k])*v[k] for k in range(3))/length)) if length else 0
-                if math.dist(o['posx'][:3],[a[k]+fraction*v[k] for k in range(3)])>self.g['line_error_mm']:
-                    raise MeasurementError('PATH_DEVIATION','이동 선분 이탈')
+                line_error=math.dist(o['posx'][:3],[a[k]+fraction*v[k] for k in range(3)])
+                if line_error>self.g['line_error_mm']:
+                    self._emit_trace('move_deviation',dict(label=step['label'],line_error_mm=line_error,
+                        limit_mm=line_limit,start_tcp=a,target_tcp=b,actual_tcp=o['posx'],desired_tcp=o.get('desired_posx')))
+                if line_error>line_limit:
+                    raise MeasurementError('PATH_DEVIATION',f'이동 선분 이탈: {line_error:.3f} mm > {line_limit:.3f} mm')
+                if line_limit>self.g['line_error_mm']:
+                    # 넓힌 허용폭 안에서도 실제 자세와 목표 사이의 도구/양초 통과를 재검사한다.
+                    checked=self.scene_check([step],self.workcell,o)
+                    if checked.get('path_checked') is not True or checked.get('probe_envelopes_checked') is not True:
+                        raise MeasurementError('SCENE_REJECTED','상공 실제 위치에서 남은 이동 간섭 검사 실패')
                 joint_error=max(abs(a-b) for a,b in zip(o['joints_deg'],self.expected[tuple(target)]))
                 complete=moved and o['robot_state']==1 and o['motion_status']==0 and math.dist(current[:3],target[:3])<=self.workcell['pose_tolerance_m'] and rotation_distance(current,target)<=self.workcell['angle_tolerance_rad'] and joint_error<=self.g['completion_joint_deg']
                 if complete:

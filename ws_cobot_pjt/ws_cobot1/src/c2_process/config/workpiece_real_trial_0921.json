@@ -242,7 +242,8 @@
     "skip_angle_deg": 0.02,
     "skip_position_m": 2e-05,
     "stationary_mad_n": 0.1,
-    "stop_stable_s": 0.2
+    "stop_stable_s": 0.2,
+    "overhead_line_error_mm": 1.0
   },
   "escape_profile_source": "9/21 user-directed separation: near-surface approach/probe/retract keep 10 N; cleared escape uses existing air speed 60 mm/s, acceleration 60 mm/s^2, absolute 15 N software stop only; no soft/persistence force test. Native controller protection unchanged. Full motion profile verified in attempt 9: 8 points and final retreat succeeded in 299.295 s. Overall timeout subsequently extended to 360 s; this extension itself is not an additional REAL run."
 }

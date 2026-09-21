@@ -294,3 +294,69 @@ def test_nonfinite_desired_pose_is_not_accepted_as_settled(setup):
     io.read=read
     with pytest.raises(ValueError):ad.observe_measurement()
     assert not io.moves
+
+
+def overhead_replay(setup, *, limit=1., extra_error_mm=0.):
+    """기록된 0.647mm 편차까지 재생 후 목표 도달만 합성한다."""
+    ad,io,ctx,c,_,clock=setup
+    root=Path(__file__).resolve().parents[1]
+    recording=json.loads((root/'test/fixtures/workpiece_home_x_deviation_0921.json').read_text())
+    real=json.loads((root/'config/workpiece_real_trial_0921.json').read_text())
+    c['workcell']['trial_scene']=real['workcell']['trial_scene']
+    ad.g['overhead_line_error_mm']=limit
+    io.p=recording['start_tcp'][:];step=recording['step']
+    from c2_process.workpiece_real_trial import check_trial_scene
+    ad.scene_check=check_trial_scene
+    ad.preflight_measurement([step],c['workcell'],c['profiles'],ctx)
+    recorded=[p[:] for p in recording['observed_tcp']]
+    recorded[-1][2]-=extra_error_mm
+    original=io.read
+    def read():
+        if io.target is not None and recorded:
+            io.p=recorded.pop(0)
+            return dict(posx=io.p[:],joints_deg=io.q[:],force_n=[0.,0.,0.],robot_state=1,
+                        motion_status=2,measured_at_monotonic_s=clock())
+        return original()
+    io.read=read
+    return ad,io,ctx,c,step,clock
+
+
+def test_recorded_overhead_deviation_continues_without_resending(setup):
+    ad,io,ctx,c,step,clock=overhead_replay(setup)
+    result=ad.execute_measurement_step(step,c['profiles']['travel'],ctx,10.)
+    assert result.ok and result.observed_state['stop_confirmed']
+    assert len(io.moves)==1 and io.stops==[]
+
+
+def test_recorded_overhead_deviation_reproduces_old_failure(setup):
+    ad,io,ctx,c,step,clock=overhead_replay(setup,limit=.5)
+    with pytest.raises(MeasurementError,match='이동 선분 이탈'):
+        ad.execute_measurement_step(step,c['profiles']['travel'],ctx,10.)
+    assert len(io.moves)==1
+
+
+def test_overhead_bound_exceeded_still_fails(setup):
+    ad,io,ctx,c,step,clock=overhead_replay(setup,extra_error_mm=.5)
+    with pytest.raises(MeasurementError,match='이동 선분 이탈'):
+        ad.execute_measurement_step(step,c['profiles']['travel'],ctx,10.)
+    assert len(io.moves)==1
+
+
+@pytest.mark.parametrize('change',['low','approach','rotation','missing_scene','box_edge'])
+def test_overhead_allowance_never_applies_to_close_or_unverified_motion(setup,change):
+    ad,io,ctx,c,step,clock=overhead_replay(setup)
+    start=io.p[:];target=ad.native_targets[tuple(step['target_pose'])][:]
+    if change=='low':start[2]=target[2]=250.
+    elif change=='approach':step['profile']='approach'
+    elif change=='rotation':target[5]+=30.
+    elif change=='missing_scene':ad.workcell.pop('trial_scene')
+    elif change=='box_edge':start[2]=target[2]=334.9
+    assert ad._move_line_limit(step,start,target)==ad.g['line_error_mm']
+
+
+def test_overhead_actual_scene_rejection_never_resends(setup):
+    ad,io,ctx,c,step,clock=overhead_replay(setup)
+    ad.scene_check=lambda *a:dict(path_checked=False)
+    with pytest.raises(MeasurementError,match='간섭 검사 실패'):
+        ad.execute_measurement_step(step,c['profiles']['travel'],ctx,10.)
+    assert len(io.moves)==1
