@@ -1,0 +1,44 @@
+{
+  "recorded_at": "2026-09-21T03:09:50.332711+00:00",
+  "validation_scope": "READ_ONLY_CONTROLLER_IK_FK_NO_MOVEMENT",
+  "success": true,
+  "top": {
+    "all_segments_checked": true,
+    "probe_envelopes_checked": true,
+    "ownership_confirmed": true,
+    "drill_off_confirmed": true,
+    "tcp_load_match": true,
+    "validation_level": "SAMPLED_CONTROLLER_IK_FK_AND_EXTERNAL_SCENE_CHECK",
+    "sample_count": 238,
+    "scene_record": {
+      "path_checked": true,
+      "probe_envelopes_checked": true,
+      "samples": 246,
+      "min_model_shaft_gap_m": -0.034291659073503865,
+      "scope": "RECORDED_TRIAL_CORRIDORS_AND_CYLINDER_SHAFT_MODEL",
+      "full_robot_gripper_cable_mesh_checked": false,
+      "environment_record_id": "top_yfirst_20260921_091824+repeat180_20260921_103049"
+    },
+    "full_continuous_collision_checked": false
+  },
+  "side": {
+    "all_segments_checked": true,
+    "probe_envelopes_checked": true,
+    "ownership_confirmed": true,
+    "drill_off_confirmed": true,
+    "tcp_load_match": true,
+    "validation_level": "SAMPLED_CONTROLLER_IK_FK_AND_EXTERNAL_SCENE_CHECK",
+    "sample_count": 745,
+    "scene_record": {
+      "path_checked": true,
+      "probe_envelopes_checked": true,
+      "samples": 793,
+      "min_model_shaft_gap_m": -0.0005000000000000213,
+      "scope": "RECORDED_TRIAL_CORRIDORS_AND_CYLINDER_SHAFT_MODEL",
+      "full_robot_gripper_cable_mesh_checked": false,
+      "environment_record_id": "top_yfirst_20260921_091824+repeat180_20260921_103049"
+    },
+    "full_continuous_collision_checked": false
+  },
+  "note": "별도 실기 이동 성공을 의미하지 않음. 현재 자세 B≈-180 연속 표현 보정 후 검사. 원시 로그는 /tmp/workpiece-preflight-new.json 로컬 보존."
+}

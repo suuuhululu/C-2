@@ -7,6 +7,7 @@ from collections import deque
 from .mock_peer import MockPeer, PROFILE
 from .monitor_contract import SCHEMA_VERSION, now, uid
 from .artifact_loader import ArtifactLoadError, PathArtifactLoader
+from .work_area import register_policy, mock_profile_with_policy
 
 
 class DomainError(Exception):
@@ -19,7 +20,8 @@ class MonitorService:
     def __init__(self,store,transport='mock',tick=.4):
         self.store=store;self.transport=transport;self.tick=tick
         self.state=None;self.last_state=0.;self.retired_epochs=set()
-        self.run=None;self.generating=None;self.generation_status={};self.stops={}
+        self.run=None;self.generating=None;self.generation_status={};self.stops={};self.latest_generation=None;self.cancel_events={}
+        self.generation_timeout=120.;self.generation_cancel_timeout=5.
         self.stop_watch=None;self.stop_confirmation_timeout=3.;self.contract_error=None
         self.events=deque(maxlen=60);self.event_ids=set();self.tasks=set()
         self.lock=asyncio.Lock();self.writes=asyncio.Queue();self.storage_error=None;self.closed=False
@@ -28,10 +30,13 @@ class MonitorService:
         if self.transport not in ('mock', 'ros'):
             raise RuntimeError('C2_MONITOR_TRANSPORT는 mock 또는 ros여야 합니다.')
         profile = PROFILE
+        self.work_area_policy=await asyncio.to_thread(register_policy,self.store)
         if self.transport == 'ros':
             # PR #38의 원본을 그대로 등록. 별도 수치·버전의 복제 프로파일을 만들지 않는다.
             from c2_path.pipeline import matching_test_profile
             profile = matching_test_profile()
+        else:
+            profile = mock_profile_with_policy(profile, self.work_area_policy['payload'])
         self.profile=await asyncio.to_thread(self.store.profile,profile)
         self.run=await asyncio.to_thread(self.store.recover)
         self.stops=await asyncio.to_thread(self.store.stop_requests)
@@ -117,7 +122,8 @@ class MonitorService:
     def snapshot(self):
         return dict(schema_version=SCHEMA_VERSION,source_mode='SIMULATION',transport=self.peer.transport,server_time=now(),
                     connection='CONNECTED' if self.fresh() else 'STALE',state=self.state,active_run=self.run,
-                    profile=self.profile,events=list(self.events),generation=self.generation_status.get(self.generating),
+                    profile=self.profile,work_area_policy=self.work_area_policy,
+                    events=list(self.events),generation=self.generation_status.get(self.generating or self.latest_generation),
                     storage_error=self.storage_error,scenario=getattr(self.peer,'scenario',None),
                     path_generation=self.path_capabilities(),
                     contract_status=self.contract_error or ('고정 드릴 v2 · c2-path-preview/1 · 경로 시험 전용'
@@ -153,6 +159,8 @@ class MonitorService:
             if goal['profile_snapshot_id']!=self.profile['id'] or goal['profile_sha256']!=self.profile['sha256']:
                 raise DomainError('PROFILE_MISMATCH','현재 연결 모드의 설정 스냅샷과 다릅니다.')
             self.generating=goal['request_id']
+            self.latest_generation=goal['request_id']
+            self.cancel_events[goal['request_id']]=asyncio.Event()
             try:await asyncio.to_thread(self.store.create_generation,goal)
             except Exception:
                 self.generating=None;raise
@@ -160,25 +168,68 @@ class MonitorService:
             self.launch(self.generate_job(goal))
             return self.generation_status[goal['request_id']]
 
+    async def cancel_generation(self, rid):
+        async with self.lock:
+            record=self.generation_status.get(rid)
+            if record is None:
+                record=await asyncio.to_thread(self.store.generation,rid)
+                if record is None:raise KeyError(rid)
+            if record['state'] in ('SUCCEEDED','FAILED'):
+                return record  # 취소 재전송은 같은 최종 결과를 반환한다.
+            if rid != self.generating:
+                raise DomainError('NOT_READY','현재 서버가 관리하는 생성 요청이 아닙니다.')
+            if record['state']=='UNKNOWN':return record
+            record['state']='CANCELING'
+            self.cancel_events[rid].set()
+            return dict(record)
+
     async def generate_job(self,goal):
-        rid=goal['request_id']
+        rid=goal['request_id'];unconfirmed=False;timed_out=False
         async def feedback(f):
             if f.get('request_id')!=rid:return
-            if self.generation_status[rid]['state'] not in ('SUCCEEDED','FAILED'):
+            if self.generation_status[rid]['state'] in ('ACCEPTED','RUNNING'):
                 self.generation_status[rid].update(f,state='RUNNING')
+        operation=asyncio.create_task(self.peer.generate(goal,feedback))
+        cancel_wait=asyncio.create_task(self.cancel_events[rid].wait())
         try:
-            metadata,result=await asyncio.wait_for(self.peer.generate(goal,feedback),120)
+            done,_=await asyncio.wait((operation,cancel_wait),timeout=self.generation_timeout,
+                                      return_when=asyncio.FIRST_COMPLETED)
+            if operation not in done:
+                timed_out=cancel_wait not in done
+                self.generation_status[rid]['state']='CANCELING'
+                # 수락/취소 응답과 실제 작업 종료 결과를 구별한다.
+                try:await asyncio.wait_for(self.peer.cancel_generation(rid),3.5)
+                except Exception:pass
+                try:await asyncio.wait_for(asyncio.shield(operation),self.generation_cancel_timeout)
+                except asyncio.TimeoutError:
+                    unconfirmed=True
+                    result=dict(success=False,error_code='COMMUNICATION_LOST',
+                        message='생성 중단을 확인하지 못했습니다. 새 생성을 차단합니다. 경로 노드와 모니터를 함께 재시작하세요.')
+                    self.generation_status[rid].update(state='UNKNOWN',result=result)
+                    await asyncio.to_thread(self.store.finish_generation,rid,'UNKNOWN',result)
+                    return
+            metadata,result=await operation
+            if timed_out and result.get('error_code')=='CANCELED':
+                result={**result,'error_code':'TIMEOUT','message':'생성 제한 시간을 초과하여 계산을 중단했습니다.'}
             status='SUCCEEDED' if result['success'] else 'FAILED'
             await asyncio.to_thread(self.store.finish_generation,rid,status,result,metadata)
             self.generation_status[rid].update(state=status,result=result,progress=1)
             await self.notice(result['message'],code=result['error_code'],severity='INFO' if result['success'] else 'WARNING')
         except Exception as exc:
-            result=dict(success=False,error_code=exc.code if isinstance(exc,ArtifactLoadError) else 'TIMEOUT' if isinstance(exc,asyncio.TimeoutError) else 'NOT_READY' if isinstance(exc,(RuntimeError,ConnectionError)) else 'STORAGE_ERROR',
-                        message=str(exc) if isinstance(exc,ArtifactLoadError) else '생성 결과를 확정하지 못했습니다. 다시 조회하거나 연결 상태를 확인하세요.')
-            self.generation_status[rid].update(state='FAILED',result=result)
-            try:await asyncio.to_thread(self.store.finish_generation,rid,'FAILED',result)
+            # 통신 결과가 불명확하면 서버 busy를 해제해 새 계산을 겹치지 않는다.
+            unconfirmed=unconfirmed or isinstance(exc,asyncio.TimeoutError)
+            result=dict(success=False,error_code=exc.code if isinstance(exc,ArtifactLoadError) else 'COMMUNICATION_LOST' if unconfirmed else 'NOT_READY' if isinstance(exc,(RuntimeError,ConnectionError)) else 'STORAGE_ERROR',
+                        message=str(exc) if isinstance(exc,ArtifactLoadError) else '생성 결과를 확정하지 못했습니다. 연결 상태를 확인하세요.')
+            state='UNKNOWN' if unconfirmed else 'FAILED'
+            self.generation_status[rid].update(state=state,result=result)
+            try:await asyncio.to_thread(self.store.finish_generation,rid,state,result)
             except Exception:self.storage_error='생성 실패 기록 저장 불가'
-        finally:self.generating=None
+        finally:
+            cancel_wait.cancel()
+            if not operation.done():operation.cancel()
+            await asyncio.gather(operation,cancel_wait,return_exceptions=True)
+            self.cancel_events.pop(rid,None)
+            if not unconfirmed:self.generating=None
 
     async def start_run(self,body):
         async with self.lock:

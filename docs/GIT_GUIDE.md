@@ -10,6 +10,8 @@ Issue 등록은 [작업 양식](../.github/ISSUE_TEMPLATE/task.yml)을 사용한
 
 ## 초기화 완료와 현재 기준
 
+2026-09-21 원격 main 기준은 `19ef4c6`이며 초기 저장소 구성 이후 c2_interfaces·HMI/서버·c2_path와 공정 내부 모듈이 병합돼 있다. 최신 구현·검증 범위는 [진행 현황](REVIEW_STATUS.md)을 따른다. 아래 초기 PR과 보호 규칙 기록은 Git 운영의 이력이며 프로젝트 기능의 현재 상태표가 아니다.
+
 2026-09-16 main 생성·기본 브랜치 지정을 마쳤다. 초기 구성 [PR #1](https://github.com/suuuhululu/C-2/pull/1)은 `gimseeun`, 외부 실행환경 제외 [PR #3](https://github.com/suuuhululu/C-2/pull/3)은 `sskywalker1209-prog` 승인 후 main에 병합됐다. main에는 프로젝트 파일이 있으며 초기화가 필요하지 않다.
 
 팀원 `gimseeun`, `roh4195`, `sskywalker1209-prog`의 초대 수락·Write 권한은 2026-09-16에 확인했다. 초기화를 다시 하거나 작업 브랜치 이름을 main으로 바꾸지 않는다.
