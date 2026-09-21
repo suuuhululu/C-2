@@ -22,7 +22,7 @@ from uuid import uuid4
 from .engraving import ExecutionContext, execute_path, validate_path, build_execution_plan, execution_signature
 from .joint_check import check_path_joints
 from .preconditions import PreconditionEvidence, check_preconditions, check_robot_status, check_prepared_path
-from .robot_adapter import DoosanRobotAdapter, MockRobotAdapter, StepResult, apply_tool_offset
+from .robot_adapter import DoosanRobotAdapter, MockRobotAdapter, RobotState, StepResult, apply_tool_offset
 from .state_machine import run_process, run_preparation, run_prepared_process
 from .tool_calibration import TipCalibration, verify_tool_tip, upright_quat
 from .workpiece_calibration import MeasurementContext, measure_workpiece
@@ -86,7 +86,7 @@ def check_selected_tool_profiles(adapter, settings: Mapping) -> StepResult:
 
 
 def check_preparation_status(adapter, evidence: PreconditionEvidence, settings: Mapping,
-                             *, cancel=None) -> StepResult:
+                             *, cancel=None, on_observation=None) -> StepResult:
     """경로 생성 전 상태검사의 함수 진입점. 측정·조각·그리퍼 명령 없음.
 
     HMI 준비 요청과 연결할 내부 함수이며 새 ROS 인터페이스가 아니다.
@@ -105,7 +105,12 @@ def check_preparation_status(adapter, evidence: PreconditionEvidence, settings: 
     try:
         state = adapter.observe()
     except Exception as exc:
+        if callable(on_observation):
+            on_observation(None, None, None)
         return StepResult("UNKNOWN", "COMMUNICATION_LOST", f"상태 조회 실패: {exc}", "robot_status")
+    if callable(on_observation):
+        on_observation(state, getattr(adapter, "tool_offset_m", None),
+                       evidence.max_robot_state_age_s)
     if cancel is not None and cancel.is_set():
         return cancelled()
     checked = check_robot_status(replace(evidence, robot_state=state))
@@ -553,6 +558,22 @@ class ObservationCache:
             # robot_state는 동작 상태이며 수동/자동 robot_mode와 다르다. 모드는 미확인 유지.
         return out
 
+    def capture_measurement(self, observation, offset, max_age_s, *, now=None, utc_ns=None):
+        """측정 어댑터의 검증된 관측 dict를 공용 RobotState 캐시에 넣는다."""
+        if not isinstance(observation, Mapping):
+            self.capture(None, None, None, now=now, utc_ns=utc_ns)
+            return
+        measured = observation.get("measured_at_monotonic_s")
+        state = RobotState(
+            joints_rad=copy.deepcopy(observation.get("joints_rad")),
+            tcp_pose=copy.deepcopy(observation.get("tip_pose")),
+            frame_id=observation.get("frame_id", ""),
+            robot_state=observation.get("robot_state"),
+            quality=observation.get("quality", "UNKNOWN"),
+            measured_at=measured,
+        )
+        self.capture(state, offset, max_age_s, now=now, utc_ns=utc_ns)
+
 
 class ProcessAlarms:
     """공정 오류만 추적한다. 같은 경로·설정의 PRECHECK 재통과만 자동 해소한다."""
@@ -677,7 +698,9 @@ class ProcessCoordinator:
         try:
             result = run_preparation(
                 context,
-                status_check=lambda: check_preparation_status(adapter, evidence, settings, cancel=active.cancel),
+                status_check=lambda: check_preparation_status(
+                    adapter, evidence, settings, cancel=active.cancel,
+                    on_observation=self.observations.capture),
                 motion_check=lambda: motion_check(adapter, context),
                 measure=lambda: measure(adapter, context), confirm_result=confirm_result,
                 on_phase=on_phase)
@@ -1175,6 +1198,7 @@ def create_ros_node(load_inputs: Callable[[Mapping], ExecutionInputs] = _missing
                     raise ValueError("real_adapter_factory는 호출 가능해야 함")
                 adapter = real_adapter_factory(self)
             self.observations = ObservationCache()
+            self._preparation_action_active = False
             self.alarms = ProcessAlarms()
             self.profile_values = {}
             self.coordinator = ProcessCoordinator(
@@ -1236,19 +1260,70 @@ def create_ros_node(load_inputs: Callable[[Mapping], ExecutionInputs] = _missing
 
         def cancel_preparation(self, handle):
             goal = {k:getattr(handle.request,k) for k in GOAL_FIELDS}
-            return CancelResponse.ACCEPT if self.preparation.cancel(goal) else CancelResponse.REJECT
+            accepted = self.preparation.cancel(goal)
+            if accepted:
+                with self.lock:
+                    self.status = "STOPPING"
+                    self.stop_state = "REQUESTED"
+                    self.message = "준비 취소 요청 접수; 실제 정지 확인 대기"
+            return CancelResponse.ACCEPT if accepted else CancelResponse.REJECT
 
         def execute_preparation(self, handle):
             goal = {k:getattr(handle.request,k) for k in GOAL_FIELDS}
+            with self.lock:
+                self.goal_values = {}
+                self.status = "RUNNING"
+                # ProcessState.phase는 기존 실행 공정 단계만 사용한다. 준비의 세부
+                # stage/progress는 PrepareWorkpiece Feedback으로만 전달한다.
+                self.phase = "PRECHECK"
+                self.stop_state = "NONE"
+                self.error_code = "NONE"
+                self.message = "준비 요청 접수"
+                self.progress = 0.0
+                self.segment_id = ""
+                self.started_at = time.monotonic()
+                self._preparation_action_active = True
+            self.emit_event("COMMAND", message="준비 요청 접수")
             def publish(value):
+                with self.lock:
+                    stage = value.get("stage", "UNKNOWN")
+                    progress = float(value.get("progress", 0.0))
+                    detail = value.get("message", "")
+                    self.message = f"{stage} ({progress:.0%})" + (f" {detail}" if detail else "")
                 packet = PrepareWorkpiece.Feedback()
                 set_message_fields(packet,value)
                 handle.publish_feedback(packet)
-            data = self.preparation.execute(goal,publish)
-            output = PrepareWorkpiece.Result()
-            set_message_fields(output,data)
-            _finish_action(handle,StepResult(data['outcome'],data['error_code']))
-            return output
+            try:
+                data = self.preparation.execute(goal,publish)
+                with self.lock:
+                    self.status = data["outcome"]
+                    self.error_code = data["error_code"]
+                    self.message = data["message"]
+                    self.progress = 1.0 if data["outcome"] == "SUCCEEDED" else self.progress
+                    if data["outcome"] == "STOPPED":
+                        self.stop_state = "CONFIRMED" if data.get("stop_confirmed") else "UNKNOWN"
+                    elif data["outcome"] == "UNKNOWN":
+                        self.stop_state = "UNKNOWN"
+                # Action Result보다 먼저 최종 상태를 한 번 발행하고 다음 timer tick부터 대기로 돌아간다.
+                self.publish_state()
+                result = StepResult(data["outcome"], data["error_code"], data["message"])
+                self.report_alarm(self.phase, result)
+                self.emit_event("RUN_FINISHED", code=data["error_code"], message=data["message"],
+                                severity="INFO" if data["outcome"] == "SUCCEEDED" else "ERROR")
+                output = PrepareWorkpiece.Result()
+                set_message_fields(output,data)
+                _finish_action(handle,result)
+                return output
+            finally:
+                with self.lock:
+                    self._preparation_action_active = False
+                    self.status = "IDLE"
+                    self.phase = ""
+                    self.stop_state = "NONE"
+                    self.error_code = "NONE"
+                    self.message = "공정 대기"
+                    self.progress = 0.0
+                    self.started_at = 0.0
 
         def accept_goal(self, request):
             if (request.schema_version != 2 or request.source_mode != self.coordinator.runtime_mode
@@ -1293,6 +1368,7 @@ def create_ros_node(load_inputs: Callable[[Mapping], ExecutionInputs] = _missing
                 values = dict(self.goal_values)
                 status, phase = self.status, self.phase
                 stop_state, progress, started = self.stop_state, self.progress, self.started_at
+                preparation_active = self._preparation_action_active
                 error_code, message = self.error_code, self.message
             msg = ProcessState()
             msg.schema_version = 2
@@ -1305,7 +1381,8 @@ def create_ros_node(load_inputs: Callable[[Mapping], ExecutionInputs] = _missing
             msg.path_version = values.get("path_version", 0)
             msg.status, msg.phase, msg.stop_state = status, phase, stop_state
             msg.error_code, msg.message = error_code, message
-            msg.engraving_progress = progress
+            # 이 필드는 조각 진행률이다. 준비 진행률은 Action Feedback.progress를 사용한다.
+            msg.engraving_progress = 0.0 if preparation_active else progress
             msg.elapsed_s = max(0.0, time.monotonic() - started) if started else 0.0
             msg.requested_tool_id = "engraving_drill"
             values = self.observations.values()
@@ -1435,6 +1512,11 @@ def create_ros_node(load_inputs: Callable[[Mapping], ExecutionInputs] = _missing
             return output
 
         def destroy_node(self):
+            from .process_state_observer import stop_process_state_observer
+            stop_process_state_observer(self)
+            observation_owner = getattr(self, "real_preparation_observations", None)
+            if observation_owner is not None:
+                observation_owner.close()
             self.action.destroy()
             if self.prepare_action:
                 self.prepare_action.destroy()
@@ -1601,6 +1683,9 @@ def _real_preparation_options(node, options):
     node.real_preparation_observations = observations
     node.get_logger().info(
         "제어권 subscriber와 읽기 전용 정지 상태 조회 연결 완료")
+    def start_state_observer(config):
+        from .process_state_observer import start_process_state_observer
+        return start_process_state_observer(node, config)
     return {
         "evidence_provider": observations.evidence,
         "evidence_max_age_s": {
@@ -1608,6 +1693,7 @@ def _real_preparation_options(node, options):
         },
         "stop_latched_provider": observations.stop_latched,
         "stop_latch_recorder": observations.record_process_result,
+        "state_observer_starter": start_state_observer,
         "controller_prefix": options.controller_prefix,
     }
 

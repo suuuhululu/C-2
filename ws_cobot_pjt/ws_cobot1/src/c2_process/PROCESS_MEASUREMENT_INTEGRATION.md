@@ -155,6 +155,15 @@ observer = start_process_state_observer(node, measurement_config)
 stop_process_state_observer(node)
 ```
 
+### 관측기 시작 시점 확정
+
+- 노드 기동 직후부터 첫 `PrepareWorkpiece` Goal 전까지 `joints`와 `tcp` 품질은 `UNKNOWN`이다.
+- 첫 유효한 REAL `MEASURE` 요청에서 설정 스냅샷을 검증한 다음, 로봇 모션과 측정 adapter 생성 전에 관측기를 시작한다.
+- 관측기는 해당 요청의 성공·실패·취소와 관계없이 유지하며 다음 대기와 후속 요청에서도 같은 설정으로 재사용한다.
+- 관측 설정이 바뀐 후속 요청은 실행하지 않고 설정 불일치로 실패한다. 공정 노드를 종료한 뒤 새 설정으로 다시 기동한다.
+- 관측기는 공정 노드 `destroy_node()`에서만 종료한다. 측정 함수 반환이나 측정 adapter `close()`는 관측기를 종료하지 않는다.
+- 따라서 HMI는 첫 Goal 전 관절/TCP의 `UNKNOWN`을 통신 오류나 측정 실패로 바꾸지 않고, 아직 요청별 관측 설정이 연결되지 않은 상태로 표시한다.
+
 `measurement_config`의 기존 `controller_prefix`, `service_timeout_s`, `guards.max_state_age_s`를 사용한다.
 같은 노드·설정의 중복 시작은 기존 관측기를 반환한다. 설정이 다르면 오류이며, 명시적으로 종료 후 재구성한다.
 SIMULATION 노드에 실제 조회를 붙이는 시작 호출은 거절한다. 모의시험은 별도 모의 서비스만 사용한다.

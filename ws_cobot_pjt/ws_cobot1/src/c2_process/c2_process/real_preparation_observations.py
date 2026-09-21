@@ -232,6 +232,24 @@ class RealPreparationObservations:
             check_motion_type, prefix + "/motion/check_motion")
         self._get_robot_state_type = get_state_type
         self._check_motion_type = check_motion_type
+        self._closed = False
+
+    def close(self):
+        """노드 종료 때만 ROS 관측 자원을 정리한다. 측정 종료와는 무관하다."""
+        if self._closed:
+            return
+        self._closed = True
+        destroy_subscription = getattr(self.node, "destroy_subscription", None)
+        if callable(destroy_subscription) and self.subscription is not None:
+            destroy_subscription(self.subscription)
+        destroy_client = getattr(self.node, "destroy_client", None)
+        if callable(destroy_client):
+            for client in (self.get_robot_state_client, self.check_motion_client):
+                if client is not None:
+                    destroy_client(client)
+        self.subscription = None
+        self.get_robot_state_client = None
+        self.check_motion_client = None
 
     def _on_control_authority(self, message):
         if not self.cache.ingest_json(getattr(message, "data", None)):

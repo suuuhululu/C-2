@@ -944,6 +944,21 @@ def test_observation_tip_is_converted_to_controller_tcp():
     assert cache.values(now=10.)['tcp_pose'] == pytest.approx(pad)
 
 
+def test_measurement_observation_updates_same_cache_and_keeps_measurement_time():
+    cache = ObservationCache()
+    offset = [.00085, -.09955, 0.]
+    tip = [.42, .001, .16445, 0., 0., 0., 1.]
+    cache.capture_measurement(dict(
+        tip_pose=tip, joints_rad=[.1] * 6, measured_at_monotonic_s=10.,
+        frame_id='c2_base', quality='VALID', robot_state=2), offset, 2.,
+        now=10.25, utc_ns=100_250_000_000)
+    values = cache.values(now=10.5)
+    assert values['joints_quality'] == values['tcp_quality'] == 'VALID'
+    assert values['joints_stamp_ns'] == values['tcp_stamp_ns'] == 100_000_000_000
+    assert values['tcp_pose'] == pytest.approx(apply_tool_offset(tip, offset, -1))
+    assert values['robot_connection_state'] == 'CONNECTED'
+
+
 @pytest.mark.parametrize('case', ['nan_joint', 'bad_quaternion', 'wrong_frame', 'future', 'query_failed'])
 def test_observation_invalid_signals_are_not_valid(case):
     cache = ObservationCache()
@@ -1056,13 +1071,109 @@ def test_ros_callbacks_publish_cached_signals_and_alarm_events(monkeypatch):
 
     made = []
     real = object.__new__(DoosanRobotAdapter)
+    real.tool_offset_m = None
+    real.observe = lambda: RobotState(
+        joints_rad=[.2] * 6, tcp_pose=[.1,.2,.3,0.,0.,0.,1.], frame_id='c2_base',
+        measured_at=time.monotonic(), robot_state=1, quality='VALID')
     real_node = create_ros_node(
         runtime_mode="REAL", measurement_only=True, enable_preparation=False,
         real_adapter_factory=lambda owner: made.append(owner) or real)
     assert made == [real_node]
     assert real_node.coordinator.real_adapter is real
+    assert not hasattr(real_node, 'observation_timer')
+    assert not hasattr(real_node, 'refresh_robot_observation')
     with pytest.raises(ValueError, match="REAL 노드"):
         create_ros_node(enable_preparation=False, real_adapter_factory=lambda _: real)
+
+
+@pytest.mark.parametrize('outcome,error,partial,stop_confirmed,terminal', [
+    ('SUCCEEDED', 'NONE', False, True, 'succeed'),
+    ('FAILED', 'MEASUREMENT_FAILED', True, True, 'abort'),
+    ('STOPPED', 'CANCELLED', True, True, 'canceled'),
+    ('UNKNOWN', 'STOP_UNCONFIRMED', True, False, 'abort'),
+])
+def test_prepare_action_updates_process_state_returns_once_and_resumes_idle(
+        monkeypatch, outcome, error, partial, stop_confirmed, terminal):
+    from types import SimpleNamespace as NS
+    from c2_process.node import create_ros_node
+    from c2_process.preparation_action import GOAL_FIELDS
+    class Packet:
+        def __init__(self, **kwargs): self.__dict__.update(kwargs)
+    class State(Packet):
+        def __init__(self):
+            self.tcp = NS(header=NS(), pose=NS(position=NS(), orientation=NS()))
+    class Publisher:
+        def __init__(self): self.sent = []
+        def publish(self, message): self.sent.append(message)
+    class Node:
+        def __init__(self, *a): self.timers = []
+        def create_publisher(self, *a): return Publisher()
+        def create_service(self, *a, **k): return None
+        def create_timer(self, period, callback, **k):
+            timer = NS(period=period, callback=callback, canceled=False)
+            timer.cancel = lambda: setattr(timer, 'canceled', True)
+            self.timers.append(timer)
+            return timer
+        def get_logger(self): return NS(info=lambda *_: None, warn=lambda *_: None)
+    monkeypatch.setitem(sys.modules, 'rclpy.action', NS(ActionServer=lambda *a, **k: None,
+        CancelResponse=NS(ACCEPT=1, REJECT=0), GoalResponse=NS(ACCEPT=1, REJECT=0)))
+    monkeypatch.setitem(sys.modules, 'rclpy.callback_groups', NS(ReentrantCallbackGroup=lambda: None))
+    monkeypatch.setitem(sys.modules, 'rclpy.node', NS(Node=Node))
+    monkeypatch.setitem(sys.modules, 'rclpy.qos', NS(QoSProfile=Packet,
+        ReliabilityPolicy=NS(RELIABLE=1), DurabilityPolicy=NS(VOLATILE=1)))
+    monkeypatch.setitem(sys.modules, 'c2_interfaces.action', NS(
+        ExecuteProcess=NS(Feedback=Packet, Result=Packet),
+        PrepareWorkpiece=NS(Feedback=Packet, Result=Packet)))
+    monkeypatch.setitem(sys.modules, 'c2_interfaces.msg', NS(ProcessEvent=Packet, ProcessState=State))
+    monkeypatch.setitem(sys.modules, 'c2_interfaces.srv', NS(StopProcess=Packet))
+    monkeypatch.setitem(sys.modules, 'builtin_interfaces.msg', NS(Time=Packet))
+    def assign(message, values):
+        for key, value in values.items(): setattr(message, key, value)
+    monkeypatch.setitem(sys.modules, 'rosidl_runtime_py.set_message', NS(set_message_fields=assign))
+    node = create_ros_node(enable_preparation=False)
+    entered, release = threading.Event(), threading.Event()
+    class Preparation:
+        def execute(self, goal, feedback):
+            feedback(dict(stage='ROBOT_CHECK', progress=.1, message='상태 검사'))
+            entered.set()
+            assert release.wait(1.)
+            feedback(dict(stage='SIDE_TOUCH', progress=.5, message='측정 중'))
+            return dict(outcome=outcome, error_code=error, message='끝',
+                        partial=partial, stop_confirmed=stop_confirmed)
+        def cancel(self, goal): return True
+    node.preparation = Preparation()
+    request = NS(**{key: '' for key in GOAL_FIELDS})
+    request.operation = 'MEASURE'
+    calls = []
+    handle = NS(request=request, publish_feedback=lambda packet: calls.append(('feedback', packet.stage)),
+                is_cancel_requested=outcome == 'STOPPED',
+                succeed=lambda: calls.append(('succeed', None)),
+                abort=lambda: calls.append(('abort', None)),
+                canceled=lambda: calls.append(('canceled', None)))
+    result = []
+    worker = threading.Thread(target=lambda: result.append(node.execute_preparation(handle)))
+    worker.start()
+    assert entered.wait(1.)
+    state_timer = next(timer for timer in node.timers if timer.period == pytest.approx(.2))
+    for _ in range(5):
+        state_timer.callback()
+    if outcome == 'STOPPED':
+        assert node.cancel_preparation(handle) == 1
+        assert node.status == 'STOPPING' and node.stop_state == 'REQUESTED'
+    release.set(); worker.join(1.)
+    assert not worker.is_alive()
+    result = result[0]
+    assert result.outcome == outcome
+    assert result.partial is partial and result.stop_confirmed is stop_confirmed
+    assert [name for name, _ in calls].count(terminal) == 1
+    assert sum(name in {'succeed', 'abort', 'canceled'} for name, _ in calls) == 1
+    assert [m.status for m in node.state_pub.sent[:5]] == ['RUNNING'] * 5
+    assert [m.phase for m in node.state_pub.sent[:5]] == ['PRECHECK'] * 5
+    assert [m.engraving_progress for m in node.state_pub.sent[:5]] == [0.] * 5
+    assert node.state_pub.sent[:5][-1].message.startswith('ROBOT_CHECK (10%)')
+    assert node.state_pub.sent[-1].status == outcome
+    node.publish_state()
+    assert node.state_pub.sent[-1].status == 'IDLE'
 
 
 def _registered_input_fixture(tmp_path):
