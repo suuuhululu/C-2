@@ -13,11 +13,12 @@ import rclpy
 from c2_interfaces.action import GeneratePath
 from rclpy.action import ActionServer, CancelResponse, GoalResponse
 from rclpy.callback_groups import ReentrantCallbackGroup
-from rclpy.executors import MultiThreadedExecutor
+from rclpy.executors import MultiThreadedExecutor, ExternalShutdownException
 from rclpy.node import Node
 
 from .artifacts import ArtifactError, ManagedArtifactStore
-from .pipeline import GeneratePipeline, GenerationCanceled, PipelineError
+from .pipeline import GenerationCanceled, PipelineError
+from .worker import run_generation
 
 
 def goal_values(request):
@@ -140,8 +141,6 @@ class PathPlannerNode(Node):
                     return result
                 if old_result.success:
                     goal_handle.succeed()
-                elif old_result.error_code == "CANCELED":
-                    goal_handle.canceled()
                 else:
                     goal_handle.abort()
                 return old_result
@@ -156,16 +155,13 @@ class PathPlannerNode(Node):
                 result = failed_result("NOT_READY", self._store_error or "관리 저장소가 준비되지 않았습니다.")
                 goal_handle.abort()
                 return result
-            pipeline = GeneratePipeline(
-                self._store,
+            generated = run_generation(
+                self._store, values,
                 timeout_s=self.get_parameter("generation_timeout_s").value,
-            )
-            generated = pipeline.run(
-                values,
                 feedback=lambda stage, progress: self._feedback(
                     goal_handle, request_id, stage, progress
                 ),
-                canceled=lambda: goal_handle.is_cancel_requested,
+                canceled=lambda: goal_handle.is_cancel_requested or not rclpy.ok(),
             )
             result = GeneratePath.Result()
             result.success = True
@@ -218,12 +214,12 @@ def main(args=None):
     executor.add_node(node)
     try:
         executor.spin()
-    except KeyboardInterrupt:
+    except (KeyboardInterrupt, ExternalShutdownException):
         pass
     finally:
         executor.shutdown()
         node.destroy_node()
-        rclpy.shutdown()
+        rclpy.try_shutdown()
 
 
 if __name__ == "__main__":

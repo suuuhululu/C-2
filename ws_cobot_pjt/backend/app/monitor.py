@@ -175,6 +175,10 @@ def create_app(data_dir=None,tick=.4):
         if r is None:raise KeyError(rid)
         return r
 
+    @app.post('/api/operator/path-generations/{rid}/cancel',status_code=202)
+    async def cancel_generation(rid:str):
+        return await app.state.service.cancel_generation(rid)
+
     @app.get('/api/operator/paths/{pid}/versions/{version}')
     async def path(pid:str,version:int):
         meta=await asyncio.to_thread(app.state.store.path,pid,version)

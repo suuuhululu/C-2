@@ -103,7 +103,7 @@ class RosBridge:
     transport='ROS2'
 
     def __init__(self,emit,artifact_loader=None):
-        self.emit=emit;self.artifact_loader=artifact_loader;self.handles={};self.pending=set()
+        self.emit=emit;self.artifact_loader=artifact_loader;self.handles={};self.pending=set();self.generation_cancels=set()
 
     async def start(self):
         try:
@@ -165,16 +165,28 @@ class RosBridge:
             raise
         if not handle.accepted:raise RuntimeError('ROS Goal이 거절되었습니다.')
         self.handles[values['request_id']]=handle
+        if client is self.generate_client and values['request_id'] in self.generation_cancels:
+            handle.cancel_goal_async()
         try:
-            result=await await_ros(handle.get_result_async(),120 if client is self.generate_client else 3600)
+            result=await await_ros(handle.get_result_async(),None if client is self.generate_client else 3600)
             return dict(self.convert(result.result))
         except (asyncio.CancelledError,asyncio.TimeoutError):
             handle.cancel_goal_async()  # 수락을 정지 확인으로 간주하지 않는다.
             raise
-        finally:self.handles.pop(values['request_id'],None)
+        finally:
+            self.handles.pop(values['request_id'],None)
+            self.generation_cancels.discard(values['request_id'])
 
     def track_feedback(self,callback,value):
         task=self.loop.create_task(callback(value));self.pending.add(task);task.add_done_callback(self.pending.discard)
+
+    async def cancel_generation(self, request_id):
+        # Goal 수락 전에도 기억하고 handle이 도착하면 취소한다.
+        self.generation_cancels.add(request_id)
+        handle = self.handles.get(request_id)
+        if handle is not None:
+            await await_ros(handle.cancel_goal_async(), 3)
+        # 취소 응답은 종료 증거가 아니다. action()의 최종 Result를 계속 기다린다.
 
     async def generate_raw(self,goal,feedback):
         return await self.action(self.generate_client,self.types[0],goal,feedback)

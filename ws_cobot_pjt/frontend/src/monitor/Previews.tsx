@@ -1,7 +1,15 @@
 import { useRef, useState } from "react";
 import { Grid3X3, Maximize2, Minus, Plus, RotateCcw } from "lucide-react";
-import type { Asset, PathResult, Placement, Profile } from "./api";
+import type {
+  Asset,
+  PathResult,
+  Placement,
+  Profile,
+  WorkAreaPolicy,
+} from "./api";
 import { cutStrokes, cylinderPoint, previewSegments } from "./preview";
+import { mm, policyWorkArea, profileWorkArea } from "./workArea";
+import WorkAreaSummary from "./WorkAreaSummary";
 
 function transformPoint(point: number[], from: Placement, to: Placement) {
   const a = (-from.rotation_deg * Math.PI) / 180;
@@ -20,6 +28,7 @@ function transformPoint(point: number[], from: Placement, to: Placement) {
 
 export function UnwrappedPreview({
   profile,
+  workAreaPolicy,
   draft,
   result,
   asset,
@@ -28,6 +37,7 @@ export function UnwrappedPreview({
   onChange,
 }: {
   profile?: Profile;
+  workAreaPolicy?: WorkAreaPolicy;
   draft: Placement;
   result: PathResult | null;
   asset: Asset | null;
@@ -43,13 +53,10 @@ export function UnwrappedPreview({
   const s = profile?.payload.surface;
   const half = s ? s.radius_mm * Math.PI : 106.814;
   const height = s?.height_mm ?? 150;
-  const [minV, maxV] = (s?.valid_v_range_mm ?? [10, 140]).map(
-    (v) => +v.toFixed(2),
-  );
+  const workArea = workAreaPolicy
+    ? policyWorkArea(profile, workAreaPolicy)
+    : profileWorkArea(profile);
   const actual = profile?.payload.contract === "c2-path-test-profile/1";
-  const reachableU = s?.reachable_angle_deg?.map(
-    (v) => ((v * Math.PI) / 180) * s.radius_mm,
-  );
   function point(e: React.PointerEvent) {
     const matrix = svg.current?.getScreenCTM();
     if (!matrix) return [0, 0];
@@ -175,23 +182,6 @@ export function UnwrappedPreview({
                 strokeWidth=".25"
               />
             </pattern>
-            <pattern
-              id="excluded"
-              width="3"
-              height="3"
-              patternUnits="userSpaceOnUse"
-              patternTransform="rotate(45)"
-            >
-              <rect width="3" height="3" fill="#f2efe5" />
-              <line
-                x1="0"
-                y1="0"
-                x2="0"
-                y2="3"
-                stroke="#dad3bd"
-                strokeWidth=".5"
-              />
-            </pattern>
           </defs>
           <text
             x="0"
@@ -217,38 +207,6 @@ export function UnwrappedPreview({
             stroke="#9cae9f"
             strokeWidth=".5"
           />
-          <rect
-            x={-half}
-            y={-height}
-            width={half * 2}
-            height={height - maxV}
-            fill="url(#excluded)"
-          />
-          <rect
-            x={-half}
-            y={-minV}
-            width={half * 2}
-            height={minV}
-            fill="url(#excluded)"
-          />
-          {reachableU && (
-            <>
-              <rect
-                x={-half}
-                y={-maxV}
-                width={Math.max(0, reachableU[0] + half)}
-                height={maxV - minV}
-                fill="url(#excluded)"
-              />
-              <rect
-                x={reachableU[1]}
-                y={-maxV}
-                width={Math.max(0, half - reachableU[1])}
-                height={maxV - minV}
-                fill="url(#excluded)"
-              />
-            </>
-          )}
           <line
             x1="0"
             x2="0"
@@ -258,6 +216,44 @@ export function UnwrappedPreview({
             strokeWidth=".35"
             strokeDasharray="2 2"
           />
+          {workArea && (
+            <g pointerEvents="none" aria-label="상하 조각 제외 구간">
+              <rect
+                x={-half}
+                y={-height}
+                width={half * 2}
+                height={workArea.topExcluded}
+                fill="#eec9ae"
+                opacity=".3"
+              />
+              <rect
+                x={-half}
+                y={-workArea.bottomExcluded}
+                width={half * 2}
+                height={workArea.bottomExcluded}
+                fill="#eec9ae"
+                opacity=".3"
+              />
+              {workArea.bottomRange.map((v) => (
+                <line
+                  key={v}
+                  x1={-half}
+                  x2={half}
+                  y1={-v}
+                  y2={-v}
+                  stroke="#b47b4d"
+                  strokeWidth=".5"
+                  strokeDasharray="2 2"
+                />
+              ))}
+              <text x={-half + 3} y={-height + 5} className="drawing-note">
+                상단 {mm(workArea.topExcluded)} mm 제외
+              </text>
+              <text x={-half + 3} y={-3} className="drawing-note">
+                하단 {mm(workArea.bottomExcluded)} mm 제외
+              </text>
+            </g>
+          )}
           <text
             x={-half - 7}
             y="-73"
@@ -381,10 +377,11 @@ export function UnwrappedPreview({
         <span>
           <i className="legend-line" />
           도안 <i className="legend-box" />
-          선택 영역
+          선택 영역 · 옆면 360° / 높이 {height} mm
         </span>
-        <span>U → · V ↑ · mm</span>
+        <span>U → · 바닥 V ↑ · mm</span>
       </div>
+      <WorkAreaSummary profile={profile} policy={workAreaPolicy} />
       <div className={`preview-message ${stale ? "changed" : ""}`}>
         {result ? (
           <>
@@ -404,9 +401,8 @@ export function UnwrappedPreview({
           <>
             <b>마우스로 도안을 이동하거나 왼쪽에서 수치를 입력하세요.</b>
             <span>
-              {actual
-                ? `음영은 시험 가공 범위 밖입니다. V=${minV}~${maxV} mm, 각도 ${s?.reachable_angle_deg?.join("~")}°는 잠정 범위입니다.`
-                : "위·아래 음영은 모의 제외 영역입니다."}
+              전체 옆면을 표시합니다. 음영은 상하 조각 제외 구간이며, 도안
+              배치만으로 실제 CUT의 범위 검사가 완료되지는 않습니다.
             </span>
           </>
         )}
