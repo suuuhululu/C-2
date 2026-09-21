@@ -1,0 +1,87 @@
+{
+  "validation_level": "SIMULATION_ONLY_NO_ROBOT",
+  "case": "communication_unknown",
+  "input_file": "config/workpiece_simulation.json",
+  "omitted_from_excerpt": [
+    "observed_state.plans",
+    "observed_state.initial_state"
+  ],
+  "result_excerpt": {
+    "outcome": "UNKNOWN",
+    "error_code": "COMMUNICATION_LOST",
+    "message": "SIM injected link loss",
+    "completed_step": "workpiece_calibration",
+    "observed_state": {
+      "measurement": {
+        "measurement_id": "example-communication_unknown",
+        "preparation_id": "example-prepare-communication_unknown",
+        "source_mode": "SIMULATION",
+        "frame_id": "c2_base",
+        "position_unit": "m",
+        "schema": "workpiece-measurement/1",
+        "validity": "INCOMPLETE",
+        "geometry_ready": false,
+        "profile_snapshot_id": "example-sim-config",
+        "profile_sha256": "0e624937911c67c4dcc3741abf12b038d36ed488e84b7661b675b68c389b8b19",
+        "points": [],
+        "top": null,
+        "axis_xy_m": null,
+        "radius_m": null,
+        "top_z_m": null,
+        "bottom_z_m": null,
+        "measured_at": null,
+        "started_at": "2026-09-21T05:44:31.299777+00:00",
+        "measurement_time_basis": "completed_utc; contact_samples_monotonic"
+      },
+      "events": [
+        {
+          "measurement_id": "example-communication_unknown",
+          "sequence": 1,
+          "measured_at": "2026-09-21T05:44:31.299871+00:00",
+          "stage": "START",
+          "status": "RUNNING",
+          "message": "측정을 시작합니다",
+          "point_index": 0,
+          "total_points": 8,
+          "values": null
+        },
+        {
+          "measurement_id": "example-communication_unknown",
+          "sequence": 2,
+          "measured_at": "2026-09-21T05:44:31.299889+00:00",
+          "stage": "HOME_CHECK",
+          "status": "RUNNING",
+          "message": "현재 관절·TCP 확인: 홈 경유 경로 검사 중",
+          "point_index": 0,
+          "total_points": 8,
+          "values": null
+        },
+        {
+          "measurement_id": "example-communication_unknown",
+          "sequence": 3,
+          "measured_at": "2026-09-21T05:44:31.299947+00:00",
+          "stage": "HOME_MOVE",
+          "status": "RUNNING",
+          "message": "검사 후 외곽·상공을 경유하여 홈으로 이동합니다",
+          "point_index": 0,
+          "total_points": 8,
+          "values": null
+        },
+        {
+          "measurement_id": "example-communication_unknown",
+          "sequence": 4,
+          "measured_at": "2026-09-21T05:44:31.300122+00:00",
+          "stage": "TERMINAL",
+          "status": "UNKNOWN",
+          "message": "SIM injected link loss",
+          "point_index": 0,
+          "total_points": 8,
+          "values": null
+        }
+      ],
+      "stop_confirmed": false,
+      "partial": true,
+      "elapsed_s": 0.0
+    }
+  }
+}

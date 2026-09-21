@@ -41,7 +41,7 @@
     "max_state_age_s": 2.0,
     "pose_tolerance_m": 0.0003,
     "angle_tolerance_rad": 0.005235987755982988,
-    "runtime_timeout_s": 300.0,
+    "runtime_timeout_s": 360.0,
     "top": {
       "auto_entry": true,
       "clearance_tcp_z_m": 0.33,
@@ -81,7 +81,8 @@
       "seed_geometry": "repeat180_fit.json / 기존 8점 실측. 이번 측정의 정답으로 사용하지 않음.",
       "top_reference": "그리퍼 밑면 접촉 TCP 참고값. 절대 윗면 Z 미확정.",
       "trial_scene": "현장 단독 시험 전용: 이전 측정 후 양초/받침/철사 고정 유지 전제. 전체 메시 충돌 검사 아님.",
-      "duration_profile": "120 s requested target is NOT achieved: ideal motion estimate about 186 s plus preflight/ROS overhead for recorded start. Runtime safety timeout 300 s; timeout means failure, not completion. Updated transit speeds are unverified on hardware."
+      "duration_profile": "Target remains 120 s and is NOT achieved. Supervised full runs: 270.394 s and 299.295 s (including different HOME entry routes). Increase overall timeout from 300 to 360 s for scheduling/settling margin only; motion speeds and per-step stop/force limits unchanged.",
+      "approach_acceleration": "2026-09-21: outward move after point 6 reached 10.185 N with 40 mm/s^2; operator reported no collision. Reduce to 20 mm/s^2 for supervised retest; keep 10 N stop limit."
     },
     "measurement_scope": "CONTACT_REFERENCE",
     "tcp_id": "GripperDA_v1",
@@ -127,20 +128,19 @@
       "top_corridor_min_z_m": 0.232925,
       "source_record": "User confirmed existing run_engrave_real.py HOME (GripperDA_v1 TCP, tool +Y=base +Y, +Z=base -Z); fixed 2026-09-21 setup only"
     },
-    "target_duration_s": 120.0
+    "target_duration_s": 120.0,
+    "outer_move_profile": "escape"
   },
   "profiles": {
     "travel": {
       "speed_m_s": 0.06,
       "acceleration_m_s2": 0.06,
       "timeout_s": 60.0,
-      "hard_force_n": 15.0,
-      "soft_force_n": 12.0,
-      "soft_force_hold_s": 0.15
+      "hard_force_n": 15.0
     },
     "approach": {
       "speed_m_s": 0.03,
-      "acceleration_m_s2": 0.04,
+      "acceleration_m_s2": 0.02,
       "timeout_s": 60.0,
       "hard_force_n": 10.0
     },
@@ -171,6 +171,12 @@
     "stop": {
       "mode": 1,
       "timeout_s": 2.0
+    },
+    "escape": {
+      "speed_m_s": 0.06,
+      "acceleration_m_s2": 0.06,
+      "timeout_s": 60.0,
+      "hard_force_n": 15.0
     }
   },
   "controller_prefix": "/dsr01/dsr_controller2",
@@ -226,5 +232,6 @@
     "skip_position_m": 2e-05,
     "stationary_mad_n": 0.1,
     "stop_stable_s": 0.2
-  }
+  },
+  "escape_profile_source": "9/21 user-directed separation: near-surface approach/probe/retract keep 10 N; cleared escape uses existing air speed 60 mm/s, acceleration 60 mm/s^2, absolute 15 N software stop only; no soft/persistence force test. Native controller protection unchanged. Full motion profile verified in attempt 9: 8 points and final retreat succeeded in 299.295 s. Overall timeout subsequently extended to 360 s; this extension itself is not an additional REAL run."
 }

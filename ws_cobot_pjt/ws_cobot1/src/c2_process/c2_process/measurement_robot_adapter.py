@@ -111,6 +111,9 @@ def continuous_target(pose, offset, previous):
     180도로 반올림하지 않는다. 정확한 B=180에서만 C-A 자유도를 맞춘다.
     """
     target=pose_to_posx(pose,offset)
+    if rotation_distance(pose,posx_to_pose(previous,offset))<1e-7:
+        # 자세 유지 직선은 원래 제어기 각도를 보존한다. 특이점 근처 재변환 오차 방지.
+        return target[:3]+list(previous[3:])
     candidates=[target, target[:3]+[target[3]+180.,-target[4],target[5]+180.]]
     if abs(abs(target[4])-180.)<1e-7:
         candidates.append(target[:3]+[previous[3],target[4],target[5]-target[3]+previous[3]])
@@ -151,6 +154,7 @@ class GuardedMeasurementAdapter:
     def _read(self):
         o=self.io.read()
         vector(o['posx'],6,'posx');vector(o['joints_deg'],6,'joints_deg');vector(o['force_n'],3,'force_n')
+        if 'desired_posx' in o:vector(o['desired_posx'],6,'desired_posx')
         age=self.clock()-o['measured_at_monotonic_s']
         if not 0<=age<=self.g['max_state_age_s']:
             raise MeasurementError('STALE_DATA','측정 관측 시각 만료')
@@ -183,7 +187,7 @@ class GuardedMeasurementAdapter:
 
     def preflight_measurement(self,steps,workcell,profiles,context):
         self._ready(context)
-        for profile_name in ('travel','approach','retract','top_touch','side_touch'):
+        for profile_name in dict.fromkeys(('travel','approach','retract','top_touch','side_touch',workcell.get('outer_move_profile','approach'))):
             profile=profiles[profile_name]
             if 'soft_force_n' in profile:
                 if not 0<profile['soft_force_n']<profile['hard_force_n'] or profile.get('soft_force_hold_s',0)<=0:
@@ -292,6 +296,19 @@ class GuardedMeasurementAdapter:
                     # 정지 상태의 작은 정착 변화는 창을 다시 수집한다. 전체 10초 제한은 유지.
                     samples.clear();settle_anchor=o['tip_pose'][:]
                     self._emit_trace('baseline_resettle',dict(label=step['label'],tip_pose=settle_anchor))
+                desired=o.get('desired_posx')
+                if desired is not None:
+                    # 힘이 안정돼도 직전 이동의 서보 정착이 끝나지 않았을 수 있다.
+                    # 위치 도달 생략 기준과 같은 정밀도로 실제/지시 TCP를 대조한다.
+                    vector(desired,6,'desired_posx')
+                    tracking_m=math.dist(o['posx'][:3],desired[:3])/1000.
+                    tracking_angle=rotation_distance(o['tip_pose'],posx_to_pose(desired,self.offset))
+                    if tracking_m>self.g['skip_position_m'] or tracking_angle>math.radians(self.g['skip_angle_deg']):
+                        samples.clear()
+                        if now-stable_start>=self.g['baseline_timeout_s']:
+                            raise MeasurementError('UNSTABLE_BASELINE','기준 힘 수집 전 실제/지시 TCP 정착 미확인')
+                        self.sleep(self.g['poll_s'])
+                        continue
                 along=sum(a*b for a,b in zip(step['direction'],o['force_n']))
                 samples.append((now,along))
                 while samples and now-samples[0][0]>profile['baseline_window_s']+self.g['baseline_window_slack_s']:samples.popleft()

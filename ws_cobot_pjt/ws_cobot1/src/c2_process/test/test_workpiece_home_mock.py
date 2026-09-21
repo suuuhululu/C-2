@@ -15,6 +15,7 @@ def config(name='real_trial_0921'):
     return json.loads((ROOT/'config'/f'workpiece_{name}.json').read_text())
 
 @pytest.mark.parametrize('native',[
+    [329.028564453125,98.4632568359375,214.83985900878906,87.84613800048828,-179.9999542236328,42.846153259277344], # 실기 중단 위치의 수직 자세 유지
     [426.2233,.04564,243.8246,0.,180.,0.], # 직전 사용자의 윗면 시험 중단 위치
     [427.1273,155.9008,214.7045,0.,180.,0.], # 이전 8점 종료 위치
     [421.8,.1,264.4,0.,180.,0.], # 이미 홈
@@ -87,3 +88,54 @@ def test_measured_home_negative_179_99_does_not_flip_in_top_plan():
     current=[421.692291,.110563926,264.339752,.928778,-179.9901886,.927056]
     p=build_top_plan(w,posx_to_pose(current,w['tool_offset_m']))
     assert check_trial_scene(p,w,dict(posx=current))['path_checked']
+
+
+@pytest.mark.parametrize('native,q6',[
+    ([524.65,-99.56,214.91,0.,180.,135.],-236.5),
+    (None,-314.5),
+])
+def test_home_rotation_avoids_extra_winding_after_side_orbit(native,q6):
+    import math
+    from c2_process.robot_adapter import tool_axis_in_base
+    w=config()['workcell']
+    if native is None:
+        from c2_process.workpiece_calibration import facing_pose
+        from c2_process.robot_adapter import pose_to_posx
+        native=pose_to_posx(facing_pose(w['seed_axis_xy_m'],w['seed_radius_m']+w['outer_gap_m'],.21491,405),w['tool_offset_m'])
+    tip=posx_to_pose(native,w['tool_offset_m'])
+    plan=build_home_plan(w,tip,[0,0,1,0,1.5,math.radians(q6)])
+    assert check_trial_scene(plan,w,dict(posx=native))['path_checked']
+    angles=[]
+    for step in plan:
+        if step['label'] in ('home_lift','home_align'):
+            axis=tool_axis_in_base(step['target_pose'],'+y')
+            angles.append(math.degrees(math.atan2(axis[1],axis[0])))
+    changes=[(b-a+180)%360-180 for a,b in zip(angles,angles[1:])]
+    assert all(abs(a)<=90.001 for a in changes)
+    predicted=q6-sum(changes)
+    assert abs(predicted)<90
+    from c2_process.workpiece_calibration import rotation_distance
+    for a,b in zip(plan,plan[1:]):
+        x,y=a['target_pose'],b['target_pose']
+        assert math.dist(x[:3],y[:3])>1e-9 or rotation_distance(x,y)>1e-7
+    assert home_matches(w,plan[-1]['target_pose'])
+
+
+def test_home_already_clear_uses_outward_profile_without_contact_retract():
+    from c2_process.workpiece_calibration import facing_pose, build_side_plan
+    w=config()['workcell']
+    tip=facing_pose(w['seed_axis_xy_m'],w['seed_radius_m']+.007,.21491,315)
+    plan=build_home_plan(w,tip)
+    assert plan[0]['label']=='home_escape_outer'
+    assert plan[0]['profile']=='escape'
+    side=build_side_plan(w,.23491)
+    assert all(s['profile']=='escape' for s in side if s['label'].endswith('_outer'))
+    assert all(s['profile']=='retract' for s in side if s['label'].endswith('_retract'))
+
+
+def test_start_near_top_retracts_with_contact_profile_before_air_lift():
+    w=config()['workcell'];cx,cy=w['seed_axis_xy_m']
+    native=[cx*1000,cy*1000,234.7,0.,180.,0.]
+    plan=build_home_plan(w,posx_to_pose(native,w['tool_offset_m']))
+    assert [s['profile'] for s in plan[:2]]==['retract','travel']
+    assert check_trial_scene(plan,w,dict(posx=native))['path_checked']

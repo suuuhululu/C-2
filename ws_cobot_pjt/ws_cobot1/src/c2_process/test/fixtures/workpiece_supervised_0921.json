@@ -1,5 +1,5 @@
 {
-  "description": "실기 로그 발췌. 윗면/첫 옆점 뒤 두 번째 접근 이탈; 성공 결과가 아님.",
+  "description": "감독 실기 로그 발췌. 실패/정지 확인과 센서 기반 완료를 구분하며 기하 정확도 인증은 아님.",
   "source_mode": "REAL",
   "runs": [
     {
@@ -27,6 +27,624 @@
       "top_tcp_contact_z_m": 0.2348397216796875,
       "completed_side_points": 1,
       "elapsed_s": 121.80816627599415
+    },
+    {
+      "attempt": 3,
+      "log_name": "workpiece_3aca1373bb884589b9d80f32688494e3.jsonl",
+      "sha256": "ead977972a0d7fc8631c91008ef07c2701cdd7daa1f8cffbfde9cea06e65d6f2",
+      "measurement_id": "workpiece-test-c459bc3ad6b443f39b4d2bbb0ca17692",
+      "outcome": "FAILED",
+      "error_code": "SCENE_REJECTED",
+      "message": "홈 진입 전 방사선 이탈 경로 불일치",
+      "stop_confirmed": null,
+      "home_move_skipped": null,
+      "top_tcp_contact_z_m": null,
+      "completed_side_points": 0,
+      "elapsed_s": 0.02969054899585899
+    },
+    {
+      "attempt": 4,
+      "log_name": "workpiece_cbae79a557e14c81b25228cf916cd806.jsonl",
+      "sha256": "bd8662d57cfe0f94dff0416449daf9c1a57ba052722dea1f66451ba37d81fb6f",
+      "measurement_id": "workpiece-test-65c15f74be024b98b66b4087bc2705ee",
+      "outcome": "FAILED",
+      "error_code": "CONTACT_OUT_OF_RANGE",
+      "message": "접촉 탐색 선분/자세 이탈: 횡오차 0.303 mm",
+      "stop_confirmed": true,
+      "home_move_skipped": false,
+      "top_tcp_contact_z_m": 0.23483099365234375,
+      "completed_side_points": 1,
+      "elapsed_s": 129.84035774900985
+    },
+    {
+      "attempt": 5,
+      "log_name": "workpiece_304bc133bfa84ab6a982c530fafb16c5.jsonl",
+      "sha256": "fc97d8540395e13a6c100633ec3d1026738066a1325ba54a83c2ebc01a5e1f2f",
+      "measurement_id": "workpiece-test-8e209d339a96455181db4f1224ea190d",
+      "outcome": "FAILED",
+      "error_code": "FORCE_LIMIT",
+      "message": "원신호 힘 한계 초과",
+      "stop_confirmed": true,
+      "home_move_skipped": false,
+      "top_tcp_contact_z_m": 0.2349054412841797,
+      "completed_side_points": 6,
+      "elapsed_s": 227.85044499998912,
+      "operator_observation": "닿거나 걸린 것 없었음 (사용자 답변); 힘 기준 초과를 물체 충돌로 확정하지 않음"
+    },
+    {
+      "attempt": 6,
+      "log_name": "workpiece_c7c3a8b4e626491e9c151b058638d145.jsonl",
+      "sha256": "9d914703e4ccbdf37513dd69b881e6df922bad080cf472562e1b9add4ea867da",
+      "measurement_id": "workpiece-test-8718e0241a9e491bb01b93b6a70ad210",
+      "outcome": "FAILED",
+      "error_code": "FORCE_LIMIT",
+      "message": "원신호 힘 한계 초과",
+      "stop_confirmed": true,
+      "home_move_skipped": null,
+      "top_tcp_contact_z_m": null,
+      "completed_side_points": 0,
+      "elapsed_s": 17.371540014995844,
+      "operator_observation": "닿거나 걸린 것 없었음 (사용자 답변); 힘 기준 초과를 물체 충돌로 확정하지 않음"
+    },
+    {
+      "attempt": 7,
+      "log_name": "workpiece_40508dd5656f49989ffad591d74c7c0c.jsonl",
+      "sha256": "e2d58b39bc496133825a3f84dda66a1f3b96bb3a0f389e0314eba9c6a20fa6ab",
+      "measurement_id": "workpiece-test-624526ec7274477abd09373a561e6da5",
+      "outcome": "FAILED",
+      "error_code": "MOTION_NOT_STARTED",
+      "message": "이동 시작 미확인; 재전송 없음",
+      "stop_confirmed": true,
+      "home_move_skipped": null,
+      "top_tcp_contact_z_m": null,
+      "completed_side_points": 0,
+      "elapsed_s": 38.0505421889975
+    },
+    {
+      "attempt": 8,
+      "log_name": "workpiece_12e5bce45fd047759e495ee57c7c003f.jsonl",
+      "sha256": "6b4fd228a2ccab86981b402171436bc3df733f77c190189cbe98736aa2ae1604",
+      "measurement_id": "workpiece-test-66e39cb398e34699965189784fa8f5a3",
+      "outcome": "SUCCEEDED",
+      "error_code": "NONE",
+      "stop_confirmed": true,
+      "elapsed_s": 270.39392092499475,
+      "completed_side_points": 8,
+      "measurement": {
+        "measurement_id": "workpiece-test-66e39cb398e34699965189784fa8f5a3",
+        "preparation_id": "unit-test-preparation-workpiece-test-66e39cb398e34699965189784fa8f5a3",
+        "source_mode": "REAL",
+        "frame_id": "c2_base",
+        "position_unit": "m",
+        "schema": "workpiece-measurement/1",
+        "validity": "REFERENCE_ONLY",
+        "geometry_ready": false,
+        "profile_snapshot_id": "local-test-config-77841bb1a700",
+        "profile_sha256": "77841bb1a7003884ed985fbc9e27cecc51897f3271edc004c45373e3f28aff27",
+        "points": [
+          {
+            "detected": true,
+            "tip_pose": [
+              0.42621737369994106,
+              0.03413940138109803,
+              0.2148901125496121,
+              2.334427141412135e-05,
+              0.9999999991282125,
+              -8.558132992292426e-06,
+              -3.3546661843078146e-05
+            ],
+            "frame_id": "c2_base",
+            "normal_force_n": 1.17664235830307,
+            "measured_at_monotonic_s": 111109.124622407,
+            "operator_confirmed": false,
+            "point_index": 1,
+            "received_at": "2026-09-21T05:38:34.208176+00:00",
+            "source": "FORCE_CONTACT_ESTIMATE"
+          },
+          {
+            "detected": true,
+            "tip_pose": [
+              0.40193820294684485,
+              0.024357088327006213,
+              0.2149217183749671,
+              -0.3826645983746739,
+              0.923887333548362,
+              2.1151224849821094e-06,
+              7.42789121299517e-06
+            ],
+            "frame_id": "c2_base",
+            "normal_force_n": 1.396283871548075,
+            "measured_at_monotonic_s": 111130.818435554,
+            "operator_confirmed": false,
+            "point_index": 2,
+            "received_at": "2026-09-21T05:38:55.906520+00:00",
+            "source": "FORCE_CONTACT_ESTIMATE"
+          },
+          {
+            "detected": true,
+            "tip_pose": [
+              0.39198381021691514,
+              3.554298211189762e-05,
+              0.21498940340781675,
+              -0.7070958095884681,
+              0.7071177481608492,
+              -5.702614215407862e-05,
+              5.5194002967178776e-05
+            ],
+            "frame_id": "c2_base",
+            "normal_force_n": 1.0346939563751225,
+            "measured_at_monotonic_s": 111154.524920616,
+            "operator_confirmed": false,
+            "point_index": 3,
+            "received_at": "2026-09-21T05:39:19.607579+00:00",
+            "source": "FORCE_CONTACT_ESTIMATE"
+          },
+          {
+            "detected": true,
+            "tip_pose": [
+              0.4020748254416793,
+              -0.024155962180381588,
+              0.2149295810124967,
+              0.9238613586529112,
+              -0.3827273045965157,
+              1.7436185532949376e-05,
+              -5.12135762764339e-07
+            ],
+            "frame_id": "c2_base",
+            "normal_force_n": 0.9398376325662472,
+            "measured_at_monotonic_s": 111175.611856528,
+            "operator_confirmed": false,
+            "point_index": 4,
+            "received_at": "2026-09-21T05:39:40.691994+00:00",
+            "source": "FORCE_CONTACT_ESTIMATE"
+          },
+          {
+            "detected": true,
+            "tip_pose": [
+              0.4262039196593316,
+              -0.034205962815314656,
+              0.21485631171613132,
+              0.999999996730963,
+              -6.932541190135839e-06,
+              -7.752392097335991e-05,
+              -2.1910171997780183e-05
+            ],
+            "frame_id": "c2_base",
+            "normal_force_n": 1.1766555309295654,
+            "measured_at_monotonic_s": 111198.230243337,
+            "operator_confirmed": false,
+            "point_index": 5,
+            "received_at": "2026-09-21T05:40:03.318418+00:00",
+            "source": "FORCE_CONTACT_ESTIMATE"
+          },
+          {
+            "detected": true,
+            "tip_pose": [
+              0.450336356765744,
+              -0.02405067730533486,
+              0.21486692792809725,
+              0.9238765370337294,
+              0.3826906591904706,
+              -5.203924402318112e-05,
+              -3.128648788750902e-05
+            ],
+            "frame_id": "c2_base",
+            "normal_force_n": 1.29078685368373,
+            "measured_at_monotonic_s": 111220.43058813,
+            "operator_confirmed": false,
+            "point_index": 6,
+            "received_at": "2026-09-21T05:40:25.512359+00:00",
+            "source": "FORCE_CONTACT_ESTIMATE"
+          },
+          {
+            "detected": true,
+            "tip_pose": [
+              0.46046427207434804,
+              5.297004754291183e-05,
+              0.21487886749114532,
+              0.7071024495027172,
+              0.7071111119433362,
+              -2.426047262098641e-05,
+              -2.6171466491245003e-05
+            ],
+            "frame_id": "c2_base",
+            "normal_force_n": 0.901058554649353,
+            "measured_at_monotonic_s": 111243.03887356,
+            "operator_confirmed": false,
+            "point_index": 7,
+            "received_at": "2026-09-21T05:40:48.123897+00:00",
+            "source": "FORCE_CONTACT_ESTIMATE"
+          },
+          {
+            "detected": true,
+            "tip_pose": [
+              0.45051248089168017,
+              0.0243344119804607,
+              0.21480399847256193,
+              0.38270311179688443,
+              0.9238713694606147,
+              -7.531305716301181e-05,
+              -0.00012344996288296848
+            ],
+            "frame_id": "c2_base",
+            "normal_force_n": 0.9644845405929634,
+            "measured_at_monotonic_s": 111266.519086591,
+            "operator_confirmed": false,
+            "point_index": 8,
+            "received_at": "2026-09-21T05:41:11.600772+00:00",
+            "source": "FORCE_CONTACT_ESTIMATE"
+          }
+        ],
+        "top": {
+          "detected": true,
+          "tip_pose": [
+            0.42537814940798635,
+            -0.0995032616584424,
+            0.23491453765874665,
+            0.0,
+            0.9999999983146975,
+            1.0213797746763581e-06,
+            -5.804792660471862e-05
+          ],
+          "frame_id": "c2_base",
+          "normal_force_n": 0.9111547470092773,
+          "measured_at_monotonic_s": 111052.123441087,
+          "operator_confirmed": false,
+          "point_index": 0,
+          "received_at": "2026-09-21T05:37:37.208321+00:00",
+          "source": "FORCE_CONTACT_ESTIMATE"
+        },
+        "axis_xy_m": [
+          0.4262037412022041,
+          8.303572136781002e-05
+        ],
+        "radius_m": 0.034227072141656316,
+        "top_z_m": null,
+        "bottom_z_m": null,
+        "measured_at": "2026-09-21T05:41:14.996137+00:00",
+        "started_at": "2026-09-21T05:36:44.602947+00:00",
+        "measurement_time_basis": "completed_utc; contact_samples_monotonic",
+        "top_tcp_contact_z_m": 0.23491464233398437,
+        "measurement_scope": "CONTACT_REFERENCE",
+        "residual_rms_m": 9.055872707602483e-05,
+        "residual_max_m": 0.00017070375343490596,
+        "residuals_m": [
+          -0.00017070375343490596,
+          9.560224020974117e-05,
+          -7.108199562191886e-06,
+          -2.5703820205849603e-05,
+          6.192639549053996e-05,
+          -9.76238836951776e-05,
+          3.347192270246324e-05,
+          0.00011013909849541537
+        ],
+        "height_m": 0.15,
+        "height_source": "OPERATOR_RULER",
+        "work_z_range_m": null,
+        "work_v_range_m": [
+          0.01,
+          0.13999999999999999
+        ],
+        "vertical_axis_assumed": true,
+        "tilt_measured": false,
+        "tool_offset_m": [
+          0.00085,
+          -0.09955,
+          0
+        ],
+        "independent_accuracy_verified": false
+      },
+      "profile_sha256": "77841bb1a7003884ed985fbc9e27cecc51897f3271edc004c45373e3f28aff27"
+    },
+    {
+      "attempt": 9,
+      "log_name": "workpiece_36b3515e09d149aeb3fc6bcecd3df2f0.jsonl",
+      "sha256": "4fc4efa8b76860a6eaf8412f1f2a489c5e7b5f6482659dde5c2db20d8afe7517",
+      "measurement_id": "workpiece-test-713c58ecb24049979db3ae71cd84f0e9",
+      "outcome": "SUCCEEDED",
+      "error_code": "NONE",
+      "stop_confirmed": true,
+      "elapsed_s": 299.2954783870082,
+      "completed_side_points": 8,
+      "measurement": {
+        "measurement_id": "workpiece-test-713c58ecb24049979db3ae71cd84f0e9",
+        "preparation_id": "unit-test-preparation-workpiece-test-713c58ecb24049979db3ae71cd84f0e9",
+        "source_mode": "REAL",
+        "frame_id": "c2_base",
+        "position_unit": "m",
+        "schema": "workpiece-measurement/1",
+        "validity": "REFERENCE_ONLY",
+        "geometry_ready": false,
+        "profile_snapshot_id": "local-test-config-d6803158bf79",
+        "profile_sha256": "d6803158bf797850467da2d446b923b8dc9ac684d8fb3431f86c925072764428",
+        "points": [
+          {
+            "detected": true,
+            "tip_pose": [
+              0.4261973619569861,
+              0.03414083188634648,
+              0.21489499439785517,
+              1.2117382918937468e-05,
+              0.9999999965734181,
+              -2.2114566776540938e-05,
+              -7.884972364350669e-05
+            ],
+            "frame_id": "c2_base",
+            "normal_force_n": 0.9476459324359895,
+            "measured_at_monotonic_s": 111558.139701517,
+            "operator_confirmed": false,
+            "point_index": 1,
+            "received_at": "2026-09-21T05:46:03.217287+00:00",
+            "source": "FORCE_CONTACT_ESTIMATE"
+          },
+          {
+            "detected": true,
+            "tip_pose": [
+              0.40192961812568867,
+              0.024378776097285018,
+              0.21498054011517548,
+              -0.38265619801116285,
+              0.9238908123362215,
+              -2.23932112053684e-06,
+              3.1612403054410466e-05
+            ],
+            "frame_id": "c2_base",
+            "normal_force_n": 0.8389665263539117,
+            "measured_at_monotonic_s": 111579.117869009,
+            "operator_confirmed": false,
+            "point_index": 2,
+            "received_at": "2026-09-21T05:46:24.199600+00:00",
+            "source": "FORCE_CONTACT_ESTIMATE"
+          },
+          {
+            "detected": true,
+            "tip_pose": [
+              0.3920018206163081,
+              3.573690625711414e-05,
+              0.21499349355946057,
+              -0.7070975529847606,
+              0.7071160077495491,
+              -3.353441166768747e-05,
+              3.198040694814578e-05
+            ],
+            "frame_id": "c2_base",
+            "normal_force_n": 0.9378485679626469,
+            "measured_at_monotonic_s": 111601.334708958,
+            "operator_confirmed": false,
+            "point_index": 3,
+            "received_at": "2026-09-21T05:46:46.414670+00:00",
+            "source": "FORCE_CONTACT_ESTIMATE"
+          },
+          {
+            "detected": true,
+            "tip_pose": [
+              0.4020702982013423,
+              -0.024151730226202803,
+              0.21496110942388277,
+              0.9238653210921078,
+              -0.382717739844208,
+              9.582763616502217e-06,
+              2.974815610826533e-07
+            ],
+            "frame_id": "c2_base",
+            "normal_force_n": 0.9689066511589983,
+            "measured_at_monotonic_s": 111622.117040844,
+            "operator_confirmed": false,
+            "point_index": 4,
+            "received_at": "2026-09-21T05:47:07.203116+00:00",
+            "source": "FORCE_CONTACT_ESTIMATE"
+          },
+          {
+            "detected": true,
+            "tip_pose": [
+              0.42621262464206067,
+              -0.03413952453821316,
+              0.2148882329795268,
+              0.9999999963162506,
+              -6.050369079358173e-06,
+              -8.299611199507427e-05,
+              -2.103657514991909e-05
+            ],
+            "frame_id": "c2_base",
+            "normal_force_n": 1.2822051048278813,
+            "measured_at_monotonic_s": 111643.142798499,
+            "operator_confirmed": false,
+            "point_index": 5,
+            "received_at": "2026-09-21T05:47:28.227075+00:00",
+            "source": "FORCE_CONTACT_ESTIMATE"
+          },
+          {
+            "detected": true,
+            "tip_pose": [
+              0.4503071803332862,
+              -0.024028534855373235,
+              0.2149318960311872,
+              0.9238760413427947,
+              0.3826918591286585,
+              -2.9986878473725286e-05,
+              -1.7035400098317336e-05
+            ],
+            "frame_id": "c2_base",
+            "normal_force_n": 1.4705006785593941,
+            "measured_at_monotonic_s": 111664.538153264,
+            "operator_confirmed": false,
+            "point_index": 6,
+            "received_at": "2026-09-21T05:47:49.623600+00:00",
+            "source": "FORCE_CONTACT_ESTIMATE"
+          },
+          {
+            "detected": true,
+            "tip_pose": [
+              0.46041031559363327,
+              5.249332531326702e-05,
+              0.21490718066487394,
+              0.7071018373607327,
+              0.7071117238418719,
+              -2.794947704988144e-05,
+              -2.8727672660141436e-05
+            ],
+            "frame_id": "c2_base",
+            "normal_force_n": 1.1207339763641357,
+            "measured_at_monotonic_s": 111687.341263961,
+            "operator_confirmed": false,
+            "point_index": 7,
+            "received_at": "2026-09-21T05:48:12.426707+00:00",
+            "source": "FORCE_CONTACT_ESTIMATE"
+          },
+          {
+            "detected": true,
+            "tip_pose": [
+              0.4504715516560961,
+              0.024290087309215683,
+              0.21483766155971695,
+              0.3826960764383407,
+              0.9238742834942718,
+              -7.58315058988845e-05,
+              -0.0001250049136558886
+            ],
+            "frame_id": "c2_base",
+            "normal_force_n": 1.1735408012043815,
+            "measured_at_monotonic_s": 111711.023119378,
+            "operator_confirmed": false,
+            "point_index": 8,
+            "received_at": "2026-09-21T05:48:36.107803+00:00",
+            "source": "FORCE_CONTACT_ESTIMATE"
+          }
+        ],
+        "top": {
+          "detected": true,
+          "tip_pose": [
+            0.42538996219054026,
+            -0.09950268347224697,
+            0.23495343088430096,
+            -9.321063808158166e-07,
+            0.999999999119883,
+            7.376833311087018e-07,
+            -4.193829983323332e-05
+          ],
+          "frame_id": "c2_base",
+          "normal_force_n": 0.8029580116271973,
+          "measured_at_monotonic_s": 111501.431577479,
+          "operator_confirmed": false,
+          "point_index": 0,
+          "received_at": "2026-09-21T05:45:06.516753+00:00",
+          "source": "FORCE_CONTACT_ESTIMATE"
+        },
+        "axis_xy_m": [
+          0.42617388282867036,
+          9.950240645652523e-05
+        ],
+        "radius_m": 0.03420060720722967,
+        "top_z_m": null,
+        "bottom_z_m": null,
+        "measured_at": "2026-09-21T05:48:38.668032+00:00",
+        "started_at": "2026-09-21T05:43:39.373201+00:00",
+        "measurement_time_basis": "completed_utc; contact_samples_monotonic",
+        "top_tcp_contact_z_m": 0.23495350646972657,
+        "measurement_scope": "CONTACT_REFERENCE",
+        "residual_rms_m": 8.23267181434098e-05,
+        "residual_max_m": 0.00015926963027932534,
+        "residuals_m": [
+          -0.00015926963027932534,
+          0.00011072476840776752,
+          -2.8485501304367777e-05,
+          -8.428626593351418e-06,
+          3.844165581442377e-05,
+          -7.468992205559438e-05,
+          3.585783114039287e-05,
+          8.584942487005476e-05
+        ],
+        "height_m": 0.15,
+        "height_source": "OPERATOR_RULER",
+        "work_z_range_m": null,
+        "work_v_range_m": [
+          0.01,
+          0.13999999999999999
+        ],
+        "vertical_axis_assumed": true,
+        "tilt_measured": false,
+        "tool_offset_m": [
+          0.00085,
+          -0.09955,
+          0
+        ],
+        "independent_accuracy_verified": false
+      },
+      "profile_sha256": "d6803158bf797850467da2d446b923b8dc9ac684d8fb3431f86c925072764428",
+      "controller_events": [
+        {
+          "level": 1,
+          "code": 3205,
+          "message": "Change singularity region status(Outside -> Inside), Singularity handling mode(1)",
+          "step": "home_lift"
+        },
+        {
+          "level": 1,
+          "code": 3205,
+          "message": "Change singularity region status(Outside -> Inside), Singularity handling mode(1)",
+          "step": "home_align"
+        },
+        {
+          "level": 1,
+          "code": 3205,
+          "message": "Change singularity region status(Outside -> Inside), Singularity handling mode(1)",
+          "step": "home_align"
+        },
+        {
+          "level": 1,
+          "code": 3205,
+          "message": "Change singularity region status(Outside -> Inside), Singularity handling mode(1)",
+          "step": "home_align"
+        },
+        {
+          "level": 1,
+          "code": 3205,
+          "message": "Change singularity region status(Outside -> Inside), Singularity handling mode(1)",
+          "step": "home_align"
+        },
+        {
+          "level": 1,
+          "code": 3205,
+          "message": "Change singularity region status(Outside -> Inside), Singularity handling mode(1)",
+          "step": "home_x"
+        },
+        {
+          "level": 1,
+          "code": 3206,
+          "message": "Change singularity region status(Inside -> Outside), Singularity handling mode(1)",
+          "step": "home_x"
+        }
+      ],
+      "bag_verification": {
+        "bag": "workpiece-supervised-0921-attempt9-bag",
+        "topics": {
+          "/rosout": 85,
+          "/dsr01/joint_states": 40652,
+          "/workpiece_test/feedback": 27,
+          "/workpiece_test/telemetry": 10442,
+          "/dsr01/error": 7,
+          "/workpiece_test/result": 1
+        },
+        "results": [
+          {
+            "measurement_id": "workpiece-test-713c58ecb24049979db3ae71cd84f0e9",
+            "outcome": "SUCCEEDED",
+            "error_code": "NONE",
+            "elapsed_s": 299.2954783870082,
+            "stop_confirmed": true
+          }
+        ],
+        "successful_side_points": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8
+        ]
+      }
     }
   ],
   "operator_confirmation": {
@@ -170,5 +788,6 @@
     "전체 8점 재시험",
     "그리퍼 밑면 오프셋 확인",
     "120초 목표 미달"
-  ]
+  ],
+  "current_config_difference": "After attempt 9 only desired_posx finite-value validation and overall runtime limit 300->360 s were added. Motion profiles match attempt 9. No additional REAL run claimed."
 }

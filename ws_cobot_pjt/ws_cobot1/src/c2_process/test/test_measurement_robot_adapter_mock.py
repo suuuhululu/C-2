@@ -244,3 +244,53 @@ def test_desired_tcp_is_diagnostic_and_does_not_replace_measured_tcp():
     observed=io.read()
     assert observed['posx'][:3]==[1,2,3]
     assert observed['desired_posx'][:3]==[4,5,6]
+
+
+@pytest.mark.parametrize('settles',[True,False])
+def test_probe_waits_for_controller_tracking_even_when_force_is_constant(setup,settles):
+    ad,io,ctx,c,_,clock=setup
+    start=posx_to_pose(io.p,ad.offset);end=start[:];end[2]-=.0055
+    step=dict(kind='PROBE',start_pose=start,target_pose=end,direction=[0.,0.,-1.],max_m=.0055,
+              profile='top_touch',label='top_touch',point_index=0)
+    ad.preflight_measurement([step],c['workcell'],c['profiles'],ctx)
+    original=io.read
+    def read():
+        o=original();o['desired_posx']=o['posx'][:]
+        if not settles or clock()<2.:o['desired_posx'][0]+=.05
+        return o
+    def move(*args):raise RuntimeError('TRACKING_SETTLED')
+    io.read=read;io.move=move
+    expected='TRACKING_SETTLED' if settles else '실제/지시 TCP 정착 미확인'
+    with pytest.raises(Exception,match=expected):ad.execute_measurement_step(step,c['profiles']['top_touch'],ctx,60)
+    assert clock()>=3. if settles else clock()>=ad.g['baseline_timeout_s']
+    assert not io.moves
+
+
+@pytest.mark.parametrize('profile_name,force_n,allowed',[
+    ('travel',12.5,True),('escape',12.5,True),
+    ('travel',15.,False),('escape',15.,False),
+    ('approach',10.,False),('retract',10.,False),('top_touch',10.,False),('side_touch',10.,False),
+])
+def test_real_air_and_contact_force_policy(setup,profile_name,force_n,allowed):
+    ad,io,ctx,c,step,clock=setup
+    root=Path(__file__).resolve().parents[1]
+    profile=json.loads((root/'config/workpiece_real_trial_0921.json').read_text())['profiles'][profile_name]
+    ad.preflight_measurement([step],c['workcell'],c['profiles'],ctx)
+    io.force=[force_n,0.,0.]
+    if allowed:
+        assert 'soft_force_n' not in profile
+        # 높은 공중 힘 기준 미만 신호는 이동의 완료 안정화 동안 지속되어도 중단하지 않는다.
+        assert ad.execute_measurement_step(step,profile,ctx,10).ok
+    else:
+        with pytest.raises(MeasurementError,match='힘 한계'):
+            ad.execute_measurement_step(step,profile,ctx,10)
+        assert not io.moves
+
+
+def test_nonfinite_desired_pose_is_not_accepted_as_settled(setup):
+    ad,io,ctx,c,step,clock=setup;original=io.read
+    def read():
+        result=original();result['desired_posx']=[float('nan'),0.,0.,0.,0.,0.];return result
+    io.read=read
+    with pytest.raises(ValueError):ad.observe_measurement()
+    assert not io.moves

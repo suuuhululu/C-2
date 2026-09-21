@@ -201,7 +201,7 @@ def _validate(workcell, profiles, context):
             raise ValueError("옆면은 연속 45도 간격 8점 필요")
     if len({round(a%360,6) for a in angles}) != 8:
         raise ValueError("중복 측정 각도")
-    for name in ("travel","approach","retract","top_touch","side_touch"):
+    for name in dict.fromkeys(("travel","approach","retract","top_touch","side_touch",workcell.get("outer_move_profile","approach"))):
         p = profiles[name]
         for key in ("speed_m_s","acceleration_m_s2","timeout_s","hard_force_n"):
             number(p[key],name+"."+key,1e-9)
@@ -241,7 +241,7 @@ def home_matches(w, tip_pose):
             rotation_distance(current,h["tcp_pose"])<=h["angle_tolerance_rad"])
 
 
-def build_home_plan(w, initial_tip_pose):
+def build_home_plan(w, initial_tip_pose, initial_joints_rad=None):
     """검사 가능한 고정 현장 통로로만 홈 경유. 임의 시작점의 복구 플래너가 아님.
 
     양초 옆은 먼저 바깥으로 이탈, 윗면 통로는 수직 상승. 상공에서만 자세를
@@ -264,17 +264,47 @@ def build_home_plan(w, initial_tip_pose):
             raise MeasurementError("HOME_PATH_UNAVAILABLE","양초 내부/방향 불명 시작점: 홈으로 자동 이동하지 않음")
         outer=radius+w["outer_gap_m"]
         if distance<outer:
-            slow=min(outer,max(distance+w["slow_retract_gap_m"],radius+w["slow_retract_gap_m"]))
-            for r,label,profile in ((slow,"home_escape_slow","retract"),(outer,"home_escape_outer","approach")):
+            escape_steps=[]
+            if distance<radius+w["slow_retract_gap_m"]:
+                slow=min(outer,max(distance+w["slow_retract_gap_m"],radius+w["slow_retract_gap_m"]))
+                escape_steps.append((slow,"home_escape_slow","retract"))
+            escape_steps.append((outer,"home_escape_outer",w.get("outer_move_profile","approach")))
+            for r,label,profile in escape_steps:
                 tip=[center[0]+radial[0]*r/distance,center[1]+radial[1]*r/distance,*tip[2:]]
                 steps.append(_move(tip,profile,label))
             tcp=apply_tool_offset(tip,offset,-1)
+    if top_corridor and tcp[2]<w["top"]["approach_tcp_pose"][2]:
+        # 윗면 근처에서 새 요청을 받았으면 확인된 접근 높이까지 저속/접촉용 기준으로 이탈한다.
+        cleared=tcp[:];cleared[2]=w["top"]["approach_tcp_pose"][2]
+        steps.append(_move(apply_tool_offset(cleared,offset),"retract","home_lift"))
+        tcp=cleared
     lifted=tcp[:];lifted[2]=h["clearance_tcp_z_m"]
     aligned=lifted[:3]+target[3:]
     along_x=aligned[:];along_x[0]=target[0]
     above=along_x[:];above[1]=target[1]
-    for native,label in ((lifted,"home_lift"),(aligned,"home_align"),(along_x,"home_x"),(above,"home_y"),(target,"home_down")):
-        steps.append(_move(apply_tool_offset(native,offset),"travel",label))
+    steps.append(_move(apply_tool_offset(lifted,offset),"travel","home_lift"))
+    if initial_joints_rad is not None:
+        joints=vector(initial_joints_rad,6,"initial_joints_rad")
+        axis=tool_axis_in_base(tcp,"+y");home_axis=tool_axis_in_base(target,"+y")
+        start_angle=math.degrees(math.atan2(axis[1],axis[0]))
+        home_angle=math.degrees(math.atan2(home_axis[1],home_axis[0]))
+        shortest=(home_angle-start_angle+180.)%360.-180.
+        q6=math.degrees(joints[5])
+        # 수직 자세에서 J6 여유를 예측해 회전 방향을 고른다. 실제 허용은 전 구간 IK/FK가 판단한다.
+        turn=min((shortest-360.,shortest,shortest+360.),key=lambda a:(abs(q6-a),abs(a)))
+        if abs(turn-shortest)>1e-6:
+            # 같은 최종 자세라도 180도 미만 중간 자세를 명시해 반대 회전으로 축약되지 않게 한다.
+            count=math.ceil(abs(turn)/90.)
+            for i in range(1,count+1):
+                orientation=facing_pose(center,1.,lifted[2],start_angle+turn*i/count)[3:]
+                steps.append(_move(apply_tool_offset(lifted[:3]+orientation,offset),"travel","home_align"))
+    for native,label in ((aligned,"home_align"),(along_x,"home_x"),(above,"home_y"),(target,"home_down")):
+        candidate=apply_tool_offset(native,offset)
+        previous=steps[-1]["target_pose"]
+        # 분할 회전의 끝과 최종 정렬 등 같은 목표를 다시 명령하지 않는다.
+        if math.dist(candidate[:3],previous[:3])<1e-9 and rotation_distance(candidate,previous)<1e-7:
+            continue
+        steps.append(_move(candidate,"travel",label))
     return steps
 
 
@@ -319,7 +349,7 @@ def build_side_plan(w, top_z):
         a=math.radians(angle); direction=[-math.cos(a),-math.sin(a),0.]
         steps.append(_probe(start,direction,w["start_gap_m"]+w["inside_limit_m"],"side_touch",f"point_{index}_touch",index))
         steps.append(_move(facing_pose(center,radius+w["slow_retract_gap_m"],z,angle),"retract",f"point_{index}_retract"))
-        steps.append(_move(facing_pose(center,outer,z,angle),"approach",f"point_{index}_outer"))
+        steps.append(_move(facing_pose(center,outer,z,angle),w.get("outer_move_profile","approach"),f"point_{index}_outer"))
         previous=angle
     return steps
 
@@ -457,7 +487,7 @@ def measure_workpiece(adapter, workcell, profiles, context, on_progress=None):
         initial=state()
         observed["initial_state"]=deepcopy(initial)
         event("HOME_CHECK","RUNNING","현재 관절·TCP 확인: 홈 경유 경로 검사 중")
-        home_plan=build_home_plan(w,initial["tip_pose"])
+        home_plan=build_home_plan(w,initial["tip_pose"],initial["joints_rad"])
         event("HOME_MOVE","RUNNING","홈 위치를 확인하겠습니다" if home_matches(w,initial["tip_pose"]) else "검사 후 외곽·상공을 경유하여 홈으로 이동합니다")
         already_home=home_matches(w,initial["tip_pose"])
         run(home_plan,execute=not already_home)
