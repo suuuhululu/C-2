@@ -3,14 +3,6 @@
 2026-09-21. 기준: 원격 main `829db40`, 작업 브랜치 `codex/hmi-preparation-flow`.
 사용자 요청으로 작성한 **검토용 권장 계약**이다. 타입 생성은 구현하되 HMI/제어 연결·팀 승인·실기 완료를 의미하지 않는다. 기존 5개 ROS 통신과 3개 노드는 그대로 유지한다.
 
-> **2026-09-21 준비된 REAL 실행 정책 확정:** BIND가 성공한 작업의
-> `ExecuteProcess`는 측정 유효성·기본 로봇 상태·제어권·TCP/하중을 다시
-> 조회하지 않는다. 동일 준비 성공 기록과 profile binding, 경로·설정 원본
-> 무결성, 깊이·접촉 보정을 반영한 실제 실행 계획의 최종 IK·관절 검사를
-> 확인한다. 취소·정지 요청과 실제 정지 확인은 계속 유지한다. 새 측정·설정
-> 변경·취소/정지·연결 상실·제어 재시작으로 준비가 무효화되면 실행을
-> 거절한다. 이 정책은 준비되지 않은 직접 실행의 PRECHECK를 완화하지 않는다.
-
 ## 1. 이번에 정할 답
 
 | 질문 | 권장 계약 |
@@ -75,7 +67,7 @@ Action 파일: [PrepareWorkpiece.action](../ws_cobot1/src/c2_interfaces/action/P
 3. profile 루트에 `preparation_id`, `measurement_id`, `source_mode`, `input_profile_snapshot_id`, `input_profile_sha256`, `measurement_record_id`, `measurement_record_sha256`를 보존한다. profile 자체 ID/해시는 외부 참조이며 자기 파일에 자기 해시를 넣지 않는다.
 4. HMI가 BIND Goal을 보낸다. 제어는 자기 성공 기록의 ID·모드·설정과 일치하는지, 파일 해시·기록 내용이 자기 반환 Result와 일치하는지, profile 기하·메타데이터가 위 변환과 일치하는지 검사한다. ID/해시만 echo하지 않는다. 실수 변환 비교 오차는 1e-9 m(단위 변환 필드는 이에 상응)이며 현장 동작 허용오차가 아니다.
 5. 일치하고 최신 준비가 취소/무효화되지 않았으며 현재 정지·설정이 유효할 때 원자적으로 등록한다. BIND 성공은 `snapshot_bound=true`, `geometry_ready=true`, `partial=false`, `stop_confirmed=true`와 동일 ID/해시를 반환한다. 기하/접촉 필드는 기본값이며 MEASURE Result에서 읽는다. BIND Feedback stage는 `BINDING → COMPLETE`다. BIND 자체는 모션/홈/측정을 호출하지 않는다.
-6. HMI는 이 ack 후에만 GeneratePath를 요청한다. 제어는 ExecuteProcess에서 경로 메타데이터의 profile ID/해시를 자기 등록표와 대조한다. 누락/불일치/무효화면 `NOT_READY`/`PROFILE_MISMATCH`로 실행 차단한다. 최종 관절 검사도 동일 경로를 사용한다. 준비된 실행에서는 측정 유효성·기본 로봇 상태·제어권·TCP/하중을 다시 조회하지 않는다. ExecuteProcess Goal을 늘리지 않는다.
+6. HMI는 이 ack 후에만 GeneratePath를 요청한다. 제어는 ExecuteProcess에서 경로 메타데이터의 profile ID/해시를 자기 등록표와 대조한다. 누락/불일치/무효화면 `NOT_READY`/`PROFILE_MISMATCH`로 실행 차단한다. 최종 관절 검사도 동일 경로를 사용한다. ExecuteProcess Goal을 늘리지 않는다.
 
 현재 c2_path의 고정 SIM/test_only profile 검사와 동적 실측 profile 지원은 별개다. 위 변환 계약에 맞는 profile 소비·검증은 경로 담당자 연결 작업이며 이 파일 추가로 해결됐다고 보지 않는다.
 
