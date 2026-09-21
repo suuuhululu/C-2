@@ -27,6 +27,12 @@ MAX_LISTED_VIOLATIONS = 100
 DEFAULT_LIMITS_SOURCE = ("시율님 지시(잠정) — 높이 9/21 변경(10~140mm), 각도 9/20 J5 실측 — "
                          "surface.valid_v_range_mm / surface.reachable_angle_deg")
 SNAPSHOT_LIMITS_SOURCE = "요청 스냅샷(/2) — surface.valid_v_range_mm / surface.reachable_angle_deg (요청별 값)"
+SNAPSHOT_LIMITS_SOURCE_V3 = "요청 스냅샷(/3, REAL 추정값) — surface.valid_v_range_mm / surface.reachable_angle_deg (요청별 값)"
+# REAL 추정값 미리보기 전용 경로(`c2-path-test-profile/3`)는 작업 범위 안이어도 실행할 수 없다. 이 코드는 사전 점검
+# (WITHIN/OUT_OF_LIMITS)과 별개이며, 보고서·미리보기에 `execution_blocked` 로 실린다.
+PREVIEW_ONLY_CODE = "REAL_ESTIMATE_PREVIEW_ONLY"
+PREVIEW_ONLY_MESSAGE = ("REAL 추정값(윗면 절대 높이·정확도 미검증)으로 만든 미리보기 전용 경로입니다. "
+                        "작업 범위 안이어도 실행할 수 없습니다(test_only). 실행 승인은 별도 계약이 필요합니다.")
 ANGLE_MEANING = "원통 도달각 참고 범위(잠정). 실제 J5 관절 한계 판정이 아니다."
 
 # c2_path 가 계산하지 않는 항목. 실행 전 검사가 직접 봐야 한다.
@@ -61,6 +67,8 @@ def limits_from_profile(profile):
     limits = default_limits()
     if isinstance(profile, dict) and profile.get("contract") == "c2-path-test-profile/2":
         limits["source"] = SNAPSHOT_LIMITS_SOURCE
+    elif isinstance(profile, dict) and profile.get("contract") == "c2-path-test-profile/3":
+        limits["source"] = SNAPSHOT_LIMITS_SOURCE_V3
     if isinstance(surface, dict):
         v = surface.get("valid_v_range_mm")
         a = surface.get("reachable_angle_deg")
@@ -144,9 +152,15 @@ def execution_readiness(path, limits=None):
     }
 
 
+def mark_preview_only(readiness):
+    """REAL 추정값 미리보기 전용 경로: 사전 점검 결과와 별개로 실행 금지를 표시한다(사전 점검 값은 바꾸지 않는다)."""
+    readiness["execution_blocked"] = {"code": PREVIEW_ONLY_CODE, "message": PREVIEW_ONLY_MESSAGE}
+    return readiness
+
+
 def preview_summary(readiness):
     """미리보기 JSON 상단에 넣는 요약 (전체 위반 목록은 검증 보고서에 있다)."""
-    return {
+    summary = {
         "contract": readiness["contract"],
         "executability": readiness["executability"],
         "precheck": readiness["precheck"],
@@ -155,6 +169,9 @@ def preview_summary(readiness):
         "cut_segment_count": readiness["summary"]["cut_segment_count"],
         "note": readiness["note"],
     }
+    if "execution_blocked" in readiness:
+        summary["execution_blocked"] = dict(readiness["execution_blocked"])
+    return summary
 
 
 def segment_flags(path, limits):
@@ -175,6 +192,10 @@ def message_suffix(readiness):
     """GeneratePath Result.message 에 붙일 한 문장."""
     summary = readiness["summary"]
     if readiness["precheck"] == WITHIN:
-        return "잠정 로봇 작업 범위 안이지만 실행 가능 여부는 판정하지 않았습니다."
-    return (f"절삭 구간 {summary['out_of_limit_cut_segment_count']}/{summary['cut_segment_count']}개가 잠정 로봇 작업 범위를 "
-            "벗어나 있어 실행 전 검사 전까지 실행할 수 없는 경로로 취급해야 합니다.")
+        text = "잠정 로봇 작업 범위 안이지만 실행 가능 여부는 판정하지 않았습니다."
+    else:
+        text = (f"절삭 구간 {summary['out_of_limit_cut_segment_count']}/{summary['cut_segment_count']}개가 잠정 로봇 작업 범위를 "
+                "벗어나 있어 실행 전 검사 전까지 실행할 수 없는 경로로 취급해야 합니다.")
+    if "execution_blocked" in readiness:
+        text += " " + readiness["execution_blocked"]["message"]
+    return text

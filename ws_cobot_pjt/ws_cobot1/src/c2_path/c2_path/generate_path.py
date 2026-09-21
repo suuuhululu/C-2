@@ -227,8 +227,11 @@ def chunk(points, max_points):
 
 
 def build(mapped, path_id, path_version, asset_id, asset_sha256,
-          snapshot_id, profile_sha256, source_mode="SIMULATION", on_progress=None, should_stop=None):
-    """on_progress(0~1): 이 단계 안의 진행률 (정렬 0~0.5, 구간 조립 0.5~1). 예외는 그대로 전파한다."""
+          snapshot_id, profile_sha256, source_mode="SIMULATION", on_progress=None, should_stop=None,
+          real_preview=None):
+    """on_progress(0~1): 이 단계 안의 진행률 (정렬 0~0.5, 구간 조립 0.5~1). 예외는 그대로 전파한다.
+
+    real_preview: REAL 추정값 미리보기 전용 경로일 때만 주는 출처 표시(`config.real_preview`). SIMULATION 은 None."""
     if not mapped:
         raise ValueError("EMPTY_PATH: 매핑된 3D 획이 없습니다.")
     notify = on_progress or (lambda _fraction: None)
@@ -346,6 +349,8 @@ def build(mapped, path_id, path_version, asset_id, asset_sha256,
         },
         "segments": segments,
     }
+    if real_preview is not None:
+        path["config"]["real_preview"] = dict(real_preview)
     stats = {
         "segment_count": len(segments),
         "waypoint_count": sum(len(s["waypoints"]) for s in segments),

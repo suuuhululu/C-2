@@ -384,3 +384,43 @@ c2_path 는 J6/IK 를 계산하지 않는다. 검증 보고서의 `not_checked` 
   진행률은 줄어들지 않는다.
 - 취소·시간 초과는 단계 도중에도 확인한다. 제한 시간의 60% 가 지나면 개선(2-opt)만 멈추고 그 시점의 완전한 순서를 쓴다.
   통계에 `two_opt_stopped_early` 로 남는다. 120초를 넘으면 이전과 같이 `TIMEOUT` 이다.
+
+## 14. REAL 추정값 미리보기 전용 스냅샷 `/3` (9/21, 팀장님 요청 — **이름·필드는 제안**)
+
+REAL 실측(`validity=ESTIMATED` 또는 `FORCE_CONTACT_ESTIMATE`)으로 경로를 **생성·미리보기만** 한다. 실제 가공 승인이 아니다.
+`/1`·`/2`·SIMULATION 동작은 바꾸지 않았고, REAL 은 새 계약 `c2-path-test-profile/3` 으로만 받는다.
+
+### 14.1 동작 (**확인**: 코드·시험 `test_real_preview.py`)
+
+| 항목 | 동작 |
+| --- | --- |
+| 노드 스위치 | ROS 파라미터 `allow_real_preview`(기본 `false`). 꺼져 있으면 REAL Goal 은 `NOT_READY`. 켜도 SIMULATION Goal 은 그대로 받는다 |
+| 모드 일치 | Goal `source_mode` 와 스냅샷 `source_mode` 가 같아야 한다. REAL Goal 은 `/3` 과, SIMULATION Goal 은 `/1`·`/2` 와만 계산한다. 어긋나면 `PROFILE_MISMATCH`. REAL 을 SIMULATION 으로 바꿔 통과시키지 않고 그 반대도 없다 |
+| 기하·범위 | `/2` 와 같다: 스냅샷의 반지름·높이·축 원점·`valid_v_range_mm`(바닥 기준, 위로 +)·`reachable_angle_deg` 로 계산하고 고정값으로 대체하지 않는다. 변환(윗면 기준 `work_v_range_m` → 바닥 기준)은 HMI 한 곳에서 한다: `valid_v_range_mm = [(H−v_max)·1000, (H−v_min)·1000]` |
+| 산출물 | 경로·미리보기·보고서의 `source_mode="REAL"`, 경로 `test_only=true`. 출처·상태는 경로 `config.real_preview`, 미리보기 `real_preview`, 보고서 `real_preview` 에 같은 내용으로 남는다 |
+| 실행 금지 표시 | `execution_readiness.execution_blocked = {code: "REAL_ESTIMATE_PREVIEW_ONLY", message}` 를 보고서·미리보기에 추가. `precheck`(WITHIN/OUT_OF_LIMITS) 값은 바꾸지 않는다. `executability` 는 `NOT_JUDGED` 유지. `Result.message` 에도 문장이 붙는다 |
+| ID·버전·해시 | `Result.path_id/path_version/path_sha256` = 경로 파일 = 미리보기(`path_id`, `path_version`, `path_sha256`) = 보고서(`path_id`, `path_version`). 경로 `config` 와 미리보기에 스냅샷 ID·해시가 그대로 남는다(보고서는 경로 해시를 넣을 수 없다 — 경로가 보고서 ID 를 담는다) |
+
+### 14.2 `/3` 스냅샷 필수 조건 (**제안**: 이름·값은 합의 전)
+
+`/2` 의 기하 구조 조건(`surface.height_reference="bottom"`, `v_direction="up"`, 범위·치수 구조, 고정 축·이음매)에 더해:
+
+| 필드 | 조건 |
+| --- | --- |
+| `contract` | `"c2-path-test-profile/3"` |
+| `source_mode` | `"REAL"` |
+| `calibration_status` | `"REAL_ESTIMATE_PREVIEW_ONLY"` (새 값 — **미정**) |
+| `measurement_status` | `"ESTIMATED"` 또는 `"FORCE_CONTACT_ESTIMATE"` = 준비 Result `validity` 값 그대로. 그 밖의 값(SIMULATED, REFERENCE_ONLY, INCOMPLETE 등)은 거절. HMI 백엔드가 이미 쓰는 필드 이름(`measurement_status`)을 따랐다 |
+| `measurement_assumptions.independent_accuracy_verified` | 반드시 `false` (정확도 검증 완료로 바꾸지 않는다) |
+| 측정 출처 | `preparation_id`, `measurement_id`, `input_profile_snapshot_id`, `measurement_record_id`: 정규화된 UUID. `input_profile_sha256`, `measurement_record_sha256`: 소문자 SHA-256. `measured_at`: 시간대가 있는 ISO 8601. **하나라도 없거나 형식이 틀리면 `PROFILE_MISMATCH`** (보충·추정 없음) |
+| 설정 식별자 | `/1`·`/2` 와 같다: `workcell_*`, `tools_config_*`, `tool_*`, `tcp_*`, `load_*`, `frame_id`, `gripper_open_allowed=false`, `schema_version=2`. 다르거나 없으면 거절 |
+
+준비 Action 5.2절이 이미 정한 루트 필드(`preparation_id`, `measurement_id`, `input_profile_*`, `measurement_record_*`)는 그대로 쓰고,
+새로 제안하는 것은 계약 이름 `/3`, `calibration_status` 값, HMI 가 이미 쓰는 `measurement_status`·`measurement_assumptions` 를 REAL 에서도 쓰는 것뿐이다.
+
+### 14.3 다른 담당이 바꿔야 하는 것 (c2_path 만으로는 끝나지 않는다)
+
+- **세은님**: `_bind` 가 `ESTIMATED` 를 "경로용 스냅샷 승인은 별도 계약 필요"로 거절한다. 미리보기 전용 스냅샷 등록 방식을 정해야 한다. ExecuteProcess 는 이 경로를 계속 거절해야 한다.
+- **팀장님(HMI)**: REAL 모드에서 BIND·GeneratePath 를 허용하지 않고, `artifact_loader` 가 경로·미리보기 `source_mode` 를 `SIMULATION` 으로만 받는다. `/3` 프로파일 조립(등록 설정과 결합), REAL 미리보기 표시, 실행 요청 차단(`execution_blocked`, `OUT_OF_LIMITS`, `test_only`)이 필요하다.
+- **실행 방법**: 경로 노드를 `-p allow_real_preview:=true` 로 띄운 경우에만 REAL Goal 을 받는다. HMI REAL 모드는 경로 노드를 자동 기동하지 않으므로 따로 띄워야 한다.
+- 이번 시험은 c2_path 단독이다. 파일 묶음(`bundle`)은 SIMULATION 만 지원하고 REAL 은 지원하지 않는다.
