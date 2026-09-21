@@ -1,0 +1,52 @@
+{
+  "notice": "측정 실험 기준의 검토용 가드 설정. 제조사 관절 사양/새 코드 실기 검증 결과 아님. 포팅 과정에서 정지 안정화 0.2s와 사전 검사 120s 제한 추가. REAL 실행 승인 파일 아님.",
+  "guards": {
+    "angular_acc_deg_s2": 20.0,
+    "angular_speed_deg_s": 10.0,
+    "baseline_drift_n": 0.2,
+    "baseline_position_m": 0.0001,
+    "baseline_timeout_s": 10.0,
+    "baseline_window_slack_s": 0.1,
+    "completion_joint_deg": 1.0,
+    "completion_stable_s": 0.2,
+    "fk_angle_deg": 0.05,
+    "fk_position_mm": 0.2,
+    "ik_step_deg": 1.0,
+    "ik_step_mm": 2.0,
+    "j3_margin_deg": 10.0,
+    "j5_margin_deg": 15.0,
+    "joint_max_deg": [
+      355.0,
+      90.0,
+      130.0,
+      355.0,
+      130.0,
+      345.0
+    ],
+    "joint_min_deg": [
+      -355.0,
+      -90.0,
+      -130.0,
+      -355.0,
+      -130.0,
+      -345.0
+    ],
+    "line_error_mm": 0.5,
+    "max_joint_step_deg": 8.0,
+    "max_samples_per_segment": 1000,
+    "max_state_age_s": 0.5,
+    "movement_start_deg": 0.03,
+    "movement_start_m": 3e-05,
+    "movement_start_timeout_s": 3.0,
+    "moving_baseline_end_m": 0.00325,
+    "moving_baseline_start_m": 0.002,
+    "moving_mad_n": 0.2,
+    "poll_s": 0.02,
+    "prebaseline_delta_n": 5.0,
+    "preflight_timeout_s": 120.0,
+    "skip_angle_deg": 0.02,
+    "skip_position_m": 2e-05,
+    "stationary_mad_n": 0.1,
+    "stop_stable_s": 0.2
+  }
+}

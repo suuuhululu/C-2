@@ -1,0 +1,38 @@
+{
+  "code_commit": "5ff7c5f",
+  "measurement_id": "workpiece-test-9f9de137c84e4d028b95840812053abc",
+  "source_mode": "REAL",
+  "outcome": "STOPPED",
+  "error_code": "CANCELLED",
+  "stop_confirmed": true,
+  "elapsed_s": 54.58605445399007,
+  "side_points_completed": 0,
+  "top_contact_tcp_z_m": 0.24538218688964844,
+  "previous_operator_confirmed_top_contact_tcp_z_m": 0.23470465087890624,
+  "operator_contact_confirmation": "NOT_OBSERVED",
+  "interpretation": "Suspected startup force false positive; cancelled before side motion, not a successful measurement",
+  "final_controller_state": {
+    "robot_state": 1,
+    "motion_status": 0,
+    "posx": [
+      426.2427978515625,
+      0.047850966453552246,
+      329.997802734375,
+      166.3103485107422,
+      179.9996795654297,
+      166.31021118164062
+    ],
+    "joints_deg": [
+      -0.5204605460166931,
+      11.171364784240723,
+      59.321998596191406,
+      0.0614878311753273,
+      109.50701141357422,
+      -0.8595888018608093
+    ]
+  },
+  "source_jsonl_filename": "workpiece_10c84dc76a1f493e838b98646dcbfd4d.jsonl",
+  "source_jsonl_sha256": "678f9547e766e5255c11fbc10dd8398c844517f12ad08cfd0cf524198e305ab7",
+  "raw_records_committed": false,
+  "revision_retest": "PENDING_USER_START"
+}
