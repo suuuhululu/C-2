@@ -316,3 +316,20 @@ def test_action_uses_team_home_and_observation_flow(tmp_path, case):
         assert events.index('HOME_CHECK')<events.index('HOME_RECHECK')<events.index('TOP_TOUCH')
         assert 'RETRACT' in events
         assert result['contact_indices']==list(range(9))
+
+
+def test_action_contract_samples_have_exact_goal_feedback_and_result_fields():
+    from c2_process.preparation_action import result_base, validate_goal
+    root = Path(__file__).parent / 'fixtures' / 'prepare_workpiece_action_samples'
+    feedback_fields = {
+        'request_id','preparation_id','measurement_id','operation','stage','progress',
+        'completed_side_points','total_side_points','elapsed_s','message'}
+    for name in ('success','failure','cancel','timeout','communication_lost'):
+        sample = json.loads((root / (name + '.json')).read_text())
+        validate_goal(sample['goal'])
+        assert set(sample['result']) == set(result_base(sample['goal']))
+        assert all(set(item) == feedback_fields for item in sample['feedback'])
+        assert sample['real_robot_capture'] is False
+    success = json.loads((root / 'success.json').read_text())['result']
+    assert success['contact_indices'] == list(range(9))
+    assert success['geometry_ready'] and not success['partial'] and success['stop_confirmed']
