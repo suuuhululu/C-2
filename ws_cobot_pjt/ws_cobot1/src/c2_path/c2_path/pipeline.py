@@ -14,12 +14,13 @@ from datetime import datetime
 from typing import Callable, Mapping
 from uuid import UUID
 
-from . import extract_2d, generate_path, image_to_svg, map_3d, optimize_2d, readiness, snapshot, validate_path
+from . import (extract_2d, generate_path, image_to_hatch, image_to_svg, map_3d,
+               optimize_2d, readiness, snapshot, validate_path)
 from . import workcell as wc
 from .artifacts import ArtifactError, ArtifactWrite, json_bytes, new_id, sha256_bytes
 
 
-SUPPORTED_PRESETS = {"raster_centerline_bezier"}
+SUPPORTED_PRESETS = {"raster_centerline_bezier", "raster_parallel_hatch"}
 STAGES = (
     "CONVERTING",
     "EXTRACTING_2D",
@@ -99,7 +100,10 @@ def validate_goal(goal: Mapping) -> dict:
     if value.get("tool_id") != wc.TOOL_ID:
         raise PipelineError("UNSUPPORTED_RECIPE", f"tool_id는 {wc.TOOL_ID}이어야 합니다.")
     if value.get("conversion_preset") not in SUPPORTED_PRESETS:
-        raise PipelineError("UNSUPPORTED_FORMAT", "지원 preset: raster_centerline_bezier")
+        raise PipelineError(
+            "UNSUPPORTED_FORMAT",
+            "지원 preset: raster_centerline_bezier, raster_parallel_hatch",
+        )
     for name in ("width_mm", "height_mm"):
         number = value.get(name)
         if isinstance(number, bool) or not isinstance(number, (int, float)) or not math.isfinite(number):
@@ -427,28 +431,49 @@ class GeneratePipeline:
         wc.set_active_surface(profile_surface(profile))
 
         checkpoint("CONVERTING", 0.05)
+        hatch_raw = None
+        hatch_bbox = None
         try:
             suffix = ".png" if asset.mime == "image/png" else ".jpg"
             with tempfile.NamedTemporaryFile(suffix=suffix) as image_file:
                 image_file.write(asset.data)
                 image_file.flush()
-                svg, convert_stats = image_to_svg.convert(
-                    image_file.name,
-                    source_name=asset.name,
-                )
+                if goal["conversion_preset"] == "raster_parallel_hatch":
+                    svg, hatch_raw, hatch_bbox, convert_stats = image_to_hatch.convert(
+                        image_file.name,
+                        goal["width_mm"],
+                        goal["height_mm"],
+                        source_name=asset.name,
+                    )
+                else:
+                    svg, convert_stats = image_to_svg.convert(
+                        image_file.name,
+                        source_name=asset.name,
+                    )
         except ValueError as exc:
             raise PipelineError("UNSUPPORTED_FORMAT", str(exc)) from exc
 
         checkpoint("EXTRACTING_2D", 0.22)
         try:
-            strokes, extract_stats = extract_2d.extract(
-                svg,
-                goal["width_mm"],
-                goal["height_mm"],
-                goal["offset_u_mm"],
-                goal["offset_v_mm"],
-                goal["rotation_deg"],
-            )
+            if hatch_raw is not None:
+                strokes, extract_stats = extract_2d.transform_raw_strokes(
+                    hatch_raw,
+                    hatch_bbox,
+                    goal["width_mm"],
+                    goal["height_mm"],
+                    goal["offset_u_mm"],
+                    goal["offset_v_mm"],
+                    goal["rotation_deg"],
+                )
+            else:
+                strokes, extract_stats = extract_2d.extract(
+                    svg,
+                    goal["width_mm"],
+                    goal["height_mm"],
+                    goal["offset_u_mm"],
+                    goal["offset_v_mm"],
+                    goal["rotation_deg"],
+                )
         except (ValueError, KeyError, IndexError) as exc:
             raise PipelineError("INVALID_INPUT", f"2D 좌표 추출 실패: {exc}") from exc
         if not strokes:
@@ -475,7 +500,7 @@ class GeneratePipeline:
                 ArtifactWrite(json_bytes(report), "validation", "application/json",
                               "c2-path-validation-failed.json", {"executable": False}, report_id),
                 ArtifactWrite(svg.encode("utf-8"), "svg", "image/svg+xml",
-                              "c2-path-centerline-diagnostic.svg", {"executable": False}, svg_id),
+                              "c2-path-vector-diagnostic.svg", {"executable": False}, svg_id),
             ])
             raise PipelineError(
                 "VALIDATION_FAILED",
@@ -545,7 +570,7 @@ class GeneratePipeline:
                 ArtifactWrite(json_bytes(report), "validation", "application/json",
                               "c2-path-validation-failed.json", {"executable": False}, report_id),
                 ArtifactWrite(svg.encode("utf-8"), "svg", "image/svg+xml",
-                              "c2-path-centerline-diagnostic.svg", {"executable": False}, svg_id),
+                              "c2-path-vector-diagnostic.svg", {"executable": False}, svg_id),
             ])
             raise PipelineError(
                 "VALIDATION_FAILED",
@@ -575,7 +600,7 @@ class GeneratePipeline:
             ArtifactWrite(path_bytes, "path", "application/json",
                           "c2-path.json", {"path_id": path_id, "path_version": path_version}, path_asset_id),
             ArtifactWrite(svg.encode("utf-8"), "svg", "image/svg+xml",
-                          "c2-path-centerline.svg", {"path_id": path_id}, svg_id),
+                          "c2-path-vector.svg", {"path_id": path_id}, svg_id),
             ArtifactWrite(json_bytes(preview), "preview", "application/json",
                           "c2-path-preview.json", {"path_id": path_id}, preview_id),
         ])
