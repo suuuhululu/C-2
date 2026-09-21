@@ -2703,3 +2703,115 @@ def test_real_preparation_main_does_not_shutdown_stopped_context(tmp_path, monke
         [], observation_options_factory=lambda node: {},
         adapter_factory=lambda node: object())
     assert calls == ['init', 'executor_shutdown', 'destroy_node']
+
+
+def test_execution_loader_accepts_original_bytes_without_files(tmp_path):
+    goal, _, _, files = _file_integration(tmp_path)
+    snapshot = json.loads(files['snapshot'].read_bytes())
+    data = snapshot['test_execution']
+    inputs = _team_mock_inputs()[1]
+    def resolve(value, current_goal):
+        return build_execution_settings(
+            current_goal, evidence=inputs.evidence, adapter=inputs.adapter,
+            workcell=data['workcell'], calibration_record=data['calibration'],
+            calibration_snapshot_id=value['profile_snapshot_id'],
+            calibration_profiles=data['calibration_profiles'],
+            motion_profiles=data['motion_profiles'], tool_profile=data['tool_profile'],
+            stop_profile=data['stop_profile'], tip_tolerance_m=data['tip_tolerance_m'],
+            joint_limits_deg=data['joint_limits_deg'], j6_margin_deg=data['j6_margin_deg'])
+    result = json.loads(files['result'].read_bytes())
+    loaded = load_execution_inputs(
+        goal, path_bytes=files['path'].read_bytes(), snapshot_bytes=files['snapshot'].read_bytes(),
+        generation_result=result, resolve_settings=resolve)
+    assert loaded.path_bytes == files['path'].read_bytes()
+    assert loaded.snapshot_bytes == files['snapshot'].read_bytes()
+
+
+def test_real_process_main_wires_combined_preparation_and_execution(tmp_path, monkeypatch):
+    from types import SimpleNamespace as NS
+    import c2_process.node as module
+    calls = {}
+    options = NS(
+        backend_url='http://127.0.0.1:8000',
+        preparation_journal_path=tmp_path/'prepare.sqlite3',
+        execution_journal_path=tmp_path/'execute.sqlite3',
+        controller_prefix='/dsr01/dsr_controller2',
+        control_authority_topic='/dsr01/dsr_controller2/control_authority',
+        control_authority_max_age_s=.5, asset_timeout_s=5.)
+    monkeypatch.setattr(module, '_parse_real_process_args', lambda args: (options, []))
+    class Logger:
+        def info(self, value): calls['log'] = value
+    class Node:
+        def get_logger(self): return Logger()
+        def destroy_node(self): calls['destroyed'] = True
+    server = Node()
+    def create(**kwargs): calls['kwargs'] = kwargs; return server
+    monkeypatch.setattr(module, 'create_ros_node', create)
+    class Executor:
+        def __init__(self, num_threads): calls['threads'] = num_threads
+        def add_node(self, node): calls['node'] = node
+        def spin(self): calls['spun'] = True
+        def shutdown(self): calls['shutdown'] = True
+    fake = NS(init=lambda args: None, ok=lambda: True,
+              shutdown=lambda: calls.setdefault('rclpy_shutdown', True))
+    monkeypatch.setitem(sys.modules, 'rclpy', fake)
+    monkeypatch.setitem(sys.modules, 'rclpy.executors', NS(MultiThreadedExecutor=Executor))
+    adapter_factory = lambda owner: object()
+    loader_factory = lambda owner, adapter: (lambda goal: None)
+    module.real_process_main([], observation_options_factory=lambda owner: {},
+                             adapter_factory=adapter_factory, loader_factory=loader_factory)
+    kwargs = calls['kwargs']
+    assert kwargs['runtime_mode'] == 'REAL'
+    assert kwargs['measurement_only'] is False and kwargs['preparation_required'] is True
+    assert kwargs['real_execution_loader_factory'] is not None
+    assert isinstance(kwargs['journal'], module.RunJournal)
+    assert kwargs['preparation_journal_path'] == options.preparation_journal_path
+    assert calls['spun'] and calls['destroyed']
+
+
+def test_real_execution_mapper_requires_verified_absolute_geometry():
+    from types import SimpleNamespace
+    import c2_process.node as module
+    goal, inputs = _team_mock_inputs()
+    goal = dict(goal, source_mode='REAL')
+    calibration = asdict(inputs.calibration)
+    workcell = {
+        'measurement_scope':'ABSOLUTE_GEOMETRY', 'tcp_id':'GripperDA_v1',
+        'load_id':'ToolWeight_1', 'max_state_age_s':.5,
+        'top':{'contact_offset_tool_m':[0.,0.,0.], 'offset_status':'VERIFIED',
+               'offset_record_id':'offset-record'}}
+    snapshot = {
+        'source_mode':'REAL', 'test_only':False, 'real_execution_allowed':True,
+        'profile_snapshot_id':inputs.evidence.profile_snapshot_id,
+        'tcp_id':'GripperDA_v1', 'load_id':'ToolWeight_1', 'workcell':workcell,
+        'surface':{'axis_origin_m':[.4,0.,.1], 'radius_mm':34.25, 'height_mm':150.},
+        'tip_calibration':calibration, 'calibration_profiles':inputs.calibration_profiles,
+        'execution_context':{'source_mode':'REAL',
+            'motion_profiles':inputs.context.motion_profiles,
+            'tool_profile':inputs.context.tool_profile,
+            'stop_profile':inputs.context.stop_profile},
+        'joint_check_arguments':{'limits_deg':inputs.joint_limits_deg,
+                                 'j6_margin_deg':inputs.j6_margin_deg},
+        'verify_tool_tip_arguments':{'tol_m':inputs.tip_tolerance_m}}
+    authority = SimpleNamespace(active=True, connected=True, valid=True, has_control=True)
+    observations = SimpleNamespace(cache=SimpleNamespace(fresh=lambda: authority),
+                                   stop_latched=lambda context: False)
+    mapped = module.resolve_real_execution_settings(
+        snapshot, goal, adapter=inputs.adapter, observations=observations)
+    assert mapped['workcell'] == {'axis_xy_m':[.4,0.], 'radius_m':.03425, 'top_z_m':.25}
+    assert mapped['evidence'].profile_snapshot_id == inputs.evidence.profile_snapshot_id
+    snapshot['workcell']['top']['offset_status'] = 'UNVERIFIED'
+    with pytest.raises(InputsUnavailable, match='ABSOLUTE_GEOMETRY'):
+        module.resolve_real_execution_settings(
+            snapshot, goal, adapter=inputs.adapter, observations=observations)
+
+
+def test_real_prepared_only_coordinator_needs_binding_before_loader(tmp_path):
+    goal, _, adapter = real_fixture()
+    called = []
+    coordinator = ProcessCoordinator(
+        lambda value: called.append(value), runtime_mode='REAL', real_adapter=adapter,
+        journal=RunJournal(tmp_path/'runs.sqlite3'), preparation_required=True)
+    result = coordinator.execute(goal)
+    assert (result.outcome, result.error_code) == ('FAILED', 'NOT_READY')
+    assert called == []
