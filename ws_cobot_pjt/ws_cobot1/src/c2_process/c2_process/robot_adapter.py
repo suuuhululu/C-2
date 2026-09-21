@@ -493,7 +493,7 @@ class DoosanRobotAdapter(RobotAdapter):
 
     # ---- 정지 ----
     def _qstop(self):
-        req = self._srv["MoveStop"].Request(); req.stop_mode = 2      # DR_QSTOP
+        req = self._srv["MoveStop"].Request(); req.stop_mode = 2      # DR_SSTOP(Soft Stop); DR_QSTOP은 1
         try:
             self._call("motion/move_stop", self._srv["MoveStop"], req, timeout=3.0)
         except Exception as e:

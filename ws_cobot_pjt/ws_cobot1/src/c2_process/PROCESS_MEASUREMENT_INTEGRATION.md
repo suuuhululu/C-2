@@ -84,6 +84,42 @@ finally:
 `dsr_msgs2/RobotState.msg`에 `access_control` 필드도 있으나 **현재 실행 환경에서 어떤 Topic으로 실제 발행되는지는 이 작업에서 검증하지 않았다**.
 필드 존재만 보고 토픽 이름을 가정하거나 고정 True를 공급하지 않는다. 세은님의 실제 관측 공급 경로 확인이 남아 있다.
 
+## 정지 확인 보강 · 2026-09-21
+
+`GuardedMeasurementAdapter.stop_measurement(profile)`의 함수 인자와 StepResult 형식은 유지한다.
+정지 명령은 한 번만 보내고, 다음 조건을 모두 만족해야 `SUCCEEDED`, `stop_confirmed=true`를 반환한다.
+
+- `motion_status=0(IDLE)`이며 `robot_state`가 STANDBY(1), SAFE_OFF(3), SAFE_STOP(5), EMERGENCY_STOP(6), SAFE_STOP2(9), SAFE_OFF2(10) 중 하나다.
+- 정지 요청 응답 이후의 새 관측으로 `guards.stop_stable_s` 동안 위치·자세·관절이 안정돼 있다.
+- 안정 구간 첫 관측을 기준으로 도구 끝 위치 차이는 `movement_start_m`, 자세 회전각과 각 관절 차이는 `movement_start_deg` 이하다. 인접 두 점만 비교하지 않으므로 누적 이동도 검출한다.
+- 기존 가드 값을 재사용하며 속도·힘·정지 모드를 변경하지 않는다. 현재 예제의 안정 구간은 0.2초, 위치 0.03mm, 자세·관절 0.03도다. 이번 보강의 실기 검증 완료값을 뜻하지 않는다.
+
+명령 거부·조회 실패·만료·제한 시간 초과·안정 미확인은 기존대로 `UNKNOWN / STOP_UNCONFIRMED`, `stop_confirmed=false`다.
+같은 관측 시각의 캐시를 반복 읽어 안정 시간을 채우지 않는다. 초기화·교시·복구·미지원 상태를 정지 확인으로 받아들이지 않는다.
+보호정지 중 정지 확인 성공은 **공정 latch 해제·정상 준비·재시작 허용이 아니다**. 이 함수는 자동 해제·후퇴·홈 복귀를 명령하지 않는다.
+
+### 조회·명령 근거
+
+현재 실기 설정의 접두사는 `/dsr01/dsr_controller2`이며 다음 기존 서비스를 사용한다.
+
+| 접두사 뒤 경로 | 타입 | 필드 |
+| --- | --- | --- |
+| `system/get_robot_state` | `dsr_msgs2/srv/GetRobotState` | `robot_state`, `success` |
+| `motion/check_motion` | `dsr_msgs2/srv/CheckMotion` | `status`, `success` |
+| `aux_control/get_current_posx` | `dsr_msgs2/srv/GetCurrentPosx` | `task_pos_info`, `success` |
+| `aux_control/get_current_posj` | `dsr_msgs2/srv/GetCurrentPosj` | `pos`, `success` |
+| `motion/move_stop` | `dsr_msgs2/srv/MoveStop` | 요청 `stop_mode`, 응답 `success` |
+
+드라이버 기본 서비스 QoS는 Reliable / Volatile / KeepLast(10)이다.
+응답에 원본 제어기 시각·sequence는 없다. `RosMeasurementIO.read()`의 `measured_at_monotonic_s`는 **조회 응답 완료 시각**이며 원본 센서 측정 시각이 아니다.
+기존 `max_state_age_s` 검사는 어댑터 관측 캐시의 나이를 검사한다. 응답 성공이나 위치 불변만으로 연결 신선도를 증명하지 않으므로 공정의 연결·제어권 관측과 함께 사용해야 한다.
+공정의 `stop_latched_provider` 및 latch 해제 정책은 세은님 담당이며 이번 변경에서 구현하거나 만료 시간을 새로 확정하지 않는다.
+
+설치된 `DRFC.h`와 `DSR_ROBOT2.py` 기준 `1=DR_QSTOP`, `2=DR_SSTOP(Soft Stop)`이다.
+`robot_adapter.py`의 기존 `_qstop()`는 이름과 달리 모드 2를 보내므로 주석만 바로잡았다. 실제 모드 선택은 기존 설정을 유지한다.
+
+검증: 측정 어댑터·공정 어댑터 모의검사 82개 통과. 실제 드라이버/ROS 왕복·실기 정지 검증은 미실시.
+
 ## 세은님 브랜치 연결 시 확인할 두 제한
 
 조회한 `origin/feat/process-integration-clean`의 `node.py`는 현재 SIM 전용 분기다.

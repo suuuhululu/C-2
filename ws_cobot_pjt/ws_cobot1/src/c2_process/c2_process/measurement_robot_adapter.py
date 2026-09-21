@@ -254,19 +254,36 @@ class GuardedMeasurementAdapter:
             raise MeasurementError('FORCE_LIMIT','원신호 힘 한계 초과')
 
     def stop_measurement(self,profile):
+        """정지 접수 뒤 새 관측의 위치·자세·관절 안정까지 확인한다.
+
+        보호정지 상태에서도 정지 자체는 확인할 수 있으나, 이 결과가
+        공정의 정지 latch 해제나 다음 동작 허용을 뜻하지는 않는다.
+        """
         deadline=self.clock()+profile['timeout_s']
         try:
             self._emit_trace('stop_requested',dict(mode=profile['mode']))
             self.io.stop(profile['mode'])
-            stable=None
+            accepted_at=self.clock()
+            anchor=None
+            last_stamp=None
             while self.clock()<deadline:
                 o=self._read()
-                if o['motion_status']==0 and o['robot_state']!=2:
-                    if stable is None:stable=self.clock()
-                    if self.clock()-stable>=self.g['stop_stable_s']:
+                if self.clock()>=deadline:break
+                stamp=o['measured_at_monotonic_s']
+                if stamp<accepted_at or (last_stamp is not None and stamp<=last_stamp):
+                    # 같은 캐시를 반복 읽은 시간으로 안정 구간을 채우지 않는다.
+                    if last_stamp is None or stamp<last_stamp:anchor=None
+                elif o['motion_status']==0 and o['robot_state'] in (1,3,5,6,9,10):
+                    stable=(anchor is not None and
+                            math.dist(o['tip_pose'][:3],anchor['tip_pose'][:3])<=self.g['movement_start_m'] and
+                            rotation_distance(o['tip_pose'],anchor['tip_pose'])<=math.radians(self.g['movement_start_deg']) and
+                            max(abs(a-b) for a,b in zip(o['joints_deg'],anchor['joints_deg']))<=self.g['movement_start_deg'])
+                    if not stable:anchor=deepcopy(o)
+                    elif stamp-anchor['measured_at_monotonic_s']>=self.g['stop_stable_s']:
                         self._emit_trace('stop_confirmed',o)
                         return StepResult('SUCCEEDED',observed_state={'stop_confirmed':True})
-                else:stable=None
+                else:anchor=None
+                last_stamp=stamp if last_stamp is None else max(last_stamp,stamp)
                 self.sleep(self.g['poll_s'])
         except Exception:
             pass
