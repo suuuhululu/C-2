@@ -301,6 +301,13 @@ ros2 run c2_process real_process_controller_node \
 - `joint_check_arguments`의 승인된 6축 범위와 J6 여유
 - `verify_tool_tip_arguments.tol_m`
 
+준비된 REAL 실행의 승인 근거는 공정 coordinator가 보관한 준비 성공 기록과
+동일 snapshot binding이다. REAL 설정 매퍼는 제어권·정지 latch를 다시 조회하거나
+임시 성공값을 만들지 않는다. `adapter.observe()`는 깊이·접촉 보정을 반영한 최종
+실행 계획의 IK·관절 검사를 시작할 현재 관절 표본을 얻기 위해서만 사용한다.
+상시 관측에서 제어권 상실·만료 또는 로봇 연결 단절이 확인되면 기존 binding을
+폐기하며, 관측 복구만으로 자동 복원하지 않는다.
+
 이 진입점 추가만으로 HMI와 c2_path가 실행 가능한 REAL 경로를 생산하는 것은
 아니다. 두 소비자는 같은 snapshot을 보존한 `test_only=false` 경로를 등록하고,
 HMI가 준비 BIND 성공 뒤 ExecuteProcess를 보내야 한다. 기존 REAL 추정 미리보기
