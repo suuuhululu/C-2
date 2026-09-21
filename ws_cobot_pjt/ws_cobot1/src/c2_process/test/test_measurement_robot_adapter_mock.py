@@ -175,3 +175,72 @@ def test_recording_failure_cannot_prevent_stop_command(setup):
     ad.trace=broken
     r=ad.stop_measurement(c['profiles']['stop'])
     assert io.stops==[1] and r.observed_state['stop_confirmed']
+
+
+@pytest.mark.parametrize('b',[-179.99,-179.8,-170.,-90.,-.2,.2,90.,170.,179.8,179.99,180.,-180.])
+def test_zyz_equivalent_branch_preserves_pose_without_long_rotation(b):
+    from c2_process.measurement_robot_adapter import continuous_target
+    from c2_process.workpiece_calibration import rotation_distance
+    native=[421.7,.1,264.34,.928,b,.927]
+    pose=posx_to_pose(native)
+    target=continuous_target(pose,None,native)
+    assert max(abs(a-c) for a,c in zip(target[3:],native[3:]))<.002
+    assert rotation_distance(pose,posx_to_pose(target))<1e-6
+
+
+@pytest.mark.parametrize('drift_mm,expected',[(.12,'BASELINE_SETTLED'),(.5,'시작 위치/자세 이탈')])
+def test_baseline_waits_for_small_settling_but_rejects_large_drift(setup,drift_mm,expected):
+    from c2_process.robot_adapter import pose_to_posx
+    ad,io,ctx,c,_,clock=setup
+    start=posx_to_pose(io.p,ad.offset);end=start[:];end[2]-=.0055
+    step=dict(kind='PROBE',start_pose=start,target_pose=end,direction=[0.,0.,-1.],max_m=.0055,profile='top_touch',label='top_touch',point_index=0)
+    ad.preflight_measurement([step],c['workcell'],c['profiles'],ctx)
+    original=io.read;origin=io.p[:]
+    def read():
+        io.p[0]=origin[0]+drift_mm*min(1.,clock()/1.5)
+        io.force=[0.,0.,min(1.2,clock()*.8)]
+        return original()
+    def move(*args):raise RuntimeError('BASELINE_SETTLED')
+    io.read=read;io.move=move
+    with pytest.raises(Exception,match=expected):
+        ad.execute_measurement_step(step,c['profiles']['top_touch'],ctx,60)
+    if drift_mm==.12:assert clock()>=2.
+
+
+def test_recorded_second_probe_deviation_is_rejected_and_logged(setup):
+    """0.304 mm 실측 이탈을 진동으로 무시하거나 성공 접촉으로 처리하지 않는다."""
+    ad,io,ctx,c,_,clock=setup
+    raw=json.loads((Path(__file__).parent/'fixtures/workpiece_supervised_0921.json').read_text())['deviation']
+    io.p=raw['start']['posx'][:];io.q=raw['start']['joints_deg'][:]
+    step=raw['step'];events=[];ad.trace=lambda event,data:events.append((event,data))
+    ad.preflight_measurement([step],c['workcell'],c['profiles'],ctx)
+    original=io.read;moving=False
+    def move(target,*args):
+        nonlocal moving
+        moving=True;io.moves.append(target)
+    def read():
+        if moving:
+            io.p=raw['last_before_stop']['posx'][:];io.motion=2
+        return original()
+    io.move=move;io.read=read
+    with pytest.raises(MeasurementError,match='횡오차 0.304 mm') as error:
+        ad.execute_measurement_step(step,raw['profile'],ctx,60)
+    assert error.value.code=='CONTACT_OUT_OF_RANGE'
+    event=next(data for name,data in events if name=='probe_deviation')
+    assert event['lateral_m']==pytest.approx(raw['lateral_m'])
+    assert event['desired_tcp'] is None  # 당시 기록에 없던 목표를 만들어 넣지 않는다.
+    assert len(io.moves)==1
+
+
+def test_desired_tcp_is_diagnostic_and_does_not_replace_measured_tcp():
+    from types import SimpleNamespace as N
+    from c2_process.measurement_robot_adapter import RosMeasurementIO
+    io=object.__new__(RosMeasurementIO)
+    def many(requests):
+        assert requests[-1]==('aux_control/get_desired_posx','GetDesiredPosx',{'ref':0})
+        return [N(robot_state=1),N(status=0),N(task_pos_info=[N(data=[1,2,3,0,180,0])]),
+                N(pos=[0]*6),N(tool_force=[0]*6),N(pos=[4,5,6,0,180,0])]
+    io._many=many
+    observed=io.read()
+    assert observed['posx'][:3]==[1,2,3]
+    assert observed['desired_posx'][:3]==[4,5,6]

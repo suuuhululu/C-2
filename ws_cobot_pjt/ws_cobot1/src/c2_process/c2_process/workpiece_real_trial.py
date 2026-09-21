@@ -10,18 +10,9 @@ import math
 from pathlib import Path
 import threading
 import time
-from .measurement_robot_adapter import RosMeasurementIO, GuardedMeasurementAdapter, interpolate
+from .measurement_robot_adapter import RosMeasurementIO, GuardedMeasurementAdapter, interpolate, continuous_target
 from .robot_adapter import pose_to_posx, posx_to_pose, tool_axis_in_base
 from .workpiece_calibration import MeasurementError, rotation_distance
-
-
-def continuous_target(pose, offset, previous):
-    target=pose_to_posx(pose,offset)
-    if abs(abs(target[4])-180)<1e-3:
-        invariant=target[5]-target[3];target[3]=previous[3]
-        target[4]+=360*round((previous[4]-target[4])/360);target[5]=invariant+target[3]
-    for axis in (3,5):target[axis]+=360*round((previous[axis]-target[axis])/360)
-    return target
 
 
 def check_trial_scene(steps,w,initial):

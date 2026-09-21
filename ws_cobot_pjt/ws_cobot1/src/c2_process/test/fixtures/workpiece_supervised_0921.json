@@ -1,0 +1,174 @@
+{
+  "description": "실기 로그 발췌. 윗면/첫 옆점 뒤 두 번째 접근 이탈; 성공 결과가 아님.",
+  "source_mode": "REAL",
+  "runs": [
+    {
+      "log_name": "workpiece_54fc687494f64349beeccca770c7c853.jsonl",
+      "sha256": "fd7dd670a17a11bdbf52be6d92d1378570ca93043df19541d2055d6ae91e439f",
+      "measurement_id": "workpiece-test-4535a0713d13412d9a957b3e812d0174",
+      "outcome": "FAILED",
+      "error_code": "UNSTABLE_BASELINE",
+      "message": "기준 힘 측정 중 이동",
+      "stop_confirmed": true,
+      "home_move_skipped": true,
+      "top_tcp_contact_z_m": 0.23487188720703125,
+      "completed_side_points": 0,
+      "elapsed_s": 83.95394309901167
+    },
+    {
+      "log_name": "workpiece_59643d1e564b44e0aa3e07466991bc40.jsonl",
+      "sha256": "de692e867f4de8a1df99e793a7a565b8673fff248649748921e43673d1c57b66",
+      "measurement_id": "workpiece-test-32231ca2d91d46ce9b685b339cf9f588",
+      "outcome": "FAILED",
+      "error_code": "CONTACT_OUT_OF_RANGE",
+      "message": "접촉 탐색 선분/자세 이탈",
+      "stop_confirmed": true,
+      "home_move_skipped": false,
+      "top_tcp_contact_z_m": 0.2348397216796875,
+      "completed_side_points": 1,
+      "elapsed_s": 121.80816627599415
+    }
+  ],
+  "operator_confirmation": {
+    "measurement_id": "workpiece-test-4535a0713d13412d9a957b3e812d0174",
+    "top_contact": true,
+    "statement": "그리퍼 밑부분이 윗면에 닿았음",
+    "source": "user chat reply",
+    "absolute_top_offset_verified": false
+  },
+  "deviation": {
+    "step": {
+      "kind": "PROBE",
+      "start_pose": [
+        0.3984603444408393,
+        0.027830108051943688,
+        0.2148397216796875,
+        -0.3826834323650897,
+        0.9238795325112867,
+        0.0,
+        0.0
+      ],
+      "target_pose": [
+        0.40234943173736526,
+        0.023941020755417677,
+        0.2148397216796875,
+        -0.3826834323650897,
+        0.9238795325112867,
+        0.0,
+        0.0
+      ],
+      "direction": [
+        0.7071067811865475,
+        -0.7071067811865476,
+        0.0
+      ],
+      "max_m": 0.0055,
+      "profile": "side_touch",
+      "label": "point_2_touch",
+      "point_index": 2
+    },
+    "profile": {
+      "speed_m_s": 0.001,
+      "acceleration_m_s2": 0.0003,
+      "timeout_s": 60.0,
+      "hard_force_n": 10.0,
+      "contact_force_n": 0.8,
+      "max_force_delta_n": 2.0,
+      "baseline_window_s": 1.0
+    },
+    "native_target": [
+      332.557992434253,
+      94.93454158654706,
+      214.8397216796875,
+      0.9364826679229736,
+      180.0,
+      -44.063517332077026
+    ],
+    "start": {
+      "event": "observation",
+      "source_mode": "REAL",
+      "measurement_id": "workpiece-test-32231ca2d91d46ce9b685b339cf9f588",
+      "robot_state": 1,
+      "motion_status": 0,
+      "posx": [
+        328.7067565917969,
+        98.83897399902344,
+        214.89013671875,
+        15.970321655273438,
+        179.99217224121094,
+        -29.030309677124023
+      ],
+      "joints_deg": [
+        16.12874984741211,
+        -3.3792357444763184,
+        93.24365234375,
+        -0.04438994824886322,
+        90.12747955322266,
+        -29.23712158203125
+      ],
+      "force_n": [
+        -2.5695712566375732,
+        -1.1353778839111328,
+        1.7143467664718628
+      ],
+      "measured_at_monotonic_s": 104970.096254616,
+      "tip_pose": [
+        0.39849897772936405,
+        0.027846222070003382,
+        0.21489663514450782,
+        -0.38268852150171584,
+        0.9238774219800826,
+        -7.768449808296078e-06,
+        6.786691740294311e-05
+      ]
+    },
+    "last_before_stop": {
+      "event": "observation",
+      "source_mode": "REAL",
+      "measurement_id": "workpiece-test-32231ca2d91d46ce9b685b339cf9f588",
+      "robot_state": 1,
+      "motion_status": 2,
+      "posx": [
+        328.8973388671875,
+        98.39807891845703,
+        214.6744842529297,
+        16.11038589477539,
+        -179.9734344482422,
+        -28.888139724731445
+      ],
+      "joints_deg": [
+        16.059572219848633,
+        -3.347372531890869,
+        93.24507141113281,
+        -0.04438965022563934,
+        90.12629699707031,
+        -29.305362701416016
+      ],
+      "force_n": [
+        -3.809580087661743,
+        0.44121769070625305,
+        2.3614606857299805
+      ],
+      "measured_at_monotonic_s": 104972.138268601,
+      "tip_pose": [
+        0.39868694639598806,
+        0.027402760769842244,
+        0.21465253082599622,
+        -0.38267153504934653,
+        0.9238844313650252,
+        2.5796912813446763e-05,
+        -0.00023038841132466654
+      ]
+    },
+    "travel_m": 0.0004464884113581794,
+    "lateral_m": 0.0003036859582066317,
+    "allowed_lateral_m": 0.0003,
+    "desired_tcp_at_failure": null,
+    "cause": "UNRESOLVED"
+  },
+  "remaining": [
+    "전체 8점 재시험",
+    "그리퍼 밑면 오프셋 확인",
+    "120초 목표 미달"
+  ]
+}

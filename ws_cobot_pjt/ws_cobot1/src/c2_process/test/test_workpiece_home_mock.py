@@ -80,3 +80,10 @@ def test_inside_home_tolerance_never_sends_home_move():
     r=measure_workpiece(ad,c['workcell'],c['profiles'],ctx)
     assert r.ok and r.observed_state['home_move_skipped']
     assert not any(k=='execute' and step['label'].startswith('home_') for k,step in ad.calls)
+
+
+def test_measured_home_negative_179_99_does_not_flip_in_top_plan():
+    w=config()['workcell']
+    current=[421.692291,.110563926,264.339752,.928778,-179.9901886,.927056]
+    p=build_top_plan(w,posx_to_pose(current,w['tool_offset_m']))
+    assert check_trial_scene(p,w,dict(posx=current))['path_checked']
