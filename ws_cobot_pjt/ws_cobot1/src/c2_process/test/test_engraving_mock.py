@@ -73,7 +73,7 @@ def test_success_force_touch():
     assert abs(st["engraving_progress"] - 1.0) < 1e-9
     assert len(st["touches"]) == 2 and abs(st["touches"][0]["offset_mm"] - 1.5) < 0.05
     splines = [c for c in ad.calls if c["fn"] == "move_spline"]
-    assert [c["n"] for c in splines] == [29, 80, 19], [c["n"] for c in splines]      # 30점 획: 첫 점 제외 29, 100점 획: 80+19
+    assert [c["n"] for c in splines] == [15, 20], [c["n"] for c in splines]   # 9/20: 1 mm 미만 간격 점 걸러냄(제어기 등속 불가 경고) → 시험 경로(1 mm 간격)는 절반이 빠진다
     assert progress[-1]["phase"] == "RETRACT"
 
 
