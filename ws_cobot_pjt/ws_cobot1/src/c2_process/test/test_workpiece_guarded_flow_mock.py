@@ -31,7 +31,9 @@ class KinematicIO:
         self.q=[0.,20.,60.,0.,90.,0.];self.ik_target=None
         self.center=[w['seed_axis_xy_m'][0]+.00005,w['seed_axis_xy_m'][1]-.00005]
         self.radius=w['seed_radius_m']+.0001
-        self.top_contact_tcp_z=.23485
+        # ABSOLUTE_GEOMETRY의 20 mm 접촉 오프셋을 적용해도 기존 현장
+        # 모의 경로 범위 안에 남는 접촉 높이를 사용한다.
+        self.top_contact_tcp_z=.236
         self.fail_probe=None;self.probe_index=None
 
     def metadata(self):
@@ -117,9 +119,10 @@ def test_full_guarded_flow_home_top_eight_points_and_retreat(at_home,fail_probe)
     assert len(m['points'])==8 and observed['stop_confirmed'] and not observed['partial']
     assert m['axis_xy_m']==pytest.approx(io.center,abs=.00004)
     assert m['radius_m']==pytest.approx(io.radius,abs=.00004)
-    assert m['top_tcp_contact_z_m']==pytest.approx(io.top_contact_tcp_z,abs=.00001)
-    assert m['top_z_m']==pytest.approx(m['top_tcp_contact_z_m']) and m['geometry_ready']
-    assert m['validity']=='ESTIMATED' and not m['absolute_top_verified']
+    assert m['top_tcp_contact_z_m']==pytest.approx(io.top_contact_tcp_z,abs=.00002)
+    assert m['top_z_m']==pytest.approx(m['top_tcp_contact_z_m']-.020) and m['geometry_ready']
+    assert m['validity']=='SIMULATED' and m['absolute_top_verified']
+    assert m['measurement_scope']=='ABSOLUTE_GEOMETRY'
     assert [e['point_index'] for e in events if e['stage']=='SIDE_TOUCH' and e['status']=='SUCCEEDED']==list(range(1,9))
     assert len(io.stops)==9 and io.active is None
     assert observed['home_return_confirmed']
