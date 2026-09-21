@@ -1,5 +1,7 @@
 # c2_interfaces · 공통 ROS 2 통신 정의 v2
 
+2026-09-21 추가: 준비용 `PrepareWorkpiece.action` **권장안**을 빌드 목록에 등록했다. `/c2/prepare_workpiece`의 MEASURE/BIND_SNAPSHOT, ID 발급·설정 해시·타입 결과·스냅샷 등록·취소 및 담당자 작업은 [준비 Action 계약](../../../docs/PREPARE_WORKPIECE_ACTION.md)을 따른다. 기존 5개 타입은 변경하지 않았으며 서버/클라이언트 연결·실기 완료가 아니다. 아래 최초 배포 설명과 구별한다.
+
 현재 v2는 고정 드릴 전용이다. 통신 이름·필드 배치는 v1과 같지만 집기·반납·청소를 없애고 TOOL_CHECK를 추가했다. [v1→v2 전환](../../../docs/C2_FIXED_DRILL_20260919.md)을 따라 모든 소비자를 함께 갱신한다. 아래 최초 타입 시험 기록은 v1 시점이며 이번 검증은 [고정 드릴 검증 기록](../../../docs/validation/2026-09-19-fixed-drill.md)을 따른다.
 
 2026-09-19. [인터페이스 권장안 v2](../../../docs/INTERFACE_RECOMMENDATION.md)의 공통 타입을 구현했다. 실행 노드 없이 세 노드가 공유하는 Python·C/C++ 타입을 생성하는 `ament_cmake` 패키지다. Jazzy 빌드·직렬화 시험을 완료했으며, 실제 상대 노드 통합·로봇 동작은 별도 구현·검증 대상이다. [검증 기록](../../../docs/validation/2026-09-19-c2-interfaces.md).
@@ -8,6 +10,7 @@
 | --- | --- | --- |
 | `action/` | `GeneratePath.action` | 모니터 → 좌표·경로 생성 |
 | `action/` | `ExecuteProcess.action` | 모니터 → 전체 공정 실행 |
+| `action/` | `PrepareWorkpiece.action` | 모니터 → 사전 검사·홈 복귀·측정 / 결과 등록(권장안) |
 | `srv/` | `StopProcess.srv` | 모니터 → 정지 접수 |
 | `msg/` | `ProcessState.msg` | 공정 → 최신 상태 |
 | `msg/` | `ProcessEvent.msg` | 공정 → 기록할 이벤트 |
@@ -20,7 +23,8 @@ c2_interfaces/
 ├── README.md
 ├── action/
 │   ├── GeneratePath.action
-│   └── ExecuteProcess.action
+│   ├── ExecuteProcess.action
+│   └── PrepareWorkpiece.action
 ├── srv/StopProcess.srv
 ├── msg/
 │   ├── ProcessState.msg
@@ -48,6 +52,7 @@ source /opt/ros/jazzy/setup.bash
 source ws_cobot_pjt/ws_cobot1/install/local_setup.bash
 ros2 interface show c2_interfaces/action/GeneratePath
 ros2 interface show c2_interfaces/action/ExecuteProcess
+ros2 interface show c2_interfaces/action/PrepareWorkpiece
 ros2 interface show c2_interfaces/srv/StopProcess
 ros2 interface show c2_interfaces/msg/ProcessState
 ros2 interface show c2_interfaces/msg/ProcessEvent

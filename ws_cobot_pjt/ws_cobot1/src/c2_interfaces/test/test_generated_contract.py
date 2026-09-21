@@ -5,12 +5,39 @@ import pytest
 from builtin_interfaces.msg import Time
 from rclpy.serialization import deserialize_message, serialize_message
 
-from c2_interfaces.action import ExecuteProcess, GeneratePath
+from c2_interfaces.action import ExecuteProcess, GeneratePath, PrepareWorkpiece
+from geometry_msgs.msg import Pose
 from c2_interfaces.msg import ProcessEvent, ProcessState
 from c2_interfaces.srv import StopProcess
 
 
 @pytest.mark.parametrize('message', [
+    PrepareWorkpiece.Goal(
+        operation='MEASURE', request_id='request', preparation_id='prep',
+        measurement_id='measurement', source_mode='SIMULATION',
+        input_profile_snapshot_id='config', input_profile_sha256='a' * 64,
+    ),
+    PrepareWorkpiece.Goal(
+        operation='BIND_SNAPSHOT', request_id='bind-request', preparation_id='prep',
+        measurement_id='measurement', source_mode='SIMULATION',
+        input_profile_snapshot_id='config', input_profile_sha256='a' * 64,
+        measurement_record_id='record', measurement_record_sha256='b' * 64,
+        profile_snapshot_id='profile', profile_sha256='c' * 64,
+    ),
+    PrepareWorkpiece.Result(
+        operation='MEASURE', outcome='FAILED', error_code='CONTACT_OUT_OF_RANGE',
+        partial=True, stop_confirmed=True, frame_id='c2_base',
+        contact_indices=[0], contact_tip_poses=[Pose()],
+        contact_normal_force_n=[1.0], contact_received_at=[Time(sec=100)],
+        contact_monotonic_s=[12.5], contact_sources=['SIMULATED'],
+        message='부분 결과 보존',
+    ),
+    PrepareWorkpiece.Result(
+        operation='BIND_SNAPSHOT', outcome='SUCCEEDED', error_code='NONE',
+        snapshot_bound=True, partial=False, geometry_ready=True, stop_confirmed=True,
+        profile_snapshot_id='profile', profile_sha256='c' * 64,
+    ),
+    PrepareWorkpiece.Feedback(operation='MEASURE', stage='HOME_RECHECK', progress=0.2),
     GeneratePath.Goal(
         request_id='00000000-0000-4000-8000-000000000001', source_mode='SIMULATION',
         asset_id='00000000-0000-4000-8000-000000000002', asset_sha256='a' * 64,
@@ -74,7 +101,7 @@ def test_state_measurements_keep_units_frames_and_separate_timestamps():
 
 
 def test_unfilled_messages_do_not_report_success_or_valid_signals():
-    for kind in (GeneratePath.Goal, ExecuteProcess.Goal, StopProcess.Request, ProcessState, ProcessEvent):
+    for kind in (PrepareWorkpiece.Goal, GeneratePath.Goal, ExecuteProcess.Goal, StopProcess.Request, ProcessState, ProcessEvent):
         assert kind.SCHEMA_VERSION == kind().schema_version == 2
     assert not GeneratePath.Result().success
     assert not GeneratePath.Result().validation_passed
@@ -88,3 +115,46 @@ def test_unfilled_messages_do_not_report_success_or_valid_signals():
     for signal in ('joints', 'tcp', 'grip', 'temperature', 'robot'):
         assert getattr(state, f'{signal}_quality') == 'UNKNOWN'
     assert state.source_mode == ''  # 송신자가 의식적으로 모드를 지정한다.
+
+
+def test_preparation_defaults_and_manual_control_exclusion():
+    goal = PrepareWorkpiece.Goal()
+    result = PrepareWorkpiece.Result()
+    assert goal.operation == goal.source_mode == ''
+    assert result.outcome == result.error_code == 'UNKNOWN'
+    assert result.partial and not result.geometry_ready
+    assert not result.snapshot_bound and not result.stop_confirmed
+    assert not result.contact_indices and result.validity == 'INCOMPLETE'
+    fields = goal.get_fields_and_field_types()
+    assert not any('operator_confirmed' in name or 'drill_on' in name for name in fields)
+
+
+def test_preparation_complete_contacts_keep_geometry_and_time_bases():
+    poses = []
+    for index in range(9):
+        pose = Pose()
+        pose.position.x = index * 0.001
+        pose.position.z = 0.15
+        pose.orientation.w = 1.0
+        poses.append(pose)
+    result = PrepareWorkpiece.Result(
+        outcome='SUCCEEDED', error_code='NONE', partial=False,
+        stop_confirmed=True, geometry_ready=True, validity='SIMULATED',
+        frame_id='c2_base', height_m=0.10, radius_m=0.03,
+        axis_xy_m=[0.1, -0.2], top_z_m=0.15, bottom_z_m=0.05,
+        work_v_range_m=[0.01, 0.09], work_z_range_m=[0.06, 0.14],
+        height_source='OPERATOR_RULER', vertical_axis_assumed=True,
+        started_at=Time(sec=100), measured_at=Time(sec=120),
+        contact_indices=list(range(9)), contact_tip_poses=poses,
+        contact_normal_force_n=[1.0] * 9,
+        contact_received_at=[Time(sec=101 + i) for i in range(9)],
+        contact_monotonic_s=[10.5 + i for i in range(9)],
+        contact_sources=['SIMULATED'] * 9,
+    )
+    restored = deserialize_message(serialize_message(result), PrepareWorkpiece.Result)
+    assert restored == result
+    assert len(restored.contact_tip_poses) == 9
+    assert restored.contact_tip_poses[8].position.x == 0.008
+    assert restored.contact_received_at[0].sec == 101
+    assert restored.contact_monotonic_s[0] == 10.5
+    assert not restored.snapshot_bound  # 측정 완료만으로 등록 완료가 되지 않는다.

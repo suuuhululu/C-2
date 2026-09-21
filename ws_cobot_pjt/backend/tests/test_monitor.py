@@ -10,6 +10,7 @@ from fastapi.testclient import TestClient
 from PIL import Image
 
 from app.monitor import create_app
+from app.monitor_contract import now
 
 HEADERS={'x-c2-monitor':'1'}
 
@@ -33,6 +34,15 @@ def wait(c,url,predicate,timeout=4):
 
 
 def generated(c,**overrides):
+    state=c.get('/api/operator/snapshot').json()['preparation']
+    if state['supported'] and not state['ready']:
+        config=state['input_config']
+        request_id=str(uuid4())
+        response=c.post('/api/operator/preparations',json=dict(request_id=request_id,
+            input_profile_snapshot_id=config['id'],input_profile_sha256=config['sha256'],
+            height_m=config['payload']['workcell']['height_m']))
+        assert response.status_code==202,response.text
+        wait(c,'/api/operator/snapshot',lambda s:s['preparation']['ready'] and not s['preparation']['blocks_work'])
     buf=io.BytesIO();Image.new('RGB',(80,120),'white').save(buf,format='PNG')
     upload=c.post('/api/operator/assets',files={'file':('test.png',buf.getvalue(),'image/png')})
     assert upload.status_code==201,upload.text
@@ -135,6 +145,9 @@ def test_asset_tampering_and_stale_connection(client):
     assert c.post('/api/operator/runs',json=run_body(p)).status_code==409
     c.post('/api/operator/simulation/scenario',json={'scenario':'normal'})
     wait(c,'/api/operator/snapshot',lambda s:s['connection']=='CONNECTED')
+    assert c.post('/api/operator/runs',json=run_body(p)).json()['error_code']=='NOT_READY'
+    assert not c.get('/api/operator/snapshot').json()['preparation']['ready']
+    _,p=generated(c)  # 재연결 뒤 새 준비와 새 경로가 필요하다.
     asset=c.app.state.store.asset(p['path_asset_id'])
     (c.app.state.store.files/asset['storage_key']).write_text('{}')
     response=c.post('/api/operator/runs',json=run_body(p))

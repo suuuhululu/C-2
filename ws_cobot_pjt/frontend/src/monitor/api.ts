@@ -138,6 +138,7 @@ export type Snapshot = {
   connection: string;
   server_time: string;
   profile: Profile;
+  preparation: PreparationState;
   work_area_policy?: WorkAreaPolicy;
   active_run: Run | null;
   generation: Generation | null;
@@ -163,7 +164,94 @@ export type Snapshot = {
     seq: number;
     error_code: string;
     message: string;
+    published_at?: string | null;
+    joints?: (number | null)[] | null;
+    joints_quality?: string;
+    joints_measured_at?: string | null;
+    tcp?: {
+      header: { frame_id: string; stamp: string | null };
+      pose: {
+        position: { x: number; y: number; z: number };
+        orientation: { x: number; y: number; z: number; w: number };
+      };
+    } | null;
+    tcp_quality?: string;
+    tcp_profile_id?: string;
+    robot_connection_state?: string;
+    robot_mode?: string;
+    robot_quality?: string;
+    robot_measured_at?: string | null;
+    grip_quality?: string;
+    grip_measured_at?: string | null;
+    stop_state?: string;
   } | null;
+};
+
+export type PreparationFeedback = {
+  preparation_id: string;
+  measurement_id: string;
+  sequence?: number;
+  stage: string;
+  status?: string;
+  point_index?: number;
+  total_points?: number;
+  completed_side_points?: number;
+  total_side_points?: number;
+  message: string;
+  measured_at?: string;
+};
+export type PreparationRecord = {
+  request_id: string;
+  state: string;
+  stage: string;
+  created_at: string;
+  binding_status: string;
+  message?: string;
+  error_code?: string;
+  goal: {
+    preparation_id: string;
+    measurement_id: string;
+    source_mode?: string;
+  };
+  feedback: PreparationFeedback[];
+  measurement_record?: { id: string; sha256: string };
+  profile_snapshot?: Profile;
+  result: {
+    outcome: string;
+    error_code: string;
+    message: string;
+    observed_state: {
+      partial: boolean;
+      stop_confirmed: boolean | null;
+      measurement: {
+        contact_indices?: number[];
+        geometry_ready: boolean;
+        validity: string;
+        axis_xy_m: number[] | null;
+        radius_m: number | null;
+        top_z_m: number | null;
+        bottom_z_m: number | null;
+        height_m: number;
+        measured_at: string | null;
+      } | null;
+    };
+  } | null;
+};
+export type PreparationState = {
+  supported: boolean;
+  transport: string;
+  reason: string;
+  ready: boolean;
+  blocks_work: boolean;
+  input_config: {
+    id: string;
+    sha256: string;
+    payload: {
+      source_mode?: string;
+      workcell: { height_m: number; height_source: string };
+    };
+  } | null;
+  current: PreparationRecord | null;
 };
 export type Generation = {
   request_id: string;

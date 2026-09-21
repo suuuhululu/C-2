@@ -8,6 +8,7 @@ import math
 from copy import deepcopy
 
 from .monitor_contract import SCHEMA_VERSION, now, uid
+from .mock_preparation import prepare_fixture
 
 PROFILE = {
     'contract': 'mock-profile/1', 'schema_version': SCHEMA_VERSION, 'source_mode': 'SIMULATION',
@@ -99,7 +100,13 @@ def artifacts(goal, profile, store, force_failure=False):
             out |= abs(u) > math.pi*r or not low <= v <= high
             uv.append([round(u,5), round(v,5)])
         out |= max(u for u,v in uv)-min(u for u,v in uv)>math.pi*r
-        xyz = [[r/1000*math.sin(u/r), -r/1000*math.cos(u/r), v/1000, 0,0,0,1] for u,v in uv]
+        surface = profile['payload']['surface']
+        if 'axis_origin_m' in surface:
+            ox, oy, oz = surface['axis_origin_m']
+            angle = math.radians(surface['u_origin_angle_deg'])
+            xyz = [[ox+r/1000*math.cos(u/r+angle), oy+r/1000*math.sin(u/r+angle), oz+v/1000, 0,0,0,1] for u,v in uv]
+        else:
+            xyz = [[r/1000*math.sin(u/r), -r/1000*math.cos(u/r), v/1000, 0,0,0,1] for u,v in uv]
         sid = f'cut-{n+1:03d}'
         strokes.append({'stroke_id':f'stroke-{n+1:03d}', 'segment_id':sid, 'kind':'CUT',
                         'points_uv_mm':uv, 'points_m': [p[:3] for p in xyz], 'connect_to_next':False})
@@ -143,6 +150,7 @@ class MockPeer:
     def __init__(self, store, profile, emit, tick=.4):
         self.store,self.profile,self.emit,self.tick = store,profile,emit,tick
         self.epoch=uid();self.seq=0;self.event_seq=0;self.scenario='normal';self.stop_event=asyncio.Event()
+        self.bound_preparation=None;self.completed_preparation=None
         self.state=dict(schema_version=SCHEMA_VERSION,source_mode='SIMULATION',source_epoch=self.epoch,seq=0,
                         run_id='',path_id='',path_version=0,status='IDLE',phase='',engraving_progress=0,
                         elapsed_s=0,stop_state='NONE',error_code='NONE',message='모의 공정 대기',
@@ -179,6 +187,19 @@ class MockPeer:
             self.generation_cancels = set()
         self.generation_cancels.add(request_id)
 
+    async def prepare_workpiece(self, goal, config, feedback, cancel):
+        result=await prepare_fixture(goal,config,feedback,cancel,self.tick,self.scenario)
+        self.completed_preparation=deepcopy(goal) if result['outcome']=='SUCCEEDED' else None
+        return result
+
+    async def bind_preparation_snapshot(self, goal, profile):
+        # 제어팀의 내부 bind 함수와 역할만 대응하는 로컬 mock. ROS 서비스가 아니다.
+        if self.completed_preparation!=goal:
+            raise ValueError('모의 준비 성공 기록이 없습니다.')
+        self.bound_preparation=dict(preparation_id=goal['preparation_id'],measurement_id=goal['measurement_id'],
+            profile_snapshot_id=profile['id'],profile_sha256=profile['sha256'])
+        return deepcopy(self.bound_preparation)
+
     async def generate(self,goal,feedback):
         scenario=self.scenario
         for i,stage in enumerate(STAGES):
@@ -203,6 +224,8 @@ class MockPeer:
     async def execute(self,goal):
         scenario=self.scenario
         meta=await asyncio.to_thread(self.store.path,goal['path_id'],goal['path_version'])
+        if (not self.bound_preparation or any(meta.get(k)!=v for k,v in self.bound_preparation.items())):
+            return dict(run_id=goal['run_id'],outcome='FAILED',error_code='PROFILE_MISMATCH',message='모의 준비·경로 연결 불일치')
         preview=json.loads(await asyncio.to_thread(self.store.read_asset,meta['preview_asset_id']))
         observations=[dict(segment_id=s['segment_id'],stroke_id=s['stroke_id'],start_point_index=0,
                            end_point_index=len(s['points_m'])-1,verdict='PENDING',motion_status='NOT_STARTED',
