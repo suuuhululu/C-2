@@ -1753,3 +1753,89 @@ small {
   padding: 8px 12px;
   font-size: 11px;
 }
+/* 담당자 사이의 SIM 파일 교환 화면 */
+.integration-page {
+  display: grid;
+  gap: 20px;
+}
+.integration-page .panel {
+  padding: 24px;
+  min-width: 0;
+}
+.integration-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+}
+.integration-page .stacked-label {
+  margin: 16px 0;
+}
+.integration-page .secondary,
+.integration-page .primary {
+  margin: 8px 12px 8px 0;
+}
+.integration-upload {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+.integration-upload input {
+  width: 1px;
+  height: 1px;
+  position: absolute;
+  opacity: 0;
+}
+.integration-upload:focus-within {
+  outline: 2px solid var(--green, #37684f);
+  outline-offset: 3px;
+}
+.integration-upload.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.integration-placement {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0 16px;
+}
+.integration-placement input {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  color: inherit;
+  background: var(--paper);
+  font: inherit;
+}
+.integration-ids {
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+.integration-ids dt {
+  color: #68716b;
+  margin-top: 10px;
+}
+.integration-ids dd {
+  margin: 4px 0 12px;
+  font-family: monospace;
+}
+.integration-page pre {
+  max-height: 260px;
+  overflow: auto;
+  font-size: 12px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.integration-page .text-link {
+  display: inline-block;
+  margin: 10px 16px 10px 0;
+  text-decoration: underline;
+}
+@media (max-width: 1050px) {
+  .integration-grid {
+    grid-template-columns: 1fr;
+  }
+}

@@ -1,5 +1,8 @@
 # HMI ↔ c2_path 부분 통합 · 2026-09-20
 
+2026-09-21: 담당자 간 일반 파일 전달을 위한 [스냅샷·ZIP 교환 화면](HMI_FILE_INTEGRATION.md)을 추가했다.
+아래 기존 ROS 공유 저장소 연결을 유지하며, 파일 교환 기능과 검증 범위를 구분한다.
+
 기준은 main `72618aa4c966936f47a9d80f1f0d09146b7b2739`에 병합된
 [홍동님 PR #38](https://github.com/suuuhululu/C-2/pull/38)이다.
 `c2_interfaces` v2와 `c2_path`의 제출 계약을 유지하고 HMI의 파일 해석·입력·표시를 연결했다.

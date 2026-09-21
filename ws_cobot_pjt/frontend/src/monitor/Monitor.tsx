@@ -44,9 +44,11 @@ import { CylinderPreview, UnwrappedPreview } from "./Previews";
 import "./monitor.css";
 import LivePathPreview from "./LivePathPreview";
 import { matchesPreview } from "./preview";
+import FileIntegration from "./FileIntegration";
 
 const navItems = [
   { id: "prepare", name: "작업 준비", icon: FileImage },
+  { id: "integration", name: "파일 통합 시험", icon: Upload },
   { id: "process", name: "공정 관제", icon: Activity },
   { id: "history", name: "실행 이력", icon: History },
   { id: "alarms", name: "알람", icon: Bell },
@@ -553,13 +555,15 @@ export default function Monitor() {
               <p>
                 {nav === "prepare"
                   ? "이미지를 불러오고, 원기둥 위에 도안의 자리를 정하세요."
-                  : nav === "process"
-                    ? "고정 드릴의 준비·보정 확인부터 조각 완료까지 확인합니다."
-                    : nav === "history"
-                      ? "각 실행에 사용한 경로와 결과를 함께 보관합니다."
-                      : nav === "alarms"
-                        ? "발생한 문제와 확인할 내용을 기록합니다."
-                        : "현재 사용하는 설정 스냅샷과 연결 정보를 확인합니다."}
+                  : nav === "integration"
+                    ? "같은 스냅샷과 경로 파일을 등록·전달하고 미리보기를 확인합니다."
+                    : nav === "process"
+                      ? "고정 드릴의 준비·보정 확인부터 조각 완료까지 확인합니다."
+                      : nav === "history"
+                        ? "각 실행에 사용한 경로와 결과를 함께 보관합니다."
+                        : nav === "alarms"
+                          ? "발생한 문제와 확인할 내용을 기록합니다."
+                          : "현재 사용하는 설정 스냅샷과 연결 정보를 확인합니다."}
               </p>
             </div>
             {nav === "prepare" ? (
@@ -619,6 +623,15 @@ export default function Monitor() {
             <div className="error-banner" role="alert">
               {snapshot.storage_error}
             </div>
+          )}
+          {nav === "integration" && (
+            <FileIntegration
+              asset={asset}
+              placement={draft}
+              locked={locked || generating || uploading}
+              onUpload={upload}
+              onChange={edit}
+            />
           )}
           {nav === "prepare" &&
             generation?.state === "FAILED" &&
