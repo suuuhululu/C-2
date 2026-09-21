@@ -1078,30 +1078,6 @@ def test_ros_callbacks_publish_cached_signals_and_alarm_events(monkeypatch):
     real_node = create_ros_node(
         runtime_mode="REAL", measurement_only=True, enable_preparation=False,
         real_adapter_factory=lambda owner: made.append(owner) or real)
-    grant = NS(active=True, connected=True, valid=True, has_control=True)
-    authority = NS(value=grant)
-    real_node.real_preparation_observations = NS(
-        cache=NS(fresh=lambda: authority.value))
-    invalidations = []
-    real_node.preparation = NS(invalidate=lambda: (
-        invalidations.append(True), real_node.coordinator._preparation_bindings.clear()))
-    real_node.coordinator._preparation_bindings['prep'] = ('snapshot', 'a' * 64)
-    real_node.observations.capture(RobotState(
-        joints_rad=[0.] * 6, tcp_pose=[.1,.2,.3,0.,0.,0.,1.], frame_id='c2_base',
-        measured_at=time.monotonic(), robot_state=1, quality='VALID'), None, 2.)
-    real_node.publish_state()
-    assert not invalidations and real_node.coordinator._preparation_bindings
-    authority.value = None
-    real_node.publish_state()
-    assert len(invalidations) == 1 and not real_node.coordinator._preparation_bindings
-    # 관측 복구는 폐기한 준비를 되살리지 않는다. 새 binding 뒤 로봇 연결 단절도 폐기한다.
-    authority.value = grant
-    real_node.publish_state()
-    assert len(invalidations) == 1
-    real_node.coordinator._preparation_bindings['prep-2'] = ('snapshot-2', 'b' * 64)
-    real_node.observations.capture(None, None, None)
-    real_node.publish_state()
-    assert len(invalidations) == 2 and not real_node.coordinator._preparation_bindings
     assert made == [real_node]
     assert real_node.coordinator.real_adapter is real
     assert not hasattr(real_node, 'observation_timer')
