@@ -1,0 +1,54 @@
+{
+  "scope": "READ_ONLY_NO_MOVE_NO_STOP",
+  "ok": true,
+  "current": {
+    "tip_pose": [
+      0.4253941020958002,
+      -0.09950320241722074,
+      0.24387369083839894,
+      -2.663161091655128e-07,
+      0.9999999999995302,
+      -2.3497168144471438e-08,
+      9.318101681530468e-07
+    ],
+    "joints_rad": [
+      -0.008539482731541972,
+      0.14741586996618958,
+      1.3320461987562195,
+      0.0006283620661197004,
+      1.6621290369050006,
+      -0.014795971658910816
+    ],
+    "measured_at_monotonic_s": 103931.482103101,
+    "frame_id": "c2_base",
+    "quality": "VALID",
+    "robot_state": 1,
+    "motion_status": 0
+  },
+  "report": {
+    "all_segments_checked": true,
+    "probe_envelopes_checked": true,
+    "ownership_confirmed": true,
+    "drill_off_confirmed": true,
+    "tcp_load_match": true,
+    "validation_level": "SAMPLED_CONTROLLER_IK_FK_AND_EXTERNAL_SCENE_CHECK",
+    "sample_count": 983,
+    "scene_record": {
+      "path_checked": true,
+      "probe_envelopes_checked": true,
+      "samples": 1044,
+      "min_model_shaft_gap_m": -0.034291659073503865,
+      "scope": "RECORDED_TRIAL_CORRIDORS_AND_CYLINDER_SHAFT_MODEL",
+      "full_robot_gripper_cable_mesh_checked": false,
+      "environment_record_id": "top_yfirst_20260921_091824+repeat180_20260921_103049"
+    },
+    "full_continuous_collision_checked": false
+  },
+  "preflight_wall_s": 36.56067762601015,
+  "ideal_motion_and_settle_s": 185.98302051029893,
+  "source_report_sha256": "9819861cc179d09e6110c210265849c420eb5c67cf5f3205eed8b719a52d0aa9",
+  "source_report_filename": "workpiece-home-readonly.json",
+  "hardware_motion_test": "NOT_RUN; user will start",
+  "config_sha256": "74a6d12afd1cd6c3c9c726bc6b67be473e1d318814584824b7088fec79e9e1e8",
+  "notes": "Sampled IK/FK and limited fixture corridors only. Estimated timing is not a physical completion record. Top-contact corridor intentionally permits gripper contact; negative shaft gap there is not a free-space clearance certificate."
+}

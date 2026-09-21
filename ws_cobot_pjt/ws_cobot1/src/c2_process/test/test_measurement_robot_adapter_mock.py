@@ -124,7 +124,7 @@ def test_unknown_target_prevents_send(setup):
 
 
 @pytest.mark.parametrize('kind,direction',[('side_touch',[-1.,0.,0.]),('top_touch',[0.,0.,-1.])])
-@pytest.mark.parametrize('startup_offset_n',[0.,1.0])
+@pytest.mark.parametrize('startup_offset_n',[0.,1.0,2.1])
 def test_probe_collects_force_candidate_and_confirms_stop(setup,kind,direction,startup_offset_n):
     from c2_process.robot_adapter import pose_to_posx
     from c2_process.workpiece_calibration import facing_pose

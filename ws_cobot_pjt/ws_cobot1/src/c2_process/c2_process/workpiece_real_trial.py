@@ -50,7 +50,29 @@ def check_trial_scene(steps,w,initial):
             t=max(0,min(1,((center[0]-tip[0])*dx+(center[1]-tip[1])*dy)/den)) if den else 0
             gap=math.hypot(tip[0]+t*dx-center[0],tip[1]+t*dy-center[1])-radius
             minimum=min(minimum,gap)
-            if label.startswith('top_'):
+            if label.startswith('home_'):
+                h=w['home'];at_home=math.dist(tcp[:2],h['tcp_pose'][:2])<=h['corridor_xy_tolerance_m']
+                at_top=math.dist(tcp[:2],center)<=h['corridor_xy_tolerance_m']
+                vertical=math.dist(prev[:2],target[:2])<=h['position_tolerance_m']*1000
+                if label in ('home_escape_slow','home_escape_outer'):
+                    # 같은 높이/자세의 방사선 이탈만 허용. 원통 안 시작점은 거절.
+                    a=posx_to_pose(prev,offset);b=posx_to_pose(target,offset)
+                    ra=[a[k]-center[k] for k in range(2)];rb=[b[k]-center[k] for k in range(2)]
+                    if (gap < -scene['model_tolerance_m'] or abs(prev[2]-target[2])>1e-6 or
+                        rotation_distance(a,b)>1e-6 or math.hypot(*rb)<math.hypot(*ra) or
+                        abs(ra[0]*rb[1]-ra[1]*rb[0])>1e-8):
+                        raise MeasurementError('SCENE_REJECTED','홈 진입 전 방사선 이탈 경로 불일치')
+                elif label=='home_down':
+                    if not at_home or not vertical or tcp[2]<h['tcp_pose'][2]-h['position_tolerance_m']:
+                        raise MeasurementError('SCENE_REJECTED','홈 하강 통로 밖')
+                elif label=='home_lift':
+                    top_ok=at_top and tcp[2]>=h['top_corridor_min_z_m']
+                    home_ok=at_home and tcp[2]>=h['tcp_pose'][2]-h['position_tolerance_m']
+                    if not vertical or (not (top_ok or home_ok) and gap<scene['outer_min_gap_m']):
+                        raise MeasurementError('SCENE_REJECTED','홈 상승 통로/외곽 여유 부족')
+                else:
+                    raise MeasurementError('SCENE_REJECTED','홈 수평/자세 변경은 상공에서만 허용')
+            elif label.startswith('top_'):
                 at_center=math.dist(tcp[:2],center)<=scene['top_xy_tolerance_m']
                 if at_center:
                     if label in ('top_entry','top_exit'):

@@ -106,6 +106,24 @@
       "top_and_initial_pose": "합성값: 실제 로봇 이동 경로/그리퍼 밑면 오프셋 아님",
       "fit_limits": "첫 모의 연결용 기준, 실기 적합성 미검증",
       "tool_offset": "고정 장착 재사용 기준; 이번 측정으로 도구 보정한 값 아님"
+    },
+    "home": {
+      "tcp_pose": [
+        0.4218,
+        0.0001,
+        0.2644,
+        0.0,
+        1.0,
+        0.0,
+        0.0
+      ],
+      "clearance_tcp_z_m": 0.33,
+      "overhead_z_m": 0.3,
+      "position_tolerance_m": 0.0003,
+      "angle_tolerance_rad": 0.005235987755982988,
+      "corridor_xy_tolerance_m": 0.0015,
+      "top_corridor_min_z_m": 0.232925,
+      "source_record": "User confirmed existing run_engrave_real.py HOME (GripperDA_v1 TCP, tool +Y=base +Y, +Z=base -Z); fixed 2026-09-21 setup only"
     }
   },
   "profiles": {

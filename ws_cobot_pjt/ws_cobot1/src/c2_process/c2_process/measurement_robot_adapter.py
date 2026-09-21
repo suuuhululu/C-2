@@ -172,6 +172,10 @@ class GuardedMeasurementAdapter:
                     raise ValueError('이동 힘 soft/hard 설정 오류')
         if not 0<self.g['moving_baseline_end_m']<min(workcell['start_gap_m'],workcell['top']['max_probe_m']):
             raise ValueError('이동 기준 힘 수집 구간이 예상 표면에 도달함')
+        top=workcell['top']
+        if 'expected_tcp_z_range_m' in top:
+            if top['approach_tcp_pose'][2]-self.g['moving_baseline_end_m']<=top['expected_tcp_z_range_m'][1]+workcell['pose_tolerance_m']:
+                raise ValueError('윗면 이동 기준 힘 구간에 접촉 가능: 시작 위치/측정 범위 재확인 필요')
         self.current_context=context;self.workcell=workcell;self.stop_profile=profiles['stop']
         deadline=self.clock()+min(self.g['preflight_timeout_s'],workcell['runtime_timeout_s'])
         self.expected.clear();self.native_targets.clear()
@@ -286,7 +290,7 @@ class GuardedMeasurementAdapter:
         self.io.move(self.native_targets[tuple(target)],profile['speed_m_s']*1000,
                      profile['acceleration_m_s2']*1000,self.g['angular_speed_deg_s'],self.g['angular_acc_deg_s2'])
         began=self.clock();moved=False;stable=None;moving_samples=collections.deque();moving_bias=None
-        soft_since=None
+        soft_since=None;progress_at=-math.inf
         while True:
             o=self._read();self._check(o,profile,context,deadline);now=self.clock()
             if last_t is not None and o['measured_at_monotonic_s']<=last_t:
@@ -307,10 +311,15 @@ class GuardedMeasurementAdapter:
                 lateral=math.sqrt(sum((d[k]-travel*step['direction'][k])**2 for k in range(3)))
                 if travel < -self.workcell['pose_tolerance_m'] or travel>step['max_m']+self.workcell['pose_tolerance_m'] or lateral>self.workcell['pose_tolerance_m'] or rotation_distance(current,start)>self.workcell['angle_tolerance_rad']:
                     raise MeasurementError('CONTACT_OUT_OF_RANGE','접촉 탐색 선분/자세 이탈')
+                if now-progress_at>=2.:
+                    self._emit_trace('probe_progress',dict(label=step['label'],travel_m=travel,
+                        remaining_m=max(0,step['max_m']-travel),phase='BASELINE' if moving_bias is None else 'CONTACT_SEARCH'))
+                    progress_at=now
                 along=sum(a*b for a,b in zip(step['direction'],o['force_n']))
                 if step['profile'] in ('side_touch','top_touch'):
                     if moving_bias is None:
-                        limit=min(self.g['prebaseline_delta_n'],profile['max_force_delta_n']) if step['profile']=='top_touch' else self.g['prebaseline_delta_n']
+                        # 빈 공간의 이동 기준 수집 한계와 기준 확립 후 접촉 한계를 분리한다.
+                        limit=self.g['prebaseline_delta_n']
                         if abs(along-bias)>=limit:raise MeasurementError('FORCE_LIMIT','빈 공간 힘 변화 초과')
                         if travel>=self.g['moving_baseline_start_m']:moving_samples.append((now,along))
                         while moving_samples and now-moving_samples[0][0]>profile['baseline_window_s']+self.g['baseline_window_slack_s']:moving_samples.popleft()
