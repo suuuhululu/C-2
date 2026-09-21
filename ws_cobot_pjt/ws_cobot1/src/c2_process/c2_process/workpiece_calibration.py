@@ -476,7 +476,12 @@ def measure_workpiece(adapter, workcell, profiles, context, on_progress=None):
                 if (rotation_distance(contact_pose,step["start_pose"])>w["angle_tolerance_rad"] or
                     math.dist(stopped_state["tip_pose"][:3],contact_pose[:3])>w["pose_tolerance_m"]):
                     raise MeasurementError("CONTACT_OUT_OF_RANGE","접촉 자세/접촉 후 정지 이동량 초과")
-                hit.update(point_index=step["point_index"],received_at=context.utc_now(),source="SIMULATED" if context.source_mode=="SIMULATION" else "FORCE_CONTACT_ESTIMATE")
+                # 검증에 사용한 기본 Python 수치형을 반환한다. ROS의 numpy.float64를
+                # 원본 hit에 남기면 공정 Action의 엄격한 type 검사에서 거절된다.
+                hit.update(tip_pose=contact_pose, normal_force_n=force,
+                           measured_at_monotonic_s=sample_t,
+                           point_index=step["point_index"],received_at=context.utc_now(),
+                           source="SIMULATED" if context.source_mode=="SIMULATION" else "FORCE_CONTACT_ESTIMATE")
                 if not step["point_index"]:
                     tcp=apply_tool_offset(contact_pose,w["tool_offset_m"],-1)
                     expected_z=w["top"].get("expected_tcp_z_range_m")
