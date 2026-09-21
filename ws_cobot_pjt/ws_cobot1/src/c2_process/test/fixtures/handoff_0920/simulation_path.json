@@ -1,0 +1,76 @@
+{
+  "schema_version": 2,
+  "path_id": "24fb9b8a-32b5-566a-9f53-e2d2de34e988",
+  "path_version": 1,
+  "source_mode": "SIMULATION",
+  "test_only": true,
+  "frame_id": "c2_base",
+  "position_unit": "m",
+  "orientation": "quaternion_xyzw",
+  "tool_id": "engraving_drill",
+  "profile_snapshot_id": "198b9c43-db64-5bad-b016-346e0c4d1ff4",
+  "profile_sha256": "7e7149820b2ed6df166af99694c2e1fe62232fa741d0a18a4fb71c26ff760cbe",
+  "segments": [
+    {
+      "segment_id": "s-approach",
+      "stroke_id": "st-1",
+      "kind": "APPROACH",
+      "motion_profile_id": "candle_approach",
+      "waypoints": [
+        [
+          0.4224,
+          0.033650000000000006,
+          0.1884,
+          0.0,
+          1.0,
+          0.0,
+          0.0
+        ]
+      ]
+    },
+    {
+      "segment_id": "s-cut",
+      "stroke_id": "st-1",
+      "kind": "CUT",
+      "motion_profile_id": "candle_cut",
+      "waypoints": [
+        [
+          0.4224,
+          0.031650000000000005,
+          0.1884,
+          0.0,
+          1.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.4244,
+          0.031650000000000005,
+          0.1884,
+          0.0,
+          1.0,
+          0.0,
+          0.0
+        ]
+      ]
+    },
+    {
+      "segment_id": "s-retract",
+      "stroke_id": "st-1",
+      "kind": "RETRACT",
+      "motion_profile_id": "candle_retract",
+      "waypoints": [
+        [
+          0.4244,
+          0.04365000000000001,
+          0.1884,
+          0.0,
+          1.0,
+          0.0,
+          0.0
+        ]
+      ]
+    }
+  ],
+  "usage": "MockRobotAdapter 파일/함수 연결 시험 전용; REAL·기하 검증용·하트 경로 아님"
+}

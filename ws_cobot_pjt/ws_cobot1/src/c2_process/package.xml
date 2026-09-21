@@ -1,0 +1,22 @@
+<?xml version="1.0"?>
+<package format="3">
+  <name>c2_process</name>
+  <version>0.1.0</version>
+  <description>C-2 고정 드릴 공정의 ROS 실행·정지·상태 노드.</description>
+  <maintainer email="167942097+suuuhululu@users.noreply.github.com">C-2 team</maintainer>
+  <license>Apache-2.0</license>
+
+  <buildtool_depend>ament_python</buildtool_depend>
+  <exec_depend>rclpy</exec_depend>
+  <exec_depend>rosidl_runtime_py</exec_depend>
+  <exec_depend>c2_interfaces</exec_depend>
+  <exec_depend>builtin_interfaces</exec_depend>
+  <exec_depend>std_msgs</exec_depend>
+  <exec_depend>dsr_msgs2</exec_depend>
+
+  <test_depend>python3-pytest</test_depend>
+
+  <export>
+    <build_type>ament_python</build_type>
+  </export>
+</package>

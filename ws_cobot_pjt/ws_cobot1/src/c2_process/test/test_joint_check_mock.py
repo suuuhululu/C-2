@@ -49,3 +49,139 @@ def test_ik_failure_reported():
     ad = MockRobotAdapter(); ad.ik_fail_at_call = 3
     r = check_path_joints(arc_path(0, 30), ad, None, REF)
     assert r.outcome == "FAILED" and r.error_code == "NOT_READY" and "IK" in r.message
+
+
+import pytest
+from c2_process.joint_check import _unwrap
+
+
+@pytest.mark.parametrize("bad", [float("nan"), float("inf"), -float("inf"), None, "20", True])
+@pytest.mark.parametrize("joint", [0, 4, 5])
+def test_invalid_ik_result_blocks_following_checks(bad, joint):
+    class InvalidIK:
+        calls = 0
+        def inverse_kinematics(self, pose, offset, ref):
+            self.calls += 1
+            result = [0.0] * 6
+            result[joint] = bad
+            return result
+    adapter = InvalidIK()
+    result = check_path_joints(arc_path(0, 30), adapter, None, REF)
+    assert (result.outcome, result.error_code) == ("UNKNOWN", "VALIDATION_UNAVAILABLE")
+    assert adapter.calls == 1
+    assert result.observed_state == {"segment_id": "s1", "index": 0, "checked_waypoints": 0, "inspection_scope": "SURFACE_PATH"}
+
+
+@pytest.mark.parametrize("values", [[], [0]*5, [0]*7, "000000", [0, 0, 0, 0, 0, float("nan")]])
+def test_invalid_reference_does_not_call_ik(values):
+    adapter = MockRobotAdapter()
+    adapter.inverse_kinematics = lambda *args: pytest.fail("invalid reference must not reach IK")
+    assert check_path_joints(arc_path(0, 30), adapter, None, values).outcome == "UNKNOWN"
+
+
+@pytest.mark.parametrize("values", [[], [0]*5, [0]*7, 3, "000000"])
+def test_invalid_ik_shape(values):
+    adapter = MockRobotAdapter()
+    adapter.inverse_kinematics = lambda *args: values
+    assert check_path_joints(arc_path(0, 30), adapter, None, REF).outcome == "UNKNOWN"
+
+
+@pytest.mark.parametrize("previous,current,expected", [
+    (0, 370, 10), (170, -170, 190), (-170, 170, -190),
+    (0, 180, 180), (0, -180, -180), (0, 540, 180), (0, -540, -180),
+    (300, 30, 390),
+])
+def test_unwrap_preserves_direction(previous, current, expected):
+    assert _unwrap(previous, current) == expected
+
+
+def test_unwrap_extreme_values_terminate_in_subprocess():
+    # 무한 반복이 재발해도 시험 전체가 멈추지 않도록 별도 프로세스에 제한을 둔다.
+    import subprocess
+    code = """
+from c2_process.joint_check import _unwrap
+import math
+for value in [float('nan'), float('inf'), -float('inf')]:
+    try:
+        _unwrap(0, value)
+    except ValueError:
+        pass
+    else:
+        raise AssertionError('invalid angle accepted')
+assert abs(_unwrap(0, 1e300)) <= 180
+assert abs(_unwrap(0, -1e300)) <= 180
+try:
+    _unwrap(-1e308, 1e308)
+except ValueError:
+    pass
+else:
+    raise AssertionError('overflow accepted')
+"""
+    env = dict(os.environ, PYTHONPATH=os.path.dirname(os.path.dirname(__file__)))
+    subprocess.run([sys.executable, "-c", code], env=env, check=True, timeout=5)
+
+
+@pytest.mark.parametrize('bad_index', [1, 2, 3])
+@pytest.mark.parametrize('failure', ['ik', 'j5', 'j6'])
+def test_cut_previously_skipped_points_are_rejected(bad_index, failure):
+    path = arc_path(0, 0, n=6)
+    points = path['segments'][0]['waypoints']
+    for i, point in enumerate(points): point[0] = .4 + i * .001
+    class Adapter:
+        def inverse_kinematics(self, pose, offset, ref):
+            i = points.index(pose)
+            if i == bad_index and failure == 'ik': return None
+            return [0, 0, 0, 0, 175 if i == bad_index and failure == 'j5' else 0,
+                    355 if i == bad_index and failure == 'j6' else 340]
+    result = check_path_joints(path, Adapter(), None, [0, 0, 0, 0, 0, math.radians(340)])
+    assert result.outcome == 'FAILED'
+    if failure == 'ik':
+        assert result.error_code == 'NOT_READY'
+        assert result.observed_state['index'] == bad_index
+        assert result.observed_state['checked_waypoints'] == bad_index
+    else:
+        assert result.error_code == 'VALIDATION_FAILED'
+        assert result.observed_state['worst']['index'] == bad_index
+        assert result.observed_state['worst']['joint'] == (5 if failure == 'j5' else 6)
+
+
+def test_all_segment_waypoints_are_checked_in_order_with_previous_solution():
+    path = {'segments': []}
+    for kind, count in [('APPROACH', 2), ('CUT', 6), ('TRAVEL', 2), ('CUT', 3), ('RETRACT', 1)]:
+        path['segments'].append({'kind': kind, 'waypoints': [[len(path['segments']), i, 0, 0, 0, 0, 1]
+                                                          for i in range(count)]})
+    points = [p for s in path['segments'] for p in s['waypoints']]
+    class Adapter:
+        calls = []
+        def inverse_kinematics(self, pose, offset, ref):
+            assert ref == [0, 0, 0, 0, 0, len(self.calls)]
+            self.calls.append(pose)
+            return [0, 0, 0, 0, 0, len(self.calls)]
+    adapter = Adapter()
+    result = check_path_joints(path, adapter, None, [0]*6)
+    assert result.ok and adapter.calls == points
+    assert result.observed_state['checked_waypoints'] == len(points)
+
+
+@pytest.mark.parametrize('kind', ['CUT', 'TRAVEL'])
+def test_empty_segment_is_not_silently_skipped(kind):
+    adapter = MockRobotAdapter()
+    result = check_path_joints({'segments': [{'kind': kind, 'waypoints': []}]}, adapter, None, REF)
+    assert (result.outcome, result.error_code) == ('FAILED', 'INVALID_INPUT')
+    assert adapter.calls == []
+
+
+def test_empty_path_does_not_report_zero_point_ik_success():
+    adapter = MockRobotAdapter()
+    result = check_path_joints({'segments': []}, adapter, None, REF)
+    assert (result.outcome, result.error_code) == ('FAILED', 'INVALID_INPUT')
+    assert result.observed_state['checked_waypoints'] == 0
+    assert adapter.calls == []
+
+
+def test_joint_checker_still_accepts_non_cut_motion_for_reuse():
+    adapter = MockRobotAdapter()
+    path = arc_path(0, 5, n=2)
+    path['segments'][0]['kind'] = 'TRAVEL'
+    result = check_path_joints(path, adapter, None, REF)
+    assert result.ok and result.observed_state['checked_waypoints'] == 2

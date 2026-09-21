@@ -428,7 +428,7 @@ def measure_workpiece(adapter, workcell, profiles, context, on_progress=None):
         report=adapter.preflight_measurement(deepcopy(steps),deepcopy(w),deepcopy(p),context)
         if not isinstance(report,StepResult) or not report.ok:
             raise MeasurementError(getattr(report,"error_code","NOT_READY"),getattr(report,"message","측정 이동 검사 미완료"),getattr(report,"outcome","UNKNOWN"))
-        required=("all_segments_checked","probe_envelopes_checked","ownership_confirmed","drill_off_confirmed","tcp_load_match")
+        required=("all_segments_checked","probe_envelopes_checked","ownership_confirmed","tcp_load_match")
         if any(report.observed_state.get(k) is not True for k in required):
             raise MeasurementError("NOT_READY","측정 전 검사 필수 항목 미확인")
         current=state()

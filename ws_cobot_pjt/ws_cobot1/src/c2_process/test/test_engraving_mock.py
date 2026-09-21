@@ -55,6 +55,7 @@ def make_ctx(mode="force_touch", source="SIMULATION"):
         motion_profiles={"travel": dict(id="travel", vel_mm_s=26.0, completion_timeout_s=60.0),
                          "cut": dict(id="cut", vel_mm_s=6.6, completion_timeout_s=60.0)},
         tool_profile=dict(contact_mode=mode, tool_axis="+z", depth_m=0.0005, clearance_m=0.010, touch_extra_m=0.008,
+                          touch_offset_range_m=[-0.003, 0.003],  # 명시적 모의 허용 범위, 현장 승인값 아님
                           touch_force_n=0.8, touch_speed_mm_s=1.5, frame_id="c2_base", tool_id="engraving_drill"))
 
 
