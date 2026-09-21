@@ -1,6 +1,8 @@
 # 외부 패키지·설치물 기록
 
-2026-09-19 후속: 팀 앱은 React·Vite·FastAPI·SQLite를 사용하며 잠금 파일은 frontend/package-lock.json·backend/requirements.lock.txt에 있다. 공통 타입 의존성은 c2_interfaces/package.xml의 Jazzy·rosidl·geometry_msgs·builtin_interfaces 등으로 관리한다. 이번 고정 드릴 변경은 외부 드라이버·제어기 설치나 버전을 변경하지 않는다. 아래 9/16~17 표는 당시 보고다. [현재 구현](../ws_cobot_pjt/docs/HMI_MONITOR_IMPLEMENTATION.md).
+2026-09-21 후속: 팀 앱은 React·Vite·FastAPI·SQLite를 사용하며 잠금 파일은 `frontend/pnpm-lock.yaml`·`backend/requirements.lock.txt`다. ROS 경로 통합용 Python 직접 의존성은 `backend/requirements-ros.txt`, 공통 타입/경로 패키지 의존성은 각 `package.xml`과 `c2_path/setup.py`에서 관리한다. `requirements-ros.txt`가 rclpy나 c2_interfaces를 pip 패키지로 대체하지는 않는다. 설치·실행 범위는 [HMI 경로 통합](../ws_cobot_pjt/docs/HMI_PATH_INTEGRATION.md)과 [현재 구현](../ws_cobot_pjt/docs/HMI_MONITOR_IMPLEMENTATION.md)을 따른다.
+
+이번 문서 갱신은 외부 드라이버·제어기·에뮬레이터 버전을 변경하지 않는다. 아래 9/16~17 장치 설치 표는 당시 보고이며 팀 전체 고정 버전으로 해석하지 않는다.
 
 2026-09-17 기록 정리. 설치·동작 보고는 아래에 명시한 9/16 사용자·팀원 보고를 기준으로 하며 이번에 장비 시험을 추가 수행하지 않았다. 외부 실행환경은 실행 PC에 설치하고 C-2에는 출처·버전·재현 방법을 기록한다. 같은 폴더 이름이나 같은 날짜에 받은 소스가 같은 버전을 보장하지 않으므로 정확한 커밋을 확인한다.
 
@@ -9,7 +11,8 @@
 | 메인 로봇·그리퍼 환경 | ws_cobot_pjt/ws_dsr/src | 수업 지정 [ahnisinc/cobot_rg2](https://github.com/ahnisinc/cobot_rg2). 폴더 전체 Git 제외는 PR #3 병합 완료. 이시율 PC의 커밋·수정 여부 보고 확보, 공용 MSI와 팀 공통 고정 버전은 확인 대기 |
 | 공식 두산 참고 소스 | 대상 src 아래 doosan-robot2 | 공식 Jazzy 소스 확인. 강사 수정본과 동일한 것으로 취급하지 않음 |
 | Dart Platform | ws_cobot_pjt/DartPlatform | 교육 자료의 2.12.1 표기. 실제 배포 파일·OS·설치본은 확인 필요 |
-| Backend·Frontend·팀 컨테이너 구성 | ws_cobot_pjt의 각 폴더 | 팀 앱 프레임워크·의존성·Dockerfile·Compose 미정 |
+| Backend·Frontend | `ws_cobot_pjt/backend`, `ws_cobot_pjt/frontend` | FastAPI/SQLite와 React/Vite 구현·잠금 파일 존재. MOCK 및 c2_path SIM 부분 통합 검증. REAL 공정 통합은 미완료 |
+| 팀 컨테이너 구성 | `ws_cobot_pjt/docker` | 앱/ROS의 확정 배포 이미지·Compose 절차는 별도 검토 대상. 외부 두산 에뮬레이터 설치와 구분 |
 | 외부 Docker 에뮬레이터 | 각 실행 PC의 설치 위치 | MSI에서 가상 동작 보고. 이시율 PC의 dsr_emulator 3.0.1 보고는 아래 표 참조 |
 
 상위 개인 프로젝트의 doosan은 [공식 저장소](https://github.com/DoosanRobotics/doosan-robot2/tree/jazzy)의 jazzy 브랜치다. 2026-09-16 로컬 커밋 `8e033f0e2284be0a25b655266e02878ebc915c50`을 재확인했다. 이번 작업에서는 이동·복사하지 않았다. 강사 수정본의 dsr_rokey 같은 패키지를 공식 원본이 제공한다고 가정하지 않는다.

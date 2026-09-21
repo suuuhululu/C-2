@@ -1,6 +1,6 @@
 # 시스템 모니터·좌표 생성·고정 드릴 공정 구조
 
-**2026-09-20 확인, main `72618aa`(PR #38 병합).** 현재 소스와 앞으로 통합할 기능을 분리한다. 공정 파일·함수·담당·구현 상태의 상세 원본은 [c2_process README](../ws_cobot1/src/c2_process/README.md)다. 9/19의 “공정 모듈 6개·robot_adapter만 존재” 표기는 최신 상태가 아니다.
+**2026-09-21 확인, main `19ef4c6`(PR #40 병합).** 현재 소스와 앞으로 통합할 기능을 분리한다. 공정 파일·함수·담당·구현 상태의 상세 원본은 [c2_process README](../ws_cobot1/src/c2_process/README.md)다. 9/19의 “공정 모듈 6개·robot_adapter만 존재” 표기는 최신 상태가 아니다.
 
 팀 노드는 `monitor_gateway_node`, `path_planner_node`, `process_controller_node` 3개를 유지한다. 내부 파일을 나눠도 별도 ROS 통신을 추가하지 않는다. 로봇 모션은 공정 제어 하나가 소유한다. 드릴은 철사로 고정하며 **초기화·보정·오류·종료에도 그리퍼 열기 금지**, 자동 집기·반납·청소 제외다.
 
@@ -10,8 +10,8 @@
 
 | 위치 | 담당 | 코드와 역할 | 확인 상태 |
 | --- | --- | --- | --- |
-| `frontend/src/monitor/` | 이수현 | `Monitor.tsx` 화면·작업 흐름, `Previews.tsx`·`LivePathPreview.tsx` 미리보기, `api.ts` 서버 요청 | main 존재. 측정 시작·실측 기반 경로·실물 공정 연결은 별도 구현 |
-| `backend/app/` | 이수현 | `monitor.py` API, `monitor_service.py` 요청·결과 처리, `monitor_contract.py` 데이터 검증, `storage.py` 저장, `ros_bridge.py` ROS 연결, `mock_peer.py` 모의 상대 | main 존재. 모의 기능과 실제 산출물/로봇 연동 구분 |
+| `frontend/src/monitor/` | 이수현 | `Monitor.tsx` 화면·작업 흐름, `Previews.tsx`·`LivePathPreview.tsx` 미리보기, `FileIntegration.tsx` SIM 파일 교환, `api.ts` 서버 요청 | main 존재. 측정 시작·실측 기반 경로·실물 공정 연결은 별도 구현 |
+| `backend/app/` | 이수현 | `monitor.py` API, `monitor_service.py` 요청·결과 처리, `monitor_contract.py` 데이터 검증, `storage.py` 저장, `ros_bridge.py` ROS 연결, `artifact_loader.py` 산출물 검사, `file_integration.py` SIM 파일 교환, `mock_peer.py` 모의 상대 | main 존재. HMI↔c2_path 부분 통합과 SIM 파일 교환은 검증됨. 실제 공정/로봇 연동과 구분 |
 | `ws_cobot1/src/c2_interfaces/` | 김세은·이수현·노홍동·이시율 공동 계약 검토 | GeneratePath·ExecuteProcess Action, StopProcess Service, ProcessState·ProcessEvent Topic 타입 | main 존재, 고정 드릴 v2. 새 보정 흐름 계약 확장은 미반영 |
 | `ws_cobot1/src/c2_path/c2_path/` | 노홍동 | 아래 경로 생성 모듈 | main 존재. 현재 Action 서버는 SIMULATION/test_only |
 | `ws_cobot1/src/c2_process/c2_process/` | 김세은·이시율 분담 | 아래 공정 모듈 | 어댑터·도구 보정·관절 검사·조각 소스 존재. main 공정 노드·패키지 빌드 설정 없음 |

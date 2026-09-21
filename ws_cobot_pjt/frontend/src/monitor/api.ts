@@ -39,6 +39,16 @@ export type Profile = {
     };
   };
 };
+export type WorkAreaPolicy = {
+  id: string;
+  sha256: string;
+  payload: {
+    contract: "hmi-work-area-policy/1";
+    revision: string;
+    top_exclusion_mm: number;
+    bottom_exclusion_mm: number;
+  };
+};
 export type Stroke = {
   stroke_id: string | null;
   segment_id: string;
@@ -128,7 +138,9 @@ export type Snapshot = {
   connection: string;
   server_time: string;
   profile: Profile;
+  work_area_policy?: WorkAreaPolicy;
   active_run: Run | null;
+  generation: Generation | null;
   storage_error: string | null;
   scenario: string | null;
   contract_status: string;

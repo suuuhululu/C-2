@@ -18,7 +18,7 @@ from test_path_artifacts import line_png
 
 
 @pytest.fixture
-def ros_client(tmp_path, monkeypatch):
+def ros_client(tmp_path, monkeypatch, request):
     for key, value in dict(C2_MONITOR_TRANSPORT='ros', C2_MONITOR_MODE='SIMULATION',
                            ROS_DOMAIN_ID='174', ROS_AUTOMATIC_DISCOVERY_RANGE='LOCALHOST',
                            ROS_STATIC_PEERS='', RMW_IMPLEMENTATION='rmw_fastrtps_cpp',
@@ -31,7 +31,8 @@ def ros_client(tmp_path, monkeypatch):
     env['PYTHONPATH'] = str(source) + os.pathsep + env.get('PYTHONPATH', '')
     with (tmp_path / 'path_node.log').open('w') as log:
         process = subprocess.Popen([sys.executable, '-m', 'c2_path.node', '--ros-args',
-                                    '-p', f'managed_data_dir:={directory}'], env=env, stdout=log, stderr=log)
+                                    '-p', f'managed_data_dir:={directory}',
+                                    '-p', f'generation_timeout_s:={getattr(request, "param", 120.0)}'], env=env, stdout=log, stderr=log)
         try:
             with TestClient(create_app(directory), headers={'x-c2-monitor': '1'}) as client:
                 deadline = time.monotonic() + 15
@@ -137,3 +138,56 @@ def test_ros_mapping_failure_never_registers_path_and_mock_preset_is_rejected(ro
         time.sleep(.1)
     disconnected = finish(client, {**goal, 'request_id': str(uuid4()), 'offset_v_mm': 107.5})
     assert disconnected['state'] == 'FAILED' and disconnected['result']['error_code'] == 'NOT_READY'
+
+
+def test_ros_cancel_busy_calculation_then_generate_again(ros_client):
+    client, _ = ros_client
+    import cv2
+    import numpy as np
+    canvas=np.full((600,800),255,np.uint8)
+    for y in range(20,590,20):
+        cv2.putText(canvas,'ABCD EFGH 123456789',(5,y),cv2.FONT_HERSHEY_SIMPLEX,.5,0,1)
+    ok,raw=cv2.imencode('.png',canvas)
+    assert ok
+    g=request_goal(client)
+    a=client.post('/api/operator/assets',files={'file':('many-strokes.png',raw.tobytes(),'image/png')}).json()
+    g.update(asset_id=a['asset_id'],asset_sha256=a['asset_sha256'])
+    assert client.post('/api/operator/path-generations',json=g).status_code==202
+    url='/api/operator/path-generations/'+g['request_id']
+    deadline=time.monotonic()+20
+    while True:
+        current=client.get(url).json()
+        if current['stage']=='OPTIMIZING_2D':break
+        assert current['state'] not in ('SUCCEEDED','FAILED'),current
+        assert time.monotonic()<deadline,current
+        time.sleep(.02)
+    started=time.monotonic()
+    canceled=client.post(url+'/cancel')
+    assert canceled.status_code==202
+    assert canceled.json()['state']=='CANCELING'
+    # 새 브라우저 연결이 사용할 snapshot에서도 같은 취소 대기 상태를 관측한다.
+    assert client.get('/api/operator/snapshot').json()['generation']['request_id']==g['request_id']
+    while True:
+        current=client.get(url).json()
+        if current['state']=='FAILED':break
+        assert time.monotonic()-started<5,current
+        time.sleep(.03)
+    assert current['result']['error_code']=='CANCELED'
+    assert current['result']['path_id']==''
+    with client.app.state.store.db() as db:
+        assert db.execute("SELECT count(*) FROM assets WHERE kind='path'").fetchone()[0]==0
+        assert db.execute('SELECT count(*) FROM path_versions').fetchone()[0]==0
+    assert finish(client,request_goal(client))['state']=='SUCCEEDED'
+
+
+@pytest.mark.parametrize('ros_client', [.2], indirect=True)
+def test_ros_worker_timeout_returns_no_path(ros_client):
+    client, _ = ros_client
+    started=time.monotonic()
+    generation=finish(client,request_goal(client))
+    assert generation['state']=='FAILED'
+    assert generation['result']['error_code']=='TIMEOUT'
+    assert generation['result']['path_id']==''
+    assert time.monotonic()-started<5
+    with client.app.state.store.db() as db:
+        assert db.execute("SELECT count(*) FROM assets WHERE kind='path'").fetchone()[0]==0

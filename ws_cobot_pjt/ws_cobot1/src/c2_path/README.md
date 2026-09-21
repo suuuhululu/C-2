@@ -1,5 +1,7 @@
 # c2_path · 좌표·경로 생성
 
+2026-09-21: [취소 가능한 계산 프로세스](../../../docs/HMI_GENERATION_CANCEL.md)을 지원한다. 기존 GeneratePath v2의 표준 취소를 사용하며 공통 ROS 타입 변경은 없다.
+
 `path_planner_node`는 HMI가 등록한 PNG/JPEG를 읽어 중심선 SVG → 2D 좌표 →
 원통 3D 도구 끝 경로 → 기하 검증 산출물을 만드는 ROS 2 Jazzy Action 서버다.
 이 패키지는 로봇·그리퍼·두산 API를 호출하지 않는다.
@@ -68,7 +70,7 @@ ros2 run c2_path path_planner_node --ros-args \
 
 순수 계산 시험:
 
-```bashd
+```bash
 cd ws_cobot_pjt/ws_cobot1/src/c2_path
 python3 -m unittest discover -s test -v
 ```
