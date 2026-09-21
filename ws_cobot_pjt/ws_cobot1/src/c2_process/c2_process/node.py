@@ -1646,7 +1646,7 @@ class _NoRedirect(HTTPRedirectHandler):
         return None
 
 
-def resolve_real_execution_settings(snapshot, goal, *, adapter, observations):
+def resolve_real_execution_settings(snapshot, goal, *, adapter):
     """승인된 REAL 스냅샷을 기존 공정 함수 인자로 변환한다.
 
     새 기본값을 만들지 않는다. 경로 생성용 ``surface``와 실행용 설정 묶음이
@@ -1700,18 +1700,15 @@ def resolve_real_execution_settings(snapshot, goal, *, adapter, observations):
         unavailable("실행 맥락 source_mode 불일치", "SOURCE_MODE_MISMATCH")
 
     try:
+        # 기본 로봇 상태 승인 재검사가 아니라 최종 실행 계획의 IK·관절 검사를
+        # 시작할 현재 관절 표본이다. 준비된 실행의 승인 근거는 coordinator가
+        # 확인하는 준비 성공 기록과 동일 snapshot binding이다.
         state = adapter.observe()
     except Exception as exc:
-        unavailable(f"실행 설정 로딩 중 로봇 상태 조회 실패: {exc}", "COMMUNICATION_LOST")
-    authority = observations.cache.fresh()
-    control = bool(authority is not None and authority.active and authority.connected
-                   and authority.valid and authority.has_control)
-    probe_context = ExecutionContext(goal["run_id"], "REAL", threading.Event(), {}, {})
-    stop_latched = observations.stop_latched(probe_context)
+        unavailable(f"최종 관절 검사 시작 상태 조회 실패: {exc}", "COMMUNICATION_LOST")
     max_age = workcell_source.get("max_state_age_s")
     evidence = PreconditionEvidence(
         runtime_mode="REAL", robot_state=state,
-        control_authority_confirmed=control, stop_latched=stop_latched,
         profile_snapshot_id=snapshot.get("profile_snapshot_id", ""),
         max_robot_state_age_s=max_age)
     return build_execution_settings(
@@ -1727,14 +1724,14 @@ def resolve_real_execution_settings(snapshot, goal, *, adapter, observations):
         j6_margin_deg=joints.get("j6_margin_deg"))
 
 
-def make_real_http_loader(*, backend_url, adapter, observations, timeout_s=5.0):
+def make_real_http_loader(*, backend_url, adapter, timeout_s=5.0):
     """HMI 관리 저장소의 경로·스냅샷 원본을 ID/해시로 읽는 REAL 로더."""
     endpoint = urlparse(backend_url)
     if (endpoint.scheme not in {"http", "https"} or not endpoint.netloc
             or endpoint.username or endpoint.query or endpoint.fragment):
         raise ValueError("REAL 실행 backend URL 오류")
-    if not isinstance(adapter, DoosanRobotAdapter) or observations is None:
-        raise ValueError("REAL 실행에는 동일 노드의 어댑터·관측 공급자 필요")
+    if not isinstance(adapter, DoosanRobotAdapter):
+        raise ValueError("REAL 실행에는 동일 노드의 실물 어댑터 필요")
     if type(timeout_s) not in (int, float) or not math.isfinite(timeout_s) or timeout_s <= 0:
         raise ValueError("REAL 자산 조회 제한시간 오류")
     base = backend_url.rstrip("/")
@@ -1790,7 +1787,7 @@ def make_real_http_loader(*, backend_url, adapter, observations, timeout_s=5.0):
         def resolve(original, current_goal):
             original = dict(original, profile_snapshot_id=snapshot_id)
             return resolve_real_execution_settings(
-                original, current_goal, adapter=adapter, observations=observations)
+                original, current_goal, adapter=adapter)
         return load_execution_inputs(
             goal, path_bytes=path_raw, snapshot_bytes=snapshot_raw,
             generation_result=metadata,
@@ -2005,13 +2002,10 @@ def real_process_main(args=None, *, observation_options_factory=None,
                 return loader_factory(owner, adapter)
             cached = {}
             def load(goal):
-                observations = getattr(owner, "real_preparation_observations", None)
-                if observations is None:
-                    raise InputsUnavailable("REAL 관측 공급자 미연결")
                 if "loader" not in cached:
                     cached["loader"] = make_real_http_loader(
                         backend_url=options.backend_url, adapter=adapter,
-                        observations=observations, timeout_s=options.asset_timeout_s)
+                        timeout_s=options.asset_timeout_s)
                 return cached["loader"](goal)
             return load
 
