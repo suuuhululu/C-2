@@ -1,5 +1,14 @@
 # 새김 시스템 모니터 서버
 
+2026-09-21: 공통 SIM 스냅샷 등록·선택, 입력 ZIP 내보내기, 결과 ZIP 검증·등록을 추가했다.
+화면의 **파일 통합 시험**을 사용한다. 전달 규격·API·공통 스키마의 미정 범위는
+[HMI 파일 통합 안내](../docs/HMI_FILE_INTEGRATION.md)를 따른다. 가져온 경로의 HMI 실행은 차단한다.
+
+2026-09-20: PR #38의 `c2_path` 계약에 맞춰 실제 이미지 경로 생성·관리 파일 로더·미리보기를 연결했다.
+한 PC에서 `python3 ws_cobot_pjt/run_monitor.py --transport ros`로 실행한다.
+Jazzy/공통 타입/계산 의존성 준비와 검증 범위는 [HMI 경로 통합 안내](../docs/HMI_PATH_INTEGRATION.md)를 따른다.
+현재 ROS 연결은 SIMULATION/test_only이며 공정 실행은 차단한다.
+
 2026-09-19 고정 드릴 반영: 통신 schema_version=2, engraving_drill/c2_base, 준비→보정 확인→접근·조각·이탈→완료를 모의 실행한다. 그리퍼 열기·집기·청소·반납은 없다. SQLite 테이블 버전은 1을 유지하며 과거 기록은 보존하고 이전 계약 경로의 새 실행은 거절한다. [변경·배포](../docs/C2_FIXED_DRILL_20260919.md).
 
 2026-09-18. 운영자 HMI 전용 FastAPI + SQLite + 모의 게이트웨이. 고객 주문·대기열은 사용하지 않는다. 상세 DB·통신·검증 범위는 [모니터 구현 안내](../docs/HMI_MONITOR_IMPLEMENTATION.md)를 따른다.
@@ -22,7 +31,7 @@ python3 ws_cobot_pjt/run_monitor.py
 
 - 화면: http://127.0.0.1:5174/operator
 - API·API 문서: http://127.0.0.1:8010/docs
-- SIMULATION / MOCK 전용. 실제 로봇·이전 서버는 기동하지 않는다.
+- 기본은 SIMULATION / MOCK. `--transport ros`는 실제 이미지 경로 노드를 함께 기동한다. 실제 로봇·이전 서버는 기동하지 않는다.
 - 접근 키는 없다. 루프백 주소의 한 운영자용 모의 개발 화면이다. 외부 공개·다중 사용자 인증은 구현 범위 밖이다.
 - 종료: 실행 터미널에서 Ctrl+C. 데이터는 유지된다.
 
@@ -38,11 +47,11 @@ C2_MONITOR_MODE=SIMULATION C2_MONITOR_TRANSPORT=mock \
 
 ## DB와 환경
 
-- 새 DB: `monitor_data/monitor.sqlite3`. 최초 기동 때 스키마 v1과 모의 설정 스냅샷을 만든다.
+- 새 DB: 기본 MOCK은 `monitor_data/monitor.sqlite3`, ROS 실행기는 `monitor_data/ros_path/monitor.sqlite3`. 최초 기동 때 스키마 v1과 해당 모드의 불변 설정 스냅샷을 만든다.
 - 관리 파일: `monitor_data/assets/<UUID>.bin`. 원본·SVG·경로·진단·미리보기는 UUID 및 SHA-256으로 참조한다.
 - 이전 `data/saegim.sqlite3`는 열거나 마이그레이션하지 않는다.
 - `C2_MONITOR_DATA`로 새 저장 디렉토리를 지정할 수 있다. 기본 `monitor_data`는 Git 제외다.
-- `C2_MONITOR_MODE=REAL`은 기동 거절. `C2_MONITOR_TRANSPORT=ros`는 아래 연동 조건이 먼저 필요하다. 통합 실행기는 항상 MOCK을 선택한다.
+- `C2_MONITOR_MODE=REAL`은 기동 거절. ROS 환경을 준비한 뒤 통합 실행기의 `--transport ros`를 사용한다.
 - 백업은 서버를 정상 종료한 다음 `monitor_data` 전체를 복사한다. 자동 삭제·보관 만료는 구현하지 않았다.
 
 ## 시험
@@ -53,7 +62,9 @@ env -u PYTHONPATH PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 \
   .venv/bin/python -m pytest -q tests/test_monitor.py
 ```
 
-임시 DB를 사용한다. ROS나 로봇에 연결하지 않는다. 신규 모니터에는 이전 Potrace·OpenCV 변환기를 사용하지 않는다. 기존 의존성 잠금은 이전 초안과의 호환성을 위해 보존했다.
+위 MOCK 시험은 임시 DB를 사용하며 ROS나 로봇에 연결하지 않는다. 실제 변환은 `c2_path`가 담당한다.
+추가 의존성은 `requirements-ros.txt`, 파일 검증은 `tests/test_path_artifacts.py`, 실제 ROS/HTTP 통합은
+`tests/test_ros_path_integration.py`다. 활성화·실행 명령은 [통합 안내](../docs/HMI_PATH_INTEGRATION.md#재현-시험)를 따른다.
 
 ## ROS 게이트웨이 연결 상태
 
@@ -70,6 +81,7 @@ cd ws_cobot_pjt/backend
 PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 .venv/bin/python -m pytest -q tests/test_ros_contract.py
 ```
 
-좌표 담당자의 ID→파일 및 미리보기 계약, `artifact_loader`, 실제 좌표·공정 노드를 연결한 뒤 통합 시험해야 한다. 공통 타입 빌드를 ROS 전체 통합 완료로 취급하지 않는다. MOCK 경로 파일은 ROS 상대 노드에 전달하지 않도록 차단했다.
+PR #38의 ID→파일·미리보기 계약은 `app/artifact_loader.py`로 연결했다. 실제 `c2_path`와 HMI HTTP 경로 생성·조회 시험을 수행했다.
+공정 노드와의 실행·실기 통합은 별도다. MOCK 경로를 ROS 상대에게 보내거나 test_only 경로로 공정을 시작하지 않는다.
 
 이전 고객 웹앱·서버 초안은 개발 PC에 별도로 보존했다. 이 게시본에는 새 모니터를 실행하는 코드만 포함한다.

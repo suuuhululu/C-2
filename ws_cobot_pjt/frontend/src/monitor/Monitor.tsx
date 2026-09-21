@@ -43,9 +43,12 @@ import type {
 import { CylinderPreview, UnwrappedPreview } from "./Previews";
 import "./monitor.css";
 import LivePathPreview from "./LivePathPreview";
+import { matchesPreview } from "./preview";
+import FileIntegration from "./FileIntegration";
 
 const navItems = [
   { id: "prepare", name: "작업 준비", icon: FileImage },
+  { id: "integration", name: "파일 통합 시험", icon: Upload },
   { id: "process", name: "공정 관제", icon: Activity },
   { id: "history", name: "실행 이력", icon: History },
   { id: "alarms", name: "알람", icon: Bell },
@@ -111,14 +114,20 @@ export default function Monitor() {
     null,
   );
   const [executionPath, setExecutionPath] = useState<PathResult | null>(null);
+  const previousProfile = useRef<string | null>(null);
   const run = snapshot?.active_run;
   const fresh = connected && snapshot?.connection === "CONNECTED";
+  const isRos = snapshot?.transport === "ROS2";
+  const capabilities = snapshot?.path_generation;
+  const pathReady = connected && (isRos ? !!capabilities?.ready : fresh);
   const busy = active(run),
     locked = busy || pending || startUncertain;
   const profile = snapshot?.profile;
   const currentResult =
     !!result && !stale && result.preview.profile_snapshot_id === profile?.id;
   const canStart =
+    capabilities?.execution_enabled &&
+    !result?.test_only &&
     currentResult &&
     reviewed &&
     fixture &&
@@ -127,6 +136,18 @@ export default function Monitor() {
     !pending &&
     !generating &&
     !snapshot?.storage_error;
+
+  useEffect(() => {
+    if (!profile || !capabilities || previousProfile.current === profile.id)
+      return;
+    previousProfile.current = profile.id;
+    revision.current++;
+    setDraft(capabilities.default_placement);
+    setResult(null);
+    setReviewed(false);
+    setFixture(false);
+    generationRequest.current = null;
+  }, [profile?.id, capabilities]);
 
   useEffect(() => {
     live.current = true;
@@ -152,7 +173,10 @@ export default function Monitor() {
       ws.onmessage = (e) => {
         try {
           const packet = JSON.parse(e.data);
-          if (packet.type === "snapshot" && packet.data.schema_version === SCHEMA_VERSION) {
+          if (
+            packet.type === "snapshot" &&
+            packet.data.schema_version === SCHEMA_VERSION
+          ) {
             accept(packet.data);
             retry = 0;
           }
@@ -284,7 +308,7 @@ export default function Monitor() {
     }
   }
   async function generate() {
-    if (!asset || !profile || generating) return;
+    if (!asset || !profile || !capabilities || !pathReady || generating) return;
     setError("");
     setGenerating(true);
     setReviewed(false);
@@ -301,7 +325,7 @@ export default function Monitor() {
             asset_id: asset.asset_id,
             asset_sha256: asset.asset_sha256,
             ...draft,
-            conversion_preset: "simulation_centerline",
+            conversion_preset: capabilities.preset,
             tool_id: profile.payload.tool_id,
             profile_snapshot_id: profile.id,
             profile_sha256: profile.sha256,
@@ -331,10 +355,8 @@ export default function Monitor() {
         `/paths/${g.result.path_id}/versions/${g.result.path_version}`,
       );
       if (
-        p.preview.contract !== "mock-preview/1" ||
-        p.preview.path_id !== p.path_id ||
-        p.preview.path_sha256 !== p.path_sha256 ||
-        p.preview.path_version !== p.path_version
+        !matchesPreview(p, capabilities.preview_contract) ||
+        p.preview.profile_snapshot_id !== profile.id
       )
         throw new Error("미리보기와 경로의 계약·버전이 일치하지 않습니다.");
       if (revision.current !== rev) {
@@ -343,7 +365,11 @@ export default function Monitor() {
       }
       setResult(p);
       setStale(false);
-      setToast("모의 경로를 준비했습니다. 두 미리보기를 확인해 주세요.");
+      setToast(
+        isRos
+          ? "첨부 이미지의 경로가 생성됐습니다. 기하 검증 결과와 미리보기를 확인하세요."
+          : "모의 경로를 준비했습니다. 두 미리보기를 확인해 주세요.",
+      );
       generationRequest.current = null;
     } catch (e) {
       setError((e as Error).message);
@@ -476,10 +502,23 @@ export default function Monitor() {
             <span />
             SIMULATION
           </span>
-          <div className={`connection ${fresh ? "online" : "offline"}`}>
-            {fresh ? <Wifi size={16} /> : <WifiOff size={16} />}
-            <span>{fresh ? "모의 통신 연결" : "통신 미확인"}</span>
+          <div className={`connection ${pathReady ? "online" : "offline"}`}>
+            {pathReady ? <Wifi size={16} /> : <WifiOff size={16} />}
+            <span>
+              {isRos
+                ? pathReady
+                  ? "ROS 경로 노드 연결"
+                  : "ROS 경로 노드 미연결"
+                : pathReady
+                  ? "모의 통신 연결"
+                  : "통신 미확인"}
+            </span>
           </div>
+          {isRos && (
+            <span className="tag">
+              공정 상태 {fresh ? "수신 중" : "미수신"}
+            </span>
+          )}
           <span className="physical-state">실기 미연결</span>
           <div className="stop-zone">
             <div>
@@ -516,13 +555,15 @@ export default function Monitor() {
               <p>
                 {nav === "prepare"
                   ? "이미지를 불러오고, 원기둥 위에 도안의 자리를 정하세요."
-                  : nav === "process"
-                    ? "고정 드릴의 준비·보정 확인부터 조각 완료까지 확인합니다."
-                    : nav === "history"
-                      ? "각 실행에 사용한 경로와 결과를 함께 보관합니다."
-                      : nav === "alarms"
-                        ? "발생한 문제와 확인할 내용을 기록합니다."
-                        : "현재 사용하는 모의 프로파일과 연결 정보를 확인합니다."}
+                  : nav === "integration"
+                    ? "같은 스냅샷과 경로 파일을 등록·전달하고 미리보기를 확인합니다."
+                    : nav === "process"
+                      ? "고정 드릴의 준비·보정 확인부터 조각 완료까지 확인합니다."
+                      : nav === "history"
+                        ? "각 실행에 사용한 경로와 결과를 함께 보관합니다."
+                        : nav === "alarms"
+                          ? "발생한 문제와 확인할 내용을 기록합니다."
+                          : "현재 사용하는 설정 스냅샷과 연결 정보를 확인합니다."}
               </p>
             </div>
             {nav === "prepare" ? (
@@ -573,8 +614,9 @@ export default function Monitor() {
           )}
           {!fresh && snapshot && (
             <div className="warning-banner">
-              최신 공정 상태를 확인할 수 없습니다. 시작 요청이 차단됩니다.
-              저장된 상태는 실제 정지 확인을 뜻하지 않습니다.
+              {isRos
+                ? "공정 상태는 아직 수신되지 않았습니다. 경로 노드가 연결되면 이미지 변환·미리보기를 시험할 수 있습니다. 공정 실행은 비활성 상태입니다."
+                : "최신 공정 상태를 확인할 수 없습니다. 시작 요청이 차단됩니다. 저장된 상태는 실제 정지 확인을 뜻하지 않습니다."}
             </div>
           )}
           {snapshot?.storage_error && (
@@ -582,6 +624,37 @@ export default function Monitor() {
               {snapshot.storage_error}
             </div>
           )}
+          {nav === "integration" && (
+            <FileIntegration
+              asset={asset}
+              placement={draft}
+              locked={locked || generating || uploading}
+              onUpload={upload}
+              onChange={edit}
+            />
+          )}
+          {nav === "prepare" &&
+            generation?.state === "FAILED" &&
+            generation.result?.validation_report_id && (
+              <p className="warning-banner">
+                <a
+                  href={`/api/operator/assets/${generation.result.validation_report_id}/content`}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  실패 검증 보고서 보기
+                </a>
+                {generation.result.svg_asset_id && (
+                  <a
+                    href={`/api/operator/assets/${generation.result.svg_asset_id}/content`}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    추출 SVG 보기
+                  </a>
+                )}
+              </p>
+            )}
           {nav === "prepare" &&
             generation?.state === "FAILED" &&
             generation.result?.diagnostic_asset_id && (
@@ -669,16 +742,27 @@ export default function Monitor() {
                   )}
                 </div>
                 <p className="field-help">
-                  SVG 변환은 좌표 노드에서 처리합니다.
+                  {isRos
+                    ? "첨부 이미지를 ROS 경로 노드에서 중심선 SVG로 변환합니다."
+                    : "현재 모의 모드는 첨부 이미지 대신 고정 샘플을 반환합니다."}
                 </p>
                 <div className="rule" />
                 <h3>
-                  작업 설정 <small className="muted">모의 프로파일</small>
+                  작업 설정{" "}
+                  <small className="muted">
+                    {isRos ? "경로 시험 프로파일" : "모의 프로파일"}
+                  </small>
                 </h3>
                 <dl className="work-settings">
                   <div>
                     <dt>작업대상</dt>
-                    <dd>양초 · Ø68 × H150 mm</dd>
+                    <dd>
+                      양초 · Ø
+                      {((profile?.payload.surface.radius_mm ?? 34) * 2).toFixed(
+                        1,
+                      )}{" "}
+                      × H{profile?.payload.surface.height_mm ?? 150} mm
+                    </dd>
                   </div>
                   <div>
                     <dt>도구</dt>
@@ -686,11 +770,15 @@ export default function Monitor() {
                   </div>
                   <div>
                     <dt>이미지 처리</dt>
-                    <dd>모의 중심선 샘플</dd>
+                    <dd>
+                      {isRos ? "첨부 이미지 중심선 변환" : "모의 중심선 샘플"}
+                    </dd>
                   </div>
                 </dl>
                 <div className="subtext">
-                  명목 규격 · 실제 이미지 변환 연결 전
+                  {isRos
+                    ? "시험 설정 · 실제 이미지 계산 · 로봇 구동 없음"
+                    : "명목 규격 · 실제 이미지 변환 연결 전"}
                 </div>
                 <div className="rule" />
                 <h3>도안 배치</h3>
@@ -738,9 +826,18 @@ export default function Monitor() {
                   비율 유지
                 </label>
                 <p className="field-help">
-                  U=0은 앞면 중심입니다.
+                  {isRos
+                    ? "U=0은 base +X 방향입니다."
+                    : "U=0은 앞면 중심입니다."}
                   <br />
                   크기·위치 변경 후 경로를 다시 생성하세요.
+                  {isRos && (
+                    <>
+                      <br />
+                      가로·세로 안에 중심선 비율을 유지해 맞춥니다. 편집 중
+                      표시는 참고용입니다.
+                    </>
+                  )}
                 </p>
                 <button
                   className="primary generate-button"
@@ -748,6 +845,7 @@ export default function Monitor() {
                   disabled={
                     !asset ||
                     !profile ||
+                    !pathReady ||
                     uploading ||
                     generating ||
                     locked ||
@@ -807,7 +905,9 @@ export default function Monitor() {
                         {currentResult ? (
                           <>
                             <CheckCircle2 size={14} />
-                            모의 범위 확인
+                            {result?.test_only
+                              ? "기하 검사 통과 · 실기 미검증"
+                              : "모의 범위 확인"}
                           </>
                         ) : stale ? (
                           "재생성 필요"
@@ -824,7 +924,9 @@ export default function Monitor() {
                       <dt>장착 도구</dt>
                       <dd>
                         {snapshot?.state?.mounted_tool_id
-                          ? "고정 드릴 · 모의 확인"
+                          ? isRos
+                            ? "고정 드릴 · 상태 수신"
+                            : "고정 드릴 · 모의 확인"
                           : "장착·닫힘 확인 전"}
                       </dd>
                     </div>
@@ -832,7 +934,11 @@ export default function Monitor() {
                       <dt>공정 상태</dt>
                       <dd>
                         <i className="status-dot" />
-                        {run ? statusNames[run.status] : "대기 IDLE"}
+                        {run
+                          ? statusNames[run.status]
+                          : fresh
+                            ? "대기 IDLE"
+                            : "미확인"}
                       </dd>
                     </div>
                   </dl>
@@ -850,7 +956,11 @@ export default function Monitor() {
                     <input
                       type="checkbox"
                       checked={fixture}
-                      disabled={!currentResult || locked}
+                      disabled={
+                        !currentResult ||
+                        locked ||
+                        !capabilities?.execution_enabled
+                      }
                       onChange={(e) => setFixture(e.target.checked)}
                     />
                     지정 위치의 공작물 고정을 확인했습니다.
@@ -868,7 +978,14 @@ export default function Monitor() {
                     {startUncertain ? "같은 실행 요청 다시 확인" : "시작 요청"}
                   </button>
                   <p className="field-help">
-                    확인 후 요청 가능 · 공정 제어에서 준비 조건 재검사
+                    {capabilities?.execution_block_reason ||
+                      "확인 후 요청 가능 · 공정 제어에서 준비 조건 재검사"}
+                    {!!result?.validation_not_checked?.length && (
+                      <>
+                        <br />
+                        미검사: {result.validation_not_checked.join(", ")}
+                      </>
+                    )}
                   </p>
                 </section>
               </div>
@@ -1124,15 +1241,32 @@ export default function Monitor() {
                 <dl className="settings-list">
                   <div>
                     <dt>작업대상</dt>
-                    <dd>파라핀 양초 · Ø68 × H150 mm</dd>
+                    <dd>
+                      양초 · Ø
+                      {((profile?.payload.surface.radius_mm ?? 34) * 2).toFixed(
+                        1,
+                      )}{" "}
+                      × H{profile?.payload.surface.height_mm ?? 150} mm
+                    </dd>
                   </div>
                   <div>
                     <dt>U 범위</dt>
-                    <dd>−106.81 ~ +106.81 mm / 중심 0°</dd>
+                    <dd>
+                      ±
+                      {(
+                        (profile?.payload.surface.radius_mm ?? 34) * Math.PI
+                      ).toFixed(2)}{" "}
+                      mm / {isRos ? "U=0은 base +X" : "중심 0°"}
+                    </dd>
                   </div>
                   <div>
-                    <dt>모의 유효 높이</dt>
-                    <dd>10 ~ 140 mm · 실측값 아님</dd>
+                    <dt>시험 유효 높이</dt>
+                    <dd>
+                      {profile?.payload.surface.valid_v_range_mm
+                        .map((v) => +v.toFixed(2))
+                        .join(" ~ ")}{" "}
+                      mm · 실기 승인 범위 아님
+                    </dd>
                   </div>
                   <div>
                     <dt>도구 / 제어기 TCP</dt>
@@ -1160,7 +1294,8 @@ export default function Monitor() {
                   </div>
                 </dl>
                 <div className="info-box">
-                  {profile?.payload.note}
+                  {profile?.payload.note ||
+                    "c2_path가 제공하는 불변 시험 프로파일입니다. 기하 검증 합격은 실기 실행 승인이 아닙니다."}
                   <br />
                   그리퍼 TCP와 드릴 끝의 변환은 robot_adapter 책임입니다.
                 </div>
@@ -1169,44 +1304,56 @@ export default function Monitor() {
                 <div className="panel-heading">
                   <div>
                     <span className="eyebrow">SIMULATION LAB</span>
-                    <h2>모의 시나리오</h2>
+                    <h2>{isRos ? "ROS 경로 연결" : "모의 시나리오"}</h2>
                   </div>
                   <Activity size={18} />
                 </div>
                 <p className="section-copy">
-                  가짜 상대 응답을 바꾸어 HMI의 오류·정지 표시를 확인합니다.
+                  {isRos
+                    ? "경로 노드의 실제 계산 결과를 표시합니다. 공정 실행과 모의 상태 변경은 사용하지 않습니다."
+                    : "가짜 상대 응답을 바꾸어 HMI의 오류·정지 표시를 확인합니다."}
                 </p>
-                <div className="scenario-options">
-                  {Object.entries(scenarios).map(([value, label]) => (
-                    <button
-                      key={value}
-                      className={snapshot?.scenario === value ? "selected" : ""}
-                      disabled={busy || generating}
-                      onClick={() => changeScenario(value)}
-                    >
-                      <span>{label}</span>
-                      {snapshot?.scenario === value ? (
-                        <CheckCircle2 size={17} />
-                      ) : (
-                        <ChevronRight size={17} />
-                      )}
-                    </button>
-                  ))}
-                </div>
+                {!isRos && (
+                  <div className="scenario-options">
+                    {Object.entries(scenarios).map(([value, label]) => (
+                      <button
+                        key={value}
+                        className={
+                          snapshot?.scenario === value ? "selected" : ""
+                        }
+                        disabled={busy || generating}
+                        onClick={() => changeScenario(value)}
+                      >
+                        <span>{label}</span>
+                        {snapshot?.scenario === value ? (
+                          <CheckCircle2 size={17} />
+                        ) : (
+                          <ChevronRight size={17} />
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                )}
                 <div className="info-box">
                   현재 통신: {snapshot?.transport || "연결 대기"}
                   <br />
-                  미리보기 계약: mock-preview/1 · 좌표 담당 PR 반영 대기
+                  미리보기 계약: {capabilities?.preview_contract || "확인 중"}
+                  <br />
+                  변환 방식: {capabilities?.preset || "확인 중"}
                   <br />
                   실제 로봇 명령은 발행하지 않습니다.
                 </div>
-                <button className="secondary" onClick={resetSimulation}>
-                  <RotateCcw size={15} />
-                  모의 상태 초기화
-                </button>
-                <p className="field-help">
-                  작업 종료 후 사용 · 실행 이력과 파일은 보존됩니다.
-                </p>
+                {!isRos && (
+                  <button className="secondary" onClick={resetSimulation}>
+                    <RotateCcw size={15} />
+                    모의 상태 초기화
+                  </button>
+                )}
+                {!isRos && (
+                  <p className="field-help">
+                    작업 종료 후 사용 · 실행 이력과 파일은 보존됩니다.
+                  </p>
+                )}
               </section>
             </div>
           )}
@@ -1223,8 +1370,8 @@ export default function Monitor() {
             )) || <span>서버 연결을 기다립니다.</span>}
           </div>
           <small>
-            <span className={fresh ? "live-dot" : "offline-dot"} />
-            {fresh ? "LIVE" : "OFFLINE"}
+            <span className={connected ? "live-dot" : "offline-dot"} />
+            {connected ? "서버 연결" : "서버 미연결"}
           </small>
         </footer>
       </main>

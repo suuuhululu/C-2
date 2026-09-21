@@ -1,5 +1,6 @@
 import { useRef, useState } from "react";
 import type { PathResult, Profile, Run, SegmentObservation } from "./api";
+import { cutStrokes, cylinderPoint } from "./preview";
 
 const styles = {
   PENDING: { color: "#292f2c", label: "가공 예정", dash: undefined },
@@ -12,7 +13,7 @@ const styles = {
 export default function LivePathPreview({
   path,
   run,
-  profile,
+  profile: currentProfile,
   fresh,
 }: {
   path: PathResult | null;
@@ -23,6 +24,7 @@ export default function LivePathPreview({
   const [yaw, setYaw] = useState(0),
     drag = useRef<number | null>(null);
   const evidence = run.execution_preview;
+  const profile = path?.profile_snapshot ?? currentProfile;
   const match =
     path &&
     evidence?.contract === "mock-execution-preview/1" &&
@@ -63,7 +65,8 @@ export default function LivePathPreview({
     rad = r * scale,
     top = cy - (h / 2) * scale,
     bottom = cy + (h / 2) * scale;
-  function project(p: number[]) {
+  function project(point: number[]) {
+    const p = cylinderPoint(point, profile);
     const x = p[0] * Math.cos(yaw) - p[1] * Math.sin(yaw),
       depth = p[0] * Math.sin(yaw) + p[1] * Math.cos(yaw);
     return [
@@ -144,7 +147,7 @@ export default function LivePathPreview({
             height="10"
             fill="#e9e4d780"
           />
-          {path?.preview.strokes.flatMap((s) =>
+          {cutStrokes(path).flatMap((s) =>
             s.points_uv_mm.slice(1).map((p, i) => {
               const a = s.points_uv_mm[i],
                 style = paint(s.segment_id, i);
@@ -214,7 +217,7 @@ export default function LivePathPreview({
             stroke="#bcc9b5"
             strokeWidth=".6"
           />
-          {path?.preview.strokes.flatMap((s) =>
+          {cutStrokes(path).flatMap((s) =>
             s.points_m.slice(1).map((p, i) => {
               const a = project(s.points_m[i]),
                 b = project(p),

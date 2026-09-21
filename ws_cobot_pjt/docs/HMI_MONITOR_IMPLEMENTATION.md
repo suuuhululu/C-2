@@ -1,5 +1,9 @@
 # 새 모니터 구현·인계 안내
 
+**9/20 현재 통합:** PR #38 기준으로 실제 c2_path ROS 경로 생성·파일 로더·미리보기를 연결했다.
+실행기는 `--transport ros`를 지원한다. 현재 계약·설치·검증은 [HMI 경로 통합 안내](HMI_PATH_INTEGRATION.md)가 우선이다.
+아래의 MOCK 전용·파일 어댑터 미연결 설명과 시험 수치는 9/18~19 당시 기록이다. 공정 실행·실기는 여전히 별도다.
+
 **9/19 고정 드릴 후속 반영:** 통신 v2, engraving_drill/c2_base, PRECHECK→TOOL_CHECK→APPROACH→ENGRAVE→RETRACT→FINISH로 변경했다. 완료·실패·정지 후 자동 열기·반납은 없고 보정 확인 실패는 조각을 차단한다. 장착 3점 측정·실행 전 1점 확인 소스는 PR #27에서 개발 중이며 main 통합·HMI 연결·실기·J6 검증은 미완료다. mock 경로의 identity 자세는 이번에도 시각화용이며 새 자세 규칙을 검증한 결과가 아니다. [운영 변경](C2_FIXED_DRILL_20260919.md), [이번 검증](validation/2026-09-19-fixed-drill.md). 아래 과거 시험 수치는 당시 기록이다.
 
 2026-09-18. 기준 Git: `main c414821` (PR #13 포함). 작업 브랜치: `codex/hmi-monitor-simulation`.
