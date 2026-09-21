@@ -110,3 +110,12 @@ def test_verify_passes_stop_and_retreat_failure_through():
     start_upright(ad2, side)
     r = verify_tool_tip(ad2, WORKCELL, PROFILES, calib, Ctx())
     assert r.outcome == "FAILED" and r.error_code == "NOT_READY", r     # 이동(이탈 포함) 실패는 그 결과 그대로
+
+
+def test_one_contact_recovers_length_without_measuring_lateral():
+    from c2_process.tool_calibration import projection_from_contact
+    result=projection_from_contact([.426,.134, .22,*upright_quat(1)], [.426,.034,.22], [0,1,0],
+        [.00085,-.09955,0.],reference_source='prior candle',measured_at='2026-09-21T07:00:00Z')
+    assert abs(result['projection_mm']-100.)<1e-8
+    assert result['lateral_source']=='REUSED_NOT_MEASURED' and not result['offset_applied']
+    assert result['validity']=='ESTIMATED_FROM_REFERENCE_SURFACE'

@@ -118,7 +118,8 @@ def test_full_guarded_flow_home_top_eight_points_and_retreat(at_home,fail_probe)
     assert m['axis_xy_m']==pytest.approx(io.center,abs=.00004)
     assert m['radius_m']==pytest.approx(io.radius,abs=.00004)
     assert m['top_tcp_contact_z_m']==pytest.approx(io.top_contact_tcp_z,abs=.00001)
-    assert m['top_z_m'] is None and m['geometry_ready'] is False
+    assert m['top_z_m']==pytest.approx(m['top_tcp_contact_z_m']) and m['geometry_ready']
+    assert m['validity']=='ESTIMATED' and not m['absolute_top_verified']
     assert [e['point_index'] for e in events if e['stage']=='SIDE_TOUCH' and e['status']=='SUCCEEDED']==list(range(1,9))
     assert len(io.stops)==9 and io.active is None
     assert observed['home_return_confirmed']

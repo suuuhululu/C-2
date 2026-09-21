@@ -1,5 +1,5 @@
 {
-  "notice": "REAL 단독 측정 시험용. 밑면 오프셋 미확인: 절대 윗면/바닥/work_z=null, geometry_ready=false. 경로 생성용 완성 스냅샷으로 사용 금지.",
+  "notice": "REAL 통합용 접촉 기반 추정값. 밑면 오프셋은 별도 실측하지 않고 0으로 가정. validity=ESTIMATED, 정확도 미검증. 도구 오프셋은 고정 장착 기준 재사용.",
   "workcell": {
     "source_mode": "REAL",
     "frame_id": "c2_base",
@@ -75,16 +75,22 @@
         0.23292510986328124,
         0.23670465087890627
       ],
-      "expected_tcp_z_source": "2026-09-21 operator-confirmed top_yfirst contact 234.70465087890625 mm +/- 2 mm, clipped to prechecked search bound; unchanged fixture only"
+      "expected_tcp_z_source": "2026-09-21 operator-confirmed top_yfirst contact 234.70465087890625 mm +/- 2 mm, clipped to prechecked search bound; unchanged fixture only",
+      "estimated_contact_offset_tool_m": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "estimate_source": "사용자 결정 2026-09-21: TCP 접촉 높이를 임시 윗면 높이로 사용. 밑면 오프셋 0은 측정값이 아닌 통합용 가정."
     },
     "provenance": {
       "seed_geometry": "repeat180_fit.json / 기존 8점 실측. 이번 측정의 정답으로 사용하지 않음.",
-      "top_reference": "그리퍼 밑면 접촉 TCP 참고값. 절대 윗면 Z 미확정.",
+      "top_reference": "사용자 결정 2026-09-21: TCP 접촉 높이를 임시 윗면 높이로 사용. 밑면 오프셋 0은 측정값이 아닌 통합용 가정.",
       "trial_scene": "현장 단독 시험 전용: 이전 측정 후 양초/받침/철사 고정 유지 전제. 전체 메시 충돌 검사 아님.",
       "duration_profile": "Target remains 120 s and is NOT achieved. Supervised full runs: 270.394 s and 299.295 s (including different HOME entry routes). Increase overall timeout from 300 to 360 s for scheduling/settling margin only; motion speeds and per-step stop/force limits unchanged.",
       "approach_acceleration": "2026-09-21: outward move after point 6 reached 10.185 N with 40 mm/s^2; operator reported no collision. Reduce to 20 mm/s^2 for supervised retest; keep 10 N stop limit."
     },
-    "measurement_scope": "CONTACT_REFERENCE",
+    "measurement_scope": "INTEGRATION_ESTIMATE",
     "tcp_id": "GripperDA_v1",
     "load_id": "ToolWeight_1",
     "side_entry_clearance_z_m": 0.33,
@@ -140,7 +146,9 @@
       ]
     },
     "target_duration_s": 120.0,
-    "outer_move_profile": "escape"
+    "outer_move_profile": "escape",
+    "tool_offset_source": "고정 장착 재사용: 툴 X +0.85 mm / -Y 돌출 99.55 mm. 이번 양초 측정에서 도구 길이를 재측정하지 않음.",
+    "projection_reference_source": "PRIOR_CANDLE_MODEL_ESTIMATE: seed_axis_xy_m/seed_radius_m 재사용. 양초 위치·반지름 오차와 길이 오차를 독립 분리하지 못함."
   },
   "profiles": {
     "travel": {

@@ -15,6 +15,7 @@ import threading
 import time
 from typing import Callable
 
+from .tool_calibration import fixed_tool_reference, projection_from_contact
 from .robot_adapter import StepResult, apply_tool_offset, matrix_to_quat, tool_axis_in_base
 
 
@@ -164,12 +165,16 @@ def _validate(workcell, profiles, context):
     vector(workcell["tool_offset_m"],3,"tool_offset_m")
     # 모르는 값을 0으로 대체하지 않는다. REAL은 출처도 필수.
     scope=workcell.get("measurement_scope","ABSOLUTE_GEOMETRY")
-    if scope not in ("ABSOLUTE_GEOMETRY","CONTACT_REFERENCE"):
+    if scope not in ("ABSOLUTE_GEOMETRY","CONTACT_REFERENCE","INTEGRATION_ESTIMATE"):
         raise ValueError("지원하지 않는 측정 범위")
     if scope=="ABSOLUTE_GEOMETRY":
         vector(workcell["top"]["contact_offset_tool_m"],3,"그리퍼 밑면 접촉 오프셋")
     elif workcell["top"]["contact_offset_tool_m"] is not None:
         raise ValueError("CONTACT_REFERENCE는 미확인 밑면 오프셋을 null로 명시")
+    if scope=="INTEGRATION_ESTIMATE":
+        vector(workcell["top"]["estimated_contact_offset_tool_m"],3,"통합용 가정 오프셋")
+        if not workcell["top"].get("estimate_source"):
+            raise ValueError("통합용 윗면 추정의 출처 필요")
     if workcell["top"].get("auto_entry"):
         number(workcell["top"]["clearance_tcp_z_m"],"clearance_tcp_z_m",1e-9)
     if "side_entry_clearance_z_m" in workcell:
@@ -482,11 +487,25 @@ def measure_workpiece(adapter, workcell, profiles, context, on_progress=None):
                     top_offset=w["top"]["contact_offset_tool_m"]
                     if top_offset is not None:
                         data["top_z_m"]=apply_tool_offset(tcp,top_offset)[2]
+                    elif w.get("measurement_scope")=="INTEGRATION_ESTIMATE":
+                        data["top_z_m"]=apply_tool_offset(tcp,w["top"]["estimated_contact_offset_tool_m"])[2]
+                        data["top_z_source"]="CONTACT_BASED_ESTIMATE"
+                        data["top_estimate_source"]=w["top"]["estimate_source"]
+                        data["assumed_top_contact_offset_tool_m"]=list(w["top"]["estimated_contact_offset_tool_m"])
+                    data["absolute_top_verified"]=top_offset is not None
                     event("TOP_TOUCH","SUCCEEDED","윗면 접촉 측정 완료",values=dict(
                         top_z_m=data["top_z_m"],top_tcp_contact_z_m=tcp[2],
-                        absolute_top_valid=data["top_z_m"] is not None))
+                        absolute_top_valid=data["absolute_top_verified"],top_z_source=data.get("top_z_source","CALIBRATED_CONTACT" if top_offset is not None else "TCP_REFERENCE")))
                 else:
                     data["points"].append(hit)
+                    if step["point_index"]==1 and w.get("projection_reference_source"):
+                        # 현재 8점에서 다시 맞춘 원을 쓰지 않는다. 접촉 전 스냅샷 기준면을 재사용.
+                        angle=math.radians(w["angles_deg"][0]);normal=[math.cos(angle),math.sin(angle),0.]
+                        reference=[w["seed_axis_xy_m"][k]+w["seed_radius_m"]*normal[k] for k in range(2)]+[contact_pose[2]]
+                        tcp=apply_tool_offset(contact_pose,w["tool_offset_m"],-1)
+                        data["tool_projection_check"]=projection_from_contact(tcp,reference,normal,w["tool_offset_m"],
+                            reference_source=w["projection_reference_source"],measured_at=hit["received_at"])
+                        data["tool_projection_check"]["point_index"]=1
                     event("SIDE_TOUCH","SUCCEEDED",f"{step['point_index']}/8번째 점 측정 완료",step["point_index"],dict(tip_xyz_m=contact_pose[:3]))
 
     try:
@@ -494,6 +513,10 @@ def measure_workpiece(adapter, workcell, profiles, context, on_progress=None):
         _validate(w,p,context)
         if getattr(adapter,"measurement_contract_version",None)!=1 or getattr(adapter,"source_mode",None)!=context.source_mode:
             raise MeasurementError("UNSUPPORTED_ADAPTER","측정 계약 v1 백엔드 필요. 기존 DoosanRobotAdapter를 그대로 사용할 수 없음")
+        if w.get("tcp_id") and w.get("load_id"):
+            data["tool_reference"]=fixed_tool_reference(w["tool_offset_m"],tool_id=w.get("tool_id","engraving_drill"),
+                tcp_id=w["tcp_id"],load_id=w["load_id"],
+                source_record=w.get("tool_offset_source") or "CONFIG_SNAPSHOT:"+context.profile_snapshot_id)
         acquired=context.motion_lock.acquire(blocking=False)
         if not acquired:
             raise MeasurementError("BUSY","다른 로봇 작업이 실행 중")
@@ -550,6 +573,8 @@ def measure_workpiece(adapter, workcell, profiles, context, on_progress=None):
                     measured_at=context.utc_now(),validity="SIMULATED" if context.source_mode=="SIMULATION" else "FORCE_CONTACT_ESTIMATE",
                     geometry_ready=data["top_z_m"] is not None,independent_accuracy_verified=False)
         if data["top_z_m"] is None:data["validity"]="REFERENCE_ONLY"
+        elif w.get("measurement_scope")=="INTEGRATION_ESTIMATE":data["validity"]="ESTIMATED"
+        data["work_v_origin"]="TOP";data["work_v_positive_direction"]="DOWN"
         observed.update(partial=False,stop_confirmed=True)
         event("COMPLETE","SUCCEEDED","좌표 계산·홈 복귀 완료: 양초 측정 완료",values=deepcopy(data))
         return StepResult("SUCCEEDED",completed_step="workpiece_calibration",observed_state=observed)
