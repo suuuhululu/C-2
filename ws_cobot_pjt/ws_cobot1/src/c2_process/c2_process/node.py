@@ -17,6 +17,8 @@ from contextlib import contextmanager
 from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import Callable, Mapping, Optional
+from urllib.parse import quote, urljoin
+from urllib.request import urlopen
 from uuid import uuid4
 
 from .engraving import ExecutionContext, execute_path, validate_path, build_execution_plan, execution_signature
@@ -303,7 +305,8 @@ def resolve_simulation_settings(snapshot, goal, *, evidence, adapter):
         joint_limits_deg=joints.get("limits_deg"), j6_margin_deg=joints.get("j6_margin_deg"))
 
 
-def load_execution_inputs(goal, *, path_file, snapshot_file, result_file=None,
+def load_execution_inputs(goal, *, path_file=None, snapshot_file=None,
+                          path_bytes=None, snapshot_bytes=None, result_file=None,
                           generation_result=None, snapshot_metadata=None, resolve_settings=None):
     """호출자가 지정한 경로·스냅샷과 파일/메모리 결과를 읽는다. 새 ROS 필드 없음.
 
@@ -328,11 +331,16 @@ def load_execution_inputs(goal, *, path_file, snapshot_file, result_file=None,
     def bad_constant(value):
         raise ValueError(f"유한하지 않은 JSON 수: {value}")
 
-    def read_json(filename, label):
-        try:
-            raw = Path(filename).read_bytes()
-        except (OSError, TypeError, ValueError) as exc:
-            fail("NOT_READY", f"{label} 파일 읽기 실패: {exc}")
+    def read_json(filename, raw, label):
+        if (filename is None) == (raw is None):
+            fail("INVALID_INPUT", f"{label} 파일 경로 또는 원본 바이트 중 하나만 필요")
+        if raw is None:
+            try:
+                raw = Path(filename).read_bytes()
+            except (OSError, TypeError, ValueError) as exc:
+                fail("NOT_READY", f"{label} 파일 읽기 실패: {exc}")
+        elif not isinstance(raw, bytes):
+            fail("INVALID_INPUT", f"{label} 원본은 bytes여야 함")
         try:
             obj = json.loads(raw, object_pairs_hook=pairs, parse_constant=bad_constant)
             # 1e999처럼 문법은 JSON이지만 Python에서 inf로 변환되는 수도 거절.
@@ -345,11 +353,11 @@ def load_execution_inputs(goal, *, path_file, snapshot_file, result_file=None,
 
     if not isinstance(goal, Mapping) or type(goal.get("schema_version")) is not int or goal["schema_version"] != 2:
         fail("UNSUPPORTED_SCHEMA_VERSION", "실행 요청은 v2만 지원")
-    path_bytes, path = read_json(path_file, "경로")
+    path_bytes, path = read_json(path_file, path_bytes, "경로")
     if (result_file is None) == (generation_result is None):
         fail("INVALID_INPUT", "result_file 또는 generation_result 중 하나만 필요")
     if result_file is not None:
-        _, result = read_json(result_file, "경로 결과")
+        _, result = read_json(result_file, None, "경로 결과")
     else:
         if not isinstance(generation_result, Mapping):
             fail("INVALID_INPUT", "경로 생성 결과는 Mapping이어야 함")
@@ -357,7 +365,7 @@ def load_execution_inputs(goal, *, path_file, snapshot_file, result_file=None,
             result = json.loads(json.dumps(dict(generation_result), allow_nan=False))
         except (ValueError, TypeError):
             fail("INVALID_INPUT", "경로 생성 결과에 비유한 값 또는 잘못된 자료형 포함")
-    snapshot_bytes, snapshot = read_json(snapshot_file, "스냅샷")
+    snapshot_bytes, snapshot = read_json(snapshot_file, snapshot_bytes, "스냅샷")
     if type(path.get("schema_version")) is not int or path["schema_version"] != 2:
         fail("UNSUPPORTED_SCHEMA_VERSION", "경로는 v2만 지원")
     for obj in (goal, path, result):
@@ -436,6 +444,102 @@ def load_execution_inputs(goal, *, path_file, snapshot_file, result_file=None,
                                                validation_path_sha256=digest))
     return ExecutionInputs(path=path, path_bytes=path_bytes, snapshot=snapshot,
                            snapshot_bytes=snapshot_bytes, **settings)
+
+
+def make_asset_bundle_loader(resolve_assets, resolve_settings):
+    """HMI 저장소 조회 결과를 기존 실행 검사기에 연결한다.
+
+    ``resolve_assets(goal)``은 요청의 ID·버전으로 조회한 원본을 다음 키로
+    반환한다: path_bytes, snapshot_bytes, generation_result,
+    snapshot_metadata. 이 함수는 저장소 주소나 JSON 내부 설정 배치를 새로
+    정하지 않는다. 조회 구현은 HMI 저장소가 보존한 원본 바이트를 그대로
+    반환해야 하며, 아래 ``load_execution_inputs``가 Goal·경로·결과·스냅샷의
+    ID와 SHA-256을 다시 대조한다.
+    """
+    if not callable(resolve_assets) or not callable(resolve_settings):
+        raise ValueError("자산 조회 함수와 설정 매퍼가 필요함")
+
+    def load(goal):
+        try:
+            assets = resolve_assets(dict(goal))
+        except InputsUnavailable:
+            raise
+        except Exception as exc:
+            raise InputsUnavailable(f"HMI 실행 자산 조회 실패: {exc}") from exc
+        if not isinstance(assets, Mapping):
+            raise InputsUnavailable("HMI 실행 자산 조회 결과 형식 오류", "INVALID_INPUT")
+        required = {"path_bytes", "snapshot_bytes", "generation_result", "snapshot_metadata"}
+        if set(assets) != required:
+            raise InputsUnavailable(
+                f"HMI 실행 자산 필드 누락/초과: {sorted(set(assets) ^ required)}",
+                "INVALID_INPUT")
+        return load_execution_inputs(
+            goal,
+            path_bytes=assets["path_bytes"],
+            snapshot_bytes=assets["snapshot_bytes"],
+            generation_result=assets["generation_result"],
+            snapshot_metadata=assets["snapshot_metadata"],
+            resolve_settings=resolve_settings,
+        )
+
+    return load
+
+
+def make_hmi_asset_resolver(backend_url, *, fetch_bytes=None, timeout_s=5.0):
+    """기존 HMI path/version·asset content API에서 실행 원본을 읽는다.
+
+    HTTP 응답을 승인으로 바꾸지 않는다. 이 함수는 저장된 바이트와 GeneratePath
+    메타데이터를 가져오기만 하며, 실제 ID·버전·해시·검증·REAL 시험 파일 거절은
+    ``load_execution_inputs``가 담당한다. 시험에서는 ``fetch_bytes(url)``을 주입한다.
+    """
+    if not isinstance(backend_url, str) or not backend_url.strip():
+        raise ValueError("HMI backend URL 필요")
+    if type(timeout_s) not in (int, float) or not math.isfinite(timeout_s) or timeout_s <= 0:
+        raise ValueError("HMI 조회 timeout은 양수여야 함")
+    base = backend_url.rstrip("/") + "/"
+
+    if fetch_bytes is None:
+        def fetch_bytes(url):
+            with urlopen(url, timeout=float(timeout_s)) as response:
+                return response.read()
+    elif not callable(fetch_bytes):
+        raise ValueError("fetch_bytes는 호출 가능해야 함")
+
+    def fetch(relative_or_absolute):
+        url = urljoin(base, relative_or_absolute)
+        raw = fetch_bytes(url)
+        if not isinstance(raw, bytes):
+            raise InputsUnavailable("HMI 자산 응답은 bytes여야 함", "INVALID_INPUT")
+        return raw
+
+    def resolve(goal):
+        if (not isinstance(goal, Mapping) or not isinstance(goal.get("path_id"), str)
+                or not goal["path_id"] or type(goal.get("path_version")) is not int
+                or goal["path_version"] < 1):
+            raise InputsUnavailable("HMI 경로 조회 ID/버전 오류", "INVALID_INPUT")
+        metadata_raw = fetch(
+            f"api/operator/paths/{quote(goal['path_id'], safe='')}/versions/{goal['path_version']}")
+        try:
+            metadata = json.loads(metadata_raw)
+        except (ValueError, UnicodeError, TypeError) as exc:
+            raise InputsUnavailable(f"HMI 경로 메타데이터 JSON 오류: {exc}", "INVALID_INPUT") from exc
+        if not isinstance(metadata, dict):
+            raise InputsUnavailable("HMI 경로 메타데이터는 JSON 객체여야 함", "INVALID_INPUT")
+        path_url = metadata.get("path_url")
+        snapshot_id = metadata.get("profile_snapshot_id")
+        snapshot_sha256 = metadata.get("profile_sha256")
+        if (not isinstance(path_url, str) or not path_url
+                or not isinstance(snapshot_id, str) or not snapshot_id
+                or not isinstance(snapshot_sha256, str) or len(snapshot_sha256) != 64):
+            raise InputsUnavailable("HMI 경로의 원본 경로/스냅샷 참조 없음", "NOT_READY")
+        return {
+            "path_bytes": fetch(path_url),
+            "snapshot_bytes": fetch(f"api/operator/assets/{quote(snapshot_id, safe='')}/content"),
+            "generation_result": metadata,
+            "snapshot_metadata": {"id": snapshot_id, "sha256": snapshot_sha256},
+        }
+
+    return resolve
 
 
 
@@ -629,7 +733,8 @@ class ProcessCoordinator:
                 raise ValueError("REAL에는 DoosanRobotAdapter 객체가 필요함")
             if not measurement_only and (journal is None or load_inputs is _missing_loader):
                 raise ValueError("REAL에는 입력 로더와 실행 저널이 필요함")
-            if not measurement_only and (not callable(go_to_path_start_fn) or not callable(return_home_fn)):
+            if (not measurement_only and not preparation_required
+                    and (not callable(go_to_path_start_fn) or not callable(return_home_fn))):
                 raise ValueError("REAL에는 시작점 이동·홈 복귀 함수가 필요함")
         self.measurement_only = measurement_only
         self.preparation_required = preparation_required
@@ -1173,7 +1278,8 @@ def create_ros_node(load_inputs: Callable[[Mapping], ExecutionInputs] = _missing
                     go_to_path_start_fn=None, return_home_fn=None,
                     preparation_runner_factory=None, preparation_resolver=None,
                     preparation_journal_path=None, enable_preparation=True, measurement_only=False,
-                    real_preparation_options=None, real_preparation_options_factory=None):
+                    real_preparation_options=None, real_preparation_options_factory=None,
+                    real_execution_loader_factory=None, preparation_required=False):
     """Jazzy ROS 노드를 만든다. c2_interfaces 빌드·source 뒤에 호출한다."""
     from rclpy.action import ActionServer, CancelResponse, GoalResponse
     from rclpy.callback_groups import ReentrantCallbackGroup
@@ -1197,15 +1303,27 @@ def create_ros_node(load_inputs: Callable[[Mapping], ExecutionInputs] = _missing
                 if not callable(real_adapter_factory):
                     raise ValueError("real_adapter_factory는 호출 가능해야 함")
                 adapter = real_adapter_factory(self)
+            current_loader = load_inputs
+            if real_execution_loader_factory is not None:
+                if runtime_mode != "REAL" or measurement_only:
+                    raise ValueError("REAL 실행 로더 factory는 조각 가능한 REAL 노드에서만 사용")
+                if load_inputs is not _missing_loader:
+                    raise ValueError("load_inputs와 REAL 실행 로더 factory는 동시에 지정할 수 없음")
+                if not callable(real_execution_loader_factory):
+                    raise ValueError("REAL 실행 로더 factory는 호출 가능해야 함")
+                current_loader = real_execution_loader_factory(self, adapter)
+                if not callable(current_loader):
+                    raise ValueError("REAL 실행 로더 factory 결과는 호출 가능해야 함")
             self.observations = ObservationCache()
             self._preparation_action_active = False
             self.alarms = ProcessAlarms()
             self.profile_values = {}
             self.coordinator = ProcessCoordinator(
-                load_inputs, journal=journal, runtime_mode=runtime_mode,
+                current_loader, journal=journal, runtime_mode=runtime_mode,
                 real_adapter=adapter, go_to_path_start_fn=go_to_path_start_fn,
                 return_home_fn=return_home_fn, observation_cache=self.observations,
-                on_precheck_result=self.report_precheck, measurement_only=measurement_only)
+                on_precheck_result=self.report_precheck, measurement_only=measurement_only,
+                preparation_required=preparation_required)
             self.preparation = None
             if enable_preparation:
                 backend = self.declare_parameter("preparation_backend_url", "").value
@@ -1218,8 +1336,8 @@ def create_ros_node(load_inputs: Callable[[Mapping], ExecutionInputs] = _missing
                         raise ValueError("real_preparation_options_factory는 호출 가능해야 함")
                     current_real_options = real_preparation_options_factory(self)
                 if current_real_options is not None:
-                    if preparation_runner_factory is not None or runtime_mode != "REAL" or not measurement_only:
-                        raise ValueError("실물 준비 options는 REAL 측정 전용 노드에서만 사용")
+                    if preparation_runner_factory is not None or runtime_mode != "REAL":
+                        raise ValueError("실물 준비 options는 REAL 노드에서만 사용")
                     from .preparation_action import make_real_measurement_runner
                     runner = make_real_measurement_runner(self.coordinator,self,**current_real_options)
                 else:

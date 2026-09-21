@@ -14,7 +14,9 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from c2_process.engraving import ExecutionContext
-from c2_process.node import ExecutionInputs, ProcessCoordinator, RunJournal
+from c2_process.node import (ExecutionInputs, ProcessCoordinator, RunJournal,
+                             InputsUnavailable, load_execution_inputs,
+                             make_asset_bundle_loader, make_hmi_asset_resolver)
 from c2_process.preconditions import PreconditionEvidence
 from c2_process.robot_adapter import DoosanRobotAdapter, MockRobotAdapter, StepResult
 from c2_process.tool_calibration import TipCalibration, measure_tool_tip, upright_quat
@@ -514,7 +516,7 @@ def test_real_tcp_mismatch_blocks_tip_and_engraving(tmp_path):
 import copy
 import pytest
 from dataclasses import asdict
-from c2_process.node import load_execution_inputs, build_execution_settings, InputsUnavailable
+from c2_process.node import build_execution_settings
 from c2_process.engraving import execute_path, validate_path
 from c2_process.joint_check import check_path_joints
 from c2_process.tool_calibration import verify_tool_tip
@@ -1234,6 +1236,101 @@ def test_managed_artifacts_and_action_result_load_without_rewriting_snapshot(tmp
     assert kwargs['snapshot_file'].read_bytes() == original == loaded.snapshot_bytes
     result = ProcessCoordinator(lambda _: loaded).execute(goal)
     assert result.ok, result
+
+
+def test_hmi_asset_bundle_bytes_use_existing_integrity_checks(tmp_path):
+    goal, kwargs, _ = _registered_input_fixture(tmp_path)
+    settings = kwargs["resolve_settings"]
+    assets = {
+        "path_bytes": kwargs["path_file"].read_bytes(),
+        "snapshot_bytes": kwargs["snapshot_file"].read_bytes(),
+        "generation_result": kwargs["generation_result"],
+        "snapshot_metadata": kwargs["snapshot_metadata"],
+    }
+    requested = []
+    loader = make_asset_bundle_loader(
+        lambda received: requested.append(received) or assets,
+        settings,
+    )
+
+    loaded = loader(goal)
+
+    assert requested == [goal]
+    assert loaded.path_bytes == assets["path_bytes"]
+    assert loaded.snapshot_bytes == assets["snapshot_bytes"]
+    assert loaded.path["path_id"] == goal["path_id"]
+
+
+def test_hmi_asset_bundle_rejects_changed_path_bytes(tmp_path):
+    goal, kwargs, _ = _registered_input_fixture(tmp_path)
+    assets = {
+        "path_bytes": kwargs["path_file"].read_bytes() + b" ",
+        "snapshot_bytes": kwargs["snapshot_file"].read_bytes(),
+        "generation_result": kwargs["generation_result"],
+        "snapshot_metadata": kwargs["snapshot_metadata"],
+    }
+    loader = make_asset_bundle_loader(lambda _: assets, kwargs["resolve_settings"])
+
+    with pytest.raises(InputsUnavailable, match="SHA-256") as caught:
+        loader(goal)
+
+    assert caught.value.error_code == "PATH_MISMATCH"
+
+
+def test_hmi_asset_bundle_requires_only_the_four_existing_inputs(tmp_path):
+    goal, kwargs, _ = _registered_input_fixture(tmp_path)
+    loader = make_asset_bundle_loader(
+        lambda _: {"path_bytes": kwargs["path_file"].read_bytes()},
+        kwargs["resolve_settings"],
+    )
+
+    with pytest.raises(InputsUnavailable, match="필드 누락/초과") as caught:
+        loader(goal)
+
+    assert caught.value.error_code == "INVALID_INPUT"
+
+
+def test_hmi_resolver_uses_existing_path_and_asset_endpoints(tmp_path):
+    goal, kwargs, _ = _registered_input_fixture(tmp_path)
+    metadata = dict(
+        kwargs["generation_result"],
+        path_url="/api/operator/assets/path-asset/content",
+        profile_snapshot_id=kwargs["snapshot_metadata"]["id"],
+        profile_sha256=kwargs["snapshot_metadata"]["sha256"],
+    )
+    replies = {
+        f"http://hmi.local/api/operator/paths/{goal['path_id']}/versions/{goal['path_version']}":
+            json.dumps(metadata).encode(),
+        "http://hmi.local/api/operator/assets/path-asset/content":
+            kwargs["path_file"].read_bytes(),
+        f"http://hmi.local/api/operator/assets/{kwargs['snapshot_metadata']['id']}/content":
+            kwargs["snapshot_file"].read_bytes(),
+    }
+    requested = []
+    resolver = make_hmi_asset_resolver(
+        "http://hmi.local",
+        fetch_bytes=lambda url: requested.append(url) or replies[url],
+    )
+
+    assets = resolver(goal)
+
+    assert assets["path_bytes"] == kwargs["path_file"].read_bytes()
+    assert assets["snapshot_bytes"] == kwargs["snapshot_file"].read_bytes()
+    assert requested == list(replies)
+
+
+def test_prepared_real_node_does_not_require_extra_start_or_home_callbacks(tmp_path):
+    adapter = object.__new__(DoosanRobotAdapter)
+    coordinator = ProcessCoordinator(
+        lambda _: None,
+        runtime_mode="REAL",
+        real_adapter=adapter,
+        journal=RunJournal(tmp_path / "runs.sqlite3"),
+        preparation_required=True,
+    )
+
+    assert coordinator.real_adapter is adapter
+    assert coordinator.preparation_required is True
 
 
 @pytest.mark.parametrize('case', ['bad_id', 'bad_sha', 'no_metadata', 'conflicting_alias',
