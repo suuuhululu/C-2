@@ -73,6 +73,10 @@ def test_status_then_measurement_preserves_executor_on_success_and_timeout(monke
         assert owner.executor is executor and owner in executor.get_nodes()
         assert io.read()['motion_status'] == 0  # 보고된 실제 실패 지점
         assert len(list(owner.clients)) == 6  # 측정 I/O만 남고 단발 상태 client는 정리
+        measurement_clients = dict(io.clients)
+        assert io.read()['robot_state'] == 1
+        assert io.clients == measurement_clients  # 매 조회마다 연결을 새로 만들지 않음
+        assert len(list(owner.clients)) == 6
         failed[0] = True
         assert adapter.observe().quality == 'UNKNOWN'
         assert owner.executor is executor
