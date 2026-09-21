@@ -110,6 +110,72 @@ def test_stop_observed_stable(setup):
     assert r.ok and clock.t>=ad.g['stop_stable_s']
 
 
+@pytest.mark.parametrize('drift',['position','orientation','joint'])
+def test_idle_status_with_actual_drift_is_not_stop_confirmation(setup,drift):
+    ad,io,ctx,c,step,clock=setup
+    original=io.read
+    def read():
+        if drift=='position':io.p[0]+=.1
+        elif drift=='orientation':io.p[5]+=.1
+        else:io.q[0]+=.1
+        return original()
+    io.read=read
+    r=ad.stop_measurement(c['profiles']['stop'])
+    assert r.outcome=='UNKNOWN' and not r.observed_state['stop_confirmed']
+    assert io.stops==[c['profiles']['stop']['mode']] and not io.moves
+
+
+def test_stop_waits_for_full_stable_interval_after_drift(setup):
+    ad,io,ctx,c,step,clock=setup
+    original=io.read
+    def read():
+        if clock()<.3:io.p[0]+=.1
+        return original()
+    io.read=read
+    r=ad.stop_measurement(c['profiles']['stop'])
+    assert r.ok and clock()>=.28+ad.g['stop_stable_s']
+
+
+@pytest.mark.parametrize('state',[0,2,4,7,8,11,12,13,14,15,99])
+def test_unknown_or_nonstationary_robot_state_is_not_stop_confirmation(setup,state):
+    ad,io,ctx,c,step,clock=setup
+    original=io.read
+    def read():return dict(original(),robot_state=state)
+    io.read=read
+    assert ad.stop_measurement(c['profiles']['stop']).outcome=='UNKNOWN'
+
+
+@pytest.mark.parametrize('state',[3,5,6,9,10])
+def test_protective_stop_can_confirm_no_motion_without_recovery_command(setup,state):
+    ad,io,ctx,c,step,clock=setup
+    original=io.read
+    def read():return dict(original(),robot_state=state)
+    io.read=read
+    r=ad.stop_measurement(c['profiles']['stop'])
+    assert r.ok and r.observed_state=={'stop_confirmed':True}
+    assert io.stops==[c['profiles']['stop']['mode']] and not io.moves
+
+
+@pytest.mark.parametrize('failure',['cached','stale','disconnected','late','rejected'])
+def test_stop_requires_fresh_observations_before_deadline(setup,failure):
+    ad,io,ctx,c,step,clock=setup
+    original=io.read
+    def read():
+        if failure=='disconnected':raise ConnectionError('lost')
+        if failure=='late':clock.sleep(c['profiles']['stop']['timeout_s'])
+        o=original()
+        if failure=='cached':o['measured_at_monotonic_s']=0.
+        if failure=='stale':o['measured_at_monotonic_s']=-10.
+        return o
+    io.read=read
+    if failure=='rejected':
+        def stop(mode):raise ConnectionError('stop rejected')
+        io.stop=stop
+    r=ad.stop_measurement(c['profiles']['stop'])
+    assert r.outcome=='UNKNOWN' and r.error_code=='STOP_UNCONFIRMED'
+    assert not r.observed_state['stop_confirmed'] and not io.moves
+
+
 def test_raw_force_limit_prevents_send(setup):
     ad,io,ctx,c,step,clock=setup
     ad.preflight_measurement([step],c['workcell'],c['profiles'],ctx);io.force=[100.,0.,0.]
