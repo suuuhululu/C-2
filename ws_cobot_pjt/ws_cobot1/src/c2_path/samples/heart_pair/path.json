@@ -14,7 +14,7 @@
   },
   "config": {
     "profile_snapshot_id": "snap-candle-0919",
-    "profile_sha256": "cac70813b4b791046a52c0ad0ea82ad147e345f581db48fb2fb17290557ae731",
+    "profile_sha256": "28183ef15e1ce58ce8dfaa7d112aaa1de4125733796d7db69aae6ed68bed68b0",
     "workcell_id": "candle_test_0919",
     "workcell_version": 1,
     "tools_config_id": "c2_tools",
@@ -2668,8 +2668,8 @@
         "code": "HEIGHT_IN_RANGE",
         "passed": true,
         "limit_m": [
-          0.08499999999999999,
-          0.13
+          0.009999999999999981,
+          0.13999999999999999
         ]
       },
       {

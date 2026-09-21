@@ -77,11 +77,22 @@ colcon build --packages-select c2_interfaces c2_path --symlink-install
 source install/local_setup.bash
 
 ros2 run c2_path path_planner_node --ros-args \
-  -p managed_data_dir:=/절대/경로/ws_cobot_pjt/backend/monitor_data
+  -p managed_data_dir:=../backend/monitor_data    # 명령을 실행한 폴더(ws_cobot1) 기준 상대 경로
 ```
 
 `managed_data_dir`를 지정하지 않았거나 HMI 저장소가 초기화되지 않았으면 노드는
 기동하되 Goal을 `NOT_READY`로 실패시킨다. 생성 제한 시간 기본값은 120초다.
+파라미터 대신 환경 변수 `C2_MONITOR_DATA` 로도 지정할 수 있다.
+
+## 경로 규칙 (PC 한 대 · 절대 경로 금지)
+
+통합 시험과 최종 시연은 모두 PC 한 대에서 돌린다. 그래서 **코드와 데이터 파일에 절대 경로를 쓰지 않는다.**
+
+- 코드에는 `/home/...`·`C:\...` 같은 고정 경로를 넣지 않는다. 폴더는 명령 인자(`--input`, `--output`), ROS 파라미터
+  `managed_data_dir`, 환경 변수 `C2_MONITOR_DATA` 로 받고, 상대 경로는 **명령을 실행한 폴더 기준**으로 푼다.
+  저장소 안의 파일(샘플·예제 등)은 소스 파일 위치(`__file__`)에서 상대적으로 찾는다.
+- 요청·`manifest.json`·`result.json`·산출물 안에는 경로 문자열 대신 **UUID·해시·묶음 내부 상대 파일명**만 적는다.
+- 이 규칙은 `test/test_no_absolute_paths.py` 가 소스와 샘플 묶음을 검사한다.
 
 순수 계산 시험:
 

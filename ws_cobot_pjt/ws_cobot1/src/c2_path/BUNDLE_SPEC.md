@@ -77,7 +77,7 @@
 | `surface.height_mm` | `150.0` | 정확 일치(±1e-6 mm) | |
 | `surface.axis_origin_m` | `[0.4218, 0.0001, 0.0834]` | 정확 일치 | `[x, y, 바닥 z]` (m). 윗면 z = 바닥 z + 높이 = 0.2334 |
 | `surface.axis_direction` | `[0, 0, 1]` | 정확 일치 | 계산·미리보기가 +Z 축만 지원 |
-| `surface.valid_v_range_mm` | `[85, 130]` | 정확 일치 | 바닥 기준 작업 가능 높이 (= 윗면 아래 20~65mm) |
+| `surface.valid_v_range_mm` | `[10, 140]` | 정확 일치 | 바닥 기준 작업 가능 높이 (= 윗면 아래 10~140mm, 2026-09-21 시율님 대체 지시) |
 | `surface.u_origin_angle_deg` | `0` | 정확 일치 | u=0 이 놓이는 각도 (0° = +X, 로봇 반대편) |
 | `surface.seam_angle_deg` | `180` | 정확 일치 | 이음매 = −X, 로봇 쪽 (J5 위험) |
 | `surface.reachable_angle_deg` | `[-135, 135]` | 정확 일치 | J5 안전 범위 — **잠정**, 5° 간격 실측표 대기 (시율님) |
@@ -98,7 +98,7 @@
 | `surface.height_mm` | 실측 | 유한, > 0 | **미정** — 시율님 |
 | `surface.axis_origin_m` | 실측 (`workpiece_calibration`) | 유한한 수 3개 `[x, y, 바닥 z]` | 명목값 대비 허용 이동량 **미정** — 시율님 (9/20 재장착 시 3~5mm 어긋남 관측 → 5mm 이상 필요) |
 | `surface.axis_direction` | 고정 | `[0, 0, 1]` | 없음 |
-| `surface.valid_v_range_mm` | 고정(작업 정의) | `0 <= 하한 < 상한 <= height_mm` | 윗면 아래 20~65mm 는 시율님 확정, 실측 프로필에서 유지할지 **미정** |
+| `surface.valid_v_range_mm` | 고정(작업 정의) | `0 <= 하한 < 상한 <= height_mm` | 윗면 아래 10~140mm(2026-09-21 시율님 대체 지시, 상하 10mm씩 조각 금지)는 시율님 확정, 실측 프로필에서 유지할지 **미정** |
 | `surface.u_origin_angle_deg` | 고정(배치 정의) | −180~180 | 없음 |
 | `surface.seam_angle_deg` | 고정 | −180 초과 180 이하 | 없음 |
 | `surface.reachable_angle_deg` | 실측(J5) | `−180 <= 하한 < 상한 <= 180`, **이음매가 범위 안에 들어가지 않음** | 5° 간격 실측표 후 확정 — 시율님 |
@@ -245,3 +245,32 @@ c2_path 는 J6/IK 를 계산하지 않는다. 검증 보고서의 `not_checked` 
 | 스냅샷 계약(스키마) 버전 부여 방식 | 팀 전체 | 공통 형식이 PR 로 확정되기 전 |
 | manifest 규격 (7절) | 팀장님·홍동님 | HMI 가져오기 대조 후 확정 (현재 제안) |
 | 실제 `workcell.py` 상수 → 요청별 값으로 전환 | 홍동님 | 스냅샷 형식 확정 후 진행 (5절) |
+
+## 11. 분할된 획의 관계 필드 (9/21, **확인**: 코드에 이미 구현됨 — 제안)
+
+`map_3d.map_strokes()`는 이음매·각도 한계로 획을 쪼갤 때 이미 조각 사이 관계를 `mapped` 항목에 넣고 있다
+(이번에 새로 만든 게 아니라 기존 코드 확인). 아직 공통 규격으로 제안하지 않았던 부분이라 여기 명시한다.
+
+| 필드 | 값 | 의미 |
+| --- | --- | --- |
+| `stroke_id` | `strokeNNN` 또는 `strokeNNN_partK` | 조각이 하나뿐이면 원본 ID, 쪼개졌으면 조각별 ID |
+| `split_from_stroke_id` | 원본 `stroke_id` | 쪼개지지 않았으면 이 필드 자체가 없음 |
+| `split_index` | 0-base 순번 | 같은 원본에서 나온 조각들의 순서 |
+| `split_count` | 총 조각 수 | |
+| `join_forbidden` | `true` (쪼개진 경우 항상) | 쪼개진 조각들을 하나의 연속 CUT으로 다시 이으면 안 됨(이음매를 넘거나 각도 한계를 넘기 때문) |
+
+**미정(변경 없음)**: 구간별 완료 검증 조건(목표·허용오차·확인 방식)은 10절과 같이 실행 측(세은님·시율님) 입력이
+있어야 채울 수 있다. 이 절은 "조각들이 서로 어떤 관계인지"만 formalize한 것이고, "각 조각이 언제 완료로
+판단되는지"는 별개로 남아 있다.
+
+## 12. 정량 평가 지표 (9/21, **확인**: `c2_path/metrics.py` + `report_metrics.py` 구현)
+
+`samples/bundles/*/output/c2-path-validation(.json)`를 입력으로 아래를 집계한다 (`samples/metrics_report.json`).
+
+- 래스터→벡터 실측 형상 오차(최대/평균, px) — `image_to_svg.convert()`가 이제 각 획의 최종 베지어와 원본 점
+  사이 거리를 사후 측정해 `measured_max_error_px`/`measured_mean_error_px`로 낸다. 손으로 만든 SVG를 직접 쓰는
+  샘플(`heart`/`heart_pair`/`heart_seam`)은 raster 입력이 없어 해당 없음으로 표시한다.
+- 획 보존율(추출 단계 대비 최적화 단계), 2-opt 전후 TRAVEL 감소율(%), CUT/TRAVEL 길이, 분할 관계 개수.
+- 검증 실패 사유별 건수(오류 코드 집계), 이음매/각도범위/원통관통 위반 건수.
+- **다루지 않음** (김세은/`joint_check.py` 담당): 실제 두산 IK 도달 가능성, 경로별 J5/J6 최소 여유, IK 성공
+  waypoint 비율.

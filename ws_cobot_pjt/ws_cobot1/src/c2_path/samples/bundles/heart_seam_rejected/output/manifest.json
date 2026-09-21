@@ -6,7 +6,7 @@
       "file": "request.json",
       "kind": "request",
       "mime": "application/json",
-      "sha256": "64f6a40fe652e95e32704d656525e4c35e79ac70f323fd46339a4d2c322b761a",
+      "sha256": "4faa03f4cf25b674ca749c7043c14d443d1fd6bf742959e13885c518e7b73a97",
       "size_bytes": 604
     },
     {
@@ -27,8 +27,8 @@
       "name": "c2-path-validation-failed.json",
       "path_id": null,
       "path_version": null,
-      "sha256": "c7fb5131759e4c70c3e17e608618b5c2e40fd3bf3a9da1928eceb166d4d4afa3",
-      "size_bytes": 5419
+      "sha256": "e8494e8fbdd6d4b33f5761ef37f8d2e3240d4db024a0ad326fffe28187938909",
+      "size_bytes": 5796
     },
     {
       "asset_id": "4d55b287-6f59-5da4-b4de-4dd18f532b1c",
@@ -46,7 +46,7 @@
   "inputs": {
     "asset_id": "95169bf6-2335-5859-b751-48a2b594861d",
     "asset_sha256": "74937463fbd90ed19b0fbb9cf2687e0fcdac4344a2439a1a9affb721937c185b",
-    "profile_sha256": "58e3e554bee4ef5c4a04ed7ec94b07f2376c99b6e5adee7ec1ea6a2bd285bf82",
+    "profile_sha256": "272a05c285698cb1cd00241419f7843f572e0290070d312e5d2cd7cc19943b31",
     "profile_snapshot_id": "838be9ca-dcc2-5682-b8a5-cc9d29211a3b"
   },
   "path": null,

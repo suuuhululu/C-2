@@ -1,0 +1,55 @@
+{
+  "sample_count": 2,
+  "samples": [
+    {
+      "name": "heart_ok",
+      "passed": true,
+      "raster_to_vector_error": {
+        "measured_max_error_px": 0.7193,
+        "measured_mean_error_px": 0.1916,
+        "allowed_fit_error_px": 0.6,
+        "note": "실측치는 최종 베지어 곡선을 촘촘히 샘플링해 원본 점과의 최단거리로 재는 사후 근사값이라, Schneider 피팅 내부의 허용 오차(같은 값)와 약간 다를 수 있다. 허용치를 살짝 넘는 정도는 측정 방식 차이지 회귀가 아니다."
+      },
+      "stroke_preservation_ratio": 1.0,
+      "travel_reduction_pct_2opt": 0.0,
+      "split_relations": {
+        "strokes_split_at_seam": 0,
+        "strokes_split_by_arc_limit": 0
+      },
+      "cut_length_m": 0.07511,
+      "travel_length_m": 0.03427,
+      "segment_count": 17,
+      "failure_reasons": {}
+    },
+    {
+      "name": "heart_seam_rejected",
+      "passed": false,
+      "raster_to_vector_error": {
+        "measured_max_error_px": 0.7193,
+        "measured_mean_error_px": 0.1916,
+        "allowed_fit_error_px": 0.6,
+        "note": "실측치는 최종 베지어 곡선을 촘촘히 샘플링해 원본 점과의 최단거리로 재는 사후 근사값이라, Schneider 피팅 내부의 허용 오차(같은 값)와 약간 다를 수 있다. 허용치를 살짝 넘는 정도는 측정 방식 차이지 회귀가 아니다."
+      },
+      "stroke_preservation_ratio": 1.0,
+      "travel_reduction_pct_2opt": 0.0,
+      "split_relations": {
+        "strokes_split_at_seam": 2,
+        "strokes_split_by_arc_limit": 0
+      },
+      "cut_length_m": 0.075095,
+      "travel_length_m": 0.312386,
+      "segment_count": 29,
+      "failure_reasons": {
+        "ANGLE_OUT_OF_RANGE": 7,
+        "SEAM_CROSSED": 2
+      }
+    }
+  ],
+  "failure_reasons_total": {
+    "ANGLE_OUT_OF_RANGE": 7,
+    "SEAM_CROSSED": 2
+  },
+  "seam_crossed_total": 2,
+  "angle_out_of_range_total": 7,
+  "cylinder_penetration_total": 0
+}

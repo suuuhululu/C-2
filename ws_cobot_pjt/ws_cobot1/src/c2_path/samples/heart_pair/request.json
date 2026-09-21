@@ -12,6 +12,6 @@
   "conversion_preset": "raster_centerline_bezier",
   "tool_id": "engraving_drill",
   "profile_snapshot_id": "snap-candle-0919",
-  "profile_sha256": "cac70813b4b791046a52c0ad0ea82ad147e345f581db48fb2fb17290557ae731",
+  "profile_sha256": "28183ef15e1ce58ce8dfaa7d112aaa1de4125733796d7db69aae6ed68bed68b0",
   "note": "샘플 편의상 도안 2개를 한 경로에 넣었다. 실제 Goal 은 배치 1개다."
 }

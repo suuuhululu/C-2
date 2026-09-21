@@ -2,7 +2,7 @@
   "config": {
     "load_profile_id": "ToolWeight_1",
     "load_profile_version": 1,
-    "profile_sha256": "58e3e554bee4ef5c4a04ed7ec94b07f2376c99b6e5adee7ec1ea6a2bd285bf82",
+    "profile_sha256": "272a05c285698cb1cd00241419f7843f572e0290070d312e5d2cd7cc19943b31",
     "profile_snapshot_id": "de9e0ffc-6384-560b-859c-d3f272b80e0d",
     "tcp_profile_id": "GripperDA_v1",
     "tcp_profile_version": 1,
@@ -2431,8 +2431,8 @@
       {
         "code": "HEIGHT_IN_RANGE",
         "limit_m": [
-          0.08499999999999999,
-          0.13
+          0.009999999999999981,
+          0.13999999999999999
         ],
         "passed": true
       },
@@ -2474,7 +2474,7 @@
           -135.0,
           135.0
         ],
-        "note": "J5 안전 범위 잠정치(9/20 실측) — 정밀 재실측 후 갱신 예정",
+        "note": "J5 안전 범위 확정 전 — 현재 전 범위",
         "passed": true
       },
       {
