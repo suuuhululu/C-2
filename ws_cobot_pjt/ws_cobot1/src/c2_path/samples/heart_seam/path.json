@@ -14,7 +14,7 @@
   },
   "config": {
     "profile_snapshot_id": "snap-candle-0919",
-    "profile_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+    "profile_sha256": "455ff6f5465b5839a5e676b827a5ecd46377c23b87b7516ac0062dafc8aa82dc",
     "workcell_id": "candle_test_0919",
     "workcell_version": 1,
     "tools_config_id": "c2_tools",
@@ -1720,7 +1720,7 @@
   ],
   "validation": {
     "report_id": "val-heart_seam-0001",
-    "passed": false,
+    "passed": true,
     "checks": [
       {
         "code": "SCHEMA_VERSION",
@@ -1740,12 +1740,13 @@
         "tool_id": "engraving_drill"
       },
       {
-        "code": "HEIGHT_IN_RANGE",
+        "code": "HEIGHT_ON_SURFACE",
         "passed": true,
         "limit_m": [
-          0.08499999999999999,
-          0.13
-        ]
+          0.0,
+          0.15
+        ],
+        "note": "옆면 전체(바닥~총 높이). 로봇 작업 범위는 execution_readiness 참고"
       },
       {
         "code": "CUT_ON_SURFACE",
@@ -1778,15 +1779,6 @@
           "CUT",
           "TRAVEL"
         ]
-      },
-      {
-        "code": "ANGLE_IN_REACHABLE_RANGE",
-        "passed": false,
-        "limit_deg": [
-          -135.0,
-          135.0
-        ],
-        "note": "J5 안전 범위 잠정치(9/20 실측) — 정밀 재실측 후 갱신 예정"
       },
       {
         "code": "NO_CYLINDER_PENETRATION",

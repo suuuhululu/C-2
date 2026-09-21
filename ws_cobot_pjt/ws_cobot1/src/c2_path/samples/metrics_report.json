@@ -1,0 +1,141 @@
+{
+  "sample_count": 6,
+  "samples": [
+    {
+      "name": "heart_ok",
+      "passed": true,
+      "raster_to_vector_error": {
+        "measured_max_error_px": 0.7193,
+        "measured_mean_error_px": 0.1916,
+        "allowed_fit_error_px": 0.6,
+        "note": "실측치는 최종 베지어 곡선을 촘촘히 샘플링해 원본 점과의 최단거리로 재는 사후 근사값이라, Schneider 피팅 내부의 허용 오차(같은 값)와 약간 다를 수 있다. 허용치를 살짝 넘는 정도는 측정 방식 차이지 회귀가 아니다."
+      },
+      "stroke_preservation_ratio": 1.0,
+      "travel_reduction_pct_2opt": 0.0,
+      "split_relations": {
+        "strokes_split_at_seam": 0,
+        "strokes_split_by_arc_limit": 0
+      },
+      "cut_length_m": 0.07511,
+      "travel_length_m": 0.03427,
+      "segment_count": 17,
+      "failure_reasons": {},
+      "execution_precheck": "WITHIN_LIMITS"
+    },
+    {
+      "name": "heart_seam_out_of_limits",
+      "passed": true,
+      "raster_to_vector_error": {
+        "measured_max_error_px": 0.7193,
+        "measured_mean_error_px": 0.1916,
+        "allowed_fit_error_px": 0.6,
+        "note": "실측치는 최종 베지어 곡선을 촘촘히 샘플링해 원본 점과의 최단거리로 재는 사후 근사값이라, Schneider 피팅 내부의 허용 오차(같은 값)와 약간 다를 수 있다. 허용치를 살짝 넘는 정도는 측정 방식 차이지 회귀가 아니다."
+      },
+      "stroke_preservation_ratio": 1.0,
+      "travel_reduction_pct_2opt": 0.0,
+      "split_relations": {
+        "strokes_split_at_seam": 2,
+        "strokes_split_by_arc_limit": 0
+      },
+      "cut_length_m": 0.075095,
+      "travel_length_m": 0.312386,
+      "segment_count": 29,
+      "failure_reasons": {},
+      "execution_precheck": "OUT_OF_LIMITS"
+    },
+    {
+      "name": "heart_low_out_of_limits",
+      "passed": true,
+      "raster_to_vector_error": {
+        "measured_max_error_px": 0.7193,
+        "measured_mean_error_px": 0.1916,
+        "allowed_fit_error_px": 0.6,
+        "note": "실측치는 최종 베지어 곡선을 촘촘히 샘플링해 원본 점과의 최단거리로 재는 사후 근사값이라, Schneider 피팅 내부의 허용 오차(같은 값)와 약간 다를 수 있다. 허용치를 살짝 넘는 정도는 측정 방식 차이지 회귀가 아니다."
+      },
+      "stroke_preservation_ratio": 1.0,
+      "travel_reduction_pct_2opt": 0.0,
+      "split_relations": {
+        "strokes_split_at_seam": 0,
+        "strokes_split_by_arc_limit": 0
+      },
+      "cut_length_m": 0.07511,
+      "travel_length_m": 0.03427,
+      "segment_count": 17,
+      "failure_reasons": {},
+      "execution_precheck": "OUT_OF_LIMITS"
+    },
+    {
+      "name": "heart_request_range_out_of_limits",
+      "passed": true,
+      "raster_to_vector_error": {
+        "measured_max_error_px": 0.7193,
+        "measured_mean_error_px": 0.1916,
+        "allowed_fit_error_px": 0.6,
+        "note": "실측치는 최종 베지어 곡선을 촘촘히 샘플링해 원본 점과의 최단거리로 재는 사후 근사값이라, Schneider 피팅 내부의 허용 오차(같은 값)와 약간 다를 수 있다. 허용치를 살짝 넘는 정도는 측정 방식 차이지 회귀가 아니다."
+      },
+      "stroke_preservation_ratio": 1.0,
+      "travel_reduction_pct_2opt": 0.0,
+      "split_relations": {
+        "strokes_split_at_seam": 0,
+        "strokes_split_by_arc_limit": 0
+      },
+      "cut_length_m": 0.07511,
+      "travel_length_m": 0.03427,
+      "segment_count": 17,
+      "failure_reasons": {},
+      "execution_precheck": "OUT_OF_LIMITS"
+    },
+    {
+      "name": "heart_custom_cylinder",
+      "passed": true,
+      "raster_to_vector_error": {
+        "measured_max_error_px": 0.7193,
+        "measured_mean_error_px": 0.1916,
+        "allowed_fit_error_px": 0.6,
+        "note": "실측치는 최종 베지어 곡선을 촘촘히 샘플링해 원본 점과의 최단거리로 재는 사후 근사값이라, Schneider 피팅 내부의 허용 오차(같은 값)와 약간 다를 수 있다. 허용치를 살짝 넘는 정도는 측정 방식 차이지 회귀가 아니다."
+      },
+      "stroke_preservation_ratio": 1.0,
+      "travel_reduction_pct_2opt": 0.0,
+      "split_relations": {
+        "strokes_split_at_seam": 0,
+        "strokes_split_by_arc_limit": 0
+      },
+      "cut_length_m": 0.07511,
+      "travel_length_m": 0.03427,
+      "segment_count": 17,
+      "failure_reasons": {},
+      "execution_precheck": "WITHIN_LIMITS"
+    },
+    {
+      "name": "heart_off_surface",
+      "passed": false,
+      "raster_to_vector_error": {
+        "measured_max_error_px": null,
+        "measured_mean_error_px": null,
+        "allowed_fit_error_px": null,
+        "note": "raster 입력 없음(손으로 만든 SVG)"
+      },
+      "stroke_preservation_ratio": null,
+      "travel_reduction_pct_2opt": null,
+      "split_relations": {
+        "strokes_split_at_seam": 0,
+        "strokes_split_by_arc_limit": 0
+      },
+      "cut_length_m": null,
+      "travel_length_m": null,
+      "segment_count": null,
+      "failure_reasons": {
+        "HEIGHT_OUT_OF_SURFACE": 4
+      },
+      "execution_precheck": null
+    }
+  ],
+  "failure_reasons_total": {
+    "HEIGHT_OUT_OF_SURFACE": 4
+  },
+  "seam_crossed_total": 0,
+  "angle_out_of_range_total": 0,
+  "generated_sample_count": 5,
+  "execution_precheck_out_of_limits_sample_count": 3,
+  "cylinder_penetration_total": 0
+}

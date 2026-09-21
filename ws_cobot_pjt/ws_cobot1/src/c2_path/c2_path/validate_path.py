@@ -4,6 +4,9 @@
 금지 조건(어기면 실패)과 품질 지표(기록만)를 나눈다.
 `c2_path` 가 확인하지 않는 항목은 `not_checked` 에 명시해서, 실행 측
 (preconditions.py)이 무엇을 직접 봐야 하는지 코드로 판단할 수 있게 한다.
+
+이 모듈의 검사는 "경로가 계약을 지키고 옆면 위에 올바르게 놓였는가"(생성·미리보기 가능 여부)만 다룬다.
+로봇 작업 가능 높이 구간과 도달 각도는 여기서 실패로 만들지 않고 `readiness.py` 의 실행 사전 점검으로 분리했다 (9/21).
 """
 import math
 
@@ -33,15 +36,17 @@ def _is_pose7(w):
 
 
 def _radial(p):
-    return math.hypot(p[0] - wc.AXIS_ORIGIN_XY_M[0], p[1] - wc.AXIS_ORIGIN_XY_M[1])
+    ox, oy = wc.current_surface().axis_origin_xy_m
+    return math.hypot(p[0] - ox, p[1] - oy)
 
 
 def _theta(p):
-    return math.degrees(math.atan2(p[1] - wc.AXIS_ORIGIN_XY_M[1], p[0] - wc.AXIS_ORIGIN_XY_M[0]))
+    ox, oy = wc.current_surface().axis_origin_xy_m
+    return math.degrees(math.atan2(p[1] - oy, p[0] - ox))
 
 
 def _height(p):
-    return p[2] - wc.AXIS_ORIGIN_Z_M
+    return p[2] - wc.current_surface().axis_origin_z_m
 
 
 def _unwrap(seq):
@@ -64,7 +69,12 @@ def _crosses_seam(unwrapped, tol=1e-6):
     (이음매에서 분할된 조각은 이음매에서 시작·끝난다)."""
     if len(unwrapped) < 2:
         return False
-    return bool(wc.seams_strictly_between(min(unwrapped) + tol, max(unwrapped) - tol))
+    lo, hi = min(unwrapped) + tol, max(unwrapped) - tol
+    if lo >= hi:
+        # 각도 범위가 2*tol 이하인 획·이동(이음매를 따라 곧게 오르내리는 조각 등)은 이음매를 넘을 수 없다.
+        # lo>hi 로 뒤집힌 채 seams_strictly_between 에 들어가면 이음매 위 조각이 넘은 것으로 오판된다.
+        return False
+    return bool(wc.seams_strictly_between(lo, hi))
 
 
 def _quat_axes(q):
@@ -77,6 +87,7 @@ def _quat_axes(q):
 
 def validate(path):
     errors, checks = [], []
+    radius_m = wc.current_surface().radius_m
     if not isinstance(path, dict):
         return {"passed": False, "checks": [{"code": "PATH_STRUCTURE", "passed": False}],
                 "not_checked": NOT_CHECKED, "errors": ["PATH_STRUCTURE: 최상위 객체가 아님"]}
@@ -155,12 +166,12 @@ def validate(path):
                 errors.append(f"SEGMENT_POINTS_MAX: {seg['segment_id']} {len(wps)}점")
             for k, w in enumerate(wps):
                 p = _v(w)
-                if abs(_radial(p) - wc.RADIUS_M) > TOL_POS:
+                if abs(_radial(p) - radius_m) > TOL_POS:
                     errors.append(f"NOT_ON_SURFACE: {seg['segment_id']}[{k}] r={_radial(p):.6f}")
                 h = _height(p)
-                lo, hi = wc.WORKABLE_HEIGHT_RANGE_M
+                lo, hi = wc.current_surface().height_range_m
                 if not (lo - 1e-6 <= h <= hi + 1e-6):
-                    errors.append(f"HEIGHT_OUT_OF_RANGE: {seg['segment_id']}[{k}] h={h:.6f}")
+                    errors.append(f"HEIGHT_OUT_OF_SURFACE: {seg['segment_id']}[{k}] h={h:.6f}")
                 stroke_theta.setdefault(sid, []).append(_theta(p))
             for k in range(len(wps) - 1):
                 d = math.dist(_v(wps[k]), _v(wps[k + 1]))
@@ -170,7 +181,7 @@ def validate(path):
                 # 현 오차 (표면 이탈)
                 a, b = _v(wps[k]), _v(wps[k + 1])
                 mid = tuple((a[i] + b[i]) / 2 for i in range(3))
-                worst_chord_err = max(worst_chord_err, abs(_radial(mid) - wc.RADIUS_M))
+                worst_chord_err = max(worst_chord_err, abs(_radial(mid) - radius_m))
         else:
             # 비절삭 구간: TRAVEL 은 표면 밖이어야 한다.
             # APPROACH/RETRACT 는 절삭점으로 들어가고 나오므로 표면에 닿는 것이 정상이다.
@@ -181,10 +192,10 @@ def validate(path):
                     p = tuple(a[c] + (b[c] - a[c]) * t for c in range(3))
                     r = _radial(p)
                     if kind == "TRAVEL":
-                        min_travel_clear = min(min_travel_clear, r - wc.RADIUS_M)
-                        if r < wc.RADIUS_M - TOL_POS:
+                        min_travel_clear = min(min_travel_clear, r - radius_m)
+                        if r < radius_m - TOL_POS:
                             errors.append(f"CYLINDER_PENETRATION: {seg['segment_id']} r={r:.6f}")
-                    elif r < wc.RADIUS_M - TOL_POS:
+                    elif r < radius_m - TOL_POS:
                         errors.append(f"CYLINDER_PENETRATION: {seg['segment_id']}({kind}) r={r:.6f}")
 
     # 획당 둘레 각도 / 이음매
@@ -198,12 +209,7 @@ def validate(path):
         # 이음매(seam + 360k): 편 각도에서 연속한 두 점 사이에 이음매가 있으면 통과한 것.
         if _crosses_seam(unw):
             errors.append(f"SEAM_CROSSED: {sid}")
-        # CUT 허용 각도 범위 (J5 안전 범위 — 9/20 시율님 실측 기준 잠정치, 오늘 정밀 실측 후 갱신 예정)
-        lo_r, hi_r = wc.REACHABLE_ANGLE_DEG
-        for t in ths:
-            if not (lo_r - 1e-6 <= t <= hi_r + 1e-6):
-                errors.append(f"ANGLE_OUT_OF_RANGE: {sid} θ={t:.2f}도 (허용 {lo_r}~{hi_r})")
-                break
+        # 로봇 도달 각도(J5 안전 범위 잠정치)는 여기서 검사하지 않는다 — readiness.execution_readiness 가 한다.
 
     # TRAVEL 도 이음매(로봇 쪽)를 넘지 않는다 — 오프셋 원통 위라도 자세는 반경 방향이라 J5 위험은 같다.
     for seg in segs:
@@ -219,15 +225,15 @@ def validate(path):
     if q_flips:
         errors.append(f"QUAT_SIGN_DISCONTINUITY: {q_flips}곳")
 
-    lo, hi = wc.WORKABLE_HEIGHT_RANGE_M
+    lo, hi = wc.current_surface().height_range_m
     checks = [
         {"code": "SCHEMA_VERSION", "passed": not any(e.startswith("UNSUPPORTED_SCHEMA") for e in errors),
          "expected": wc.PATH_SCHEMA_VERSION, "observed": path.get("schema_version")},
         {"code": "WAYPOINT_FORMAT", "passed": True, "format": "[x,y,z,qx,qy,qz,qw]"},
         {"code": "CONFIG_MATCH", "passed": not any(e.startswith("CONFIG") for e in errors),
          "frame_id": path.get("frame_id"), "tool_id": path.get("tool_id")},
-        {"code": "HEIGHT_IN_RANGE", "passed": not any("HEIGHT_OUT" in e for e in errors),
-         "limit_m": [lo, hi]},
+        {"code": "HEIGHT_ON_SURFACE", "passed": not any("HEIGHT_OUT_OF_SURFACE" in e for e in errors),
+         "limit_m": [lo, hi], "note": "옆면 전체(바닥~총 높이). 로봇 작업 범위는 execution_readiness 참고"},
         {"code": "CUT_ON_SURFACE", "passed": not any("NOT_ON_SURFACE" in e for e in errors),
          "observed_max_chord_error_m": round(worst_chord_err, 8)},
         {"code": "CUT_SPACING_MAX", "passed": not any("CUT_SPACING" in e for e in errors),
@@ -237,9 +243,7 @@ def validate(path):
         {"code": "STROKE_ARC_MAX", "passed": not any("STROKE_ARC" in e for e in errors),
          "limit_deg": wc.STROKE_MAX_ARC_DEG, "observed_max_deg": round(max_arc, 3)},
         {"code": "SEAM_NOT_CROSSED", "passed": not any("SEAM_CROSSED" in e for e in errors),
-         "seam_angle_deg": wc.SEAM_ANGLE_DEG, "applies_to": ["CUT", "TRAVEL"]},
-        {"code": "ANGLE_IN_REACHABLE_RANGE", "passed": not any("ANGLE_OUT_OF_RANGE" in e for e in errors),
-         "limit_deg": list(wc.REACHABLE_ANGLE_DEG), "note": "J5 안전 범위 잠정치(9/20 실측) — 정밀 재실측 후 갱신 예정"},
+         "seam_angle_deg": wc.current_surface().seam_angle_deg, "applies_to": ["CUT", "TRAVEL"]},
         {"code": "NO_CYLINDER_PENETRATION", "passed": not any("PENETRATION" in e for e in errors),
          "observed_min_travel_clearance_m": (round(min_travel_clear, 6)
                                              if min_travel_clear < math.inf else None)},

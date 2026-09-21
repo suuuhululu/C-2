@@ -354,6 +354,28 @@ def _fit_cubic(pts, t1, t2, error, depth=0, max_depth=24):
     return left + right
 
 
+def _measure_fit_error(pts, beziers, samples_per_segment=40):
+    """맞춘 베지어(들)가 원본 점열에서 실제로 얼마나 떨어져 있는지 사후 실측(근사).
+
+    `_fit_cubic` 내부의 `_compute_max_error` 는 재귀 분할 중간값이라 최종 결과에
+    남지 않는다. 이 함수는 최종 확정된 베지어 구간들만 놓고, 각 원본 점에서
+    (조밀 샘플링한) 곡선까지의 최단 거리를 다시 잰다. 9/21 오후 일정의
+    "래스터→벡터 최대/평균 형상 오차" 정량 지표용이며, 피팅 동작 자체는 바꾸지 않는다.
+    """
+    if not beziers or not pts:
+        return 0.0, 0.0
+    sampled = []
+    for ctrl in beziers:
+        for k in range(samples_per_segment + 1):
+            sampled.append(_bezier_point(ctrl, k / samples_per_segment))
+    max_err, total = 0.0, 0.0
+    for p in pts:
+        d = min(math.dist(p, s) for s in sampled)
+        max_err = max(max_err, d)
+        total += d
+    return max_err, total / len(pts)
+
+
 def fit_curve(points, error_px):
     """점열(중복 제거된 (x,y) 리스트) -> 3차 베지어 목록 [(p0,p1,p2,p3), ...]."""
     pts = [points[0]]
@@ -425,7 +447,11 @@ def convert(image_path, spur_min_len_px=4.0, fit_error_px=0.6, invert=None,
         if not beziers:
             continue
         paths.append(beziers_to_path_d(beziers, is_closed))
-        stroke_stats.append({"point_count": len(pts), "bezier_count": len(beziers), "closed": is_closed})
+        max_err, mean_err = _measure_fit_error(pts, beziers)
+        stroke_stats.append({
+            "point_count": len(pts), "bezier_count": len(beziers), "closed": is_closed,
+            "measured_max_error_px": round(max_err, 4), "measured_mean_error_px": round(mean_err, 4),
+        })
 
     body = "\n  ".join(f'<path fill="none" stroke="#000" stroke-width="1" d="{d}" />' for d in paths)
     svg = (
@@ -444,4 +470,8 @@ def convert(image_path, spur_min_len_px=4.0, fit_error_px=0.6, invert=None,
         "spur_min_len_px": spur_min_len_px,
         "fit_error_px": fit_error_px,
     }
+    if stroke_stats:
+        stats["measured_max_error_px"] = round(max(s["measured_max_error_px"] for s in stroke_stats), 4)
+        stats["measured_mean_error_px"] = round(
+            sum(s["measured_mean_error_px"] for s in stroke_stats) / len(stroke_stats), 4)
     return svg, stats

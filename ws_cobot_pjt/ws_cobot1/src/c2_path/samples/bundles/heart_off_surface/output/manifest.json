@@ -1,0 +1,56 @@
+{
+  "bundle_role": "output",
+  "contract": "c2-path-bundle/1",
+  "documents": [
+    {
+      "file": "request.json",
+      "kind": "request",
+      "mime": "application/json",
+      "sha256": "2c328bca191b7785459d43ae63bb110478e77fec12bbefb6712d57ab00fc36b0",
+      "size_bytes": 604
+    },
+    {
+      "file": "result.json",
+      "kind": "result",
+      "mime": "application/json",
+      "sha256": "35728024df59005b03f3c785c6931cf2d38768076c1b56922dfadacd7d6c0921",
+      "size_bytes": 444
+    }
+  ],
+  "files": [
+    {
+      "asset_id": "5ce3800f-bd48-51ec-9fe9-831b1e391d56",
+      "executable": false,
+      "file": "c2-path-validation-failed.json",
+      "kind": "validation",
+      "mime": "application/json",
+      "name": "c2-path-validation-failed.json",
+      "path_id": null,
+      "path_version": null,
+      "sha256": "33eacd0270c6147ae2e3d1cc019f8d2d7d70aa98fd12b93f5ef03ee708c78488",
+      "size_bytes": 1564
+    },
+    {
+      "asset_id": "d4dc2709-1ba5-599f-b3b9-dee1a62ad498",
+      "executable": false,
+      "file": "c2-path-centerline-diagnostic.svg",
+      "kind": "svg",
+      "mime": "image/svg+xml",
+      "name": "c2-path-centerline-diagnostic.svg",
+      "path_id": null,
+      "path_version": null,
+      "sha256": "86b93c6c18dba987ee1dd8e2d7b911e44713ee94885d48fcea42094ad0b067b9",
+      "size_bytes": 5637
+    }
+  ],
+  "inputs": {
+    "asset_id": "530aafe7-f1f9-5a69-85c8-60038f356494",
+    "asset_sha256": "74937463fbd90ed19b0fbb9cf2687e0fcdac4344a2439a1a9affb721937c185b",
+    "profile_sha256": "c2e9dd46d57d6e22980daf3b235d82d9bc62e497d784707f0b582cad8021c815",
+    "profile_snapshot_id": "b623bb1a-f1c2-5ec9-b4c3-2382df4c2083"
+  },
+  "path": null,
+  "request_id": "3f5f7873-4de0-5640-bae7-f8a5177cd8b9",
+  "schema_version": 1,
+  "source_mode": "SIMULATION"
+}

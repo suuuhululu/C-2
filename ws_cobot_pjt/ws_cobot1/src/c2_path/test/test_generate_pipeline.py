@@ -118,7 +118,7 @@ class TestGeneratePipeline(PipelineFixture):
 
     def test_any_mapping_failure_fails_whole_generation(self):
         with self.assertRaises(PipelineError) as caught:
-            GeneratePipeline(self.store).run(self.goal(offset_v_mm=50.0))
+            GeneratePipeline(self.store).run(self.goal(offset_v_mm=200.0))   # 옆면(150mm) 밖
         self.assertEqual(caught.exception.code, "VALIDATION_FAILED")
         self.assertTrue(caught.exception.validation_report_id)
         connection = sqlite3.connect(Path(self.temp.name) / "monitor.sqlite3")

@@ -1,0 +1,14 @@
+{
+  "cut_length_m": 0.07511,
+  "error_code": "NONE",
+  "message": "경로 생성과 기하 검증이 완료되었습니다. 실행 전 J6/IK 검사가 별도로 필요합니다. 잠정 로봇 작업 범위 안이지만 실행 가능 여부는 판정하지 않았습니다.",
+  "path_id": "7f16d2c9-ab2b-55d9-bdab-4ea371902971",
+  "path_sha256": "50ad0103ff8ffa6240739f94f733f8d47587962939d2c86c06e6bbfac629199b",
+  "path_version": 1,
+  "preview_asset_id": "eeef4240-6cd3-500c-961b-5aa41df0d203",
+  "segment_count": 17,
+  "success": true,
+  "svg_asset_id": "c8015cff-13e4-5621-b45b-725054b9c020",
+  "validation_passed": true,
+  "validation_report_id": "984d4a26-f708-54f0-beb2-0badb9568589"
+}

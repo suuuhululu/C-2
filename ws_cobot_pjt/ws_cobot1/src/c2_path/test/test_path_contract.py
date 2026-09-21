@@ -7,7 +7,7 @@
   - docs/INTERFACE_RECOMMENDATION.md 3·4절
   - c2_process/engraving.py 가 읽는 필드와 waypoint 형식 [x,y,z,qx,qy,qz,qw], schema_version 2
     (2026-09-20 로봇팀 형식으로 통일)
-  - 시율님 실기 확정값: 획당 둘레 각도 180도 이내, 이음매 미통과, 작업 높이 윗면 아래 20~65mm
+  - 시율님 실기 확정값: 획당 둘레 각도 180도 이내, 이음매 미통과, 작업 높이 윗면 아래 10~140mm(9/21 변경, 이전 20~65mm)
 """
 import json
 import math
@@ -488,13 +488,23 @@ class TestSeamAndOrigin(unittest.TestCase):
 class TestFailureResultFormat(unittest.TestCase):
     """실패 결과는 빈 문자열·버전 0 (GeneratePath.action 확정). null 이 아니다."""
 
-    def test_height_out_of_range_is_detected(self):
-        lo, hi = wc.WORKABLE_HEIGHT_RANGE_M
+    def test_height_out_of_surface_is_detected(self):
+        """옆면(바닥~총 높이) 밖으로 나간 획은 표면이 없어 만들 수 없다."""
+        lo, hi = wc.SURFACE_HEIGHT_RANGE_M
         bad = [[(0.0, (hi + 0.02) * 1000.0), (1.0, (hi + 0.02) * 1000.0)]]
         mapped, failures, st = map_3d.map_strokes(bad)
         self.assertEqual(len(mapped), 0)
         self.assertEqual(len(failures), 1)
-        self.assertEqual(failures[0]["reason_code"], "HEIGHT_OUT_OF_RANGE")
+        self.assertEqual(failures[0]["reason_code"], "HEIGHT_OUT_OF_SURFACE")
+        below = [[(0.0, -1.0), (1.0, -1.0)]]
+        self.assertEqual(len(map_3d.map_strokes(below)[1]), 1)
+
+    def test_robot_work_window_is_no_longer_a_mapping_condition(self):
+        """9/21: 로봇 작업 범위(10~140mm) 밖이어도 옆면 안이면 매핑은 성공한다. 로봇 작업 범위는 execution_readiness 가 본다."""
+        for v_mm in (5.0, 50.0, 140.0, 149.0):
+            mapped, failures, _st = map_3d.map_strokes([[(0.0, v_mm), (5.0, v_mm)]])
+            self.assertEqual(failures, [], v_mm)
+            self.assertEqual(len(mapped), 1, v_mm)
 
     def test_sample_result_uses_empty_string_not_null(self):
         for name in SAMPLE_NAMES:
@@ -512,22 +522,26 @@ class TestValidationReport(unittest.TestCase):
     def test_not_checked_declares_j6(self):
         """c2_path 는 J6 를 계산하지 않는다. 실행 측이 봐야 한다는 걸 파일이 밝혀야 한다.
 
-        (모든 샘플이 통과한다는 뜻은 아니다 — heart_seam 은 REACHABLE_ANGLE_DEG 적용 후
-        의도적으로 실패한다. 별도 시험 test_heart_seam_now_fails_angle_range 참고.)"""
+        (heart_seam 은 생성·기하 검증은 통과하지만 로봇 잠정 작업 범위 밖이다 — 별도 시험
+        test_heart_seam_generates_and_precheck_reports_out_of_limits 참고.)"""
         for name in SAMPLE_NAMES:
             v = load(name)["validation"]
             self.assertIn("J6_RANGE", v["not_checked"])
 
-    def test_heart_seam_now_fails_angle_range(self):
-        """heart_seam 은 이음매(180°) 위에 놓여 J5 위험 구역에 들어간다. REACHABLE_ANGLE_DEG
-        가 잠정치(±135°)로 정해진 지금은 ANGLE_OUT_OF_RANGE 로 실패해야 정상이다 (samples/README.md
-        "알려진 한계"에서 이미 예고된 동작 — 회귀가 아니다). heart·heart_pair 는 계속 통과해야 한다."""
-        v = load("heart_seam")["validation"]
-        self.assertFalse(v["passed"])
-        rep = validate_path.validate(load("heart_seam"))
-        self.assertTrue(any("ANGLE_OUT_OF_RANGE" in e for e in rep["errors"]), rep["errors"])
+    def test_heart_seam_generates_and_precheck_reports_out_of_limits(self):
+        """heart_seam 은 이음매(180°) 위에 놓여 J5 위험 구역에 들어간다 (9/20 시율님 실측 잠정 범위 ±135° 밖).
+        9/21 부터 이것은 경로 생성 실패가 아니라 실행 사전 점검(OUT_OF_LIMITS) 결과다.
+        heart·heart_pair 는 범위 안이라 WITHIN_LIMITS 다."""
+        from c2_path import readiness
+        seam = load("heart_seam")
+        rep = validate_path.validate(seam)
+        self.assertEqual(rep["errors"], [], rep["errors"])
+        self.assertTrue(rep["passed"])
+        self.assertTrue(seam["validation"]["passed"])
+        self.assertEqual(readiness.execution_readiness(seam)["precheck"], readiness.OUT_OF)
         for name in ("heart", "heart_pair"):
             self.assertTrue(load(name)["validation"]["passed"], f"{name} 은 계속 통과해야 한다")
+            self.assertEqual(readiness.execution_readiness(load(name))["precheck"], readiness.WITHIN, name)
 
 
 class TestImageToSvg(unittest.TestCase):
