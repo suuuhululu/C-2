@@ -1,0 +1,153 @@
+{
+  "notice": "SIMULATION 전용. 실기 성공 로그의 형상 참조와 합성 윗면/그리퍼 오프셋을 구분. REAL 전환 금지.",
+  "workcell": {
+    "source_mode": "SIMULATION",
+    "frame_id": "c2_base",
+    "height_m": 0.15,
+    "height_source": "OPERATOR_RULER",
+    "top_margin_m": 0.01,
+    "bottom_margin_m": 0.01,
+    "side_depth_m": 0.04,
+    "seed_axis_xy_m": [
+      0.42624374301578377,
+      4.6709476999166216e-05
+    ],
+    "seed_radius_m": 0.034291659073503865,
+    "tool_offset_m": [
+      0.00085,
+      -0.09955,
+      0
+    ],
+    "angles_deg": [
+      45,
+      0,
+      -45,
+      -90,
+      -135,
+      -180,
+      -225,
+      -270
+    ],
+    "orbit_step_deg": 22.5,
+    "outer_gap_m": 0.022,
+    "start_gap_m": 0.005,
+    "inside_limit_m": 0.0005,
+    "slow_retract_gap_m": 0.002,
+    "max_center_shift_m": 0.002,
+    "max_radius_error_m": 0.001,
+    "max_fit_rms_m": 0.0003,
+    "max_fit_residual_m": 0.0006,
+    "max_point_z_spread_m": 0.0005,
+    "max_state_age_s": 2.0,
+    "pose_tolerance_m": 0.0003,
+    "angle_tolerance_rad": 0.005235987755982988,
+    "runtime_timeout_s": 300.0,
+    "top": {
+      "approach_tcp_pose": [
+        0.426243743,
+        4.67095e-05,
+        0.2547,
+        0.0,
+        1.0,
+        0.0,
+        0.0
+      ],
+      "entry_tcp_poses": [
+        [
+          0.426243743,
+          4.67095e-05,
+          0.33,
+          0.0,
+          1.0,
+          0.0,
+          0.0
+        ]
+      ],
+      "exit_tcp_poses": [
+        [
+          0.426243743,
+          4.67095e-05,
+          0.33,
+          0.0,
+          1.0,
+          0.0,
+          0.0
+        ]
+      ],
+      "max_probe_m": 0.025,
+      "retract_m": 0.025,
+      "contact_offset_tool_m": [
+        0.0,
+        0.0,
+        0.01
+      ],
+      "offset_status": "SYNTHETIC",
+      "offset_record_id": "sim-offset-only"
+    },
+    "simulation": {
+      "axis_xy_m": [
+        0.4264,
+        0.0001
+      ],
+      "radius_m": 0.0344,
+      "top_z_m": 0.2347,
+      "initial_tcp_pose": [
+        0.38,
+        0.22,
+        0.33,
+        0.0,
+        1.0,
+        0.0,
+        0.0
+      ]
+    },
+    "provenance": {
+      "seed_geometry": "repeat180_fit.json 2026-09-21 8점 실험 재사용",
+      "top_and_initial_pose": "합성값: 실제 로봇 이동 경로/그리퍼 밑면 오프셋 아님",
+      "fit_limits": "첫 모의 연결용 기준, 실기 적합성 미검증",
+      "tool_offset": "고정 장착 재사용 기준; 이번 측정으로 도구 보정한 값 아님"
+    }
+  },
+  "profiles": {
+    "travel": {
+      "speed_m_s": 0.03,
+      "acceleration_m_s2": 0.03,
+      "timeout_s": 60.0,
+      "hard_force_n": 15.0
+    },
+    "approach": {
+      "speed_m_s": 0.015,
+      "acceleration_m_s2": 0.02,
+      "timeout_s": 60.0,
+      "hard_force_n": 10.0
+    },
+    "retract": {
+      "speed_m_s": 0.001,
+      "acceleration_m_s2": 0.02,
+      "timeout_s": 60.0,
+      "hard_force_n": 10.0
+    },
+    "top_touch": {
+      "speed_m_s": 0.0003,
+      "acceleration_m_s2": 0.0003,
+      "timeout_s": 60.0,
+      "hard_force_n": 10.0,
+      "contact_force_n": 0.8,
+      "max_force_delta_n": 2.0,
+      "baseline_window_s": 1.0
+    },
+    "side_touch": {
+      "speed_m_s": 0.001,
+      "acceleration_m_s2": 0.0003,
+      "timeout_s": 60.0,
+      "hard_force_n": 10.0,
+      "contact_force_n": 0.8,
+      "max_force_delta_n": 2.0,
+      "baseline_window_s": 1.0
+    },
+    "stop": {
+      "mode": 1,
+      "timeout_s": 2.0
+    }
+  }
+}
