@@ -9,6 +9,7 @@
 #   - deadline_s 초과·취소·오류를 상위로 전달하고, 정지 접수와 실제 정지 확인을 구분한다.
 #   - 실기(REAL) 값(속도·힘·TCP)은 프로파일(tools.yaml 스냅샷)에서만 온다. 여기에 현장 수치를 넣지 않는다.
 import math
+import threading
 import time
 from dataclasses import dataclass, field
 from typing import Callable, Dict, List, Optional
@@ -196,13 +197,14 @@ class DoosanRobotAdapter(RobotAdapter):
         import DSR_ROBOT2 as R
         from DR_common2 import posx
         from dsr_msgs2.srv import (MoveStop, GetCurrentTcp, GetCurrentTool, SetCurrentTcp, SetCurrentTool, SetRobotMode,
-                                   GetRobotState)
+                                   GetRobotState, GetCurrentPosj, GetCurrentPosx, GetToolForce)
         self.node, self.R, self.posx, self.frame_id = node, R, posx, frame_id
         self.tool_offset_m = None                      # set_tool_offset() 으로 설정 (없으면 제어기 TCP 그대로)
         self.log = logger or node.get_logger()
         self._srv = dict(MoveStop=MoveStop, GetCurrentTcp=GetCurrentTcp, GetCurrentTool=GetCurrentTool,
                          SetCurrentTcp=SetCurrentTcp, SetCurrentTool=SetCurrentTool, SetRobotMode=SetRobotMode,
-                         GetRobotState=GetRobotState)
+                         GetRobotState=GetRobotState, GetCurrentPosj=GetCurrentPosj,
+                         GetCurrentPosx=GetCurrentPosx, GetToolForce=GetToolForce)
         R._ros2_movej.wait_for_service()
         R._ros2_movel.wait_for_service()
         time.sleep(1.0)                                # 양방향 디스커버리 여유 (응답 유실 방지, 9/17)
@@ -211,15 +213,52 @@ class DoosanRobotAdapter(RobotAdapter):
 
     # ---- 서비스 도우미 ----
     def _call(self, name, srv, req, timeout=5.0):
+        """공정 작업 스레드에서 조회한다. 실행 중인 노드를 다른 executor로 옮기지 않는다."""
         import rclpy
-        cli = self.node.create_client(srv, "dsr_controller2/" + name)
-        if not cli.wait_for_service(timeout_sec=timeout):
-            raise RuntimeError(f"service {name} not available")
-        fut = cli.call_async(req)
-        rclpy.spin_until_future_complete(self.node, fut, timeout_sec=timeout)
-        if not fut.done() or fut.result() is None:
-            raise RuntimeError(f"service {name} timed out")
-        return fut.result()
+        from rclpy.callback_groups import ReentrantCallbackGroup
+
+        if not math.isfinite(timeout) or timeout <= 0:
+            raise ValueError("service timeout must be positive")
+        executor = self.node.executor
+        if executor is not None and not executor.is_spinning:
+            raise RuntimeError("attached executor is not spinning")
+        started = time.monotonic()
+        group = ReentrantCallbackGroup()
+        cli = self.node.create_client(srv, "dsr_controller2/" + name, callback_group=group)
+        fut = None
+        try:
+            if not cli.wait_for_service(timeout_sec=timeout):
+                raise RuntimeError(f"service {name} not available")
+            remaining = timeout - (time.monotonic() - started)
+            if remaining <= 0:
+                raise TimeoutError(f"service {name} timed out")
+            fut = cli.call_async(req)
+            if executor is None:
+                # 노드가 executor에 아직 등록되지 않은 단독 호출만 임시 spin 허용.
+                rclpy.spin_until_future_complete(self.node, fut, timeout_sec=remaining)
+            else:
+                # 응답 처리는 기존 executor의 다른 worker가 담당한다.
+                completed = threading.Event()
+                fut.add_done_callback(lambda _future: completed.set())
+                completed.wait(remaining)
+            if (not fut.done() or fut.cancelled()
+                    or time.monotonic() - started > timeout):
+                raise TimeoutError(f"service {name} timed out")
+            result = fut.result()
+            if result is None:
+                raise RuntimeError(f"service {name} returned no response")
+            return result
+        finally:
+            if fut is not None and not fut.done():
+                fut.cancel()
+            self.node.destroy_client(cli)
+
+    def _read(self, endpoint, typename, **fields):
+        kind = self._srv[typename]
+        result = self._call(endpoint, kind, kind.Request(**fields))
+        if result.success is not True:
+            raise RuntimeError(f"service {endpoint} rejected")
+        return result
 
     def _frame_ok(self, frame_id):
         return frame_id == self.frame_id
@@ -259,26 +298,32 @@ class DoosanRobotAdapter(RobotAdapter):
         self.log.info(f"tool offset (tool frame, m) = {self.tool_offset_m}")
 
     def _posx_now(self):
-        p, _ = self.R.get_current_posx()
-        return list(p)
+        result = self._read("aux_control/get_current_posx", "GetCurrentPosx", ref=0)
+        values = list(result.task_pos_info[0].data[:6])
+        if len(values) != 6 or not all(math.isfinite(v) for v in values):
+            raise ValueError("invalid TCP observation")
+        return values
 
     def _tip_pose_now(self):
         return posx_to_pose(self._posx_now(), self.tool_offset_m)
 
     def _force_vec(self):
-        f = self.R.get_tool_force(self.R.DR_BASE)
-        return [float(f[0]), float(f[1]), float(f[2])]
+        values = list(self._read("aux_control/get_tool_force", "GetToolForce", ref=0).tool_force[:3])
+        if len(values) != 3 or not all(math.isfinite(v) for v in values):
+            raise ValueError("invalid force observation")
+        return values
 
     # ---- 관측 ----
     def observe(self) -> RobotState:
         st = RobotState(measured_at=time.monotonic(), frame_id=self.frame_id)
         try:
-            j = self.R.get_current_posj()
-            st.joints_rad = [math.radians(v) for v in (j if isinstance(j, (list, tuple)) else j[0])]
+            joints = list(self._read("aux_control/get_current_posj", "GetCurrentPosj").pos)
+            if len(joints) != 6 or not all(math.isfinite(v) for v in joints):
+                raise ValueError("invalid joint observation")
+            st.joints_rad = [math.radians(v) for v in joints]
             st.tcp_pose = self._tip_pose_now()
             st.force_n = self._force_vec()
-            st.robot_state = self._call("system/get_robot_state", self._srv["GetRobotState"],
-                                        self._srv["GetRobotState"].Request()).robot_state
+            st.robot_state = self._read("system/get_robot_state", "GetRobotState").robot_state
             st.quality = "VALID"
         except Exception as e:
             self.log.warn(f"observe: {e}")
