@@ -27,7 +27,7 @@ class KinematicIO:
     def __init__(self,w,clock,at_home):
         self.w=w;self.clock=clock;self.moves=[];self.stops=[];self.active=None;self.contact=None
         self.p=pose_to_posx(w['home']['tcp_pose'])
-        if not at_home:self.p[2]=330.
+        if not at_home:self.p[0]+=10.
         self.q=[0.,20.,60.,0.,90.,0.];self.ik_target=None
         self.center=[w['seed_axis_xy_m'][0]+.00005,w['seed_axis_xy_m'][1]-.00005]
         self.radius=w['seed_radius_m']+.0001
@@ -121,4 +121,7 @@ def test_full_guarded_flow_home_top_eight_points_and_retreat(at_home,fail_probe)
     assert m['top_z_m'] is None and m['geometry_ready'] is False
     assert [e['point_index'] for e in events if e['stage']=='SIDE_TOUCH' and e['status']=='SUCCEEDED']==list(range(1,9))
     assert len(io.stops)==9 and io.active is None
+    assert observed['home_return_confirmed']
+    from c2_process.workpiece_calibration import home_matches
+    assert home_matches(w,observed['final_state']['tip_pose'])
     assert observed['elapsed_s']<w['runtime_timeout_s']

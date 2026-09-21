@@ -1,0 +1,152 @@
+{
+  "scope": "READ_ONLY_NO_MOVE_NO_STOP",
+  "ok": true,
+  "current": {
+    "tip_pose": [
+      0.46604811042089694,
+      0.039851004807182816,
+      0.2149538953214609,
+      0.3826838014309406,
+      0.9238793796387741,
+      -4.568494357357479e-08,
+      7.976410943072666e-07
+    ],
+    "joints_rad": [
+      0.19403468794035159,
+      0.4626809963230675,
+      0.9901290716714533,
+      0.0026512725725255566,
+      1.6887872794166938,
+      -5.309123485838745
+    ],
+    "measured_at_monotonic_s": 112361.456102339,
+    "frame_id": "c2_base",
+    "quality": "VALID",
+    "robot_state": 1,
+    "motion_status": 0
+  },
+  "home_plan": [
+    {
+      "kind": "MOVE",
+      "target_pose": [
+        0.46604811042089694,
+        0.039851004807182816,
+        0.32999994634685154,
+        0.3826838014309406,
+        0.9238793796387741,
+        -4.568494357357479e-08,
+        7.976410943072666e-07
+      ],
+      "profile": "travel",
+      "label": "home_lift"
+    },
+    {
+      "kind": "MOVE",
+      "target_pose": [
+        0.4547411553691435,
+        0.1656562025730849,
+        0.33,
+        0.8819214055813581,
+        0.4713964725975382,
+        0.0,
+        0.0
+      ],
+      "profile": "travel",
+      "label": "home_align"
+    },
+    {
+      "kind": "MOVE",
+      "target_pose": [
+        0.575923156916856,
+        0.20128929840199733,
+        0.33,
+        0.9807852414364586,
+        -0.19509051791521687,
+        0.0,
+        0.0
+      ],
+      "profile": "travel",
+      "label": "home_align"
+    },
+    {
+      "kind": "MOVE",
+      "target_pose": [
+        0.6345130308564902,
+        0.0893874588764559,
+        0.33,
+        -0.6343932069642546,
+        0.7730105167186333,
+        0.0,
+        0.0
+      ],
+      "profile": "travel",
+      "label": "home_align"
+    },
+    {
+      "kind": "MOVE",
+      "target_pose": [
+        0.5361916870117187,
+        0.010092387390136723,
+        0.33,
+        -9.184850993605148e-17,
+        1.0,
+        0.0,
+        0.0
+      ],
+      "profile": "travel",
+      "label": "home_align"
+    },
+    {
+      "kind": "MOVE",
+      "target_pose": [
+        0.42539374301578375,
+        0.010092387390136723,
+        0.33,
+        0.0,
+        1.0,
+        0.0,
+        0.0
+      ],
+      "profile": "travel",
+      "label": "home_x"
+    },
+    {
+      "kind": "MOVE",
+      "target_pose": [
+        0.42539374301578375,
+        -0.09950329052300083,
+        0.33,
+        0.0,
+        1.0,
+        0.0,
+        0.0
+      ],
+      "profile": "travel",
+      "label": "home_y"
+    }
+  ],
+  "home_report": {
+    "outcome": "SUCCEEDED",
+    "error_code": "NONE",
+    "observed_state": {
+      "all_segments_checked": true,
+      "probe_envelopes_checked": true,
+      "ownership_confirmed": true,
+      "drill_off_confirmed": true,
+      "tcp_load_match": true,
+      "validation_level": "SAMPLED_CONTROLLER_IK_FK_AND_EXTERNAL_SCENE_CHECK",
+      "sample_count": 485,
+      "scene_record": {
+        "path_checked": true,
+        "probe_envelopes_checked": true,
+        "samples": 492,
+        "min_model_shaft_gap_m": 0.022000166187840398,
+        "scope": "RECORDED_TRIAL_CORRIDORS_AND_CYLINDER_SHAFT_MODEL",
+        "full_robot_gripper_cable_mesh_checked": false,
+        "environment_record_id": "top_yfirst_20260921_091824+repeat180_20260921_103049"
+      },
+      "full_continuous_collision_checked": false
+    }
+  },
+  "notice": "새 상공 HOME으로의 읽기 전용 사전 검사. 이동/정지 명령 없음. 이후 추가한 이전 HOME 진입 통로 설정은 이번 종료 자세에서 사용하지 않음."
+}

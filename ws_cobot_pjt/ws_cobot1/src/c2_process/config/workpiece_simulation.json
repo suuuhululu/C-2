@@ -82,7 +82,9 @@
         0.01
       ],
       "offset_status": "SYNTHETIC",
-      "offset_record_id": "sim-offset-only"
+      "offset_record_id": "sim-offset-only",
+      "auto_entry": true,
+      "clearance_tcp_z_m": 0.33
     },
     "simulation": {
       "axis_xy_m": [
@@ -109,9 +111,9 @@
     },
     "home": {
       "tcp_pose": [
-        0.4218,
-        0.0001,
-        0.2644,
+        0.426243743,
+        4.67095e-05,
+        0.33,
         0.0,
         1.0,
         0.0,
@@ -123,7 +125,18 @@
       "angle_tolerance_rad": 0.005235987755982988,
       "corridor_xy_tolerance_m": 0.0015,
       "top_corridor_min_z_m": 0.232925,
-      "source_record": "User confirmed existing run_engrave_real.py HOME (GripperDA_v1 TCP, tool +Y=base +Y, +Z=base -Z); fixed 2026-09-21 setup only"
+      "source_record": "2026-09-21 user correction: HOME is the overhead pose immediately before the vertical top approach. GripperDA_v1 TCP; previous engraving HOME is no longer used for this measurement.",
+      "entry_tcp_poses": [
+        [
+          0.4218,
+          0.0001,
+          0.2644,
+          0.0,
+          1.0,
+          0.0,
+          0.0
+        ]
+      ]
     }
   },
   "profiles": {

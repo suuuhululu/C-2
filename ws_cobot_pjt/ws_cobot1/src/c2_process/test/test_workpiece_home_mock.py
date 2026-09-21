@@ -18,7 +18,8 @@ def config(name='real_trial_0921'):
     [329.028564453125,98.4632568359375,214.83985900878906,87.84613800048828,-179.9999542236328,42.846153259277344], # 실기 중단 위치의 수직 자세 유지
     [426.2233,.04564,243.8246,0.,180.,0.], # 직전 사용자의 윗면 시험 중단 위치
     [427.1273,155.9008,214.7045,0.,180.,0.], # 이전 8점 종료 위치
-    [421.8,.1,264.4,0.,180.,0.], # 이미 홈
+    [426.243743,.0467095,330.,0.,180.,0.], # 새 상공 홈
+    [421.8,.1,264.4,0.,180.,0.], # 이전 홈에서는 기존에 확인한 수직 통로로 새 홈에 진입
     [426.24,.047,330.,0.,180.,30.], # 상공, 다른 드릴 방향
 ])
 def test_home_paths_use_checked_corridors(native):
@@ -61,7 +62,8 @@ def test_already_home_is_verified_before_top():
     events=[];r=measure_workpiece(ad,c['workcell'],c['profiles'],ctx,events.append)
     assert r.ok
     assert r.observed_state['home_move_skipped'] is True
-    assert not any(k=='execute' and step['label'].startswith('home_') for k,step in ad.calls)
+    first_probe=next(i for i,(k,step) in enumerate(ad.calls) if k=='execute' and step['kind']=='PROBE')
+    assert not any(k=='execute' and step['label'].startswith('home_') for k,step in ad.calls[:first_probe])
     assert [e['stage'] for e in events].index('HOME_READY')<[e['stage'] for e in events].index('TOP_APPROACH')
     assert home_matches(c['workcell'],r.observed_state['home_state']['tip_pose'])
 
@@ -80,12 +82,13 @@ def test_inside_home_tolerance_never_sends_home_move():
     ad.pose=apply_tool_offset(tcp,c['workcell']['tool_offset_m'])
     r=measure_workpiece(ad,c['workcell'],c['profiles'],ctx)
     assert r.ok and r.observed_state['home_move_skipped']
-    assert not any(k=='execute' and step['label'].startswith('home_') for k,step in ad.calls)
+    first_probe=next(i for i,(k,step) in enumerate(ad.calls) if k=='execute' and step['kind']=='PROBE')
+    assert not any(k=='execute' and step['label'].startswith('home_') for k,step in ad.calls[:first_probe])
 
 
 def test_measured_home_negative_179_99_does_not_flip_in_top_plan():
     w=config()['workcell']
-    current=[421.692291,.110563926,264.339752,.928778,-179.9901886,.927056]
+    current=[426.243743,.0467095,330.,.928778,-179.9901886,.927056]
     p=build_top_plan(w,posx_to_pose(current,w['tool_offset_m']))
     assert check_trial_scene(p,w,dict(posx=current))['path_checked']
 
@@ -139,3 +142,42 @@ def test_start_near_top_retracts_with_contact_profile_before_air_lift():
     plan=build_home_plan(w,posx_to_pose(native,w['tool_offset_m']))
     assert [s['profile'] for s in plan[:2]]==['retract','travel']
     assert check_trial_scene(plan,w,dict(posx=native))['path_checked']
+
+
+
+def test_overhead_home_goes_straight_to_top_approach():
+    w=config()['workcell'];tip=apply_tool_offset(w['home']['tcp_pose'],w['tool_offset_m'])
+    plan=build_top_plan(w,tip)
+    assert [s['label'] for s in plan[:2]]==['top_approach','top_touch']
+    assert check_trial_scene(plan,w,dict(posx=[* [v*1000 for v in w['home']['tcp_pose'][:3]],0.,180.,0.]))['path_checked']
+
+
+@pytest.mark.parametrize('failure', ['cancel','preflight','move'])
+def test_home_return_failure_cannot_report_complete(failure):
+    c=config('simulation');ctx=MeasurementContext('return-test','prepare','SIMULATION')
+    ad=SimulatedWorkpieceAdapter(c['workcell'],clock=ctx.monotonic)
+    original_preflight=ad.preflight_measurement;original_move=ad.execute_measurement_step
+    returning=False;events=[];return_moves=[]
+    def feedback(e):
+        nonlocal returning
+        events.append(e)
+        if e['stage']=='HOME_RETURN' and e['status']=='RUNNING':
+            returning=True
+            if failure=='cancel':ctx.cancel.set()
+    def preflight(*args):
+        if returning and failure=='preflight':return StepResult('FAILED','RETURN_IK_FAILED')
+        return original_preflight(*args)
+    def move(step,*args):
+        if returning:
+            return_moves.append(step)
+            if failure=='move':return StepResult('FAILED','RETURN_MOVE_FAILED')
+        return original_move(step,*args)
+    ad.preflight_measurement=preflight;ad.execute_measurement_step=move
+    r=measure_workpiece(ad,c['workcell'],c['profiles'],ctx,feedback)
+    assert r.outcome==('STOPPED' if failure=='cancel' else 'FAILED')
+    assert not r.observed_state['home_return_confirmed']
+    assert len(r.observed_state['measurement']['points'])==8
+    assert r.observed_state['stop_confirmed'] and not r.observed_state['measurement']['geometry_ready']
+    assert not any(e['stage']=='COMPLETE' for e in events)
+    assert len(return_moves)==(1 if failure=='move' else 0)
+    assert ad.calls[-1][0]=='stop'

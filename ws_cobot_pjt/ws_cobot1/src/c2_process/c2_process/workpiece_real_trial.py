@@ -58,7 +58,8 @@ def check_trial_scene(steps,w,initial):
                         raise MeasurementError('SCENE_REJECTED','홈 하강 통로 밖')
                 elif label=='home_lift':
                     top_ok=at_top and tcp[2]>=h['top_corridor_min_z_m']
-                    home_ok=at_home and tcp[2]>=h['tcp_pose'][2]-h['position_tolerance_m']
+                    home_ok=any(math.dist(tcp[:2],p[:2])<=h['corridor_xy_tolerance_m'] and tcp[2]>=p[2]-h['position_tolerance_m']
+                                for p in [h['tcp_pose'],*h.get('entry_tcp_poses',[])])
                     if not vertical or (not (top_ok or home_ok) and gap<scene['outer_min_gap_m']):
                         raise MeasurementError('SCENE_REJECTED','홈 상승 통로/외곽 여유 부족')
                 else:

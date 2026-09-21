@@ -22,7 +22,7 @@
         "validity": "INCOMPLETE",
         "geometry_ready": false,
         "profile_snapshot_id": "example-sim-config",
-        "profile_sha256": "0e624937911c67c4dcc3741abf12b038d36ed488e84b7661b675b68c389b8b19",
+        "profile_sha256": "c91af5a65c252961f199f21a1f7fe08a28cbdc56a77fa9ec5a2e8ed7e023e7c3",
         "points": [],
         "top": null,
         "axis_xy_m": null,
@@ -30,14 +30,14 @@
         "top_z_m": null,
         "bottom_z_m": null,
         "measured_at": null,
-        "started_at": "2026-09-21T05:44:31.299777+00:00",
+        "started_at": "2026-09-21T06:00:48.913277+00:00",
         "measurement_time_basis": "completed_utc; contact_samples_monotonic"
       },
       "events": [
         {
           "measurement_id": "example-communication_unknown",
           "sequence": 1,
-          "measured_at": "2026-09-21T05:44:31.299871+00:00",
+          "measured_at": "2026-09-21T06:00:48.913378+00:00",
           "stage": "START",
           "status": "RUNNING",
           "message": "측정을 시작합니다",
@@ -48,7 +48,7 @@
         {
           "measurement_id": "example-communication_unknown",
           "sequence": 2,
-          "measured_at": "2026-09-21T05:44:31.299889+00:00",
+          "measured_at": "2026-09-21T06:00:48.913397+00:00",
           "stage": "HOME_CHECK",
           "status": "RUNNING",
           "message": "현재 관절·TCP 확인: 홈 경유 경로 검사 중",
@@ -59,7 +59,7 @@
         {
           "measurement_id": "example-communication_unknown",
           "sequence": 3,
-          "measured_at": "2026-09-21T05:44:31.299947+00:00",
+          "measured_at": "2026-09-21T06:00:48.913455+00:00",
           "stage": "HOME_MOVE",
           "status": "RUNNING",
           "message": "검사 후 외곽·상공을 경유하여 홈으로 이동합니다",
@@ -70,7 +70,7 @@
         {
           "measurement_id": "example-communication_unknown",
           "sequence": 4,
-          "measured_at": "2026-09-21T05:44:31.300122+00:00",
+          "measured_at": "2026-09-21T06:00:48.913629+00:00",
           "stage": "TERMINAL",
           "status": "UNKNOWN",
           "message": "SIM injected link loss",
@@ -81,6 +81,7 @@
       ],
       "stop_confirmed": false,
       "partial": true,
+      "home_return_confirmed": false,
       "elapsed_s": 0.0
     }
   }

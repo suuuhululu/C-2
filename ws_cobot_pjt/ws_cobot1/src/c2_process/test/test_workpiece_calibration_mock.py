@@ -43,8 +43,10 @@ def test_normal_flow_and_actual_fit(setup):
     assert events[-1]["stage"]=="COMPLETE"
     assert [e["sequence"] for e in events]==list(range(1,len(events)+1))
     assert config==before
-    assert ad.calls[-1][1]["label"]=="point_8_outer"
-    assert len(result.observed_state["plans"])==3
+    assert result.observed_state["home_return_confirmed"]
+    from c2_process.workpiece_calibration import home_matches
+    assert home_matches(config["workcell"],ad.pose)
+    assert len(result.observed_state["plans"])==4
     assert not any(c[0]=="stop" for c in ad.calls)
     json.dumps(result.observed_state,allow_nan=False)
 

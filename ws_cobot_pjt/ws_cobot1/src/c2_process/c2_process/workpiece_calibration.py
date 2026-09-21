@@ -187,9 +187,14 @@ def _validate(workcell, profiles, context):
             raise ValueError("윗면 접촉 예상 범위가 검사한 수직 탐색 구간 밖")
     home=workcell["home"]
     home_pose=pose(home["tcp_pose"])
+    for entry in home.get("entry_tcp_poses",[]):
+        candidate=pose(entry)
+        if not home["top_corridor_min_z_m"]<candidate[2]<=home["clearance_tcp_z_m"]:
+            raise ValueError("알려진 홈 진입 통로 높이 범위 오류")
     for key in ("clearance_tcp_z_m","overhead_z_m","position_tolerance_m","angle_tolerance_rad","corridor_xy_tolerance_m","top_corridor_min_z_m"):
         number(home[key],"home."+key,1e-9)
-    if not home["top_corridor_min_z_m"]<home_pose[2]<home["overhead_z_m"]<=home["clearance_tcp_z_m"]:
+    if not (home["top_corridor_min_z_m"]<home_pose[2]<=home["clearance_tcp_z_m"] and
+            home["top_corridor_min_z_m"]<home["overhead_z_m"]<=home["clearance_tcp_z_m"]):
         raise ValueError("홈/상공/윗면 탐색 높이 순서 오류")
     if tool_axis_in_base(home_pose,"+z")[2]>-math.cos(home["angle_tolerance_rad"]):
         raise ValueError("현재 홈 경유는 그리퍼 수직 자세만 지원")
@@ -256,7 +261,8 @@ def build_home_plan(w, initial_tip_pose, initial_joints_rad=None):
         raise MeasurementError("HOME_PATH_UNAVAILABLE","홈 경유는 확인된 수직 자세에서만 가능")
     steps=[];center=w["seed_axis_xy_m"];radius=w["seed_radius_m"]
     top_corridor=(math.dist(tcp[:2],center)<=h["corridor_xy_tolerance_m"] and tcp[2]>=h["top_corridor_min_z_m"])
-    home_corridor=(math.dist(tcp[:2],target[:2])<=h["corridor_xy_tolerance_m"] and tcp[2]>=target[2]-h["position_tolerance_m"])
+    home_corridor=any(math.dist(tcp[:2],p[:2])<=h["corridor_xy_tolerance_m"] and tcp[2]>=p[2]-h["position_tolerance_m"]
+                      for p in [target,*h.get("entry_tcp_poses",[])])
     if tcp[2]<h["overhead_z_m"] and not (top_corridor or home_corridor):
         radial=[tip[k]-center[k] for k in range(2)];distance=math.hypot(*radial)
         axis=tool_axis_in_base(tip,"-y")
@@ -319,7 +325,16 @@ def build_top_plan(w, initial_tip_pose=None):
         along_x=aligned[:];along_x[0]=top["approach_tcp_pose"][0]
         above=along_x[:];above[1]=top["approach_tcp_pose"][1]
         entry=[lifted,aligned,along_x,above]
-    steps = [_move(apply_tool_offset(p,offset),"travel","home_lift" if i==0 and top.get("auto_entry") and home_matches(w,initial_tip_pose) else "top_entry") for i,p in enumerate(entry)]
+    steps=[]
+    previous=pose(initial_tip_pose) if initial_tip_pose is not None else None
+    for i,p in enumerate(entry):
+        candidate=apply_tool_offset(p,offset)
+        # 이미 윗면 상공 홈이면 다시 상승/정렬/X/Y를 명령하지 않고 바로 접근한다.
+        if previous is not None and math.dist(candidate[:3],previous[:3])<=w["pose_tolerance_m"] and rotation_distance(candidate,previous)<=w["angle_tolerance_rad"]:
+            continue
+        label="home_lift" if i==0 and top.get("auto_entry") and home_matches(w,initial_tip_pose) else "top_entry"
+        steps.append(_move(candidate,"travel",label))
+        previous=candidate
     start = apply_tool_offset(top["approach_tcp_pose"],offset)
     steps.append(_move(start,"approach","top_approach"))
     steps.append(_probe(start,[0.,0.,-1.],top["max_probe_m"],"top_touch","top_touch"))
@@ -355,7 +370,7 @@ def build_side_plan(w, top_z):
 
 
 def measure_workpiece(adapter, workcell, profiles, context, on_progress=None):
-    """윗면·8점 + 정상 후퇴 완료 뒤 StepResult 반환. 실패 후 자동 후퇴/홈 없음.
+    """윗면·8점·원 맞춤 + 정상 홈 복귀 뒤 반환. 실패 후 자동 후퇴/홈 없음.
 
     adapter: measurement_contract_version=1 구현(모의 구현 제공).
     반환 observed_state: measurement, events, stop_confirmed, partial, plans.
@@ -367,7 +382,7 @@ def measure_workpiece(adapter, workcell, profiles, context, on_progress=None):
               profile_snapshot_id=context.profile_snapshot_id,profile_sha256=context.profile_sha256,
               points=[],top=None,axis_xy_m=None,radius_m=None,top_z_m=None,bottom_z_m=None,
               measured_at=None,started_at=context.utc_now(),measurement_time_basis="completed_utc; contact_samples_monotonic")
-    observed=dict(measurement=data,events=[],plans=[],stop_confirmed=None,partial=True)
+    observed=dict(measurement=data,events=[],plans=[],stop_confirmed=None,partial=True,home_return_confirmed=False)
     acquired=False; attempted=False; started=context.monotonic()
     w={}; p={}
 
@@ -515,7 +530,17 @@ def measure_workpiece(adapter, workcell, profiles, context, on_progress=None):
             max(x[2] for x in points)-min(x[2] for x in points)>w["max_point_z_spread_m"]):
             observed["rejected_fit"]=fit
             raise MeasurementError("INVALID_MEASUREMENT","형상/잔차/이동 범위 조건 미충족")
-        state()
+        return_start=state()
+        observed["home_return_start"]=deepcopy(return_start)
+        event("HOME_RETURN","RUNNING","측정 완료: 검사한 경로로 상공 홈에 복귀합니다")
+        return_plan=build_home_plan(w,return_start["tip_pose"],return_start["joints_rad"])
+        run(return_plan,execute=not home_matches(w,return_start["tip_pose"]))
+        final_state=state()
+        if not home_matches(w,final_state["tip_pose"]):
+            raise MeasurementError("HOME_NOT_REACHED","측정 후 홈 도착 미확인")
+        observed.update(home_return_confirmed=True,final_state=deepcopy(final_state))
+        event("HOME_RETURN","SUCCEEDED","상공 홈 도착·정지 확인 완료")
+        check()
         data.update(fit)
         data.update(height_m=w["height_m"],height_source=w["height_source"],
                     bottom_z_m=data["top_z_m"]-w["height_m"] if data["top_z_m"] is not None else None,
@@ -526,7 +551,7 @@ def measure_workpiece(adapter, workcell, profiles, context, on_progress=None):
                     geometry_ready=data["top_z_m"] is not None,independent_accuracy_verified=False)
         if data["top_z_m"] is None:data["validity"]="REFERENCE_ONLY"
         observed.update(partial=False,stop_confirmed=True)
-        event("COMPLETE","SUCCEEDED","좌표 계산·후퇴 완료: 양초 측정 완료",values=deepcopy(data))
+        event("COMPLETE","SUCCEEDED","좌표 계산·홈 복귀 완료: 양초 측정 완료",values=deepcopy(data))
         return StepResult("SUCCEEDED",completed_step="workpiece_calibration",observed_state=observed)
     except Exception as exc:
         fallback = ("COMMUNICATION_LOST" if isinstance(exc,ConnectionError) else

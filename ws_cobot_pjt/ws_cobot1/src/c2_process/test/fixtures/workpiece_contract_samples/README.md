@@ -4,11 +4,12 @@
 
 공통 입력은 `config/workpiece_simulation.json`, 호출은 `measure_workpiece(adapter, workcell, profiles, context, on_progress=None)`다.
 각 JSON의 `result_excerpt`는 StepResult의 직렬화 발췌다. 생략한 진단 필드는 `omitted_from_excerpt`에 나열한다.
+`HOME_RETURN` 진행 및 성공 뒤에만 COMPLETE가 나오며 `observed_state.home_return_confirmed=true`로 확인한다.
 진행 콜백과 같은 이벤트들은 `result_excerpt.observed_state.events`, 측정 결과는 `result_excerpt.observed_state.measurement`다.
 
 | 파일 | 주입 조건 | 결과 | 실제 정지 확인(모의) |
 | --- | --- | --- | --- |
-| success.json | 정상 8점과 마지막 후퇴 | SUCCEEDED | true |
+| success.json | 정상 8점·후퇴·홈 복귀 | SUCCEEDED | true |
 | failure.json | 두 번째 점 접촉 탐색 실패 | FAILED / CONTACT_NOT_FOUND | true |
 | cancel.json | 첫 번째 접촉 완료 직후 ctx.cancel.set() | STOPPED / CANCELLED | true |
 | timeout.json | 첫 명령 후 시계가 제한 시간 초과 | FAILED / TIMEOUT | true |
