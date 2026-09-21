@@ -1,0 +1,196 @@
+{
+  "format": "c2-simulation-inputs/1",
+  "profile_snapshot_id": "198b9c43-db64-5bad-b016-346e0c4d1ff4",
+  "profile_version": 1,
+  "source_mode": "SIMULATION",
+  "test_only": true,
+  "allow_real": false,
+  "generated_at": "2026-09-20T08:09:45.441442+00:00",
+  "frame_id": "c2_base",
+  "schema_version": 2,
+  "provenance": "MockRobotAdapter 가상 표면으로 생성한 TipCalibration. 실제 측정 기록 아님",
+  "workcell": {
+    "axis_xy_m": [
+      0.4224,
+      -0.0026
+    ],
+    "radius_m": 0.03425,
+    "top_z_m": 0.2334
+  },
+  "tip_calibration": {
+    "tool_id": "engraving_drill",
+    "projection_m": 0.09954707639933626,
+    "lateral_x_m": 0.0007499999999999729,
+    "offset_tool_m": [
+      0.0007499999999999729,
+      -0.09954707639933626,
+      0.0
+    ],
+    "residual_rms_m": 3.982868445499448e-05,
+    "axis_fit_xy_m": [
+      0.42314999999999997,
+      0.09694707639933625
+    ],
+    "side": 1,
+    "z_m": 0.1884,
+    "points_pad_m": [
+      [
+        0.4224,
+        0.13118945093017703
+      ],
+      [
+        0.4374,
+        0.12814038313326723
+      ],
+      [
+        0.4074,
+        0.12731181812737832
+      ]
+    ],
+    "forces_n": [
+      99.0,
+      0.8,
+      0.8
+    ],
+    "measured_at": 1789891785.4436662
+  },
+  "tip_calibration_time_semantics": "measured_at은 모의 함수 호출 시각(Unix seconds), 실제 로봇 측정 시각 아님",
+  "calibration_profiles": {
+    "travel": {
+      "id": "travel",
+      "vel_mm_s": 5.0,
+      "acc_mm_s2": 10.0,
+      "pos_tol_mm": 0.15,
+      "completion_timeout_s": 90.0
+    },
+    "tip_touch": {
+      "touch_force_n": 0.8,
+      "touch_speed_mm_s": 0.3,
+      "touch_step_n": 1.5,
+      "hard_limit_n": 2.0
+    }
+  },
+  "execution_context": {
+    "run_id": "5c8f4ee1-2003-50f7-81fa-b73086f258b4",
+    "source_mode": "SIMULATION",
+    "motion_profiles": {
+      "candle_approach": {
+        "id": "candle_approach",
+        "vel_mm_s": 1.0,
+        "acc_mm_s2": 2.0,
+        "pos_tol_mm": 0.15,
+        "completion_timeout_s": 90.0
+      },
+      "candle_entry": {
+        "id": "candle_entry",
+        "vel_mm_s": 0.3,
+        "acc_mm_s2": 1.0,
+        "pos_tol_mm": 0.15,
+        "completion_timeout_s": 90.0
+      },
+      "candle_cut": {
+        "id": "candle_cut",
+        "vel_mm_s": 5.0,
+        "acc_mm_s2": 10.0,
+        "pos_tol_mm": 0.15,
+        "completion_timeout_s": 90.0
+      },
+      "candle_travel": {
+        "id": "candle_travel",
+        "vel_mm_s": 5.0,
+        "acc_mm_s2": 10.0,
+        "pos_tol_mm": 0.15,
+        "completion_timeout_s": 90.0
+      },
+      "candle_retract": {
+        "id": "candle_retract",
+        "vel_mm_s": 1.0,
+        "acc_mm_s2": 2.0,
+        "pos_tol_mm": 0.15,
+        "completion_timeout_s": 90.0
+      }
+    },
+    "tool_profile": {
+      "tool_id": "engraving_drill",
+      "contact_mode": "fixed_depth",
+      "tool_axis": "-y",
+      "depth_m": 0.0003,
+      "clearance_m": 0.002,
+      "touch_extra_m": 0.0125,
+      "touch_force_n": 0.8,
+      "touch_speed_mm_s": 0.3
+    },
+    "stop_profile": {
+      "mode": 1,
+      "confirmation_timeout_s": 2.0
+    }
+  },
+  "joint_check_arguments": {
+    "limits_deg": [
+      [
+        -355,
+        355
+      ],
+      [
+        -90,
+        90
+      ],
+      [
+        -130,
+        130
+      ],
+      [
+        -355,
+        355
+      ],
+      [
+        -130,
+        130
+      ],
+      [
+        -345,
+        345
+      ]
+    ],
+    "j6_margin_deg": 0.0,
+    "ref_joints_rad": [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+    ],
+    "note": "SIMULATION 전용. 위 limits_deg에 시험 여유를 이미 적용하여 추가 j6_margin은 0. 실제 현재 관절 대신 사용할 수 없음"
+  },
+  "verify_tool_tip_arguments": {
+    "tol_m": 0.001
+  },
+  "compatibility_notes": [
+    "이 외피 JSON은 공통 c2_path profile schema가 아닌 로더 연결용 제안이다. 세은님 로더에서 각 키를 함수 인자로 명시 매핑해야 한다.",
+    "현재 verify_tool_tip은 _touch_profile에서 속도를 2 mm/s로 덮어쓰고 max_m=0.020, deadline=20을 직접 전달한다. 여기의 0.3 mm/s나 시험 max_travel 값이 그대로 반영되는 것은 아니다.",
+    "이 SIMULATION context는 기존 fixed_depth 실행기가 깊이를 적용하는 계약이다. 이미 깊이가 적용된 실기 경로에는 그대로 사용하지 않는다.",
+    "candle_entry는 성공 시험의 별도 진입 프로파일이다. 현재 main 실행기는 이를 자동 선택하지 않으며 별도 연결이 필요하다.",
+    "stop_profile은 정지 호출 인자 후보다. 실제 호출·정지 관측·상태 전이는 상태 기계/어댑터 통합이 필요하다.",
+    "현재 main의 다점 CUT은 move_spline을 호출한다. 첫 하트의 점별 MoveLine 성공과 동등하게 검증된 것이 아니다.",
+    "full TipCalibration은 MOCK에서 생성했다. REAL 요구 필드를 채우기 위해 이 값을 사용하면 안 된다."
+  ],
+  "integration_priority": "FIRST: file/function integration and short tests. Fixed mounting geometry reused. Precision recalibration deferred.",
+  "deferred_for_first_integration": [
+    "매 작업 전체 3점 드릴 재보정",
+    "드릴 좌우 편심 재측정",
+    "정밀 기울기/테이퍼 모델",
+    "치수 공차 달성 판정",
+    "자동 힘 적응 깊이"
+  ],
+  "fixed_mount_baseline": {
+    "offset_tool_m": [
+      0.00085,
+      -0.09955,
+      0.0
+    ],
+    "status": "REUSED_FROM_TRIAL_UNDER_UNCHANGED_FIXED_MOUNT_ASSUMPTION",
+    "new_measurement": false,
+    "note": "0으로 바꾸지 않고 기존 측면 오프셋 유지. 고정 변경·충돌·풀림 등 발생 시 기준 무효화"
+  }
+}

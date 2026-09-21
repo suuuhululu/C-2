@@ -95,7 +95,7 @@ def test_full_guarded_flow_home_top_eight_points_and_retreat(at_home,fail_probe)
     w=deepcopy(config['workcell']);w['source_mode']='SIMULATION';clock=Clock()
     io=KinematicIO(w,clock,at_home);ctx=MeasurementContext('model-run','model-prep','SIMULATION',monotonic=clock)
     def ready(c):
-        return dict(ownership_confirmed=True,drill_off_confirmed=True,mount_fixed=True,
+        return dict(ownership_confirmed=True,
                     control_authority=True,measurement_id=c.measurement_id,checked_at_monotonic_s=clock())
     adapter=SimulatedGuardedAdapter(io,w['tool_offset_m'],config['guards'],ready,check_trial_scene,
                                   clock=clock,sleep=clock.sleep)

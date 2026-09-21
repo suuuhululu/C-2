@@ -170,7 +170,7 @@
       "hard_force_n": 10.0
     },
     "top_touch": {
-      "speed_m_s": 0.0003,
+      "speed_m_s": 0.0006,
       "acceleration_m_s2": 0.0003,
       "timeout_s": 60.0,
       "hard_force_n": 10.0,

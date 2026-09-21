@@ -9,6 +9,7 @@ find_package(geometry_msgs REQUIRED)
 rosidl_generate_interfaces(${PROJECT_NAME}
   "action/GeneratePath.action"
   "action/ExecuteProcess.action"
+  "action/PrepareWorkpiece.action"
   "srv/StopProcess.srv"
   "msg/ProcessState.msg"
   "msg/ProcessEvent.msg"

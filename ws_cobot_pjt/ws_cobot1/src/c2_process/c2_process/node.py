@@ -1,0 +1,1769 @@
+"""고정 드릴 process_controller_node와 공정 함수 연결.
+
+기본 모드는 SIMULATION이다. REAL은 실물 어댑터·입력 로더·실행 저널과
+시작/복귀 함수를 명시적으로 연결한다. 모드와 다른 어댑터는 허용하지 않는다.
+"""
+
+import math
+import argparse
+import sys
+import copy
+import hashlib
+import json
+import sqlite3
+import threading
+import time
+from contextlib import contextmanager
+from dataclasses import dataclass, replace
+from pathlib import Path
+from typing import Callable, Mapping, Optional
+from uuid import uuid4
+
+from .engraving import ExecutionContext, execute_path, validate_path, build_execution_plan, execution_signature
+from .joint_check import check_path_joints
+from .preconditions import PreconditionEvidence, check_preconditions, check_robot_status, check_prepared_path
+from .robot_adapter import DoosanRobotAdapter, MockRobotAdapter, RobotState, StepResult, apply_tool_offset
+from .state_machine import run_process, run_preparation, run_prepared_process
+from .tool_calibration import TipCalibration, verify_tool_tip, upright_quat
+from .workpiece_calibration import MeasurementContext, measure_workpiece
+from .workpiece_simulation import SimulatedWorkpieceAdapter
+
+
+def preparation_result_view(result, preparation_id, measurement_id):
+    """Python 표시용 복사본. ROS Result 규격이 아니며 null/정지 근거를 보존한다."""
+    observed = copy.deepcopy(result.observed_state)
+    measurement = observed.get("measurement")
+    return dict(preparation_id=preparation_id, measurement_id=measurement_id,
+                outcome=result.outcome, error_code=result.error_code, message=result.message,
+                completed_step=result.completed_step,
+                measurement_available=isinstance(measurement, Mapping),
+                measurement=measurement, stop_confirmed=observed.get("stop_confirmed"),
+                partial=observed.get("partial"), observed_state=observed)
+
+
+def preparation_context_from_request(request, *, cancel, motion_lock):
+    """현재 MeasurementContext 필드만 사용하는 내부 SIM 요청 변환.
+
+    설정은 호출자가 별도로 해석해 전달한다. 임의 Goal/승인 필드나 UTC 확인
+    시각을 여기서 만들지 않는다. 등록 ID/해시 전달은 등록 검증의 대체가 아니다.
+    """
+    allowed = {"preparation_id", "measurement_id", "source_mode",
+               "profile_snapshot_id", "profile_sha256"}
+    if not isinstance(request, Mapping) or set(request) - allowed:
+        raise ValueError("지원하지 않는 내부 준비 요청 필드")
+    for key in ("preparation_id", "measurement_id"):
+        if not isinstance(request.get(key), str) or not request[key].strip():
+            raise ValueError(f"{key} 필요")
+    if request.get("source_mode") != "SIMULATION":
+        raise ValueError("준비 요청 변환은 SIMULATION 전용")
+    if not isinstance(cancel, threading.Event):
+        raise ValueError("호출자가 제공한 취소 Event 필요")
+    pid, sha = request.get("profile_snapshot_id", ""), request.get("profile_sha256", "")
+    if not isinstance(pid, str) or not isinstance(sha, str):
+        raise ValueError("설정 참조는 문자열이어야 함")
+    if (pid or sha) and (not pid.strip() or len(sha) != 64 or
+                        any(c not in "0123456789abcdef" for c in sha)):
+        raise ValueError("설정 ID/해시는 함께 제공해야 함")
+    return MeasurementContext(request["measurement_id"], request["preparation_id"],
+                              request["source_mode"], cancel=cancel, motion_lock=motion_lock,
+                              profile_snapshot_id=pid, profile_sha256=sha)
+
+
+def check_selected_tool_profiles(adapter, settings: Mapping) -> StepResult:
+    """선택된 TCP/하중 이름만 읽어 비교한다. 설정 변경·모드 전환 없음."""
+    tcp_id, load_id = settings.get("tcp_profile_id"), settings.get("load_profile_id")
+    if any(not isinstance(value, str) or not value.strip() for value in (tcp_id, load_id)):
+        return StepResult("FAILED", "PROFILE_MISMATCH", "TCP/하중 프로파일 ID 없음", "robot_status")
+    try:
+        tcp, tool = adapter._read_tool_tcp()
+    except Exception as exc:
+        return StepResult("UNKNOWN", "COMMUNICATION_LOST", f"TCP/하중 조회 실패: {exc}", "robot_status")
+    observed = {"tcp": tcp, "tool": tool}
+    if tcp != tcp_id or tool != load_id:
+        return StepResult("FAILED", "PROFILE_MISMATCH", "제어기 TCP/하중과 설정 불일치",
+                          "robot_status", observed)
+    return StepResult("SUCCEEDED", "NONE", "TCP/하중 이름 확인", "robot_status", observed)
+
+
+def check_preparation_status(adapter, evidence: PreconditionEvidence, settings: Mapping,
+                             *, cancel=None, on_observation=None) -> StepResult:
+    """경로 생성 전 상태검사의 함수 진입점. 측정·조각·그리퍼 명령 없음.
+
+    HMI 준비 요청과 연결할 내부 함수이며 새 ROS 인터페이스가 아니다.
+    settings는 기대 TCP/하중 이름을 포함한다. 작업자 확인값을 자동 생성하지 않는다.
+    취소 시 이 함수는 모션을 보내지 않으므로 실제 로봇 정지 확인으로 해석하지 않는다.
+    """
+    def cancelled():
+        return StepResult("STOPPED", "NONE", "상태검사 취소 (모션 없음)", "robot_status")
+
+    if cancel is not None and cancel.is_set():
+        return cancelled()
+    if (evidence.runtime_mode not in {"REAL", "SIMULATION"}
+            or (evidence.runtime_mode == "REAL" and not isinstance(adapter, DoosanRobotAdapter))
+            or (evidence.runtime_mode == "SIMULATION" and not isinstance(adapter, MockRobotAdapter))):
+        return StepResult("FAILED", "SOURCE_MODE_MISMATCH", "상태검사와 어댑터 모드 불일치", "robot_status")
+    try:
+        state = adapter.observe()
+    except Exception as exc:
+        if callable(on_observation):
+            on_observation(None, None, None)
+        return StepResult("UNKNOWN", "COMMUNICATION_LOST", f"상태 조회 실패: {exc}", "robot_status")
+    if callable(on_observation):
+        on_observation(state, getattr(adapter, "tool_offset_m", None),
+                       evidence.max_robot_state_age_s)
+    if cancel is not None and cancel.is_set():
+        return cancelled()
+    checked = check_robot_status(replace(evidence, robot_state=state))
+    if not checked.ok:
+        return checked
+    selected = check_selected_tool_profiles(adapter, settings)
+    if cancel is not None and cancel.is_set():
+        return cancelled()
+    if not selected.ok:
+        return selected
+    return StepResult("SUCCEEDED", "NONE", "준비 상태검사 통과", "robot_status",
+                      {**checked.observed_state, **selected.observed_state,
+                       "robot_state": state.robot_state, "measured_at": state.measured_at})
+
+
+@dataclass(frozen=True)
+class ExecutionInputs:
+    """승인된 저장소에서 ID로 읽은 한 실행의 불변 입력. 로더가 파일 원본도 제공한다."""
+
+    path: Mapping
+    path_bytes: bytes
+    snapshot: Mapping
+    snapshot_bytes: bytes
+    evidence: PreconditionEvidence
+    context: object
+    adapter: object
+    workcell: Mapping
+    calibration_profiles: Mapping
+    calibration: TipCalibration
+    calibration_snapshot_id: str
+    tip_tolerance_m: float
+    joint_limits_deg: object = None
+    j6_margin_deg: Optional[float] = None
+
+
+@dataclass(frozen=True)
+class StopDecision:
+    accepted: bool
+    stop_state: str
+    error_code: str
+    message: str
+
+
+@dataclass
+class _ActiveRun:
+    request_id: str
+    run_id: str
+    cancel: threading.Event
+    adapter: Optional[object] = None
+    context: Optional[object] = None
+    measurement_owned_stop: bool = False
+    stop_requested: bool = False
+    stop_done: threading.Event = None
+    stop_result: Optional[StepResult] = None
+
+    def __post_init__(self):
+        self.stop_done = threading.Event()
+
+
+def _missing_loader(_goal):
+    raise InputsUnavailable("경로·설정 ID를 승인된 원본 파일로 해석하는 로더가 연결되지 않음")
+
+
+class InputsUnavailable(Exception):
+    """모션 시작 전에 확인된 입력 부재/불일치. 오류 코드를 공정까지 보존한다."""
+
+    def __init__(self, message, error_code="NOT_READY"):
+        super().__init__(message)
+        self.error_code = error_code
+
+
+
+def build_execution_settings(goal, *, evidence, adapter, workcell, calibration_record,
+                             calibration_snapshot_id, calibration_profiles, motion_profiles,
+                             tool_profile, stop_profile, tip_tolerance_m, joint_limits_deg,
+                             j6_margin_deg):
+    """매퍼가 추출한 기존 함수 인자를 묶는다. 팀 파일 내부 배치를 정의하지 않는다.
+
+    호출자는 각 설정이 검증된 스냅샷에 속함을 확인해야 한다. adapter/evidence는
+    실행 프로그램에서 주입하고, 이 함수는 관측·모션·승인 근거 생성을 하지 않는다.
+    """
+    def invalid(message):
+        raise InputsUnavailable(message, "INVALID_INPUT")
+
+    def finite(value):
+        return type(value) in (int, float) and math.isfinite(value)
+
+    def vector(value, length):
+        return isinstance(value, (list, tuple)) and len(value) == length and all(map(finite, value))
+
+    if (not isinstance(goal, Mapping) or not isinstance(goal.get("run_id"), str)
+            or not goal["run_id"] or goal.get("source_mode") not in ("SIMULATION", "REAL")):
+        invalid("실행 맥락의 run_id/source_mode 오류")
+    if not isinstance(evidence, PreconditionEvidence) or evidence.runtime_mode != goal["source_mode"]:
+        invalid("실행 근거의 모드 불일치")
+    if (not isinstance(calibration_snapshot_id, str) or not calibration_snapshot_id
+            or calibration_snapshot_id != evidence.profile_snapshot_id):
+        raise InputsUnavailable("보정 기록의 스냅샷 연결 근거 불일치", "PROFILE_MISMATCH")
+    for name, value in (("workcell", workcell), ("calibration_record", calibration_record),
+                        ("calibration_profiles", calibration_profiles), ("motion_profiles", motion_profiles),
+                        ("tool_profile", tool_profile), ("stop_profile", stop_profile)):
+        if not isinstance(value, Mapping) or not value:
+            invalid(f"{name} 설정 없음 또는 형식 오류")
+        try:
+            json.dumps(dict(value), allow_nan=False)
+        except (TypeError, ValueError):
+            invalid(f"{name}에 비유한 값 또는 직렬화할 수 없는 값 포함")
+    if (not vector(workcell.get("axis_xy_m"), 2) or not finite(workcell.get("radius_m"))
+            or workcell["radius_m"] <= 0 or not finite(workcell.get("top_z_m"))):
+        invalid("작업대 axis_xy_m/radius_m/top_z_m 오류 (단위 m)")
+    try:
+        calibration = TipCalibration(**copy.deepcopy(dict(calibration_record)))
+    except TypeError as exc:
+        invalid(f"TipCalibration 필드 오류: {exc}")
+    if (calibration.tool_id != "engraving_drill" or not finite(calibration.projection_m)
+            or not 0 < calibration.projection_m <= 0.110
+            or not finite(calibration.lateral_x_m) or not vector(calibration.offset_tool_m, 3)
+            or not vector(calibration.axis_fit_xy_m, 2) or not finite(calibration.z_m)
+            or not finite(calibration.residual_rms_m) or calibration.residual_rms_m < 0
+            or type(calibration.side) is not int or calibration.side not in (-1, 1)):
+        invalid("드릴 보정 기록의 도구/치수/방향 오류")
+    expected = [calibration.lateral_x_m, -calibration.projection_m, 0.0]
+    if any(not math.isclose(a, b, rel_tol=0, abs_tol=1e-9)
+           for a, b in zip(calibration.offset_tool_m, expected)):
+        invalid("돌출 길이·옆 어긋남과 offset_tool_m 불일치")
+    if not isinstance(calibration_profiles.get("travel"), Mapping) or not calibration_profiles["travel"]:
+        invalid("도구 확인 travel 프로파일 없음")
+    if (not finite(tip_tolerance_m) or tip_tolerance_m <= 0
+            or not isinstance(joint_limits_deg, (list, tuple)) or len(joint_limits_deg) != 6
+            or any(not vector(pair, 2) or pair[0] >= pair[1] for pair in joint_limits_deg)
+            or not finite(j6_margin_deg) or j6_margin_deg < 0
+            or 2 * j6_margin_deg >= joint_limits_deg[5][1] - joint_limits_deg[5][0]):
+        invalid("허용차 또는 관절 한계·J6 여유 설정 오류")
+    # J6 margin은 추가 여유다. limits에 여유가 반영됐다면 0을 허용한다.
+    # JSON 설정은 복사하고 런타임 어댑터는 동일 객체를 유지한다. 요청마다 새 취소 이벤트.
+    return dict(evidence=evidence, adapter=adapter,
+                context=ExecutionContext(goal["run_id"], goal["source_mode"], threading.Event(),
+                                         copy.deepcopy(dict(motion_profiles)), copy.deepcopy(dict(tool_profile)),
+                                         copy.deepcopy(dict(stop_profile)),
+                                         joint_limits_deg=copy.deepcopy(joint_limits_deg),
+                                         j6_margin_deg=j6_margin_deg),
+                workcell=copy.deepcopy(dict(workcell)), calibration=calibration,
+                calibration_profiles=copy.deepcopy(dict(calibration_profiles)),
+                calibration_snapshot_id=calibration_snapshot_id, tip_tolerance_m=tip_tolerance_m,
+                joint_limits_deg=copy.deepcopy(joint_limits_deg), j6_margin_deg=j6_margin_deg)
+
+
+
+def resolve_simulation_settings(snapshot, goal, *, evidence, adapter):
+    """9/20 handoff의 SIM 설정을 기존 인자로 매핑한다. 등록/검증 근거는 만들지 않는다.
+
+    load_execution_inputs의 resolve_settings 콜백에서 사용할 수 있지만 원본
+    handoff 경로에는 config/validation/Result가 없으므로 파일 로더 전체 입력은 아니다.
+    REAL 및 실제 어댑터는 거절한다. 실행 ID·cancel은 현재 요청에서 새로 구성하고,
+    파일의 ref_joints_rad는 사용하지 않는다(관절 검사는 어댑터 관측값 사용).
+    """
+    def invalid(message):
+        raise InputsUnavailable(message, "INVALID_INPUT")
+
+    if not isinstance(snapshot, Mapping) or not isinstance(goal, Mapping):
+        invalid("SIM 설정/요청 형식 오류")
+    if (snapshot.get("source_mode") != "SIMULATION" or goal.get("source_mode") != "SIMULATION"
+            or snapshot.get("test_only") is not True or snapshot.get("allow_real") is not False
+            or not isinstance(adapter, MockRobotAdapter)):
+        raise InputsUnavailable("handoff 설정은 MockRobotAdapter SIMULATION 전용", "NOT_READY")
+    if (snapshot.get("format") != "c2-simulation-inputs/1"
+            or type(snapshot.get("schema_version")) is not int or snapshot["schema_version"] != 2
+            or snapshot.get("frame_id") != "c2_base"):
+        invalid("지원하지 않는 handoff 형식·버전·좌표계")
+    context = snapshot.get("execution_context")
+    joints = snapshot.get("joint_check_arguments")
+    verify = snapshot.get("verify_tool_tip_arguments")
+    if not all(isinstance(v, Mapping) for v in (context, joints, verify)):
+        invalid("execution_context/joint_check_arguments/verify_tool_tip_arguments 누락")
+    if context.get("source_mode") != "SIMULATION":
+        raise InputsUnavailable("handoff 실행 맥락 모드 불일치", "SOURCE_MODE_MISMATCH")
+    # 파일 로더가 원본 해시·경로 config·외부 등록정보를 대조한 ID를 사용한다.
+    # 과거 SIM 파일의 본문 ID는 선택 사항이며, 있으면 일치해야 한다.
+    if ("profile_snapshot_id" in snapshot
+            and snapshot["profile_snapshot_id"] != evidence.profile_snapshot_id):
+        raise InputsUnavailable("스냅샷 내부와 실행 근거의 등록 ID 불일치", "PROFILE_MISMATCH")
+    # fixed_mount_baseline은 실험 참고값이다. 모의 TipCalibration과 섞지 않는다.
+    return build_execution_settings(
+        goal, evidence=evidence, adapter=adapter, workcell=snapshot.get("workcell"),
+        calibration_record=snapshot.get("tip_calibration"),
+        calibration_snapshot_id=evidence.profile_snapshot_id,
+        calibration_profiles=snapshot.get("calibration_profiles"),
+        motion_profiles=context.get("motion_profiles"), tool_profile=context.get("tool_profile"),
+        stop_profile=context.get("stop_profile"), tip_tolerance_m=verify.get("tol_m"),
+        joint_limits_deg=joints.get("limits_deg"), j6_margin_deg=joints.get("j6_margin_deg"))
+
+
+def load_execution_inputs(goal, *, path_file, snapshot_file, result_file=None,
+                          generation_result=None, snapshot_metadata=None, resolve_settings=None):
+    """호출자가 지정한 경로·스냅샷과 파일/메모리 결과를 읽는다. 새 ROS 필드 없음.
+
+    resolve_settings(snapshot, goal)는 승인/현장 근거와 스냅샷 내부 설정을
+    ExecutionInputs의 나머지 필드로 매핑한다. 팀 스냅샷 배치는 아직 미확정이라
+    기본 구현으로 추측하지 않는다. 이 함수와 매퍼는 모션을 호출하지 않는다.
+    경로는 Goal/브라우저 입력이 아니라 호출자의 명시적 인자로만 받는다.
+    result_file 또는 실제 수신/저장한 generation_result 중 하나를 전달한다.
+    snapshot_metadata는 관리 저장소에서 조회한 id/sha256이다. 파일에 ID를 삽입하지 않는다.
+    """
+    def fail(code, message):
+        raise InputsUnavailable(message, code)
+
+    def pairs(items):
+        value = {}
+        for key, item in items:
+            if key in value:
+                raise ValueError(f"중복 JSON 키: {key}")
+            value[key] = item
+        return value
+
+    def bad_constant(value):
+        raise ValueError(f"유한하지 않은 JSON 수: {value}")
+
+    def read_json(filename, label):
+        try:
+            raw = Path(filename).read_bytes()
+        except (OSError, TypeError, ValueError) as exc:
+            fail("NOT_READY", f"{label} 파일 읽기 실패: {exc}")
+        try:
+            obj = json.loads(raw, object_pairs_hook=pairs, parse_constant=bad_constant)
+            # 1e999처럼 문법은 JSON이지만 Python에서 inf로 변환되는 수도 거절.
+            json.dumps(obj, allow_nan=False)
+        except (ValueError, TypeError, UnicodeError) as exc:
+            fail("INVALID_INPUT", f"{label} JSON 오류: {exc}")
+        if not isinstance(obj, dict):
+            fail("INVALID_INPUT", f"{label}는 JSON 객체여야 함")
+        return raw, obj
+
+    if not isinstance(goal, Mapping) or type(goal.get("schema_version")) is not int or goal["schema_version"] != 2:
+        fail("UNSUPPORTED_SCHEMA_VERSION", "실행 요청은 v2만 지원")
+    path_bytes, path = read_json(path_file, "경로")
+    if (result_file is None) == (generation_result is None):
+        fail("INVALID_INPUT", "result_file 또는 generation_result 중 하나만 필요")
+    if result_file is not None:
+        _, result = read_json(result_file, "경로 결과")
+    else:
+        if not isinstance(generation_result, Mapping):
+            fail("INVALID_INPUT", "경로 생성 결과는 Mapping이어야 함")
+        try:
+            result = json.loads(json.dumps(dict(generation_result), allow_nan=False))
+        except (ValueError, TypeError):
+            fail("INVALID_INPUT", "경로 생성 결과에 비유한 값 또는 잘못된 자료형 포함")
+    snapshot_bytes, snapshot = read_json(snapshot_file, "스냅샷")
+    if type(path.get("schema_version")) is not int or path["schema_version"] != 2:
+        fail("UNSUPPORTED_SCHEMA_VERSION", "경로는 v2만 지원")
+    for obj in (goal, path, result):
+        if (not isinstance(obj.get("path_id"), str) or not obj["path_id"]
+                or type(obj.get("path_version")) is not int or obj["path_version"] < 1):
+            fail("INVALID_INPUT", "경로 ID/버전 누락 또는 형식 오류")
+    for key in ("path_id", "path_version"):
+        if not goal[key] == path[key] == result[key]:
+            fail("PATH_MISMATCH", f"요청·경로·결과의 {key} 불일치")
+    digest = hashlib.sha256(path_bytes).hexdigest()
+    if goal.get("path_sha256") != digest or result.get("path_sha256") != digest:
+        fail("PATH_MISMATCH", "최종 경로 파일 바이트 SHA-256 불일치")
+    if (result.get("success") is not True or result.get("error_code") != "NONE"
+            or result.get("validation_passed") is not True):
+        fail("VALIDATION_UNAVAILABLE", "경로 결과가 성공/검증 통과가 아님")
+    validation = path.get("validation")
+    if (not isinstance(validation, dict) or validation.get("passed") is not True
+            or not isinstance(validation.get("report_id"), str) or not validation["report_id"]
+            or validation["report_id"] != result.get("validation_report_id")):
+        fail("VALIDATION_UNAVAILABLE", "경로·결과의 검증 결과/보고서 ID 불일치")
+    config = path.get("config")
+    if not isinstance(config, dict):
+        fail("INVALID_INPUT", "경로 config 없음")
+    if hashlib.sha256(snapshot_bytes).hexdigest() != config.get("profile_sha256"):
+        fail("PROFILE_MISMATCH", "최종 스냅샷 파일 바이트 SHA-256 불일치")
+    snapshot_id = config.get("profile_snapshot_id")
+    if not isinstance(snapshot_id, str) or not snapshot_id:
+        fail("PROFILE_MISMATCH", "경로의 스냅샷 ID 없음")
+    if snapshot_metadata is not None:
+        if (not isinstance(snapshot_metadata, Mapping)
+                or snapshot_metadata.get("id") != snapshot_id
+                or snapshot_metadata.get("sha256") != hashlib.sha256(snapshot_bytes).hexdigest()):
+            fail("PROFILE_MISMATCH", "관리 저장소의 스냅샷 ID/해시 불일치")
+        if "profile_snapshot_id" in snapshot and snapshot["profile_snapshot_id"] != snapshot_id:
+            fail("PROFILE_MISMATCH", "스냅샷 내부와 등록 ID 불일치")
+    elif snapshot_id != snapshot.get("profile_snapshot_id"):
+        fail("PROFILE_MISMATCH", "스냅샷 ID 불일치; 외부 등록 ID는 snapshot_metadata 필요")
+    # c2_path/서버 스냅샷은 tcp_id/load_id, 경로 config는 *_profile_id를 사용한다.
+    aliases = {"tcp_profile_id": "tcp_id", "tcp_profile_version": "tcp_version",
+               "load_profile_id": "load_id", "load_profile_version": "load_version"}
+    for key in ("tool_id", "tool_version", "workcell_id", "workcell_version",
+                "tools_config_id", "tools_config_version", "tcp_profile_id", "tcp_profile_version",
+                "load_profile_id", "load_profile_version"):
+        alias = aliases.get(key)
+        if alias and key in snapshot and alias in snapshot and snapshot[key] != snapshot[alias]:
+            fail("PROFILE_MISMATCH", f"스냅샷 {key}/{alias} 중복 정의 불일치")
+        value = snapshot[key] if key in snapshot else snapshot.get(alias) if alias else None
+        if key in config and config[key] != value:
+            fail("PROFILE_MISMATCH", f"경로와 스냅샷 {key} 불일치 또는 누락")
+    if path.get("frame_id") != snapshot.get("frame_id"):
+        fail("FRAME_MISMATCH", "경로와 스냅샷 frame_id 불일치")
+    if goal.get("source_mode") not in ("SIMULATION", "REAL") or path.get("source_mode") != goal["source_mode"]:
+        fail("SOURCE_MODE_MISMATCH", "요청·경로 모드 불일치")
+    if goal["source_mode"] == "REAL" and any(
+            item.get("test_only") is not None and item.get("test_only") is not False
+            for item in (path, config, snapshot)):
+        fail("NOT_READY", "시험 전용 파일은 REAL에 사용할 수 없음")
+    if not callable(resolve_settings):
+        fail("NOT_READY", "파일 대조 완료; 스냅샷 보정·프로파일/현장 근거 매퍼 미연결")
+    # 매퍼가 원본 파일 해시와 연결된 데이터를 수정할 수 없게 복사본만 전달.
+    settings = resolve_settings(copy.deepcopy(snapshot), dict(goal))
+    if not isinstance(settings, Mapping):
+        fail("NOT_READY", "설정 매퍼는 ExecutionInputs의 나머지 필드 Mapping을 반환해야 함")
+    fields = {"evidence", "context", "adapter", "workcell", "calibration_profiles", "calibration",
+              "calibration_snapshot_id", "tip_tolerance_m", "joint_limits_deg", "j6_margin_deg"}
+    if set(settings) != fields:
+        fail("NOT_READY", f"설정 매퍼 필드 누락/초과: {sorted(set(settings) ^ fields)}")
+    evidence = settings["evidence"]
+    if (not isinstance(evidence, PreconditionEvidence)
+            or evidence.profile_snapshot_id != config["profile_snapshot_id"]
+            or settings["calibration_snapshot_id"] != config["profile_snapshot_id"]):
+        fail("PROFILE_MISMATCH", "설정/보정의 스냅샷 연결 근거 불일치")
+    # 여기서 갱신하는 것은 파일에서 직접 확인한 검증 결과뿐이다.
+    # 제어권·장착·그리퍼 확인을 생성하거나 True로 채우지 않는다.
+    settings = dict(settings, evidence=replace(evidence, path_validation_passed=True,
+                                               validation_path_sha256=digest))
+    return ExecutionInputs(path=path, path_bytes=path_bytes, snapshot=snapshot,
+                           snapshot_bytes=snapshot_bytes, **settings)
+
+
+
+class RunJournal:
+    """프로세스 재시작 뒤 같은 요청이 다시 모션을 시작하지 못하게 하는 로컬 기록.
+
+    SQLite 파일 위치는 호출자가 정한다. 이전 실행이 결과를 기록하기 전에
+    프로세스가 죽었다면 그 요청은 UNKNOWN으로 남기고 자동 재시도하지 않는다.
+    """
+
+    def __init__(self, path):
+        self.path = Path(path)
+        if not self.path.parent.is_dir():
+            raise FileNotFoundError(f"실행 기록 디렉터리 없음: {self.path.parent}")
+        with self._connect() as db:
+            db.execute("""CREATE TABLE IF NOT EXISTS process_runs (
+                request_id TEXT PRIMARY KEY,
+                run_id TEXT NOT NULL UNIQUE,
+                identity_json TEXT NOT NULL,
+                result_json TEXT,
+                created_at_ns INTEGER NOT NULL
+            )""")
+
+    @contextmanager
+    def _connect(self):
+        db = sqlite3.connect(self.path, timeout=5.0)
+        try:
+            db.execute("PRAGMA synchronous=FULL")
+            with db:
+                yield db
+        finally:
+            db.close()
+
+    def reserve(self, request_id, identity) -> Optional[StepResult]:
+        with self._connect() as db:
+            db.execute("BEGIN IMMEDIATE")
+            row = db.execute("SELECT identity_json, result_json FROM process_runs WHERE request_id=?",
+                             (request_id,)).fetchone()
+            if row:
+                if tuple(json.loads(row[0])) != identity:
+                    return StepResult("FAILED", "REQUEST_CONFLICT", "같은 요청 ID에 다른 실행 입력", "precheck")
+                if row[1] is None:
+                    return StepResult("UNKNOWN", "STORAGE_ERROR", "이전 실행 결과 미확인; 자동 재시작 금지", "precheck")
+                saved = json.loads(row[1])
+                return StepResult(**saved)
+            old_run = db.execute("SELECT request_id FROM process_runs WHERE run_id=?", (identity[0],)).fetchone()
+            if old_run:
+                return StepResult("FAILED", "RUN_MISMATCH", "사용한 run_id의 새 요청 금지", "precheck")
+            db.execute("INSERT INTO process_runs VALUES (?,?,?,?,?)",
+                       (request_id, identity[0], json.dumps(identity), None, time.time_ns()))
+        return None
+
+    def finish(self, request_id, result: StepResult):
+        payload = json.dumps({"outcome": result.outcome, "error_code": result.error_code,
+                              "message": result.message, "completed_step": result.completed_step,
+                              "observed_state": result.observed_state}, ensure_ascii=False, allow_nan=False)
+        with self._connect() as db:
+            db.execute("BEGIN IMMEDIATE")
+            updated = db.execute("UPDATE process_runs SET result_json=? WHERE request_id=? AND result_json IS NULL",
+                                 (payload, request_id))
+            if updated.rowcount != 1:
+                raise RuntimeError("예약되지 않았거나 이미 종료한 실행")
+
+
+
+class ObservationCache:
+    """기존 observe 결과만 보관한다. 발행 타이머는 드라이버를 호출하지 않는다."""
+
+    def __init__(self):
+        self.lock = threading.Lock()
+        self.sample = None
+
+    def capture(self, state, offset, max_age_s, *, now=None, utc_ns=None):
+        now = time.monotonic() if now is None else now
+        utc_ns = time.time_ns() if utc_ns is None else utc_ns
+        measured = getattr(state, "measured_at", None)
+        valid_time = (type(measured) in (int, float) and math.isfinite(measured)
+                      and 0 < measured <= now)
+        age_limit = (max_age_s if type(max_age_s) in (int, float)
+                     and math.isfinite(max_age_s) and max_age_s > 0 else 0)
+        stamp = max(0, utc_ns - int((now - measured) * 1e9)) if valid_time else 0
+        with self.lock:
+            self.sample = (copy.deepcopy(state), copy.deepcopy(offset), age_limit,
+                           measured if valid_time else 0, stamp)
+
+    def values(self, *, now=None):
+        now = time.monotonic() if now is None else now
+        with self.lock:
+            sample = copy.deepcopy(self.sample)
+        out = dict(joints=[], joints_quality="UNKNOWN", joints_stamp_ns=0,
+                   tcp_pose=None, tcp_quality="UNKNOWN", tcp_stamp_ns=0, frame_id="",
+                   robot_connection_state="UNKNOWN", robot_mode="UNKNOWN",
+                   robot_quality="UNKNOWN", robot_stamp_ns=0,
+                   temperature=[], temperature_quality="UNSUPPORTED")
+        if sample is None:
+            return out
+        state, offset, max_age, measured, stamp = sample
+        def vector(v, n):
+            return (isinstance(v, (list, tuple)) and len(v) == n
+                    and all(type(x) in (int, float) and math.isfinite(x) for x in v))
+        quality = getattr(state, "quality", "UNKNOWN")
+        if quality != "VALID" or not measured or not max_age or now < measured:
+            return out
+        quality = "VALID" if now - measured <= max_age else "STALE"
+        joints = getattr(state, "joints_rad", None)
+        if vector(joints, 6):
+            out.update(joints=[float(v) for v in joints], joints_quality=quality, joints_stamp_ns=stamp)
+        pose = getattr(state, "tcp_pose", None)
+        frame = getattr(state, "frame_id", "")
+        if (frame == "c2_base" and vector(pose, 7)
+                and math.isclose(sum(v*v for v in pose[3:]), 1, abs_tol=1e-5)
+                and (offset is None or vector(offset, 3))):
+            # observe.tcp_pose는 오프셋 적용 시 도구 끝이다. 제어기 TCP로 환산한다.
+            tcp = apply_tool_offset(pose, offset, -1) if offset is not None else list(pose)
+            out.update(tcp_pose=[float(v) for v in tcp], tcp_quality=quality, tcp_stamp_ns=stamp, frame_id=frame)
+        code = getattr(state, "robot_state", None)
+        if type(code) is int and code >= 0:
+            out.update(robot_quality=quality, robot_stamp_ns=stamp,
+                       robot_connection_state="CONNECTED" if quality == "VALID" else "UNKNOWN")
+            # robot_state는 동작 상태이며 수동/자동 robot_mode와 다르다. 모드는 미확인 유지.
+        return out
+
+    def capture_measurement(self, observation, offset, max_age_s, *, now=None, utc_ns=None):
+        """측정 어댑터의 검증된 관측 dict를 공용 RobotState 캐시에 넣는다."""
+        if not isinstance(observation, Mapping):
+            self.capture(None, None, None, now=now, utc_ns=utc_ns)
+            return
+        measured = observation.get("measured_at_monotonic_s")
+        state = RobotState(
+            joints_rad=copy.deepcopy(observation.get("joints_rad")),
+            tcp_pose=copy.deepcopy(observation.get("tip_pose")),
+            frame_id=observation.get("frame_id", ""),
+            robot_state=observation.get("robot_state"),
+            quality=observation.get("quality", "UNKNOWN"),
+            measured_at=measured,
+        )
+        self.capture(state, offset, max_age_s, now=now, utc_ns=utc_ns)
+
+
+class ProcessAlarms:
+    """공정 오류만 추적한다. 같은 경로·설정의 PRECHECK 재통과만 자동 해소한다."""
+
+    def __init__(self):
+        self.active = {}
+        self.lock = threading.Lock()
+
+    def update(self, scope, phase, result):
+        events = []
+        with self.lock:
+            if result.outcome in {"FAILED", "UNKNOWN"}:
+                key = (scope, phase, result.error_code)
+                if key not in self.active:
+                    self.active[key] = result.outcome
+                    events.append(("ALARM_RAISED", result.error_code, result.message, "ERROR"))
+                if result.outcome == "UNKNOWN":
+                    self.active[key] = "UNKNOWN"  # 미확인 장애는 재검사 성공만으로 해소하지 않음.
+            elif result.ok and phase == "PRECHECK":
+                for key in list(self.active):
+                    if key[0] == scope and key[1] == "PRECHECK" and self.active[key] == "FAILED":
+                        del self.active[key]
+                        events.append(("ALARM_CLEARED", key[2], "동일 경로·설정 사전검사 재통과", "INFO"))
+        return events
+
+
+class ProcessCoordinator:
+    """ROS 콜백과 독립적인 단일 실행 소유자. 의존 함수를 주입해 모의시험한다."""
+
+    def __init__(
+        self,
+        load_inputs: Callable[[Mapping], ExecutionInputs] = _missing_loader,
+        *,
+        precheck_fn=check_preconditions,
+        joint_check_fn=check_path_joints,
+        validate_engraving_fn=validate_path,
+        verify_tip_fn=verify_tool_tip,
+        engrave_fn=execute_path,
+        journal: Optional[RunJournal] = None,
+        runtime_mode: str = "SIMULATION",
+        real_adapter: Optional[DoosanRobotAdapter] = None,
+        go_to_path_start_fn=None,
+        return_home_fn=None,
+        observation_cache=None, on_precheck_result=None,
+        preparation_required=False, measurement_only=False,
+    ):
+        if runtime_mode not in {"SIMULATION", "REAL"}:
+            raise ValueError("runtime_mode은 SIMULATION 또는 REAL이어야 함")
+        if runtime_mode == "SIMULATION" and real_adapter is not None:
+            raise ValueError("SIMULATION에 실물 어댑터를 연결할 수 없음")
+        if runtime_mode == "REAL":
+            if not isinstance(real_adapter, DoosanRobotAdapter):
+                raise ValueError("REAL에는 DoosanRobotAdapter 객체가 필요함")
+            if not measurement_only and (journal is None or load_inputs is _missing_loader):
+                raise ValueError("REAL에는 입력 로더와 실행 저널이 필요함")
+            if not measurement_only and (not callable(go_to_path_start_fn) or not callable(return_home_fn)):
+                raise ValueError("REAL에는 시작점 이동·홈 복귀 함수가 필요함")
+        self.measurement_only = measurement_only
+        self.preparation_required = preparation_required
+        self._preparation_action_busy = False
+        self._preparations = {}
+        self._preparation_bindings = {}
+        self._preparation_ids = set()
+        self._motion_uncertain = False
+        self.observations = observation_cache or ObservationCache()
+        self.on_precheck_result = on_precheck_result
+        self.runtime_mode = runtime_mode
+        self.real_adapter = real_adapter
+        self.go_to_path_start_fn = go_to_path_start_fn
+        self.return_home_fn = return_home_fn
+        self.load_inputs = load_inputs
+        self.precheck_fn = precheck_fn
+        self.joint_check_fn = joint_check_fn
+        self.validate_engraving_fn = validate_engraving_fn
+        self.verify_tip_fn = verify_tip_fn
+        self.engrave_fn = engrave_fn
+        self.journal = journal
+        self._lock = threading.Lock()
+        # 접수 잠금과 분리: 측정 함수가 직접 획득하고, 조각은 execute가 획득한다.
+        self.motion_lock = threading.Lock()
+        self._active: Optional[_ActiveRun] = None
+        self._completed = {}  # 프로세스 내 재전송 방지. REAL은 영속 저널도 필수다.
+        self._run_ids = set()
+
+    def prepare(self, preparation_id, context, adapter, evidence, settings, *,
+                motion_check, measure, confirm_result, on_phase=None,
+                _measurement_owned_stop=False):
+        """경로 없는 내부 SIM 준비 입구. ROS 계약/실물 측정 연결 전의 함수 통합용.
+
+        motion_check(adapter, context): 측정 접근/접촉/후퇴의 동작 전 검사.
+        measure(adapter, context): 측정·계산·후퇴를 모두 수행하는 담당자 함수 래퍼.
+        confirm_result(StepResult): 측정값 확보와 실제 후퇴 완료 근거 검사(모션 없음).
+        세 콜백은 StepResult를 반환한다. 정상 결과를 임의 생성하는 기본값은 없다.
+        """
+        if not ((self.runtime_mode == "SIMULATION" and type(adapter) is MockRobotAdapter)
+                or (self.runtime_mode == "REAL" and adapter is self.real_adapter and isinstance(adapter, DoosanRobotAdapter))):
+            return StepResult("FAILED", "NOT_READY", "준비 상태 어댑터 모드/객체 불일치", "preparation")
+        if (not isinstance(preparation_id, str) or not preparation_id
+                or getattr(context, "run_id", None) != preparation_id
+                or getattr(context, "source_mode", None) != self.runtime_mode
+                or not callable(getattr(getattr(context, "cancel", None), "is_set", None))
+                or not isinstance(evidence, PreconditionEvidence)
+                or evidence.runtime_mode != self.runtime_mode
+                or not isinstance(settings, Mapping)
+                or any(not callable(fn) for fn in (motion_check, measure, confirm_result))):
+            return StepResult("FAILED", "INVALID_INPUT", "준비 입력/콜백 오류", "preparation")
+        if context.cancel.is_set():
+            return StepResult("STOPPED", "NONE", "준비 시작 전 취소", "preparation")
+        with self._lock:
+            if self._active or self._motion_uncertain:
+                return StepResult("FAILED", "BUSY", "측정/조각 실행 중 또는 정지 미확인", "preparation")
+            if preparation_id in self._preparation_ids or preparation_id in self._run_ids:
+                return StepResult("FAILED", "REQUEST_CONFLICT", "사용한 준비 ID", "preparation")
+            self._preparations.clear()
+            self._preparation_bindings.clear()
+            self._preparation_ids.add(preparation_id)
+            active = _ActiveRun(preparation_id, preparation_id, context.cancel)
+            active.adapter, active.context = adapter, context
+            active.measurement_owned_stop = _measurement_owned_stop
+            context.cancel = active.cancel
+            self._active = active
+        try:
+            result = run_preparation(
+                context,
+                status_check=lambda: check_preparation_status(
+                    adapter, evidence, settings, cancel=active.cancel,
+                    on_observation=self.observations.capture),
+                motion_check=lambda: motion_check(adapter, context),
+                measure=lambda: measure(adapter, context), confirm_result=confirm_result,
+                on_phase=on_phase)
+            result = self._finalize_stop(active, result)
+        except Exception as exc:
+            result = StepResult("UNKNOWN", "INTERNAL_ERROR", str(exc), "preparation")
+        with self._lock:
+            # 정지 접수와 준비 성공 기록 사이의 경쟁도 막는다.
+            if active.cancel.is_set() and result.ok:
+                result = StepResult("UNKNOWN", "STOP_UNCONFIRMED", "준비 완료 직전 취소", "preparation")
+            if result.ok:
+                result.observed_state["preparation_id"] = preparation_id
+                self._preparations[preparation_id] = (copy.deepcopy(result), adapter)
+            if result.outcome == "UNKNOWN":
+                self._motion_uncertain = True
+            self._active = None
+        return result
+
+    def prepare_workpiece_request(self, request, *, cancel, status_adapter,
+                                  measurement_adapter, workcell, profiles, evidence,
+                                  settings, on_feedback=None):
+        """요청→실제 준비 함수→표시용 dict. 동기 SIM 전용, ROS 수신부 아님.
+
+        workcell/profiles/settings와 evidence는 시험 또는 설정 생산자가 명시적으로
+        공급한다. 미확인 근거를 생성하지 않는다. Feedback 실패는 기존 준비·측정
+        함수가 처리하며 이 입구에서 후퇴/홈/중복 정지 명령을 추가하지 않는다.
+        """
+        ids = request if isinstance(request, Mapping) else {}
+        try:
+            context = preparation_context_from_request(
+                request, cancel=cancel, motion_lock=self.motion_lock)
+            if (not isinstance(evidence, PreconditionEvidence)
+                    or evidence.runtime_mode != context.source_mode
+                    or any(not isinstance(v, Mapping) for v in (workcell, profiles, settings))
+                    or (on_feedback is not None and not callable(on_feedback))):
+                raise ValueError("설정·검사 근거·진행 콜백 형식/모드 오류")
+            workcell, profiles, settings = copy.deepcopy((workcell, profiles, settings))
+            evidence = replace(evidence)
+        except (ValueError, TypeError) as exc:
+            return preparation_result_view(
+                StepResult("FAILED", "INVALID_INPUT", str(exc), "preparation_request"),
+                ids.get("preparation_id"), ids.get("measurement_id"))
+
+        sequence = 0
+        def emit(event):
+            nonlocal sequence
+            sequence += 1
+            packet = copy.deepcopy(event)
+            packet.update(preparation_id=context.preparation_id,
+                          measurement_id=context.measurement_id, sequence=sequence)
+            if on_feedback is not None:
+                on_feedback(packet)
+
+        def phase(name):
+            emit(dict(stage=name, status="RUNNING", message=name,
+                      point_index=None, total_points=None,
+                      measured_at=context.utc_now(), origin="preparation"))
+
+        def progress(event):
+            emit({**event, "origin": "measurement", "measurement_sequence": event["sequence"]})
+
+        result = self.prepare_workpiece(
+            context, status_adapter, measurement_adapter, workcell, profiles, evidence,
+            settings, on_phase=phase, on_progress=progress)
+        return preparation_result_view(result, context.preparation_id, context.measurement_id)
+
+    def prepare_workpiece(self, context, status_adapter, measurement_adapter, workcell,
+                          profiles, evidence, settings, *, on_progress=None, on_phase=None, before_measure=None):
+        """팀 측정 함수와 연결하는 SIM 입구. ROS Action 계약은 변경하지 않는다.
+
+        context.motion_lock에는 이 coordinator의 motion_lock을 전달한다.
+        상태 조회/이후 조각의 어댑터와 측정 전용 어댑터를 분리한다. 측정 함수가
+        내부 preflight와 취소 후 실제 정지를 소유하므로 기존 stop worker를 중복 호출하지 않는다.
+        이 메서드는 동기 함수이며 수신부 작업 스레드에서 호출한다.
+        """
+        from .measurement_robot_adapter import GuardedMeasurementAdapter
+        expected = SimulatedWorkpieceAdapter if self.runtime_mode == "SIMULATION" else GuardedMeasurementAdapter
+        if (not isinstance(context, MeasurementContext) or context.source_mode != self.runtime_mode
+                or not isinstance(measurement_adapter, expected)
+                or measurement_adapter.source_mode != self.runtime_mode):
+            return StepResult("FAILED", "NOT_READY", "측정 어댑터·요청·공정 모드 불일치", "preparation")
+        if (context.motion_lock is not self.motion_lock
+                or not isinstance(context.measurement_id, str) or not context.measurement_id
+                or not isinstance(workcell, Mapping) or not isinstance(profiles, Mapping)
+                or (on_progress is not None and not callable(on_progress))):
+            return StepResult("FAILED", "INVALID_INPUT", "측정 ID·공유 잠금·설정·콜백 확인 필요", "preparation")
+        # 준비 ID와 측정 ID를 합치거나 MeasurementContext에 run_id를 임의 추가하지 않는다.
+        preparation_context = ExecutionContext(
+            run_id=context.preparation_id, source_mode=context.source_mode,
+            cancel=context.cancel, motion_profiles={}, tool_profile={})
+
+        def measurement_contract(_adapter, _context):
+            # 실제 이동 검사는 measure_workpiece → preflight_measurement가 수행한다.
+            # 이 결과를 IK 또는 충돌 검사의 통과 근거로 사용하지 않는다.
+            if measurement_adapter.measurement_contract_version != 1:
+                return StepResult("FAILED", "UNSUPPORTED_ADAPTER", "측정 어댑터 계약 불일치", "preparation")
+            return StepResult("SUCCEEDED", message="측정 계약 확인; 이동 검사는 측정 함수 내부 수행",
+                              observed_state={"motion_check_owner": "measure_workpiece"})
+
+        def measure(_adapter, _context):
+            if before_measure is not None:
+                ready = before_measure(context, on_progress)
+                if not isinstance(ready, StepResult):
+                    return StepResult("UNKNOWN", "INTERNAL_ERROR", "홈/재검사 반환 형식 오류", "home_recheck")
+                if not ready.ok:
+                    return ready
+                if context.cancel.is_set():
+                    return StepResult("STOPPED", "NONE", "홈 확인 후 취소", "home_recheck", ready.observed_state)
+            return measure_workpiece(measurement_adapter, workcell, profiles, context, on_progress)
+
+        def confirm(result):
+            observed = result.observed_state
+            measurement = observed.get("measurement")
+            if (not isinstance(measurement, Mapping)
+                    or measurement.get("measurement_id") != context.measurement_id
+                    or measurement.get("preparation_id") != context.preparation_id
+                    or measurement.get("source_mode") != context.source_mode
+                    or measurement.get("frame_id") != "c2_base"
+                    or measurement.get("position_unit") != "m"):
+                return StepResult("FAILED", "INVALID_INPUT", "측정 결과 ID·모드·단위·좌표계 불일치", "preparation")
+            # CONTACT_REFERENCE도 SUCCEEDED일 수 있다. 경로 생성용 준비 완료와 구분한다.
+            if (measurement.get("geometry_ready") is not True
+                    or measurement.get("validity") not in (("SIMULATED",) if self.runtime_mode == "SIMULATION" else ("FORCE_CONTACT_ESTIMATE", "ESTIMATED"))
+                    or observed.get("partial") is not False
+                    or observed.get("stop_confirmed") is not True):
+                return StepResult("FAILED", "NOT_READY", "경로 생성용 절대 형상/후퇴 완료 미확인", "preparation")
+            values = [measurement.get(k) for k in ("radius_m", "top_z_m", "bottom_z_m", "height_m")]
+            vectors = [(measurement.get(k), n) for k, n in (
+                ("axis_xy_m", 2), ("work_z_range_m", 2), ("work_v_range_m", 2))]
+            if any(not isinstance(v, (list, tuple)) or len(v) != n for v, n in vectors):
+                return StepResult("FAILED", "INVALID_INPUT", "측정 기하 배열 형식 오류", "preparation")
+            values += [x for v, _ in vectors for x in v]
+            if (any(type(v) not in (int, float) or not math.isfinite(v) for v in values)
+                    or measurement["radius_m"] <= 0 or measurement["height_m"] <= 0
+                    or measurement["bottom_z_m"] >= measurement["top_z_m"]):
+                return StepResult("FAILED", "INVALID_INPUT", "측정 기하값 오류", "preparation")
+            return StepResult("SUCCEEDED", observed_state={"geometry_ready": True,
+                              "measurement_id": context.measurement_id})
+
+        return self.prepare(context.preparation_id, preparation_context, status_adapter,
+                            evidence, settings, motion_check=measurement_contract, measure=measure,
+                            confirm_result=confirm, on_phase=on_phase, _measurement_owned_stop=True)
+
+    def bind_preparation_snapshot(self, preparation_id, snapshot_id, snapshot_sha256):
+        """HMI 등록 결과를 연결할 내부 입구. 실제 전송 필드는 계약 확정 뒤 매핑한다.
+
+        해당 준비 결과로 만든 스냅샷임을 등록 담당자가 보증해야 한다.
+        한 준비 ID에 다른 스냅샷을 덮어쓰지 않는다. 디스크 영속 복원은 아직 미지원.
+        """
+        if (not isinstance(snapshot_id, str) or not snapshot_id
+                or not isinstance(snapshot_sha256, str) or len(snapshot_sha256) != 64
+                or any(c not in "0123456789abcdef" for c in snapshot_sha256)):
+            return StepResult("FAILED", "INVALID_INPUT", "스냅샷 ID/해시 형식 오류", "preparation")
+        with self._lock:
+            if preparation_id not in self._preparations:
+                return StepResult("FAILED", "NOT_READY", "성공 완료된 준비 기록 없음", "preparation")
+            identity = (snapshot_id, snapshot_sha256)
+            old = self._preparation_bindings.get(preparation_id)
+            if old is not None and old != identity:
+                return StepResult("FAILED", "REQUEST_CONFLICT", "준비 결과에 다른 스냅샷 연결", "preparation")
+            self._preparation_bindings[preparation_id] = identity
+        return StepResult("SUCCEEDED", "NONE", "준비 스냅샷 참조 연결", "preparation")
+
+    @property
+    def active_run_id(self) -> str:
+        with self._lock:
+            return self._active.run_id if self._active else ""
+
+    def execute(self, goal: Mapping, on_phase=None, on_progress=None, *, preparation_id=None) -> StepResult:
+        if not isinstance(goal, Mapping) or goal.get("schema_version") != 2:
+            return StepResult("FAILED", "UNSUPPORTED_SCHEMA_VERSION", "고정 드릴 v2 요청만 지원", "precheck")
+        if self.measurement_only:
+            return StepResult("FAILED", "NOT_READY", "측정 전용 노드: 조각 실행 금지", "precheck")
+        if goal.get("source_mode") != self.runtime_mode:
+            return StepResult("FAILED", "SOURCE_MODE_MISMATCH", "요청과 공정 노드 실행 모드 불일치", "precheck")
+        request_id, run_id = goal.get("request_id"), goal.get("run_id")
+        if not isinstance(request_id, str) or not request_id or not isinstance(run_id, str) or not run_id:
+            return StepResult("FAILED", "INVALID_INPUT", "request_id/run_id 없음", "precheck")
+        if self.preparation_required and not preparation_id and not self._preparation_bindings:
+            return StepResult("FAILED", "NOT_READY", "준비 결과 연결 필요", "precheck")
+        if preparation_id is not None and (not isinstance(preparation_id, str) or not preparation_id):
+            return StepResult("FAILED", "INVALID_INPUT", "준비 ID 형식 오류", "precheck")
+        identity = (run_id, goal["source_mode"], goal.get("path_id"), goal.get("path_version"),
+                    goal.get("path_sha256"))
+        if preparation_id is not None:
+            identity += (preparation_id,)
+        with self._lock:
+            previous = self._completed.get(request_id)
+            if previous:
+                if previous[0] == identity:
+                    return previous[1]  # 같은 요청은 모션을 다시 시작하지 않는다.
+                return StepResult("FAILED", "REQUEST_CONFLICT", "같은 요청 ID에 다른 실행 입력", "precheck")
+            if self._preparation_action_busy or self._active or self._motion_uncertain or run_id in self._run_ids or run_id in self._preparation_ids:
+                return StepResult("FAILED", "BUSY", "실행 중이거나 사용한 run_id", "precheck")
+            if self.journal is not None:
+                try:
+                    previous = self.journal.reserve(request_id, identity)
+                except Exception as exc:
+                    return StepResult("UNKNOWN", "STORAGE_ERROR", f"실행 기록 예약 실패: {exc}", "precheck")
+                if previous is not None:
+                    return previous
+            active = _ActiveRun(request_id, run_id, threading.Event())
+            self._active = active
+            self._run_ids.add(run_id)
+
+        result = StepResult("UNKNOWN", "INTERNAL_ERROR", "실행 결과 미확인", "precheck")
+        motion_acquired = self.motion_lock.acquire(blocking=False)
+        try:
+            if motion_acquired:
+                result = self._run_active(goal, active, on_phase, on_progress, preparation_id)
+            else:
+                result = StepResult("FAILED", "BUSY", "공유 모션 소유권 사용 중", "precheck")
+        except InputsUnavailable as exc:
+            result = StepResult("FAILED", exc.error_code, str(exc), "precheck")
+        except Exception as exc:
+            result = StepResult("UNKNOWN", "INTERNAL_ERROR", f"공정 실행 결과 미확인: {exc}", "precheck")
+        finally:
+            if motion_acquired:
+                self.motion_lock.release()
+        if self.journal is not None:
+            try:
+                self.journal.finish(request_id, result)
+            except Exception as exc:
+                result = StepResult("UNKNOWN", "STORAGE_ERROR", f"실행 결과 기록 실패: {exc}",
+                                    result.completed_step, dict(result.observed_state))
+        with self._lock:
+            if self._active is active:
+                self._active = None
+            self._completed[request_id] = (identity, result)
+            if preparation_id is not None and result.outcome == "UNKNOWN":
+                self._motion_uncertain = True
+        return result
+
+    def _run_active(self, goal, active, on_phase, on_progress, preparation_id=None) -> StepResult:
+        loaded = self.load_inputs(goal)
+        if not isinstance(loaded, ExecutionInputs):
+            return StepResult("FAILED", "NOT_READY", "실행 입력 로더 결과 오류", "precheck")
+        if self.runtime_mode == "REAL":
+            if loaded.adapter is not None and loaded.adapter is not self.real_adapter:
+                return StepResult("FAILED", "NOT_READY", "로더와 노드의 실물 어댑터 불일치", "precheck")
+            loaded = replace(loaded, adapter=self.real_adapter)
+        if loaded.adapter is None or loaded.context is None or not isinstance(loaded.evidence, PreconditionEvidence):
+            return StepResult("FAILED", "NOT_READY", "어댑터·실행 맥락·검사 근거 없음", "precheck")
+        if self.runtime_mode == "SIMULATION" and type(loaded.adapter) is not MockRobotAdapter:
+            return StepResult("FAILED", "NOT_READY", "SIMULATION은 모의 어댑터에서만 실행 가능", "precheck")
+        if (getattr(loaded.context, "run_id", None) != active.run_id
+                or getattr(loaded.context, "source_mode", None) != goal["source_mode"]):
+            return StepResult("FAILED", "PROFILE_MISMATCH", "실행 맥락 ID/모드 불일치", "precheck")
+        config = loaded.path.get("config", loaded.path)
+        if not isinstance(config, Mapping):
+            return StepResult("FAILED", "INVALID_INPUT", "경로 config 형식 오류", "precheck")
+        if self.preparation_required and preparation_id is None:
+            identity = (config.get("profile_snapshot_id"), config.get("profile_sha256"))
+            with self._lock:
+                matches = [pid for pid, bound in self._preparation_bindings.items() if bound == identity]
+            if len(matches) != 1:
+                return StepResult("FAILED", "NOT_READY", "경로에 등록된 준비 스냅샷 없음", "precheck")
+            preparation_id = matches[0]
+        prepared = preparation_id is not None
+        if prepared:
+            with self._lock:
+                record = self._preparations.get(preparation_id)
+                binding = self._preparation_bindings.get(preparation_id)
+            if (record is None or record[1] is not loaded.adapter
+                    or binding != (config.get("profile_snapshot_id"), config.get("profile_sha256"))):
+                return StepResult("FAILED", "NOT_READY", "이번 경로에 연결된 준비 성공 기록 없음", "precheck")
+        if (not isinstance(loaded.calibration, TipCalibration)
+                or loaded.calibration.tool_id != "engraving_drill"
+                or not loaded.calibration_snapshot_id
+                or loaded.calibration_snapshot_id != config.get("profile_snapshot_id")):
+            return StepResult("FAILED", "PROFILE_MISMATCH", "저장된 드릴 보정과 경로 스냅샷 불일치", "precheck")
+        if (not isinstance(loaded.tip_tolerance_m, (int, float))
+                or not math.isfinite(loaded.tip_tolerance_m) or loaded.tip_tolerance_m <= 0):
+            return StepResult("FAILED", "NOT_READY", "승인된 드릴 끝 확인 허용차 없음", "precheck")
+        context = loaded.context
+        context.cancel = active.cancel
+        with self._lock:
+            active.adapter, active.context = loaded.adapter, context
+
+        def precheck():
+            try:
+                state = loaded.adapter.observe()
+            except Exception:
+                self.observations.capture(None, None, None)
+                raise
+            self.observations.capture(state, getattr(loaded.adapter, "tool_offset_m", None),
+                                      loaded.evidence.max_robot_state_age_s)
+            evidence = replace(loaded.evidence, robot_state=state)
+
+            def joints():
+                limits = loaded.joint_limits_deg
+                margin = loaded.j6_margin_deg
+                current = getattr(state, "joints_rad", None)
+                offset = loaded.calibration.offset_tool_m
+                if (not isinstance(limits, (list, tuple)) or len(limits) != 6
+                        or any(not isinstance(pair, (list, tuple)) or len(pair) != 2
+                               or any(not isinstance(v, (int, float)) or not math.isfinite(v) for v in pair)
+                               or pair[0] >= pair[1] for pair in limits)
+                        or type(margin) not in (int, float) or not math.isfinite(margin) or margin < 0
+                        or 2 * margin >= limits[5][1] - limits[5][0]):
+                    return StepResult("FAILED", "NOT_READY", "승인된 관절 한계·J6 여유 설정 없음", "joint_check")
+                if (not isinstance(current, (list, tuple)) or len(current) != 6
+                        or any(not isinstance(v, (int, float)) or not math.isfinite(v) for v in current)
+                        or not isinstance(offset, (list, tuple)) or len(offset) != 3
+                        or any(not isinstance(v, (int, float)) or not math.isfinite(v) for v in offset)):
+                    return StepResult("FAILED", "NOT_READY", "현재 관절 또는 승인된 드릴 오프셋 없음", "joint_check")
+                context.joint_limits_deg = [tuple(pair) for pair in limits]
+                context.j6_margin_deg = float(margin)
+                context.path_binding = dict(goal)
+                context.checked_tool_offset_m = list(offset)
+                plan = build_execution_plan(dict(loaded.path), context)
+                if isinstance(plan, StepResult):
+                    return plan
+                if context.cancel.is_set():
+                    return StepResult("STOPPED", "NONE", "검사 취소", "joint_check")
+                kwargs = dict(limits_deg=context.joint_limits_deg, j6_margin_deg=context.j6_margin_deg)
+                if self.joint_check_fn is check_path_joints:
+                    kwargs["cancel"] = context.cancel
+                signature = execution_signature(dict(loaded.path), context)
+                checked = self.joint_check_fn(plan, loaded.adapter, list(offset), list(current), **kwargs)
+                if checked.ok:
+                    if signature != execution_signature(dict(loaded.path), context):
+                        return StepResult("FAILED", "PROFILE_MISMATCH", "IK 중 경로/설정 변경", "execution_plan")
+                    context.checked_plan_signature = signature
+                    checked.observed_state["plan_signature"] = signature
+                return checked
+
+            checker = check_prepared_path if prepared else self.precheck_fn
+            checked = checker(goal, loaded.path, loaded.path_bytes, loaded.snapshot,
+                                       loaded.snapshot_bytes, evidence, joint_check=joints)
+            if not checked.ok:
+                return checked
+            if self.runtime_mode == "REAL" and not prepared:
+                # 현장 TP에서 선택한 TCP/하중을 읽기만 한다. 자동 재선택/모드 전환 없음.
+                selected = check_selected_tool_profiles(loaded.adapter, config)
+                if not selected.ok:
+                    return selected
+            # v2 조각 경로 자체도 1점 확인 모션 전에 검사한다.
+            path_error = self.validate_engraving_fn(dict(loaded.path), context)
+            if path_error:
+                return path_error
+            return checked
+
+        def tool_check():
+            if self.runtime_mode == "REAL":
+                # 생성 직후 어댑터의 offset은 None이다. 저장 보정을 먼저 연결해야
+                # verify의 복원과 이후 경로 실행이 모두 도구 끝 기준이 된다.
+                loaded.adapter.set_tool_offset(list(loaded.calibration.offset_tool_m))
+            return self.verify_tip_fn(loaded.adapter, dict(loaded.workcell),
+                                      dict(loaded.calibration_profiles), loaded.calibration,
+                                      context, tol_m=float(loaded.tip_tolerance_m))
+
+        def engrave(progress):
+            return self.engrave_fn(dict(loaded.path), context, progress, loaded.adapter)
+
+        def go_to_start():
+            return self.go_to_path_start_fn(dict(loaded.path), loaded.adapter, context)
+
+        def return_home():
+            return self.return_home_fn(loaded.adapter, context)
+
+        def reported_precheck():
+            result = precheck()
+            if self.on_precheck_result is not None:
+                self.on_precheck_result(goal, config, result)
+            return result
+
+        if prepared:
+            # 저장된 장착 기준을 적용할 뿐 재측정/자동 홈 동작을 추가하지 않는다.
+            def prepared_engrave(progress):
+                loaded.adapter.set_tool_offset(list(loaded.calibration.offset_tool_m))
+                return engrave(progress)
+            result = run_prepared_process(context, precheck=reported_precheck,
+                                          engrave=prepared_engrave, on_phase=on_phase,
+                                          on_progress=on_progress)
+            result.observed_state["preparation_id"] = preparation_id
+            return self._finalize_stop(active, result)
+
+        result = run_process(context, precheck=reported_precheck, tool_check=tool_check,
+                             engrave=engrave, on_phase=on_phase, on_progress=on_progress,
+                             go_to_start=go_to_start if self.go_to_path_start_fn else None,
+                             return_home=return_home if self.return_home_fn else None)
+        return self._finalize_stop(active, result)
+
+    def _finalize_stop(self, active: _ActiveRun, result: StepResult) -> StepResult:
+        if not active.stop_requested or active.measurement_owned_stop:
+            # 측정 함수의 STOPPED/UNKNOWN 및 stop_confirmed 원본을 그대로 보존한다.
+            return result
+        profile = getattr(active.context, "stop_profile", {}) or {}
+        timeout = float(profile.get("confirmation_timeout_s", 2.0))
+        if self.runtime_mode == "REAL" and not active.stop_done.is_set():
+            # DSR_ROBOT2는 같은 IO 노드를 내부 spin한다. 이동 대기 중에는 cancel로
+            # 어댑터가 QSTOP하고, 함수 반환 후 같은 실행 스레드에서 정지를 재확인한다.
+            self._stop_worker(active, active.adapter, profile, timeout)
+        if not active.stop_done.wait(timeout=max(0.0, timeout) + 0.5):
+            return StepResult("UNKNOWN", "STOP_UNCONFIRMED", "정지 확인 제한 시간 초과",
+                              result.completed_step, dict(result.observed_state))
+        if active.stop_result is None or not active.stop_result.ok:
+            return StepResult("UNKNOWN", "STOP_UNCONFIRMED", "실제 정지 미확인",
+                              result.completed_step, dict(result.observed_state))
+        return result
+
+    def _stop_worker(self, active: _ActiveRun, adapter, profile: Mapping, deadline: float):
+        try:
+            stopped = adapter.stop(dict(profile), deadline)
+            if not isinstance(stopped, StepResult):
+                stopped = StepResult("UNKNOWN", "STOP_UNCONFIRMED", "정지 결과 형식 오류", "stop")
+        except Exception as exc:
+            stopped = StepResult("UNKNOWN", "STOP_UNCONFIRMED", f"정지 호출 결과 미확인: {exc}", "stop")
+        with self._lock:
+            active.stop_result = stopped
+            active.stop_done.set()
+
+    def stop(self, run_id: str) -> StopDecision:
+        with self._lock:
+            active = self._active
+            if active is None or active.run_id != run_id:
+                return StopDecision(False, "UNKNOWN", "NOT_READY", "해당 활성 실행 없음")
+            if active.stop_requested:
+                return StopDecision(True, "ACCEPTED", "NONE", "정지 요청 처리 중")
+            active.stop_requested = True
+            active.cancel.set()
+            adapter, context = active.adapter, active.context
+            if active.measurement_owned_stop:
+                return StopDecision(True, "ACCEPTED", "NONE", "측정 취소 전달; 정지는 측정 함수 결과로 확인")
+        if adapter is None or context is None:
+            with self._lock:
+                active.stop_result = StepResult("SUCCEEDED", "NONE", "모션 전 취소", "stop")
+                active.stop_done.set()
+            return StopDecision(True, "REQUESTED", "NONE", "모션 시작 전 취소 요청")
+        profile = getattr(context, "stop_profile", None)
+        if not isinstance(profile, Mapping):
+            with self._lock:
+                active.stop_result = StepResult("UNKNOWN", "STOP_UNCONFIRMED", "정지 프로파일 없음", "stop")
+                active.stop_done.set()
+            return StopDecision(True, "UNKNOWN", "STOP_UNCONFIRMED", "정지 프로파일 없음")
+        try:
+            deadline = float(profile.get("confirmation_timeout_s"))
+            if not math.isfinite(deadline) or deadline <= 0:
+                raise ValueError("정지 확인 제한 시간 오류")
+        except Exception as exc:
+            with self._lock:
+                active.stop_result = StepResult("UNKNOWN", "STOP_UNCONFIRMED", str(exc), "stop")
+                active.stop_done.set()
+            return StopDecision(True, "UNKNOWN", "STOP_UNCONFIRMED", str(exc))
+        if self.runtime_mode == "REAL":
+            return StopDecision(True, "ACCEPTED", "NONE", "취소 이벤트 전달; 어댑터 반환 후 정지 확인")
+        threading.Thread(target=self._stop_worker, args=(active, adapter, profile, deadline),
+                         name="c2-stop", daemon=True).start()
+        return StopDecision(True, "ACCEPTED", "NONE", "정지 요청 접수; 실제 정지는 별도 확인")
+
+
+def _time_from_ns(ns):
+    from builtin_interfaces.msg import Time
+    return Time(sec=int(ns) // 1_000_000_000, nanosec=int(ns) % 1_000_000_000)
+
+
+def _utc_time():
+    """ROS /clock과 별개인 UTC Unix epoch Time."""
+    from builtin_interfaces.msg import Time
+    ns = time.time_ns()
+    return Time(sec=ns // 1_000_000_000, nanosec=ns % 1_000_000_000)
+
+
+def create_ros_node(load_inputs: Callable[[Mapping], ExecutionInputs] = _missing_loader,
+                    *, journal: Optional[RunJournal] = None,
+                    runtime_mode: str = "SIMULATION",
+                    real_adapter: Optional[DoosanRobotAdapter] = None,
+                    real_adapter_factory=None,
+                    go_to_path_start_fn=None, return_home_fn=None,
+                    preparation_runner_factory=None, preparation_resolver=None,
+                    preparation_journal_path=None, enable_preparation=True, measurement_only=False,
+                    real_preparation_options=None, real_preparation_options_factory=None):
+    """Jazzy ROS 노드를 만든다. c2_interfaces 빌드·source 뒤에 호출한다."""
+    from rclpy.action import ActionServer, CancelResponse, GoalResponse
+    from rclpy.callback_groups import ReentrantCallbackGroup
+    from rclpy.node import Node
+    from rclpy.qos import QoSProfile, ReliabilityPolicy, DurabilityPolicy
+    from c2_interfaces.action import ExecuteProcess, PrepareWorkpiece
+    from rosidl_runtime_py.set_message import set_message_fields
+    from .preparation_action import PreparationActionHandler, AssetResolver, GOAL_FIELDS
+    from c2_interfaces.msg import ProcessEvent, ProcessState
+    from c2_interfaces.srv import StopProcess
+
+    class ProcessControllerNode(Node):
+        def __init__(self):
+            super().__init__("process_controller_node")
+            if real_adapter is not None and real_adapter_factory is not None:
+                raise ValueError("real_adapter와 real_adapter_factory는 동시에 지정할 수 없음")
+            if real_adapter_factory is not None and runtime_mode != "REAL":
+                raise ValueError("real_adapter_factory는 REAL 노드에서만 사용할 수 있음")
+            adapter = real_adapter
+            if real_adapter_factory is not None:
+                if not callable(real_adapter_factory):
+                    raise ValueError("real_adapter_factory는 호출 가능해야 함")
+                adapter = real_adapter_factory(self)
+            self.observations = ObservationCache()
+            self._preparation_action_active = False
+            self.alarms = ProcessAlarms()
+            self.profile_values = {}
+            self.coordinator = ProcessCoordinator(
+                load_inputs, journal=journal, runtime_mode=runtime_mode,
+                real_adapter=adapter, go_to_path_start_fn=go_to_path_start_fn,
+                return_home_fn=return_home_fn, observation_cache=self.observations,
+                on_precheck_result=self.report_precheck, measurement_only=measurement_only)
+            self.preparation = None
+            if enable_preparation:
+                backend = self.declare_parameter("preparation_backend_url", "").value
+                ledger = self.declare_parameter("preparation_journal_path", "").value
+                if real_preparation_options is not None and real_preparation_options_factory is not None:
+                    raise ValueError("REAL 준비 options와 options factory는 동시에 지정할 수 없음")
+                current_real_options = real_preparation_options
+                if real_preparation_options_factory is not None:
+                    if not callable(real_preparation_options_factory):
+                        raise ValueError("real_preparation_options_factory는 호출 가능해야 함")
+                    current_real_options = real_preparation_options_factory(self)
+                if current_real_options is not None:
+                    if preparation_runner_factory is not None or runtime_mode != "REAL" or not measurement_only:
+                        raise ValueError("실물 준비 options는 REAL 측정 전용 노드에서만 사용")
+                    from .preparation_action import make_real_measurement_runner
+                    runner = make_real_measurement_runner(self.coordinator,self,**current_real_options)
+                else:
+                    runner = preparation_runner_factory(self.coordinator) if preparation_runner_factory else None
+                self.preparation = PreparationActionHandler(self.coordinator,
+                    preparation_resolver or AssetResolver(backend or None),
+                    preparation_journal_path or ledger or None, runner)
+            self.group = ReentrantCallbackGroup()
+            self.epoch = str(uuid4())
+            self.seq = self.event_seq = 0
+            self.lock = threading.Lock()
+            self.status = "IDLE"
+            self.phase = ""
+            self.stop_state = "NONE"
+            self.error_code = "NONE"
+            self.message = "공정 대기"
+            self.progress = 0.0
+            self.segment_id = ""
+            self.started_at = 0.0
+            self.goal_values = {}
+            state_qos = QoSProfile(depth=1, reliability=ReliabilityPolicy.RELIABLE,
+                                   durability=DurabilityPolicy.VOLATILE)
+            event_qos = QoSProfile(depth=100, reliability=ReliabilityPolicy.RELIABLE,
+                                   durability=DurabilityPolicy.VOLATILE)
+            self.state_pub = self.create_publisher(ProcessState, "/c2/process_state", state_qos)
+            self.event_pub = self.create_publisher(ProcessEvent, "/c2/process_events", event_qos)
+            self.action = ActionServer(self, ExecuteProcess, "/c2/execute_process",
+                                       execute_callback=self.execute_goal, goal_callback=self.accept_goal,
+                                       cancel_callback=self.cancel_goal, callback_group=self.group)
+            self.prepare_action = ActionServer(self, PrepareWorkpiece, "/c2/prepare_workpiece",
+                execute_callback=self.execute_preparation, goal_callback=lambda _: GoalResponse.ACCEPT,
+                cancel_callback=self.cancel_preparation, callback_group=self.group, result_timeout=600,
+                feedback_pub_qos_profile=QoSProfile(depth=10,reliability=ReliabilityPolicy.RELIABLE,
+                                                  durability=DurabilityPolicy.VOLATILE)) if self.preparation else None
+            self.stop_service = self.create_service(StopProcess, "/c2/stop_process",
+                                                     self.stop_request, callback_group=self.group)
+            self.timer = self.create_timer(0.2, self.publish_state, callback_group=self.group)
+
+        def cancel_preparation(self, handle):
+            goal = {k:getattr(handle.request,k) for k in GOAL_FIELDS}
+            accepted = self.preparation.cancel(goal)
+            if accepted:
+                with self.lock:
+                    self.status = "STOPPING"
+                    self.stop_state = "REQUESTED"
+                    self.message = "준비 취소 요청 접수; 실제 정지 확인 대기"
+            return CancelResponse.ACCEPT if accepted else CancelResponse.REJECT
+
+        def execute_preparation(self, handle):
+            goal = {k:getattr(handle.request,k) for k in GOAL_FIELDS}
+            with self.lock:
+                self.goal_values = {}
+                self.status = "RUNNING"
+                # ProcessState.phase는 기존 실행 공정 단계만 사용한다. 준비의 세부
+                # stage/progress는 PrepareWorkpiece Feedback으로만 전달한다.
+                self.phase = "PRECHECK"
+                self.stop_state = "NONE"
+                self.error_code = "NONE"
+                self.message = "준비 요청 접수"
+                self.progress = 0.0
+                self.segment_id = ""
+                self.started_at = time.monotonic()
+                self._preparation_action_active = True
+            self.emit_event("COMMAND", message="준비 요청 접수")
+            def publish(value):
+                with self.lock:
+                    stage = value.get("stage", "UNKNOWN")
+                    progress = float(value.get("progress", 0.0))
+                    detail = value.get("message", "")
+                    self.message = f"{stage} ({progress:.0%})" + (f" {detail}" if detail else "")
+                packet = PrepareWorkpiece.Feedback()
+                set_message_fields(packet,value)
+                handle.publish_feedback(packet)
+            try:
+                data = self.preparation.execute(goal,publish)
+                with self.lock:
+                    self.status = data["outcome"]
+                    self.error_code = data["error_code"]
+                    self.message = data["message"]
+                    self.progress = 1.0 if data["outcome"] == "SUCCEEDED" else self.progress
+                    if data["outcome"] == "STOPPED":
+                        self.stop_state = "CONFIRMED" if data.get("stop_confirmed") else "UNKNOWN"
+                    elif data["outcome"] == "UNKNOWN":
+                        self.stop_state = "UNKNOWN"
+                # Action Result보다 먼저 최종 상태를 한 번 발행하고 다음 timer tick부터 대기로 돌아간다.
+                self.publish_state()
+                result = StepResult(data["outcome"], data["error_code"], data["message"])
+                self.report_alarm(self.phase, result)
+                self.emit_event("RUN_FINISHED", code=data["error_code"], message=data["message"],
+                                severity="INFO" if data["outcome"] == "SUCCEEDED" else "ERROR")
+                output = PrepareWorkpiece.Result()
+                set_message_fields(output,data)
+                _finish_action(handle,result)
+                return output
+            finally:
+                with self.lock:
+                    self._preparation_action_active = False
+                    self.status = "IDLE"
+                    self.phase = ""
+                    self.stop_state = "NONE"
+                    self.error_code = "NONE"
+                    self.message = "공정 대기"
+                    self.progress = 0.0
+                    self.started_at = 0.0
+
+        def accept_goal(self, request):
+            if (request.schema_version != 2 or request.source_mode != self.coordinator.runtime_mode
+                    or not request.request_id or not request.run_id or self.coordinator.active_run_id
+                    or self.coordinator._preparation_action_busy):
+                return GoalResponse.REJECT
+            return GoalResponse.ACCEPT
+
+        def cancel_goal(self, goal_handle):
+            decision = self.coordinator.stop(goal_handle.request.run_id)
+            if decision.accepted and self.preparation:
+                self.preparation.invalidate()
+            return CancelResponse.ACCEPT if decision.accepted else CancelResponse.REJECT
+
+        def stop_request(self, request, response):
+            if request.schema_version != 2 or not request.request_id:
+                response.accepted = False
+                response.run_id = request.run_id
+                response.stop_state = "UNKNOWN"
+                response.error_code = "UNSUPPORTED_SCHEMA_VERSION"
+                response.message = "v2 정지 요청만 지원"
+                return response
+            decision = self.coordinator.stop(request.run_id)
+            if decision.accepted and self.preparation:
+                self.preparation.invalidate()
+            response.accepted = decision.accepted
+            response.run_id = request.run_id
+            response.stop_state = decision.stop_state
+            response.error_code = decision.error_code
+            response.message = decision.message
+            if decision.accepted:
+                with self.lock:
+                    self.status = "STOPPING"
+                    self.stop_state = decision.stop_state
+                    self.error_code = decision.error_code
+                    self.message = decision.message
+            return response
+
+        def publish_state(self):
+            with self.lock:
+                self.seq += 1
+                values = dict(self.goal_values)
+                status, phase = self.status, self.phase
+                stop_state, progress, started = self.stop_state, self.progress, self.started_at
+                preparation_active = self._preparation_action_active
+                error_code, message = self.error_code, self.message
+            msg = ProcessState()
+            msg.schema_version = 2
+            msg.source_mode = self.coordinator.runtime_mode
+            msg.source_epoch = self.epoch
+            msg.seq = self.seq
+            msg.published_at = _utc_time()
+            msg.run_id = values.get("run_id", "")
+            msg.path_id = values.get("path_id", "")
+            msg.path_version = values.get("path_version", 0)
+            msg.status, msg.phase, msg.stop_state = status, phase, stop_state
+            msg.error_code, msg.message = error_code, message
+            # 이 필드는 조각 진행률이다. 준비 진행률은 Action Feedback.progress를 사용한다.
+            msg.engraving_progress = 0.0 if preparation_active else progress
+            msg.elapsed_s = max(0.0, time.monotonic() - started) if started else 0.0
+            msg.requested_tool_id = "engraving_drill"
+            values = self.observations.values()
+            msg.joints = values["joints"]
+            msg.joints_quality = values["joints_quality"]
+            msg.joints_measured_at = _time_from_ns(values["joints_stamp_ns"])
+            msg.tcp_quality = values["tcp_quality"]
+            msg.tcp.header.frame_id = values["frame_id"]
+            msg.tcp.header.stamp = _time_from_ns(values["tcp_stamp_ns"])
+            if values["tcp_pose"] is not None:
+                x, y, z, qx, qy, qz, qw = values["tcp_pose"]
+                msg.tcp.pose.position.x, msg.tcp.pose.position.y, msg.tcp.pose.position.z = x, y, z
+                msg.tcp.pose.orientation.x, msg.tcp.pose.orientation.y = qx, qy
+                msg.tcp.pose.orientation.z, msg.tcp.pose.orientation.w = qz, qw
+            msg.robot_connection_state = values["robot_connection_state"]
+            msg.robot_mode = values["robot_mode"]
+            msg.robot_quality = values["robot_quality"]
+            msg.robot_measured_at = _time_from_ns(values["robot_stamp_ns"])
+            msg.temperature_quality = values["temperature_quality"]
+            # 장착·그리퍼·미조회 TCP 프로파일은 기본 UNKNOWN/빈값 유지.
+            self.state_pub.publish(msg)
+
+        def alarm_scope(self):
+            with self.lock:
+                return tuple(self.goal_values.get(k, "") for k in
+                             ("path_id", "path_version", "path_sha256")) + tuple(
+                    self.profile_values.get(k, "") for k in ("profile_snapshot_id", "profile_sha256"))
+
+        def report_precheck(self, goal, config, result):
+            with self.lock:
+                self.profile_values = {k: config.get(k, "") for k in
+                                       ("profile_snapshot_id", "profile_sha256")}
+            self.report_alarm("PRECHECK", result)
+
+        def report_alarm(self, phase, result):
+            for event in self.alarms.update(self.alarm_scope(), phase, result):
+                self.emit_event(*event)
+
+        def emit_event(self, event_type, code="NONE", message="", severity="INFO"):
+            with self.lock:
+                self.event_seq += 1
+                values = dict(self.goal_values)
+                phase = self.phase
+                segment_id = self.segment_id
+                profile = dict(self.profile_values)
+            event = ProcessEvent()
+            event.schema_version = 2
+            event.source_mode = self.coordinator.runtime_mode
+            event.event_id = str(uuid4())
+            event.source_epoch = self.epoch
+            event.event_seq = self.event_seq
+            event.occurred_at = _utc_time()
+            event.run_id = values.get("run_id", "")
+            event.request_id = values.get("request_id", "")
+            event.event_type, event.phase = event_type, phase
+            event.severity, event.code, event.message = severity, code, message
+            event.segment_id = segment_id
+            event.path_id = values.get("path_id", "")
+            event.path_version = values.get("path_version", 0)
+            event.path_sha256 = values.get("path_sha256", "")
+            event.profile_snapshot_id = profile.get("profile_snapshot_id", "")
+            event.profile_sha256 = profile.get("profile_sha256", "")
+            event.tool_id = "engraving_drill"
+            self.event_pub.publish(event)
+
+        def execute_goal(self, goal_handle):
+            request = goal_handle.request
+            goal = {key: getattr(request, key) for key in
+                    ("schema_version", "request_id", "run_id", "source_mode",
+                     "path_id", "path_version", "path_sha256")}
+            with self.lock:
+                self.goal_values = goal
+                self.profile_values = {}
+                self.status = "RUNNING"
+                self.phase = "PRECHECK"
+                self.stop_state = "NONE"
+                self.error_code = "NONE"
+                self.message = "실행 요청 접수"
+                self.progress = 0.0
+                self.segment_id = ""
+                self.started_at = time.monotonic()
+            self.emit_event("COMMAND", message="실행 요청 접수")
+
+            def feedback(phase=None, progress=None):
+                with self.lock:
+                    if phase:
+                        self.phase = phase
+                    if progress:
+                        self.phase = progress.get("phase", self.phase)
+                        self.progress = float(progress.get("engraving_progress", self.progress))
+                        self.segment_id = progress.get("completed_segment_id", self.segment_id)
+                    current_phase, current_progress = self.phase, self.progress
+                    segment, started = self.segment_id, self.started_at
+                packet = ExecuteProcess.Feedback()
+                packet.run_id = goal["run_id"]
+                packet.phase = current_phase
+                packet.engraving_progress = current_progress
+                packet.completed_segment_id = segment
+                packet.elapsed_s = max(0.0, time.monotonic() - started)
+                goal_handle.publish_feedback(packet)
+
+            def on_phase(name):
+                feedback(phase=name)
+                self.emit_event("PHASE_CHANGED", message=f"{name} 시작")
+
+            result = self.coordinator.execute(goal, on_phase=on_phase,
+                                              on_progress=lambda value: feedback(progress=value))
+            with self.lock:
+                self.status = result.outcome
+                self.stop_state = "CONFIRMED" if result.outcome == "STOPPED" else self.stop_state
+                self.error_code = result.error_code
+                self.message = result.message
+                self.segment_id = result.observed_state.get("last_completed_segment_id", self.segment_id)
+                self.progress = float(result.observed_state.get("engraving_progress", self.progress))
+            # UNKNOWN/실패는 기록하되 STOPPED 자체를 장애로 생성하지 않는다.
+            self.report_alarm(self.phase, result)
+            self.emit_event("RUN_FINISHED", code=result.error_code, message=result.message,
+                            severity="INFO" if result.ok else "ERROR")
+            output = ExecuteProcess.Result()
+            output.run_id = goal["run_id"]
+            output.outcome = result.outcome
+            output.error_code = result.error_code
+            output.message = result.message
+            output.last_completed_segment_id = result.observed_state.get("last_completed_segment_id", "")
+            output.log_id = ""  # 요청 중복 방지 저널은 공정 실행 로그 계약을 대체하지 않는다.
+            _finish_action(goal_handle, result)
+            return output
+
+        def destroy_node(self):
+            from .process_state_observer import stop_process_state_observer
+            stop_process_state_observer(self)
+            observation_owner = getattr(self, "real_preparation_observations", None)
+            if observation_owner is not None:
+                observation_owner.close()
+            self.action.destroy()
+            if self.prepare_action:
+                self.prepare_action.destroy()
+            if self.preparation and self.preparation.db:
+                self.preparation.db.close()
+            return super().destroy_node()
+
+    return ProcessControllerNode()
+
+
+def _finish_action(goal_handle, result):
+    """확인된 공정 결과를 ROS 종료 상태로 변환한다(인터페이스 권장안 §6).
+
+    취소 요청 자체는 정지 완료가 아니다. STOPPED가 확인됐을 때만
+    ROS가 수락한 Action 취소 여부에 따라 CANCELED/ABORTED를 나눈다.
+    정지 서비스와 Action 취소가 겹쳐도 실행 콜백의 이 지점에서 한 번 종료한다.
+    """
+    if result.outcome == "SUCCEEDED":
+        goal_handle.succeed()
+    elif result.outcome == "STOPPED" and goal_handle.is_cancel_requested:
+        goal_handle.canceled()
+    else:
+        goal_handle.abort()
+
+
+def make_simulation_file_loader(*, path_file, result_file, snapshot_file,
+                                snapshot_id, snapshot_sha256, max_state_age_s=2.0):
+    """지정 파일용 Mock 로더. 누락 정보를 성공/승인 값으로 채우지 않는다.
+
+    SIM 제어권은 이 프로세스가 소유한 Mock, 정지 상태는 Mock.stopped에서 얻는다.
+    가상 접촉면은 설정으로 만든 시험 모델이며 실측/독립 보정의 검증이 아니다.
+    """
+    if (not isinstance(snapshot_id, str) or not snapshot_id
+            or not isinstance(snapshot_sha256, str) or len(snapshot_sha256) != 64
+            or any(c not in "0123456789abcdef" for c in snapshot_sha256)
+            or type(max_state_age_s) not in (int, float)
+            or not math.isfinite(max_state_age_s) or max_state_age_s <= 0):
+        raise ValueError("스냅샷 ID/SHA-256 또는 상태 유효시간 오류")
+    paths = [Path(p).expanduser().resolve() for p in (path_file, result_file, snapshot_file)]
+    metadata = {"id": snapshot_id, "sha256": snapshot_sha256}
+    adapter = MockRobotAdapter()
+    initialized = False
+
+    def resolve(snapshot, goal):
+        nonlocal initialized
+        evidence = PreconditionEvidence(
+            runtime_mode="SIMULATION", robot_state=adapter.observe(),
+            control_authority_confirmed=True,  # 프로세스 전용 Mock 제어권이며 실물 확인이 아니다.
+            stop_latched=adapter.stopped, profile_snapshot_id=snapshot_id,
+            max_robot_state_age_s=max_state_age_s)
+        fields = resolve_simulation_settings(snapshot, goal, evidence=evidence, adapter=adapter)
+        cal, wc = fields["calibration"], fields["workcell"]
+
+        def virtual_surface(pose, direction):
+            # verify 중에는 pad, execute 중에는 tool-tip 좌표를 Mock이 보관한다.
+            center = cal.axis_fit_xy_m if adapter.tool_offset_m is None else wc["axis_xy_m"]
+            dx = pose[0] - center[0]
+            radius = wc["radius_m"]
+            if abs(dx) > radius or abs(direction[1]) < 1e-9:
+                return None
+            surface_y = center[1] + cal.side * math.sqrt(radius * radius - dx * dx)
+            distance = (surface_y - pose[1]) / direction[1]
+            return distance if distance >= 0 else None
+
+        adapter.surface_fn = virtual_surface
+        if not initialized:
+            adapter.pose = [*wc["axis_xy_m"], wc["top_z_m"] + 0.090, *upright_quat(cal.side)]
+            initialized = True
+        adapter.set_tool_offset(list(cal.offset_tool_m))
+        return fields
+
+    def load(goal):
+        if goal.get("source_mode") != "SIMULATION":
+            raise InputsUnavailable("파일 진입점은 SIMULATION 전용", "SOURCE_MODE_MISMATCH")
+        return load_execution_inputs(goal, path_file=paths[0], result_file=paths[1],
+                                     snapshot_file=paths[2], snapshot_metadata=metadata,
+                                     resolve_settings=resolve)
+    return load
+
+
+def _parse_process_args(argv):
+    parser = argparse.ArgumentParser(description="C-2 공정 노드 — 파일 입력은 SIMULATION/Mock 전용")
+    parser.add_argument("--path-file", help="검증된 v2 path.json")
+    parser.add_argument("--result-file", help="저장된 경로 생성 결과 JSON")
+    parser.add_argument("--snapshot-file", help="c2-simulation-inputs/1 설정 스냅샷 JSON")
+    parser.add_argument("--snapshot-id", help="이 실행에 사용할 스냅샷 ID")
+    parser.add_argument("--snapshot-sha256", help="스냅샷 최종 파일 바이트 SHA-256")
+    parser.add_argument("--max-state-age-s", type=float, default=2.0,
+                        help="모의 관측 최대 경과시간(초), 기본 2")
+    # ROS 인자는 ROS에 전달하고 파일 입력 인자와 분리한다.
+    argv = list(argv)
+    split = argv.index("--ros-args") if "--ros-args" in argv else len(argv)
+    options = parser.parse_args(argv[:split])
+    required = (options.path_file, options.result_file, options.snapshot_file,
+                options.snapshot_id, options.snapshot_sha256)
+    if any(v is not None for v in required) and not all(required):
+        parser.error("파일 입력은 --path-file/--result-file/--snapshot-file/--snapshot-id/--snapshot-sha256 모두 필요")
+    loader = _missing_loader
+    if all(required):
+        for filename in required[:3]:
+            if not Path(filename).expanduser().is_file():
+                parser.error(f"입력 파일 없음: {filename}")
+        try:
+            loader = make_simulation_file_loader(
+                path_file=options.path_file, result_file=options.result_file,
+                snapshot_file=options.snapshot_file, snapshot_id=options.snapshot_id,
+                snapshot_sha256=options.snapshot_sha256, max_state_age_s=options.max_state_age_s)
+        except ValueError as exc:
+            parser.error(str(exc))
+    return loader, argv[split:]
+
+
+def _parse_real_preparation_args(argv):
+    """REAL 준비 측정 노드의 장치 독립 기동 설정을 검사한다.
+
+    측정 설정 자산 ID/해시는 PrepareWorkpiece Goal에서 요청별로 받는다.
+    토픽 이름과 메시지 타입은 드라이버 계약이 확정된 뒤 별도 연결한다.
+    """
+    parser = argparse.ArgumentParser(description="C-2 REAL 준비 측정 전용 공정 노드")
+    parser.add_argument("--preparation-backend-url", required=True,
+                        help="불변 준비 설정 자산을 조회할 HMI backend URL")
+    parser.add_argument("--preparation-journal-path", required=True,
+                        help="준비 요청 중복 방지 SQLite 원장 경로")
+    parser.add_argument("--controller-prefix", required=True,
+                        help="두산 제어기 ROS 서비스 prefix (예: /dsr01/dsr_controller2)")
+    parser.add_argument("--control-authority-topic",
+                        default="/dsr01/dsr_controller2/control_authority",
+                        help="PR #48 std_msgs/String JSON v1 제어권 토픽")
+    parser.add_argument("--control-authority-max-age-s", type=float, default=0.5,
+                        help="제어권 관측 최대 경과시간(초), 0초 초과 0.5초 이하")
+    argv = list(argv)
+    split = argv.index("--ros-args") if "--ros-args" in argv else len(argv)
+    options = parser.parse_args(argv[:split])
+
+    from urllib.parse import urlparse
+    endpoint = urlparse(options.preparation_backend_url)
+    if endpoint.scheme not in {"http", "https"} or not endpoint.netloc:
+        parser.error("--preparation-backend-url은 http(s) 절대 URL이어야 함")
+    if not options.controller_prefix.startswith("/") or options.controller_prefix == "/":
+        parser.error("--controller-prefix는 /로 시작하는 구체적인 ROS prefix여야 함")
+    if (not isinstance(options.control_authority_topic, str)
+            or not options.control_authority_topic.startswith("/")):
+        parser.error("--control-authority-topic은 절대 ROS 이름이어야 함")
+    if (not math.isfinite(options.control_authority_max_age_s)
+            or not 0 < options.control_authority_max_age_s <= 0.5):
+        parser.error("--control-authority-max-age-s는 0초 초과 0.5초 이하여야 함")
+    journal_path = Path(options.preparation_journal_path).expanduser()
+    if not journal_path.name:
+        parser.error("--preparation-journal-path에 파일 경로 필요")
+    if not journal_path.parent.is_dir():
+        parser.error("--preparation-journal-path 상위 디렉터리가 존재해야 함")
+    options.preparation_journal_path = journal_path
+    return options, argv[split:]
+
+
+def _real_preparation_options(node, options):
+    from .real_preparation_observations import RealPreparationObservations
+    observations = RealPreparationObservations(
+        node, topic=options.control_authority_topic,
+        max_age_s=options.control_authority_max_age_s,
+        controller_prefix=options.controller_prefix,
+        service_timeout_s=options.control_authority_max_age_s)
+    # Node가 subscriber/cache 수명을 명시적으로 소유한다.
+    node.real_preparation_observations = observations
+    node.get_logger().info(
+        "제어권 subscriber와 읽기 전용 정지 상태 조회 연결 완료")
+    def start_state_observer(config):
+        from .process_state_observer import start_process_state_observer
+        return start_process_state_observer(node, config)
+    return {
+        "evidence_provider": observations.evidence,
+        "evidence_max_age_s": {
+            "control_authority": options.control_authority_max_age_s,
+        },
+        "stop_latched_provider": observations.stop_latched,
+        "stop_latch_recorder": observations.record_process_result,
+        "state_observer_starter": start_state_observer,
+        "controller_prefix": options.controller_prefix,
+    }
+
+
+def real_preparation_main(args=None, *, observation_options_factory=None,
+                          adapter_factory=None):
+    """REAL 준비 측정 전용 노드. 조각 실행은 항상 FAILED/NOT_READY로 종료한다."""
+    options, ros_args = _parse_real_preparation_args(
+        sys.argv[1:] if args is None else args)
+    import rclpy
+    from rclpy.executors import MultiThreadedExecutor
+    from .preparation_action import AssetResolver
+
+    rclpy.init(args=ros_args)
+    node = None
+    executor = MultiThreadedExecutor(num_threads=4)
+    try:
+        options_factory = observation_options_factory or (
+            lambda owner: _real_preparation_options(owner, options))
+        robot_factory = adapter_factory or (
+            lambda owner: DoosanRobotAdapter(owner))
+        node = create_ros_node(
+            load_inputs=_missing_loader,
+            runtime_mode="REAL",
+            measurement_only=True,
+            real_adapter_factory=robot_factory,
+            preparation_resolver=AssetResolver(options.preparation_backend_url),
+            preparation_journal_path=options.preparation_journal_path,
+            enable_preparation=True,
+            real_preparation_options_factory=options_factory,
+        )
+        executor.add_node(node)
+        node.get_logger().info(
+            "REAL 준비 측정 전용 노드 기동: /c2/prepare_workpiece, ExecuteProcess 비활성")
+        executor.spin()
+    finally:
+        executor.shutdown()
+        if node is not None:
+            node.destroy_node()
+        if rclpy.ok():
+            rclpy.shutdown()
+
+
+def main(args=None):
+    """지정 파일을 기존 로더에 주입하고 ExecuteProcess 요청을 기다린다."""
+    loader, ros_args = _parse_process_args(sys.argv[1:] if args is None else args)
+    import rclpy
+    from rclpy.executors import MultiThreadedExecutor
+
+    rclpy.init(args=ros_args)
+    node = None
+    executor = MultiThreadedExecutor(num_threads=4)
+    try:
+        from .preparation_action import make_simulation_runner_factory
+        node = create_ros_node(
+            load_inputs=loader, runtime_mode="SIMULATION",
+            preparation_runner_factory=make_simulation_runner_factory())
+        executor.add_node(node)
+        if loader is _missing_loader:
+            node.get_logger().warn("실행 파일 로더 미연결: 모든 조각 요청을 거절합니다.")
+        else:
+            node.get_logger().info("SIMULATION 파일 로더 연결: Mock 전용, 기존 실행 요청 대기")
+        executor.spin()
+    finally:
+        executor.shutdown()
+        if node is not None:
+            node.destroy_node()
+        if rclpy.ok():
+            rclpy.shutdown()
+
+
+if __name__ == "__main__":
+    main()

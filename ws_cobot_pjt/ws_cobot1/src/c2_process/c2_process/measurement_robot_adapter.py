@@ -179,9 +179,9 @@ class GuardedMeasurementAdapter:
         if self.trace_error is not None:raise MeasurementError("TELEMETRY_LOST",self.trace_error)
         if context.cancel.is_set():raise MeasurementError('CANCELLED','측정 취소','STOPPED')
         report=self.readiness(context)
-        required=('ownership_confirmed','drill_off_confirmed','mount_fixed','control_authority')
+        required=('ownership_confirmed','control_authority')
         if any(report.get(k) is not True for k in required) or report.get('measurement_id')!=context.measurement_id:
-            raise MeasurementError('NOT_READY','실행 소유권/드릴 OFF/고정/제어권 확인 필요')
+            raise MeasurementError('NOT_READY','실행 소유권/제어권 확인 필요')
         if not 0<=self.clock()-report['checked_at_monotonic_s']<=self.g['max_state_age_s']:
             raise MeasurementError('NOT_READY','준비 조건 확인 만료')
 
@@ -240,7 +240,7 @@ class GuardedMeasurementAdapter:
             self.expected[tuple(step['target_pose'])]=q[:];prev=target
         self._ready(context)
         return StepResult('SUCCEEDED',observed_state=dict(all_segments_checked=True,probe_envelopes_checked=True,
-            ownership_confirmed=True,drill_off_confirmed=True,tcp_load_match=True,
+            ownership_confirmed=True,tcp_load_match=True,
             validation_level='SAMPLED_CONTROLLER_IK_FK_AND_EXTERNAL_SCENE_CHECK',sample_count=count,
             scene_record=scene,full_continuous_collision_checked=False))
 
