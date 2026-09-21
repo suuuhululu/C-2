@@ -1,0 +1,88 @@
+{
+  "validation_level": "SIMULATION_ONLY_NO_ROBOT",
+  "case": "timeout",
+  "input_file": "config/workpiece_simulation.json",
+  "omitted_from_excerpt": [
+    "observed_state.plans",
+    "observed_state.initial_state"
+  ],
+  "result_excerpt": {
+    "outcome": "FAILED",
+    "error_code": "TIMEOUT",
+    "message": "측정 전체 제한 시간 초과",
+    "completed_step": "workpiece_calibration",
+    "observed_state": {
+      "measurement": {
+        "measurement_id": "example-timeout",
+        "preparation_id": "example-prepare-timeout",
+        "source_mode": "SIMULATION",
+        "frame_id": "c2_base",
+        "position_unit": "m",
+        "schema": "workpiece-measurement/1",
+        "validity": "INCOMPLETE",
+        "geometry_ready": false,
+        "profile_snapshot_id": "example-sim-config",
+        "profile_sha256": "c91af5a65c252961f199f21a1f7fe08a28cbdc56a77fa9ec5a2e8ed7e023e7c3",
+        "points": [],
+        "top": null,
+        "axis_xy_m": null,
+        "radius_m": null,
+        "top_z_m": null,
+        "bottom_z_m": null,
+        "measured_at": null,
+        "started_at": "2026-09-21T06:00:48.912656+00:00",
+        "measurement_time_basis": "completed_utc; contact_samples_monotonic"
+      },
+      "events": [
+        {
+          "measurement_id": "example-timeout",
+          "sequence": 1,
+          "measured_at": "2026-09-21T06:00:48.912750+00:00",
+          "stage": "START",
+          "status": "RUNNING",
+          "message": "측정을 시작합니다",
+          "point_index": 0,
+          "total_points": 8,
+          "values": null
+        },
+        {
+          "measurement_id": "example-timeout",
+          "sequence": 2,
+          "measured_at": "2026-09-21T06:00:48.912769+00:00",
+          "stage": "HOME_CHECK",
+          "status": "RUNNING",
+          "message": "현재 관절·TCP 확인: 홈 경유 경로 검사 중",
+          "point_index": 0,
+          "total_points": 8,
+          "values": null
+        },
+        {
+          "measurement_id": "example-timeout",
+          "sequence": 3,
+          "measured_at": "2026-09-21T06:00:48.912830+00:00",
+          "stage": "HOME_MOVE",
+          "status": "RUNNING",
+          "message": "검사 후 외곽·상공을 경유하여 홈으로 이동합니다",
+          "point_index": 0,
+          "total_points": 8,
+          "values": null
+        },
+        {
+          "measurement_id": "example-timeout",
+          "sequence": 4,
+          "measured_at": "2026-09-21T06:00:48.913003+00:00",
+          "stage": "TERMINAL",
+          "status": "FAILED",
+          "message": "측정 전체 제한 시간 초과",
+          "point_index": 0,
+          "total_points": 8,
+          "values": null
+        }
+      ],
+      "stop_confirmed": true,
+      "partial": true,
+      "home_return_confirmed": false,
+      "elapsed_s": 400.0
+    }
+  }
+}

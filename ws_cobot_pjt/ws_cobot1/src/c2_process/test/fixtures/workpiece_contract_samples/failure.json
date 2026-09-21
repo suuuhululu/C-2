@@ -1,0 +1,228 @@
+{
+  "validation_level": "SIMULATION_ONLY_NO_ROBOT",
+  "case": "failure",
+  "input_file": "config/workpiece_simulation.json",
+  "omitted_from_excerpt": [
+    "observed_state.plans",
+    "observed_state.initial_state",
+    "observed_state.home_state"
+  ],
+  "result_excerpt": {
+    "outcome": "FAILED",
+    "error_code": "CONTACT_NOT_FOUND",
+    "message": "SIM injected missing surface",
+    "completed_step": "workpiece_calibration",
+    "observed_state": {
+      "measurement": {
+        "measurement_id": "example-failure",
+        "preparation_id": "example-prepare-failure",
+        "source_mode": "SIMULATION",
+        "frame_id": "c2_base",
+        "position_unit": "m",
+        "schema": "workpiece-measurement/1",
+        "validity": "INCOMPLETE",
+        "geometry_ready": false,
+        "profile_snapshot_id": "example-sim-config",
+        "profile_sha256": "c91af5a65c252961f199f21a1f7fe08a28cbdc56a77fa9ec5a2e8ed7e023e7c3",
+        "points": [
+          {
+            "detected": true,
+            "tip_pose": [
+              0.4506729355595087,
+              0.024475902020724048,
+              0.19469999999999998,
+              0.3826834323650898,
+              0.9238795325112867,
+              0.0,
+              0.0
+            ],
+            "frame_id": "c2_base",
+            "normal_force_n": 0.81,
+            "measured_at_monotonic_s": 0.0,
+            "operator_confirmed": false,
+            "point_index": 1,
+            "received_at": "2026-09-21T06:00:48.910087+00:00",
+            "source": "SIMULATED"
+          }
+        ],
+        "top": {
+          "detected": true,
+          "tip_pose": [
+            0.425393743,
+            -0.0995032905,
+            0.2447,
+            0.0,
+            1.0,
+            0.0,
+            0.0
+          ],
+          "frame_id": "c2_base",
+          "normal_force_n": 0.81,
+          "measured_at_monotonic_s": 0.0,
+          "operator_confirmed": false,
+          "point_index": 0,
+          "received_at": "2026-09-21T06:00:48.909198+00:00",
+          "source": "SIMULATED"
+        },
+        "axis_xy_m": null,
+        "radius_m": null,
+        "top_z_m": 0.2347,
+        "bottom_z_m": null,
+        "measured_at": null,
+        "started_at": "2026-09-21T06:00:48.908467+00:00",
+        "measurement_time_basis": "completed_utc; contact_samples_monotonic",
+        "top_tcp_contact_z_m": 0.2447,
+        "measurement_scope": "ABSOLUTE_GEOMETRY"
+      },
+      "events": [
+        {
+          "measurement_id": "example-failure",
+          "sequence": 1,
+          "measured_at": "2026-09-21T06:00:48.908578+00:00",
+          "stage": "START",
+          "status": "RUNNING",
+          "message": "측정을 시작합니다",
+          "point_index": 0,
+          "total_points": 8,
+          "values": null
+        },
+        {
+          "measurement_id": "example-failure",
+          "sequence": 2,
+          "measured_at": "2026-09-21T06:00:48.908600+00:00",
+          "stage": "HOME_CHECK",
+          "status": "RUNNING",
+          "message": "현재 관절·TCP 확인: 홈 경유 경로 검사 중",
+          "point_index": 0,
+          "total_points": 8,
+          "values": null
+        },
+        {
+          "measurement_id": "example-failure",
+          "sequence": 3,
+          "measured_at": "2026-09-21T06:00:48.908663+00:00",
+          "stage": "HOME_MOVE",
+          "status": "RUNNING",
+          "message": "검사 후 외곽·상공을 경유하여 홈으로 이동합니다",
+          "point_index": 0,
+          "total_points": 8,
+          "values": null
+        },
+        {
+          "measurement_id": "example-failure",
+          "sequence": 4,
+          "measured_at": "2026-09-21T06:00:48.908913+00:00",
+          "stage": "HOME_READY",
+          "status": "SUCCEEDED",
+          "message": "홈 도착·정지 확인 완료",
+          "point_index": 0,
+          "total_points": 8,
+          "values": null
+        },
+        {
+          "measurement_id": "example-failure",
+          "sequence": 5,
+          "measured_at": "2026-09-21T06:00:48.908920+00:00",
+          "stage": "TOP_APPROACH",
+          "status": "RUNNING",
+          "message": "양초 윗면을 측정하겠습니다",
+          "point_index": 0,
+          "total_points": 8,
+          "values": null
+        },
+        {
+          "measurement_id": "example-failure",
+          "sequence": 6,
+          "measured_at": "2026-09-21T06:00:48.909147+00:00",
+          "stage": "TOP_TOUCH",
+          "status": "RUNNING",
+          "message": "윗면 접촉 확인 중",
+          "point_index": 0,
+          "total_points": 8,
+          "values": null
+        },
+        {
+          "measurement_id": "example-failure",
+          "sequence": 7,
+          "measured_at": "2026-09-21T06:00:48.909209+00:00",
+          "stage": "TOP_TOUCH",
+          "status": "SUCCEEDED",
+          "message": "윗면 접촉 측정 완료",
+          "point_index": 0,
+          "total_points": 8,
+          "values": {
+            "top_z_m": 0.2347,
+            "top_tcp_contact_z_m": 0.2447,
+            "absolute_top_valid": true
+          }
+        },
+        {
+          "measurement_id": "example-failure",
+          "sequence": 8,
+          "measured_at": "2026-09-21T06:00:48.909252+00:00",
+          "stage": "SIDE_START",
+          "status": "RUNNING",
+          "message": "양초 중심·반지름을 측정하겠습니다",
+          "point_index": 0,
+          "total_points": 8,
+          "values": null
+        },
+        {
+          "measurement_id": "example-failure",
+          "sequence": 9,
+          "measured_at": "2026-09-21T06:00:48.910041+00:00",
+          "stage": "SIDE_TOUCH",
+          "status": "RUNNING",
+          "message": "1/8번째 점 측정 중",
+          "point_index": 1,
+          "total_points": 8,
+          "values": null
+        },
+        {
+          "measurement_id": "example-failure",
+          "sequence": 10,
+          "measured_at": "2026-09-21T06:00:48.910091+00:00",
+          "stage": "SIDE_TOUCH",
+          "status": "SUCCEEDED",
+          "message": "1/8번째 점 측정 완료",
+          "point_index": 1,
+          "total_points": 8,
+          "values": {
+            "tip_xyz_m": [
+              0.4506729355595087,
+              0.024475902020724048,
+              0.19469999999999998
+            ]
+          }
+        },
+        {
+          "measurement_id": "example-failure",
+          "sequence": 11,
+          "measured_at": "2026-09-21T06:00:48.910184+00:00",
+          "stage": "SIDE_TOUCH",
+          "status": "RUNNING",
+          "message": "2/8번째 점 측정 중",
+          "point_index": 2,
+          "total_points": 8,
+          "values": null
+        },
+        {
+          "measurement_id": "example-failure",
+          "sequence": 12,
+          "measured_at": "2026-09-21T06:00:48.910217+00:00",
+          "stage": "TERMINAL",
+          "status": "FAILED",
+          "message": "SIM injected missing surface",
+          "point_index": 0,
+          "total_points": 8,
+          "values": null
+        }
+      ],
+      "stop_confirmed": true,
+      "partial": true,
+      "home_return_confirmed": false,
+      "home_move_skipped": false,
+      "elapsed_s": 0.0
+    }
+  }
+}

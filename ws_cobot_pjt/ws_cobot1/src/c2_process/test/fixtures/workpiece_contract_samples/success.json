@@ -1,0 +1,886 @@
+{
+  "validation_level": "SIMULATION_ONLY_NO_ROBOT",
+  "case": "success",
+  "input_file": "config/workpiece_simulation.json",
+  "omitted_from_excerpt": [
+    "observed_state.plans",
+    "observed_state.initial_state",
+    "observed_state.home_state"
+  ],
+  "result_excerpt": {
+    "outcome": "SUCCEEDED",
+    "error_code": "NONE",
+    "message": "",
+    "completed_step": "workpiece_calibration",
+    "observed_state": {
+      "measurement": {
+        "measurement_id": "example-success",
+        "preparation_id": "example-prepare-success",
+        "source_mode": "SIMULATION",
+        "frame_id": "c2_base",
+        "position_unit": "m",
+        "schema": "workpiece-measurement/1",
+        "validity": "SIMULATED",
+        "geometry_ready": true,
+        "profile_snapshot_id": "example-sim-config",
+        "profile_sha256": "c91af5a65c252961f199f21a1f7fe08a28cbdc56a77fa9ec5a2e8ed7e023e7c3",
+        "points": [
+          {
+            "detected": true,
+            "tip_pose": [
+              0.4506729355595087,
+              0.024475902020724048,
+              0.19469999999999998,
+              0.3826834323650898,
+              0.9238795325112867,
+              0.0,
+              0.0
+            ],
+            "frame_id": "c2_base",
+            "normal_force_n": 0.81,
+            "measured_at_monotonic_s": 0.0,
+            "operator_confirmed": false,
+            "point_index": 1,
+            "received_at": "2026-09-21T06:00:48.905183+00:00",
+            "source": "SIMULATED"
+          },
+          {
+            "detected": true,
+            "tip_pose": [
+              0.46079995872265195,
+              4.6709476999166216e-05,
+              0.19469999999999998,
+              0.7071067811865475,
+              0.7071067811865476,
+              0.0,
+              0.0
+            ],
+            "frame_id": "c2_base",
+            "normal_force_n": 0.81,
+            "measured_at_monotonic_s": 0.0,
+            "operator_confirmed": false,
+            "point_index": 2,
+            "received_at": "2026-09-21T06:00:48.905317+00:00",
+            "source": "SIMULATED"
+          },
+          {
+            "detected": true,
+            "tip_pose": [
+              0.4506194738701219,
+              -0.02432902137733893,
+              0.19469999999999998,
+              0.9238795325112867,
+              0.3826834323650898,
+              0.0,
+              0.0
+            ],
+            "frame_id": "c2_base",
+            "normal_force_n": 0.81,
+            "measured_at_monotonic_s": 0.0,
+            "operator_confirmed": false,
+            "point_index": 3,
+            "received_at": "2026-09-21T06:00:48.905455+00:00",
+            "source": "SIMULATED"
+          },
+          {
+            "detected": true,
+            "tip_pose": [
+              0.42624374301578377,
+              -0.034299645110885714,
+              0.19469999999999998,
+              1.0,
+              3.061616997868383e-17,
+              0.0,
+              0.0
+            ],
+            "frame_id": "c2_base",
+            "normal_force_n": 0.81,
+            "measured_at_monotonic_s": 0.0,
+            "operator_confirmed": false,
+            "point_index": 4,
+            "received_at": "2026-09-21T06:00:48.905586+00:00",
+            "source": "SIMULATED"
+          },
+          {
+            "detected": true,
+            "tip_pose": [
+              0.40202409797927596,
+              -0.024172935559508682,
+              0.19469999999999998,
+              0.9238795325112867,
+              -0.3826834323650897,
+              0.0,
+              0.0
+            ],
+            "frame_id": "c2_base",
+            "normal_force_n": 0.81,
+            "measured_at_monotonic_s": 0.0,
+            "operator_confirmed": false,
+            "point_index": 5,
+            "received_at": "2026-09-21T06:00:48.905715+00:00",
+            "source": "SIMULATED"
+          },
+          {
+            "detected": true,
+            "tip_pose": [
+              0.39200004127734805,
+              4.670947699916202e-05,
+              0.19469999999999998,
+              0.7071067811865476,
+              -0.7071067811865475,
+              0.0,
+              0.0
+            ],
+            "frame_id": "c2_base",
+            "normal_force_n": 0.81,
+            "measured_at_monotonic_s": 0.0,
+            "operator_confirmed": false,
+            "point_index": 6,
+            "received_at": "2026-09-21T06:00:48.905848+00:00",
+            "source": "SIMULATED"
+          },
+          {
+            "detected": true,
+            "tip_pose": [
+              0.401970978622661,
+              0.024319473870121868,
+              0.19469999999999998,
+              -0.3826834323650899,
+              0.9238795325112867,
+              0.0,
+              0.0
+            ],
+            "frame_id": "c2_base",
+            "normal_force_n": 0.81,
+            "measured_at_monotonic_s": 0.0,
+            "operator_confirmed": false,
+            "point_index": 7,
+            "received_at": "2026-09-21T06:00:48.905983+00:00",
+            "source": "SIMULATED"
+          },
+          {
+            "detected": true,
+            "tip_pose": [
+              0.42624374301578377,
+              0.03449964511088572,
+              0.19469999999999998,
+              -9.184850993605148e-17,
+              1.0,
+              0.0,
+              0.0
+            ],
+            "frame_id": "c2_base",
+            "normal_force_n": 0.81,
+            "measured_at_monotonic_s": 0.0,
+            "operator_confirmed": false,
+            "point_index": 8,
+            "received_at": "2026-09-21T06:00:48.906119+00:00",
+            "source": "SIMULATED"
+          }
+        ],
+        "top": {
+          "detected": true,
+          "tip_pose": [
+            0.425393743,
+            -0.0995032905,
+            0.2447,
+            0.0,
+            1.0,
+            0.0,
+            0.0
+          ],
+          "frame_id": "c2_base",
+          "normal_force_n": 0.81,
+          "measured_at_monotonic_s": 0.0,
+          "operator_confirmed": false,
+          "point_index": 0,
+          "received_at": "2026-09-21T06:00:48.904259+00:00",
+          "source": "SIMULATED"
+        },
+        "axis_xy_m": [
+          0.4264,
+          0.00010000000000001021
+        ],
+        "radius_m": 0.0344,
+        "top_z_m": 0.2347,
+        "bottom_z_m": 0.0847,
+        "measured_at": "2026-09-21T06:00:48.906571+00:00",
+        "started_at": "2026-09-21T06:00:48.903297+00:00",
+        "measurement_time_basis": "completed_utc; contact_samples_monotonic",
+        "top_tcp_contact_z_m": 0.2447,
+        "measurement_scope": "ABSOLUTE_GEOMETRY",
+        "residual_rms_m": 9.813077866773595e-18,
+        "residual_max_m": 1.3877787807814457e-17,
+        "residuals_m": [
+          1.3877787807814457e-17,
+          -6.938893903907228e-18,
+          1.3877787807814457e-17,
+          6.938893903907228e-18,
+          0.0,
+          -6.938893903907228e-18,
+          1.3877787807814457e-17,
+          -6.938893903907228e-18
+        ],
+        "height_m": 0.15,
+        "height_source": "OPERATOR_RULER",
+        "work_z_range_m": [
+          0.09469999999999999,
+          0.22469999999999998
+        ],
+        "work_v_range_m": [
+          0.01,
+          0.13999999999999999
+        ],
+        "vertical_axis_assumed": true,
+        "tilt_measured": false,
+        "tool_offset_m": [
+          0.00085,
+          -0.09955,
+          0
+        ],
+        "independent_accuracy_verified": false
+      },
+      "events": [
+        {
+          "measurement_id": "example-success",
+          "sequence": 1,
+          "measured_at": "2026-09-21T06:00:48.903545+00:00",
+          "stage": "START",
+          "status": "RUNNING",
+          "message": "측정을 시작합니다",
+          "point_index": 0,
+          "total_points": 8,
+          "values": null
+        },
+        {
+          "measurement_id": "example-success",
+          "sequence": 2,
+          "measured_at": "2026-09-21T06:00:48.903572+00:00",
+          "stage": "HOME_CHECK",
+          "status": "RUNNING",
+          "message": "현재 관절·TCP 확인: 홈 경유 경로 검사 중",
+          "point_index": 0,
+          "total_points": 8,
+          "values": null
+        },
+        {
+          "measurement_id": "example-success",
+          "sequence": 3,
+          "measured_at": "2026-09-21T06:00:48.903661+00:00",
+          "stage": "HOME_MOVE",
+          "status": "RUNNING",
+          "message": "검사 후 외곽·상공을 경유하여 홈으로 이동합니다",
+          "point_index": 0,
+          "total_points": 8,
+          "values": null
+        },
+        {
+          "measurement_id": "example-success",
+          "sequence": 4,
+          "measured_at": "2026-09-21T06:00:48.903951+00:00",
+          "stage": "HOME_READY",
+          "status": "SUCCEEDED",
+          "message": "홈 도착·정지 확인 완료",
+          "point_index": 0,
+          "total_points": 8,
+          "values": null
+        },
+        {
+          "measurement_id": "example-success",
+          "sequence": 5,
+          "measured_at": "2026-09-21T06:00:48.903958+00:00",
+          "stage": "TOP_APPROACH",
+          "status": "RUNNING",
+          "message": "양초 윗면을 측정하겠습니다",
+          "point_index": 0,
+          "total_points": 8,
+          "values": null
+        },
+        {
+          "measurement_id": "example-success",
+          "sequence": 6,
+          "measured_at": "2026-09-21T06:00:48.904201+00:00",
+          "stage": "TOP_TOUCH",
+          "status": "RUNNING",
+          "message": "윗면 접촉 확인 중",
+          "point_index": 0,
+          "total_points": 8,
+          "values": null
+        },
+        {
+          "measurement_id": "example-success",
+          "sequence": 7,
+          "measured_at": "2026-09-21T06:00:48.904270+00:00",
+          "stage": "TOP_TOUCH",
+          "status": "SUCCEEDED",
+          "message": "윗면 접촉 측정 완료",
+          "point_index": 0,
+          "total_points": 8,
+          "values": {
+            "top_z_m": 0.2347,
+            "top_tcp_contact_z_m": 0.2447,
+            "absolute_top_valid": true
+          }
+        },
+        {
+          "measurement_id": "example-success",
+          "sequence": 8,
+          "measured_at": "2026-09-21T06:00:48.904317+00:00",
+          "stage": "SIDE_START",
+          "status": "RUNNING",
+          "message": "양초 중심·반지름을 측정하겠습니다",
+          "point_index": 0,
+          "total_points": 8,
+          "values": null
+        },
+        {
+          "measurement_id": "example-success",
+          "sequence": 9,
+          "measured_at": "2026-09-21T06:00:48.905132+00:00",
+          "stage": "SIDE_TOUCH",
+          "status": "RUNNING",
+          "message": "1/8번째 점 측정 중",
+          "point_index": 1,
+          "total_points": 8,
+          "values": null
+        },
+        {
+          "measurement_id": "example-success",
+          "sequence": 10,
+          "measured_at": "2026-09-21T06:00:48.905187+00:00",
+          "stage": "SIDE_TOUCH",
+          "status": "SUCCEEDED",
+          "message": "1/8번째 점 측정 완료",
+          "point_index": 1,
+          "total_points": 8,
+          "values": {
+            "tip_xyz_m": [
+              0.4506729355595087,
+              0.024475902020724048,
+              0.19469999999999998
+            ]
+          }
+        },
+        {
+          "measurement_id": "example-success",
+          "sequence": 11,
+          "measured_at": "2026-09-21T06:00:48.905276+00:00",
+          "stage": "SIDE_TOUCH",
+          "status": "RUNNING",
+          "message": "2/8번째 점 측정 중",
+          "point_index": 2,
+          "total_points": 8,
+          "values": null
+        },
+        {
+          "measurement_id": "example-success",
+          "sequence": 12,
+          "measured_at": "2026-09-21T06:00:48.905320+00:00",
+          "stage": "SIDE_TOUCH",
+          "status": "SUCCEEDED",
+          "message": "2/8번째 점 측정 완료",
+          "point_index": 2,
+          "total_points": 8,
+          "values": {
+            "tip_xyz_m": [
+              0.46079995872265195,
+              4.6709476999166216e-05,
+              0.19469999999999998
+            ]
+          }
+        },
+        {
+          "measurement_id": "example-success",
+          "sequence": 13,
+          "measured_at": "2026-09-21T06:00:48.905410+00:00",
+          "stage": "SIDE_TOUCH",
+          "status": "RUNNING",
+          "message": "3/8번째 점 측정 중",
+          "point_index": 3,
+          "total_points": 8,
+          "values": null
+        },
+        {
+          "measurement_id": "example-success",
+          "sequence": 14,
+          "measured_at": "2026-09-21T06:00:48.905457+00:00",
+          "stage": "SIDE_TOUCH",
+          "status": "SUCCEEDED",
+          "message": "3/8번째 점 측정 완료",
+          "point_index": 3,
+          "total_points": 8,
+          "values": {
+            "tip_xyz_m": [
+              0.4506194738701219,
+              -0.02432902137733893,
+              0.19469999999999998
+            ]
+          }
+        },
+        {
+          "measurement_id": "example-success",
+          "sequence": 15,
+          "measured_at": "2026-09-21T06:00:48.905544+00:00",
+          "stage": "SIDE_TOUCH",
+          "status": "RUNNING",
+          "message": "4/8번째 점 측정 중",
+          "point_index": 4,
+          "total_points": 8,
+          "values": null
+        },
+        {
+          "measurement_id": "example-success",
+          "sequence": 16,
+          "measured_at": "2026-09-21T06:00:48.905588+00:00",
+          "stage": "SIDE_TOUCH",
+          "status": "SUCCEEDED",
+          "message": "4/8번째 점 측정 완료",
+          "point_index": 4,
+          "total_points": 8,
+          "values": {
+            "tip_xyz_m": [
+              0.42624374301578377,
+              -0.034299645110885714,
+              0.19469999999999998
+            ]
+          }
+        },
+        {
+          "measurement_id": "example-success",
+          "sequence": 17,
+          "measured_at": "2026-09-21T06:00:48.905677+00:00",
+          "stage": "SIDE_TOUCH",
+          "status": "RUNNING",
+          "message": "5/8번째 점 측정 중",
+          "point_index": 5,
+          "total_points": 8,
+          "values": null
+        },
+        {
+          "measurement_id": "example-success",
+          "sequence": 18,
+          "measured_at": "2026-09-21T06:00:48.905717+00:00",
+          "stage": "SIDE_TOUCH",
+          "status": "SUCCEEDED",
+          "message": "5/8번째 점 측정 완료",
+          "point_index": 5,
+          "total_points": 8,
+          "values": {
+            "tip_xyz_m": [
+              0.40202409797927596,
+              -0.024172935559508682,
+              0.19469999999999998
+            ]
+          }
+        },
+        {
+          "measurement_id": "example-success",
+          "sequence": 19,
+          "measured_at": "2026-09-21T06:00:48.905806+00:00",
+          "stage": "SIDE_TOUCH",
+          "status": "RUNNING",
+          "message": "6/8번째 점 측정 중",
+          "point_index": 6,
+          "total_points": 8,
+          "values": null
+        },
+        {
+          "measurement_id": "example-success",
+          "sequence": 20,
+          "measured_at": "2026-09-21T06:00:48.905850+00:00",
+          "stage": "SIDE_TOUCH",
+          "status": "SUCCEEDED",
+          "message": "6/8번째 점 측정 완료",
+          "point_index": 6,
+          "total_points": 8,
+          "values": {
+            "tip_xyz_m": [
+              0.39200004127734805,
+              4.670947699916202e-05,
+              0.19469999999999998
+            ]
+          }
+        },
+        {
+          "measurement_id": "example-success",
+          "sequence": 21,
+          "measured_at": "2026-09-21T06:00:48.905942+00:00",
+          "stage": "SIDE_TOUCH",
+          "status": "RUNNING",
+          "message": "7/8번째 점 측정 중",
+          "point_index": 7,
+          "total_points": 8,
+          "values": null
+        },
+        {
+          "measurement_id": "example-success",
+          "sequence": 22,
+          "measured_at": "2026-09-21T06:00:48.905986+00:00",
+          "stage": "SIDE_TOUCH",
+          "status": "SUCCEEDED",
+          "message": "7/8번째 점 측정 완료",
+          "point_index": 7,
+          "total_points": 8,
+          "values": {
+            "tip_xyz_m": [
+              0.401970978622661,
+              0.024319473870121868,
+              0.19469999999999998
+            ]
+          }
+        },
+        {
+          "measurement_id": "example-success",
+          "sequence": 23,
+          "measured_at": "2026-09-21T06:00:48.906076+00:00",
+          "stage": "SIDE_TOUCH",
+          "status": "RUNNING",
+          "message": "8/8번째 점 측정 중",
+          "point_index": 8,
+          "total_points": 8,
+          "values": null
+        },
+        {
+          "measurement_id": "example-success",
+          "sequence": 24,
+          "measured_at": "2026-09-21T06:00:48.906121+00:00",
+          "stage": "SIDE_TOUCH",
+          "status": "SUCCEEDED",
+          "message": "8/8번째 점 측정 완료",
+          "point_index": 8,
+          "total_points": 8,
+          "values": {
+            "tip_xyz_m": [
+              0.42624374301578377,
+              0.03449964511088572,
+              0.19469999999999998
+            ]
+          }
+        },
+        {
+          "measurement_id": "example-success",
+          "sequence": 25,
+          "measured_at": "2026-09-21T06:00:48.906170+00:00",
+          "stage": "FIT",
+          "status": "RUNNING",
+          "message": "양초 좌표 계산 중",
+          "point_index": 0,
+          "total_points": 8,
+          "values": null
+        },
+        {
+          "measurement_id": "example-success",
+          "sequence": 26,
+          "measured_at": "2026-09-21T06:00:48.906268+00:00",
+          "stage": "HOME_RETURN",
+          "status": "RUNNING",
+          "message": "측정 완료: 검사한 경로로 상공 홈에 복귀합니다",
+          "point_index": 0,
+          "total_points": 8,
+          "values": null
+        },
+        {
+          "measurement_id": "example-success",
+          "sequence": 27,
+          "measured_at": "2026-09-21T06:00:48.906562+00:00",
+          "stage": "HOME_RETURN",
+          "status": "SUCCEEDED",
+          "message": "상공 홈 도착·정지 확인 완료",
+          "point_index": 0,
+          "total_points": 8,
+          "values": null
+        },
+        {
+          "measurement_id": "example-success",
+          "sequence": 28,
+          "measured_at": "2026-09-21T06:00:48.906635+00:00",
+          "stage": "COMPLETE",
+          "status": "SUCCEEDED",
+          "message": "좌표 계산·홈 복귀 완료: 양초 측정 완료",
+          "point_index": 0,
+          "total_points": 8,
+          "values": {
+            "measurement_id": "example-success",
+            "preparation_id": "example-prepare-success",
+            "source_mode": "SIMULATION",
+            "frame_id": "c2_base",
+            "position_unit": "m",
+            "schema": "workpiece-measurement/1",
+            "validity": "SIMULATED",
+            "geometry_ready": true,
+            "profile_snapshot_id": "example-sim-config",
+            "profile_sha256": "c91af5a65c252961f199f21a1f7fe08a28cbdc56a77fa9ec5a2e8ed7e023e7c3",
+            "points": [
+              {
+                "detected": true,
+                "tip_pose": [
+                  0.4506729355595087,
+                  0.024475902020724048,
+                  0.19469999999999998,
+                  0.3826834323650898,
+                  0.9238795325112867,
+                  0.0,
+                  0.0
+                ],
+                "frame_id": "c2_base",
+                "normal_force_n": 0.81,
+                "measured_at_monotonic_s": 0.0,
+                "operator_confirmed": false,
+                "point_index": 1,
+                "received_at": "2026-09-21T06:00:48.905183+00:00",
+                "source": "SIMULATED"
+              },
+              {
+                "detected": true,
+                "tip_pose": [
+                  0.46079995872265195,
+                  4.6709476999166216e-05,
+                  0.19469999999999998,
+                  0.7071067811865475,
+                  0.7071067811865476,
+                  0.0,
+                  0.0
+                ],
+                "frame_id": "c2_base",
+                "normal_force_n": 0.81,
+                "measured_at_monotonic_s": 0.0,
+                "operator_confirmed": false,
+                "point_index": 2,
+                "received_at": "2026-09-21T06:00:48.905317+00:00",
+                "source": "SIMULATED"
+              },
+              {
+                "detected": true,
+                "tip_pose": [
+                  0.4506194738701219,
+                  -0.02432902137733893,
+                  0.19469999999999998,
+                  0.9238795325112867,
+                  0.3826834323650898,
+                  0.0,
+                  0.0
+                ],
+                "frame_id": "c2_base",
+                "normal_force_n": 0.81,
+                "measured_at_monotonic_s": 0.0,
+                "operator_confirmed": false,
+                "point_index": 3,
+                "received_at": "2026-09-21T06:00:48.905455+00:00",
+                "source": "SIMULATED"
+              },
+              {
+                "detected": true,
+                "tip_pose": [
+                  0.42624374301578377,
+                  -0.034299645110885714,
+                  0.19469999999999998,
+                  1.0,
+                  3.061616997868383e-17,
+                  0.0,
+                  0.0
+                ],
+                "frame_id": "c2_base",
+                "normal_force_n": 0.81,
+                "measured_at_monotonic_s": 0.0,
+                "operator_confirmed": false,
+                "point_index": 4,
+                "received_at": "2026-09-21T06:00:48.905586+00:00",
+                "source": "SIMULATED"
+              },
+              {
+                "detected": true,
+                "tip_pose": [
+                  0.40202409797927596,
+                  -0.024172935559508682,
+                  0.19469999999999998,
+                  0.9238795325112867,
+                  -0.3826834323650897,
+                  0.0,
+                  0.0
+                ],
+                "frame_id": "c2_base",
+                "normal_force_n": 0.81,
+                "measured_at_monotonic_s": 0.0,
+                "operator_confirmed": false,
+                "point_index": 5,
+                "received_at": "2026-09-21T06:00:48.905715+00:00",
+                "source": "SIMULATED"
+              },
+              {
+                "detected": true,
+                "tip_pose": [
+                  0.39200004127734805,
+                  4.670947699916202e-05,
+                  0.19469999999999998,
+                  0.7071067811865476,
+                  -0.7071067811865475,
+                  0.0,
+                  0.0
+                ],
+                "frame_id": "c2_base",
+                "normal_force_n": 0.81,
+                "measured_at_monotonic_s": 0.0,
+                "operator_confirmed": false,
+                "point_index": 6,
+                "received_at": "2026-09-21T06:00:48.905848+00:00",
+                "source": "SIMULATED"
+              },
+              {
+                "detected": true,
+                "tip_pose": [
+                  0.401970978622661,
+                  0.024319473870121868,
+                  0.19469999999999998,
+                  -0.3826834323650899,
+                  0.9238795325112867,
+                  0.0,
+                  0.0
+                ],
+                "frame_id": "c2_base",
+                "normal_force_n": 0.81,
+                "measured_at_monotonic_s": 0.0,
+                "operator_confirmed": false,
+                "point_index": 7,
+                "received_at": "2026-09-21T06:00:48.905983+00:00",
+                "source": "SIMULATED"
+              },
+              {
+                "detected": true,
+                "tip_pose": [
+                  0.42624374301578377,
+                  0.03449964511088572,
+                  0.19469999999999998,
+                  -9.184850993605148e-17,
+                  1.0,
+                  0.0,
+                  0.0
+                ],
+                "frame_id": "c2_base",
+                "normal_force_n": 0.81,
+                "measured_at_monotonic_s": 0.0,
+                "operator_confirmed": false,
+                "point_index": 8,
+                "received_at": "2026-09-21T06:00:48.906119+00:00",
+                "source": "SIMULATED"
+              }
+            ],
+            "top": {
+              "detected": true,
+              "tip_pose": [
+                0.425393743,
+                -0.0995032905,
+                0.2447,
+                0.0,
+                1.0,
+                0.0,
+                0.0
+              ],
+              "frame_id": "c2_base",
+              "normal_force_n": 0.81,
+              "measured_at_monotonic_s": 0.0,
+              "operator_confirmed": false,
+              "point_index": 0,
+              "received_at": "2026-09-21T06:00:48.904259+00:00",
+              "source": "SIMULATED"
+            },
+            "axis_xy_m": [
+              0.4264,
+              0.00010000000000001021
+            ],
+            "radius_m": 0.0344,
+            "top_z_m": 0.2347,
+            "bottom_z_m": 0.0847,
+            "measured_at": "2026-09-21T06:00:48.906571+00:00",
+            "started_at": "2026-09-21T06:00:48.903297+00:00",
+            "measurement_time_basis": "completed_utc; contact_samples_monotonic",
+            "top_tcp_contact_z_m": 0.2447,
+            "measurement_scope": "ABSOLUTE_GEOMETRY",
+            "residual_rms_m": 9.813077866773595e-18,
+            "residual_max_m": 1.3877787807814457e-17,
+            "residuals_m": [
+              1.3877787807814457e-17,
+              -6.938893903907228e-18,
+              1.3877787807814457e-17,
+              6.938893903907228e-18,
+              0.0,
+              -6.938893903907228e-18,
+              1.3877787807814457e-17,
+              -6.938893903907228e-18
+            ],
+            "height_m": 0.15,
+            "height_source": "OPERATOR_RULER",
+            "work_z_range_m": [
+              0.09469999999999999,
+              0.22469999999999998
+            ],
+            "work_v_range_m": [
+              0.01,
+              0.13999999999999999
+            ],
+            "vertical_axis_assumed": true,
+            "tilt_measured": false,
+            "tool_offset_m": [
+              0.00085,
+              -0.09955,
+              0
+            ],
+            "independent_accuracy_verified": false
+          }
+        }
+      ],
+      "stop_confirmed": true,
+      "partial": false,
+      "home_return_confirmed": true,
+      "home_move_skipped": false,
+      "home_return_start": {
+        "tip_pose": [
+          0.42624374301578377,
+          0.05633836855050303,
+          0.19469999999999998,
+          -9.184850993605148e-17,
+          1.0,
+          0.0,
+          0.0
+        ],
+        "joints_rad": [
+          0.0,
+          0.2,
+          1.2,
+          0.0,
+          1.5,
+          0.0
+        ],
+        "frame_id": "c2_base",
+        "quality": "VALID",
+        "robot_state": 1,
+        "motion_status": 0,
+        "measured_at_monotonic_s": 0.0
+      },
+      "final_state": {
+        "tip_pose": [
+          0.425393743,
+          -0.0995032905,
+          0.33,
+          0.0,
+          1.0,
+          0.0,
+          0.0
+        ],
+        "joints_rad": [
+          0.0,
+          0.2,
+          1.2,
+          0.0,
+          1.5,
+          0.0
+        ],
+        "frame_id": "c2_base",
+        "quality": "VALID",
+        "robot_state": 1,
+        "motion_status": 0,
+        "measured_at_monotonic_s": 0.0
+      },
+      "elapsed_s": 0.0
+    }
+  }
+}

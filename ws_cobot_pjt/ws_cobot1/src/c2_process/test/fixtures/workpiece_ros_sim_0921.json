@@ -1,0 +1,20 @@
+{
+  "validation_level": "ROS_SIMULATION_NO_ROBOT_IO",
+  "ros_domain_id": 121,
+  "measurement_id": "workpiece-test-460e945df61e4ee5a95acf94ab20ace3",
+  "outcome": "SUCCEEDED",
+  "side_points": 8,
+  "feedback_count": 26,
+  "stop_confirmed": true,
+  "bag_name": "workpiece-sim-final-0921-bag",
+  "bag_files_sha256": {
+    "metadata.yaml": "e0c9423d2407ebddfc0411fa5f253268d5edb34cff05d57aee5876708ae69e19",
+    "workpiece-sim-final-0921-bag_0.mcap": "151c9c732f3ffae46f57c0ef99160f1617c2212cc774339d717a78fa4e194b26"
+  },
+  "module_sha256": {
+    "c2_process/workpiece_calibration.py": "d5767c72f4f5b664cfddbadf8d21926d825668ba3e295e1a3b9b8912aba7a5f1",
+    "c2_process/workpiece_simulation.py": "91e96af77976ed7137fb30da2f74707528f443a0693b24e6f2b51b44916bafe8",
+    "c2_process/workpiece_real_trial.py": "1e3a98c5f4991bed7f58fb8c22eb0ae92460d93a7fe3191fb19c481b79483904"
+  },
+  "hardware_validation": false
+}
