@@ -21,7 +21,6 @@ setup(
         "console_scripts": [
             "process_controller_node = c2_process.node:main",
             "real_preparation_node = c2_process.node:real_preparation_main",
-            "real_process_controller_node = c2_process.node:real_process_main",
         ],
     },
 )
