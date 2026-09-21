@@ -1,0 +1,232 @@
+{
+  "checks": [
+    {
+      "code": "SCHEMA_VERSION",
+      "expected": 2,
+      "observed": 2,
+      "passed": true
+    },
+    {
+      "code": "WAYPOINT_FORMAT",
+      "format": "[x,y,z,qx,qy,qz,qw]",
+      "passed": true
+    },
+    {
+      "code": "CONFIG_MATCH",
+      "frame_id": "c2_base",
+      "passed": true,
+      "tool_id": "engraving_drill"
+    },
+    {
+      "code": "HEIGHT_IN_RANGE",
+      "limit_m": [
+        0.08499999999999999,
+        0.13
+      ],
+      "passed": true
+    },
+    {
+      "code": "CUT_ON_SURFACE",
+      "observed_max_chord_error_m": 8.7e-07,
+      "passed": true
+    },
+    {
+      "code": "CUT_SPACING_MAX",
+      "limit_m": 0.002,
+      "observed_max_m": 0.000482,
+      "passed": true
+    },
+    {
+      "code": "SEGMENT_POINTS_MAX",
+      "limit": 80,
+      "observed_max": 80,
+      "passed": true
+    },
+    {
+      "code": "STROKE_ARC_MAX",
+      "limit_deg": 180.0,
+      "observed_max_deg": 20.017,
+      "passed": true
+    },
+    {
+      "applies_to": [
+        "CUT",
+        "TRAVEL"
+      ],
+      "code": "SEAM_NOT_CROSSED",
+      "passed": false,
+      "seam_angle_deg": 180.0
+    },
+    {
+      "code": "ANGLE_IN_REACHABLE_RANGE",
+      "limit_deg": [
+        -135.0,
+        135.0
+      ],
+      "note": "J5 안전 범위 잠정치(9/20 실측) — 정밀 재실측 후 갱신 예정",
+      "passed": false
+    },
+    {
+      "code": "NO_CYLINDER_PENETRATION",
+      "observed_min_travel_clearance_m": 0.009901,
+      "passed": true
+    },
+    {
+      "code": "QUAT_NORMALIZED_AND_CONTINUOUS",
+      "observed_sign_flips": 0,
+      "passed": true
+    },
+    {
+      "code": "SEGMENT_CONTINUITY",
+      "passed": true
+    }
+  ],
+  "errors": [
+    "ANGLE_OUT_OF_RANGE: stroke000_part0 θ=-179.94도 (허용 -135.0~135.0)",
+    "ANGLE_OUT_OF_RANGE: stroke001_part2 θ=180.00도 (허용 -135.0~135.0)",
+    "ANGLE_OUT_OF_RANGE: stroke001_part0 θ=-179.94도 (허용 -135.0~135.0)",
+    "ANGLE_OUT_OF_RANGE: stroke002 θ=-179.82도 (허용 -135.0~135.0)",
+    "ANGLE_OUT_OF_RANGE: stroke000_part1 θ=180.00도 (허용 -135.0~135.0)",
+    "SEAM_CROSSED: stroke001_part1",
+    "ANGLE_OUT_OF_RANGE: stroke001_part1 θ=180.00도 (허용 -135.0~135.0)",
+    "ANGLE_OUT_OF_RANGE: stroke003 θ=179.94도 (허용 -135.0~135.0)",
+    "SEAM_CROSSED: seg-0004(TRAVEL)"
+  ],
+  "input_stroke_count": 4,
+  "mapped_stroke_count": 7,
+  "mapping_failures": [],
+  "not_checked": [
+    "J6_RANGE"
+  ],
+  "passed": false,
+  "path_id": "789e3e33-6e31-5a8f-8969-31fe9f3448d4",
+  "path_version": 1,
+  "request_id": "77accf95-0ff0-56e4-90aa-abe90abe89d5",
+  "stats": {
+    "build": {
+      "cost_weights": {
+        "lift": 0.0,
+        "orientation_deg": 0.002,
+        "seam_proximity": 0.05,
+        "theta_turn_deg": 0.004,
+        "travel_arc_m": 1.0
+      },
+      "cut_length_m": 0.075095,
+      "cut_segments": 9,
+      "lift_count": 7,
+      "ordering": {
+        "cost_final": 2.054425,
+        "cost_initial": 8.89233,
+        "forbidden_pairs": 0,
+        "reordered": true,
+        "two_opt_improvements": 0
+      },
+      "segment_count": 29,
+      "travel_length_m": 0.312386,
+      "travel_segments": 6,
+      "waypoint_count": 316
+    },
+    "convert": {
+      "fit_error_px": 0.6,
+      "foreground_pixels": 8188,
+      "image_size_px": [
+        400,
+        400
+      ],
+      "source_image": "heart.png",
+      "spur_min_len_px": 4.0,
+      "stroke_count": 4,
+      "strokes": [
+        {
+          "bezier_count": 1,
+          "closed": false,
+          "point_count": 8
+        },
+        {
+          "bezier_count": 2,
+          "closed": false,
+          "point_count": 11
+        },
+        {
+          "bezier_count": 59,
+          "closed": false,
+          "point_count": 437
+        },
+        {
+          "bezier_count": 69,
+          "closed": false,
+          "point_count": 437
+        }
+      ]
+    },
+    "extract_2d": {
+      "center_uv_mm": [
+        107.5995,
+        105.0
+      ],
+      "chord_tolerance_mm": 0.05,
+      "closed_subpaths": 0,
+      "fitted_size_mm": [
+        24.0,
+        21.5444
+      ],
+      "max_step_mm": 2.0,
+      "point_count": 219,
+      "refit_applied": false,
+      "rotation_deg": 0.0,
+      "scale": 0.07153597,
+      "spacing_mm": {
+        "max": 0.5058,
+        "mean": 0.3494,
+        "min": 0.3002
+      },
+      "stroke_count": 4,
+      "subpath_count": 4,
+      "u_range_mm": [
+        95.6006,
+        119.5994
+      ],
+      "v_range_mm": [
+        94.2278,
+        115.7688
+      ]
+    },
+    "map_3d": {
+      "degenerate_parts_dropped": 5,
+      "failed_strokes": 0,
+      "height_range_m": [
+        0.094228,
+        0.115769
+      ],
+      "input_strokes": 4,
+      "mapped_strokes": 7,
+      "points_after_resample": 224,
+      "points_before_resample": 219,
+      "projection": "cylinder_iso_parametric",
+      "seam_angle_deg": 180.0,
+      "stroke_max_arc_deg": 180.0,
+      "strokes_split_at_seam": 2,
+      "strokes_split_by_arc_limit": 0,
+      "theta_range_deg": [
+        -180.0,
+        180.0
+      ],
+      "u_origin_angle_deg": 0.0
+    },
+    "optimize_2d": {
+      "direction_reversal_allowed": false,
+      "direction_reversed_count": 0,
+      "order": [
+        0,
+        1,
+        3,
+        2
+      ],
+      "shape_modified": false,
+      "stroke_count": 4,
+      "travel_mm_after_2opt": 34.2693,
+      "travel_mm_nearest_neighbor": 34.2705,
+      "two_opt_improvements": 3
+    }
+  }
+}

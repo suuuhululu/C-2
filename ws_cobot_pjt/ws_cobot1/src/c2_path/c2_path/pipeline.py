@@ -106,11 +106,15 @@ def validate_goal(goal: Mapping) -> dict:
 
 
 def _same(actual, expected, label, errors, tol=1e-9):
+    # bool 은 int/float 의 하위 형이라 True == 1 이다. 스냅샷에 true/false 가 숫자 자리에 들어와도
+    # 통과하지 않도록 자료형까지 확인한다 (예: tools_config_version=true).
     if isinstance(expected, float):
         try:
-            okay = math.isclose(float(actual), expected, rel_tol=0.0, abs_tol=tol)
+            okay = not isinstance(actual, (bool, str)) and math.isclose(float(actual), expected, rel_tol=0.0, abs_tol=tol)
         except (TypeError, ValueError):
             okay = False
+    elif isinstance(expected, (bool, int, str)):
+        okay = type(actual) is type(expected) and actual == expected
     else:
         okay = actual == expected
     if not okay:

@@ -7,8 +7,15 @@
 
 ```bash
 python3 build_samples.py                 # 샘플 3종 생성 (path_sha256 은 저장 후 계산해 result.json 에만)
-python3 -m unittest discover -s test -v  # 계약·안전 시험 46개
+python3 build_bundle_samples.py          # 파일 묶음 샘플 2종 (samples/bundles/, 아래 참고)
+python3 -m unittest discover -s test -v  # 계약·안전·묶음·스냅샷 시험
 ```
+
+> **두 종류의 샘플이 있다.** 이 문서의 `heart/`·`heart_pair/`·`heart_seam/` 는 **경로 알고리즘 검증용**이라
+> ID 가 `path-heart-0001` 같은 읽기 쉬운 문자열이고 SVG·미리보기 파일이 없다. HMI 가져오기·통합 시험에는
+> **`bundles/`** 를 쓴다. 실제 `GeneratePipeline` 을 돌린 결과이며 UUID·SHA-256·`manifest.json`·미리보기·SVG·
+> 검증 보고서·`result.json` 이 실제 계약대로 들어 있다 (`bundles/heart_ok`, 실패 예시 `bundles/heart_seam_rejected`).
+> 형식은 [`../BUNDLE_SPEC.md`](../BUNDLE_SPEC.md) 참고. `bundles/` 의 ID·해시는 HMI 발급값이 아닌 시험용이다.
 
 ## 경로 파일 형식 (2026-09-20, 로봇팀 형식으로 통일)
 
@@ -106,7 +113,9 @@ clearance 10mm 기준으로 각도차 **78.8°** 를 넘으면 직선 현은 반
 
 ## 알려진 한계
 
-- `profile_snapshot_id`·`profile_sha256` 는 서버가 발급하는 값이 아니라 테스트 문자열이다.
+- `profile_snapshot_id`·`profile_sha256` 는 서버가 발급하는 값이 아니다 (`profile_sha256` 은 `matching_test_profile()` 의
+  들여쓴 JSON 바이트의 해시, ID 는 `snap-candle-0919` 같은 문자열). HMI 발급 형식(UUID, compact JSON 바이트 해시)에 맞춘
+  샘플은 `bundles/` 에 있다.
 - `heart_seam` 은 하트 위·아래 꼭짓점이 정확히 180° 에 놓여 두 조각으로 나뉜다. 두 조각을 잇는
   TRAVEL 은 이음매를 넘지 않으려고 +X 쪽으로 **한 바퀴(360°)** 돈다 (277.8 mm, J6 도 한 바퀴).
   이음매 위 도안은 로봇 쪽 J5 위험 구역이라, 9/20 `REACHABLE_ANGLE_DEG`(잠정 ±135°) 반영 이후

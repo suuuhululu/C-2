@@ -1,0 +1,56 @@
+{
+  "bundle_role": "output",
+  "contract": "c2-path-bundle/1",
+  "documents": [
+    {
+      "file": "request.json",
+      "kind": "request",
+      "mime": "application/json",
+      "sha256": "64f6a40fe652e95e32704d656525e4c35e79ac70f323fd46339a4d2c322b761a",
+      "size_bytes": 604
+    },
+    {
+      "file": "result.json",
+      "kind": "result",
+      "mime": "application/json",
+      "sha256": "d5f2c5d5b2d2df94bc4d147a9e5ff328cc55ba16ff513ea62ae4519ffe26a432",
+      "size_bytes": 431
+    }
+  ],
+  "files": [
+    {
+      "asset_id": "8c274928-f7c1-545d-a804-4fd9562ca88f",
+      "executable": false,
+      "file": "c2-path-validation-failed.json",
+      "kind": "validation",
+      "mime": "application/json",
+      "name": "c2-path-validation-failed.json",
+      "path_id": null,
+      "path_version": null,
+      "sha256": "c7fb5131759e4c70c3e17e608618b5c2e40fd3bf3a9da1928eceb166d4d4afa3",
+      "size_bytes": 5419
+    },
+    {
+      "asset_id": "4d55b287-6f59-5da4-b4de-4dd18f532b1c",
+      "executable": false,
+      "file": "c2-path-centerline-diagnostic.svg",
+      "kind": "svg",
+      "mime": "image/svg+xml",
+      "name": "c2-path-centerline-diagnostic.svg",
+      "path_id": null,
+      "path_version": null,
+      "sha256": "86b93c6c18dba987ee1dd8e2d7b911e44713ee94885d48fcea42094ad0b067b9",
+      "size_bytes": 5637
+    }
+  ],
+  "inputs": {
+    "asset_id": "95169bf6-2335-5859-b751-48a2b594861d",
+    "asset_sha256": "74937463fbd90ed19b0fbb9cf2687e0fcdac4344a2439a1a9affb721937c185b",
+    "profile_sha256": "58e3e554bee4ef5c4a04ed7ec94b07f2376c99b6e5adee7ec1ea6a2bd285bf82",
+    "profile_snapshot_id": "838be9ca-dcc2-5682-b8a5-cc9d29211a3b"
+  },
+  "path": null,
+  "request_id": "77accf95-0ff0-56e4-90aa-abe90abe89d5",
+  "schema_version": 1,
+  "source_mode": "SIMULATION"
+}

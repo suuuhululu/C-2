@@ -18,6 +18,8 @@
 | `c2_path/generate_path.py` | 안전비용 정렬, offset-cylinder 이동, pose7 경로 구성 |
 | `c2_path/validate_path.py` | 형식·표면·높이·간격·이음매·자세·빈 경로 검증 |
 | `c2_path/workcell.py` | 현재 test_only 워크셀·도구 값 |
+| `c2_path/bundle.py` | 파일 묶음(폴더) 방식 입·출력: `manifest.json` 작성·검증, ROS 없이 `GeneratePipeline` 실행 (1차 통합 시험용) |
+| `c2_path/snapshot.py` | 스냅샷 `surface` ↔ 공정 `workcell` 입력 연결·일치 검사, 실측 프로필 기하 필드의 구조 조건 |
 
 ## 계약과 안전 범위
 
@@ -49,6 +51,21 @@
 `pipeline.matching_test_profile()`과 동일한 내용을 서버가 불변 프로파일로 등록해야
 한다. REAL 프로파일로 사용하면 안 된다.
 
+## 파일 묶음 방식 (1차 통합 시험용, 제안)
+
+PC 한 대 시험에서는 설정으로 지정한 공통 폴더의 파일 묶음으로 입력을 받고 결과를 내보낼 수 있다.
+ROS 액션(위)과 **같은 `GeneratePipeline`** 을 쓰며 ROS·SQLite 없이 동작한다. 기존 ROS 연동을 대체하지 않는다.
+
+```bash
+cd ws_cobot_pjt/ws_cobot1/src/c2_path
+python3 -m c2_path.bundle run --input <입력 묶음> --output <출력 묶음>   # 생성 실패여도 실패 결과 묶음을 남기고 종료코드 2
+python3 -m c2_path.bundle verify <묶음>                                  # 파일·해시·참조 관계 검사
+python3 build_bundle_samples.py                                          # samples/bundles/ 재생성
+```
+
+파일 묶음 시험 결과와 ROS 통신 시험 결과는 구분해서 기록한다. 스냅샷·`manifest.json` 형식과 담당별 미정 항목은
+[`BUNDLE_SPEC.md`](BUNDLE_SPEC.md) 를 본다 (공통 규격으로 확정되기 전의 **제안**).
+
 ## 빌드·실행
 
 저장소 루트 기준:
@@ -68,10 +85,13 @@ ros2 run c2_path path_planner_node --ros-args \
 
 순수 계산 시험:
 
-```bashd
+```bash
 cd ws_cobot_pjt/ws_cobot1/src/c2_path
 python3 -m unittest discover -s test -v
 ```
+
+`test_loader_compat.py` 는 옆의 `c2_process`(`engraving.validate_path`, `joint_check.check_path_joints`, 모의 어댑터)가
+있을 때만 실행되며, ROS·실제 로봇은 쓰지 않는다.
 
 ROS 빌드 후 Action 서버/클라이언트 통합 시험은 별도로 수행한다. 노드가 생겼다는
 사실만으로 HMI 전체 연동이 완료되는 것은 아니다. 백엔드 `RosBridge`의
