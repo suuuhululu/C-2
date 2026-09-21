@@ -2,7 +2,7 @@
 
 2026-09-21: [취소 가능한 계산 프로세스](../../../docs/HMI_GENERATION_CANCEL.md)을 지원한다. 기존 GeneratePath v2의 표준 취소를 사용하며 공통 ROS 타입 변경은 없다.
 
-`path_planner_node`는 HMI가 등록한 PNG/JPEG를 읽어 중심선 SVG → 2D 좌표 →
+`path_planner_node`는 HMI가 등록한 PNG/JPEG를 읽어 중심선 또는 평행선 해칭 SVG → 2D 좌표 →
 원통 3D 도구 끝 경로 → 기하 검증 산출물을 만드는 ROS 2 Jazzy Action 서버다.
 이 패키지는 로봇·그리퍼·두산 API를 호출하지 않는다.
 
@@ -14,6 +14,7 @@
 | `c2_path/pipeline.py` | 계산 단계 조합, 입력/프로파일 검사(스냅샷 `/1`·`/2` 구분), 일부 획 실패·빈 경로 차단, 산출물 확정 |
 | `c2_path/artifacts.py` | HMI 관리 UUID→파일 해석·해시 검사, 산출물 묶음 원자적 등록 |
 | `c2_path/image_to_svg.py` | PNG/JPEG → 중심선 SVG(Otsu·세선화·골격·Bézier) |
+| `c2_path/image_to_hatch.py` | PNG/JPEG의 검은 면 → 경계 보정된 단방향 평행선 해칭 SVG·픽셀 획 |
 | `c2_path/extract_2d.py` | SVG → 2D 좌표(mm), 크기·배치·회전, 적응형 샘플링 |
 | `c2_path/optimize_2d.py` | NN+2-opt 획 방문 순서 최적화(형상·진행 방향 보존) |
 | `c2_path/map_3d.py` | 원통 해석 매핑, 이음매·180° 분할, 도구 자세 |
@@ -45,9 +46,16 @@
 - 매핑 실패 획이 하나라도 있거나 CUT가 비면 전체 생성이 실패한다. 실패/취소 시
   `path_id/path_sha256`을 공개하지 않는다.
 
-지원 입력 preset은 실제 PNG/JPEG 중심선 변환을 뜻하는
-`raster_centerline_bezier` 하나다. 기존 HMI의 `simulation_centerline`은 고정 모의
-샘플 이름이므로 실제 이미지 변환으로 묵시 해석하지 않는다.
+지원 입력 preset은 다음 두 개다.
+
+- `raster_centerline_bezier`: 가는 선·윤곽을 중심선으로 변환한다.
+- `raster_parallel_hatch`: 굵은 선·채워진 면을 단방향 평행선으로 변환한다. 모든 CUT 획의
+  진행 방향을 유지하고 획마다 기존 APPROACH/RETRACT를 사용한다. 간격은 HMI 입력이 아니라
+  코드의 SIMULATION/test_only 고정값 `0.8mm`(가정 홈 폭 `1.6mm`의 50%)다. 이 수치는 실측
+  승인값이 아니며 실제 재료·깊이·공구로 홈 폭을 측정한 뒤 코드와 검증 근거를 함께 갱신해야 한다.
+
+기존 HMI의 `simulation_centerline`은 고정 모의 샘플 이름이므로 실제 이미지 변환으로 묵시 해석하지 않는다.
+해칭 preset도 별도 간격 값을 Goal/HMI에서 받지 않는다.
 
 ## 관리 파일 연결
 

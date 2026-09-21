@@ -176,6 +176,70 @@ def _bbox(strokes):
     return min(xs), min(ys), max(xs), max(ys)
 
 
+def transform_raw_strokes(raw_strokes, source_bbox, width_mm, height_mm,
+                          offset_u_mm, offset_v_mm, rotation_deg=0.0,
+                          max_step_mm=None, min_gap_mm=None):
+    """이미지 픽셀 점열을 u/v(mm) 획으로 변환한다.
+
+    평행선 해칭은 공구 반경만큼 안쪽으로 줄어들므로, 획 자체 bbox가 아니라
+    보정 전 전경 source_bbox를 기준으로 요청 width/height에 맞춘다. 그래야
+    경계 보정 때문에 도안 전체가 다시 확대되는 일이 없다.
+    """
+    if not raw_strokes:
+        raise ValueError("변환할 픽셀 획이 없습니다.")
+    max_step_mm = max_step_mm if max_step_mm is not None else wc.WAYPOINT_SPACING_MAX_M * 1000.0
+    min_gap_mm = min_gap_mm if min_gap_mm is not None else wc.WAYPOINT_SPACING_MIN_M * 1000.0
+    x0, y0, x1, y1 = source_bbox
+    src_w, src_h = max(x1 - x0, 1e-12), max(y1 - y0, 1e-12)
+    scale = min(width_mm / src_w, height_mm / src_h)
+    fitted_w, fitted_h = src_w * scale, src_h * scale
+    cx, cy = (x0 + x1) / 2.0, (y0 + y1) / 2.0
+    strokes = [[((px - cx) * scale, (cy - py) * scale) for px, py in s]
+               for s in raw_strokes]
+    if rotation_deg:
+        t = math.radians(rotation_deg)
+        ct, st = math.cos(t), math.sin(t)
+        strokes = [[(p[0] * ct - p[1] * st, p[0] * st + p[1] * ct) for p in s]
+                   for s in strokes]
+    strokes = [[(p[0] + offset_u_mm, p[1] + offset_v_mm) for p in s]
+               for s in strokes]
+
+    sampled = []
+    for stroke in strokes:
+        points = [stroke[0]]
+        for a, b in zip(stroke[:-1], stroke[1:]):
+            # sample_line은 시작점을 제외하고 끝점을 포함한다. 첫 보간점을 버리면
+            # 최대 waypoint 간격을 넘을 수 있으므로 반환값 전체를 붙인다.
+            points.extend(sample_line(a, b, max_step_mm))
+        points = dedup(points, min_gap_mm)
+        if len(points) >= 2:
+            sampled.append(points)
+    if not sampled:
+        raise ValueError("mm 변환 후 유효한 해칭 획이 남지 않았습니다.")
+
+    us = [p[0] for s in sampled for p in s]
+    vs = [p[1] for s in sampled for p in s]
+    gaps = [math.dist(s[i], s[i + 1]) for s in sampled for i in range(len(s) - 1)]
+    stats = {
+        "subpath_count": len(raw_strokes),
+        "stroke_count": len(sampled),
+        "closed_subpaths": 0,
+        "point_count": sum(len(s) for s in sampled),
+        "fitted_size_mm": [round(fitted_w, 4), round(fitted_h, 4)],
+        "scale": round(scale, 8),
+        "center_uv_mm": [offset_u_mm, offset_v_mm],
+        "rotation_deg": rotation_deg,
+        "u_range_mm": [round(min(us), 4), round(max(us), 4)],
+        "v_range_mm": [round(min(vs), 4), round(max(vs), 4)],
+        "spacing_mm": {"min": round(min(gaps), 4), "max": round(max(gaps), 4),
+                       "mean": round(sum(gaps) / len(gaps), 4)},
+        "max_step_mm": max_step_mm,
+        "source_bbox_px": list(source_bbox),
+        "refit_applied": False,
+    }
+    return sampled, stats
+
+
 def extract(svg_text, width_mm, height_mm, offset_u_mm, offset_v_mm, rotation_deg=0.0,
             chord_tol_mm=None, max_step_mm=None, min_gap_mm=None):
     """SVG -> u/v(mm) 획 목록.

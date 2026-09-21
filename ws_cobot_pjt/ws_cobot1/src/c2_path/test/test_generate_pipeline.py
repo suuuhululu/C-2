@@ -55,6 +55,14 @@ def line_png():
     return encoded.tobytes()
 
 
+def filled_rectangle_png():
+    image = np.full((200, 200), 255, np.uint8)
+    cv2.rectangle(image, (25, 35), (175, 165), 0, -1)
+    okay, encoded = cv2.imencode(".png", image)
+    assert okay
+    return encoded.tobytes()
+
+
 class PipelineFixture(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
@@ -116,6 +124,27 @@ class TestGeneratePipeline(PipelineFixture):
                           (result.validation_report_id, "validation")):
             self.store.read(aid, self._sha(aid), (kind,))
 
+    def test_parallel_hatch_preset_generates_valid_path_with_fixed_spacing(self):
+        hatch_asset_id = new_id()
+        self.store.put_bundle([
+            ArtifactWrite(filled_rectangle_png(), "image", "image/png", "filled.png", {}, hatch_asset_id)
+        ])
+        hatch_asset = self.store.read(hatch_asset_id, self._sha(hatch_asset_id), ("image",))
+        goal = self.goal(
+            asset_id=hatch_asset_id,
+            asset_sha256=hatch_asset.sha256,
+            conversion_preset="raster_parallel_hatch",
+        )
+        result = GeneratePipeline(self.store).run(goal)
+        path = json.loads(self.store.read(result.path_asset_id, result.path_sha256, ("path",)).data)
+        report = json.loads(self.store.read(
+            result.validation_report_id, self._sha(result.validation_report_id), ("validation",)
+        ).data)
+        self.assertTrue(validate_path.validate(path)["passed"])
+        self.assertGreater(report["stats"]["convert"]["stroke_count"], 1)
+        self.assertEqual(report["stats"]["convert"]["spacing_mm"], 0.8)
+        self.assertTrue(report["stats"]["convert"]["fixed_test_only"])
+
     def test_any_mapping_failure_fails_whole_generation(self):
         with self.assertRaises(PipelineError) as caught:
             GeneratePipeline(self.store).run(self.goal(offset_v_mm=200.0))   # 옆면(150mm) 밖
@@ -144,6 +173,11 @@ class TestInputAndProfile(PipelineFixture):
         with self.assertRaises(PipelineError) as caught:
             validate_goal(self.goal(conversion_preset="simulation_centerline"))
         self.assertEqual(caught.exception.code, "UNSUPPORTED_FORMAT")
+
+    def test_parallel_hatch_is_supported_without_a_spacing_goal_field(self):
+        value = validate_goal(self.goal(conversion_preset="raster_parallel_hatch"))
+        self.assertEqual(value["conversion_preset"], "raster_parallel_hatch")
+        self.assertNotIn("hatch_spacing_mm", value)
 
     def test_real_is_rejected_while_workcell_is_test_only(self):
         with self.assertRaises(PipelineError) as caught:
