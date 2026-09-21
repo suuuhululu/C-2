@@ -1,90 +1,181 @@
-# C-2 협동로봇 프로젝트
+# 새김 · SAEGIM
 
-**2026-09-19 현재:** [고정 드릴 운영·6개 공정 모듈·통신 v2](ws_cobot_pjt/docs/C2_FIXED_DRILL_20260919.md)를 적용하는 변경입니다. 철사 고정 중 그리퍼 열기·자동 집기·청소·반납은 금지합니다. [최신 구조](ws_cobot_pjt/docs/SYSTEM_STRUCTURE.md), [문서 점검](ws_cobot_pjt/docs/DOCS_AUDIT_20260919.md)을 먼저 확인하세요. 아래 과거 기획·연구·실기 기록은 작성 당시 범위로 보존합니다.
+**사용자가 고른 도안을 원통 표면의 조각 경로로 만드는 협동로봇 프로젝트**
 
-두산 M0609와 2점 그리퍼를 사용하는 교육·팀 프로젝트 저장소입니다. 현재 서비스 방향은 **고객 도안을 원기둥 표면에 새기는 맞춤 음각**이며 ROS 2 기준은 **Jazzy**입니다.
+새김은 이미지 입력, 도안 배치, 3D 경로 생성, 미리보기, 측정·조각 공정을 하나의 운영자 화면으로 연결하는 C-2 팀 프로젝트입니다. 두산로보틱스 **M0609**, **2점 그리퍼에 고정한 드릴**, **ROS 2 Jazzy**를 사용하며, **PC 한 대**에서 HMI·서버·ROS 프로그램을 함께 운용하는 구성을 기준으로 합니다.
 
-## 음각 프로젝트 문서
+도자기 공방의 소량 맞춤 조각 서비스를 목표로, 현재는 **양초 시제품**으로 원통 매핑·측정·조각 기능을 개발하고 있습니다. 도자기 가공 품질과 작업 시간·비용 절감 효과는 후속 검증 대상입니다.
 
-- [현재 축소 시나리오: 3개 노드 인터페이스·팀 협업 안내](ws_cobot_pjt/docs/INTERFACE_GUIDE.md)
-- [목표 디렉토리·파일별 역할](ws_cobot_pjt/docs/SYSTEM_STRUCTURE.md) · [통신 필드·완료 조건 권장안 v2](ws_cobot_pjt/docs/INTERFACE_RECOMMENDATION.md)
-- [0917 개발 일지: 지점토 단위 실기·측정 기능·알고리즘 검토](ws_cobot_pjt/docs/daily/2026-09-17.md)
-- [0918 개발 일지: 3개 노드 계약·곡면 검증·공정 모듈·HMI 초안](ws_cobot_pjt/docs/daily/2026-09-18.md)
-- [서비스 목표·기능별 구현 상태](ws_cobot_pjt/docs/PROJECT_PLAN.md)
-- [과거 기능 흐름: 가공·세척·오류 처리 (보관)](ws_cobot_pjt/docs/SERVICE_FLOW.md)
-- [9/17 이전 설계: PC·웹앱·모니터·ROS 역할](ws_cobot_pjt/docs/SYSTEM_ARCHITECTURE.md)
-- [기존 중심선·가공 경로의 세 차례 오프라인 검증](ws_cobot_pjt/docs/ALGORITHM_VALIDATION.md)
-- [PNG·JPEG → SVG 비교와 Potrace 선택: 영역·굵기 보존](ws_cobot_pjt/docs/SVG_VECTORIZATION_VALIDATION.md)
-- [실험과 정량 기록 계획](ws_cobot_pjt/docs/EXPERIMENT_PLAN.md)
-- [현장 설정과 DRL 초안의 확인 범위](ws_cobot_pjt/docs/HARDWARE_STATUS.md)
+> **2026-09-21 갱신 · 기준 main [`8c8fb5c`](https://github.com/suuuhululu/C-2/commit/8c8fb5c)**
+> HMI와 실제 이미지 경로 생성의 ROS 부분 통합을 지원합니다. 양초 측정·조각 모듈도 있으나, HMI에서 측정부터 조각까지 이어지는 전체 공정은 통합 중입니다. 현재 HMI의 ROS 실행은 **SIMULATION / test_only**이며 실제 로봇 조각을 시작하지 않습니다.
 
-2026-09-18 설계 범위는 고객용 웹앱 없이 시스템 모니터에서 입력·실행·상태 확인을 수행하는 구조입니다. 작업대·대상은 고정 좌표, 그리퍼는 고정 장치이며 교체 도구를 사용합니다. 새 3개 노드 계약은 구현 목표입니다. [8페이지 draw.io 시스템 아키텍처](ws_cobot_pjt/docs/architecture/README.md)에서 송수신 데이터와 구현 상태를 확인할 수 있습니다. 기존 Clay 코드·전용 실행 안내는 사용자 요청으로 로컬 보관 후 저장소에서 제거했습니다. [보관·복구 기록](ws_cobot_pjt/docs/LEGACY_CLAY_ARCHIVE.md).
+## 핵심 기능
 
-2026-09-17 지점토 평면의 선분·정사각형·원·별 그리기 수행 보고와 시율의 사전 작업 기능 개발을 일지에 추가했습니다. 원기둥 실기, 자동 파지·세척·반납, 시스템 모니터의 통합 완료와는 구분합니다. 정량 측정값·시험 코드 버전의 확보 여부는 일지에 표시했습니다.
+- **도안 입력·배치:** PNG/JPEG를 첨부하고 크기·위치·회전을 조절합니다. 원통 전개면과 상하 제외 구간을 확인할 수 있습니다.
+- **이미지 기반 경로 생성:** 중심선 SVG 추출 → 2D 좌표·획 순서 최적화 → 원통 3D 매핑 → 접근·조각·이동·이탈 경로를 계산합니다.
+- **같은 경로의 2D·3D 미리보기:** 생성 산출물을 읽어 전개면과 원기둥에 표시하고, 기하 검사 결과와 미검사 항목을 확인합니다.
+- **설정·파일 추적:** 이미지, 설정 스냅샷, 경로, 미리보기, 검증 보고서를 ID·버전·SHA-256으로 연결합니다. 스냅샷은 해당 작업에 사용한 설정과 형상을 보존한 JSON입니다.
+- **양초 측정·공정 모듈:** 윗면·옆면 접촉 측정, 원통 중심·반지름 계산, 도구 기준 확인, 관절 검사, 조각 모듈을 개발합니다. 실제 공정 연결 범위는 아래 현황을 따릅니다.
+- **운영자 HMI:** 생성 진행·취소, 모의 공정 관제·정지, 이벤트·실행 이력·검사 기록, SIM 스냅샷과 파일 교환 시험을 제공합니다.
 
-## 먼저 읽기
+## 시스템 구성 · PC 한 대
 
-2026-09-19 [공통 인터페이스 v2](ws_cobot_pjt/ws_cobot1/src/c2_interfaces/README.md)의 Action 2개·Service 1개·Message 2개와 빌드 설정을 구현했습니다. Jazzy 빌드·타입 직렬화·서버 변환을 확인했으며 팀원은 같은 패키지를 빌드해 사용할 수 있습니다. 실제 좌표·공정 노드 통합과 실기 시험은 후속 작업입니다.
-
-1. [진행 현황과 남은 작업](docs/REVIEW_STATUS.md)
-2. [프로젝트 운영·학습·분업 가이드](docs/PROJECT_GUIDE.md)
-3. [워크스페이스·환경 가이드](docs/WORKSPACES.md)
-4. [Git·PR 협업 가이드](docs/GIT_GUIDE.md)
-5. [Issue 자동 배정·일정 변경](docs/ISSUE_AUTOMATION.md)
-6. [팀장 운영 가이드](docs/TEAM_LEAD_GUIDE.md)
-7. [팀원 시작 가이드](docs/TEAM_ONBOARDING.md)
-8. [기술 참고 자료와 확인 범위](docs/REFERENCES.md)
-9. [AI 공통 지침](AGENTS.md)
-
-## 현재 진행 상황
-
-2026-09-17 확인: 초기 구성 [PR #1](https://github.com/suuuhululu/C-2/pull/1)과 외부 실행환경 제외 [PR #3](https://github.com/suuuhululu/C-2/pull/3)은 동료 승인 후 main에 병합됐습니다. [Issue #2](https://github.com/suuuhululu/C-2/issues/2)도 종료됐고, Issue 자동화가 실제 실행 중입니다.
-
-메인 중심 구조와 음각 설계 문서는 [PR #4](https://github.com/suuuhululu/C-2/pull/4)로 9/17 main에 병합됐습니다. 추가 0917 일지는 `docs/0917-unit-function-log` 작업 브랜치에서 정리합니다. 게시·PR·병합 상태와 실기 확인 범위는 [진행 현황](docs/REVIEW_STATUS.md)을 확인하세요.
-
-## 폴더 구조
-
-```text
-C-2/                              현재 로컬 clone 폴더명: collaborative
-├── ws_cobot_pjt/                 메인 프로젝트
-│   ├── DartPlatform/             설치 위치 안내 (프로그램·Logs는 로컬 전용)
-│   ├── backend/app/              서버 코드
-│   ├── docker/                   컨테이너 구성
-│   ├── docs/                     기획·인터페이스·검증 결과
-│   ├── frontend/
-│   │   ├── public/               화면 정적 파일
-│   │   └── src/                  화면 소스
-│   ├── ws_cobot1/                팀 공정 ROS 2 워크스페이스
-│   │   ├── doc/                  실행·설정 문서
-│   │   └── src/                  팀 공정·노드·launch 패키지
-│   └── ws_dsr/                   로봇·그리퍼 실행환경 워크스페이스
-│       └── src/                  외부 cobot_rg2 원본 (로컬 전용, Git 제외)
-├── docs/                         팀 공통 운영·환경·Git 가이드
-├── .github/                      PR·Issue 양식, 팀 계정, 자동화
-├── .githooks/                    main 직접 push 방지
-└── tools/                        Git hook 설치, 로컬 검사, Issue 처리
+```mermaid
+flowchart LR
+    subgraph PC["운영 PC 1대"]
+        HMI["운영자 HMI<br/>React · TypeScript"]
+        API["FastAPI 서버<br/>monitor_gateway_node"]
+        PATH["경로 생성<br/>path_planner_node"]
+        DATA[("SQLite + 관리 파일<br/>이미지 · 스냅샷 · 경로 · 보고서")]
+        PROCESS["공정 제어 · 통합 예정<br/>process_controller_node<br/>측정 · 관절 검사 · 조각"]
+        DRIVER["공급자 로봇 드라이버"]
+        HMI <-->|HTTP / WebSocket| API
+        API <-->|ROS 2 GeneratePath| PATH
+        API <--> DATA
+        PATH <--> DATA
+        API -.->|준비·실행·정지 / 상태·결과 연결| PROCESS
+        PROCESS -.->|공정 통합 후 모션 호출| DRIVER
+    end
+    DRIVER <-->|장치 통신| ROBOT["M0609<br/>고정 드릴 · 양초"]
 ```
 
-2026-09-17 사용자 요청에 따라 [ws_cobot_pjt](ws_cobot_pjt/README.md)의 메인 프로젝트 중심으로 정리했습니다. Git 저장소는 하나이며 `ws_cobot_pjt` 폴더와 Git의 `main` 브랜치는 다른 개념입니다.
+실선의 HMI↔경로 생성은 현재 부분 통합 경로이며, 점선은 공정 노드에 연결할 부분입니다. 개별 측정·조각 실험과 이 전체 연결의 완료는 구분합니다.
 
-ROS 워크스페이스는 `ws_cobot_pjt/ws_cobot1`, `ws_cobot_pjt/ws_dsr` 두 곳입니다. 준비된 `ws_dsr` 위에서 팀 코드인 `ws_cobot1`을 빌드합니다. [환경 준비·공유 방법](docs/WORKSPACES.md)을 먼저 확인하세요.
+| 구성 | 역할 | 주요 위치 |
+| --- | --- | --- |
+| HMI·`monitor_gateway_node` | 입력·미리보기·저장, ROS 요청과 상태를 화면에 연결 | `frontend/src/monitor/`, `backend/app/` |
+| `path_planner_node` | 이미지·설정으로 경로와 검증 산출물 생성 | `ws_cobot1/src/c2_path/` |
+| `process_controller_node` | 준비·측정·검사·조각 순서와 로봇 모션 소유 | `ws_cobot1/src/c2_process/` — 내부 모듈 존재, 운영 노드 통합 예정 |
+| `c2_interfaces` | Action 2개·Service 1개·Message 2개의 공통 ROS 타입 | `ws_cobot1/src/c2_interfaces/` |
 
-저장소에는 팀 코드·문서·설정만 공유합니다. `ws_cobot_pjt/ws_dsr/src` 전체는 각 PC에서 준비하는 외부 `cobot_rg2` 원본이므로 Git에서 제외하며, 새로 clone한 C-2에는 이 폴더가 없습니다. 이미 설치한 PC는 그대로 사용하고, 출처·버전·새 PC 준비 방법은 [의존성 기록](docs/DEPENDENCIES.md)을 따릅니다. `build/`, `install/`, `log/`, `node_modules/`, Dart 로그도 각 PC에서 생성하며 Git에서 제외합니다.
+위 경로는 `ws_cobot_pjt/` 기준입니다. 화면은 로봇을 직접 제어하지 않습니다. 서버의 `RosBridge`는 **Python `rclpy` 기반 ROS 2 클라이언트**이며, 브라우저가 `rosbridge_suite`의 9090 포트로 접속하는 구조가 아닙니다. 이미지와 결과는 같은 PC의 관리 저장소에서 공유합니다.
 
-## 팀원 시작 순서
+### 연결할 전체 작업 흐름
 
-새 팀원은 현재 main을 clone해 시작합니다. 이미 clone한 팀원은 기존 작업을 보존하고 [Git 가이드](docs/GIT_GUIDE.md)에 따라 최신 변경을 받습니다.
+**도안 입력·배치 → 준비 요청·양초 측정 → 측정 스냅샷 등록 → 3D 경로 생성 → 미리보기 확인 → 최종 관절 검사·드릴 ON 확인 → 조각·이탈 → 결과 기록**
 
-```sh
+측정값으로 처음부터 경로를 만들고, 미리보기·검사·실행에서 같은 경로를 참조하는 것이 목표입니다. 경로 생성 전 준비 요청, 측정 결과 전달, 드릴 확인 입력은 공정·HMI의 계약과 구현을 함께 연결해야 합니다.
+
+## 현재 구현·검증 범위
+
+| 영역 | main에 반영된 내용 | 남은 범위 |
+| --- | --- | --- |
+| HMI·서버 | React·FastAPI·SQLite, 도안 배치, 생성 취소, 2D/3D 미리보기, 모의 공정·이력 | 실제 공정의 준비·측정·상태·정지 연결 |
+| ROS 경로 통합 | 실제 PNG/JPEG 변환, GeneratePath Action, 관리 파일 로더·해시 검사 | `SIMULATION/test_only` 유지. 경로 생성 성공은 로봇 실행 승인이 아님 |
+| 요청별 원통 형상 | `c2_path` 스냅샷 `/2`에서 반지름·높이·축 원점·작업 범위를 요청별로 적용 | 수직 원통 기준. 실제 측정 결과의 등록·선택·전달과 REAL 유효성 검증 |
+| 경로 검증 | 옆면·이음매·자세 등 기하 검사와 실행 사전 점검(`execution_readiness`) 분리 | 잠정 작업 범위 통과와 실제 IK·관절·충돌 검사는 별개 |
+| 파일 교환 | HMI의 SIM 스냅샷/ZIP 등록·조회, `c2_path`의 폴더 묶음 생성·검증 | HMI `c2-hmi-bundle/1`과 경로 측 `c2-path-bundle/1`은 서로 다른 제안 형식. 공통 규격 또는 변환 연결 필요 |
+| 양초 측정 | `workpiece_calibration.py`, 측정 어댑터·공정 내부 호출용 어댑터, 단독 시험 수신부 | 준비 Action·HMI 연결, 추정값과 실측값 구분, 측정 정확도 검증 |
+| 조각·공정 | `robot_adapter.py`, `tool_calibration.py`, `joint_check.py`, `engraving.py` | 운영 공정 노드·상태 기계·패키지/launch 통합, 최종 경로 검사와 실행의 동일성 검증 |
+
+**실기 기록:** 별도 하트 조각 시험과 양초 측정·정상 복귀 완료 기록이 있습니다. 다만 HMI 전체 공정 완료나 실제 홈 깊이·반복 정밀도의 검증을 뜻하지 않습니다. 최신 측정 결과의 `ESTIMATED`와 `absolute_top_verified=false`는 추정·미검증 상태로 유지합니다. 근거와 시험 버전은 [공정 README](ws_cobot_pjt/ws_cobot1/src/c2_process/README.md)와 [양초 측정 기록](ws_cobot_pjt/ws_cobot1/src/c2_process/WORKPIECE_CALIBRATION.md)을 확인하세요.
+
+## 빠른 시작
+
+### 1. 저장소와 개발 환경 준비
+
+HMI는 **Python 3.12, Node.js 22 이상, pnpm 11**을 기준으로 합니다. 아래는 새 clone에서 MOCK 화면을 준비하는 명령입니다. 기존 작업 폴더는 변경 사항을 보존한 뒤 [Git 가이드](docs/GIT_GUIDE.md)에 따라 최신 main을 받습니다.
+
+```bash
 git clone https://github.com/suuuhululu/C-2.git
 cd C-2
 sh tools/setup-git-hooks.sh
-python3 tools/check_repository.py
-python3 tools/test_git_hooks.py
+
+python3 -m venv ws_cobot_pjt/backend/.venv
+ws_cobot_pjt/backend/.venv/bin/python -m pip install \
+  -r ws_cobot_pjt/backend/requirements.lock.txt
+pnpm --dir ws_cobot_pjt/frontend install --frozen-lockfile
 ```
 
-이후 [Git 가이드](docs/GIT_GUIDE.md)에 따라 작업 브랜치를 만들고 PR을 제출합니다. PR은 작업 브랜치를 push한 뒤 `main` 반영을 요청하는 절차입니다.
+### 2. MOCK으로 화면·공정 흐름 확인
 
-GitHub Actions의 `repository-checks`는 문서·소스 구문·hook 동작을 검사합니다. **ROS 빌드·시뮬레이터·실기 시험을 대신하지 않습니다.**
+저장소 루트에서 실행합니다.
 
-`Issue management`는 main에서 활성화됐습니다. Issue #2에서 분류·마감 기록·검토 상태·종료 반영을 확인했습니다. 네 팀원의 역할은 아직 모두 general이며, 미배정 작업의 자동 분배와 일정 변경 승인 전체 과정은 [팀원 연습](docs/TEAM_ONBOARDING.md)으로 원격 검증해야 합니다. 사용법은 [Issue 자동화](docs/ISSUE_AUTOMATION.md)를 따릅니다.
+```bash
+python3 ws_cobot_pjt/run_monitor.py --transport mock
+```
+
+- HMI: **http://127.0.0.1:5174/operator**
+- API 문서: http://127.0.0.1:8010/docs
+- 종료: 실행 터미널에서 `Ctrl+C`
+
+MOCK은 고정 샘플 경로와 모의 공정 응답을 사용합니다. 첨부한 이미지의 실제 변환은 아래 ROS 모드로 확인합니다. 로컬 한 운영자용 개발 화면이며 외부 공개·다중 사용자 인증은 구현 범위 밖입니다.
+
+### 3. ROS로 실제 이미지 경로 생성
+
+**ROS 2 Jazzy, 같은 checkout의 `c2_interfaces`·`c2_path` 빌드, ROS Python과 호환되는 backend 가상환경**을 먼저 준비합니다. [한 PC ROS 통합 설치 안내](ws_cobot_pjt/docs/HMI_PATH_INTEGRATION.md#한-pc에서-준비실행)의 의존성·빌드 절차를 따른 뒤, 저장소 루트의 Bash 터미널에서 실행합니다.
+
+```bash
+source /opt/ros/jazzy/setup.bash
+source ws_cobot_pjt/ws_cobot1/install/local_setup.bash
+python3 ws_cobot_pjt/run_monitor.py --transport ros
+```
+
+실행기가 관리 저장소를 초기화하고 **HMI·서버·경로 노드를 함께 시작**합니다. 화면에서 경로 노드 연결을 확인한 뒤 이미지를 첨부하고 경로를 생성합니다. 현재 통합 범위에서는 공정 상태 미수신이 예상되며, 실제 공정·로봇 드라이버는 이 명령으로 시작하지 않습니다.
+
+| 실행 방식 | 이미지 처리 | 공정 실행 |
+| --- | --- | --- |
+| `--transport mock` 또는 기본 실행 | 고정 샘플 응답 | 모의 공정만 지원 |
+| `--transport ros` | 첨부 이미지를 `c2_path`가 실제 계산 | HMI 실행 차단 · `SIMULATION/test_only` |
+| 파일 통합 시험 화면 | 스냅샷·입력 ZIP 전달, 형식에 맞는 결과 ZIP 검증·미리보기 | 가져온 경로 실행 차단 |
+
+ROS 통합 안내의 9/20 고정 높이·실패 예시는 당시 시험 기록입니다. 9/21에는 원통 옆면의 생성 조건과 잠정 실행 범위 검사를 분리했습니다. 최신 동작·스냅샷 조건은 [c2_path README](ws_cobot_pjt/ws_cobot1/src/c2_path/README.md)와 [BUNDLE_SPEC](ws_cobot_pjt/ws_cobot1/src/c2_path/BUNDLE_SPEC.md)을 따릅니다.
+
+## 저장소 구조
+
+```text
+C-2/
+├── ws_cobot_pjt/
+│   ├── run_monitor.py             # 한 PC HMI·서버·경로 노드 실행기
+│   ├── frontend/                  # React · TypeScript · Vite
+│   ├── backend/                   # FastAPI · SQLite · ROS 게이트웨이
+│   ├── ws_cobot1/
+│   │   ├── src/c2_interfaces/     # 공통 ROS 타입
+│   │   ├── src/c2_path/           # 이미지·경로 계산과 Action 서버
+│   │   ├── src/c2_process/        # 측정·관절 검사·조각 모듈
+│   │   └── doc/                   # ROS 실행 안내
+│   ├── ws_dsr/                    # 외부 로봇 실행환경 (src는 Git 제외)
+│   └── docs/                      # 설계·통합·검증·개발 일지
+├── docs/                          # 팀 운영·환경·Git 협업
+├── .github/                       # Issue·PR 양식과 자동 검사
+└── tools/                         # 저장소 검사·Git hook 설치
+```
+
+외부 드라이버는 각 실행 PC에 준비하며 C-2를 clone하는 것만으로 설치되지 않습니다. 출처·버전은 [의존성 기록](docs/DEPENDENCIES.md), 워크스페이스 구성은 [환경 가이드](docs/WORKSPACES.md)를 따릅니다. 관리 DB·업로드 파일, ROS `build/install/log`, `node_modules`는 Git에 올리지 않습니다.
+
+## 팀 역할
+
+| 담당 | 주요 책임 |
+| --- | --- |
+| 이수현 | HMI·서버, 입력·미리보기·파일 등록, 요청·상태·이력 표시 |
+| 노홍동 | 이미지 처리, 스냅샷 기반 원통 매핑, 경로 생성·기하 검증 |
+| 김세은 | 공정·통신·상태 전이, 준비 조건, 관절 검사와 함수 호출 순서 |
+| 이시율 | 로봇 어댑터, 도구 기준·양초 측정, 조각·센서·실기 검증 |
+
+## 운영 범위와 다음 통합
+
+현재 드릴 `engraving_drill`은 그리퍼에 철사로 고정합니다. **고정 중에는 초기화·측정·오류·종료를 포함해 그리퍼를 열지 않습니다.** 자동 집기·청소·반납은 현재 공정에서 제외합니다. [고정 드릴 운영 기준](ws_cobot_pjt/docs/C2_FIXED_DRILL_20260919.md)을 따릅니다.
+
+다음 통합은 준비·측정 요청과 결과 스냅샷 연결 → 파일 교환 규격 정합 → 미리보기한 최종 경로의 관절 검사·조각 연결 → 정상·실패·취소·통신 단절 시험 순서로 진행합니다. 생성 성공, 기하 검사 통과, 로봇 실행 가능, 실제 가공 품질은 각각 따로 검증합니다.
+
+## 상세 문서·기여
+
+| 목적 | 문서 |
+| --- | --- |
+| 설계·통신 계약 | [역할·전체 흐름](ws_cobot_pjt/docs/SYSTEM_STRUCTURE.md) · [기존 v2와 새 준비 흐름의 차이](ws_cobot_pjt/docs/INTERFACE_GUIDE.md) · [공통 타입](ws_cobot_pjt/ws_cobot1/src/c2_interfaces/README.md) |
+| HMI 설치·사용 | [서버](ws_cobot_pjt/backend/README.md) · [화면](ws_cobot_pjt/frontend/README.md) · [ROS 부분 통합](ws_cobot_pjt/docs/HMI_PATH_INTEGRATION.md) |
+| 파일 교환 | [HMI ZIP 규격](ws_cobot_pjt/docs/HMI_FILE_INTEGRATION.md) · [경로 측 묶음 제안](ws_cobot_pjt/ws_cobot1/src/c2_path/BUNDLE_SPEC.md) |
+| 측정·공정 연결 | [공정 모듈과 담당](ws_cobot_pjt/ws_cobot1/src/c2_process/README.md) · [측정 함수](ws_cobot_pjt/ws_cobot1/src/c2_process/WORKPIECE_CALIBRATION.md) · [공정 내부 어댑터 연결](ws_cobot_pjt/ws_cobot1/src/c2_process/PROCESS_MEASUREMENT_INTEGRATION.md) |
+| 근거·검증 | [HMI↔ROS 경로 시험](ws_cobot_pjt/docs/validation/2026-09-20-hmi-path-integration.md) · [HMI 파일 교환 시험](ws_cobot_pjt/docs/validation/2026-09-21-hmi-file-integration.md) · [실기 시행착오](ws_cobot_pjt/docs/LESSONS_ROBOT.md) |
+| 팀 개발 | [공통 AI 지침](AGENTS.md) · [Git·PR](docs/GIT_GUIDE.md) · [팀원 시작](docs/TEAM_ONBOARDING.md) · [기술 참고 자료](docs/REFERENCES.md) |
+
+상세 문서의 날짜·기준 커밋을 확인하세요. 과거 실험 수치와 미구현 표기는 해당 시점의 기록이며, 최신 코드의 구현 상태와 구분합니다.
+
+변경은 **작업 브랜치 → 검사 → PR → 동료 리뷰 → main 병합**으로 진행합니다. 저장소 루트에서 기본 검사를 실행하고, 코드 변경에는 해당 영역의 시험 결과를 함께 기록합니다.
+
+```bash
+python3 tools/check_repository.py
+git diff --check
+```
+
+저장소 검사·CI 통과는 ROS 빌드나 실제 로봇 시험을 대신하지 않습니다. 실행한 검사와 미검증 범위를 [PR 양식](.github/PULL_REQUEST_TEMPLATE.md)에 남깁니다.
