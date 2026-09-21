@@ -132,7 +132,12 @@ def main(argv=None):
         with trace_lock:
             trace_file.write(json.dumps(dict(channel=kind,data=data),ensure_ascii=False,allow_nan=False)+'\n');trace_file.flush()
         if kind!='telemetry':node.get_logger().info(data.get('message') or f"{kind}: {data.get('outcome','')}")
-    node.workpiece_trace=lambda event,data:emit('telemetry',dict(event=event,source_mode=args.mode,measurement_id=session.context.measurement_id if session.context else None,**data))
+    def trace(event,data):
+        emit('telemetry',dict(event=event,source_mode=args.mode,measurement_id=session.context.measurement_id if session.context else None,**data))
+        if event=='probe_progress':
+            phase='이동 기준 힘 수집 중' if data['phase']=='BASELINE' else '접촉 탐색 중'
+            node.get_logger().info(f"{data['label']}: {phase}, 이동 {data['travel_m']*1000:.2f} mm / 남은 탐색 {data['remaining_m']*1000:.2f} mm")
+    node.workpiece_trace=trace
     def create_adapter(ctx):
         if args.mode=='SIMULATION':
             return SimulatedWorkpieceAdapter(config['workcell'],clock=ctx.monotonic)

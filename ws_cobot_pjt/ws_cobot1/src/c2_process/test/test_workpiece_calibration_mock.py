@@ -43,8 +43,10 @@ def test_normal_flow_and_actual_fit(setup):
     assert events[-1]["stage"]=="COMPLETE"
     assert [e["sequence"] for e in events]==list(range(1,len(events)+1))
     assert config==before
-    assert ad.calls[-1][1]["label"]=="point_8_outer"
-    assert len(result.observed_state["plans"])==2
+    assert result.observed_state["home_return_confirmed"]
+    from c2_process.workpiece_calibration import home_matches
+    assert home_matches(config["workcell"],ad.pose)
+    assert len(result.observed_state["plans"])==4
     assert not any(c[0]=="stop" for c in ad.calls)
     json.dumps(result.observed_state,allow_nan=False)
 
@@ -173,7 +175,7 @@ def test_force_contact_outside_plan_is_not_green(setup):
     ad.execute_measurement_step=wrong
     r=call(setup,events.append)
     assert r.error_code=="CONTACT_OUT_OF_RANGE"
-    assert not any(e["status"]=="SUCCEEDED" for e in events)
+    assert not any(e["status"]=="SUCCEEDED" and e["stage"] in ("TOP_TOUCH","SIDE_TOUCH") for e in events)
 
 
 def test_timeout_after_command_stop_required(setup):
