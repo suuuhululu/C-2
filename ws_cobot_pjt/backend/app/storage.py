@@ -37,6 +37,8 @@ class Storage:
             CREATE TABLE IF NOT EXISTS path_generations (
               request_id TEXT PRIMARY KEY, payload TEXT NOT NULL, state TEXT NOT NULL,
               result TEXT, created_at TEXT NOT NULL);
+            CREATE TABLE IF NOT EXISTS preparations (
+              request_id TEXT PRIMARY KEY, payload TEXT NOT NULL);
             CREATE TABLE IF NOT EXISTS path_versions (
               path_id TEXT NOT NULL, version INTEGER NOT NULL, sha256 TEXT NOT NULL,
               asset_id TEXT NOT NULL REFERENCES assets(id), generation_id TEXT NOT NULL REFERENCES path_generations(request_id),
@@ -133,6 +135,32 @@ class Storage:
         with self.db() as c:
             r = c.execute('SELECT * FROM path_generations WHERE request_id=?', (request_id,)).fetchone()
         return None if not r else {**dict(r), 'payload': json.loads(r['payload']), 'result': json.loads(r['result']) if r['result'] else None}
+
+    def preparation(self, request_id):
+        with self.db() as c:
+            row = c.execute('SELECT payload FROM preparations WHERE request_id=?', (request_id,)).fetchone()
+        return json.loads(row[0]) if row else None
+
+    def save_preparation(self, record):
+        with self.db() as c:
+            c.execute('INSERT INTO preparations VALUES (?,?) ON CONFLICT(request_id) DO UPDATE SET payload=excluded.payload',
+                      (record['request_id'], encoded(record).decode()))
+
+    def preparations(self):
+        with self.db() as c:
+            return [json.loads(r[0]) for r in c.execute('SELECT payload FROM preparations ORDER BY rowid DESC LIMIT 100')]
+
+    def recover_preparation(self):
+        records = self.preparations()
+        for record in records:
+            if record['state'] in ('ACCEPTED', 'RUNNING', 'CANCELING', 'UNKNOWN'):
+                record.update(state='UNKNOWN', binding_status='UNCONFIRMED', error_code='COMMUNICATION_LOST',
+                              message='서버 재시작으로 준비 결과 미확인. 자동 재요청하지 않습니다.')
+                self.save_preparation(record)
+            elif record.get('binding_status') in ('BOUND_MOCK', 'BOUND_ROS'):
+                record.update(binding_status='REPREPARATION_REQUIRED', message='서버 재시작 후 새 준비·측정이 필요합니다.')
+                self.save_preparation(record)
+        return records[0] if records else None
 
     def create_generation(self, goal):
         with self.db() as c:

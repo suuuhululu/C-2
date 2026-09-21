@@ -1,5 +1,15 @@
 # 새김 시스템 모니터 서버
 
+최신 REAL 준비 연결은 [한 PC REAL 준비·측정 통합](../docs/HMI_REAL_PREPARATION.md)을 따른다. `--mode REAL --preparation-config ...`는 현장 설정을 명시 선택한 준비 MEASURE/상태/결과 수신 전용이다. 아래의 REAL 기동 거절·SIM 전용 표기는 이전 구현 기록이다. REAL 경로·조각 차단은 유지한다.
+
+최신: [main 8a68790 통합 준비](../docs/HMI_INTEGRATION_20260921.md). `C2_ROS_PREPARATION_SIM=1`로 기존 ROS 준비 요청의 MEASURE→원본 저장→동적 `/2`→BIND를 연결한다. REAL/조각 차단은 유지한다. 아래 미연결 표기는 이전 기록이다.
+
+2026-09-21 후속: [HMI 선행 수정](../docs/HMI_PREWORK_20260921.md). 준비 HTTP의 수동 확인 3개/confirmed_at 제거, 재연결 후 이전 준비 무효화, PrepareWorkpiece raw 클라이언트·원본 변환을 추가했다. 준비 HTTP의 ROS 활성화와 실제 원본/BIND/동적 profile 연결은 아직 대기이며 REAL 제한을 유지한다.
+
+2026-09-21: [준비·양초 측정 HMI](../docs/HMI_PREPARATION.md)를 MOCK으로 연결했다.
+준비·측정 기록과 설정 ID/해시를 보존하고, 새 MOCK 실행에는 준비 성공 및 같은 설정의 경로가 필요하다.
+ROS 준비 Action은 아직 미연결이며 기존 ROS 경로 시험·REAL 실행 차단은 유지한다.
+
 2026-09-21: [작업 영역 기준](../docs/HMI_WORK_AREA.md)의 HMI 표시용 정책 스냅샷을 추가했다.
 `config/work_area.json`을 관리 자산으로 저장하고 HTTP/WS snapshot의 `work_area_policy`로 전달한다.
 ROS 입력 프로파일을 덮어쓰지 않으며 MOCK만 합의 제외 길이를 적용한다.

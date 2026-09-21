@@ -12,7 +12,7 @@ from fastapi import FastAPI, File, UploadFile, WebSocket, WebSocketDisconnect, H
 from fastapi.responses import JSONResponse, Response, FileResponse
 from PIL import Image, ImageOps, UnidentifiedImageError
 
-from .monitor_contract import GenerateInput, RunInput, StopInput, InspectionInput, ScenarioInput
+from .monitor_contract import GenerateInput, RunInput, StopInput, InspectionInput, ScenarioInput, PreparationInput
 from .monitor_service import MonitorService, DomainError
 from .storage import Storage
 from .artifact_loader import ArtifactLoadError
@@ -37,15 +37,16 @@ def image_data(raw):
 def create_app(data_dir=None,tick=.4):
     @asynccontextmanager
     async def lifespan(app):
-        if os.getenv('C2_MONITOR_MODE','SIMULATION')!='SIMULATION':
-            raise RuntimeError('현재 모니터는 SIMULATION 전용입니다.')
+        mode = os.getenv('C2_MONITOR_MODE', 'SIMULATION')
+        if mode not in ('SIMULATION', 'REAL'):
+            raise RuntimeError('지원하지 않는 모니터 모드입니다.')
         directory=Path(data_dir or os.getenv('C2_MONITOR_DATA',ROOT/'monitor_data'))
         directory.mkdir(parents=True,exist_ok=True)
         lock=(directory/'.server.lock').open('a')
         try:fcntl.flock(lock,fcntl.LOCK_EX|fcntl.LOCK_NB)
         except BlockingIOError:
             lock.close();raise RuntimeError('같은 모니터 DB를 사용하는 서버가 이미 있습니다.')
-        store=Storage(directory);service=MonitorService(store,os.getenv('C2_MONITOR_TRANSPORT','mock'),tick)
+        store=Storage(directory);service=MonitorService(store,os.getenv('C2_MONITOR_TRANSPORT','mock'),tick,mode=mode)
         app.state.store=store;app.state.service=service
         app.state.integration=FileIntegration(store)
         try:
@@ -90,7 +91,7 @@ def create_app(data_dir=None,tick=.4):
             return await invoke()
         service=app.state.service
         async with service.lock:
-            if service.busy() or service.generating:
+            if service.busy() or service.generating or service.preparation.blocks_work():
                 raise DomainError('BUSY','생성·실행 또는 미확인 작업이 끝난 뒤 파일을 등록하세요.')
             return await invoke()
 
@@ -143,6 +144,24 @@ def create_app(data_dir=None,tick=.4):
 
     @app.get('/api/operator/snapshot')
     async def snapshot():return app.state.service.snapshot()
+
+    @app.post('/api/operator/preparations',status_code=202)
+    async def prepare(body:PreparationInput):
+        return await app.state.service.preparation.begin(body.model_dump(mode='json'))
+
+    @app.get('/api/operator/preparations')
+    async def preparations():
+        return await asyncio.to_thread(app.state.store.preparations)
+
+    @app.get('/api/operator/preparations/{rid}')
+    async def preparation(rid:str):
+        record=await asyncio.to_thread(app.state.store.preparation,rid)
+        if record is None:raise KeyError(rid)
+        return record
+
+    @app.post('/api/operator/preparations/{rid}/cancel',status_code=202)
+    async def cancel_preparation(rid:str):
+        return await app.state.service.preparation.cancel_request(rid)
 
     @app.post('/api/operator/assets',status_code=201)
     async def upload(file:UploadFile=File(...)):
@@ -219,7 +238,7 @@ def create_app(data_dir=None,tick=.4):
     async def scenario(body:ScenarioInput):
         s=app.state.service
         if s.transport!='mock':raise DomainError('NOT_READY','모의 통신에서만 사용할 수 있습니다.')
-        if s.busy() or s.generating:raise DomainError('BUSY','진행 중인 작업이 끝난 뒤 시나리오를 변경하세요.')
+        if s.busy() or s.generating or s.preparation.blocks_work():raise DomainError('BUSY','진행 중인 작업이 끝난 뒤 시나리오를 변경하세요.')
         s.peer.scenario=body.scenario
         await s.notice('모의 시나리오 변경: '+body.scenario)
         return {'scenario':body.scenario}
@@ -230,6 +249,7 @@ def create_app(data_dir=None,tick=.4):
         if s.transport!='mock' or s.tasks:raise DomainError('BUSY','모의 작업 종료 후 초기화할 수 있습니다.')
         # 시험 상태만 초기화한다. 실행 이력·파일·DB는 삭제하지 않는다.
         s.run=None;s.peer.scenario='normal'
+        await s.preparation.reset_mock()
         s.peer.state.update(run_id='',path_id='',status='IDLE',phase='',stop_state='NONE',error_code='NONE',
                             message='모의 상태 초기화',engraving_progress=0,mounted_tool_id='',grip_state='UNKNOWN')
         await s.peer.publish();await s.notice('모의 상태 초기화 · 이전 실행 이력 보존')

@@ -8,6 +8,7 @@ from .mock_peer import MockPeer, PROFILE
 from .monitor_contract import SCHEMA_VERSION, now, uid
 from .artifact_loader import ArtifactLoadError, PathArtifactLoader
 from .work_area import register_policy, mock_profile_with_policy
+from .preparation import PreparationService
 
 
 class DomainError(Exception):
@@ -17,7 +18,10 @@ class DomainError(Exception):
 
 
 class MonitorService:
-    def __init__(self,store,transport='mock',tick=.4):
+    def __init__(self,store,transport='mock',tick=.4,*,mode='SIMULATION'):
+        if mode not in ('SIMULATION', 'REAL') or mode == 'REAL' and transport != 'ros':
+            raise ValueError('REAL 준비는 ROS 연결에서만 허용합니다.')
+        self.mode = mode
         self.store=store;self.transport=transport;self.tick=tick
         self.state=None;self.last_state=0.;self.retired_epochs=set()
         self.run=None;self.generating=None;self.generation_status={};self.stops={};self.latest_generation=None;self.cancel_events={}
@@ -25,6 +29,7 @@ class MonitorService:
         self.stop_watch=None;self.stop_confirmation_timeout=3.;self.contract_error=None
         self.events=deque(maxlen=60);self.event_ids=set();self.tasks=set()
         self.lock=asyncio.Lock();self.writes=asyncio.Queue();self.storage_error=None;self.closed=False
+        self.preparation=PreparationService(self)
 
     async def start(self):
         if self.transport not in ('mock', 'ros'):
@@ -47,8 +52,9 @@ class MonitorService:
             self.peer=MockPeer(self.store,self.profile,self.receive,self.tick)
         else:
             from .ros_bridge import RosBridge
-            self.peer=RosBridge(self.receive,artifact_loader=PathArtifactLoader(self.store))
+            self.peer=RosBridge(self.receive,artifact_loader=PathArtifactLoader(self.store),mode=self.mode)
         await self.peer.start()
+        await self.preparation.start()
 
     def launch(self,coro):
         task=asyncio.create_task(coro);self.tasks.add(task);task.add_done_callback(self.tasks.discard)
@@ -77,14 +83,14 @@ class MonitorService:
     def record(self,method,*args):self.writes.put_nowait((method,args))
 
     async def notice(self,message,kind='COMMAND',code='NONE',severity='INFO'):
-        e=dict(event_id=uid(),source_mode='SIMULATION',schema_version=SCHEMA_VERSION,source_epoch='gateway',event_seq=0,
+        e=dict(event_id=uid(),source_mode=self.mode,schema_version=SCHEMA_VERSION,source_epoch='gateway',event_seq=0,
                run_id=self.run['run_id'] if self.run else '',occurred_at=now(),event_type=kind,
                severity=severity,code=code,message=message,phase='')
         await self.receive('event',e)
 
     async def receive(self,kind,data):
-        if data.get('schema_version')!=SCHEMA_VERSION or data.get('source_mode')!='SIMULATION':
-            self.contract_error='통신 계약 또는 모드 불일치. 고정 드릴 v2/SIMULATION 상대를 확인하세요.'
+        if data.get('schema_version')!=SCHEMA_VERSION or data.get('source_mode')!=self.mode:
+            self.contract_error=f'통신 계약 또는 모드 불일치. 고정 드릴 v2/{self.mode} 상대를 확인하세요.'
             self.last_state=0
             return
         if kind=='mock_execution_preview':
@@ -100,6 +106,8 @@ class MonitorService:
             if epoch in self.retired_epochs:return
             if self.state:
                 if self.state['source_epoch']==epoch and seq<=self.state['seq']:return
+                if self.state['source_epoch']!=epoch or not self.fresh():
+                    await self.preparation.invalidate_connection()
                 if self.state['source_epoch']!=epoch:
                     self.retired_epochs.add(self.state['source_epoch'])
                     if self.run and self.run['status'] in ('ACCEPTED','RUNNING','STOPPING'):
@@ -120,13 +128,14 @@ class MonitorService:
     def busy(self):return self.run and self.run['status'] in ('ACCEPTED','RUNNING','STOPPING','UNKNOWN')
 
     def snapshot(self):
-        return dict(schema_version=SCHEMA_VERSION,source_mode='SIMULATION',transport=self.peer.transport,server_time=now(),
+        return dict(schema_version=SCHEMA_VERSION,source_mode=self.mode,transport=self.peer.transport,server_time=now(),
                     connection='CONNECTED' if self.fresh() else 'STALE',state=self.state,active_run=self.run,
                     profile=self.profile,work_area_policy=self.work_area_policy,
+                    preparation=self.preparation.snapshot(),
                     events=list(self.events),generation=self.generation_status.get(self.generating or self.latest_generation),
                     storage_error=self.storage_error,scenario=getattr(self.peer,'scenario',None),
                     path_generation=self.path_capabilities(),
-                    contract_status=self.contract_error or ('고정 드릴 v2 · c2-path-preview/1 · 경로 시험 전용'
+                    contract_status=self.contract_error or ('REAL 준비·측정 전용 · 경로 생성/조각 차단' if self.mode == 'REAL' else '고정 드릴 v2 · c2-path-preview/1 · 경로 시험 전용'
                         if self.transport == 'ros' else '고정 드릴 v2 · mock-preview/1'))
 
     def path_capabilities(self):
@@ -134,13 +143,17 @@ class MonitorService:
         low, high = self.profile['payload']['surface']['valid_v_range_mm']
         return dict(preset='raster_centerline_bezier' if ros else 'simulation_centerline',
                     preview_contract='c2-path-preview/1' if ros else 'mock-preview/1',
-                    ready=self.peer.generate_client.server_is_ready() if ros else True,
-                    execution_enabled=not ros,
-                    execution_block_reason='경로 생성·미리보기 시험 전용입니다. J6/IK·보정·공정 실행 검증이 남아 있습니다.' if ros else '',
+                    ready=False if self.mode == 'REAL' else self.peer.generate_client.server_is_ready() if ros else True,
+                    execution_enabled=not ros and self.preparation.ready() and not self.preparation.blocks_work(),
+                    execution_block_reason='REAL 준비·측정 전용입니다. 측정 결과 수신과 경로/조각 승인은 별개입니다.' if self.mode == 'REAL'
+                        else '경로 생성·미리보기 시험 전용입니다. J6/IK·보정·공정 실행 검증이 남아 있습니다.' if ros
+                        else '' if self.preparation.ready() else '모의 준비·측정 완료 후 같은 설정으로 경로를 생성하세요.',
                     default_placement=dict(width_mm=24 if ros else 70, height_mm=24 if ros else 108,
                         offset_u_mm=0, offset_v_mm=(low+high)/2, rotation_deg=0))
 
     async def generate(self,goal):
+        if self.mode == 'REAL':
+            raise DomainError('NOT_READY', 'REAL 준비·측정 전용입니다. 측정값을 SIM 경로로 변환하지 않습니다.')
         async with self.lock:
             if goal['conversion_preset'] != self.path_capabilities()['preset']:
                 raise DomainError('UNSUPPORTED_FORMAT','현재 연결 모드가 지원하는 이미지 변환 방식을 사용하세요.',422)
@@ -148,7 +161,9 @@ class MonitorService:
             if old:
                 if old['payload']!=goal:raise DomainError('REQUEST_CONFLICT','같은 요청 ID에 다른 입력이 있습니다.')
                 return old
-            if self.generating or self.busy():raise DomainError('BUSY','현재 생성·실행이 끝난 뒤 다시 요청하세요.')
+            if self.generating or self.busy() or self.preparation.blocks_work():raise DomainError('BUSY','현재 준비·생성·실행 또는 미확인 작업이 있습니다.')
+            if self.preparation.current and not self.preparation.ready():
+                raise DomainError('NOT_READY','준비 결과가 유효하지 않습니다. 다시 준비·측정하세요.')
             try:
                 asset=await asyncio.to_thread(self.store.asset,goal['asset_id'])
                 if asset['kind']!='image':raise DomainError('UNSUPPORTED_FORMAT','첨부한 원본 이미지 ID를 사용하세요.',415)
@@ -209,6 +224,11 @@ class MonitorService:
                     await asyncio.to_thread(self.store.finish_generation,rid,'UNKNOWN',result)
                     return
             metadata,result=await operation
+            if metadata and self.preparation.ready():
+                prepared=self.preparation.current
+                metadata.update(preparation_id=prepared['goal']['preparation_id'],
+                    measurement_id=prepared['goal']['measurement_id'],
+                    measurement_record=prepared['measurement_record'],profile_snapshot=self.profile)
             if timed_out and result.get('error_code')=='CANCELED':
                 result={**result,'error_code':'TIMEOUT','message':'생성 제한 시간을 초과하여 계산을 중단했습니다.'}
             status='SUCCEEDED' if result['success'] else 'FAILED'
@@ -239,7 +259,8 @@ class MonitorService:
             if old:
                 if old['payload']!=body:raise DomainError('REQUEST_CONFLICT','같은 요청 ID에 다른 실행 입력이 있습니다.')
                 return await self.get_run(old['response']['run_id'])
-            if self.busy() or self.generating:raise DomainError('BUSY','활성 또는 미확인 작업이 있습니다.')
+            if self.busy() or self.generating or self.preparation.blocks_work():raise DomainError('BUSY','활성 또는 미확인 작업이 있습니다.')
+            if not self.preparation.ready():raise DomainError('NOT_READY','준비·측정이 완료되지 않았거나 다시 준비해야 합니다.')
             if not self.fresh() or self.storage_error:raise DomainError('NOT_READY','상태 통신 또는 기록 저장을 확인하세요.')
             path=await asyncio.to_thread(self.store.path,body['path_id'],body['path_version'])
             if path.get('test_only') or path.get('origin')=='FILE_BUNDLE':
@@ -251,15 +272,22 @@ class MonitorService:
             if path['path_sha256']!=body['path_sha256']:raise DomainError('HASH_MISMATCH','확인한 경로 해시와 다릅니다.')
             if not path['validation_passed'] or path['source_mode']!='SIMULATION':raise DomainError('VALIDATION_FAILED','모의 실행 가능한 경로가 아닙니다.')
             if path['profile_snapshot_id']!=self.profile['id']:raise DomainError('PROFILE_MISMATCH','설정이 변경됐습니다. 경로를 다시 생성하세요.')
+            prepared=self.preparation.current
+            if path.get('preparation_id')!=prepared['goal']['preparation_id']:
+                raise DomainError('PROFILE_MISMATCH','현재 준비에서 생성한 경로가 아닙니다. 다시 생성하세요.')
             try:
                 await asyncio.to_thread(self.store.read_asset,path['path_asset_id'],body['path_sha256'])
                 await asyncio.to_thread(self.store.read_asset,path['profile_snapshot_id'],path['profile_sha256'])
                 await asyncio.to_thread(self.store.read_asset,path['input']['asset_id'],path['input']['asset_sha256'])
                 for key in ('preview_asset_id','svg_asset_id','validation_report_id'):
                     await asyncio.to_thread(self.store.read_asset,path[key])
+                for ref in (prepared['measurement_record'], self.preparation.config):
+                    await asyncio.to_thread(self.store.read_asset,ref['id'],ref['sha256'])
             except ValueError:raise DomainError('HASH_MISMATCH','실행 의존 파일이 변경됐습니다.')
             run=dict(**body,run_id=uid(),operator_id='local-operator',confirmed_at=now(),status='ACCEPTED',phase='PRECHECK',
                      engraving_progress=0,elapsed_s=0,stop_state='NONE',error_code='NONE',message='실행 요청 접수',created_at=now())
+            run.update(preparation_id=prepared['goal']['preparation_id'],measurement_id=prepared['goal']['measurement_id'],
+                       profile_snapshot_id=self.profile['id'],profile_sha256=self.profile['sha256'])
             await asyncio.to_thread(self.store.reserve_run,body,run)
             self.run=run
             self.peer.prepare(run)

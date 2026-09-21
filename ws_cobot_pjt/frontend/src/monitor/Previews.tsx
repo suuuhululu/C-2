@@ -56,7 +56,7 @@ export function UnwrappedPreview({
   const workArea = workAreaPolicy
     ? policyWorkArea(profile, workAreaPolicy)
     : profileWorkArea(profile);
-  const actual = profile?.payload.contract === "c2-path-test-profile/1";
+  const actual = !!s?.axis_origin_m && (s.u_origin_angle_deg || 0) === 0;
   function point(e: React.PointerEvent) {
     const matrix = svg.current?.getScreenCTM();
     if (!matrix) return [0, 0];

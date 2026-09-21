@@ -38,6 +38,14 @@ class GenerateInput(Input):
     profile_sha256: str = Field(pattern=r'^[0-9a-f]{64}$')
 
 
+class PreparationInput(Input):
+    """HTTP 준비 입력. 장착/전원 관측을 사용자 bool로 대체하지 않는다."""
+    request_id: UUID
+    input_profile_snapshot_id: UUID
+    input_profile_sha256: str = Field(pattern=r'^[0-9a-f]{64}$')
+    height_m: float = Field(gt=0)
+
+
 class RunInput(Input):
     schema_version: Literal[2] = 2
     request_id: UUID
@@ -61,4 +69,4 @@ class InspectionInput(Input):
 
 
 class ScenarioInput(Input):
-    scenario: Literal['normal', 'generation_failure', 'grip_failure', 'calibration_failure', 'cut_quality_failure', 'stop_unknown', 'communication_loss']
+    scenario: Literal['normal', 'generation_failure', 'grip_failure', 'calibration_failure', 'cut_quality_failure', 'stop_unknown', 'communication_loss', 'preparation_failure', 'measurement_reference_only', 'preparation_timeout']
