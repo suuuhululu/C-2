@@ -1,5 +1,7 @@
 # 워크스페이스와 팀 공유
 
+2026-09-21 최신 main `19ef4c6`: 팀 앱은 React·FastAPI·SQLite로 구현돼 있고, `c2_interfaces`와 `c2_path`는 ROS 2 Jazzy 패키지로 존재한다. HMI는 MOCK뿐 아니라 native rclpy로 `c2_path` Action 서버를 호출해 관리 산출물과 미리보기를 읽는 부분 통합까지 검증했다. 이 경로는 `SIMULATION/test_only`이며 `c2_process`의 공정 노드·패키지/launch·실행 YAML과 전체 로봇 통합은 아직 없다. 현재 상태는 [진행 현황](REVIEW_STATUS.md)과 [0920 일지](../ws_cobot_pjt/docs/daily/2026-09-20.md)를 우선한다.
+
 2026-09-19 후속: 현재 HMI는 React, 서버는 FastAPI·SQLite, 공통 c2_interfaces는 Jazzy 빌드 가능한 패키지다. 편집 PC에서 타입 빌드·모의 시험을 수행했으며 실제 로봇 통합 검증과 구분한다. 아래 Mac/미구현 표기는 당시 환경 기록이다. [최신 구조·구현 범위](../ws_cobot_pjt/docs/SYSTEM_STRUCTURE.md)를 따른다. ws_dsr 외부 설치는 변경하지 않았다.
 
 2026-09-17 사용자 요청에 따라 메인 프로젝트 중심으로 정리했다. 팀 코드는 C-2에서 공유하고, 외부 실행환경은 각 PC에 별도로 준비한다. 사용자는 공용 MSI Ubuntu에서 Docker 에뮬레이터를 통한 가상 로봇 동작을 확인했다고 보고했다. 이 문서 수정 작업에서 설치·구동을 직접 검증하지는 않았다.
@@ -35,8 +37,9 @@ ROS 2 Jazzy → ws_cobot_pjt/ws_dsr → ws_cobot_pjt/ws_cobot1
 - 상위 개인 프로젝트의 doosan 폴더는 이동·복사하지 않았다. 2026-09-16 확인한 Jazzy 커밋은 의존성 기록에 남겼다.
 - 강사 예시는 RG2 환경이지만 실제 장비 모델·배선·통신·피드백은 미확인이다. 로봇 기준은 M0609, ROS 기준은 Jazzy다.
 - DartPlatform은 README만 공유한다. 프로그램·Logs, ROS build/install/log, frontend node_modules는 각 PC에서 생성하고 Git에서 제외한다.
-- C-2의 backend·frontend·docker는 폴더와 안내만 있다. 팀 서버·화면·컨테이너 구성은 미정이며, 팀원이 이미 설치한 외부 Docker 에뮬레이터와 구분한다.
-- 현재 편집 PC는 macOS이며 ROS 빌드·시뮬레이션·실기 실행은 수행하지 않았다.
+- backend·frontend는 실행 코드와 잠금 파일이 있다. `python3 ws_cobot_pjt/run_monitor.py`의 기본은 MOCK이고, Jazzy overlay를 source한 뒤 `--transport ros`를 사용하면 c2_path와 HMI의 SIM 부분 통합을 실행한다. REAL 공정 실행 명령은 아니다.
+- docker 폴더의 용도와 외부 두산 에뮬레이터 설치는 구분한다. 저장소 앱 구현만으로 각 PC의 공급자 드라이버·에뮬레이터 버전이 고정되는 것은 아니다.
+- 검증 환경은 기록마다 다르다. c2_interfaces는 Ubuntu/Jazzy, HMI↔c2_path는 macOS의 별도 Jazzy 환경에서 확인됐고, 실제 M0609 시험은 9/19 기록 범위다. 한 환경의 통과를 다른 환경의 완료로 확장하지 않는다.
 
 ## 빌드·환경 적용 위치
 

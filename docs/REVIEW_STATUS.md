@@ -1,5 +1,36 @@
 # 진행 현황과 남은 작업
 
+## 2026-09-21 최신 main 기준
+
+원격 `main`은 `19ef4c6`(PR #40 병합)이다. 9/20에는 PR #34·#32·#36·#38·#39가 병합돼 공정 보조 모듈, 실측 근거, c2_path 계산/Action 서버, HMI↔c2_path 부분 통합이 반영됐다. 9/21에는 PR #41의 SIM 스냅샷·ZIP 파일 교환과 PR #40의 실측 선행 공정 역할 문서가 추가됐다. 상세 일자별 근거는 [0920 개발 일지](../ws_cobot_pjt/docs/daily/2026-09-20.md)와 각 검증 기록을 따른다.
+
+### 현재 구현
+
+| 영역 | main 상태 | 검증·제한 |
+| --- | --- | --- |
+| 공통 계약 | `c2_interfaces`의 Action 2개·Service 1개·Message 2개, 고정 드릴 `schema_version=2` | Jazzy 타입 빌드·직렬화 기록 있음. 측정 선행 준비 요청·결과 계약은 아직 미반영 |
+| HMI·서버 | React·FastAPI·SQLite, MOCK 흐름, native rclpy `RosBridge`, 관리 파일 로더, 경로 미리보기, SIM 파일 교환 | HMI↔c2_path 정상/실패/중복/단절 시험 기록 있음. 실제 공정·로봇 연결은 미검증 |
+| c2_path | 이미지→SVG→2D→원통 3D 경로→검증, `/c2/generate_path` Action 서버와 산출물 저장 | main 존재. 고정 상수 기반 `SIMULATION/test_only`; 승인 REAL 설정과 실제 제어기 IK·충돌·가공 미검증 |
+| c2_process | `robot_adapter.py`, `tool_calibration.py`, `joint_check.py`, `engraving.py`와 모의/비동작 확인 코드 | 내부 소스만 존재. `node.py`·상태 기계·preconditions·패키지/launch/실행 YAML·`workpiece_calibration.py` 없음 |
+| 전체 공정 | 목표 순서와 담당 경계 문서화 | 준비·양초 실측→스냅샷→경로 생성→미리보기→최종 검사→조각의 송수신/함수 통합과 실기 미완료 |
+
+### 현재 통합 기준
+
+역할 연결은 **이시율 측정 → 실측 좌표 전달 → 노홍동 경로 생성 → 김세은 관절 검사 → 이시율 조각**이다. 철사 고정 드릴은 그리퍼 열기·자동 집기·반납·청소를 금지한다. 도구 장착 보정과 양초 위치 측정을 구별하고, 첫 통합에서는 기존 장착 기준을 재사용하면서 양초 중심·높이 측정과 모의 연결을 우선한다. 생성 후 경로를 다시 옮기는 `prepared_path.py` 단계는 제외한다.
+
+최종 미리보기·관절 검사·실행은 같은 경로 ID·버전·해시와 설정/측정 스냅샷을 사용해야 한다. 현재 v2에는 경로 생성 전 준비 요청, 측정 결과 전달, 취소 가능한 드릴 ON 확인 입력이 없으므로 명세·공통 타입·송수신자·시험을 함께 변경하기 전까지 구현된 계약으로 취급하지 않는다.
+
+### 우선 남은 작업
+
+1. `workpiece_calibration.py`와 측정 접근·터치·후퇴의 사전 검사, 취소·정지·실패 반환을 구현한다.
+2. 준비 요청·측정 스냅샷 등록/전달 계약을 확정하고 HMI·공정·c2_path를 같은 버전으로 연결한다.
+3. c2_path의 test_only 상수를 실측 스냅샷 입력으로 바꾸고 설정 ID·해시·단위·좌표계 검사를 유지한다.
+4. `process_controller_node`, state_machine, preconditions, c2_process 빌드/launch/설정 로딩을 구현한다.
+5. 같은 최종 경로의 전체 IK/J5/J6·보간·충돌 검사와 실패·중복·시간 초과·정지 후 진입 차단을 모의 통합한다.
+6. SIMULATION 통합 뒤 승인된 현장 설정으로 짧은 실기, 반복 측정, 물리적 홈 깊이·품질을 별도 검증한다.
+
+GitHub 원격 참조는 `git fetch origin --prune`으로 확인했다. 이 환경에는 `gh` CLI가 없어 열린 PR·Issue·Actions의 인증 조회는 수행하지 못했으며, 병합 상태는 fetch한 main 이력과 저장소 내 검증 기록으로 대조했다. 아래 절은 날짜별 과거 기록이며 최신 상태로 사용하지 않는다.
+
 ## 2026-09-19 현재 확인
 
 main `301ea6e`에서 PR #16·#17·#18·#20·#21 병합을 확인했다. 공통 타입 v1·HMI·SQLite·MOCK·로봇 어댑터가 있으며 전체 좌표/공정 노드·보정·실기 통합은 미완료다. 작업 중 재조회에서 [PR #23](https://github.com/suuuhululu/C-2/pull/23)(frame), [PR #25](https://github.com/suuuhululu/C-2/pull/25)(engraving), [PR #27](https://github.com/suuuhululu/C-2/pull/27)(tool_calibration)이 추가됐으며 아직 미병합이다. 세 PR의 repository-checks는 성공했고 실기 통합 완료는 아니다.

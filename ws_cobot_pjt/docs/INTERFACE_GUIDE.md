@@ -1,10 +1,10 @@
 # 시스템 모니터·좌표 생성·고정 드릴 공정 인터페이스 안내
 
-**2026-09-20**, main `72618aa` 확인. [디렉토리·담당](SYSTEM_STRUCTURE.md), [공정 파일·함수·상태](../ws_cobot1/src/c2_process/README.md), [배포된 상세 계약 v2](INTERFACE_RECOMMENDATION.md)를 구분해 읽는다.
+**2026-09-21**, main `19ef4c6` 확인. [디렉토리·담당](SYSTEM_STRUCTURE.md), [공정 파일·함수·상태](../ws_cobot1/src/c2_process/README.md), [배포된 상세 계약 v2](INTERFACE_RECOMMENDATION.md)를 구분해 읽는다.
 
 ## 현재 코드와 이번 변경 범위
 
-HMI·서버·공통 타입, c2_path 계산·GeneratePath Action 서버, c2_process 어댑터·도구 보정·관절 검사·조각 소스가 main에 있다. c2_path는 SIMULATION/test_only이며 공정 ROS 노드·패키지 설정은 main에 없다. 김세은의 부분 통합·실패·정지 시험 보고는 담당자 작업 현황으로 구별한다. 전체 실기 통합 완료로 표시하지 않는다.
+HMI·서버·공통 타입, c2_path 계산·GeneratePath Action 서버, c2_process 어댑터·도구 보정·관절 검사·조각 소스가 main에 있다. HMI↔c2_path의 관리 파일·미리보기 부분 통합과 SIM 스냅샷/ZIP 교환 화면도 존재한다. c2_path는 SIMULATION/test_only이며 공정 ROS 노드·패키지 설정은 main에 없다. 김세은의 부분 통합·실패·정지 시험 보고는 담당자 작업 현황으로 구별한다. 전체 실기 통합 완료로 표시하지 않는다.
 
 이번 변경은 **역할·구현 상태와 새 호출 순서의 문서화**다. ROS 타입·서버·HMI 코드를 수정하지 않으며 schema_version은 2 그대로다. 아래 새 흐름을 v2 클라이언트가 이미 지원한다고 해석하지 않는다.
 
