@@ -12,8 +12,23 @@
 - 정지 직전 제어기 TCP 선분 편차 약 0.647 mm가 기존 0.5 mm를 넘었다. 힘 한계에 의한 정지가 아니다. bag에는 level 1 / code 3205 특이점 영역 진입 알림 6건도 있어 원인을 단순 진동으로 확정하지 않는다.
 - REAL 예제의 `guards.overhead_line_error_mm=1.0`은 **시험용 상공 이동 추종 허용폭**이며 측정 정확도·제조사 안전 한계가 아니다. TCP와 드릴 끝 모두 상공 경계(300 mm)보다 허용폭+회전 여유 이상 높고 작업대 경계 안인 `travel` 자세 유지 이동에만 적용한다. 접촉/접근/초기 후퇴/회전은 이 확대 대상이 아니다.
 - 실행 중 실제 위치에서 남은 경로의 양초·도구 선분 검사도 반복한다. 도구가 양초를 가로지르는 이동은 허용하지 않는다. 측정용으로 지정한 PROBE 접촉은 계속 허용한다. 힘·관절·보호정지·최종 도착 허용차는 변경하지 않았다.
-- 기존 정지 전 TCP 표본을 fixture로 재생하면 이전 설정은 같은 이탈로 실패하고 새 설정은 해당 편차에서 중단하지 않는다. 이후 도착은 모의로 합성했으므로 **수정본의 실기 완주 확인은 아직 필요**하다.
+- 기존 정지 전 TCP 표본을 fixture로 재생하면 이전 설정은 같은 이탈로 실패하고 새 설정은 해당 편차에서 중단하지 않는다. 이후 도착은 모의로 합성했으므로 **당시 수정본의 실기 완주 확인은 미완료였고, 아래 후속 실행에서 완료**하다.
 - 무조건 재전송·보호정지 해제·실패 지점에서 자동 재개는 추가하지 않았다. 모션 응답/정지 결과 미확인 상태에서 재송신하면 중복 실행될 수 있다. 이번 수정은 확인된 상공 편차에서 불필요하게 정지를 요청하지 않는 범위다. 실패 후 `/start`를 새로 호출하면 전체 측정을 다시 시작한다.
+
+후속 변경 검증: 선택 시험 6건과 가짜 장치 전체 흐름 3건 통과. 분리된 localhost/domain 87에서 ROS SIMULATION 시작 요청·성공 결과 수신·자동 종료(exit 0)를 확인했다. 로봇에는 연결하지 않았다.
+
+## 후속 사용자 실기 결과
+
+`workpiece-test-6eb5748f567c4dc598ab225ad84fabe3`: 301.603초,
+`SUCCEEDED`, `stop_confirmed=true`, `home_return_confirmed=true`.
+근거는 현장 JSONL `workpiece_41cfd0f96f684832905b539a779102e0.jsonl`의 최종 result다.
+이것은 자동 종료·새 길이/추정값 반환을 추가하기 전 코드의 모션 완주 결과다. 새 결과 계산은 모의로 검증한다.
+
+## 공정 노드 어댑터 구성
+
+공정에서는 `workpiece_process_adapter.create_process_measurement_adapter()`를 사용한다.
+공유 잠금/취소·실제 준비 근거 주입 예시는 [공정 연결 안내](PROCESS_MEASUREMENT_INTEGRATION.md)에 있다.
+단독 시험 팩터리를 공정에 사용하지 않는다. 새 서버가 아니라 기존 공정 노드 안에서 구성한다.
 
 ## 단독 실물 시험 수신부 (추가)
 
@@ -21,11 +36,26 @@
 `test/workpiece_test_node.py`를 추가했다. 별도 운영 노드/공통 통신 계약을 추가한 것이 아니다.
 내장 `workpiece_real_trial.create_adapter`가 REAL I/O·상태 재확인·단독 소유권·실험 영역 검사를 연결한다.
 
-현재 그리퍼 밑면 오프셋이 미확인이므로 실물 예제는 `measurement_scope=CONTACT_REFERENCE`다.
-윗면을 실제로 접촉하고 8점을 측정하지만, 윗면 결과는 **접촉 시 TCP Z**로만 기록한다.
-`top_z_m`, `bottom_z_m`, `work_z_range_m`은 null이고 `geometry_ready=false`, `validity=REFERENCE_ONLY`다.
-SUCCEEDED는 측정·형상 검사와 정상 홈 복귀·정지까지 완료했다는 뜻이며 경로 생성용 기하 스냅샷 완성을 뜻하지 않는다.
-밑면 오프셋을 독립 확인한 뒤 ABSOLUTE_GEOMETRY로 시험해야 절대 윗면 Z를 제공한다.
+현재 REAL 예제는 사용자 요청에 따라 `measurement_scope=INTEGRATION_ESTIMATE`다.
+그리퍼 밑면 오프셋을 정밀 실측하지 않고, 설정의 `estimated_contact_offset_tool_m=[0,0,0]`을
+명시적인 임시 가정으로 사용한다. `top_z_m`은 접촉 당시 TCP Z, 바닥은 높이 150 mm를 뺀 값이다.
+`validity=ESTIMATED`, `geometry_ready=true`, `absolute_top_verified=false`이며 독립 정확도는 미검증이다.
+기존 `CONTACT_REFERENCE`를 선택하면 종전의 null/REFERENCE_ONLY 반환을 유지한다.
+새 유효성 값과 출처 필드는 공정 로더/HMI가 확인해야 하며 그 담당 코드를 여기서 수정하지 않는다.
+
+첫 옆면 접촉은 `tool_projection_check`도 계산한다. 기존 양초 모델의 중심/반지름으로 만든 기준면과
+접촉 당시 제어기 TCP를 사용해 `projection_m`, `projection_mm`, `difference_m`를 반환한다.
+`lateral_x_m`은 재사용하고 새로 재지 않는다. 추가 이동·3점 보정은 호출하지 않는다.
+기준 양초가 이동하거나 반지름이 달라지면 그 오차가 길이 추정에 포함되므로
+`validity=ESTIMATED_FROM_REFERENCE_SURFACE`, `independently_verified=false`로 명시한다.
+동일 8점으로 새로 맞춘 중심/반지름을 다시 길이 계산에 사용하지 않는다.
+이번 측정 경로와 좌표 계산은 검사한 기존 `tool_reference.offset_tool_m`을 계속 사용하며,
+`tool_projection_check.offset_applied=false`다. 새 길이를 몰래 적용해 검사 경로를 바꾸지 않는다.
+기존 TipCalibration/3점 API는 호환용으로 남아 있으나 새 측정 흐름에서 호출하지 않는다.
+
+시험 수신부는 기본적으로 1회 결과를 발행·파일 저장하고, 작업 스레드 종료와 결과 ACK 확인 후
+자동 종료한다. 반복 대기가 필요할 때만 `--keep-alive`를 사용한다. UNKNOWN은 자동 종료하지 않는다.
+bag은 독립 프로세스이므로 운영자가 Ctrl+C로 별도 종료한다. 공통 제어 노드에는 자동 종료를 적용하지 않는다.
 
 터미널은 기존 sodreal 환경을 사용한다. 패키지 디렉터리 기준 세 명령:
 
@@ -59,7 +89,7 @@ telemetry 기록 실패가 정지 명령 송신을 막지 않도록 처리한다
 수직 하강 → 중심을 바라보며 8점 측정 → 마지막 외곽 후퇴 → 원 맞춤 → 검사한 경로로 상공 홈 복귀·정지 확인 순서다.
 센서 접촉 판정을 독립 실측 정확도 인증으로 표시하지 않는다.
 
-검증: 모의 시험 **156건** 통과. 여기에는 실제 측정 어댑터 + 가짜 장치로 전체 8점 완료,
+이전 상공 편차 수정 검증: 모의 시험 **156건** 통과. 여기에는 실제 측정 어댑터 + 가짜 장치로 전체 8점 완료,
 시작이 홈인 경우 홈 이동 생략, 두 번째 점에서 이탈 시 정지하고 다음 동작 차단이 포함된다.
 이 가짜 장치의 IK/FK는 물리 모형이 아니므로 실제 도달성·서보 추종·충돌 검사를 대체하지 않는다.
 별도 ROS 도메인 121에서 Trigger → 함수 → 윗면/8점/후퇴 결과와 bag 저장을 확인했다.

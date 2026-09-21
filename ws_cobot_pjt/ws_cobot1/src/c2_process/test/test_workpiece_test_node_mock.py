@@ -43,3 +43,20 @@ def test_factory_failure_latches_unknown_and_blocks_restart():
     assert session.start()[0];session.thread.join(2)
     assert session.status()['status']=='UNKNOWN'
     assert session.start()[0] is False
+
+
+def test_one_shot_finishes_after_result_and_rejects_second_start():
+    c,h=config();events=[]
+    session=TrialSession(c,'SIMULATION',lambda ctx:SimulatedWorkpieceAdapter(c['workcell'],clock=ctx.monotonic),lambda k,v:events.append((k,v)),h)
+    assert not session.ready_to_exit()
+    session.start();session.thread.join(2)
+    assert events[-1][0]=='result' and session.ready_to_exit()
+    assert not session.start()[0]
+
+
+def test_unknown_does_not_auto_exit():
+    c,h=config()
+    def broken(ctx):raise ConnectionError('unavailable')
+    session=TrialSession(c,'SIMULATION',broken,lambda *a:None,h)
+    session.start();session.thread.join(2)
+    assert session.result_published.is_set() and not session.ready_to_exit()

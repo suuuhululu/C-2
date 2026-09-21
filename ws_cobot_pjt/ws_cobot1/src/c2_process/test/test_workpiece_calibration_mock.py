@@ -238,3 +238,19 @@ def test_unexpected_top_contact_blocks_success_and_side_plan(setup):
     assert r.observed_state['measurement']['top'] is None
     assert not r.observed_state['measurement']['points']
     assert not any(c[0]=='execute' and c[1]['label'].startswith('point_') for c in ad.calls)
+
+
+def test_integration_estimate_and_single_contact_projection(setup):
+    c,ctx,ad=setup;w=c['workcell']
+    w['measurement_scope']='INTEGRATION_ESTIMATE';w['top']['contact_offset_tool_m']=None
+    w['top']['estimated_contact_offset_tool_m']=[0.,0.,0.];w['top']['estimate_source']='user provisional top'
+    w['projection_reference_source']='prior candle';w['tcp_id']='SIM_TCP';w['load_id']='SIM_LOAD'
+    result=measure_workpiece(ad,w,c['profiles'],ctx)
+    assert result.ok,result
+    m=result.observed_state['measurement']
+    assert m['validity']=='ESTIMATED' and m['geometry_ready'] and not m['absolute_top_verified']
+    assert m['top_z_m']==m['top_tcp_contact_z_m']
+    assert m['bottom_z_m']==pytest.approx(m['top_z_m']-w['height_m'])
+    assert m['tool_projection_check']['point_index']==1 and not m['tool_projection_check']['offset_applied']
+    assert m['tool_reference']['measured_this_run'] is False
+    assert len(m['points'])==8
