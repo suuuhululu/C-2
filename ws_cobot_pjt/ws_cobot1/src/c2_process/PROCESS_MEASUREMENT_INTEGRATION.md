@@ -127,3 +127,70 @@ finally:
 REAL adapter를 주입하는 것만으로 이 제한이 해제되지는 않는다. 이 두 연결 변경은 세은님 담당이다.
 이번 결과 `ESTIMATED`, `absolute_top_verified=false`는 사용자 합의의 통합용 추정값이며, 정확한 실측으로 승격하면 안 된다.
 기존 측정별 진행·StepResult 계약은 유지하고 `tool_projection_check`, `tool_reference`, 추정 출처를 추가했다.
+
+## 상시 관측 연결 · 2026-09-21 팀장 합의 반영
+
+기준 main `2e94e5d`. 새 `process_state_observer.py`는 **공정 내부 공유 캐시 공급자**다.
+별도 노드·publisher·Topic·Action·필드를 추가하지 않는다. 측정 함수와 어댑터의 반환·취소 계약은 변경하지 않는다.
+
+- 최종 측정 결과: `measure_workpiece()`의 `StepResult` → 공정 검증 → 기존 `PrepareWorkpiece` Result.
+- 실시간 상태: 기존 드라이버 조회 → `node.observations` (`ObservationCache`) → 공정의 기존 `/c2/process_state` 발행.
+- 공정 상태·진행·Action 응답·관측 시작/종료는 세은님 노드 담당이다. 측정 완료 후에도 공정 노드와 관측은 유지한다.
+
+### 세은님 연결 지점
+
+```python
+from c2_process.process_state_observer import (
+    start_process_state_observer, stop_process_state_observer,
+)
+
+# REAL 공정 노드 초기화: node.observations와 node.coordinator 생성 이후,
+# 첫 준비 요청을 받기 전에 공정 소유자가 한 번 호출한다.
+observer = start_process_state_observer(node, measurement_config)
+
+# 기존 executor가 node를 spin하는 동안 대기·측정·완료 후에도 조회된다.
+# 측정 함수 호출부나 측정 adapter.close()에서는 시작/종료하지 않는다.
+
+# 공정 자체 종료 시, node.destroy_node() 전에 호출한다.
+stop_process_state_observer(node)
+```
+
+`measurement_config`의 기존 `controller_prefix`, `service_timeout_s`, `guards.max_state_age_s`를 사용한다.
+같은 노드·설정의 중복 시작은 기존 관측기를 반환한다. 설정이 다르면 오류이며, 명시적으로 종료 후 재구성한다.
+SIMULATION 노드에 실제 조회를 붙이는 시작 호출은 거절한다. 모의시험은 별도 모의 서비스만 사용한다.
+이 변경에는 **세은님 `node.py`의 시작/종료 호출 추가가 포함되지 않는다**. 위 연결 후 전체 공정 검증이 필요하다.
+
+### 공급하는 값과 품질
+
+| 기존 서비스 / 응답 | 캐시에 공급하는 값 | 기존 ProcessState 표현 |
+| --- | --- | --- |
+| `aux_control/get_current_posj` / `pos`, `success` | deg → rad의 J1~J6 | `joints`, 품질·관측 시각 |
+| `aux_control/get_current_posx` / `task_pos_info`, `success`, 요청 `ref=0` | mm·ZYZ → m·quaternion, `c2_base` 제어기 TCP | `tcp`, 품질·관측 시각 |
+| `system/get_robot_state` / `robot_state`, `success` | 기존 상태 코드 유효 여부 | 기존 캐시의 연결 관측, 품질·관측 시각 |
+
+접두사는 설정에서 받는다. 제어기 TCP에 드릴 오프셋을 더하지 않으며, 캐시에도 `offset=None`을 전달한다.
+제어권은 기존 전용 관측 경로를 유지한다. 모드·온도·그리퍼 등 조회하지 않은 항목은 정상값으로 채우지 않는다.
+`robot_mode=UNKNOWN`, 온도는 기존 `UNSUPPORTED`다. 상태 코드 조회 성공은 로봇 준비·실행 허가를 뜻하지 않는다.
+
+세 응답에는 **원본 제어기 측정 시각/sequence가 없다**. 관측 시각은 조회 묶음 시작 시각이며 원본 센서 시각이 아니다.
+캐시가 이를 UTC 시각으로 변환하며, 발행 주기마다 새 측정처럼 시간을 바꾸지 않는다.
+서비스 미수신·거부·비정상 수치·미지원 상태·시간 초과는 `UNKNOWN`, 캐시 유효기간 경과는 기존 규칙대로 `STALE`이다.
+실패 사유별 새 ROS 필드는 만들지 않고 기존 품질 규약을 따른다. 조회 응답만으로 제어기 내부 데이터 신선도를 증명하지 않는다.
+
+### 동시 조회와 종료
+
+0.2초 주기의 비동기 조회이며, 응답 대기로 executor 콜백을 막지 않는다. 동시에 한 조회 묶음만 유지하고,
+제한 시간은 기존 `service_timeout_s`와 `max_state_age_s` 중 작은 값이다. 만료 후 도착한 이전 응답은 캐시를 덮어쓰지 않는다.
+클라이언트 취소는 서버에서 이미 처리 중인 조회를 취소한다는 뜻이 아니다.
+
+관측기는 모션 잠금·취소 이벤트를 소유하거나 이동/정지 명령을 보내지 않는다. 측정은 기존 공유 잠금·취소 처리를 유지한다.
+노드는 기존 MultiThreadedExecutor로 실행하고, 동기 측정 작업은 콜백 밖 작업 스레드에서 수행한다.
+드라이버에 읽기 요청이 추가되므로 실기 통합에서 측정 조회와 함께 실행할 때 지연을 확인해야 한다.
+드라이버 API 전체의 동시 접근 안전성이나 5Hz 실기 달성은 이번 모의시험만으로 보장하지 않는다.
+
+### 검증 범위
+
+- 실제 `ObservationCache`를 사용하는 단위검사: 정상 단위 변환, 조회 실패·만료·늦은 응답, 복구, 중복 시작, 종료.
+- 격리 ROS 모의검사: 모의 드라이버 서비스 → 캐시 → 기존 ProcessState publisher → 구독자. 대기/진행/완료/대기의 상태 표시, 실패·복구·관측 종료 후에도 발행 유지.
+- 모의검사의 공정 상태는 시험에서 설정한다. 실제 측정 함수·Action 취소 왕복·HMI·실기 연결 완료를 의미하지 않는다.
+- 세은님 코드의 시작/종료 연결과 실제 하드웨어 동시 조회는 미검증이다.
