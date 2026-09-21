@@ -118,7 +118,11 @@ def test_full_guarded_flow_home_top_eight_points_and_retreat(at_home,fail_probe)
     assert m['axis_xy_m']==pytest.approx(io.center,abs=.00004)
     assert m['radius_m']==pytest.approx(io.radius,abs=.00004)
     assert m['top_tcp_contact_z_m']==pytest.approx(io.top_contact_tcp_z,abs=.00001)
-    assert m['top_z_m']==pytest.approx(m['top_tcp_contact_z_m']) and m['geometry_ready']
+    assert m['top_z_m']==pytest.approx(m['top_tcp_contact_z_m']-.020) and m['geometry_ready']
+    assert m['bottom_z_m']==pytest.approx(m['top_tcp_contact_z_m']-.170)
+    assert m['work_z_range_m']==pytest.approx([m['top_tcp_contact_z_m']-.160,m['top_tcp_contact_z_m']-.030])
+    assert m['assumed_top_contact_offset_tool_m']==[0.,0.,.020]
+    assert all(point['tip_pose'][2]==pytest.approx(m['top_z_m']-w['side_depth_m'],abs=.0001) for point in m['points'])
     assert m['validity']=='ESTIMATED' and not m['absolute_top_verified']
     assert [e['point_index'] for e in events if e['stage']=='SIDE_TOUCH' and e['status']=='SUCCEEDED']==list(range(1,9))
     assert len(io.stops)==9 and io.active is None
