@@ -270,3 +270,38 @@ ProcessState, 공정 호출·반환 계약은 유지한다. 로봇 속도·힘·
 
 검증: 측정 어댑터 모의시험 84개, 공정 측정 어댑터 모의시험 11개, 로봇과 분리된
 ROS 서비스 연결 재사용 시험 1개 통과. 실물 이동·실기 시간 단축 검증은 미실시다.
+# REAL 준비·실행 통합 진입점
+
+`real_process_controller_node`는 기존 `/c2/prepare_workpiece`, `/c2/execute_process`,
+`/c2/stop_process`, `/c2/process_state`를 한 공정 노드에서 제공한다. 준비 성공과
+`BIND_SNAPSHOT`으로 연결된 스냅샷이 없는 실행 요청은 거절한다. 준비된 경로는
+생성 후 전체 경로를 다시 평행 이동하거나 자동 홈 복귀하지 않는다.
+
+```bash
+ros2 run c2_process real_process_controller_node \
+  --backend-url http://127.0.0.1:8000 \
+  --preparation-journal-path "$PWD/runtime/prepare.sqlite3" \
+  --execution-journal-path "$PWD/runtime/execute.sqlite3" \
+  --controller-prefix /dsr01/dsr_controller2
+```
+
+두 원장 파일의 상위 디렉터리는 미리 존재해야 한다. 관리 경로 조회 결과와
+원본 `path.json`, profile snapshot은 HMI backend에서 다시 읽고 ID·버전·SHA-256을
+대조한다. 다음 조건 중 하나라도 빠지면 모션 전에 `NOT_READY` 또는 구체적인
+불일치 오류로 종료한다.
+
+- 경로·config·snapshot의 `source_mode=REAL`, `test_only=false`
+- 관리 경로의 `real_execution_allowed=true`
+- `workcell.measurement_scope=ABSOLUTE_GEOMETRY`
+- `top.contact_offset_tool_m`, `top.offset_status=VERIFIED`, `top.offset_record_id`
+- snapshot/workcell의 동일한 `tcp_id`, `load_id`
+- `surface`의 실측 중심·반지름·높이
+- `tip_calibration`, `calibration_profiles`
+- `execution_context`의 REAL motion/tool/stop profile
+- `joint_check_arguments`의 승인된 6축 범위와 J6 여유
+- `verify_tool_tip_arguments.tol_m`
+
+이 진입점 추가만으로 HMI와 c2_path가 실행 가능한 REAL 경로를 생산하는 것은
+아니다. 두 소비자는 같은 snapshot을 보존한 `test_only=false` 경로를 등록하고,
+HMI가 준비 BIND 성공 뒤 ExecuteProcess를 보내야 한다. 기존 REAL 추정 미리보기
+경로(`test_only=true`, `real_execution_allowed=false`)는 계속 거절한다.

@@ -17,6 +17,8 @@ from contextlib import contextmanager
 from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import Callable, Mapping, Optional
+from urllib.parse import quote, urlparse
+from urllib.request import build_opener, HTTPRedirectHandler
 from uuid import uuid4
 
 from .engraving import ExecutionContext, execute_path, validate_path, build_execution_plan, execution_signature
@@ -303,8 +305,9 @@ def resolve_simulation_settings(snapshot, goal, *, evidence, adapter):
         joint_limits_deg=joints.get("limits_deg"), j6_margin_deg=joints.get("j6_margin_deg"))
 
 
-def load_execution_inputs(goal, *, path_file, snapshot_file, result_file=None,
-                          generation_result=None, snapshot_metadata=None, resolve_settings=None):
+def load_execution_inputs(goal, *, path_file=None, snapshot_file=None, path_bytes=None,
+                          snapshot_bytes=None, result_file=None, generation_result=None,
+                          snapshot_metadata=None, resolve_settings=None):
     """호출자가 지정한 경로·스냅샷과 파일/메모리 결과를 읽는다. 새 ROS 필드 없음.
 
     resolve_settings(snapshot, goal)는 승인/현장 근거와 스냅샷 내부 설정을
@@ -328,11 +331,16 @@ def load_execution_inputs(goal, *, path_file, snapshot_file, result_file=None,
     def bad_constant(value):
         raise ValueError(f"유한하지 않은 JSON 수: {value}")
 
-    def read_json(filename, label):
-        try:
-            raw = Path(filename).read_bytes()
-        except (OSError, TypeError, ValueError) as exc:
-            fail("NOT_READY", f"{label} 파일 읽기 실패: {exc}")
+    def read_json(filename, raw, label):
+        if (filename is None) == (raw is None):
+            fail("INVALID_INPUT", f"{label} 파일 또는 원본 바이트 중 하나만 필요")
+        if raw is None:
+            try:
+                raw = Path(filename).read_bytes()
+            except (OSError, TypeError, ValueError) as exc:
+                fail("NOT_READY", f"{label} 파일 읽기 실패: {exc}")
+        elif not isinstance(raw, bytes):
+            fail("INVALID_INPUT", f"{label} 원본은 bytes여야 함")
         try:
             obj = json.loads(raw, object_pairs_hook=pairs, parse_constant=bad_constant)
             # 1e999처럼 문법은 JSON이지만 Python에서 inf로 변환되는 수도 거절.
@@ -345,11 +353,11 @@ def load_execution_inputs(goal, *, path_file, snapshot_file, result_file=None,
 
     if not isinstance(goal, Mapping) or type(goal.get("schema_version")) is not int or goal["schema_version"] != 2:
         fail("UNSUPPORTED_SCHEMA_VERSION", "실행 요청은 v2만 지원")
-    path_bytes, path = read_json(path_file, "경로")
+    path_bytes, path = read_json(path_file, path_bytes, "경로")
     if (result_file is None) == (generation_result is None):
         fail("INVALID_INPUT", "result_file 또는 generation_result 중 하나만 필요")
     if result_file is not None:
-        _, result = read_json(result_file, "경로 결과")
+        _, result = read_json(result_file, None, "경로 결과")
     else:
         if not isinstance(generation_result, Mapping):
             fail("INVALID_INPUT", "경로 생성 결과는 Mapping이어야 함")
@@ -357,7 +365,7 @@ def load_execution_inputs(goal, *, path_file, snapshot_file, result_file=None,
             result = json.loads(json.dumps(dict(generation_result), allow_nan=False))
         except (ValueError, TypeError):
             fail("INVALID_INPUT", "경로 생성 결과에 비유한 값 또는 잘못된 자료형 포함")
-    snapshot_bytes, snapshot = read_json(snapshot_file, "스냅샷")
+    snapshot_bytes, snapshot = read_json(snapshot_file, snapshot_bytes, "스냅샷")
     if type(path.get("schema_version")) is not int or path["schema_version"] != 2:
         fail("UNSUPPORTED_SCHEMA_VERSION", "경로는 v2만 지원")
     for obj in (goal, path, result):
@@ -629,7 +637,8 @@ class ProcessCoordinator:
                 raise ValueError("REAL에는 DoosanRobotAdapter 객체가 필요함")
             if not measurement_only and (journal is None or load_inputs is _missing_loader):
                 raise ValueError("REAL에는 입력 로더와 실행 저널이 필요함")
-            if not measurement_only and (not callable(go_to_path_start_fn) or not callable(return_home_fn)):
+            if (not measurement_only and not preparation_required
+                    and (not callable(go_to_path_start_fn) or not callable(return_home_fn))):
                 raise ValueError("REAL에는 시작점 이동·홈 복귀 함수가 필요함")
         self.measurement_only = measurement_only
         self.preparation_required = preparation_required
@@ -1173,6 +1182,7 @@ def create_ros_node(load_inputs: Callable[[Mapping], ExecutionInputs] = _missing
                     go_to_path_start_fn=None, return_home_fn=None,
                     preparation_runner_factory=None, preparation_resolver=None,
                     preparation_journal_path=None, enable_preparation=True, measurement_only=False,
+                    preparation_required=False, real_execution_loader_factory=None,
                     real_preparation_options=None, real_preparation_options_factory=None):
     """Jazzy ROS 노드를 만든다. c2_interfaces 빌드·source 뒤에 호출한다."""
     from rclpy.action import ActionServer, CancelResponse, GoalResponse
@@ -1197,15 +1207,23 @@ def create_ros_node(load_inputs: Callable[[Mapping], ExecutionInputs] = _missing
                 if not callable(real_adapter_factory):
                     raise ValueError("real_adapter_factory는 호출 가능해야 함")
                 adapter = real_adapter_factory(self)
+            current_loader = load_inputs
+            if real_execution_loader_factory is not None:
+                if runtime_mode != "REAL" or load_inputs is not _missing_loader:
+                    raise ValueError("REAL loader factory는 REAL의 단일 입력 로더로만 사용")
+                if not callable(real_execution_loader_factory):
+                    raise ValueError("REAL loader factory는 호출 가능해야 함")
+                current_loader = real_execution_loader_factory(self, adapter)
             self.observations = ObservationCache()
             self._preparation_action_active = False
             self.alarms = ProcessAlarms()
             self.profile_values = {}
             self.coordinator = ProcessCoordinator(
-                load_inputs, journal=journal, runtime_mode=runtime_mode,
+                current_loader, journal=journal, runtime_mode=runtime_mode,
                 real_adapter=adapter, go_to_path_start_fn=go_to_path_start_fn,
                 return_home_fn=return_home_fn, observation_cache=self.observations,
-                on_precheck_result=self.report_precheck, measurement_only=measurement_only)
+                on_precheck_result=self.report_precheck, measurement_only=measurement_only,
+                preparation_required=preparation_required)
             self.preparation = None
             if enable_preparation:
                 backend = self.declare_parameter("preparation_backend_url", "").value
@@ -1218,8 +1236,8 @@ def create_ros_node(load_inputs: Callable[[Mapping], ExecutionInputs] = _missing
                         raise ValueError("real_preparation_options_factory는 호출 가능해야 함")
                     current_real_options = real_preparation_options_factory(self)
                 if current_real_options is not None:
-                    if preparation_runner_factory is not None or runtime_mode != "REAL" or not measurement_only:
-                        raise ValueError("실물 준비 options는 REAL 측정 전용 노드에서만 사용")
+                    if preparation_runner_factory is not None or runtime_mode != "REAL":
+                        raise ValueError("실물 준비 options는 REAL 공정 노드에서만 사용")
                     from .preparation_action import make_real_measurement_runner
                     runner = make_real_measurement_runner(self.coordinator,self,**current_real_options)
                 else:
@@ -1597,6 +1615,164 @@ def make_simulation_file_loader(*, path_file, result_file, snapshot_file,
     return load
 
 
+class _NoRedirect(HTTPRedirectHandler):
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        return None
+
+
+def resolve_real_execution_settings(snapshot, goal, *, adapter, observations):
+    """승인된 REAL 스냅샷을 기존 공정 함수 인자로 변환한다.
+
+    새 기본값을 만들지 않는다. 경로 생성용 ``surface``와 실행용 설정 묶음이
+    같은 불변 스냅샷에 있어야 하며, ABSOLUTE_GEOMETRY의 확인된 윗면 오프셋만
+    실행에 사용한다.
+    """
+    def unavailable(message, code="NOT_READY"):
+        raise InputsUnavailable(message, code)
+
+    if (not isinstance(snapshot, Mapping) or snapshot.get("source_mode") != "REAL"
+            or goal.get("source_mode") != "REAL"):
+        unavailable("REAL 설정/요청 모드 불일치", "SOURCE_MODE_MISMATCH")
+    if snapshot.get("test_only") is not False or snapshot.get("real_execution_allowed") is not True:
+        unavailable("실행 승인되지 않은 REAL 스냅샷")
+    workcell_source = snapshot.get("workcell")
+    if not isinstance(workcell_source, Mapping):
+        unavailable("REAL workcell 설정 없음", "INVALID_INPUT")
+    top = workcell_source.get("top")
+    contact_offset = top.get("contact_offset_tool_m") if isinstance(top, Mapping) else None
+    if (workcell_source.get("measurement_scope") != "ABSOLUTE_GEOMETRY"
+            or not isinstance(top, Mapping)
+            or top.get("offset_status") != "VERIFIED"
+            or not isinstance(top.get("offset_record_id"), str) or not top["offset_record_id"].strip()
+            or not isinstance(contact_offset, (list, tuple)) or len(contact_offset) != 3
+            or any(type(v) not in (int, float) or not math.isfinite(v) for v in contact_offset)):
+        unavailable("검증된 ABSOLUTE_GEOMETRY 윗면 오프셋 없음")
+    if (snapshot.get("tcp_id") != workcell_source.get("tcp_id")
+            or snapshot.get("load_id") != workcell_source.get("load_id")
+            or not snapshot.get("tcp_id") or not snapshot.get("load_id")):
+        unavailable("스냅샷 TCP/하중과 workcell 설정 불일치", "PROFILE_MISMATCH")
+
+    surface = snapshot.get("surface")
+    if not isinstance(surface, Mapping):
+        unavailable("실측 surface 없음", "INVALID_INPUT")
+    origin = surface.get("axis_origin_m")
+    radius_mm, height_mm = surface.get("radius_mm"), surface.get("height_mm")
+    if (not isinstance(origin, (list, tuple)) or len(origin) != 3
+            or any(type(v) not in (int, float) or not math.isfinite(v) for v in origin)
+            or type(radius_mm) not in (int, float) or not math.isfinite(radius_mm) or radius_mm <= 0
+            or type(height_mm) not in (int, float) or not math.isfinite(height_mm) or height_mm <= 0):
+        unavailable("실측 surface 치수 오류", "INVALID_INPUT")
+    workcell = dict(axis_xy_m=list(origin[:2]), radius_m=radius_mm / 1000.0,
+                    top_z_m=origin[2] + height_mm / 1000.0)
+
+    execution = snapshot.get("execution_context")
+    joints = snapshot.get("joint_check_arguments")
+    verify = snapshot.get("verify_tool_tip_arguments")
+    if not all(isinstance(v, Mapping) for v in (execution, joints, verify)):
+        unavailable("REAL execution_context/관절/도구 확인 설정 없음")
+    if execution.get("source_mode") != "REAL":
+        unavailable("실행 맥락 source_mode 불일치", "SOURCE_MODE_MISMATCH")
+
+    try:
+        state = adapter.observe()
+    except Exception as exc:
+        unavailable(f"실행 설정 로딩 중 로봇 상태 조회 실패: {exc}", "COMMUNICATION_LOST")
+    authority = observations.cache.fresh()
+    control = bool(authority is not None and authority.active and authority.connected
+                   and authority.valid and authority.has_control)
+    probe_context = ExecutionContext(goal["run_id"], "REAL", threading.Event(), {}, {})
+    stop_latched = observations.stop_latched(probe_context)
+    max_age = workcell_source.get("max_state_age_s")
+    evidence = PreconditionEvidence(
+        runtime_mode="REAL", robot_state=state,
+        control_authority_confirmed=control, stop_latched=stop_latched,
+        profile_snapshot_id=snapshot.get("profile_snapshot_id", ""),
+        max_robot_state_age_s=max_age)
+    return build_execution_settings(
+        goal, evidence=evidence, adapter=adapter, workcell=workcell,
+        calibration_record=snapshot.get("tip_calibration"),
+        calibration_snapshot_id=evidence.profile_snapshot_id,
+        calibration_profiles=snapshot.get("calibration_profiles"),
+        motion_profiles=execution.get("motion_profiles"),
+        tool_profile=execution.get("tool_profile"),
+        stop_profile=execution.get("stop_profile"),
+        tip_tolerance_m=verify.get("tol_m"),
+        joint_limits_deg=joints.get("limits_deg"),
+        j6_margin_deg=joints.get("j6_margin_deg"))
+
+
+def make_real_http_loader(*, backend_url, adapter, observations, timeout_s=5.0):
+    """HMI 관리 저장소의 경로·스냅샷 원본을 ID/해시로 읽는 REAL 로더."""
+    endpoint = urlparse(backend_url)
+    if (endpoint.scheme not in {"http", "https"} or not endpoint.netloc
+            or endpoint.username or endpoint.query or endpoint.fragment):
+        raise ValueError("REAL 실행 backend URL 오류")
+    if not isinstance(adapter, DoosanRobotAdapter) or observations is None:
+        raise ValueError("REAL 실행에는 동일 노드의 어댑터·관측 공급자 필요")
+    if type(timeout_s) not in (int, float) or not math.isfinite(timeout_s) or timeout_s <= 0:
+        raise ValueError("REAL 자산 조회 제한시간 오류")
+    base = backend_url.rstrip("/")
+    opener = build_opener(_NoRedirect)
+
+    def fetch(relative, label, limit=10 * 1024 * 1024):
+        try:
+            with opener.open(base + relative, timeout=float(timeout_s)) as response:
+                raw = response.read(limit + 1)
+        except Exception as exc:
+            raise InputsUnavailable(f"{label} 조회 실패: {exc}", "COMMUNICATION_LOST") from exc
+        if len(raw) > limit:
+            raise InputsUnavailable(f"{label} 크기 초과", "INVALID_INPUT")
+        return raw
+
+    def json_object(raw, label):
+        try:
+            value = json.loads(raw, parse_constant=lambda v: (_ for _ in ()).throw(ValueError(v)))
+            json.dumps(value, allow_nan=False)
+        except (ValueError, TypeError, UnicodeError) as exc:
+            raise InputsUnavailable(f"{label} JSON 오류: {exc}", "INVALID_INPUT") from exc
+        if not isinstance(value, dict):
+            raise InputsUnavailable(f"{label}는 JSON 객체여야 함", "INVALID_INPUT")
+        return value
+
+    def load(goal):
+        pid, version = goal.get("path_id"), goal.get("path_version")
+        if not isinstance(pid, str) or not pid or type(version) is not int or version < 1:
+            raise InputsUnavailable("경로 ID/버전 오류", "INVALID_INPUT")
+        metadata_raw = fetch(
+            "/api/operator/paths/" + quote(pid, safe="") + "/versions/" + str(version),
+            "경로 메타데이터", 2 * 1024 * 1024)
+        metadata = json_object(metadata_raw, "경로 메타데이터")
+        if (metadata.get("path_id") != pid or metadata.get("path_version") != version
+                or metadata.get("path_sha256") != goal.get("path_sha256")):
+            raise InputsUnavailable("요청과 관리 경로 메타데이터 불일치", "PATH_MISMATCH")
+        if (metadata.get("source_mode") != "REAL" or metadata.get("test_only") is not False
+                or metadata.get("real_execution_allowed") is not True):
+            raise InputsUnavailable("관리 경로가 REAL 실행 승인 상태가 아님", "NOT_READY")
+        path_asset = metadata.get("path_asset_id")
+        snapshot_id, snapshot_sha = metadata.get("profile_snapshot_id"), metadata.get("profile_sha256")
+        for value, label in ((path_asset, "경로 자산 ID"), (snapshot_id, "스냅샷 ID")):
+            if not isinstance(value, str) or not value:
+                raise InputsUnavailable(label + " 없음", "INVALID_INPUT")
+        path_raw = fetch("/api/operator/assets/" + quote(path_asset, safe="") + "/content", "경로 원본")
+        snapshot_raw = fetch("/api/operator/assets/" + quote(snapshot_id, safe="") + "/content", "스냅샷 원본")
+        if hashlib.sha256(path_raw).hexdigest() != goal.get("path_sha256"):
+            raise InputsUnavailable("경로 원본 SHA-256 불일치", "PATH_MISMATCH")
+        if hashlib.sha256(snapshot_raw).hexdigest() != snapshot_sha:
+            raise InputsUnavailable("스냅샷 원본 SHA-256 불일치", "PROFILE_MISMATCH")
+        json_object(snapshot_raw, "스냅샷")
+        # 외부 등록 ID는 파일 자기참조가 아니므로 해시 확인 뒤 매퍼 복사본에만 전달한다.
+        def resolve(original, current_goal):
+            original = dict(original, profile_snapshot_id=snapshot_id)
+            return resolve_real_execution_settings(
+                original, current_goal, adapter=adapter, observations=observations)
+        return load_execution_inputs(
+            goal, path_bytes=path_raw, snapshot_bytes=snapshot_raw,
+            generation_result=metadata,
+            snapshot_metadata={"id": snapshot_id, "sha256": snapshot_sha},
+            resolve_settings=resolve)
+    return load
+
+
 def _parse_process_args(argv):
     parser = argparse.ArgumentParser(description="C-2 공정 노드 — 파일 입력은 SIMULATION/Mock 전용")
     parser.add_argument("--path-file", help="검증된 v2 path.json")
@@ -1672,6 +1848,46 @@ def _parse_real_preparation_args(argv):
     return options, argv[split:]
 
 
+def _parse_real_process_args(argv):
+    """준비 Action과 승인된 REAL 실행을 한 노드에서 제공하는 기동 인자."""
+    parser = argparse.ArgumentParser(description="C-2 REAL 준비·조각 통합 공정 노드")
+    parser.add_argument("--backend-url", required=True,
+                        help="준비 설정과 실행 경로를 보관한 HMI backend URL")
+    parser.add_argument("--preparation-journal-path", required=True,
+                        help="준비 요청 중복 방지 SQLite 원장")
+    parser.add_argument("--execution-journal-path", required=True,
+                        help="실행 요청 중복 방지 SQLite 원장")
+    parser.add_argument("--controller-prefix", required=True,
+                        help="두산 제어기 ROS 서비스 prefix")
+    parser.add_argument("--control-authority-topic",
+                        default="/dsr01/dsr_controller2/control_authority")
+    parser.add_argument("--control-authority-max-age-s", type=float, default=0.5)
+    parser.add_argument("--asset-timeout-s", type=float, default=5.0,
+                        help="HMI 관리 자산 조회 제한시간")
+    argv = list(argv)
+    split = argv.index("--ros-args") if "--ros-args" in argv else len(argv)
+    options = parser.parse_args(argv[:split])
+    endpoint = urlparse(options.backend_url)
+    if (endpoint.scheme not in {"http", "https"} or not endpoint.netloc
+            or endpoint.username or endpoint.query or endpoint.fragment):
+        parser.error("--backend-url은 인증정보·query가 없는 http(s) 절대 URL이어야 함")
+    if not options.controller_prefix.startswith("/") or options.controller_prefix == "/":
+        parser.error("--controller-prefix는 구체적인 절대 ROS prefix여야 함")
+    if not options.control_authority_topic.startswith("/"):
+        parser.error("--control-authority-topic은 절대 ROS 이름이어야 함")
+    if (not math.isfinite(options.control_authority_max_age_s)
+            or not 0 < options.control_authority_max_age_s <= 0.5):
+        parser.error("--control-authority-max-age-s는 0초 초과 0.5초 이하여야 함")
+    if not math.isfinite(options.asset_timeout_s) or not 0 < options.asset_timeout_s <= 30:
+        parser.error("--asset-timeout-s는 0초 초과 30초 이하여야 함")
+    for key in ("preparation_journal_path", "execution_journal_path"):
+        path = Path(getattr(options, key)).expanduser()
+        if not path.name or not path.parent.is_dir():
+            parser.error(f"--{key.replace('_', '-')} 상위 디렉터리가 존재해야 함")
+        setattr(options, key, path)
+    return options, argv[split:]
+
+
 def _real_preparation_options(node, options):
     from .real_preparation_observations import RealPreparationObservations
     observations = RealPreparationObservations(
@@ -1728,6 +1944,65 @@ def real_preparation_main(args=None, *, observation_options_factory=None,
         executor.add_node(node)
         node.get_logger().info(
             "REAL 준비 측정 전용 노드 기동: /c2/prepare_workpiece, ExecuteProcess 비활성")
+        executor.spin()
+    finally:
+        executor.shutdown()
+        if node is not None:
+            node.destroy_node()
+        if rclpy.ok():
+            rclpy.shutdown()
+
+
+def real_process_main(args=None, *, observation_options_factory=None,
+                      adapter_factory=None, loader_factory=None):
+    """준비·측정과 준비에 연결된 REAL ExecuteProcess를 같은 노드에서 제공한다."""
+    options, ros_args = _parse_real_process_args(sys.argv[1:] if args is None else args)
+    import rclpy
+    from rclpy.executors import MultiThreadedExecutor
+    from .preparation_action import AssetResolver
+
+    rclpy.init(args=ros_args)
+    node = None
+    executor = MultiThreadedExecutor(num_threads=4)
+    try:
+        def options_factory(owner):
+            if observation_options_factory is not None:
+                return observation_options_factory(owner)
+            compatible = argparse.Namespace(
+                control_authority_topic=options.control_authority_topic,
+                control_authority_max_age_s=options.control_authority_max_age_s,
+                controller_prefix=options.controller_prefix)
+            return _real_preparation_options(owner, compatible)
+
+        def execution_loader_factory(owner, adapter):
+            if loader_factory is not None:
+                return loader_factory(owner, adapter)
+            cached = {}
+            def load(goal):
+                observations = getattr(owner, "real_preparation_observations", None)
+                if observations is None:
+                    raise InputsUnavailable("REAL 관측 공급자 미연결")
+                if "loader" not in cached:
+                    cached["loader"] = make_real_http_loader(
+                        backend_url=options.backend_url, adapter=adapter,
+                        observations=observations, timeout_s=options.asset_timeout_s)
+                return cached["loader"](goal)
+            return load
+
+        robot_factory = adapter_factory or (lambda owner: DoosanRobotAdapter(owner))
+        node = create_ros_node(
+            load_inputs=_missing_loader,
+            real_execution_loader_factory=execution_loader_factory,
+            journal=RunJournal(options.execution_journal_path),
+            runtime_mode="REAL", measurement_only=False, preparation_required=True,
+            real_adapter_factory=robot_factory,
+            preparation_resolver=AssetResolver(options.backend_url),
+            preparation_journal_path=options.preparation_journal_path,
+            enable_preparation=True,
+            real_preparation_options_factory=options_factory)
+        executor.add_node(node)
+        node.get_logger().info(
+            "REAL 통합 공정 노드 기동: 준비 성공에 연결된 실행 가능 경로만 허용")
         executor.spin()
     finally:
         executor.shutdown()
