@@ -1,12 +1,10 @@
 # 프로젝트 ROS 실행·설정 기록
 
-2026-09-21: [경로 생성 취소·업데이트 실행](../../docs/HMI_GENERATION_CANCEL.md)을 지원한다. 기존 GeneratePath v2의 표준 취소를 사용하며 공통 ROS 타입 변경은 없다.
-
-2026-09-20 갱신: main `72618aa`의 PR #38과 HMI 부분 통합 기준이다.
+2026-09-21 갱신: main `19ef4c6`의 c2_path/HMI 부분 통합과 공정 역할 문서 기준이다.
 실제 이미지→경로 생성·미리보기와 한 PC 실행은 [HMI 경로 통합 안내](../../docs/HMI_PATH_INTEGRATION.md)를 따른다.
 아래 과거 PR 상태는 당시 기록이며 현재 실행 가능 여부는 이 통합 범위를 기준으로 한다.
 
-현재 도구는 engraving_drill, 프레임은 c2_base다. 철사 고정 중 그리퍼 열기·집기·청소·반납을 금지한다. 보정 소스 PR #27은 미병합이며 새 측정값은 경로 생성 전 스냅샷으로 고정해야 한다. [구조·전환](../../docs/C2_FIXED_DRILL_20260919.md).
+현재 도구는 engraving_drill, 프레임은 c2_base다. 철사 고정 중 그리퍼 열기·집기·청소·반납을 금지한다. `tool_calibration.py`는 main에 있지만 양초 위치 측정과 별개이며, 새 측정값은 경로 생성 전 스냅샷으로 고정해야 한다. [구조·전환](../../docs/C2_FIXED_DRILL_20260919.md).
 
 2026-09-19, 기준 main `301ea6e`에 고정 드릴 v2 변경을 반영했다. 팀 공정은 `ws_cobot1`, 외부 로봇·그리퍼 환경은 `ws_dsr`로 분리한다. 기존 Clay 코드와 전용 실행 안내는 PR #16에서 로컬 보관 후 저장소에서 제거했다. 과거 실행·시험 기록은 [보관·복구 기록](../../docs/LEGACY_CLAY_ARCHIVE.md)의 고정 커밋 링크로 확인한다.
 
@@ -16,10 +14,10 @@
 | --- | --- |
 | `c2_interfaces` | Action 2개·Service 1개·Message 2개와 빌드 설정 구현. Jazzy 타입 생성·직렬화 시험 통과. [빌드·사용법](../src/c2_interfaces/README.md) |
 | `c2_path` | PR #38의 노드·이미지 계산·관리 파일·빌드 설정 구현. 실제 ROS 경로 생성/HMI 조회 시험 통과. SIMULATION/test_only |
-| `c2_process` | `robot_adapter.py`, `__init__.py`, 시험 소스 존재. 공정 노드·빌드 설정 미구현 |
+| `c2_process` | `robot_adapter.py`, `tool_calibration.py`, `joint_check.py`, `engraving.py`와 시험 소스 존재. `workpiece_calibration.py`, 공정 노드·상태 기계·preconditions·빌드/launch/실행 YAML 미구현 |
 | 운영자 HMI·서버 | React·FastAPI·SQLite, MOCK 및 c2_path 부분 통합. 실행 방법은 [서버](../../backend/README.md)·[화면](../../frontend/README.md) 안내 참조 |
-| `monitor_gateway_node` | `backend/app/ros_bridge.py`의 native rclpy 클라이언트와 artifact_loader 연결. 파일 무결성·실제 경로 노드 통합 시험 완료. 공정/실기 미검증 |
-| 조각·보정 | 조각 이관 PR #25·보정 PR #27 미병합. 어댑터 frame 변경은 PR #23. cleaning은 feat/12-robot-adapter의 4b6416d에 예비 보관 |
+| `monitor_gateway_node` | `backend/app/ros_bridge.py`의 native rclpy 클라이언트와 artifact_loader 연결. 파일 무결성·실제 경로 노드 통합 시험 완료. SIM 스냅샷/ZIP 교환은 별도 HMI 기능. 공정/실기 미검증 |
+| 조각·보정 | 조각·도구 보정·frame 변경과 관절 검사 소스가 main에 반영됨. cleaning은 feat/12-robot-adapter의 `4b6416d`에 예비 보관하며 현재 공정에서 제외 |
 
 저장소 루트에서 `python3 ws_cobot_pjt/run_monitor.py`는 기본 SIMULATION/MOCK이다. Jazzy 환경을 준비하고
 `--transport ros`를 주면 저장소를 초기화한 뒤 경로 노드와 HMI를 함께 켠다. 실제 공정 전체를 실행하는 명령은 아니다.

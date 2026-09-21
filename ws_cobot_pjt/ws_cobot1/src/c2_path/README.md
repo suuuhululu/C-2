@@ -70,7 +70,7 @@ ros2 run c2_path path_planner_node --ros-args \
 
 순수 계산 시험:
 
-```bashd
+```bash
 cd ws_cobot_pjt/ws_cobot1/src/c2_path
 python3 -m unittest discover -s test -v
 ```
