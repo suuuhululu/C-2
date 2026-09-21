@@ -1404,6 +1404,10 @@ def create_ros_node(load_inputs: Callable[[Mapping], ExecutionInputs] = _missing
             msg.elapsed_s = max(0.0, time.monotonic() - started) if started else 0.0
             msg.requested_tool_id = "engraving_drill"
             values = self.observations.values()
+            # 준비된 실행은 기본 상태를 다시 조회하지 않는다. 대신 상시 관측이
+            # 제어권 상실/만료 또는 로봇 연결 단절을 확인하면 기존 준비 승인을
+            # 폐기한다. 정상 관측이 돌아와도 이전 binding을 자동 복원하지 않는다.
+            self._invalidate_preparation_on_observation_loss(values)
             msg.joints = values["joints"]
             msg.joints_quality = values["joints_quality"]
             msg.joints_measured_at = _time_from_ns(values["joints_stamp_ns"])
@@ -1422,6 +1426,28 @@ def create_ros_node(load_inputs: Callable[[Mapping], ExecutionInputs] = _missing
             msg.temperature_quality = values["temperature_quality"]
             # 장착·그리퍼·미조회 TCP 프로파일은 기본 UNKNOWN/빈값 유지.
             self.state_pub.publish(msg)
+
+        def _invalidate_preparation_on_observation_loss(self, values):
+            if self.coordinator.runtime_mode != "REAL" or self.preparation is None:
+                return
+            with self.coordinator._lock:
+                has_binding = bool(self.coordinator._preparation_bindings)
+            if not has_binding:
+                return
+            observations = getattr(self, "real_preparation_observations", None)
+            authority = (observations.cache.fresh()
+                         if observations is not None
+                         and callable(getattr(getattr(observations, "cache", None), "fresh", None))
+                         else None)
+            authority_ready = bool(
+                authority is not None and authority.active and authority.connected
+                and authority.valid and authority.has_control)
+            robot_connected = (
+                isinstance(values, Mapping)
+                and values.get("robot_connection_state") == "CONNECTED"
+                and values.get("robot_quality") == "VALID")
+            if not authority_ready or not robot_connected:
+                self.preparation.invalidate()
 
         def alarm_scope(self):
             with self.lock:
