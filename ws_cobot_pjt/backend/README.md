@@ -1,5 +1,11 @@
 # 새김 시스템 모니터 서버
 
+2026-09-21: [작업 영역 기준](../docs/HMI_WORK_AREA.md)의 HMI 표시용 정책 스냅샷을 추가했다.
+`config/work_area.json`을 관리 자산으로 저장하고 HTTP/WS snapshot의 `work_area_policy`로 전달한다.
+ROS 입력 프로파일을 덮어쓰지 않으며 MOCK만 합의 제외 길이를 적용한다.
+
+2026-09-21: [경로 생성 취소·중단 확인](../docs/HMI_GENERATION_CANCEL.md)을 지원한다. 기존 GeneratePath v2의 표준 취소를 사용하며 공통 ROS 타입 변경은 없다.
+
 2026-09-21: 공통 SIM 스냅샷 등록·선택, 입력 ZIP 내보내기, 결과 ZIP 검증·등록을 추가했다.
 화면의 **파일 통합 시험**을 사용한다. 전달 규격·API·공통 스키마의 미정 범위는
 [HMI 파일 통합 안내](../docs/HMI_FILE_INTEGRATION.md)를 따른다. 가져온 경로의 HMI 실행은 차단한다.

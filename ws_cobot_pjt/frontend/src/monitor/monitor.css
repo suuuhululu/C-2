@@ -1839,3 +1839,46 @@ small {
     grid-template-columns: 1fr;
   }
 }
+
+.generation-status {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 18px;
+  margin-bottom: 16px;
+  background: #f4f7f2;
+  border: 1px solid #c7d7c9;
+  border-radius: 6px;
+}
+.generation-status > div {
+  display: grid;
+  gap: 5px;
+}
+.generation-status span {
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+.generation-status button {
+  flex-shrink: 0;
+}
+.work-area-summary {
+  display: grid;
+  gap: 4px;
+  padding: 12px 16px;
+  border-top: 1px solid #e0e6dc;
+  background: #fafbf7;
+  font-size: 12px;
+  line-height: 1.6;
+  color: #476252;
+}
+.work-area-summary small {
+  color: #77877d;
+}
+.work-area-warning {
+  margin: 4px 0;
+  padding: 8px;
+  border: 1px solid #ead6bb;
+  background: #fcf5e9;
+  color: #8f591e;
+}

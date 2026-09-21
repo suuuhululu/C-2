@@ -45,6 +45,8 @@ import "./monitor.css";
 import LivePathPreview from "./LivePathPreview";
 import { matchesPreview } from "./preview";
 import FileIntegration from "./FileIntegration";
+import WorkAreaSummary from "./WorkAreaSummary";
+import { mm, topToBottom } from "./workArea";
 
 const navItems = [
   { id: "prepare", name: "작업 준비", icon: FileImage },
@@ -86,6 +88,7 @@ export default function Monitor() {
   const [uploading, setUploading] = useState(false),
     [generation, setGeneration] = useState<Generation | null>(null),
     [generating, setGenerating] = useState(false);
+  const [cancelPending, setCancelPending] = useState(false);
   const [error, setError] = useState(""),
     [toast, setToast] = useState(""),
     [pending, setPending] = useState(false),
@@ -119,6 +122,12 @@ export default function Monitor() {
   const fresh = connected && snapshot?.connection === "CONNECTED";
   const isRos = snapshot?.transport === "ROS2";
   const capabilities = snapshot?.path_generation;
+  const serverGeneration = snapshot?.generation;
+  const serverGenerating =
+    !!serverGeneration &&
+    ["ACCEPTED", "RUNNING", "CANCELING", "UNKNOWN"].includes(
+      serverGeneration.state,
+    );
   const pathReady = connected && (isRos ? !!capabilities?.ready : fresh);
   const busy = active(run),
     locked = busy || pending || startUncertain;
@@ -135,6 +144,7 @@ export default function Monitor() {
     !busy &&
     !pending &&
     !generating &&
+    !serverGenerating &&
     !snapshot?.storage_error;
 
   useEffect(() => {
@@ -308,7 +318,15 @@ export default function Monitor() {
     }
   }
   async function generate() {
-    if (!asset || !profile || !capabilities || !pathReady || generating) return;
+    if (
+      !asset ||
+      !profile ||
+      !capabilities ||
+      !pathReady ||
+      generating ||
+      serverGenerating
+    )
+      return;
     setError("");
     setGenerating(true);
     setReviewed(false);
@@ -334,9 +352,12 @@ export default function Monitor() {
     try {
       let g = await request<Generation>("/path-generations", body);
       const start = Date.now();
-      while (live.current && !["SUCCEEDED", "FAILED"].includes(g.state)) {
+      while (
+        live.current &&
+        !["SUCCEEDED", "FAILED", "UNKNOWN"].includes(g.state)
+      ) {
         setGeneration(g);
-        if (Date.now() - start > 125000)
+        if (Date.now() - start > 135000)
           throw new Error(
             "생성 제한 시간이 지났습니다. 같은 요청을 다시 조회하세요.",
           );
@@ -349,6 +370,12 @@ export default function Monitor() {
       setGeneration(g);
       if (!g.result?.success) {
         generationRequest.current = null;
+        if (g.result?.error_code === "CANCELED") {
+          setToast(
+            "경로 생성을 취소했습니다. 새 이미지를 선택하거나 다시 생성하세요.",
+          );
+          return;
+        }
         throw new Error(g.result?.message || "경로를 생성하지 못했습니다.");
       }
       const p = await request<PathResult>(
@@ -377,6 +404,25 @@ export default function Monitor() {
       setGenerating(false);
     }
   }
+  async function cancelGeneration() {
+    const rid = serverGeneration?.request_id || generation?.request_id;
+    if (!rid || cancelPending) return;
+    setCancelPending(true);
+    setError("");
+    try {
+      const g = await request<Generation>(
+        `/path-generations/${rid}/cancel`,
+        {},
+      );
+      setGeneration(g);
+      setSnapshot((s) => (s ? { ...s, generation: g } : s));
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setCancelPending(false);
+    }
+  }
+
   async function startRun() {
     if (!result) return;
     setPending(true);
@@ -670,6 +716,45 @@ export default function Monitor() {
                 </p>
               </details>
             )}
+          {nav === "prepare" && serverGeneration && (
+            <div className="generation-status" role="status" aria-live="polite">
+              <div>
+                <strong>
+                  {serverGeneration.state === "UNKNOWN"
+                    ? "생성 중단 미확인"
+                    : serverGeneration.state === "CANCELING"
+                      ? "생성 취소 중 · 계산 종료 확인 대기"
+                      : serverGenerating
+                        ? `서버에서 경로 생성 중 · ${stageNames[serverGeneration.stage] || serverGeneration.stage}`
+                        : serverGeneration.result?.error_code === "CANCELED"
+                          ? "경로 생성 취소 완료"
+                          : serverGeneration.state === "SUCCEEDED"
+                            ? "최근 경로 생성 완료"
+                            : "최근 경로 생성 실패"}
+                </strong>
+                <span>
+                  요청 {serverGeneration.request_id.slice(0, 8)} ·{" "}
+                  {Math.round(serverGeneration.progress * 100)}%
+                  {serverGeneration.result
+                    ? ` · ${serverGeneration.result.message}`
+                    : " · 새로고침해도 계산은 계속됩니다."}
+                </span>
+              </div>
+              {serverGenerating && serverGeneration.state !== "UNKNOWN" && (
+                <button
+                  type="button"
+                  onClick={cancelGeneration}
+                  disabled={
+                    cancelPending || serverGeneration.state === "CANCELING"
+                  }
+                >
+                  {cancelPending || serverGeneration.state === "CANCELING"
+                    ? "취소 확인 중…"
+                    : "경로 생성 취소"}
+                </button>
+              )}
+            </div>
+          )}
           {nav === "prepare" && (
             <div className="prepare-grid">
               <section className="panel input-panel">
@@ -788,7 +873,7 @@ export default function Monitor() {
                       ["width_mm", "가로", "mm"],
                       ["height_mm", "세로", "mm"],
                       ["offset_u_mm", "중심 U", "mm"],
-                      ["offset_v_mm", "중심 V", "mm"],
+                      ["offset_v_mm", "중심 V (바닥 ↑)", "mm"],
                       ["rotation_deg", "회전", "°"],
                     ] as const
                   ).map(([key, label, unit]) => (
@@ -848,6 +933,7 @@ export default function Monitor() {
                     !pathReady ||
                     uploading ||
                     generating ||
+                    serverGenerating ||
                     locked ||
                     draft.width_mm <= 0 ||
                     draft.height_mm <= 0
@@ -864,6 +950,25 @@ export default function Monitor() {
                       ? "경로 다시 생성"
                       : "경로 생성"}
                 </button>
+                {isRos && (
+                  <p className="field-help">
+                    영역 기준과 현재 경로 프로파일이 다르면 전개면 아래에
+                    표시됩니다. 경로 생성은 현재 프로파일의 제한을 적용합니다.
+                  </p>
+                )}
+                {profile && (
+                  <p className="field-help">
+                    윗면 기준 중심 v ↓ ={" "}
+                    {mm(
+                      topToBottom(
+                        profile.payload.surface.height_mm,
+                        draft.offset_v_mm,
+                      ),
+                    )}{" "}
+                    mm. V = 높이 − v이며, 경로 요청에는 바닥 기준 V를
+                    전달합니다.
+                  </p>
+                )}
                 {generating && (
                   <div className="progress-track">
                     <div
@@ -874,6 +979,7 @@ export default function Monitor() {
               </section>
               <UnwrappedPreview
                 profile={profile}
+                workAreaPolicy={snapshot?.work_area_policy}
                 draft={draft}
                 result={result}
                 asset={asset}
@@ -1260,12 +1366,19 @@ export default function Monitor() {
                     </dd>
                   </div>
                   <div>
-                    <dt>시험 유효 높이</dt>
+                    <dt>옆면 배치 범위</dt>
                     <dd>
-                      {profile?.payload.surface.valid_v_range_mm
-                        .map((v) => +v.toFixed(2))
-                        .join(" ~ ")}{" "}
-                      mm · 실기 승인 범위 아님
+                      360° · V=0 ~ {profile?.payload.surface.height_mm ?? 150}{" "}
+                      mm
+                    </dd>
+                  </div>
+                  <div>
+                    <dt>작업 영역 기준과 적용 상태</dt>
+                    <dd>
+                      <WorkAreaSummary
+                        profile={profile}
+                        policy={snapshot?.work_area_policy}
+                      />
                     </dd>
                   </div>
                   <div>
