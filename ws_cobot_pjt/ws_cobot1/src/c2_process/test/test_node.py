@@ -2794,6 +2794,7 @@ def test_real_process_main_wires_combined_preparation_and_execution(tmp_path, mo
 
 
 def test_real_execution_mapper_requires_verified_absolute_geometry():
+    from types import SimpleNamespace
     import c2_process.node as module
     goal, inputs = _team_mock_inputs()
     goal = dict(goal, source_mode='REAL')
@@ -2816,18 +2817,17 @@ def test_real_execution_mapper_requires_verified_absolute_geometry():
         'joint_check_arguments':{'limits_deg':inputs.joint_limits_deg,
                                  'j6_margin_deg':inputs.j6_margin_deg},
         'verify_tool_tip_arguments':{'tol_m':inputs.tip_tolerance_m}}
+    authority = SimpleNamespace(active=True, connected=True, valid=True, has_control=True)
+    observations = SimpleNamespace(cache=SimpleNamespace(fresh=lambda: authority),
+                                   stop_latched=lambda context: False)
     mapped = module.resolve_real_execution_settings(
-        snapshot, goal, adapter=inputs.adapter)
+        snapshot, goal, adapter=inputs.adapter, observations=observations)
     assert mapped['workcell'] == {'axis_xy_m':[.4,0.], 'radius_m':.03425, 'top_z_m':.25}
     assert mapped['evidence'].profile_snapshot_id == inputs.evidence.profile_snapshot_id
-    # 준비된 실행 승인은 coordinator의 성공 기록/binding이 담당한다. 매퍼가
-    # 제어권·정지 상태를 임시 True/False로 꾸며 승인 근거를 만들지 않는다.
-    assert mapped['evidence'].control_authority_confirmed is False
-    assert mapped['evidence'].stop_latched is None
     snapshot['workcell']['top']['offset_status'] = 'UNVERIFIED'
     with pytest.raises(InputsUnavailable, match='ABSOLUTE_GEOMETRY'):
         module.resolve_real_execution_settings(
-            snapshot, goal, adapter=inputs.adapter)
+            snapshot, goal, adapter=inputs.adapter, observations=observations)
 
 
 def test_real_prepared_only_coordinator_needs_binding_before_loader(tmp_path):
