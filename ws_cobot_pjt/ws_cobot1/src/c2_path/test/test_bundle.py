@@ -127,7 +127,7 @@ class TestRunAndVerify(BundleFixture):
         self.assertTrue(result["success"], result)
 
     def test_generation_failure_still_writes_verifiable_failed_bundle(self):
-        _, out, _, result = self.run_ok(offset_v_mm=50.0)          # 작업 가능 높이 밖
+        _, out, _, result = self.run_ok(offset_v_mm=200.0)         # 옆면(높이 150mm) 밖
         self.assertFalse(result["success"])
         self.assertEqual(result["error_code"], "VALIDATION_FAILED")
         self.assertEqual((result["path_id"], result["path_version"], result["path_sha256"]), ("", 0, ""))
@@ -261,8 +261,8 @@ class TestCommittedSamples(unittest.TestCase):
         for manifest in SAMPLES.glob("*/input/manifest.json"):
             self.assertEqual(json.loads(manifest.read_text(encoding="utf-8"))["origin"], "local_test_sample")
 
-    def test_sample_rejected_bundle_has_no_executable_path(self):
-        out = SAMPLES / "heart_seam_rejected" / "output"
+    def test_sample_off_surface_bundle_has_no_executable_path(self):
+        out = SAMPLES / "heart_off_surface" / "output"
         result = json.loads((out / "result.json").read_text(encoding="utf-8"))
         self.assertFalse(result["success"])
         self.assertEqual(result["error_code"], "VALIDATION_FAILED")

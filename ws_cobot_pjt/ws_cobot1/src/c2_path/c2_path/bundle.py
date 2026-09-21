@@ -65,7 +65,6 @@ RESULT_FIELDS = (
     "svg_asset_id", "preview_asset_id", "segment_count", "cut_length_m",
     "validation_passed", "validation_report_id",
 )
-SUCCESS_MESSAGE = "경로 생성과 기하 검증이 완료되었습니다. 실행 전 J6/IK 검사가 별도로 필요합니다."
 
 
 class BundleError(RuntimeError):
@@ -352,7 +351,7 @@ def run_bundle(input_dir, output_dir, *, timeout_s=120.0, max_input_bytes=10 * 1
     반환: result 사전 (GeneratePath.Result 12개 필드 전체).
     입력 묶음이 깨졌거나 출력 폴더가 비어 있지 않으면 BundleError 로 아무것도 쓰지 않는다.
     """
-    from .pipeline import GeneratePipeline, PipelineError  # cv2 가 필요한 계산은 실행할 때만 불러온다
+    from .pipeline import GeneratePipeline, PipelineError, success_message  # cv2 가 필요한 계산은 실행할 때만 불러온다
 
     input_dir, output_dir = Path(input_dir).resolve(), Path(output_dir).resolve()
     if input_dir == output_dir:
@@ -384,7 +383,7 @@ def run_bundle(input_dir, output_dir, *, timeout_s=120.0, max_input_bytes=10 * 1
     try:
         generated = GeneratePipeline(store, timeout_s=timeout_s).run(goal)
         result = {
-            "success": True, "error_code": "NONE", "message": SUCCESS_MESSAGE,
+            "success": True, "error_code": "NONE", "message": success_message(generated),
             "path_id": generated.path_id, "path_version": generated.path_version,
             "path_sha256": generated.path_sha256, "svg_asset_id": generated.svg_asset_id,
             "preview_asset_id": generated.preview_asset_id, "segment_count": generated.segment_count,

@@ -9,7 +9,12 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
 from c2_path import snapshot, workcell as wc  # noqa: E402
-from c2_path.pipeline import PipelineError, matching_test_profile, validate_profile  # noqa: E402
+from c2_path.pipeline import (  # noqa: E402
+    PipelineError,
+    matching_test_profile,
+    matching_test_profile_v2,
+    validate_profile,
+)
 
 SPEC = ROOT / "BUNDLE_SPEC.md"
 TOOL_CALIBRATION = ROOT.parent / "c2_process" / "c2_process" / "tool_calibration.py"
@@ -77,8 +82,8 @@ class TestSurfaceGeometry(unittest.TestCase):
             "height": {"height_mm": -1.0},
             "origin": {"axis_origin_m": [0.4, 0.0]},
             "direction": {"axis_direction": [0.0, 1.0, 0.0]},
-            "v_range": {"valid_v_range_mm": [130.0, 85.0]},
-            "v_range above height": {"valid_v_range_mm": [85.0, 200.0]},
+            "v_range": {"valid_v_range_mm": [140.0, 10.0]},
+            "v_range above height": {"valid_v_range_mm": [10.0, 200.0]},
             "u origin": {"u_origin_angle_deg": 270.0},
             "seam": {"seam_angle_deg": -180.0},
             "reachable order": {"reachable_angle_deg": [135.0, -135.0]},
@@ -132,10 +137,14 @@ class TestSpecDocumentsEveryProfileField(unittest.TestCase):
     def test_every_profile_and_surface_field_is_named_in_spec(self):
         text = SPEC.read_text(encoding="utf-8")
         profile = matching_test_profile()
+        v2 = matching_test_profile_v2(measurement_id="m-0001", measured_at="2026-09-21T10:30:00+09:00")
         names = set(profile) | {f"surface.{k}" for k in profile["surface"]}
+        names |= set(v2) | {f"surface.{k}" for k in v2["surface"]}
         names.discard("surface")
         missing = sorted(n for n in names if f"`{n}`" not in text)
         self.assertEqual(missing, [], f"BUNDLE_SPEC.md 에 필드 설명이 없음: {missing}")
+        for contract in ("c2-path-test-profile/1", "c2-path-test-profile/2"):
+            self.assertIn(contract, text)
 
     def test_every_manifest_key_is_named_in_spec(self):
         from c2_path import bundle

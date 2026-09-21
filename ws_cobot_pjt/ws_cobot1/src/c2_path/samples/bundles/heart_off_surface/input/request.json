@@ -1,0 +1,16 @@
+{
+  "asset_id": "530aafe7-f1f9-5a69-85c8-60038f356494",
+  "asset_sha256": "74937463fbd90ed19b0fbb9cf2687e0fcdac4344a2439a1a9affb721937c185b",
+  "conversion_preset": "raster_centerline_bezier",
+  "height_mm": 24.0,
+  "offset_u_mm": -53.7998,
+  "offset_v_mm": 200.0,
+  "profile_sha256": "c2e9dd46d57d6e22980daf3b235d82d9bc62e497d784707f0b582cad8021c815",
+  "profile_snapshot_id": "b623bb1a-f1c2-5ec9-b4c3-2382df4c2083",
+  "request_id": "3f5f7873-4de0-5640-bae7-f8a5177cd8b9",
+  "rotation_deg": 0.0,
+  "schema_version": 2,
+  "source_mode": "SIMULATION",
+  "tool_id": "engraving_drill",
+  "width_mm": 24.0
+}

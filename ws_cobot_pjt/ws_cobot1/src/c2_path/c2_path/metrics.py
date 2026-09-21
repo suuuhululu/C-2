@@ -14,9 +14,13 @@
 from __future__ import annotations
 
 
-def error_code(message: str) -> str:
-    """validate_path 오류 메시지 'CODE: 상세' 에서 CODE 만 뽑는다."""
-    return message.split(":", 1)[0].strip()
+def error_code(message) -> str:
+    """validate_path 오류 메시지 'CODE: 상세' 에서 CODE 만 뽑는다.
+
+    3D 매핑 단계 실패 보고서의 오류는 문자열이 아니라 {"reason_code": ...} 객체다."""
+    if isinstance(message, dict):
+        return str(message.get("reason_code") or message.get("code") or "UNKNOWN")
+    return str(message).split(":", 1)[0].strip()
 
 
 def raster_to_vector_error(convert_stats: dict | None) -> dict:
@@ -95,6 +99,8 @@ def sample_report(name: str, validation_report: dict) -> dict:
         "travel_length_m": build.get("travel_length_m"),
         "segment_count": build.get("segment_count"),
         "failure_reasons": violations(validation_report),
+        # 9/21: 생성 성공과 로봇 실행 가능 여부는 별개다. 사전 점검 결과는 생성 실패 사유(failure_reasons)에 넣지 않는다.
+        "execution_precheck": (validation_report.get("execution_readiness") or {}).get("precheck"),
     }
 
 
@@ -109,6 +115,10 @@ def suite_report(samples: list[dict]) -> dict:
         "samples": samples,
         "failure_reasons_total": total_failures,
         "seam_crossed_total": total_failures.get("SEAM_CROSSED", 0),
+        # 각도 범위는 9/21 부터 생성 검증이 아니라 실행 사전 점검이다 (이 값은 이제 항상 0). 아래 두 값을 본다.
         "angle_out_of_range_total": total_failures.get("ANGLE_OUT_OF_RANGE", 0),
+        "generated_sample_count": sum(1 for s in samples if s.get("passed")),
+        "execution_precheck_out_of_limits_sample_count": sum(
+            1 for s in samples if s.get("execution_precheck") == "OUT_OF_LIMITS"),
         "cylinder_penetration_total": total_failures.get("CYLINDER_PENETRATION", 0),
     }

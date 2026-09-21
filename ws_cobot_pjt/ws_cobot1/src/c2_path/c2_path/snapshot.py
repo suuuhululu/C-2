@@ -12,8 +12,8 @@
 
 ``surface_geometry_errors`` 는 **실측값을 받는 새 프로필**에 필요한 기하 필드의 구조적 조건이다.
 수치 상·하한(예: 반지름 허용 범위, 재장착 허용 이동량)은 여기서 정하지 않는다 — 담당자 확정 전이다
-(BUNDLE_SPEC.md 의 "미정 항목"). 현재 ``pipeline.validate_profile`` 은 test_only 값과 정확히 일치하는
-스냅샷만 받으며 이 모듈을 호출하지 않는다.
+(BUNDLE_SPEC.md 의 "미정 항목"). ``pipeline.validate_profile`` 은 contract ``/1`` 스냅샷을 test_only 값과 정확히
+비교하고(이 모듈을 부르지 않는다), ``/2`` 스냅샷에서만 ``surface_geometry_errors`` 로 구조를 검사하고, 그 ``surface`` 값(``workcell.surface_from_snapshot``)으로 경로를 계산한다.
 """
 from __future__ import annotations
 

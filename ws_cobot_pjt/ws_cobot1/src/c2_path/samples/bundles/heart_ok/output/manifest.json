@@ -6,15 +6,15 @@
       "file": "request.json",
       "kind": "request",
       "mime": "application/json",
-      "sha256": "018a210ec7bef8206c85e7250900b2f19a7e58dd5d91f5e6353231922b990d7b",
+      "sha256": "18bf9ce4de3fb039ade28a4c557d4bd9ebc1d84ceeea1402fa3bf239b8468b56",
       "size_bytes": 604
     },
     {
       "file": "result.json",
       "kind": "result",
       "mime": "application/json",
-      "sha256": "d59ebaea9ca3fdee18795a693b0d9eea06337bbe0238b081e821f0d938f45b9b",
-      "size_bytes": 597
+      "sha256": "e84080dec2f6f00f2f185eec9a5f19e55f94ae77222f68f91581b9946675a8b5",
+      "size_bytes": 692
     }
   ],
   "files": [
@@ -26,8 +26,8 @@
       "name": "c2-path-validation.json",
       "path_id": "7f16d2c9-ab2b-55d9-bdab-4ea371902971",
       "path_version": null,
-      "sha256": "c2a7ff81d7672b94009f94d9a4bb56dc3a478fb294cb639edb3077f44b7fcb82",
-      "size_bytes": 5180
+      "sha256": "ab958f15ed09efd8a98f6720d6177e06e7f0ea393b56856a7c223282f814ffa6",
+      "size_bytes": 7452
     },
     {
       "asset_id": "06159074-6a8a-5405-8626-fe82ab84e091",
@@ -37,8 +37,8 @@
       "name": "c2-path.json",
       "path_id": "7f16d2c9-ab2b-55d9-bdab-4ea371902971",
       "path_version": 1,
-      "sha256": "1afdfb371730906e6d08e03e5dab906d0ceddbb83ca1a54d4329c2532b61c3f4",
-      "size_bytes": 43534
+      "sha256": "50ad0103ff8ffa6240739f94f733f8d47587962939d2c86c06e6bbfac629199b",
+      "size_bytes": 43387
     },
     {
       "asset_id": "c8015cff-13e4-5621-b45b-725054b9c020",
@@ -59,20 +59,20 @@
       "name": "c2-path-preview.json",
       "path_id": "7f16d2c9-ab2b-55d9-bdab-4ea371902971",
       "path_version": null,
-      "sha256": "51a4c8066aea76ede6b96dbab503c0465e43816ba97402b9ac11ea9cbbdf9653",
-      "size_bytes": 36802
+      "sha256": "de541f1dd0de2d3f3564e67ecac75bc3b8b470b049ff78f084f73b585dea789a",
+      "size_bytes": 38246
     }
   ],
   "inputs": {
     "asset_id": "01c9d313-bbca-5ed8-a9f5-54ed67659f24",
     "asset_sha256": "74937463fbd90ed19b0fbb9cf2687e0fcdac4344a2439a1a9affb721937c185b",
-    "profile_sha256": "272a05c285698cb1cd00241419f7843f572e0290070d312e5d2cd7cc19943b31",
+    "profile_sha256": "c2e9dd46d57d6e22980daf3b235d82d9bc62e497d784707f0b582cad8021c815",
     "profile_snapshot_id": "de9e0ffc-6384-560b-859c-d3f272b80e0d"
   },
   "path": {
     "asset_id": "06159074-6a8a-5405-8626-fe82ab84e091",
     "path_id": "7f16d2c9-ab2b-55d9-bdab-4ea371902971",
-    "path_sha256": "1afdfb371730906e6d08e03e5dab906d0ceddbb83ca1a54d4329c2532b61c3f4",
+    "path_sha256": "50ad0103ff8ffa6240739f94f733f8d47587962939d2c86c06e6bbfac629199b",
     "path_version": 1
   },
   "request_id": "8a6dc5d6-320f-5cae-a77a-699f0451c1ef",

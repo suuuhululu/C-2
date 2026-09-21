@@ -2,12 +2,34 @@
   "asset_id": "01c9d313-bbca-5ed8-a9f5-54ed67659f24",
   "asset_sha256": "74937463fbd90ed19b0fbb9cf2687e0fcdac4344a2439a1a9affb721937c185b",
   "contract": "c2-path-preview/1",
+  "execution_readiness": {
+    "contract": "c2-path-execution-readiness/1",
+    "cut_segment_count": 6,
+    "executability": "NOT_JUDGED",
+    "limits": {
+      "angle_meaning": "원통 도달각 참고 범위(잠정). 실제 J5 관절 한계 판정이 아니다.",
+      "height_reference": "bottom",
+      "provisional": true,
+      "reachable_angle_deg": [
+        -135.0,
+        135.0
+      ],
+      "source": "요청 스냅샷(/2) — surface.valid_v_range_mm / surface.reachable_angle_deg (요청별 값)",
+      "work_height_range_m": [
+        0.01,
+        0.14
+      ]
+    },
+    "note": "c2_path 의 잠정 범위 사전 점검이다. 실행 가능 여부는 판정하지 않으며 실행 전 검사(IK·J5/J6·충돌)가 한다. 경로 생성 성공·검증 통과·미리보기 성공은 로봇이 실행할 수 있다는 뜻이 아니다.",
+    "out_of_limit_cut_segment_count": 0,
+    "precheck": "WITHIN_LIMITS"
+  },
   "frame_id": "c2_base",
   "path_id": "7f16d2c9-ab2b-55d9-bdab-4ea371902971",
-  "path_sha256": "1afdfb371730906e6d08e03e5dab906d0ceddbb83ca1a54d4329c2532b61c3f4",
+  "path_sha256": "50ad0103ff8ffa6240739f94f733f8d47587962939d2c86c06e6bbfac629199b",
   "path_version": 1,
   "pose_reference": "tool_tip",
-  "profile_sha256": "272a05c285698cb1cd00241419f7843f572e0290070d312e5d2cd7cc19943b31",
+  "profile_sha256": "c2e9dd46d57d6e22980daf3b235d82d9bc62e497d784707f0b582cad8021c815",
   "profile_snapshot_id": "de9e0ffc-6384-560b-859c-d3f272b80e0d",
   "render_only": true,
   "schema_version": 2,
@@ -32,6 +54,8 @@
     },
     {
       "connect_to_next": false,
+      "execution_precheck": "WITHIN_LIMITS",
+      "execution_precheck_reasons": [],
       "kind": "CUT",
       "points_m": [
         [
@@ -124,6 +148,8 @@
     },
     {
       "connect_to_next": false,
+      "execution_precheck": "WITHIN_LIMITS",
+      "execution_precheck_reasons": [],
       "kind": "CUT",
       "points_m": [
         [
@@ -215,6 +241,8 @@
     },
     {
       "connect_to_next": false,
+      "execution_precheck": "WITHIN_LIMITS",
+      "execution_precheck_reasons": [],
       "kind": "CUT",
       "points_m": [
         [
@@ -945,6 +973,8 @@
     },
     {
       "connect_to_next": false,
+      "execution_precheck": "WITHIN_LIMITS",
+      "execution_precheck_reasons": [],
       "kind": "CUT",
       "points_m": [
         [
@@ -1253,6 +1283,8 @@
     },
     {
       "connect_to_next": false,
+      "execution_precheck": "WITHIN_LIMITS",
+      "execution_precheck_reasons": [],
       "kind": "CUT",
       "points_m": [
         [
@@ -1983,6 +2015,8 @@
     },
     {
       "connect_to_next": false,
+      "execution_precheck": "WITHIN_LIMITS",
+      "execution_precheck_reasons": [],
       "kind": "CUT",
       "points_m": [
         [

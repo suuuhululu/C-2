@@ -117,11 +117,8 @@ class TestGeneratePipeline(PipelineFixture):
             self.store.read(aid, self._sha(aid), (kind,))
 
     def test_any_mapping_failure_fails_whole_generation(self):
-        # 작업 가능 높이(wc.WORKABLE_HEIGHT_RANGE_M) 아래쪽 경계 밖으로 확실히 벗어난 값을 써서
-        # 상수가 나중에 또 바뀌어도(9/21 시율님 대체 지시처럼) 이 시험이 계속 의도대로 실패를 유도하게 한다.
-        out_of_range_v_mm = wc.WORKABLE_HEIGHT_RANGE_M[0] * 1000.0 - 5.0
         with self.assertRaises(PipelineError) as caught:
-            GeneratePipeline(self.store).run(self.goal(offset_v_mm=out_of_range_v_mm))
+            GeneratePipeline(self.store).run(self.goal(offset_v_mm=200.0))   # 옆면(150mm) 밖
         self.assertEqual(caught.exception.code, "VALIDATION_FAILED")
         self.assertTrue(caught.exception.validation_report_id)
         connection = sqlite3.connect(Path(self.temp.name) / "monitor.sqlite3")

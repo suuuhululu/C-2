@@ -17,7 +17,7 @@ from rclpy.executors import MultiThreadedExecutor, ExternalShutdownException
 from rclpy.node import Node
 
 from .artifacts import ArtifactError, ManagedArtifactStore
-from .pipeline import GenerationCanceled, PipelineError
+from .pipeline import GenerationCanceled, PipelineError, success_message
 from .worker import run_generation
 
 
@@ -166,7 +166,7 @@ class PathPlannerNode(Node):
             result = GeneratePath.Result()
             result.success = True
             result.error_code = "NONE"
-            result.message = "경로 생성과 기하 검증이 완료되었습니다. 실행 전 J6/IK 검사가 별도로 필요합니다."
+            result.message = success_message(generated)
             result.path_id = generated.path_id
             result.path_version = generated.path_version
             result.path_sha256 = generated.path_sha256

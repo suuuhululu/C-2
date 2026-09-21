@@ -11,14 +11,17 @@
 | 위치 | 담당 기능 |
 | --- | --- |
 | `c2_path/node.py` | `/c2/generate_path` Action 수신, 진행·결과·취소·중복/동시 요청 처리 |
-| `c2_path/pipeline.py` | 계산 단계 조합, 입력/프로파일 검사, 일부 획 실패·빈 경로 차단, 산출물 확정 |
+| `c2_path/pipeline.py` | 계산 단계 조합, 입력/프로파일 검사(스냅샷 `/1`·`/2` 구분), 일부 획 실패·빈 경로 차단, 산출물 확정 |
 | `c2_path/artifacts.py` | HMI 관리 UUID→파일 해석·해시 검사, 산출물 묶음 원자적 등록 |
 | `c2_path/image_to_svg.py` | PNG/JPEG → 중심선 SVG(Otsu·세선화·골격·Bézier) |
 | `c2_path/extract_2d.py` | SVG → 2D 좌표(mm), 크기·배치·회전, 적응형 샘플링 |
 | `c2_path/optimize_2d.py` | NN+2-opt 획 방문 순서 최적화(형상·진행 방향 보존) |
 | `c2_path/map_3d.py` | 원통 해석 매핑, 이음매·180° 분할, 도구 자세 |
 | `c2_path/generate_path.py` | 안전비용 정렬, offset-cylinder 이동, pose7 경로 구성 |
-| `c2_path/validate_path.py` | 형식·표면·높이·간격·이음매·자세·빈 경로 검증 |
+| `c2_path/validate_path.py` | 형식·표면(옆면 안)·간격·이음매·자세·빈 경로 검증 |
+| `c2_path/readiness.py` | 로봇 잠정 작업 범위 사전 점검(`execution_readiness`). 생성 성공과 별개 |
+| `c2_path/worker.py` | 취소·시간 초과 시 계산을 별도 프로세스로 종료·회수하는 실행기. 산출물 저장은 부모 프로세스만 한다 |
+| `c2_path/ordering.py` | 획 순서 2-opt 공용 구현(비용 행렬 + 접두합). 글자 많은 이미지도 수 초 이내 |
 | `c2_path/workcell.py` | 현재 test_only 워크셀·도구 값 |
 | `c2_path/bundle.py` | 파일 묶음(폴더) 방식 입·출력: `manifest.json` 작성·검증, ROS 없이 `GeneratePipeline` 실행 (1차 통합 시험용) |
 | `c2_path/snapshot.py` | 스냅샷 `surface` ↔ 공정 `workcell` 입력 연결·일치 검사, 실측 프로필 기하 필드의 구조 조건 |
@@ -30,7 +33,12 @@
   드릴 끝 기준 정규화 quaternion.
 - 도구 자세: tool −Y=표면 안쪽, tool +Z=base −Z.
 - 원통: 반지름 34.25 mm, 도안 u=0은 +X(0°), 이음매는 −X(±180°).
-- CUT 잠정 허용각: −135°~135°. J5 정밀값은 아직 확정 전이다.
+- 도안은 원기둥 옆면 전체(둘레 360°, 높이 0~150mm)에 놓을 수 있고, 옆면 밖(높이 0 미만·150mm 초과)만 생성 실패다.
+- 로봇 잠정 작업 범위(바닥 기준 높이 10~140mm(양초 150mm 기준 윗면 아래 10~140mm), 9/21 시율님 지시로 이전 85~130mm 에서 변경 / θ −135°~135° 원통 도달각 참고 범위, 9/20 J5 실측)는 생성 조건이 아니라 **실행 사전 점검**이다.
+  범위 밖이어도 경로·미리보기는 만들어지며, 검증 보고서·미리보기의 `execution_readiness`(`WITHIN_LIMITS`/`OUT_OF_LIMITS`)로
+  표시한다. **생성·검증·미리보기 성공은 실행 가능을 뜻하지 않는다** (`executability` 는 항상 `NOT_JUDGED`).
+  ±135° 는 실제 J5 관절 판정이 아니다(`not_checked` 의 `J5_JOINT_LIMIT`). J5 정밀값은 아직 확정 전이다. 자세한 계약은 `BUNDLE_SPEC.md` 13절.
+- 스냅샷 `contract`: `/1` 은 코드 상수와 정확히 같을 때만 받는다(`valid_v_range_mm=[10,140]`, 바닥 기준). `/2` 는 `surface.height_reference="bottom"`·`surface.v_direction="up"`·`calibration_status="SIMULATION_ONLY"` 가 필수이고 원통 치수(반지름·높이·축 원점)·작업 범위·도달각을 요청별 값으로 받아 그 값으로 경로를 계산한다(축 방향·u 원점·이음매는 아직 상수와 같아야 함). 자세한 표는 `BUNDLE_SPEC.md` 4.1절.
 - `workcell.py`는 승인 REAL 설정 파일이 아니므로 노드는 `SIMULATION`만 허용한다.
 - 성공 경로에도 `J6_RANGE`는 미검사로 남는다. 실행 전 공정팀의 전체 경로
   IK/J5/J6·충돌·보정 확인이 별도로 필요하다.

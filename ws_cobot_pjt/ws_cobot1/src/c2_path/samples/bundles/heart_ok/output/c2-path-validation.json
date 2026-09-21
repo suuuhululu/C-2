@@ -18,11 +18,12 @@
       "tool_id": "engraving_drill"
     },
     {
-      "code": "HEIGHT_IN_RANGE",
+      "code": "HEIGHT_ON_SURFACE",
       "limit_m": [
-        0.009999999999999981,
-        0.13999999999999999
+        0.0,
+        0.15
       ],
+      "note": "옆면 전체(바닥~총 높이). 로봇 작업 범위는 execution_readiness 참고",
       "passed": true
     },
     {
@@ -58,15 +59,6 @@
       "seam_angle_deg": 180.0
     },
     {
-      "code": "ANGLE_IN_REACHABLE_RANGE",
-      "limit_deg": [
-        -135.0,
-        135.0
-      ],
-      "note": "J5 안전 범위 확정 전 — 현재 전 범위",
-      "passed": true
-    },
-    {
       "code": "NO_CYLINDER_PENETRATION",
       "observed_min_travel_clearance_m": 0.01,
       "passed": true
@@ -82,15 +74,76 @@
     }
   ],
   "errors": [],
+  "execution_readiness": {
+    "authoritative": false,
+    "checks": [
+      {
+        "code": "WORK_HEIGHT_IN_RANGE",
+        "limit_m": [
+          0.01,
+          0.14
+        ],
+        "passed": true
+      },
+      {
+        "code": "ANGLE_IN_REACHABLE_RANGE",
+        "limit_deg": [
+          -135.0,
+          135.0
+        ],
+        "passed": true
+      }
+    ],
+    "contract": "c2-path-execution-readiness/1",
+    "executability": "NOT_JUDGED",
+    "limits": {
+      "angle_meaning": "원통 도달각 참고 범위(잠정). 실제 J5 관절 한계 판정이 아니다.",
+      "height_reference": "bottom",
+      "provisional": true,
+      "reachable_angle_deg": [
+        -135.0,
+        135.0
+      ],
+      "source": "요청 스냅샷(/2) — surface.valid_v_range_mm / surface.reachable_angle_deg (요청별 값)",
+      "work_height_range_m": [
+        0.01,
+        0.14
+      ]
+    },
+    "not_checked": [
+      "J5_JOINT_LIMIT",
+      "J6_RANGE",
+      "IK_REACHABILITY",
+      "COLLISION"
+    ],
+    "note": "c2_path 의 잠정 범위 사전 점검이다. 실행 가능 여부는 판정하지 않으며 실행 전 검사(IK·J5/J6·충돌)가 한다. 경로 생성 성공·검증 통과·미리보기 성공은 로봇이 실행할 수 있다는 뜻이 아니다.",
+    "out_of_limit_segment_ids": [],
+    "precheck": "WITHIN_LIMITS",
+    "summary": {
+      "cut_segment_count": 6,
+      "cut_waypoint_count": 221,
+      "out_of_limit_cut_segment_count": 0,
+      "out_of_limit_cut_waypoint_count": 0,
+      "out_of_limit_stroke_count": 0
+    },
+    "violation_count": 0,
+    "violations": [],
+    "violations_truncated": false
+  },
   "input_stroke_count": 4,
   "mapped_stroke_count": 4,
   "mapping_failures": [],
+  "measured_at": null,
+  "measurement_id": null,
   "not_checked": [
     "J6_RANGE"
   ],
   "passed": true,
   "path_id": "7f16d2c9-ab2b-55d9-bdab-4ea371902971",
   "path_version": 1,
+  "profile_contract": "c2-path-test-profile/2",
+  "profile_sha256": "c2e9dd46d57d6e22980daf3b235d82d9bc62e497d784707f0b582cad8021c815",
+  "profile_snapshot_id": "de9e0ffc-6384-560b-859c-d3f272b80e0d",
   "request_id": "8a6dc5d6-320f-5cae-a77a-699f0451c1ef",
   "stats": {
     "build": {
@@ -109,7 +162,8 @@
         "cost_initial": 0.036145,
         "forbidden_pairs": 0,
         "reordered": false,
-        "two_opt_improvements": 0
+        "two_opt_improvements": 0,
+        "two_opt_stopped_early": false
       },
       "segment_count": 17,
       "travel_length_m": 0.03427,
@@ -192,6 +246,9 @@
       ]
     },
     "map_3d": {
+      "degenerate_parts_dropped": 0,
+      "design_angular_span_deg": 40.147,
+      "design_wraps_past_360": false,
       "failed_strokes": 0,
       "height_range_m": [
         0.094228,
@@ -206,6 +263,10 @@
       "stroke_max_arc_deg": 180.0,
       "strokes_split_at_seam": 0,
       "strokes_split_by_arc_limit": 0,
+      "surface_height_range_m": [
+        0.0,
+        0.15
+      ],
       "theta_range_deg": [
         -110.073,
         -69.926
@@ -225,7 +286,20 @@
       "stroke_count": 4,
       "travel_mm_after_2opt": 34.2693,
       "travel_mm_nearest_neighbor": 34.2705,
-      "two_opt_improvements": 3
+      "two_opt_improvements": 3,
+      "two_opt_stopped_early": false
     }
+  },
+  "surface_used": {
+    "axis_origin_m": [
+      0.4218,
+      0.0001,
+      0.0834
+    ],
+    "height_mm": 150.0,
+    "height_reference": "bottom",
+    "radius_mm": 34.25,
+    "source": "스냅샷 surface",
+    "v_direction": "up"
   }
 }

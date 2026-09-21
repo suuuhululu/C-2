@@ -1,0 +1,14 @@
+{
+  "cut_length_m": 0.07511,
+  "error_code": "NONE",
+  "message": "경로 생성과 기하 검증이 완료되었습니다. 실행 전 J6/IK 검사가 별도로 필요합니다. 절삭 구간 3/6개가 잠정 로봇 작업 범위를 벗어나 있어 실행 전 검사 전까지 실행할 수 없는 경로로 취급해야 합니다.",
+  "path_id": "a554cbda-284a-5f4d-a54a-cd9c912aa50f",
+  "path_sha256": "aac4c87413b6e23f033aff40b980d5cc7639e4684ef8196aaf0d54d67095b292",
+  "path_version": 1,
+  "preview_asset_id": "57c253bf-0df2-5713-852a-5026ecaf78fa",
+  "segment_count": 17,
+  "success": true,
+  "svg_asset_id": "e0dcb438-d774-5f46-acd7-03720371f381",
+  "validation_passed": true,
+  "validation_report_id": "ab8d29c4-341f-531c-a706-d0677ed533dc"
+}

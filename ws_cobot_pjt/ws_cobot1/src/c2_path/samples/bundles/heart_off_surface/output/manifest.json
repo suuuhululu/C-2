@@ -6,20 +6,20 @@
       "file": "request.json",
       "kind": "request",
       "mime": "application/json",
-      "sha256": "4faa03f4cf25b674ca749c7043c14d443d1fd6bf742959e13885c518e7b73a97",
+      "sha256": "2c328bca191b7785459d43ae63bb110478e77fec12bbefb6712d57ab00fc36b0",
       "size_bytes": 604
     },
     {
       "file": "result.json",
       "kind": "result",
       "mime": "application/json",
-      "sha256": "d5f2c5d5b2d2df94bc4d147a9e5ff328cc55ba16ff513ea62ae4519ffe26a432",
-      "size_bytes": 431
+      "sha256": "35728024df59005b03f3c785c6931cf2d38768076c1b56922dfadacd7d6c0921",
+      "size_bytes": 444
     }
   ],
   "files": [
     {
-      "asset_id": "8c274928-f7c1-545d-a804-4fd9562ca88f",
+      "asset_id": "5ce3800f-bd48-51ec-9fe9-831b1e391d56",
       "executable": false,
       "file": "c2-path-validation-failed.json",
       "kind": "validation",
@@ -27,11 +27,11 @@
       "name": "c2-path-validation-failed.json",
       "path_id": null,
       "path_version": null,
-      "sha256": "e8494e8fbdd6d4b33f5761ef37f8d2e3240d4db024a0ad326fffe28187938909",
-      "size_bytes": 5796
+      "sha256": "33eacd0270c6147ae2e3d1cc019f8d2d7d70aa98fd12b93f5ef03ee708c78488",
+      "size_bytes": 1564
     },
     {
-      "asset_id": "4d55b287-6f59-5da4-b4de-4dd18f532b1c",
+      "asset_id": "d4dc2709-1ba5-599f-b3b9-dee1a62ad498",
       "executable": false,
       "file": "c2-path-centerline-diagnostic.svg",
       "kind": "svg",
@@ -44,13 +44,13 @@
     }
   ],
   "inputs": {
-    "asset_id": "95169bf6-2335-5859-b751-48a2b594861d",
+    "asset_id": "530aafe7-f1f9-5a69-85c8-60038f356494",
     "asset_sha256": "74937463fbd90ed19b0fbb9cf2687e0fcdac4344a2439a1a9affb721937c185b",
-    "profile_sha256": "272a05c285698cb1cd00241419f7843f572e0290070d312e5d2cd7cc19943b31",
-    "profile_snapshot_id": "838be9ca-dcc2-5682-b8a5-cc9d29211a3b"
+    "profile_sha256": "c2e9dd46d57d6e22980daf3b235d82d9bc62e497d784707f0b582cad8021c815",
+    "profile_snapshot_id": "b623bb1a-f1c2-5ec9-b4c3-2382df4c2083"
   },
   "path": null,
-  "request_id": "77accf95-0ff0-56e4-90aa-abe90abe89d5",
+  "request_id": "3f5f7873-4de0-5640-bae7-f8a5177cd8b9",
   "schema_version": 1,
   "source_mode": "SIMULATION"
 }

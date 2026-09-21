@@ -1,0 +1,41 @@
+{
+  "bundle_role": "input",
+  "contract": "c2-path-bundle/1",
+  "documents": [
+    {
+      "file": "request.json",
+      "kind": "request",
+      "mime": "application/json",
+      "sha256": "b52ea6aafbf17c03ad9c47c7be23def589266d9b166e6745f2eba214a119daae",
+      "size_bytes": 603
+    }
+  ],
+  "files": [
+    {
+      "asset_id": "136016c8-2b78-50b3-a6cb-00eef07c45a0",
+      "file": "heart.png",
+      "kind": "image",
+      "mime": "image/png",
+      "name": "heart.png",
+      "path_id": null,
+      "path_version": null,
+      "sha256": "74937463fbd90ed19b0fbb9cf2687e0fcdac4344a2439a1a9affb721937c185b",
+      "size_bytes": 7914
+    },
+    {
+      "asset_id": "fa66759d-4b51-5010-a711-677410dc5b4d",
+      "file": "simulation-profile.json",
+      "kind": "profile",
+      "mime": "application/json",
+      "name": "simulation-profile.json",
+      "path_id": null,
+      "path_version": null,
+      "sha256": "c2e9dd46d57d6e22980daf3b235d82d9bc62e497d784707f0b582cad8021c815",
+      "size_bytes": 707
+    }
+  ],
+  "origin": "local_test_sample",
+  "request_id": "c6caac24-cb11-57de-b1b7-31edebdc6726",
+  "schema_version": 1,
+  "source_mode": "SIMULATION"
+}

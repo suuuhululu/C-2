@@ -7,8 +7,7 @@
   - docs/INTERFACE_RECOMMENDATION.md 3·4절
   - c2_process/engraving.py 가 읽는 필드와 waypoint 형식 [x,y,z,qx,qy,qz,qw], schema_version 2
     (2026-09-20 로봇팀 형식으로 통일)
-  - 시율님 실기 확정값: 획당 둘레 각도 180도 이내, 이음매 미통과,
-    작업 높이 윗면 아래 10~140mm (2026-09-21 대체 지시, 상하 10mm씩 조각 금지; 이전 20~65mm 대체)
+  - 시율님 실기 확정값: 획당 둘레 각도 180도 이내, 이음매 미통과, 작업 높이 윗면 아래 10~140mm(9/21 변경, 이전 20~65mm)
 """
 import json
 import math
@@ -22,7 +21,8 @@ import numpy as np
 import cv2
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from c2_path import extract_2d, generate_path, image_to_svg, map_3d, optimize_2d, workcell as wc  # noqa: E402
+from c2_path import (extract_2d, generate_path, image_to_svg, map_3d, optimize_2d,
+                     validate_path, workcell as wc)  # noqa: E402
 
 SAMPLES = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "samples")
 SAMPLE_NAMES = ("heart", "heart_pair", "heart_seam")
@@ -51,7 +51,8 @@ def _rasterize_polyline(points, closed, size=400, thickness=3, margin=0.1):
 
 
 def _heart_centerline_points():
-    svg = open(os.path.join(SAMPLES, "heart.svg"), encoding="utf-8").read()
+    with open(os.path.join(SAMPLES, "heart.svg"), encoding="utf-8") as stream:
+        svg = stream.read()
     subs = extract_2d.parse_svg_subpaths(svg)
     return extract_2d.subpath_to_points(subs[0], chord_tol=0.05, max_step=0.5)
 
@@ -389,9 +390,9 @@ class TestAlgorithms(unittest.TestCase):
 
     def test_no_rdp_or_bspline_used(self):
         """RDP·B-spline 은 쓰지 않는다 (원본 도안 이탈 위험)."""
-        _, st = extract_2d.extract(
-            open(os.path.join(SAMPLES, "heart.svg"), encoding="utf-8").read(),
-            24.0, 24.0, 0.0, 105.0)
+        with open(os.path.join(SAMPLES, "heart.svg"), encoding="utf-8") as stream:
+            svg = stream.read()
+        _, st = extract_2d.extract(svg, 24.0, 24.0, 0.0, 105.0)
         self.assertFalse(st["refit_applied"])
 
 
@@ -453,23 +454,57 @@ class TestSeamAndOrigin(unittest.TestCase):
                                      f"{name}/{s['segment_id']}: TRAVEL 이 이음매 통과")
 
     def test_workcell_matches_0919_yaml(self):
-        """workcell_candle_0919.yaml (PR #32) 과 같은 값."""
+        """축 위치·바닥/윗면 z 는 workcell_candle_0919.yaml (PR #32) 과 같은 값이다.
+
+        반지름은 예외다: yaml 은 아직 9/19 자로 잰 0.034 인데, 9/20 캘리퍼스 재측정(지름
+        68.5mm±0.3)으로 0.03425 로 갱신됐다 (시율님 확인). yaml 자체는 팀이 별도로 갱신해야
+        한다 — 이 시험은 코드가 최신 실측값을 쓰는지 확인한다."""
         self.assertEqual(wc.AXIS_ORIGIN_XY_M, (0.4218, 0.0001))
         self.assertAlmostEqual(wc.TOP_Z_BASE_M, 0.2334)
         self.assertAlmostEqual(wc.AXIS_ORIGIN_Z_M, 0.0834)
-        self.assertAlmostEqual(wc.RADIUS_M, 0.034)
+        self.assertAlmostEqual(wc.RADIUS_M, 0.03425)
+
+    def test_reachable_angle_deg_is_j5_provisional_limit(self):
+        """9/20 시율님 J5 실측(θ=180°→J5=175°, ±135° 초과; 0°·±90° 는 정상, 사이는 미실측)
+        기준 잠정치. 오늘 5도 간격 실측이 나오면 갱신될 값이다."""
+        self.assertEqual(wc.REACHABLE_ANGLE_DEG, (-135.0, 135.0))
+
+    def test_degenerate_seam_stub_is_dropped(self):
+        """이음매를 짧은 구간에 두 번 넘나드는 획은 이음매 위에 점이 찍혀 길이 거의 0인
+        조각을 만들 수 있다 (9/20 시율님 heart_seam 실기 보고). 그런 퇴화 조각은
+        MIN_STROKE_LEN_M 미만이면 버려야 한다 — 실제 절삭 의미가 없고 제어기가 동일점
+        movesx 를 거부할 수 있다."""
+        v = (wc.WORKABLE_HEIGHT_RANGE_M[0] + 0.01) * 1000.0
+        thetas = [170.0, 180.5, 179.9, 190.0]
+        pts = [(wc.u_mm_from_theta_deg(t), v) for t in thetas]
+        mapped, failures, st = map_3d.map_strokes([pts])
+        self.assertEqual(failures, [])
+        self.assertEqual(st["degenerate_parts_dropped"], 2)
+        self.assertEqual(len(mapped), 2)
+        for part in mapped:
+            self.assertEqual(len(part["waypoints"]), 5)
 
 
 class TestFailureResultFormat(unittest.TestCase):
     """실패 결과는 빈 문자열·버전 0 (GeneratePath.action 확정). null 이 아니다."""
 
-    def test_height_out_of_range_is_detected(self):
-        lo, hi = wc.WORKABLE_HEIGHT_RANGE_M
+    def test_height_out_of_surface_is_detected(self):
+        """옆면(바닥~총 높이) 밖으로 나간 획은 표면이 없어 만들 수 없다."""
+        lo, hi = wc.SURFACE_HEIGHT_RANGE_M
         bad = [[(0.0, (hi + 0.02) * 1000.0), (1.0, (hi + 0.02) * 1000.0)]]
         mapped, failures, st = map_3d.map_strokes(bad)
         self.assertEqual(len(mapped), 0)
         self.assertEqual(len(failures), 1)
-        self.assertEqual(failures[0]["reason_code"], "HEIGHT_OUT_OF_RANGE")
+        self.assertEqual(failures[0]["reason_code"], "HEIGHT_OUT_OF_SURFACE")
+        below = [[(0.0, -1.0), (1.0, -1.0)]]
+        self.assertEqual(len(map_3d.map_strokes(below)[1]), 1)
+
+    def test_robot_work_window_is_no_longer_a_mapping_condition(self):
+        """9/21: 로봇 작업 범위(10~140mm) 밖이어도 옆면 안이면 매핑은 성공한다. 로봇 작업 범위는 execution_readiness 가 본다."""
+        for v_mm in (5.0, 50.0, 140.0, 149.0):
+            mapped, failures, _st = map_3d.map_strokes([[(0.0, v_mm), (5.0, v_mm)]])
+            self.assertEqual(failures, [], v_mm)
+            self.assertEqual(len(mapped), 1, v_mm)
 
     def test_sample_result_uses_empty_string_not_null(self):
         for name in SAMPLE_NAMES:
@@ -485,11 +520,28 @@ class TestValidationReport(unittest.TestCase):
     """검증 결과가 확인하지 않은 항목을 밝히는가."""
 
     def test_not_checked_declares_j6(self):
-        """c2_path 는 J6 를 계산하지 않는다. 실행 측이 봐야 한다는 걸 파일이 밝혀야 한다."""
+        """c2_path 는 J6 를 계산하지 않는다. 실행 측이 봐야 한다는 걸 파일이 밝혀야 한다.
+
+        (heart_seam 은 생성·기하 검증은 통과하지만 로봇 잠정 작업 범위 밖이다 — 별도 시험
+        test_heart_seam_generates_and_precheck_reports_out_of_limits 참고.)"""
         for name in SAMPLE_NAMES:
             v = load(name)["validation"]
             self.assertIn("J6_RANGE", v["not_checked"])
-            self.assertTrue(v["passed"])
+
+    def test_heart_seam_generates_and_precheck_reports_out_of_limits(self):
+        """heart_seam 은 이음매(180°) 위에 놓여 J5 위험 구역에 들어간다 (9/20 시율님 실측 잠정 범위 ±135° 밖).
+        9/21 부터 이것은 경로 생성 실패가 아니라 실행 사전 점검(OUT_OF_LIMITS) 결과다.
+        heart·heart_pair 는 범위 안이라 WITHIN_LIMITS 다."""
+        from c2_path import readiness
+        seam = load("heart_seam")
+        rep = validate_path.validate(seam)
+        self.assertEqual(rep["errors"], [], rep["errors"])
+        self.assertTrue(rep["passed"])
+        self.assertTrue(seam["validation"]["passed"])
+        self.assertEqual(readiness.execution_readiness(seam)["precheck"], readiness.OUT_OF)
+        for name in ("heart", "heart_pair"):
+            self.assertTrue(load(name)["validation"]["passed"], f"{name} 은 계속 통과해야 한다")
+            self.assertEqual(readiness.execution_readiness(load(name))["precheck"], readiness.WITHIN, name)
 
 
 class TestImageToSvg(unittest.TestCase):
@@ -517,7 +569,8 @@ class TestImageToSvg(unittest.TestCase):
         conv_strokes, _ = extract_2d.extract(svg, 24.0, 24.0, 0.0, 0.0)
         self.assertEqual(len(conv_strokes), 1)
 
-        orig_svg = open(os.path.join(SAMPLES, "heart.svg"), encoding="utf-8").read()
+        with open(os.path.join(SAMPLES, "heart.svg"), encoding="utf-8") as stream:
+            orig_svg = stream.read()
         orig_strokes, _ = extract_2d.extract(orig_svg, 24.0, 24.0, 0.0, 0.0)
         orig, conv = orig_strokes[0], conv_strokes[0]
         max_dev = max(min(math.dist(p, q) for q in orig) for p in conv)

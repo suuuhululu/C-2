@@ -21,7 +21,11 @@ BUNDLES = os.path.join(BASE, "samples", "bundles")
 # (번들 이름, 출력 폴더 안의 검증 결과 파일)
 SOURCES = [
     ("heart_ok", "c2-path-validation.json"),
-    ("heart_seam_rejected", "c2-path-validation-failed.json"),
+    ("heart_seam_out_of_limits", "c2-path-validation.json"),
+    ("heart_low_out_of_limits", "c2-path-validation.json"),
+    ("heart_request_range_out_of_limits", "c2-path-validation.json"),
+    ("heart_custom_cylinder", "c2-path-validation.json"),
+    ("heart_off_surface", "c2-path-validation-failed.json"),
 ]
 
 
@@ -50,9 +54,11 @@ def main():
         print(f"[{s['name']}] passed={s['passed']} | {err} | "
               f"획 보존율 {s['stroke_preservation_ratio']} | TRAVEL 감소율 {s['travel_reduction_pct_2opt']}% | "
               f"CUT {s['cut_length_m']}m TRAVEL {s['travel_length_m']}m | "
+              f"실행 사전 점검 {s['execution_precheck'] or '해당 없음(경로 없음)'} | "
               f"실패 사유 {s['failure_reasons'] or '없음'}")
     print(f"\n합계: 이음매 위반 {suite['seam_crossed_total']}건, "
-          f"각도범위 위반 {suite['angle_out_of_range_total']}건, "
+          f"생성 성공 {suite['generated_sample_count']}/{suite['sample_count']}개 중 "
+          f"잠정 작업 범위 밖 {suite['execution_precheck_out_of_limits_sample_count']}개, "
           f"원통 관통 {suite['cylinder_penetration_total']}건")
     print(f"저장: {out_path}")
 

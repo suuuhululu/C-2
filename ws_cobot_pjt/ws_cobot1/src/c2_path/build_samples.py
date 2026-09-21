@@ -28,7 +28,7 @@ ASSET_SHA = hashlib.sha256(SVG_BYTES).hexdigest()     # 파일 바이트 기준
 V_CENTER = (wc.HEIGHT_TOTAL_M - 0.045) * 1000.0     # 윗면 아래 45mm
 U_OF = lambda deg: wc.u_mm_from_theta_deg(deg)       # 원하는 도안 중심 각도 -> offset_u(mm)
 
-# 프로필 스냅샷: pipeline.matching_test_profile() 로 만든 실제 test_only 스냅샷을
+# 프로필 스냅샷(/1): pipeline.matching_test_profile() 로 만든 실제 test_only 스냅샷을
 # 한 번만 만들어서 모든 샘플이 같은 ID·해시를 공유한다 ("0" * 64 자리표시값을 쓰지 않는다).
 PROFILE_ID = "snap-candle-0919"
 PROFILE = ppl.matching_test_profile()
@@ -36,6 +36,19 @@ PROFILE_BYTES = _json_bytes(PROFILE)
 PROFILE_SHA = _sha256_bytes(PROFILE_BYTES)
 with open(os.path.join(BASE, "samples", "profile_snapshot.json"), "wb") as f:
     f.write(PROFILE_BYTES)
+# contract /2 스냅샷 예시(요청별 작업 범위·필수 필드 height_reference/v_direction). /1 과 값은 같고 새 필드만 다르다.
+# 레거시 샘플(heart·heart_pair·heart_seam)은 /1 로 만들고, 파일 묶음 샘플(samples/bundles)은 /2 로 만든다.
+with open(os.path.join(BASE, "samples", "profile_snapshot_v2.json"), "wb") as f:
+    f.write(_json_bytes(ppl.matching_test_profile_v2()))
+# samples/profile_snapshot/ : 같은 스냅샷을 등록용 파일 두 개로 둔 것 (profile.json 바이트의 해시가 registration.json 과 같다).
+# 값이 바뀌었는데 이 폴더만 옛 값으로 남지 않도록 여기서 함께 만든다.
+_snap_dir = os.path.join(BASE, "samples", "profile_snapshot")
+os.makedirs(_snap_dir, exist_ok=True)
+with open(os.path.join(_snap_dir, "profile.json"), "wb") as f:
+    f.write(PROFILE_BYTES)
+with open(os.path.join(_snap_dir, "registration.json"), "w", encoding="utf-8") as f:
+    json.dump({"profile_snapshot_id": PROFILE_ID, "profile_sha256": PROFILE_SHA}, f, ensure_ascii=False, indent=2)
+    f.write("\n")
 
 
 def build(name, placements, note):

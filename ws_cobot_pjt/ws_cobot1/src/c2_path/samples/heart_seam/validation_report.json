@@ -1,5 +1,5 @@
 {
-  "passed": false,
+  "passed": true,
   "checks": [
     {
       "code": "SCHEMA_VERSION",
@@ -19,12 +19,13 @@
       "tool_id": "engraving_drill"
     },
     {
-      "code": "HEIGHT_IN_RANGE",
+      "code": "HEIGHT_ON_SURFACE",
       "passed": true,
       "limit_m": [
-        0.009999999999999981,
-        0.13999999999999999
-      ]
+        0.0,
+        0.15
+      ],
+      "note": "옆면 전체(바닥~총 높이). 로봇 작업 범위는 execution_readiness 참고"
     },
     {
       "code": "CUT_ON_SURFACE",
@@ -59,15 +60,6 @@
       ]
     },
     {
-      "code": "ANGLE_IN_REACHABLE_RANGE",
-      "passed": false,
-      "limit_deg": [
-        -135.0,
-        135.0
-      ],
-      "note": "J5 안전 범위 확정 전 — 현재 전 범위"
-    },
-    {
       "code": "NO_CYLINDER_PENETRATION",
       "passed": true,
       "observed_min_travel_clearance_m": 0.009901
@@ -85,8 +77,5 @@
   "not_checked": [
     "J6_RANGE"
   ],
-  "errors": [
-    "ANGLE_OUT_OF_RANGE: stroke000_part0 θ=180.00도 (허용 -135.0~135.0)",
-    "ANGLE_OUT_OF_RANGE: stroke000_part1 θ=180.00도 (허용 -135.0~135.0)"
-  ]
+  "errors": []
 }

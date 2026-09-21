@@ -28,8 +28,8 @@
     "seam_angle_deg": 180.0,
     "u_origin_angle_deg": 0.0,
     "valid_v_range_mm": [
-      9.99999999999998,
-      139.99999999999997
+      10.0,
+      140.0
     ]
   },
   "tcp_id": "GripperDA_v1",

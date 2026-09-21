@@ -6,13 +6,13 @@
       "file": "request.json",
       "kind": "request",
       "mime": "application/json",
-      "sha256": "4faa03f4cf25b674ca749c7043c14d443d1fd6bf742959e13885c518e7b73a97",
-      "size_bytes": 604
+      "sha256": "a67e4f006148afda23a862a31c2e07b1f1dfc126a94f73991ec6e41d0dc1e637",
+      "size_bytes": 603
     }
   ],
   "files": [
     {
-      "asset_id": "95169bf6-2335-5859-b751-48a2b594861d",
+      "asset_id": "ad491d90-6301-511e-8938-2ee613c7a67a",
       "file": "heart.png",
       "kind": "image",
       "mime": "image/png",
@@ -23,19 +23,19 @@
       "size_bytes": 7914
     },
     {
-      "asset_id": "838be9ca-dcc2-5682-b8a5-cc9d29211a3b",
+      "asset_id": "d46c16a8-8a73-51f6-bb9f-79b35f51b018",
       "file": "simulation-profile.json",
       "kind": "profile",
       "mime": "application/json",
       "name": "simulation-profile.json",
       "path_id": null,
       "path_version": null,
-      "sha256": "272a05c285698cb1cd00241419f7843f572e0290070d312e5d2cd7cc19943b31",
-      "size_bytes": 685
+      "sha256": "6a1e9bc14350f503f6f6785b593928eb69e68abae48a3487f2b1138bd9202a6f",
+      "size_bytes": 780
     }
   ],
   "origin": "local_test_sample",
-  "request_id": "77accf95-0ff0-56e4-90aa-abe90abe89d5",
+  "request_id": "eb8fd198-8616-54bd-9bf6-f83aa8bbfa31",
   "schema_version": 1,
   "source_mode": "SIMULATION"
 }

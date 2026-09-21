@@ -25,7 +25,9 @@
 - 출력 묶음 확인: `python -m c2_path.bundle verify <묶음>`
 - **시험 기록 구분**: "파일 묶음 시험"(이 방식)과 "ROS 통신 시험"(`/c2/generate_path` 액션)은 따로 적는다.
   파일 묶음이 통과해도 ROS 통신이 검증된 것이 아니다.
-- 경로에는 각자 PC 의 절대 경로를 넣지 않는다. 묶음 안의 상대 파일명만 쓴다.
+- **PC 한 대 · 절대 경로 금지** (팀장님 확정: 통합 시험·최종 모두 PC 한 대). 코드에 고정 경로를 쓰지 않고, 폴더는 명령 인자·
+  ROS 파라미터·환경 변수로 받는다. 파일 안에는 절대 경로를 넣지 않고 묶음 내부 상대 파일명만 쓴다.
+  `test/test_no_absolute_paths.py` 가 소스와 샘플 묶음을 검사한다.
 
 ## 2. 스냅샷 본문 규칙 (**확인** 후 **제안**)
 
@@ -50,13 +52,13 @@
 | 미검사 | HMI `PathArtifactLoader` 는 아직 `config.tools_config_*` 를 스냅샷과 대조하지 않는다 → **제안**: 대조 추가 |
 | 미정 | 실제 `tools.yaml`(세은님) 의 버전 체계와 이 값의 대응 — 담당: 세은님, 이유: tools.yaml 변경 이력 규칙 미확정 |
 
-## 4. 스냅샷 필드 표 (현재 `c2-path-test-profile/1`)
+## 4. 스냅샷 필드 표 (`c2-path-test-profile/1`, `/2` 는 4.1)
 
 검증 열은 현재 `validate_profile` 동작이다. "정확 일치"는 `workcell.py` 상수와 같아야 통과한다는 뜻이다.
 
 | 필드 | 값(현재) | 검증 (**확인**) | 비고 |
 | --- | --- | --- | --- |
-| `contract` | `c2-path-test-profile/1` | 미검사 | 형식 식별자. 실측 프로필 계약 이름은 **미정** |
+| `contract` | `c2-path-test-profile/1` | 9/21부터 검사: 없음(→`/1` 규칙)·`/1`·`/2` 만 받고 다른 값은 `PROFILE_MISMATCH` | 형식 버전. `/1`·`/2` 의 차이는 4.1. 실측 프로필의 최종 계약 이름은 **미정** |
 | `schema_version` | `2` | 정확 일치 | 경로 파일 schema 와 같은 값 |
 | `source_mode` | `SIMULATION` | 정확 일치 | `REAL` 은 test_only 동안 `NOT_READY` |
 | `workcell_id` | `candle_test_0919` | 정확 일치 | |
@@ -77,18 +79,42 @@
 | `surface.height_mm` | `150.0` | 정확 일치(±1e-6 mm) | |
 | `surface.axis_origin_m` | `[0.4218, 0.0001, 0.0834]` | 정확 일치 | `[x, y, 바닥 z]` (m). 윗면 z = 바닥 z + 높이 = 0.2334 |
 | `surface.axis_direction` | `[0, 0, 1]` | 정확 일치 | 계산·미리보기가 +Z 축만 지원 |
-| `surface.valid_v_range_mm` | `[10, 140]` | 정확 일치 | 바닥 기준 작업 가능 높이 (= 윗면 아래 10~140mm, 2026-09-21 시율님 대체 지시) |
+| `surface.valid_v_range_mm` | `[10, 140]` | 정확 일치 | **바닥(0) 기준** 로봇 작업 가능 높이(잠정) — 바닥 여백 10mm, 윗면 여백 10mm(양초 높이 150mm 기준). 시율님 표현 "윗면 아래 10~140mm"와 150mm에서는 같은 구간이지만, 코드·스냅샷은 윗면 깊이가 아니라 바닥 기준 높이만 쓴다. 9/21 시율님 지시로 이전 값 `[85, 130]`(윗면 아래 20~65mm)에서 변경. 경로 생성 조건이 아니라 실행 사전 점검 기준이다 (13절) |
 | `surface.u_origin_angle_deg` | `0` | 정확 일치 | u=0 이 놓이는 각도 (0° = +X, 로봇 반대편) |
 | `surface.seam_angle_deg` | `180` | 정확 일치 | 이음매 = −X, 로봇 쪽 (J5 위험) |
-| `surface.reachable_angle_deg` | `[-135, 135]` | 정확 일치 | J5 안전 범위 — **잠정**, 5° 간격 실측표 대기 (시율님) |
+| `surface.reachable_angle_deg` | `[-135, 135]` | 정확 일치 | J5 안전 범위 — **잠정**, 5° 간격 실측표 대기 (시율님). 9/21부터 경로 생성 조건이 아니라 실행 사전 점검 기준이다 (13절) |
+
+### 4.1 스냅샷 계약 `/1` 과 `/2` (9/21, 팀장님 회신 반영 — **제안**)
+
+`contract`(`c2-path-test-profile/1` 또는 `c2-path-test-profile/2`) 끝의 번호는 스냅샷 양식 버전이다. c2_path 는 이 값을 보고 검사 규칙을 고른다. 새 필수 필드를 `/1` 에
+추가하면 그 필드가 없는 기존 스냅샷이 모두 거절되므로, 새 규칙은 `/2` 에만 적용하고 `/1` 은 그대로 둔다.
+
+| 항목 | `/1` (기존) | `/2` (새) |
+| --- | --- | --- |
+| 값 검사 | 코드 상수와 **정확히 같을 때만** 받음 | 식별은 상수와 같아야 하고, **원통 치수·작업 범위·도달각은 요청별 값**을 받음 |
+| `surface.valid_v_range_mm` | `[10,140]` (바닥 기준, 상수와 같아야 함) | 요청별 `[하한, 상한]` (mm, 바닥 기준). `0 <= 하한 < 상한 <= height_mm` |
+| `surface.reachable_angle_deg` | `[-135,135]` (상수와 같아야 함) | 요청별. `-180 <= 하한 < 상한 <= 180`, 이음매가 범위 안에 들어가지 않음 |
+| `surface.height_reference` | 없음 | **필수** `"bottom"` — 높이 0 = 양초 바닥(축 원점 z) |
+| `surface.v_direction` | 없음 | **필수** `"up"` — 바닥에서 위로 갈수록 v 가 커짐 |
+| `calibration_status` | 값 검사 없음 | **필수** `"SIMULATION_ONLY"` (지금은 이 값만). 실측 유효 값은 제어팀 확인 후 추가 — **미정** |
+| `measurement_id`, `measured_at` | 없음 | 선택. 있으면 형식만 검사(1~128자 문자열 / 시간대가 있는 ISO 8601) |
+| 원통 치수(`radius_mm`, `height_mm`, `axis_origin_m`) | 상수와 같아야 함 | **요청별 값** — 경로 좌표·검증·미리보기가 이 값으로 계산됨. `radius_mm`·`height_mm` > 0, `axis_origin_m` 은 [x, y, 바닥 z] (m) |
+| 원통 종류·축 방향·`u_origin_angle_deg`·`seam_angle_deg` | 상수와 같아야 함 | **아직 상수와 같아야 함** (`cylinder`, `[0,0,1]`, 0°, 180°). 이음매는 J5 위험 구역, 축은 +Z 만 계산·미리보기가 지원 |
+| 작업 영역 | `[10, 140]` 고정 | 팀장님 확정 규칙 `[10, H−10]`(상하 각 10mm 제외)을 HMI 가 계산해서 `valid_v_range_mm` 으로 보냄 |
+
+변환은 **HMI 백엔드 한 곳**에서만 한다(팀장님 확정): 바닥 기준 `V = H − v`, 윗면 기준 값을 받았다면 범위를
+`[H − v_max, H − v_min]` 로 뒤집고, `axis_origin_m.z = top_z_m − H_mm/1000`. c2_path 는 받은 값을 다시 변환하지 않는다.
+HMI 의 `hmi-work-area-policy/1`(상하 제외 mm)은 화면·모의 스냅샷용 설정이고 c2_path 는 읽지 않는다 — 스냅샷의
+`valid_v_range_mm` 만 쓴다. 예시: `samples/profile_snapshot_v2.json`(기본), `samples/bundles/heart_request_range_out_of_limits/input/simulation-profile.json`
+(범위를 `[110,140]` 으로 바꾼 것). `pipeline.matching_test_profile()` 은 여전히 `/1` 을 만든다(HMI ROS 모드가 그대로 등록하는 값).
 
 ## 5. 실측값을 받는 새 프로필에 필요한 기하 필드와 허용 조건 (홍동님 요청 2)
 
-**현재 한계 (확인)**: `validate_profile` 은 스냅샷이 코드 상수와 **정확히 같은지**만 본다. 즉 c2_path 는 아직
-"스냅샷의 실측값으로 경로를 만드는" 상태가 아니라 "스냅샷이 고정 상수와 같음을 확인"하는 상태다.
-9/20 확정 방침(작업 시작 전 1회 실측 → 그 좌표로 경로 재생성)을 구현하려면 `workcell.py` 의
-`RADIUS_M`, `AXIS_ORIGIN_XY_M`, `TOP_Z_BASE_M`, `SEAM_ANGLE_DEG`, `REACHABLE_ANGLE_DEG` 등을 **스냅샷에서 읽도록**
-바꿔야 한다(모듈 상수 → 요청별 값). 이는 계산 전체에 걸친 변경이라 스냅샷 형식이 확정된 뒤에 진행한다.
+**현재 상태 (9/21 반영)**: `/1` 스냅샷은 코드 상수와 **정확히 같은지**만 본다(기존 시험용). `/2` 는 **스냅샷의 원통 치수(반지름·높이·축 원점)와 작업 범위·도달각으로 경로를 계산한다.**
+경로 좌표·검증(표면 위·관통·높이)·미리보기·실행 사전 점검이 모두 이 값을 쓴다. 상수(`workcell.py`)는 `/1` 의 기준값이자 기본 형상일 뿐이다.
+구현: 요청마다 스냅샷에서 `workcell.Surface` 를 만들어 그 요청 안에서만 쓴다(`workcell.current_surface()`, 요청이 끝나면 기본 형상으로 복귀 — 다른 요청에 새지 않는다).
+사용한 스냅샷은 경로 `config.profile_snapshot_id`·`config.profile_sha256`, 검증 보고서 `profile_snapshot_id`·`profile_sha256`·`profile_contract`·`measurement_id`·`measured_at`·`surface_used`(실제로 계산에 쓴 반지름·높이·축 원점),
+미리보기의 `profile_snapshot_id`·`profile_sha256` 로 연결된다. 아직 상수로 남은 것: 종류(cylinder)·축 방향(+Z)·u 원점(0°)·이음매(180°).
 
 **필요한 기하 필드 (제안)** — 4절의 `surface.*` 와 같은 이름·단위를 유지하고, 실측값을 담는다.
 
@@ -98,14 +124,15 @@
 | `surface.height_mm` | 실측 | 유한, > 0 | **미정** — 시율님 |
 | `surface.axis_origin_m` | 실측 (`workpiece_calibration`) | 유한한 수 3개 `[x, y, 바닥 z]` | 명목값 대비 허용 이동량 **미정** — 시율님 (9/20 재장착 시 3~5mm 어긋남 관측 → 5mm 이상 필요) |
 | `surface.axis_direction` | 고정 | `[0, 0, 1]` | 없음 |
-| `surface.valid_v_range_mm` | 고정(작업 정의) | `0 <= 하한 < 상한 <= height_mm` | 윗면 아래 10~140mm(2026-09-21 시율님 대체 지시, 상하 10mm씩 조각 금지)는 시율님 확정, 실측 프로필에서 유지할지 **미정** |
+| `surface.valid_v_range_mm` | 고정(작업 정의) | `0 <= 하한 < 상한 <= height_mm` | 윗면 아래 10~140mm(9/21 시율님 지시, 이전 20~65mm)는 로봇 작업 범위. 실측 프로필에서 유지할지, 측정 결과가 주는 값을 쓸지 **미정**. 경로가 놓일 수 있는 범위는 `0 ~ height_mm` 전체다 (13절) |
 | `surface.u_origin_angle_deg` | 고정(배치 정의) | −180~180 | 없음 |
 | `surface.seam_angle_deg` | 고정 | −180 초과 180 이하 | 없음 |
 | `surface.reachable_angle_deg` | 실측(J5) | `−180 <= 하한 < 상한 <= 180`, **이음매가 범위 안에 들어가지 않음** | 5° 간격 실측표 후 확정 — 시율님 |
 | `tool_id`, `tools_config_*`, `tcp_*`, `load_*`, `frame_id` | 고정 | 3·4절 | 실측 프로필에서도 정확 일치 유지 제안 |
-| 측정 시각·측정 ID·유효 상태 | 실측 메타 | — | **미정** — 시율님, 이유: `workpiece_calibration.py` 결과 형식 별도 합의 필요 |
+| 측정 시각·측정 ID | 실측 메타 | `/2` 에서 선택 필드 `measured_at`, `measurement_id` (형식만 검사) | 필수로 할지 **미정** |
+| 유효 상태(`calibration_status`) | 실측 메타 | `/2` 에서 `SIMULATION_ONLY` 만 통과 | 실측 유효 값 체계 **미정** — 제어팀 확인 후 팀장님이 공유 예정 |
 
-구조 조건은 `c2_path/snapshot.py` 에 구현돼 있고 `test_snapshot.py` 가 확인한다. 아직 `pipeline` 이 호출하지는 않는다.
+구조 조건은 `c2_path/snapshot.py` 에 구현돼 있고 `test_snapshot.py` 가 확인한다. `/2` 스냅샷에서는 `pipeline.validate_profile` 이 이 검사를 호출한다(`test_profile_contract.py`). `/1` 은 호출하지 않는다.
 
 ## 6. `workcell` 측정 결과 ↔ 경로 생성용 `surface` 연결 (홍동님 요청 3)
 
@@ -137,7 +164,17 @@ output/   manifest.json  request.json  result.json
           c2-path-validation-failed.json  c2-path-centerline-diagnostic.svg                      (실패 진단)
 ```
 
-샘플: `samples/bundles/heart_ok/{input,output}` (검증 통과), `samples/bundles/heart_seam_rejected/{input,output}` (검증 실패).
+샘플 6종 (`samples/bundles/<이름>/{input,output}`). 입력 스냅샷은 모두 `/2`(4.1)다. 앞의 다섯은 생성·검증에 모두 성공하고, 실행 사전 점검(13절) 결과만 다르다.
+
+| 이름 | 생성 | 실행 사전 점검 |
+| --- | --- | --- |
+| `heart_ok` | 성공 | `WITHIN_LIMITS` (높이 45mm 아래, θ=−90°) |
+| `heart_seam_out_of_limits` | 성공 | `OUT_OF_LIMITS` (θ=180° 이음매, 각도 범위 밖) |
+| `heart_low_out_of_limits` | 성공 | `OUT_OF_LIMITS` (높이 15mm, 작업 높이 10~140mm 밖) |
+| `heart_request_range_out_of_limits` | 성공 | `OUT_OF_LIMITS` (`heart_ok` 와 같은 하트, **스냅샷 범위만 `[110,140]`mm** — 요청별 범위가 쓰이는 것을 보여 줌) |
+| `heart_custom_cylinder` | 성공 | `WITHIN_LIMITS` (**스냅샷의 원통 치수를 바꿈**: 반지름 30mm·높이 120mm·축 원점 [0.45, 0.01, 0.09]·범위 [10,110]mm — 좌표가 이 원통 위에 놓임) |
+| `heart_off_surface` | **실패** (`HEIGHT_OUT_OF_SURFACE`, 원기둥 높이 150mm 밖) | 없음 (경로 없음) |
+
 **이 샘플의 ID·해시는 HMI 가 발급한 값이 아니다** (입력 manifest 의 `origin` = `local_test_sample`). 재생성:
 `python3 build_bundle_samples.py`.
 
@@ -199,7 +236,9 @@ manifest 의 한 줄이 HMI `assets` 한 행에 대응한다: `id`=`asset_id`, `
 
 가져오기 전에 HMI 가 확인하기를 제안하는 것: ① 파일 바이트 해시가 manifest 와 같음, ② `documents.result` 의 `success`,
 `validation_passed` 가 참일 때만 경로 등록(`path_versions`) — 등록하면 실행 요청이 가능해지므로 실패·진단 묶음은
-**등록하지 않거나 실행 불가로 표시**, ③ `manifest.inputs` 의 스냅샷·이미지 ID·해시가 HMI 에 등록된 값과 같음.
+**등록하지 않거나 실행 불가로 표시**, ③ `manifest.inputs` 의 스냅샷·이미지 ID·해시가 HMI 에 등록된 값과 같음,
+④ (9/21 추가) `success` 여도 검증 보고서·미리보기의 `execution_readiness.precheck` 가 `OUT_OF_LIMITS` 이면 실행 가능으로
+표시하지 않음, `WITHIN_LIMITS` 여도 "실행 가능"이 아니라 "잠정 범위 안(판정 전)"으로만 표시 (13절).
 
 ## 8. 공정 함수 입력 구조 대조 (홍동님 6절 확인 사항)
 
@@ -234,9 +273,9 @@ c2_path 는 J6/IK 를 계산하지 않는다. 검증 보고서의 `not_checked` 
 
 | 항목 | 담당 | 미정 이유 |
 | --- | --- | --- |
-| 실측 프로필 계약 이름·`calibration_status` 값 체계·측정 메타(시각·ID·유효 상태) | 시율님 | `workpiece_calibration.py` 결과 형식이 별도 합의 대상 |
+| 실측 프로필 계약 이름·`calibration_status` 실측 유효 값 체계 | 시율님·제어팀 | `workpiece_calibration.py` 결과 형식이 별도 합의 대상. `/2` 는 지금 `SIMULATION_ONLY` 만 받는다 |
 | `surface.radius_mm`·`height_mm` 허용 범위, 명목 축 대비 허용 이동량 | 시율님 | 재장착 이동량(3~5mm) 관측만 있고 허용 기준 미확정 |
-| `surface.reachable_angle_deg` 확정값 | 시율님 | 5° 간격 J5 실측표 대기 (현재 ±135° 잠정) |
+| `surface.reachable_angle_deg` 확정값 | 시율님 | 5° 간격 J5 실측표 대기 (현재 ±135° 잠정). 이 값은 이제 실행 사전 점검에만 쓰인다 |
 | 측정 결과를 `surface` 로 낼지 `workcell` 로 낼지 | 시율님·홍동님 | 결과 형식 합의 전 |
 | `TipCalibration` 을 스냅샷에 포함할지 | 시율님·세은님 | (a)안 범위와 측정 결과 형식이 아직 정해지지 않음 |
 | `tools_config_*` 와 실제 `tools.yaml` 버전 체계 | 세은님 | tools.yaml 변경 이력 규칙 미확정 |
@@ -244,7 +283,8 @@ c2_path 는 J6/IK 를 계산하지 않는다. 검증 보고서의 `not_checked` 
 | 가공 깊이 적용 위치 | 세은님·시율님·홍동님 | 9절 제안 확정 필요 |
 | 스냅샷 계약(스키마) 버전 부여 방식 | 팀 전체 | 공통 형식이 PR 로 확정되기 전 |
 | manifest 규격 (7절) | 팀장님·홍동님 | HMI 가져오기 대조 후 확정 (현재 제안) |
-| 실제 `workcell.py` 상수 → 요청별 값으로 전환 | 홍동님 | 스냅샷 형식 확정 후 진행 (5절) |
+| 실제 `workcell.py` 상수 → 요청별 값으로 전환 | 홍동님 | `/2` 에서 원통 치수·작업 범위·도달각 모두 요청별로 전환됨(4.1, 5절). 남은 것: 축 방향·u 원점·이음매(고정), `calibration_status` 실측 유효 값(제어팀) |
+| `/2` 의 필수 필드 이름·위치(`surface.height_reference`, `surface.v_direction`) | 팀장님·홍동님 | 9/21 회신에서 이름은 확정됐고 위치(`surface` 안)는 제안 |
 
 ## 11. 분할된 획의 관계 필드 (9/21, **확인**: 코드에 이미 구현됨 — 제안)
 
@@ -271,6 +311,76 @@ c2_path 는 J6/IK 를 계산하지 않는다. 검증 보고서의 `not_checked` 
   사이 거리를 사후 측정해 `measured_max_error_px`/`measured_mean_error_px`로 낸다. 손으로 만든 SVG를 직접 쓰는
   샘플(`heart`/`heart_pair`/`heart_seam`)은 raster 입력이 없어 해당 없음으로 표시한다.
 - 획 보존율(추출 단계 대비 최적화 단계), 2-opt 전후 TRAVEL 감소율(%), CUT/TRAVEL 길이, 분할 관계 개수.
-- 검증 실패 사유별 건수(오류 코드 집계), 이음매/각도범위/원통관통 위반 건수.
+- 검증 실패 사유별 건수(오류 코드 집계), 이음매/원통관통 위반 건수. 각도범위·작업 높이 범위는 9/21부터 생성 실패 사유가 아니라
+  실행 사전 점검이므로 샘플별 `execution_precheck` 와 `execution_precheck_out_of_limits_sample_count` 로 따로 센다.
 - **다루지 않음** (김세은/`joint_check.py` 담당): 실제 두산 IK 도달 가능성, 경로별 J5/J6 최소 여유, IK 성공
   waypoint 비율.
+
+## 13. 전체 옆면 변환과 실행 사전 점검 (9/21, 팀장님 1차 시험 결과 반영)
+
+**배경**: HMI 는 도안을 원기둥 옆면 전체에 배치하는데, `c2_path` 는 높이 85~130mm 와 각도 ±135° 를 **생성 실패 조건**(당시 값. 높이는 이후 아래처럼 바뀜)으로
+써서 그 밖의 도안은 만들지 못했다. 두 값은 오류가 아니라 시율님 9/20 실측(J5, 작업 가능 높이)이지만, 로봇이 닿는 범위이지
+도안이 놓일 수 있는 범위가 아니다. 생성 조건과 실행 조건이 한데 묶여 있던 것이 문제였다.
+
+### 13.1 무엇이 바뀌었나 (**확인**: 코드·시험 반영)
+
+| 구분 | 이전 | 지금 |
+| --- | --- | --- |
+| 도안이 놓일 수 있는 범위 | 높이 85~130mm, θ ±135° (이전 값) | 높이 `0 ~ surface.height_mm`(150mm), 둘레 360° 전체 (`workcell.SURFACE_HEIGHT_RANGE_M`) |
+| 범위를 벗어나면 | 생성 실패 (`HEIGHT_OUT_OF_RANGE`, `ANGLE_OUT_OF_RANGE`) | 옆면 **밖**(0 미만·150mm 초과)만 생성 실패 (`HEIGHT_OUT_OF_SURFACE`). 옆면 안이면 생성 성공 |
+| 로봇 작업 범위(높이 10~140mm, ±135° — 9/21 시율님 지시로 높이를 85~130mm 에서 변경) | 생성·검증 조건 | **실행 사전 점검**(`execution_readiness`). 범위 밖이어도 경로·미리보기는 만들어진다 |
+| 검증 `checks` | `HEIGHT_IN_RANGE`, `ANGLE_IN_REACHABLE_RANGE` | `HEIGHT_ON_SURFACE` (각도 항목 삭제). 모두 통과해야 하는 기하 검사만 남김 |
+| 이음매(±180°) | 그대로 — 이음매에서 획을 나누고 이음매를 넘는 이동을 만들지 않음 | 그대로. (이음매를 따라 곧게 놓인 조각을 "이음매를 넘음"으로 잘못 판정하던 오류를 고침 — 전체 옆면에서 θ=180° 도안이 실패하던 원인) |
+
+### 13.2 `execution_readiness` (계약 `c2-path-execution-readiness/1`, **제안**)
+
+검증 보고서(`c2-path-validation.json`)와 미리보기(`c2-path-preview.json`)의 최상위 필드다. **`c2-path.json` 의
+`validation` 블록에는 넣지 않았다** — HMI `PathArtifactLoader` 가 그 블록을 `{report_id, passed, checks, not_checked}`
+와 정확히 비교하기 때문이다. 보고서·미리보기의 추가 필드는 HMI 가 읽지 않으므로 기존 등록 검증은 그대로 통과한다
+(`test_hmi_loader_compat.py` 가 실제 `PathArtifactLoader` 로 확인).
+
+| 필드 | 값·뜻 |
+| --- | --- |
+| `precheck` | `WITHIN_LIMITS`(모든 CUT 구간이 잠정 범위 안) / `OUT_OF_LIMITS`(하나라도 밖) |
+| `executability` | 항상 `NOT_JUDGED`. c2_path 는 실행 가능 여부를 판정하지 않는다 (IK·J5/J6·충돌은 실행 전 검사 몫) |
+| `authoritative` | 항상 `false` |
+| `limits` | 사용한 범위(`work_height_range_m` — 바닥 기준, `reachable_angle_deg`), `provisional: true`, `source`(출처), `angle_meaning`. 요청 스냅샷의 `surface.valid_v_range_mm`·`reachable_angle_deg` 를 쓰고 없으면 `workcell` 상수. `/2` 면 `source` 가 "요청 스냅샷(/2)" 이다 |
+| `checks` | `WORK_HEIGHT_IN_RANGE`, `ANGLE_IN_REACHABLE_RANGE` 각각 통과 여부 |
+| `summary` | CUT 구간 수, 범위 밖 CUT 구간 수·획 수·waypoint 수 |
+| `out_of_limit_segment_ids`, `violations` | 범위 밖 구간 ID, 위반 목록(최대 100개, `violations_truncated`). 코드: `HEIGHT_OUT_OF_RANGE`, `ANGLE_OUT_OF_RANGE` |
+| `not_checked` | c2_path 가 계산하지 않는 항목: `["J5_JOINT_LIMIT","J6_RANGE","IK_REACHABILITY","COLLISION"]` |
+
+**각도 범위(±135°)의 뜻**: 9/20 J5 실측에서 나온 **원통 도달각 참고 범위**(잠정)다. 실제 J5 관절 한계 판정이 아니며, 그래서 `not_checked` 에 `J5_JOINT_LIMIT` 가 남고 `limits.angle_meaning` 에도 그렇게 적는다. 높이 범위는 바닥 기준 로봇 작업 범위다.
+
+미리보기의 각 CUT 구간에는 `execution_precheck`(`WITHIN_LIMITS`/`OUT_OF_LIMITS`)와 `execution_precheck_reasons` 가 붙는다.
+점검 대상은 CUT 구간이다. APPROACH/TRAVEL/RETRACT 는 CUT 끝점 사이를 보간하거나 반경만 바꾸므로 모든 CUT 이 범위 안이면
+벗어나지 않는다.
+
+### 13.3 `GeneratePath v2` 유지 여부와 HMI 가 바꿔야 할 것
+
+**`GeneratePath` Action 은 v2 그대로 유지한다.** goal 14개·result 12개 필드와 단계 이름은 바뀌지 않았다.
+
+| 항목 | 변경 |
+| --- | --- |
+| HMI → c2_path (goal, 프로필 스냅샷) | **필드·값 변경 없음.** `surface.valid_v_range_mm=[10,140]`(이전 `[85,130]` — **HMI 가 이 값을 직접 만든다면 바꿔야 한다**), `reachable_angle_deg=[-135,135]` 도 그대로 보내며 뜻만 "로봇 작업 범위(잠정)"로 바뀐다. 도안 배치(`offset_u_mm`, `offset_v_mm`, 크기)는 옆면 전체 안에서 자유롭게 보내도 된다 |
+| c2_path → HMI (result) | 필드 변경 없음. `success=true` 여도 실행 가능하다는 뜻이 아니다. `message` 끝에 사전 점검 요약 한 문장이 붙는다 |
+| 실패 코드 | 3D 매핑 실패 사유 `HEIGHT_OUT_OF_RANGE` → `HEIGHT_OUT_OF_SURFACE` (이름·의미 변경). 생성 실패에서 `ANGLE_OUT_OF_RANGE` 는 사라졌다 |
+| HMI 등록·미리보기 로더 | 코드 변경 없이 통과한다 (실제 로더로 확인) |
+| HMI 가 **새로 해야 할 것** | ① 보고서·미리보기의 `execution_readiness` 를 읽어 화면에 표시, ② "생성 성공 ≠ 실행 가능" 문구, ③ `precheck=OUT_OF_LIMITS` 면 실행 요청을 막거나 경고, ④ `WITHIN_LIMITS` 도 `executability=NOT_JUDGED` 이므로 실행 전 검사 결과를 따로 받기 전에는 "실행 가능"으로 표시하지 않기, ⑤ 배치 UI 의 범위 제한을 옆면 전체(높이 0~150mm)로 |
+| 미리보기 | `points_uv_mm` 등 기존 필드 그대로. 구간별 `execution_precheck` 로 범위 밖 구간을 다른 색으로 표시 가능 |
+
+`execution_readiness.limits` 는 요청 스냅샷 값을 그대로 쓴다. `/2` 스냅샷은 범위가 상수와 달라도 통과하므로, 시율님이
+5° 간격 실측표로 범위를 바꾸면 스냅샷 값만 바꾸면 된다(`/1` 은 상수와 정확히 같아야 한다 — 4.1).
+
+### 13.4 정렬 성능과 진행률 (**확인**)
+
+글자가 많은 이미지에서 `OPTIMIZING_2D` 가 120초를 넘긴 원인은 2-opt 가 후보마다 전체 비용을 처음부터 다시 더하는 것
+(패스당 O(n³))이었다. 획 544개(글자 이미지)에서 이전 구현은 (획 60/120/200개 실측에서 추정) 100초 이상, 지금은 0.13초다. `BUILDING_PATH` 의 안전비용
+정렬도 같은 구조라 같은 방식으로 고쳤다 (획 200개: 35.6초 → 0.02초). 전체 파이프라인(변환 포함)은 544획 이미지에서 약 2초다.
+
+- 획은 하나도 빼거나 바꾸지 않는다. 방문 순서만 다루며, 같은 입력이면 이전 구현과 같은 순서가 나온다
+  (`test_ordering.py` 가 무작위 입력으로 이전 구현과 대조).
+- 단계 안 진행률: `OPTIMIZING_2D` 0.38→0.55, `MAPPING_3D` 0.55→0.64, `BUILDING_PATH` 0.72→0.87 구간을 0.2초마다 갱신한다.
+  진행률은 줄어들지 않는다.
+- 취소·시간 초과는 단계 도중에도 확인한다. 제한 시간의 60% 가 지나면 개선(2-opt)만 멈추고 그 시점의 완전한 순서를 쓴다.
+  통계에 `two_opt_stopped_early` 로 남는다. 120초를 넘으면 이전과 같이 `TIMEOUT` 이다.

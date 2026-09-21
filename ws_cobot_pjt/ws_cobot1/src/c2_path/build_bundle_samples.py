@@ -4,9 +4,16 @@
 `samples/bundles/<이름>/input/`  : HMI가 등록해 넘겨줄 입력 묶음을 흉내낸 것 (이미지·스냅샷·요청·manifest)
 `samples/bundles/<이름>/output/` : 그 입력으로 실제 `GeneratePipeline` 을 돌린 결과 묶음 (manifest 포함)
 
-샘플 2종
-  heart_ok            : 하트 1개, 윗면 아래 45mm, −Y 면(θ=−90°). 검증 통과 → path·svg·preview·validation.
-  heart_seam_rejected : 같은 하트를 이음매(180°)에 놓음. J5 허용 범위 밖이라 검증 실패 → 진단 svg·validation 만.
+샘플 6종 (경로 생성 성공과 로봇 실행 가능 여부는 별개다 — 앞의 5개는 모두 생성·검증에 성공한다)
+입력 스냅샷은 모두 contract `c2-path-test-profile/2` (height_reference="bottom", v_direction="up") 다.
+  heart_ok                           : 하트 1개, 윗면 아래 45mm, −Y 면(θ=−90°). 생성 성공, 잠정 작업 범위 안(WITHIN_LIMITS).
+  heart_seam_out_of_limits           : 같은 하트를 이음매(180°)에 놓음. 생성 성공, 각도가 잠정 범위 밖(OUT_OF_LIMITS).
+  heart_low_out_of_limits            : 같은 하트를 높이 15mm(바닥 근처)에 놓음. 생성 성공, 높이가 범위(10~140mm) 밖(OUT_OF_LIMITS).
+  heart_request_range_out_of_limits  : 하트는 heart_ok 와 같고 **스냅샷의 작업 범위만 [110,140]mm 로 바꿈**. 생성 성공,
+                                       요청별 범위가 사전 점검에 쓰이는 걸 보여 준다(OUT_OF_LIMITS).
+  heart_custom_cylinder              : **스냅샷의 원통 치수를 바꿈**(반지름 30mm, 높이 120mm, 축 원점 [0.45, 0.01, 0.09], 작업 범위 [10,110]mm).
+                                       경로 좌표가 이 스냅샷 원통 위에 놓이는 것을 보여 준다(WITHIN_LIMITS). 상수 값이 아니라 스냅샷 값을 쓴다.
+  heart_off_surface                  : 원기둥 높이(150mm) 밖에 놓음. 옆면 위에 없으므로 생성 실패(HEIGHT_OUT_OF_SURFACE) → 진단 svg·validation 만.
 
 주의: 이 ID·해시는 **HMI가 발급한 값이 아니다**. 입력 manifest 의 origin="local_test_sample" 이다.
 재실행해도 파일이 바뀌지 않도록 UUID 를 고정 네임스페이스로 만든다(샘플 전용, 실제 실행은 uuid4).
@@ -54,14 +61,28 @@ def hmi_encoded(value) -> bytes:
     return json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":"), allow_nan=False).encode()
 
 
-def build(name, theta_deg):
+CUSTOM_CYLINDER = {"radius_mm": 30.0, "height_mm": 120.0, "axis_origin_m": [0.45, 0.01, 0.09],
+                   "valid_v_range_mm": [10.0, 110.0], "measurement_id": "sample-0921-custom",
+                   "measured_at": "2026-09-21T10:00:00+09:00"}
+
+
+def build(name, theta_deg, v_mm=None, valid_v_range_mm=None, profile_kwargs=None):
     root = os.path.join(OUT, name)
     if os.path.isdir(root):
         shutil.rmtree(root)
     counter = iter(range(1, 100))
     new = lambda: str(uuid.uuid5(NAMESPACE, f"{name}:{next(counter)}"))  # noqa: E731
 
-    image, profile = heart_png(), hmi_encoded(ppl.matching_test_profile())
+    image = heart_png()
+    kwargs = dict(profile_kwargs or {})
+    if valid_v_range_mm is not None:
+        kwargs["valid_v_range_mm"] = valid_v_range_mm
+    profile_value = ppl.matching_test_profile_v2(**kwargs)
+    profile = hmi_encoded(profile_value)
+    with wc.using_surface(ppl.profile_surface(profile_value)):     # u 는 이 스냅샷 반지름 기준이다
+        offset_u = round(U_OF(theta_deg), 4)
+    height_mm = profile_value["surface"]["height_mm"]
+    default_v = V_CENTER if profile_kwargs is None else height_mm - 45.0     # 윗면 아래 45mm
     request = {
         "schema_version": wc.PATH_SCHEMA_VERSION,
         "request_id": new(),
@@ -70,8 +91,8 @@ def build(name, theta_deg):
         "asset_sha256": sha256_bytes(image),
         "width_mm": 24.0,
         "height_mm": 24.0,
-        "offset_u_mm": round(U_OF(theta_deg), 4),
-        "offset_v_mm": round(V_CENTER, 4),
+        "offset_u_mm": offset_u,
+        "offset_v_mm": round(default_v if v_mm is None else v_mm, 4),
         "rotation_deg": 0.0,
         "conversion_preset": "raster_centerline_bezier",
         "tool_id": wc.TOOL_ID,
@@ -89,10 +110,20 @@ def build(name, theta_deg):
     return result, errors
 
 
+SAMPLES = (
+    ("heart_ok", -90.0, None),
+    ("heart_seam_out_of_limits", 180.0, None),
+    ("heart_low_out_of_limits", -90.0, 15.0),
+    ("heart_request_range_out_of_limits", -90.0, None, [110.0, 140.0]),
+    ("heart_custom_cylinder", -90.0, None, None, CUSTOM_CYLINDER),
+    ("heart_off_surface", -90.0, 200.0),
+)
+
+
 def main():
     failed = False
-    for name, theta in (("heart_ok", -90.0), ("heart_seam_rejected", 180.0)):
-        result, errors = build(name, theta)
+    for name, theta, v_mm, *extra in SAMPLES:
+        result, errors = build(name, theta, v_mm, *extra)
         print(f"[{name}] success={result['success']} error_code={result['error_code']} "
               f"segments={result['segment_count']} cut={result['cut_length_m'] * 1000:.1f}mm "
               f"| 묶음 검증 {'통과' if not errors else errors}")

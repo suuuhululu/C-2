@@ -1,0 +1,14 @@
+{
+  "cut_length_m": 0.0,
+  "error_code": "VALIDATION_FAILED",
+  "message": "3D 매핑에서 제외된 획이 있어 전체 생성을 실패 처리했습니다.",
+  "path_id": "",
+  "path_sha256": "",
+  "path_version": 0,
+  "preview_asset_id": "",
+  "segment_count": 0,
+  "success": false,
+  "svg_asset_id": "d4dc2709-1ba5-599f-b3b9-dee1a62ad498",
+  "validation_passed": false,
+  "validation_report_id": "5ce3800f-bd48-51ec-9fe9-831b1e391d56"
+}

@@ -14,7 +14,7 @@
   },
   "config": {
     "profile_snapshot_id": "snap-candle-0919",
-    "profile_sha256": "28183ef15e1ce58ce8dfaa7d112aaa1de4125733796d7db69aae6ed68bed68b0",
+    "profile_sha256": "455ff6f5465b5839a5e676b827a5ecd46377c23b87b7516ac0062dafc8aa82dc",
     "workcell_id": "candle_test_0919",
     "workcell_version": 1,
     "tools_config_id": "c2_tools",
@@ -2665,12 +2665,13 @@
         "tool_id": "engraving_drill"
       },
       {
-        "code": "HEIGHT_IN_RANGE",
+        "code": "HEIGHT_ON_SURFACE",
         "passed": true,
         "limit_m": [
-          0.009999999999999981,
-          0.13999999999999999
-        ]
+          0.0,
+          0.15
+        ],
+        "note": "옆면 전체(바닥~총 높이). 로봇 작업 범위는 execution_readiness 참고"
       },
       {
         "code": "CUT_ON_SURFACE",
@@ -2703,15 +2704,6 @@
           "CUT",
           "TRAVEL"
         ]
-      },
-      {
-        "code": "ANGLE_IN_REACHABLE_RANGE",
-        "passed": true,
-        "limit_deg": [
-          -135.0,
-          135.0
-        ],
-        "note": "J5 안전 범위 확정 전 — 현재 전 범위"
       },
       {
         "code": "NO_CYLINDER_PENETRATION",

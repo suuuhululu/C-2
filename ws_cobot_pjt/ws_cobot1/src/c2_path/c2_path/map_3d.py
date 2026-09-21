@@ -3,7 +3,8 @@
 
 적용한 결정 (2026-09-19 최종 조합):
   - 정면 투영이 아니라 **원통 iso-parametric 해석식**으로 매핑한다.
-  - 작업 가능 높이·둘레 각도·이음매·한 획의 최대 각도 기준으로 검사하고 분할한다.
+  - 옆면 높이 범위(0~총 높이)·이음매·한 획의 최대 각도 기준으로 검사하고 분할한다. 둘레는 360° 전체를 쓴다.
+    로봇 작업 가능 높이·도달 각도는 여기서 검사하지 않는다 (9/21: 실행 사전 점검 execution_readiness 가 한다).
   - (9/20) θ = u 원점 각도(0°) + u/R. 이음매(180°)는 별도 상수이며, 분할된 구간은
     [−180°, 180°] 로 옮겨 표현한다.
   - 각 표면점에서 승인된 도구 축(-Y)을 안쪽 접촉 방향에 정렬하고, 원통 축으로
@@ -13,6 +14,7 @@
     (2D 직선이 3D 에서는 호가 되므로, 3D 현 오차로 다시 확인한다.)
 """
 import math
+import time
 
 from . import workcell as wc
 
@@ -21,8 +23,9 @@ from . import workcell as wc
 # 분할
 # ---------------------------------------------------------------------------
 def _on_seam(theta, eps=1e-9):
-    k = round((theta - wc.SEAM_ANGLE_DEG) / 360.0)
-    return abs(theta - (wc.SEAM_ANGLE_DEG + 360.0 * k)) < eps, wc.SEAM_ANGLE_DEG + 360.0 * k
+    seam = wc.current_surface().seam_angle_deg
+    k = round((theta - seam) / 360.0)
+    return abs(theta - (seam + 360.0 * k)) < eps, seam + 360.0 * k
 
 
 def split_at_seam(tv):
@@ -139,27 +142,40 @@ def resample_adaptive(tv, chord_tol_m, max_step_m, min_step_m, max_depth=12):
 
 
 # ---------------------------------------------------------------------------
-def map_strokes(strokes_uv, check_height=True):
-    """u/v(mm) 획 -> 3D 획. 반환: (mapped, failures, stats)"""
+def map_strokes(strokes_uv, check_height=True, on_progress=None):
+    """u/v(mm) 획 -> 3D 획. 반환: (mapped, failures, stats)
+
+    check_height : 획의 모든 점이 옆면(0~총 높이) 안에 있는지 확인한다. 옆면 밖이면 표면이 없어 만들 수 없다.
+    on_progress  : 0~1 진행률 함수 (예외는 그대로 전파한다).
+    """
     mapped, failures = [], []
     n_seam = n_arc = n_dropped = 0
     pts_before = pts_after = 0
+    theta_min, theta_max = math.inf, -math.inf
+    notify = on_progress or (lambda _fraction: None)
+    last_poll = time.monotonic()
 
     for idx, pts in enumerate(strokes_uv):
+        if time.monotonic() - last_poll >= 0.2:
+            last_poll = time.monotonic()
+            notify(idx / max(1, len(strokes_uv)))
         sid = f"stroke{idx:03d}"
         tv = [(wc.theta_deg_from_u_mm(u), v / 1000.0) for u, v in pts]
         pts_before += len(tv)
+        if tv:
+            theta_min = min(theta_min, min(t for t, _ in tv))
+            theta_max = max(theta_max, max(t for t, _ in tv))
 
         if check_height:
-            lo, hi = wc.WORKABLE_HEIGHT_RANGE_M
+            lo, hi = wc.current_surface().height_range_m
             bad = [i for i, (_, h) in enumerate(tv) if not (lo - 1e-9 <= h <= hi + 1e-9)]
             if bad:
                 failures.append({
-                    "reason_code": "HEIGHT_OUT_OF_RANGE",
+                    "reason_code": "HEIGHT_OUT_OF_SURFACE",
                     "stroke_id": sid,
                     "first_offending_index": bad[0],
                     "offending_height_m": round(tv[bad[0]][1], 6),
-                    "workable_height_range_m": list(wc.WORKABLE_HEIGHT_RANGE_M),
+                    "surface_height_range_m": [lo, hi],
                 })
                 continue
 
@@ -216,11 +232,18 @@ def map_strokes(strokes_uv, check_height=True):
         "failed_strokes": len(failures),
         "points_before_resample": pts_before,
         "points_after_resample": pts_after,
-        "seam_angle_deg": wc.SEAM_ANGLE_DEG,
-        "u_origin_angle_deg": wc.U_ORIGIN_ANGLE_DEG,
+        "seam_angle_deg": wc.current_surface().seam_angle_deg,
+        "u_origin_angle_deg": wc.current_surface().u_origin_angle_deg,
         "stroke_max_arc_deg": wc.STROKE_MAX_ARC_DEG,
         "projection": "cylinder_iso_parametric",
+        "surface_height_range_m": list(wc.current_surface().height_range_m),
     }
+    if theta_min <= theta_max:
+        span = theta_max - theta_min
+        stats["design_angular_span_deg"] = round(span, 3)
+        # 도안이 둘레(360°)보다 넓으면 같은 자리를 두 번 지난다. 경로는 만들되 표시한다.
+        stats["design_wraps_past_360"] = bool(span > 360.0 + 1e-6)
+    notify(1.0)
     if mapped:
         th = [w["theta_deg"] for s in mapped for w in s["waypoints"]]
         hh = [w["height_m"] for s in mapped for w in s["waypoints"]]

@@ -18,22 +18,23 @@
       "tool_id": "engraving_drill"
     },
     {
-      "code": "HEIGHT_IN_RANGE",
+      "code": "HEIGHT_ON_SURFACE",
       "limit_m": [
-        0.009999999999999981,
-        0.13999999999999999
+        0.0,
+        0.12
       ],
+      "note": "옆면 전체(바닥~총 높이). 로봇 작업 범위는 execution_readiness 참고",
       "passed": true
     },
     {
       "code": "CUT_ON_SURFACE",
-      "observed_max_chord_error_m": 8.7e-07,
+      "observed_max_chord_error_m": 8.6e-07,
       "passed": true
     },
     {
       "code": "CUT_SPACING_MAX",
       "limit_m": 0.002,
-      "observed_max_m": 0.000482,
+      "observed_max_m": 0.000506,
       "passed": true
     },
     {
@@ -45,7 +46,7 @@
     {
       "code": "STROKE_ARC_MAX",
       "limit_deg": 180.0,
-      "observed_max_deg": 20.017,
+      "observed_max_deg": 22.854,
       "passed": true
     },
     {
@@ -54,21 +55,12 @@
         "TRAVEL"
       ],
       "code": "SEAM_NOT_CROSSED",
-      "passed": false,
+      "passed": true,
       "seam_angle_deg": 180.0
     },
     {
-      "code": "ANGLE_IN_REACHABLE_RANGE",
-      "limit_deg": [
-        -135.0,
-        135.0
-      ],
-      "note": "J5 안전 범위 확정 전 — 현재 전 범위",
-      "passed": false
-    },
-    {
       "code": "NO_CYLINDER_PENETRATION",
-      "observed_min_travel_clearance_m": 0.009901,
+      "observed_min_travel_clearance_m": 0.01,
       "passed": true
     },
     {
@@ -81,27 +73,78 @@
       "passed": true
     }
   ],
-  "errors": [
-    "ANGLE_OUT_OF_RANGE: stroke000_part0 θ=-179.94도 (허용 -135.0~135.0)",
-    "ANGLE_OUT_OF_RANGE: stroke001_part2 θ=180.00도 (허용 -135.0~135.0)",
-    "ANGLE_OUT_OF_RANGE: stroke001_part0 θ=-179.94도 (허용 -135.0~135.0)",
-    "ANGLE_OUT_OF_RANGE: stroke002 θ=-179.82도 (허용 -135.0~135.0)",
-    "ANGLE_OUT_OF_RANGE: stroke000_part1 θ=180.00도 (허용 -135.0~135.0)",
-    "SEAM_CROSSED: stroke001_part1",
-    "ANGLE_OUT_OF_RANGE: stroke001_part1 θ=180.00도 (허용 -135.0~135.0)",
-    "ANGLE_OUT_OF_RANGE: stroke003 θ=179.94도 (허용 -135.0~135.0)",
-    "SEAM_CROSSED: seg-0004(TRAVEL)"
-  ],
+  "errors": [],
+  "execution_readiness": {
+    "authoritative": false,
+    "checks": [
+      {
+        "code": "WORK_HEIGHT_IN_RANGE",
+        "limit_m": [
+          0.01,
+          0.11
+        ],
+        "passed": true
+      },
+      {
+        "code": "ANGLE_IN_REACHABLE_RANGE",
+        "limit_deg": [
+          -135.0,
+          135.0
+        ],
+        "passed": true
+      }
+    ],
+    "contract": "c2-path-execution-readiness/1",
+    "executability": "NOT_JUDGED",
+    "limits": {
+      "angle_meaning": "원통 도달각 참고 범위(잠정). 실제 J5 관절 한계 판정이 아니다.",
+      "height_reference": "bottom",
+      "provisional": true,
+      "reachable_angle_deg": [
+        -135.0,
+        135.0
+      ],
+      "source": "요청 스냅샷(/2) — surface.valid_v_range_mm / surface.reachable_angle_deg (요청별 값)",
+      "work_height_range_m": [
+        0.01,
+        0.11
+      ]
+    },
+    "not_checked": [
+      "J5_JOINT_LIMIT",
+      "J6_RANGE",
+      "IK_REACHABILITY",
+      "COLLISION"
+    ],
+    "note": "c2_path 의 잠정 범위 사전 점검이다. 실행 가능 여부는 판정하지 않으며 실행 전 검사(IK·J5/J6·충돌)가 한다. 경로 생성 성공·검증 통과·미리보기 성공은 로봇이 실행할 수 있다는 뜻이 아니다.",
+    "out_of_limit_segment_ids": [],
+    "precheck": "WITHIN_LIMITS",
+    "summary": {
+      "cut_segment_count": 6,
+      "cut_waypoint_count": 221,
+      "out_of_limit_cut_segment_count": 0,
+      "out_of_limit_cut_waypoint_count": 0,
+      "out_of_limit_stroke_count": 0
+    },
+    "violation_count": 0,
+    "violations": [],
+    "violations_truncated": false
+  },
   "input_stroke_count": 4,
-  "mapped_stroke_count": 7,
+  "mapped_stroke_count": 4,
   "mapping_failures": [],
+  "measured_at": "2026-09-21T10:00:00+09:00",
+  "measurement_id": "sample-0921-custom",
   "not_checked": [
     "J6_RANGE"
   ],
-  "passed": false,
-  "path_id": "789e3e33-6e31-5a8f-8969-31fe9f3448d4",
+  "passed": true,
+  "path_id": "02070b1f-ae5a-59e8-aaf8-a1a08ebc056e",
   "path_version": 1,
-  "request_id": "77accf95-0ff0-56e4-90aa-abe90abe89d5",
+  "profile_contract": "c2-path-test-profile/2",
+  "profile_sha256": "6a1e9bc14350f503f6f6785b593928eb69e68abae48a3487f2b1138bd9202a6f",
+  "profile_snapshot_id": "d46c16a8-8a73-51f6-bb9f-79b35f51b018",
+  "request_id": "eb8fd198-8616-54bd-9bf6-f83aa8bbfa31",
   "stats": {
     "build": {
       "cost_weights": {
@@ -111,20 +154,21 @@
         "theta_turn_deg": 0.004,
         "travel_arc_m": 1.0
       },
-      "cut_length_m": 0.075095,
-      "cut_segments": 9,
-      "lift_count": 7,
+      "cut_length_m": 0.07511,
+      "cut_segments": 6,
+      "lift_count": 4,
       "ordering": {
-        "cost_final": 2.054425,
-        "cost_initial": 8.89233,
+        "cost_final": 0.036589,
+        "cost_initial": 0.036589,
         "forbidden_pairs": 0,
-        "reordered": true,
-        "two_opt_improvements": 0
+        "reordered": false,
+        "two_opt_improvements": 0,
+        "two_opt_stopped_early": false
       },
-      "segment_count": 29,
-      "travel_length_m": 0.312386,
-      "travel_segments": 6,
-      "waypoint_count": 316
+      "segment_count": 17,
+      "travel_length_m": 0.03427,
+      "travel_segments": 3,
+      "waypoint_count": 247
     },
     "convert": {
       "fit_error_px": 0.6,
@@ -171,8 +215,8 @@
     },
     "extract_2d": {
       "center_uv_mm": [
-        107.5995,
-        105.0
+        -47.1239,
+        75.0
       ],
       "chord_tolerance_mm": 0.05,
       "closed_subpaths": 0,
@@ -193,32 +237,39 @@
       "stroke_count": 4,
       "subpath_count": 4,
       "u_range_mm": [
-        95.6006,
-        119.5994
+        -59.1228,
+        -35.124
       ],
       "v_range_mm": [
-        94.2278,
-        115.7688
+        64.2278,
+        85.7688
       ]
     },
     "map_3d": {
+      "degenerate_parts_dropped": 0,
+      "design_angular_span_deg": 45.834,
+      "design_wraps_past_360": false,
       "failed_strokes": 0,
       "height_range_m": [
-        0.094228,
-        0.115769
+        0.064228,
+        0.085769
       ],
       "input_strokes": 4,
-      "mapped_strokes": 7,
-      "points_after_resample": 224,
+      "mapped_strokes": 4,
+      "points_after_resample": 219,
       "points_before_resample": 219,
       "projection": "cylinder_iso_parametric",
       "seam_angle_deg": 180.0,
       "stroke_max_arc_deg": 180.0,
-      "strokes_split_at_seam": 2,
+      "strokes_split_at_seam": 0,
       "strokes_split_by_arc_limit": 0,
+      "surface_height_range_m": [
+        0.0,
+        0.12
+      ],
       "theta_range_deg": [
-        -180.0,
-        180.0
+        -112.916,
+        -67.082
       ],
       "u_origin_angle_deg": 0.0
     },
@@ -235,7 +286,20 @@
       "stroke_count": 4,
       "travel_mm_after_2opt": 34.2693,
       "travel_mm_nearest_neighbor": 34.2705,
-      "two_opt_improvements": 3
+      "two_opt_improvements": 3,
+      "two_opt_stopped_early": false
     }
+  },
+  "surface_used": {
+    "axis_origin_m": [
+      0.45,
+      0.01,
+      0.09
+    ],
+    "height_mm": 120.0,
+    "height_reference": "bottom",
+    "radius_mm": 30.0,
+    "source": "스냅샷 surface",
+    "v_direction": "up"
   }
 }

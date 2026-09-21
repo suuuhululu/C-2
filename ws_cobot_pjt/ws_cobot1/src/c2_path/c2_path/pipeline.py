@@ -10,10 +10,11 @@ import math
 import tempfile
 import time
 from dataclasses import dataclass
+from datetime import datetime
 from typing import Callable, Mapping
 from uuid import UUID
 
-from . import extract_2d, generate_path, image_to_svg, map_3d, optimize_2d, validate_path
+from . import extract_2d, generate_path, image_to_svg, map_3d, optimize_2d, readiness, snapshot, validate_path
 from . import workcell as wc
 from .artifacts import ArtifactError, ArtifactWrite, json_bytes, new_id, sha256_bytes
 
@@ -54,6 +55,17 @@ class GenerationResult:
     validation_report_id: str
     segment_count: int
     cut_length_m: float
+    # 실행 사전 점검 결과(WITHIN_LIMITS/OUT_OF_LIMITS). GeneratePath Result 에는 필드가 없어 메시지·산출물로만 전달한다.
+    execution_precheck: str = ""
+    execution_message: str = ""
+
+
+SUCCESS_MESSAGE = "경로 생성과 기하 검증이 완료되었습니다. 실행 전 J6/IK 검사가 별도로 필요합니다."
+
+
+def success_message(result: "GenerationResult") -> str:
+    """GeneratePath Result.message. 생성 성공이 실행 가능을 뜻하지 않는다는 점과 사전 점검 결과를 함께 적는다."""
+    return f"{SUCCESS_MESSAGE} {result.execution_message}".strip()
 
 
 def _uuid(value, name):
@@ -121,11 +133,15 @@ def _same(actual, expected, label, errors, tol=1e-9):
         errors.append(f"{label}: {actual!r} != {expected!r}")
 
 
-def validate_profile(profile: Mapping) -> None:
-    """하드코딩된 test_only workcell 값과 스냅샷이 정확히 같은지 확인한다."""
-    surface = profile.get("surface") if isinstance(profile, Mapping) else None
-    surface = surface if isinstance(surface, Mapping) else {}
-    errors = []
+PROFILE_CONTRACT_V1 = "c2-path-test-profile/1"
+PROFILE_CONTRACT_V2 = "c2-path-test-profile/2"
+HEIGHT_REFERENCE_BOTTOM = "bottom"       # v=0 은 양초 바닥(축 원점 z). 윗면 기준이 아니다.
+V_DIRECTION_UP = "up"                    # v 는 바닥에서 위로 갈수록 커진다.
+MEASUREMENT_ID_MAX_LEN = 128
+
+
+def _identity_errors(profile: Mapping, errors: list) -> None:
+    """/1·/2 공통: 작업 셀·도구·프레임 식별. 실측으로 바뀌는 값이 아니라 c2_path 가 아는 설정과 같아야 한다."""
     _same(profile.get("schema_version"), 2, "schema_version", errors)
     _same(profile.get("source_mode"), "SIMULATION", "source_mode", errors)
     _same(profile.get("frame_id"), wc.FRAME_ID, "frame_id", errors)
@@ -140,27 +156,110 @@ def validate_profile(profile: Mapping) -> None:
     _same(profile.get("load_id"), wc.LOAD_PROFILE_ID, "load_id", errors)
     _same(profile.get("load_version"), wc.LOAD_PROFILE_VERSION, "load_version", errors)
     _same(profile.get("gripper_open_allowed"), False, "gripper_open_allowed", errors)
+
+
+def _fixed_axis_errors(surface: Mapping, errors: list) -> None:
+    """`/1`·`/2` 공통: 원통 종류·축 방향·u 원점·이음매는 아직 상수와 같은 값만 받는다.
+    이음매·u 원점은 J5 위험 구역(로봇 쪽)과 도안 배치 기준에 묶여 있고, 축은 +Z 만 계산·미리보기가 지원한다."""
     _same(surface.get("kind"), "cylinder", "surface.kind", errors)
+    _same(surface.get("axis_direction"), list(wc.AXIS_DIRECTION), "surface.axis_direction", errors)
+    _same(surface.get("u_origin_angle_deg"), wc.U_ORIGIN_ANGLE_DEG,
+          "surface.u_origin_angle_deg", errors)
+    _same(surface.get("seam_angle_deg"), wc.SEAM_ANGLE_DEG, "surface.seam_angle_deg", errors)
+
+
+def _default_geometry_errors(surface: Mapping, errors: list) -> None:
+    """`/1`: 원통 치수(반지름·높이·축 원점)도 test_only 상수와 정확히 같아야 한다."""
+    _fixed_axis_errors(surface, errors)
     _same(surface.get("radius_mm"), wc.RADIUS_M * 1000.0, "surface.radius_mm", errors, 1e-6)
     _same(surface.get("height_mm"), wc.HEIGHT_TOTAL_M * 1000.0, "surface.height_mm", errors, 1e-6)
     _same(surface.get("axis_origin_m"), [wc.AXIS_ORIGIN_XY_M[0], wc.AXIS_ORIGIN_XY_M[1],
                                           wc.AXIS_ORIGIN_Z_M], "surface.axis_origin_m", errors)
-    _same(surface.get("axis_direction"), list(wc.AXIS_DIRECTION), "surface.axis_direction", errors)
+
+
+def profile_surface(profile: Mapping) -> wc.Surface:
+    """검증을 통과한 스냅샷이 쓰는 원통 형상. `/1` 은 기본 상수, `/2` 는 스냅샷의 실측 값이다."""
+    if isinstance(profile, Mapping) and profile.get("contract") == PROFILE_CONTRACT_V2:
+        return wc.surface_from_snapshot(profile["surface"])
+    return wc.DEFAULT_SURFACE
+
+
+def _validate_profile_v1(profile: Mapping, surface: Mapping) -> None:
+    """`/1`: 하드코딩된 test_only workcell 값과 정확히 같을 때만 받는다."""
+    errors = []
+    _identity_errors(profile, errors)
+    _default_geometry_errors(surface, errors)
     _same(surface.get("valid_v_range_mm"), [v * 1000.0 for v in wc.WORKABLE_HEIGHT_RANGE_M],
           "surface.valid_v_range_mm", errors)
-    _same(surface.get("u_origin_angle_deg"), wc.U_ORIGIN_ANGLE_DEG,
-          "surface.u_origin_angle_deg", errors)
-    _same(surface.get("seam_angle_deg"), wc.SEAM_ANGLE_DEG, "surface.seam_angle_deg", errors)
     _same(surface.get("reachable_angle_deg"), list(wc.REACHABLE_ANGLE_DEG),
           "surface.reachable_angle_deg", errors)
     if errors:
         raise PipelineError("PROFILE_MISMATCH", "설정 스냅샷과 c2_path test_only 값이 다릅니다: " + "; ".join(errors[:4]))
 
 
+def _iso8601(value) -> bool:
+    if not isinstance(value, str) or not value:
+        return False
+    try:
+        parsed = datetime.fromisoformat(value.replace("Z", "+00:00") if value.endswith("Z") else value)
+    except ValueError:
+        return False
+    return parsed.tzinfo is not None
+
+
+def _validate_profile_v2(profile: Mapping, surface: Mapping) -> None:
+    """`/2`: 요청별 작업 범위·도달각을 스냅샷에서 받는다.
+
+    필수: surface.height_reference="bottom", surface.v_direction="up", calibration_status="SIMULATION_ONLY".
+    범위(`valid_v_range_mm`, `reachable_angle_deg`)와 원통 치수(`radius_mm`, `height_mm`, `axis_origin_m`)는 코드 상수와
+    같을 필요가 없고 구조 조건만 본다(`profile_surface` 가 이 값으로 경로를 계산한다). 종류(cylinder)·축 방향(+Z)·u 원점·
+    이음매는 아직 상수와 같은 값만 받는다. 실측 유효 상태 값은 제어팀 확인 후 추가한다."""
+    errors = []
+    _identity_errors(profile, errors)
+    _same(profile.get("calibration_status"), "SIMULATION_ONLY", "calibration_status", errors)
+    _same(surface.get("height_reference"), HEIGHT_REFERENCE_BOTTOM, "surface.height_reference", errors)
+    _same(surface.get("v_direction"), V_DIRECTION_UP, "surface.v_direction", errors)
+    for key in ("measurement_id", "measured_at"):
+        if key in profile and profile[key] is not None:
+            value = profile[key]
+            if key == "measurement_id":
+                okay = isinstance(value, str) and 0 < len(value) <= MEASUREMENT_ID_MAX_LEN
+                if not okay:
+                    errors.append(f"measurement_id는 1~{MEASUREMENT_ID_MAX_LEN}자 문자열이어야 합니다.")
+            elif not _iso8601(value):
+                errors.append("measured_at은 시간대가 있는 ISO 8601 문자열이어야 합니다.")
+    # 범위·도달각 등 구조 조건 (0 <= 하한 < 상한 <= height_mm, 이음매가 도달각 안에 없음 등)
+    errors.extend(snapshot.surface_geometry_errors(surface))
+    _fixed_axis_errors(surface, errors)
+    if errors:
+        # 같은 원인이 두 검사에서 중복될 수 있어 순서를 지키며 중복만 제거한다.
+        unique = list(dict.fromkeys(errors))
+        raise PipelineError("PROFILE_MISMATCH", "요청 스냅샷(/2)이 올바르지 않습니다: " + "; ".join(unique[:4]))
+
+
+def validate_profile(profile: Mapping) -> None:
+    """스냅샷 `contract` 로 검사 규칙을 고른다. 없으면 기존(/1)과 같다.
+
+      /1 : c2_path 상수와 정확히 같을 때만 받는다 (valid_v_range_mm=[10,140], 원통 치수도 상수).
+      /2 : 새 필수 필드 + 요청별 작업 범위·도달각·원통 치수. 축 방향·u 원점·이음매는 아직 상수와 같아야 한다.
+    """
+    surface = profile.get("surface") if isinstance(profile, Mapping) else None
+    surface = surface if isinstance(surface, Mapping) else {}
+    contract = profile.get("contract") if isinstance(profile, Mapping) else None
+    if contract in (None, PROFILE_CONTRACT_V1):
+        _validate_profile_v1(profile, surface)
+    elif contract == PROFILE_CONTRACT_V2:
+        _validate_profile_v2(profile, surface)
+    else:
+        raise PipelineError(
+            "PROFILE_MISMATCH",
+            f"지원하지 않는 스냅샷 contract입니다: {contract!r} (지원: {PROFILE_CONTRACT_V1}, {PROFILE_CONTRACT_V2})")
+
+
 def matching_test_profile() -> dict:
     """통합 시험에서 서버가 등록할 수 있는 명시적 test_only 스냅샷."""
     return {
-        "contract": "c2-path-test-profile/1",
+        "contract": PROFILE_CONTRACT_V1,
         "schema_version": 2,
         "source_mode": "SIMULATION",
         "workcell_id": wc.WORKCELL_ID,
@@ -190,7 +289,37 @@ def matching_test_profile() -> dict:
     }
 
 
-def _preview(path, path_sha256, goal):
+def matching_test_profile_v2(*, valid_v_range_mm=None, reachable_angle_deg=None,
+                            measurement_id=None, measured_at=None,
+                            radius_mm=None, height_mm=None, axis_origin_m=None) -> dict:
+    """`/2` 시험용 스냅샷. HMI 백엔드가 실측을 등록할 때 만들 모양을 흉내낸다(SIMULATION_ONLY).
+
+    기본 값은 /1 과 같지만 범위·도달각·원통 치수(radius_mm, height_mm, axis_origin_m)를 요청별로 바꿔 넣을 수 있다."""
+    profile = matching_test_profile()
+    profile["contract"] = PROFILE_CONTRACT_V2
+    surface = profile["surface"]
+    surface["height_reference"] = HEIGHT_REFERENCE_BOTTOM
+    surface["v_direction"] = V_DIRECTION_UP
+    if valid_v_range_mm is not None:
+        surface["valid_v_range_mm"] = list(valid_v_range_mm)
+    if reachable_angle_deg is not None:
+        surface["reachable_angle_deg"] = list(reachable_angle_deg)
+    if radius_mm is not None:
+        surface["radius_mm"] = radius_mm
+    if height_mm is not None:
+        surface["height_mm"] = height_mm
+    if axis_origin_m is not None:
+        surface["axis_origin_m"] = list(axis_origin_m)
+    if measurement_id is not None:
+        profile["measurement_id"] = measurement_id
+    if measured_at is not None:
+        profile["measured_at"] = measured_at
+    return profile
+
+
+def _preview(path, path_sha256, goal, ready=None, ready_limits=None):
+    flags = readiness.segment_flags(path, ready_limits) if ready_limits else {}
+    cs = wc.current_surface()
     segments = []
     for segment in path["segments"]:
         points_m = [waypoint[:3] for waypoint in segment["waypoints"]]
@@ -205,16 +334,18 @@ def _preview(path, path_sha256, goal):
             item["points_uv_mm"] = [
                 [
                     round(wc.u_mm_from_theta_deg(math.degrees(math.atan2(
-                        p[1] - wc.AXIS_ORIGIN_XY_M[1], p[0] - wc.AXIS_ORIGIN_XY_M[0]))), 6),
-                    round((p[2] - wc.AXIS_ORIGIN_Z_M) * 1000.0, 6),
+                        p[1] - cs.axis_origin_xy_m[1], p[0] - cs.axis_origin_xy_m[0]))), 6),
+                    round((p[2] - cs.axis_origin_z_m) * 1000.0, 6),
                 ]
                 for p in points_m
             ]
         for key in ("split_from_stroke_id", "split_index", "split_count", "join_forbidden"):
             if key in segment:
                 item[key] = segment[key]
+        if segment["segment_id"] in flags:
+            item.update(flags[segment["segment_id"]])
         segments.append(item)
-    return {
+    document = {
         "contract": "c2-path-preview/1",
         "schema_version": 2,
         "source_mode": "SIMULATION",
@@ -231,6 +362,10 @@ def _preview(path, path_sha256, goal):
         "pose_reference": "tool_tip",
         "segments": segments,
     }
+    if ready is not None:
+        # 미리보기 성공은 실행 가능 판정이 아니다. 잠정 로봇 작업 범위 점검 결과를 따로 싣는다.
+        document["execution_readiness"] = readiness.preview_summary(ready)
+    return document
 
 
 class GeneratePipeline:
@@ -244,16 +379,39 @@ class GeneratePipeline:
         feedback: Callable[[str, float], None] | None = None,
         canceled: Callable[[], bool] | None = None,
     ) -> GenerationResult:
+        # 요청이 정한 원통 형상은 이 요청 안에서만 쓴다(끝나면 기본 형상으로 되돌린다).
+        token = wc.set_active_surface(wc.DEFAULT_SURFACE)
+        try:
+            return self._run(raw_goal, feedback, canceled)
+        finally:
+            wc.reset_active_surface(token)
+
+    def _run(
+        self,
+        raw_goal: Mapping,
+        feedback: Callable[[str, float], None] | None = None,
+        canceled: Callable[[], bool] | None = None,
+    ) -> GenerationResult:
         feedback = feedback or (lambda _stage, _progress: None)
         canceled = canceled or (lambda: False)
         started = time.monotonic()
+        sent = [0.0]
 
         def checkpoint(stage, progress):
             if canceled():
                 raise GenerationCanceled()
             if time.monotonic() - started > self.timeout_s:
                 raise PipelineError("TIMEOUT", f"경로 생성 제한 시간 {self.timeout_s:g}초를 초과했습니다.")
-            feedback(stage, progress)
+            sent[0] = max(sent[0], float(progress))          # 진행률은 줄어들지 않는다
+            feedback(stage, sent[0])
+
+        def within_stage(stage, low, high):
+            """단계 안의 0~1 진행률을 전체 진행률 구간 [low, high] 로 옮기는 함수. 취소·시간 초과도 여기서 확인한다."""
+            return lambda fraction: checkpoint(stage, low + (high - low) * min(1.0, max(0.0, float(fraction))))
+
+        def should_stop_refining():
+            """2-opt 개선은 선택 사항이다. 제한 시간의 60%가 지나면 개선만 멈추고 지금 순서를 쓴다 (획은 그대로)."""
+            return time.monotonic() - started > 0.6 * self.timeout_s
 
         goal = validate_goal(raw_goal)
         try:
@@ -266,6 +424,7 @@ class GeneratePipeline:
         except ArtifactError as exc:
             raise PipelineError(exc.code, str(exc)) from exc
         validate_profile(profile)
+        wc.set_active_surface(profile_surface(profile))
 
         checkpoint("CONVERTING", 0.05)
         try:
@@ -296,10 +455,12 @@ class GeneratePipeline:
             raise PipelineError("VALIDATION_FAILED", "2D 좌표 획이 비어 있습니다.")
 
         checkpoint("OPTIMIZING_2D", 0.38)
-        ordered, optimize_stats = optimize_2d.optimize(strokes)
+        ordered, optimize_stats = optimize_2d.optimize(
+            strokes, on_progress=within_stage("OPTIMIZING_2D", 0.38, 0.55), should_stop=should_stop_refining)
 
         checkpoint("MAPPING_3D", 0.55)
-        mapped, mapping_failures, map_stats = map_3d.map_strokes(ordered)
+        mapped, mapping_failures, map_stats = map_3d.map_strokes(
+            ordered, on_progress=within_stage("MAPPING_3D", 0.55, 0.64))
         if mapping_failures or not mapped:
             checkpoint("MAPPING_3D", 0.65)
             report = {
@@ -336,13 +497,33 @@ class GeneratePipeline:
                 goal["profile_snapshot_id"],
                 goal["profile_sha256"],
                 goal["source_mode"],
+                on_progress=within_stage("BUILDING_PATH", 0.72, 0.87),
+                should_stop=should_stop_refining,
             )
         except ValueError as exc:
             raise PipelineError("VALIDATION_FAILED", str(exc)) from exc
 
         checkpoint("VALIDATING", 0.88)
         report = validate_path.validate(path)
+        ready_limits = readiness.limits_from_profile(profile)
+        ready = readiness.execution_readiness(path, ready_limits)
+        report["execution_readiness"] = ready
+        cs = wc.current_surface()
         report.update({
+            # 이 경로를 계산한 스냅샷과 실제로 쓴 원통 형상을 보고서에도 남긴다(경로 config 의 ID·해시와 같은 값).
+            "profile_snapshot_id": goal["profile_snapshot_id"],
+            "profile_sha256": goal["profile_sha256"],
+            "profile_contract": profile.get("contract") or PROFILE_CONTRACT_V1,
+            "measurement_id": profile.get("measurement_id"),
+            "measured_at": profile.get("measured_at"),
+            "surface_used": {
+                "radius_mm": round(cs.radius_m * 1000.0, 6),
+                "height_mm": round(cs.height_m * 1000.0, 6),
+                "axis_origin_m": list(cs.axis_origin_m),
+                "height_reference": HEIGHT_REFERENCE_BOTTOM,
+                "v_direction": V_DIRECTION_UP,
+                "source": "스냅샷 surface" if profile.get("contract") == PROFILE_CONTRACT_V2 else "c2_path 기본 상수(/1)",
+            },
             "request_id": goal["request_id"],
             "path_id": path_id,
             "path_version": path_version,
@@ -387,7 +568,7 @@ class GeneratePipeline:
         }
         path_bytes = json_bytes(path)
         path_sha256 = sha256_bytes(path_bytes)
-        preview = _preview(path, path_sha256, goal)
+        preview = _preview(path, path_sha256, goal, ready, ready_limits)
         self.store.put_bundle([
             ArtifactWrite(json_bytes(report), "validation", "application/json",
                           "c2-path-validation.json", {"path_id": path_id}, validation_id),
@@ -411,4 +592,6 @@ class GeneratePipeline:
             validation_report_id=validation_id,
             segment_count=int(build_stats["segment_count"]),
             cut_length_m=float(build_stats["cut_length_m"]),
+            execution_precheck=ready["precheck"],
+            execution_message=readiness.message_suffix(ready),
         )

@@ -7,14 +7,14 @@
 
 ```bash
 python3 build_samples.py                 # 샘플 3종 생성 (path_sha256 은 저장 후 계산해 result.json 에만)
-python3 build_bundle_samples.py          # 파일 묶음 샘플 2종 (samples/bundles/, 아래 참고)
+python3 build_bundle_samples.py          # 파일 묶음 샘플 6종 (samples/bundles/, 스냅샷 /2 입력, 아래 참고)
 python3 -m unittest discover -s test -v  # 계약·안전·묶음·스냅샷 시험
 ```
 
 > **두 종류의 샘플이 있다.** 이 문서의 `heart/`·`heart_pair/`·`heart_seam/` 는 **경로 알고리즘 검증용**이라
 > ID 가 `path-heart-0001` 같은 읽기 쉬운 문자열이고 SVG·미리보기 파일이 없다. HMI 가져오기·통합 시험에는
 > **`bundles/`** 를 쓴다. 실제 `GeneratePipeline` 을 돌린 결과이며 UUID·SHA-256·`manifest.json`·미리보기·SVG·
-> 검증 보고서·`result.json` 이 실제 계약대로 들어 있다 (`bundles/heart_ok`, 실패 예시 `bundles/heart_seam_rejected`).
+> 검증 보고서·`result.json` 이 실제 계약대로 들어 있다 (`bundles/heart_ok`; 생성은 성공하지만 로봇 잠정 범위 밖인 `heart_seam_out_of_limits`·`heart_low_out_of_limits`·`heart_request_range_out_of_limits`(스냅샷의 작업 범위만 `[110,140]`mm 로 바꾼 것); 스냅샷 원통 치수(반지름 30mm·높이 120mm·축 원점)를 바꿔 경로를 계산한 `heart_custom_cylinder`; 옆면 밖이라 생성 실패하는 `heart_off_surface`). `bundles/` 의 입력 스냅샷은 contract `/2`, 이 폴더의 `heart/`·`heart_pair/`·`heart_seam/`·`profile_snapshot.json` 은 `/1`, `profile_snapshot_v2.json` 은 `/2` 예시다.
 > 형식은 [`../BUNDLE_SPEC.md`](../BUNDLE_SPEC.md) 참고. `bundles/` 의 ID·해시는 HMI 발급값이 아닌 시험용이다.
 
 ## 경로 파일 형식 (2026-09-20, 로봇팀 형식으로 통일)
@@ -45,9 +45,9 @@ python3 -m unittest discover -s test -v  # 계약·안전·묶음·스냅샷 시
 | 축 위치 (x, y) | 0.4218, 0.0001 m | 0919 실측 (`workcell_candle_0919.yaml`) |
 | 바닥 z | 0.0834 m | 윗면 − 높이 (yaml `bottom_z_base_m`) |
 | 윗면 z | 0.2334 m | 0919 손끝 수직 터치 실측 |
-| 작업 가능 높이 | 바닥 기준 10~140 mm (= 윗면 아래 10~140 mm, 상하 10mm씩 조각 금지) | 시율님 확정 (2026-09-21, 기존 20~65mm 기준 대체) |
+| 로봇 작업 가능 높이 (`WORKABLE_HEIGHT_RANGE_M`) | 바닥 기준 10~140 mm (= 윗면 아래 10~140 mm, 양초 150mm 기준) | 시율님 9/21 지시로 이전 85~130mm(윗면 아래 20~65mm)에서 변경. **9/21부터 생성 조건이 아니라 실행 사전 점검 기준**이다. 도안은 옆면 전체(0~150mm, `SURFACE_HEIGHT_RANGE_M`)에 놓을 수 있다 |
 | 각도 기준 | 0° = base +X(로봇 반대편), 반시계 양수 | 시율님 9/20 |
-| J5 안전 θ 범위 (`REACHABLE_ANGLE_DEG`) | −135°~135° (잠정치) | 시율님 9/20 J5 실측: θ=180°(−X)에서 J5=175°(±135° 한계 초과), θ=0°·±90° 는 정상, 사이는 미실측. 오늘 5° 간격 실측 후 갱신 예정 |
+| J5 안전 θ 범위 (`REACHABLE_ANGLE_DEG`) | −135°~135° (잠정치, **실행 사전 점검 기준**) | 시율님 9/20 J5 실측: θ=180°(−X)에서 J5=175°(±135° 한계 초과), θ=0°·±90° 는 정상, 사이는 미실측. 오늘 5° 간격 실측 후 갱신 예정 |
 | 퇴화 조각 최소 길이 (`MIN_STROKE_LEN_M`) | 1 mm | 이음매 분할 등으로 생기는 점 2~3개짜리 거의 0mm 조각은 실제 절삭 의미가 없고 제어기가 동일점 movesx 를 거부할 수 있어 버린다 |
 | 도안 원점 | u = 0 → θ = 0° (`U_ORIGIN_ANGLE_DEG`) | 권장안 69줄 "u 원점은 표면 설정에 정의" |
 | 이음매 | ±180° = −X 면(로봇 쪽, J5 위험 구역) (`SEAM_ANGLE_DEG`) | 시율님 9/20. 전개면 u = ±πR 양 끝 |
@@ -61,7 +61,7 @@ python3 -m unittest discover -s test -v  # 계약·안전·묶음·스냅샷 시
 | --- | --- | --- |
 | `heart/` | 하트 1개. 폭 24mm, 윗면 아래 45mm, −Y 면(θ=−90°) | 시율님 9/18 드릴 하트와 **같은 조건** — 실기 결과와 직접 비교 가능 |
 | `heart_pair/` | 하트 2개를 180° 떨어뜨림 | 획 정렬, 오프셋 원통 TRAVEL |
-| `heart_seam/` | 하트를 이음매(180°, 로봇 쪽) 위에 놓음 | 이음매 분할. **J5 위험 구역이라 실기 금지** |
+| `heart_seam/` | 하트를 이음매(180°, 로봇 쪽) 위에 놓음 | 이음매 분할. 생성은 성공하지만 **J5 위험 구역이라 실행 사전 점검이 `OUT_OF_LIMITS`, 실기 금지** |
 
 각 폴더에 `request.json` · `feedback.json` · `path.json` · `result.json` ·
 `validation_report.json` 이 있다.
@@ -72,10 +72,10 @@ python3 -m unittest discover -s test -v  # 계약·안전·묶음·스냅샷 시
 | --- | ---: | ---: | ---: | ---: | --- |
 | heart | 1 | 4 | 72.7 mm | 0 mm | 통과 |
 | heart_pair | 2 | 9 | 145.3 mm | 138.9 mm | 통과 |
-| heart_seam | 1 → **2** (이음매 분할) | 7 | 72.7 mm | 277.8 mm | **실패 (예상됨 — `ANGLE_OUT_OF_RANGE`)** |
+| heart_seam | 1 → **2** (이음매 분할) | 7 | 72.7 mm | 277.8 mm | 통과 (실행 사전 점검 `OUT_OF_LIMITS`) |
 
-(반지름 34.25mm 갱신 후 수치. heart_seam 은 이음매(180°)가 J5 안전 범위(±135°) 밖이라
-이제 의도적으로 실패한다 — 아래 "알려진 한계" 참고. 새 버그가 아니다.)
+(반지름 34.25mm 갱신 후 수치. heart_seam 은 9/20~9/21 오전에는 이음매(180°)가 J5 잠정 범위(±135°) 밖이라 생성이
+실패했으나, 9/21 부터는 생성·검증은 통과하고 실행 사전 점검(`execution_readiness`)이 범위 밖으로 표시한다 — 아래 "알려진 한계" 참고.)
 
 ## 적용한 알고리즘 조합
 
@@ -118,10 +118,11 @@ clearance 10mm 기준으로 각도차 **78.8°** 를 넘으면 직선 현은 반
   샘플은 `bundles/` 에 있다.
 - `heart_seam` 은 하트 위·아래 꼭짓점이 정확히 180° 에 놓여 두 조각으로 나뉜다. 두 조각을 잇는
   TRAVEL 은 이음매를 넘지 않으려고 +X 쪽으로 **한 바퀴(360°)** 돈다 (277.8 mm, J6 도 한 바퀴).
-  이음매 위 도안은 로봇 쪽 J5 위험 구역이라, 9/20 `REACHABLE_ANGLE_DEG`(잠정 ±135°) 반영 이후
-  **`ANGLE_OUT_OF_RANGE` 로 검증 실패한다 — 예상된 동작이다, 회귀가 아니다.** heart_seam 은
+  이음매 위 도안은 로봇 쪽 J5 위험 구역이다. 9/21 전에는 `REACHABLE_ANGLE_DEG`(잠정 ±135°) 가 생성 조건이라
+  `ANGLE_OUT_OF_RANGE` 로 검증 실패했지만, 지금은 생성·검증은 통과하고 `execution_readiness.precheck` 가
+  `OUT_OF_LIMITS` 가 된다. **통과가 실행 가능을 뜻하지 않는다.** heart_seam 은
   분할 로직·퇴화 조각 정리 확인용으로만 쓰고, 실기 가공 대상이 아니다.
-- `REACHABLE_ANGLE_DEG` 는 9/20 시율님 J5 실측(θ=180°에서 J5=175°, ±135° 초과; 0°·±90° 는
+- `REACHABLE_ANGLE_DEG`(실행 사전 점검 기준) 는 9/20 시율님 J5 실측(θ=180°에서 J5=175°, ±135° 초과; 0°·±90° 는
   정상, 사이는 미실측) 기준 잠정치 −135°~135° 로 반영했다. 오늘 5° 간격 실측이 나오면 갱신한다.
 - 이음매 분할로 생기는 퇴화 조각(점이 정확히 이음매 위에 찍혀 길이 거의 0)은 `MIN_STROKE_LEN_M`
   (1mm) 미만이면 버린다 (9/20 시율님 heart_seam 실기 관찰 — 제어기가 동일점 movesx 를 거부할 수

@@ -2,7 +2,7 @@
   "config": {
     "load_profile_id": "ToolWeight_1",
     "load_profile_version": 1,
-    "profile_sha256": "272a05c285698cb1cd00241419f7843f572e0290070d312e5d2cd7cc19943b31",
+    "profile_sha256": "c2e9dd46d57d6e22980daf3b235d82d9bc62e497d784707f0b582cad8021c815",
     "profile_snapshot_id": "de9e0ffc-6384-560b-859c-d3f272b80e0d",
     "tcp_profile_id": "GripperDA_v1",
     "tcp_profile_version": 1,
@@ -2429,11 +2429,12 @@
         "tool_id": "engraving_drill"
       },
       {
-        "code": "HEIGHT_IN_RANGE",
+        "code": "HEIGHT_ON_SURFACE",
         "limit_m": [
-          0.009999999999999981,
-          0.13999999999999999
+          0.0,
+          0.15
         ],
+        "note": "옆면 전체(바닥~총 높이). 로봇 작업 범위는 execution_readiness 참고",
         "passed": true
       },
       {
@@ -2467,15 +2468,6 @@
         "code": "SEAM_NOT_CROSSED",
         "passed": true,
         "seam_angle_deg": 180.0
-      },
-      {
-        "code": "ANGLE_IN_REACHABLE_RANGE",
-        "limit_deg": [
-          -135.0,
-          135.0
-        ],
-        "note": "J5 안전 범위 확정 전 — 현재 전 범위",
-        "passed": true
       },
       {
         "code": "NO_CYLINDER_PENETRATION",
