@@ -74,7 +74,7 @@ finally:
 | 장착 고정 | 현재 준비 요청에 연결된 운영자 고정 확인 또는 실제 센서 근거. 그리퍼 닫힘만으로 철사 고정 추정 금지 |
 | 드릴 OFF | HMI 운영자 OFF 확인을 준비 요청에 연결. 전원 센서 측정으로 표시하지 않음 |
 | 현재 상태·관절·TCP·힘 | RosMeasurementIO가 실제 제어기 조회 |
-| AUTO/REAL·TCP 이름·하중 | io.metadata() 실제 조회; 실행 중 재확인 |
+| AUTO/REAL·TCP 이름·하중 | io.metadata() 실제 조회; 준비 측정 동작 중 재확인. BIND 뒤 ExecuteProcess의 재조회 정책과는 별개 |
 | 간섭 검사 | 현장 기하에 맞는 scene_check. 기존 고정 현장에서는 `workpiece_real_trial.check_trial_scene` 계산기만 재사용 가능; TrialLease와 별개 |
 
 `evidence_max_age_s`는 위 세 항목별 유효기간(초)을 공정 설정에서 명시한다. 코드가 임의로 유효기간을 넣지 않는다.
