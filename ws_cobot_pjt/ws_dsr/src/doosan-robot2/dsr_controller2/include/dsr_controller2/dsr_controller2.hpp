@@ -1,3 +1,5 @@
+#include <atomic>
+#include "std_msgs/msg/string.hpp"
 /*********************************************************************
  *
  * dsr_controller2
@@ -574,6 +576,13 @@ public:
   controller_interface::CallbackReturn on_shutdown(
     const rclcpp_lifecycle::State & previous_state) override;
   
+  // C-2 읽기 전용 관측 토픽. 기존 제어권 관리와 독립적이다.
+  void publish_control_authority();
+  rclcpp::Publisher<std_msgs::msg::String>::SharedPtr authority_pub_;
+  rclcpp::TimerBase::SharedPtr authority_timer_;
+  std::atomic<bool> authority_active_{false};
+  uint64_t authority_sequence_{0};
+  std::string authority_session_;
   rclcpp::Publisher<dsr_msgs2::msg::RobotDisconnection>::SharedPtr disconnect_pub_;
   rclcpp::Publisher<dsr_msgs2::msg::RobotError>::SharedPtr error_log_pub_;
 protected:

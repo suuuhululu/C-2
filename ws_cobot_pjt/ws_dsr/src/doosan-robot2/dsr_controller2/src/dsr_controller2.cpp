@@ -30,6 +30,9 @@
 #include <vector>
 #include <yaml-cpp/yaml.h>
 #include <fstream>
+#include <sstream>
+#include "rclcpp/create_publisher.hpp"
+#include "dsr_hardware2/control_authority_observation.hpp"
 
 #include "rclcpp/qos.hpp"
 #include "rclcpp/time.hpp"
@@ -123,6 +126,14 @@ controller_interface::InterfaceConfiguration RobotController::state_interface_co
 
 controller_interface::CallbackReturn RobotController::on_configure(const rclcpp_lifecycle::State &)
 {
+    authority_active_.store(false);
+    authority_sequence_ = 0;
+    authority_session_ = std::to_string(std::chrono::system_clock::now().time_since_epoch().count());
+    authority_pub_ = rclcpp::create_publisher<std_msgs::msg::String>(
+        get_node(), "~/control_authority", rclcpp::QoS(1).reliable().durability_volatile());
+    authority_timer_ = get_node()->create_wall_timer(std::chrono::milliseconds(100),
+        std::bind(&RobotController::publish_control_authority, this));
+
 	//--- doosan API's call-back fuctions : Only work within 50msec in call-back functions
 	Drfl->set_on_tp_initializing_completed(DRFL_CALLBACKS::OnTpInitializingCompletedCB);
 	Drfl->set_on_homming_completed(DRFL_CALLBACKS::OnHommingCompletedCB);
@@ -151,6 +162,29 @@ controller_interface::CallbackReturn RobotController::on_configure(const rclcpp_
     }
 
   return CallbackReturn::SUCCESS;
+}
+
+// 모니터링 콜백의 유효성을 주기 발행과 구별한다. 로봇 API 호출 없음.
+void RobotController::publish_control_authority() {
+    const auto snap = dsr_hardware2::control_authority_observation().snapshot(
+        dsr_hardware2::authority_steady_ms());
+    const bool active = authority_active_.load();
+    const bool valid = active && snap.valid;
+    const auto stamp = std::chrono::duration_cast<std::chrono::nanoseconds>(
+        std::chrono::system_clock::now().time_since_epoch()).count();
+    std::ostringstream json;
+    json << std::boolalpha
+         << "{\"schema_version\":1,\"source\":\"CONTROLLER_ACCESS_CONTROL\","
+         << "\"driver_session\":\"" << authority_session_ << "\","
+         << "\"sequence\":" << ++authority_sequence_ << ","
+         << "\"published_at_unix_ns\":" << stamp << ","
+         << "\"active\":" << active << ",\"connected\":" << snap.connected << ","
+         << "\"valid\":" << valid << ",\"has_control\":" << (valid && snap.has_control) << ","
+         << "\"last_access_event\":" << snap.last_event << ","
+         << "\"monitoring_age_ms\":" << snap.monitoring_age_ms << "}";
+    std_msgs::msg::String msg;
+    msg.data = json.str();
+    authority_pub_->publish(msg);
 }
 
 // Publishes selected real-time robot data fields as Float64MultiArray messages.
@@ -2743,6 +2777,7 @@ auto torque_rt_cb = [this](const std::shared_ptr<dsr_msgs2::msg::TorqueRtStream>
       handle_accepted_movel_h2r
   );
 
+  authority_active_.store(true);
   g_stDrState = DR_STATE{}; // Using value-initialization instead of memset()
 
   // // create threads     
@@ -2762,6 +2797,7 @@ controller_interface::return_type RobotController::update(
 
 controller_interface::CallbackReturn RobotController::on_deactivate(const rclcpp_lifecycle::State &)
 {
+  authority_active_.store(false);
   release_interfaces();
 
   return CallbackReturn::SUCCESS;
@@ -2769,17 +2805,20 @@ controller_interface::CallbackReturn RobotController::on_deactivate(const rclcpp
 
 controller_interface::CallbackReturn RobotController::on_cleanup(const rclcpp_lifecycle::State &)
 {
+  authority_active_.store(false);
     RCLCPP_INFO(rclcpp::get_logger("dsr_controller2"),"on deactivate");
   return CallbackReturn::SUCCESS;
 }
 
 controller_interface::CallbackReturn RobotController::on_error(const rclcpp_lifecycle::State &)
 {
+  authority_active_.store(false);
   return CallbackReturn::SUCCESS;
 }
 
 controller_interface::CallbackReturn RobotController::on_shutdown(const rclcpp_lifecycle::State &)
 {
+  authority_active_.store(false);
     RCLCPP_INFO(rclcpp::get_logger("dsr_controller2"),"on deactivate");
   return CallbackReturn::SUCCESS;
 }
@@ -2891,6 +2930,8 @@ void OnMonitoringCtrlIOExCB (const LPMONITORING_CTRLIO_EX pCtrlIO)
 // M2.4 or lower
 void OnMonitoringDataCB(const LPMONITORING_DATA pData)
 {
+    if (!pData) return;
+    dsr_hardware2::control_authority_observation().monitoring_tick(dsr_hardware2::authority_steady_ms());
     // This function is called every 100 msec
     // Only work within 50msec
     //RCLCPP_INFO(rclcpp::get_logger("dsr_controller2"),"OnMonitoringDataCB");
@@ -2953,6 +2994,8 @@ void OnMonitoringDataCB(const LPMONITORING_DATA pData)
 // M2.5 or higher    
 void OnMonitoringDataExCB(const LPMONITORING_DATA_EX pData)
 {
+    if (!pData) return;
+    dsr_hardware2::control_authority_observation().monitoring_tick(dsr_hardware2::authority_steady_ms());
     // This function is called every 100 msec
     // Only work within 50msec
     // RCLCPP_INFO(rclcpp::get_logger("dsr_controller2"),"    OnMonitoringDataExCB");
@@ -3107,6 +3150,8 @@ void OnMonitoringStateCB(const ROBOT_STATE eState)
 
 void OnMonitoringAccessControlCB(const MONITORING_ACCESS_CONTROL eAccCtrl)
 {
+    dsr_hardware2::control_authority_observation().access_event(
+        static_cast<int>(eAccCtrl), dsr_hardware2::authority_steady_ms());
     if (!g_callback_drfl) {
         return;
     }
@@ -3196,6 +3241,7 @@ void OnLogAlarm(LPLOG_ALARM pLogAlarm)
 }
 
 void OnDisConnected(){
+    dsr_hardware2::control_authority_observation().disconnect();
 	RCLCPP_ERROR(rclcpp::get_logger("dsr_controller2"),"Disconnected.. Please check out Ethernet Cable.. ");
     // Ensure connection is closed
     if(g_callback_drfl) {

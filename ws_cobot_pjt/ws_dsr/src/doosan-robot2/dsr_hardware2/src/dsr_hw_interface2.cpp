@@ -34,6 +34,7 @@
 
 #include "dsr_hardware2/dsr_hw_interface2.h"
 #include "dsr_hardware2/util.hpp"
+#include "dsr_hardware2/control_authority_observation.hpp"
 #include "ament_index_cpp/get_package_share_directory.hpp"
 #include "../../dsr_common2/include/DRFLEx.h"
 
@@ -71,6 +72,15 @@ void* get_drfl(const char* robot_name = nullptr){
 }
 
 namespace dsr_hardware2{
+AuthorityObservation & control_authority_observation() {
+    static AuthorityObservation observation;
+    return observation;
+}
+int64_t authority_steady_ms() {
+    return std::chrono::duration_cast<std::chrono::milliseconds>(
+        std::chrono::steady_clock::now().time_since_epoch()).count();
+}
+
 
 CallbackReturn DRHWInterface::on_init(const hardware_interface::HardwareInfo & info)
 {
@@ -193,11 +203,13 @@ CallbackReturn DRHWInterface::on_init(const hardware_interface::HardwareInfo & i
     // The drcf could still be in the booting process. 
     // Need to make sure it loaded successfully.
     // By making sure AUTHORITY and STANDBY_STATE.
+    control_authority_observation().reset();
     static bool get_control_access = false;
     static bool is_standby = false;
     get_control_access = false;
     is_standby = false;
     m_Drfl.set_on_monitoring_access_control([](const MONITORING_ACCESS_CONTROL access) {
+        control_authority_observation().access_event(static_cast<int>(access), authority_steady_ms());
         RCLCPP_INFO(rclcpp::get_logger("dsr_hw_interface2"),"AUTHORITY : %s", to_str(access).c_str());
         if(MONITORING_ACCESS_CONTROL_GRANT == access) {
             RCLCPP_INFO(rclcpp::get_logger("dsr_hw_interface2"),"INITIAL AUTHORITY GRANTED !!!");
