@@ -70,7 +70,12 @@
       "retract_m": 0.002,
       "contact_offset_tool_m": null,
       "offset_status": "UNVERIFIED",
-      "offset_record_id": null
+      "offset_record_id": null,
+      "expected_tcp_z_range_m": [
+        0.23292510986328124,
+        0.23670465087890627
+      ],
+      "expected_tcp_z_source": "2026-09-21 operator-confirmed top_yfirst contact 234.70465087890625 mm +/- 2 mm, clipped to prechecked search bound; unchanged fixture only"
     },
     "provenance": {
       "seed_geometry": "repeat180_fit.json / 기존 8점 실측. 이번 측정의 정답으로 사용하지 않음.",

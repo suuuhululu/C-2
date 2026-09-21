@@ -224,3 +224,15 @@ def test_contact_reference_does_not_invent_absolute_top(setup):
     assert len(m['points'])==8 and m['top_tcp_contact_z_m'] is not None
     assert m['top_z_m'] is None and m['bottom_z_m'] is None and m['work_z_range_m'] is None
     assert m['geometry_ready'] is False and m['validity']=='REFERENCE_ONLY'
+
+
+def test_unexpected_top_contact_blocks_success_and_side_plan(setup):
+    config,ctx,ad=setup
+    start=config['workcell']['top']['approach_tcp_pose'][2]
+    config['workcell']['top']['expected_tcp_z_range_m']=[start-.001,start-.0005]
+    r=call(setup)
+    assert r.error_code=='CONTACT_OUT_OF_RANGE' and r.outcome=='FAILED'
+    assert r.observed_state['stop_confirmed']
+    assert r.observed_state['measurement']['top'] is None
+    assert not r.observed_state['measurement']['points']
+    assert not any(c[0]=='execute' and c[1]['label'].startswith('point_') for c in ad.calls)

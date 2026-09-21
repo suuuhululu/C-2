@@ -170,7 +170,7 @@ class GuardedMeasurementAdapter:
             if 'soft_force_n' in profile:
                 if not 0<profile['soft_force_n']<profile['hard_force_n'] or profile.get('soft_force_hold_s',0)<=0:
                     raise ValueError('이동 힘 soft/hard 설정 오류')
-        if not 0<self.g['moving_baseline_end_m']<workcell['start_gap_m']:
+        if not 0<self.g['moving_baseline_end_m']<min(workcell['start_gap_m'],workcell['top']['max_probe_m']):
             raise ValueError('이동 기준 힘 수집 구간이 예상 표면에 도달함')
         self.current_context=context;self.workcell=workcell;self.stop_profile=profiles['stop']
         deadline=self.clock()+min(self.g['preflight_timeout_s'],workcell['runtime_timeout_s'])
@@ -308,9 +308,10 @@ class GuardedMeasurementAdapter:
                 if travel < -self.workcell['pose_tolerance_m'] or travel>step['max_m']+self.workcell['pose_tolerance_m'] or lateral>self.workcell['pose_tolerance_m'] or rotation_distance(current,start)>self.workcell['angle_tolerance_rad']:
                     raise MeasurementError('CONTACT_OUT_OF_RANGE','접촉 탐색 선분/자세 이탈')
                 along=sum(a*b for a,b in zip(step['direction'],o['force_n']))
-                if step['profile']=='side_touch':
+                if step['profile'] in ('side_touch','top_touch'):
                     if moving_bias is None:
-                        if abs(along-bias)>=self.g['prebaseline_delta_n']:raise MeasurementError('FORCE_LIMIT','빈 공간 힘 변화 초과')
+                        limit=min(self.g['prebaseline_delta_n'],profile['max_force_delta_n']) if step['profile']=='top_touch' else self.g['prebaseline_delta_n']
+                        if abs(along-bias)>=limit:raise MeasurementError('FORCE_LIMIT','빈 공간 힘 변화 초과')
                         if travel>=self.g['moving_baseline_start_m']:moving_samples.append((now,along))
                         while moving_samples and now-moving_samples[0][0]>profile['baseline_window_s']+self.g['baseline_window_slack_s']:moving_samples.popleft()
                         if travel>=self.g['moving_baseline_end_m']:
@@ -320,6 +321,7 @@ class GuardedMeasurementAdapter:
                             if statistics.median(abs(v-candidate) for v in values)>self.g['moving_mad_n'] or abs(statistics.median(values[:half])-statistics.median(values[half:]))>self.g['baseline_drift_n']:
                                 raise MeasurementError('UNSTABLE_BASELINE','이동 기준 힘 불안정')
                             moving_bias=candidate
+                            self._emit_trace('moving_baseline',dict(label=step['label'],bias_n=candidate,travel_m=travel))
                         normal=None
                     else:normal=-(along-moving_bias)
                 else:normal=-(along-bias)

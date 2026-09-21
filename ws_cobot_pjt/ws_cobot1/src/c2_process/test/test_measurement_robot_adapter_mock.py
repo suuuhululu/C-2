@@ -124,7 +124,8 @@ def test_unknown_target_prevents_send(setup):
 
 
 @pytest.mark.parametrize('kind,direction',[('side_touch',[-1.,0.,0.]),('top_touch',[0.,0.,-1.])])
-def test_probe_collects_force_candidate_and_confirms_stop(setup,kind,direction):
+@pytest.mark.parametrize('startup_offset_n',[0.,1.0])
+def test_probe_collects_force_candidate_and_confirms_stop(setup,kind,direction,startup_offset_n):
     from c2_process.robot_adapter import pose_to_posx
     from c2_process.workpiece_calibration import facing_pose
     ad,io,ctx,c,_,clock=setup
@@ -144,7 +145,8 @@ def test_probe_collects_force_candidate_and_confirms_stop(setup,kind,direction):
             travel=min(4.8,(clock()-command['t'])*command['speed'])
             io.p=[command['start'][k]+travel*direction[k] for k in range(3)]+command['start'][3:]
             io.motion=2
-            io.force=[-v*.9 if travel>=4.8 else 0. for v in direction]
+            # 시작 직후 1 N 변화가 있어도 빈 공간의 이동 기준 힘으로 재설정한다.
+            io.force=[-v*(startup_offset_n+(.9 if travel>=4.8 else 0.)) for v in direction]
         return original_read()
     def stop(mode):
         command['active']=False;io.stops.append(mode);io.motion=0
@@ -154,6 +156,7 @@ def test_probe_collects_force_candidate_and_confirms_stop(setup,kind,direction):
     assert r.ok and r.observed_state['stop_confirmed']
     assert r.observed_state['contact']['normal_force_n']==pytest.approx(.9)
     assert r.observed_state['contact']['operator_confirmed'] is False
+    assert sum((r.observed_state['contact']['tip_pose'][k]-start[k])*direction[k] for k in range(3))==pytest.approx(.0048)
     assert io.stops==[1] and len(io.moves)==1
 
 

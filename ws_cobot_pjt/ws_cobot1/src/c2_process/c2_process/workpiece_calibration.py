@@ -180,6 +180,11 @@ def _validate(workcell, profiles, context):
             pose(item)
     number(workcell["top"]["max_probe_m"],"top.max_probe_m",1e-9)
     number(workcell["top"]["retract_m"],"top.retract_m",1e-9)
+    if "expected_tcp_z_range_m" in workcell["top"]:
+        lo,hi=vector(workcell["top"]["expected_tcp_z_range_m"],2,"expected_tcp_z_range_m")
+        start=workcell["top"]["approach_tcp_pose"][2]
+        if not start-workcell["top"]["max_probe_m"]<=lo<hi<=start:
+            raise ValueError("윗면 접촉 예상 범위가 검사한 수직 탐색 구간 밖")
     angles = vector(workcell["angles_deg"],8,"angles_deg")
     for a,b in zip(angles,angles[1:]):
         if abs(abs(b-a)-45)>1e-6:
@@ -368,6 +373,10 @@ def measure_workpiece(adapter, workcell, profiles, context, on_progress=None):
                 hit.update(point_index=step["point_index"],received_at=context.utc_now(),source="SIMULATED" if context.source_mode=="SIMULATION" else "FORCE_CONTACT_ESTIMATE")
                 if not step["point_index"]:
                     tcp=apply_tool_offset(contact_pose,w["tool_offset_m"],-1)
+                    expected_z=w["top"].get("expected_tcp_z_range_m")
+                    if expected_z is not None and not expected_z[0]<=tcp[2]<=expected_z[1]:
+                        observed["rejected_top_contact"]=dict(contact=hit,tcp_z_m=tcp[2],expected_tcp_z_range_m=expected_z)
+                        raise MeasurementError("CONTACT_OUT_OF_RANGE","윗면 접촉 위치가 기존 고정 현장의 확인 범위 밖")
                     data["top"]=hit;data["top_tcp_contact_z_m"]=tcp[2]
                     top_offset=w["top"]["contact_offset_tool_m"]
                     if top_offset is not None:
