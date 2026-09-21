@@ -22,7 +22,7 @@ from uuid import uuid4
 from .engraving import ExecutionContext, execute_path, validate_path, build_execution_plan, execution_signature
 from .joint_check import check_path_joints
 from .preconditions import PreconditionEvidence, check_preconditions, check_robot_status, check_prepared_path
-from .robot_adapter import DoosanRobotAdapter, MockRobotAdapter, StepResult, apply_tool_offset
+from .robot_adapter import DoosanRobotAdapter, MockRobotAdapter, RobotState, StepResult, apply_tool_offset
 from .state_machine import run_process, run_preparation, run_prepared_process
 from .tool_calibration import TipCalibration, verify_tool_tip, upright_quat
 from .workpiece_calibration import MeasurementContext, measure_workpiece
@@ -86,7 +86,7 @@ def check_selected_tool_profiles(adapter, settings: Mapping) -> StepResult:
 
 
 def check_preparation_status(adapter, evidence: PreconditionEvidence, settings: Mapping,
-                             *, cancel=None) -> StepResult:
+                             *, cancel=None, on_observation=None) -> StepResult:
     """경로 생성 전 상태검사의 함수 진입점. 측정·조각·그리퍼 명령 없음.
 
     HMI 준비 요청과 연결할 내부 함수이며 새 ROS 인터페이스가 아니다.
@@ -105,7 +105,12 @@ def check_preparation_status(adapter, evidence: PreconditionEvidence, settings: 
     try:
         state = adapter.observe()
     except Exception as exc:
+        if callable(on_observation):
+            on_observation(None, None, None)
         return StepResult("UNKNOWN", "COMMUNICATION_LOST", f"상태 조회 실패: {exc}", "robot_status")
+    if callable(on_observation):
+        on_observation(state, getattr(adapter, "tool_offset_m", None),
+                       evidence.max_robot_state_age_s)
     if cancel is not None and cancel.is_set():
         return cancelled()
     checked = check_robot_status(replace(evidence, robot_state=state))
@@ -553,6 +558,22 @@ class ObservationCache:
             # robot_state는 동작 상태이며 수동/자동 robot_mode와 다르다. 모드는 미확인 유지.
         return out
 
+    def capture_measurement(self, observation, offset, max_age_s, *, now=None, utc_ns=None):
+        """측정 어댑터의 검증된 관측 dict를 공용 RobotState 캐시에 넣는다."""
+        if not isinstance(observation, Mapping):
+            self.capture(None, None, None, now=now, utc_ns=utc_ns)
+            return
+        measured = observation.get("measured_at_monotonic_s")
+        state = RobotState(
+            joints_rad=copy.deepcopy(observation.get("joints_rad")),
+            tcp_pose=copy.deepcopy(observation.get("tip_pose")),
+            frame_id=observation.get("frame_id", ""),
+            robot_state=observation.get("robot_state"),
+            quality=observation.get("quality", "UNKNOWN"),
+            measured_at=measured,
+        )
+        self.capture(state, offset, max_age_s, now=now, utc_ns=utc_ns)
+
 
 class ProcessAlarms:
     """공정 오류만 추적한다. 같은 경로·설정의 PRECHECK 재통과만 자동 해소한다."""
@@ -677,7 +698,9 @@ class ProcessCoordinator:
         try:
             result = run_preparation(
                 context,
-                status_check=lambda: check_preparation_status(adapter, evidence, settings, cancel=active.cancel),
+                status_check=lambda: check_preparation_status(
+                    adapter, evidence, settings, cancel=active.cancel,
+                    on_observation=self.observations.capture),
                 motion_check=lambda: motion_check(adapter, context),
                 measure=lambda: measure(adapter, context), confirm_result=confirm_result,
                 on_phase=on_phase)
@@ -1175,6 +1198,9 @@ def create_ros_node(load_inputs: Callable[[Mapping], ExecutionInputs] = _missing
                     raise ValueError("real_adapter_factory는 호출 가능해야 함")
                 adapter = real_adapter_factory(self)
             self.observations = ObservationCache()
+            self.robot_adapter = adapter
+            self._preparation_observation_active = False
+            self._observation_poll_lock = threading.Lock()
             self.alarms = ProcessAlarms()
             self.profile_values = {}
             self.coordinator = ProcessCoordinator(
@@ -1233,22 +1259,101 @@ def create_ros_node(load_inputs: Callable[[Mapping], ExecutionInputs] = _missing
             self.stop_service = self.create_service(StopProcess, "/c2/stop_process",
                                                      self.stop_request, callback_group=self.group)
             self.timer = self.create_timer(0.2, self.publish_state, callback_group=self.group)
+            self.observation_timer = self.create_timer(
+                0.1, self.refresh_robot_observation, callback_group=self.group)
 
         def cancel_preparation(self, handle):
             goal = {k:getattr(handle.request,k) for k in GOAL_FIELDS}
-            return CancelResponse.ACCEPT if self.preparation.cancel(goal) else CancelResponse.REJECT
+            accepted = self.preparation.cancel(goal)
+            if accepted:
+                with self.lock:
+                    self.status = "STOPPING"
+                    self.stop_state = "REQUESTED"
+                    self.message = "준비 취소 요청 접수; 실제 정지 확인 대기"
+            return CancelResponse.ACCEPT if accepted else CancelResponse.REJECT
 
         def execute_preparation(self, handle):
             goal = {k:getattr(handle.request,k) for k in GOAL_FIELDS}
+            measuring = goal.get("operation") == "MEASURE"
+            observation_poll_owned = False
+            if measuring:
+                # 이미 시작한 백그라운드 조회가 끝난 뒤 측정이 드라이버 접근을 단독 소유한다.
+                self._observation_poll_lock.acquire()
+                observation_poll_owned = True
+            with self.lock:
+                self.goal_values = {}
+                self.status = "RUNNING"
+                self.phase = "VALIDATING" if measuring else "BINDING"
+                self.stop_state = "NONE"
+                self.error_code = "NONE"
+                self.message = "준비 요청 접수"
+                self.progress = 0.0
+                self.segment_id = ""
+                self.started_at = time.monotonic()
+                self._preparation_observation_active = measuring
+            self.emit_event("COMMAND", message="준비 요청 접수")
             def publish(value):
+                with self.lock:
+                    self.phase = value.get("stage", self.phase)
+                    self.progress = float(value.get("progress", self.progress))
+                    self.message = value.get("message", self.message)
                 packet = PrepareWorkpiece.Feedback()
                 set_message_fields(packet,value)
                 handle.publish_feedback(packet)
-            data = self.preparation.execute(goal,publish)
-            output = PrepareWorkpiece.Result()
-            set_message_fields(output,data)
-            _finish_action(handle,StepResult(data['outcome'],data['error_code']))
-            return output
+            try:
+                data = self.preparation.execute(goal,publish)
+                with self.lock:
+                    self.status = data["outcome"]
+                    self.error_code = data["error_code"]
+                    self.message = data["message"]
+                    self.progress = 1.0 if data["outcome"] == "SUCCEEDED" else self.progress
+                    if data["outcome"] == "STOPPED":
+                        self.stop_state = "CONFIRMED" if data.get("stop_confirmed") else "UNKNOWN"
+                    elif data["outcome"] == "UNKNOWN":
+                        self.stop_state = "UNKNOWN"
+                # Action Result보다 먼저 최종 상태를 한 번 발행하고 다음 timer tick부터 대기로 돌아간다.
+                self.publish_state()
+                result = StepResult(data["outcome"], data["error_code"], data["message"])
+                self.report_alarm(self.phase, result)
+                self.emit_event("RUN_FINISHED", code=data["error_code"], message=data["message"],
+                                severity="INFO" if data["outcome"] == "SUCCEEDED" else "ERROR")
+                output = PrepareWorkpiece.Result()
+                set_message_fields(output,data)
+                _finish_action(handle,result)
+                return output
+            finally:
+                with self.lock:
+                    self._preparation_observation_active = False
+                    self.status = "IDLE"
+                    self.phase = ""
+                    self.stop_state = "NONE"
+                    self.error_code = "NONE"
+                    self.message = "공정 대기"
+                    self.progress = 0.0
+                    self.started_at = 0.0
+                if observation_poll_owned:
+                    self._observation_poll_lock.release()
+
+        def capture_measurement_observation(self, observation, offset, max_age_s):
+            self.observations.capture_measurement(observation, offset, max_age_s)
+
+        def refresh_robot_observation(self):
+            """준비 밖의 실제 관측을 갱신한다. 측정 중에는 측정 I/O trace가 갱신한다."""
+            with self.lock:
+                measurement_active = self._preparation_observation_active
+            if self.robot_adapter is None or measurement_active:
+                return
+            if not self._observation_poll_lock.acquire(blocking=False):
+                return
+            try:
+                state = self.robot_adapter.observe()
+            except Exception:
+                self.observations.capture(None, None, None)
+            else:
+                self.observations.capture(
+                    state, getattr(self.robot_adapter, "tool_offset_m", None), 0.5)
+            finally:
+                self._observation_poll_lock.release()
 
         def accept_goal(self, request):
             if (request.schema_version != 2 or request.source_mode != self.coordinator.runtime_mode

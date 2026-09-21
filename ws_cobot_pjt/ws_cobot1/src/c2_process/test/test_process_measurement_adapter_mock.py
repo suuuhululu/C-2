@@ -89,3 +89,31 @@ def test_process_scene_check_fails_closed_before_motion(defect):
         steps[0]['target_pose'][3:] = [0., 0., 0., 0.]
     with pytest.raises(MeasurementError):
         check_process_scene(steps, workcell, initial)
+
+
+def test_process_adapter_forwards_measurement_observation_to_node_cache(monkeypatch):
+    import c2_process.workpiece_process_adapter as module
+    captured=[]; traced=[]
+    class Node:
+        capture_measurement_observation=lambda self,data,offset,max_age: captured.append(
+            (data,offset,max_age))
+        workpiece_trace=lambda self,event,data: traced.append((event,data))
+    class Adapter:
+        def __init__(self,io,offset,guards,readiness,scene_check):
+            self.offset=list(offset);self.trace=lambda *_:None
+    monkeypatch.setattr(module,'RosMeasurementIO',lambda *a:object())
+    class Readiness:
+        close=lambda self:None
+    monkeypatch.setattr(module,'ProcessMeasurementReadiness',lambda *a:Readiness())
+    monkeypatch.setattr(module,'GuardedMeasurementAdapter',Adapter)
+    ctx=object();lock=threading.Lock();cancel=threading.Event()
+    config=dict(controller_prefix='/dsr01/dsr_controller2',service_timeout_s=.5,
+                workcell=dict(tool_offset_m=[.1,.2,.3]),guards=dict(max_state_age_s=.5))
+    adapter=module.create_process_measurement_adapter(
+        Node(),config,ctx,motion_lock=lock,cancel=cancel,
+        evidence_provider=lambda _:None,evidence_max_age_s={},scene_check=lambda *a:None)
+    sample=dict(tip_pose=[0.,0.,0.,0.,0.,0.,1.])
+    adapter.trace('observation',sample)
+    adapter.trace('ik_sample',{'sample':1})
+    assert captured == [(sample,[.1,.2,.3],.5)]
+    assert traced == [('observation',sample),('ik_sample',{'sample':1})]

@@ -151,5 +151,12 @@ def create_process_measurement_adapter(node, config, context, *, motion_lock, ca
     adapter=GuardedMeasurementAdapter(io,config['workcell']['tool_offset_m'],config['guards'],readiness,scene_check)
     adapter.close=readiness.close
     trace=getattr(node,'workpiece_trace',None)
-    if trace is not None:adapter.trace=trace
+    observation_sink=getattr(node,'capture_measurement_observation',None)
+    if trace is not None or callable(observation_sink):
+        def forward(event,data):
+            if event=='observation' and callable(observation_sink):
+                observation_sink(data,adapter.offset,config['guards']['max_state_age_s'])
+            if trace is not None:
+                trace(event,data)
+        adapter.trace=forward
     return adapter
