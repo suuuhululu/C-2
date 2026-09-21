@@ -167,6 +167,39 @@ def test_ros_subscriber_uses_pr48_topic_type_and_qos(monkeypatch):
     ]
 
 
+def test_observation_resources_live_until_node_close_and_close_is_idempotent(monkeypatch):
+    destroyed = []
+    class Node:
+        def create_subscription(self, *args): return "subscription"
+        def create_client(self, _service_type, name): return name
+        def destroy_subscription(self, value): destroyed.append(("subscription", value))
+        def destroy_client(self, value): destroyed.append(("client", value))
+        def get_logger(self): return NS(warn=lambda _message: None)
+    class String: pass
+    class QoS:
+        def __init__(self, **kwargs): self.__dict__.update(kwargs)
+    class GetRobotState:
+        class Request: pass
+    class CheckMotion:
+        class Request: pass
+    monkeypatch.setitem(sys.modules, "std_msgs.msg", NS(String=String))
+    monkeypatch.setitem(sys.modules, "rclpy.qos", NS(
+        QoSProfile=QoS, ReliabilityPolicy=NS(RELIABLE="reliable"),
+        DurabilityPolicy=NS(VOLATILE="volatile"),
+        HistoryPolicy=NS(KEEP_LAST="keep_last")))
+    observations = RealPreparationObservations(
+        Node(), service_types=(GetRobotState, CheckMotion))
+    # 측정 함수/어댑터 종료는 이 객체를 닫지 않는다. 노드 종료 지점에서만 close한다.
+    assert observations.subscription == "subscription" and destroyed == []
+    observations.close()
+    observations.close()
+    assert destroyed == [
+        ("subscription", "subscription"),
+        ("client", "/dsr01/dsr_controller2/system/get_robot_state"),
+        ("client", "/dsr01/dsr_controller2/motion/check_motion"),
+    ]
+
+
 class ImmediateFuture:
     def __init__(self, value): self.value = value
     def add_done_callback(self, callback): callback(self)

@@ -1093,13 +1093,14 @@ def test_ros_callbacks_publish_cached_signals_and_alarm_events(monkeypatch):
         create_ros_node(enable_preparation=False, real_adapter_factory=lambda _: real)
 
 
-@pytest.mark.parametrize('outcome,error,terminal', [
-    ('SUCCEEDED', 'NONE', 'succeed'),
-    ('FAILED', 'MEASUREMENT_FAILED', 'abort'),
-    ('STOPPED', 'NONE', 'canceled'),
+@pytest.mark.parametrize('outcome,error,partial,stop_confirmed,terminal', [
+    ('SUCCEEDED', 'NONE', False, True, 'succeed'),
+    ('FAILED', 'MEASUREMENT_FAILED', True, True, 'abort'),
+    ('STOPPED', 'CANCELLED', True, True, 'canceled'),
+    ('UNKNOWN', 'STOP_UNCONFIRMED', True, False, 'abort'),
 ])
 def test_prepare_action_updates_process_state_returns_once_and_resumes_idle(
-        monkeypatch, outcome, error, terminal):
+        monkeypatch, outcome, error, partial, stop_confirmed, terminal):
     from types import SimpleNamespace as NS
     from c2_process.node import create_ros_node
     from c2_process.preparation_action import GOAL_FIELDS
@@ -1112,10 +1113,14 @@ def test_prepare_action_updates_process_state_returns_once_and_resumes_idle(
         def __init__(self): self.sent = []
         def publish(self, message): self.sent.append(message)
     class Node:
-        def __init__(self, *a): pass
+        def __init__(self, *a): self.timers = []
         def create_publisher(self, *a): return Publisher()
         def create_service(self, *a, **k): return None
-        def create_timer(self, *a, **k): return None
+        def create_timer(self, period, callback, **k):
+            timer = NS(period=period, callback=callback, canceled=False)
+            timer.cancel = lambda: setattr(timer, 'canceled', True)
+            self.timers.append(timer)
+            return timer
         def get_logger(self): return NS(info=lambda *_: None, warn=lambda *_: None)
     monkeypatch.setitem(sys.modules, 'rclpy.action', NS(ActionServer=lambda *a, **k: None,
         CancelResponse=NS(ACCEPT=1, REJECT=0), GoalResponse=NS(ACCEPT=1, REJECT=0)))
@@ -1133,14 +1138,16 @@ def test_prepare_action_updates_process_state_returns_once_and_resumes_idle(
         for key, value in values.items(): setattr(message, key, value)
     monkeypatch.setitem(sys.modules, 'rosidl_runtime_py.set_message', NS(set_message_fields=assign))
     node = create_ros_node(enable_preparation=False)
+    entered, release = threading.Event(), threading.Event()
     class Preparation:
         def execute(self, goal, feedback):
             feedback(dict(stage='ROBOT_CHECK', progress=.1, message='상태 검사'))
-            node.publish_state()
+            entered.set()
+            assert release.wait(1.)
             feedback(dict(stage='SIDE_TOUCH', progress=.5, message='측정 중'))
-            node.publish_state()
             return dict(outcome=outcome, error_code=error, message='끝',
-                        stop_confirmed=outcome != 'STOPPED' or True)
+                        partial=partial, stop_confirmed=stop_confirmed)
+        def cancel(self, goal): return True
     node.preparation = Preparation()
     request = NS(**{key: '' for key in GOAL_FIELDS})
     request.operation = 'MEASURE'
@@ -1150,12 +1157,26 @@ def test_prepare_action_updates_process_state_returns_once_and_resumes_idle(
                 succeed=lambda: calls.append(('succeed', None)),
                 abort=lambda: calls.append(('abort', None)),
                 canceled=lambda: calls.append(('canceled', None)))
-    result = node.execute_preparation(handle)
+    result = []
+    worker = threading.Thread(target=lambda: result.append(node.execute_preparation(handle)))
+    worker.start()
+    assert entered.wait(1.)
+    state_timer = next(timer for timer in node.timers if timer.period == pytest.approx(.2))
+    for _ in range(5):
+        state_timer.callback()
+    if outcome == 'STOPPED':
+        assert node.cancel_preparation(handle) == 1
+        assert node.status == 'STOPPING' and node.stop_state == 'REQUESTED'
+    release.set(); worker.join(1.)
+    assert not worker.is_alive()
+    result = result[0]
     assert result.outcome == outcome
+    assert result.partial is partial and result.stop_confirmed is stop_confirmed
     assert [name for name, _ in calls].count(terminal) == 1
     assert sum(name in {'succeed', 'abort', 'canceled'} for name, _ in calls) == 1
-    assert [m.status for m in node.state_pub.sent[:2]] == ['RUNNING', 'RUNNING']
-    assert [m.phase for m in node.state_pub.sent[:2]] == ['ROBOT_CHECK', 'SIDE_TOUCH']
+    assert [m.status for m in node.state_pub.sent[:5]] == ['RUNNING'] * 5
+    assert [m.phase for m in node.state_pub.sent[:5]] == ['PRECHECK'] * 5
+    assert [m.engraving_progress for m in node.state_pub.sent[:5]] == [0.] * 5
     assert node.state_pub.sent[-1].status == outcome
     node.publish_state()
     assert node.state_pub.sent[-1].status == 'IDLE'

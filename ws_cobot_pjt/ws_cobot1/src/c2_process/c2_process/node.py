@@ -1199,6 +1199,7 @@ def create_ros_node(load_inputs: Callable[[Mapping], ExecutionInputs] = _missing
                 adapter = real_adapter_factory(self)
             self.observations = ObservationCache()
             self.robot_adapter = adapter
+            self._preparation_action_active = False
             self._preparation_observation_active = False
             self._observation_poll_lock = threading.Lock()
             self.alarms = ProcessAlarms()
@@ -1283,19 +1284,20 @@ def create_ros_node(load_inputs: Callable[[Mapping], ExecutionInputs] = _missing
             with self.lock:
                 self.goal_values = {}
                 self.status = "RUNNING"
-                self.phase = "VALIDATING" if measuring else "BINDING"
+                # ProcessState.phase는 기존 실행 공정 단계만 사용한다. 준비의 세부
+                # stage/progress는 PrepareWorkpiece Feedback으로만 전달한다.
+                self.phase = "PRECHECK"
                 self.stop_state = "NONE"
                 self.error_code = "NONE"
                 self.message = "준비 요청 접수"
                 self.progress = 0.0
                 self.segment_id = ""
                 self.started_at = time.monotonic()
+                self._preparation_action_active = True
                 self._preparation_observation_active = measuring
             self.emit_event("COMMAND", message="준비 요청 접수")
             def publish(value):
                 with self.lock:
-                    self.phase = value.get("stage", self.phase)
-                    self.progress = float(value.get("progress", self.progress))
                     self.message = value.get("message", self.message)
                 packet = PrepareWorkpiece.Feedback()
                 set_message_fields(packet,value)
@@ -1323,6 +1325,7 @@ def create_ros_node(load_inputs: Callable[[Mapping], ExecutionInputs] = _missing
                 return output
             finally:
                 with self.lock:
+                    self._preparation_action_active = False
                     self._preparation_observation_active = False
                     self.status = "IDLE"
                     self.phase = ""
@@ -1398,6 +1401,7 @@ def create_ros_node(load_inputs: Callable[[Mapping], ExecutionInputs] = _missing
                 values = dict(self.goal_values)
                 status, phase = self.status, self.phase
                 stop_state, progress, started = self.stop_state, self.progress, self.started_at
+                preparation_active = self._preparation_action_active
                 error_code, message = self.error_code, self.message
             msg = ProcessState()
             msg.schema_version = 2
@@ -1410,7 +1414,8 @@ def create_ros_node(load_inputs: Callable[[Mapping], ExecutionInputs] = _missing
             msg.path_version = values.get("path_version", 0)
             msg.status, msg.phase, msg.stop_state = status, phase, stop_state
             msg.error_code, msg.message = error_code, message
-            msg.engraving_progress = progress
+            # 이 필드는 조각 진행률이다. 준비 진행률은 Action Feedback.progress를 사용한다.
+            msg.engraving_progress = 0.0 if preparation_active else progress
             msg.elapsed_s = max(0.0, time.monotonic() - started) if started else 0.0
             msg.requested_tool_id = "engraving_drill"
             values = self.observations.values()
@@ -1540,6 +1545,11 @@ def create_ros_node(load_inputs: Callable[[Mapping], ExecutionInputs] = _missing
             return output
 
         def destroy_node(self):
+            if self.observation_timer:
+                self.observation_timer.cancel()
+            observation_owner = getattr(self, "real_preparation_observations", None)
+            if observation_owner is not None:
+                observation_owner.close()
             self.action.destroy()
             if self.prepare_action:
                 self.prepare_action.destroy()
