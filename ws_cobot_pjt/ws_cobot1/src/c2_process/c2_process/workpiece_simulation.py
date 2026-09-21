@@ -26,7 +26,7 @@ class SimulatedWorkpieceAdapter:
         self.calls.append(("preflight",deepcopy(steps)))
         return StepResult("SUCCEEDED",observed_state=dict(
             all_segments_checked=True,probe_envelopes_checked=True,ownership_confirmed=True,
-            drill_off_confirmed=True,tcp_load_match=True,
+            tcp_load_match=True,
             validation_level="SIMULATED_GEOMETRY_ONLY",physical_ik_checked=False,
             full_collision_checked=False))
 

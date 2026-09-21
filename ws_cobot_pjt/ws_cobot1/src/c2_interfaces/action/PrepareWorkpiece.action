@@ -1,0 +1,81 @@
+# 준비 권장 계약 2026-09-21: /c2/prepare_workpiece
+# 상세 규칙: docs/PREPARE_WORKPIECE_ACTION.md. 아직 서버/클라이언트 통합 전.
+# 기존 v2 타입은 변경하지 않는다. 수동 드릴/그리퍼 확인 bool은 보내지 않는다.
+uint16 SCHEMA_VERSION=2
+uint16 schema_version 2
+# MEASURE: 검사/필요 시 홈 복귀/재검사/측정. BIND_SNAPSHOT: 저장 결과 연결만, 이동 금지.
+string operation
+string request_id
+string preparation_id
+string measurement_id
+string source_mode
+# 측정 전에 HMI가 저장한 불변 설정 파일. SHA-256은 저장된 원본 바이트 기준.
+string input_profile_snapshot_id
+string input_profile_sha256
+# BIND_SNAPSHOT 전용. MEASURE에서는 모두 빈 문자열.
+string measurement_record_id
+string measurement_record_sha256
+string profile_snapshot_id
+string profile_sha256
+---
+string request_id
+string preparation_id
+string measurement_id
+string operation
+string source_mode
+# SUCCEEDED / FAILED / STOPPED / UNKNOWN. 측정 성공과 스냅샷 연결 성공은 구별한다.
+string outcome "UNKNOWN"
+string error_code "UNKNOWN"
+string message
+bool stop_confirmed false
+bool partial true
+bool geometry_ready false
+bool snapshot_bound false
+string input_profile_snapshot_id
+string input_profile_sha256
+string measurement_record_id
+string measurement_record_sha256
+string profile_snapshot_id
+string profile_sha256
+# 제어 측 진단 기록 식별자. 파일 경로나 임의 JSON 문자열이 아니다.
+string log_id
+# 아래 측정 데이터는 MEASURE 결과에 포함. BIND_SNAPSHOT 결과에서는 기본값 유지.
+string frame_id
+string validity "INCOMPLETE"
+builtin_interfaces/Time started_at
+builtin_interfaces/Time measured_at
+string height_source
+float64 height_m
+float64[2] axis_xy_m
+float64 radius_m
+float64 top_z_m
+float64 bottom_z_m
+# 윗면에서 아래로의 양수 거리 [min,max], 절대 z 범위 [min,max]. 단위 m.
+float64[2] work_v_range_m
+float64[2] work_z_range_m
+float64 residual_rms_m
+float64 residual_max_m
+bool vertical_axis_assumed false
+bool tilt_measured false
+bool independent_accuracy_verified false
+# 유효한 접촉만 저장. 모든 배열 길이는 동일(0..9), index 0=윗면, 1..8=옆면.
+# 도구 끝 pose, m / quaternion xyzw, frame_id=c2_base.
+uint8[] contact_indices
+geometry_msgs/Pose[] contact_tip_poses
+float64[] contact_normal_force_n
+# 수신 UTC와 접촉 원본 monotonic 시각을 구별. 후자는 제어 프로세스 안에서만 비교.
+builtin_interfaces/Time[] contact_received_at
+float64[] contact_monotonic_s
+string[] contact_sources
+---
+string request_id
+string preparation_id
+string measurement_id
+string operation
+string stage "UNKNOWN"
+# 0..1은 표시용이며 성공/실제 정지의 근거가 아니다.
+float64 progress
+uint8 completed_side_points
+uint8 total_side_points 8
+float64 elapsed_s
+string message
