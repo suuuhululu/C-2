@@ -62,6 +62,9 @@ class PathPlannerNode(Node):
         super().__init__("path_planner_node")
         self.declare_parameter("managed_data_dir", os.environ.get("C2_MONITOR_DATA", ""))
         self.declare_parameter("source_mode", "SIMULATION")
+        # 기본 false. true 로 명시했을 때만 REAL 요청을 받고, 그 경우도 스냅샷 /3(추정값·미리보기 전용)과 함께일 때만
+        # 계산한다. 결과 경로는 test_only 라 어떤 경우에도 실행할 수 없다.
+        self.declare_parameter("allow_real_preview", False)
         self.declare_parameter("generation_timeout_s", 120.0)
         self.declare_parameter("max_asset_bytes", 10 * 1024 * 1024)
         self.declare_parameter("action_name", "/c2/generate_path")
@@ -81,7 +84,10 @@ class PathPlannerNode(Node):
             cancel_callback=self._cancel,
             callback_group=self._group,
         )
-        self.get_logger().info("/c2/generate_path 준비 완료(SIMULATION/test_only, 로봇 비구동)")
+        if self.get_parameter("allow_real_preview").value:
+            self.get_logger().warning("/c2/generate_path 준비 완료(SIMULATION + REAL 추정값 미리보기 전용, test_only, 로봇 비구동)")
+        else:
+            self.get_logger().info("/c2/generate_path 준비 완료(SIMULATION/test_only, 로봇 비구동)")
 
     def _initialize_store(self):
         if self.get_parameter("source_mode").value != "SIMULATION":
@@ -162,6 +168,7 @@ class PathPlannerNode(Node):
                     goal_handle, request_id, stage, progress
                 ),
                 canceled=lambda: goal_handle.is_cancel_requested or not rclpy.ok(),
+                allow_real_preview=bool(self.get_parameter("allow_real_preview").value),
             )
             result = GeneratePath.Result()
             result.success = True

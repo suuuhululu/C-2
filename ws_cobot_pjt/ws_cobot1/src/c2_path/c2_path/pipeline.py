@@ -1,8 +1,9 @@
 """ROS와 독립적인 GeneratePath 상위 파이프라인.
 
 계산 단계의 유일한 조합 지점이며, 일부 획 실패·빈 경로·검증 실패를 성공
-산출물로 공개하지 않는다. 현재 workcell.py 값은 test_only이므로 SIMULATION만
-허용한다.
+산출물로 공개하지 않는다. 현재 workcell.py 값은 test_only이므로 기본은 SIMULATION만
+허용한다. REAL 은 `allow_real_preview=True` 로 명시했을 때 스냅샷 `/3`(추정값·미리보기 전용)만 받고,
+그 경로도 test_only 라 실행할 수 없다.
 """
 from __future__ import annotations
 
@@ -86,7 +87,7 @@ def _sha(value, name):
     return value
 
 
-def validate_goal(goal: Mapping) -> dict:
+def validate_goal(goal: Mapping, *, allow_real_preview: bool = False) -> dict:
     value = dict(goal)
     if value.get("schema_version") != wc.PATH_SCHEMA_VERSION:
         raise PipelineError("UNSUPPORTED_SCHEMA_VERSION", "고정 드릴 schema_version=2만 지원합니다.")
@@ -95,7 +96,13 @@ def validate_goal(goal: Mapping) -> dict:
     value["profile_snapshot_id"] = _uuid(value.get("profile_snapshot_id"), "profile_snapshot_id")
     value["asset_sha256"] = _sha(value.get("asset_sha256"), "asset_sha256")
     value["profile_sha256"] = _sha(value.get("profile_sha256"), "profile_sha256")
-    if value.get("source_mode") != "SIMULATION":
+    mode = value.get("source_mode")
+    if mode == "REAL" and allow_real_preview:
+        pass  # REAL 은 스냅샷 /3(추정값·미리보기 전용)과 함께일 때만 계산된다. 아래 profile 검사에서 확인한다.
+    elif mode == "REAL":
+        raise PipelineError("NOT_READY", "REAL 요청은 이 노드에서 꺼져 있습니다(allow_real_preview). "
+                                         "현재 c2_path 설정은 test_only이므로 SIMULATION만 지원합니다.")
+    elif mode != "SIMULATION":
         raise PipelineError("NOT_READY", "현재 c2_path 설정은 test_only이므로 SIMULATION만 지원합니다.")
     if value.get("tool_id") != wc.TOOL_ID:
         raise PipelineError("UNSUPPORTED_RECIPE", f"tool_id는 {wc.TOOL_ID}이어야 합니다.")
@@ -139,15 +146,22 @@ def _same(actual, expected, label, errors, tol=1e-9):
 
 PROFILE_CONTRACT_V1 = "c2-path-test-profile/1"
 PROFILE_CONTRACT_V2 = "c2-path-test-profile/2"
+# REAL 추정값 미리보기 전용. **이름·필드는 팀 합의 전 제안이다**(BUNDLE_SPEC.md 5.1절). 바꿀 때는 이 상수만 고친다.
+PROFILE_CONTRACT_V3 = "c2-path-test-profile/3"
+CALIBRATION_STATUS_REAL_PREVIEW = "REAL_ESTIMATE_PREVIEW_ONLY"
+REAL_PREVIEW_MEASUREMENT_STATUSES = ("ESTIMATED", "FORCE_CONTACT_ESTIMATE")   # 준비 Result 의 validity 값 그대로
+UUID_FIELDS_V3 = ("preparation_id", "measurement_id", "input_profile_snapshot_id", "measurement_record_id")
+SHA256_FIELDS_V3 = ("input_profile_sha256", "measurement_record_sha256")
 HEIGHT_REFERENCE_BOTTOM = "bottom"       # v=0 은 양초 바닥(축 원점 z). 윗면 기준이 아니다.
 V_DIRECTION_UP = "up"                    # v 는 바닥에서 위로 갈수록 커진다.
 MEASUREMENT_ID_MAX_LEN = 128
 
 
-def _identity_errors(profile: Mapping, errors: list) -> None:
-    """/1·/2 공통: 작업 셀·도구·프레임 식별. 실측으로 바뀌는 값이 아니라 c2_path 가 아는 설정과 같아야 한다."""
+def _identity_errors(profile: Mapping, errors: list, source_mode: str = "SIMULATION") -> None:
+    """/1·/2·/3 공통: 작업 셀·도구·프레임 식별. 실측으로 바뀌는 값이 아니라 c2_path 가 아는 설정과 같아야 한다.
+    `source_mode` 는 계약이 정한다(/1·/2 는 SIMULATION, /3 은 REAL). 다른 값으로 바꿔 통과시키지 않는다."""
     _same(profile.get("schema_version"), 2, "schema_version", errors)
-    _same(profile.get("source_mode"), "SIMULATION", "source_mode", errors)
+    _same(profile.get("source_mode"), source_mode, "source_mode", errors)
     _same(profile.get("frame_id"), wc.FRAME_ID, "frame_id", errors)
     _same(profile.get("workcell_id"), wc.WORKCELL_ID, "workcell_id", errors)
     _same(profile.get("workcell_version"), wc.WORKCELL_VERSION, "workcell_version", errors)
@@ -183,7 +197,7 @@ def _default_geometry_errors(surface: Mapping, errors: list) -> None:
 
 def profile_surface(profile: Mapping) -> wc.Surface:
     """검증을 통과한 스냅샷이 쓰는 원통 형상. `/1` 은 기본 상수, `/2` 는 스냅샷의 실측 값이다."""
-    if isinstance(profile, Mapping) and profile.get("contract") == PROFILE_CONTRACT_V2:
+    if isinstance(profile, Mapping) and profile.get("contract") in (PROFILE_CONTRACT_V2, PROFILE_CONTRACT_V3):
         return wc.surface_from_snapshot(profile["surface"])
     return wc.DEFAULT_SURFACE
 
@@ -241,6 +255,48 @@ def _validate_profile_v2(profile: Mapping, surface: Mapping) -> None:
         raise PipelineError("PROFILE_MISMATCH", "요청 스냅샷(/2)이 올바르지 않습니다: " + "; ".join(unique[:4]))
 
 
+def _provenance_errors(profile: Mapping, errors: list) -> None:
+    """`/3`: 측정 출처 필수. 없거나 형식이 틀리면 보충·추정하지 않고 거절한다."""
+    for key in UUID_FIELDS_V3:
+        value = profile.get(key)
+        try:
+            okay = isinstance(value, str) and str(UUID(value)) == value.lower() == value
+        except (ValueError, AttributeError, TypeError):
+            okay = False
+        if not okay:
+            errors.append(f"측정 출처 {key}는 정규화된 UUID여야 합니다.")
+    for key in SHA256_FIELDS_V3:
+        value = profile.get(key)
+        if not (isinstance(value, str) and len(value) == 64 and all(c in "0123456789abcdef" for c in value)):
+            errors.append(f"측정 출처 {key}는 소문자 SHA-256이어야 합니다.")
+    if not _iso8601(profile.get("measured_at")):
+        errors.append("측정 출처 measured_at은 시간대가 있는 ISO 8601 문자열이어야 합니다.")
+
+
+def _validate_profile_v3(profile: Mapping, surface: Mapping) -> None:
+    """`/3`: REAL 추정값 미리보기 전용. 실행 승인이 아니며 이 스냅샷으로 만든 경로도 test_only 다.
+
+    /2 와 같은 기하 구조 조건에, source_mode=REAL·측정 상태(ESTIMATED/FORCE_CONTACT_ESTIMATE)·측정 출처를 더한다.
+    REAL 을 SIMULATION 으로 바꿔 받거나(반대도) 정확도 검증 완료로 표시된 값은 받지 않는다."""
+    errors = []
+    _identity_errors(profile, errors, "REAL")
+    _same(profile.get("calibration_status"), CALIBRATION_STATUS_REAL_PREVIEW, "calibration_status", errors)
+    status = profile.get("measurement_status")
+    if not (isinstance(status, str) and status in REAL_PREVIEW_MEASUREMENT_STATUSES):
+        errors.append(f"measurement_status는 {'/'.join(REAL_PREVIEW_MEASUREMENT_STATUSES)} 중 하나여야 합니다: {status!r}")
+    assumptions = profile.get("measurement_assumptions")
+    if not (isinstance(assumptions, Mapping) and assumptions.get("independent_accuracy_verified") is False):
+        errors.append("measurement_assumptions.independent_accuracy_verified=false 가 필요합니다(정확도 미검증 표시 유지).")
+    _provenance_errors(profile, errors)
+    _same(surface.get("height_reference"), HEIGHT_REFERENCE_BOTTOM, "surface.height_reference", errors)
+    _same(surface.get("v_direction"), V_DIRECTION_UP, "surface.v_direction", errors)
+    errors.extend(snapshot.surface_geometry_errors(surface))
+    _fixed_axis_errors(surface, errors)
+    if errors:
+        unique = list(dict.fromkeys(errors))
+        raise PipelineError("PROFILE_MISMATCH", "요청 스냅샷(/3, REAL 추정값)이 올바르지 않습니다: " + "; ".join(unique[:4]))
+
+
 def validate_profile(profile: Mapping) -> None:
     """스냅샷 `contract` 로 검사 규칙을 고른다. 없으면 기존(/1)과 같다.
 
@@ -254,10 +310,25 @@ def validate_profile(profile: Mapping) -> None:
         _validate_profile_v1(profile, surface)
     elif contract == PROFILE_CONTRACT_V2:
         _validate_profile_v2(profile, surface)
+    elif contract == PROFILE_CONTRACT_V3:
+        _validate_profile_v3(profile, surface)
     else:
         raise PipelineError(
             "PROFILE_MISMATCH",
-            f"지원하지 않는 스냅샷 contract입니다: {contract!r} (지원: {PROFILE_CONTRACT_V1}, {PROFILE_CONTRACT_V2})")
+            f"지원하지 않는 스냅샷 contract입니다: {contract!r} "
+            f"(지원: {PROFILE_CONTRACT_V1}, {PROFILE_CONTRACT_V2}, {PROFILE_CONTRACT_V3})")
+
+
+def check_goal_profile_mode(goal: Mapping, profile: Mapping) -> None:
+    """요청의 source_mode 와 스냅샷의 출처가 같아야 한다. REAL↔SIMULATION 을 서로 바꿔 통과시키지 않는다."""
+    contract = profile.get("contract") or PROFILE_CONTRACT_V1
+    goal_mode, profile_mode = goal.get("source_mode"), profile.get("source_mode")
+    expected = "REAL" if contract == PROFILE_CONTRACT_V3 else "SIMULATION"
+    if goal_mode != profile_mode or goal_mode != expected:
+        raise PipelineError(
+            "PROFILE_MISMATCH",
+            f"요청 source_mode={goal_mode!r}, 스냅샷 source_mode={profile_mode!r}, 스냅샷 contract={contract}: "
+            f"REAL 은 /3 스냅샷과, SIMULATION 은 /1·/2 스냅샷과만 계산합니다.")
 
 
 def matching_test_profile() -> dict:
@@ -321,7 +392,48 @@ def matching_test_profile_v2(*, valid_v_range_mm=None, reachable_angle_deg=None,
     return profile
 
 
-def _preview(path, path_sha256, goal, ready=None, ready_limits=None):
+def matching_test_profile_v3(*, measurement_status="ESTIMATED", **surface_overrides) -> dict:
+    """`/3`(REAL 추정값 미리보기 전용) 시험용 스냅샷. **가짜 측정 출처를 채운 형식 예시**이며 실제 측정이 아니다.
+
+    surface_overrides: radius_mm, height_mm, axis_origin_m, valid_v_range_mm, reachable_angle_deg."""
+    profile = matching_test_profile_v2(**surface_overrides)
+    profile.update({
+        "contract": PROFILE_CONTRACT_V3,
+        "source_mode": "REAL",
+        "calibration_status": CALIBRATION_STATUS_REAL_PREVIEW,
+        "measurement_status": measurement_status,
+        "measurement_assumptions": {"vertical_axis_assumed": True, "tilt_measured": False,
+                                    "independent_accuracy_verified": False},
+        "preparation_id": "11111111-1111-4111-8111-111111111111",
+        "measurement_id": "22222222-2222-4222-8222-222222222222",
+        "input_profile_snapshot_id": "33333333-3333-4333-8333-333333333333",
+        "input_profile_sha256": "a" * 64,
+        "measurement_record_id": "44444444-4444-4444-8444-444444444444",
+        "measurement_record_sha256": "b" * 64,
+        "measured_at": "2026-09-21T13:00:00+09:00",
+    })
+    return profile
+
+
+def _real_preview_marks(profile: Mapping) -> dict:
+    """/3 산출물에 남길 출처·상태 표시(경로 config, 보고서, 미리보기 공통)."""
+    return {
+        "measurement_status": profile.get("measurement_status"),
+        "calibration_status": profile.get("calibration_status"),
+        "independent_accuracy_verified": False,
+        "preview_only": True,
+        "real_execution_allowed": False,
+        "preparation_id": profile.get("preparation_id"),
+        "measurement_id": profile.get("measurement_id"),
+        "measurement_record_id": profile.get("measurement_record_id"),
+        "measurement_record_sha256": profile.get("measurement_record_sha256"),
+        "input_profile_snapshot_id": profile.get("input_profile_snapshot_id"),
+        "input_profile_sha256": profile.get("input_profile_sha256"),
+        "measured_at": profile.get("measured_at"),
+    }
+
+
+def _preview(path, path_sha256, goal, ready=None, ready_limits=None, real_preview=None):
     flags = readiness.segment_flags(path, ready_limits) if ready_limits else {}
     cs = wc.current_surface()
     segments = []
@@ -352,7 +464,7 @@ def _preview(path, path_sha256, goal, ready=None, ready_limits=None):
     document = {
         "contract": "c2-path-preview/1",
         "schema_version": 2,
-        "source_mode": "SIMULATION",
+        "source_mode": goal["source_mode"],
         "test_only": True,
         "render_only": True,
         "path_id": path["path_id"],
@@ -366,6 +478,8 @@ def _preview(path, path_sha256, goal, ready=None, ready_limits=None):
         "pose_reference": "tool_tip",
         "segments": segments,
     }
+    if real_preview is not None:
+        document["real_preview"] = dict(real_preview)
     if ready is not None:
         # 미리보기 성공은 실행 가능 판정이 아니다. 잠정 로봇 작업 범위 점검 결과를 따로 싣는다.
         document["execution_readiness"] = readiness.preview_summary(ready)
@@ -373,9 +487,10 @@ def _preview(path, path_sha256, goal, ready=None, ready_limits=None):
 
 
 class GeneratePipeline:
-    def __init__(self, store, timeout_s=120.0):
+    def __init__(self, store, timeout_s=120.0, allow_real_preview=False):
         self.store = store
         self.timeout_s = float(timeout_s)
+        self.allow_real_preview = bool(allow_real_preview)
 
     def run(
         self,
@@ -417,7 +532,7 @@ class GeneratePipeline:
             """2-opt 개선은 선택 사항이다. 제한 시간의 60%가 지나면 개선만 멈추고 지금 순서를 쓴다 (획은 그대로)."""
             return time.monotonic() - started > 0.6 * self.timeout_s
 
-        goal = validate_goal(raw_goal)
+        goal = validate_goal(raw_goal, allow_real_preview=self.allow_real_preview)
         try:
             asset = self.store.read(goal["asset_id"], goal["asset_sha256"], ("image",))
             if asset.mime not in ("image/png", "image/jpeg"):
@@ -428,6 +543,8 @@ class GeneratePipeline:
         except ArtifactError as exc:
             raise PipelineError(exc.code, str(exc)) from exc
         validate_profile(profile)
+        check_goal_profile_mode(goal, profile)
+        real_preview = _real_preview_marks(profile) if profile.get("contract") == PROFILE_CONTRACT_V3 else None
         wc.set_active_surface(profile_surface(profile))
 
         checkpoint("CONVERTING", 0.05)
@@ -524,6 +641,7 @@ class GeneratePipeline:
                 goal["source_mode"],
                 on_progress=within_stage("BUILDING_PATH", 0.72, 0.87),
                 should_stop=should_stop_refining,
+                real_preview=real_preview,
             )
         except ValueError as exc:
             raise PipelineError("VALIDATION_FAILED", str(exc)) from exc
@@ -532,6 +650,8 @@ class GeneratePipeline:
         report = validate_path.validate(path)
         ready_limits = readiness.limits_from_profile(profile)
         ready = readiness.execution_readiness(path, ready_limits)
+        if real_preview is not None:
+            readiness.mark_preview_only(ready)      # 사전 점검 값은 그대로 두고 실행 금지만 따로 표시
         report["execution_readiness"] = ready
         cs = wc.current_surface()
         report.update({
@@ -539,6 +659,7 @@ class GeneratePipeline:
             "profile_snapshot_id": goal["profile_snapshot_id"],
             "profile_sha256": goal["profile_sha256"],
             "profile_contract": profile.get("contract") or PROFILE_CONTRACT_V1,
+            "source_mode": goal["source_mode"],
             "measurement_id": profile.get("measurement_id"),
             "measured_at": profile.get("measured_at"),
             "surface_used": {
@@ -547,7 +668,8 @@ class GeneratePipeline:
                 "axis_origin_m": list(cs.axis_origin_m),
                 "height_reference": HEIGHT_REFERENCE_BOTTOM,
                 "v_direction": V_DIRECTION_UP,
-                "source": "스냅샷 surface" if profile.get("contract") == PROFILE_CONTRACT_V2 else "c2_path 기본 상수(/1)",
+                "source": ("스냅샷 surface" if profile.get("contract") in (PROFILE_CONTRACT_V2, PROFILE_CONTRACT_V3)
+                           else "c2_path 기본 상수(/1)"),
             },
             "request_id": goal["request_id"],
             "path_id": path_id,
@@ -563,6 +685,8 @@ class GeneratePipeline:
                 "build": build_stats,
             },
         })
+        if real_preview is not None:
+            report["real_preview"] = dict(real_preview)
         if not report["passed"]:
             checkpoint("VALIDATING", 0.93)
             report_id, svg_id = new_id(), new_id()
@@ -593,7 +717,7 @@ class GeneratePipeline:
         }
         path_bytes = json_bytes(path)
         path_sha256 = sha256_bytes(path_bytes)
-        preview = _preview(path, path_sha256, goal, ready, ready_limits)
+        preview = _preview(path, path_sha256, goal, ready, ready_limits, real_preview)
         self.store.put_bundle([
             ArtifactWrite(json_bytes(report), "validation", "application/json",
                           "c2-path-validation.json", {"path_id": path_id}, validation_id),

@@ -40,7 +40,9 @@
   표시한다. **생성·검증·미리보기 성공은 실행 가능을 뜻하지 않는다** (`executability` 는 항상 `NOT_JUDGED`).
   ±135° 는 실제 J5 관절 판정이 아니다(`not_checked` 의 `J5_JOINT_LIMIT`). J5 정밀값은 아직 확정 전이다. 자세한 계약은 `BUNDLE_SPEC.md` 13절.
 - 스냅샷 `contract`: `/1` 은 코드 상수와 정확히 같을 때만 받는다(`valid_v_range_mm=[10,140]`, 바닥 기준). `/2` 는 `surface.height_reference="bottom"`·`surface.v_direction="up"`·`calibration_status="SIMULATION_ONLY"` 가 필수이고 원통 치수(반지름·높이·축 원점)·작업 범위·도달각을 요청별 값으로 받아 그 값으로 경로를 계산한다(축 방향·u 원점·이음매는 아직 상수와 같아야 함). 자세한 표는 `BUNDLE_SPEC.md` 4.1절.
-- `workcell.py`는 승인 REAL 설정 파일이 아니므로 노드는 `SIMULATION`만 허용한다.
+- `workcell.py`는 승인 REAL 설정 파일이 아니므로 노드는 기본으로 `SIMULATION`만 허용한다. 파라미터 `allow_real_preview:=true` 를 명시하면
+  스냅샷 `/3`(REAL 추정값·**미리보기 전용**)과 함께인 REAL Goal 도 받지만, 그 경로도 `test_only` 라 실행할 수 없고 `executability` 는 `NOT_JUDGED` 로 남는다.
+  REAL 을 SIMULATION 으로 바꿔 통과시키지 않는다. 필드와 조건은 `BUNDLE_SPEC.md` 14절(이름은 합의 전 제안).
 - 성공 경로에도 `J6_RANGE`는 미검사로 남는다. 실행 전 공정팀의 전체 경로
   IK/J5/J6·충돌·보정 확인이 별도로 필요하다.
 - 매핑 실패 획이 하나라도 있거나 CUT가 비면 전체 생성이 실패한다. 실패/취소 시
