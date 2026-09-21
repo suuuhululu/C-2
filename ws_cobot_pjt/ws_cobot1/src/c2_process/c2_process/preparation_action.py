@@ -501,21 +501,21 @@ def make_real_measurement_runner(coordinator, node, *, evidence_provider,
     if scene_check is None:
         scene_check = check_process_scene
     if (coordinator.runtime_mode!='REAL' or not callable(evidence_provider)
-            or not callable(scene_check) or not callable(stop_latched_provider)):
-        raise ValueError('REAL 관측·현장 검사·정지 래치 공급 함수 필요')
+            or not callable(scene_check) or not callable(stop_latched_provider)
+            or not callable(state_observer_starter)):
+        raise ValueError('REAL 관측·상시 상태 관측기·현장 검사·정지 래치 공급 함수 필요')
     def run(goal, config, cancel, feedback):
         if (controller_prefix is not None
                 and config.get('controller_prefix') != controller_prefix):
             return StepResult('FAILED','PROFILE_MISMATCH',
                 '기동 controller_prefix와 준비 설정 불일치','robot_status')
-        if state_observer_starter is not None:
-            try:
-                # 설정 스냅샷 검증 후, 모션/측정 어댑터 생성 전에 한 번 시작한다.
-                # 관측기는 이 runner가 끝나도 유지되고 공정 노드 종료 때만 닫힌다.
-                state_observer_starter(config)
-            except Exception as exc:
-                return StepResult('FAILED','NOT_READY',
-                    '공정 상태 관측기 시작 실패: '+str(exc),'robot_status')
+        try:
+            # 설정 스냅샷 검증 후, 모션/측정 어댑터 생성 전에 한 번 시작한다.
+            # 관측기는 성공·실패·취소 뒤에도 유지되고 공정 노드 종료 때만 닫힌다.
+            state_observer_starter(config)
+        except Exception as exc:
+            return StepResult('FAILED','NOT_READY',
+                '공정 상태 관측기 시작 실패: '+str(exc),'robot_status')
         ctx=MeasurementContext(goal['measurement_id'],goal['preparation_id'],'REAL',
             cancel=cancel,motion_lock=coordinator.motion_lock,
             profile_snapshot_id=goal['input_profile_snapshot_id'],profile_sha256=goal['input_profile_sha256'])
