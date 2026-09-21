@@ -1080,15 +1080,8 @@ def test_ros_callbacks_publish_cached_signals_and_alarm_events(monkeypatch):
         real_adapter_factory=lambda owner: made.append(owner) or real)
     assert made == [real_node]
     assert real_node.coordinator.real_adapter is real
-    real_node.refresh_robot_observation()
-    assert real_node.observations.values()['joints_quality'] == 'VALID'
-    real_node._preparation_observation_active = True
-    real.observe = lambda: pytest.fail('측정 중 백그라운드 드라이버 조회 금지')
-    real_node.refresh_robot_observation()
-    real_node._preparation_observation_active = False
-    real.observe = lambda: (_ for _ in ()).throw(ConnectionError('lost'))
-    real_node.refresh_robot_observation()
-    assert real_node.observations.values()['robot_connection_state'] == 'UNKNOWN'
+    assert not hasattr(real_node, 'observation_timer')
+    assert not hasattr(real_node, 'refresh_robot_observation')
     with pytest.raises(ValueError, match="REAL 노드"):
         create_ros_node(enable_preparation=False, real_adapter_factory=lambda _: real)
 
@@ -1177,6 +1170,7 @@ def test_prepare_action_updates_process_state_returns_once_and_resumes_idle(
     assert [m.status for m in node.state_pub.sent[:5]] == ['RUNNING'] * 5
     assert [m.phase for m in node.state_pub.sent[:5]] == ['PRECHECK'] * 5
     assert [m.engraving_progress for m in node.state_pub.sent[:5]] == [0.] * 5
+    assert node.state_pub.sent[:5][-1].message.startswith('ROBOT_CHECK (10%)')
     assert node.state_pub.sent[-1].status == outcome
     node.publish_state()
     assert node.state_pub.sent[-1].status == 'IDLE'

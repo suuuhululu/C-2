@@ -1198,10 +1198,7 @@ def create_ros_node(load_inputs: Callable[[Mapping], ExecutionInputs] = _missing
                     raise ValueError("real_adapter_factory는 호출 가능해야 함")
                 adapter = real_adapter_factory(self)
             self.observations = ObservationCache()
-            self.robot_adapter = adapter
             self._preparation_action_active = False
-            self._preparation_observation_active = False
-            self._observation_poll_lock = threading.Lock()
             self.alarms = ProcessAlarms()
             self.profile_values = {}
             self.coordinator = ProcessCoordinator(
@@ -1260,8 +1257,6 @@ def create_ros_node(load_inputs: Callable[[Mapping], ExecutionInputs] = _missing
             self.stop_service = self.create_service(StopProcess, "/c2/stop_process",
                                                      self.stop_request, callback_group=self.group)
             self.timer = self.create_timer(0.2, self.publish_state, callback_group=self.group)
-            self.observation_timer = self.create_timer(
-                0.1, self.refresh_robot_observation, callback_group=self.group)
 
         def cancel_preparation(self, handle):
             goal = {k:getattr(handle.request,k) for k in GOAL_FIELDS}
@@ -1275,12 +1270,6 @@ def create_ros_node(load_inputs: Callable[[Mapping], ExecutionInputs] = _missing
 
         def execute_preparation(self, handle):
             goal = {k:getattr(handle.request,k) for k in GOAL_FIELDS}
-            measuring = goal.get("operation") == "MEASURE"
-            observation_poll_owned = False
-            if measuring:
-                # 이미 시작한 백그라운드 조회가 끝난 뒤 측정이 드라이버 접근을 단독 소유한다.
-                self._observation_poll_lock.acquire()
-                observation_poll_owned = True
             with self.lock:
                 self.goal_values = {}
                 self.status = "RUNNING"
@@ -1294,11 +1283,13 @@ def create_ros_node(load_inputs: Callable[[Mapping], ExecutionInputs] = _missing
                 self.segment_id = ""
                 self.started_at = time.monotonic()
                 self._preparation_action_active = True
-                self._preparation_observation_active = measuring
             self.emit_event("COMMAND", message="준비 요청 접수")
             def publish(value):
                 with self.lock:
-                    self.message = value.get("message", self.message)
+                    stage = value.get("stage", "UNKNOWN")
+                    progress = float(value.get("progress", 0.0))
+                    detail = value.get("message", "")
+                    self.message = f"{stage} ({progress:.0%})" + (f" {detail}" if detail else "")
                 packet = PrepareWorkpiece.Feedback()
                 set_message_fields(packet,value)
                 handle.publish_feedback(packet)
@@ -1326,7 +1317,6 @@ def create_ros_node(load_inputs: Callable[[Mapping], ExecutionInputs] = _missing
             finally:
                 with self.lock:
                     self._preparation_action_active = False
-                    self._preparation_observation_active = False
                     self.status = "IDLE"
                     self.phase = ""
                     self.stop_state = "NONE"
@@ -1334,29 +1324,6 @@ def create_ros_node(load_inputs: Callable[[Mapping], ExecutionInputs] = _missing
                     self.message = "공정 대기"
                     self.progress = 0.0
                     self.started_at = 0.0
-                if observation_poll_owned:
-                    self._observation_poll_lock.release()
-
-        def capture_measurement_observation(self, observation, offset, max_age_s):
-            self.observations.capture_measurement(observation, offset, max_age_s)
-
-        def refresh_robot_observation(self):
-            """준비 밖의 실제 관측을 갱신한다. 측정 중에는 측정 I/O trace가 갱신한다."""
-            with self.lock:
-                measurement_active = self._preparation_observation_active
-            if self.robot_adapter is None or measurement_active:
-                return
-            if not self._observation_poll_lock.acquire(blocking=False):
-                return
-            try:
-                state = self.robot_adapter.observe()
-            except Exception:
-                self.observations.capture(None, None, None)
-            else:
-                self.observations.capture(
-                    state, getattr(self.robot_adapter, "tool_offset_m", None), 0.5)
-            finally:
-                self._observation_poll_lock.release()
 
         def accept_goal(self, request):
             if (request.schema_version != 2 or request.source_mode != self.coordinator.runtime_mode
@@ -1545,8 +1512,8 @@ def create_ros_node(load_inputs: Callable[[Mapping], ExecutionInputs] = _missing
             return output
 
         def destroy_node(self):
-            if self.observation_timer:
-                self.observation_timer.cancel()
+            from .process_state_observer import stop_process_state_observer
+            stop_process_state_observer(self)
             observation_owner = getattr(self, "real_preparation_observations", None)
             if observation_owner is not None:
                 observation_owner.close()
@@ -1716,6 +1683,9 @@ def _real_preparation_options(node, options):
     node.real_preparation_observations = observations
     node.get_logger().info(
         "제어권 subscriber와 읽기 전용 정지 상태 조회 연결 완료")
+    def start_state_observer(config):
+        from .process_state_observer import start_process_state_observer
+        return start_process_state_observer(node, config)
     return {
         "evidence_provider": observations.evidence,
         "evidence_max_age_s": {
@@ -1723,6 +1693,7 @@ def _real_preparation_options(node, options):
         },
         "stop_latched_provider": observations.stop_latched,
         "stop_latch_recorder": observations.record_process_result,
+        "state_observer_starter": start_state_observer,
         "controller_prefix": options.controller_prefix,
     }
 

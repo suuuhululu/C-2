@@ -104,3 +104,47 @@ def test_real_runner_rejects_controller_prefix_mismatch_before_adapter(tmp_path,
         controller_prefix='/dsr01/dsr_controller2')
     result = runner(dict(goal, source_mode='REAL'), config, threading.Event(), lambda event: None)
     assert (result.outcome, result.error_code) == ('FAILED', 'PROFILE_MISMATCH')
+
+
+def test_real_runner_starts_persistent_state_observer_before_measurement_adapter(tmp_path, monkeypatch):
+    import c2_process.workpiece_process_adapter as process_adapter
+    h, goal, _, _, _, _ = fixture(tmp_path)
+    h.execute(goal)
+    _, _, status = real_fixture()
+    coordinator = ProcessCoordinator(runtime_mode='REAL', real_adapter=status, measurement_only=True)
+    config = copy.deepcopy(h.config)
+    config.update(source_mode='REAL', load_id='ToolWeight_1')
+    calls = []
+    starter = lambda current: calls.append(('observer', current))
+    class Adapter:
+        def close(self): calls.append(('close', None))
+    monkeypatch.setattr(process_adapter, 'create_process_measurement_adapter',
+                        lambda *a, **k: calls.append(('adapter', a[1])) or Adapter())
+    provider = lambda ctx: {}
+    runner = make_real_measurement_runner(
+        coordinator, object(), evidence_provider=provider,
+        evidence_max_age_s={'control_authority': 1.},
+        stop_latched_provider=lambda ctx: None,
+        state_observer_starter=starter)
+    result = runner(dict(goal, source_mode='REAL'), config, threading.Event(), lambda event: None)
+    assert result.outcome in {'FAILED', 'UNKNOWN'}
+    assert [name for name, _ in calls[:2]] == ['observer', 'adapter']
+
+
+def test_real_runner_observer_start_failure_is_not_ready_without_adapter(tmp_path, monkeypatch):
+    import c2_process.workpiece_process_adapter as process_adapter
+    h, goal, _, _, _, _ = fixture(tmp_path)
+    h.execute(goal)
+    _, _, status = real_fixture()
+    coordinator = ProcessCoordinator(runtime_mode='REAL', real_adapter=status, measurement_only=True)
+    config = copy.deepcopy(h.config)
+    config.update(source_mode='REAL', load_id='ToolWeight_1')
+    monkeypatch.setattr(process_adapter, 'create_process_measurement_adapter',
+                        lambda *a, **k: pytest.fail('관측기 실패 뒤 측정 adapter 생성 금지'))
+    runner = make_real_measurement_runner(
+        coordinator, object(), evidence_provider=lambda ctx: {},
+        evidence_max_age_s={'control_authority': 1.},
+        stop_latched_provider=lambda ctx: None,
+        state_observer_starter=lambda config: (_ for _ in ()).throw(RuntimeError('service missing')))
+    result = runner(dict(goal, source_mode='REAL'), config, threading.Event(), lambda event: None)
+    assert (result.outcome, result.error_code) == ('FAILED', 'NOT_READY')
