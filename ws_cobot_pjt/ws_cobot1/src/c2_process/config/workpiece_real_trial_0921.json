@@ -1,0 +1,205 @@
+{
+  "notice": "REAL 단독 측정 시험용. 밑면 오프셋 미확인: 절대 윗면/바닥/work_z=null, geometry_ready=false. 경로 생성용 완성 스냅샷으로 사용 금지.",
+  "workcell": {
+    "source_mode": "REAL",
+    "frame_id": "c2_base",
+    "height_m": 0.15,
+    "height_source": "OPERATOR_RULER",
+    "top_margin_m": 0.01,
+    "bottom_margin_m": 0.01,
+    "side_depth_m": 0.02,
+    "seed_axis_xy_m": [
+      0.42624374301578377,
+      4.6709476999166216e-05
+    ],
+    "seed_radius_m": 0.034291659073503865,
+    "tool_offset_m": [
+      0.00085,
+      -0.09955,
+      0
+    ],
+    "angles_deg": [
+      90.0,
+      135.0,
+      180.0,
+      225.0,
+      270.0,
+      315.0,
+      360.0,
+      405.0
+    ],
+    "orbit_step_deg": 22.5,
+    "outer_gap_m": 0.022,
+    "start_gap_m": 0.005,
+    "inside_limit_m": 0.0005,
+    "slow_retract_gap_m": 0.002,
+    "max_center_shift_m": 0.002,
+    "max_radius_error_m": 0.001,
+    "max_fit_rms_m": 0.0003,
+    "max_fit_residual_m": 0.0006,
+    "max_point_z_spread_m": 0.0005,
+    "max_state_age_s": 2.0,
+    "pose_tolerance_m": 0.0003,
+    "angle_tolerance_rad": 0.005235987755982988,
+    "runtime_timeout_s": 480.0,
+    "top": {
+      "auto_entry": true,
+      "clearance_tcp_z_m": 0.33,
+      "entry_tcp_poses": [],
+      "approach_tcp_pose": [
+        0.42624374301578377,
+        4.6709476999166216e-05,
+        0.24542510986328125,
+        0.0,
+        1.0,
+        0.0,
+        0.0
+      ],
+      "exit_tcp_poses": [
+        [
+          0.42624374301578377,
+          4.6709476999166216e-05,
+          0.33,
+          0.0,
+          1.0,
+          0.0,
+          0.0
+        ]
+      ],
+      "max_probe_m": 0.0125,
+      "retract_m": 0.002,
+      "contact_offset_tool_m": null,
+      "offset_status": "UNVERIFIED",
+      "offset_record_id": null
+    },
+    "provenance": {
+      "seed_geometry": "repeat180_fit.json / 기존 8점 실측. 이번 측정의 정답으로 사용하지 않음.",
+      "top_reference": "그리퍼 밑면 접촉 TCP 참고값. 절대 윗면 Z 미확정.",
+      "trial_scene": "현장 단독 시험 전용: 이전 측정 후 양초/받침/철사 고정 유지 전제. 전체 메시 충돌 검사 아님."
+    },
+    "measurement_scope": "CONTACT_REFERENCE",
+    "tcp_id": "GripperDA_v1",
+    "load_id": "ToolWeight_1",
+    "side_entry_clearance_z_m": 0.33,
+    "trial_scene": {
+      "environment_record_id": "top_yfirst_20260921_091824+repeat180_20260921_103049",
+      "tcp_min_m": [
+        0.265,
+        -0.17,
+        0.195
+      ],
+      "tcp_max_m": [
+        0.59,
+        0.18,
+        0.335
+      ],
+      "sample_mm": 2.0,
+      "sample_deg": 1.0,
+      "upright_tolerance_deg": 1.0,
+      "overhead_clearance_z_m": 0.3,
+      "top_xy_tolerance_m": 0.0015,
+      "top_tcp_min_z_m": 0.232925,
+      "outer_min_gap_m": 0.018,
+      "model_tolerance_m": 0.0005,
+      "facing_tolerance_deg": 2.0
+    }
+  },
+  "profiles": {
+    "travel": {
+      "speed_m_s": 0.03,
+      "acceleration_m_s2": 0.03,
+      "timeout_s": 60.0,
+      "hard_force_n": 15.0,
+      "soft_force_n": 12.0,
+      "soft_force_hold_s": 0.15
+    },
+    "approach": {
+      "speed_m_s": 0.015,
+      "acceleration_m_s2": 0.02,
+      "timeout_s": 60.0,
+      "hard_force_n": 10.0
+    },
+    "retract": {
+      "speed_m_s": 0.001,
+      "acceleration_m_s2": 0.02,
+      "timeout_s": 60.0,
+      "hard_force_n": 10.0
+    },
+    "top_touch": {
+      "speed_m_s": 0.0003,
+      "acceleration_m_s2": 0.0003,
+      "timeout_s": 60.0,
+      "hard_force_n": 10.0,
+      "contact_force_n": 0.8,
+      "max_force_delta_n": 2.0,
+      "baseline_window_s": 1.0
+    },
+    "side_touch": {
+      "speed_m_s": 0.001,
+      "acceleration_m_s2": 0.0003,
+      "timeout_s": 60.0,
+      "hard_force_n": 10.0,
+      "contact_force_n": 0.8,
+      "max_force_delta_n": 2.0,
+      "baseline_window_s": 1.0
+    },
+    "stop": {
+      "mode": 1,
+      "timeout_s": 2.0
+    }
+  },
+  "controller_prefix": "/dsr01/dsr_controller2",
+  "robot_error_topic": "/dsr01/error",
+  "service_timeout_s": 0.5,
+  "operator_ack_valid_s": 900.0,
+  "standalone_operator_acknowledged": false,
+  "guards": {
+    "angular_acc_deg_s2": 20.0,
+    "angular_speed_deg_s": 10.0,
+    "baseline_drift_n": 0.2,
+    "baseline_position_m": 0.0001,
+    "baseline_timeout_s": 10.0,
+    "baseline_window_slack_s": 0.1,
+    "completion_joint_deg": 1.0,
+    "completion_stable_s": 0.2,
+    "fk_angle_deg": 0.05,
+    "fk_position_mm": 0.2,
+    "ik_step_deg": 1.0,
+    "ik_step_mm": 2.0,
+    "j3_margin_deg": 10.0,
+    "j5_margin_deg": 15.0,
+    "joint_max_deg": [
+      355.0,
+      90.0,
+      130.0,
+      355.0,
+      130.0,
+      345.0
+    ],
+    "joint_min_deg": [
+      -355.0,
+      -90.0,
+      -130.0,
+      -355.0,
+      -130.0,
+      -345.0
+    ],
+    "line_error_mm": 0.5,
+    "max_joint_step_deg": 8.0,
+    "max_samples_per_segment": 1000,
+    "max_state_age_s": 0.5,
+    "movement_start_deg": 0.03,
+    "movement_start_m": 3e-05,
+    "movement_start_timeout_s": 3.0,
+    "moving_baseline_end_m": 0.00325,
+    "moving_baseline_start_m": 0.002,
+    "moving_mad_n": 0.2,
+    "poll_s": 0.02,
+    "prebaseline_delta_n": 5.0,
+    "preflight_timeout_s": 120.0,
+    "skip_angle_deg": 0.02,
+    "skip_position_m": 2e-05,
+    "stationary_mad_n": 0.1,
+    "stop_stable_s": 0.2
+  }
+}
