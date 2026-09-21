@@ -1,3 +1,5 @@
+# 현재 통합: 첫 옆면 접촉으로 projection_from_contact()에서 돌출 길이만 추정한다.
+# 아래 기존 3점/TipCalibration API는 담당자 브랜치·과거 시험 호환용이며 새 측정 흐름에서 호출하지 않는다.
 # tool_calibration.py — 드릴(도구) 끝 보정. 담당: 이시율 (2026-09-19).
 # 9/19 결정: 드릴은 그리퍼에 철사로 고정(집기·반납 없음, 그리퍼 열기 금지). 도구 끝은 패드(제어기 TCP GripperDA_v1) 축에서
 # 툴 -Y 로 돌출 길이만큼, 툴 X 로 몇 mm 어긋나 있다 (9/18 실측: 송곳 51.3/+4.2, 드릴 63.3/-2.5 mm). 길이 한 축만 재면 중심을
@@ -212,3 +214,50 @@ def verify_tool_tip(adapter: RobotAdapter, workcell: Dict, profiles: Dict, calib
                           f"확인 터치 오차 {err * 1000:+.2f} mm (허용 ±{tol_m * 1000:.1f})", "verify_tool_tip", obs)
     finally:
         adapter.set_tool_offset(saved)
+
+
+def fixed_tool_reference(offset_tool_m, *, tool_id, tcp_id, load_id, source_record):
+    """고정 장착 기준을 전달한다. 움직이거나 새 TipCalibration 측정 기록을 만들지 않는다."""
+    if not isinstance(offset_tool_m,(list,tuple)) or len(offset_tool_m)!=3:
+        raise ValueError("고정 장착 오프셋은 툴 좌표계의 m 단위 3개 값 필요")
+    if any(isinstance(v,bool) or not isinstance(v,(int,float)) or not math.isfinite(v) for v in offset_tool_m):
+        raise ValueError("유한 도구 오프셋 필요")
+    if any(not isinstance(v,str) or not v for v in (tool_id,tcp_id,load_id,source_record)):
+        raise ValueError("도구/TCP/하중 ID와 재사용 기준 출처 필요")
+    return dict(tool_id=tool_id,tcp_id=tcp_id,load_id=load_id,
+                offset_tool_m=list(offset_tool_m),position_unit='m',frame_id='tool',
+                source='FIXED_MOUNT_REUSED',source_record=source_record,
+                measured_this_run=False,measured_at=None,independently_verified=False,
+                requires_unchanged_mount=True)
+
+
+def projection_from_contact(tcp_pose, reference_point_m, reference_normal, retained_offset_tool_m,
+                            *, reference_source, measured_at, frame_id='c2_base'):
+    """한 번의 접촉 TCP와 기준면으로 -Y 돌출만 추정. X/Z 오프셋 재측정·로봇 이동 없음.
+
+    기준면이 기존 양초 모델이면 그 위치/반지름 오차도 길이에 포함된다.
+    이 결과를 새 3점 TipCalibration 또는 독립 실측으로 표시하지 않는다.
+    """
+    from .robot_adapter import apply_tool_offset
+    for values,size in ((tcp_pose,7),(reference_point_m,3),(reference_normal,3),(retained_offset_tool_m,3)):
+        if len(values)!=size or any(isinstance(v,bool) or not isinstance(v,(float,int)) or not math.isfinite(v) for v in values):
+            raise ValueError('접촉/기준면은 유한 좌표 필요')
+    if abs(sum(v*v for v in tcp_pose[3:])-1.)>1e-5:raise ValueError('단위 quaternion 필요')
+    nlen=math.sqrt(sum(v*v for v in reference_normal))
+    if nlen<1e-9 or frame_id!='c2_base' or not reference_source or not measured_at:
+        raise ValueError('기준면 법선·좌표계·출처·접촉 시각 필요')
+    n=[v/nlen for v in reference_normal]
+    direction=tool_axis_in_base(tcp_pose,'-y')
+    denominator=sum(a*b for a,b in zip(direction,n))
+    if abs(denominator)<.95:raise ValueError('돌출 확인은 기준면에 거의 수직인 접근 필요')
+    base=apply_tool_offset(tcp_pose,[retained_offset_tool_m[0],0.,retained_offset_tool_m[2]])
+    projection=sum((reference_point_m[k]-base[k])*n[k] for k in range(3))/denominator
+    if projection<=0:raise ValueError('돌출 길이가 양수가 아님: 기준면/접촉 좌표 확인 필요')
+    return dict(projection_m=projection,projection_mm=projection*1000.,
+                reference_projection_m=-retained_offset_tool_m[1],
+                difference_m=projection+retained_offset_tool_m[1],
+                lateral_x_m=retained_offset_tool_m[0],lateral_source='REUSED_NOT_MEASURED',
+                offset_applied=False,position_unit='m',frame_id=frame_id,
+                reference_point_m=list(reference_point_m),reference_normal=n,reference_source=reference_source,
+                contact_tcp_pose=list(tcp_pose),measured_at=measured_at,
+                validity='ESTIMATED_FROM_REFERENCE_SURFACE',independently_verified=False)

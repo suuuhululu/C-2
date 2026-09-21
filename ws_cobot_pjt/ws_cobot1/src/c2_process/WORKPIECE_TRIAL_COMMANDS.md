@@ -37,7 +37,7 @@ ros2 bag record --qos-profile-overrides-path /home/skywalker/collaborative/ws_co
 
 요청 수락 후 2초 예고 → 현재 관절/TCP 확인 → 필요할 때만 새 상공 HOME으로 이동 → 바로 수직 윗면 접근 → 옆면 8점·외곽 후퇴 → 좌표 계산 → 새 HOME 복귀·정지 확인 → 완료 순서다.
 
-새 HOME: GripperDA_v1 TCP `(426.243743, 0.046709, 330.000) mm`, 기존 수직 자세. 이미 홈이면 재상승·옆 이동을 생략한다. 사용자 실물 재시험은 8점 완료 후 홈 X 복귀에서 선분 편차로 정지했다. 상공 자세 유지 이동만 1 mm 허용폭으로 분리한 후 모의 156건을 통과했으며 수정본 실기 재시험은 남아 있다. 기존 수신부를 종료한 뒤 터미널 1을 다시 실행해야 수정본이 적용된다.
+새 HOME: GripperDA_v1 TCP `(426.243743, 0.046709, 330.000) mm`, 기존 수직 자세. 이미 홈이면 재상승·옆 이동을 생략한다. 사용자 실물 재시험은 8점 완료 후 홈 X 복귀에서 선분 편차로 정지했다. 상공 자세 유지 이동만 1 mm 허용폭으로 분리한 후 모의 156건을 통과했으며 후속 사용자 시험은 301.603초에 HOME 복귀까지 SUCCEEDED로 완료됐다. 기존 수신부를 종료한 뒤 터미널 1을 다시 실행해야 수정본이 적용된다.
 
 ```bash
 source /opt/ros/jazzy/setup.bash
@@ -49,7 +49,7 @@ ros2 service call /workpiece_test/start std_srvs/srv/Trigger '{}'
 `success=True, accepted=True`는 **접수**이며 측정 성공이 아니다.
 최종 결과는 터미널 1의 `result: SUCCEEDED / FAILED / STOPPED / UNKNOWN`과 bag에 남는다.
 실패하면 다음 점/자동 홈 이동을 하지 않는다. 기준을 바꾸거나 시작 요청을 반복하지 말고 기록을 확인한다.
-완료·정지 결과를 받은 후 터미널 2를 Ctrl+C로 종료하면 bag 저장이 마무리된다.
+시험 수신부(터미널 1)는 기본적으로 1회 결과 발행·저장·ACK 확인 후 자동 종료한다. UNKNOWN은 예외로 유지한다. 반복 대기는 `--keep-alive`로 지정한다. 터미널 2의 bag은 Ctrl+C로 별도 종료해야 저장이 마무리된다.
 
 센서·명령·진행·결과 JSONL은 `/tmp/workpiece-user-test/`에 함께 저장된다.
 최신 코드에는 `desired_posx`와 실제 `posx`, 횡오차 상세 기록이 추가돼 있다.
@@ -61,3 +61,5 @@ ros2 service call /workpiece_test/start std_srvs/srv/Trigger '{}'
 ```bash
 ros2 service call /workpiece_test/cancel std_srvs/srv/Trigger '{}'
 ```
+
+이번 REAL 설정은 접촉 기반 임시 윗면 좌표를 `ESTIMATED`로 반환하며, 첫 옆면 터치로 기존 기준면에 대한 드릴 돌출 길이 추정값도 보낸다. X 어긋남은 재측정하지 않는다. 기준 양초 모델 오차가 길이에 섞일 수 있으므로 독립 실측으로 표시하지 않고, 추정 길이를 현재 실행 오프셋에 자동 적용하지 않는다.

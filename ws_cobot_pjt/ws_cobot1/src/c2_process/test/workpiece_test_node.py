@@ -18,6 +18,7 @@ from pathlib import Path
 import sys
 import signal
 import threading
+import time
 import uuid
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
@@ -28,9 +29,10 @@ from c2_process.workpiece_simulation import SimulatedWorkpieceAdapter
 
 class TrialSession:
     """ROS와 무관한 시험 수신/취소/중복 실행 처리. 실제 측정 함수를 호출한다."""
-    def __init__(self, config, mode, adapter_factory, emit, config_sha256):
+    def __init__(self, config, mode, adapter_factory, emit, config_sha256, *, one_shot=True):
         self.config=deepcopy(config); self.mode=mode; self.adapter_factory=adapter_factory
         self.emit=emit; self.config_sha256=config_sha256
+        self.one_shot=one_shot; self.result_published=threading.Event()
         self._state_lock=threading.RLock(); self.motion_lock=threading.Lock()
         self.thread=None; self.context=None; self.adapter=None
         self.state=dict(status='IDLE',source_mode=mode,measurement_id=None,result=None)
@@ -47,6 +49,9 @@ class TrialSession:
                 return False,'이전 시험 정지 미확인. 상태 확인 전 재시작 금지'
             if self.thread is not None and self.thread.is_alive():
                 return False,'BUSY: 이미 측정 중'
+            if self.one_shot and self.state['status']!='IDLE':
+                return False,'1회 시험 완료: 새 시험은 수신부를 다시 실행하세요'
+            self.result_published.clear()
             ident='workpiece-test-'+uuid.uuid4().hex
             self.context=self._context(ident)
             self.state=dict(status='STARTING',source_mode=self.mode,measurement_id=ident,result=None)
@@ -75,6 +80,13 @@ class TrialSession:
         with self._state_lock:
             self.state['status']=result.outcome; self.state['result']=payload
         self.emit('result',dict(measurement_id=ctx.measurement_id,source_mode=self.mode,**payload))
+        self.result_published.set()
+
+    def ready_to_exit(self):
+        # UNKNOWN은 실제 정지 미확인일 수 있으므로 자동으로 관측/수신부를 종료하지 않는다.
+        return (self.one_shot and self.result_published.is_set() and
+                self.thread is not None and not self.thread.is_alive() and
+                self.status()['status'] in ('SUCCEEDED','FAILED','STOPPED'))
 
     def cancel(self):
         with self._state_lock:
@@ -88,6 +100,7 @@ class TrialSession:
 
 def main(argv=None):
     parser=argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--keep-alive',action='store_true',help='결과 반환 후에도 다음 시험 요청 대기 (기본: 1회 후 종료)')
     parser.add_argument('--mode',choices=['SIMULATION','REAL'],default='SIMULATION')
     parser.add_argument('--config',type=Path)
     parser.add_argument('--operator-ready',action='store_true',help='REAL: 드릴 OFF, 고정/주변 공간 유지, 단독 제어 및 비상정지 대기 확인')
@@ -142,7 +155,7 @@ def main(argv=None):
         if args.mode=='SIMULATION':
             return SimulatedWorkpieceAdapter(config['workcell'],clock=ctx.monotonic)
         return real_factory(node,deepcopy(config),ctx)
-    session=TrialSession(config,args.mode,create_adapter,emit,digest)
+    session=TrialSession(config,args.mode,create_adapter,emit,digest,one_shot=not args.keep_alive)
     def start(_request,response):response.success,response.message=session.start();return response
     def cancel(_request,response):response.success,response.message=session.cancel();return response
     def status(_request,response):
@@ -155,7 +168,18 @@ def main(argv=None):
     spin_thread=threading.Thread(target=executor.spin,daemon=True)
     spin_thread.start()
     try:
-        while spin_thread.is_alive():spin_thread.join(.2)
+        finished_at=None
+        while spin_thread.is_alive():
+            spin_thread.join(.2)
+            if not session.ready_to_exit():continue
+            if finished_at is None:finished_at=time.monotonic()
+            if time.monotonic()-finished_at<1.:continue
+            # executor는 계속 응답한다. 결과를 publish한 직후 publisher를 없애지 않는다.
+            from rclpy.duration import Duration
+            if result_pub.wait_for_all_acked(Duration(seconds=2.)):
+                node.get_logger().info('최종 결과 전송·로컬 저장 완료: 1회 시험 수신부를 종료합니다. bag은 별도로 종료하세요.')
+                break
+            node.get_logger().warning('결과 수신 ACK 대기 중: 결과는 로컬 기록에 저장되어 있습니다.')
     except KeyboardInterrupt:
         session.cancel()
         # 정지 확인이 끝날 때까지 ROS 응답 executor를 살려 둔다.
