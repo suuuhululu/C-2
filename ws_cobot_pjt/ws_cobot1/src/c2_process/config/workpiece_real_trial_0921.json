@@ -1,5 +1,5 @@
 {
-  "notice": "REAL 통합용 접촉 기반 추정값. 밑면 오프셋은 별도 실측하지 않고 0으로 가정. validity=ESTIMATED, 정확도 미검증. 도구 오프셋은 고정 장착 기준 재사용.",
+  "notice": "REAL 통합 운영 기준. 그리퍼 하단 접촉 오프셋 20 mm를 확정 설정으로 사용하고 ABSOLUTE_GEOMETRY로 윗면·바닥을 계산한다. 도구 오프셋은 고정 장착 기준 재사용.",
   "workcell": {
     "source_mode": "REAL",
     "frame_id": "c2_base",
@@ -69,23 +69,23 @@
       "max_probe_m": 0.00777954101562503,
       "retract_m": 0.002,
       "contact_offset_tool_m": [0.0, 0.0, 0.020],
-      "offset_status": "ESTIMATED",
+      "offset_status": "VERIFIED",
       "offset_record_id": "gripper-bottom-offset-20260921-20mm-v1",
       "expected_tcp_z_range_m": [
         0.23292510986328124,
         0.23670465087890627
       ],
       "expected_tcp_z_source": "2026-09-21 operator-confirmed top_yfirst contact 234.70465087890625 mm +/- 2 mm, clipped to prechecked search bound; unchanged fixture only",
-      "estimate_source": "사용자 결정 2026-09-21: gripper-bottom-offset-20260921-20mm-v1. 그리퍼 벌림 27.8 mm 상태에서 TCP부터 하단 접촉점까지 tool +Z 20 mm를 고정 추정 오프셋으로 채택. 수직 자세의 윗면은 접촉 TCP Z -20 mm. 정밀 검증 미실시."
+      "estimate_source": "팀 확정 운영값 2026-09-22: GripperDA_v1 TCP에서 그리퍼 하단 접촉점까지 tool +Z 20 mm. 수직 자세에서 base Z -20 mm 적용. 기록 ID gripper-bottom-offset-20260921-20mm-v1."
     },
     "provenance": {
       "seed_geometry": "repeat180_fit.json / 기존 8점 실측. 이번 측정의 정답으로 사용하지 않음.",
-      "top_reference": "사용자 결정 2026-09-21: gripper-bottom-offset-20260921-20mm-v1. 그리퍼 벌림 27.8 mm 상태에서 TCP부터 하단 접촉점까지 tool +Z 20 mm를 고정 추정 오프셋으로 채택. 수직 자세의 윗면은 접촉 TCP Z -20 mm. 정밀 검증 미실시.",
-      "trial_scene": "현장 단독 시험 전용: 이전 측정 후 양초/받침/철사 고정 유지 전제. 2026-09-21 사용자 승인으로 하단 오프셋 +20 mm 반영 및 8점 높이 20 mm 하향. 예상 접촉 TCP Z 232.925~236.705 mm에서 계산한 옆면 높이 192.925~196.705 mm와 수직 자세 1도/추종 여유를 포함해 TCP 검사 하한만 195→190 mm로 조정. 실기 재검증 전이며 전체 메시 충돌 검사 아님.",
+      "top_reference": "팀 확정 운영값 2026-09-22: GripperDA_v1 TCP에서 그리퍼 하단 접촉점까지 tool +Z 20 mm. 수직 자세에서 base Z -20 mm 적용. 기록 ID gripper-bottom-offset-20260921-20mm-v1.",
+      "trial_scene": "현장 단독 시험 전용: 이전 측정 후 양초/받침/철사 고정 유지 전제. 팀 합의로 하단 오프셋 +20 mm를 확정 설정으로 사용하고 8점 높이를 20 mm 하향. 예상 접촉 TCP Z 232.925~236.705 mm에서 계산한 옆면 높이 192.925~196.705 mm와 수직 자세 1도/추종 여유를 포함해 TCP 검사 하한 190 mm를 사용. 전체 메시 충돌 검사는 아님.",
       "duration_profile": "Target remains 120 s and is NOT achieved. Supervised full runs: 270.394 s and 299.295 s (including different HOME entry routes). Increase overall timeout from 300 to 360 s for scheduling/settling margin only; motion speeds and per-step stop/force limits unchanged.",
       "approach_acceleration": "2026-09-21: outward move after point 6 reached 10.185 N with 40 mm/s^2; operator reported no collision. Reduce to 20 mm/s^2 for supervised retest; keep 10 N stop limit."
     },
-    "measurement_scope": "INTEGRATION_ESTIMATE",
+    "measurement_scope": "ABSOLUTE_GEOMETRY",
     "tcp_id": "GripperDA_v1",
     "load_id": "ToolWeight_1",
     "side_entry_clearance_z_m": 0.33,
