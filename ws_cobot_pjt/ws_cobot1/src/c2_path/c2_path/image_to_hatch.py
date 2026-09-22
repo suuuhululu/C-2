@@ -6,8 +6,8 @@
 작은 면은 성분 내부의 중심 1패스로 보완한다. 실제 mm 좌표 변환은
 extract_2d.transform_raw_strokes가 한다.
 
-현재 홈 폭·간격은 실기 승인값이 없는 SIMULATION/test_only 고정값이다.
-HMI 입력으로 받지 않으며 실측 홈 폭이 확정되면 코드·근거·시험을 함께 갱신한다.
+홈 폭·경계 보정·해칭 간격은 SIMULATION/test_only 경로 생성의 고정 레시피다.
+HMI 입력으로 받지 않으며 값이 바뀌면 경로·설정 해시와 시험을 새로 생성한다.
 """
 from __future__ import annotations
 
@@ -22,13 +22,13 @@ from skimage.morphology import skeletonize
 from .image_to_svg import binarize, trace_strokes
 
 
-# 2026-09-22 사용자 실측 보고: 계획한 가공 조건에서 홈 폭 0.8mm.
-# 이 값은 실제 양초의 재료·깊이·속도별 반복 검증 전까지 경로 생성용 기준값이며,
-# REAL 실행 승인값이나 드릴 팁 직경 자체를 뜻하지 않는다.
+# 2026-09-22 SIMULATION/test_only 표면 경로 레시피: 홈 폭 0.8mm, 경계 안쪽 보정 0.4mm,
+# 해칭 간격 0.25mm. 가공 깊이 0.8mm는 c2_path가 아닌 실행 프로파일의
+# fixed_depth.depth_m에서 적용한다. 이 값들은 REAL 실행 승인값이나 드릴 팁 직경 자체를 뜻하지 않는다.
 EFFECTIVE_GROOVE_WIDTH_MM = 0.8
-HATCH_STEPOVER_RATIO = 0.5
-HATCH_SPACING_MM = EFFECTIVE_GROOVE_WIDTH_MM * HATCH_STEPOVER_RATIO
-BOUNDARY_INSET_MM = EFFECTIVE_GROOVE_WIDTH_MM / 2.0
+HATCH_SPACING_MM = 0.25
+HATCH_STEPOVER_RATIO = HATCH_SPACING_MM / EFFECTIVE_GROOVE_WIDTH_MM
+BOUNDARY_INSET_MM = 0.4
 MIN_HATCH_LENGTH_MM = 1.0
 MAX_HATCH_STROKES = 1000
 MIN_FALLBACK_LENGTH_MM = 0.3
@@ -129,6 +129,7 @@ def generate_scanlines(mask, source_bbox, scale_mm_per_px, *,
         "minimum_stroke_length_mm": round(min_length_mm, 6),
         "removed_short_strokes": removed_short,
         "direction": "image_left_to_right",
+        "recipe_scope": "simulation_test_only",
         "fixed_test_only": True,
     }
 
@@ -285,7 +286,7 @@ def strokes_to_svg(strokes, width_px, height_px, source_name):
     return (
         '<?xml version="1.0" encoding="UTF-8"?>\n'
         f'<!-- image_to_hatch.py 자동 생성: {source_name}; '
-        f'고정 간격 {HATCH_SPACING_MM:.3f}mm; SIMULATION/test_only -->\n'
+        f'SIMULATION/test_only 표면 경로 레시피; 고정 간격 {HATCH_SPACING_MM:.3f}mm -->\n'
         f'<svg xmlns="http://www.w3.org/2000/svg" width="{width_px}" height="{height_px}" '
         f'viewBox="0 0 {width_px} {height_px}">\n  {body}\n</svg>\n'
     )
@@ -377,6 +378,7 @@ def convert(image_path, width_mm, height_mm, *, invert=None,
         "minimum_hatch_fill_ratio": MIN_HATCH_FILL_RATIO,
         "direction": "hatch_image_left_to_right",
         "cross_hatch_enabled": True,
+        "recipe_scope": "simulation_test_only",
         "horizontal_hatch_stroke_count": len(horizontal_hatches),
         "vertical_hatch_stroke_count": len(vertical_hatches),
         "fixed_test_only": True,

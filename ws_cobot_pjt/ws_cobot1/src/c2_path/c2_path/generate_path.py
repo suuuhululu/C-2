@@ -228,7 +228,7 @@ def chunk(points, max_points):
 
 def build(mapped, path_id, path_version, asset_id, asset_sha256,
           snapshot_id, profile_sha256, source_mode="SIMULATION", on_progress=None, should_stop=None,
-          real_preview=None, real_execution=None):
+          real_preview=None, real_execution=None, conversion_config=None):
     """on_progress(0~1): 이 단계 안의 진행률 (정렬 0~0.5, 구간 조립 0.5~1). 예외는 그대로 전파한다.
 
     real_preview: REAL 추정값 미리보기 전용 경로의 출처 표시.
@@ -354,6 +354,8 @@ def build(mapped, path_id, path_version, asset_id, asset_sha256,
         },
         "segments": segments,
     }
+    if conversion_config is not None:
+        path["config"]["conversion"] = dict(conversion_config)
     if real_preview is not None:
         path["config"]["real_preview"] = dict(real_preview)
     if real_execution is not None:

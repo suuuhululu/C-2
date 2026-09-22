@@ -28,8 +28,12 @@ class TestParallelHatch(unittest.TestCase):
         finally:
             os.unlink(path)
 
-        self.assertIn("SIMULATION/test_only", svg)
+        self.assertIn("SIMULATION/test_only 표면 경로 레시피", svg)
+        self.assertEqual(image_to_hatch.EFFECTIVE_GROOVE_WIDTH_MM, 0.8)
+        self.assertEqual(image_to_hatch.BOUNDARY_INSET_MM, 0.4)
+        self.assertEqual(image_to_hatch.HATCH_SPACING_MM, 0.25)
         self.assertEqual(stats["spacing_mm"], image_to_hatch.HATCH_SPACING_MM)
+        self.assertEqual(stats["recipe_scope"], "simulation_test_only")
         self.assertTrue(stats["fixed_test_only"])
         self.assertTrue(raw)
         self.assertGreater(stats["horizontal_hatch_stroke_count"], 1)
@@ -147,7 +151,8 @@ class TestParallelHatch(unittest.TestCase):
         cv2.circle(image, (155, 80), 1, 0, -1)   # 작은 점: 단방향/1패스만 허용
         path = _write(image)
         try:
-            _svg, _raw, _bbox, stats = image_to_hatch.convert(path, 44.0, 32.0)
+            # 0.25mm 간격을 픽셀 격자에서 표현할 수 있는 물리 배율을 준다.
+            _svg, _raw, _bbox, stats = image_to_hatch.convert(path, 30.0, 24.0)
         finally:
             os.unlink(path)
         details = stats["components"]
