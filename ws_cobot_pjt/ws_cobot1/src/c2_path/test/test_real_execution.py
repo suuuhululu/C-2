@@ -135,7 +135,7 @@ class TestRealExecutionCandidate(RealExecutionBase):
             lambda p: p["workcell"]["top"].__setitem__("offset_record_id", ""),
             lambda p: p.pop("execution_context"),
             lambda p: p.pop("joint_check_arguments"),
-            lambda p: p.pop("verify_tool_tip_arguments"),
+            lambda p: p.pop("tip_calibration"),
         )
         for mutate in mutations:
             with self.subTest(mutate=mutate):
@@ -161,6 +161,33 @@ class TestRealExecutionCandidate(RealExecutionBase):
     def test_estimated_offset_requires_its_source(self):
         profile = matching_test_profile_v4()
         profile["workcell"]["top"].pop("estimate_source")
+        with self.assertRaises(PipelineError) as caught:
+            validate_profile(profile)
+        self.assertEqual(caught.exception.code, "PROFILE_MISMATCH")
+
+    def test_confirmed_top_state_is_preserved_without_becoming_permission(self):
+        profile = matching_test_profile_v4()
+        profile["absolute_top_verified"] = True
+        profile["measurement_assumptions"]["absolute_top_verified"] = True
+        profile["measurement_assumptions"]["independent_accuracy_verified"] = True
+        result, _profile, _pid, _sha = self.run_profile(profile, offset_v_mm=75.0)
+        path, preview, report, _artifact = self.outputs(result)
+        for marks in (path["config"]["real_execution"], preview["real_execution"],
+                      report["real_execution"]):
+            self.assertIs(marks["absolute_top_verified"], True)
+            self.assertIs(marks["independent_accuracy_verified"], True)
+        self.assertEqual(report["execution_readiness"]["executability"], "NOT_JUDGED")
+
+    def test_measurement_confirmation_fields_must_be_consistent(self):
+        profile = matching_test_profile_v4()
+        profile["measurement_status"] = "FORCE_CONTACT_ESTIMATE"
+        with self.assertRaises(PipelineError) as caught:
+            validate_profile(profile)
+        self.assertEqual(caught.exception.code, "PROFILE_MISMATCH")
+
+    def test_missing_generated_motion_profile_is_rejected(self):
+        profile = matching_test_profile_v4()
+        profile["execution_context"]["motion_profiles"].pop("candle_retract")
         with self.assertRaises(PipelineError) as caught:
             validate_profile(profile)
         self.assertEqual(caught.exception.code, "PROFILE_MISMATCH")

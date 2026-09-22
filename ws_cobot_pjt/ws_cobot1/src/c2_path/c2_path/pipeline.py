@@ -152,6 +152,9 @@ PROFILE_CONTRACT_V4 = "c2-path-real-execution-profile/1"
 CALIBRATION_STATUS_REAL_PREVIEW = "REAL_ESTIMATE_PREVIEW_ONLY"
 REAL_PREVIEW_MEASUREMENT_STATUSES = ("ESTIMATED", "FORCE_CONTACT_ESTIMATE")   # 준비 Result 의 validity 값 그대로
 REAL_EXECUTION_OFFSET_STATUSES = ("VERIFIED", "ESTIMATED")
+REAL_EXECUTION_MOTION_PROFILE_IDS = (
+    "candle_approach", "candle_cut", "candle_travel", "candle_retract",
+)
 UUID_FIELDS_V3 = ("preparation_id", "measurement_id", "input_profile_snapshot_id", "measurement_record_id")
 SHA256_FIELDS_V3 = ("input_profile_sha256", "measurement_record_sha256")
 HEIGHT_REFERENCE_BOTTOM = "bottom"       # v=0 은 양초 바닥(축 원점 z). 윗면 기준이 아니다.
@@ -313,14 +316,24 @@ def _validate_profile_v4(profile: Mapping, surface: Mapping) -> None:
     _same(profile.get("real_execution_allowed"), True, "real_execution_allowed", errors)
     _provenance_errors(profile, errors)
     validity = profile.get("validity", profile.get("measurement_status"))
+    measurement_status = profile.get("measurement_status", validity)
     if validity not in REAL_PREVIEW_MEASUREMENT_STATUSES:
         errors.append("validity/measurement_status는 ESTIMATED 또는 FORCE_CONTACT_ESTIMATE여야 합니다.")
-    if profile.get("absolute_top_verified") is not False:
-        errors.append("absolute_top_verified=false 상태를 그대로 보존해야 합니다.")
+    if measurement_status != validity:
+        errors.append("validity와 measurement_status는 같은 원본 측정 확인 수준이어야 합니다.")
+    absolute_top_verified = profile.get("absolute_top_verified")
+    if type(absolute_top_verified) is not bool:
+        errors.append("absolute_top_verified는 원본 측정 결과의 boolean이어야 합니다.")
     assumptions = profile.get("measurement_assumptions")
-    if not (isinstance(assumptions, Mapping)
-            and assumptions.get("independent_accuracy_verified") is False):
-        errors.append("measurement_assumptions.independent_accuracy_verified=false가 필요합니다.")
+    if not isinstance(assumptions, Mapping):
+        errors.append("measurement_assumptions 원본 측정 확인 정보가 필요합니다.")
+    else:
+        independent_accuracy_verified = assumptions.get("independent_accuracy_verified")
+        if type(independent_accuracy_verified) is not bool:
+            errors.append("measurement_assumptions.independent_accuracy_verified는 boolean이어야 합니다.")
+        if ("absolute_top_verified" in assumptions
+                and assumptions["absolute_top_verified"] != absolute_top_verified):
+            errors.append("absolute_top_verified와 measurement_assumptions 원본 값이 일치해야 합니다.")
     _same(surface.get("height_reference"), HEIGHT_REFERENCE_BOTTOM, "surface.height_reference", errors)
     _same(surface.get("v_direction"), V_DIRECTION_UP, "surface.v_direction", errors)
     errors.extend(snapshot.surface_geometry_errors(surface))
@@ -343,8 +356,7 @@ def _validate_profile_v4(profile: Mapping, surface: Mapping) -> None:
     if isinstance(workcell, Mapping):
         _same(workcell.get("tcp_id"), profile.get("tcp_id"), "workcell.tcp_id", errors)
         _same(workcell.get("load_id"), profile.get("load_id"), "workcell.load_id", errors)
-    for key in ("tip_calibration", "calibration_profiles", "execution_context",
-                "joint_check_arguments", "verify_tool_tip_arguments"):
+    for key in ("tip_calibration", "execution_context", "joint_check_arguments"):
         if not isinstance(profile.get(key), Mapping):
             errors.append(f"{key} 실행 설정이 필요합니다.")
     execution = profile.get("execution_context")
@@ -353,6 +365,11 @@ def _validate_profile_v4(profile: Mapping, surface: Mapping) -> None:
         for key in ("motion_profiles", "tool_profile", "stop_profile"):
             if not isinstance(execution.get(key), Mapping):
                 errors.append(f"execution_context.{key}가 필요합니다.")
+        profiles = execution.get("motion_profiles")
+        if isinstance(profiles, Mapping):
+            missing = [name for name in REAL_EXECUTION_MOTION_PROFILE_IDS if name not in profiles]
+            if missing:
+                errors.append("실제 실행 설정에 필요한 motion_profile_id가 없습니다: " + ", ".join(missing))
     joints = profile.get("joint_check_arguments")
     limits = joints.get("limits_deg") if isinstance(joints, Mapping) else None
     margin = joints.get("j6_margin_deg") if isinstance(joints, Mapping) else None
@@ -365,10 +382,6 @@ def _validate_profile_v4(profile: Mapping, surface: Mapping) -> None:
         if (isinstance(margin, bool) or not isinstance(margin, (int, float)) or not math.isfinite(margin)
                 or margin < 0 or 2 * margin >= limits[5][1] - limits[5][0]):
             errors.append("joint_check_arguments.j6_margin_deg가 유효하지 않습니다.")
-    verify = profile.get("verify_tool_tip_arguments")
-    tol = verify.get("tol_m") if isinstance(verify, Mapping) else None
-    if isinstance(tol, bool) or not isinstance(tol, (int, float)) or not math.isfinite(tol) or tol <= 0:
-        errors.append("verify_tool_tip_arguments.tol_m 양수가 필요합니다.")
     if errors:
         unique = list(dict.fromkeys(errors))
         raise PipelineError("PROFILE_MISMATCH", "REAL 실행 스냅샷이 올바르지 않습니다: " + "; ".join(unique[:6]))
@@ -412,7 +425,7 @@ def check_goal_profile_mode(goal: Mapping, profile: Mapping) -> None:
 
 def matching_test_profile_v4(**surface_overrides) -> dict:
     """실행 계약 단위시험용 형식 예시. 실제 로봇 승인값으로 사용하지 않는다."""
-    profile = matching_test_profile_v3(measurement_status="FORCE_CONTACT_ESTIMATE", **surface_overrides)
+    profile = matching_test_profile_v3(measurement_status="ESTIMATED", **surface_overrides)
     profile.pop("calibration_status", None)
     profile.update({
         "contract": PROFILE_CONTRACT_V4,
@@ -426,11 +439,11 @@ def matching_test_profile_v4(**surface_overrides) -> dict:
                              "offset_record_id": "unit-test-offset",
                              "estimate_source": "unit-test-estimate"}},
         "tip_calibration": {"tool_id": wc.TOOL_ID, "offset_tool_m": [0.0, -0.1, 0.0]},
-        "calibration_profiles": {"verify": {}},
-        "execution_context": {"source_mode": "REAL", "motion_profiles": {"travel": {}},
+        "execution_context": {"source_mode": "REAL", "motion_profiles": {
+                              "candle_approach": {}, "candle_cut": {},
+                              "candle_travel": {}, "candle_retract": {}},
                               "tool_profile": {"tool_id": wc.TOOL_ID}, "stop_profile": {"mode": 1}},
         "joint_check_arguments": {"limits_deg": [[-180.0, 180.0]] * 6, "j6_margin_deg": 5.0},
-        "verify_tool_tip_arguments": {"tol_m": 0.001},
     })
     return profile
 
@@ -783,6 +796,16 @@ class GeneratePipeline:
             )
         except ValueError as exc:
             raise PipelineError("VALIDATION_FAILED", str(exc)) from exc
+
+        if real_execution is not None:
+            motion_profiles = profile["execution_context"]["motion_profiles"]
+            missing = sorted({segment.get("motion_profile_id") for segment in path["segments"]
+                              if segment.get("motion_profile_id") not in motion_profiles})
+            if missing:
+                raise PipelineError(
+                    "PROFILE_MISMATCH",
+                    "생성 경로의 motion_profile_id가 실제 실행 설정에 없습니다: " + ", ".join(missing),
+                )
 
         checkpoint("VALIDATING", 0.88)
         report = validate_path.validate(path)
