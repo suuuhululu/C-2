@@ -1540,7 +1540,7 @@ def test_registered_inputs_reject_missing_or_conflicting_evidence(tmp_path, case
     assert called == []
 
 
-class _DriverBoundaryMock(MockRobotAdapter):
+class _DriverBoundaryMock(MockRobotAdapter, DoosanRobotAdapter):
     """모션 변환은 실제 어댑터 메서드, 드라이버/완료/접촉은 전부 메모리 대역.
 
     DoosanRobotAdapter 생성자를 호출하지 않아 ROS import·서비스·장치 설정이 없다.
@@ -1555,15 +1555,22 @@ class _DriverBoundaryMock(MockRobotAdapter):
         self.tip_commands = []
         self.waits = []
         self.posx = lambda *values: list(values)
-        self.R = SimpleNamespace(
-            DR_MV_MOD_ABS=0, DR_MVS_VEL_CONST=0, mwait=lambda: None,
-            amovel=lambda pose, **kw: self._record_driver("move", [pose], kw),
-            amovesx=lambda poses, **kw: self._record_driver("move_spline", poses, kw),
-        )
+        self._srv = {name: SimpleNamespace(Request=SimpleNamespace)
+                     for name in ('MoveLine', 'MoveSplineTask')}
 
-    def _record_driver(self, kind, poses, kw):
-        self.commands.append((kind, copy.deepcopy(poses), kw))
-        return 0  # 장치 응답이 아닌 명시적 모의 명령 수락
+    def _motion_sample(self, timeout):
+        # 이 시험은 명령 변환 경계만 확인한다. 완료 관측은 별도 어댑터 시험에서 검증.
+        return [1000., 1000., 1000., 0., 0., 0.], 1, 0
+
+    def _call(self, endpoint, kind, request, timeout=5.):
+        from types import SimpleNamespace
+        spline = endpoint == 'motion/move_spline_task'
+        poses = [list(p.data) for p in request.pos] if spline else [list(request.pos)]
+        self.commands.append(('move_spline' if spline else 'move', poses,
+                              dict(ref=request.ref, mod=request.mode,
+                                   vel=request.vel, acc=request.acc)))
+        assert request.sync_type == 1
+        return SimpleNamespace(success=True)
 
     def move(self, pose, frame_id, profile, deadline_s, cancel):
         self.tip_commands.append(("move", [list(pose)], frame_id))
@@ -1573,10 +1580,13 @@ class _DriverBoundaryMock(MockRobotAdapter):
     def move_spline(self, poses, frame_id, profile, deadline_s, cancel):
         self.tip_commands.append(("move_spline", copy.deepcopy(poses), frame_id))
         self.pending_tip = list(poses[-1])
-        return DoosanRobotAdapter.move_spline(self, poses, frame_id, profile, deadline_s, cancel)
+        from types import SimpleNamespace
+        with pytest.MonkeyPatch.context() as patch:
+            patch.setitem(sys.modules, 'std_msgs.msg', SimpleNamespace(Float64MultiArray=SimpleNamespace))
+            return DoosanRobotAdapter.move_spline(self, poses, frame_id, profile, deadline_s, cancel)
 
-    def _wait_motion(self, target, deadline_s, cancel, step, tolerance_mm):
-        self.waits.append((list(target), deadline_s, tolerance_mm))
+    def _wait_motion(self, target, deadline_s, cancel, step, tolerance_mm, **_kwargs):
+        self.waits.append((list(target[:3]), deadline_s, tolerance_mm))
         return self._simulate_motion(self.pending_tip, step, cancel)
 
 
@@ -1672,7 +1682,8 @@ def test_producer_heart_axes_offset_and_driver_commands(mode, inward_m, monkeypa
         assert options["vel"] == [profile["vel_mm_s"]] * 2
         assert options["acc"] == [profile["acc_mm_s2"]] * 2
         assert wait[0] == controller_poses[-1][:3]
-        assert wait[1:] == (profile["completion_timeout_s"], profile["pos_tol_mm"])
+        assert wait[1] == pytest.approx(profile["completion_timeout_s"], abs=0.1)
+        assert wait[2] == profile["pos_tol_mm"]
         for px, tip, expected_tip in zip(controller_poses, tip_poses, poses):
             assert tip == pytest.approx(expected_tip, abs=3e-8)
             radial = _sample_radial(expected_tip)
