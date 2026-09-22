@@ -102,6 +102,37 @@ def bind_goal(measure_goal, record, profile):
                 profile_snapshot_id=profile['id'], profile_sha256=profile['sha256'])
 
 
+def real_preview_profile(base, goal, display, config, record):
+    """REAL 실측 기하만으로 만드는 미리보기 전용 스냅샷.
+
+    실행 프로파일과 BIND는 사용하지 않는다. 이 스냅샷으로 생성한 경로는
+    c2_path의 /3 계약에 따라 test_only이며 실제 공정 실행 입력이 아니다.
+    """
+    from .preparation import measured_profile
+    from c2_path.pipeline import (CALIBRATION_STATUS_REAL_PREVIEW,
+                                  PROFILE_CONTRACT_V3, validate_profile)
+    profile = measured_profile(base, goal, display)
+    measurement = display['observed_state']['measurement']
+    profile.update(
+        contract=PROFILE_CONTRACT_V3,
+        source_mode='REAL',
+        calibration_status=CALIBRATION_STATUS_REAL_PREVIEW,
+        measurement_status=measurement['validity'],
+        preparation_id=goal['preparation_id'],
+        measurement_id=goal['measurement_id'],
+        input_profile_snapshot_id=goal['input_profile_snapshot_id'],
+        input_profile_sha256=goal['input_profile_sha256'],
+        measurement_record_id=record['id'],
+        measurement_record_sha256=record['sha256'],
+        measured_at=measurement['measured_at'],
+        label='REAL 실측 미리보기',
+        note='실측 기하 기반 미리보기 전용. BIND·최종 관절 검사·실행 승인이 아닙니다.',
+    )
+    copy_confidence(profile, measurement)
+    validate_profile(profile)
+    return profile
+
+
 def real_bound_profile(goal, display, config, record):
     """등록 실행 설정 + 이번 측정. 신뢰도 값을 승인 값으로 변조하지 않는다."""
     from .preparation import measured_profile

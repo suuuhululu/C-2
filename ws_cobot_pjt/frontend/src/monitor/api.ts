@@ -145,6 +145,7 @@ export type Snapshot = {
   preparation: PreparationState;
   work_area_policy?: WorkAreaPolicy;
   active_run: Run | null;
+  execution_pending?: boolean;
   generation: Generation | null;
   storage_error: string | null;
   scenario: string | null;
@@ -247,6 +248,7 @@ export type PreparationState = {
   transport: string;
   reason: string;
   ready: boolean;
+  preview_ready?: boolean;
   blocks_work: boolean;
   start_error?: string | null;
   input_config: {

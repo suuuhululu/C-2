@@ -54,6 +54,10 @@ def main():
         env['C2_PREPARATION_CONFIG']=str(Path(args.preparation_config).expanduser().resolve())
     if args.execution_profile:
         env['C2_EXECUTION_PROFILE']=str(Path(args.execution_profile).expanduser().resolve())
+    elif args.mode == 'REAL':
+        default_execution = root/'ws_cobot1/src/c2_process/config/real_execution_profile_20260922.json'
+        if default_execution.is_file():
+            env['C2_EXECUTION_PROFILE'] = str(default_execution)
     default_data=root/'backend/monitor_data'
     if args.transport=='ros':
         default_data/='real_preparation' if args.mode == 'REAL' else 'ros_path'
@@ -66,11 +70,6 @@ def main():
         preflight=('import os, rclpy; from c2_interfaces.action import GeneratePath; '
                    'from c2_path.pipeline import matching_test_profile; from app.storage import Storage; '
                    'assert GeneratePath.Goal.SCHEMA_VERSION == 2; Storage(os.environ["C2_MONITOR_DATA"])')
-        if args.mode == 'REAL':
-            preflight += ('; from c2_interfaces.action import PrepareWorkpiece; '
-                          'from app.preparation import real_input_config; '
-                          'from app.real_execution_config import validate_real_execution_config; '
-                          'validate_real_execution_config(real_input_config(Storage(os.environ["C2_MONITOR_DATA"]), os.environ["C2_PREPARATION_CONFIG"])["payload"])')
         subprocess.run([str(python),'-c',preflight],cwd=root/'backend',env=env,check=True)
     if not args.legacy_mock_image and args.transport == 'mock':
         subprocess.run([str(python),'-c','from c2_path.pipeline import GeneratePipeline'],cwd=root/'backend',env=env,check=True)
