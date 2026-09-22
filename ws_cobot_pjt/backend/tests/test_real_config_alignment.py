@@ -16,6 +16,21 @@ def config(tmp_path):
     return value
 
 
+def enable_cut_contact(context, mode):
+    context['tool_profile'].update(
+        contact_mode='force_touch', clearance_m=.006, touch_extra_m=.008,
+        touch_offset_range_m=[-.003, .003], touch_force_n=.8,
+        touch_speed_mm_s=1.5, tool_axis='-y', cut_contact=mode,
+        force_limit_n=6., air_force_limit_n=15.)
+    if mode == 'normal_force_hold':
+        context['tool_profile'].update(
+            cut_force_n=2., cut_stiffness=[3000.] * 3 + [300.] * 3, ramp_s=.5)
+    else:
+        context['tool_profile'].update(
+            cut_force_min_n=1.5, cut_force_max_n=4., adaptive_step_m=.0003,
+            adaptive_chunk_points=20)
+
+
 @pytest.mark.parametrize('depth', [0., .001])
 @pytest.mark.parametrize('clearance', [.002, {'stroke': .002}])
 def test_same_fixed_depth_settings_pass_both_without_rewriting(tmp_path, depth, clearance):
@@ -58,4 +73,54 @@ def test_additional_profile_is_also_validated(tmp_path):
     with pytest.raises(ValueError, match='additional'):
         validate_real_execution_config(value)
     with pytest.raises(InputsUnavailable, match='additional'):
+        validate_real_execution_profiles(context)
+
+
+@pytest.mark.parametrize('mode', ['normal_force_hold', 'chunk_adaptive'])
+def test_cut_contact_settings_pass_both_validators_without_rewriting(tmp_path, mode):
+    value = config(tmp_path)
+    context = value['execution_profile']['execution_context']
+    enable_cut_contact(context, mode)
+    before = deepcopy(value)
+    validate_real_execution_config(value)
+    validate_real_execution_profiles(context)
+    assert value == before
+
+
+@pytest.mark.parametrize(('mode', 'key', 'bad'), [
+    ('normal_force_hold', 'cut_stiffness', [3000.] * 5),
+    ('normal_force_hold', 'ramp_s', 1.1),
+    ('chunk_adaptive', 'cut_force_min_n', 5.),
+    ('chunk_adaptive', 'adaptive_step_m', 0.),
+    ('chunk_adaptive', 'adaptive_chunk_points', 81),
+])
+def test_invalid_cut_contact_settings_rejected_by_both(tmp_path, mode, key, bad):
+    value = config(tmp_path)
+    context = value['execution_profile']['execution_context']
+    enable_cut_contact(context, mode)
+    context['tool_profile'][key] = bad
+    with pytest.raises(ValueError, match=key):
+        validate_real_execution_config(value)
+    with pytest.raises(InputsUnavailable, match=key):
+        validate_real_execution_profiles(context)
+
+
+def test_fixed_depth_rejects_cut_contact_by_both(tmp_path):
+    value = config(tmp_path)
+    context = value['execution_profile']['execution_context']
+    context['tool_profile']['cut_contact'] = 'normal_force_hold'
+    with pytest.raises(ValueError, match='force_touch'):
+        validate_real_execution_config(value)
+    with pytest.raises(InputsUnavailable, match='force_touch'):
+        validate_real_execution_profiles(context)
+
+
+def test_cut_contact_requires_explicit_tool_axis_by_both(tmp_path):
+    value = config(tmp_path)
+    context = value['execution_profile']['execution_context']
+    enable_cut_contact(context, 'normal_force_hold')
+    context['tool_profile'].pop('tool_axis')
+    with pytest.raises(ValueError, match='tool_axis'):
+        validate_real_execution_config(value)
+    with pytest.raises(InputsUnavailable, match='tool_axis'):
         validate_real_execution_profiles(context)

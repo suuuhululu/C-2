@@ -88,7 +88,8 @@ def check_selected_tool_profiles(adapter, settings: Mapping) -> StepResult:
 
 
 def check_preparation_status(adapter, evidence: PreconditionEvidence, settings: Mapping,
-                             *, cancel=None, on_observation=None) -> StepResult:
+                             *, cancel=None, on_observation=None,
+                             initialize_controller=None) -> StepResult:
     """경로 생성 전 상태검사의 함수 진입점. 측정·조각·그리퍼 명령 없음.
 
     HMI 준비 요청과 연결할 내부 함수이며 새 ROS 인터페이스가 아니다.
@@ -123,8 +124,19 @@ def check_preparation_status(adapter, evidence: PreconditionEvidence, settings: 
         return cancelled()
     if not selected.ok:
         return selected
+    if initialize_controller is not None:
+        if not callable(initialize_controller):
+            return StepResult("FAILED", "INVALID_INPUT", "제어기 초기화 함수 오류", "robot_status")
+        initialized = initialize_controller()
+        if not isinstance(initialized, StepResult):
+            return StepResult("UNKNOWN", "INTERNAL_ERROR", "제어기 초기화 반환 형식 오류", "robot_status")
+        if not initialized.ok:
+            return initialized
+        if cancel is not None and cancel.is_set():
+            return cancelled()
     return StepResult("SUCCEEDED", "NONE", "준비 상태검사 통과", "robot_status",
                       {**checked.observed_state, **selected.observed_state,
+                       **(initialized.observed_state if initialize_controller is not None else {}),
                        "robot_state": state.robot_state, "measured_at": state.measured_at})
 
 
@@ -354,6 +366,46 @@ def validate_real_execution_profiles(execution):
         for key in ("touch_force_n", "touch_speed_mm_s"):
             if not positive(tool.get(key)):
                 invalid(f"REAL force_touch {key} 양수 필요")
+    cut_contact = tool.get("cut_contact")
+    if cut_contact is not None:
+        if tool["contact_mode"] != "force_touch":
+            invalid("REAL cut_contact는 force_touch에서만 사용 가능")
+        if cut_contact not in ("normal_force_hold", "chunk_adaptive"):
+            invalid(f"REAL cut_contact {cut_contact!r} 미지원")
+        if tool.get("tool_axis") not in ("x", "+x", "-x", "y", "+y", "-y", "z", "+z", "-z"):
+            invalid("REAL cut_contact.tool_axis ±x/±y/±z 명시 필요")
+        for key in ("force_limit_n", "air_force_limit_n"):
+            if not positive(tool.get(key)):
+                invalid(f"REAL cut_contact.{key} 양수 필요")
+        bounds = tool.get("touch_offset_range_m")
+        extra = tool.get("touch_extra_m")
+        if (not isinstance(bounds, (list, tuple)) or len(bounds) != 2
+                or any(type(v) not in (int, float) or not math.isfinite(v) for v in bounds)
+                or bounds[0] > bounds[1] or type(extra) not in (int, float)
+                or not math.isfinite(extra) or extra < 0
+                or bounds[0] < -clearance or bounds[1] > extra):
+            invalid("REAL cut_contact.touch_offset_range_m/clearance_m/touch_extra_m 범위 오류")
+        if cut_contact == "normal_force_hold":
+            stiffness = tool.get("cut_stiffness")
+            ramp = tool.get("ramp_s")
+            if not positive(tool.get("cut_force_n")):
+                invalid("REAL normal_force_hold.cut_force_n 양수 필요")
+            if (not isinstance(stiffness, (list, tuple)) or len(stiffness) != 6
+                    or any(type(v) not in (int, float) or not math.isfinite(v) or v < 0
+                           for v in stiffness)):
+                invalid("REAL normal_force_hold.cut_stiffness 6축 범위 오류")
+            if (type(ramp) not in (int, float) or not math.isfinite(ramp)
+                    or not 0 <= ramp <= 1):
+                invalid("REAL normal_force_hold.ramp_s 0~1 범위 오류")
+        else:
+            low, high = tool.get("cut_force_min_n"), tool.get("cut_force_max_n")
+            points = tool.get("adaptive_chunk_points")
+            if not positive(low) or not positive(high) or low > high:
+                invalid("REAL chunk_adaptive.cut_force_min_n/cut_force_max_n 범위 오류")
+            if not positive(tool.get("adaptive_step_m")):
+                invalid("REAL chunk_adaptive.adaptive_step_m 양수 필요")
+            if type(points) is not int or not 2 <= points <= 80:
+                invalid("REAL chunk_adaptive.adaptive_chunk_points 2~80 정수 필요")
     stop = execution.get("stop_profile")
     if (not isinstance(stop, Mapping) or type(stop.get("mode")) is not int
             or not positive(stop.get("confirmation_timeout_s"))):
@@ -393,8 +445,8 @@ def resolve_real_execution_settings(snapshot, goal, profile_snapshot_id, *, adap
     if snapshot.get("gripper_open_allowed") is not False:
         unavailable("고정 드릴 profile의 그리퍼 열기 금지 설정 불일치", "INVALID_INPUT")
     if (not isinstance(profile_snapshot_id, str) or not profile_snapshot_id
-            or not isinstance(snapshot.get("tcp_id"), str) or not snapshot["tcp_id"]
-            or not isinstance(snapshot.get("load_id"), str) or not snapshot["load_id"]):
+            or snapshot.get("tcp_id") != "GripperDA_v1"
+            or snapshot.get("load_id") != "ToolWeight_1"):
         unavailable("등록 snapshot ID 또는 TCP/load ID 없음", "PROFILE_MISMATCH")
 
     workcell = snapshot.get("workcell")
@@ -1088,7 +1140,9 @@ class ProcessCoordinator:
                 context,
                 status_check=lambda: check_preparation_status(
                     adapter, evidence, settings, cancel=active.cancel,
-                    on_observation=self.observations.capture),
+                    on_observation=self.observations.capture,
+                    initialize_controller=(adapter.initialize_controller
+                                           if self.runtime_mode == "REAL" else None)),
                 motion_check=lambda: motion_check(adapter, context),
                 measure=lambda: measure(adapter, context), confirm_result=confirm_result,
                 on_phase=on_phase)
@@ -1429,7 +1483,7 @@ class ProcessCoordinator:
                                        loaded.snapshot_bytes, evidence, joint_check=joints)
             if not checked.ok:
                 return checked
-            if self.runtime_mode == "REAL" and not prepared:
+            if self.runtime_mode == "REAL":
                 # 현장 TP에서 선택한 TCP/하중을 읽기만 한다. 자동 재선택/모드 전환 없음.
                 selected = check_selected_tool_profiles(loaded.adapter, config)
                 if not selected.ok:
@@ -2079,8 +2133,7 @@ def _parse_real_preparation_args(argv):
     parser.add_argument("--controller-prefix", required=True,
                         help="두산 제어기 ROS 서비스 prefix (예: /dsr01/dsr_controller2)")
     parser.add_argument("--control-authority-topic",
-                        default="/dsr01/dsr_controller2/control_authority",
-                        help="PR #48 std_msgs/String JSON v1 제어권 토픽")
+                        help="controller-prefix/control_authority와 같은 제어권 토픽; 생략 시 prefix에서 생성")
     parser.add_argument("--control-authority-max-age-s", type=float, default=0.5,
                         help="제어권 관측 최대 경과시간(초), 0초 초과 0.5초 이하")
     argv = list(argv)
@@ -2091,11 +2144,14 @@ def _parse_real_preparation_args(argv):
     endpoint = urlparse(options.preparation_backend_url)
     if endpoint.scheme not in {"http", "https"} or not endpoint.netloc:
         parser.error("--preparation-backend-url은 http(s) 절대 URL이어야 함")
-    if not options.controller_prefix.startswith("/") or options.controller_prefix == "/":
+    if not options.controller_prefix.startswith("/") or options.controller_prefix.rstrip("/") == "":
         parser.error("--controller-prefix는 /로 시작하는 구체적인 ROS prefix여야 함")
-    if (not isinstance(options.control_authority_topic, str)
-            or not options.control_authority_topic.startswith("/")):
-        parser.error("--control-authority-topic은 절대 ROS 이름이어야 함")
+    options.controller_prefix = options.controller_prefix.rstrip("/")
+    authority_topic = options.controller_prefix + "/control_authority"
+    if options.control_authority_topic is None:
+        options.control_authority_topic = authority_topic
+    elif options.control_authority_topic != authority_topic:
+        parser.error("--control-authority-topic은 --controller-prefix/control_authority와 일치해야 함")
     if (not math.isfinite(options.control_authority_max_age_s)
             or not 0 < options.control_authority_max_age_s <= 0.5):
         parser.error("--control-authority-max-age-s는 0초 초과 0.5초 이하여야 함")
@@ -2120,7 +2176,7 @@ def _parse_real_process_args(argv):
     parser.add_argument("--controller-prefix", required=True,
                         help="두산 제어기 ROS 서비스 prefix")
     parser.add_argument("--control-authority-topic",
-                        default="/dsr01/dsr_controller2/control_authority")
+                        help="controller-prefix/control_authority와 같은 제어권 토픽; 생략 시 prefix에서 생성")
     parser.add_argument("--control-authority-max-age-s", type=float, default=0.5)
     argv = list(argv)
     split = argv.index("--ros-args") if "--ros-args" in argv else len(argv)
@@ -2130,10 +2186,14 @@ def _parse_real_process_args(argv):
     endpoint = urlparse(options.preparation_backend_url)
     if endpoint.scheme not in {"http", "https"} or not endpoint.netloc:
         parser.error("--preparation-backend-url은 http(s) 절대 URL이어야 함")
-    if not options.controller_prefix.startswith("/") or options.controller_prefix == "/":
+    if not options.controller_prefix.startswith("/") or options.controller_prefix.rstrip("/") == "":
         parser.error("--controller-prefix는 /로 시작하는 구체적인 ROS prefix여야 함")
-    if not options.control_authority_topic.startswith("/"):
-        parser.error("--control-authority-topic은 절대 ROS 이름이어야 함")
+    options.controller_prefix = options.controller_prefix.rstrip("/")
+    authority_topic = options.controller_prefix + "/control_authority"
+    if options.control_authority_topic is None:
+        options.control_authority_topic = authority_topic
+    elif options.control_authority_topic != authority_topic:
+        parser.error("--control-authority-topic은 --controller-prefix/control_authority와 일치해야 함")
     if (not math.isfinite(options.control_authority_max_age_s)
             or not 0 < options.control_authority_max_age_s <= 0.5):
         parser.error("--control-authority-max-age-s는 0초 초과 0.5초 이하여야 함")
@@ -2187,7 +2247,8 @@ def real_preparation_main(args=None, *, observation_options_factory=None,
         options_factory = observation_options_factory or (
             lambda owner: _real_preparation_options(owner, options))
         robot_factory = adapter_factory or (
-            lambda owner: DoosanRobotAdapter(owner))
+            lambda owner: DoosanRobotAdapter(
+                owner, controller_prefix=options.controller_prefix))
         node = create_ros_node(
             load_inputs=_missing_loader,
             runtime_mode="REAL",
@@ -2245,7 +2306,9 @@ def real_process_main(args=None, *, observation_options_factory=None,
     try:
         options_factory = observation_options_factory or (
             lambda owner: _real_preparation_options(owner, options))
-        robot_factory = adapter_factory or (lambda owner: DoosanRobotAdapter(owner))
+        robot_factory = adapter_factory or (
+            lambda owner: DoosanRobotAdapter(
+                owner, controller_prefix=options.controller_prefix))
         node = create_ros_node(
             load_inputs=_missing_loader,
             journal=RunJournal(options.execution_journal_path),

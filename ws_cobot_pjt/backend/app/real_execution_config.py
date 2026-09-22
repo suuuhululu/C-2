@@ -73,6 +73,45 @@ def validate_real_execution_config(config):
     else:
         for key in ('touch_force_n', 'touch_speed_mm_s'):
             positive(tool.get(key), 'tool_profile.' + key)
+    cut_contact = tool.get('cut_contact')
+    if cut_contact is not None:
+        if tool['contact_mode'] != 'force_touch':
+            raise ValueError('tool_profile.cut_contact는 force_touch에서만 사용 가능')
+        if cut_contact not in ('normal_force_hold', 'chunk_adaptive'):
+            raise ValueError('tool_profile.cut_contact 미지원: ' + repr(cut_contact))
+        if tool.get('tool_axis') not in ('x', '+x', '-x', 'y', '+y', '-y', 'z', '+z', '-z'):
+            raise ValueError('tool_profile.tool_axis ±x/±y/±z 명시 필요')
+        for key in ('force_limit_n', 'air_force_limit_n'):
+            positive(tool.get(key), 'tool_profile.' + key)
+        bounds = tool.get('touch_offset_range_m')
+        extra = tool.get('touch_extra_m')
+        if (not isinstance(bounds, (list, tuple)) or len(bounds) != 2
+                or any(type(v) not in (int, float) or not math.isfinite(v) for v in bounds)
+                or bounds[0] > bounds[1] or type(extra) not in (int, float)
+                or not math.isfinite(extra) or extra < 0
+                or bounds[0] < -clearance or bounds[1] > extra):
+            raise ValueError('tool_profile.touch_offset_range_m/clearance_m/touch_extra_m 범위 오류')
+        if cut_contact == 'normal_force_hold':
+            positive(tool.get('cut_force_n'), 'tool_profile.cut_force_n')
+            stiffness = tool.get('cut_stiffness')
+            if (not isinstance(stiffness, (list, tuple)) or len(stiffness) != 6
+                    or any(type(v) not in (int, float) or not math.isfinite(v) or v < 0
+                           for v in stiffness)):
+                raise ValueError('tool_profile.cut_stiffness 6축 범위 오류')
+            ramp = tool.get('ramp_s')
+            if (type(ramp) not in (int, float) or not math.isfinite(ramp)
+                    or not 0 <= ramp <= 1):
+                raise ValueError('tool_profile.ramp_s 0~1 범위 오류')
+        else:
+            low, high = tool.get('cut_force_min_n'), tool.get('cut_force_max_n')
+            if (type(low) not in (int, float) or not math.isfinite(low) or low <= 0
+                    or type(high) not in (int, float) or not math.isfinite(high)
+                    or high <= 0 or low > high):
+                raise ValueError('tool_profile.cut_force_min_n/cut_force_max_n 범위 오류')
+            positive(tool.get('adaptive_step_m'), 'tool_profile.adaptive_step_m')
+            points = tool.get('adaptive_chunk_points')
+            if type(points) is not int or not 2 <= points <= 80:
+                raise ValueError('tool_profile.adaptive_chunk_points 2~80 정수 필요')
     joints = template['joint_check_arguments']
     limits = joints.get('limits_deg')
     if (not isinstance(limits, list) or len(limits) != 6

@@ -46,12 +46,15 @@ def real_input_config(store, filename, *, defer_execution_errors=False):
         raw = encoded(value)
     if (value.get('contract') != 'prepare-workpiece-config/1' or value.get('source_mode') != 'REAL'
             or value.get('tool_id') != 'engraving_drill' or value.get('tcp_id') != 'GripperDA_v1'
-            or not isinstance(value.get('load_id'), str) or not value['load_id'].strip()
+            or value.get('load_id') != 'ToolWeight_1'
             or not isinstance(value.get('controller_prefix'), str) or not value['controller_prefix'].startswith('/')):
         raise ValueError('REAL 설정의 계약·도구·TCP·하중·controller_prefix를 확인하세요.')
     w = value.get('workcell', {})
     if (w.get('source_mode') != 'REAL' or w.get('frame_id') != 'c2_base'
-            or w.get('height_source') != 'OPERATOR_RULER' or not isinstance(value.get('profiles'), dict)):
+            or w.get('height_source') != 'OPERATOR_RULER'
+            or w.get('tcp_id', 'GripperDA_v1') != 'GripperDA_v1'
+            or w.get('load_id', 'ToolWeight_1') != 'ToolWeight_1'
+            or not isinstance(value.get('profiles'), dict)):
         raise ValueError('REAL workcell/profiles/높이 출처를 확인하세요.')
     for key in ('height_m', 'runtime_timeout_s'):
         n = w.get(key)
@@ -170,6 +173,7 @@ class PreparationService:
         self.config = None
         self.cancel = None
         self.task = None
+        self.hardware_inspection = None
         self.save_lock = asyncio.Lock()
         self.timeout_s = 300.0  # 모의 설정과 맞춤. 실기 정지 제한 시간이 아님.
         self.cancel_timeout_s = 5.0
@@ -179,6 +183,7 @@ class PreparationService:
             self.config = await asyncio.to_thread(real_input_config, self.owner.store, os.getenv('C2_PREPARATION_CONFIG'),
                                                  defer_execution_errors=True)
             self.timeout_s = self.config['payload']['workcell']['runtime_timeout_s']
+            await self.refresh_hardware_inspection()
             self.current = await asyncio.to_thread(self.owner.store.recover_preparation)
             if (self.current and self.current.get('state') == 'SUCCEEDED'
                     and self.current.get('binding_status') in ('MEASURED_UNBOUND', 'MEASUREMENT_ONLY')
@@ -289,9 +294,28 @@ class PreparationService:
                     else 'ROS SIM 준비·측정 → 스냅샷 BIND → 이미지 경로 → 공정 요청' if getattr(self.owner, 'process_integration', False)
                     else 'ROS SIM 준비·측정 → 원본 저장 → 스냅샷 등록 시험. REAL/조각 실행은 차단합니다.' if supported
                     else 'ROS 준비 SIM 시험은 C2_ROS_PREPARATION_SIM=1 및 같은 PrepareWorkpiece 설치본이 필요합니다.',
-                    start_error=None, input_config=self.config, current=deepcopy(self.current), ready=self.ready(),
+                    start_error=None, input_config=self.config,
+                    hardware_inspection=deepcopy(self.hardware_inspection),
+                    current=deepcopy(self.current), ready=self.ready(),
                     preview_ready=self.preview_ready(),
                     blocks_work=self.blocks_work())
+
+    async def refresh_hardware_inspection(self):
+        """REAL 제어기의 읽기 전용 관측을 불변 JSON 자산으로 저장한다."""
+        if getattr(self.owner, 'mode', 'SIMULATION') != 'REAL' or self.config is None:
+            self.hardware_inspection = None
+            return None
+        from .hardware_snapshot import build_hardware_snapshot
+        try:
+            observed = await self.owner.peer.inspect_hardware(self.config['payload'])
+            snapshot = build_hardware_snapshot(self.config['payload'], observed)
+        except Exception as exc:
+            snapshot = build_hardware_snapshot(self.config['payload'], error=exc)
+        record = await asyncio.to_thread(
+            self.owner.store.put_json, snapshot, 'hardware_snapshot', 'real-hardware-observation.json')
+        self.hardware_inspection = dict(
+            id=record['id'], sha256=record['sha256'], payload=snapshot)
+        return self.hardware_inspection
 
     async def save(self):
         # 진행·취소·최종 결과의 동시 저장이 오래된 상태로 역전되지 않게 직렬화한다.
@@ -311,6 +335,14 @@ class PreparationService:
                 return old
             if self.blocks_work() or o.busy() or o.generating:
                 raise DomainError('BUSY', '준비·측정·생성·조각 또는 미확인 작업이 있습니다.')
+            if getattr(o, 'mode', 'SIMULATION') == 'REAL':
+                if body.get('operator_confirmed_fixed_cell') is not True:
+                    raise DomainError(
+                        'NOT_READY', '고정 설비·그리퍼/드릴 장착·드릴 OFF·주변 경로·작업자 감시를 확인하세요.')
+                inspection = await self.refresh_hardware_inspection()
+                if inspection['payload']['state'] != 'READY':
+                    message = '; '.join(inspection['payload']['errors']) or '하드웨어 관측 미확인'
+                    raise DomainError('NOT_READY', '읽기 전용 하드웨어 검사 실패: ' + message)
             if not o.fresh() or o.storage_error:
                 raise DomainError('NOT_READY', '현재 상태와 기록 저장을 확인하세요.')
             if o.transport == 'ros' and not o.peer.preparation_client.server_is_ready():
@@ -324,11 +356,16 @@ class PreparationService:
                 raise DomainError('HASH_MISMATCH', '측정 전 설정 파일을 확인할 수 없습니다.')
             if not math.isclose(body['height_m'], self.config['payload']['workcell']['height_m'], abs_tol=1e-9):
                 raise DomainError('PROFILE_MISMATCH', '운영자 높이와 등록 설정 높이가 다릅니다.')
-            goal = dict(body, preparation_id=uid(), measurement_id=uid(), source_mode=getattr(o, 'mode', 'SIMULATION'),
+            goal_input = {key: value for key, value in body.items()
+                          if key != 'operator_confirmed_fixed_cell'}
+            goal = dict(goal_input, preparation_id=uid(), measurement_id=uid(), source_mode=getattr(o, 'mode', 'SIMULATION'),
                         height_source='OPERATOR_RULER')
             record = dict(request_id=body['request_id'], payload=body, goal=goal, state='ACCEPTED',
                           stage='ROBOT_STATUS', feedback=[], result=None, binding_status='PENDING',
                           created_at=now(), updated_at=now(), source='HMI_MOCK_FIXTURE' if o.transport == 'mock' else 'ROS_'+goal['source_mode'])
+            if getattr(o, 'mode', 'SIMULATION') == 'REAL':
+                record['hardware_snapshot'] = {
+                    key: self.hardware_inspection[key] for key in ('id', 'sha256')}
             await asyncio.to_thread(o.store.save_preparation, record)
             self.current = record
             self.cancel = asyncio.Event()

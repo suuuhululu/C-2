@@ -292,6 +292,13 @@ class MonitorService:
             if self.busy() or self.generating or self.preparation.blocks_work():raise DomainError('BUSY','활성 또는 미확인 작업이 있습니다.')
             if not self.preparation.ready():raise DomainError('NOT_READY','준비·측정이 완료되지 않았거나 다시 준비해야 합니다.')
             if not self.fresh() or self.storage_error:raise DomainError('NOT_READY','상태 통신 또는 기록 저장을 확인하세요.')
+            prepared=self.preparation.current
+            if (self.mode == 'REAL'
+                    and prepared.get('payload', {}).get('operator_confirmed_fixed_cell') is not True):
+                raise DomainError(
+                    'NOT_READY',
+                    '고정 설비·그리퍼/드릴 체결·드릴 OFF·이동 경로·작업자 감시를 '
+                    '준비 단계에서 수동 확인하세요.')
             path=await asyncio.to_thread(self.store.path,body['path_id'],body['path_version'])
             if self.transport == 'ros':
                 if self.preparation.current.get('binding_status') != 'BOUND_ROS' or path.get('execution_backend') == 'MOCK_ONLY':
@@ -311,7 +318,6 @@ class MonitorService:
             if path['path_sha256']!=body['path_sha256']:raise DomainError('HASH_MISMATCH','확인한 경로 해시와 다릅니다.')
             if not path['validation_passed'] or path['source_mode']!=self.mode:raise DomainError('VALIDATION_FAILED','경로 검증 또는 실행 모드가 다릅니다.')
             if path['profile_snapshot_id']!=self.profile['id'] or path['profile_sha256']!=self.profile['sha256']:raise DomainError('PROFILE_MISMATCH','설정이 변경됐습니다. 경로를 다시 생성하세요.')
-            prepared=self.preparation.current
             if path.get('preparation_id')!=prepared['goal']['preparation_id']:
                 raise DomainError('PROFILE_MISMATCH','현재 준비에서 생성한 경로가 아닙니다. 다시 생성하세요.')
             try:
@@ -320,7 +326,10 @@ class MonitorService:
                 await asyncio.to_thread(self.store.read_asset,path['input']['asset_id'],path['input']['asset_sha256'])
                 for key in ('preview_asset_id','svg_asset_id','validation_report_id'):
                     await asyncio.to_thread(self.store.read_asset,path[key])
-                for ref in (prepared['measurement_record'], self.preparation.config):
+                for ref in (prepared['measurement_record'], self.preparation.config,
+                            prepared.get('hardware_snapshot')):
+                    if not ref:
+                        continue
                     await asyncio.to_thread(self.store.read_asset,ref['id'],ref['sha256'])
             except ValueError:raise DomainError('HASH_MISMATCH','실행 의존 파일이 변경됐습니다.')
             run=dict(**body,run_id=uid(),operator_id='local-operator',confirmed_at=now(),status='ACCEPTED',phase='PRECHECK',

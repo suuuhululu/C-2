@@ -65,6 +65,7 @@ def test_closed_spline_waits_for_excursion_and_settle(setup):
     assert r.observed_state['motion_started'] is True
     assert len(calls) == 1 and calls[0][0] == 'motion/move_spline_task'
     assert calls[0][1].sync_type == 1 and calls[0][1].pos_cnt == 3
+    assert calls[0][1].opt == 0  # 1mm 미만 조각 구간에도 기본 속도 옵션 사용
 
 
 def test_closed_spline_no_movement_cannot_succeed_or_resend(setup):
@@ -260,3 +261,125 @@ def test_probe_cancellation_during_baseline_never_dispatches(setup):
                            {'touch_speed_mm_s': 1., 'touch_force_n': 1.}, 1., cancel)
     assert result.outcome == 'STOPPED' and result.observed_state['stop_confirmed']
     assert not calls and len(stops) == 1
+
+
+def test_repeated_completed_target_with_observation_noise_is_not_resent(setup):
+    ad, clock, calls = setup
+    target = [10., 0., 0., 0., 0., 0.]
+    noisy = [10.002, 0., 0., 0., 0., 0.]
+    samples(ad, [(ZERO, 1, 0), (noisy, 1, 0)])
+    assert ad.move(posx_to_pose(target), 'c2_base', PROFILE, 2., None).ok
+    assert ad.move(posx_to_pose(target), 'c2_base', PROFILE, 2., None).ok
+    assert len(calls) == 1
+
+
+def test_new_small_depth_after_completed_target_is_sent(setup):
+    ad, clock, calls = setup
+    assert ad.move(posx_to_pose(ZERO), 'c2_base', PROFILE, 1., None).ok
+    target = [0., 0., .05, 0., 0., 0.]
+    samples(ad, [(ZERO, 1, 0), (target, 2, 2), (target, 1, 0)])
+    assert ad.move(posx_to_pose(target), 'c2_base', PROFILE, 2., None).ok
+    assert len(calls) == 1
+
+
+def test_unconfirmed_target_is_not_cached(setup):
+    ad, clock, calls = setup
+    fake_stop(ad)
+    target = [10., 0., 0., 0., 0., 0.]
+    assert not ad.move(posx_to_pose(target), 'c2_base', PROFILE, .5, None).ok
+    samples(ad, [([10.002, 0., 0., 0., 0., 0.], 1, 0)])
+    assert not ad.move(posx_to_pose(target), 'c2_base', PROFILE, .5, None).ok
+    assert len(calls) == 2
+
+
+@pytest.mark.parametrize('positions,forces,ok', [
+    ([.5, 1., 2., 2.1], [2.5, 2.5, 2.5, 2.5], True),
+    ([2., 2.2, 2.4], [0., 2.5, 2.5], True),
+    ([.5, 1., 2., 3.], [2.5, 2.5, 0., 0.], False),
+    ([2., 2.5, 3.], [0., 0., 0.], False),
+    ([2.], [5.], False),
+])
+def test_dual_entry_requires_concurrent_position_and_force(setup, positions, forces, ok):
+    ad, clock, calls = setup
+    # 제어기 TCP에서 1mm 앞인 드릴 끝을 기준으로 목표를 판단한다.
+    ad.tool_offset_m = [.001, 0., 0.]
+    readings = iter([ZERO[:]] + [[x, 0., 0., 0., 0., 0.] for x in positions])
+    ad._posx_now = lambda timeout: next(readings)
+    force = iter([[0., 0., 0.]]*8 + [[-x, 0., 0.] for x in forces])
+    ad._force_vec = lambda timeout: next(force)
+    stops = []
+    def stop(profile, deadline):
+        stops.append(profile)
+        return StepResult('SUCCEEDED', observed_state=dict(stop_confirmed=True,
+                          tcp_pose=[positions[-1]/1000.+.001, 0., 0., 0., 0., 0., 1.]))
+    ad.stop = stop
+    result = ad.probe_touch([1., 0., 0.], .003,
+        dict(touch_speed_mm_s=5., touch_force_n=2., hard_limit_n=4.5,
+             entry_confirmation='force_and_position',
+             entry_target_tip_pose=[.003, 0., 0., 0., 0., 0., 1.]), 5., None)
+    assert result.ok is ok
+    assert len(stops) == 1 and len(calls) == 1
+    if ok:
+        assert result.observed_state['force_ok'] is True
+        assert result.observed_state['position_ok'] is True
+        assert result.observed_state['entry_confirmed'] is True
+        assert result.observed_state['tcp_pose'][0] >= .003
+        assert calls[0][1].vel[0] == 5.
+
+
+def _monitored_move(ad, failures, max_read_failures):
+    """이동 중 힘 서비스가 failures 번 연속 실패한 뒤 정상으로 돌아오는 상황."""
+    stops = fake_stop(ad)
+    samples(ad, [(ZERO[:], 1, 0), ([5., 0., 0., 0., 0., 0.], 2, 1), ([10., 0., 0., 0., 0., 0.], 1, 0)])
+    left = [failures]
+    def force(timeout=5.):
+        if left[0] > 0:
+            left[0] -= 1
+            raise TimeoutError('service aux_control/get_tool_force timed out')
+        return [0., 0., 0.]
+    ad._force_vec = force
+    ad.log = SimpleNamespace(warn=lambda *a: None, info=lambda *a: None, error=lambda *a: None)
+    profile = dict(PROFILE, air_monitor=dict(kind='AIR', bias=[0., 0., 0.], force_limit_n=15., samples=[], max_read_failures=max_read_failures))
+    r = ad.move(posx_to_pose([10., 0., 0., 0., 0., 0.]), 'c2_base', profile, 20., None)
+    return r, stops
+
+
+def test_air_monitor_tolerates_brief_force_service_timeouts(setup):
+    """9/22 return_x: 힘 서비스 2 s timeout 한 번에 이동을 정지시켰다. 허용 횟수 안이면 계속 감시하며 완료한다."""
+    ad, clock, calls = setup
+    r, stops = _monitored_move(ad, failures=2, max_read_failures=3)
+    assert r.ok and stops == []
+
+
+def test_air_monitor_stops_after_repeated_force_service_timeouts(setup):
+    ad, clock, calls = setup
+    r, stops = _monitored_move(ad, failures=10, max_read_failures=3)
+    assert r.outcome == 'UNKNOWN' and r.error_code == 'COMMUNICATION_LOST' and len(stops) == 1
+
+
+def test_no_start_then_confirmed_rejection_is_failed_not_unknown(setup):
+    """9/22: 3 s 무동작 뒤 2 s 더 상태를 읽어 시작 위치·STANDBY 가 유지되면 '명령 미수락 확정'. 정지 요청·재전송 없음."""
+    ad, clock, calls = setup
+    stops = fake_stop(ad)
+    r = ad.move(posx_to_pose([10., 0., 0., 0., 0., 0.]), 'c2_base', PROFILE, 20., None)
+    assert r.outcome == 'FAILED' and r.error_code == 'NOT_ACCEPTED'
+    assert r.observed_state['at_start'] is True and stops == [] and len(calls) == 1
+
+
+def test_no_start_then_late_motion_is_followed_to_completion(setup):
+    """시작 관측을 놓쳤지만 재확인에서 움직임이 보이면 계속 기다려 완료한다."""
+    ad, clock, calls = setup
+    stops = fake_stop(ad)
+    reads = [(ZERO[:], 1, 0)] * 70 + [([5., 0., 0., 0., 0., 0.], 2, 1)] * 3 + [([10., 0., 0., 0., 0., 0.], 1, 0)]
+    samples(ad, reads)
+    r = ad.move(posx_to_pose([10., 0., 0., 0., 0., 0.]), 'c2_base', PROFILE, 20., None)
+    assert r.ok and stops == [] and len(calls) == 1
+
+
+def test_no_start_then_found_at_target_completes_without_resend(setup):
+    ad, clock, calls = setup
+    stops = fake_stop(ad)
+    reads = [(ZERO[:], 1, 0)] * 65 + [([10., 0., 0., 0., 0., 0.], 1, 0)]
+    samples(ad, reads)
+    r = ad.move(posx_to_pose([10., 0., 0., 0., 0., 0.]), 'c2_base', PROFILE, 20., None)
+    assert r.ok and stops == [] and len(calls) == 1          # 재확인에서 목표 도달을 보면 재전송 없이 완료 (시작 관측 유무와 무관)

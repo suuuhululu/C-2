@@ -53,7 +53,7 @@ mkdir -p "$C2_MONITOR_DATA"
 
 ```bash
 mkdir -p ws_cobot_pjt/backend/monitor_data/real_process
-ros2 run c2_process real_process_node   --preparation-backend-url http://127.0.0.1:8010   --preparation-journal-path /tmp/c2-hmi-partial-integration/ws_cobot_pjt/backend/monitor_data/real_process/preparation.sqlite3   --execution-journal-path /tmp/c2-hmi-partial-integration/ws_cobot_pjt/backend/monitor_data/real_process/execution.sqlite3   --controller-prefix /dsr01/dsr_controller2   --control-authority-topic /dsr01/dsr_controller2/control_authority   --ros-args -r __ns:=/dsr01
+ros2 run c2_process real_process_node   --preparation-backend-url http://127.0.0.1:8010   --preparation-journal-path /tmp/c2-hmi-partial-integration/ws_cobot_pjt/backend/monitor_data/real_process/preparation.sqlite3   --execution-journal-path /tmp/c2-hmi-partial-integration/ws_cobot_pjt/backend/monitor_data/real_process/execution.sqlite3   --controller-prefix /dsr01/dsr_controller2
 ```
 
 `real_preparation_node`와 함께 띄우지 않는다. 새 노드가 준비와 실행을 함께 제공한다. HMI 자산 HTTP API로 경로·보고서·스냅샷을 읽으며 작업자가 JSON/ZIP을 노드에 전달하지 않는다.

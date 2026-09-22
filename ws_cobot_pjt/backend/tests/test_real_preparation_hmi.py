@@ -54,6 +54,10 @@ def test_real_http_estimated_binds_and_sends_real_generate(tmp_path, monkeypatch
         async def start(self):
             await self.emit('state', dict(schema_version=2, source_mode='REAL', source_epoch='real-test', seq=1,
                 status='IDLE', phase='', stop_state='NONE'))
+        async def inspect_hardware(self, config):
+            return dict(robot_state=1, robot_mode=1, robot_system=0, motion_status=0,
+                        tcp_id='GripperDA_v1', load_id='ToolWeight_1',
+                        joints_deg=[0.] * 6, controller_tcp_posx=[0.] * 6)
         async def prepare_raw(self, goal, feedback):
             calls.append(deepcopy(goal))
             result = json.loads((ROOT/'ws_cobot1/src/c2_process/test/fixtures/prepare_workpiece_action_samples/success.json').read_text())['result']
@@ -79,7 +83,9 @@ def test_real_http_estimated_binds_and_sends_real_generate(tmp_path, monkeypatch
         initial = c.get('/api/operator/snapshot').json()
         assert initial['source_mode'] == 'REAL' and initial['connection'] == 'CONNECTED'
         config = initial['preparation']['input_config']
-        body = dict(request_id=uid(), input_profile_snapshot_id=config['id'], input_profile_sha256=config['sha256'], height_m=.15)
+        body = dict(request_id=uid(), input_profile_snapshot_id=config['id'],
+                    input_profile_sha256=config['sha256'], height_m=.15,
+                    operator_confirmed_fixed_cell=True)
         assert c.post('/api/operator/preparations', json=body).status_code == 202
         result = wait(c, '/api/operator/preparations/'+body['request_id'], lambda r:r['state'] not in ('ACCEPTED','RUNNING'))
         assert result['result']['observed_state']['measurement']['validity'] == 'ESTIMATED'
@@ -148,7 +154,7 @@ def test_missing_execution_settings_is_reported_without_promoting_sim(tmp_path):
     with pytest.raises(ValueError, match='execution_profile'):
         real_bound_profile({}, {}, {'workcell': {}}, {})
 
-@pytest.mark.parametrize('blocked', [None, 'OUT_OF_LIMITS', 'PREVIEW_ONLY', 'test_only'])
+@pytest.mark.parametrize('blocked', [None, 'OUT_OF_LIMITS', 'PREVIEW_ONLY', 'test_only', 'manual'])
 def test_real_execute_forwards_bound_candidate_and_preserves_peer_failure(tmp_path, blocked):
     """경로 메타데이터는 전송 시험대역이며 실제 모션에 쓰지 않는다."""
     from types import SimpleNamespace
@@ -175,7 +181,9 @@ def test_real_execute_forwards_bound_candidate_and_preserves_peer_failure(tmp_pa
     service.fresh=lambda: True
     service.preparation.config=dict(id=cfg['id'], sha256=cfg['sha256'])
     service.preparation.current=dict(state='SUCCEEDED', binding_status='BOUND_ROS', profile_snapshot=profile,
-        goal=dict(preparation_id=prepared_id, measurement_id=uid()), measurement_record=dict(id=record['id'],sha256=record['sha256']))
+        payload={'operator_confirmed_fixed_cell': blocked != 'manual'},
+        goal=dict(preparation_id=prepared_id, measurement_id=uid()),
+        measurement_record=dict(id=record['id'],sha256=record['sha256']))
     calls=[]
     class Peer:
         execute_client=SimpleNamespace(server_is_ready=lambda: True)

@@ -44,10 +44,11 @@ ros2 run c2_process real_process_node \
   --preparation-backend-url http://127.0.0.1:8010 \
   --preparation-journal-path "$C2_MONITOR_DATA/preparation.sqlite3" \
   --execution-journal-path "$C2_MONITOR_DATA/execution.sqlite3" \
-  --controller-prefix /dsr01/dsr_controller2 \
-  --control-authority-topic /dsr01/dsr_controller2/control_authority \
-  --ros-args -r __ns:=/dsr01
+  --controller-prefix /dsr01/dsr_controller2
 ```
+
+`controller-prefix` 하나로 측정·실행 service와 `<prefix>/control_authority` 토픽을 같이 결정한다.
+공정 노드에 `__ns:=/dsr01` remap을 추가하지 않는다.
 
 별도 경로 서버를 쓰는 경우 HMI에 `--external-path-node`를 추가하고 아래 명령을 빠뜨리지 않는다:
 

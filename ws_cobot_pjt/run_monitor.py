@@ -26,7 +26,7 @@ def main():
     parser.add_argument('--preparation-config', help='REAL 준비용 prepare-workpiece-config/1 현장 원본 JSON')
     parser.add_argument('--execution-profile', help='REAL 경로·공정 실행 설정 JSON (배포 설정; 운영자 업로드 아님)')
     parser.add_argument('--external-path-node',action='store_true',help='ROS 모드에서 이미 실행 중인 경로 노드 사용')
-    parser.add_argument('--ros-domain-id',type=int,default=173,help='ROS 경로 시험용 도메인 (기본 173)')
+    parser.add_argument('--ros-domain-id',type=int,default=20,help='ROS 도메인 (기본 20)')
     args=parser.parse_args()
     if args.process_integration and (args.transport != 'ros' or args.mode != 'SIMULATION'):
         parser.error('--process-integration은 --transport ros --mode SIMULATION에서 사용합니다.')
@@ -54,10 +54,6 @@ def main():
         env['C2_PREPARATION_CONFIG']=str(Path(args.preparation_config).expanduser().resolve())
     if args.execution_profile:
         env['C2_EXECUTION_PROFILE']=str(Path(args.execution_profile).expanduser().resolve())
-    elif args.mode == 'REAL':
-        default_execution = root/'ws_cobot1/src/c2_process/config/real_execution_profile_20260922.json'
-        if default_execution.is_file():
-            env['C2_EXECUTION_PROFILE'] = str(default_execution)
     default_data=root/'backend/monitor_data'
     if args.transport=='ros':
         default_data/='real_preparation' if args.mode == 'REAL' else 'ros_path'
