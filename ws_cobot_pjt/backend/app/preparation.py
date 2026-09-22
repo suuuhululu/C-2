@@ -179,6 +179,16 @@ class PreparationService:
             self.owner.peer.bound_preparation = None
         await self.save()
 
+    def start_error(self):
+        if getattr(self.owner, 'mode', 'SIMULATION') != 'REAL' or self.config is None:
+            return None
+        from .real_execution_config import validate_real_execution_config
+        try:
+            validate_real_execution_config(self.config['payload'])
+        except (ValueError, KeyError, TypeError) as exc:
+            return str(exc)
+        return getattr(self.owner.peer, 'preparation_contract_error', None)
+
     def snapshot(self):
         supported = self.config is not None and (self.owner.transport == 'mock' or
             getattr(self.owner.peer, 'preparation_client', None) is not None)
@@ -188,7 +198,7 @@ class PreparationService:
                     else 'ROS SIM 준비·측정 → 스냅샷 BIND → 이미지 경로 → 공정 요청' if getattr(self.owner, 'process_integration', False)
                     else 'ROS SIM 준비·측정 → 원본 저장 → 스냅샷 등록 시험. REAL/조각 실행은 차단합니다.' if supported
                     else 'ROS 준비 SIM 시험은 C2_ROS_PREPARATION_SIM=1 및 같은 PrepareWorkpiece 설치본이 필요합니다.',
-                    input_config=self.config, current=deepcopy(self.current), ready=self.ready(),
+                    start_error=self.start_error(), input_config=self.config, current=deepcopy(self.current), ready=self.ready(),
                     blocks_work=self.blocks_work())
 
     async def save(self):
@@ -207,6 +217,9 @@ class PreparationService:
                 if old['payload'] != body:
                     raise DomainError('REQUEST_CONFLICT', '같은 준비 요청 ID에 다른 입력이 있습니다.')
                 return old
+            error = self.start_error()
+            if error:
+                raise DomainError('PROFILE_MISMATCH', error)
             if self.blocks_work() or o.busy() or o.generating:
                 raise DomainError('BUSY', '준비·측정·생성·조각 또는 미확인 작업이 있습니다.')
             if not o.fresh() or o.storage_error:
