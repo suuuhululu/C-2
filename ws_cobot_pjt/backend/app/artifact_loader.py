@@ -86,11 +86,35 @@ class PathArtifactLoader:
         _, svg_rec = self.read(result['svg_asset_id'], 'svg')
         profile, _ = self.json(goal['profile_snapshot_id'], 'profile', goal['profile_sha256'])
 
+        mode = goal['source_mode']
+        require(mode in ('REAL', 'SIMULATION') and profile.get('source_mode') == mode, '설정/요청 모드 불일치', 'PROFILE_MISMATCH')
+        require(type(path.get('test_only')) is bool, '경로 실행 용도 누락')
+        allowed = path.get('real_execution_allowed', False)
+        if mode == 'REAL':
+            # 기존 /3는 config.real_preview에 용도를 기록한다. 원본을 수정하지 않는다.
+            legacy = path.get('config', {}).get('real_preview', {})
+            shown_legacy = preview.get('real_preview', {})
+            if 'real_execution_allowed' not in path:
+                require(path['test_only'] is True and legacy.get('real_execution_allowed') is False
+                        and shown_legacy.get('real_execution_allowed') is False, 'REAL 실행 용도 누락')
+            else:
+                require(type(allowed) is bool and preview.get('real_execution_allowed') is allowed,
+                        'REAL 경로/미리보기 실행 용도 불일치')
+            require(not (path['test_only'] and allowed), '경로 실행 용도 모순')
+            if allowed:
+                require(profile.get('test_only') is False and profile.get('real_execution_allowed') is True,
+                        '스냅샷과 실행 후보 용도 불일치', 'PROFILE_MISMATCH')
+                require(not legacy.get('preview_only') and not shown_legacy.get('preview_only'), '미리보기 용도 모순')
+        else:
+            require(path['test_only'] is True, 'SIM 경로 시험 용도 불일치')
         for obj in (path, preview):
-            for key, expected in {'schema_version': 2, 'source_mode': 'SIMULATION',
+            for key, expected in {'schema_version': 2, 'source_mode': mode,
                                   'path_id': pid, 'path_version': version,
-                                  'frame_id': profile['frame_id'], 'test_only': True}.items():
+                                  'frame_id': profile['frame_id'], 'test_only': path['test_only']}.items():
                 require(obj.get(key) == expected, f'{key} 연결 불일치')
+        if mode == 'REAL':
+            for key in ('profile_snapshot_id', 'profile_sha256'):
+                require(report.get(key) == goal[key], 'REAL 보고서 스냅샷 불일치', 'PROFILE_MISMATCH')
         require(path['input'] == {k: goal[k] for k in ('asset_id', 'asset_sha256')}, '경로의 원본 이미지 불일치')
         config = path['config']
         for key in ('profile_snapshot_id', 'profile_sha256'):
@@ -159,9 +183,15 @@ class PathArtifactLoader:
                                 (p[2] - origin[2]) * 1000]
                     require(all(abs(a - b) <= 1e-5 for a, b in zip(q, expected)), '전개면과 3D 경로 좌표 불일치')
 
+        blocked = next((obj.get('execution_readiness', {}).get('execution_blocked') for obj in (report, preview, path) if obj.get('execution_readiness', {}).get('execution_blocked')), None)
+        blocked_code = blocked.get('code') if isinstance(blocked, dict) else blocked
+        require(blocked is None or isinstance(blocked_code, str) and bool(blocked_code), '실행 제한 형식 오류')
         return {**result, 'path_asset_id': path_rec['id'], 'input': dict(goal),
                 'profile_snapshot_id': goal['profile_snapshot_id'], 'profile_sha256': goal['profile_sha256'],
                 'profile_snapshot': {'id': goal['profile_snapshot_id'], 'sha256': goal['profile_sha256'], 'payload': profile},
-                'source_mode': 'SIMULATION', 'test_only': True, 'real_execution_allowed': False,
+                'source_mode': mode, 'test_only': path['test_only'], 'real_execution_allowed': allowed,
                 'validation_not_checked': report['not_checked'],
+                'execution_precheck': report.get('execution_readiness', {}).get('precheck'),
+                'execution_blocked': blocked_code,
+                'execution_block_message': blocked.get('message', '') if isinstance(blocked, dict) else '',
                 'artifact_sha256': {r['id']: r['sha256'] for r in (path_rec, preview_rec, report_rec, svg_rec)}}

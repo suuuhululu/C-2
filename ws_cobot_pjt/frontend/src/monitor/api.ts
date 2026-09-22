@@ -69,6 +69,9 @@ export type PathResult = {
   cut_length_m: number;
   input: Placement & { asset_id: string };
   test_only?: boolean;
+  real_execution_allowed?: boolean;
+  execution_precheck?: string;
+  execution_blocked?: string | null;
   validation_not_checked?: string[];
   profile_snapshot?: Profile;
   preview: {
@@ -133,6 +136,7 @@ export type SegmentObservation = {
   pressure_n: number | null;
 };
 export type Snapshot = {
+  virtual_device?: boolean;
   source_mode: string;
   transport: string;
   connection: string;
@@ -150,6 +154,7 @@ export type Snapshot = {
     preview_contract: string;
     ready: boolean;
     execution_enabled: boolean;
+    test_only_execution?: boolean;
     execution_block_reason: string;
     default_placement: Placement;
   };

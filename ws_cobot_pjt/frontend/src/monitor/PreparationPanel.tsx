@@ -286,7 +286,7 @@ export default function PreparationPanel({
           {m && (
             <p className="field-help">
               {real
-                ? "실제 접촉 기반 결과 · ESTIMATED는 절대 높이 미검증이며 경로 생성에 사용하지 않습니다."
+                ? "실제 접촉 기반 결과 · ESTIMATED는 확인 수준 표시입니다. BIND와 실행 검사는 별도로 판단합니다."
                 : "SIM 합성값"}{" "}
               · 수직 원통 가정 · 기울기·독립 정확도 미검증
             </p>

@@ -518,7 +518,9 @@ def load_execution_inputs(goal, *, path_file=None, snapshot_file=None,
         if (not isinstance(not_checked, list)
                 or any(not isinstance(item, str) for item in not_checked)):
             fail("VALIDATION_UNAVAILABLE", "검증 보고서 미검사 목록 형식 오류")
-        if "geometry_passed" in report or "execution_readiness" in report:
+        # c2_path 원본 보고서도 execution_readiness를 포함한다.
+        # HMI 외피 형식은 고유 필드 geometry_passed로 구별한다.
+        if "geometry_passed" in report:
             readiness = report.get("execution_readiness")
             if (report.get("geometry_passed") is not True
                     or not isinstance(readiness, Mapping)

@@ -44,7 +44,6 @@ import { CylinderPreview, UnwrappedPreview } from "./Previews";
 import "./monitor.css";
 import LivePathPreview from "./LivePathPreview";
 import { matchesPreview } from "./preview";
-import FileIntegration from "./FileIntegration";
 import WorkAreaSummary from "./WorkAreaSummary";
 import PreparationPanel from "./PreparationPanel";
 import { executionConfirmationKey } from "./preparation";
@@ -53,7 +52,6 @@ import { mm, topToBottom } from "./workArea";
 
 const navItems = [
   { id: "prepare", name: "작업 준비", icon: FileImage },
-  { id: "integration", name: "파일 통합 시험", icon: Upload },
   { id: "process", name: "공정 관제", icon: Activity },
   { id: "history", name: "실행 이력", icon: History },
   { id: "alarms", name: "알람", icon: Bell },
@@ -145,7 +143,7 @@ export default function Monitor() {
       busy || pending || startUncertain || !!snapshot?.preparation.blocks_work;
   const preparationBlocked =
     !!snapshot?.preparation.blocks_work ||
-    (!isRos && !snapshot?.preparation.ready);
+    ((snapshot?.source_mode === 'REAL' || !isRos || capabilities?.test_only_execution) && !snapshot?.preparation.ready);
   const profile = snapshot?.profile;
   const baseXOrigin =
     !!profile?.payload.surface.axis_origin_m &&
@@ -180,7 +178,10 @@ export default function Monitor() {
   }, [drillKey]);
   const canStart =
     capabilities?.execution_enabled &&
-    !result?.test_only &&
+    (!result?.test_only || capabilities?.test_only_execution) &&
+    !result?.execution_blocked &&
+    result?.execution_precheck !== "OUT_OF_LIMITS" &&
+    (snapshot?.source_mode !== "REAL" || result?.real_execution_allowed === true) &&
     currentResult &&
     reviewed &&
     fixture &&
@@ -400,7 +401,7 @@ export default function Monitor() {
         : {
             schema_version: SCHEMA_VERSION,
             request_id: crypto.randomUUID(),
-            source_mode: "SIMULATION",
+            source_mode: snapshot?.source_mode,
             asset_id: asset.asset_id,
             asset_sha256: asset.asset_sha256,
             ...draft,
@@ -494,7 +495,7 @@ export default function Monitor() {
       startBody.current = {
         schema_version: SCHEMA_VERSION,
         request_id: crypto.randomUUID(),
-        source_mode: "SIMULATION",
+        source_mode: snapshot?.source_mode,
         path_id: result.path_id,
         path_version: result.path_version,
         path_sha256: result.path_sha256,
@@ -611,7 +612,7 @@ export default function Monitor() {
           </div>
           <span className="mode-badge">
             <span />
-            {snapshot?.source_mode || "연결 대기"}
+            {snapshot?.virtual_device ? "가상 장치 · 로봇 미연결" : snapshot?.source_mode || "연결 대기"}
           </span>
           <div
             className={`connection ${headerConnected ? "online" : "offline"}`}
@@ -619,7 +620,7 @@ export default function Monitor() {
             {headerConnected ? <Wifi size={16} /> : <WifiOff size={16} />}
             <span>
               {snapshot?.source_mode === "REAL"
-                ? "REAL 준비·측정 전용"
+                ? "REAL 공정 연결"
                 : isRos
                   ? pathReady
                     ? "ROS 경로 노드 연결"
@@ -636,7 +637,7 @@ export default function Monitor() {
           )}
           <span className="physical-state">
             {snapshot?.source_mode === "REAL"
-              ? "준비 요청 시 실제 로봇 이동"
+              ? "준비·실행 요청 시 실제 로봇 이동"
               : "실기 미연결"}
           </span>
           <div className="stop-zone">
@@ -674,9 +675,7 @@ export default function Monitor() {
               <p>
                 {nav === "prepare"
                   ? "이미지를 불러오고, 원기둥 위에 도안의 자리를 정하세요."
-                  : nav === "integration"
-                    ? "같은 스냅샷과 경로 파일을 등록·전달하고 미리보기를 확인합니다."
-                    : nav === "process"
+                  : nav === "process"
                       ? "고정 드릴의 준비·보정 확인부터 조각 완료까지 확인합니다."
                       : nav === "history"
                         ? "각 실행에 사용한 경로와 결과를 함께 보관합니다."
@@ -687,28 +686,16 @@ export default function Monitor() {
             </div>
             {nav === "prepare" ? (
               <div className="stepper">
-                {(isRos
-                  ? ["이미지·설정", "경로 생성", "미리보기 확인", "실행 요청"]
-                  : [
-                      "준비·측정",
-                      "이미지·설정",
-                      "경로 생성",
-                      "미리보기 확인",
-                      "실행 요청",
-                    ]
+                {(snapshot?.preparation.supported
+                  ? ["이미지·설정", "준비·측정", "경로 생성", "미리보기 확인", "실행 요청"]
+                  : ["이미지·설정", "경로 생성", "미리보기 확인", "실행 요청"]
                 ).map((s, i) => {
-                  const imageStep = !asset
-                    ? 0
-                    : !currentResult
-                      ? 1
-                      : !reviewed
-                        ? 2
-                        : 3;
-                  const step = isRos
-                    ? imageStep
-                    : !snapshot?.preparation.ready
-                      ? 0
-                      : imageStep + 1;
+                  const hasPreparation = !!snapshot?.preparation.supported;
+                  const step = !asset ? 0
+                    : hasPreparation && !snapshot?.preparation.ready ? 1
+                    : !currentResult ? (hasPreparation ? 2 : 1)
+                    : !reviewed ? (hasPreparation ? 3 : 2)
+                    : (hasPreparation ? 4 : 3);
                   return (
                     <div
                       key={s}
@@ -730,7 +717,7 @@ export default function Monitor() {
               </div>
             ) : (
               <span className="tag">
-                {snapshot?.source_mode || "연결 대기"} ·{" "}
+                {snapshot?.virtual_device ? "가상 장치 · 로봇 미연결" : snapshot?.source_mode || "연결 대기"} ·{" "}
                 {snapshot?.transport || "연결 대기"}
               </span>
             )}
@@ -779,15 +766,6 @@ export default function Monitor() {
           )}
           {(nav === "prepare" || nav === "process") && (
             <RobotObservations snapshot={snapshot} connected={connected} />
-          )}
-          {nav === "integration" && (
-            <FileIntegration
-              asset={asset}
-              placement={draft}
-              locked={locked || generating || uploading}
-              onUpload={upload}
-              onChange={edit}
-            />
           )}
           {nav === "prepare" &&
             generation?.state === "FAILED" &&
@@ -939,7 +917,7 @@ export default function Monitor() {
                 <p className="field-help">
                   {isRos
                     ? "첨부 이미지를 ROS 경로 노드에서 중심선 SVG로 변환합니다."
-                    : "현재 모의 모드는 첨부 이미지 대신 고정 샘플을 반환합니다."}
+                    : "공정이 MOCK인 경우 로봇 동작·측정 응답은 모의입니다. 이미지 변환 방식은 아래 설정에 표시됩니다."}
                 </p>
                 <div className="rule" />
                 <h3>
@@ -966,13 +944,13 @@ export default function Monitor() {
                   <div>
                     <dt>이미지 처리</dt>
                     <dd>
-                      {isRos ? "첨부 이미지 중심선 변환" : "모의 중심선 샘플"}
+                      {capabilities?.preset === "raster_centerline_bezier" ? "첨부 이미지 중심선 변환" : "모의 중심선 샘플"}
                     </dd>
                   </div>
                 </dl>
                 <div className="subtext">
-                  {isRos
-                    ? "시험 설정 · 실제 이미지 계산 · 로봇 구동 없음"
+                  {capabilities?.preset === "raster_centerline_bezier"
+                    ? "첨부 이미지 계산 · 준비/공정 결과는 현재 연결 상대에서 수신"
                     : "명목 규격 · 실제 이미지 변환 연결 전"}
                 </div>
                 <div className="rule" />
@@ -1115,6 +1093,9 @@ export default function Monitor() {
                           : "경로 대기"}
                     </span>
                   </div>
+                  {(result?.execution_blocked || result?.execution_precheck === "OUT_OF_LIMITS") && (
+                    <p role="status">경로 노드 실행 제한: {result.execution_blocked || result.execution_precheck}</p>
+                  )}
                   <dl className="readiness">
                     <div>
                       <dt>경로 검증</dt>
@@ -1122,9 +1103,9 @@ export default function Monitor() {
                         {currentResult ? (
                           <>
                             <CheckCircle2 size={14} />
-                            {result?.test_only
+                            {result?.test_only && !capabilities?.test_only_execution
                               ? "기하 검사 통과 · 실기 미검증"
-                              : "모의 범위 확인"}
+                              : snapshot?.source_mode === "REAL" ? "경로 생성 검사 통과 · 최종 실행 검사 전" : "모의 범위 확인"}
                           </>
                         ) : stale ? (
                           "재생성 필요"
@@ -1191,7 +1172,7 @@ export default function Monitor() {
                         setDrillConfirmation(e.target.checked ? drillKey : null)
                       }
                     />
-                    드릴을 수동으로 켰습니다. (화면 확인 전용)
+                    {snapshot?.source_mode === "SIMULATION" ? "시험용 드릴 ON 확인 (실제 전원 조작 없음)" : "드릴을 수동으로 켰습니다. (화면 확인 전용)"}
                   </label>
                   <p className="field-help">
                     이 체크는 드릴 전원 센서나 제어 명령이 아닙니다.
@@ -1534,7 +1515,7 @@ export default function Monitor() {
                 </dl>
                 <div className="info-box">
                   {snapshot?.source_mode === "REAL"
-                    ? "아래 경로 시험 프로파일은 REAL 준비에 사용하지 않습니다. 실제 준비 설정은 준비 패널의 입력 설정 ID/원본을 확인하세요."
+                    ? "준비 입력 설정과 BIND된 실측 스냅샷을 확인하세요. 측정 신뢰도와 실행 검사 결과는 별도로 기록합니다."
                     : profile?.payload.note ||
                       "c2_path가 제공하는 불변 시험 프로파일입니다. 기하 검증 합격은 실기 실행 승인이 아닙니다."}
                   <br />
@@ -1561,7 +1542,7 @@ export default function Monitor() {
                 </div>
                 <p className="section-copy">
                   {snapshot?.source_mode === "REAL"
-                    ? "실제 공정 노드의 상태와 측정 결과를 받습니다. 경로 생성·조각·모의 상태 변경은 차단합니다."
+                    ? "REAL 측정 → 스냅샷 BIND → 경로 생성 → 미리보기 → 공정 실행 검사를 요청합니다. 상대 노드의 거절 사유는 그대로 표시합니다."
                     : isRos
                       ? "경로 노드의 실제 계산 결과를 표시합니다. 공정 실행과 모의 상태 변경은 사용하지 않습니다."
                       : "가짜 상대 응답을 바꾸어 HMI의 오류·정지 표시를 확인합니다."}

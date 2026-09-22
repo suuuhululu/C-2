@@ -1,3 +1,5 @@
+> 9/22 HMI 작업 변경: [REAL 실행 연결 계약](HMI_REAL_EXECUTION_20260922.md). 아래의 REAL 측정 전용 설명은 이전 기준이며, 현재 작업 브랜치는 BIND·생성·실행 요청을 연결한다. 상대 PR과 실기 검증은 별도다.
+
 # 3개 노드의 인터페이스 권장안 v2 · 고정 드릴
 
 > **준비 Action 권장안 추가:** `/c2/prepare_workpiece`의 MEASURE/BIND_SNAPSHOT과 담당자별 구현은 [준비 Action 공통 구현 기준](PREPARE_WORKPIECE_ACTION.md)을 따른다. 기존 v2 타입은 유지하며, 새 타입 생성과 서버/클라이언트 연결 완료를 구별한다.

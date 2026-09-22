@@ -135,3 +135,49 @@ def test_failure_result_is_never_loaded(bundle):
     store, goal, result = bundle
     with pytest.raises(ArtifactLoadError):
         PathArtifactLoader(store).load(goal, {**result, 'success': False})
+
+
+def test_real_preview_artifacts_keep_source_and_execution_restriction(tmp_path):
+    from c2_path.pipeline import matching_test_profile_v3
+    store = Storage(tmp_path/'real-preview')
+    asset = store.put_asset(line_png(), 'image', 'image/png', 'line.png')
+    profile = store.profile(matching_test_profile_v3())
+    goal = dict(goal_for(asset, profile), source_mode='REAL')
+    generated = GeneratePipeline(ManagedArtifactStore(store.root), allow_real_preview=True).run(goal)
+    result = dict(asdict(generated), success=True, validation_passed=True, error_code='NONE', message='시험')
+    loaded = PathArtifactLoader(store).load(goal, result)
+    assert loaded['source_mode']=='REAL' and loaded['test_only'] is True
+    assert loaded['real_execution_allowed'] is False
+    assert loaded['execution_blocked']=='REAL_ESTIMATE_PREVIEW_ONLY'
+
+
+def test_real_candidate_artifact_contract_and_mode_mismatch(tmp_path):
+    """새 경로 서버 산출물 형식의 시험대역. 실측/실행 파일로 배포하지 않는다."""
+    from c2_path.pipeline import matching_test_profile_v3
+    store = Storage(tmp_path/'candidate-fixture')
+    asset = store.put_asset(line_png(), 'image', 'image/png', 'line.png')
+    template = matching_test_profile_v3()
+    template.update(test_only=False, real_execution_allowed=True)
+    profile = store.profile(template)
+    goal = dict(goal_for(asset, profile), source_mode='REAL')
+    generated = GeneratePipeline(ManagedArtifactStore(store.root), allow_real_preview=True).run(goal)
+    result = dict(asdict(generated), success=True, validation_passed=True, error_code='NONE', message='대역')
+    def candidate_path(p):
+        p.update(test_only=False, real_execution_allowed=True)
+        p['config'].pop('real_preview', None)
+    rewrite_json(store, generated.path_asset_id, candidate_path)
+    result['path_sha256'] = store.asset(generated.path_asset_id)['sha256']
+    def candidate_preview(p):
+        p.update(test_only=False, real_execution_allowed=True, path_sha256=result['path_sha256'])
+        p.pop('real_preview', None)
+        p.get('execution_readiness', {}).pop('execution_blocked', None)
+    rewrite_json(store, result['preview_asset_id'], candidate_preview)
+    def candidate_report(p):
+        p.pop('real_preview', None)
+        p.get('execution_readiness', {}).pop('execution_blocked', None)
+    rewrite_json(store, result['validation_report_id'], candidate_report)
+    loaded = PathArtifactLoader(store).load(goal, result)
+    assert loaded['test_only'] is False and loaded['real_execution_allowed'] is True
+    assert not loaded['execution_blocked'] and loaded['source_mode']=='REAL'
+    with pytest.raises(ArtifactLoadError):
+        PathArtifactLoader(store).load(dict(goal, source_mode='SIMULATION'), result)

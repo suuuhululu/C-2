@@ -1,3 +1,5 @@
+> 9/22 HMI 작업 변경: [REAL 실행 연결 계약](HMI_REAL_EXECUTION_20260922.md). 아래의 REAL 측정 전용 설명은 이전 기준이며, 현재 작업 브랜치는 BIND·생성·실행 요청을 연결한다. 상대 PR과 실기 검증은 별도다.
+
 # 시스템 모니터·좌표 생성·고정 드릴 공정 인터페이스 안내
 
 **2026-09-21**, main `829db40` 재확인. [디렉토리·담당](SYSTEM_STRUCTURE.md), [공정 파일·함수·상태](../ws_cobot1/src/c2_process/README.md), [배포된 상세 계약 v2](INTERFACE_RECOMMENDATION.md)를 구분해 읽는다.

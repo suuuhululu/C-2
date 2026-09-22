@@ -1,6 +1,7 @@
 """HTTP와 게이트웨이 사이의 요청·결과·기록 조정. 실제 공정 순서는 상대 노드 소유."""
 import asyncio
 import contextlib
+import os
 import time
 from collections import deque
 
@@ -22,6 +23,8 @@ class MonitorService:
         if mode not in ('SIMULATION', 'REAL') or mode == 'REAL' and transport != 'ros':
             raise ValueError('REAL 준비는 ROS 연결에서만 허용합니다.')
         self.mode = mode
+        self.image_workflow = os.getenv("C2_IMAGE_WORKFLOW") == "1"
+        self.process_integration = os.getenv("C2_ROS_EXECUTION_SIM") == "1" and mode == "SIMULATION"
         self.store=store;self.transport=transport;self.tick=tick
         self.state=None;self.last_state=0.;self.retired_epochs=set()
         self.run=None;self.generating=None;self.generation_status={};self.stops={};self.latest_generation=None;self.cancel_events={}
@@ -36,7 +39,7 @@ class MonitorService:
             raise RuntimeError('C2_MONITOR_TRANSPORT는 mock 또는 ros여야 합니다.')
         profile = PROFILE
         self.work_area_policy=await asyncio.to_thread(register_policy,self.store)
-        if self.transport == 'ros':
+        if self.transport == 'ros' or self.image_workflow:
             # PR #38의 원본을 그대로 등록. 별도 수치·버전의 복제 프로파일을 만들지 않는다.
             from c2_path.pipeline import matching_test_profile
             profile = matching_test_profile()
@@ -49,7 +52,11 @@ class MonitorService:
         self.event_ids.update(e['event_id'] for e in self.events)
         self.writer=asyncio.create_task(self.write_loop())
         if self.transport=='mock':
-            self.peer=MockPeer(self.store,self.profile,self.receive,self.tick)
+            if self.image_workflow:
+                from .image_peer import ImageMockPeer
+                self.peer=ImageMockPeer(self.store,self.profile,self.receive,self.tick)
+            else:
+                self.peer=MockPeer(self.store,self.profile,self.receive,self.tick)
         else:
             from .ros_bridge import RosBridge
             self.peer=RosBridge(self.receive,artifact_loader=PathArtifactLoader(self.store),mode=self.mode)
@@ -114,9 +121,11 @@ class MonitorService:
                         self.run.update(status='UNKNOWN',error_code='COMMUNICATION_LOST',message='공정 노드 재시작. 실행 결과 미확인')
                         self.record(self.store.save_run,dict(self.run))
             self.state=data;self.last_state=time.monotonic();self.contract_error=None
-            if self.run and data.get('run_id')==self.run['run_id'] and self.run['status']!='UNKNOWN':
+            if self.run and data.get('run_id')==self.run['run_id'] and self.run['status'] in ('ACCEPTED','RUNNING','STOPPING'):
                 for key in ['phase','engraving_progress','elapsed_s','stop_state']:
                     self.run[key]=data.get(key)
+                if isinstance(self.run.get('engraving_progress'), (int, float)):
+                    self.run['engraving_progress']=max(0.,min(1.,self.run['engraving_progress']))
         elif kind=='event':
             eid=data.get('event_id')
             if not eid or eid in self.event_ids:return
@@ -131,29 +140,31 @@ class MonitorService:
         return dict(schema_version=SCHEMA_VERSION,source_mode=self.mode,transport=self.peer.transport,server_time=now(),
                     connection='CONNECTED' if self.fresh() else 'STALE',state=self.state,active_run=self.run,
                     profile=self.profile,work_area_policy=self.work_area_policy,
+                    virtual_device=os.getenv('C2_VIRTUAL_CELL') == '1',
                     preparation=self.preparation.snapshot(),
                     events=list(self.events),generation=self.generation_status.get(self.generating or self.latest_generation),
                     storage_error=self.storage_error,scenario=getattr(self.peer,'scenario',None),
                     path_generation=self.path_capabilities(),
-                    contract_status=self.contract_error or ('REAL 준비·측정 전용 · 경로 생성/조각 차단' if self.mode == 'REAL' else '고정 드릴 v2 · c2-path-preview/1 · 경로 시험 전용'
-                        if self.transport == 'ros' else '고정 드릴 v2 · mock-preview/1'))
+                    contract_status=self.contract_error or ('가상 장치 · 실제 경로/공정 ROS 노드 · 로봇 미연결' if os.getenv('C2_VIRTUAL_CELL') == '1' else 'REAL 실측 → BIND → 경로 → 공정 실행 검사' if self.mode == 'REAL' else 'ROS SIM 준비→이미지→공정 연결' if self.process_integration else '고정 드릴 v2 · c2-path-preview/1 · 경로 시험 전용'
+                        if self.transport == 'ros' else '실제 이미지 변환 · 준비/가공 MOCK' if self.image_workflow else '고정 드릴 v2 · mock-preview/1'))
 
     def path_capabilities(self):
         ros = self.transport == 'ros'
+        image = ros or self.image_workflow
         low, high = self.profile['payload']['surface']['valid_v_range_mm']
-        return dict(preset='raster_centerline_bezier' if ros else 'simulation_centerline',
-                    preview_contract='c2-path-preview/1' if ros else 'mock-preview/1',
-                    ready=False if self.mode == 'REAL' else self.peer.generate_client.server_is_ready() if ros else True,
-                    execution_enabled=not ros and self.preparation.ready() and not self.preparation.blocks_work(),
-                    execution_block_reason='REAL 준비·측정 전용입니다. 측정 결과 수신과 경로/조각 승인은 별개입니다.' if self.mode == 'REAL'
-                        else '경로 생성·미리보기 시험 전용입니다. J6/IK·보정·공정 실행 검증이 남아 있습니다.' if ros
-                        else '' if self.preparation.ready() else '모의 준비·측정 완료 후 같은 설정으로 경로를 생성하세요.',
-                    default_placement=dict(width_mm=24 if ros else 70, height_mm=24 if ros else 108,
+        return dict(preset='raster_centerline_bezier' if image else 'simulation_centerline',
+                    preview_contract='c2-path-preview/1' if image else 'mock-preview/1',
+                    ready=self.peer.generate_client.server_is_ready() if ros else True,
+                    test_only_execution=self.mode == 'SIMULATION' and (self.image_workflow or self.process_integration),
+                    execution_enabled=(not ros or self.process_integration or self.mode == 'REAL') and self.preparation.ready() and not self.preparation.blocks_work(),
+                    execution_block_reason='경로 생성·미리보기 시험 전용입니다. J6/IK·보정·공정 실행 검증이 남아 있습니다.' if ros and not self.process_integration and self.mode != 'REAL'
+                        else '' if self.preparation.ready() else '준비·측정 및 BIND 완료 후 같은 설정으로 경로를 생성하세요.',
+                    default_placement=dict(width_mm=24 if image else 70, height_mm=24 if image else 108,
                         offset_u_mm=0, offset_v_mm=(low+high)/2, rotation_deg=0))
 
     async def generate(self,goal):
-        if self.mode == 'REAL':
-            raise DomainError('NOT_READY', 'REAL 준비·측정 전용입니다. 측정값을 SIM 경로로 변환하지 않습니다.')
+        if goal.get('source_mode') != self.mode:
+            raise DomainError('SOURCE_MODE_MISMATCH', 'HMI와 생성 요청 모드가 다릅니다.')
         async with self.lock:
             if goal['conversion_preset'] != self.path_capabilities()['preset']:
                 raise DomainError('UNSUPPORTED_FORMAT','현재 연결 모드가 지원하는 이미지 변환 방식을 사용하세요.',422)
@@ -162,7 +173,7 @@ class MonitorService:
                 if old['payload']!=goal:raise DomainError('REQUEST_CONFLICT','같은 요청 ID에 다른 입력이 있습니다.')
                 return old
             if self.generating or self.busy() or self.preparation.blocks_work():raise DomainError('BUSY','현재 준비·생성·실행 또는 미확인 작업이 있습니다.')
-            if self.preparation.current and not self.preparation.ready():
+            if (self.mode == 'REAL' or self.image_workflow or self.process_integration or self.preparation.current) and not self.preparation.ready():
                 raise DomainError('NOT_READY','준비 결과가 유효하지 않습니다. 다시 준비·측정하세요.')
             try:
                 asset=await asyncio.to_thread(self.store.asset,goal['asset_id'])
@@ -253,7 +264,9 @@ class MonitorService:
 
     async def start_run(self,body):
         async with self.lock:
-            if self.transport == 'ros':
+            if body.get('source_mode') != self.mode:
+                raise DomainError('SOURCE_MODE_MISMATCH', 'HMI와 실행 요청 모드가 다릅니다.')
+            if self.transport == 'ros' and not self.process_integration and self.mode != 'REAL':
                 raise DomainError('NOT_READY','현재 ROS 연결은 test_only 경로 미리보기 전용입니다. 공정 실행은 지원하지 않습니다.')
             old=await asyncio.to_thread(self.store.request,body['request_id'])
             if old:
@@ -263,15 +276,24 @@ class MonitorService:
             if not self.preparation.ready():raise DomainError('NOT_READY','준비·측정이 완료되지 않았거나 다시 준비해야 합니다.')
             if not self.fresh() or self.storage_error:raise DomainError('NOT_READY','상태 통신 또는 기록 저장을 확인하세요.')
             path=await asyncio.to_thread(self.store.path,body['path_id'],body['path_version'])
-            if path.get('test_only') or path.get('origin')=='FILE_BUNDLE':
+            if self.transport == 'ros':
+                if self.preparation.current.get('binding_status') != 'BOUND_ROS' or path.get('execution_backend') == 'MOCK_ONLY':
+                    raise DomainError('NOT_READY','ROS 공정 노드에서 BIND한 경로만 전달할 수 있습니다.')
+                if not self.peer.execute_client.server_is_ready():
+                    raise DomainError('NOT_READY','ExecuteProcess Action 서버가 준비되지 않았습니다.')
+            if self.mode == 'REAL' and (path.get('test_only') is not False or path.get('real_execution_allowed') is not True):
+                raise DomainError('NOT_READY', '상대 노드가 실행 후보로 생성한 REAL 경로가 아닙니다.')
+            if (path.get('test_only') and not (self.image_workflow or self.process_integration)) or path.get('origin')=='FILE_BUNDLE':
                 raise DomainError('NOT_READY','가져온 파일 경로는 미리보기·공정팀 전달용입니다. HMI 실행은 지원하지 않습니다.')
             if path.get('input',{}).get('schema_version')!=SCHEMA_VERSION:
                 raise DomainError('UNSUPPORTED_SCHEMA_VERSION','이전 계약의 경로입니다. 고정 드릴 v2로 다시 생성·확인하세요.')
             if self.transport!='mock' and path.get('simulation_fixture'):
                 raise DomainError('NOT_READY','모의 경로 파일은 ROS 상대 노드로 전달하지 않습니다. 좌표 노드 산출물 연결이 필요합니다.')
+            if path.get('execution_precheck') == 'OUT_OF_LIMITS' or path.get('execution_blocked'):
+                raise DomainError('NOT_READY','경로 보고서의 작업 범위 또는 실행 제한을 확인하세요.')
             if path['path_sha256']!=body['path_sha256']:raise DomainError('HASH_MISMATCH','확인한 경로 해시와 다릅니다.')
-            if not path['validation_passed'] or path['source_mode']!='SIMULATION':raise DomainError('VALIDATION_FAILED','모의 실행 가능한 경로가 아닙니다.')
-            if path['profile_snapshot_id']!=self.profile['id']:raise DomainError('PROFILE_MISMATCH','설정이 변경됐습니다. 경로를 다시 생성하세요.')
+            if not path['validation_passed'] or path['source_mode']!=self.mode:raise DomainError('VALIDATION_FAILED','경로 검증 또는 실행 모드가 다릅니다.')
+            if path['profile_snapshot_id']!=self.profile['id'] or path['profile_sha256']!=self.profile['sha256']:raise DomainError('PROFILE_MISMATCH','설정이 변경됐습니다. 경로를 다시 생성하세요.')
             prepared=self.preparation.current
             if path.get('preparation_id')!=prepared['goal']['preparation_id']:
                 raise DomainError('PROFILE_MISMATCH','현재 준비에서 생성한 경로가 아닙니다. 다시 생성하세요.')
@@ -308,6 +330,10 @@ class MonitorService:
             if self.run['stop_state']!='NONE' and result['outcome']=='SUCCEEDED':
                 result.update(outcome='UNKNOWN',error_code='STOP_UNCONFIRMED',message='정지 요청 이후 성공 응답. 실제 정지 미확인')
             self.run.update(result,status=result['outcome'],ended_at=now())
+            if isinstance(self.run.get('engraving_progress'), (int, float)):
+                self.run['engraving_progress']=max(0.,min(1.,self.run['engraving_progress']))
+            if result['outcome']=='SUCCEEDED':
+                self.run.update(phase='FINISH',engraving_progress=1.)
         except Exception:
             self.run.update(status='UNKNOWN',error_code='COMMUNICATION_LOST',message='실행 결과 미확인. 자동 재시작하지 않습니다.')
         finally:

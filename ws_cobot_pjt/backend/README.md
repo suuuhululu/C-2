@@ -1,5 +1,7 @@
 # 새김 시스템 모니터 서버
 
+최신 작업: [이미지 한 장 HMI 부분통합](../docs/HMI_PARTIAL_INTEGRATION.md). 운영 화면에서 ZIP 교환을 제거하고 기본 실행을 실제 PNG/JPEG 계산 → 기존 준비/공정 흐름으로 연결했다. 이미지 의존성은 `requirements-image.lock.txt`를 사용한다. 아래 과거 파일 통합 메뉴 안내는 이전 구현 기록이다.
+
 최신 REAL 준비 연결은 [한 PC REAL 준비·측정 통합](../docs/HMI_REAL_PREPARATION.md)을 따른다. `--mode REAL --preparation-config ...`는 현장 설정을 명시 선택한 준비 MEASURE/상태/결과 수신 전용이다. 아래의 REAL 기동 거절·SIM 전용 표기는 이전 구현 기록이다. REAL 경로·조각 차단은 유지한다.
 
 최신: [main 8a68790 통합 준비](../docs/HMI_INTEGRATION_20260921.md). `C2_ROS_PREPARATION_SIM=1`로 기존 ROS 준비 요청의 MEASURE→원본 저장→동적 `/2`→BIND를 연결한다. REAL/조각 차단은 유지한다. 아래 미연결 표기는 이전 기록이다.
@@ -101,3 +103,7 @@ PR #38의 ID→파일·미리보기 계약은 `app/artifact_loader.py`로 연결
 공정 노드와의 실행·실기 통합은 별도다. MOCK 경로를 ROS 상대에게 보내거나 test_only 경로로 공정을 시작하지 않는다.
 
 이전 고객 웹앱·서버 초안은 개발 PC에 별도로 보존했다. 이 게시본에는 새 모니터를 실행하는 코드만 포함한다.
+
+REAL 실기 시험 연결 및 배포 실행 설정은 [9/22 HMI 계약](../docs/HMI_REAL_EXECUTION_20260922.md)을 따른다. 운영자는 이미지만 업로드하며 JSON/ZIP 교환 단계는 없다.
+
+랜선 없는 실제 HMI·경로·공정 ROS 통합은 [가상 장치 실행 안내](../docs/VIRTUAL_CELL_20260922.md)를 따른다. SIMULATION 전용이며 실물 드라이버는 실행하지 않는다.

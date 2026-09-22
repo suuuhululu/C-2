@@ -40,7 +40,8 @@ def test_real_config_requires_explicit_real_file_and_keeps_native_values(tmp_pat
     assert json.loads(store.read_asset(rec['id'], rec['sha256'])) == rec['payload']
 
 
-def test_real_http_measure_result_never_binds_or_generates(tmp_path, monkeypatch):
+@pytest.mark.parametrize('bind_rejected', [False, True])
+def test_real_http_estimated_binds_and_sends_real_generate(tmp_path, monkeypatch, bind_rejected):
     from app import ros_bridge
     calls = []
     class Peer:
@@ -48,7 +49,7 @@ def test_real_http_measure_result_never_binds_or_generates(tmp_path, monkeypatch
         def __init__(self, emit, **kwargs):
             assert kwargs['mode'] == 'REAL'
             self.emit = emit
-            self.preparation_client = self.generate_client = self
+            self.preparation_client = self.generate_client = self.execute_client = self
         def server_is_ready(self): return True
         async def start(self):
             await self.emit('state', dict(schema_version=2, source_mode='REAL', source_epoch='real-test', seq=1,
@@ -58,11 +59,21 @@ def test_real_http_measure_result_never_binds_or_generates(tmp_path, monkeypatch
             result = json.loads((ROOT/'ws_cobot1/src/c2_process/test/fixtures/prepare_workpiece_action_samples/success.json').read_text())['result']
             result.update({k:v for k,v in goal.items() if k != 'schema_version'})
             result['validity'] = 'ESTIMATED'
+            if goal['operation'] == 'BIND_SNAPSHOT':
+                result.update(snapshot_bound=not bind_rejected, outcome='FAILED' if bind_rejected else 'SUCCEEDED',
+                              error_code='NOT_READY' if bind_rejected else 'NONE', message='상대 BIND 거절' if bind_rejected else 'BIND 완료')
             return result
+        async def generate(self, goal, feedback):
+            calls.append(deepcopy(goal))
+            return None, dict(success=False, error_code='NOT_READY', message='경로 담당 PR 대기')
     monkeypatch.setattr(ros_bridge, 'RosBridge', Peer)
     monkeypatch.setenv('C2_MONITOR_MODE', 'REAL')
     monkeypatch.setenv('C2_MONITOR_TRANSPORT', 'ros')
-    monkeypatch.setenv('C2_PREPARATION_CONFIG', str(config_file(tmp_path)))
+    path = config_file(tmp_path)
+    cfg = json.loads(path.read_text())
+    cfg['execution_profile'] = execution_template(cfg)
+    path.write_text(json.dumps(cfg))
+    monkeypatch.setenv('C2_PREPARATION_CONFIG', str(path))
     with TestClient(create_app(tmp_path/'data')) as c:
         c.headers.update(HEADERS)
         initial = c.get('/api/operator/snapshot').json()
@@ -71,25 +82,40 @@ def test_real_http_measure_result_never_binds_or_generates(tmp_path, monkeypatch
         body = dict(request_id=uid(), input_profile_snapshot_id=config['id'], input_profile_sha256=config['sha256'], height_m=.15)
         assert c.post('/api/operator/preparations', json=body).status_code == 202
         result = wait(c, '/api/operator/preparations/'+body['request_id'], lambda r:r['state'] not in ('ACCEPTED','RUNNING'))
-        assert result['state'] == 'SUCCEEDED', result
-        assert result['binding_status'] == 'MEASUREMENT_ONLY'
         assert result['result']['observed_state']['measurement']['validity'] == 'ESTIMATED'
-        assert [g['operation'] for g in calls] == ['MEASURE']
-        assert calls[0]['source_mode'] == 'REAL'
-        after = c.get('/api/operator/snapshot').json()
-        assert not after['preparation']['ready'] and not after['path_generation']['execution_enabled']
-        assert after['profile'] == initial['profile']
-        service = c.app.state.service
-        from app.monitor_service import DomainError
-        with pytest.raises(DomainError): asyncio.run(service.generate({}))
-        with pytest.raises(DomainError): asyncio.run(service.start_run({}))
+        assert [g['operation'] for g in calls] == ['MEASURE', 'BIND_SNAPSHOT']
+        assert all(g['source_mode'] == 'REAL' for g in calls)
+        # 완료 원장 저장 직후에도 task의 마지막 저장이 끝날 때까지 다음 요청은 잠긴다.
+        after = wait(c, '/api/operator/snapshot', lambda s:not s['preparation']['blocks_work'])
+        if bind_rejected:
+            assert result['state'] == 'FAILED' and result['message'] == '상대 BIND 거절'
+            assert not after['preparation']['ready']
+            return
+        assert result['state'] == 'SUCCEEDED', result
+        assert result['binding_status'] == 'BOUND_ROS'
+        assert after['preparation']['ready'] and after['path_generation']['execution_enabled']
+        profile = after['profile']
+        assert profile['payload']['measurement_status'] == 'ESTIMATED'
+        assert profile['payload']['contact_calibration']['offset_status'] == 'ESTIMATED'
+        from test_path_artifacts import line_png, goal_for
+        asset = c.post('/api/operator/assets', files={'file': ('line.png', line_png(), 'image/png')}).json()
+        goal = goal_for(dict(id=asset['asset_id'], sha256=asset['asset_sha256']), profile)
+        goal['source_mode'] = 'SIMULATION'
+        assert c.post('/api/operator/path-generations', json=goal).status_code == 409
+        goal['source_mode'] = 'REAL'
+        assert c.post('/api/operator/path-generations', json=goal).status_code == 202
+        generated = wait(c, '/api/operator/path-generations/'+goal['request_id'], lambda g:g['state']=='FAILED')
+        assert generated['result']['message'] == '경로 담당 PR 대기'
+        assert calls[-1]['source_mode'] == 'REAL'
+
 
 
 @pytest.mark.parametrize('operation', ['BIND_SNAPSHOT', 'GENERATE', 'EXECUTE'])
-def test_real_bridge_blocks_non_measure_before_contacting_server(operation):
+def test_real_bridge_reaches_server_for_non_measure(operation):
     bridge = RosBridge(None, mode='REAL')
-    bridge.preparation_client = object()
-    with pytest.raises(ValueError, match='MEASURE'):
+    from types import SimpleNamespace
+    bridge.preparation_client = SimpleNamespace(server_is_ready=lambda: False)
+    with pytest.raises(ConnectionError, match='서버'):
         asyncio.run(bridge.action(bridge.preparation_client, None,
             dict(schema_version=2, source_mode='REAL', operation=operation)))
 
@@ -98,3 +124,72 @@ def test_real_bridge_rejects_sim_goal():
     bridge = RosBridge(None, mode='REAL')
     with pytest.raises(ValueError, match='모드'):
         asyncio.run(bridge.action(None, None, dict(schema_version=2, source_mode='SIMULATION')))
+
+
+def execution_template(config):
+    from c2_path.pipeline import matching_test_profile
+    value = matching_test_profile()
+    value.update(contract='test-real-candidate-fixture/1', calibration_status='TEST_FIXTURE',
+                 source_mode='REAL', test_only=False, real_execution_allowed=True,
+                 execution_context={'source_mode': 'REAL'}, joint_check_arguments={'fixture': True},
+                 tip_calibration={'offset_tool_m': config['workcell']['tool_offset_m']})
+    for k in ('tcp_id', 'load_id'):
+        value[k] = config['workcell'][k]
+    config['workcell']['top']['offset_status'] = 'ESTIMATED'
+    return value
+
+
+def test_missing_execution_settings_is_reported_without_promoting_sim(tmp_path):
+    from app.ros_preparation import real_bound_profile
+    with pytest.raises(ValueError, match='execution_profile'):
+        real_bound_profile({}, {}, {'workcell': {}}, {})
+
+@pytest.mark.parametrize('blocked', [None, 'OUT_OF_LIMITS', 'PREVIEW_ONLY', 'test_only'])
+def test_real_execute_forwards_bound_candidate_and_preserves_peer_failure(tmp_path, blocked):
+    """경로 메타데이터는 전송 시험대역이며 실제 모션에 쓰지 않는다."""
+    from types import SimpleNamespace
+    from app.monitor_service import MonitorService, DomainError
+    store = Storage(tmp_path/'execute')
+    service = MonitorService(store, 'ros', mode='REAL')
+    profile = store.profile({'source_mode': 'REAL'})
+    record = store.put_json({'fixture': 'measurement'}, 'measurement_record', 'test.json')
+    cfg = store.put_json({'fixture': 'input'}, 'preparation_config', 'test.json')
+    image = store.put_asset(b'fixture', 'image', 'image/png', 'test.png')
+    assets = {k: store.put_json({'fixture': k}, kind, 'test.json') for k, kind in (
+        ('path_asset_id','path'), ('preview_asset_id','preview'), ('svg_asset_id','svg'), ('validation_report_id','validation'))}
+    prepared_id = uid()
+    pid = uid()
+    payload = dict(request_id=uid(), schema_version=2, source_mode='REAL', asset_id=image['id'], asset_sha256=image['sha256'])
+    meta = dict(path_id=pid, path_version=1, path_sha256=assets['path_asset_id']['sha256'],
+        source_mode='REAL', test_only=blocked=='test_only', real_execution_allowed=blocked!='test_only',
+        validation_passed=True, input=payload, profile_snapshot_id=profile['id'], profile_sha256=profile['sha256'],
+        preparation_id=prepared_id, execution_precheck=blocked if blocked=='OUT_OF_LIMITS' else 'WITHIN_LIMITS',
+        execution_blocked=blocked if blocked=='PREVIEW_ONLY' else None, **{k:v['id'] for k,v in assets.items()})
+    store.create_generation(payload)
+    store.finish_generation(payload['request_id'], 'SUCCEEDED', {'success': True}, meta)
+    service.profile=profile
+    service.fresh=lambda: True
+    service.preparation.config=dict(id=cfg['id'], sha256=cfg['sha256'])
+    service.preparation.current=dict(state='SUCCEEDED', binding_status='BOUND_ROS', profile_snapshot=profile,
+        goal=dict(preparation_id=prepared_id, measurement_id=uid()), measurement_record=dict(id=record['id'],sha256=record['sha256']))
+    calls=[]
+    class Peer:
+        execute_client=SimpleNamespace(server_is_ready=lambda: True)
+        def prepare(self, run): pass
+        async def execute(self, goal):
+            calls.append(goal)
+            return dict(run_id=goal['run_id'], outcome='FAILED', error_code='NOT_READY', message='IK 검사 실패 대역')
+    service.peer=Peer()
+    async def scenario():
+        body=dict(schema_version=2, request_id=uid(), source_mode='REAL', path_id=pid, path_version=1,
+                  path_sha256=meta['path_sha256'], operator_confirmed_fixture=True)
+        if blocked:
+            with pytest.raises(DomainError): await service.start_run(body)
+            assert not calls
+            return
+        result=await service.start_run(body)
+        await asyncio.gather(*list(service.tasks))
+        assert calls[0]['source_mode']=='REAL' and calls[0]['path_sha256']==meta['path_sha256']
+        assert service.run['status']=='FAILED' and service.run['message']=='IK 검사 실패 대역'
+        assert result['run_id']==calls[0]['run_id']
+    asyncio.run(scenario())

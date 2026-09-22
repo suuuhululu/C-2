@@ -1,6 +1,6 @@
 """Jazzy monitor_gateway_node. 팀 c2_interfaces 설치본만 사용하며 자체 메시지를 만들지 않는다.
 
-REAL 모드는 준비 MEASURE만 허용한다. 로봇 동작은 공정 노드가 소유한다.
+REAL 모드도 준비·BIND·생성·실행 요청을 전달한다. 로봇 동작은 공정 노드가 소유한다.
 MonitorService가 PR #38의 관리 파일 계약을 읽는 artifact_loader를 주입한다.
 """
 import asyncio
@@ -179,8 +179,6 @@ class RosBridge:
             raise ValueError('고정 드릴 v2 요청만 지원합니다.')
         if values.get('source_mode') != self.mode:
             raise ValueError('게이트웨이와 요청 모드가 다릅니다.')
-        if self.mode == 'REAL' and (client is not self.preparation_client or values.get('operation') != 'MEASURE'):
-            raise ValueError('REAL에서는 준비 MEASURE만 허용합니다. 경로·등록·조각은 차단합니다.')
         if not client.server_is_ready():raise ConnectionError('ROS Action 서버가 준비되지 않았습니다.')
         goal=fill_message(msg.Goal(),values)
         def on_feedback(packet):
@@ -229,7 +227,7 @@ class RosBridge:
     async def prepare_raw(self, goal, feedback=None):
         """기존 MEASURE/BIND 전송 경계. HTTP 활성화는 PreparationService의 SIM 옵션으로 제어.
 
-        REAL은 MEASURE만 허용. 로봇을 직접 조회하거나 자동 재시도하지 않는다.
+        REAL도 MEASURE/BIND를 전달한다. 로봇을 직접 조회하거나 자동 재시도하지 않는다.
         """
         if self.preparation_client is None or self.preparation_type is None:
             raise ConnectionError('PrepareWorkpiece 설치·서버 연결이 필요합니다.')
