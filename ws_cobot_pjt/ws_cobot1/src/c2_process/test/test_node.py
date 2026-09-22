@@ -14,7 +14,10 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from c2_process.engraving import ExecutionContext
-from c2_process.node import ExecutionInputs, ProcessCoordinator, RunJournal
+from c2_process.node import (ExecutionInputs, ProcessCoordinator, RunJournal,
+                             InputsUnavailable, load_execution_inputs,
+                             make_asset_bundle_loader, make_hmi_asset_resolver,
+                             prepared_binding_observation_valid)
 from c2_process.preconditions import PreconditionEvidence
 from c2_process.robot_adapter import DoosanRobotAdapter, MockRobotAdapter, StepResult
 from c2_process.tool_calibration import TipCalibration, measure_tool_tip, upright_quat
@@ -514,7 +517,7 @@ def test_real_tcp_mismatch_blocks_tip_and_engraving(tmp_path):
 import copy
 import pytest
 from dataclasses import asdict
-from c2_process.node import load_execution_inputs, build_execution_settings, InputsUnavailable
+from c2_process.node import build_execution_settings
 from c2_process.engraving import execute_path, validate_path
 from c2_process.joint_check import check_path_joints
 from c2_process.tool_calibration import verify_tool_tip
@@ -531,7 +534,12 @@ def _file_integration(tmp_path):
     points = [[cx + dx, cy - math.sqrt(radius**2 - dx**2), z, *q] for dx in (0, .001, .002)]
     path = copy.deepcopy(inputs.path)
     path['test_only'] = True
-    path['validation'] = {'report_id': 'test-report', 'passed': True}
+    path['validation'] = {
+        'report_id': 'test-report',
+        'passed': True,
+        'checks': [{'code': 'GEOMETRY', 'passed': True}],
+        'not_checked': ['IK', 'JOINT_LIMITS', 'J6_RANGE'],
+    }
     path['segments'] = [
         dict(segment_id='approach', kind='APPROACH', motion_profile_id='approach',
              waypoints=[[cx, sy-.01, z, *q]]),
@@ -557,7 +565,7 @@ def _file_integration(tmp_path):
     result = dict(success=True, error_code='NONE', path_id=path['path_id'], path_version=path['path_version'],
                   path_sha256=digest, validation_passed=True, validation_report_id='test-report')
     files['result'].write_text(json.dumps(result))
-    def resolve(snapshot, goal):
+    def resolve(snapshot, goal, snapshot_id):
         data = snapshot['test_execution']
         return build_execution_settings(goal,
             evidence=replace(inputs.evidence, path_validation_passed=False, validation_path_sha256=''),
@@ -565,7 +573,7 @@ def _file_integration(tmp_path):
             stop_profile=data['stop_profile'],
             adapter=ad, workcell=data['workcell'], calibration_profiles=data['calibration_profiles'],
             calibration_record=data['calibration'],
-            calibration_snapshot_id=snapshot['profile_snapshot_id'],
+            calibration_snapshot_id=snapshot_id,
             tip_tolerance_m=data['tip_tolerance_m'], joint_limits_deg=data['joint_limits_deg'],
             j6_margin_deg=data['j6_margin_deg'])
     def loader(g):
@@ -767,7 +775,7 @@ def test_stop_during_actual_engraving_distinguishes_acceptance_and_confirmation(
 def test_loader_keeps_unconfirmed_runtime_evidence_unconfirmed(tmp_path):
     goal, loader, ad, files = _file_integration(tmp_path)
     bound = loader(goal)
-    def resolve(snapshot, request):
+    def resolve(snapshot, request, snapshot_id):
         fields = {key: getattr(bound, key) for key in (
             'evidence','context','adapter','workcell','calibration_profiles','calibration',
             'calibration_snapshot_id','tip_tolerance_m','joint_limits_deg','j6_margin_deg')}
@@ -934,6 +942,31 @@ def test_observation_stamp_stays_at_query_time_and_expires():
     assert stale['robot_connection_state'] == 'UNKNOWN'
 
 
+def test_prepared_binding_observation_requires_fresh_authority_and_robot():
+    from types import SimpleNamespace as NS
+    ready = NS(active=True, connected=True, valid=True, has_control=True)
+    owner = NS(cache=NS(fresh=lambda: ready))
+    values = dict(robot_connection_state='CONNECTED', robot_quality='VALID',
+                  robot_state_code=1)
+    assert prepared_binding_observation_valid(values, owner)
+    assert not prepared_binding_observation_valid(
+        dict(values, robot_connection_state='UNKNOWN'), owner)
+    assert not prepared_binding_observation_valid(
+        dict(values, robot_quality='STALE'), owner)
+    owner.cache.fresh = lambda: None
+    assert not prepared_binding_observation_valid(values, owner)
+
+
+@pytest.mark.parametrize('state_code', [3, 5, 6, 9, 10])
+def test_prepared_binding_observation_rejects_confirmed_stop_states(state_code):
+    from types import SimpleNamespace as NS
+    authority = NS(active=True, connected=True, valid=True, has_control=True)
+    owner = NS(cache=NS(fresh=lambda: authority))
+    values = dict(robot_connection_state='CONNECTED', robot_quality='VALID',
+                  robot_state_code=state_code)
+    assert not prepared_binding_observation_valid(values, owner)
+
+
 def test_observation_tip_is_converted_to_controller_tcp():
     cache = ObservationCache()
     pad = [.42, .001, .264, *upright_quat(-1)]
@@ -1038,6 +1071,7 @@ def test_ros_callbacks_publish_cached_signals_and_alarm_events(monkeypatch):
         def create_publisher(self, *a): return Publisher()
         def create_service(self, *a, **k): return None
         def create_timer(self, *a, **k): return None
+        def get_logger(self): return NS(warn=lambda message: None)
     monkeypatch.setitem(sys.modules, 'rclpy.action', NS(ActionServer=lambda *a, **k: None,
         CancelResponse=NS(ACCEPT=1, REJECT=0), GoalResponse=NS(ACCEPT=1, REJECT=0)))
     monkeypatch.setitem(sys.modules, 'rclpy.callback_groups', NS(ReentrantCallbackGroup=lambda: None))
@@ -1081,6 +1115,19 @@ def test_ros_callbacks_publish_cached_signals_and_alarm_events(monkeypatch):
     assert made == [real_node]
     assert real_node.coordinator.real_adapter is real
     assert not hasattr(real_node, 'observation_timer')
+
+    invalidated = []
+    real_node.preparation = NS(invalidate=lambda: (
+        invalidated.append(True), real_node.coordinator._preparation_bindings.clear()))
+    real_node.coordinator._preparation_bindings['prep'] = ('snapshot', 'a' * 64)
+    authority = NS(active=True, connected=True, valid=True, has_control=True)
+    real_node.real_preparation_observations = NS(cache=NS(fresh=lambda: authority))
+    real_node.observations.capture(real.observe(), None, 2.)
+    real_node.publish_state()
+    assert not invalidated and real_node.coordinator._preparation_bindings
+    real_node.real_preparation_observations.cache.fresh = lambda: None
+    real_node.publish_state()
+    assert invalidated and real_node.coordinator._preparation_bindings == {}
     assert not hasattr(real_node, 'refresh_robot_observation')
     with pytest.raises(ValueError, match="REAL 노드"):
         create_ros_node(enable_preparation=False, real_adapter_factory=lambda _: real)
@@ -1220,7 +1267,7 @@ def _registered_input_fixture(tmp_path):
     fields['calibration_snapshot_id'] = profile_id
     kwargs = dict(path_file=artifact.path, snapshot_file=profile.path, generation_result=result,
                   snapshot_metadata={'id':profile.id, 'sha256':profile.sha256},
-                  resolve_settings=lambda s,g: fields)
+                  resolve_settings=lambda s,g,snapshot_id: fields)
     return goal, kwargs, store
 
 
@@ -1234,6 +1281,205 @@ def test_managed_artifacts_and_action_result_load_without_rewriting_snapshot(tmp
     assert kwargs['snapshot_file'].read_bytes() == original == loaded.snapshot_bytes
     result = ProcessCoordinator(lambda _: loaded).execute(goal)
     assert result.ok, result
+
+
+def _validation_report_bytes(kwargs):
+    path = json.loads(kwargs["path_file"].read_bytes())
+    validation = path["validation"]
+    return json.dumps({
+        "path_id": path["path_id"],
+        "path_version": path["path_version"],
+        "passed": True,
+        "checks": validation["checks"],
+        "not_checked": validation["not_checked"],
+        "errors": [],
+        "mapping_failures": [],
+    }).encode()
+
+
+def test_hmi_asset_bundle_bytes_use_existing_integrity_checks(tmp_path):
+    goal, kwargs, _ = _registered_input_fixture(tmp_path)
+    settings = kwargs["resolve_settings"]
+    assets = {
+        "path_bytes": kwargs["path_file"].read_bytes(),
+        "snapshot_bytes": kwargs["snapshot_file"].read_bytes(),
+        "generation_result": kwargs["generation_result"],
+        "validation_report_bytes": _validation_report_bytes(kwargs),
+        "snapshot_metadata": kwargs["snapshot_metadata"],
+    }
+    requested = []
+    loader = make_asset_bundle_loader(
+        lambda received: requested.append(received) or assets,
+        settings,
+    )
+
+    loaded = loader(goal)
+
+    assert requested == [goal]
+    assert loaded.path_bytes == assets["path_bytes"]
+    assert loaded.snapshot_bytes == assets["snapshot_bytes"]
+    assert loaded.path["path_id"] == goal["path_id"]
+
+
+def test_hmi_asset_bundle_rejects_changed_path_bytes(tmp_path):
+    goal, kwargs, _ = _registered_input_fixture(tmp_path)
+    assets = {
+        "path_bytes": kwargs["path_file"].read_bytes() + b" ",
+        "snapshot_bytes": kwargs["snapshot_file"].read_bytes(),
+        "generation_result": kwargs["generation_result"],
+        "validation_report_bytes": _validation_report_bytes(kwargs),
+        "snapshot_metadata": kwargs["snapshot_metadata"],
+    }
+    loader = make_asset_bundle_loader(lambda _: assets, kwargs["resolve_settings"])
+
+    with pytest.raises(InputsUnavailable, match="SHA-256") as caught:
+        loader(goal)
+
+    assert caught.value.error_code == "PATH_MISMATCH"
+
+
+def test_hmi_asset_bundle_requires_only_the_four_existing_inputs(tmp_path):
+    goal, kwargs, _ = _registered_input_fixture(tmp_path)
+    loader = make_asset_bundle_loader(
+        lambda _: {"path_bytes": kwargs["path_file"].read_bytes()},
+        kwargs["resolve_settings"],
+    )
+
+    with pytest.raises(InputsUnavailable, match="필드 누락/초과") as caught:
+        loader(goal)
+
+    assert caught.value.error_code == "INVALID_INPUT"
+
+
+def test_hmi_resolver_uses_existing_path_and_asset_endpoints(tmp_path):
+    goal, kwargs, _ = _registered_input_fixture(tmp_path)
+    metadata = dict(
+        kwargs["generation_result"],
+        path_asset_id="path-asset",
+        validation_report_id="validation-asset",
+        profile_snapshot_id=kwargs["snapshot_metadata"]["id"],
+        profile_sha256=kwargs["snapshot_metadata"]["sha256"],
+    )
+    replies = {
+        f"http://hmi.local/api/operator/paths/{goal['path_id']}/versions/{goal['path_version']}":
+            json.dumps(metadata).encode(),
+        "http://hmi.local/api/operator/assets/path-asset/content":
+            kwargs["path_file"].read_bytes(),
+        "http://hmi.local/api/operator/assets/validation-asset/content":
+            _validation_report_bytes(kwargs),
+        f"http://hmi.local/api/operator/assets/{kwargs['snapshot_metadata']['id']}/content":
+            kwargs["snapshot_file"].read_bytes(),
+    }
+    requested = []
+    resolver = make_hmi_asset_resolver(
+        "http://hmi.local",
+        fetch_bytes=lambda url: requested.append(url) or replies[url],
+    )
+
+    assets = resolver(goal)
+
+    assert assets["path_bytes"] == kwargs["path_file"].read_bytes()
+    assert assets["snapshot_bytes"] == kwargs["snapshot_file"].read_bytes()
+    assert requested == list(replies)
+
+
+@pytest.mark.parametrize("defect,code", [
+    (lambda r: r.update(passed=False), "VALIDATION_UNAVAILABLE"),
+    (lambda r: r.update(path_version=r["path_version"] + 1), "PATH_MISMATCH"),
+    (lambda r: r["checks"][0].update(passed=False), "VALIDATION_UNAVAILABLE"),
+])
+def test_hmi_validation_report_must_match_path_and_be_complete(tmp_path, defect, code):
+    goal, kwargs, _ = _registered_input_fixture(tmp_path)
+    report = json.loads(_validation_report_bytes(kwargs))
+    defect(report)
+    assets = {
+        "path_bytes": kwargs["path_file"].read_bytes(),
+        "snapshot_bytes": kwargs["snapshot_file"].read_bytes(),
+        "generation_result": kwargs["generation_result"],
+        "validation_report_bytes": json.dumps(report).encode(),
+        "snapshot_metadata": kwargs["snapshot_metadata"],
+    }
+    loader = make_asset_bundle_loader(lambda _: assets, kwargs["resolve_settings"])
+
+    with pytest.raises(InputsUnavailable) as caught:
+        loader(goal)
+
+    assert caught.value.error_code == code
+
+
+def _hmi_validation_report(kwargs):
+    path_bytes = kwargs["path_file"].read_bytes()
+    path = json.loads(path_bytes)
+    return {
+        "path_id": path["path_id"],
+        "path_version": path["path_version"],
+        "path_sha256": hashlib.sha256(path_bytes).hexdigest(),
+        "geometry_passed": True,
+        "execution_readiness": {
+            "executability": "NOT_JUDGED",
+            "runtime_checks_passed": None,
+            "trial_authorized": True,
+        },
+        "not_checked": ["LIVE_ROBOT_STATE", "REAL_IK", "CONTINUOUS_COLLISION", "ACTUAL_DEPTH"],
+    }
+
+
+def test_hmi_geometry_validation_report_uses_embedded_path_checks(tmp_path):
+    goal, kwargs, _ = _registered_input_fixture(tmp_path)
+    report = _hmi_validation_report(kwargs)
+    assets = {
+        "path_bytes": kwargs["path_file"].read_bytes(),
+        "snapshot_bytes": kwargs["snapshot_file"].read_bytes(),
+        "generation_result": kwargs["generation_result"],
+        "validation_report_bytes": json.dumps(report).encode(),
+        "snapshot_metadata": kwargs["snapshot_metadata"],
+    }
+
+    loaded = make_asset_bundle_loader(
+        lambda _: assets, kwargs["resolve_settings"])(goal)
+
+    assert loaded.path["validation"]["passed"] is True
+    assert report["not_checked"] != loaded.path["validation"]["not_checked"]
+
+
+@pytest.mark.parametrize("defect", [
+    lambda r: r.update(geometry_passed=False),
+    lambda r: r.pop("execution_readiness"),
+    lambda r: r["execution_readiness"].update(executability=""),
+    lambda r: r["execution_readiness"].update(runtime_checks_passed="unknown"),
+    lambda r: r["execution_readiness"].pop("trial_authorized"),
+    lambda r: r.update(not_checked=[None]),
+])
+def test_hmi_geometry_validation_report_rejects_incomplete_data(tmp_path, defect):
+    goal, kwargs, _ = _registered_input_fixture(tmp_path)
+    report = _hmi_validation_report(kwargs)
+    defect(report)
+    assets = {
+        "path_bytes": kwargs["path_file"].read_bytes(),
+        "snapshot_bytes": kwargs["snapshot_file"].read_bytes(),
+        "generation_result": kwargs["generation_result"],
+        "validation_report_bytes": json.dumps(report).encode(),
+        "snapshot_metadata": kwargs["snapshot_metadata"],
+    }
+
+    with pytest.raises(InputsUnavailable) as caught:
+        make_asset_bundle_loader(lambda _: assets, kwargs["resolve_settings"])(goal)
+
+    assert caught.value.error_code == "VALIDATION_UNAVAILABLE"
+
+
+def test_prepared_real_node_does_not_require_extra_start_or_home_callbacks(tmp_path):
+    adapter = object.__new__(DoosanRobotAdapter)
+    coordinator = ProcessCoordinator(
+        lambda _: None,
+        runtime_mode="REAL",
+        real_adapter=adapter,
+        journal=RunJournal(tmp_path / "runs.sqlite3"),
+        preparation_required=True,
+    )
+
+    assert coordinator.real_adapter is adapter
+    assert coordinator.preparation_required is True
 
 
 @pytest.mark.parametrize('case', ['bad_id', 'bad_sha', 'no_metadata', 'conflicting_alias',
@@ -1587,6 +1833,135 @@ def test_handoff_mapping_preserves_values_without_fabricating_evidence():
     assert not second['context'].cancel.is_set()
     fields['context'].tool_profile['depth_m'] = 99
     assert json.dumps(cfg, sort_keys=True) == before
+
+
+def _complete_real_profile():
+    cfg, _, goal, adapter, _ = _handoff_settings()
+    workcell = copy.deepcopy(cfg['workcell'])
+    height_m = 0.15
+    return {
+        'schema_version': 2,
+        'source_mode': 'REAL',
+        'frame_id': 'c2_base',
+        'tool_id': 'engraving_drill',
+        'tcp_id': 'GripperDA_v1',
+        'load_id': 'ToolWeight_1',
+        'test_only': False,
+        'real_execution_allowed': True,
+        'preview_only': False,
+        'gripper_open_allowed': False,
+        'geometry_ready': True,
+        'workcell': workcell,
+        'surface': {
+            'kind': 'cylinder',
+            'radius_mm': workcell['radius_m'] * 1000.0,
+            'height_mm': height_m * 1000.0,
+            'axis_origin_m': [*workcell['axis_xy_m'], workcell['top_z_m'] - height_m],
+        },
+        'tip_calibration': copy.deepcopy(cfg['tip_calibration']),
+        'calibration_profiles': copy.deepcopy(cfg['calibration_profiles']),
+        'execution_context': {
+            'source_mode': 'REAL',
+            'motion_profiles': copy.deepcopy(cfg['execution_context']['motion_profiles']),
+            'tool_profile': copy.deepcopy(cfg['execution_context']['tool_profile']),
+            'stop_profile': copy.deepcopy(cfg['execution_context']['stop_profile']),
+        },
+        'verify_tool_tip_arguments': copy.deepcopy(cfg['verify_tool_tip_arguments']),
+        'joint_check_arguments': copy.deepcopy(cfg['joint_check_arguments']),
+    }, dict(goal, source_mode='REAL'), adapter
+
+
+def test_real_profile_mapping_uses_confirmed_nested_layout_and_external_id():
+    import c2_process.node as module
+    profile, goal, adapter = _complete_real_profile()
+    before = json.dumps(profile, sort_keys=True)
+
+    fields = module.resolve_real_execution_settings(
+        profile, goal, 'registered-real-profile', adapter=adapter)
+
+    assert fields['evidence'].profile_snapshot_id == 'registered-real-profile'
+    assert fields['calibration_snapshot_id'] == 'registered-real-profile'
+    assert fields['context'].motion_profiles == profile['execution_context']['motion_profiles']
+    assert fields['context'].tool_profile == profile['execution_context']['tool_profile']
+    assert fields['context'].stop_profile == profile['execution_context']['stop_profile']
+    assert fields['calibration'] is None
+    assert fields['calibration_profiles'] == {}
+    assert fields['tip_tolerance_m'] is None
+    assert fields['tool_offset_m'] == profile['tip_calibration']['offset_tool_m']
+    assert fields['joint_limits_deg'] == profile['joint_check_arguments']['limits_deg']
+    assert fields['j6_margin_deg'] == profile['joint_check_arguments']['j6_margin_deg']
+    assert json.dumps(profile, sort_keys=True) == before
+
+
+@pytest.mark.parametrize('field', ['preview_only', 'geometry_ready'])
+def test_real_profile_mapping_allows_optional_summary_flags_to_be_absent(field):
+    import c2_process.node as module
+    profile, goal, adapter = _complete_real_profile()
+    profile.pop(field)
+
+    fields = module.resolve_real_execution_settings(
+        profile, goal, 'registered-real-profile', adapter=adapter)
+
+    assert fields['context'].source_mode == 'REAL'
+
+
+@pytest.mark.parametrize('field,value', [('preview_only', True), ('geometry_ready', False)])
+def test_real_profile_mapping_rejects_invalid_optional_summary_flags(field, value):
+    import c2_process.node as module
+    profile, goal, adapter = _complete_real_profile()
+    profile[field] = value
+
+    with pytest.raises(InputsUnavailable, match='실행 승인되지 않은'):
+        module.resolve_real_execution_settings(
+            profile, goal, 'registered-real-profile', adapter=adapter)
+
+
+@pytest.mark.parametrize('case,match', [
+    ('preview', '실행 승인되지 않은'),
+    ('top_z', 'workcell 중심'),
+    ('tool_offset', '드릴 오프셋'),
+    ('j6_margin', '관절 한계'),
+])
+def test_real_profile_mapping_rejects_handoff_sample_gaps(case, match):
+    import c2_process.node as module
+    profile, goal, adapter = _complete_real_profile()
+    if case == 'preview':
+        profile.update(test_only=True, real_execution_allowed=False,
+                       preview_only=True, geometry_ready=False)
+    elif case == 'top_z':
+        profile['workcell']['top_z_m'] = None
+    elif case == 'tool_offset':
+        profile['tip_calibration']['offset_tool_m'] = [None, None, None]
+    elif case == 'j6_margin':
+        profile['joint_check_arguments']['j6_margin_deg'] = None
+
+    with pytest.raises(InputsUnavailable, match=match):
+        module.resolve_real_execution_settings(
+            profile, goal, 'registered-real-profile', adapter=adapter)
+
+
+@pytest.mark.parametrize('depth_m,cut_speed', [(0.0003, 5.0), (0.0007, 2.5)])
+def test_real_profile_mapping_passes_per_job_recipe_without_fixed_defaults(depth_m, cut_speed):
+    import c2_process.node as module
+    profile, goal, adapter = _complete_real_profile()
+    profile['tip_calibration'] = {
+        'tool_id': 'engraving_drill',
+        'offset_tool_m': [0.00085, -0.09955, 0.0],
+    }
+    profile.pop('calibration_profiles')
+    profile.pop('verify_tool_tip_arguments')
+    profile['execution_context']['tool_profile'].update(
+        contact_mode='fixed_depth', depth_m=depth_m, clearance_m=0.002)
+    profile['execution_context']['motion_profiles']['candle_cut']['vel_mm_s'] = cut_speed
+
+    fields = module.resolve_real_execution_settings(
+        profile, goal, 'registered-real-profile', adapter=adapter)
+
+    assert fields['context'].tool_profile['depth_m'] == depth_m
+    assert fields['context'].motion_profiles['candle_cut']['vel_mm_s'] == cut_speed
+    assert fields['tool_offset_m'] == [0.00085, -0.09955, 0.0]
+    assert fields['calibration'] is None
+    assert fields['tip_tolerance_m'] is None
 
 
 @pytest.mark.parametrize('margin', [-1, float('nan'), float('inf'), True, None, 345])
@@ -2048,6 +2423,36 @@ def test_prepared_execution_uses_final_checks_without_repeating_status_or_tip(ex
     assert result.ok, result
     assert calls == ["joints", "engrave"]
     assert coordinator.execute(goal, preparation_id=ctx.run_id if explicit_preparation_id else None) is result
+    assert calls == ["joints", "engrave"]
+
+
+def test_prepared_execution_needs_only_bound_tool_offset_not_full_tip_verification():
+    goal, inputs, ctx, settings, kwargs = _preparation_flow_fixture()
+    offset = list(inputs.calibration.offset_tool_m)
+    inputs = replace(inputs, calibration=None, calibration_profiles={}, tip_tolerance_m=None,
+                     tool_offset_m=offset)
+    calls = []
+
+    def forbidden(*_args, **_kwargs):
+        raise AssertionError("준비 완료 뒤 TipCalibration 재검사")
+
+    def joints(_path, _adapter, received_offset, _current, **_kwargs):
+        calls.append("joints")
+        assert received_offset == offset
+        return StepResult("SUCCEEDED")
+
+    def engrave(_path, _context, _progress, adapter):
+        calls.append("engrave")
+        assert adapter.tool_offset_m == offset
+        return StepResult("SUCCEEDED")
+
+    coordinator = ProcessCoordinator(lambda _: inputs, preparation_required=True,
+        joint_check_fn=joints, engrave_fn=engrave, verify_tip_fn=forbidden)
+    _prepare_and_bind(coordinator, inputs, ctx, settings, kwargs)
+
+    result = coordinator.execute(goal, preparation_id=ctx.run_id)
+
+    assert result.ok, result
     assert calls == ["joints", "engrave"]
 
 
@@ -2703,3 +3108,96 @@ def test_real_preparation_main_does_not_shutdown_stopped_context(tmp_path, monke
         [], observation_options_factory=lambda node: {},
         adapter_factory=lambda node: object())
     assert calls == ['init', 'executor_shutdown', 'destroy_node']
+
+
+def test_real_process_main_wires_one_adapter_preparation_and_execution(tmp_path, monkeypatch):
+    from types import SimpleNamespace as NS
+    import c2_process.node as module
+    calls = {}
+    options = NS(
+        preparation_backend_url='http://127.0.0.1:8000',
+        preparation_journal_path=tmp_path / 'prepare.sqlite3',
+        execution_journal_path=tmp_path / 'execute.sqlite3',
+        controller_prefix='/dsr01/dsr_controller2',
+        control_authority_topic='/dsr01/dsr_controller2/control_authority',
+        control_authority_max_age_s=.5)
+    monkeypatch.setattr(module, '_parse_real_process_args',
+                        lambda args: (options, ['--ros-args']))
+
+    class Logger:
+        def info(self, message): calls['info'] = message
+        def warn(self, message): calls['warn'] = message
+    class Node:
+        def get_logger(self): return Logger()
+        def destroy_node(self): calls['destroyed'] = True
+    server = Node()
+    def create(**kwargs):
+        calls['kwargs'] = kwargs
+        return server
+    monkeypatch.setattr(module, 'create_ros_node', create)
+    class Executor:
+        def __init__(self, num_threads): calls['threads'] = num_threads
+        def add_node(self, node): calls['node'] = node
+        def spin(self): calls['spun'] = True
+        def shutdown(self): calls['shutdown'] = True
+    fake_rclpy = NS(init=lambda args: calls.setdefault('ros_args', args),
+                    ok=lambda: True,
+                    shutdown=lambda: calls.setdefault('rclpy_shutdown', True))
+    monkeypatch.setitem(sys.modules, 'rclpy', fake_rclpy)
+    monkeypatch.setitem(sys.modules, 'rclpy.executors', NS(MultiThreadedExecutor=Executor))
+    provider_factory = lambda node: {'provider': node}
+    adapter_factory = lambda node: object()
+    settings_factory = lambda node, adapter: lambda snapshot, goal, snapshot_id: {}
+
+    module.real_process_main(
+        [], observation_options_factory=provider_factory,
+        adapter_factory=adapter_factory,
+        execution_settings_resolver_factory=settings_factory,
+        fetch_bytes=lambda url: b'{}')
+
+    kwargs = calls['kwargs']
+    assert kwargs['runtime_mode'] == 'REAL'
+    assert kwargs['measurement_only'] is False
+    assert kwargs['preparation_required'] is True
+    assert kwargs['load_inputs'] is module._missing_loader
+    assert kwargs['real_adapter_factory'] is adapter_factory
+    assert kwargs['real_preparation_options_factory'] is provider_factory
+    assert callable(kwargs['real_execution_loader_factory'])
+    assert isinstance(kwargs['journal'], module.RunJournal)
+    assert calls['node'] is server and calls['spun'] and calls['destroyed']
+
+
+def test_real_process_main_uses_confirmed_settings_mapper_by_default(tmp_path, monkeypatch):
+    from types import SimpleNamespace as NS
+    import c2_process.node as module
+    calls = {}
+    options = NS(
+        preparation_backend_url='http://127.0.0.1:8000',
+        preparation_journal_path=tmp_path / 'prepare.sqlite3',
+        execution_journal_path=tmp_path / 'execute.sqlite3',
+        controller_prefix='/dsr01/dsr_controller2',
+        control_authority_topic='/dsr01/dsr_controller2/control_authority',
+        control_authority_max_age_s=.5)
+    monkeypatch.setattr(module, '_parse_real_process_args', lambda args: (options, []))
+
+    class Logger:
+        def info(self, message): pass
+        def warn(self, message): pass
+    class Node:
+        def get_logger(self): return Logger()
+        def destroy_node(self): pass
+    def create(**kwargs):
+        loader = kwargs['real_execution_loader_factory'](Node(), MockRobotAdapter())
+        assert callable(loader)
+        return Node()
+    monkeypatch.setattr(module, 'create_ros_node', create)
+    class Executor:
+        def __init__(self, num_threads): pass
+        def add_node(self, node): pass
+        def spin(self): pass
+        def shutdown(self): pass
+    fake_rclpy = NS(init=lambda args: None, ok=lambda: False, shutdown=lambda: None)
+    monkeypatch.setitem(sys.modules, 'rclpy', fake_rclpy)
+    monkeypatch.setitem(sys.modules, 'rclpy.executors', NS(MultiThreadedExecutor=Executor))
+    module.real_process_main([], adapter_factory=lambda node: object(),
+                             observation_options_factory=lambda node: {})
