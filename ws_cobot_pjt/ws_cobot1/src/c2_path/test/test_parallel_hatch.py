@@ -19,7 +19,7 @@ def _write(image):
 
 
 class TestParallelHatch(unittest.TestCase):
-    def test_filled_rectangle_uses_fixed_spacing_and_one_direction(self):
+    def test_filled_rectangle_uses_fixed_spacing_and_cross_hatch(self):
         image = np.full((160, 200), 255, np.uint8)
         cv2.rectangle(image, (20, 20), (180, 140), 0, -1)
         path = _write(image)
@@ -28,17 +28,22 @@ class TestParallelHatch(unittest.TestCase):
         finally:
             os.unlink(path)
 
-        self.assertIn("SIMULATION/test_only", svg)
+        self.assertIn("SIMULATION/test_only 표면 경로 레시피", svg)
+        self.assertEqual(image_to_hatch.EFFECTIVE_GROOVE_WIDTH_MM, 0.8)
+        self.assertEqual(image_to_hatch.BOUNDARY_INSET_MM, 0.4)
+        self.assertEqual(image_to_hatch.HATCH_SPACING_MM, 0.25)
         self.assertEqual(stats["spacing_mm"], image_to_hatch.HATCH_SPACING_MM)
+        self.assertEqual(stats["recipe_scope"], "simulation_test_only")
         self.assertTrue(stats["fixed_test_only"])
         self.assertTrue(raw)
-        self.assertTrue(all(stroke[0][0] <= stroke[-1][0] for stroke in raw))
+        self.assertGreater(stats["horizontal_hatch_stroke_count"], 1)
+        self.assertGreater(stats["vertical_hatch_stroke_count"], 1)
+        self.assertEqual(stats["component_modes"]["cross_hatch"], 1)
 
         uv, uv_stats = extract_2d.transform_raw_strokes(raw, bbox, 32.0, 24.0, 0.0, 80.0)
         ordered, opt_stats = optimize_2d.optimize(uv)
         self.assertEqual(len(ordered), len(uv))
         self.assertEqual(opt_stats["direction_reversed_count"], 0)
-        self.assertTrue(all(stroke[0][0] <= stroke[-1][0] for stroke in ordered))
         self.assertLessEqual(uv_stats["spacing_mm"]["max"], 2.0 + 1e-9)
 
     def test_white_hole_is_not_cut(self):
@@ -69,7 +74,7 @@ class TestParallelHatch(unittest.TestCase):
         self.assertLess(min(p[0] for s in raw for p in s), bbox[2])
         self.assertGreater(max(p[0] for s in raw for p in s), bbox[0])
 
-    def test_blank_and_too_thin_regions_fail_closed(self):
+    def test_blank_fails_but_thin_line_is_kept_as_centerline(self):
         blank = _write(np.full((100, 100), 255, np.uint8))
         thin = np.full((100, 200), 255, np.uint8)
         cv2.line(thin, (10, 50), (190, 50), 0, 1)
@@ -77,11 +82,82 @@ class TestParallelHatch(unittest.TestCase):
         try:
             with self.assertRaises(ValueError):
                 image_to_hatch.convert(blank, 20.0, 20.0)
-            with self.assertRaises(ValueError):
-                image_to_hatch.convert(thin_path, 20.0, 20.0)
+            _svg, raw, _bbox, stats = image_to_hatch.convert(thin_path, 20.0, 20.0)
+            self.assertTrue(raw)
+            self.assertEqual(stats["component_modes"]["centerline"], 1)
         finally:
             os.unlink(blank)
             os.unlink(thin_path)
+
+    def test_mixed_image_hatches_wide_area_and_preserves_small_components(self):
+        image = np.full((220, 260), 255, np.uint8)
+        cv2.line(image, (15, 25), (150, 25), 0, 2)       # 가는 선
+        cv2.rectangle(image, (20, 70), (150, 190), 0, -1)  # 넓은 면
+        cv2.circle(image, (205, 90), 6, 0, -1)           # 작은 눈/단추
+        cv2.circle(image, (220, 150), 4, 0, -1)
+        path = _write(image)
+        try:
+            _svg, raw, _bbox, stats = image_to_hatch.convert(path, 52.0, 44.0)
+        finally:
+            os.unlink(path)
+
+        modes = stats["component_modes"]
+        self.assertEqual(stats["component_count"], 4)
+        self.assertGreaterEqual(modes["parallel_hatch"] + modes["cross_hatch"], 1)
+        self.assertGreaterEqual(modes["centerline"] + modes["minimum_one_pass"], 1)
+        self.assertEqual(modes["omitted_too_small"], 0)
+        self.assertEqual(stats["warnings"], [])
+        self.assertTrue(raw)
+        for detail in stats["components"]:
+            self.assertGreater(detail["stroke_count"], 0)
+
+    def test_small_filled_dot_gets_exactly_one_fallback_pass(self):
+        image = np.full((120, 240), 255, np.uint8)
+        cv2.line(image, (10, 20), (230, 20), 0, 1)  # 전체 배율을 정하는 가는 선
+        cv2.circle(image, (120, 80), 1, 0, -1)      # 유효 홈 폭보다 작은 채움
+        path = _write(image)
+        try:
+            _svg, _raw, _bbox, stats = image_to_hatch.convert(path, 44.0, 24.0)
+        finally:
+            os.unlink(path)
+
+        fallback = [item for item in stats["components"]
+                    if item["mode"] == "minimum_one_pass"]
+        self.assertEqual(len(fallback), 1)
+        self.assertEqual(fallback[0]["stroke_count"], 1)
+        self.assertLess(fallback[0]["estimated_width_mm"],
+                        image_to_hatch.EFFECTIVE_GROOVE_WIDTH_MM)
+
+    def test_sparse_line_art_component_stays_centerline_despite_thick_joint(self):
+        image = np.full((180, 240), 255, np.uint8)
+        cv2.line(image, (15, 90), (225, 90), 0, 3)
+        cv2.line(image, (120, 15), (120, 165), 0, 3)
+        cv2.circle(image, (120, 90), 12, 0, -1)  # 연결된 굵은 교차부
+        path = _write(image)
+        try:
+            _svg, raw, _bbox, stats = image_to_hatch.convert(path, 48.0, 36.0)
+        finally:
+            os.unlink(path)
+
+        self.assertEqual(stats["component_count"], 1)
+        detail = stats["components"][0]
+        self.assertEqual(detail["mode"], "centerline")
+        self.assertLess(detail["fill_ratio"], image_to_hatch.MIN_HATCH_FILL_RATIO)
+        self.assertGreater(len(raw), 0)
+
+    def test_cross_hatch_requires_two_safe_lines_in_both_directions(self):
+        image = np.full((160, 220), 255, np.uint8)
+        cv2.circle(image, (55, 80), 24, 0, -1)   # 충분히 큰 면
+        cv2.circle(image, (155, 80), 1, 0, -1)   # 작은 점: 단방향/1패스만 허용
+        path = _write(image)
+        try:
+            # 0.25mm 간격을 픽셀 격자에서 표현할 수 있는 물리 배율을 준다.
+            _svg, _raw, _bbox, stats = image_to_hatch.convert(path, 30.0, 24.0)
+        finally:
+            os.unlink(path)
+        details = stats["components"]
+        self.assertIn("cross_hatch", [item["mode"] for item in details])
+        self.assertNotEqual(details[1]["mode"], "cross_hatch")
 
 
 if __name__ == "__main__":

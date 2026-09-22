@@ -14,7 +14,7 @@ import numpy as np
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from c2_path import validate_path, workcell as wc  # noqa: E402
+from c2_path import image_to_hatch, validate_path, workcell as wc  # noqa: E402
 from c2_path.artifacts import (  # noqa: E402
     ArtifactError,
     ArtifactWrite,
@@ -142,8 +142,9 @@ class TestGeneratePipeline(PipelineFixture):
         ).data)
         self.assertTrue(validate_path.validate(path)["passed"])
         self.assertGreater(report["stats"]["convert"]["stroke_count"], 1)
-        self.assertEqual(report["stats"]["convert"]["spacing_mm"], 0.8)
-        self.assertTrue(report["stats"]["convert"]["fixed_test_only"])
+        self.assertEqual(report["stats"]["convert"]["spacing_mm"], image_to_hatch.HATCH_SPACING_MM)
+        self.assertEqual(report["stats"]["convert"]["recipe_scope"], "simulation_test_only")
+        self.assertEqual(path["config"]["conversion"]["spacing_mm"], image_to_hatch.HATCH_SPACING_MM)
 
     def test_any_mapping_failure_fails_whole_generation(self):
         with self.assertRaises(PipelineError) as caught:

@@ -719,6 +719,17 @@ class GeneratePipeline:
                     )
         except ValueError as exc:
             raise PipelineError("UNSUPPORTED_FORMAT", str(exc)) from exc
+        conversion_config = {
+            "preset": goal["conversion_preset"],
+            "recipe_scope": "simulation_test_only",
+        }
+        if goal["conversion_preset"] == "raster_parallel_hatch":
+            conversion_config.update({
+                key: convert_stats[key] for key in (
+                    "effective_groove_width_mm", "boundary_inset_mm", "spacing_mm",
+                    "stepover_ratio", "minimum_hatch_fill_ratio",
+                )
+            })
 
         checkpoint("EXTRACTING_2D", 0.22)
         try:
@@ -793,6 +804,7 @@ class GeneratePipeline:
                 should_stop=should_stop_refining,
                 real_preview=real_preview,
                 real_execution=real_execution,
+                conversion_config=conversion_config,
             )
         except ValueError as exc:
             raise PipelineError("VALIDATION_FAILED", str(exc)) from exc

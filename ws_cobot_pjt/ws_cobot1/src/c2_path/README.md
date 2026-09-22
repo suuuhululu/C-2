@@ -14,7 +14,7 @@
 | `c2_path/pipeline.py` | 계산 단계 조합, 입력/프로파일 검사(스냅샷 `/1`·`/2` 구분), 일부 획 실패·빈 경로 차단, 산출물 확정 |
 | `c2_path/artifacts.py` | HMI 관리 UUID→파일 해석·해시 검사, 산출물 묶음 원자적 등록 |
 | `c2_path/image_to_svg.py` | PNG/JPEG → 중심선 SVG(Otsu·세선화·골격·Bézier) |
-| `c2_path/image_to_hatch.py` | PNG/JPEG의 검은 면 → 경계 보정된 단방향 평행선 해칭 SVG·픽셀 획 |
+| `c2_path/image_to_hatch.py` | PNG/JPEG 연결 성분별 중심선·평행선 해칭·작은 면 1패스 혼합 SVG·픽셀 획 |
 | `c2_path/extract_2d.py` | SVG → 2D 좌표(mm), 크기·배치·회전, 적응형 샘플링 |
 | `c2_path/optimize_2d.py` | NN+2-opt 획 방문 순서 최적화(형상·진행 방향 보존) |
 | `c2_path/map_3d.py` | 원통 해석 매핑, 이음매·180° 분할, 도구 자세 |
@@ -58,10 +58,15 @@
 지원 입력 preset은 다음 두 개다.
 
 - `raster_centerline_bezier`: 가는 선·윤곽을 중심선으로 변환한다.
-- `raster_parallel_hatch`: 굵은 선·채워진 면을 단방향 평행선으로 변환한다. 모든 CUT 획의
-  진행 방향을 유지하고 획마다 기존 APPROACH/RETRACT를 사용한다. 간격은 HMI 입력이 아니라
-  코드의 SIMULATION/test_only 고정값 `0.8mm`(가정 홈 폭 `1.6mm`의 50%)다. 이 수치는 실측
-  승인값이 아니며 실제 재료·깊이·공구로 홈 폭을 측정한 뒤 코드와 검증 근거를 함께 갱신해야 한다.
+- `raster_parallel_hatch`: 연결 성분의 물리 폭과 채움 비율을 함께 판정해 가는 선화는 중심선으로 유지하고,
+  충분히 넓은 채워진 면은 수평·수직 각각 안전 해칭선이 두 개 이상일 때만 교차 해칭으로 변환한다.
+  그 조건을 만족하지 않는 면은 단방향 평행선, 골격이 사라지는 작은 면은 성분 내부의
+  최소 1패스로 보존한다. 공구·해상도보다 작아 유효 경로를 만들 수 없는 성분은 확대하지 않고
+  변환 통계에 생략 사유를 남긴다. 모든 CUT 획의 진행 방향을 유지하고 획마다 기존
+  APPROACH/RETRACT를 사용한다. HMI 입력이 아닌 시험 고정값은 홈 폭 `0.8mm`,
+  경계 안쪽 보정 `0.4mm`, 해칭 간격 `0.25mm`다. 가공 깊이 `0.8mm`는 이 경로 생성기가
+  적용하지 않으며, 실행 시점의 `c2_process` `fixed_depth.depth_m` 프로파일에 설정한다.
+  이 값들은 경로 생성·시험 기준이고, 실제 재료·깊이·속도별 반복 검증과 REAL 실행 승인은 별도다.
 
 기존 HMI의 `simulation_centerline`은 고정 모의 샘플 이름이므로 실제 이미지 변환으로 묵시 해석하지 않는다.
 해칭 preset도 별도 간격 값을 Goal/HMI에서 받지 않는다.
