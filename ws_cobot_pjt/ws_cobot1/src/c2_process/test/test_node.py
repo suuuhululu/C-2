@@ -17,8 +17,9 @@ from c2_process.engraving import ExecutionContext
 from c2_process.node import (ExecutionInputs, ProcessCoordinator, RunJournal,
                              InputsUnavailable, load_execution_inputs,
                              make_asset_bundle_loader, make_hmi_asset_resolver,
-                             prepared_binding_observation_valid)
-from c2_process.preconditions import PreconditionEvidence
+                             prepared_binding_observation_valid,
+                             read_real_execution_evidence)
+from c2_process.preconditions import PreconditionEvidence, check_robot_status
 from c2_process.robot_adapter import DoosanRobotAdapter, MockRobotAdapter, StepResult
 from c2_process.tool_calibration import TipCalibration, measure_tool_tip, upright_quat
 
@@ -967,6 +968,38 @@ def test_prepared_binding_observation_rejects_confirmed_stop_states(state_code):
     assert not prepared_binding_observation_valid(values, owner)
 
 
+def test_real_execution_evidence_reads_fresh_authority_stop_and_robot_state():
+    from types import SimpleNamespace as NS
+    authority=NS(active=True,connected=True,valid=True,has_control=True)
+    owner=NS(cache=NS(max_age_s=.5,fresh=lambda: authority),
+             stop_latched=lambda _context: False)
+    node=NS(real_preparation_observations=owner)
+
+    evidence=read_real_execution_evidence(node,'real-profile')
+
+    assert evidence.runtime_mode=='REAL'
+    assert evidence.profile_snapshot_id=='real-profile'
+    assert evidence.control_authority_confirmed is True
+    assert evidence.stop_latched is False
+    assert evidence.max_robot_state_age_s==.5
+    assert evidence.robot_state is None
+
+
+@pytest.mark.parametrize('authority,stopped', [(None,False),
+    (type('Authority',(),dict(active=True,connected=True,valid=True,has_control=True))(),None),
+    (type('Authority',(),dict(active=True,connected=True,valid=True,has_control=True))(),True)])
+def test_real_execution_evidence_does_not_invent_missing_or_stopped_readiness(authority,stopped):
+    from types import SimpleNamespace as NS
+    owner=NS(cache=NS(max_age_s=.5,fresh=lambda:authority),
+             stop_latched=lambda _context:stopped)
+    evidence=read_real_execution_evidence(
+        NS(real_preparation_observations=owner),'real-profile')
+
+    checked=check_robot_status(evidence)
+
+    assert not checked.ok and checked.error_code=='NOT_READY'
+
+
 def test_observation_tip_is_converted_to_controller_tcp():
     cache = ObservationCache()
     pad = [.42, .001, .264, *upright_quat(-1)]
@@ -1893,6 +1926,23 @@ def test_real_profile_mapping_uses_confirmed_nested_layout_and_external_id():
     assert json.dumps(profile, sort_keys=True) == before
 
 
+def test_real_profile_mapping_uses_injected_execution_status_evidence():
+    import c2_process.node as module
+    profile, goal, adapter = _complete_real_profile()
+    supplied = PreconditionEvidence(
+        runtime_mode='REAL', robot_state=None,
+        control_authority_confirmed=True, stop_latched=False,
+        profile_snapshot_id='registered-real-profile', max_robot_state_age_s=.5)
+    calls=[]
+
+    fields = module.resolve_real_execution_settings(
+        profile, goal, 'registered-real-profile', adapter=adapter,
+        evidence_provider=lambda profile_id: calls.append(profile_id) or supplied)
+
+    assert calls==['registered-real-profile']
+    assert fields['evidence'] is supplied
+
+
 @pytest.mark.parametrize('field', ['preview_only', 'geometry_ready'])
 def test_real_profile_mapping_allows_optional_summary_flags_to_be_absent(field):
     import c2_process.node as module
@@ -2389,11 +2439,11 @@ def _prepare_and_bind(coordinator, inputs, ctx, settings, kwargs):
 
 
 @pytest.mark.parametrize("explicit_preparation_id", [True, False])
-def test_prepared_execution_uses_final_checks_without_repeating_status_or_tip(explicit_preparation_id):
+def test_prepared_execution_rechecks_current_status_without_repeating_tip(explicit_preparation_id):
     goal, inputs, ctx, settings, kwargs = _preparation_flow_fixture()
     calls, phases = [], []
     def forbidden(*a, **k):
-        raise AssertionError("준비 완료 뒤 상태/도구/홈 재호출")
+        raise AssertionError("준비 완료 뒤 도구/홈 재호출")
     def joints(path, adapter, offset, current, **kw):
         calls.append("joints")
         assert path["inspection_scope"] == "BOUNDED_FORCE_TOUCH_CANDIDATES"
@@ -2411,19 +2461,42 @@ def test_prepared_execution_uses_final_checks_without_repeating_status_or_tip(ex
     kwargs["on_phase"] = phases.append
     _prepare_and_bind(coordinator, inputs, ctx, settings, kwargs)
     assert phases == ["ROBOT_STATUS", "MEASUREMENT_PRECHECK", "MEASURE_WORKPIECE", "CONFIRM_MEASUREMENT"]
-    # 사용자 지정 시점 분리: 준비 완료 후 기본 상태/선택 이름을 재검사하지 않는다.
+    # 도구 선택은 반복하지 않고, 실행 직전 현재 상태와 관절만 다시 읽는다.
     inputs.adapter._read_tool_tcp = forbidden
     observe = inputs.adapter.observe
-    def current_joints_only():
-        state = observe()
-        state.robot_state = 2
-        return state
-    inputs.adapter.observe = current_joints_only
+    status_reads=[]
+    def current_status():
+        status_reads.append('observe')
+        return observe()
+    inputs.adapter.observe = current_status
     result = coordinator.execute(goal, preparation_id=ctx.run_id if explicit_preparation_id else None)
     assert result.ok, result
+    assert status_reads==['observe']
     assert calls == ["joints", "engrave"]
     assert coordinator.execute(goal, preparation_id=ctx.run_id if explicit_preparation_id else None) is result
     assert calls == ["joints", "engrave"]
+
+
+@pytest.mark.parametrize("quality,robot_state", [("UNKNOWN", 1), ("VALID", 2)])
+def test_prepared_execution_blocks_bad_current_state_before_joint_or_motion(quality, robot_state):
+    goal, inputs, ctx, settings, kwargs = _preparation_flow_fixture()
+    calls=[]
+    coordinator = ProcessCoordinator(lambda _: inputs, preparation_required=True,
+        joint_check_fn=lambda *a, **k: calls.append('joints') or StepResult('SUCCEEDED'),
+        engrave_fn=lambda *a: calls.append('engrave') or StepResult('SUCCEEDED'))
+    _prepare_and_bind(coordinator, inputs, ctx, settings, kwargs)
+    observe=inputs.adapter.observe
+    def bad_status():
+        state=observe()
+        state.quality=quality
+        state.robot_state=robot_state
+        return state
+    inputs.adapter.observe=bad_status
+
+    result=coordinator.execute(goal,preparation_id=ctx.run_id)
+
+    assert result.outcome=='FAILED' and result.error_code=='ROBOT_NOT_READY'
+    assert calls==[]
 
 
 def test_prepared_execution_needs_only_bound_tool_offset_not_full_tip_verification():

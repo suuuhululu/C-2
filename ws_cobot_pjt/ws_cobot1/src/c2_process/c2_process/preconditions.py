@@ -182,5 +182,5 @@ def check_preconditions(*args, **kwargs) -> StepResult:
 
 
 def check_prepared_path(*args, **kwargs) -> StepResult:
-    """소유자가 준비 성공을 확인한 뒤 경로/설정/IK 검사. 기본 상태 재검사 없음."""
-    return _check_preconditions(*args, **kwargs, check_status=False)
+    """준비 BIND 후 경로/설정/IK와 실행 직전 로봇 상태를 검사한다."""
+    return _check_preconditions(*args, **kwargs, check_status=True)

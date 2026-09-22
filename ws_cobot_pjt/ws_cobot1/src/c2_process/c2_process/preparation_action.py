@@ -376,8 +376,6 @@ class PreparationActionHandler:
         with self.lock:
             if not self.latest or not self.success: raise ContractError('NOT_READY','현재 프로세스 성공 측정 없음')
             original=copy.deepcopy(self.success)
-            if original['validity']=='ESTIMATED':
-                raise ContractError('NOT_READY','추정값의 경로용 스냅샷 승인은 별도 계약 필요; 측정 결과만 반환')
             for key in ('preparation_id','measurement_id','source_mode','input_profile_snapshot_id','input_profile_sha256'):
                 if g[key]!=self.latest[key]: raise ContractError('PROFILE_MISMATCH','다른 측정/설정 참조')
         record=self.resolver.read(g['measurement_record_id'],g['measurement_record_sha256'],cancel)
@@ -413,7 +411,7 @@ class PreparationActionHandler:
             self.coordinator._preparation_bindings[g['preparation_id']]=identity
             self.active['bound']=True
         out=result_base(g)
-        out.update(outcome='SUCCEEDED',error_code='NONE',message='측정 원본·최종 스냅샷 대조 완료',
+        out.update(outcome='SUCCEEDED',error_code='NONE',message='측정 원본·최종 스냅샷 대조 완료; 신뢰도 상태는 기록용',
                    snapshot_bound=True,geometry_ready=True,partial=False,stop_confirmed=True)
         return out
 
