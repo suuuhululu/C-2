@@ -69,7 +69,7 @@ class TestParallelHatch(unittest.TestCase):
         self.assertLess(min(p[0] for s in raw for p in s), bbox[2])
         self.assertGreater(max(p[0] for s in raw for p in s), bbox[0])
 
-    def test_blank_and_too_thin_regions_fail_closed(self):
+    def test_blank_fails_but_thin_line_is_kept_as_centerline(self):
         blank = _write(np.full((100, 100), 255, np.uint8))
         thin = np.full((100, 200), 255, np.uint8)
         cv2.line(thin, (10, 50), (190, 50), 0, 1)
@@ -77,11 +77,68 @@ class TestParallelHatch(unittest.TestCase):
         try:
             with self.assertRaises(ValueError):
                 image_to_hatch.convert(blank, 20.0, 20.0)
-            with self.assertRaises(ValueError):
-                image_to_hatch.convert(thin_path, 20.0, 20.0)
+            _svg, raw, _bbox, stats = image_to_hatch.convert(thin_path, 20.0, 20.0)
+            self.assertTrue(raw)
+            self.assertEqual(stats["component_modes"]["centerline"], 1)
         finally:
             os.unlink(blank)
             os.unlink(thin_path)
+
+    def test_mixed_image_hatches_wide_area_and_preserves_small_components(self):
+        image = np.full((220, 260), 255, np.uint8)
+        cv2.line(image, (15, 25), (150, 25), 0, 2)       # 가는 선
+        cv2.rectangle(image, (20, 70), (150, 190), 0, -1)  # 넓은 면
+        cv2.circle(image, (205, 90), 6, 0, -1)           # 작은 눈/단추
+        cv2.circle(image, (220, 150), 4, 0, -1)
+        path = _write(image)
+        try:
+            _svg, raw, _bbox, stats = image_to_hatch.convert(path, 52.0, 44.0)
+        finally:
+            os.unlink(path)
+
+        modes = stats["component_modes"]
+        self.assertEqual(stats["component_count"], 4)
+        self.assertGreaterEqual(modes["hatch"], 1)
+        self.assertGreaterEqual(modes["centerline"] + modes["minimum_one_pass"], 3)
+        self.assertEqual(modes["omitted_too_small"], 0)
+        self.assertEqual(stats["warnings"], [])
+        self.assertTrue(raw)
+        for detail in stats["components"]:
+            self.assertGreater(detail["stroke_count"], 0)
+
+    def test_small_filled_dot_gets_exactly_one_fallback_pass(self):
+        image = np.full((120, 240), 255, np.uint8)
+        cv2.line(image, (10, 20), (230, 20), 0, 1)  # 전체 배율을 정하는 가는 선
+        cv2.circle(image, (120, 80), 2, 0, -1)      # 골격이 한 점인 작은 채움
+        path = _write(image)
+        try:
+            _svg, _raw, _bbox, stats = image_to_hatch.convert(path, 44.0, 24.0)
+        finally:
+            os.unlink(path)
+
+        fallback = [item for item in stats["components"]
+                    if item["mode"] == "minimum_one_pass"]
+        self.assertEqual(len(fallback), 1)
+        self.assertEqual(fallback[0]["stroke_count"], 1)
+        self.assertLess(fallback[0]["estimated_width_mm"],
+                        image_to_hatch.EFFECTIVE_GROOVE_WIDTH_MM)
+
+    def test_sparse_line_art_component_stays_centerline_despite_thick_joint(self):
+        image = np.full((180, 240), 255, np.uint8)
+        cv2.line(image, (15, 90), (225, 90), 0, 3)
+        cv2.line(image, (120, 15), (120, 165), 0, 3)
+        cv2.circle(image, (120, 90), 12, 0, -1)  # 연결된 굵은 교차부
+        path = _write(image)
+        try:
+            _svg, raw, _bbox, stats = image_to_hatch.convert(path, 48.0, 36.0)
+        finally:
+            os.unlink(path)
+
+        self.assertEqual(stats["component_count"], 1)
+        detail = stats["components"][0]
+        self.assertEqual(detail["mode"], "centerline")
+        self.assertLess(detail["fill_ratio"], image_to_hatch.MIN_HATCH_FILL_RATIO)
+        self.assertGreater(len(raw), 0)
 
 
 if __name__ == "__main__":
