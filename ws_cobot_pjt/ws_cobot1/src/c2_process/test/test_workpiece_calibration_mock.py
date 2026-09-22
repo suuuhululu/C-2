@@ -254,3 +254,57 @@ def test_integration_estimate_and_single_contact_projection(setup):
     assert m['tool_projection_check']['point_index']==1 and not m['tool_projection_check']['offset_applied']
     assert m['tool_reference']['measured_this_run'] is False
     assert len(m['points'])==8
+
+
+@pytest.mark.parametrize('status',['ESTIMATED','VERIFIED'])
+@pytest.mark.parametrize('include_legacy',[False, True])
+def test_named_estimated_contact_offset_is_applied_once(setup,include_legacy,status):
+    c,ctx,ad=setup;w=c['workcell'];top=w['top']
+    w['measurement_scope']='INTEGRATION_ESTIMATE'
+    top.update(contact_offset_tool_m=[0.,0.,.020],offset_status=status,
+               offset_record_id='gripper-bottom-offset-20260921-20mm-v1',
+               estimate_source='사용자 현장 판단: TCP부터 하단까지 tool +Z 20 mm')
+    if include_legacy:top['estimated_contact_offset_tool_m']=[0.,0.,.020]
+    before=deepcopy(c)
+    result=call(setup)
+    assert result.ok,result
+    m=result.observed_state['measurement'];raw=m['top_tcp_contact_z_m']
+    assert m['top_z_m']==pytest.approx(raw-.020)
+    assert m['bottom_z_m']==pytest.approx(raw-.170)
+    assert m['work_z_range_m']==pytest.approx([raw-.160,raw-.030])
+    assert m['validity']=='ESTIMATED' and not m['absolute_top_verified']
+    assert m['assumed_top_contact_offset_tool_m']==[0.,0.,.020]
+    assert m['axis_xy_m']==pytest.approx(ad.center)
+    assert m['radius_m']==pytest.approx(ad.radius)
+    assert c==before
+
+
+@pytest.mark.parametrize('change',[
+    {'offset_record_id':''}, {'estimate_source':''},
+    {'estimated_contact_offset_tool_m':[0.,0.,0.]},
+    {'contact_offset_tool_m':[0.,0.,float('nan')]},
+])
+def test_named_estimated_contact_offset_rejects_inconsistent_inputs(setup,change):
+    c,ctx,ad=setup;w=c['workcell']
+    w['measurement_scope']='INTEGRATION_ESTIMATE'
+    w['top'].update(contact_offset_tool_m=[0.,0.,.020],offset_status='ESTIMATED',
+                    offset_record_id='gripper-bottom-offset-20260921-20mm-v1',
+                    estimate_source='사용자 현장 판단')
+    w['top'].update(change)
+    result=call(setup)
+    assert result.error_code=='INVALID_INPUT' and not ad.calls
+
+
+@pytest.mark.parametrize('status',['ESTIMATED','VERIFIED','UNVERIFIED'])
+def test_real_absolute_offset_status_is_metadata_not_acceptance_gate(setup,status):
+    from c2_process.workpiece_calibration import _validate
+    c,ctx,ad=setup;w=c['workcell']
+    w['source_mode']='REAL';ctx.source_mode='REAL'
+    ctx.profile_snapshot_id='recorded-config';ctx.profile_sha256='a'*64
+    w['top'].update(contact_offset_tool_m=[0.,0.,.020],offset_status=status,
+                    offset_record_id='gripper-bottom-offset-20260921-20mm-v1',
+                    estimate_source='사용자 현장 판단')
+    _validate(w,c['profiles'],ctx)
+    assert not ad.calls  # 입력 검사만 수행하며 REAL 어댑터를 모의로 대체하지 않는다.
+    w['top']['estimate_source']=''
+    with pytest.raises(ValueError,match='출처'):_validate(w,c['profiles'],ctx)

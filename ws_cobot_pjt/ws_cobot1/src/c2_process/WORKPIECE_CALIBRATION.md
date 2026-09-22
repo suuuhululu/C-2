@@ -37,8 +37,30 @@
 내장 `workpiece_real_trial.create_adapter`가 REAL I/O·상태 재확인·단독 소유권·실험 영역 검사를 연결한다.
 
 현재 REAL 예제는 사용자 요청에 따라 `measurement_scope=INTEGRATION_ESTIMATE`다.
-그리퍼 밑면 오프셋을 정밀 실측하지 않고, 설정의 `estimated_contact_offset_tool_m=[0,0,0]`을
-명시적인 임시 가정으로 사용한다. `top_z_m`은 접촉 당시 TCP Z, 바닥은 높이 150 mm를 뺀 값이다.
+사용자 현장 판단으로 그리퍼 하단 접촉 오프셋을 다음과 같이 설정한다.
+
+```yaml
+contact_offset_tool_m: [0.0, 0.0, 0.020]
+offset_status: ESTIMATED
+offset_record_id: "gripper-bottom-offset-20260921-20mm-v1"
+```
+
+그리퍼 벌림 27.8 mm인 장착 상태의 TCP → 하단 접촉점 벡터다. tool +Z가 아래를 향하는
+현재 수직 자세에서 `top_z_m = top_tcp_contact_z_m - 0.020`이며, 자세가 바뀌면 동일 벡터를
+자세 변환하여 적용한다. 원본 TCP Z는 보존하고 보정은 한 번만 적용한다.
+바닥은 보정된 윗면에서 높이 150 mm를 뺀 값, 작업 범위는 상하단 각각 10 mm를 제외한 값이다.
+`side_depth_m=0.020`은 별도의 옆면 측정 깊이이므로 8점도 **보정된 윗면 아래 20 mm**에서 찍는다.
+기존 실행보다 8점 높이가 20 mm 낮아진다. 사용자가 이 측정 높이 변경을 승인했다.
+기존 접촉 TCP 예상 범위 232.925~236.705 mm에서 새 8점 목표 Z는 192.925~196.705 mm다.
+기존 TCP 검사 하한 195 mm에 걸리므로 수직 자세 1도에서의 드릴 오프셋 Z 투영과 추종 여유를
+고려해 하한만 190 mm로 조정했다. XY/상한·원통 외곽·접촉 방향·힘/관절 검사는 유지한다.
+이 범위는 계산·모의 검사 대상이며 이번 변경의 실제 IK·접촉·전체 간섭 검증은 아직 하지 않았다.
+
+기존 `contact_offset_tool_m=null` + `estimated_contact_offset_tool_m` 입력도 유지한다.
+두 오프셋을 함께 주는 경우 일치해야 하며 더해서 적용하지 않는다. 새 입력은 비어 있지 않은 기록 ID와 `estimate_source`를 요구한다.
+`offset_status`의 값은 수용/거절 조건에 쓰지 않고 설정에 기록으로 보존한다.
+`INTEGRATION_ESTIMATE` 결과는 상태 문자열과 무관하게 ESTIMATED를 유지한다. 고정되는 것은 오프셋이며 절대 Z는
+매번 접촉으로 갱신한다. 기록의 소수 자릿수는 측정 정확도 보증이 아니다.
 `validity=ESTIMATED`, `geometry_ready=true`, `absolute_top_verified=false`이며 독립 정확도는 미검증이다.
 기존 `CONTACT_REFERENCE`를 선택하면 종전의 null/REFERENCE_ONLY 반환을 유지한다.
 새 유효성 값과 출처 필드는 공정 로더/HMI가 확인해야 하며 그 담당 코드를 여기서 수정하지 않는다.
@@ -325,8 +347,13 @@ HMI는 이벤트를 ID/sequence 기준으로 저장해야 새로고침 후에도
   간섭 검사를 수행해 `path_checked`, `probe_envelopes_checked`와 검사 기록을 반환한다.
   표본 IK 통과를 충돌 검사 통과로 대신 쓰지 않는다. 단독 시험에는 workpiece_real_trial.check_trial_scene를 연결한다. 범용 현장 검사기를 뜻하지 않는다.
 
-ABSOLUTE_GEOMETRY의 REAL workcell에는 `tcp_id`, `load_id`, `top.offset_status=VERIFIED`, `top.offset_record_id`와
-실제로 확인된 `top.contact_offset_tool_m`가 필요하다. ctx에는 등록 스냅샷 ID/해시가 필요하다.
+ABSOLUTE_GEOMETRY의 REAL workcell에는 `tcp_id`, `load_id`, `top.offset_record_id`,
+`top.contact_offset_tool_m`와 출처 문자열 `top.estimate_source`가 필요하다.
+기존 출처 필드를 재사용하며 offset_status=VERIFIED/ESTIMATED 자체로 거절하지 않는다.
+VERIFIED라고 기록되지 않은 REAL 오프셋은 계산 후에도 `absolute_top_verified=false`,
+`validity=ESTIMATED`로 반환한다. 기록 ID의 외부 조회·현재 장착/TCP 설정 일치 검증은
+공정 로더/측정 어댑터의 기존 책임이며, 이 모듈은 문자열 존재만으로 기록 진위를 인증하지 않는다.
+공정의 스냅샷 등록/실행 수용 조건은 담당자 연결이 필요하며 이 변경에서 수정하지 않는다. ctx에는 등록 스냅샷 ID/해시가 필요하다.
 미확인 그리퍼 밑면 오프셋을 0이나 SIM의 10 mm로 채워 실행하면 안 된다.
 
 측정 어댑터는 모든 계획 구간을 설정 간격으로 보간하여 고정 solution space의 IK/FK와

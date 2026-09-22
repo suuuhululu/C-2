@@ -169,11 +169,20 @@ def _validate(workcell, profiles, context):
         raise ValueError("지원하지 않는 측정 범위")
     if scope=="ABSOLUTE_GEOMETRY":
         vector(workcell["top"]["contact_offset_tool_m"],3,"그리퍼 밑면 접촉 오프셋")
-    elif workcell["top"]["contact_offset_tool_m"] is not None:
+    elif scope=="CONTACT_REFERENCE" and workcell["top"]["contact_offset_tool_m"] is not None:
         raise ValueError("CONTACT_REFERENCE는 미확인 밑면 오프셋을 null로 명시")
     if scope=="INTEGRATION_ESTIMATE":
-        vector(workcell["top"]["estimated_contact_offset_tool_m"],3,"통합용 가정 오프셋")
-        if not workcell["top"].get("estimate_source"):
+        top=workcell["top"]
+        if top["contact_offset_tool_m"] is not None:
+            offset=vector(top["contact_offset_tool_m"],3,"그리퍼 밑면 접촉 오프셋")
+            if not isinstance(top.get("offset_record_id"),str) or not top["offset_record_id"].strip():
+                raise ValueError("접촉 오프셋 기록 ID 필요")
+            # 이전 설정과 함께 전달되면 같은 값인지 확인하고 한 번만 적용한다.
+            if "estimated_contact_offset_tool_m" in top and vector(top["estimated_contact_offset_tool_m"],3,"이전 추정 오프셋")!=offset:
+                raise ValueError("접촉 오프셋과 이전 추정 오프셋 불일치")
+        else:
+            vector(top["estimated_contact_offset_tool_m"],3,"통합용 가정 오프셋")
+        if not isinstance(workcell["top"].get("estimate_source"),str) or not workcell["top"]["estimate_source"].strip():
             raise ValueError("통합용 윗면 추정의 출처 필요")
     if workcell["top"].get("auto_entry"):
         number(workcell["top"]["clearance_tcp_z_m"],"clearance_tcp_z_m",1e-9)
@@ -225,10 +234,12 @@ def _validate(workcell, profiles, context):
         if not context.profile_snapshot_id or len(context.profile_sha256)!=64:
             raise ValueError("REAL은 등록 스냅샷 ID/해시 필요")
         int(context.profile_sha256,16)
-        if scope=="ABSOLUTE_GEOMETRY" and workcell["top"].get("offset_status") != "VERIFIED":
-            raise ValueError("그리퍼 밑면 오프셋 미확인: 실제 윗면 Z 계산 불가")
-        if scope=="ABSOLUTE_GEOMETRY" and not workcell["top"].get("offset_record_id"):
-            raise ValueError("밑면 오프셋 확인 기록 ID 필요")
+        if scope=="ABSOLUTE_GEOMETRY":
+            top=workcell["top"]
+            if not isinstance(top.get("offset_record_id"),str) or not top["offset_record_id"].strip():
+                raise ValueError("밑면 오프셋 기록 ID 필요")
+            if not isinstance(top.get("estimate_source"),str) or not top["estimate_source"].strip():
+                raise ValueError("접촉 오프셋 출처 필요: 기존 estimate_source 필드 사용")
 
 
 def _move(target, profile, label):
@@ -490,14 +501,20 @@ def measure_workpiece(adapter, workcell, profiles, context, on_progress=None):
                         raise MeasurementError("CONTACT_OUT_OF_RANGE","윗면 접촉 위치가 기존 고정 현장의 확인 범위 밖")
                     data["top"]=hit;data["top_tcp_contact_z_m"]=tcp[2]
                     top_offset=w["top"]["contact_offset_tool_m"]
-                    if top_offset is not None:
-                        data["top_z_m"]=apply_tool_offset(tcp,top_offset)[2]
-                    elif w.get("measurement_scope")=="INTEGRATION_ESTIMATE":
-                        data["top_z_m"]=apply_tool_offset(tcp,w["top"]["estimated_contact_offset_tool_m"])[2]
+                    # 상태 문자열은 수용 조건이 아니라 결과의 검증 수준을 설명한다.
+                    estimated=(w.get("measurement_scope")=="INTEGRATION_ESTIMATE" or
+                               (context.source_mode=="REAL" and top_offset is not None and
+                                w["top"].get("offset_status")!="VERIFIED"))
+                    if estimated:
+                        if top_offset is None:
+                            top_offset=w["top"]["estimated_contact_offset_tool_m"]
                         data["top_z_source"]="CONTACT_BASED_ESTIMATE"
                         data["top_estimate_source"]=w["top"]["estimate_source"]
-                        data["assumed_top_contact_offset_tool_m"]=list(w["top"]["estimated_contact_offset_tool_m"])
-                    data["absolute_top_verified"]=top_offset is not None
+                        data["assumed_top_contact_offset_tool_m"]=list(top_offset)
+                    if top_offset is not None:
+                        # tool +Z가 아래인 수직 자세에서는 +0.020 m가 base Z -20 mm.
+                        data["top_z_m"]=apply_tool_offset(tcp,top_offset)[2]
+                    data["absolute_top_verified"]=top_offset is not None and not estimated
                     event("TOP_TOUCH","SUCCEEDED","윗면 접촉 측정 완료",values=dict(
                         top_z_m=data["top_z_m"],top_tcp_contact_z_m=tcp[2],
                         absolute_top_valid=data["absolute_top_verified"],top_z_source=data.get("top_z_source","CALIBRATED_CONTACT" if top_offset is not None else "TCP_REFERENCE")))
@@ -578,7 +595,7 @@ def measure_workpiece(adapter, workcell, profiles, context, on_progress=None):
                     measured_at=context.utc_now(),validity="SIMULATED" if context.source_mode=="SIMULATION" else "FORCE_CONTACT_ESTIMATE",
                     geometry_ready=data["top_z_m"] is not None,independent_accuracy_verified=False)
         if data["top_z_m"] is None:data["validity"]="REFERENCE_ONLY"
-        elif w.get("measurement_scope")=="INTEGRATION_ESTIMATE":data["validity"]="ESTIMATED"
+        elif w.get("measurement_scope")=="INTEGRATION_ESTIMATE" or (context.source_mode=="REAL" and not data["absolute_top_verified"]):data["validity"]="ESTIMATED"
         data["work_v_origin"]="TOP";data["work_v_positive_direction"]="DOWN"
         observed.update(partial=False,stop_confirmed=True)
         event("COMPLETE","SUCCEEDED","좌표 계산·홈 복귀 완료: 양초 측정 완료",values=deepcopy(data))
