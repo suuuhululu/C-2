@@ -4,8 +4,8 @@
 #
 # 계약(INTERFACE_RECOMMENDATION v1 §2·§9):
 #   - 입력 자세는 m + quaternion(x,y,z,w) + frame_id. 두산 API 의 mm·ZYZ(A,B,C deg) 변환은 이 파일에서만 한다.
-#   - 함수는 부르면 완료·실패·정지 중 하나로 돌아온다(호출자 입장 동기). 안에서는 비동기 명령(amovel/amovesx)을 보내고
-#     완료를 감시하므로, 이동 대기 중에도 cancel 이벤트를 보면 즉시 QSTOP 을 보내고 STOPPED 로 돌아온다 (명세 §9).
+#   - 함수는 부르면 완료·실패·정지 중 하나로 돌아온다(호출자 입장 동기). 안에서는 비동기 이동 서비스를 보내고
+#     완료를 감시하므로, 이동 대기 중에도 cancel 이벤트를 보면 QSTOP 을 보내고 실제 정지 확인 후 STOPPED 로 돌아온다 (미확인 시 UNKNOWN).
 #   - deadline_s 초과·취소·오류를 상위로 전달하고, 정지 접수와 실제 정지 확인을 구분한다.
 #   - 실기(REAL) 값(속도·힘·TCP)은 프로파일(tools.yaml 스냅샷)에서만 온다. 여기에 현장 수치를 넣지 않는다.
 import math
@@ -182,34 +182,32 @@ def _cancelled(cancel) -> bool:
 
 # ---------------------------------------------------------------- 실기: 두산 드라이버 ----
 class DoosanRobotAdapter(RobotAdapter):
-    """ws_dsr 브링업(dsr_controller2, namespace dsr01)의 서비스를 DSR_ROBOT2 파이썬 API 로 호출한다.
-    node: rclpy 노드 (namespace 'dsr01' 로 만든 것). 생성 시 서비스 대기·툴/TCP 확인·상태 확인은 하지 않는다 →
-    상태 기계의 preconditions 와 select_tool_profile() 이 담당."""
+    """ws_dsr 브링업(dsr_controller2, namespace dsr01)의 기존 ROS 서비스를 호출한다. 공정 executor 안에서는 중첩 spin을 하지 않는다.
+    node: rclpy 노드 (namespace 'dsr01'). 실행 중에는 별도 작업 스레드에서 호출한다.
+    툴/TCP 선택·상태 검사는 상태 기계의 preconditions 와 select_tool_profile() 이 담당."""
 
     ROBOT_ID, ROBOT_MODEL = "dsr01", "m0609"
     STATE_STANDBY, STATE_MOVING = 1, 2
 
-    def __init__(self, node, frame_id="c2_base", logger=None):
-        import DR_init
-        setattr(DR_init, "__dsr__id", self.ROBOT_ID)
-        setattr(DR_init, "__dsr__model", self.ROBOT_MODEL)
-        setattr(DR_init, "__dsr__node", node)          # 클래스 안 'DR_init.__dsr__node=' 는 이름 맹글링 → setattr
-        import DSR_ROBOT2 as R
-        from DR_common2 import posx
+    def __init__(self, node, frame_id="c2_base", logger=None, *, initialization_timeout_s=5.0):
         from dsr_msgs2.srv import (MoveStop, GetCurrentTcp, GetCurrentTool, SetCurrentTcp, SetCurrentTool, SetRobotMode,
-                                   GetRobotState, GetCurrentPosj, GetCurrentPosx, GetToolForce)
-        self.node, self.R, self.posx, self.frame_id = node, R, posx, frame_id
-        self.tool_offset_m = None                      # set_tool_offset() 으로 설정 (없으면 제어기 TCP 그대로)
+                                   GetRobotState, GetCurrentPosj, GetCurrentPosx, GetToolForce,
+                                   MoveLine, MoveSplineTask, CheckMotion, Ikin, GetSolutionSpace,
+                                   SetSingularityHandling)
+        self.node, self.frame_id = node, frame_id
+        self.tool_offset_m = None
         self.log = logger or node.get_logger()
         self._srv = dict(MoveStop=MoveStop, GetCurrentTcp=GetCurrentTcp, GetCurrentTool=GetCurrentTool,
                          SetCurrentTcp=SetCurrentTcp, SetCurrentTool=SetCurrentTool, SetRobotMode=SetRobotMode,
                          GetRobotState=GetRobotState, GetCurrentPosj=GetCurrentPosj,
-                         GetCurrentPosx=GetCurrentPosx, GetToolForce=GetToolForce)
-        R._ros2_movej.wait_for_service()
-        R._ros2_movel.wait_for_service()
-        time.sleep(1.0)                                # 양방향 디스커버리 여유 (응답 유실 방지, 9/17)
-        R.set_singular_handling(R.DR_AVOID)
-        R.set_ref_coord(R.DR_BASE)
+                         GetCurrentPosx=GetCurrentPosx, GetToolForce=GetToolForce,
+                         MoveLine=MoveLine, MoveSplineTask=MoveSplineTask, CheckMotion=CheckMotion,
+                         Ikin=Ikin, GetSolutionSpace=GetSolutionSpace,
+                         SetSingularityHandling=SetSingularityHandling)
+        # 기존 DR_AVOID(0) 설정만 기한 내 전달한다. DSR_ROBOT2 전역 초기화/무제한 대기 없음.
+        # 모든 이동/조회 요청에 base ref=0을 명시하므로 전역 set_ref_coord는 불필요하다.
+        self._read("motion/set_singularity_handling", "SetSingularityHandling",
+                   timeout=initialization_timeout_s, mode=0)
 
     # ---- 서비스 도우미 ----
     def _call(self, name, srv, req, timeout=5.0):
@@ -253,9 +251,9 @@ class DoosanRobotAdapter(RobotAdapter):
                 fut.cancel()
             self.node.destroy_client(cli)
 
-    def _read(self, endpoint, typename, **fields):
+    def _read(self, endpoint, typename, *, timeout=5.0, **fields):
         kind = self._srv[typename]
-        result = self._call(endpoint, kind, kind.Request(**fields))
+        result = self._call(endpoint, kind, kind.Request(**fields), timeout=timeout)
         if result.success is not True:
             raise RuntimeError(f"service {endpoint} rejected")
         return result
@@ -269,13 +267,14 @@ class DoosanRobotAdapter(RobotAdapter):
         best = None
         if getattr(self, "_ik_space", None) is None:
             try:                                                                # 현재(기준) 관절의 해 공간을 제어기에 물어 그것부터
-                self._ik_space = int(self.R.get_solution_space(self.R.posj(*[float(v) for v in ref_joints_deg])))
+                self._ik_space = int(self._read("aux_control/get_solution_space", "GetSolutionSpace",
+                                                pos=[float(v) for v in ref_joints_deg]).sol_space)
             except Exception:
                 self._ik_space = None
         spaces = ([self._ik_space] if self._ik_space is not None else []) + [k for k in range(8) if k != self._ik_space]
         for sp in spaces:
             try:
-                q = self.R.ikin(self.posx(*px), sp, self.R.DR_BASE)
+                q = self._read("motion/ikin", "Ikin", pos=[float(v) for v in px], sol_space=sp, ref=0).conv_posj
             except Exception:
                 q = None
             if isinstance(q, tuple) and len(q) and hasattr(q[0], "__len__"):   # (posj, status) 형태 대비
@@ -297,8 +296,8 @@ class DoosanRobotAdapter(RobotAdapter):
         self.tool_offset_m = list(offset_tool_m) if offset_tool_m else None
         self.log.info(f"tool offset (tool frame, m) = {self.tool_offset_m}")
 
-    def _posx_now(self):
-        result = self._read("aux_control/get_current_posx", "GetCurrentPosx", ref=0)
+    def _posx_now(self, timeout=5.0):
+        result = self._read("aux_control/get_current_posx", "GetCurrentPosx", timeout=timeout, ref=0)
         values = list(result.task_pos_info[0].data[:6])
         if len(values) != 6 or not all(math.isfinite(v) for v in values):
             raise ValueError("invalid TCP observation")
@@ -307,8 +306,8 @@ class DoosanRobotAdapter(RobotAdapter):
     def _tip_pose_now(self):
         return posx_to_pose(self._posx_now(), self.tool_offset_m)
 
-    def _force_vec(self):
-        values = list(self._read("aux_control/get_tool_force", "GetToolForce", ref=0).tool_force[:3])
+    def _force_vec(self, timeout=5.0):
+        values = list(self._read("aux_control/get_tool_force", "GetToolForce", timeout=timeout, ref=0).tool_force[:3])
         if len(values) != 3 or not all(math.isfinite(v) for v in values):
             raise ValueError("invalid force observation")
         return values
@@ -363,80 +362,176 @@ class DoosanRobotAdapter(RobotAdapter):
             code = "TIMEOUT" if "timed out" in str(e) else "COMMUNICATION_LOST"
             return StepResult("UNKNOWN" if code == "TIMEOUT" else "FAILED", code, str(e), "select_tool_profile", obs)
 
-    # ---- 이동 (비동기 명령 + 대기 중 취소·제한 시간 감시) ----
-    def _wait_motion(self, target_xyz_mm, deadline_s, cancel, step, tol_mm):
-        """amovel/amovesx 를 보낸 뒤 완료를 감시한다. 완료 = TCP 가 목표 tol_mm 안에 들어오고 로봇 상태가 이동 중이 아님.
-        (9/18 bag 1819: 명령 직후엔 제어기 상태가 아직 STANDBY 로 읽혀 위치로 판정해야 한다)
-        대기 중 cancel 이 서면 즉시 QSTOP → STOPPED. deadline 초과 → QSTOP 후 UNKNOWN(TIMEOUT).
-        3 s 동안 위치 변화가 1 mm 미만이고 목표에도 못 갔으면 '안 움직임' FAILED."""
+    # ---- 이동: 기존 executor가 응답을 처리하고 호출 스레드는 완료를 기다린다 ----
+    @staticmethod
+    def _angle_error(a, b):
+        qa, qb = posx_to_pose(a)[3:], posx_to_pose(b)[3:]
+        dot = min(1.0, abs(sum(x * y for x, y in zip(qa, qb))))
+        return math.degrees(2 * math.acos(dot))
+
+    def _motion_sample(self, timeout_s):
+        end = time.monotonic() + timeout_s
+        def read(endpoint, name, **fields):
+            remaining = end - time.monotonic()
+            if remaining <= 0:
+                raise TimeoutError('모션 관측 제한 시간 초과')
+            kind = self._srv[name]
+            result = self._call(endpoint, kind, kind.Request(**fields), timeout=remaining)
+            if result is None or result.success is not True:
+                raise RuntimeError('모션 관측 실패: ' + endpoint)
+            return result
+        state = read('system/get_robot_state', 'GetRobotState').robot_state
+        motion = read('motion/check_motion', 'CheckMotion').status
+        px = list(read('aux_control/get_current_posx', 'GetCurrentPosx', ref=0).task_pos_info[0].data[:6])
+        if len(px) != 6 or not all(math.isfinite(v) for v in px):
+            raise ValueError('유효하지 않은 모션 TCP')
+        if time.monotonic() > end:
+            raise TimeoutError('모션 관측 제한 시간 초과')
+        return px, state, motion
+
+    def _send_line(self, target, vel, acc, timeout_s):
+        kind = self._srv['MoveLine']
+        return self._call('motion/move_line', kind, kind.Request(
+            pos=[float(v) for v in target], vel=[vel, vel], acc=[acc, acc],
+            time=0.0, radius=0.0, ref=0, mode=0, blend_type=0, sync_type=1), timeout=timeout_s)
+
+    def _motion_failure(self, outcome, code, message, step):
+        stopped = self.stop({'mode': 1}, 2.0)
+        confirmed = stopped.ok and stopped.observed_state.get('stop_confirmed') is True
+        return StepResult(outcome if confirmed else 'UNKNOWN', code, message, step,
+                          dict(stop_confirmed=confirmed, stop_result=stopped.outcome,
+                               stop_error_code=stopped.error_code))
+
+    def _wait_motion(self, target, deadline_s, cancel, step, tol_mm, *, start,
+                     angle_tol_deg=0.15, closed_excursion_mm=0.0,
+                     closed_excursion_deg=0.0, require_start=True, require_controller_start=False):
+        """접수만으로 완료하지 않는다. 시작 관측 → 목표 위치/자세 → 정착을 확인.
+
+        폐곡선은 출발점에서 실제로 떨어진 관측까지 필요하다. 관측을 놓쳤으면
+        성공을 추정하거나 명령을 재전송하지 않고 제한 시간 뒤 정지·UNKNOWN 반환.
+        """
         t0 = time.monotonic()
-        last_pos, last_change = None, t0
+        moved = not require_start
+        controller_started = False
+        excursion = angular_excursion = 0.0
+        stable_since = None
+        anchor = None
         while True:
             if _cancelled(cancel):
-                self._qstop()
-                st = self.observe()
-                return StepResult("STOPPED", "NONE", f"취소됨 ({step} 대기 중)", step,
-                                  dict(tcp_pose=st.tcp_pose, robot_state=st.robot_state))
+                return self._motion_failure('STOPPED', 'NONE', '이동 중 취소', step)
+            remaining = deadline_s - (time.monotonic() - t0)
+            if remaining <= 0:
+                return self._motion_failure('UNKNOWN', 'TIMEOUT', '이동 완료 제한 시간 초과', step)
+            try:
+                cur, state, motion = self._motion_sample(min(remaining, 2.0))
+            except Exception as exc:
+                return self._motion_failure('UNKNOWN', 'COMMUNICATION_LOST', str(exc), step)
             now = time.monotonic()
-            if now - t0 > deadline_s:
-                self._qstop()
-                st = self.observe()
-                return StepResult("UNKNOWN", "TIMEOUT", f"{step} 완료가 제한 시간 {deadline_s:.0f}s 를 넘김 (정지 요청함)", step,
-                                  dict(tcp_pose=st.tcp_pose, robot_state=st.robot_state))
-            cur = self._posx_now()
-            err = math.dist(cur[:3], target_xyz_mm)
-            if last_pos is None or math.dist(cur[:3], last_pos) >= 1.0:
-                last_pos, last_change = cur[:3], now
-            if err <= tol_mm:
-                st = self.observe()
-                if st.robot_state != self.STATE_MOVING:
-                    return StepResult("SUCCEEDED", "NONE", "", step, dict(tcp_pose=posx_to_pose(cur, self.tool_offset_m), error_mm=err))
+            if _cancelled(cancel):
+                return self._motion_failure('STOPPED', 'NONE', '이동 중 취소', step)
+            if now - t0 >= deadline_s:
+                return self._motion_failure('UNKNOWN', 'TIMEOUT', '이동 완료 제한 시간 초과', step)
+            if state not in (self.STATE_STANDBY, self.STATE_MOVING) or motion not in (0, 1, 2):
+                return self._motion_failure('FAILED', 'NOT_READY', '이동 중 비정상 로봇/모션 상태', step)
+            excursion = max(excursion, math.dist(cur[:3], start[:3]))
+            angular_excursion = max(angular_excursion, self._angle_error(cur, start))
+            controller_started |= state == self.STATE_MOVING or motion != 0
+            moved |= (state == self.STATE_MOVING or motion != 0 or excursion > 0.03
+                      or self._angle_error(cur, start) > 0.03)
+            if not moved and now - t0 >= min(3.0, deadline_s):
+                return self._motion_failure('UNKNOWN', 'TIMEOUT', '명령 후 이동 시작 미확인', step)
+            err = math.dist(cur[:3], target[:3])
+            settled = (moved and (controller_started or not require_controller_start)
+                       and excursion >= closed_excursion_mm
+                       and angular_excursion >= closed_excursion_deg and state == self.STATE_STANDBY
+                       and motion == 0 and err <= tol_mm
+                       and self._angle_error(cur, target) <= angle_tol_deg)
+            if settled:
+                if (anchor is None or math.dist(cur[:3], anchor[:3]) > 0.05
+                        or self._angle_error(cur, anchor) > 0.05):
+                    anchor, stable_since = cur, now
+                elif now - stable_since >= 0.2:
+                    return StepResult('SUCCEEDED', 'NONE', '', step,
+                                      dict(tcp_pose=posx_to_pose(cur, self.tool_offset_m), error_mm=err,
+                                           motion_started=require_start, motion_status=0, stop_confirmed=True))
             else:
-                st = self.observe()
-                if st.robot_state not in (self.STATE_STANDBY, self.STATE_MOVING, None):
-                    return StepResult("FAILED", "NOT_READY", f"이동 중 로봇 상태 {st.robot_state} (안전 정지/서보 오프 등)", step,
-                                      dict(tcp_pose=posx_to_pose(cur, self.tool_offset_m), robot_state=st.robot_state))
-                if now - last_change > 3.0:
-                    return StepResult("FAILED", "VALIDATION_FAILED",
-                                      f"3 s 동안 움직임 없음, 목표와 {err:.1f} mm 차이 (허용 {tol_mm})", step,
-                                      dict(tcp_pose=posx_to_pose(cur, self.tool_offset_m), error_mm=err))
-            time.sleep(0.05)
+                anchor = stable_since = None
+            time.sleep(min(0.05, max(0.0, deadline_s - (time.monotonic() - t0))))
+
+    def _execute_motion(self, poses, frame_id, profile, deadline_s, cancel, spline):
+        step = 'move_spline' if spline else 'move'
+        if _cancelled(cancel):
+            return StepResult('STOPPED', 'NONE', '취소됨 (이동 전)', step)
+        if not self._frame_ok(frame_id):
+            return StepResult('FAILED', 'INVALID_INPUT', 'frame_id 불일치', step)
+        try:
+            if spline and not 2 <= len(poses) <= 80:
+                raise ValueError('movesx 점 수는 2~80')
+            vel = float(profile['vel_mm_s']); acc = float(profile.get('acc_mm_s2', vel * 2))
+            tol = float(profile.get('pos_tol_mm', 3.0 if spline else 2.0))
+            angle_tol = float(profile.get('angle_tol_deg', 0.15))
+            if any(not math.isfinite(v) or v <= 0 for v in (vel, acc, tol, angle_tol, deadline_s)):
+                raise ValueError('속도·가속도·허용오차·제한 시간은 양의 유한 값이어야 함')
+            if any(len(p) != 7 or any(not math.isfinite(v) for v in p) for p in poses):
+                raise ValueError('유효한 pose7 필요')
+            points = [pose_to_posx(p, self.tool_offset_m) for p in poses]
+        except (ValueError, TypeError, KeyError, ZeroDivisionError) as exc:
+            return StepResult('FAILED', 'INVALID_INPUT', str(exc), step)
+        end = time.monotonic() + deadline_s
+        try:
+            start, state, motion = self._motion_sample(min(2.0, deadline_s))
+            if _cancelled(cancel):
+                return StepResult('STOPPED', 'NONE', '취소됨 (전송 전)', step)
+            if state != self.STATE_STANDBY or motion != 0:
+                return StepResult('FAILED', 'NOT_READY', '새 명령 전 정지 상태 아님', step)
+            remaining = end - time.monotonic()
+            if remaining <= 0:
+                return StepResult('UNKNOWN', 'TIMEOUT', '전송 전 제한 시간 초과', step)
+        except Exception as exc:
+            return StepResult('UNKNOWN', 'COMMUNICATION_LOST', str(exc), step)
+        # 시작점과 같은 단일 목표는 정착만 확인한다. 폐곡선 spline에는 적용하지 않는다.
+        exact_target = (math.dist(start[:3], points[-1][:3]) < 1e-6
+                        and self._angle_error(start, points[-1]) < 1e-6)
+        if not spline and exact_target:
+            return self._wait_motion(points[-1], remaining, cancel, step, tol, start=start,
+                                     angle_tol_deg=angle_tol, require_start=False)
+        extent = max(math.dist(start[:3], p[:3]) for p in points)
+        angle_extent = max(self._angle_error(start, p) for p in points)
+        if spline and extent < 1e-6 and angle_extent < 1e-6:
+            return StepResult('FAILED', 'INVALID_INPUT', '이동 구간 없는 spline', step)
+        sent = False
+        try:
+            sent = True  # 응답 실패도 접수 불명: 정지 확인하며 재전송하지 않는다.
+            if spline:
+                from std_msgs.msg import Float64MultiArray
+                kind = self._srv['MoveSplineTask']
+                req = kind.Request(pos=[Float64MultiArray(data=[float(v) for v in p]) for p in points],
+                                   pos_cnt=len(points), vel=[vel, vel], acc=[acc, acc], time=0.0,
+                                   ref=0, mode=0, opt=1, sync_type=1)
+                result = self._call('motion/move_spline_task', kind, req, timeout=min(2.0, remaining))
+            else:
+                result = self._send_line(points[0], vel, acc, min(2.0, remaining))
+            if result is None or result.success is not True:
+                return self._motion_failure('FAILED', 'NOT_READY', '이동 명령 거부/응답 없음', step)
+            closed_excursion = closed_angle = 0.0
+            if spline and math.dist(start[:3], points[-1][:3]) <= tol:
+                closed_excursion = min(0.03, extent / 2.0)
+                if self._angle_error(start, points[-1]) <= angle_tol:
+                    closed_angle = min(0.03, angle_extent / 2.0)
+            return self._wait_motion(points[-1], max(0.0, end-time.monotonic()), cancel, step, tol,
+                                     start=start, angle_tol_deg=angle_tol,
+                                     closed_excursion_mm=closed_excursion, closed_excursion_deg=closed_angle,
+                                     require_controller_start=spline and math.dist(start[:3], points[-1][:3]) <= tol)
+        except Exception as exc:
+            if sent:
+                return self._motion_failure('UNKNOWN', 'COMMUNICATION_LOST', str(exc), step)
+            return StepResult('UNKNOWN', 'COMMUNICATION_LOST', str(exc), step)
 
     def move(self, pose, frame_id, profile, deadline_s, cancel) -> StepResult:
-        if _cancelled(cancel):
-            return StepResult("STOPPED", "NONE", "취소됨 (이동 전)", "move")
-        if not self._frame_ok(frame_id):
-            return StepResult("FAILED", "INVALID_INPUT", f"frame_id {frame_id} != {self.frame_id}", "move")
-        vel = float(profile["vel_mm_s"]); acc = float(profile.get("acc_mm_s2", vel * 2))
-        target = pose_to_posx(pose, self.tool_offset_m)
-        try:
-            self.R.mwait()
-            ret = self.R.amovel(self.posx(*target), vel=[vel, vel], acc=[acc, acc], ref=0, mod=self.R.DR_MV_MOD_ABS)
-        except Exception as e:
-            return StepResult("FAILED", "COMMUNICATION_LOST", f"amovel: {e}", "move")
-        if ret != 0:
-            return StepResult("FAILED", "NOT_READY", f"amovel returned {ret} (제어기 거부/정지 상태)", "move")
-        return self._wait_motion(target[:3], deadline_s, cancel, "move", float(profile.get("pos_tol_mm", 2.0)))
+        return self._execute_motion([pose], frame_id, profile, deadline_s, cancel, False)
 
     def move_spline(self, poses, frame_id, profile, deadline_s, cancel) -> StepResult:
-        if _cancelled(cancel):
-            return StepResult("STOPPED", "NONE", "취소됨 (곡선 이동 전)", "move_spline")
-        if not self._frame_ok(frame_id):
-            return StepResult("FAILED", "INVALID_INPUT", f"frame_id {frame_id} != {self.frame_id}", "move_spline")
-        if not 2 <= len(poses) <= 80:
-            return StepResult("FAILED", "INVALID_INPUT", f"movesx 점 수 {len(poses)} (2~80 만 지원)", "move_spline")
-        vel = float(profile["vel_mm_s"]); acc = float(profile.get("acc_mm_s2", vel * 2))
-        pts = [self.posx(*pose_to_posx(p, self.tool_offset_m)) for p in poses]
-        last = pose_to_posx(poses[-1], self.tool_offset_m)
-        try:
-            self.R.mwait()
-            ret = self.R.amovesx(pts, vel=[vel, vel], acc=[acc, acc], ref=0, mod=self.R.DR_MV_MOD_ABS,
-                                 vel_opt=self.R.DR_MVS_VEL_CONST)
-        except Exception as e:
-            return StepResult("FAILED", "COMMUNICATION_LOST", f"amovesx: {e}", "move_spline")
-        if ret != 0:
-            return StepResult("FAILED", "NOT_READY", f"amovesx returned {ret}", "move_spline")
-        return self._wait_motion(last[:3], deadline_s, cancel, "move_spline", float(profile.get("pos_tol_mm", 3.0)))
+        return self._execute_motion(poses, frame_id, profile, deadline_s, cancel, True)
 
     # ---- 힘 감시 접촉 찾기 ----
     def probe_touch(self, direction, max_m, profile, deadline_s, cancel) -> StepResult:
@@ -446,48 +541,86 @@ class DoosanRobotAdapter(RobotAdapter):
                  settle_s(기본 1.5), settle_mm(기본 4). 반환 observed_state: contact(bool), tcp_pose(m), onset_pose(m), force_n"""
         if _cancelled(cancel):
             return StepResult("STOPPED", "NONE", "취소됨 (접촉 찾기 전)", "probe_touch")
-        R = self.R
-        n = math.sqrt(sum(v * v for v in direction))
-        d = [v / n for v in direction]
-        speed = float(profile["touch_speed_mm_s"]); soft_n = float(profile["touch_force_n"])
-        step_n = float(profile.get("touch_step_n", 1.5)); hard_n = float(profile.get("hard_limit_n", 4.5))
-        settle_s = float(profile.get("settle_s", 1.5)); settle_mm = float(profile.get("settle_mm", 4.0))
-        soft_samples = int(profile.get("soft_samples", 2))      # 완만 상승은 연속 N 샘플 (9/18 bag 1835: 1 샘플은 10 mm/s 에서 거짓 접촉)
+        try:
+            if (len(direction) != 3 or not all(math.isfinite(v) for v in direction)
+                    or not math.isfinite(max_m) or max_m <= 0
+                    or not math.isfinite(deadline_s) or deadline_s <= 0):
+                raise ValueError("접촉 방향/거리/제한 시간 오류")
+            n = math.sqrt(sum(v * v for v in direction))
+            if n <= 0:
+                raise ValueError("접촉 방향은 영벡터일 수 없음")
+            d = [v / n for v in direction]
+            speed = float(profile["touch_speed_mm_s"]); soft_n = float(profile["touch_force_n"])
+            step_n = float(profile.get("touch_step_n", 1.5)); hard_n = float(profile.get("hard_limit_n", 4.5))
+            settle_s = float(profile.get("settle_s", 1.5)); settle_mm = float(profile.get("settle_mm", 4.0))
+            soft_samples = int(profile.get("soft_samples", 2))
+            if (any(not math.isfinite(v) or v <= 0 for v in (speed, soft_n, step_n, hard_n))
+                    or any(not math.isfinite(v) or v < 0 for v in (settle_s, settle_mm))
+                    or soft_samples < 1):
+                raise ValueError("접촉 프로파일 범위 오류")
+        except (ValueError, TypeError, KeyError, OverflowError) as exc:
+            return StepResult("FAILED", "INVALID_INPUT", str(exc), "probe_touch")
+        end = time.monotonic() + deadline_s
         max_mm = max_m * 1000.0
-        start = self._posx_now()
+
+        def remaining():
+            if _cancelled(cancel):
+                raise CancelledError("접촉 찾기 취소")
+            left = end - time.monotonic()
+            if left <= 0:
+                raise TimeoutError("접촉 찾기 제한 시간 초과")
+            # 서비스 응답 기한과 동작 전체 기한 중 짧은 것을 사용한다.
+            return min(2.0, left)
 
         def along(mm):
-            return self.posx(start[0] + d[0] * mm, start[1] + d[1] * mm, start[2] + d[2] * mm, start[3], start[4], start[5])
+            return [start[k] + d[k] * mm for k in range(3)] + start[3:6]
 
         def travelled(cur):
             return sum((cur[k] - start[k]) * d[k] for k in range(3))
 
         def f_of(vec):
-            return -(vec[0] * d[0] + vec[1] * d[1] + vec[2] * d[2])
+            return -sum(vec[k] * d[k] for k in range(3))
 
-        base = [f_of(self._force_vec()) for _ in range(8)]
-        f0 = sum(base) / len(base)
         try:
-            R.mwait()
-        except Exception:
-            pass
-        R.movel(along(0.0), vel=[5.0, 5.0], acc=[5.0, 5.0], ref=0, mod=R.DR_MV_MOD_ABS)   # 대기 상태 확정 (9/17 bag 1502)
-        R.set_ref_coord(R.DR_BASE)
-        ret = R.amovel(along(max_mm), vel=[speed, speed], acc=[max(1.0, speed)] * 2, ref=0, mod=R.DR_MV_MOD_ABS)
-        if ret != 0:
-            return StepResult("FAILED", "NOT_READY", f"amovel returned {ret}", "probe_touch")
+            start = self._posx_now(timeout=remaining())
+            base = [f_of(self._force_vec(timeout=remaining())) for _ in range(8)]
+            f0 = sum(base) / len(base)
+            _, state, motion = self._motion_sample(remaining())
+            remaining()
+            if state != self.STATE_STANDBY or motion != 0:
+                return StepResult("FAILED", "NOT_READY", "접촉 전 정지 상태 아님", "probe_touch")
+        except CancelledError:
+            return self._motion_failure("STOPPED", "NONE", "접촉 전 취소", "probe_touch")
+        except Exception as exc:
+            return StepResult("UNKNOWN", "TIMEOUT" if isinstance(exc, TimeoutError) else "COMMUNICATION_LOST",
+                              str(exc), "probe_touch", dict(contact=False))
+        try:
+            accepted = self._send_line(along(max_mm), speed, max(1.0, speed), remaining())
+            if accepted is None or accepted.success is not True:
+                return self._motion_failure("FAILED", "NOT_READY", "접촉 이동 명령 거부", "probe_touch")
+        except CancelledError:
+            return self._motion_failure("STOPPED", "NONE", "접촉 전송 전 취소", "probe_touch")
+        except Exception as exc:
+            return self._motion_failure("UNKNOWN", "TIMEOUT" if isinstance(exc, TimeoutError) else "COMMUNICATION_LOST",
+                                        str(exc), "probe_touch")
         t0 = time.monotonic(); hist = []; f_move = None; step_run = 0; soft_run = 0
         result = StepResult("FAILED", "TIMEOUT", "접촉 없이 끝남", "probe_touch", dict(contact=False))
         try:
             while True:
                 now = time.monotonic()
-                if now - t0 > deadline_s:
-                    self._qstop()
-                    return StepResult("UNKNOWN", "TIMEOUT", "접촉 찾기 제한 시간 초과", "probe_touch", dict(contact=False))
+                if now >= end:
+                    # finally에서 실제 정지까지 확인한다.
+                    result = StepResult("UNKNOWN", "TIMEOUT", "접촉 찾기 제한 시간 초과", "probe_touch", dict(contact=False))
+                    break
                 if _cancelled(cancel):
-                    self._qstop()
-                    return StepResult("STOPPED", "NONE", "취소됨 (접촉 찾기 중)", "probe_touch", dict(contact=False))
-                cur = self._posx_now(); tr = travelled(cur); f = f_of(self._force_vec())
+                    # finally에서 실제 정지까지 확인한다.
+                    result = StepResult("STOPPED", "NONE", "취소됨 (접촉 찾기 중)", "probe_touch", dict(contact=False))
+                    break
+                cur = self._posx_now(timeout=remaining())
+                tr = travelled(cur)
+                f = f_of(self._force_vec(timeout=remaining()))
+                remaining()  # 늦게 받은 값 또는 취소 후 응답을 접촉 성공으로 쓰지 않는다.
+                now = time.monotonic()
                 if f != f:
                     f = hist[-1][2] if hist else f0
                 hist.append((now, tr, f)); hist = [h for h in hist if now - h[0] <= 2.0]
@@ -503,7 +636,7 @@ class DoosanRobotAdapter(RobotAdapter):
                 soft_run = soft_run + 1 if (settled and dm >= soft_n) else 0
                 soft = soft_run >= soft_samples
                 if step_run >= 2 or hard or soft:
-                    self._qstop()
+                    # finally에서 실제 정지까지 확인한다.
                     # 힘이 오르기 시작한 지점: 최근 3 s 창 안에서만 찾고, 기준은 그 직전(3~1.5 s 전) 평균으로 잡는다.
                     # (9/18 bag 1836: 250 mm 긴 하강에서 출발 기준 대비 서서히 밀린 값 때문에 onset 이 190 mm 위로 잡혔다)
                     win = [h for h in hist if now - h[0] <= 3.0]
@@ -529,37 +662,57 @@ class DoosanRobotAdapter(RobotAdapter):
                                         dict(contact=False, tcp_pose=posx_to_pose(cur, self.tool_offset_m)))
                     break
                 time.sleep(0.05)
+        except CancelledError:
+            result = StepResult("STOPPED", "NONE", "접촉 찾기 취소", "probe_touch", dict(contact=False))
+        except Exception as exc:
+            result = StepResult("UNKNOWN", "TIMEOUT" if isinstance(exc, TimeoutError) else "COMMUNICATION_LOST",
+                                str(exc), "probe_touch", dict(contact=False))
         finally:
-            try:
-                R.mwait()
-            except Exception:
-                pass
+            stopped = self.stop({"mode": 1}, 2.0)
+            if not stopped.ok or stopped.observed_state.get("stop_confirmed") is not True:
+                return StepResult("UNKNOWN", "STOP_UNCONFIRMED", "접촉 종료 후 정지 미확인", "probe_touch",
+                                  dict(contact=False, stop_confirmed=False))
+        result.observed_state["stop_confirmed"] = True
         return result
 
     # ---- 정지 ----
-    def _qstop(self):
-        req = self._srv["MoveStop"].Request(); req.stop_mode = 1      # DR_QSTOP (2는 Soft Stop)
-        try:
-            self._call("motion/move_stop", self._srv["MoveStop"], req, timeout=3.0)
-        except Exception as e:
-            self.log.warn(f"move_stop: {e}")
-
     def stop(self, stop_profile, deadline_s) -> StepResult:
-        """QSTOP 접수 후 STANDBY 가 될 때까지 확인. 접수 실패(FAILED)와 정지 미확인(UNKNOWN)을 구분."""
-        req = self._srv["MoveStop"].Request(); req.stop_mode = int(stop_profile.get("mode", 2))
+        """정지 접수와 실제 정지를 구별한다. 위치·자세·motion=0 정착까지 확인."""
+        if not math.isfinite(deadline_s) or deadline_s <= 0:
+            return StepResult('FAILED', 'INVALID_INPUT', '정지 제한 시간 오류', 'stop',
+                              dict(stop_confirmed=False))
+        end = time.monotonic() + deadline_s
         try:
-            r = self._call("motion/move_stop", self._srv["MoveStop"], req, timeout=min(3.0, deadline_s))
-        except Exception as e:
-            return StepResult("FAILED", "COMMUNICATION_LOST", f"정지 접수 실패: {e}", "stop")
-        if not r.success:
-            return StepResult("FAILED", "NOT_READY", "정지 명령 거부", "stop")
-        t0 = time.monotonic()
-        while time.monotonic() - t0 < deadline_s:
-            st = self.observe()
-            if st.robot_state == self.STATE_STANDBY:
-                return StepResult("SUCCEEDED", "NONE", "정지 확인", "stop", dict(robot_state=st.robot_state))
-            time.sleep(0.1)
-        return StepResult("UNKNOWN", "STOP_UNCONFIRMED", "정지 접수됐으나 STANDBY 확인 못 함", "stop")
+            kind = self._srv['MoveStop']
+            result = self._call('motion/move_stop', kind,
+                                kind.Request(stop_mode=int(stop_profile.get('mode', 2))),
+                                timeout=min(2.0, deadline_s))
+            if result is None or result.success is not True:
+                return StepResult('UNKNOWN', 'STOP_UNCONFIRMED', '정지 접수 확인 불가', 'stop',
+                                  dict(stop_confirmed=False))
+            anchor = None
+            stable = None
+            while time.monotonic() < end:
+                px, state, motion = self._motion_sample(min(2.0, end-time.monotonic()))
+                now = time.monotonic()
+                if now >= end:
+                    break
+                if state == self.STATE_STANDBY and motion == 0:
+                    if (anchor is None or math.dist(px[:3], anchor[:3]) > 0.05
+                            or self._angle_error(px, anchor) > 0.05):
+                        anchor, stable = px, now
+                    elif now - stable >= 0.2:
+                        return StepResult('SUCCEEDED', 'NONE', '실제 정지 확인', 'stop',
+                                          dict(robot_state=state, motion_status=motion,
+                                               stop_confirmed=True, tcp_pose=posx_to_pose(px, self.tool_offset_m)))
+                else:
+                    anchor = stable = None
+                time.sleep(min(0.05, max(0.0, end-time.monotonic())))
+        except Exception as exc:
+            return StepResult('UNKNOWN', 'STOP_UNCONFIRMED', str(exc), 'stop',
+                              dict(stop_confirmed=False))
+        return StepResult('UNKNOWN', 'STOP_UNCONFIRMED', '정지 관측 제한 시간 초과', 'stop',
+                          dict(stop_confirmed=False))
 
 
 # ---------------------------------------------------------------- 모의 어댑터 ----
