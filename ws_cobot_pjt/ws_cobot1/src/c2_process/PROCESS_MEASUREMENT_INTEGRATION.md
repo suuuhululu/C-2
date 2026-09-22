@@ -128,6 +128,14 @@ REAL adapter를 주입하는 것만으로 이 제한이 해제되지는 않는�
 이번 결과 `ESTIMATED`, `absolute_top_verified=false`는 사용자 합의의 통합용 추정값이며, 정확한 실측으로 승격하면 안 된다.
 기존 측정별 진행·StepResult 계약은 유지하고 `tool_projection_check`, `tool_reference`, 추정 출처를 추가했다.
 
+## ESTIMATED BIND·실행 판단 기준 개정 · 2026-09-22
+
+- `validity=ESTIMATED`, `absolute_top_verified=false`, `offset_status=ESTIMATED`는 관찰·추적 기록이다. 이 상태명만으로 `BIND_SNAPSHOT`을 거절하지 않고 `VERIFIED`로 바꾸지도 않는다.
+- BIND는 현재 프로세스의 성공 측정, 저장된 측정 원본 바이트, 준비·측정·입력 profile·최종 snapshot ID/SHA, 도구·TCP·load 설정, 스냅샷 원통 기하가 일치할 때만 성공한다.
+- 준비 BIND를 사용하는 `ExecuteProcess`도 실행 직전에 제어권, 읽기 전용 정지/대기 상태, 통신·관측 신선도, `c2_base` STANDBY 로봇 상태와 현재 관절을 다시 확인한다. 측정, TCP/load 재선택, 정지 해제, 그리퍼 명령은 하지 않는다.
+- 이 후 깊이·접근·이탈을 반영한 최종 실행계획의 명시 경로점에 대해 IK·관절 한계·J6 여유를 검사하고, 검사한 path/context signature가 달라지면 실행하지 않는다.
+- 로봇 링크·그리퍼·양초 사이의 연속 충돌/간섭 검사는 아직 구현되지 않았다. IK 통과를 이 검사 통과로 기록하지 않는다.
+
 ## 상시 관측 연결 · 2026-09-21 팀장 합의 반영
 
 기준 main `2e94e5d`. 새 `process_state_observer.py`는 **공정 내부 공유 캐시 공급자**다.

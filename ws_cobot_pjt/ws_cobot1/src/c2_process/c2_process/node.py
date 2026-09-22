@@ -316,7 +316,8 @@ def resolve_simulation_settings(snapshot, goal, *, evidence, adapter):
         joint_limits_deg=joints.get("limits_deg"), j6_margin_deg=joints.get("j6_margin_deg"))
 
 
-def resolve_real_execution_settings(snapshot, goal, profile_snapshot_id, *, adapter):
+def resolve_real_execution_settings(snapshot, goal, profile_snapshot_id, *, adapter,
+                                    evidence_provider=None):
     """확정된 REAL profile 배치를 기존 ``ExecutionInputs`` 설정으로 변환한다.
 
     HMI 저장소의 등록 ID는 profile 본문에 자기참조로 넣지 않으므로 호출자가
@@ -386,14 +387,27 @@ def resolve_real_execution_settings(snapshot, goal, profile_snapshot_id, *, adap
             or stop_profile["confirmation_timeout_s"] <= 0):
         unavailable("REAL 정지 방식 또는 확인 timeout 누락", "INVALID_INPUT")
 
-    try:
-        # 승인 상태 재검사가 아니라 최종 실행계획 IK를 시작할 현재 관절 표본이다.
-        state = adapter.observe()
-    except Exception as exc:
-        unavailable(f"최종 관절 검사 시작 상태 조회 실패: {exc}", "COMMUNICATION_LOST")
-    evidence = PreconditionEvidence(
-        runtime_mode="REAL", robot_state=state,
-        profile_snapshot_id=profile_snapshot_id)
+    if evidence_provider is None:
+        try:
+            state = adapter.observe()
+        except Exception as exc:
+            unavailable(f"최종 관절 검사 시작 상태 조회 실패: {exc}", "COMMUNICATION_LOST")
+        # 매퍼 단독 사용은 제어권·정지 근거를 만들지 않는다. REAL 노드는
+        # 아래 provider를 주입하며, 미주입 결과는 실행 직전 상태 검사에서 fail closed다.
+        evidence = PreconditionEvidence(
+            runtime_mode="REAL", robot_state=state,
+            profile_snapshot_id=profile_snapshot_id)
+    else:
+        try:
+            evidence = evidence_provider(profile_snapshot_id)
+        except InputsUnavailable:
+            raise
+        except Exception as exc:
+            unavailable(f"실행 직전 상태 근거 조회 실패: {exc}", "COMMUNICATION_LOST")
+        if (not isinstance(evidence, PreconditionEvidence)
+                or evidence.runtime_mode != "REAL"
+                or evidence.profile_snapshot_id != profile_snapshot_id):
+            unavailable("실행 직전 상태 근거의 모드·스냅샷 불일치", "PROFILE_MISMATCH")
     tip = snapshot.get("tip_calibration")
     tool_offset_m = tip.get("offset_tool_m") if isinstance(tip, Mapping) else None
     return build_execution_settings(
@@ -867,6 +881,38 @@ def prepared_binding_observation_valid(values, authority_owner) -> bool:
     return bool(observation is not None
                 and observation.active and observation.connected
                 and observation.valid and observation.has_control)
+
+
+def read_real_execution_evidence(node, profile_snapshot_id):
+    """ExecuteProcess 진입 직전의 읽기 전용 REAL 상태 근거를 만든다.
+
+    준비 측정, TCP/load 선택, 정지 해제, 모션을 수행하지 않는다.
+    제어권 관측과 정지/대기 상태 조회가 완전히 확인된 경우만
+    ``check_robot_status``가 통과할 근거를 반환한다.
+    """
+    owner = getattr(node, "real_preparation_observations", None)
+    cache = getattr(owner, "cache", None)
+    fresh = getattr(cache, "fresh", None)
+    stop_latched = getattr(owner, "stop_latched", None)
+    max_age_s = getattr(cache, "max_age_s", None)
+    if not callable(fresh) or not callable(stop_latched):
+        raise InputsUnavailable("실행 직전 제어권·정지 관측 미연결", "NOT_READY")
+    try:
+        stopped = stop_latched(None)
+        authority = fresh()
+    except Exception as exc:
+        raise InputsUnavailable(f"실행 직전 제어권·정지 조회 실패: {exc}",
+                                "COMMUNICATION_LOST") from exc
+    authority_confirmed = bool(
+        authority is not None and authority.active and authority.connected
+        and authority.valid and authority.has_control)
+    return PreconditionEvidence(
+        # 현재 로봇 상태와 관절은 ProcessCoordinator PRECHECK에서
+        # adapter.observe()로 한 번만 읽고 이 근거에 결합한다.
+        runtime_mode="REAL", robot_state=None,
+        control_authority_confirmed=authority_confirmed,
+        stop_latched=stopped, profile_snapshot_id=profile_snapshot_id,
+        max_robot_state_age_s=max_age_s)
 
 
 class ProcessAlarms:
@@ -2117,7 +2163,10 @@ def real_process_main(args=None, *, observation_options_factory=None,
     def execution_loader_factory(node, adapter):
         settings_resolver = ((lambda snapshot, goal, snapshot_id:
                               resolve_real_execution_settings(
-                                  snapshot, goal, snapshot_id, adapter=adapter))
+                                  snapshot, goal, snapshot_id, adapter=adapter,
+                                  evidence_provider=lambda profile_id:
+                                  read_real_execution_evidence(
+                                      node, profile_id)))
                              if execution_settings_resolver_factory is None
                              else execution_settings_resolver_factory(node, adapter))
         if not callable(settings_resolver):

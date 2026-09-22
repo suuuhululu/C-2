@@ -59,6 +59,7 @@ offset_record_id: "gripper-bottom-offset-20260921-20mm-v1"
 기존 `contact_offset_tool_m=null` + `estimated_contact_offset_tool_m` 입력도 유지한다.
 두 오프셋을 함께 주는 경우 일치해야 하며 더해서 적용하지 않는다. 새 입력은 비어 있지 않은 기록 ID와 `estimate_source`를 요구한다.
 `offset_status`의 값은 수용/거절 조건에 쓰지 않고 설정에 기록으로 보존한다.
+`BIND_SNAPSHOT`도 `ESTIMATED`라는 이유로 일괄 거절하지 않으며, 저장 측정 원본·출처·ID/SHA·스냅샷 기하의 일치 여부로 판단한다.
 `INTEGRATION_ESTIMATE` 결과는 상태 문자열과 무관하게 ESTIMATED를 유지한다. 고정되는 것은 오프셋이며 절대 Z는
 매번 접촉으로 갱신한다. 기록의 소수 자릿수는 측정 정확도 보증이 아니다.
 `validity=ESTIMATED`, `geometry_ready=true`, `absolute_top_verified=false`이며 독립 정확도는 미검증이다.

@@ -77,6 +77,26 @@ def test_actual_sim_measure_typed_result_bind_and_replay(tmp_path):
     assert not h.cancel(bg)
 
 
+def test_estimated_measurement_binds_by_identity_and_keeps_confidence_metadata(tmp_path):
+    h,g,assets,save,_,_=fixture(tmp_path)
+    measured=h.execute(g)
+    estimated=copy.deepcopy(measured)
+    estimated.update(validity='ESTIMATED',absolute_top_verified=False,
+                     top_estimate_source='recorded contact offset source')
+    h.success=copy.deepcopy(estimated)
+
+    bg,_,record=bind_goal(g,estimated,save)
+    bound=h.execute(bg)
+
+    assert bound['outcome']=='SUCCEEDED' and bound['snapshot_bound'],bound
+    assert h.success['validity']=='ESTIMATED'
+    assert h.success['absolute_top_verified'] is False
+    assert h.success['top_estimate_source']=='recorded contact offset source'
+    assert record['result']==estimated
+    assert h.coordinator._preparation_bindings[g['preparation_id']]==(
+        bg['profile_snapshot_id'],bg['profile_sha256'])
+
+
 def test_deployed_simulation_runner_uses_goal_config(tmp_path):
     h,g,assets,save,_,_=fixture(tmp_path)
     h.runner=make_simulation_runner_factory()(h.coordinator)
