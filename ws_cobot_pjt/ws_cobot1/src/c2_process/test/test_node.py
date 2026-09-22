@@ -1407,6 +1407,67 @@ def test_hmi_validation_report_must_match_path_and_be_complete(tmp_path, defect,
     assert caught.value.error_code == code
 
 
+def _hmi_validation_report(kwargs):
+    path_bytes = kwargs["path_file"].read_bytes()
+    path = json.loads(path_bytes)
+    return {
+        "path_id": path["path_id"],
+        "path_version": path["path_version"],
+        "path_sha256": hashlib.sha256(path_bytes).hexdigest(),
+        "geometry_passed": True,
+        "execution_readiness": {
+            "executability": "NOT_JUDGED",
+            "runtime_checks_passed": None,
+            "trial_authorized": True,
+        },
+        "not_checked": ["LIVE_ROBOT_STATE", "REAL_IK", "CONTINUOUS_COLLISION", "ACTUAL_DEPTH"],
+    }
+
+
+def test_hmi_geometry_validation_report_uses_embedded_path_checks(tmp_path):
+    goal, kwargs, _ = _registered_input_fixture(tmp_path)
+    report = _hmi_validation_report(kwargs)
+    assets = {
+        "path_bytes": kwargs["path_file"].read_bytes(),
+        "snapshot_bytes": kwargs["snapshot_file"].read_bytes(),
+        "generation_result": kwargs["generation_result"],
+        "validation_report_bytes": json.dumps(report).encode(),
+        "snapshot_metadata": kwargs["snapshot_metadata"],
+    }
+
+    loaded = make_asset_bundle_loader(
+        lambda _: assets, kwargs["resolve_settings"])(goal)
+
+    assert loaded.path["validation"]["passed"] is True
+    assert report["not_checked"] != loaded.path["validation"]["not_checked"]
+
+
+@pytest.mark.parametrize("defect", [
+    lambda r: r.update(geometry_passed=False),
+    lambda r: r.pop("execution_readiness"),
+    lambda r: r["execution_readiness"].update(executability=""),
+    lambda r: r["execution_readiness"].update(runtime_checks_passed="unknown"),
+    lambda r: r["execution_readiness"].pop("trial_authorized"),
+    lambda r: r.update(not_checked=[None]),
+])
+def test_hmi_geometry_validation_report_rejects_incomplete_data(tmp_path, defect):
+    goal, kwargs, _ = _registered_input_fixture(tmp_path)
+    report = _hmi_validation_report(kwargs)
+    defect(report)
+    assets = {
+        "path_bytes": kwargs["path_file"].read_bytes(),
+        "snapshot_bytes": kwargs["snapshot_file"].read_bytes(),
+        "generation_result": kwargs["generation_result"],
+        "validation_report_bytes": json.dumps(report).encode(),
+        "snapshot_metadata": kwargs["snapshot_metadata"],
+    }
+
+    with pytest.raises(InputsUnavailable) as caught:
+        make_asset_bundle_loader(lambda _: assets, kwargs["resolve_settings"])(goal)
+
+    assert caught.value.error_code == "VALIDATION_UNAVAILABLE"
+
+
 def test_prepared_real_node_does_not_require_extra_start_or_home_callbacks(tmp_path):
     adapter = object.__new__(DoosanRobotAdapter)
     coordinator = ProcessCoordinator(
@@ -1830,6 +1891,29 @@ def test_real_profile_mapping_uses_confirmed_nested_layout_and_external_id():
     assert fields['joint_limits_deg'] == profile['joint_check_arguments']['limits_deg']
     assert fields['j6_margin_deg'] == profile['joint_check_arguments']['j6_margin_deg']
     assert json.dumps(profile, sort_keys=True) == before
+
+
+@pytest.mark.parametrize('field', ['preview_only', 'geometry_ready'])
+def test_real_profile_mapping_allows_optional_summary_flags_to_be_absent(field):
+    import c2_process.node as module
+    profile, goal, adapter = _complete_real_profile()
+    profile.pop(field)
+
+    fields = module.resolve_real_execution_settings(
+        profile, goal, 'registered-real-profile', adapter=adapter)
+
+    assert fields['context'].source_mode == 'REAL'
+
+
+@pytest.mark.parametrize('field,value', [('preview_only', True), ('geometry_ready', False)])
+def test_real_profile_mapping_rejects_invalid_optional_summary_flags(field, value):
+    import c2_process.node as module
+    profile, goal, adapter = _complete_real_profile()
+    profile[field] = value
+
+    with pytest.raises(InputsUnavailable, match='실행 승인되지 않은'):
+        module.resolve_real_execution_settings(
+            profile, goal, 'registered-real-profile', adapter=adapter)
 
 
 @pytest.mark.parametrize('case,match', [

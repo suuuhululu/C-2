@@ -342,8 +342,8 @@ def resolve_real_execution_settings(snapshot, goal, profile_snapshot_id, *, adap
         unavailable("REAL profile 스키마·좌표계·도구 불일치", "INVALID_INPUT")
     if (snapshot.get("test_only") is not False
             or snapshot.get("real_execution_allowed") is not True
-            or snapshot.get("preview_only") is not False
-            or snapshot.get("geometry_ready") is not True):
+            or ("preview_only" in snapshot and snapshot["preview_only"] is not False)
+            or ("geometry_ready" in snapshot and snapshot["geometry_ready"] is not True)):
         unavailable("실행 승인되지 않은 REAL profile")
     if snapshot.get("gripper_open_allowed") is not False:
         unavailable("고정 드릴 profile의 그리퍼 열기 금지 설정 불일치", "INVALID_INPUT")
@@ -495,27 +495,50 @@ def load_execution_inputs(goal, *, path_file=None, snapshot_file=None,
         fail("VALIDATION_UNAVAILABLE", "경로·결과의 검증 결과/보고서 ID 불일치")
     if validation_report_file is not None or validation_report_bytes is not None:
         _, report = read_json(validation_report_file, validation_report_bytes, "검증 보고서")
-        if (report.get("passed") is not True or report.get("errors") not in (None, [])
-                or report.get("mapping_failures") not in (None, [])):
-            fail("VALIDATION_UNAVAILABLE", "검증 보고서가 통과/완전한 결과가 아님")
         if ("path_id" in report and report["path_id"] != path["path_id"]
                 or "path_version" in report and report["path_version"] != path["path_version"]):
             fail("PATH_MISMATCH", "검증 보고서의 경로 ID/버전 불일치")
-        checks, not_checked = report.get("checks"), report.get("not_checked")
-        if (not isinstance(checks, list) or not checks
-                or any(not isinstance(item, Mapping) or item.get("passed") is not True
-                       for item in checks)
-                or not isinstance(not_checked, list)
+        if "path_sha256" in report and report["path_sha256"] != digest:
+            fail("PATH_MISMATCH", "검증 보고서의 경로 SHA-256 불일치")
+        not_checked = report.get("not_checked")
+        if (not isinstance(not_checked, list)
                 or any(not isinstance(item, str) for item in not_checked)):
-            fail("VALIDATION_UNAVAILABLE", "검증 보고서 항목 또는 미검사 목록 형식 오류")
-        expected_validation = {
-            "report_id": result.get("validation_report_id"),
-            "passed": True,
-            "checks": checks,
-            "not_checked": not_checked,
-        }
-        if validation != expected_validation:
-            fail("VALIDATION_UNAVAILABLE", "경로 내부 검증 요약과 원본 보고서 불일치")
+            fail("VALIDATION_UNAVAILABLE", "검증 보고서 미검사 목록 형식 오류")
+        if "geometry_passed" in report or "execution_readiness" in report:
+            readiness = report.get("execution_readiness")
+            if (report.get("geometry_passed") is not True
+                    or not isinstance(readiness, Mapping)
+                    or not isinstance(readiness.get("executability"), str)
+                    or not readiness["executability"]
+                    or (readiness.get("runtime_checks_passed") is not None
+                        and type(readiness["runtime_checks_passed"]) is not bool)
+                    or type(readiness.get("trial_authorized")) is not bool):
+                fail("VALIDATION_UNAVAILABLE", "HMI 검증 보고서가 통과/완전한 결과가 아님")
+            checks = validation.get("checks")
+            path_not_checked = validation.get("not_checked")
+            if (not isinstance(checks, list) or not checks
+                    or any(not isinstance(item, Mapping) or item.get("passed") is not True
+                           for item in checks)
+                    or not isinstance(path_not_checked, list)
+                    or any(not isinstance(item, str) for item in path_not_checked)):
+                fail("VALIDATION_UNAVAILABLE", "경로 내부 검증 요약 형식 오류")
+        else:
+            if (report.get("passed") is not True or report.get("errors") not in (None, [])
+                    or report.get("mapping_failures") not in (None, [])):
+                fail("VALIDATION_UNAVAILABLE", "검증 보고서가 통과/완전한 결과가 아님")
+            checks = report.get("checks")
+            if (not isinstance(checks, list) or not checks
+                    or any(not isinstance(item, Mapping) or item.get("passed") is not True
+                           for item in checks)):
+                fail("VALIDATION_UNAVAILABLE", "검증 보고서 항목 형식 오류")
+            expected_validation = {
+                "report_id": result.get("validation_report_id"),
+                "passed": True,
+                "checks": checks,
+                "not_checked": not_checked,
+            }
+            if validation != expected_validation:
+                fail("VALIDATION_UNAVAILABLE", "경로 내부 검증 요약과 원본 보고서 불일치")
     elif goal["source_mode"] == "REAL":
         fail("VALIDATION_UNAVAILABLE", "REAL 실행에는 원본 validation report가 필요")
     config = path.get("config")
