@@ -436,17 +436,23 @@ REAL 실측(`validity=ESTIMATED` 또는 `FORCE_CONTACT_ESTIMATE`)으로 경로�
 - `source_mode="REAL"`과 실행 후보 전용 contract
 - `test_only=false`, `real_execution_allowed=true`
 - `/3`과 같은 준비·측정 ID, 원본 기록 ID·해시, 시간대가 있는 `measured_at`
-- `validity`/`measurement_status`: `ESTIMATED` 또는 `FORCE_CONTACT_ESTIMATE`,
-  `absolute_top_verified=false`, `measurement_assumptions.independent_accuracy_verified=false`
+- `validity`/`measurement_status`: `ESTIMATED` 또는 `FORCE_CONTACT_ESTIMATE`이며 서로 같은 원본 측정 확인 수준.
+  `absolute_top_verified`와 `measurement_assumptions.independent_accuracy_verified`는 원본 boolean을 그대로 담고,
+  둘 다 존재하는 `absolute_top_verified` 표기는 서로 일치해야 한다. true/false 자체는 실행 허가가 아니다.
 - `surface`: 바닥 기준 원통 중심·반지름·높이·유효 높이·도달 참고각
 - `workcell.measurement_scope="ABSOLUTE_GEOMETRY"`
 - `workcell.top.contact_offset_tool_m`, `offset_status="VERIFIED"` 또는 `"ESTIMATED"`, 비어 있지 않은 `offset_record_id`.
   `ESTIMATED`이면 비어 있지 않은 `estimate_source`도 필요하다. 상태 문자열 자체는 일괄 거절 조건이 아니다.
 - snapshot/workcell의 동일한 `tcp_id`, `load_id`
-- `tip_calibration`, `calibration_profiles`
+- `tip_calibration.offset_tool_m` (준비 완료 결과에 연결된 도구 끝 오프셋)
 - `execution_context`: `source_mode="REAL"`과 motion/tool/stop profile
+- `execution_context.motion_profiles`에는 생성 경로의 `candle_approach`, `candle_cut`,
+  `candle_travel`, `candle_retract`가 모두 있어야 한다. c2_path는 생성 뒤 실제 segment의 ID도 다시 대조한다.
 - `joint_check_arguments`: 6축 범위와 유효한 `j6_margin_deg`
-- `verify_tool_tip_arguments.tol_m` 양수
+
+준비 완료 뒤 REAL 실행 계약에서는 `calibration_profiles`와
+`verify_tool_tip_arguments.tol_m`를 요구하지 않는다. 이들은 기존 공정의 별도 도구 확인 절차용 설정이며,
+이번 실행 후보의 경로 생성·로더 입력을 위해 임의로 다시 요구하지 않는다.
 
 하나라도 없거나 불일치하면 `PROFILE_MISMATCH`로 거절한다. c2_path가 임의 기본값을 채우거나 `/3`을 실행 후보로 바꾸지 않는다.
 

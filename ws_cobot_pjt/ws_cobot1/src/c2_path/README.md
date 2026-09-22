@@ -48,8 +48,8 @@
   같은 스냅샷에 있을 때만 `test_only=false`, `real_execution_allowed=true` 경로를 만든다. 잠정 작업 범위를 벗어나면
   경로는 진단용으로 남기되 `real_execution_allowed=false`다. `executability=NOT_JUDGED`는 계속 유지하며 공정팀이
   ExecuteProcess에서 최종 IK·관절·J6 검사를 통과한 경우에만 `execute_path()`로 넘긴다. 자세한 계약은 `BUNDLE_SPEC.md` 15절.
-  `offset_status=ESTIMATED`, `validity=ESTIMATED`, `absolute_top_verified=false`는 실행 후보 생성의 일괄 거절 사유가 아니며
-  상태·출처를 승격하지 않고 산출물에 그대로 보존한다.
+  `offset_status=ESTIMATED`, `validity=ESTIMATED`, `absolute_top_verified`의 true/false는 실행 후보 생성의 일괄 거절 사유가 아니며
+  원본 측정 확인 수준·출처의 일치만 검사하고 상태를 승격·변환하지 않는다.
 - 성공 경로에도 `J6_RANGE`는 미검사로 남는다. 실행 전 공정팀의 전체 경로
   IK/J5/J6·충돌·보정 확인이 별도로 필요하다.
 - 매핑 실패 획이 하나라도 있거나 CUT가 비면 전체 생성이 실패한다. 실패/취소 시
