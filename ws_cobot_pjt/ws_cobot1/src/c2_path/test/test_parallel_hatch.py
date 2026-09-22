@@ -19,7 +19,7 @@ def _write(image):
 
 
 class TestParallelHatch(unittest.TestCase):
-    def test_filled_rectangle_uses_fixed_spacing_and_one_direction(self):
+    def test_filled_rectangle_uses_fixed_spacing_and_cross_hatch(self):
         image = np.full((160, 200), 255, np.uint8)
         cv2.rectangle(image, (20, 20), (180, 140), 0, -1)
         path = _write(image)
@@ -32,13 +32,14 @@ class TestParallelHatch(unittest.TestCase):
         self.assertEqual(stats["spacing_mm"], image_to_hatch.HATCH_SPACING_MM)
         self.assertTrue(stats["fixed_test_only"])
         self.assertTrue(raw)
-        self.assertTrue(all(stroke[0][0] <= stroke[-1][0] for stroke in raw))
+        self.assertGreater(stats["horizontal_hatch_stroke_count"], 1)
+        self.assertGreater(stats["vertical_hatch_stroke_count"], 1)
+        self.assertEqual(stats["component_modes"]["cross_hatch"], 1)
 
         uv, uv_stats = extract_2d.transform_raw_strokes(raw, bbox, 32.0, 24.0, 0.0, 80.0)
         ordered, opt_stats = optimize_2d.optimize(uv)
         self.assertEqual(len(ordered), len(uv))
         self.assertEqual(opt_stats["direction_reversed_count"], 0)
-        self.assertTrue(all(stroke[0][0] <= stroke[-1][0] for stroke in ordered))
         self.assertLessEqual(uv_stats["spacing_mm"]["max"], 2.0 + 1e-9)
 
     def test_white_hole_is_not_cut(self):
@@ -98,8 +99,8 @@ class TestParallelHatch(unittest.TestCase):
 
         modes = stats["component_modes"]
         self.assertEqual(stats["component_count"], 4)
-        self.assertGreaterEqual(modes["hatch"], 1)
-        self.assertGreaterEqual(modes["centerline"] + modes["minimum_one_pass"], 3)
+        self.assertGreaterEqual(modes["parallel_hatch"] + modes["cross_hatch"], 1)
+        self.assertGreaterEqual(modes["centerline"] + modes["minimum_one_pass"], 1)
         self.assertEqual(modes["omitted_too_small"], 0)
         self.assertEqual(stats["warnings"], [])
         self.assertTrue(raw)
@@ -109,7 +110,7 @@ class TestParallelHatch(unittest.TestCase):
     def test_small_filled_dot_gets_exactly_one_fallback_pass(self):
         image = np.full((120, 240), 255, np.uint8)
         cv2.line(image, (10, 20), (230, 20), 0, 1)  # 전체 배율을 정하는 가는 선
-        cv2.circle(image, (120, 80), 2, 0, -1)      # 골격이 한 점인 작은 채움
+        cv2.circle(image, (120, 80), 1, 0, -1)      # 유효 홈 폭보다 작은 채움
         path = _write(image)
         try:
             _svg, _raw, _bbox, stats = image_to_hatch.convert(path, 44.0, 24.0)
@@ -139,6 +140,19 @@ class TestParallelHatch(unittest.TestCase):
         self.assertEqual(detail["mode"], "centerline")
         self.assertLess(detail["fill_ratio"], image_to_hatch.MIN_HATCH_FILL_RATIO)
         self.assertGreater(len(raw), 0)
+
+    def test_cross_hatch_requires_two_safe_lines_in_both_directions(self):
+        image = np.full((160, 220), 255, np.uint8)
+        cv2.circle(image, (55, 80), 24, 0, -1)   # 충분히 큰 면
+        cv2.circle(image, (155, 80), 1, 0, -1)   # 작은 점: 단방향/1패스만 허용
+        path = _write(image)
+        try:
+            _svg, _raw, _bbox, stats = image_to_hatch.convert(path, 44.0, 32.0)
+        finally:
+            os.unlink(path)
+        details = stats["components"]
+        self.assertIn("cross_hatch", [item["mode"] for item in details])
+        self.assertNotEqual(details[1]["mode"], "cross_hatch")
 
 
 if __name__ == "__main__":

@@ -22,15 +22,17 @@ from skimage.morphology import skeletonize
 from .image_to_svg import binarize, trace_strokes
 
 
-# 2026-09-21 설계 결정: 초기 시험은 홈 폭의 50% 간격. 아래 1.6mm는
-# 실측값이 아니라 시뮬레이션용 고정 가정이며 REAL 승인값으로 사용하지 않는다.
-EFFECTIVE_GROOVE_WIDTH_MM = 1.6
+# 2026-09-22 사용자 실측 보고: 계획한 가공 조건에서 홈 폭 0.8mm.
+# 이 값은 실제 양초의 재료·깊이·속도별 반복 검증 전까지 경로 생성용 기준값이며,
+# REAL 실행 승인값이나 드릴 팁 직경 자체를 뜻하지 않는다.
+EFFECTIVE_GROOVE_WIDTH_MM = 0.8
 HATCH_STEPOVER_RATIO = 0.5
 HATCH_SPACING_MM = EFFECTIVE_GROOVE_WIDTH_MM * HATCH_STEPOVER_RATIO
 BOUNDARY_INSET_MM = EFFECTIVE_GROOVE_WIDTH_MM / 2.0
 MIN_HATCH_LENGTH_MM = 1.0
 MAX_HATCH_STROKES = 1000
 MIN_FALLBACK_LENGTH_MM = 0.3
+MIN_CROSS_HATCH_LINES_PER_DIRECTION = 2
 # 넓은 도안 bbox 안에 선이 드문드문 있는 경우(선화)는 일부 굵은 교차점의 최대 폭만으로
 # 면 채움으로 바꾸지 않는다. 이 값은 SIMULATION/test_only 분류 기준이다.
 MIN_HATCH_FILL_RATIO = 0.20
@@ -131,6 +133,16 @@ def generate_scanlines(mask, source_bbox, scale_mm_per_px, *,
     }
 
 
+def generate_vertical_scanlines(mask, source_bbox, scale_mm_per_px, **kwargs):
+    """같은 안전 조건으로 아래쪽 방향 세로 해칭을 생성한다."""
+    x0, y0, x1, y1 = source_bbox
+    transposed_bbox = (y0, x0, y1, x1)
+    strokes, stats = generate_scanlines(mask.T, transposed_bbox, scale_mm_per_px, **kwargs)
+    vertical = [[(float(y), float(x)) for x, y in stroke] for stroke in strokes]
+    stats = {**stats, "direction": "image_top_to_bottom"}
+    return vertical, stats
+
+
 def _component_centerlines(component_mask):
     """가는 연결 성분을 골격 중심선 픽셀 획으로 변환한다."""
     raw = trace_strokes(skeletonize(component_mask), spur_min_len_px=0.0)
@@ -173,8 +185,9 @@ def generate_mixed_strokes(mask, source_bbox, scale_mm_per_px,
     count, labels, component_stats, _centroids = cv2.connectedComponentsWithStats(
         mask.astype(np.uint8), connectivity=8)
     strokes = []
-    hatch_strokes = []
-    mode_counts = {"hatch": 0, "centerline": 0, "minimum_one_pass": 0,
+    horizontal_hatch_strokes = []
+    vertical_hatch_strokes = []
+    mode_counts = {"parallel_hatch": 0, "cross_hatch": 0, "centerline": 0, "minimum_one_pass": 0,
                    "omitted_too_small": 0}
     component_details = []
     removed_short = 0
@@ -192,12 +205,27 @@ def generate_mixed_strokes(mask, source_bbox, scale_mm_per_px,
         if (physical_width_mm + 1e-9 >= EFFECTIVE_GROOVE_WIDTH_MM
                 and fill_ratio >= MIN_HATCH_FILL_RATIO):
             try:
-                selected, hatch_stats = generate_scanlines(
+                horizontal, hatch_stats = generate_scanlines(
                     component, component_bbox, scale_mm_per_px,
                     max_strokes=max_strokes - len(strokes))
                 removed_short += hatch_stats["removed_short_strokes"]
-                hatch_strokes.extend(selected)
-                mode = "hatch"
+                try:
+                    vertical, vertical_stats = generate_vertical_scanlines(
+                        component, component_bbox, scale_mm_per_px,
+                        max_strokes=max_strokes - len(strokes) - len(horizontal))
+                    removed_short += vertical_stats["removed_short_strokes"]
+                except NoHatchStrokes:
+                    vertical = []
+                if (len(horizontal) >= MIN_CROSS_HATCH_LINES_PER_DIRECTION
+                        and len(vertical) >= MIN_CROSS_HATCH_LINES_PER_DIRECTION):
+                    selected = horizontal + vertical
+                    horizontal_hatch_strokes.extend(horizontal)
+                    vertical_hatch_strokes.extend(vertical)
+                    mode = "cross_hatch"
+                else:
+                    selected = horizontal
+                    horizontal_hatch_strokes.extend(horizontal)
+                    mode = "parallel_hatch"
             except NoHatchStrokes:
                 # 방향·형상 때문에 수평 해칭이 하나도 나오지 않으면 중심선으로
                 # 안전하게 후퇴한다. 성분 자체를 확대하거나 경계를 넘지 않는다.
@@ -237,11 +265,12 @@ def generate_mixed_strokes(mask, source_bbox, scale_mm_per_px,
     warnings = ([] if omitted == 0 else [
         f"공구·해상도 기준 최소 길이보다 작은 연결 성분 {omitted}개를 확대하지 않고 생략했습니다."
     ])
-    return strokes, hatch_strokes, {
+    return strokes, horizontal_hatch_strokes, vertical_hatch_strokes, {
         "component_count": count - 1,
         "component_modes": mode_counts,
         "components": component_details,
         "removed_short_strokes": removed_short,
+        "cross_hatch_min_lines_per_direction": MIN_CROSS_HATCH_LINES_PER_DIRECTION,
         "warnings": warnings,
     }
 
@@ -262,12 +291,21 @@ def strokes_to_svg(strokes, width_px, height_px, source_name):
     )
 
 
-def validate_hatch(strokes, safe_mask):
+def validate_hatch(strokes, safe_mask, *, direction):
     """생성된 끝점의 방향·마스크 포함 관계를 검사한다."""
     errors = []
     for index, stroke in enumerate(strokes):
-        if len(stroke) != 2 or stroke[0][0] > stroke[-1][0]:
-            errors.append(f"stroke {index}: 단방향 조건 위반")
+        if len(stroke) != 2:
+            errors.append(f"stroke {index}: 점 수 조건 위반")
+            continue
+        if direction == "horizontal":
+            direction_ok = stroke[0][0] <= stroke[-1][0] and abs(stroke[0][1] - stroke[-1][1]) <= 1e-9
+        elif direction == "vertical":
+            direction_ok = stroke[0][1] <= stroke[-1][1] and abs(stroke[0][0] - stroke[-1][0]) <= 1e-9
+        else:
+            raise ValueError(f"알 수 없는 해칭 방향: {direction}")
+        if not direction_ok:
+            errors.append(f"stroke {index}: {direction} 방향 조건 위반")
             continue
         for x, y in stroke:
             ix, iy = int(round(x)), int(round(y))
@@ -316,9 +354,10 @@ def convert(image_path, width_mm, height_mm, *, invert=None,
     mask = binarize(gray, invert=False if invert is None else invert)
     bbox = _foreground_bbox(mask)
     scale = _fit_scale_mm_per_px(bbox, width_mm, height_mm)
-    strokes, hatch_strokes, mixed_stats = generate_mixed_strokes(mask, bbox, scale)
+    strokes, horizontal_hatches, vertical_hatches, mixed_stats = generate_mixed_strokes(mask, bbox, scale)
     safe = _safe_mask(mask, BOUNDARY_INSET_MM / scale)
-    validate_hatch(hatch_strokes, safe)
+    validate_hatch(horizontal_hatches, safe, direction="horizontal")
+    validate_hatch(vertical_hatches, safe, direction="vertical")
     validate_inside_foreground(strokes, mask)
     svg = strokes_to_svg(strokes, w, h, source_name)
     stats = {
@@ -337,6 +376,9 @@ def convert(image_path, width_mm, height_mm, *, invert=None,
         "minimum_fallback_length_mm": round(MIN_FALLBACK_LENGTH_MM, 6),
         "minimum_hatch_fill_ratio": MIN_HATCH_FILL_RATIO,
         "direction": "hatch_image_left_to_right",
+        "cross_hatch_enabled": True,
+        "horizontal_hatch_stroke_count": len(horizontal_hatches),
+        "vertical_hatch_stroke_count": len(vertical_hatches),
         "fixed_test_only": True,
         **mixed_stats,
     }
