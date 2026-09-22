@@ -25,11 +25,14 @@ class BufferedStore:
         self.bundles.append(list(items))
 
 
-def calculate(connection, root, max_bytes, goal, timeout_s, scratch, allow_real_preview=False):
+def calculate(connection, root, max_bytes, goal, timeout_s, scratch,
+              allow_real_preview=False, allow_real_execution=False):
     tempfile.tempdir = scratch
     buffered = BufferedStore(ManagedArtifactStore(root, max_bytes))
     try:
-        generated = GeneratePipeline(buffered, timeout_s=timeout_s, allow_real_preview=allow_real_preview).run(
+        generated = GeneratePipeline(
+            buffered, timeout_s=timeout_s, allow_real_preview=allow_real_preview,
+            allow_real_execution=allow_real_execution).run(
             goal, feedback=lambda stage, progress: connection.send(('feedback', (stage, progress)))
         )
         connection.send(('success', (generated, buffered.bundles)))
@@ -43,7 +46,8 @@ def calculate(connection, root, max_bytes, goal, timeout_s, scratch, allow_real_
 
 
 def run_generation(store, goal, *, timeout_s=120.0, canceled=lambda: False,
-                   feedback=lambda stage, progress: None, worker_target=calculate, allow_real_preview=False):
+                   feedback=lambda stage, progress: None, worker_target=calculate,
+                   allow_real_preview=False, allow_real_execution=False):
     """긴 Python/네이티브 계산도 종료하고 회수한 뒤에만 취소 결과를 반환한다.
 
     worker_target은 비협조적 계산을 재현하는 시험 주입점이다. ROS 파라미터가 아니다.
@@ -55,7 +59,8 @@ def run_generation(store, goal, *, timeout_s=120.0, canceled=lambda: False,
     scratch = tempfile.TemporaryDirectory(prefix='c2-generation-')
     process = context.Process(target=worker_target, args=(outgoing, str(store.root),
         store.max_input_bytes, dict(goal), timeout_s, scratch.name)
-        + ((True,) if allow_real_preview else ()), daemon=True)
+        + ((bool(allow_real_preview), True) if allow_real_execution
+           else (True,) if allow_real_preview else ()), daemon=True)
     started = time.monotonic()
 
     def check():

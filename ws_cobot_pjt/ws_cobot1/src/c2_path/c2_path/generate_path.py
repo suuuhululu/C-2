@@ -228,10 +228,14 @@ def chunk(points, max_points):
 
 def build(mapped, path_id, path_version, asset_id, asset_sha256,
           snapshot_id, profile_sha256, source_mode="SIMULATION", on_progress=None, should_stop=None,
-          real_preview=None):
+          real_preview=None, real_execution=None):
     """on_progress(0~1): 이 단계 안의 진행률 (정렬 0~0.5, 구간 조립 0.5~1). 예외는 그대로 전파한다.
 
-    real_preview: REAL 추정값 미리보기 전용 경로일 때만 주는 출처 표시(`config.real_preview`). SIMULATION 은 None."""
+    real_preview: REAL 추정값 미리보기 전용 경로의 출처 표시.
+    real_execution: 준비·측정 스냅샷에 연결된 REAL 실행 후보 경로의 출처 표시.
+    두 값은 동시에 줄 수 없다."""
+    if real_preview is not None and real_execution is not None:
+        raise ValueError("REAL 미리보기와 실행 후보 표시는 동시에 사용할 수 없습니다.")
     if not mapped:
         raise ValueError("EMPTY_PATH: 매핑된 3D 획이 없습니다.")
     notify = on_progress or (lambda _fraction: None)
@@ -326,11 +330,12 @@ def build(mapped, path_id, path_version, asset_id, asset_sha256,
     for seg in segments:
         seg["waypoints"] = [to_robot_waypoint(w) for w in seg["waypoints"]]
 
+    execution_candidate = real_execution is not None
     path = {
         "schema_version": wc.PATH_SCHEMA_VERSION,
         "path_id": path_id,
         "path_version": path_version,
-        "test_only": True,
+        "test_only": not execution_candidate,
         "source_mode": source_mode,
         # engraving.py 가 최상위에서 읽는 값들 (validate_path, schema v2)
         "tool_id": wc.TOOL_ID,
@@ -351,6 +356,13 @@ def build(mapped, path_id, path_version, asset_id, asset_sha256,
     }
     if real_preview is not None:
         path["config"]["real_preview"] = dict(real_preview)
+    if real_execution is not None:
+        path["real_execution_allowed"] = True
+        path["preparation_id"] = real_execution["preparation_id"]
+        path["measurement_id"] = real_execution["measurement_id"]
+        path["config"]["test_only"] = False
+        path["config"]["real_execution_allowed"] = True
+        path["config"]["real_execution"] = dict(real_execution)
     stats = {
         "segment_count": len(segments),
         "waypoint_count": sum(len(s["waypoints"]) for s in segments),

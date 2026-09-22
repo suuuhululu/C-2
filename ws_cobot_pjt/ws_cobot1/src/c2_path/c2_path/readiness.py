@@ -28,6 +28,7 @@ DEFAULT_LIMITS_SOURCE = ("시율님 지시(잠정) — 높이 9/21 변경(10~140
                          "surface.valid_v_range_mm / surface.reachable_angle_deg")
 SNAPSHOT_LIMITS_SOURCE = "요청 스냅샷(/2) — surface.valid_v_range_mm / surface.reachable_angle_deg (요청별 값)"
 SNAPSHOT_LIMITS_SOURCE_V3 = "요청 스냅샷(/3, REAL 추정값) — surface.valid_v_range_mm / surface.reachable_angle_deg (요청별 값)"
+SNAPSHOT_LIMITS_SOURCE_V4 = "요청 REAL 실행 스냅샷 — surface.valid_v_range_mm / surface.reachable_angle_deg (요청별 값)"
 # REAL 추정값 미리보기 전용 경로(`c2-path-test-profile/3`)는 작업 범위 안이어도 실행할 수 없다. 이 코드는 사전 점검
 # (WITHIN/OUT_OF_LIMITS)과 별개이며, 보고서·미리보기에 `execution_blocked` 로 실린다.
 PREVIEW_ONLY_CODE = "REAL_ESTIMATE_PREVIEW_ONLY"
@@ -69,6 +70,8 @@ def limits_from_profile(profile):
         limits["source"] = SNAPSHOT_LIMITS_SOURCE
     elif isinstance(profile, dict) and profile.get("contract") == "c2-path-test-profile/3":
         limits["source"] = SNAPSHOT_LIMITS_SOURCE_V3
+    elif isinstance(profile, dict) and profile.get("contract") == "c2-path-real-execution-profile/1":
+        limits["source"] = SNAPSHOT_LIMITS_SOURCE_V4
     if isinstance(surface, dict):
         v = surface.get("valid_v_range_mm")
         a = surface.get("reachable_angle_deg")
