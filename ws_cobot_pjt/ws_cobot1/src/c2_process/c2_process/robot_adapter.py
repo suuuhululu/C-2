@@ -1,6 +1,7 @@
 # robot_adapter.py — 두산 드라이버(ws_dsr 브링업) 호출·결과 확인·단위 변환. 공정 제어의 로봇 연결 모듈.
 # 집기·반납(tool_sequence)·조각(engraving)·청소(cleaning)가 함께 부른다. 별도 ROS Topic/Service 를 만들지 않는다.
-# 담당: 이시율 (초안 2026-09-18, 로컬). 실기 검증본 clay_carving/clay_common.py 의 Robot 클래스를 새 계약에 맞춰 옮겼다.
+# 담당: 이시율 (초안 2026-09-18, 로컬, v2 승격 2026-09-22). 실기 검증본 clay_carving/clay_common.py 의 Robot 클래스를 새 계약에 맞춰 옮겼다.
+# 9/22 승격: 법선 힘 유지(hold_normal_force_begin/end)·이동 중 힘 감시·서비스 클라이언트 재사용·이동 시작 재판정(_verify_start) 포함.
 #
 # 계약(INTERFACE_RECOMMENDATION v1 §2·§9):
 #   - 입력 자세는 m + quaternion(x,y,z,w) + frame_id. 두산 API 의 mm·ZYZ(A,B,C deg) 변환은 이 파일에서만 한다.
@@ -175,9 +176,57 @@ class RobotAdapter:
         tool_sequence/상태 기계가 설정한다. 이후 move/move_spline/observe 는 모두 '송곳 끝' 기준으로 동작한다."""
         raise NotImplementedError
 
+    def read_force_bias(self, samples=8):
+        """정지·무접촉 상태의 힘 [Fx,Fy,Fz] (base, N) 평균. CUT 감시의 편향 제거용. 로봇을 움직이지 않는다."""
+        raise NotImplementedError
+
+    def hold_normal_force_begin(self, tool_axis, profile, deadline_s, cancel) -> StepResult:
+        """9/22: 획 CUT 동안 도구 축(tool_axis, 예 '-y' = 표면 안쪽) 방향만 힘 제어, 나머지 축은 순응(강성)으로 두는
+        제어기 모드를 켠다. 경로 진행(MoveSX)은 그대로 위치 명령이고, 법선 방향 위치는 제어기가 목표 힘에 맞춰 덮어쓴다.
+        profile: cut_force_n(목표 접촉력), cut_stiffness(6개 강성), ramp_s(전환 시간). 값이 없으면 켜지 않고 실패."""
+        raise NotImplementedError
+
+    def hold_normal_force_end(self, deadline_s) -> StepResult:
+        """힘 제어·순응 해제. observed_state.force_released 가 True 일 때만 다음 공중 이동을 허용한다."""
+        raise NotImplementedError
+
 
 def _cancelled(cancel) -> bool:
     return cancel is not None and cancel.is_set()
+
+
+def _axis_index(tool_axis):
+    """'-y' → (1, -1.0). 도구 축 문자열을 두산 fd/dir 배열 인덱스와 부호로."""
+    idx = {"x": 0, "y": 1, "z": 2}[tool_axis[-1]]
+    return idx, (-1.0 if tool_axis.startswith("-") else 1.0)
+
+
+def evaluate_contact_sample(monitor, tip_pose, force_vec):
+    """이동 중 힘·위치 샘플 하나를 감시 기준에 대조한다 (실기 _wait_motion 과 모의 어댑터가 같이 쓴다).
+    monitor: kind ("CUT" | "AIR"), bias [Fx,Fy,Fz], force_limit_n(절대 상한),
+             CUT 추가: surface(원본 표면 waypoint 목록), normals(각 점의 안쪽 법선), offset_range [lo, hi] (m, + 안쪽).
+    반환 dict(force_n=편향 제거 후 크기, normal_force_n=법선 접촉력(안쪽으로 누르는 힘 +), normal_dev_m=표면 대비 법선 이탈,
+             nearest=가장 가까운 표면점 index, fail=(code, message) | None)."""
+    bias = monitor.get("bias") or [0.0, 0.0, 0.0]
+    f = [force_vec[k] - bias[k] for k in range(3)]
+    mag = math.sqrt(sum(v * v for v in f))
+    out = dict(force_n=mag, normal_force_n=None, normal_dev_m=None, nearest=None, fail=None)
+    limit = monitor.get("force_limit_n")
+    if limit is not None and mag > float(limit):
+        out["fail"] = ("FORCE_LIMIT", f"{monitor.get('kind', '?')} 중 힘 {mag:.1f} N > 상한 {float(limit):.1f} N")
+        return out
+    if monitor.get("kind") == "CUT" and monitor.get("surface"):
+        surface, normals = monitor["surface"], monitor["normals"]
+        i = min(range(len(surface)), key=lambda k: math.dist(tip_pose[:3], surface[k][:3]))
+        n = normals[i]
+        out["nearest"] = i
+        out["normal_force_n"] = -sum(f[k] * n[k] for k in range(3))        # 표면이 도구를 바깥으로 미는 반력 → 안쪽 누름 +
+        out["normal_dev_m"] = sum((tip_pose[k] - surface[i][k]) * n[k] for k in range(3))
+        rng = monitor.get("offset_range")
+        if rng is not None and not (float(rng[0]) <= out["normal_dev_m"] <= float(rng[1])):
+            out["fail"] = ("VALIDATION_FAILED",
+                           f"CUT 중 법선 이탈 {out['normal_dev_m'] * 1000:+.2f} mm 가 허용 범위 [{rng[0] * 1000:+.1f}, {rng[1] * 1000:+.1f}] mm 밖 → 재검사 필요")
+    return out
 
 
 # ---------------------------------------------------------------- 실기: 두산 드라이버 ----
@@ -193,7 +242,8 @@ class DoosanRobotAdapter(RobotAdapter):
         from dsr_msgs2.srv import (MoveStop, GetCurrentTcp, GetCurrentTool, SetCurrentTcp, SetCurrentTool, SetRobotMode,
                                    GetRobotState, GetCurrentPosj, GetCurrentPosx, GetToolForce,
                                    MoveLine, MoveSplineTask, CheckMotion, Ikin, GetSolutionSpace,
-                                   SetSingularityHandling)
+                                   SetSingularityHandling,
+                                   TaskComplianceCtrl, SetDesiredForce, ReleaseForce, ReleaseComplianceCtrl)
         self.node, self.frame_id = node, frame_id
         self.tool_offset_m = None
         self.log = logger or node.get_logger()
@@ -203,7 +253,10 @@ class DoosanRobotAdapter(RobotAdapter):
                          GetCurrentPosx=GetCurrentPosx, GetToolForce=GetToolForce,
                          MoveLine=MoveLine, MoveSplineTask=MoveSplineTask, CheckMotion=CheckMotion,
                          Ikin=Ikin, GetSolutionSpace=GetSolutionSpace,
-                         SetSingularityHandling=SetSingularityHandling)
+                         SetSingularityHandling=SetSingularityHandling,
+                         TaskComplianceCtrl=TaskComplianceCtrl, SetDesiredForce=SetDesiredForce,
+                         ReleaseForce=ReleaseForce, ReleaseComplianceCtrl=ReleaseComplianceCtrl)
+        self._hold_active = False                  # 법선 힘 유지(순응+힘 제어) 켜짐 여부. 켜진 채 공중 이동 금지
         # 기존 DR_AVOID(0) 설정만 기한 내 전달한다. DSR_ROBOT2 전역 초기화/무제한 대기 없음.
         # 모든 이동/조회 요청에 base ref=0을 명시하므로 전역 set_ref_coord는 불필요하다.
         self._read("motion/set_singularity_handling", "SetSingularityHandling",
@@ -221,8 +274,10 @@ class DoosanRobotAdapter(RobotAdapter):
         if executor is not None and not executor.is_spinning:
             raise RuntimeError("attached executor is not spinning")
         started = time.monotonic()
-        group = ReentrantCallbackGroup()
-        cli = self.node.create_client(srv, "dsr_controller2/" + name, callback_group=group)
+        clients = self.__dict__.setdefault("_clients", {})
+        cli = clients.get(name)
+        if cli is None:
+            cli = clients[name] = self.node.create_client(srv, "dsr_controller2/" + name, callback_group=ReentrantCallbackGroup())
         fut = None
         try:
             if not cli.wait_for_service(timeout_sec=timeout):
@@ -249,7 +304,6 @@ class DoosanRobotAdapter(RobotAdapter):
         finally:
             if fut is not None and not fut.done():
                 fut.cancel()
-            self.node.destroy_client(cli)
 
     def _read(self, endpoint, typename, *, timeout=5.0, **fields):
         kind = self._srv[typename]
@@ -293,6 +347,7 @@ class DoosanRobotAdapter(RobotAdapter):
         return best[2]
 
     def set_tool_offset(self, offset_tool_m):
+        self._last_completed_target = None
         self.tool_offset_m = list(offset_tool_m) if offset_tool_m else None
         self.log.info(f"tool offset (tool frame, m) = {self.tool_offset_m}")
 
@@ -311,6 +366,84 @@ class DoosanRobotAdapter(RobotAdapter):
         if len(values) != 3 or not all(math.isfinite(v) for v in values):
             raise ValueError("invalid force observation")
         return values
+
+    def read_force_bias(self, samples=8):
+        n = max(1, int(samples))
+        acc = [0.0, 0.0, 0.0]
+        for _ in range(n):
+            f = self._force_vec()
+            for k in range(3):
+                acc[k] += f[k] / n
+        return acc
+
+    # ---- 법선 힘 유지 (9/22: CUT 중 연속 표면 추종) ----
+    def hold_normal_force_begin(self, tool_axis, profile, deadline_s, cancel) -> StepResult:
+        step = "hold_normal_force_begin"
+        if _cancelled(cancel):
+            return StepResult("STOPPED", "NONE", "취소됨 (힘 유지 시작 전)", step)
+        try:
+            idx, sgn = _axis_index(str(tool_axis))
+            force = float(profile["cut_force_n"])
+            stx = [float(v) for v in profile["cut_stiffness"]]
+            ramp = float(profile["ramp_s"])
+            if (not math.isfinite(force) or force <= 0 or len(stx) != 6
+                    or any(not math.isfinite(v) or v < 0 for v in stx)
+                    or not math.isfinite(ramp) or not 0.0 <= ramp <= 1.0
+                    or not math.isfinite(deadline_s) or deadline_s <= 0):
+                raise ValueError("cut_force_n(>0)·cut_stiffness(6개, ≥0)·ramp_s(0~1 s) 범위 오류")
+        except (KeyError, ValueError, TypeError) as exc:
+            return StepResult("FAILED", "NOT_READY", f"힘 유지 프로파일 없음/오류: {exc}", step)
+        end = time.monotonic() + deadline_s
+        try:
+            _, state, motion = self._motion_sample(min(2.0, deadline_s))
+            if state != self.STATE_STANDBY or motion != 0:
+                return StepResult("FAILED", "NOT_READY", "힘 유지 시작 전 정지 상태 아님", step)
+        except Exception as exc:
+            return StepResult("UNKNOWN", "COMMUNICATION_LOST", str(exc), step)
+        fd = [0.0] * 6; direction = [0] * 6
+        fd[idx] = sgn * force                      # 툴 좌표계(ref=1): '-y' 면 fd[1] = −F → 표면 안쪽으로 F 만큼 누른다
+        direction[idx] = 1                         # 이 축만 힘 제어, 나머지 축은 순응(강성)
+        S = self._srv
+        self._hold_active = True                   # 활성 응답이 유실돼도 해제 대상으로 본다
+        try:
+            r1 = self._call("force/task_compliance_ctrl", S["TaskComplianceCtrl"],
+                            S["TaskComplianceCtrl"].Request(stx=stx, ref=1, time=ramp), timeout=min(2.0, max(0.1, end - time.monotonic())))
+            if r1 is None or r1.success is not True:
+                raise RuntimeError("task_compliance_ctrl 거부")
+            r2 = self._call("force/set_desired_force", S["SetDesiredForce"],
+                            S["SetDesiredForce"].Request(fd=fd, dir=direction, ref=1, time=ramp, mod=0),
+                            timeout=min(2.0, max(0.1, end - time.monotonic())))
+            if r2 is None or r2.success is not True:
+                raise RuntimeError("set_desired_force 거부")
+        except Exception as exc:
+            released = self.hold_normal_force_end(min(2.0, deadline_s))
+            return StepResult("FAILED", "NOT_READY", f"힘 유지 시작 실패: {exc}", step,
+                              dict(force_released=released.observed_state.get("force_released") is True))
+        self.log.info(f"법선 힘 유지 시작: 툴 {tool_axis} {force:.1f} N, 강성 {stx}, 전환 {ramp:.2f} s")
+        return StepResult("SUCCEEDED", "NONE", "", step, dict(hold_active=True, fd=fd, stiffness=stx, ramp_s=ramp))
+
+    def hold_normal_force_end(self, deadline_s) -> StepResult:
+        step = "hold_normal_force_end"
+        if not self._hold_active:
+            return StepResult("SUCCEEDED", "NONE", "힘 유지 비활성", step, dict(force_released=True, was_active=False))
+        S = self._srv
+        failures = []
+        end = time.monotonic() + max(0.2, float(deadline_s))
+        for endpoint, name, req in (("force/release_force", "ReleaseForce", S["ReleaseForce"].Request(time=0.0)),
+                                    ("force/release_compliance_ctrl", "ReleaseComplianceCtrl", S["ReleaseComplianceCtrl"].Request())):
+            try:
+                r = self._call(endpoint, S[name], req, timeout=min(2.0, max(0.1, end - time.monotonic())))
+                if r is None or r.success is not True:
+                    failures.append(endpoint + " 거부")
+            except Exception as exc:
+                failures.append(f"{endpoint}: {exc}")
+        if failures:
+            self.log.error(f"힘 유지 해제 실패: {failures} (다음 이동 금지)")
+            return StepResult("UNKNOWN", "STOP_UNCONFIRMED", "힘/순응 해제 미확인: " + "; ".join(failures), step,
+                              dict(force_released=False, was_active=True, release_errors=failures))
+        self._hold_active = False
+        self.log.info("법선 힘 유지 해제")
+        return StepResult("SUCCEEDED", "NONE", "", step, dict(force_released=True, was_active=True))
 
     # ---- 관측 ----
     def observe(self) -> RobotState:
@@ -402,9 +535,38 @@ class DoosanRobotAdapter(RobotAdapter):
                           dict(stop_confirmed=confirmed, stop_result=stopped.outcome,
                                stop_error_code=stopped.error_code))
 
+    def _verify_start(self, start, target, tol_mm, angle_tol_deg, cancel, *, window_s=2.5, stable_s=2.0, allow_completed=True):
+        """'이동 시작 미확인' 뒤 상태를 다시 읽어 구분한다. 관측 실패는 연속 3회까지 허용.
+        반환 (verdict, last_posx): started(움직였거나 MOVING) / completed(목표에 정지) / not_accepted(stable_s 동안 시작 위치·STANDBY·motion 0) / unknown."""
+        t0 = time.monotonic(); last = None; failures = 0; stable_since = None
+        while time.monotonic() - t0 < window_s:
+            if _cancelled(cancel):
+                return 'unknown', last
+            try:
+                cur, state, motion = self._motion_sample(2.0)
+                failures = 0
+            except Exception:
+                failures += 1
+                if failures > 3:
+                    return 'unknown', last
+                time.sleep(0.1)
+                continue
+            last = cur
+            if state == self.STATE_MOVING or motion != 0 or math.dist(cur[:3], start[:3]) > 0.03 or self._angle_error(cur, start) > 0.03:
+                return 'started', cur
+            if (allow_completed and state == self.STATE_STANDBY and motion == 0 and math.dist(cur[:3], target[:3]) <= tol_mm
+                    and self._angle_error(cur, target) <= angle_tol_deg):
+                return 'completed', cur                      # 폐곡선(시작 = 끝)에서는 쓰지 않는다: 목표에 있다는 것이 완료 근거가 아니다
+            stable_since = stable_since or time.monotonic()
+            if time.monotonic() - stable_since >= stable_s:
+                return 'not_accepted', cur
+            time.sleep(0.1)
+        return 'unknown', last
+
     def _wait_motion(self, target, deadline_s, cancel, step, tol_mm, *, start,
                      angle_tol_deg=0.15, closed_excursion_mm=0.0,
-                     closed_excursion_deg=0.0, require_start=True, require_controller_start=False):
+                     closed_excursion_deg=0.0, require_start=True, require_controller_start=False,
+                     monitor=None):
         """접수만으로 완료하지 않는다. 시작 관측 → 목표 위치/자세 → 정착을 확인.
 
         폐곡선은 출발점에서 실제로 떨어진 관측까지 필요하다. 관측을 놓쳤으면
@@ -433,14 +595,57 @@ class DoosanRobotAdapter(RobotAdapter):
                 return self._motion_failure('UNKNOWN', 'TIMEOUT', '이동 완료 제한 시간 초과', step)
             if state not in (self.STATE_STANDBY, self.STATE_MOVING) or motion not in (0, 1, 2):
                 return self._motion_failure('FAILED', 'NOT_READY', '이동 중 비정상 로봇/모션 상태', step)
+            if monitor is not None:
+                # 9/22: 이동 중 힘 감시. CUT = 편향 제거 후 법선 접촉력·표면 대비 법선 이탈·절대 상한, AIR = 절대 상한만.
+                # 힘 서비스가 이동 중 잠깐 응답을 못 하는 일이 있어(9/22 return_x: 2 s timeout) 연속 실패 허용 횟수까지는 계속 감시한다.
+                try:
+                    f = self._force_vec(timeout=min(remaining, 2.0))
+                    monitor['read_failures'] = 0
+                except Exception as exc:
+                    monitor['read_failures'] = monitor.get('read_failures', 0) + 1
+                    self.log.warn(f"{step} 힘 관측 실패 {monitor['read_failures']}회: {exc}")
+                    if monitor['read_failures'] > int(monitor.get('max_read_failures', 2)):
+                        return self._motion_failure('UNKNOWN', 'COMMUNICATION_LOST', f'힘 관측 연속 실패: {exc}', step)
+                    f = None
+                sample = evaluate_contact_sample(monitor, posx_to_pose(cur, self.tool_offset_m), f) if f is not None else None
+                if sample is None:
+                    time.sleep(0.05)
+                    continue
+                monitor.setdefault('samples', []).append(sample)
+                if sample['fail']:
+                    code, message = sample['fail']
+                    return self._motion_failure('FAILED', code, message + ' → 정지', step)
             excursion = max(excursion, math.dist(cur[:3], start[:3]))
             angular_excursion = max(angular_excursion, self._angle_error(cur, start))
             controller_started |= state == self.STATE_MOVING or motion != 0
             moved |= (state == self.STATE_MOVING or motion != 0 or excursion > 0.03
                       or self._angle_error(cur, start) > 0.03)
             if not moved and now - t0 >= min(3.0, deadline_s):
-                return self._motion_failure('UNKNOWN', 'TIMEOUT', '명령 후 이동 시작 미확인', step)
+                # 9/22: 바로 정지·UNKNOWN 으로 끝내지 않고, 통신 흔들림인지 실제 미수락인지 상태를 다시 읽어 구분한다 (재전송 없음).
+                verdict, cur = self._verify_start(start, target, tol_mm, angle_tol_deg, cancel,
+                                                  window_s=min(2.5, max(0.0, deadline_s - (time.monotonic() - t0))),
+                                                  allow_completed=(closed_excursion_mm <= 0 and closed_excursion_deg <= 0
+                                                                   and not require_controller_start))
+                if verdict == 'started':
+                    moved = True; controller_started = True
+                    continue
+                if verdict == 'completed':
+                    return StepResult('SUCCEEDED', 'NONE', '이동 시작은 못 봤지만 목표에 정지 확인', step,
+                                      dict(tcp_pose=posx_to_pose(cur, self.tool_offset_m), error_mm=math.dist(cur[:3], target[:3]),
+                                           motion_started=None, motion_status=0, stop_confirmed=True))
+                if verdict == 'not_accepted':
+                    return StepResult('FAILED', 'NOT_ACCEPTED', '명령 미수락 확정: 2 s 동안 시작 위치에 정지 상태로 관측', step,
+                                      dict(tcp_pose=posx_to_pose(cur, self.tool_offset_m), accepted=False, at_start=True,
+                                           motion_status=0, stop_confirmed=True))
+                return self._motion_failure('UNKNOWN', 'TIMEOUT', '명령 후 이동 시작 미확인 (상태 재확인도 불충분)', step)
             err = math.dist(cur[:3], target[:3])
+            if monitor is not None and monitor.get('ignore_normal') and monitor.get('normals'):
+                # 힘 유지 중에는 법선 방향 위치를 제어기가 힘에 맞춰 덮어쓰므로, 완료 판정은 접선·높이 성분만 본다
+                surface = monitor['surface']; tgt_m = [v / 1000.0 for v in target[:3]]
+                n = monitor['normals'][min(range(len(surface)), key=lambda k: math.dist(tgt_m, surface[k][:3]))]
+                e = [cur[k] - target[k] for k in range(3)]
+                along = sum(e[k] * n[k] for k in range(3))
+                err = math.sqrt(max(0.0, sum(v * v for v in e) - along * along))
             settled = (moved and (controller_started or not require_controller_start)
                        and excursion >= closed_excursion_mm
                        and angular_excursion >= closed_excursion_deg and state == self.STATE_STANDBY
@@ -460,6 +665,8 @@ class DoosanRobotAdapter(RobotAdapter):
 
     def _execute_motion(self, poses, frame_id, profile, deadline_s, cancel, spline):
         step = 'move_spline' if spline else 'move'
+        previous_target = getattr(self, '_last_completed_target', None)
+        self._last_completed_target = None
         if _cancelled(cancel):
             return StepResult('STOPPED', 'NONE', '취소됨 (이동 전)', step)
         if not self._frame_ok(frame_id):
@@ -492,9 +699,19 @@ class DoosanRobotAdapter(RobotAdapter):
         # 시작점과 같은 단일 목표는 정착만 확인한다. 폐곡선 spline에는 적용하지 않는다.
         exact_target = (math.dist(start[:3], points[-1][:3]) < 1e-6
                         and self._angle_error(start, points[-1]) < 1e-6)
-        if not spline and exact_target:
-            return self._wait_motion(points[-1], remaining, cancel, step, tol, start=start,
-                                     angle_tol_deg=angle_tol, require_start=False)
+        # 직전 완료 명령과 동일한 목표만 관측 잡음 허용 범위에서 재전송을 생략한다.
+        # 새 깊이 목표는 허용오차 안이어도 전송하며 폐곡선에는 적용하지 않는다.
+        repeated_target = (previous_target is not None
+                           and math.dist(previous_target[:3], points[-1][:3]) < 1e-6
+                           and self._angle_error(previous_target, points[-1]) < 1e-6
+                           and math.dist(start[:3], points[-1][:3]) <= tol
+                           and self._angle_error(start, points[-1]) <= angle_tol)
+        if not spline and (exact_target or repeated_target):
+            result = self._wait_motion(points[-1], remaining, cancel, step, tol, start=start,
+                                       angle_tol_deg=angle_tol, require_start=False)
+            if result.ok:
+                self._last_completed_target = list(points[-1])
+            return result
         extent = max(math.dist(start[:3], p[:3]) for p in points)
         angle_extent = max(self._angle_error(start, p) for p in points)
         if spline and extent < 1e-6 and angle_extent < 1e-6:
@@ -507,7 +724,7 @@ class DoosanRobotAdapter(RobotAdapter):
                 kind = self._srv['MoveSplineTask']
                 req = kind.Request(pos=[Float64MultiArray(data=[float(v) for v in p]) for p in points],
                                    pos_cnt=len(points), vel=[vel, vel], acc=[acc, acc], time=0.0,
-                                   ref=0, mode=0, opt=1, sync_type=1)
+                                   ref=0, mode=0, opt=0, sync_type=1)
                 result = self._call('motion/move_spline_task', kind, req, timeout=min(2.0, remaining))
             else:
                 result = self._send_line(points[0], vel, acc, min(2.0, remaining))
@@ -518,10 +735,15 @@ class DoosanRobotAdapter(RobotAdapter):
                 closed_excursion = min(0.03, extent / 2.0)
                 if self._angle_error(start, points[-1]) <= angle_tol:
                     closed_angle = min(0.03, angle_extent / 2.0)
-            return self._wait_motion(points[-1], max(0.0, end-time.monotonic()), cancel, step, tol,
+            monitor = profile.get('contact_monitor') or profile.get('air_monitor')
+            result = self._wait_motion(points[-1], max(0.0, end-time.monotonic()), cancel, step, tol,
                                      start=start, angle_tol_deg=angle_tol,
                                      closed_excursion_mm=closed_excursion, closed_excursion_deg=closed_angle,
-                                     require_controller_start=spline and math.dist(start[:3], points[-1][:3]) <= tol)
+                                     require_controller_start=spline and math.dist(start[:3], points[-1][:3]) <= tol,
+                                     monitor=monitor)
+            if result.ok:
+                self._last_completed_target = list(points[-1])
+            return result
         except Exception as exc:
             if sent:
                 return self._motion_failure('UNKNOWN', 'COMMUNICATION_LOST', str(exc), step)
@@ -554,6 +776,11 @@ class DoosanRobotAdapter(RobotAdapter):
             step_n = float(profile.get("touch_step_n", 1.5)); hard_n = float(profile.get("hard_limit_n", 4.5))
             settle_s = float(profile.get("settle_s", 1.5)); settle_mm = float(profile.get("settle_mm", 4.0))
             soft_samples = int(profile.get("soft_samples", 2))
+            dual = profile.get("entry_confirmation") == "force_and_position"
+            target = profile.get("entry_target_tip_pose")
+            if dual and (not isinstance(target, (list, tuple)) or len(target) != 7
+                         or not all(math.isfinite(v) for v in target)):
+                raise ValueError("복합 진입 판정에는 도구 끝 목표 자세 필요")
             if (any(not math.isfinite(v) or v <= 0 for v in (speed, soft_n, step_n, hard_n))
                     or any(not math.isfinite(v) or v < 0 for v in (settle_s, settle_mm))
                     or soft_samples < 1):
@@ -583,7 +810,15 @@ class DoosanRobotAdapter(RobotAdapter):
 
         try:
             start = self._posx_now(timeout=remaining())
+            if dual:
+                start_tip = posx_to_pose(start, self.tool_offset_m)
+                target_travel = sum((target[k] - start_tip[k]) * d[k] for k in range(3))
+                lateral = math.sqrt(sum((target[k]-start_tip[k]-target_travel*d[k])**2 for k in range(3)))
+                if not 0 <= target_travel < max_m or lateral > .0003:
+                    raise ValueError("진입 목표가 탐색 선분/거리 범위 밖")
             base = [f_of(self._force_vec(timeout=remaining())) for _ in range(8)]
+            if not all(math.isfinite(v) for v in base):
+                raise ValueError("유효하지 않은 힘 기준값")
             f0 = sum(base) / len(base)
             _, state, motion = self._motion_sample(remaining())
             remaining()
@@ -621,8 +856,30 @@ class DoosanRobotAdapter(RobotAdapter):
                 f = f_of(self._force_vec(timeout=remaining()))
                 remaining()  # 늦게 받은 값 또는 취소 후 응답을 접촉 성공으로 쓰지 않는다.
                 now = time.monotonic()
-                if f != f:
-                    f = hist[-1][2] if hist else f0
+                if not math.isfinite(f):
+                    raise ValueError("유효하지 않은 힘 관측")
+                if dual:
+                    tip_now = posx_to_pose(cur, self.tool_offset_m)
+                    position_ok = sum((tip_now[k]-target[k])*d[k] for k in range(3)) >= 0
+                    delta = f-f0
+                    soft_run = soft_run+1 if delta >= soft_n else 0
+                    force_ok = soft_run >= soft_samples
+                    values = dict(contact=force_ok, force_ok=force_ok, position_ok=position_ok,
+                                  entry_confirmed=force_ok and position_ok, tcp_pose=tip_now,
+                                  force_delta_n=delta, travelled_m=tr/1000.)
+                    # 과부하는 접촉 성공으로 바꾸지 않는다. 과거 힘 신호도 성공으로 고정하지 않는다.
+                    if abs(delta) >= hard_n:
+                        values["entry_confirmed"] = False
+                        result = StepResult("FAILED", "VALIDATION_FAILED", "진입 힘 상한 초과", "probe_touch", values)
+                        break
+                    if position_ok and force_ok:
+                        result = StepResult("SUCCEEDED", "NONE", "좌표·힘 복합 진입 확인", "probe_touch", values)
+                        break
+                    if tr >= max_mm - .05:
+                        result = StepResult("FAILED", "VALIDATION_FAILED", "추가 진입 한도에서 두 조건 미충족", "probe_touch", values)
+                        break
+                    time.sleep(.05)
+                    continue
                 hist.append((now, tr, f)); hist = [h for h in hist if now - h[0] <= 2.0]
                 avg = [h[2] for h in hist if 0.3 <= now - h[0] <= 1.8 and h[0] - t0 >= 1.0]
                 step = f - sum(avg) / len(avg) if len(avg) >= 3 else 0.0
@@ -673,11 +930,25 @@ class DoosanRobotAdapter(RobotAdapter):
                 return StepResult("UNKNOWN", "STOP_UNCONFIRMED", "접촉 종료 후 정지 미확인", "probe_touch",
                                   dict(contact=False, stop_confirmed=False))
         result.observed_state["stop_confirmed"] = True
+        if dual and result.ok:
+            stopped_tip = stopped.observed_state.get("tcp_pose")
+            if not stopped_tip or not all(math.isfinite(v) for v in stopped_tip):
+                return StepResult("UNKNOWN", "NOT_READY", "진입 후 실제 정지 위치 미확인", "probe_touch",
+                                  dict(stop_confirmed=True, entry_confirmed=False))
+            stopped_travel = sum((stopped_tip[k]-start_tip[k])*d[k] for k in range(3))
+            position_ok = sum((stopped_tip[k]-target[k])*d[k] for k in range(3)) >= 0
+            if not position_ok or stopped_travel > max_m:
+                return StepResult("FAILED", "VALIDATION_FAILED", "정지 위치가 진입 검사 범위 밖", "probe_touch",
+                                  dict(stop_confirmed=True, position_ok=position_ok, entry_confirmed=False,
+                                       tcp_pose=stopped_tip))
+            result.observed_state["detection_tip_pose"] = result.observed_state["tcp_pose"]
+            result.observed_state["tcp_pose"] = stopped_tip
         return result
 
     # ---- 정지 ----
     def stop(self, stop_profile, deadline_s) -> StepResult:
         """정지 접수와 실제 정지를 구별한다. 위치·자세·motion=0 정착까지 확인."""
+        self._last_completed_target = None
         if not math.isfinite(deadline_s) or deadline_s <= 0:
             return StepResult('FAILED', 'INVALID_INPUT', '정지 제한 시간 오류', 'stop',
                               dict(stop_confirmed=False))
@@ -728,6 +999,52 @@ class MockRobotAdapter(RobotAdapter):
         self.tool_offset_m = None
         self.calls: List[Dict] = []
         self.stopped = False
+        self.hold_active = False                       # 법선 힘 유지 모의 상태
+        self.force_fn: Optional[Callable] = None        # force_fn(tip_pose) → base 힘 [Fx,Fy,Fz] (CUT 감시 모의)
+        self.deviation_fn: Optional[Callable] = None    # deviation_fn(tip_pose) → 표면 대비 법선 이탈 m (순응이 밀어낸 양의 모의)
+        self.hold_fail_at: Optional[str] = None         # "begin" | "end" 실패 모의
+
+    def read_force_bias(self, samples=8):
+        self.calls.append(dict(fn="read_force_bias"))
+        return [0.0, 0.0, 0.0]
+
+    def hold_normal_force_begin(self, tool_axis, profile, deadline_s, cancel):
+        self.calls.append(dict(fn="hold_begin", axis=tool_axis, force=profile.get("cut_force_n")))
+        for key in ("cut_force_n", "cut_stiffness", "ramp_s"):
+            if profile.get(key) is None:
+                return StepResult("FAILED", "NOT_READY", f"힘 유지 프로파일 없음: {key}", "hold_normal_force_begin")
+        if self.hold_fail_at == "begin":
+            return StepResult("FAILED", "NOT_READY", "모의 힘 유지 시작 실패", "hold_normal_force_begin", dict(force_released=True))
+        self.hold_active = True
+        return StepResult("SUCCEEDED", "NONE", "", "hold_normal_force_begin", dict(hold_active=True))
+
+    def hold_normal_force_end(self, deadline_s):
+        self.calls.append(dict(fn="hold_end"))
+        if self.hold_fail_at == "end" and self.hold_active:
+            return StepResult("UNKNOWN", "STOP_UNCONFIRMED", "모의 해제 실패", "hold_normal_force_end", dict(force_released=False))
+        was = self.hold_active
+        self.hold_active = False
+        return StepResult("SUCCEEDED", "NONE", "", "hold_normal_force_end", dict(force_released=True, was_active=was))
+
+    def _monitor(self, profile, poses, step):
+        """이동 중 힘 감시 모의: 각 목표점에서 force_fn/deviation_fn 으로 샘플을 만들어 실기와 같은 판정을 한다."""
+        monitor = profile.get("contact_monitor") or profile.get("air_monitor")
+        if monitor is None:
+            return None
+        for p in poses:
+            f = self.force_fn(p) if self.force_fn else [0.0, 0.0, 0.0]
+            tip = list(p)
+            if monitor.get("kind") == "CUT" and self.deviation_fn and monitor.get("surface"):
+                i = min(range(len(monitor["surface"])), key=lambda k: math.dist(p[:3], monitor["surface"][k][:3]))
+                n = monitor["normals"][i]; d = self.deviation_fn(p)
+                tip = [monitor["surface"][i][k] + n[k] * d for k in range(3)] + list(p[3:])
+            sample = evaluate_contact_sample(monitor, tip, f)
+            monitor.setdefault("samples", []).append(sample)
+            if sample["fail"]:
+                self.calls.append(dict(fn="stop")); self.stopped = True
+                code, message = sample["fail"]
+                return StepResult("FAILED", code, message + " → 정지", step, dict(tcp_pose=list(self.pose), stop_confirmed=True))
+        return None
 
     def _rec(self, name, **kw):
         self.calls.append(dict(fn=name, **kw))
@@ -777,7 +1094,10 @@ class MockRobotAdapter(RobotAdapter):
     def move(self, pose, frame_id, profile, deadline_s, cancel):
         if _cancelled(cancel):
             return StepResult("STOPPED", "NONE", "취소됨", "move")
-        r = self._rec("move", pose=list(pose), profile=profile.get("id"))
+        r = self._rec("move", pose=list(pose), profile=profile.get("id"), hold=self.hold_active)
+        if r:
+            return r
+        r = self._monitor(profile, [pose], "move")
         if r:
             return r
         return self._simulate_motion(list(pose), "move", cancel)
@@ -787,7 +1107,10 @@ class MockRobotAdapter(RobotAdapter):
             return StepResult("STOPPED", "NONE", "취소됨", "move_spline")
         if not 2 <= len(poses) <= 80:
             return StepResult("FAILED", "INVALID_INPUT", f"movesx 점 수 {len(poses)}", "move_spline")
-        r = self._rec("move_spline", n=len(poses), profile=profile.get("id"))
+        r = self._rec("move_spline", n=len(poses), profile=profile.get("id"), hold=self.hold_active)
+        if r:
+            return r
+        r = self._monitor(profile, poses, "move_spline")
         if r:
             return r
         return self._simulate_motion(list(poses[-1]), "move_spline", cancel)
