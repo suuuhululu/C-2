@@ -218,6 +218,11 @@ def execute_path(path: Dict, context: ExecutionContext, on_progress: Optional[Ca
                  adapter: RobotAdapter = None) -> StepResult:
     """경로의 구간을 순서대로 실행한다. 반환 StepResult.observed_state 에 last_completed_segment_id, engraving_progress,
     touches(획별 접촉 기록) 가 들어간다. outcome: SUCCEEDED / FAILED / STOPPED / UNKNOWN."""
+    # 공정 호출 형식은 유지하고 기존 가공 설정으로 실행기를 선택한다.
+    # 설정 선택은 snapshot/계획 검사 전에 끝나야 하며 실행 실패 중 자동 교체하지 않는다.
+    if (context.tool_profile or {}).get("contact_mode") == "fixed_depth":
+        from .run_fixed_path_trial import execute_path as execute_fixed_path
+        return execute_fixed_path(path, context, on_progress, adapter)
     if adapter is None:
         return StepResult("FAILED", "NOT_READY", "robot_adapter 없음", "execute_path")
     plan = build_execution_plan(path, context)
