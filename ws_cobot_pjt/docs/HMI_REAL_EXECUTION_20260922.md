@@ -1,3 +1,5 @@
+> 최신 후속 수정: [REAL HMI 통합 연결 수정](HMI_REAL_INTEGRATION_FIXES_20260922.md). 정적 실행 설정 사전 검사·측정 확인값 초기화·REAL 경로 서버 기동 및 현재 공통 Result 단절을 설명합니다. 아래 과거 검사 시점·별도 기동 설명보다 우선합니다.
+
 # HMI REAL 실기 시험 연결 변경 · 2026-09-22
 
 기준 origin/main `c29de08`, 작업 브랜치 `codex/hmi-partial-integration`. 사용자 지시에 따라 신뢰도에 따른 일괄 거절을 HMI에서 제거한다. 아래는 HMI 구현과 다른 담당 PR의 연결 계약이며, 전체 실기 완료 기록이 아니다.

@@ -9,6 +9,14 @@ import sys
 import time
 
 
+def path_node_command(python, data, mode):
+    command = [str(python), '-m', 'c2_path.node', '--ros-args', '-p', f'managed_data_dir:={data}',
+               '-p', f'source_mode:={mode}']
+    if mode == 'REAL':
+        command += ['-p', 'allow_real_execution:=true']
+    return command
+
+
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--transport',choices=('mock','ros'),default=os.getenv('C2_MONITOR_TRANSPORT','mock'))
@@ -61,7 +69,8 @@ def main():
         if args.mode == 'REAL':
             preflight += ('; from c2_interfaces.action import PrepareWorkpiece; '
                           'from app.preparation import real_input_config; '
-                          'real_input_config(Storage(os.environ["C2_MONITOR_DATA"]), os.environ["C2_PREPARATION_CONFIG"])')
+                          'from app.real_execution_config import validate_real_execution_config; '
+                          'validate_real_execution_config(real_input_config(Storage(os.environ["C2_MONITOR_DATA"]), os.environ["C2_PREPARATION_CONFIG"])["payload"])')
         subprocess.run([str(python),'-c',preflight],cwd=root/'backend',env=env,check=True)
     if not args.legacy_mock_image and args.transport == 'mock':
         subprocess.run([str(python),'-c','from c2_path.pipeline import GeneratePipeline'],cwd=root/'backend',env=env,check=True)
@@ -75,8 +84,8 @@ def main():
     def interrupt(*args):stop();sys.exit(0)
     signal.signal(signal.SIGINT,interrupt);signal.signal(signal.SIGTERM,interrupt)
     try:
-        if args.transport=='ros' and args.mode == 'SIMULATION' and not args.external_path_node:
-            children.append(subprocess.Popen([str(python),'-m','c2_path.node','--ros-args','-p',f'managed_data_dir:={data}'],env=env))
+        if args.transport=='ros' and not args.external_path_node:
+            children.append(subprocess.Popen(path_node_command(python, data, args.mode),env=env))
         children.append(subprocess.Popen([str(python),'-m','uvicorn','app.monitor:app','--host','127.0.0.1','--port','8010'],cwd=root/'backend',env=env))
         children.append(subprocess.Popen([node,str(vite),'--host','127.0.0.1'],cwd=root/'frontend',env=env))
         print('새김 HMI: http://127.0.0.1:5174/operator',flush=True)

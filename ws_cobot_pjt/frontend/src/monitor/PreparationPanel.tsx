@@ -67,7 +67,7 @@ export default function PreparationPanel({
     if (
       !connected ||
       pending ||
-      (!body.current && (locked || data.blocks_work))
+      (!body.current && (locked || data.blocks_work || !!data.start_error))
     )
       return;
     onInvalidate();
@@ -144,7 +144,7 @@ export default function PreparationPanel({
             : "ROS 연결 대기"}
         </span>
       </div>
-      <p className="field-help">{data.reason}</p>
+      <p className="field-help">{data.reason}{data.start_error && <strong role="alert"> {data.start_error}</strong>}</p>
       {data.input_config && (
         <p className="field-help">
           <a
@@ -178,7 +178,7 @@ export default function PreparationPanel({
               !data.supported ||
               !connected ||
               pending ||
-              (!uncertain && (locked || data.blocks_work))
+              (!uncertain && (locked || data.blocks_work || !!data.start_error))
             }
           >
             {pending

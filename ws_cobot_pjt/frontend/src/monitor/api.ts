@@ -248,6 +248,7 @@ export type PreparationState = {
   reason: string;
   ready: boolean;
   blocks_work: boolean;
+  start_error?: string | null;
   input_config: {
     id: string;
     sha256: string;

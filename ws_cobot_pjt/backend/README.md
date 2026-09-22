@@ -1,3 +1,5 @@
+> 최신 후속 수정: [REAL HMI 통합 연결 수정](../docs/HMI_REAL_INTEGRATION_FIXES_20260922.md). 정적 실행 설정 사전 검사·측정 확인값 초기화·REAL 경로 서버 기동 및 현재 공통 Result 단절을 설명합니다. 아래 과거 검사 시점·별도 기동 설명보다 우선합니다.
+
 # 새김 시스템 모니터 서버
 
 최신 작업: [이미지 한 장 HMI 부분통합](../docs/HMI_PARTIAL_INTEGRATION.md). 운영 화면에서 ZIP 교환을 제거하고 기본 실행을 실제 PNG/JPEG 계산 → 기존 준비/공정 흐름으로 연결했다. 이미지 의존성은 `requirements-image.lock.txt`를 사용한다. 아래 과거 파일 통합 메뉴 안내는 이전 구현 기록이다.

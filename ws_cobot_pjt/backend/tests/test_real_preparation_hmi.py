@@ -127,12 +127,16 @@ def test_real_bridge_rejects_sim_goal():
 
 
 def execution_template(config):
-    from c2_path.pipeline import matching_test_profile
-    value = matching_test_profile()
-    value.update(contract='test-real-candidate-fixture/1', calibration_status='TEST_FIXTURE',
-                 source_mode='REAL', test_only=False, real_execution_allowed=True,
-                 execution_context={'source_mode': 'REAL'}, joint_check_arguments={'fixture': True},
-                 tip_calibration={'offset_tool_m': config['workcell']['tool_offset_m']})
+    from c2_path.pipeline import matching_test_profile_v4
+    from c2_path.workcell import MOTION_PROFILE
+    value = matching_test_profile_v4()
+    # 형식 시험 전용이며 실제 사용값/승인값이 아니다.
+    value['tip_calibration']['offset_tool_m'] = config['workcell']['tool_offset_m']
+    value['execution_context'].update(
+        motion_profiles={name: dict(vel_mm_s=1., acc_mm_s2=1., completion_timeout_s=1.)
+                         for name in MOTION_PROFILE.values()},
+        tool_profile=dict(tool_id=value['tool_id'], contact_mode='fixed_depth', depth_m=.001, clearance_m=.001),
+        stop_profile=dict(mode=1, confirmation_timeout_s=1.))
     for k in ('tcp_id', 'load_id'):
         value[k] = config['workcell'][k]
     config['workcell']['top']['offset_status'] = 'ESTIMATED'
@@ -193,3 +197,89 @@ def test_real_execute_forwards_bound_candidate_and_preserves_peer_failure(tmp_pa
         assert service.run['status']=='FAILED' and service.run['message']=='IK 검사 실패 대역'
         assert result['run_id']==calls[0]['run_id']
     asyncio.run(scenario())
+
+
+@pytest.mark.parametrize('old', [False, True])
+def test_real_missing_verification_clears_template(tmp_path, old):
+    from app.ros_preparation import real_bound_profile, display_result
+    config = json.loads(config_file(tmp_path).read_text())
+    config['execution_profile'] = execution_template(config)
+    config['execution_profile']['absolute_top_verified'] = old
+    goal = dict(preparation_id=uid(), measurement_id=uid(), source_mode='REAL', height_m=.15,
+                input_profile_snapshot_id=uid(), input_profile_sha256='a'*64)
+    raw = json.loads((ROOT/'ws_cobot1/src/c2_process/test/fixtures/prepare_workpiece_action_samples/success.json').read_text())['result']
+    raw.update(source_mode='REAL', validity='ESTIMATED', preparation_id=goal['preparation_id'], measurement_id=goal['measurement_id'])
+    raw.pop('absolute_top_verification_known', None)
+    raw.pop('absolute_top_verified', None)
+    before = deepcopy(config)
+    result = real_bound_profile(goal, display_result(raw, goal), config, dict(id=uid(), sha256='b'*64))
+    assert result['absolute_top_verified'] is None
+    assert result['measurement_assumptions']['absolute_top_verified'] is None
+    assert result['validity'] == 'ESTIMATED'
+    assert config == before
+
+
+def test_static_error_blocks_before_measure(tmp_path):
+    from types import SimpleNamespace
+    from app.preparation import PreparationService
+    from app.monitor_service import DomainError
+    store = Storage(tmp_path/'guard')
+    owner = SimpleNamespace(mode='REAL', transport='ros', lock=asyncio.Lock(), store=store,
+                            peer=SimpleNamespace(preparation_client=object()), fresh=lambda: False)
+    service = PreparationService(owner)
+    service.config = {'payload': {'workcell': {}}}
+    assert 'execution_profile' in service.snapshot()['start_error']
+    body = {'request_id': uid()}
+    with pytest.raises(DomainError, match='execution_profile'):
+        asyncio.run(service.begin(body))
+    assert service.task is None
+
+
+def test_real_contract_gap_is_reported():
+    from app.ros_bridge import preparation_result_error
+    class InstalledResult:
+        @classmethod
+        def get_fields_and_field_types(cls): return {'validity': 'string'}
+    assert 'absolute_top_verified' in preparation_result_error(InstalledResult)
+
+
+def test_real_launcher_uses_same_store_and_real_path_mode():
+    import importlib.util
+    spec = importlib.util.spec_from_file_location('run_monitor', ROOT/'run_monitor.py')
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    command = module.path_node_command('/python', '/shared/data', 'REAL')
+    assert 'managed_data_dir:=/shared/data' in command
+    assert 'source_mode:=REAL' in command
+    assert 'allow_real_execution:=true' in command
+    assert 'allow_real_execution:=true' not in module.path_node_command('/python', '/data', 'SIMULATION')
+
+
+@pytest.mark.parametrize('section,key', [
+    ('stop_profile', 'confirmation_timeout_s'), ('tool_profile', 'depth_m'),
+    ('tool_profile', 'clearance_m'), ('motion_profiles', 'candle_cut')])
+def test_static_nested_omissions_are_rejected(tmp_path, section, key):
+    from app.real_execution_config import validate_real_execution_config
+    config = json.loads(config_file(tmp_path).read_text())
+    config['execution_profile'] = execution_template(config)
+    validate_real_execution_config(config)
+    del config['execution_profile']['execution_context'][section][key]
+    with pytest.raises(ValueError, match=key):
+        validate_real_execution_config(config)
+
+
+@pytest.mark.parametrize('known,verified', [(True, False), (True, True), (False, False)])
+def test_current_confidence_overwrites_template(tmp_path, known, verified):
+    from app.ros_preparation import real_bound_profile, display_result
+    config = json.loads(config_file(tmp_path).read_text())
+    config['execution_profile'] = execution_template(config)
+    config['execution_profile'].update(absolute_top_verification_known=not known, absolute_top_verified=not verified)
+    goal = dict(preparation_id=uid(), measurement_id=uid(), source_mode='REAL', height_m=.15,
+                input_profile_snapshot_id=uid(), input_profile_sha256='a'*64)
+    raw = json.loads((ROOT/'ws_cobot1/src/c2_process/test/fixtures/prepare_workpiece_action_samples/success.json').read_text())['result']
+    raw.update(source_mode='REAL', validity='ESTIMATED', preparation_id=goal['preparation_id'], measurement_id=goal['measurement_id'],
+               absolute_top_verification_known=known, absolute_top_verified=verified)
+    result = real_bound_profile(goal, display_result(raw, goal), config, dict(id=uid(), sha256='b'*64))
+    for key in ('absolute_top_verification_known', 'absolute_top_verified'):
+        assert result[key] is raw[key]
+        assert result['measurement_assumptions'][key] is raw[key]

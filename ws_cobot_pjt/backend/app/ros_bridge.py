@@ -119,6 +119,16 @@ def check_installed_contract(message_types):
         raise RuntimeError('c2_interfaces v2를 같은 커밋으로 빌드·source해야 합니다.')
 
 
+def preparation_result_error(result_type):
+    """현재 경로 소비자가 요구하는 측정 확인 필드의 설치 여부를 검사한다."""
+    fields = result_type.get_fields_and_field_types()
+    if any(fields.get(key) not in ('boolean', 'bool') for key in
+           ('absolute_top_verification_known', 'absolute_top_verified')):
+        return ('설치된 PrepareWorkpiece.Result에 bool absolute_top_verification_known/absolute_top_verified가 없습니다. '
+                '공정 송신자·공통 Action·경로 소비자의 확인 수준 계약을 함께 수정하고 재빌드해야 합니다.')
+    return None
+
+
 class RosBridge:
     transport='ROS2'
 
@@ -156,6 +166,7 @@ class RosBridge:
             self.node.get_logger().warn('PrepareWorkpiece 설치본 없음: 기존 경로 시험만 지원')
         else:
             check_installed_contract((PrepareWorkpiece.Goal,))
+            self.preparation_contract_error = preparation_result_error(PrepareWorkpiece.Result) if self.mode == 'REAL' else None
             self.preparation_type = PrepareWorkpiece
             self.preparation_client = ActionClient(self.node, PrepareWorkpiece, '/c2/prepare_workpiece', callback_group=self.group)
         self.stop_client=self.node.create_client(StopProcess,'/c2/stop_process',callback_group=self.group)
