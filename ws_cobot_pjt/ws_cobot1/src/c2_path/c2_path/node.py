@@ -61,10 +61,14 @@ class PathPlannerNode(Node):
     def __init__(self):
         super().__init__("path_planner_node")
         self.declare_parameter("managed_data_dir", os.environ.get("C2_MONITOR_DATA", ""))
+        # 호환용 표시 파라미터다. 실제 요청 모드는 Goal과 불변 프로파일을 서로 대조한다.
         self.declare_parameter("source_mode", "SIMULATION")
         # 기본 false. true 로 명시했을 때만 REAL 요청을 받고, 그 경우도 스냅샷 /3(추정값·미리보기 전용)과 함께일 때만
         # 계산한다. 결과 경로는 test_only 라 어떤 경우에도 실행할 수 없다.
         self.declare_parameter("allow_real_preview", False)
+        # 기본 false. 준비 BIND와 실행 설정이 들어 있는 별도 실행 계약만
+        # test_only=false 후보로 만든다. 로봇 모션은 이 노드가 실행하지 않는다.
+        self.declare_parameter("allow_real_execution", False)
         self.declare_parameter("generation_timeout_s", 120.0)
         self.declare_parameter("max_asset_bytes", 10 * 1024 * 1024)
         self.declare_parameter("action_name", "/c2/generate_path")
@@ -84,14 +88,18 @@ class PathPlannerNode(Node):
             cancel_callback=self._cancel,
             callback_group=self._group,
         )
-        if self.get_parameter("allow_real_preview").value:
+        if self.get_parameter("allow_real_execution").value:
+            self.get_logger().warning(
+                "/c2/generate_path 준비 완료(REAL 실행 후보 생성 허용, 로봇 비구동, 최종 IK·관절 검사는 공정 담당)")
+        elif self.get_parameter("allow_real_preview").value:
             self.get_logger().warning("/c2/generate_path 준비 완료(SIMULATION + REAL 추정값 미리보기 전용, test_only, 로봇 비구동)")
         else:
             self.get_logger().info("/c2/generate_path 준비 완료(SIMULATION/test_only, 로봇 비구동)")
 
     def _initialize_store(self):
-        if self.get_parameter("source_mode").value != "SIMULATION":
-            self._store_error = "현재 path_planner_node는 SIMULATION/test_only만 지원합니다."
+        configured_mode = self.get_parameter("source_mode").value
+        if configured_mode not in ("SIMULATION", "REAL"):
+            self._store_error = "source_mode 파라미터는 SIMULATION 또는 REAL이어야 합니다."
             self.get_logger().error(self._store_error)
             return
         try:
@@ -169,6 +177,7 @@ class PathPlannerNode(Node):
                 ),
                 canceled=lambda: goal_handle.is_cancel_requested or not rclpy.ok(),
                 allow_real_preview=bool(self.get_parameter("allow_real_preview").value),
+                allow_real_execution=bool(self.get_parameter("allow_real_execution").value),
             )
             result = GeneratePath.Result()
             result.success = True

@@ -424,3 +424,44 @@ REAL 실측(`validity=ESTIMATED` 또는 `FORCE_CONTACT_ESTIMATE`)으로 경로�
 - **팀장님(HMI)**: REAL 모드에서 BIND·GeneratePath 를 허용하지 않고, `artifact_loader` 가 경로·미리보기 `source_mode` 를 `SIMULATION` 으로만 받는다. `/3` 프로파일 조립(등록 설정과 결합), REAL 미리보기 표시, 실행 요청 차단(`execution_blocked`, `OUT_OF_LIMITS`, `test_only`)이 필요하다.
 - **실행 방법**: 경로 노드를 `-p allow_real_preview:=true` 로 띄운 경우에만 REAL Goal 을 받는다. HMI REAL 모드는 경로 노드를 자동 기동하지 않으므로 따로 띄워야 한다.
 - 이번 시험은 c2_path 단독이다. 파일 묶음(`bundle`)은 SIMULATION 만 지원하고 REAL 은 지원하지 않는다.
+
+## 15. REAL 실행 후보 스냅샷 (9/22, 공정팀 연결)
+
+`/3` 미리보기 계약은 그대로 유지한다. 실제 실행 전 검사로 전달할 경로는 별도
+`c2-path-real-execution-profile/1` 스냅샷으로만 생성한다. 이 경로는 로봇 실행이 확정된 경로가 아니라
+공정팀의 최종 IK·관절·J6 검사를 받을 수 있는 **실행 후보**다.
+
+### 15.1 필수 입력
+
+- `source_mode="REAL"`과 실행 후보 전용 contract
+- `test_only=false`, `real_execution_allowed=true`
+- `/3`과 같은 준비·측정 ID, 원본 기록 ID·해시, 시간대가 있는 `measured_at`
+- `validity`/`measurement_status`: `ESTIMATED` 또는 `FORCE_CONTACT_ESTIMATE`,
+  `absolute_top_verified=false`, `measurement_assumptions.independent_accuracy_verified=false`
+- `surface`: 바닥 기준 원통 중심·반지름·높이·유효 높이·도달 참고각
+- `workcell.measurement_scope="ABSOLUTE_GEOMETRY"`
+- `workcell.top.contact_offset_tool_m`, `offset_status="VERIFIED"` 또는 `"ESTIMATED"`, 비어 있지 않은 `offset_record_id`.
+  `ESTIMATED`이면 비어 있지 않은 `estimate_source`도 필요하다. 상태 문자열 자체는 일괄 거절 조건이 아니다.
+- snapshot/workcell의 동일한 `tcp_id`, `load_id`
+- `tip_calibration`, `calibration_profiles`
+- `execution_context`: `source_mode="REAL"`과 motion/tool/stop profile
+- `joint_check_arguments`: 6축 범위와 유효한 `j6_margin_deg`
+- `verify_tool_tip_arguments.tol_m` 양수
+
+하나라도 없거나 불일치하면 `PROFILE_MISMATCH`로 거절한다. c2_path가 임의 기본값을 채우거나 `/3`을 실행 후보로 바꾸지 않는다.
+
+### 15.2 출력과 실행 경계
+
+- 범위 안 경로: 경로·미리보기·보고서에 `source_mode="REAL"`, `test_only=false`,
+  `real_execution_allowed=true`를 기록한다.
+- 범위 밖 경로: 형상 확인을 위해 산출물은 만들 수 있으나 `real_execution_allowed=false`로 낮춘다.
+- `preparation_id`, `measurement_id`, profile snapshot ID·해시는 경로에 보존한다.
+- `validity`, `absolute_top_verified`, 독립 정확도 확인 여부, 접촉 오프셋 상태·기록 ID·추정 출처는
+  경로·미리보기·검증 보고서에 그대로 보존하며 `VERIFIED`로 승격하지 않는다.
+- 최종 `path.json` 바이트 SHA-256은 Result와 미리보기에 동일하게 기록한다. path.json 자체에는 자기 해시를 넣지 않는다.
+- `executability`는 항상 `NOT_JUDGED`다. 이는 c2_path가 로봇 관절 판정을 하지 않는다는 뜻이며 실행 차단값이 아니다.
+- 공정팀은 같은 경로 ID·버전·해시와 snapshot binding을 확인한 뒤 최종 실행 계획의 IK·관절·J6 검사를 수행한다.
+  검사 통과 시에만 동일 경로를 `execute_path()`로 넘긴다.
+
+ROS 노드는 `allow_real_execution:=true`를 명시한 경우에만 이 계약을 받는다. 기본값은 `false`다.
+HMI artifact loader와 REAL 준비 BIND는 이 계약을 별도로 지원해야 하며 `/3` 경로는 계속 실행 요청에서 거절한다.
