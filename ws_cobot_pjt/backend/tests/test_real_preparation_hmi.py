@@ -228,11 +228,31 @@ def test_static_error_blocks_before_measure(tmp_path):
                             peer=SimpleNamespace(preparation_client=object()), fresh=lambda: False)
     service = PreparationService(owner)
     service.config = {'payload': {'workcell': {}}}
-    assert 'execution_profile' in service.snapshot()['start_error']
-    body = {'request_id': uid()}
-    with pytest.raises(DomainError, match='execution_profile'):
-        asyncio.run(service.begin(body))
-    assert service.task is None
+    assert service.snapshot()['start_error'] is None
+    assert service.start_error()
+
+
+@pytest.mark.parametrize('execution_text', [None, '{broken', '[]'])
+def test_real_start_defers_execution_file_error_until_button(tmp_path, monkeypatch, execution_text):
+    from types import SimpleNamespace
+    from app.preparation import PreparationService
+    from app.monitor_service import DomainError
+    path = config_file(tmp_path)
+    execution = tmp_path/'execution.json'
+    if execution_text is not None:
+        execution.write_text(execution_text)
+    monkeypatch.setenv('C2_PREPARATION_CONFIG', str(path))
+    monkeypatch.setenv('C2_EXECUTION_PROFILE', str(execution))
+    owner = SimpleNamespace(mode='REAL', transport='ros', lock=asyncio.Lock(),
+                            store=Storage(tmp_path/'store'),
+                            peer=SimpleNamespace(preparation_client=object()), fresh=lambda: False)
+    service = PreparationService(owner)
+    asyncio.run(service.start())
+    snapshot = service.snapshot()
+    assert snapshot['supported']
+    assert snapshot['start_error'] is None
+    assert snapshot['input_config']['id']
+    assert service.start_error()
 
 
 def test_real_contract_gap_is_reported():

@@ -138,12 +138,12 @@ export default function Monitor() {
     );
   const pathReady = connected && (isRos ? !!capabilities?.ready : fresh);
   const headerConnected = snapshot?.source_mode === "REAL" ? fresh : pathReady;
-  const busy = active(run),
+  const busy = active(run) || !!snapshot?.execution_pending,
     locked =
       busy || pending || startUncertain || !!snapshot?.preparation.blocks_work;
   const preparationBlocked =
     !!snapshot?.preparation.blocks_work ||
-    ((snapshot?.source_mode === 'REAL' || !isRos || capabilities?.test_only_execution) && !snapshot?.preparation.ready);
+    ((snapshot?.source_mode === 'REAL' || !isRos || capabilities?.test_only_execution) && !snapshot?.preparation.preview_ready);
   const profile = snapshot?.profile;
   const baseXOrigin =
     !!profile?.payload.surface.axis_origin_m &&
@@ -655,7 +655,7 @@ export default function Monitor() {
             </div>
             <button
               className="stop-button"
-              disabled={!busy || stopPending}
+              disabled={!active(run) || stopPending}
               onClick={stopRun}
             >
               {stopPending ? (
@@ -692,7 +692,7 @@ export default function Monitor() {
                 ).map((s, i) => {
                   const hasPreparation = !!snapshot?.preparation.supported;
                   const step = !asset ? 0
-                    : hasPreparation && !snapshot?.preparation.ready ? 1
+                    : hasPreparation && !snapshot?.preparation.preview_ready ? 1
                     : !currentResult ? (hasPreparation ? 2 : 1)
                     : !reviewed ? (hasPreparation ? 3 : 2)
                     : (hasPreparation ? 4 : 3);
@@ -1233,6 +1233,9 @@ export default function Monitor() {
                       {run?.message ||
                         "작업 준비에서 경로를 생성하고 확인한 뒤 실행을 요청합니다."}
                     </p>
+                    {snapshot?.execution_pending && run && !active(run) && (
+                      <p role="status">최종 응답을 확인 중입니다. 확인이 끝나면 다음 작업을 요청할 수 있습니다.</p>
+                    )}
                   </div>
                   <strong className="percent">
                     {Math.round((run?.engraving_progress || 0) * 100)}

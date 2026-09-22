@@ -33,6 +33,7 @@ class MonitorService:
         self.events=deque(maxlen=60);self.event_ids=set();self.tasks=set()
         self.lock=asyncio.Lock();self.writes=asyncio.Queue();self.storage_error=None;self.closed=False
         self.preparation=PreparationService(self)
+        self.pending_run_ids=set()
 
     async def start(self):
         if self.transport not in ('mock', 'ros'):
@@ -122,10 +123,22 @@ class MonitorService:
                         self.record(self.store.save_run,dict(self.run))
             self.state=data;self.last_state=time.monotonic();self.contract_error=None
             if self.run and data.get('run_id')==self.run['run_id'] and self.run['status'] in ('ACCEPTED','RUNNING','STOPPING'):
+                stopping = self.run.get('stop_state', 'NONE') != 'NONE'
                 for key in ['phase','engraving_progress','elapsed_s','stop_state']:
-                    self.run[key]=data.get(key)
+                    if key != 'stop_state' or not stopping:
+                        self.run[key]=data.get(key)
                 if isinstance(self.run.get('engraving_progress'), (int, float)):
                     self.run['engraving_progress']=max(0.,min(1.,self.run['engraving_progress']))
+                # ProcessState의 최종 상태는 Action Result 대기를 거치지 않고 HMI에 반영한다.
+                # UNKNOWN은 토픽만으로 해제하지 않는다. 정지 이후 늦은 성공도 승인하지 않는다.
+                if data.get('status') in ('SUCCEEDED','FAILED','STOPPED'):
+                    if stopping and (data['status'] != 'STOPPED' or data.get('stop_state') != 'CONFIRMED'):
+                        return
+                    if data['status'] == 'STOPPED' and data.get('stop_state') != 'CONFIRMED':
+                        return
+                    self.run.update(status=data['status'], error_code=data.get('error_code','NONE'),
+                                    message=data.get('message',''), stop_state=data.get('stop_state','NONE'), ended_at=now())
+                    self.record(self.store.save_run,dict(self.run))
         elif kind=='event':
             eid=data.get('event_id')
             if not eid or eid in self.event_ids:return
@@ -134,11 +147,14 @@ class MonitorService:
 
     def fresh(self):return self.last_state>0 and time.monotonic()-self.last_state<2
 
-    def busy(self):return self.run and self.run['status'] in ('ACCEPTED','RUNNING','STOPPING','UNKNOWN')
+    def busy(self):
+        return bool(getattr(self, 'pending_run_ids', set()) or
+                    self.run and self.run['status'] in ('ACCEPTED','RUNNING','STOPPING','UNKNOWN'))
 
     def snapshot(self):
         return dict(schema_version=SCHEMA_VERSION,source_mode=self.mode,transport=self.peer.transport,server_time=now(),
                     connection='CONNECTED' if self.fresh() else 'STALE',state=self.state,active_run=self.run,
+                    execution_pending=bool(getattr(self, 'pending_run_ids', set())),
                     profile=self.profile,work_area_policy=self.work_area_policy,
                     virtual_device=os.getenv('C2_VIRTUAL_CELL') == '1',
                     preparation=self.preparation.snapshot(),
@@ -158,7 +174,8 @@ class MonitorService:
                     test_only_execution=self.mode == 'SIMULATION' and (self.image_workflow or self.process_integration),
                     execution_enabled=(not ros or self.process_integration or self.mode == 'REAL') and self.preparation.ready() and not self.preparation.blocks_work(),
                     execution_block_reason='경로 생성·미리보기 시험 전용입니다. J6/IK·보정·공정 실행 검증이 남아 있습니다.' if ros and not self.process_integration and self.mode != 'REAL'
-                        else '' if self.preparation.ready() else '준비·측정 및 BIND 완료 후 같은 설정으로 경로를 생성하세요.',
+                        else '' if self.preparation.ready() else '실측 미리보기는 가능하지만 BIND·실행 설정이 없어 공정 실행은 차단됩니다.' if self.preparation.preview_ready()
+                        else '준비·측정을 완료한 뒤 같은 실측값으로 경로를 생성하세요.',
                     default_placement=dict(width_mm=24 if image else 70, height_mm=24 if image else 108,
                         offset_u_mm=0, offset_v_mm=(low+high)/2, rotation_deg=0))
 
@@ -173,7 +190,7 @@ class MonitorService:
                 if old['payload']!=goal:raise DomainError('REQUEST_CONFLICT','같은 요청 ID에 다른 입력이 있습니다.')
                 return old
             if self.generating or self.busy() or self.preparation.blocks_work():raise DomainError('BUSY','현재 준비·생성·실행 또는 미확인 작업이 있습니다.')
-            if (self.mode == 'REAL' or self.image_workflow or self.process_integration or self.preparation.current) and not self.preparation.ready():
+            if (self.mode == 'REAL' or self.image_workflow or self.process_integration or self.preparation.current) and not self.preparation.preview_ready():
                 raise DomainError('NOT_READY','준비 결과가 유효하지 않습니다. 다시 준비·측정하세요.')
             try:
                 asset=await asyncio.to_thread(self.store.asset,goal['asset_id'])
@@ -235,7 +252,7 @@ class MonitorService:
                     await asyncio.to_thread(self.store.finish_generation,rid,'UNKNOWN',result)
                     return
             metadata,result=await operation
-            if metadata and self.preparation.ready():
+            if metadata and self.preparation.preview_ready():
                 prepared=self.preparation.current
                 metadata.update(preparation_id=prepared['goal']['preparation_id'],
                     measurement_id=prepared['goal']['measurement_id'],
@@ -313,31 +330,45 @@ class MonitorService:
             await asyncio.to_thread(self.store.reserve_run,body,run)
             self.run=run
             self.peer.prepare(run)
+            self.pending_run_ids.add(run['run_id'])
             self.launch(self.run_job(dict(run)))
             return dict(run)
 
     async def run_job(self,run):
         rid=run['run_id']
+        target=self.run if self.run and self.run['run_id']==rid else run
+        if not hasattr(self, 'pending_run_ids'):self.pending_run_ids=set()
+        self.pending_run_ids.add(rid)
         try:
-            if self.run['stop_state']=='NONE':self.run['status']='RUNNING'
+            if target['stop_state']=='NONE':target['status']='RUNNING'
             result=await self.peer.execute({k:run[k] for k in ['schema_version','request_id','run_id','source_mode',
                   'path_id','path_version','path_sha256','operator_confirmed_fixture','operator_id','confirmed_at']})
             if result.get('run_id')!=rid or result.get('outcome') not in ('SUCCEEDED','FAILED','STOPPED','UNKNOWN'):
                 raise ValueError('실행 결과의 식별자 또는 상태 불일치')
             # UNKNOWN latch와 정지 이후 늦은 성공은 유지한다.
-            if self.run['status']=='UNKNOWN':
-                result.update(outcome='UNKNOWN',error_code=self.run['error_code'],message=self.run['message'])
-            if self.run['stop_state']!='NONE' and result['outcome']=='SUCCEEDED':
+            if target['status']=='UNKNOWN':
+                result.update(outcome='UNKNOWN',error_code=target['error_code'],message=target['message'])
+            if target['stop_state']!='NONE' and result['outcome']=='SUCCEEDED':
                 result.update(outcome='UNKNOWN',error_code='STOP_UNCONFIRMED',message='정지 요청 이후 성공 응답. 실제 정지 미확인')
-            self.run.update(result,status=result['outcome'],ended_at=now())
-            if isinstance(self.run.get('engraving_progress'), (int, float)):
-                self.run['engraving_progress']=max(0.,min(1.,self.run['engraving_progress']))
+            if target['status'] in ('SUCCEEDED','FAILED','STOPPED') and target['status'] != result['outcome']:
+                result.update(outcome='UNKNOWN',error_code='COMMUNICATION_LOST',message='상태 토픽과 실행 결과 불일치. 다음 작업을 차단합니다.')
+            target.update(result,status=result['outcome'],ended_at=now())
+            if isinstance(target.get('engraving_progress'), (int, float)):
+                target['engraving_progress']=max(0.,min(1.,target['engraving_progress']))
             if result['outcome']=='SUCCEEDED':
-                self.run.update(phase='FINISH',engraving_progress=1.)
+                target.update(phase='FINISH',engraving_progress=1.)
+            if (self.run is target and result['outcome']=='FAILED' and result.get('error_code')=='NOT_READY'
+                    and result.get('message') in {
+                        '준비 결과 연결 필요',
+                        '경로에 등록된 준비 스냅샷 없음',
+                        '이번 경로에 연결된 준비 성공 기록 없음',
+                    }):
+                await self.preparation.invalidate_process_binding(result['message'])
         except Exception:
-            self.run.update(status='UNKNOWN',error_code='COMMUNICATION_LOST',message='실행 결과 미확인. 자동 재시작하지 않습니다.')
+            target.update(status='UNKNOWN',error_code='COMMUNICATION_LOST',message='실행 결과 미확인. 자동 재시작하지 않습니다.')
         finally:
-            self.record(self.store.save_run,dict(self.run))
+            self.record(self.store.save_run,dict(target))
+            self.pending_run_ids.discard(rid)
 
     async def stop(self,rid,body):
         payload={**body,'run_id':rid}
@@ -346,7 +377,8 @@ class MonitorService:
             if old['payload']!=payload:raise DomainError('REQUEST_CONFLICT','같은 정지 ID의 내용이 다릅니다.')
             return old['response']
         if not self.run or self.run['run_id']!=rid:raise DomainError('RUN_MISMATCH','대상 실행이 현재 실행과 다릅니다.')
-        if not self.busy():raise DomainError('NOT_READY','이미 종료가 확인된 실행입니다.')
+        if self.run['status'] not in ('ACCEPTED','RUNNING','STOPPING','UNKNOWN'):
+            raise DomainError('NOT_READY','이미 종료가 확인된 실행입니다.')
         # 미확인 상태는 다른 정지 요청 ID나 늦은 수락 응답으로 해제하지 않는다.
         was_unknown=self.run['status']=='UNKNOWN'
         if not was_unknown:
