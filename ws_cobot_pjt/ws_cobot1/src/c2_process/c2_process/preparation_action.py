@@ -4,6 +4,7 @@
 원장은 재시작 후 중복 모션을 막으며 준비 실행 권한은 재시작 시 복원하지 않는다.
 """
 import copy
+from collections.abc import Mapping
 import hashlib
 import json
 import math
@@ -88,6 +89,7 @@ def result_base(g):
                   height_m=0.,axis_xy_m=[0.,0.],radius_m=0.,top_z_m=0.,bottom_z_m=0.,
                   work_v_range_m=[0.,0.],work_z_range_m=[0.,0.],residual_rms_m=0.,residual_max_m=0.,
                   vertical_axis_assumed=False,tilt_measured=False,independent_accuracy_verified=False,
+                  absolute_top_verification_known=False,absolute_top_verified=False,
                   contact_indices=[],contact_tip_poses=[],contact_normal_force_n=[],
                   contact_received_at=[],contact_monotonic_s=[],contact_sources=[])
     return result
@@ -100,6 +102,11 @@ def result_from_step(g, step):
     out.update(stop_confirmed=obs.get('stop_confirmed') is True, partial=obs.get('partial') is not False)
     data = obs.get('measurement') or {}
     try:
+        if 'absolute_top_verified' in data:
+            if type(data['absolute_top_verified']) is not bool:
+                raise ContractError('INVALID_MEASUREMENT','윗면 확인 결과는 bool이어야 함')
+            out['absolute_top_verification_known'] = True
+            out['absolute_top_verified'] = data['absolute_top_verified']
         for key in ('frame_id','validity','height_source','vertical_axis_assumed','tilt_measured','independent_accuracy_verified'):
             if key in data: out[key] = data[key]
         out['started_at'],out['measured_at'] = utc(data.get('started_at')),utc(data.get('measured_at'))
@@ -388,6 +395,25 @@ class PreparationActionHandler:
         for key in ('tool_id','tcp_id','load_id','tool_version','tcp_version','load_version','tools_config_id','tools_config_version'):
             if key in self.config and profile.get(key)!=self.config[key]:
                 raise ContractError('PROFILE_MISMATCH','스냅샷 도구/설정 불일치: '+key)
+        # 값 자체의 승인 여부가 아니라 이번 원본과의 일관성을 검사한다.
+        confidence = ('absolute_top_verification_known', 'absolute_top_verified')
+        for key in confidence:
+            if type(original.get(key)) is not bool or type(profile.get(key)) is not bool:
+                raise ContractError('PROFILE_MISMATCH','스냅샷 확인 수준 bool 누락: '+key)
+            if profile[key] != original[key]:
+                raise ContractError('PROFILE_MISMATCH','스냅샷 확인 수준 불일치: '+key)
+        if not original[confidence[0]] and original[confidence[1]]:
+            raise ContractError('PROFILE_MISMATCH','미확인 윗면의 true 값은 허용되지 않음')
+        if profile.get('validity') != original['validity']:
+            raise ContractError('PROFILE_MISMATCH','스냅샷 validity 불일치')
+        if 'measurement_status' in profile and profile['measurement_status'] != original['validity']:
+            raise ContractError('PROFILE_MISMATCH','스냅샷 measurement_status 불일치')
+        assumptions = profile.get('measurement_assumptions', {})
+        if not isinstance(assumptions, Mapping):
+            raise ContractError('PROFILE_MISMATCH','measurement_assumptions 형식 오류')
+        for key in confidence:
+            if key in assumptions and (type(assumptions[key]) is not bool or assumptions[key] != original[key]):
+                raise ContractError('PROFILE_MISMATCH','측정 가정 확인 수준 불일치: '+key)
         h=original['height_m'];lo,hi=original['work_v_range_m']
         expected=dict(radius_mm=original['radius_m']*1000,height_mm=h*1000,
                       axis_origin_m=[*original['axis_xy_m'],original['bottom_z_m']],axis_direction=[0,0,1],

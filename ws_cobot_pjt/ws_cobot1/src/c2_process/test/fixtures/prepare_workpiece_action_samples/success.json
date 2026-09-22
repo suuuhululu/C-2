@@ -377,6 +377,8 @@
       "SIMULATED",
       "SIMULATED",
       "SIMULATED"
-    ]
+    ],
+    "absolute_top_verification_known": false,
+    "absolute_top_verified": false
   }
 }

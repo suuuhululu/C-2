@@ -48,6 +48,7 @@ def bind_goal(goal,result,save):
     h=result['height_m'];lo,hi=result['work_v_range_m']
     profile={k:g[k] for k in ('preparation_id','measurement_id','source_mode','input_profile_snapshot_id','input_profile_sha256',
                               'measurement_record_id','measurement_record_sha256')}
+    profile.update({k: result[k] for k in ('validity','absolute_top_verification_known','absolute_top_verified')})
     profile.update(tool_id='engraving_drill',tcp_id='GripperDA_v1',load_id='sim-load',surface=dict(
         radius_mm=result['radius_m']*1000,height_mm=h*1000,axis_origin_m=[*result['axis_xy_m'],result['bottom_z_m']],
         axis_direction=[0,0,1],height_reference='bottom',v_direction='up',valid_v_range_mm=[(h-hi)*1000,(h-lo)*1000]))
@@ -81,7 +82,7 @@ def test_estimated_measurement_binds_by_identity_and_keeps_confidence_metadata(t
     h,g,assets,save,_,_=fixture(tmp_path)
     measured=h.execute(g)
     estimated=copy.deepcopy(measured)
-    estimated.update(validity='ESTIMATED',absolute_top_verified=False,
+    estimated.update(validity='ESTIMATED',absolute_top_verification_known=True,absolute_top_verified=False,
                      top_estimate_source='recorded contact offset source')
     h.success=copy.deepcopy(estimated)
 
@@ -353,3 +354,61 @@ def test_action_contract_samples_have_exact_goal_feedback_and_result_fields():
     success = json.loads((root / 'success.json').read_text())['result']
     assert success['contact_indices'] == list(range(9))
     assert success['geometry_ready'] and not success['partial'] and success['stop_confirmed']
+
+
+@pytest.mark.parametrize('value', [True, False, None])
+def test_measurement_confidence_survives_typed_conversion(value, tmp_path):
+    h,g,*_=fixture(tmp_path)
+    runner=h.runner
+    def measured(*args):
+        step=runner(*args)
+        data=step.observed_state['measurement']
+        if value is None:
+            data.pop('absolute_top_verified',None)
+        else:
+            data['absolute_top_verified']=value
+        return step
+    h.runner=measured
+    result=h.execute(g)
+    assert result['outcome']=='SUCCEEDED',result
+    assert result['absolute_top_verification_known'] is (value is not None)
+    assert result['absolute_top_verified'] is (value is True)
+
+
+@pytest.mark.parametrize('field,value', [
+    ('absolute_top_verified', True), ('absolute_top_verification_known', False),
+    ('validity','ESTIMATED'), ('measurement_status','ESTIMATED'),
+    ('measurement_assumptions', {'absolute_top_verified':True}),
+    ('absolute_top_verified',0), ('absolute_top_verification_known',None),
+])
+def test_bind_rejects_confidence_changes_without_motion(tmp_path,field,value):
+    h,g,_,save,ad,_=fixture(tmp_path)
+    r=h.execute(g)
+    r.update(absolute_top_verification_known=True,absolute_top_verified=False)
+    h.success=copy.deepcopy(r)
+    bg,profile,_=bind_goal(g,r,save)
+    profile[field]=value
+    bg['profile_snapshot_id'],bg['profile_sha256']=save(profile)
+    count=len(ad.calls)
+    result=h.execute(bg)
+    assert result['error_code']=='PROFILE_MISMATCH',result
+    assert len(ad.calls)==count and not result['snapshot_bound']
+
+
+@pytest.mark.parametrize('verified',[True,False])
+def test_bind_preserves_both_known_values_without_permission_gate(tmp_path,verified):
+    h,g,_,save,_,_=fixture(tmp_path)
+    r=h.execute(g)
+    r.update(absolute_top_verification_known=True,absolute_top_verified=verified)
+    h.success=copy.deepcopy(r)
+    bg,_,_=bind_goal(g,r,save)
+    assert h.execute(bg)['snapshot_bound']
+
+
+@pytest.mark.parametrize('value',['false',0,1,None])
+def test_invalid_measurement_confidence_is_not_coerced(tmp_path,value):
+    _,g,*_=fixture(tmp_path)
+    result=result_from_step(g,StepResult('FAILED','NOT_READY',observed_state={
+        'measurement':{'absolute_top_verified':value}}))
+    assert result['error_code']=='INVALID_MEASUREMENT'
+    assert not result['absolute_top_verification_known']

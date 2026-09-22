@@ -98,6 +98,8 @@
     "contact_normal_force_n": [],
     "contact_received_at": [],
     "contact_monotonic_s": [],
-    "contact_sources": []
+    "contact_sources": [],
+    "absolute_top_verification_known": false,
+    "absolute_top_verified": false
   }
 }

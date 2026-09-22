@@ -132,7 +132,8 @@ def test_stop_during_tool_check_does_not_start_engraving():
     release.set()
     worker.join(timeout=2)
     assert stopped.accepted and stopped.stop_state == "ACCEPTED"
-    assert (output[0].outcome, output[0].error_code) == ("UNKNOWN", "STOP_UNCONFIRMED")
+    assert (output[0].outcome, output[0].error_code) == ("STOPPED", "NONE")
+    assert output[0].observed_state["stop_confirmed"] is True
     assert any(call["fn"] == "stop" for call in inputs.adapter.calls)
 
 
@@ -474,7 +475,7 @@ def test_real_loader_cannot_swap_bound_adapter(tmp_path):
     assert adapter.backing.calls == []
 
 
-def test_real_stop_uses_cancel_then_confirms_on_execution_thread(tmp_path):
+def test_real_stop_fallback_confirms_after_non_motion_callback_returns(tmp_path):
     goal, inputs, adapter = real_fixture()
     entered = threading.Event()
     output, stop_threads = [], []
@@ -3285,3 +3286,73 @@ def test_real_process_main_uses_confirmed_settings_mapper_by_default(tmp_path, m
     monkeypatch.setitem(sys.modules, 'rclpy.executors', NS(MultiThreadedExecutor=Executor))
     module.real_process_main([], adapter_factory=lambda node: object(),
                              observation_options_factory=lambda node: {})
+
+
+@pytest.mark.parametrize('pid',['candle_approach','candle_cut','candle_travel','candle_retract'])
+@pytest.mark.parametrize('field',['vel_mm_s','acc_mm_s2','pos_tol_mm','completion_timeout_s'])
+@pytest.mark.parametrize('value',[None,0,-1,True,float('nan')])
+def test_real_profiles_reject_missing_or_invalid_motion_before_observe(pid,field,value):
+    import c2_process.node as module
+    profile,goal,adapter=_complete_real_profile()
+    profile['execution_context']['motion_profiles'][pid][field]=value
+    adapter.observe=lambda: (_ for _ in ()).throw(AssertionError('static failure observed robot'))
+    with pytest.raises(InputsUnavailable,match=field):
+        module.resolve_real_execution_settings(profile,goal,'registered-real-profile',adapter=adapter)
+
+
+def test_real_profiles_require_all_existing_segment_ids_and_explicit_mode():
+    from c2_process.node import validate_real_execution_profiles
+    profile,_,_=_complete_real_profile()
+    execution=profile['execution_context']
+    del execution['motion_profiles']['candle_travel']
+    with pytest.raises(InputsUnavailable,match='candle_travel'):
+        validate_real_execution_profiles(execution)
+    profile,_,_=_complete_real_profile()
+    execution=profile['execution_context']
+    del execution['tool_profile']['contact_mode']
+    with pytest.raises(InputsUnavailable,match='contact_mode'):
+        validate_real_execution_profiles(execution)
+
+
+@pytest.mark.parametrize('confirmed',[True,False])
+def test_real_stop_consumes_adapter_confirmation_without_duplicate_stop(tmp_path,confirmed):
+    goal,inputs,adapter=real_fixture()
+    entered,stop_called,release=threading.Event(),threading.Event(),threading.Event()
+    output=[]
+    stop_calls=[]
+    def stop(*args):
+        stop_calls.append(threading.get_ident())
+        stop_called.set()
+        return StepResult('SUCCEEDED' if confirmed else 'UNKNOWN',
+                          'NONE' if confirmed else 'STOP_UNCONFIRMED', observed_state={
+                              'stop_confirmed':confirmed})
+    def verify(*args,**kwargs):
+        entered.set()
+        context=args[4]
+        assert context.cancel.wait(2)
+        stopped=stop({},2.)  # 최신 어댑터의 이동/probe 내부 cancel 처리 대역
+        assert release.wait(3)
+        return StepResult('STOPPED' if confirmed else 'UNKNOWN',
+                          'NONE' if confirmed else 'STOP_UNCONFIRMED', observed_state={
+                              'stop_confirmed':stopped.observed_state['stop_confirmed']})
+    adapter.stop=stop
+    coordinator=ProcessCoordinator(lambda _:inputs,runtime_mode='REAL',real_adapter=adapter,
+        journal=RunJournal(tmp_path/'runs.sqlite3'),verify_tip_fn=verify,
+        go_to_path_start_fn=lambda *a: (_ for _ in ()).throw(AssertionError('next motion')),
+        return_home_fn=lambda *a: (_ for _ in ()).throw(AssertionError('home')))
+    worker=threading.Thread(target=lambda:output.append(coordinator.execute(goal)))
+    worker.start()
+    try:
+        assert entered.wait(2)
+        assert coordinator.stop(goal['run_id']).accepted
+        assert stop_called.wait(1)  # 어댑터 함수 반환 전 정지 확인 실행
+        assert worker.is_alive() and not output
+        assert coordinator.stop(goal['run_id']).accepted
+    finally:
+        release.set();worker.join(3)
+    assert output[0].outcome==('STOPPED' if confirmed else 'UNKNOWN')
+    assert output[0].observed_state['stop_confirmed'] is confirmed
+    assert len(stop_calls)==1
+    if not confirmed:
+        assert coordinator._motion_uncertain
+        assert coordinator.execute(dict(goal,request_id='new',run_id='new')).error_code=='BUSY'

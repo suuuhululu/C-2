@@ -316,6 +316,50 @@ def resolve_simulation_settings(snapshot, goal, *, evidence, adapter):
         joint_limits_deg=joints.get("limits_deg"), j6_margin_deg=joints.get("j6_margin_deg"))
 
 
+def validate_real_execution_profiles(execution):
+    """측정과 무관한 REAL 실행 설정 검사. 값 생성·로봇 조회는 하지 않는다."""
+    def positive(value):
+        return type(value) in (int, float) and math.isfinite(value) and value > 0
+
+    def invalid(message):
+        raise InputsUnavailable(message, "INVALID_INPUT")
+
+    if not isinstance(execution, Mapping) or execution.get("source_mode") != "REAL":
+        invalid("REAL execution_context 모드/형식 오류")
+    profiles = execution.get("motion_profiles")
+    if not isinstance(profiles, Mapping):
+        invalid("REAL motion_profiles 없음")
+    for pid in ("candle_approach", "candle_cut", "candle_travel", "candle_retract"):
+        if pid not in profiles:
+            invalid(f"REAL motion_profiles.{pid} 없음")
+    for pid, profile in profiles.items():
+        if not isinstance(profile, Mapping):
+            invalid(f"REAL motion_profiles.{pid} 형식 오류")
+        for key in ("vel_mm_s", "acc_mm_s2", "pos_tol_mm", "completion_timeout_s"):
+            if not positive(profile.get(key)):
+                invalid(f"REAL motion_profiles.{pid}.{key} 양수 필요")
+    tool = execution.get("tool_profile")
+    if not isinstance(tool, Mapping) or tool.get("contact_mode") not in ("fixed_depth", "force_touch"):
+        invalid("REAL tool_profile.contact_mode 명시 필요")
+    clearance = tool.get("clearance_m")
+    if isinstance(clearance, Mapping):
+        clearance = clearance.get("stroke")
+    if not positive(clearance):
+        invalid("REAL tool_profile.clearance_m 양수 필요")
+    if tool["contact_mode"] == "fixed_depth":
+        depth = tool.get("depth_m")
+        if type(depth) not in (int, float) or not math.isfinite(depth) or depth < 0:
+            invalid("REAL fixed_depth depth_m 비음수 필요")
+    else:
+        for key in ("touch_force_n", "touch_speed_mm_s"):
+            if not positive(tool.get(key)):
+                invalid(f"REAL force_touch {key} 양수 필요")
+    stop = execution.get("stop_profile")
+    if (not isinstance(stop, Mapping) or type(stop.get("mode")) is not int
+            or not positive(stop.get("confirmation_timeout_s"))):
+        invalid("REAL 정지 방식 또는 확인 timeout 누락")
+
+
 def resolve_real_execution_settings(snapshot, goal, profile_snapshot_id, *, adapter,
                                     evidence_provider=None):
     """확정된 REAL profile 배치를 기존 ``ExecutionInputs`` 설정으로 변환한다.
@@ -380,6 +424,7 @@ def resolve_real_execution_settings(snapshot, goal, profile_snapshot_id, *, adap
         unavailable("REAL execution_context/관절 설정 없음", "INVALID_INPUT")
     if execution.get("source_mode") != "REAL":
         unavailable("REAL execution_context 모드 불일치", "SOURCE_MODE_MISMATCH")
+    validate_real_execution_profiles(execution)
     stop_profile = execution.get("stop_profile")
     if (not isinstance(stop_profile, Mapping)
             or type(stop_profile.get("mode")) is not int
@@ -1261,6 +1306,7 @@ class ProcessCoordinator:
         except Exception as exc:
             result = StepResult("UNKNOWN", "INTERNAL_ERROR", f"공정 실행 결과 미확인: {exc}", "precheck")
         finally:
+            result = self._finalize_stop(active, result)
             if motion_acquired:
                 self.motion_lock.release()
         if self.journal is not None:
@@ -1273,7 +1319,7 @@ class ProcessCoordinator:
             if self._active is active:
                 self._active = None
             self._completed[request_id] = (identity, result)
-            if preparation_id is not None and result.outcome == "UNKNOWN":
+            if result.outcome == "UNKNOWN" and (preparation_id is not None or active.stop_requested):
                 self._motion_uncertain = True
         return result
 
@@ -1427,13 +1473,13 @@ class ProcessCoordinator:
                                           engrave=prepared_engrave, on_phase=on_phase,
                                           on_progress=on_progress)
             result.observed_state["preparation_id"] = preparation_id
-            return self._finalize_stop(active, result)
+            return result
 
         result = run_process(context, precheck=reported_precheck, tool_check=tool_check,
                              engrave=engrave, on_phase=on_phase, on_progress=on_progress,
                              go_to_start=go_to_start if self.go_to_path_start_fn else None,
                              return_home=return_home if self.return_home_fn else None)
-        return self._finalize_stop(active, result)
+        return result
 
     def _finalize_stop(self, active: _ActiveRun, result: StepResult) -> StepResult:
         if not active.stop_requested or active.measurement_owned_stop:
@@ -1442,16 +1488,31 @@ class ProcessCoordinator:
         profile = getattr(active.context, "stop_profile", {}) or {}
         timeout = float(profile.get("confirmation_timeout_s", 2.0))
         if self.runtime_mode == "REAL" and not active.stop_done.is_set():
-            # DSR_ROBOT2는 같은 IO 노드를 내부 spin한다. 이동 대기 중에는 cancel로
-            # 어댑터가 QSTOP하고, 함수 반환 후 같은 실행 스레드에서 정지를 재확인한다.
-            self._stop_worker(active, active.adapter, profile, timeout)
+            # 최신 REAL 어댑터는 이동·probe 내부에서 cancel을 관측하고 정지까지
+            # 확인한 뒤 반환한다. 그 근거를 우선 소비하여 정지 명령을 중복하지 않는다.
+            confirmed = result.observed_state.get("stop_confirmed")
+            if type(confirmed) is bool:
+                active.stop_result = StepResult(
+                    "SUCCEEDED" if confirmed else "UNKNOWN",
+                    "NONE" if confirmed else "STOP_UNCONFIRMED",
+                    "어댑터 반환 정지 확인" if confirmed else "어댑터 반환 정지 미확인",
+                    "stop", {"stop_confirmed": confirmed})
+                active.stop_done.set()
+            else:
+                # 이동이 아닌 콜백이 cancel 뒤 늦게 반환한 경우에만 한 번 확인한다.
+                self._stop_worker(active, active.adapter, profile, timeout)
         if not active.stop_done.wait(timeout=max(0.0, timeout) + 0.5):
             return StepResult("UNKNOWN", "STOP_UNCONFIRMED", "정지 확인 제한 시간 초과",
-                              result.completed_step, dict(result.observed_state))
+                              result.completed_step, dict(result.observed_state, stop_confirmed=False))
         if active.stop_result is None or not active.stop_result.ok:
             return StepResult("UNKNOWN", "STOP_UNCONFIRMED", "실제 정지 미확인",
-                              result.completed_step, dict(result.observed_state))
-        return result
+                              result.completed_step, dict(result.observed_state, stop_confirmed=False))
+        observed = dict(result.observed_state, stop_confirmed=True)
+        # 정지 요청 뒤 도착한 성공/UNKNOWN 응답은 정상 실행 완료나 미확인 정지로
+        # 남기지 않는다. 실제 정지가 확인된 경우에만 STOPPED로 확정한다.
+        if result.outcome in ("SUCCEEDED", "STOPPED", "UNKNOWN"):
+            return StepResult("STOPPED", "NONE", "정지 확인 완료", result.completed_step, observed)
+        return StepResult(result.outcome, result.error_code, result.message, result.completed_step, observed)
 
     def _stop_worker(self, active: _ActiveRun, adapter, profile: Mapping, deadline: float):
         try:
@@ -1497,7 +1558,8 @@ class ProcessCoordinator:
                 active.stop_done.set()
             return StopDecision(True, "UNKNOWN", "STOP_UNCONFIRMED", str(exc))
         if self.runtime_mode == "REAL":
-            return StopDecision(True, "ACCEPTED", "NONE", "취소 이벤트 전달; 어댑터 반환 후 정지 확인")
+            # REAL 이동·probe가 같은 cancel을 관측하고 함수 반환 전에 정지 확인한다.
+            return StopDecision(True, "ACCEPTED", "NONE", "취소 전달; 어댑터 정지 확인 대기")
         threading.Thread(target=self._stop_worker, args=(active, adapter, profile, deadline),
                          name="c2-stop", daemon=True).start()
         return StopDecision(True, "ACCEPTED", "NONE", "정지 요청 접수; 실제 정지는 별도 확인")

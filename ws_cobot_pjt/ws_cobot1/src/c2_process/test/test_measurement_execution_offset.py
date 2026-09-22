@@ -22,6 +22,11 @@ def inputs():
     template = matching_test_profile_v4()
     template['tip_calibration']['offset_tool_m'] = copy.deepcopy(config['workcell']['tool_offset_m'])
     template['execution_context']['stop_profile']['confirmation_timeout_s'] = 2.
+    for name, motion in template['execution_context']['motion_profiles'].items():
+        motion.update(id=name, vel_mm_s=5., acc_mm_s2=10., pos_tol_mm=1.,
+                      completion_timeout_s=30.)
+    template['execution_context']['tool_profile'].update(
+        contact_mode='fixed_depth', depth_m=.0003, clearance_m=.002)
     config['execution_profile'] = template
     fixture = json.loads((package / 'test/fixtures/prepare_workpiece_action_samples/success.json').read_text())
     goal = dict(fixture['goal'], source_mode='REAL', height_m=.15)
