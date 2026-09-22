@@ -46,10 +46,12 @@ def validate_real_execution_config(config):
             raise ValueError('REAL execution_context.' + key + ' 설정 누락')
     from c2_path.workcell import MOTION_PROFILE
     for name in MOTION_PROFILE.values():
-        motion = context['motion_profiles'].get(name)
+        if name not in context['motion_profiles']:
+            raise ValueError('REAL 이동 프로파일 누락: ' + name)
+    for name, motion in context['motion_profiles'].items():
         if not isinstance(motion, dict):
             raise ValueError('REAL 이동 프로파일 누락: ' + name)
-        for key in ('vel_mm_s', 'acc_mm_s2', 'completion_timeout_s'):
+        for key in ('vel_mm_s', 'acc_mm_s2', 'pos_tol_mm', 'completion_timeout_s'):
             positive(motion.get(key), 'motion_profiles.' + name + '.' + key)
     stop = context['stop_profile']
     if type(stop.get('mode')) is not int:
@@ -60,9 +62,14 @@ def validate_real_execution_config(config):
         raise ValueError('tool_profile.tool_id 불일치')
     if tool.get('contact_mode') not in ('fixed_depth', 'force_touch'):
         raise ValueError('tool_profile.contact_mode 설정 누락')
-    positive(tool.get('clearance_m'), 'tool_profile.clearance_m')
+    clearance = tool.get('clearance_m')
+    if isinstance(clearance, dict):
+        clearance = clearance.get('stroke')
+    positive(clearance, 'tool_profile.clearance_m')
     if tool['contact_mode'] == 'fixed_depth':
-        positive(tool.get('depth_m'), 'tool_profile.depth_m')
+        depth = tool.get('depth_m')
+        if type(depth) not in (int, float) or not math.isfinite(depth) or depth < 0:
+            raise ValueError('tool_profile.depth_m 비음수 설정 필요')
     else:
         for key in ('touch_force_n', 'touch_speed_mm_s'):
             positive(tool.get(key), 'tool_profile.' + key)

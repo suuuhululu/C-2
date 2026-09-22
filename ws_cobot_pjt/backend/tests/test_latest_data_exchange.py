@@ -46,3 +46,11 @@ def test_actual_real_result_generates_real_path(tmp_path, monkeypatch):
         request=dict(goal_for(asset,profile),source_mode='REAL',offset_v_mm=75.)
         result = GeneratePipeline(ManagedArtifactStore(store.root),allow_real_execution=True).run(request)
         assert result.path_id and result.path_sha256
+        # HMI 검사/경로 생성만 통과하고 실제 공정 설정 로더에서 거절되는 회귀를 막는다.
+        from c2_process.node import resolve_real_execution_settings
+        from c2_process.robot_adapter import MockRobotAdapter
+        adapter = MockRobotAdapter()
+        settings = resolve_real_execution_settings(value, {'run_id': uid(), 'source_mode': 'REAL'},
+                                                   profile['id'], adapter=adapter)
+        assert settings['context'].motion_profiles == value['execution_context']['motion_profiles']
+        assert not adapter.calls
