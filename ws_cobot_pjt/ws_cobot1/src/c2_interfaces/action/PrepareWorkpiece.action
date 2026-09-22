@@ -58,6 +58,9 @@ float64 residual_max_m
 bool vertical_axis_assumed false
 bool tilt_measured false
 bool independent_accuracy_verified false
+# known=false이면 verified=false는 기본값이며 확인 결과가 아니다. 실행 허가와 별개다.
+bool absolute_top_verification_known false
+bool absolute_top_verified false
 # 유효한 접촉만 저장. 모든 배열 길이는 동일(0..9), index 0=윗면, 1..8=옆면.
 # 도구 끝 pose, m / quaternion xyzw, frame_id=c2_base.
 uint8[] contact_indices
