@@ -133,7 +133,7 @@ def execution_template(config):
     # 형식 시험 전용이며 실제 사용값/승인값이 아니다.
     value['tip_calibration']['offset_tool_m'] = config['workcell']['tool_offset_m']
     value['execution_context'].update(
-        motion_profiles={name: dict(vel_mm_s=1., acc_mm_s2=1., completion_timeout_s=1.)
+        motion_profiles={name: dict(vel_mm_s=1., acc_mm_s2=1., pos_tol_mm=1., completion_timeout_s=1.)
                          for name in MOTION_PROFILE.values()},
         tool_profile=dict(tool_id=value['tool_id'], contact_mode='fixed_depth', depth_m=.001, clearance_m=.001),
         stop_profile=dict(mode=1, confirmation_timeout_s=1.))

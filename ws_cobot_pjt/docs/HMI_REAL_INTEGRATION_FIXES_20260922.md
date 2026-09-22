@@ -82,3 +82,11 @@ PR #66의 경로 검사는 true/false를 강제하지 않고 원본 일치와 bo
 - c2_path/c2_process: 1030 passed, 5 skipped (환경 의존 시험).
 - TypeScript 검사·Vite 빌드·저장소 검사·Git hook 8개·Issue manager 27개·git diff --check 통과.
 - 실제 로봇 구동 미수행.
+
+## main 60a6862 후속: 공정 소비자와 정적 검사 정렬
+
+HMI도 공정 validate_real_execution_profiles와 동일하게 모든 이동 프로파일의 pos_tol_mm을 양수로 요구한다. fixed_depth.depth_m은 0 이상을 허용하고, clearance_m은 숫자 또는 {stroke: 양수}를 원본 그대로 받는다. 추가 이동 프로파일도 공정과 같이 검사한다. 시험용 값은 배포 설정이 아니다.
+
+양쪽 검사에 동일 설정을 전달하는 회귀시험과 실제 생성 Result → HMI 스냅샷 → 경로 생성 → REAL 공정 설정 매퍼 시험을 추가했다. 공정/경로/공통 타입 소스는 변경하지 않는다. 이 검사는 실제 로봇 이동이나 전체 DDS 왕복을 수행하지 않는다.
+
+후속 검증: 백엔드 192 passed/6 skipped(DDS opt-in), 양쪽 정적 검사 회귀시험 29개 포함. 실제 생성 Result에서 REAL 경로 생성 및 공정 설정 매퍼 통과 확인. 저장소·Git hook 8개·Issue manager 27개·diff 검사 통과. 기준 60a6862, 작업 브랜치 codex/hmi-execution-config-alignment. 실기 구동 미수행.
