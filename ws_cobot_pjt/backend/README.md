@@ -2,6 +2,14 @@
 
 # 새김 시스템 모니터 서버
 
+REAL 실행 프로파일 검사는 HMI 기동이나 **사전 검사·양초 측정 요청**을 막지 않는다.
+`--execution-profile`을 생략하거나 지정 파일이 없거나 JSON 형식이 잘못돼도 화면은 기동한다.
+측정 성공 원본으로 REAL 미리보기 전용 스냅샷을 만들어 BIND 없이 경로를 생성한다.
+이 경로는 test_only이며 실제 공정 실행은 차단된다. 측정 설정 `--preparation-config`는 계속 필요하다.
+실행 설정은 최종 공정 실행 전에 연결해야 하며,
+설정 파일을 수정·선택한 뒤에는 HMI를 재시작한다.
+잘못 지정한 실행 파일을 해제하려면 `unset C2_EXECUTION_PROFILE` 후 실행한다.
+
 최신 작업: [이미지 한 장 HMI 부분통합](../docs/HMI_PARTIAL_INTEGRATION.md). 운영 화면에서 ZIP 교환을 제거하고 기본 실행을 실제 PNG/JPEG 계산 → 기존 준비/공정 흐름으로 연결했다. 이미지 의존성은 `requirements-image.lock.txt`를 사용한다. 아래 과거 파일 통합 메뉴 안내는 이전 구현 기록이다.
 
 최신 REAL 준비 연결은 [한 PC REAL 준비·측정 통합](../docs/HMI_REAL_PREPARATION.md)을 따른다. `--mode REAL --preparation-config ...`는 현장 설정을 명시 선택한 준비 MEASURE/상태/결과 수신 전용이다. 아래의 REAL 기동 거절·SIM 전용 표기는 이전 구현 기록이다. REAL 경로·조각 차단은 유지한다.
@@ -109,3 +117,5 @@ PR #38의 ID→파일·미리보기 계약은 `app/artifact_loader.py`로 연결
 REAL 실기 시험 연결 및 배포 실행 설정은 [9/22 HMI 계약](../docs/HMI_REAL_EXECUTION_20260922.md)을 따른다. 운영자는 이미지만 업로드하며 JSON/ZIP 교환 단계는 없다.
 
 랜선 없는 실제 HMI·경로·공정 ROS 통합은 [가상 장치 실행 안내](../docs/VIRTUAL_CELL_20260922.md)를 따른다. SIMULATION 전용이며 실물 드라이버는 실행하지 않는다.
+
+HMI는 실행 중 받은 ProcessState의 최종 실패 사유를 즉시 표시한다. Action 최종 응답을 기다리는 동안은 `execution_pending`으로 새 작업을 차단하며, 이전 응답은 해당 실행 기록만 갱신한다. UNKNOWN과 미확인 정지는 상태 토픽의 성공만으로 해제하지 않는다. 공정이 준비 스냅샷 연결을 거절하면 HMI의 준비 상태도 무효화하여 재준비 필요 사유를 표시한다. 서버 재시작으로 결과가 미확인된 준비는 저장된 진행 단계만으로 자동 해제하지 않는다.

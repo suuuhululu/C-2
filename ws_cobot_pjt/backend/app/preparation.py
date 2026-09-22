@@ -13,7 +13,26 @@ from .storage import digest, encoded
 ACTIVE = {'ACCEPTED', 'RUNNING', 'CANCELING', 'UNKNOWN'}
 
 
-def real_input_config(store, filename):
+def confirmed_pre_motion_failure(result, feedback):
+    """로봇 상태 검사에서 끝나 측정 모션이 시작되지 않은 확정 실패인지 확인한다."""
+    if (not isinstance(result, dict) or result.get('outcome') != 'FAILED'
+            or result.get('error_code') not in ('NOT_READY', 'PROFILE_MISMATCH')
+            or result.get('stop_confirmed') is not False
+            or result.get('partial') is not True
+            or result.get('contact_indices') != []
+            or result.get('started_at') != {'sec': 0, 'nanosec': 0}
+            or not isinstance(feedback, list) or not feedback):
+        return False
+    if any(not isinstance(item, dict) or item.get('completed_side_points') != 0 for item in feedback):
+        return False
+    stages = [item.get('stage') for item in feedback if isinstance(item, dict)]
+    return ('ROBOT_CHECK' in stages and stages[-1] == 'COMPLETE'
+            and set(stages) <= {'VALIDATING', 'ROBOT_CHECK', 'COMPLETE'}
+            and all(item.get('completed_side_points', 0) == 0
+                    for item in feedback if isinstance(item, dict)))
+
+
+def real_input_config(store, filename, *, defer_execution_errors=False):
     """운영자가 명시한 기존 계약의 현장 원본만 등록. SIM/과거 파일 자동 승격 금지."""
     if not filename:
         raise ValueError('REAL 준비는 C2_PREPARATION_CONFIG의 확인된 현장 설정 파일이 필요합니다.')
@@ -39,21 +58,31 @@ def real_input_config(store, filename):
         if type(n) not in (int, float) or not math.isfinite(n) or n <= 0:
             raise ValueError(f'REAL 설정의 {key} 오류')
     execution_file = os.getenv('C2_EXECUTION_PROFILE')
+    execution_error = None
     if execution_file:
-        execution_raw = Path(execution_file).expanduser().read_bytes()
-        execution = json.loads(execution_raw)
-        if not isinstance(execution, dict):
-            raise ValueError('REAL 실행 설정은 JSON 객체여야 합니다.')
-        store.put_asset(execution_raw, 'execution_profile_source', 'application/json', Path(execution_file).name)
-        value['execution_profile'] = execution
-        raw = encoded(value)
+        try:
+            execution_raw = Path(execution_file).expanduser().read_bytes()
+            execution = json.loads(execution_raw)
+            if not isinstance(execution, dict):
+                raise ValueError('REAL 실행 설정은 JSON 객체여야 합니다.')
+        except (OSError, ValueError) as exc:
+            if not defer_execution_errors:
+                raise
+            execution_error = f'실행 설정 파일을 확인하세요: {execution_file}: {exc}'
+        else:
+            store.put_asset(execution_raw, 'execution_profile_source', 'application/json', Path(execution_file).name)
+            value['execution_profile'] = execution
+            raw = encoded(value)
     encoded(value)  # 비유한 JSON 거절. 저장은 재직렬화하지 않고 원본 바이트 사용.
     sha = digest(raw)
     with store.db() as db:
         row = db.execute("SELECT id FROM assets WHERE kind='preparation_config' AND sha256=?", (sha,)).fetchone()
     aid = row['id'] if row else store.put_asset(raw, 'preparation_config', 'application/json', 'real-preparation-config.json')['id']
     store.read_asset(aid, sha)
-    return dict(id=aid, sha256=sha, payload=value)
+    record = dict(id=aid, sha256=sha, payload=value)
+    if execution_error:
+        record['execution_config_error'] = execution_error
+    return record
 
 
 def input_config(store, ros_profile=None):
@@ -147,9 +176,52 @@ class PreparationService:
 
     async def start(self):
         if getattr(self.owner, 'mode', 'SIMULATION') == 'REAL':
-            self.config = await asyncio.to_thread(real_input_config, self.owner.store, os.getenv('C2_PREPARATION_CONFIG'))
+            self.config = await asyncio.to_thread(real_input_config, self.owner.store, os.getenv('C2_PREPARATION_CONFIG'),
+                                                 defer_execution_errors=True)
             self.timeout_s = self.config['payload']['workcell']['runtime_timeout_s']
             self.current = await asyncio.to_thread(self.owner.store.recover_preparation)
+            if (self.current and self.current.get('state') == 'SUCCEEDED'
+                    and self.current.get('binding_status') in ('MEASURED_UNBOUND', 'MEASUREMENT_ONLY')
+                    and isinstance(self.current.get('result'), dict)
+                    and isinstance(self.current.get('measurement_record'), dict)):
+                from .ros_preparation import (action_goal, bind_goal, real_bound_profile,
+                                              real_preview_profile)
+                execution_error = self.start_error()
+                profile = None
+                if execution_error is None and self.owner.peer.preparation_client.server_is_ready():
+                    try:
+                        value = real_bound_profile(
+                            self.current['goal'], self.current['result'], self.config['payload'],
+                            self.current['measurement_record'])
+                        profile = await asyncio.to_thread(self.owner.store.profile, value)
+                        bind = bind_goal(action_goal(self.current['goal']),
+                                         self.current['measurement_record'], profile)
+
+                        async def ignore_feedback(_value):
+                            return None
+
+                        bound = await self.owner.peer.prepare_raw(bind, ignore_feedback)
+                        self.current.update(bind_goal=deepcopy(bind), bind_result=deepcopy(bound))
+                        if bound.get('outcome') != 'SUCCEEDED':
+                            profile = None
+                    except (ValueError, KeyError, TypeError, RuntimeError):
+                        profile = None
+                if profile is not None:
+                    self.current.update(
+                        binding_status='BOUND_ROS', profile_snapshot=profile,
+                        message='저장된 측정 결과와 REAL 실행 설정을 연결했습니다. 경로 생성 후 최종 검사를 수행합니다.',
+                        updated_at=now())
+                else:
+                    value = real_preview_profile(
+                        self.owner.profile['payload'], self.current['goal'], self.current['result'],
+                        self.config['payload'], self.current['measurement_record'])
+                    profile = await asyncio.to_thread(self.owner.store.profile, value)
+                    self.current.update(
+                        binding_status='MEASUREMENT_ONLY', profile_snapshot=profile,
+                        message='저장된 사전 검사·양초 측정 결과로 미리보기 경로를 생성할 수 있습니다.',
+                        execution_config_error=execution_error, updated_at=now())
+                await asyncio.to_thread(self.owner.store.save_preparation, deepcopy(self.current))
+                self.owner.profile = profile
         elif self.owner.transport == 'mock' or os.environ.get('C2_ROS_PREPARATION_SIM') == '1' or getattr(self.owner, 'process_integration', False):
             base = self.owner.profile['payload'] if self.owner.transport == 'ros' or getattr(self.owner, 'image_workflow', False) else None
             self.config = await asyncio.to_thread(input_config, self.owner.store, base)
@@ -162,6 +234,13 @@ class PreparationService:
     def ready(self):
         r = self.current
         return bool(self.owner.fresh() and r and r['state'] == 'SUCCEEDED' and r.get('binding_status') in ('BOUND_MOCK', 'BOUND_ROS')
+                    and r.get('profile_snapshot', {}).get('id') == self.owner.profile['id']
+                    and r.get('profile_snapshot', {}).get('sha256') == self.owner.profile['sha256'])
+
+    def preview_ready(self):
+        r = self.current
+        return bool(self.owner.fresh() and r and r['state'] == 'SUCCEEDED'
+                    and r.get('binding_status') in ('MEASUREMENT_ONLY', 'BOUND_MOCK', 'BOUND_ROS')
                     and r.get('profile_snapshot', {}).get('id') == self.owner.profile['id']
                     and r.get('profile_snapshot', {}).get('sha256') == self.owner.profile['sha256'])
 
@@ -179,9 +258,21 @@ class PreparationService:
             self.owner.peer.bound_preparation = None
         await self.save()
 
+    async def invalidate_process_binding(self, reason):
+        """공정 노드가 준비 연결을 거절하면 HMI의 기존 BIND도 즉시 폐기한다."""
+        if not self.current or self.current.get('binding_status') not in ('BOUND_MOCK', 'BOUND_ROS'):
+            return
+        self.current.update(
+            state='INVALIDATED', binding_status='REPREPARATION_REQUIRED',
+            error_code='NOT_READY', updated_at=now(),
+            message=f'공정 노드의 준비 연결이 무효화되었습니다: {reason}. 다시 준비·측정하세요.')
+        await self.save()
+
     def start_error(self):
         if getattr(self.owner, 'mode', 'SIMULATION') != 'REAL' or self.config is None:
             return None
+        if self.config.get('execution_config_error'):
+            return self.config['execution_config_error']
         from .real_execution_config import validate_real_execution_config
         try:
             validate_real_execution_config(self.config['payload'])
@@ -198,7 +289,8 @@ class PreparationService:
                     else 'ROS SIM 준비·측정 → 스냅샷 BIND → 이미지 경로 → 공정 요청' if getattr(self.owner, 'process_integration', False)
                     else 'ROS SIM 준비·측정 → 원본 저장 → 스냅샷 등록 시험. REAL/조각 실행은 차단합니다.' if supported
                     else 'ROS 준비 SIM 시험은 C2_ROS_PREPARATION_SIM=1 및 같은 PrepareWorkpiece 설치본이 필요합니다.',
-                    start_error=self.start_error(), input_config=self.config, current=deepcopy(self.current), ready=self.ready(),
+                    start_error=None, input_config=self.config, current=deepcopy(self.current), ready=self.ready(),
+                    preview_ready=self.preview_ready(),
                     blocks_work=self.blocks_work())
 
     async def save(self):
@@ -217,9 +309,6 @@ class PreparationService:
                 if old['payload'] != body:
                     raise DomainError('REQUEST_CONFLICT', '같은 준비 요청 ID에 다른 입력이 있습니다.')
                 return old
-            error = self.start_error()
-            if error:
-                raise DomainError('PROFILE_MISMATCH', error)
             if self.blocks_work() or o.busy() or o.generating:
                 raise DomainError('BUSY', '준비·측정·생성·조각 또는 미확인 작업이 있습니다.')
             if not o.fresh() or o.storage_error:
@@ -401,7 +490,13 @@ class PreparationService:
             self.current['measurement_record'] = dict(id=record['id'], sha256=record['sha256'])
             result = display_result(raw, goal)
             self.current['result'] = result
-            if (not o.fresh() or raw.get('stop_confirmed') is not True
+            if (o.fresh() and not cancel.is_set() and not timed_out
+                    and all(raw.get(k) == active_goal[k] for k in
+                            ('request_id', 'preparation_id', 'measurement_id', 'source_mode'))
+                    and confirmed_pre_motion_failure(raw, self.current.get('feedback'))):
+                self.current.update(state='FAILED', binding_status='UNCONFIRMED',
+                                    error_code=raw['error_code'], message=raw['message'])
+            elif (not o.fresh() or raw.get('stop_confirmed') is not True
                     or cancel.is_set() and raw['outcome'] != 'STOPPED'):
                 self.current.update(state='UNKNOWN', binding_status='UNCONFIRMED', error_code='STOP_UNCONFIRMED',
                                     message='취소·연결 상실 또는 정지 미확인. 다음 작업을 차단합니다.')
@@ -409,6 +504,27 @@ class PreparationService:
                 self.current.update(state='FAILED' if timed_out else raw['outcome'],
                                     error_code='TIMEOUT' if timed_out else raw['error_code'], message=raw['message'])
             else:
+                execution_error = self.start_error()
+                if execution_error:
+                    from .ros_preparation import real_preview_profile
+                    try:
+                        value = real_preview_profile(
+                            o.profile['payload'], goal, result, self.config['payload'], record)
+                        profile = await asyncio.to_thread(o.store.profile, value)
+                    except (ValueError, KeyError, TypeError) as exc:
+                        self.current.update(
+                            state='FAILED', binding_status='UNCONFIRMED',
+                            error_code='PROFILE_MISMATCH', message=str(exc), updated_at=now())
+                        await self.save()
+                        return
+                    self.current.update(
+                        state='SUCCEEDED', stage='MEASURED', binding_status='MEASUREMENT_ONLY',
+                        profile_snapshot=profile, error_code='NONE',
+                        message='사전 검사·양초 측정 완료. 실측값으로 미리보기 경로를 생성할 수 있습니다.',
+                        execution_config_error=execution_error, updated_at=now())
+                    await self.save()
+                    o.profile = profile
+                    return
                 try:
                     value = bound_profile(o.profile['payload'], goal, result, self.config['payload'], record)
                 except (ValueError, KeyError, TypeError) as exc:

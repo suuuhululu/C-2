@@ -11,7 +11,7 @@ from fastapi.testclient import TestClient
 
 from app.monitor import create_app
 from app.monitor_contract import now
-from app.preparation import PreparationService, measured_profile
+from app.preparation import PreparationService, confirmed_pre_motion_failure, measured_profile
 from test_monitor import HEADERS, client, generated, run_body, wait
 
 
@@ -273,3 +273,32 @@ def test_control_connection_change_revokes_preparation(state):
     assert service.current['state']==('UNKNOWN' if state=='RUNNING' else 'INVALIDATED')
     assert service.cancel.is_set()==(state=='RUNNING')
     assert saved[-1]['binding_status']=='UNCONFIRMED'
+
+
+def test_only_confirmed_robot_check_failure_can_unlock_repreparation():
+    result=dict(outcome='FAILED', error_code='NOT_READY',
+                message='정지 래치 또는 로봇 제어권 미확인',
+                stop_confirmed=False, partial=True, contact_indices=[],
+                started_at={'sec':0,'nanosec':0})
+    feedback=[
+        dict(stage='VALIDATING',completed_side_points=0),
+        dict(stage='ROBOT_CHECK',completed_side_points=0),
+        dict(stage='COMPLETE',completed_side_points=0),
+    ]
+    assert confirmed_pre_motion_failure(result, feedback)
+    assert not confirmed_pre_motion_failure(
+        result, feedback[:-1]+[dict(stage='TOP_TOUCH',completed_side_points=0)])
+
+
+def test_process_binding_rejection_enables_new_preparation():
+    saved=[]
+    owner=SimpleNamespace(store=SimpleNamespace())
+    service=PreparationService(owner)
+    service.current=dict(state='SUCCEEDED',binding_status='BOUND_ROS')
+    async def save(): saved.append(deepcopy(service.current))
+    service.save=save
+    asyncio.run(service.invalidate_process_binding('준비 결과 연결 필요'))
+    assert service.current['state']=='INVALIDATED'
+    assert service.current['binding_status']=='REPREPARATION_REQUIRED'
+    assert service.blocks_work() is False
+    assert saved[-1]['message'].endswith('다시 준비·측정하세요.')
