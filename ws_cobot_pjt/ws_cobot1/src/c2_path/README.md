@@ -43,6 +43,13 @@
 - `workcell.py`는 승인 REAL 설정 파일이 아니므로 노드는 기본으로 `SIMULATION`만 허용한다. 파라미터 `allow_real_preview:=true` 를 명시하면
   스냅샷 `/3`(REAL 추정값·**미리보기 전용**)과 함께인 REAL Goal 도 받지만, 그 경로도 `test_only` 라 실행할 수 없고 `executability` 는 `NOT_JUDGED` 로 남는다.
   REAL 을 SIMULATION 으로 바꿔 통과시키지 않는다. 필드와 조건은 `BUNDLE_SPEC.md` 14절(이름은 합의 전 제안).
+- 실제 실행 후보는 `/3`을 승격하지 않고 별도 `c2-path-real-execution-profile/1` 계약으로 받는다.
+  `allow_real_execution:=true`를 명시하고, 준비 BIND·`ABSOLUTE_GEOMETRY`·출처가 있는 접촉 오프셋·실행/관절/도구 확인 설정이
+  같은 스냅샷에 있을 때만 `test_only=false`, `real_execution_allowed=true` 경로를 만든다. 잠정 작업 범위를 벗어나면
+  경로는 진단용으로 남기되 `real_execution_allowed=false`다. `executability=NOT_JUDGED`는 계속 유지하며 공정팀이
+  ExecuteProcess에서 최종 IK·관절·J6 검사를 통과한 경우에만 `execute_path()`로 넘긴다. 자세한 계약은 `BUNDLE_SPEC.md` 15절.
+  `offset_status=ESTIMATED`, `validity=ESTIMATED`, `absolute_top_verified=false`는 실행 후보 생성의 일괄 거절 사유가 아니며
+  상태·출처를 승격하지 않고 산출물에 그대로 보존한다.
 - 성공 경로에도 `J6_RANGE`는 미검사로 남는다. 실행 전 공정팀의 전체 경로
   IK/J5/J6·충돌·보정 확인이 별도로 필요하다.
 - 매핑 실패 획이 하나라도 있거나 CUT가 비면 전체 생성이 실패한다. 실패/취소 시
@@ -98,6 +105,14 @@ source install/local_setup.bash
 
 ros2 run c2_path path_planner_node --ros-args \
   -p managed_data_dir:=../backend/monitor_data    # 명령을 실행한 폴더(ws_cobot1) 기준 상대 경로
+```
+
+준비 BIND에 연결된 REAL 실행 후보 생성은 명시적으로 다음 파라미터를 추가한다. 이 노드는 경로만 만들며 로봇을 움직이지 않는다.
+
+```bash
+ros2 run c2_path path_planner_node --ros-args \
+  -p managed_data_dir:=../backend/monitor_data \
+  -p allow_real_execution:=true
 ```
 
 `managed_data_dir`를 지정하지 않았거나 HMI 저장소가 초기화되지 않았으면 노드는

@@ -2,8 +2,8 @@
 
 계산 단계의 유일한 조합 지점이며, 일부 획 실패·빈 경로·검증 실패를 성공
 산출물로 공개하지 않는다. 현재 workcell.py 값은 test_only이므로 기본은 SIMULATION만
-허용한다. REAL 은 `allow_real_preview=True` 로 명시했을 때 스냅샷 `/3`(추정값·미리보기 전용)만 받고,
-그 경로도 test_only 라 실행할 수 없다.
+허용한다. REAL `/3`은 `allow_real_preview=True`일 때 미리보기 전용으로 받고,
+별도 실행 계약은 `allow_real_execution=True`일 때만 실행 전 검사 후보로 만든다.
 """
 from __future__ import annotations
 
@@ -148,8 +148,10 @@ PROFILE_CONTRACT_V1 = "c2-path-test-profile/1"
 PROFILE_CONTRACT_V2 = "c2-path-test-profile/2"
 # REAL 추정값 미리보기 전용. **이름·필드는 팀 합의 전 제안이다**(BUNDLE_SPEC.md 5.1절). 바꿀 때는 이 상수만 고친다.
 PROFILE_CONTRACT_V3 = "c2-path-test-profile/3"
+PROFILE_CONTRACT_V4 = "c2-path-real-execution-profile/1"
 CALIBRATION_STATUS_REAL_PREVIEW = "REAL_ESTIMATE_PREVIEW_ONLY"
 REAL_PREVIEW_MEASUREMENT_STATUSES = ("ESTIMATED", "FORCE_CONTACT_ESTIMATE")   # 준비 Result 의 validity 값 그대로
+REAL_EXECUTION_OFFSET_STATUSES = ("VERIFIED", "ESTIMATED")
 UUID_FIELDS_V3 = ("preparation_id", "measurement_id", "input_profile_snapshot_id", "measurement_record_id")
 SHA256_FIELDS_V3 = ("input_profile_sha256", "measurement_record_sha256")
 HEIGHT_REFERENCE_BOTTOM = "bottom"       # v=0 은 양초 바닥(축 원점 z). 윗면 기준이 아니다.
@@ -197,7 +199,8 @@ def _default_geometry_errors(surface: Mapping, errors: list) -> None:
 
 def profile_surface(profile: Mapping) -> wc.Surface:
     """검증을 통과한 스냅샷이 쓰는 원통 형상. `/1` 은 기본 상수, `/2` 는 스냅샷의 실측 값이다."""
-    if isinstance(profile, Mapping) and profile.get("contract") in (PROFILE_CONTRACT_V2, PROFILE_CONTRACT_V3):
+    if isinstance(profile, Mapping) and profile.get("contract") in (
+            PROFILE_CONTRACT_V2, PROFILE_CONTRACT_V3, PROFILE_CONTRACT_V4):
         return wc.surface_from_snapshot(profile["surface"])
     return wc.DEFAULT_SURFACE
 
@@ -297,6 +300,80 @@ def _validate_profile_v3(profile: Mapping, surface: Mapping) -> None:
         raise PipelineError("PROFILE_MISMATCH", "요청 스냅샷(/3, REAL 추정값)이 올바르지 않습니다: " + "; ".join(unique[:4]))
 
 
+def _validate_profile_v4(profile: Mapping, surface: Mapping) -> None:
+    """준비 성공에 연결된 REAL 실행 후보용 스냅샷.
+
+    c2_path는 로봇 실행 가능 판정을 하지 않는다. 다만 공정 노드가 요구하는 승인
+    근거가 같은 불변 스냅샷에 들어 있는지 확인한 뒤 ``test_only=false`` 후보를
+    만든다. 최종 IK·관절·도구 확인은 ExecuteProcess가 모션 전에 다시 수행한다.
+    """
+    errors = []
+    _identity_errors(profile, errors, "REAL")
+    _same(profile.get("test_only"), False, "test_only", errors)
+    _same(profile.get("real_execution_allowed"), True, "real_execution_allowed", errors)
+    _provenance_errors(profile, errors)
+    validity = profile.get("validity", profile.get("measurement_status"))
+    if validity not in REAL_PREVIEW_MEASUREMENT_STATUSES:
+        errors.append("validity/measurement_status는 ESTIMATED 또는 FORCE_CONTACT_ESTIMATE여야 합니다.")
+    if profile.get("absolute_top_verified") is not False:
+        errors.append("absolute_top_verified=false 상태를 그대로 보존해야 합니다.")
+    assumptions = profile.get("measurement_assumptions")
+    if not (isinstance(assumptions, Mapping)
+            and assumptions.get("independent_accuracy_verified") is False):
+        errors.append("measurement_assumptions.independent_accuracy_verified=false가 필요합니다.")
+    _same(surface.get("height_reference"), HEIGHT_REFERENCE_BOTTOM, "surface.height_reference", errors)
+    _same(surface.get("v_direction"), V_DIRECTION_UP, "surface.v_direction", errors)
+    errors.extend(snapshot.surface_geometry_errors(surface))
+    _fixed_axis_errors(surface, errors)
+
+    workcell = profile.get("workcell")
+    top = workcell.get("top") if isinstance(workcell, Mapping) else None
+    offset = top.get("contact_offset_tool_m") if isinstance(top, Mapping) else None
+    if not isinstance(workcell, Mapping) or workcell.get("measurement_scope") != "ABSOLUTE_GEOMETRY":
+        errors.append("workcell.measurement_scope=ABSOLUTE_GEOMETRY가 필요합니다.")
+    offset_status = top.get("offset_status") if isinstance(top, Mapping) else None
+    if (not isinstance(top, Mapping) or offset_status not in REAL_EXECUTION_OFFSET_STATUSES
+            or not isinstance(top.get("offset_record_id"), str) or not top.get("offset_record_id").strip()
+            or not isinstance(offset, (list, tuple)) or len(offset) != 3
+            or any(isinstance(v, bool) or not isinstance(v, (int, float)) or not math.isfinite(v) for v in (offset or []))):
+        errors.append("출처가 있는 VERIFIED/ESTIMATED workcell.top 접촉 오프셋이 필요합니다.")
+    if (offset_status == "ESTIMATED"
+            and (not isinstance(top.get("estimate_source"), str) or not top.get("estimate_source").strip())):
+        errors.append("ESTIMATED 접촉 오프셋에는 workcell.top.estimate_source가 필요합니다.")
+    if isinstance(workcell, Mapping):
+        _same(workcell.get("tcp_id"), profile.get("tcp_id"), "workcell.tcp_id", errors)
+        _same(workcell.get("load_id"), profile.get("load_id"), "workcell.load_id", errors)
+    for key in ("tip_calibration", "calibration_profiles", "execution_context",
+                "joint_check_arguments", "verify_tool_tip_arguments"):
+        if not isinstance(profile.get(key), Mapping):
+            errors.append(f"{key} 실행 설정이 필요합니다.")
+    execution = profile.get("execution_context")
+    if isinstance(execution, Mapping):
+        _same(execution.get("source_mode"), "REAL", "execution_context.source_mode", errors)
+        for key in ("motion_profiles", "tool_profile", "stop_profile"):
+            if not isinstance(execution.get(key), Mapping):
+                errors.append(f"execution_context.{key}가 필요합니다.")
+    joints = profile.get("joint_check_arguments")
+    limits = joints.get("limits_deg") if isinstance(joints, Mapping) else None
+    margin = joints.get("j6_margin_deg") if isinstance(joints, Mapping) else None
+    if (not isinstance(limits, (list, tuple)) or len(limits) != 6
+            or any(not isinstance(pair, (list, tuple)) or len(pair) != 2
+                   or any(isinstance(v, bool) or not isinstance(v, (int, float)) or not math.isfinite(v) for v in pair)
+                   or pair[0] >= pair[1] for pair in (limits or []))):
+        errors.append("joint_check_arguments.limits_deg 6축 범위가 필요합니다.")
+    if isinstance(limits, (list, tuple)) and len(limits) == 6:
+        if (isinstance(margin, bool) or not isinstance(margin, (int, float)) or not math.isfinite(margin)
+                or margin < 0 or 2 * margin >= limits[5][1] - limits[5][0]):
+            errors.append("joint_check_arguments.j6_margin_deg가 유효하지 않습니다.")
+    verify = profile.get("verify_tool_tip_arguments")
+    tol = verify.get("tol_m") if isinstance(verify, Mapping) else None
+    if isinstance(tol, bool) or not isinstance(tol, (int, float)) or not math.isfinite(tol) or tol <= 0:
+        errors.append("verify_tool_tip_arguments.tol_m 양수가 필요합니다.")
+    if errors:
+        unique = list(dict.fromkeys(errors))
+        raise PipelineError("PROFILE_MISMATCH", "REAL 실행 스냅샷이 올바르지 않습니다: " + "; ".join(unique[:6]))
+
+
 def validate_profile(profile: Mapping) -> None:
     """스냅샷 `contract` 로 검사 규칙을 고른다. 없으면 기존(/1)과 같다.
 
@@ -312,23 +389,50 @@ def validate_profile(profile: Mapping) -> None:
         _validate_profile_v2(profile, surface)
     elif contract == PROFILE_CONTRACT_V3:
         _validate_profile_v3(profile, surface)
+    elif contract == PROFILE_CONTRACT_V4:
+        _validate_profile_v4(profile, surface)
     else:
         raise PipelineError(
             "PROFILE_MISMATCH",
             f"지원하지 않는 스냅샷 contract입니다: {contract!r} "
-            f"(지원: {PROFILE_CONTRACT_V1}, {PROFILE_CONTRACT_V2}, {PROFILE_CONTRACT_V3})")
+            f"(지원: {PROFILE_CONTRACT_V1}, {PROFILE_CONTRACT_V2}, {PROFILE_CONTRACT_V3}, {PROFILE_CONTRACT_V4})")
 
 
 def check_goal_profile_mode(goal: Mapping, profile: Mapping) -> None:
     """요청의 source_mode 와 스냅샷의 출처가 같아야 한다. REAL↔SIMULATION 을 서로 바꿔 통과시키지 않는다."""
     contract = profile.get("contract") or PROFILE_CONTRACT_V1
     goal_mode, profile_mode = goal.get("source_mode"), profile.get("source_mode")
-    expected = "REAL" if contract == PROFILE_CONTRACT_V3 else "SIMULATION"
+    expected = "REAL" if contract in (PROFILE_CONTRACT_V3, PROFILE_CONTRACT_V4) else "SIMULATION"
     if goal_mode != profile_mode or goal_mode != expected:
         raise PipelineError(
             "PROFILE_MISMATCH",
             f"요청 source_mode={goal_mode!r}, 스냅샷 source_mode={profile_mode!r}, 스냅샷 contract={contract}: "
-            f"REAL 은 /3 스냅샷과, SIMULATION 은 /1·/2 스냅샷과만 계산합니다.")
+            f"REAL 은 /3 또는 실행 계약 스냅샷과, SIMULATION 은 /1·/2 스냅샷과만 계산합니다.")
+
+
+def matching_test_profile_v4(**surface_overrides) -> dict:
+    """실행 계약 단위시험용 형식 예시. 실제 로봇 승인값으로 사용하지 않는다."""
+    profile = matching_test_profile_v3(measurement_status="FORCE_CONTACT_ESTIMATE", **surface_overrides)
+    profile.pop("calibration_status", None)
+    profile.update({
+        "contract": PROFILE_CONTRACT_V4,
+        "test_only": False,
+        "real_execution_allowed": True,
+        "validity": "ESTIMATED",
+        "absolute_top_verified": False,
+        "workcell": {"measurement_scope": "ABSOLUTE_GEOMETRY", "tcp_id": wc.TCP_PROFILE_ID,
+                     "load_id": wc.LOAD_PROFILE_ID,
+                     "top": {"contact_offset_tool_m": [0.0, 0.0, 0.02], "offset_status": "ESTIMATED",
+                             "offset_record_id": "unit-test-offset",
+                             "estimate_source": "unit-test-estimate"}},
+        "tip_calibration": {"tool_id": wc.TOOL_ID, "offset_tool_m": [0.0, -0.1, 0.0]},
+        "calibration_profiles": {"verify": {}},
+        "execution_context": {"source_mode": "REAL", "motion_profiles": {"travel": {}},
+                              "tool_profile": {"tool_id": wc.TOOL_ID}, "stop_profile": {"mode": 1}},
+        "joint_check_arguments": {"limits_deg": [[-180.0, 180.0]] * 6, "j6_margin_deg": 5.0},
+        "verify_tool_tip_arguments": {"tol_m": 0.001},
+    })
+    return profile
 
 
 def matching_test_profile() -> dict:
@@ -433,7 +537,32 @@ def _real_preview_marks(profile: Mapping) -> dict:
     }
 
 
-def _preview(path, path_sha256, goal, ready=None, ready_limits=None, real_preview=None):
+def _real_execution_marks(profile: Mapping) -> dict:
+    """실행 후보 산출물에 보존할 준비·측정 binding."""
+    top = profile.get("workcell", {}).get("top", {})
+    return {
+        "measurement_status": profile.get("measurement_status"),
+        "validity": profile.get("validity", profile.get("measurement_status")),
+        "absolute_top_verified": profile.get("absolute_top_verified"),
+        "independent_accuracy_verified": profile.get("measurement_assumptions", {}).get(
+            "independent_accuracy_verified"),
+        "offset_status": top.get("offset_status"),
+        "offset_record_id": top.get("offset_record_id"),
+        "offset_estimate_source": top.get("estimate_source"),
+        "preview_only": False,
+        "real_execution_allowed": True,
+        "preparation_id": profile.get("preparation_id"),
+        "measurement_id": profile.get("measurement_id"),
+        "measurement_record_id": profile.get("measurement_record_id"),
+        "measurement_record_sha256": profile.get("measurement_record_sha256"),
+        "input_profile_snapshot_id": profile.get("input_profile_snapshot_id"),
+        "input_profile_sha256": profile.get("input_profile_sha256"),
+        "measured_at": profile.get("measured_at"),
+    }
+
+
+def _preview(path, path_sha256, goal, ready=None, ready_limits=None, real_preview=None,
+             real_execution=None):
     flags = readiness.segment_flags(path, ready_limits) if ready_limits else {}
     cs = wc.current_surface()
     segments = []
@@ -465,7 +594,7 @@ def _preview(path, path_sha256, goal, ready=None, ready_limits=None, real_previe
         "contract": "c2-path-preview/1",
         "schema_version": 2,
         "source_mode": goal["source_mode"],
-        "test_only": True,
+        "test_only": path["test_only"],
         "render_only": True,
         "path_id": path["path_id"],
         "path_version": path["path_version"],
@@ -480,6 +609,9 @@ def _preview(path, path_sha256, goal, ready=None, ready_limits=None, real_previe
     }
     if real_preview is not None:
         document["real_preview"] = dict(real_preview)
+    if real_execution is not None:
+        document["real_execution_allowed"] = path["real_execution_allowed"]
+        document["real_execution"] = dict(real_execution)
     if ready is not None:
         # 미리보기 성공은 실행 가능 판정이 아니다. 잠정 로봇 작업 범위 점검 결과를 따로 싣는다.
         document["execution_readiness"] = readiness.preview_summary(ready)
@@ -487,10 +619,12 @@ def _preview(path, path_sha256, goal, ready=None, ready_limits=None, real_previe
 
 
 class GeneratePipeline:
-    def __init__(self, store, timeout_s=120.0, allow_real_preview=False):
+    def __init__(self, store, timeout_s=120.0, allow_real_preview=False,
+                 allow_real_execution=False):
         self.store = store
         self.timeout_s = float(timeout_s)
         self.allow_real_preview = bool(allow_real_preview)
+        self.allow_real_execution = bool(allow_real_execution)
 
     def run(
         self,
@@ -532,7 +666,7 @@ class GeneratePipeline:
             """2-opt 개선은 선택 사항이다. 제한 시간의 60%가 지나면 개선만 멈추고 지금 순서를 쓴다 (획은 그대로)."""
             return time.monotonic() - started > 0.6 * self.timeout_s
 
-        goal = validate_goal(raw_goal, allow_real_preview=self.allow_real_preview)
+        goal = validate_goal(raw_goal, allow_real_preview=(self.allow_real_preview or self.allow_real_execution))
         try:
             asset = self.store.read(goal["asset_id"], goal["asset_sha256"], ("image",))
             if asset.mime not in ("image/png", "image/jpeg"):
@@ -545,6 +679,9 @@ class GeneratePipeline:
         validate_profile(profile)
         check_goal_profile_mode(goal, profile)
         real_preview = _real_preview_marks(profile) if profile.get("contract") == PROFILE_CONTRACT_V3 else None
+        real_execution = _real_execution_marks(profile) if profile.get("contract") == PROFILE_CONTRACT_V4 else None
+        if real_execution is not None and not self.allow_real_execution:
+            raise PipelineError("NOT_READY", "REAL 실행 경로 생성은 allow_real_execution이 필요합니다.")
         wc.set_active_surface(profile_surface(profile))
 
         checkpoint("CONVERTING", 0.05)
@@ -642,6 +779,7 @@ class GeneratePipeline:
                 on_progress=within_stage("BUILDING_PATH", 0.72, 0.87),
                 should_stop=should_stop_refining,
                 real_preview=real_preview,
+                real_execution=real_execution,
             )
         except ValueError as exc:
             raise PipelineError("VALIDATION_FAILED", str(exc)) from exc
@@ -652,6 +790,11 @@ class GeneratePipeline:
         ready = readiness.execution_readiness(path, ready_limits)
         if real_preview is not None:
             readiness.mark_preview_only(ready)      # 사전 점검 값은 그대로 두고 실행 금지만 따로 표시
+        if real_execution is not None and ready["precheck"] != readiness.WITHIN:
+            path["real_execution_allowed"] = False
+            path["config"]["real_execution_allowed"] = False
+            path["config"]["real_execution"]["real_execution_allowed"] = False
+            real_execution["real_execution_allowed"] = False
         report["execution_readiness"] = ready
         cs = wc.current_surface()
         report.update({
@@ -668,7 +811,7 @@ class GeneratePipeline:
                 "axis_origin_m": list(cs.axis_origin_m),
                 "height_reference": HEIGHT_REFERENCE_BOTTOM,
                 "v_direction": V_DIRECTION_UP,
-                "source": ("스냅샷 surface" if profile.get("contract") in (PROFILE_CONTRACT_V2, PROFILE_CONTRACT_V3)
+                "source": ("스냅샷 surface" if profile.get("contract") in (PROFILE_CONTRACT_V2, PROFILE_CONTRACT_V3, PROFILE_CONTRACT_V4)
                            else "c2_path 기본 상수(/1)"),
             },
             "request_id": goal["request_id"],
@@ -687,6 +830,10 @@ class GeneratePipeline:
         })
         if real_preview is not None:
             report["real_preview"] = dict(real_preview)
+        if real_execution is not None:
+            report["test_only"] = path["test_only"]
+            report["real_execution_allowed"] = path["real_execution_allowed"]
+            report["real_execution"] = dict(real_execution)
         if not report["passed"]:
             checkpoint("VALIDATING", 0.93)
             report_id, svg_id = new_id(), new_id()
@@ -717,7 +864,7 @@ class GeneratePipeline:
         }
         path_bytes = json_bytes(path)
         path_sha256 = sha256_bytes(path_bytes)
-        preview = _preview(path, path_sha256, goal, ready, ready_limits, real_preview)
+        preview = _preview(path, path_sha256, goal, ready, ready_limits, real_preview, real_execution)
         self.store.put_bundle([
             ArtifactWrite(json_bytes(report), "validation", "application/json",
                           "c2-path-validation.json", {"path_id": path_id}, validation_id),
