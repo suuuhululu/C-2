@@ -61,6 +61,9 @@ def exchange(tmp_path):
         result = {**asdict(generated), 'success': True, 'error_code': 'NONE', 'message': '파일 통합 시험',
                   'validation_passed': True}
         path_asset_id = result.pop('path_asset_id')
+        # 순수 계산 부가 필드는 ROS GeneratePath.Result 계약에 포함되지 않는다.
+        result.pop('execution_precheck', None)
+        result.pop('execution_message', None)
         ids = [goal['asset_id'], goal['profile_snapshot_id'], path_asset_id,
                result['svg_asset_id'], result['preview_asset_id'], result['validation_report_id']]
         records = [(external.asset(aid), external.read_asset(aid)) for aid in ids]

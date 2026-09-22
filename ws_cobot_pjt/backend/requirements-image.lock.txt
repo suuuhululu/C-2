@@ -1,0 +1,8 @@
+# 이미지 한 장의 실제 c2_path 계산에 필요한 추가 의존성 (로컬 시험 버전)
+-r requirements.lock.txt
+networkx==3.5
+scikit-image==0.25.2
+scipy==1.18.1
+imageio==2.37.4
+tifffile==2026.9.15
+lazy-loader==0.5

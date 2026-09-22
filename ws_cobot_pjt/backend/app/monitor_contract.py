@@ -24,7 +24,7 @@ class Input(BaseModel):
 class GenerateInput(Input):
     schema_version: Literal[2] = 2
     request_id: UUID
-    source_mode: Literal['SIMULATION'] = 'SIMULATION'
+    source_mode: Literal['SIMULATION', 'REAL'] = 'SIMULATION'
     asset_id: UUID
     asset_sha256: str = Field(pattern=r'^[0-9a-f]{64}$')
     width_mm: float = Field(gt=0, le=500)
@@ -49,7 +49,7 @@ class PreparationInput(Input):
 class RunInput(Input):
     schema_version: Literal[2] = 2
     request_id: UUID
-    source_mode: Literal['SIMULATION'] = 'SIMULATION'
+    source_mode: Literal['SIMULATION', 'REAL'] = 'SIMULATION'
     path_id: UUID
     path_version: int = Field(ge=1)
     path_sha256: str = Field(pattern=r'^[0-9a-f]{64}$')

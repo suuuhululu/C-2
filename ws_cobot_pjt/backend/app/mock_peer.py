@@ -230,7 +230,7 @@ class MockPeer:
         observations=[dict(segment_id=s['segment_id'],stroke_id=s['stroke_id'],start_point_index=0,
                            end_point_index=len(s['points_m'])-1,verdict='PENDING',motion_status='NOT_STARTED',
                            reason='',pressure_n=None,observed_at=now(),quality_source='SIMULATION_FIXTURE')
-                      for s in preview['strokes']]
+                      for s in preview.get('strokes', preview.get('segments', [])) if s['kind']=='CUT']
         evidence=dict(contract='mock-execution-preview/1',schema_version=SCHEMA_VERSION,source_mode='SIMULATION',
                       **{k:goal[k] for k in ('run_id','path_id','path_version','path_sha256')},
                       observations=observations)

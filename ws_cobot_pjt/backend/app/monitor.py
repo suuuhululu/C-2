@@ -34,6 +34,13 @@ def image_data(raw):
             return im.size,preview.getvalue(),mime
 
 
+def monitor_origins():
+    allowed={'http://127.0.0.1:5174','http://localhost:5174','http://127.0.0.1:8010','http://localhost:8010'}
+    if os.getenv('C2_VIRTUAL_CELL') == '1':
+        allowed.add(os.getenv('C2_VIRTUAL_ORIGIN', 'http://127.0.0.1:8020'))
+    return allowed
+
+
 def create_app(data_dir=None,tick=.4):
     @asynccontextmanager
     async def lifespan(app):
@@ -63,7 +70,7 @@ def create_app(data_dir=None,tick=.4):
     async def guard(request,call_next):
         if request.method not in ('GET','HEAD','OPTIONS'):
             origin=request.headers.get('origin')
-            allowed={'http://127.0.0.1:5174','http://localhost:5174','http://127.0.0.1:8010','http://localhost:8010'}
+            allowed=monitor_origins()
             if request.headers.get('x-c2-monitor')!='1' or (origin and origin not in allowed):
                 return JSONResponse({'error_code':'FORBIDDEN','message':'로컬 모니터에서 요청하세요.'},status_code=403)
         response=await call_next(request)
@@ -258,7 +265,7 @@ def create_app(data_dir=None,tick=.4):
     @app.websocket('/api/operator/stream')
     async def stream(ws:WebSocket):
         origin=ws.headers.get('origin')
-        if origin not in {'http://127.0.0.1:5174','http://localhost:5174','http://127.0.0.1:8010','http://localhost:8010'}:
+        if origin not in monitor_origins():
             await ws.close(code=1008);return
         await ws.accept()
         try:

@@ -1,4 +1,4 @@
-"""HMI 준비 원장. REAL은 측정 결과 수신만 허용하며 경로·조각 승인은 분리한다."""
+"""HMI 준비 원장. 측정 신뢰도는 보존하고 BIND와 실행 검사는 공정에 요청한다."""
 import asyncio
 import json
 import math
@@ -38,6 +38,15 @@ def real_input_config(store, filename):
         n = w.get(key)
         if type(n) not in (int, float) or not math.isfinite(n) or n <= 0:
             raise ValueError(f'REAL 설정의 {key} 오류')
+    execution_file = os.getenv('C2_EXECUTION_PROFILE')
+    if execution_file:
+        execution_raw = Path(execution_file).expanduser().read_bytes()
+        execution = json.loads(execution_raw)
+        if not isinstance(execution, dict):
+            raise ValueError('REAL 실행 설정은 JSON 객체여야 합니다.')
+        store.put_asset(execution_raw, 'execution_profile_source', 'application/json', Path(execution_file).name)
+        value['execution_profile'] = execution
+        raw = encoded(value)
     encoded(value)  # 비유한 JSON 거절. 저장은 재직렬화하지 않고 원본 바이트 사용.
     sha = digest(raw)
     with store.db() as db:
@@ -58,6 +67,9 @@ def input_config(store, ros_profile=None):
         for key in ('tool_id', 'tcp_id', 'load_id', 'tool_version', 'tcp_version', 'load_version',
                     'tools_config_id', 'tools_config_version'):
             value[key] = ros_profile[key]
+    if os.getenv('C2_VIRTUAL_CELL') == '1':
+        from c2_process.virtual_cell import simulation_settings
+        value['virtual_device'] = simulation_settings()
     sha = digest(encoded(value))
     with store.db() as db:
         row = db.execute("SELECT id FROM assets WHERE kind='preparation_config' AND sha256=?", (sha,)).fetchone()
@@ -67,16 +79,16 @@ def input_config(store, ros_profile=None):
 
 
 def measured_profile(base, goal, result):
-    """정상·완전한 모의 측정만 바닥 기준 설정으로 변환. 좌표 계산/모션은 하지 않는다."""
+    """성공한 측정 기하를 바닥 기준 프로파일로 조립. 경로 계산/모션은 하지 않는다."""
     observed = result['observed_state']
     m = observed['measurement']
     if (result['outcome'] != 'SUCCEEDED' or result['error_code'] != 'NONE'
             or observed.get('partial') is not False or observed.get('stop_confirmed') is not True
-            or m.get('geometry_ready') is not True or m.get('validity') != 'SIMULATED'):
+            or m.get('geometry_ready') is not True or m.get('validity') not in (('SIMULATED',) if goal['source_mode'] == 'SIMULATION' else ('ESTIMATED', 'FORCE_CONTACT_ESTIMATE'))):
         raise ValueError('기하·측정 완료·정상 후퇴 확인이 모두 필요합니다.')
     expected = dict(preparation_id=goal['preparation_id'], measurement_id=goal['measurement_id'],
                     profile_snapshot_id=goal['input_profile_snapshot_id'], profile_sha256=goal['input_profile_sha256'],
-                    source_mode='SIMULATION', frame_id='c2_base', position_unit='m', height_source='OPERATOR_RULER')
+                    source_mode=goal['source_mode'], frame_id='c2_base', position_unit='m', height_source='OPERATOR_RULER')
     if any(m.get(k) != v for k, v in expected.items()):
         raise ValueError('측정 ID·설정·모드·단위 연결이 다릅니다.')
     def number(v):
@@ -111,7 +123,7 @@ def measured_profile(base, goal, result):
     profile = deepcopy(base)
     profile.update(label='양초 준비·측정 모의 결과', measurement_id=m['measurement_id'],
                    preparation_id=m['preparation_id'], measured_at=m['measured_at'],
-                   calibration_status='SIMULATION_ONLY', measurement_status='SIMULATED',
+                   measurement_status=m['validity'],
                    measurement_assumptions={k: m[k] for k in ('vertical_axis_assumed', 'tilt_measured', 'independent_accuracy_verified')},
                    note='HMI MOCK 합성 측정입니다. 제어 Action·실기 측정·관절 검증 완료가 아닙니다.')
     profile['surface'].update(radius_mm=r*1000, height_mm=h*1000,
@@ -138,8 +150,8 @@ class PreparationService:
             self.config = await asyncio.to_thread(real_input_config, self.owner.store, os.getenv('C2_PREPARATION_CONFIG'))
             self.timeout_s = self.config['payload']['workcell']['runtime_timeout_s']
             self.current = await asyncio.to_thread(self.owner.store.recover_preparation)
-        elif self.owner.transport == 'mock' or os.environ.get('C2_ROS_PREPARATION_SIM') == '1':
-            base = self.owner.profile['payload'] if self.owner.transport == 'ros' else None
+        elif self.owner.transport == 'mock' or os.environ.get('C2_ROS_PREPARATION_SIM') == '1' or getattr(self.owner, 'process_integration', False):
+            base = self.owner.profile['payload'] if self.owner.transport == 'ros' or getattr(self.owner, 'image_workflow', False) else None
             self.config = await asyncio.to_thread(input_config, self.owner.store, base)
             self.timeout_s = self.config['payload']['workcell']['runtime_timeout_s']
             self.current = await asyncio.to_thread(self.owner.store.recover_preparation)
@@ -171,8 +183,9 @@ class PreparationService:
         supported = self.config is not None and (self.owner.transport == 'mock' or
             getattr(self.owner.peer, 'preparation_client', None) is not None)
         return dict(supported=supported, transport='MOCK' if self.owner.transport == 'mock' else 'ROS2',
-                    reason='REAL 준비 요청 시 실제 로봇이 움직입니다. 측정 결과 수신 전용이며 경로 생성·조각은 차단합니다.' if getattr(self.owner, 'mode', 'SIMULATION') == 'REAL'
+                    reason='REAL 준비·실행 요청은 실제 로봇을 움직일 수 있습니다. 측정 후 스냅샷 BIND와 최종 실행 검사를 요청합니다.' if getattr(self.owner, 'mode', 'SIMULATION') == 'REAL'
                     else 'MOCK 모의 준비·측정입니다. 로봇은 움직이지 않습니다.' if self.owner.transport == 'mock'
+                    else 'ROS SIM 준비·측정 → 스냅샷 BIND → 이미지 경로 → 공정 요청' if getattr(self.owner, 'process_integration', False)
                     else 'ROS SIM 준비·측정 → 원본 저장 → 스냅샷 등록 시험. REAL/조각 실행은 차단합니다.' if supported
                     else 'ROS 준비 SIM 시험은 C2_ROS_PREPARATION_SIM=1 및 같은 PrepareWorkpiece 설치본이 필요합니다.',
                     input_config=self.config, current=deepcopy(self.current), ready=self.ready(),
@@ -286,7 +299,12 @@ class PreparationService:
             self.current['measurement_record'] = dict(id=raw['id'], sha256=raw['sha256'])
             if state == 'SUCCEEDED':
                 try:
-                    value = measured_profile(o.profile['payload'], goal, result)
+                    if o.image_workflow:
+                        from .ros_preparation import bound_profile
+                        value = bound_profile(o.profile['payload'], goal, result, self.config['payload'], raw)
+                        value.update(label='이미지 통합용 모의 측정 결과', note='실제 이미지 계산 + 모의 측정/가공. 실측 결과가 아님.')
+                    else:
+                        value = measured_profile(o.profile['payload'], goal, result)
                 except (ValueError, KeyError, TypeError) as exc:
                     state = 'FAILED'
                     self.current.update(error_code='NOT_READY', message=str(exc))
@@ -377,12 +395,14 @@ class PreparationService:
             elif raw['outcome'] != 'SUCCEEDED':
                 self.current.update(state='FAILED' if timed_out else raw['outcome'],
                                     error_code='TIMEOUT' if timed_out else raw['error_code'], message=raw['message'])
-            elif goal['source_mode'] == 'REAL':
-                # ESTIMATED 측정 성공과 절대좌표 승인/등록은 별개다. SIM 프로파일로 승격하지 않는다.
-                self.current.update(state='SUCCEEDED', stage='COMPLETE', binding_status='MEASUREMENT_ONLY',
-                                    message='REAL 측정 결과 수신 완료. 절대좌표·경로용 등록 미승인으로 경로 생성/조각은 차단합니다.')
             else:
-                value = bound_profile(o.profile['payload'], goal, result, self.config['payload'], record)
+                try:
+                    value = bound_profile(o.profile['payload'], goal, result, self.config['payload'], record)
+                except (ValueError, KeyError, TypeError) as exc:
+                    self.current.update(state='FAILED', binding_status='UNCONFIRMED', error_code='PROFILE_MISMATCH',
+                                        message=str(exc), updated_at=now())
+                    await self.save()
+                    return  # 측정은 성공·정지 확인됨. 실행 설정 조립 실패만 확정 실패로 기록.
                 profile = await asyncio.to_thread(o.store.profile, value)
                 active_goal = bind_goal(active_goal, record, profile)
                 self.current.update(bind_goal=deepcopy(active_goal), stage='BINDING', binding_status='PENDING')
@@ -398,7 +418,7 @@ class PreparationService:
                                         error_code=bound['error_code'], message=bound['message'])
                 else:
                     self.current.update(state='SUCCEEDED', stage='COMPLETE', profile_snapshot=profile,
-                                        binding_status='BOUND_ROS', message='ROS SIM 측정·스냅샷 등록 완료')
+                                        binding_status='BOUND_ROS', message=f"ROS {goal['source_mode']} 측정·스냅샷 등록 완료. 실행 검사는 별도 수행합니다.")
                     await self.save()
                     o.profile = profile  # BIND 성공 원장 저장 후에만 경로 생성에 공개
             self.current['updated_at'] = now()

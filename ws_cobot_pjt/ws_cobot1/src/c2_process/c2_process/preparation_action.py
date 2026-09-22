@@ -447,7 +447,7 @@ def make_measurement_runner(coordinator, *, status_adapter, measurement_adapter_
     return run
 
 
-def make_simulation_runner_factory():
+def make_simulation_runner_factory(*, status_adapter=None):
     """배포 SIM 노드용 준비 runner 팩터리.
 
     요청별 불변 설정으로 상태/측정 어댑터를 만들며, 시율 measure_workpiece가 관측값으로
@@ -460,7 +460,9 @@ def make_simulation_runner_factory():
         from .robot_adapter import MockRobotAdapter
         from .workpiece_simulation import SimulatedWorkpieceAdapter
 
-        status = MockRobotAdapter()
+        status = status_adapter if status_adapter is not None else MockRobotAdapter()
+        if type(status) is not MockRobotAdapter:
+            raise ValueError("SIM 준비는 MockRobotAdapter만 사용합니다.")
 
         def run(goal, config, cancel, feedback):
             workcell = config['workcell']

@@ -93,7 +93,7 @@ def test_rejections_and_failed_path_never_runs(client):
     assert c.post('/api/operator/assets',files={'file':('bad.png',b'bad','image/png')}).status_code==415
     _,p=generated(c)
     b=run_body(p)
-    assert c.post('/api/operator/runs',json={**b,'source_mode':'REAL'}).status_code==422
+    assert c.post('/api/operator/runs',json={**b,'source_mode':'REAL'}).status_code==409
     assert c.post('/api/operator/runs',json={**b,'operator_confirmed_fixture':False}).status_code==422
     assert c.post('/api/operator/runs',json={**b,'path_sha256':'0'*64}).status_code==409
     c.post('/api/operator/simulation/scenario',json={'scenario':'generation_failure'})
