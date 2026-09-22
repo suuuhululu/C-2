@@ -90,3 +90,11 @@ HMI도 공정 validate_real_execution_profiles와 동일하게 모든 이동 프
 양쪽 검사에 동일 설정을 전달하는 회귀시험과 실제 생성 Result → HMI 스냅샷 → 경로 생성 → REAL 공정 설정 매퍼 시험을 추가했다. 공정/경로/공통 타입 소스는 변경하지 않는다. 이 검사는 실제 로봇 이동이나 전체 DDS 왕복을 수행하지 않는다.
 
 후속 검증: 백엔드 192 passed/6 skipped(DDS opt-in), 양쪽 정적 검사 회귀시험 29개 포함. 실제 생성 Result에서 REAL 경로 생성 및 공정 설정 매퍼 통과 확인. 저장소·Git hook 8개·Issue manager 27개·diff 검사 통과. 기준 60a6862, 작업 브랜치 codex/hmi-execution-config-alignment. 실기 구동 미수행.
+
+## J6 승인 범위 변경 · 2026-09-22
+
+기준 main 2a95eba. 사용자가 전달한 세은님의 승인 변경에 따라 최종 REAL profile의 joint_check_arguments.limits_deg[5]를 [-170.0, 170.0], j6_margin_deg를 0.0으로 반영한다. J1~J5와 나머지 설정은 입력 실행 프로파일에서 보존한다. SIM 프로파일에는 적용하지 않는다.
+
+실측 스냅샷 조립은 입력의 깊은 복사에서 수행하며 기존 스냅샷을 수정하지 않는다. 변경된 내용은 기존 Storage.profile을 통해 새 ID·원본 바이트 SHA-256으로 등록하고, 그 참조를 BIND_SNAPSHOT에 전달한다. 기존 경로의 스냅샷/해시만 바꿔 재사용하지 않는다. 변경 이후에는 새 스냅샷으로 경로를 생성하고 미리보기·최종 관절검사를 다시 진행한다.
+
+검증: 관련 HMI·실제 생성 Result→경로→공정 매퍼·준비/BIND 시험 35 passed, 2 skipped(DDS opt-in). J1~J5 보존, 입력 설정 불변, 이전 스냅샷 불변, 새 ID·해시 발급 및 BIND 참조를 확인했다. 저장소·diff 검사 통과. 실제 로봇 구동과 운영 스냅샷 발급은 미수행: 확인한 로컬 HMI 저장소에 실측 REAL 스냅샷이 없었다. 테스트 ID·해시를 운영 발급값으로 사용하지 않는다.

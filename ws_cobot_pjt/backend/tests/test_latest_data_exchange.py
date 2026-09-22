@@ -54,3 +54,5 @@ def test_actual_real_result_generates_real_path(tmp_path, monkeypatch):
                                                    profile['id'], adapter=adapter)
         assert settings['context'].motion_profiles == value['execution_context']['motion_profiles']
         assert not adapter.calls
+        assert settings['context'].joint_limits_deg[5] == [-170.0, 170.0]
+        assert settings['context'].j6_margin_deg == 0.0
