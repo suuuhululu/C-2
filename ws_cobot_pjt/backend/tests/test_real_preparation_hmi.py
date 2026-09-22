@@ -283,3 +283,36 @@ def test_current_confidence_overwrites_template(tmp_path, known, verified):
     for key in ('absolute_top_verification_known', 'absolute_top_verified'):
         assert result[key] is raw[key]
         assert result['measurement_assumptions'][key] is raw[key]
+
+
+def test_real_j6_approval_preserves_other_axes_and_registers_new_snapshot(tmp_path):
+    from app.ros_preparation import real_bound_profile, display_result, bind_goal, action_goal
+    from app.storage import digest
+    config = json.loads(config_file(tmp_path).read_text())
+    config['execution_profile'] = execution_template(config)
+    joints = config['execution_profile']['joint_check_arguments']
+    # 서로 다른 기존 승인값으로 J1~J5가 덮어써지지 않는지 검사한다.
+    joints['limits_deg'] = [[-150.+i, 150.-i] for i in range(5)] + [[-180., 180.]]
+    joints['j6_margin_deg'] = 5.
+    before = deepcopy(config)
+    goal = dict(request_id=uid(), preparation_id=uid(), measurement_id=uid(), source_mode='REAL', height_m=.15,
+                input_profile_snapshot_id=uid(), input_profile_sha256='a'*64)
+    raw = json.loads((ROOT/'ws_cobot1/src/c2_process/test/fixtures/prepare_workpiece_action_samples/success.json').read_text())['result']
+    raw.update(source_mode='REAL', validity='ESTIMATED', preparation_id=goal['preparation_id'], measurement_id=goal['measurement_id'])
+    record = dict(id=uid(), sha256='b'*64)
+    value = real_bound_profile(goal, display_result(raw, goal), config, record)
+    assert value['joint_check_arguments']['limits_deg'][:5] == joints['limits_deg'][:5]
+    assert value['joint_check_arguments']['limits_deg'][5] == [-170.0, 170.0]
+    assert value['joint_check_arguments']['j6_margin_deg'] == 0.0
+    assert config == before
+    old_value = deepcopy(value)
+    old_value['joint_check_arguments'] = deepcopy(joints)
+    store = Storage(tmp_path/'snapshots')
+    old = store.profile(old_value)
+    new = store.profile(value)
+    assert new['id'] != old['id'] and new['sha256'] != old['sha256']
+    assert digest(store.read_asset(new['id'])) == new['sha256']
+    assert json.loads(store.read_asset(old['id'], old['sha256'])) == old_value
+    bound = bind_goal(action_goal(goal), record, new)
+    assert bound['profile_snapshot_id'] == new['id']
+    assert bound['profile_sha256'] == new['sha256']

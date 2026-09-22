@@ -108,6 +108,10 @@ def real_bound_profile(goal, display, config, record):
     from .real_execution_config import validate_real_execution_config
     template = validate_real_execution_config(config)
     profile = measured_profile(template, goal, display)
+    # 2026-09-22 사용자 전달 승인: J6만 ±170°, 추가 여유 0°. J1~J5는 원본 유지.
+    # measured_profile은 깊은 복사이므로 입력 설정과 기존 저장 스냅샷은 변경하지 않는다.
+    profile['joint_check_arguments']['limits_deg'][5] = [-170.0, 170.0]
+    profile['joint_check_arguments']['j6_margin_deg'] = 0.0
     m = display['observed_state']['measurement']
     if m.get('work_v_origin', 'TOP') != 'TOP' or m.get('work_v_positive_direction', 'DOWN') != 'DOWN':
         raise ValueError('측정 작업 범위는 TOP/DOWN 계약이어야 합니다.')
