@@ -141,11 +141,12 @@ class ExecutionInputs:
     adapter: object
     workcell: Mapping
     calibration_profiles: Mapping
-    calibration: TipCalibration
+    calibration: Optional[TipCalibration]
     calibration_snapshot_id: str
-    tip_tolerance_m: float
+    tip_tolerance_m: Optional[float]
     joint_limits_deg: object = None
     j6_margin_deg: Optional[float] = None
+    tool_offset_m: object = None
 
 
 @dataclass(frozen=True)
@@ -188,7 +189,7 @@ class InputsUnavailable(Exception):
 def build_execution_settings(goal, *, evidence, adapter, workcell, calibration_record,
                              calibration_snapshot_id, calibration_profiles, motion_profiles,
                              tool_profile, stop_profile, tip_tolerance_m, joint_limits_deg,
-                             j6_margin_deg):
+                             j6_margin_deg, require_tool_verification=True, tool_offset_m=None):
     """매퍼가 추출한 기존 함수 인자를 묶는다. 팀 파일 내부 배치를 정의하지 않는다.
 
     호출자는 각 설정이 검증된 스냅샷에 속함을 확인해야 한다. adapter/evidence는
@@ -210,10 +211,13 @@ def build_execution_settings(goal, *, evidence, adapter, workcell, calibration_r
         invalid("실행 근거의 모드 불일치")
     if (not isinstance(calibration_snapshot_id, str) or not calibration_snapshot_id
             or calibration_snapshot_id != evidence.profile_snapshot_id):
-        raise InputsUnavailable("보정 기록의 스냅샷 연결 근거 불일치", "PROFILE_MISMATCH")
-    for name, value in (("workcell", workcell), ("calibration_record", calibration_record),
-                        ("calibration_profiles", calibration_profiles), ("motion_profiles", motion_profiles),
-                        ("tool_profile", tool_profile), ("stop_profile", stop_profile)):
+        raise InputsUnavailable("도구 오프셋의 스냅샷 연결 근거 불일치", "PROFILE_MISMATCH")
+    required_mappings = (("workcell", workcell), ("motion_profiles", motion_profiles),
+                         ("tool_profile", tool_profile), ("stop_profile", stop_profile))
+    if require_tool_verification:
+        required_mappings += (("calibration_record", calibration_record),
+                              ("calibration_profiles", calibration_profiles))
+    for name, value in required_mappings:
         if not isinstance(value, Mapping) or not value:
             invalid(f"{name} 설정 없음 또는 형식 오류")
         try:
@@ -223,29 +227,35 @@ def build_execution_settings(goal, *, evidence, adapter, workcell, calibration_r
     if (not vector(workcell.get("axis_xy_m"), 2) or not finite(workcell.get("radius_m"))
             or workcell["radius_m"] <= 0 or not finite(workcell.get("top_z_m"))):
         invalid("작업대 axis_xy_m/radius_m/top_z_m 오류 (단위 m)")
-    try:
-        calibration = TipCalibration(**copy.deepcopy(dict(calibration_record)))
-    except TypeError as exc:
-        invalid(f"TipCalibration 필드 오류: {exc}")
-    if (calibration.tool_id != "engraving_drill" or not finite(calibration.projection_m)
-            or not 0 < calibration.projection_m <= 0.110
-            or not finite(calibration.lateral_x_m) or not vector(calibration.offset_tool_m, 3)
-            or not vector(calibration.axis_fit_xy_m, 2) or not finite(calibration.z_m)
-            or not finite(calibration.residual_rms_m) or calibration.residual_rms_m < 0
-            or type(calibration.side) is not int or calibration.side not in (-1, 1)):
-        invalid("드릴 보정 기록의 도구/치수/방향 오류")
-    expected = [calibration.lateral_x_m, -calibration.projection_m, 0.0]
-    if any(not math.isclose(a, b, rel_tol=0, abs_tol=1e-9)
-           for a, b in zip(calibration.offset_tool_m, expected)):
-        invalid("돌출 길이·옆 어긋남과 offset_tool_m 불일치")
-    if not isinstance(calibration_profiles.get("travel"), Mapping) or not calibration_profiles["travel"]:
-        invalid("도구 확인 travel 프로파일 없음")
-    if (not finite(tip_tolerance_m) or tip_tolerance_m <= 0
-            or not isinstance(joint_limits_deg, (list, tuple)) or len(joint_limits_deg) != 6
+    calibration = None
+    if require_tool_verification:
+        try:
+            calibration = TipCalibration(**copy.deepcopy(dict(calibration_record)))
+        except TypeError as exc:
+            invalid(f"TipCalibration 필드 오류: {exc}")
+        if (calibration.tool_id != "engraving_drill" or not finite(calibration.projection_m)
+                or not 0 < calibration.projection_m <= 0.110
+                or not finite(calibration.lateral_x_m) or not vector(calibration.offset_tool_m, 3)
+                or not vector(calibration.axis_fit_xy_m, 2) or not finite(calibration.z_m)
+                or not finite(calibration.residual_rms_m) or calibration.residual_rms_m < 0
+                or type(calibration.side) is not int or calibration.side not in (-1, 1)):
+            invalid("드릴 보정 기록의 도구/치수/방향 오류")
+        expected = [calibration.lateral_x_m, -calibration.projection_m, 0.0]
+        if any(not math.isclose(a, b, rel_tol=0, abs_tol=1e-9)
+               for a, b in zip(calibration.offset_tool_m, expected)):
+            invalid("돌출 길이·옆 어긋남과 offset_tool_m 불일치")
+        if not isinstance(calibration_profiles.get("travel"), Mapping) or not calibration_profiles["travel"]:
+            invalid("도구 확인 travel 프로파일 없음")
+        if not finite(tip_tolerance_m) or tip_tolerance_m <= 0:
+            invalid("도구 확인 허용차 설정 오류")
+        tool_offset_m = calibration.offset_tool_m
+    if not vector(tool_offset_m, 3):
+        invalid("준비 결과에 연결된 드릴 오프셋 없음")
+    if (not isinstance(joint_limits_deg, (list, tuple)) or len(joint_limits_deg) != 6
             or any(not vector(pair, 2) or pair[0] >= pair[1] for pair in joint_limits_deg)
             or not finite(j6_margin_deg) or j6_margin_deg < 0
             or 2 * j6_margin_deg >= joint_limits_deg[5][1] - joint_limits_deg[5][0]):
-        invalid("허용차 또는 관절 한계·J6 여유 설정 오류")
+        invalid("관절 한계·J6 여유 설정 오류")
     # J6 margin은 추가 여유다. limits에 여유가 반영됐다면 0을 허용한다.
     # JSON 설정은 복사하고 런타임 어댑터는 동일 객체를 유지한다. 요청마다 새 취소 이벤트.
     return dict(evidence=evidence, adapter=adapter,
@@ -255,9 +265,10 @@ def build_execution_settings(goal, *, evidence, adapter, workcell, calibration_r
                                          joint_limits_deg=copy.deepcopy(joint_limits_deg),
                                          j6_margin_deg=j6_margin_deg),
                 workcell=copy.deepcopy(dict(workcell)), calibration=calibration,
-                calibration_profiles=copy.deepcopy(dict(calibration_profiles)),
+                calibration_profiles=copy.deepcopy(dict(calibration_profiles or {})),
                 calibration_snapshot_id=calibration_snapshot_id, tip_tolerance_m=tip_tolerance_m,
-                joint_limits_deg=copy.deepcopy(joint_limits_deg), j6_margin_deg=j6_margin_deg)
+                joint_limits_deg=copy.deepcopy(joint_limits_deg), j6_margin_deg=j6_margin_deg,
+                tool_offset_m=copy.deepcopy(list(tool_offset_m)))
 
 
 
@@ -305,12 +316,108 @@ def resolve_simulation_settings(snapshot, goal, *, evidence, adapter):
         joint_limits_deg=joints.get("limits_deg"), j6_margin_deg=joints.get("j6_margin_deg"))
 
 
+def resolve_real_execution_settings(snapshot, goal, profile_snapshot_id, *, adapter):
+    """확정된 REAL profile 배치를 기존 ``ExecutionInputs`` 설정으로 변환한다.
+
+    HMI 저장소의 등록 ID는 profile 본문에 자기참조로 넣지 않으므로 호출자가
+    대조를 마친 ``profile_snapshot_id``를 별도로 전달한다. 누락값이나 미리보기
+    전용 표시는 기본값으로 보완하지 않고 모션 전에 거절한다.
+    """
+    def unavailable(message, code="NOT_READY"):
+        raise InputsUnavailable(message, code)
+
+    def finite(value):
+        return type(value) in (int, float) and math.isfinite(value)
+
+    def vector(value, length):
+        return (isinstance(value, (list, tuple)) and len(value) == length
+                and all(finite(item) for item in value))
+
+    if not isinstance(snapshot, Mapping) or not isinstance(goal, Mapping):
+        unavailable("REAL 설정/요청 형식 오류", "INVALID_INPUT")
+    if snapshot.get("source_mode") != "REAL" or goal.get("source_mode") != "REAL":
+        unavailable("REAL 설정/요청 모드 불일치", "SOURCE_MODE_MISMATCH")
+    if (snapshot.get("schema_version") != 2 or snapshot.get("frame_id") != "c2_base"
+            or snapshot.get("tool_id") != "engraving_drill"):
+        unavailable("REAL profile 스키마·좌표계·도구 불일치", "INVALID_INPUT")
+    if (snapshot.get("test_only") is not False
+            or snapshot.get("real_execution_allowed") is not True
+            or snapshot.get("preview_only") is not False
+            or snapshot.get("geometry_ready") is not True):
+        unavailable("실행 승인되지 않은 REAL profile")
+    if snapshot.get("gripper_open_allowed") is not False:
+        unavailable("고정 드릴 profile의 그리퍼 열기 금지 설정 불일치", "INVALID_INPUT")
+    if (not isinstance(profile_snapshot_id, str) or not profile_snapshot_id
+            or not isinstance(snapshot.get("tcp_id"), str) or not snapshot["tcp_id"]
+            or not isinstance(snapshot.get("load_id"), str) or not snapshot["load_id"]):
+        unavailable("등록 snapshot ID 또는 TCP/load ID 없음", "PROFILE_MISMATCH")
+
+    workcell = snapshot.get("workcell")
+    surface = snapshot.get("surface")
+    if not isinstance(workcell, Mapping) or not isinstance(surface, Mapping):
+        unavailable("REAL workcell/surface 설정 없음", "INVALID_INPUT")
+    if (not vector(workcell.get("axis_xy_m"), 2)
+            or not finite(workcell.get("radius_m")) or workcell["radius_m"] <= 0
+            or not finite(workcell.get("top_z_m"))):
+        unavailable("REAL workcell 중심·반지름·윗면 높이 누락", "INVALID_INPUT")
+    origin = surface.get("axis_origin_m")
+    radius_mm, height_mm = surface.get("radius_mm"), surface.get("height_mm")
+    if (surface.get("kind") != "cylinder" or not vector(origin, 3)
+            or not finite(radius_mm) or radius_mm <= 0
+            or not finite(height_mm) or height_mm <= 0):
+        unavailable("REAL surface 원통 기하 누락", "INVALID_INPUT")
+    expected_top = origin[2] + height_mm / 1000.0
+    if (not math.isclose(workcell["axis_xy_m"][0], origin[0], rel_tol=0, abs_tol=1e-9)
+            or not math.isclose(workcell["axis_xy_m"][1], origin[1], rel_tol=0, abs_tol=1e-9)
+            or not math.isclose(workcell["radius_m"], radius_mm / 1000.0, rel_tol=0, abs_tol=1e-9)
+            or not math.isclose(workcell["top_z_m"], expected_top, rel_tol=0, abs_tol=1e-9)):
+        unavailable("REAL workcell과 surface 기하 불일치", "PROFILE_MISMATCH")
+
+    execution = snapshot.get("execution_context")
+    joints = snapshot.get("joint_check_arguments")
+    if not all(isinstance(value, Mapping) for value in (execution, joints)):
+        unavailable("REAL execution_context/관절 설정 없음", "INVALID_INPUT")
+    if execution.get("source_mode") != "REAL":
+        unavailable("REAL execution_context 모드 불일치", "SOURCE_MODE_MISMATCH")
+    stop_profile = execution.get("stop_profile")
+    if (not isinstance(stop_profile, Mapping)
+            or type(stop_profile.get("mode")) is not int
+            or not finite(stop_profile.get("confirmation_timeout_s"))
+            or stop_profile["confirmation_timeout_s"] <= 0):
+        unavailable("REAL 정지 방식 또는 확인 timeout 누락", "INVALID_INPUT")
+
+    try:
+        # 승인 상태 재검사가 아니라 최종 실행계획 IK를 시작할 현재 관절 표본이다.
+        state = adapter.observe()
+    except Exception as exc:
+        unavailable(f"최종 관절 검사 시작 상태 조회 실패: {exc}", "COMMUNICATION_LOST")
+    evidence = PreconditionEvidence(
+        runtime_mode="REAL", robot_state=state,
+        profile_snapshot_id=profile_snapshot_id)
+    tip = snapshot.get("tip_calibration")
+    tool_offset_m = tip.get("offset_tool_m") if isinstance(tip, Mapping) else None
+    return build_execution_settings(
+        goal, evidence=evidence, adapter=adapter, workcell=workcell,
+        calibration_record=None,
+        calibration_snapshot_id=profile_snapshot_id,
+        calibration_profiles=None,
+        motion_profiles=execution.get("motion_profiles"),
+        tool_profile=execution.get("tool_profile"),
+        stop_profile=stop_profile,
+        tip_tolerance_m=None,
+        joint_limits_deg=joints.get("limits_deg"),
+        j6_margin_deg=joints.get("j6_margin_deg"),
+        require_tool_verification=False, tool_offset_m=tool_offset_m)
+
+
 def load_execution_inputs(goal, *, path_file=None, snapshot_file=None,
                           path_bytes=None, snapshot_bytes=None, result_file=None,
-                          generation_result=None, snapshot_metadata=None, resolve_settings=None):
+                          generation_result=None, validation_report_file=None,
+                          validation_report_bytes=None, snapshot_metadata=None,
+                          resolve_settings=None):
     """호출자가 지정한 경로·스냅샷과 파일/메모리 결과를 읽는다. 새 ROS 필드 없음.
 
-    resolve_settings(snapshot, goal)는 승인/현장 근거와 스냅샷 내부 설정을
+    resolve_settings(snapshot, goal, profile_snapshot_id)는 승인/현장 근거와 스냅샷 내부 설정을
     ExecutionInputs의 나머지 필드로 매핑한다. 팀 스냅샷 배치는 아직 미확정이라
     기본 구현으로 추측하지 않는다. 이 함수와 매퍼는 모션을 호출하지 않는다.
     경로는 Goal/브라우저 입력이 아니라 호출자의 명시적 인자로만 받는다.
@@ -386,6 +493,31 @@ def load_execution_inputs(goal, *, path_file=None, snapshot_file=None,
             or not isinstance(validation.get("report_id"), str) or not validation["report_id"]
             or validation["report_id"] != result.get("validation_report_id")):
         fail("VALIDATION_UNAVAILABLE", "경로·결과의 검증 결과/보고서 ID 불일치")
+    if validation_report_file is not None or validation_report_bytes is not None:
+        _, report = read_json(validation_report_file, validation_report_bytes, "검증 보고서")
+        if (report.get("passed") is not True or report.get("errors") not in (None, [])
+                or report.get("mapping_failures") not in (None, [])):
+            fail("VALIDATION_UNAVAILABLE", "검증 보고서가 통과/완전한 결과가 아님")
+        if ("path_id" in report and report["path_id"] != path["path_id"]
+                or "path_version" in report and report["path_version"] != path["path_version"]):
+            fail("PATH_MISMATCH", "검증 보고서의 경로 ID/버전 불일치")
+        checks, not_checked = report.get("checks"), report.get("not_checked")
+        if (not isinstance(checks, list) or not checks
+                or any(not isinstance(item, Mapping) or item.get("passed") is not True
+                       for item in checks)
+                or not isinstance(not_checked, list)
+                or any(not isinstance(item, str) for item in not_checked)):
+            fail("VALIDATION_UNAVAILABLE", "검증 보고서 항목 또는 미검사 목록 형식 오류")
+        expected_validation = {
+            "report_id": result.get("validation_report_id"),
+            "passed": True,
+            "checks": checks,
+            "not_checked": not_checked,
+        }
+        if validation != expected_validation:
+            fail("VALIDATION_UNAVAILABLE", "경로 내부 검증 요약과 원본 보고서 불일치")
+    elif goal["source_mode"] == "REAL":
+        fail("VALIDATION_UNAVAILABLE", "REAL 실행에는 원본 validation report가 필요")
     config = path.get("config")
     if not isinstance(config, dict):
         fail("INVALID_INPUT", "경로 config 없음")
@@ -426,11 +558,15 @@ def load_execution_inputs(goal, *, path_file=None, snapshot_file=None,
     if not callable(resolve_settings):
         fail("NOT_READY", "파일 대조 완료; 스냅샷 보정·프로파일/현장 근거 매퍼 미연결")
     # 매퍼가 원본 파일 해시와 연결된 데이터를 수정할 수 없게 복사본만 전달.
-    settings = resolve_settings(copy.deepcopy(snapshot), dict(goal))
+    settings = resolve_settings(copy.deepcopy(snapshot), dict(goal), snapshot_id)
     if not isinstance(settings, Mapping):
         fail("NOT_READY", "설정 매퍼는 ExecutionInputs의 나머지 필드 Mapping을 반환해야 함")
     fields = {"evidence", "context", "adapter", "workcell", "calibration_profiles", "calibration",
-              "calibration_snapshot_id", "tip_tolerance_m", "joint_limits_deg", "j6_margin_deg"}
+              "calibration_snapshot_id", "tip_tolerance_m", "joint_limits_deg", "j6_margin_deg",
+              "tool_offset_m"}
+    legacy_fields = fields - {"tool_offset_m"}
+    if set(settings) == legacy_fields and isinstance(settings.get("calibration"), TipCalibration):
+        settings = dict(settings, tool_offset_m=copy.deepcopy(settings["calibration"].offset_tool_m))
     if set(settings) != fields:
         fail("NOT_READY", f"설정 매퍼 필드 누락/초과: {sorted(set(settings) ^ fields)}")
     evidence = settings["evidence"]
@@ -450,8 +586,8 @@ def make_asset_bundle_loader(resolve_assets, resolve_settings):
     """HMI 저장소 조회 결과를 기존 실행 검사기에 연결한다.
 
     ``resolve_assets(goal)``은 요청의 ID·버전으로 조회한 원본을 다음 키로
-    반환한다: path_bytes, snapshot_bytes, generation_result,
-    snapshot_metadata. 이 함수는 저장소 주소나 JSON 내부 설정 배치를 새로
+        반환한다: path_bytes, snapshot_bytes, generation_result,
+        validation_report_bytes, snapshot_metadata. 이 함수는 저장소 주소나 JSON 내부 설정 배치를 새로
     정하지 않는다. 조회 구현은 HMI 저장소가 보존한 원본 바이트를 그대로
     반환해야 하며, 아래 ``load_execution_inputs``가 Goal·경로·결과·스냅샷의
     ID와 SHA-256을 다시 대조한다.
@@ -468,7 +604,8 @@ def make_asset_bundle_loader(resolve_assets, resolve_settings):
             raise InputsUnavailable(f"HMI 실행 자산 조회 실패: {exc}") from exc
         if not isinstance(assets, Mapping):
             raise InputsUnavailable("HMI 실행 자산 조회 결과 형식 오류", "INVALID_INPUT")
-        required = {"path_bytes", "snapshot_bytes", "generation_result", "snapshot_metadata"}
+        required = {"path_bytes", "snapshot_bytes", "generation_result",
+                    "validation_report_bytes", "snapshot_metadata"}
         if set(assets) != required:
             raise InputsUnavailable(
                 f"HMI 실행 자산 필드 누락/초과: {sorted(set(assets) ^ required)}",
@@ -478,6 +615,7 @@ def make_asset_bundle_loader(resolve_assets, resolve_settings):
             path_bytes=assets["path_bytes"],
             snapshot_bytes=assets["snapshot_bytes"],
             generation_result=assets["generation_result"],
+            validation_report_bytes=assets["validation_report_bytes"],
             snapshot_metadata=assets["snapshot_metadata"],
             resolve_settings=resolve_settings,
         )
@@ -525,15 +663,19 @@ def make_hmi_asset_resolver(backend_url, *, fetch_bytes=None, timeout_s=5.0):
             raise InputsUnavailable(f"HMI 경로 메타데이터 JSON 오류: {exc}", "INVALID_INPUT") from exc
         if not isinstance(metadata, dict):
             raise InputsUnavailable("HMI 경로 메타데이터는 JSON 객체여야 함", "INVALID_INPUT")
-        path_url = metadata.get("path_url")
+        path_asset_id = metadata.get("path_asset_id")
+        validation_report_id = metadata.get("validation_report_id")
         snapshot_id = metadata.get("profile_snapshot_id")
         snapshot_sha256 = metadata.get("profile_sha256")
-        if (not isinstance(path_url, str) or not path_url
+        if (not isinstance(path_asset_id, str) or not path_asset_id
+                or not isinstance(validation_report_id, str) or not validation_report_id
                 or not isinstance(snapshot_id, str) or not snapshot_id
                 or not isinstance(snapshot_sha256, str) or len(snapshot_sha256) != 64):
             raise InputsUnavailable("HMI 경로의 원본 경로/스냅샷 참조 없음", "NOT_READY")
         return {
-            "path_bytes": fetch(path_url),
+            "path_bytes": fetch(f"api/operator/assets/{quote(path_asset_id, safe='')}/content"),
+            "validation_report_bytes": fetch(
+                f"api/operator/assets/{quote(validation_report_id, safe='')}/content"),
             "snapshot_bytes": fetch(f"api/operator/assets/{quote(snapshot_id, safe='')}/content"),
             "generation_result": metadata,
             "snapshot_metadata": {"id": snapshot_id, "sha256": snapshot_sha256},
@@ -632,7 +774,7 @@ class ObservationCache:
         out = dict(joints=[], joints_quality="UNKNOWN", joints_stamp_ns=0,
                    tcp_pose=None, tcp_quality="UNKNOWN", tcp_stamp_ns=0, frame_id="",
                    robot_connection_state="UNKNOWN", robot_mode="UNKNOWN",
-                   robot_quality="UNKNOWN", robot_stamp_ns=0,
+                   robot_quality="UNKNOWN", robot_stamp_ns=0, robot_state_code=None,
                    temperature=[], temperature_quality="UNSUPPORTED")
         if sample is None:
             return out
@@ -658,6 +800,7 @@ class ObservationCache:
         code = getattr(state, "robot_state", None)
         if type(code) is int and code >= 0:
             out.update(robot_quality=quality, robot_stamp_ns=stamp,
+                       robot_state_code=code,
                        robot_connection_state="CONNECTED" if quality == "VALID" else "UNKNOWN")
             # robot_state는 동작 상태이며 수동/자동 robot_mode와 다르다. 모드는 미확인 유지.
         return out
@@ -677,6 +820,30 @@ class ObservationCache:
             measured_at=measured,
         )
         self.capture(state, offset, max_age_s, now=now, utc_ns=utc_ns)
+
+
+def prepared_binding_observation_valid(values, authority_owner) -> bool:
+    """준비 뒤 상시 관측이 기존 BIND를 계속 보유할 수 있는지만 판정한다.
+
+    새 실행 승인을 만들거나 기본 상태를 재검사하지 않는다. 준비 때 확인한
+    제어권/연결 근거가 상실·만료되거나 확인된 보호정지 상태가 되면 False다.
+    """
+    if not isinstance(values, Mapping):
+        return False
+    if (values.get("robot_connection_state") != "CONNECTED"
+            or values.get("robot_quality") != "VALID"):
+        return False
+    # 설치 드라이버의 기존 상태 코드 계약. 미지원/미확인 코드는 승인으로 만들지 않는다.
+    if values.get("robot_state_code") in {3, 5, 6, 9, 10}:
+        return False
+    cache = getattr(authority_owner, "cache", None)
+    fresh = getattr(cache, "fresh", None)
+    if not callable(fresh):
+        return False
+    observation = fresh()
+    return bool(observation is not None
+                and observation.active and observation.connected
+                and observation.valid and observation.has_control)
 
 
 class ProcessAlarms:
@@ -1072,14 +1239,22 @@ class ProcessCoordinator:
             if (record is None or record[1] is not loaded.adapter
                     or binding != (config.get("profile_snapshot_id"), config.get("profile_sha256"))):
                 return StepResult("FAILED", "NOT_READY", "이번 경로에 연결된 준비 성공 기록 없음", "precheck")
-        if (not isinstance(loaded.calibration, TipCalibration)
-                or loaded.calibration.tool_id != "engraving_drill"
-                or not loaded.calibration_snapshot_id
+        if (not loaded.calibration_snapshot_id
                 or loaded.calibration_snapshot_id != config.get("profile_snapshot_id")):
-            return StepResult("FAILED", "PROFILE_MISMATCH", "저장된 드릴 보정과 경로 스냅샷 불일치", "precheck")
-        if (not isinstance(loaded.tip_tolerance_m, (int, float))
-                or not math.isfinite(loaded.tip_tolerance_m) or loaded.tip_tolerance_m <= 0):
-            return StepResult("FAILED", "NOT_READY", "승인된 드릴 끝 확인 허용차 없음", "precheck")
+            return StepResult("FAILED", "PROFILE_MISMATCH", "저장된 드릴 오프셋과 경로 스냅샷 불일치", "precheck")
+        offset = loaded.tool_offset_m
+        if offset is None and isinstance(loaded.calibration, TipCalibration):
+            offset = loaded.calibration.offset_tool_m
+        if (not isinstance(offset, (list, tuple)) or len(offset) != 3
+                or any(type(v) not in (int, float) or not math.isfinite(v) for v in offset)):
+            return StepResult("FAILED", "NOT_READY", "승인된 드릴 오프셋 없음", "precheck")
+        if not prepared:
+            if (not isinstance(loaded.calibration, TipCalibration)
+                    or loaded.calibration.tool_id != "engraving_drill"):
+                return StepResult("FAILED", "PROFILE_MISMATCH", "저장된 드릴 보정과 경로 스냅샷 불일치", "precheck")
+            if (not isinstance(loaded.tip_tolerance_m, (int, float))
+                    or not math.isfinite(loaded.tip_tolerance_m) or loaded.tip_tolerance_m <= 0):
+                return StepResult("FAILED", "NOT_READY", "승인된 드릴 끝 확인 허용차 없음", "precheck")
         context = loaded.context
         context.cancel = active.cancel
         with self._lock:
@@ -1099,7 +1274,6 @@ class ProcessCoordinator:
                 limits = loaded.joint_limits_deg
                 margin = loaded.j6_margin_deg
                 current = getattr(state, "joints_rad", None)
-                offset = loaded.calibration.offset_tool_m
                 if (not isinstance(limits, (list, tuple)) or len(limits) != 6
                         or any(not isinstance(pair, (list, tuple)) or len(pair) != 2
                                or any(not isinstance(v, (int, float)) or not math.isfinite(v) for v in pair)
@@ -1153,7 +1327,7 @@ class ProcessCoordinator:
             if self.runtime_mode == "REAL":
                 # 생성 직후 어댑터의 offset은 None이다. 저장 보정을 먼저 연결해야
                 # verify의 복원과 이후 경로 실행이 모두 도구 끝 기준이 된다.
-                loaded.adapter.set_tool_offset(list(loaded.calibration.offset_tool_m))
+                loaded.adapter.set_tool_offset(list(offset))
             return self.verify_tip_fn(loaded.adapter, dict(loaded.workcell),
                                       dict(loaded.calibration_profiles), loaded.calibration,
                                       context, tol_m=float(loaded.tip_tolerance_m))
@@ -1176,7 +1350,7 @@ class ProcessCoordinator:
         if prepared:
             # 저장된 장착 기준을 적용할 뿐 재측정/자동 홈 동작을 추가하지 않는다.
             def prepared_engrave(progress):
-                loaded.adapter.set_tool_offset(list(loaded.calibration.offset_tool_m))
+                loaded.adapter.set_tool_offset(list(offset))
                 return engrave(progress)
             result = run_prepared_process(context, precheck=reported_precheck,
                                           engrave=prepared_engrave, on_phase=on_phase,
@@ -1504,6 +1678,15 @@ def create_ros_node(load_inputs: Callable[[Mapping], ExecutionInputs] = _missing
             msg.elapsed_s = max(0.0, time.monotonic() - started) if started else 0.0
             msg.requested_tool_id = "engraving_drill"
             values = self.observations.values()
+            with self.coordinator._lock:
+                has_bound_preparation = bool(self.coordinator._preparation_bindings)
+            if (self.coordinator.runtime_mode == "REAL" and self.preparation
+                    and has_bound_preparation):
+                authority_owner = getattr(self, "real_preparation_observations", None)
+                if not prepared_binding_observation_valid(values, authority_owner):
+                    self.preparation.invalidate()
+                    self.get_logger().warn(
+                        "준비 BIND 무효화: 제어권/로봇 연결·관측 상실 또는 보호정지")
             msg.joints = values["joints"]
             msg.joints_quality = values["joints_quality"]
             msg.joints_measured_at = _time_from_ns(values["joints_stamp_ns"])
@@ -1678,8 +1861,10 @@ def make_simulation_file_loader(*, path_file, result_file, snapshot_file,
     adapter = MockRobotAdapter()
     initialized = False
 
-    def resolve(snapshot, goal):
+    def resolve(snapshot, goal, registered_snapshot_id):
         nonlocal initialized
+        if registered_snapshot_id != snapshot_id:
+            raise InputsUnavailable("SIM 등록 snapshot ID 불일치", "PROFILE_MISMATCH")
         evidence = PreconditionEvidence(
             runtime_mode="SIMULATION", robot_state=adapter.observe(),
             control_authority_confirmed=True,  # 프로세스 전용 Mock 제어권이며 실물 확인이 아니다.
@@ -1790,6 +1975,43 @@ def _parse_real_preparation_args(argv):
     return options, argv[split:]
 
 
+def _parse_real_process_args(argv):
+    """준비와 조각을 함께 제공하는 REAL 공정 노드 인자를 검사한다."""
+    parser = argparse.ArgumentParser(description="C-2 REAL 준비·조각 통합 공정 노드")
+    parser.add_argument("--preparation-backend-url", required=True,
+                        help="준비·실행 관리 자산을 조회할 HMI backend URL")
+    parser.add_argument("--preparation-journal-path", required=True,
+                        help="준비 요청 중복 방지 SQLite 원장 경로")
+    parser.add_argument("--execution-journal-path", required=True,
+                        help="실행 요청 중복 방지 SQLite 저널 경로")
+    parser.add_argument("--controller-prefix", required=True,
+                        help="두산 제어기 ROS 서비스 prefix")
+    parser.add_argument("--control-authority-topic",
+                        default="/dsr01/dsr_controller2/control_authority")
+    parser.add_argument("--control-authority-max-age-s", type=float, default=0.5)
+    argv = list(argv)
+    split = argv.index("--ros-args") if "--ros-args" in argv else len(argv)
+    options = parser.parse_args(argv[:split])
+
+    from urllib.parse import urlparse
+    endpoint = urlparse(options.preparation_backend_url)
+    if endpoint.scheme not in {"http", "https"} or not endpoint.netloc:
+        parser.error("--preparation-backend-url은 http(s) 절대 URL이어야 함")
+    if not options.controller_prefix.startswith("/") or options.controller_prefix == "/":
+        parser.error("--controller-prefix는 /로 시작하는 구체적인 ROS prefix여야 함")
+    if not options.control_authority_topic.startswith("/"):
+        parser.error("--control-authority-topic은 절대 ROS 이름이어야 함")
+    if (not math.isfinite(options.control_authority_max_age_s)
+            or not 0 < options.control_authority_max_age_s <= 0.5):
+        parser.error("--control-authority-max-age-s는 0초 초과 0.5초 이하여야 함")
+    for name in ("preparation_journal_path", "execution_journal_path"):
+        value = Path(getattr(options, name)).expanduser()
+        if not value.name or not value.parent.is_dir():
+            parser.error(f"--{name.replace('_', '-')} 상위 디렉터리가 존재하는 파일 경로 필요")
+        setattr(options, name, value)
+    return options, argv[split:]
+
+
 def _real_preparation_options(node, options):
     from .real_preparation_observations import RealPreparationObservations
     observations = RealPreparationObservations(
@@ -1846,6 +2068,64 @@ def real_preparation_main(args=None, *, observation_options_factory=None,
         executor.add_node(node)
         node.get_logger().info(
             "REAL 준비 측정 전용 노드 기동: /c2/prepare_workpiece, ExecuteProcess 비활성")
+        executor.spin()
+    finally:
+        executor.shutdown()
+        if node is not None:
+            node.destroy_node()
+        if rclpy.ok():
+            rclpy.shutdown()
+
+
+def real_process_main(args=None, *, observation_options_factory=None,
+                      adapter_factory=None, execution_settings_resolver_factory=None,
+                      fetch_bytes=None):
+    """같은 REAL 공정 노드에서 준비와 조각 Action을 함께 제공한다.
+
+    ``execution_settings_resolver_factory(node, adapter)``를 생략하면 확정된 REAL
+    profile 배치를 읽는 기본 매퍼를 사용한다. 누락/null과 실행 금지 profile은
+    ``NOT_READY``로 종료하며 기본값을 만들거나 로봇을 움직이지 않는다.
+    """
+    options, ros_args = _parse_real_process_args(sys.argv[1:] if args is None else args)
+    import rclpy
+    from rclpy.executors import MultiThreadedExecutor
+    from .preparation_action import AssetResolver
+
+    def execution_loader_factory(node, adapter):
+        settings_resolver = ((lambda snapshot, goal, snapshot_id:
+                              resolve_real_execution_settings(
+                                  snapshot, goal, snapshot_id, adapter=adapter))
+                             if execution_settings_resolver_factory is None
+                             else execution_settings_resolver_factory(node, adapter))
+        if not callable(settings_resolver):
+            raise ValueError("REAL 설정 매퍼 factory 결과는 호출 가능해야 함")
+        asset_resolver = make_hmi_asset_resolver(
+            options.preparation_backend_url, fetch_bytes=fetch_bytes)
+        return make_asset_bundle_loader(asset_resolver, settings_resolver)
+
+    rclpy.init(args=ros_args)
+    node = None
+    executor = MultiThreadedExecutor(num_threads=4)
+    try:
+        options_factory = observation_options_factory or (
+            lambda owner: _real_preparation_options(owner, options))
+        robot_factory = adapter_factory or (lambda owner: DoosanRobotAdapter(owner))
+        node = create_ros_node(
+            load_inputs=_missing_loader,
+            journal=RunJournal(options.execution_journal_path),
+            runtime_mode="REAL",
+            measurement_only=False,
+            preparation_required=True,
+            real_adapter_factory=robot_factory,
+            preparation_resolver=AssetResolver(options.preparation_backend_url),
+            preparation_journal_path=options.preparation_journal_path,
+            enable_preparation=True,
+            real_preparation_options_factory=options_factory,
+            real_execution_loader_factory=execution_loader_factory,
+        )
+        executor.add_node(node)
+        node.get_logger().info(
+            "REAL 통합 공정 노드 기동: /c2/prepare_workpiece, /c2/execute_process")
         executor.spin()
     finally:
         executor.shutdown()
