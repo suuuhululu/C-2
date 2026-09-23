@@ -393,6 +393,10 @@ class OfflineDoosanAdapter(DoosanRobotAdapter):
     def _read_tool_tcp(self):
         return ("GripperDA_v1", "ToolWeight_1")
 
+    def initialize_controller(self):
+        return StepResult("SUCCEEDED", "NONE", "시험 대역 제어기 초기화", "controller_initialization",
+                          {"singularity_mode": 0, "already_initialized": False})
+
 
 def real_fixture():
     goal, inputs = _team_mock_inputs()
@@ -1754,7 +1758,7 @@ def test_ros_simulation_terminal_roundtrip(tmp_path, monkeypatch):
         ros_args += ["-r", f"/c2/{name}:={prefix}/{name}"]
     print("\n[시험] 실제 ROS 통신 + MockRobotAdapter / 실물 명령 없음", flush=True)
     print("[입력] 기존 합성 SIMULATION 시험 경로·설정 (실제 팀 스냅샷 아님)", flush=True)
-    print(f"[격리] localhost, ROS_DOMAIN_ID={os.environ.get('ROS_DOMAIN_ID', '0')}, {prefix}", flush=True)
+    print(f"[격리] localhost, ROS_DOMAIN_ID={os.environ.get('ROS_DOMAIN_ID', '20')}, {prefix}", flush=True)
     rclpy.init(args=ros_args)
     server = client = executor = thread = None
     feedbacks, events, states = [], [], []
@@ -2414,6 +2418,30 @@ def test_preparation_real_manual_checks_are_not_inputs_and_never_moves():
     assert adapter.backing.calls == []
 
 
+def test_real_controller_initialization_runs_only_after_status_and_profile_checks():
+    from c2_process.node import check_preparation_status
+    _, inputs, adapter = real_fixture()
+    settings = {"tcp_profile_id": "GripperDA_v1", "load_profile_id": "ToolWeight_1"}
+    calls = []
+    original_read = adapter._read_tool_tcp
+    adapter._read_tool_tcp = lambda: (calls.append("profiles") or original_read())
+
+    def initialize():
+        calls.append("initialize")
+        return StepResult("SUCCEEDED", "NONE", observed_state={"singularity_mode": 0})
+
+    result = check_preparation_status(
+        adapter, inputs.evidence, settings, initialize_controller=initialize)
+    assert result.ok and calls == ["profiles", "initialize"]
+
+    calls.clear()
+    adapter._read_tool_tcp = lambda: (calls.append("profiles") or ("wrong", "ToolWeight_1"))
+    result = check_preparation_status(
+        adapter, inputs.evidence, settings, initialize_controller=initialize)
+    assert result.error_code == "PROFILE_MISMATCH"
+    assert calls == ["profiles"]
+
+
 def test_preparation_rejects_mock_for_real_without_observation():
     from c2_process.node import check_preparation_status
     adapter, evidence, settings = preparation_inputs()
@@ -3049,6 +3077,30 @@ def test_parse_real_preparation_args_separates_ros_arguments(tmp_path):
     assert options.control_authority_max_age_s == pytest.approx(0.5)
     assert options.control_authority_topic == "/dsr01/dsr_controller2/control_authority"
     assert ros_args == ["--ros-args", "-r", "__node:=real_prepare"]
+
+
+def test_real_prefix_derives_authority_topic_and_strips_trailing_slash(tmp_path):
+    from c2_process.node import _parse_real_process_args
+    options, _ = _parse_real_process_args([
+        "--preparation-backend-url", "http://127.0.0.1:8000",
+        "--preparation-journal-path", str(tmp_path / "prepare.sqlite3"),
+        "--execution-journal-path", str(tmp_path / "execute.sqlite3"),
+        "--controller-prefix", "/cell_a/robot/controller/",
+    ])
+    assert options.controller_prefix == "/cell_a/robot/controller"
+    assert options.control_authority_topic == "/cell_a/robot/controller/control_authority"
+
+
+def test_real_prefix_rejects_mismatched_authority_topic(tmp_path):
+    from c2_process.node import _parse_real_process_args
+    with pytest.raises(SystemExit):
+        _parse_real_process_args([
+            "--preparation-backend-url", "http://127.0.0.1:8000",
+            "--preparation-journal-path", str(tmp_path / "prepare.sqlite3"),
+            "--execution-journal-path", str(tmp_path / "execute.sqlite3"),
+            "--controller-prefix", "/dsr01/dsr_controller2",
+            "--control-authority-topic", "/other/control_authority",
+        ])
 
 
 @pytest.mark.parametrize("arguments", [

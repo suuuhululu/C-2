@@ -12,6 +12,7 @@ type Body = {
   input_profile_snapshot_id: string;
   input_profile_sha256: string;
   height_m: number;
+  operator_confirmed_fixed_cell?: true;
 };
 const pendingKey = "c2-preparation-request";
 const value = (n?: number | null, scale = 1) =>
@@ -37,6 +38,7 @@ export default function PreparationPanel({
   const [pending, setPending] = useState(false);
   const [uncertain, setUncertain] = useState(false);
   const [history, setHistory] = useState<PreparationRecord[] | null>(null);
+  const [manualReady, setManualReady] = useState(false);
   const body = useRef<Body | null>(null);
   const current = data.current;
   const real = data.input_config?.payload.source_mode === "REAL";
@@ -58,6 +60,9 @@ export default function PreparationPanel({
       setUncertain(false);
     }
   }, [current?.request_id, data.input_config?.id]);
+  useEffect(() => {
+    setManualReady(false);
+  }, [current?.request_id, data.input_config?.id]);
   async function refresh() {
     onSnapshot(await request<Snapshot>("/snapshot"));
   }
@@ -67,6 +72,7 @@ export default function PreparationPanel({
     if (
       !connected ||
       pending ||
+      (real && !manualReady) ||
       (!body.current && (locked || data.blocks_work || !!data.start_error))
     )
       return;
@@ -77,6 +83,7 @@ export default function PreparationPanel({
         input_profile_snapshot_id: config.id,
         input_profile_sha256: config.sha256,
         height_m: config.payload.workcell.height_m,
+        ...(real ? { operator_confirmed_fixed_cell: true as const } : {}),
       };
     sessionStorage.setItem(pendingKey, JSON.stringify(body.current));
     setPending(true);
@@ -157,6 +164,29 @@ export default function PreparationPanel({
           · ID {data.input_config.id} · SHA-256 {data.input_config.sha256}
         </p>
       )}
+      {real && data.hardware_inspection && (
+        <p className="field-help" role="status">
+          제어기 읽기 검사: <b>{data.hardware_inspection.payload.state}</b>
+          {data.hardware_inspection.payload.observation && (
+            <>
+              {" "}
+              · TCP {data.hardware_inspection.payload.observation.tcp_id}· load{" "}
+              {data.hardware_inspection.payload.observation.load_id}
+            </>
+          )}{" "}
+          ·{" "}
+          <a
+            href={`/api/operator/assets/${data.hardware_inspection.id}/content`}
+            target="_blank"
+            rel="noreferrer"
+          >
+            관측 JSON
+          </a>
+          {!!data.hardware_inspection.payload.errors.length && (
+            <> · {data.hardware_inspection.payload.errors.join("; ")}</>
+          )}
+        </p>
+      )}
       <div className="preparation-columns">
         <div>
           <p>
@@ -167,10 +197,22 @@ export default function PreparationPanel({
             · 운영자 자 측정 입력
           </p>
           <p className="field-help">
-            측정 전 드릴을 수동으로 끄세요. 프로그램은 드릴 전원·그리퍼 개폐를
-            제어하지 않습니다. 장착 상태는 제어의 실제 관측으로 확인하며,
-            화면에서 정상값을 생성하지 않습니다.
+            TCP/load·로봇 상태는 제어기에서 읽어 JSON으로 저장합니다. 물리
+            고정·전원·주변 환경은 자동 관측값으로 만들지 않고 아래 수동 확인으로
+            관리합니다.
           </p>
+          {real && (
+            <label className="check-row">
+              <input
+                type="checkbox"
+                checked={manualReady}
+                disabled={pending || locked || data.blocks_work}
+                onChange={(event) => setManualReady(event.target.checked)}
+              />
+              고정 설비·그리퍼/드릴 장착, 드릴 OFF, 주변 경로 확보, 작업 중 지속
+              감시를 확인했습니다.
+            </label>
+          )}
           <button
             className="primary"
             onClick={begin}
@@ -178,6 +220,7 @@ export default function PreparationPanel({
               !data.supported ||
               !connected ||
               pending ||
+              (real && !manualReady) ||
               (!uncertain && (locked || data.blocks_work || !!data.start_error))
             }
           >

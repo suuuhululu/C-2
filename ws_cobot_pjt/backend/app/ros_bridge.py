@@ -178,6 +178,55 @@ class RosBridge:
         self.thread=threading.Thread(target=self.executor.spin,name='monitor-ros-executor',daemon=True)
         self.thread.start()
 
+    async def inspect_hardware(self, config):
+        """HMI 기동/준비 직전의 제어기 값을 읽기만 한다.
+
+        모션·모드·TCP·load 설정 서비스는 호출하지 않는다. fixture,
+        그리퍼, 드릴 전원과 같이 제어기가 알 수 없는 값도 반환하지 않는다.
+        """
+        from dsr_msgs2 import srv
+
+        prefix = config.get('controller_prefix') if isinstance(config, dict) else None
+        if not isinstance(prefix, str) or not prefix.startswith('/'):
+            raise ValueError('REAL controller_prefix 필요')
+        prefix = prefix.rstrip('/')
+        definitions = (
+            ('robot_state', 'system/get_robot_state', srv.GetRobotState, {}, 'robot_state'),
+            ('robot_mode', 'system/get_robot_mode', srv.GetRobotMode, {}, 'robot_mode'),
+            ('robot_system', 'system/get_robot_system', srv.GetRobotSystem, {}, 'robot_system'),
+            ('motion_status', 'motion/check_motion', srv.CheckMotion, {}, 'status'),
+            ('tcp_id', 'tcp/get_current_tcp', srv.GetCurrentTcp, {}, 'info'),
+            ('load_id', 'tool/get_current_tool', srv.GetCurrentTool, {}, 'info'),
+            ('joints_deg', 'aux_control/get_current_posj', srv.GetCurrentPosj, {}, 'pos'),
+            ('controller_tcp_posx', 'aux_control/get_current_posx', srv.GetCurrentPosx, {'ref': 0}, 'task_pos_info'),
+        )
+        clients = self.__dict__.setdefault('hardware_clients', {})
+        result = {}
+        for key, endpoint, kind, fields, attribute in definitions:
+            name = prefix + '/' + endpoint
+            client = clients.get(name)
+            if client is None:
+                client = clients[name] = self.node.create_client(
+                    kind, name, callback_group=self.group)
+            ready = await asyncio.to_thread(client.wait_for_service, timeout_sec=2.0)
+            if not ready:
+                raise ConnectionError(endpoint + ' service unavailable')
+            request = kind.Request()
+            for field, value in fields.items():
+                setattr(request, field, value)
+            response = await await_ros(client.call_async(request), 2.0)
+            if response is None or getattr(response, 'success', None) is not True:
+                raise ConnectionError(endpoint + ' read rejected')
+            value = getattr(response, attribute)
+            if key == 'controller_tcp_posx':
+                if not value:
+                    raise ValueError('controller TCP response empty')
+                value = list(value[0].data[:6])
+            elif key == 'joints_deg':
+                value = list(value)
+            result[key] = value
+        return result
+
     def deliver(self,kind,value):
         # ROS 콜백은 DB/HTTP 처리를 기다리지 않는다.
         def enqueue():

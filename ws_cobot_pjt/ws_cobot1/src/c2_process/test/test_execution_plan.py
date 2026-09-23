@@ -499,10 +499,48 @@ def test_real_force_touch_requires_cut_contact_profile_keys():
     ctx.tool_profile['cut_contact'] = 'normal_force_hold'
     err = validate_path(path, ctx)
     assert err.error_code == 'UNSUPPORTED_RECIPE' and 'force_limit_n' in err.message
-    ctx.tool_profile.update(force_limit_n=6., air_force_limit_n=15., cut_force_n=2., cut_stiffness=[3000.] * 6, ramp_s=.5)
+    ctx.tool_profile.update(force_limit_n=6., air_force_limit_n=15., cut_force_n=2.,
+                            cut_stiffness=[3000.] * 6, ramp_s=.5)
     assert validate_path(path, ctx) is None
     ctx.tool_profile['cut_contact'] = 'somewhere_else'
     assert validate_path(path, ctx).error_code == 'UNSUPPORTED_RECIPE'
+
+
+@pytest.mark.parametrize(('cut_contact', 'key', 'bad'), [
+    ('normal_force_hold', 'cut_stiffness', [3000.] * 5),
+    ('normal_force_hold', 'ramp_s', float('nan')),
+    ('chunk_adaptive', 'cut_force_min_n', 5.),
+    ('chunk_adaptive', 'adaptive_step_m', 0.),
+    ('chunk_adaptive', 'adaptive_chunk_points', 81),
+])
+def test_cut_contact_invalid_values_fail_before_motion(cut_contact, key, bad):
+    path, ctx = hold_inputs(cut_contact)
+    ctx.tool_profile[key] = bad
+    ad = HoldRecorder()
+    result = execute_path(path, ctx, adapter=ad)
+    assert result.error_code == 'UNSUPPORTED_RECIPE'
+    assert key in result.message
+    assert not motion_calls(ad)
+
+
+def test_fixed_depth_rejects_cut_contact_before_motion():
+    path, ctx = hold_inputs()
+    ctx.tool_profile['contact_mode'] = 'fixed_depth'
+    ad = HoldRecorder()
+    result = execute_path(path, ctx, adapter=ad)
+    assert result.error_code == 'UNSUPPORTED_RECIPE'
+    assert 'force_touch' in result.message
+    assert not motion_calls(ad)
+
+
+def test_cut_contact_requires_explicit_tool_axis_before_motion():
+    path, ctx = hold_inputs()
+    ctx.tool_profile.pop('tool_axis')
+    ad = HoldRecorder()
+    result = execute_path(path, ctx, adapter=ad)
+    assert result.error_code == 'UNSUPPORTED_RECIPE'
+    assert 'tool_axis' in result.message
+    assert not motion_calls(ad)
 
 
 def test_chunk_adaptive_shifts_offset_inward_within_range_without_hold():

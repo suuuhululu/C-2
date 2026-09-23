@@ -1,4 +1,4 @@
-"""실제 HMI·경로·공정 노드 + 가상 장치만 localhost/domain 174에서 실행."""
+"""실제 HMI·경로·공정 노드 + 가상 장치만 localhost/domain 20에서 실행."""
 import argparse
 import fcntl
 import os
@@ -19,9 +19,9 @@ def main():
     parser.add_argument('--move-time',type=float,default=.06)
     args=parser.parse_args()
     if not 1024<=args.port<=65535 or not 0<=args.move_time<=10:parser.error('port/move-time 범위 오류')
-    domain_lock=open(f'/tmp/c2-virtual-domain-174-{os.getuid()}.lock','a')
+    domain_lock=open(f'/tmp/c2-virtual-domain-20-{os.getuid()}.lock','a')
     try:fcntl.flock(domain_lock,fcntl.LOCK_EX|fcntl.LOCK_NB)
-    except BlockingIOError:parser.error('가상 domain 174 실행기가 이미 실행 중입니다. 먼저 종료하세요.')
+    except BlockingIOError:parser.error('가상 domain 20 실행기가 이미 실행 중입니다. 먼저 종료하세요.')
     data=args.data_dir.resolve();data.mkdir(parents=True,exist_ok=True)
     if not (ROOT/'frontend/dist/index.html').exists():parser.error('frontend에서 npm run build를 먼저 실행하세요.')
     with socket.socket() as sock:
@@ -35,7 +35,7 @@ def main():
         env.pop(name,None)
     env.update(C2_VIRTUAL_CELL='1',C2_VIRTUAL_ORIGIN=f'http://127.0.0.1:{args.port}',C2_MONITOR_MODE='SIMULATION',C2_MONITOR_TRANSPORT='ros',
                C2_ROS_EXECUTION_SIM='1',C2_ROS_PREPARATION_SIM='1',C2_IMAGE_WORKFLOW='1',
-               C2_MONITOR_DATA=str(data),ROS_DOMAIN_ID='174',ROS_LOCALHOST_ONLY='1',
+               C2_MONITOR_DATA=str(data),ROS_DOMAIN_ID='20',ROS_LOCALHOST_ONLY='1',
                ROS_AUTOMATIC_DISCOVERY_RANGE='LOCALHOST',ROS_STATIC_PEERS='',RMW_IMPLEMENTATION='rmw_fastrtps_cpp',
                ROS_LOG_DIR=str(data/'ros_logs'),PYTHONUNBUFFERED='1')
     env['PYTHONPATH']=os.pathsep.join([str(ROOT/'backend'),str(ROOT/'ws_cobot1/src/c2_path'),
@@ -51,7 +51,7 @@ def main():
         nonlocal stopping
         stopping=True
     signal.signal(signal.SIGINT,shutdown);signal.signal(signal.SIGTERM,shutdown)
-    print(f'가상 장치 / 실제 로봇 미연결 / ROS domain 174\nHMI http://127.0.0.1:{args.port}/operator\n로그 {data}\n종료 Ctrl+C',flush=True)
+    print(f'가상 장치 / 실제 로봇 미연결 / ROS domain 20\nHMI http://127.0.0.1:{args.port}/operator\n로그 {data}\n종료 Ctrl+C',flush=True)
     try:
         for name,command in commands.items():
             f=(data/f'{name}.log').open('a');files.append(f)

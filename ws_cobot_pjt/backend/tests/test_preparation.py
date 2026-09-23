@@ -58,6 +58,7 @@ def test_preparation_ids_settings_and_geometry_follow_same_path(client):
 
 
 @pytest.mark.parametrize('field,value',[
+    ('operator_confirmed_fixed_cell',False),
     ('operator_confirmed_drill_off',False),('operator_confirmed_drill_fixed',False),
     ('operator_confirmed_gripper_closed',False),('operator_confirmed_drill_off',True),
     ('operator_confirmed_drill_on',True),

@@ -1,7 +1,7 @@
 # robot_adapter.py — 두산 드라이버(ws_dsr 브링업) 호출·결과 확인·단위 변환. 공정 제어의 로봇 연결 모듈.
 # 집기·반납(tool_sequence)·조각(engraving)·청소(cleaning)가 함께 부른다. 별도 ROS Topic/Service 를 만들지 않는다.
-# 담당: 이시율 (초안 2026-09-18, 로컬, v2 승격 2026-09-22). 실기 검증본 clay_carving/clay_common.py 의 Robot 클래스를 새 계약에 맞춰 옮겼다.
-# 9/22 승격: 법선 힘 유지(hold_normal_force_begin/end)·이동 중 힘 감시·서비스 클라이언트 재사용·이동 시작 재판정(_verify_start) 포함.
+# 담당: 이시율 (초안 2026-09-18, 로컬). 실기 검증본 clay_carving/clay_common.py 의 Robot 클래스를 새 계약에 맞춰 옮겼다.
+# PR #73 후보: 법선 힘 유지(hold_normal_force_begin/end)·이동 중 힘 감시·서비스 클라이언트 재사용·이동 시작 재판정(_verify_start).
 #
 # 계약(INTERFACE_RECOMMENDATION v1 §2·§9):
 #   - 입력 자세는 m + quaternion(x,y,z,w) + frame_id. 두산 API 의 mm·ZYZ(A,B,C deg) 변환은 이 파일에서만 한다.
@@ -244,21 +244,29 @@ def evaluate_contact_sample(monitor, tip_pose, force_vec):
 
 # ---------------------------------------------------------------- 실기: 두산 드라이버 ----
 class DoosanRobotAdapter(RobotAdapter):
-    """ws_dsr 브링업(dsr_controller2, namespace dsr01)의 기존 ROS 서비스를 호출한다. 공정 executor 안에서는 중첩 spin을 하지 않는다.
-    node: rclpy 노드 (namespace 'dsr01'). 실행 중에는 별도 작업 스레드에서 호출한다.
+    """ws_dsr 브링업의 명시적인 dsr_controller2 절대 prefix로 ROS 서비스를 호출한다.
+    공정 노드 namespace에 의존하지 않으며 executor 안에서 중첩 spin을 하지 않는다.
+    실행 중에는 별도 작업 스레드에서 호출한다.
     툴/TCP 선택·상태 검사는 상태 기계의 preconditions 와 select_tool_profile() 이 담당."""
 
     ROBOT_ID, ROBOT_MODEL = "dsr01", "m0609"
     STATE_STANDBY, STATE_MOVING = 1, 2
 
-    def __init__(self, node, frame_id="c2_base", logger=None, *, initialization_timeout_s=5.0):
+    def __init__(self, node, frame_id="c2_base", logger=None, *,
+                 controller_prefix="/dsr01/dsr_controller2",
+                 initialization_timeout_s=5.0):
         from dsr_msgs2.srv import (MoveStop, GetCurrentTcp, GetCurrentTool, SetCurrentTcp, SetCurrentTool, SetRobotMode,
                                    GetRobotState, GetCurrentPosj, GetCurrentPosx, GetToolForce,
                                    MoveLine, MoveSplineTask, CheckMotion, Ikin, GetSolutionSpace,
                                    SetSingularityHandling,
                                    TaskComplianceCtrl, SetDesiredForce, ReleaseForce, ReleaseComplianceCtrl,
                                    MovePause, MoveResume, Fkin, MoveJoint)
+        if (not isinstance(controller_prefix, str)
+                or not controller_prefix.startswith("/")
+                or controller_prefix.rstrip("/") == ""):
+            raise ValueError("controller_prefix must be an absolute ROS prefix")
         self.node, self.frame_id = node, frame_id
+        self.controller_prefix = controller_prefix.rstrip("/")
         self.tool_offset_m = None
         self.log = logger or node.get_logger()
         self._srv = dict(MoveStop=MoveStop, GetCurrentTcp=GetCurrentTcp, GetCurrentTool=GetCurrentTool,
@@ -272,10 +280,32 @@ class DoosanRobotAdapter(RobotAdapter):
                          ReleaseForce=ReleaseForce, ReleaseComplianceCtrl=ReleaseComplianceCtrl,
                          MovePause=MovePause, MoveResume=MoveResume, Fkin=Fkin, MoveJoint=MoveJoint)
         self._hold_active = False                  # 법선 힘 유지(순응+힘 제어) 켜짐 여부. 켜진 채 공중 이동 금지
-        # 기존 DR_AVOID(0) 설정만 기한 내 전달한다. DSR_ROBOT2 전역 초기화/무제한 대기 없음.
-        # 모든 이동/조회 요청에 base ref=0을 명시하므로 전역 set_ref_coord는 불필요하다.
-        self._read("motion/set_singularity_handling", "SetSingularityHandling",
-                   timeout=initialization_timeout_s, mode=0)
+        if (isinstance(initialization_timeout_s, bool)
+                or not isinstance(initialization_timeout_s, (int, float))
+                or not math.isfinite(initialization_timeout_s)
+                or initialization_timeout_s <= 0):
+            raise ValueError("initialization_timeout_s must be positive")
+        self._initialization_timeout_s = float(initialization_timeout_s)
+        self._controller_initialized = False
+
+    def initialize_controller(self) -> StepResult:
+        """제어권·정지·TCP/load 확인 후에만 DR_AVOID(0)을 설정한다.
+
+        adapter 생성은 읽기/클라이언트 구성만 하며, 이 메서드 전에는
+        제어기 설정을 변경하지 않는다.
+        """
+        if self._controller_initialized:
+            return StepResult("SUCCEEDED", "NONE", "제어기 초기화 유지", "controller_initialization",
+                              {"singularity_mode": 0, "already_initialized": True})
+        try:
+            self._read("motion/set_singularity_handling", "SetSingularityHandling",
+                       timeout=self._initialization_timeout_s, mode=0)
+        except Exception as exc:
+            return StepResult("UNKNOWN", "COMMUNICATION_LOST", f"제어기 초기화 실패: {exc}",
+                              "controller_initialization")
+        self._controller_initialized = True
+        return StepResult("SUCCEEDED", "NONE", "DR_AVOID 초기화 확인", "controller_initialization",
+                          {"singularity_mode": 0, "already_initialized": False})
 
     # ---- 서비스 도우미 ----
     def _call(self, name, srv, req, timeout=5.0):
@@ -292,7 +322,9 @@ class DoosanRobotAdapter(RobotAdapter):
         clients = self.__dict__.setdefault("_clients", {})
         cli = clients.get(name)
         if cli is None:
-            cli = clients[name] = self.node.create_client(srv, "dsr_controller2/" + name, callback_group=ReentrantCallbackGroup())
+            cli = clients[name] = self.node.create_client(
+                srv, self.controller_prefix + "/" + name,
+                callback_group=ReentrantCallbackGroup())
         fut = None
         try:
             if not cli.wait_for_service(timeout_sec=timeout):

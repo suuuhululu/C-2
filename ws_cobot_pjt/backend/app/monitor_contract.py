@@ -39,11 +39,12 @@ class GenerateInput(Input):
 
 
 class PreparationInput(Input):
-    """HTTP 준비 입력. 장착/전원 관측을 사용자 bool로 대체하지 않는다."""
+    """HTTP 준비 입력. REAL의 물리 설비 확인은 동작 전 1회만 받는다."""
     request_id: UUID
     input_profile_snapshot_id: UUID
     input_profile_sha256: str = Field(pattern=r'^[0-9a-f]{64}$')
     height_m: float = Field(gt=0)
+    operator_confirmed_fixed_cell: Literal[True] | None = None
 
 
 class RunInput(Input):

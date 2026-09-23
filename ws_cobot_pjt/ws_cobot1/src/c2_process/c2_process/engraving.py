@@ -1,5 +1,5 @@
-# engraving.py — 확정된 실행 경로(path.json)의 조각 실행·진행 보고. 담당: 이시율 (초안 2026-09-18, main 이관 2026-09-19, v2 승격 2026-09-22).
-# 9/22 승격: CUT 중 법선 힘 유지(MoveSX + 순응/힘 제어)·세은 검사 서명 재사용·안전 홈 복귀(return_home)를 가진 v2 를 공식 실행기로 올렸다.
+# engraving.py — 확정된 실행 경로(path.json)의 조각 실행·진행 보고. 담당: 이시율 (초안 2026-09-18, main 이관 2026-09-19).
+# PR #73 후보: CUT 중 법선 힘 유지(MoveSX + 순응/힘 제어)·세은 검사 서명 재사용·안전 홈 복귀(return_home).
 #   cut_contact 가 없는 기존 프로파일은 이전과 같은 '획 시작 접촉 offset 고정' 방식으로 실행된다 (호환).
 # 9/19 결정: 기준 도구 engraving_drill(철사 고정, 집기·반납·청소 없음), 도구 축은 tools.yaml 의 tool_axis(팀 규칙 툴 -Y = 표면 안쪽),
 # frame_id c2_base. 실기 성공 조건(9/18 드릴 하트): 획 시작 터치 1.5 mm/s·0.8 N, 긋기 6.6 mm/s, 접근 여유 6 mm.
@@ -105,6 +105,63 @@ def _m(profile: Dict, name: str, default=None):
     return default if v is None else float(v)
 
 
+def _cut_contact_profile_error(profile, contact_mode):
+    """CUT 중 보정 설정을 정적 검사한다. 로봇 조회나 기본값 보정은 하지 않는다."""
+    cut_contact = profile.get("cut_contact")
+    if cut_contact is None:
+        return None
+    if cut_contact not in CUT_CONTACT_MODES:
+        return f"cut_contact {cut_contact!r} 미지원 ({CUT_CONTACT_MODES})"
+    if contact_mode != "force_touch":
+        return "cut_contact는 force_touch에서만 사용 가능"
+    if profile.get("tool_axis") not in ("x", "+x", "-x", "y", "+y", "-y", "z", "+z", "-z"):
+        return f"cut_contact {cut_contact}: tool_axis는 ±x/±y/±z 명시 필요"
+
+    def finite_number(value):
+        return type(value) in (int, float) and math.isfinite(value)
+
+    for key in ("force_limit_n", "air_force_limit_n"):
+        if not finite_number(profile.get(key)) or profile[key] <= 0:
+            return f"cut_contact {cut_contact}: {key}는 유한한 양수 필요"
+    bounds = profile.get("touch_offset_range_m")
+    try:
+        clearance = _m(profile, "clearance")
+        extra = _m(profile, "touch_extra")
+    except (TypeError, ValueError):
+        return f"cut_contact {cut_contact}: clearance_m/touch_extra_m 형식 오류"
+    if (not isinstance(bounds, (list, tuple)) or len(bounds) != 2
+            or any(not finite_number(v) for v in bounds) or bounds[0] > bounds[1]
+            or clearance is None or not math.isfinite(clearance) or clearance <= 0
+            or extra is None or not math.isfinite(extra) or extra < 0
+            or bounds[0] < -clearance or bounds[1] > extra):
+        return (f"cut_contact {cut_contact}: touch_offset_range_m은 "
+                "[-clearance_m, touch_extra_m] 범위의 유한한 [최소, 최대]여야 함")
+    if cut_contact == "normal_force_hold":
+        force = profile.get("cut_force_n")
+        stiffness = profile.get("cut_stiffness")
+        ramp = profile.get("ramp_s")
+        if not finite_number(force) or force <= 0:
+            return "cut_contact normal_force_hold: cut_force_n은 유한한 양수 필요"
+        if (not isinstance(stiffness, (list, tuple)) or len(stiffness) != 6
+                or any(not finite_number(v) or v < 0 for v in stiffness)):
+            return "cut_contact normal_force_hold: cut_stiffness는 0 이상 유한값 6개 필요"
+        if not finite_number(ramp) or not 0 <= ramp <= 1:
+            return "cut_contact normal_force_hold: ramp_s는 0~1 유한값 필요"
+    else:
+        low = profile.get("cut_force_min_n")
+        high = profile.get("cut_force_max_n")
+        step = profile.get("adaptive_step_m")
+        points = profile.get("adaptive_chunk_points")
+        if (not finite_number(low) or low <= 0 or not finite_number(high)
+                or high <= 0 or low > high):
+            return "cut_contact chunk_adaptive: cut_force_min_n <= cut_force_max_n 양수 범위 필요"
+        if not finite_number(step) or step <= 0:
+            return "cut_contact chunk_adaptive: adaptive_step_m은 유한한 양수 필요"
+        if type(points) is not int or not 2 <= points <= MAX_SPLINE_POINTS:
+            return f"cut_contact chunk_adaptive: adaptive_chunk_points는 2~{MAX_SPLINE_POINTS} 정수 필요"
+    return None
+
+
 def validate_path(path: Dict, context: ExecutionContext) -> Optional[StepResult]:
     """실행 전 형식 검사. 문제가 있으면 StepResult(FAILED, ...) 를, 없으면 None 을 반환. 로봇을 건드리지 않는다."""
     if path.get("schema_version") not in SUPPORTED_SCHEMA:
@@ -130,23 +187,15 @@ def validate_path(path: Dict, context: ExecutionContext) -> Optional[StepResult]
         for k in ("touch_force_n", "touch_speed_mm_s"):
             if tp.get(k) is None:
                 return StepResult("FAILED", "UNSUPPORTED_RECIPE", f"force_touch 인데 {k} 없음", "validate")
+    cut_contact_error = _cut_contact_profile_error(tp, mode)
+    if cut_contact_error:
+        return StepResult("FAILED", "UNSUPPORTED_RECIPE", cut_contact_error, "validate")
     cut_contact = tp.get("cut_contact")
-    if cut_contact is not None and cut_contact not in CUT_CONTACT_MODES:
-        return StepResult("FAILED", "UNSUPPORTED_RECIPE", f"cut_contact {cut_contact!r} 미지원 ({CUT_CONTACT_MODES})", "validate")
     cut_motion = tp.get("cut_motion")
     if cut_motion is not None and cut_motion not in CUT_MOTION_MODES:
         return StepResult("FAILED", "UNSUPPORTED_RECIPE", f"cut_motion {cut_motion!r} 미지원 ({CUT_MOTION_MODES})", "validate")
     if cut_motion == "movel" and _m(tp, "movel_chord_tol") is None:
         return StepResult("FAILED", "UNSUPPORTED_RECIPE", "cut_motion movel 인데 movel_chord_tol_m 없음", "validate")
-    if mode == "force_touch" and cut_contact is not None:
-        # 9/22: cut_contact 를 쓰는 프로파일은 법선 보정 방식과 힘 상한을 명시해야 한다 (코드에 현장 수치 없음).
-        # cut_contact 가 없는 기존 프로파일은 획 시작 접촉 offset 고정 방식 그대로 실행된다 (기존 스냅샷·테스트 호환).
-        need = ["force_limit_n", "air_force_limit_n"]
-        need += ["cut_force_n", "cut_stiffness", "ramp_s"] if cut_contact == "normal_force_hold" else \
-                ["cut_force_min_n", "cut_force_max_n", "adaptive_step_m", "adaptive_chunk_points"]
-        for k in need:
-            if tp.get(k) is None:
-                return StepResult("FAILED", "UNSUPPORTED_RECIPE", f"cut_contact {cut_contact} 인데 {k} 없음", "validate")
     if tp.get("hold_retreat_target_m") is not None:
         lo, hi = tp["touch_offset_range_m"]
         target = _m(tp, "hold_retreat_target")

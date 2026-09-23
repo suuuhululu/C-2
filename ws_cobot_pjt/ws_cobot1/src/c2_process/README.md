@@ -32,10 +32,10 @@
 | `node.py` | 김세은 | HMI 준비/측정 요청·결과 전달 연결, ExecuteProcess·StopProcess 수신, ProcessState·ProcessEvent 발행 | main 없음, 담당자 부분 통합 보고. 경로 생성 전 준비 요청 계약과 실측 결과 전달 추가 필요 |
 | `state_machine.py` | 김세은 | 준비 확인 → 시율 측정 함수 호출 → 실측 결과 반환, 미리보기 후 관절 검사 → 드릴 ON 확인 → 시율 조각 함수 호출. 실패·정지 시 후속 단계 차단 | main 없음, 담당자 작업 보고. 측정과 조각 요청을 구분해 연결. 측정 계산·경로 재이동을 직접 구현하지 않음 |
 | `preconditions.py` | 김세은 | 측정 전 모드·연결·제어권·현재 위치·고정·드릴 OFF·TCP/하중 확인. 조각 전 경로/설정·측정 유효성 확인과 관절 검사 호출 | main 없음, 담당자 작업 보고. 측정 전에는 아직 없는 조각 경로를 요구하지 않음. 검사 결과로 진행 여부 판단 |
-| [robot_adapter.py](c2_process/robot_adapter.py) | 이시율 | `observe()`, `move()`, `move_spline()`, `probe_touch()`, `stop()`, `inverse_kinematics()`, `read_force_bias()`, `hold_normal_force_begin()/end()`. 도구 끝↔제어기 TCP·단위 변환, 이동 중 힘·법선 이탈 감시, 이동 시작 재판정(`_verify_start`) | **main 존재** (9/22 v2 구현으로 교체). 서비스 클라이언트 재사용. 힘 유지 중 MoveSX 수락·순응 상태 보고는 실기 미검증 |
+| [robot_adapter.py](c2_process/robot_adapter.py) | 이시율 | `observe()`, `move()`, `move_spline()`, `probe_touch()`, `stop()`, `inverse_kinematics()`, `read_force_bias()`, `hold_normal_force_begin()/end()`. 도구 끝↔제어기 TCP·단위 변환, 이동 중 힘·법선 이탈 감시, 이동 시작 재판정(`_verify_start`) | **PR #73 후보**. 서비스 클라이언트 재사용. 힘 유지 중 MoveSX 수락·순응 상태 보고는 실기 미검증 |
 | [tool_calibration.py](c2_process/tool_calibration.py) | 이시율 | `measure_tool_tip()` 장착 드릴 끝 오프셋 측정, `verify_tool_tip()` 저장 보정 확인 | **main 존재**. 고정 장착 기준을 재사용하며 매번 전체 보정은 첫 통합에서 제외. 기준 변경 시 재확인에 활용. 양초 중심·높이 측정은 신규 모듈 담당 |
 | [joint_check.py](c2_process/joint_check.py) | **김세은** | `check_path_joints()`로 홍동이 실측 좌표로 생성한 최종 경로의 IK·관절 범위·J6 검사. 측정용 이동 검사도 담당 | **main 존재**. CUT은 4점마다+마지막 점 검사. 실측 좌표로 생성한 최종 경로·측정 이동·보간·특이점·충돌 검사 범위 보강 필요 |
-| [engraving.py](c2_process/engraving.py) | 이시율 | `execute_path()`로 세은이 검사한 동일 경로의 APPROACH/CUT/TRAVEL/RETRACT 실행, 진행·마지막 완료 구간·실패 반환. `cut_contact=normal_force_hold` 프로파일이면 CUT 중 툴 축 힘 유지(순응)+MoveSX 로 표면 추종, `chunk_adaptive` 는 묶음 사이 offset 보정. `checked_plan_signature` 가 있으면 획별 IK 를 반복하지 않음. `return_home()` 안전 홈 복귀(후퇴→상승→정렬→IK/간섭 검사→홈). 중심 재이동 없음 | **main 존재** (9/22 v2 구현으로 교체). cut_contact 없는 기존 프로파일은 종전과 같이 접촉점 = 실행 깊이. 허용 법선 범위 안 연속 IK 증명은 미구현(`normal_range_continuity_verified=False`) |
+| [engraving.py](c2_process/engraving.py) | 이시율 | `execute_path()`로 세은이 검사한 동일 경로의 APPROACH/CUT/TRAVEL/RETRACT 실행, 진행·마지막 완료 구간·실패 반환. `cut_contact=normal_force_hold` 프로파일이면 CUT 중 툴 축 힘 유지(순응)+MoveSX 로 표면 추종, `chunk_adaptive` 는 묶음 사이 offset 보정. `checked_plan_signature` 가 있으면 획별 IK 를 반복하지 않음. `return_home()` 안전 홈 복귀(후퇴→상승→정렬→IK/간섭 검사→홈). 중심 재이동 없음 | **PR #73 후보**. cut_contact 없는 기존 프로파일은 종전과 같이 접촉점 = 실행 깊이. 허용 법선 범위 안 연속 IK 증명은 미구현(`normal_range_continuity_verified=False`). `return_home()`은 main의 prepared flow에 자동 연결하지 않음 |
 | [workpiece_calibration.py](c2_process/workpiece_calibration.py) | 이시율 | `measure_workpiece(adapter, workcell, profiles, context, on_progress=None)`: 상공 홈 확인 → 윗면·옆면 8점 → 원 맞춤 → 정상 홈 복귀·결과 반환 | **PR #42로 코드 존재**, 홈 처리·실기 오류 수정은 PR #45. 모의 147건 통과. 이전 홈·외곽 종료 버전 실물 연속 2회 완료(270.394/299.295초). 새 홈·종료 복귀는 이동 없는 IK/FK 검사 통과, 전체 실물 재시험 전. 밑면 오프셋 미확인으로 절대 윗면·바닥 Z는 null. [현재 검증 범위](WORKPIECE_CALIBRATION.md) |
 | `motion_guard.py`, `moving_contact.py` **내부 보조 후보** | 이시율 | 이동 시작/완료·정지 관측, 이동 중 힘 기준·접촉 판정 | **로컬 초안**, main 없음. 어댑터 내부 보조로 통합할지 결정. 세은의 직접 호출 대상·새 노드가 아님 |
 | `config/workcell.yaml` | 이시율 작성, 노홍동 기하 대조, 김세은 로딩 | 기준 형상·좌표계·작업/제외 영역·기준선과 실측 스냅샷 참조 | main 실행 YAML 없음. 실측 좌표는 홍동의 경로 생성 입력으로 전달. 고정 기준과 작업별 측정 기록 분리 |
@@ -118,3 +118,22 @@
 힘 유지 CUT의 자세 완료 허용오차는 motion profile의 `hold_angle_tol_deg`로 분리한다(미지정 시 `angle_tol_deg` 유지). 일반 이동은 기존 기준이다. 단독 시험 설정은 각각 0.3° / 0.15°다.
 
 `hold_retreat_target_m`과 `hold_retreat_tolerance_m`을 지정하면 깊이 보정은 정지·힘/순응 해제·실제 위치 재확인 후에만 재개한다. 단독 시험은 depth 0.3 mm, 정상 상한 +2 mm, 후퇴 목표 +1.5 mm, 확인 여유 0.2 mm, 중간 보정 추가 여유 0 mm다. deep-start 후에는 depth를 다시 더하지 않는다. 힘 목표·강성·10 N/10 mm 절대 한계는 유지하며 기존 자동 힘 감소 규칙을 사용한다. 설정 변경 후 동일 원본 경로로 검사 계획·준비 기록을 다시 생성해야 한다. 모의 검사와 실기 완주는 구별한다.
+
+## 2026-09-23 캐릭터 entry 완료 판정
+
+사전 entry에서 위치 오차 약 0.388 mm가 79.3초 동안 남아 0.2 mm 조건과 stable 진입을 만족하지 못했다. `entry_motion.make_entry_motion_profile()`은 명시된 entry 설정만 복사본에 반영한다. 일반 `candle_travel`이나 CUT 프로파일을 수정하거나 기본값을 자동 완화하지 않는다. 호출자는 prepare와 실행에 같은 entry 설정을 사용하고 설정 해시를 결합해야 한다.
+
+```python
+from c2_process.entry_motion import make_entry_motion_profile
+
+entry_plan = {"motion_overrides": {"pos_tol_mm": 0.5}}
+entry_profile = make_entry_motion_profile(motion_profiles["candle_travel"], entry_plan)
+# entry_profile은 사전 entry 이동에만 전달한다.
+# 원본의 position 0.2 mm, angle 0.15°, 어댑터의 stable 0.2초는 유지된다.
+```
+
+로컬 캐릭터 실행 묶음의 entry 0/1/2에만 0.5 mm를 적용했다. 이 보조 함수는 공정 노드/HMI에 자동 연결하지 않는다. SVG/80 mm 경로·힘·깊이·MoveSX는 이 설정으로 바뀌지 않는다. 실기용 `run.py`·측정/경로 파일·bag은 현장에 보존하고 저장소에는 넣지 않는다.
+
+`motion_diag`는 기존 관측값만 사용해 대기 중 초당 최대 1회 위치/접선/법선/자세 오차, 힘, normal_dev, stable 시간 및 false 조건을 기록한다. 다음 실기에서는 entry 완료 이벤트와 bag의 `/dsr01/error` code 3205 발생 시각을 함께 확인한다. 정지 상태 IK/FK 통과는 이동 중 특이점 대응이 없다는 보장이 아니다. 기한 만료를 COMMUNICATION_LOST로 분류하는 문제는 이번 entry 변경과 분리해 후속 처리한다.
+
+PR 통합본은 #74의 controller prefix, 사전검사 후 초기화, CUT 설정 유효성 검사를 유지한다. 현장 단독 시험 소스와 통합 소스는 다르므로 단독 시험의 prepare 결과를 통합본의 실기 검증으로 재사용하지 않는다.

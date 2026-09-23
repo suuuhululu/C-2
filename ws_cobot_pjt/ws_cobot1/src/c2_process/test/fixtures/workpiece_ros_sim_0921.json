@@ -1,6 +1,6 @@
 {
   "validation_level": "ROS_SIMULATION_NO_ROBOT_IO",
-  "ros_domain_id": 121,
+  "ros_domain_id": 20,
   "measurement_id": "workpiece-test-460e945df61e4ee5a95acf94ab20ace3",
   "outcome": "SUCCEEDED",
   "side_points": 8,

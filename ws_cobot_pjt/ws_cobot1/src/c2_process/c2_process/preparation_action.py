@@ -369,7 +369,10 @@ class PreparationActionHandler:
     def _validate_config(self,c,g):
         if c.get('contract')!='prepare-workpiece-config/1' or c.get('source_mode')!=g['source_mode']:
             raise ContractError('INVALID_INPUT','측정 설정 contract/mode 불일치')
-        if c.get('tool_id')!='engraving_drill' or c.get('tcp_id')!='GripperDA_v1' or not c.get('load_id'):
+        load_id = c.get('load_id')
+        if (c.get('tool_id')!='engraving_drill' or c.get('tcp_id')!='GripperDA_v1'
+                or not isinstance(load_id,str) or not load_id.strip()
+                or (g['source_mode']=='REAL' and load_id!='ToolWeight_1')):
             raise ContractError('PROFILE_MISMATCH','도구/TCP/하중 설정 오류')
         w,p=c.get('workcell'),c.get('profiles')
         if not isinstance(w,dict) or not isinstance(p,dict): raise ContractError('INVALID_INPUT','측정 설정 없음')

@@ -77,7 +77,7 @@ PYTHONDONTWRITEBYTECODE=1 python3 -m pytest -q -p no:cacheprovider \
 오프셋 연결 시험은 저장소의 backend와 c2_path를 함께 import하며 해당 Python 의존성이 필요하다. ROS 대역 시험은 Jazzy와 dsr_msgs2 환경을 source한 뒤 실행한다. UUID namespace의 서비스 대역을 사용한다.
 
 ```bash
-ROS_DOMAIN_ID=173 ROS_LOCALHOST_ONLY=1 C2_RUN_ADAPTER_ROS_TEST=1 \
+ROS_DOMAIN_ID=20 ROS_LOCALHOST_ONLY=1 C2_RUN_ADAPTER_ROS_TEST=1 \
   PYTHONDONTWRITEBYTECODE=1 python3 -m pytest -q -p no:cacheprovider \
   test/test_robot_adapter_motion_ros.py test/test_robot_adapter_executor_ros.py
 ```

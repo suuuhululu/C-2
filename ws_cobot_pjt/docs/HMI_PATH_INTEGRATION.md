@@ -90,7 +90,7 @@ rclpy나 c2_interfaces를 pip로 임의 대체하지 않는다. Node.js 22 이�
 - 기본 ROS 저장소: `ws_cobot_pjt/backend/monitor_data/ros_path` (MOCK 저장소와 분리).
 - `C2_MONITOR_DATA=/절대/경로`로 지정하면 양쪽에 같은 값이 전달된다.
 - 실행기가 저장소를 **먼저 초기화**한 뒤 경로 노드·서버·화면을 시작한다.
-- 기본 ROS domain 173, `LOCALHOST`, 정적 피어 없음, `rmw_fastrtps_cpp`. `--ros-domain-id`로 시험 domain 지정 가능.
+- 기본 ROS domain 20, `LOCALHOST`, 정적 피어 없음, `rmw_fastrtps_cpp`. `--ros-domain-id`로 시험 domain 지정 가능.
 - `--external-path-node`는 경로 노드를 직접 띄우는 경우만 사용한다. 이때 같은 domain/RMW/저장소,
   저장소 초기화 후 노드 시작 순서를 직접 맞춰야 한다. 노드를 잘못된 저장소로 먼저 켰다면 재시작한다.
 - 종료는 Ctrl+C. 현재 PR #38 노드에는 SIGINT 종료 중 rclpy 이중 shutdown 오류가 관찰됐다.
@@ -119,7 +119,7 @@ node --experimental-strip-types --test tests/preview.test.mjs
 pnpm build
 ```
 
-통합 시험은 임시 DB·LOCALHOST domain 174를 사용하며 c2_path만 별도 프로세스로 시작한다.
+통합 시험은 임시 DB·LOCALHOST domain 20을 사용하며 c2_path만 별도 프로세스로 시작한다.
 ROS가 없거나 활성화 변수가 없으면 실제 ROS 시험이 skip된다. 로더 시험도 c2_path 계산
 의존성이 없으면 skip되므로 **skip을 통합 성공으로 기록하지 않는다.**
 
