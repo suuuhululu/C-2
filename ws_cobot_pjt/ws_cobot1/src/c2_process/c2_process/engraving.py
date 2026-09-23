@@ -41,6 +41,8 @@ class ExecutionContext:
     tool_profile: Dict                                 # tools.yaml 스냅샷의 도구 항목 (contact_mode, tool_axis, depth_mm, ...)
     stop_profile: Dict = field(default_factory=lambda: {"mode": 2, "confirmation_timeout_s": 2.0})
     checked_plan_signature: Optional[str] = None
+    checked_entry_plan: Optional[Dict] = None
+    checked_entry_plan_sha256: Optional[str] = None
     checked_tool_offset_m: Optional[List] = None
     joint_limits_deg: Optional[List] = None
     j6_margin_deg: float = 10.0
@@ -190,7 +192,8 @@ def execution_signature(path, context):
     """원본 경로와 실행 설정을 결합한다. 파일 바이트 해시는 node의 path_binding으로 보존."""
     data = [path, context.tool_profile, context.motion_profiles, context.stop_profile,
             context.path_binding, context.run_id, context.source_mode,
-            context.joint_limits_deg, context.j6_margin_deg, context.checked_tool_offset_m]
+            context.joint_limits_deg, context.j6_margin_deg, context.checked_tool_offset_m,
+            context.checked_entry_plan_sha256]
     return hashlib.sha256(json.dumps(data, sort_keys=True, allow_nan=False,
                                     separators=(",", ":")).encode()).hexdigest()
 
