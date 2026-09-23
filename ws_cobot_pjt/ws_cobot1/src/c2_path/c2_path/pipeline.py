@@ -721,7 +721,9 @@ class GeneratePipeline:
             raise PipelineError("UNSUPPORTED_FORMAT", str(exc)) from exc
         conversion_config = {
             "preset": goal["conversion_preset"],
-            "recipe_scope": "simulation_test_only",
+            "recipe_scope": "surface_path",
+            "placement": {key: goal[key] for key in (
+                "width_mm", "height_mm", "offset_u_mm", "offset_v_mm", "rotation_deg")},
         }
         if goal["conversion_preset"] == "raster_parallel_hatch":
             conversion_config.update({
@@ -850,6 +852,7 @@ class GeneratePipeline:
                            else "c2_path 기본 상수(/1)"),
             },
             "request_id": goal["request_id"],
+            "conversion": conversion_config,
             "path_id": path_id,
             "path_version": path_version,
             "input_stroke_count": len(strokes),

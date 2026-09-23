@@ -9,6 +9,7 @@
   * 옆면 밖(원기둥 높이 초과)은 생성 자체가 실패한다.
 """
 import json
+import hashlib
 import sys
 import tempfile
 import unittest
@@ -37,7 +38,8 @@ if BACKEND_PARENT is not None:
 
 from c2_path import workcell as wc  # noqa: E402
 from c2_path.artifacts import ManagedArtifactStore, sha256_bytes  # noqa: E402
-from c2_path.pipeline import GeneratePipeline, PipelineError, matching_test_profile, success_message  # noqa: E402
+from c2_path.pipeline import (GeneratePipeline, PipelineError, matching_test_profile,
+                              matching_test_profile_v4, success_message)  # noqa: E402
 
 
 def heart_png():
@@ -92,6 +94,66 @@ class TestRealHmiLoader(unittest.TestCase):
         self.assertEqual(report["execution_readiness"]["precheck"], "WITHIN_LIMITS")
         self.assertEqual(preview["execution_readiness"]["executability"], "NOT_JUDGED")
         self.assertEqual(loaded["path_id"], generated.path_id)
+
+    def test_real_hatch_candidate_round_trips_through_hmi_loader(self):
+        profile = matching_test_profile_v4()
+        surface = profile["surface"]
+        origin = surface["axis_origin_m"]
+        profile["gripper_open_allowed"] = False
+        profile["workcell"].update(axis_xy_m=origin[:2],
+                                   radius_m=surface["radius_mm"] / 1000.0,
+                                   top_z_m=origin[2] + surface["height_mm"] / 1000.0)
+        execution = profile["execution_context"]
+        execution["motion_profiles"] = {
+            name: dict(vel_mm_s=5.0, acc_mm_s2=10.0, pos_tol_mm=1.0,
+                       completion_timeout_s=30.0)
+            for name in ("candle_approach", "candle_cut", "candle_travel", "candle_retract")}
+        execution["tool_profile"].update(contact_mode="fixed_depth", tool_axis="-y",
+                                          depth_m=0.0008, clearance_m=0.002)
+        execution["stop_profile"].update(confirmation_timeout_s=2.0)
+        real_profile = self.storage.profile(profile)
+        goal = self.goal(theta_deg=0.0, v_mm=75.0)
+        goal.update(source_mode="REAL", conversion_preset="raster_parallel_hatch",
+                    width_mm=24.0, height_mm=24.0,
+                    profile_snapshot_id=real_profile["id"], profile_sha256=real_profile["sha256"])
+        generated = GeneratePipeline(self.store, allow_real_execution=True).run(goal)
+        result = {"success": True, "error_code": "NONE", "message": success_message(generated),
+                  "path_id": generated.path_id, "path_version": generated.path_version,
+                  "path_sha256": generated.path_sha256, "svg_asset_id": generated.svg_asset_id,
+                  "preview_asset_id": generated.preview_asset_id,
+                  "segment_count": generated.segment_count, "cut_length_m": generated.cut_length_m,
+                  "validation_passed": True, "validation_report_id": generated.validation_report_id}
+        loaded = PathArtifactLoader(self.storage).load(goal, result)
+        self.assertEqual(loaded["path_id"], generated.path_id)
+        self.assertEqual(loaded["path_sha256"], generated.path_sha256)
+        path = json.loads(self.storage.read_asset(generated.path_asset_id))
+        self.assertEqual(path["config"]["conversion"]["recipe_scope"], "surface_path")
+        self.assertIs(path["test_only"], False)
+        # 동일 원본 바이트를 공정 로더에 전달한다. 모의 어댑터는 모션을 호출하지 않는다.
+        process_root = ROOT.parent / "c2_process"
+        sys.path.insert(0, str(process_root))
+        from c2_process.node import (InputsUnavailable, make_asset_bundle_loader,
+                                     resolve_real_execution_settings)
+        from c2_process.robot_adapter import MockRobotAdapter
+        adapter = MockRobotAdapter()
+        execute_goal = dict(schema_version=2, source_mode="REAL", run_id=str(uuid4()),
+                            path_id=generated.path_id, path_version=generated.path_version,
+                            path_sha256=generated.path_sha256)
+        def assets(_goal):
+            return dict(path_bytes=self.storage.read_asset(generated.path_asset_id),
+                        snapshot_bytes=self.storage.read_asset(real_profile["id"]),
+                        generation_result=result,
+                        validation_report_bytes=self.storage.read_asset(generated.validation_report_id),
+                        snapshot_metadata=dict(id=real_profile["id"], sha256=real_profile["sha256"]))
+        def settings(snapshot, request, snapshot_id):
+            return resolve_real_execution_settings(snapshot, request, snapshot_id, adapter=adapter)
+        process_loader = make_asset_bundle_loader(assets, settings)
+        bound = process_loader(execute_goal)
+        self.assertEqual(hashlib.sha256(bound.path_bytes).hexdigest(), generated.path_sha256)
+        self.assertEqual(bound.snapshot_bytes, self.storage.read_asset(real_profile["id"]))
+        self.assertEqual(adapter.calls, [])
+        with self.assertRaises(InputsUnavailable):
+            process_loader(dict(execute_goal, path_sha256="0" * 64))
 
     def test_outside_robot_window_still_generates_and_loads_but_is_marked(self):
         cases = {"seam_180deg": self.goal(theta_deg=180.0),
