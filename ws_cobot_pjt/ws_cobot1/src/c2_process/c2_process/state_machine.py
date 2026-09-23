@@ -196,6 +196,15 @@ def run_prepared_process(context, *, precheck, engrave, enter=None, return_home=
         steps.append(("RETURN_HOME", return_home, True))
     entry_observed = None
     engraving_observed = None
+
+    def preserve_engraving(result: StepResult) -> None:
+        """복귀 결과를 최종 반환해도 조각 Result 계약을 최상위에 유지한다."""
+        if engraving_observed is None:
+            return
+        current = dict(result.observed_state)
+        result.observed_state = {**engraving_observed, **current,
+                                 "engrave": dict(engraving_observed)}
+
     for phase, operation, moves in steps:
         if context.cancel.is_set():
             return StepResult("STOPPED", "NONE", "실행 취소", phase.lower())
@@ -211,8 +220,7 @@ def run_prepared_process(context, *, precheck, engrave, enter=None, return_home=
             if entry_observed is not None:
                 result.observed_state = {**result.observed_state,
                                          "entry": dict(entry_observed)}
-            if engraving_observed is not None:
-                result.observed_state["engrave"] = dict(engraving_observed)
+            preserve_engraving(result)
             return result
         if phase == "ENTRY":
             entry_observed = dict(result.observed_state)
@@ -223,8 +231,7 @@ def run_prepared_process(context, *, precheck, engrave, enter=None, return_home=
         elif phase == "RETURN_HOME":
             if entry_observed is not None:
                 result.observed_state["entry"] = dict(entry_observed)
-            if engraving_observed is not None:
-                result.observed_state["engrave"] = dict(engraving_observed)
+            preserve_engraving(result)
         if context.cancel.is_set():
             return StepResult("UNKNOWN" if moves else "STOPPED",
                               "STOP_UNCONFIRMED" if moves else "NONE",

@@ -164,13 +164,17 @@ def test_prepared_flow_returns_home_only_after_successful_engraving():
     result = run_prepared_process(
         context, precheck=done("precheck"), enter=done("entry"),
         engrave=lambda _progress: calls.append("engrave") or StepResult(
-            "SUCCEEDED", observed_state={"engraved": True}),
+            "SUCCEEDED", observed_state={"engraved": True,
+                                         "last_completed_segment_id": "retract-1",
+                                         "engraving_progress": 1.0}),
         return_home=done("return_home"), on_phase=phases.append)
 
     assert result.ok
     assert calls == ["precheck", "entry", "engrave", "return_home"]
     assert phases == ["PRECHECK", "ENTRY", "ENGRAVE", "RETURN_HOME", "FINISH"]
     assert result.observed_state["engrave"]["engraved"] is True
+    assert result.observed_state["last_completed_segment_id"] == "retract-1"
+    assert result.observed_state["engraving_progress"] == 1.0
 
     calls.clear()
     failed = run_prepared_process(
@@ -190,13 +194,17 @@ def test_return_failure_blocks_finish_and_cancel_after_engraving_blocks_return()
         context,
         precheck=lambda: StepResult("SUCCEEDED"),
         enter=lambda: StepResult("SUCCEEDED"),
-        engrave=lambda _progress: StepResult("SUCCEEDED"),
+        engrave=lambda _progress: StepResult(
+            "SUCCEEDED", observed_state={"last_completed_segment_id": "retract-1",
+                                         "engraving_progress": 1.0}),
         return_home=lambda: calls.append("return_home") or StepResult(
             "FAILED", "VALIDATION_FAILED", "복귀 실패"),
         on_phase=phases.append)
     assert (failed.outcome, failed.error_code) == ("FAILED", "VALIDATION_FAILED")
     assert calls == ["return_home"]
     assert phases == ["PRECHECK", "ENTRY", "ENGRAVE", "RETURN_HOME"]
+    assert failed.observed_state["last_completed_segment_id"] == "retract-1"
+    assert failed.observed_state["engraving_progress"] == 1.0
 
     context.cancel.clear()
     calls.clear()

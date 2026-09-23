@@ -84,55 +84,56 @@ def generate_return_home_candidates(execution_plan, workcell, tool_offset_m,
     candidates = []
     candidate_index = 0
     rejected = []
-    for escape in ("normal", "radial", "lift_only"):
-        for xy_first, yaw_alt in ((False, False), (True, False),
-                                  (False, True), (True, True)):
-            candidate_index += 1
-            candidate_id = f"return-home-{candidate_index:03d}"
-            try:
-                raw_steps = _home_steps(
-                    start, normalized,
-                    min_gap_m=RETURN_MIN_SURFACE_GAP_M,
-                    min_above_top_m=RETURN_MIN_ABOVE_TOP_M,
-                    yaw_alt=yaw_alt, xy_first=xy_first, escape=escape)
-            except (KeyError, TypeError, ValueError, OverflowError) as exc:
-                rejected.append({"candidate_id": candidate_id, "reason": str(exc)})
-                continue
-            if not raw_steps:
-                rejected.append({"candidate_id": candidate_id,
-                                 "reason": "HOME과 RETRACT가 같아 복귀 target 없음"})
-                continue
-            sections = []
-            targets = []
-            previous = list(start)
-            valid = True
-            reason = ""
-            for target, profile_id, label in raw_steps:
-                if profile_id not in motion_profiles:
-                    valid, reason = False, f"복귀 모션 프로파일 {profile_id} 없음"
-                    break
-                samples = _motion_samples(previous, list(target), tool_offset_m,
-                                          policy["sample_m"], policy["sample_deg"])
-                targets.append({"kind": "CARTESIAN", "label": label,
-                                "motion_profile_id": profile_id,
-                                "tip_pose": list(target)})
-                sections.append({"label": label, "waypoints": samples})
-                previous = list(target)
-            if not valid:
-                rejected.append({"candidate_id": candidate_id, "reason": reason})
-                continue
-            candidates.append({
-                "candidate_id": candidate_id,
-                "frame_id": "c2_base",
-                "expected_start_tip_pose": list(start),
-                "targets": targets,
-                "validation_sections": sections,
-                "validation_waypoints": [list(p) for s in sections for p in s["waypoints"]],
-                "candidate": {"escape": escape, "xy_first": xy_first,
-                              "yaw_alt": yaw_alt},
-                "policy": policy,
-                "workspace": validate_workspace(normalized.get("engraving_workspace")),
-            })
+    # 최신 main의 시율 복귀 생성기는 법선 후퇴 후보 네 가지를 제공한다.
+    # 지원하지 않는 escape 인자를 추측해 넘기지 않고 현재 계약만 소비한다.
+    for xy_first, yaw_alt in ((False, False), (True, False),
+                              (False, True), (True, True)):
+        candidate_index += 1
+        candidate_id = f"return-home-{candidate_index:03d}"
+        try:
+            raw_steps = _home_steps(
+                start, normalized,
+                min_gap_m=RETURN_MIN_SURFACE_GAP_M,
+                min_above_top_m=RETURN_MIN_ABOVE_TOP_M,
+                yaw_alt=yaw_alt, xy_first=xy_first)
+        except (KeyError, TypeError, ValueError, OverflowError) as exc:
+            rejected.append({"candidate_id": candidate_id, "reason": str(exc)})
+            continue
+        if not raw_steps:
+            rejected.append({"candidate_id": candidate_id,
+                             "reason": "HOME과 RETRACT가 같아 복귀 target 없음"})
+            continue
+        sections = []
+        targets = []
+        previous = list(start)
+        valid = True
+        reason = ""
+        for target, profile_id, label in raw_steps:
+            if profile_id not in motion_profiles:
+                valid, reason = False, f"복귀 모션 프로파일 {profile_id} 없음"
+                break
+            samples = _motion_samples(previous, list(target), tool_offset_m,
+                                      policy["sample_m"], policy["sample_deg"])
+            targets.append({"kind": "CARTESIAN", "label": label,
+                            "motion_profile_id": profile_id,
+                            "tip_pose": list(target)})
+            sections.append({"label": label, "waypoints": samples})
+            previous = list(target)
+        if not valid:
+            rejected.append({"candidate_id": candidate_id, "reason": reason})
+            continue
+        candidates.append({
+            "candidate_id": candidate_id,
+            "frame_id": "c2_base",
+            "expected_start_tip_pose": list(start),
+            "targets": targets,
+            "validation_sections": sections,
+            "validation_waypoints": [list(p) for s in sections for p in s["waypoints"]],
+            "candidate": {"escape": "normal", "xy_first": xy_first,
+                          "yaw_alt": yaw_alt},
+            "policy": policy,
+            "workspace": validate_workspace(normalized.get("engraving_workspace")),
+        })
     return candidates, rejected, normalized
 
 

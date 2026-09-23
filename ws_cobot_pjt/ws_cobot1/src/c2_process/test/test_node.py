@@ -2624,7 +2624,10 @@ def test_prepared_execution_plans_checks_and_runs_entry_before_engraving():
 
     def engrave(_path, _context, _progress, _adapter):
         calls.append("engrave")
-        return StepResult("SUCCEEDED")
+        return StepResult("SUCCEEDED", observed_state={
+            "last_completed_segment_id": "retract-1",
+            "engraving_progress": 1.0,
+        })
 
     def return_home(received, adapter, context):
         calls.append("return_home")
@@ -2646,6 +2649,8 @@ def test_prepared_execution_plans_checks_and_runs_entry_before_engraving():
     assert calls == ["entry_plan", "joints", "return_plan", "entry", "engrave", "return_home"]
     assert phases == ["PRECHECK", "ENTRY", "ENGRAVE", "RETURN_HOME", "FINISH"]
     assert result.observed_state["preparation_id"] == ctx.run_id
+    assert result.observed_state["last_completed_segment_id"] == "retract-1"
+    assert result.observed_state["engraving_progress"] == 1.0
 
 
 @pytest.mark.parametrize("stage,outcome", [("motion_check", "FAILED"), ("measure", "FAILED"),
