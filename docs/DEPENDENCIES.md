@@ -1,6 +1,6 @@
 # 외부 패키지·설치물 기록
 
-2026-09-23 `origin/main` `6536a29` 기준으로 팀 앱은 React·Vite·FastAPI·SQLite를 사용하고, ROS 2 Jazzy 패키지 `c2_interfaces`·`c2_path`·`c2_process`가 모두 존재한다. `PrepareWorkpiece.action`, 공정 `node.py`·`setup.py`, REAL 준비·실행 진입점도 main에 있다. HMI·경로·공정 코드 연결과 실제 M0609의 전체 가공 검증은 구분한다. [팀 실행 안내](../ws_cobot_pjt/ws_cobot1/doc/README.md), [워크스페이스](WORKSPACES.md), [9/21](../ws_cobot_pjt/docs/daily/2026-09-21.md)·[9/22](../ws_cobot_pjt/docs/daily/2026-09-22.md) 일지를 참조한다.
+2026-09-23 `origin/main` `b9eb003` 기준으로 팀 앱은 React·Vite·FastAPI·SQLite를 사용하고, ROS 2 Jazzy 패키지 `c2_interfaces`·`c2_path`·`c2_process`가 모두 존재한다. `PrepareWorkpiece.action`, 공정 `node.py`·`setup.py`, REAL 준비·실행 진입점과 entry planner도 main에 있다. HMI·경로·공정 코드 연결과 실제 M0609의 전체 가공 검증은 구분한다. [팀 실행 안내](../ws_cobot_pjt/ws_cobot1/doc/README.md), [워크스페이스](WORKSPACES.md), [9/21](../ws_cobot_pjt/docs/daily/2026-09-21.md)·[9/22](../ws_cobot_pjt/docs/daily/2026-09-22.md) 일지를 참조한다.
 
 프런트 잠금 파일은 `frontend/pnpm-lock.yaml`, 백엔드 기본·이미지 포함 잠금 파일은 `backend/requirements.lock.txt`·`backend/requirements-image.lock.txt`다. ROS 연결용 Python 직접 의존성은 `backend/requirements-ros.txt`, 각 ROS 패키지의 의존성은 `package.xml`과 Python 패키지 `setup.py`에 선언한다. `requirements-ros.txt`는 `rclpy`, 생성된 `c2_interfaces`, 외부 `dsr_msgs2`를 pip 패키지로 대체하지 않는다. 공정 launch 디렉터리는 현재 자리표시자만 있으며 설계 문서의 `workcell.yaml`·`tools.yaml`은 존재하지 않는다.
 
