@@ -1,0 +1,110 @@
+{
+  "contract": "c2-path-real-execution-profile/1",
+  "schema_version": 2,
+  "source_mode": "REAL",
+  "test_only": false,
+  "real_execution_allowed": true,
+  "frame_id": "c2_base",
+  "gripper_open_allowed": false,
+  "workcell_id": "candle_test_0919",
+  "workcell_version": 2,
+  "tools_config_id": "c2_tools",
+  "tools_config_version": 1,
+  "tool_id": "engraving_drill",
+  "tool_version": 1,
+  "tcp_id": "GripperDA_v1",
+  "tcp_version": 1,
+  "load_id": "ToolWeight_1",
+  "load_version": 1,
+  "surface": {
+    "kind": "cylinder",
+    "radius_mm": 33.929017,
+    "height_mm": 150.0,
+    "axis_origin_m": [0.423646493, -0.000039369, 0.065929474],
+    "axis_direction": [0.0, 0.0, 1.0],
+    "valid_v_range_mm": [10.0, 140.0],
+    "u_origin_angle_deg": 0.0,
+    "seam_angle_deg": 180.0,
+    "reachable_angle_deg": [-135.0, 135.0],
+    "height_reference": "bottom",
+    "v_direction": "up"
+  },
+  "tip_calibration": {
+    "tool_id": "engraving_drill",
+    "offset_tool_m": [0.00085, -0.09955, 0.0]
+  },
+  "execution_context": {
+    "source_mode": "REAL",
+    "motion_profiles": {
+      "candle_approach": {
+        "id": "candle_approach",
+        "vel_mm_s": 25.0,
+        "acc_mm_s2": 10.0,
+        "pos_tol_mm": 0.2,
+        "angle_tol_deg": 0.15,
+        "completion_timeout_s": 90.0
+      },
+      "candle_cut": {
+        "id": "candle_cut",
+        "vel_mm_s": 5.0,
+        "acc_mm_s2": 10.0,
+        "pos_tol_mm": 0.2,
+        "angle_tol_deg": 0.15,
+        "completion_timeout_s": 90.0
+      },
+      "candle_travel": {
+        "id": "candle_travel",
+        "vel_mm_s": 25.0,
+        "acc_mm_s2": 10.0,
+        "pos_tol_mm": 0.2,
+        "angle_tol_deg": 0.15,
+        "completion_timeout_s": 90.0
+      },
+      "candle_retract": {
+        "id": "candle_retract",
+        "vel_mm_s": 25.0,
+        "acc_mm_s2": 10.0,
+        "pos_tol_mm": 0.2,
+        "angle_tol_deg": 0.15,
+        "completion_timeout_s": 90.0
+      }
+    },
+    "entry_planning": {
+      "enabled": true,
+      "tcp_clearance_above_top_range_m": [0.084070526, 0.114070526],
+      "tcp_z_step_m": 0.002,
+      "sample_m": 0.002,
+      "sample_deg": 1.0,
+      "min_radial_gap_m": 0.018,
+      "min_j3_abs_deg": 10.0,
+      "min_j5_margin_deg": 15.0,
+      "max_joint_step_deg": 8.0,
+      "start_position_tolerance_m": 0.0003,
+      "start_angle_tolerance_deg": 0.3,
+      "motion_profile_id": "candle_travel"
+    },
+    "tool_profile": {
+      "tool_id": "engraving_drill",
+      "contact_mode": "fixed_depth",
+      "depth_m": 0.0005,
+      "clearance_m": 0.03,
+      "tool_axis": "-y",
+      "frame_id": "c2_base"
+    },
+    "stop_profile": {
+      "mode": 1,
+      "confirmation_timeout_s": 2.0
+    }
+  },
+  "joint_check_arguments": {
+    "limits_deg": [
+      [-360.0, 360.0],
+      [-95.0, 95.0],
+      [-135.0, 135.0],
+      [-360.0, 360.0],
+      [-135.0, 135.0],
+      [-170.0, 170.0]
+    ],
+    "j6_margin_deg": 0.0
+  }
+}

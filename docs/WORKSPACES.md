@@ -1,6 +1,6 @@
 # 워크스페이스와 실행 PC
 
-기준: 2026-09-23 `origin/main` `6536a29`. 프로젝트 기준은 M0609·ROS 2 Jazzy다. **팀 소스의 구현 상태와 각 PC의 설치·동작 상태는 다르다.** 9/17~22의 변경 경과는 [9/20](../ws_cobot_pjt/docs/daily/2026-09-20.md)·[9/21](../ws_cobot_pjt/docs/daily/2026-09-21.md)·[9/22](../ws_cobot_pjt/docs/daily/2026-09-22.md) 일지에 보존한다.
+기준: 2026-09-23 `origin/main` `b9eb003`. 프로젝트 기준은 M0609·ROS 2 Jazzy다. **팀 소스의 구현 상태와 각 PC의 설치·동작 상태는 다르다.** 9/17~22의 변경 경과는 [9/20](../ws_cobot_pjt/docs/daily/2026-09-20.md)·[9/21](../ws_cobot_pjt/docs/daily/2026-09-21.md)·[9/22](../ws_cobot_pjt/docs/daily/2026-09-22.md) 일지에 보존한다.
 
 ## 저장소 배치
 

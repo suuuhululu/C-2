@@ -158,4 +158,8 @@ def real_bound_profile(goal, display, config, record):
     profile['workcell'] = deepcopy(config['workcell'])
     profile['workcell'].update(axis_xy_m=m['axis_xy_m'], radius_m=m['radius_m'],
                                top_z_m=m['top_z_m'], bottom_z_m=m['bottom_z_m'], height_m=m['height_m'])
+    # 진입 정책은 배포 실행 프로파일에서 승인하고, 작업별 실측 기하와 함께
+    # 불변 스냅샷에 연결한다. 원본 준비/실행 JSON은 수정하지 않는다.
+    profile['workcell']['entry_planning'] = deepcopy(
+        template['execution_context']['entry_planning'])
     return profile

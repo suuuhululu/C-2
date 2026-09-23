@@ -108,6 +108,21 @@ class TestRealHmiLoader(unittest.TestCase):
             name: dict(vel_mm_s=5.0, acc_mm_s2=10.0, pos_tol_mm=1.0,
                        completion_timeout_s=30.0)
             for name in ("candle_approach", "candle_cut", "candle_travel", "candle_retract")}
+        entry_planning = dict(
+            enabled=True,
+            tcp_clearance_above_top_range_m=[0.10, 0.12],
+            tcp_z_step_m=0.01,
+            sample_m=0.005,
+            sample_deg=2.0,
+            min_radial_gap_m=0.005,
+            min_j3_abs_deg=10.0,
+            min_j5_margin_deg=15.0,
+            max_joint_step_deg=20.0,
+            start_position_tolerance_m=0.001,
+            start_angle_tolerance_deg=1.0,
+            motion_profile_id="candle_travel")
+        execution["entry_planning"] = entry_planning
+        profile["workcell"]["entry_planning"] = dict(entry_planning)
         execution["tool_profile"].update(contact_mode="fixed_depth", tool_axis="-y",
                                           depth_m=0.0008, clearance_m=0.002)
         execution["stop_profile"].update(confirmation_timeout_s=2.0)

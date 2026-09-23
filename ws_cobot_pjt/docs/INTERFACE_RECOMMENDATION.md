@@ -1,6 +1,6 @@
 # 새김 ROS·파일 인터페이스 기준 · 고정 드릴 v2
 
-기준: `main` `6536a29` (2026-09-23). 이 문서는 현재 코드의 통신·단위·실행 게이트를 읽기 위한 안내다. **필드·자료형의 원본은 같은 커밋의 [`c2_interfaces`](../ws_cobot1/src/c2_interfaces/README.md) `.action`·`.srv`·`.msg` 파일**이며, 이 표로 별도 타입을 만들지 않는다. ROS 2 Jazzy와 M0609를 기준으로 한다. 이력은 날짜별 [일지](daily/)와 [9/19 운영 결정](C2_FIXED_DRILL_20260919.md)에 보존한다.
+기준: `main` `b9eb003` (2026-09-23, PR #80 병합). 이 문서는 현재 코드의 통신·단위·실행 게이트를 읽기 위한 안내다. **필드·자료형의 원본은 같은 커밋의 [`c2_interfaces`](../ws_cobot1/src/c2_interfaces/README.md) `.action`·`.srv`·`.msg` 파일**이며, 이 표로 별도 타입을 만들지 않는다. ROS 2 Jazzy와 M0609를 기준으로 한다. 이력은 날짜별 [일지](daily/)와 [9/19 운영 결정](C2_FIXED_DRILL_20260919.md)에 보존한다.
 
 ## 1. 통신 경계
 
@@ -60,7 +60,7 @@ REAL 경로 서버도 로봇을 움직이지 않는다. `ESTIMATED`·`absolute_t
 
 HMI는 최신 상태, 준비 성공과 BIND, 동일 스냅샷·경로·미리보기, 파일 해시, REAL 후보 표시를 대조한다. 공정 노드는 모드·경로/설정 원본 바이트, 도구·프레임·상태·제어권, 정지 래치, 실행 설정을 다시 검사한다. 깊이·접근·이탈을 적용한 실행계획의 **모든 명시 waypoint**에 IK·관절 한계·J6 여유 검사를 수행하고, 검사한 계획과 실행 계획을 연결한다. 점 사이 연속 충돌·특이점 전체 보증이나 힘 유지 중 실제 위치의 IK 연속 증명은 아직 아니다.
 
-준비 후 실행 경로의 상태 기계는 `PRECHECK → ENGRAVE → FINISH`이며, 준비 단계에서 이미 수행한 확인을 무조건 되풀이하지 않는다. 기존 직접 실행 경로에는 `TOOL_CHECK`, 시작 이동·홈 복귀 콜백도 남아 있으므로 두 호출 경로를 혼동하지 않는다. #74의 `normal_force_hold`·`chunk_adaptive` CUT, 힘 관측·검사형 `return_home()` 코드는 설정이 있을 때만 사용되며 실제 힘 유지 중 MoveSX 수락, 연속 도달성, 전체 홈 복귀 실기는 미검증이다. `return_home()`을 준비 후 실행에 자동 연결했다고 기록하지 않는다. 세부 범위는 [공정 README](../ws_cobot1/src/c2_process/README.md)를 따른다.
+준비 후 실행 경로의 상태 기계는 `PRECHECK → ENTRY → ENGRAVE → FINISH`다. `PRECHECK`는 배포 실행 프로파일의 `execution_context.entry_planning`과 이번 측정 스냅샷의 기하를 결합해 현재/HOME에서 첫 APPROACH까지의 후보를 읽기 전용 IK와 관절·간격 검사로 확정하고 해시로 고정한다. `ENTRY`는 검사된 동일 계획만 실행한다. 정책의 높이는 실측 `top_z_m`에 대한 상대 여유이므로 양초의 절대 표면 좌표를 고정하지 않는다. 기존 직접 실행 경로에는 `TOOL_CHECK`, 시작 이동·홈 복귀 콜백도 남아 있으므로 두 호출 경로를 혼동하지 않는다. #74의 `normal_force_hold`·`chunk_adaptive` CUT, 힘 관측·검사형 `return_home()` 코드는 설정이 있을 때만 사용되며 실제 힘 유지 중 MoveSX 수락, 연속 도달성, 전체 홈 복귀 실기는 미검증이다. `return_home()`을 준비 후 실행에 자동 연결했다고 기록하지 않는다. 세부 범위는 [공정 README](../ws_cobot1/src/c2_process/README.md)를 따른다.
 
 결과 `outcome`은 `SUCCEEDED/FAILED/STOPPED/UNKNOWN`; 진행률·마지막 구간·로그 ID는 실물 가공 품질이 아니다. 동일 `request_id`의 같은 내용은 재실행하지 않고 다른 내용은 충돌로 거절한다. 통신·모션 결과가 미확인되면 성공으로 바꾸거나 새 경로/작업을 자동 시작하지 않는다.
 
@@ -74,6 +74,6 @@ HMI는 최신 상태, 준비 성공과 BIND, 동일 스냅샷·경로·미리보
 
 주요 API는 `/api/operator/preparations`, `/api/operator/assets`, `/api/operator/path-generations`, `/api/operator/runs`, `/api/operator/inspections`, `/api/operator/snapshot`, `/api/operator/stream`이다. HTTP 202 접수, ROS Goal 수락, 실제 공정 완료를 다른 상태로 다룬다. HMI는 좌표 생성·로봇 모션을 직접 하지 않는다. 관리 파일은 브라우저 임의 절대 경로가 아닌 서버 UUID로 조회하고 원본 바이트 해시를 재확인한다.
 
-기본 `run_monitor.py`는 SIMULATION/MOCK이다. ROS SIM 연결에는 같은 checkout의 타입·경로·공정 빌드가 필요하다. REAL HMI는 `--transport ros --mode REAL --preparation-config`와 배포 실행 프로파일을 사용한다. `run_monitor.py`는 HMI·서버·경로 노드를 시작하지만 공정 노드·두산 드라이버는 별도다. REAL 공정 노드의 `--controller-prefix`가 측정/실행 서비스와 `<prefix>/control_authority`를 함께 정한다. 공정 노드 namespace remap을 임의로 더하지 않는다. 현재 실행 옵션은 [백엔드](../backend/README.md)와 [ROS 실행](../ws_cobot1/doc/README.md) 안내를 따른다.
+기본 `run_monitor.py`는 SIMULATION/MOCK이다. ROS SIM 연결에는 같은 checkout의 타입·경로·공정 빌드가 필요하다. REAL HMI는 `--transport ros --mode REAL --preparation-config`를 사용한다. 측정·미리보기만 할 때 실행 프로파일은 생략할 수 있지만, BIND와 실제 실행 후보 생성에는 `--execution-profile`이 필수이며 `execution_context.entry_planning`까지 사전 검사를 통과해야 한다. 검사는 파일을 수정하지 않는다. 양초 중심·반지름·윗면 등 작업별 기하는 측정 결과로 새 스냅샷에 기록되고, 실행 프로파일은 속도·깊이·관절 한계·상대 entry 정책처럼 사전에 승인한 값만 제공한다. `run_monitor.py`는 HMI·서버·경로 노드를 시작하지만 공정 노드·두산 드라이버는 별도다. REAL 공정 노드의 `--controller-prefix`가 측정/실행 서비스와 `<prefix>/control_authority`를 함께 정한다. 공정 노드 namespace remap을 임의로 더하지 않는다. 현재 실행 옵션은 [백엔드](../backend/README.md)와 [ROS 실행](../ws_cobot1/doc/README.md) 안내를 따른다.
 
 현장 속도·깊이·힘·관절 한계·TCP·하중·정지 기한은 배포 설정과 장치에서 확인한다. 저장소의 단위 시험용 숫자는 실행 승인값이 아니다. 이 커밋의 가상 장치/대역 시험과 REAL 연결 소스는 **실제 M0609 전체 측정→조각의 실기 성공 증거가 아니다.** [가상 장치 기록](VIRTUAL_CELL_20260922.md), [실기 시행착오](LESSONS_ROBOT.md)에 시험한 범위를 구분한다.

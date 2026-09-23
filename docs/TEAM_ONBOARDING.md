@@ -1,6 +1,6 @@
 # 팀원 시작 가이드
 
-2026-09-23 확인한 `main` `6536a29` 기준으로 개발 전 [AGENTS](../AGENTS.md)·[현재 문서 길잡이](../ws_cobot_pjt/docs/README.md)·[공통 타입](../ws_cobot_pjt/ws_cobot1/src/c2_interfaces/README.md)을 먼저 읽습니다. 철사 고정 중에는 초기화·오류 복구를 포함해 그리퍼 열기가 금지됩니다. 설치 PC와 최신 Git 상태는 작업마다 다시 확인합니다.
+2026-09-23 확인한 `main` `b9eb003` 기준으로 개발 전 [AGENTS](../AGENTS.md)·[현재 문서 길잡이](../ws_cobot_pjt/docs/README.md)·[공통 타입](../ws_cobot_pjt/ws_cobot1/src/c2_interfaces/README.md)을 먼저 읽습니다. 철사 고정 중에는 초기화·오류 복구를 포함해 그리퍼 열기가 금지됩니다. 설치 PC와 최신 Git 상태는 작업마다 다시 확인합니다.
 
 우리 팀은 **Issue로 작업을 약속하고, PR로 변경을 검토하고, 실제 확인한 결과로 완료를 판단**합니다. 작업 계획과 진행 상황은 GitHub에 남깁니다. 공통 학습·장비 기준은 [프로젝트 가이드](PROJECT_GUIDE.md)를 참고하세요.
 

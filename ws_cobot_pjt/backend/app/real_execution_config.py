@@ -44,6 +44,7 @@ def validate_real_execution_config(config):
     for key in ('motion_profiles', 'tool_profile', 'stop_profile'):
         if not isinstance(context.get(key), dict):
             raise ValueError('REAL execution_context.' + key + ' 설정 누락')
+    validate_entry_planning(context.get('entry_planning'), context['motion_profiles'])
     from c2_path.workcell import MOTION_PROFILE
     for name in MOTION_PROFILE.values():
         if name not in context['motion_profiles']:
@@ -124,6 +125,35 @@ def validate_real_execution_config(config):
             or margin < 0 or 2 * margin >= limits[5][1] - limits[5][0]):
         raise ValueError('joint_check_arguments.j6_margin_deg 오류')
     return template
+
+
+def validate_entry_planning(policy, motion_profiles):
+    """REAL 진입 정책을 읽기 전용으로 검사한다.
+
+    양초 중심·반지름·윗면은 측정 스냅샷에서 공급한다. 여기서는 그 값에
+    상대적인 상공 탐색 범위와 IK/관절 검사 기준만 검증한다.
+    """
+    if not isinstance(policy, dict) or policy.get('enabled') is not True:
+        raise ValueError('REAL execution_context.entry_planning.enabled=true 설정 필요')
+    bounds = policy.get('tcp_clearance_above_top_range_m')
+    if (not isinstance(bounds, (list, tuple)) or len(bounds) != 2
+            or any(type(value) not in (int, float) or not math.isfinite(value)
+                   for value in bounds)
+            or bounds[0] <= 0 or bounds[0] > bounds[1]):
+        raise ValueError('entry_planning.tcp_clearance_above_top_range_m 범위 오류')
+    required = ('tcp_z_step_m', 'sample_m', 'sample_deg', 'min_radial_gap_m',
+                'min_j3_abs_deg', 'min_j5_margin_deg', 'max_joint_step_deg',
+                'start_position_tolerance_m', 'start_angle_tolerance_deg')
+    for key in required:
+        positive(policy.get(key), 'entry_planning.' + key)
+    if (policy['tcp_z_step_m'] > bounds[1] - bounds[0]
+            and not math.isclose(bounds[0], bounds[1])):
+        raise ValueError('entry_planning.tcp_z_step_m이 탐색 범위보다 큼')
+    profile_id = policy.get('motion_profile_id')
+    if (not isinstance(profile_id, str) or not profile_id
+            or profile_id not in motion_profiles):
+        raise ValueError('entry_planning.motion_profile_id가 이동 프로파일에 없음')
+    return policy
 
 
 def positive(value, name):

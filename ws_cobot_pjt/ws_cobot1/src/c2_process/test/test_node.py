@@ -1888,6 +1888,21 @@ def _complete_real_profile():
     cfg, _, goal, adapter, _ = _handoff_settings()
     workcell = copy.deepcopy(cfg['workcell'])
     height_m = 0.15
+    entry_planning = {
+        'enabled': True,
+        'tcp_clearance_above_top_range_m': [0.10, 0.12],
+        'tcp_z_step_m': 0.01,
+        'sample_m': 0.005,
+        'sample_deg': 2.0,
+        'min_radial_gap_m': 0.005,
+        'min_j3_abs_deg': 10.0,
+        'min_j5_margin_deg': 15.0,
+        'max_joint_step_deg': 20.0,
+        'start_position_tolerance_m': 0.001,
+        'start_angle_tolerance_deg': 1.0,
+        'motion_profile_id': 'candle_travel',
+    }
+    workcell['entry_planning'] = copy.deepcopy(entry_planning)
     return {
         'schema_version': 2,
         'source_mode': 'REAL',
@@ -1912,6 +1927,7 @@ def _complete_real_profile():
         'execution_context': {
             'source_mode': 'REAL',
             'motion_profiles': copy.deepcopy(cfg['execution_context']['motion_profiles']),
+            'entry_planning': entry_planning,
             'tool_profile': copy.deepcopy(cfg['execution_context']['tool_profile']),
             'stop_profile': copy.deepcopy(cfg['execution_context']['stop_profile']),
         },
@@ -3407,6 +3423,16 @@ def test_real_profiles_require_all_existing_segment_ids_and_explicit_mode():
     del execution['tool_profile']['contact_mode']
     with pytest.raises(InputsUnavailable,match='contact_mode'):
         validate_real_execution_profiles(execution)
+
+
+def test_real_profile_rejects_entry_policy_mismatch_before_observe():
+    import c2_process.node as module
+    profile, goal, adapter = _complete_real_profile()
+    profile['workcell']['entry_planning']['sample_m'] *= 2
+    adapter.observe = lambda: (_ for _ in ()).throw(AssertionError('static failure observed robot'))
+    with pytest.raises(InputsUnavailable, match='entry_planning 불일치'):
+        module.resolve_real_execution_settings(
+            profile, goal, 'registered-real-profile', adapter=adapter)
 
 
 @pytest.mark.parametrize('confirmed',[True,False])

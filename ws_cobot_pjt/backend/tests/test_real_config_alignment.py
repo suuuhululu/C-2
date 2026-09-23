@@ -43,6 +43,32 @@ def test_same_fixed_depth_settings_pass_both_without_rewriting(tmp_path, depth, 
     assert value == before
 
 
+def test_entry_policy_is_required_before_measurement(tmp_path):
+    value = config(tmp_path)
+    value['execution_profile']['execution_context'].pop('entry_planning')
+    with pytest.raises(ValueError, match='entry_planning.enabled'):
+        validate_real_execution_config(value)
+    with pytest.raises(InputsUnavailable, match='entry_planning.enabled'):
+        validate_real_execution_profiles(value['execution_profile']['execution_context'])
+
+
+@pytest.mark.parametrize(('key', 'bad'), [
+    ('tcp_clearance_above_top_range_m', [.12, .10]),
+    ('sample_m', 0.),
+    ('sample_deg', True),
+    ('motion_profile_id', 'missing-profile'),
+])
+def test_invalid_entry_policy_is_rejected_without_rewriting(tmp_path, key, bad):
+    value = config(tmp_path)
+    value['execution_profile']['execution_context']['entry_planning'][key] = bad
+    before = deepcopy(value)
+    with pytest.raises(ValueError, match='entry_planning'):
+        validate_real_execution_config(value)
+    with pytest.raises(InputsUnavailable, match='entry_planning'):
+        validate_real_execution_profiles(value['execution_profile']['execution_context'])
+    assert value == before
+
+
 @pytest.mark.parametrize('name', ['candle_approach', 'candle_cut', 'candle_travel', 'candle_retract'])
 @pytest.mark.parametrize('bad', [None, 0, -1, True, float('nan')])
 def test_position_tolerance_rejected_before_measure_by_both(tmp_path, name, bad):

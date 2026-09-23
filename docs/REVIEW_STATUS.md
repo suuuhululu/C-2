@@ -1,6 +1,6 @@
 # 현재 개발·검증 현황
 
-> 기준: 2026-09-23 원격 `main` `6536a29`(PR #75 병합). 이 문서는 코드의 현재 구현 범위와 저장소에서 확인한 시험 기록을 구분한다. 설치 PC의 버전·현장 상태와 이후 병합은 다시 확인한다.
+> 기준: 2026-09-23 원격 `main` `b9eb003`(PR #80 병합). 이 문서는 코드의 현재 구현 범위와 저장소에서 확인한 시험 기록을 구분한다. 설치 PC의 버전·현장 상태와 이후 병합은 다시 확인한다.
 
 ## 코드에 있는 것
 
@@ -9,10 +9,10 @@
 | 공통 계약 | `c2_interfaces`: `PrepareWorkpiece`, `GeneratePath`, `ExecuteProcess` Action, `StopProcess` Service, 상태·이벤트 Message | 같은 커밋의 타입을 모든 ROS 노드에서 사용해야 한다. |
 | HMI·서버 | React HMI, FastAPI·SQLite, 관리 자산과 ID·SHA-256, MOCK/ROS SIM/REAL 분기, 준비→경로→미리보기→별도 실행 요청 | 화면 표시나 요청 수락만으로 실제 동작 완료가 되지 않는다. |
 | 경로 | 이미지→SVG/2D→원통 3D 경로, 미리보기·기하 보고서. REAL 설정과 측정 스냅샷을 받은 실행 후보 생성 | 경로 노드는 모션을 실행하지 않는다. 기하 검사로 전체 궤적 간섭·가공 품질을 보증하지 않는다. |
-| 공정 | 측정 MEASURE/BIND, 상태·제어권 관측, 최종 경로·설정·관절 검사, 조각·정지 및 REAL 공정 노드 | 실제 장치 제어는 외부 드라이버와 현장 설정에 의존한다. |
+| 공정 | 측정 MEASURE/BIND, 상태·제어권 관측, 현재/HOME→첫 APPROACH entry 계획, 최종 경로·설정·관절 검사, 조각·정지 및 REAL 공정 노드 | prepared 실행은 `PRECHECK → ENTRY → ENGRAVE → FINISH`. 실제 장치 제어는 외부 드라이버와 현장 설정에 의존한다. |
 | 실행기 | `run_monitor.py`가 HMI·서버·필요시 경로 노드를 시작 | 공정 노드·드라이버는 별도 기동. REAL은 `--transport ros --mode REAL`과 확인된 준비 설정이 필요하다. |
 
-현재 작업 순서는 **MEASURE → 측정 원본·설정의 스냅샷 BIND → GeneratePath → 운영자 미리보기 → 별도 ExecuteProcess → 공정 최종 검사·결과**다. 고정 드릴을 쓰며 그리퍼 개폐, 자동 집기·반납·청소는 없다. 드릴 ON은 HMI의 수동 확인 입력으로, 전원 감지나 자동 제어가 아니다. 세부 계약은 [시스템 구조](../ws_cobot_pjt/docs/SYSTEM_STRUCTURE.md), [호출 흐름](../ws_cobot_pjt/docs/INTERFACE_GUIDE.md), [인터페이스](../ws_cobot_pjt/docs/INTERFACE_RECOMMENDATION.md)를 따른다.
+현재 작업 순서는 **MEASURE → 측정 원본·설정의 스냅샷 BIND → GeneratePath → 운영자 미리보기 → 별도 ExecuteProcess → PRECHECK → ENTRY → ENGRAVE → FINISH**다. entry 정책은 실측 윗면에 대한 상대 여유와 검사 기준이며 양초의 절대 표면값이 아니다. 고정 드릴을 쓰며 그리퍼 개폐, 자동 집기·반납·청소는 없다. 드릴 ON은 HMI의 수동 확인 입력으로, 전원 감지나 자동 제어가 아니다. 세부 계약은 [시스템 구조](../ws_cobot_pjt/docs/SYSTEM_STRUCTURE.md), [호출 흐름](../ws_cobot_pjt/docs/INTERFACE_GUIDE.md), [인터페이스](../ws_cobot_pjt/docs/INTERFACE_RECOMMENDATION.md)를 따른다.
 
 ## 검증 수준
 
@@ -21,6 +21,8 @@
 - 9/22에는 REAL 실행 계약·HMI 연결과 가상 셀 시험이 main에 들어왔다. [9/22 일지](../ws_cobot_pjt/docs/daily/2026-09-22.md)
 - 9/23 PR #74는 제어기 prefix 구성과 상태·하드웨어 관측 경로를 보완했다. 이를 포함한 `main`에서 실제 M0609 측정→BIND→경로→연속 조각, 물리적 홈 깊이·품질, 충돌 회피와 정지 시간을 끝까지 검증했다는 근거는 확인되지 않았다. [PR #74](https://github.com/suuuhululu/C-2/pull/74)
 - 9/23 PR #75는 REAL 옆면 측정의 baseline 구간과 접촉 허용 구간을 분리하고, 복구 가능한 한 점 오류에 한해 정지 확인·검사된 후퇴 뒤 제한적으로 재측정하는 코드를 추가했다. 분리된 공중 이동의 IK 표본 간격도 설정 범위 안에서 조절한다. 해당 변경의 모의 시험 파일은 있으나 실제 M0609 측정 성능·간섭이 검증됐다는 뜻은 아니다. [PR #75](https://github.com/suuuhululu/C-2/pull/75)
+- 9/23 PR #76은 HMI가 NumPy 실수형 관절값을 읽기 전용 관측으로 수용하도록 수정했고, PR #78은 REAL 경로 생성의 곡면 해칭과 배치 메타데이터를 확장했다. PR #79는 배포 프로파일 소비 시험을 보강했다.
+- 9/23 PR #80은 현재/HOME에서 첫 APPROACH까지의 entry 후보 생성·읽기 전용 IK/관절·단순 원통 간격 검사·해시 고정·실행을 prepared 공정에 연결했다. 전체 메시 충돌 검사나 실제 M0609 감독하 진입 검증 완료를 뜻하지 않는다. [PR #80](https://github.com/suuuhululu/C-2/pull/80)
 
 실제 현장 실행을 판단할 때는 사용 PC의 두산 드라이버·ROS 도메인·설정 파일 버전, 로봇·공구의 실제 상태, 입력 자산과 경로·설정의 ID/해시, 공정의 최종 검사를 함께 확인한다. `ESTIMATED` 형상과 명시 waypoint의 IK 결과를 독립 정밀 측정이나 전 궤적 충돌 검사로 해석하지 않는다.
 
