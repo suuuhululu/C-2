@@ -46,7 +46,11 @@ import LivePathPreview from "./LivePathPreview";
 import { matchesPreview } from "./preview";
 import WorkAreaSummary from "./WorkAreaSummary";
 import PreparationPanel from "./PreparationPanel";
-import { executionConfirmationKey } from "./preparation";
+import {
+  activePreparation,
+  executionConfirmationKey,
+  preparationLabel,
+} from "./preparation";
 import RobotObservations from "./RobotObservations";
 import { mm, topToBottom } from "./workArea";
 
@@ -126,6 +130,8 @@ export default function Monitor() {
   const previousProfile = useRef<string | null>(null);
   const previousPreparation = useRef<string | null>(null);
   const run = snapshot?.active_run;
+  const preparation = snapshot?.preparation.current;
+  const preparationRunning = activePreparation(preparation?.state);
   const fresh = connected && snapshot?.connection === "CONNECTED";
   const isRos = snapshot?.transport === "ROS2";
   const capabilities = snapshot?.path_generation;
@@ -510,11 +516,28 @@ export default function Monitor() {
       setPending(false);
     }
   }
-  async function stopRun() {
+  async function stopCurrentWork() {
     setDrillConfirmation(null);
-    if (!run) return;
+    if (!active(run) && !preparationRunning) return;
     setStopPending(true);
     setError("");
+    if (!active(run) && preparation) {
+      try {
+        await request(`/preparations/${preparation.request_id}/cancel`, {});
+        setToast(
+          "준비·측정 취소를 요청했습니다. 실제 정지 완료는 최종 결과로 확인하세요.",
+        );
+      } catch (e) {
+        setError((e as Error).message);
+      } finally {
+        setStopPending(false);
+      }
+      return;
+    }
+    if (!run) {
+      setStopPending(false);
+      return;
+    }
     if (stopId.current?.run !== run.run_id)
       stopId.current = { run: run.run_id, id: crypto.randomUUID() };
     try {
@@ -638,20 +661,32 @@ export default function Monitor() {
           <div className="stop-zone">
             <div>
               <b>
-                {run
+                {run && active(run)
                   ? `${statusNames[run.status] || run.status} · ${short(run.run_id)}`
-                  : "활성 실행 없음"}
+                  : preparationRunning
+                    ? `${preparationLabel(preparation?.state)} · ${short(preparation?.request_id)}`
+                    : "활성 실행 없음"}
               </b>
               <small>
-                {run?.stop_state && run.stop_state !== "NONE"
+                {run &&
+                active(run) &&
+                run.stop_state &&
+                run.stop_state !== "NONE"
                   ? `정지 상태 ${run.stop_state}`
-                  : "소프트웨어 정지 · 물리 비상정지와 별도"}
+                  : preparationRunning
+                    ? "준비 Action 취소 · 실제 정지 결과 확인 필요"
+                    : "소프트웨어 정지 · 물리 비상정지와 별도"}
               </small>
             </div>
             <button
               className="stop-button"
-              disabled={!active(run) || stopPending}
-              onClick={stopRun}
+              disabled={(!active(run) && !preparationRunning) || stopPending}
+              onClick={stopCurrentWork}
+              title={
+                active(run) || preparationRunning
+                  ? "현재 로봇 작업에 소프트웨어 정지를 요청합니다."
+                  : "현재 로봇이 수행 중인 준비·측정 또는 실행 작업이 없습니다."
+              }
             >
               {stopPending ? (
                 <LoaderCircle className="spin" size={19} />

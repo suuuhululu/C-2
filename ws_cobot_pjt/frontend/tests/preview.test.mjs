@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { cylinderPoint, cutStrokes, previewSegments, matchesPreview } from '../src/monitor/preview.ts';
+import { cylinderPoint, cutStrokes, previewSegments, matchesPreview, pathProgressStates } from '../src/monitor/preview.ts';
 
 test('c2_base의 원통 위치를 빼고 U=0을 앞면에 표시하되 경로를 변경하지 않는다', () => {
   const profile = { payload: { surface: { axis_origin_m: [.4218, .0001, .0834], u_origin_angle_deg: 0 } } };
@@ -35,4 +35,21 @@ test('실제 preview의 절삭/비절삭·분리 구간을 보존하고 전개�
 test('기존 mock-preview/1은 strokes 배열을 유지한다', () => {
   const strokes = [{ segment_id: 'mock', kind: 'CUT', points_uv_mm: [[1, 2]] }];
   assert.deepEqual(cutStrokes({ preview: { contract: 'mock-preview/1', strokes } }), strokes);
+});
+
+test('REAL 진행률은 CUT 길이에 따라 완료·진행·예정 색상 상태로 변환한다', () => {
+  const strokes = [
+    { segment_id: 'short', points_m: [[0, 0, 0], [1, 0, 0]] },
+    { segment_id: 'long', points_m: [[1, 0, 0], [4, 0, 0], [6, 0, 0]] },
+  ];
+  assert.deepEqual(pathProgressStates(strokes, .5, 'ENGRAVE', 'RUNNING', true), {
+    'short:0': 'COMPLETED', 'long:0': 'IN_PROGRESS', 'long:1': 'PENDING',
+  });
+});
+
+test('연결 미확인 시 마지막 완료 길이는 보존하고 나머지는 미확인으로 표시한다', () => {
+  const strokes = [{ segment_id: 'cut', points_m: [[0, 0, 0], [1, 0, 0], [2, 0, 0]] }];
+  assert.deepEqual(pathProgressStates(strokes, .5, 'ENGRAVE', 'UNKNOWN', false), {
+    'cut:0': 'COMPLETED', 'cut:1': 'UNKNOWN',
+  });
 });

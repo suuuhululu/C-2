@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { ApiError, request } from "./api";
 import type { PreparationRecord, PreparationState, Snapshot } from "./api";
 import {
+  activePreparation,
   measurementPoints,
   preparationLabel,
   preparationStages,
@@ -136,8 +137,7 @@ export default function PreparationPanel({
     }
   }
   const reportedCount = current?.feedback.at(-1)?.completed_side_points;
-  const canCancel =
-    current && ["ACCEPTED", "RUNNING", "CANCELING"].includes(current.state);
+  const canCancel = current && activePreparation(current.state);
   return (
     <section className="panel preparation-panel" aria-label="양초 준비와 측정">
       <div className="panel-heading">
