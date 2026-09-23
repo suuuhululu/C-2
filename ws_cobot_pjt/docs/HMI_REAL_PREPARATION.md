@@ -17,6 +17,10 @@ REAL에서는 BIND·GeneratePath·ExecuteProcess를 허용하지 않는다. 이�
 native 형식은 원본을 별도 보관하고, 기존 Action 설정 봉투만 붙인다. tool_id=engraving_drill, TCP/하중은 원본 workcell에서 읽는다. 좌표·힘·속도·제한시간은 수정하지 않는다. 소비자용 최종 바이트에 ID/해시를 발급한다.
 `workpiece_real_trial_0921.json`은 저장소에 있지만 **현재 현장 승인값으로 자동 선택하지 않는다.** 양초·받침·고정 상태, TCP·하중·높이와 해당 파일의 전제가 그대로인지 담당자 확인 후 선택한다.
 
+HMI는 기동 시와 준비 요청 직전에 제어기를 읽기 전용으로 조회하고 `hardware_snapshot` JSON을 저장한다. 해당 JSON은 로봇 상태·AUTO/REAL·모션 정지·현재 TCP/load·관절·TCP 위치만 담는다. 속도·힘·실행 프로파일은 자동 생성하거나 기본값으로 채우지 않는다. 자동 관측할 수 없는 고정 설비·그리퍼/드릴 체결·드릴 OFF·이동 경로·지속 감시는 REAL 준비 화면의 한 번의 수동 확인으로 남긴다.
+
+고정 설비 계약은 TCP `GripperDA_v1`, load/tool `ToolWeight_1`이며 설정 파일·HMI 자동 관측·모션 직전 재조회 중 하나라도 다르면 REAL 진행을 차단한다. 그리퍼 개폐나 홈 복귀를 HMI가 자동 추가하지 않는다.
+
 ## 실행 — 같은 PC의 bash 터미널
 
 먼저 최신 패키지를 빌드한다. 실제 장치 실행은 아래 별도 단계다.
@@ -54,12 +58,11 @@ mkdir -p ws_cobot_pjt/backend/monitor_data/real_preparation
 ros2 run c2_process real_preparation_node \
   --preparation-backend-url http://127.0.0.1:8010 \
   --preparation-journal-path /home/rokey/cobot1/ws_cobot_pjt/backend/monitor_data/real_preparation/process.sqlite3 \
-  --controller-prefix /dsr01/dsr_controller2 \
-  --ros-args -r __ns:=/dsr01
+  --controller-prefix /dsr01/dsr_controller2
 ```
 
 드라이버도 같은 PC에서 검증된 기존 실행 방법과 같은 domain/RMW로 실행되어 있어야 한다. 위 명령은 드라이버를 설치·기동하거나 제어권을 강제로 얻지 않는다. 드라이버 실행 명령·로봇 IP·현장 안전조건을 추정하지 않는다.
-`--controller-prefix`만으로 DSR_ROBOT2의 상대 서비스 이름이 변경되지는 않는다. 위 namespace는 `/dsr01/dsr_controller2` 드라이버에 맞춘 값이다. 이 데스크톱의 외부 드라이버는 `/home/rokey/ws_cobot_pjt/ws_dsr`에 있으므로 필요한 `dsr_msgs2` 등은 해당 `install/setup.bash`를 먼저 source한 뒤 팀 워크스페이스를 source한다. 다른 PC는 실제 설치 경로를 확인한다.
+`--controller-prefix`로 DSR_ROBOT2 측정·실행 service와 `<prefix>/control_authority` 토픽을 같이 결정한다. 공정 노드 namespace remap은 필요하지 않다. 이 데스크톱의 외부 드라이버는 `/home/rokey/ws_cobot_pjt/ws_dsr`에 있으므로 필요한 `dsr_msgs2` 등은 해당 `install/setup.bash`를 먼저 source한 뒤 팀 워크스페이스를 source한다. 다른 PC는 실제 설치 경로를 확인한다.
 HMI와 REAL/SIM 공정 노드를 같은 domain에 중복 실행하지 않는다. 경로 노드가 꺼져 있어도 REAL 준비 요청에는 문제가 없다.
 
 ## 실제 확인 순서
@@ -84,7 +87,7 @@ HMI와 REAL/SIM 공정 노드를 같은 domain에 중복 실행하지 않는다.
 
 ### 이전 단계 기록
 
-- 관련 backend 9개 파일 108 passed(Starlette 기존 경고 1건). REAL 모드는 대역, SIM은 localhost/domain 173 실제 ROS Action 왕복을 포함한다.
+- 관련 backend 시험은 REAL 대역과 SIM localhost/domain 20 ROS Action 왕복을 포함한다.
 - frontend Node 시험 4개 파일, TypeScript 확인 및 Vite 빌드 통과. 저장소 검사와 diff 공백 검사 통과.
 - 변경은 미커밋 작업 파일이다. commit/push/PR 생성 및 실기 실행은 하지 않았다.
 

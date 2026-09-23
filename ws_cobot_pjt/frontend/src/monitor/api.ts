@@ -214,6 +214,8 @@ export type PreparationRecord = {
   binding_status: string;
   message?: string;
   error_code?: string;
+  payload?: { operator_confirmed_fixed_cell?: true };
+  hardware_snapshot?: { id: string; sha256: string };
   goal: {
     preparation_id: string;
     measurement_id: string;
@@ -251,6 +253,25 @@ export type PreparationState = {
   preview_ready?: boolean;
   blocks_work: boolean;
   start_error?: string | null;
+  hardware_inspection?: {
+    id: string;
+    sha256: string;
+    payload: {
+      state: "READY" | "NOT_READY" | "UNAVAILABLE";
+      observed_at: string;
+      errors: string[];
+      observation: {
+        robot_state: number;
+        robot_mode: number;
+        robot_system: number;
+        motion_status: number;
+        tcp_id: string;
+        load_id: string;
+        joints_deg: number[];
+        controller_tcp_posx: number[];
+      } | null;
+    };
+  } | null;
   input_config: {
     id: string;
     sha256: string;

@@ -84,8 +84,8 @@ def main(args=None):
     parser.add_argument('--scenario',choices=['normal','ik_failure','motion_failure'],default='normal')
     parser.add_argument('--move-time',type=float,default=.06)
     options=parser.parse_args(args)
-    if os.getenv('C2_VIRTUAL_CELL')!='1' or os.getenv('ROS_DOMAIN_ID')!='174':
-        parser.error('전용 실행기(C2_VIRTUAL_CELL=1, ROS_DOMAIN_ID=174)를 사용하세요.')
+    if os.getenv('C2_VIRTUAL_CELL')!='1' or os.getenv('ROS_DOMAIN_ID')!='20':
+        parser.error('전용 실행기(C2_VIRTUAL_CELL=1, ROS_DOMAIN_ID=20)를 사용하세요.')
     if not 0<=options.move_time<=10: parser.error('move-time은 0~10초')
     data=Path(options.data_dir).resolve();data.mkdir(parents=True,exist_ok=True)
     adapter=MockRobotAdapter(move_time_s=options.move_time)

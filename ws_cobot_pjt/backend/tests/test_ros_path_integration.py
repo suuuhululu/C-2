@@ -20,7 +20,7 @@ from test_path_artifacts import line_png
 @pytest.fixture
 def ros_client(tmp_path, monkeypatch, request):
     for key, value in dict(C2_MONITOR_TRANSPORT='ros', C2_MONITOR_MODE='SIMULATION',
-                           ROS_DOMAIN_ID='174', ROS_AUTOMATIC_DISCOVERY_RANGE='LOCALHOST',
+                           ROS_DOMAIN_ID='20', ROS_AUTOMATIC_DISCOVERY_RANGE='LOCALHOST',
                            ROS_STATIC_PEERS='', RMW_IMPLEMENTATION='rmw_fastrtps_cpp',
                            ROS_LOG_DIR=str(tmp_path / 'ros_logs')).items():
         monkeypatch.setenv(key, value)

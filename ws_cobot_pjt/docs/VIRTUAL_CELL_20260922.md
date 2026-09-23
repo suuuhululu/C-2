@@ -74,7 +74,7 @@ virtual_device 설정은 입력 설정과 최종 스냅샷에 포함되어 해�
 
 ## 환경·로그
 
-- `ROS_DOMAIN_ID=174`, localhost 한정, FastDDS. 현재 실기 domain과 별도다.
+- `ROS_DOMAIN_ID=20`, localhost 한정, FastDDS. REAL 시연과 동일 domain 번호를 쓰지만 localhost 범위로 외부 로봇을 격리한다.
 - 기본 포트 8020 (기존 8010 HMI와 분리), `--port`로 변경 가능. 검사에는 같은 `--url`을 사용한다.
 - 기본 데이터: `ws_cobot_pjt/backend/monitor_data/virtual_cell`.
 - `hmi.log`, `path.log`, `process.log`: 노드 로그. `device/virtual-motion-log.json`: 종료 시 가상 호출 기록.

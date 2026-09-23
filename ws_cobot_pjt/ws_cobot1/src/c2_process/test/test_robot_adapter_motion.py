@@ -383,3 +383,172 @@ def test_no_start_then_found_at_target_completes_without_resend(setup):
     samples(ad, reads)
     r = ad.move(posx_to_pose([10., 0., 0., 0., 0., 0.]), 'c2_base', PROFILE, 20., None)
     assert r.ok and stops == [] and len(calls) == 1          # 재확인에서 목표 도달을 보면 재전송 없이 완료 (시작 관측 유무와 무관)
+
+
+def test_motion_failure_releases_force_hold_before_stop_confirmation(setup):
+    """9/23 실기: 순응 중 힘 상한 정지가 정착 실패로 UNKNOWN. 실패 처리에서 힘 유지를 먼저 해제하고 정지를 확인한다."""
+    ad, clock, calls = setup
+    order = []
+    ad._hold_active = True
+    ad.hold_normal_force_end = lambda deadline: (order.append('release'), StepResult('SUCCEEDED', observed_state={'force_released': True}))[1]
+    ad.stop = lambda profile, deadline: (order.append('stop'), StepResult('SUCCEEDED', observed_state={'stop_confirmed': True}))[1]
+    r = ad._motion_failure('FAILED', 'FORCE_LIMIT', '힘 상한', 'move_spline')
+    assert order == ['stop', 'release', 'stop'] and r.outcome == 'FAILED' and r.observed_state['force_released'] is True   # 9/23: 정지 요청 → 해제 → 정지 확인
+    ad._hold_active = True
+    ad.hold_normal_force_end = lambda deadline: StepResult('UNKNOWN', 'STOP_UNCONFIRMED', '해제 실패', observed_state={'force_released': False})
+    r = ad._motion_failure('FAILED', 'FORCE_LIMIT', '힘 상한', 'move_spline')
+    assert r.outcome == 'UNKNOWN' and r.error_code == 'STOP_UNCONFIRMED'
+
+
+def _flaky_motion_sample(ad, fail_calls):
+    """이동 중 관측이 fail_calls 번 연속 실패한 뒤 정상으로 돌아오는 상황. 성공 시엔 이동 완료 위치를 준다."""
+    seq = [(ZERO[:], 1, 0), ([5., 0., 0., 0., 0., 0.], 2, 1)]
+    state = dict(calls=0)
+    def read(timeout):
+        state['calls'] += 1
+        if 2 < state['calls'] <= 2 + fail_calls:
+            raise TimeoutError('service aux_control/get_current_posx timed out')
+        return seq[min(state['calls'], 2) - 1] if state['calls'] <= 2 else ([10., 0., 0., 0., 0., 0.], 1, 0)
+    ad._motion_sample = read
+    ad._srv.update(MovePause=SimpleNamespace(Request=SimpleNamespace), MoveResume=SimpleNamespace(Request=SimpleNamespace))
+    ad.log = SimpleNamespace(warn=lambda *a: None, info=lambda *a: None, error=lambda *a: None)
+    return state
+
+
+def test_transient_pose_timeout_pauses_recovers_and_resumes_without_resend(setup):
+    """9/23 실기: get_current_posx 1회 timeout 으로 CUT 이 끝났다. 이제 move_pause → 2 s 연속 정상 관측 → move_resume, 같은 명령 재전송 없음."""
+    ad, clock, calls = setup
+    stops = fake_stop(ad)
+    _flaky_motion_sample(ad, fail_calls=3)
+    r = ad.move(posx_to_pose([10., 0., 0., 0., 0., 0.]), 'c2_base', PROFILE, 30., None)
+    endpoints = [c[0] for c in calls]
+    assert r.ok and stops == []
+    assert endpoints == ['motion/move_line', 'motion/move_pause', 'motion/move_resume']
+
+
+def test_pause_rejected_falls_back_to_stop(setup):
+    ad, clock, calls = setup
+    stops = fake_stop(ad)
+    _flaky_motion_sample(ad, fail_calls=3)
+    original = ad._call
+    def call(endpoint, kind, request, timeout=5.):
+        if endpoint == 'motion/move_pause':
+            raise TimeoutError('pause timed out')
+        return original(endpoint, kind, request, timeout)
+    ad._call = call
+    r = ad.move(posx_to_pose([10., 0., 0., 0., 0., 0.]), 'c2_base', PROFILE, 30., None)
+    assert r.outcome == 'UNKNOWN' and r.error_code == 'COMMUNICATION_LOST' and len(stops) == 1
+    assert 'motion/move_resume' not in [c[0] for c in calls]
+
+
+def test_no_recovery_within_window_stops(setup):
+    ad, clock, calls = setup
+    stops = fake_stop(ad)
+    _flaky_motion_sample(ad, fail_calls=10_000)
+    r = ad.move(posx_to_pose([10., 0., 0., 0., 0., 0.]), 'c2_base', PROFILE, 60., None)
+    assert r.outcome == 'UNKNOWN' and len(stops) == 1 and '복구 안 됨' in r.message
+
+
+def test_under_hold_compliance_creep_is_not_motion_start_and_tolerance_relaxed(setup):
+    """9/23 실기: 힘 유지 중 순응 변위(0.3 mm)만 있고 제어기가 MOVING 이 아니면 '미수락' 으로 판정한다. 완료 허용은 hold_pos_tol_mm."""
+    ad, clock, calls = setup
+    stops = fake_stop(ad)
+    ad._srv.update(MovePause=SimpleNamespace(Request=SimpleNamespace), MoveResume=SimpleNamespace(Request=SimpleNamespace))
+    ad.log = SimpleNamespace(warn=lambda *a: None, info=lambda *a: None, error=lambda *a: None)
+    ad._force_vec = lambda timeout=5.: [0., 0., 0.]
+    creep = [([.3, .1, 0., 0., 0., 0.], 1, 0)] * 200
+    samples(ad, [(ZERO[:], 1, 0)] + creep)
+    prof = dict(PROFILE, hold_pos_tol_mm=2.0, contact_monitor=dict(kind='CUT', bias=[0., 0., 0.], force_limit_n=10., surface=[[0., 0., 0., 0., 0., 0., 1.]],
+                                                                    normals=[[0., 0., 1.]], offset_range=[-.01, .01], ignore_normal=True, samples=[]))
+    r = ad.move(posx_to_pose([10., 0., 0., 0., 0., 0.]), 'c2_base', prof, 30., None)
+    assert r.error_code == 'NOT_ACCEPTED' and stops == []
+    # 제어기가 MOVING 을 보고하고 목표 근처 1.5 mm(접선) 에서 멈추면 hold_pos_tol_mm 2.0 으로 완료
+    samples(ad, [(ZERO[:], 1, 0), ([5., 0., 0., 0., 0., 0.], 2, 1), ([8.5, 0., 0., 0., 0., 0.], 1, 0)])
+    r = ad.move(posx_to_pose([10., 0., 0., 0., 0., 0.]), 'c2_base', prof, 30., None)
+    assert r.ok
+
+
+def test_motion_diagnostics_explain_orientation_wait_without_extra_reads(setup):
+    """자세만 미달인 정체를 1 Hz로 기록하고, 추가 서비스 조회·허용오차 완화를 하지 않는다."""
+    import json
+    ad, clock, calls = setup
+    records = []
+    ad.log = SimpleNamespace(info=lambda line: records.append((clock.now, json.loads(line.removeprefix('motion_diag ')))))
+    stops = fake_stop(ad)
+    reads = {'motion': 0, 'force': 0}
+    target = [10., 0., 0., 0., 0., 0.]
+    cur = [9., 0., 1.5, 0., 0., .228]
+    def observe(timeout):
+        reads['motion'] += 1
+        return cur, (2 if reads['motion'] == 1 else 1), (1 if reads['motion'] == 1 else 0)
+    def force(timeout):
+        reads['force'] += 1
+        return [0., 0., -2.]
+    ad._motion_sample = observe
+    ad._force_vec = force
+    monitor = dict(kind='CUT', surface=[posx_to_pose(target)], normals=[[0., 0., 1.]],
+                   offset_range=[-.01, .01], force_limit_n=10., ignore_normal=True)
+    r = ad._wait_motion(target, 2.4, None, 'move_spline', 2., start=ZERO,
+                        angle_tol_deg=.15, require_controller_start=True, monitor=monitor)
+    assert r.error_code == 'TIMEOUT' and len(stops) == 1
+    assert not calls and reads['motion'] == reads['force'] == len(monitor['samples'])
+    assert len(records) == 3
+    assert all(b[0] - a[0] >= 1. for a, b in zip(records, records[1:]))
+    d = records[-1][1]
+    assert d['robot_state'] == 1 and d['check_motion'] == 0
+    assert d['false_conditions'] == ['orientation', 'stable']
+    assert d['tangent_error_mm'] == 1. and d['normal_error_mm'] == 1.5
+    assert d['normal_dev_mm'] == 1.5 and d['angle_error_deg'] == .228
+    assert d['force_base_n'] == [0., 0., -2.] and d['force_bias_corrected_n'] == 2.
+    assert d['stable_s'] == 0.
+
+
+def test_motion_diagnostics_lifecycle_and_stable_wait(setup):
+    """전송·응답·안정 대기·완료를 연결하고 힘을 조회하지 않는 이동은 null로 남긴다."""
+    import json
+    ad, clock, calls = setup
+    records = []
+    ad.log = SimpleNamespace(info=lambda line: records.append(json.loads(line.removeprefix('motion_diag '))))
+    target = [10., 0., 0., 0., 0., 0.]
+    samples(ad, [(ZERO, 1, 0), (target, 1, 0)])
+    r = ad.move(posx_to_pose(target), 'c2_base', PROFILE, 2., None)
+    assert r.ok and len(calls) == 1
+    assert [d['event'] for d in records] == ['send', 'response', 'wait', 'wait_result']
+    assert records[2]['false_conditions'] == ['stable']
+    assert records[2]['force_base_n'] is None and records[2]['normal_dev_mm'] is None
+    assert records[3]['outcome'] == 'SUCCEEDED'
+
+
+def test_motion_diagnostics_logger_failure_does_not_change_result(setup):
+    """진단 출력 실패가 성공 모션을 정지·실패로 바꾸면 안 된다."""
+    ad, clock, calls = setup
+    def broken_logger(line):
+        raise RuntimeError('진단 출력 실패')
+    ad.log = SimpleNamespace(info=broken_logger)
+    target = [10., 0., 0., 0., 0., 0.]
+    samples(ad, [(ZERO, 1, 0), (target, 1, 0)])
+    r = ad.move(posx_to_pose(target), 'c2_base', PROFILE, 2., None)
+    assert r.ok and len(calls) == 1
+
+
+@pytest.mark.parametrize('hold,expected', [(True, 'SUCCEEDED'), (False, 'TIMEOUT')])
+def test_hold_angle_tolerance_only_applies_to_force_controlled_cut(setup, hold, expected):
+    """같은 0.21도 잔류 오차에서도 일반 이동은 0.15도 기준을 유지한다."""
+    ad,clock,calls=setup
+    fake_stop(ad)
+    target=[10.,0.,0.,0.,0.,0.];cur=[10.,0.,0.,0.,0.,.21]
+    samples(ad,[(ZERO,1,0),(cur,2,1),(cur,1,0)])
+    ad._force_vec=lambda **kw:[0.,0.,0.]
+    prof=dict(PROFILE,angle_tol_deg=.15,hold_angle_tol_deg=.3)
+    if hold:
+        prof['contact_monitor']=dict(kind='CUT',ignore_normal=True,surface=[posx_to_pose(target)],normals=[[0.,0.,1.]])
+    r=ad.move(posx_to_pose(target),'c2_base',prof,1.,None)
+    assert (r.outcome if r.ok else r.error_code)==expected
+
+
+@pytest.mark.parametrize('value',[float('nan'),float('inf'),0.,-1.])
+def test_invalid_hold_angle_tolerance_rejected_before_dispatch(setup,value):
+    ad,clock,calls=setup
+    prof=dict(PROFILE,hold_angle_tol_deg=value,contact_monitor=dict(kind='CUT',ignore_normal=True))
+    r=ad.move(posx_to_pose([10.,0.,0.,0.,0.,0.]),'c2_base',prof,1.,None)
+    assert r.error_code=='INVALID_INPUT' and not calls

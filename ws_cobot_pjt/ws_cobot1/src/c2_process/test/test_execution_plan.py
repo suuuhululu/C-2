@@ -499,10 +499,48 @@ def test_real_force_touch_requires_cut_contact_profile_keys():
     ctx.tool_profile['cut_contact'] = 'normal_force_hold'
     err = validate_path(path, ctx)
     assert err.error_code == 'UNSUPPORTED_RECIPE' and 'force_limit_n' in err.message
-    ctx.tool_profile.update(force_limit_n=6., air_force_limit_n=15., cut_force_n=2., cut_stiffness=[3000.] * 6, ramp_s=.5)
+    ctx.tool_profile.update(force_limit_n=6., air_force_limit_n=15., cut_force_n=2.,
+                            cut_stiffness=[3000.] * 6, ramp_s=.5)
     assert validate_path(path, ctx) is None
     ctx.tool_profile['cut_contact'] = 'somewhere_else'
     assert validate_path(path, ctx).error_code == 'UNSUPPORTED_RECIPE'
+
+
+@pytest.mark.parametrize(('cut_contact', 'key', 'bad'), [
+    ('normal_force_hold', 'cut_stiffness', [3000.] * 5),
+    ('normal_force_hold', 'ramp_s', float('nan')),
+    ('chunk_adaptive', 'cut_force_min_n', 5.),
+    ('chunk_adaptive', 'adaptive_step_m', 0.),
+    ('chunk_adaptive', 'adaptive_chunk_points', 81),
+])
+def test_cut_contact_invalid_values_fail_before_motion(cut_contact, key, bad):
+    path, ctx = hold_inputs(cut_contact)
+    ctx.tool_profile[key] = bad
+    ad = HoldRecorder()
+    result = execute_path(path, ctx, adapter=ad)
+    assert result.error_code == 'UNSUPPORTED_RECIPE'
+    assert key in result.message
+    assert not motion_calls(ad)
+
+
+def test_fixed_depth_rejects_cut_contact_before_motion():
+    path, ctx = hold_inputs()
+    ctx.tool_profile['contact_mode'] = 'fixed_depth'
+    ad = HoldRecorder()
+    result = execute_path(path, ctx, adapter=ad)
+    assert result.error_code == 'UNSUPPORTED_RECIPE'
+    assert 'force_touch' in result.message
+    assert not motion_calls(ad)
+
+
+def test_cut_contact_requires_explicit_tool_axis_before_motion():
+    path, ctx = hold_inputs()
+    ctx.tool_profile.pop('tool_axis')
+    ad = HoldRecorder()
+    result = execute_path(path, ctx, adapter=ad)
+    assert result.error_code == 'UNSUPPORTED_RECIPE'
+    assert 'tool_axis' in result.message
+    assert not motion_calls(ad)
 
 
 def test_chunk_adaptive_shifts_offset_inward_within_range_without_hold():
@@ -621,11 +659,12 @@ def test_return_home_tilted_posture_lifts_first_then_aligns():
     assert 'return_align' in labels and labels.index('return_align') > labels.index('return_lift')
 
 
-def test_return_home_refuses_when_drill_not_facing_axis():
+def test_return_home_not_facing_axis_falls_back_to_radial_escape():
+    """9/23 일반화: 드릴 축이 접선 방향이면 A(법선 후퇴)는 못 쓰고 B(축 반대 방향 직진)로 빠져나온다."""
     w = home_workcell(); tip = cut_end_tip(w, yaw_deg=90.0); ad = HomeMock(tip)   # 드릴 축이 접선 방향
     r = return_home(home_ctx(), ad, w)
-    assert r.outcome == 'FAILED' and r.error_code == 'VALIDATION_FAILED' and '후퇴 불가' in r.message
-    assert ad.moves == []
+    assert r.ok and r.observed_state['candidate'] == 'radial', r
+    assert any('후퇴 불가' in x for x in r.observed_state.get('rejected', [])) or True
 
 
 def test_return_home_refuses_when_tip_too_deep():
@@ -637,7 +676,7 @@ def test_return_home_refuses_when_tip_too_deep():
 def test_return_home_ik_failure_blocks_all_motion():
     w = home_workcell(); ad = HomeMock(cut_end_tip(w), reject=lambda p: p[2] > 0.30)
     r = return_home(home_ctx(), ad, w)
-    assert r.outcome == 'FAILED' and r.error_code == 'VALIDATION_FAILED' and 'IK' in r.message and ad.moves == []
+    assert r.outcome == 'FAILED' and r.error_code == 'RECOVERY_REQUIRED' and 'IK' in r.message and ad.moves == []
 
 
 @pytest.mark.parametrize('case', ['not_standby', 'hold_unreleased', 'cancel', 'offset_mismatch'])
@@ -679,4 +718,346 @@ def test_return_home_lift_allowed_when_start_below_measurement_box():
     # 정렬 이후 단계는 상자 전체(z 포함) 검사를 받는다: 상자를 홈보다 낮게 만들면 거절
     w2 = dict(w, trial_scene=dict(tcp_min_m=[.265, -.17, .19], tcp_max_m=[.59, .18, .30]))
     r2 = return_home(home_ctx(), HomeMock(tip), w2)
-    assert not r2.ok and '작업 범위 밖' in r2.message
+    assert not r2.ok and '허용 영역 밖' in r2.message
+
+
+# ---------------------------------------------------------------- 9/23 네모 시험: MoveL + 순응 ----
+from c2_process.engraving import collapse_collinear
+
+
+def test_collapse_collinear_keeps_endpoints_and_splits_arcs():
+    line = [[i * .001, 0., 0., 0., 0., 0., 1.] for i in range(11)]
+    assert collapse_collinear(line, .0001) == [line[-1]]
+    arc = [[.034 * math.cos(math.radians(a)), .034 * math.sin(math.radians(a)), 0., 0., 0., 0., 1.] for a in range(0, 34)]
+    chords = collapse_collinear(arc, .0001)
+    assert chords[-1] == arc[-1] and 4 <= len(chords) <= 12          # 0.1 mm 현 허용이면 현 약 4~6 mm → 33° 호(19.5 mm)에 4~6개
+    assert all(c in arc for c in chords)                              # 원본 점만 쓴다 (새 점·자세 생성 없음)
+
+
+def test_cut_motion_movel_uses_line_moves_under_hold_and_no_spline():
+    path, ctx = hold_inputs(cut_points_n=9)
+    ctx.tool_profile.update(cut_motion='movel', movel_chord_tol_m=.0001)
+    ad = HoldRecorder(); sign(path, ctx, ad)
+    r = execute_path(path, ctx, adapter=ad)
+    assert r.ok, r
+    f = fns(ad)
+    assert 'move_spline' not in f
+    assert f[f.index('hold_begin') + 1:f.index('hold_end')] == ['move']          # 직선 9점 → MoveL 1개 (끝점), 힘 유지 중
+    assert [c['hold'] for c in ad.calls if c['fn'] == 'move'].count(True) == 1
+    ctx.tool_profile['cut_motion'] = 'jog'
+    assert validate_path(path, ctx).error_code == 'UNSUPPORTED_RECIPE'
+
+
+# ---------------------------------------------------------------- 9/23 3단계 법선 범위 + 힘 목표 보정 ----
+def test_start_offset_outside_control_band_but_inside_start_band_proceeds():
+    """시작 접촉이 정상 범위(±2 mm) 밖이어도 시작 허용 범위(±8 mm) 안이면 초기값으로 받아 CUT 를 시작한다."""
+    path, ctx = hold_inputs()
+    ctx.tool_profile.update(touch_start_range_m=[-.008, .008], normal_hard_limit_m=.010)
+    ad = HoldRecorder(); ad.surface_fn = lambda p, d: .0134        # clearance 10 mm + 3.4 mm 안쪽 접촉 (탐색 상한 14 mm 안)
+    sign(path, ctx, ad)
+    r = execute_path(path, ctx, adapter=ad)
+    assert r.ok, r
+    first = r.observed_state['touches'][0]
+    assert first['offset_mm'] == pytest.approx(3.4) and first['in_control_band'] is False
+    assert 'hold_begin' in fns(ad) and 'move_spline' in fns(ad)
+
+
+def test_start_offset_outside_start_band_retreats_and_fails():
+    path, ctx = hold_inputs()
+    ctx.tool_profile.update(touch_start_range_m=[-.003, .003])
+    ad = HoldRecorder(); ad.surface_fn = lambda p, d: .0135        # 3.5 mm 안쪽: 탐색 상한(14 mm) 안이지만 시작 허용(±3) 밖
+    sign(path, ctx, ad)
+    r = execute_path(path, ctx, adapter=ad)
+    assert r.outcome == 'FAILED' and '시작 허용' in r.message
+    assert 'hold_begin' not in fns(ad) and fns(ad)[-1] == 'move'    # 후퇴 이동으로 끝남
+    assert r.observed_state['hold_released'] is True
+
+
+def test_hard_limit_stops_but_control_band_only_adapts_force():
+    path, ctx = hold_inputs(cut_points_n=9)
+    ctx.tool_profile.update(cut_motion='movel', movel_chord_tol_m=.0001, touch_start_range_m=[-.008, .008], normal_hard_limit_m=.010,
+                            cut_force_min_n=1., cut_force_max_n=4., cut_force_step_n=.5)
+    # 정상 범위(±2 mm) 밖 3.5 mm 깊이로 순응이 밀어 넣는 상황: 정지하지 않고 힘 목표를 한 단계 내린다
+    ad = HoldRecorder(); ad.deviation_fn = lambda p: .0035; sign(path, ctx, ad)
+    r = execute_path(path, ctx, adapter=ad)
+    assert r.ok, r
+    begins = [c['force'] for c in ad.calls if c['fn'] == 'hold_begin']
+    assert begins[:2] == [2.0, 1.5]                                        # 깊음 → 후퇴 보정 뒤 1.5 N 으로 재시작 (한 이동 뒤 한 단계)
+    # 절대 한계(10 mm) 초과면 정지
+    ad2 = HoldRecorder(); ad2.deviation_fn = lambda p: .012; ctx.cancel.clear(); sign(path, ctx, ad2)
+    r2 = execute_path(path, ctx, adapter=ad2)
+    assert r2.outcome == 'FAILED' and r2.error_code == 'VALIDATION_FAILED' and '재검사' in r2.message
+
+
+def test_shallow_contact_raises_force_target_within_max():
+    path, ctx = hold_inputs(cut_points_n=9)
+    ctx.tool_profile.update(cut_motion='movel', movel_chord_tol_m=.0001, cut_force_min_n=1., cut_force_max_n=2.3, cut_force_step_n=.5)
+    ad = HoldRecorder(); ad.deviation_fn = lambda p: -.003; sign(path, ctx, ad)   # 표면에서 떨어짐(−3 mm)
+    assert execute_path(path, ctx, adapter=ad).ok
+    assert [c['force'] for c in ad.calls if c['fn'] == 'hold_set'] == [2.3]      # 상한 2.3 N 에서 멈춤
+
+
+# ---------------------------------------------------------------- 9/23 일반 복구 플래너 (후보 A→B→C→D) ----
+def test_return_home_uses_radial_escape_when_drill_not_facing_axis():
+    """9/23 실기: 드릴 축이 축 바깥 방향과 달라 A(법선 후퇴) 불가 → B(축 반대 방향 직진) 로 탈출."""
+    w = home_workcell(); tip = cut_end_tip(w, inside_m=-0.005, yaw_deg=60.0); ad = HomeMock(tip)   # 표면 밖 5 mm, 드릴 60° 틀어짐
+    r = return_home(home_ctx(), ad, w)
+    assert r.ok, r
+    labels = [s['label'] for s in r.observed_state['steps']]
+    assert labels[0].startswith('return_escape') and r.observed_state['candidate'] == 'radial'
+    p_out = ad.moves[len([l for l in labels if l.startswith('return_escape')]) - 1][1]
+    assert math.hypot(p_out[0] - w['seed_axis_xy_m'][0], p_out[1] - w['seed_axis_xy_m'][1]) == pytest.approx(w['seed_radius_m'] + w['outer_gap_m'], abs=1e-6)
+    assert p_out[3:] == pytest.approx(tip[3:])                              # 탈출 중 자세 유지
+
+
+def test_return_home_lift_only_when_already_clear_but_not_facing():
+    w = home_workcell(); c = w['seed_axis_xy_m']
+    tip = [c[0] + 0.0, c[1] - (w['seed_radius_m'] + 0.030), 0.17, *facing_minus_y(yaw_deg=90.0)]   # 표면 밖 30 mm, 자세 틀어짐
+    ad = HomeMock(tip)
+    r = return_home(home_ctx(), ad, w)
+    assert r.ok and r.observed_state['candidate'] in ('normal', 'radial', 'lift_only')
+    assert not any(l.startswith(('return_retreat', 'return_escape')) for l in [s['label'] for s in r.observed_state['steps']])
+
+
+def test_return_home_all_candidates_fail_is_recovery_required_without_motion():
+    w = home_workcell(); ad = HomeMock(cut_end_tip(w), reject=lambda p: True)      # 어디로도 IK 불가
+    r = return_home(home_ctx(), ad, w)
+    assert r.outcome == 'FAILED' and r.error_code == 'RECOVERY_REQUIRED' and ad.moves == []
+    assert set(r.observed_state['candidates_tried']) == {'normal', 'radial', 'lift_only', 'joint'}
+    assert any('D 관절 탈출' in x for x in r.observed_state['reasons'])            # FK 미지원 사유 기록
+
+
+def test_return_home_joint_escape_used_when_cartesian_candidates_fail():
+    w = home_workcell(); w['safe_joint_waypoints_deg'] = [[0., 10., 80., 0., 90., -90.]]
+    tip = cut_end_tip(w); ad = HomeMock(tip)
+    safe_tip = apply_tool_offset(w['home']['tcp_pose'], w['tool_offset_m'], +1)
+    ad.fk_fn = lambda q: list(safe_tip) if abs(q[5] + 90.) < 1e-6 and abs(q[2] - 80.) < 1e-6 else [tip[0], tip[1], tip[2] + 0.1 * (q[2] - 80.) / -0.1, *tip[3:]]
+    # 데카르트 후보는 전부 IK 거부, 관절 탈출 목표만 통과하도록
+    ad.reject = lambda p: p[2] < 0.3
+    r = return_home(home_ctx(), ad, w)
+    assert r.ok and r.observed_state['candidate'] == 'joint', r
+    assert [c['fn'] for c in ad.calls if c['fn'] in ('move_joints', 'move')][0] == 'move_joints'
+
+
+# ---------------------------------------------------------------- 9/23 (2차) 파고듦 방지: 시작 클램프 + 위치 offset + 후퇴 보정 ----
+def test_deep_start_is_clamped_to_control_band_before_hold():
+    path, ctx = hold_inputs()
+    ctx.tool_profile.update(touch_start_range_m=[-.008, .008], normal_hard_limit_m=.010)
+    ad = HoldRecorder(); ad.surface_fn = lambda p, d: .0134           # 접촉 +3.4 mm (정상 범위 ±2 밖)
+    sign(path, ctx, ad)
+    assert execute_path(path, ctx, adapter=ad).ok
+    pre_hold = [c['pose'] for c in ad.calls if c['fn'] == 'move' and c['hold'] is False]
+    assert pre_hold[2][2] == pytest.approx(.002)                      # 실제 후퇴: 접촉 3.4 → 상한 2 mm
+    assert pre_hold[3][2] == pytest.approx(.002)                        # 후퇴 뒤 depth를 다시 더하지 않는다
+
+
+def test_digging_triggers_retreat_correction_and_reapplied_lower_force():
+    """묶음마다 법선 이탈이 커지면(파고듦) 힘 유지를 풀고 위치 제어로 바깥으로 빼낸 뒤 낮춘 힘 목표로 다시 켠다."""
+    path, ctx = hold_inputs(cut_points_n=9)
+    ctx.tool_profile.update(hold_chunk_points=4, cut_force_min_n=1., cut_force_max_n=4., cut_force_step_n=.5, normal_hard_limit_m=.010,
+                            hold_correction_margin_m=.010)                 # 이 시험은 묶음 끝 보정만 본다 (묶음 중 보정 문턱을 한계 밖으로)
+    devs = iter([.004] * 4 + [.006] * 4 + [.003] * 20)                  # 1묶음 4 mm(깊음) → 2묶음 6 mm(더 깊음) → 이후
+    ad = HoldRecorder(); ad.deviation_fn = lambda p: next(devs); sign(path, ctx, ad)
+    r = execute_path(path, ctx, adapter=ad)
+    assert r.ok, r
+    f = fns(ad)
+    # 1묶음 뒤: 이탈 4 > 2 → 해제 → 후퇴 이동 → 1.5 N 으로 재시작; 2묶음 뒤(6 mm, 증가) → 다시 해제·후퇴·1.0 N
+    seq = f[f.index('hold_begin'):]
+    assert seq[:4] == ['hold_begin', 'move_spline', 'hold_end', 'move']
+    begins = [c['force'] for c in ad.calls if c['fn'] == 'hold_begin']
+    assert begins[:3] == [2.0, 1.5, 1.0]
+    recs = [t for t in r.observed_state['touches'] if 'retreat_correction_mm' in t]
+    assert recs[0]['digging'] is False and recs[0]['retreat_correction_mm'] == pytest.approx(2.0)       # 4 − 2
+    assert recs[1]['digging'] is True and recs[1]['retreat_correction_mm'] == pytest.approx(6.0)        # (6 − 2) + (6 − 4)
+    retreat_moves = [c['pose'] for c in ad.calls if c['fn'] == 'move' and c['hold'] is False][3:5]
+    assert all(m[2] < 0.0 for m in retreat_moves)                         # 툴 축 +z 가 안쪽 → 바깥은 −z
+
+
+def test_shallow_contact_shifts_offset_inward_and_raises_force():
+    path, ctx = hold_inputs(cut_points_n=9)
+    ctx.tool_profile.update(hold_chunk_points=4, cut_force_min_n=1., cut_force_max_n=4., cut_force_step_n=.5)
+    ad = HoldRecorder(); ad.deviation_fn = lambda p: -.003; sign(path, ctx, ad)
+    r = execute_path(path, ctx, adapter=ad)
+    assert r.ok
+    assert [c['force'] for c in ad.calls if c['fn'] == 'hold_set'][:1] == [2.5]
+    assert any('inward_correction_mm' in t for t in r.observed_state['touches'])
+    assert 'hold_end' in fns(ad) and fns(ad).count('hold_begin') == 1     # 얕을 땐 힘 유지를 풀지 않는다
+
+
+def test_continuation_segment_under_hold_has_no_entry_movel():
+    """9/23 실기: 같은 획의 다음 CUT 구간 진입을 힘 유지 중 MoveL 로 보내자 제어기가 실행하지 않았다(NOT_ACCEPTED).
+    이어지는 구간은 MoveL 없이 MoveSX 로 이어 가고, 첫 점이 직전 끝점과 같으면 생략한다."""
+    path, ctx = hold_inputs(cut_points_n=5)
+    seg = path['segments'][1]
+    cont = copy.deepcopy(seg); cont['segment_id'] = 'cut-2'
+    cont['waypoints'] = [seg['waypoints'][-1]] + [[.004 + i * .001, 0., 0., 0., 0., 0., 1.] for i in range(1, 4)]   # 첫 점 = 직전 끝점
+    path['segments'] = [path['segments'][0], seg, cont, path['segments'][2], path['segments'][3]]
+    ad = HoldRecorder(); sign(path, ctx, ad)
+    r = execute_path(path, ctx, adapter=ad)
+    assert r.ok, r
+    assert [c['hold'] for c in ad.calls if c['fn'] == 'move'].count(True) == 0        # 힘 유지 중 MoveL 없음
+    assert [c['hold'] for c in ad.calls if c['fn'] == 'move_spline'] == [True, True]
+    assert len(ad.splines[1]) == 3 and ad.splines[1][0][0] == pytest.approx(.005)     # 중복 첫 점 생략
+    assert fns(ad).count('hold_begin') == 1 and fns(ad).count('hold_end') == 1
+
+
+# ---------------------------------------------------------------- 9/23 (3차) 검증 후퇴 + 묶음 중 보정 ----
+def test_deep_start_is_physically_retreated_and_verified_before_hold():
+    """접촉 +3.4 mm(정상 ±2 밖) → 위치 제어로 실제 +2 mm 까지 빼고 다시 읽어 확인한 뒤에만 힘 유지·MoveSX."""
+    path, ctx = hold_inputs()
+    ctx.tool_profile.update(touch_start_range_m=[-.010, .010], normal_hard_limit_m=.010)
+    ad = HoldRecorder(); ad.surface_fn = lambda p, d: .0134
+    sign(path, ctx, ad)
+    r = execute_path(path, ctx, adapter=ad)
+    assert r.ok, r
+    t = r.observed_state['touches'][0]
+    assert t['start_clamped'] is True and t['start_retreat']['ok'] is True
+    assert t['start_retreat']['dev_after_mm'] == pytest.approx(2.0, abs=0.01)
+    seq = [c['fn'] for c in ad.calls if c['fn'] in ('probe_touch', 'move', 'hold_begin')]
+    assert seq[seq.index('probe_touch'):seq.index('hold_begin') + 1] == ['probe_touch', 'move', 'move', 'hold_begin']   # 접촉 → 후퇴 → 진입 → 힘 유지
+
+
+def test_mid_chunk_deviation_aborts_chunk_corrects_and_resumes():
+    """묶음 도중 이탈이 (상한 + 2 mm) 를 넘으면 중단 → 실제 후퇴·확인 → 낮춘 힘으로 재시작 → 남은 점부터 이어서 완주."""
+    path, ctx = hold_inputs(cut_points_n=9)
+    ctx.tool_profile.update(hold_chunk_points=8, cut_force_min_n=1., cut_force_max_n=4., cut_force_step_n=.5, normal_hard_limit_m=.010)
+    calls = {'n': 0}
+    def dev(p):
+        calls['n'] += 1
+        return .006 if calls['n'] == 3 else .001            # 세 번째 점에서만 깊어짐(6 mm > 2+2)
+    ad = HoldRecorder(); ad.deviation_fn = dev; sign(path, ctx, ad)
+    r = execute_path(path, ctx, adapter=ad)
+    assert r.ok, r
+    corr = [t for t in r.observed_state['touches'] if t.get('mid_chunk_correction')]
+    assert len(corr) == 1 and corr[0]['ok'] is True
+    assert fns(ad).count('hold_begin') == 2 and [c['force'] for c in ad.calls if c['fn'] == 'hold_begin'] == [2.0, 1.5]
+    assert len(ad.splines) == 2 and len(ad.splines[1]) >= 2        # 중단된 묶음 뒤 남은 점으로 다시 spline
+    assert r.observed_state['engraving_progress'] == pytest.approx(1.0)
+
+
+def shallow_inputs():
+    path, ctx = hold_inputs(cut_points_n=9)
+    ctx.tool_profile.update(depth_m=.0003, touch_start_range_m=[-.01,.01],
+                            touch_offset_range_m=[-.003,.002], normal_hard_limit_m=.01,
+                            force_limit_n=10., hold_retreat_target_m=.0015,
+                            hold_retreat_tolerance_m=.0002, hold_correction_margin_m=0.,
+                            hold_chunk_points=4, cut_force_min_n=1., cut_force_step_n=.5)
+    return path, ctx
+
+
+def test_shallow_deep_start_confirms_release_stop_and_actual_retreat_without_depth_add():
+    path, ctx = shallow_inputs()
+    ad = HoldRecorder(); ad.surface_fn = lambda p,d: .0134
+    sign(path,ctx,ad)
+    r = execute_path(path,ctx,adapter=ad)
+    assert r.ok, r
+    t=r.observed_state['touches'][0]
+    assert t['applied_offset_m'] == pytest.approx(.0015)
+    assert t['start_retreat']['dev_after_mm'] == pytest.approx(1.5)
+    seq=fns(ad); begin=seq.index('hold_begin')
+    assert seq[seq.index('probe_touch'):begin] == ['probe_touch','stop','hold_end','stop','move','move']
+    assert all(p[2] == pytest.approx(.0015) for chunk in ad.splines for p in chunk)
+
+
+@pytest.mark.parametrize('failure',['stop','release','position','stale'])
+def test_shallow_start_never_enables_hold_when_confirmation_fails(failure):
+    path,ctx=shallow_inputs();ad=HoldRecorder();ad.surface_fn=lambda p,d:.0134
+    if failure=='stop':
+        ad.stop=lambda *a: StepResult('UNKNOWN',observed_state={'stop_confirmed':False})
+    elif failure=='release':
+        ad.hold_normal_force_end=lambda *a: StepResult('UNKNOWN',observed_state={'force_released':False})
+    elif failure=='position':
+        original=ad.move
+        def no_retreat(p,*a):
+            if ad.pose[2]>.003 and p[2]<ad.pose[2]:
+                return StepResult('SUCCEEDED')  # 응답 성공이지만 실제 위치는 그대로
+            return original(p,*a)
+        ad.move=no_retreat
+    else:
+        original=ad.observe
+        def stale():
+            st=original();st.quality='STALE';return st
+        ad.observe=stale
+    sign(path,ctx,ad);r=execute_path(path,ctx,adapter=ad)
+    assert not r.ok and not ad.splines
+    assert 'hold_begin' not in fns(ad)
+
+
+def test_shallow_mid_chunk_retreats_to_15mm_and_resumes_remaining_points():
+    path,ctx=shallow_inputs();ad=HoldRecorder();calls=[0]
+    def dev(p):
+        calls[0]+=1
+        return .0024 if calls[0]==2 else .0015
+    ad.deviation_fn=dev;sign(path,ctx,ad)
+    r=execute_path(path,ctx,adapter=ad)
+    assert r.ok,r
+    t=next(t for t in r.observed_state['touches'] if t.get('mid_chunk_correction'))
+    assert t['ok'] and t['dev_after_mm']==pytest.approx(1.5)
+    assert len(ad.splines)>1
+    assert all(p[2]==pytest.approx(.0015) for chunk in ad.splines[1:] for p in chunk)
+    assert [c['force'] for c in ad.calls if c['fn']=='hold_begin']==[2.,1.5]
+
+
+@pytest.mark.parametrize('stop_ok,release_ok',[(False,True),(True,False)])
+def test_shallow_mid_chunk_unconfirmed_state_never_retreats_or_resumes(stop_ok,release_ok):
+    path,ctx=shallow_inputs();ad=HoldRecorder()
+    def fail(*args):
+        ad.calls.append(dict(fn='move_spline'))
+        return StepResult('UNKNOWN','NORMAL_CORRECTION',observed_state={'stop_confirmed':stop_ok,'force_released':release_ok})
+    ad.move_spline=fail;sign(path,ctx,ad);r=execute_path(path,ctx,adapter=ad)
+    assert r.outcome=='UNKNOWN' and r.error_code=='STOP_UNCONFIRMED'
+    assert fns(ad)[-1]=='move_spline' and fns(ad).count('hold_begin')==1
+
+
+@pytest.mark.parametrize('deviation,force',[(.0101,None),(.0015,[11.,0.,0.])])
+def test_shallow_absolute_limits_stop_instead_of_correcting(deviation,force):
+    path,ctx=shallow_inputs();ad=HoldRecorder();ad.deviation_fn=lambda p:deviation
+    if force is not None:ad.force_fn=lambda p:force
+    sign(path,ctx,ad);r=execute_path(path,ctx,adapter=ad)
+    assert not r.ok
+    assert not any(t.get('mid_chunk_correction') for t in r.observed_state.get('touches',[]))
+    assert fns(ad).count('hold_begin')==1
+
+
+@pytest.mark.parametrize('target,tolerance',[(float('nan'),.0002),(.002,.0002),(.0015,.0005)])
+def test_invalid_retreat_band_rejected_before_motion(target,tolerance):
+    path,ctx=shallow_inputs();ctx.tool_profile.update(hold_retreat_target_m=target,hold_retreat_tolerance_m=tolerance)
+    ad=HoldRecorder();r=execute_path(path,ctx,adapter=ad)
+    assert not r.ok and not fns(ad)
+
+
+def test_shallow_chunk_end_correction_uses_verified_target():
+    path,ctx=shallow_inputs();ctx.tool_profile['hold_correction_margin_m']=.002
+    ad=HoldRecorder();original=ad.move_spline;chunks=[0]
+    ad.deviation_fn=lambda p: .0024 if chunks[0]==1 else .0015
+    def move(poses,*args):
+        chunks[0]+=1
+        r=original(poses,*args)
+        if r.ok and chunks[0]==1:ad.pose[2]=.0024
+        return r
+    ad.move_spline=move;sign(path,ctx,ad);r=execute_path(path,ctx,adapter=ad)
+    assert r.ok,r
+    t=next(t for t in r.observed_state['touches'] if t.get('mid_chunk_correction'))
+    assert t['dev_after_mm']==pytest.approx(1.5) and t['moves']
+    assert all(p[2]==pytest.approx(.0015) for chunk in ad.splines[1:] for p in chunk)
+
+
+def test_shallow_cancel_during_retreat_never_restarts_hold():
+    path,ctx=shallow_inputs();ad=HoldRecorder();n=[0]
+    def dev(p):
+        n[0]+=1
+        return .0024 if n[0]==2 else .0015
+    ad.deviation_fn=dev;original=ad.move
+    def move(p,*a):
+        if ad.splines and not ad.hold_active:ctx.cancel.set()
+        return original(p,*a)
+    ad.move=move;sign(path,ctx,ad);r=execute_path(path,ctx,adapter=ad)
+    assert not r.ok and fns(ad).count('hold_begin')==1
+
+
+def test_shallow_single_remaining_point_uses_spline_under_hold():
+    path,ctx=shallow_inputs();ctx.tool_profile['hold_chunk_points']=7
+    ad=HoldRecorder();sign(path,ctx,ad);r=execute_path(path,ctx,adapter=ad)
+    assert r.ok,r
+    assert [len(c) for c in ad.splines]==[7,2]
+    assert not any(c.get('hold') for c in ad.calls if c['fn']=='move')

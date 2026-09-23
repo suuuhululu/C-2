@@ -22,9 +22,10 @@ def test_motion_and_ikin_preserve_running_executor(monkeypatch):
 
     rclpy.init(args=[])
     namespace = '/motion_test_' + uuid4().hex
-    owner = Node('process', namespace=namespace)
+    # 공정 노드 namespace와 두산 서비스 prefix를 분리한다.
+    owner = Node('process')
     driver = Node('fake_driver', namespace=namespace)
-    prefix = namespace + '/dsr_controller2/'
+    prefix = namespace + '/dsr_controller2'
     current = [0.] * 6
     target = current[:]
     started = [None]
@@ -101,7 +102,7 @@ def test_motion_and_ikin_preserve_running_executor(monkeypatch):
         ('motion/ikin', 'Ikin', ikin),
     ]
     for path, kind, callback in definitions:
-        driver.create_service(getattr(srv, kind), prefix + path, callback)
+        driver.create_service(getattr(srv, kind), prefix + '/' + path, callback)
     ticks = []
     owner.create_timer(.02, lambda: ticks.append(time.monotonic()))
     executor = MultiThreadedExecutor(num_threads=4)
@@ -116,7 +117,11 @@ def test_motion_and_ikin_preserve_running_executor(monkeypatch):
         def forbidden(*args, **kwargs):
             pytest.fail('실행 중인 executor에 중첩 spin 발생')
         monkeypatch.setattr(rclpy, 'spin_until_future_complete', forbidden)
-        adapter = DoosanRobotAdapter(owner, initialization_timeout_s=1.)
+        adapter = DoosanRobotAdapter(
+            owner, controller_prefix=prefix, initialization_timeout_s=1.)
+        assert not adapter._controller_initialized
+        assert adapter.initialize_controller().ok
+        assert adapter._controller_initialized
         end = posx_to_pose([20., 0., 0., 0., 0., 0.])
         profile = {'vel_mm_s': 10., 'pos_tol_mm': .1}
         assert adapter.inverse_kinematics(end, None, [0.] * 6) == [1.] * 6
@@ -130,7 +135,12 @@ def test_motion_and_ikin_preserve_running_executor(monkeypatch):
         assert sent == ['line', 'spline']
         assert adapter.stop({'mode': 1}, 5.).observed_state['stop_confirmed'] is True
         assert owner.executor is executor and owner in executor.get_nodes()
-        assert not list(owner.clients)
+        # 서비스 클라이언트 재사용: 반복 조회가 클라이언트를 새로 만들지 않아야 한다.
+        cached_clients = set(owner.clients)
+        assert cached_clients
+        for _ in range(3):
+            adapter._posx_now()
+        assert set(owner.clients) == cached_clients
 
         # 실제 접촉 함수의 시작 전/중 조회도 동일 executor에서 처리한다.
         force_reads[0] = 0
@@ -170,16 +180,26 @@ def test_motion_and_ikin_preserve_running_executor(monkeypatch):
         unconfirmed = adapter.stop({'mode': 1}, .3)
         assert unconfirmed.outcome == 'UNKNOWN' and not unconfirmed.observed_state['stop_confirmed']
         started[0] = None
-        assert owner.executor is executor and not list(owner.clients)
+        assert owner.executor is executor
+        assert set(owner.clients) == set(adapter._clients.values())
         for service in list(driver.services):
             if service.srv_name.endswith('/motion/set_singularity_handling'):
                 driver.destroy_service(service)
         began = time.monotonic()
+        # 생성자는 권한/정지 확인 전에 제어기 상태를 바꾸지 않는다.
+        uninitialized = DoosanRobotAdapter(
+            owner, controller_prefix=prefix, initialization_timeout_s=.1)
+        assert not uninitialized._controller_initialized
         # DDS가 삭제된 서비스를 잠시 캐시하면 접수 후 timeout일 수도 있다.
-        with pytest.raises((RuntimeError, TimeoutError), match='not available|timed out'):
-            DoosanRobotAdapter(owner, initialization_timeout_s=.1)
+        failed = uninitialized.initialize_controller()
+        assert not failed.ok and failed.outcome == 'UNKNOWN'
+        assert failed.error_code == 'COMMUNICATION_LOST'
         assert time.monotonic() - began < 1.5
-        assert owner.executor is executor and not list(owner.clients)
+        assert owner.executor is executor
+        assert set(owner.clients) == set(adapter._clients.values()) | set(uninitialized._clients.values())
+        failed_clients = set(owner.clients)
+        assert not uninitialized.initialize_controller().ok
+        assert set(owner.clients) == failed_clients
     finally:
         executor.shutdown(timeout_sec=3)
         thread.join(timeout=3)
