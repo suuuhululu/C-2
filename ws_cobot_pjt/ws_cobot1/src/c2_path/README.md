@@ -11,7 +11,7 @@
 | 위치 | 담당 기능 |
 | --- | --- |
 | `c2_path/node.py` | `/c2/generate_path` Action 수신, 진행·결과·취소·중복/동시 요청 처리 |
-| `c2_path/pipeline.py` | 계산 단계 조합, 입력/프로파일 검사(스냅샷 `/1`·`/2` 구분), 일부 획 실패·빈 경로 차단, 산출물 확정 |
+| `c2_path/pipeline.py` | 계산 단계 조합, 입력/프로파일 검사(SIMULATION `/1`·`/2`, REAL 미리보기 `/3`, REAL 실행 후보 `/4` 구분), 일부 획 실패·빈 경로 차단, 산출물 확정 |
 | `c2_path/artifacts.py` | HMI 관리 UUID→파일 해석·해시 검사, 산출물 묶음 원자적 등록 |
 | `c2_path/image_to_svg.py` | PNG/JPEG → 중심선 SVG(Otsu·세선화·골격·Bézier) |
 | `c2_path/image_to_hatch.py` | PNG/JPEG 연결 성분별 중심선·평행선 해칭·작은 면 1패스 혼합 SVG·픽셀 획 |
@@ -21,6 +21,7 @@
 | `c2_path/generate_path.py` | 안전비용 정렬, offset-cylinder 이동, pose7 경로 구성 |
 | `c2_path/validate_path.py` | 형식·표면(옆면 안)·간격·이음매·자세·빈 경로 검증 |
 | `c2_path/readiness.py` | 로봇 잠정 작업 범위 사전 점검(`execution_readiness`). 생성 성공과 별개 |
+| `c2_path/diagnostics.py` | 공정의 IK/J6 실패 segment를 같은 미리보기의 도안 배치·u/v 범위에 연결하는 읽기 전용 진단 |
 | `c2_path/worker.py` | 취소·시간 초과 시 계산을 별도 프로세스로 종료·회수하는 실행기. 산출물 저장은 부모 프로세스만 한다 |
 | `c2_path/ordering.py` | 획 순서 2-opt 공용 구현(비용 행렬 + 접두합). 글자 많은 이미지도 수 초 이내 |
 | `c2_path/workcell.py` | 현재 test_only 워크셀·도구 값 |
