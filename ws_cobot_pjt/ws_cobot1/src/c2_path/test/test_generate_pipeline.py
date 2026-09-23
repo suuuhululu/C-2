@@ -146,6 +146,30 @@ class TestGeneratePipeline(PipelineFixture):
         self.assertEqual(report["stats"]["convert"]["recipe_scope"], "surface_path")
         self.assertEqual(path["config"]["conversion"]["spacing_mm"], image_to_hatch.HATCH_SPACING_MM)
 
+    def test_centerline_bezier_preset_generates_cross_hatch_for_filled_area(self):
+        hatch_asset_id = new_id()
+        self.store.put_bundle([
+            ArtifactWrite(filled_rectangle_png(), "image", "image/png", "filled.png", {}, hatch_asset_id)
+        ])
+        hatch_asset = self.store.read(hatch_asset_id, self._sha(hatch_asset_id), ("image",))
+        result = GeneratePipeline(self.store).run(self.goal(
+            asset_id=hatch_asset_id,
+            asset_sha256=hatch_asset.sha256,
+        ))
+        path = json.loads(self.store.read(result.path_asset_id, result.path_sha256, ("path",)).data)
+        report = json.loads(self.store.read(
+            result.validation_report_id, self._sha(result.validation_report_id), ("validation",)
+        ).data)
+
+        self.assertTrue(validate_path.validate(path)["passed"])
+        convert_stats = report["stats"]["convert"]
+        self.assertEqual(convert_stats["mode"], "centerline_bezier_cross_hatch")
+        self.assertGreater(convert_stats["cross_hatch_component_count"], 0)
+        self.assertGreater(convert_stats["horizontal_hatch_stroke_count"], 1)
+        self.assertGreater(convert_stats["vertical_hatch_stroke_count"], 1)
+        self.assertEqual(path["config"]["conversion"]["preset"], "raster_centerline_bezier")
+        self.assertTrue(path["config"]["conversion"]["cross_hatch_enabled"])
+
     def test_any_mapping_failure_fails_whole_generation(self):
         with self.assertRaises(PipelineError) as caught:
             GeneratePipeline(self.store).run(self.goal(offset_v_mm=200.0))   # 옆면(150mm) 밖

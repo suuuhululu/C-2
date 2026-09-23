@@ -2,7 +2,7 @@
 
 2026-09-21: [취소 가능한 계산 프로세스](../../../docs/HMI_GENERATION_CANCEL.md)을 지원한다. 기존 GeneratePath v2의 표준 취소를 사용하며 공통 ROS 타입 변경은 없다.
 
-`path_planner_node`는 HMI가 등록한 PNG/JPEG를 읽어 중심선 또는 평행선 해칭 SVG → 2D 좌표 →
+`path_planner_node`는 HMI가 등록한 PNG/JPEG를 읽어 중심선·베지어와 선택적 교차 해칭 SVG → 2D 좌표 →
 원통 3D 도구 끝 경로 → 기하 검증 산출물을 만드는 ROS 2 Jazzy Action 서버다.
 이 패키지는 로봇·그리퍼·두산 API를 호출하지 않는다.
 
@@ -14,7 +14,7 @@
 | `c2_path/pipeline.py` | 계산 단계 조합, 입력/프로파일 검사(SIMULATION `/1`·`/2`, REAL 미리보기 `/3`, REAL 실행 후보 `/4` 구분), 일부 획 실패·빈 경로 차단, 산출물 확정 |
 | `c2_path/artifacts.py` | HMI 관리 UUID→파일 해석·해시 검사, 산출물 묶음 원자적 등록 |
 | `c2_path/image_to_svg.py` | PNG/JPEG → 중심선 SVG(Otsu·세선화·골격·Bézier) |
-| `c2_path/image_to_hatch.py` | PNG/JPEG 연결 성분별 중심선·평행선 해칭·작은 면 1패스 혼합 SVG·픽셀 획 |
+| `c2_path/image_to_hatch.py` | PNG/JPEG 연결 성분별 중심선·베지어/교차 해칭 분리와 기존 평행선 해칭 preset의 혼합 SVG·픽셀 획 |
 | `c2_path/extract_2d.py` | SVG → 2D 좌표(mm), 크기·배치·회전, 적응형 샘플링 |
 | `c2_path/optimize_2d.py` | NN+2-opt 획 방문 순서 최적화(형상·진행 방향 보존) |
 | `c2_path/map_3d.py` | 원통 해석 매핑, 이음매·180° 분할, 도구 자세 |
@@ -58,7 +58,11 @@
 
 지원 입력 preset은 다음 두 개다.
 
-- `raster_centerline_bezier`: 가는 선·윤곽을 중심선으로 변환한다.
+- `raster_centerline_bezier`: 연결 성분의 물리 폭과 bbox 채움 비율을 판정한다. 가로·세로 안전 해칭선이
+  각각 2개 이상 나오는 넓은 채움 성분은 교차 해칭으로 변환하고, 그 성분을 중심선 마스크에서 제거한다.
+  나머지 가는 선·윤곽은 기존 세선화·Schneider 3차 베지어 피팅으로 변환한다. 두 결과는 같은 원본
+  이미지 좌표계에서 합친 뒤 공통 NN·2-opt 및 3D 매핑을 거친다. HMI와 `GeneratePath`는 기존 preset
+  문자열을 그대로 사용한다.
 - `raster_parallel_hatch`: 연결 성분의 물리 폭과 채움 비율을 함께 판정해 가는 선화는 중심선으로 유지하고,
   충분히 넓은 채워진 면은 수평·수직 각각 안전 해칭선이 두 개 이상일 때만 교차 해칭으로 변환한다.
   그 조건을 만족하지 않는 면은 단방향 평행선, 골격이 사라지는 작은 면은 성분 내부의
