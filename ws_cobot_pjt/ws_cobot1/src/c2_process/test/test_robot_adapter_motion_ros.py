@@ -135,12 +135,7 @@ def test_motion_and_ikin_preserve_running_executor(monkeypatch):
         assert sent == ['line', 'spline']
         assert adapter.stop({'mode': 1}, 5.).observed_state['stop_confirmed'] is True
         assert owner.executor is executor and owner in executor.get_nodes()
-        # 서비스 클라이언트 재사용: 반복 조회가 클라이언트를 새로 만들지 않아야 한다.
-        cached_clients = set(owner.clients)
-        assert cached_clients
-        for _ in range(3):
-            adapter._posx_now()
-        assert set(owner.clients) == cached_clients
+        assert not list(owner.clients)
 
         # 실제 접촉 함수의 시작 전/중 조회도 동일 executor에서 처리한다.
         force_reads[0] = 0
@@ -180,8 +175,7 @@ def test_motion_and_ikin_preserve_running_executor(monkeypatch):
         unconfirmed = adapter.stop({'mode': 1}, .3)
         assert unconfirmed.outcome == 'UNKNOWN' and not unconfirmed.observed_state['stop_confirmed']
         started[0] = None
-        assert owner.executor is executor
-        assert set(owner.clients) == set(adapter._clients.values())
+        assert owner.executor is executor and not list(owner.clients)
         for service in list(driver.services):
             if service.srv_name.endswith('/motion/set_singularity_handling'):
                 driver.destroy_service(service)
@@ -195,11 +189,7 @@ def test_motion_and_ikin_preserve_running_executor(monkeypatch):
         assert not failed.ok and failed.outcome == 'UNKNOWN'
         assert failed.error_code == 'COMMUNICATION_LOST'
         assert time.monotonic() - began < 1.5
-        assert owner.executor is executor
-        assert set(owner.clients) == set(adapter._clients.values()) | set(uninitialized._clients.values())
-        failed_clients = set(owner.clients)
-        assert not uninitialized.initialize_controller().ok
-        assert set(owner.clients) == failed_clients
+        assert owner.executor is executor and not list(owner.clients)
     finally:
         executor.shutdown(timeout_sec=3)
         thread.join(timeout=3)
