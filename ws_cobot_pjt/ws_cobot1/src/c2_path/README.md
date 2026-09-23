@@ -11,7 +11,7 @@
 | 위치 | 담당 기능 |
 | --- | --- |
 | `c2_path/node.py` | `/c2/generate_path` Action 수신, 진행·결과·취소·중복/동시 요청 처리 |
-| `c2_path/pipeline.py` | 계산 단계 조합, 입력/프로파일 검사(스냅샷 `/1`·`/2` 구분), 일부 획 실패·빈 경로 차단, 산출물 확정 |
+| `c2_path/pipeline.py` | 계산 단계 조합, 입력/프로파일 검사(SIMULATION `/1`·`/2`, REAL 미리보기 `/3`, REAL 실행 후보 `/4` 구분), 일부 획 실패·빈 경로 차단, 산출물 확정 |
 | `c2_path/artifacts.py` | HMI 관리 UUID→파일 해석·해시 검사, 산출물 묶음 원자적 등록 |
 | `c2_path/image_to_svg.py` | PNG/JPEG → 중심선 SVG(Otsu·세선화·골격·Bézier) |
 | `c2_path/image_to_hatch.py` | PNG/JPEG 연결 성분별 중심선·평행선 해칭·작은 면 1패스 혼합 SVG·픽셀 획 |
@@ -21,6 +21,7 @@
 | `c2_path/generate_path.py` | 안전비용 정렬, offset-cylinder 이동, pose7 경로 구성 |
 | `c2_path/validate_path.py` | 형식·표면(옆면 안)·간격·이음매·자세·빈 경로 검증 |
 | `c2_path/readiness.py` | 로봇 잠정 작업 범위 사전 점검(`execution_readiness`). 생성 성공과 별개 |
+| `c2_path/diagnostics.py` | 공정의 IK/J6 실패 segment를 같은 미리보기의 도안 배치·u/v 범위에 연결하는 읽기 전용 진단 |
 | `c2_path/worker.py` | 취소·시간 초과 시 계산을 별도 프로세스로 종료·회수하는 실행기. 산출물 저장은 부모 프로세스만 한다 |
 | `c2_path/ordering.py` | 획 순서 2-opt 공용 구현(비용 행렬 + 접두합). 글자 많은 이미지도 수 초 이내 |
 | `c2_path/workcell.py` | 현재 test_only 워크셀·도구 값 |
@@ -63,10 +64,19 @@
   그 조건을 만족하지 않는 면은 단방향 평행선, 골격이 사라지는 작은 면은 성분 내부의
   최소 1패스로 보존한다. 공구·해상도보다 작아 유효 경로를 만들 수 없는 성분은 확대하지 않고
   변환 통계에 생략 사유를 남긴다. 모든 CUT 획의 진행 방향을 유지하고 획마다 기존
-  APPROACH/RETRACT를 사용한다. HMI 입력이 아닌 시험 고정값은 홈 폭 `0.8mm`,
+  APPROACH/RETRACT를 사용한다. HMI 입력이 아닌 표면 경로 레시피 값은 홈 폭 `0.8mm`,
   경계 안쪽 보정 `0.4mm`, 해칭 간격 `0.25mm`다. 가공 깊이 `0.8mm`는 이 경로 생성기가
   적용하지 않으며, 실행 시점의 `c2_process` `fixed_depth.depth_m` 프로파일에 설정한다.
-  이 값들은 경로 생성·시험 기준이고, 실제 재료·깊이·속도별 반복 검증과 REAL 실행 승인은 별도다.
+  이 값들은 `SIMULATION`과 REAL 실행 후보의 표면 경로 생성에 공통 적용된다. 경로 `config.conversion`에
+  preset·레시피·이미지 배치(mm·deg)를 남기므로 경로 SHA에 포함된다. 실제 재료·깊이·속도별 반복 검증과
+  REAL 실행 승인은 별도다.
+
+IK/J6 실패에서 공정 결과의 `observed_state.segment_id` 또는 `observed_state.worst.segment_id`를 받으면
+`c2_path.diagnostics.placement_for_joint_failure(path, preview, observed_state)`로 같은 경로의
+`stroke_id`, 도안 크기·중심·회전, 해당 CUT의 전개면 u/v 범위를 조회할 수 있다. 이는 배치를 조정할
+정보이며 관절 제한을 변경하거나 생성 성공을 IK 합격으로 승격하지 않는다. 현재 회귀시험은 모의 REAL
+스냅샷으로 GeneratePath→HMI 로더→공정 로더의 동일 바이트·SHA를 확인한다. 실제 PrepareWorkpiece
+결과·BIND 프로필과 배포 실행 설정을 사용한 현장 연결 시험은 별도로 수행해야 한다.
 
 기존 HMI의 `simulation_centerline`은 고정 모의 샘플 이름이므로 실제 이미지 변환으로 묵시 해석하지 않는다.
 해칭 preset도 별도 간격 값을 Goal/HMI에서 받지 않는다.

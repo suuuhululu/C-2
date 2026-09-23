@@ -6,7 +6,7 @@
 작은 면은 성분 내부의 중심 1패스로 보완한다. 실제 mm 좌표 변환은
 extract_2d.transform_raw_strokes가 한다.
 
-홈 폭·경계 보정·해칭 간격은 SIMULATION/test_only 경로 생성의 고정 레시피다.
+홈 폭·경계 보정·해칭 간격은 표면 경로 생성의 고정 레시피다.
 HMI 입력으로 받지 않으며 값이 바뀌면 경로·설정 해시와 시험을 새로 생성한다.
 """
 from __future__ import annotations
@@ -22,7 +22,7 @@ from skimage.morphology import skeletonize
 from .image_to_svg import binarize, trace_strokes
 
 
-# 2026-09-22 SIMULATION/test_only 표면 경로 레시피: 홈 폭 0.8mm, 경계 안쪽 보정 0.4mm,
+# 2026-09-22 표면 경로 레시피: 홈 폭 0.8mm, 경계 안쪽 보정 0.4mm,
 # 해칭 간격 0.25mm. 가공 깊이 0.8mm는 c2_path가 아닌 실행 프로파일의
 # fixed_depth.depth_m에서 적용한다. 이 값들은 REAL 실행 승인값이나 드릴 팁 직경 자체를 뜻하지 않는다.
 EFFECTIVE_GROOVE_WIDTH_MM = 0.8
@@ -34,7 +34,7 @@ MAX_HATCH_STROKES = 1000
 MIN_FALLBACK_LENGTH_MM = 0.3
 MIN_CROSS_HATCH_LINES_PER_DIRECTION = 2
 # 넓은 도안 bbox 안에 선이 드문드문 있는 경우(선화)는 일부 굵은 교차점의 최대 폭만으로
-# 면 채움으로 바꾸지 않는다. 이 값은 SIMULATION/test_only 분류 기준이다.
+# 면 채움으로 바꾸지 않는다.
 MIN_HATCH_FILL_RATIO = 0.20
 
 
@@ -129,8 +129,7 @@ def generate_scanlines(mask, source_bbox, scale_mm_per_px, *,
         "minimum_stroke_length_mm": round(min_length_mm, 6),
         "removed_short_strokes": removed_short,
         "direction": "image_left_to_right",
-        "recipe_scope": "simulation_test_only",
-        "fixed_test_only": True,
+        "recipe_scope": "surface_path",
     }
 
 
@@ -286,7 +285,7 @@ def strokes_to_svg(strokes, width_px, height_px, source_name):
     return (
         '<?xml version="1.0" encoding="UTF-8"?>\n'
         f'<!-- image_to_hatch.py 자동 생성: {source_name}; '
-        f'SIMULATION/test_only 표면 경로 레시피; 고정 간격 {HATCH_SPACING_MM:.3f}mm -->\n'
+        f'표면 경로 레시피; 고정 간격 {HATCH_SPACING_MM:.3f}mm -->\n'
         f'<svg xmlns="http://www.w3.org/2000/svg" width="{width_px}" height="{height_px}" '
         f'viewBox="0 0 {width_px} {height_px}">\n  {body}\n</svg>\n'
     )
@@ -378,10 +377,9 @@ def convert(image_path, width_mm, height_mm, *, invert=None,
         "minimum_hatch_fill_ratio": MIN_HATCH_FILL_RATIO,
         "direction": "hatch_image_left_to_right",
         "cross_hatch_enabled": True,
-        "recipe_scope": "simulation_test_only",
+        "recipe_scope": "surface_path",
         "horizontal_hatch_stroke_count": len(horizontal_hatches),
         "vertical_hatch_stroke_count": len(vertical_hatches),
-        "fixed_test_only": True,
         **mixed_stats,
     }
     return svg, strokes, bbox, stats
