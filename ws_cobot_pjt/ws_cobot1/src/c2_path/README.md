@@ -63,10 +63,19 @@
   그 조건을 만족하지 않는 면은 단방향 평행선, 골격이 사라지는 작은 면은 성분 내부의
   최소 1패스로 보존한다. 공구·해상도보다 작아 유효 경로를 만들 수 없는 성분은 확대하지 않고
   변환 통계에 생략 사유를 남긴다. 모든 CUT 획의 진행 방향을 유지하고 획마다 기존
-  APPROACH/RETRACT를 사용한다. HMI 입력이 아닌 시험 고정값은 홈 폭 `0.8mm`,
+  APPROACH/RETRACT를 사용한다. HMI 입력이 아닌 표면 경로 레시피 값은 홈 폭 `0.8mm`,
   경계 안쪽 보정 `0.4mm`, 해칭 간격 `0.25mm`다. 가공 깊이 `0.8mm`는 이 경로 생성기가
   적용하지 않으며, 실행 시점의 `c2_process` `fixed_depth.depth_m` 프로파일에 설정한다.
-  이 값들은 경로 생성·시험 기준이고, 실제 재료·깊이·속도별 반복 검증과 REAL 실행 승인은 별도다.
+  이 값들은 `SIMULATION`과 REAL 실행 후보의 표면 경로 생성에 공통 적용된다. 경로 `config.conversion`에
+  preset·레시피·이미지 배치(mm·deg)를 남기므로 경로 SHA에 포함된다. 실제 재료·깊이·속도별 반복 검증과
+  REAL 실행 승인은 별도다.
+
+IK/J6 실패에서 공정 결과의 `observed_state.segment_id` 또는 `observed_state.worst.segment_id`를 받으면
+`c2_path.diagnostics.placement_for_joint_failure(path, preview, observed_state)`로 같은 경로의
+`stroke_id`, 도안 크기·중심·회전, 해당 CUT의 전개면 u/v 범위를 조회할 수 있다. 이는 배치를 조정할
+정보이며 관절 제한을 변경하거나 생성 성공을 IK 합격으로 승격하지 않는다. 현재 회귀시험은 모의 REAL
+스냅샷으로 GeneratePath→HMI 로더→공정 로더의 동일 바이트·SHA를 확인한다. 실제 PrepareWorkpiece
+결과·BIND 프로필과 배포 실행 설정을 사용한 현장 연결 시험은 별도로 수행해야 한다.
 
 기존 HMI의 `simulation_centerline`은 고정 모의 샘플 이름이므로 실제 이미지 변환으로 묵시 해석하지 않는다.
 해칭 preset도 별도 간격 값을 Goal/HMI에서 받지 않는다.

@@ -15,7 +15,9 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from c2_path import readiness  # noqa: E402
+from c2_path.diagnostics import placement_for_joint_failure  # noqa: E402
 from c2_path.artifacts import ArtifactWrite, json_bytes, new_id  # noqa: E402
+from test_generate_pipeline import filled_rectangle_png  # noqa: E402
 from c2_path.pipeline import (  # noqa: E402
     GeneratePipeline,
     PipelineError,
@@ -59,6 +61,42 @@ class RealExecutionBase(ProfileRegistered):
 
 
 class TestRealExecutionCandidate(RealExecutionBase):
+    def test_real_hatch_candidate_uses_same_profile_and_recipe_in_outputs(self):
+        image_id = new_id()
+        self.store.put_bundle([ArtifactWrite(
+            filled_rectangle_png(), "image", "image/png", "filled.png", {}, image_id)])
+        image_sha = self._sha(image_id)
+        goal_placement = dict(width_mm=24.0, height_mm=24.0, offset_u_mm=0.0,
+                              offset_v_mm=75.0, rotation_deg=0.0)
+        generated, profile, profile_id, profile_sha = self.run_profile(
+            asset_id=image_id, asset_sha256=image_sha,
+            conversion_preset="raster_parallel_hatch", **goal_placement)
+        path, preview, report, artifact = self.outputs(generated)
+        for output in (path, preview, report):
+            self.assertEqual(output["source_mode"], "REAL")
+            self.assertIs(output["test_only"], False)
+            self.assertIs(output["real_execution_allowed"], True)
+        self.assertEqual(path["config"]["profile_snapshot_id"], profile_id)
+        self.assertEqual(path["config"]["profile_sha256"], profile_sha)
+        self.assertEqual(preview["profile_snapshot_id"], profile_id)
+        self.assertEqual(preview["profile_sha256"], profile_sha)
+        self.assertEqual(report["profile_snapshot_id"], profile_id)
+        self.assertEqual(report["profile_sha256"], profile_sha)
+        self.assertEqual(preview["path_sha256"], hashlib.sha256(artifact.path.read_bytes()).hexdigest())
+        self.assertEqual(path["config"]["conversion"], report["conversion"])
+        self.assertEqual(path["config"]["conversion"]["recipe_scope"], "surface_path")
+        self.assertEqual(path["config"]["conversion"]["placement"], goal_placement)
+        self.assertEqual(path["preparation_id"], profile["preparation_id"])
+        cut = next(seg for seg in path["segments"] if seg["kind"] == "CUT")
+        diagnostic = placement_for_joint_failure(
+            path, preview, {"segment_id": cut["segment_id"], "index": 0})
+        self.assertEqual(diagnostic["placement"], goal_placement)
+        self.assertEqual(diagnostic["stroke_id"], cut["stroke_id"])
+        self.assertIsNotNone(diagnostic["segment_u_range_mm"])
+        with self.assertRaises(ValueError):
+            placement_for_joint_failure(path, dict(preview, path_id="wrong"),
+                                        {"segment_id": cut["segment_id"]})
+
     def test_execution_candidate_preserves_binding_and_stays_not_judged(self):
         result, profile, profile_id, profile_sha = self.run_profile(offset_v_mm=75.0)
         path, preview, report, artifact = self.outputs(result)
