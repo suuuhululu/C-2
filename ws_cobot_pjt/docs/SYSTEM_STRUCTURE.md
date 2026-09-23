@@ -1,95 +1,64 @@
-> 9/22 HMI 작업 변경: [REAL 실행 연결 계약](HMI_REAL_EXECUTION_20260922.md). 아래의 REAL 측정 전용 설명은 이전 기준이며, 현재 작업 브랜치는 BIND·생성·실행 요청을 연결한다. 상대 PR과 실기 검증은 별도다.
+# 새김 시스템 구조와 코드 책임
 
-# 시스템 모니터·좌표 생성·고정 드릴 공정 구조
+기준: `main` `6536a29` (2026-09-23). 현재 코드의 구조를 설명한다. 장치·실기 검증의 범위는 [인터페이스 안내](INTERFACE_GUIDE.md)와 관련 시험 기록을 따른다.
 
-**2026-09-21 재확인, main `829db40`(PR #44 병합).** 현재 소스와 앞으로 통합할 기능을 분리한다. 공정 파일·함수·담당·구현 상태의 상세 원본은 [c2_process README](../ws_cobot1/src/c2_process/README.md)다. 9/19의 “공정 모듈 6개·robot_adapter만 존재” 표기는 최신 상태가 아니다.
+```text
+운영자 React HMI
+  └─ HTTP·WebSocket ─ FastAPI 서버/SQLite·관리 파일
+                         └─ monitor_gateway_node (rclpy 클라이언트)
+                              ├─ /c2/prepare_workpiece ─ process_controller_node
+                              ├─ /c2/generate_path ──── path_planner_node
+                              └─ /c2/execute_process ─ process_controller_node
+                                    └─ robot_adapter ─ 외부 두산 드라이버 ─ M0609
+```
 
-사용자 결정: 드릴 ON은 HMI 수동 체크, 그리퍼/드릴은 명령 없이 하드웨어 Topic 관측, 비홈은 검사된 홈 이동 후 상태 재검사로 연결한다.
-구현할 파일과 인수인계는 [수현 작업 목록](HMI_ACTION_ITEMS_20260921.md)·[세은님 전달 문서](PROCESS_HANDOFF_20260921.md)를 따른다. 코드 반영은 남아 있다.
+`/c2/stop_process` Service와 `/c2/process_state`·`/c2/process_events` Topic도 게이트웨이와 공정 노드 사이에 있다. 세 팀 노드는 `monitor_gateway_node`, `path_planner_node`, `process_controller_node`이며, 내부 Python 파일 수가 ROS 노드 수를 늘리지 않는다. **모든 로봇 모션의 공정 소유권은 `c2_process`에 있다.**
 
-팀 노드는 `monitor_gateway_node`, `path_planner_node`, `process_controller_node` 3개를 유지한다. 내부 파일을 나눠도 별도 ROS 통신을 추가하지 않는다. 로봇 모션은 공정 제어 하나가 소유한다. 드릴은 철사로 고정하며 **초기화·보정·오류·종료에도 그리퍼 열기 금지**, 자동 집기·반납·청소 제외다.
+## 위치·담당·실제 역할
 
-**핵심 흐름: 이시율 측정 → 실측 좌표 전달 → 노홍동 경로 생성 → 김세은 관절 검사 → 이시율 조각.** 미리보기는 경로 생성 뒤에 확인한다.
+| 위치 | 주 담당 | 코드와 역할 |
+| --- | --- | --- |
+| `frontend/src/monitor/` | 이수현 | `Monitor.tsx`의 입력·미리보기·실행·상태 화면, `PreparationPanel.tsx`의 준비·측정·REAL 제어기 관측/수동 확인, `api.ts`의 HTTP·WS 계약. 드릴 ON은 화면 수동 확인만 한다. |
+| `backend/app/` | 이수현 | `monitor.py` HTTP/WS, `monitor_service.py` 요청 순서·실행 게이트, `preparation.py` 측정 원본·스냅샷·BIND, `hardware_snapshot.py` REAL 읽기 관측, `real_execution_config.py` 배포 설정 정적 검사, `storage.py` SQLite/파일, `ros_bridge.py` ROS 변환·클라이언트, `artifact_loader.py` 산출물 검사. |
+| `ws_cobot1/src/c2_interfaces/` | 팀 공통 계약 | `GeneratePath`, `ExecuteProcess`, `PrepareWorkpiece` Action 3개, `StopProcess` Service 1개, `ProcessState`, `ProcessEvent` Message 2개. 정확한 필드는 실제 `.action`·`.srv`·`.msg`가 원본. |
+| `ws_cobot1/src/c2_path/` | 노홍동 | 관리 이미지·스냅샷을 읽어 중심선/해칭→2D→원통 3D 드릴 끝 경로·미리보기·기하 검증. Action 서버는 `node.py`; 로봇은 구동하지 않음. |
+| `ws_cobot1/src/c2_process/` | 김세은·이시율 | Action/Service/Topic 공정 노드, 상태·준비·사전 검사·관절 검사, 측정·조각·로봇 어댑터. `setup.py`의 SIM/REAL 실행 엔트리 존재. 실기 전체 공정 검증과는 별개. |
+| `ws_dsr/src/` | 실행 PC의 공급자 환경 | 외부 두산·그리퍼 드라이버 원본은 별도 설치. 이 저장소에는 제어권 관측 패치 4개 파일만 추적하며 실행 PC의 원본·설치본·버전을 따로 확인. |
 
-## 디렉토리·담당·현재 상태
+## 경로 생성 내부
 
-| 위치 | 담당 | 코드와 역할 | 확인 상태 |
-| --- | --- | --- | --- |
-| `frontend/src/monitor/` | 이수현 | `Monitor.tsx` 화면·작업 흐름, `Previews.tsx`·`LivePathPreview.tsx` 미리보기, `FileIntegration.tsx` SIM 파일 교환, `api.ts` 서버 요청 | main 존재. 측정 시작·실측 기반 경로·실물 공정 연결은 별도 구현 |
-| `backend/app/` | 이수현 | `monitor.py` API, `monitor_service.py` 요청·결과 처리, `monitor_contract.py` 데이터 검증, `storage.py` 저장, `ros_bridge.py` ROS 연결, `artifact_loader.py` 산출물 검사, `file_integration.py` SIM 파일 교환, `mock_peer.py` 모의 상대 | main 존재. HMI↔c2_path 부분 통합과 SIM 파일 교환은 검증됨. 실제 공정/로봇 연동과 구분 |
-| `ws_cobot1/src/c2_interfaces/` | 김세은·이수현·노홍동·이시율 공동 계약 검토 | GeneratePath·ExecuteProcess Action, StopProcess Service, ProcessState·ProcessEvent Topic 타입 | main 존재, 고정 드릴 v2. 새 보정 흐름 계약 확장은 미반영 |
-| `ws_cobot1/src/c2_path/c2_path/` | 노홍동 | 아래 경로 생성 모듈 | main 존재. 현재 Action 서버는 SIMULATION/test_only |
-| `ws_cobot1/src/c2_process/c2_process/` | 김세은·이시율 분담 | 아래 공정 모듈 | 어댑터·도구 보정·관절 검사·조각 소스 존재. main 공정 노드·패키지 빌드 설정 없음 |
-| `ws_dsr/src/` | 공급자 드라이버, 이시율 실행환경 확인 | Doosan·그리퍼 드라이버 | 외부 원본·로컬 전용·Git 제외 |
-
-### 노홍동: 실측 양초를 기준으로 경로 생성
-
-| 파일 | 역할 |
+| 파일 | 기능 |
 | --- | --- |
-| `node.py` | `/c2/generate_path` ActionServer, 요청·진행·취소·결과 |
-| `pipeline.py` | 이미지부터 검증 결과까지 내부 계산 순서 |
-| `artifacts.py` | 입력·설정 조회, 경로·미리보기·검증 산출물 저장과 식별 |
-| `image_to_svg.py` | 이미지에서 가공 중심선 SVG 생성 |
-| `extract_2d.py` | SVG 중심선의 2D 획·점 추출 |
-| `optimize_2d.py` | 2D 점·획 최적화 |
-| `map_3d.py` | U/V 도안을 원통의 3D 표면에 매핑. 실측 스냅샷 입력으로 변경 예정 |
-| `generate_path.py` | APPROACH/CUT/TRAVEL/RETRACT 구간·자세 생성. 실측 모델로 연결 예정 |
-| `validate_path.py` | 경로 구조·기하·작업 영역·이음매 규칙 검사 |
-| `workcell.py` | 현재 시험 형상·좌표·영역 상수. 실측 스냅샷을 받아 기하 함수가 사용하도록 변경 예정 |
+| `node.py` | `/c2/generate_path` Action, 진행·취소·동시 요청·모드 파라미터 |
+| `pipeline.py`, `artifacts.py` | 계산 단계·설정 계약 검사, UUID→관리 파일 조회·해시 확인, 결과 원자적 등록 |
+| `image_to_svg.py`, `image_to_hatch.py`, `extract_2d.py`, `optimize_2d.py` | 중심선/해칭 SVG, 2D 획 추출·배치·방문 순서 |
+| `map_3d.py`, `generate_path.py`, `validate_path.py`, `readiness.py` | 원통 매핑, 접근/CUT/이동/이탈 pose7 경로, 기하·잠정 작업 범위 검사 |
+| `snapshot.py`, `workcell.py` | 요청별 표면 설정 연결과 시험 상수. `workcell.py`는 승인된 REAL 설정 원본이 아님. |
 
-양초 중심·높이 등 실측은 이시율, 실측값을 사용하는 3D 위치·자세·접근/이탈 생성은 노홍동 책임이다. 현재 위 모듈들은 고정 상수 기반이므로 스냅샷 입력·미리보기·검증·시험을 함께 고쳐야 한다. 기울기 지원 시 도구 자세·법선도 함께 변환한다. 기하 검사 통과는 실제 관절·특이점·충돌 검사 통과를 뜻하지 않는다.
+기본 경로 노드는 `SIMULATION/test_only`다. `allow_real_preview:=true`는 REAL 추정값 `/3` 미리보기 전용이며 여전히 `test_only`다. `allow_real_execution:=true`는 별도 REAL 실행 계약·BIND·설정/범위가 맞을 때 `test_only=false`, `real_execution_allowed=true` **실행 후보**를 만든다. 실제 실행 가능 판정은 공정 노드의 최종 검사다. 상세 조건은 [c2_path README](../ws_cobot1/src/c2_path/README.md)를 따른다.
 
-### 김세은: 공정 순서·통신·관절 검사
+## 공정 내부
 
-| 파일 | 역할 | 상태 |
-| --- | --- | --- |
-| `node.py` | 측정 준비 요청·결과 전달 연결, 실행/정지 수신과 상태·이벤트 발행 | main 없음, 담당자 부분 통합 보고. 준비 요청 계약 추가 필요 |
-| `state_machine.py` | 상태 검사·필요 시 홈 이동·재검사·시율 측정 함수 호출·결과 반환, 미리보기 후 관절 검사·시율 조각 함수 호출, 성공/실패/정지 전이 | main 없음, 담당자 작업 브랜치 존재. 공정 ON 확인 대기는 구현 대상에서 제외 |
-| `preconditions.py` | 시작 조건 확인, 실측 기반 생성 경로 검사 호출·결과로 진행 여부 판단 | main 없음, 담당자 작업 보고 |
-| `joint_check.py` | 실측 기반 최종 경로의 IK·관절 범위·J6 검사 구현·보강 | main 존재. CUT 4점마다+마지막 점 검사, 전 경로·보간·특이점/충돌 범위 보강 필요 |
-| `package.xml`, `setup.py`, `setup.cfg`, `resource/c2_process`, `launch/process.launch.py` | 패키지 설치·노드 실행·설정 로딩 | main 없음, 통합 시 구현 |
+| 파일 | 기능 |
+| --- | --- |
+| `node.py` | `/c2/prepare_workpiece`, `/c2/execute_process` Action, `/c2/stop_process` Service, 상태·이벤트 Topic. 요청 중복 방지·모션 소유권·실행 파일 로딩·최종 검사 연결. |
+| `preparation_action.py` | `MEASURE`와 이동 없는 `BIND_SNAPSHOT`, 측정 원본·스냅샷의 ID/해시·기하·신뢰도 대조. |
+| `state_machine.py`, `preconditions.py` | 준비 단계/준비 후 실행 순서, 현재 모드·상태·제어권·경로/스냅샷 무결성 검사. 이전 직접 실행 경로도 별도 존재. |
+| `joint_check.py` | 실행계획의 **모든 명시 waypoint** IK, 관절 범위·J6 여유 검사. 점 사이 연속 충돌 검증은 아님. |
+| `workpiece_calibration.py` | 필요 시 검사된 홈 이동과 재관측, 윗면·옆면 8점 접촉, 중심·반지름 계산, 정상 후퇴/홈 결과. #75는 옆면 접촉 구간 분리와 복구 가능한 점 오류의 제한 재측정을 추가. 높이는 운영자 자 측정, 수직 축은 가정. |
+| `measurement_robot_adapter.py` | 측정 단계의 실제 로봇 관측·접촉 실행, baseline/접촉 구간 감시와 사전 검사. 공중 이동 일부의 IK 표본 간격 조절은 실기 간섭 검사 완료가 아님. |
+| `tool_calibration.py` | 장착된 드릴 끝 보정·기존 기준 확인. 양초 위치 측정과 별개. |
+| `engraving.py` | 검사된 계획의 접근·CUT·이탈/이동 실행, 취소·진행·결과. `cut_contact` 설정에 따라 법선 힘 유지 또는 묶음별 offset 조정 코드와 검사형 `return_home()`이 있으나, 그 동작의 실기 검증과 준비 후 자동 복귀 연결은 별도다. |
+| `robot_adapter.py` | 실제 장치 관측·이동·접촉·IK·정지, 도구 끝↔제어기 TCP 및 두산 단위 변환. `controller-prefix`로 서비스와 `<prefix>/control_authority` Topic을 정한다. |
 
-### 이시율: 모션·센서·보정
+`c2_process/setup.py`에는 `process_controller_node`(SIM), `real_preparation_node`(REAL 측정 전용), `real_process_node`(REAL 준비·조각), `virtual_cell_node` 엔트리가 있다. `run_monitor.py`는 공정 노드·두산 드라이버를 기동하지 않는다. `c2_process/launch/process.launch.py`, 실행용 `config/workcell.yaml`·`config/tools.yaml`은 이 커밋에 **없다**. 설정은 현재의 관리 JSON·배포 설정·공정 CLI 경로로 확인한다. [공정 README](../ws_cobot1/src/c2_process/README.md)와 [ROS 실행 안내](../ws_cobot1/doc/README.md)에 현재 진입점을 정리한다.
 
-| 파일 | 역할 | 상태 |
-| --- | --- | --- |
-| `robot_adapter.py` | 로봇 관측·이동·접촉·정지·IK·TCP/단위 변환 | main 존재. PR #73에 힘 유지·이동 중 힘 감시·이동 시작 재판정 후보 |
-| `tool_calibration.py` | 장착 드릴 끝 보정·저장 기준 확인. 고정 상태에서는 기존 기준 재사용 | main 존재. 매번 전체 보정은 1차 통합에서 제외, 양초 위치 측정과 구별 |
-| `engraving.py` | 확정 경로의 접근·조각·이탈·진행 보고 | main 존재. PR #73에 검사 서명 재사용·CUT 중 법선 힘 유지·`return_home` 후보 |
-| `workpiece_calibration.py` | 실제 양초 중심·윗면 등 측정 후 경로 생성 전에 전달. 첫 통합은 수직 원통 가정, 전체 높이 입력과 접촉 실측 구분 | PR #42로 main 존재. 홈 경유 보강은 PR #45, 공정 연결·전체 실기 미완료 |
-| `motion_guard.py`, `moving_contact.py` | 어댑터 내부 동작 판정·이동 중 접촉 판단 보조 | 로컬 초안. 채택/배치 검토, 별도 노드 아님 |
-| `config/workcell.yaml`, `config/tools.yaml` | 시율이 형상·도구·프로파일 값/근거 제공, 홍동이 기하 대조, 세은이 로딩·공정 연결 | main 실행 YAML 없음 |
+## 순서와 검증 경계
 
-이시율의 기존 세 파일은 모두 유지하고, 필수 추가 모듈은 양초 측정용 workpiece_calibration.py다. 기존 함수·설정·실행 연결 보강까지 완료되어야 통합할 수 있다. 이미 추가된 `joint_check.py`는 김세은 담당이며 이시율의 추가 업무가 아니다. `__init__.py`·시험·패키지 설정까지 포함해 “정확히 6개 모듈”로 제한하지 않는다. 없는 파일을 빈 코드로 만들어 완료처럼 표시하지 않는다.
+1. REAL의 HMI는 기동 시와 준비 직전 제어기를 읽기 전용 조회해 hardware snapshot을 저장하고, 자동 조회 불가 항목은 준비 화면에서 사람이 확인한다. 이 값은 드릴 ON 센서나 실물 고정 검증을 대신하지 않는다.
+2. `MEASURE`가 상태/필요 시 홈·재검사 뒤 양초를 측정한다. 서버는 원본을 저장하고 별도 불변 스냅샷에 실측 기하·가정·신뢰도를 묶는다. 유효한 REAL 실행 설정이 없으면 미리보기 전용 스냅샷으로 남긴다.
+3. 유효한 실행 설정이 있을 때 `BIND_SNAPSHOT`이 같은 측정과 설정의 일치를 확인한다. 이후 `GeneratePath`가 경로·미리보기를 생성하고 운영자가 확인한다.
+4. `ExecuteProcess`는 별도 요청이다. HMI와 공정이 모드·현재 준비·경로/설정 ID·버전·해시·상태를 검사한다. 공정은 깊이·접근·이탈이 반영된 실행계획의 명시 waypoint IK/관절 검사를 통과한 경우에만 조각한다.
+5. 취소·StopProcess의 접수와 실제 정지는 구별한다. 정지 미확인 `UNKNOWN`은 새 작업을 차단한다. 실기 전체 왕복·품질 검증을 완료로 표시하지 않는다.
 
-측정 계산·접촉·결과 생성과 모션 구현은 이시율, 요청 처리·측정/조각 호출·결과 전달·검사 정책은 김세은이 맡는다. 구체적인 전달 항목은 [역할 경계 표](../ws_cobot1/src/c2_process/README.md#세은시율의-전달-경계)를 따른다.
-
-## 통합할 호출 순서
-
-2026-09-21 HMI 후속: backend/app/preparation.py와 frontend/src/monitor/PreparationPanel.tsx에
-준비 요청·진행·취소·원본 저장·모의 설정 연결을 추가했다. mock_preparation.py는 제어 서버 응답 fixture이며
-공정 노드나 실제 측정 함수를 HMI에서 호출하지 않는다. [현재 구현/ROS 대기 경계](HMI_PREPARATION.md).
-
-1. HMI/서버 → 공정의 **측정 준비 요청**. 경로 생성 전 요청·결과 전달 계약은 신규 합의 대상이다.
-2. 김세은 → **내부 함수** → 기본 준비·현재 위치·정지·도구 설정·하드웨어 장착 관측 검사. 드릴 OFF는 운영자가 수동으로 수행한다.
-3. 김세은 → **내부 함수** → 비홈이면 시율 모듈의 검사된 홈 이동, 홈 도착·정지 후 상태 재검사, 통과 후 `workpiece_calibration.py`로 양초 좌표 측정. 이미 홈이면 이동 생략. 홈 모션 중복 호출 금지.
-4. 공정 → HMI/서버 → **GeneratePath Action** → 노홍동이 실측 스냅샷으로 3D 경로 생성. 측정 결과 전달/등록은 연결 필요, 기존 GeneratePath는 설정 ID·해시를 사용한다.
-5. c2_path → HMI → 실측 기반 미리보기·운영자 확인·수동 드릴 ON 체크. ON은 화면 확인에만 사용한다. 이미지→SVG→2D 계산은 먼저 해 둘 수 있다.
-6. HMI/서버 → **ExecuteProcess Action** → 김세은의 준비 유효성 재확인·`check_path_joints()` 최종 검사. 깊이·접근/이탈을 확정한 경로가 검사 대상이다.
-7. 공정은 ON 확인값을 기다리거나 전원·그리퍼 명령을 보내지 않는다. 최종 검사 실패 시 조각을 차단하고 HMI는 운영자에게 수동 OFF 절차를 안내한다.
-8. 김세은 → **내부 함수 `execute_path()`** → 이시율의 조각기에서 검사한 동일 경로 실행·정상 이탈.
-9. **Action 결과·상태/이벤트 Topic** → HMI 완료. 측정·조각 모두 정지·취소와 모션 단일 소유권을 유지한다.
-
-현재 ExecuteProcess는 생성된 경로를 전제로 한다. 경로가 없는 측정 요청을 가짜 경로 ID로 넣지 않는다. 준비 요청·스냅샷 결과를 주고받는 방식은 김세은·이수현이 노홍동·이시율과 합의하며 이번 문서에서 임의 API를 추가하지 않는다.
-
-깊이를 경로 생성 시 반영할지 별도 준비 계산에 반영할지는 한 곳으로 합의한다. 최종 미리보기·검사 전에 확정하고 조각 중 이중 적용하지 않는다. 이전 `prepared_path.py` 제안의 “생성된 경로 전체를 실측 중심으로 다시 옮기는 단계”는 제외한다. 홍동이 실측 좌표로 처음부터 생성하므로 공정에서 재이동하지 않는다. 로컬 깊이 계산 실험 파일을 삭제하는 변경은 아니다.
-
-`tool_calibration.py`는 유지하되, 철사 고정 상태에서 기존 장착 오프셋을 재사용하고 매번 전체 3점 보정·좌우 편심 재측정은 후속으로 미룬다. 중심·높이 측정과 모의 함수 연결부터 구현하고 정밀 기울기·테이퍼는 첫 통합 범위에서 제외한다. 현재 위치·측정 동작 검사·최종 관절 검사·정지 처리는 유지한다. **양초 좌표 측정은 제거하지 않고 3D 경로 생성 앞으로 옮긴다.** [인터페이스 안내](INTERFACE_GUIDE.md)에 계약 변경 범위를 기록한다.
-
-## 데이터·실행 원칙
-
-- 경로: 도구 끝 기준 `c2_base`, m·quaternion xyzw, 관절 rad. 툴 −Y가 안쪽 법선, 툴 +Z가 원통 축 아래. 어댑터에서만 제어기 TCP로 변환한다.
-- 측정 세션·실측 스냅샷·도구/설정·이미지/배치·생성 경로·검사 결과를 연결한다. 각각의 ID·버전·해시를 보존하고 최종 미리보기·검사·실행은 같은 경로를 참조한다.
-- APPROACH/RETRACT는 실제 경로 구간이다. 상태 기계와 조각기가 중복 실행하지 않는다. 정지·보호정지·통신 단절 뒤 무조건 후퇴/홈 명령을 내리지 않는다.
-- 자세·위치·힘·보정값은 단위·좌표계·측정 시각·유효성을 함께 전달한다. 힘 로그만으로 물리적 홈 깊이를 확정하지 않는다.
-- [9/19 운영 결정](C2_FIXED_DRILL_20260919.md)은 당시 이력을 보존한다. 재측정 또는 양초/도구 변경 시 경로를 새로 생성·확인하고, 과거 evidence는 덮어쓰지 않는다. 이번 문서화는 실행 코드 변경이나 로봇 시험이 아니다.
+경로는 `c2_base`의 **드릴 끝** pose, 위치 m·quaternion xyzw다. 2D 입력·표시는 mm/deg, 관절은 rad다. 두산 서비스의 단위 변환은 어댑터에만 둔다. 철사로 고정한 드릴을 위한 그리퍼 열기·집기·반납·청소 명령은 현재 공정에서 제외한다. 이력·미검증 범위는 [21일 일지](daily/2026-09-21.md), [22일 일지](daily/2026-09-22.md), [가상 장치 시험](VIRTUAL_CELL_20260922.md)에 날짜와 함께 남긴다.

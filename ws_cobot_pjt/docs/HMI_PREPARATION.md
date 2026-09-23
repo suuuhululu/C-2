@@ -1,8 +1,8 @@
-# HMI 준비·양초 측정 흐름
+# HMI 준비·양초 측정 흐름 · 초기 MOCK 구현 기록
 
-> **최신 기준:** [main 8a68790 반영·ROS SIM 연결](HMI_INTEGRATION_20260921.md). 아래는 이전 구현 기록이다.
+> **보관 기록:** 9/21 초기 MOCK 구현을 설명한다. 2026-09-23 `main`의 작업 흐름은 [현재 인터페이스](INTERFACE_GUIDE.md)와 [백엔드 실행 안내](../backend/README.md)를 따른다. 아래의 미구현·다음 작업 표현은 당시 상태다.
 
-> **최신 반영은 [HMI 선행 수정](HMI_PREWORK_20260921.md)을 우선한다.** 아래는 최초 MOCK 구현 이력이다. 현재 준비 수동 bool 3개와 confirmed_at은 제거됐고 드릴 ON UI·관측 패널·준비 raw 클라이언트를 추가했다. 준비 Action 타입/서버는 main에 병합됐지만 HMI HTTP의 ROS 활성화·BIND·동적 profile 통합은 아직 미완료다.
+> 아래는 최초 MOCK 구현 이력이다. 현재 준비 수동 bool 3개와 `confirmed_at`은 제거됐고, ROS 준비·BIND·경로·실행 연결도 후속 커밋에 구현됐다.
 
 2026-09-21. 기준 main `829db40`, 구현 브랜치 `codex/hmi-preparation-flow`.
 제어팀 [준비 Action 검토 초안 `6a020c9`](https://github.com/suuuhululu/C-2/blob/6a020c9/ws_cobot_pjt/docs/PREPARE_WORKPIECE_ACTION_DRAFT.md)과
@@ -22,7 +22,7 @@ ROS 모드의 준비 요청은 NOT_READY로 거절하며 경로 생성·미리�
 
 현재 아래의 **세 운영자 bool을 필수로 받는 MOCK 코드는 이 결정 이전 구현**이며 수정 대상이다.
 드릴 OFF는 측정 전 수동 운영 안내로 남기고 세 bool의 전송·서버 필수 검증을 정리한다. 이번 수정에서는 실행 코드를 변경하지 않았다.
-[수현 작업 목록](HMI_ACTION_ITEMS_20260921.md)과 [세은님 전달 문서](PROCESS_HANDOFF_20260921.md)를 다음 구현 기준으로 사용한다.
+당시 작업 목록과 인수인계는 이후 코드·현재 인터페이스 문서로 대체됐다.
 
 ## 현재 MOCK 사용 방법 · 결정 반영 전
 

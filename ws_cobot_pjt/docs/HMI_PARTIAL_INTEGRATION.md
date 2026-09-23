@@ -1,4 +1,4 @@
-> 9/22 HMI 작업 변경: [REAL 실행 연결 계약](HMI_REAL_EXECUTION_20260922.md). 아래의 REAL 측정 전용 설명은 이전 기준이며, 현재 작업 브랜치는 BIND·생성·실행 요청을 연결한다. 상대 PR과 실기 검증은 별도다.
+> **9/22 부분 통합 기록:** 아래의 REAL 측정 전용 설명과 `/tmp` 작업 경로는 당시 기준이다. 2026-09-23 `main`은 조건부 BIND·경로 후보·실행 요청까지 연결한다. 현재 실행·계약은 [백엔드](../backend/README.md), [인터페이스](INTERFACE_GUIDE.md)를 따른다. 가상·대역 시험을 실기 완료로 취급하지 않는다.
 
 # 이미지 한 장으로 진행하는 HMI 부분통합
 
@@ -37,7 +37,7 @@ python3 ws_cobot_pjt/run_monitor.py --transport ros --mode SIMULATION --process-
 
 HMI는 BOUND_ROS와 최신 상태·동일 스냅샷/경로·해시를 확인하고 ExecuteProcess를 전송한다. 상대가 NOT_READY/실패를 반환하면 실제 오류를 기록한다. UI에서 성공을 대신 생성하지 않는다. 실행 서버 미연결, OUT_OF_LIMITS, 실행 제한, MOCK 전용 경로, 재측정 후 이전 경로는 차단한다. 공정 검사 합격 여부는 공정 노드가 판단한다.
 
-**현재 연결 범위:** main `c29de08`에는 HMI 자산 조회와 REAL 실행 설정 로더를 포함한 `real_process_node`가 추가됐다. 다만 현재 HMI REAL 흐름은 측정 결과 보관까지만 허용하고 BIND·GeneratePath·ExecuteProcess는 아직 연결하지 않는다. c2_path의 REAL /3도 미리보기 전용이다. 실제 연결 명령은 [9/22 공정 연결 안내](HMI_PROCESS_CONNECTION_20260922.md)를 따른다. 위 SIM 명령은 REAL 실행 완료를 의미하지 않는다.
+**당시 연결 범위:** main `c29de08`에는 HMI 자산 조회와 REAL 실행 설정 로더를 포함한 `real_process_node`가 추가됐다. 당시 HMI REAL 흐름은 측정 결과 보관까지만 허용했고 BIND·GeneratePath·ExecuteProcess는 연결 전이었다. c2_path의 REAL /3도 미리보기 전용이었다. 당시 연결 명령은 [9/22 공정 연결 기록](HMI_PROCESS_CONNECTION_20260922.md)에 있다. 위 SIM 명령은 REAL 실행 완료를 의미하지 않는다.
 
 ## 변경 범위와 호환
 
