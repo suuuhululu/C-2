@@ -1,8 +1,9 @@
 # 프로젝트 ROS 실행·설정 기록
 
-2026-09-21 갱신: main `19ef4c6`의 c2_path/HMI 부분 통합과 공정 역할 문서 기준이다.
-실제 이미지→경로 생성·미리보기와 한 PC 실행은 [HMI 경로 통합 안내](../../docs/HMI_PATH_INTEGRATION.md)를 따른다.
-아래 과거 PR 상태는 당시 기록이며 현재 실행 가능 여부는 이 통합 범위를 기준으로 한다.
+2026-09-23 갱신: main `b9eb003`의 HMI·경로·공정 연결과 PR #80 entry planner 기준이다.
+현재 실행 흐름은 [인터페이스 안내](../../docs/INTERFACE_GUIDE.md), 파일·노드 책임은
+[시스템 구조](../../docs/SYSTEM_STRUCTURE.md)를 따른다. 날짜별 과거 PR 문서는 당시 기록이며
+현재 실행 가능 여부는 이 문서와 실제 코드·설정으로 다시 확인한다.
 
 현재 도구는 engraving_drill, 프레임은 c2_base다. 철사 고정 중 그리퍼 열기·집기·청소·반납을 금지한다. `tool_calibration.py`는 main에 있지만 양초 위치 측정과 별개이며, 새 측정값은 경로 생성 전 스냅샷으로 고정해야 한다. [구조·전환](../../docs/C2_FIXED_DRILL_20260919.md).
 
@@ -12,16 +13,21 @@
 
 | 대상 | 확인한 상태 |
 | --- | --- |
-| `c2_interfaces` | Action 2개·Service 1개·Message 2개와 빌드 설정 구현. Jazzy 타입 생성·직렬화 시험 통과. [빌드·사용법](../src/c2_interfaces/README.md) |
-| `c2_path` | PR #38의 노드·이미지 계산·관리 파일·빌드 설정 구현. 실제 ROS 경로 생성/HMI 조회 시험 통과. SIMULATION/test_only |
-| `c2_process` | `robot_adapter.py`, `tool_calibration.py`, `joint_check.py`, `engraving.py`와 시험 소스 존재. `workpiece_calibration.py`, 공정 노드·상태 기계·preconditions·빌드/launch/실행 YAML 미구현 |
-| 운영자 HMI·서버 | React·FastAPI·SQLite, MOCK 및 c2_path 부분 통합. 실행 방법은 [서버](../../backend/README.md)·[화면](../../frontend/README.md) 안내 참조 |
-| `monitor_gateway_node` | `backend/app/ros_bridge.py`의 native rclpy 클라이언트와 artifact_loader 연결. 파일 무결성·실제 경로 노드 통합 시험 완료. SIM 스냅샷/ZIP 교환은 별도 HMI 기능. 공정/실기 미검증 |
-| 조각·보정 | 조각·도구 보정·frame 변경과 관절 검사 소스가 main에 반영됨. cleaning은 feat/12-robot-adapter의 `4b6416d`에 예비 보관하며 현재 공정에서 제외 |
+| `c2_interfaces` | Action 3개·Service 1개·Message 2개와 빌드 설정 구현. 모든 ROS 노드는 같은 설치본을 사용해야 한다. [빌드·사용법](../src/c2_interfaces/README.md) |
+| `c2_path` | 이미지→중심선/해칭→원통 3D 경로·미리보기·관리 파일 구현. SIMULATION/test_only와 조건부 REAL 실행 후보를 구분하며 로봇을 움직이지 않는다. |
+| `c2_process` | 준비 MEASURE/BIND, 상태 기계·preconditions·측정·entry planner·전체 명시 waypoint 관절 검사·조각·정지와 SIM/REAL entry point 구현. `launch/process.launch.py`와 실행 YAML은 없음. |
+| 운영자 HMI·서버 | React·FastAPI·SQLite, 관리 자산, MOCK/ROS SIM/REAL 준비→경로→별도 실행 요청 연결. 실행 방법은 [서버](../../backend/README.md)·[화면](../../frontend/README.md) 안내 참조. |
+| `monitor_gateway_node` | `backend/app/ros_bridge.py`의 native rclpy 클라이언트. `PrepareWorkpiece`·`GeneratePath`·`ExecuteProcess`·정지·상태·이벤트 계약을 연결한다. |
+| prepared 실행 | `PRECHECK → ENTRY → ENGRAVE → FINISH`. entry는 실측 기하와 승인된 상대 정책으로 후보를 검사·고정한 뒤 실행한다. 전체 메시 충돌과 실제 M0609 전체 공정은 별도 검증 대상이다. |
 
 저장소 루트에서 `python3 ws_cobot_pjt/run_monitor.py`는 기본 SIMULATION/MOCK이다. Jazzy 환경을 준비하고
 `--transport ros`를 주면 저장소를 초기화한 뒤 경로 노드와 HMI를 함께 켠다. 실제 공정 전체를 실행하는 명령은 아니다.
 기존 Clay의 실행 명령을 새 패키지 이름으로 바꾸어 사용하지 않는다.
+
+REAL에서 `--preparation-config`는 측정용 현장 설정이다. `--execution-profile`은 속도·깊이·관절 한계와
+`execution_context.entry_planning` 같은 승인 정책이며, 생략하면 측정·test_only 미리보기까지만 가능하다.
+양초 중심·반지름·윗면·바닥은 실행 프로파일의 고정값으로 쓰지 않고 매 준비의 측정 스냅샷으로 대체한다.
+사전 검사는 원본 JSON을 수정하지 않는다.
 
 ## 새 모니터 게이트웨이 연동
 
