@@ -84,8 +84,8 @@ def check_process_scene(steps, workcell, initial_state):
                 raise MeasurementError('SCENE_REJECTED', f'접촉 탐색 거리의 m 단위 범위 오류: {label}')
 
     # 기존 현장 시험에서 검증된 실제 통로 모델을 공정에서도 동일하게 사용한다.
-    from .measurement_robot_adapter import check_measurement_scene
-    report = check_measurement_scene(steps, workcell, initial_state)
+    from .workpiece_real_trial import check_trial_scene
+    report = check_trial_scene(steps, workcell, initial_state)
     if (not isinstance(report, dict) or report.get('path_checked') is not True
             or report.get('probe_envelopes_checked') is not True
             or report.get('environment_record_id') != scene['environment_record_id']):
