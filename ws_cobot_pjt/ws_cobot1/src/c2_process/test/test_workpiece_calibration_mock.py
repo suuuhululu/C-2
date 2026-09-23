@@ -300,8 +300,6 @@ def test_real_absolute_offset_status_is_metadata_not_acceptance_gate(setup,statu
     from c2_process.workpiece_calibration import _validate
     c,ctx,ad=setup;w=c['workcell']
     w['source_mode']='REAL';ctx.source_mode='REAL'
-    # 신뢰도 문자열 검사는 유효한 REAL 탐색 범위에서 수행한다.
-    w.update(start_gap_m=.008,inside_limit_m=.0035,slow_retract_gap_m=.005)
     ctx.profile_snapshot_id='recorded-config';ctx.profile_sha256='a'*64
     w['top'].update(contact_offset_tool_m=[0.,0.,.020],offset_status=status,
                     offset_record_id='gripper-bottom-offset-20260921-20mm-v1',

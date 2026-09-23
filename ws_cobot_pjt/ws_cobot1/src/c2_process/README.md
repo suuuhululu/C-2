@@ -128,28 +128,3 @@
 5. SIMULATION 파일·함수 연결부터 검증하고 정상·실패·정지·통신 단절 시험 후 실기를 별도로 진행한다. 이번 변경은 문서이며 실행 코드 수정·기능 삭제·로봇 이동은 없다.
 
 랜선 없는 실제 HMI·경로·공정 ROS 통합은 [가상 장치 실행 안내](../../../docs/VIRTUAL_CELL_20260922.md)를 따른다. SIMULATION 전용이며 실물 드라이버는 실행하지 않는다.
-
-## 2026-09-23 로컬 네모 시험: 얕은 후퇴 보정
-
-힘 유지 CUT의 자세 완료 허용오차는 motion profile의 `hold_angle_tol_deg`로 분리한다(미지정 시 `angle_tol_deg` 유지). 일반 이동은 기존 기준이다. 단독 시험 설정은 각각 0.3° / 0.15°다.
-
-`hold_retreat_target_m`과 `hold_retreat_tolerance_m`을 지정하면 깊이 보정은 정지·힘/순응 해제·실제 위치 재확인 후에만 재개한다. 단독 시험은 depth 0.3 mm, 정상 상한 +2 mm, 후퇴 목표 +1.5 mm, 확인 여유 0.2 mm, 중간 보정 추가 여유 0 mm다. deep-start 후에는 depth를 다시 더하지 않는다. 힘 목표·강성·10 N/10 mm 절대 한계는 유지하며 기존 자동 힘 감소 규칙을 사용한다. 설정 변경 후 동일 원본 경로로 검사 계획·준비 기록을 다시 생성해야 한다. 모의 검사와 실기 완주는 구별한다.
-
-## 2026-09-23 캐릭터 entry 완료 판정
-
-사전 entry에서 위치 오차 약 0.388 mm가 79.3초 동안 남아 0.2 mm 조건과 stable 진입을 만족하지 못했다. `entry_motion.make_entry_motion_profile()`은 명시된 entry 설정만 복사본에 반영한다. 일반 `candle_travel`이나 CUT 프로파일을 수정하거나 기본값을 자동 완화하지 않는다. 호출자는 prepare와 실행에 같은 entry 설정을 사용하고 설정 해시를 결합해야 한다.
-
-```python
-from c2_process.entry_motion import make_entry_motion_profile
-
-entry_plan = {"motion_overrides": {"pos_tol_mm": 0.5}}
-entry_profile = make_entry_motion_profile(motion_profiles["candle_travel"], entry_plan)
-# entry_profile은 사전 entry 이동에만 전달한다.
-# 원본의 position 0.2 mm, angle 0.15°, 어댑터의 stable 0.2초는 유지된다.
-```
-
-로컬 캐릭터 실행 묶음의 entry 0/1/2에만 0.5 mm를 적용했다. 이 보조 함수는 공정 노드/HMI에 자동 연결하지 않는다. SVG/80 mm 경로·힘·깊이·MoveSX는 이 설정으로 바뀌지 않는다. 실기용 `run.py`·측정/경로 파일·bag은 현장에 보존하고 저장소에는 넣지 않는다.
-
-`motion_diag`는 기존 관측값만 사용해 대기 중 초당 최대 1회 위치/접선/법선/자세 오차, 힘, normal_dev, stable 시간 및 false 조건을 기록한다. 다음 실기에서는 entry 완료 이벤트와 bag의 `/dsr01/error` code 3205 발생 시각을 함께 확인한다. 정지 상태 IK/FK 통과는 이동 중 특이점 대응이 없다는 보장이 아니다. 기한 만료를 COMMUNICATION_LOST로 분류하는 문제는 이번 entry 변경과 분리해 후속 처리한다.
-
-PR 통합본은 #74의 controller prefix, 사전검사 후 초기화, CUT 설정 유효성 검사를 유지한다. 현장 단독 시험 소스와 통합 소스는 다르므로 단독 시험의 prepare 결과를 통합본의 실기 검증으로 재사용하지 않는다.
