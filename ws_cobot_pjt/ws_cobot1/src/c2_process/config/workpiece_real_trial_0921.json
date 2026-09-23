@@ -30,9 +30,9 @@
     ],
     "orbit_step_deg": 22.5,
     "outer_gap_m": 0.022,
-    "start_gap_m": 0.005,
-    "inside_limit_m": 0.0005,
-    "slow_retract_gap_m": 0.002,
+    "start_gap_m": 0.008,
+    "inside_limit_m": 0.0035,
+    "slow_retract_gap_m": 0.005,
     "max_center_shift_m": 0.002,
     "max_radius_error_m": 0.001,
     "max_fit_rms_m": 0.0003,
@@ -68,7 +68,11 @@
       ],
       "max_probe_m": 0.00777954101562503,
       "retract_m": 0.002,
-      "contact_offset_tool_m": [0.0, 0.0, 0.020],
+      "contact_offset_tool_m": [
+        0.0,
+        0.0,
+        0.02
+      ],
       "offset_status": "VERIFIED",
       "offset_record_id": "gripper-bottom-offset-20260921-20mm-v1",
       "expected_tcp_z_range_m": [
@@ -83,7 +87,8 @@
       "top_reference": "팀 확정 운영값 2026-09-22: GripperDA_v1 TCP에서 그리퍼 하단 접촉점까지 tool +Z 20 mm. 수직 자세에서 base Z -20 mm 적용. 기록 ID gripper-bottom-offset-20260921-20mm-v1.",
       "trial_scene": "현장 단독 시험 전용: 이전 측정 후 양초/받침/철사 고정 유지 전제. 팀 합의로 하단 오프셋 +20 mm를 확정 설정으로 사용하고 8점 높이를 20 mm 하향. 예상 접촉 TCP Z 232.925~236.705 mm에서 계산한 옆면 높이 192.925~196.705 mm와 수직 자세 1도/추종 여유를 포함해 TCP 검사 하한 190 mm를 사용. 전체 메시 충돌 검사는 아님.",
       "duration_profile": "Target remains 120 s and is NOT achieved. Supervised full runs: 270.394 s and 299.295 s (including different HOME entry routes). Increase overall timeout from 300 to 360 s for scheduling/settling margin only; motion speeds and per-step stop/force limits unchanged.",
-      "approach_acceleration": "2026-09-21: outward move after point 6 reached 10.185 N with 40 mm/s^2; operator reported no collision. Reduce to 20 mm/s^2 for supervised retest; keep 10 N stop limit."
+      "approach_acceleration": "2026-09-21: outward move after point 6 reached 10.185 N with 40 mm/s^2; operator reported no collision. Reduce to 20 mm/s^2 for supervised retest; keep 10 N stop limit.",
+      "initial_position_window": "초기 중심 이동 한계와 반지름 차이 합 3 mm를 시작/최대 탐색/느린 후퇴에 반영. 힘 기준 불변. 변경 후 실기 미검증."
     },
     "measurement_scope": "ABSOLUTE_GEOMETRY",
     "tcp_id": "GripperDA_v1",
@@ -94,7 +99,7 @@
       "tcp_min_m": [
         0.265,
         -0.17,
-        0.190
+        0.19
       ],
       "tcp_max_m": [
         0.59,
@@ -143,7 +148,9 @@
     "target_duration_s": 120.0,
     "outer_move_profile": "escape",
     "tool_offset_source": "고정 장착 재사용: 툴 X +0.85 mm / -Y 돌출 99.55 mm. 이번 양초 측정에서 도구 길이를 재측정하지 않음.",
-    "projection_reference_source": "PRIOR_CANDLE_MODEL_ESTIMATE: seed_axis_xy_m/seed_radius_m 재사용. 양초 위치·반지름 오차와 길이 오차를 독립 분리하지 못함."
+    "projection_reference_source": "PRIOR_CANDLE_MODEL_ESTIMATE: seed_axis_xy_m/seed_radius_m 재사용. 양초 위치·반지름 오차와 길이 오차를 독립 분리하지 못함.",
+    "side_contact_window_enabled": true,
+    "side_point_max_attempts": 3
   },
   "profiles": {
     "travel": {
@@ -246,7 +253,9 @@
     "skip_position_m": 2e-05,
     "stationary_mad_n": 0.1,
     "stop_stable_s": 0.2,
-    "overhead_line_error_mm": 1.0
+    "overhead_line_error_mm": 1.0,
+    "air_ik_step_mm": 4.0,
+    "air_ik_step_deg": 2.0
   },
   "escape_profile_source": "9/21 user-directed separation: near-surface approach/probe/retract keep 10 N; cleared escape uses existing air speed 60 mm/s, acceleration 60 mm/s^2, absolute 15 N software stop only; no soft/persistence force test. Native controller protection unchanged. Full motion profile verified in attempt 9: 8 points and final retreat succeeded in 299.295 s. Overall timeout subsequently extended to 360 s; this extension itself is not an additional REAL run."
 }
