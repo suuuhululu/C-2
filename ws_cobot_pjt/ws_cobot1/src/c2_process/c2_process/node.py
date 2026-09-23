@@ -23,6 +23,7 @@ from uuid import uuid4
 
 from .engraving import ExecutionContext, execute_path, validate_path, build_execution_plan, execution_signature
 from .entry_planner import execute_entry_plan, plan_entry_path
+from .return_home_planner import execute_return_home_plan, plan_return_home_path
 from .engraving_workspace import check_path_workspace, validate_workspace
 from .joint_check import check_path_joints
 from .preconditions import PreconditionEvidence, check_preconditions, check_robot_status, check_prepared_path
@@ -1088,6 +1089,8 @@ class ProcessCoordinator:
         engrave_fn=execute_path,
         entry_plan_fn=plan_entry_path,
         entry_execute_fn=execute_entry_plan,
+        return_home_plan_fn=plan_return_home_path,
+        return_home_execute_fn=execute_return_home_plan,
         journal: Optional[RunJournal] = None,
         runtime_mode: str = "SIMULATION",
         real_adapter: Optional[DoosanRobotAdapter] = None,
@@ -1129,6 +1132,8 @@ class ProcessCoordinator:
         self.engrave_fn = engrave_fn
         self.entry_plan_fn = entry_plan_fn
         self.entry_execute_fn = entry_execute_fn
+        self.return_home_plan_fn = return_home_plan_fn
+        self.return_home_execute_fn = return_home_execute_fn
         self.journal = journal
         self._lock = threading.Lock()
         # 접수 잠금과 분리: 측정 함수가 직접 획득하고, 조각은 execute가 획득한다.
@@ -1474,6 +1479,7 @@ class ProcessCoordinator:
         entry_enabled = prepared and (self.runtime_mode == "REAL"
                                       or (isinstance(entry_policy, Mapping)
                                           and entry_policy.get("enabled") is True))
+        checked_return_home = {}
 
         def precheck():
             try:
@@ -1553,6 +1559,32 @@ class ProcessCoordinator:
                     checked.observed_state["plan_signature"] = signature
                     if context.checked_entry_plan_sha256 is not None:
                         checked.observed_state["entry_plan_sha256"] = context.checked_entry_plan_sha256
+                    if entry_enabled:
+                        home = self.return_home_plan_fn(
+                            plan, dict(loaded.workcell), loaded.adapter, state,
+                            list(offset), context.joint_limits_deg, context.j6_margin_deg,
+                            context.motion_profiles, entry_plan=context.checked_entry_plan,
+                            plan_signature=signature, cancel=context.cancel,
+                            joint_check_fn=self.joint_check_fn)
+                        if not isinstance(home, StepResult):
+                            return StepResult("UNKNOWN", "INVALID_RESULT",
+                                              "HOME 복귀 계획 결과 형식 오류",
+                                              "return_home_planning")
+                        if not home.ok:
+                            return home
+                        if signature != execution_signature(dict(loaded.path), context):
+                            return StepResult("FAILED", "PROFILE_MISMATCH",
+                                              "HOME 복귀 검사 중 경로/설정 변경",
+                                              "return_home_planning")
+                        return_plan = home.observed_state.get("return_home_plan")
+                        return_sha = home.observed_state.get("return_home_plan_sha256")
+                        if not isinstance(return_plan, Mapping) or not isinstance(return_sha, str):
+                            return StepResult("UNKNOWN", "INVALID_RESULT",
+                                              "HOME 복귀 계획·해시 누락",
+                                              "return_home_planning")
+                        checked_return_home["plan"] = copy.deepcopy(dict(return_plan))
+                        checked_return_home["sha256"] = return_sha
+                        checked.observed_state["return_home_plan_sha256"] = return_sha
                 return checked
 
             checker = check_prepared_path if prepared else self.precheck_fn
@@ -1606,10 +1638,20 @@ class ProcessCoordinator:
                     return StepResult("FAILED", "PROFILE_MISMATCH",
                                       "entry 실행 전 경로/설정 변경", "entry")
                 return self.entry_execute_fn(context.checked_entry_plan, loaded.adapter, context)
+            def prepared_return_home():
+                plan = checked_return_home.get("plan")
+                if not isinstance(plan, Mapping):
+                    return StepResult("FAILED", "NOT_READY",
+                                      "검사된 HOME 복귀 계획 없음", "return_home")
+                if context.checked_plan_signature != execution_signature(dict(loaded.path), context):
+                    return StepResult("FAILED", "PROFILE_MISMATCH",
+                                      "HOME 복귀 실행 전 경로/설정 변경", "return_home")
+                return self.return_home_execute_fn(plan, loaded.adapter, context)
             result = run_prepared_process(context, precheck=reported_precheck,
                                           enter=prepared_entry if entry_enabled else None,
                                           engrave=prepared_engrave, on_phase=on_phase,
-                                          on_progress=on_progress)
+                                          on_progress=on_progress,
+                                          return_home=prepared_return_home if entry_enabled else None)
             result.observed_state["preparation_id"] = preparation_id
             return result
 
