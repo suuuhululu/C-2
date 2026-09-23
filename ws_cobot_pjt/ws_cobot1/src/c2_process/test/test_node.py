@@ -2591,6 +2591,7 @@ def test_prepared_execution_plans_checks_and_runs_entry_before_engraving():
     inputs = replace(inputs, workcell=workcell)
     calls, phases = [], []
     plan = {"entry_plan_sha256": "entry-sha", "targets": [[1.0] * 7]}
+    return_plan = {"return_home_plan_sha256": "return-sha", "targets": [[2.0] * 7]}
 
     def plan_entry(path, received_workcell, adapter, state, offset, limits, margin,
                    profiles, **_kwargs):
@@ -2604,6 +2605,17 @@ def test_prepared_execution_plans_checks_and_runs_entry_before_engraving():
         calls.append("joints")
         return StepResult("SUCCEEDED")
 
+    def plan_return(execution_plan, received_workcell, adapter, state, offset,
+                    limits, margin, profiles, **kwargs):
+        calls.append("return_plan")
+        assert execution_plan["inspection_scope"]
+        assert received_workcell["entry_planning"]["enabled"] is True
+        assert adapter is inputs.adapter and state.quality == "VALID"
+        assert kwargs["entry_plan"] == plan
+        return StepResult("SUCCEEDED", observed_state={
+            "return_home_plan": return_plan,
+            "return_home_plan_sha256": "return-sha"})
+
     def enter(received, adapter, context):
         calls.append("entry")
         assert received == plan and adapter is inputs.adapter
@@ -2614,17 +2626,25 @@ def test_prepared_execution_plans_checks_and_runs_entry_before_engraving():
         calls.append("engrave")
         return StepResult("SUCCEEDED")
 
+    def return_home(received, adapter, context):
+        calls.append("return_home")
+        assert received == return_plan and adapter is inputs.adapter
+        assert context.checked_plan_signature
+        return StepResult("SUCCEEDED", observed_state={
+            "return_home_plan_sha256": "return-sha"})
+
     coordinator = ProcessCoordinator(
         lambda _: inputs, preparation_required=True, joint_check_fn=joints,
-        entry_plan_fn=plan_entry, entry_execute_fn=enter, engrave_fn=engrave)
+        entry_plan_fn=plan_entry, entry_execute_fn=enter, engrave_fn=engrave,
+        return_home_plan_fn=plan_return, return_home_execute_fn=return_home)
     _prepare_and_bind(coordinator, inputs, ctx, settings, kwargs)
 
     result = coordinator.execute(goal, preparation_id=ctx.run_id,
                                  on_phase=phases.append)
 
     assert result.ok, result
-    assert calls == ["entry_plan", "joints", "entry", "engrave"]
-    assert phases == ["PRECHECK", "ENTRY", "ENGRAVE", "FINISH"]
+    assert calls == ["entry_plan", "joints", "return_plan", "entry", "engrave", "return_home"]
+    assert phases == ["PRECHECK", "ENTRY", "ENGRAVE", "RETURN_HOME", "FINISH"]
     assert result.observed_state["preparation_id"] == ctx.run_id
 
 
