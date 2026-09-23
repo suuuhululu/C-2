@@ -1,13 +1,21 @@
 import { useRef, useState } from "react";
 import type { PathResult, Profile, Run, SegmentObservation } from "./api";
-import { cutStrokes, cylinderPoint } from "./preview";
+import { cutStrokes, cylinderPoint, pathProgressStates } from "./preview";
 
 const styles = {
   PENDING: { color: "#292f2c", label: "가공 예정", dash: undefined },
   IN_PROGRESS: { color: "#c3922d", label: "진행 중", dash: undefined },
+  COMPLETED: { color: "#2e7293", label: "이동 완료", dash: undefined },
   PASSED: { color: "#168348", label: "가공 확인", dash: undefined },
   FAILED: { color: "#c34437", label: "가공 실패", dash: undefined },
   UNKNOWN: { color: "#929b96", label: "판정 미확인", dash: "1.5 1.2" },
+};
+
+const progressStyles = {
+  PENDING: { ...styles.PENDING, label: "미완료" },
+  IN_PROGRESS: styles.IN_PROGRESS,
+  COMPLETED: styles.COMPLETED,
+  UNKNOWN: { ...styles.UNKNOWN, label: "진행 미확인" },
 };
 
 export default function LivePathPreview({
@@ -33,6 +41,21 @@ export default function LivePathPreview({
     evidence.path_version === path.path_version &&
     evidence.path_sha256 === path.path_sha256;
   const observations = match ? evidence.observations : [];
+  const strokes = cutStrokes(path);
+  const pathMatchesRun =
+    !!path &&
+    path.path_id === run.path_id &&
+    path.path_version === run.path_version &&
+    path.path_sha256 === run.path_sha256;
+  const progressStates = pathMatchesRun
+    ? pathProgressStates(
+        strokes,
+        run.engraving_progress,
+        run.phase,
+        run.status,
+        fresh,
+      )
+    : {};
   const terminal = ["SUCCEEDED", "FAILED", "STOPPED"].includes(run.status);
   function verdict(o?: SegmentObservation) {
     if (!o) return "UNKNOWN";
@@ -45,6 +68,10 @@ export default function LivePathPreview({
     return o.verdict;
   }
   function paint(segment: string, point: number) {
+    if (!match) {
+      const state = progressStates[`${segment}:${point}`] || "UNKNOWN";
+      return progressStyles[state];
+    }
     return styles[
       verdict(
         observations.find(
@@ -78,36 +105,60 @@ export default function LivePathPreview({
   const failures = observations.filter(
     (o) => o.verdict === "FAILED" || o.verdict === "UNKNOWN",
   );
+  const legend = match
+    ? ["PENDING", "IN_PROGRESS", "PASSED", "FAILED", "UNKNOWN"]
+    : ["PENDING", "IN_PROGRESS", "COMPLETED", "UNKNOWN"];
+  const progressCounts = Object.values(progressStates).reduce(
+    (counts, state) => ({ ...counts, [state]: (counts[state] || 0) + 1 }),
+    {} as Record<string, number>,
+  );
   return (
     <section className="live-path" aria-label="실시간 경로 진행과 가공 판정">
       <div className="live-path-heading">
         <h3>실시간 경로 확인</h3>
-        <span>모의 판정 · 압력 센서 미연결</span>
+        <span>
+          {match
+            ? "모의 판정 · 압력 센서 미연결"
+            : "공정 진행 피드백 · 품질 판정 아님"}
+        </span>
       </div>
       <div className="path-legend">
-        {Object.entries(styles).map(([key, s]) => (
-          <span key={key}>
-            <i
-              style={{
-                borderColor: s.color,
-                borderStyle: key === "UNKNOWN" ? "dashed" : "solid",
-              }}
-            />
-            {s.label}
-            <b>{observations.filter((o) => verdict(o) === key).length}</b>
-          </span>
-        ))}
+        {legend.map((key) => {
+          const s = match
+            ? styles[key as keyof typeof styles]
+            : progressStyles[key as keyof typeof progressStyles];
+          return (
+            <span key={key}>
+              <i
+                style={{
+                  borderColor: s.color,
+                  borderStyle: key === "UNKNOWN" ? "dashed" : "solid",
+                }}
+              />
+              {s.label}
+              <b>
+                {match
+                  ? observations.filter((o) => verdict(o) === key).length
+                  : progressCounts[key] || 0}
+              </b>
+            </span>
+          );
+        })}
       </div>
-      {!match && (
+      {!pathMatchesRun && (
         <p className="field-help">
-          실행 경로와 판정 데이터의 연결을 확인하는 중입니다.
+          실행 경로와 진행 데이터의 연결을 확인하는 중입니다.
         </p>
       )}
       <div className="live-path-canvases">
         <svg
           viewBox="-120 -158 240 172"
           role="img"
-          aria-label="전개면 경로: 검정 예정, 초록 확인, 빨강 실패, 회색 미확인"
+          aria-label={
+            match
+              ? "전개면 경로: 검정 예정, 황색 진행, 초록 확인, 빨강 실패, 회색 미확인"
+              : "전개면 경로: 검정 미완료, 황색 진행, 파랑 이동 완료, 회색 진행 미확인"
+          }
         >
           <defs>
             <pattern
@@ -147,7 +198,7 @@ export default function LivePathPreview({
             height="10"
             fill="#e9e4d780"
           />
-          {cutStrokes(path).flatMap((s) =>
+          {strokes.flatMap((s) =>
             s.points_uv_mm.slice(1).map((p, i) => {
               const a = s.points_uv_mm[i],
                 style = paint(s.segment_id, i);
@@ -177,7 +228,9 @@ export default function LivePathPreview({
         <svg
           viewBox="0 0 190 230"
           role="img"
-          aria-label="원기둥의 동일 구간 판정"
+          aria-label={
+            match ? "원기둥의 동일 구간 판정" : "원기둥의 동일 경로 진행률"
+          }
           onPointerDown={(e) => {
             drag.current = e.clientX;
             e.currentTarget.setPointerCapture(e.pointerId);
@@ -217,7 +270,7 @@ export default function LivePathPreview({
             stroke="#bcc9b5"
             strokeWidth=".6"
           />
-          {cutStrokes(path).flatMap((s) =>
+          {strokes.flatMap((s) =>
             s.points_m.slice(1).map((p, i) => {
               const a = project(s.points_m[i]),
                 b = project(p),
@@ -263,8 +316,9 @@ export default function LivePathPreview({
         </div>
       )}
       <p className="path-quality-note">
-        색상은 구간별 판정 기록을 사용합니다. 이동 완료·전체 진행률만으로
-        초록색을 표시하지 않습니다.
+        {match
+          ? "색상은 구간별 모의 판정 기록을 사용합니다. 이동 완료만으로 초록색을 표시하지 않습니다."
+          : "파란색은 공정 노드가 보고한 완료 CUT 길이입니다. 가공 품질 합격은 최종 검사에서 별도로 확인합니다."}
       </p>
     </section>
   );

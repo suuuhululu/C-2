@@ -21,12 +21,9 @@ result = execute_path(path, context, on_progress, adapter)
 직접 주입하는 단위시험 또는 기존 `ProcessCoordinator(engrave_fn=...)` 구성에서도 동일하게 호출할 수 있다.
 
 ```python
-from c2_process.engraving import execute_fixed_depth_path
-result = execute_fixed_depth_path(path, context, on_progress, adapter)
+from c2_process.run_fixed_path_trial import execute_path
+result = execute_path(path, context, on_progress, adapter)
 ```
-
-9/23 정리로 본문은 `engraving.py`가 소유한다. 기존 `from c2_process.run_fixed_path_trial import execute_path`
-경로는 같은 함수를 가리키는 얇은 wrapper로 유지하므로 기존 호출부는 고치지 않아도 된다.
 
 직접 호출도 `fixed_depth` 설정을 요구한다. 함수가 `force_touch` 설정을 몰래 바꾸지 않는다. 깊이가 반영된 내부 검사 계획을 원본 표면 경로인 것처럼 다시 넣으면 거절한다.
 
@@ -41,7 +38,7 @@ result = execute_fixed_depth_path(path, context, on_progress, adapter)
 
 ## 로컬 단독 시험기와 차이
 
-기존 `/tmp/c2-direct-character-20260922/run_fixed_path_trial.py`는 별도의 현장 단독 실행기로 남겨둔다. 패키지 안의 `engraving.execute_fixed_depth_path`(구 `run_fixed_path_trial.execute_path`)는 그 단순 경로 실행 방식을 공정 함수 계약에 맞춘 버전이다. 개인 PC 경로·현장 고정값·별도 ROS 노드·통신 자동 복구는 이관하지 않는다. 배포에는 패키지 안의 파일을 사용한다.
+기존 `/tmp/c2-direct-character-20260922/run_fixed_path_trial.py`는 별도의 현장 단독 실행기로 남겨둔다. 이번에 추가한 **패키지 안의 동명 모듈**은 그 단순 경로 실행 방식을 공정 함수 계약에 맞춘 버전이다. 개인 PC 경로·현장 고정값·별도 ROS 노드·통신 자동 복구는 이관하지 않는다. 배포에는 패키지 안의 파일을 사용한다.
 
 ## 검증
 
