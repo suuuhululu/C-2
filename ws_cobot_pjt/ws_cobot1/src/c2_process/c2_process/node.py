@@ -1018,6 +1018,15 @@ def prepared_binding_observation_valid(values, authority_owner) -> bool:
                 and observation.valid and observation.has_control)
 
 
+def defer_prepared_binding_invalidation(status, phase, active_run) -> bool:
+    """장시간 PRECHECK 중의 일시적인 관측 만료만 BIND 삭제에서 제외한다.
+
+    실행 허가를 만드는 함수가 아니다. PRECHECK가 끝난 뒤에는 새로 읽은 로봇
+    상태·제어권·정지 상태와 동일 BIND를 다시 검사해야 한다.
+    """
+    return status == "RUNNING" and phase == "PRECHECK" and active_run is not None
+
+
 def read_real_execution_evidence(node, profile_snapshot_id):
     """ExecuteProcess 진입 직전의 읽기 전용 REAL 상태 근거를 만든다.
 
@@ -1471,6 +1480,16 @@ class ProcessCoordinator:
                     or not math.isfinite(loaded.tip_tolerance_m) or loaded.tip_tolerance_m <= 0):
                 return StepResult("FAILED", "NOT_READY", "승인된 드릴 끝 확인 허용차 없음", "precheck")
         context = loaded.context
+        approved_runtime_settings = dict(
+            workcell=copy.deepcopy(loaded.workcell),
+            calibration_profiles=copy.deepcopy(loaded.calibration_profiles),
+            joint_limits_deg=copy.deepcopy(loaded.joint_limits_deg),
+            j6_margin_deg=loaded.j6_margin_deg,
+            tool_offset_m=copy.deepcopy(offset),
+            motion_profiles=copy.deepcopy(context.motion_profiles),
+            tool_profile=copy.deepcopy(context.tool_profile),
+            stop_profile=copy.deepcopy(context.stop_profile),
+        )
         context.cancel = active.cancel
         with self._lock:
             active.adapter, active.context = loaded.adapter, context
@@ -1480,6 +1499,91 @@ class ProcessCoordinator:
                                       or (isinstance(entry_policy, Mapping)
                                           and entry_policy.get("enabled") is True))
         checked_return_home = {}
+
+        def revalidate_prepared_readiness():
+            """오래 걸린 IK 뒤 동일 입력과 최신 REAL 상태를 다시 확인한다.
+
+            읽기 전용 재조회이며 모션/TCP/모드 설정을 변경하지 않는다. 이 검사가
+            실패하면 ENTRY로 넘어가지 않는다.
+            """
+            if not prepared or self.runtime_mode != "REAL":
+                return StepResult("SUCCEEDED", "NONE", "추가 REAL 재검사 불필요",
+                                  "precheck_revalidation")
+            if context.cancel.is_set():
+                return StepResult("STOPPED", "NONE", "실행 직전 재검사 취소",
+                                  "precheck_revalidation")
+            try:
+                refreshed = self.load_inputs(goal)
+            except InputsUnavailable as exc:
+                return StepResult("FAILED", exc.error_code, str(exc),
+                                  "precheck_revalidation")
+            except Exception as exc:
+                return StepResult("UNKNOWN", "COMMUNICATION_LOST",
+                                  f"실행 직전 입력·상태 재조회 실패: {exc}",
+                                  "precheck_revalidation")
+            if not isinstance(refreshed, ExecutionInputs):
+                return StepResult("FAILED", "NOT_READY", "실행 직전 입력 로더 결과 오류",
+                                  "precheck_revalidation")
+            if refreshed.adapter not in (None, self.real_adapter):
+                return StepResult("FAILED", "NOT_READY", "실행 직전 실물 어댑터 불일치",
+                                  "precheck_revalidation")
+            refreshed_context = refreshed.context
+            refreshed_offset = refreshed.tool_offset_m
+            if refreshed_offset is None and isinstance(refreshed.calibration, TipCalibration):
+                refreshed_offset = refreshed.calibration.offset_tool_m
+            immutable_match = (
+                refreshed.path_bytes == loaded.path_bytes
+                and refreshed.snapshot_bytes == loaded.snapshot_bytes
+                and refreshed.calibration_snapshot_id == loaded.calibration_snapshot_id
+                and refreshed.workcell == approved_runtime_settings["workcell"]
+                and refreshed.calibration_profiles == approved_runtime_settings["calibration_profiles"]
+                and refreshed.joint_limits_deg == approved_runtime_settings["joint_limits_deg"]
+                and refreshed.j6_margin_deg == approved_runtime_settings["j6_margin_deg"]
+                and refreshed_offset == approved_runtime_settings["tool_offset_m"]
+                and getattr(refreshed_context, "run_id", None) == active.run_id
+                and getattr(refreshed_context, "source_mode", None) == goal["source_mode"]
+                and getattr(refreshed_context, "motion_profiles", None)
+                    == approved_runtime_settings["motion_profiles"]
+                and getattr(refreshed_context, "tool_profile", None)
+                    == approved_runtime_settings["tool_profile"]
+                and getattr(refreshed_context, "stop_profile", None)
+                    == approved_runtime_settings["stop_profile"]
+            )
+            if not immutable_match:
+                return StepResult("FAILED", "PROFILE_MISMATCH",
+                                  "관절 검사 중 경로·스냅샷·실행 설정 변경",
+                                  "precheck_revalidation")
+            if not isinstance(refreshed.evidence, PreconditionEvidence):
+                return StepResult("FAILED", "NOT_READY", "실행 직전 상태 근거 없음",
+                                  "precheck_revalidation")
+            expected_binding = (config.get("profile_snapshot_id"),
+                                config.get("profile_sha256"))
+            with self._lock:
+                current_record = self._preparations.get(preparation_id)
+                current_binding = self._preparation_bindings.get(preparation_id)
+            if (current_record is None or current_record[1] is not loaded.adapter
+                    or current_binding != expected_binding):
+                return StepResult("FAILED", "NOT_READY", "실행 직전 동일 준비 BIND 미확인",
+                                  "precheck_revalidation")
+            try:
+                current_state = loaded.adapter.observe()
+            except Exception as exc:
+                self.observations.capture(None, None, None)
+                return StepResult("UNKNOWN", "COMMUNICATION_LOST",
+                                  f"실행 직전 로봇 상태 조회 실패: {exc}",
+                                  "precheck_revalidation")
+            self.observations.capture(
+                current_state, getattr(loaded.adapter, "tool_offset_m", None),
+                refreshed.evidence.max_robot_state_age_s)
+            checked_status = check_robot_status(
+                replace(refreshed.evidence, robot_state=current_state))
+            if not checked_status.ok:
+                return checked_status
+            return StepResult("SUCCEEDED", "NONE",
+                              "동일 준비 BIND와 최신 로봇 상태 재확인",
+                              "precheck_revalidation",
+                              {"preparation_id": preparation_id,
+                               "profile_snapshot_id": expected_binding[0]})
 
         def precheck():
             try:
@@ -1591,7 +1695,10 @@ class ProcessCoordinator:
             checked = checker(goal, loaded.path, loaded.path_bytes, loaded.snapshot,
                                        loaded.snapshot_bytes, evidence, joint_check=joints)
             if not checked.ok:
-                return checked
+                # 실패한 관절 검사를 재시도할 때도 일시적 cache 만료만으로 이미
+                # 성공한 측정/BIND가 삭제되지 않도록 최신 관측을 다시 채운다.
+                revalidated = revalidate_prepared_readiness()
+                return revalidated if not revalidated.ok else checked
             if self.runtime_mode == "REAL":
                 # 현장 TP에서 선택한 TCP/하중을 읽기만 한다. 자동 재선택/모드 전환 없음.
                 selected = check_selected_tool_profiles(loaded.adapter, config)
@@ -1601,6 +1708,11 @@ class ProcessCoordinator:
             path_error = self.validate_engraving_fn(dict(loaded.path), context)
             if path_error:
                 return path_error
+            # 성공 경로에서는 모든 긴/정적 검사가 끝난 뒤, ENTRY에 가장 가까운
+            # 시점에 동일 BIND·제어권·정지·STANDBY를 다시 확인한다.
+            revalidated = revalidate_prepared_readiness()
+            if not revalidated.ok:
+                return revalidated
             return checked
 
         def tool_check():
@@ -1637,6 +1749,13 @@ class ProcessCoordinator:
                 if context.checked_plan_signature != execution_signature(dict(loaded.path), context):
                     return StepResult("FAILED", "PROFILE_MISMATCH",
                                       "entry 실행 전 경로/설정 변경", "entry")
+                expected = (config.get("profile_snapshot_id"), config.get("profile_sha256"))
+                with self._lock:
+                    record = self._preparations.get(preparation_id)
+                    current = self._preparation_bindings.get(preparation_id)
+                if (record is None or record[1] is not loaded.adapter or current != expected):
+                    return StepResult("FAILED", "NOT_READY",
+                                      "entry 실행 직전 동일 준비 BIND 미확인", "entry")
                 return self.entry_execute_fn(context.checked_entry_plan, loaded.adapter, context)
             def prepared_return_home():
                 plan = checked_return_home.get("plan")
@@ -1803,6 +1922,7 @@ def create_ros_node(load_inputs: Callable[[Mapping], ExecutionInputs] = _missing
                     raise ValueError("REAL 실행 로더 factory 결과는 호출 가능해야 함")
             self.observations = ObservationCache()
             self._preparation_action_active = False
+            self._precheck_binding_warning_active = False
             self.alarms = ProcessAlarms()
             self.profile_values = {}
             self.coordinator = ProcessCoordinator(
@@ -1993,13 +2113,23 @@ def create_ros_node(load_inputs: Callable[[Mapping], ExecutionInputs] = _missing
             values = self.observations.values()
             with self.coordinator._lock:
                 has_bound_preparation = bool(self.coordinator._preparation_bindings)
+                active_run = self.coordinator._active
             if (self.coordinator.runtime_mode == "REAL" and self.preparation
                     and has_bound_preparation):
                 authority_owner = getattr(self, "real_preparation_observations", None)
                 if not prepared_binding_observation_valid(values, authority_owner):
-                    self.preparation.invalidate()
-                    self.get_logger().warn(
-                        "준비 BIND 무효화: 제어권/로봇 연결·관측 상실 또는 보호정지")
+                    if defer_prepared_binding_invalidation(status, phase, active_run):
+                        if not self._precheck_binding_warning_active:
+                            self._precheck_binding_warning_active = True
+                            self.get_logger().warn(
+                                "PRECHECK 중 관측 만료: 준비 BIND 유지, ENTRY 전 재검사 예정")
+                    else:
+                        self._precheck_binding_warning_active = False
+                        self.preparation.invalidate()
+                        self.get_logger().warn(
+                            "준비 BIND 무효화: 제어권/로봇 연결·관측 상실 또는 보호정지")
+                else:
+                    self._precheck_binding_warning_active = False
             msg.joints = values["joints"]
             msg.joints_quality = values["joints_quality"]
             msg.joints_measured_at = _time_from_ns(values["joints_stamp_ns"])
