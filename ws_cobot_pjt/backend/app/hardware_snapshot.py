@@ -5,6 +5,7 @@
 자동 관측값이 아니므로 이 JSON에 넣지 않는다.
 """
 import math
+import numbers
 
 from .monitor_contract import now
 
@@ -16,7 +17,8 @@ FIXED_LOAD_ID = "ToolWeight_1"
 
 def _finite_vector(value, size):
     return (isinstance(value, (list, tuple)) and len(value) == size
-            and all(type(item) in (int, float) and math.isfinite(item) for item in value))
+            and all(isinstance(item, numbers.Real) and not isinstance(item, bool)
+                    and math.isfinite(item) for item in value))
 
 
 def build_hardware_snapshot(config, observed=None, *, error=None):
