@@ -43,6 +43,10 @@ class MeasurementError(Exception):
         self.code, self.outcome = code, outcome
 
 
+class PointMeasurementError(MeasurementError):
+    """동작 결과가 불명확한 오류와 구분하는 내부 재측정 후보. 정지/후퇴 검사는 별도."""
+
+
 def number(value, name, minimum=None):
     if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value):
         raise ValueError(f"{name}: 유한 숫자 필요")
@@ -133,6 +137,11 @@ def facing_pose(center, radius, z, angle_deg):
 
 
 def _validate(workcell, profiles, context):
+    attempts=workcell.get("side_point_max_attempts",1)
+    if type(attempts) is not int or not 1 <= attempts <= 3:
+        raise ValueError("side_point_max_attempts: 최초 포함 1~3회 필요")
+    if attempts>1 and side_contact_window(workcell) is None:
+        raise ValueError("점 재측정은 분리된 baseline/접촉 구간 필요")
     if context.source_mode not in ("SIMULATION", "REAL"):
         raise ValueError("source_mode 필요")
     if not context.measurement_id or not context.preparation_id:
@@ -157,6 +166,17 @@ def _validate(workcell, profiles, context):
         raise ValueError("접촉 최대 깊이가 반지름 이상")
     if not workcell["slow_retract_gap_m"] < workcell["start_gap_m"] < workcell["outer_gap_m"]:
         raise ValueError("후퇴/접촉 시작/외곽 간격 순서 오류")
+    enabled=workcell.get("side_contact_window_enabled",workcell.get("source_mode")=="REAL")
+    if type(enabled) is not bool:
+        raise ValueError("side_contact_window_enabled는 bool 필요")
+    if workcell.get("source_mode")=="REAL" and not enabled:
+        raise ValueError("REAL 측정은 초기 위치 오차 접촉 구간 검사 필요")
+    if enabled:
+        low,high=side_contact_window(workcell)
+        allowance=workcell["max_center_shift_m"]+workcell["max_radius_error_m"]
+        if (low<=0 or high>workcell["start_gap_m"]+workcell["inside_limit_m"]
+                or workcell["slow_retract_gap_m"]<=allowance+workcell["pose_tolerance_m"]):
+            raise ValueError("초기 위치 오차에 비해 시작/탐색/후퇴 범위 부족")
     if workcell["orbit_step_deg"] > 22.5:
         raise ValueError("현재 원호 분할은 22.5도 이하")
     if not isinstance(workcell["height_source"],str) or not workcell["height_source"]:
@@ -361,6 +381,19 @@ def build_top_plan(w, initial_tip_pose=None):
     return steps
 
 
+def side_contact_window(w):
+    """초기 중심/반지름 불확실성과 위치 허용오차로 탐색 거리 범위를 계산한다."""
+    enabled=w.get("side_contact_window_enabled",w.get("source_mode")=="REAL")
+    if type(enabled) is not bool or (w.get("source_mode")=="REAL" and not enabled):
+        raise ValueError("REAL 측정은 초기 위치 오차 접촉 구간 검사 필요")
+    if not enabled:
+        return None
+    allowance = w["max_center_shift_m"] + w["max_radius_error_m"]
+    tolerance = w["pose_tolerance_m"]
+    return [w["start_gap_m"]-allowance-tolerance,
+            w["start_gap_m"]+allowance+tolerance]
+
+
 def build_side_plan(w, top_z):
     center=w["seed_axis_xy_m"]; radius=w["seed_radius_m"]
     z=top_z-w["side_depth_m"]; outer=radius+w["outer_gap_m"]
@@ -379,6 +412,9 @@ def build_side_plan(w, top_z):
         steps.append(_move(start,"approach",f"point_{index}_approach"))
         a=math.radians(angle); direction=[-math.cos(a),-math.sin(a),0.]
         steps.append(_probe(start,direction,w["start_gap_m"]+w["inside_limit_m"],"side_touch",f"point_{index}_touch",index))
+        if side_contact_window(w) is not None:
+            steps[-1]["contact_travel_range_m"]=side_contact_window(w)
+            steps[-1]["expected_contact_travel_m"]=w["start_gap_m"]
         steps.append(_move(facing_pose(center,radius+w["slow_retract_gap_m"],z,angle),"retract",f"point_{index}_retract"))
         steps.append(_move(facing_pose(center,outer,z,angle),w.get("outer_move_profile","approach"),f"point_{index}_outer"))
         previous=angle
@@ -386,7 +422,7 @@ def build_side_plan(w, top_z):
 
 
 def measure_workpiece(adapter, workcell, profiles, context, on_progress=None):
-    """윗면·8점·원 맞춤 + 정상 홈 복귀 뒤 반환. 실패 후 자동 후퇴/홈 없음.
+    """윗면·8점·원 맞춤 + 정상 홈 복귀. 명시된 점 오류만 제한 재측정.
 
     adapter: measurement_contract_version=1 구현(모의 구현 제공).
     반환 observed_state: measurement, events, stop_confirmed, partial, plans.
@@ -400,7 +436,8 @@ def measure_workpiece(adapter, workcell, profiles, context, on_progress=None):
               measured_at=None,started_at=context.utc_now(),measurement_time_basis="completed_utc; contact_samples_monotonic")
     observed=dict(measurement=data,events=[],plans=[],stop_confirmed=None,partial=True,home_return_confirmed=False)
     acquired=False; attempted=False; started=context.monotonic()
-    w={}; p={}
+    w={}; p={}; point_attempts={}
+    observed["point_attempts"]=point_attempts
 
     def event(stage,status,message,point_index=0,values=None):
         item=dict(measurement_id=context.measurement_id,sequence=len(observed["events"])+1,
@@ -448,87 +485,135 @@ def measure_workpiece(adapter, workcell, profiles, context, on_progress=None):
         observed["plans"].append(dict(plan_sha256=plan_hash,checked_at=context.utc_now(),report=deepcopy(report.observed_state)))
         if not execute:
             return
-        for step in steps:
-            check()
-            if step["kind"]=="PROBE":
+        for position,step in enumerate(steps):
+            try:
+                execute_one(step)
+            except PointMeasurementError as exc:
+                if (step["kind"]!="PROBE" or not step["point_index"] or
+                        exc.outcome!="FAILED" or exc.code not in ("UNSTABLE_BASELINE","CONTACT_NOT_FOUND","CONTACT_OUT_OF_RANGE") or
+                        w.get("side_point_max_attempts",1)==1):
+                    raise
                 index=step["point_index"]
-                event("TOP_TOUCH" if not index else "SIDE_TOUCH","RUNNING",
-                      "윗면 접촉 확인 중" if not index else f"{index}/8번째 점 측정 중",index)
-            # 예외/통신 단절도 이미 전달된 명령의 실행 가능성이 있어 정지 확인이 필요.
-            attempted=True
-            result=adapter.execute_measurement_step(deepcopy(step),deepcopy(p[step["profile"]]),context,
-                                                     max(0,w["runtime_timeout_s"]-(context.monotonic()-started)))
-            if not isinstance(result,StepResult) or not result.ok:
-                raise MeasurementError(getattr(result,"error_code","INTERNAL_ERROR"),getattr(result,"message","백엔드 반환 오류"),getattr(result,"outcome","UNKNOWN"))
-            check()
-            if result.observed_state.get("stop_confirmed") is not True:
-                raise MeasurementError("STOP_UNCONFIRMED","동작 완료 후 실제 정지 미확인","UNKNOWN")
-            stopped_state=state()
-            if step["kind"]=="MOVE" and (math.dist(stopped_state["tip_pose"][:3],step["target_pose"][:3])>w["pose_tolerance_m"] or rotation_distance(stopped_state["tip_pose"],step["target_pose"])>w["angle_tolerance_rad"]):
-                raise MeasurementError("MOTION_INCOMPLETE","정지는 확인됐지만 목표 위치/자세에 도달하지 않음")
-            if step["kind"]=="PROBE":
-                hit=deepcopy(result.observed_state["contact"])
-                contact_pose=pose(hit["tip_pose"])
-                if hit.get("detected") is not True or hit.get("frame_id")!=w["frame_id"]:
-                    raise MeasurementError("CONTACT_UNCONFIRMED","접촉값/좌표계 미확인")
-                sample_t=number(hit["measured_at_monotonic_s"],"contact time")
-                if not 0 <= context.monotonic()-sample_t <= w["max_state_age_s"]:
-                    raise MeasurementError("STALE_DATA","접촉 측정값 시간 만료")
-                force=number(hit["normal_force_n"],"normal_force_n")
-                profile=p[step["profile"]]
-                if not profile["contact_force_n"] <= force < profile["max_force_delta_n"]:
-                    raise MeasurementError("CONTACT_UNCONFIRMED","접촉 힘 판정 범위 불일치")
-                # 후보 위치가 검사한 선분 안에 있는지 다시 확인.
-                d=[contact_pose[k]-step["start_pose"][k] for k in range(3)]
-                travel=sum(d[k]*step["direction"][k] for k in range(3))
-                lateral=math.sqrt(sum((d[k]-travel*step["direction"][k])**2 for k in range(3)))
-                if not 0 <= travel <= step["max_m"] or lateral>w["pose_tolerance_m"]:
-                    raise MeasurementError("CONTACT_OUT_OF_RANGE","접촉 위치가 검사한 탐색 범위 밖")
-                if (rotation_distance(contact_pose,step["start_pose"])>w["angle_tolerance_rad"] or
-                    math.dist(stopped_state["tip_pose"][:3],contact_pose[:3])>w["pose_tolerance_m"]):
-                    raise MeasurementError("CONTACT_OUT_OF_RANGE","접촉 자세/접촉 후 정지 이동량 초과")
-                # 검증에 사용한 기본 Python 수치형을 반환한다. ROS의 numpy.float64를
-                # 원본 hit에 남기면 공정 Action의 엄격한 type 검사에서 거절된다.
-                hit.update(tip_pose=contact_pose, normal_force_n=force,
-                           measured_at_monotonic_s=sample_t,
-                           point_index=step["point_index"],received_at=context.utc_now(),
-                           source="SIMULATED" if context.source_mode=="SIMULATION" else "FORCE_CONTACT_ESTIMATE")
-                if not step["point_index"]:
+                # 통신/설정/제어권/힘 오류는 이 예외 유형으로 변환하지 않는다.
+                confirmed_stop()
+                current=state()["tip_pose"]
+                delta=[current[k]-step["start_pose"][k] for k in range(3)]
+                travel=sum(delta[k]*step["direction"][k] for k in range(3))
+                lateral=math.sqrt(sum((delta[k]-travel*step["direction"][k])**2 for k in range(3)))
+                if (not -w["pose_tolerance_m"]<=travel<=step["max_m"]+w["pose_tolerance_m"] or
+                        lateral>w["pose_tolerance_m"] or
+                        rotation_distance(current,step["start_pose"])>w["angle_tolerance_rad"]):
+                    raise MeasurementError("RECOVERY_REQUIRED","같은 점의 검사된 방사선 후퇴 범위 밖")
+                event("SIDE_TOUCH","RUNNING","같은 점 재측정 전 정지 확인·후퇴",index,
+                      dict(attempt=point_attempts[index],reason=exc.code))
+                # 시작점보다 바깥의 정지 위치에서는 안쪽으로 후퇴하지 않는다.
+                target=current if travel<0 else step["start_pose"]
+                run([_move(target,"retract",f"point_{index}_retract")])
+                if point_attempts[index]>=w["side_point_max_attempts"]:
+                    raise MeasurementError("RECOVERY_REQUIRED",f"{index}번 점 {point_attempts[index]}회 측정 실패: {exc}")
+                # baseline은 probe 호출 안에서 새로 확보한다. 남은 구간 캐시도 재검사.
+                run([_move(step["start_pose"],"approach",f"point_{index}_approach"),*steps[position:]])
+                return
+
+    def confirmed_stop():
+        stopped=adapter.stop_measurement(deepcopy(p["stop"]))
+        if not isinstance(stopped,StepResult) or not stopped.ok or stopped.observed_state.get("stop_confirmed") is not True:
+            raise MeasurementError("STOP_UNCONFIRMED","점 재측정 전 실제 정지 미확인","UNKNOWN")
+        observed["stop_confirmed"]=True
+        state()
+
+    def execute_one(step):
+        nonlocal attempted
+        check()
+        if step["kind"]=="PROBE":
+            index=step["point_index"]
+            if index:
+                point_attempts[index]=point_attempts.get(index,0)+1
+            event("TOP_TOUCH" if not index else "SIDE_TOUCH","RUNNING",
+                  "윗면 접촉 확인 중" if not index else f"{index}/8번째 점 측정 중",index)
+        # 예외/통신 단절도 이미 전달된 명령의 실행 가능성이 있어 정지 확인이 필요.
+        attempted=True
+        result=adapter.execute_measurement_step(deepcopy(step),deepcopy(p[step["profile"]]),context,
+                                                 max(0,w["runtime_timeout_s"]-(context.monotonic()-started)))
+        if not isinstance(result,StepResult) or not result.ok:
+            raise MeasurementError(getattr(result,"error_code","INTERNAL_ERROR"),getattr(result,"message","백엔드 반환 오류"),getattr(result,"outcome","UNKNOWN"))
+        check()
+        if result.observed_state.get("stop_confirmed") is not True:
+            raise MeasurementError("STOP_UNCONFIRMED","동작 완료 후 실제 정지 미확인","UNKNOWN")
+        stopped_state=state()
+        if step["kind"]=="MOVE" and (math.dist(stopped_state["tip_pose"][:3],step["target_pose"][:3])>w["pose_tolerance_m"] or rotation_distance(stopped_state["tip_pose"],step["target_pose"])>w["angle_tolerance_rad"]):
+            raise MeasurementError("MOTION_INCOMPLETE","정지는 확인됐지만 목표 위치/자세에 도달하지 않음")
+        if step["kind"]=="PROBE":
+            hit=deepcopy(result.observed_state["contact"])
+            contact_pose=pose(hit["tip_pose"])
+            if hit.get("detected") is not True or hit.get("frame_id")!=w["frame_id"]:
+                raise MeasurementError("CONTACT_UNCONFIRMED","접촉값/좌표계 미확인")
+            sample_t=number(hit["measured_at_monotonic_s"],"contact time")
+            if not 0 <= context.monotonic()-sample_t <= w["max_state_age_s"]:
+                raise MeasurementError("STALE_DATA","접촉 측정값 시간 만료")
+            force=number(hit["normal_force_n"],"normal_force_n")
+            profile=p[step["profile"]]
+            if not profile["contact_force_n"] <= force < profile["max_force_delta_n"]:
+                raise MeasurementError("CONTACT_UNCONFIRMED","접촉 힘 판정 범위 불일치")
+            # 후보 위치가 검사한 선분 안에 있는지 다시 확인.
+            d=[contact_pose[k]-step["start_pose"][k] for k in range(3)]
+            travel=sum(d[k]*step["direction"][k] for k in range(3))
+            lateral=math.sqrt(sum((d[k]-travel*step["direction"][k])**2 for k in range(3)))
+            contact_range=step.get("contact_travel_range_m")
+            if contact_range is not None and not contact_range[0]<=travel<=contact_range[1]:
+                raise PointMeasurementError("CONTACT_OUT_OF_RANGE","허용 접촉 구간 밖의 접촉점")
+            if not 0 <= travel <= step["max_m"] or lateral>w["pose_tolerance_m"]:
+                raise MeasurementError("CONTACT_OUT_OF_RANGE","접촉 위치가 검사한 탐색 범위 밖")
+            if (rotation_distance(contact_pose,step["start_pose"])>w["angle_tolerance_rad"] or
+                math.dist(stopped_state["tip_pose"][:3],contact_pose[:3])>w["pose_tolerance_m"]):
+                raise MeasurementError("CONTACT_OUT_OF_RANGE","접촉 자세/접촉 후 정지 이동량 초과")
+            # 검증에 사용한 기본 Python 수치형을 반환한다. ROS의 numpy.float64를
+            # 원본 hit에 남기면 공정 Action의 엄격한 type 검사에서 거절된다.
+            hit.update(tip_pose=contact_pose, normal_force_n=force,
+                       measured_at_monotonic_s=sample_t,
+                       point_index=step["point_index"],received_at=context.utc_now(),
+                       source="SIMULATED" if context.source_mode=="SIMULATION" else "FORCE_CONTACT_ESTIMATE")
+            if not step["point_index"]:
+                tcp=apply_tool_offset(contact_pose,w["tool_offset_m"],-1)
+                expected_z=w["top"].get("expected_tcp_z_range_m")
+                if expected_z is not None and not expected_z[0]<=tcp[2]<=expected_z[1]:
+                    observed["rejected_top_contact"]=dict(contact=hit,tcp_z_m=tcp[2],expected_tcp_z_range_m=expected_z)
+                    raise MeasurementError("CONTACT_OUT_OF_RANGE","윗면 접촉 위치가 기존 고정 현장의 확인 범위 밖")
+                data["top"]=hit;data["top_tcp_contact_z_m"]=tcp[2]
+                top_offset=w["top"]["contact_offset_tool_m"]
+                # 상태 문자열은 수용 조건이 아니라 결과의 검증 수준을 설명한다.
+                estimated=(w.get("measurement_scope")=="INTEGRATION_ESTIMATE" or
+                           (context.source_mode=="REAL" and top_offset is not None and
+                            w["top"].get("offset_status")!="VERIFIED"))
+                if estimated:
+                    if top_offset is None:
+                        top_offset=w["top"]["estimated_contact_offset_tool_m"]
+                    data["top_z_source"]="CONTACT_BASED_ESTIMATE"
+                    data["top_estimate_source"]=w["top"]["estimate_source"]
+                    data["assumed_top_contact_offset_tool_m"]=list(top_offset)
+                if top_offset is not None:
+                    # tool +Z가 아래인 수직 자세에서는 +0.020 m가 base Z -20 mm.
+                    data["top_z_m"]=apply_tool_offset(tcp,top_offset)[2]
+                data["absolute_top_verified"]=top_offset is not None and not estimated
+                event("TOP_TOUCH","SUCCEEDED","윗면 접촉 측정 완료",values=dict(
+                    top_z_m=data["top_z_m"],top_tcp_contact_z_m=tcp[2],
+                    absolute_top_valid=data["absolute_top_verified"],top_z_source=data.get("top_z_source","CALIBRATED_CONTACT" if top_offset is not None else "TCP_REFERENCE")))
+            else:
+                old=next((h for h in data["points"] if h["point_index"]==step["point_index"]),None)
+                if old is not None:
+                    observed.setdefault("superseded_points",[]).append(deepcopy(old))
+                    data["points"].remove(old)
+                data["points"].append(hit)
+                data["points"].sort(key=lambda h:h["point_index"])
+                if step["point_index"]==1 and w.get("projection_reference_source"):
+                    # 현재 8점에서 다시 맞춘 원을 쓰지 않는다. 접촉 전 스냅샷 기준면을 재사용.
+                    angle=math.radians(w["angles_deg"][0]);normal=[math.cos(angle),math.sin(angle),0.]
+                    reference=[w["seed_axis_xy_m"][k]+w["seed_radius_m"]*normal[k] for k in range(2)]+[contact_pose[2]]
                     tcp=apply_tool_offset(contact_pose,w["tool_offset_m"],-1)
-                    expected_z=w["top"].get("expected_tcp_z_range_m")
-                    if expected_z is not None and not expected_z[0]<=tcp[2]<=expected_z[1]:
-                        observed["rejected_top_contact"]=dict(contact=hit,tcp_z_m=tcp[2],expected_tcp_z_range_m=expected_z)
-                        raise MeasurementError("CONTACT_OUT_OF_RANGE","윗면 접촉 위치가 기존 고정 현장의 확인 범위 밖")
-                    data["top"]=hit;data["top_tcp_contact_z_m"]=tcp[2]
-                    top_offset=w["top"]["contact_offset_tool_m"]
-                    # 상태 문자열은 수용 조건이 아니라 결과의 검증 수준을 설명한다.
-                    estimated=(w.get("measurement_scope")=="INTEGRATION_ESTIMATE" or
-                               (context.source_mode=="REAL" and top_offset is not None and
-                                w["top"].get("offset_status")!="VERIFIED"))
-                    if estimated:
-                        if top_offset is None:
-                            top_offset=w["top"]["estimated_contact_offset_tool_m"]
-                        data["top_z_source"]="CONTACT_BASED_ESTIMATE"
-                        data["top_estimate_source"]=w["top"]["estimate_source"]
-                        data["assumed_top_contact_offset_tool_m"]=list(top_offset)
-                    if top_offset is not None:
-                        # tool +Z가 아래인 수직 자세에서는 +0.020 m가 base Z -20 mm.
-                        data["top_z_m"]=apply_tool_offset(tcp,top_offset)[2]
-                    data["absolute_top_verified"]=top_offset is not None and not estimated
-                    event("TOP_TOUCH","SUCCEEDED","윗면 접촉 측정 완료",values=dict(
-                        top_z_m=data["top_z_m"],top_tcp_contact_z_m=tcp[2],
-                        absolute_top_valid=data["absolute_top_verified"],top_z_source=data.get("top_z_source","CALIBRATED_CONTACT" if top_offset is not None else "TCP_REFERENCE")))
-                else:
-                    data["points"].append(hit)
-                    if step["point_index"]==1 and w.get("projection_reference_source"):
-                        # 현재 8점에서 다시 맞춘 원을 쓰지 않는다. 접촉 전 스냅샷 기준면을 재사용.
-                        angle=math.radians(w["angles_deg"][0]);normal=[math.cos(angle),math.sin(angle),0.]
-                        reference=[w["seed_axis_xy_m"][k]+w["seed_radius_m"]*normal[k] for k in range(2)]+[contact_pose[2]]
-                        tcp=apply_tool_offset(contact_pose,w["tool_offset_m"],-1)
-                        data["tool_projection_check"]=projection_from_contact(tcp,reference,normal,w["tool_offset_m"],
-                            reference_source=w["projection_reference_source"],measured_at=hit["received_at"])
-                        data["tool_projection_check"]["point_index"]=1
-                    event("SIDE_TOUCH","SUCCEEDED",f"{step['point_index']}/8번째 점 측정 완료",step["point_index"],dict(tip_xyz_m=contact_pose[:3]))
+                    data["tool_projection_check"]=projection_from_contact(tcp,reference,normal,w["tool_offset_m"],
+                        reference_source=w["projection_reference_source"],measured_at=hit["received_at"])
+                    data["tool_projection_check"]["point_index"]=1
+                event("SIDE_TOUCH","SUCCEEDED",f"{step['point_index']}/8번째 점 측정 완료",step["point_index"],dict(tip_xyz_m=contact_pose[:3]))
 
     try:
         w=deepcopy(workcell); p=deepcopy(profiles)
@@ -568,13 +653,47 @@ def measure_workpiece(adapter, workcell, profiles, context, on_progress=None):
         points=[h["tip_pose"][:3] for h in data["points"]]
         if len(points)!=8:
             raise MeasurementError("INVALID_MEASUREMENT","8점 미완료")
-        fit=fit_circle(points)
-        if (fit["residual_rms_m"]>w["max_fit_rms_m"] or fit["residual_max_m"]>w["max_fit_residual_m"] or
-            math.dist(fit["axis_xy_m"],w["seed_axis_xy_m"])>w["max_center_shift_m"] or
-            abs(fit["radius_m"]-w["seed_radius_m"])>w["max_radius_error_m"] or
-            max(x[2] for x in points)-min(x[2] for x in points)>w["max_point_z_spread_m"]):
-            observed["rejected_fit"]=fit
-            raise MeasurementError("INVALID_MEASUREMENT","형상/잔차/이동 범위 조건 미충족")
+        def acceptable(fit, samples):
+            return (fit["residual_rms_m"]<=w["max_fit_rms_m"] and fit["residual_max_m"]<=w["max_fit_residual_m"] and
+                    math.dist(fit["axis_xy_m"],w["seed_axis_xy_m"])<=w["max_center_shift_m"] and
+                    abs(fit["radius_m"]-w["seed_radius_m"])<=w["max_radius_error_m"] and
+                    max(x[2] for x in samples)-min(x[2] for x in samples)<=w["max_point_z_spread_m"])
+
+        fit=fit_circle(points); retried_outlier=None; current_angle=w["angles_deg"][-1]
+        while not acceptable(fit,points):
+            observed["rejected_fit"]=deepcopy(fit)
+            if w.get("side_point_max_attempts",1)==1:
+                raise MeasurementError("INVALID_MEASUREMENT","형상/잔차/이동 범위 조건 미충족")
+            # 7점으로 결과를 승인하지 않는다. 유일하게 설명되는 한 점만 재취득한다.
+            candidates=[]
+            for k in range(8):
+                others=points[:k]+points[k+1:]
+                try: candidate=fit_circle(others)
+                except ValueError: continue
+                residual=abs(math.dist(points[k][:2],candidate["axis_xy_m"])-candidate["radius_m"])
+                if acceptable(candidate,others) and residual>w["max_fit_residual_m"]:
+                    candidates.append(k+1)
+            if len(candidates)!=1 or (retried_outlier is not None and candidates[0]!=retried_outlier):
+                raise MeasurementError("INVALID_MEASUREMENT","단일 이상점 식별 불가: 형상/고정 상태 재확인 필요")
+            index=candidates[0]; retried_outlier=index
+            if point_attempts[index]>=w["side_point_max_attempts"]:
+                raise MeasurementError("RECOVERY_REQUIRED",f"{index}번 점 재측정 한도 후에도 원 맞춤 불일치")
+            confirmed_stop()
+            event("FIT","RUNNING","단일 이상점만 재측정",index,dict(attempt=point_attempts[index]+1))
+            # 마지막 측정의 외곽 위치에서 검증된 원주 경유. 내부 직선 횡단 금지.
+            angle=w["angles_deg"][index-1];z=reference_z-w["side_depth_m"]
+            outer=w["seed_radius_m"]+w["outer_gap_m"]
+            expected=facing_pose(w["seed_axis_xy_m"],outer,z,current_angle)
+            actual=state()["tip_pose"]
+            if math.dist(actual[:3],expected[:3])>w["pose_tolerance_m"] or rotation_distance(actual,expected)>w["angle_tolerance_rad"]:
+                raise MeasurementError("RECOVERY_REQUIRED","이상점 재측정 전 외곽 도착 미확인")
+            count=max(1,math.ceil(abs(angle-current_angle)/w["orbit_step_deg"]))
+            route=[_move(facing_pose(w["seed_axis_xy_m"],outer,z,current_angle+(angle-current_angle)*k/count),"travel","orbit") for k in range(1,count+1)]
+            prefix=f"point_{index}_"
+            route.extend(step for step in build_side_plan(w,reference_z) if step["label"].startswith(prefix))
+            run(route);current_angle=angle
+            points=[h["tip_pose"][:3] for h in data["points"]]
+            fit=fit_circle(points)
         return_start=state()
         observed["home_return_start"]=deepcopy(return_start)
         event("HOME_RETURN","RUNNING","측정 완료: 검사한 경로로 상공 홈에 복귀합니다")
