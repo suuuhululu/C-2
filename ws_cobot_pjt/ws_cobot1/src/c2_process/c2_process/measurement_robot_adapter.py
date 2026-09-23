@@ -273,6 +273,11 @@ class GuardedMeasurementAdapter:
             if (isinstance(value,bool) or not isinstance(value,(int,float)) or not math.isfinite(value)
                     or not self.g[base]<=value<=2*self.g[base]):
                 raise ValueError('공중 IK 간격은 기존 간격 이상, 두 배 이하: '+key)
+        ceiling=self.g.get('noncontact_hard_force_n')
+        if ceiling is not None:
+            if (isinstance(ceiling,bool) or not isinstance(ceiling,(int,float))
+                    or not math.isfinite(ceiling) or ceiling<=0):
+                raise ValueError('비접촉 구간 절대 상한 오류: noncontact_hard_force_n')
         hard_line=self.g.get('hard_line_error_mm')
         if hard_line is not None:
             if (isinstance(hard_line,bool) or not isinstance(hard_line,(int,float))
@@ -293,6 +298,7 @@ class GuardedMeasurementAdapter:
         self.clock=clock; self.sleep=sleep; self.expected={}; self.space=None
         self.current_context=None; self.workcell=None; self.native_targets={}
         self.stop_profile=None; self.trace=lambda event, data:None; self.trace_error=None
+        self.force_warnings=[]; self._last_gap=None
 
     def _emit_trace(self,event,data):
         try:self.trace(event,data)
@@ -361,8 +367,11 @@ class GuardedMeasurementAdapter:
 
     def _preflight_measurement(self,steps,workcell,profiles,context,metrics,timed):
         timed('readiness',self._ready,context)
+        ceiling=self.g.get('noncontact_hard_force_n')
         for profile_name in dict.fromkeys(('travel','approach','retract','top_touch','side_touch',workcell.get('outer_move_profile','approach'))):
             profile=profiles[profile_name]
+            if ceiling is not None and ceiling<profile['hard_force_n']:
+                raise ValueError('비접촉 구간 상한은 각 이동 프로파일의 힘 한계 이상이어야 함')
             if 'soft_force_n' in profile:
                 if not 0<profile['soft_force_n']<profile['hard_force_n'] or profile.get('soft_force_hold_s',0)<=0:
                     raise ValueError('이동 힘 soft/hard 설정 오류')
@@ -450,14 +459,65 @@ class GuardedMeasurementAdapter:
             validation_level='SAMPLED_CONTROLLER_IK_FK_AND_EXTERNAL_SCENE_CHECK',sample_count=count,
             scene_record=scene,full_continuous_collision_checked=False))
 
-    def _check(self,o,profile,context,deadline):
+    NONCONTACT_SUFFIXES=('_retract','_outer')
+
+    def _candle_gap(self,o):
+        """드릴 끝과 양초 옆면 사이의 여유(m). 설정이 없으면 None."""
+        w=self.workcell
+        if not w:return None
+        return math.dist(o['tip_pose'][:2],w['seed_axis_xy_m'])-w['seed_radius_m']
+
+    def _noncontact_force_verdict(self,step,o,norm,previous_gap):
+        """비접촉 안전 구간의 자세 의존 외력만 경고로 낮춘다 (9/23 정책).
+
+        아래를 전부 만족할 때만 근거 dict 를 돌려주고, 하나라도 어긋나면 None 을
+        돌려 종전처럼 즉시 중단한다. 접촉이 예상되는 PROBE 구간과 양초 쪽으로
+        가는 이동은 대상이 아니다. 힘 감시를 끄는 것이 아니라 상한을 하나 더 둔다.
+        """
+        ceiling=self.g.get('noncontact_hard_force_n')
+        if ceiling is None or norm>=ceiling:return None               # 절대 상한 초과
+        if step is None or step['kind']!='MOVE':return None            # PROBE 는 그대로 fatal
+        label=step.get('label','')
+        if not (label=='orbit' or label.endswith(self.NONCONTACT_SUFFIXES)):return None
+        w=self.workcell
+        if not w:return None
+        gap=self._candle_gap(o)
+        # seed 원통은 측정 전 추정치라 실측과 수 mm 어긋난다(9/23 실기 중심 오차 2.6 mm).
+        # 따라서 넓은 여유대를 요구하지 않고 "공칭 원통 바깥"만 본다. 실제 안전은
+        # 아래의 진행 방향·서보 추종과 사전 scene 검사가 맡는다.
+        if gap is None or gap<0:return None
+        if previous_gap is not None and gap<previous_gap-w['pose_tolerance_m']:
+            return None                                               # 양초 쪽으로 접근 중
+        desired=o.get('desired_posx')
+        if desired is None:return None                                 # 명령 경로 확인 불가
+        vector(desired,6,'desired_posx')
+        tracking=math.dist(o['posx'][:3],desired[:3])
+        if tracking>self.g['line_error_mm']:return None                # 서보가 막힘 = 충돌 의심
+        return dict(label=label,force_n=list(o['force_n']),norm_n=norm,
+                    profile_limit_n=None,ceiling_n=ceiling,
+                    candle_gap_m=gap,previous_gap_m=previous_gap,
+                    tracking_error_mm=tracking,
+                    reach_m=math.hypot(o['posx'][0],o['posx'][1])/1000.,
+                    joints_deg=list(o['joints_deg']),
+                    measured_at_monotonic_s=o['measured_at_monotonic_s'])
+
+    def _check(self,o,profile,context,deadline,step=None):
         self._ready(context)
         if self.clock()>=deadline:raise MeasurementError('TIMEOUT','측정 동작 제한 시간 초과')
         if o['robot_state'] not in (1,2) or o['motion_status'] not in (0,1,2):
             raise MeasurementError('NOT_READY','이동 중 제어기 상태 변경')
         self._joint_guard(o['joints_deg'])
-        if math.sqrt(sum(v*v for v in o['force_n']))>=profile['hard_force_n']:
-            raise MeasurementError('FORCE_LIMIT','원신호 힘 한계 초과')
+        previous_gap=self._last_gap
+        self._last_gap=self._candle_gap(o)
+        norm=math.sqrt(sum(v*v for v in o['force_n']))
+        if norm>=profile['hard_force_n']:
+            verdict=self._noncontact_force_verdict(step,o,norm,previous_gap)
+            if verdict is None:
+                raise MeasurementError('FORCE_LIMIT','원신호 힘 한계 초과')
+            # 자세 의존 외력: 기록하고 계속한다. 임계값은 바꾸지 않는다.
+            verdict['profile_limit_n']=profile['hard_force_n']
+            self.force_warnings.append(verdict)
+            self._emit_trace('force_warning',deepcopy(verdict))
 
     def stop_measurement(self,profile):
         """정지 접수 뒤 새 관측의 위치·자세·관절 안정까지 확인한다.
@@ -556,13 +616,14 @@ class GuardedMeasurementAdapter:
 
     def execute_measurement_step(self,step,profile,context,timeout_s):
         deadline=self.clock()+min(profile['timeout_s'],timeout_s)
-        o=self._read();self._check(o,profile,context,deadline)
+        o=self._read();self._check(o,profile,context,deadline,step)
         if o['robot_state']!=1 or o['motion_status']!=0:
             raise MeasurementError('NOT_READY','이동 시작 전 정지 미확인')
         target=step['target_pose']
         if tuple(target) not in self.expected:
             raise MeasurementError('NOT_READY','사전 검사하지 않은 목표')
         probe=step['kind']=='PROBE';start=o['tip_pose'];last_t=None
+        self._last_gap=None
         before_search=probe and step.get('baseline_before_search') is True
         contact_range=step.get('contact_travel_range_m')
         if probe and step['profile']=='side_touch' and side_contact_window(self.workcell) is not None:
@@ -576,7 +637,7 @@ class GuardedMeasurementAdapter:
                 raise MeasurementError('NOT_READY','접촉 시작 위치 불일치')
             samples=collections.deque();stable_start=self.clock();settle_anchor=start[:]
             while True:
-                o=self._read();self._check(o,profile,context,deadline);now=self.clock()
+                o=self._read();self._check(o,profile,context,deadline,step);now=self.clock()
                 if o['motion_status']!=0:
                     raise MeasurementError('UNSTABLE_BASELINE','기준 힘 측정 중 실제 이동 상태')
                 if (math.dist(o['tip_pose'][:3],step['start_pose'][:3])>self.workcell['pose_tolerance_m'] or
@@ -624,7 +685,7 @@ class GuardedMeasurementAdapter:
         began=self.clock();moved=False;stable=None;moving_samples=collections.deque();moving_bias=None
         soft_since=None;progress_at=-math.inf;search_entered=False
         while True:
-            o=self._read();self._check(o,profile,context,deadline);now=self.clock()
+            o=self._read();self._check(o,profile,context,deadline,step);now=self.clock()
             if last_t is not None and o['measured_at_monotonic_s']<=last_t:
                 raise MeasurementError('STALE_DATA','중복/역행 관측 시각')
             last_t=o['measured_at_monotonic_s']
@@ -725,6 +786,7 @@ class GuardedMeasurementAdapter:
                     if stable is None:stable=now
                     if now-stable>=self.g['completion_stable_s']:
                         self._emit_trace('stop_confirmed',o)
-                        return StepResult('SUCCEEDED',observed_state={'stop_confirmed':True})
+                        return StepResult('SUCCEEDED',observed_state=dict(stop_confirmed=True,
+                            force_warnings=len(self.force_warnings)))
                 else:stable=None
             self.sleep(self.g['poll_s'])

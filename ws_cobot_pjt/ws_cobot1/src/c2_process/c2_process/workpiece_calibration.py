@@ -498,7 +498,8 @@ def measure_workpiece(adapter, workcell, profiles, context, on_progress=None):
               profile_snapshot_id=context.profile_snapshot_id,profile_sha256=context.profile_sha256,
               points=[],top=None,axis_xy_m=None,radius_m=None,top_z_m=None,bottom_z_m=None,
               measured_at=None,started_at=context.utc_now(),measurement_time_basis="completed_utc; contact_samples_monotonic")
-    observed=dict(measurement=data,events=[],plans=[],stop_confirmed=None,partial=True,home_return_confirmed=False)
+    observed=dict(measurement=data,events=[],plans=[],stop_confirmed=None,partial=True,home_return_confirmed=False,
+                  force_warnings=[])
     acquired=False; attempted=False; started=context.monotonic()
     w={}; p={}; point_attempts={}; move_attempts={}
     observed["point_attempts"]=point_attempts
@@ -630,6 +631,10 @@ def measure_workpiece(adapter, workcell, profiles, context, on_progress=None):
         if not isinstance(result,StepResult) or not result.ok:
             raise MeasurementError(getattr(result,"error_code","INTERNAL_ERROR"),getattr(result,"message","백엔드 반환 오류"),getattr(result,"outcome","UNKNOWN"))
         check()
+        # 비접촉 안전 구간의 자세 의존 외력 경고를 결과에 남긴다 (중단 사유 아님).
+        warnings=getattr(adapter,"force_warnings",None)
+        if isinstance(warnings,list) and len(warnings)>len(observed["force_warnings"]):
+            observed["force_warnings"]=deepcopy(warnings)
         if result.observed_state.get("stop_confirmed") is not True:
             raise MeasurementError("STOP_UNCONFIRMED","동작 완료 후 실제 정지 미확인","UNKNOWN")
         stopped_state=state()

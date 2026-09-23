@@ -238,6 +238,7 @@
     ],
     "line_error_mm": 0.5,
     "hard_line_error_mm": 3.0,
+    "noncontact_hard_force_n": 15.0,
     "max_joint_step_deg": 8.0,
     "max_samples_per_segment": 1000,
     "max_state_age_s": 0.5,
