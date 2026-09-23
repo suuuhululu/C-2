@@ -28,6 +28,29 @@ SUPPORTED_SCHEMA = (2,)                 # 9/19 고정 드릴 계약 v2 (INTERFAC
 SEGMENT_KINDS = ("APPROACH", "CUT", "TRAVEL", "RETRACT")
 CONTACT_MODES = ("force_touch", "fixed_depth")
 CUT_CONTACT_MODES = ("normal_force_hold", "chunk_adaptive")   # 9/22: CUT 중 법선 보정 방식 (아래 execute_path 주석)
+CUT_MOTION_MODES = ("movesx", "movel")     # 9/23: CUT 이동 명령. movesx(기본) = 스플라인 묶음, movel = 직선 구간별 MoveL (순응 검증용 네모 시험)
+
+
+def collapse_collinear(points, tol_m):
+    """연속 waypoint 중 한 직선(현) 위에 tol_m 안으로 놓이는 점들을 하나의 MoveL 목표로 합친다. 위치·자세·순서는 원본 그대로,
+    끝점만 남긴다. 곡면 위 호는 tol_m 에 맞는 여러 현으로 나뉜다 (R 34 mm·0.1 mm 이면 현 약 3.7 mm)."""
+    out = []; i = 0; n = len(points)
+    while i < n - 1:
+        k = i + 1
+        while k + 1 < n:
+            a, b = points[i], points[k + 1]
+            ab = [b[j] - a[j] for j in range(3)]; L2 = sum(v * v for v in ab)
+            ok = True
+            for m in range(i + 1, k + 1):
+                pm = points[m]; ap = [pm[j] - a[j] for j in range(3)]
+                t = 0.0 if L2 < 1e-18 else max(0.0, min(1.0, sum(ap[j] * ab[j] for j in range(3)) / L2))
+                if math.dist(pm[:3], [a[j] + ab[j] * t for j in range(3)]) > tol_m:
+                    ok = False; break
+            if not ok:
+                break
+            k += 1
+        out.append(list(points[k])); i = k
+    return out
 MAX_SPLINE_POINTS = 80                 # 제어기 movesx 한도 100 (9/17 실측) 에 여유
 
 
@@ -169,6 +192,21 @@ def validate_path(path: Dict, context: ExecutionContext) -> Optional[StepResult]
     cut_contact_error = _cut_contact_profile_error(tp, mode)
     if cut_contact_error:
         return StepResult("FAILED", "UNSUPPORTED_RECIPE", cut_contact_error, "validate")
+    cut_contact = tp.get("cut_contact")
+    cut_motion = tp.get("cut_motion")
+    if cut_motion is not None and cut_motion not in CUT_MOTION_MODES:
+        return StepResult("FAILED", "UNSUPPORTED_RECIPE", f"cut_motion {cut_motion!r} 미지원 ({CUT_MOTION_MODES})", "validate")
+    if cut_motion == "movel" and _m(tp, "movel_chord_tol") is None:
+        return StepResult("FAILED", "UNSUPPORTED_RECIPE", "cut_motion movel 인데 movel_chord_tol_m 없음", "validate")
+    if tp.get("hold_retreat_target_m") is not None:
+        lo, hi = tp["touch_offset_range_m"]
+        target = _m(tp, "hold_retreat_target")
+        tolerance = _m(tp, "hold_retreat_tolerance")
+        margin = _m(tp, "hold_correction_margin", 0.002)
+        if (cut_contact != "normal_force_hold" or tolerance is None
+                or not all(math.isfinite(v) for v in (target, tolerance, margin))
+                or tolerance <= 0 or margin < 0 or not lo <= target < target + tolerance < hi):
+            return StepResult("FAILED", "INVALID_INPUT", "후퇴 목표·확인 허용오차·정상 상한 설정 오류", "validate")
     segs = path.get("segments") or []
     if not segs:
         return StepResult("FAILED", "INVALID_INPUT", "segments 비어 있음", "validate")
@@ -296,8 +334,7 @@ def execute_path(path: Dict, context: ExecutionContext, on_progress: Optional[Ca
     # 공정 호출 형식은 유지하고 기존 가공 설정으로 실행기를 선택한다.
     # 설정 선택은 snapshot/계획 검사 전에 끝나야 하며 실행 실패 중 자동 교체하지 않는다.
     if (context.tool_profile or {}).get("contact_mode") == "fixed_depth":
-        from .run_fixed_path_trial import execute_path as execute_fixed_path
-        return execute_fixed_path(path, context, on_progress, adapter)
+        return execute_fixed_depth_path(path, context, on_progress, adapter)
     if adapter is None:
         return StepResult("FAILED", "NOT_READY", "robot_adapter 없음", "execute_path")
     plan = build_execution_plan(path, context)
@@ -341,9 +378,70 @@ def execute_path(path: Dict, context: ExecutionContext, on_progress: Optional[Ca
     touches: List[Dict] = []
     stroke_offset: Dict[str, float] = {}             # stroke_id → 법선 방향 보정량 (m, + 는 표면 안쪽)
     stroke_bias: Dict[str, List[float]] = {}         # stroke_id → 획 시작 전 무접촉 힘 편향 (base, N)
-    hold = dict(active=False, released=True)         # 법선 힘 유지 상태 (9/22)
+    hold = dict(active=False, released=True, force_n=None)   # 법선 힘 유지 상태 (9/22) + 현재 힘 목표 (9/23 보정)
     cut_contact = tp.get("cut_contact")              # None(구형: 획당 offset 고정) / normal_force_hold / chunk_adaptive
     t_start = time.monotonic()
+    verified_retreat = tp.get("hold_retreat_target_m") is not None
+
+    def normal_dev_now(wps_, normals_):
+        state = adapter.observe()
+        cur = state.tcp_pose
+        if (state.quality != "VALID" or (verified_retreat and state.robot_state != 1) or not cur or len(cur) != 7
+                or not all(math.isfinite(v) for v in cur)):
+            raise ValueError("후퇴 위치 관측 무효")
+        i = min(range(len(wps_)), key=lambda k: math.dist(cur[:3], wps_[k][:3]))
+        n = normals_[i]
+        return sum((cur[k] - wps_[i][k]) * n[k] for k in range(3)), cur, i, n
+
+    def retreat_to_band(seg, wps_, normals_, target_off, tol=0.0005, tries=3):
+        """9/23: 실제 법선 위치를 target_off(후퇴 목표) 근처까지 위치 제어로 빼고, 다시 읽어 확인한다. 힘 유지는 꺼져 있어야 한다.
+        반환 (ok, dev, moves)."""
+        try:
+            moves = []
+            if verified_retreat:
+                tol = _m(tp, "hold_retreat_tolerance")
+            for _ in range(tries):
+                if context.cancel.is_set():
+                    return False, float("nan"), moves
+                dev, cur, i, n = normal_dev_now(wps_, normals_)
+                if verified_retreat and not (-abs(_m(tp, "normal_hard_limit", touch_extra_m)) <= dev <= abs(_m(tp, "normal_hard_limit", touch_extra_m))):
+                    return False, dev, moves
+                if dev <= target_off + tol:
+                    return True, dev, moves
+                retreat_profile = context.motion_profiles[seg["motion_profile_id"]]
+                if verified_retreat:
+                    hard = abs(_m(tp, "normal_hard_limit", touch_extra_m))
+                    retreat_profile = dict(retreat_profile, contact_monitor=dict(
+                        kind="CUT", bias=list(stroke_bias.get(seg.get("stroke_id", seg.get("segment_id"))) or [0.0] * 3),
+                        force_limit_n=float(tp["force_limit_n"]), surface=wps_, normals=normals_,
+                        offset_range=[-hard, hard], samples=[]))
+                rr = adapter.move(_shift(cur, n, -(dev - target_off)), frame, retreat_profile, deadline_of(seg), context.cancel)
+                moves.append(dict(before_mm=round(dev * 1000, 2), outcome=rr.outcome))
+                if not rr.ok:
+                    return False, dev, moves
+            dev, _, _, _ = normal_dev_now(wps_, normals_)
+            hard = abs(_m(tp, "normal_hard_limit", touch_extra_m))
+            return (dev <= target_off + tol and (not verified_retreat or -hard <= dev <= hard)), dev, moves
+        except Exception as exc:
+            moves.append(dict(error=str(exc)))
+            return False, float("nan"), moves
+
+    def confirm_retreat_ready(seg):
+        """정지 요청 → 힘/순응 해제 → 실제 정지 확인. 하나라도 불명확하면 후퇴/재개하지 않는다."""
+        hold["released"] = False
+        try:
+            adapter.stop(context.stop_profile, 2.0)
+            released = adapter.hold_normal_force_end(2.0)
+            if not released.ok or released.observed_state.get("force_released") is not True:
+                return False
+            hold["active"] = False
+            stopped = adapter.stop(context.stop_profile, 2.0)
+            if not stopped.ok or stopped.observed_state.get("stop_confirmed") is not True:
+                return False
+            hold["released"] = True
+            return True
+        except Exception:
+            return False
 
     def release_hold(seg):
         """힘 유지 해제. 실패하면 이후 어떤 이동도 보내지 않도록 hold['released']=False 로 남긴다."""
@@ -446,10 +544,38 @@ def execute_path(path: Dict, context: ExecutionContext, on_progress: Optional[Ca
                 # 보정량 = 실제 접촉점이 경로 표면점보다 법선 안쪽으로 얼마나 더 갔나 (m). 같은 획 안에서는 같은 값을 쓴다.
                 off = sum((contact[k] - wps[0][k]) * normal_in[k] for k in range(3))
                 lo, hi = tp["touch_offset_range_m"]
-                if not math.isfinite(off) or not lo <= off <= hi:
-                    return StepResult("FAILED", "VALIDATION_FAILED", "실제 접촉 보정 범위 초과", "execution_plan",
-                                      dict(segment_id=sid, stroke_id=stroke, applied_offset_m=off))
-                final_offset = off if dual else (off + depth_m if cut_contact is not None else off)   # 9/22 호환: depth 가산은 cut_contact 프로파일만
+                # 9/23 우선순위 변경(시율): 시작 접촉 offset 은 즉시 실패 조건이 아니라 초기값이다.
+                #   정상 제어 범위 touch_offset_range_m(권장 대역) / 시작 허용 범위 touch_start_range_m(넓게, 없으면 정상 범위) /
+                #   절대 안전 한계 normal_hard_limit_m(없으면 touch_extra_m). 시작 허용 범위 밖일 때만 후퇴·실패한다.
+                start_lo, start_hi = (tp.get("touch_start_range_m") or [lo, hi])
+                if not math.isfinite(off) or not float(start_lo) <= off <= float(start_hi):
+                    # 범위 밖 접촉에서 드릴을 표면에 둔 채 반환하면 자동 복귀도 막힌다 → 법선 바깥 clearance 로 먼저 후퇴
+                    touches.append(dict(segment_id=sid, stroke_id=stroke, force_n=r.observed_state.get("force_n"),
+                                        offset_mm=round(off * 1000.0, 2), pose=contact, rejected=True))
+                    adapter.move(_shift(contact, normal_in, -clearance_m), frame, prof, deadline_of(seg), context.cancel)
+                    return finish("FAILED", "VALIDATION_FAILED",
+                                  f"CUT {sid} 실제 접촉 보정 {off * 1000:+.2f} mm 가 시작 허용 [{float(start_lo) * 1000:+.1f}, {float(start_hi) * 1000:+.1f}] mm 밖", f"segment:{sid}")
+                in_control_band = lo <= off <= hi
+                raw_off = off
+                start_retreat = None
+                if cut_contact is not None and off > hi:
+                    # 9/23: 깊은 시작 접촉(이전 홈)은 초기값으로만 쓰고, 실제 TCP 를 위치 제어로 정상 범위 상한까지 빼낸 뒤 다시 읽어 확인한다.
+                    # 확인이 안 되면 CUT 를 시작하지 않는다.
+                    normals_all = [tool_axis_in_base(w, axis_name) for w in wps]
+                    target_off = _m(tp, "hold_retreat_target", hi)
+                    if verified_retreat and not confirm_retreat_ready(seg):
+                        return finish("UNKNOWN", "STOP_UNCONFIRMED", "시작 후퇴 전 정지·힘 해제 미확인", f"segment:{sid}")
+                    ok_r, dev_r, moves_r = retreat_to_band(seg, wps, normals_all, target_off)
+                    start_retreat = dict(ok=ok_r, dev_after_mm=round(dev_r * 1000, 2), moves=moves_r)
+                    if not ok_r:
+                        if not verified_retreat:
+                            adapter.move(_shift(contact, normal_in, -clearance_m), frame, prof, deadline_of(seg), context.cancel)
+                        return finish("UNKNOWN" if verified_retreat else "FAILED", "VALIDATION_FAILED",
+                                      f"CUT {sid} 시작 후퇴 보정 실패: 접촉 {raw_off * 1000:+.2f} mm → 후퇴 뒤 {dev_r * 1000:+.2f} mm (목표 {hi * 1000:+.1f})", f"segment:{sid}")
+                    off = target_off
+                final_offset = off if (dual or start_retreat is not None) else (off + depth_m if cut_contact is not None else off)   # 9/22 호환: depth 가산은 cut_contact 프로파일만
+                if verified_retreat:
+                    final_offset = min(final_offset, hi)
                 # 이번 진입부터 후퇴 전까지 이어지는 획만 보정·검사한다.
                 # 매 waypoint / spline 묶음에서는 접촉 조회나 보정 갱신을 하지 않는다.
                 entry_segments = []
@@ -476,7 +602,9 @@ def execute_path(path: Dict, context: ExecutionContext, on_progress: Optional[Ca
                     ik_rechecked = False
                 stroke_offset[stroke] = final_offset
                 touches.append(dict(segment_id=sid, stroke_id=stroke, force_n=r.observed_state.get("force_n"),
-                                    offset_mm=round(off * 1000.0, 2), pose=contact, ik_rechecked=ik_rechecked,
+                                    offset_mm=round(raw_off * 1000.0, 2), pose=contact, ik_rechecked=ik_rechecked,   # offset_mm = 실제 접촉 (클램프 전)
+                                    in_control_band=in_control_band,          # False 면 정상 범위 밖 접촉 → 명령 offset 은 상한으로 잘림 (start_clamped)
+                                    start_clamped=(not in_control_band and cut_contact is not None), start_retreat=start_retreat,
                                     force_ok=r.observed_state.get("force_ok"),
                                     position_ok=r.observed_state.get("position_ok"),
                                     entry_confirmed=r.observed_state.get("entry_confirmed"),
@@ -498,30 +626,55 @@ def execute_path(path: Dict, context: ExecutionContext, on_progress: Optional[Ca
         cut_prof = prof
         if cut_contact is not None:
             lo_r, hi_r = (float(v) for v in tp["touch_offset_range_m"])
+            hard = abs(_m(tp, "normal_hard_limit", touch_extra_m))      # 절대 안전 한계 (법선, 경로 표면 기준 절대값). 시작 깊이와 무관 (9/23 확정)
+            hard_in = hard
+            corr_dev = hi_r + _m(tp, "hold_correction_margin", 0.002)  # 이 이상 깊어지면 묶음 중단 → 바깥 보정 → 이어감
             cut_prof = dict(prof, contact_monitor=dict(
                 kind="CUT", bias=list(stroke_bias.get(stroke) or [0.0, 0.0, 0.0]),
                 force_limit_n=float(tp["force_limit_n"]),
                 surface=[list(w) for w in wps], normals=[tool_axis_in_base(w, axis_name) for w in wps],
-                offset_range=[lo_r, hi_r], ignore_normal=(cut_contact == "normal_force_hold"), samples=[], max_read_failures=2))
-        # 진입: 첫 CUT 구간은 힘 유지 전 위치 제어. 같은 획의 이어지는 구간은 힘 유지가 켜진 채라 감시 프로파일로 보낸다.
-        r = adapter.move(pts[0], frame, cut_prof if hold["active"] else prof, deadline_of(seg), context.cancel)
-        if not r.ok:
-            release_hold(seg)
-            return finish(r.outcome, r.error_code, f"CUT {sid} 진입: {r.message}", f"segment:{sid}")
+                offset_range=[-hard, hard_in], control_range=[lo_r, hi_r], correction_dev_m=corr_dev,
+                ignore_normal=(cut_contact == "normal_force_hold"), samples=[], max_read_failures=2))
+        # 진입: 첫 CUT 구간은 힘 유지 전 위치 제어 MoveL. 같은 획의 이어지는 구간은 힘 유지가 켜진 채인데, 그 상태에서 MoveL 은
+        # 제어기가 실행하지 않는다(9/23 실기: seg-0003 진입 NOT_ACCEPTED, 첫 점 = 직전 끝점이라 법선 방향 3 mm 짜리 MoveL 이 됨).
+        # → 이어지는 구간은 진입 MoveL 없이 첫 점을 스플라인에 포함해 MoveSX 로 이어 간다 (첫 점이 직전 끝점과 같으면 생략).
+        if hold["active"]:
+            last_cmd = hold.get("last_point")
+            rest_override = pts[1:] if (last_cmd is not None and math.dist(wps[0][:3], last_cmd[:3]) < 1e-6) else list(pts)   # 원본 점끼리 비교
+        else:
+            rest_override = None
+            r = adapter.move(pts[0], frame, prof, deadline_of(seg), context.cancel)
+            if not r.ok:
+                release_hold(seg)
+                return finish(r.outcome, r.error_code, f"CUT {sid} 진입: {r.message}", f"segment:{sid}")
         if cut_contact is not None:
             if cut_contact == "normal_force_hold" and not hold["active"]:
                 blocked = guard()
                 if blocked:
                     return blocked
+                hold["start_clamped"] = bool(touches and touches[-1].get("start_clamped"))
                 r = adapter.hold_normal_force_begin(axis_name, tp, deadline_of(seg), context.cancel)
                 if not r.ok:
                     return finish(r.outcome if r.outcome != "SUCCEEDED" else "FAILED", r.error_code,
                                   f"CUT {sid} 힘 유지 시작 실패: {r.message}", f"segment:{sid}")
                 hold["active"], hold["released"] = True, False
+                hold["force_n"] = float(tp["cut_force_n"])
+                if hold.get("start_clamped") and tp.get("cut_force_min_n") is not None and hold["force_n"] > float(tp["cut_force_min_n"]):
+                    # 9/23: 깊은 접촉(이전 홈)에서 시작하면 힘 목표를 하한부터 시작해 다시 파고드는 것을 줄인다
+                    rs = adapter.hold_normal_force_set(float(tp["cut_force_min_n"]), deadline_of(seg))
+                    if rs.ok:
+                        hold["force_n"] = float(tp["cut_force_min_n"])
         chunk_n = MAX_SPLINE_POINTS
         if cut_contact == "chunk_adaptive":
             chunk_n = max(2, min(MAX_SPLINE_POINTS, int(tp["adaptive_chunk_points"])))
-        rest = pts[1:]
+        elif cut_contact == "normal_force_hold" and tp.get("hold_chunk_points") is not None:
+            chunk_n = max(2, min(MAX_SPLINE_POINTS, int(tp["hold_chunk_points"])))   # 9/23: 묶음마다 힘 목표 보정 기회를 주기 위한 묶음 크기
+        rest = pts[1:] if rest_override is None else rest_override
+        hold["last_point"] = list(wps[-1])                              # 이 구간의 마지막 원본 점 (이어지는 구간의 첫 점과 비교)
+        if tp.get("cut_motion") == "movel":
+            # 9/23 네모 시험: 스플라인 대신 직선 현(chord)마다 MoveL. 순응/힘 유지 동작을 MoveSX 문제와 분리해 검증한다.
+            rest = collapse_collinear([pts[0]] + rest, _m(tp, "movel_chord_tol"))
+            chunk_n = 1
         i = 0
         while i < len(rest):
             chunk = rest[i:i + chunk_n]
@@ -537,8 +690,69 @@ def execute_path(path: Dict, context: ExecutionContext, on_progress: Optional[Ca
                 cut_prof["contact_monitor"]["samples"] = []
             if len(chunk) >= 2:
                 r = adapter.move_spline(chunk, frame, cut_prof, deadline_of(seg), context.cancel)
+            elif verified_retreat and hold["active"]:
+                # 보정 뒤 남은 점이 하나여도 힘 유지 중 MoveL로 전환하지 않는다.
+                # 현재 실제 자세를 시작점으로 붙이고 원본의 마지막 목표까지 MoveSX로 잇는다.
+                try:
+                    current = adapter.observe()
+                    if current.quality != "VALID" or current.robot_state != 1 or not current.tcp_pose:
+                        raise ValueError("마지막 점 재개 전 현재 자세 미확인")
+                    r = adapter.move_spline([current.tcp_pose, chunk[-1]], frame, cut_prof, deadline_of(seg), context.cancel)
+                except Exception as exc:
+                    release_hold(seg)
+                    return finish("UNKNOWN", "COMMUNICATION_LOST", str(exc), f"segment:{sid}")
             else:
                 r = adapter.move(chunk[-1], frame, cut_prof, deadline_of(seg), context.cancel)
+            dev_samples = [x["normal_dev_m"] for x in cut_prof.get("contact_monitor", {}).get("samples", [])
+                           if x.get("normal_dev_m") is not None]
+            end_correction = (verified_retreat and r.ok and dev_samples
+                              and sum(dev_samples) / len(dev_samples) > hi_r)
+            if (r.error_code == "NORMAL_CORRECTION" or end_correction) and cut_contact == "normal_force_hold":
+                # 9/23: 묶음 도중 깊어짐 → 어댑터가 정지·힘 해제. 실제 위치를 정상 범위로 빼고(확인), 힘 목표 낮춰 다시 켜고, 남은 점부터 이어간다.
+                if end_correction:
+                    confirmed = confirm_retreat_ready(seg)
+                else:
+                    confirmed = (r.outcome != "UNKNOWN" and r.observed_state.get("stop_confirmed") is True
+                                 and r.observed_state.get("force_released") is True)
+                if not confirmed:
+                    hold["released"] = False
+                    return finish("UNKNOWN", "STOP_UNCONFIRMED", "깊이 보정 전 정지·힘 해제 미확인", f"segment:{sid}")
+                hold["active"], hold["released"] = False, True
+                hold["corrections"] = hold.get("corrections", 0) + 1
+                if hold["corrections"] > int(tp.get("hold_max_corrections", 10)):
+                    return finish("FAILED", "VALIDATION_FAILED", f"CUT {sid} 법선 보정 {hold['corrections']}회 초과 → 중단", f"segment:{sid}")
+                normals_all = cut_prof["contact_monitor"]["normals"]
+                retreat_target = _m(tp, "hold_retreat_target", hi_r)
+                ok_r, dev_r, moves_r = retreat_to_band(seg, wps, normals_all, retreat_target)
+                touches.append(dict(segment_id=sid, stroke_id=stroke, mid_chunk_correction=True, ok=ok_r, dev_after_mm=round(dev_r * 1000, 2), moves=moves_r))
+                if not ok_r:
+                    return finish("UNKNOWN" if verified_retreat else "FAILED", "VALIDATION_FAILED", f"CUT {sid} 묶음 중 후퇴 보정 실패 (후퇴 뒤 {dev_r * 1000:+.2f} mm)", f"segment:{sid}")
+                if context.cancel.is_set():
+                    return finish("STOPPED", "NONE", "후퇴 확인 뒤 취소", f"segment:{sid}")
+                try:
+                    final_dev, cur, near, _ = normal_dev_now(wps, normals_all)
+                    if verified_retreat and not (-abs(_m(tp, "normal_hard_limit", touch_extra_m)) <= final_dev
+                                                 <= retreat_target + _m(tp, "hold_retreat_tolerance")):
+                        raise ValueError("재개 직전 실제 위치가 후퇴 확인 범위 밖")
+                except Exception as exc:
+                    return finish("UNKNOWN", "COMMUNICATION_LOST", f"보정 뒤 위치 재확인 실패: {exc}", f"segment:{sid}")
+                base_index = len(wps) - len(rest)
+                start_i = max(0, i - chunk_n)
+                if not end_correction:
+                    passed = max(0, near - base_index)
+                    i = min(len(rest), max(start_i, passed + 1))
+                if verified_retreat:
+                    off = retreat_target
+                    stroke_offset[stroke] = off
+                    rest = [_shift(w, tool_axis_in_base(w, axis_name), off) for w in wps[base_index:]]
+                touches[-1]["resume_index"] = i
+                new_f = max(float(tp["cut_force_min_n"]), hold["force_n"] - float(tp.get("cut_force_step_n", 0.0)))
+                rb = adapter.hold_normal_force_begin(axis_name, dict(tp, cut_force_n=new_f), deadline_of(seg), context.cancel)
+                if not rb.ok:
+                    hold["released"] = rb.observed_state.get("force_released") is True
+                    return finish(rb.outcome if rb.outcome != "SUCCEEDED" else "FAILED", rb.error_code, f"CUT {sid} 보정 뒤 힘 유지 재시작 실패: {rb.message}", f"segment:{sid}")
+                hold["active"], hold["released"], hold["force_n"] = True, False, new_f
+                continue
             if cut_contact is not None:
                 smp = cut_prof["contact_monitor"]["samples"]
                 fn = [x["normal_force_n"] for x in smp if x.get("normal_force_n") is not None]
@@ -549,6 +763,52 @@ def execute_path(path: Dict, context: ExecutionContext, on_progress: Optional[Ca
                            normal_dev_min_mm=round(min(dev) * 1000.0, 2) if dev else None,
                            normal_dev_max_mm=round(max(dev) * 1000.0, 2) if dev else None)
                 touches.append(rec)
+                if r.ok and cut_contact == "normal_force_hold" and dev and tp.get("cut_force_step_n") is not None:
+                    # 9/23 (2차): 힘 목표 조절만으로는 부족했다(홈 안에서 반력이 줄어 더 파고듦 → 1 묶음에 5→10 mm). 깊으면 힘 목표를
+                    # 줄이고 동시에 명령 위치 offset 도 바깥으로 옮기며, 이탈이 직전 묶음보다 커지면 '파고드는 중' 으로 보고 다음 묶음 전에
+                    # 힘 유지를 잠시 풀고 위치 제어로 정상 범위 상한까지 실제로 빼낸(retreat correction) 뒤 낮춘 힘 목표로 다시 켠다.
+                    mean_dev = sum(dev) / len(dev); step_n = float(tp["cut_force_step_n"])
+                    f_lo, f_hi = float(tp["cut_force_min_n"]), float(tp["cut_force_max_n"])
+                    dig_step = _m(tp, "hold_dig_step", 0.0005)
+                    prev_dev = hold.get("prev_dev")
+                    hold["prev_dev"] = mean_dev
+                    new_f = hold["force_n"]
+                    if mean_dev > hi_r:
+                        new_f = max(f_lo, hold["force_n"] - step_n)
+                        digging = prev_dev is not None and mean_dev > prev_dev + dig_step
+                        correction = (mean_dev - hi_r) + (max(0.0, mean_dev - prev_dev) if digging else 0.0)
+                        rec["digging"] = digging; rec["retreat_correction_mm"] = round(correction * 1000.0, 2)
+                        # 위치 offset 도 바깥으로 (남은 점 재계산). 힘 유지 중엔 제어기가 법선 위치를 힘으로 정하므로 실제 후퇴는 아래 순서로 한다.
+                        off = max(-clearance_m, off - correction); stroke_offset[stroke] = off
+                        rest = rest[:i] + [_shift(w, tool_axis_in_base(w, axis_name), off) for w in wps[1 + i:]]
+                        rel = release_hold(seg)
+                        if rel is not None and not hold["released"]:
+                            return finish("UNKNOWN", "STOP_UNCONFIRMED", f"CUT {sid} 후퇴 보정 전 힘 해제 미확인: {rel.message}", f"segment:{sid}")
+                        try:
+                            cur = adapter.observe().tcp_pose
+                            rr = adapter.move(_shift(cur, tool_axis_in_base(cur, axis_name), -correction), frame, prof, deadline_of(seg), context.cancel)
+                        except Exception as exc:
+                            rr = StepResult("UNKNOWN", "COMMUNICATION_LOST", str(exc), "retreat_correction")
+                        rec["retreat_move"] = rr.outcome
+                        if not rr.ok:
+                            return finish(rr.outcome if rr.outcome != "SUCCEEDED" else "FAILED", rr.error_code, f"CUT {sid} 후퇴 보정 이동 실패: {rr.message}", f"segment:{sid}")
+                        rb = adapter.hold_normal_force_begin(axis_name, dict(tp, cut_force_n=new_f), deadline_of(seg), context.cancel)
+                        if not rb.ok:
+                            return finish(rb.outcome if rb.outcome != "SUCCEEDED" else "FAILED", rb.error_code, f"CUT {sid} 후퇴 보정 뒤 힘 유지 재시작 실패: {rb.message}", f"segment:{sid}")
+                        hold["active"], hold["released"], hold["force_n"] = True, False, new_f
+                        rec["force_target_n"] = new_f; rec["force_target_change"] = "REAPPLIED"
+                    elif mean_dev < lo_r:
+                        new_f = min(f_hi, hold["force_n"] + step_n)
+                        correction = lo_r - mean_dev
+                        off = min(hi_r if verified_retreat else hi_r + depth_m, off + correction); stroke_offset[stroke] = off      # 얕으면 명령 offset 안쪽으로
+                        rest = rest[:i] + [_shift(w, tool_axis_in_base(w, axis_name), off) for w in wps[1 + i:]]
+                        rec["inward_correction_mm"] = round(correction * 1000.0, 2)
+                        if new_f != hold["force_n"]:
+                            rs = adapter.hold_normal_force_set(new_f, deadline_of(seg))
+                            rec["force_target_n"] = new_f if rs.ok else hold["force_n"]
+                            rec["force_target_change"] = rs.outcome
+                            if rs.ok:
+                                hold["force_n"] = new_f
                 if r.ok and cut_contact == "chunk_adaptive" and fn:
                     mean = sum(fn) / len(fn); step_m = float(tp["adaptive_step_m"])
                     if mean < float(tp["cut_force_min_n"]):
@@ -645,11 +905,17 @@ def _geometry_ok(tip_pose, w, *, min_gap_m, retreating=False, box_z=True):
     center, radius = w["seed_axis_xy_m"], float(w["seed_radius_m"])
     top, stand = float(w["top_z_m"]), float(w["bottom_z_m"])
     body_r = float(w.get("gripper_body_half_width_m") or 0.0)
-    box = w.get("trial_scene") or {}
+    # 9/23: 복구는 일반 작업 상자(trial_scene)가 아니라 별도 recovery_envelope(셀 물리 한계) 로 본다. 작업 상자 밖에서 시작해도
+    # 셀 안이면 허용하고, 실제 물체(양초·받침대)와의 간섭은 아래에서 따로 검사한다. envelope 가 없으면 종전대로 작업 상자.
+    box = w.get("recovery_envelope") or w.get("trial_scene") or {}
     if box.get("tcp_min_m") and box.get("tcp_max_m"):
         axes = (0, 1, 2) if box_z else (0, 1)
         if not all(box["tcp_min_m"][k] <= g["tcp"][k] <= box["tcp_max_m"][k] for k in axes):
-            return False, f"TCP 작업 범위 밖 {[round(v, 3) for v in g['tcp'][:3]]} (상자 {box['tcp_min_m']}~{box['tcp_max_m']})", None
+            return False, f"TCP 가 복구 허용 영역 밖 {[round(v, 3) for v in g['tcp'][:3]]} (허용 {box['tcp_min_m']}~{box['tcp_max_m']})", None
+    if box.get("max_reach_m"):
+        reach = math.hypot(g["tcp"][0], g["tcp"][1])
+        if reach > float(box["max_reach_m"]):
+            return False, f"TCP 가 로봇 도달 반경 밖 {reach:.3f} m > {float(box['max_reach_m']):.2f}", None
     lowest = min(p[2] for p in (g["tcp"], g["tip"], g["bottom"]) + ((g["rear"],) if g["rear"] else ()))
     if lowest < stand + 0.005:
         return False, f"도구 최저점 {lowest * 1000:.1f} mm 가 받침대 윗면 + 5 mm 아래", None
@@ -666,9 +932,11 @@ def _geometry_ok(tip_pose, w, *, min_gap_m, retreating=False, box_z=True):
     return True, "", gap
 
 
-def _home_steps(tip, w, *, min_gap_m, min_above_top_m, yaw_alt=False, xy_first=False):
+def _home_steps(tip, w, *, min_gap_m, min_above_top_m, yaw_alt=False, xy_first=False, escape="normal"):
     """현재 도구 끝 자세 → 홈까지 단계 [(tip_pose, profile_id, label)]. 위치·자세는 그 단계에서만 바뀐다.
-    xy_first=True: 안전 높이에서 자세를 돌리기 전에 홈 xy 로 먼저 옮긴다 (9/22 실기: 멀리 뻗은 자세에서 회전하면 J3 가 특이점 여유 10° 아래로 떨어짐)."""
+    xy_first=True: 안전 높이에서 자세를 돌리기 전에 홈 xy 로 먼저 옮긴다 (9/22 실기: 멀리 뻗은 자세에서 회전하면 J3 가 특이점 여유 10° 아래로 떨어짐).
+    escape (9/23 일반화): "normal" = 드릴 축(툴 +Y) 바깥으로 후퇴(축을 보는 자세에서만), "radial" = 양초 축에서 끝 방향으로 xy 직진 탈출(자세 무관),
+    "lift_only" = 후퇴 없이 현재 자세로 수직 상승(간섭 검사가 판정)."""
     from .robot_adapter import apply_tool_offset, tool_axis_in_base
     offset = w["tool_offset_m"]; h = w["home"]
     center, radius, top = w["seed_axis_xy_m"], float(w["seed_radius_m"]), float(w["top_z_m"])
@@ -678,21 +946,28 @@ def _home_steps(tip, w, *, min_gap_m, min_above_top_m, yaw_alt=False, xy_first=F
     # 1) 후퇴: 드릴 축(툴 +Y) 바깥 방향으로, 끝의 반지름 거리가 R + outer_gap 이 될 때까지. 표면 근처 slow_gap 은 후퇴 속도.
     radial = [cur[0] - center[0], cur[1] - center[1]]; dist = math.hypot(*radial)
     g0 = _tool_geometry(cur, w)
-    if min(g0["tcp"][2], cur[2]) < top + 0.020 and dist < radius + float(w["outer_gap_m"]):
-        out_axis = tool_axis_in_base(cur, "+y")
-        horiz = math.hypot(out_axis[0], out_axis[1])            # 기울어진 자세면 수평 성분만으로 방향을 본다 (기울기 자체는 상승 뒤 정렬에서 푼다)
-        if dist < 1e-6 or horiz < 0.5 or (radial[0] * out_axis[0] + radial[1] * out_axis[1]) / (dist * horiz) < math.cos(math.radians(float(w.get("facing_tolerance_deg", 2.0)))):
-            raise ValueError("드릴 축이 양초 축 바깥 방향과 다름 → 법선 후퇴 불가, 자동 복귀 안 함")
+    if min(g0["tcp"][2], cur[2]) < top + 0.020 and dist < radius + float(w["outer_gap_m"]) and escape != "lift_only":
         if dist < radius - float(w.get("max_tip_inside_m", 0.005)):
             # 정상 조각 종료는 표면 안쪽 수 mm(접촉 offset + depth) 이므로 그 안은 허용, 더 깊으면 위치 불명으로 본다
             raise ValueError(f"드릴 끝이 표면 안쪽 {(radius - dist) * 1000:.1f} mm (허용 {float(w.get('max_tip_inside_m', 0.005)) * 1000:.0f}) → 자동 복귀 안 함")
+        if escape == "normal":
+            out_axis = tool_axis_in_base(cur, "+y")
+            horiz = math.hypot(out_axis[0], out_axis[1])        # 기울어진 자세면 수평 성분만으로 방향을 본다 (기울기 자체는 상승 뒤 정렬에서 푼다)
+            if dist < 1e-6 or horiz < 0.5 or (radial[0] * out_axis[0] + radial[1] * out_axis[1]) / (dist * horiz) < math.cos(math.radians(float(w.get("facing_tolerance_deg", 2.0)))):
+                raise ValueError("드릴 축이 양초 축 바깥 방향과 다름 → 법선 후퇴 불가")
+            labels = ("return_retreat_slow", "return_retreat")
+        else:                                                  # radial: 양초 축 → 끝 방향 xy 직진 (자세와 무관)
+            if dist < 1e-6:
+                raise ValueError("드릴 끝이 축 위 → 반지름 방향 불명")
+            out_axis = [radial[0] / dist, radial[1] / dist, 0.0]
+            labels = ("return_escape_slow", "return_escape")
         targets = []
         slow = float(w["slow_retract_gap_m"])
         if dist < radius + slow:
-            targets.append((radius + slow, "candle_retract", "return_retreat_slow"))
-        targets.append((radius + float(w["outer_gap_m"]), "candle_travel", "return_retreat"))
+            targets.append((radius + slow, "candle_retract", labels[0]))
+        targets.append((radius + float(w["outer_gap_m"]), "candle_travel", labels[1]))
         for r, pid, label in targets:
-            # 툴 +Y 를 따라 이동해 반지름 거리 r 에 닿는 거리 s (2차식 해)
+            # 탈출 축을 따라 이동해 반지름 거리 r 에 닿는 거리 s (2차식 해)
             b = 2 * (radial[0] * out_axis[0] + radial[1] * out_axis[1]); c = dist * dist - r * r
             s = (-b + math.sqrt(max(0.0, b * b - 4 * (out_axis[0] ** 2 + out_axis[1] ** 2) * c))) / (2 * (out_axis[0] ** 2 + out_axis[1] ** 2))
             cur = [cur[0] + out_axis[0] * s, cur[1] + out_axis[1] * s, cur[2] + out_axis[2] * s, *cur[3:7]]
@@ -742,6 +1017,45 @@ def _home_steps(tip, w, *, min_gap_m, min_above_top_m, yaw_alt=False, xy_first=F
     return steps
 
 
+def _joint_escape_prefix(joints_rad, w, adapter, *, min_gap_m):
+    """후보 D: 미리 검증해 둔 안전 관절 자세(w['safe_joint_waypoints_deg'])로 관절공간 탈출. 현재 관절에서 목표까지 2° 간격으로
+    보간하며 FK → 도구 형상 간섭(표면 거리 비감소 규칙)·관절 한계·특이점 여유를 검사한다. 통과하는 첫 목표를 (joints, tip_pose) 로 돌려준다.
+    FK 미지원 어댑터면 (None, 사유)."""
+    targets = w.get("safe_joint_waypoints_deg") or []
+    if not targets:
+        return None, "안전 관절 자세(safe_joint_waypoints_deg) 미설정"
+    q0 = [math.degrees(v) for v in joints_rad]
+    tip0 = adapter.forward_kinematics(q0)
+    if tip0 is None:
+        return None, "어댑터 FK 미지원 → 관절공간 탈출 검사 불가"
+    reasons = []
+    for idx, qt in enumerate(targets):
+        qt = [float(v) for v in qt]
+        n = max(1, math.ceil(max(abs(a - b) for a, b in zip(qt, q0)) / RETURN_SAMPLE_DEG))
+        last_gap = None; ok = True; why = ""
+        for i in range(1, n + 1):
+            q = [a + (b - a) * i / n for a, b in zip(q0, qt)]
+            if abs(q[2]) < RETURN_J3_MIN_DEG or min(abs(q[4]), abs(180.0 - abs(q[4]))) < RETURN_J5_MARGIN_DEG:
+                ok, why = False, f"샘플 {i}/{n}: 특이점 여유 부족 J3 {q[2]:.1f} J5 {q[4]:.1f}"; break
+            tip = adapter.forward_kinematics(q)
+            if tip is None:
+                ok, why = False, f"샘플 {i}/{n}: FK 실패"; break
+            g_ok, g_why, gap = _geometry_ok(tip, w, min_gap_m=min_gap_m, retreating=True, box_z=False)
+            if not g_ok:
+                ok, why = False, f"샘플 {i}/{n}: {g_why}"; break
+            if gap is not None and last_gap is not None and gap < last_gap - 1e-6:
+                ok, why = False, f"샘플 {i}/{n}: 표면 거리가 줄어듦"; break
+            last_gap = gap
+        if ok:
+            tip_end = adapter.forward_kinematics(qt)
+            g_ok, g_why, _ = _geometry_ok(tip_end, w, min_gap_m=min_gap_m)
+            if g_ok:
+                return (qt, tip_end), ""
+            why = f"목표 자세: {g_why}"
+        reasons.append(f"관절 자세 {idx}: {why}")
+    return None, " | ".join(reasons)
+
+
 def _check_return_steps(steps, start_tip, joints_rad, w, context, adapter, *, min_gap_m):
     """단계별 3 mm·2° 보간 샘플마다 간섭·IK·관절 한계·특이점 여유·관절 변화 검사 + 팀 check_path_joints. 실패면 (False, 이유)."""
     from .joint_check import check_path_joints
@@ -755,7 +1069,7 @@ def _check_return_steps(steps, start_tip, joints_rad, w, context, adapter, *, mi
         target = apply_tool_offset(list(target_tip), offset, -1)
         n = max(1, math.ceil(math.dist(prev[:3], target[:3]) / RETURN_SAMPLE_M),
                 math.ceil(_quat_angle_deg(prev[3:7], target[3:7]) / RETURN_SAMPLE_DEG))
-        retreating = label.startswith("return_retreat")
+        retreating = label.startswith(("return_retreat", "return_escape"))
         last_gap = None
         for i in range(1, n + 1):
             t = i / n
@@ -821,26 +1135,47 @@ def return_home(context: ExecutionContext, adapter: RobotAdapter, workcell: Dict
         if (math.dist(tip[:3], home_tip[:3]) <= float(h["position_tolerance_m"])
                 and _quat_angle_deg(tip[3:7], home_tip[3:7]) <= math.degrees(float(h["angle_tolerance_rad"]))):
             return StepResult("SUCCEEDED", "NONE", "이미 홈", step, dict(moved=False, steps=[]))
-        # 단계 생성 → 검사 (후보 4개: 정렬→xy / xy→정렬 × 회전 방향 두 가지). 먼저 통과하는 후보를 쓴다.
+        # 9/23 일반화: 탈출 후보 A(법선 후퇴) → B(축 반대 방향 직진) → C(현재 자세로 상승) → D(안전 관절 자세로 관절공간 탈출),
+        # 각각 정렬→xy / xy→정렬 × 회전 방향 두 가지. 실제 이동 전 모든 후보를 같은 검사(보간 샘플·IK·관절 한계·특이점·도구 형상 간섭)로
+        # 거른다. 하나가 실패해도 다음 후보를 보고, 전부 실패할 때만 RECOVERY_REQUIRED 로 멈춘다 (사람이 TP 로 처리).
         errors = []
         chosen = None
-        for xy_first, alt in ((False, False), (True, False), (False, True), (True, True)):
-            try:
-                steps = _home_steps(tip, w, min_gap_m=min_surface_gap_m, min_above_top_m=min_above_top_m, yaw_alt=alt, xy_first=xy_first)
-            except ValueError as exc:
-                return StepResult("FAILED", "VALIDATION_FAILED", str(exc), step, dict(moved=False))
-            ok, why, samples = _check_return_steps(steps, tip, st.joints_rad, w, context, adapter, min_gap_m=min_surface_gap_m)
-            if ok:
-                chosen = (steps, samples); break
-            errors.append(why)
-            if context.cancel.is_set():
-                return StepResult("STOPPED", "NONE", "취소됨 (복귀 검사 중)", step, dict(moved=False))
+        joint_prefix = None
+        for escape in ("normal", "radial", "lift_only", "joint"):
+            if chosen is not None:
+                break
+            start_tip = tip
+            if escape == "joint":
+                joint_prefix, why = _joint_escape_prefix(st.joints_rad, w, adapter, min_gap_m=min_surface_gap_m)
+                if joint_prefix is None:
+                    errors.append(f"D 관절 탈출: {why}"); continue
+                start_tip = joint_prefix[1]
+            for xy_first, alt in ((False, False), (True, False), (False, True), (True, True)):
+                try:
+                    steps = _home_steps(start_tip, w, min_gap_m=min_surface_gap_m, min_above_top_m=min_above_top_m, yaw_alt=alt, xy_first=xy_first,
+                                        escape=("lift_only" if escape == "joint" else escape))
+                except ValueError as exc:
+                    errors.append(f"{escape}: {exc}"); break
+                ref_joints = st.joints_rad if escape != "joint" else [math.radians(v) for v in joint_prefix[0]]
+                if steps:
+                    ok, why, samples = _check_return_steps(steps, start_tip, ref_joints, w, context, adapter, min_gap_m=min_surface_gap_m)
+                else:
+                    ok, why, samples = True, "", 0                      # 관절 탈출 목표가 이미 홈이면 데카르트 단계 없음
+                if ok:
+                    if escape == "joint":
+                        steps = [(list(joint_prefix[0]), "candle_travel", "return_joint_escape")] + steps
+                    chosen = (steps, samples, escape); break
+                errors.append(f"{escape}: {why}")
+                if context.cancel.is_set():
+                    return StepResult("STOPPED", "NONE", "취소됨 (복귀 검사 중)", step, dict(moved=False))
         if chosen is None:
-            return StepResult("FAILED", "VALIDATION_FAILED", "복귀 경로 검사 실패 → 이동 안 함: " + " | ".join(dict.fromkeys(errors)), step, dict(moved=False))
-        steps, samples = chosen
+            return StepResult("FAILED", "RECOVERY_REQUIRED", "모든 복귀 후보가 검사 실패 → 이동 안 함, TP 로 처리: " + " | ".join(dict.fromkeys(errors)),
+                              step, dict(moved=False, candidates_tried=["normal", "radial", "lift_only", "joint"], reasons=list(dict.fromkeys(errors))))
+        steps, samples, escape = chosen
         if plan_only:
-            return StepResult("SUCCEEDED", "NONE", f"복귀 계획 {len(steps)} 단계 검사 통과 (이동 없음)", step,
-                              dict(moved=False, plan_only=True, checked_samples=samples, full_mesh_checked=False, fk_roundtrip_checked=False,
+            return StepResult("SUCCEEDED", "NONE", f"복귀 계획 {len(steps)} 단계 검사 통과 (이동 없음, 후보 {escape})", step,
+                              dict(moved=False, plan_only=True, candidate=escape, checked_samples=samples, full_mesh_checked=False, fk_roundtrip_checked=False,
+                                   rejected=list(dict.fromkeys(errors)),
                                    steps=[dict(label=label, profile=pid, tip_pose=[round(v, 4) for v in target]) for target, pid, label in steps]))
         # 실행: 공중 절대 상한 감시, 단계마다 STANDBY 확인, 응답 불명확이면 어댑터가 정지 요청 후 UNKNOWN (재전송 없음)
         limit = (context.tool_profile or {}).get("air_force_limit_n")
@@ -851,12 +1186,139 @@ def return_home(context: ExecutionContext, adapter: RobotAdapter, workcell: Dict
             prof = dict(context.motion_profiles[pid])
             if limit is not None:
                 prof["air_monitor"] = dict(kind="AIR", bias=[0.0, 0.0, 0.0], force_limit_n=float(limit), samples=[], max_read_failures=3)
-            r = adapter.move(target, w.get("frame_id", "c2_base"), prof, float(prof.get("completion_timeout_s", 60.0)), context.cancel)
+            if label == "return_joint_escape":
+                r = adapter.move_joints(target, prof, float(prof.get("completion_timeout_s", 60.0)), context.cancel)
+            else:
+                r = adapter.move(target, w.get("frame_id", "c2_base"), prof, float(prof.get("completion_timeout_s", 60.0)), context.cancel)
             done.append(dict(label=label, outcome=r.outcome, error_code=r.error_code, message=r.message))
             if not r.ok:
                 return StepResult(r.outcome if r.outcome != "SUCCEEDED" else "FAILED", r.error_code,
                                   f"{label}: {r.message} → 이후 단계 중단", step, dict(moved=True, steps=done))
-        return StepResult("SUCCEEDED", "NONE", f"홈 복귀 {len(steps)} 단계", step,
-                          dict(moved=True, steps=done, checked_samples=samples, full_mesh_checked=False, fk_roundtrip_checked=False))
+        return StepResult("SUCCEEDED", "NONE", f"홈 복귀 {len(steps)} 단계 (후보 {escape})", step,
+                          dict(moved=True, candidate=escape, steps=done, checked_samples=samples, full_mesh_checked=False, fk_roundtrip_checked=False))
     except Exception as exc:
         return StepResult("UNKNOWN", "COMMUNICATION_LOST", f"복귀 중 예외: {exc}", step)
+
+
+# ------------------------------------------------- 고정 깊이(fixed_depth) 실행 ----
+# 9/23 이동: 기존 run_fixed_path_trial.py 의 execute_path 본문. 로직 변경 없음.
+# 조각 실행의 한 갈래이므로 조각 모듈이 소유한다. 기존 import 경로는 얇은 wrapper 로 유지.
+def execute_fixed_depth_path(path: Dict, context: ExecutionContext,
+                             on_progress: Optional[Callable[[Dict], None]] = None,
+                             adapter: RobotAdapter = None) -> StepResult:
+    """execute_path와 동일 계약. 설정을 몰래 fixed_depth로 바꾸지 않는다.
+
+    원본 도구 끝 표면 경로와 fixed_depth 설정으로 최종 계획을 만들고 검사한 점을 실행한다.
+    접촉 탐색/획별 재보정은 하지 않으며, 완료는 경로 이동 완료만 뜻한다.
+    """
+    if (context.tool_profile or {}).get('contact_mode') != 'fixed_depth':
+        return StepResult('FAILED', 'UNSUPPORTED_RECIPE',
+                          '고정 경로 실행에는 검사 전 fixed_depth 설정이 필요함', 'execute_path')
+    if adapter is None:
+        return StepResult('FAILED', 'NOT_READY', 'robot_adapter 없음', 'execute_path')
+    plan = build_execution_plan(path, context)
+    if isinstance(plan, StepResult):
+        return plan
+    try:
+        signature = execution_signature(path, context)
+    except (ValueError, TypeError):
+        return StepResult('FAILED', 'INVALID_INPUT', '경로/설정 fingerprint 생성 불가', 'execution_plan')
+    offset_before = copy.deepcopy(getattr(adapter, 'tool_offset_m', None))
+    if context.checked_plan_signature is not None:
+        if (context.checked_plan_signature != signature
+                or context.checked_tool_offset_m != offset_before):
+            return StepResult('FAILED', 'PROFILE_MISMATCH',
+                              '검사 후 경로/설정/도구 오프셋 변경', 'execution_plan')
+    checked = _check_plan(plan, context, adapter)
+    if not checked.ok:
+        return checked
+
+    segments = plan['segments']
+    progress = _Progress(total_cut_m=sum(_seg_length(s['waypoints'])
+                                       for s in segments if s['kind'] == 'CUT'))
+    began = time.monotonic()
+
+    def finish(outcome, code='NONE', message='', step='execute_path', observed=None):
+        values = dict(observed or {})
+        values.update(last_completed_segment_id=progress.completed_segment_id,
+                      engraving_progress=progress.done_cut_m / progress.total_cut_m if progress.total_cut_m else 0.,
+                      touches=[], elapsed_s=time.monotonic()-began,
+                      inspection_scope=plan['inspection_scope'], plan_signature=signature,
+                      execution_mode='FIXED_PATH_REPLAY', contact_verified=False,
+                      engraving_quality_verified=False)
+        return StepResult(outcome, code, message, step, values)
+
+    def guard():
+        if context.cancel.is_set():
+            return finish('STOPPED', message='취소 후 후속 이동 차단')
+        try:
+            current = execution_signature(path, context)
+        except (ValueError, TypeError):
+            current = None
+        if current != signature or getattr(adapter, 'tool_offset_m', None) != offset_before:
+            return finish('FAILED', 'PROFILE_MISMATCH', '검사 후 경로/설정/도구 오프셋 변경')
+        return None
+
+    def report(phase):
+        if on_progress:
+            on_progress(dict(phase=phase, completed_segment_id=progress.completed_segment_id,
+                             engraving_progress=progress.done_cut_m / progress.total_cut_m if progress.total_cut_m else 0.,
+                             elapsed_s=time.monotonic()-began))
+
+    def send(points, segment, spline=False):
+        blocked = guard()
+        if blocked:
+            return blocked
+        profile = context.motion_profiles[segment['motion_profile_id']]
+        timeout = float(profile.get('completion_timeout_s', 60.))
+        result = (adapter.move_spline(points, path['frame_id'], profile, timeout, context.cancel)
+                  if spline else adapter.move(points, path['frame_id'], profile, timeout, context.cancel))
+        if not result.ok:
+            return finish(result.outcome, result.error_code,
+                          f"{segment['kind']} {segment['segment_id']}: {result.message}",
+                          f"segment:{segment['segment_id']}", result.observed_state)
+        return None
+
+    try:
+        for segment in segments:
+            blocked = guard()
+            if blocked:
+                return blocked
+            kind, points = segment['kind'], segment['waypoints']
+            report({'APPROACH': 'APPROACH', 'TRAVEL': 'ENGRAVE',
+                    'CUT': 'ENGRAVE', 'RETRACT': 'RETRACT'}[kind])
+            if kind == 'CUT':
+                # 깊이는 계획에 적용했다. 각 구간의 첫 점으로 진입한 뒤 나머지를 spline으로 보낸다.
+                result = send(points[0], segment)
+                if result:
+                    return result
+                rest = points[1:]
+                for i in range(0, len(rest), MAX_SPLINE_POINTS):
+                    chunk = rest[i:i + MAX_SPLINE_POINTS]
+                    result = send(chunk if len(chunk) >= 2 else chunk[0], segment, len(chunk) >= 2)
+                    if result:
+                        return result
+                progress.done_cut_m += _seg_length(points)
+            else:
+                for point in points:
+                    result = send(point, segment)
+                    if result:
+                        return result
+            progress.completed_segment_id = segment.get('segment_id', '?')
+            if kind == 'CUT':
+                report('ENGRAVE')
+        report('RETRACT')
+        blocked = guard()
+        if blocked:
+            return blocked
+        return finish('SUCCEEDED', message=f'{len(segments)} 구간 경로 이동 완료')
+    except Exception as exc:
+        # 접수 여부가 불명확한 명령은 재전송하지 않는다. 완료 구간은 그대로 남긴다.
+        try:
+            stopped = adapter.stop(context.stop_profile,
+                                   float(context.stop_profile.get('confirmation_timeout_s', 2.)))
+            confirmed = stopped.ok and stopped.observed_state.get('stop_confirmed') is True
+        except Exception:
+            confirmed = False
+        return finish('UNKNOWN', 'COMMUNICATION_LOST', str(exc),
+                      observed={'stop_confirmed': confirmed})

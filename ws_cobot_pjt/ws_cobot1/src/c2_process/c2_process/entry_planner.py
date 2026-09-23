@@ -12,6 +12,7 @@ import math
 from typing import Mapping
 
 from .joint_check import check_path_joints
+from .engraving_workspace import check_waypoints
 from .robot_adapter import StepResult, apply_tool_offset
 
 
@@ -170,15 +171,12 @@ def _geometry_check(candidate, workcell, tool_offset_m):
     top = float(workcell["top_z_m"])
     policy = candidate["policy"]
     minimum = float(policy["min_radial_gap_m"])
-    scene = workcell.get("trial_scene") or {}
-    tcp_min, tcp_max = scene.get("tcp_min_m"), scene.get("tcp_max_m")
+    workspace = check_waypoints(candidate["validation_waypoints"], workcell.get("engraving_workspace"))
+    if not workspace.ok:
+        return workspace
     worst = float("inf")
     for index, tip in enumerate(candidate["validation_waypoints"]):
         tcp = apply_tool_offset(tip, tool_offset_m, -1)
-        if (_vector(tcp_min, 3) and _vector(tcp_max, 3)
-                and not all(tcp_min[k] <= tcp[k] <= tcp_max[k] for k in range(3))):
-            return StepResult("FAILED", "VALIDATION_FAILED",
-                              f"entry TCP 작업 범위 밖: sample {index}", "entry_check")
         if min(tip[2], tcp[2]) <= top + 0.020:
             gap = _segment_axis_gap(tip, tcp, center, radius)
             worst = min(worst, gap)

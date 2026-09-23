@@ -23,6 +23,7 @@ from uuid import uuid4
 
 from .engraving import ExecutionContext, execute_path, validate_path, build_execution_plan, execution_signature
 from .entry_planner import execute_entry_plan, plan_entry_path
+from .engraving_workspace import check_path_workspace, validate_workspace
 from .joint_check import check_path_joints
 from .preconditions import PreconditionEvidence, check_preconditions, check_robot_status, check_prepared_path
 from .robot_adapter import DoosanRobotAdapter, MockRobotAdapter, RobotState, StepResult, apply_tool_offset
@@ -354,6 +355,10 @@ def validate_real_execution_profiles(execution):
     policy = execution.get("entry_planning")
     if not isinstance(policy, Mapping) or policy.get("enabled") is not True:
         invalid("REAL execution_context.entry_planning.enabled=true 설정 필요")
+    try:
+        validate_workspace(execution.get("engraving_workspace"))
+    except ValueError as exc:
+        invalid(str(exc))
     bounds = policy.get("tcp_clearance_above_top_range_m")
     if (not isinstance(bounds, (list, tuple)) or len(bounds) != 2
             or any(type(value) not in (int, float) or not math.isfinite(value)
@@ -500,6 +505,13 @@ def resolve_real_execution_settings(snapshot, goal, profile_snapshot_id, *, adap
     validate_real_execution_profiles(execution)
     if workcell.get("entry_planning") != execution.get("entry_planning"):
         unavailable("REAL workcell과 execution_context entry_planning 불일치", "PROFILE_MISMATCH")
+    try:
+        same_workspace = (validate_workspace(workcell.get("engraving_workspace"))
+                          == validate_workspace(execution.get("engraving_workspace")))
+    except ValueError as exc:
+        unavailable(str(exc), "INVALID_INPUT")
+    if not same_workspace:
+        unavailable("REAL 조각 작업영역 설정 불일치", "PROFILE_MISMATCH")
     stop_profile = execution.get("stop_profile")
     if (not isinstance(stop_profile, Mapping)
             or type(stop_profile.get("mode")) is not int
@@ -1500,6 +1512,9 @@ class ProcessCoordinator:
                 context.checked_entry_plan = None
                 context.checked_entry_plan_sha256 = None
                 if entry_enabled:
+                    workspace = check_path_workspace(loaded.path, loaded.workcell.get("engraving_workspace"))
+                    if not workspace.ok:
+                        return workspace
                     entry = self.entry_plan_fn(
                         dict(loaded.path), dict(loaded.workcell), loaded.adapter, state,
                         list(offset), context.joint_limits_deg, context.j6_margin_deg,
@@ -1520,6 +1535,10 @@ class ProcessCoordinator:
                 plan = build_execution_plan(dict(loaded.path), context)
                 if isinstance(plan, StepResult):
                     return plan
+                if entry_enabled:
+                    workspace = check_path_workspace(plan, loaded.workcell.get("engraving_workspace"))
+                    if not workspace.ok:
+                        return workspace
                 if context.cancel.is_set():
                     return StepResult("STOPPED", "NONE", "검사 취소", "joint_check")
                 kwargs = dict(limits_deg=context.joint_limits_deg, j6_margin_deg=context.j6_margin_deg)
