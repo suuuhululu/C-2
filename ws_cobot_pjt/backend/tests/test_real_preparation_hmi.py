@@ -233,10 +233,15 @@ def test_real_missing_verification_clears_template(tmp_path, old):
     raw.pop('absolute_top_verification_known', None)
     raw.pop('absolute_top_verified', None)
     before = deepcopy(config)
-    result = real_bound_profile(goal, display_result(raw, goal), config, dict(id=uid(), sha256='b'*64))
-    assert result['absolute_top_verified'] is None
-    assert result['measurement_assumptions']['absolute_top_verified'] is None
-    assert result['validity'] == 'ESTIMATED'
+    # 미확인 원본을 템플릿 값으로 승격하지 않고 BIND 전에 거부한다.
+    from app.ros_preparation import copy_confidence
+    display = display_result(raw, goal)
+    candidate = {'absolute_top_verified': old, 'measurement_assumptions': {}}
+    copy_confidence(candidate, display['observed_state']['measurement'])
+    assert candidate['absolute_top_verified'] is None
+    assert candidate['measurement_assumptions']['absolute_top_verified'] is None
+    with pytest.raises(ValueError, match='absolute_top_verified'):
+        real_bound_profile(goal, display, config, dict(id=uid(), sha256='b'*64))
     assert config == before
 
 

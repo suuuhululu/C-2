@@ -181,6 +181,14 @@ def _identity_errors(profile: Mapping, errors: list, source_mode: str = "SIMULAT
     _same(profile.get("gripper_open_allowed"), False, "gripper_open_allowed", errors)
 
 
+def validate_profile_identity(profile: Mapping, source_mode: str) -> None:
+    """측정 전 배포 설정과 경로 생성이 같은 식별 기준을 사용한다."""
+    errors = []
+    _identity_errors(profile, errors, source_mode)
+    if errors:
+        raise ValueError("경로 설정 식별 불일치: " + "; ".join(errors))
+
+
 def _fixed_axis_errors(surface: Mapping, errors: list) -> None:
     """`/1`·`/2` 공통: 원통 종류·축 방향·u 원점·이음매는 아직 상수와 같은 값만 받는다.
     이음매·u 원점은 J5 위험 구역(로봇 쪽)과 도안 배치 기준에 묶여 있고, 축은 +Z 만 계산·미리보기가 지원한다."""

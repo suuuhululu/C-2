@@ -1,0 +1,33 @@
+{
+  "run_id": "a7505b65-d863-4b17-a514-1fad63249380",
+  "files": {
+    "profile.json": "c69969aa5ef5780d93328e9a95b5db976021d01c2ad3b802e9d4f20c730dac68",
+    "generation.json": "f7edddb0cd3de16b454edc8d02a3b53dc86b1b6c58bac2f1fe112cf4edc3f8c6",
+    "events.json": "b996d75edcea29076bd7b1eef754671de89f5316d3fb0111a7039ea4a0fa8bf5",
+    "preparation.json": "fdef323c624ac03a9fdc4bc13fb9151f5f896edffe56c9b7f045aa5aeaab2fde",
+    "input-config.json": "0e94cd1aff0882d332ae55670f86958bab681ba0ad9fba2494e8c613d5092d65",
+    "engraved-result.png": "faa9b6f955a3de63f10cb9cd0a337d72ca7b2c73b602cf235846edd404c47edd",
+    "run.json": "771d409e2c2f1f4ba353e6a68f5247608157e13b071020afaeddf834ae13806d",
+    "measurement.json": "a99f6fb5ddafb56fef4edbb325c2a857c3759d6382d390b06f500385c77769f3",
+    "execution-result.json": "4e06000569d7743b78d527a43f079e615a204648cb45d98931ecb67a2e502f22",
+    "path.json": "061737788978ca02ecc55cd38f75482b5035b1a55d43857a01fe39d4046cd82e"
+  },
+  "source_refs": {
+    "path.json": [
+      "dc3d4456-34b0-4621-808a-7719641ca2ba",
+      "061737788978ca02ecc55cd38f75482b5035b1a55d43857a01fe39d4046cd82e"
+    ],
+    "profile.json": [
+      "f79b9152-a77e-4777-b71b-d9a1289f7279",
+      "c69969aa5ef5780d93328e9a95b5db976021d01c2ad3b802e9d4f20c730dac68"
+    ],
+    "measurement.json": [
+      "d5fa7a0e-f6af-4971-ae20-c036d8fd368b",
+      "a99f6fb5ddafb56fef4edbb325c2a857c3759d6382d390b06f500385c77769f3"
+    ],
+    "input-config.json": [
+      "0faa56d8-1201-42d6-b64a-07da624b1eba",
+      "0e94cd1aff0882d332ae55670f86958bab681ba0ad9fba2494e8c613d5092d65"
+    ]
+  }
+}

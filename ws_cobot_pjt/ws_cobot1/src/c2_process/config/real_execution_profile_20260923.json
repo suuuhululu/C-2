@@ -7,7 +7,7 @@
   "frame_id": "c2_base",
   "gripper_open_allowed": false,
   "workcell_id": "candle_test_0919",
-  "workcell_version": 2,
+  "workcell_version": 1,
   "tools_config_id": "c2_tools",
   "tools_config_version": 1,
   "tool_id": "engraving_drill",
@@ -18,9 +18,9 @@
   "load_version": 1,
   "surface": {
     "kind": "cylinder",
-    "radius_mm": 33.929017,
+    "radius_mm": 33.89996884310031,
     "height_mm": 150.0,
-    "axis_origin_m": [0.423646493, -0.000039369, 0.065929474],
+    "axis_origin_m": [0.42325530708859205, 0.00032844108604387424, 0.06576846313740473],
     "axis_direction": [0.0, 0.0, 1.0],
     "valid_v_range_mm": [10.0, 140.0],
     "u_origin_angle_deg": 0.0,
@@ -69,6 +69,7 @@
         "completion_timeout_s": 90.0
       }
     },
+    "engraving_workspace": {"frame_id": "c2_base", "waypoint_min_z_m": 0.05},
     "entry_planning": {
       "enabled": true,
       "tcp_clearance_above_top_range_m": [0.084070526, 0.114070526],
@@ -106,5 +107,18 @@
       [-170.0, 170.0]
     ],
     "j6_margin_deg": 0.0
+  },
+  "provenance": {
+    "measurement_record": "ws_cobot_pjt/docs/evidence/workpiece_20260923_1502/prepare_workpiece_result_20260923_1502.json",
+    "measurement_record_sha256": "177e9d3b83f473dec482f0ece8f6e8f1701b29e2c323f4ca2a9c18d58760bcfe",
+    "measurement_id": "workpiece-test-0306ab602d78458c995b2d4f4c60ce11",
+    "measured_at": "2026-09-23T06:07:38.447423+00:00",
+    "geometry_source": "2026-09-23 단독 실기 8/8 결과의 초기 표면값. HMI는 새 MEASURE 결과로 BIND 스냅샷의 기하를 다시 채운다.",
+    "validity": "FORCE_CONTACT_ESTIMATE",
+    "absolute_top_verified": true,
+    "vertical_axis_assumed": true,
+    "tilt_measured": false,
+    "independent_accuracy_verified": false,
+    "validation_scope": "STANDALONE_MEASUREMENT_NOT_PREPARE_ACTION_OR_ENGRAVING"
   }
 }

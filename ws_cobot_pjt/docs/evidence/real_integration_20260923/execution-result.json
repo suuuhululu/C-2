@@ -1,0 +1,23 @@
+{
+  "outcome": "SUCCEEDED",
+  "error_code": "NONE",
+  "message": "55 구간 경로 이동 완료",
+  "completed_step": "execute_path",
+  "observed_state": {
+    "last_completed_segment_id": "seg-0055",
+    "engraving_progress": 1.0,
+    "touches": [],
+    "elapsed_s": 460.2550476519973,
+    "inspection_scope": "FINAL_EXECUTION_PLAN",
+    "plan_signature": "36e7895b02f42ae27ea0479b8d9b672b4cf536a0d329909831ecace55da5c80e",
+    "execution_mode": "FIXED_PATH_REPLAY",
+    "contact_verified": false,
+    "engraving_quality_verified": false,
+    "entry": {
+      "entry_plan_sha256": "6c5965bd2841352e0d46031b729d2ae11d3b5831caf80998d58d3f441a697211",
+      "candidate_id": "entry-016",
+      "completed_targets": 1
+    },
+    "preparation_id": "3ea29d78-6a71-4c0c-b8f8-fa00a206a019"
+  }
+}
