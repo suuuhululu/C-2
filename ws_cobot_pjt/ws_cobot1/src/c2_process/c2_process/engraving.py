@@ -638,11 +638,22 @@ def _segment_axis_gap(a, b, center, radius):
     return math.hypot(a[0] + f * dx - center[0], a[1] + f * dy - center[1]) - radius
 
 
+def _candle_geometry(w):
+    """복귀 검사에 쓸 양초 축·반지름 → (center_xy, radius, source).
+
+    8점 측정이 끝나면 실행 workcell 에 axis_xy_m/radius_m 이 실린다. seed_axis_xy_m/seed_radius_m 는
+    측정 전 탐색용 추정치라 실측과 어긋날 수 있으므로, 실측이 있으면 그것을 쓰고 없을 때만 seed 로
+    되돌아간다. 두 쌍 다 없으면 호출자가 거절한다."""
+    if w.get("axis_xy_m") is not None and w.get("radius_m") is not None:
+        return list(w["axis_xy_m"]), float(w["radius_m"]), "measured"
+    return list(w["seed_axis_xy_m"]), float(w["seed_radius_m"]), "seed"
+
+
 def _geometry_ok(tip_pose, w, *, min_gap_m, retreating=False, box_z=True):
-    """샘플 하나의 간섭 검사. 반환 (ok, reason, gap). 양초 = 축(seed_axis_xy_m)·반지름(seed_radius_m)·윗면 top_z_m·받침대 bottom_z_m.
+    """샘플 하나의 간섭 검사. 반환 (ok, reason, gap). 양초 = 축·반지름(_candle_geometry: 실측 우선)·윗면 top_z_m·받침대 bottom_z_m.
     box_z=False: 후퇴·상승 단계용. 시작 자세(조각 높이)가 측정용 TCP 상자보다 낮을 수 있어 xy 만 상자로 보고 z 는 받침대·양초 조건으로만 본다."""
     g = _tool_geometry(tip_pose, w)
-    center, radius = w["seed_axis_xy_m"], float(w["seed_radius_m"])
+    center, radius, _ = _candle_geometry(w)
     top, stand = float(w["top_z_m"]), float(w["bottom_z_m"])
     body_r = float(w.get("gripper_body_half_width_m") or 0.0)
     box = w.get("trial_scene") or {}
@@ -671,7 +682,7 @@ def _home_steps(tip, w, *, min_gap_m, min_above_top_m, yaw_alt=False, xy_first=F
     xy_first=True: 안전 높이에서 자세를 돌리기 전에 홈 xy 로 먼저 옮긴다 (9/22 실기: 멀리 뻗은 자세에서 회전하면 J3 가 특이점 여유 10° 아래로 떨어짐)."""
     from .robot_adapter import apply_tool_offset, tool_axis_in_base
     offset = w["tool_offset_m"]; h = w["home"]
-    center, radius, top = w["seed_axis_xy_m"], float(w["seed_radius_m"]), float(w["top_z_m"])
+    (center, radius, _), top = _candle_geometry(w), float(w["top_z_m"])
     home_tcp = list(h["tcp_pose"]); home_q = home_tcp[3:7]
     steps = []
     cur = list(tip)
@@ -798,9 +809,17 @@ def return_home(context: ExecutionContext, adapter: RobotAdapter, workcell: Dict
     step = "return_home"
     w = workcell
     try:
-        for key in ("home", "tool_offset_m", "seed_axis_xy_m", "seed_radius_m", "top_z_m", "bottom_z_m", "outer_gap_m", "slow_retract_gap_m", "top"):
+        for key in ("home", "tool_offset_m", "top_z_m", "bottom_z_m", "outer_gap_m", "slow_retract_gap_m", "top"):
             if key not in w:
                 return StepResult("FAILED", "NOT_READY", f"workcell 에 {key} 없음", step)
+        if not ((w.get("axis_xy_m") is not None and w.get("radius_m") is not None)
+                or (w.get("seed_axis_xy_m") is not None and w.get("seed_radius_m") is not None)):
+            return StepResult("FAILED", "NOT_READY", "workcell 에 양초 축·반지름 없음 (axis_xy_m/radius_m 또는 seed_axis_xy_m/seed_radius_m)", step)
+        geometry_source = _candle_geometry(w)[2]
+        if context.source_mode == "REAL" and geometry_source != "measured":
+            # seed_* 는 측정 전 추정치. REAL 복귀 기하는 이번 실행에서 측정된 axis_xy_m/radius_m 만 인정한다.
+            # SIMULATION 과 실측 키가 없는 기존 프로파일은 seed 폴백을 유지한다.
+            return StepResult("FAILED", "NOT_READY", "REAL 복귀에는 이번 실행의 실측 axis_xy_m/radius_m 필요 (seed 추정치 불허)", step)
         for pid in ("candle_travel", "candle_retract"):
             if pid not in (context.motion_profiles or {}):
                 return StepResult("FAILED", "NOT_READY", f"motion_profiles 에 {pid} 없음", step)
@@ -820,7 +839,7 @@ def return_home(context: ExecutionContext, adapter: RobotAdapter, workcell: Dict
         h = w["home"]
         if (math.dist(tip[:3], home_tip[:3]) <= float(h["position_tolerance_m"])
                 and _quat_angle_deg(tip[3:7], home_tip[3:7]) <= math.degrees(float(h["angle_tolerance_rad"]))):
-            return StepResult("SUCCEEDED", "NONE", "이미 홈", step, dict(moved=False, steps=[]))
+            return StepResult("SUCCEEDED", "NONE", "이미 홈", step, dict(moved=False, steps=[], candle_geometry_source=geometry_source))
         # 단계 생성 → 검사 (후보 4개: 정렬→xy / xy→정렬 × 회전 방향 두 가지). 먼저 통과하는 후보를 쓴다.
         errors = []
         chosen = None
@@ -840,7 +859,7 @@ def return_home(context: ExecutionContext, adapter: RobotAdapter, workcell: Dict
         steps, samples = chosen
         if plan_only:
             return StepResult("SUCCEEDED", "NONE", f"복귀 계획 {len(steps)} 단계 검사 통과 (이동 없음)", step,
-                              dict(moved=False, plan_only=True, checked_samples=samples, full_mesh_checked=False, fk_roundtrip_checked=False,
+                              dict(moved=False, plan_only=True, candle_geometry_source=geometry_source, checked_samples=samples, full_mesh_checked=False, fk_roundtrip_checked=False,
                                    steps=[dict(label=label, profile=pid, tip_pose=[round(v, 4) for v in target]) for target, pid, label in steps]))
         # 실행: 공중 절대 상한 감시, 단계마다 STANDBY 확인, 응답 불명확이면 어댑터가 정지 요청 후 UNKNOWN (재전송 없음)
         limit = (context.tool_profile or {}).get("air_force_limit_n")
@@ -857,6 +876,6 @@ def return_home(context: ExecutionContext, adapter: RobotAdapter, workcell: Dict
                 return StepResult(r.outcome if r.outcome != "SUCCEEDED" else "FAILED", r.error_code,
                                   f"{label}: {r.message} → 이후 단계 중단", step, dict(moved=True, steps=done))
         return StepResult("SUCCEEDED", "NONE", f"홈 복귀 {len(steps)} 단계", step,
-                          dict(moved=True, steps=done, checked_samples=samples, full_mesh_checked=False, fk_roundtrip_checked=False))
+                          dict(moved=True, steps=done, candle_geometry_source=geometry_source, checked_samples=samples, full_mesh_checked=False, fk_roundtrip_checked=False))
     except Exception as exc:
         return StepResult("UNKNOWN", "COMMUNICATION_LOST", f"복귀 중 예외: {exc}", step)
