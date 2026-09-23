@@ -147,6 +147,11 @@ def main(argv=None):
         if kind!='telemetry':node.get_logger().info(data.get('message') or f"{kind}: {data.get('outcome','')}")
     def trace(event,data):
         emit('telemetry',dict(event=event,source_mode=args.mode,measurement_id=session.context.measurement_id if session.context else None,**data))
+        if event=='force_warning':
+            node.get_logger().info(
+                f"경고: {data['label']} 비접촉 구간 외력 {data['norm_n']:.2f} N "
+                f"(한계 {data['profile_limit_n']:.1f} / 상한 {data['ceiling_n']:.1f}, "
+                f"양초 여유 {data['candle_gap_m']*1000:.1f} mm, 추종 {data['tracking_error_mm']:.3f} mm) — 계속 진행")
         if event=='probe_progress':
             phase='이동 기준 힘 수집 중' if data['phase']=='BASELINE' else '접촉 탐색 중'
             node.get_logger().info(f"{data['label']}: {phase}, 이동 {data['travel_m']*1000:.2f} mm / 남은 탐색 {data['remaining_m']*1000:.2f} mm")

@@ -346,7 +346,7 @@ HMI는 이벤트를 ID/sequence 기준으로 저장해야 새로고침 후에도
   값을 상수 True로 채우는 실행용 콜백은 허용하지 않는다. 매 감시 주기 호출되므로 비차단 조회여야 한다.
 - `scene_check(steps, workcell, initial_observation)`: 전체 진입/전환/원호/탐색/후퇴와 도구 형상의
   간섭 검사를 수행해 `path_checked`, `probe_envelopes_checked`와 검사 기록을 반환한다.
-  표본 IK 통과를 충돌 검사 통과로 대신 쓰지 않는다. 단독 시험에는 workpiece_real_trial.check_trial_scene를 연결한다. 범용 현장 검사기를 뜻하지 않는다.
+  표본 IK 통과를 충돌 검사 통과로 대신 쓰지 않는다. 단독 시험과 공정 모두 measurement_robot_adapter.check_measurement_scene를 연결한다(구 workpiece_real_trial.check_trial_scene, 별칭 유지). 범용 현장 검사기를 뜻하지 않는다.
 
 ABSOLUTE_GEOMETRY의 REAL workcell에는 `tcp_id`, `load_id`, `top.offset_record_id`,
 `top.contact_offset_tool_m`와 출처 문자열 `top.estimate_source`가 필요하다.
