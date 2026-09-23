@@ -162,4 +162,13 @@ def real_bound_profile(goal, display, config, record):
     # 불변 스냅샷에 연결한다. 원본 준비/실행 JSON은 수정하지 않는다.
     profile['workcell']['entry_planning'] = deepcopy(
         template['execution_context']['entry_planning'])
+    from c2_process.engraving_workspace import validate_workspace
+    profile['workcell']['engraving_workspace'] = validate_workspace(
+        template['execution_context'].get('engraving_workspace'))
+    # 경로 소비자가 거부할 스냅샷을 불변 BIND로 먼저 확정하지 않는다.
+    from c2_path.pipeline import validate_profile, PipelineError
+    try:
+        validate_profile(profile)
+    except PipelineError as exc:
+        raise ValueError(str(exc)) from exc
     return profile

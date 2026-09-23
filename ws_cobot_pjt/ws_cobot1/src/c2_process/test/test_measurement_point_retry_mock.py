@@ -10,9 +10,13 @@ from c2_process.robot_adapter import StepResult, posx_to_pose
 from c2_process.workpiece_real_trial import check_trial_scene
 
 
-def trial(scenario):
+def trial(scenario, *, before_search=False):
     cfg=json.loads((Path(__file__).resolve().parents[1]/'config/workpiece_real_trial_0921.json').read_text())
     w=cfg['workcell'];w['source_mode']='SIMULATION'
+    if not before_search:
+        # 기존 접촉 창의 호환성 시험. 새 모드는 별도 전체 흐름 시험으로 검증한다.
+        w.pop('side_search_m',None);w.pop('side_baseline_lead_in_m',None)
+        w.update(start_gap_m=.008,inside_limit_m=.0035,slow_retract_gap_m=.005)
     clock=Clock();io=KinematicIO(w,clock,True)
     io.center=w['seed_axis_xy_m'][:];io.radius=w['seed_radius_m']
     ctx=MeasurementContext('retry','prep','SIMULATION',monotonic=clock)

@@ -1,0 +1,20 @@
+{
+  "request_id": "66df9ea9-574f-4df0-9f01-0dea3cfae9ef",
+  "state": "SUCCEEDED",
+  "stage": "VALIDATING",
+  "progress": 1,
+  "result": {
+    "success": true,
+    "error_code": "NONE",
+    "message": "경로 생성과 기하 검증이 완료되었습니다. 실행 전 J6/IK 검사가 별도로 필요합니다. 잠정 로봇 작업 범위 안이지만 실행 가능 여부는 판정하지 않았습니다.",
+    "path_id": "047c5fe4-0d3f-4684-9fb5-5665c710635e",
+    "path_version": 1,
+    "path_sha256": "061737788978ca02ecc55cd38f75482b5035b1a55d43857a01fe39d4046cd82e",
+    "svg_asset_id": "b8ec876b-c184-4397-87bf-d1766843c716",
+    "preview_asset_id": "0a004b5d-ec10-491d-b65f-83f09439c09f",
+    "segment_count": 55,
+    "cut_length_m": 0.155205,
+    "validation_passed": true,
+    "validation_report_id": "64e58a93-2802-4650-9f23-a664218273dc"
+  }
+}

@@ -17,6 +17,10 @@ def validate_real_execution_config(config):
             or template.get('real_execution_allowed') is not True
             or template.get('gripper_open_allowed') is not False):
         raise ValueError('REAL 실행 후보 설정의 모드·스키마·실행 용도·그리퍼 설정 불일치')
+    from c2_path.pipeline import validate_profile_identity, PROFILE_CONTRACT_V4
+    if template.get('contract') != PROFILE_CONTRACT_V4:
+        raise ValueError('REAL 실행 프로파일 contract 불일치')
+    validate_profile_identity(template, 'REAL')
     for key in ('tool_id', 'tcp_id', 'load_id', 'tool_version', 'tcp_version', 'load_version',
                 'tools_config_id', 'tools_config_version'):
         actual = config.get(key, config['workcell'].get(key))
@@ -45,6 +49,8 @@ def validate_real_execution_config(config):
         if not isinstance(context.get(key), dict):
             raise ValueError('REAL execution_context.' + key + ' 설정 누락')
     validate_entry_planning(context.get('entry_planning'), context['motion_profiles'])
+    from c2_process.engraving_workspace import validate_workspace
+    validate_workspace(context.get('engraving_workspace'))
     from c2_path.workcell import MOTION_PROFILE
     for name in MOTION_PROFILE.values():
         if name not in context['motion_profiles']:

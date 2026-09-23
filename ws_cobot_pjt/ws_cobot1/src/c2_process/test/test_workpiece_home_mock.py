@@ -12,7 +12,10 @@ from c2_process.workpiece_simulation import SimulatedWorkpieceAdapter
 ROOT=Path(__file__).resolve().parents[1]
 
 def config(name='real_trial_0921'):
-    return json.loads((ROOT/'config'/f'workpiece_{name}.json').read_text())
+    # 아래 고정 TCP 사례는 이전 seed로 기록된 과거 경로 회귀시험이다.
+    source = (ROOT/'test/fixtures/workpiece_config_before_8point_20260923.json'
+              if name == 'real_trial_0921' else ROOT/'config'/f'workpiece_{name}.json')
+    return json.loads(source.read_text())
 
 @pytest.mark.parametrize('native',[
     [329.028564453125,98.4632568359375,214.83985900878906,87.84613800048828,-179.9999542236328,42.846153259277344], # 실기 중단 위치의 수직 자세 유지

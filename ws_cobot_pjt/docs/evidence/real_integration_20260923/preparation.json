@@ -1,0 +1,1233 @@
+{
+  "request_id": "91bb0bea-6e71-4afd-b8a8-6419caa353dc",
+  "payload": {
+    "request_id": "91bb0bea-6e71-4afd-b8a8-6419caa353dc",
+    "input_profile_snapshot_id": "0faa56d8-1201-42d6-b64a-07da624b1eba",
+    "input_profile_sha256": "0e94cd1aff0882d332ae55670f86958bab681ba0ad9fba2494e8c613d5092d65",
+    "height_m": 0.15,
+    "operator_confirmed_fixed_cell": true
+  },
+  "goal": {
+    "request_id": "91bb0bea-6e71-4afd-b8a8-6419caa353dc",
+    "input_profile_snapshot_id": "0faa56d8-1201-42d6-b64a-07da624b1eba",
+    "input_profile_sha256": "0e94cd1aff0882d332ae55670f86958bab681ba0ad9fba2494e8c613d5092d65",
+    "height_m": 0.15,
+    "preparation_id": "3ea29d78-6a71-4c0c-b8f8-fa00a206a019",
+    "measurement_id": "002d8cfb-296b-46be-a60c-ae91190d0e7e",
+    "source_mode": "REAL",
+    "height_source": "OPERATOR_RULER"
+  },
+  "state": "SUCCEEDED",
+  "stage": "COMPLETE",
+  "feedback": [
+    {
+      "request_id": "91bb0bea-6e71-4afd-b8a8-6419caa353dc",
+      "preparation_id": "3ea29d78-6a71-4c0c-b8f8-fa00a206a019",
+      "measurement_id": "002d8cfb-296b-46be-a60c-ae91190d0e7e",
+      "operation": "MEASURE",
+      "stage": "VALIDATING",
+      "progress": 0.0,
+      "completed_side_points": 0,
+      "total_side_points": 8,
+      "elapsed_s": 1.8155002180719748e-05,
+      "message": ""
+    },
+    {
+      "request_id": "91bb0bea-6e71-4afd-b8a8-6419caa353dc",
+      "preparation_id": "3ea29d78-6a71-4c0c-b8f8-fa00a206a019",
+      "measurement_id": "002d8cfb-296b-46be-a60c-ae91190d0e7e",
+      "operation": "MEASURE",
+      "stage": "ROBOT_CHECK",
+      "progress": 0.0,
+      "completed_side_points": 0,
+      "total_side_points": 8,
+      "elapsed_s": 0.027676702000462683,
+      "message": ""
+    },
+    {
+      "request_id": "91bb0bea-6e71-4afd-b8a8-6419caa353dc",
+      "preparation_id": "3ea29d78-6a71-4c0c-b8f8-fa00a206a019",
+      "measurement_id": "002d8cfb-296b-46be-a60c-ae91190d0e7e",
+      "operation": "MEASURE",
+      "stage": "VALIDATING",
+      "progress": 0.0,
+      "completed_side_points": 0,
+      "total_side_points": 8,
+      "elapsed_s": 0.2051947280015156,
+      "message": "측정을 시작합니다"
+    },
+    {
+      "request_id": "91bb0bea-6e71-4afd-b8a8-6419caa353dc",
+      "preparation_id": "3ea29d78-6a71-4c0c-b8f8-fa00a206a019",
+      "measurement_id": "002d8cfb-296b-46be-a60c-ae91190d0e7e",
+      "operation": "MEASURE",
+      "stage": "HOME_CHECK",
+      "progress": 0.0,
+      "completed_side_points": 0,
+      "total_side_points": 8,
+      "elapsed_s": 0.29157665399907273,
+      "message": "현재 관절·TCP 확인: 홈 경유 경로 검사 중"
+    },
+    {
+      "request_id": "91bb0bea-6e71-4afd-b8a8-6419caa353dc",
+      "preparation_id": "3ea29d78-6a71-4c0c-b8f8-fa00a206a019",
+      "measurement_id": "002d8cfb-296b-46be-a60c-ae91190d0e7e",
+      "operation": "MEASURE",
+      "stage": "HOME_MOVE",
+      "progress": 0.0,
+      "completed_side_points": 0,
+      "total_side_points": 8,
+      "elapsed_s": 0.29190321900023264,
+      "message": "홈 위치를 확인하겠습니다"
+    },
+    {
+      "request_id": "91bb0bea-6e71-4afd-b8a8-6419caa353dc",
+      "preparation_id": "3ea29d78-6a71-4c0c-b8f8-fa00a206a019",
+      "measurement_id": "002d8cfb-296b-46be-a60c-ae91190d0e7e",
+      "operation": "MEASURE",
+      "stage": "HOME_RECHECK",
+      "progress": 0.0,
+      "completed_side_points": 0,
+      "total_side_points": 8,
+      "elapsed_s": 0.4514363529997354,
+      "message": "홈 도착·정지 확인 완료"
+    },
+    {
+      "request_id": "91bb0bea-6e71-4afd-b8a8-6419caa353dc",
+      "preparation_id": "3ea29d78-6a71-4c0c-b8f8-fa00a206a019",
+      "measurement_id": "002d8cfb-296b-46be-a60c-ae91190d0e7e",
+      "operation": "MEASURE",
+      "stage": "TOP_TOUCH",
+      "progress": 0.0,
+      "completed_side_points": 0,
+      "total_side_points": 8,
+      "elapsed_s": 0.4515946880019328,
+      "message": "양초 윗면을 측정하겠습니다"
+    },
+    {
+      "request_id": "91bb0bea-6e71-4afd-b8a8-6419caa353dc",
+      "preparation_id": "3ea29d78-6a71-4c0c-b8f8-fa00a206a019",
+      "measurement_id": "002d8cfb-296b-46be-a60c-ae91190d0e7e",
+      "operation": "MEASURE",
+      "stage": "TOP_TOUCH",
+      "progress": 0.0,
+      "completed_side_points": 0,
+      "total_side_points": 8,
+      "elapsed_s": 9.976021002999914,
+      "message": "윗면 접촉 확인 중"
+    },
+    {
+      "request_id": "91bb0bea-6e71-4afd-b8a8-6419caa353dc",
+      "preparation_id": "3ea29d78-6a71-4c0c-b8f8-fa00a206a019",
+      "measurement_id": "002d8cfb-296b-46be-a60c-ae91190d0e7e",
+      "operation": "MEASURE",
+      "stage": "TOP_TOUCH",
+      "progress": 0.0,
+      "completed_side_points": 0,
+      "total_side_points": 8,
+      "elapsed_s": 23.658882581999933,
+      "message": "윗면 접촉 측정 완료"
+    },
+    {
+      "request_id": "91bb0bea-6e71-4afd-b8a8-6419caa353dc",
+      "preparation_id": "3ea29d78-6a71-4c0c-b8f8-fa00a206a019",
+      "measurement_id": "002d8cfb-296b-46be-a60c-ae91190d0e7e",
+      "operation": "MEASURE",
+      "stage": "SIDE_TOUCH",
+      "progress": 0.0,
+      "completed_side_points": 0,
+      "total_side_points": 8,
+      "elapsed_s": 28.53274865200001,
+      "message": "양초 중심·반지름을 측정하겠습니다"
+    },
+    {
+      "request_id": "91bb0bea-6e71-4afd-b8a8-6419caa353dc",
+      "preparation_id": "3ea29d78-6a71-4c0c-b8f8-fa00a206a019",
+      "measurement_id": "002d8cfb-296b-46be-a60c-ae91190d0e7e",
+      "operation": "MEASURE",
+      "stage": "SIDE_TOUCH",
+      "progress": 0.0,
+      "completed_side_points": 0,
+      "total_side_points": 8,
+      "elapsed_s": 64.61891095600004,
+      "message": "1/8번째 점 측정 중"
+    },
+    {
+      "request_id": "91bb0bea-6e71-4afd-b8a8-6419caa353dc",
+      "preparation_id": "3ea29d78-6a71-4c0c-b8f8-fa00a206a019",
+      "measurement_id": "002d8cfb-296b-46be-a60c-ae91190d0e7e",
+      "operation": "MEASURE",
+      "stage": "SIDE_TOUCH",
+      "progress": 0.125,
+      "completed_side_points": 1,
+      "total_side_points": 8,
+      "elapsed_s": 80.54790556599983,
+      "message": "1/8번째 점 측정 완료"
+    },
+    {
+      "request_id": "91bb0bea-6e71-4afd-b8a8-6419caa353dc",
+      "preparation_id": "3ea29d78-6a71-4c0c-b8f8-fa00a206a019",
+      "measurement_id": "002d8cfb-296b-46be-a60c-ae91190d0e7e",
+      "operation": "MEASURE",
+      "stage": "SIDE_TOUCH",
+      "progress": 0.125,
+      "completed_side_points": 1,
+      "total_side_points": 8,
+      "elapsed_s": 91.07352496100066,
+      "message": "2/8번째 점 측정 중"
+    },
+    {
+      "request_id": "91bb0bea-6e71-4afd-b8a8-6419caa353dc",
+      "preparation_id": "3ea29d78-6a71-4c0c-b8f8-fa00a206a019",
+      "measurement_id": "002d8cfb-296b-46be-a60c-ae91190d0e7e",
+      "operation": "MEASURE",
+      "stage": "SIDE_TOUCH",
+      "progress": 0.25,
+      "completed_side_points": 2,
+      "total_side_points": 8,
+      "elapsed_s": 105.17219736100014,
+      "message": "2/8번째 점 측정 완료"
+    },
+    {
+      "request_id": "91bb0bea-6e71-4afd-b8a8-6419caa353dc",
+      "preparation_id": "3ea29d78-6a71-4c0c-b8f8-fa00a206a019",
+      "measurement_id": "002d8cfb-296b-46be-a60c-ae91190d0e7e",
+      "operation": "MEASURE",
+      "stage": "SIDE_TOUCH",
+      "progress": 0.25,
+      "completed_side_points": 2,
+      "total_side_points": 8,
+      "elapsed_s": 115.71055434799928,
+      "message": "3/8번째 점 측정 중"
+    },
+    {
+      "request_id": "91bb0bea-6e71-4afd-b8a8-6419caa353dc",
+      "preparation_id": "3ea29d78-6a71-4c0c-b8f8-fa00a206a019",
+      "measurement_id": "002d8cfb-296b-46be-a60c-ae91190d0e7e",
+      "operation": "MEASURE",
+      "stage": "SIDE_TOUCH",
+      "progress": 0.375,
+      "completed_side_points": 3,
+      "total_side_points": 8,
+      "elapsed_s": 128.75589105700055,
+      "message": "3/8번째 점 측정 완료"
+    },
+    {
+      "request_id": "91bb0bea-6e71-4afd-b8a8-6419caa353dc",
+      "preparation_id": "3ea29d78-6a71-4c0c-b8f8-fa00a206a019",
+      "measurement_id": "002d8cfb-296b-46be-a60c-ae91190d0e7e",
+      "operation": "MEASURE",
+      "stage": "SIDE_TOUCH",
+      "progress": 0.375,
+      "completed_side_points": 3,
+      "total_side_points": 8,
+      "elapsed_s": 139.30382881600235,
+      "message": "4/8번째 점 측정 중"
+    },
+    {
+      "request_id": "91bb0bea-6e71-4afd-b8a8-6419caa353dc",
+      "preparation_id": "3ea29d78-6a71-4c0c-b8f8-fa00a206a019",
+      "measurement_id": "002d8cfb-296b-46be-a60c-ae91190d0e7e",
+      "operation": "MEASURE",
+      "stage": "SIDE_TOUCH",
+      "progress": 0.5,
+      "completed_side_points": 4,
+      "total_side_points": 8,
+      "elapsed_s": 153.94702182100082,
+      "message": "4/8번째 점 측정 완료"
+    },
+    {
+      "request_id": "91bb0bea-6e71-4afd-b8a8-6419caa353dc",
+      "preparation_id": "3ea29d78-6a71-4c0c-b8f8-fa00a206a019",
+      "measurement_id": "002d8cfb-296b-46be-a60c-ae91190d0e7e",
+      "operation": "MEASURE",
+      "stage": "SIDE_TOUCH",
+      "progress": 0.5,
+      "completed_side_points": 4,
+      "total_side_points": 8,
+      "elapsed_s": 164.50520853800117,
+      "message": "5/8번째 점 측정 중"
+    },
+    {
+      "request_id": "91bb0bea-6e71-4afd-b8a8-6419caa353dc",
+      "preparation_id": "3ea29d78-6a71-4c0c-b8f8-fa00a206a019",
+      "measurement_id": "002d8cfb-296b-46be-a60c-ae91190d0e7e",
+      "operation": "MEASURE",
+      "stage": "SIDE_TOUCH",
+      "progress": 0.625,
+      "completed_side_points": 5,
+      "total_side_points": 8,
+      "elapsed_s": 179.33767085100044,
+      "message": "5/8번째 점 측정 완료"
+    },
+    {
+      "request_id": "91bb0bea-6e71-4afd-b8a8-6419caa353dc",
+      "preparation_id": "3ea29d78-6a71-4c0c-b8f8-fa00a206a019",
+      "measurement_id": "002d8cfb-296b-46be-a60c-ae91190d0e7e",
+      "operation": "MEASURE",
+      "stage": "SIDE_TOUCH",
+      "progress": 0.625,
+      "completed_side_points": 5,
+      "total_side_points": 8,
+      "elapsed_s": 189.85656131500218,
+      "message": "6/8번째 점 측정 중"
+    },
+    {
+      "request_id": "91bb0bea-6e71-4afd-b8a8-6419caa353dc",
+      "preparation_id": "3ea29d78-6a71-4c0c-b8f8-fa00a206a019",
+      "measurement_id": "002d8cfb-296b-46be-a60c-ae91190d0e7e",
+      "operation": "MEASURE",
+      "stage": "SIDE_TOUCH",
+      "progress": 0.75,
+      "completed_side_points": 6,
+      "total_side_points": 8,
+      "elapsed_s": 205.14581565200206,
+      "message": "6/8번째 점 측정 완료"
+    },
+    {
+      "request_id": "91bb0bea-6e71-4afd-b8a8-6419caa353dc",
+      "preparation_id": "3ea29d78-6a71-4c0c-b8f8-fa00a206a019",
+      "measurement_id": "002d8cfb-296b-46be-a60c-ae91190d0e7e",
+      "operation": "MEASURE",
+      "stage": "SIDE_TOUCH",
+      "progress": 0.75,
+      "completed_side_points": 6,
+      "total_side_points": 8,
+      "elapsed_s": 215.7212708299994,
+      "message": "7/8번째 점 측정 중"
+    },
+    {
+      "request_id": "91bb0bea-6e71-4afd-b8a8-6419caa353dc",
+      "preparation_id": "3ea29d78-6a71-4c0c-b8f8-fa00a206a019",
+      "measurement_id": "002d8cfb-296b-46be-a60c-ae91190d0e7e",
+      "operation": "MEASURE",
+      "stage": "SIDE_TOUCH",
+      "progress": 0.875,
+      "completed_side_points": 7,
+      "total_side_points": 8,
+      "elapsed_s": 230.95122422400163,
+      "message": "7/8번째 점 측정 완료"
+    },
+    {
+      "request_id": "91bb0bea-6e71-4afd-b8a8-6419caa353dc",
+      "preparation_id": "3ea29d78-6a71-4c0c-b8f8-fa00a206a019",
+      "measurement_id": "002d8cfb-296b-46be-a60c-ae91190d0e7e",
+      "operation": "MEASURE",
+      "stage": "SIDE_TOUCH",
+      "progress": 0.875,
+      "completed_side_points": 7,
+      "total_side_points": 8,
+      "elapsed_s": 241.4365048610016,
+      "message": "8/8번째 점 측정 중"
+    },
+    {
+      "request_id": "91bb0bea-6e71-4afd-b8a8-6419caa353dc",
+      "preparation_id": "3ea29d78-6a71-4c0c-b8f8-fa00a206a019",
+      "measurement_id": "002d8cfb-296b-46be-a60c-ae91190d0e7e",
+      "operation": "MEASURE",
+      "stage": "SIDE_TOUCH",
+      "progress": 1.0,
+      "completed_side_points": 8,
+      "total_side_points": 8,
+      "elapsed_s": 258.37080255399997,
+      "message": "8/8번째 점 측정 완료"
+    },
+    {
+      "request_id": "91bb0bea-6e71-4afd-b8a8-6419caa353dc",
+      "preparation_id": "3ea29d78-6a71-4c0c-b8f8-fa00a206a019",
+      "measurement_id": "002d8cfb-296b-46be-a60c-ae91190d0e7e",
+      "operation": "MEASURE",
+      "stage": "FIT",
+      "progress": 1.0,
+      "completed_side_points": 8,
+      "total_side_points": 8,
+      "elapsed_s": 262.1165206020014,
+      "message": "양초 좌표 계산 중"
+    },
+    {
+      "request_id": "91bb0bea-6e71-4afd-b8a8-6419caa353dc",
+      "preparation_id": "3ea29d78-6a71-4c0c-b8f8-fa00a206a019",
+      "measurement_id": "002d8cfb-296b-46be-a60c-ae91190d0e7e",
+      "operation": "MEASURE",
+      "stage": "RETRACT",
+      "progress": 1.0,
+      "completed_side_points": 8,
+      "total_side_points": 8,
+      "elapsed_s": 262.12255633099994,
+      "message": "측정 완료: 검사한 경로로 상공 홈에 복귀합니다"
+    },
+    {
+      "request_id": "91bb0bea-6e71-4afd-b8a8-6419caa353dc",
+      "preparation_id": "3ea29d78-6a71-4c0c-b8f8-fa00a206a019",
+      "measurement_id": "002d8cfb-296b-46be-a60c-ae91190d0e7e",
+      "operation": "MEASURE",
+      "stage": "RETRACT",
+      "progress": 1.0,
+      "completed_side_points": 8,
+      "total_side_points": 8,
+      "elapsed_s": 302.46828515200104,
+      "message": "상공 홈 도착·정지 확인 완료"
+    },
+    {
+      "request_id": "91bb0bea-6e71-4afd-b8a8-6419caa353dc",
+      "preparation_id": "3ea29d78-6a71-4c0c-b8f8-fa00a206a019",
+      "measurement_id": "002d8cfb-296b-46be-a60c-ae91190d0e7e",
+      "operation": "MEASURE",
+      "stage": "COMPLETE",
+      "progress": 1.0,
+      "completed_side_points": 8,
+      "total_side_points": 8,
+      "elapsed_s": 302.46941248200164,
+      "message": "측정·계산·후퇴 확인 완료"
+    },
+    {
+      "request_id": "6f9c9285-2cc6-45e9-9ccc-ab840a6cd2dd",
+      "preparation_id": "3ea29d78-6a71-4c0c-b8f8-fa00a206a019",
+      "measurement_id": "002d8cfb-296b-46be-a60c-ae91190d0e7e",
+      "operation": "BIND_SNAPSHOT",
+      "stage": "BINDING",
+      "progress": 0.0,
+      "completed_side_points": 0,
+      "total_side_points": 8,
+      "elapsed_s": 0.0001286570004594978,
+      "message": ""
+    },
+    {
+      "request_id": "6f9c9285-2cc6-45e9-9ccc-ab840a6cd2dd",
+      "preparation_id": "3ea29d78-6a71-4c0c-b8f8-fa00a206a019",
+      "measurement_id": "002d8cfb-296b-46be-a60c-ae91190d0e7e",
+      "operation": "BIND_SNAPSHOT",
+      "stage": "COMPLETE",
+      "progress": 0.0,
+      "completed_side_points": 0,
+      "total_side_points": 8,
+      "elapsed_s": 0.0346463700007007,
+      "message": "측정 원본·최종 스냅샷 대조 완료; 신뢰도 상태는 기록용"
+    }
+  ],
+  "result": {
+    "outcome": "SUCCEEDED",
+    "error_code": "NONE",
+    "message": "측정·계산·후퇴 확인 완료",
+    "observed_state": {
+      "partial": false,
+      "stop_confirmed": true,
+      "measurement": {
+        "request_id": "91bb0bea-6e71-4afd-b8a8-6419caa353dc",
+        "preparation_id": "3ea29d78-6a71-4c0c-b8f8-fa00a206a019",
+        "measurement_id": "002d8cfb-296b-46be-a60c-ae91190d0e7e",
+        "operation": "MEASURE",
+        "source_mode": "REAL",
+        "outcome": "SUCCEEDED",
+        "error_code": "NONE",
+        "message": "측정·계산·후퇴 확인 완료",
+        "stop_confirmed": true,
+        "partial": false,
+        "geometry_ready": true,
+        "snapshot_bound": false,
+        "input_profile_snapshot_id": "0faa56d8-1201-42d6-b64a-07da624b1eba",
+        "input_profile_sha256": "0e94cd1aff0882d332ae55670f86958bab681ba0ad9fba2494e8c613d5092d65",
+        "measurement_record_id": "",
+        "measurement_record_sha256": "",
+        "profile_snapshot_id": "0faa56d8-1201-42d6-b64a-07da624b1eba",
+        "profile_sha256": "0e94cd1aff0882d332ae55670f86958bab681ba0ad9fba2494e8c613d5092d65",
+        "log_id": "",
+        "frame_id": "c2_base",
+        "validity": "FORCE_CONTACT_ESTIMATE",
+        "started_at": {
+          "sec": 1790148223,
+          "nanosec": 962380886
+        },
+        "measured_at": "2026-09-23T07:28:46.225841045Z",
+        "height_source": "OPERATOR_RULER",
+        "height_m": 0.15,
+        "axis_xy_m": [
+          0.4233923696696419,
+          0.00031013526838899696
+        ],
+        "radius_m": 0.03386009976984811,
+        "top_z_m": 0.21575921630919023,
+        "bottom_z_m": 0.06575921630919024,
+        "work_v_range_m": [
+          0.01,
+          0.13999999999999999
+        ],
+        "work_z_range_m": [
+          0.07575921630919023,
+          0.20575921630919022
+        ],
+        "residual_rms_m": 0.00011228403514280041,
+        "residual_max_m": 0.0001624924404492467,
+        "vertical_axis_assumed": true,
+        "tilt_measured": false,
+        "independent_accuracy_verified": false,
+        "absolute_top_verification_known": true,
+        "absolute_top_verified": true,
+        "contact_indices": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8
+        ],
+        "contact_tip_poses": [
+          {
+            "position": {
+              "x": 0.4223668624960708,
+              "y": -0.0992249859639283,
+              "z": 0.23575943151136144
+            },
+            "orientation": {
+              "x": 3.1957933079708865e-06,
+              "y": 0.9999999999874376,
+              "z": -1.1124636258061524e-06,
+              "w": 3.6978713379749213e-06
+            }
+          },
+          {
+            "position": {
+              "x": 0.42325766186583685,
+              "y": 0.03423805612384699,
+              "z": 0.1957767501919191
+            },
+            "orientation": {
+              "x": 9.370998082265761e-06,
+              "y": 0.9999999996014708,
+              "z": 8.436561996652843e-06,
+              "w": 2.5259990512318535e-05
+            }
+          },
+          {
+            "position": {
+              "x": 0.39932501627772443,
+              "y": 0.02428316771506872,
+              "z": 0.1957818025913167
+            },
+            "orientation": {
+              "x": -0.3826977796087757,
+              "y": 0.9238735891306278,
+              "z": -6.48344536110958e-07,
+              "w": 2.8088867980054763e-05
+            }
+          },
+          {
+            "position": {
+              "x": 0.38969476572654443,
+              "y": 0.00032524223693438303,
+              "z": 0.19583106588361027
+            },
+            "orientation": {
+              "x": -0.7071032950909133,
+              "y": 0.7071102627061759,
+              "z": -5.737019654048157e-05,
+              "w": 5.617683018939184e-05
+            }
+          },
+          {
+            "position": {
+              "x": 0.39940969404607135,
+              "y": -0.023574427995916206,
+              "z": 0.1957541229288944
+            },
+            "orientation": {
+              "x": 0.9238562559871425,
+              "y": -0.3827396219432493,
+              "z": -7.935565796412048e-06,
+              "w": 2.27706365316627e-06
+            }
+          },
+          {
+            "position": {
+              "x": 0.4232396019242809,
+              "y": -0.033708732860910806,
+              "z": 0.1957610466421563
+            },
+            "orientation": {
+              "x": 0.9999999984114294,
+              "y": -5.632585702534305e-05,
+              "z": 1.0531976657234329e-06,
+              "w": 1.8520064663913275e-06
+            }
+          },
+          {
+            "position": {
+              "x": 0.44720571586742597,
+              "y": -0.02359223781507694,
+              "z": 0.19570264411378227
+            },
+            "orientation": {
+              "x": 0.9238680778762357,
+              "y": 0.3827110807464408,
+              "z": -5.01770394981691e-05,
+              "w": -2.8938312791641407e-05
+            }
+          },
+          {
+            "position": {
+              "x": 0.4573240241191829,
+              "y": 0.00032694065429537337,
+              "z": 0.19572887156704807
+            },
+            "orientation": {
+              "x": 0.7071070636528113,
+              "y": 0.707106498711031,
+              "z": 2.248207715973501e-06,
+              "w": 2.8056211893155083e-06
+            }
+          },
+          {
+            "position": {
+              "x": 0.4471784643251461,
+              "y": 0.024249115178962888,
+              "z": 0.19569906278257845
+            },
+            "orientation": {
+              "x": 0.3826976556631959,
+              "y": 0.9238736378583899,
+              "z": -3.8663886668562674e-05,
+              "w": -6.422851847106824e-05
+            }
+          }
+        ],
+        "contact_normal_force_n": [
+          1.1292614936828613,
+          1.2327599227428436,
+          0.8069341628423592,
+          1.1876041889190678,
+          1.0813759378788044,
+          0.872765302658081,
+          1.007802797537945,
+          1.0165324807167053,
+          0.9302655985806654
+        ],
+        "contact_received_at": [
+          {
+            "sec": 1790148247,
+            "nanosec": 416222095
+          },
+          {
+            "sec": 1790148304,
+            "nanosec": 305242062
+          },
+          {
+            "sec": 1790148328,
+            "nanosec": 929574013
+          },
+          {
+            "sec": 1790148352,
+            "nanosec": 513247013
+          },
+          {
+            "sec": 1790148377,
+            "nanosec": 704397917
+          },
+          {
+            "sec": 1790148403,
+            "nanosec": 95027924
+          },
+          {
+            "sec": 1790148428,
+            "nanosec": 903166056
+          },
+          {
+            "sec": 1790148454,
+            "nanosec": 708581924
+          },
+          {
+            "sec": 1790148482,
+            "nanosec": 128151894
+          }
+        ],
+        "contact_monotonic_s": [
+          26896.374981824,
+          26953.262188158,
+          26977.886431093,
+          27001.477879012,
+          27026.670759796,
+          27052.059511477,
+          27077.872985878,
+          27103.677568752,
+          27131.086725758
+        ],
+        "contact_sources": [
+          "FORCE_CONTACT_ESTIMATE",
+          "FORCE_CONTACT_ESTIMATE",
+          "FORCE_CONTACT_ESTIMATE",
+          "FORCE_CONTACT_ESTIMATE",
+          "FORCE_CONTACT_ESTIMATE",
+          "FORCE_CONTACT_ESTIMATE",
+          "FORCE_CONTACT_ESTIMATE",
+          "FORCE_CONTACT_ESTIMATE",
+          "FORCE_CONTACT_ESTIMATE"
+        ],
+        "position_unit": "m",
+        "points": [
+          {
+            "point_index": 1
+          },
+          {
+            "point_index": 2
+          },
+          {
+            "point_index": 3
+          },
+          {
+            "point_index": 4
+          },
+          {
+            "point_index": 5
+          },
+          {
+            "point_index": 6
+          },
+          {
+            "point_index": 7
+          },
+          {
+            "point_index": 8
+          }
+        ]
+      }
+    }
+  },
+  "binding_status": "BOUND_ROS",
+  "created_at": "2026-09-23T07:23:43.737988+00:00",
+  "updated_at": "2026-09-23T07:28:46.326143+00:00",
+  "source": "ROS_REAL",
+  "hardware_snapshot": {
+    "id": "222f7a80-358b-49d1-8f9e-18a36a60b07e",
+    "sha256": "8d613c87e768c8dc92c775a39d49f1738fe32472d746df4768db8c34a83302ef"
+  },
+  "action_goal": {
+    "schema_version": 2,
+    "operation": "MEASURE",
+    "request_id": "91bb0bea-6e71-4afd-b8a8-6419caa353dc",
+    "preparation_id": "3ea29d78-6a71-4c0c-b8f8-fa00a206a019",
+    "measurement_id": "002d8cfb-296b-46be-a60c-ae91190d0e7e",
+    "source_mode": "REAL",
+    "input_profile_snapshot_id": "0faa56d8-1201-42d6-b64a-07da624b1eba",
+    "input_profile_sha256": "0e94cd1aff0882d332ae55670f86958bab681ba0ad9fba2494e8c613d5092d65",
+    "measurement_record_id": "",
+    "measurement_record_sha256": "",
+    "profile_snapshot_id": "",
+    "profile_sha256": ""
+  },
+  "measurement_record": {
+    "id": "d5fa7a0e-f6af-4971-ae20-c036d8fd368b",
+    "sha256": "a99f6fb5ddafb56fef4edbb325c2a857c3759d6382d390b06f500385c77769f3"
+  },
+  "bind_goal": {
+    "schema_version": 2,
+    "operation": "BIND_SNAPSHOT",
+    "request_id": "6f9c9285-2cc6-45e9-9ccc-ab840a6cd2dd",
+    "preparation_id": "3ea29d78-6a71-4c0c-b8f8-fa00a206a019",
+    "measurement_id": "002d8cfb-296b-46be-a60c-ae91190d0e7e",
+    "source_mode": "REAL",
+    "input_profile_snapshot_id": "0faa56d8-1201-42d6-b64a-07da624b1eba",
+    "input_profile_sha256": "0e94cd1aff0882d332ae55670f86958bab681ba0ad9fba2494e8c613d5092d65",
+    "measurement_record_id": "d5fa7a0e-f6af-4971-ae20-c036d8fd368b",
+    "measurement_record_sha256": "a99f6fb5ddafb56fef4edbb325c2a857c3759d6382d390b06f500385c77769f3",
+    "profile_snapshot_id": "f79b9152-a77e-4777-b71b-d9a1289f7279",
+    "profile_sha256": "c69969aa5ef5780d93328e9a95b5db976021d01c2ad3b802e9d4f20c730dac68"
+  },
+  "bind_result": {
+    "request_id": "6f9c9285-2cc6-45e9-9ccc-ab840a6cd2dd",
+    "preparation_id": "3ea29d78-6a71-4c0c-b8f8-fa00a206a019",
+    "measurement_id": "002d8cfb-296b-46be-a60c-ae91190d0e7e",
+    "operation": "BIND_SNAPSHOT",
+    "source_mode": "REAL",
+    "outcome": "SUCCEEDED",
+    "error_code": "NONE",
+    "message": "측정 원본·최종 스냅샷 대조 완료; 신뢰도 상태는 기록용",
+    "stop_confirmed": true,
+    "partial": false,
+    "geometry_ready": true,
+    "snapshot_bound": true,
+    "input_profile_snapshot_id": "0faa56d8-1201-42d6-b64a-07da624b1eba",
+    "input_profile_sha256": "0e94cd1aff0882d332ae55670f86958bab681ba0ad9fba2494e8c613d5092d65",
+    "measurement_record_id": "d5fa7a0e-f6af-4971-ae20-c036d8fd368b",
+    "measurement_record_sha256": "a99f6fb5ddafb56fef4edbb325c2a857c3759d6382d390b06f500385c77769f3",
+    "profile_snapshot_id": "f79b9152-a77e-4777-b71b-d9a1289f7279",
+    "profile_sha256": "c69969aa5ef5780d93328e9a95b5db976021d01c2ad3b802e9d4f20c730dac68",
+    "log_id": "",
+    "frame_id": "",
+    "validity": "INCOMPLETE",
+    "started_at": {
+      "sec": 0,
+      "nanosec": 0
+    },
+    "measured_at": {
+      "sec": 0,
+      "nanosec": 0
+    },
+    "height_source": "",
+    "height_m": 0.0,
+    "axis_xy_m": [
+      0.0,
+      0.0
+    ],
+    "radius_m": 0.0,
+    "top_z_m": 0.0,
+    "bottom_z_m": 0.0,
+    "work_v_range_m": [
+      0.0,
+      0.0
+    ],
+    "work_z_range_m": [
+      0.0,
+      0.0
+    ],
+    "residual_rms_m": 0.0,
+    "residual_max_m": 0.0,
+    "vertical_axis_assumed": false,
+    "tilt_measured": false,
+    "independent_accuracy_verified": false,
+    "absolute_top_verification_known": false,
+    "absolute_top_verified": false,
+    "contact_indices": [],
+    "contact_tip_poses": [],
+    "contact_normal_force_n": [],
+    "contact_received_at": [],
+    "contact_monotonic_s": [],
+    "contact_sources": []
+  },
+  "profile_snapshot": {
+    "id": "f79b9152-a77e-4777-b71b-d9a1289f7279",
+    "sha256": "c69969aa5ef5780d93328e9a95b5db976021d01c2ad3b802e9d4f20c730dac68",
+    "payload": {
+      "contract": "c2-path-real-execution-profile/1",
+      "schema_version": 2,
+      "source_mode": "REAL",
+      "test_only": false,
+      "real_execution_allowed": true,
+      "frame_id": "c2_base",
+      "gripper_open_allowed": false,
+      "workcell_id": "candle_test_0919",
+      "workcell_version": 1,
+      "tools_config_id": "c2_tools",
+      "tools_config_version": 1,
+      "tool_id": "engraving_drill",
+      "tool_version": 1,
+      "tcp_id": "GripperDA_v1",
+      "tcp_version": 1,
+      "load_id": "ToolWeight_1",
+      "load_version": 1,
+      "surface": {
+        "kind": "cylinder",
+        "radius_mm": 33.860099769848105,
+        "height_mm": 150.0,
+        "axis_origin_m": [
+          0.4233923696696419,
+          0.00031013526838899696,
+          0.06575921630919024
+        ],
+        "axis_direction": [
+          0,
+          0,
+          1
+        ],
+        "valid_v_range_mm": [
+          10.0,
+          140.0
+        ],
+        "u_origin_angle_deg": 0.0,
+        "seam_angle_deg": 180.0,
+        "reachable_angle_deg": [
+          -135.0,
+          135.0
+        ],
+        "height_reference": "bottom",
+        "v_direction": "up",
+        "v_range_mm": [
+          0,
+          150.0
+        ],
+        "u_range_mm": [
+          -106.37464068677225,
+          106.37464068677225
+        ]
+      },
+      "tip_calibration": {
+        "tool_id": "engraving_drill",
+        "offset_tool_m": [
+          0.00085,
+          -0.09955,
+          0.0
+        ]
+      },
+      "execution_context": {
+        "source_mode": "REAL",
+        "motion_profiles": {
+          "candle_approach": {
+            "id": "candle_approach",
+            "vel_mm_s": 25.0,
+            "acc_mm_s2": 10.0,
+            "pos_tol_mm": 0.2,
+            "angle_tol_deg": 0.15,
+            "completion_timeout_s": 90.0
+          },
+          "candle_cut": {
+            "id": "candle_cut",
+            "vel_mm_s": 5.0,
+            "acc_mm_s2": 10.0,
+            "pos_tol_mm": 0.2,
+            "angle_tol_deg": 0.15,
+            "completion_timeout_s": 90.0
+          },
+          "candle_travel": {
+            "id": "candle_travel",
+            "vel_mm_s": 25.0,
+            "acc_mm_s2": 10.0,
+            "pos_tol_mm": 0.2,
+            "angle_tol_deg": 0.15,
+            "completion_timeout_s": 90.0
+          },
+          "candle_retract": {
+            "id": "candle_retract",
+            "vel_mm_s": 25.0,
+            "acc_mm_s2": 10.0,
+            "pos_tol_mm": 0.2,
+            "angle_tol_deg": 0.15,
+            "completion_timeout_s": 90.0
+          }
+        },
+        "engraving_workspace": {
+          "frame_id": "c2_base",
+          "waypoint_min_z_m": 0.05
+        },
+        "entry_planning": {
+          "enabled": true,
+          "tcp_clearance_above_top_range_m": [
+            0.084070526,
+            0.114070526
+          ],
+          "tcp_z_step_m": 0.002,
+          "sample_m": 0.002,
+          "sample_deg": 1.0,
+          "min_radial_gap_m": 0.018,
+          "min_j3_abs_deg": 10.0,
+          "min_j5_margin_deg": 15.0,
+          "max_joint_step_deg": 8.0,
+          "start_position_tolerance_m": 0.0003,
+          "start_angle_tolerance_deg": 0.3,
+          "motion_profile_id": "candle_travel"
+        },
+        "tool_profile": {
+          "tool_id": "engraving_drill",
+          "contact_mode": "fixed_depth",
+          "depth_m": 0.0005,
+          "clearance_m": 0.03,
+          "tool_axis": "-y",
+          "frame_id": "c2_base"
+        },
+        "stop_profile": {
+          "mode": 1,
+          "confirmation_timeout_s": 2.0
+        }
+      },
+      "joint_check_arguments": {
+        "limits_deg": [
+          [
+            -360.0,
+            360.0
+          ],
+          [
+            -95.0,
+            95.0
+          ],
+          [
+            -135.0,
+            135.0
+          ],
+          [
+            -360.0,
+            360.0
+          ],
+          [
+            -135.0,
+            135.0
+          ],
+          [
+            -170.0,
+            170.0
+          ]
+        ],
+        "j6_margin_deg": 0.0
+      },
+      "provenance": {
+        "measurement_record": "ws_cobot_pjt/docs/evidence/workpiece_20260923_1502/prepare_workpiece_result_20260923_1502.json",
+        "measurement_record_sha256": "177e9d3b83f473dec482f0ece8f6e8f1701b29e2c323f4ca2a9c18d58760bcfe",
+        "measurement_id": "workpiece-test-0306ab602d78458c995b2d4f4c60ce11",
+        "measured_at": "2026-09-23T06:07:38.447423+00:00",
+        "geometry_source": "2026-09-23 단독 실기 8/8 결과의 초기 표면값. HMI는 새 MEASURE 결과로 BIND 스냅샷의 기하를 다시 채운다.",
+        "validity": "FORCE_CONTACT_ESTIMATE",
+        "absolute_top_verified": true,
+        "vertical_axis_assumed": true,
+        "tilt_measured": false,
+        "independent_accuracy_verified": false,
+        "validation_scope": "STANDALONE_MEASUREMENT_NOT_PREPARE_ACTION_OR_ENGRAVING"
+      },
+      "label": "REAL 실측 실행 후보",
+      "measurement_id": "002d8cfb-296b-46be-a60c-ae91190d0e7e",
+      "preparation_id": "3ea29d78-6a71-4c0c-b8f8-fa00a206a019",
+      "measured_at": "2026-09-23T07:28:46.225841045Z",
+      "measurement_status": "FORCE_CONTACT_ESTIMATE",
+      "measurement_assumptions": {
+        "vertical_axis_assumed": true,
+        "tilt_measured": false,
+        "independent_accuracy_verified": false,
+        "absolute_top_verification_known": true,
+        "absolute_top_verified": true
+      },
+      "note": "측정 신뢰도 보존. BIND 성공은 실제 실행 검사 통과를 의미하지 않습니다.",
+      "validity": "FORCE_CONTACT_ESTIMATE",
+      "input_profile_snapshot_id": "0faa56d8-1201-42d6-b64a-07da624b1eba",
+      "input_profile_sha256": "0e94cd1aff0882d332ae55670f86958bab681ba0ad9fba2494e8c613d5092d65",
+      "measurement_record_id": "d5fa7a0e-f6af-4971-ae20-c036d8fd368b",
+      "measurement_record_sha256": "a99f6fb5ddafb56fef4edbb325c2a857c3759d6382d390b06f500385c77769f3",
+      "absolute_top_verification_known": true,
+      "absolute_top_verified": true,
+      "contact_calibration": {
+        "auto_entry": true,
+        "clearance_tcp_z_m": 0.33,
+        "entry_tcp_poses": [],
+        "approach_tcp_pose": [
+          0.42325530708859205,
+          0.00032844108604387424,
+          0.24070465087890627,
+          0.0,
+          1.0,
+          0.0,
+          0.0
+        ],
+        "exit_tcp_poses": [
+          [
+            0.42325530708859205,
+            0.00032844108604387424,
+            0.33,
+            0.0,
+            1.0,
+            0.0,
+            0.0
+          ]
+        ],
+        "max_probe_m": 0.00777954101562503,
+        "retract_m": 0.002,
+        "contact_offset_tool_m": [
+          0.0,
+          0.0,
+          0.02
+        ],
+        "offset_status": "VERIFIED",
+        "offset_record_id": "gripper-bottom-offset-20260921-20mm-v1",
+        "expected_tcp_z_range_m": [
+          0.23292510986328124,
+          0.23670465087890627
+        ],
+        "expected_tcp_z_source": "2026-09-21 operator-confirmed top_yfirst contact 234.70465087890625 mm +/- 2 mm, clipped to prechecked search bound; unchanged fixture only",
+        "estimate_source": "팀 확정 운영값 2026-09-22: GripperDA_v1 TCP에서 그리퍼 하단 접촉점까지 tool +Z 20 mm. 수직 자세에서 base Z -20 mm 적용. 기록 ID gripper-bottom-offset-20260921-20mm-v1."
+      },
+      "workcell": {
+        "source_mode": "REAL",
+        "frame_id": "c2_base",
+        "height_m": 0.15,
+        "height_source": "OPERATOR_RULER",
+        "top_margin_m": 0.01,
+        "bottom_margin_m": 0.01,
+        "side_depth_m": 0.02,
+        "seed_axis_xy_m": [
+          0.42325530708859205,
+          0.00032844108604387424
+        ],
+        "seed_radius_m": 0.03389996884310031,
+        "tool_offset_m": [
+          0.00085,
+          -0.09955,
+          0
+        ],
+        "angles_deg": [
+          90.0,
+          135.0,
+          180.0,
+          225.0,
+          270.0,
+          315.0,
+          360.0,
+          405.0
+        ],
+        "orbit_step_deg": 22.5,
+        "outer_gap_m": 0.022,
+        "start_gap_m": 0.005,
+        "inside_limit_m": 0.005,
+        "slow_retract_gap_m": 0.005,
+        "side_search_m": 0.01,
+        "side_baseline_lead_in_m": 0.00405,
+        "side_contact_window_enabled": true,
+        "side_point_max_attempts": 3,
+        "move_recovery_max_attempts": 3,
+        "max_center_shift_m": 0.002,
+        "max_radius_error_m": 0.001,
+        "max_fit_rms_m": 0.0003,
+        "max_fit_residual_m": 0.0006,
+        "max_point_z_spread_m": 0.0005,
+        "max_state_age_s": 2.0,
+        "pose_tolerance_m": 0.0003,
+        "angle_tolerance_rad": 0.005235987755982988,
+        "runtime_timeout_s": 360.0,
+        "top": {
+          "auto_entry": true,
+          "clearance_tcp_z_m": 0.33,
+          "entry_tcp_poses": [],
+          "approach_tcp_pose": [
+            0.42325530708859205,
+            0.00032844108604387424,
+            0.24070465087890627,
+            0.0,
+            1.0,
+            0.0,
+            0.0
+          ],
+          "exit_tcp_poses": [
+            [
+              0.42325530708859205,
+              0.00032844108604387424,
+              0.33,
+              0.0,
+              1.0,
+              0.0,
+              0.0
+            ]
+          ],
+          "max_probe_m": 0.00777954101562503,
+          "retract_m": 0.002,
+          "contact_offset_tool_m": [
+            0.0,
+            0.0,
+            0.02
+          ],
+          "offset_status": "VERIFIED",
+          "offset_record_id": "gripper-bottom-offset-20260921-20mm-v1",
+          "expected_tcp_z_range_m": [
+            0.23292510986328124,
+            0.23670465087890627
+          ],
+          "expected_tcp_z_source": "2026-09-21 operator-confirmed top_yfirst contact 234.70465087890625 mm +/- 2 mm, clipped to prechecked search bound; unchanged fixture only",
+          "estimate_source": "팀 확정 운영값 2026-09-22: GripperDA_v1 TCP에서 그리퍼 하단 접촉점까지 tool +Z 20 mm. 수직 자세에서 base Z -20 mm 적용. 기록 ID gripper-bottom-offset-20260921-20mm-v1."
+        },
+        "provenance": {
+          "seed_geometry": "2026-09-23 15:02 단독 실기 8/8 FIT·HOME 복귀 성공 결과. measurement_id=workpiece-test-0306ab602d78458c995b2d4f4c60ce11; measured_at=2026-09-23T06:07:38.447423+00:00; 다음 측정 초기 추정값으로 재사용하며 새 측정의 정답으로 고정하지 않음.",
+          "top_reference": "팀 확정 운영값 2026-09-22: GripperDA_v1 TCP에서 그리퍼 하단 접촉점까지 tool +Z 20 mm. 수직 자세에서 base Z -20 mm 적용. 기록 ID gripper-bottom-offset-20260921-20mm-v1.",
+          "trial_scene": "현장 단독 시험 전용: 이전 측정 후 양초/받침/철사 고정 유지 전제. 팀 합의로 하단 오프셋 +20 mm를 확정 설정으로 사용하고 8점 높이를 20 mm 하향. 예상 접촉 TCP Z 232.925~236.705 mm에서 계산한 옆면 높이 192.925~196.705 mm와 수직 자세 1도/추종 여유를 포함해 TCP 검사 하한 190 mm를 사용. 전체 메시 충돌 검사는 아님.",
+          "duration_profile": "Target remains 120 s and is NOT achieved. Supervised full runs: 270.394 s and 299.295 s (including different HOME entry routes). Increase overall timeout from 300 to 360 s for scheduling/settling margin only; motion speeds and per-step stop/force limits unchanged.",
+          "approach_acceleration": "2026-09-21: outward move after point 6 reached 10.185 N with 40 mm/s^2; operator reported no collision. Reduce to 20 mm/s^2 for supervised retest; keep 10 N stop limit.",
+          "initial_position_window": "PR #82 병합 c64fc6d의 측정 설정 유지: start_gap 5 mm, inside_limit 5 mm, side_search 10 mm, baseline lead-in 4.05 mm, 이동 복구 최초 포함 3회. seed와 윗면 XY만 15:02 8점 결과로 갱신.",
+          "seed_refresh": "seed 중심·반지름을 원본 정밀도로 갱신하고, top_xy_tolerance_m와 일치하도록 top.approach_tcp_pose 및 exit_tcp_poses XY를 같은 중심으로 갱신. 승인된 HOME TCP·Z 탐색 범위·trial_scene 범위는 유지. 변경된 계획의 실기 검증은 별도.",
+          "measurement_evidence": {
+            "record": "ws_cobot_pjt/docs/evidence/workpiece_20260923_1502/prepare_workpiece_result_20260923_1502.json",
+            "sha256": "177e9d3b83f473dec482f0ece8f6e8f1701b29e2c323f4ca2a9c18d58760bcfe",
+            "measurement_id": "workpiece-test-0306ab602d78458c995b2d4f4c60ce11",
+            "profile_sha256_used_in_trial": "fe2e7f42efca1f21e417210708f9f0d430d63ec93a4c429e271b340104c82797",
+            "source_commits": [
+              "8372f57a70fcde0011fa0633dd4c1cb1fda9d329",
+              "28ff186c26fa8b6c84d518a6139a779e35873b31"
+            ],
+            "validation_scope": "STANDALONE_MEASUREMENT_NOT_PREPARE_ACTION",
+            "independent_accuracy_verified": false
+          }
+        },
+        "measurement_scope": "ABSOLUTE_GEOMETRY",
+        "tcp_id": "GripperDA_v1",
+        "load_id": "ToolWeight_1",
+        "side_entry_clearance_z_m": 0.33,
+        "trial_scene": {
+          "environment_record_id": "top_yfirst_20260921_091824+repeat180_20260921_103049",
+          "tcp_min_m": [
+            0.265,
+            -0.17,
+            0.19
+          ],
+          "tcp_max_m": [
+            0.59,
+            0.18,
+            0.335
+          ],
+          "sample_mm": 2.0,
+          "sample_deg": 1.0,
+          "upright_tolerance_deg": 1.0,
+          "overhead_clearance_z_m": 0.3,
+          "top_xy_tolerance_m": 0.0015,
+          "top_tcp_min_z_m": 0.232925,
+          "outer_min_gap_m": 0.018,
+          "model_tolerance_m": 0.0005,
+          "facing_tolerance_deg": 2.0
+        },
+        "home": {
+          "tcp_pose": [
+            0.42624374301578377,
+            4.6709476999166216e-05,
+            0.33,
+            0.0,
+            1.0,
+            0.0,
+            0.0
+          ],
+          "clearance_tcp_z_m": 0.33,
+          "overhead_z_m": 0.3,
+          "position_tolerance_m": 0.0003,
+          "angle_tolerance_rad": 0.005235987755982988,
+          "corridor_xy_tolerance_m": 0.0015,
+          "top_corridor_min_z_m": 0.232925,
+          "source_record": "2026-09-21 user correction: HOME is the overhead pose immediately before the vertical top approach. GripperDA_v1 TCP; previous engraving HOME is no longer used for this measurement.",
+          "entry_tcp_poses": [
+            [
+              0.4218,
+              0.0001,
+              0.2644,
+              0.0,
+              1.0,
+              0.0,
+              0.0
+            ]
+          ]
+        },
+        "target_duration_s": 120.0,
+        "outer_move_profile": "escape",
+        "tool_offset_source": "고정 장착 재사용: 툴 X +0.85 mm / -Y 돌출 99.55 mm. 이번 양초 측정에서 도구 길이를 재측정하지 않음.",
+        "projection_reference_source": "PRIOR_CANDLE_MODEL_ESTIMATE: seed_axis_xy_m/seed_radius_m 재사용. 양초 위치·반지름 오차와 길이 오차를 독립 분리하지 못함.",
+        "axis_xy_m": [
+          0.4233923696696419,
+          0.00031013526838899696
+        ],
+        "radius_m": 0.03386009976984811,
+        "top_z_m": 0.21575921630919023,
+        "bottom_z_m": 0.06575921630919024,
+        "entry_planning": {
+          "enabled": true,
+          "tcp_clearance_above_top_range_m": [
+            0.084070526,
+            0.114070526
+          ],
+          "tcp_z_step_m": 0.002,
+          "sample_m": 0.002,
+          "sample_deg": 1.0,
+          "min_radial_gap_m": 0.018,
+          "min_j3_abs_deg": 10.0,
+          "min_j5_margin_deg": 15.0,
+          "max_joint_step_deg": 8.0,
+          "start_position_tolerance_m": 0.0003,
+          "start_angle_tolerance_deg": 0.3,
+          "motion_profile_id": "candle_travel"
+        },
+        "engraving_workspace": {
+          "frame_id": "c2_base",
+          "waypoint_min_z_m": 0.05
+        }
+      }
+    }
+  },
+  "message": "ROS REAL 측정·스냅샷 등록 완료. 실행 검사는 별도 수행합니다."
+}

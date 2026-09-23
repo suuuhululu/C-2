@@ -150,3 +150,50 @@ def test_cut_contact_requires_explicit_tool_axis_by_both(tmp_path):
         validate_real_execution_config(value)
     with pytest.raises(InputsUnavailable, match='tool_axis'):
         validate_real_execution_profiles(context)
+
+
+@pytest.mark.parametrize(('key', 'bad'), [
+    ('workcell_version', 2), ('workcell_id', 'other-cell'),
+    ('tools_config_version', 99), ('tool_version', 99),
+    ('tcp_version', 99), ('load_version', 99),
+    ('contract', 'c2-path-test-profile/2'),
+])
+def test_path_identity_mismatch_rejected_by_hmi(tmp_path, key, bad):
+    value = config(tmp_path)
+    value['execution_profile'][key] = bad
+    with pytest.raises(ValueError, match=key):
+        validate_real_execution_config(value)
+
+
+def test_deployed_profile_measurement_assembly_passes_path_consumer(tmp_path):
+    from app.ros_preparation import real_bound_profile, display_result
+    from app.monitor_contract import uid
+    from c2_path.pipeline import validate_profile
+    directory = ROOT/'ws_cobot1/src/c2_process'
+    value = json.loads((directory/'config/workpiece_real_trial_0921.json').read_text())
+    value['execution_profile'] = json.loads((directory/'config/real_execution_profile_20260923.json').read_text())
+    validate_real_execution_config(value)
+    goal = dict(request_id=uid(), preparation_id=uid(), measurement_id=uid(), source_mode='REAL',
+                height_m=.15, input_profile_snapshot_id=uid(), input_profile_sha256='a'*64)
+    raw = json.loads((directory/'test/fixtures/prepare_workpiece_action_samples/success.json').read_text())['result']
+    raw.update(source_mode='REAL', validity='FORCE_CONTACT_ESTIMATE',
+               preparation_id=goal['preparation_id'], measurement_id=goal['measurement_id'])
+    profile = real_bound_profile(goal, display_result(raw, goal), value, dict(id=uid(), sha256='b'*64))
+    validate_profile(profile)
+    assert profile['surface']['radius_mm'] == raw['radius_m'] * 1000
+    assert profile['workcell_version'] == 1
+
+
+@pytest.mark.parametrize('bad', [
+    {'frame_id': 'other', 'waypoint_min_z_m': .05},
+    {'frame_id': 'c2_base', 'waypoint_min_z_m': .049},
+    {'frame_id': 'c2_base', 'waypoint_min_z_m': float('nan')},
+])
+def test_engraving_workspace_rejected_by_both_consumers(tmp_path, bad):
+    value = config(tmp_path)
+    context = value['execution_profile']['execution_context']
+    context['engraving_workspace'] = bad
+    with pytest.raises(ValueError, match='engraving_workspace'):
+        validate_real_execution_config(value)
+    with pytest.raises(InputsUnavailable, match='engraving_workspace'):
+        validate_real_execution_profiles(context)

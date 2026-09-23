@@ -49,7 +49,7 @@ def inputs():
     # REAL 분기의 수치/계약 시험용 합성 입력. 실제 측정/실기 통과 근거가 아니다.
     raw = dict(fixture['result'], source_mode='REAL', validity='ESTIMATED', absolute_top_verified=False)
     display = display_result(raw, goal)
-    record = {'id': 'measurement-record', 'sha256': 'b' * 64}
+    record = {'id': '55555555-5555-4555-8555-555555555555', 'sha256': 'b' * 64}
     return config, goal, display, record
 
 

@@ -1,5 +1,5 @@
 {
-  "notice": "main 8409fc6 + PR #82 병합 c64fc6d 로컬 통합 시험 설정. 15:02 8점 결과로 seed·윗면 XY 갱신. 담당자 baseline·이동 복구·조건부 비접촉 힘 정책 포함. 새 seed 설정과 PrepareWorkpiece Action의 실기 검증은 아직 미수행.",
+  "notice": "REAL 통합 운영 기준. 그리퍼 하단 접촉 오프셋 20 mm를 확정 설정으로 사용하고 ABSOLUTE_GEOMETRY로 윗면·바닥을 계산한다. 도구 오프셋은 고정 장착 기준 재사용.",
   "workcell": {
     "source_mode": "REAL",
     "frame_id": "c2_base",
@@ -9,10 +9,10 @@
     "bottom_margin_m": 0.01,
     "side_depth_m": 0.02,
     "seed_axis_xy_m": [
-      0.42325530708859205,
-      0.00032844108604387424
+      0.42624374301578377,
+      4.6709476999166216e-05
     ],
-    "seed_radius_m": 0.03389996884310031,
+    "seed_radius_m": 0.034291659073503865,
     "tool_offset_m": [
       0.00085,
       -0.09955,
@@ -30,14 +30,9 @@
     ],
     "orbit_step_deg": 22.5,
     "outer_gap_m": 0.022,
-    "start_gap_m": 0.005,
-    "inside_limit_m": 0.005,
+    "start_gap_m": 0.008,
+    "inside_limit_m": 0.0035,
     "slow_retract_gap_m": 0.005,
-    "side_search_m": 0.01,
-    "side_baseline_lead_in_m": 0.00405,
-    "side_contact_window_enabled": true,
-    "side_point_max_attempts": 3,
-    "move_recovery_max_attempts": 3,
     "max_center_shift_m": 0.002,
     "max_radius_error_m": 0.001,
     "max_fit_rms_m": 0.0003,
@@ -52,8 +47,8 @@
       "clearance_tcp_z_m": 0.33,
       "entry_tcp_poses": [],
       "approach_tcp_pose": [
-        0.42325530708859205,
-        0.00032844108604387424,
+        0.42624374301578377,
+        4.6709476999166216e-05,
         0.24070465087890627,
         0.0,
         1.0,
@@ -62,8 +57,8 @@
       ],
       "exit_tcp_poses": [
         [
-          0.42325530708859205,
-          0.00032844108604387424,
+          0.42624374301578377,
+          4.6709476999166216e-05,
           0.33,
           0.0,
           1.0,
@@ -88,25 +83,12 @@
       "estimate_source": "팀 확정 운영값 2026-09-22: GripperDA_v1 TCP에서 그리퍼 하단 접촉점까지 tool +Z 20 mm. 수직 자세에서 base Z -20 mm 적용. 기록 ID gripper-bottom-offset-20260921-20mm-v1."
     },
     "provenance": {
-      "seed_geometry": "2026-09-23 15:02 단독 실기 8/8 FIT·HOME 복귀 성공 결과. measurement_id=workpiece-test-0306ab602d78458c995b2d4f4c60ce11; measured_at=2026-09-23T06:07:38.447423+00:00; 다음 측정 초기 추정값으로 재사용하며 새 측정의 정답으로 고정하지 않음.",
+      "seed_geometry": "repeat180_fit.json / 기존 8점 실측. 이번 측정의 정답으로 사용하지 않음.",
       "top_reference": "팀 확정 운영값 2026-09-22: GripperDA_v1 TCP에서 그리퍼 하단 접촉점까지 tool +Z 20 mm. 수직 자세에서 base Z -20 mm 적용. 기록 ID gripper-bottom-offset-20260921-20mm-v1.",
       "trial_scene": "현장 단독 시험 전용: 이전 측정 후 양초/받침/철사 고정 유지 전제. 팀 합의로 하단 오프셋 +20 mm를 확정 설정으로 사용하고 8점 높이를 20 mm 하향. 예상 접촉 TCP Z 232.925~236.705 mm에서 계산한 옆면 높이 192.925~196.705 mm와 수직 자세 1도/추종 여유를 포함해 TCP 검사 하한 190 mm를 사용. 전체 메시 충돌 검사는 아님.",
       "duration_profile": "Target remains 120 s and is NOT achieved. Supervised full runs: 270.394 s and 299.295 s (including different HOME entry routes). Increase overall timeout from 300 to 360 s for scheduling/settling margin only; motion speeds and per-step stop/force limits unchanged.",
       "approach_acceleration": "2026-09-21: outward move after point 6 reached 10.185 N with 40 mm/s^2; operator reported no collision. Reduce to 20 mm/s^2 for supervised retest; keep 10 N stop limit.",
-      "initial_position_window": "PR #82 병합 c64fc6d의 측정 설정 유지: start_gap 5 mm, inside_limit 5 mm, side_search 10 mm, baseline lead-in 4.05 mm, 이동 복구 최초 포함 3회. seed와 윗면 XY만 15:02 8점 결과로 갱신.",
-      "seed_refresh": "seed 중심·반지름을 원본 정밀도로 갱신하고, top_xy_tolerance_m와 일치하도록 top.approach_tcp_pose 및 exit_tcp_poses XY를 같은 중심으로 갱신. 승인된 HOME TCP·Z 탐색 범위·trial_scene 범위는 유지. 변경된 계획의 실기 검증은 별도.",
-      "measurement_evidence": {
-        "record": "ws_cobot_pjt/docs/evidence/workpiece_20260923_1502/prepare_workpiece_result_20260923_1502.json",
-        "sha256": "177e9d3b83f473dec482f0ece8f6e8f1701b29e2c323f4ca2a9c18d58760bcfe",
-        "measurement_id": "workpiece-test-0306ab602d78458c995b2d4f4c60ce11",
-        "profile_sha256_used_in_trial": "fe2e7f42efca1f21e417210708f9f0d430d63ec93a4c429e271b340104c82797",
-        "source_commits": [
-          "8372f57a70fcde0011fa0633dd4c1cb1fda9d329",
-          "28ff186c26fa8b6c84d518a6139a779e35873b31"
-        ],
-        "validation_scope": "STANDALONE_MEASUREMENT_NOT_PREPARE_ACTION",
-        "independent_accuracy_verified": false
-      }
+      "initial_position_window": "초기 중심 이동 한계와 반지름 차이 합 3 mm를 시작/최대 탐색/느린 후퇴에 반영. 힘 기준 불변. 변경 후 실기 미검증."
     },
     "measurement_scope": "ABSOLUTE_GEOMETRY",
     "tcp_id": "GripperDA_v1",
@@ -166,7 +148,9 @@
     "target_duration_s": 120.0,
     "outer_move_profile": "escape",
     "tool_offset_source": "고정 장착 재사용: 툴 X +0.85 mm / -Y 돌출 99.55 mm. 이번 양초 측정에서 도구 길이를 재측정하지 않음.",
-    "projection_reference_source": "PRIOR_CANDLE_MODEL_ESTIMATE: seed_axis_xy_m/seed_radius_m 재사용. 양초 위치·반지름 오차와 길이 오차를 독립 분리하지 못함."
+    "projection_reference_source": "PRIOR_CANDLE_MODEL_ESTIMATE: seed_axis_xy_m/seed_radius_m 재사용. 양초 위치·반지름 오차와 길이 오차를 독립 분리하지 못함.",
+    "side_contact_window_enabled": true,
+    "side_point_max_attempts": 3
   },
   "profiles": {
     "travel": {
@@ -234,8 +218,6 @@
     "fk_position_mm": 0.2,
     "ik_step_deg": 1.0,
     "ik_step_mm": 2.0,
-    "air_ik_step_deg": 2.0,
-    "air_ik_step_mm": 4.0,
     "j3_margin_deg": 10.0,
     "j5_margin_deg": 15.0,
     "joint_max_deg": [
@@ -255,8 +237,6 @@
       -345.0
     ],
     "line_error_mm": 0.5,
-    "hard_line_error_mm": 3.0,
-    "noncontact_hard_force_n": 15.0,
     "max_joint_step_deg": 8.0,
     "max_samples_per_segment": 1000,
     "max_state_age_s": 0.5,
@@ -273,7 +253,9 @@
     "skip_position_m": 2e-05,
     "stationary_mad_n": 0.1,
     "stop_stable_s": 0.2,
-    "overhead_line_error_mm": 1.0
+    "overhead_line_error_mm": 1.0,
+    "air_ik_step_mm": 4.0,
+    "air_ik_step_deg": 2.0
   },
   "escape_profile_source": "9/21 user-directed separation: near-surface approach/probe/retract keep 10 N; cleared escape uses existing air speed 60 mm/s, acceleration 60 mm/s^2, absolute 15 N software stop only; no soft/persistence force test. Native controller protection unchanged. Full motion profile verified in attempt 9: 8 points and final retreat succeeded in 299.295 s. Overall timeout subsequently extended to 360 s; this extension itself is not an additional REAL run."
 }
