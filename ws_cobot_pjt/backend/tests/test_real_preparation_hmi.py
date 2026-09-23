@@ -141,6 +141,19 @@ def execution_template(config):
     value['execution_context'].update(
         motion_profiles={name: dict(vel_mm_s=1., acc_mm_s2=1., pos_tol_mm=1., completion_timeout_s=1.)
                          for name in MOTION_PROFILE.values()},
+        entry_planning=dict(
+            enabled=True,
+            tcp_clearance_above_top_range_m=[.10, .12],
+            tcp_z_step_m=.01,
+            sample_m=.005,
+            sample_deg=2.,
+            min_radial_gap_m=.005,
+            min_j3_abs_deg=10.,
+            min_j5_margin_deg=15.,
+            max_joint_step_deg=20.,
+            start_position_tolerance_m=.001,
+            start_angle_tolerance_deg=1.,
+            motion_profile_id='candle_travel'),
         tool_profile=dict(tool_id=value['tool_id'], contact_mode='fixed_depth', depth_m=.001, clearance_m=.001),
         stop_profile=dict(mode=1, confirmation_timeout_s=1.))
     for k in ('tcp_id', 'load_id'):
@@ -301,7 +314,11 @@ def test_current_confidence_overwrites_template(tmp_path, known, verified):
     from app.ros_preparation import real_bound_profile, display_result
     config = json.loads(config_file(tmp_path).read_text())
     config['execution_profile'] = execution_template(config)
+    # 배포 프로파일의 표면 템플릿은 이번 작업의 측정값으로 대체되어야 한다.
+    config['execution_profile']['surface'].update(
+        radius_mm=999., height_mm=999., axis_origin_m=[9., 9., 9.])
     config['execution_profile'].update(absolute_top_verification_known=not known, absolute_top_verified=not verified)
+    before = deepcopy(config)
     goal = dict(preparation_id=uid(), measurement_id=uid(), source_mode='REAL', height_m=.15,
                 input_profile_snapshot_id=uid(), input_profile_sha256='a'*64)
     raw = json.loads((ROOT/'ws_cobot1/src/c2_process/test/fixtures/prepare_workpiece_action_samples/success.json').read_text())['result']
@@ -311,6 +328,14 @@ def test_current_confidence_overwrites_template(tmp_path, known, verified):
     for key in ('absolute_top_verification_known', 'absolute_top_verified'):
         assert result[key] is raw[key]
         assert result['measurement_assumptions'][key] is raw[key]
+    policy = config['execution_profile']['execution_context']['entry_planning']
+    assert result['workcell']['entry_planning'] == policy
+    assert result['workcell']['entry_planning'] is not policy
+    assert result['surface']['radius_mm'] == raw['radius_m'] * 1000
+    assert result['surface']['height_mm'] == raw['height_m'] * 1000
+    assert result['surface']['axis_origin_m'] == pytest.approx(
+        [*raw['axis_xy_m'], raw['bottom_z_m']])
+    assert config == before
 
 
 def test_real_j6_approval_preserves_other_axes_and_registers_new_snapshot(tmp_path):

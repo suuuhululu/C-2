@@ -27,6 +27,20 @@ def inputs():
     for name, motion in template['execution_context']['motion_profiles'].items():
         motion.update(id=name, vel_mm_s=1., acc_mm_s2=1., pos_tol_mm=1.,
                       completion_timeout_s=1.)
+    template['execution_context']['entry_planning'] = {
+        'enabled': True,
+        'tcp_clearance_above_top_range_m': [.10, .12],
+        'tcp_z_step_m': .01,
+        'sample_m': .005,
+        'sample_deg': 2.,
+        'min_radial_gap_m': .005,
+        'min_j3_abs_deg': 10.,
+        'min_j5_margin_deg': 15.,
+        'max_joint_step_deg': 20.,
+        'start_position_tolerance_m': .001,
+        'start_angle_tolerance_deg': 1.,
+        'motion_profile_id': 'candle_travel',
+    }
     template['execution_context']['tool_profile'].update(
         contact_mode='fixed_depth', depth_m=.001, clearance_m=.001)
     config['execution_profile'] = template

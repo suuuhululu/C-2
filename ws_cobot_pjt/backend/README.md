@@ -6,13 +6,16 @@ REAL 실행 프로파일 검사는 HMI 기동이나 **사전 검사·양초 측�
 `--execution-profile`을 생략하거나 지정 파일이 없거나 JSON 형식이 잘못돼도 화면은 기동한다.
 측정 성공 원본으로 REAL 미리보기 전용 스냅샷을 만들어 BIND 없이 경로를 생성한다.
 이 경로는 test_only이며 실제 공정 실행은 차단된다. 측정 설정 `--preparation-config`는 계속 필요하다.
-실행 설정은 최종 공정 실행 전에 연결해야 하며,
+실행 설정은 최종 공정 실행 전에 연결해야 하며, `execution_context.entry_planning`의
+실측 윗면 상대 상공 여유·표본 간격·관절/간격 기준·모션 프로파일 참조까지 사전 검사를 통과해야 한다.
+검사는 준비 JSON이나 실행 프로파일을 수정하지 않는다. 양초 중심·반지름·윗면·바닥은
+측정 결과로 새 불변 스냅샷에 기록하고, entry 정책만 실행 프로파일에서 그 스냅샷으로 복사한다.
 설정 파일을 수정·선택한 뒤에는 HMI를 재시작한다.
 잘못 지정한 실행 파일을 해제하려면 `unset C2_EXECUTION_PROFILE` 후 실행한다.
 
 최신 작업: [이미지 한 장 HMI 부분통합](../docs/HMI_PARTIAL_INTEGRATION.md). 운영 화면에서 ZIP 교환을 제거하고 기본 실행을 실제 PNG/JPEG 계산 → 기존 준비/공정 흐름으로 연결했다. 이미지 의존성은 `requirements-image.lock.txt`를 사용한다. 아래 과거 파일 통합 메뉴 안내는 이전 구현 기록이다.
 
-최신 REAL 준비 연결은 [한 PC REAL 준비·측정 통합](../docs/HMI_REAL_PREPARATION.md)을 따른다. `--mode REAL --preparation-config ...`는 현장 설정을 명시 선택한 준비 MEASURE/상태/결과 수신 전용이다. 아래의 REAL 기동 거절·SIM 전용 표기는 이전 구현 기록이다. REAL 경로·조각 차단은 유지한다.
+최신 REAL 흐름은 [인터페이스 안내](../docs/INTERFACE_GUIDE.md)를 따른다. `--mode REAL --preparation-config ...`는 현장 설정을 명시 선택하며 실행 프로파일이 없으면 측정·미리보기까지만 허용한다. BIND·REAL 실행 후보·prepared `PRECHECK → ENTRY → ENGRAVE → FINISH`에는 유효한 `--execution-profile`이 추가로 필요하다. 아래의 과거 REAL 기동 거절·SIM 전용 표기는 이전 구현 기록이다.
 
 최신: [main 8a68790 통합 준비](../docs/HMI_INTEGRATION_20260921.md). `C2_ROS_PREPARATION_SIM=1`로 기존 ROS 준비 요청의 MEASURE→원본 저장→동적 `/2`→BIND를 연결한다. REAL/조각 차단은 유지한다. 아래 미연결 표기는 이전 기록이다.
 

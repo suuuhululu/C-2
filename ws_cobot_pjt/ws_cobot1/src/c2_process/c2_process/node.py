@@ -351,6 +351,26 @@ def validate_real_execution_profiles(execution):
         for key in ("vel_mm_s", "acc_mm_s2", "pos_tol_mm", "completion_timeout_s"):
             if not positive(profile.get(key)):
                 invalid(f"REAL motion_profiles.{pid}.{key} 양수 필요")
+    policy = execution.get("entry_planning")
+    if not isinstance(policy, Mapping) or policy.get("enabled") is not True:
+        invalid("REAL execution_context.entry_planning.enabled=true 설정 필요")
+    bounds = policy.get("tcp_clearance_above_top_range_m")
+    if (not isinstance(bounds, (list, tuple)) or len(bounds) != 2
+            or any(type(value) not in (int, float) or not math.isfinite(value)
+                   for value in bounds)
+            or bounds[0] <= 0 or bounds[0] > bounds[1]):
+        invalid("REAL entry_planning.tcp_clearance_above_top_range_m 범위 오류")
+    for key in ("tcp_z_step_m", "sample_m", "sample_deg", "min_radial_gap_m",
+                "min_j3_abs_deg", "min_j5_margin_deg", "max_joint_step_deg",
+                "start_position_tolerance_m", "start_angle_tolerance_deg"):
+        if not positive(policy.get(key)):
+            invalid(f"REAL entry_planning.{key} 양수 필요")
+    if (policy["tcp_z_step_m"] > bounds[1] - bounds[0]
+            and not math.isclose(bounds[0], bounds[1])):
+        invalid("REAL entry_planning.tcp_z_step_m이 탐색 범위보다 큼")
+    profile_id = policy.get("motion_profile_id")
+    if not isinstance(profile_id, str) or not profile_id or profile_id not in profiles:
+        invalid("REAL entry_planning.motion_profile_id가 이동 프로파일에 없음")
     tool = execution.get("tool_profile")
     if not isinstance(tool, Mapping) or tool.get("contact_mode") not in ("fixed_depth", "force_touch"):
         invalid("REAL tool_profile.contact_mode 명시 필요")
@@ -478,6 +498,8 @@ def resolve_real_execution_settings(snapshot, goal, profile_snapshot_id, *, adap
     if execution.get("source_mode") != "REAL":
         unavailable("REAL execution_context 모드 불일치", "SOURCE_MODE_MISMATCH")
     validate_real_execution_profiles(execution)
+    if workcell.get("entry_planning") != execution.get("entry_planning"):
+        unavailable("REAL workcell과 execution_context entry_planning 불일치", "PROFILE_MISMATCH")
     stop_profile = execution.get("stop_profile")
     if (not isinstance(stop_profile, Mapping)
             or type(stop_profile.get("mode")) is not int
