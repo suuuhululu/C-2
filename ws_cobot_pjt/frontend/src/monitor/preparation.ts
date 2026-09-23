@@ -1,5 +1,9 @@
 import type { PreparationFeedback } from "./api";
 
+export function activePreparation(state?: string) {
+  return ["ACCEPTED", "RUNNING", "CANCELING"].includes(state || "");
+}
+
 // 단계 진입이나 COMPLETE 피드백을 8점 성공으로 보간하지 않는다.
 export function measurementPoints(events: PreparationFeedback[]) {
   const points = Array<string>(8).fill("PENDING");
