@@ -1,4 +1,4 @@
-> 9/22 HMI 작업 변경: [REAL 실행 연결 계약](HMI_REAL_EXECUTION_20260922.md). 아래의 REAL 측정 전용 설명은 이전 기준이며, 현재 작업 브랜치는 BIND·생성·실행 요청을 연결한다. 상대 PR과 실기 검증은 별도다.
+> **9/22 한 PC 연결 기록:** 아래의 절대 경로·환경 변수·REAL 측정 전용 설명은 당시 작업 PC와 `c29de08` 기준이다. 2026-09-23 `main`의 실행은 [백엔드 안내](../backend/README.md)와 [공정 안내](../ws_cobot1/src/c2_process/README.md)를 따른다. 현재 코드는 조건부 BIND·경로 후보·실행 요청을 포함하지만, 실제 M0609 전체 실기 결과는 별도다.
 
 # 9/22 최신 공정 노드와 HMI 연결
 
@@ -71,10 +71,10 @@ curl --fail --silent http://127.0.0.1:8010/api/operator/snapshot | python3 -m js
 
 PrepareWorkpiece·ExecuteProcess 서버와 상태 발행자, HMI의 REAL/ROS 상태를 확인한다. 목록에 이름이 있다는 것만으로 제어권이나 실행 준비가 검증된 것은 아니다. HMI 준비 버튼은 실제 로봇 이동을 시작할 수 있다.
 
-## 현재 가능한 범위 / 후속 작업
+## 당시 가능한 범위 / 후속 작업
 
 - 새 공정 노드: REAL 준비·실행 Action, HMI 자산 조회, REAL 실행 설정 로더가 구현됨.
-- 현재 HMI: REAL 준비·측정 요청 및 결과 저장/표시. REAL BIND·경로 생성·실행 요청은 여전히 제한됨.
+- 당시 HMI: REAL 준비·측정 요청 및 결과 저장/표시. 당시 REAL BIND·경로 생성·실행 요청은 제한됐으며 후속 main에서 연결됨.
 - c2_path `/3`: REAL 미리보기 전용. `test_only` 플래그를 바꾸어 실행용으로 사용하지 않음.
 - 따라서 이 명령은 새 공정 노드와 HMI 연결/측정을 시도하는 절차다. PNG → 실제 조각 전체 연결에는 HMI의 REAL 스냅샷 조립·BIND·실행용 경로 계약 연결이 추가로 필요하다.
 

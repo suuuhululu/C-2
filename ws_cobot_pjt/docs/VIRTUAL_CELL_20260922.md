@@ -1,5 +1,7 @@
 # 랜선 없이 HMI·경로·공정 노드 통합 실행
 
+> **9/22 가상 셀 실행·검증 기록.** 아래 `/tmp/c2-hmi-partial-integration`은 당시 작업 디렉터리다. 현재 checkout에서는 저장소 루트에서 `bash ws_cobot_pjt/tools/run_virtual_cell.sh`를 사용한다. 아래 시험 수치·구현 상태는 당시 커밋의 기록이며 2026-09-23 `main`의 타입·현장 검증 상태는 [현재 현황](../../docs/REVIEW_STATUS.md)을 따른다.
+
 기준 main `688c781` (홍동 PR #62, 세은 PR #63), 작업 브랜치 `codex/hmi-partial-integration`.
 실제 로봇·두산 드라이버를 기동하지 않는다. 세 노드의 실제 코드를 ROS 2 Jazzy로 연결하고 장치 경계만 가상으로 대체한다. 모든 가상 요청/산출물은 SIMULATION이며 REAL 데이터로 위장하지 않는다.
 
@@ -81,14 +83,14 @@ virtual_device 설정은 입력 설정과 최종 스냅샷에 포함되어 해�
 - `device/preparation.sqlite3`, `device/execution.sqlite3`: 실제 공정 노드의 중복 방지 원장.
 - Ctrl+C로 실행기와 세 자식 프로세스를 종료한다. 실기 종료 명령으로 사용하지 않는다.
 
-셸 실행기는 이 작업트리의 Python 가상환경/ROS install을 우선하고, 없으면 같은 저장소의 기본 작업트리 환경을 사용한다. 이번 main 변경에는 c2_interfaces 변경이 없으며 Python 소스는 항상 현재 작업트리에서 가져온다. 새로운 PC는 Jazzy 및 c2_interfaces 빌드, backend requirements-image.lock.txt 설치, frontend npm ci/build가 필요하다. C2_PYTHON으로 가상환경 Python을 지정할 수 있다. ROS 드라이버 워크스페이스는 필요하지 않다.
+셸 실행기는 이 작업트리의 Python 가상환경/ROS install을 우선하고, 없으면 같은 저장소의 기본 작업트리 환경을 사용한다. 당시 main 변경에는 c2_interfaces 변경이 없었으며 Python 소스는 항상 현재 작업트리에서 가져왔다. 새로운 PC는 Jazzy 및 c2_interfaces 빌드, backend requirements-image.lock.txt 설치, `pnpm --dir ws_cobot_pjt/frontend install --frozen-lockfile`와 `pnpm --dir ws_cobot_pjt/frontend build`가 필요하다. C2_PYTHON으로 가상환경 Python을 지정할 수 있다. ROS 드라이버 워크스페이스는 필요하지 않다.
 
 ## 최신 main 데이터 검사에서 수정한 연결 오류
 
 1. 최신 REAL 실행 후보 `/4`는 calibration_status를 필수로 쓰지 않는데 HMI가 요구하던 조건을 제거했다. 측정 validity를 원본 값으로 갱신한다.
 2. 공정 로더가 execution_readiness 존재만으로 c2_path 원본 보고서를 HMI 외피 형식으로 오인하던 부분을 고쳤다. 고유 필드 geometry_passed로 구별하고 기존 원본 보고서의 통과·항목·경로 연결 검사는 유지한다.
 
-REAL 계약 데이터 검사에는 명시적 시험 측정/설정 fixture를 사용했다. 최신 `/4` 계산 → HMI 산출물 검증 → HMI HTTP 자산 조회 → 공정 실행 입력 로더까지 통과했다. 실제 REAL 측정·실기 실행 완료가 아니다. 특히 현재 PrepareWorkpiece Action에는 absolute_top_verified 필드가 없고 경로 /4가 요구하는 값과 현장 기록의 연결은 담당 PR에서 함께 확인해야 한다.
+REAL 계약 데이터 검사에는 명시적 시험 측정/설정 fixture를 사용했다. 당시 `/4` 계산 → HMI 산출물 검증 → HMI HTTP 자산 조회 → 공정 실행 입력 로더까지 통과했다. 실제 REAL 측정·실기 실행 완료가 아니다. 당시 `PrepareWorkpiece` Action의 절대 윗면 확인 필드가 빠져 있었으나, 9/22 후속 PR #67에서 두 bool 필드가 추가됐다. 같은 커밋의 공통 타입을 빌드해야 한다.
 
 ## 검증 기록
 
@@ -97,7 +99,7 @@ REAL 계약 데이터 검사에는 명시적 시험 측정/설정 fixture를 사
 - 공정 node/preparation 회귀시험 283개 통과, 2개 건너뜀.
 - 실제 localhost ROS Action/Service 시험: 정상 SUCCEEDED, IK 실패 FAILED, 모션 명령 실패 FAILED, 이동 중 정지 STOPPED 확인.
 - TypeScript·Vite 빌드, 저장소/구문·문서 링크, hook 8개·Issue manager 27개·설정·diff 검사 통과.
-- 실물 구동·가공 품질·실제 IK/간섭 검증은 미수행. 미커밋 작업이며 push/PR/병합 미수행.
+- 실물 구동·가공 품질·실제 IK/간섭 검증은 미수행. 이 문서의 시험 시점에는 해당 작업트리가 미커밋·미게시 상태였다. 이후 main 병합 여부는 [당일 일지](daily/2026-09-22.md)를 따른다.
 
 사용자 `/home/rokey/Pictures/Screenshots/도안용.png` 실제 파일로도 준비/BIND → 경로 생성 → 공정 종료 `SUCCEEDED / 303 구간 완료`를 확인했다. 경로 ID `789b10ca-0e76-4fdf-8e0e-8d865c40c2de`, SHA-256 `7b677f860a7d4796586550a89b6f4255af37245b95210754f6b788f0b80e198a`. 기록은 `/tmp/c2-virtual-character`에 있다. 사용한 모션은 모두 MockRobotAdapter 호출이며 실제 로봇은 연결하지 않았다. 시험 실행기는 종료했다.
 

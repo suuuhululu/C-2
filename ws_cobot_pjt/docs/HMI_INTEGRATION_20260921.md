@@ -1,6 +1,6 @@
-# 최신 main 반영 후 HMI 통합 준비
+# 9/21 HMI 통합 준비 기록
 
-> 후속 사용자 요청으로 [REAL 준비·측정 HMI 연결](HMI_REAL_PREPARATION.md)을 추가했다. 이 문서의 REAL 전체 차단 표기는 이전 SIM 작업 기록이며, 현재는 명시한 현장 설정으로 REAL MEASURE/상태 수신만 허용한다. 경로/조각 차단은 유지한다.
+> **보관 기록:** 이 문서의 REAL 전체 차단 표기는 9/21 SIM 작업 당시 상태다. 2026-09-23 `main`은 REAL 실측 미리보기와 조건부 BIND·경로 후보·별도 실행 요청을 포함한다. [현재 흐름](INTERFACE_GUIDE.md)과 [실행 안내](../backend/README.md)를 우선한다.
 
 ## 기준과 보존
 

@@ -1,5 +1,7 @@
 # REAL HMI 통합 연결 수정 · 2026-09-22
 
+> **9/22 통합·검증 기록:** 아래 명령과 수치는 당시 PC·브랜치 기준이다. 2026-09-23 `main`은 제어기 prefix와 하드웨어 관측을 후속 보완했다. 현재 실행은 [백엔드 실행 안내](../backend/README.md), [공정 패키지](../ws_cobot1/src/c2_process/README.md)를 먼저 확인한다.
+
 기준 main `e949430` (PR #65·#66·#67 포함), 브랜치 `codex/hmi-real-integration-fixes`. HMI 담당 변경이며 공통 Action·공정·경로 계산 코드는 변경하지 않았다. INTERFACE_GUIDE, SYSTEM_STRUCTURE, INTERFACE_RECOMMENDATION과 HMI_REAL_EXECUTION_20260922의 기존 MEASURE → 원본 저장 → 스냅샷 → BIND → 경로 → 별도 실행 요청을 유지한다.
 
 ## 변경 사항

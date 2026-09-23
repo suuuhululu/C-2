@@ -1,4 +1,4 @@
-> 최신 후속 수정: [REAL HMI 통합 연결 수정](HMI_REAL_INTEGRATION_FIXES_20260922.md). 정적 실행 설정 사전 검사·측정 확인값 초기화·REAL 경로 서버 기동 및 현재 공통 Result 단절을 설명합니다. 아래 과거 검사 시점·별도 기동 설명보다 우선합니다.
+> **9/22 구현 기록:** 당시 후속 수정은 [REAL HMI 통합 연결 수정](HMI_REAL_INTEGRATION_FIXES_20260922.md)에 있다. 2026-09-23 `main`의 실행 조건은 [현재 인터페이스](INTERFACE_GUIDE.md)와 [백엔드 실행 안내](../backend/README.md)를 따른다. 이 기록의 공통 Result 단절은 후속 PR #67 반영 전 상태다.
 
 # HMI REAL 실기 시험 연결 변경 · 2026-09-22
 

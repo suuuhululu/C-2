@@ -1,5 +1,7 @@
 # 준비 Action 권장안 · 두 담당자의 공통 구현 기준
 
+> **9/21 설계·인수인계 기록:** 아래의 "연결 미구현"·"구현할 작업"은 당시 상태다. 2026-09-23 `main`의 현재 계약은 [인터페이스](INTERFACE_RECOMMENDATION.md), [공통 타입](../ws_cobot1/src/c2_interfaces/README.md), 실제 `PrepareWorkpiece.action`을 따른다. 특히 Result의 절대 윗면 확인 필드는 후속 PR #67에서 추가됐다.
+
 2026-09-21. 기준: 원격 main `829db40`, 작업 브랜치 `codex/hmi-preparation-flow`.
 사용자 요청으로 작성한 **검토용 권장 계약**이다. 타입 생성은 구현하되 HMI/제어 연결·팀 승인·실기 완료를 의미하지 않는다. 기존 5개 ROS 통신과 3개 노드는 그대로 유지한다.
 

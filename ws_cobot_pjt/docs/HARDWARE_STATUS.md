@@ -42,4 +42,4 @@ Notion의 [1차 검증](https://app.notion.com/p/1-7e05211811398358922701bfaacfb
 - 원기둥의 자세·공중 이동, 자동 공구 파지·반납, 스펀지 세척, 자동 치수 확인은 이 평면 초안의 구현 완료 기능이 아니다.
 - `DrlStart` 요청 수락과 전체 작업 완료를 구분한다. 통신 결과가 불명확할 때 동일 명령을 자동 재전송하지 않는 구조로 설계한다.
 
-관련 설계는 [서비스 흐름](SERVICE_FLOW.md), [시스템 아키텍처](SYSTEM_ARCHITECTURE.md)를 따른다. 로봇·외부 패키지의 PC별 설치 이력은 [공통 의존성 문서](../../docs/DEPENDENCIES.md)에 구분한다.
+현재 코드의 흐름과 노드 책임은 [인터페이스 안내](INTERFACE_GUIDE.md), [시스템 구조](SYSTEM_STRUCTURE.md)를 따른다. 로봇·외부 패키지의 PC별 설치 이력은 [공통 의존성 문서](../../docs/DEPENDENCIES.md)에 구분한다.
