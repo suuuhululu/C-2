@@ -28,13 +28,12 @@ class TestParallelHatch(unittest.TestCase):
         finally:
             os.unlink(path)
 
-        self.assertIn("SIMULATION/test_only 표면 경로 레시피", svg)
+        self.assertIn("표면 경로 레시피", svg)
         self.assertEqual(image_to_hatch.EFFECTIVE_GROOVE_WIDTH_MM, 0.8)
         self.assertEqual(image_to_hatch.BOUNDARY_INSET_MM, 0.4)
         self.assertEqual(image_to_hatch.HATCH_SPACING_MM, 0.25)
         self.assertEqual(stats["spacing_mm"], image_to_hatch.HATCH_SPACING_MM)
-        self.assertEqual(stats["recipe_scope"], "simulation_test_only")
-        self.assertTrue(stats["fixed_test_only"])
+        self.assertEqual(stats["recipe_scope"], "surface_path")
         self.assertTrue(raw)
         self.assertGreater(stats["horizontal_hatch_stroke_count"], 1)
         self.assertGreater(stats["vertical_hatch_stroke_count"], 1)

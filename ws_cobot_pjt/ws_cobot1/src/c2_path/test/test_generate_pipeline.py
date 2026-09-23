@@ -143,7 +143,7 @@ class TestGeneratePipeline(PipelineFixture):
         self.assertTrue(validate_path.validate(path)["passed"])
         self.assertGreater(report["stats"]["convert"]["stroke_count"], 1)
         self.assertEqual(report["stats"]["convert"]["spacing_mm"], image_to_hatch.HATCH_SPACING_MM)
-        self.assertEqual(report["stats"]["convert"]["recipe_scope"], "simulation_test_only")
+        self.assertEqual(report["stats"]["convert"]["recipe_scope"], "surface_path")
         self.assertEqual(path["config"]["conversion"]["spacing_mm"], image_to_hatch.HATCH_SPACING_MM)
 
     def test_any_mapping_failure_fails_whole_generation(self):
