@@ -1,6 +1,6 @@
 # c2_process · 코드·담당자·통합할 공정
 
-> **조각 실행기 선택:** 기존 `contact_mode=force_touch`는 접촉 확인 방식, `fixed_depth`는 공정용 `run_fixed_path_trial.py`의 단순 경로 방식으로 연결한다. 함수·ROS 계약은 그대로이며, 설정 선택은 검사 전에 확정한다. [호출·교체 방법과 검증 범위](FIXED_PATH_EXECUTION.md)를 확인한다.
+> **조각 실행기 선택:** 기존 `contact_mode=force_touch`는 접촉 확인 방식, `fixed_depth`는 `engraving.execute_fixed_depth_path`의 단순 경로 방식으로 연결한다(기존 `run_fixed_path_trial` 경로는 wrapper 로 유지). 함수·ROS 계약은 그대로이며, 설정 선택은 검사 전에 확정한다. [호출·교체 방법과 검증 범위](FIXED_PATH_EXECUTION.md)를 확인한다.
 
 > **2026-09-21 사용자 결정 후속:** 드릴 ON은 HMI 수동 체크만 사용하며 공정의 ON bool 검사·확인 대기를 추가하지 않는다. 그리퍼/드릴 명령은 제외하고 장착은 하드웨어 Topic을 관측한다. 사전 검사에서 비홈이면 검사된 홈 이동 후 도착·정지 및 상태 재검사를 수행하고 양초 측정을 호출한다. 아래 과거 역할표의 드릴 확인 대기·운영자 장착 bool 의존은 수정 대상이다. 최신 요구사항·파일별 수정 범위는 [세은님 전달 문서](../../../docs/PROCESS_HANDOFF_20260921.md)를 따른다. 이번 갱신은 문서이며 함수·ROS 타입 변경은 아니다.
 
