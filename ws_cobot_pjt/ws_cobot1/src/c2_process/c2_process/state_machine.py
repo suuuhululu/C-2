@@ -176,12 +176,21 @@ def run_preparation(context, *, status_check, motion_check, measure, confirm_res
                       {**measured.observed_state, "confirmation": result.observed_state})
 
 
-def run_prepared_process(context, *, precheck, engrave, on_phase=None, on_progress=None):
-    """준비 성공 기록을 연결한 실행: 최종 검사 → 조각. 추가 도구 확인/홈 명령 없음."""
-    for phase, operation, moves in (
-        ("PRECHECK", precheck, False),
-        ("ENGRAVE", lambda: engrave(on_progress), True),
-    ):
+def run_prepared_process(context, *, precheck, engrave, enter=None,
+                         on_phase=None, on_progress=None):
+    """준비 성공 기록을 연결한 실행: 최종 검사 → 검사된 entry → 조각.
+
+    ``enter``는 PRECHECK가 확정한 동일 계획만 실행한다. 없으면 기존 SIM/호환
+    흐름을 유지하며, REAL 공정에서 필요 여부는 coordinator가 결정한다.
+    """
+    if enter is not None and not callable(enter):
+        return StepResult("FAILED", "INVALID_INPUT", "entry 콜백 형식 오류", "precheck")
+    steps = [("PRECHECK", precheck, False)]
+    if enter is not None:
+        steps.append(("ENTRY", enter, True))
+    steps.append(("ENGRAVE", lambda: engrave(on_progress), True))
+    entry_observed = None
+    for phase, operation, moves in steps:
         if context.cancel.is_set():
             return StepResult("STOPPED", "NONE", "실행 취소", phase.lower())
         if on_phase is not None:
@@ -193,7 +202,14 @@ def run_prepared_process(context, *, precheck, engrave, on_phase=None, on_progre
             return StepResult("STOPPED", "NONE", "실행 취소", phase.lower())
         result = _call(phase.lower(), operation)
         if not result.ok:
+            if entry_observed is not None:
+                result.observed_state = {**result.observed_state,
+                                         "entry": dict(entry_observed)}
             return result
+        if phase == "ENTRY":
+            entry_observed = dict(result.observed_state)
+        elif phase == "ENGRAVE" and entry_observed is not None:
+            result.observed_state["entry"] = dict(entry_observed)
         if context.cancel.is_set():
             return StepResult("UNKNOWN" if moves else "STOPPED",
                               "STOP_UNCONFIRMED" if moves else "NONE",

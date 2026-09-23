@@ -1,5 +1,14 @@
 # c2_process · 코드·담당자·통합할 공정
 
+> **2026-09-23 entry 계획 추가:** `entry_planner.py`가 공용 workcell HOME,
+> 현재 도구 끝 자세·관절, 실측 중심·반지름·윗면, 첫 APPROACH와 승인된
+> `entry_planning` 탐색 범위를 받아 `현재/HOME → 상공 entry → 첫 APPROACH`
+> 후보를 만든다. 실제 IK·관절·J6·J3/J5 특이점·보간 관절 변화·단순 원통
+> 간격 검사를 통과한 후보만 해시로 고정한다. prepared 실행은 `PRECHECK →
+> ENTRY → ENGRAVE` 순서로 검사된 동일 entry만 실행한다. 절대 310 mm 값은
+> 코드에 넣지 않았고, REAL은 승인된 `entry_planning` 설정이 없으면 실행 전
+> `NOT_READY`로 거절한다. 공개 ROS 타입과 `c2_path` 경로 계약은 변경하지 않았다.
+
 > **조각 실행기 선택:** 기존 `contact_mode=force_touch`는 접촉 확인 방식, `fixed_depth`는 공정용 `run_fixed_path_trial.py`의 단순 경로 방식으로 연결한다. 함수·ROS 계약은 그대로이며, 설정 선택은 검사 전에 확정한다. [호출·교체 방법과 검증 범위](FIXED_PATH_EXECUTION.md)를 확인한다.
 
 > **2026-09-21 사용자 결정 후속:** 드릴 ON은 HMI 수동 체크만 사용하며 공정의 ON bool 검사·확인 대기를 추가하지 않는다. 그리퍼/드릴 명령은 제외하고 장착은 하드웨어 Topic을 관측한다. 사전 검사에서 비홈이면 검사된 홈 이동 후 도착·정지 및 상태 재검사를 수행하고 양초 측정을 호출한다. 아래 과거 역할표의 드릴 확인 대기·운영자 장착 bool 의존은 수정 대상이다. 최신 요구사항·파일별 수정 범위는 [세은님 전달 문서](../../../docs/PROCESS_HANDOFF_20260921.md)를 따른다. 이번 갱신은 문서이며 함수·ROS 타입 변경은 아니다.
@@ -35,6 +44,7 @@
 | [robot_adapter.py](c2_process/robot_adapter.py) | 이시율 | `observe()`, `move()`, `move_spline()`, `probe_touch()`, `stop()`, `inverse_kinematics()`, `read_force_bias()`, `hold_normal_force_begin()/end()`. 도구 끝↔제어기 TCP·단위 변환, 이동 중 힘·법선 이탈 감시, 이동 시작 재판정(`_verify_start`) | **PR #73 후보**. 서비스 클라이언트 재사용. 힘 유지 중 MoveSX 수락·순응 상태 보고는 실기 미검증 |
 | [tool_calibration.py](c2_process/tool_calibration.py) | 이시율 | `measure_tool_tip()` 장착 드릴 끝 오프셋 측정, `verify_tool_tip()` 저장 보정 확인 | **main 존재**. 고정 장착 기준을 재사용하며 매번 전체 보정은 첫 통합에서 제외. 기준 변경 시 재확인에 활용. 양초 중심·높이 측정은 신규 모듈 담당 |
 | [joint_check.py](c2_process/joint_check.py) | **김세은** | `check_path_joints()`로 홍동이 실측 좌표로 생성한 최종 경로의 IK·관절 범위·J6 검사. 측정용 이동 검사도 담당 | **main 존재**. CUT은 4점마다+마지막 점 검사. 실측 좌표로 생성한 최종 경로·측정 이동·보간·특이점·충돌 검사 범위 보강 필요 |
+| [entry_planner.py](c2_process/entry_planner.py) | 이시율 후보 생성·실행, 김세은 공정 검사 연결 | `generate_entry_candidates()`가 실측 윗면 상대 범위에서 상공 후보를 만들고 `plan_entry_path()`가 읽기 전용 IK 검사로 하나를 확정한다. `execute_entry_plan()`은 해시가 일치하는 target만 실행 | **작업 브랜치 구현**. 단순 원통·도구 선분 간격 검사이며 전체 메시 충돌 검사는 아님. REAL 정책값과 감독하 이동은 별도 승인 필요 |
 | [engraving.py](c2_process/engraving.py) | 이시율 | `execute_path()`로 세은이 검사한 동일 경로의 APPROACH/CUT/TRAVEL/RETRACT 실행, 진행·마지막 완료 구간·실패 반환. `cut_contact=normal_force_hold` 프로파일이면 CUT 중 툴 축 힘 유지(순응)+MoveSX 로 표면 추종, `chunk_adaptive` 는 묶음 사이 offset 보정. `checked_plan_signature` 가 있으면 획별 IK 를 반복하지 않음. `return_home()` 안전 홈 복귀(후퇴→상승→정렬→IK/간섭 검사→홈). 중심 재이동 없음 | **PR #73 후보**. cut_contact 없는 기존 프로파일은 종전과 같이 접촉점 = 실행 깊이. 허용 법선 범위 안 연속 IK 증명은 미구현(`normal_range_continuity_verified=False`). `return_home()`은 main의 prepared flow에 자동 연결하지 않음 |
 | [workpiece_calibration.py](c2_process/workpiece_calibration.py) | 이시율 | `measure_workpiece(adapter, workcell, profiles, context, on_progress=None)`: 상공 홈 확인 → 윗면·옆면 8점 → 원 맞춤 → 정상 홈 복귀·결과 반환 | **PR #42로 코드 존재**, 홈 처리·실기 오류 수정은 PR #45. 모의 147건 통과. 이전 홈·외곽 종료 버전 실물 연속 2회 완료(270.394/299.295초). 새 홈·종료 복귀는 이동 없는 IK/FK 검사 통과, 전체 실물 재시험 전. 밑면 오프셋 미확인으로 절대 윗면·바닥 Z는 null. [현재 검증 범위](WORKPIECE_CALIBRATION.md) |
 | `motion_guard.py`, `moving_contact.py` **내부 보조 후보** | 이시율 | 이동 시작/완료·정지 관측, 이동 중 힘 기준·접촉 판정 | **로컬 초안**, main 없음. 어댑터 내부 보조로 통합할지 결정. 세은의 직접 호출 대상·새 노드가 아님 |
@@ -71,9 +81,9 @@
 3. **김세은 → 이시율의 `workpiece_calibration.py` [내부 함수 구현, 공정 호출 연결 예정]**: 실제 양초를 측정하고 중심·높이, 지원하는 형상·기울기, 단위·좌표계·측정 시각·유효성·잔차를 반환한다. 이 파일이 좌표를 알아내는 역할이며 생략하지 않는다.
 4. **공정 → HMI/서버 → c2_path [측정 결과 전달 계약 필요 + 기존 `/c2/generate_path` Action]**: 측정 스냅샷을 등록해 GeneratePath의 설정 ID·해시에 연결한다. 노홍동은 이 스냅샷으로 3D 경로를 생성한다. 이미지→SVG→2D는 미리 계산해 재사용할 수 있다. 노드 사이를 직접 Python 함수로 연결하지 않는다.
 5. **c2_path → HMI [GeneratePath 진행·결과/산출물]**: 같은 실측 스냅샷으로 만든 미리보기를 보여주고 운영자가 확인한다. 현재 상수 기반 SIMULATION/test_only 서버는 이 흐름을 위한 리팩터링이 필요하다.
-6. **HMI → 김세은 [기존 `/c2/execute_process` Action + 내부 `check_path_joints()`]**: 미리보기한 경로 ID·버전·해시를 요청한다. 측정 이후 양초/도구가 바뀌지 않았는지와 현재 상태를 다시 확인하고, 깊이·접근/이탈이 확정된 경로를 IK·관절 검사한다. 변경되면 재측정·재생성·재확인한다.
+6. **HMI → 김세은 [기존 `/c2/execute_process` Action + 내부 entry 계획·`check_path_joints()`]**: 미리보기한 경로 ID·버전·해시를 요청한다. 측정 이후 양초/도구가 바뀌지 않았는지와 현재 상태를 다시 확인한다. `entry_planner.py`가 HOME/현재 상태에서 첫 APPROACH까지의 상공 후보를 생성하고 실제 IK 조건으로 선정한 뒤, 깊이·접근/이탈이 확정된 본 경로와 함께 검사 결과·해시를 고정한다. 변경되면 재측정·재생성·재확인한다.
 7. **공정 ↔ HMI [확인 입력 계약 필요]**: 취소 가능한 드릴 ON 운영자 확인을 받는다. 이미 구현된 입력으로 표시하지 않는다.
-8. **김세은 → 이시율의 `execute_path(final_path, ctx, on_progress=…, adapter=adapter)` [내부 함수]**: 검사한 동일 경로로 조각한다. 양초 중심을 다시 옮기거나 깊이를 이중 적용하지 않는다. 진행 콜백을 HMI 상태로 변환한다.
+8. **김세은 → 이시율의 `execute_entry_plan()` → `execute_path()` [내부 함수]**: 검사·고정한 entry target으로 이동한 뒤 동일 본 경로로 조각한다. 실행 중 후보를 재탐색하거나 양초 중심을 다시 옮기거나 깊이를 이중 적용하지 않는다. 진행 콜백을 HMI 상태로 변환한다.
 9. **공정 → HMI [Action 결과·`/c2/process_state`·`/c2/process_events`]**: 정상 이탈까지 확인해 완료를 보낸다. `/c2/stop_process` 접수와 실제 정지를 구별한다. 측정 단계에서도 취소·정지·모션 단일 소유권을 유지하도록 계약을 확장한다.
 
 `go_to_path_start(path, ctx, adapter)`·`return_home(ctx, adapter)`는 기준 main에 없다. 기존 경로의 접근/이탈과 중복되지 않도록 역할부터 합의한다. 실패·보호정지·정지 미확인 뒤 무조건 후퇴/홈 명령을 보내지 않는다.

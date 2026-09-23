@@ -2569,6 +2569,49 @@ def test_prepared_execution_needs_only_bound_tool_offset_not_full_tip_verificati
     assert calls == ["joints", "engrave"]
 
 
+def test_prepared_execution_plans_checks_and_runs_entry_before_engraving():
+    goal, inputs, ctx, settings, kwargs = _preparation_flow_fixture()
+    workcell = dict(inputs.workcell, entry_planning={"enabled": True})
+    inputs = replace(inputs, workcell=workcell)
+    calls, phases = [], []
+    plan = {"entry_plan_sha256": "entry-sha", "targets": [[1.0] * 7]}
+
+    def plan_entry(path, received_workcell, adapter, state, offset, limits, margin,
+                   profiles, **_kwargs):
+        calls.append("entry_plan")
+        assert path == inputs.path and received_workcell["entry_planning"]["enabled"] is True
+        assert adapter is inputs.adapter and state.quality == "VALID"
+        return StepResult("SUCCEEDED", observed_state={
+            "entry_plan": plan, "entry_plan_sha256": "entry-sha"})
+
+    def joints(_path, _adapter, _offset, _current, **_kwargs):
+        calls.append("joints")
+        return StepResult("SUCCEEDED")
+
+    def enter(received, adapter, context):
+        calls.append("entry")
+        assert received == plan and adapter is inputs.adapter
+        assert context.checked_entry_plan_sha256 == "entry-sha"
+        return StepResult("SUCCEEDED", observed_state={"entry_plan_sha256": "entry-sha"})
+
+    def engrave(_path, _context, _progress, _adapter):
+        calls.append("engrave")
+        return StepResult("SUCCEEDED")
+
+    coordinator = ProcessCoordinator(
+        lambda _: inputs, preparation_required=True, joint_check_fn=joints,
+        entry_plan_fn=plan_entry, entry_execute_fn=enter, engrave_fn=engrave)
+    _prepare_and_bind(coordinator, inputs, ctx, settings, kwargs)
+
+    result = coordinator.execute(goal, preparation_id=ctx.run_id,
+                                 on_phase=phases.append)
+
+    assert result.ok, result
+    assert calls == ["entry_plan", "joints", "entry", "engrave"]
+    assert phases == ["PRECHECK", "ENTRY", "ENGRAVE", "FINISH"]
+    assert result.observed_state["preparation_id"] == ctx.run_id
+
+
 @pytest.mark.parametrize("stage,outcome", [("motion_check", "FAILED"), ("measure", "FAILED"),
     ("measure", "STOPPED"), ("measure", "UNKNOWN"), ("confirm_result", "FAILED")])
 def test_preparation_failure_has_no_success_receipt_or_followup(stage, outcome):

@@ -22,6 +22,7 @@ from urllib.request import urlopen
 from uuid import uuid4
 
 from .engraving import ExecutionContext, execute_path, validate_path, build_execution_plan, execution_signature
+from .entry_planner import execute_entry_plan, plan_entry_path
 from .joint_check import check_path_joints
 from .preconditions import PreconditionEvidence, check_preconditions, check_robot_status, check_prepared_path
 from .robot_adapter import DoosanRobotAdapter, MockRobotAdapter, RobotState, StepResult, apply_tool_offset
@@ -1051,6 +1052,8 @@ class ProcessCoordinator:
         validate_engraving_fn=validate_path,
         verify_tip_fn=verify_tool_tip,
         engrave_fn=execute_path,
+        entry_plan_fn=plan_entry_path,
+        entry_execute_fn=execute_entry_plan,
         journal: Optional[RunJournal] = None,
         runtime_mode: str = "SIMULATION",
         real_adapter: Optional[DoosanRobotAdapter] = None,
@@ -1090,6 +1093,8 @@ class ProcessCoordinator:
         self.validate_engraving_fn = validate_engraving_fn
         self.verify_tip_fn = verify_tip_fn
         self.engrave_fn = engrave_fn
+        self.entry_plan_fn = entry_plan_fn
+        self.entry_execute_fn = entry_execute_fn
         self.journal = journal
         self._lock = threading.Lock()
         # 접수 잠금과 분리: 측정 함수가 직접 획득하고, 조각은 execute가 획득한다.
@@ -1431,8 +1436,17 @@ class ProcessCoordinator:
         with self._lock:
             active.adapter, active.context = loaded.adapter, context
 
+        entry_policy = loaded.workcell.get("entry_planning") if isinstance(loaded.workcell, Mapping) else None
+        entry_enabled = prepared and (self.runtime_mode == "REAL"
+                                      or (isinstance(entry_policy, Mapping)
+                                          and entry_policy.get("enabled") is True))
+
         def precheck():
             try:
+                # 준비 완료 실행은 저장된 고정 장착 오프셋을 먼저 연결해야 observe()도
+                # 경로와 같은 도구 끝 기준이 된다. 로봇 모션이나 제어기 설정 변경은 아니다.
+                if prepared:
+                    loaded.adapter.set_tool_offset(list(offset))
                 state = loaded.adapter.observe()
             except Exception:
                 self.observations.capture(None, None, None)
@@ -1461,6 +1475,26 @@ class ProcessCoordinator:
                 context.j6_margin_deg = float(margin)
                 context.path_binding = dict(goal)
                 context.checked_tool_offset_m = list(offset)
+                context.checked_entry_plan = None
+                context.checked_entry_plan_sha256 = None
+                if entry_enabled:
+                    entry = self.entry_plan_fn(
+                        dict(loaded.path), dict(loaded.workcell), loaded.adapter, state,
+                        list(offset), context.joint_limits_deg, context.j6_margin_deg,
+                        context.motion_profiles, cancel=context.cancel,
+                        joint_check_fn=self.joint_check_fn)
+                    if not isinstance(entry, StepResult):
+                        return StepResult("UNKNOWN", "INVALID_RESULT",
+                                          "entry 계획 결과 형식 오류", "entry_planning")
+                    if not entry.ok:
+                        return entry
+                    entry_plan = entry.observed_state.get("entry_plan")
+                    entry_sha = entry.observed_state.get("entry_plan_sha256")
+                    if not isinstance(entry_plan, Mapping) or not isinstance(entry_sha, str):
+                        return StepResult("UNKNOWN", "INVALID_RESULT",
+                                          "entry 계획·해시 누락", "entry_planning")
+                    context.checked_entry_plan = copy.deepcopy(dict(entry_plan))
+                    context.checked_entry_plan_sha256 = entry_sha
                 plan = build_execution_plan(dict(loaded.path), context)
                 if isinstance(plan, StepResult):
                     return plan
@@ -1476,6 +1510,8 @@ class ProcessCoordinator:
                         return StepResult("FAILED", "PROFILE_MISMATCH", "IK 중 경로/설정 변경", "execution_plan")
                     context.checked_plan_signature = signature
                     checked.observed_state["plan_signature"] = signature
+                    if context.checked_entry_plan_sha256 is not None:
+                        checked.observed_state["entry_plan_sha256"] = context.checked_entry_plan_sha256
                 return checked
 
             checker = check_prepared_path if prepared else self.precheck_fn
@@ -1521,9 +1557,16 @@ class ProcessCoordinator:
         if prepared:
             # 저장된 장착 기준을 적용할 뿐 재측정/자동 홈 동작을 추가하지 않는다.
             def prepared_engrave(progress):
-                loaded.adapter.set_tool_offset(list(offset))
                 return engrave(progress)
+            def prepared_entry():
+                if context.checked_entry_plan is None:
+                    return StepResult("FAILED", "NOT_READY", "검사된 entry 계획 없음", "entry")
+                if context.checked_plan_signature != execution_signature(dict(loaded.path), context):
+                    return StepResult("FAILED", "PROFILE_MISMATCH",
+                                      "entry 실행 전 경로/설정 변경", "entry")
+                return self.entry_execute_fn(context.checked_entry_plan, loaded.adapter, context)
             result = run_prepared_process(context, precheck=reported_precheck,
+                                          enter=prepared_entry if entry_enabled else None,
                                           engrave=prepared_engrave, on_phase=on_phase,
                                           on_progress=on_progress)
             result.observed_state["preparation_id"] = preparation_id
