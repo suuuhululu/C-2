@@ -87,8 +87,7 @@ export default function Monitor() {
     [ratio, setRatio] = useState(true);
   const [result, setResult] = useState<PathResult | null>(null),
     [stale, setStale] = useState(false),
-    [reviewed, setReviewed] = useState(false),
-    [fixture, setFixture] = useState(false);
+    [reviewed, setReviewed] = useState(false);
   const [drillConfirmation, setDrillConfirmation] = useState<string | null>(
     null,
   );
@@ -184,7 +183,9 @@ export default function Monitor() {
     (snapshot?.source_mode !== "REAL" || result?.real_execution_allowed === true) &&
     currentResult &&
     reviewed &&
-    fixture &&
+    (snapshot?.source_mode !== "REAL" ||
+      snapshot?.preparation.current?.payload?.operator_confirmed_fixed_cell ===
+        true) &&
     drillOn &&
     !preparationBlocked &&
     fresh &&
@@ -201,7 +202,6 @@ export default function Monitor() {
     previousPreparation.current = id;
     revision.current++;
     setReviewed(false);
-    setFixture(false);
     setStale(true);
     generationRequest.current = null;
   }, [snapshot?.preparation.current?.request_id]);
@@ -214,7 +214,6 @@ export default function Monitor() {
     setDraft(capabilities.default_placement);
     setResult(null);
     setReviewed(false);
-    setFixture(false);
     generationRequest.current = null;
   }, [profile?.id, capabilities]);
 
@@ -298,7 +297,6 @@ export default function Monitor() {
       run &&
       ["SUCCEEDED", "FAILED", "STOPPED", "UNKNOWN"].includes(run.status)
     ) {
-      setFixture(false);
       setStartUncertain(false);
       startBody.current = null;
     }
@@ -330,7 +328,6 @@ export default function Monitor() {
     setDraft(next);
     setStale(!!result);
     setReviewed(false);
-    setFixture(false);
     generationRequest.current = null;
   }
   function field(key: keyof Placement, value: number) {
@@ -355,7 +352,6 @@ export default function Monitor() {
       setResult(null);
       setStale(false);
       setReviewed(false);
-      setFixture(false);
       revision.current++;
       generationRequest.current = null;
       setToast("이미지를 첨부했습니다. 크기와 위치를 정해 주세요.");
@@ -392,7 +388,6 @@ export default function Monitor() {
     setError("");
     setGenerating(true);
     setReviewed(false);
-    setFixture(false);
     setStale(!!result);
     const rev = revision.current;
     const body =
@@ -676,12 +671,12 @@ export default function Monitor() {
                 {nav === "prepare"
                   ? "이미지를 불러오고, 원기둥 위에 도안의 자리를 정하세요."
                   : nav === "process"
-                      ? "고정 드릴의 준비·보정 확인부터 조각 완료까지 확인합니다."
-                      : nav === "history"
-                        ? "각 실행에 사용한 경로와 결과를 함께 보관합니다."
-                        : nav === "alarms"
-                          ? "발생한 문제와 확인할 내용을 기록합니다."
-                          : "현재 사용하는 설정 스냅샷과 연결 정보를 확인합니다."}
+                    ? "고정 드릴의 준비·보정 확인부터 조각 완료까지 확인합니다."
+                    : nav === "history"
+                      ? "각 실행에 사용한 경로와 결과를 함께 보관합니다."
+                      : nav === "alarms"
+                        ? "발생한 문제와 확인할 내용을 기록합니다."
+                        : "현재 사용하는 설정 스냅샷과 연결 정보를 확인합니다."}
               </p>
             </div>
             {nav === "prepare" ? (
@@ -759,7 +754,6 @@ export default function Monitor() {
               onInvalidate={() => {
                 setDrillConfirmation(null);
                 setReviewed(false);
-                setFixture(false);
                 setStale(true);
               }}
             />
@@ -1149,19 +1143,6 @@ export default function Monitor() {
                       onChange={(e) => setReviewed(e.target.checked)}
                     />
                     도안 위치와 경로를 확인했습니다.
-                  </label>
-                  <label className="check-row">
-                    <input
-                      type="checkbox"
-                      checked={fixture}
-                      disabled={
-                        !currentResult ||
-                        locked ||
-                        !capabilities?.execution_enabled
-                      }
-                      onChange={(e) => setFixture(e.target.checked)}
-                    />
-                    지정 위치의 공작물 고정을 확인했습니다.
                   </label>
                   <label className="check-row">
                     <input
