@@ -10,6 +10,8 @@ import time
 from dataclasses import replace
 from pathlib import Path
 
+import pytest
+
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
@@ -17,6 +19,7 @@ from c2_process.engraving import ExecutionContext
 from c2_process.node import (ExecutionInputs, ProcessCoordinator, RunJournal,
                              InputsUnavailable, load_execution_inputs,
                              make_asset_bundle_loader, make_hmi_asset_resolver,
+                             defer_prepared_binding_invalidation,
                              prepared_binding_observation_valid,
                              read_real_execution_evidence)
 from c2_process.preconditions import PreconditionEvidence, check_robot_status
@@ -416,6 +419,59 @@ def real_fixture():
     inputs.context.tool_profile.update(touch_force_n=1.0, touch_speed_mm_s=1.0)
     inputs = replace(inputs, path=path, path_bytes=path_bytes, evidence=evidence, adapter=None)
     return goal, inputs, adapter
+
+
+@pytest.mark.parametrize("joint_result,second_authority,expected_error", [
+    (StepResult("SUCCEEDED"), False, "NOT_READY"),
+    (StepResult("FAILED", "VALIDATION_FAILED", "관절 제한"), True, "VALIDATION_FAILED"),
+])
+def test_real_prepared_execution_revalidates_after_joint_check_and_keeps_binding(
+        tmp_path, joint_result, second_authority, expected_error):
+    goal, inputs, adapter = real_fixture()
+    preparation_id = "prepared-real"
+    loaded, motion = [], []
+
+    def loader(_goal):
+        loaded.append(True)
+        evidence = inputs.evidence
+        if len(loaded) > 1:
+            evidence = replace(evidence, control_authority_confirmed=second_authority)
+        return replace(inputs, evidence=evidence)
+
+    def entry_plan(*_args, **_kwargs):
+        return StepResult("SUCCEEDED", observed_state={
+            "entry_plan": {"targets": [[1.0] * 7]},
+            "entry_plan_sha256": "entry-sha",
+        })
+
+    def return_plan(*_args, **_kwargs):
+        return StepResult("SUCCEEDED", observed_state={
+            "return_home_plan": {"targets": [[2.0] * 7]},
+            "return_home_plan_sha256": "return-sha",
+        })
+
+    coordinator = ProcessCoordinator(
+        loader, runtime_mode="REAL", real_adapter=adapter,
+        journal=RunJournal(tmp_path / "prepared-runs.sqlite3"),
+        preparation_required=True,
+        joint_check_fn=lambda *_args, **_kwargs: joint_result,
+        entry_plan_fn=entry_plan, return_home_plan_fn=return_plan,
+        entry_execute_fn=lambda *_args: motion.append("entry") or StepResult("SUCCEEDED"),
+        engrave_fn=lambda *_args: motion.append("engrave") or StepResult("SUCCEEDED"),
+        return_home_execute_fn=lambda *_args: motion.append("home") or StepResult("SUCCEEDED"),
+    )
+    coordinator._preparations[preparation_id] = (object(), adapter)
+    config = inputs.path["config"]
+    coordinator._preparation_bindings[preparation_id] = (
+        config["profile_snapshot_id"], config["profile_sha256"])
+
+    result = coordinator.execute(goal, preparation_id=preparation_id)
+
+    assert result.outcome == "FAILED" and result.error_code == expected_error
+    assert len(loaded) == 2
+    assert motion == []
+    assert coordinator._preparation_bindings[preparation_id] == (
+        config["profile_snapshot_id"], config["profile_sha256"])
 
 
 def test_real_adapter_is_bound_to_all_team_calls_and_journal_replays(tmp_path):
@@ -963,6 +1019,14 @@ def test_prepared_binding_observation_requires_fresh_authority_and_robot():
     assert not prepared_binding_observation_valid(values, owner)
 
 
+def test_binding_invalidation_is_deferred_only_during_active_precheck():
+    active = object()
+    assert defer_prepared_binding_invalidation("RUNNING", "PRECHECK", active)
+    assert not defer_prepared_binding_invalidation("RUNNING", "ENTRY", active)
+    assert not defer_prepared_binding_invalidation("FAILED", "PRECHECK", active)
+    assert not defer_prepared_binding_invalidation("RUNNING", "PRECHECK", None)
+
+
 @pytest.mark.parametrize('state_code', [3, 5, 6, 9, 10])
 def test_prepared_binding_observation_rejects_confirmed_stop_states(state_code):
     from types import SimpleNamespace as NS
@@ -1164,6 +1228,13 @@ def test_ros_callbacks_publish_cached_signals_and_alarm_events(monkeypatch):
     real_node.publish_state()
     assert not invalidated and real_node.coordinator._preparation_bindings
     real_node.real_preparation_observations.cache.fresh = lambda: None
+    real_node.status = 'RUNNING'
+    real_node.phase = 'PRECHECK'
+    real_node.coordinator._active = NS(run_id='run')
+    real_node.publish_state()
+    assert not invalidated and real_node.coordinator._preparation_bindings
+    real_node.status = 'FAILED'
+    real_node.coordinator._active = None
     real_node.publish_state()
     assert invalidated and real_node.coordinator._preparation_bindings == {}
     assert not hasattr(real_node, 'refresh_robot_observation')

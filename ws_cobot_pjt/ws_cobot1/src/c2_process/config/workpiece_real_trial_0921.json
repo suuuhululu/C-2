@@ -1,5 +1,5 @@
 {
-  "notice": "main 8409fc6 + PR #82 병합 c64fc6d 로컬 통합 시험 설정. 15:02 8점 결과로 seed·윗면 XY 갱신. 담당자 baseline·이동 복구·조건부 비접촉 힘 정책 포함. 새 seed 설정과 PrepareWorkpiece Action의 실기 검증은 아직 미수행.",
+  "notice": "main 5964df8 통합 재시험 설정. 15:02 8점 결과의 seed·윗면 XY와 담당자 baseline·이동 복구·조건부 비접촉 힘 정책을 유지한다. 2026-09-23 정지·비가압 접촉 상태에서 읽은 GripperDA_v1 TCP Z 237.573181 mm를 기준으로, 양면테이프에 의한 받침대 상승분 +2.868530 mm만 윗면 접근·허용 범위와 연동 Z 안전 경계에 반영했다. 양초 높이·반지름·힘 기준은 변경하지 않았으며 변경 후 PrepareWorkpiece 실기 검증은 아직 미수행.",
   "workcell": {
     "source_mode": "REAL",
     "frame_id": "c2_base",
@@ -54,7 +54,7 @@
       "approach_tcp_pose": [
         0.42325530708859205,
         0.00032844108604387424,
-        0.24070465087890627,
+        0.24357318115234377,
         0.0,
         1.0,
         0.0,
@@ -81,20 +81,20 @@
       "offset_status": "VERIFIED",
       "offset_record_id": "gripper-bottom-offset-20260921-20mm-v1",
       "expected_tcp_z_range_m": [
-        0.23292510986328124,
-        0.23670465087890627
+        0.23579364013671874,
+        0.23957318115234377
       ],
-      "expected_tcp_z_source": "2026-09-21 operator-confirmed top_yfirst contact 234.70465087890625 mm +/- 2 mm, clipped to prechecked search bound; unchanged fixture only",
+      "expected_tcp_z_source": "2026-09-23 supervised read-only GetCurrentPosx: robot STANDBY·IDLE, 접촉부 비가압 상태 GripperDA_v1 TCP Z 237.57318115234375 mm. 기존 234.70465087890625 mm 대비 받침대 상승분 +2.8685302734375 mm를 기존 허용 폭과 검사된 탐색 길이에 동일 적용. 독립 정확도 검증값은 아님.",
       "estimate_source": "팀 확정 운영값 2026-09-22: GripperDA_v1 TCP에서 그리퍼 하단 접촉점까지 tool +Z 20 mm. 수직 자세에서 base Z -20 mm 적용. 기록 ID gripper-bottom-offset-20260921-20mm-v1."
     },
     "provenance": {
       "seed_geometry": "2026-09-23 15:02 단독 실기 8/8 FIT·HOME 복귀 성공 결과. measurement_id=workpiece-test-0306ab602d78458c995b2d4f4c60ce11; measured_at=2026-09-23T06:07:38.447423+00:00; 다음 측정 초기 추정값으로 재사용하며 새 측정의 정답으로 고정하지 않음.",
       "top_reference": "팀 확정 운영값 2026-09-22: GripperDA_v1 TCP에서 그리퍼 하단 접촉점까지 tool +Z 20 mm. 수직 자세에서 base Z -20 mm 적용. 기록 ID gripper-bottom-offset-20260921-20mm-v1.",
-      "trial_scene": "현장 단독 시험 전용: 이전 측정 후 양초/받침/철사 고정 유지 전제. 팀 합의로 하단 오프셋 +20 mm를 확정 설정으로 사용하고 8점 높이를 20 mm 하향. 예상 접촉 TCP Z 232.925~236.705 mm에서 계산한 옆면 높이 192.925~196.705 mm와 수직 자세 1도/추종 여유를 포함해 TCP 검사 하한 190 mm를 사용. 전체 메시 충돌 검사는 아님.",
+      "trial_scene": "현장 단독 시험 전용: 양초 형상·철사 고정은 유지되고 양면테이프로 받침대만 +2.868530 mm 상승한 전제. 팀 합의 하단 오프셋 +20 mm와 옆면 깊이 20 mm는 유지한다. 이동된 예상 접촉 TCP Z 235.794~239.573 mm에서 계산한 옆면 높이 195.794~199.573 mm와 기존 수직 자세 1도/추종 여유를 보존해 TCP 검사 하한을 192.869 mm로 이동했다. 전체 메시 충돌 검사는 아님.",
       "duration_profile": "Target remains 120 s and is NOT achieved. Supervised full runs: 270.394 s and 299.295 s (including different HOME entry routes). Increase overall timeout from 300 to 360 s for scheduling/settling margin only; motion speeds and per-step stop/force limits unchanged.",
       "approach_acceleration": "2026-09-21: outward move after point 6 reached 10.185 N with 40 mm/s^2; operator reported no collision. Reduce to 20 mm/s^2 for supervised retest; keep 10 N stop limit.",
       "initial_position_window": "PR #82 병합 c64fc6d의 측정 설정 유지: start_gap 5 mm, inside_limit 5 mm, side_search 10 mm, baseline lead-in 4.05 mm, 이동 복구 최초 포함 3회. seed와 윗면 XY만 15:02 8점 결과로 갱신.",
-      "seed_refresh": "seed 중심·반지름을 원본 정밀도로 갱신하고, top_xy_tolerance_m와 일치하도록 top.approach_tcp_pose 및 exit_tcp_poses XY를 같은 중심으로 갱신. 승인된 HOME TCP·Z 탐색 범위·trial_scene 범위는 유지. 변경된 계획의 실기 검증은 별도.",
+      "seed_refresh": "seed 중심·반지름을 원본 정밀도로 갱신하고, top_xy_tolerance_m와 일치하도록 top.approach_tcp_pose 및 exit_tcp_poses XY를 같은 중심으로 갱신. HOME TCP·상공 높이는 유지한다. 2026-09-23 받침대 상승 후 윗면 접근·허용 범위와 연동된 하한만 +2.868530 mm 이동했으며 변경 계획의 실기 검증은 별도.",
       "measurement_evidence": {
         "record": "ws_cobot_pjt/docs/evidence/workpiece_20260923_1502/prepare_workpiece_result_20260923_1502.json",
         "sha256": "177e9d3b83f473dec482f0ece8f6e8f1701b29e2c323f4ca2a9c18d58760bcfe",
@@ -117,7 +117,7 @@
       "tcp_min_m": [
         0.265,
         -0.17,
-        0.19
+        0.1928685302734375
       ],
       "tcp_max_m": [
         0.59,
@@ -129,7 +129,7 @@
       "upright_tolerance_deg": 1.0,
       "overhead_clearance_z_m": 0.3,
       "top_xy_tolerance_m": 0.0015,
-      "top_tcp_min_z_m": 0.232925,
+      "top_tcp_min_z_m": 0.23579364013671874,
       "outer_min_gap_m": 0.018,
       "model_tolerance_m": 0.0005,
       "facing_tolerance_deg": 2.0
@@ -149,8 +149,8 @@
       "position_tolerance_m": 0.0003,
       "angle_tolerance_rad": 0.005235987755982988,
       "corridor_xy_tolerance_m": 0.0015,
-      "top_corridor_min_z_m": 0.232925,
-      "source_record": "2026-09-21 user correction: HOME is the overhead pose immediately before the vertical top approach. GripperDA_v1 TCP; previous engraving HOME is no longer used for this measurement.",
+      "top_corridor_min_z_m": 0.23579364013671874,
+      "source_record": "2026-09-21 user correction: HOME is the overhead pose immediately before the vertical top approach. GripperDA_v1 TCP와 HOME 절대 자세는 유지한다. 2026-09-23 양면테이프 받침대 상승분 +2.868530 mm에 맞춰 윗면 수직 통로 하한만 이동했다.",
       "entry_tcp_poses": [
         [
           0.4218,

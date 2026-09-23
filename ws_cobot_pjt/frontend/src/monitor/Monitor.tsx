@@ -28,6 +28,7 @@ import {
   ApiError,
   initialPlacement,
   phaseNames,
+  preparedPhaseOrder,
   request,
   stageNames,
   statusNames,
@@ -1278,13 +1279,13 @@ export default function Monitor() {
                   />
                 )}
                 <div className="phase-grid">
-                  {Object.entries(phaseNames).map(([key, name], i) => (
+                  {preparedPhaseOrder.map((key, i) => (
                     <div
                       key={key}
                       className={run?.phase === key ? "current" : ""}
                     >
                       <span>{String(i + 1).padStart(2, "0")}</span>
-                      <b>{name}</b>
+                      <b>{phaseNames[key]}</b>
                       <small>{key}</small>
                     </div>
                   ))}
