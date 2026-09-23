@@ -1,5 +1,7 @@
 # 한 PC의 REAL 준비·측정 통합
 
+> **9/21 당시 통합 기록. 현재 실행 안내가 아니다.** 2026-09-23 `main` `6536a29`은 REAL 실측 미리보기와 조건부 BIND·경로 후보·별도 실행 요청까지 포함한다. 현재 옵션과 조건은 [백엔드 실행 안내](../backend/README.md), [작업 흐름](INTERFACE_GUIDE.md)을 따른다. 아래 명령·차단 범위는 당시 브랜치에만 적용한다.
+
 기준 main `08956e5`(PR #54), `codex/hmi-preparation-flow`의 HMI 수정. 이전 SIM 전용 안내를 이 문서의 REAL 준비 범위에 한해 갱신한다.
 
 ## 연결 범위
@@ -7,7 +9,7 @@
 HMI → 기존 PrepareWorkpiece MEASURE → 세은 REAL 공정 노드 → 시율 측정 함수 → 드라이버/로봇 → Action Result → HMI 원본 보관·표시.
 동시에 기존 `/c2/process_state`의 REAL 상태를 수신한다. 첫 요청 전 관절/TCP UNKNOWN은 관측기 설정 미연결일 수 있다.
 측정 성공은 `SUCCEEDED / MEASUREMENT_ONLY`로 보존한다. `ESTIMATED`를 SIMULATED나 절대 높이 검증 완료로 바꾸지 않는다.
-REAL에서는 BIND·GeneratePath·ExecuteProcess를 허용하지 않는다. 이번 목적은 실제 준비/측정 결과를 받는 통합이며 전체 조각 완료가 아니다.
+당시 구현은 REAL에서 BIND·GeneratePath·ExecuteProcess를 허용하지 않았다. 9/23 main의 제한으로 적용하지 않는다. 이 단계의 목적은 실제 준비/측정 결과를 받는 통합이었으며 전체 조각 완료가 아니다.
 공통 Action/Topic/HTTP 요청 필드는 변경하지 않았다. 제어·측정·드라이버 코드는 변경하지 않았다.
 
 ## 현장 설정
@@ -41,7 +43,7 @@ python3 ws_cobot_pjt/run_monitor.py --transport ros --mode REAL \
   --preparation-config /확인한/현장설정.json --ros-domain-id 20
 ```
 
-REAL에서는 경로 노드를 자동 기동하지 않는다. 화면은 http://127.0.0.1:5174/operator 이며 REAL 경고를 표시한다.
+당시 실행기 설정은 REAL에서 경로 노드를 자동 기동하지 않았다. 현재 `run_monitor.py`는 기본적으로 경로 노드를 시작한다. 화면은 http://127.0.0.1:5174/operator 이며 REAL 경고를 표시한다.
 데이터는 기본 `backend/monitor_data/real_preparation`에 SIM과 분리된다. 기존 화면·서버가 5174/8010에서 실행 중이면 정상 종료한 후 기동한다.
 
 터미널 2 — 공정 REAL 준비 노드. 아래 prefix는 **선택한 파일의 controller_prefix와 같을 때만** 사용한다.
