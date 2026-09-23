@@ -273,7 +273,7 @@ def test_fixed_drill_finishes_without_pick_clean_place_or_open(client):
     rid=c.post('/api/operator/runs',json=run_body(p)).json()['run_id']
     wait(c,f'/api/operator/runs/{rid}',lambda r:r['status']=='SUCCEEDED')
     phases=[v['phase'] for k,v in packets if k=='event' and v['event_type']=='PHASE_CHANGED']
-    assert phases==['PRECHECK','TOOL_CHECK','APPROACH','ENGRAVE','RETRACT','FINISH']
+    assert phases==['PRECHECK','ENTRY','ENGRAVE','RETURN_HOME','FINISH']
     states=[v for k,v in packets if k=='state']
     assert not any(s['grip_state'] in ('OPEN','OPENING') for s in states)
     assert states[-1]['mounted_tool_id']=='engraving_drill' and states[-1]['grip_state']=='GRIPPED'
@@ -289,21 +289,21 @@ def test_calibration_failure_does_not_rewrite_path_or_advance(client):
     c.post('/api/operator/simulation/scenario',json={'scenario':'calibration_failure'})
     rid=c.post('/api/operator/runs',json=run_body(p)).json()['run_id']
     done=wait(c,f'/api/operator/runs/{rid}',lambda r:r['status']=='FAILED')
-    assert done['phase']=='TOOL_CHECK' and done['engraving_progress']==0
+    assert done['phase']=='PRECHECK' and done['engraving_progress']==0
     assert done['error_code']=='PROFILE_MISMATCH'
     assert c.app.state.store.read_asset(p['path_asset_id'])==before
-    assert not any(v.get('phase') in ('APPROACH','ENGRAVE') for _,v in packets)
+    assert not any(v.get('phase') in ('ENTRY','ENGRAVE','RETURN_HOME') for _,v in packets)
     assert not any(v.get('grip_state') in ('OPEN','OPENING') for _,v in packets)
 
 
-def test_stop_during_tool_check_never_enters_engraving_or_opens(client):
+def test_stop_during_entry_never_enters_engraving_or_opens(client):
     c=client;_,p=generated(c);packets=observe_peer(c)
     c.app.state.service.peer.tick=.10
     rid=c.post('/api/operator/runs',json=run_body(p)).json()['run_id']
-    wait(c,f'/api/operator/runs/{rid}',lambda r:r['phase']=='TOOL_CHECK')
+    wait(c,f'/api/operator/runs/{rid}',lambda r:r['phase']=='ENTRY')
     c.post(f'/api/operator/runs/{rid}/stop',json={'schema_version':2,'request_id':str(uuid4())})
     wait(c,f'/api/operator/runs/{rid}',lambda r:r['status']=='STOPPED')
-    assert not any(v.get('phase') in ('APPROACH','ENGRAVE') for _,v in packets)
+    assert not any(v.get('phase') in ('ENGRAVE','RETURN_HOME') for _,v in packets)
     assert not any(v.get('grip_state') in ('OPEN','OPENING') for _,v in packets)
 
 

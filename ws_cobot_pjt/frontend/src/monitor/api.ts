@@ -355,13 +355,23 @@ export const initialPlacement: Placement = {
   offset_v_mm: 75,
   rotation_deg: 0,
 };
+export const preparedPhaseOrder = [
+  "PRECHECK",
+  "ENTRY",
+  "ENGRAVE",
+  "RETURN_HOME",
+  "FINISH",
+] as const;
 export const phaseNames: Record<string, string> = {
   PRECHECK: "준비 검사",
+  ENTRY: "조각 경로 진입",
+  ENGRAVE: "조각",
+  RETURN_HOME: "HOME 복귀",
+  FINISH: "공정 완료",
+  // 과거 실행 기록 표시용. 현재 prepared phase grid에는 포함하지 않는다.
   TOOL_CHECK: "드릴 보정 확인",
   APPROACH: "표면 접근",
-  ENGRAVE: "조각",
   RETRACT: "표면 이탈",
-  FINISH: "공정 완료",
 };
 export const statusNames: Record<string, string> = {
   IDLE: "대기",

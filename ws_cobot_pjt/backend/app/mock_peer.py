@@ -240,7 +240,7 @@ class MockPeer:
             await self.emit('mock_execution_preview',deepcopy(evidence))
         await self.emit('mock_execution_preview',deepcopy(evidence))
         start=asyncio.get_running_loop().time()
-        phases=['PRECHECK','TOOL_CHECK','APPROACH','ENGRAVE','RETRACT','FINISH']
+        phases=['PRECHECK','ENTRY','ENGRAVE','RETURN_HOME','FINISH']
         for phase in phases:
             if self.stop_event.is_set():break
             self.state.update(phase=phase)
@@ -269,7 +269,7 @@ class MockPeer:
                     await self.event('ALARM_RAISED',self.state['message'],'GRIP_NOT_CONFIRMED','ERROR')
                     break
                 self.state.update(mounted_tool_id='engraving_drill',tool_confirmation_source='OPERATOR',grip_state='GRIPPED')
-            if phase=='TOOL_CHECK' and scenario=='calibration_failure':
+            if phase=='PRECHECK' and scenario=='calibration_failure':
                 self.state.update(status='FAILED',error_code='PROFILE_MISMATCH',message='모의 드릴 보정 확인 실패. 저장된 보정값·경로를 수정하지 않고 중단합니다.')
                 await self.event('ALARM_RAISED',self.state['message'],'PROFILE_MISMATCH','ERROR')
                 break
