@@ -241,7 +241,7 @@ def transform_raw_strokes(raw_strokes, source_bbox, width_mm, height_mm,
 
 
 def extract(svg_text, width_mm, height_mm, offset_u_mm, offset_v_mm, rotation_deg=0.0,
-            chord_tol_mm=None, max_step_mm=None, min_gap_mm=None):
+            chord_tol_mm=None, max_step_mm=None, min_gap_mm=None, source_bbox=None):
     """SVG -> u/v(mm) 획 목록.
 
     offset_u/v 는 **도안 중심**의 위치다 (GeneratePath.action 확정).
@@ -259,7 +259,7 @@ def extract(svg_text, width_mm, height_mm, offset_u_mm, offset_v_mm, rotation_de
     closed = [s["closed"] for s in subs]
 
     # 2) 비율 유지 스케일 (요청 크기 안에 맞춤)
-    x0, y0, x1, y1 = _bbox(raw)
+    x0, y0, x1, y1 = source_bbox if source_bbox is not None else _bbox(raw)
     src_w, src_h = max(x1 - x0, 1e-12), max(y1 - y0, 1e-12)
     scale = min(width_mm / src_w, height_mm / src_h)
     fitted_w, fitted_h = src_w * scale, src_h * scale

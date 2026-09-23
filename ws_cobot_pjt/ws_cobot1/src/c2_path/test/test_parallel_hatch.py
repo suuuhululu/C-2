@@ -19,6 +19,50 @@ def _write(image):
 
 
 class TestParallelHatch(unittest.TestCase):
+    def test_centerline_bezier_preset_adds_cross_hatch_without_duplicate_centerline(self):
+        image = np.full((220, 220), 255, np.uint8)
+        cv2.rectangle(image, (20, 20), (90, 90), 0, -1)  # 교차 해칭 대상
+        cv2.line(image, (20, 175), (200, 175), 0, 1)     # 베지어 중심선 대상
+        path = _write(image)
+        try:
+            svg, centerline_svg, hatch_raw, bbox, stats = \
+                image_to_hatch.convert_centerline_bezier_with_cross_hatch(
+                    path, 44.0, 44.0)
+        finally:
+            os.unlink(path)
+
+        self.assertIsNotNone(centerline_svg)
+        self.assertIsNotNone(bbox)
+        self.assertIn(" C ", centerline_svg)
+        self.assertIn('data-c2-mode="cross-hatch"', svg)
+        self.assertTrue(hatch_raw)
+        self.assertEqual(stats["cross_hatch_component_count"], 1)
+        self.assertEqual(stats["centerline_bezier_component_count"], 1)
+        self.assertGreater(stats["horizontal_hatch_stroke_count"], 1)
+        self.assertGreater(stats["vertical_hatch_stroke_count"], 1)
+        self.assertLess(
+            stats["centerline"]["foreground_pixels"],
+            stats["foreground_pixels"],
+            "해칭 성분이 베지어 마스크에도 남아 중복 가공될 수 있음",
+        )
+
+    def test_centerline_bezier_preset_keeps_original_path_when_no_area_needs_hatch(self):
+        image = np.full((140, 220), 255, np.uint8)
+        cv2.line(image, (15, 70), (205, 70), 0, 1)
+        path = _write(image)
+        try:
+            svg, centerline_svg, hatch_raw, bbox, stats = \
+                image_to_hatch.convert_centerline_bezier_with_cross_hatch(
+                    path, 40.0, 20.0)
+        finally:
+            os.unlink(path)
+
+        self.assertEqual(svg, centerline_svg)
+        self.assertEqual(hatch_raw, [])
+        self.assertIsNone(bbox)
+        self.assertEqual(stats["cross_hatch_component_count"], 0)
+        self.assertGreater(stats["centerline_bezier_stroke_count"], 0)
+
     def test_filled_rectangle_uses_fixed_spacing_and_cross_hatch(self):
         image = np.full((160, 200), 255, np.uint8)
         cv2.rectangle(image, (20, 20), (180, 140), 0, -1)

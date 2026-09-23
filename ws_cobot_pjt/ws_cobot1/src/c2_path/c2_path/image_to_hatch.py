@@ -19,7 +19,7 @@ import numpy as np
 
 from skimage.morphology import skeletonize
 
-from .image_to_svg import binarize, trace_strokes
+from .image_to_svg import binarize, mask_to_svg, trace_strokes
 
 
 # 2026-09-22 표면 경로 레시피: 홈 폭 0.8mm, 경계 안쪽 보정 0.4mm,
@@ -289,6 +289,148 @@ def strokes_to_svg(strokes, width_px, height_px, source_name):
         f'<svg xmlns="http://www.w3.org/2000/svg" width="{width_px}" height="{height_px}" '
         f'viewBox="0 0 {width_px} {height_px}">\n  {body}\n</svg>\n'
     )
+
+
+def _append_strokes_to_svg(svg, strokes):
+    """중심선 베지어 SVG에 해칭 직선 경로를 같은 픽셀 좌표계로 추가한다."""
+    if not strokes:
+        return svg
+    body = "\n  ".join(
+        '<path fill="none" stroke="#000" stroke-width="1" d="M '
+        + " L ".join(f"{point[0]:.3f},{point[1]:.3f}" for point in stroke)
+        + '" data-c2-mode="cross-hatch" />'
+        for stroke in strokes
+    )
+    return svg.replace("</svg>", f"  {body}\n</svg>")
+
+
+def convert_centerline_bezier_with_cross_hatch(
+        image_path, width_mm, height_mm, *, invert=None,
+        max_pixels=16_000_000, max_side_px=6000, source_name=None):
+    """기존 중심선·베지어 변환에 넓은 연결 성분의 교차 해칭만 추가한다.
+
+    가로·세로 안전 해칭선이 각각 두 개 이상 생성되는 성분은 교차 해칭으로
+    대체하고, 해당 성분을 중심선 마스크에서 제거한다. 나머지 성분은 기존
+    Zhang–Suen 세선화와 Schneider 베지어 피팅을 그대로 사용한다.
+
+    반환값은 ``(표시용 합성 SVG, 베지어 SVG 또는 None, 해칭 픽셀 획,
+    공통 원본 bbox 또는 None, 통계)``다. 해칭이 하나도 없으면 bbox를 None으로
+    돌려 기존 중심선 프리셋의 배치·스케일 동작을 보존한다.
+    """
+    gray = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
+    if gray is None:
+        raise ValueError(f"이미지를 읽을 수 없습니다: {image_path}")
+    h, w = gray.shape
+    if h * w > max_pixels or max(h, w) > max_side_px:
+        raise ValueError("이미지는 16MP 이하이고 한 변이 6000px 이하여야 합니다.")
+    source_name = source_name or os.path.basename(image_path)
+    # 해칭이 추가된 프리셋의 입력 계약은 흰 배경/검은 가공 영역이다. 자동
+    # 반전으로 넓은 검정 면을 배경으로 오인하지 않는다.
+    mask = binarize(gray, invert=False if invert is None else invert)
+    bbox = _foreground_bbox(mask)
+    scale = _fit_scale_mm_per_px(bbox, width_mm, height_mm)
+    count, labels, component_stats, _centroids = cv2.connectedComponentsWithStats(
+        mask.astype(np.uint8), connectivity=8)
+
+    centerline_mask = mask.copy()
+    hatch_strokes = []
+    horizontal_hatches = []
+    vertical_hatches = []
+    components = []
+    removed_short = 0
+
+    for label in range(1, count):
+        x, y, width, height, area = component_stats[label].tolist()
+        component = labels == label
+        distance = cv2.distanceTransform(component.astype(np.uint8), cv2.DIST_L2, 5)
+        physical_width_mm = float(distance.max()) * 2.0 * scale
+        component_bbox = (float(x), float(y), float(x + width - 1), float(y + height - 1))
+        fill_ratio = float(area) / max(1, width * height)
+        horizontal = []
+        vertical = []
+
+        if (physical_width_mm + 1e-9 >= EFFECTIVE_GROOVE_WIDTH_MM
+                and fill_ratio >= MIN_HATCH_FILL_RATIO):
+            try:
+                horizontal, horizontal_stats = generate_scanlines(
+                    component, component_bbox, scale,
+                    max_strokes=MAX_HATCH_STROKES - len(hatch_strokes))
+                removed_short += horizontal_stats["removed_short_strokes"]
+                vertical, vertical_stats = generate_vertical_scanlines(
+                    component, component_bbox, scale,
+                    max_strokes=MAX_HATCH_STROKES - len(hatch_strokes) - len(horizontal))
+                removed_short += vertical_stats["removed_short_strokes"]
+            except NoHatchStrokes:
+                horizontal, vertical = [], []
+
+        cross_hatch = (
+            len(horizontal) >= MIN_CROSS_HATCH_LINES_PER_DIRECTION
+            and len(vertical) >= MIN_CROSS_HATCH_LINES_PER_DIRECTION
+        )
+        if cross_hatch:
+            selected = horizontal + vertical
+            if len(hatch_strokes) + len(selected) > MAX_HATCH_STROKES:
+                raise ValueError(
+                    f"교차 해칭 획이 안전 제한({MAX_HATCH_STROKES}개)을 초과했습니다. "
+                    "도안 크기 또는 고정 간격을 다시 검토해야 합니다."
+                )
+            hatch_strokes.extend(selected)
+            horizontal_hatches.extend(horizontal)
+            vertical_hatches.extend(vertical)
+            centerline_mask[component] = False
+
+        components.append({
+            "component": label,
+            "area_px": int(area),
+            "bbox_px": list(component_bbox),
+            "estimated_width_mm": round(physical_width_mm, 6),
+            "fill_ratio": round(fill_ratio, 6),
+            "mode": "cross_hatch" if cross_hatch else "centerline_bezier",
+            "stroke_count": len(horizontal) + len(vertical) if cross_hatch else 0,
+        })
+
+    centerline_svg, centerline_stats = mask_to_svg(
+        centerline_mask,
+        source_name=source_name,
+        allow_empty=True,
+    )
+    combined_svg = _append_strokes_to_svg(centerline_svg, hatch_strokes)
+
+    if hatch_strokes:
+        safe = _safe_mask(mask, BOUNDARY_INSET_MM / scale)
+        validate_hatch(horizontal_hatches, safe, direction="horizontal")
+        validate_hatch(vertical_hatches, safe, direction="vertical")
+        validate_inside_foreground(hatch_strokes, mask)
+
+    stats = {
+        "mode": "centerline_bezier_cross_hatch",
+        "source_image": source_name,
+        "image_size_px": [w, h],
+        "foreground_pixels": int(np.count_nonzero(mask)),
+        "source_bbox_px": list(bbox),
+        "scale_mm_per_px": round(scale, 9),
+        "stroke_count": centerline_stats["stroke_count"] + len(hatch_strokes),
+        "centerline_bezier_stroke_count": centerline_stats["stroke_count"],
+        "horizontal_hatch_stroke_count": len(horizontal_hatches),
+        "vertical_hatch_stroke_count": len(vertical_hatches),
+        "cross_hatch_component_count": sum(item["mode"] == "cross_hatch" for item in components),
+        "centerline_bezier_component_count": sum(
+            item["mode"] == "centerline_bezier" for item in components),
+        "components": components,
+        "spacing_mm": round(HATCH_SPACING_MM, 6),
+        "effective_groove_width_mm": round(EFFECTIVE_GROOVE_WIDTH_MM, 6),
+        "stepover_ratio": round(HATCH_STEPOVER_RATIO, 6),
+        "boundary_inset_mm": round(BOUNDARY_INSET_MM, 6),
+        "minimum_stroke_length_mm": round(MIN_HATCH_LENGTH_MM, 6),
+        "minimum_hatch_fill_ratio": MIN_HATCH_FILL_RATIO,
+        "cross_hatch_min_lines_per_direction": MIN_CROSS_HATCH_LINES_PER_DIRECTION,
+        "cross_hatch_enabled": True,
+        "removed_short_strokes": removed_short,
+        "recipe_scope": "surface_path",
+        "centerline": centerline_stats,
+    }
+    return combined_svg, (centerline_svg if centerline_stats["stroke_count"] else None), \
+        hatch_strokes, (bbox if hatch_strokes else None), stats
 
 
 def validate_hatch(strokes, safe_mask, *, direction):

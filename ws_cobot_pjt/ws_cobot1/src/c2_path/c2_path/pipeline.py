@@ -15,7 +15,7 @@ from datetime import datetime
 from typing import Callable, Mapping
 from uuid import UUID
 
-from . import (extract_2d, generate_path, image_to_hatch, image_to_svg, map_3d,
+from . import (extract_2d, generate_path, image_to_hatch, map_3d,
                optimize_2d, readiness, snapshot, validate_path)
 from . import workcell as wc
 from .artifacts import ArtifactError, ArtifactWrite, json_bytes, new_id, sha256_bytes
@@ -708,6 +708,7 @@ class GeneratePipeline:
         checkpoint("CONVERTING", 0.05)
         hatch_raw = None
         hatch_bbox = None
+        centerline_svg = None
         try:
             suffix = ".png" if asset.mime == "image/png" else ".jpg"
             with tempfile.NamedTemporaryFile(suffix=suffix) as image_file:
@@ -721,8 +722,11 @@ class GeneratePipeline:
                         source_name=asset.name,
                     )
                 else:
-                    svg, convert_stats = image_to_svg.convert(
+                    svg, centerline_svg, hatch_raw, hatch_bbox, convert_stats = \
+                        image_to_hatch.convert_centerline_bezier_with_cross_hatch(
                         image_file.name,
+                        goal["width_mm"],
+                        goal["height_mm"],
                         source_name=asset.name,
                     )
         except ValueError as exc:
@@ -733,17 +737,18 @@ class GeneratePipeline:
             "placement": {key: goal[key] for key in (
                 "width_mm", "height_mm", "offset_u_mm", "offset_v_mm", "rotation_deg")},
         }
-        if goal["conversion_preset"] == "raster_parallel_hatch":
+        if goal["conversion_preset"] in SUPPORTED_PRESETS:
             conversion_config.update({
                 key: convert_stats[key] for key in (
                     "effective_groove_width_mm", "boundary_inset_mm", "spacing_mm",
                     "stepover_ratio", "minimum_hatch_fill_ratio",
                 )
             })
+            conversion_config["cross_hatch_enabled"] = bool(convert_stats.get("cross_hatch_enabled"))
 
         checkpoint("EXTRACTING_2D", 0.22)
         try:
-            if hatch_raw is not None:
+            if goal["conversion_preset"] == "raster_parallel_hatch":
                 strokes, extract_stats = extract_2d.transform_raw_strokes(
                     hatch_raw,
                     hatch_bbox,
@@ -753,6 +758,39 @@ class GeneratePipeline:
                     goal["offset_v_mm"],
                     goal["rotation_deg"],
                 )
+            elif hatch_bbox is not None:
+                strokes = []
+                extract_parts = {}
+                if centerline_svg is not None:
+                    centerline_strokes, centerline_extract_stats = extract_2d.extract(
+                        centerline_svg,
+                        goal["width_mm"],
+                        goal["height_mm"],
+                        goal["offset_u_mm"],
+                        goal["offset_v_mm"],
+                        goal["rotation_deg"],
+                        source_bbox=hatch_bbox,
+                    )
+                    strokes.extend(centerline_strokes)
+                    extract_parts["centerline_bezier"] = centerline_extract_stats
+                if hatch_raw:
+                    hatch_strokes, hatch_extract_stats = extract_2d.transform_raw_strokes(
+                        hatch_raw,
+                        hatch_bbox,
+                        goal["width_mm"],
+                        goal["height_mm"],
+                        goal["offset_u_mm"],
+                        goal["offset_v_mm"],
+                        goal["rotation_deg"],
+                    )
+                    strokes.extend(hatch_strokes)
+                    extract_parts["cross_hatch"] = hatch_extract_stats
+                extract_stats = {
+                    "mode": "centerline_bezier_cross_hatch",
+                    "stroke_count": len(strokes),
+                    "point_count": sum(len(stroke) for stroke in strokes),
+                    "parts": extract_parts,
+                }
             else:
                 strokes, extract_stats = extract_2d.extract(
                     svg,

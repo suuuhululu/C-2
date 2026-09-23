@@ -412,30 +412,25 @@ def beziers_to_path_d(beziers, closed):
     return " ".join(d)
 
 
-def convert(image_path, spur_min_len_px=4.0, fit_error_px=0.6, invert=None,
-            max_pixels=16_000_000, max_side_px=6000, max_foreground_pixels=1_000_000,
-            source_name=None):
-    """이미지 파일 -> (svg_text, stats).
+def mask_to_svg(fg, *, source_name, spur_min_len_px=4.0, fit_error_px=0.6,
+                max_foreground_pixels=1_000_000, allow_empty=False):
+    """이미 준비된 전경 마스크를 중심선·Schneider 베지어 SVG로 바꾼다.
 
-    fit_error_px: Schneider 근사 허용 오차(px). 팀 검증값(허용거리 0.5px)에
-    맞춘 기본값이다.
+    혼합 변환은 교차 해칭으로 선택한 연결 성분을 마스크에서 제외한 뒤 이
+    함수를 호출한다. 따라서 같은 검은 면을 해칭과 베지어로 중복 가공하지
+    않는다.
     """
-    gray = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
-    if gray is None:
-        raise ValueError(f"이미지를 읽을 수 없습니다: {image_path}")
-    h, w = gray.shape
-    source_name = source_name or os.path.basename(image_path)
-    if h * w > max_pixels or max(h, w) > max_side_px:
-        raise ValueError("이미지는 16MP 이하이고 한 변이 6000px 이하여야 합니다.")
-
-    fg = binarize(gray, invert=invert)
+    if not isinstance(fg, np.ndarray) or fg.ndim != 2:
+        raise ValueError("전경 마스크는 2차원 NumPy 배열이어야 합니다.")
+    fg = fg.astype(bool, copy=False)
+    h, w = fg.shape
     foreground_pixels = int(np.count_nonzero(fg))
     if foreground_pixels > max_foreground_pixels:
         raise ValueError("전경 픽셀이 너무 많아 안전한 시간 안에 중심선을 만들 수 없습니다.")
     skel = skeletonize(fg)
 
     raw_strokes = trace_strokes(skel, spur_min_len_px=spur_min_len_px)
-    if not raw_strokes:
+    if not raw_strokes and not allow_empty:
         raise ValueError("골격에서 획을 찾지 못했습니다 (빈 이미지이거나 임계값이 안 맞습니다).")
 
     paths = []
@@ -475,3 +470,29 @@ def convert(image_path, spur_min_len_px=4.0, fit_error_px=0.6, invert=None,
         stats["measured_mean_error_px"] = round(
             sum(s["measured_mean_error_px"] for s in stroke_stats) / len(stroke_stats), 4)
     return svg, stats
+
+
+def convert(image_path, spur_min_len_px=4.0, fit_error_px=0.6, invert=None,
+            max_pixels=16_000_000, max_side_px=6000, max_foreground_pixels=1_000_000,
+            source_name=None):
+    """이미지 파일 -> (svg_text, stats).
+
+    fit_error_px: Schneider 근사 허용 오차(px). 팀 검증값(허용거리 0.5px)에
+    맞춘 기본값이다.
+    """
+    gray = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
+    if gray is None:
+        raise ValueError(f"이미지를 읽을 수 없습니다: {image_path}")
+    h, w = gray.shape
+    source_name = source_name or os.path.basename(image_path)
+    if h * w > max_pixels or max(h, w) > max_side_px:
+        raise ValueError("이미지는 16MP 이하이고 한 변이 6000px 이하여야 합니다.")
+
+    fg = binarize(gray, invert=invert)
+    return mask_to_svg(
+        fg,
+        source_name=source_name,
+        spur_min_len_px=spur_min_len_px,
+        fit_error_px=fit_error_px,
+        max_foreground_pixels=max_foreground_pixels,
+    )
