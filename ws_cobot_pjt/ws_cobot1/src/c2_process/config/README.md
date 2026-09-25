@@ -1,6 +1,6 @@
 # 고정 드릴 설정 개발 위치
 
-2026-09-23 main `b9eb003` 확인 기준 `workcell.yaml`·`tools.yaml` 실행 파일은 아직 없다. 현재 REAL 준비는 명시한 준비 JSON, REAL 실행 후보는 별도 배포 실행 프로파일 JSON을 사용한다. [운영 결정과 미확정 값](../../../../docs/C2_FIXED_DRILL_20260919.md)을 기준으로 담당자가 검증된 설정을 작성한다.
+2026-09-25 main `987a3b7` 확인 기준 `workcell.yaml`·`tools.yaml` 실행 파일은 아직 없다. 현재 REAL 준비는 명시한 준비 JSON, REAL 실행 후보는 별도 배포 실행 프로파일 JSON을 사용한다. [운영 결정과 미확정 값](../../../../docs/C2_FIXED_DRILL_20260919.md)을 기준으로 담당자가 검증된 설정을 작성한다.
 
 - 측정 설정: `workpiece_real_trial_0921.json`. PR #82가 `feat/engraving-force-hold-return-home`에 병합된 `c64fc6d`의 전체 측정 정책을 main `8409fc6`과 로컬 통합했다. start_gap 5 mm, side_search 10 mm, baseline lead-in 4.05 mm, 이동 복구 최대 3회, 조건부 비접촉 상한 15 N을 담당자 코드와 함께 적용한다.
 - 2026-09-23 15:02 **8/8** 원본으로 다음 측정 seed 중심·반지름과 윗면 접근·이탈 XY를 갱신했다. 기존 HOME·Z 탐색·trial_scene 경계와 hard_force_n은 유지한다. 새 seed로 바뀐 계획의 실기 검증은 별도다.

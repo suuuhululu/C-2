@@ -4,7 +4,7 @@
 
 ## 현재 개발 기준 · 2026-09-23
 
-- 확인한 원격 `main`은 `b9eb003`(PR #80 병합)이다. 다음 작업마다 원격과 설치본을 다시 확인한다. 현재 코드 흐름은 **HMI 준비 요청 → 양초 측정 → 원본·설정 스냅샷 BIND → 실측값으로 경로 생성·미리보기 → 별도 실행 요청 → PRECHECK·ENTRY·최종 검사·조각**이다. [현재 현황](docs/REVIEW_STATUS.md), [구조](ws_cobot_pjt/docs/SYSTEM_STRUCTURE.md), [실제 공통 타입](ws_cobot_pjt/ws_cobot1/src/c2_interfaces/README.md)을 우선 읽는다.
+- 확인한 원격 `main`은 `987a3b7`(PR #90 병합)이다. 다음 작업마다 원격과 설치본을 다시 확인한다. 현재 REAL 또는 승인된 entry 활성 흐름은 **HMI 준비 요청 → 양초 측정 → 원본·설정 스냅샷 BIND → 실측값으로 경로 생성·미리보기 → 별도 실행 요청 → PRECHECK → ENTRY → ENGRAVE → RETURN_HOME → FINISH**다. entry 비활성 호환 경로와 구분한다. [현재 현황](docs/REVIEW_STATUS.md), [구조](ws_cobot_pjt/docs/SYSTEM_STRUCTURE.md), [실제 공통 타입](ws_cobot_pjt/ws_cobot1/src/c2_interfaces/README.md)을 우선 읽는다.
 - `c2_interfaces`의 Action 3개·Service 1개·Message 2개, HMI·서버·ROS 게이트웨이, `c2_path` Action 서버, `c2_process` ROS 노드·패키지·측정·검사·조각 코드가 main에 있다. 기본 실행은 SIMULATION/MOCK이다. ROS 가상 장치 통합 기록은 있으나 실제 M0609에서 연속 측정→조각·정지·가공 품질이 검증됐다는 뜻은 아니다.
 - 이시율의 양초 측정·도구 기준·모션, 노홍동의 실측 스냅샷 기반 경로 생성, 김세은의 공정 순서·최종 관절 검사, 이수현의 HMI·서버를 같은 계약으로 연결한다. 이 담당 구분은 파일 독점 권한이 아니다. 생성 후 경로 전체를 다시 이동하는 `prepared_path.py` 단계는 사용하지 않는다.
 - **도구 장착 보정과 양초 위치 측정은 별개다.** 철사 고정 상태에서는 등록된 장착 기준을 사용하고, 양초의 윗면 접촉·옆면 8점으로 중심·반지름을 추정한다. 높이는 운영자 자 측정 출처이고 수직 축은 가정이며 기울기·독립 정확도 검증을 완료로 표시하지 않는다. 준비·조각의 접근·접촉·후퇴와 정지 확인은 각 실행 경로의 조건을 따른다.

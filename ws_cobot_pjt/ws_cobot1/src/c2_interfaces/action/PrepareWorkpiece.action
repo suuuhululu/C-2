@@ -1,6 +1,6 @@
-# 준비 권장 계약 2026-09-21: /c2/prepare_workpiece
-# 상세 규칙: docs/PREPARE_WORKPIECE_ACTION.md. 아직 서버/클라이언트 통합 전.
-# 기존 v2 타입은 변경하지 않는다. 수동 드릴/그리퍼 확인 bool은 보내지 않는다.
+# 고정 드릴 v2 준비 계약: /c2/prepare_workpiece
+# 상세 규칙: docs/PREPARE_WORKPIECE_ACTION.md. 서버·HMI 게이트웨이·공정 Action이 사용한다.
+# 수동 드릴/그리퍼 확인 bool은 ROS Goal로 보내지 않는다.
 uint16 SCHEMA_VERSION=2
 uint16 schema_version 2
 # MEASURE: 검사/필요 시 홈 복귀/재검사/측정. BIND_SNAPSHOT: 저장 결과 연결만, 이동 금지.

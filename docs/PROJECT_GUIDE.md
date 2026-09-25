@@ -1,6 +1,6 @@
 # 프로젝트 운영·학습·분업 가이드
 
-> **현재 코드 기준은 2026-09-23 `main` `b9eb003`이다.** 구현 상태와 실제 작업 순서는 [현재 현황](REVIEW_STATUS.md), [시스템 구조](../ws_cobot_pjt/docs/SYSTEM_STRUCTURE.md), [공정 패키지](../ws_cobot_pjt/ws_cobot1/src/c2_process/README.md)를 따른다. 이 문서의 아래 일정·담당·초기 설계는 작성 당시 팀 운영 기록이며 현재 기능 완료 판단의 근거가 아니다.
+> **현재 코드 기준은 2026-09-25 `main` `987a3b7`이다.** 구현 상태와 실제 작업 순서는 [현재 현황](REVIEW_STATUS.md), [시스템 구조](../ws_cobot_pjt/docs/SYSTEM_STRUCTURE.md), [공정 패키지](../ws_cobot_pjt/ws_cobot1/src/c2_process/README.md)를 따른다. 이 문서의 아래 일정·담당·초기 설계는 작성 당시 팀 운영 기록이며 현재 기능 완료 판단의 근거가 아니다.
 
 작성일: 2026-09-15. 노션 커리큘럼과 2026-09-14 대화에서 확인한 공지, 상위 프로젝트의 `local_file/AGENT.md`를 바탕으로 정리했다. 아래 시간 배분과 내부 완료 목표는 팀 운영 제안이며 제조사 규정이 아니다.
 
