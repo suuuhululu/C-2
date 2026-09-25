@@ -1,14 +1,15 @@
 # 문서 길잡이
 
-> 2026-09-23 원격 `main` `b9eb003` 기준. AI와 팀원은 아래 **현재 구현 문서 → 원본 코드·ROS 타입** 순서로 확인한다. 날짜가 붙은 기록·제안서는 작성 당시 커밋의 근거이며 현재 구현을 덮어쓰지 않는다.
+> 2026-09-25 원격 `main` `987a3b7` 기준. AI와 팀원은 아래 **현재 구현 문서 → 원본 코드·ROS 타입** 순서로 확인한다. 날짜가 붙은 기록·제안서는 작성 당시 커밋의 근거이며 현재 구현을 덮어쓰지 않는다.
 
 ## 현재 구현을 볼 때
 
 1. [전체 진행·검증 수준](../../docs/REVIEW_STATUS.md), [프로젝트 README](../README.md)
 2. [시스템 구조](SYSTEM_STRUCTURE.md) — HMI·경로·공정의 코드 위치와 책임
 3. [호출 흐름](INTERFACE_GUIDE.md) — MEASURE/BIND, 경로, 별도 실행·정지
-4. [ROS·파일 인터페이스](INTERFACE_RECOMMENDATION.md) — 이름·단위·ID/해시·모드·완료 조건
-5. [공통 타입](../ws_cobot1/src/c2_interfaces/README.md), [경로](../ws_cobot1/src/c2_path/README.md), [공정](../ws_cobot1/src/c2_process/README.md), [HMI 서버](../backend/README.md), [화면](../frontend/README.md), [실행 안내](../ws_cobot1/doc/README.md)
+4. [Interface Specification](INTERFACE_SPECIFICATION.md) — HTTP·WebSocket·ROS 필드, 상태·오류·제한 시간·중복/정지 규칙
+5. [ROS·파일 인터페이스 기준](INTERFACE_RECOMMENDATION.md) — 이름·단위·ID/해시·모드·완료 조건
+6. [공통 타입](../ws_cobot1/src/c2_interfaces/README.md), [경로](../ws_cobot1/src/c2_path/README.md), [공정](../ws_cobot1/src/c2_process/README.md), [HMI 서버](../backend/README.md), [화면](../frontend/README.md), [실행 안내](../ws_cobot1/doc/README.md)
 
 세부 필드는 같은 커밋의 `.action`·`.srv`·`.msg`와 코드가 원본이다. 현재 문서와 코드가 다르면 차이를 기록하고 현재 설치본·원격 main을 다시 확인한다. `schema_version=2`만으로 서로 다른 타입 정의가 호환되지는 않는다.
 

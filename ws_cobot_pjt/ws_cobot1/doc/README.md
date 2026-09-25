@@ -1,6 +1,6 @@
 # 프로젝트 ROS 실행·설정 기록
 
-2026-09-23 갱신: main `b9eb003`의 HMI·경로·공정 연결과 PR #80 entry planner 기준이다.
+2026-09-25 갱신: main `987a3b7`의 HMI·경로·공정 연결, entry 및 검사된 HOME 복귀 기준이다.
 현재 실행 흐름은 [인터페이스 안내](../../docs/INTERFACE_GUIDE.md), 파일·노드 책임은
 [시스템 구조](../../docs/SYSTEM_STRUCTURE.md)를 따른다. 날짜별 과거 PR 문서는 당시 기록이며
 현재 실행 가능 여부는 이 문서와 실제 코드·설정으로 다시 확인한다.
@@ -18,7 +18,7 @@
 | `c2_process` | 준비 MEASURE/BIND, 상태 기계·preconditions·측정·entry planner·전체 명시 waypoint 관절 검사·조각·정지와 SIM/REAL entry point 구현. `launch/process.launch.py`와 실행 YAML은 없음. |
 | 운영자 HMI·서버 | React·FastAPI·SQLite, 관리 자산, MOCK/ROS SIM/REAL 준비→경로→별도 실행 요청 연결. 실행 방법은 [서버](../../backend/README.md)·[화면](../../frontend/README.md) 안내 참조. |
 | `monitor_gateway_node` | `backend/app/ros_bridge.py`의 native rclpy 클라이언트. `PrepareWorkpiece`·`GeneratePath`·`ExecuteProcess`·정지·상태·이벤트 계약을 연결한다. |
-| prepared 실행 | `PRECHECK → ENTRY → ENGRAVE → FINISH`. entry는 실측 기하와 승인된 상대 정책으로 후보를 검사·고정한 뒤 실행한다. 전체 메시 충돌과 실제 M0609 전체 공정은 별도 검증 대상이다. |
+| prepared 실행 | REAL 또는 승인된 entry 활성 흐름은 `PRECHECK → ENTRY → ENGRAVE → RETURN_HOME → FINISH`. entry 비활성 호환 흐름에서는 두 콜백을 생략할 수 있다. entry와 복귀는 실측 기하와 승인된 상대 정책으로 후보를 각각 검사·고정한 뒤 실행한다. 실패·정지 미확인 뒤 자동 복귀하지 않는다. 전체 메시 충돌과 실제 M0609 전체 공정은 별도 검증 대상이다. |
 
 저장소 루트에서 `python3 ws_cobot_pjt/run_monitor.py`는 기본 SIMULATION/MOCK이다. Jazzy 환경을 준비하고
 `--transport ros`를 주면 저장소를 초기화한 뒤 경로 노드와 HMI를 함께 켠다. 실제 공정 전체를 실행하는 명령은 아니다.

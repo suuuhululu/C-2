@@ -1,6 +1,6 @@
 # 새김 시스템 인터페이스 안내
 
-기준: `main` `b9eb003` (2026-09-23, PR #80 병합). 이 문서는 현재 코드의 통신 경계와 작업 순서를 설명한다. 세부 필드의 원본은 [`c2_interfaces`](../ws_cobot1/src/c2_interfaces/README.md)의 `.action`·`.srv`·`.msg`, 실행 조건의 원본은 [`c2_process`](../ws_cobot1/src/c2_process/README.md)와 [`c2_path`](../ws_cobot1/src/c2_path/README.md) 코드다. 이전 설계·시험의 날짜별 기록을 현재 구현으로 읽지 않는다.
+기준: `main` `987a3b7` (2026-09-25, PR #90 병합). 이 문서는 현재 코드의 통신 경계와 작업 순서를 설명한다. 세부 필드의 원본은 [`c2_interfaces`](../ws_cobot1/src/c2_interfaces/README.md)의 `.action`·`.srv`·`.msg`, 실행 조건의 원본은 [`c2_process`](../ws_cobot1/src/c2_process/README.md)와 [`c2_path`](../ws_cobot1/src/c2_path/README.md) 코드다. 발표·교차 검토용 표는 [Interface Specification](INTERFACE_SPECIFICATION.md)을 함께 본다. 이전 설계·시험의 날짜별 기록을 현재 구현으로 읽지 않는다.
 
 ## 구성과 책임
 
@@ -29,7 +29,7 @@ Action은 오래 걸리는 작업의 진행·결과·취소를 전달한다. 팀
 3. 서버가 측정 원본을 관리 파일에 저장하고 해당 측정의 설정과 기하를 조립해 새 ID·SHA-256을 발급한다. 유효한 REAL 실행 설정이 있으면 `BIND_SNAPSHOT`이 제어 측의 같은 측정 원본·설정 식별·기하·신뢰도와 대조한다. 실행 설정이 없거나 잘못되면 측정은 허용하되 REAL 추정값 **미리보기 전용** 스냅샷을 만들며 BIND·조각은 진행하지 않는다. BIND 성공은 실행 승인이나 새 측정을 뜻하지 않는다.
 4. `GeneratePath`가 그 스냅샷으로 경로를 만든다. SIMULATION `/1`·`/2`, REAL 추정값 미리보기 `/3`, REAL 실행 후보 계약은 구분된다. REAL 실행 후보는 별도 `allow_real_execution` 설정과 BIND·실행 설정·작업 범위 조건을 거쳐 `test_only=false`, `real_execution_allowed=true`가 될 수 있다. 이 표시는 로봇 IK/관절·실물 충돌·가공 품질의 통과가 아니다.
 5. 운영자가 미리보기를 확인한 뒤 별도 `ExecuteProcess`를 요청한다. HMI는 REAL에서 준비 수동 확인, 같은 준비/스냅샷/경로, 파일 해시, 최신 상태, 실행 후보 표시 등을 다시 대조한다. 드릴 ON 체크는 **화면 전용 수동 확인**이며 공정 Action 필드·전원 센서·드릴 제어 명령이 아니다. `operator_confirmed_fixture`는 ExecuteProcess의 별도 공작물 고정 확인이다.
-6. 공정 노드는 경로·스냅샷 바이트/ID/해시, 실행 모드·설정, 장치 상태·제어권을 다시 검사한다. prepared 실행은 `PRECHECK → ENTRY → ENGRAVE → FINISH` 순서다. `ENTRY`는 현재/HOME에서 첫 APPROACH까지의 후보를 실측 중심·반지름·윗면과 승인된 상대 여유 정책으로 만들고, 실제 IK·관절/J3/J5·보간 관절 변화·단순 원통 간격을 검사해 해시로 고정한다. 이어 깊이·접근·이탈을 반영한 실행 계획의 **모든 명시 waypoint**를 검사한 후 같은 entry와 본 계획으로 조각한다. 이 검사는 전체 메시 충돌 보증이 아니다. 성공·실패·정지 미확인은 Action 결과/상태/이벤트로 전달하며 미확인 정지는 새 공정을 차단한다.
+6. 공정 노드는 경로·스냅샷 바이트/ID/해시, 실행 모드·설정, 장치 상태·제어권을 다시 검사한다. REAL 또는 승인된 `entry_planning.enabled=true`의 prepared 정상 실행은 `PRECHECK → ENTRY → ENGRAVE → RETURN_HOME → FINISH` 순서다. entry 비활성 호환 흐름에서는 `ENTRY`와 `RETURN_HOME` 콜백이 생략될 수 있다. `ENTRY`는 현재/HOME에서 첫 APPROACH까지의 후보를 실측 중심·반지름·윗면과 승인된 상대 여유 정책으로 만들고, 실제 IK·관절/J3/J5·보간 관절 변화·단순 원통 간격을 검사해 해시로 고정한다. 이어 깊이·접근·이탈을 반영한 실행 계획의 **모든 명시 waypoint**를 검사한 후 같은 entry와 본 계획으로 조각하고 별도로 검사된 복귀 계획으로 HOME에 복귀한다. 실패·취소·정지 미확인 뒤에는 다음 단계나 자동 HOME 복귀를 수행하지 않는다. 이 검사는 전체 메시 충돌 보증이 아니다. 성공·실패·정지 미확인은 Action 결과/상태/이벤트로 전달하며 미확인 정지는 새 공정을 차단한다.
 
 ## 모드·단위·배포 경계
 

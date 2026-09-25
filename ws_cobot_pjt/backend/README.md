@@ -15,7 +15,7 @@ REAL 실행 프로파일 검사는 HMI 기동이나 **사전 검사·양초 측�
 
 최신 작업: [이미지 한 장 HMI 부분통합](../docs/HMI_PARTIAL_INTEGRATION.md). 운영 화면에서 ZIP 교환을 제거하고 기본 실행을 실제 PNG/JPEG 계산 → 기존 준비/공정 흐름으로 연결했다. 이미지 의존성은 `requirements-image.lock.txt`를 사용한다. 아래 과거 파일 통합 메뉴 안내는 이전 구현 기록이다.
 
-최신 REAL 흐름은 [인터페이스 안내](../docs/INTERFACE_GUIDE.md)를 따른다. `--mode REAL --preparation-config ...`는 현장 설정을 명시 선택하며 실행 프로파일이 없으면 측정·미리보기까지만 허용한다. BIND·REAL 실행 후보·prepared `PRECHECK → ENTRY → ENGRAVE → FINISH`에는 유효한 `--execution-profile`이 추가로 필요하다. 아래의 과거 REAL 기동 거절·SIM 전용 표기는 이전 구현 기록이다.
+최신 REAL 흐름은 [인터페이스 안내](../docs/INTERFACE_GUIDE.md)를 따른다. `--mode REAL --preparation-config ...`는 현장 설정을 명시 선택하며 실행 프로파일이 없으면 측정·미리보기까지만 허용한다. BIND·REAL 실행 후보·prepared `PRECHECK → ENTRY → ENGRAVE → RETURN_HOME → FINISH`에는 유효한 `--execution-profile`이 추가로 필요하다. 정상 성공 경로의 검사된 HOME 복귀와 실패·정지 미확인 뒤 자동 복귀 금지를 구분한다. 아래의 과거 REAL 기동 거절·SIM 전용 표기는 이전 구현 기록이다.
 
 최신: [main 8a68790 통합 준비](../docs/HMI_INTEGRATION_20260921.md). `C2_ROS_PREPARATION_SIM=1`로 기존 ROS 준비 요청의 MEASURE→원본 저장→동적 `/2`→BIND를 연결한다. REAL/조각 차단은 유지한다. 아래 미연결 표기는 이전 기록이다.
 
