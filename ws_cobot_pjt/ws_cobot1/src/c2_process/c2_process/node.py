@@ -25,7 +25,7 @@ from .engraving import ExecutionContext, execute_path, validate_path, build_exec
 from .entry_planner import execute_entry_plan, plan_entry_path
 from .return_home_planner import execute_return_home_plan, plan_return_home_path
 from .engraving_workspace import check_path_workspace, validate_workspace
-from .joint_check import check_path_joints
+from .joint_check import check_path_joints, evaluate_path_joints
 from .preconditions import PreconditionEvidence, check_preconditions, check_robot_status, check_prepared_path
 from .robot_adapter import DoosanRobotAdapter, MockRobotAdapter, RobotState, StepResult, apply_tool_offset
 from .state_machine import run_process, run_preparation, run_prepared_process
@@ -1586,6 +1586,9 @@ class ProcessCoordinator:
                                "profile_snapshot_id": expected_binding[0]})
 
         def precheck():
+            reset_ik_metrics = getattr(loaded.adapter, "reset_ik_metrics", None)
+            if callable(reset_ik_metrics):
+                reset_ik_metrics()
             try:
                 # 준비 완료 실행은 저장된 고정 장착 오프셋을 먼저 연결해야 observe()도
                 # 경로와 같은 도구 끝 기준이 된다. 로봇 모션이나 제어기 설정 변경은 아니다.
@@ -1600,6 +1603,8 @@ class ProcessCoordinator:
             evidence = replace(loaded.evidence, robot_state=state)
 
             def joints():
+                stage_started = time.monotonic()
+                stage_metrics = {}
                 limits = loaded.joint_limits_deg
                 margin = loaded.j6_margin_deg
                 current = getattr(state, "joints_rad", None)
@@ -1625,11 +1630,20 @@ class ProcessCoordinator:
                     workspace = check_path_workspace(loaded.path, loaded.workcell.get("engraving_workspace"))
                     if not workspace.ok:
                         return workspace
+                    entry_started = time.monotonic()
                     entry = self.entry_plan_fn(
                         dict(loaded.path), dict(loaded.workcell), loaded.adapter, state,
                         list(offset), context.joint_limits_deg, context.j6_margin_deg,
                         context.motion_profiles, cancel=context.cancel,
                         joint_check_fn=self.joint_check_fn)
+                    stage_metrics["entry"] = {
+                        "stage_elapsed_s": max(0.0, time.monotonic() - entry_started),
+                    }
+                    if isinstance(entry, StepResult):
+                        entry_ik_metrics = dict(entry.observed_state.get("ik_metrics") or {})
+                        if "elapsed_s" in entry_ik_metrics:
+                            entry_ik_metrics["ik_elapsed_s"] = entry_ik_metrics.pop("elapsed_s")
+                        stage_metrics["entry"].update(entry_ik_metrics)
                     if not isinstance(entry, StepResult):
                         return StepResult("UNKNOWN", "INVALID_RESULT",
                                           "entry 계획 결과 형식 오류", "entry_planning")
@@ -1655,7 +1669,32 @@ class ProcessCoordinator:
                 if self.joint_check_fn is check_path_joints:
                     kwargs["cancel"] = context.cancel
                 signature = execution_signature(dict(loaded.path), context)
-                checked = self.joint_check_fn(plan, loaded.adapter, list(offset), list(current), **kwargs)
+                main_reference = list(current)
+                if entry_enabled:
+                    final_entry = context.checked_entry_plan.get("final_joints_deg")
+                    if (isinstance(final_entry, (list, tuple)) and len(final_entry) == 6
+                            and all(isinstance(v, (int, float)) and math.isfinite(v)
+                                    for v in final_entry)):
+                        main_reference = [math.radians(v) for v in final_entry]
+                main_started = time.monotonic()
+                main_evaluation = None
+                if self.joint_check_fn is check_path_joints:
+                    main_evaluation = evaluate_path_joints(
+                        plan, loaded.adapter, list(offset), main_reference,
+                        limits_deg=context.joint_limits_deg,
+                        j6_margin_deg=context.j6_margin_deg, cancel=context.cancel)
+                    checked = main_evaluation.result
+                else:
+                    checked = self.joint_check_fn(
+                        plan, loaded.adapter, list(offset), main_reference, **kwargs)
+                stage_metrics["main_path"] = {
+                    "stage_elapsed_s": max(0.0, time.monotonic() - main_started),
+                }
+                if main_evaluation is not None:
+                    stage_metrics["main_path"].update({
+                        "inverse_kinematics_calls": main_evaluation.inverse_kinematics_calls,
+                        "ik_elapsed_s": main_evaluation.elapsed_s,
+                    })
                 if checked.ok:
                     if signature != execution_signature(dict(loaded.path), context):
                         return StepResult("FAILED", "PROFILE_MISMATCH", "IK 중 경로/설정 변경", "execution_plan")
@@ -1664,12 +1703,27 @@ class ProcessCoordinator:
                     if context.checked_entry_plan_sha256 is not None:
                         checked.observed_state["entry_plan_sha256"] = context.checked_entry_plan_sha256
                     if entry_enabled:
+                        home_kwargs = dict(
+                            entry_plan=context.checked_entry_plan,
+                            plan_signature=signature, cancel=context.cancel,
+                            joint_check_fn=self.joint_check_fn)
+                        if (self.return_home_plan_fn is plan_return_home_path
+                                and main_evaluation is not None):
+                            home_kwargs["predicted_end_joints_deg"] = (
+                                main_evaluation.final_joints_deg)
+                        home_started = time.monotonic()
                         home = self.return_home_plan_fn(
                             plan, dict(loaded.workcell), loaded.adapter, state,
                             list(offset), context.joint_limits_deg, context.j6_margin_deg,
-                            context.motion_profiles, entry_plan=context.checked_entry_plan,
-                            plan_signature=signature, cancel=context.cancel,
-                            joint_check_fn=self.joint_check_fn)
+                            context.motion_profiles, **home_kwargs)
+                        stage_metrics["return_home"] = {
+                            "stage_elapsed_s": max(0.0, time.monotonic() - home_started),
+                        }
+                        if isinstance(home, StepResult):
+                            home_ik_metrics = dict(home.observed_state.get("ik_metrics") or {})
+                            if "elapsed_s" in home_ik_metrics:
+                                home_ik_metrics["ik_elapsed_s"] = home_ik_metrics.pop("elapsed_s")
+                            stage_metrics["return_home"].update(home_ik_metrics)
                         if not isinstance(home, StepResult):
                             return StepResult("UNKNOWN", "INVALID_RESULT",
                                               "HOME 복귀 계획 결과 형식 오류",
@@ -1689,11 +1743,24 @@ class ProcessCoordinator:
                         checked_return_home["plan"] = copy.deepcopy(dict(return_plan))
                         checked_return_home["sha256"] = return_sha
                         checked.observed_state["return_home_plan_sha256"] = return_sha
+                    stage_metrics["total"] = {
+                        "stage_elapsed_s": max(0.0, time.monotonic() - stage_started),
+                        "inverse_kinematics_calls": sum(
+                            int(value.get("inverse_kinematics_calls", 0))
+                            for key, value in stage_metrics.items() if key != "total"),
+                    }
+                    checked.observed_state["precheck_ik_metrics"] = stage_metrics
                 return checked
 
             checker = check_prepared_path if prepared else self.precheck_fn
             checked = checker(goal, loaded.path, loaded.path_bytes, loaded.snapshot,
                                        loaded.snapshot_bytes, evidence, joint_check=joints)
+            metrics_snapshot = getattr(loaded.adapter, "ik_metrics_snapshot", None)
+            if callable(metrics_snapshot):
+                adapter_metrics = metrics_snapshot()
+                if isinstance(adapter_metrics, Mapping):
+                    checked.observed_state = dict(checked.observed_state)
+                    checked.observed_state["adapter_ik_metrics"] = dict(adapter_metrics)
             if not checked.ok:
                 # 실패한 관절 검사를 재시도할 때도 일시적 cache 만료만으로 이미
                 # 성공한 측정/BIND가 삭제되지 않도록 최신 관측을 다시 채운다.

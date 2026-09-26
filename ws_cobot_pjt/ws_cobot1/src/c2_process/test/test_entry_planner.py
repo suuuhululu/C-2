@@ -7,7 +7,11 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from c2_process.engraving import ExecutionContext
-from c2_process.entry_planner import execute_entry_plan, plan_entry_path
+from c2_process.entry_planner import (
+    execute_entry_plan,
+    generate_entry_candidates,
+    plan_entry_path,
+)
 from c2_process.robot_adapter import RobotState, StepResult
 from c2_process.state_machine import run_prepared_process
 
@@ -99,6 +103,23 @@ def test_planner_selects_ik_valid_relative_height_without_motion():
     assert adapter.moves == []
     assert adapter.ik_calls
     assert plan["source_binding"]["profile_snapshot_id"] == "snapshot-1"
+
+
+def test_entry_joint_sequence_is_reused_for_continuity_check():
+    adapter, path, workcell, profiles, context, limits = inputs()
+    candidates = generate_entry_candidates(
+        path, workcell, adapter.pose, [0.0, 0.0, 0.0], profiles)
+
+    result = plan_entry_path(
+        path, workcell, adapter, adapter.observe(), [0.0, 0.0, 0.0],
+        limits, 0.0, profiles, cancel=context.cancel)
+
+    expected_calls = sum(len(candidate["validation_waypoints"])
+                         for candidate in candidates)
+    assert result.ok
+    assert len(adapter.ik_calls) == expected_calls
+    assert result.observed_state["ik_metrics"]["inverse_kinematics_calls"] == expected_calls
+    assert len(result.observed_state["entry_plan"]["final_joints_deg"]) == 6
 
 
 def test_all_candidates_fail_closed_without_motion():

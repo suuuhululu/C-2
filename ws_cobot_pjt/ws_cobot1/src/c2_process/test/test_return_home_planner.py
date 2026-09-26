@@ -21,6 +21,7 @@ class ReturnAdapter:
         self.joints_deg = [0.0, 0.0, 20.0, 0.0, 30.0, 0.0]
         self.tool_offset_m = [0.0, -0.1, 0.0]
         self.moves = []
+        self.ik_calls = 0
 
     def observe(self):
         return RobotState(joints_rad=[math.radians(v) for v in self.joints_deg],
@@ -28,6 +29,7 @@ class ReturnAdapter:
                           robot_state=1, quality="VALID")
 
     def inverse_kinematics(self, _pose, _offset, _reference):
+        self.ik_calls += 1
         return list(self.joints_deg)
 
     def move(self, pose, _frame_id, _profile, _deadline, cancel):
@@ -109,6 +111,21 @@ def test_plans_from_final_retract_without_motion_and_uses_measured_geometry():
     assert plan["source_binding"]["radius_m"] == workcell["radius_m"]
     assert plan["targets"][-1]["tip_pose"] == [0.3, -0.1, 0.35, 0.0, 0.0, 0.0, 1.0]
     assert adapter.moves == []
+
+
+def test_return_reuses_predicted_end_and_joint_sequence():
+    adapter, path, workcell, profiles, context, limits = fixture()
+
+    result = plan_return_home_path(
+        path, workcell, adapter, adapter.observe(), adapter.tool_offset_m,
+        limits, 0.0, profiles, plan_signature="plan-signature",
+        predicted_end_joints_deg=adapter.joints_deg, cancel=context.cancel)
+
+    assert result.ok
+    plan = result.observed_state["return_home_plan"]
+    assert adapter.ik_calls == len(plan["validation_waypoints"])
+    assert result.observed_state["ik_metrics"]["prefix_reused"] is True
+    assert result.observed_state["ik_metrics"]["inverse_kinematics_calls"] == adapter.ik_calls
 
 
 def test_executes_only_frozen_plan_and_rejects_mutation_or_wrong_start():

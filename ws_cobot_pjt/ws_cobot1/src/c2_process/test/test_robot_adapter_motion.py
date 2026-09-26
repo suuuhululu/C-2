@@ -179,6 +179,27 @@ def test_ikin_uses_ros_services_and_preserves_degrees(setup):
     assert calls[-1][1].pos[0] == 100. and calls[-1][1].sol_space == 2
 
 
+def test_ikin_metrics_separate_high_level_and_motion_service_calls(setup):
+    ad, clock, calls = setup
+    ad.reset_ik_metrics()
+
+    def call(endpoint, kind, request, timeout=5.):
+        calls.append((endpoint, request))
+        clock.now += 0.02 if endpoint == 'motion/ikin' else 0.005
+        return SimpleNamespace(success=True, sol_space=2, conv_posj=[1.] * 6)
+
+    ad._call = call
+    assert ad.inverse_kinematics(
+        posx_to_pose([100., 0., 0., 0., 0., 0.]), None, [0.] * 6) == [1.] * 6
+
+    metrics = ad.ik_metrics_snapshot()
+    assert metrics['inverse_kinematics_calls'] == 1
+    assert metrics['motion_ikin_calls'] == 1
+    assert metrics['solution_space_queries_per_ik'] == 1.0
+    assert metrics['motion_ikin_mean_response_s'] == pytest.approx(0.02)
+    assert metrics['motion_ikin_max_response_s'] == pytest.approx(0.02)
+
+
 def test_empty_motion_spline_rejected(setup):
     ad, clock, calls = setup
     r = ad.move_spline([posx_to_pose(ZERO)] * 3, 'c2_base', PROFILE, 2., None)

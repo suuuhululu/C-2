@@ -9,6 +9,7 @@ import copy
 import hashlib
 import json
 import math
+import time
 from typing import Mapping
 
 from .engraving import (
@@ -19,7 +20,7 @@ from .engraving import (
 )
 from .engraving_workspace import check_waypoints, validate_workspace
 from .entry_planner import _interpolate, _pose, _policy, _quat_angle_deg, _vector
-from .joint_check import _unwrap, check_path_joints
+from .joint_check import _unwrap, check_path_joints, evaluate_path_joints
 from .robot_adapter import StepResult, apply_tool_offset
 
 
@@ -203,15 +204,20 @@ def _predicted_end_joints(points, adapter, tool_offset_m, current_joints_rad, ca
     return StepResult("SUCCEEDED"), previous
 
 
-def _continuity_check(candidate, adapter, tool_offset_m, previous, limits_deg, cancel):
+def _continuity_check(candidate, adapter, tool_offset_m, previous, limits_deg, cancel,
+                      joints_sequence=None):
     policy = candidate["policy"]
     minimum_margin = float("inf")
     minimum_singularity = float("inf")
     checked = 0
+    if joints_sequence is not None and len(joints_sequence) != len(candidate["validation_waypoints"]):
+        return StepResult("UNKNOWN", "INVALID_RESULT",
+                          "HOME 복귀 관절열과 표본 개수 불일치", "return_home_check")
     for index, pose in enumerate(candidate["validation_waypoints"]):
         if cancel is not None and cancel.is_set():
             return StepResult("STOPPED", "NONE", "복귀 검사 취소", "return_home_check")
-        joints = adapter.inverse_kinematics(pose, tool_offset_m, previous)
+        joints = (joints_sequence[index] if joints_sequence is not None
+                  else adapter.inverse_kinematics(pose, tool_offset_m, previous))
         if not _vector(joints, 6):
             return StepResult("FAILED", "NOT_READY",
                               f"복귀 IK 실패: sample {index}", "return_home_check")
@@ -263,7 +269,7 @@ def _plan_digest(plan):
 
 def plan_return_home_path(execution_plan, workcell, adapter, state, tool_offset_m,
                           limits_deg, j6_margin_deg, motion_profiles, *, entry_plan=None,
-                          plan_signature=None, cancel=None,
+                          plan_signature=None, cancel=None, predicted_end_joints_deg=None,
                           joint_check_fn=check_path_joints):
     """ENTRY와 본경로로 예상한 마지막 관절에서 복귀 후보를 검사해 하나를 확정한다."""
     try:
@@ -275,13 +281,26 @@ def plan_return_home_path(execution_plan, workcell, adapter, state, tool_offset_
     except (KeyError, TypeError, ValueError, OverflowError) as exc:
         return StepResult("FAILED", "NOT_READY", str(exc), "return_home_planning")
 
-    prefix = _prefix_waypoints(entry_plan, execution_plan)
-    predicted, final_joints = _predicted_end_joints(
-        prefix, adapter, tool_offset_m, state.joints_rad, cancel)
-    if not predicted.ok:
-        return predicted
+    prefix_ik_calls = 0
+    prefix_ik_elapsed_s = 0.0
+    if predicted_end_joints_deg is not None:
+        if not _vector(predicted_end_joints_deg, 6):
+            return StepResult("UNKNOWN", "INVALID_RESULT",
+                              "재사용할 복귀 시작 관절값 형식 오류", "return_home_planning")
+        final_joints = list(predicted_end_joints_deg)
+    else:
+        prefix = _prefix_waypoints(entry_plan, execution_plan)
+        started = time.monotonic()
+        predicted, final_joints = _predicted_end_joints(
+            prefix, adapter, tool_offset_m, state.joints_rad, cancel)
+        prefix_ik_elapsed_s = max(0.0, time.monotonic() - started)
+        prefix_ik_calls = len(prefix) if predicted.ok else 0
+        if not predicted.ok:
+            return predicted
 
     accepted = []
+    total_ik_calls = prefix_ik_calls
+    total_ik_elapsed_s = prefix_ik_elapsed_s
     for candidate in candidates:
         geometry = _geometry_check(candidate, normalized)
         if not geometry.ok:
@@ -292,8 +311,18 @@ def plan_return_home_path(execution_plan, workcell, adapter, state, tool_offset_
         kwargs = dict(limits_deg=limits_deg, j6_margin_deg=j6_margin_deg)
         if joint_check_fn is check_path_joints:
             kwargs["cancel"] = cancel
-        joints = joint_check_fn(return_path, adapter, tool_offset_m,
-                                [math.radians(v) for v in final_joints], **kwargs)
+        joint_evaluation = None
+        if joint_check_fn is check_path_joints:
+            joint_evaluation = evaluate_path_joints(
+                return_path, adapter, tool_offset_m,
+                [math.radians(v) for v in final_joints], limits_deg=limits_deg,
+                j6_margin_deg=j6_margin_deg, cancel=cancel)
+            joints = joint_evaluation.result
+            total_ik_calls += joint_evaluation.inverse_kinematics_calls
+            total_ik_elapsed_s += joint_evaluation.elapsed_s
+        else:
+            joints = joint_check_fn(return_path, adapter, tool_offset_m,
+                                    [math.radians(v) for v in final_joints], **kwargs)
         if not isinstance(joints, StepResult):
             return StepResult("UNKNOWN", "INVALID_RESULT",
                               "HOME 복귀 관절 검사 결과 형식 오류", "return_home_planning")
@@ -304,7 +333,8 @@ def plan_return_home_path(execution_plan, workcell, adapter, state, tool_offset_
                              "reason": joints.message})
             continue
         continuity = _continuity_check(
-            candidate, adapter, tool_offset_m, list(final_joints), limits_deg, cancel)
+            candidate, adapter, tool_offset_m, list(final_joints), limits_deg, cancel,
+            None if joint_evaluation is None else joint_evaluation.joints_deg)
         if not continuity.ok:
             if continuity.outcome == "STOPPED":
                 return continuity
@@ -345,7 +375,12 @@ def plan_return_home_path(execution_plan, workcell, adapter, state, tool_offset_
         "return_home_planning",
         {"return_home_plan": selected,
          "return_home_plan_sha256": selected["return_home_plan_sha256"],
-         "rejected_candidates": rejected})
+         "rejected_candidates": rejected,
+         "ik_metrics": {
+             "inverse_kinematics_calls": total_ik_calls,
+             "elapsed_s": total_ik_elapsed_s,
+             "prefix_reused": predicted_end_joints_deg is not None,
+         }})
 
 
 def execute_return_home_plan(plan, adapter, context):

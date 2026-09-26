@@ -171,6 +171,12 @@ class RobotAdapter:
         """도구 끝 pose(m·quat) → 관절 [deg] 6개. 해가 없으면 None. ref_joints_deg 로 해 공간을 고른다 (연속성). 로봇을 움직이지 않는다."""
         raise NotImplementedError
 
+    def reset_ik_metrics(self):
+        """선택 계측 API. 구현하지 않는 어댑터는 고수준 검사 계측만 사용한다."""
+
+    def ik_metrics_snapshot(self):
+        return None
+
     def set_tool_offset(self, offset_tool_m):
         """제어기 TCP(패드 기본값) 에서 송곳 끝까지의 도구 좌표계 오프셋 [ox,oy,oz] (m). 집기 뒤 측정한 송곳 길이로
         tool_sequence/상태 기계가 설정한다. 이후 move/move_spline/observe 는 모두 '송곳 끝' 기준으로 동작한다."""
@@ -265,6 +271,8 @@ class DoosanRobotAdapter(RobotAdapter):
                          TaskComplianceCtrl=TaskComplianceCtrl, SetDesiredForce=SetDesiredForce,
                          ReleaseForce=ReleaseForce, ReleaseComplianceCtrl=ReleaseComplianceCtrl)
         self._hold_active = False                  # 법선 힘 유지(순응+힘 제어) 켜짐 여부. 켜진 채 공중 이동 금지
+        self._ik_metrics_lock = threading.Lock()
+        self.reset_ik_metrics()
         if (isinstance(initialization_timeout_s, bool)
                 or not isinstance(initialization_timeout_s, (int, float))
                 or not math.isfinite(initialization_timeout_s)
@@ -349,6 +357,10 @@ class DoosanRobotAdapter(RobotAdapter):
 
     def inverse_kinematics(self, pose, tool_offset_m, ref_joints_deg):
         """제어기 ikin(posx, sol_space) 로 관절해 [deg]. sol_space 는 처음 8개 중 ref 에 가장 가까운 것을 고르고 이후 유지한다."""
+        if not hasattr(self, "_ik_metrics_lock"):
+            self.reset_ik_metrics()
+        with self._ik_metrics_lock:
+            self._ik_inverse_calls += 1
         px = pose_to_posx(pose, tool_offset_m)
         best = None
         if getattr(self, "_ik_space", None) is None:
@@ -359,10 +371,17 @@ class DoosanRobotAdapter(RobotAdapter):
                 self._ik_space = None
         spaces = ([self._ik_space] if self._ik_space is not None else []) + [k for k in range(8) if k != self._ik_space]
         for sp in spaces:
+            service_started = time.monotonic()
             try:
                 q = self._read("motion/ikin", "Ikin", pos=[float(v) for v in px], sol_space=sp, ref=0).conv_posj
             except Exception:
                 q = None
+            finally:
+                elapsed = max(0.0, time.monotonic() - service_started)
+                with self._ik_metrics_lock:
+                    self._ik_service_calls += 1
+                    self._ik_service_elapsed_s += elapsed
+                    self._ik_service_max_s = max(self._ik_service_max_s, elapsed)
             if isinstance(q, tuple) and len(q) and hasattr(q[0], "__len__"):   # (posj, status) 형태 대비
                 q = q[0]
             if q is None or len(q) < 6:                                          # numpy 배열이라 `not q` 는 쓰지 않는다 (9/19 실기)
@@ -377,6 +396,32 @@ class DoosanRobotAdapter(RobotAdapter):
             return None
         self._ik_space = best[1]
         return best[2]
+
+    def reset_ik_metrics(self):
+        if not hasattr(self, "_ik_metrics_lock"):
+            self._ik_metrics_lock = threading.Lock()
+        with self._ik_metrics_lock:
+            self._ik_inverse_calls = 0
+            self._ik_service_calls = 0
+            self._ik_service_elapsed_s = 0.0
+            self._ik_service_max_s = 0.0
+
+    def ik_metrics_snapshot(self):
+        if not hasattr(self, "_ik_metrics_lock"):
+            self.reset_ik_metrics()
+        with self._ik_metrics_lock:
+            service_calls = self._ik_service_calls
+            return {
+                "inverse_kinematics_calls": self._ik_inverse_calls,
+                "motion_ikin_calls": service_calls,
+                "solution_space_queries_per_ik": (
+                    service_calls / self._ik_inverse_calls
+                    if self._ik_inverse_calls else 0.0),
+                "motion_ikin_elapsed_s": self._ik_service_elapsed_s,
+                "motion_ikin_mean_response_s": (
+                    self._ik_service_elapsed_s / service_calls if service_calls else 0.0),
+                "motion_ikin_max_response_s": self._ik_service_max_s,
+            }
 
     def set_tool_offset(self, offset_tool_m):
         self._last_completed_target = None

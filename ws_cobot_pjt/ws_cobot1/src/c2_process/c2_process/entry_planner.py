@@ -11,7 +11,7 @@ import json
 import math
 from typing import Mapping
 
-from .joint_check import check_path_joints
+from .joint_check import check_path_joints, evaluate_path_joints
 from .engraving_workspace import check_waypoints
 from .robot_adapter import StepResult, apply_tool_offset
 
@@ -189,15 +189,20 @@ def _geometry_check(candidate, workcell, tool_offset_m):
                        "full_mesh_checked": False})
 
 
-def _continuity_check(candidate, adapter, tool_offset_m, current_joints_rad, limits_deg, cancel):
+def _continuity_check(candidate, adapter, tool_offset_m, current_joints_rad, limits_deg,
+                      cancel, joints_sequence=None):
     policy = candidate["policy"]
     previous = [math.degrees(v) for v in current_joints_rad]
     minimum_margin = float("inf")
     minimum_singularity = float("inf")
+    if joints_sequence is not None and len(joints_sequence) != len(candidate["validation_waypoints"]):
+        return StepResult("UNKNOWN", "INVALID_RESULT",
+                          "entry 관절열과 표본 개수 불일치", "entry_check")
     for index, pose in enumerate(candidate["validation_waypoints"]):
         if cancel is not None and cancel.is_set():
             return StepResult("STOPPED", "NONE", "entry 검사 취소", "entry_check")
-        joints = adapter.inverse_kinematics(pose, tool_offset_m, previous)
+        joints = (joints_sequence[index] if joints_sequence is not None
+                  else adapter.inverse_kinematics(pose, tool_offset_m, previous))
         if not _vector(joints, 6):
             return StepResult("FAILED", "NOT_READY", f"entry IK 실패: sample {index}", "entry_check")
         joints = list(joints)
@@ -241,6 +246,8 @@ def plan_entry_path(path, workcell, adapter, state, tool_offset_m, limits_deg,
     except (KeyError, TypeError, ValueError, OverflowError) as exc:
         return StepResult("FAILED", "NOT_READY", str(exc), "entry_planning")
     accepted, rejected = [], []
+    total_ik_calls = 0
+    total_ik_elapsed_s = 0.0
     for candidate in candidates:
         geometry = _geometry_check(candidate, workcell, tool_offset_m)
         if not geometry.ok:
@@ -257,13 +264,24 @@ def plan_entry_path(path, workcell, adapter, state, tool_offset_m, limits_deg,
         joint_kwargs = dict(limits_deg=limits_deg, j6_margin_deg=j6_margin_deg)
         if joint_check_fn is check_path_joints:
             joint_kwargs["cancel"] = cancel
-        joints = joint_check_fn(sampled, adapter, tool_offset_m, state.joints_rad,
-                                **joint_kwargs)
+        joint_evaluation = None
+        if joint_check_fn is check_path_joints:
+            joint_evaluation = evaluate_path_joints(
+                sampled, adapter, tool_offset_m, state.joints_rad,
+                limits_deg=limits_deg, j6_margin_deg=j6_margin_deg, cancel=cancel)
+            joints = joint_evaluation.result
+            total_ik_calls += joint_evaluation.inverse_kinematics_calls
+            total_ik_elapsed_s += joint_evaluation.elapsed_s
+        else:
+            joints = joint_check_fn(sampled, adapter, tool_offset_m, state.joints_rad,
+                                    **joint_kwargs)
         if not joints.ok:
             rejected.append({"candidate_id": candidate["candidate_id"], "reason": joints.message})
             continue
         continuity = _continuity_check(candidate, adapter, tool_offset_m,
-                                       state.joints_rad, limits_deg, cancel)
+                                       state.joints_rad, limits_deg, cancel,
+                                       None if joint_evaluation is None
+                                       else joint_evaluation.joints_deg)
         if not continuity.ok:
             if continuity.outcome == "STOPPED":
                 return continuity
@@ -273,6 +291,8 @@ def plan_entry_path(path, workcell, adapter, state, tool_offset_m, limits_deg,
         plan["checks"] = {"geometry": geometry.observed_state,
                           "joint_check": joints.observed_state,
                           "continuity": continuity.observed_state}
+        if joint_evaluation is not None:
+            plan["final_joints_deg"] = joint_evaluation.final_joints_deg
         plan["score"] = [continuity.observed_state["minimum_singularity_margin_deg"],
                          continuity.observed_state["minimum_joint_margin_deg"],
                          candidate["tcp_clearance_above_top_m"]]
@@ -287,7 +307,11 @@ def plan_entry_path(path, workcell, adapter, state, tool_offset_m, limits_deg,
                       "entry_planning", {"entry_plan": selected,
                                          "entry_plan_sha256": selected["entry_plan_sha256"],
                                          "accepted_candidates": len(accepted),
-                                         "rejected_candidates": rejected})
+                                         "rejected_candidates": rejected,
+                                         "ik_metrics": {
+                                             "inverse_kinematics_calls": total_ik_calls,
+                                             "elapsed_s": total_ik_elapsed_s,
+                                         }})
 
 
 def execute_entry_plan(plan, adapter, context):
