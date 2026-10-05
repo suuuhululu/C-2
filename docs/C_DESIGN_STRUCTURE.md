@@ -1,5 +1,8 @@
 # C Design 구조
 
+> 2026-10-05 계약 갱신: 아래는 기존 C 구조·작업 기록입니다. 공통 반환은 [06_CONTRACT_DRAFT.md](06_CONTRACT_DRAFT.md)의 brick_type / color / x / y / layer / orientation_deg, Design 버전, KEEP / REVISE / UNCLEAR를 따릅니다. 기존 geometry / grid_x / grid_y / 대문자 색상·KEEP_TARGET / KEEP_CURRENT의 이행은 [02_TEAM_GUIDE.md](02_TEAM_GUIDE.md)에 정리했습니다. 계속 불명확한 응답은 명시 선택 대기로 처리하며 자동 재질문 반복을 강제하지 않습니다. 코드 변경·진행률 갱신·C 계약 시험 통과를 의미하지 않습니다.
+
+
 C 파트(담당: 시율, **Voice Interaction + LLM Design**)의 예정 구조와 파일 책임입니다. 팀장 승인 구조이며 **실제 기능은 아직 구현되지 않았습니다.** 진행 상황은 [C_DESIGN_PROGRESS.md](C_DESIGN_PROGRESS.md)를 봅니다.
 
 ## 1. C 역할
