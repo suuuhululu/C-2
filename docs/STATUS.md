@@ -1,5 +1,13 @@
 # 현재 진행 상황
 
+## 수현 Backend·Qt 원격 개발 7단계 게시 (2026-10-06)
+
+- 공통 계약/Fixture/Consumer 검사, Current, 고정 Expected/완료, Fake Backend/STOP·재개, JSONL, Qt, Fake HRI/Replan을 구현했습니다. 실제 Controller·팀 모듈·Camera/Robot·사람 조립 시연은 미완료입니다.
+- 상세 입력/출력·검증·조정·미검증: [수현 개발 기록](D_BACKEND_PROGRESS.md). [Backend·HMI 실행과 Robot 단계별 계획](D_BACKEND_RUN_ROBOT_PLAN.md).
+- 게시 준비 시 로컬 전체 397 passed(다른 작업의 팀 연결 검사 17개 포함). 최신 main과 게시 대상만 모은 독립 검사 380 passed(종료 코드 0). Qt offscreen/Fake 결과를 실제 장치 성공으로 표시하지 않습니다.
+- 최신 main 위에 수현 파일만 추가하고 기존 팀 문서/C 코드를 보존합니다. 지정 로컬 브랜치의 독립 이력과 미커밋 자료는 그대로 유지하며 main 병합·이력 덮어쓰기·실제 Robot 실행은 하지 않습니다.
+
+
 ## C / B 연결 합의 문서 게시 준비 (2026-10-06)
 
 - 사용자 요청으로 C/B DM 이후 합의 내용을 09_C_B_BACKEND_HANDOFF.md에 추가하고 현재 결정·팀 가이드·공통 계약·README에서 연결했습니다. 확정 조건과 지지 수치·관측 묶음 순번 범위·전달판 반환 envelope 등 확인 대상을 구분합니다.
