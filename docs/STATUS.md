@@ -1,5 +1,13 @@
 # 현재 진행 상황
 
+## C / B 연결 합의 문서 게시 준비 (2026-10-06)
+
+- 사용자 요청으로 C/B DM 이후 합의 내용을 09_C_B_BACKEND_HANDOFF.md에 추가하고 현재 결정·팀 가이드·공통 계약·README에서 연결했습니다. 확정 조건과 지지 수치·관측 묶음 순번 범위·전달판 반환 envelope 등 확인 대상을 구분합니다.
+- 최신 main 7dffb50 기반 문서 변경만 리뷰 브랜치로 게시합니다. 수현의 로컬 개발 브랜치 work/suhyun-hmi-backend-robot-db와 기존 미커밋 코드·발표 자료·reference는 보존합니다. 다른 팀원의 C 브랜치·production 코드는 변경하지 않습니다.
+- 실제 로컬 확인: 2026-10-06 수현 checkout에서 tests/unit/test_team_handoff.py의 소비 검사 17개 통과, 종료 코드 0. 2026-10-05 전체 283개 통과는 당시 기록입니다. 코드·Fixture·테스트는 현재 별도 로컬 미커밋 개발 상태이며 이번 문서 PR에 포함하지 않습니다. 이 문서 게시를 GitHub CI·실제 B/C 연결·Camera/Robot·다음 전달 gate 검증으로 표시하지 않습니다.
+- 다음 확인: B 실제 반환/순번/전달판 예시, C 수정 반환 예시, A/C 지지 후보 규칙. 이후 해당 개발 단계에서 완료·전달 gate 및 실제 모듈 연결을 검증합니다.
+
+
 ## 최신 작업 — Day4 결정 계약과 팀원 준수 사항 (2026-10-05)
 
 - 사용자 요청으로 현재 대화의 결정을 공통 docs에 반영. PLACE·좌표 / 각도·before / after·관측 check·verified_regions·가림 이력·최소 ID / 버전·HRI·Replan·슬롯·STOP 3방향 재개·Qt·JSONL을 정리했습니다.
