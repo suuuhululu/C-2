@@ -10,7 +10,7 @@
     - API key는 환경 변수에서 읽고 저장소에 기록하지 않는다.
 
 하지 않는 것:
-    - 프롬프트 내용 구성, Target Design 검증, 재시도 정책
+    - 프롬프트 내용 구성, Design 검증, 재시도 정책
     - Robot joint / TCP / 속도 / 힘 / trajectory 값 생성
     - import 시 API 호출·secret loading·네트워크 요청
 
