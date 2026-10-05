@@ -19,4 +19,3 @@ class JsonlLog:
         self.directory.mkdir(parents=True, exist_ok=True)
         with (self.directory / f"{job_id}.jsonl").open("a", encoding="utf-8") as stream:
             stream.write(line + "\n")
-
