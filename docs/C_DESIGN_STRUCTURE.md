@@ -71,7 +71,7 @@ tests/
 │       ├── test_dialogue.py    # 질문 문장·응답 해석 규칙·불명확 (WAVE 2)
 │       ├── test_validator.py   # 규칙별 정상 / invalid, support Case A~D (WAVE 2)
 │       ├── test_fixtures.py    # fixture를 validator·dialogue에 통과 (WAVE 2)
-│       ├── test_designer.py    # 예정: Mock Initial / Revised, Current 보존
+│       ├── test_designer.py    # Mock Initial / Revised, Current 보존, 재생성 루프 (WAVE 3)
 │       └── test_main.py        # 예정: 대화 루프(fake voice)
 └── integration/
     └── test_c_contract.py      # 예정: A / D 연결 계약
@@ -87,7 +87,7 @@ tests/
 | `voice.py` | 음성 I/O | 녹음(record), STT, TTS 재생(speak), 재생 종료 후 녹음 시작(F05·F07) | 의미 판단, 질문 문장 생성 |
 | `dialogue.py` | 대화 텍스트 처리 | 질문·재질문 문장, 선택지 상수(1번 KEEP_ORIGINAL / 2번 CREATE_REVISED), 응답 해석(Rule → LLM fallback → 불명확), 목표 사물 인식 | 음성 I/O, 대화 루프 |
 | `llm.py` | LLM 호출 전용 | API 호출, JSON 파싱, 실패 예외 | 프롬프트 구성, 검증, 재시도 정책, import 시 secret loading |
-| `designer.py` | Design 생성 | Initial / Revised 생성, 보존 대상 Python 결정, 거부 사유로 재생성(최대 횟수 없음), 검증 통과 후 버전·새 `block_id` 발급 | 조립 순서, NextPart, Robot 좌표 |
+| `designer.py` | Design 생성 | Mock Initial / Revised 구현(WAVE 3), LLM 생성기 주입 자리(`generate`). Initial / Revised 생성, 보존 대상 Python 결정, 거부 사유로 재생성(최대 횟수 없음), 검증 통과 후 버전·새 `block_id` 발급 | 조립 순서, NextPart, Robot 좌표 |
 | `validator.py` | Design 검증 | color, geometry, grid_x / grid_y, orientation_deg, layer 1~4, Board 범위, overlap, support(아래 Brick 개수와 무관하게 겹침 합계 2 stud 이상), connectivity, 조립된 Brick 보존, malformed, Robot field 유입 거부 | LLM 호출, Plan 검증 |
 
 ### 공통 LEGO / Board 규약 (Day 4 MVP)

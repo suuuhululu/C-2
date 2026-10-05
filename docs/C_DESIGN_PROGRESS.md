@@ -6,11 +6,11 @@ C 파트(시율: **Voice Interaction + LLM Design** — 질문 결정·생성, T
 
 | 항목 | 값 |
 |---|---|
-| 전체 진행률 | **40%** (기능 단계 10개 중 완료 4개: Contract, Fixture, Text Dialogue, Validator) |
-| 현재 작업 단계 | 5·6 (Mock Initial / Revised) 대기 — 공용 계약 정렬 결정 대기 |
-| 다음 단계 | 공용 계약 정렬 결정 후 5·6. Mock Initial / Revised Design (WAVE 3) |
-| 현재 상태 | WAVE 2 통과(사용자 승인): Fixture 8개·`dialogue.py`·`validator.py`와 unit test, `pytest` 157 passed. main·designer·llm·voice는 docstring만 |
-| Blocker | origin/main 06_CONTRACT_DRAFT 개정(PR #5)과 C 계약의 필드명·ID·HRI 값·무응답 정책 불일치, 사용자 결정 대기 |
+| 전체 진행률 | **60%** (기능 단계 10개 중 완료 6개: Contract, Fixture, Text Dialogue, Validator, Mock Initial, Mock Revised) |
+| 현재 작업 단계 | 7. A/D Contract Test + Fake Voice Dialogue 대기(WAVE 4 미시작) |
+| 다음 단계 | 7. A/D Contract Test + Fake Voice Dialogue (WAVE 4) |
+| 현재 상태 | WAVE 3 통과(사용자 승인): `designer.py` Mock Initial / Revised와 `test_designer.py`, `pytest` 185 passed. main·llm·voice는 docstring만 |
+| Blocker | 공용 계약(PR #5)과의 필드명·ID·HRI 값·무응답 정책 이행 보류 — A/D 반대 의견 전까지 승인된 C Contract 기준으로 진행(사용자 결정 2026-10-05) |
 | 마지막 업데이트 | 2026-10-05 · branch `feature/c-fixture-dialogue-validator-wave2` |
 
 진행률은 완료 기준을 충족한 단계만 셉니다. 단계 하나 = 10%. 진행 중인 단계는 표의 진행률 칸에만 표시하고 전체 진행률에는 더하지 않습니다. **Skeleton·문서 변경은 개발 단계 완료로 계산하지 않습니다.**
@@ -35,8 +35,8 @@ C 파트(시율: **Voice Interaction + LLM Design** — 질문 결정·생성, T
 | 2 | Fixture | 완료 (DONE) | 100% | 정상·invalid·경계 Design / Current / Difference / 응답 텍스트 예시 | tests | Contract 형식을 그대로 따르고, 다른 담당이 같은 Fixture를 재사용 | Fixture가 Contract와 일치, 연결 담당 확인 |
 | 3 | Text Dialogue | 완료 (DONE) | 100% | 질문·재질문 문장 생성, 텍스트 응답 → KEEP_ORIGINAL / CREATE_REVISED / UNCLEAR, 목표 사물 인식 | dialogue | 선택지 상수 1번 KEEP_ORIGINAL / 2번 CREATE_REVISED를 질문과 해석이 공유, Python Rule 우선, LLM fallback은 8단계 이후 | `test_dialogue.py` PASS (정상·오매칭·부정·UNCLEAR) |
 | 4 | Validator | 완료 (DONE) | 100% | color·geometry·grid·layer·orientation·범위·overlap·support(2 stud)·connectivity·조립된 Brick 보존·malformed·Robot field 검증 | validator | 순수 Python, LLM 판단 금지, 실패 항목·사유 목록 반환 | `test_validator.py` 규칙별 정상 / invalid PASS |
-| 5 | Mock Initial Design | 대기 | 0% | 목표 사물 → 고정 Initial Design (LLM 없음, Board 중앙 배치) | designer, main | 출력이 Validator 통과, 식별·버전은 Python이 결정 | `test_designer.py` Initial PASS |
-| 6 | Mock Revised Design | 대기 | 0% | Design + Current + Revised 생성 → Current 배치 보존 전체 Revised Design | designer, validator | 보존 대상은 Python이 Current 기준 결정, Revised Design까지만(조립 순서·NextPart는 A) | preserved 검증 포함 `test_designer.py` PASS |
+| 5 | Mock Initial Design | 완료 (DONE) | 100% | 목표 사물 → 고정 Initial Design (LLM 없음, Board 중앙 배치) | designer | 출력이 Validator 통과, 식별·버전은 Python이 결정 | `test_designer.py` Initial PASS |
+| 6 | Mock Revised Design | 완료 (DONE) | 100% | Design + Current + Revised 생성 → Current 배치 보존 전체 Revised Design | designer, validator | 보존 대상은 Python이 Current 기준 결정, Revised Design까지만(조립 순서·NextPart는 A) | preserved 검증 포함 `test_designer.py` PASS |
 | 7 | A/D Contract Test + Fake Voice Dialogue | 대기 | 0% | A·D가 C 출력을 소비하는 계약 테스트, main 대화 루프를 fake voice로 검증 | main, tests/integration | 공개 함수만 호출, 불명확 재질문 반복, Original 유지는 LLM 0회 | `test_main.py`·`test_c_contract.py` PASS, 연결 담당 확인 |
 | 8 | 실제 LLM | 대기 | 0% | llm.py 실제 provider 연결, Design 생성과 애매한 응답 fallback | llm, designer, dialogue | API key는 환경 변수, 재시도는 designer, Robot 값 생성 금지 | 실제 호출 결과가 Validator 통과, 실패 경로 확인 |
 | 9 | 실제 STT + 녹음 | 대기 | 0% | 녹음 → 한국어 텍스트, 목표·응답 공용 | voice (녹음·STT) | 짧은 응답("1번") 오인식 실측, L2 장치 시험 | 실제 녹음 샘플 인식 결과 기록 |
@@ -54,3 +54,4 @@ C 파트(시율: **Voice Interaction + LLM Design** — 질문 결정·생성, T
 | 2026-10-05 | 1. Contract | Contract 확정(사용자 승인, WAVE 1). Contract 완료(DONE), 전체 진행률 10%. 공용 문서 정렬은 별도 commit. 2·3·4 진행 시작 | 7개 모듈 import, AST docstring-only, 폐기 문구 grep, 링크 확인 |
 | 2026-10-05 | 2·3·4 | WAVE 2: `tests/unit/c_design/fixtures/` 8개, `dialogue.py`(질문·재질문·확인·최종 안내·escalation 문장, 응답·목표 해석), `validator.py`(§9.1 규칙, Revised 보존, 입력 검사, Current support 판정), unit test 3개 파일, 루트 `pyproject.toml`(pytest 경로 설정) | `pytest` 157 passed, exit 0. import 부작용 없음, class 없음, 외부 dependency 없음 |
 | 2026-10-05 | 2·3·4 | WAVE 2 통과(사용자 승인): Fixture·Text Dialogue·Validator 완료(DONE), 전체 진행률 40%. origin/main PR #5의 06_CONTRACT_DRAFT 개정과 C 계약 불일치로 5·6 대기 | `pytest` 157 passed, exit 0. 7개 모듈 import exit 0 |
+| 2026-10-05 | 5·6 | WAVE 3 통과(사용자 승인): Mock Initial / Revised 완료(DONE), 전체 진행률 60%. 기준 Chair 15 Brick(다리·좌석·뒤쪽 등받이·좌우 연결 상단, 좌우 대칭, 중앙 (9,9)). Mock Revised는 실제 다리 기준으로 측면별 재설계, 빈 행 위 3칸 connector, 단순 shift 아님. `test_designer.py` 28개 | `pytest` 185 passed, exit 0. 7개 모듈 import exit 0 |
