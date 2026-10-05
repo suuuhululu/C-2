@@ -1,0 +1,302 @@
+{
+  "_note": "Each case is the valid 8-brick chair from design_initial_valid.json with exactly one defect applied (unless the case itself is about brick_count, which replaces the whole bricks array). expected_rules lists rules that MUST appear in the validator's rejection list; a case may also trigger incidental extra rules, which is fine since this is a subset check, not an exact-match check.",
+  "cases": [
+    {
+      "case": "color_invalid_value",
+      "expected_rules": ["invalid_value"],
+      "design": {
+        "design_version": 1, "parent_version": null, "object_type": "CHAIR", "source": "MOCK",
+        "bricks": [
+          {"block_id": "B001", "color": "RED", "geometry": "2x2x1", "grid_x": 10, "grid_y": 10, "orientation_deg": 0, "layer": 1},
+          {"block_id": "B002", "color": "BLUE", "geometry": "2x2x1", "grid_x": 12, "grid_y": 10, "orientation_deg": 0, "layer": 1},
+          {"block_id": "B003", "color": "BLUE", "geometry": "2x2x1", "grid_x": 10, "grid_y": 12, "orientation_deg": 0, "layer": 1},
+          {"block_id": "B004", "color": "BLUE", "geometry": "2x2x1", "grid_x": 12, "grid_y": 12, "orientation_deg": 0, "layer": 1},
+          {"block_id": "B005", "color": "YELLOW", "geometry": "2x3x1", "grid_x": 10, "grid_y": 10, "orientation_deg": 0, "layer": 2},
+          {"block_id": "B006", "color": "YELLOW", "geometry": "2x3x1", "grid_x": 12, "grid_y": 10, "orientation_deg": 0, "layer": 2},
+          {"block_id": "B007", "color": "BLUE", "geometry": "2x2x1", "grid_x": 11, "grid_y": 11, "orientation_deg": 0, "layer": 3},
+          {"block_id": "B008", "color": "YELLOW", "geometry": "2x2x1", "grid_x": 11, "grid_y": 11, "orientation_deg": 0, "layer": 4}
+        ]
+      }
+    },
+    {
+      "case": "geometry_invalid_value",
+      "expected_rules": ["invalid_value"],
+      "design": {
+        "design_version": 1, "parent_version": null, "object_type": "CHAIR", "source": "MOCK",
+        "bricks": [
+          {"block_id": "B001", "color": "BLUE", "geometry": "2x4x1", "grid_x": 10, "grid_y": 10, "orientation_deg": 0, "layer": 1},
+          {"block_id": "B002", "color": "BLUE", "geometry": "2x2x1", "grid_x": 12, "grid_y": 10, "orientation_deg": 0, "layer": 1},
+          {"block_id": "B003", "color": "BLUE", "geometry": "2x2x1", "grid_x": 10, "grid_y": 12, "orientation_deg": 0, "layer": 1},
+          {"block_id": "B004", "color": "BLUE", "geometry": "2x2x1", "grid_x": 12, "grid_y": 12, "orientation_deg": 0, "layer": 1},
+          {"block_id": "B005", "color": "YELLOW", "geometry": "2x3x1", "grid_x": 10, "grid_y": 10, "orientation_deg": 0, "layer": 2},
+          {"block_id": "B006", "color": "YELLOW", "geometry": "2x3x1", "grid_x": 12, "grid_y": 10, "orientation_deg": 0, "layer": 2},
+          {"block_id": "B007", "color": "BLUE", "geometry": "2x2x1", "grid_x": 11, "grid_y": 11, "orientation_deg": 0, "layer": 3},
+          {"block_id": "B008", "color": "YELLOW", "geometry": "2x2x1", "grid_x": 11, "grid_y": 11, "orientation_deg": 0, "layer": 4}
+        ]
+      }
+    },
+    {
+      "case": "orientation_invalid_on_2x2",
+      "expected_rules": ["invalid_value"],
+      "design": {
+        "design_version": 1, "parent_version": null, "object_type": "CHAIR", "source": "MOCK",
+        "bricks": [
+          {"block_id": "B001", "color": "BLUE", "geometry": "2x2x1", "grid_x": 10, "grid_y": 10, "orientation_deg": 90, "layer": 1},
+          {"block_id": "B002", "color": "BLUE", "geometry": "2x2x1", "grid_x": 12, "grid_y": 10, "orientation_deg": 0, "layer": 1},
+          {"block_id": "B003", "color": "BLUE", "geometry": "2x2x1", "grid_x": 10, "grid_y": 12, "orientation_deg": 0, "layer": 1},
+          {"block_id": "B004", "color": "BLUE", "geometry": "2x2x1", "grid_x": 12, "grid_y": 12, "orientation_deg": 0, "layer": 1},
+          {"block_id": "B005", "color": "YELLOW", "geometry": "2x3x1", "grid_x": 10, "grid_y": 10, "orientation_deg": 0, "layer": 2},
+          {"block_id": "B006", "color": "YELLOW", "geometry": "2x3x1", "grid_x": 12, "grid_y": 10, "orientation_deg": 0, "layer": 2},
+          {"block_id": "B007", "color": "BLUE", "geometry": "2x2x1", "grid_x": 11, "grid_y": 11, "orientation_deg": 0, "layer": 3},
+          {"block_id": "B008", "color": "YELLOW", "geometry": "2x2x1", "grid_x": 11, "grid_y": 11, "orientation_deg": 0, "layer": 4}
+        ]
+      }
+    },
+    {
+      "case": "layer_zero_invalid_value",
+      "expected_rules": ["invalid_value"],
+      "design": {
+        "design_version": 1, "parent_version": null, "object_type": "CHAIR", "source": "MOCK",
+        "bricks": [
+          {"block_id": "B001", "color": "BLUE", "geometry": "2x2x1", "grid_x": 10, "grid_y": 10, "orientation_deg": 0, "layer": 0},
+          {"block_id": "B002", "color": "BLUE", "geometry": "2x2x1", "grid_x": 12, "grid_y": 10, "orientation_deg": 0, "layer": 1},
+          {"block_id": "B003", "color": "BLUE", "geometry": "2x2x1", "grid_x": 10, "grid_y": 12, "orientation_deg": 0, "layer": 1},
+          {"block_id": "B004", "color": "BLUE", "geometry": "2x2x1", "grid_x": 12, "grid_y": 12, "orientation_deg": 0, "layer": 1},
+          {"block_id": "B005", "color": "YELLOW", "geometry": "2x3x1", "grid_x": 10, "grid_y": 10, "orientation_deg": 0, "layer": 2},
+          {"block_id": "B006", "color": "YELLOW", "geometry": "2x3x1", "grid_x": 12, "grid_y": 10, "orientation_deg": 0, "layer": 2},
+          {"block_id": "B007", "color": "BLUE", "geometry": "2x2x1", "grid_x": 11, "grid_y": 11, "orientation_deg": 0, "layer": 3},
+          {"block_id": "B008", "color": "YELLOW", "geometry": "2x2x1", "grid_x": 11, "grid_y": 11, "orientation_deg": 0, "layer": 4}
+        ]
+      }
+    },
+    {
+      "case": "layer_five_invalid_value",
+      "expected_rules": ["invalid_value"],
+      "design": {
+        "design_version": 1, "parent_version": null, "object_type": "CHAIR", "source": "MOCK",
+        "bricks": [
+          {"block_id": "B001", "color": "BLUE", "geometry": "2x2x1", "grid_x": 10, "grid_y": 10, "orientation_deg": 0, "layer": 5},
+          {"block_id": "B002", "color": "BLUE", "geometry": "2x2x1", "grid_x": 12, "grid_y": 10, "orientation_deg": 0, "layer": 1},
+          {"block_id": "B003", "color": "BLUE", "geometry": "2x2x1", "grid_x": 10, "grid_y": 12, "orientation_deg": 0, "layer": 1},
+          {"block_id": "B004", "color": "BLUE", "geometry": "2x2x1", "grid_x": 12, "grid_y": 12, "orientation_deg": 0, "layer": 1},
+          {"block_id": "B005", "color": "YELLOW", "geometry": "2x3x1", "grid_x": 10, "grid_y": 10, "orientation_deg": 0, "layer": 2},
+          {"block_id": "B006", "color": "YELLOW", "geometry": "2x3x1", "grid_x": 12, "grid_y": 10, "orientation_deg": 0, "layer": 2},
+          {"block_id": "B007", "color": "BLUE", "geometry": "2x2x1", "grid_x": 11, "grid_y": 11, "orientation_deg": 0, "layer": 3},
+          {"block_id": "B008", "color": "YELLOW", "geometry": "2x2x1", "grid_x": 11, "grid_y": 11, "orientation_deg": 0, "layer": 4}
+        ]
+      }
+    },
+    {
+      "case": "out_of_board",
+      "expected_rules": ["out_of_board"],
+      "design": {
+        "design_version": 1, "parent_version": null, "object_type": "CHAIR", "source": "MOCK",
+        "bricks": [
+          {"block_id": "B001", "color": "BLUE", "geometry": "2x2x1", "grid_x": 10, "grid_y": 10, "orientation_deg": 0, "layer": 1},
+          {"block_id": "B002", "color": "BLUE", "geometry": "2x2x1", "grid_x": 23, "grid_y": 10, "orientation_deg": 0, "layer": 1},
+          {"block_id": "B003", "color": "BLUE", "geometry": "2x2x1", "grid_x": 10, "grid_y": 12, "orientation_deg": 0, "layer": 1},
+          {"block_id": "B004", "color": "BLUE", "geometry": "2x2x1", "grid_x": 12, "grid_y": 12, "orientation_deg": 0, "layer": 1},
+          {"block_id": "B005", "color": "YELLOW", "geometry": "2x3x1", "grid_x": 10, "grid_y": 10, "orientation_deg": 0, "layer": 2},
+          {"block_id": "B006", "color": "YELLOW", "geometry": "2x3x1", "grid_x": 12, "grid_y": 10, "orientation_deg": 0, "layer": 2},
+          {"block_id": "B007", "color": "BLUE", "geometry": "2x2x1", "grid_x": 11, "grid_y": 11, "orientation_deg": 0, "layer": 3},
+          {"block_id": "B008", "color": "YELLOW", "geometry": "2x2x1", "grid_x": 11, "grid_y": 11, "orientation_deg": 0, "layer": 4}
+        ]
+      }
+    },
+    {
+      "case": "overlap_same_layer",
+      "expected_rules": ["overlap"],
+      "design": {
+        "design_version": 1, "parent_version": null, "object_type": "CHAIR", "source": "MOCK",
+        "bricks": [
+          {"block_id": "B001", "color": "BLUE", "geometry": "2x2x1", "grid_x": 10, "grid_y": 10, "orientation_deg": 0, "layer": 1},
+          {"block_id": "B002", "color": "BLUE", "geometry": "2x2x1", "grid_x": 10, "grid_y": 10, "orientation_deg": 0, "layer": 1},
+          {"block_id": "B003", "color": "BLUE", "geometry": "2x2x1", "grid_x": 10, "grid_y": 12, "orientation_deg": 0, "layer": 1},
+          {"block_id": "B004", "color": "BLUE", "geometry": "2x2x1", "grid_x": 12, "grid_y": 12, "orientation_deg": 0, "layer": 1},
+          {"block_id": "B005", "color": "YELLOW", "geometry": "2x3x1", "grid_x": 10, "grid_y": 10, "orientation_deg": 0, "layer": 2},
+          {"block_id": "B006", "color": "YELLOW", "geometry": "2x3x1", "grid_x": 12, "grid_y": 10, "orientation_deg": 0, "layer": 2},
+          {"block_id": "B007", "color": "BLUE", "geometry": "2x2x1", "grid_x": 11, "grid_y": 11, "orientation_deg": 0, "layer": 3},
+          {"block_id": "B008", "color": "YELLOW", "geometry": "2x2x1", "grid_x": 11, "grid_y": 11, "orientation_deg": 0, "layer": 4}
+        ]
+      }
+    },
+    {
+      "case": "support_total_one_corner_overlap",
+      "expected_rules": ["support"],
+      "design": {
+        "_note": "B007 moved from (11,11) to (13,12): overlap with B005(x10-11,y10-12)=0, overlap with B006(x12-13,y10-12) = x intersect{13}, y intersect{12} = 1 stud (a single corner stud). Support sum = 1 < 2 -> violation.",
+        "design_version": 1, "parent_version": null, "object_type": "CHAIR", "source": "MOCK",
+        "bricks": [
+          {"block_id": "B001", "color": "BLUE", "geometry": "2x2x1", "grid_x": 10, "grid_y": 10, "orientation_deg": 0, "layer": 1},
+          {"block_id": "B002", "color": "BLUE", "geometry": "2x2x1", "grid_x": 12, "grid_y": 10, "orientation_deg": 0, "layer": 1},
+          {"block_id": "B003", "color": "BLUE", "geometry": "2x2x1", "grid_x": 10, "grid_y": 12, "orientation_deg": 0, "layer": 1},
+          {"block_id": "B004", "color": "BLUE", "geometry": "2x2x1", "grid_x": 12, "grid_y": 12, "orientation_deg": 0, "layer": 1},
+          {"block_id": "B005", "color": "YELLOW", "geometry": "2x3x1", "grid_x": 10, "grid_y": 10, "orientation_deg": 0, "layer": 2},
+          {"block_id": "B006", "color": "YELLOW", "geometry": "2x3x1", "grid_x": 12, "grid_y": 10, "orientation_deg": 0, "layer": 2},
+          {"block_id": "B007", "color": "BLUE", "geometry": "2x2x1", "grid_x": 13, "grid_y": 12, "orientation_deg": 0, "layer": 3},
+          {"block_id": "B008", "color": "YELLOW", "geometry": "2x2x1", "grid_x": 11, "grid_y": 11, "orientation_deg": 0, "layer": 4}
+        ]
+      }
+    },
+    {
+      "case": "disconnected_chunk",
+      "expected_rules": ["connectivity"],
+      "design": {
+        "_note": "Added B009 at (0,0) layer1, far from the chair cluster (which occupies x10-13,y10-13); it shares no stud with any other brick, so it never links via adjacent-layer overlap and forms a second component.",
+        "design_version": 1, "parent_version": null, "object_type": "CHAIR", "source": "MOCK",
+        "bricks": [
+          {"block_id": "B001", "color": "BLUE", "geometry": "2x2x1", "grid_x": 10, "grid_y": 10, "orientation_deg": 0, "layer": 1},
+          {"block_id": "B002", "color": "BLUE", "geometry": "2x2x1", "grid_x": 12, "grid_y": 10, "orientation_deg": 0, "layer": 1},
+          {"block_id": "B003", "color": "BLUE", "geometry": "2x2x1", "grid_x": 10, "grid_y": 12, "orientation_deg": 0, "layer": 1},
+          {"block_id": "B004", "color": "BLUE", "geometry": "2x2x1", "grid_x": 12, "grid_y": 12, "orientation_deg": 0, "layer": 1},
+          {"block_id": "B005", "color": "YELLOW", "geometry": "2x3x1", "grid_x": 10, "grid_y": 10, "orientation_deg": 0, "layer": 2},
+          {"block_id": "B006", "color": "YELLOW", "geometry": "2x3x1", "grid_x": 12, "grid_y": 10, "orientation_deg": 0, "layer": 2},
+          {"block_id": "B007", "color": "BLUE", "geometry": "2x2x1", "grid_x": 11, "grid_y": 11, "orientation_deg": 0, "layer": 3},
+          {"block_id": "B008", "color": "YELLOW", "geometry": "2x2x1", "grid_x": 11, "grid_y": 11, "orientation_deg": 0, "layer": 4},
+          {"block_id": "B009", "color": "BLUE", "geometry": "2x2x1", "grid_x": 0, "grid_y": 0, "orientation_deg": 0, "layer": 1}
+        ]
+      }
+    },
+    {
+      "case": "missing_field_color",
+      "expected_rules": ["missing_field"],
+      "design": {
+        "design_version": 1, "parent_version": null, "object_type": "CHAIR", "source": "MOCK",
+        "bricks": [
+          {"block_id": "B001", "geometry": "2x2x1", "grid_x": 10, "grid_y": 10, "orientation_deg": 0, "layer": 1},
+          {"block_id": "B002", "color": "BLUE", "geometry": "2x2x1", "grid_x": 12, "grid_y": 10, "orientation_deg": 0, "layer": 1},
+          {"block_id": "B003", "color": "BLUE", "geometry": "2x2x1", "grid_x": 10, "grid_y": 12, "orientation_deg": 0, "layer": 1},
+          {"block_id": "B004", "color": "BLUE", "geometry": "2x2x1", "grid_x": 12, "grid_y": 12, "orientation_deg": 0, "layer": 1},
+          {"block_id": "B005", "color": "YELLOW", "geometry": "2x3x1", "grid_x": 10, "grid_y": 10, "orientation_deg": 0, "layer": 2},
+          {"block_id": "B006", "color": "YELLOW", "geometry": "2x3x1", "grid_x": 12, "grid_y": 10, "orientation_deg": 0, "layer": 2},
+          {"block_id": "B007", "color": "BLUE", "geometry": "2x2x1", "grid_x": 11, "grid_y": 11, "orientation_deg": 0, "layer": 3},
+          {"block_id": "B008", "color": "YELLOW", "geometry": "2x2x1", "grid_x": 11, "grid_y": 11, "orientation_deg": 0, "layer": 4}
+        ]
+      }
+    },
+    {
+      "case": "unknown_key_x_mm",
+      "expected_rules": ["unknown_key"],
+      "design": {
+        "design_version": 1, "parent_version": null, "object_type": "CHAIR", "source": "MOCK",
+        "bricks": [
+          {"block_id": "B001", "color": "BLUE", "geometry": "2x2x1", "grid_x": 10, "grid_y": 10, "orientation_deg": 0, "layer": 1, "x_mm": 150.0},
+          {"block_id": "B002", "color": "BLUE", "geometry": "2x2x1", "grid_x": 12, "grid_y": 10, "orientation_deg": 0, "layer": 1},
+          {"block_id": "B003", "color": "BLUE", "geometry": "2x2x1", "grid_x": 10, "grid_y": 12, "orientation_deg": 0, "layer": 1},
+          {"block_id": "B004", "color": "BLUE", "geometry": "2x2x1", "grid_x": 12, "grid_y": 12, "orientation_deg": 0, "layer": 1},
+          {"block_id": "B005", "color": "YELLOW", "geometry": "2x3x1", "grid_x": 10, "grid_y": 10, "orientation_deg": 0, "layer": 2},
+          {"block_id": "B006", "color": "YELLOW", "geometry": "2x3x1", "grid_x": 12, "grid_y": 10, "orientation_deg": 0, "layer": 2},
+          {"block_id": "B007", "color": "BLUE", "geometry": "2x2x1", "grid_x": 11, "grid_y": 11, "orientation_deg": 0, "layer": 3},
+          {"block_id": "B008", "color": "YELLOW", "geometry": "2x2x1", "grid_x": 11, "grid_y": 11, "orientation_deg": 0, "layer": 4}
+        ]
+      }
+    },
+    {
+      "case": "brick_count_zero",
+      "expected_rules": ["brick_count"],
+      "design": {
+        "design_version": 1, "parent_version": null, "object_type": "CHAIR", "source": "MOCK",
+        "bricks": []
+      }
+    },
+    {
+      "case": "brick_count_twenty_one",
+      "expected_rules": ["brick_count"],
+      "design": {
+        "_note": "21 non-overlapping 2x2x1 layer-1 bricks tiled on a 4-stud grid purely to exceed the 20-brick cap; other rules are not the focus of this case.",
+        "design_version": 1, "parent_version": null, "object_type": "CHAIR", "source": "MOCK",
+        "bricks": [
+          {"block_id": "B001", "color": "BLUE", "geometry": "2x2x1", "grid_x": 0, "grid_y": 0, "orientation_deg": 0, "layer": 1},
+          {"block_id": "B002", "color": "YELLOW", "geometry": "2x2x1", "grid_x": 4, "grid_y": 0, "orientation_deg": 0, "layer": 1},
+          {"block_id": "B003", "color": "BLUE", "geometry": "2x2x1", "grid_x": 8, "grid_y": 0, "orientation_deg": 0, "layer": 1},
+          {"block_id": "B004", "color": "YELLOW", "geometry": "2x2x1", "grid_x": 12, "grid_y": 0, "orientation_deg": 0, "layer": 1},
+          {"block_id": "B005", "color": "BLUE", "geometry": "2x2x1", "grid_x": 16, "grid_y": 0, "orientation_deg": 0, "layer": 1},
+          {"block_id": "B006", "color": "YELLOW", "geometry": "2x2x1", "grid_x": 20, "grid_y": 0, "orientation_deg": 0, "layer": 1},
+          {"block_id": "B007", "color": "BLUE", "geometry": "2x2x1", "grid_x": 0, "grid_y": 4, "orientation_deg": 0, "layer": 1},
+          {"block_id": "B008", "color": "YELLOW", "geometry": "2x2x1", "grid_x": 4, "grid_y": 4, "orientation_deg": 0, "layer": 1},
+          {"block_id": "B009", "color": "BLUE", "geometry": "2x2x1", "grid_x": 8, "grid_y": 4, "orientation_deg": 0, "layer": 1},
+          {"block_id": "B010", "color": "YELLOW", "geometry": "2x2x1", "grid_x": 12, "grid_y": 4, "orientation_deg": 0, "layer": 1},
+          {"block_id": "B011", "color": "BLUE", "geometry": "2x2x1", "grid_x": 16, "grid_y": 4, "orientation_deg": 0, "layer": 1},
+          {"block_id": "B012", "color": "YELLOW", "geometry": "2x2x1", "grid_x": 20, "grid_y": 4, "orientation_deg": 0, "layer": 1},
+          {"block_id": "B013", "color": "BLUE", "geometry": "2x2x1", "grid_x": 0, "grid_y": 8, "orientation_deg": 0, "layer": 1},
+          {"block_id": "B014", "color": "YELLOW", "geometry": "2x2x1", "grid_x": 4, "grid_y": 8, "orientation_deg": 0, "layer": 1},
+          {"block_id": "B015", "color": "BLUE", "geometry": "2x2x1", "grid_x": 8, "grid_y": 8, "orientation_deg": 0, "layer": 1},
+          {"block_id": "B016", "color": "YELLOW", "geometry": "2x2x1", "grid_x": 12, "grid_y": 8, "orientation_deg": 0, "layer": 1},
+          {"block_id": "B017", "color": "BLUE", "geometry": "2x2x1", "grid_x": 16, "grid_y": 8, "orientation_deg": 0, "layer": 1},
+          {"block_id": "B018", "color": "YELLOW", "geometry": "2x2x1", "grid_x": 20, "grid_y": 8, "orientation_deg": 0, "layer": 1},
+          {"block_id": "B019", "color": "BLUE", "geometry": "2x2x1", "grid_x": 0, "grid_y": 12, "orientation_deg": 0, "layer": 1},
+          {"block_id": "B020", "color": "YELLOW", "geometry": "2x2x1", "grid_x": 4, "grid_y": 12, "orientation_deg": 0, "layer": 1},
+          {"block_id": "B021", "color": "BLUE", "geometry": "2x2x1", "grid_x": 8, "grid_y": 12, "orientation_deg": 0, "layer": 1}
+        ]
+      }
+    },
+    {
+      "case": "duplicate_block_id",
+      "expected_rules": ["duplicate_block_id"],
+      "design": {
+        "design_version": 1, "parent_version": null, "object_type": "CHAIR", "source": "MOCK",
+        "bricks": [
+          {"block_id": "B001", "color": "BLUE", "geometry": "2x2x1", "grid_x": 10, "grid_y": 10, "orientation_deg": 0, "layer": 1},
+          {"block_id": "B001", "color": "BLUE", "geometry": "2x2x1", "grid_x": 12, "grid_y": 10, "orientation_deg": 0, "layer": 1},
+          {"block_id": "B003", "color": "BLUE", "geometry": "2x2x1", "grid_x": 10, "grid_y": 12, "orientation_deg": 0, "layer": 1},
+          {"block_id": "B004", "color": "BLUE", "geometry": "2x2x1", "grid_x": 12, "grid_y": 12, "orientation_deg": 0, "layer": 1},
+          {"block_id": "B005", "color": "YELLOW", "geometry": "2x3x1", "grid_x": 10, "grid_y": 10, "orientation_deg": 0, "layer": 2},
+          {"block_id": "B006", "color": "YELLOW", "geometry": "2x3x1", "grid_x": 12, "grid_y": 10, "orientation_deg": 0, "layer": 2},
+          {"block_id": "B007", "color": "BLUE", "geometry": "2x2x1", "grid_x": 11, "grid_y": 11, "orientation_deg": 0, "layer": 3},
+          {"block_id": "B008", "color": "YELLOW", "geometry": "2x2x1", "grid_x": 11, "grid_y": 11, "orientation_deg": 0, "layer": 4}
+        ]
+      }
+    },
+    {
+      "case": "invalid_block_id_lowercase",
+      "expected_rules": ["invalid_block_id"],
+      "design": {
+        "design_version": 1, "parent_version": null, "object_type": "CHAIR", "source": "MOCK",
+        "bricks": [
+          {"block_id": "b1", "color": "BLUE", "geometry": "2x2x1", "grid_x": 10, "grid_y": 10, "orientation_deg": 0, "layer": 1},
+          {"block_id": "B002", "color": "BLUE", "geometry": "2x2x1", "grid_x": 12, "grid_y": 10, "orientation_deg": 0, "layer": 1},
+          {"block_id": "B003", "color": "BLUE", "geometry": "2x2x1", "grid_x": 10, "grid_y": 12, "orientation_deg": 0, "layer": 1},
+          {"block_id": "B004", "color": "BLUE", "geometry": "2x2x1", "grid_x": 12, "grid_y": 12, "orientation_deg": 0, "layer": 1},
+          {"block_id": "B005", "color": "YELLOW", "geometry": "2x3x1", "grid_x": 10, "grid_y": 10, "orientation_deg": 0, "layer": 2},
+          {"block_id": "B006", "color": "YELLOW", "geometry": "2x3x1", "grid_x": 12, "grid_y": 10, "orientation_deg": 0, "layer": 2},
+          {"block_id": "B007", "color": "BLUE", "geometry": "2x2x1", "grid_x": 11, "grid_y": 11, "orientation_deg": 0, "layer": 3},
+          {"block_id": "B008", "color": "YELLOW", "geometry": "2x2x1", "grid_x": 11, "grid_y": 11, "orientation_deg": 0, "layer": 4}
+        ]
+      }
+    },
+    {
+      "case": "grid_x_invalid_type_float",
+      "expected_rules": ["invalid_type"],
+      "design": {
+        "design_version": 1, "parent_version": null, "object_type": "CHAIR", "source": "MOCK",
+        "bricks": [
+          {"block_id": "B001", "color": "BLUE", "geometry": "2x2x1", "grid_x": 1.0, "grid_y": 10, "orientation_deg": 0, "layer": 1},
+          {"block_id": "B002", "color": "BLUE", "geometry": "2x2x1", "grid_x": 12, "grid_y": 10, "orientation_deg": 0, "layer": 1},
+          {"block_id": "B003", "color": "BLUE", "geometry": "2x2x1", "grid_x": 10, "grid_y": 12, "orientation_deg": 0, "layer": 1},
+          {"block_id": "B004", "color": "BLUE", "geometry": "2x2x1", "grid_x": 12, "grid_y": 12, "orientation_deg": 0, "layer": 1},
+          {"block_id": "B005", "color": "YELLOW", "geometry": "2x3x1", "grid_x": 10, "grid_y": 10, "orientation_deg": 0, "layer": 2},
+          {"block_id": "B006", "color": "YELLOW", "geometry": "2x3x1", "grid_x": 12, "grid_y": 10, "orientation_deg": 0, "layer": 2},
+          {"block_id": "B007", "color": "BLUE", "geometry": "2x2x1", "grid_x": 11, "grid_y": 11, "orientation_deg": 0, "layer": 3},
+          {"block_id": "B008", "color": "YELLOW", "geometry": "2x2x1", "grid_x": 11, "grid_y": 11, "orientation_deg": 0, "layer": 4}
+        ]
+      }
+    },
+    {
+      "case": "layer_invalid_type_bool",
+      "expected_rules": ["invalid_type"],
+      "design": {
+        "design_version": 1, "parent_version": null, "object_type": "CHAIR", "source": "MOCK",
+        "bricks": [
+          {"block_id": "B001", "color": "BLUE", "geometry": "2x2x1", "grid_x": 10, "grid_y": 10, "orientation_deg": 0, "layer": true},
+          {"block_id": "B002", "color": "BLUE", "geometry": "2x2x1", "grid_x": 12, "grid_y": 10, "orientation_deg": 0, "layer": 1},
+          {"block_id": "B003", "color": "BLUE", "geometry": "2x2x1", "grid_x": 10, "grid_y": 12, "orientation_deg": 0, "layer": 1},
+          {"block_id": "B004", "color": "BLUE", "geometry": "2x2x1", "grid_x": 12, "grid_y": 12, "orientation_deg": 0, "layer": 1},
+          {"block_id": "B005", "color": "YELLOW", "geometry": "2x3x1", "grid_x": 10, "grid_y": 10, "orientation_deg": 0, "layer": 2},
+          {"block_id": "B006", "color": "YELLOW", "geometry": "2x3x1", "grid_x": 12, "grid_y": 10, "orientation_deg": 0, "layer": 2},
+          {"block_id": "B007", "color": "BLUE", "geometry": "2x2x1", "grid_x": 11, "grid_y": 11, "orientation_deg": 0, "layer": 3},
+          {"block_id": "B008", "color": "YELLOW", "geometry": "2x2x1", "grid_x": 11, "grid_y": 11, "orientation_deg": 0, "layer": 4}
+        ]
+      }
+    }
+  ]
+}

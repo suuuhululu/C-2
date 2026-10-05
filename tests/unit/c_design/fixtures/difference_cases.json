@@ -1,0 +1,72 @@
+{
+  "_note": "Each Difference entry (§5.2) pairs an `expected` Brick (or null) with an `actual` Brick (or null), both referencing the valid v1 chair's block_ids where applicable. expected_input_rules are §9.1/§10 INVALID_INPUT rules that MUST appear; only the empty-list case is an input error (empty `differences` -> INVALID_INPUT, rule name invalid_value per task mapping).",
+  "cases": [
+    {
+      "case": "position_diff",
+      "differences": [
+        {
+          "expected": {"block_id": "B001", "color": "BLUE", "geometry": "2x2x1", "grid_x": 10, "grid_y": 10, "orientation_deg": 0, "layer": 1},
+          "actual": {"block_id": "B001", "color": "BLUE", "geometry": "2x2x1", "grid_x": 11, "grid_y": 10, "orientation_deg": 0, "layer": 1}
+        }
+      ],
+      "expected_input_rules": []
+    },
+    {
+      "case": "orientation_diff",
+      "differences": [
+        {
+          "expected": {"block_id": "B005", "color": "YELLOW", "geometry": "2x3x1", "grid_x": 10, "grid_y": 10, "orientation_deg": 0, "layer": 2},
+          "actual": {"block_id": "B005", "color": "YELLOW", "geometry": "2x3x1", "grid_x": 10, "grid_y": 10, "orientation_deg": 90, "layer": 2}
+        }
+      ],
+      "expected_input_rules": []
+    },
+    {
+      "case": "color_diff",
+      "differences": [
+        {
+          "expected": {"block_id": "B001", "color": "BLUE", "geometry": "2x2x1", "grid_x": 10, "grid_y": 10, "orientation_deg": 0, "layer": 1},
+          "actual": {"block_id": "B001", "color": "YELLOW", "geometry": "2x2x1", "grid_x": 10, "grid_y": 10, "orientation_deg": 0, "layer": 1}
+        }
+      ],
+      "expected_input_rules": []
+    },
+    {
+      "case": "layer_diff",
+      "differences": [
+        {
+          "expected": {"block_id": "B001", "color": "BLUE", "geometry": "2x2x1", "grid_x": 10, "grid_y": 10, "orientation_deg": 0, "layer": 1},
+          "actual": {"block_id": "B001", "color": "BLUE", "geometry": "2x2x1", "grid_x": 10, "grid_y": 10, "orientation_deg": 0, "layer": 2}
+        }
+      ],
+      "expected_input_rules": []
+    },
+    {
+      "case": "actual_null_missing_brick",
+      "_note": "Design expected B003 but it was not observed on the board at all.",
+      "differences": [
+        {
+          "expected": {"block_id": "B003", "color": "BLUE", "geometry": "2x2x1", "grid_x": 10, "grid_y": 12, "orientation_deg": 0, "layer": 1},
+          "actual": null
+        }
+      ],
+      "expected_input_rules": []
+    },
+    {
+      "case": "expected_null_extra_brick",
+      "_note": "A brick was observed on the board that the Design did not call for at this position/identity.",
+      "differences": [
+        {
+          "expected": null,
+          "actual": {"block_id": "B001", "color": "BLUE", "geometry": "2x2x1", "grid_x": 10, "grid_y": 10, "orientation_deg": 0, "layer": 1}
+        }
+      ],
+      "expected_input_rules": []
+    },
+    {
+      "case": "empty_differences_list",
+      "differences": [],
+      "expected_input_rules": ["invalid_value"]
+    }
+  ]
+}

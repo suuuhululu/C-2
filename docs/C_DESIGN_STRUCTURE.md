@@ -61,21 +61,23 @@ app/
 
 production `.py`는 위 6개로 유지합니다. class·state machine·dialogue / conversation manager·service layer·framework를 추가하지 않습니다.
 
-## 4. Test tree (예정)
+## 4. Test tree
 
 ```text
 tests/
 ├── unit/
 │   └── c_design/
-│       ├── test_dialogue.py    # 질문 문장·응답 해석 규칙·불명확
-│       ├── test_validator.py   # 규칙별 정상 / invalid
-│       ├── test_designer.py    # Mock Initial / Revised, Current 보존
-│       └── test_main.py        # 대화 루프(fake voice)
+│       ├── fixtures/           # Contract 형식의 정상·invalid·경계 JSON 8개 (WAVE 2)
+│       ├── test_dialogue.py    # 질문 문장·응답 해석 규칙·불명확 (WAVE 2)
+│       ├── test_validator.py   # 규칙별 정상 / invalid, support Case A~D (WAVE 2)
+│       ├── test_fixtures.py    # fixture를 validator·dialogue에 통과 (WAVE 2)
+│       ├── test_designer.py    # 예정: Mock Initial / Revised, Current 보존
+│       └── test_main.py        # 예정: 대화 루프(fake voice)
 └── integration/
-    └── test_c_contract.py      # A / D 연결 계약
+    └── test_c_contract.py      # 예정: A / D 연결 계약
 ```
 
-테스트 파일은 기능 구현과 함께 하나씩 추가합니다. 지금은 `.gitkeep`만 있습니다. `voice.py`는 unit test 대상이 아니라 후반 L2 장치 시험 대상이며, 다른 테스트에서는 fake로 교체합니다. 실행할 테스트가 없는 상태를 PASS로 표시하지 않습니다.
+테스트 파일은 기능 구현과 함께 하나씩 추가합니다. 루트 `pyproject.toml`의 pytest 설정으로 저장소 루트에서 `pytest`를 실행합니다. `voice.py`는 unit test 대상이 아니라 후반 L2 장치 시험 대상이며, 다른 테스트에서는 fake로 교체합니다. 실행할 테스트가 없는 상태를 PASS로 표시하지 않습니다.
 
 ## 5. 파일 설명
 

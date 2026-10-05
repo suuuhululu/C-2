@@ -6,12 +6,12 @@ C 파트(시율: **Voice Interaction + LLM Design** — 질문 결정·생성, T
 
 | 항목 | 값 |
 |---|---|
-| 전체 진행률 | **10%** (기능 단계 10개 중 완료 1개: Contract) |
-| 현재 작업 단계 | 2·3·4 (Fixture / Text Dialogue / Validator) 진행 중, WAVE 2 |
-| 다음 단계 | WAVE 2 리뷰 후 5·6. Mock Initial / Revised Design (WAVE 3) |
-| 현재 상태 | C Contract 확정(사용자 승인). A·D 확인 항목(Contract §11)은 PR 리뷰에서 진행. 기능 코드·테스트는 WAVE 2에서 작성 |
-| Blocker | 없음 |
-| 마지막 업데이트 | 2026-10-05 · branch `feature/c-contract-wave1` |
+| 전체 진행률 | **40%** (기능 단계 10개 중 완료 4개: Contract, Fixture, Text Dialogue, Validator) |
+| 현재 작업 단계 | 5·6 (Mock Initial / Revised) 대기 — 공용 계약 정렬 결정 대기 |
+| 다음 단계 | 공용 계약 정렬 결정 후 5·6. Mock Initial / Revised Design (WAVE 3) |
+| 현재 상태 | WAVE 2 통과(사용자 승인): Fixture 8개·`dialogue.py`·`validator.py`와 unit test, `pytest` 157 passed. main·designer·llm·voice는 docstring만 |
+| Blocker | origin/main 06_CONTRACT_DRAFT 개정(PR #5)과 C 계약의 필드명·ID·HRI 값·무응답 정책 불일치, 사용자 결정 대기 |
+| 마지막 업데이트 | 2026-10-05 · branch `feature/c-fixture-dialogue-validator-wave2` |
 
 진행률은 완료 기준을 충족한 단계만 셉니다. 단계 하나 = 10%. 진행 중인 단계는 표의 진행률 칸에만 표시하고 전체 진행률에는 더하지 않습니다. **Skeleton·문서 변경은 개발 단계 완료로 계산하지 않습니다.**
 
@@ -32,9 +32,9 @@ C 파트(시율: **Voice Interaction + LLM Design** — 질문 결정·생성, T
 | 순서 | 작업 단계 | 상태 | 진행률 | 작업 설명 | 관련 모듈 | 알아야 할 핵심 | 완료 기준 |
 |---|---|---|---|---|---|---|---|
 | 1 | Contract | 완료 (DONE) | 100% | main 공개 함수 Input/Output, Design / Current / Difference 형식, HRI 결과, 실패 반환, Validation 책임 정의 | main, dialogue, designer, validator | layer 1-based(1~4), grid_x/grid_y 0~23은 Board stud 위치(Robot mm 아님), orientation_deg는 GT 정의, HRI 결과 KEEP_ORIGINAL / CREATE_REVISED / UNCLEAR | 계약 문서 작성·사용자 승인(2026-10-05). A·D 확인 항목(§11)은 PR 리뷰에서 |
-| 2 | Fixture | 진행 중 | 0% | 정상·invalid·경계 Design / Current / Difference / 응답 텍스트 예시 | tests | Contract 형식을 그대로 따르고, 다른 담당이 같은 Fixture를 재사용 | Fixture가 Contract와 일치, 연결 담당 확인 |
-| 3 | Text Dialogue | 진행 중 | 0% | 질문·재질문 문장 생성, 텍스트 응답 → KEEP_ORIGINAL / CREATE_REVISED / UNCLEAR, 목표 사물 인식 | dialogue | 선택지 상수 1번 KEEP_ORIGINAL / 2번 CREATE_REVISED를 질문과 해석이 공유, Python Rule 우선, LLM fallback은 8단계 이후 | `test_dialogue.py` PASS (정상·오매칭·부정·UNCLEAR) |
-| 4 | Validator | 진행 중 | 0% | color·geometry·grid·layer·orientation·범위·overlap·support(2 stud)·connectivity·조립된 Brick 보존·malformed·Robot field 검증 | validator | 순수 Python, LLM 판단 금지, 실패 항목·사유 목록 반환 | `test_validator.py` 규칙별 정상 / invalid PASS |
+| 2 | Fixture | 완료 (DONE) | 100% | 정상·invalid·경계 Design / Current / Difference / 응답 텍스트 예시 | tests | Contract 형식을 그대로 따르고, 다른 담당이 같은 Fixture를 재사용 | Fixture가 Contract와 일치, 연결 담당 확인 |
+| 3 | Text Dialogue | 완료 (DONE) | 100% | 질문·재질문 문장 생성, 텍스트 응답 → KEEP_ORIGINAL / CREATE_REVISED / UNCLEAR, 목표 사물 인식 | dialogue | 선택지 상수 1번 KEEP_ORIGINAL / 2번 CREATE_REVISED를 질문과 해석이 공유, Python Rule 우선, LLM fallback은 8단계 이후 | `test_dialogue.py` PASS (정상·오매칭·부정·UNCLEAR) |
+| 4 | Validator | 완료 (DONE) | 100% | color·geometry·grid·layer·orientation·범위·overlap·support(2 stud)·connectivity·조립된 Brick 보존·malformed·Robot field 검증 | validator | 순수 Python, LLM 판단 금지, 실패 항목·사유 목록 반환 | `test_validator.py` 규칙별 정상 / invalid PASS |
 | 5 | Mock Initial Design | 대기 | 0% | 목표 사물 → 고정 Initial Design (LLM 없음, Board 중앙 배치) | designer, main | 출력이 Validator 통과, 식별·버전은 Python이 결정 | `test_designer.py` Initial PASS |
 | 6 | Mock Revised Design | 대기 | 0% | Design + Current + Revised 생성 → Current 배치 보존 전체 Revised Design | designer, validator | 보존 대상은 Python이 Current 기준 결정, Revised Design까지만(조립 순서·NextPart는 A) | preserved 검증 포함 `test_designer.py` PASS |
 | 7 | A/D Contract Test + Fake Voice Dialogue | 대기 | 0% | A·D가 C 출력을 소비하는 계약 테스트, main 대화 루프를 fake voice로 검증 | main, tests/integration | 공개 함수만 호출, 불명확 재질문 반복, Original 유지는 LLM 0회 | `test_main.py`·`test_c_contract.py` PASS, 연결 담당 확인 |
@@ -52,3 +52,5 @@ C 파트(시율: **Voice Interaction + LLM Design** — 질문 결정·생성, T
 | 2026-10-05 | 1. Contract | Contract 개정: 조립된 Brick `block_id` 유지·값이 그대로인 미조립 Brick은 ID 유지, 바뀐·새 Brick만 `last_block_number`로 새 ID, Design 버전 Owner = C 확정, support 겹침 합계 2 stud, Revised context·Hard / Soft 분리·단순 이동 금지, Initial 중앙 배치 `24 // 2` anchor 금지, 무응답 5분 종료 `NO_RESPONSE`(제안), Board 물리 방향은 D | 7개 모듈 import 성공, docstring 외 코드 없음, 폐기 문구 grep 확인 |
 | 2026-10-05 | 1. Contract | Contract 개정 2(이전 행의 block_id·무응답 규칙 대체): 이전 Design의 Brick은 값이 바뀌어도 같은 `block_id` 유지(LLM이 기존 ID echo, 새 Brick만 null → Python 발급), `last_block_number` 제거, 버전은 검증 통과 후 부여, 후보 거부 ≠ 실패(최대 횟수 없는 재생성·backoff·전략 전환·escalation), Recovery First(`FAILED`는 입력 오류·300초 지속 장애만), 무응답 300초 최종 안내 후 `CANCELLED` / `NO_RESPONSE`, support 정의 Case A~D, Current support 위반은 입력 오류가 아니라 즉시 escalation(overlap 위반만 `INVALID_INPUT`), §8 소절 순서 정리 | 7개 모듈 import 성공, docstring 외 코드 없음, 폐기 문구 grep 확인 |
 | 2026-10-05 | 1. Contract | Contract 확정(사용자 승인, WAVE 1). Contract 완료(DONE), 전체 진행률 10%. 공용 문서 정렬은 별도 commit. 2·3·4 진행 시작 | 7개 모듈 import, AST docstring-only, 폐기 문구 grep, 링크 확인 |
+| 2026-10-05 | 2·3·4 | WAVE 2: `tests/unit/c_design/fixtures/` 8개, `dialogue.py`(질문·재질문·확인·최종 안내·escalation 문장, 응답·목표 해석), `validator.py`(§9.1 규칙, Revised 보존, 입력 검사, Current support 판정), unit test 3개 파일, 루트 `pyproject.toml`(pytest 경로 설정) | `pytest` 157 passed, exit 0. import 부작용 없음, class 없음, 외부 dependency 없음 |
+| 2026-10-05 | 2·3·4 | WAVE 2 통과(사용자 승인): Fixture·Text Dialogue·Validator 완료(DONE), 전체 진행률 40%. origin/main PR #5의 06_CONTRACT_DRAFT 개정과 C 계약 불일치로 5·6 대기 | `pytest` 157 passed, exit 0. 7개 모듈 import exit 0 |
