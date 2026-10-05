@@ -24,9 +24,9 @@
 | Observed | 홍동 | 촬영 당시 블록 종류·색상·위치·층·방향·시각·신뢰·오류 |
 | Current | 수현 Backend | 유효 Observed를 채택한 실제 상태·채택 관측 식별 |
 | Expected | 수현 Backend 단일 Owner | 현재 비교 Step까지 조립돼 있어야 할 목표 배치 |
-| Difference·채택·System State | 수현 Backend | 목표 / 실제 비교·진행·보류·버전 관리 |
+| Difference·채택·System State | 수현 Backend | 목표 / 실제 비교·진행·보류·채택 Design 버전 기록(Design 버전 발급은 시율) |
 | Robot Result·source·슬롯 | 수현 Robot Controller | 필요한 종류·색상으로 source 선택·집기·전달 |
-| HRI | 시율 의미·음성, 수현 HMI·연결 | 질문·현재 응답 연결·유지 / 수정 / 불명확 |
+| HRI | 시율 질문 문장·재질문·TTS / STT·응답 해석, 수현 HMI 화면 표시·연결 | 질문·현재 응답 연결·유지 / 수정 / 불명확 |
 | 통합 | 수현·각 담당 지원 | 모듈별 adapter·Fixture·진단 제공 |
 
 Initial 경로는 시율 → 세은 → Design과 검증된 Plan을 Backend(H01·F08). 모든 데이터 전달이 Backend를 반드시 경유한다는 과거 규칙은 적용하지 않습니다.
@@ -34,7 +34,7 @@ Initial 경로는 시율 → 세은 → Design과 검증된 Plan을 Backend(H01�
 ## Day 4 범위
 
 - 키워드 기반 최초 Design 생성 포함(F08·G01). Chair는 첫 예시·Fixture이며 임의 LEGO 전체의 창작을 요구하지 않습니다.
-- 4점·6점 × 노랑·파랑, 최대 4층, 24×24점 plate(A03). 정확한 기하·허용 방향·축·layer 표현은 확인 필요입니다.
+- 4점·6점 × 노랑·파랑, 최대 4층, 24×24점 plate(A03). layer는 1-based 1~4(layer 1 = Board 위 첫 LEGO 층)로 팀 합의했습니다. 정확한 기하·허용 방향·축은 확인 필요입니다.
 - Robot은 supply → place 고정 좌표·구간으로 전달, 사람은 조립판 배치·체결·물리 수정(D05·D07·E01). place는 블록 전달 위치입니다.
 - 색상·사물의 plate x/y 위치·블록 조립점 변경을 시연(A04). 입력·기대 배치·증거는 준비해야 합니다.
 - 재고가 충분하다고 가정하고 수량·예약·소모 관리와 부족 검사 제외(B06·D04·G05). 공급 슬롯 순서는 관리합니다.
@@ -77,7 +77,7 @@ confidence는 블록별 종류·방향·색상·층·좌표의 신뢰 정보이�
 - 변경 context는 Design·채택 Current·Difference·지원 제약(F01).
 - Original 유지 / Revised 생성 / 불명확과 해당 Design 또는 재질문 제공(F02).
 - 질문 하나, 당시 Design·Current 보관, 현재 응답만 연결, 다음 전달 보류(F03).
-- 불명확은 재질문, 사용자 응답 대기·횟수 제한 없음(F04). Robot / 통신 timeout과 구분합니다.
+- 불명확은 재질문. 음성 응답은 의미 있는 발화 없이 5분이 지나면 시율이 최종 안내 후 CANCELLED / NO_RESPONSE를 반환하고 수현이 Workflow를 정리(F04, 2026-10-05 개정). Robot / 통신 timeout과 구분합니다.
 - 화면·음성 질문, 마이크 / STT 응답. 질문 음성을 답변으로 재인식하지 않음(F05·F07).
 - 응답·유효 Plan 후 Intervention 자동 진행, STOP·Robot 오류는 HMI 재개 버튼(F06).
 - 상태: 시작 대기 / 음성 키워드 대기 / 설계·계획 생성 / 블록 전달 / 조립 대기 / 의도 확인 / 정지 / 완료(G01).

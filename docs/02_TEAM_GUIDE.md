@@ -6,7 +6,7 @@
 
 | 담당 | 첫 입력 → 출력 | 제공물 | 책임 경계 |
 |---|---|---|---|
-| 시율 | 키워드 / 텍스트 → Initial / 유지 / Revised / 불명확 | Design·질문·출력 오류 예시 | 조립 순서·Current / Expected 제외 |
+| 시율 | 키워드 / 텍스트 → Initial / 유지 / Revised / 불명확 | Design·질문·출력 오류 예시, [C 계약](C_DESIGN_CONTRACT.md) | 조립 순서·Current / Expected 제외 |
 | 세은 | Design + Current + 제약 → Plan / Remaining / invalid | Step 목표 / 효과·Replan 예시 | 의도·Robot 경로·Expected 제외 |
 | 홍동 | 저장 이미지 → Observed·품질 / 오류 | grid / layer / 방향·가림 / 실패 | 최종 Current 채택·Difference는 Backend |
 | 수현 | 모듈 Fixture·전달 결과·버튼 → 상태 / Expected / 다음 요청 | Fake 전달·전이·지연 / 중복·HMI / 로그 | 의도·Design·Planner 알고리즘 대행 제외 |

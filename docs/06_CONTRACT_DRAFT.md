@@ -14,15 +14,15 @@
 
 | 객체 | 확정된 의미 / Owner | 확인할 필드·표현 |
 |---|---|---|
-| Brick | 블록 종류·색상·위치·층·방향 | Design 내 ID와 공급 slot 구분, 기하·anchor·rotation·layer·필수 여부 |
-| Design | 목표 배치·Initial / Revised·시율 | 식별 / 버전·부모 버전·출처·블록·지원 제약 |
+| Brick | 블록 종류·색상·위치·층·방향 | Design 내 ID와 공급 slot 구분, 기하·anchor·rotation·layer·필수 여부. 이전 Design의 Brick은 Revised에서 같은 `block_id` 유지, Current·Difference에 `block_id` 포함, support는 바로 아래 layer와 겹침 합계 2 stud 이상 |
+| Design | 목표 배치·Initial / Revised·시율 | 식별 / `design_version`·`parent_version`(발급 시율, 검증 통과 후)·출처·블록·지원 제약 |
 | Observed | 촬영 당시 실제 관측·홍동 | 관측 ID / 순번·촬영 시각·보정·가림 / 실패 / 완전 관측·항목별 confidence |
 | Current | 유효 관측 채택·Backend | 채택 관측·상태 revision·블록 상태·유효성 |
 | Plan | 기준 Design / Current·세은 | Plan 버전·기준 상태 revision·Step 목록·검증 / 사유 |
 | Step | 사람 조립 작업·세은 | 블록 목표·동작·선행조건·효과·Robot 전달 필요 여부 |
 | Expected | 기준 상태 + 해당 Plan 효과·Backend | 기준 Design / Plan·비교 Step·목표 배치 |
 | Difference | 일치 / 차이 / 판단 불가·Backend | 대상·항목·기대 / 실제·품질·근거 |
-| HRI | 유지 / 수정 / 불명확·시율 | 질문·응답 연결·기준 Design / Current·결과 Design / 재질문 |
+| HRI | 유지 / 수정 / 불명확·시율 | 질문·응답 연결·기준 Design / Current·결과 Design / 재질문. 질문 문장은 시율 생성, 무응답 시 CANCELLED 상태 |
 | Delivery | 종류·색상 요청·Robot | 실행 식별·수락 / 진행 / 최종 결과·슬롯·실패·취소 완료 |
 
 위 표의 필드명·영문 enum·시각 형식·JSON 직렬화는 아직 확정하지 않았습니다. 단순 Job 식별만으로 동일 작업의 지연 결과를 구분하기 어렵기 때문에 아래 연결을 제안합니다.
@@ -55,7 +55,7 @@ Backend의 통합 envelope에 Job·Design / Plan 버전·Step·전달 실행 ID�
 ## 오류·진행 중 변경 제안
 
 - Plan 실패는 검증 대상·위치·사유를 Backend로 반환하고 Design 수정 / 재질문 동안 전달 보류.
-- LLM / STT 호출 실패와 사용자의 불명확한 응답을 구분. malformed / unsupported 출력은 실행 Design으로 채택하지 않는 방향을 확인.
+- LLM / STT 호출 실패와 사용자의 불명확한 응답을 구분. malformed / unsupported 출력은 실행 Design으로 채택하지 않는 방향을 확인. malformed LLM 출력·후보 거부는 시율 내부에서 재생성하며 Backend에 실패로 전달하지 않음. C 상세는 [C_DESIGN_CONTRACT.md](C_DESIGN_CONTRACT.md).
 - 대화 중 Current가 바뀌면 질문 context와 최종 재계획의 기준 상태를 확인하고, 채택 전 최신 상태를 대조.
 - Robot 오류·부분 완료 뒤 재개 시 실제 전달 여부·슬롯 소모·남은 동작을 사람이 확인하는 기록 / UI 결정.
 - 공급 보충 신호·확인 주체와 pick 성공 / 실패별 슬롯 증가 조건 결정.

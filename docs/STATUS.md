@@ -1,5 +1,12 @@
 # 현재 진행 상황
 
+## 최신 작업 — C 계약 확정 (2026-10-05)
+
+- 변경: `docs/C_DESIGN_CONTRACT.md` 확정(사용자 승인). C 공개 함수·D ↔ C 입출력·Design / Brick 형식·Revised Design 규칙·검증 책임·Recovery First·무응답 5분 취소. C 문서·skeleton docstring 용어를 공용 용어로 통일. 공용 문서는 layer 1-based, HRI 질문 문장 시율 소유, Design 버전 발급 시율, F04 개정, Brick `block_id` 유지·support 2 stud만 반영.
+- 실제 검증: 7개 모듈 import 종료 코드 0, `app/c_design` 모듈 AST docstring-only, 폐기 용어 grep(의도된 사용 금지 목록 외 0건), C 문서 상대 링크 존재, `git diff --check` 통과.
+- 미검증: 실행 코드·pytest(기능 구현 없음), A(세은)·D(수현) 확인 항목(Contract §11)은 PR 사람 리뷰 대기.
+- 다음 작업: WAVE 2 — Fixture·Text Dialogue·Validator 구현과 unit test.
+
 ## 최신 작업 — AI 개입 범위와 검증 보고 규칙 (2026-10-05)
 
 - 사용자 제공 노마드 코더 영상의 설명·영어 자동 생성 자막을 확인하고 AGENTS.md에 간결한 답변, 가정 확인, 최소 수정, 기존 자동 검사 활용, 검증 증거 후 완료 보고를 반영.

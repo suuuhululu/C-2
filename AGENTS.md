@@ -29,7 +29,7 @@
 - Intervention의 응답·유효 Plan 후 자동 진행과 STOP / Robot 오류의 수동 재개를 구분합니다.
 - Step·질문 하나씩 처리해도 ID·최신성 계약은 필요합니다. 늦은 결과·중복 전달 규칙을 임의 확정하지 않습니다.
 - PostgreSQL 제외·파일 로그. JSONL·경로·HMI framework·Schema·ID는 제안과 확정을 구분합니다.
-- 이전 GT의 anchor·layer=0·orientation은 원자료 규약입니다. 축 확인·공통 계약 채택 전 전체 모듈에 강제하지 않습니다.
+- 이전 GT의 anchor·layer=0·orientation은 원자료 규약입니다. layer는 1-based로 팀 합의 완료. 축 확인·공통 계약 채택 전 전체 모듈에 강제하지 않습니다.
 - Mock / Real 입출력 의미를 유지합니다. 모드 누락을 Real로 해석하지 않습니다. Isaac은 후속 검토이며 Day 4 필수 설치가 아닙니다.
 
 ## 작은 작업과 검증
