@@ -17,24 +17,24 @@
 ## 구현 경계
 
 - 승인된 현재 작업만 진행합니다. 설계문서가 전체 시스템 구현 요청은 아닙니다.
-- Day 4 1PC. LLM / Planner / Backend 함수, Vision callback, 웹 HMI API, Robot 전달 Action 방향. Vision Topic 관계·이름·필드는 확인 필요입니다.
+- Day 4 1PC. LLM / Planner / Backend 함수, Vision callback, Qt 단일 화면, Robot 전달 Action. 현재 공유 계약은 docs/06_CONTRACT_DRAFT.md이며 ROS 이름·adapter 세부는 구현에서 확인합니다.
 - Design 최초 경로는 시율 → 세은 → Design과 검증된 Plan을 Backend. Backend가 전체 상태·대화·진행·goal 발행을 중재합니다.
 - Observed는 Vision 출력, Current는 Backend 채택 상태, Expected는 Backend 단일 Owner입니다. Expected와 다르다고 유효 관측을 거절하지 않습니다.
-- 가림·부분 관측·실패 시 Current 유지·완료 판단과 다음 전달 보류. 정상 조립 대기와 실제 차이의 세부 구분은 계약 초안입니다.
+- 확인 완료한 가림 영역은 보존하고 visible_blocks와 verified_regions로 실제 Current를 병합합니다. 홍동의 완료 확인 시점에 OK / UNOBSERVABLE을 받으며 OK는 목표 일치가 아닙니다. 목록 누락만으로 삭제하지 않습니다.
 - 재계획 Expected는 고정 기준 Current와 새 Plan 효과로 계산합니다. Robot 전달 완료를 조립 효과로 반영하지 않습니다.
 - Planner는 선행 관계 규칙 기반, 수량 재고 검사는 제외합니다. 공급 슬롯 종류별 1~6 선택·순서는 Robot 책임입니다.
 - Day 4는 고정 검증 좌표로 전달합니다. 조립 grid → Robot 변환·실행 중 별도 reachability / 경로 검증을 필수로 추가하지 않습니다.
 - LLM이 joint / TCP / 속도 / 힘 / 저수준 궤적을 생성하도록 만들지 않습니다. pose·motion parameter를 임의 추정하지 않습니다.
-- STOP·Robot / 통신 오류는 보류·사유 표시·수동 확인 후 재개. 자동 Robot 복구·재시도·종료 후 복구는 제외합니다.
+- STOP은 Job·완료 이력·공급 소모를 유지합니다. 미집기 시 새 실행 식별로 goal 재전송, 들고 있으면 전달 후 복귀, 이미 놓았으면 observe point 복귀입니다. 실제 Controller 정지·재개 시험은 별도이며 Robot 실패 자동 복구·재시도·앱 종료 후 복원은 제외합니다.
 - Intervention의 응답·유효 Plan 후 자동 진행과 STOP / Robot 오류의 수동 재개를 구분합니다.
-- Step·질문 하나씩 처리해도 ID·최신성 계약은 필요합니다. 늦은 결과·중복 전달 규칙을 임의 확정하지 않습니다.
-- PostgreSQL 제외·파일 로그. JSONL·경로·HMI framework·Schema·ID는 제안과 확정을 구분합니다.
-- 이전 GT의 anchor·layer=0·orientation은 원자료 규약입니다. 축 확인·공통 계약 채택 전 전체 모듈에 강제하지 않습니다.
+- Step·질문 하나씩 처리해도 ID·최신성 계약은 필요합니다. 활성 check·질문·실행과 목표 / Current 버전을 확인하고 닫힌 요청·중복·역순 결과로 진행하지 않습니다.
+- DB 제외·Job별 주요 이벤트 JSONL. Qt 반폭 고정 단일 창·단순 시작/정지/재개·채택 Design 미리보기를 포함합니다. 상세 Schema·경로·Qt 바인딩의 실제 구현은 별도 확인합니다.
+- 이전 GT는 원자료입니다. 공통 계약은 x/y 최소 footprint 모서리·+X 오른쪽/+Y 위·layer 1~4·6점 0도 X2/Y3, 90도 X3/Y2입니다. 공통 필드는 brick_type/color/x/y/layer/orientation_deg, 정상 Plan은 PLACE만입니다.
 - Mock / Real 입출력 의미를 유지합니다. 모드 누락을 Real로 해석하지 않습니다. Isaac은 후속 검토이며 Day 4 필수 설치가 아닙니다.
 
 ## 작은 작업과 검증
 
-작업 목표·수정 범위·입출력·완료 기준을 먼저 확인합니다. 공통 계약이 없으면 초안·Fixture를 준비해 연결 담당자가 확인합니다. contract draft는 구현된 Schema가 아닙니다.
+작업 목표·수정 범위·입출력·완료 기준을 먼저 확인합니다. 공통 계약이 없으면 초안·Fixture를 준비해 연결 담당자가 확인합니다. 공통 문서의 설계 계약 확정은 구현된 Schema·모듈 연결·실제 장치 검증을 뜻하지 않습니다. 기존 C 필드·의도명 이행은 docs/02_TEAM_GUIDE.md를 따릅니다.
 
 main 직접 개발 대신 feature branch와 사람 리뷰를 사용합니다. 빈 원격은 최소 기반 커밋과 리뷰 변경을 분리하고 게시 전에 사용자에게 수정 내용을 설명합니다. 기존 이력 덮어쓰기·force push는 하지 않습니다.
 
