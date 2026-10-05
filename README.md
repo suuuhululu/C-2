@@ -8,7 +8,7 @@
 2. [진행 상황과 다음 작업](docs/STATUS.md)
 3. [Day 1~4 일정](docs/01_DAY_PLAN.md)
 4. [팀원 협업 안내](docs/02_TEAM_GUIDE.md)
-5. [Day4 공통 인터페이스 계약](docs/06_CONTRACT_DRAFT.md)
+5. [Day4 공통 인터페이스 계약](docs/06_CONTRACT_DRAFT.md) — [C/B 연결 합의와 남은 확인](docs/09_C_B_BACKEND_HANDOFF.md)
 6. [환경·측정 확인](docs/03_MEASUREMENT_GUIDE.md)
 7. [Git·PR·문서 관리](docs/05_REPOSITORY_GUIDE.md)
 8. [Isaac Sim 후속 검토](docs/04_ISAAC_SIM.md)
