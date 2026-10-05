@@ -4,18 +4,25 @@
     Initial / Revised Design을 순수 Python 규칙으로 검증한다.
     LLM 판단에 맡기지 않으며 A / D / HMI 없이 단독으로 통과해야 한다.
 
-구현 범위(값은 docs/C_DESIGN_CONTRACT.md §2·§9를 따른다):
-    - color: YELLOW / BLUE
-    - geometry: 2x2x1 / 2x3x1
-    - grid_x, grid_y: 0~23 (24×24 Board stud 위치, Robot mm 아님)
-    - layer: 1~4, 1-based (layer 1 = Board 위 첫 LEGO 층)
+구현 범위(값은 docs/06_CONTRACT_DRAFT.md §1·§2를 따른다):
+    - color: yellow / blue (소문자)
+    - brick_type: 2x2x1 / 2x3x1
+    - x, y: 0~23 (24×24 Board stud 위치, Robot mm 아님). footprint 최소 모서리
+    - layer: 1~4, 1-based (layer 1 = Board 위 첫 Block 층)
     - orientation_deg: 2x3x1은 0(X 2 / Y 3 stud) 또는 90(X 3 / Y 2 stud), 2x2x1은 0
-    - Board 범위, overlap, support(아래 Brick 개수와 무관하게 바로 아래 layer와의
-      겹침 합계 2 stud 이상), connectivity
-    - 조립된 Brick 보존: Current Brick이 같은 block_id와 같은 color·geometry·grid_x·grid_y·
-      orientation_deg·layer가 Revised Design에 그대로 있는지
-    - malformed output, Robot field 유입, 입력 Design에 없는 기존 block_id 거부
-    - 거부 사유를 [{rule, block_ids, message}]로 반환(후보 거부일 뿐 실패 아님)
+    - Board 범위, overlap, support, connectivity
+    - support 규칙 "바로 아래 layer와 겹치는 stud 합계 2 이상(아래 Block 개수 무관,
+      같은 stud 중복 합산 없음)"은 세은(A)과 확인할 C 후보 기준이며 팀 공용 확정값이
+      아니다(재협의 가능)
+    - Design은 정확히 {design_version, blocks} 두 key만 허용(§2). 다른 top-level
+      key는 unknown_key
+    - 조립된 Block 보존(Revised): current에 있는 각 Block의 6값 조합이 candidate의
+      blocks에 적어도 같은 개수만큼(멀티셋 포함 관계) 존재해야 한다. 블록 ID가
+      없으므로 값 자체로 식별한다
+    - malformed output, Robot field 유입 거부
+    - 거부 사유를 [{rule, blocks, message}]로 반환(후보 거부일 뿐 실패 아님).
+      blocks는 특정 Block이 관련될 때만 그 Block(들)의 dict 목록이며, 그렇지 않으면
+      빈 리스트
     - 입력 Current: overlap 위반만 입력 오류. support 위반은 오류가 아니며
       main이 Revised 생성 대신 escalation으로 처리
 
@@ -29,27 +36,25 @@
 """
 
 import json
-import re
+from collections import Counter
 
-TOP_FIELDS = ("design_version", "parent_version", "object_type", "source", "bricks")
-BRICK_FIELDS = ("block_id", "color", "geometry", "grid_x", "grid_y", "orientation_deg", "layer")
-VALUE_FIELDS = ("color", "geometry", "grid_x", "grid_y", "orientation_deg", "layer")
+TOP_FIELDS = ("design_version", "blocks")
+BLOCK_FIELDS = ("brick_type", "color", "x", "y", "layer", "orientation_deg")
 
-COLORS = {"YELLOW", "BLUE"}
-GEOMETRIES = {"2x2x1", "2x3x1"}
-BLOCK_ID_RE = re.compile(r"^B[0-9]{3}$")
+COLORS = {"yellow", "blue"}
+BRICK_TYPES = {"2x2x1", "2x3x1"}
 BOARD_RANGE = range(0, 24)
 
 
-def footprint(brick):
-    """Studs covered by a brick's geometry/orientation at its anchor (grid_x, grid_y)."""
-    geometry = brick["geometry"]
-    gx, gy = brick["grid_x"], brick["grid_y"]
-    if geometry == "2x2x1":
+def footprint(block):
+    """Studs covered by a block's brick_type/orientation at its anchor (x, y)."""
+    brick_type = block["brick_type"]
+    x, y = block["x"], block["y"]
+    if brick_type == "2x2x1":
         w, h = 2, 2
     else:  # "2x3x1"
-        w, h = (2, 3) if brick["orientation_deg"] == 0 else (3, 2)
-    return {(gx + dx, gy + dy) for dx in range(w) for dy in range(h)}
+        w, h = (2, 3) if block["orientation_deg"] == 0 else (3, 2)
+    return {(x + dx, y + dy) for dx in range(w) for dy in range(h)}
 
 
 def _is_int(value):
@@ -57,8 +62,8 @@ def _is_int(value):
     return isinstance(value, int) and not isinstance(value, bool)
 
 
-def _reason(rule, block_id, message):
-    return {"rule": rule, "block_ids": [block_id], "message": message}
+def _reason(rule, blocks, message):
+    return {"rule": rule, "blocks": blocks, "message": message}
 
 
 def _parse(candidate):
@@ -67,103 +72,83 @@ def _parse(candidate):
         try:
             candidate = json.loads(candidate)
         except ValueError:
-            return None, [_reason("malformed_output", None, "input is not valid JSON")]
+            return None, [_reason("malformed_output", [], "input is not valid JSON")]
     if not isinstance(candidate, dict):
-        return None, [_reason("malformed_output", None, "input is not a JSON object")]
+        return None, [_reason("malformed_output", [], "input is not a JSON object")]
     return candidate, None
 
 
-def _check_brick(brick, allow_none_id, reject_unknown_keys=True):
-    """Validate one brick dict's fields/values.
+def _check_block(block, reject_unknown_keys=True):
+    """Validate one block dict's fields/values.
 
-    D input (Current / Difference bricks) passes reject_unknown_keys=False: C reads only the
-    contract fields and ignores the rest (§5), so extra keys there are not errors.
+    D input (Current / Difference blocks) passes reject_unknown_keys=False: C reads only
+    the contract fields and ignores the rest (§5), so extra keys there are not errors.
 
-    Returns (reasons, node). node is None when geometry/position/layer are not well-formed
+    Returns (reasons, node). node is None when brick_type/position/layer are not well-formed
     enough to run footprint-based checks without crashing; otherwise it is
-    {"id", "layer", "footprint"} for use by overlap/support/connectivity.
+    {"layer", "footprint", "block"} for use by overlap/support/connectivity.
     """
-    if not isinstance(brick, dict):
-        return [_reason("invalid_type", None, "brick is not an object")], None
+    if not isinstance(block, dict):
+        return [_reason("invalid_type", [], "block is not an object")], None
 
     reasons = []
-    report_id = brick.get("block_id") if isinstance(brick.get("block_id"), str) else None
 
-    for key in BRICK_FIELDS:
-        if key not in brick:
-            reasons.append(_reason("missing_field", report_id, f"brick missing '{key}'"))
+    for key in BLOCK_FIELDS:
+        if key not in block:
+            reasons.append(_reason("missing_field", [block], f"block missing '{key}'"))
     if reject_unknown_keys:
-        for key in brick:
-            if key not in BRICK_FIELDS:
-                reasons.append(_reason("unknown_key", report_id, f"brick has unknown key '{key}'"))
+        for key in block:
+            if key not in BLOCK_FIELDS:
+                reasons.append(_reason("unknown_key", [block], f"block has unknown key '{key}'"))
 
-    if "block_id" in brick:
-        bid = brick["block_id"]
-        if bid is None:
-            if not allow_none_id:
-                reasons.append(_reason("invalid_type", None, "block_id must be a string"))
-        elif not isinstance(bid, str):
-            reasons.append(_reason("invalid_type", report_id, "block_id must be a string"))
-        elif not BLOCK_ID_RE.match(bid):
-            reasons.append(_reason("invalid_block_id", bid, f"block_id '{bid}' has invalid format"))
+    if "color" in block and block["color"] not in COLORS:
+        reasons.append(_reason("invalid_value", [block], f"color '{block['color']}' not allowed"))
 
-    if "color" in brick and brick["color"] not in COLORS:
-        reasons.append(_reason("invalid_value", report_id, f"color '{brick['color']}' not allowed"))
+    brick_type = block.get("brick_type")
+    type_ok = "brick_type" in block and brick_type in BRICK_TYPES
+    if "brick_type" in block and not type_ok:
+        reasons.append(_reason("invalid_value", [block], f"brick_type '{brick_type}' not allowed"))
 
-    geometry = brick.get("geometry")
-    geometry_ok = "geometry" in brick and geometry in GEOMETRIES
-    if "geometry" in brick and not geometry_ok:
-        reasons.append(_reason("invalid_value", report_id, f"geometry '{geometry}' not allowed"))
+    x, y = block.get("x"), block.get("y")
+    x_ok = "x" in block and _is_int(x)
+    y_ok = "y" in block and _is_int(y)
+    if "x" in block and not x_ok:
+        reasons.append(_reason("invalid_type", [block], "x must be an int"))
+    if "y" in block and not y_ok:
+        reasons.append(_reason("invalid_type", [block], "y must be an int"))
 
-    grid_x, grid_y = brick.get("grid_x"), brick.get("grid_y")
-    grid_x_ok = "grid_x" in brick and _is_int(grid_x)
-    grid_y_ok = "grid_y" in brick and _is_int(grid_y)
-    if "grid_x" in brick and not grid_x_ok:
-        reasons.append(_reason("invalid_type", report_id, "grid_x must be an int"))
-    if "grid_y" in brick and not grid_y_ok:
-        reasons.append(_reason("invalid_type", report_id, "grid_y must be an int"))
-
-    orientation = brick.get("orientation_deg")
-    orientation_type_ok = "orientation_deg" in brick and _is_int(orientation)
-    if "orientation_deg" in brick and not orientation_type_ok:
-        reasons.append(_reason("invalid_type", report_id, "orientation_deg must be an int"))
+    orientation = block.get("orientation_deg")
+    orientation_type_ok = "orientation_deg" in block and _is_int(orientation)
+    if "orientation_deg" in block and not orientation_type_ok:
+        reasons.append(_reason("invalid_type", [block], "orientation_deg must be an int"))
 
     orientation_ok = False
-    if geometry_ok and orientation_type_ok:
-        allowed = {0, 90} if geometry == "2x3x1" else {0}
+    if type_ok and orientation_type_ok:
+        allowed = {0, 90} if brick_type == "2x3x1" else {0}
         orientation_ok = orientation in allowed
         if not orientation_ok:
             reasons.append(
-                _reason("invalid_value", report_id, f"orientation_deg '{orientation}' invalid for {geometry}")
+                _reason("invalid_value", [block], f"orientation_deg '{orientation}' invalid for {brick_type}")
             )
 
-    layer = brick.get("layer")
+    layer = block.get("layer")
     layer_ok = False
-    if "layer" in brick:
+    if "layer" in block:
         if _is_int(layer):
             layer_ok = 1 <= layer <= 4
             if not layer_ok:
-                reasons.append(_reason("invalid_value", report_id, f"layer '{layer}' out of range"))
+                reasons.append(_reason("invalid_value", [block], f"layer '{layer}' out of range"))
         else:
-            reasons.append(_reason("invalid_type", report_id, "layer must be an int"))
+            reasons.append(_reason("invalid_type", [block], "layer must be an int"))
 
-    if not (geometry_ok and orientation_ok and grid_x_ok and grid_y_ok and layer_ok):
+    if not (type_ok and orientation_ok and x_ok and y_ok and layer_ok):
         return reasons, None
 
-    cells = footprint({"geometry": geometry, "orientation_deg": orientation, "grid_x": grid_x, "grid_y": grid_y})
-    if any(x not in BOARD_RANGE or y not in BOARD_RANGE for x, y in cells):
-        reasons.append(_reason("out_of_board", report_id, "brick footprint outside 0..23"))
+    cells = footprint({"brick_type": brick_type, "orientation_deg": orientation, "x": x, "y": y})
+    if any(cx not in BOARD_RANGE or cy not in BOARD_RANGE for cx, cy in cells):
+        reasons.append(_reason("out_of_board", [block], "block footprint outside 0..23"))
 
-    return reasons, {"id": report_id, "layer": layer, "footprint": cells}
-
-
-def _duplicate_ids(bricks):
-    counts = {}
-    for brick in bricks:
-        bid = brick.get("block_id")
-        if isinstance(bid, str):
-            counts[bid] = counts.get(bid, 0) + 1
-    return [_reason("duplicate_block_id", bid, f"block_id '{bid}' duplicated") for bid, n in counts.items() if n > 1]
+    return reasons, {"layer": layer, "footprint": cells, "block": block}
 
 
 def _overlap_violations(nodes):
@@ -176,9 +161,7 @@ def _overlap_violations(nodes):
             for j in range(i + 1, len(same_layer)):
                 a, b = same_layer[i], same_layer[j]
                 if a["footprint"] & b["footprint"]:
-                    reasons.append(
-                        {"rule": "overlap", "block_ids": [a["id"], b["id"]], "message": "bricks overlap on same layer"}
-                    )
+                    reasons.append(_reason("overlap", [a["block"], b["block"]], "blocks overlap on same layer"))
     return reasons
 
 
@@ -193,7 +176,7 @@ def _support_violations(nodes):
         below = by_layer.get(node["layer"] - 1, [])
         shared = sum(len(node["footprint"] & other["footprint"]) for other in below)
         if shared < 2:
-            reasons.append(_reason("support", node["id"], f"brick '{node['id']}' support studs={shared} < 2"))
+            reasons.append(_reason("support", [node["block"]], f"block support studs={shared} < 2"))
     return reasons
 
 
@@ -213,45 +196,44 @@ def _connectivity_violations(nodes):
                 parent[find(i)] = find(j)
 
     if len({find(i) for i in range(len(nodes))}) > 1:
-        ids = [node["id"] for node in nodes]
-        return [{"rule": "connectivity", "block_ids": ids, "message": "design is not fully connected"}]
+        return [_reason("connectivity", [node["block"] for node in nodes], "design is not fully connected")]
     return []
 
 
-def _geometry_violations(nodes):
+def _placement_violations(nodes):
     return _overlap_violations(nodes) + _support_violations(nodes) + _connectivity_violations(nodes)
 
 
-def _validate_bricks_list(container, allow_none_id):
-    """Shared top-level 'bricks' handling for validate_design / validate_revised.
+def _validate_blocks_list(container):
+    """Shared top-level 'blocks' handling for validate_design / validate_revised.
 
-    Returns (reasons, nodes, dict_bricks).
+    Returns (reasons, nodes, dict_blocks).
     """
     reasons = []
     nodes = []
-    dict_bricks = []
-    bricks = container.get("bricks")
-    if not isinstance(bricks, list):
-        reasons.append(_reason("invalid_type", None, "bricks must be a list"))
-        return reasons, nodes, dict_bricks
+    dict_blocks = []
+    blocks = container.get("blocks")
+    if not isinstance(blocks, list):
+        reasons.append(_reason("invalid_type", [], "blocks must be a list"))
+        return reasons, nodes, dict_blocks
 
-    if not (1 <= len(bricks) <= 20):
-        reasons.append(_reason("brick_count", None, f"bricks count {len(bricks)} out of 1..20"))
+    if not (1 <= len(blocks) <= 20):
+        reasons.append(_reason("brick_count", [], f"blocks count {len(blocks)} out of 1..20"))
 
-    for brick in bricks:
-        brick_reasons, node = _check_brick(brick, allow_none_id)
-        reasons.extend(brick_reasons)
+    for block in blocks:
+        block_reasons, node = _check_block(block)
+        reasons.extend(block_reasons)
         if node is not None:
             nodes.append(node)
-        if isinstance(brick, dict):
-            dict_bricks.append(brick)
+        if isinstance(block, dict):
+            dict_blocks.append(block)
 
-    reasons.extend(_duplicate_ids(dict_bricks))
-    return reasons, nodes, dict_bricks
+    return reasons, nodes, dict_blocks
 
 
 def validate_design(design):
-    """§9.1 validation of a full Design (Initial or finalized Revised)."""
+    """Validation of a full Design (Initial or finalized Revised). §2: exactly
+    {design_version, blocks}."""
     parsed, err = _parse(design)
     if err:
         return err
@@ -259,162 +241,126 @@ def validate_design(design):
     reasons = []
     for key in TOP_FIELDS:
         if key not in parsed:
-            reasons.append(_reason("missing_field", None, f"design missing '{key}'"))
+            reasons.append(_reason("missing_field", [], f"design missing '{key}'"))
     for key in parsed:
         if key not in TOP_FIELDS:
-            reasons.append(_reason("unknown_key", None, f"design has unknown key '{key}'"))
+            reasons.append(_reason("unknown_key", [], f"design has unknown key '{key}'"))
 
     if "design_version" in parsed:
         version = parsed["design_version"]
         if not _is_int(version):
-            reasons.append(_reason("invalid_type", None, "design_version must be an int"))
+            reasons.append(_reason("invalid_type", [], "design_version must be an int"))
         elif version < 1:
-            reasons.append(_reason("invalid_value", None, "design_version must be >= 1"))
-
-    if "parent_version" in parsed and parsed["parent_version"] is not None and not _is_int(parsed["parent_version"]):
-        reasons.append(_reason("invalid_type", None, "parent_version must be an int or null"))
-
-    if "object_type" in parsed and parsed["object_type"] != "CHAIR":
-        reasons.append(_reason("invalid_value", None, f"object_type '{parsed['object_type']}' not allowed"))
-
-    if "source" in parsed and parsed["source"] not in ("MOCK", "LLM"):
-        reasons.append(_reason("invalid_value", None, f"source '{parsed['source']}' not allowed"))
+            reasons.append(_reason("invalid_value", [], "design_version must be >= 1"))
 
     nodes = []
-    if "bricks" in parsed:
-        bricks_reasons, nodes, _ = _validate_bricks_list(parsed, allow_none_id=False)
-        reasons.extend(bricks_reasons)
+    if "blocks" in parsed:
+        blocks_reasons, nodes, _ = _validate_blocks_list(parsed)
+        reasons.extend(blocks_reasons)
 
-    reasons.extend(_geometry_violations(nodes))
+    reasons.extend(_placement_violations(nodes))
     return reasons
 
 
-def _collect_design_ids(design):
-    if not isinstance(design, dict) or not isinstance(design.get("bricks"), list):
-        return set()
-    return {b.get("block_id") for b in design["bricks"] if isinstance(b, dict) and isinstance(b.get("block_id"), str)}
+def _block_value_tuple(block):
+    return tuple(block.get(key) for key in BLOCK_FIELDS)
 
 
-def _same_brick_values(a, b):
-    return all(a.get(key) == b.get(key) and type(a.get(key)) is type(b.get(key)) for key in VALUE_FIELDS)
-
-
-def _assembled_preserved(bricks, current):
+def _assembled_preserved(blocks, current):
+    """current의 각 Block 값 조합이 candidate blocks 멀티셋에 최소 같은 개수만큼
+    포함돼야 한다(블록 ID가 없으므로 값으로 식별)."""
     if not isinstance(current, list):
         return []
-    by_id = {}
-    for brick in bricks:
-        bid = brick.get("block_id")
-        if isinstance(bid, str):
-            by_id.setdefault(bid, []).append(brick)
+    candidate_counts = Counter(_block_value_tuple(b) for b in blocks if isinstance(b, dict))
+    current_counts = Counter(_block_value_tuple(c) for c in current if isinstance(c, dict))
 
-    reasons = []
-    for cur in current:
-        if not isinstance(cur, dict):
-            continue
-        cid = cur.get("block_id")
-        matches = by_id.get(cid, [])
-        if len(matches) != 1 or not _same_brick_values(matches[0], cur):
-            reasons.append(_reason("assembled_not_preserved", cid, f"assembled block_id '{cid}' not preserved"))
-    return reasons
+    missing = [tup for tup, needed in current_counts.items() if candidate_counts.get(tup, 0) < needed]
+    if not missing:
+        return []
+    offending = [dict(zip(BLOCK_FIELDS, tup)) for tup in missing]
+    return [_reason("assembled_not_preserved", offending, "assembled blocks not preserved in candidate")]
 
 
-def validate_revised(candidate, input_design, current):
-    """§9.1 validation of a Revised candidate before Python assigns new block_ids."""
+def validate_revised(candidate, current):
+    """Revised candidate 검증. candidate는 정확히 {"blocks": [...]}만 허용한다."""
     parsed, err = _parse(candidate)
     if err:
         return err
 
     reasons = []
-    if "bricks" not in parsed:
-        reasons.append(_reason("missing_field", None, "design missing 'bricks'"))
+    if "blocks" not in parsed:
+        reasons.append(_reason("missing_field", [], "candidate missing 'blocks'"))
     for key in parsed:
-        if key not in TOP_FIELDS:
-            reasons.append(_reason("unknown_key", None, f"design has unknown key '{key}'"))
+        if key != "blocks":
+            reasons.append(_reason("unknown_key", [], f"candidate has unknown key '{key}'"))
 
-    nodes, dict_bricks = [], []
-    if "bricks" in parsed:
-        bricks_reasons, nodes, dict_bricks = _validate_bricks_list(parsed, allow_none_id=True)
-        reasons.extend(bricks_reasons)
+    nodes, dict_blocks = [], []
+    if "blocks" in parsed:
+        blocks_reasons, nodes, dict_blocks = _validate_blocks_list(parsed)
+        reasons.extend(blocks_reasons)
 
-    design_ids = _collect_design_ids(input_design)
-    for brick in dict_bricks:
-        bid = brick.get("block_id")
-        if isinstance(bid, str) and bid not in design_ids:
-            reasons.append(_reason("unknown_block_id", bid, f"block_id '{bid}' not in input design"))
-
-    reasons.extend(_geometry_violations(nodes))
-    reasons.extend(_assembled_preserved(dict_bricks, current))
+    reasons.extend(_placement_violations(nodes))
+    reasons.extend(_assembled_preserved(dict_blocks, current))
     return reasons
 
 
-def _check_current(current, design_ids):
+def _check_current(current):
     if not isinstance(current, list):
-        return [_reason("invalid_type", None, "current must be a list")]
+        return [_reason("invalid_type", [], "current must be a list")]
 
     reasons = []
     nodes = []
-    dict_bricks = [b for b in current if isinstance(b, dict)]
-    for brick in current:
-        brick_reasons, node = _check_brick(brick, allow_none_id=False, reject_unknown_keys=False)
-        reasons.extend(brick_reasons)
+    for block in current:
+        block_reasons, node = _check_block(block, reject_unknown_keys=False)
+        reasons.extend(block_reasons)
         if node is not None:
             nodes.append(node)
 
-    for brick in dict_bricks:
-        bid = brick.get("block_id")
-        if isinstance(bid, str) and bid not in design_ids:
-            reasons.append(_reason("unknown_block_id", bid, f"current block_id '{bid}' not in design"))
-
-    reasons.extend(_duplicate_ids(dict_bricks))
-    reasons.extend(_overlap_violations(nodes))  # support/connectivity are not input errors (§9.1, §10)
+    reasons.extend(_overlap_violations(nodes))  # support/connectivity are not input errors (§9, §10)
     return reasons
 
 
 def _check_differences(differences):
     if not isinstance(differences, list):
-        return [_reason("invalid_type", None, "differences must be a list")]
+        return [_reason("invalid_type", [], "differences must be a list")]
     if not differences:
-        return [_reason("invalid_value", None, "differences must not be empty")]
+        return [_reason("invalid_value", [], "differences must not be empty")]
 
     reasons = []
     for diff in differences:
         if not isinstance(diff, dict):
-            reasons.append(_reason("invalid_type", None, "difference must be an object"))
+            reasons.append(_reason("invalid_type", [], "difference must be an object"))
             continue
         if "expected" not in diff:
-            reasons.append(_reason("missing_field", None, "difference missing 'expected'"))
+            reasons.append(_reason("missing_field", [], "difference missing 'expected'"))
         if "actual" not in diff:
-            reasons.append(_reason("missing_field", None, "difference missing 'actual'"))
+            reasons.append(_reason("missing_field", [], "difference missing 'actual'"))
 
         expected, actual = diff.get("expected"), diff.get("actual")
         if expected is None and actual is None:
-            reasons.append(_reason("invalid_value", None, "difference expected and actual both null"))
+            reasons.append(_reason("invalid_value", [], "difference expected and actual both null"))
         if expected is not None:
-            reasons.extend(_check_brick(expected, allow_none_id=False, reject_unknown_keys=False)[0])
+            reasons.extend(_check_block(expected, reject_unknown_keys=False)[0])
         if actual is not None:
-            reasons.extend(_check_brick(actual, allow_none_id=False, reject_unknown_keys=False)[0])
+            reasons.extend(_check_block(actual, reject_unknown_keys=False)[0])
     return reasons
 
 
 def check_intervention_input(design, current, differences):
-    """Reasons for an INVALID_INPUT verdict on run_intervention's arguments (§9.1, §10)."""
+    """Reasons for an INVALID_INPUT verdict on run_intervention's arguments (§9, §10)."""
     reasons = list(validate_design(design))
-
-    parsed_design, _ = _parse(design)
-    design_ids = _collect_design_ids(parsed_design)
-    reasons.extend(_check_current(current, design_ids))
+    reasons.extend(_check_current(current))
     reasons.extend(_check_differences(differences))
     return reasons
 
 
 def current_support_violations(current):
-    """Support reasons for Current bricks only (§8.11 escalation trigger, not an input error)."""
+    """Support reasons for Current blocks only (escalation trigger, not an input error)."""
     if not isinstance(current, list):
         return []
     nodes = []
-    for brick in current:
-        _, node = _check_brick(brick, allow_none_id=False, reject_unknown_keys=False)
+    for block in current:
+        _, node = _check_block(block, reject_unknown_keys=False)
         if node is not None:
             nodes.append(node)
     return _support_violations(nodes)

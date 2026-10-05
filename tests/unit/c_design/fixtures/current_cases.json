@@ -1,378 +1,284 @@
 {
-  "_note": "design is the valid v1 chair (design_initial_valid.json). Each case's `current` is a plausible actually-placed Brick list (§5.1): block_id must reference design unless the case is explicitly about an unknown id. expected_input_rules are §9.1 INVALID_INPUT rules that MUST be produced for this current input (support violation is NOT an input rule per §9.1/§10, hence its own boolean field). support_violation is hand-computed: true only when a layer>=2 brick in `current` has total below-layer stud overlap < 2 against other bricks present in the same `current` list.",
+  "_note": "design is the valid v1 chair (design_initial_valid.json). Each case's `current` is a plausible actually-placed Block list (§5): extra keys are ignored, not errors. expected_input_rules are INVALID_INPUT rules that MUST be produced for this current input (support violation is NOT an input rule, hence its own boolean field). support_violation is hand-computed: true only when a layer>=2 block in `current` has total below-layer stud overlap < 2 against other blocks present in the same `current` list.",
   "design": {
     "design_version": 1,
-    "parent_version": null,
-    "object_type": "CHAIR",
-    "source": "MOCK",
-    "bricks": [
+    "blocks": [
       {
-        "block_id": "B001",
-        "color": "BLUE",
-        "geometry": "2x2x1",
-        "grid_x": 10,
-        "grid_y": 10,
-        "orientation_deg": 0,
-        "layer": 1
+        "brick_type": "2x2x1",
+        "color": "blue",
+        "x": 10,
+        "y": 10,
+        "layer": 1,
+        "orientation_deg": 0
       },
       {
-        "block_id": "B002",
-        "color": "BLUE",
-        "geometry": "2x2x1",
-        "grid_x": 12,
-        "grid_y": 10,
-        "orientation_deg": 0,
-        "layer": 1
+        "brick_type": "2x2x1",
+        "color": "blue",
+        "x": 12,
+        "y": 10,
+        "layer": 1,
+        "orientation_deg": 0
       },
       {
-        "block_id": "B003",
-        "color": "BLUE",
-        "geometry": "2x2x1",
-        "grid_x": 10,
-        "grid_y": 12,
-        "orientation_deg": 0,
-        "layer": 1
+        "brick_type": "2x2x1",
+        "color": "blue",
+        "x": 10,
+        "y": 12,
+        "layer": 1,
+        "orientation_deg": 0
       },
       {
-        "block_id": "B004",
-        "color": "BLUE",
-        "geometry": "2x2x1",
-        "grid_x": 12,
-        "grid_y": 12,
-        "orientation_deg": 0,
-        "layer": 1
+        "brick_type": "2x2x1",
+        "color": "blue",
+        "x": 12,
+        "y": 12,
+        "layer": 1,
+        "orientation_deg": 0
       },
       {
-        "block_id": "B005",
-        "color": "YELLOW",
-        "geometry": "2x3x1",
-        "grid_x": 10,
-        "grid_y": 10,
-        "orientation_deg": 0,
-        "layer": 2
+        "brick_type": "2x3x1",
+        "color": "yellow",
+        "x": 10,
+        "y": 10,
+        "layer": 2,
+        "orientation_deg": 0
       },
       {
-        "block_id": "B006",
-        "color": "YELLOW",
-        "geometry": "2x3x1",
-        "grid_x": 12,
-        "grid_y": 10,
-        "orientation_deg": 0,
-        "layer": 2
+        "brick_type": "2x3x1",
+        "color": "yellow",
+        "x": 12,
+        "y": 10,
+        "layer": 2,
+        "orientation_deg": 0
       },
       {
-        "block_id": "B007",
-        "color": "BLUE",
-        "geometry": "2x2x1",
-        "grid_x": 11,
-        "grid_y": 11,
-        "orientation_deg": 0,
-        "layer": 3
+        "brick_type": "2x2x1",
+        "color": "blue",
+        "x": 11,
+        "y": 11,
+        "layer": 3,
+        "orientation_deg": 0
       },
       {
-        "block_id": "B008",
-        "color": "YELLOW",
-        "geometry": "2x2x1",
-        "grid_x": 11,
-        "grid_y": 11,
-        "orientation_deg": 0,
-        "layer": 4
+        "brick_type": "2x2x1",
+        "color": "yellow",
+        "x": 11,
+        "y": 11,
+        "layer": 4,
+        "orientation_deg": 0
       }
     ]
   },
   "cases": [
     {
       "case": "matches_design",
-      "_note": "Subset of assembled layer-1 legs, exact design values.",
       "current": [
         {
-          "block_id": "B001",
-          "color": "BLUE",
-          "geometry": "2x2x1",
-          "grid_x": 10,
-          "grid_y": 10,
-          "orientation_deg": 0,
-          "layer": 1
+          "brick_type": "2x2x1",
+          "color": "blue",
+          "x": 10,
+          "y": 10,
+          "layer": 1,
+          "orientation_deg": 0
         },
         {
-          "block_id": "B002",
-          "color": "BLUE",
-          "geometry": "2x2x1",
-          "grid_x": 12,
-          "grid_y": 10,
-          "orientation_deg": 0,
-          "layer": 1
+          "brick_type": "2x2x1",
+          "color": "blue",
+          "x": 12,
+          "y": 10,
+          "layer": 1,
+          "orientation_deg": 0
         }
       ],
       "expected_input_rules": [],
-      "support_violation": false
+      "support_violation": false,
+      "_note": "Subset of assembled layer-1 legs, exact design values."
     },
     {
       "case": "position_changed",
-      "_note": "B001 shifted 1 stud in x (10 -> 11); still fully within the board, actual-value reporting per §5.1 is always accepted as input.",
       "current": [
         {
-          "block_id": "B001",
-          "color": "BLUE",
-          "geometry": "2x2x1",
-          "grid_x": 11,
-          "grid_y": 10,
-          "orientation_deg": 0,
-          "layer": 1
+          "brick_type": "2x2x1",
+          "color": "blue",
+          "x": 11,
+          "y": 10,
+          "layer": 1,
+          "orientation_deg": 0
         }
       ],
       "expected_input_rules": [],
-      "support_violation": false
+      "support_violation": false,
+      "_note": "block0 shifted 1 stud in x (10 -> 11); still fully within the board, actual-value reporting is always accepted as input."
     },
     {
       "case": "orientation_changed",
-      "_note": "B005 (2x3x1) actually placed rotated 90 instead of design's 0; footprint x10-12,y10-11 still inside the board. (Integration fix: legs B001–B004 added so the rotated B005 stays supported; support_violation stays false.)",
       "current": [
         {
-          "block_id": "B001",
-          "color": "BLUE",
-          "geometry": "2x2x1",
-          "grid_x": 10,
-          "grid_y": 10,
-          "orientation_deg": 0,
-          "layer": 1
+          "brick_type": "2x2x1",
+          "color": "blue",
+          "x": 10,
+          "y": 10,
+          "layer": 1,
+          "orientation_deg": 0
         },
         {
-          "block_id": "B002",
-          "color": "BLUE",
-          "geometry": "2x2x1",
-          "grid_x": 12,
-          "grid_y": 10,
-          "orientation_deg": 0,
-          "layer": 1
+          "brick_type": "2x2x1",
+          "color": "blue",
+          "x": 12,
+          "y": 10,
+          "layer": 1,
+          "orientation_deg": 0
         },
         {
-          "block_id": "B003",
-          "color": "BLUE",
-          "geometry": "2x2x1",
-          "grid_x": 10,
-          "grid_y": 12,
-          "orientation_deg": 0,
-          "layer": 1
+          "brick_type": "2x2x1",
+          "color": "blue",
+          "x": 10,
+          "y": 12,
+          "layer": 1,
+          "orientation_deg": 0
         },
         {
-          "block_id": "B004",
-          "color": "BLUE",
-          "geometry": "2x2x1",
-          "grid_x": 12,
-          "grid_y": 12,
-          "orientation_deg": 0,
-          "layer": 1
+          "brick_type": "2x2x1",
+          "color": "blue",
+          "x": 12,
+          "y": 12,
+          "layer": 1,
+          "orientation_deg": 0
         },
         {
-          "block_id": "B005",
-          "color": "YELLOW",
-          "geometry": "2x3x1",
-          "grid_x": 10,
-          "grid_y": 10,
-          "orientation_deg": 90,
-          "layer": 2
+          "brick_type": "2x3x1",
+          "color": "yellow",
+          "x": 10,
+          "y": 10,
+          "layer": 2,
+          "orientation_deg": 90
         }
       ],
       "expected_input_rules": [],
-      "support_violation": false
+      "support_violation": false,
+      "_note": "block4 (2x3x1) actually placed rotated 90 instead of design's 0; footprint x10-12,y10-11 still inside the board and supported by the four legs."
     },
     {
       "case": "color_changed",
-      "_note": "B001 actually placed as YELLOW instead of design's BLUE (wrong-color brick physically placed).",
       "current": [
         {
-          "block_id": "B001",
-          "color": "YELLOW",
-          "geometry": "2x2x1",
-          "grid_x": 10,
-          "grid_y": 10,
-          "orientation_deg": 0,
-          "layer": 1
+          "brick_type": "2x2x1",
+          "color": "yellow",
+          "x": 10,
+          "y": 10,
+          "layer": 1,
+          "orientation_deg": 0
         }
       ],
       "expected_input_rules": [],
-      "support_violation": false
+      "support_violation": false,
+      "_note": "block0 actually placed as yellow instead of design's blue (wrong-color block physically placed)."
     },
     {
       "case": "board_position_moved",
-      "_note": "B001 actually placed far from its design position, still a valid board location.",
       "current": [
         {
-          "block_id": "B001",
-          "color": "BLUE",
-          "geometry": "2x2x1",
-          "grid_x": 0,
-          "grid_y": 0,
-          "orientation_deg": 0,
-          "layer": 1
+          "brick_type": "2x2x1",
+          "color": "blue",
+          "x": 0,
+          "y": 0,
+          "layer": 1,
+          "orientation_deg": 0
         }
       ],
       "expected_input_rules": [],
-      "support_violation": false
+      "support_violation": false,
+      "_note": "block0 actually placed far from its design position, still a valid board location."
     },
     {
       "case": "layer_changed",
-      "_note": "B001 actually placed one layer up (1 -> 2) instead of its design layer; still a valid 1..4 layer value. (Integration fix: B001 placed on layer 2 at (11,10) over B002 with 2 shared studs, so only the layer/assembly point changes and support_violation stays false.)",
       "current": [
         {
-          "block_id": "B002",
-          "color": "BLUE",
-          "geometry": "2x2x1",
-          "grid_x": 12,
-          "grid_y": 10,
-          "orientation_deg": 0,
-          "layer": 1
+          "brick_type": "2x2x1",
+          "color": "blue",
+          "x": 12,
+          "y": 10,
+          "layer": 1,
+          "orientation_deg": 0
         },
         {
-          "block_id": "B003",
-          "color": "BLUE",
-          "geometry": "2x2x1",
-          "grid_x": 10,
-          "grid_y": 12,
-          "orientation_deg": 0,
-          "layer": 1
+          "brick_type": "2x2x1",
+          "color": "blue",
+          "x": 10,
+          "y": 12,
+          "layer": 1,
+          "orientation_deg": 0
         },
         {
-          "block_id": "B004",
-          "color": "BLUE",
-          "geometry": "2x2x1",
-          "grid_x": 12,
-          "grid_y": 12,
-          "orientation_deg": 0,
-          "layer": 1
+          "brick_type": "2x2x1",
+          "color": "blue",
+          "x": 12,
+          "y": 12,
+          "layer": 1,
+          "orientation_deg": 0
         },
         {
-          "block_id": "B001",
-          "color": "BLUE",
-          "geometry": "2x2x1",
-          "grid_x": 11,
-          "grid_y": 10,
-          "orientation_deg": 0,
-          "layer": 2
+          "brick_type": "2x2x1",
+          "color": "blue",
+          "x": 11,
+          "y": 10,
+          "layer": 2,
+          "orientation_deg": 0
         }
       ],
       "expected_input_rules": [],
-      "support_violation": false
+      "support_violation": false,
+      "_note": "block0 actually placed one layer up (1 -> 2) at (11,10) over block1 with 2 shared studs, so only the layer/assembly point changes and support_violation stays false."
     },
     {
       "case": "support_violation",
-      "_note": "B005 actually placed at (11,11) instead of (10,10): overlap with B001 (x10-11,y10-11) = x intersect {11}, y intersect {11} = 1 stud. Total support sum = 1 < 2 -> support_violation true. This is not an INVALID_INPUT rule per §9.1/§10.",
       "current": [
         {
-          "block_id": "B001",
-          "color": "BLUE",
-          "geometry": "2x2x1",
-          "grid_x": 10,
-          "grid_y": 10,
-          "orientation_deg": 0,
-          "layer": 1
+          "brick_type": "2x2x1",
+          "color": "blue",
+          "x": 10,
+          "y": 10,
+          "layer": 1,
+          "orientation_deg": 0
         },
         {
-          "block_id": "B005",
-          "color": "YELLOW",
-          "geometry": "2x3x1",
-          "grid_x": 11,
-          "grid_y": 11,
-          "orientation_deg": 0,
-          "layer": 2
+          "brick_type": "2x3x1",
+          "color": "yellow",
+          "x": 11,
+          "y": 11,
+          "layer": 2,
+          "orientation_deg": 0
         }
       ],
       "expected_input_rules": [],
-      "support_violation": true
+      "support_violation": true,
+      "_note": "block4 actually placed at (11,11) instead of (10,10): overlap with block0 (x10-11,y10-11) = x intersect {11}, y intersect {11} = 1 stud. Total support sum = 1 < 2 -> support_violation true. This is not an INVALID_INPUT rule."
     },
     {
       "case": "overlap_violation",
-      "_note": "B002 actually placed on top of B001's stud footprint (both at grid 10,10, layer1) -- a same-layer overlap, which §9.1 treats as a genuine input error (physically impossible observation).",
       "current": [
         {
-          "block_id": "B001",
-          "color": "BLUE",
-          "geometry": "2x2x1",
-          "grid_x": 10,
-          "grid_y": 10,
-          "orientation_deg": 0,
-          "layer": 1
+          "brick_type": "2x2x1",
+          "color": "blue",
+          "x": 10,
+          "y": 10,
+          "layer": 1,
+          "orientation_deg": 0
         },
         {
-          "block_id": "B002",
-          "color": "BLUE",
-          "geometry": "2x2x1",
-          "grid_x": 10,
-          "grid_y": 10,
-          "orientation_deg": 0,
-          "layer": 1
+          "brick_type": "2x2x1",
+          "color": "blue",
+          "x": 10,
+          "y": 10,
+          "layer": 1,
+          "orientation_deg": 0
         }
       ],
       "expected_input_rules": [
         "overlap"
       ],
-      "support_violation": false
-    },
-    {
-      "case": "missing_block_id",
-      "_note": "Current brick omits block_id entirely. (Integration fix: an absent block_id key is reported as missing_field, the rule for absent required keys.)",
-      "current": [
-        {
-          "color": "BLUE",
-          "geometry": "2x2x1",
-          "grid_x": 10,
-          "grid_y": 10,
-          "orientation_deg": 0,
-          "layer": 1
-        }
-      ],
-      "expected_input_rules": [
-        "missing_field"
-      ],
-      "support_violation": false
-    },
-    {
-      "case": "unknown_block_id",
-      "_note": "block_id B099 does not exist in the input design (which only has B001..B008).",
-      "current": [
-        {
-          "block_id": "B099",
-          "color": "BLUE",
-          "geometry": "2x2x1",
-          "grid_x": 10,
-          "grid_y": 10,
-          "orientation_deg": 0,
-          "layer": 1
-        }
-      ],
-      "expected_input_rules": [
-        "unknown_block_id"
-      ],
-      "support_violation": false
-    },
-    {
-      "case": "duplicate_block_id",
-      "_note": "B001 appears twice in the same current list, with different actual values.",
-      "current": [
-        {
-          "block_id": "B001",
-          "color": "BLUE",
-          "geometry": "2x2x1",
-          "grid_x": 10,
-          "grid_y": 10,
-          "orientation_deg": 0,
-          "layer": 1
-        },
-        {
-          "block_id": "B001",
-          "color": "BLUE",
-          "geometry": "2x2x1",
-          "grid_x": 0,
-          "grid_y": 0,
-          "orientation_deg": 0,
-          "layer": 1
-        }
-      ],
-      "expected_input_rules": [
-        "duplicate_block_id"
-      ],
-      "support_violation": false
+      "support_violation": false,
+      "_note": "Two current blocks occupy the identical layer-1 footprint -- a same-layer overlap, which is a genuine input error (physically impossible observation)."
     }
   ]
 }

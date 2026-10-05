@@ -1,81 +1,204 @@
 {
-  "_note": "input_design is the valid v1 chair; current is the 4 legs assembled exactly as designed (no misplacement, kept simple since this file's focus is raw LLM output shapes, not preservation). raw is either a bare string (designer.py's malformed-JSON path) or an already-parsed object (candidate shape with one targeted defect). Cases 1-2 are non-JSON / wrong-top-level-type strings; cases 3-5 are object candidates with a single field-level defect each.",
-  "input_design": {
-    "design_version": 1, "parent_version": null, "object_type": "CHAIR", "source": "MOCK",
-    "bricks": [
-      {"block_id": "B001", "color": "BLUE", "geometry": "2x2x1", "grid_x": 10, "grid_y": 10, "orientation_deg": 0, "layer": 1},
-      {"block_id": "B002", "color": "BLUE", "geometry": "2x2x1", "grid_x": 12, "grid_y": 10, "orientation_deg": 0, "layer": 1},
-      {"block_id": "B003", "color": "BLUE", "geometry": "2x2x1", "grid_x": 10, "grid_y": 12, "orientation_deg": 0, "layer": 1},
-      {"block_id": "B004", "color": "BLUE", "geometry": "2x2x1", "grid_x": 12, "grid_y": 12, "orientation_deg": 0, "layer": 1},
-      {"block_id": "B005", "color": "YELLOW", "geometry": "2x3x1", "grid_x": 10, "grid_y": 10, "orientation_deg": 0, "layer": 2},
-      {"block_id": "B006", "color": "YELLOW", "geometry": "2x3x1", "grid_x": 12, "grid_y": 10, "orientation_deg": 0, "layer": 2},
-      {"block_id": "B007", "color": "BLUE", "geometry": "2x2x1", "grid_x": 11, "grid_y": 11, "orientation_deg": 0, "layer": 3},
-      {"block_id": "B008", "color": "YELLOW", "geometry": "2x2x1", "grid_x": 11, "grid_y": 11, "orientation_deg": 0, "layer": 4}
-    ]
-  },
+  "_note": "current is the 4 legs assembled exactly as designed (no misplacement, kept simple since this file's focus is raw LLM output shapes, not preservation). `candidate` is either a bare string (designer.py's malformed-JSON path) or an already-parsed object (candidate shape with one targeted defect).",
   "current": [
-    {"block_id": "B001", "color": "BLUE", "geometry": "2x2x1", "grid_x": 10, "grid_y": 10, "orientation_deg": 0, "layer": 1},
-    {"block_id": "B002", "color": "BLUE", "geometry": "2x2x1", "grid_x": 12, "grid_y": 10, "orientation_deg": 0, "layer": 1},
-    {"block_id": "B003", "color": "BLUE", "geometry": "2x2x1", "grid_x": 10, "grid_y": 12, "orientation_deg": 0, "layer": 1},
-    {"block_id": "B004", "color": "BLUE", "geometry": "2x2x1", "grid_x": 12, "grid_y": 12, "orientation_deg": 0, "layer": 1}
+    {
+      "brick_type": "2x2x1",
+      "color": "blue",
+      "x": 10,
+      "y": 10,
+      "layer": 1,
+      "orientation_deg": 0
+    },
+    {
+      "brick_type": "2x2x1",
+      "color": "blue",
+      "x": 12,
+      "y": 10,
+      "layer": 1,
+      "orientation_deg": 0
+    },
+    {
+      "brick_type": "2x2x1",
+      "color": "blue",
+      "x": 10,
+      "y": 12,
+      "layer": 1,
+      "orientation_deg": 0
+    },
+    {
+      "brick_type": "2x2x1",
+      "color": "blue",
+      "x": 12,
+      "y": 12,
+      "layer": 1,
+      "orientation_deg": 0
+    }
   ],
   "cases": [
     {
       "case": "raw_prose_not_json",
-      "expected_rules": ["malformed_output"],
-      "raw": "Sure! here is the design"
+      "expected_rules": [
+        "malformed_output"
+      ],
+      "candidate": "Sure! here is the design"
     },
     {
       "case": "raw_json_array_not_object",
-      "_note": "Valid JSON syntax, but top level is an array, not the expected candidate object shape.",
-      "expected_rules": ["malformed_output"],
-      "raw": "[1,2]"
+      "expected_rules": [
+        "malformed_output"
+      ],
+      "candidate": "[1,2]",
+      "_note": "Valid JSON syntax, but top level is an array, not the expected candidate object shape."
     },
     {
       "case": "raw_candidate_unknown_key",
-      "expected_rules": ["unknown_key"],
-      "raw": {
-        "bricks": [
-          {"block_id": "B001", "color": "BLUE", "geometry": "2x2x1", "grid_x": 10, "grid_y": 10, "orientation_deg": 0, "layer": 1},
-          {"block_id": "B002", "color": "BLUE", "geometry": "2x2x1", "grid_x": 12, "grid_y": 10, "orientation_deg": 0, "layer": 1},
-          {"block_id": "B003", "color": "BLUE", "geometry": "2x2x1", "grid_x": 10, "grid_y": 12, "orientation_deg": 0, "layer": 1},
-          {"block_id": "B004", "color": "BLUE", "geometry": "2x2x1", "grid_x": 12, "grid_y": 12, "orientation_deg": 0, "layer": 1},
-          {"block_id": "B005", "color": "YELLOW", "geometry": "2x3x1", "grid_x": 10, "grid_y": 10, "orientation_deg": 0, "layer": 2, "tcp_pose": [0, 0, 0]},
-          {"block_id": "B006", "color": "YELLOW", "geometry": "2x3x1", "grid_x": 12, "grid_y": 10, "orientation_deg": 0, "layer": 2},
-          {"block_id": "B007", "color": "BLUE", "geometry": "2x2x1", "grid_x": 11, "grid_y": 11, "orientation_deg": 0, "layer": 3},
-          {"block_id": "B008", "color": "YELLOW", "geometry": "2x2x1", "grid_x": 11, "grid_y": 11, "orientation_deg": 0, "layer": 4}
-        ]
-      }
-    },
-    {
-      "case": "raw_candidate_unknown_block_id",
-      "expected_rules": ["unknown_block_id"],
-      "raw": {
-        "bricks": [
-          {"block_id": "B001", "color": "BLUE", "geometry": "2x2x1", "grid_x": 10, "grid_y": 10, "orientation_deg": 0, "layer": 1},
-          {"block_id": "B002", "color": "BLUE", "geometry": "2x2x1", "grid_x": 12, "grid_y": 10, "orientation_deg": 0, "layer": 1},
-          {"block_id": "B003", "color": "BLUE", "geometry": "2x2x1", "grid_x": 10, "grid_y": 12, "orientation_deg": 0, "layer": 1},
-          {"block_id": "B004", "color": "BLUE", "geometry": "2x2x1", "grid_x": 12, "grid_y": 12, "orientation_deg": 0, "layer": 1},
-          {"block_id": "B005", "color": "YELLOW", "geometry": "2x3x1", "grid_x": 10, "grid_y": 10, "orientation_deg": 0, "layer": 2},
-          {"block_id": "B099", "color": "YELLOW", "geometry": "2x3x1", "grid_x": 12, "grid_y": 10, "orientation_deg": 0, "layer": 2},
-          {"block_id": "B007", "color": "BLUE", "geometry": "2x2x1", "grid_x": 11, "grid_y": 11, "orientation_deg": 0, "layer": 3},
-          {"block_id": "B008", "color": "YELLOW", "geometry": "2x2x1", "grid_x": 11, "grid_y": 11, "orientation_deg": 0, "layer": 4}
+      "expected_rules": [
+        "unknown_key"
+      ],
+      "candidate": {
+        "blocks": [
+          {
+            "brick_type": "2x2x1",
+            "color": "blue",
+            "x": 10,
+            "y": 10,
+            "layer": 1,
+            "orientation_deg": 0
+          },
+          {
+            "brick_type": "2x2x1",
+            "color": "blue",
+            "x": 12,
+            "y": 10,
+            "layer": 1,
+            "orientation_deg": 0
+          },
+          {
+            "brick_type": "2x2x1",
+            "color": "blue",
+            "x": 10,
+            "y": 12,
+            "layer": 1,
+            "orientation_deg": 0
+          },
+          {
+            "brick_type": "2x2x1",
+            "color": "blue",
+            "x": 12,
+            "y": 12,
+            "layer": 1,
+            "orientation_deg": 0
+          },
+          {
+            "brick_type": "2x3x1",
+            "color": "yellow",
+            "x": 10,
+            "y": 10,
+            "layer": 2,
+            "orientation_deg": 0,
+            "tcp_pose": [
+              0,
+              0,
+              0
+            ]
+          },
+          {
+            "brick_type": "2x3x1",
+            "color": "yellow",
+            "x": 12,
+            "y": 10,
+            "layer": 2,
+            "orientation_deg": 0
+          },
+          {
+            "brick_type": "2x2x1",
+            "color": "blue",
+            "x": 11,
+            "y": 11,
+            "layer": 3,
+            "orientation_deg": 0
+          },
+          {
+            "brick_type": "2x2x1",
+            "color": "yellow",
+            "x": 11,
+            "y": 11,
+            "layer": 4,
+            "orientation_deg": 0
+          }
         ]
       }
     },
     {
       "case": "raw_candidate_missing_layer",
-      "expected_rules": ["missing_field"],
-      "raw": {
-        "bricks": [
-          {"block_id": "B001", "color": "BLUE", "geometry": "2x2x1", "grid_x": 10, "grid_y": 10, "orientation_deg": 0, "layer": 1},
-          {"block_id": "B002", "color": "BLUE", "geometry": "2x2x1", "grid_x": 12, "grid_y": 10, "orientation_deg": 0, "layer": 1},
-          {"block_id": "B003", "color": "BLUE", "geometry": "2x2x1", "grid_x": 10, "grid_y": 12, "orientation_deg": 0, "layer": 1},
-          {"block_id": "B004", "color": "BLUE", "geometry": "2x2x1", "grid_x": 12, "grid_y": 12, "orientation_deg": 0, "layer": 1},
-          {"block_id": "B005", "color": "YELLOW", "geometry": "2x3x1", "grid_x": 10, "grid_y": 10, "orientation_deg": 0, "layer": 2},
-          {"block_id": "B006", "color": "YELLOW", "geometry": "2x3x1", "grid_x": 12, "grid_y": 10, "orientation_deg": 0, "layer": 2},
-          {"block_id": "B007", "color": "BLUE", "geometry": "2x2x1", "grid_x": 11, "grid_y": 11, "orientation_deg": 0},
-          {"block_id": "B008", "color": "YELLOW", "geometry": "2x2x1", "grid_x": 11, "grid_y": 11, "orientation_deg": 0, "layer": 4}
+      "expected_rules": [
+        "missing_field"
+      ],
+      "candidate": {
+        "blocks": [
+          {
+            "brick_type": "2x2x1",
+            "color": "blue",
+            "x": 10,
+            "y": 10,
+            "layer": 1,
+            "orientation_deg": 0
+          },
+          {
+            "brick_type": "2x2x1",
+            "color": "blue",
+            "x": 12,
+            "y": 10,
+            "layer": 1,
+            "orientation_deg": 0
+          },
+          {
+            "brick_type": "2x2x1",
+            "color": "blue",
+            "x": 10,
+            "y": 12,
+            "layer": 1,
+            "orientation_deg": 0
+          },
+          {
+            "brick_type": "2x2x1",
+            "color": "blue",
+            "x": 12,
+            "y": 12,
+            "layer": 1,
+            "orientation_deg": 0
+          },
+          {
+            "brick_type": "2x3x1",
+            "color": "yellow",
+            "x": 10,
+            "y": 10,
+            "layer": 2,
+            "orientation_deg": 0
+          },
+          {
+            "brick_type": "2x3x1",
+            "color": "yellow",
+            "x": 12,
+            "y": 10,
+            "layer": 2,
+            "orientation_deg": 0
+          },
+          {
+            "brick_type": "2x2x1",
+            "color": "blue",
+            "x": 11,
+            "y": 11,
+            "orientation_deg": 0
+          },
+          {
+            "brick_type": "2x2x1",
+            "color": "yellow",
+            "x": 11,
+            "y": 11,
+            "layer": 4,
+            "orientation_deg": 0
+          }
         ]
       }
     }

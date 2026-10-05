@@ -4,21 +4,23 @@
     질문 문장을 만들고 사용자 텍스트 응답을 HRI 결과로 해석한다.
 
 제공하는 기능:
-    - 선택지 상수: 1번 = KEEP_ORIGINAL(Original 유지), 2번 = CREATE_REVISED(Revised 생성)
+    - 선택지 상수: 1번 = KEEP(원래 설계 유지), 2번 = REVISE(새 설계 생성)
       (질문 문장과 응답 해석이 같은 OPTIONS 상수를 공유)
     - 변경 context(채택 Design·Current·Difference)에 따른 질문 문장 생성(build_question)
-    - 재질문(build_reask), 침묵 시 확인 질문·상태 확인 질문·무응답 최종 안내 문장(§4.3)
-    - escalation 질문 문장(§8.11, 잘못 놓인 Brick을 채택 Design 위치로 옮기기 제안)
-    - 사용자 텍스트 응답 해석 → KEEP_ORIGINAL / CREATE_REVISED / UNCLEAR(불명확).
-      명확한 응답은 Python Rule(정규화 → 전체 일치 → 구문 일치 → 부정 감지),
-      애매한 응답만 llm_fallback으로 넘기고, 그래도 애매하면 UNCLEAR
+    - 재질문(build_reask), escalation 질문 문장(§8.11, 잘못 놓인 Brick을
+      채택 Design 위치로 옮기기 제안)
+    - 사용자 텍스트 응답 해석 → KEEP / REVISE / UNCLEAR(불명확) / CANCEL(명시 취소).
+      명확한 응답은 Python Rule(정규화 → 취소 구문 → 전체 일치 → 구문 일치 → 부정 감지),
+      애매한 응답만 llm_fallback으로 넘기고, 그래도 애매하면 UNCLEAR.
+      CANCEL은 HRI 결과(KEEP/REVISE/UNCLEAR)가 아니라 대화 종료를 알리는 내부 신호다.
     - 최초 목표 사물 인식(parse_goal, Day 4는 CHAIR만)
 
 하지 않는 것:
     - 실제 음성 I/O(녹음·STT·TTS는 voice.py 담당)
-    - 대화 루프·재질문 반복·무응답 시계(main.py 담당)
+    - 대화 루프·재질문 반복(main.py 담당). Day4는 시간 기준 자동 취소 없음,
+      계속 불명확하면 명시 선택 대기(루프·대기는 main)
     - Design 생성·검증
-    - Data Association(Brick 대응은 D가 준 block_id를 그대로 씀)
+    - Data Association(블록은 ID 없이 위치(x, y, layer)로 설명한다)
 
 연결:
     main.py 가 호출한다. 애매한 응답일 때만 호출자가 llm.py fallback을 넘긴다.
@@ -26,28 +28,30 @@
 
 import re
 
-KEEP_ORIGINAL = "KEEP_ORIGINAL"
-CREATE_REVISED = "CREATE_REVISED"
+KEEP = "KEEP"
+REVISE = "REVISE"
 UNCLEAR = "UNCLEAR"
-# 질문 문장과 응답 해석이 같은 상수를 공유한다(§1).
-OPTIONS = {"1": KEEP_ORIGINAL, "2": CREATE_REVISED}
+CANCEL = "CANCEL"
+# 질문 문장과 응답 해석이 같은 상수를 공유한다(§1). CANCEL은 HRI 결과가 아니라
+# 내부 신호이므로 OPTIONS에는 넣지 않는다.
+OPTIONS = {"1": KEEP, "2": REVISE}
 
 MOVE_BACK = "MOVE_BACK"
 KEEP_SEARCHING = "KEEP_SEARCHING"
 ESCALATION_OPTIONS = {"1": MOVE_BACK, "2": KEEP_SEARCHING}
 
 _OPTION_LABELS = {
-    KEEP_ORIGINAL: "원래 설계대로 고치기 (Original 유지)",
-    CREATE_REVISED: "지금 놓인 상태를 살린 새 설계 (Revised 생성)",
+    KEEP: "원래 설계 유지 (놓인 블록을 원래 위치로 고쳐 주시면 그대로 진행)",
+    REVISE: "지금 놓인 상태를 살린 새 설계",
 }
 
 # Difference의 어떤 필드가 다른지 질문 문장에 쓸 한국어 단어(§5.2).
 _FIELD_LABELS = {
-    "grid_x": "위치",
-    "grid_y": "위치",
+    "x": "위치",
+    "y": "위치",
     "orientation_deg": "방향",
     "color": "색",
-    "geometry": "크기",
+    "brick_type": "크기",
     "layer": "층",
 }
 
@@ -66,8 +70,8 @@ _ENDINGS = tuple(
 )
 
 _KEEP_CREATE_PHRASES = {
-    KEEP_ORIGINAL: ("원래대로", "원래설계", "원래위치"),
-    CREATE_REVISED: ("이대로", "지금상태", "현재상태", "이대로유지"),
+    KEEP: ("원래대로", "원래설계", "원래위치"),
+    REVISE: ("이대로", "지금상태", "현재상태", "이대로유지"),
 }
 _ESCALATION_PHRASES = {
     MOVE_BACK: ("옮길게", "옮기기", "옮겨"),
@@ -75,6 +79,10 @@ _ESCALATION_PHRASES = {
 }
 
 _NEGATION_MARKERS = ("싫어", "싫", "하지마", "하지 마", "아니", "안 해", "안해")
+
+# 명시적 취소 구문(정규화된 텍스트 기준 부분 일치). 부정되면(예: "취소하지 마")
+# 취소로 보지 않고 일반 파이프라인으로 넘긴다.
+_CANCEL_PHRASES = ("취소", "그만할게", "그만하자", "중단")
 
 
 def _normalize(text):
@@ -112,13 +120,20 @@ def _has_negation(raw_text):
     return any(marker in raw_text for marker in _NEGATION_MARKERS)
 
 
+def _has_cancel_phrase(norm):
+    return any(phrase in norm for phrase in _CANCEL_PHRASES)
+
+
 def _resolve(text, option_map, phrase_map, llm_fallback):
-    """공유 Rule 파이프라인: 정규화 → 전체 일치 → 내부 숫자 → 구문 → 부정 → fallback."""
+    """공유 Rule 파이프라인: 정규화 → 말고 → 취소 → 전체 일치 → 내부 숫자 → 구문 → 부정 → fallback."""
     working = (text or "").strip()
     if "말고" in working:
         # "A 말고 B": A는 취소된 선택이므로 B만 해석한다.
         working = working.rsplit("말고", 1)[-1].strip()
     norm = _normalize(working)
+
+    if _has_cancel_phrase(norm) and not _has_negation(working):
+        return CANCEL
 
     matched = _match_number_whole(norm, option_map)
     if not matched:
@@ -148,12 +163,12 @@ def is_meaningful(text):
 
 
 def parse_response(text, llm_fallback=None):
-    """사용자 텍스트 응답 → KEEP_ORIGINAL / CREATE_REVISED / UNCLEAR."""
+    """사용자 텍스트 응답 → KEEP / REVISE / UNCLEAR / CANCEL."""
     return _resolve(text, OPTIONS, _KEEP_CREATE_PHRASES, llm_fallback)
 
 
 def parse_escalation_response(text, llm_fallback=None):
-    """§8.11 escalation 응답 → MOVE_BACK / KEEP_SEARCHING / UNCLEAR."""
+    """§8.11 escalation 응답 → MOVE_BACK / KEEP_SEARCHING / UNCLEAR / CANCEL."""
     return _resolve(text, ESCALATION_OPTIONS, _ESCALATION_PHRASES, llm_fallback)
 
 
@@ -173,16 +188,22 @@ def _differing_fields(expected, actual):
     return labels
 
 
+def _location_label(brick):
+    """블록 ID 없이 위치로 블록을 설명한다: "(x=3, y=5) 2층 블록"(§5.2)."""
+    return f"(x={brick['x']}, y={brick['y']}) {brick['layer']}층 블록"
+
+
 def _describe_difference(diff):
     """Difference 1개를 질문 문장 속 한 줄로 설명한다(Data Association 없음, §5.2)."""
     expected, actual = diff.get("expected"), diff.get("actual")
+    location = _location_label(expected if expected is not None else actual)
     if actual is None:
-        return f"{expected['block_id']}: Design에 있지만 실제로 놓이지 않았습니다 (누락)."
+        return f"{location}: Design에 있지만 실제로 놓이지 않았습니다 (누락)."
     if expected is None:
-        return f"{actual['block_id']}: Design에 없는 블록이 추가로 놓였습니다."
+        return f"{location}: Design에 없는 블록이 추가로 놓였습니다."
     items = _differing_fields(expected, actual)
     words = ", ".join(items) if items else "배치"
-    return f"{expected['block_id']}: {words}이(가) 다릅니다."
+    return f"{location}: {words}이(가) 다릅니다."
 
 
 def _choice_lines(option_map, labels):
@@ -199,23 +220,15 @@ def build_question(design, current, differences):
 
 
 def build_reask(question):
-    """불명확 응답 시 전체 질문을 다시 낸다(§4.2)."""
-    return "잘 이해하지 못했어요. 다시 여쭤볼게요.\n" + question
-
-
-def short_confirm_prompt():
-    """무응답 25초: 짧은 확인 질문(§4.3)."""
-    return "1번 또는 2번으로 말씀해 주세요."
-
-
-def status_check_prompt():
-    """무응답 60/120/180/240초: 응답 필요·선택지 재안내(§4.3)."""
-    return "작업을 계속하려면 1번 원래 설계 유지 또는 2번 새 설계 중 하나를 말씀해 주세요."
-
-
-def final_notice():
-    """무응답 300초: 최종 안내, 이후 CANCELLED/NO_RESPONSE로 종료(§4.3)."""
-    return "5분 동안 답변을 기다렸지만 응답이 없어 이번 요청을 취소 처리하겠습니다."
+    """불명확 응답 시 선택지를 다시 설명하고 전체 질문을 다시 낸다(§4.2)."""
+    lines = [
+        "잘 이해하지 못했어요. 선택지를 다시 설명드릴게요.",
+        "1번을 고르면 놓인 블록을 원래 위치로 고치고 원래 설계대로 진행합니다.",
+        "2번을 고르면 지금 놓인 상태를 살린 새 설계를 다시 찾습니다.",
+        "1번 또는 2번으로 말씀해 주세요. 그만하려면 '취소'라고 말씀해 주세요.",
+        question,
+    ]
+    return "\n".join(lines)
 
 
 def escalation_question(differences):
@@ -225,17 +238,15 @@ def escalation_question(differences):
         actual, expected = diff.get("actual"), diff.get("expected")
         if actual is None:
             continue
+        name = _location_label(actual)
         if expected is not None:
-            parts.append(
-                f"{actual['block_id']}(grid_x={expected['grid_x']}, grid_y={expected['grid_y']}, "
-                f"layer={expected['layer']})"
-            )
+            parts.append(f"{name}을(를) (x={expected['x']}, y={expected['y']}) {expected['layer']}층 위치로")
         else:
-            parts.append(actual["block_id"])
+            parts.append(name)
     bricks_text = ", ".join(parts) if parts else "해당 블록"
     lines = [
         "지금 놓인 블록으로는 새 설계를 만들기 어렵습니다.",
-        f"{bricks_text}을(를) 원래 위치로 옮겨 주시겠어요?",
+        f"{bricks_text} 옮겨 주시겠어요?",
         "1번: 원래 위치로 옮기기",
         "2번: 계속 새 설계 찾기",
     ]

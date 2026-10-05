@@ -1,4 +1,4 @@
-"""Run the shared C fixtures through validator and dialogue (Contract §3·§5·§8·§9)."""
+"""Run the shared C fixtures through validator and dialogue (docs/06_CONTRACT_DRAFT.md §1·§2·§4·§5)."""
 
 import json
 from pathlib import Path
@@ -32,18 +32,23 @@ def case_params(name):
 
 
 INITIAL = load("design_initial_valid.json")
-REVISED = load("revised_before_after.json")
 # A valid single Difference so current_cases can be checked in isolation.
-ONE_DIFFERENCE = [{"expected": INITIAL["bricks"][0], "actual": INITIAL["bricks"][0]}]
+ONE_DIFFERENCE = [{"expected": INITIAL["blocks"][0], "actual": INITIAL["blocks"][0]}]
 
 
 def test_initial_design_is_valid_and_centered():
     assert validator.validate_design(INITIAL) == []
-    cells = set().union(*(validator.footprint(b) for b in INITIAL["bricks"]))
+    assert set(INITIAL.keys()) == set(validator.TOP_FIELDS)
+    cells = set().union(*(validator.footprint(b) for b in INITIAL["blocks"]))
     xs, ys = [x for x, _ in cells], [y for _, y in cells]
     width, height = max(xs) - min(xs) + 1, max(ys) - min(ys) + 1
-    # §3.3: bounding-box min stud follows the formula, not a brick anchor at 24 // 2.
+    # §3.3: bounding-box min stud follows the formula, not a block anchor at 24 // 2.
     assert (min(xs), min(ys)) == ((24 - width) // 2, (24 - height) // 2)
+
+
+def test_initial_design_blocks_use_lowercase_colors():
+    for b in INITIAL["blocks"]:
+        assert b["color"] in {"yellow", "blue"}
 
 
 @pytest.mark.parametrize("case", case_params("design_invalid_cases.json"))
@@ -71,27 +76,21 @@ def test_difference_input_cases(case):
         assert found == set()
 
 
-def test_revised_example_passes_and_keeps_ids():
-    assert validator.validate_revised(REVISED["candidate"], REVISED["input_design"], REVISED["current"]) == []
-    assert validator.validate_design(REVISED["revised"]) == []
-    revised_ids = {b["block_id"] for b in REVISED["revised"]["bricks"]}
-    # §8.3: assembled bricks keep id and values.
-    for cur in REVISED["current"]:
-        assert cur in REVISED["revised"]["bricks"]
-    # §8.4: ids written by the LLM are kept; new ids start after the input Design's max number.
-    kept = {b["block_id"] for b in REVISED["candidate"]["bricks"] if b["block_id"] is not None}
-    new = revised_ids - kept
-    input_max = max(int(b["block_id"][1:]) for b in REVISED["input_design"]["bricks"])
-    assert new and min(int(i[1:]) for i in new) == input_max + 1
-    assert (REVISED["revised"]["design_version"], REVISED["revised"]["parent_version"]) == (2, 1)
+def test_revised_example_passes_and_preserves_current_by_value():
+    data = load("revised_before_after.json")
+    assert validator.validate_revised(data["candidate"], data["current"]) == []
+    assert validator.validate_design(data["revised"]) == []
+    # §4: assembled (current) blocks keep their exact values in the final Revised.
+    for cur in data["current"]:
+        assert cur in data["revised"]["blocks"]
+    assert data["revised"]["design_version"] == data["design"]["design_version"] + 1
 
 
 @pytest.mark.parametrize("name", ["revised_invalid_cases.json", "llm_output_invalid.json"])
 def test_invalid_revised_candidates_rejected(name):
     data = load(name)
     for case in data["cases"]:
-        candidate = case.get("candidate", case.get("raw"))
-        found = rules(validator.validate_revised(candidate, data["input_design"], data["current"]))
+        found = rules(validator.validate_revised(case["candidate"], data["current"]))
         assert set(case["expected_rules"]) <= found, case["case"]
 
 

@@ -1,110 +1,256 @@
 {
-  "_note": "input_design/current reuse the revised_before_after.json scenario (B003 actually placed at (10,13) instead of design (10,12)). Each case starts from the valid candidate verified in revised_before_after.json (assembled B001-B004 preserved at current's actual values, unassembled B005/B006 redesigned, old B007 replaced by a new null-id brick, B008 recolored) and applies exactly one defect. expected_rules lists rules that MUST appear; incidental extra violations from a defect (e.g. an added stray brick also hurting connectivity) are not excluded, this is a subset check.",
-  "input_design": {
-    "design_version": 1, "parent_version": null, "object_type": "CHAIR", "source": "MOCK",
-    "bricks": [
-      {"block_id": "B001", "color": "BLUE", "geometry": "2x2x1", "grid_x": 10, "grid_y": 10, "orientation_deg": 0, "layer": 1},
-      {"block_id": "B002", "color": "BLUE", "geometry": "2x2x1", "grid_x": 12, "grid_y": 10, "orientation_deg": 0, "layer": 1},
-      {"block_id": "B003", "color": "BLUE", "geometry": "2x2x1", "grid_x": 10, "grid_y": 12, "orientation_deg": 0, "layer": 1},
-      {"block_id": "B004", "color": "BLUE", "geometry": "2x2x1", "grid_x": 12, "grid_y": 12, "orientation_deg": 0, "layer": 1},
-      {"block_id": "B005", "color": "YELLOW", "geometry": "2x3x1", "grid_x": 10, "grid_y": 10, "orientation_deg": 0, "layer": 2},
-      {"block_id": "B006", "color": "YELLOW", "geometry": "2x3x1", "grid_x": 12, "grid_y": 10, "orientation_deg": 0, "layer": 2},
-      {"block_id": "B007", "color": "BLUE", "geometry": "2x2x1", "grid_x": 11, "grid_y": 11, "orientation_deg": 0, "layer": 3},
-      {"block_id": "B008", "color": "YELLOW", "geometry": "2x2x1", "grid_x": 11, "grid_y": 11, "orientation_deg": 0, "layer": 4}
-    ]
-  },
+  "_note": "current reuses the revised_before_after.json scenario (one leg actually placed at (10,13) instead of design (10,12)). Each case starts from the valid candidate verified in revised_before_after.json and applies exactly one defect to an assembled (current) leg's value-based identity. expected_rules lists rules that MUST appear; this is a subset check.",
   "current": [
-    {"block_id": "B001", "color": "BLUE", "geometry": "2x2x1", "grid_x": 10, "grid_y": 10, "orientation_deg": 0, "layer": 1},
-    {"block_id": "B002", "color": "BLUE", "geometry": "2x2x1", "grid_x": 12, "grid_y": 10, "orientation_deg": 0, "layer": 1},
-    {"block_id": "B003", "color": "BLUE", "geometry": "2x2x1", "grid_x": 10, "grid_y": 13, "orientation_deg": 0, "layer": 1},
-    {"block_id": "B004", "color": "BLUE", "geometry": "2x2x1", "grid_x": 12, "grid_y": 12, "orientation_deg": 0, "layer": 1}
+    {
+      "brick_type": "2x2x1",
+      "color": "blue",
+      "x": 10,
+      "y": 10,
+      "layer": 1,
+      "orientation_deg": 0
+    },
+    {
+      "brick_type": "2x2x1",
+      "color": "blue",
+      "x": 12,
+      "y": 10,
+      "layer": 1,
+      "orientation_deg": 0
+    },
+    {
+      "brick_type": "2x2x1",
+      "color": "blue",
+      "x": 10,
+      "y": 13,
+      "layer": 1,
+      "orientation_deg": 0
+    },
+    {
+      "brick_type": "2x2x1",
+      "color": "blue",
+      "x": 12,
+      "y": 12,
+      "layer": 1,
+      "orientation_deg": 0
+    }
   ],
   "cases": [
     {
-      "case": "assembled_brick_moved",
-      "_note": "B001 reported at (11,10) instead of current's actual (10,10).",
-      "expected_rules": ["assembled_not_preserved"],
+      "case": "assembled_block_moved",
+      "expected_rules": [
+        "assembled_not_preserved"
+      ],
       "candidate": {
-        "bricks": [
-          {"block_id": "B001", "color": "BLUE", "geometry": "2x2x1", "grid_x": 11, "grid_y": 10, "orientation_deg": 0, "layer": 1},
-          {"block_id": "B002", "color": "BLUE", "geometry": "2x2x1", "grid_x": 12, "grid_y": 10, "orientation_deg": 0, "layer": 1},
-          {"block_id": "B003", "color": "BLUE", "geometry": "2x2x1", "grid_x": 10, "grid_y": 13, "orientation_deg": 0, "layer": 1},
-          {"block_id": "B004", "color": "BLUE", "geometry": "2x2x1", "grid_x": 12, "grid_y": 12, "orientation_deg": 0, "layer": 1},
-          {"block_id": "B005", "color": "YELLOW", "geometry": "2x3x1", "grid_x": 10, "grid_y": 11, "orientation_deg": 0, "layer": 2},
-          {"block_id": "B006", "color": "BLUE", "geometry": "2x3x1", "grid_x": 12, "grid_y": 10, "orientation_deg": 0, "layer": 2},
-          {"block_id": null, "color": "YELLOW", "geometry": "2x2x1", "grid_x": 11, "grid_y": 11, "orientation_deg": 0, "layer": 3},
-          {"block_id": "B008", "color": "BLUE", "geometry": "2x2x1", "grid_x": 11, "grid_y": 11, "orientation_deg": 0, "layer": 4}
+        "blocks": [
+          {
+            "brick_type": "2x2x1",
+            "color": "blue",
+            "x": 11,
+            "y": 10,
+            "layer": 1,
+            "orientation_deg": 0
+          },
+          {
+            "brick_type": "2x2x1",
+            "color": "blue",
+            "x": 12,
+            "y": 10,
+            "layer": 1,
+            "orientation_deg": 0
+          },
+          {
+            "brick_type": "2x2x1",
+            "color": "blue",
+            "x": 10,
+            "y": 13,
+            "layer": 1,
+            "orientation_deg": 0
+          },
+          {
+            "brick_type": "2x2x1",
+            "color": "blue",
+            "x": 12,
+            "y": 12,
+            "layer": 1,
+            "orientation_deg": 0
+          },
+          {
+            "brick_type": "2x3x1",
+            "color": "yellow",
+            "x": 10,
+            "y": 11,
+            "layer": 2,
+            "orientation_deg": 0
+          },
+          {
+            "brick_type": "2x3x1",
+            "color": "blue",
+            "x": 12,
+            "y": 10,
+            "layer": 2,
+            "orientation_deg": 0
+          },
+          {
+            "brick_type": "2x2x1",
+            "color": "yellow",
+            "x": 11,
+            "y": 11,
+            "layer": 3,
+            "orientation_deg": 0
+          },
+          {
+            "brick_type": "2x2x1",
+            "color": "blue",
+            "x": 11,
+            "y": 11,
+            "layer": 4,
+            "orientation_deg": 0
+          }
         ]
-      }
+      },
+      "_note": "Leg at current (10,10) reported at (11,10) instead."
     },
     {
-      "case": "assembled_brick_missing",
-      "_note": "B002 (assembled) is omitted entirely from the candidate.",
-      "expected_rules": ["assembled_not_preserved"],
+      "case": "assembled_block_missing",
+      "expected_rules": [
+        "assembled_not_preserved"
+      ],
       "candidate": {
-        "bricks": [
-          {"block_id": "B001", "color": "BLUE", "geometry": "2x2x1", "grid_x": 10, "grid_y": 10, "orientation_deg": 0, "layer": 1},
-          {"block_id": "B003", "color": "BLUE", "geometry": "2x2x1", "grid_x": 10, "grid_y": 13, "orientation_deg": 0, "layer": 1},
-          {"block_id": "B004", "color": "BLUE", "geometry": "2x2x1", "grid_x": 12, "grid_y": 12, "orientation_deg": 0, "layer": 1},
-          {"block_id": "B005", "color": "YELLOW", "geometry": "2x3x1", "grid_x": 10, "grid_y": 11, "orientation_deg": 0, "layer": 2},
-          {"block_id": "B006", "color": "BLUE", "geometry": "2x3x1", "grid_x": 12, "grid_y": 10, "orientation_deg": 0, "layer": 2},
-          {"block_id": null, "color": "YELLOW", "geometry": "2x2x1", "grid_x": 11, "grid_y": 11, "orientation_deg": 0, "layer": 3},
-          {"block_id": "B008", "color": "BLUE", "geometry": "2x2x1", "grid_x": 11, "grid_y": 11, "orientation_deg": 0, "layer": 4}
+        "blocks": [
+          {
+            "brick_type": "2x2x1",
+            "color": "blue",
+            "x": 10,
+            "y": 10,
+            "layer": 1,
+            "orientation_deg": 0
+          },
+          {
+            "brick_type": "2x2x1",
+            "color": "blue",
+            "x": 10,
+            "y": 13,
+            "layer": 1,
+            "orientation_deg": 0
+          },
+          {
+            "brick_type": "2x2x1",
+            "color": "blue",
+            "x": 12,
+            "y": 12,
+            "layer": 1,
+            "orientation_deg": 0
+          },
+          {
+            "brick_type": "2x3x1",
+            "color": "yellow",
+            "x": 10,
+            "y": 11,
+            "layer": 2,
+            "orientation_deg": 0
+          },
+          {
+            "brick_type": "2x3x1",
+            "color": "blue",
+            "x": 12,
+            "y": 10,
+            "layer": 2,
+            "orientation_deg": 0
+          },
+          {
+            "brick_type": "2x2x1",
+            "color": "yellow",
+            "x": 11,
+            "y": 11,
+            "layer": 3,
+            "orientation_deg": 0
+          },
+          {
+            "brick_type": "2x2x1",
+            "color": "blue",
+            "x": 11,
+            "y": 11,
+            "layer": 4,
+            "orientation_deg": 0
+          }
         ]
-      }
+      },
+      "_note": "Leg at current (12,10) is omitted entirely from the candidate."
     },
     {
       "case": "assembled_value_changed_color",
-      "_note": "B004 (assembled, actual color BLUE) reported as YELLOW in the candidate.",
-      "expected_rules": ["assembled_not_preserved"],
+      "expected_rules": [
+        "assembled_not_preserved"
+      ],
       "candidate": {
-        "bricks": [
-          {"block_id": "B001", "color": "BLUE", "geometry": "2x2x1", "grid_x": 10, "grid_y": 10, "orientation_deg": 0, "layer": 1},
-          {"block_id": "B002", "color": "BLUE", "geometry": "2x2x1", "grid_x": 12, "grid_y": 10, "orientation_deg": 0, "layer": 1},
-          {"block_id": "B003", "color": "BLUE", "geometry": "2x2x1", "grid_x": 10, "grid_y": 13, "orientation_deg": 0, "layer": 1},
-          {"block_id": "B004", "color": "YELLOW", "geometry": "2x2x1", "grid_x": 12, "grid_y": 12, "orientation_deg": 0, "layer": 1},
-          {"block_id": "B005", "color": "YELLOW", "geometry": "2x3x1", "grid_x": 10, "grid_y": 11, "orientation_deg": 0, "layer": 2},
-          {"block_id": "B006", "color": "BLUE", "geometry": "2x3x1", "grid_x": 12, "grid_y": 10, "orientation_deg": 0, "layer": 2},
-          {"block_id": null, "color": "YELLOW", "geometry": "2x2x1", "grid_x": 11, "grid_y": 11, "orientation_deg": 0, "layer": 3},
-          {"block_id": "B008", "color": "BLUE", "geometry": "2x2x1", "grid_x": 11, "grid_y": 11, "orientation_deg": 0, "layer": 4}
+        "blocks": [
+          {
+            "brick_type": "2x2x1",
+            "color": "blue",
+            "x": 10,
+            "y": 10,
+            "layer": 1,
+            "orientation_deg": 0
+          },
+          {
+            "brick_type": "2x2x1",
+            "color": "blue",
+            "x": 12,
+            "y": 10,
+            "layer": 1,
+            "orientation_deg": 0
+          },
+          {
+            "brick_type": "2x2x1",
+            "color": "blue",
+            "x": 10,
+            "y": 13,
+            "layer": 1,
+            "orientation_deg": 0
+          },
+          {
+            "brick_type": "2x2x1",
+            "color": "yellow",
+            "x": 12,
+            "y": 12,
+            "layer": 1,
+            "orientation_deg": 0
+          },
+          {
+            "brick_type": "2x3x1",
+            "color": "yellow",
+            "x": 10,
+            "y": 11,
+            "layer": 2,
+            "orientation_deg": 0
+          },
+          {
+            "brick_type": "2x3x1",
+            "color": "blue",
+            "x": 12,
+            "y": 10,
+            "layer": 2,
+            "orientation_deg": 0
+          },
+          {
+            "brick_type": "2x2x1",
+            "color": "yellow",
+            "x": 11,
+            "y": 11,
+            "layer": 3,
+            "orientation_deg": 0
+          },
+          {
+            "brick_type": "2x2x1",
+            "color": "blue",
+            "x": 11,
+            "y": 11,
+            "layer": 4,
+            "orientation_deg": 0
+          }
         ]
-      }
-    },
-    {
-      "case": "unknown_block_id_in_candidate",
-      "_note": "Candidate includes a non-null block_id B099 that does not exist in input_design.",
-      "expected_rules": ["unknown_block_id"],
-      "candidate": {
-        "bricks": [
-          {"block_id": "B001", "color": "BLUE", "geometry": "2x2x1", "grid_x": 10, "grid_y": 10, "orientation_deg": 0, "layer": 1},
-          {"block_id": "B002", "color": "BLUE", "geometry": "2x2x1", "grid_x": 12, "grid_y": 10, "orientation_deg": 0, "layer": 1},
-          {"block_id": "B003", "color": "BLUE", "geometry": "2x2x1", "grid_x": 10, "grid_y": 13, "orientation_deg": 0, "layer": 1},
-          {"block_id": "B004", "color": "BLUE", "geometry": "2x2x1", "grid_x": 12, "grid_y": 12, "orientation_deg": 0, "layer": 1},
-          {"block_id": "B005", "color": "YELLOW", "geometry": "2x3x1", "grid_x": 10, "grid_y": 11, "orientation_deg": 0, "layer": 2},
-          {"block_id": "B006", "color": "BLUE", "geometry": "2x3x1", "grid_x": 12, "grid_y": 10, "orientation_deg": 0, "layer": 2},
-          {"block_id": null, "color": "YELLOW", "geometry": "2x2x1", "grid_x": 11, "grid_y": 11, "orientation_deg": 0, "layer": 3},
-          {"block_id": "B008", "color": "BLUE", "geometry": "2x2x1", "grid_x": 11, "grid_y": 11, "orientation_deg": 0, "layer": 4},
-          {"block_id": "B099", "color": "BLUE", "geometry": "2x2x1", "grid_x": 0, "grid_y": 0, "orientation_deg": 0, "layer": 1}
-        ]
-      }
-    },
-    {
-      "case": "duplicate_block_id_in_candidate",
-      "_note": "Candidate includes a second brick reusing existing id B005.",
-      "expected_rules": ["duplicate_block_id"],
-      "candidate": {
-        "bricks": [
-          {"block_id": "B001", "color": "BLUE", "geometry": "2x2x1", "grid_x": 10, "grid_y": 10, "orientation_deg": 0, "layer": 1},
-          {"block_id": "B002", "color": "BLUE", "geometry": "2x2x1", "grid_x": 12, "grid_y": 10, "orientation_deg": 0, "layer": 1},
-          {"block_id": "B003", "color": "BLUE", "geometry": "2x2x1", "grid_x": 10, "grid_y": 13, "orientation_deg": 0, "layer": 1},
-          {"block_id": "B004", "color": "BLUE", "geometry": "2x2x1", "grid_x": 12, "grid_y": 12, "orientation_deg": 0, "layer": 1},
-          {"block_id": "B005", "color": "YELLOW", "geometry": "2x3x1", "grid_x": 10, "grid_y": 11, "orientation_deg": 0, "layer": 2},
-          {"block_id": "B005", "color": "BLUE", "geometry": "2x2x1", "grid_x": 0, "grid_y": 0, "orientation_deg": 0, "layer": 1},
-          {"block_id": "B006", "color": "BLUE", "geometry": "2x3x1", "grid_x": 12, "grid_y": 10, "orientation_deg": 0, "layer": 2},
-          {"block_id": null, "color": "YELLOW", "geometry": "2x2x1", "grid_x": 11, "grid_y": 11, "orientation_deg": 0, "layer": 3},
-          {"block_id": "B008", "color": "BLUE", "geometry": "2x2x1", "grid_x": 11, "grid_y": 11, "orientation_deg": 0, "layer": 4}
-        ]
-      }
+      },
+      "_note": "Leg at current (12,12) (actual color blue) reported as yellow in the candidate."
     }
   ]
 }

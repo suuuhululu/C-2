@@ -1,53 +1,263 @@
 {
-  "_note": "Scenario: B003 was placed 1 stud off from its design position (y12 -> y13). current carries the 4 assembled legs (B001,B002,B003,B004) at their actual values. candidate is shaped like a real LLM output: assembled bricks (B001-B004) repeated identically (hard preserve); unassembled seat brick B005 is redesigned (moved from (10,10) to (10,11), still geometry 2x3x1 orientation0) so it keeps >=2 stud support from B001 AND newly reaches B003's shifted position, restoring connectivity that B003's move would otherwise have broken; B006 keeps its block_id but has a changed value (color YELLOW -> BLUE) to demonstrate a non-positional redesign change; B007 (old backrest-lower) is deleted outright (omitted from candidate.bricks); a brand new backrest-lower brick is added with block_id null at the same stud footprint B007 used to occupy; B008 (backrest-upper) keeps its id but changes color (YELLOW -> BLUE). revised is what Python produces after validating the candidate and assigning the null id: max existing block_id in input_design is B008 (=8), so the new brick becomes B009. design_version/parent_version/source are Python-assigned (2, 1, LLM), never written by the LLM candidate itself. Hand verification of candidate/revised against every §9.1 rule: OVERLAP - layer1 {B001 x10-11y10-11, B002 x12-13y10-11, B003 x10-11y13-14, B004 x12-13y12-13} pairwise disjoint; layer2 {B005 x10-11y11-13, B006 x12-13y10-12} disjoint (x ranges don't intersect); layer3 only B009 x11-12y11-12; layer4 only B008 x11-12y11-12. No overlap anywhere. SUPPORT - B005 vs layer1: overlap with B001 (y intersect {11}) = 2x1=2, overlap with B003 (y intersect {13}) = 2x1=2, total 4 >= 2 OK. B006 vs layer1: overlap with B002 (y intersect {10,11}) = 2x2=4, overlap with B004 (y intersect {12}) = 2x1=2, total 6 >= 2 OK. B009 vs layer2: overlap with B005 (x intersect {11}, y intersect {11,12}) = 1x2=2, overlap with B006 (x intersect {12}, y intersect {11,12}) = 1x2=2, total 4 >= 2 OK. B008 vs layer3 (B009, identical footprint x11-12y11-12) = 2x2=4 >= 2 OK. CONNECTIVITY - links (adjacent-layer overlap >= 1 stud): B001-B005(2), B003-B005(2), B002-B006(4), B004-B006(2), B005-B009(2), B006-B009(2), B009-B008(4) -> single component of all 8 bricks. BOARD - every footprint stays within x10-14, y10-14, well inside 0..23. block_id set {B001,B002,B003,B004,B005,B006,B008,B009} unique, format ^B[0-9]{3}$ OK, count 8 (1..20) OK. ASSEMBLED PRESERVED - B001,B002,B003,B004 in revised have exactly the same 6 values and block_id as in current (B003 keeps its actual misplaced (10,13), not its original design (10,12)). NOT RE-CENTERED - overall bounding box of revised is x:10-13 (W=4, unchanged) but y:10-14 (H=5, grew because B003 shifted down), giving min stud (10,10). An Initial Design with H=5 would require min_y=(24-5)//2=9 by the §3.3 centering formula, but Revised does not recenter, so min_y correctly stays 10, not 9 -- confirming no recentering was applied.",
-  "input_design": {
-    "design_version": 1, "parent_version": null, "object_type": "CHAIR", "source": "MOCK",
-    "bricks": [
-      {"block_id": "B001", "color": "BLUE", "geometry": "2x2x1", "grid_x": 10, "grid_y": 10, "orientation_deg": 0, "layer": 1},
-      {"block_id": "B002", "color": "BLUE", "geometry": "2x2x1", "grid_x": 12, "grid_y": 10, "orientation_deg": 0, "layer": 1},
-      {"block_id": "B003", "color": "BLUE", "geometry": "2x2x1", "grid_x": 10, "grid_y": 12, "orientation_deg": 0, "layer": 1},
-      {"block_id": "B004", "color": "BLUE", "geometry": "2x2x1", "grid_x": 12, "grid_y": 12, "orientation_deg": 0, "layer": 1},
-      {"block_id": "B005", "color": "YELLOW", "geometry": "2x3x1", "grid_x": 10, "grid_y": 10, "orientation_deg": 0, "layer": 2},
-      {"block_id": "B006", "color": "YELLOW", "geometry": "2x3x1", "grid_x": 12, "grid_y": 10, "orientation_deg": 0, "layer": 2},
-      {"block_id": "B007", "color": "BLUE", "geometry": "2x2x1", "grid_x": 11, "grid_y": 11, "orientation_deg": 0, "layer": 3},
-      {"block_id": "B008", "color": "YELLOW", "geometry": "2x2x1", "grid_x": 11, "grid_y": 11, "orientation_deg": 0, "layer": 4}
+  "_note": "Scenario: the leg at design (10,12) was actually placed 1 stud off (y12 -> y13). current carries the 4 assembled legs at their actual values. candidate is a hand-shaped LLM-style redesign (this specific asymmetric leg shift is beyond what designer.mock_revised_candidate's _chair_upper can lay out, per its own documented limits): the 4 current legs are repeated byte-for-byte (hard preserve, by value -- no ids exist), and the unassembled seat/backrest is redesigned around them, still satisfying overlap/support/connectivity. revised is the actual output of designer.build_revised_design(design, current, differences, generate=lambda *a: candidate): design_version is input design_version + 1 (2) because the target layout really changed; source is a result-dict field, not part of the Design.",
+  "design": {
+    "design_version": 1,
+    "blocks": [
+      {
+        "brick_type": "2x2x1",
+        "color": "blue",
+        "x": 10,
+        "y": 10,
+        "layer": 1,
+        "orientation_deg": 0
+      },
+      {
+        "brick_type": "2x2x1",
+        "color": "blue",
+        "x": 12,
+        "y": 10,
+        "layer": 1,
+        "orientation_deg": 0
+      },
+      {
+        "brick_type": "2x2x1",
+        "color": "blue",
+        "x": 10,
+        "y": 12,
+        "layer": 1,
+        "orientation_deg": 0
+      },
+      {
+        "brick_type": "2x2x1",
+        "color": "blue",
+        "x": 12,
+        "y": 12,
+        "layer": 1,
+        "orientation_deg": 0
+      },
+      {
+        "brick_type": "2x3x1",
+        "color": "yellow",
+        "x": 10,
+        "y": 10,
+        "layer": 2,
+        "orientation_deg": 0
+      },
+      {
+        "brick_type": "2x3x1",
+        "color": "yellow",
+        "x": 12,
+        "y": 10,
+        "layer": 2,
+        "orientation_deg": 0
+      },
+      {
+        "brick_type": "2x2x1",
+        "color": "blue",
+        "x": 11,
+        "y": 11,
+        "layer": 3,
+        "orientation_deg": 0
+      },
+      {
+        "brick_type": "2x2x1",
+        "color": "yellow",
+        "x": 11,
+        "y": 11,
+        "layer": 4,
+        "orientation_deg": 0
+      }
     ]
   },
   "current": [
-    {"block_id": "B001", "color": "BLUE", "geometry": "2x2x1", "grid_x": 10, "grid_y": 10, "orientation_deg": 0, "layer": 1},
-    {"block_id": "B002", "color": "BLUE", "geometry": "2x2x1", "grid_x": 12, "grid_y": 10, "orientation_deg": 0, "layer": 1},
-    {"block_id": "B003", "color": "BLUE", "geometry": "2x2x1", "grid_x": 10, "grid_y": 13, "orientation_deg": 0, "layer": 1},
-    {"block_id": "B004", "color": "BLUE", "geometry": "2x2x1", "grid_x": 12, "grid_y": 12, "orientation_deg": 0, "layer": 1}
+    {
+      "brick_type": "2x2x1",
+      "color": "blue",
+      "x": 10,
+      "y": 10,
+      "layer": 1,
+      "orientation_deg": 0
+    },
+    {
+      "brick_type": "2x2x1",
+      "color": "blue",
+      "x": 12,
+      "y": 10,
+      "layer": 1,
+      "orientation_deg": 0
+    },
+    {
+      "brick_type": "2x2x1",
+      "color": "blue",
+      "x": 10,
+      "y": 13,
+      "layer": 1,
+      "orientation_deg": 0
+    },
+    {
+      "brick_type": "2x2x1",
+      "color": "blue",
+      "x": 12,
+      "y": 12,
+      "layer": 1,
+      "orientation_deg": 0
+    }
   ],
   "differences": [
     {
-      "expected": {"block_id": "B003", "color": "BLUE", "geometry": "2x2x1", "grid_x": 10, "grid_y": 12, "orientation_deg": 0, "layer": 1},
-      "actual": {"block_id": "B003", "color": "BLUE", "geometry": "2x2x1", "grid_x": 10, "grid_y": 13, "orientation_deg": 0, "layer": 1}
+      "expected": {
+        "brick_type": "2x2x1",
+        "color": "blue",
+        "x": 10,
+        "y": 12,
+        "layer": 1,
+        "orientation_deg": 0
+      },
+      "actual": {
+        "brick_type": "2x2x1",
+        "color": "blue",
+        "x": 10,
+        "y": 13,
+        "layer": 1,
+        "orientation_deg": 0
+      }
     }
   ],
   "candidate": {
-    "bricks": [
-      {"block_id": "B001", "color": "BLUE", "geometry": "2x2x1", "grid_x": 10, "grid_y": 10, "orientation_deg": 0, "layer": 1},
-      {"block_id": "B002", "color": "BLUE", "geometry": "2x2x1", "grid_x": 12, "grid_y": 10, "orientation_deg": 0, "layer": 1},
-      {"block_id": "B003", "color": "BLUE", "geometry": "2x2x1", "grid_x": 10, "grid_y": 13, "orientation_deg": 0, "layer": 1},
-      {"block_id": "B004", "color": "BLUE", "geometry": "2x2x1", "grid_x": 12, "grid_y": 12, "orientation_deg": 0, "layer": 1},
-      {"block_id": "B005", "color": "YELLOW", "geometry": "2x3x1", "grid_x": 10, "grid_y": 11, "orientation_deg": 0, "layer": 2},
-      {"block_id": "B006", "color": "BLUE", "geometry": "2x3x1", "grid_x": 12, "grid_y": 10, "orientation_deg": 0, "layer": 2},
-      {"block_id": null, "color": "YELLOW", "geometry": "2x2x1", "grid_x": 11, "grid_y": 11, "orientation_deg": 0, "layer": 3},
-      {"block_id": "B008", "color": "BLUE", "geometry": "2x2x1", "grid_x": 11, "grid_y": 11, "orientation_deg": 0, "layer": 4}
+    "blocks": [
+      {
+        "brick_type": "2x2x1",
+        "color": "blue",
+        "x": 10,
+        "y": 10,
+        "layer": 1,
+        "orientation_deg": 0
+      },
+      {
+        "brick_type": "2x2x1",
+        "color": "blue",
+        "x": 12,
+        "y": 10,
+        "layer": 1,
+        "orientation_deg": 0
+      },
+      {
+        "brick_type": "2x2x1",
+        "color": "blue",
+        "x": 10,
+        "y": 13,
+        "layer": 1,
+        "orientation_deg": 0
+      },
+      {
+        "brick_type": "2x2x1",
+        "color": "blue",
+        "x": 12,
+        "y": 12,
+        "layer": 1,
+        "orientation_deg": 0
+      },
+      {
+        "brick_type": "2x3x1",
+        "color": "yellow",
+        "x": 10,
+        "y": 11,
+        "layer": 2,
+        "orientation_deg": 0
+      },
+      {
+        "brick_type": "2x3x1",
+        "color": "blue",
+        "x": 12,
+        "y": 10,
+        "layer": 2,
+        "orientation_deg": 0
+      },
+      {
+        "brick_type": "2x2x1",
+        "color": "yellow",
+        "x": 11,
+        "y": 11,
+        "layer": 3,
+        "orientation_deg": 0
+      },
+      {
+        "brick_type": "2x2x1",
+        "color": "blue",
+        "x": 11,
+        "y": 11,
+        "layer": 4,
+        "orientation_deg": 0
+      }
     ]
   },
   "revised": {
-    "design_version": 2, "parent_version": 1, "object_type": "CHAIR", "source": "LLM",
-    "bricks": [
-      {"block_id": "B001", "color": "BLUE", "geometry": "2x2x1", "grid_x": 10, "grid_y": 10, "orientation_deg": 0, "layer": 1},
-      {"block_id": "B002", "color": "BLUE", "geometry": "2x2x1", "grid_x": 12, "grid_y": 10, "orientation_deg": 0, "layer": 1},
-      {"block_id": "B003", "color": "BLUE", "geometry": "2x2x1", "grid_x": 10, "grid_y": 13, "orientation_deg": 0, "layer": 1},
-      {"block_id": "B004", "color": "BLUE", "geometry": "2x2x1", "grid_x": 12, "grid_y": 12, "orientation_deg": 0, "layer": 1},
-      {"block_id": "B005", "color": "YELLOW", "geometry": "2x3x1", "grid_x": 10, "grid_y": 11, "orientation_deg": 0, "layer": 2},
-      {"block_id": "B006", "color": "BLUE", "geometry": "2x3x1", "grid_x": 12, "grid_y": 10, "orientation_deg": 0, "layer": 2},
-      {"block_id": "B009", "color": "YELLOW", "geometry": "2x2x1", "grid_x": 11, "grid_y": 11, "orientation_deg": 0, "layer": 3},
-      {"block_id": "B008", "color": "BLUE", "geometry": "2x2x1", "grid_x": 11, "grid_y": 11, "orientation_deg": 0, "layer": 4}
+    "design_version": 2,
+    "blocks": [
+      {
+        "brick_type": "2x2x1",
+        "color": "blue",
+        "x": 10,
+        "y": 10,
+        "layer": 1,
+        "orientation_deg": 0
+      },
+      {
+        "brick_type": "2x2x1",
+        "color": "blue",
+        "x": 12,
+        "y": 10,
+        "layer": 1,
+        "orientation_deg": 0
+      },
+      {
+        "brick_type": "2x2x1",
+        "color": "blue",
+        "x": 10,
+        "y": 13,
+        "layer": 1,
+        "orientation_deg": 0
+      },
+      {
+        "brick_type": "2x2x1",
+        "color": "blue",
+        "x": 12,
+        "y": 12,
+        "layer": 1,
+        "orientation_deg": 0
+      },
+      {
+        "brick_type": "2x3x1",
+        "color": "yellow",
+        "x": 10,
+        "y": 11,
+        "layer": 2,
+        "orientation_deg": 0
+      },
+      {
+        "brick_type": "2x3x1",
+        "color": "blue",
+        "x": 12,
+        "y": 10,
+        "layer": 2,
+        "orientation_deg": 0
+      },
+      {
+        "brick_type": "2x2x1",
+        "color": "yellow",
+        "x": 11,
+        "y": 11,
+        "layer": 3,
+        "orientation_deg": 0
+      },
+      {
+        "brick_type": "2x2x1",
+        "color": "blue",
+        "x": 11,
+        "y": 11,
+        "layer": 4,
+        "orientation_deg": 0
+      }
     ]
   }
 }

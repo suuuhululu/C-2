@@ -1,32 +1,25 @@
-"""Unit tests for app.c_design.validator (docs/C_DESIGN_CONTRACT.md §9.1).
+"""Unit tests for app.c_design.validator (docs/06_CONTRACT_DRAFT.md §1, §2).
 
-Helpers build minimal brick/design dicts inline; fixture files are owned by another
+Helpers build minimal block/design dicts inline; fixture files are owned by another
 worker and are intentionally not read here.
 """
 
 from app.c_design import validator as v
 
 
-def brick(block_id="B001", color="YELLOW", geometry="2x2x1", grid_x=0, grid_y=0, orientation_deg=0, layer=1):
+def block(color="yellow", brick_type="2x2x1", x=0, y=0, orientation_deg=0, layer=1):
     return {
-        "block_id": block_id,
         "color": color,
-        "geometry": geometry,
-        "grid_x": grid_x,
-        "grid_y": grid_y,
+        "brick_type": brick_type,
+        "x": x,
+        "y": y,
         "orientation_deg": orientation_deg,
         "layer": layer,
     }
 
 
-def design(bricks, design_version=1, parent_version=None, object_type="CHAIR", source="MOCK"):
-    return {
-        "design_version": design_version,
-        "parent_version": parent_version,
-        "object_type": object_type,
-        "source": source,
-        "bricks": bricks,
-    }
+def design(blocks, design_version=1):
+    return {"design_version": design_version, "blocks": blocks}
 
 
 def rules(reasons):
@@ -39,16 +32,16 @@ def rules(reasons):
 
 
 def test_footprint_2x2x1():
-    assert v.footprint(brick(grid_x=0, grid_y=0, geometry="2x2x1")) == {(0, 0), (0, 1), (1, 0), (1, 1)}
+    assert v.footprint(block(x=0, y=0, brick_type="2x2x1")) == {(0, 0), (0, 1), (1, 0), (1, 1)}
 
 
 def test_footprint_2x3x1_orientation_0():
-    b = brick(grid_x=2, grid_y=3, geometry="2x3x1", orientation_deg=0)
+    b = block(x=2, y=3, brick_type="2x3x1", orientation_deg=0)
     assert v.footprint(b) == {(2, 3), (2, 4), (2, 5), (3, 3), (3, 4), (3, 5)}
 
 
 def test_footprint_2x3x1_orientation_90():
-    b = brick(grid_x=1, grid_y=1, geometry="2x3x1", orientation_deg=90)
+    b = block(x=1, y=1, brick_type="2x3x1", orientation_deg=90)
     assert v.footprint(b) == {(1, 1), (1, 2), (2, 1), (2, 2), (3, 1), (3, 2)}
 
 
@@ -70,271 +63,279 @@ def test_malformed_non_dict_non_str():
 
 
 def test_malformed_candidate_also_rejected_in_validate_revised():
-    assert rules(v.validate_revised("not json", design([brick()]), [])) == {"malformed_output"}
+    assert rules(v.validate_revised("not json", [])) == {"malformed_output"}
 
 
 # ---------------------------------------------------------------------------
-# validate_design: top-level field rules
+# validate_design: top-level field rules (§2: exactly design_version, blocks)
 # ---------------------------------------------------------------------------
 
 
 def test_missing_top_level_field():
-    d = design([brick()])
-    del d["source"]
+    d = design([block()])
+    del d["design_version"]
     assert "missing_field" in rules(v.validate_design(d))
 
 
 def test_unknown_top_level_key():
-    d = design([brick()])
-    d["tcp_pose"] = [0, 0, 0]
+    d = design([block()])
+    d["parent_version"] = None
+    assert "unknown_key" in rules(v.validate_design(d))
+
+
+def test_object_type_key_rejected():
+    d = design([block()])
+    d["object_type"] = "CHAIR"
+    assert "unknown_key" in rules(v.validate_design(d))
+
+
+def test_source_key_rejected():
+    d = design([block()])
+    d["source"] = "MOCK"
     assert "unknown_key" in rules(v.validate_design(d))
 
 
 def test_design_version_bool_is_invalid_type():
-    d = design([brick()], design_version=True)
+    d = design([block()], design_version=True)
     assert "invalid_type" in rules(v.validate_design(d))
 
 
 def test_design_version_below_one_is_invalid_value():
-    d = design([brick()], design_version=0)
+    d = design([block()], design_version=0)
     assert "invalid_value" in rules(v.validate_design(d))
 
 
-def test_object_type_invalid_value():
-    d = design([brick()], object_type="TABLE")
-    assert "invalid_value" in rules(v.validate_design(d))
-
-
-def test_source_invalid_value():
-    d = design([brick()], source="REAL")
-    assert "invalid_value" in rules(v.validate_design(d))
-
-
-def test_bricks_count_zero_is_brick_count():
+def test_blocks_count_zero_is_brick_count():
     assert "brick_count" in rules(v.validate_design(design([])))
 
 
-def test_bricks_count_over_twenty_is_brick_count():
-    bricks = [brick(block_id=f"B{i:03d}", grid_x=0, grid_y=i) for i in range(21)]
-    assert "brick_count" in rules(v.validate_design(design(bricks)))
+def test_blocks_count_over_twenty_is_brick_count():
+    blocks = [block(x=0, y=i) for i in range(21)]
+    assert "brick_count" in rules(v.validate_design(design(blocks)))
 
 
 # ---------------------------------------------------------------------------
-# validate_design: brick field rules
+# validate_design: block field rules
 # ---------------------------------------------------------------------------
 
 
-def test_brick_missing_field():
-    b = brick()
+def test_block_missing_field():
+    b = block()
     del b["layer"]
     assert "missing_field" in rules(v.validate_design(design([b])))
 
 
-def test_brick_unknown_key():
-    b = brick()
+def test_block_unknown_key():
+    b = block()
     b["x_mm"] = 42
     assert "unknown_key" in rules(v.validate_design(design([b])))
 
 
-def test_brick_grid_x_float_is_invalid_type():
-    b = brick(grid_x=1.5)
+def test_block_x_float_is_invalid_type():
+    b = block(x=1.5)
     assert "invalid_type" in rules(v.validate_design(design([b])))
 
 
-def test_brick_grid_x_bool_is_invalid_type():
-    b = brick(grid_x=True)
+def test_block_x_bool_is_invalid_type():
+    b = block(x=True)
     assert "invalid_type" in rules(v.validate_design(design([b])))
 
 
-def test_brick_layer_float_is_invalid_type():
-    b = brick(layer=1.0)
+def test_block_layer_float_is_invalid_type():
+    b = block(layer=1.0)
     assert "invalid_type" in rules(v.validate_design(design([b])))
 
 
-def test_brick_color_invalid_value():
-    b = brick(color="GREEN")
+def test_block_color_invalid_value():
+    b = block(color="GREEN")
     assert "invalid_value" in rules(v.validate_design(design([b])))
 
 
-def test_brick_geometry_invalid_value():
-    b = brick(geometry="3x3x1")
+def test_block_color_uppercase_rejected():
+    # §1: color is lowercase yellow/blue; the old uppercase spelling is invalid now.
+    b = block(color="YELLOW")
     assert "invalid_value" in rules(v.validate_design(design([b])))
 
 
-def test_brick_orientation_invalid_for_2x2x1():
-    b = brick(geometry="2x2x1", orientation_deg=90)
+def test_block_color_lowercase_accepted():
+    b = block(color="blue")
+    assert v.validate_design(design([b])) == []
+
+
+def test_block_brick_type_invalid_value():
+    b = block(brick_type="3x3x1")
     assert "invalid_value" in rules(v.validate_design(design([b])))
 
 
-def test_brick_layer_out_of_range():
-    b = brick(layer=5)
+def test_block_orientation_invalid_for_2x2x1():
+    b = block(brick_type="2x2x1", orientation_deg=90)
     assert "invalid_value" in rules(v.validate_design(design([b])))
 
 
-def test_brick_block_id_bad_format():
-    b = brick(block_id="X1")
-    assert "invalid_block_id" in rules(v.validate_design(design([b])))
-
-
-def test_duplicate_block_id():
-    bricks = [brick(block_id="B001", grid_x=0, grid_y=0), brick(block_id="B001", grid_x=10, grid_y=10)]
-    assert "duplicate_block_id" in rules(v.validate_design(design(bricks)))
+def test_block_layer_out_of_range():
+    b = block(layer=5)
+    assert "invalid_value" in rules(v.validate_design(design([b])))
 
 
 def test_out_of_board():
-    b = brick(grid_x=23, grid_y=23, geometry="2x2x1")  # footprint reaches stud 24
+    b = block(x=23, y=23, brick_type="2x2x1")  # footprint reaches stud 24
     assert "out_of_board" in rules(v.validate_design(design([b])))
 
 
 def test_overlap_same_layer():
-    bricks = [
-        brick(block_id="B001", grid_x=0, grid_y=0, layer=1),
-        brick(block_id="B002", grid_x=1, grid_y=0, layer=1),
+    blocks = [
+        block(x=0, y=0, layer=1),
+        block(x=1, y=0, layer=1),
     ]
-    reasons = v.validate_design(design(bricks))
+    reasons = v.validate_design(design(blocks))
     assert "overlap" in rules(reasons)
     overlap_reason = next(r for r in reasons if r["rule"] == "overlap")
-    assert set(overlap_reason["block_ids"]) == {"B001", "B002"}
+    assert len(overlap_reason["blocks"]) == 2
 
 
 def test_connectivity_two_disconnected_clusters():
-    bricks = [
-        brick(block_id="B001", grid_x=0, grid_y=0, layer=1),
-        brick(block_id="B002", grid_x=10, grid_y=10, layer=1),
+    blocks = [
+        block(x=0, y=0, layer=1),
+        block(x=10, y=10, layer=1),
     ]
-    reasons = v.validate_design(design(bricks))
+    reasons = v.validate_design(design(blocks))
     assert rules(reasons) == {"connectivity"}
 
 
 # ---------------------------------------------------------------------------
-# support: Case A-D (§9.1)
+# support: Case A-D
 # ---------------------------------------------------------------------------
 
 
-def test_support_case_a_one_below_brick_two_studs_pass():
-    bricks = [
-        brick(block_id="B001", geometry="2x3x1", orientation_deg=0, grid_x=3, grid_y=0, layer=1),
-        brick(block_id="B002", geometry="2x2x1", grid_x=3, grid_y=2, layer=2),
+def test_support_case_a_one_below_block_two_studs_pass():
+    blocks = [
+        block(brick_type="2x3x1", orientation_deg=0, x=3, y=0, layer=1),
+        block(brick_type="2x2x1", x=3, y=2, layer=2),
     ]
-    assert v.validate_design(design(bricks)) == []
+    assert v.validate_design(design(blocks)) == []
 
 
-def test_support_case_a_one_below_brick_four_studs_pass():
-    bricks = [
-        brick(block_id="B001", geometry="2x3x1", orientation_deg=0, grid_x=0, grid_y=0, layer=1),
-        brick(block_id="B002", geometry="2x2x1", grid_x=0, grid_y=0, layer=2),
+def test_support_case_a_one_below_block_four_studs_pass():
+    blocks = [
+        block(brick_type="2x3x1", orientation_deg=0, x=0, y=0, layer=1),
+        block(brick_type="2x2x1", x=0, y=0, layer=2),
     ]
-    assert v.validate_design(design(bricks)) == []
+    assert v.validate_design(design(blocks)) == []
 
 
-def test_support_case_b_two_below_bricks_one_stud_each_pass():
-    bricks = [
-        brick(block_id="B001", geometry="2x2x1", grid_x=4, grid_y=4, layer=1),
-        brick(block_id="B002", geometry="2x2x1", grid_x=6, grid_y=6, layer=1),
-        brick(block_id="B003", geometry="2x2x1", grid_x=5, grid_y=5, layer=2),
+def test_support_case_b_two_below_blocks_one_stud_each_pass():
+    blocks = [
+        block(brick_type="2x2x1", x=4, y=4, layer=1),
+        block(brick_type="2x2x1", x=6, y=6, layer=1),
+        block(brick_type="2x2x1", x=5, y=5, layer=2),
     ]
-    assert v.validate_design(design(bricks)) == []
+    assert v.validate_design(design(blocks)) == []
 
 
-def test_support_case_c_three_below_bricks_sum_pass():
-    bricks = [
-        brick(block_id="B001", geometry="2x2x1", grid_x=9, grid_y=9, layer=1),
-        brick(block_id="B002", geometry="2x2x1", grid_x=9, grid_y=11, layer=1),
-        brick(block_id="B003", geometry="2x2x1", grid_x=11, grid_y=9, layer=1),
-        brick(block_id="B004", geometry="2x3x1", orientation_deg=0, grid_x=10, grid_y=10, layer=2),
+def test_support_case_c_three_below_blocks_sum_pass():
+    blocks = [
+        block(brick_type="2x2x1", x=9, y=9, layer=1),
+        block(brick_type="2x2x1", x=9, y=11, layer=1),
+        block(brick_type="2x2x1", x=11, y=9, layer=1),
+        block(brick_type="2x3x1", orientation_deg=0, x=10, y=10, layer=2),
     ]
-    assert v.validate_design(design(bricks)) == []
+    assert v.validate_design(design(blocks)) == []
 
 
 def test_support_case_d_sum_one_fails():
-    bricks = [
-        brick(block_id="B001", geometry="2x2x1", grid_x=14, grid_y=14, layer=1),
-        brick(block_id="B002", geometry="2x2x1", grid_x=15, grid_y=15, layer=2),
+    blocks = [
+        block(brick_type="2x2x1", x=14, y=14, layer=1),
+        block(brick_type="2x2x1", x=15, y=15, layer=2),
     ]
-    reasons = v.validate_design(design(bricks))
+    reasons = v.validate_design(design(blocks))
     assert "support" in rules(reasons)
     support_reason = next(r for r in reasons if r["rule"] == "support")
-    assert support_reason["block_ids"] == ["B002"]
+    assert support_reason["blocks"] == [block(brick_type="2x2x1", x=15, y=15, layer=2)]
 
 
 def test_support_case_d_sum_zero_fails():
-    bricks = [
-        brick(block_id="B001", geometry="2x2x1", grid_x=0, grid_y=0, layer=1),
-        brick(block_id="B002", geometry="2x2x1", grid_x=20, grid_y=20, layer=2),
+    blocks = [
+        block(brick_type="2x2x1", x=0, y=0, layer=1),
+        block(brick_type="2x2x1", x=20, y=20, layer=2),
     ]
-    assert "support" in rules(v.validate_design(design(bricks)))
+    assert "support" in rules(v.validate_design(design(blocks)))
 
 
 # ---------------------------------------------------------------------------
-# validate_revised: preservation (§8.3, §8.4)
+# validate_revised: candidate shape (§2)
 # ---------------------------------------------------------------------------
 
 
-def test_validate_revised_moved_assembled_brick_rejected():
-    assembled = brick(block_id="B001", grid_x=0, grid_y=0, layer=1)
-    input_design = design([assembled])
-    candidate = design([brick(block_id="B001", grid_x=1, grid_y=0, layer=1)])
-    reasons = v.validate_revised(candidate, input_design, [assembled])
+def test_validate_revised_unknown_top_level_key_rejected():
+    candidate = {"blocks": [block()], "parent_version": 1}
+    assert "unknown_key" in rules(v.validate_revised(candidate, []))
+
+
+def test_validate_revised_missing_blocks_field():
+    assert "missing_field" in rules(v.validate_revised({}, []))
+
+
+def test_validate_revised_valid_candidate_no_current():
+    candidate = {"blocks": [block()]}
+    assert v.validate_revised(candidate, []) == []
+
+
+# ---------------------------------------------------------------------------
+# validate_revised: value-based preservation (§4)
+# ---------------------------------------------------------------------------
+
+
+def test_validate_revised_moved_assembled_block_rejected():
+    assembled = block(x=0, y=0, layer=1)
+    candidate = {"blocks": [block(x=1, y=0, layer=1)]}
+    reasons = v.validate_revised(candidate, [assembled])
+    assert "assembled_not_preserved" in rules(reasons)
+    reason = next(r for r in reasons if r["rule"] == "assembled_not_preserved")
+    assert reason["blocks"] == [assembled]
+
+
+def test_validate_revised_missing_assembled_block_rejected():
+    assembled = block(x=0, y=0, layer=1)
+    candidate = {"blocks": [block(x=5, y=5, layer=1)]}
+    reasons = v.validate_revised(candidate, [assembled])
     assert "assembled_not_preserved" in rules(reasons)
 
 
-def test_validate_revised_missing_assembled_brick_rejected():
-    assembled = brick(block_id="B001", grid_x=0, grid_y=0, layer=1)
-    input_design = design([assembled])
-    candidate = design([brick(block_id="B002", grid_x=5, grid_y=5, layer=1)])
-    candidate["bricks"][0]["block_id"] = None
-    reasons = v.validate_revised(candidate, input_design, [assembled])
+def test_validate_revised_value_changed_assembled_block_rejected():
+    assembled = block(color="yellow", x=0, y=0, layer=1)
+    candidate = {"blocks": [block(color="blue", x=0, y=0, layer=1)]}
+    reasons = v.validate_revised(candidate, [assembled])
     assert "assembled_not_preserved" in rules(reasons)
 
 
-def test_validate_revised_value_changed_assembled_brick_rejected():
-    assembled = brick(block_id="B001", color="YELLOW", grid_x=0, grid_y=0, layer=1)
-    input_design = design([assembled])
-    candidate = design([brick(block_id="B001", color="BLUE", grid_x=0, grid_y=0, layer=1)])
-    reasons = v.validate_revised(candidate, input_design, [assembled])
-    assert "assembled_not_preserved" in rules(reasons)
-
-
-def test_validate_revised_unknown_block_id_rejected():
-    input_design = design([brick(block_id="B001")])
-    candidate = design([brick(block_id="B999")])
-    reasons = v.validate_revised(candidate, input_design, [])
-    assert "unknown_block_id" in rules(reasons)
-
-
-def test_validate_revised_duplicate_block_id_rejected():
-    input_design = design([brick(block_id="B001"), brick(block_id="B002", grid_x=10, grid_y=10)])
-    candidate = design(
-        [
-            brick(block_id="B002", grid_x=0, grid_y=0),
-            brick(block_id="B002", grid_x=10, grid_y=10),
-        ]
-    )
-    reasons = v.validate_revised(candidate, input_design, [])
-    assert "duplicate_block_id" in rules(reasons)
-
-
-def test_validate_revised_null_new_brick_accepted():
-    assembled = brick(block_id="B001", grid_x=0, grid_y=0, layer=1)
-    input_design = design([assembled])
-    new_brick = brick(grid_x=10, grid_y=10, layer=1)
-    new_brick["block_id"] = None
-    candidate = design([assembled, new_brick])
-    reasons = v.validate_revised(candidate, input_design, [assembled])
-    assert "unknown_block_id" not in rules(reasons)
-    assert "invalid_block_id" not in rules(reasons)
-    assert "duplicate_block_id" not in rules(reasons)
+def test_validate_revised_assembled_block_preserved_accepted():
+    assembled = block(x=0, y=0, layer=1)
+    candidate = {"blocks": [assembled, block(x=10, y=10, layer=1)]}
+    reasons = v.validate_revised(candidate, [assembled])
     assert "assembled_not_preserved" not in rules(reasons)
 
 
-def test_validate_revised_unassembled_brick_can_change_values():
-    unassembled = brick(block_id="B002", grid_x=7, grid_y=5, layer=1)
-    input_design = design([brick(block_id="B001", grid_x=0, grid_y=0, layer=1), unassembled])
-    moved = brick(block_id="B002", grid_x=8, grid_y=5, layer=1)
-    candidate = design([brick(block_id="B001", grid_x=0, grid_y=0, layer=1), moved])
-    reasons = v.validate_revised(candidate, input_design, [brick(block_id="B001", grid_x=0, grid_y=0, layer=1)])
+def test_validate_revised_unassembled_block_can_change_values():
+    unassembled = block(x=7, y=5, layer=1)
+    moved = block(x=8, y=5, layer=1)
+    candidate = {"blocks": [block(x=0, y=0, layer=1), moved]}
+    reasons = v.validate_revised(candidate, [block(x=0, y=0, layer=1)])
     assert "assembled_not_preserved" not in rules(reasons)
-    assert "unknown_block_id" not in rules(reasons)
+
+
+def test_validate_revised_preservation_counts_duplicates():
+    # Two distinct current blocks that happen to share values still need two matching
+    # entries in the candidate (count included in the multiset containment).
+    a = block(x=0, y=0, layer=1)
+    far = block(x=10, y=10, layer=1)
+    current = [a, far]
+    candidate_missing_one = {"blocks": [a]}
+    reasons = v.validate_revised(candidate_missing_one, current)
+    assert "assembled_not_preserved" in rules(reasons)
+
+    candidate_both = {"blocks": [a, far]}
+    reasons = v.validate_revised(candidate_both, current)
+    assert "assembled_not_preserved" not in rules(reasons)
 
 
 # ---------------------------------------------------------------------------
@@ -342,60 +343,60 @@ def test_validate_revised_unassembled_brick_can_change_values():
 # ---------------------------------------------------------------------------
 
 
-def test_check_intervention_input_current_missing_block_id():
-    d = design([brick(block_id="B001")])
-    cur = [brick(block_id="B001")]
-    del cur[0]["block_id"]
-    diffs = [{"expected": brick(block_id="B001"), "actual": None}]
+def test_check_intervention_input_current_missing_field():
+    d = design([block()])
+    cur = [block()]
+    del cur[0]["layer"]
+    diffs = [{"expected": block(), "actual": None}]
     assert "missing_field" in rules(v.check_intervention_input(d, cur, diffs))
 
 
-def test_check_intervention_input_current_unknown_block_id():
-    d = design([brick(block_id="B001")])
-    cur = [brick(block_id="B999")]
-    diffs = [{"expected": brick(block_id="B001"), "actual": None}]
-    assert "unknown_block_id" in rules(v.check_intervention_input(d, cur, diffs))
-
-
-def test_check_intervention_input_current_duplicate_block_id():
-    d = design([brick(block_id="B001"), brick(block_id="B002", grid_x=10, grid_y=10)])
-    cur = [brick(block_id="B001", grid_x=0, grid_y=0), brick(block_id="B001", grid_x=10, grid_y=10)]
-    diffs = [{"expected": brick(block_id="B001"), "actual": None}]
-    assert "duplicate_block_id" in rules(v.check_intervention_input(d, cur, diffs))
+def test_check_intervention_input_current_extra_keys_ignored():
+    d = design([block()])
+    cur = [dict(block(), tcp_pose=[0, 0, 0])]
+    diffs = [{"expected": block(), "actual": None}]
+    assert "unknown_key" not in rules(v.check_intervention_input(d, cur, diffs))
 
 
 def test_check_intervention_input_current_overlap():
-    d = design([brick(block_id="B001"), brick(block_id="B002", grid_x=10, grid_y=10)])
+    d = design([block(x=0, y=0), block(x=10, y=10)])
     cur = [
-        brick(block_id="B001", grid_x=0, grid_y=0, layer=1),
-        brick(block_id="B002", grid_x=1, grid_y=0, layer=1),
+        block(x=0, y=0, layer=1),
+        block(x=1, y=0, layer=1),
     ]
-    diffs = [{"expected": brick(block_id="B001"), "actual": None}]
+    diffs = [{"expected": block(), "actual": None}]
     assert "overlap" in rules(v.check_intervention_input(d, cur, diffs))
 
 
 def test_check_intervention_input_empty_differences():
-    d = design([brick(block_id="B001")])
-    cur = [brick(block_id="B001")]
+    d = design([block()])
+    cur = [block()]
     assert "invalid_value" in rules(v.check_intervention_input(d, cur, []))
 
 
+def test_check_intervention_input_difference_both_null_rejected():
+    d = design([block()])
+    cur = [block()]
+    diffs = [{"expected": None, "actual": None}]
+    assert "invalid_value" in rules(v.check_intervention_input(d, cur, diffs))
+
+
 def test_check_intervention_input_current_support_violation_not_reported_here():
-    # d is a fully valid Design (Case A support); cur uses the same ids but reflects a
-    # different *actual* placement where B002 only gets 1 support stud from B001.
+    # d is a fully valid Design (Case A support); cur reflects a different *actual*
+    # placement where the second block only gets 1 support stud from the first.
     d = design(
         [
-            brick(block_id="B001", geometry="2x3x1", orientation_deg=0, grid_x=0, grid_y=0, layer=1),
-            brick(block_id="B002", geometry="2x2x1", grid_x=0, grid_y=0, layer=2),
+            block(brick_type="2x3x1", orientation_deg=0, x=0, y=0, layer=1),
+            block(brick_type="2x2x1", x=0, y=0, layer=2),
         ]
     )
     assert v.validate_design(d) == []
 
     cur = [
-        brick(block_id="B001", geometry="2x2x1", grid_x=14, grid_y=14, layer=1),
-        brick(block_id="B002", geometry="2x2x1", grid_x=15, grid_y=15, layer=2),
+        block(brick_type="2x2x1", x=14, y=14, layer=1),
+        block(brick_type="2x2x1", x=15, y=15, layer=2),
     ]
-    diffs = [{"expected": brick(block_id="B001"), "actual": None}]
+    diffs = [{"expected": block(), "actual": None}]
 
     assert "support" not in rules(v.check_intervention_input(d, cur, diffs))
     assert "support" in rules(v.current_support_violations(cur))
