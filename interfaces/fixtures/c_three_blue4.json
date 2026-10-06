@@ -1,0 +1,12 @@
+{
+  "status": "OK",
+  "hri_result": null,
+  "design": {
+    "design_version": 1,
+    "blocks": [
+      {"brick_type":"2x2x1","color":"blue","x":3,"y":5,"layer":1,"orientation_deg":0},
+      {"brick_type":"2x2x1","color":"blue","x":5,"y":5,"layer":1,"orientation_deg":0},
+      {"brick_type":"2x2x1","color":"blue","x":7,"y":5,"layer":1,"orientation_deg":0}
+    ]
+  }
+}
