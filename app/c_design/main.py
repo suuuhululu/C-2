@@ -14,7 +14,8 @@
       → "계속 찾기"면 4회 더(합계 10회) → 실패면 DESIGN_GENERATION_FAILED
     - Current가 support 후보 기준을 위반하면 재생성 없이 바로 escalation 질문
     - 텍스트 모드(text / text_answers)는 Fake Voice로 쓰인다.
-    - 음성 모드: voice provider가 아직 없어(WAVE 6) VOICE_IO_FAILED를 반환한다.
+    - 음성 모드: voice.speak(질문) 재생이 끝난 뒤 voice.listen()으로 응답을 받는다(WAVE 6).
+      listen()이 None(장치·STT 실패)이면 VOICE_IO_FAILED, ""(침묵)이면 계속 기다린다.
     - Day4: 시간 기준 자동 취소 없음. 침묵(빈 발화)은 재질문 없이 계속 기다린다.
     - 설계 생성기: 호출 시점에 환경 변수 C_DESIGN_USE_LLM=1이면 llm(WAVE 5), 아니면 Mock.
       provider 실패는 LLM_CALL_FAILED로 반환한다.
@@ -37,10 +38,14 @@ from app.c_design import designer, dialogue, llm, validator, voice
 FIRST_ATTEMPTS = 6
 EXTRA_ATTEMPTS = designer.MAX_ATTEMPTS - FIRST_ATTEMPTS
 
-VOICE_NOT_CONNECTED = "voice provider not connected, WAVE 6"
 
 # next_reply가 침묵 대기 중 STOP을 만났다는 표시(정상 응답 문자열·None과 구분).
 _STOP = object()
+
+
+def _voice_failure():
+    # voice.last_error()는 실패 종류만 담고 key·응답 본문은 담지 않는다.
+    return f"voice I/O failed: {voice.last_error() or 'unknown'}"
 
 
 def _result(status, hri_result=None, design=None, questions=(), code=None, message="", details=()):
@@ -81,7 +86,7 @@ def create_initial_design(text=None, should_stop=None):
     if text is None:
         text = voice.listen()
         if text is None:
-            return _result("FAILED", code="VOICE_IO_FAILED", message=VOICE_NOT_CONNECTED)
+            return _result("FAILED", code="VOICE_IO_FAILED", message=_voice_failure())
     elif not isinstance(text, str):
         return _result("FAILED", code="INVALID_INPUT", message="text must be a str or None")
 
@@ -117,7 +122,7 @@ def run_intervention(design, current, differences, text_answers=None, on_questio
             voice.speak(sentence)
 
     def next_reply():
-        """다음 의미 있는 응답. None이면 텍스트 응답 소진 또는 음성 미연결, _STOP이면 STOP."""
+        """다음 의미 있는 응답. None이면 텍스트 응답 소진 또는 음성 I/O 실패, _STOP이면 STOP."""
         while True:
             reply = voice.listen() if voice_mode else next(answers, None)
             if reply is None or dialogue.is_meaningful(reply):
@@ -128,7 +133,7 @@ def run_intervention(design, current, differences, text_answers=None, on_questio
 
     def no_reply():
         if voice_mode:
-            return _result("FAILED", questions=questions, code="VOICE_IO_FAILED", message=VOICE_NOT_CONNECTED)
+            return _result("FAILED", questions=questions, code="VOICE_IO_FAILED", message=_voice_failure())
         return _result("OK", dialogue.UNCLEAR, None, questions)
 
     def stop_requested():

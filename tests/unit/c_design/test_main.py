@@ -437,7 +437,7 @@ def test_current_support_violation_escalates_twice_then_keep(initial_design):
 
 
 # ---------------------------------------------------------------------------
-# 19. voice mode (no voice provider connected this wave) -> VOICE_IO_FAILED
+# 19. voice mode, audio device unavailable (blocked by tests/conftest.py) -> VOICE_IO_FAILED
 # ---------------------------------------------------------------------------
 
 
@@ -446,7 +446,7 @@ def test_create_initial_design_voice_mode_fails():
     _assert_envelope_shape(result)
     assert result["status"] == "FAILED"
     assert result["error"]["code"] == "VOICE_IO_FAILED"
-    assert "연결" in result["error"]["message"] or "connect" in result["error"]["message"].lower()
+    assert result["error"]["message"] == "voice I/O failed: audio_device: RuntimeError"
     assert result["design"] is None
 
 

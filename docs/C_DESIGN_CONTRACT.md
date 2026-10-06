@@ -121,9 +121,9 @@ Day4에는 시간 기준 자동 취소·자동 KEEP·임의 종료가 없습니�
 | 의미 있는 발화(정규화 후 비어 있지 않은 STT 텍스트)인데 불명확 | 선택지를 다시 설명해 재질문 |
 | STOP | `CANCELLED` / `STOPPED` |
 | 명시적 취소 발화 | `CANCELLED` / `USER_CANCEL` |
-| 장치·엔진 실패 | 무응답이 아님. §10 지속 장애 기준으로 처리 |
+| 장치·엔진 실패 | 무응답이 아님. 녹음 장치·STT 실패는 §10에 따라 `VOICE_IO_FAILED` |
 
-듣기는 짧은 창(기본 12초, `main` 모듈 상수) 단위로 반복하며 침묵이면 빈 문자열을 받습니다. 별도 thread·watchdog 없이 `main` 대화 루프에서 `should_stop`을 확인합니다. 텍스트 모드에는 대기가 없습니다.
+음성 I/O(`voice`, WAVE 6)는 순차로 동작합니다. `speak`는 TTS 재생이 끝나고 짧은 지연(기본 0.5초)을 기다린 뒤 돌아오며, 그 뒤에야 `listen`이 마이크 입력을 엽니다(질문 음성을 답으로 다시 인식하지 않음). `listen` 1회는 소리 크기(RMS) 기준으로 발화 시작을 기다리고(기본 최대 8초), 발화 끝 무음(기본 1초) 또는 최대 길이(기본 10초)에서 녹음을 끝냅니다. 발화가 없으면 STT를 호출하지 않고 빈 문자열을 돌려줍니다(무음에서 STT가 문장을 지어내는 것을 막음). 장치·STT 실패는 `None`입니다. 수치는 `voice` 모듈 상수입니다. 별도 thread·watchdog 없이 `main` 대화 루프에서 `should_stop`을 확인합니다. 텍스트 모드에는 대기가 없습니다.
 
 ## 5. 입력 형식 (D → C)
 
@@ -296,7 +296,8 @@ C의 Validator 통과는 후보 검증이며 최종 채택이 아닙니다.
 | 실패 | 호출자 입력 오류 | 즉시 반환 | `FAILED` / `INVALID_INPUT`, `UNSUPPORTED_OBJECT` |
 | 실패 | 재생성 10회 한도 도달 | 반환 | `FAILED` / `DESIGN_GENERATION_FAILED` |
 | 실패 | LLM provider 실패: 일시적 실패(network / timeout / 429 / 5xx)만 최대 3회(1·2·4초 backoff) API 재시도 후에도 실패. auth·키 없음·비정상 응답은 재시도 없이 즉시. 재시도 사이 `should_stop` 확인 | 반환 | `FAILED` / `LLM_CALL_FAILED` |
-| 실패 | 음성 지속 장애: 음성 장치·엔진이 재시도에도 300초 동안 계속 실패 (WAVE 6에서 재검토) | 반환 | `FAILED` / `VOICE_IO_FAILED` |
+| 실패 | 음성 입력 실패: 녹음 장치를 열거나 읽지 못함, 또는 STT provider 실패(key: `OPENAI_API_KEY`. 일시적 network / timeout / 429 / 5xx는 최대 3회 API 재시도 후, auth·키 없음·비정상 응답은 즉시) | 반환 | `FAILED` / `VOICE_IO_FAILED` |
+| 복구 | TTS 재생 실패(key: `OPENAI_TTS_API_KEY` 전용, 없으면 `OPENAI_API_KEY`로 대체하지 않고 `missing_key`) | 질문은 `on_question`으로 화면에 표시된 채 응답 대기를 계속하고 실패 사유는 `voice.last_error()`에 기록 | 반환하지 않고 계속 |
 
 | `error.code` | 의미 | 함수 |
 |---|---|---|
@@ -305,10 +306,10 @@ C의 Validator 통과는 후보 검증이며 최종 채택이 아닙니다.
 | `DESIGN_GENERATION_FAILED` | 재생성 한도 안에 유효 Design 없음. `details`에 마지막 탈락 사유 | 둘 다 |
 | `STOPPED` | D/HMI STOP·닫힌 요청 | 둘 다 |
 | `USER_CANCEL` | 사용자의 명시적 취소 발화 | run_intervention |
-| `VOICE_IO_FAILED` | 녹음·STT·TTS 지속 장애. 평소에는 로그·재시도 사유 | 둘 다 |
+| `VOICE_IO_FAILED` | 녹음 장치 또는 STT provider 실패(위 재시도 정책 후). message는 실패 종류만 담음(`voice I/O failed: <kind>`) | 둘 다 |
 | `LLM_CALL_FAILED` | LLM provider 실패. 일시적 실패(network / timeout / 429 / 5xx)는 최대 3회(1·2·4초) API 재시도 후, auth·키 없음·비정상 응답은 즉시. 재시도 사이 `should_stop` 확인 | 둘 다 |
 
-- 음성 지속 장애 기준은 마지막 성공 이후 연속 실패 시간이며 사용자 응답 대기와 무관합니다(사용자 무응답에는 시간 한도 없음).
+- 음성 실패 판정은 장치·provider 실패에만 쓰며 사용자 무응답과 무관합니다(사용자 무응답에는 시간 한도 없음).
 - 공용 문서에 오류 코드 이름이 없어(06 §9 "구현에서 정함") C가 정의합니다. `INVALID_INPUT`은 참고 인터페이스 정책의 기존 이름입니다.
 - 00 E04 "자동 재시도 없이 보류"는 Robot 전달 복구 범위이며 C의 LLM·음성 재시도와 무관합니다.
 
