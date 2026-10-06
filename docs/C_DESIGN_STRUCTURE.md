@@ -14,22 +14,22 @@ C = Voice Interaction + LLM Design.
 - 최초 사용자 음성 입력: 녹음, STT, 최초 목표 해석
 - 변경 context(Design·Current·Difference) 해석, 어떤 질문을 할지 결정, 질문 문장 생성
 - TTS로 질문 재생, 사용자 음성 수집(녹음), STT
-- Intent Parsing: 응답을 HRI 결과 Original 유지 / Revised 생성 / 불명확으로 판단
+- Intent Parsing: 응답을 HRI 결과 KEEP / REVISE / UNCLEAR로 판단, 명시적 취소 신호 인식
 - 불명확한 응답 재질문
 
 **LLM Design**
 
 - Initial Design 생성과 Design Validation
-- Revised 생성 시 Revised Design 생성과 Validation
+- REVISE 시 Revised Design 생성과 Validation
 - HRI 결과 / Design 반환
 
 ### HRI 결과
 
 | HRI 결과 (코드 식별자) | 의미 |
 |---|---|
-| Original 유지 (`KEEP_ORIGINAL`) | 최초 v1 복귀가 아니라 **현재 채택된 Design**(예: v3)을 계속 따름. 선택했다고 물리 수정 완료를 뜻하지 않음. 이후 사람 수정 → B 관측 → D Current 갱신 → Expected 확인 |
-| Revised 생성 (`CREATE_REVISED`) | D가 준 Current의 조립된 Brick을 같은 `block_id`·실제 값으로 보존하고 나머지를 다시 설계한 Revised Design 생성. 예: B003 Design (5, 5) / Current (5, 6) → Revised Design의 B003 (5, 6). 보존 대상은 Python이 Current 기준으로 결정하고, LLM이 보존 대상을 바꾸면 validator가 거부 |
-| 불명확 (`UNCLEAR`) | 응답을 판단할 수 없음. C가 재질문 |
+| KEEP | 최초 v1 복귀가 아니라 **현재 채택된 Design**(예: v3)을 계속 따름. 선택했다고 물리 수정 완료를 뜻하지 않음. 이후 사람 수정 → B 관측 → D Current 갱신 → Expected 확인 |
+| REVISE | D가 준 최신 Current의 실제 배치(여섯 값)를 보존하고 나머지를 다시 설계한 Revised Design 생성. 예: Design (5, 5) / Current (5, 6) → Revised Design에 (5, 6) 블록. 보존 대상은 Python이 Current 기준으로 결정하고, LLM이 보존 대상을 바꾸면 validator가 거부 |
+| UNCLEAR | 응답을 판단할 수 없음. C가 선택지를 다시 설명해 재질문, 계속 불명확하면 명시 선택 대기 |
 
 순차 조립 전제: A가 다음 블록 결정 → D가 M0609로 1개 전달 → 사람 조립 → B / D 확인. C는 동일 블록 간 Data Association을 하지 않습니다.
 
@@ -64,43 +64,46 @@ app/
 
 production `.py`는 위 6개로 유지합니다. class·state machine·dialogue / conversation manager·service layer·framework를 추가하지 않습니다.
 
-## 4. Test tree (예정)
+## 4. Test tree
 
 ```text
 tests/
 ├── unit/
 │   └── c_design/
-│       ├── test_dialogue.py    # 질문 문장·응답 해석 규칙·불명확
-│       ├── test_validator.py   # 규칙별 정상 / invalid
-│       ├── test_designer.py    # Mock Initial / Revised, Current 보존
-│       └── test_main.py        # 대화 루프(fake voice)
+│       ├── fixtures/           # Contract 형식의 정상·invalid·경계 JSON 8개 (WAVE 2)
+│       ├── test_dialogue.py    # 질문 문장·응답 해석 규칙·불명확 (WAVE 2)
+│       ├── test_validator.py   # 규칙별 정상 / invalid, support Case A~D (WAVE 2)
+│       ├── test_fixtures.py    # fixture를 validator·dialogue에 통과 (WAVE 2)
+│       ├── test_designer.py    # Mock Initial / Revised, Current 보존, 재생성 루프 (WAVE 3)
+│       └── test_main.py        # 공개 함수·대화 루프(텍스트 모드 = Fake Voice) (WAVE 4)
 └── integration/
-    └── test_c_contract.py      # A / D 연결 계약
+    └── test_c_contract.py      # D → C 입력·C → D envelope·C → A Design 계약 (WAVE 4)
 ```
 
-테스트 파일은 기능 구현과 함께 하나씩 추가합니다. 지금은 `.gitkeep`만 있습니다. `voice.py`는 unit test 대상이 아니라 후반 L2 장치 시험 대상이며, 다른 테스트에서는 fake로 교체합니다. 실행할 테스트가 없는 상태를 PASS로 표시하지 않습니다.
+테스트 파일은 기능 구현과 함께 하나씩 추가합니다. 루트 `pyproject.toml`의 pytest 설정으로 저장소 루트에서 `pytest`를 실행합니다. `voice.py`는 unit test 대상이 아니라 후반 L2 장치 시험 대상이며, 다른 테스트에서는 fake로 교체합니다. 실행할 테스트가 없는 상태를 PASS로 표시하지 않습니다.
 
 ## 5. 파일 설명
 
 | 파일 | 한 줄 설명 | 앞으로 들어갈 것 | 넣지 않는 것 |
 |---|---|---|---|
-| `main.py` | 공개 진입점 | Initial Design 흐름, Intervention 대화 흐름과 재질문 루프, 음성 모드 무응답 취소(Contract §4.3), Recovery First 재시도, 텍스트 입력 모드 | 음성 I/O·질문 문장·응답 규칙·LLM·검증 로직 직접 구현 |
+| `main.py` | 공개 진입점 | 구현(WAVE 4): Initial Design 흐름, Intervention 대화 루프(KEEP / REVISE / UNCLEAR 재설명 / 명시적 취소 / STOP), REVISE 6회 + escalation + 4회, envelope 변환, 텍스트 모드(Fake Voice). 음성 모드는 provider 연결 전(WAVE 6) | 음성 I/O·질문 문장·응답 규칙·LLM·검증 로직 직접 구현 |
 | `voice.py` | 음성 I/O | 녹음(record), STT, TTS 재생(speak), 재생 종료 후 녹음 시작(F05·F07) | 의미 판단, 질문 문장 생성 |
-| `dialogue.py` | 대화 텍스트 처리 | 질문·재질문 문장, 선택지 상수(1번 KEEP_ORIGINAL / 2번 CREATE_REVISED), 응답 해석(Rule → LLM fallback → 불명확), 목표 사물 인식 | 음성 I/O, 대화 루프 |
+| `dialogue.py` | 대화 텍스트 처리 | 질문·재질문 문장, 선택지 상수(1번 KEEP / 2번 REVISE), 응답 해석(Rule → LLM fallback → UNCLEAR), 명시적 취소 신호(CANCEL), 목표 사물 인식 | 음성 I/O, 대화 루프 |
 | `llm.py` | LLM 호출 전용 | API 호출, JSON 파싱, 실패 예외 | 프롬프트 구성, 검증, 재시도 정책, import 시 secret loading |
-| `designer.py` | Design 생성 | Initial / Revised 생성, 보존 대상 Python 결정, 거부 사유로 재생성(최대 횟수 없음), 검증 통과 후 버전·새 `block_id` 발급 | 조립 순서, NextPart, Robot 좌표 |
-| `validator.py` | Design 검증 | color, geometry, grid_x / grid_y, orientation_deg, layer 1~4, Board 범위, overlap, support(아래 Brick 개수와 무관하게 겹침 합계 2 stud 이상), connectivity, 조립된 Brick 보존, malformed, Robot field 유입 거부 | LLM 호출, Plan 검증 |
+| `designer.py` | Design 생성 | Mock Initial / Revised 구현(WAVE 3), LLM 생성기 주입 자리(`generate`). Initial / Revised 생성, 보존 대상 Python 결정, 탈락 사유로 재생성(최대 10회), 배치가 바뀐 경우에만 검증 통과 후 버전 +1 | 조립 순서, NextPart, Robot 좌표 |
+| `validator.py` | Design 검증 | brick_type, color, x / y, orientation_deg, layer 1~4, Board 범위, overlap, support(C 후보 기준: 아래 블록 개수와 무관하게 겹침 합계 2 stud 이상, A 확인 대기), connectivity, Current 보존(여섯 값), malformed, Robot field 유입 거부 | LLM 호출, Plan 검증 |
 
 ### 공통 LEGO / Board 규약 (Day 4 MVP)
 
 | 항목 | 값 |
 |---|---|
-| color | YELLOW, BLUE |
-| geometry | 2x2x1, 2x3x1 |
+| brick_type | 2x2x1, 2x3x1 |
+| color | yellow, blue |
 | Board | 24 × 24 stud |
-| grid_x, grid_y | 0~23, Board의 stud 위치 (Robot mm 좌표 아님) |
+| x, y | 0~23, Board의 stud 위치, footprint 최소 모서리 (Robot mm 좌표 아님) |
 | layer | 1~4, **1-based** (layer 1 = Board 위 첫 LEGO 층) |
 | orientation_deg | 2x3x1: 0 = X 2 / Y 3 stud, 90 = X 3 / Y 2 stud. 2x2x1: 0 |
+| support | 바로 아래 layer와 겹치는 stud 합계 2 이상(아래 블록 개수 무관). 세은(A)과 확인할 C 후보 기준이며 팀 공용 확정값 아님 |
 
 `docs/reference/` GT 원본의 0-based layer 표기는 원자료 규약이며 C 구현에는 적용하지 않습니다.
 
@@ -116,9 +119,9 @@ main.py
    ├─▶ voice.py     녹음 + STT
    ├─▶ dialogue.py  응답 해석 ──▶ llm.py (애매한 응답 fallback)
    │
-   ├─ 불명확        → dialogue 재질문 문장 → voice 재생·녹음·STT → 다시 해석
-   ├─ Original 유지 → 현재 채택된 Design 그대로 반환 (LLM 호출 없음)
-   └─ Revised 생성  → designer.py ──▶ llm.py
+   ├─ UNCLEAR       → dialogue 재질문 문장 → voice 재생·녹음·STT → 다시 해석
+   ├─ KEEP          → 현재 채택된 Design 그대로 반환 (LLM 호출 없음)
+   └─ REVISE        → designer.py ──▶ llm.py
                          └──▶ validator.py
    ▼
 HRI 결과 / Design 반환
