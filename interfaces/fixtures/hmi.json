@@ -1,0 +1,210 @@
+{
+  "snapshots": {
+    "waiting": {
+      "workflow_status": "WAIT_ASSEMBLY",
+      "step": {"plan_id": "plan-fixture-initial","step_id": "S03","target": {"brick_type": "2x3x1","color": "blue","x": 3,"y": 5,"layer": 2,"orientation_deg": 90},"observed": null,"comparison": "WAITING"},
+      "progress": {"completed": 2,"total": 3},
+      "monitor": {"robot": {"mode": "FAKE","status": "IDLE"},"observation": {"status": null,"check_id": "J01:C07","observation_seq": null,"reason": null},"place_status": null,"supply": [{"brick_type": "2x2x1","color": "yellow","next_slot": 3,"needs_refill": false},{"brick_type": "2x2x1","color": "blue","next_slot": 1,"needs_refill": false},{"brick_type": "2x3x1","color": "yellow","next_slot": 1,"needs_refill": false},{"brick_type": "2x3x1","color": "blue","next_slot": 2,"needs_refill": false}]},
+      "notice": {"question": null,"reason": null,"required_action": "파랑 6점을 목표 위치에 조립하고 완료 확인 관측을 기다립니다.","request_id": null},
+      "actions": {"job_id": "J01","start": {"visible": true,"enabled": false},"stop": {"visible": true,"enabled": true},"resume": {"visible": true,"enabled": false},"intent_choice": {"visible": false,"enabled": false,"request_id": null},"correction_continue": {"visible": false,"enabled": false,"request_id": null},"supply_refill": []},
+      "design": {"design_version": 1,"blocks": [{"brick_type": "2x2x1","color": "yellow","x": 3,"y": 5,"layer": 1,"orientation_deg": 0},{"brick_type": "2x2x1","color": "yellow","x": 5,"y": 5,"layer": 1,"orientation_deg": 0},{"brick_type": "2x3x1","color": "blue","x": 3,"y": 5,"layer": 2,"orientation_deg": 90}]}
+    },
+    "idle": {
+      "workflow_status": "IDLE",
+      "step": {"plan_id": null,"step_id": null,"target": null,"observed": null,"comparison": "WAITING"},
+      "progress": {"completed": 0,"total": 0},
+      "monitor": {"robot": {"mode": "FAKE","status": null},"observation": {"status": null,"check_id": null,"observation_seq": null,"reason": null},"place_status": null,"supply": [{"brick_type": "2x2x1","color": "yellow","next_slot": null,"needs_refill": null},{"brick_type": "2x2x1","color": "blue","next_slot": null,"needs_refill": null},{"brick_type": "2x3x1","color": "yellow","next_slot": null,"needs_refill": null},{"brick_type": "2x3x1","color": "blue","next_slot": null,"needs_refill": null}]},
+      "notice": {"question": null,"reason": null,"required_action": "시작 버튼으로 새 작업을 요청하세요.","request_id": null},
+      "actions": {"job_id": null,"start": {"visible": true,"enabled": true},"stop": {"visible": true,"enabled": false},"resume": {"visible": true,"enabled": false},"intent_choice": {"visible": false,"enabled": false,"request_id": null},"correction_continue": {"visible": false,"enabled": false,"request_id": null},"supply_refill": []},
+      "design": null
+    },
+    "preparing": {
+      "workflow_status": "PREPARING",
+      "step": {"plan_id": null,"step_id": null,"target": null,"observed": null,"comparison": "WAITING"},
+      "progress": {"completed": 0,"total": 0},
+      "monitor": {"robot": {"mode": "FAKE","status": null},"observation": {"status": null,"check_id": null,"observation_seq": null,"reason": null},"place_status": null,"supply": [{"brick_type": "2x2x1","color": "yellow","next_slot": null,"needs_refill": null},{"brick_type": "2x2x1","color": "blue","next_slot": null,"needs_refill": null},{"brick_type": "2x3x1","color": "yellow","next_slot": null,"needs_refill": null},{"brick_type": "2x3x1","color": "blue","next_slot": null,"needs_refill": null}]},
+      "notice": {"question": null,"reason": null,"required_action": "Design과 검증된 Plan을 기다립니다.","request_id": null},
+      "actions": {"job_id": "J01","start": {"visible": true,"enabled": false},"stop": {"visible": true,"enabled": true},"resume": {"visible": true,"enabled": false},"intent_choice": {"visible": false,"enabled": false,"request_id": null},"correction_continue": {"visible": false,"enabled": false,"request_id": null},"supply_refill": []},
+      "design": null
+    },
+    "delivering": {
+      "workflow_status": "DELIVERING",
+      "step": {"plan_id": "plan-fixture-initial","step_id": "S03","target": {"brick_type": "2x3x1","color": "blue","x": 3,"y": 5,"layer": 2,"orientation_deg": 90},"observed": null,"comparison": "WAITING"},
+      "progress": {"completed": 2,"total": 3},
+      "monitor": {"robot": {"mode": "FAKE","status": "BUSY"},"observation": {"status": null,"check_id": "J01:C07","observation_seq": null,"reason": null},"place_status": null,"supply": [{"brick_type": "2x2x1","color": "yellow","next_slot": 3,"needs_refill": false},{"brick_type": "2x2x1","color": "blue","next_slot": 1,"needs_refill": false},{"brick_type": "2x3x1","color": "yellow","next_slot": 1,"needs_refill": false},{"brick_type": "2x3x1","color": "blue","next_slot": 2,"needs_refill": false}]},
+      "notice": {"question": null,"reason": "블록 전달과 observe point 복귀를 기다립니다.","required_action": null,"request_id": null},
+      "actions": {"job_id": "J01","start": {"visible": true,"enabled": false},"stop": {"visible": true,"enabled": true},"resume": {"visible": true,"enabled": false},"intent_choice": {"visible": false,"enabled": false,"request_id": null},"correction_continue": {"visible": false,"enabled": false,"request_id": null},"supply_refill": []},
+      "design": {"design_version": 1,"blocks": [{"brick_type": "2x2x1","color": "yellow","x": 3,"y": 5,"layer": 1,"orientation_deg": 0},{"brick_type": "2x2x1","color": "yellow","x": 5,"y": 5,"layer": 1,"orientation_deg": 0},{"brick_type": "2x3x1","color": "blue","x": 3,"y": 5,"layer": 2,"orientation_deg": 90}]}
+    },
+    "stop_pending": {
+      "workflow_status": "HOLD",
+      "step": {"plan_id": "plan-fixture-initial","step_id": "S03","target": {"brick_type": "2x3x1","color": "blue","x": 3,"y": 5,"layer": 2,"orientation_deg": 90},"observed": null,"comparison": "WAITING"},
+      "progress": {"completed": 2,"total": 3},
+      "monitor": {"robot": {"mode": "FAKE","status": "STOP_PENDING"},"observation": {"status": null,"check_id": "J01:C07","observation_seq": null,"reason": null},"place_status": null,"supply": [{"brick_type": "2x2x1","color": "yellow","next_slot": 3,"needs_refill": false},{"brick_type": "2x2x1","color": "blue","next_slot": 1,"needs_refill": false},{"brick_type": "2x3x1","color": "yellow","next_slot": 1,"needs_refill": false},{"brick_type": "2x3x1","color": "blue","next_slot": 2,"needs_refill": false}]},
+      "notice": {"question": null,"reason": "정지 요청 처리 중입니다. 실제 정지 확인 전에는 재개하지 않습니다.","required_action": null,"request_id": null},
+      "actions": {"job_id": "J01","start": {"visible": true,"enabled": false},"stop": {"visible": true,"enabled": true},"resume": {"visible": true,"enabled": false},"intent_choice": {"visible": false,"enabled": false,"request_id": null},"correction_continue": {"visible": false,"enabled": false,"request_id": null},"supply_refill": []},
+      "design": {"design_version": 1,"blocks": [{"brick_type": "2x2x1","color": "yellow","x": 3,"y": 5,"layer": 1,"orientation_deg": 0},{"brick_type": "2x2x1","color": "yellow","x": 5,"y": 5,"layer": 1,"orientation_deg": 0},{"brick_type": "2x3x1","color": "blue","x": 3,"y": 5,"layer": 2,"orientation_deg": 90}]}
+    },
+    "robot_error": {
+      "workflow_status": "HOLD",
+      "step": {"plan_id": "plan-fixture-initial","step_id": "S03","target": {"brick_type": "2x3x1","color": "blue","x": 3,"y": 5,"layer": 2,"orientation_deg": 90},"observed": null,"comparison": "WAITING"},
+      "progress": {"completed": 2,"total": 3},
+      "monitor": {"robot": {"mode": "FAKE","status": "ERROR"},"observation": {"status": null,"check_id": "J01:C07","observation_seq": null,"reason": null},"place_status": null,"supply": [{"brick_type": "2x2x1","color": "yellow","next_slot": 3,"needs_refill": false},{"brick_type": "2x2x1","color": "blue","next_slot": 1,"needs_refill": false},{"brick_type": "2x3x1","color": "yellow","next_slot": 1,"needs_refill": false},{"brick_type": "2x3x1","color": "blue","next_slot": 2,"needs_refill": false}]},
+      "notice": {"question": null,"reason": "Robot 전달 실행이 실패했습니다. 다음 전달을 보류합니다.","required_action": null,"request_id": null},
+      "actions": {"job_id": "J01","start": {"visible": true,"enabled": false},"stop": {"visible": true,"enabled": true},"resume": {"visible": true,"enabled": false},"intent_choice": {"visible": false,"enabled": false,"request_id": null},"correction_continue": {"visible": false,"enabled": false,"request_id": null},"supply_refill": []},
+      "design": {"design_version": 1,"blocks": [{"brick_type": "2x2x1","color": "yellow","x": 3,"y": 5,"layer": 1,"orientation_deg": 0},{"brick_type": "2x2x1","color": "yellow","x": 5,"y": 5,"layer": 1,"orientation_deg": 0},{"brick_type": "2x3x1","color": "blue","x": 3,"y": 5,"layer": 2,"orientation_deg": 90}]}
+    },
+    "match": {
+      "workflow_status": "WAIT_ASSEMBLY",
+      "step": {"plan_id": "plan-fixture-initial","step_id": "S03","target": {"brick_type": "2x3x1","color": "blue","x": 3,"y": 5,"layer": 2,"orientation_deg": 90},"observed": {"check_id": "J01:C07","observation_seq": 12,"status": "OK","visible_blocks": [{"brick_type": "2x3x1","color": "blue","x": 3,"y": 5,"layer": 2,"orientation_deg": 90}],"verified_regions": [{"x": 3,"y": 5,"width": 3,"height": 2,"layer": 2}],"reason": null},"comparison": "MATCH"},
+      "progress": {"completed": 2,"total": 3},
+      "monitor": {"robot": {"mode": "FAKE","status": "IDLE"},"observation": {"status": "OK","check_id": "J01:C07","observation_seq": 12,"reason": null},"place_status": null,"supply": [{"brick_type": "2x2x1","color": "yellow","next_slot": 3,"needs_refill": false},{"brick_type": "2x2x1","color": "blue","next_slot": 1,"needs_refill": false},{"brick_type": "2x3x1","color": "yellow","next_slot": 1,"needs_refill": false},{"brick_type": "2x3x1","color": "blue","next_slot": 2,"needs_refill": false}]},
+      "notice": {"question": null,"reason": null,"required_action": "파랑 6점을 목표 위치에 조립하고 완료 확인 관측을 기다립니다.","request_id": null},
+      "actions": {"job_id": "J01","start": {"visible": true,"enabled": false},"stop": {"visible": true,"enabled": true},"resume": {"visible": true,"enabled": false},"intent_choice": {"visible": false,"enabled": false,"request_id": null},"correction_continue": {"visible": false,"enabled": false,"request_id": null},"supply_refill": []},
+      "design": {"design_version": 1,"blocks": [{"brick_type": "2x2x1","color": "yellow","x": 3,"y": 5,"layer": 1,"orientation_deg": 0},{"brick_type": "2x2x1","color": "yellow","x": 5,"y": 5,"layer": 1,"orientation_deg": 0},{"brick_type": "2x3x1","color": "blue","x": 3,"y": 5,"layer": 2,"orientation_deg": 90}]}
+    },
+    "mismatch": {
+      "workflow_status": "WAIT_INTENT",
+      "step": {"plan_id": "plan-fixture-initial","step_id": "S03","target": {"brick_type": "2x3x1","color": "blue","x": 3,"y": 5,"layer": 2,"orientation_deg": 90},"observed": {"check_id": "J01:C07","observation_seq": 13,"status": "OK","visible_blocks": [{"brick_type": "2x3x1","color": "yellow","x": 3,"y": 5,"layer": 2,"orientation_deg": 90}],"verified_regions": [{"x": 3,"y": 5,"width": 3,"height": 2,"layer": 2}],"reason": null},"comparison": "MISMATCH"},
+      "progress": {"completed": 2,"total": 3},
+      "monitor": {"robot": {"mode": "FAKE","status": "IDLE"},"observation": {"status": "OK","check_id": "J01:C07","observation_seq": 13,"reason": null},"place_status": null,"supply": [{"brick_type": "2x2x1","color": "yellow","next_slot": 3,"needs_refill": false},{"brick_type": "2x2x1","color": "blue","next_slot": 1,"needs_refill": false},{"brick_type": "2x3x1","color": "yellow","next_slot": 1,"needs_refill": false},{"brick_type": "2x3x1","color": "blue","next_slot": 2,"needs_refill": false}]},
+      "notice": {"question": "목표와 실제 배치가 다릅니다. 목표를 유지할까요, 변경할까요?","reason": null,"required_action": "음성 답변을 기다립니다. 다음 전달을 보류합니다.","request_id": "J01:Q02"},
+      "actions": {"job_id": "J01","start": {"visible": true,"enabled": false},"stop": {"visible": true,"enabled": true},"resume": {"visible": true,"enabled": false},"intent_choice": {"visible": false,"enabled": false,"request_id": null},"correction_continue": {"visible": false,"enabled": false,"request_id": null},"supply_refill": []},
+      "design": {"design_version": 1,"blocks": [{"brick_type": "2x2x1","color": "yellow","x": 3,"y": 5,"layer": 1,"orientation_deg": 0},{"brick_type": "2x2x1","color": "yellow","x": 5,"y": 5,"layer": 1,"orientation_deg": 0},{"brick_type": "2x3x1","color": "blue","x": 3,"y": 5,"layer": 2,"orientation_deg": 90}]}
+    },
+    "empty": {
+      "workflow_status": "WAIT_INTENT",
+      "step": {"plan_id": "plan-fixture-initial","step_id": "S03","target": {"brick_type": "2x3x1","color": "blue","x": 3,"y": 5,"layer": 2,"orientation_deg": 90},"observed": {"check_id": "J01:C07","observation_seq": 14,"status": "OK","visible_blocks": [],"verified_regions": [{"x": 3,"y": 5,"width": 3,"height": 2,"layer": 2}],"reason": null},"comparison": "MISMATCH"},
+      "progress": {"completed": 2,"total": 3},
+      "monitor": {"robot": {"mode": "FAKE","status": "IDLE"},"observation": {"status": "OK","check_id": "J01:C07","observation_seq": 14,"reason": null},"place_status": null,"supply": [{"brick_type": "2x2x1","color": "yellow","next_slot": 3,"needs_refill": false},{"brick_type": "2x2x1","color": "blue","next_slot": 1,"needs_refill": false},{"brick_type": "2x3x1","color": "yellow","next_slot": 1,"needs_refill": false},{"brick_type": "2x3x1","color": "blue","next_slot": 2,"needs_refill": false}]},
+      "notice": {"question": "목표와 실제 배치가 다릅니다. 목표를 유지할까요, 변경할까요?","reason": null,"required_action": "음성 답변을 기다립니다. 다음 전달을 보류합니다.","request_id": "J01:Q02"},
+      "actions": {"job_id": "J01","start": {"visible": true,"enabled": false},"stop": {"visible": true,"enabled": true},"resume": {"visible": true,"enabled": false},"intent_choice": {"visible": false,"enabled": false,"request_id": null},"correction_continue": {"visible": false,"enabled": false,"request_id": null},"supply_refill": []},
+      "design": {"design_version": 1,"blocks": [{"brick_type": "2x2x1","color": "yellow","x": 3,"y": 5,"layer": 1,"orientation_deg": 0},{"brick_type": "2x2x1","color": "yellow","x": 5,"y": 5,"layer": 1,"orientation_deg": 0},{"brick_type": "2x3x1","color": "blue","x": 3,"y": 5,"layer": 2,"orientation_deg": 90}]}
+    },
+    "partial": {
+      "workflow_status": "HOLD",
+      "step": {"plan_id": "plan-fixture-initial","step_id": "S03","target": {"brick_type": "2x3x1","color": "blue","x": 3,"y": 5,"layer": 2,"orientation_deg": 90},"observed": {"check_id": "J01:C07","observation_seq": 15,"status": "OK","visible_blocks": [{"brick_type": "2x3x1","color": "blue","x": 3,"y": 5,"layer": 2,"orientation_deg": 90}],"verified_regions": [{"x": 3,"y": 5,"width": 1,"height": 2,"layer": 2}],"reason": null},"comparison": "UNOBSERVABLE"},
+      "progress": {"completed": 2,"total": 3},
+      "monitor": {"robot": {"mode": "FAKE","status": "IDLE"},"observation": {"status": "OK","check_id": "J01:C07","observation_seq": 15,"reason": null},"place_status": null,"supply": [{"brick_type": "2x2x1","color": "yellow","next_slot": 3,"needs_refill": false},{"brick_type": "2x2x1","color": "blue","next_slot": 1,"needs_refill": false},{"brick_type": "2x3x1","color": "yellow","next_slot": 1,"needs_refill": false},{"brick_type": "2x3x1","color": "blue","next_slot": 2,"needs_refill": false}]},
+      "notice": {"question": null,"reason": "이번 Step 목표를 확인할 수 없습니다.","required_action": "가림을 해소하고 새 관측을 기다립니다.","request_id": null},
+      "actions": {"job_id": "J01","start": {"visible": true,"enabled": false},"stop": {"visible": true,"enabled": true},"resume": {"visible": true,"enabled": false},"intent_choice": {"visible": false,"enabled": false,"request_id": null},"correction_continue": {"visible": false,"enabled": false,"request_id": null},"supply_refill": []},
+      "design": {"design_version": 1,"blocks": [{"brick_type": "2x2x1","color": "yellow","x": 3,"y": 5,"layer": 1,"orientation_deg": 0},{"brick_type": "2x2x1","color": "yellow","x": 5,"y": 5,"layer": 1,"orientation_deg": 0},{"brick_type": "2x3x1","color": "blue","x": 3,"y": 5,"layer": 2,"orientation_deg": 90}]}
+    },
+    "unobservable": {
+      "workflow_status": "HOLD",
+      "step": {"plan_id": "plan-fixture-initial","step_id": "S03","target": {"brick_type": "2x3x1","color": "blue","x": 3,"y": 5,"layer": 2,"orientation_deg": 90},"observed": {"check_id": "J01:C07","observation_seq": 16,"status": "UNOBSERVABLE","visible_blocks": [],"verified_regions": [],"reason": "hand occludes current target"},"comparison": "UNOBSERVABLE"},
+      "progress": {"completed": 2,"total": 3},
+      "monitor": {"robot": {"mode": "FAKE","status": "IDLE"},"observation": {"status": "UNOBSERVABLE","check_id": "J01:C07","observation_seq": 16,"reason": "hand occludes current target"},"place_status": null,"supply": [{"brick_type": "2x2x1","color": "yellow","next_slot": 3,"needs_refill": false},{"brick_type": "2x2x1","color": "blue","next_slot": 1,"needs_refill": false},{"brick_type": "2x3x1","color": "yellow","next_slot": 1,"needs_refill": false},{"brick_type": "2x3x1","color": "blue","next_slot": 2,"needs_refill": false}]},
+      "notice": {"question": null,"reason": "이번 Step 목표를 확인할 수 없습니다.","required_action": "가림을 해소하고 새 관측을 기다립니다.","request_id": null},
+      "actions": {"job_id": "J01","start": {"visible": true,"enabled": false},"stop": {"visible": true,"enabled": true},"resume": {"visible": true,"enabled": false},"intent_choice": {"visible": false,"enabled": false,"request_id": null},"correction_continue": {"visible": false,"enabled": false,"request_id": null},"supply_refill": []},
+      "design": {"design_version": 1,"blocks": [{"brick_type": "2x2x1","color": "yellow","x": 3,"y": 5,"layer": 1,"orientation_deg": 0},{"brick_type": "2x2x1","color": "yellow","x": 5,"y": 5,"layer": 1,"orientation_deg": 0},{"brick_type": "2x3x1","color": "blue","x": 3,"y": 5,"layer": 2,"orientation_deg": 90}]}
+    },
+    "choice": {
+      "workflow_status": "WAIT_INTENT",
+      "step": {"plan_id": "plan-fixture-initial","step_id": "S03","target": {"brick_type": "2x3x1","color": "blue","x": 3,"y": 5,"layer": 2,"orientation_deg": 90},"observed": {"check_id": "J01:C07","observation_seq": 13,"status": "OK","visible_blocks": [{"brick_type": "2x3x1","color": "yellow","x": 3,"y": 5,"layer": 2,"orientation_deg": 90}],"verified_regions": [{"x": 3,"y": 5,"width": 3,"height": 2,"layer": 2}],"reason": null},"comparison": "MISMATCH"},
+      "progress": {"completed": 2,"total": 3},
+      "monitor": {"robot": {"mode": "FAKE","status": "IDLE"},"observation": {"status": "OK","check_id": "J01:C07","observation_seq": 13,"reason": null},"place_status": null,"supply": [{"brick_type": "2x2x1","color": "yellow","next_slot": 3,"needs_refill": false},{"brick_type": "2x2x1","color": "blue","next_slot": 1,"needs_refill": false},{"brick_type": "2x3x1","color": "yellow","next_slot": 1,"needs_refill": false},{"brick_type": "2x3x1","color": "blue","next_slot": 2,"needs_refill": false}]},
+      "notice": {"question": "목표와 실제 배치가 다릅니다. 목표를 유지할까요, 변경할까요?","reason": null,"required_action": "해석이 계속 불명확합니다. 목표 유지 또는 변경을 선택하세요.","request_id": "J01:Q02"},
+      "actions": {"job_id": "J01","start": {"visible": true,"enabled": false},"stop": {"visible": true,"enabled": true},"resume": {"visible": true,"enabled": false},"intent_choice": {"visible": true,"enabled": true,"request_id": "J01:Q02"},"correction_continue": {"visible": false,"enabled": false,"request_id": null},"supply_refill": []},
+      "design": {"design_version": 1,"blocks": [{"brick_type": "2x2x1","color": "yellow","x": 3,"y": 5,"layer": 1,"orientation_deg": 0},{"brick_type": "2x2x1","color": "yellow","x": 5,"y": 5,"layer": 1,"orientation_deg": 0},{"brick_type": "2x3x1","color": "blue","x": 3,"y": 5,"layer": 2,"orientation_deg": 90}]}
+    },
+    "correction": {
+      "workflow_status": "WAIT_CORRECTION",
+      "step": {"plan_id": "plan-fixture-initial","step_id": "S03","target": {"brick_type": "2x3x1","color": "blue","x": 3,"y": 5,"layer": 2,"orientation_deg": 90},"observed": {"check_id": "J01:C07","observation_seq": 13,"status": "OK","visible_blocks": [{"brick_type": "2x3x1","color": "yellow","x": 3,"y": 5,"layer": 2,"orientation_deg": 90}],"verified_regions": [{"x": 3,"y": 5,"width": 3,"height": 2,"layer": 2}],"reason": null},"comparison": "MISMATCH"},
+      "progress": {"completed": 2,"total": 3},
+      "monitor": {"robot": {"mode": "FAKE","status": "IDLE"},"observation": {"status": "OK","check_id": "J01:C07","observation_seq": 13,"reason": null},"place_status": null,"supply": [{"brick_type": "2x2x1","color": "yellow","next_slot": 3,"needs_refill": false},{"brick_type": "2x2x1","color": "blue","next_slot": 1,"needs_refill": false},{"brick_type": "2x3x1","color": "yellow","next_slot": 1,"needs_refill": false},{"brick_type": "2x3x1","color": "blue","next_slot": 2,"needs_refill": false}]},
+      "notice": {"question": null,"reason": null,"required_action": "안내받은 배치를 정리한 후 계속을 요청하세요. 새 관측으로 확인합니다.","request_id": "J01:Q03"},
+      "actions": {"job_id": "J01","start": {"visible": true,"enabled": false},"stop": {"visible": true,"enabled": true},"resume": {"visible": true,"enabled": false},"intent_choice": {"visible": false,"enabled": false,"request_id": null},"correction_continue": {"visible": true,"enabled": true,"request_id": "J01:Q03"},"supply_refill": []},
+      "design": {"design_version": 1,"blocks": [{"brick_type": "2x2x1","color": "yellow","x": 3,"y": 5,"layer": 1,"orientation_deg": 0},{"brick_type": "2x2x1","color": "yellow","x": 5,"y": 5,"layer": 1,"orientation_deg": 0},{"brick_type": "2x3x1","color": "blue","x": 3,"y": 5,"layer": 2,"orientation_deg": 90}]}
+    },
+    "replanning": {
+      "workflow_status": "REPLANNING",
+      "step": {"plan_id": "plan-fixture-initial","step_id": "S03","target": {"brick_type": "2x3x1","color": "blue","x": 3,"y": 5,"layer": 2,"orientation_deg": 90},"observed": {"check_id": "J01:C07","observation_seq": 13,"status": "OK","visible_blocks": [{"brick_type": "2x3x1","color": "yellow","x": 3,"y": 5,"layer": 2,"orientation_deg": 90}],"verified_regions": [{"x": 3,"y": 5,"width": 3,"height": 2,"layer": 2}],"reason": null},"comparison": "MISMATCH"},
+      "progress": {"completed": 2,"total": 3},
+      "monitor": {"robot": {"mode": "FAKE","status": "IDLE"},"observation": {"status": "OK","check_id": "J01:C07","observation_seq": 13,"reason": null},"place_status": null,"supply": [{"brick_type": "2x2x1","color": "yellow","next_slot": 3,"needs_refill": false},{"brick_type": "2x2x1","color": "blue","next_slot": 1,"needs_refill": false},{"brick_type": "2x3x1","color": "yellow","next_slot": 1,"needs_refill": false},{"brick_type": "2x3x1","color": "blue","next_slot": 2,"needs_refill": false}]},
+      "notice": {"question": null,"reason": null,"required_action": "새 Plan을 검증하는 중입니다. 표시 목표는 기존 채택 Design입니다.","request_id": null},
+      "actions": {"job_id": "J01","start": {"visible": true,"enabled": false},"stop": {"visible": true,"enabled": true},"resume": {"visible": true,"enabled": false},"intent_choice": {"visible": false,"enabled": false,"request_id": null},"correction_continue": {"visible": false,"enabled": false,"request_id": null},"supply_refill": []},
+      "design": {"design_version": 1,"blocks": [{"brick_type": "2x2x1","color": "yellow","x": 3,"y": 5,"layer": 1,"orientation_deg": 0},{"brick_type": "2x2x1","color": "yellow","x": 5,"y": 5,"layer": 1,"orientation_deg": 0},{"brick_type": "2x3x1","color": "blue","x": 3,"y": 5,"layer": 2,"orientation_deg": 90}]}
+    },
+    "refill": {
+      "workflow_status": "HOLD",
+      "step": {"plan_id": "plan-fixture-initial","step_id": "S03","target": {"brick_type": "2x3x1","color": "blue","x": 3,"y": 5,"layer": 2,"orientation_deg": 90},"observed": null,"comparison": "WAITING"},
+      "progress": {"completed": 2,"total": 3},
+      "monitor": {"robot": {"mode": "FAKE","status": "IDLE"},"observation": {"status": null,"check_id": "J01:C07","observation_seq": null,"reason": null},"place_status": null,"supply": [{"brick_type": "2x2x1","color": "yellow","next_slot": null,"needs_refill": true},{"brick_type": "2x2x1","color": "blue","next_slot": 1,"needs_refill": false},{"brick_type": "2x3x1","color": "yellow","next_slot": 1,"needs_refill": false},{"brick_type": "2x3x1","color": "blue","next_slot": 2,"needs_refill": false}]},
+      "notice": {"question": null,"reason": null,"required_action": "노랑 4점 공급열을 보충하고 해당 열의 보충 완료를 요청하세요.","request_id": null},
+      "actions": {"job_id": "J01","start": {"visible": true,"enabled": false},"stop": {"visible": true,"enabled": true},"resume": {"visible": true,"enabled": false},"intent_choice": {"visible": false,"enabled": false,"request_id": null},"correction_continue": {"visible": false,"enabled": false,"request_id": null},"supply_refill": [{"brick_type": "2x2x1","color": "yellow","visible": true,"enabled": true}]},
+      "design": {"design_version": 1,"blocks": [{"brick_type": "2x2x1","color": "yellow","x": 3,"y": 5,"layer": 1,"orientation_deg": 0},{"brick_type": "2x2x1","color": "yellow","x": 5,"y": 5,"layer": 1,"orientation_deg": 0},{"brick_type": "2x3x1","color": "blue","x": 3,"y": 5,"layer": 2,"orientation_deg": 90}]}
+    },
+    "stopped": {
+      "workflow_status": "STOPPED",
+      "step": {"plan_id": "plan-fixture-initial","step_id": "S03","target": {"brick_type": "2x3x1","color": "blue","x": 3,"y": 5,"layer": 2,"orientation_deg": 90},"observed": null,"comparison": "WAITING"},
+      "progress": {"completed": 2,"total": 3},
+      "monitor": {"robot": {"mode": "FAKE","status": "STOPPED"},"observation": {"status": null,"check_id": null,"observation_seq": null,"reason": null},"place_status": null,"supply": [{"brick_type": "2x2x1","color": "yellow","next_slot": 3,"needs_refill": false},{"brick_type": "2x2x1","color": "blue","next_slot": 1,"needs_refill": false},{"brick_type": "2x3x1","color": "yellow","next_slot": 1,"needs_refill": false},{"brick_type": "2x3x1","color": "blue","next_slot": 2,"needs_refill": false}]},
+      "notice": {"question": null,"reason": null,"required_action": "재개 요청 후 Controller 상태와 새 관측으로 진행합니다.","request_id": null},
+      "actions": {"job_id": "J01","start": {"visible": true,"enabled": false},"stop": {"visible": true,"enabled": false},"resume": {"visible": true,"enabled": true},"intent_choice": {"visible": false,"enabled": false,"request_id": null},"correction_continue": {"visible": false,"enabled": false,"request_id": null},"supply_refill": []},
+      "design": {"design_version": 1,"blocks": [{"brick_type": "2x2x1","color": "yellow","x": 3,"y": 5,"layer": 1,"orientation_deg": 0},{"brick_type": "2x2x1","color": "yellow","x": 5,"y": 5,"layer": 1,"orientation_deg": 0},{"brick_type": "2x3x1","color": "blue","x": 3,"y": 5,"layer": 2,"orientation_deg": 90}]}
+    },
+    "complete": {
+      "workflow_status": "COMPLETE",
+      "step": {"plan_id": "plan-fixture-initial","step_id": null,"target": null,"observed": null,"comparison": "WAITING"},
+      "progress": {"completed": 3,"total": 3},
+      "monitor": {"robot": {"mode": "FAKE","status": "IDLE"},"observation": {"status": null,"check_id": null,"observation_seq": null,"reason": null},"place_status": null,"supply": [{"brick_type": "2x2x1","color": "yellow","next_slot": 3,"needs_refill": false},{"brick_type": "2x2x1","color": "blue","next_slot": 1,"needs_refill": false},{"brick_type": "2x3x1","color": "yellow","next_slot": 1,"needs_refill": false},{"brick_type": "2x3x1","color": "blue","next_slot": 2,"needs_refill": false}]},
+      "notice": {"question": null,"reason": null,"required_action": "전체 목표의 누적 확인을 완료한 모의 상태입니다. 새 작업을 요청할 수 있습니다.","request_id": null},
+      "actions": {"job_id": "J01","start": {"visible": true,"enabled": true},"stop": {"visible": true,"enabled": false},"resume": {"visible": true,"enabled": false},"intent_choice": {"visible": false,"enabled": false,"request_id": null},"correction_continue": {"visible": false,"enabled": false,"request_id": null},"supply_refill": []},
+      "design": {"design_version": 1,"blocks": [{"brick_type": "2x2x1","color": "yellow","x": 3,"y": 5,"layer": 1,"orientation_deg": 0},{"brick_type": "2x2x1","color": "yellow","x": 5,"y": 5,"layer": 1,"orientation_deg": 0},{"brick_type": "2x3x1","color": "blue","x": 3,"y": 5,"layer": 2,"orientation_deg": 90}]}
+    }
+  },
+  "commands": {
+    "start": {"command": "START"},
+    "stop": {"command": "STOP","job_id": "J01"},
+    "resume": {"command": "RESUME","job_id": "J01"},
+    "keep": {"command": "CHOOSE_INTENT","job_id": "J01","request_id": "J01:Q02","choice": "KEEP"},
+    "revise": {"command": "CHOOSE_INTENT","job_id": "J01","request_id": "J01:Q02","choice": "REVISE"},
+    "correction": {"command": "CONTINUE_AFTER_CORRECTION","job_id": "J01","request_id": "J01:Q03"},
+    "refill": {"command": "SUPPLY_REFILLED","job_id": "J01","brick_type": "2x2x1","color": "yellow"}
+  },
+  "invalid_snapshots": {
+    "missing_design": {
+      "workflow_status": "WAIT_ASSEMBLY",
+      "step": {"plan_id": "plan-fixture-initial","step_id": "S03","target": {"brick_type": "2x3x1","color": "blue","x": 3,"y": 5,"layer": 2,"orientation_deg": 90},"observed": null,"comparison": "WAITING"},
+      "progress": {"completed": 2,"total": 3},
+      "monitor": {"robot": {"mode": "FAKE","status": "IDLE"},"observation": {"status": null,"check_id": "J01:C07","observation_seq": null,"reason": null},"place_status": null,"supply": [{"brick_type": "2x2x1","color": "yellow","next_slot": 3,"needs_refill": false},{"brick_type": "2x2x1","color": "blue","next_slot": 1,"needs_refill": false},{"brick_type": "2x3x1","color": "yellow","next_slot": 1,"needs_refill": false},{"brick_type": "2x3x1","color": "blue","next_slot": 2,"needs_refill": false}]},
+      "notice": {"question": null,"reason": null,"required_action": "파랑 6점을 목표 위치에 조립하고 완료 확인 관측을 기다립니다.","request_id": null},
+      "actions": {"job_id": "J01","start": {"visible": true,"enabled": false},"stop": {"visible": true,"enabled": true},"resume": {"visible": true,"enabled": false},"intent_choice": {"visible": false,"enabled": false,"request_id": null},"correction_continue": {"visible": false,"enabled": false,"request_id": null},"supply_refill": []}
+    },
+    "real_mode": {
+      "workflow_status": "WAIT_ASSEMBLY",
+      "step": {"plan_id": "plan-fixture-initial","step_id": "S03","target": {"brick_type": "2x3x1","color": "blue","x": 3,"y": 5,"layer": 2,"orientation_deg": 90},"observed": null,"comparison": "WAITING"},
+      "progress": {"completed": 2,"total": 3},
+      "monitor": {"robot": {"mode": "REAL","status": "IDLE"},"observation": {"status": null,"check_id": "J01:C07","observation_seq": null,"reason": null},"place_status": null,"supply": [{"brick_type": "2x2x1","color": "yellow","next_slot": 3,"needs_refill": false},{"brick_type": "2x2x1","color": "blue","next_slot": 1,"needs_refill": false},{"brick_type": "2x3x1","color": "yellow","next_slot": 1,"needs_refill": false},{"brick_type": "2x3x1","color": "blue","next_slot": 2,"needs_refill": false}]},
+      "notice": {"question": null,"reason": null,"required_action": "파랑 6점을 목표 위치에 조립하고 완료 확인 관측을 기다립니다.","request_id": null},
+      "actions": {"job_id": "J01","start": {"visible": true,"enabled": false},"stop": {"visible": true,"enabled": true},"resume": {"visible": true,"enabled": false},"intent_choice": {"visible": false,"enabled": false,"request_id": null},"correction_continue": {"visible": false,"enabled": false,"request_id": null},"supply_refill": []},
+      "design": {"design_version": 1,"blocks": [{"brick_type": "2x2x1","color": "yellow","x": 3,"y": 5,"layer": 1,"orientation_deg": 0},{"brick_type": "2x2x1","color": "yellow","x": 5,"y": 5,"layer": 1,"orientation_deg": 0},{"brick_type": "2x3x1","color": "blue","x": 3,"y": 5,"layer": 2,"orientation_deg": 90}]}
+    },
+    "bad_comparison": {
+      "workflow_status": "WAIT_ASSEMBLY",
+      "step": {"plan_id": "plan-fixture-initial","step_id": "S03","target": {"brick_type": "2x3x1","color": "blue","x": 3,"y": 5,"layer": 2,"orientation_deg": 90},"observed": null,"comparison": "DELIVERED"},
+      "progress": {"completed": 2,"total": 3},
+      "monitor": {"robot": {"mode": "FAKE","status": "IDLE"},"observation": {"status": null,"check_id": "J01:C07","observation_seq": null,"reason": null},"place_status": null,"supply": [{"brick_type": "2x2x1","color": "yellow","next_slot": 3,"needs_refill": false},{"brick_type": "2x2x1","color": "blue","next_slot": 1,"needs_refill": false},{"brick_type": "2x3x1","color": "yellow","next_slot": 1,"needs_refill": false},{"brick_type": "2x3x1","color": "blue","next_slot": 2,"needs_refill": false}]},
+      "notice": {"question": null,"reason": null,"required_action": "파랑 6점을 목표 위치에 조립하고 완료 확인 관측을 기다립니다.","request_id": null},
+      "actions": {"job_id": "J01","start": {"visible": true,"enabled": false},"stop": {"visible": true,"enabled": true},"resume": {"visible": true,"enabled": false},"intent_choice": {"visible": false,"enabled": false,"request_id": null},"correction_continue": {"visible": false,"enabled": false,"request_id": null},"supply_refill": []},
+      "design": {"design_version": 1,"blocks": [{"brick_type": "2x2x1","color": "yellow","x": 3,"y": 5,"layer": 1,"orientation_deg": 0},{"brick_type": "2x2x1","color": "yellow","x": 5,"y": 5,"layer": 1,"orientation_deg": 0},{"brick_type": "2x3x1","color": "blue","x": 3,"y": 5,"layer": 2,"orientation_deg": 90}]}
+    },
+    "bad_slot": {
+      "workflow_status": "WAIT_ASSEMBLY",
+      "step": {"plan_id": "plan-fixture-initial","step_id": "S03","target": {"brick_type": "2x3x1","color": "blue","x": 3,"y": 5,"layer": 2,"orientation_deg": 90},"observed": null,"comparison": "WAITING"},
+      "progress": {"completed": 2,"total": 3},
+      "monitor": {"robot": {"mode": "FAKE","status": "IDLE"},"observation": {"status": null,"check_id": "J01:C07","observation_seq": null,"reason": null},"place_status": null,"supply": [{"brick_type": "2x2x1","color": "yellow","next_slot": 7,"needs_refill": false},{"brick_type": "2x2x1","color": "blue","next_slot": 1,"needs_refill": false},{"brick_type": "2x3x1","color": "yellow","next_slot": 1,"needs_refill": false},{"brick_type": "2x3x1","color": "blue","next_slot": 2,"needs_refill": false}]},
+      "notice": {"question": null,"reason": null,"required_action": "파랑 6점을 목표 위치에 조립하고 완료 확인 관측을 기다립니다.","request_id": null},
+      "actions": {"job_id": "J01","start": {"visible": true,"enabled": false},"stop": {"visible": true,"enabled": true},"resume": {"visible": true,"enabled": false},"intent_choice": {"visible": false,"enabled": false,"request_id": null},"correction_continue": {"visible": false,"enabled": false,"request_id": null},"supply_refill": []},
+      "design": {"design_version": 1,"blocks": [{"brick_type": "2x2x1","color": "yellow","x": 3,"y": 5,"layer": 1,"orientation_deg": 0},{"brick_type": "2x2x1","color": "yellow","x": 5,"y": 5,"layer": 1,"orientation_deg": 0},{"brick_type": "2x3x1","color": "blue","x": 3,"y": 5,"layer": 2,"orientation_deg": 90}]}
+    }
+  },
+  "invalid_commands": {
+    "unsupported": {"command": "COMPLETE_STEP","job_id": "J01"},
+    "missing_job": {"command": "STOP"},
+    "unclear": {"command": "CHOOSE_INTENT","job_id": "J01","request_id": "J01:Q02","choice": "UNCLEAR"},
+    "bad_column": {"command": "SUPPLY_REFILLED","job_id": "J01","brick_type": "2x2x1","color": "red"},
+    "missing_request": {"command": "CONTINUE_AFTER_CORRECTION","job_id": "J01"}
+  }
+}
