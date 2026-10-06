@@ -385,3 +385,49 @@ fixture 설명인 `_note`는 계산 입력에 포함하지 않는다. C의 Curre
 C fixture의 `expected_input_rules`는 C 검사의 기대값이며 A의 반환 상태와 혼용하지 않는다.
 이 실행은 저장된 fixture → 기존 A 함수 확인이다. C 공개 함수·LLM·D Consumer·HMI·장치
 연결을 새로 시험하는 것이 아니며, 계산 코드·공통 계약은 변경하지 않았다.
+
+## C 공개 수정 함수 + D Current → A → D 채택
+
+`check_c_a_d_revised.py`는 저장된 C 응답 대신 C의 공개 Initial/Revised 함수를 호출한다.
+시험 소스는 main `101d9d85efe8bdf7cf82bef2a199f4919e1e6c84`다. 이 커밋의 C는 Mock 생성기를
+사용하며 음성·LLM은 호출하지 않는다. D/A/C 운영 코드와 일반 Difference 변환을 수정하지 않는다.
+
+```bash
+python3 planning_trial/check_c_a_d_revised.py /path/to/team-checkout
+```
+
+다른 PC에서는 A checkout 루트에서 아래처럼 **C·D를 포함한 main 시험 커밋**을 준비한다.
+이 경로는 앞의 C 전용 `9de685b` checkout과 구분한다. 이미 해당 팀 checkout이 있으면
+clone·checkout을 생략하고 `team_reproduction_root`만 그 경로로 지정한다.
+
+```bash
+git clone --single-branch --branch main https://github.com/suuuhululu/C-2.git ../C-2-team-reproduction
+team_reproduction_root="../C-2-team-reproduction"
+git -C "$team_reproduction_root" checkout --detach 101d9d85efe8bdf7cf82bef2a199f4919e1e6c84
+git -C "$team_reproduction_root" rev-parse HEAD
+git rev-parse HEAD
+mkdir -p planning_trial/manual_run_logs
+set -o pipefail
+python3 planning_trial/check_c_a_d_revised.py "$team_reproduction_root" 2>&1 | tee planning_trial/manual_run_logs/c_a_d_revised.log
+echo "실행 종료 코드: $?"
+```
+
+기대 결과는 아래 Initial/Revised 채택 기록과 `Checks: PASS (17 checks)`, 종료 코드 0이다.
+
+인자는 C·D가 함께 있는 팀 checkout 경로이며 `--output-dir`로 별도 결과 위치를 지정할 수 있다.
+실행 파일에는 backend 요청을 실제 A 함수에 전달하고 호출 입력/출력을 기록하는 역할만 추가한다.
+관측 fixture와 Fake Robot을 사용하므로 실제 장치를 움직이지 않는다.
+
+- C Initial 공개 함수 → 실제 A 15 PLACE → D 채택.
+- 네 블록을 관측 fixture로 확인해 D가 Current revision=4를 만든다.
+- 다리 하나를 (9,9,1)에서 (8,9,1)로 옮긴 관측으로 D가 revision=5를 만든다.
+- D가 보낸 차이에는 이동 전 다리와 아직 조립되지 않은 다음 Step의 누락이 함께 있다.
+  시험에서 알고 있는 이동 쌍과 실제 확인된 빈 다음 Step(actual=null)을 명시적으로 C에 전달한다.
+  목록 순서로 짝짓는 일반 변환 기능을 구현한 것이 아니며 가림을 빈 영역으로 취급하지 않는다.
+- C `run_intervention(..., text_answers=["2번"])` → REVISE v2 → 같은 D Current로 A 11 PLACE → D 채택.
+
+수정 목표·Current·A 입력/출력·채택 Plan·HMI 표시 데이터는 `integration_results/c_a_d_revised/runs.json`,
+검사 결과는 `verification.json`, 실제 출력은 `execution.txt`, D 이벤트는 `jobs/<job_id>.jsonl`에 저장한다.
+한 Job 안에서 생성/요청/관측/질문/재계획/채택 기록을 연결한다. 재실행하면 요약 파일은 갱신되고
+Job 로그는 새 ID로 추가된다. HMI snapshot 계약은 확인하지만 Qt 창을 표시한 시험은 아니다.
+남은 11개 전달·조립 전체 사이클, 실제 LLM·음성·카메라·로봇, 여러 차이의 자동 대응은 미검증이다.

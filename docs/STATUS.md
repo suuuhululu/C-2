@@ -1,5 +1,17 @@
 # 현재 진행 상황
 
+## A파트 — C 공개 수정 함수·D Current 기반 채택 시험 공유 (2026-10-06)
+
+- 고정 A 브랜치에 `planning_trial/check_c_a_d_revised.py`와 README 재현 절차를 추가했습니다. 계산 코드·공통 계약·D/C 운영 코드는 변경하지 않았습니다.
+- 팀 main `101d9d85efe8bdf7cf82bef2a199f4919e1e6c84`에서 C 공개 Initial/Revised 함수와 D를 가져와, 이 A checkout의 기존 `plan_from_current()`를 호출합니다. 저장된 C 응답을 성공 결과로 대신 넣지 않습니다. C 생성기는 Mock, 관측은 fixture, Robot은 Fake입니다.
+- Initial 15 PLACE를 D가 채택한 뒤 네 Step의 관측 fixture로 D Current revision=4를 만듭니다. 다리 하나를 (9,9,1)→(8,9,1)로 옮긴 관측 후 revision=5를 만들고, 실제 C REVISE v2 → 같은 Current의 A 11 PLACE → D 채택까지 확인했습니다.
+- D Difference에 포함된 이동 전후 다리와 확인된 빈 다음 Step을 시험에서 명시적으로 연결합니다. 일반적인 D–C 차이 변환·여러 블록의 대응 추정·가림 해석을 새로 구현하거나 확정하지 않았습니다.
+- 사용자가 직접 터미널 실행해 **PASS (17 checks)**·종료 코드 0을 확인하고 공유한 기록이 있습니다. 게시 준비 checkout에서도 같은 runner를 재실행해 17개 검사를 통과했습니다. 후자는 사용자 직접 실행 증거와 다른 Job으로 기록하고 공유 압축 파일에 혼입하지 않습니다.
+- 검사 범위: Current 보존·수정 Design v2·base_current_revision=5·새 Plan ID·기존 4개 중복 PLACE 제외·Remaining 11개·D가 실제 A 결과 채택·C 응답/Plan 결과 JSONL 기록. HMI snapshot 계약을 생성하며 Qt 창을 직접 표시하는 시험은 아닙니다.
+- 소스 변경은 runner·README·이 기록 3개입니다. 기존 단일 계산 코드의 SHA256 `0f96d24b8fad195185b68c9c520976b3c97d91aa179fcd91382426772f2e7835`를 유지합니다. 신규 dependency·class·시뮬레이션/REAL 분리는 없습니다.
+- 사용자 직접 실행 로그·입출력 JSON·검증 결과·해당 Job JSONL·재현 안내는 새 공유 압축 파일로 별도 준비하고 기존 첨부는 보존합니다. 원격 소스에는 생성 산출물을 커밋하지 않습니다.
+- 미검증: 실제 LLM/STT/TTS·B callback/촬영·실제 Robot/체결·여러 차이의 자동 변환·이번 수정 이후 남은 11개 전체 사이클. 이번 시험은 명시한 사례의 C 공개 함수→A→D 소프트웨어 연결 증거이며 일반 변환 기능·실제 장치 완료로 보고하지 않습니다. main 병합·PR 생성은 이번 작업 범위가 아닙니다.
+
 ## A파트 — C Mock·공유 fixture 재현 실행 파일 게시 (2026-10-06)
 
 - 기존 고정 브랜치 `work/seeun-planning`에 [실행 안내](../planning_trial/README.md)와 재현용 실행 파일 4개를 추가했습니다. A 계산 코드 `planner.py`와 공통 입출력은 변경하지 않았습니다.
