@@ -687,3 +687,32 @@ def test_revised_llm_error_stops_without_regeneration(initial_design):
     assert result["attempts"] == 0
     assert result["reasons"] == [{"rule": "llm_call_failed", "blocks": [], "message": "network"}]
     assert len(calls) == 1
+
+
+def test_revised_llm_candidate_with_design_version_is_accepted_and_versioned_by_designer(initial_design):
+    # WAVE 5: the LLM may echo design_version; designer ignores it and sets the version itself (§8.2).
+    legs = _blocks_at(initial_design, 1)
+    b1, b2, b3 = legs[0], legs[1], legs[2]
+    shifted_b3 = _shift(b3, dy=1)
+    current = [dict(b1), dict(b2), shifted_b3]
+    differences = [{"expected": b3, "actual": shifted_b3}]
+    mock = designer.mock_revised_candidate(initial_design, current, differences)
+
+    def gen(design_in, current_in, differences_in, reasons):
+        return {"design_version": 99, "blocks": mock["blocks"]}
+
+    result = designer.build_revised_design(
+        initial_design, current, differences, generate=gen, max_attempts=1, delay=0
+    )
+    assert result["design"] is not None, result["reasons"]
+    assert result["design"]["design_version"] == initial_design["design_version"] + 1 == 2
+    assert validator.validate_design(result["design"]) == []
+
+    def gen_extra_key(design_in, current_in, differences_in, reasons):
+        return {"design_version": 99, "plan": [], "blocks": mock["blocks"]}
+
+    rejected = designer.build_revised_design(
+        initial_design, current, differences, generate=gen_extra_key, max_attempts=1, delay=0
+    )
+    assert rejected["design"] is None
+    assert "unknown_key" in {r["rule"] for r in rejected["reasons"]}

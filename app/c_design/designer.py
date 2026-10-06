@@ -174,6 +174,9 @@ def build_revised_design(design, current, differences, generate=None, max_attemp
         return make(design, current, differences, prev_reasons)
 
     def finalize(candidate):
+        if isinstance(candidate, dict):
+            # 후보의 design_version은 무시한다: 버전은 designer가 정한다(§8.2). 다른 키는 그대로 검증.
+            candidate = {key: value for key, value in candidate.items() if key != "design_version"}
         reasons = validator.validate_revised(candidate, current)
         if reasons:
             return None, reasons
