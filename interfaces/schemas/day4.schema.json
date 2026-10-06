@@ -1,0 +1,370 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:adaptive-coassembly:day4:consumer",
+  "title": "Day4 minimal Consumer contracts",
+  "description": "Use $defs block/design/step/plan/observed. Structural validation only; not geometry, freshness, adoption or completion proof.",
+  "oneOf": [
+    {
+      "$ref": "#/$defs/block"
+    },
+    {
+      "$ref": "#/$defs/design"
+    },
+    {
+      "$ref": "#/$defs/step"
+    },
+    {
+      "$ref": "#/$defs/plan"
+    },
+    {
+      "$ref": "#/$defs/observed"
+    },
+    {
+      "$ref": "#/$defs/plan_result"
+    }
+  ],
+  "$defs": {
+    "id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "version": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "sequence": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "coordinate": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 23
+    },
+    "layer": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 4
+    },
+    "blocks": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/block"
+      }
+    },
+    "block": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "brick_type",
+        "color",
+        "x",
+        "y",
+        "layer",
+        "orientation_deg"
+      ],
+      "properties": {
+        "brick_type": {
+          "enum": [
+            "2x2x1",
+            "2x3x1"
+          ]
+        },
+        "color": {
+          "enum": [
+            "yellow",
+            "blue"
+          ]
+        },
+        "x": {
+          "$ref": "#/$defs/coordinate"
+        },
+        "y": {
+          "$ref": "#/$defs/coordinate"
+        },
+        "layer": {
+          "$ref": "#/$defs/layer"
+        },
+        "orientation_deg": {
+          "type": "integer",
+          "enum": [
+            0,
+            90
+          ]
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "brick_type": {
+                "const": "2x2x1"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "orientation_deg": {
+                "const": 0
+              }
+            }
+          }
+        }
+      ]
+    },
+    "design": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "design_version",
+        "blocks"
+      ],
+      "properties": {
+        "design_version": {
+          "$ref": "#/$defs/version"
+        },
+        "blocks": {
+          "$ref": "#/$defs/blocks"
+        }
+      }
+    },
+    "step": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "step_id",
+        "operation",
+        "before",
+        "after",
+        "prerequisites",
+        "requires_delivery"
+      ],
+      "properties": {
+        "step_id": {
+          "$ref": "#/$defs/id"
+        },
+        "operation": {
+          "const": "PLACE"
+        },
+        "before": {
+          "type": "null"
+        },
+        "after": {
+          "$ref": "#/$defs/block"
+        },
+        "requires_delivery": {
+          "const": true
+        },
+        "prerequisites": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/id"
+          }
+        }
+      }
+    },
+    "plan": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "plan_id",
+        "design_version",
+        "base_current_revision",
+        "steps"
+      ],
+      "properties": {
+        "plan_id": {
+          "$ref": "#/$defs/id"
+        },
+        "design_version": {
+          "$ref": "#/$defs/version"
+        },
+        "base_current_revision": {
+          "$ref": "#/$defs/sequence"
+        },
+        "steps": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/step"
+          }
+        }
+      }
+    },
+    "region": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "x",
+        "y",
+        "width",
+        "height",
+        "layer"
+      ],
+      "properties": {
+        "x": {
+          "$ref": "#/$defs/coordinate"
+        },
+        "y": {
+          "$ref": "#/$defs/coordinate"
+        },
+        "width": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 24
+        },
+        "height": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 24
+        },
+        "layer": {
+          "$ref": "#/$defs/layer"
+        }
+      }
+    },
+    "observed": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "check_id",
+        "observation_seq",
+        "status",
+        "visible_blocks",
+        "verified_regions",
+        "reason"
+      ],
+      "properties": {
+        "check_id": {
+          "$ref": "#/$defs/id"
+        },
+        "observation_seq": {
+          "$ref": "#/$defs/sequence"
+        },
+        "status": {
+          "enum": [
+            "OK",
+            "UNOBSERVABLE"
+          ]
+        },
+        "visible_blocks": {
+          "$ref": "#/$defs/blocks"
+        },
+        "verified_regions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/region"
+          }
+        },
+        "reason": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "minLength": 1
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "status": {
+                "const": "UNOBSERVABLE"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "reason": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          }
+        }
+      ]
+    },
+    "plan_result": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "plan",
+        "errors"
+      ],
+      "properties": {
+        "status": {
+          "enum": [
+            "READY",
+            "NEEDS_CORRECTION",
+            "INVALID"
+          ]
+        },
+        "plan": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/plan"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "errors": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "reason",
+              "block"
+            ],
+            "properties": {
+              "reason": {
+                "type": "string",
+                "minLength": 1
+              },
+              "block": {
+                "type": [
+                  "object",
+                  "null"
+                ]
+              }
+            }
+          }
+        }
+      },
+      "oneOf": [
+        {
+          "properties": {
+            "status": {
+              "const": "READY"
+            },
+            "plan": {
+              "$ref": "#/$defs/plan"
+            },
+            "errors": {
+              "maxItems": 0
+            }
+          }
+        },
+        {
+          "properties": {
+            "status": {
+              "enum": [
+                "NEEDS_CORRECTION",
+                "INVALID"
+              ]
+            },
+            "plan": {
+              "type": "null"
+            },
+            "errors": {
+              "minItems": 1
+            }
+          }
+        }
+      ]
+    }
+  }
+}

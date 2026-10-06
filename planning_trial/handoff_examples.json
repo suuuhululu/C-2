@@ -1,0 +1,62 @@
+{
+  "initial": {
+    "design": {
+      "design_version": 1,
+      "blocks": [
+        {"brick_type":"2x2x1","color":"yellow","x":3,"y":5,"layer":1,"orientation_deg":0},
+        {"brick_type":"2x2x1","color":"yellow","x":5,"y":5,"layer":1,"orientation_deg":0},
+        {"brick_type":"2x3x1","color":"blue","x":3,"y":5,"layer":2,"orientation_deg":90}
+      ]
+    },
+    "current": {"current_revision":0,"blocks":[]},
+    "expected_status": "READY",
+    "expected_step_count": 3
+  },
+  "partial": {
+    "design": {
+      "design_version": 1,
+      "blocks": [
+        {"brick_type":"2x2x1","color":"yellow","x":3,"y":5,"layer":1,"orientation_deg":0},
+        {"brick_type":"2x2x1","color":"yellow","x":5,"y":5,"layer":1,"orientation_deg":0},
+        {"brick_type":"2x3x1","color":"blue","x":3,"y":5,"layer":2,"orientation_deg":90}
+      ]
+    },
+    "current": {
+      "current_revision": 1,
+      "blocks": [{"brick_type":"2x2x1","color":"yellow","x":3,"y":5,"layer":1,"orientation_deg":0}]
+    },
+    "expected_status": "READY",
+    "expected_step_count": 2
+  },
+  "all_assembled": {
+    "design": {
+      "design_version": 1,
+      "blocks": [{"brick_type":"2x2x1","color":"yellow","x":3,"y":5,"layer":1,"orientation_deg":0}]
+    },
+    "current": {
+      "current_revision": 3,
+      "blocks": [{"brick_type":"2x2x1","color":"yellow","x":3,"y":5,"layer":1,"orientation_deg":0}]
+    },
+    "expected_status": "READY",
+    "expected_step_count": 0
+  },
+  "needs_correction": {
+    "design": {
+      "design_version": 1,
+      "blocks": [{"brick_type":"2x2x1","color":"yellow","x":3,"y":5,"layer":1,"orientation_deg":0}]
+    },
+    "current": {
+      "current_revision": 1,
+      "blocks": [{"brick_type":"2x2x1","color":"yellow","x":4,"y":5,"layer":1,"orientation_deg":0}]
+    },
+    "expected_status": "NEEDS_CORRECTION"
+  },
+  "invalid": {
+    "design": {
+      "design_version": 1,
+      "blocks": [{"brick_type":"2x2x1","color":"yellow","x":3,"y":5,"layer":5,"orientation_deg":0}]
+    },
+    "current": {"current_revision":0,"blocks":[]},
+    "expected_status": "INVALID"
+  }
+}

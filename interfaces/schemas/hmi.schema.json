@@ -1,0 +1,97 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://c-2.invalid/schemas/hmi.schema.json",
+  "title": "Day4 Backend-HMI snapshot and command contracts",
+  "description": "Explicit FAKE or REAL display/input. REAL currently binds only a bounded single transfer trial. Consumer checks cross-field consistency, not physical completion proof.",
+  "oneOf": [{"$ref":"#/$defs/snapshot"},{"$ref":"#/$defs/command"}],
+  "$defs": {
+    "nullable_id": {"anyOf":[{"$ref":"day4.schema.json#/$defs/id"},{"type":"null"}]},
+    "nullable_sequence": {"anyOf":[{"$ref":"day4.schema.json#/$defs/sequence"},{"type":"null"}]},
+    "button": {
+      "type":"object", "additionalProperties":false, "required":["visible","enabled"],
+      "properties":{"visible":{"type":"boolean"},"enabled":{"type":"boolean"}},
+      "allOf":[{"if":{"properties":{"visible":{"const":false}}},"then":{"properties":{"enabled":{"const":false}}}}]
+    },
+    "request_button": {
+      "type":"object", "additionalProperties":false, "required":["visible","enabled","request_id"],
+      "properties":{"visible":{"type":"boolean"},"enabled":{"type":"boolean"},"request_id":{"$ref":"#/$defs/nullable_id"}}
+    },
+    "refill_button": {
+      "type":"object", "additionalProperties":false, "required":["brick_type","color","visible","enabled"],
+      "properties":{"brick_type":{"enum":["2x2x1","2x3x1"]},"color":{"enum":["yellow","blue"]},"visible":{"type":"boolean"},"enabled":{"type":"boolean"}}
+    },
+    "supply": {
+      "type":"object", "additionalProperties":false, "required":["brick_type","color","next_slot","needs_refill"],
+      "properties":{"brick_type":{"enum":["2x2x1","2x3x1"]},"color":{"enum":["yellow","blue"]},"next_slot":{"type":["integer","null"],"minimum":1,"maximum":6},"needs_refill":{"type":["boolean","null"]}}
+    },
+    "transfer_target": {
+      "type":"object", "additionalProperties":false, "required":["brick_type","color","slot"],
+      "properties":{"brick_type":{"enum":["2x2x1","2x3x1"]},"color":{"enum":["yellow","blue"]},"slot":{"type":"integer","minimum":1,"maximum":6}}
+    },
+    "step": {
+      "type":"object", "additionalProperties":false, "required":["plan_id","step_id","target","observed","comparison"],
+      "properties": {
+        "plan_id":{"$ref":"#/$defs/nullable_id"},"step_id":{"$ref":"#/$defs/nullable_id"},
+        "target":{"anyOf":[{"$ref":"day4.schema.json#/$defs/block"},{"type":"null"}]},
+        "observed":{"anyOf":[{"$ref":"day4.schema.json#/$defs/observed"},{"type":"null"}]},
+        "comparison":{"enum":["WAITING","MATCH","MISMATCH","UNOBSERVABLE"]}
+      }
+    },
+    "progress": {
+      "type":"object", "additionalProperties":false, "required":["completed","total"],
+      "properties":{"completed":{"type":"integer","minimum":0},"total":{"type":"integer","minimum":0}}
+    },
+    "robot": {
+      "type":"object", "additionalProperties":false, "required":["mode","status"],
+      "properties":{"mode":{"enum":["FAKE","REAL"]},"status":{"enum":[null,"IDLE","BUSY","STOP_PENDING","STOPPED","ERROR"]}}
+    },
+    "observation": {
+      "type":"object", "additionalProperties":false, "required":["status","check_id","observation_seq","reason"],
+      "properties":{"status":{"enum":[null,"OK","UNOBSERVABLE"]},"check_id":{"$ref":"#/$defs/nullable_id"},"observation_seq":{"$ref":"#/$defs/nullable_sequence"},"reason":{"$ref":"#/$defs/nullable_id"}}
+    },
+    "monitor": {
+      "type":"object", "additionalProperties":false, "required":["robot","observation","place_status","supply"],
+      "properties":{"robot":{"$ref":"#/$defs/robot"},"observation":{"$ref":"#/$defs/observation"},"place_status":{"enum":[null,"EMPTY","OCCUPIED","UNOBSERVABLE"]},"supply":{"type":"array","minItems":4,"maxItems":4,"items":{"$ref":"#/$defs/supply"}}}
+    },
+    "notice": {
+      "type":"object", "additionalProperties":false, "required":["question","reason","required_action","request_id"],
+      "properties":{"question":{"$ref":"#/$defs/nullable_id"},"reason":{"$ref":"#/$defs/nullable_id"},"required_action":{"$ref":"#/$defs/nullable_id"},"request_id":{"$ref":"#/$defs/nullable_id"}}
+    },
+    "actions": {
+      "type":"object", "additionalProperties":false, "required":["job_id","start","stop","resume","intent_choice","correction_continue","supply_refill"],
+      "properties": {
+        "job_id":{"$ref":"#/$defs/nullable_id"},"start":{"$ref":"#/$defs/button"},"stop":{"$ref":"#/$defs/button"},"resume":{"$ref":"#/$defs/button"},
+        "intent_choice":{"$ref":"#/$defs/request_button"},"correction_continue":{"$ref":"#/$defs/request_button"},
+        "supply_refill":{"type":"array","maxItems":4,"items":{"$ref":"#/$defs/refill_button"}}
+      }
+    },
+    "snapshot": {
+      "type":"object", "additionalProperties":false, "required":["workflow_status","step","progress","monitor","notice","actions","design"],
+      "allOf":[{
+        "if":{"properties":{"monitor":{"properties":{"robot":{"properties":{"mode":{"const":"REAL"}}}}}}},
+        "then":{"properties":{
+          "workflow_status":{"enum":["IDLE","DELIVERING","HOLD"]},"design":{"type":"null"},
+          "step":{"properties":{"target":{"type":"null"}}},
+          "progress":{"properties":{"completed":{"const":0},"total":{"const":0}}},
+          "actions":{"properties":{"stop":{"properties":{"enabled":{"const":false}}},"resume":{"properties":{"enabled":{"const":false}}}}}
+        }},
+        "else":{"not":{"required":["transfer_target"]}}
+      }],
+      "properties": {
+        "workflow_status":{"enum":["IDLE","PREPARING","DELIVERING","WAIT_ASSEMBLY","WAIT_INTENT","REPLANNING","WAIT_CORRECTION","HOLD","STOPPED","COMPLETE"]},
+        "step":{"$ref":"#/$defs/step"},"progress":{"$ref":"#/$defs/progress"},"monitor":{"$ref":"#/$defs/monitor"},"notice":{"$ref":"#/$defs/notice"},"actions":{"$ref":"#/$defs/actions"},
+        "design":{"anyOf":[{"$ref":"day4.schema.json#/$defs/design"},{"type":"null"}]},
+        "transfer_target":{"$ref":"#/$defs/transfer_target"}
+      }
+    },
+    "command": {
+      "oneOf": [
+        {"type":"object","additionalProperties":false,"required":["command"],"properties":{"command":{"const":"START"}}},
+        {"type":"object","additionalProperties":false,"required":["command","job_id"],"properties":{"command":{"enum":["STOP","RESUME"]},"job_id":{"$ref":"day4.schema.json#/$defs/id"}}},
+        {"type":"object","additionalProperties":false,"required":["command","job_id","request_id","choice"],"properties":{"command":{"const":"CHOOSE_INTENT"},"job_id":{"$ref":"day4.schema.json#/$defs/id"},"request_id":{"$ref":"day4.schema.json#/$defs/id"},"choice":{"enum":["KEEP","REVISE"]}}},
+        {"type":"object","additionalProperties":false,"required":["command","job_id","request_id"],"properties":{"command":{"const":"CONTINUE_AFTER_CORRECTION"},"job_id":{"$ref":"day4.schema.json#/$defs/id"},"request_id":{"$ref":"day4.schema.json#/$defs/id"}}},
+        {"type":"object","additionalProperties":false,"required":["command","job_id","brick_type","color"],"properties":{"command":{"const":"SUPPLY_REFILLED"},"job_id":{"$ref":"day4.schema.json#/$defs/id"},"brick_type":{"enum":["2x2x1","2x3x1"]},"color":{"enum":["yellow","blue"]}}}
+      ]
+    }
+  }
+}
