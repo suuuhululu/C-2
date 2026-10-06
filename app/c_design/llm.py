@@ -37,6 +37,9 @@ DEFAULT_MODEL = "gpt-4o-mini"
 MAX_TOKENS = 2000
 TIMEOUT_SECONDS = 30
 RETRY_BACKOFF = (1, 2, 4)  # 일시적 provider 실패 재시도 간격(초), 최대 3회
+# Revised 후보가 거부된 뒤 재생성에서만 쓰는 temperature. 첫 시도와 Initial은 0이며,
+# API 재시도(network / timeout / 429 / 5xx)는 같은 payload를 다시 보내므로 영향이 없다.
+REVISED_RETRY_TEMPERATURE = 0.3
 
 _RULES = f"""Rules (the validator rejects any violation):
 - Board {len(validator.BOARD_RANGE)} x {len(validator.BOARD_RANGE)} studs. x and y are integers: the minimum corner of the block footprint; the whole footprint must stay inside 0..{validator.BOARD_RANGE[-1]}.
@@ -142,7 +145,7 @@ def _content_of(body):
     return content if isinstance(content, str) else None
 
 
-def _call(user_message, should_stop):
+def _call(user_message, should_stop, temperature=0):
     api_key = os.environ.get("OPENAI_API_KEY")
     if not api_key:
         return _error("missing_key", "OPENAI_API_KEY is not set")
@@ -152,7 +155,7 @@ def _call(user_message, should_stop):
             {"role": "system", "content": SYSTEM_PROMPT},
             {"role": "user", "content": user_message},
         ],
-        "temperature": 0,
+        "temperature": temperature,
         "max_tokens": MAX_TOKENS,
         "response_format": {"type": "json_object"},
     }
@@ -200,4 +203,6 @@ def generate_initial_design(object_type, reasons=None, should_stop=None):
 
 def generate_revised_design(design, current, differences, reasons=None, should_stop=None):
     """Revised Design 후보. Current 보존·전체 재설계를 지시한다(검증은 validator)."""
-    return _call(_revised_user_message(design, current, differences, reasons), should_stop)
+    # temperature 0에서는 거부 사유를 받아도 같은 후보가 반복돼 재생성에만 다양성을 준다.
+    temperature = REVISED_RETRY_TEMPERATURE if reasons else 0
+    return _call(_revised_user_message(design, current, differences, reasons), should_stop, temperature)

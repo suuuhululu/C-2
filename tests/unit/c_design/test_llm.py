@@ -506,3 +506,37 @@ class TestConnectivityFeedbackReachesRevisedPrompt:
         content = next(m["content"] for m in payload["messages"] if m["role"] == "user")
         assert "2 disconnected components" in content
         assert "components:" in content
+
+
+class TestRevisedRetryTemperature:
+    REASONS = [{"rule": "connectivity", "blocks": [], "message": "design is not fully connected"}]
+    CURRENT = [{"brick_type": "2x3x1", "color": "blue", "x": 9, "y": 9, "layer": 1, "orientation_deg": 0}]
+    DIFFS = [{"expected": CURRENT[0], "actual": dict(CURRENT[0], y=10)}]
+
+    @staticmethod
+    def _temperatures(fake):
+        return [json.loads(call["request"].data)["temperature"] for call in fake.calls]
+
+    def test_revised_first_attempt_uses_temperature_zero(self, monkeypatch, with_fake_key):
+        fake = _install(monkeypatch, [_body(json.dumps({"blocks": []}))])
+        llm.generate_revised_design(SIMPLE_DESIGN, self.CURRENT, self.DIFFS)
+        assert self._temperatures(fake) == [0]
+
+    def test_revised_regeneration_after_rejection_uses_retry_temperature(self, monkeypatch, with_fake_key):
+        fake = _install(monkeypatch, [_body(json.dumps({"blocks": []}))])
+        llm.generate_revised_design(SIMPLE_DESIGN, self.CURRENT, self.DIFFS, reasons=self.REASONS)
+        assert self._temperatures(fake) == [llm.REVISED_RETRY_TEMPERATURE] == [0.3]
+
+    def test_initial_always_uses_temperature_zero(self, monkeypatch, with_fake_key):
+        fake = _install(monkeypatch, [_body(json.dumps({"blocks": []}))] * 2)
+        llm.generate_initial_design("CHAIR")
+        llm.generate_initial_design("CHAIR", reasons=self.REASONS)
+        assert self._temperatures(fake) == [0, 0]
+
+    def test_api_retry_keeps_the_same_temperature(self, monkeypatch, with_fake_key):
+        fake = _install(monkeypatch, [_http_error(429), _body(json.dumps({"blocks": []}))])
+        llm.generate_revised_design(SIMPLE_DESIGN, self.CURRENT, self.DIFFS, reasons=self.REASONS)
+        assert self._temperatures(fake) == [0.3, 0.3]
+        fake = _install(monkeypatch, [_http_error(500), _body(json.dumps({"blocks": []}))])
+        llm.generate_revised_design(SIMPLE_DESIGN, self.CURRENT, self.DIFFS)
+        assert self._temperatures(fake) == [0, 0]
