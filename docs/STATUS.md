@@ -320,3 +320,19 @@ trial 항목 제안: trial_id, scenario_id, mode, 입력 관측·촬영 시각, 
 
 
 PR 게시 대상과 최신 main을 합친 독립 파일 트리에서 `QT_QPA_PLATFORM=offscreen python3 -m pytest tests planning_trial/test_planner.py -q` 실행: **884 passed**, 종료 코드 0. main의 C 검사도 포함하며, 별도 REAL 장치 시험·수동 입력 HMI 검사는 이번 게시 범위에서 제외한다. 실제 Camera/Robot 시험은 수행하지 않았다.
+
+## 2026-10-06 — 독립 DB 이력·계정·의미별 조회 PR
+
+사용자 요청으로 기존 DB 병행 개발을 별도 PR로 준비했다. 기존 Day4 공정은 Job별 JSONL을 유지하고, 별도 명령 컨테이너가 PostgreSQL에 적재·조회한다. 공정 Backend·Qt·A/B/C·Robot·Camera 소스와 공통 계약은 이번 PR에서 변경하지 않는다. 실행 방법과 출력 의미는 [DB 이력 안내](D_DB_HISTORY.md)를 따른다.
+
+- 저장표는 jobs/events/artifacts/sources/users 5개다. 원본 JSONL 문자열과 JSONB, 채택 Design/Plan/고정 기준 Current를 보관한다. 동일 원본/행 재적재는 건너뛰고 변경 원본·채택 자료 충돌·입력 오류는 파일 트랜잭션을 rollback한다. 줄바꿈 전 마지막 행은 보류한다.
+- 계정 생성·목록·비밀번호 확인, designs/currents/plans/hri 조회와 JSON 보고서를 포함한다. 비밀번호는 계정별 salt와 scrypt 해시로 저장하며 일반 반환에서 해시를 제외한다. 사용자 지정 다섯 계정은 기존 로컬 시험 DB에만 있고 PR에 비밀번호·계정 seed·DB 자료는 포함하지 않는다. 새 설치는 init 후 create-user로 계정을 만든다.
+- 조회는 적재된 이력이다. 마지막 채택 Plan을 실시간 active 상태로 해석하지 않으며 누락 문맥은 null/빈 배열로 둔다. HMI 로그인 세션·개인 도안 소유자·QR/얼굴인식·DB 상태 자동 복원은 미연결이다. 전달 성공을 사람 조립 완료로 처리하지 않는다.
+- 로그 Schema는 기존 봉투와 소비 결과를 구조화하고 공통 Schema를 참조한다. Python 적재부는 기존 Consumer 검사를 재사용한다. Docker 빌드 제외 설정에 공통 Schema 경로를 포함해 이미지 복사를 확인했다. 신규 실행 의존성은 별도 history 환경의 psycopg[binary]==3.3.6이며 ORM·웹 서버·추상계층은 없다.
+
+게시 기준은 main f45e9f3이다. 기존 지정 checkout을 전환하지 않고 별도 Git worktree에서 DB 파일만 구성해 검증했다.
+
+- 게시 트리 전체 tests 및 planning_trial/test_planner.py: **1241 passed**, 종료 코드 **0**. Qt offscreen·별도 실제 PostgreSQL c2_history_test DSN을 사용했다. 로컬 미게시 HMI 변경은 이 검사 대상에 섞지 않았다.
+- 해당 게시 이미지의 실제 DB 명령 **23개**: 성공 경로 22개는 종료 **0**, 없는 입력 파일 실패 경로 1개는 예상 종료 **1**. 정상 FAKE Job 24행·Revised FAKE Job 30행의 원문, 네 조회와 보고서 일치, 재적재 inserted=0/skipped=24·30, 기록 없는 Job의 빈 배열, 공개 계정 목록을 확인했다.
+- 컨테이너 시험 직전 기존 이벤트·채택 자료와 다섯 계정 전체 값을 시험 후 대조해 보존을 확인했다. init은 자료를 지우지 않았고 볼륨 삭제·운영 DB 사용·계정 초기화는 하지 않았다. 실제 장치 실행은 없다.
+- DB 관련 단위·실제 PostgreSQL 검사만 실행한 결과도 **102 passed**, 종료 코드 **0**이다. 게시 결과는 별도 후속 기록에 남긴다. 증거는 Git에서 제외되는 로컬 logs/history_reports/pytest-pr-publication-full.txt·pytest-pr-publication.txt·pr-container-validation.json이다. 새 clone은 안내의 재현 순서로 생성한다. 기존 lint/type check·CI는 미구성이며 실제 Camera/Robot·C API·전체 장치 통합과 사람 리뷰는 미검증이다.
