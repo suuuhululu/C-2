@@ -79,6 +79,8 @@ Design은 정확히 두 키를 가집니다. 그 외 키(`design_id`, 부모 버
 
 외부 모듈은 이 두 함수만 호출합니다. 두 함수 모두 예외를 밖으로 던지지 않고 §6의 결과 dict를 반환합니다. 후보 하나의 검증 탈락은 곧바로 Job 실패가 아니며 C 내부에서 **유한하게** 재생성합니다(§8.10). 실제 `main` 구현은 WAVE 4입니다.
 
+실제 LLM 사용 여부는 호출 환경의 `C_DESIGN_USE_LLM=1`로 정하며 기본은 Mock입니다.
+
 ### 4.1 `create_initial_design(text=None, should_stop=None)`
 
 | 입력 | 타입 | 의미 |
@@ -293,7 +295,8 @@ C의 Validator 통과는 후보 검증이며 최종 채택이 아닙니다.
 | 취소 | 사용자 명시적 취소 발화 | 중단 | `CANCELLED` / `USER_CANCEL` |
 | 실패 | 호출자 입력 오류 | 즉시 반환 | `FAILED` / `INVALID_INPUT`, `UNSUPPORTED_OBJECT` |
 | 실패 | 재생성 10회 한도 도달 | 반환 | `FAILED` / `DESIGN_GENERATION_FAILED` |
-| 실패 | 지속 장애: 같은 외부 서비스(LLM 또는 음성 장치·엔진)가 재시도에도 300초 동안 계속 실패 | 반환 | `FAILED` / `LLM_CALL_FAILED`, `VOICE_IO_FAILED` |
+| 실패 | LLM provider 실패: 일시적 실패(network / timeout / 429 / 5xx)만 최대 3회(1·2·4초 backoff) API 재시도 후에도 실패. auth·키 없음·비정상 응답은 재시도 없이 즉시. 재시도 사이 `should_stop` 확인 | 반환 | `FAILED` / `LLM_CALL_FAILED` |
+| 실패 | 음성 지속 장애: 음성 장치·엔진이 재시도에도 300초 동안 계속 실패 (WAVE 6에서 재검토) | 반환 | `FAILED` / `VOICE_IO_FAILED` |
 
 | `error.code` | 의미 | 함수 |
 |---|---|---|
@@ -303,9 +306,9 @@ C의 Validator 통과는 후보 검증이며 최종 채택이 아닙니다.
 | `STOPPED` | D/HMI STOP·닫힌 요청 | 둘 다 |
 | `USER_CANCEL` | 사용자의 명시적 취소 발화 | run_intervention |
 | `VOICE_IO_FAILED` | 녹음·STT·TTS 지속 장애. 평소에는 로그·재시도 사유 | 둘 다 |
-| `LLM_CALL_FAILED` | LLM API 지속 장애. 평소에는 로그·재시도 사유 | 둘 다 |
+| `LLM_CALL_FAILED` | LLM provider 실패. 일시적 실패(network / timeout / 429 / 5xx)는 최대 3회(1·2·4초) API 재시도 후, auth·키 없음·비정상 응답은 즉시. 재시도 사이 `should_stop` 확인 | 둘 다 |
 
-- 지속 장애 기준은 서비스별 마지막 성공 이후 연속 실패 시간이며 사용자 응답 대기와 무관합니다(사용자 무응답에는 시간 한도 없음).
+- 음성 지속 장애 기준은 마지막 성공 이후 연속 실패 시간이며 사용자 응답 대기와 무관합니다(사용자 무응답에는 시간 한도 없음).
 - 공용 문서에 오류 코드 이름이 없어(06 §9 "구현에서 정함") C가 정의합니다. `INVALID_INPUT`은 참고 인터페이스 정책의 기존 이름입니다.
 - 00 E04 "자동 재시도 없이 보류"는 Robot 전달 복구 범위이며 C의 LLM·음성 재시도와 무관합니다.
 

@@ -57,7 +57,7 @@ app/
     ├── main.py        # 다른 파트가 호출하는 공개 진입점, Initial Design·Intervention 대화 흐름 연결
     ├── voice.py       # 모든 음성 I/O: 녹음·STT·TTS 재생
     ├── dialogue.py    # 순수 텍스트: 질문·재질문 문장 생성, 응답 의도 해석, 목표 사물 인식
-    ├── llm.py         # LLM API 호출과 구조화(JSON) 응답 파싱 전용
+    ├── llm.py         # OpenAI Chat Completions 호출(표준 라이브러리 urllib)과 Design 후보 JSON 파싱 전용
     ├── designer.py    # Initial / Revised Design 생성
     └── validator.py   # Design 규칙 기반 독립 검증
 ```
@@ -89,7 +89,7 @@ tests/
 | `main.py` | 공개 진입점 | 구현(WAVE 4): Initial Design 흐름, Intervention 대화 루프(KEEP / REVISE / UNCLEAR 재설명 / 명시적 취소 / STOP), REVISE 6회 + escalation + 4회, envelope 변환, 텍스트 모드(Fake Voice). 음성 모드는 provider 연결 전(WAVE 6) | 음성 I/O·질문 문장·응답 규칙·LLM·검증 로직 직접 구현 |
 | `voice.py` | 음성 I/O | 녹음(record), STT, TTS 재생(speak), 재생 종료 후 녹음 시작(F05·F07) | 의미 판단, 질문 문장 생성 |
 | `dialogue.py` | 대화 텍스트 처리 | 질문·재질문 문장, 선택지 상수(1번 KEEP / 2번 REVISE), 응답 해석(Rule → LLM fallback → UNCLEAR), 명시적 취소 신호(CANCEL), 목표 사물 인식 | 음성 I/O, 대화 루프 |
-| `llm.py` | LLM 호출 전용 | API 호출, JSON 파싱, 실패 예외 | 프롬프트 구성, 검증, 재시도 정책, import 시 secret loading |
+| `llm.py` | LLM 호출 전용 | 구현(WAVE 5): Design 후보 생성 함수 2개(Initial / Revised), 프롬프트 상수(validator 상수로 규칙 표기), JSON 파싱, provider 실패 분류(`llm_error`), 일시적 실패만 최대 3회 API 재시도. 모델 `DEFAULT_MODEL` / 환경 변수 `OPENAI_MODEL`, key는 `OPENAI_API_KEY`. main이 호출 시점 `C_DESIGN_USE_LLM=1`일 때만 사용 | 설계 검증·금지 키 검사, 설계 재생성 정책·버전, 응답 보정, import 시 secret loading |
 | `designer.py` | Design 생성 | Mock Initial / Revised 구현(WAVE 3), LLM 생성기 주입 자리(`generate`). Initial / Revised 생성, 보존 대상 Python 결정, 탈락 사유로 재생성(최대 10회), 배치가 바뀐 경우에만 검증 통과 후 버전 +1 | 조립 순서, NextPart, Robot 좌표 |
 | `validator.py` | Design 검증 | brick_type, color, x / y, orientation_deg, layer 1~4, Board 범위, overlap, support(C 후보 기준: 아래 블록 개수와 무관하게 겹침 합계 2 stud 이상, A 확인 대기), connectivity, Current 보존(여섯 값), malformed, Robot field 유입 거부 | LLM 호출, Plan 검증 |
 
@@ -117,7 +117,7 @@ main.py
    ├─▶ dialogue.py  질문 문장 생성
    ├─▶ voice.py     TTS 재생
    ├─▶ voice.py     녹음 + STT
-   ├─▶ dialogue.py  응답 해석 ──▶ llm.py (애매한 응답 fallback)
+   ├─▶ dialogue.py  응답 해석 (llm_fallback 인자 자리, 미연결)
    │
    ├─ UNCLEAR       → dialogue 재질문 문장 → voice 재생·녹음·STT → 다시 해석
    ├─ KEEP          → 현재 채택된 Design 그대로 반환 (LLM 호출 없음)

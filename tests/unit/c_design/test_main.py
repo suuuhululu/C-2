@@ -529,3 +529,110 @@ def test_stop_during_text_mode_empty_answers(initial_design):
     assert result["status"] == "CANCELLED"
     assert result["error"]["code"] == "STOPPED"
     assert len(result["questions"]) == 1
+
+
+# ---------------------------------------------------------------------------
+# WAVE 5: C_DESIGN_USE_LLM switches the generator main injects into designer.
+# ---------------------------------------------------------------------------
+
+
+@pytest.fixture(autouse=True)
+def _clean_use_llm_env(monkeypatch):
+    # main reads os.environ at call time (not import time); make sure no test leaks
+    # C_DESIGN_USE_LLM into another test via a real environment variable.
+    monkeypatch.delenv("C_DESIGN_USE_LLM", raising=False)
+
+
+def test_use_llm_unset_takes_the_mock_path(monkeypatch):
+    def must_not_be_called(object_type, reasons=None, should_stop=None):
+        raise AssertionError("llm.generate_initial_design must not be called when C_DESIGN_USE_LLM is unset")
+
+    monkeypatch.setattr(main.llm, "generate_initial_design", must_not_be_called)
+    result = main.create_initial_design(text=GOAL_TEXT)
+    _assert_envelope_shape(result)
+    assert result["status"] == "OK"
+    assert result["design"]["design_version"] == 1
+
+
+def test_use_llm_set_takes_the_llm_path_for_initial_design(monkeypatch):
+    monkeypatch.setenv("C_DESIGN_USE_LLM", "1")
+    calls = {"n": 0}
+
+    def fake_generate_initial(object_type, reasons=None, should_stop=None):
+        calls["n"] += 1
+        calls["object_type"] = object_type
+        calls["reasons"] = reasons
+        calls["should_stop"] = should_stop
+        return designer.mock_initial_candidate(object_type)
+
+    monkeypatch.setattr(main.llm, "generate_initial_design", fake_generate_initial)
+    result = main.create_initial_design(text=GOAL_TEXT)
+    _assert_envelope_shape(result)
+    assert result["status"] == "OK"
+    assert result["design"]["design_version"] == 1
+    assert validator.validate_design(result["design"]) == []
+    assert calls["n"] >= 1
+    assert calls["object_type"] == "CHAIR"
+    assert "should_stop" in calls  # the should_stop parameter is forwarded (may be None)
+
+
+def test_use_llm_set_takes_the_llm_path_for_revised_design(monkeypatch):
+    monkeypatch.setenv("C_DESIGN_USE_LLM", "1")
+    # Build a fresh Initial Design via the plain Mock path (env unset for this call)
+    # so this test does not depend on the shared module-scoped fixture's provenance.
+    monkeypatch.delenv("C_DESIGN_USE_LLM", raising=False)
+    design = main.create_initial_design(text=GOAL_TEXT)["design"]
+    assert design is not None
+    current, differences = _build_shift_scenario(design)
+
+    monkeypatch.setenv("C_DESIGN_USE_LLM", "1")
+    calls = {"n": 0}
+
+    def fake_generate_revised(design_in, current_in, differences_in, reasons=None, should_stop=None):
+        calls["n"] += 1
+        calls["should_stop"] = should_stop
+        return designer.mock_revised_candidate(design_in, current_in, differences_in)
+
+    monkeypatch.setattr(main.llm, "generate_revised_design", fake_generate_revised)
+    result = main.run_intervention(design, current, differences, text_answers=["2번"])
+    _assert_envelope_shape(result)
+    assert result["status"] == "OK"
+    assert result["hri_result"] == "REVISE"
+    assert result["design"]["design_version"] == design["design_version"] + 1
+    assert validator.validate_design(result["design"]) == []
+    assert calls["n"] >= 1
+    assert "should_stop" in calls
+
+
+def test_use_llm_set_initial_design_llm_error_is_llm_call_failed(monkeypatch):
+    monkeypatch.setenv("C_DESIGN_USE_LLM", "1")
+
+    def fake_generate_initial(object_type, reasons=None, should_stop=None):
+        return {"llm_error": {"kind": "rate_limit", "message": "HTTP 429"}}
+
+    monkeypatch.setattr(main.llm, "generate_initial_design", fake_generate_initial)
+    result = main.create_initial_design(text=GOAL_TEXT)
+    _assert_envelope_shape(result)
+    assert result["status"] == "FAILED"
+    assert result["error"]["code"] == "LLM_CALL_FAILED"
+    assert result["error"]["message"] == "rate_limit"
+    assert result["error"]["details"] == []
+    assert result["design"] is None
+    assert result["hri_result"] is None
+
+
+def test_use_llm_set_revised_design_llm_error_is_llm_call_failed_with_revise_hri(initial_design, monkeypatch):
+    current, differences = _build_shift_scenario(initial_design)
+    monkeypatch.setenv("C_DESIGN_USE_LLM", "1")
+
+    def fake_generate_revised(design_in, current_in, differences_in, reasons=None, should_stop=None):
+        return {"llm_error": {"kind": "rate_limit", "message": "HTTP 429"}}
+
+    monkeypatch.setattr(main.llm, "generate_revised_design", fake_generate_revised)
+    result = main.run_intervention(initial_design, current, differences, text_answers=["2번"])
+    _assert_envelope_shape(result)
+    assert result["status"] == "FAILED"
+    assert result["error"]["code"] == "LLM_CALL_FAILED"
+    assert result["error"]["message"] == "rate_limit"
+    assert result["hri_result"] == "REVISE"
+    assert result["design"] is None

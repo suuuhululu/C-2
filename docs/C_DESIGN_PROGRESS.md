@@ -10,9 +10,9 @@ C 파트(시율: **Voice Interaction + LLM Design** — 질문 결정·생성, T
 | 항목 | 값 |
 |---|---|
 | 전체 진행률 | **70%** (기능 단계 10개 중 완료 7개: Contract, Fixture, Text Dialogue, Validator, Mock Initial, Mock Revised, A/D Contract Test + Fake Voice Dialogue) |
-| 현재 작업 단계 | 8. 실제 LLM 대기(WAVE 5 미시작) |
-| 다음 단계 | 8. 실제 LLM (WAVE 5) |
-| 현재 상태 | WAVE 4 통과(사용자 승인). C 작업을 고정 branch `work/siyul-design-hri`로 통합(최신 main 기준). `voice.py`는 provider 미연결 stub, llm은 docstring만 |
+| 현재 작업 단계 | 8. 실제 LLM — REVIEW READY (WAVE 5) |
+| 다음 단계 | WAVE 5 리뷰, live smoke test(API key 준비 후) |
+| 현재 상태 | `llm.py` Design 후보 생성(OpenAI Chat Completions, 표준 라이브러리) 구현, designer·main 연결(`C_DESIGN_USE_LLM=1`일 때만). offline 테스트만 수행, live smoke test는 API key 미설정으로 미수행. dialogue의 애매한 응답 LLM fallback은 미연결. `voice.py`는 provider 미연결 stub |
 | Blocker | 지지 2 stud 기준 A(세은) 확인 대기, 실패·취소 결과 envelope D(수현) 예시 확인 대기 |
 | 마지막 업데이트 | 2026-10-06 · branch `work/siyul-design-hri` |
 
@@ -41,7 +41,7 @@ C 파트(시율: **Voice Interaction + LLM Design** — 질문 결정·생성, T
 | 5 | Mock Initial Design | 완료 (DONE) | 100% | 목표 사물 → 고정 Initial Design (LLM 없음, Board 중앙 배치) | designer | 출력이 Validator 통과, 식별·버전은 Python이 결정 | `test_designer.py` Initial PASS |
 | 6 | Mock Revised Design | 완료 (DONE) | 100% | Design + Current + Revised 생성 → Current 배치 보존 전체 Revised Design | designer, validator | 보존 대상은 Python이 Current 기준 결정, Revised Design까지만(조립 순서·NextPart는 A) | preserved 검증 포함 `test_designer.py` PASS |
 | 7 | A/D Contract Test + Fake Voice Dialogue | 완료 (DONE) | 100% | A·D가 C 출력을 소비하는 계약 테스트, main 대화 루프를 fake voice로 검증 | main, tests/integration | 공개 함수만 호출, UNCLEAR 재질문, KEEP은 LLM 0회, STOP·명시적 취소 → CANCELLED | `test_main.py`·`test_c_contract.py` PASS, 연결 담당 확인 |
-| 8 | 실제 LLM | 대기 | 0% | llm.py 실제 provider 연결, Design 생성과 애매한 응답 fallback | llm, designer, dialogue | API key는 환경 변수, 재시도는 designer, Robot 값 생성 금지 | 실제 호출 결과가 Validator 통과, 실패 경로 확인 |
+| 8 | 실제 LLM | REVIEW READY | 0% | llm.py 실제 provider 연결, Design 생성과 애매한 응답 fallback | llm, designer, dialogue | API key는 환경 변수, 재시도는 designer, Robot 값 생성 금지 | 실제 호출 결과가 Validator 통과, 실패 경로 확인 |
 | 9 | 실제 STT + 녹음 | 대기 | 0% | 녹음 → 한국어 텍스트, 목표·응답 공용 | voice (녹음·STT) | 짧은 응답("1번") 오인식 실측, L2 장치 시험 | 실제 녹음 샘플 인식 결과 기록 |
 | 10 | 실제 TTS + Voice Dialogue 완성 | 대기 | 0% | C 담당 TTS 질문 재생과 음성 대화 전체 연결 | voice (TTS), main | 재생 종료 후 녹음 시작으로 질문 음성 재인식 방지(F05·F07), echo 방지 실측 | 실제 음성 대화 1회 이상 기록, echo 재인식 없음 확인 |
 
@@ -61,3 +61,4 @@ C 파트(시율: **Voice Interaction + LLM Design** — 질문 결정·생성, T
 | 2026-10-06 | Day4 Contract Sync | WAVE 1~3 산출물을 Day4 공용 계약(main 06, PR #6 09, Slack 합의)에 정렬: 블록 여섯 값(brick_type, 소문자 color, x, y), Design = `design_version` + `blocks`, 블록 ID·부모 버전·생성 경로를 Design에서 제거, HRI KEEP / REVISE / UNCLEAR, 명시적 취소·STOP → CANCELLED, 시간 기준 무응답 취소 제거, 재생성 최대 10회·`DESIGN_GENERATION_FAILED`, 배치가 같으면 버전 유지, Current 보존은 여섯 값 multiset, support는 A 확인 대기 후보로 표기. 진행률 60% 유지 | `pytest` 197 passed, exit 0(루트 포함), import 7개, class 0, 옛 용어 grep 의도된 항목 외 0건 |
 | 2026-10-06 | 7 | WAVE 4: `main.py` 공개 함수 2개(Initial, Intervention: KEEP / REVISE / UNCLEAR 재설명 / 명시적 취소 / STOP, REVISE 6회 + escalation + 4회, envelope), `voice.py` provider 미연결 stub(VOICE_IO_FAILED), designer Mock 1회 제한, 침묵 대기 중에도 STOP 확인, `test_main.py` 26개(텍스트 모드 = Fake Voice), `tests/integration/test_c_contract.py` 11개(D → C, C → D, C → A). 진행률 60% 유지 | unit 223 passed, integration 11 passed, 루트 `pytest` 234 passed, 모두 exit 0. import 7개, class 0 |
 | 2026-10-06 | 7 | WAVE 4 통과(사용자 승인): 7단계 완료(DONE), 전체 진행률 70%. 최신 origin/main(66ec4b6) 기준 고정 branch `work/siyul-design-hri`를 만들고 WAVE 2~4·Sync commit 4개를 merge(중복 없음). C 문서의 PR #5 이행 배너를 Sync 완료 안내로 교체 | unit 223 passed, integration 11 passed, 루트 `pytest` 234 passed, 모두 exit 0. import 7개 |
+| 2026-10-06 | 8 | WAVE 5: `llm.py`(OpenAI Chat Completions, 표준 라이브러리 urllib, 모델 상수 + `OPENAI_MODEL`, JSON 파싱, provider 실패 `llm_error` 분류, 일시적 실패만 API 재시도 3회), designer(주입 생성기 첫 호출 전 STOP 확인, `llm_error`는 재생성 없이 `llm_call_failed`), main(`C_DESIGN_USE_LLM=1`일 때만 llm, `LLM_CALL_FAILED` 매핑), validator 상수(`MAX_LAYER`, `MAX_BLOCKS`, `MIN_SUPPORT_STUDS`)를 프롬프트와 공유. `test_llm.py` 29개, designer·main 회귀 추가. Contract §10 LLM 재시도 문구를 구현에 맞춤. live smoke test는 API key 미설정으로 미수행 | offline(OPENAI_API_KEY·C_DESIGN_USE_LLM 미설정): unit 270, integration 11, 루트 `pytest` 281 passed, 모두 exit 0. import 7개, class 0, secret grep 0건, key 파일 미추적 |
