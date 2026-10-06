@@ -1,0 +1,25 @@
+{
+  "check_id": "example-check-replace-with-active-check",
+  "observation_seq": 0,
+  "status": "OK",
+  "visible_blocks": [
+    {
+      "brick_type": "2x2x1",
+      "color": "blue",
+      "x": 4,
+      "y": 6,
+      "layer": 1,
+      "orientation_deg": 0
+    }
+  ],
+  "verified_regions": [
+    {
+      "x": 0,
+      "y": 0,
+      "width": 24,
+      "height": 24,
+      "layer": 1
+    }
+  ],
+  "reason": null
+}

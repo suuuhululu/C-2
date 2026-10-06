@@ -1,0 +1,961 @@
+{
+  "source": "Backend-authored examples; not actual C/B output or hardware evidence",
+  "observation_cases": [
+    {
+      "name": "target_visible_hidden_supports",
+      "current": {
+        "current_revision": 2,
+        "blocks": [
+          {
+            "brick_type": "2x2x1",
+            "color": "yellow",
+            "x": 3,
+            "y": 5,
+            "layer": 1,
+            "orientation_deg": 0
+          },
+          {
+            "brick_type": "2x2x1",
+            "color": "yellow",
+            "x": 5,
+            "y": 5,
+            "layer": 1,
+            "orientation_deg": 0
+          }
+        ]
+      },
+      "check_id": "J01:C07",
+      "observed": {
+        "check_id": "J01:C07",
+        "observation_seq": 12,
+        "status": "OK",
+        "visible_blocks": [
+          {
+            "brick_type": "2x3x1",
+            "color": "blue",
+            "x": 3,
+            "y": 5,
+            "layer": 2,
+            "orientation_deg": 90
+          }
+        ],
+        "verified_regions": [
+          {
+            "x": 3,
+            "y": 5,
+            "width": 3,
+            "height": 2,
+            "layer": 2
+          }
+        ],
+        "reason": null
+      },
+      "expected": {
+        "disposition": "ADOPTED",
+        "reason": "LAYOUT_CHANGED",
+        "current": {
+          "current_revision": 3,
+          "blocks": [
+            {
+              "brick_type": "2x2x1",
+              "color": "yellow",
+              "x": 3,
+              "y": 5,
+              "layer": 1,
+              "orientation_deg": 0
+            },
+            {
+              "brick_type": "2x2x1",
+              "color": "yellow",
+              "x": 5,
+              "y": 5,
+              "layer": 1,
+              "orientation_deg": 0
+            },
+            {
+              "brick_type": "2x3x1",
+              "color": "blue",
+              "x": 3,
+              "y": 5,
+              "layer": 2,
+              "orientation_deg": 90
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "actual_wrong_color",
+      "current": {
+        "current_revision": 2,
+        "blocks": [
+          {
+            "brick_type": "2x2x1",
+            "color": "yellow",
+            "x": 3,
+            "y": 5,
+            "layer": 1,
+            "orientation_deg": 0
+          },
+          {
+            "brick_type": "2x2x1",
+            "color": "yellow",
+            "x": 5,
+            "y": 5,
+            "layer": 1,
+            "orientation_deg": 0
+          }
+        ]
+      },
+      "check_id": "J01:C07",
+      "observed": {
+        "check_id": "J01:C07",
+        "observation_seq": 13,
+        "status": "OK",
+        "visible_blocks": [
+          {
+            "brick_type": "2x3x1",
+            "color": "yellow",
+            "x": 3,
+            "y": 5,
+            "layer": 2,
+            "orientation_deg": 90
+          }
+        ],
+        "verified_regions": [
+          {
+            "x": 3,
+            "y": 5,
+            "width": 3,
+            "height": 2,
+            "layer": 2
+          }
+        ],
+        "reason": null
+      },
+      "expected": {
+        "disposition": "ADOPTED",
+        "reason": "LAYOUT_CHANGED",
+        "current": {
+          "current_revision": 3,
+          "blocks": [
+            {
+              "brick_type": "2x2x1",
+              "color": "yellow",
+              "x": 3,
+              "y": 5,
+              "layer": 1,
+              "orientation_deg": 0
+            },
+            {
+              "brick_type": "2x2x1",
+              "color": "yellow",
+              "x": 5,
+              "y": 5,
+              "layer": 1,
+              "orientation_deg": 0
+            },
+            {
+              "brick_type": "2x3x1",
+              "color": "yellow",
+              "x": 3,
+              "y": 5,
+              "layer": 2,
+              "orientation_deg": 90
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "confirmed_target_empty",
+      "current": {
+        "current_revision": 3,
+        "blocks": [
+          {
+            "brick_type": "2x2x1",
+            "color": "yellow",
+            "x": 3,
+            "y": 5,
+            "layer": 1,
+            "orientation_deg": 0
+          },
+          {
+            "brick_type": "2x2x1",
+            "color": "yellow",
+            "x": 5,
+            "y": 5,
+            "layer": 1,
+            "orientation_deg": 0
+          },
+          {
+            "brick_type": "2x3x1",
+            "color": "blue",
+            "x": 3,
+            "y": 5,
+            "layer": 2,
+            "orientation_deg": 90
+          }
+        ]
+      },
+      "check_id": "J01:C07",
+      "observed": {
+        "check_id": "J01:C07",
+        "observation_seq": 14,
+        "status": "OK",
+        "visible_blocks": [],
+        "verified_regions": [
+          {
+            "x": 3,
+            "y": 5,
+            "width": 3,
+            "height": 2,
+            "layer": 2
+          }
+        ],
+        "reason": null
+      },
+      "expected": {
+        "disposition": "ADOPTED",
+        "reason": "LAYOUT_CHANGED",
+        "current": {
+          "current_revision": 4,
+          "blocks": [
+            {
+              "brick_type": "2x2x1",
+              "color": "yellow",
+              "x": 3,
+              "y": 5,
+              "layer": 1,
+              "orientation_deg": 0
+            },
+            {
+              "brick_type": "2x2x1",
+              "color": "yellow",
+              "x": 5,
+              "y": 5,
+              "layer": 1,
+              "orientation_deg": 0
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "unverified_is_not_empty",
+      "current": {
+        "current_revision": 2,
+        "blocks": [
+          {
+            "brick_type": "2x2x1",
+            "color": "yellow",
+            "x": 3,
+            "y": 5,
+            "layer": 1,
+            "orientation_deg": 0
+          },
+          {
+            "brick_type": "2x2x1",
+            "color": "yellow",
+            "x": 5,
+            "y": 5,
+            "layer": 1,
+            "orientation_deg": 0
+          }
+        ]
+      },
+      "check_id": "J01:C07",
+      "observed": {
+        "check_id": "J01:C07",
+        "observation_seq": 16,
+        "status": "UNOBSERVABLE",
+        "visible_blocks": [],
+        "verified_regions": [],
+        "reason": "hand occludes current target"
+      },
+      "expected": {
+        "disposition": "HOLD",
+        "reason": "UNOBSERVABLE",
+        "current": {
+          "current_revision": 2,
+          "blocks": [
+            {
+              "brick_type": "2x2x1",
+              "color": "yellow",
+              "x": 3,
+              "y": 5,
+              "layer": 1,
+              "orientation_deg": 0
+            },
+            {
+              "brick_type": "2x2x1",
+              "color": "yellow",
+              "x": 5,
+              "y": 5,
+              "layer": 1,
+              "orientation_deg": 0
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "wrong_layer_cannot_delete_old_block",
+      "current": {
+        "current_revision": 1,
+        "blocks": [
+          {
+            "brick_type": "2x2x1",
+            "color": "yellow",
+            "x": 3,
+            "y": 5,
+            "layer": 1,
+            "orientation_deg": 0
+          }
+        ]
+      },
+      "check_id": "J01:C07",
+      "observed": {
+        "check_id": "J01:C07",
+        "observation_seq": 14,
+        "status": "OK",
+        "visible_blocks": [],
+        "verified_regions": [
+          {
+            "x": 3,
+            "y": 5,
+            "width": 3,
+            "height": 2,
+            "layer": 2
+          }
+        ],
+        "reason": null
+      },
+      "expected": {
+        "disposition": "UNCHANGED",
+        "reason": "NO_LAYOUT_CHANGE",
+        "current": {
+          "current_revision": 1,
+          "blocks": [
+            {
+              "brick_type": "2x2x1",
+              "color": "yellow",
+              "x": 3,
+              "y": 5,
+              "layer": 1,
+              "orientation_deg": 0
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "partial_old_area_cannot_delete",
+      "current": {
+        "current_revision": 1,
+        "blocks": [
+          {
+            "brick_type": "2x2x1",
+            "color": "yellow",
+            "x": 3,
+            "y": 5,
+            "layer": 1,
+            "orientation_deg": 0
+          }
+        ]
+      },
+      "check_id": "J01:C07",
+      "observed": {
+        "check_id": "J01:C07",
+        "observation_seq": 14,
+        "status": "OK",
+        "visible_blocks": [],
+        "verified_regions": [
+          {
+            "x": 3,
+            "y": 5,
+            "width": 1,
+            "height": 2,
+            "layer": 1
+          }
+        ],
+        "reason": null
+      },
+      "expected": {
+        "disposition": "UNCHANGED",
+        "reason": "NO_LAYOUT_CHANGE",
+        "current": {
+          "current_revision": 1,
+          "blocks": [
+            {
+              "brick_type": "2x2x1",
+              "color": "yellow",
+              "x": 3,
+              "y": 5,
+              "layer": 1,
+              "orientation_deg": 0
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "place_display_cases": [
+    {
+      "name": "EMPTY",
+      "snapshot": {
+        "workflow_status": "WAIT_ASSEMBLY",
+        "step": {
+          "plan_id": "plan-fixture-initial",
+          "step_id": "S03",
+          "target": {
+            "brick_type": "2x3x1",
+            "color": "blue",
+            "x": 3,
+            "y": 5,
+            "layer": 2,
+            "orientation_deg": 90
+          },
+          "observed": null,
+          "comparison": "WAITING"
+        },
+        "progress": {
+          "completed": 2,
+          "total": 3
+        },
+        "monitor": {
+          "robot": {
+            "mode": "FAKE",
+            "status": "IDLE"
+          },
+          "observation": {
+            "status": null,
+            "check_id": "J01:C07",
+            "observation_seq": null,
+            "reason": null
+          },
+          "place_status": "EMPTY",
+          "supply": [
+            {
+              "brick_type": "2x2x1",
+              "color": "yellow",
+              "next_slot": 3,
+              "needs_refill": false
+            },
+            {
+              "brick_type": "2x2x1",
+              "color": "blue",
+              "next_slot": 1,
+              "needs_refill": false
+            },
+            {
+              "brick_type": "2x3x1",
+              "color": "yellow",
+              "next_slot": 1,
+              "needs_refill": false
+            },
+            {
+              "brick_type": "2x3x1",
+              "color": "blue",
+              "next_slot": 2,
+              "needs_refill": false
+            }
+          ]
+        },
+        "notice": {
+          "question": null,
+          "reason": null,
+          "required_action": "파랑 6점을 목표 위치에 조립하고 완료 확인 관측을 기다립니다.",
+          "request_id": null
+        },
+        "actions": {
+          "job_id": "J01",
+          "start": {
+            "visible": true,
+            "enabled": false
+          },
+          "stop": {
+            "visible": true,
+            "enabled": true
+          },
+          "resume": {
+            "visible": true,
+            "enabled": false
+          },
+          "intent_choice": {
+            "visible": false,
+            "enabled": false,
+            "request_id": null
+          },
+          "correction_continue": {
+            "visible": false,
+            "enabled": false,
+            "request_id": null
+          },
+          "supply_refill": []
+        },
+        "design": {
+          "design_version": 1,
+          "blocks": [
+            {
+              "brick_type": "2x2x1",
+              "color": "yellow",
+              "x": 3,
+              "y": 5,
+              "layer": 1,
+              "orientation_deg": 0
+            },
+            {
+              "brick_type": "2x2x1",
+              "color": "yellow",
+              "x": 5,
+              "y": 5,
+              "layer": 1,
+              "orientation_deg": 0
+            },
+            {
+              "brick_type": "2x3x1",
+              "color": "blue",
+              "x": 3,
+              "y": 5,
+              "layer": 2,
+              "orientation_deg": 90
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "OCCUPIED",
+      "snapshot": {
+        "workflow_status": "WAIT_ASSEMBLY",
+        "step": {
+          "plan_id": "plan-fixture-initial",
+          "step_id": "S03",
+          "target": {
+            "brick_type": "2x3x1",
+            "color": "blue",
+            "x": 3,
+            "y": 5,
+            "layer": 2,
+            "orientation_deg": 90
+          },
+          "observed": null,
+          "comparison": "WAITING"
+        },
+        "progress": {
+          "completed": 2,
+          "total": 3
+        },
+        "monitor": {
+          "robot": {
+            "mode": "FAKE",
+            "status": "IDLE"
+          },
+          "observation": {
+            "status": null,
+            "check_id": "J01:C07",
+            "observation_seq": null,
+            "reason": null
+          },
+          "place_status": "OCCUPIED",
+          "supply": [
+            {
+              "brick_type": "2x2x1",
+              "color": "yellow",
+              "next_slot": 3,
+              "needs_refill": false
+            },
+            {
+              "brick_type": "2x2x1",
+              "color": "blue",
+              "next_slot": 1,
+              "needs_refill": false
+            },
+            {
+              "brick_type": "2x3x1",
+              "color": "yellow",
+              "next_slot": 1,
+              "needs_refill": false
+            },
+            {
+              "brick_type": "2x3x1",
+              "color": "blue",
+              "next_slot": 2,
+              "needs_refill": false
+            }
+          ]
+        },
+        "notice": {
+          "question": null,
+          "reason": null,
+          "required_action": "파랑 6점을 목표 위치에 조립하고 완료 확인 관측을 기다립니다.",
+          "request_id": null
+        },
+        "actions": {
+          "job_id": "J01",
+          "start": {
+            "visible": true,
+            "enabled": false
+          },
+          "stop": {
+            "visible": true,
+            "enabled": true
+          },
+          "resume": {
+            "visible": true,
+            "enabled": false
+          },
+          "intent_choice": {
+            "visible": false,
+            "enabled": false,
+            "request_id": null
+          },
+          "correction_continue": {
+            "visible": false,
+            "enabled": false,
+            "request_id": null
+          },
+          "supply_refill": []
+        },
+        "design": {
+          "design_version": 1,
+          "blocks": [
+            {
+              "brick_type": "2x2x1",
+              "color": "yellow",
+              "x": 3,
+              "y": 5,
+              "layer": 1,
+              "orientation_deg": 0
+            },
+            {
+              "brick_type": "2x2x1",
+              "color": "yellow",
+              "x": 5,
+              "y": 5,
+              "layer": 1,
+              "orientation_deg": 0
+            },
+            {
+              "brick_type": "2x3x1",
+              "color": "blue",
+              "x": 3,
+              "y": 5,
+              "layer": 2,
+              "orientation_deg": 90
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "UNOBSERVABLE",
+      "snapshot": {
+        "workflow_status": "WAIT_ASSEMBLY",
+        "step": {
+          "plan_id": "plan-fixture-initial",
+          "step_id": "S03",
+          "target": {
+            "brick_type": "2x3x1",
+            "color": "blue",
+            "x": 3,
+            "y": 5,
+            "layer": 2,
+            "orientation_deg": 90
+          },
+          "observed": null,
+          "comparison": "WAITING"
+        },
+        "progress": {
+          "completed": 2,
+          "total": 3
+        },
+        "monitor": {
+          "robot": {
+            "mode": "FAKE",
+            "status": "IDLE"
+          },
+          "observation": {
+            "status": null,
+            "check_id": "J01:C07",
+            "observation_seq": null,
+            "reason": null
+          },
+          "place_status": "UNOBSERVABLE",
+          "supply": [
+            {
+              "brick_type": "2x2x1",
+              "color": "yellow",
+              "next_slot": 3,
+              "needs_refill": false
+            },
+            {
+              "brick_type": "2x2x1",
+              "color": "blue",
+              "next_slot": 1,
+              "needs_refill": false
+            },
+            {
+              "brick_type": "2x3x1",
+              "color": "yellow",
+              "next_slot": 1,
+              "needs_refill": false
+            },
+            {
+              "brick_type": "2x3x1",
+              "color": "blue",
+              "next_slot": 2,
+              "needs_refill": false
+            }
+          ]
+        },
+        "notice": {
+          "question": null,
+          "reason": "hand occludes place board",
+          "required_action": "파랑 6점을 목표 위치에 조립하고 완료 확인 관측을 기다립니다.",
+          "request_id": null
+        },
+        "actions": {
+          "job_id": "J01",
+          "start": {
+            "visible": true,
+            "enabled": false
+          },
+          "stop": {
+            "visible": true,
+            "enabled": true
+          },
+          "resume": {
+            "visible": true,
+            "enabled": false
+          },
+          "intent_choice": {
+            "visible": false,
+            "enabled": false,
+            "request_id": null
+          },
+          "correction_continue": {
+            "visible": false,
+            "enabled": false,
+            "request_id": null
+          },
+          "supply_refill": []
+        },
+        "design": {
+          "design_version": 1,
+          "blocks": [
+            {
+              "brick_type": "2x2x1",
+              "color": "yellow",
+              "x": 3,
+              "y": 5,
+              "layer": 1,
+              "orientation_deg": 0
+            },
+            {
+              "brick_type": "2x2x1",
+              "color": "yellow",
+              "x": 5,
+              "y": 5,
+              "layer": 1,
+              "orientation_deg": 0
+            },
+            {
+              "brick_type": "2x3x1",
+              "color": "blue",
+              "x": 3,
+              "y": 5,
+              "layer": 2,
+              "orientation_deg": 90
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "PENDING",
+      "snapshot": {
+        "workflow_status": "WAIT_ASSEMBLY",
+        "step": {
+          "plan_id": "plan-fixture-initial",
+          "step_id": "S03",
+          "target": {
+            "brick_type": "2x3x1",
+            "color": "blue",
+            "x": 3,
+            "y": 5,
+            "layer": 2,
+            "orientation_deg": 90
+          },
+          "observed": null,
+          "comparison": "WAITING"
+        },
+        "progress": {
+          "completed": 2,
+          "total": 3
+        },
+        "monitor": {
+          "robot": {
+            "mode": "FAKE",
+            "status": "IDLE"
+          },
+          "observation": {
+            "status": null,
+            "check_id": "J01:C07",
+            "observation_seq": null,
+            "reason": null
+          },
+          "place_status": null,
+          "supply": [
+            {
+              "brick_type": "2x2x1",
+              "color": "yellow",
+              "next_slot": 3,
+              "needs_refill": false
+            },
+            {
+              "brick_type": "2x2x1",
+              "color": "blue",
+              "next_slot": 1,
+              "needs_refill": false
+            },
+            {
+              "brick_type": "2x3x1",
+              "color": "yellow",
+              "next_slot": 1,
+              "needs_refill": false
+            },
+            {
+              "brick_type": "2x3x1",
+              "color": "blue",
+              "next_slot": 2,
+              "needs_refill": false
+            }
+          ]
+        },
+        "notice": {
+          "question": null,
+          "reason": "awaiting current place observation",
+          "required_action": "파랑 6점을 목표 위치에 조립하고 완료 확인 관측을 기다립니다.",
+          "request_id": null
+        },
+        "actions": {
+          "job_id": "J01",
+          "start": {
+            "visible": true,
+            "enabled": false
+          },
+          "stop": {
+            "visible": true,
+            "enabled": true
+          },
+          "resume": {
+            "visible": true,
+            "enabled": false
+          },
+          "intent_choice": {
+            "visible": false,
+            "enabled": false,
+            "request_id": null
+          },
+          "correction_continue": {
+            "visible": false,
+            "enabled": false,
+            "request_id": null
+          },
+          "supply_refill": []
+        },
+        "design": {
+          "design_version": 1,
+          "blocks": [
+            {
+              "brick_type": "2x2x1",
+              "color": "yellow",
+              "x": 3,
+              "y": 5,
+              "layer": 1,
+              "orientation_deg": 0
+            },
+            {
+              "brick_type": "2x2x1",
+              "color": "yellow",
+              "x": 5,
+              "y": 5,
+              "layer": 1,
+              "orientation_deg": 0
+            },
+            {
+              "brick_type": "2x3x1",
+              "color": "blue",
+              "x": 3,
+              "y": 5,
+              "layer": 2,
+              "orientation_deg": 90
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "design_cases": {
+    "keep": {
+      "design_version": 1,
+      "blocks": [
+        {
+          "brick_type": "2x2x1",
+          "color": "yellow",
+          "x": 3,
+          "y": 5,
+          "layer": 1,
+          "orientation_deg": 0
+        },
+        {
+          "brick_type": "2x2x1",
+          "color": "yellow",
+          "x": 5,
+          "y": 5,
+          "layer": 1,
+          "orientation_deg": 0
+        },
+        {
+          "brick_type": "2x3x1",
+          "color": "blue",
+          "x": 3,
+          "y": 5,
+          "layer": 2,
+          "orientation_deg": 90
+        }
+      ]
+    },
+    "revise_candidate": {
+      "design_version": 2,
+      "blocks": [
+        {
+          "brick_type": "2x2x1",
+          "color": "yellow",
+          "x": 3,
+          "y": 5,
+          "layer": 1,
+          "orientation_deg": 0
+        },
+        {
+          "brick_type": "2x2x1",
+          "color": "yellow",
+          "x": 5,
+          "y": 5,
+          "layer": 1,
+          "orientation_deg": 0
+        },
+        {
+          "brick_type": "2x3x1",
+          "color": "yellow",
+          "x": 3,
+          "y": 5,
+          "layer": 2,
+          "orientation_deg": 90
+        }
+      ]
+    }
+  }
+}
