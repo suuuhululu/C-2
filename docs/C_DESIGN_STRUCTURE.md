@@ -72,9 +72,9 @@ tests/
 │       ├── test_validator.py   # 규칙별 정상 / invalid, support Case A~D (WAVE 2)
 │       ├── test_fixtures.py    # fixture를 validator·dialogue에 통과 (WAVE 2)
 │       ├── test_designer.py    # Mock Initial / Revised, Current 보존, 재생성 루프 (WAVE 3)
-│       └── test_main.py        # 예정: 대화 루프(fake voice)
+│       └── test_main.py        # 공개 함수·대화 루프(텍스트 모드 = Fake Voice) (WAVE 4)
 └── integration/
-    └── test_c_contract.py      # 예정: A / D 연결 계약
+    └── test_c_contract.py      # D → C 입력·C → D envelope·C → A Design 계약 (WAVE 4)
 ```
 
 테스트 파일은 기능 구현과 함께 하나씩 추가합니다. 루트 `pyproject.toml`의 pytest 설정으로 저장소 루트에서 `pytest`를 실행합니다. `voice.py`는 unit test 대상이 아니라 후반 L2 장치 시험 대상이며, 다른 테스트에서는 fake로 교체합니다. 실행할 테스트가 없는 상태를 PASS로 표시하지 않습니다.
@@ -83,7 +83,7 @@ tests/
 
 | 파일 | 한 줄 설명 | 앞으로 들어갈 것 | 넣지 않는 것 |
 |---|---|---|---|
-| `main.py` | 공개 진입점 | Initial Design 흐름, Intervention 대화 흐름과 재질문 루프, 음성 모드 무응답 취소(Contract §4.3), Recovery First 재시도, 텍스트 입력 모드 | 음성 I/O·질문 문장·응답 규칙·LLM·검증 로직 직접 구현 |
+| `main.py` | 공개 진입점 | 구현(WAVE 4): Initial Design 흐름, Intervention 대화 루프(KEEP / REVISE / UNCLEAR 재설명 / 명시적 취소 / STOP), REVISE 6회 + escalation + 4회, envelope 변환, 텍스트 모드(Fake Voice). 음성 모드는 provider 연결 전(WAVE 6) | 음성 I/O·질문 문장·응답 규칙·LLM·검증 로직 직접 구현 |
 | `voice.py` | 음성 I/O | 녹음(record), STT, TTS 재생(speak), 재생 종료 후 녹음 시작(F05·F07) | 의미 판단, 질문 문장 생성 |
 | `dialogue.py` | 대화 텍스트 처리 | 질문·재질문 문장, 선택지 상수(1번 KEEP / 2번 REVISE), 응답 해석(Rule → LLM fallback → UNCLEAR), 명시적 취소 신호(CANCEL), 목표 사물 인식 | 음성 I/O, 대화 루프 |
 | `llm.py` | LLM 호출 전용 | API 호출, JSON 파싱, 실패 예외 | 프롬프트 구성, 검증, 재시도 정책, import 시 secret loading |

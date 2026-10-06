@@ -107,6 +107,8 @@ def build_initial_design(object_type, generate=None, max_attempts=MAX_ATTEMPTS, 
         return {"design": None, "reasons": [reason], "attempts": 0, "source": source}
 
     make = generate or mock_initial_candidate
+    if generate is None:
+        max_attempts = 1  # Mock은 결정론적이라 같은 후보를 다시 만들 뿐이다(§8.10)
 
     def make_candidate(prev_reasons):
         return make(object_type, prev_reasons)
@@ -156,6 +158,8 @@ def build_revised_design(design, current, differences, generate=None, max_attemp
         return {"design": None, "reasons": [reason], "attempts": 0, "source": source}
 
     make = generate or mock_revised_candidate
+    if generate is None:
+        max_attempts = 1  # Mock은 결정론적이라 같은 후보를 다시 만들 뿐이다(§8.10)
 
     def make_candidate(prev_reasons):
         return make(design, current, differences, prev_reasons)
