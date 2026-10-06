@@ -14,8 +14,11 @@
       → "계속 찾기"면 4회 더(합계 10회) → 실패면 DESIGN_GENERATION_FAILED
     - Current가 support 후보 기준을 위반하면 재생성 없이 바로 escalation 질문
     - 텍스트 모드(text / text_answers)는 Fake Voice로 쓰인다.
-    - 음성 모드: voice provider가 아직 없어(WAVE 6) VOICE_IO_FAILED를 반환한다.
+    - 음성 모드: voice.speak(질문) 재생이 끝난 뒤 voice.listen()으로 응답을 받는다(WAVE 6).
+      listen()이 None(장치·STT 실패)이면 VOICE_IO_FAILED, ""(침묵)이면 계속 기다린다.
     - Day4: 시간 기준 자동 취소 없음. 침묵(빈 발화)은 재질문 없이 계속 기다린다.
+    - 설계 생성기: 호출 시점에 환경 변수 C_DESIGN_USE_LLM=1이면 llm(WAVE 5), 아니면 Mock.
+      provider 실패는 LLM_CALL_FAILED로 반환한다.
 
 하지 않는 것:
     - 음성 I/O·질문 문장·응답 규칙·LLM 호출·검증 로직 자체 구현(각 모듈에 위임)
@@ -23,20 +26,26 @@
     - import 시 녹음·재생·모델 로딩·네트워크 요청
 
 연결:
-    dialogue.py, voice.py, designer.py, validator.py(입력 검사·support 판정)를 호출한다.
+    dialogue.py, voice.py, designer.py, llm.py(생성기 주입), validator.py(입력 검사·support 판정)를 호출한다.
     외부 모듈은 이 파일의 공개 함수만 호출한다.
 """
 
-from app.c_design import designer, dialogue, validator, voice
+import os
+
+from app.c_design import designer, dialogue, llm, validator, voice
 
 # §8.10·§8.11: 연속 6회 탈락하면 escalation 질문, "계속 찾기"면 남은 4회(합계 10회).
 FIRST_ATTEMPTS = 6
 EXTRA_ATTEMPTS = designer.MAX_ATTEMPTS - FIRST_ATTEMPTS
 
-VOICE_NOT_CONNECTED = "voice provider not connected, WAVE 6"
 
 # next_reply가 침묵 대기 중 STOP을 만났다는 표시(정상 응답 문자열·None과 구분).
 _STOP = object()
+
+
+def _voice_failure():
+    # voice.last_error()는 실패 종류만 담고 key·응답 본문은 담지 않는다.
+    return f"voice I/O failed: {voice.last_error() or 'unknown'}"
 
 
 def _result(status, hri_result=None, design=None, questions=(), code=None, message="", details=()):
@@ -58,10 +67,18 @@ def _from_designer(result, hri_result, questions):
         return _result("OK", hri_result, result["design"], questions)
     if any(reason["rule"] == "stopped" for reason in result["reasons"]):
         return _stopped(questions)
+    for reason in result["reasons"]:
+        if reason["rule"] == "llm_call_failed":
+            return _result("FAILED", hri_result, None, questions, "LLM_CALL_FAILED", reason["message"])
     return _result(
         "FAILED", hri_result, None, questions, "DESIGN_GENERATION_FAILED",
         "no valid design within the attempt limit", result["reasons"],
     )
+
+
+def _use_llm():
+    # import 시점이 아니라 호출 시점에 읽는다: 테스트·D 통합이 실행 중에 바꿀 수 있다.
+    return os.environ.get("C_DESIGN_USE_LLM") == "1"
 
 
 def create_initial_design(text=None, should_stop=None):
@@ -69,7 +86,7 @@ def create_initial_design(text=None, should_stop=None):
     if text is None:
         text = voice.listen()
         if text is None:
-            return _result("FAILED", code="VOICE_IO_FAILED", message=VOICE_NOT_CONNECTED)
+            return _result("FAILED", code="VOICE_IO_FAILED", message=_voice_failure())
     elif not isinstance(text, str):
         return _result("FAILED", code="INVALID_INPUT", message="text must be a str or None")
 
@@ -77,7 +94,13 @@ def create_initial_design(text=None, should_stop=None):
     if object_type is None:
         return _result("FAILED", code="UNSUPPORTED_OBJECT", message="no supported object in the goal")
 
-    result = designer.build_initial_design(object_type, delay=designer.RETRY_DELAY, should_stop=should_stop)
+    generate = None
+    if _use_llm():
+        def generate(object_type, reasons):
+            return llm.generate_initial_design(object_type, reasons, should_stop=should_stop)
+    result = designer.build_initial_design(
+        object_type, generate=generate, delay=designer.RETRY_DELAY, should_stop=should_stop
+    )
     return _from_designer(result, None, [])
 
 
@@ -99,7 +122,7 @@ def run_intervention(design, current, differences, text_answers=None, on_questio
             voice.speak(sentence)
 
     def next_reply():
-        """다음 의미 있는 응답. None이면 텍스트 응답 소진 또는 음성 미연결, _STOP이면 STOP."""
+        """다음 의미 있는 응답. None이면 텍스트 응답 소진 또는 음성 I/O 실패, _STOP이면 STOP."""
         while True:
             reply = voice.listen() if voice_mode else next(answers, None)
             if reply is None or dialogue.is_meaningful(reply):
@@ -110,7 +133,7 @@ def run_intervention(design, current, differences, text_answers=None, on_questio
 
     def no_reply():
         if voice_mode:
-            return _result("FAILED", questions=questions, code="VOICE_IO_FAILED", message=VOICE_NOT_CONNECTED)
+            return _result("FAILED", questions=questions, code="VOICE_IO_FAILED", message=_voice_failure())
         return _result("OK", dialogue.UNCLEAR, None, questions)
 
     def stop_requested():
@@ -138,15 +161,21 @@ def run_intervention(design, current, differences, text_answers=None, on_questio
             # UNCLEAR, 또는 재설계할 수 없는데 "계속 찾기": 같은 질문으로 명시 선택을 기다린다.
             ask(question)
 
+    generate = None
+    if _use_llm():
+        def generate(design, current, differences, reasons):
+            return llm.generate_revised_design(design, current, differences, reasons, should_stop=should_stop)
+
     def revise():
         if validator.current_support_violations(current):
             # Current를 그대로 보존하면 어떤 후보도 support를 통과할 수 없다(§8.11 즉시 진입).
             return escalate(can_redesign=False)
         result = designer.build_revised_design(
-            design, current, differences, max_attempts=FIRST_ATTEMPTS,
+            design, current, differences, generate=generate, max_attempts=FIRST_ATTEMPTS,
             delay=designer.RETRY_DELAY, should_stop=should_stop,
         )
-        if result["design"] is not None or any(r["rule"] == "stopped" for r in result["reasons"]):
+        # 설계 성공·STOP·provider 실패는 escalation 대상이 아니다(후보 탈락만 escalation).
+        if result["design"] is not None or any(r["rule"] in ("stopped", "llm_call_failed") for r in result["reasons"]):
             return _from_designer(result, dialogue.REVISE, questions)
         ended = escalate(can_redesign=True)
         if ended is not None:
@@ -154,7 +183,7 @@ def run_intervention(design, current, differences, text_answers=None, on_questio
         if stop_requested():
             return _stopped(questions)
         result = designer.build_revised_design(
-            design, current, differences, max_attempts=EXTRA_ATTEMPTS,
+            design, current, differences, generate=generate, max_attempts=EXTRA_ATTEMPTS,
             delay=designer.RETRY_DELAY, should_stop=should_stop,
         )
         return _from_designer(result, dialogue.REVISE, questions)

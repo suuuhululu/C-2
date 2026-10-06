@@ -44,6 +44,10 @@ BLOCK_FIELDS = ("brick_type", "color", "x", "y", "layer", "orientation_deg")
 COLORS = {"yellow", "blue"}
 BRICK_TYPES = {"2x2x1", "2x3x1"}
 BOARD_RANGE = range(0, 24)
+MAX_LAYER = 4
+MAX_BLOCKS = 20
+# 세은(A)과 확인할 C 후보 기준(팀 공용 확정값 아님).
+MIN_SUPPORT_STUDS = 2
 
 
 def footprint(block):
@@ -135,7 +139,7 @@ def _check_block(block, reject_unknown_keys=True):
     layer_ok = False
     if "layer" in block:
         if _is_int(layer):
-            layer_ok = 1 <= layer <= 4
+            layer_ok = 1 <= layer <= MAX_LAYER
             if not layer_ok:
                 reasons.append(_reason("invalid_value", [block], f"layer '{layer}' out of range"))
         else:
@@ -175,8 +179,8 @@ def _support_violations(nodes):
             continue
         below = by_layer.get(node["layer"] - 1, [])
         shared = sum(len(node["footprint"] & other["footprint"]) for other in below)
-        if shared < 2:
-            reasons.append(_reason("support", [node["block"]], f"block support studs={shared} < 2"))
+        if shared < MIN_SUPPORT_STUDS:
+            reasons.append(_reason("support", [node["block"]], f"block support studs={shared} < {MIN_SUPPORT_STUDS}"))
     return reasons
 
 
@@ -195,9 +199,19 @@ def _connectivity_violations(nodes):
             if abs(nodes[i]["layer"] - nodes[j]["layer"]) == 1 and nodes[i]["footprint"] & nodes[j]["footprint"]:
                 parent[find(i)] = find(j)
 
-    if len({find(i) for i in range(len(nodes))}) > 1:
-        return [_reason("connectivity", [node["block"] for node in nodes], "design is not fully connected")]
-    return []
+    components = {}
+    for i, node in enumerate(nodes):
+        components.setdefault(find(i), []).append(node["block"])
+    if len(components) == 1:
+        return []
+    # 어느 블록이 어느 덩어리인지 알려 줘야 재생성(LLM)이 끊긴 곳을 잇는 방향을 찾을 수 있다(§8.10).
+    groups = sorted(components.values(), key=len, reverse=True)
+    listed = [[{key: block.get(key) for key in BLOCK_FIELDS} for block in group] for group in groups]
+    message = (
+        f"design is not fully connected: {len(groups)} disconnected components "
+        f"(sizes {', '.join(str(len(group)) for group in groups)}); components: {json.dumps(listed)}"
+    )
+    return [_reason("connectivity", [block for group in groups for block in group], message)]
 
 
 def _placement_violations(nodes):
@@ -217,8 +231,8 @@ def _validate_blocks_list(container):
         reasons.append(_reason("invalid_type", [], "blocks must be a list"))
         return reasons, nodes, dict_blocks
 
-    if not (1 <= len(blocks) <= 20):
-        reasons.append(_reason("brick_count", [], f"blocks count {len(blocks)} out of 1..20"))
+    if not (1 <= len(blocks) <= MAX_BLOCKS):
+        reasons.append(_reason("brick_count", [], f"blocks count {len(blocks)} out of 1..{MAX_BLOCKS}"))
 
     for block in blocks:
         block_reasons, node = _check_block(block)

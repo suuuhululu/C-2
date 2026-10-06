@@ -4,6 +4,8 @@ Helpers build minimal block/design dicts inline; fixture files are owned by anot
 worker and are intentionally not read here.
 """
 
+import json
+
 from app.c_design import validator as v
 
 
@@ -400,3 +402,24 @@ def test_check_intervention_input_current_support_violation_not_reported_here():
 
     assert "support" not in rules(v.check_intervention_input(d, cur, diffs))
     assert "support" in rules(v.current_support_violations(cur))
+
+
+def test_connectivity_reason_lists_each_disconnected_component():
+    left = [block(x=0, y=0, layer=1), block(x=0, y=0, layer=2)]  # stacked pair, connected
+    far = [block(x=10, y=10, layer=1)]
+    reasons = [r for r in v.validate_design(design(left + far)) if r["rule"] == "connectivity"]
+    assert len(reasons) == 1
+    reason = reasons[0]
+    assert reason["rule"] == "connectivity"
+    assert set(reason) == {"rule", "blocks", "message"}
+    assert "2 disconnected components" in reason["message"]
+    assert "sizes 2, 1" in reason["message"]
+    components = json.loads(reason["message"].split("components: ", 1)[1])
+    assert components == [[{k: b[k] for k in v.BLOCK_FIELDS} for b in left], [{k: far[0][k] for k in v.BLOCK_FIELDS}]]
+    # blocks keeps every block, ordered by component (largest first)
+    assert reason["blocks"] == left + far
+
+
+def test_connected_design_has_no_connectivity_reason():
+    blocks = [block(x=0, y=0, layer=1), block(x=0, y=0, layer=2)]
+    assert "connectivity" not in rules(v.validate_design(design(blocks)))

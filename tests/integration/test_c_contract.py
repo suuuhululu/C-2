@@ -339,10 +339,10 @@ def test_run_intervention_invalid_input_empty_differences(moved_leg_scenario):
     assert result["error"]["code"] == "INVALID_INPUT"
 
 
-def test_run_intervention_voice_mode_not_connected_is_failed(moved_leg_scenario):
+def test_run_intervention_voice_device_failure_is_failed(moved_leg_scenario):
     design, current, differences = moved_leg_scenario
 
-    # text_answers=None => voice mode; no voice provider is wired up this wave.
+    # text_answers=None => voice mode; tests/conftest.py blocks the real audio device, so listen() fails.
     result = main.run_intervention(design, current, differences, text_answers=None)
     assert_envelope_shape(result)
     assert result["status"] == "FAILED"

@@ -9,6 +9,8 @@ designer.py is being implemented in parallel; if it is still incomplete these te
 with clear AttributeErrors rather than silently passing.
 """
 
+from collections import Counter
+
 import pytest
 
 from app.c_design import designer, validator
@@ -266,6 +268,10 @@ def test_default_max_attempts_is_ten_and_reached_with_always_invalid_generate():
 
 
 def test_should_stop_true_after_first_rejected_attempt_stops_with_stopped_rule():
+    # With an injected generate, should_stop is now checked once BEFORE the first
+    # attempt (cheap guard against a costly LLM call), then between attempts as
+    # before. should_stop is False on the pre-check so the first attempt runs,
+    # then True on the between-attempts check.
     calls = []
 
     def gen(object_type, reasons):
@@ -273,13 +279,13 @@ def test_should_stop_true_after_first_rejected_attempt_stops_with_stopped_rule()
 
     def should_stop():
         calls.append(1)
-        return True
+        return len(calls) > 1
 
     result = designer.build_initial_design(CHAIR, generate=gen, max_attempts=10, delay=0, should_stop=should_stop)
     assert result["design"] is None
     assert result["attempts"] == 1
     assert {r["rule"] for r in result["reasons"]} == {"stopped"}
-    assert len(calls) == 1, "should_stop must not be checked before the first attempt"
+    assert len(calls) == 2, "should_stop must be checked once before the first attempt and once between attempts"
 
 
 # ---------------------------------------------------------------------------
@@ -449,3 +455,264 @@ def test_revised_mock_layout_it_cannot_handle_is_rejected_not_raised(initial_des
     assert result["design"] is None
     assert result["attempts"] == 1
     assert result["reasons"]
+
+
+# ---------------------------------------------------------------------------
+# WAVE 5: injected generate — LLM-shaped candidates, rejection-reason passing,
+# should_stop before the first attempt, and llm_error short-circuiting.
+# ---------------------------------------------------------------------------
+
+
+def _block_tuple(block):
+    return tuple(block[key] for key in validator.BLOCK_FIELDS)
+
+
+def _multiset(blocks):
+    return Counter(_block_tuple(b) for b in blocks)
+
+
+def test_initial_injected_generate_llm_shaped_candidate_without_design_version():
+    good = designer.mock_initial_candidate(CHAIR)  # {"blocks": [...]}, no design_version key
+    result = designer.build_initial_design(CHAIR, generate=lambda o, r: dict(good), max_attempts=1, delay=0)
+    assert result["design"] is not None, result["reasons"]
+    assert result["source"] == "LLM"
+    assert validator.validate_design(result["design"]) == []
+    assert "source" not in result["design"]
+
+
+def test_initial_injected_generate_llm_shaped_candidate_design_version_field_is_ignored():
+    good = designer.mock_initial_candidate(CHAIR)
+    # an LLM candidate may echo a design_version; build_initial_design always owns versioning.
+    candidate = dict(good, design_version=99)
+    result = designer.build_initial_design(CHAIR, generate=lambda o, r: candidate, max_attempts=1, delay=0)
+    assert result["design"] is not None, result["reasons"]
+    assert result["design"]["design_version"] == 1
+    assert result["source"] == "LLM"
+
+
+def test_initial_injected_generate_rejection_reasons_passed_attempts_two_version_one():
+    good = designer.mock_initial_candidate(CHAIR)
+    seen_reasons = []
+
+    def gen(object_type, reasons):
+        seen_reasons.append(reasons)
+        if len(seen_reasons) == 1:
+            return {"blocks": []}  # rejected: no blocks at all
+        return dict(good)
+
+    result = designer.build_initial_design(CHAIR, generate=gen, max_attempts=5, delay=0)
+    assert result["design"] is not None, result["reasons"]
+    assert result["attempts"] == 2
+    assert result["design"]["design_version"] == 1
+    assert seen_reasons[0] == []
+    assert seen_reasons[1], "second call must receive the first candidate's rejection reasons"
+
+
+def test_revised_injected_generate_rejection_reasons_passed_attempts_two_version_increments(initial_design):
+    legs = _blocks_at(initial_design, 1)
+    b1, b2 = legs[0], legs[1]
+    shifted_b2 = _shift(b2, dx=1)
+    current = [dict(b1), shifted_b2]
+    differences = [{"expected": b2, "actual": shifted_b2}]
+    seen_reasons = []
+
+    def gen(design_in, current_in, differences_in, reasons):
+        seen_reasons.append(reasons)
+        if len(seen_reasons) == 1:
+            return {"blocks": []}  # rejected: drops the preserved current blocks
+        return designer.mock_revised_candidate(design_in, current_in, differences_in)
+
+    result = designer.build_revised_design(
+        initial_design, current, differences, generate=gen, max_attempts=5, delay=0
+    )
+    assert result["design"] is not None, result["reasons"]
+    assert result["attempts"] == 2
+    # the rejected first candidate must not itself have consumed a version bump.
+    assert result["design"]["design_version"] == initial_design["design_version"] + 1
+    assert seen_reasons[0] == []
+    assert seen_reasons[1], "second call must receive the first candidate's rejection reasons"
+    _assert_assembled_preserved(result["design"], current)
+
+
+def test_revised_injected_generate_preserves_current_as_exact_multiset(initial_design):
+    legs = _blocks_at(initial_design, 1)
+    current = [dict(legs[0]), dict(legs[1])]  # current left unshifted: a no-op intervention
+    differences = [{"expected": dict(legs[0]), "actual": dict(legs[0])}]
+
+    def gen(design_in, current_in, differences_in, reasons):
+        return {"blocks": [dict(b) for b in design_in["blocks"]]}  # echoes the input design verbatim
+
+    result = designer.build_revised_design(
+        initial_design, current, differences, generate=gen, max_attempts=1, delay=0
+    )
+    assert result["design"] is not None, result["reasons"]
+    current_counts = _multiset(current)
+    result_counts = _multiset(result["design"]["blocks"])
+    for tup, count in current_counts.items():
+        assert result_counts[tup] == count, f"current block {tup!r} not preserved with the right multiplicity"
+
+
+def test_revised_injected_generate_same_layout_keeps_input_design_and_version(initial_design):
+    legs = _blocks_at(initial_design, 1)
+    current = [dict(legs[0]), dict(legs[1])]  # current left unshifted: a no-op intervention
+    differences = [{"expected": dict(legs[0]), "actual": dict(legs[0])}]
+
+    def gen(design_in, current_in, differences_in, reasons):
+        return {"blocks": [dict(b) for b in design_in["blocks"]]}  # same layout as the input design
+
+    result = designer.build_revised_design(
+        initial_design, current, differences, generate=gen, max_attempts=1, delay=0
+    )
+    assert result["design"] is not None, result["reasons"]
+    assert result["design"] == initial_design
+    assert result["design"]["design_version"] == initial_design["design_version"]
+
+
+def test_initial_should_stop_true_before_first_attempt_with_injected_generate_never_calls_generate():
+    calls = []
+
+    def gen(object_type, reasons):
+        calls.append(1)
+        return designer.mock_initial_candidate(CHAIR)
+
+    result = designer.build_initial_design(
+        CHAIR, generate=gen, max_attempts=5, delay=0, should_stop=lambda: True
+    )
+    assert result["design"] is None
+    assert result["attempts"] == 0
+    assert {r["rule"] for r in result["reasons"]} == {"stopped"}
+    assert calls == [], "generate must never be called when should_stop is already True before the first attempt"
+
+
+def test_revised_should_stop_true_before_first_attempt_with_injected_generate_never_calls_generate(initial_design):
+    legs = _blocks_at(initial_design, 1)
+    b1, b2 = legs[0], legs[1]
+    shifted_b2 = _shift(b2, dx=1)
+    current = [dict(b1), shifted_b2]
+    differences = [{"expected": b2, "actual": shifted_b2}]
+    calls = []
+
+    def gen(design_in, current_in, differences_in, reasons):
+        calls.append(1)
+        return designer.mock_revised_candidate(design_in, current_in, differences_in)
+
+    result = designer.build_revised_design(
+        initial_design, current, differences, generate=gen, max_attempts=5, delay=0, should_stop=lambda: True
+    )
+    assert result["design"] is None
+    assert result["attempts"] == 0
+    assert {r["rule"] for r in result["reasons"]} == {"stopped"}
+    assert calls == [], "generate must never be called when should_stop is already True before the first attempt"
+
+
+def test_revised_should_stop_true_after_first_rejected_attempt_with_injected_generate(initial_design):
+    legs = _blocks_at(initial_design, 1)
+    b1, b2 = legs[0], legs[1]
+    shifted_b2 = _shift(b2, dx=1)
+    current = [dict(b1), shifted_b2]
+    differences = [{"expected": b2, "actual": shifted_b2}]
+    calls = []
+
+    def gen(design_in, current_in, differences_in, reasons):
+        return {"blocks": []}  # always rejected
+
+    def should_stop():
+        calls.append(1)
+        return len(calls) > 1
+
+    result = designer.build_revised_design(
+        initial_design, current, differences, generate=gen, max_attempts=10, delay=0, should_stop=should_stop
+    )
+    assert result["design"] is None
+    assert result["attempts"] == 1
+    assert {r["rule"] for r in result["reasons"]} == {"stopped"}
+
+
+def test_initial_llm_error_stops_without_regeneration_on_first_call():
+    calls = []
+
+    def gen(object_type, reasons):
+        calls.append(1)
+        return {"llm_error": {"kind": "auth", "message": "bad api key"}}
+
+    result = designer.build_initial_design(CHAIR, generate=gen, max_attempts=10, delay=0)
+    assert result["design"] is None
+    assert result["attempts"] == 0
+    assert result["reasons"] == [{"rule": "llm_call_failed", "blocks": [], "message": "auth"}]
+    assert len(calls) == 1, "an llm_error candidate must end the loop without a regeneration attempt"
+
+
+def test_initial_llm_error_after_one_rejected_candidate_has_attempts_one():
+    seen = []
+
+    def gen(object_type, reasons):
+        seen.append(1)
+        if len(seen) == 1:
+            return {"blocks": []}  # a normal rejection, consumes one attempt
+        return {"llm_error": {"kind": "rate_limit", "message": "HTTP 429"}}
+
+    result = designer.build_initial_design(CHAIR, generate=gen, max_attempts=10, delay=0)
+    assert result["design"] is None
+    assert result["attempts"] == 1
+    assert result["reasons"] == [{"rule": "llm_call_failed", "blocks": [], "message": "rate_limit"}]
+    assert len(seen) == 2, "no further regeneration after the llm_error candidate"
+
+
+def test_initial_llm_error_kind_stopped_becomes_stopped_rule():
+    result = designer.build_initial_design(
+        CHAIR, generate=lambda o, r: {"llm_error": {"kind": "stopped", "message": "halted"}},
+        max_attempts=10, delay=0,
+    )
+    assert result["design"] is None
+    assert result["attempts"] == 0
+    assert result["reasons"] == [{"rule": "stopped", "blocks": [], "message": "stopped"}]
+
+
+def test_revised_llm_error_stops_without_regeneration(initial_design):
+    legs = _blocks_at(initial_design, 1)
+    b1, b2 = legs[0], legs[1]
+    shifted_b2 = _shift(b2, dx=1)
+    current = [dict(b1), shifted_b2]
+    differences = [{"expected": b2, "actual": shifted_b2}]
+    calls = []
+
+    def gen(design_in, current_in, differences_in, reasons):
+        calls.append(1)
+        return {"llm_error": {"kind": "network", "message": "connection reset"}}
+
+    result = designer.build_revised_design(
+        initial_design, current, differences, generate=gen, max_attempts=10, delay=0
+    )
+    assert result["design"] is None
+    assert result["attempts"] == 0
+    assert result["reasons"] == [{"rule": "llm_call_failed", "blocks": [], "message": "network"}]
+    assert len(calls) == 1
+
+
+def test_revised_llm_candidate_with_design_version_is_accepted_and_versioned_by_designer(initial_design):
+    # WAVE 5: the LLM may echo design_version; designer ignores it and sets the version itself (§8.2).
+    legs = _blocks_at(initial_design, 1)
+    b1, b2, b3 = legs[0], legs[1], legs[2]
+    shifted_b3 = _shift(b3, dy=1)
+    current = [dict(b1), dict(b2), shifted_b3]
+    differences = [{"expected": b3, "actual": shifted_b3}]
+    mock = designer.mock_revised_candidate(initial_design, current, differences)
+
+    def gen(design_in, current_in, differences_in, reasons):
+        return {"design_version": 99, "blocks": mock["blocks"]}
+
+    result = designer.build_revised_design(
+        initial_design, current, differences, generate=gen, max_attempts=1, delay=0
+    )
+    assert result["design"] is not None, result["reasons"]
+    assert result["design"]["design_version"] == initial_design["design_version"] + 1 == 2
+    assert validator.validate_design(result["design"]) == []
+
+    def gen_extra_key(design_in, current_in, differences_in, reasons):
+        return {"design_version": 99, "plan": [], "blocks": mock["blocks"]}
+
+    rejected = designer.build_revised_design(
+        initial_design, current, differences, generate=gen_extra_key, max_attempts=1, delay=0
+    )
+    assert rejected["design"] is None
+    assert "unknown_key" in {r["rule"] for r in rejected["reasons"]}

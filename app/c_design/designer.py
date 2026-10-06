@@ -85,6 +85,11 @@ def _generate_until_valid(make_candidate, finalize, max_attempts, delay, should_
     attempts = 0
     while True:
         candidate = make_candidate(reasons)
+        if isinstance(candidate, dict) and "llm_error" in candidate:
+            # provider 실패는 후보 거부가 아니므로 재생성하지 않고 끝낸다(API 재시도는 llm.py).
+            kind = candidate["llm_error"].get("kind")
+            rule = "stopped" if kind == "stopped" else "llm_call_failed"
+            return {"design": None, "reasons": [{"rule": rule, "blocks": [], "message": kind}], "attempts": attempts}
         design, reasons = finalize(candidate)
         if design is not None:
             return {"design": design, "reasons": [], "attempts": attempts + 1}
@@ -131,6 +136,10 @@ def build_initial_design(object_type, generate=None, max_attempts=MAX_ATTEMPTS, 
             return None, reasons
         return design, []
 
+    if generate is not None and should_stop is not None and should_stop():
+        # 주입된 생성기(LLM)는 호출 비용이 있으므로 첫 호출 전에도 STOP을 확인한다.
+        reason = {"rule": "stopped", "blocks": [], "message": "generation stopped before the first attempt"}
+        return {"design": None, "reasons": [reason], "attempts": 0, "source": source}
     result = _generate_until_valid(make_candidate, finalize, max_attempts, delay, should_stop)
     result["source"] = source
     return result
@@ -165,6 +174,9 @@ def build_revised_design(design, current, differences, generate=None, max_attemp
         return make(design, current, differences, prev_reasons)
 
     def finalize(candidate):
+        if isinstance(candidate, dict):
+            # 후보의 design_version은 무시한다: 버전은 designer가 정한다(§8.2). 다른 키는 그대로 검증.
+            candidate = {key: value for key, value in candidate.items() if key != "design_version"}
         reasons = validator.validate_revised(candidate, current)
         if reasons:
             return None, reasons
@@ -183,6 +195,10 @@ def build_revised_design(design, current, differences, generate=None, max_attemp
             return None, final_reasons
         return final, []
 
+    if generate is not None and should_stop is not None and should_stop():
+        # 주입된 생성기(LLM)는 호출 비용이 있으므로 첫 호출 전에도 STOP을 확인한다.
+        reason = {"rule": "stopped", "blocks": [], "message": "generation stopped before the first attempt"}
+        return {"design": None, "reasons": [reason], "attempts": 0, "source": source}
     result = _generate_until_valid(make_candidate, finalize, max_attempts, delay, should_stop)
     result["source"] = source
     return result
