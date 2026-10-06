@@ -8,7 +8,7 @@ import pytest
 
 from planner import (
     build_initial_plan, build_plan, calculate_remaining_blocks, validate_design,
-    validate_initial_plan, validate_plan,
+    validate_initial_plan, validate_plan, plan_from_current,
 )
 
 
@@ -231,7 +231,8 @@ def test_revised_and_current_samples_share_common_block_fields():
     for block in current["blocks"]:
         assert set(block) == BLOCK_FIELDS
         assert block in targets
-    # The temporary outer Current envelope is not a confirmed Backend schema.
+    assert set(current) == {"current_revision", "blocks"}
+    assert current["current_revision"] == 7  # synthetic Backend revision
 
 
 def test_cli_saves_contract_plan_and_reports_invalid_json(tmp_path):
@@ -435,3 +436,110 @@ def test_replan_rejects_current_that_new_design_did_not_preserve():
     design = {"design_version": 2, "blocks": [brick()]}
     with pytest.raises(ValueError, match="not preserved"):
         build_plan(design, [brick(x=1)], 1)
+
+
+@pytest.mark.parametrize("name", [
+    "initial", "partial", "all_assembled", "needs_correction", "invalid",
+])
+def test_backend_handoff_examples(name):
+    example = json.loads((HERE / "handoff_examples.json").read_text())[name]
+    original = copy.deepcopy(example)
+    result = plan_from_current(example["design"], example["current"])
+    assert set(result) == {"status", "plan", "errors"}
+    assert result["status"] == example["expected_status"]
+    assert example == original
+    assert json.loads(json.dumps(result)) == result
+    if result["status"] == "READY":
+        plan = result["plan"]
+        assert result["errors"] == []
+        assert len(plan["steps"]) == example["expected_step_count"]
+        assert plan["base_current_revision"] == example["current"]["current_revision"]
+        validate_plan(example["design"], example["current"]["blocks"],
+                      example["current"]["current_revision"], plan)
+    else:
+        assert result["plan"] is None
+        assert len(result["errors"]) == 1
+        assert set(result["errors"][0]) == {"reason", "block"}
+        assert result["errors"][0]["reason"]
+        source = example["current"] if name == "needs_correction" else example["design"]
+        assert result["errors"][0]["block"] == source["blocks"][0]
+
+
+@pytest.mark.parametrize("current", [
+    None, [], {}, {"blocks": []}, {"current_revision": 0},
+    {"current_revision": True, "blocks": []}, {"current_revision": -1, "blocks": []},
+    {"current_revision": "1", "blocks": []}, {"current_revision": 1.0, "blocks": []},
+    {"current_revision": 0, "blocks": None},
+])
+def test_boundary_rejects_missing_or_malformed_current_without_empty_fallback(design, current):
+    result = plan_from_current(design, current)
+    assert result["status"] == "INVALID"
+    assert result["plan"] is None
+    assert result["errors"][0]["block"] is None
+    assert "Current" in result["errors"][0]["reason"]
+
+
+def test_boundary_uses_actual_revision_and_same_initial_replan_calculation(design):
+    initial = plan_from_current(design, {"current_revision": 8, "blocks": []})
+    assert initial["plan"]["steps"] == build_initial_plan(design)["steps"]
+    assert initial["plan"]["base_current_revision"] == 8
+    revised = json.loads((HERE / "sample_modified_design.json").read_text())
+    current = json.loads((HERE / "sample_current_state.json").read_text())
+    result = plan_from_current(revised, current)
+    assert result["status"] == "READY"
+    assert len(result["plan"]["steps"]) == 9
+    assert result["plan"]["base_current_revision"] == current["current_revision"]
+
+
+def test_boundary_correction_then_latest_observed_current():
+    target = {"design_version": 1, "blocks": [brick()]}
+    conflict = {"current_revision": 1, "blocks": [brick(x=1)]}
+    assert plan_from_current(target, conflict)["status"] == "NEEDS_CORRECTION"
+    # D supplies a new adopted Current; A never edits the previous snapshot.
+    corrected = {"current_revision": 2, "blocks": [brick()]}
+    result = plan_from_current(target, corrected)
+    assert result["status"] == "READY"
+    assert result["plan"]["steps"] == []
+    assert result["plan"]["base_current_revision"] == 2
+    assert conflict == {"current_revision": 1, "blocks": [brick(x=1)]}
+
+
+def test_boundary_blocked_insertion_and_unsupported_current_need_correction():
+    lower, pending = brick(), brick(x=2)
+    bridge = brick(layer=2, brick_type="2x3x1", angle=90)
+    design = {"design_version": 2, "blocks": [lower, pending, bridge]}
+    result = plan_from_current(design, {"current_revision": 3, "blocks": [lower, bridge]})
+    assert result["status"] == "NEEDS_CORRECTION"
+    assert result["plan"] is None
+    assert result["errors"][0]["block"] == pending
+    assert "insertion" in result["errors"][0]["reason"]
+    result = plan_from_current(design, {"current_revision": 4, "blocks": [bridge]})
+    assert result["status"] == "NEEDS_CORRECTION"
+    assert result["errors"][0]["block"] == bridge
+    assert "support" in result["errors"][0]["reason"]
+
+
+@pytest.mark.parametrize("blocks", [[None], [{"color": "yellow"}], [brick(), brick()]])
+def test_boundary_malformed_or_overlapping_current_is_invalid(blocks):
+    target = {"design_version": 1, "blocks": [brick()]}
+    result = plan_from_current(target, {"current_revision": 1, "blocks": blocks})
+    assert result["status"] == "INVALID"
+    assert result["plan"] is None
+    assert "Current.blocks" in result["errors"][0]["reason"]
+
+
+def test_boundary_internal_id_is_not_a_required_or_emitted_field():
+    lower, upper = brick(), brick(layer=2)
+    target = {"design_version": 2, "blocks": [dict(lower, block_id="C01"), upper]}
+    current = {"current_revision": 5, "blocks": [dict(lower, block_id="D99")]}
+    result = plan_from_current(target, current)
+    assert result["status"] == "READY"
+    assert result["plan"]["steps"][0]["after"] == upper
+    assert result["plan"]["steps"][0]["prerequisites"] == []
+
+
+def test_boundary_design_error_precedes_current_conflict_and_can_have_no_block():
+    result = plan_from_current({"blocks": [brick()]}, {"current_revision": 1, "blocks": [brick(x=1)]})
+    assert result["status"] == "INVALID"
+    assert result["errors"][0]["block"] is None
+    assert "design_version" in result["errors"][0]["reason"]

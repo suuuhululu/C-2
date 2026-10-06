@@ -1,7 +1,5 @@
 {
-  "trial_only": true,
-  "current_id": "trial_current_001",
-  "is_complete": true,
+  "current_revision": 7,
   "blocks": [
     {
       "brick_type": "2x2x1",
