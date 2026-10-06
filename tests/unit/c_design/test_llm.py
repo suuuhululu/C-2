@@ -458,3 +458,34 @@ class TestForbiddenKeysLeftToValidator:
 
         reasons = validator.validate_design(result)
         assert any(r["rule"] == "unknown_key" for r in reasons)
+
+
+class TestGeneralizedRevisedStrategy:
+    def _revised_content(self, monkeypatch):
+        fake = _install(monkeypatch, [_body(json.dumps({"blocks": []}))])
+        current = [{"brick_type": "2x3x1", "color": "blue", "x": 9, "y": 9, "layer": 1, "orientation_deg": 0}]
+        differences = [{"expected": current[0], "actual": dict(current[0], y=10)}]
+        llm.generate_revised_design(SIMPLE_DESIGN, current, differences)
+        payload = json.loads(fake.calls[0]["request"].data)
+        return next(m["content"] for m in payload["messages"] if m["role"] == "user")
+
+    def test_revised_message_has_general_redesign_strategy(self, monkeypatch, with_fake_key):
+        content = self._revised_content(monkeypatch).lower()
+        for phrase in (
+            "do not hold on to the previous positions",
+            "search for a placement that connects them",
+            "do not extend the structure to places far from the chair body",
+            "run the support and connectivity check",
+        ):
+            assert phrase in content
+
+    def test_strategy_text_names_no_coordinates_or_specific_placement(self):
+        # The strategy must stay general: no case-specific coordinates or brick placements.
+        import re
+        source = open(llm.__file__, encoding="utf-8").read()
+        start = source.index("Redesign strategy:")
+        end = source.index("Return the complete design (all blocks).", start)
+        strategy = source[start:end]
+        assert not re.search(r"\d", strategy)
+        for specific in ("2x3x1", "2x2x1", "orientation 0", "orientation 90", "x=", "y="):
+            assert specific not in strategy

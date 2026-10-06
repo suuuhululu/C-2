@@ -99,7 +99,14 @@ def _revised_user_message(design, current, differences, reasons):
         f"Differences (expected vs actual): {json.dumps(differences, ensure_ascii=False)}\n"
         f"Previous candidate was rejected for: {_reasons_text(reasons)}\n"
         "Redesign the whole remaining structure around the Current. Do not simply shift every block by the "
-        "same offset and do not re-center the chair. Return the complete design (all blocks)."
+        "same offset and do not re-center the chair.\n"
+        "Redesign strategy: if the Current breaks the connections of the previous structure, do not hold on to "
+        "the previous positions of the not-yet-placed blocks; redesign the rest of the structure. If parts of "
+        "the structure are separated, search for a placement that connects them using the allowed brick types "
+        "and orientations. Do not extend the structure to places far from the chair body; keep every block on "
+        "or close to the chair footprint. Before answering, run the support and connectivity check from the "
+        "system message again on the complete output.\n"
+        "Return the complete design (all blocks)."
     )
 
 
