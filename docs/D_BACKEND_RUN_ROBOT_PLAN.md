@@ -1,6 +1,6 @@
 # 수현 Backend·HMI 실행과 Robot 개발 계획
 
-갱신: 2026-10-06. 현재 Backend는 Python 객체이고 HMI와 **같은 프로세스**에서 실행한다. 독립 서버/웹 API는 아직 없다. FAKE 전체 시나리오·수동 입력 창과 REAL 한 블록 시험 창을 구분한다.
+갱신: 2026-10-06. 최신 REAL 실행·단축 입력·STOP/재개·질문 TTS는 문서 마지막의 「REAL 정지·재개와 오배치 질문 TTS」를 우선한다. 앞 절은 단계별 개발 기록이다. 현재 Backend는 Python 객체이고 HMI와 **같은 프로세스**에서 실행한다. 독립 서버/웹 API는 아직 없다. FAKE 전체 시나리오·수동 입력 창과 REAL 한 블록 시험 창을 구분한다.
 
 ## 실행 전 확인
 
@@ -176,7 +176,7 @@ python3 -m app.real_workflow_hmi --real-workflow \
 
 **첫/두 번째 `assembly` 입력은 다음 실제 이동을 시작한다.** Robot이 observe point에 돌아와 멈춘 후에만 조립·확인하며 움직임 중 손을 넣지 않는다. 닫힌/이전 check, 중복 입력, 실행 중 입력은 거절한다. 마지막 입력은 조립 확인만 기록한다. 수동 확인은 누적 기존 조립도 그대로 유지했다는 뜻이며 카메라가 목표를 읽었다는 뜻이 아니다. 정상 매 Step 확인 버튼은 HMI에 추가하지 않았다.
 
-실제 STOP/재개 버튼은 미검증으로 비활성화하며 현장 비상정지를 사용한다. 실패·증거 누락·프로세스 비정상 종료·설정/로그 오류는 HOLD와 추가 집기 차단이다. 해당 창에서 자동 재시도·복구·재개·두 번째 Job·슬롯 보충을 하지 않는다. 동작 중 창 닫기는 차단한다. 정상 종료는 최종 확인 후 창을 닫거나 Ctrl+D다. 종료 후 이어하기는 없다.
+이 절의 초기 시험 이후 STOP/재개 연결을 추가했다. 현재 동작은 아래 「REAL 정지·재개와 오배치 질문 TTS」를 따른다. 긴급 정지는 현장 비상정지를 사용한다. 실패·증거 누락·프로세스 비정상 종료·설정/로그 오류는 HOLD와 추가 집기 차단이다. 해당 창에서 자동 재시도·복구·재개·두 번째 Job·슬롯 보충을 하지 않는다. 동작 중 창 닫기는 차단한다. 정상 종료는 최종 확인 후 창을 닫거나 Ctrl+D다. 종료 후 이어하기는 없다.
 
 Backend 주요 이벤트는 `logs/real_workflow/backend/<Job UUID>.jsonl`, 실제 실행 기록은 `logs/real_workflow/<세션 UUID>/driver/<실행 UUID>.jsonl`이다. `MANUAL_FIELD_CONFIRMATION`을 Camera 결과와 구분해 읽는다. 시험마다 슬롯을 자동으로 재충전하지 않으므로 새 실행은 현장에서 준비된 슬롯을 다시 확인해야 한다.
 
@@ -256,7 +256,7 @@ python3 -m app.real_trial_hmi --real-trial \
 
 전달 뒤 `HOLD · 실제 전달/복귀 완료, 조립 미확인`으로 남고 시작을 다시 허용하지 않는다. 슬롯 소모는 실제 상승 후 grip 확인 때만 Controller가 한 번 반영한다. 실제 관측/Design/Plan을 연결하지 않아 미리보기·현재 Step은 미채택/없음, 조립 진행은 0/0이다. 화면을 조립 완료로 바꾸거나 다음 블록을 자동 전달하지 않는다. 종료 후 다음 대상은 별도 시험으로 설정/준비를 확인해야 하며 앱 종료 후 이어하기는 없다.
 
-실제 STOP/재개 버튼은 **미검증으로 비활성화**되어 있다. 현재 시험 중 실제 긴급 정지는 현장 장치를 사용한다. 동작 중 창 닫기로 프로세스를 끊지 않으며 조회 전용 자식은 창을 닫을 때 종료할 수 있다. 일반 Fake HMI 명령은 앞 절의 `app.fake_demo --fake-demo` 그대로다.
+현재 STOP/재개 연결은 아래 「REAL 정지·재개와 오배치 질문 TTS」를 따른다. 실제 장치 정지·재개 시험은 아직 별도로 필요하다. 현재 시험 중 실제 긴급 정지는 현장 장치를 사용한다. 동작 중 창 닫기로 프로세스를 끊지 않으며 조회 전용 자식은 창을 닫을 때 종료할 수 있다. 일반 Fake HMI 명령은 앞 절의 `app.fake_demo --fake-demo` 그대로다.
 
 로그는 `logs/robot_hmi/backend/<Job UUID>.jsonl`과 `logs/robot_hmi/<세션 UUID>/driver/<실행 UUID>.jsonl`이다. Backend 로그가 해당 실행 ID를 연결한다. 공급열/설정 불일치·조회 실패·기존 요청 중복·프로세스 비정상 종료/유효 결과 없음·집기/복귀 증거 누락은 보류이고 자동 재실행하지 않는다.
 
@@ -282,3 +282,179 @@ python3 -m app.robot_trial --config interfaces/robot_trial.json --check
 독립 시험 로그는 기본 `logs/robot_trials/<시험 UUID>.jsonl`, 경로 변경은 `--log-dir`다. 집기 후 상승/유지, 놓기, HOME→observe 복귀/대기, 최종 3필드 result를 기록한다. 이 결과는 조립 완료가 아니다. 실제 블록이 전달판에 정상 놓였는지는 현장 결과로 추가 확인한다. 초기 37점 IK/FK 조회 로그는 `/tmp/c2-robot-stage5-check-logs/`이며 전달 성공 로그로 사용하지 않는다.
 
 Fake HMI의 `app.fake_demo --fake-demo`는 여전히 장치를 움직이지 않는다. 위의 `app.real_trial_hmi --real-trial`은 별도 실제 단일 전달 연결이며 준비 확인/START가 한 블록을 움직인다. 전체 Day4 REAL Controller, 진행 중 HMI STOP과 STOP 세 증거/재개, 홍동 촬영/EMPTY 연결은 후속 작업이다. 단일 CLI의 기존 실패 시 stop 요청을 실제 정지 검증으로 표시하지 않는다.
+
+## 2026-10-06 — 음성 C 의자 Design과 네 공급열 REAL 시험 준비
+
+사용자가 노랑/파랑 6점열도 기존 전달·HOME·observe 경로로 실기 검증했다고 확인했다. 원자료의 provisional 표시를 변경하거나 에이전트의 장치 통과로 기록하지 않는다. 기존 공급열 측정 끝점과 제어 파일을 재사용한다. 기존 단일 전달/한 열 3회 명령은 유지한다.
+
+- `app/real_design_controller.py`: 네 열의 설정·시작 슬롯을 읽고 기존 RealTrialController의 프로세스/집기·놓기·복귀 증거 처리를 재사용한다. 종류·색상별 슬롯은 실제 집기 증거에만 한 번 소모된다. 실행 ID 중복·진행 중 새 요청·다른 Plan 대상·설정 변경은 거절한다.
+- `app/real_workflow_hmi.py`: 기존 CTextConnection의 초기 STT/설계 함수와 실제 A `plan_from_current(design, current)`를 연결한다. 전체 Plan을 첫 이동 전에 검사하고 C Design/A 결과/Robot 수락 여부를 `REAL_PLAN_PREFLIGHT`로 기록한다. 저장 Plan 주입·합성 관측·가짜 전달판 EMPTY는 사용하지 않는다.
+- `app/robot_trial.py`: 기존 설정 검증을 재사용하며 기록된 6점 공급열 끝점도 선택한다. pose·TCP/tool·속도·이송/복귀 경로와 원본 제어 파일은 변경하지 않는다. 각 실제 실행은 기존 무이동 상태·IK/FK·메시지 검사를 먼저 수행한다.
+- `app/hmi_contracts.py`, `interfaces/schemas/hmi.schema.json`: 명시적 수동 REAL 시험의 진행 표시를 0~24 Step(4열×6슬롯)로 맞춘다. 필드·Current/Expected·완료 판단·버튼 정책은 유지한다. `app/snapshot.py`의 완료 안내는 고정 3회 대신 실제 완료 횟수를 표시한다.
+- `interfaces/robot_voice_workflow.json`: 기존 기준 설정과 측정 파일/hash·네 열의 시작 슬롯을 지정한다. 현재 시작 슬롯은 모두 **1**이다. 이미 사용한 슬롯을 채우거나 실행 전에 `first_slot`을 실제 준비 상태에 맞춰 설정한다. 실행 중 설정 변경·자동 보충·앱 종료 후 복원은 없다. Plan이 남은 슬롯 범위를 넘으면 첫 전달 전 `REAL_PLAN_NEEDS_REFILL`로 보류한다. 실제 재고 수량 검사는 아니다.
+
+이 절은 초기 음성 연결 기록이다. 현재는 아래 「REAL 정지·재개와 오배치 질문 TTS」까지 확장해 오배치 의도·재계획과 STOP/재개를 연결했다. `--c-voice`는 이제 `OPENAI_TTS_API_KEY`도 요구한다. Camera/B 생산 연결과 실제 장치·음성 시험은 별도로 확인한다.
+
+기존과 같은 배치·TCP/tool·경로 및 현장 감시/비상정지 조건을 확인한다. 로봇은 검증된 observe 위치에서 시작해야 하며 창 열기의 조회는 그 위치를 대신 만들어 주지 않는다. 네 공급열의 지정 슬롯부터 블록을 준비하고 조립판·전달판을 비운다. START는 준비 상태의 사람 확인 입력이다.
+
+키가 설정된 사용자 터미널에서 실행한다. 키 값은 명령 기록/채팅/JSONL에 넣지 않는다. `OPENAI_API_KEY`가 없으면 먼저 `read -rsp "OpenAI API key: " OPENAI_API_KEY`로 입력하고 줄바꿈 후 `export OPENAI_API_KEY`를 실행한다.
+
+```bash
+source /home/ms-02/cobot2_ws/install/setup.bash
+cd /home/ms-02/C_2
+export OPENAI_API_KEY
+export C_DESIGN_USE_LLM=1
+export OPENAI_MODEL=gpt-4o
+export OPENAI_STT_MODEL=whisper-1
+export OPENAI_TTS_API_KEY
+export OPENAI_TTS_MODEL=tts-1
+export OPENAI_TTS_VOICE=alloy
+
+env -u QT_QPA_PLATFORM python3 -m app.real_workflow_hmi \
+  --real-workflow \
+  --config interfaces/robot_trial_blue5.json \
+  --supply-manifest interfaces/robot_voice_workflow.json \
+  --c-mode live --c-voice \
+  --log-dir logs/c_voice_real
+```
+
+창 열기는 장치 조회만 수행하고 이동/그리퍼 개폐를 보내지 않는다. 조회 성공 후 **준비 확인 · Job 시작**을 누르고 “의자 만들어줘”라고 말한다. C의 전체 Design과 실제 A Plan을 먼저 채택/표시한다. 이때도 Robot은 이동하지 않는다. 마이크 인식 문장과 Design을 확인한 뒤에만 첫 현장 입력을 한다. 부적합 입력/음성 실패/슬롯 범위 초과는 보류한다. 초기 음성이 잘못됐다면 정지→정지 확인→재개로 같은 Job에서 다시 말한다. 이전 음성/API가 종료되기 전에는 재개를 보류한다. 창 재실행은 슬롯 복원이나 Robot 재개가 아니다.
+
+1. 첫 전달은 터미널에 출력된 **현재 check_id가 포함된** `place_empty`, `confirmed:true` JSON 전체 한 줄을 같은 HMI 실행 터미널에 입력하면 시작된다. **실제 Robot 이동과 그리퍼 개폐가 발생한다.**
+2. 전달·observe 복귀 뒤 사람은 HMI의 목표대로 조립한다. 기존 구조 유지·목표 일치·전달판 비움·손 이탈을 확인한 뒤 출력된 현재 `assembly`, `confirmed:true` JSON 전체를 입력한다. **마지막 Step 이전 입력은 다음 실제 전달을 바로 시작한다.**
+3. 마지막 확인 후에만 최종 Current/채택 Design을 대조해 완료한다. Robot 성공만으로 Current/Step 완료를 바꾸지 않는다.
+4. 잘못 놓임은 출력된 `confirmed:false`로 신고한다. 실제 좌표/색상 등을 알고 있으면 `actual` 여섯 필드를 함께 넣는다. 실제 Current·목표를 구분해서 보여주고 다음 전달을 보류한다. C 연결 모드이면 실제 배치를 채택한 뒤 C 질문·KEEP/REVISE·실제 A 재계획을 진행한다. 아래 최신 절의 입력 방법을 따른다.
+
+Fake의 `{"event":"observe"}`·`{"event":"observe_wrong_color"}`는 REAL 확인으로 채택하지 않는다. 현재 REAL 단축 입력은 아래 최신 절을 따른다. 확인하지 않은 블록을 정상 조립했다고 입력하지 않는다. HMI STOP은 요청·상태 확인을 수행하며 긴급 정지는 현장 장치를 사용한다. 동작 중 창/자식 프로세스를 끊어 정지됐다고 판단하지 않는다.
+
+저장된 C Design부터 시험하려면 위 명령의 `--c-mode live --c-voice` 대신 `--c-fixture interfaces/fixtures/c_design_initial_result.json`을 사용한다. 이때 C API/마이크는 호출하지 않으며 실제 A/Robot/현장 입력은 동일하다. `--color/--first-slot`은 기존 한 열 3회 시험용이므로 다중 열 manifest와 혼용하지 않는다.
+
+장치 없는 검증: 관련 검사 **514 passed**, 종료 **0**(신규 18개 포함). 수정한 Python 컴파일·`git diff --check` 종료 0. 네 열×6슬롯의 계획 출력 24개, 저장 C와 실제 C 음성 함수 경로 각각 15 Step, 전달 전/조립 확인 전 미완료, 색상 불일치 보류, 무음/Provider 실패, 복귀 증거 누락, 설정 변경, 슬롯 경계, 잘못된 목표·중복 실행/집기 및 오래된 확인 거절을 확인했다. C 음성 녹음/HTTP·LLM HTTP와 Robot QProcess는 Mock이다. 원본 C/A/Backend 알고리즘과 측정/제어 파일은 수정하지 않았다.
+
+Qt 1200×900에서 첫 조립 대기/최종 Current·Design과 축·목표 강조·표·안내·버튼을 렌더링해 확인했다. 증거는 검사 요약 (`logs/real-voice-preparation/summary.json`, 로컬 산출물), [첫 조립 대기 화면](../logs/real-voice-preparation/chair-awaiting-first-assembly.png), [완료 화면](../logs/real-voice-preparation/chair-complete.png), `logs/real-voice-preparation/mock-voice-fifteen-step.jsonl`이다. Mock 화면의 REAL 표시는 REAL Controller 소비 경로를 뜻하며 실제 장치 실행 성공이 아니다.
+
+현장 로그는 `logs/c_voice_real/backend/<Job UUID>.jsonl`과 세션 디렉터리의 `driver/<실행 UUID>.jsonl`이다. 이번 에이전트 실행에서는 실제 API·마이크·Robot/Camera 조회 또는 이동을 하지 않았다. 사용자 보고와 이번 연결부 장치 시험은 별도다. 브랜치를 유지했고 커밋/게시/PR/merge는 하지 않았다. 기존 lint/type 검사 설정은 미구성이다.
+
+## 2026-10-06 — 시작 전 오류 표시와 명시적 사전 이동
+
+현장 시작 실패 로그의 원인은 `OBSERVE_POSE_MISMATCH`다. Robot 연결·대기 상태·TCP/tool 조회는 통과했으나 실제 시작 위치가 설정된 observe 위치와 달랐다. 조회 실패 결과를 Controller가 읽지 않아 HMI에 사유가 빠지던 부분을 수정했다. 현재/기대 pose와 거리(mm)·자세 차이(도)는 `ROBOT_OBSERVE_COMPARISON`으로 터미널과 driver JSONL에 기록하며, HMI 하단에는 오류 사유를 표시한다.
+
+사용자는 HOME이 아닌 현재 위치에서 기존 HOME을 거쳐 observe로 이동하는 시험을 요청했다. 이를 **새 사전 이동 시험**으로 구현했으며 이 경로의 실기·충돌 검증 완료를 주장하지 않는다. 관절 목표의 FK 일치는 경로 충돌 검증이 아니다. 기존 HOME `[0, 0, 90, 0, 90, 0]`과 observe `[0.712, 7.268, 63.143, -0.006, 109.185, 0.785]`, 원본 joint 속도/가속도·TCP/tool을 재사용한다. 새로운 pose나 자동 원점 복구는 추가하지 않았다.
+
+현재 HMI에서 실제 이동이 진행 중이 아니라면 창을 닫고 위의 REAL 음성 실행 명령으로 다시 연다. 창 열기는 여전히 **무이동 조회**다. observe 위치가 달라 시작이 비활성화되면 다음 순서로 사용한다.
+
+1. 현장 감시·비상정지 대응 및 이동 공간을 확인하고 **사전 이동 · HOME→관측**을 누른다. 이 버튼은 **현재 위치→HOME→observe 실제 관절 이동**을 보내며 마이크·Job·집기·그리퍼 개폐는 시작하지 않는다.
+2. 이동 전 대기/자율 상태·TCP/tool·그리퍼 상태와 현재 위치, HOME/observe FK 및 두 이동 메시지 직렬화를 검사한다. 이동 중 시작과 사전 이동 버튼은 비활성화되며 창 닫기도 차단한다.
+3. 이동 후 실제 observe pose와 대기/그리퍼 상태 확인 및 정상 종료 증거를 모두 받은 뒤에만 **준비 확인 · Job 시작**이 활성화된다. 이후 STT/C/A 채택과 현장 확인 입력은 앞 절과 같다. 사전 이동만으로 공급 슬롯·Current·Step 완료는 바뀌지 않는다.
+
+사전 이동은 창당 한 번만 요청할 수 있다. 실패·프로세스 오류·도착 증거 누락은 오류 보류이며 자동 재시도하지 않는다. 이동 중 실패의 stop 요청은 실제 정지 완료 증거가 아니다. 실패 후에는 현장 정지·위치·블록 상태를 확인하고 사람이 복구해야 하며, 창 재실행 자체를 정지나 복구로 해석하지 않는다. 현재 HMI STOP/재개 연결은 아래 최신 절을 따른다. 실제 장치 시험은 여전히 별도다.
+
+화면 연결은 Qt 명령 `{"command":"PREPARE_OBSERVE"}` → Backend → 기존 Controller다. snapshot의 선택 항목 `actions.prepare_observe={visible, enabled}`는 REAL의 Job 시작 전만 사용한다. Fake·진행 중 Job에서는 요청을 거절한다. 기존 START/STOP/재개·완료 정책은 유지한다. Job 생성 전 기록은 세션 `driver/<실행 UUID>.jsonl`에 남으며 `ROBOT_PREPARE_PREFLIGHT / STARTED / COMMAND / COMPLETE`와 실패 result를 구분한다. STARTED의 `collision_verified=false`는 이번 구현이 충돌 검증을 포함하지 않는다는 뜻이다.
+
+장치 없는 실제 검사 결과와 수정 파일은 사전 이동 검사 기록 (`logs/real-voice-preparation/prepare-button-summary.json`, 로컬 산출물)에 있다. [시작 오류 화면](../logs/real-voice-preparation/observe-start-failed.png)과 [사전 이동 도착 후 화면](../logs/real-voice-preparation/prepare-observe-ready.png)은 Qt 1200×900 Mock 렌더링이다. 실제 이동/API/Camera는 에이전트가 실행하지 않았다. 실제 경로 시험·현장 정지/복귀·운영 모니터 확인은 남아 있으며 커밋/게시/PR/merge는 하지 않았다.
+
+
+## 2026-10-06 — REAL 정지·재개와 오배치 질문 TTS
+
+사용자의 명시 요청으로 기존 REAL 버튼과 C 음성 연결을 확장했다. 기존 공통 Design/Observed/Current/Expected·A/B/C 알고리즘·측정값·HOME/observe·TCP/tool·속도는 유지한다. 이번 에이전트 실행은 장치 없는 Mock 검증이다. 실제 정지·재개나 음성 API 시험 통과를 뜻하지 않는다.
+
+### 실행
+
+이미 열린 창에는 코드가 자동 적용되지 않는다. 현재 Job의 실제 정지/종료와 블록 정리를 현장에서 확인한 뒤 새 프로그램을 실행한다. 앱 종료 후 Job/Current/공급 슬롯 복원은 지원하지 않는다. 기존에 소모한 공급 슬롯은 채우거나 manifest의 각 first_slot을 실제 준비 상태에 맞춘다. 실행 중 manifest 변경은 거절한다.
+
+현재 사용자 터미널에서 `OPENAI_API_KEY`는 설계 LLM/STT, `OPENAI_TTS_API_KEY`는 질문 TTS에 사용한다. 키가 없다면 `read -rsp "TTS API key: " OPENAI_TTS_API_KEY`로 숨김 입력하고 다음 줄에서 `export OPENAI_TTS_API_KEY`를 실행한다. `export`만으로 없는 키가 생기지는 않는다. 키 값은 채팅/명령 문자열/로그에 넣지 않는다.
+
+```bash
+source /home/ms-02/cobot2_ws/install/setup.bash
+cd /home/ms-02/C_2
+export OPENAI_API_KEY
+export OPENAI_TTS_API_KEY
+export C_DESIGN_USE_LLM=1
+export OPENAI_MODEL=gpt-4o
+export OPENAI_STT_MODEL=whisper-1
+export OPENAI_TTS_MODEL=tts-1
+export OPENAI_TTS_VOICE=alloy
+
+env -u QT_QPA_PLATFORM python3 -m app.real_workflow_hmi \
+  --real-workflow \
+  --config interfaces/robot_trial_blue5.json \
+  --supply-manifest interfaces/robot_voice_workflow.json \
+  --c-mode live --c-voice \
+  --log-dir logs/c_voice_real
+```
+
+창 열기의 준비 검사는 실제 조회만 한다. 사전 이동 버튼은 **실제 현재 위치→기존 HOME→observe 이동**이며 집기/슬롯 효과는 없다. 준비 성공 뒤 시작→마이크 목표→실제 C 설계/실제 A Plan을 확인한다. STT/설계 오류는 성공 Design으로 대신하지 않는다.
+
+### 정상 현장 입력과 오배치
+
+현재 열린 요청에만 연결하는 다음 단축 입력을 같은 터미널에 한 번씩 입력한다. 외부 관측 결과의 오래된 check_id를 새 것으로 바꾸는 기능이 아니다. 명시적 check_id가 있으면 원래 ID로 검증한다. 대기 요청 없이, 이동/STOP/오류 중에는 거절한다. 단축 JSON도 사람이 현장을 확인했다는 실행 명령이다.
+
+```json
+{"event":"place_empty"}
+```
+
+첫 전달판이 비고 손/장애물과 공급 준비를 확인했을 때만 입력한다. **실제 전달과 그리퍼 개폐가 시작된다.**
+
+```json
+{"event":"assembly"}
+```
+
+observe 복귀 뒤 기존 구조 유지·목표 블록의 여섯 필드 일치·전달판 비움·손 이탈을 확인했을 때만 입력한다. 마지막 전 Step에서는 **다음 실제 전달이 시작된다.** 마지막 확인 후 누적 Current와 전체 Design을 대조한다. Robot 성공/버튼/빈 Remaining만으로 완료하지 않는다.
+
+잘못 놓았으면 다음 양식의 실제 블록 여섯 필드를 고쳐 입력한다. 아래 값은 사용 예시이며 현재 Step의 실제 결과가 아니다. 기존 조립을 유지했다는 현장 확인도 포함한다.
+
+```json
+{"event":"assembly","actual":{"brick_type":"2x3x1","color":"blue","x":17,"y":9,"layer":1,"orientation_deg":0}}
+```
+
+실제 배치를 Current에 반영하고 이번 목표와 구분해서 표시한다. Step 미완료/다음 전달 보류→실제 C 질문 생성→TTS 재생 완료→마이크 답변 순서다. 음성 질문은 AI 생성 음성이다. 음성 입력을 terminal event로 가장하지 않는다.
+
+- **1번/KEEP:** 기존 Design 유지. 실제 A가 충돌/보존 위반을 반환하면 사람 정리 대기다. 사람이 고친 뒤 기존 `정리 완료` 버튼을 누르고 출력된 `event=current` JSON의 blocks를 **현장에서 확인한 조립판 전체 실제 배치**로 수정해 입력한다. 현재 열린 check_id와 confirmed=true가 필요하다. 이 시험 입력은 24×24·1~4층 전체를 사람이 확인한 근거이며 Camera 관측이 아니다. 버튼만 누르거나 동일한 배치를 보고하면 정리 성공으로 처리하지 않는다. 실제 배치 변화 채택→실제 A 재계산→새 전달판 EMPTY 확인을 기다린다.
+- **2번/REVISE:** C가 현재 실제 배치를 그대로 포함한 전체 수정 Design을 반환하고 실제 A가 최신 Current로 Remaining을 계산한다. Design·Plan을 함께 채택한 뒤 새 전달판 비움 요청을 연다. 채택 자체로 이동하지 않는다. 기존 Current와 실제 집기 후 공급 순서를 초기화하지 않는다.
+- **불명확:** 안내 질문 한 번 뒤 계속 불명확하면 기존 KEEP/REVISE 버튼 선택을 기다린다. 자동 KEEP/무한 음성 반복은 없다.
+- **TTS/STT/API 실패:** 실제 Current와 공급 순서를 유지하고 보류한다. 못 들려준 질문에 대한 마이크 응답이나 다음 전달을 시작하지 않는다. 재시도하려면 정지 확인→재개로 새 요청을 사용한다.
+- **실제 배치 좌표 없음:** `{"event":"assembly","confirmed":false}`는 신고/보류만 한다. Current나 Difference를 추정하지 않아 TTS 의도 질문을 만들 근거가 없다. 목표대로 정리한 뒤 정지 확인→재개의 새 check에서 다시 확인한다.
+
+C 연결이 없는 `--c-fixture` 전용 시험은 HRI/TTS를 호출하지 않는다. `--c-mode offline`은 실제 C 텍스트 함수 경로이며 터미널에 출력된 answer JSON으로 응답한다. Fake의 observe/observe_wrong_color 명령을 REAL에 사용하지 않는다.
+
+### 정지와 재개
+
+진행 중 정지 버튼을 사용할 수 있다. 이동 중에는 별도 `app.robot_pause --stop` 프로세스가 기존 move_stop(mode=1)을 요청하고 정지 표식으로 다음 이동/개폐를 차단한다. 이미 실행 중인 gripper/음성/HTTP 호출의 즉시 취소는 보장하지 않는다. 취소된 음성 결과는 채택하지 않는다.
+
+정지 ACK·자식 프로세스 종료만으로 재개를 허용하지 않는다. 이전 실행 종료 뒤 무이동 probe가 실제 motion=0·idle/autonomous·기존 TCP/tool·그리퍼 상태를 확인해야 한다. 기존 Job·Design·Current·완료 기록·공급 순서는 유지하며 예전 관측·음성 결과는 진행을 바꾸지 않는다.
+
+| 확인된 정지 상태 | 수동 재개 결과 |
+|---|---|
+| 미집기 | 새 execution_id, 같은 Step/공급 슬롯으로 기존 전달 명령 재전송 |
+| 들고 있음 | 기존 명령 기록 이후 전달/복귀만 수행. 추가 집기 없음 |
+| 놓음 | 기존 명령 기록 이후 observe 복귀만 수행. 다시 열기/집기 없음 |
+| 조립/질문/초기 음성 대기 | observe 위치·빈 그리퍼 확인 후 새 check 또는 새 C 호출. 추가 이동 없음 |
+| 사전 이동 중 정지 | 별도 확인 뒤 기존 HOME→observe 사전 이동 재개. Job/집기 효과 없음 |
+
+그리퍼·로그·설정이 충돌하거나 실제 정지가 확인되지 않으면 재개를 차단하고 사유를 표시한다. STOP 뒤 servo 상태가 달라졌다면 자동 servo/reset/recovery를 추가하지 않는다. 현장에서 상태를 확인한다. 긴급 정지는 현장 비상정지를 사용한다. 앱 재실행을 STOP/복원/재개로 해석하지 않는다.
+
+정지/확인 로그는 세션 `pause/<요청 UUID>.jsonl`, 전달/재개는 `driver/<실행 UUID>.jsonl`, Job별 Current/질문/음성/재계획/진행 기록은 `backend/<Job UUID>.jsonl`이다. 정상 현장 확인과 합성 B 입력을 구분해 기록한다. 검증 결과·수정 파일·Mock 화면은 이번 검사 색인 (`logs/real-stop-resume/summary.json`, 로컬 산출물)을 따른다.
+
+### 규모와 남은 검증
+
+정지 요청을 이동 호출과 분리해야 하므로 새 실행부 robot_pause.py 하나와 기존 Controller/driver/Backend/HMI 계약·Schema를 수정했다. TTS는 기존 CTextConnection/voice를 그대로 호출한다. 새 framework/dependency/추상 계층·A/B/C 알고리즘 변경은 없다. 기존 real_trial_hmi.py가 400행을 넘는 복잡성 검토 대상이며 STOP/재개 상태·증거/중복 처리와 테스트가 증가한 이유를 사람이 리뷰해야 한다.
+
+실제 STOP의 정지 모드·ROS 상태 반환·들고/놓은 상태의 재개 궤적·마이크/TTS 재생/API 모델 권한·실제 Camera/B 생산자·운영 모니터 검증은 남았다. 원본 제어/측정 hash는 보존했다. 자동 Robot 복구·실행 중 보충·앱 종료 후 이어하기를 추가하지 않았다. 커밋/게시/PR/merge는 하지 않았다.
+
+이번 수정 후 관련 검사 **634 passed**, 실패/오류/skip **0**, 종료 **0**. 신규 STOP/재개·TTS/재계획 사례 53개를 포함한다. Python 컴파일과 git diff --check 종료 0. HMI·JSONL·Schema/키 미기록·원본 hash를 확인했다. 검사 명령은 아래와 같다(실제 장치/API를 실행하지 않는다).
+
+```bash
+cd /home/ms-02/C_2
+QT_QPA_PLATFORM=offscreen python3 -m pytest \
+  tests/unit/test_robot_pause.py tests/integration/test_real_stop_resume.py \
+  tests/integration/test_real_voice_replan.py \
+  tests/unit/test_robot_trial.py tests/unit/test_real_trial_hmi.py \
+  tests/unit/test_robot_backend.py tests/unit/test_backend.py \
+  tests/unit/test_hmi_contracts.py tests/unit/test_qt_hmi.py \
+  tests/unit/test_hmi_current.py tests/unit/test_snapshot_log.py tests/unit/test_replan.py \
+  tests/integration/test_real_workflow_hmi.py tests/integration/test_real_voice_workflow.py \
+  tests/integration/test_c_voice_hmi.py tests/integration/test_c_function_hmi.py \
+  tests/integration/test_c_saved_results_hmi.py tests/integration/test_a_backend.py \
+  tests/integration/test_abd_input_hmi.py tests/integration/test_abd_callback.py \
+  planning_trial/test_planner.py -q
+```
