@@ -89,3 +89,76 @@ QT_QPA_PLATFORM=offscreen python3 -m pytest tests planning_trial/test_planner.py
 
 
 PR 게시 대상과 최신 main을 합친 독립 파일 트리에서 `QT_QPA_PLATFORM=offscreen python3 -m pytest tests planning_trial/test_planner.py -q` 실행: **884 passed**, 종료 코드 0. main의 C 검사도 포함하며, 별도 REAL 장치 시험·수동 입력 HMI 검사는 이번 게시 범위에서 제외한다. 실제 Camera/Robot 시험은 수행하지 않았다.
+
+## 사용자가 제공한 C 저장 응답으로 A–D·Qt 시험 (2026-10-06)
+
+Downloads의 `c_design_initial_result.json`과 `c_design_revised_result.json`을 원본 바이트 그대로 [Initial Fixture](../interfaces/fixtures/c_design_initial_result.json), [Revised Fixture](../interfaces/fixtures/c_design_revised_result.json)에 보관했다. C가 산출한 저장 응답이며 C 실행 코드·생성 커밋은 제공되지 않았다. 이번 시험에서 C 함수/LLM/음성은 호출하지 않았다.
+
+| 파일 | SHA-256 | Design |
+|---|---|---|
+| Initial | `5213f1d01b5bdc3abfeed1c330e3dc975ceb3bc45465fdac5d50f90c8334432b` | v1, 15블록 |
+| Revised | `5c60d6d514ec08852f02f4713c1b4ba2491b0254a33ab64205efe6bcefd6588f` | v2, 19블록 |
+
+Revised는 (9,9) 2층의 노랑 6점/90°를 파랑으로 바꾸고 노랑 4점 네 개를 추가한다. 모든 불일치에 적용할 범용 응답은 아니다. 저장된 질문도 그대로 표시·기록하며 실제 의도 해석 결과를 새로 생성하지 않는다.
+
+연결은 `Backend.on_initial_design` → `run_planning_request` → 실제 A `plan_from_current(design,current)` → D 채택이다. Revised는 활성 질문에서 `on_c_intervention` → 실제 A 재계획 → D의 Design/Plan 동시 채택을 사용한다. A는 위 고정 커밋 원본, D는 HEAD `7af9daeb3812f9e87fb36f172293434fd827e42f` 기반 미커밋 구현이다. B PR #10 `c75c80374b848a395fded62ad901020d06b92913`의 원본 `deliver_example`을 거치지만 관측 내용은 D 시험용 합성 프레임이다. 이번 입력은 모든 기존 배치와 현재 입력 배치가 판별 가능하다고 가정한 사례이며 가림 성능 증거가 아니다. 전달판 입력은 기존 `on_place`로 직접 전달하며 B 생산 callback으로 표시하지 않는다. RobotController/FakeRobotDriver, 실제 snapshot/Qt/JSONL을 연결했다.
+
+| 사례 | 결과 |
+|---|---|
+| Initial + 빈 Current | 실제 A READY 15 Step. Fake 전달 뒤 조립 확인 대기, 관측 후에만 Step 확인. 최종 Current 15개/revision 15, 15/15 COMPLETE |
+| 부분 Current 0/4/8개 | 실제 A Remaining 15/11/7. 이미 조립한 목표 배치는 Plan에서 제외 |
+| S09 색상 불일치 | 앞선 8 Step 유지, 파랑 실제 배치를 Current에 채택해 9개/revision 9. 기존 목표는 노랑 유지, WAIT_INTENT·8/15·추가 전달 없음 |
+| 저장 Revised + 위 Current | 실제 A READY 10 Step. Current/revision 9 보존, Design v2와 새 Plan 채택, 진행 0/10. 새 EMPTY와 관측으로 끝까지 확인 후 Current 19개/revision 19·10/10 COMPLETE |
+| 위 실제 배치의 x=7 | Revised가 그 Current를 보존하지 못하므로 실제 A NEEDS_CORRECTION. WAIT_CORRECTION·Design v1 유지·Current 9개 보존·추가 집기 없음 |
+| 조기/중복 Revised·STOP 후 늦은 C 응답 | 채택/진행하지 않음 |
+| 지원 밖 색상·Boolean 좌표 | 입력 거절, Current/관측 순번 변화 없음 |
+
+Revised를 빈 Current로 A에 넣는 독립 계산은 READY 19 Step이지만 D의 최초 응답으로 v2를 채택하는 시험은 아니다. 재계획 진행 수치는 현재 Plan의 10 Step이며 전체 Design의 19블록 달성률과 구분한다. 위 재계획 사례는 총 19회 Fake 전달·18회 STEP_CONFIRMED다. 불일치 전달 한 번은 이전 Plan의 Step 완료로 기록되지 않는다.
+
+### HMI 실행과 단계 입력
+
+실제 Robot/ROS 연결 없이 다음을 실행한다. 창을 연 뒤 **시작**을 누르면 Initial Design 전체 그림·S01·0/15가 표시된다. 별도 Design/Plan JSON 입력은 필요 없다. 시작 전에는 미채택으로 표시한다.
+
+```bash
+cd /home/ms-02/C_2
+env -u QT_QPA_PLATFORM python3 -m app.abd_input_hmi --synthetic-b \
+  --initial-result interfaces/fixtures/c_design_initial_result.json \
+  --revised-result interfaces/fixtures/c_design_revised_result.json
+```
+
+같은 터미널에서 출력되는 다음 입력을 한 줄씩 사용한다. 정상 시험에서는 다음 두 입력을 각 Step마다 반복한다. `place_empty` 뒤 Fake 복귀와 다음 관측 안내를 기다린다. 마지막 전달만으로 완료되지 않는다.
+
+```json
+{"event":"place_empty"}
+```
+
+```json
+{"event":"observe"}
+```
+
+Revised 시험은 **앞선 8개 Step을 정상 확인한 뒤 S09**에서 수행한다. S09 목표가 **노랑 6점 (9,9), 2층, 90°**인지 HMI로 확인하고 `place_empty`/복귀 뒤 정상 observe 대신 다음 한 줄을 입력한다. 기존 조립을 보존한 채 이번 블록만 파랑으로 놓은 합성 관측이다.
+
+```json
+{"event":"observe","actual":{"brick_type":"2x3x1","color":"blue","x":9,"y":9,"layer":2,"orientation_deg":90}}
+```
+
+의도 확인 대기에서 아래 입력으로 제공된 Revised 응답을 적용한다. 자동 REVISE/KEEP은 없다. Current를 임의로 변경해 Revised와 맞추지 않는다.
+
+```json
+{"event":"revise"}
+```
+
+이후 새 Plan의 10개 Step도 `place_empty` → Fake 복귀 → `observe`로 진행한다. 다른 실제 배치나 다른 실행 시점에서는 같은 저장 Revised가 NEEDS_CORRECTION으로 보류될 수 있다. 실제 카메라/로봇 시험 명령으로 사용하지 않는다.
+
+### 이번 검증과 산출물
+
+[새 검사](../tests/integration/test_c_saved_results_hmi.py) **13개**, 관련 **182 passed**, 전체 **805 passed**, 각각 종료 코드 0. 기존 화면 실행부의 입력 옵션만 확장하고 공통 계약·Backend 핵심·A/B 원본·장치 설정은 변경하지 않았다. 새 class/dependency/framework/DB 없음. 변경량 검토 신호는 원본 JSON 두 파일의 보관과 정상 15 Step/재계획 10 Step/보류/지연 응답의 외부 결과 검증에 따른 것이며 새 시스템을 생성하지 않았다.
+
+```bash
+QT_QPA_PLATFORM=offscreen python3 -m pytest tests/integration/test_c_saved_results_hmi.py -q
+QT_QPA_PLATFORM=offscreen python3 -m pytest tests planning_trial/test_planner.py -q
+```
+
+[산출물 색인](../logs/c-saved-results-final/summary.json)에 소스 해시·검사 수·사례별 snapshot/JSONL/화면 PNG 위치를 기록했다. native Qt는 파일 로드·창 열기·EOF 종료만 확인했으며 START 이후 상태·그림은 offscreen Qt 검사와 PNG로 확인했다. logs는 Git 제외다. lint/type check는 미구성이다.
+
+남은 연결: 최신 Current/Difference에서 실제 C Revised를 생성하는 함수·응답, B의 실제 관측/전달판 생산 callback·촬영/가림 판별, 실제 Robot 전달/STOP·재개 및 모듈 간 실패/지연 시험. 저장 C 결과·합성 callback·Fake 통과를 실제 Camera/Robot 통합이나 인식 성능 통과로 표시하지 않는다. GitHub 게시/PR/merge/장치 실행 없음.
