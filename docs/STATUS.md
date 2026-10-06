@@ -1,5 +1,222 @@
 # 현재 진행 상황
 
+## 수현 누적 D 수정 PR 게시 준비 (2026-10-06)
+
+- 사용자 요청으로 Robot 시험 진입점/설정·수동/합성 HMI·잘못 놓음 표시·A–B–D callback·C 저장 Design·블록 비율의 누적 수정과 검사를 PR로 준비했다. 별도 DB/컨테이너·발표/제출 초안·미완료 공통 문서는 제외한다. [게시 범위와 검증](D_BACKEND_PROGRESS.md#2026-10-06--누적-d-수정-pr-게시-준비).
+- PR #9/B PR #10 병합 후 최신 main `7c51549`를 기준으로 게시본을 만들고 실제 A/B 원본과 main의 C 코드·공통 문서를 보존했다. 독립 게시본의 전체 검사 **1045 passed**, 종료 코드 0. Robot 검사는 이 호스트의 검증된 원본/측정 자료 경로에 의존하며 다른 PC에서의 전체 실행은 그 자료가 필요하다. C 저장 응답은 저장소 Fixture 경로로 실행할 수 있다.
+- 로컬 지정 브랜치/HEAD/기존 미커밋 변경과 기존 원격 브랜치는 유지하며, 최신 main에서 만든 게시용 원격 브랜치 `work/suhyun-day4-integration-updates`에 후속 수정만 게시한다. 사람 검토용 초안 PR이며 실제 C 함수/B 인식/Camera/Robot STOP·재개/전체 장치 시연 통과를 주장하지 않는다. GitHub CI는 미확인, main 병합과 장치 명령은 실행하지 않는다. logs/PNG·원자료는 Git 제외/원래 위치에 보존한다.
+
+
+## HMI 블록 높이·돌기 비율 수정 (2026-10-06)
+
+- 사용자 요청에 따라 [표시 코드](../app/hmi_board.py)의 납작한 층 높이를 LDraw 기본 brick 비율(가로20:몸체 높이24)과 동일 축척의 투영으로 수정하고 돌기 지름/높이를 표시했다. 높이 비율은 BoardView의 표시 인자로 변경 가능하다. 전체판·확대의 범위에 모든 몸체 모서리와 돌기 높이를 포함한다. 현재 Step/전달 블록은 위에서 보는 시점을 유지한다. Design/좌표/층/Current/완료 계산·Robot 보정은 변경하지 않았다.
+- 기존 Qt 검사에 표시 비율/설정·판 가장자리 4층/좁은 창·원본 유지 **6개**를 추가했다. 관련 **40 passed**, 전체 **852 passed, 11 skipped**, 각각 종료 코드 0. 11개 skip은 기존 history PostgreSQL 통합의 HISTORY_TEST_DSN 미설정이며 이번 HMI 범위는 모두 검사했다. offscreen Qt의 C Initial/Revised 그림·전체 창과 경계 사례를 확인했다. [수정 후 미리보기](../logs/hmi-brick-proportion/board-after.png), [표시 변경 기록](D_BACKEND_PROGRESS.md#2026-10-06--hmi-블록-비율-수정). 실제 장치 동작/실물 치수 검증은 수행하지 않았다.
+- 이번 파일은 표시 코드/기존 Qt 검사/진행 기록/STATUS 네 개다. 새 dependency/class/framework 없음, 공통 계약/Backend/A/B/C 산출물/Robot 경로 설정/기존 변경을 보존했다. lint/type 미구성이다. 지정 브랜치 유지, GitHub 게시/PR/merge 없음. 기존 FAKE 창을 닫고 동일 명령으로 다시 실행하면 새 표시가 적용된다.
+
+## 사용자 제공 C 저장 Design 응답 → 실제 A/D·Qt 통합 (2026-10-06)
+
+- C Initial/Revised 두 Downloads 원본을 동일 바이트의 Fixture로 보관했다. 생성 커밋/실제 C 함수는 미제공이다. 기존 [합성 입력 화면 실행부](../app/abd_input_hmi.py)에 파일 옵션과 실제 배치/저장 Revised 입력만 추가하고 실제 A `plan_from_current`, 기존 D 채택/재계획, B 원본 `deliver_example`, Controller/FakeRobot, snapshot/Qt/JSONL을 사용했다. 관측은 D 작성 합성 프레임, 전달판은 시험 입력이며 B production 구현으로 표시하지 않는다. [파일·입력·실행 안내](D_A_PLANNER_HANDOFF.md#사용자가-제공한-c-저장-응답으로-adqt-시험-2026-10-06).
+- Initial v1은 15 Step/전체 Current 15개·revision 15로 완료했다. 부분 Current 0/4/8개에서 Remaining 15/11/7을 실제 A로 계산했다. S09 (9,9) 2층 노랑 6점/90°를 파랑으로 관측하면 Current 9개/revision 9·8/15·의도 확인 대기다. 저장 Revised v2는 이를 보존하고 4블록을 추가해 전체 19블록·Remaining 10 Step을 채택한다. 새 EMPTY/관측을 Step마다 입력해 Current 19개/revision 19·10/10 완료를 확인했다. Robot 성공만으로 Current/Step은 변경되지 않는다.
+- 실제 x=7인 배치에 같은 Revised를 넣으면 A NEEDS_CORRECTION·사람 정리 대기다. Current/기존 Design을 보존하고 추가 전달하지 않았다. 조기/중복 Revised·STOP 뒤 늦은 응답·지원 밖 색상/Boolean 좌표도 진행하지 않는다. C 저장 질문/전체 응답은 HMI/JSONL에 보존한다. Revised는 해당 색상 차이용 저장 응답이며 임의의 불일치에 자동 적용하지 않는다.
+- 신규 검사 **13개**, 관련 **182 passed**, 최종 전체 **805 passed**, 각각 종료 코드 0. [산출물 색인](../logs/c-saved-results-final/summary.json)에 JUnit·Job JSONL·snapshot JSON·화면 PNG·소스 SHA를 남겼다. native Qt는 파일 로드/창 열기/EOF 종료만 확인했고 START 이후 화면/진행은 offscreen Qt로 검사했다. 초기/재계획/보류 그림도 확인했다. 다수 관측 배치를 한 표에 표시하면 열이 좁아지는 기존 HMI 표시 한계는 남아 있으며 이번에 UI를 재설계하지 않았다. lint/type check 미구성이다.
+- 이번 파일 6개: 기존 실행부/연결 안내/이 STATUS 3개, 새 C 원본 Fixture 2개와 새 통합 검사 1개. application 236줄, 신규 class/dependency/framework/DB 없음. 300줄 변경량 검토 신호는 원본 JSON 보관과 정상/재계획/보류 검증에 따른 것이며 공통 계약·Schema·Backend 핵심·A/B 원본·Robot 설정은 보존했다. 지정 브랜치/HEAD 유지, commit/push/PR/merge/장치 실행 없음. 실제 C의 최신 Current 기반 응답 생성, B 실제 관측/전달판·촬영 판별, 실제 Robot/STOP·재개 연결은 미검증이다.
+- 마무리 검사: 시작 파일 118개 중 이번 기존 파일 3개 외 115개와 Downloads 원본 두 개를 동일 해시로 보존했다. Python AST·JSON 원본 바이트/구문·공백·문서 코드 블록·로컬 링크 110개·git diff --check 종료 코드 0. [보존 검사 기록](../logs/c-saved-results-final/preservation-audit.json)을 남겼다. 원본/팀원 코드/장치 설정을 덮어쓰거나 이전 미완료 변경을 되돌리지 않았다.
+
+## A–B–D 합성 입력 Qt 화면 시험 준비 (2026-10-06)
+
+- 사용자 승인 범위: 실제 HMI 창에서 정상·불일치·가림·전달판 보류를 확인할 시험 준비. [abd_input_hmi.py](../app/abd_input_hmi.py)를 추가해 기존 Backend/Qt·실제 A plan_from_current·B 원본 deliver_example·Controller/Fake driver를 연결했다. 시작으로 Design/Plan 채택, 터미널 place_empty로 Fake 전달, 복귀 뒤 observe로 합성 관측을 한 번씩 공급한다. 실행/입력/화면 확인 순서는 [화면 시험 안내](D_ABD_SYNTHETIC_CALLBACK_TEST.md#합성-입력을-넣으며-qt-화면-확인하기-2026-10-06)에 있다.
+- 정상 3-Step 마지막 Fake 전달 뒤에는 2/3 대기, 마지막 observe 후에만 3/3 완료다. 불일치/빈 영역은 실제 합성 Current 또는 미배치 차이를 유지하며 의도 대기, 이번 목표 가림은 기존 Current 유지/보류, 아래층만 가림은 이번 목표 완료를 허용한다. 전달판 판단 불가는 새 after=null check에서 별도로 넣고 EMPTY 전 추가 집기 없음을 확인한다. 가림 사전 Current와 추가 위치의 D 합성 프레임은 source/이벤트로 표시한다. Fake STOP/재개 및 옛 check 거절을 확인했다.
+- 신규 연결 검사 **17개**, 관련 검사 **59 passed**, 최종 전체 **792 passed**, 종료 코드 0. 실제 CLI의 명시 모드/입력 오류·보류/EOF 종료와 DISPLAY=:0 native 창 열기/EOF 종료를 확인했다. native 실행은 시작 버튼/Job/전달 없이 끝났으며 화면 상태는 offscreen Qt/PNG로 확인했다. [산출물 색인](../logs/abd-hmi-final/summary.json), Job JSONL·snapshot JSON·화면 PNG·JUnit을 logs에 남긴다. 첫 테스트 속성명 오류와 전달판 캡처 파일 덮어쓰기 문제를 수정했고, 추가 마지막 Step 검사에서 D 작성 3층 합성 프레임의 visible/verified 층 불일치를 찾아 그 프레임을 고쳤다. Consumer/assertion을 변경하지 않고 영향 검사를 재실행했다.
+- 이번 파일은 신규 진입점/검사와 기존 안내/STATUS 네 개다. 실행 파일 198줄·신규 class 1개이며 약 500줄 규모의 검토 이유는 대화형 callback 연결과 외부 결과 검증이다. application 핵심/Schema/Fixture/A/B 원본/장치 설정/기존 변경은 보존했고 새 dependency/framework/DB/통신은 없다. C Mock·B 합성 자료·Robot FAKE다. B 생산 코드/실제 Camera·Robot/실제 C·실제 STOP/재개 통과를 의미하지 않으며 GitHub 게시/PR/merge/장치 실행 없음.
+- 마무리 검사: 신규 Python AST·공백·문서 코드 블록·로컬 링크 115개·산출물 JSON·git diff --check, 종료 코드 0. 시작 파일 116개 중 이번 두 문서만 갱신되고 나머지 114개를 동일 해시로 보존했다. 새 파일은 위 실행부/검사 두 개뿐이다(`/tmp/c2-abd-hmi-audit.json`). lint/type는 미구성이며 새 검사 도구를 설치하지 않았다.
+
+## B production callback 후속 연결 착수 확인 (2026-10-06)
+
+- 사용자가 집중 검사 **166 passed**를 직접 재현한 뒤 다음 단계 진행을 요청했다. 원격 PR 목록과 PR #10 head 전체 파일 트리를 다시 조회했으나 `c75c80374b848a395fded62ad901020d06b92913` 그대로이며 B 제공 범위는 합성 예시 18개다. 실제 관측 생산 코드/등록 callback/별도 전달판 전달 함수는 아직 없다.
+- 사용자 확인: 추가 B 구현은 아직 없으며 현재 커밋에 올라온 코드가 전부다. 실제 생산자 연결은 B 구현 제공 후 이어간다.
+- D의 vision 요청(check_id/after, after=null 포함), on_observation, on_place 및 실패/지연 확인 지점을 [후속 연결 기록](D_ABD_SYNTHETIC_CALLBACK_TEST.md#후속-production-callback-연결-착수-확인-2026-10-06)에 정리했다. BLOCKER: 실제 B 실행 코드 위치 미제공. REQUIRED CHANGE: 홍동의 실제 구현 PR/커밋 또는 로컬 경로 제공 후 해당 생산 함수를 기존 D 경계와 연결. AFFECTED INTERFACE: B 촬영 요청/Observed callback/전달판 결과. REASON: 현재 PR은 JSON 저장·callback 합성 예시이며 실제 인식 생산 모듈이 아니다.
+- 이번 변경은 이 STATUS와 기존 검사 기록 두 문서만이다. application/Schema/Fixture/팀원 코드/브랜치/기존 미완료 변경을 보존했고 새 통신·B 알고리즘·장치 실행·Git 게시/병합은 수행하지 않았다. 문서 링크·코드 블록·공백·diff와 파일 보존을 확인했다. 새 pytest 실행은 없으며 직전 합성 166/775 통과를 production 연결 완료로 재사용하지 않는다.
+
+## A–B–D 합성 JSON callback 통합 검사 (2026-10-06)
+
+- [B PR #10](https://github.com/suuuhululu/C-2/pull/10) head `c75c80374b848a395fded62ad901020d06b92913`의 변경 18개를 원본대로 가져왔다. 실제 인식 코드가 아닌 합성 JSON/로컬 callback 예시다. [PR #9](https://github.com/suuuhululu/C-2/pull/9) head `a825e2d6b7440a4ab77fb5c02540484e04dd3acc`와 대조해 A·planning_connection·Current·completion·replan이 동일함을 확인하고 이후 로컬 REAL/HMI 변경을 보존했다. 개발 브랜치와 HEAD `7af9daeb3812f9e87fb36f172293434fd827e42f`는 유지했다.
+- 실제 A `plan_from_current(design,current)` → D status/plan/errors 채택·보류 → FakeRobot 성공 → B 원본 `deliver_example()` callback → D Current/Expected/Step → snapshot·Qt offscreen·JSONL을 연결했다. 저장 Plan 주입, C 실제 함수, 실제 카메라/Robot 호출은 없다. B에 없는 별도 진단 전달 함수/ROS/HTTP를 구현하지 않았다. 전달판 state/reason은 검사 내부 최소 변환으로 기존 on_place에 전달했고 전체 진단 제안을 공통 필수 계약으로 확정하지 않았다.
+- 정상 일치·불일치 실제 Current 채택/의도 대기·확인된 빈 영역·이번 목표 가림·아래층만 가림·전달판 UNOBSERVABLE·부분 Current/Mock Revised 실제 A 재계획·닫힌/역순/중복 check/seq를 검사했다. after=null 전달판 요청과 새 EMPTY 필요성을 확인했고 마지막 전달만으로는 2/3 대기, 마지막 관측 확인 후에만 3/3 완료다. 자세한 입력·결과·명령·커밋·제한은 [통합 검사 기록](D_ABD_SYNTHETIC_CALLBACK_TEST.md)에 있다.
+- 최종 집중 **166 passed**, 종료 코드 0 (신규 A–B–D 16 + B 원본 14 + 기존 A–D 24 + A 독립 112). 전체 **775 passed**, 종료 코드 0. B CLI 7묶음 출력/종료 코드 0. 첫 검사 준비 오류 두 건은 실제 A 층 정렬과 Fake tuple 접근을 수정해 재검사했다. [결과/소스 해시 색인](../logs/abd-callback-final/summary.json), 사례별 result.json·Job JSONL·HMI PNG와 JUnit을 logs에 남겼다. logs는 Git 제외다.
+- 이번 작성분은 신규 통합 검사/기록과 이 STATUS 세 파일이며 B 원본 18개를 별도로 구분한다. application·공통 계약·Schema·팀원 원본·장치 설정은 수정하지 않았다. lint/type 미구성, 새 dependency/framework/DB/class 없음. B production callback/별도 전달판 수신 경로·실제 보정/촬영 안정 조건·Robot 정지/촬영 신호·C 실제 함수 연결은 blocker다. 합성 callback 통과를 인식 성능·Camera/Robot 통합 통과로 표시하지 않는다. commit/push/새 PR/merge/장치 실행 없음.
+- 마무리 확인: B 원본 18개를 고정 커밋 원격 내용과 바이트 대조했다. 시작 시 기존 파일 96개 중 STATUS만 갱신했고 나머지 95개를 동일 해시로 보존했다(`/tmp/c2-b-callback-audit.json`). 이번 작성 Python AST·공백·Markdown 코드 블록·문서 로컬 링크 102개·산출물 JSON·git diff --check 검사 종료 코드 0. 실제 Qt 화면에서 노랑 목표/파랑 관측 불일치와 전달판 판단 불가/사유 표시를 시각 점검했다.
+
+## 잘못 놓음 수동 입력·좌표 비교·확인 전 완료 방지 검수 (2026-10-06)
+
+- 사용자 요청: 잘못 놓았다는 터미널 신고를 남기고 HMI에 현장 좌표와 목표를 비교. 시험 좌표 **(9,5)**, 적용 검수는 **S03/목표 (7,5), 파랑 4점·1층·0°**. 마지막 조립 확인 전에 완료가 표시되는지도 검수했다. C 때문에 입력/표시가 막히는 것은 아니며, 실제 배치 제공은 B 또는 현장 입력, 목표 생성/수정은 C, Current/Difference/표시는 D 책임이다. 목표 변경/정리 후 재개·Robot MOVE까지 범위를 확대하지 않았다.
+- 변경: 기존 REAL 진입점의 assembly `confirmed:false`를 수동 불일치 신고로 로그·HOLD 처리한다. 좌표가 없는 신고는 Current/관측/Step을 변경하지 않는다. actual 여섯 필드가 있으면 기존 조립 유지와 목표 영역 확인을 전제로 수동 Observed를 만들고 기존 Backend 계산으로 실제 Current/차이를 반영한다. Expected/전체 Design/미확인 Step을 목표 기준으로 유지한다. C/HRI 실제 미연결을 유지하고 자동 KEEP/추가 전달/완료하지 않는다.
+- HMI: 선택 표시 필드 reported_placement를 snapshot·Consumer·Schema에 명시했고 REAL 수동 MISMATCH 및 해당 Observed에 포함된 배치만 허용한다. Qt는 그 블록을 현장 입력 열에 보여주고, 목표 채움과 실제 입력의 빨간 테두리를 그린다. Actual/목표 좌표·층·색상·방향이 비교되며 물리 블록 대응/기하/완료를 Qt가 계산하지 않는다. Camera 미연결 표시를 유지한다. [실행·제한 안내](D_BACKEND_RUN_ROBOT_PLAN.md)에 입력과 새 실행 필요 조건을 갱신했다.
+- 실제 검사: 최종 `QT_QPA_PLATFORM=offscreen python3 -m pytest tests planning_trial/test_planner.py -q` → **745 passed**, 종료 코드 0. 관련 REAL 파일은 38개 검사(기존 18 + 신규 20). 첫/두 번째/세 번째 Step의 좌표 없는 신고와 실제 배치 신고, Current 유지/실제 채택·revision·고정 기준·Step 미완료·차이·다음 집기 없음·중복/옛 결과 거절·JSONL/Schema/화면을 확인했다. 같은 위치 색상 불일치, 잘못된 Boolean·필드/범위·이전 블록 겹침·목표와 같은 actual·정상 확인에 actual·표시 출처 불일치·로그 실패도 검사했다.
+- **마지막 확인 전 완료 검수:** 세 번째 전달·복귀 성공만으로는 Qt **WAIT_ASSEMBLY/사람 조립 관측 대기·2/3**, Current revision 2 유지, JOB_COMPLETED 없음. (9,5) 신고 뒤 **HOLD·2/3**, 실제 Current revision 3·위치 (9,5) 채택/목표 (7,5) 유지, 완료 이벤트/다음 전달 없음. 정상 마지막 확인을 별도로 입력한 경우에만 COMPLETE·3/3이다. 검사 assertion을 삭제/완화하지 않았다. [확인 전 화면](/tmp/c2-s03-before-confirmation.png), [신고 후 화면](/tmp/c2-s03-misplaced-preview.png), `/tmp/c2-s03-misplaced-65t4o8vb/result.json`과 같은 폴더의 stdout/Job/모의 driver 로그, 종료 코드 0. 실제 A·Qt·모의 QProcess이며 장치 호출/실행은 없다.
+- 범위 **9개 기존 파일**: real_workflow_hmi·snapshot·hmi_contracts·hmi Schema·Qt·BoardView·해당 통합 검사·이 STATUS·실행 안내. 약 350줄 규모 검토 신호이며 신규 파일/class/dependency/framework/DB 없음. 수신 검증과 신고 결과 처리는 책임별로 분리(45줄 receive/18줄 report), 실행 모듈 188줄. 검사 파일 407줄은 실제 계약/외부 결과를 검증하는 테스트로 정책의 Test Code Exception에 해당하며 application 분할/추상 계층을 추가하지 않았다. Backend/Current/Expected/A/Robot 제어·경로·설정은 변경하지 않았다. 사용자 입력 오류를 줄이려고 활성 ID·actual 여섯 필드가 있는 한 줄 양식을 출력하며 실제 좌표로 바꾸어 입력하도록 명시했다.
+- 활성 REAL 창은 소스 수정으로 자동 갱신되지 않는다. 사용자 현재 Job/Robot/창을 중단·재시작하지 않았으며, 소모 슬롯이나 이전 check를 새 Job에 재사용하는 지시를 하지 않았다. 새 코드에서 같은 Job을 이어받는 종료 후 복구는 미지원이다. 현재 사용자가 진행 중인 세 번째 REAL 실행의 오류 처리 성공으로 이번 모의 검수를 표시하지 않는다. 아직 Camera/B 실제 인식·수정 후 재관측/재개·C/HRI 의도/목표 변경·REAL STOP/재개는 미연결/미검증이다. 다음 단위에는 실제 관측/현재 상태를 공급하는 홍동 반환 또는 명시 수동 재관측 입력과 정리 후 진행 규칙을 검토해야 한다. commit/push/PR/merge/실제 Robot 동작 없음.
+- 마무리 검사: 해당 Python/JSON 구문·공백·문서 링크 101개·코드 블록·git diff --check, 종료 코드 0. 시작 해시와 비교해 위 9개만 변경되고 범위 밖 기존 87개 및 원본 제어/설정/A를 보존했으며 신규 파일은 없다(`/tmp/c2-misplaced-report-audit.json`). lint/type는 미구성이고 새 검사 도구를 설치하지 않았다.
+
+## REAL 3 Step 현장 수동 확인 진입점 구현·독립 검증 (2026-10-06)
+
+- 사용자 답변: **3개 블록을 한 번 조립/총 3회 전달**, 슬롯 모두 충전, 색상/슬롯 임의 선택 허용, 다음 전달 전 현장 조립/전달판 확인은 터미널 입력. 재현 가능한 첫 시험으로 **파랑 4점 공급 슬롯 1→2→3**을 사용한다. 사용자가 노랑 2번 및 파랑 5번 전달·observe 복귀를 확인한 것과 이번 신규 세 슬롯의 실제 시험을 구분한다.
+- 변경: [진입점](../app/real_workflow_hmi.py)에서 가짜 C 3블록 → 실제 세은 A → 기존 Backend → 같은 REAL Qt 화면 → 기존 한 블록 CLI를 연결했다. START는 Design/Plan 채택·전체 목표/현재 Step/0/3 표시까지만 한다. 최초 `place_empty` 수동 입력이 첫 실제 이동을 시작하고, 복귀 후 각 `assembly` 수동 입력이 Current/Step을 확인한다. 첫/두 번째 확인 뒤 다음 실제 전달, 세 번째는 누적 Current/Design 대조와 수동 확인 3/3으로 끝난다. Robot 성공만으로 조립 완료하지 않는다.
+- 관측 경계: 홍동 Camera/B는 미연결이다. 수동 확인은 **기존 조립 유지 + 현재 목표 일치 + 전달판 비움 + 손/장애물 여유**의 운영자 확인이며, `MANUAL_FIELD_CONFIRMATION`과 REAL 현장 수동/Camera 미연결 표시를 남긴다. 정상 매 Step HMI 확인 버튼을 추가하지 않았다. 실제 차이/불확실은 true를 보내지 않고 보류한다. 수동 입력을 Camera의 실제 반환/독립 안전 판별로 표시하지 않는다.
+- Controller는 집기 확인 때만 슬롯을 한 번 소모하고 실행마다 증거를 초기화한다. 서로 다른 실행 ID, observe 복귀/종료 후 다음 실행, 설정 고정, 최대 3회, 실패 후 추가 집기/재개/두 번째 Job 차단을 유지한다. 실제 STOP/재개는 미검증으로 비활성화한다. Robot 경로·pose·TCP/tool·속도·원본 측정·설정 JSON·A 원본은 변경하지 않았다.
+- 신규 검사 **18 passed**, 최종 `QT_QPA_PLATFORM=offscreen python3 -m pytest tests planning_trial/test_planner.py -q` → **725 passed**, 각각 종료 코드 0. 정상 실제 A 3 PLACE·같은 REAL 화면의 3블록/3회·슬롯 1/2/3·실행 ID·수동 전 Current 불변·revision 1/2/3·전체 완료·JSONL을 확인했다. 시작 전/실행 중/옛 check/중복/미확인 입력, 유효하지 않은 C/A 기하 결과, 이전 실행 result·4번째 전달, 집기/놓기/복귀 증거 재사용, driver 실패/비정상 종료/설정 변경/로그 기록 실패에서 추가 집기 차단을 검사했다. 초기 중복 거절 메시지와 같은 색 기존 블록의 이동 모호성 실패를 실제 재현 후 수정했으며 assertion을 완화하지 않았다. 수동 Observed는 운영자가 유지 확인한 누적 Current와 현재 목표를 함께 기록해 이동 여부를 추정하지 않는다.
+- 실제 진입점 `main`/stdin reader/Qt 버튼/queued 입력/실제 A/Backend/모의 QProcess로도 3회 전체를 실행했다. `/tmp/c2-real-three-main-smoke/result.json`, 해당 `logs/`의 Job/모의 driver JSONL, [S01 화면](/tmp/c2-real-three-step-preview.png), [완료 화면](/tmp/c2-real-three-complete-preview.png), 종료 코드 0. ROS/Robot 이동/Camera 호출 없음. 기존 파랑 공급열로 슬롯 1/2/3 각각 **18 명령·15 이동 요청·집기 1회·동일 observe 종점**의 계획 생성만 확인했다(`/tmp/c2-real-three-offline-plan.json`, 종료 코드 0). IK/FK·충돌/실제 놓임 검사로 확대하지 않는다. 실제 장치 조회는 사용자 실행 시 기존 CLI가 수행한다.
+- 범위 **11개 파일**: 신규 `app/real_workflow_hmi.py`, `interfaces/fixtures/c_three_blue4.json`, `tests/integration/test_real_workflow_hmi.py`; 기존 Backend·단일 시험 Controller·snapshot·HMI Consumer/Schema·Qt 6개; 이 STATUS/실행 안내 2개. 신규 실행 모듈 147줄·검사 253줄·기존 확장과 문서 포함 약 600줄 규모이며 새 구체 실행 클래스 1개·검사 spy 1개, dependency/framework/DB/추상 계층 없음. 10파일/300줄 검토 신호를 사전 보고했고 단일 시험 재사용보다 이 연결이 필요한 이유는 Design/A/진행/슬롯/생산자·Consumer·Schema를 함께 검증해야 하기 때문이다. 기존 477줄 Backend는 작은 mode 분기만 확장했으며 무관한 분할/리팩터링하지 않았다. 사람 리뷰를 자체 검사로 대체하지 않는다.
+- 작업 시작 파일 해시 대조에서 위 범위 밖 기존 파일은 보존됐다. 지정 수현 브랜치 유지, commit/push/PR/merge/실제 이동 없음. lint/type 설정은 미구성이며 새 도구를 설치하지 않았다. 실행 방법은 [REAL 3 Step 안내](D_BACKEND_RUN_ROBOT_PLAN.md#real-3-step-가짜-c--실제-a--backendhmi--현장-수동-확인-2026-10-06)다. 아직 실제 3회 전달/현장 조립, Camera 시야/촬영/EMPTY/Observed, 실제 C/음성/HRI, REAL STOP/재개·실패 복구는 검증하지 않았다. 다음 제공물은 홍동의 실제 촬영/Observed/전달판 반환과 현장 세 슬롯 시험 로그이며 공통 필드를 다시 작성하라는 요청이 아니다.
+- 마무리: 이번 Python AST·JSON 구문·11파일 공백·관련 문서 링크 96개·코드 블록 균형·`git diff --check`를 확인했다. 원본 A/Planner adapter/Robot 실행부·노랑/파랑 설정은 시작 해시와 같고 범위 밖 기존 파일 보존 및 신규 파일 3개만 확인했다. 감사 기록 `/tmp/c2-real-three-change-audit.json`, 종료 코드 0. `/tmp`와 logs는 로컬 시험 산출물이며 GitHub 게시물이 아니다.
+
+## 3 Step 실제 전달 통합 시험 준비 — 실기 실행 전 (2026-10-06)
+
+아래는 사용자 답변을 받기 전 준비 기록이며, 답변 반영/현재 실행 진입점은 위 절을 따른다.
+
+사용자가 가짜 C Design을 3개로 늘리고 실제 공정을 반복하는 시험과 실행 명령을 요청했다. 현재 REAL 진입점은 단일 전달만 허용하므로 반복 실행 명령을 제공하거나 장치를 실행하지 않았다. 총 3회/9회 의미, 사용할 4점 색상·준비된 공급 슬롯, 실제 관측 미연결 상태에서 전달판 비움·사람 조립 확인 방법을 질문했다. 해당 답변과 REAL 3 Step 연결 검증이 필요하다.
+
+독립 준비로 파랑 4점 3개짜리 **초안** C 응답을 실제 A에 넣어 READY/3 PLACE를 확인했다. 색상은 아직 실기 확정값이 아니다. 실제 A + 기존 D + Fake Robot/관측으로 전달 3회·Current revision 3·진행 3/3·COMPLETE를 확인했다. `/tmp/c2-three-step-real-preparation/draft_c_response.json`, `draft_a_result.json`, `fake_three_step_check.json` 및 `/tmp/c2-three-step-fake-check-iigxm2fh`의 Job 로그, 종료 코드 0. Robot/Camera 동작 없음, 실제 3회 전달·조립 성공 아님. 실행 코드·A 원본·Robot 경로·설정은 수정하지 않았고 GitHub 게시/커밋 없음.
+
+## 수동 입력 정지·재개 누락 및 REAL 전달 대상 표시 수정 (2026-10-06)
+
+- 사용자 재현: FAKE 수동 입력 창은 STOP 요청을 출력만 해 `STOP_PENDING`에 머물렀고 재개가 비활성화됐다. `step_input_hmi.py`에 장치 없는 모의 정지/복귀 응답을 Qt timer로 연결하고 새 Planner 요청 ID를 추적한다. 같은 Job·키워드/후보 Design/채택 Plan·Current를 유지하며 재개한다. 정지 중 입력은 계속 거절한다. 공통 Backend 정지/실행 완료 검사와 실제 Robot 제어는 바꾸지 않았다.
+- REAL 화면: 해당 창은 별도 단일 전달 시험이므로 다른 FAKE 창의 Design/Plan을 받지 않는다. 단일 시험 Controller의 `transfer_target={brick_type,color,slot}`를 Backend snapshot → HMI Consumer/Schema → Qt로 전달해 **파랑 4점 5번의 그림/종류/색상/공급 슬롯/고정 전달판 목적지**를 표시한다. 진행 메시지가 바뀌어도 대상 안내를 유지한다. 조립 Design/좌표/층/방향은 미채택, Current/조립 완료는 그대로다. 이 필드는 REAL 단일 전달의 선택적 표시 정보이며 공통 Robot goal/result·팀 조립 계약을 바꾸지 않는다.
+- 검사: 수정 전 시작 직후·키워드 후·Design 후·Plan 후 STOP 회귀 4개에서 같은 HOLD 오류를 재현했다. 수정 후 각 단계 반복 STOP/재개·새 요청 ID·Plan 계속 입력·재집기 없음이 통과했다. 실제 main/stdin/Qt 버튼으로도 후보 저장 → 정지 → 재개 → Plan 채택/3개 목표/0/3/종료를 확인했다. `/tmp/c2-step-input-stop-main-result.json`, `/tmp/c2-step-input-stop-main-logs/607c3284-9325-440a-aca8-23ded27b6216.jsonl`, 종료 코드 0.
+- 전달 대상 검사 5개 추가: 조회 전/준비/전달 중/끝난 뒤 동일 5번 대상과 파란 그림 실제 렌더링, 조립 배치/완료 미생성, FAKE로 전환 시 전달 그림 제거, 슬롯/색상/배치 필드/모드 오류 거절. 관련 두 파일 **28 passed**, 최종 전체 **679 passed**, 각각 종료 코드 0. 전체 수치는 다른 동시 작업의 검사 증가가 포함된 현재 저장소 결과이며 이번 신규 회귀는 9개다. Schema 검사는 설치된 jsonschema의 로컬 참조 resolver를 사용했다. 미설치 referencing 및 공통 Schema URN/상대 URI 매핑 문제를 검사 코드에서 해결했고 dependency/검사 기준을 추가·완화하지 않았다.
+- 수정 화면 `/tmp/c2-real-transfer-target-preview.png`는 모의 프로세스로 렌더링했다. ROS 이동/조회 없이 표시만 검증했으며 실제 파랑 성공·STOP/재개 성공을 주장하지 않는다. 사용자가 실행 중인 REAL 프로세스는 중단/재시작하지 않았다. 새 코드는 기존 실행 창에 자동 반영되지 않으므로 전달/복귀 종료 후 다시 열어 확인한다. 창 열기는 조회만 하며 표시 확인을 위해 START를 다시 누를 필요가 없다.
+- 범위 11개: 수동 입력/검사 2개, 표시용 Board·Qt·단일 시험 Controller·snapshot·HMI Consumer/Schema·REAL 검사 7개, 이 STATUS/실행 안내 2개. 표시는 필드 생산자와 Consumer·Schema·그림까지 함께 검사해야 해 여러 파일을 건드렸으나 새 class/dependency/framework/DB/Robot 경로는 없다. 기존 Backend·trial·블록/슬롯 설정·다른 작업을 보존한다. GitHub 게시/커밋 없음. 실제 Design/Plan 기반 Robot 전달·Camera/사람 조립·REAL STOP/재개는 이번에 연결하지 않았다.
+- 마무리 검사: 이번 Python/JSON 구문·공백·관련 상대 링크 88개·코드 블록·`git diff --check` 확인, 지정 브랜치 유지. 실제 trial 실행 코드와 파랑 슬롯 설정은 작업 시작 해시와 동일하다. Backend에는 다른 동시 작업의 변경이 감지돼 원본 해시 동일 주장에서는 제외하고 되돌리거나 수정하지 않았다.
+
+## 터미널 단계 입력 FAKE HMI (2026-10-06)
+
+사용자가 시작 후 가짜 음성 키워드 → 그 키워드의 Design Fixture → 해당 Design의 Plan Fixture를 직접 넣어 단계별 확인하도록 요청했다. 신규 [step_input_hmi.py](../app/step_input_hmi.py)는 기존 Qt/Backend/JSONL을 재사용하고 stdin JSON을 Qt thread로 전달한다. 필수 `--fake-inputs` 모드이며 ROS/실제 Robot/LLM/Planner를 호출하지 않는다. 실제 생성/경로 계산으로 표시하지 않으며 Plan은 사람 조립 순서다. REAL 한 블록 시험 창은 별도 실행한다.
+
+- 입력: 시작 → `keyword.text` → `design.file/key` → `plan.file/key`. 후보 Design만으로는 미리보기/목표를 채택하지 않는다. 유효한 Plan과 함께 채택한 뒤 전체 Design·S01 목표·0/3을 표시하고 첫 전달판 확인 결과를 기다린다. 자동 관측/Robot 전달/완료 없음, Current revision 0 유지.
+- [신규 검사](../tests/unit/test_step_input_hmi.py) 8개: 정상 채택/후보 미표시/화면 갱신, 시작 전·순서 오류·없는 파일·잘못된 Plan·중복 후보·닫힌 요청 거절, 실제 stdin reader thread의 잘못된 JSON/비객체 거절과 Qt 전달. REAL HMI 검사와 함께 **19 passed**, 종료 코드 0. 초기 화면 assertion 실패는 Qt queued signal 처리 전에 검사했기 때문이며 이벤트 처리 후 동일 assertion으로 확인했다. 화면 안내도 queued snapshot의 질문/사유 영역에서 유지한다.
+- 최종 전체 `QT_QPA_PLATFORM=offscreen python3 -m pytest -q` → **558 passed**, 종료 코드 0. 실제 `main`/stdin pipe/Qt 시작 버튼/이벤트 루프로 세 입력을 처리해 Design 3개·S01·0/3·HOLD(전달판 관측 대기)·Ctrl+D 종료를 확인했다. `/tmp/c2-step-input-main-result.json` 및 `/tmp/c2-step-input-main-logs/ba053157-c74d-41b5-865e-c76006c557b5.jsonl`에 기록했다. 첫 임시 실행 검사는 존재하지 않는 WAIT_PLACE 상태를 기대해 실패했으며 기존 HOLD/WAIT_PLACE_EMPTY 의미를 확인한 뒤 실행을 다시 검사했다. 제품 상태 계약은 바꾸지 않았다. 1920×1080 논리 화면 기준 반폭 offscreen 미리보기 `/tmp/c2-step-input-hmi-960.png`도 확인했다. 실제 모니터·장치 증거는 아니다.
+- 실행 방법과 세 JSON 입력은 [실행 안내](D_BACKEND_RUN_ROBOT_PLAN.md#시작-후-터미널에서-가짜-키워드designplan-입력)에 기록했다. 이 추가 단위는 실행/검사 2개와 관련 기록만 수정한다. 새 dependency/framework/DB/Robot 경로 없음. 아래 REAL HMI 변경과 함께 이번 작업 파일은 총 15개다. 실제 팀 생성 결과·촬영·자동 전달·조립 검증은 연결하지 않았다.
+- 마무리: 이번 파일 15개의 Python/JSON 구문·관련 문서 상대 링크 102개/코드 블록·`git diff --check`, 원본 제어/측정 SHA 일치를 확인했다. 초기 해시 대상 77개 중 이번 기존 파일 10개 및 다른 작업 변경 9개를 제외한 58개가 보존됐다. 지정 브랜치/HEAD `7af9dae` 유지, 커밋/게시/Robot 이동 없음. lint/type check 미구성이다. 수동 입력의 처리 객체와 Qt signal bridge 두 클래스는 입력 순서 처리와 GUI thread 전달에 필요한 구체 클래스이며 별도 추상 계층이 아니다. REAL Controller와 함께 신규 클래스 3개·큰 Backend 파일은 정책의 사람 리뷰 신호로 기록한다.
+
+## 실제 한 블록 HMI 연결·파랑 4점 5번 첫 시험 준비 (2026-10-06)
+
+사용자가 노랑 4점 2번의 실제 픽앤플레이스와 observe 복귀를 확인했고 HMI 연결을 요청했다. 다음 대상으로 **파랑 4점 5번**을 선택하고 미실기 좌표도 바로 시험하며 배우겠다고 명시했다. 이 최신 지시에 따라 파랑 1/6번 측정 끝점과 기존 보간/경유 코드를 사용한 **첫 실기 시험 설정**을 준비했다. 파랑 5번이 이미 검증됐다고 기록하지 않는다. HMI 첫 실제 실행은 아직 사용자가 누르지 않았으며 에이전트는 조회만 수행했다.
+
+### 변경과 연결 경계
+
+- 신규 [real_trial_hmi.py](../app/real_trial_hmi.py): 기존 Qt 창·Backend에 단일 시험 Controller/QProcess를 연결한다. 창 열기는 실제 조회만 실행, 조회/현재 실제 observe FK 확인 뒤 준비 확인·시작으로 한 블록만 실행한다. Qt thread에서 ROS 이동을 동기 대기하지 않는다. 활성 프로세스 중 창 종료로 이동을 끊지 않는다. STOP/재개 버튼은 미실기 검증 상태를 명시하고 비활성화한다.
+- Backend·snapshot: REAL은 명시 `single_trial=True`와 같은 REAL Controller 바인딩으로만 허용. 기존 goal/result 3필드 유지, 한 Job/실행 UUID·중복 START/늦은 결과/추가 전달 차단. 슬롯은 Controller가 driver의 집기 이벤트로 갱신하며 Backend/Qt가 계산하지 않는다. 전달 뒤 HOLD(조립 미확인), Current/revision·조립 진행 0 유지. Planner/Design/Observed Fake를 REAL에 연결하지 않는다.
+- HMI Schema/Consumer·Qt: REAL 표시와 제한된 단일 시험의 버튼/0진행 규칙을 추가했다. 예전 Fake 전체 조립 snapshot의 mode만 REAL로 바꾸는 입력은 계속 거절한다. 준비/작동/집기·놓기·복귀/오류를 같은 화면/JSONL에 표시한다. Plan/Design은 미채택으로 표시하고 카메라/조립 완료를 만들지 않는다.
+- [robot_trial_blue5.json](../interfaces/robot_trial_blue5.json): 자료의 `blue_4.start/end`를 그대로 복사하고 측정 파일 경로/해시를 고정. `pick_line`은 해당 공급열만 지정하며 노랑 값으로 대체하지 않는다. 5번 XYZ는 `[-580.9066,91.1324,-10.2376]`, 자세는 원본 Slerp로 계산한다. 잘못 복사된 blue posj는 사용하지 않고 기존 IK 해 분기의 IK/FK 검사로 진행 여부를 정한다. 원본 파일/TCP/tool/속도/고정 전달 위치/HOME·observe 값은 유지했다. 공급열 변경은 사용자 요청에 따른 새 실기 시험이며 경로 충돌/집기 성공을 조회만으로 보증하지 않는다.
+- 입력 설정은 조회 당시 복사본과 START 시 파일을 대조해 실행 중 변경을 반영하지 않는다. HMI START는 **이번 대상 블록 준비·전달판 비움의 사람 확인** 의미이며 이때 실행 복사본에 해당 flag를 기록한다. 자동 조회나 Fake가 물리 확인을 대신하지 않는다. 단일 실행 후 START를 다시 허용하지 않으며 재개/앱 종료 후 이어하기는 없다.
+
+### 실제 검증
+
+- 노랑 4점 2번 실기: [사용자 실행 로그](../logs/robot_trials/5969d3bf-047e-4011-b725-0c3dc20f2c82.jsonl)의 집기 확인/다음 슬롯3·놓기·복귀·success=true와 현장 사용자 확인을 대조했다. 관측 Actual FK `[400.9931,8.6160,315.1089,175.1950,-179.5748,175.6306]`·대기/이동 없음·빈 그리퍼 기록이다. 사용자 출력은 쉘 프롬프트로 정상 복귀했으며 직접 종료 코드는 제공되지 않았다. 전체 조립/STOP/재개 통과로 확대하지 않는다.
+- 파랑 5번 실제 **무이동** CLI: 현재 실제 observe 시작 검사·**40점 IK/FK·15개 ROS 이동 메시지 변환** 성공, 종료 코드 0. 로그 `/tmp/c2-blue5-check-logs/0d3f6b58-d114-4979-82c5-401b240672af.jsonl`. 파랑 경로 충돌/실제 집기·놓임은 미검증이다.
+- 실제 QProcess↔ROS/RG2 조회↔Backend↔Qt: offscreen HMI로 같은 파랑 설정을 연결했다. 자식 인자는 `--check --require-observe-start`, Job=null·실행/이동 없음·REAL 표시·시작 활성·정지 비활성 확인, 종료 코드 0. `/tmp/c2-blue5-real-hmi-preview/result.json` 및 해당 driver JSONL에 `ROBOT_CHECK_COMPLETE`까지 있고 `ROBOT_TRIAL_STARTED`는 없다. [화면](/tmp/c2-blue5-real-hmi.png)을 시각 점검했다.
+- 신규 모의 프로세스/Backend/Qt 검사 11개: 조회/실행 분리, 단일 START·같은 goal/ID, 집기 1회/다음 슬롯, 실패/증거 누락/비정상 종료/잘못된 로그·보류/재시도 없음, 설정 변경/다른 공급열 거절, 중복 pick/result·늦은 결과, 활성 실행 중 창 유지, 정지/재개 요청 차단을 확인했다. 관련 기존 검사와 파랑 측정/해시 3개 보완 포함 **146 passed**, 종료 코드 0. 과거 Fake FULL→REAL 입력 검사도 유지했다. 신규 테스트 helper 이름이 pytest의 module setup으로 인식된 오류와 제한 REAL 버튼 표/공개 BoardView 속성 대조를 수정 후 재검사했다. assertion을 삭제하거나 약화하지 않았다.
+- 최종 전체 `QT_QPA_PLATFORM=offscreen python3 -m pytest -q` → **550 passed**, 종료 코드 0. 이전 중간 전체는 525개였고 다른 작업의 검사 보완 25개가 함께 반영된 현재 저장소 수치다. 관련 146개 결과와 구분한다. lint/type check/CI 미구성, 새 dependency/framework/DB 없음. 실제 STOP/재개·긴 이동 중 HMI STOP·Camera/홍동 EMPTY/관측·사람 조립·전체 Design 채택 연결은 다음 별도 단위다. Backend/driver 로그 실패 뒤 추가 실행은 차단하지만 이미 실행 중인 독립 CLI의 정지/복구는 현재 HMI가 제공하지 않는다. 이를 완성된 Day4 REAL Controller로 표시하지 않는다.
+
+### 이번 파일·범위와 다음
+
+이번 파일은 신규 실행부/파랑 설정/검사 3개, 기존 Backend·snapshot·HMI Consumer/Schema·Qt·trial·trial 검사 7개, 이 STATUS·실행 안내·설계 3개로 **13개**다. 파랑 첫 시험 요청으로 최초 계획의 11개에서 설정/측정 검사 범위가 늘었다. 실행 파일 신규 클래스는 실제 QProcess Controller 1개뿐이며 Factory/추상 driver 계층은 없다. 기존 Backend 규모 검토/사람 리뷰 요구는 유지한다. 사용자 설정/실기 원본·측정 파일/실패 기록을 보존하고 GitHub 게시/커밋/PR/merge는 하지 않는다.
+
+동시에 `app/contracts.py`, `app/fake_demo.py`, `app/replan.py`, `tests/unit/test_replan.py`, `tests/unit/test_qt_hmi.py`, `interfaces/schemas/day4.schema.json`, `docs/D_BACKEND_PROGRESS.md`, `docs/06_CONTRACT_DRAFT.md`, `docs/09_C_B_BACKEND_HANDOFF.md`에 다른 작업의 변경이 감지됐다. 에이전트는 이 9개를 수정하지 않았고 이번 파일 목록/검증 범위에서 별도로 구분한다. 그 변경을 되돌리거나 수현 HMI 변경으로 표시하지 않는다.
+
+다음은 아래 실행 안내대로 HMI에서 파랑 5번 한 번을 시험하고 실제 놓임/observe 복귀 결과를 기록하는 것이다. 자동 다음 전달·정상 매 Step 확인 버튼·DB·실제 STOP/재개 시험은 추가하지 않았다. 홍동에게 필요한 제공물은 실제 촬영/전달판/Observed 생산자이며 기존 공통 필드 재작성 요청은 아니다.
+
+## Robot 6단계 첫 실행 실패 — ROS float64 타입 수정 (2026-10-06)
+
+사용자가 현장 설정의 `empty_place_and_slot=true`를 저장하고 단일 전달을 실행했다. 사전 IK/FK 37점 검사는 성공했으나 첫 HOME 요청의 ROS C 변환기에서 `PyFloat_Check(field)` assertion으로 프로세스가 abort됐다. **한 블록 전달/observe 복귀는 성공하지 않았으며 실제 재실행은 아직 하지 않았다.**
+
+- 원인: JSON의 `joint_speed=20`, `joint_acc=20`이 Python int로 원본 `movej`에 전달됐다. 원본 CLI는 argparse float였으나 새 설정 연결부가 이 차이를 처리하지 않았다. 설치된 `_move_joint_s.c` 85행은 `vel`의 Python float 검사이며 `acc`도 같은 조건이다. 원본 제어·TCP·pose·속도 값의 문제가 아닌 새 입력 경계의 타입 오류다.
+- 수정: [robot_trial.py](../app/robot_trial.py)에서 유효한 수치 설정과 observe pose를 float로 정규화했다. slot/식별/boolean은 그대로다. [회귀 검사](../tests/unit/test_robot_trial.py)는 정수 JSON 입력의 값 동일·ROS 실수 타입 변환·원본 입력 보존을 검사한다. 사용자가 바꾼 설정 JSON·기존 실기 원본은 수정하지 않았다.
+- 실제 API 변환 검사: 원본 `RowRobot.movej/line` 호출을 같은 설정/목표로 재사용하고, 실제 `dsr_msgs2` Request와 `rclpy.serialize_message`로 **15개 이동 요청**을 직렬화했다. 이 검사에는 노드/클라이언트/이동 송신이 없다. `--check`와 실행 전 사전 검사에 포함하고 `ROBOT_REQUEST_CHECK` 이벤트로 기록한다. 기존 IK/FK 조회만으로는 이 오류를 찾지 못했던 검증 공백을 보완했다.
+- 실제 결과: 관련 순수 검사 **105 passed**, 전체 offscreen 회귀 **511 passed**, 각각 종료 코드 0. 수정 후 실제 `--check` **37점 IK/FK·15개 메시지 변환 통과**, 종료 코드 0, [조회 로그](/tmp/c2-robot-ros-numeric-check-logs/26b78048-569d-42ca-aaa3-f1f3fdb2c09b.jsonl). 신규 이동/개폐/STOP 명령 없음. 실패 이후 조회는 robot_state=1·check_motion=0이다. 조회/직렬화 성공을 장치 전달 성공으로 표시하지 않는다.
+- 실패 원자료: 사용자 조회 로그 `logs/robot_trials/90e51355-a0ba-48e2-9f5c-5e2d4e0a7b83.jsonl`, 실행 로그 `logs/robot_trials/efe81e4b-2329-42ca-b6c8-f69d7ca024a1.jsonl` 보존. 실행 로그는 첫 `ROBOT_TRIAL_COMMAND`(HOME)에서 끝난다. C assertion의 프로세스 abort는 Python 예외/STOP/finally를 실행하지 않아 최종 실패 result가 기록되지 않았다. 이를 정상 종료/정지 확인으로 채우지 않았다.
+- 범위: 실행 파일·검사와 직접 관련 기록/실행 안내 4개만 변경. 설정 파일의 사용자 확인 변경을 보존하며 GitHub 게시/Robot 재실행 없음. 다음은 현장에서 같은 단일 전달을 재실행하고 실제 놓임/observe 복귀를 확인하는 6단계다. 7단계 실제 STOP/재개·촬영·HMI REAL binding은 여전히 미검증이다.
+
+## Robot 5단계 — 실제 한 블록 시험 준비·무이동 연결 검사 (2026-10-06)
+
+사용자가 Robot **6단계까지 승인**했다. 이번에는 5단계의 단일 시험 실행부와 실제 ROS/RG2 조회를 검증했다. **6단계 실제 전달은 현장 전달판 비움·2번 슬롯 블록·기존 속도/경로 확인 답변을 기다리며 아직 움직이지 않았다.** HMI는 기존 FAKE 연결이다.
+
+- 파일: [robot_trial.py](../app/robot_trial.py), [robot_trial.json](../interfaces/robot_trial.json), [test_robot_trial.py](../tests/unit/test_robot_trial.py) 신규. 이 STATUS·[설계](D_ROBOT_CONTROLLER_DESIGN.md)·[실행 안내](D_BACKEND_RUN_ROBOT_PLAN.md)·[수현 기록](D_BACKEND_PROGRESS.md)만 갱신했다. 기존 Controller/Backend/Qt·공통 Schema·다른 담당/미커밋 자료는 수정하지 않았다.
+- 입력/출력: 명시 REAL·검증 원본 경로/해시·슬롯 2·기존 속도/TCP/tool·사용자 observe posj/posx·현장 확인 → 기본 오프라인 계획 / `--check` 조회 / `--execute` 한 블록 전달과 HOME→observe 복귀 / 기존 3필드 result·독립 시험 JSONL. 전달 완료를 조립 Current/Step 완료로 기록하지 않는다. 공급 소모는 상승 후 grip 유지 확인 때 한 번 기록하며 기존 Job/Controller 공급에 연결하지 않았다.
+- 재사용/조정: 원본 `--start-block 2`는 2~6번 연속 실행이다. 해당 슬롯 명령만 선택하고 원본 HOME 복귀와 사용자 검증 observe 경로를 연결했다. 원본 pose/TCP/tool/속도/궤적/보간 코드를 바꾸지 않았다. 설정 해시 입력의 초기 오타는 장치 생성 전 차단됐고 원본 실제 SHA-256으로 정정했다. ROS interface 조회 최초 실패는 기존 workspace 환경을 읽어 해결했다. 설치/build/driver 수정 없음.
+- L1/Fake 검사: 신규 시험 입력·모드/설정 누락·소스 변경·한 슬롯 제한·정상 명령/속도·상승 후 집기 확인·미감지 집기·놓기/복귀 timeout·보류/재시도 없음·조회 시 이동/개폐 없음·JSONL 식별/로그 실패 차단 **25개**. 최종 전체 `QT_QPA_PLATFORM=offscreen python3 -m pytest -q` → **510 passed**, 종료 코드 0. 기존 485개 포함. 새 클래스는 검사 spy 2개뿐이며 실행 코드의 새 클래스/추상 계층/dependency 0개. lint/type check/CI는 미구성이다.
+- 실제 장치 조회: running real M0609/RG2 노드/서비스, robot_state=1(대기), check_motion=0, robot_mode=1, TCP=`GripperDA_v4`, tool=`ToolWeight0`, RG2 status=0/폭 62.1mm 확인. 이름 조회는 TCP 오프셋 측정을 대신하지 않으며 현장 사용자가 TCP/tool 변경 없음을 확인했다.
+- 실제 무이동 `--check`: 기존 경로 **37개 표본점 IK/FK**, 사용자 observe 관절의 FK와 제공 posx 일치 확인, 종료 코드 0. [조회 로그](/tmp/c2-robot-stage5-check-logs/8a29e914-22ca-4d22-befa-b62dfb586db3.jsonl). **이동/그리퍼 개폐 없음**, 충돌/시야/전달 성공 증거로 확대하지 않는다.
+- 현장 제공물: 노랑 4점 **2번**, 기존 배치 유지, onsite 감시/비상정지 가능 사람·TCP/tool 동일, 제공 observe 좌표와 기존 전달 경로→HOME→observe posj 복귀 검증을 사용자가 확인했다. 실행 직전 빈 전달판/해당 블록·기존 속도(20°/s·40/80mm/s) 확인만 남아 설정의 `empty_place_and_slot=false`로 차단한다.
+- 규모/보존: 신규 실행 206줄·검사 251줄·설정 33줄과 직접 관련 문서 4개, 총 7개 파일만 이번 단위다. 기존 전체 시스템을 REAL로 바꾸는 대안은 Fake Vision으로 여러 실제 전달이 나갈 수 있어 단일 시험 경계를 사용했다. 문서 로컬 링크 113개·코드 블록·신규 파일 공백/구문·`git diff --check` 확인, 종료 코드 0. 작업 전 해시 74개 중 문서 4개 외 70개(실기 원본 4개 포함)가 그대로다. 지정 브랜치/HEAD `7af9dae` 유지. GitHub 게시/커밋/PR/merge 없음. 자체 검사는 사람 코드 리뷰를 대신하지 않는다.
+- 남은 확인: 6단계 실제 한 번 전달 후 현장 블록 놓임/observe 복귀 확인. 7단계 실제 STOP/재개·이전 요청 종료·블록 상태, 긴 이동 중 HMI STOP, 네 공급열 전체, Camera/홍동 촬영/EMPTY·실제 Backend/HMI binding은 미구현/미검증이다. `move_stop` ACK·프로세스 종료를 실제 정지/재개 허용으로 바꾸지 않는다.
+
+## Robot 4단계 — Controller ↔ Backend·JSONL·Qt Fake 연결 (2026-10-06)
+
+사용자가 Robot 4단계까지 승인해 3단계를 독립 검증한 뒤 4단계를 연결했다. **현재 HMI 시작/정지/재개/보충은 Backend를 통해 Fake Controller/driver로 전달된다. 실제 Robot/ROS/Camera 연결/동작은 없다.**
+
+### 이번 3·4단계 파일과 입출력
+
+- 실행 파일: [robot_controller.py](../app/robot_controller.py), [fake_robot_driver.py](../app/fake_robot_driver.py), [backend.py](../app/backend.py), [fake_demo.py](../app/fake_demo.py), [snapshot.py](../app/snapshot.py). 기존 goal/result 3필드·stop/resume 요청과 공통 HMI Schema 유지. Qt 코드는 수정하지 않았고 기존 버튼/표시 소비 경계를 사용한다.
+- 검사: [test_robot_controller.py](../tests/unit/test_robot_controller.py), [test_qt_hmi.py](../tests/unit/test_qt_hmi.py) 보완, [test_robot_backend.py](../tests/unit/test_robot_backend.py) 신규. 다른 담당/기존 검사는 변경하지 않았다.
+- 문서: 이 STATUS, [설계](D_ROBOT_CONTROLLER_DESIGN.md), [실행/단계 안내](D_BACKEND_RUN_ROBOT_PLAN.md), [수현 기록](D_BACKEND_PROGRESS.md). 지정 브랜치 유지. 기존 11개 파일 변경과 신규 검사 1개만 이번 단위에 해당한다. 다른 미커밋 변경/실기 자료와 이전 진행 기록은 보존한다.
+
+### 실제 검증 결과
+
+- 3단계 독립 검사 당시 **58 passed** 뒤 연결 경계/잘못된 준비 증거 검사를 추가했다. 최종 `python3 -m pytest -q tests/unit/test_robot_controller.py tests/unit/test_robot_backend.py` → **79 passed**(독립 60개·연결 19개), 종료 코드 0. 장치·ROS·LLM·Qt 없는 검사다.
+- `QT_QPA_PLATFORM=offscreen python3 -m pytest -q tests/unit/test_qt_hmi.py` → **20 passed**, 종료 코드 0. 기존 HRI/KEEP/REVISE/UNCLEAR 시나리오도 새 Controller에 연결한 상태로 검사했다.
+- 최종 전체 `QT_QPA_PLATFORM=offscreen python3 -m pytest -q` → **485 passed**, 종료 코드 0. 기존 팀 연결 소비 검사 17개 포함. lint/type check/CI 미구성, 신규 도구 설치/검사 완화 없음.
+- 정상: 3 Step 실제 채택 Current/누적 가림 유지·전체 Design 완료, 슬롯 순서·단일 최종 결과·Job JSONL의 실행/Step 식별·설정 전체 기록을 확인했다. 전달 성공 때는 Current/Step 진행이 증가하지 않으며 새 EMPTY와 조립 관측 확인 뒤에만 다음 전달이 나온다.
+- 경계/실패: OCCUPIED/UNOBSERVABLE·색상 차이·닫힌 check·중복/늦은 결과, 공급 보충과 이전 Job 명령 거절, STOP 3상황·증거 누락, 집기/놓기/복귀 실패·timeout·호출 예외, 오류 후 STOP/별도 준비·빈 그리퍼 확인/새 START, 집기·놓기·복귀 로그 실패 시 다음 이동 차단과 STOP 유지, 잘못된 설정/REAL/파일 변경 시 현재 Job 고정을 확인했다.
+- Qt 미리보기: offscreen 960×900 창을 실제 렌더링하고 `/tmp/c2-robot-stage4-hmi.png`를 시각 확인했다. 첫 전달 뒤 사람 조립 관측 대기, 진행 0/3·노랑 4점 다음 슬롯 2를 함께 표시한다. 실제 모니터/사람 조립/장치 증거가 아니다. CLI 도움말에서 새 옵션도 확인했다.
+- 마무리 검사: 관련 문서의 로컬 링크 97개·코드 블록·JSON 예시, Python 구문·공백·문서의 독립 실행 예를 확인했다. 지정 브랜치/HEAD `7af9dae` 유지, 작업 전 해시 대상 중 이번 11개 변경 외 55개 파일과 추가 tracked 참고 문서 3개·실기 원본/기록 4개가 보존됐다. `git diff --check` 종료 코드 0. 초기 보존 검사에서 한글 Git 경로 인용을 신규 파일로 잘못 비교한 부분은 NUL 구분 경로/HEAD 대조로 수정했다. 저장소 코드/원자료 변경 없이 검증 방식만 바로잡았다.
+
+### 연결 중 조정
+
+1. 정지에서 들고 있음/놓았음이 확인되면 늦은 집기 callback 없이도 해당 슬롯을 한 번 소모한다. 모순된 미집기/불명확 증거는 재집기에 사용하지 않는다.
+2. Fake driver가 다음 집기 요청의 상태를 새 미집기로 구분한다. 이전 Step의 놓았음이 다음 Step의 STOP 판정을 대신하지 않는다.
+3. 복귀만 요청의 반복 STOP/재개도 새 ID를 사용하고 공급 효과가 없다. 오류 후 STOP 중복이 새 미확인 요청을 남겨 정리 확인을 막지 않는다.
+4. 닫힌 Fake Vision/HRI 타이머는 모의 실제 배치/질문도 바꾸지 않는다. 로그 실패 뒤에는 다음 driver 이동을 발행하지 않는다.
+5. 설정과 3 Step Fixture 경로·모의 지연은 실행 인자로 주입한다. START마다 읽고 활성 Job/RESUME에서는 설정 복사본을 유지한다. 정상 START는 초기 조립판/전달판 비움·공급판 채움의 명시 확인이다. 오류 정리 확인만으로 Current/슬롯을 초기화하지 않는다.
+
+### 규모·미검증·다음
+
+두 승인 단위의 누적 실행 코드 변화 약 350줄·검사 보완 약 530줄과 직접 관련 문서다. 신규 검사 파일 1개, 신규 클래스/추상 계층/dependency 0개. 누적 규모와 Backend 436줄은 AI 코드 정책의 사람 리뷰 대상이다. 최소 정상/Fake driver 구조를 유지하면서 독립/인접/Qt 검사에 필요한 결과만 검사했으며 자체 검사로 사람 리뷰를 대신하지 않는다.
+
+실제 driver·Robot pose/TCP/속도·안전·Camera/홍동/팀 생산자 연결·장치 시연은 미구현/미검증이다. GUI 오류 상태의 자동 정리는 없고 별도 준비 증거 입력은 현재 독립/Fake 시험 API다. 5단계에서 그 생산자를 연결한다. 추가 GitHub 게시/커밋/PR/merge 없음. 다음은 별도 승인 후 **Robot 5단계 실제 adapter 준비(장치 움직임 없음)**이며 검증된 네 공급열/observe point/복귀 경로, pick/놓기/정지·이전 실행 종료·준비/빈 그리퍼 확인 API, 홍동의 실제 촬영/전달판 반환이 필요하다. 기존 계약 필드 재작성 요청은 아니다.
+
+## Robot 3단계 — Fake 실패·STOP/재개 독립 검증 (2026-10-06)
+
+사용자의 4단계까지 승인 중 3단계를 먼저 진행했다. Controller/Fake driver/기존 Controller 검사와 이 기록만 변경했다. 장치/ROS/Qt 없는 독립 검사 `python3 -m pytest -q tests/unit/test_robot_controller.py` → **58 passed**, 종료 코드 0.
+
+- 집기 전·들고 있음·놓았음의 STOP 뒤 새 실행 ID로 각각 집기/전달/복귀부터 재개한다. 요청 ACK만으로 재개하지 않고 정지·이전 실행 종료·블록 상태 세 증거를 모두 요구한다. 모순된 미집기 증거/UNKNOWN/증거 누락은 보류한다.
+- 집기·놓기·복귀 실패/timeout/driver 호출 예외는 실패 결과 한 번과 보류다. 자동 재시도 없음. 확인된 슬롯 소모를 유지하며 일반 재개로 오류를 해제하지 않는다. 오류 정리 후 새 Job 경로는 이어지는 4단계에서 연결한다.
+- 추가 조정: 집기 callback이 늦어도 정지 확인에서 실제로 들고 있음/놓았음이 확인되면 슬롯을 한 번 소모한다. 복귀만 재개하던 요청을 다시 STOP/재개해도 새 집기/슬롯 소모가 없다. 이전 실행/정지 결과는 새 실행을 완료하지 않는다.
+- 4단계 연결·HMI/로그·설정 식별은 아직 이 검사에 포함하지 않았다. 실제 정지/그리퍼 증거·장치 안전을 검증한 결과가 아니다. 기존 실기 원본·브랜치 유지, 추가 GitHub 게시 없음.
+
+## Robot 2단계 — Fake 정상 전달·슬롯·외부 설정 (2026-10-06)
+
+사용자의 2단계 승인 범위만 구현했다. 기존 브랜치 `work/suhyun-hmi-backend-robot-db`와 다른 미커밋/자료 파일을 유지한다. 신규 파일은 [robot_controller.py](../app/robot_controller.py), [fake_robot_driver.py](../app/fake_robot_driver.py), [robot.json](../interfaces/fixtures/robot.json), [test_robot_controller.py](../tests/unit/test_robot_controller.py)다. 진행 문서는 이 STATUS, [Robot 설계](D_ROBOT_CONTROLLER_DESIGN.md), [실행/단계 안내](D_BACKEND_RUN_ROBOT_PLAN.md), [수현 진행 기록](D_BACKEND_PROGRESS.md)만 갱신했다. 아래 이전/다른 담당 기록은 보존한다.
+
+- 입력/출력: 기존 `execution_id, brick_type, color` goal → 수락 여부/사유 → 모의 집기/놓기/observe point 도착·정지 확인 → 기존 `execution_id, success, reason` 최종 결과 1회. Controller가 조립 완료·Current·기하를 계산하지 않는다.
+- 정상/경계 검사: 네 열의 정상 전달, 집기 명령만으로 슬롯 미소모, 집어 올림 확인에만 1회 소모, 복귀 확인 전 성공 없음, 활성/종료 ID 중복·동시 실행·ID 충돌·잘못된 ID·역순·이전 실행의 늦은 확인, 각 열 1~6 소모 후 보충 대기/해당 열만 1번 복원, 기존 3 Step Plan Fixture의 열별 순서를 확인했다. 반복 집기·추가 소모·이중 최종 결과 없음.
+- 가변 설정 검사: 지정 파일을 읽고 Fake 공급/전달/관측 위치 이름·슬롯 수를 주입한다. 기본 6, 축소 Fake 검사 1~6 허용. 네 열/지원값/필수값/명시 FAKE를 검사하고 누락·REAL·지원 외 값·잘못된 goal·파일 오류는 그대로 거절한다. 생성 뒤 외부 dict/반환 snapshot 변경이 실행 설정/슬롯을 바꾸지 않는다. 실제 pose/TCP/속도 설정을 생성하지 않았다. Job별 설정 주입/로그는 4단계 대상이다.
+- 실제 실행: `python3 -m pytest -q tests/unit/test_robot_controller.py` → **41 passed**, 종료 코드 0. `QT_QPA_PLATFORM=offscreen python3 -m pytest -q` → **438 passed**, 종료 코드 0. 전체에는 기존 팀 연결 소비 검사 17개와 Qt offscreen 11개가 포함된다. Fake Controller 독립 검사는 장치·ROS·LLM·Qt 없이 실행했다. lint/type check는 미구성이며 새 검사 도구를 설치하지 않았다.
+- 규모/이유: 실행 코드 약 145줄, 검사 약 240줄, 설정 13줄과 관련 진행 문서만 추가/갱신했다. 신규 클래스 2개·dependency 0개·추상 계층 0개. 300줄 검토 신호는 정상/오류 입력·중복/소모/보충 외부 결과를 확인하는 검사까지 포함한 규모이며, Controller와 명시적 모의 driver의 두 책임만 분리했다. 사람 리뷰는 아직 받지 않았다.
+- 미구현/미연결: 실행 실패/timeout·STOP/재개는 Robot 3단계, 새 Controller의 Backend/HMI/로그 연결은 4단계다. 기존 HMI는 이전 QTimer Fake를 사용하고 공급 슬롯은 여전히 미확인이다. 실제 장치·Camera·팀 생산자 연결·사람 조립 시험 없음. 추가 GitHub 게시/커밋/merge 없음.
+- 다음: 승인 후 Robot **3단계 Fake 실패·STOP/재개**. 미집기/들고 있음/놓았음의 동작 차이와 정지·이전 실행 종료·블록 상태 확인 부족 시 보류를 검사한다. Fake 검사에 팀원의 계약 재작성은 필요 없다. 실제 연결에는 검증된 네 공급열/observe point/driver 증거와 홍동의 촬영·전달판 실제 반환이 필요하다.
+
+## Robot 0·1단계 — 기존 제어 점검·경계/가변 설정 설계 (2026-10-06)
+
+사용자가 Robot 1단계까지 진행을 승인했고, observe point·협업 설정·Day4 이후 확장 값이 변경 가능해야 한다고 추가 지시했다. 이번 수정은 [Robot 점검/Controller 설계](D_ROBOT_CONTROLLER_DESIGN.md) 신규 문서, [실행/단계 안내](D_BACKEND_RUN_ROBOT_PLAN.md), [수현 진행 기록](D_BACKEND_PROGRESS.md), 이 STATUS다. 신규 Controller/Fake driver/설정 loader/ROS 코드 구현·실기 원본 변경·장치 실행·추가 GitHub 게시는 수행하지 않았다.
+
+- 0단계: 노랑 4점 원본 두 스크립트와 JSON/TXT 실기 기록을 읽었다. 기록상 2~6번 자동 전달/마지막 HOME 복귀와 1번 이전 수동 전달을 구분했다. 과거 설정 13개(TCP/tool·HOME·속도·높이·그리퍼)를 코드와 기록으로 정적 대조했다. 한 블록별 observe point 복귀, 나머지 세 조합, 실제 STOP/재개·집기/놓기 증거는 미검증이다. `--check`도 장치 통신을 사용하므로 실행하지 않았다.
+- 1단계: 기존 robot.deliver/stop/resume payload와 callback 의미를 유지했다. Controller의 단일 실행·중복 차단·실제 집어 올림 확인에만 슬롯 1회 소모·보충·STOP 3상황/복귀만 재개·실패 보류를 설계했다. ROS transport와 실제 증거 API는 미확정이며 설계만으로 공통 Schema를 늘리지 않았다.
+- 추가 설정 요구: 새 Controller는 외부 설정을 검사해 전달받는다. observe point/pose·동작 값·공급·연결 이름/주소·지원 규격을 분리하고, 활성 Job은 시작 때 검증한 설정을 유지하며 변경 값은 다음 Job에 적용한다. Day4의 PLACE/지원 범위 기본과 실행 중 보정 변경 제외를 유지한다. 이후 새 기능은 설정 값뿐 아니라 담당 기능/공통 계약/검사도 바꿔야 한다. 현재 전체 Python이 이미 가변화됐다고 표시하지 않는다.
+- 현재 연결 차이: 공급 snapshot은 null/보충 actions 미연결, SUPPLY_REFILLED는 Controller 미연결 응답, Robot fault 후 HOLD에서 START 경로는 아직 없다. 4단계에서 보충/초기화/오류 정리 후 새 시작·설정 로그 연결을 검토한다. 이번 설계 요청에 코드 수정을 섞지 않았다.
+- 실제 검증: 기존 Backend/snapshot/log **33 passed**, 종료 코드 0. 문서 상대 링크/anchor **21개**, JSON 예시 **4개**, 기존 Robot 요청 payload **3종**과 정지 확인 flag **3개** 정적 대조 통과. 상세 `/tmp/c2-robot-stage01-validation.json`. 문서/원본 보존 검사와 기존 구현 검사이며 Controller/Fake driver/장치 성공 결과가 아니다. lint/type check 미구성, 새 검사 도구 설치 없음.
+- 지정 로컬 브랜치와 미커밋 자료/실기 원본·설정·측정 기록을 보존했다. 다음 승인 단위는 **2단계 Fake 정상 전달·슬롯·설정 주입 검사**다. 원격에서 독립 진행 가능하다. Real 연결에는 검증된 observe point/네 공급열 설정·실제 pick/놓기/정지·실행 종료 증거가 필요하다. 공통 계약을 팀원에게 다시 작성해 달라는 요청이 아니다.
+
+
 ## C / B 연결 합의 문서 게시 준비 (2026-10-06)
 
 - 사용자 요청으로 C/B DM 이후 합의 내용을 09_C_B_BACKEND_HANDOFF.md에 추가하고 현재 결정·팀 가이드·공통 계약·README에서 연결했습니다. 확정 조건과 지지 수치·관측 묶음 순번 범위·전달판 반환 envelope 등 확인 대상을 구분합니다.

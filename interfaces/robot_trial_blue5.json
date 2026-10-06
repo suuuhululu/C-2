@@ -1,0 +1,69 @@
+{
+  "config_id": "blue4-slot5-first-device-trial-2026-10-06-v1",
+  "mode": "REAL",
+  "source_path": "/home/ms-02/C-2_협동2자료/robot_cycles/yellow4_row_to_place.py",
+  "source_sha256": "01d874432e4ed7d635c8728b73e22b47f06964f69a83872976fd855d1df2fe99",
+  "slot": 5,
+  "settings": {
+    "robot_id": "dsr01",
+    "tcp": "GripperDA_v4",
+    "tool": "ToolWeight0",
+    "gripper_ip": "192.168.1.1",
+    "lift": 30,
+    "joint_speed": 20,
+    "joint_acc": 20,
+    "local_speed": 40,
+    "transit_speed": 80,
+    "linear_acc": 60,
+    "transit_z": 200,
+    "bypass_y": 400,
+    "supply_staging_x": -450,
+    "open_width": 60,
+    "close_width": 2,
+    "force": 40
+  },
+  "observe_posj": [
+    0.712,
+    7.268,
+    63.143,
+    -0.006,
+    109.185,
+    0.785
+  ],
+  "observe_posx": [
+    400.851,
+    8.573,
+    314.981,
+    175.022,
+    -179.595,
+    175.461
+  ],
+  "confirmations": {
+    "onsite_operator": true,
+    "unchanged_setup": true,
+    "empty_place_and_slot": false,
+    "return_route_verified": true
+  },
+  "pick_line": {
+    "brick_type": "2x2x1",
+    "color": "blue",
+    "start": [
+      -326.145,
+      86.466,
+      -3.0,
+      112.495,
+      177.804,
+      116.392
+    ],
+    "end": [
+      -644.597,
+      92.299,
+      -12.047,
+      59.895,
+      177.334,
+      57.917
+    ],
+    "measurements_path": "/home/ms-02/C-2_협동2자료/supply_board_map/supply_pick_lines_provisional.json",
+    "measurements_sha256": "b8606bae5e0fe897beea097c653906f4d6d1b4b915fe98a6da4a7ec64d73a11c"
+  }
+}

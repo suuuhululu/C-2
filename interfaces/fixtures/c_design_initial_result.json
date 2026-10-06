@@ -1,0 +1,131 @@
+{
+  "status": "OK",
+  "hri_result": null,
+  "design": {
+    "design_version": 1,
+    "blocks": [
+      {
+        "brick_type": "2x3x1",
+        "color": "blue",
+        "x": 9,
+        "y": 9,
+        "layer": 1,
+        "orientation_deg": 0
+      },
+      {
+        "brick_type": "2x3x1",
+        "color": "blue",
+        "x": 13,
+        "y": 9,
+        "layer": 1,
+        "orientation_deg": 0
+      },
+      {
+        "brick_type": "2x3x1",
+        "color": "blue",
+        "x": 9,
+        "y": 12,
+        "layer": 1,
+        "orientation_deg": 0
+      },
+      {
+        "brick_type": "2x3x1",
+        "color": "blue",
+        "x": 13,
+        "y": 12,
+        "layer": 1,
+        "orientation_deg": 0
+      },
+      {
+        "brick_type": "2x3x1",
+        "color": "yellow",
+        "x": 9,
+        "y": 9,
+        "layer": 2,
+        "orientation_deg": 90
+      },
+      {
+        "brick_type": "2x3x1",
+        "color": "yellow",
+        "x": 9,
+        "y": 11,
+        "layer": 2,
+        "orientation_deg": 90
+      },
+      {
+        "brick_type": "2x3x1",
+        "color": "yellow",
+        "x": 9,
+        "y": 13,
+        "layer": 2,
+        "orientation_deg": 90
+      },
+      {
+        "brick_type": "2x3x1",
+        "color": "yellow",
+        "x": 12,
+        "y": 9,
+        "layer": 2,
+        "orientation_deg": 90
+      },
+      {
+        "brick_type": "2x3x1",
+        "color": "yellow",
+        "x": 12,
+        "y": 11,
+        "layer": 2,
+        "orientation_deg": 90
+      },
+      {
+        "brick_type": "2x3x1",
+        "color": "yellow",
+        "x": 12,
+        "y": 13,
+        "layer": 2,
+        "orientation_deg": 90
+      },
+      {
+        "brick_type": "2x3x1",
+        "color": "blue",
+        "x": 9,
+        "y": 13,
+        "layer": 3,
+        "orientation_deg": 90
+      },
+      {
+        "brick_type": "2x3x1",
+        "color": "blue",
+        "x": 12,
+        "y": 13,
+        "layer": 3,
+        "orientation_deg": 90
+      },
+      {
+        "brick_type": "2x2x1",
+        "color": "blue",
+        "x": 9,
+        "y": 13,
+        "layer": 4,
+        "orientation_deg": 0
+      },
+      {
+        "brick_type": "2x2x1",
+        "color": "blue",
+        "x": 13,
+        "y": 13,
+        "layer": 4,
+        "orientation_deg": 0
+      },
+      {
+        "brick_type": "2x2x1",
+        "color": "blue",
+        "x": 11,
+        "y": 13,
+        "layer": 4,
+        "orientation_deg": 0
+      }
+    ]
+  },
+  "questions": [],
+  "error": null
+}

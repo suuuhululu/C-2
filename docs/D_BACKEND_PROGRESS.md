@@ -65,3 +65,15 @@ GitHub 게시 기준은 최신 main `6fde225c0d8ae46d827174dec5e6a3379559605b`�
 
 
 PR 게시 대상과 최신 main을 합친 독립 파일 트리에서 `QT_QPA_PLATFORM=offscreen python3 -m pytest tests planning_trial/test_planner.py -q` 실행: **884 passed**, 종료 코드 0. main의 C 검사도 포함하며, 별도 REAL 장치 시험·수동 입력 HMI 검사는 이번 게시 범위에서 제외한다. 실제 Camera/Robot 시험은 수행하지 않았다.
+
+## 2026-10-06 — 누적 D 수정 PR 게시 준비
+
+사용자가 지금까지의 수정사항을 PR로 요청했다. PR #9와 B PR #10이 병합된 최신 main `7c51549efb90e0b324a21351b7109dc473a7bda9`에 수현의 후속 수정만 적용한 독립 파일 트리를 검사했다. 로컬 지정 브랜치/HEAD/미커밋 파일과 기존 원격 브랜치를 유지하며, 최신 main에서 만든 별도 게시용 원격 브랜치 `work/suhyun-day4-integration-updates`에 후속 수정만 게시한다. GitHub 연결 API의 쓰기 권한 오류로 로그인된 웹 업로드를 사용한다. 로컬 파일이나 팀원 소스를 최신 main으로 일괄 덮어쓰지 않는다.
+
+포함: Robot 한 블록·3-Step 수동 시험 진입점/설정, FAKE 단계 입력·STOP/재개, 현장 잘못 놓음 신고/좌표 표시, A–B–D 합성 callback·C 저장 응답 재계획, HMI 블록 비율, 관련 Consumer Schema·검사·실행 안내/진행 기록. 별도 history DB/컨테이너 작업·발표/제출 자료·미완료 공통 문서는 제외한다. A/B 원본과 main의 실제 C 코드는 동일 바이트를 유지한다.
+
+게시 파일 트리에서 `QT_QPA_PLATFORM=offscreen python3 -m pytest tests planning_trial/test_planner.py -q` → **1045 passed**, 종료 코드 0. main의 C 독립 검사와 D 후속 검사를 포함하며 별도 history 검사는 포함하지 않는다. 앞선 로컬 852 passed/11 skipped는 파일 구성이 다른 당시 기록이다. 실제 Camera/Robot 연결 성공 또는 GitHub CI 결과가 아니다.
+
+Robot 관련 검사는 이 호스트의 `source_path`/`measurements_path`가 가리키는 기존 자료 파일을 사용한다. 다른 PC/clone에서 해당 파일이 없으면 전체 Robot 시험 검사는 그대로 재현되지 않는다. 실제 시험 진입점은 원본/측정 SHA 확인과 명시 실행을 유지하며 경로·TCP·pose·속도를 이번 게시에서 변경하지 않았다. 장치 시험 기록은 사용자 보고와 모의 검사를 구분한다. C 저장 JSON 시험은 저장소에 보관한 Fixture 경로로 실행할 수 있다. 로그/PNG는 Git 제외인 로컬 산출물이다.
+
+원격 PR은 사람 검토용 초안으로 준비하며 실제 STOP/재개·B production callback/Camera·C 함수/LLM/음성·전체 사람 조립 연결은 미검증이다. main 병합/실제 장치 실행은 하지 않는다.

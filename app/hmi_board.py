@@ -1,10 +1,19 @@
 """채택 Design/현재 목표의 표시용 투영. 완료·기하 검증을 수행하지 않는다."""
 
 from copy import deepcopy
+from math import sqrt
 
 from PyQt5.QtCore import QPointF, QRectF, Qt
 from PyQt5.QtGui import QColor, QPainter, QPen, QPolygonF
 from PyQt5.QtWidgets import QWidget
+
+
+# LDraw 기준: 가로 20, 몸체 높이 24, 돌기 지름 12·높이 4 LDU.
+# 표시용 치수이며 조립 계약/Robot의 물리 좌표로 사용하지 않는다.
+ISO_X = sqrt(3)/2
+ISO_Y = .5
+STUD_RADIUS = 12/20/2
+STUD_HEIGHT = 4/20
 
 
 def dimensions(block):
@@ -13,11 +22,13 @@ def dimensions(block):
 
 
 class BoardView(QWidget):
-    def __init__(self, *, isometric=False):
+    def __init__(self, *, isometric=False, brick_height_per_stud=24/20):
         super().__init__()
         self.isometric = isometric
+        self.brick_height_per_stud = brick_height_per_stud
         self.blocks = []
         self.transfer_target = None
+        self.reported_placement = None
         self.setMinimumHeight(155)
         self.setAccessibleName("전체 목표 투영과 확대" if isometric else "현재 목표 위에서 보기와 확대")
 
@@ -27,6 +38,10 @@ class BoardView(QWidget):
 
     def set_transfer_target(self, target):
         self.transfer_target = deepcopy(target)
+        self.update()
+
+    def set_reported_placement(self, block):
+        self.reported_placement = deepcopy(block)
         self.update()
 
     def paintEvent(self, event):
@@ -56,7 +71,10 @@ class BoardView(QWidget):
         painter.drawRect(QRectF(left, top, w*scale, d*scale))
         for x in range(w):
             for y in range(d):
-                painter.drawEllipse(QPointF(left+(x+.5)*scale, top+(y+.5)*scale), scale*.2, scale*.2)
+                painter.drawEllipse(QPointF(left+(x+.5)*scale, top+(y+.5)*scale), scale*STUD_RADIUS, scale*STUD_RADIUS)
+
+    def _project(self, x, y, z):
+        return QPointF((x-y)*ISO_X, (x+y)*ISO_Y-z*self.brick_height_per_stud)
         painter.drawText(QRectF(0, top+d*scale+10, self.width(), 25), Qt.AlignCenter, "공급판 → 고정 전달판")
 
     def _brick(self, painter, block, project, scale):
@@ -71,15 +89,30 @@ class BoardView(QWidget):
         ):
             painter.setBrush(color.darker(shade))
             painter.drawPolygon(QPolygonF([project(*point) for point in points]))
-        painter.setBrush(color)
+        rx, ry = scale*STUD_RADIUS*sqrt(2)*ISO_X, scale*STUD_RADIUS*sqrt(2)*ISO_Y
         for dx in range(w):
             for dy in range(d):
-                painter.drawEllipse(project(x+dx+.5, y+dy+.5, z), scale*.23, scale*.11)
+                base = project(x+dx+.5, y+dy+.5, z)
+                top = project(x+dx+.5, y+dy+.5, z+STUD_HEIGHT/self.brick_height_per_stud)
+                painter.setBrush(color.darker(113))
+                painter.drawEllipse(base, rx, ry)
+                painter.drawPolygon(QPolygonF([base+QPointF(-rx,0), base+QPointF(rx,0),
+                                               top+QPointF(rx,0), top+QPointF(-rx,0)]))
+                painter.setBrush(color)
+                painter.drawEllipse(top, rx, ry)
 
     def _isometric(self, painter):
         area, height = self.width()*.6, self.height()
-        scale = min((area-24)/48, (height-35)/24)
-        project = lambda x, y, z: QPointF(area/2+(x-y)*scale, 27+(x+y)*scale*.48-z*scale*.65)
+        blocks = sorted(self.blocks, key=lambda block: (block["layer"], block["x"]+block["y"]))
+        # 바닥의 먼 모서리와 최상층 돌기까지 포함해 높아진 블록의 잘림을 방지한다.
+        raw = [self._project(x,y,z) for block in blocks
+               for x in (block["x"], block["x"]+dimensions(block)[0])
+               for y in (block["y"], block["y"]+dimensions(block)[1])
+               for z in (block["layer"]-1, block["layer"]+STUD_HEIGHT/self.brick_height_per_stud)]
+        min_y = min(0, min(point.y() for point in raw))
+        max_y = max(24, max(point.y() for point in raw))
+        scale = min((area-24)/(48*ISO_X), (height-50)/(max_y-min_y))
+        project = lambda x, y, z: QPointF(area/2,27-min_y*scale)+self._project(x,y,z)*scale
         painter.drawText(QRectF(0, 0, area, 22), Qt.AlignCenter, "24×24점 전체판 · 투영")
         painter.setBrush(QColor("#f0f2f4"))
         painter.setPen(QColor("#bdc7d1"))
@@ -89,7 +122,6 @@ class BoardView(QWidget):
         for x in range(24):
             for y in range(24):
                 painter.drawEllipse(project(x+.5, y+.5, 0), scale*.2, scale*.1)
-        blocks = sorted(self.blocks, key=lambda block: (block["layer"], block["x"]+block["y"]))
         for block in blocks:
             self._brick(painter, block, project, scale)
         painter.setPen(QColor("#526170"))
@@ -97,17 +129,12 @@ class BoardView(QWidget):
         painter.drawText(project(24,0,0)+QPointF(-25,13), "X →")
         painter.drawText(project(0,24,0)+QPointF(0,13), "← Y")
         # 확대는 같은 채택 blocks의 화면 좌표만 계산한다. 후보 Design은 입력받지 않는다.
-        raw = [(x-y, (x+y)*.48-z*.65) for block in blocks for x,y,z in (
-            (block["x"], block["y"], block["layer"]-1),
-            (block["x"]+dimensions(block)[0], block["y"]+dimensions(block)[1], block["layer"]),
-            (block["x"], block["y"]+dimensions(block)[1], block["layer"]),
-            (block["x"]+dimensions(block)[0], block["y"], block["layer"]))]
-        min_x, max_x = min(p[0] for p in raw), max(p[0] for p in raw)
-        min_y, max_y = min(p[1] for p in raw), max(p[1] for p in raw)
+        min_x, max_x = min(p.x() for p in raw), max(p.x() for p in raw)
+        min_y, max_y = min(p.y() for p in raw), max(p.y() for p in raw)
         zoom = min((self.width()-area-18)/max(max_x-min_x,1), (height-55)/max(max_y-min_y,1), 23)
         cx, cy = (min_x+max_x)/2, (min_y+max_y)/2
-        project_zoom = lambda x,y,z: QPointF(area+(self.width()-area)/2+(x-y-cx)*zoom,
-                                            (height+30)/2+((x+y)*.48-z*.65-cy)*zoom)
+        project_zoom = lambda x,y,z: QPointF(area+(self.width()-area)/2,(height+30)/2) + (
+            self._project(x,y,z)-QPointF(cx,cy))*zoom
         painter.drawText(QRectF(area,0,self.width()-area,22), Qt.AlignCenter, "완성 목표 확대")
         for block in blocks:
             self._brick(painter, block, project_zoom, zoom)
@@ -134,6 +161,14 @@ class BoardView(QWidget):
         painter.setBrush(color)
         painter.setPen(QColor("#344453"))
         painter.drawRect(QRectF(left+block["x"]*scale, top+(24-block["y"]-d)*scale, w*scale,d*scale))
+        if self.reported_placement:
+            actual = self.reported_placement
+            aw, ad = dimensions(actual)
+            painter.setBrush(Qt.NoBrush)
+            painter.setPen(QPen(QColor("#c0392b"), 2))
+            painter.drawRect(QRectF(left+actual["x"]*scale, top+(24-actual["y"]-ad)*scale, aw*scale, ad*scale))
+            painter.setBrush(color)
+            painter.setPen(QColor("#344453"))
         zx, zoom = left+size+23, min((self.width()-left-size-32)/4,24)
         painter.drawText(QRectF(zx,0,self.width()-zx,22), Qt.AlignCenter, "목표 확대")
         painter.drawText(QRectF(zx,24,self.width()-zx,22), Qt.AlignCenter,
@@ -141,4 +176,4 @@ class BoardView(QWidget):
         painter.drawRect(QRectF(zx,57,w*zoom,d*zoom))
         for x in range(w):
             for y in range(d):
-                painter.drawEllipse(QPointF(zx+(x+.5)*zoom,57+(y+.5)*zoom), zoom*.2,zoom*.2)
+                painter.drawEllipse(QPointF(zx+(x+.5)*zoom,57+(y+.5)*zoom), zoom*STUD_RADIUS,zoom*STUD_RADIUS)

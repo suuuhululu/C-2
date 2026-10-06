@@ -284,3 +284,49 @@ def test_three_visible_blocks_keep_all_fields_visible_without_table_vertical_scr
     assert window.table.columnCount()==5
     assert window.table.item(4,4).text()=="90°"
     assert window.table.verticalScrollBar().maximum()==0
+
+
+@pytest.mark.parametrize("height_ratio", [1.2, .4])
+def test_isometric_brick_uses_configured_height_in_stud_units(qapp, height_ratio):
+    from app.hmi_board import BoardView
+
+    board = BoardView(isometric=True, brick_height_per_stud=height_ratio)
+    origin = board._project(0,0,0)
+    # 기본 brick은 폭20/높이24, plate는 폭20/높이8 LDU. 투영 세 축은 같은 축척이다.
+    assert (board._project(1,0,0)-origin).x()**2 + (board._project(1,0,0)-origin).y()**2 == pytest.approx(1)
+    assert (board._project(0,0,1)-origin).y() == pytest.approx(-height_ratio)
+    assert board._project(0,0,4).y() == pytest.approx(-4*height_ratio)
+
+
+@pytest.mark.parametrize("x,y,width,height", [(0,0,420,155), (21,0,420,260),
+                                              (0,21,420,260), (21,21,280,155)])
+def test_four_layer_preview_and_zoom_fit_with_studs_and_preserve_input(qapp, monkeypatch, tmp_path, x,y,width,height):
+    from app.hmi_board import BoardView, dimensions, STUD_HEIGHT
+
+    board = BoardView(isometric=True)
+    blocks = [dict(brick_type="2x3x1",color="blue",x=x,y=y,layer=layer,orientation_deg=90)
+              for layer in range(1,5)]
+    before = deepcopy(blocks)
+    board.resize(width,height)
+    board.set_blocks(blocks)
+    draws=[]
+    original = board._brick
+
+    def draw(painter, block, project, scale):
+        w,d = dimensions(block)
+        points=[project(px,py,z) for px in (block["x"],block["x"]+w)
+                for py in (block["y"],block["y"]+d)
+                for z in (block["layer"]-1,block["layer"]+STUD_HEIGHT/board.brick_height_per_stud)]
+        draws.append(points)
+        original(painter,block,project,scale)
+
+    monkeypatch.setattr(board,"_brick",draw)
+    board.show();qapp.processEvents()
+    assert board.grab().save(str(tmp_path/f"four-layer-{x}-{y}.png"))
+    assert draws and len(draws)%8==0
+    for group in range(0,len(draws),8):
+        for index,points in enumerate(draws[group:group+8]):
+            left,right=(0,width*.6) if index<4 else (width*.6,width)
+            assert all(left < point.x() < right and 22 < point.y() < height-10 for point in points)
+    assert blocks == before and board.blocks == before
+    board.close()
