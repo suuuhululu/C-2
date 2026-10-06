@@ -30,7 +30,7 @@ import time
 import urllib.error
 import urllib.request
 
-from app.c_design import validator
+from app.c_design import designer, validator
 
 API_URL = "https://api.openai.com/v1/chat/completions"
 DEFAULT_MODEL = "gpt-4o-mini"
@@ -49,10 +49,24 @@ _RULES = f"""Rules (the validator rejects any violation):
 - Shape: a chair with legs, a seat and a backrest, left-right balanced.
 Output schema: {{"design_version": <int>, "blocks": [{{"brick_type": ..., "color": ..., "x": ..., "y": ..., "layer": ..., "orientation_deg": ...}}]}}. Each block has exactly these six keys."""
 
+# 검증을 통과하는 예시: designer의 Mock 의자를 Board 중앙에 놓은 실제 좌표(복사본이 아니라 같은 출처).
+_EXAMPLE_DESIGN = {
+    "design_version": 1,
+    "blocks": designer.center_blocks(designer.mock_initial_candidate("CHAIR")["blocks"]),
+}
+
+_SELF_CHECK = (
+    "Before output, for every block on layer >= 2 count the studs it shares with blocks on the layer "
+    f"directly below and confirm the total is at least {validator.MIN_SUPPORT_STUDS}; then confirm all blocks "
+    "form one connected structure through stud overlaps between adjacent layers. Output the final JSON only "
+    "after both checks pass."
+)
+
 SYSTEM_PROMPT = (
     "You generate a LEGO CHAIR Design as JSON only. Output one JSON object and no explanation. "
     "Never output robot commands, ROS2 code, world or robot coordinates, a Plan, Replan, NextPart, "
-    "supply slot, or backend state.\n" + _RULES
+    "supply slot, or backend state.\n" + _RULES + "\n"
+    "Example of a valid design (it passes every rule above): " + json.dumps(_EXAMPLE_DESIGN) + "\n" + _SELF_CHECK
 )
 
 
@@ -78,8 +92,10 @@ def _revised_user_message(design, current, differences, reasons):
     return (
         "The user chose REVISE: keep the blocks already on the board and redesign the rest of the CHAIR.\n"
         f"Current adopted design: {json.dumps(design, ensure_ascii=False)}\n"
-        "Latest Current (actually placed blocks). Keep every one of them exactly, with all six values unchanged; "
-        f"do not move, delete or alter them: {json.dumps(current, ensure_ascii=False)}\n"
+        "Latest Current (actually placed blocks). Every Current block must appear in the final Revised Design "
+        "with brick_type, color, x, y, layer and orientation_deg unchanged: no moving, deleting, altering or "
+        "omitting. Copy the Current blocks into the output first, then design the rest: "
+        f"{json.dumps(current, ensure_ascii=False)}\n"
         f"Differences (expected vs actual): {json.dumps(differences, ensure_ascii=False)}\n"
         f"Previous candidate was rejected for: {_reasons_text(reasons)}\n"
         "Redesign the whole remaining structure around the Current. Do not simply shift every block by the "

@@ -226,8 +226,38 @@ class TestRevisedUserMessage:
         assert "5" in content  # current block's x/y value present somewhere
         assert "blue" in content  # difference's expected color present
         assert "current" in content.lower()
-        # some wording that tells the model to keep Current exactly as-is
-        assert "exactly" in content.lower() or "preserve" in content.lower()
+        # Current must be kept with all six values unchanged and copied into the output first
+        assert "unchanged" in content.lower()
+        assert "copy the current blocks into the output first" in content.lower()
+        assert "omitting" in content.lower()
+
+
+class TestPromptReinforcement:
+    def test_few_shot_example_is_in_system_prompt_and_passes_the_validator(self):
+        assert validator.validate_design(llm._EXAMPLE_DESIGN) == []
+        assert json.dumps(llm._EXAMPLE_DESIGN) in llm.SYSTEM_PROMPT
+        assert set(llm._EXAMPLE_DESIGN) == {"design_version", "blocks"}
+
+    def test_support_self_check_uses_the_validator_constant(self):
+        text = llm.SYSTEM_PROMPT.lower()
+        assert "before output" in text
+        assert f"at least {validator.MIN_SUPPORT_STUDS}" in text
+        assert "layer directly below" in text
+
+    def test_connectivity_self_check(self):
+        text = llm.SYSTEM_PROMPT.lower()
+        assert "one connected structure" in text
+        assert "only after both checks pass" in text
+
+    def test_revised_message_requires_current_preservation(self, monkeypatch, with_fake_key):
+        fake = _install(monkeypatch, [_body(json.dumps({"blocks": []}))])
+        current = [{"brick_type": "2x3x1", "color": "blue", "x": 9, "y": 9, "layer": 1, "orientation_deg": 0}]
+        differences = [{"expected": current[0], "actual": dict(current[0], y=10)}]
+        llm.generate_revised_design(SIMPLE_DESIGN, current, differences)
+        payload = json.loads(fake.calls[0]["request"].data)
+        content = next(m["content"] for m in payload["messages"] if m["role"] == "user")
+        for word in ("brick_type, color, x, y, layer and orientation_deg unchanged", "no moving, deleting, altering or omitting"):
+            assert word in content
 
 
 # ---------------------------------------------------------------------------
