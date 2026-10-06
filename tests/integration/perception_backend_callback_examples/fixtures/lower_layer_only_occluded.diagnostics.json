@@ -1,0 +1,53 @@
+{
+  "example_only": true,
+  "temporary_expressions": {
+    "tracked_blocks": "TEST ONLY: field name and provenance/reason layout pending agreement",
+    "observed_at": "TEST ONLY: UTC bundle-start timestamp for diagnostics only, not freshness selection; exact field pending agreement",
+    "observation_seq": "EXAMPLE POLICY: reset to 0 per new check, increment by 1 at bundle start; not a mandatory common counter policy",
+    "other_fields": "separate vision_diagnostics, views, calibration, quality and delivery_board layouts are proposals",
+    "fixture_values": "all geometry, timestamps, scores and IDs are synthetic; not measured"
+  },
+  "proposed_diagnostics": {
+    "check_id": "example-check-replace-with-active-check",
+    "observation_seq": 0,
+    "observed_at": "2026-10-06T00:00:00Z",
+    "view_ids": [
+      "V0",
+      "D1",
+      "D2",
+      "D3",
+      "D4"
+    ],
+    "calibration_id": "synthetic-calibration",
+    "tracked_blocks": [
+      {
+        "placement": {
+          "brick_type": "2x2x1",
+          "color": "yellow",
+          "x": 4,
+          "y": 6,
+          "layer": 1,
+          "orientation_deg": 0
+        },
+        "basis": "previous_backend_accepted_state",
+        "reason": "lower_layer_occluded"
+      }
+    ],
+    "unverified_regions": [
+      {
+        "reason": "lower_layer_occluded",
+        "affected_region": {
+          "x": 4,
+          "y": 6,
+          "width": 2,
+          "height": 2,
+          "layer": 1
+        }
+      }
+    ],
+    "quality": {
+      "basis": "synthetic_fixture",
+      "reason": "no_camera_measurement"
+    }
+  }
+}
