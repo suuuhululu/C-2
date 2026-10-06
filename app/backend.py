@@ -1,4 +1,4 @@
-"""FAKE 전체 흐름과 명시적인 REAL 단일 전달 시험. emit은 비동기 연결부다."""
+"""FAKE 전체 흐름과 명시적인 REAL 전달 시험. emit은 비동기 연결부다."""
 
 from copy import deepcopy
 from uuid import uuid4
@@ -11,9 +11,11 @@ from app import replan
 
 
 class Backend:
-    def __init__(self, emit, *, mode: str, record=None, single_trial=False):
-        if mode != "FAKE" and not (mode == "REAL" and single_trial is True):
-            raise ValueError("Backend: explicit FAKE mode or bounded REAL single_trial required")
+    def __init__(self, emit, *, mode: str, record=None, single_trial=False, manual_trial=False):
+        if manual_trial and (manual_trial is not True or mode != "REAL" or single_trial):
+            raise ValueError("manual_trial requires explicit REAL and excludes single_trial")
+        if mode != "FAKE" and not (mode == "REAL" and (single_trial is True or manual_trial is True)):
+            raise ValueError("Backend: explicit FAKE mode or bounded REAL single_trial/manual_trial required")
         self._emit = emit
         self._record = record
         self._request_owners = {}
@@ -32,6 +34,9 @@ class Backend:
         self._ready = self._at_observe = self._awaiting_assembly = self._delivery_goal = False
         self._place_seq = self._paused_execution = None
         self._robot = self._robot_config_loader = None
+        self._manual_trial = manual_trial
+        if manual_trial:
+            self._state["manual_trial"] = True
 
     @property
     def state(self) -> dict:
@@ -131,8 +136,10 @@ class Backend:
 
     def command(self, value: object) -> dict:
         command, state = validate_hmi_command(value), self._state
-        if state["mode"] == "REAL":
+        if state["mode"] == "REAL" and not self._manual_trial:
             return self._command_trial(command)
+        if self._manual_trial and (command["command"] != "START" or state["job_id"] is not None):
+            return dict(accepted=False, reason="MANUAL_TRIAL_COMMAND_UNAVAILABLE")
         name = command["command"]
         if name != "START" and command["job_id"] != state["job_id"]:
             return dict(accepted=False, reason="OLD_JOB")
@@ -321,7 +328,7 @@ class Backend:
         if not self._event("DELIVERY_RESULT", request_id=result["execution_id"], result=result):
             return True
         state["execution_id"] = None
-        if state["mode"] == "REAL":
+        if state["mode"] == "REAL" and not self._manual_trial:
             self._ready = self._at_observe = result["success"]
             state["fault"] = None if result["success"] else result["reason"]
             self._hold("REAL_TRANSFER_DONE_ASSEMBLY_UNVERIFIED" if result["success"] else result["reason"])

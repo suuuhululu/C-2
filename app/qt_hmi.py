@@ -166,32 +166,44 @@ class HmiWindow(QWidget):
         snapshot = validate_hmi_snapshot(value)
         self._snapshot = snapshot
         mode = snapshot["monitor"]["robot"]["mode"]
+        manual_trial = snapshot.get("manual_trial", False)
+        reported = snapshot.get("reported_placement")
         transfer = snapshot.get("transfer_target")
         self.setWindowTitle(f"협동 조립 · Day4 · {mode}")
         self.heading.setText("협동 조립 · Day4                         실제 Robot REAL · 한 블록 시험" if mode == "REAL" else
                              "협동 조립 · Day4                         모의 연결 FAKE · 실제 장치 미연결")
+        if manual_trial:
+            self.heading.setText("협동 조립 · Day4                         실제 Robot REAL · 현장 수동 확인 시험")
         self.buttons["START"].setText("준비 확인 · 1회 시작" if mode == "REAL" else "시작")
+        if manual_trial:
+            self.buttons["START"].setText("준비 확인 · Job 시작")
         self.status.setText(WORKFLOW_LABELS[snapshot["workflow_status"]])
         p = snapshot["progress"]
-        self.progress.setText("한 블록 전달 시험 · 조립 Plan 미채택" if mode == "REAL" else
+        self.progress.setText("한 블록 전달 시험 · 조립 Plan 미채택" if mode == "REAL" and not manual_trial else
                               f"현재 Plan · 조립 확인 {p['completed']} / {p['total']} Step")
         design = snapshot["design"]
         self.design_panel.setTitle(f"전체 완성 목표 · 채택 Design v{design['design_version']}" if design else "전체 완성 목표 · 미채택")
         self.design_board.set_blocks(design["blocks"] if design else [])
-        self.design_caption.setText("조립 Design 미채택 · 지정 블록 1개 전달 시험" if mode == "REAL" else
+        self.design_caption.setText("조립 Design 미채택 · 지정 블록 1개 전달 시험" if mode == "REAL" and not manual_trial else
                                     "24×24점 전체판 / 같은 목표의 확대")
         step = snapshot["step"]
         self.step_panel.setTitle(f"현재 Step · {step['step_id'] or '없음'}")
         self.comparison.setText(label(step["comparison"]) if step["target"] else "현재 Step 없음")
         self.target_board.set_blocks([step["target"]] if step["target"] else [])
         self.target_board.set_transfer_target(transfer)
+        self.target_board.set_reported_placement(reported)
         self.target_caption.setText("블록 종류 표시 · 공급판 → 고정 전달판\n조립 위치·층·방향 미채택" if transfer else
                                     "위에서 봄 · 목표만 표시\n24×24점 · 원점 (0,0) · X → / Y ↑")
+        if reported:
+            self.target_caption.setText("위에서 봄 · 채움: 목표 / 빨간 테두리: 현장 입력\n24×24점 · 원점 (0,0) · X → / Y ↑")
+            self.comparison.setText("현장 입력과 목표 차이 · 사람이 확인/정리 · 다음 전달 보류")
         if transfer:
             self.step_panel.setTitle(f"Robot 전달 대상 · 공급 슬롯 {transfer['slot']}번")
             self.comparison.setText("고정 전달판으로 전달 · 사람 조립 목표 미채택")
         observed = step["observed"]
         actual = [fields(block) for block in observed["visible_blocks"]] if observed else []
+        if reported:
+            actual = [fields(reported)]
         target = fields(step["target"])
         if transfer:
             target = ["4점 (2×2)" if transfer["brick_type"] == "2x2x1" else "6점 (2×3)",
@@ -199,7 +211,7 @@ class HmiWindow(QWidget):
         # 관측 목록의 블록마다 한 열을 사용한다. 목표와 물리 블록의 대응을 추정하지 않는다.
         self.table.setColumnCount(2+max(1,len(actual)))
         self.table.setHorizontalHeaderLabels(["항목","전달할 블록" if transfer else "현재 목표"]+
-            ([f"실제 관측 {i+1}" for i in range(len(actual))] if actual else ["실제 관측"]))
+            (["현장 입력"] if reported else [f"실제 관측 {i+1}" for i in range(len(actual))] if actual else ["실제 관측"]))
         for row in range(5):
             text = "—" if step["target"] is None else (
                 "판단 불가" if step["comparison"] == "UNOBSERVABLE" else
@@ -234,3 +246,5 @@ class HmiWindow(QWidget):
         capture = m["observation"]
         self.footer.setText(f"{mode} · {'단일 전달 시험 · 실제 관측 미연결' if mode == 'REAL' else '장치 미연결'} · 촬영 check {capture['check_id'] or '미수신'} · "
                             f"순번 {capture['observation_seq'] if capture['observation_seq'] is not None else '미수신'}")
+        if manual_trial:
+            self.footer.setText(f"REAL · 현장 수동 확인 · Camera 미연결 · check {capture['check_id'] or '미수신'}")

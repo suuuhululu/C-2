@@ -166,7 +166,7 @@ def _actions(value: object, workflow: str, notice: dict, columns: dict, *, trial
 
 
 def validate_hmi_snapshot(value: object) -> dict:
-    optional = ("transfer_target",) if isinstance(value, dict) and "transfer_target" in value else ()
+    optional = tuple(key for key in ("transfer_target", "manual_trial", "reported_placement") if isinstance(value, dict) and key in value)
     snapshot = _object(value, ("workflow_status", "step", "progress", "monitor",
                                "notice", "actions", "design") + optional, "snapshot")
     if snapshot["workflow_status"] not in WORKFLOW_STATUSES:
@@ -188,6 +188,17 @@ def validate_hmi_snapshot(value: object) -> dict:
             and snapshot["monitor"]["robot"]["status"] == "STOP_PENDING"):
         raise ValueError("snapshot.monitor.robot.status: STOP_PENDING is not confirmed STOPPED")
     real_trial = snapshot["monitor"]["robot"]["mode"] == "REAL"
+    manual_trial = snapshot.get("manual_trial", False)
+    if "manual_trial" in snapshot and (manual_trial is not True or not real_trial):
+        raise ValueError("snapshot.manual_trial: explicit REAL manual trial required")
+    if manual_trial and "transfer_target" in snapshot:
+        raise ValueError("snapshot.manual_trial: assembly target and single transfer display cannot be combined")
+    if "reported_placement" in snapshot:
+        reported = snapshot["reported_placement"]
+        _block(reported, "snapshot.reported_placement")
+        if (not manual_trial or not real_trial or step["comparison"] != "MISMATCH" or
+                step["observed"] is None or reported not in step["observed"]["visible_blocks"]):
+            raise ValueError("snapshot.reported_placement: requires a manual REAL mismatch observation")
     if "transfer_target" in snapshot:
         if not real_trial:
             raise ValueError("snapshot.transfer_target: only available in REAL single transfer trial")
@@ -197,7 +208,11 @@ def validate_hmi_snapshot(value: object) -> dict:
     trial_start = (snapshot["workflow_status"] == "IDLE" and snapshot["actions"]["job_id"] is None
                    and snapshot["monitor"]["robot"]["status"] == "IDLE") if real_trial else None
     _actions(snapshot["actions"], snapshot["workflow_status"], notice, columns, trial_start=trial_start)
-    if snapshot["monitor"]["robot"]["mode"] == "REAL":
+    if real_trial and manual_trial:
+        if (snapshot["workflow_status"] not in ("IDLE", "PREPARING", "DELIVERING", "WAIT_ASSEMBLY", "HOLD", "COMPLETE") or
+                progress["total"] not in (0, 3) or snapshot["actions"]["stop"]["enabled"] or snapshot["actions"]["resume"]["enabled"]):
+            raise ValueError("snapshot: manual REAL trial requires bounded three-Step workflow")
+    elif real_trial:
         if (snapshot["workflow_status"] not in ("IDLE", "DELIVERING", "HOLD") or
                 snapshot["design"] is not None or step["target"] is not None or
                 progress != dict(completed=0, total=0) or
