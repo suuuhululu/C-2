@@ -199,9 +199,19 @@ def _connectivity_violations(nodes):
             if abs(nodes[i]["layer"] - nodes[j]["layer"]) == 1 and nodes[i]["footprint"] & nodes[j]["footprint"]:
                 parent[find(i)] = find(j)
 
-    if len({find(i) for i in range(len(nodes))}) > 1:
-        return [_reason("connectivity", [node["block"] for node in nodes], "design is not fully connected")]
-    return []
+    components = {}
+    for i, node in enumerate(nodes):
+        components.setdefault(find(i), []).append(node["block"])
+    if len(components) == 1:
+        return []
+    # 어느 블록이 어느 덩어리인지 알려 줘야 재생성(LLM)이 끊긴 곳을 잇는 방향을 찾을 수 있다(§8.10).
+    groups = sorted(components.values(), key=len, reverse=True)
+    listed = [[{key: block.get(key) for key in BLOCK_FIELDS} for block in group] for group in groups]
+    message = (
+        f"design is not fully connected: {len(groups)} disconnected components "
+        f"(sizes {', '.join(str(len(group)) for group in groups)}); components: {json.dumps(listed)}"
+    )
+    return [_reason("connectivity", [block for group in groups for block in group], message)]
 
 
 def _placement_violations(nodes):

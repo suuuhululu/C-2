@@ -489,3 +489,20 @@ class TestGeneralizedRevisedStrategy:
         assert not re.search(r"\d", strategy)
         for specific in ("2x3x1", "2x2x1", "orientation 0", "orientation 90", "x=", "y="):
             assert specific not in strategy
+
+
+class TestConnectivityFeedbackReachesRevisedPrompt:
+    def test_component_detail_from_validator_is_in_next_revised_message(self, monkeypatch, with_fake_key):
+        blocks = [
+            {"brick_type": "2x2x1", "color": "blue", "x": 0, "y": 0, "layer": 1, "orientation_deg": 0},
+            {"brick_type": "2x2x1", "color": "blue", "x": 10, "y": 10, "layer": 1, "orientation_deg": 0},
+        ]
+        reasons = validator.validate_design({"design_version": 1, "blocks": blocks})
+        assert [r["rule"] for r in reasons] == ["connectivity"]
+        fake = _install(monkeypatch, [_body(json.dumps({"blocks": []}))])
+        current = [blocks[0]]
+        llm.generate_revised_design(SIMPLE_DESIGN, current, [{"expected": blocks[0], "actual": None}], reasons=reasons)
+        payload = json.loads(fake.calls[0]["request"].data)
+        content = next(m["content"] for m in payload["messages"] if m["role"] == "user")
+        assert "2 disconnected components" in content
+        assert "components:" in content
