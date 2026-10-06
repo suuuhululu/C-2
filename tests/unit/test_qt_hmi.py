@@ -63,13 +63,15 @@ def test_fake_demo_qt_signals_finish_normal_three_steps_and_write_job_log(window
     assert "조립 확인 3 / 3" in window.progress.text()
     assert "누적 실제 배치 3개 일치" in window.notice.toPlainText()
     assert window.buttons["START"].isEnabled() and not window.buttons["STOP"].isEnabled()
-    assert len(window.design_board.blocks) == 3 and window.target_board.blocks == []
+    assert len(window.design_board.blocks) == 3
+    assert window.target_board.blocks == demo.backend.state["current"]["blocks"]
+    assert window.target_board.target is None
     records = [json.loads(line) for line in next(tmp_path.glob("*.jsonl")).read_text().splitlines()]
     assert sum(record["event"]=="STEP_CONFIRMED" for record in records)==3
 
 
-def test_half_width_frame_and_all_panels_fit_without_main_scroll(window):
-    assert window.frameGeometry().width() == 960 and window.frameGeometry().height() == 900
+def test_wider_fixed_frame_and_all_panels_fit_without_main_scroll(window):
+    assert window.frameGeometry().width() == 1200 and window.frameGeometry().height() == 900
     for widget in (window.design_panel,window.step_panel,window.notice,window.monitor,window.supply,
                    window.footer, *window.buttons.values()):
         if widget.isVisible():
@@ -298,6 +300,28 @@ def test_isometric_brick_uses_configured_height_in_stud_units(qapp, height_ratio
     assert board._project(0,0,4).y() == pytest.approx(-4*height_ratio)
 
 
+def test_back_view_axes_match_design_and_current_without_swapping_coordinates(window, qapp):
+    snapshot = deepcopy(HMI["snapshots"]["waiting"])
+    before = deepcopy(snapshot)
+    window.render_snapshot(snapshot)
+    qapp.processEvents()
+    for board in (window.design_board, window.target_board):
+        origin = board._project(3, 5, 1)
+        x_forward = board._project(4, 5, 1) - origin
+        y_forward = board._project(3, 6, 1) - origin
+        layer_up = board._project(3, 5, 2) - origin
+        assert x_forward.x() < 0 and x_forward.y() > 0  # +X: 화면 왼쪽 아래
+        assert y_forward.x() > 0 and y_forward.y() > 0  # +Y: 화면 오른쪽 아래
+        assert layer_up.x() == 0 and layer_up.y() < 0
+    assert "X ↙ / Y ↘" in window.comparison.text()
+    assert "등받이 뒤쪽 시점" in window.design_caption.text()
+    assert window.design_board.blocks == snapshot["design"]["blocks"]
+    assert window.target_board.current == snapshot["current"]
+    assert window.target_board.target == snapshot["step"]["target"]
+    assert snapshot == before
+    assert not window.grab().isNull()
+
+
 @pytest.mark.parametrize("x,y,width,height", [(0,0,420,155), (21,0,420,260),
                                               (0,21,420,260), (21,21,280,155)])
 def test_four_layer_preview_and_zoom_fit_with_studs_and_preserve_input(qapp, monkeypatch, tmp_path, x,y,width,height):
@@ -330,3 +354,19 @@ def test_four_layer_preview_and_zoom_fit_with_studs_and_preserve_input(qapp, mon
             assert all(left < point.x() < right and 22 < point.y() < height-10 for point in points)
     assert blocks == before and board.blocks == before
     board.close()
+
+
+@pytest.mark.parametrize('width', [960,1200])
+def test_explicit_window_size_preserves_fixed_frame_and_panels(qapp, width):
+    window=HmiWindow(screen_size=QSize(1920,1080),window_size=QSize(width,900))
+    window.render_snapshot(HMI['snapshots']['waiting'])
+    window.show();qapp.processEvents()
+    assert window.frameGeometry().size()==QSize(width,900)
+    assert window.minimumSize()==window.maximumSize()
+    assert window.table.verticalScrollBar().maximum()==0
+    for widget in (window.target_board,window.target_caption,window.table,window.monitor,
+                   window.supply,window.notice,window.footer,*window.buttons.values()):
+        if widget.isVisible():
+            corner=widget.mapTo(window,widget.rect().bottomRight())
+            assert 0<=corner.x()<window.width() and 0<=corner.y()<window.height()
+    window.close()

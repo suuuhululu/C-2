@@ -39,6 +39,25 @@ def test_json_numeric_settings_become_ros_floats_without_changing_values(tmp_pat
     assert type(original["settings"]["joint_speed"]) is int
 
 
+def test_observe_mismatch_records_actual_and_expected_without_moving():
+    config = trial.load_trial_config(CONFIG_PATH)
+    calls, events = [], []
+
+    def query(path, kind, **kwargs):
+        calls.append(path)
+        return SimpleNamespace(conv_posx=[config["observe_posx"][0] + 20, *config["observe_posx"][1:]])
+
+    robot = SimpleNamespace(call=query)
+    with pytest.raises(RuntimeError, match="OBSERVE_POSE_MISMATCH"):
+        trial.verify_observe_pose(robot, config, config["observe_posj"],
+            record=lambda name, value: events.append((name, value)), phase="current_start")
+    assert calls == ["motion/fkin"]  # FK 조회만. 이동/그리퍼 명령 없음.
+    assert events[0][0] == "ROBOT_OBSERVE_COMPARISON"
+    assert events[0][1]["position_error_mm"] == pytest.approx(20)
+    assert events[0][1]["orientation_error_deg"] == pytest.approx(0)
+    assert events[0][1]["posx_expected"] == config["observe_posx"]
+
+
 def test_blue_supply_uses_recorded_endpoints_and_only_selected_slot():
     config = trial.load_trial_config(CONFIG_PATH.parent / "robot_trial_blue5.json")
     source, settings, commands = trial.prepare_plan(config)
@@ -111,6 +130,46 @@ class Gripper:
 
     def close(self):
         self.calls.append(("close",))
+
+
+def test_prepare_only_moves_existing_home_then_observe_without_pick_or_slot_events(monkeypatch):
+    config = trial.load_trial_config(CONFIG_PATH)
+    source, settings, _ = trial.prepare_plan(config)
+    robot, gripper, events, messages = Robot(), Gripper(), [], []
+    monkeypatch.setattr(trial, "check_motion_messages", lambda src, args, cmds, initial: messages.extend(cmds))
+    trial.prepare_observe(config, source, robot, gripper, lambda name, value: events.append((name, value)))
+    assert [target for name, target in robot.calls if name == "joint"] == [source.HOME, config["observe_posj"]]
+    assert [kind for kind, label, target, slot in messages] == ["joint", "joint"]
+    assert not any(call[0] == "move" for call in gripper.calls)
+    assert not any(name == "ROBOT_PICK_CONFIRMED" for name, value in events)
+    assert events[-1] == ("ROBOT_PREPARE_COMPLETE", dict(ready_at_observe=True, motion_commands_sent=True))
+
+
+@pytest.mark.parametrize("failure", ["grip", "tcp", "moving", "target", "move"])
+def test_prepare_failure_sends_no_pick_and_only_requests_stop_after_motion_started(monkeypatch, failure):
+    config = trial.load_trial_config(CONFIG_PATH)
+    source, settings, _ = trial.prepare_plan(config)
+    robot, gripper, events = Robot(), Gripper(), []
+    monkeypatch.setattr(trial, "check_motion_messages", lambda *args: 2)
+    if failure == "grip":
+        gripper.status = 2
+    elif failure == "tcp":
+        robot.args.tcp = "changed"
+    elif failure == "moving":
+        robot.facts["status"] = 1
+    elif failure == "target":
+        config["observe_posx"][0] += 20
+    else:
+        def failed_move(target):
+            robot.calls.append(("joint", target))
+            raise RuntimeError("motion failed")
+        robot.movej = failed_move
+    with pytest.raises(RuntimeError):
+        trial.prepare_observe(config, source, robot, gripper, lambda name, value: events.append((name, value)))
+    assert not any(call[0] == "move" for call in gripper.calls)
+    assert not any(name == "ROBOT_PREPARE_COMPLETE" for name, value in events)
+    assert any(name == "stop" for name, _ in robot.calls) == (failure == "move")
+    assert sum(name == "joint" for name, _ in robot.calls) == (1 if failure == "move" else 0)
 
 
 @pytest.mark.parametrize("field,value", [

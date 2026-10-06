@@ -120,7 +120,7 @@ def test_probe_and_one_start_use_same_goal_and_never_fake_assembly(qapp, tmp_pat
     snapshot = make_snapshot(state)
     assert snapshot["monitor"]["robot"]["mode"] == "REAL"
     assert snapshot["progress"] == dict(completed=0, total=0)
-    assert not snapshot["actions"]["stop"]["enabled"] and not snapshot["actions"]["resume"]["enabled"]
+    assert snapshot["actions"]["stop"]["enabled"] and not snapshot["actions"]["resume"]["enabled"]
     assert next(row for row in snapshot["monitor"]["supply"] if row["color"] == "blue" and row["brick_type"] == "2x2x1")["next_slot"] == 6
     records = [json.loads(line) for line in next((tmp_path / "backend").glob("*.jsonl")).read_text().splitlines()]
     assert len([record for record in records if record["event"] == "DELIVERY_RESULT"]) == 1
@@ -198,7 +198,7 @@ def test_hmi_mode_buttons_and_window_close_while_trial_active(qapp, tmp_path):
     assert window.buttons["START"].isEnabled()
     window.buttons["START"].click()
     window.render_snapshot(make_snapshot(backend.state))
-    assert not window.buttons["START"].isEnabled() and not window.buttons["STOP"].isEnabled()
+    assert not window.buttons["START"].isEnabled() and window.buttons["STOP"].isEnabled()
     window.show()
     window.close()
     assert window.isVisible()
@@ -208,14 +208,16 @@ def test_hmi_mode_buttons_and_window_close_while_trial_active(qapp, tmp_path):
     window.close()
 
 
-def test_unsupported_controls_are_not_sent_to_robot(qapp, tmp_path):
+def test_resume_is_rejected_until_stop_is_confirmed(qapp, tmp_path):
     backend, controller, processes, emitted = make_trial(tmp_path)
     ready(controller, processes)
     assert backend.command(dict(command="START"))["accepted"]
-    for name in ("STOP", "RESUME"):
-        assert not backend.command(dict(command=name, job_id=backend.state["job_id"]))["accepted"]
-    assert len(processes) == 2 and emitted == []
-    complete(controller, processes)
+    assert not backend.command(dict(command="RESUME", job_id=backend.state["job_id"]))["accepted"]
+    assert backend.command(dict(command="STOP", job_id=backend.state["job_id"]))["accepted"]
+    assert not backend.command(dict(command="STOP", job_id=backend.state["job_id"]))["accepted"]
+    assert not backend.command(dict(command="RESUME", job_id=backend.state["job_id"]))["accepted"]
+    assert len(processes) == 3 and "--stop" in processes[-1].started[0][1] and emitted == []
+    controller.timer.stop()  # Mock 실행 정리이며 실제 정지 증거가 아니다.
 
 
 def test_transfer_picture_uses_selected_slot_and_never_invents_assembly(qapp, tmp_path):
