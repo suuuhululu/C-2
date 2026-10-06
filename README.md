@@ -8,16 +8,16 @@
 2. [진행 상황과 다음 작업](docs/STATUS.md)
 3. [Day 1~4 일정](docs/01_DAY_PLAN.md)
 4. [팀원 협업 안내](docs/02_TEAM_GUIDE.md)
-5. [입출력 계약 초안](docs/06_CONTRACT_DRAFT.md)
+5. [Day4 공통 인터페이스 계약](docs/06_CONTRACT_DRAFT.md) — [C/B 연결 합의와 남은 확인](docs/09_C_B_BACKEND_HANDOFF.md)
 6. [환경·측정 확인](docs/03_MEASUREMENT_GUIDE.md)
 7. [Git·PR·문서 관리](docs/05_REPOSITORY_GUIDE.md)
 8. [Isaac Sim 후속 검토](docs/04_ISAAC_SIM.md)
 
-협업 문서는 레포 안 Markdown으로 관리합니다. 새 AI 채팅은 [AGENTS.md](AGENTS.md)를 먼저 읽습니다. [AGENT.md](AGENT.md)는 같은 안내로 연결합니다.
+협업 문서는 레포 안 Markdown으로 관리합니다. 새 AI 채팅은 [AGENTS.md](AGENTS.md)를 먼저 읽습니다.
 
 ## 현재 상태
 
-**문서 준비 단계입니다. 실행 가능한 앱·ROS adapter·확정 Schema·테스트·CI는 아직 없습니다.** 아래 기능은 최신 목표이며 구현 완료 목록이 아닙니다.
+**설계 계약을 문서로 정리했으며 C 파트 docstring skeleton이 있습니다. 실행 가능한 전체 앱·ROS adapter·공통 Schema·통합 테스트·CI 완료는 확인되지 않았습니다.** 아래 기능은 최신 목표이며 구현 완료 목록이 아닙니다.
 
 | 구분 | 기준 |
 |---|---|
@@ -28,8 +28,8 @@
 | 책임 | 시율 Design·HRI, 세은 Plan·검증, 홍동 Observed, 수현 Backend·Robot·HMI·통합 |
 | 물리 작업 | Robot 공급판 → 고정 전달 위치, 사람 조립판 배치·체결·수정 |
 | 상태 | Vision Observed → Backend Current 채택, Backend Expected 생성·비교 |
-| 배치 | Day 4 1PC, 함수 / callback·웹 HMI API·Robot 전달 Action 방향 |
-| 저장 | PostgreSQL 제외·파일 로그. JSONL은 제안 |
+| 배치 | Day 4 1PC, 함수 / callback·Qt 단일 화면·Robot 전달 Action |
+| 저장 | DB 제외·Job별 주요 이벤트 JSONL |
 
 환경과 역할 분담은 2026-10-04 사용자 확인입니다. RG2는 gripper입니다. Python은 로컬에서도 3.12.3을 확인했습니다. OS·Docker·GPU는 사용자 제공값이며 실제 설치·driver·장치 호환성은 이번 작업에서 시험하지 않았습니다.
 
@@ -44,7 +44,7 @@ START → 키워드 → 시율 Design → 세은 Plan / 검증 → Backend 채�
 → 최종 채택 Design 전체 배치 확인 → 완료
 ```
 
-전달 완료와 조립 완료를 분리합니다. 아직 놓지 않은 현재 블록의 정상 대기와 실제 변경을 구분하는 세부 규칙은 계약 초안에서 확인합니다.
+전달 완료와 조립 완료를 분리합니다. PLACE만 수행하며 홍동이 정한 완료 확인 시점의 관측을 Backend가 비교합니다. 가려진 확인 완료 아래층은 보존합니다. Qt는 반폭 고정 단일 창에 채택 Design 미리보기·목표/관측·진행·Robot/전달판/공급·질문/사유·시작/정지/재개를 함께 표시합니다. 상세 규칙은 [공통 계약](docs/06_CONTRACT_DRAFT.md)을 따릅니다.
 
 ## 근거와 참고자료
 

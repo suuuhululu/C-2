@@ -1,6 +1,9 @@
 # C Design 진행 현황
 
-C 파트(시율: **Voice Interaction + LLM Design** — 질문 결정·생성, TTS, 녹음, STT, 응답 해석, 재질문, Initial / Revised Design 생성·검증)의 진행률·현재 단계·Blocker를 기록합니다. PR마다 이 파일을 갱신합니다. 구조와 파일 책임은 [C_DESIGN_STRUCTURE.md](C_DESIGN_STRUCTURE.md), 계약은 [C_DESIGN_CONTRACT.md](C_DESIGN_CONTRACT.md)를 봅니다.
+> 2026-10-05 계약 갱신: 아래는 기존 C 구조·작업 기록입니다. 공통 반환은 [06_CONTRACT_DRAFT.md](06_CONTRACT_DRAFT.md)의 brick_type / color / x / y / layer / orientation_deg, Design 버전, KEEP / REVISE / UNCLEAR를 따릅니다. 기존 geometry / grid_x / grid_y / 대문자 색상·KEEP_TARGET / KEEP_CURRENT의 이행은 [02_TEAM_GUIDE.md](02_TEAM_GUIDE.md)에 정리했습니다. 계속 불명확한 응답은 명시 선택 대기로 처리하며 자동 재질문 반복을 강제하지 않습니다. 코드 변경·진행률 갱신·C 계약 시험 통과를 의미하지 않습니다.
+
+
+C 파트(시율: **Voice Interaction + LLM Design** — 질문 결정·생성, TTS, 녹음, STT, 응답 해석, 재질문, Target Design 생성·검증)의 진행률·현재 단계·Blocker를 기록합니다. PR마다 이 파일을 갱신합니다. 구조와 파일 책임은 [C_DESIGN_STRUCTURE.md](C_DESIGN_STRUCTURE.md)를 봅니다.
 
 ## 요약
 
