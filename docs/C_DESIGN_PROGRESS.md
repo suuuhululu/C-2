@@ -1,6 +1,6 @@
 # C Design 진행 현황
 
-> 2026-10-05 계약 갱신: 아래는 기존 C 구조·작업 기록입니다. 공통 반환은 [06_CONTRACT_DRAFT.md](06_CONTRACT_DRAFT.md)의 brick_type / color / x / y / layer / orientation_deg, Design 버전, KEEP / REVISE / UNCLEAR를 따릅니다. 기존 geometry / grid_x / grid_y / 대문자 색상·KEEP_TARGET / KEEP_CURRENT의 이행은 [02_TEAM_GUIDE.md](02_TEAM_GUIDE.md)에 정리했습니다. 계속 불명확한 응답은 명시 선택 대기로 처리하며 자동 재질문 반복을 강제하지 않습니다. 코드 변경·진행률 갱신·C 계약 시험 통과를 의미하지 않습니다.
+> 2026-10-06 Day4 Contract Sync 반영 완료(commit 3bf0c10): 공통 여섯 필드·Design {design_version, blocks}·KEEP / REVISE / UNCLEAR 적용. 상세는 [C_DESIGN_CONTRACT.md](C_DESIGN_CONTRACT.md).
 
 
 C 파트(시율: **Voice Interaction + LLM Design** — 질문 결정·생성, TTS, 녹음, STT, 응답 해석, 재질문, Target Design 생성·검증)의 진행률·현재 단계·Blocker를 기록합니다. PR마다 이 파일을 갱신합니다. 구조와 파일 책임은 [C_DESIGN_STRUCTURE.md](C_DESIGN_STRUCTURE.md)를 봅니다.
@@ -9,12 +9,12 @@ C 파트(시율: **Voice Interaction + LLM Design** — 질문 결정·생성, T
 
 | 항목 | 값 |
 |---|---|
-| 전체 진행률 | **60%** (기능 단계 10개 중 완료 6개: Contract, Fixture, Text Dialogue, Validator, Mock Initial, Mock Revised) |
-| 현재 작업 단계 | 7. A/D Contract Test + Fake Voice Dialogue — REVIEW READY (WAVE 4) |
-| 다음 단계 | WAVE 4 리뷰 후 8. 실제 LLM (WAVE 5) |
-| 현재 상태 | `main.py` 공개 함수 2개 구현(텍스트 모드 = Fake Voice), `voice.py`는 provider 미연결 stub, `test_main.py`·`test_c_contract.py` 작성. llm은 docstring만 |
+| 전체 진행률 | **70%** (기능 단계 10개 중 완료 7개: Contract, Fixture, Text Dialogue, Validator, Mock Initial, Mock Revised, A/D Contract Test + Fake Voice Dialogue) |
+| 현재 작업 단계 | 8. 실제 LLM 대기(WAVE 5 미시작) |
+| 다음 단계 | 8. 실제 LLM (WAVE 5) |
+| 현재 상태 | WAVE 4 통과(사용자 승인). C 작업을 고정 branch `work/siyul-design-hri`로 통합(최신 main 기준). `voice.py`는 provider 미연결 stub, llm은 docstring만 |
 | Blocker | 지지 2 stud 기준 A(세은) 확인 대기, 실패·취소 결과 envelope D(수현) 예시 확인 대기 |
-| 마지막 업데이트 | 2026-10-06 · branch `feature/c-fixture-dialogue-validator-wave2` |
+| 마지막 업데이트 | 2026-10-06 · branch `work/siyul-design-hri` |
 
 진행률은 완료 기준을 충족한 단계만 셉니다. 단계 하나 = 10%. 진행 중인 단계는 표의 진행률 칸에만 표시하고 전체 진행률에는 더하지 않습니다. **Skeleton·문서 변경은 개발 단계 완료로 계산하지 않습니다.**
 
@@ -40,7 +40,7 @@ C 파트(시율: **Voice Interaction + LLM Design** — 질문 결정·생성, T
 | 4 | Validator | 완료 (DONE) | 100% | brick_type·color·x·y·layer·orientation·범위·overlap·support(C 후보 2 stud)·connectivity·Current 보존(여섯 값)·malformed·Robot field 검증 | validator | 순수 Python, LLM 판단 금지, 실패 항목·사유 목록 반환 | `test_validator.py` 규칙별 정상 / invalid PASS |
 | 5 | Mock Initial Design | 완료 (DONE) | 100% | 목표 사물 → 고정 Initial Design (LLM 없음, Board 중앙 배치) | designer | 출력이 Validator 통과, 식별·버전은 Python이 결정 | `test_designer.py` Initial PASS |
 | 6 | Mock Revised Design | 완료 (DONE) | 100% | Design + Current + Revised 생성 → Current 배치 보존 전체 Revised Design | designer, validator | 보존 대상은 Python이 Current 기준 결정, Revised Design까지만(조립 순서·NextPart는 A) | preserved 검증 포함 `test_designer.py` PASS |
-| 7 | A/D Contract Test + Fake Voice Dialogue | REVIEW READY | 0% | A·D가 C 출력을 소비하는 계약 테스트, main 대화 루프를 fake voice로 검증 | main, tests/integration | 공개 함수만 호출, UNCLEAR 재질문, KEEP은 LLM 0회, STOP·명시적 취소 → CANCELLED | `test_main.py`·`test_c_contract.py` PASS, 연결 담당 확인 |
+| 7 | A/D Contract Test + Fake Voice Dialogue | 완료 (DONE) | 100% | A·D가 C 출력을 소비하는 계약 테스트, main 대화 루프를 fake voice로 검증 | main, tests/integration | 공개 함수만 호출, UNCLEAR 재질문, KEEP은 LLM 0회, STOP·명시적 취소 → CANCELLED | `test_main.py`·`test_c_contract.py` PASS, 연결 담당 확인 |
 | 8 | 실제 LLM | 대기 | 0% | llm.py 실제 provider 연결, Design 생성과 애매한 응답 fallback | llm, designer, dialogue | API key는 환경 변수, 재시도는 designer, Robot 값 생성 금지 | 실제 호출 결과가 Validator 통과, 실패 경로 확인 |
 | 9 | 실제 STT + 녹음 | 대기 | 0% | 녹음 → 한국어 텍스트, 목표·응답 공용 | voice (녹음·STT) | 짧은 응답("1번") 오인식 실측, L2 장치 시험 | 실제 녹음 샘플 인식 결과 기록 |
 | 10 | 실제 TTS + Voice Dialogue 완성 | 대기 | 0% | C 담당 TTS 질문 재생과 음성 대화 전체 연결 | voice (TTS), main | 재생 종료 후 녹음 시작으로 질문 음성 재인식 방지(F05·F07), echo 방지 실측 | 실제 음성 대화 1회 이상 기록, echo 재인식 없음 확인 |
@@ -60,3 +60,4 @@ C 파트(시율: **Voice Interaction + LLM Design** — 질문 결정·생성, T
 | 2026-10-05 | 5·6 | WAVE 3 통과(사용자 승인): Mock Initial / Revised 완료(DONE), 전체 진행률 60%. 기준 Chair 15 Brick(다리·좌석·뒤쪽 등받이·좌우 연결 상단, 좌우 대칭, 중앙 (9,9)). Mock Revised는 실제 다리 기준으로 측면별 재설계, 빈 행 위 3칸 connector, 단순 shift 아님. `test_designer.py` 28개 | `pytest` 185 passed, exit 0. 7개 모듈 import exit 0 |
 | 2026-10-06 | Day4 Contract Sync | WAVE 1~3 산출물을 Day4 공용 계약(main 06, PR #6 09, Slack 합의)에 정렬: 블록 여섯 값(brick_type, 소문자 color, x, y), Design = `design_version` + `blocks`, 블록 ID·부모 버전·생성 경로를 Design에서 제거, HRI KEEP / REVISE / UNCLEAR, 명시적 취소·STOP → CANCELLED, 시간 기준 무응답 취소 제거, 재생성 최대 10회·`DESIGN_GENERATION_FAILED`, 배치가 같으면 버전 유지, Current 보존은 여섯 값 multiset, support는 A 확인 대기 후보로 표기. 진행률 60% 유지 | `pytest` 197 passed, exit 0(루트 포함), import 7개, class 0, 옛 용어 grep 의도된 항목 외 0건 |
 | 2026-10-06 | 7 | WAVE 4: `main.py` 공개 함수 2개(Initial, Intervention: KEEP / REVISE / UNCLEAR 재설명 / 명시적 취소 / STOP, REVISE 6회 + escalation + 4회, envelope), `voice.py` provider 미연결 stub(VOICE_IO_FAILED), designer Mock 1회 제한, 침묵 대기 중에도 STOP 확인, `test_main.py` 26개(텍스트 모드 = Fake Voice), `tests/integration/test_c_contract.py` 11개(D → C, C → D, C → A). 진행률 60% 유지 | unit 223 passed, integration 11 passed, 루트 `pytest` 234 passed, 모두 exit 0. import 7개, class 0 |
+| 2026-10-06 | 7 | WAVE 4 통과(사용자 승인): 7단계 완료(DONE), 전체 진행률 70%. 최신 origin/main(66ec4b6) 기준 고정 branch `work/siyul-design-hri`를 만들고 WAVE 2~4·Sync commit 4개를 merge(중복 없음). C 문서의 PR #5 이행 배너를 Sync 완료 안내로 교체 | unit 223 passed, integration 11 passed, 루트 `pytest` 234 passed, 모두 exit 0. import 7개 |
