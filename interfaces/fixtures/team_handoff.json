@@ -522,6 +522,27 @@
               "orientation_deg": 90
             }
           ]
+        },
+        "current": {
+          "current_revision": 2,
+          "blocks": [
+            {
+              "brick_type": "2x2x1",
+              "color": "yellow",
+              "x": 3,
+              "y": 5,
+              "layer": 1,
+              "orientation_deg": 0
+            },
+            {
+              "brick_type": "2x2x1",
+              "color": "yellow",
+              "x": 5,
+              "y": 5,
+              "layer": 1,
+              "orientation_deg": 0
+            }
+          ]
         }
       }
     },
@@ -644,6 +665,27 @@
               "y": 5,
               "layer": 2,
               "orientation_deg": 90
+            }
+          ]
+        },
+        "current": {
+          "current_revision": 2,
+          "blocks": [
+            {
+              "brick_type": "2x2x1",
+              "color": "yellow",
+              "x": 3,
+              "y": 5,
+              "layer": 1,
+              "orientation_deg": 0
+            },
+            {
+              "brick_type": "2x2x1",
+              "color": "yellow",
+              "x": 5,
+              "y": 5,
+              "layer": 1,
+              "orientation_deg": 0
             }
           ]
         }
@@ -770,6 +812,27 @@
               "orientation_deg": 90
             }
           ]
+        },
+        "current": {
+          "current_revision": 2,
+          "blocks": [
+            {
+              "brick_type": "2x2x1",
+              "color": "yellow",
+              "x": 3,
+              "y": 5,
+              "layer": 1,
+              "orientation_deg": 0
+            },
+            {
+              "brick_type": "2x2x1",
+              "color": "yellow",
+              "x": 5,
+              "y": 5,
+              "layer": 1,
+              "orientation_deg": 0
+            }
+          ]
         }
       }
     },
@@ -892,6 +955,27 @@
               "y": 5,
               "layer": 2,
               "orientation_deg": 90
+            }
+          ]
+        },
+        "current": {
+          "current_revision": 2,
+          "blocks": [
+            {
+              "brick_type": "2x2x1",
+              "color": "yellow",
+              "x": 3,
+              "y": 5,
+              "layer": 1,
+              "orientation_deg": 0
+            },
+            {
+              "brick_type": "2x2x1",
+              "color": "yellow",
+              "x": 5,
+              "y": 5,
+              "layer": 1,
+              "orientation_deg": 0
             }
           ]
         }
