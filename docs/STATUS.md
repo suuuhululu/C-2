@@ -1,5 +1,18 @@
 # 현재 진행 상황
 
+## A파트 — C Mock·공유 fixture 재현 실행 파일 게시 (2026-10-06)
+
+- 기존 고정 브랜치 `work/seeun-planning`에 [실행 안내](../planning_trial/README.md)와 재현용 실행 파일 4개를 추가했습니다. A 계산 코드 `planner.py`와 공통 입출력은 변경하지 않았습니다.
+- `check_c_initial.py`: C 공개 Initial 성공 응답의 Design → A, `check_c_revised.py`: C 공개 Revised 성공 응답의 Design + 같은 Current → A, `check_c_fixtures.py`: C가 공유한 JSON fixture → A, `run_fake_cases.py`: 저장된 Initial 응답으로 네 가지 A 반환 사례를 실행합니다.
+- 최초 Initial 기록은 C `3e18f04`, Revised·fixture 기록은 C `9de685b`였습니다. 게시 준비 checkout에서는 **네 실행 모두 `9de685b6b135d3a46968fabc9031befb02f91301`로 다시 실행**했습니다. C source checkout 경로를 인자로 받으며 README에 별도 checkout과 해당 커밋 고정 방법을 적었습니다. 특정 PC의 임시 경로를 팀 재현 지침으로 사용하지 않습니다.
+- C Initial/Revised 실행에서 기존 Mock provider를 명시적으로 선택합니다. shell의 LLM 설정과 관계없이 이 재현은 외부 LLM을 호출하지 않습니다. A는 샘플/실제 연결에 같은 `plan_from_current()`를 사용하며 시뮬레이션/REAL 구현을 분리하지 않습니다.
+- 게시 준비 실제 실행: Initial **READY·15 PLACE**, 부분 Current 4개를 제외한 **READY·11 PLACE**, 목표와 다른 색상 **NEEDS_CORRECTION**, 5층 입력 **INVALID**, C REVISE·Design v2 후 **READY·11 PLACE**. 각 실행 종료 코드 0과 검증 JSON의 통과 결과를 확인했습니다.
+- C 공유 fixture 12개 사례 PASS: 최초 8 PLACE·부분 2개 보존 후 6 PLACE·전체 조립 0 PLACE·수정 Current 4개 보존 후 4 PLACE·목표와 다른 배치 보류·중복 점유 INVALID. `support_violation` fixture는 보존 불일치가 먼저 반환되므로 이 사례로 지지 오류 사유 반환을 증명하지 않습니다. Difference fixture는 참고·원본 해시 기록만 하며 A 계산 입력으로 사용하지 않습니다.
+- `python3 -m pytest planning_trial/test_planner.py -q` → **112 passed**, 종료 코드 0. 변경 후 네 실행 파일도 모두 실제로 실행했습니다. A 소스 SHA256은 `0f96d24b8fad195185b68c9c520976b3c97d91aa179fcd91382426772f2e7835`로 이전 공유 계산 코드와 같습니다.
+- 사용자 직접 실행 기록(Initial·네 가지 A 사례·Revised)과 이번 게시 준비 실행을 구분합니다. 원래 로그·산출물·첨부 압축 파일은 사용자 로컬에 보존했습니다. 소스에는 결과 생성 경로·기대값·로그 수집·압축 방법을 포함하며, 결과 JSON/로그는 실행 시 생성해 별도 공유합니다. fixture runner에 대한 사용자 직접 실행은 이번 기록에서 완료로 주장하지 않습니다.
+- 이번 게시 범위는 실행 파일 4개·README·이 기록 **6개 파일**입니다. 변경량 300줄 초과는 기존에 준비한 독립 실행 4종을 팀이 재현하도록 공유하는 규모이며, 신규 계산 구현·class·dependency·추상 계층은 없습니다. 실행 파일마다 실제 입력·출력·검사·실패 경로를 표시했습니다.
+- 미검증/다음 작업: D Consumer의 최신 A 출력 수용·최초/재계획 채택·화면/JSONL 반영·실제 LLM/음성·Camera/Robot/실물 조립. Current는 명시한 revision을 붙인 샘플이며 D의 실제 관측 채택이 아닙니다. 소스 게시를 공동 연결 체크박스 완료로 보고하지 않습니다. main 병합·PR 생성은 이번 작업 범위가 아닙니다.
+
 ## A파트 — Current 연결·결과 반환 형식 적용 (2026-10-06)
 
 - 수현의 답변에 맞춰 `plan_from_current(design, current)`를 추가했습니다. Current는 `current_revision / blocks`, 반환은 `status / plan / errors`입니다. 실제 배치 채택과 결과 최신성 확인은 Backend 책임입니다.

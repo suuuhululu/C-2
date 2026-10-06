@@ -214,6 +214,174 @@ Backend 입출력 구조는 수현님 답변에 맞췄다. D 수신부 조정 �
   기존 위층 삽입 방해·목표 전체 일치의 빈 Plan을 연결 함수로 확인했다.
 - 계산·검사 함수는 Python 표준 라이브러리만 사용한다. 신규 dependency는 없고,
   실패 분기와 문제 배치를 전달하기 위한 PlanningError 하나를 추가했다.
-- C/D 실제 모듈 연결 및 실물 조립 검증은 수행하지 않았다.
+- D 실제 호출 연결·채택 및 실물 조립 검증은 수행하지 않았다.
+
+## 다른 PC에서 C → A 재현하기
+
+A 브랜치 `work/seeun-planning`의 이 파일이 있는 커밋과 아래 C 커밋을 사용한다.
+환경은 Git·Python 3.12(시험 환경 3.12.3)이며 네 실행 파일은 표준 라이브러리만 쓴다.
+독립 테스트를 실행할 때는 기존 pytest가 추가로 필요하다. Mock 재현에는 API 키·ROS·Qt·장치가 필요 없다.
+C Initial/Revised 실행 파일은 `C_DESIGN_USE_LLM=0`을 명시해 C의 기존 Mock 생성기를 선택한다.
+A 계산은 실제 연결과 같은 `plan_from_current()`를 사용한다.
+
+최초 기록의 C Initial은 `3e18f04a840db69d30aaa149920f4857e2adf258`, Revised와 fixture는
+`9de685b6b135d3a46968fabc9031befb02f91301`이었다. 게시 준비에서는 **네 실행 모두 C의
+`9de685b6b135d3a46968fabc9031befb02f91301` 하나로 재검증**했다.
+C 브랜치의 이후 변경과 시험 결과를 혼동하지 않도록 이 커밋을 재현 기준으로 고정한다.
+
+현재 터미널 위치를 A checkout의 루트로 둔다. 다음 예시는 기존 C 작업 폴더를 건드리지 않고
+옆에 별도 C 소스 checkout을 만드는 방법이다. 이미 이 커밋의 C checkout이 있다면 clone과
+checkout을 생략하고 `c_reproduction_root`만 해당 경로로 지정한다.
+
+```bash
+git clone --single-branch --branch work/siyul-design-hri https://github.com/suuuhululu/C-2.git ../C-2-c-reproduction
+c_reproduction_root="../C-2-c-reproduction"
+git -C "$c_reproduction_root" checkout --detach 9de685b6b135d3a46968fabc9031befb02f91301
+git -C "$c_reproduction_root" rev-parse HEAD
+git rev-parse HEAD
+python3 --version
+```
+
+C 버전·A 버전·Python 버전을 실행 기록에 함께 남긴다. 이는 C **소스**를 지정하는 것이며
+A 계산 코드 복사본이나 시뮬레이션/REAL 분기를 만드는 방식이 아니다.
+아래 명령은 하나씩 실행하고 매번 종료 코드가 0인지 확인한다. 오류가 나면 이후 실행 전에
+원인을 확인한다. `set -o pipefail`은 `tee` 저장 성공으로 계산 실패를 가리지 않게 한다.
+
+```bash
+mkdir -p planning_trial/manual_run_logs
+set -o pipefail
+python3 planning_trial/check_c_initial.py "$c_reproduction_root" 2>&1 | tee planning_trial/manual_run_logs/initial.log
+echo "실행 종료 코드: $?"
+python3 planning_trial/run_fake_cases.py 2>&1 | tee planning_trial/manual_run_logs/fake_cases.log
+echo "실행 종료 코드: $?"
+python3 planning_trial/check_c_revised.py "$c_reproduction_root" 2>&1 | tee planning_trial/manual_run_logs/revised.log
+echo "실행 종료 코드: $?"
+python3 planning_trial/check_c_fixtures.py "$c_reproduction_root" 2>&1 | tee planning_trial/manual_run_logs/c_fixtures.log
+echo "실행 종료 코드: $?"
+```
+
+기대 결과는 Initial 15 PLACE, 부분 Current 4개를 제외한 11 PLACE,
+NEEDS_CORRECTION·INVALID의 plan=null, Revised v2에서 Current 4개 보존 후 11 PLACE,
+공유 fixture 12개 사례 PASS다. 각 실행의 검증 JSON과 로그를 직접 확인한다.
+`run_fake_cases.py`는 앞서 생성한 `c_initial/c_response.json`을 읽으므로 최초 실행이 먼저다.
+`--initial-response`로 다른 저장 응답을 지정할 수 있고, 네 실행 파일 모두
+`--output-dir`로 저장 위치를 변경할 수 있다. 파일이 없으면 가짜 성공 데이터를 만들지 않고 실패한다.
+
+결과는 `planning_trial/integration_results/{c_initial,fake_cases,c_revised,c_fixtures}/`와
+`planning_trial/manual_run_logs/`에 **실행 시 생성**한다. 같은 경로로 재실행하면 결과가 갱신되므로
+기존 기록을 보존하려면 다른 output-dir·로그 파일명을 사용한다. 생성 JSON·수동 로그·압축 파일은
+이번 소스 커밋에 포함하지 않는다. 필요한 JSON과 로그는 실행 후 별도로 첨부한다.
+
+```bash
+tar -czf planning_trial/a_manual_execution.tar.gz planning_trial/manual_run_logs planning_trial/integration_results
+```
+
+C 공개 성공 응답은 `design`을 꺼내 A에 전달한다. C `run_intervention()`에는
+`current["blocks"]` 목록을, A에는 같은 시점의 revision이 포함된 Current 전체 객체를 전달한다.
+모든 Current는 이 재현에서 샘플이다. D의 실제 Current 채택·Plan Consumer 수용·HMI·장치
+검증을 완료한 것으로 보고하지 않는다. 해당 연결은 D에서 별도로 실행·기록해야 한다.
+
+## C Mock Initial → A 최초 계획 연결 확인
+
+2026-10-06, 시율의 `work/siyul-design-hri` 커밋 `3e18f04`에서 공개 함수
+`create_initial_design(text="의자")`를 실제 호출하고, 성공 응답의 design을
+기존 `plan_from_current()`에 전달했다. Current는 빈 보드 revision=0의 시험 자료다.
+C 응답 OK → A 응답 READY, Design 15개 블록 → PLACE 15 Step을 확인했다.
+층별 순서는 **1층 4개 → 2층 6개 → 3층 2개 → 4층 3개**다.
+필드·입력 보존·설계/Current 버전·순서·지지/겹침/선행 관계·최종 배치 일치를 검증했다.
+
+C 브랜치의 코드가 있는 checkout 경로를 인자로 전달해 재현한다.
+경로·시험 버전 준비는 위의 다른 PC 재현 절차를 따른다.
+
+```bash
+python3 planning_trial/check_c_initial.py "$c_reproduction_root"
+```
+
+결과는 `integration_results/c_initial/`에 저장된다.
+`c_response.json`의 design이 A 입력이고, `current.json`, `a_result.json`,
+`verification.json`을 함께 저장한다.
+plan_id는 실행마다 새로 발급된다. 검증 결과에는 C 커밋과 A 소스 해시를 기록한다.
+
+이는 C의 **Mock 생성 구현과 A 계산 구현** 사이의 실제 함수 연결 확인이다.
+사진 의자 GT 복원·실제 LLM/음성·Revised 경로·D 채택·HMI·장치 시험은 아니다.
+신규 자료는 재현용 실행 파일 1개와 입력/출력/검증 JSON 4개이며 계산 구현이나
+dependency·class·시뮬레이션/REAL 분기를 추가하지 않았다.
+
+## 가짜 입력 네 가지 직접 실행
+
+2026-10-06 C 공개 Mock Initial을 다시 실행한 뒤, 그 Design으로 A 함수를
+직접 호출했다. pytest 결과만 기록한 것이 아니라 실제 반환과 Step 순서를 저장했다.
+Current는 직접 만든 시험 자료이며 D의 실제 관측·채택 결과가 아니다.
+
+```bash
+python3 planning_trial/run_fake_cases.py
+```
+
+| 입력 사례 | 실제 반환 |
+| --- | --- |
+| 빈 Current | READY, PLACE 15개, 기준 revision 0 |
+| 1층 4개가 조립된 Current | READY, 남은 PLACE 11개, 기준 revision 1. 기존 4개 재요청 없음 |
+| 파랑 목표 자리에 노랑이 있는 Current | NEEDS_CORRECTION, plan=null, 문제 배치·사유 |
+| 목표 블록 layer=5 | INVALID, plan=null, 문제 배치·허용 층 범위 사유 |
+
+`integration_results/fake_cases/execution.txt`와 사례별 실제 입력·반환인
+`integration_results/fake_cases/runs.json`을 실행 시 저장한다.
+정상 Plan은 공통 validator로 지지·겹침·선행·최종 목표 일치를 검사했다.
+이 실행은 A 계산까지이며 C Revised 생성·D 채택·HMI·장치 연결은 확인하지 않았다.
+재실행에는 앞 단계의 c_initial/c_response.json이 필요하다. 새 C 응답으로 시험하려면
+check_c_initial.py를 먼저 실행한다. 재실행 시 해당 실행 자료를 갱신하며 Plan ID는 달라진다.
+
+## C Mock Revised → A 재계획 직접 실행
+
+2026-10-06, 시험 C 커밋 `9de685b`의 `run_intervention()`과 같은 A 계산 함수를
+연결했다. C는 기존 Mock 생성기를 명시적으로 선택했다. 실제 LLM·음성 호출은 없다.
+가짜 Current에는 1층 블록 4개를 넣고, 하나를 원래 (9,9)에서 (8,9)로 옮겼다.
+원래 Design v1로는 NEEDS_CORRECTION이었다. 가짜 텍스트 응답 "2번"으로 REVISE를
+선택하니 C가 실제 (8,9)를 보존한 전체 Design v2를 반환했다.
+A는 같은 Current revision=1로 READY·남은 PLACE 11개를 생성했다.
+순서는 2층 6개 → 3층 2개 → 4층 3개이며, Current 4개는 다시 요청하지 않는다.
+현재 배치 보존·버전·수량·각 PLACE 시점 지지/선행·최종 목표 일치를 검증했다.
+
+```bash
+python3 planning_trial/check_c_revised.py "$c_reproduction_root"
+```
+
+인자는 C checkout 경로다. 위 재현 절차에서 시험 소스 커밋을 지정한다.
+C 공개 함수의 current 인자는 블록 목록이므로 `current["blocks"]`를 전달하고,
+A에는 revision을 포함한 같은 Current 전체를 전달한다.
+
+`integration_results/c_revised/`에 입력·Current·Difference인 `inputs.json`,
+C 응답 `c_response.json`, A 결과 `a_result.json`, 검증 기록 `verification.json`을 저장한다.
+신규 자료는 재현용 실행 파일 1개·JSON 4개다. A/C 계산 코드는 수정하지 않았다.
+이 검증은 C Mock → A 함수 사이이며 D 채택·HMI·장치 연결은 미검증이다.
 
 프로젝트의 고정 A 브랜치는 work/seeun-planning을 사용한다.
+
+## C 공유 fixture → A 직접 실행
+
+시율님이 안내한 `tests/unit/c_design/fixtures/`의 JSON을 읽는 실행 파일이다.
+확보한 C snapshot `9de685b`에서 12개 사례를 실제 A 함수로 실행해 모두 통과했다.
+준비 검증과 사용자 직접 실행 기록을 구분한다.
+
+```bash
+python3 planning_trial/check_c_fixtures.py "$c_reproduction_root"
+```
+
+인자는 해당 fixture가 들어 있는 C checkout 경로다. 다른 PC에서는 경로를 바꾼다.
+`--output-dir`로 결과 저장 위치를 지정할 수 있으며, 기본은
+`planning_trial/integration_results/c_fixtures`다. `runs.json`에 사용한 전체 Design·Current와
+A 결과를, `verification.json`에 C 커밋·원본 fixture 해시·A 소스 해시·각 검사 결과를,
+`execution.txt`에 실제 출력을 저장한다. 재실행 시 지정한 출력 위치의 결과를 갱신한다.
+
+- 최초 8개 PLACE, 부분 조립 2개를 제외한 6개 PLACE, 전체 조립 후 0개 PLACE.
+- 수정 전 NEEDS_CORRECTION, 수정 목표 v2와 Current 4개로 남은 4개 PLACE.
+- 위치·방향·색상·Board 위치·층 변경은 NEEDS_CORRECTION, 중복 점유는 INVALID.
+- `support_violation` fixture는 기존 목표와 다른 배치를 포함하므로 보존 불일치가 먼저
+  반환된다. 이 사례만으로 지지 오류 사유가 반환됐다고 주장하지 않는다.
+
+fixture 설명인 `_note`는 계산 입력에 포함하지 않는다. C의 Current 블록 목록은
+테스트용 revision을 붙인 공통 Current 객체로 감싼다. 이 revision은 D의 관측값이 아니다.
+`difference_cases.json`은 읽어 원본 해시만 기록한다. A는 Difference를 직접 입력받지 않는다.
+C fixture의 `expected_input_rules`는 C 검사의 기대값이며 A의 반환 상태와 혼용하지 않는다.
+이 실행은 저장된 fixture → 기존 A 함수 확인이다. C 공개 함수·LLM·D Consumer·HMI·장치
+연결을 새로 시험하는 것이 아니며, 계산 코드·공통 계약은 변경하지 않았다.
