@@ -336,3 +336,10 @@ PR 게시 대상과 최신 main을 합친 독립 파일 트리에서 `QT_QPA_PLA
 - 해당 게시 이미지의 실제 DB 명령 **23개**: 성공 경로 22개는 종료 **0**, 없는 입력 파일 실패 경로 1개는 예상 종료 **1**. 정상 FAKE Job 24행·Revised FAKE Job 30행의 원문, 네 조회와 보고서 일치, 재적재 inserted=0/skipped=24·30, 기록 없는 Job의 빈 배열, 공개 계정 목록을 확인했다.
 - 컨테이너 시험 직전 기존 이벤트·채택 자료와 다섯 계정 전체 값을 시험 후 대조해 보존을 확인했다. init은 자료를 지우지 않았고 볼륨 삭제·운영 DB 사용·계정 초기화는 하지 않았다. 실제 장치 실행은 없다.
 - DB 관련 단위·실제 PostgreSQL 검사만 실행한 결과도 **102 passed**, 종료 코드 **0**이다. 게시 결과는 별도 후속 기록에 남긴다. 증거는 Git에서 제외되는 로컬 logs/history_reports/pytest-pr-publication-full.txt·pytest-pr-publication.txt·pr-container-validation.json이다. 새 clone은 안내의 재현 순서로 생성한다. 기존 lint/type check·CI는 미구성이며 실제 Camera/Robot·C API·전체 장치 통합과 사람 리뷰는 미검증이다.
+
+
+## 2026-10-07 — 미게시 HMI·음성·Robot 실행 코드의 기본 버전 PR
+
+- 사용자 요청으로 현재 로컬 기본 실행 코드를 PR로 보존하고 팀장 계정 병합을 준비했다. 최신 main `a459e13`에서 별도 worktree를 만들어 미게시 Backend/Qt·C 함수/STT/TTS·네 공급열·명시 사전 이동·STOP/probe/확인된 기록 재개와 관련 검사/Schema/Fixture만 옮겼다. 기존 main의 C/A/B/DB·최신 팀 계약·CODEOWNERS를 유지했다. 로컬 발표/제출 초안과 새 사람 전달 0단계는 이 PR에서 제외하고 원본/백업에 보존했다.
+- 게시 트리 검사 `env -u HISTORY_TEST_DSN QT_QPA_PLATFORM=offscreen python3 -m pytest tests planning_trial/test_planner.py -q`: **1371 passed, 24 skipped**, 실패/오류 0, 종료 0. 24개는 별도 실제 DB DSN 필요 검사다. Robot/Camera/음향/외부 API는 실행하지 않았다. Python/JSON 파싱·diff 공백 확인. CI/lint/type 추가 없음. 기존 실기 STOP/재개·현재→HOME 경로·음성/Camera 연결의 현장 미검증 상태는 유지한다.
+- 팀원 리뷰가 어려운 상황에서 사용자가 팀장 권한 병합을 명시적으로 요청했다. PR에 동료 리뷰 미수행과 사용자 승인 사유를 기록하며 자기 Approve나 가짜 사람 리뷰를 발행하지 않는다. 기존 보호 규칙은 변경하지 않는다. [기본 버전·백업·복구 방법](D_RUNTIME_BASELINE.md)을 확인한다. 실제 병합과 태그는 GitHub PR/커밋 상태로 구분한다.

@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://c-2.invalid/schemas/hmi.schema.json",
   "title": "Day4 Backend-HMI snapshot and command contracts",
-  "description": "Explicit FAKE or REAL display/input. REAL binds a single transfer trial or an explicit three-Step manual field-confirmation trial. Consumer checks cross-field consistency, not physical completion proof.",
+  "description": "Explicit FAKE or REAL display/input. REAL binds a single transfer trial or an explicit manual field-confirmation trial bounded by four six-slot rows (up to 24 Steps). Consumer checks cross-field consistency, not physical completion proof.",
   "oneOf": [{"$ref":"#/$defs/snapshot"},{"$ref":"#/$defs/command"}],
   "$defs": {
     "nullable_id": {"anyOf":[{"$ref":"day4.schema.json#/$defs/id"},{"type":"null"}]},
@@ -61,27 +61,33 @@
       "type":"object", "additionalProperties":false, "required":["job_id","start","stop","resume","intent_choice","correction_continue","supply_refill"],
       "properties": {
         "job_id":{"$ref":"#/$defs/nullable_id"},"start":{"$ref":"#/$defs/button"},"stop":{"$ref":"#/$defs/button"},"resume":{"$ref":"#/$defs/button"},
+        "prepare_observe":{"$ref":"#/$defs/button"},
         "intent_choice":{"$ref":"#/$defs/request_button"},"correction_continue":{"$ref":"#/$defs/request_button"},
         "supply_refill":{"type":"array","maxItems":4,"items":{"$ref":"#/$defs/refill_button"}}
       }
     },
     "snapshot": {
-      "type":"object", "additionalProperties":false, "required":["workflow_status","step","progress","monitor","notice","actions","design"],
+      "type":"object", "additionalProperties":false, "required":["workflow_status","step","progress","monitor","notice","actions","design","current"],
       "allOf":[{
         "if":{"properties":{"monitor":{"properties":{"robot":{"properties":{"mode":{"const":"REAL"}}}}}}},
         "then":{"if":{"required":["manual_trial"],"properties":{"manual_trial":{"const":true}}},
           "then":{"properties":{
-            "workflow_status":{"enum":["IDLE","PREPARING","DELIVERING","WAIT_ASSEMBLY","HOLD","COMPLETE"]},
-            "progress":{"properties":{"total":{"enum":[0,3]}}},
-            "actions":{"properties":{"stop":{"properties":{"enabled":{"const":false}}},"resume":{"properties":{"enabled":{"const":false}}}}}
+            "workflow_status":{"enum":["IDLE","PREPARING","DELIVERING","WAIT_ASSEMBLY","WAIT_INTENT","REPLANNING","WAIT_CORRECTION","HOLD","STOPPED","COMPLETE"]},
+            "progress":{"properties":{"total":{"type":"integer","minimum":0,"maximum":24}}}
           },"not":{"required":["transfer_target"]}},
           "else":{"properties":{
-          "workflow_status":{"enum":["IDLE","DELIVERING","HOLD"]},"design":{"type":"null"},
+          "workflow_status":{"enum":["IDLE","DELIVERING","HOLD","STOPPED"]},"design":{"type":"null"},
           "step":{"properties":{"target":{"type":"null"}}},
-          "progress":{"properties":{"completed":{"const":0},"total":{"const":0}}},
-          "actions":{"properties":{"stop":{"properties":{"enabled":{"const":false}}},"resume":{"properties":{"enabled":{"const":false}}}}}
+          "progress":{"properties":{"completed":{"const":0},"total":{"const":0}}}
         }}},
         "else":{"not":{"anyOf":[{"required":["transfer_target"]},{"required":["manual_trial"]}]}}
+      },{
+        "if":{"properties":{"actions":{"required":["prepare_observe"]}}},
+        "then":{"properties":{
+          "workflow_status":{"const":"IDLE"},
+          "monitor":{"properties":{"robot":{"properties":{"mode":{"const":"REAL"}}}}},
+          "actions":{"properties":{"job_id":{"type":"null"}}}
+        }}
       },{
         "if":{"required":["reported_placement"]},
         "then":{"required":["manual_trial"],"properties":{
@@ -93,6 +99,7 @@
         "workflow_status":{"enum":["IDLE","PREPARING","DELIVERING","WAIT_ASSEMBLY","WAIT_INTENT","REPLANNING","WAIT_CORRECTION","HOLD","STOPPED","COMPLETE"]},
         "step":{"$ref":"#/$defs/step"},"progress":{"$ref":"#/$defs/progress"},"monitor":{"$ref":"#/$defs/monitor"},"notice":{"$ref":"#/$defs/notice"},"actions":{"$ref":"#/$defs/actions"},
         "design":{"anyOf":[{"$ref":"day4.schema.json#/$defs/design"},{"type":"null"}]},
+        "current":{"$ref":"day4.schema.json#/$defs/current"},
         "transfer_target":{"$ref":"#/$defs/transfer_target"},
         "manual_trial":{"type":"boolean","const":true},
         "reported_placement":{"$ref":"day4.schema.json#/$defs/block"}
@@ -101,6 +108,8 @@
     "command": {
       "oneOf": [
         {"type":"object","additionalProperties":false,"required":["command"],"properties":{"command":{"const":"START"}}},
+        {"type":"object","additionalProperties":false,"required":["command"],"properties":{"command":{"const":"PREPARE_OBSERVE"}}},
+        {"type":"object","additionalProperties":false,"required":["command"],"properties":{"command":{"enum":["STOP_PREPARATION","RESUME_PREPARATION"]}}},
         {"type":"object","additionalProperties":false,"required":["command","job_id"],"properties":{"command":{"enum":["STOP","RESUME"]},"job_id":{"$ref":"day4.schema.json#/$defs/id"}}},
         {"type":"object","additionalProperties":false,"required":["command","job_id","request_id","choice"],"properties":{"command":{"const":"CHOOSE_INTENT"},"job_id":{"$ref":"day4.schema.json#/$defs/id"},"request_id":{"$ref":"day4.schema.json#/$defs/id"},"choice":{"enum":["KEEP","REVISE"]}}},
         {"type":"object","additionalProperties":false,"required":["command","job_id","request_id"],"properties":{"command":{"const":"CONTINUE_AFTER_CORRECTION"},"job_id":{"$ref":"day4.schema.json#/$defs/id"},"request_id":{"$ref":"day4.schema.json#/$defs/id"}}},

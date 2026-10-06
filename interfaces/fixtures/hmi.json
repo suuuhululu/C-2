@@ -2,6 +2,7 @@
   "snapshots": {
     "waiting": {
       "workflow_status": "WAIT_ASSEMBLY",
+      "current": {"current_revision": 2,"blocks": [{"brick_type": "2x2x1","color": "yellow","x": 3,"y": 5,"layer": 1,"orientation_deg": 0},{"brick_type": "2x2x1","color": "yellow","x": 5,"y": 5,"layer": 1,"orientation_deg": 0}]},
       "step": {"plan_id": "plan-fixture-initial","step_id": "S03","target": {"brick_type": "2x3x1","color": "blue","x": 3,"y": 5,"layer": 2,"orientation_deg": 90},"observed": null,"comparison": "WAITING"},
       "progress": {"completed": 2,"total": 3},
       "monitor": {"robot": {"mode": "FAKE","status": "IDLE"},"observation": {"status": null,"check_id": "J01:C07","observation_seq": null,"reason": null},"place_status": null,"supply": [{"brick_type": "2x2x1","color": "yellow","next_slot": 3,"needs_refill": false},{"brick_type": "2x2x1","color": "blue","next_slot": 1,"needs_refill": false},{"brick_type": "2x3x1","color": "yellow","next_slot": 1,"needs_refill": false},{"brick_type": "2x3x1","color": "blue","next_slot": 2,"needs_refill": false}]},
@@ -11,6 +12,7 @@
     },
     "idle": {
       "workflow_status": "IDLE",
+      "current": {"current_revision": 0,"blocks": []},
       "step": {"plan_id": null,"step_id": null,"target": null,"observed": null,"comparison": "WAITING"},
       "progress": {"completed": 0,"total": 0},
       "monitor": {"robot": {"mode": "FAKE","status": null},"observation": {"status": null,"check_id": null,"observation_seq": null,"reason": null},"place_status": null,"supply": [{"brick_type": "2x2x1","color": "yellow","next_slot": null,"needs_refill": null},{"brick_type": "2x2x1","color": "blue","next_slot": null,"needs_refill": null},{"brick_type": "2x3x1","color": "yellow","next_slot": null,"needs_refill": null},{"brick_type": "2x3x1","color": "blue","next_slot": null,"needs_refill": null}]},
@@ -20,6 +22,7 @@
     },
     "preparing": {
       "workflow_status": "PREPARING",
+      "current": {"current_revision": 0,"blocks": []},
       "step": {"plan_id": null,"step_id": null,"target": null,"observed": null,"comparison": "WAITING"},
       "progress": {"completed": 0,"total": 0},
       "monitor": {"robot": {"mode": "FAKE","status": null},"observation": {"status": null,"check_id": null,"observation_seq": null,"reason": null},"place_status": null,"supply": [{"brick_type": "2x2x1","color": "yellow","next_slot": null,"needs_refill": null},{"brick_type": "2x2x1","color": "blue","next_slot": null,"needs_refill": null},{"brick_type": "2x3x1","color": "yellow","next_slot": null,"needs_refill": null},{"brick_type": "2x3x1","color": "blue","next_slot": null,"needs_refill": null}]},
@@ -29,6 +32,7 @@
     },
     "delivering": {
       "workflow_status": "DELIVERING",
+      "current": {"current_revision": 2,"blocks": [{"brick_type": "2x2x1","color": "yellow","x": 3,"y": 5,"layer": 1,"orientation_deg": 0},{"brick_type": "2x2x1","color": "yellow","x": 5,"y": 5,"layer": 1,"orientation_deg": 0}]},
       "step": {"plan_id": "plan-fixture-initial","step_id": "S03","target": {"brick_type": "2x3x1","color": "blue","x": 3,"y": 5,"layer": 2,"orientation_deg": 90},"observed": null,"comparison": "WAITING"},
       "progress": {"completed": 2,"total": 3},
       "monitor": {"robot": {"mode": "FAKE","status": "BUSY"},"observation": {"status": null,"check_id": "J01:C07","observation_seq": null,"reason": null},"place_status": null,"supply": [{"brick_type": "2x2x1","color": "yellow","next_slot": 3,"needs_refill": false},{"brick_type": "2x2x1","color": "blue","next_slot": 1,"needs_refill": false},{"brick_type": "2x3x1","color": "yellow","next_slot": 1,"needs_refill": false},{"brick_type": "2x3x1","color": "blue","next_slot": 2,"needs_refill": false}]},
@@ -38,6 +42,7 @@
     },
     "stop_pending": {
       "workflow_status": "HOLD",
+      "current": {"current_revision": 2,"blocks": [{"brick_type": "2x2x1","color": "yellow","x": 3,"y": 5,"layer": 1,"orientation_deg": 0},{"brick_type": "2x2x1","color": "yellow","x": 5,"y": 5,"layer": 1,"orientation_deg": 0}]},
       "step": {"plan_id": "plan-fixture-initial","step_id": "S03","target": {"brick_type": "2x3x1","color": "blue","x": 3,"y": 5,"layer": 2,"orientation_deg": 90},"observed": null,"comparison": "WAITING"},
       "progress": {"completed": 2,"total": 3},
       "monitor": {"robot": {"mode": "FAKE","status": "STOP_PENDING"},"observation": {"status": null,"check_id": "J01:C07","observation_seq": null,"reason": null},"place_status": null,"supply": [{"brick_type": "2x2x1","color": "yellow","next_slot": 3,"needs_refill": false},{"brick_type": "2x2x1","color": "blue","next_slot": 1,"needs_refill": false},{"brick_type": "2x3x1","color": "yellow","next_slot": 1,"needs_refill": false},{"brick_type": "2x3x1","color": "blue","next_slot": 2,"needs_refill": false}]},
@@ -47,6 +52,7 @@
     },
     "robot_error": {
       "workflow_status": "HOLD",
+      "current": {"current_revision": 2,"blocks": [{"brick_type": "2x2x1","color": "yellow","x": 3,"y": 5,"layer": 1,"orientation_deg": 0},{"brick_type": "2x2x1","color": "yellow","x": 5,"y": 5,"layer": 1,"orientation_deg": 0}]},
       "step": {"plan_id": "plan-fixture-initial","step_id": "S03","target": {"brick_type": "2x3x1","color": "blue","x": 3,"y": 5,"layer": 2,"orientation_deg": 90},"observed": null,"comparison": "WAITING"},
       "progress": {"completed": 2,"total": 3},
       "monitor": {"robot": {"mode": "FAKE","status": "ERROR"},"observation": {"status": null,"check_id": "J01:C07","observation_seq": null,"reason": null},"place_status": null,"supply": [{"brick_type": "2x2x1","color": "yellow","next_slot": 3,"needs_refill": false},{"brick_type": "2x2x1","color": "blue","next_slot": 1,"needs_refill": false},{"brick_type": "2x3x1","color": "yellow","next_slot": 1,"needs_refill": false},{"brick_type": "2x3x1","color": "blue","next_slot": 2,"needs_refill": false}]},
@@ -56,6 +62,7 @@
     },
     "match": {
       "workflow_status": "WAIT_ASSEMBLY",
+      "current": {"current_revision": 3,"blocks": [{"brick_type": "2x2x1","color": "yellow","x": 3,"y": 5,"layer": 1,"orientation_deg": 0},{"brick_type": "2x2x1","color": "yellow","x": 5,"y": 5,"layer": 1,"orientation_deg": 0},{"brick_type": "2x3x1","color": "blue","x": 3,"y": 5,"layer": 2,"orientation_deg": 90}]},
       "step": {"plan_id": "plan-fixture-initial","step_id": "S03","target": {"brick_type": "2x3x1","color": "blue","x": 3,"y": 5,"layer": 2,"orientation_deg": 90},"observed": {"check_id": "J01:C07","observation_seq": 12,"status": "OK","visible_blocks": [{"brick_type": "2x3x1","color": "blue","x": 3,"y": 5,"layer": 2,"orientation_deg": 90}],"verified_regions": [{"x": 3,"y": 5,"width": 3,"height": 2,"layer": 2}],"reason": null},"comparison": "MATCH"},
       "progress": {"completed": 2,"total": 3},
       "monitor": {"robot": {"mode": "FAKE","status": "IDLE"},"observation": {"status": "OK","check_id": "J01:C07","observation_seq": 12,"reason": null},"place_status": null,"supply": [{"brick_type": "2x2x1","color": "yellow","next_slot": 3,"needs_refill": false},{"brick_type": "2x2x1","color": "blue","next_slot": 1,"needs_refill": false},{"brick_type": "2x3x1","color": "yellow","next_slot": 1,"needs_refill": false},{"brick_type": "2x3x1","color": "blue","next_slot": 2,"needs_refill": false}]},
@@ -65,6 +72,7 @@
     },
     "mismatch": {
       "workflow_status": "WAIT_INTENT",
+      "current": {"current_revision": 3,"blocks": [{"brick_type": "2x2x1","color": "yellow","x": 3,"y": 5,"layer": 1,"orientation_deg": 0},{"brick_type": "2x2x1","color": "yellow","x": 5,"y": 5,"layer": 1,"orientation_deg": 0},{"brick_type": "2x3x1","color": "yellow","x": 3,"y": 5,"layer": 2,"orientation_deg": 90}]},
       "step": {"plan_id": "plan-fixture-initial","step_id": "S03","target": {"brick_type": "2x3x1","color": "blue","x": 3,"y": 5,"layer": 2,"orientation_deg": 90},"observed": {"check_id": "J01:C07","observation_seq": 13,"status": "OK","visible_blocks": [{"brick_type": "2x3x1","color": "yellow","x": 3,"y": 5,"layer": 2,"orientation_deg": 90}],"verified_regions": [{"x": 3,"y": 5,"width": 3,"height": 2,"layer": 2}],"reason": null},"comparison": "MISMATCH"},
       "progress": {"completed": 2,"total": 3},
       "monitor": {"robot": {"mode": "FAKE","status": "IDLE"},"observation": {"status": "OK","check_id": "J01:C07","observation_seq": 13,"reason": null},"place_status": null,"supply": [{"brick_type": "2x2x1","color": "yellow","next_slot": 3,"needs_refill": false},{"brick_type": "2x2x1","color": "blue","next_slot": 1,"needs_refill": false},{"brick_type": "2x3x1","color": "yellow","next_slot": 1,"needs_refill": false},{"brick_type": "2x3x1","color": "blue","next_slot": 2,"needs_refill": false}]},
@@ -74,6 +82,7 @@
     },
     "empty": {
       "workflow_status": "WAIT_INTENT",
+      "current": {"current_revision": 2,"blocks": [{"brick_type": "2x2x1","color": "yellow","x": 3,"y": 5,"layer": 1,"orientation_deg": 0},{"brick_type": "2x2x1","color": "yellow","x": 5,"y": 5,"layer": 1,"orientation_deg": 0}]},
       "step": {"plan_id": "plan-fixture-initial","step_id": "S03","target": {"brick_type": "2x3x1","color": "blue","x": 3,"y": 5,"layer": 2,"orientation_deg": 90},"observed": {"check_id": "J01:C07","observation_seq": 14,"status": "OK","visible_blocks": [],"verified_regions": [{"x": 3,"y": 5,"width": 3,"height": 2,"layer": 2}],"reason": null},"comparison": "MISMATCH"},
       "progress": {"completed": 2,"total": 3},
       "monitor": {"robot": {"mode": "FAKE","status": "IDLE"},"observation": {"status": "OK","check_id": "J01:C07","observation_seq": 14,"reason": null},"place_status": null,"supply": [{"brick_type": "2x2x1","color": "yellow","next_slot": 3,"needs_refill": false},{"brick_type": "2x2x1","color": "blue","next_slot": 1,"needs_refill": false},{"brick_type": "2x3x1","color": "yellow","next_slot": 1,"needs_refill": false},{"brick_type": "2x3x1","color": "blue","next_slot": 2,"needs_refill": false}]},
@@ -83,6 +92,7 @@
     },
     "partial": {
       "workflow_status": "HOLD",
+      "current": {"current_revision": 2,"blocks": [{"brick_type": "2x2x1","color": "yellow","x": 3,"y": 5,"layer": 1,"orientation_deg": 0},{"brick_type": "2x2x1","color": "yellow","x": 5,"y": 5,"layer": 1,"orientation_deg": 0}]},
       "step": {"plan_id": "plan-fixture-initial","step_id": "S03","target": {"brick_type": "2x3x1","color": "blue","x": 3,"y": 5,"layer": 2,"orientation_deg": 90},"observed": {"check_id": "J01:C07","observation_seq": 15,"status": "OK","visible_blocks": [{"brick_type": "2x3x1","color": "blue","x": 3,"y": 5,"layer": 2,"orientation_deg": 90}],"verified_regions": [{"x": 3,"y": 5,"width": 1,"height": 2,"layer": 2}],"reason": null},"comparison": "UNOBSERVABLE"},
       "progress": {"completed": 2,"total": 3},
       "monitor": {"robot": {"mode": "FAKE","status": "IDLE"},"observation": {"status": "OK","check_id": "J01:C07","observation_seq": 15,"reason": null},"place_status": null,"supply": [{"brick_type": "2x2x1","color": "yellow","next_slot": 3,"needs_refill": false},{"brick_type": "2x2x1","color": "blue","next_slot": 1,"needs_refill": false},{"brick_type": "2x3x1","color": "yellow","next_slot": 1,"needs_refill": false},{"brick_type": "2x3x1","color": "blue","next_slot": 2,"needs_refill": false}]},
@@ -92,6 +102,7 @@
     },
     "unobservable": {
       "workflow_status": "HOLD",
+      "current": {"current_revision": 2,"blocks": [{"brick_type": "2x2x1","color": "yellow","x": 3,"y": 5,"layer": 1,"orientation_deg": 0},{"brick_type": "2x2x1","color": "yellow","x": 5,"y": 5,"layer": 1,"orientation_deg": 0}]},
       "step": {"plan_id": "plan-fixture-initial","step_id": "S03","target": {"brick_type": "2x3x1","color": "blue","x": 3,"y": 5,"layer": 2,"orientation_deg": 90},"observed": {"check_id": "J01:C07","observation_seq": 16,"status": "UNOBSERVABLE","visible_blocks": [],"verified_regions": [],"reason": "hand occludes current target"},"comparison": "UNOBSERVABLE"},
       "progress": {"completed": 2,"total": 3},
       "monitor": {"robot": {"mode": "FAKE","status": "IDLE"},"observation": {"status": "UNOBSERVABLE","check_id": "J01:C07","observation_seq": 16,"reason": "hand occludes current target"},"place_status": null,"supply": [{"brick_type": "2x2x1","color": "yellow","next_slot": 3,"needs_refill": false},{"brick_type": "2x2x1","color": "blue","next_slot": 1,"needs_refill": false},{"brick_type": "2x3x1","color": "yellow","next_slot": 1,"needs_refill": false},{"brick_type": "2x3x1","color": "blue","next_slot": 2,"needs_refill": false}]},
@@ -101,6 +112,7 @@
     },
     "choice": {
       "workflow_status": "WAIT_INTENT",
+      "current": {"current_revision": 3,"blocks": [{"brick_type": "2x2x1","color": "yellow","x": 3,"y": 5,"layer": 1,"orientation_deg": 0},{"brick_type": "2x2x1","color": "yellow","x": 5,"y": 5,"layer": 1,"orientation_deg": 0},{"brick_type": "2x3x1","color": "yellow","x": 3,"y": 5,"layer": 2,"orientation_deg": 90}]},
       "step": {"plan_id": "plan-fixture-initial","step_id": "S03","target": {"brick_type": "2x3x1","color": "blue","x": 3,"y": 5,"layer": 2,"orientation_deg": 90},"observed": {"check_id": "J01:C07","observation_seq": 13,"status": "OK","visible_blocks": [{"brick_type": "2x3x1","color": "yellow","x": 3,"y": 5,"layer": 2,"orientation_deg": 90}],"verified_regions": [{"x": 3,"y": 5,"width": 3,"height": 2,"layer": 2}],"reason": null},"comparison": "MISMATCH"},
       "progress": {"completed": 2,"total": 3},
       "monitor": {"robot": {"mode": "FAKE","status": "IDLE"},"observation": {"status": "OK","check_id": "J01:C07","observation_seq": 13,"reason": null},"place_status": null,"supply": [{"brick_type": "2x2x1","color": "yellow","next_slot": 3,"needs_refill": false},{"brick_type": "2x2x1","color": "blue","next_slot": 1,"needs_refill": false},{"brick_type": "2x3x1","color": "yellow","next_slot": 1,"needs_refill": false},{"brick_type": "2x3x1","color": "blue","next_slot": 2,"needs_refill": false}]},
@@ -110,6 +122,7 @@
     },
     "correction": {
       "workflow_status": "WAIT_CORRECTION",
+      "current": {"current_revision": 3,"blocks": [{"brick_type": "2x2x1","color": "yellow","x": 3,"y": 5,"layer": 1,"orientation_deg": 0},{"brick_type": "2x2x1","color": "yellow","x": 5,"y": 5,"layer": 1,"orientation_deg": 0},{"brick_type": "2x3x1","color": "yellow","x": 3,"y": 5,"layer": 2,"orientation_deg": 90}]},
       "step": {"plan_id": "plan-fixture-initial","step_id": "S03","target": {"brick_type": "2x3x1","color": "blue","x": 3,"y": 5,"layer": 2,"orientation_deg": 90},"observed": {"check_id": "J01:C07","observation_seq": 13,"status": "OK","visible_blocks": [{"brick_type": "2x3x1","color": "yellow","x": 3,"y": 5,"layer": 2,"orientation_deg": 90}],"verified_regions": [{"x": 3,"y": 5,"width": 3,"height": 2,"layer": 2}],"reason": null},"comparison": "MISMATCH"},
       "progress": {"completed": 2,"total": 3},
       "monitor": {"robot": {"mode": "FAKE","status": "IDLE"},"observation": {"status": "OK","check_id": "J01:C07","observation_seq": 13,"reason": null},"place_status": null,"supply": [{"brick_type": "2x2x1","color": "yellow","next_slot": 3,"needs_refill": false},{"brick_type": "2x2x1","color": "blue","next_slot": 1,"needs_refill": false},{"brick_type": "2x3x1","color": "yellow","next_slot": 1,"needs_refill": false},{"brick_type": "2x3x1","color": "blue","next_slot": 2,"needs_refill": false}]},
@@ -119,6 +132,7 @@
     },
     "replanning": {
       "workflow_status": "REPLANNING",
+      "current": {"current_revision": 3,"blocks": [{"brick_type": "2x2x1","color": "yellow","x": 3,"y": 5,"layer": 1,"orientation_deg": 0},{"brick_type": "2x2x1","color": "yellow","x": 5,"y": 5,"layer": 1,"orientation_deg": 0},{"brick_type": "2x3x1","color": "yellow","x": 3,"y": 5,"layer": 2,"orientation_deg": 90}]},
       "step": {"plan_id": "plan-fixture-initial","step_id": "S03","target": {"brick_type": "2x3x1","color": "blue","x": 3,"y": 5,"layer": 2,"orientation_deg": 90},"observed": {"check_id": "J01:C07","observation_seq": 13,"status": "OK","visible_blocks": [{"brick_type": "2x3x1","color": "yellow","x": 3,"y": 5,"layer": 2,"orientation_deg": 90}],"verified_regions": [{"x": 3,"y": 5,"width": 3,"height": 2,"layer": 2}],"reason": null},"comparison": "MISMATCH"},
       "progress": {"completed": 2,"total": 3},
       "monitor": {"robot": {"mode": "FAKE","status": "IDLE"},"observation": {"status": "OK","check_id": "J01:C07","observation_seq": 13,"reason": null},"place_status": null,"supply": [{"brick_type": "2x2x1","color": "yellow","next_slot": 3,"needs_refill": false},{"brick_type": "2x2x1","color": "blue","next_slot": 1,"needs_refill": false},{"brick_type": "2x3x1","color": "yellow","next_slot": 1,"needs_refill": false},{"brick_type": "2x3x1","color": "blue","next_slot": 2,"needs_refill": false}]},
@@ -128,6 +142,7 @@
     },
     "refill": {
       "workflow_status": "HOLD",
+      "current": {"current_revision": 2,"blocks": [{"brick_type": "2x2x1","color": "yellow","x": 3,"y": 5,"layer": 1,"orientation_deg": 0},{"brick_type": "2x2x1","color": "yellow","x": 5,"y": 5,"layer": 1,"orientation_deg": 0}]},
       "step": {"plan_id": "plan-fixture-initial","step_id": "S03","target": {"brick_type": "2x3x1","color": "blue","x": 3,"y": 5,"layer": 2,"orientation_deg": 90},"observed": null,"comparison": "WAITING"},
       "progress": {"completed": 2,"total": 3},
       "monitor": {"robot": {"mode": "FAKE","status": "IDLE"},"observation": {"status": null,"check_id": "J01:C07","observation_seq": null,"reason": null},"place_status": null,"supply": [{"brick_type": "2x2x1","color": "yellow","next_slot": null,"needs_refill": true},{"brick_type": "2x2x1","color": "blue","next_slot": 1,"needs_refill": false},{"brick_type": "2x3x1","color": "yellow","next_slot": 1,"needs_refill": false},{"brick_type": "2x3x1","color": "blue","next_slot": 2,"needs_refill": false}]},
@@ -137,6 +152,7 @@
     },
     "stopped": {
       "workflow_status": "STOPPED",
+      "current": {"current_revision": 2,"blocks": [{"brick_type": "2x2x1","color": "yellow","x": 3,"y": 5,"layer": 1,"orientation_deg": 0},{"brick_type": "2x2x1","color": "yellow","x": 5,"y": 5,"layer": 1,"orientation_deg": 0}]},
       "step": {"plan_id": "plan-fixture-initial","step_id": "S03","target": {"brick_type": "2x3x1","color": "blue","x": 3,"y": 5,"layer": 2,"orientation_deg": 90},"observed": null,"comparison": "WAITING"},
       "progress": {"completed": 2,"total": 3},
       "monitor": {"robot": {"mode": "FAKE","status": "STOPPED"},"observation": {"status": null,"check_id": null,"observation_seq": null,"reason": null},"place_status": null,"supply": [{"brick_type": "2x2x1","color": "yellow","next_slot": 3,"needs_refill": false},{"brick_type": "2x2x1","color": "blue","next_slot": 1,"needs_refill": false},{"brick_type": "2x3x1","color": "yellow","next_slot": 1,"needs_refill": false},{"brick_type": "2x3x1","color": "blue","next_slot": 2,"needs_refill": false}]},
@@ -146,6 +162,7 @@
     },
     "complete": {
       "workflow_status": "COMPLETE",
+      "current": {"current_revision": 3,"blocks": [{"brick_type": "2x2x1","color": "yellow","x": 3,"y": 5,"layer": 1,"orientation_deg": 0},{"brick_type": "2x2x1","color": "yellow","x": 5,"y": 5,"layer": 1,"orientation_deg": 0},{"brick_type": "2x3x1","color": "blue","x": 3,"y": 5,"layer": 2,"orientation_deg": 90}]},
       "step": {"plan_id": "plan-fixture-initial","step_id": null,"target": null,"observed": null,"comparison": "WAITING"},
       "progress": {"completed": 3,"total": 3},
       "monitor": {"robot": {"mode": "FAKE","status": "IDLE"},"observation": {"status": null,"check_id": null,"observation_seq": null,"reason": null},"place_status": null,"supply": [{"brick_type": "2x2x1","color": "yellow","next_slot": 3,"needs_refill": false},{"brick_type": "2x2x1","color": "blue","next_slot": 1,"needs_refill": false},{"brick_type": "2x3x1","color": "yellow","next_slot": 1,"needs_refill": false},{"brick_type": "2x3x1","color": "blue","next_slot": 2,"needs_refill": false}]},
@@ -166,6 +183,7 @@
   "invalid_snapshots": {
     "missing_design": {
       "workflow_status": "WAIT_ASSEMBLY",
+      "current": {"current_revision": 2,"blocks": [{"brick_type": "2x2x1","color": "yellow","x": 3,"y": 5,"layer": 1,"orientation_deg": 0},{"brick_type": "2x2x1","color": "yellow","x": 5,"y": 5,"layer": 1,"orientation_deg": 0}]},
       "step": {"plan_id": "plan-fixture-initial","step_id": "S03","target": {"brick_type": "2x3x1","color": "blue","x": 3,"y": 5,"layer": 2,"orientation_deg": 90},"observed": null,"comparison": "WAITING"},
       "progress": {"completed": 2,"total": 3},
       "monitor": {"robot": {"mode": "FAKE","status": "IDLE"},"observation": {"status": null,"check_id": "J01:C07","observation_seq": null,"reason": null},"place_status": null,"supply": [{"brick_type": "2x2x1","color": "yellow","next_slot": 3,"needs_refill": false},{"brick_type": "2x2x1","color": "blue","next_slot": 1,"needs_refill": false},{"brick_type": "2x3x1","color": "yellow","next_slot": 1,"needs_refill": false},{"brick_type": "2x3x1","color": "blue","next_slot": 2,"needs_refill": false}]},
@@ -174,6 +192,7 @@
     },
     "real_mode": {
       "workflow_status": "WAIT_ASSEMBLY",
+      "current": {"current_revision": 2,"blocks": [{"brick_type": "2x2x1","color": "yellow","x": 3,"y": 5,"layer": 1,"orientation_deg": 0},{"brick_type": "2x2x1","color": "yellow","x": 5,"y": 5,"layer": 1,"orientation_deg": 0}]},
       "step": {"plan_id": "plan-fixture-initial","step_id": "S03","target": {"brick_type": "2x3x1","color": "blue","x": 3,"y": 5,"layer": 2,"orientation_deg": 90},"observed": null,"comparison": "WAITING"},
       "progress": {"completed": 2,"total": 3},
       "monitor": {"robot": {"mode": "REAL","status": "IDLE"},"observation": {"status": null,"check_id": "J01:C07","observation_seq": null,"reason": null},"place_status": null,"supply": [{"brick_type": "2x2x1","color": "yellow","next_slot": 3,"needs_refill": false},{"brick_type": "2x2x1","color": "blue","next_slot": 1,"needs_refill": false},{"brick_type": "2x3x1","color": "yellow","next_slot": 1,"needs_refill": false},{"brick_type": "2x3x1","color": "blue","next_slot": 2,"needs_refill": false}]},
@@ -183,6 +202,7 @@
     },
     "bad_comparison": {
       "workflow_status": "WAIT_ASSEMBLY",
+      "current": {"current_revision": 2,"blocks": [{"brick_type": "2x2x1","color": "yellow","x": 3,"y": 5,"layer": 1,"orientation_deg": 0},{"brick_type": "2x2x1","color": "yellow","x": 5,"y": 5,"layer": 1,"orientation_deg": 0}]},
       "step": {"plan_id": "plan-fixture-initial","step_id": "S03","target": {"brick_type": "2x3x1","color": "blue","x": 3,"y": 5,"layer": 2,"orientation_deg": 90},"observed": null,"comparison": "DELIVERED"},
       "progress": {"completed": 2,"total": 3},
       "monitor": {"robot": {"mode": "FAKE","status": "IDLE"},"observation": {"status": null,"check_id": "J01:C07","observation_seq": null,"reason": null},"place_status": null,"supply": [{"brick_type": "2x2x1","color": "yellow","next_slot": 3,"needs_refill": false},{"brick_type": "2x2x1","color": "blue","next_slot": 1,"needs_refill": false},{"brick_type": "2x3x1","color": "yellow","next_slot": 1,"needs_refill": false},{"brick_type": "2x3x1","color": "blue","next_slot": 2,"needs_refill": false}]},
@@ -192,6 +212,7 @@
     },
     "bad_slot": {
       "workflow_status": "WAIT_ASSEMBLY",
+      "current": {"current_revision": 2,"blocks": [{"brick_type": "2x2x1","color": "yellow","x": 3,"y": 5,"layer": 1,"orientation_deg": 0},{"brick_type": "2x2x1","color": "yellow","x": 5,"y": 5,"layer": 1,"orientation_deg": 0}]},
       "step": {"plan_id": "plan-fixture-initial","step_id": "S03","target": {"brick_type": "2x3x1","color": "blue","x": 3,"y": 5,"layer": 2,"orientation_deg": 90},"observed": null,"comparison": "WAITING"},
       "progress": {"completed": 2,"total": 3},
       "monitor": {"robot": {"mode": "FAKE","status": "IDLE"},"observation": {"status": null,"check_id": "J01:C07","observation_seq": null,"reason": null},"place_status": null,"supply": [{"brick_type": "2x2x1","color": "yellow","next_slot": 7,"needs_refill": false},{"brick_type": "2x2x1","color": "blue","next_slot": 1,"needs_refill": false},{"brick_type": "2x3x1","color": "yellow","next_slot": 1,"needs_refill": false},{"brick_type": "2x3x1","color": "blue","next_slot": 2,"needs_refill": false}]},

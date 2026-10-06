@@ -42,8 +42,13 @@ class RealTrialController(QObject):
         self._seen = set()
         self._events_read = 0
         self._final = self._check_complete = None
+        self._prepare_complete = None
+        self._prepare_attempted = False
         self._fault = self._notice = None
         self.on_result = self.on_event = None
+        self.on_stopped = None
+        self._stop = self._pause_process = None
+        self._stop_ack = False
         self.timer = QTimer(self)
         self.timer.setInterval(100)
         self.timer.timeout.connect(self._poll)
@@ -54,8 +59,9 @@ class RealTrialController(QObject):
         caption = f"{'파랑' if self.target['color'] == 'blue' else '노랑'} {'4점' if self.target['brick_type'] == '2x2x1' else '6점'} {self.target['slot']}번"
         return dict(mode="REAL", config_id=self._config["config_id"] if self._config else None,
                     transfer_target=deepcopy(self.target),
-                    ready_at_observe=self._ready, cleanup_ready=False, stop=None, fault=self._fault,
-                    active_execution=dict(execution_id=self._identity) if self._operation == "execute" else None,
+                    prepare_available=self._operation is None and self._stop is None and not self._used and not self._ready and not self._prepare_attempted,
+                    ready_at_observe=self._ready, cleanup_ready=False, stop=deepcopy(self._stop), fault=self._fault,
+                    active_execution=dict(execution_id=self._identity) if self._operation in ("execute", "prepare-observe") else None,
                     trial_notice=f"전달 대상: {caption} · 고정 전달판\n" + (self._notice or "한 번만 전달"),
                     supply=[dict(brick_type=brick, color=color,
                                  next_slot=self._next_slot if supported and (brick, color) == (self.target["brick_type"], self.target["color"]) else None,
@@ -95,7 +101,7 @@ class RealTrialController(QObject):
     def new_job(self, config=None):
         if config is not None:
             return dict(accepted=False, reason="REAL_TRIAL_CONFIG_OVERRIDE_UNAVAILABLE")
-        if not self._ready or self._used:
+        if not self._ready or self._used or self._stop is not None:
             return dict(accepted=False, reason="REAL_TRIAL_NOT_READY")
         try:
             if self._read_config() != self._checked_config:
@@ -108,13 +114,32 @@ class RealTrialController(QObject):
         self._config["confirmations"]["empty_place_and_slot"] = True
         return dict(accepted=True, reason=None)
 
+    def prepare(self):
+        if self._operation is not None or self._stop is not None or self._used or self._ready or self._prepare_attempted:
+            return dict(accepted=False, reason="PREPARE_NOT_APPLICABLE")
+        try:
+            config = self._read_config()
+            if self._checked_config is not None and config != self._checked_config:
+                return dict(accepted=False, reason="CONFIG_CHANGED_RECHECK_REQUIRED")
+            self._config = config
+            self._checked_config = deepcopy(config)
+            self._fault = None
+            self._notice = "실제 현재 위치→HOME→observe 사전 이동 시험 중. 집기 없음."
+            self._prepare_attempted = True
+            self._launch("prepare-observe", str(uuid4()))
+            return dict(accepted=True, reason=None)
+        except (OSError, ValueError) as error:
+            self._fault = self._notice = str(error)
+            self.changed.emit()
+            return dict(accepted=False, reason=str(error))
+
     def deliver(self, value):
         goal = _object(value, ("execution_id", "brick_type", "color"), "robot.goal")
         _text(goal["execution_id"], "robot.goal.execution_id")
         _column(goal, "robot.goal")
         if goal["execution_id"] in self._seen:
             return dict(accepted=False, reason="DUPLICATE")
-        if self._operation is not None:
+        if self._operation is not None or self._stop is not None:
             return dict(accepted=False, reason="BUSY")
         if self._attempts == 0:
             if not self.new_job()["accepted"]:
@@ -140,22 +165,153 @@ class RealTrialController(QObject):
         self._launch("execute", goal["execution_id"])
         return dict(accepted=True, reason=None)
 
-    def _launch(self, operation, identity):
+    def stop(self, value):
+        request = _object(value, ("request_id", "execution_id"), "robot.stop")
+        _text(request["request_id"], "robot.stop.request_id")
+        if self._stop is not None:
+            return dict(accepted=False, reason="STOP_ALREADY_REQUESTED")
+        moving = self._operation in ("execute", "prepare-observe")
+        if moving and request["execution_id"] not in (None, self._identity):
+            return dict(accepted=False, reason="OLD_EXECUTION")
+        if self._config is None or self._operation == "check":
+            return dict(accepted=False, reason="ROBOT_QUERY_PENDING")
+        self._poll()
+        self._stop = dict(request_id=request["request_id"], confirmed=False,
+            previous_execution_id=request["execution_id"], preparation=self._operation == "prepare-observe",
+            delivery=self._operation == "execute", checkpoint=None)
+        self._stop_ack = not moving
+        self._ready = False
+        if moving:
+            (self.directory / f"{self._identity}.stop").write_text(request["request_id"])
+        self._notice = "정지 요청 중 · 실제 정지와 이전 실행 종료·블록 상태를 확인합니다."
+        self._launch_pause("stop" if moving else "probe")
+        self.changed.emit()
+        return dict(accepted=True, reason=None)
+
+    def _launch_pause(self, action):
+        identity = self._stop["request_id"]
+        config_path = self.directory / "pause_config.json"
+        config_path.write_text(json.dumps(self._config, ensure_ascii=False, allow_nan=False))
+        process = self._pause_process = self._factory(self)
+        process.setWorkingDirectory(str(Path(__file__).resolve().parents[1]))
+        process.setProcessChannelMode(QProcess.MergedChannels)
+        process.finished.connect(lambda code, status: self._pause_finished(identity, action, code, status))
+        process.errorOccurred.connect(lambda error: self._pause_finished(identity, action, -1, QProcess.CrashExit)
+                                     if error == QProcess.FailedToStart else None)
+        arguments = ["-m", "app.robot_pause", "--config", str(config_path), "--request-id", identity,
+                     "--log-dir", str(self.directory / "pause"), f"--{action}"]
+        if action == "probe" and self._stop["delivery"]:
+            arguments += ["--previous-log", str(self.directory / "driver" / f"{self._identity}.jsonl")]
+        process.start(sys.executable, arguments)
+
+    def _pause_finished(self, identity, action, code, status):
+        if self._stop is None or identity != self._stop["request_id"] or self._stop["confirmed"]:
+            return
+        path = self.directory / "pause" / f"{identity}.jsonl"
+        try:
+            events = [json.loads(line) for line in path.read_text().splitlines()]
+            events = [e for e in events if e.get("execution_id") == identity]
+            expected = "ROBOT_STOP_ACK" if action == "stop" else "ROBOT_STOP_PROBE"
+            proof = next((e["payload"] for e in reversed(events) if e["event"] == expected), None)
+            if code != 0 or status != QProcess.NormalExit or proof is None:
+                failure = next((e["payload"]["reason"] for e in reversed(events) if e["event"] == "ROBOT_STOP_FAILED"),
+                               "STOP_EVIDENCE_MISSING")
+                raise ValueError(failure)
+            if action == "stop":
+                self._stop_ack = True
+                if self._operation is None:
+                    self._launch_pause("probe")
+                return
+            if self._operation is not None or proof["stopped"] is not True:
+                raise ValueError("STOP_EXECUTION_NOT_ENDED")
+            checkpoint = proof["checkpoint"]
+            if checkpoint["block_state"] not in ("UNPICKED", "HOLDING", "RELEASED"):
+                raise ValueError("STOP_BLOCK_STATE_UNKNOWN")
+            if self._stop["delivery"] and self._pick_confirmed and not checkpoint["consumed"]:
+                raise ValueError("STOP_PICK_EVIDENCE_CONFLICT")
+            if checkpoint["consumed"] and not self._pick_confirmed:
+                self._pick_confirmed = True
+                self._next_slot = self.target["slot"] + 1 if self.target["slot"] < 6 else None
+                if self.on_event and not self.on_event("ROBOT_PICK_CONFIRMED", self._identity, self.state):
+                    raise ValueError("BACKEND_LOG_FAILED")
+            self._stop.update(confirmed=True, checkpoint=checkpoint, at_observe=proof["at_observe"] is True)
+            self._notice = "정지·이전 실행 종료·블록 상태 확인 완료. 재개로 같은 작업을 이어갈 수 있습니다."
+            if self.on_stopped:
+                self.on_stopped(identity, stopped=True, execution_ended=True, block_state_known=True)
+        except (OSError, ValueError, KeyError, TypeError) as error:
+            self._fault = self._notice = f"STOP_UNCONFIRMED: {error}"
+            if self.on_stopped:
+                self.on_stopped(identity, stopped=False, execution_ended=self._operation is None, block_state_known=False)
+        self.changed.emit()
+
+    def resume(self, value):
+        request = _object(value, ("execution_id", "previous_execution_id", "goal"), "robot.resume")
+        identity = request["execution_id"]
+        _text(identity, "robot.resume.execution_id")
+        if request["previous_execution_id"] is not None:
+            _text(request["previous_execution_id"], "robot.resume.previous_execution_id")
+        if request["goal"] is not None:
+            goal = _object(request["goal"], ("execution_id", "brick_type", "color"), "robot.resume.goal")
+            _column(goal, "robot.resume.goal")
+            if goal["execution_id"] != identity:
+                return dict(accepted=False, reason="GOAL_CONFLICT")
+        if identity in self._seen:
+            return dict(accepted=False, reason="DUPLICATE")
+        if self._stop is None or not self._stop["confirmed"] or self._fault or self._operation is not None:
+            return dict(accepted=False, reason="STOP_OR_FAULT_UNCONFIRMED")
+        if request["previous_execution_id"] != self._stop["previous_execution_id"]:
+            return dict(accepted=False, reason="OLD_EXECUTION")
+        try:
+            if self._read_config() != self._checked_config:
+                return dict(accepted=False, reason="CONFIG_CHANGED_RECHECK_REQUIRED")
+        except (OSError, ValueError) as error:
+            return dict(accepted=False, reason=str(error))
+        paused = self._stop
+        goal = request["goal"]
+        if paused["delivery"]:
+            if goal is None or any(goal[key] != self.target[key] for key in ("brick_type", "color")):
+                return dict(accepted=False, reason="GOAL_CONFLICT")
+            checkpoint = dict(paused["checkpoint"], previous_log=str(self.directory / "driver" / f"{self._identity}.jsonl"))
+            self._seen.add(identity)
+            self._stop = None
+            self._released = checkpoint["released"]
+            self._launch("execute", identity, resume=checkpoint)
+        elif paused["preparation"]:
+            self._stop = None
+            self._launch("prepare-observe", identity)
+        else:
+            if goal is not None or not paused["at_observe"]:
+                return dict(accepted=False, reason="OBSERVE_POSE_MISMATCH")
+            self._seen.add(identity)
+            self._stop = None
+            self._ready = True
+            if self.on_result:
+                self.on_result(dict(execution_id=identity, success=True, reason=None))
+            self.changed.emit()
+        return dict(accepted=True, reason=None)
+
+    def _launch(self, operation, identity, *, resume=None):
         self.directory.mkdir(parents=True, exist_ok=True)
         config_path = self.directory / "adopted_config.json"
         config_path.write_text(json.dumps(self._config, ensure_ascii=False, allow_nan=False), encoding="utf-8")
         self._identity, self._operation = identity, operation
         self._events_read = 0
         self._final = self._check_complete = None
+        self._prepare_complete = None
         self.process = self._factory(self)
         self.process.setWorkingDirectory(str(Path(__file__).resolve().parents[1]))
         self.process.finished.connect(lambda code, status: self._finished(identity, code, status))
         self.process.errorOccurred.connect(lambda error: self._process_error(identity, error))
         self.process.setProcessChannelMode(QProcess.MergedChannels)
         self.process.readyReadStandardOutput.connect(self._output)
-        self.process.start(sys.executable, ["-m", "app.robot_trial", "--config", str(config_path),
+        arguments = ["-m", "app.robot_trial", "--config", str(config_path),
                             f"--{operation}", "--execution-id", identity, "--require-observe-start",
-                            "--log-dir", str(self.directory / "driver")])
+                            "--log-dir", str(self.directory / "driver"), "--stop-file", str(self.directory / f"{identity}.stop")]
+        if resume is not None:
+            checkpoint_path = self.directory / f"{identity}.resume.json"
+            checkpoint_path.write_text(json.dumps(resume))
+            arguments += ["--resume-checkpoint", str(checkpoint_path)]
+        self.process.start(sys.executable, arguments)
         self.timer.start()
         self.changed.emit()
 
@@ -193,7 +349,16 @@ class RealTrialController(QObject):
             name, payload = event["event"], event["payload"]
             if name == "ROBOT_CHECK_COMPLETE":
                 self._check_complete = payload
+            if name == "ROBOT_PREPARE_COMPLETE" and self._operation == "prepare-observe":
+                self._prepare_complete = payload
             if self._operation != "execute":
+                if self._operation in ("check", "prepare-observe") and name == "ROBOT_TRIAL_RESULT":
+                    _object(payload, ("execution_id", "success", "reason"), "driver.check_result")
+                    if payload["execution_id"] != self._identity or type(payload["success"]) is not bool:
+                        raise ValueError("Driver check result identity/boolean invalid")
+                    if not payload["success"]:
+                        _text(payload["reason"], "driver.check_result.reason")
+                        self._fault = payload["reason"]
                 continue
             if name == "ROBOT_TRIAL_RESULT":
                 if self._final is None:
@@ -237,11 +402,26 @@ class RealTrialController(QObject):
         operation = self._operation
         self._operation = None
         self.timer.stop()
-        if operation == "check":
-            self._ready = code == 0 and status == QProcess.NormalExit and self._check_complete is not None and self._check_complete.get("motion_commands_sent") is False and self._fault is None
+        if self._stop is not None:
+            self._ready = False
+            if self._stop_ack:
+                self._launch_pause("probe")
+            self.changed.emit()
+            return  # 늦은 전달 result로 진행하거나 정지 종료를 실패로 바꾸지 않는다.
+        if operation in ("check", "prepare-observe"):
+            proof = (self._check_complete is not None and self._check_complete.get("motion_commands_sent") is False
+                     if operation == "check" else self._prepare_complete is not None
+                     and self._prepare_complete.get("ready_at_observe") is True
+                     and self._prepare_complete.get("motion_commands_sent") is True)
+            self._ready = code == 0 and status == QProcess.NormalExit and proof and self._fault is None
+            if operation == "prepare-observe" and not self._ready and self._fault is None:
+                self._fault = "PREPARE_COMPLETION_UNCONFIRMED"
             self._notice = f"무이동 조회 완료. {'파랑' if self.target['color'] == 'blue' else '노랑'} 4점 {self.target['slot']}번 준비·전달판 비움을 확인하고 시작하세요. 첫 실기 시험이며 한 번만 전달합니다." if self._ready else f"조회 실패: {self._fault or self._notice or code}"
             if self._ready and self._limit > 1:
                 self._notice = f"무이동 조회 완료. 공급 슬롯 {self._start_slot}~{self._start_slot+self._limit-1} 준비·조립판/전달판 비움을 확인하고 시작하세요. 현장 확인마다 한 번씩 전달합니다."
+            if operation == "prepare-observe":
+                self._notice = ("사전 이동 HOME→observe 도착/대기 확인 완료. 집기·슬롯 소모 없음. 준비 확인 후 Job을 시작하세요."
+                    if self._ready else f"사전 이동 실패: {self._fault}. 현장 정지·위치를 확인하세요. 자동 재시도 없음.")
         else:
             result = self._final if code == 0 and status == QProcess.NormalExit and self._fault is None else None
             if result is None:
@@ -258,7 +438,7 @@ class RealTrialController(QObject):
         self.changed.emit()
 
     def eventFilter(self, watched, event):
-        if event.type() == QEvent.Close and self._operation == "execute":
+        if event.type() == QEvent.Close and self._operation in ("execute", "prepare-observe"):
             self._notice = "실행/조회 중에는 창을 유지합니다. 실제 긴급 정지는 현장 비상정지 장치를 사용하세요."
             self.changed.emit()
             event.ignore()
@@ -285,6 +465,7 @@ def main(argv=None):
                       record=JsonlLog(Path(args.log_dir) / "backend"))
     backend.connect_robot(controller)
     controller.on_result, controller.on_event = backend.on_robot_result, backend.on_robot_event
+    controller.on_stopped = backend.on_stopped
 
     def publish():
         if backend.state["job_id"] is None:

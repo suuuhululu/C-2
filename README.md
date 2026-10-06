@@ -17,7 +17,9 @@
 
 ## 현재 상태
 
-**설계 계약을 문서로 정리했으며 C 파트 docstring skeleton이 있습니다. 실행 가능한 전체 앱·ROS adapter·공통 Schema·통합 테스트·CI 완료는 확인되지 않았습니다.** 아래 기능은 최신 목표이며 구현 완료 목록이 아닙니다.
+**C Design·A Planner·Backend·Qt·기본 Board 전달 연결 코드와 모의 통합 검사가 있습니다.** 실제 Camera 생산자 연결, Robot STOP/재개, 음성 API·마이크/스피커와 전체 장치 통합은 별도 현장 검증이 필요합니다. CI는 미구성입니다. 아래 표의 전체 목표를 실기 완료 목록으로 해석하지 않습니다.
+
+현재 로컬 실행부의 게시·검증 범위와 복구 방법은 [기본 실행 버전 기록](docs/D_RUNTIME_BASELINE.md), 실행 절차는 [Robot/HMI 안내](docs/D_BACKEND_RUN_ROBOT_PLAN.md), C 함수·음성 연결은 [C 통합 안내](docs/D_C_FUNCTION_INTEGRATION.md)를 따릅니다. 새 사람 전달 0~12단계는 별도 개발 브랜치에서 진행합니다.
 
 | 구분 | 기준 |
 |---|---|
@@ -29,7 +31,7 @@
 | 물리 작업 | Robot 공급판 → 고정 전달 위치, 사람 조립판 배치·체결·수정 |
 | 상태 | Vision Observed → Backend Current 채택, Backend Expected 생성·비교 |
 | 배치 | Day 4 1PC, 함수 / callback·Qt 단일 화면·Robot 전달 Action |
-| 저장 | DB 제외·Job별 주요 이벤트 JSONL |
+| 저장 | 공정은 Job별 주요 이벤트 JSONL, 별도 PostgreSQL 적재·조회는 [DB 이력 안내](docs/D_DB_HISTORY.md) |
 
 환경과 역할 분담은 2026-10-04 사용자 확인입니다. RG2는 gripper입니다. Python은 로컬에서도 3.12.3을 확인했습니다. OS·Docker·GPU는 사용자 제공값이며 실제 설치·driver·장치 호환성은 이번 작업에서 시험하지 않았습니다.
 

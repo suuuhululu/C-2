@@ -136,9 +136,21 @@ class Backend:
 
     def command(self, value: object) -> dict:
         command, state = validate_hmi_command(value), self._state
-        if state["mode"] == "REAL" and not self._manual_trial:
+        if command["command"] == "PREPARE_OBSERVE":
+            if state["mode"] != "REAL" or state["job_id"] is not None or self._robot is None:
+                return dict(accepted=False, reason="PREPARE_NOT_APPLICABLE")
+            return self._robot.prepare()
+        if command["command"] in ("STOP_PREPARATION", "RESUME_PREPARATION"):
+            if state["mode"] != "REAL" or state["job_id"] is not None or self._robot is None:
+                return dict(accepted=False, reason="PREPARATION_NOT_APPLICABLE")
+            if command["command"] == "STOP_PREPARATION":
+                return self._robot.stop(dict(request_id=str(uuid4()), execution_id=None))
+            paused = self._robot.state["stop"]
+            return self._robot.resume(dict(execution_id=str(uuid4()), previous_execution_id=None, goal=None)) if paused else dict(accepted=False, reason="RESUME_NOT_APPLICABLE")
+        if state["mode"] == "REAL" and not self._manual_trial and command["command"] == "START":
             return self._command_trial(command)
-        if self._manual_trial and (command["command"] != "START" or state["job_id"] is not None):
+        if self._manual_trial and (command["command"] not in ("START", "STOP", "RESUME", "CHOOSE_INTENT", "CONTINUE_AFTER_CORRECTION") or
+                                   command["command"] == "START" and state["job_id"] is not None):
             return dict(accepted=False, reason="MANUAL_TRIAL_COMMAND_UNAVAILABLE")
         name = command["command"]
         if name != "START" and command["job_id"] != state["job_id"]:
@@ -195,8 +207,9 @@ class Backend:
                 return dict(accepted=False, reason="RESUME_NOT_APPLICABLE")
             state.update(workflow_status="DELIVERING", reason=None, execution_id=str(uuid4()))
             step = self._next_step() if state["context"] is not None else None
-            goal = (dict(execution_id=state["execution_id"], brick_type=step["after"]["brick_type"],
-                         color=step["after"]["color"]) if self._delivery_goal else None)
+            target = step["after"] if step else self._robot.state["transfer_target"] if self._robot else None
+            goal = (dict(execution_id=state["execution_id"], brick_type=target["brick_type"],
+                         color=target["color"]) if self._delivery_goal else None)
             self._send("robot.resume", dict(execution_id=state["execution_id"], goal=goal,
                                              previous_execution_id=self._paused_execution))
         return dict(accepted=True, reason=state["reason"])
@@ -310,6 +323,7 @@ class Backend:
         if not self._event("JOB_STARTED") or not self._event("ROBOT_CONFIG_ADOPTED", result=self._robot.configuration):
             return dict(accepted=False, reason=state["reason"])
         self._ready = self._at_observe = False
+        self._delivery_goal = True
         config = self._robot.configuration
         self._send("robot.deliver", dict(execution_id=state["execution_id"],
                                         brick_type=config["target"]["brick_type"], color=config["target"]["color"]))
@@ -329,6 +343,7 @@ class Backend:
             return True
         state["execution_id"] = None
         if state["mode"] == "REAL" and not self._manual_trial:
+            self._delivery_goal = False
             self._ready = self._at_observe = result["success"]
             state["fault"] = None if result["success"] else result["reason"]
             self._hold("REAL_TRANSFER_DONE_ASSEMBLY_UNVERIFIED" if result["success"] else result["reason"])

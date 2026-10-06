@@ -131,7 +131,8 @@ def test_actual_a_three_steps_use_slots_123_manual_checks_and_same_real_hmi(tria
         assert backend.state["current"]["current_revision"] == index+1
         application.processEvents()
         validator.validate(window._snapshot)
-        assert not window.buttons["STOP"].isEnabled() and not window.buttons["RESUME"].isEnabled()
+        assert window.buttons["STOP"].isEnabled() == (index < 2)
+        assert not window.buttons["RESUME"].isEnabled()
     assert len(set(identities)) == 3
     assert backend.state["workflow_status"] == "COMPLETE"
     assert backend.state["current"]["blocks"] == backend.state["context"]["design"]["blocks"]
