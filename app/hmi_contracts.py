@@ -2,6 +2,7 @@
 
 from copy import deepcopy
 
+from .completion import _current
 from .contracts import (
     _array, _block, _integer, _object, _text, validate_design, validate_observed,
 )
@@ -13,6 +14,9 @@ WORKFLOW_STATUSES = (
 )
 COMMAND_FIELDS = {
     "START": ("command",),
+    "PREPARE_OBSERVE": ("command",),
+    "STOP_PREPARATION": ("command",),
+    "RESUME_PREPARATION": ("command",),
     "STOP": ("command", "job_id"),
     "RESUME": ("command", "job_id"),
     "CHOOSE_INTENT": ("command", "job_id", "request_id", "choice"),
@@ -125,10 +129,17 @@ def _monitor(value: object, step: dict) -> dict:
     return columns
 
 
-def _actions(value: object, workflow: str, notice: dict, columns: dict, *, trial_start=None) -> None:
+def _actions(value: object, workflow: str, notice: dict, columns: dict, *, trial_start=None, trial_controls=None) -> None:
     path = "snapshot.actions"
     actions = _object(value, ("job_id", "start", "stop", "resume", "intent_choice",
-                              "correction_continue", "supply_refill"), path)
+                              "correction_continue", "supply_refill") +
+                     (("prepare_observe",) if "prepare_observe" in value else ()), path)
+    if "prepare_observe" in actions:
+        prepare = _button(actions["prepare_observe"], f"{path}.prepare_observe")
+        if trial_start is None or workflow != "IDLE" or actions["job_id"] is not None:
+            raise ValueError("snapshot.actions.prepare_observe: REAL before Job only")
+        if prepare["enabled"] and actions["start"]["enabled"]:
+            raise ValueError("snapshot.actions.prepare_observe: already ready at observe")
     _nullable_text(actions["job_id"], f"{path}.job_id")
     if workflow not in ("IDLE", "COMPLETE") and actions["job_id"] is None:
         raise ValueError(f"{path}.job_id: active workflow requires Job context")
@@ -136,7 +147,7 @@ def _actions(value: object, workflow: str, notice: dict, columns: dict, *, trial
     expected = (workflow in ("IDLE", "COMPLETE"),
                 workflow not in ("IDLE", "COMPLETE", "STOPPED"), workflow == "STOPPED")
     if trial_start is not None:
-        expected = (trial_start, False, False)
+        expected = trial_controls
     for name, enabled in zip(("start", "stop", "resume"), expected):
         button = _button(actions[name], f"{path}.{name}")
         if not button["visible"] or button["enabled"] != enabled:
@@ -168,7 +179,8 @@ def _actions(value: object, workflow: str, notice: dict, columns: dict, *, trial
 def validate_hmi_snapshot(value: object) -> dict:
     optional = tuple(key for key in ("transfer_target", "manual_trial", "reported_placement") if isinstance(value, dict) and key in value)
     snapshot = _object(value, ("workflow_status", "step", "progress", "monitor",
-                               "notice", "actions", "design") + optional, "snapshot")
+                               "notice", "actions", "design", "current") + optional, "snapshot")
+    _current(snapshot["current"])
     if snapshot["workflow_status"] not in WORKFLOW_STATUSES:
         raise ValueError("snapshot.workflow_status: unsupported workflow")
     if snapshot["design"] is not None:
@@ -207,16 +219,20 @@ def validate_hmi_snapshot(value: object) -> dict:
         _integer(target["slot"], 1, 6, "snapshot.transfer_target.slot")
     trial_start = (snapshot["workflow_status"] == "IDLE" and snapshot["actions"]["job_id"] is None
                    and snapshot["monitor"]["robot"]["status"] == "IDLE") if real_trial else None
-    _actions(snapshot["actions"], snapshot["workflow_status"], notice, columns, trial_start=trial_start)
+    startup = snapshot["actions"]["job_id"] is None
+    robot_status = snapshot["monitor"]["robot"]["status"]
+    controls = (trial_start, snapshot["workflow_status"] not in ("IDLE", "COMPLETE", "STOPPED") or
+                startup and robot_status in ("BUSY", "STOP_PENDING"),
+                snapshot["workflow_status"] == "STOPPED" or startup and robot_status == "STOPPED")
+    _actions(snapshot["actions"], snapshot["workflow_status"], notice, columns, trial_start=trial_start, trial_controls=controls)
     if real_trial and manual_trial:
-        if (snapshot["workflow_status"] not in ("IDLE", "PREPARING", "DELIVERING", "WAIT_ASSEMBLY", "HOLD", "COMPLETE") or
-                progress["total"] not in (0, 3) or snapshot["actions"]["stop"]["enabled"] or snapshot["actions"]["resume"]["enabled"]):
-            raise ValueError("snapshot: manual REAL trial requires bounded three-Step workflow")
+        if (snapshot["workflow_status"] not in ("IDLE", "PREPARING", "DELIVERING", "WAIT_ASSEMBLY", "WAIT_INTENT", "REPLANNING", "WAIT_CORRECTION", "HOLD", "STOPPED", "COMPLETE") or
+                progress["total"] > 24):
+            raise ValueError("snapshot: manual REAL trial requires bounded workflow within four six-slot rows")
     elif real_trial:
-        if (snapshot["workflow_status"] not in ("IDLE", "DELIVERING", "HOLD") or
+        if (snapshot["workflow_status"] not in ("IDLE", "DELIVERING", "HOLD", "STOPPED") or
                 snapshot["design"] is not None or step["target"] is not None or
-                progress != dict(completed=0, total=0) or
-                snapshot["actions"]["stop"]["enabled"] or snapshot["actions"]["resume"]["enabled"]):
+                progress != dict(completed=0, total=0)):
             raise ValueError("snapshot: REAL currently supports a single transfer trial, no simulated assembly/STOP proof")
     return deepcopy(snapshot)
 

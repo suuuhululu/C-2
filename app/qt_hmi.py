@@ -33,10 +33,13 @@ class HmiWindow(QWidget):
     command_requested = pyqtSignal(dict)
     snapshot_received = pyqtSignal(dict)
 
-    def __init__(self, *, screen_size=None):
+    def __init__(self, *, screen_size=None, window_size=None):
         super().__init__()
         self._snapshot = None
         self._screen_size = screen_size or QApplication.primaryScreen().availableGeometry().size()
+        preferred = window_size or QSize(1200,900)
+        self._frame_size = QSize(min(preferred.width(),self._screen_size.width()),
+                                 min(preferred.height(),self._screen_size.height()))
         self.setWindowTitle("협동 조립 · Day4 · FAKE")
         self.setWindowFlags(Qt.Window | Qt.WindowMinimizeButtonHint | Qt.WindowCloseButtonHint)
         self.setFont(QFont("Noto Sans CJK KR", 10))
@@ -63,7 +66,8 @@ class HmiWindow(QWidget):
         control_layout = QGridLayout(controls)
         self.buttons = {}
         for index,(name,caption) in enumerate((("START","시작"),("STOP","정지"),("RESUME","재개"),
-            ("KEEP","목표 유지"),("REVISE","목표 수정"),("CONTINUE_AFTER_CORRECTION","정리 완료"))):
+            ("KEEP","목표 유지"),("REVISE","목표 수정"),("CONTINUE_AFTER_CORRECTION","정리 완료"),
+            ("PREPARE_OBSERVE","사전 이동 · HOME→관측"))):
             button = QPushButton(caption)
             button.setAccessibleName(caption)
             button.clicked.connect(lambda checked=False, name=name: self._request(name))
@@ -106,9 +110,11 @@ class HmiWindow(QWidget):
         step_layout.addWidget(self.comparison)
         step_body = QHBoxLayout()
         board_layout = QVBoxLayout()
-        self.target_board = BoardView()
-        board_layout.addWidget(self.target_board)
-        self.target_caption = QLabel("위에서 봄 · 목표만 표시\n24×24점 · 원점 (0,0) · X → / Y ↑")
+        self.target_board = BoardView(isometric=True)
+        board_layout.addWidget(self.target_board,1)
+        self.target_caption = QLabel()
+        self.target_caption.setFont(QFont("Noto Sans CJK KR",9))
+        self.target_caption.setWordWrap(True)
         board_layout.addWidget(self.target_caption)
         step_body.addLayout(board_layout,4)
         self.table = QTableWidget(5,3)
@@ -122,7 +128,7 @@ class HmiWindow(QWidget):
             self.table.setRowHeight(row,32)
         step_body.addWidget(self.table,6)
         step_layout.addLayout(step_body)
-        root.addWidget(self.step_panel,3)
+        root.addWidget(self.step_panel,4)
         notice_panel = QGroupBox("질문 · 보류 사유 · 해야 할 일")
         notice_layout = QVBoxLayout(notice_panel)
         self.notice = QTextBrowser()
@@ -134,22 +140,25 @@ class HmiWindow(QWidget):
         self.footer.setFont(QFont("Noto Sans CJK KR",8))
         root.addWidget(self.footer)
         self.snapshot_received.connect(self.render_snapshot, Qt.QueuedConnection)
-        self.setFixedSize(QSize(self._screen_size.width()//2, min(900,self._screen_size.height())))
+        self.setFixedSize(self._frame_size)
         self.move(0,0)
 
     def showEvent(self, event):
         super().showEvent(event)
-        # 논리 픽셀 기준 창 장식을 포함한 반폭. 실제 WM/DPI 확인은 장치 시험과 별도다.
+        # 논리 픽셀 기준 지정 크기에 창 장식을 포함한다. 실제 WM/DPI 검증은 별도다.
         margins = self.frameGeometry().size()-self.size()
-        self.setFixedSize(self._screen_size.width()//2-margins.width(),
-                          min(900,self._screen_size.height())-margins.height())
+        self.setFixedSize(self._frame_size-margins)
 
     def _request(self, name):
         if self._snapshot is None:
             return
         actions = self._snapshot["actions"]
         command = dict(command=name)
-        if name != "START":
+        if name in ("STOP", "RESUME") and actions["job_id"] is None:
+            command["command"] = "STOP_PREPARATION" if name == "STOP" else "RESUME_PREPARATION"
+            self.command_requested.emit(validate_hmi_command(command))
+            return
+        if name not in ("START", "PREPARE_OBSERVE"):
             command["job_id"] = actions["job_id"]
         if name in ("KEEP","REVISE"):
             command.update(command="CHOOSE_INTENT", choice=name, request_id=actions["intent_choice"]["request_id"])
@@ -185,17 +194,25 @@ class HmiWindow(QWidget):
         self.design_panel.setTitle(f"전체 완성 목표 · 채택 Design v{design['design_version']}" if design else "전체 완성 목표 · 미채택")
         self.design_board.set_blocks(design["blocks"] if design else [])
         self.design_caption.setText("조립 Design 미채택 · 지정 블록 1개 전달 시험" if mode == "REAL" and not manual_trial else
-                                    "24×24점 전체판 / 같은 목표의 확대")
+                                    "등받이 뒤쪽 시점 · 24×24점 전체판 / 같은 목표의 확대")
         step = snapshot["step"]
         self.step_panel.setTitle(f"현재 Step · {step['step_id'] or '없음'}")
-        self.comparison.setText(label(step["comparison"]) if step["target"] else "현재 Step 없음")
-        self.target_board.set_blocks([step["target"]] if step["target"] else [])
+        self.comparison.setText((label(step["comparison"]) if step["target"] else "현재 Step 없음") +
+                                " · 등받이 뒤쪽 시점 · X ↙ / Y ↘ · 층 ↑")
+        self.target_board.set_assembly(snapshot["current"], step["target"])
         self.target_board.set_transfer_target(transfer)
         self.target_board.set_reported_placement(reported)
-        self.target_caption.setText("블록 종류 표시 · 공급판 → 고정 전달판\n조립 위치·층·방향 미채택" if transfer else
-                                    "위에서 봄 · 목표만 표시\n24×24점 · 원점 (0,0) · X → / Y ↑")
+        layers = "·".join(str(layer) for layer in sorted({block["layer"] for block in snapshot["current"]["blocks"]}))
+        target_legend = ("점선: 이번 목표 (Current에 반영됨)" if step["target"] in snapshot["current"]["blocks"] else
+                         "점선: 이번에 놓을 블록" if step["target"] else "다음 목표 없음")
+        self.target_caption.setText("블록 종류 표시 · 공급판 → 고정 전달판\n조립 위치·층·방향 미채택\n조립 관측 기록 없음 · 실제 비움 미확인" if transfer else
+            f"실선: 확인된 현재 구조\n{target_legend}\n"
+            f"Current r{snapshot['current']['current_revision']} · 채택 {len(snapshot['current']['blocks'])}개"
+            f"{' · '+layers+'층' if layers else ''}")
+        if not snapshot["current"]["blocks"] and not step["target"] and not transfer:
+            self.target_caption.setText("채택된 조립 관측 기록 없음 · 실제 보드 비움 여부 미확인")
         if reported:
-            self.target_caption.setText("위에서 봄 · 채움: 목표 / 빨간 테두리: 현장 입력\n24×24점 · 원점 (0,0) · X → / Y ↑")
+            self.target_caption.setText(self.target_caption.text()+"\n현장 입력 배치 · Camera 확인 아님")
             self.comparison.setText("현장 입력과 목표 차이 · 사람이 확인/정리 · 다음 전달 보류")
         if transfer:
             self.step_panel.setTitle(f"Robot 전달 대상 · 공급 슬롯 {transfer['slot']}번")
@@ -233,6 +250,9 @@ class HmiWindow(QWidget):
                                           text != snapshot["notice"]["request_id"]))
         for name in ("START","STOP","RESUME"):
             self.buttons[name].setEnabled(snapshot["actions"][name.lower()]["enabled"])
+        prepare = snapshot["actions"].get("prepare_observe")
+        self.buttons["PREPARE_OBSERVE"].setVisible(prepare["visible"] if prepare else False)
+        self.buttons["PREPARE_OBSERVE"].setEnabled(prepare["enabled"] if prepare else False)
         for name,key in (("KEEP","intent_choice"),("REVISE","intent_choice"),
                          ("CONTINUE_AFTER_CORRECTION","correction_continue")):
             action = snapshot["actions"][key]
