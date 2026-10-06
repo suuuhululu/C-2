@@ -11,7 +11,10 @@
     - 재생이 끝난 뒤 녹음을 시작하는 순서로 질문 음성을 답변으로 재인식하지 않음
       (팀 결정 F05·F07)
     - 실제 provider 연결은 개발 9단계(STT+녹음)·10단계(TTS)
-    - 테스트에서는 이 모듈을 통째로 fake로 교체한다.
+    - 테스트에서는 text_answers(텍스트 모드)로 음성 대신 응답을 준다.
+
+현재(WAVE 4): provider 미연결 stub. speak는 아무것도 하지 않고 listen은 None을
+돌려준다. main은 None을 "음성 미연결"로 보고 VOICE_IO_FAILED를 반환한다.
 
 하지 않는 것:
     - 응답 의미 해석·질문 문장 생성(dialogue.py 담당)
@@ -21,3 +24,12 @@
 연결:
     main.py 가 호출한다.
 """
+
+
+def speak(text):
+    """질문 문장 TTS 재생 자리(provider 미연결: 아무것도 하지 않음)."""
+
+
+def listen():
+    """한 번 듣기 결과 텍스트. 침묵이면 "". provider 미연결이면 None."""
+    return None
