@@ -1,0 +1,35 @@
+services:
+  db:
+    image: postgres:17-bookworm
+    environment:
+      POSTGRES_DB: ${HISTORY_DB_NAME:-c2_history}
+      POSTGRES_USER: c2_history
+      POSTGRES_PASSWORD: ${HISTORY_DB_PASSWORD:?set HISTORY_DB_PASSWORD in your local environment}
+    ports:
+      - "127.0.0.1:${HISTORY_DB_PORT:-55432}:5432"
+    volumes:
+      - history_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U c2_history -d $$POSTGRES_DB"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+  app:
+    user: "${HISTORY_UID:-1000}:${HISTORY_GID:-1000}"
+    build:
+      context: .
+      dockerfile: Dockerfile.history
+    environment:
+      PGHOST: db
+      PGPORT: "5432"
+      PGDATABASE: ${HISTORY_DB_NAME:-c2_history}
+      PGUSER: c2_history
+      PGPASSWORD: ${HISTORY_DB_PASSWORD:?set HISTORY_DB_PASSWORD in your local environment}
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - ${HISTORY_LOG_DIR:-./logs}:/records:ro
+      - ${HISTORY_REPORT_DIR:-./logs/history_reports}:/reports
+volumes:
+  history_data:

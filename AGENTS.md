@@ -70,3 +70,7 @@ dependency·framework·무관한 대규모 변경을 피합니다. 문서 작업
 2026-10-05 사용자가 요청한 [노마드 코더 영상](https://www.youtube.com/watch?v=3JCgiVYlLFo)의 설명과 영어 자동 생성 자막을 확인했습니다. 02:00 Attention Span은 간결한 답변, 03:05 Karpathy Skills는 생각 후 최소 수정·완료 기준, 04:05 Anti Slop은 자동 검사, 08:42 Verification Before Completion은 검증 증거 후 완료 보고에 해당합니다. 위 규칙은 Python·ROS2 프로젝트에 맞춘 적용안입니다. JavaScript/TypeScript 도구 설치와 Kotlin 전환은 포함하지 않습니다.
 
 AGENTS.md는 행동 지침이며 lint·테스트·사람 리뷰를 대신하는 강제 장치가 아닙니다. 이 저장소를 작업 위치로 사용하는 새 Codex 대화에 적용합니다. 이미 열린 다른 대화의 지침이 자동 갱신됐다고 가정하지 않습니다. 도구의 지침 탐색 방식은 [공식 AGENTS.md 안내](https://learn.chatgpt.com/docs/agent-configuration/agents-md)를 참고합니다.
+
+## 2026-10-06 DB 병행 개발 추가 범위
+
+사용자의 최신 명시 요청으로 기존 Day4 공정은 유지하면서 PostgreSQL·컨테이너 이력을 별도로 구현한다. 위의 과거 DB 제외 문구는 당시 공정 범위 기록이다. 이번 추가는 Backend JSONL → 별도 적재·조회 app → PostgreSQL이며 Qt/Robot/Camera 실행 환경·판단·채택 계약·정상 Step 입력은 바꾸지 않는다. DB에서 Current를 자동 복원하거나 Robot을 재실행하지 않는다. 로컬 구현·검증만 허용하며 commit/push/PR/merge는 별도 요청 범위다. 실행·검증·한계는 `docs/D_DB_HISTORY.md`를 따른다.
