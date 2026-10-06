@@ -365,6 +365,27 @@
           }
         }
       ]
+    },
+    "current": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "current_revision",
+        "blocks"
+      ],
+      "properties": {
+        "current_revision": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "blocks": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/block"
+          }
+        }
+      }
     }
   }
 }
