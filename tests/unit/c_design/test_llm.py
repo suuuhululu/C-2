@@ -118,6 +118,25 @@ SIMPLE_DESIGN = {
 # ---------------------------------------------------------------------------
 
 
+class TestStage2RuleLines:
+    """Stage 2 vocabulary in the Rules block shared by every system prompt (values come from validator)."""
+
+    def test_rule_lines_name_the_vocabulary(self):
+        rules = llm._RULE_LINES
+        assert "- brick_type: 1x2x1, 2x2x1, 2x3x1. color: blue, red, yellow (lowercase)." in rules
+        assert ("- orientation_deg: 1x2x1 uses 0 (X 1 stud, Y 2 studs) or 90 (X 2 studs, Y 1 stud); "
+                "2x3x1 uses 0 (X 2 studs, Y 3 studs) or 90 (X 3 studs, Y 2 studs); 2x2x1 always 0.") in rules
+        assert ("- red is available for accents; 1x2x1 is a thin brick for rails, trims, wings, slats and narrow supports "
+                "and still needs 2 studs of support below.") in rules
+        assert f"- blocks: 1..{validator.MAX_BLOCKS}." in rules and validator.MAX_BLOCKS == 40
+        assert f"- layer: integer 1..{validator.MAX_LAYER};" in rules
+
+    def test_every_system_prompt_carries_the_rules(self):
+        for prompt in (llm.SYSTEM_PROMPT_INITIAL, llm.SYSTEM_PROMPT_REVISED):
+            assert llm._RULE_LINES in prompt
+        assert llm.SYSTEM_PROMPT is llm.SYSTEM_PROMPT_REVISED
+
+
 class TestInitialPayload:
     def test_payload_fields_and_request(self, monkeypatch, with_fake_key):
         fake = _install(monkeypatch, [_body(json.dumps({"design_version": 1, "blocks": []}))])
@@ -512,7 +531,7 @@ class TestExpressiveRevisedPrompt:
         prompt = llm.SYSTEM_PROMPT_REVISED
         assert f"rising three layers above the seat so it reaches layer {validator.MAX_LAYER}" in prompt
         assert f"use as many blocks as the concept needs (up to {validator.MAX_BLOCKS})" in prompt
-        assert f"- blocks: 1..{validator.MAX_BLOCKS}." in prompt and validator.MAX_BLOCKS == 30
+        assert f"- blocks: 1..{validator.MAX_BLOCKS}." in prompt and validator.MAX_BLOCKS == 40
         assert f"- Fifth, layer {validator.MAX_LAYER} is part of a feature" in llm._REVISED_GUIDANCE
         for phrase in ("- Tall back:", "- Crown / headrest / stepped top:", "- Armrests:", "- Park bench / loveseat:",
                        "- Throne:", "- Rocking chair:", "- Lounge chair / chaise:", "- Canopy-like / sculptural:"):

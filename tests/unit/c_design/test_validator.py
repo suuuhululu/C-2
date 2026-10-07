@@ -6,6 +6,8 @@ worker and are intentionally not read here.
 
 import json
 
+import pytest
+
 from app.c_design import validator as v
 
 
@@ -45,6 +47,22 @@ def test_footprint_2x3x1_orientation_0():
 def test_footprint_2x3x1_orientation_90():
     b = block(x=1, y=1, brick_type="2x3x1", orientation_deg=90)
     assert v.footprint(b) == {(1, 1), (1, 2), (2, 1), (2, 2), (3, 1), (3, 2)}
+
+
+def test_footprint_1x2x1_orientation_0_is_x1_y2():
+    assert v.footprint(block(x=4, y=5, brick_type="1x2x1", orientation_deg=0)) == {(4, 5), (4, 6)}
+
+
+def test_footprint_1x2x1_orientation_90_is_x2_y1():
+    assert v.footprint(block(x=4, y=5, brick_type="1x2x1", orientation_deg=90)) == {(4, 5), (5, 5)}
+
+
+def test_stage2_vocabulary_constants():
+    assert v.COLORS == {"yellow", "blue", "red"}
+    assert v.BRICK_TYPES == {"1x2x1", "2x2x1", "2x3x1"}
+    assert v.BRICK_SIZES == {"1x2x1": (1, 2), "2x2x1": (2, 2), "2x3x1": (2, 3)}
+    assert v.ORIENTATIONS == {"1x2x1": {0, 90}, "2x2x1": {0}, "2x3x1": {0, 90}}
+    assert (v.MAX_LAYER, v.MAX_BLOCKS, v.MIN_SUPPORT_STUDS) == (5, 40, 2)
 
 
 # ---------------------------------------------------------------------------
@@ -112,7 +130,7 @@ def test_blocks_count_zero_is_brick_count():
 
 
 def test_blocks_count_over_max_is_brick_count():
-    assert v.MAX_BLOCKS == 30  # 2026-10-07 사용자 승인(20 → 30)
+    assert v.MAX_BLOCKS == 40  # Stage 2 사용자 결정(30 → 40)
     blocks = [block(x=2 * (i % 12), y=2 * (i // 12)) for i in range(v.MAX_BLOCKS + 1)]
     assert "brick_count" in rules(v.validate_design(design(blocks)))
 
@@ -159,6 +177,15 @@ def test_block_color_invalid_value():
     assert "invalid_value" in rules(v.validate_design(design([b])))
 
 
+def test_block_color_green_invalid_value():
+    assert "invalid_value" in rules(v.validate_design(design([block(color="green")])))
+
+
+def test_block_color_red_accepted():
+    assert v.validate_design(design([block(color="red")])) == []
+    assert v.validate_design(design([block(color="red", brick_type="1x2x1", orientation_deg=90)])) == []
+
+
 def test_block_color_uppercase_rejected():
     # §1: color is lowercase yellow/blue; the old uppercase spelling is invalid now.
     b = block(color="YELLOW")
@@ -178,6 +205,67 @@ def test_block_brick_type_invalid_value():
 def test_block_orientation_invalid_for_2x2x1():
     b = block(brick_type="2x2x1", orientation_deg=90)
     assert "invalid_value" in rules(v.validate_design(design([b])))
+
+
+@pytest.mark.parametrize("orientation", [45, 180, 270])
+def test_block_orientation_invalid_for_1x2x1(orientation):
+    b = block(brick_type="1x2x1", orientation_deg=orientation)
+    assert "invalid_value" in rules(v.validate_design(design([b])))
+
+
+@pytest.mark.parametrize("orientation", [0, 90])
+def test_block_orientation_valid_for_1x2x1(orientation):
+    assert v.validate_design(design([block(brick_type="1x2x1", orientation_deg=orientation)])) == []
+
+
+# ---------------------------------------------------------------------------
+# 1x2x1 (Stage 2): overlap, support (2 studs = fully on the blocks below), connectivity
+# ---------------------------------------------------------------------------
+
+
+def test_1x2x1_overlap_on_the_same_layer():
+    a = block(brick_type="1x2x1", x=3, y=3, orientation_deg=0)  # (3,3) (3,4)
+    b = block(brick_type="1x2x1", x=3, y=4, orientation_deg=90)  # (3,4) (4,4)
+    assert "overlap" in rules(v.validate_design(design([a, b])))
+
+
+def test_1x2x1_side_by_side_is_not_an_overlap():
+    a = block(brick_type="1x2x1", x=3, y=3, orientation_deg=0)
+    b = block(brick_type="1x2x1", x=4, y=3, orientation_deg=0)
+    base = block(brick_type="2x2x1", x=3, y=3, layer=2)  # joins them from above (2 studs on each)
+    assert v.validate_design(design([a, b, base])) == []
+
+
+def test_1x2x1_fully_on_the_block_below_is_supported():
+    base = block(brick_type="2x2x1", x=0, y=0, layer=1)
+    top = block(brick_type="1x2x1", x=1, y=0, orientation_deg=0, layer=2)  # (1,0) (1,1): both studs on the base
+    assert v.validate_design(design([base, top])) == []
+
+
+def test_1x2x1_with_one_stud_overlap_fails_support():
+    base = block(brick_type="2x2x1", x=0, y=0, layer=1)
+    top = block(brick_type="1x2x1", x=1, y=1, orientation_deg=0, layer=2)  # (1,1) on the base, (1,2) in the air
+    assert "support" in rules(v.validate_design(design([base, top])))
+
+
+def test_1x2x1_on_two_blocks_one_stud_each_is_supported():
+    # support counts studs over all blocks of the layer below (total ≥ 2), not per block
+    left = block(brick_type="2x2x1", x=0, y=0, layer=1)
+    right = block(brick_type="2x2x1", x=2, y=0, layer=1)
+    top = block(brick_type="1x2x1", x=1, y=0, orientation_deg=90, layer=2)  # (1,0) on left, (2,0) on right
+    assert v.validate_design(design([left, right, top])) == []
+
+
+def test_1x2x1_disconnected_piece_fails_connectivity():
+    body = block(brick_type="2x2x1", x=0, y=0, layer=1)
+    stray = block(brick_type="1x2x1", x=10, y=10, orientation_deg=0, layer=1)
+    assert "connectivity" in rules(v.validate_design(design([body, stray])))
+
+
+def test_1x2x1_out_of_board_uses_its_own_footprint():
+    assert v.validate_design(design([block(brick_type="1x2x1", x=23, y=22, orientation_deg=0)])) == []  # (23,22) (23,23)
+    assert "out_of_board" in rules(v.validate_design(design([block(brick_type="1x2x1", x=23, y=23, orientation_deg=0)])))
+    assert "out_of_board" in rules(v.validate_design(design([block(brick_type="1x2x1", x=23, y=0, orientation_deg=90)])))
 
 
 def test_block_layer_out_of_range():

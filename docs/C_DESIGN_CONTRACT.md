@@ -37,14 +37,16 @@ C 문서·코드·Fixture·테스트는 아래 팀 공용 용어만 씁니다. C
 
 | 필드 | 허용 값 | 정의 |
 |---|---|---|
-| `brick_type` | `2x2x1`, `2x3x1` | ASCII 소문자 `x` |
-| `color` | `yellow`, `blue` | 소문자 |
+| `brick_type` | `1x2x1`, `2x2x1`, `2x3x1` | ASCII 소문자 `x`. `1x2x1`은 Stage 2 추가(가는 블록: rail·trim·wing·slat·좁은 지지용) |
+| `color` | `yellow`, `blue`, `red` | 소문자. `red`는 Stage 2 추가 |
 | `x` | 정수 0~23 | 24×24 Board stud 좌표, footprint의 최소 x 모서리. Robot mm·TCP 좌표 아님 |
 | `y` | 정수 0~23 | footprint의 최소 y 모서리 |
 | `layer` | 정수 1~5 | 1층이 판 위 첫 층(최대 5층: 2026-10-06 팀장 결정) |
-| `orientation_deg` | `2x3x1`: 0 또는 90 / `2x2x1`: 0 | 0 = X 2 stud · Y 3 stud, 90 = X 3 stud · Y 2 stud |
+| `orientation_deg` | `1x2x1`: 0 또는 90 / `2x3x1`: 0 또는 90 / `2x2x1`: 0 | `1x2x1`: 0 = X 1 stud · Y 2 stud, 90 = X 2 stud · Y 1 stud. `2x3x1`: 0 = X 2 stud · Y 3 stud, 90 = X 3 stud · Y 2 stud. `2x2x1`: X 2 · Y 2 |
 
-- footprint 전체가 0~23 안에 있어야 합니다(예: `2x3x1` 0도 `x = 23`은 범위 초과).
+- footprint 전체가 0~23 안에 있어야 합니다(예: `2x3x1` 0도 `x = 23`, `1x2x1` 90도 `x = 23`은 범위 초과).
+- footprint 크기는 `validator.BRICK_SIZES`(0도 기준 X·Y stud 수, 90도면 바꿈), 허용 orientation은 `validator.ORIENTATIONS`가 단일 출처입니다.
+- Stage 2 어휘(red, `1x2x1`)는 C에 적용됐지만 A·D·공유 문서는 아직 이전 어휘입니다. 바꿔야 할 지점은 [C_DESIGN_STAGE2_AD_HANDOFF.md](C_DESIGN_STAGE2_AD_HANDOFF.md)에 정리했습니다(C는 수정하지 않음).
 - 정수 필드는 소수점 없는 JSON 정수만 허용합니다. `true`/`false`와 `1.0`은 정수가 아닙니다.
 - C는 Board 좌표 규약만 사용합니다. Board 물리 방향과 Board → Robot / world 변환은 D 책임입니다.
 
@@ -55,7 +57,7 @@ Design은 정확히 두 키를 가집니다. 그 외 키(`design_id`, 부모 버
 | 필드 | 타입 | 의미 |
 |---|---|---|
 | `design_version` | int ≥ 1 | C 발급. Initial = 1, 전체 목표 배치가 실제로 바뀔 때만 +1 (§8.2) |
-| `blocks` | 블록 배열, 1~30개(2026-10-07 사용자 승인, 20 → 30) | 최종 목표 전체. 배열 순서는 의미 없음. 조립 순서는 A가 결정 |
+| `blocks` | 블록 배열, 1~40개(Stage 2 사용자 결정, 30 → 40: Revised richness v2 ≥ v1 + 6과 상한 충돌 방지) | 최종 목표 전체. 배열 순서는 의미 없음. 조립 순서는 A가 결정 |
 
 ```json
 {
@@ -66,7 +68,7 @@ Design은 정확히 두 키를 가집니다. 그 외 키(`design_id`, 부모 버
 }
 ```
 
-생성 경로(MOCK / LLM) 같은 진단 정보와 설계 이름·설명은 Design 밖, envelope의 `design_metadata`에 둡니다(§6.1). layer 1~5·블록 수 1~30은 validator 상수(`MAX_LAYER`, `MAX_BLOCKS`)이며 LLM 프롬프트의 Rules 줄도 이 상수를 그대로 씁니다(Initial 프롬프트의 "blocks: 1..30"도 이 상수에서 나옴).
+생성 경로(MOCK / LLM) 같은 진단 정보와 설계 이름·설명은 Design 밖, envelope의 `design_metadata`에 둡니다(§6.1). layer 1~5·블록 수 1~40·brick_type·color는 validator 상수(`MAX_LAYER`, `MAX_BLOCKS`, `BRICK_TYPES`, `COLORS`)이며 LLM 프롬프트의 Rules 줄도 이 상수를 그대로 씁니다("blocks: 1..40", "brick_type: 1x2x1, 2x2x1, 2x3x1"). Rules 줄의 orientation 문장과 어휘 안내("red is available for accents; 1x2x1 is a thin brick … still needs 2 studs of support below")는 고정 문장입니다.
 
 ### 3.3 Initial Design 배치
 
@@ -250,7 +252,7 @@ LLM 출력은 블록 여섯 값의 목록(`{"blocks": [...]}`)뿐입니다. 버�
 | 필수 필드·형식, 허용되지 않은 키 없음 |
 | brick_type·color·orientation_deg·layer 허용 값 |
 | footprint가 Board 0~23 안 |
-| 블록 수 1~30 |
+| 블록 수 1~40 |
 | 같은 layer overlap 없음 |
 | support (A/C 합의된 Day4 기하 기준, §9.1) |
 | connectivity |
@@ -260,7 +262,7 @@ LLM 출력은 블록 여섯 값의 목록(`{"blocks": [...]}`)뿐입니다. 버�
 | 사람이 앉는 가구로 한눈에 보임: 분명한 좌석, 좌석을 받치는 지지, 그 family에 필요한 큰 부분(전폭 높은 등받이, 양쪽 팔걸이, plinth, rail, crown) |
 | 특징은 보일 만큼 크게(블록 두 개 이상 또는 한 줄 전체), 대칭이거나 의도적으로 균형. 한쪽만 튀어나온 블록 금지 |
 | layer 5를 특징의 일부로 사용(crown, headrest, stepped top, tall back). validator 규칙이 아님 |
-| 필요한 만큼 블록 사용(최대 30). 블록 수를 줄이는 것은 목표가 아님 |
+| 필요한 만큼 블록 사용(최대 40). 블록 수를 줄이는 것은 목표가 아님 |
 | 기계적 평행이동이 아닌 전체 재설계(§8.6). 이전 Design과 다른 구조·family도 허용(§8.12) |
 
 Soft design goal은 테스트로 강제하지 않습니다.
@@ -297,7 +299,7 @@ Initial Design에는 고정 블록이 없으므로 escalation이 없습니다.
 - **재생성 실패**: 재생성이 유효 후보를 못 내면 첫 설계와 그 judge를 그대로 반환합니다(`regeneration_failed`). 재생성 중 STOP이면 `CANCELLED` / `STOPPED`.
 - 세 가지 반복은 서로 독립입니다: LLM provider API 재시도(§10, `llm.RETRY_BACKOFF`), 후보 탈락 재생성(§8.10, designer 시도 수), judge 재생성(최대 1회).
 - escalation 뒤 "계속 찾기"로 다시 생성할 때도 같은 의도를 쓰고 ③·④를 똑같이 적용합니다. Mock 모드에는 의도·judge가 없습니다.
-- layer 5 사용·큰 특징·블록 수는 프롬프트의 soft goal이며 validator 규칙이 아닙니다. validator는 §9.1 그대로입니다(블록 수 상한만 30).
+- layer 5 사용·큰 특징·블록 수는 프롬프트의 soft goal이며 validator 규칙이 아닙니다. validator는 §9.1 그대로입니다(블록 수 상한만 40, Stage 2).
 
 ## 9. 검증 책임
 
@@ -311,7 +313,7 @@ Initial Design에는 고정 블록이 없으므로 escalation이 없습니다.
 | 허용되지 않은 키(Design 두 키 외, 블록 여섯 키 외 — Robot·mm·TCP·joint field 유입 포함) | `unknown_key` |
 | brick_type·color·orientation_deg(brick_type별)·layer 1~5 허용 값 | `invalid_value` |
 | footprint가 Board 0~23 밖 | `out_of_board` |
-| 블록 수 1~30 밖 | `brick_count` |
+| 블록 수 1~40 밖 | `brick_count` |
 | 같은 layer 안 footprint overlap | `overlap` |
 | support: layer ≥ 2 블록은 바로 아래 layer 블록들과 겹치는 stud 수의 합계가 2 이상(아래 블록 개수 무관, 같은 stud 중복 합산 없음) | `support` |
 | connectivity: 위아래 layer stud 겹침으로 연결했을 때 전체가 하나 | `connectivity` |
@@ -325,6 +327,8 @@ support는 **2026-10-06 세은(A)의 동의와 수현(D)의 회신으로 통일�
 | B | 아래 블록 2개와 각 1 stud, 합계 2 | 통과 |
 | C | 아래 블록 여러 개, 합계 2 이상 | 통과 |
 | D | 합계 0 또는 1 | 거부 |
+
+`1x2x1`(Stage 2)은 stud가 2개뿐이므로 layer ≥ 2에 둘 때 **두 stud 모두** 바로 아래층 블록 위에 있어야 통과합니다(한 블록 위 Case A, 두 블록에 1 stud씩 Case B). 1 stud만 겹치면 Case D로 거부됩니다. 규칙 자체(`MIN_SUPPORT_STUDS = 2`)는 바뀌지 않았습니다.
 
 입력 검사(`INVALID_INPUT`):
 
