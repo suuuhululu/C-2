@@ -620,7 +620,7 @@ class TestDebugDumpReasons:
         assert fake_url.call_count == 0
         assert self._info(debug_dir) == {"stt_called": False, "reason": "no_speech_detected", "noise_floor": 0,
                                          "threshold": voice.RMS_THRESHOLD_MIN, "voiced_seconds": 0.0,
-                                         "duration": voice.WAIT_SECONDS}
+                                         "duration": voice.WAIT_SECONDS, "calibration_unstable": False, "calibration_retries": 0}
         assert not (debug_dir / "latest_input.wav").exists()
 
     def test_too_short(self, monkeypatch, with_fake_key, debug_dir):
@@ -684,9 +684,12 @@ class TestDebugDump:
         assert info["peak"] == 3000
         assert info["noise_floor"] == 0 and info["threshold"] == voice.RMS_THRESHOLD_MIN == 600
         assert info["voiced_seconds"] == 0.5
-        assert set(info) == {"sample_rate", "channels", "duration", "rms", "peak", "noise_floor", "threshold",
-                             "voiced_seconds", "trimmed_seconds", "stt_called", "reason"}
+        assert set(info) == {"sample_rate", "channels", "duration", "rms", "peak", "weak_input", "noise_floor", "threshold",
+                             "voiced_seconds", "trimmed_seconds", "calibration_unstable", "calibration_retries", "stt_called", "reason",
+                             "whisper_text", "no_speech_probs"}
         assert info["stt_called"] is True and info["reason"] is None
+        assert info["weak_input"] is True  # peak 3000 < WEAK_INPUT_PEAK: 표시만 하고 STT 결과는 바꾸지 않는다
+        assert info["whisper_text"] == "의자" and info["no_speech_probs"] == [0.1]
         assert FAKE_KEY not in (debug_dir / "latest_input.json").read_text(encoding="utf-8")
 
     def test_no_dump_without_env(self, monkeypatch, with_fake_key, tmp_path):
@@ -979,3 +982,49 @@ class TestSecretLeakage:
         _install_urlopen(monkeypatch, [_http_error(403)])
         voice.speak("hello")
         self._assert_key_absent(None)
+
+
+class TestCalibrationGuard:
+    """보정 구간에 발화·순간 잡음이 섞이면 0.3 s를 버리고 딱 한 번만 다시 보정한다(무한 재보정 금지)."""
+
+    def _blocks(self, first_cal, second_cal, after):
+        retry_gap = round(voice.CALIBRATION_RETRY_DELAY_SECONDS / voice.BLOCK_SECONDS)
+        return ([quiet_block() for _ in range(WARMUP_BLOCKS)] + first_cal + [_int16_block(9999)] * retry_gap + second_cal + after)
+
+    def test_speech_in_calibration_triggers_exactly_one_retry(self, monkeypatch, with_fake_key):
+        first = [quiet_block(), quiet_block(), _int16_block(3000), _int16_block(3000), quiet_block()]  # 발화가 섞인 보정
+        second = [quiet_block() for _ in range(CAL_BLOCKS)]
+        fake_sd = _install_sd(monkeypatch, blocks=self._blocks(first, second, [loud_block()] * 5 + [quiet_block()] * 20))
+        pcm = voice.record()
+        cap = voice._last_capture
+        assert cap["calibration_unstable"] is True and cap["calibration_retries"] == 1 and cap["calibration_still_unstable"] is False
+        assert cap["noise_floor"] == 0 and cap["threshold"] == voice.RMS_THRESHOLD_MIN  # 재보정 결과를 쓴다
+        assert cap["calibration_max"] == 0 and cap["calibration_median"] == 0
+        assert pcm != b"" and cap["voiced_seconds"] == 0.5  # 뒤따르는 발화를 놓치지 않는다
+        assert fake_sd.streams[-1].reads >= WARMUP_BLOCKS + CAL_BLOCKS + 3 + CAL_BLOCKS + 5
+
+    def test_second_unstable_calibration_is_not_retried_again(self, monkeypatch, with_fake_key):
+        noisy = [quiet_block(), _int16_block(3000), quiet_block(), quiet_block(), quiet_block()]
+        _install_sd(monkeypatch, blocks=self._blocks(list(noisy), list(noisy), [quiet_block()] * 100))
+        voice.record()
+        cap = voice._last_capture
+        assert cap["calibration_retries"] == voice.CALIBRATION_RETRIES_MAX == 1  # 두 번째 보정도 불안정하지만 더 재보정하지 않는다
+        assert cap["calibration_unstable"] is True and cap["calibration_still_unstable"] is True
+        assert cap["calibration_max"] == 3000 and cap["noise_floor"] == 0
+
+    def test_steady_noise_is_not_unstable(self, monkeypatch, with_fake_key):
+        _install_sd(monkeypatch, blocks=calibration(800) + [_int16_block(800)] * 100)
+        voice.record()
+        cap = voice._last_capture
+        assert cap["calibration_unstable"] is False and cap["calibration_retries"] == 0
+        assert cap["calibration_min"] == cap["calibration_median"] == cap["calibration_max"] == 800
+
+    def test_timeline_and_stream_timestamps_are_recorded(self, monkeypatch, with_fake_key):
+        _install_sd(monkeypatch, blocks=calibration() + [loud_block()] * 5 + [quiet_block()] * 20)
+        seen = []
+        voice.record(on_ready=lambda: seen.append("ready"))
+        cap = voice._last_capture
+        assert seen == ["ready"]
+        assert set(cap["timeline"]) == {"warmup_done", "calibration_done", "on_ready"}
+        assert cap["timeline"]["warmup_done"] <= cap["timeline"]["calibration_done"] <= cap["timeline"]["on_ready"]
+        assert cap["stream_opened_at"] <= cap["stream_closed_at"]

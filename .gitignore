@@ -21,3 +21,4 @@ data/raw/
 # Large local recordings
 *.webm
 *.mp4
+reports/

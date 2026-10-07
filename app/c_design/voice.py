@@ -102,6 +102,9 @@ STT_PROMPT = "의자, 벤치, 소파, 스툴, 만들어줘, 만들고 싶어"
 PROMPT_ECHO_MIN_ITEMS = 3  # 결과에 힌트 항목이 이만큼 이상 들어 있으면 힌트 되풀이로 본다
 MIN_CLIP_SECONDS = 2.0  # 이보다 짧은 클립은 무음 패딩해 이 길이로 보낸다
 PAD_FRONT_SECONDS = 0.3  # 패딩 중 앞쪽 무음(나머지는 뒤쪽)
+CALIBRATION_RETRY_DELAY_SECONDS = 0.3  # 보정 구간에 발화·순간 잡음이 섞였을 때 한 번만 다시 보정하기 전 버리는 길이
+CALIBRATION_RETRIES_MAX = 1  # 재보정은 녹음 한 번당 최대 1회(무한 재보정 금지)
+WEAK_INPUT_PEAK = 4000  # 보낸 WAV의 peak가 이보다 작으면 "입력이 약함" 표시(STT 결과는 바꾸지 않음)
 NO_SPEECH_REJECT = 0.8  # 모든 segment의 no_speech_prob가 이 이상이면 발화 없음(짧은 정상 "2번"도 0.55라 보수적으로 둔다)
 DEBUG_DIR_ENV = "C_VOICE_DEBUG_DIR"  # 설정 시에만 STT 입력 WAV·통계를 남긴다(기본 off)
 POST_SPEAK_DELAY = 0.5  # 0.2-1.0: 재생이 끝난 뒤 방·스피커 잔향이 가라앉을 시간을
@@ -188,6 +191,14 @@ def _to_pcm_bytes(frames, np):
     return audio.astype("<i2").tobytes()  # little-endian int16 고정
 
 
+def _calibration_unstable(calibration, np):
+    """보정 블록 중 하나라도 발화 수준(RMS_THRESHOLD_MIN 이상이고 중앙값의 NOISE_MULTIPLIER배 이상)이면 True."""
+    if not calibration:
+        return False
+    median = float(np.median(calibration))
+    return float(max(calibration)) >= max(RMS_THRESHOLD_MIN, median * NOISE_MULTIPLIER)
+
+
 def _blocks(seconds):
     return int(round(seconds / BLOCK_SECONDS))
 
@@ -201,18 +212,44 @@ def _capture(stream, blocksize, np, on_ready=None):
 
     통계의 reason은 b""인 이유(no_speech_detected / too_short / weak_input), capture_seconds는 보정 뒤 읽은 길이.
     """
+    started = time.monotonic()
+    timeline = {}
     for _ in range(_blocks(WARMUP_SECONDS)):
         stream.read(blocksize)  # warm-up: 버린다
-    calibration = [_rms(stream.read(blocksize)[0], np) for _ in range(_blocks(NOISE_CALIBRATION_SECONDS))]
+    timeline["warmup_done"] = round(time.monotonic() - started, 3)
+
+    def calibrate():
+        return [_rms(stream.read(blocksize)[0], np) for _ in range(_blocks(NOISE_CALIBRATION_SECONDS))]
+
+    calibration = calibrate()
+    retries = 0
+    # 보정 블록 하나가 발화 수준(최소 게이트 이상이면서 중앙값의 NOISE_MULTIPLIER배 이상)이면 발화·순간 잡음이 섞인 것이다.
+    # 그대로 두면 threshold가 발화 크기의 배수로 올라가 뒤따르는 발화를 놓친다(2026-10-07 실측: floor 351 → threshold 1054,
+    # voiced 0.1 s). CALIBRATION_RETRY_DELAY_SECONDS를 버리고 최대 CALIBRATION_RETRIES_MAX회만 다시 보정한다.
+    unstable = _calibration_unstable(calibration, np)
+    first_calibration = list(calibration)
+    while unstable and retries < CALIBRATION_RETRIES_MAX:
+        for _ in range(_blocks(CALIBRATION_RETRY_DELAY_SECONDS)):
+            stream.read(blocksize)
+        calibration = calibrate()
+        retries += 1
+        unstable = _calibration_unstable(calibration, np)
     noise_floor = float(np.median(calibration)) if calibration else 0.0
     threshold = max(RMS_THRESHOLD_MIN, noise_floor * NOISE_MULTIPLIER)
+    timeline["calibration_done"] = round(time.monotonic() - started, 3)
     stats = {"noise_floor": round(noise_floor, 1), "threshold": round(threshold, 1),
-             "voiced_seconds": 0.0, "trimmed_seconds": 0.0, "reason": None, "capture_seconds": 0.0}
+             "voiced_seconds": 0.0, "trimmed_seconds": 0.0, "reason": None, "capture_seconds": 0.0,
+             "calibration_min": round(float(min(calibration)), 1) if calibration else 0.0,
+             "calibration_median": round(noise_floor, 1),
+             "calibration_max": round(float(max(calibration)), 1) if calibration else 0.0,
+             "calibration_unstable": bool(_calibration_unstable(first_calibration, np)),  # 첫 보정이 오염됐었는지
+             "calibration_retries": retries, "calibration_still_unstable": bool(unstable), "timeline": timeline}
     if on_ready is not None:
         try:
             on_ready()
         except Exception as exc:  # noqa: BLE001 - 호출자 콜백 예외는 record()에서 그대로 다시 던진다
             raise _ReadyCallbackError() from exc
+    timeline["on_ready"] = round(time.monotonic() - started, 3)
 
     pre_roll = deque(maxlen=_blocks(PRE_ROLL_SECONDS))
     first = None
@@ -272,7 +309,10 @@ def record(on_ready=None):
         np = _numpy()
         blocksize = int(SAMPLE_RATE * BLOCK_SECONDS)
         with sd.InputStream(samplerate=SAMPLE_RATE, channels=1, dtype="int16", blocksize=blocksize) as stream:
+            opened_at = time.strftime("%H:%M:%S") + f".{int(time.time() * 1000) % 1000:03d}"
             pcm, _last_capture = _capture(stream, blocksize, np, on_ready)
+            _last_capture["stream_opened_at"] = opened_at
+        _last_capture["stream_closed_at"] = time.strftime("%H:%M:%S") + f".{int(time.time() * 1000) % 1000:03d}"
     except _ReadyCallbackError as exc:
         raise exc.__cause__
     except Exception as exc:  # noqa: BLE001 - 이 I/O 경계에서만 폭넓게 잡는다
@@ -322,6 +362,7 @@ def _dump_no_stt(debug_dir, capture):
         "stt_called": False, "reason": capture.get("reason"),
         "noise_floor": capture.get("noise_floor"), "threshold": capture.get("threshold"),
         "voiced_seconds": capture.get("voiced_seconds"), "duration": capture.get("capture_seconds"),
+        "calibration_unstable": capture.get("calibration_unstable"), "calibration_retries": capture.get("calibration_retries"),
     })
     try:
         os.remove(os.path.join(debug_dir, "latest_input.wav"))
@@ -329,16 +370,21 @@ def _dump_no_stt(debug_dir, capture):
         pass
 
 
-def _mark_debug_reason(debug_dir, reason):
-    """STT 응답이 발화 없음으로 판정되면 이미 쓴 json의 reason만 바꾼다."""
+def _update_debug_json(debug_dir, **fields):
+    """이미 쓴 latest_input.json에 필드를 덧붙인다(없으면 무시)."""
     path = os.path.join(debug_dir, "latest_input.json")
     try:
         with open(path, encoding="utf-8") as handle:
             info = json.load(handle)
     except (OSError, ValueError):
         return
-    info["reason"] = reason
+    info.update(fields)
     _write_debug_json(debug_dir, info)
+
+
+def _mark_debug_reason(debug_dir, reason):
+    """STT 응답이 발화 없음으로 판정되면 이미 쓴 json의 reason만 바꾼다."""
+    _update_debug_json(debug_dir, reason=reason)
 
 
 def _dump_debug(debug_dir, wav, pcm):
@@ -353,8 +399,10 @@ def _dump_debug(debug_dir, wav, pcm):
         "sample_rate": SAMPLE_RATE, "channels": 1, "duration": round(count / SAMPLE_RATE, 3),
         "rms": round((sum(v * v for v in samples) / count) ** 0.5, 1) if count else 0.0,
         "peak": max((abs(v) for v in samples), default=0),
+        "weak_input": (max((abs(v) for v in samples), default=0) < WEAK_INPUT_PEAK),
         "noise_floor": capture.get("noise_floor"), "threshold": capture.get("threshold"),
         "voiced_seconds": capture.get("voiced_seconds"), "trimmed_seconds": capture.get("trimmed_seconds"),
+        "calibration_unstable": capture.get("calibration_unstable"), "calibration_retries": capture.get("calibration_retries"),
         "stt_called": True, "reason": None,
     }
     try:
@@ -419,6 +467,10 @@ def transcribe(pcm):
     except (ValueError, KeyError, TypeError):
         _set_error("bad_response", "STT response missing text")
         return None
+    if debug_dir:
+        segments = data.get("segments")
+        _update_debug_json(debug_dir, whisper_text=text,
+                           no_speech_probs=[seg.get("no_speech_prob") for seg in segments if isinstance(seg, dict)] if isinstance(segments, list) else None)
     if _all_no_speech(data.get("segments"), text if isinstance(text, str) else ""):
         _set_error("stt_no_speech", f"no segment below no_speech_prob {NO_SPEECH_REJECT}; treated as no speech")
         if debug_dir:
