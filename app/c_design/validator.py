@@ -12,8 +12,8 @@
     - orientation_deg: 2x3x1은 0(X 2 / Y 3 stud) 또는 90(X 3 / Y 2 stud), 2x2x1은 0
     - Board 범위, overlap, support, connectivity
     - support 규칙 "바로 아래 layer와 겹치는 stud 합계 2 이상(아래 Block 개수 무관,
-      같은 stud 중복 합산 없음)"은 세은(A)과 확인할 C 후보 기준이며 팀 공용 확정값이
-      아니다(재협의 가능)
+      같은 stud 중복 합산 없음)"은 2026-10-06 A 동의·D 회신으로 통일한 Day4
+      기하 기준이다. 실제 체결·물리 안정성 검증을 의미하지 않는다.
     - Design은 정확히 {design_version, blocks} 두 key만 허용(§2). 다른 top-level
       key는 unknown_key
     - 조립된 Block 보존(Revised): current에 있는 각 Block의 6값 조합이 candidate의
@@ -46,7 +46,7 @@ BRICK_TYPES = {"2x2x1", "2x3x1"}
 BOARD_RANGE = range(0, 24)
 MAX_LAYER = 4
 MAX_BLOCKS = 20
-# 세은(A)과 확인할 C 후보 기준(팀 공용 확정값 아님).
+# 2026-10-06 A 동의·D 회신으로 통일한 Day4 기하 기준(물리 안정성 검증 아님).
 MIN_SUPPORT_STUDS = 2
 
 
