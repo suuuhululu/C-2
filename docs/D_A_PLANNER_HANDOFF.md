@@ -1,5 +1,7 @@
 # D → A Planner 연결 — 2026-10-06
 
+> 2026-10-07 적용: 현재 제품 목표는 [최종 MVP](10_FINAL_MVP.md)입니다. 아래는 기존 A PLACE 순서/Remaining/Replan과 D 연결 기록입니다. 최종 요구의 경로 생성·조립판 직접 결착은 이 Plan 출력만으로 구현되지 않습니다. 경로 생산자·인계·유효성 계약은 별도 합의 대상입니다. 기존 원본 코드·시험 수치는 보존합니다.
+
 세은의 `a_manual_execution.tar.gz` 로그·입출력·검증 기록을 확인하고, 원격 `work/seeun-planning`의 **f9b841c8f090b0b25c30ab27459781ad2017fd9e**에서 planning_trial 폴더를 가져왔다. Planner 소스 SHA-256은 첨부 기록의 `0f96d24b8fad195185b68c9c520976b3c97d91aa179fcd91382426772f2e7835`와 일치한다. A 코드는 수정하지 않았다. 수현 브랜치 `work/suhyun-hmi-backend-robot-db`와 기존 미커밋 변경을 보존했다. 이 기록 작성 당시에는 게시하지 않았으며, 이번 PR에서 A–D 연결을 게시한다. main 병합은 수행하지 않는다.
 
 ## 구현과 범위

@@ -1,5 +1,13 @@
 # C Design 계약
 
+## 최종 MVP Design 이행 (2026-10-07)
+
+[최종 MVP](10_FINAL_MVP.md)는 LLM/사용자가 커스텀 의자를 대화로 디자인하고 **사용자가 설계를 확정한 뒤** 조립 순서/경로를 생성합니다. 아래 공개 함수·Schema·여섯 배치 필드는 기존 C 구현 계약입니다. `create_initial_design`의 후보 반환만으로 사용자의 설계 확정·Robot 시작을 표시하지 않습니다.
+
+요구 구체화·후보/확정·취소/실패와 Design 버전의 연결은 새 이행 계약이 필요합니다. C는 Design/HRI를 제공하며 joint/TCP/힘·MotionPlan을 생성하지 않습니다. 연구 첨부의 Assembly Planner 역할 재배정은 아직 합의 대상입니다. 사용자별 저장에는 채택 Design과 사용자–Job 연결이 필요하며 C가 DB 완료·전체 조립 완료를 단독 선언하지 않습니다. 기존 두 stud 검사는 지지 위험·실제 안정성의 대체물이 아닙니다.
+
+## 기존 C 공개 계약
+
 상태: **확정 (2026-10-05 사용자 승인, WAVE 1) · Day4 공용 계약 정렬 (2026-10-06).** 시율(C) 파트의 공개 함수·입출력·Design 형식·검증·실패 반환을 정의합니다. 경계 형식과 의미는 [Day4 공통 인터페이스 계약](06_CONTRACT_DRAFT.md)(main), C·B·Backend 연결 합의(PR #6 `docs/09_C_B_BACKEND_HANDOFF.md`)와 2026-10-06 Slack 합의를 따르며, 이 문서는 C 쪽 생산·소비 규칙을 구체화합니다. 팀 공용 Owner는 [00_CURRENT_DECISIONS.md](00_CURRENT_DECISIONS.md)를 봅니다. 연결 담당 확인 항목은 [§11](#11-연결-담당-확인-항목)에 분리했습니다. 구조와 파일 책임은 [C_DESIGN_STRUCTURE.md](C_DESIGN_STRUCTURE.md), 진행 상황은 [C_DESIGN_PROGRESS.md](C_DESIGN_PROGRESS.md)를 봅니다.
 
 ## 1. 용어

@@ -1,5 +1,7 @@
 # 수현 Robot 0~5단계 — Fake 연결·실제 한 블록 시험 준비
 
+> 2026-10-07 적용: 현재 제품 목표는 [최종 MVP](10_FINAL_MVP.md)입니다. 아래 Controller/CLI 설계·실기 준비·측정은 기존 place board 전달용입니다. 최종 목표의 공급판→assembly board 직접 결착은 새로운 경로/접촉/삽입·지원 계약과 검증이 필요합니다. 종류·색상 전달 goal, 기존 pose/TCP/속도·STOP 3분기를 그대로 결착용으로 해석하지 않습니다.
+
 2026-10-06 최신 추가: 사용자가 노랑 4점 2번의 실제 전달/observe 복귀를 확인했고 HMI 연결 뒤 파랑 4점 5번을 바로 시험하며 검증하도록 지시했다. [단일 시험 HMI](../app/real_trial_hmi.py)는 기존 Backend/Qt와 실제 CLI를 QProcess로 연결한다. 창 열기는 조회만, 사람의 준비 확인/START가 실제 단일 전달이다. 파랑 측정 끝점을 원본 보간/경유 코드에 주입했고 40점 IK/FK·15개 메시지 변환·실제 QProcess 무이동 연결을 검사했다. 아래 이전 단계 기록과 구분하며 파랑 실기/STOP·재개/Camera/전체 Day4 REAL 완료로 확대하지 않는다. 구체 파일/범위/실제 로그와 검사는 [STATUS](STATUS.md), 실행법은 [안내](D_BACKEND_RUN_ROBOT_PLAN.md)다.
 
 새 REAL snapshot은 단일 전달 전용이며 기존 Fake 전체 조립 상태의 mode만 REAL로 바꿀 수 없다. 아직 실제 Plan/Observed를 연결하지 않아 Current/조립 진행을 변경하지 않는다. Controller가 공급 슬롯을 소유하며 Backend가 Job/실행과 로그를 연결한다. QObject Controller 1개와 기존 QProcess만 추가했다. 활성 이동 프로세스를 UI 종료로 취소하거나 STOP ACK/프로세스 종료를 실제 정지로 해석하지 않는다. 실제 STOP/재개는 미검증으로 UI에서 차단하고 현장 비상정지 장치를 사용한다.

@@ -1,91 +1,49 @@
 # Git·PR·버전·협업 문서 관리
 
-레포: https://github.com/suuuhululu/C-2.git · 로컬: /home/ms-02/C_2.
-2026-10-05 origin/main에는 기존 문서와 C skeleton 및 PR #2 / #3 변경이 있습니다. 아래 빈 레포 설명은 최초 준비 당시 기록입니다. 현재는 최신 main 기반 별도 브랜치에서 작업하고 PR로 게시합니다. 기존 미커밋 변경과 이력을 보존합니다.
+갱신: 2026-10-07. 저장소는 [suuuhululu/C-2](https://github.com/suuuhululu/C-2), 지정 로컬 개발 위치는 `/home/ms-02/C_2`입니다. 자료 폴더 `/home/ms-02/C-2_협동2자료`와 별도 저장소의 구현·검증 상태를 동일하게 취급하지 않습니다.
 
-## 빈 레포의 최초 PR
+## 작업과 게시
 
-비교 기준 브랜치가 없으므로 현재 상태로는 바로 PR을 열 수 없습니다. 최소 기반 커밋과 문서 변경 커밋을 분리해 준비합니다.
+- 지정 개발 checkout의 `work/suhyun-hmi-backend-robot-db`와 미완료 변경을 유지합니다. 최신 main 기반 별도 문서 작업 공간으로 이번 최종 MVP PR을 준비합니다.
+- 변경 범위를 먼저 확인하고 이번 작업 파일만 commit/push/PR에 포함합니다. 전체 add·되돌리기·force push를 사용하지 않습니다.
+- 사용자는 이번 문서 갱신과 PR 생성을 요청했습니다. merge는 별도 요청이며 AI 확인은 사람 리뷰를 대체하지 않습니다. [팀장 리뷰 정책](../GITHUB_REVIEW_SETUP.md)을 확인합니다.
+- 기존 저장소에는 앱·Schema·Fixture·pytest와 DB 적재/조회 코드가 있습니다. CI·lint/type 설정은 미구성이며 이번 문서 작업에서 새 도구를 설치하지 않습니다.
+- 코드 변경은 관련 시험, 문서 변경은 링크·표·코드 블록·결정 정합성·diff를 검증합니다. 문서 검사만으로 앱·DB·웹·실제 Camera/Robot 통과를 표시하지 않습니다.
 
-- 로컬 `bootstrap/pr-base`: 기존 .gitignore만 포함하는 최소 기반 커밋.
-- 로컬 `docs/latest-decisions-collaboration`: 기반 위에 최신 문서·참고 원본·협업 템플릿을 담는 변경.
-- 변경 설명과 검증 결과를 사용자에게 전달한 뒤 원격 초기 게시·PR 생성 단계로 진행.
+## 제품 목표와 버전
 
-아래는 게시 단계의 예시이며 이 가이드 작성이 push를 실행한 것은 아닙니다. 게시 직전 원격에 새 커밋이 생겼는지 다시 확인합니다. 원격 main이 생겼으면 기존 이력을 먼저 받아 비교하고 강제 push하지 않습니다.
+현재 제품 목표는 [최종 MVP](10_FINAL_MVP.md)입니다. 이전 전달형 Day4·사람 조립·Qt·JSONL 계약은 기존 코드와 시험의 기준으로 보존합니다. 최종 목표는 커스텀 의자 대화/확정·조립 순서/경로·직접 결착·사람 지지·최종 Vision/Backend 판정·사용자별 DB/웹입니다.
 
-```bash
-git ls-remote --heads origin
-git push origin bootstrap/pr-base:main
-git push -u origin docs/latest-decisions-collaboration
-```
+기본 실행 복구 기준은 [D_RUNTIME_BASELINE.md](D_RUNTIME_BASELINE.md)를 따릅니다. 그 버전은 전달 공정이며 최종 직접 결착 시연 증거가 아닙니다. Day4/final 소스를 통째로 복사해 별도로 유지하기보다 계약·검증 범위를 명시한 커밋/태그를 사용하는 기존 제안을 유지합니다. 최종 시연 태그는 해당 장치·전체 서비스 검증 후 정하며 이번 문서 PR에서 생성하지 않습니다.
 
-이후 GitHub에서 base=main, compare=docs/latest-decisions-collaboration의 Draft PR을 만들 수 있습니다. PR 제목·본문은 이번 작업의 검토 결과로 준비합니다. 팀원 초대·권한·브랜치 보호·Merge는 별도 작업입니다.
-
-## 일상 개발
-
-main → feature/작은-작업 → PR → 작성자 외 사람 리뷰 → Merge를 기본 제안으로 합니다. 장기 dev 브랜치는 팀 필요가 확인될 때 도입합니다. 공유 계약은 통합 책임자·연결 담당 리뷰, Robot / 정지 변경은 Robot Owner와 다른 사람의 리뷰를 받습니다.
-
-현재 앱·테스트·CI는 없습니다. 코드가 추가되면 pytest·계약·Mock 통합 검증을 PR CI에 연결합니다. 문서 확인을 시스템 테스트 통과로 표시하지 않으며 GitHub CI에서 REAL Robot을 움직이지 않습니다.
-
-## Day 4 코드와 최종 코드 보존
-
-권장 운영은 **같은 모듈 코드 + 검증된 버전 태그**입니다. Day 4 시연 커밋을 고정하고 이후 feature에서 최종 버전을 확장합니다. 별도 day4 / final 소스 복사본을 동시에 관리하면 수정과 계약이 서로 달라질 수 있습니다.
-
-| 시점 | 보존할 버전 | 조건 |
-|---|---|---|
-| Day 4 | `day4-mvp` 태그 | 실제 시연·설정·지원 범위·시험 결과를 확인한 커밋 |
-| 최종 발표 | `final-demo` 태그 | 최종 시나리오·장치·실행 절차를 검증한 커밋 |
-| Day 4 유지보수 | 필요 시 Day 4 태그 기반 수정 브랜치 | 최종 기능 변경과 구분하고 수정 태그·증거 기록 |
-
-태그명은 운영 제안이며 이번 문서 작업에서 태그를 만들지 않습니다. Day 4 기능은 최신 결정의 최초 생성·전달 / 사람 조립·관측·Intervention이며, 최종 추가 범위는 Day 4 이후 팀이 정합니다.
-
-각 버전에는 Design·설정 / Calibration 버전·입출력 계약·Python / ROS / driver 정보·실행 방법·시험 / 미검증을 함께 기록합니다. 기능 선택이 필요하면 확정된 설정으로 표현하고 core 곳곳에 Day 번호 분기를 넣지 않습니다. 공유 계약 변경 시 버전·생산자 / 소비자 영향과 migration을 PR에 적습니다.
+각 버전에는 Design·Config/Calibration·입출력 계약·환경·실행 방법·실제 검사와 미검증을 연결합니다. 계약 변경 PR은 생산자/소비자 영향·이행 순서·실패 반환·검증을 포함합니다.
 
 ## 현재 저장소 구조
 
-아래는 최초 문서 준비 당시 구조이며 현재 원격에는 C skeleton과 C 구조 / 진행 문서도 있습니다. 실제 파일 목록은 Git 트리를 확인합니다.
-
 ```text
 C-2/
-├── README.md
-├── AGENTS.md / AGENT.md
-├── .gitignore
-├── .github/
-│   ├── pull_request_template.md
-│   └── ISSUE_TEMPLATE/team_task.md
+├── README.md / AGENTS.md / CODEOWNERS / GITHUB_REVIEW_SETUP.md
+├── app/                 # C Design·D Backend/Qt·기존 Robot 실행 연결
+├── planning_trial/      # A PLACE 순서·Remaining/Replan과 검사
+├── interfaces/          # 기존 Day4/HMI Schema·Fixture·실기 설정
+├── history/             # 독립 PostgreSQL 적재/조회·계정·로그 Schema
+├── compose.history.yaml / Dockerfile.history / requirements-history.txt
+├── tests/ / scripts/    # 독립·모의 연결·실행 검증 도구
 └── docs/
-    ├── 00_CURRENT_DECISIONS.md
-    ├── 01_DAY_PLAN.md
-    ├── 02_TEAM_GUIDE.md
-    ├── 03_MEASUREMENT_GUIDE.md
-    ├── 04_ISAAC_SIM.md
-    ├── 05_REPOSITORY_GUIDE.md
-    ├── 06_CONTRACT_DRAFT.md
-    ├── STATUS.md
-    └── reference/                 # 원본 정책·기존 계획·GT
+    ├── 00_CURRENT_DECISIONS.md / STATUS.md
+    ├── 10_FINAL_MVP.md
+    ├── suhyun_individual_research_topic.md
+    ├── 01_DAY_PLAN.md / 02_TEAM_GUIDE.md / 06_CONTRACT_DRAFT.md
+    ├── C_*.md / D_*.md  # 구현·실행·시험 범위
+    └── reference/       # 원본 정책·과거 계획·GT와 적용 안내
 ```
 
-문서 배치는 이번 PR의 검토안입니다. 코드 파일·공통 Schema·Fixture·설정의 정확한 위치는 아래 제안과 연결 담당자 확인을 거쳐 정합니다.
+이 구조는 main `95259bd`의 게시 파일과 이번 문서 추가를 기준으로 합니다. 직접 결착/지원·사용자별 웹 모듈을 이미 만든 것으로 표시하지 않습니다. 경로/웹 담당·HMI와 웹앱 분담·새 패키지/Schema/통신은 합의 후 구현합니다. 문서 때문에 파일 이동·framework·dependency를 추가하지 않습니다.
 
-## 코드 구조 초안
+## 문서·자료 관리
 
-아래는 초기 구조 제안이며 C는 현재 app/c_design/의 승인된 skeleton을 유지합니다. 이번 계약 갱신으로 파일 이동·전체 runtime 생성·dependency 도입을 실행하지 않습니다.
+[최신 결정](00_CURRENT_DECISIONS.md)과 [최종 MVP](10_FINAL_MVP.md)에 개발 중 변경의 날짜·이유·영향을 기록합니다. 세부 요구는 최종 MVP에 모으고 기존 계약/실행/시험 문서에는 해당 구현 범위를 표시합니다. 첨부 연구의 원문과 제품 적용 안내를 구분합니다.
 
-```text
-app/
-  design.py       # 시율 Initial / Revised·HRI 계산
-  planning.py     # 세은 사람 조립 Plan / Validation
-  perception.py   # 홍동 이미지 → Observed
-  workflow.py     # 수현 Current / Expected·진행·비교
-  robot.py        # 수현 전달·슬롯·실행 상태
-  adapters/       # 실제 Camera / Robot / LLM / HMI 연결, 필요 파일만
-tests/            # unit·contract·mock integration, 구현 시 추가
-```
+`docs/reference/`의 정책·과거 계획·GT 원문은 보존하며 [적용 안내](reference/README.md)를 함께 봅니다. 과거 시험 수치·실제 측정값·실패 기록을 새 목표에 맞춰 바꾸지 않습니다. GitHub에 없는 로컬 final_docs·발표 초안은 이번 게시 문서 갱신에 섞지 않습니다.
 
-HMI는 Qt 단일 화면으로 결정되었습니다. 공통 Schema 위치·정확한 패키지·Qt 바인딩은 연결 담당자가 구현에서 맞춥니다. 사용하지 않는 추상계층·DB·서비스를 미리 생성하지 않습니다.
-
-## 문서·자료·비밀정보
-
-협업 Markdown은 docs에서 PR로 관리합니다. docs/reference 원본은 그대로 보존하고 현재 결정을 별도로 명시합니다. .env·secret·로컬 환경·빌드·로그는 Git 제외입니다. 실제 좌표 기록은 실행 설정과 분리합니다.
-
-사진·RGB-D·rosbag·USD·영상은 공개 범위·용량 확인 후 선별합니다. 현 레포에 이미지 파일은 없습니다. GT의 파일명은 원자료 참조입니다. 라이선스·팀원 권한은 사용자 또는 팀 결정 없이 추가하지 않습니다.
+.env·secret·로컬 환경·빌드·로그·DB 자료는 Git 제외입니다. 사진·RGB-D·rosbag·USD·영상은 공개 범위와 용량 확인 후 선별합니다. GT의 이미지 파일명은 원자료 참조이며 비밀번호·계정 seed·실제 DB 자료를 공개 문서에 추가하지 않습니다.

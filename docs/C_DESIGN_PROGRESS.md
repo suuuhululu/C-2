@@ -1,5 +1,13 @@
 # C Design 진행 현황
 
+## 최종 MVP와 기존 C 개발 기록 (2026-10-07)
+
+현재 제품 목표는 [최종 MVP](10_FINAL_MVP.md)입니다. 아래 100%·DONE·live 결과는 **기존 C의 당시 10개 개발 단계**에 대한 기록이며 새 최종 MVP 전체의 완료율이 아닙니다. 이번 문서 작업에서 재실행한 결과로도 사용하지 않습니다.
+
+커스텀 의자 요구 대화·명시적 사용자 확정·확정 이후 순서/경로 생성 시작과 Backend 채택의 연결은 최종 수용 검증 대상입니다. 직접 결착·지원·최종 Vision·사용자별 DB/웹은 C 기존 완료 단계로 환산하지 않습니다. 공개 코드/연결 상태는 [STATUS](STATUS.md)와 [C 통합 기록](D_C_FUNCTION_INTEGRATION.md)을 확인합니다. 아래 지지 확인 대기는 당시 기록이며 Day4 두 stud 합의와 최종 Support Risk 연구를 구분합니다.
+
+## 기존 진행 기록
+
 > 2026-10-06 Day4 Contract Sync 반영 완료(commit 3bf0c10): 공통 여섯 필드·Design {design_version, blocks}·KEEP / REVISE / UNCLEAR 적용. 상세는 [C_DESIGN_CONTRACT.md](C_DESIGN_CONTRACT.md).
 
 

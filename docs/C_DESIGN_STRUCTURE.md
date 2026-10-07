@@ -1,5 +1,13 @@
 # C Design 구조
 
+## 현재 코드와 최종 목표 (2026-10-07)
+
+main `95259bd`에는 app/c_design의 main/dialogue/designer/validator/llm/voice 함수 코드가 있습니다. 아래 skeleton·미구현 표기는 **초기 구조 설계 당시 상태**입니다. 이후 결과는 [C 진행 기록](C_DESIGN_PROGRESS.md)과 [통합 기록](D_C_FUNCTION_INTEGRATION.md)을 확인합니다.
+
+[최종 MVP](10_FINAL_MVP.md)의 커스텀 의자 대화·명시적 확정은 기존 모듈 책임에 맞춰 이행하되 새 상태·API·파일 이동을 이 문서에서 강제하지 않습니다. C의 Design 생성과 경로 생성·Backend 실행 허가를 분리합니다. 첨부 역할 재배정과 웹/HMI 분담은 미확정입니다.
+
+## 초기 구조 설계 기록
+
 > 2026-10-06 Day4 Contract Sync 반영 완료(commit 3bf0c10): 공통 여섯 필드·Design {design_version, blocks}·KEEP / REVISE / UNCLEAR 적용. 상세는 [C_DESIGN_CONTRACT.md](C_DESIGN_CONTRACT.md).
 
 
