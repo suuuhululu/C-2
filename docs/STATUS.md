@@ -11,6 +11,7 @@
 - **분리한 기존 제한:** C LLM의 `OPENAI_LLM_API_KEY`와 D 시험의 `OPENAI_API_KEY` 설정이 다릅니다. 해당 값 대신 시험 프로세스의 명시적 더미와 HTTP Fake만 사용한 10개 비교 검사도 전/후 각각 **3 passed, 7 failed, 1 teardown error**로 동일했습니다. 키 문제 뒤에는 최근 C metadata/judge 호출과 기존 D Fake의 호출 횟수 기대(1/2회)·대기 조건 불일치도 남습니다. Robot 관련 시험은 `/home/ms-02/C_2/...` 설정·외부 원본/측정 자료가 이 편집 PC에 없어 실패합니다. 별도 문제의 코드·장치/계정 설정은 수정하지 않았습니다.
 - **시험 환경:** 편집 Python 3.12.10 / pytest 9.1.1 / Qt offscreen. ROS `launch_testing`과 pytest 충돌로 이번 명령에서만 `PYTEST_DISABLE_PLUGIN_AUTOLOAD=1`을 사용했습니다. 기존 Schema 시험에 필요한 jsonschema 4.26.0을 `/tmp/c2-five-layer-test-deps`에만 준비하고 기존 ROS 환경 site-packages와 함께 PYTHONPATH로 지정했습니다. 저장소 dependency/framework 추가는 없습니다. 일반 검사는 OPENAI 세 key와 `HISTORY_TEST_DSN`을 child process에서 unset했고 실제 비밀값·LLM/Robot/ROS 제어를 사용하지 않았습니다.
 - **최종 확인/후속:** 변경 Python/JSON 파싱, Markdown 새 누락 상대 파일 링크 0, `git diff --check` 통과. lint/type/CI 미구성. 사람 리뷰와 실제 5층 Vision/직접 결착·30블록 실행 환경 검증, D LLM Fake 갱신과 외부 Robot 자료 경로 정합성이 후속입니다. 이전 시험 기록은 아래에 그대로 보존합니다.
+- **문서 전체 재점검:** 저장소 Markdown·작업 지침·Schema와 층 관련 코드/시험을 검색해 callback 예시 README의 현재 계약 누락을 1~5층으로 고쳤습니다. C/D 진행 기록에는 현재 범위 안내를 추가하고 과거의 4층 계약·시험 결과를 보존했습니다. 기존 1~4층 Fixture·고정 예시·Qt 회귀 시험·A 원본 해시 비교는 당시 자료 또는 유효한 하위 범위 사례입니다. Day1~4는 일정, 공급열/시작 슬롯 1~4와 REAL 최대 24 Step은 장치 시험 한계, Schema의 width/height 최대 24는 판 크기이므로 층 상한 변경 대상이 아닙니다. 실제 Vision/직접 결착의 5층 성능은 미검증입니다.
 
 전체 실행 명령(원격·실기 연결 없음):
 
