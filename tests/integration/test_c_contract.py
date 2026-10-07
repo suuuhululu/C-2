@@ -8,7 +8,7 @@ own internals:
     block_id anywhere; extra D-only fields on Current blocks (confidence,
     observation_seq, check_id) and on Difference items are read and ignored.
   - C -> D (§4, §6, §10): the result envelope
-    {"status", "hri_result", "design", "questions", "error"} for every
+    {"status", "hri_result", "design", "design_metadata", "questions", "error"} for every
     documented outcome - Initial OK, KEEP, REVISE, UNCLEAR, FAILED
     (INVALID_INPUT / UNSUPPORTED_OBJECT / VOICE_IO_FAILED) and CANCELLED
     (STOPPED / USER_CANCEL) - with every error.code restricted to the allowed
@@ -98,7 +98,7 @@ def assert_no_forbidden_keys(value, path="design"):
 
 def assert_envelope_shape(result):
     """§6: the result envelope shape, shared by both public functions."""
-    assert set(result.keys()) == {"status", "hri_result", "design", "questions", "error"}
+    assert set(result.keys()) == {"status", "hri_result", "design", "design_metadata", "questions", "error"}
     assert result["status"] in {"OK", "FAILED", "CANCELLED"}
     assert result["hri_result"] in {"KEEP", "REVISE", "UNCLEAR", None}
     assert isinstance(result["questions"], list)

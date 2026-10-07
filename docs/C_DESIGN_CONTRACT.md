@@ -41,7 +41,7 @@ C 문서·코드·Fixture·테스트는 아래 팀 공용 용어만 씁니다. C
 | `color` | `yellow`, `blue` | 소문자 |
 | `x` | 정수 0~23 | 24×24 Board stud 좌표, footprint의 최소 x 모서리. Robot mm·TCP 좌표 아님 |
 | `y` | 정수 0~23 | footprint의 최소 y 모서리 |
-| `layer` | 정수 1~4 | 1층이 판 위 첫 층 |
+| `layer` | 정수 1~5 | 1층이 판 위 첫 층(최대 5층: 2026-10-06 팀장 결정) |
 | `orientation_deg` | `2x3x1`: 0 또는 90 / `2x2x1`: 0 | 0 = X 2 stud · Y 3 stud, 90 = X 3 stud · Y 2 stud |
 
 - footprint 전체가 0~23 안에 있어야 합니다(예: `2x3x1` 0도 `x = 23`은 범위 초과).
@@ -55,7 +55,7 @@ Design은 정확히 두 키를 가집니다. 그 외 키(`design_id`, 부모 버
 | 필드 | 타입 | 의미 |
 |---|---|---|
 | `design_version` | int ≥ 1 | C 발급. Initial = 1, 전체 목표 배치가 실제로 바뀔 때만 +1 (§8.2) |
-| `blocks` | 블록 배열, 1~20개 | 최종 목표 전체. 배열 순서는 의미 없음. 조립 순서는 A가 결정 |
+| `blocks` | 블록 배열, 1~30개(2026-10-07 사용자 승인, 20 → 30) | 최종 목표 전체. 배열 순서는 의미 없음. 조립 순서는 A가 결정 |
 
 ```json
 {
@@ -66,7 +66,7 @@ Design은 정확히 두 키를 가집니다. 그 외 키(`design_id`, 부모 버
 }
 ```
 
-생성 경로(MOCK / LLM) 같은 진단 정보는 Design 밖에 둡니다(§6).
+생성 경로(MOCK / LLM) 같은 진단 정보와 설계 이름·설명은 Design 밖, envelope의 `design_metadata`에 둡니다(§6.1). layer 1~5·블록 수 1~30은 validator 상수(`MAX_LAYER`, `MAX_BLOCKS`)이며 LLM 프롬프트의 Rules 줄도 이 상수를 그대로 씁니다(Initial 프롬프트의 "blocks: 1..30"도 이 상수에서 나옴).
 
 ### 3.3 Initial Design 배치
 
@@ -88,6 +88,16 @@ Design은 정확히 두 키를 가집니다. 그 외 키(`design_id`, 부모 버
 외부 모듈은 이 두 함수만 호출합니다. 두 함수 모두 예외를 밖으로 던지지 않고 §6의 결과 dict를 반환합니다. 후보 하나의 검증 탈락은 곧바로 Job 실패가 아니며 C 내부에서 **유한하게** 재생성합니다(§8.10). 실제 `main` 구현은 WAVE 4입니다.
 
 실제 LLM 사용 여부는 호출 환경의 `C_DESIGN_USE_LLM=1`로 정하며 기본은 Mock입니다.
+
+외부 provider key는 용도별 환경 변수 3개로 나누며 서로 대체하지 않습니다. 값은 호출 시점에만 읽고 출력·기록하지 않습니다.
+
+| 환경 변수 | 용도 | 읽는 곳 |
+|---|---|---|
+| `OPENAI_LLM_API_KEY` | LLM Design 생성(Chat Completions) | `llm.py` (`LLM_KEY_ENV`) |
+| `OPENAI_API_KEY` | STT (`whisper-1`) | `voice.py` (`STT_KEY_ENV`) |
+| `OPENAI_TTS_API_KEY` | TTS (`tts-1`) | `voice.py` (`TTS_KEY_ENV`) |
+
+LLM 모델은 `OPENAI_MODEL`(기본 `DEFAULT_MODEL`)입니다. 모델명이 reasoning 계열(`gpt-6`, `gpt-5`, `o1`, `o3`, `o4`로 시작)이면 요청에 `max_completion_tokens`(8000)와 `reasoning_effort`(medium)를 쓰고 `temperature`·`max_tokens`를 보내지 않습니다. 그 밖의 모델(gpt-4o 등)은 `temperature`·`max_tokens`를 씁니다. 따라서 Revised 재생성 temperature(0.3)는 reasoning 모델에서는 적용되지 않습니다. system prompt는 Initial(예시 설계 없이 넓은 의미의 앉는 가구)과 Revised(의자 형태 목표 + 검증 통과 예시)를 따로 씁니다.
 
 ### 4.1 `create_initial_design(text=None, should_stop=None)`
 
@@ -131,7 +141,7 @@ Day4에는 시간 기준 자동 취소·자동 KEEP·임의 종료가 없습니�
 | 명시적 취소 발화 | `CANCELLED` / `USER_CANCEL` |
 | 장치·엔진 실패 | 무응답이 아님. 녹음 장치·STT 실패는 §10에 따라 `VOICE_IO_FAILED` |
 
-음성 I/O(`voice`, WAVE 6)는 순차로 동작합니다. `speak`는 TTS 재생이 끝나고 짧은 지연(기본 0.5초)을 기다린 뒤 돌아오며, 그 뒤에야 `listen`이 마이크 입력을 엽니다(질문 음성을 답으로 다시 인식하지 않음). `listen` 1회는 소리 크기(RMS) 기준으로 발화 시작을 기다리고(기본 최대 8초), 발화 끝 무음(기본 1초) 또는 최대 길이(기본 10초)에서 녹음을 끝냅니다. 발화가 없으면 STT를 호출하지 않고 빈 문자열을 돌려줍니다(무음에서 STT가 문장을 지어내는 것을 막음). 장치·STT 실패는 `None`입니다. 수치는 `voice` 모듈 상수입니다. 별도 thread·watchdog 없이 `main` 대화 루프에서 `should_stop`을 확인합니다. 텍스트 모드에는 대기가 없습니다.
+음성 I/O(`voice`, WAVE 6)는 순차로 동작합니다. `speak`는 TTS 재생이 끝나고 짧은 지연(기본 0.5초)을 기다린 뒤 돌아오며, 그 뒤에야 `listen`이 마이크 입력을 엽니다(질문 음성을 답으로 다시 인식하지 않음). `listen` 1회는 소리 크기(RMS) 기준으로 발화를 판정합니다. 스트림을 연 직후 0.2초는 버리고(warm-up: open 직후 레벨 변화·직전 재생 잔향 제외) 그다음 0.5초 동안 방 소음(noise floor, 블록 RMS 중앙값)을 재고, 판정 기준을 max(600, noise floor × 3)으로 정합니다(적응형 임계값: 방 소음이 커도 소음을 발화로 오인하지 않음). 그다음 발화 시작을 기다리고(기본 최대 8초), 발화 직전 0.3초를 앞에 붙여(첫 음절 보존) 발화 끝 무음(기본 1초) 또는 발화 시작부터 최대 길이(기본 10초)에서 녹음을 끝냅니다. 앞뒤 무음은 0.2초만 남기고 잘라 냅니다. 발화가 없거나, 발화로 판정된 길이가 0.2초 미만이거나, 잘라 낸 녹음 전체가 기준의 절반보다 약하면 STT를 호출하지 않고 빈 문자열을 돌려줍니다(무음·소음에서 STT가 자막형 문장을 지어내는 것을 막음). 2초보다 짧은 녹음은 앞 0.3초·뒤 나머지를 무음으로 채워 2초로 보냅니다(1초 미만 클립은 whisper 환각이 잦음). STT 요청에는 `language=ko`와 도메인 어휘 힌트(`prompt`: 의자·벤치·소파·스툴·만들어줘·만들고 싶어)를 함께 보내고 응답은 `verbose_json`으로 받습니다. 힌트에는 취소·원복·재설계 어휘와 숫자("1번"·"2번")를 넣지 않습니다(되풀이돼도 응답 의미가 바뀌지 않게, 숫자 힌트는 짧은 "2번"에 "3번, 4번, …" 나열을 지어내게 함). segment가 없거나 모든 segment의 `no_speech_prob`가 0.8 이상이면 빈 문자열(발화 없음)로 처리하고 `last_error`에 `stt_no_speech`를 남깁니다(짧은 정상 발화도 0.55 안팎이라 보수적으로 둠). STT 결과가 힌트 전체이거나 힌트 항목을 3개 이상 담고 있으면 힌트를 되풀이한 것으로 보고 빈 문자열(발화 없음)로 처리하며 `last_error`에 `stt_prompt_echo`를 남깁니다. 환경 변수 `C_VOICE_DEBUG_DIR`이 있을 때만 STT에 보낸 WAV와 통계(길이·RMS·peak·noise floor·기준·발화 길이·잘라 낸 길이)를 그 폴더에 덮어써 남깁니다(기본 off, key 미기록). 통계에는 STT 전송 여부(`stt_called`)와 빈 문자열로 끝난 이유(`reason`: no_speech_detected / too_short / weak_input / no_speech_prob / prompt_echo)가 들어가며, STT를 부르지 않은 경우에는 통계만 남기고 이전 WAV는 지웁니다. `listen(on_ready=None)`의 선택 콜백은 warm-up·소음 보정이 끝나 발화를 기다리기 시작할 때 1회 호출되며(안내 표시용, 콜백 예외는 그대로 전파), `main`은 쓰지 않습니다(기본 None). 장치·STT 실패는 `None`입니다. 수치는 `voice` 모듈 상수입니다. 별도 thread·watchdog 없이 `main` 대화 루프에서 `should_stop`을 확인합니다. 텍스트 모드에는 대기가 없습니다.
 
 ## 5. 입력 형식 (D → C)
 
@@ -159,6 +169,7 @@ C는 두 블록의 값을 비교해 어떤 항목(위치·색·방향·크기·�
 | `status` | `"OK"`, `"FAILED"`, `"CANCELLED"` | `CANCELLED` = STOP 또는 명시적 취소만. `FAILED` = 입력 오류, 재생성 한도 도달, 지속 장애 |
 | `hri_result` | `"KEEP"`, `"REVISE"`, `"UNCLEAR"`, `null` | `create_initial_design`은 항상 `null` |
 | `design` | Design 또는 `null` | 성공 시 채택 후보 Design |
+| `design_metadata` | object 또는 `null` | `design`의 이름·설명·평가(§6.1). `design`이 `null`이면 항상 `null`. Design 구조(§3)에는 넣지 않음 |
 | `questions` | str 배열 | 이번 호출에서 C가 낸 질문·재질문 문장(로그·표시용). Initial은 빈 배열 |
 | `error` | `null` 또는 `{code, message, details}` | `status`가 `OK`가 아닐 때만 값이 있음 |
 
@@ -173,6 +184,32 @@ C는 두 블록의 값을 비교해 어떤 항목(위치·색·방향·크기·�
 
 `message`는 사람이 읽는 로그용 문장입니다. 분기는 `status`·`hri_result`·`error.code`로만 합니다. 생성 경로(MOCK / LLM)는 로그용 진단 정보이며 Design에 넣지 않습니다. 정확한 실패·취소 envelope는 D와 정상·실패·취소 예시로 확인합니다(§11).
 
+### 6.1 `design_metadata` (2026-10-07)
+
+표시·로그용 설명입니다. 분기에 쓰지 않으며, metadata를 만들지 못해도 설계 성공을 `FAILED`로 바꾸지 않습니다(`error` 필드에만 기록).
+
+| 경우 | `design_metadata` |
+|---|---|
+| Initial 성공(LLM) | `{design_name, design_family, design_summary, visible_features, human_interpretation: null, judge: {silhouette_clarity, recognizable_family, completeness_score}, source: "LLM", error}` — 설명 호출(`llm.describe_initial_design`) 결과 |
+| REVISE 성공(LLM) | 아래 Revised 필드표 |
+| Mock(Initial·REVISE) | 고정 문자열: `design_name: "Mock 의자"`, `design_family: "chair"`, `source: "MOCK"`, `judge`·`design_intent`: null, `regenerations`: 0 |
+| KEEP, UNCLEAR, FAILED, CANCELLED | `null` |
+
+| Revised 필드 | 내용 |
+|---|---|
+| `design_name` | judge의 `design_name`, 없으면 intent의 `concept_name` |
+| `design_family` | judge의 `design_family`(실제로 보이는 family), 없으면 intent의 `design_family` |
+| `design_summary` | judge의 `why_it_is_complete` |
+| `visible_features` | judge가 좌표에서 본 기하 특징 문구 목록(이름이 특징을 만들지 않음) |
+| `human_interpretation` | `{placed_differently, interpretation, imagined_concept, lego_redesign, why_final_shape}` (judge `human_story`) 또는 null |
+| `change_summary` | 이전 Design 대비 재설계 요약 문구 목록 |
+| `interpretation_status` | `"clearly visible"` / `"weakly visible"` / `"mismatch"` (계획한 특징이 보이는 정도) |
+| `judge` | `{recognizable_family, family_confidence, silhouette_clarity, explanation_required_to_understand, layer5_meaningful, completeness_score, awkward, verdict}` 또는 null(judge 응답을 쓸 수 없을 때). `verdict` = `"SHOWCASE"`(reads_as_seating·recognizable_family가 true, silhouette_clarity가 clear, explanation_required_to_understand가 false) 그 밖은 `"NOT_YET"`. feature_check 전부 visible은 조건이 아님 |
+| `design_intent` | 생성 전에 정한 설계 의도 전체 또는 null(실패) |
+| `regenerations` | judge 결과로 다시 만든 횟수(0 또는 1, §8.12) |
+| `source` | `"LLM"` / `"MOCK"` |
+| `error` | null 또는 `{kind, message}`: `intent_error`(의도 실패, 의도 없이 생성), `judge_error`(judge 응답 오류·필수 필드 누락·예상 밖 값, 재생성 없음), `regeneration_failed`(재생성이 유효 후보를 못 냄, 첫 설계 유지), `describe_error`(Initial 설명 실패). 여러 개면 마지막 오류 |
+
 ## 7. C → A 전달
 
 A에게 가는 객체는 §3의 Design 그대로입니다(Initial·Revised 동일 형식, patch 아님). A는 블록의 여섯 값으로 Step 목표를 가리키고 `design_version`으로 기준 Design을 표시합니다. 재계획 입력의 Current는 A가 D에게서 받습니다(06 §6). C는 조립 순서·NextPart·Remaining·필요 블록 종류를 Design에 넣지 않으며 "다음 블록은 무엇" 같은 순서 지시도 하지 않습니다.
@@ -184,7 +221,7 @@ A에게 가는 객체는 §3의 Design 그대로입니다(Initial·Revised 동�
 3. **Current 보존 (hard)**: 최신 D 채택 `current`의 실제 배치 여섯 값 multiset이 Revised Design에 포함돼야 합니다(개수 포함). 잘못 놓인 블록도 실제 위치·방향 그대로 받아들입니다. 과거 완료 이력이나 ID로 고정하지 않습니다. 예: (5, 5)에 둘 블록을 (5, 6)에 놓고 REVISE → Revised Design에 (5, 6) 블록이 있음. 보존 대상은 LLM이 고르지 않고 Python이 `current`로 정합니다.
 4. **블록 식별**: 경계 Design과 C 내부 모두 블록 ID를 두지 않습니다. 대응·보존은 여섯 값으로만 판단합니다. 내부 ID는 WAVE 5 LLM 프롬프트에서 필요해지면 결과 밖 진단 정보로 검토합니다.
 5. Revised Design도 §9의 hard constraint를 모두 통과해야 반환합니다.
-6. **단순 이동 금지**: 잘못 놓인 블록 하나에 맞춰 나머지 블록을 같은 거리만큼 기계적으로 옮긴(translate) 결과를 Revised Design 생성 방식으로 쓰지 않습니다. 미조립 블록은 위치·방향·layer·역할을 바꿀 수 있고 Current를 기준으로 전체를 다시 설계합니다. 결과가 hard constraint를 통과하면 validator가 거부할 근거는 없으므로 이 규칙은 Designer·Prompt의 soft goal(§8.9)입니다.
+6. **기계적 평행이동을 생성 방법으로 삼지 않음**: 잘못 놓인 블록 하나에 맞춰 나머지 블록을 같은 거리만큼 옮기는(translate) 것을 Revised 생성 방법으로 쓰지 않습니다. 다만 완성된 앉는 가구가 된다면 본체가 옮겨지는 것은 허용합니다(2026-10-07 완화). 미조립 블록은 위치·방향·layer·역할을 바꿀 수 있고 Current를 기준으로 전체를 다시 설계합니다(§8.12). 결과가 hard constraint를 통과하면 validator가 거부할 근거는 없으므로 이 규칙은 Designer·Prompt의 soft goal(§8.9)입니다.
 7. **사용자 선택 유지**: C는 사용자 동의 없이 선택을 취소하거나 KEEP으로 전환하거나 입력 Design을 대신 반환하지 않습니다. Revised 생성이 한도에 도달하면 `status: FAILED`, `hri_result: REVISE`, `error.code: DESIGN_GENERATION_FAILED`, `design: null`을 반환하고, 이후 전달 보류와 사용자 재확인은 D Workflow가 담당합니다.
 
 ### 8.8 Revised 생성 시 LLM에 주는 context
@@ -192,14 +229,16 @@ A에게 가는 객체는 §3의 Design 그대로입니다(Initial·Revised 동�
 | 항목 | 출처 |
 |---|---|
 | 최종 목적물이 Chair라는 것 | C 내부 목표(Initial 요청) |
-| 기존 Design 전체와 현재 `design_version` | 입력 `design` |
+| 기존 Design 전체와 현재 `design_version` (맥락으로만: 지킬 기하가 아님, §8.12) | 입력 `design` |
 | 최신 Current 전체(실제 위치·방향·색·layer) = 고정 블록 | 입력 `current` |
 | Difference | 입력 `differences` |
 | 사용자 의도 = REVISE | HRI 결과 |
-| 지원 brick_type·color·orientation, Board 24 × 24, layer 1~4, 블록 수 상한 | §2, §3 |
+| 지원 brick_type·color·orientation, Board 24 × 24, layer 1~5, 블록 수 상한 | §2, §3 |
 | overlap·support·connectivity 규칙 | §9.1 |
 | soft design goal | §8.9 |
 | 직전 후보의 탈락 사유(재생성 시) | §8.10 |
+| 설계 의도(DESIGN INTENT: family·보일 특징·layer 5 특징·기하 계획, 실패하면 생략) | `llm.generate_design_intent` (§8.12) |
+| judge 피드백(judge 결과 재생성 1회에만) | `llm.judge_feedback_text` (§8.12) |
 
 LLM 출력은 블록 여섯 값의 목록(`{"blocks": [...]}`)뿐입니다. 버전은 Python이 채우고, 고정 블록을 바꾼 출력은 §9.1에서 거부합니다.
 
@@ -211,17 +250,18 @@ LLM 출력은 블록 여섯 값의 목록(`{"blocks": [...]}`)뿐입니다. 버�
 | 필수 필드·형식, 허용되지 않은 키 없음 |
 | brick_type·color·orientation_deg·layer 허용 값 |
 | footprint가 Board 0~23 안 |
-| 블록 수 1~20 |
+| 블록 수 1~30 |
 | 같은 layer overlap 없음 |
 | support (A/C 합의된 Day4 기하 기준, §9.1) |
 | connectivity |
 
 | Soft design goal (Designer·Prompt에 반영, validator 미검증) |
 |---|
-| Chair다운 기능 형태: 다리·좌석·등받이 |
-| 좌우 대칭·시각 균형. 수학적 mirror를 강제하지 않고 Current가 강제하는 비대칭을 기준으로 균형을 최대화 |
-| 일관된 배치 |
-| 단순 이동보다 전체 재설계 우선 (§8.6). Initial과 상당히 다른 구조도 허용 |
+| 사람이 앉는 가구로 한눈에 보임: 분명한 좌석, 좌석을 받치는 지지, 그 family에 필요한 큰 부분(전폭 높은 등받이, 양쪽 팔걸이, plinth, rail, crown) |
+| 특징은 보일 만큼 크게(블록 두 개 이상 또는 한 줄 전체), 대칭이거나 의도적으로 균형. 한쪽만 튀어나온 블록 금지 |
+| layer 5를 특징의 일부로 사용(crown, headrest, stepped top, tall back). validator 규칙이 아님 |
+| 필요한 만큼 블록 사용(최대 30). 블록 수를 줄이는 것은 목표가 아님 |
+| 기계적 평행이동이 아닌 전체 재설계(§8.6). 이전 Design과 다른 구조·family도 허용(§8.12) |
 
 Soft design goal은 테스트로 강제하지 않습니다.
 
@@ -234,7 +274,8 @@ Validator가 후보 Design을 탈락시키는 것은 **후보 하나를 쓸 수 
 3. **한도**: C 내부 최대 10회(`designer.MAX_ATTEMPTS = 10`). 10회 안에 유효 Design이 없으면 마지막 사유와 함께 `FAILED` / `DESIGN_GENERATION_FAILED`(details에 사유 목록). 탈락 후보는 버전을 소비하지 않습니다. 재생성 횟수는 C 내부 정책이며 공통 계약 숫자가 아닙니다(09).
 4. busy loop 금지: 재요청 사이 1초 간격(`designer.RETRY_DELAY`, 테스트에서 0 주입 가능).
 5. `should_stop`이 True면 시도 사이에서 중단합니다.
-6. 연속 탈락 4회 이후에는 다른 구조·더 단순한 Chair로 재설계하도록 지시를 바꿀 수 있습니다(10회 한도 안). Mock 생성은 결정론적이므로 1회만 시도합니다.
+6. 연속 탈락 4회 이후에는 다른 구조로 재설계하도록 지시를 바꿀 수 있습니다(10회 한도 안). Mock 생성은 결정론적이므로 1회만 시도합니다.
+7. 이 재생성(후보 탈락 → 다시 생성)은 §8.12의 judge 재생성(완성 설계가 알아보기 어려울 때 1회)·LLM provider API 재시도(§10)와 서로 독립입니다.
 
 ### 8.11 Escalation: 최소 물리 변경 제안 (C 정책, Day4 D 연결에서 필수 아님)
 
@@ -248,6 +289,16 @@ Validator가 후보 Design을 탈락시키는 것은 **후보 하나를 쓸 수 
 
 Initial Design에는 고정 블록이 없으므로 escalation이 없습니다.
 
+### 8.12 Revised 정책 EXPRESSIVE v4 (2026-10-07 사용자 승인)
+
+- **Current만 고정**: "Preserve the Current exactly. Treat the previous Design as context, not as geometry to preserve. All non-Current blocks are future targets and may be freely moved, removed, replaced, or added. Redesign the remaining structure from scratch if that produces a more coherent, realistic, expressive seating-furniture design; the seat position, support layout, backrest, footprint and even the furniture family may change." 이전 Design은 사용자가 만들던 것(앉는 가구, 대략의 크기·색)을 알려 주는 맥락이며 지킬 기하가 아닙니다. family 변경도 허용합니다. 보수적인 낮은 1인 의자로 되돌리는 지시는 넣지 않습니다.
+- **흐름(LLM 모드)**: ① 설계 의도 결정(`llm.generate_design_intent`: 후보 family 중 하나·보일 특징·layer 5 특징·기하 계획, 좌표 없음. 실패하면 의도 없이 진행, STOP이면 `CANCELLED`) → ② 생성(§8.10 재생성 포함, 의도를 메시지에 넣음) → ③ 완성 설계 judge(`llm.judge_revised_design`, 좌표만으로 평가) → ④ judge가 family를 알아볼 수 없다(`recognizable_family: false`)거나 실루엣이 모호(`silhouette_clarity: "ambiguous"`)할 때만 같은 의도 + judge 피드백 문단으로 **재생성 최대 1회**(`main.METADATA_REGENERATIONS_MAX = 1`, 명시적 카운터) → 재judge → 최종.
+- **재생성하지 않는 경우**: judge 응답이 provider 오류이거나 필수 필드(`recognizable_family`, `silhouette_clarity`, `reads_as_seating`, `explanation_required_to_understand`)가 없거나 예상 밖 값이면 그대로 끝내고 `design_metadata.error`에 `judge_error`를 남깁니다. awkward·weakly visible·feature mismatch만으로는 재생성하지 않습니다.
+- **재생성 실패**: 재생성이 유효 후보를 못 내면 첫 설계와 그 judge를 그대로 반환합니다(`regeneration_failed`). 재생성 중 STOP이면 `CANCELLED` / `STOPPED`.
+- 세 가지 반복은 서로 독립입니다: LLM provider API 재시도(§10, `llm.RETRY_BACKOFF`), 후보 탈락 재생성(§8.10, designer 시도 수), judge 재생성(최대 1회).
+- escalation 뒤 "계속 찾기"로 다시 생성할 때도 같은 의도를 쓰고 ③·④를 똑같이 적용합니다. Mock 모드에는 의도·judge가 없습니다.
+- layer 5 사용·큰 특징·블록 수는 프롬프트의 soft goal이며 validator 규칙이 아닙니다. validator는 §9.1 그대로입니다(블록 수 상한만 30).
+
 ## 9. 검증 책임
 
 ### 9.1 C (validator, LLM 없이 A / D / HMI 없이 단독 통과)
@@ -258,9 +309,9 @@ Initial Design에는 고정 블록이 없으므로 escalation이 없습니다.
 | 필수 필드 누락 | `missing_field` |
 | 정수 필드가 정수 아님(bool·1.0 포함) | `invalid_type` |
 | 허용되지 않은 키(Design 두 키 외, 블록 여섯 키 외 — Robot·mm·TCP·joint field 유입 포함) | `unknown_key` |
-| brick_type·color·orientation_deg(brick_type별)·layer 1~4 허용 값 | `invalid_value` |
+| brick_type·color·orientation_deg(brick_type별)·layer 1~5 허용 값 | `invalid_value` |
 | footprint가 Board 0~23 밖 | `out_of_board` |
-| 블록 수 1~20 밖 | `brick_count` |
+| 블록 수 1~30 밖 | `brick_count` |
 | 같은 layer 안 footprint overlap | `overlap` |
 | support: layer ≥ 2 블록은 바로 아래 layer 블록들과 겹치는 stud 수의 합계가 2 이상(아래 블록 개수 무관, 같은 stud 중복 합산 없음) | `support` |
 | connectivity: 위아래 layer stud 겹침으로 연결했을 때 전체가 하나 | `connectivity` |
@@ -299,11 +350,12 @@ C의 Validator 통과는 후보 검증이며 최종 채택이 아닙니다.
 | 복구 | 일시적 LLM·녹음·STT·TTS 실패 | 간격을 두고 재시도 | 반환하지 않고 계속 |
 | 복구 | 불명확 응답 | 다시 설명해 재질문 | 반환하지 않고 계속 (텍스트 모드 소진 시만 `UNCLEAR`) |
 | 복구 | `current`의 support 위반 | REVISE이면 즉시 §8.11 escalation | 반환하지 않고 계속 |
+| 복구 | 설계 의도·judge·Initial 설명 호출 실패, judge 필수 필드 누락·예상 밖 값, judge 재생성 실패 | 설계는 그대로 반환, `design_metadata.error`에 `intent_error` / `judge_error` / `describe_error` / `regeneration_failed` 기록(§6.1, §8.12) | `OK` (metadata error만) |
 | 취소 | D/HMI STOP (`should_stop`) | 턴·시도 사이에서 중단 | `CANCELLED` / `STOPPED` |
 | 취소 | 사용자 명시적 취소 발화 | 중단 | `CANCELLED` / `USER_CANCEL` |
 | 실패 | 호출자 입력 오류 | 즉시 반환 | `FAILED` / `INVALID_INPUT`, `UNSUPPORTED_OBJECT` |
 | 실패 | 재생성 10회 한도 도달 | 반환 | `FAILED` / `DESIGN_GENERATION_FAILED` |
-| 실패 | LLM provider 실패: 일시적 실패(network / timeout / 429 / 5xx)만 최대 3회(1·2·4초 backoff) API 재시도 후에도 실패. auth·키 없음·비정상 응답은 재시도 없이 즉시. 재시도 사이 `should_stop` 확인 | 반환 | `FAILED` / `LLM_CALL_FAILED` |
+| 실패 | LLM provider 실패: 일시적 실패(network / timeout / 429 / 5xx)만 최대 3회(1·2·4초 backoff) API 재시도 후에도 실패. auth·키 없음(`OPENAI_LLM_API_KEY` 미설정, 다른 key로 대체하지 않음)·비정상 응답(reasoning 모델에 지원하지 않는 파라미터를 보내 생기는 400 포함)은 재시도 없이 즉시. 재시도 사이 `should_stop` 확인 | 반환 | `FAILED` / `LLM_CALL_FAILED` |
 | 실패 | 음성 입력 실패: 녹음 장치를 열거나 읽지 못함, 또는 STT provider 실패(key: `OPENAI_API_KEY`. 일시적 network / timeout / 429 / 5xx는 최대 3회 API 재시도 후, auth·키 없음·비정상 응답은 즉시) | 반환 | `FAILED` / `VOICE_IO_FAILED` |
 | 복구 | TTS 재생 실패(key: `OPENAI_TTS_API_KEY` 전용, 없으면 `OPENAI_API_KEY`로 대체하지 않고 `missing_key`) | 질문은 `on_question`으로 화면에 표시된 채 응답 대기를 계속하고 실패 사유는 `voice.last_error()`에 기록 | 반환하지 않고 계속 |
 
@@ -331,6 +383,7 @@ C의 Validator 통과는 후보 검증이며 최종 채택이 아닙니다.
 | Difference `{expected, actual}` 블록 쌍 | §5.2 | D (수현) |
 | support "아래 블록 개수와 무관하게 겹침 합계 2 stud 이상, 중복 합산 없음"(Case A~D)을 A Plan 검증과 같은 기준으로 사용 — 2026-10-06 A 동의·D 회신으로 통일 | §9.1 | A (세은) |
 | A가 Step 목표를 블록 여섯 값으로 참조 | §7 | A (세은) |
+| 최대 층수 5(2026-10-06 팀장 결정): C validator·문서는 적용 완료. 공유 계약(06·00), A planner(`MAX_LAYER` 4), D contracts(layer 1..4), D HMI schema는 아직 4층 — 팀 반영 필요 | §2, §9.1 | A (세은), D (수현), 공유 문서 Owner |
 
 ## 12. 이 계약에서 정하지 않는 것
 

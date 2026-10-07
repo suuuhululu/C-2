@@ -41,6 +41,9 @@ session or shell history:
 Do not `export OPENAI_API_KEY=...` or `export OPENAI_TTS_API_KEY=...` -- that
 leaves the key set for every later command in the shell. Prefer the inline
 form above, once per run.
+
+Add C_VOICE_DEBUG_DIR=/tmp/c_voice_debug to the same command to keep the exact WAV sent to STT
+(latest_input.wav) and its gate statistics (latest_input.json); nothing is saved without it.
 """
 
 import argparse
@@ -67,8 +70,8 @@ def _print_key_and_models():
 
 def run_stt(_args):
     _print_key_and_models()
-    print("Speak now (up to ~8 s)...")
-    text = voice.listen()
+    # the prompt appears only after warm-up and noise calibration, so speech does not leak into the calibration
+    text = voice.listen(on_ready=lambda: print("Speak now (up to ~8 s)...", flush=True))
     if text is None:
         print("listen failed: " + str(voice.last_error()))
         return 1
