@@ -36,6 +36,12 @@
       쉰다(key: OPENAI_TTS_API_KEY, 없으면 OPENAI_API_KEY로 대체하지 않고 missing_key). 재생이 끝난 뒤에만 다음 listen을 시작하는 순서(main이 보장)와 이 지연이
       합쳐져, 스피커 잔향이 마이크에 들어가 질문을 답변으로 재인식하는 echo를
       막는다(sequencing으로 막는 것이므로 하드웨어 echo cancellation은 아니다).
+      모델은 env OPENAI_TTS_MODEL, 없으면 gpt-4o-mini-tts. 말투 지시(instructions, env OPENAI_TTS_INSTRUCTIONS)는
+      이를 받는 모델에만 보내고 tts-1·tts-1-hd payload에는 넣지 않는다(이 두 모델은 instructions를 지원하지 않음).
+      sd.play 뒤 sd.wait가 버퍼 전체 재생 끝까지 막으므로 2~3문장 질문도 중간에 끊기지 않는다.
+      HTTP 실패는 TTS 전용으로 auth / model_access / bad_param / billing / rate_limit / server / bad_response로
+      나눠 "kind: HTTP code"만 남긴다(응답 본문·key 미기록). 재생 관측값(모델·voice·길이·재생 시작/끝 시각)은
+      _last_speak에 남긴다(디버그·runner용, 오디오·key 미포함).
       실패해도 예외를 던지지 않고 last_error만 남긴다.
     - last_error: 가장 최근 공개 호출의 실패 원인("kind: 설명"). API key는 절대
       포함하지 않는다. 각 공개 호출 시작 시 초기화된다.
@@ -43,8 +49,8 @@
       호출 시점에만 지연 import하므로(_sounddevice·_numpy) 설치되어 있지 않아도
       이 모듈을 import할 수 있다.
     - 실제 TTS 재생은 프로젝트의 OpenAI project가 해당 모델에 접근 권한이 있어야
-      동작한다(TTS model availability depends on the OpenAI project). 이 모듈은
-      권한 여부와 무관하게 같은 재시도·실패 분류를 적용한다.
+      동작한다(TTS model availability depends on the OpenAI project). 권한이 없으면
+      speak의 last_error가 model_access로 남는다.
 
 하지 않는 것:
     - 응답 의미 해석·질문 문장 생성(dialogue.py 담당)
@@ -72,8 +78,15 @@ from collections import deque
 STT_URL = "https://api.openai.com/v1/audio/transcriptions"
 TTS_URL = "https://api.openai.com/v1/audio/speech"
 DEFAULT_STT_MODEL = "whisper-1"  # env OPENAI_STT_MODEL이 호출 시점에 덮어쓴다
-DEFAULT_TTS_MODEL = "tts-1"  # env OPENAI_TTS_MODEL
-DEFAULT_TTS_VOICE = "alloy"  # env OPENAI_TTS_VOICE
+DEFAULT_TTS_MODEL = "gpt-4o-mini-tts"  # env OPENAI_TTS_MODEL(예: tts-1이면 instructions 없이 기존 payload)
+# coral: gpt-4o-mini-tts와 tts-1 모두 지원하는 보이스라 env로 모델만 바꿔도 400이 나지 않는다.
+# marin·cedar는 gpt-4o-mini-tts 전용이라 기본값으로 두지 않고 청취 비교 후 env OPENAI_TTS_VOICE로 지정한다.
+DEFAULT_TTS_VOICE = "coral"  # env OPENAI_TTS_VOICE
+# 질문 문장이 반말·존댓말 어느 쪽이든 그대로 읽도록 말투만 지시한다.
+DEFAULT_TTS_INSTRUCTIONS = (
+    "차분하고 친근한 한국어 안내 말투로, 또렷하게 너무 빠르지 않게 문장 사이에서 자연스럽게 쉬며 읽어 주세요."
+)  # env OPENAI_TTS_INSTRUCTIONS
+TTS_MODELS_WITHOUT_INSTRUCTIONS = ("tts-1", "tts-1-hd")
 # STT와 TTS는 서로 다른 key 변수를 쓴다(사용자 지시). TTS key가 없을 때 STT key로 대체하지 않는다.
 STT_KEY_ENV = "OPENAI_API_KEY"
 TTS_KEY_ENV = "OPENAI_TTS_API_KEY"
@@ -112,6 +125,8 @@ POST_SPEAK_DELAY = 0.5  # 0.2-1.0: 재생이 끝난 뒤 방·스피커 잔향이
 
 _last_error = None
 _last_capture = None  # 가장 최근 record()의 게이트 통계(디버그 덤프용, 오디오는 담지 않음)
+_last_speak = None  # 가장 최근 speak()의 요청·재생 관측값(디버그·runner용, 오디오·key는 담지 않음)
+_last_http_error = None  # 가장 최근 HTTP 실패의 (HTTP code, provider error code, param 존재 여부). 본문은 담지 않는다
 
 
 def _sounddevice():
@@ -147,6 +162,27 @@ def _post(url, data, content_type, api_key):
         return response.read()
 
 
+_PROVIDER_CODE_RE = re.compile(r"[a-z0-9_]{1,64}")
+
+
+def _remember_http_error(exc):
+    """speak의 실패 분류용으로 HTTP code와 provider error code(식별자만)·param 존재 여부를 남긴다.
+
+    응답 본문 문장은 남기지 않는다. 본문을 못 읽거나 JSON이 아니면 provider code는 None.
+    """
+    global _last_http_error
+    provider_code, has_param = None, False
+    try:
+        error = json.loads(exc.read(4096) or b"{}").get("error") or {}
+        code = error.get("code")
+        if isinstance(code, str) and _PROVIDER_CODE_RE.fullmatch(code):
+            provider_code = code
+        has_param = bool(error.get("param"))
+    except (OSError, ValueError, AttributeError):
+        pass
+    _last_http_error = (exc.code, provider_code, has_param)
+
+
 def _request(url, data, content_type, key_env):
     """llm.py의 _call과 같은 재시도·실패 분류 정책. key는 key_env 변수에서만 읽는다. 응답 바이트 또는 None."""
     api_key = os.environ.get(key_env)
@@ -161,6 +197,7 @@ def _request(url, data, content_type, key_env):
         try:
             return _post(url, data, content_type, api_key)
         except urllib.error.HTTPError as exc:
+            _remember_http_error(exc)
             if exc.code in (401, 403):
                 _set_error("auth", f"HTTP {exc.code}")
                 return None
@@ -513,23 +550,68 @@ def _decode_wav(data, np):
     return audio, samplerate
 
 
+def _wall_clock():
+    return time.strftime("%H:%M:%S") + f".{int(time.time() * 1000) % 1000:03d}"
+
+
+def _tts_payload(text):
+    """모델별 TTS 요청 본문과 관측값. instructions는 이를 받는 모델에만 넣는다."""
+    model = os.environ.get("OPENAI_TTS_MODEL") or DEFAULT_TTS_MODEL
+    body = {
+        "model": model,
+        "input": text,
+        "voice": os.environ.get("OPENAI_TTS_VOICE") or DEFAULT_TTS_VOICE,
+        "response_format": "wav",  # _decode_wav가 받는 형식
+    }
+    if model not in TTS_MODELS_WITHOUT_INSTRUCTIONS:
+        body["instructions"] = os.environ.get("OPENAI_TTS_INSTRUCTIONS") or DEFAULT_TTS_INSTRUCTIONS
+    info = {"model": model, "voice": body["voice"], "instructions_sent": "instructions" in body}
+    return json.dumps(body).encode("utf-8"), info
+
+
+def _tts_error_kind(http_code, provider_code, has_param):
+    """TTS HTTP 실패 종류. 재생 실패 원인(권한·결제·파라미터)을 사람이 바로 구분하게 한다."""
+    if provider_code == "model_not_found" and http_code in (400, 403, 404):
+        return "model_access"  # 2026-10-06 실측: 권한 없는 project는 403 model_not_found
+    if http_code in (401, 403):
+        return "auth"
+    if http_code == 404:
+        return "model_access"
+    if http_code == 429:
+        return "billing" if provider_code == "insufficient_quota" else "rate_limit"
+    if http_code == 400 and (has_param or (provider_code or "").startswith(("unsupported", "invalid"))):
+        return "bad_param"
+    if http_code >= 500:
+        return "server"
+    return "bad_response"
+
+
 def speak(text):
     """질문 문장을 OpenAI TTS로 재생한 뒤 POST_SPEAK_DELAY만큼 쉰다. 절대 예외를 던지지 않는다."""
+    global _last_speak, _last_http_error
     _clear_error()
-    model = os.environ.get("OPENAI_TTS_MODEL") or DEFAULT_TTS_MODEL
-    voice_name = os.environ.get("OPENAI_TTS_VOICE") or DEFAULT_TTS_VOICE
-    payload = json.dumps(
-        {"model": model, "input": text, "voice": voice_name, "response_format": "wav"}
-    ).encode("utf-8")
+    _last_http_error = None
+    payload, info = _tts_payload(text)
+    _last_speak = info
     response = _request(TTS_URL, payload, "application/json", TTS_KEY_ENV)
     if response is None:
+        if _last_http_error is not None and (_last_error or "").startswith(
+            ("auth", "rate_limit", "server", "bad_response")
+        ):
+            http_code = _last_http_error[0]
+            _set_error(_tts_error_kind(*_last_http_error), f"HTTP {http_code}")
         return
+    info["response_bytes"] = len(response)
     try:
         sd = _sounddevice()
         np = _numpy()
         frames, samplerate = _decode_wav(response, np)
+        info["samplerate"] = samplerate
+        info["audio_seconds"] = round(len(frames) / samplerate, 3)
+        info["play_started_at"] = _wall_clock()
         sd.play(frames, samplerate)
-        sd.wait()
+        sd.wait()  # 버퍼 전체 재생이 끝날 때까지 막는다(긴 질문도 끊기지 않고, 끝난 뒤에만 listen)
+        info["play_ended_at"] = _wall_clock()
     except Exception as exc:  # noqa: BLE001 - 디코딩·재생 실패를 한 곳에서 잡는다
         _set_error("audio_device", type(exc).__name__)
         return

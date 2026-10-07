@@ -827,6 +827,126 @@ class TestSpeakPayload:
         assert request.get_full_url() == voice.TTS_URL
 
 
+def _tts_http_error(code, provider_code=None, param=None):
+    """OpenAI 형식 오류 본문을 가진 HTTPError(본문 문장은 last_error에 남으면 안 된다)."""
+    body = json.dumps({"error": {"message": "secret-ish provider sentence", "type": "invalid_request_error",
+                                 "param": param, "code": provider_code}}).encode("utf-8")
+    return urllib.error.HTTPError("https://example.invalid/", code, "error", None, io.BytesIO(body))
+
+
+@pytest.fixture
+def clean_tts_env(monkeypatch):
+    for name in ("OPENAI_TTS_MODEL", "OPENAI_TTS_VOICE", "OPENAI_TTS_INSTRUCTIONS"):
+        monkeypatch.delenv(name, raising=False)
+
+
+class TestTtsModelPayload:
+    """Stage 2: 기본 gpt-4o-mini-tts + instructions, tts-1은 기존 payload 그대로(D 통합 테스트 호환)."""
+
+    def _payload(self, monkeypatch):
+        _install_sd(monkeypatch)
+        fake_url = _install_urlopen(monkeypatch, [_build_wav_bytes()])
+        voice.speak("혹시 생각했거나 만들고 싶은 의자가 있어?")
+        return json.loads(fake_url.calls[0]["request"].data)
+
+    def test_default_is_gpt_4o_mini_tts_with_instructions(self, monkeypatch, with_fake_key, clean_tts_env):
+        payload = self._payload(monkeypatch)
+        assert voice.DEFAULT_TTS_MODEL == "gpt-4o-mini-tts"
+        assert payload == {
+            "model": "gpt-4o-mini-tts",
+            "input": "혹시 생각했거나 만들고 싶은 의자가 있어?",
+            "voice": voice.DEFAULT_TTS_VOICE,
+            "response_format": "wav",
+            "instructions": voice.DEFAULT_TTS_INSTRUCTIONS,
+        }
+
+    @pytest.mark.parametrize("model", ["tts-1", "tts-1-hd"])
+    def test_legacy_model_payload_has_no_instructions(self, monkeypatch, with_fake_key, clean_tts_env, model):
+        monkeypatch.setenv("OPENAI_TTS_MODEL", model)
+        monkeypatch.setenv("OPENAI_TTS_VOICE", "alloy")
+        monkeypatch.setenv("OPENAI_TTS_INSTRUCTIONS", "무시돼야 하는 지시")
+        payload = self._payload(monkeypatch)
+        assert payload == {"model": model, "input": "혹시 생각했거나 만들고 싶은 의자가 있어?",
+                           "voice": "alloy", "response_format": "wav"}
+
+    def test_env_overrides_voice_and_instructions(self, monkeypatch, with_fake_key, clean_tts_env):
+        monkeypatch.setenv("OPENAI_TTS_VOICE", "marin")
+        monkeypatch.setenv("OPENAI_TTS_INSTRUCTIONS", "밝게 말해 주세요.")
+        payload = self._payload(monkeypatch)
+        assert payload["model"] == "gpt-4o-mini-tts"
+        assert payload["voice"] == "marin"
+        assert payload["instructions"] == "밝게 말해 주세요."
+
+    def test_empty_env_values_fall_back_to_defaults(self, monkeypatch, with_fake_key, clean_tts_env):
+        for name in ("OPENAI_TTS_MODEL", "OPENAI_TTS_VOICE", "OPENAI_TTS_INSTRUCTIONS"):
+            monkeypatch.setenv(name, "")
+        payload = self._payload(monkeypatch)
+        assert payload["model"] == voice.DEFAULT_TTS_MODEL
+        assert payload["voice"] == voice.DEFAULT_TTS_VOICE
+        assert payload["instructions"] == voice.DEFAULT_TTS_INSTRUCTIONS
+
+    def test_playback_call_shape_and_last_speak(self, monkeypatch, with_fake_key, clean_tts_env):
+        fake_sd = _install_sd(monkeypatch)
+        _install_urlopen(monkeypatch, [_build_wav_bytes(sample_rate=24000, n_samples=2400)])
+
+        voice.speak("Design과 다르게 놓인 부분이 있는데 의도된 행동인가요?")
+
+        assert len(fake_sd.play_calls) == 1 and fake_sd.wait_calls == 1
+        frames, samplerate = fake_sd.play_calls[0]
+        assert samplerate == 24000 and len(frames) == 2400
+        info = voice._last_speak
+        assert info["model"] == "gpt-4o-mini-tts" and info["instructions_sent"] is True
+        assert info["audio_seconds"] == 0.1 and info["samplerate"] == 24000
+        assert info["play_started_at"] and info["play_ended_at"]
+        assert FAKE_TTS_KEY not in json.dumps(info)
+        assert voice.last_error() is None
+
+
+class TestTtsErrorKinds:
+    """TTS 실패는 kind와 HTTP code만 남긴다(응답 본문·key 미기록)."""
+
+    @pytest.mark.parametrize("outcomes, expected", [
+        ([_tts_http_error(401)], "auth: HTTP 401"),
+        ([_tts_http_error(403)], "auth: HTTP 403"),
+        ([_tts_http_error(403, "model_not_found")], "model_access: HTTP 403"),
+        ([_tts_http_error(404, "model_not_found")], "model_access: HTTP 404"),
+        ([_tts_http_error(400, "model_not_found")], "model_access: HTTP 400"),
+        ([_tts_http_error(400, None, "instructions")], "bad_param: HTTP 400"),
+        ([_tts_http_error(400, "unsupported_parameter")], "bad_param: HTTP 400"),
+        ([_tts_http_error(400)], "bad_response: HTTP 400"),
+        ([_tts_http_error(429, "insufficient_quota") for _ in range(4)], "billing: HTTP 429"),
+        ([_tts_http_error(429, "rate_limit_exceeded") for _ in range(4)], "rate_limit: HTTP 429"),
+        ([_tts_http_error(503) for _ in range(4)], "server: HTTP 503"),
+        ([TimeoutError()] * 4, f"timeout: no response within {voice.TIMEOUT_SECONDS} s"),
+        ([_http_error(403)], "auth: HTTP 403"),  # 본문 없는 오류도 분류는 유지
+    ])
+    def test_kind(self, monkeypatch, with_fake_key, clean_tts_env, outcomes, expected):
+        fake_sd = _install_sd(monkeypatch)
+        _install_urlopen(monkeypatch, outcomes)
+
+        voice.speak("hello")  # must not raise
+
+        assert voice.last_error() == expected
+        assert "provider sentence" not in voice.last_error()
+        assert FAKE_TTS_KEY not in voice.last_error()
+        assert len(fake_sd.play_calls) == 0
+
+    def test_stale_http_error_is_not_reused_for_missing_key(self, monkeypatch, with_fake_key, clean_tts_env):
+        _install_sd(monkeypatch)
+        _install_urlopen(monkeypatch, [_tts_http_error(403, "model_not_found")])
+        voice.speak("hello")
+        monkeypatch.delenv("OPENAI_TTS_API_KEY")
+
+        voice.speak("hello")
+
+        assert voice.last_error() == "missing_key: OPENAI_TTS_API_KEY is not set"
+
+    def test_stt_error_kinds_are_unchanged(self, monkeypatch, with_fake_key):
+        _install_urlopen(monkeypatch, [_tts_http_error(403, "model_not_found")])
+        assert voice.transcribe(_raw_pcm()) is None
+        assert voice.last_error() == "auth: HTTP 403"
+
+
 class TestSpeakOrdering:
     def test_event_order_tts_play_wait_sleep_and_no_input_stream(
         self, monkeypatch, with_fake_key, sleep_log
