@@ -205,7 +205,7 @@ LLM 출력은 블록 여섯 값의 목록(`{"blocks": [...]}`)뿐입니다. 버�
 | footprint가 Board 0~23 안 |
 | 블록 수 1~20 |
 | 같은 layer overlap 없음 |
-| support (C 후보 기준, §9.1) |
+| support (A/C 합의된 Day4 기하 기준, §9.1) |
 | connectivity |
 
 | Soft design goal (Designer·Prompt에 반영, validator 미검증) |
@@ -232,7 +232,7 @@ Validator가 후보 Design을 탈락시키는 것은 **후보 하나를 쓸 수 
 
 | 항목 | 내용 |
 |---|---|
-| 진입 조건 | 10회 한도 안에서 Revised 후보가 6회 연속 탈락, 또는 `current` 자체가 support 후보 기준을 위반해 보존한 채로는 어떤 후보도 통과할 수 없는 경우(즉시, 재생성 시작 안 함) |
+| 진입 조건 | 10회 한도 안에서 Revised 후보가 6회 연속 탈락, 또는 `current` 자체가 합의된 support 기준을 위반해 보존한 채로는 어떤 후보도 통과할 수 없는 경우(즉시, 재생성 시작 안 함) |
 | 제안 내용 | `differences`에서 `actual`이 있는 블록을 현재 채택 Design 위치(`expected`)로 되돌리기. 임의의 새 위치는 제안하지 않음 |
 | 질문 형태 | C(dialogue)가 만든 문장. 블록은 위치로 표현. "1번 원래 위치로 옮기기, 2번 계속 새 설계 찾기" |
 | 동의 | 사용자의 명시적 동의이므로 `hri_result: KEEP`, 입력 Design 그대로 반환 |
@@ -258,7 +258,7 @@ Initial Design에는 고정 블록이 없으므로 escalation이 없습니다.
 | connectivity: 위아래 layer stud 겹침으로 연결했을 때 전체가 하나 | `connectivity` |
 | Revised: §8.3 Current 보존 | `assembled_not_preserved` |
 
-support 기준은 **세은(A)과 확인할 C 후보 기준이며 팀 공용 확정값이 아닙니다**(09 A와 C의 지지 판정). A가 다른 수치로 확정하면 같은 값으로 바꿉니다.
+support는 **2026-10-06 세은(A)의 동의와 수현(D)의 회신으로 통일한 A/C Day4 기하 기준**입니다([A와 C의 지지 판정](09_C_B_BACKEND_HANDOFF.md#a와-c의-지지-판정)). 바로 아래층의 고유 stud 총 2개 이상을 확인하며, layer=1은 Board 위 첫 층으로 이 검사에서 제외합니다. 이 수치는 실제 체결·물리 안정성 검증 완료 또는 최종 프로젝트 전체의 영구 제한을 뜻하지 않습니다.
 
 | Case | 바로 아래 layer와의 겹침 | 결과 |
 |---|---|---|
@@ -321,7 +321,7 @@ C의 Validator 통과는 후보 검증이며 최종 채택이 아닙니다.
 | `should_stop` 콜백으로 STOP·닫힌 요청 연결 | §4 | D (수현) |
 | `on_question` 콜백으로 HMI 화면 표시 | §4.2 | D (수현) |
 | Difference `{expected, actual}` 블록 쌍 | §5.2 | D (수현) |
-| support "아래 블록 개수와 무관하게 겹침 합계 2 stud 이상, 중복 합산 없음"(Case A~D)을 A Plan 검증과 같은 기준으로 사용 — 아직 후보 | §9.1 | A (세은) |
+| support "아래 블록 개수와 무관하게 겹침 합계 2 stud 이상, 중복 합산 없음"(Case A~D)을 A Plan 검증과 같은 기준으로 사용 — 2026-10-06 A 동의·D 회신으로 통일 | §9.1 | A (세은) |
 | A가 Step 목표를 블록 여섯 값으로 참조 | §7 | A (세은) |
 
 ## 12. 이 계약에서 정하지 않는 것
