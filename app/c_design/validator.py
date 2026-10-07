@@ -8,7 +8,7 @@
     - color: yellow / blue (소문자)
     - brick_type: 2x2x1 / 2x3x1
     - x, y: 0~23 (24×24 Board stud 위치, Robot mm 아님). footprint 최소 모서리
-    - layer: 1~4, 1-based (layer 1 = Board 위 첫 Block 층)
+    - layer: 1~5, 1-based (layer 1 = Board 위 첫 Block 층)
     - orientation_deg: 2x3x1은 0(X 2 / Y 3 stud) 또는 90(X 3 / Y 2 stud), 2x2x1은 0
     - Board 범위, overlap, support, connectivity
     - support 규칙 "바로 아래 layer와 겹치는 stud 합계 2 이상(아래 Block 개수 무관,
@@ -44,8 +44,8 @@ BLOCK_FIELDS = ("brick_type", "color", "x", "y", "layer", "orientation_deg")
 COLORS = {"yellow", "blue"}
 BRICK_TYPES = {"2x2x1", "2x3x1"}
 BOARD_RANGE = range(0, 24)
-MAX_LAYER = 4
-MAX_BLOCKS = 20
+MAX_LAYER = 5
+MAX_BLOCKS = 30  # 2026-10-07 사용자 승인(EXPRESSIVE v4: 큰 가구 설계 허용)
 # 2026-10-06 A 동의·D 회신으로 통일한 Day4 기하 기준(물리 안정성 검증 아님).
 MIN_SUPPORT_STUDS = 2
 

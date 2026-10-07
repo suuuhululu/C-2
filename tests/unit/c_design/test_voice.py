@@ -57,6 +57,30 @@ def loud_block(n=BLOCKSIZE, amplitude=3000):
     return _int16_block(amplitude, n)
 
 
+WARMUP_BLOCKS = round(voice.WARMUP_SECONDS / voice.BLOCK_SECONDS)  # 2 discarded blocks right after open
+CAL_BLOCKS = round(voice.NOISE_CALIBRATION_SECONDS / voice.BLOCK_SECONDS)  # 5 blocks of noise calibration
+PREFIX_BLOCKS = WARMUP_BLOCKS + CAL_BLOCKS  # 7
+
+
+def calibration(amplitude=0, warmup_amplitude=0):
+    """The first blocks record() reads: warm-up (discarded) then the noise-floor calibration window."""
+    return [_int16_block(warmup_amplitude) for _ in range(WARMUP_BLOCKS)] + [
+        _int16_block(amplitude) for _ in range(CAL_BLOCKS)]
+
+
+def _block_levels(pcm):
+    """First sample of every block in a PCM byte string (blocks here are constant-amplitude)."""
+    samples = _np.frombuffer(pcm, dtype="<i2")
+    return [int(samples[i]) for i in range(0, len(samples), BLOCKSIZE)]
+
+
+def _stt_body(text, no_speech_prob=0.1, segments=None):
+    """A whisper verbose_json response body."""
+    if segments is None:
+        segments = [{"id": 0, "text": text, "no_speech_prob": no_speech_prob}]
+    return json.dumps({"text": text, "language": "korean", "duration": 2.0, "segments": segments}).encode("utf-8")
+
+
 def _raw_pcm(n=800, amplitude=1000):
     """Raw int16 PCM bytes (stdlib struct), the shape transcribe(pcm) accepts."""
     return struct.pack("<%dh" % n, *([amplitude] * n))
@@ -223,6 +247,12 @@ def real_numpy(monkeypatch):
         monkeypatch.setattr(voice, "_numpy", lambda: _np, raising=False)
 
 
+@pytest.fixture(autouse=True)
+def no_debug_dump(monkeypatch):
+    """C_VOICE_DEBUG_DIR must never leak into tests from the developer's shell."""
+    monkeypatch.delenv(voice.DEBUG_DIR_ENV, raising=False)
+
+
 @pytest.fixture
 def sleep_log(monkeypatch):
     log = []
@@ -286,10 +316,10 @@ class TestListen:
         assert fake_url.call_count == 0
 
     def test_speech_then_silence_returns_stripped_stt_text(self, monkeypatch, with_fake_key):
-        blocks = [loud_block()] * 5 + [quiet_block()] * 20
+        blocks = calibration() + [loud_block()] * 5 + [quiet_block()] * 20
         _install_sd(monkeypatch, blocks=blocks)
         fake_url = _install_urlopen(
-            monkeypatch, [json.dumps({"text": "  안녕하세요  "}).encode("utf-8")]
+            monkeypatch, [_stt_body("  안녕하세요  ")]
         )
 
         result = voice.listen()
@@ -298,7 +328,7 @@ class TestListen:
         assert fake_url.call_count == 1
 
     def test_stt_provider_failure_returns_none(self, monkeypatch, with_fake_key):
-        blocks = [loud_block()] * 5 + [quiet_block()] * 20
+        blocks = calibration() + [loud_block()] * 5 + [quiet_block()] * 20
         _install_sd(monkeypatch, blocks=blocks)
         _install_urlopen(monkeypatch, [_http_error(500)] * 4)
 
@@ -306,7 +336,7 @@ class TestListen:
 
     def test_missing_key_returns_none_without_request(self, monkeypatch):
         monkeypatch.delenv("OPENAI_API_KEY", raising=False)
-        blocks = [loud_block()] * 5 + [quiet_block()] * 20
+        blocks = calibration() + [loud_block()] * 5 + [quiet_block()] * 20
         _install_sd(monkeypatch, blocks=blocks)
         fake_url = _install_urlopen(monkeypatch, [])
 
@@ -339,12 +369,12 @@ class TestRecordTiming:
 
         assert result == b""
         stream = fake_sd.streams[0]
-        expected = round(voice.WAIT_SECONDS / voice.BLOCK_SECONDS)  # nominally 80
-        assert stream.reads == expected  # block counts are exact, not wall clock
+        expected = PREFIX_BLOCKS + round(voice.WAIT_SECONDS / voice.BLOCK_SECONDS)  # 2 + 5 + 80
+        assert stream.reads == expected == 87  # block counts are exact, not wall clock
         assert stream.reads < len(blocks)  # stopped itself, didn't drain the script
 
     def test_stops_on_trailing_silence(self, monkeypatch, with_fake_key):
-        blocks = [loud_block()] + [quiet_block() for _ in range(40)]
+        blocks = calibration() + [loud_block()] * 5 + [quiet_block() for _ in range(40)]
         fake_sd = _install_sd(monkeypatch, blocks=blocks)
 
         result = voice.record()
@@ -352,21 +382,320 @@ class TestRecordTiming:
         assert result not in (None, b"")
         stream = fake_sd.streams[0]
         expected_trailing = round(voice.TRAILING_SILENCE_SECONDS / voice.BLOCK_SECONDS)  # 10
-        assert stream.reads == 1 + expected_trailing
+        assert stream.reads == PREFIX_BLOCKS + 5 + expected_trailing == 22
         assert stream.reads < len(blocks)
+        # trimmed: 5 voiced blocks + TRIM_MARGIN (2 blocks) of the trailing silence, no pre-roll (speech came first)
+        assert _block_levels(result) == [3000] * 5 + [0, 0]
 
     def test_stops_on_max_utterance(self, monkeypatch, with_fake_key):
-        blocks = [loud_block() for _ in range(250)]
+        blocks = calibration() + [loud_block() for _ in range(250)]
         fake_sd = _install_sd(monkeypatch, blocks=blocks)
 
         result = voice.record()
 
         assert result not in (None, b"")
         stream = fake_sd.streams[0]
-        expected_max = round(voice.MAX_UTTERANCE_SECONDS / voice.BLOCK_SECONDS)  # 100
-        assert stream.reads == expected_max
+        expected_max = round(voice.MAX_UTTERANCE_SECONDS / voice.BLOCK_SECONDS)  # 100, counted from speech start
+        assert stream.reads == PREFIX_BLOCKS + expected_max == 107
         assert len(result) == expected_max * int(voice.SAMPLE_RATE * voice.BLOCK_SECONDS) * 2  # int16
         assert stream.reads < len(blocks)
+
+
+class TestAdaptiveGate:
+    def test_threshold_is_max_of_floor_and_minimum(self, monkeypatch, with_fake_key):
+        _install_sd(monkeypatch, blocks=calibration(800) + [_int16_block(800)] * 100)
+        voice.record()
+        assert voice._last_capture["noise_floor"] == 800
+        assert voice._last_capture["threshold"] == 800 * voice.NOISE_MULTIPLIER == 2400
+        _install_sd(monkeypatch, blocks=calibration(50) + [quiet_block()] * 100)
+        voice.record()
+        assert voice._last_capture["threshold"] == voice.RMS_THRESHOLD_MIN == 600
+
+    def test_constant_room_noise_is_silence_without_stt(self, monkeypatch, with_fake_key):
+        fake_sd = _install_sd(monkeypatch, blocks=calibration(800) + [_int16_block(800)] * 200)
+        fake_url = _install_urlopen(monkeypatch, [])
+        assert voice.listen() == ""
+        assert fake_url.call_count == 0
+        assert fake_sd.streams[0].reads == PREFIX_BLOCKS + round(voice.WAIT_SECONDS / voice.BLOCK_SECONDS)
+
+    def test_louder_noise_below_adaptive_threshold_is_not_speech(self, monkeypatch, with_fake_key):
+        # RMS 1500 would have passed the old fixed threshold (500); with floor 800 the threshold is 2400.
+        _install_sd(monkeypatch, blocks=calibration(800) + [_int16_block(1500)] * 200)
+        assert voice.record() == b""
+
+    def test_speech_above_adaptive_threshold_is_captured(self, monkeypatch, with_fake_key):
+        _install_sd(monkeypatch, blocks=calibration(800) + [loud_block()] * 5 + [_int16_block(800)] * 20)
+        result = voice.record()
+        assert _block_levels(result) == [3000] * 5 + [800, 800]
+        assert voice._last_capture["voiced_seconds"] == 0.5
+
+    def test_pre_roll_keeps_the_blocks_just_before_speech(self, monkeypatch, with_fake_key):
+        quiet_marks = [_int16_block(level) for level in range(11, 21)]  # below threshold, distinguishable
+        _install_sd(monkeypatch, blocks=calibration() + quiet_marks + [loud_block()] * 5 + [quiet_block()] * 20)
+        result = voice.record()
+        # pre-roll holds the last 3 blocks (18, 19, 20); front trimming keeps TRIM_MARGIN = 2 of them
+        assert _block_levels(result) == [19, 20] + [3000] * 5 + [0, 0]
+        assert voice._last_capture["trimmed_seconds"] == round((1 + 8) * voice.BLOCK_SECONDS, 2)
+
+    def test_warmup_blocks_do_not_raise_the_noise_floor(self, monkeypatch, with_fake_key):
+        # loud level ramp / TTS tail right after open must not count as room noise
+        _install_sd(monkeypatch, blocks=calibration(0, warmup_amplitude=5000) + [quiet_block()] * 100)
+        voice.record()
+        assert voice._last_capture["noise_floor"] == 0
+        assert voice._last_capture["threshold"] == voice.RMS_THRESHOLD_MIN == 600
+
+    def test_one_voiced_block_is_too_short(self, monkeypatch, with_fake_key):
+        assert round(voice.MIN_SPEECH_SECONDS / voice.BLOCK_SECONDS) == 2
+        _install_sd(monkeypatch, blocks=calibration() + [loud_block()] + [quiet_block()] * 20)
+        fake_url = _install_urlopen(monkeypatch, [])
+        assert voice.listen() == ""
+        assert fake_url.call_count == 0
+        assert voice._last_capture["voiced_seconds"] == 0.1
+
+    def test_two_voiced_blocks_reach_stt(self, monkeypatch, with_fake_key):
+        # a short answer such as "2번" (~0.2 s voiced) must still be transcribed
+        _install_sd(monkeypatch, blocks=calibration() + [loud_block()] * 2 + [quiet_block()] * 20)
+        fake_url = _install_urlopen(monkeypatch, [_stt_body("2번")])
+        assert voice.listen() == "2번"
+        assert fake_url.call_count == 1
+        assert voice._last_capture["voiced_seconds"] == 0.2
+
+    def test_weak_sparse_input_is_not_sent(self, monkeypatch, with_fake_key):
+        # three isolated blocks exactly at the threshold: voiced 0.3 s, but the trimmed clip is mostly silence
+        level = voice.RMS_THRESHOLD_MIN
+        clicks = [_int16_block(level)] + [quiet_block()] * 9 + [_int16_block(level)] + [quiet_block()] * 9 + [_int16_block(level)]
+        _install_sd(monkeypatch, blocks=calibration() + clicks + [quiet_block()] * 20)
+        fake_url = _install_urlopen(monkeypatch, [])
+        assert voice.listen() == ""
+        assert fake_url.call_count == 0
+
+
+class TestPromptEchoGuard:
+    def _transcribe(self, monkeypatch, text):
+        fake_url = _install_urlopen(monkeypatch, [_stt_body(text)])
+        result = voice.transcribe(_raw_pcm())
+        assert fake_url.call_count == 1  # STT was called; only the result is discarded
+        return result
+
+    def test_whole_prompt_echo_becomes_silence(self, monkeypatch, with_fake_key):
+        assert self._transcribe(monkeypatch, voice.STT_PROMPT) == ""
+        assert voice.last_error() == "stt_prompt_echo: transcript repeats the STT prompt; treated as no speech"
+
+    def test_three_prompt_items_are_an_echo(self, monkeypatch, with_fake_key):
+        assert self._transcribe(monkeypatch, "의자, 벤치, 소파.") == ""
+        assert voice.last_error().startswith("stt_prompt_echo")
+
+    @pytest.mark.parametrize("utterance", ["의자 만들어줘", "의자를 만들고 싶어", "2번", "1번이요"])
+    def test_normal_utterances_pass(self, monkeypatch, with_fake_key, utterance):
+        assert self._transcribe(monkeypatch, utterance) == utterance
+        assert voice.last_error() is None
+
+    def test_listen_returns_empty_string_for_an_echo(self, monkeypatch, with_fake_key):
+        _install_sd(monkeypatch, blocks=calibration() + [loud_block()] * 3 + [quiet_block()] * 20)
+        _install_urlopen(monkeypatch, [_stt_body(" " + voice.STT_PROMPT + " ")])
+        assert voice.listen() == ""
+        assert voice.last_error().startswith("stt_prompt_echo")
+
+
+class TestShortClipPadding:
+    def _sent_frames(self, monkeypatch, pcm):
+        fake_url = _install_urlopen(monkeypatch, [_stt_body("2번")])
+        assert voice.transcribe(pcm) == "2번"
+        body = fake_url.calls[0]["request"].data
+        wav_bytes = body[body.index(b"RIFF"):body.rindex(b"\r\n--")]
+        with wave.open(io.BytesIO(wav_bytes), "rb") as wav_file:
+            return _np.frombuffer(wav_file.readframes(wav_file.getnframes()), dtype="<i2")
+
+    def test_short_clip_is_padded_to_two_seconds(self, monkeypatch, with_fake_key):
+        clip = _raw_pcm(n=int(0.6 * voice.SAMPLE_RATE), amplitude=3000)  # 0.6 s
+        sent = self._sent_frames(monkeypatch, clip)
+        front = int(voice.PAD_FRONT_SECONDS * voice.SAMPLE_RATE)  # 4800 samples
+        assert len(sent) == int(voice.MIN_CLIP_SECONDS * voice.SAMPLE_RATE) == 32000
+        assert not sent[:front].any()  # 0.3 s of silence in front
+        assert (sent[front:front + 9600] == 3000).all()  # the 0.6 s clip unchanged
+        assert not sent[front + 9600:].any()  # the remaining 1.1 s of silence behind
+
+    def test_long_clip_is_sent_unchanged(self, monkeypatch, with_fake_key):
+        clip = _raw_pcm(n=int(2.5 * voice.SAMPLE_RATE), amplitude=3000)  # 2.5 s
+        sent = self._sent_frames(monkeypatch, clip)
+        assert len(sent) == 40000 and (sent == 3000).all()
+
+    def test_front_padding_shrinks_when_close_to_the_minimum(self, monkeypatch, with_fake_key):
+        clip = _raw_pcm(n=int(1.9 * voice.SAMPLE_RATE), amplitude=3000)  # deficit 0.1 s < 0.3 s front pad
+        sent = self._sent_frames(monkeypatch, clip)
+        assert len(sent) == 32000
+        assert not sent[:1600].any() and (sent[1600:] == 3000).all()
+
+
+class TestNoSpeechGate:
+    def _transcribe(self, monkeypatch, body):
+        fake_url = _install_urlopen(monkeypatch, [body])
+        result = voice.transcribe(_raw_pcm())
+        assert fake_url.call_count == 1
+        return result
+
+    def test_high_no_speech_prob_is_silence(self, monkeypatch, with_fake_key):
+        assert self._transcribe(monkeypatch, _stt_body("흐흐흐흐", no_speech_prob=0.9)) == ""
+        assert voice.last_error() == "stt_no_speech: no segment below no_speech_prob 0.8; treated as no speech"
+
+    def test_low_no_speech_prob_passes(self, monkeypatch, with_fake_key):
+        assert self._transcribe(monkeypatch, _stt_body("2번", no_speech_prob=0.3)) == "2번"
+        assert voice.last_error() is None
+
+    def test_short_answer_at_measured_no_speech_prob_passes(self, monkeypatch, with_fake_key):
+        # a real short "2번" measured 0.55: the gate must stay conservative
+        assert self._transcribe(monkeypatch, _stt_body("2번", no_speech_prob=0.55)) == "2번"
+
+    def test_empty_segments_with_empty_text_are_silence(self, monkeypatch, with_fake_key):
+        assert self._transcribe(monkeypatch, _stt_body("", segments=[])) == ""
+        assert voice.last_error().startswith("stt_no_speech")
+
+    def test_missing_segments_trust_text(self, monkeypatch, with_fake_key):
+        # json 형식 응답·D 통합 테스트 fake처럼 segments 키가 없으면 text를 그대로 쓴다(무음 판정 불가).
+        no_segments = json.dumps({"text": "의자"}).encode("utf-8")
+        assert self._transcribe(monkeypatch, no_segments) == "의자"
+        assert self._transcribe(monkeypatch, _stt_body("의자", segments=[])) == "의자"
+
+    def test_one_confident_segment_is_enough(self, monkeypatch, with_fake_key):
+        segments = [{"no_speech_prob": 0.95}, {"no_speech_prob": 0.2}]
+        assert self._transcribe(monkeypatch, _stt_body("의자 만들어줘", segments=segments)) == "의자 만들어줘"
+
+    def test_listen_returns_empty_string_for_no_speech(self, monkeypatch, with_fake_key):
+        _install_sd(monkeypatch, blocks=calibration() + [loud_block()] * 3 + [quiet_block()] * 20)
+        _install_urlopen(monkeypatch, [_stt_body("흐흐흐흐", no_speech_prob=0.85)])
+        assert voice.listen() == ""
+        assert voice.last_error().startswith("stt_no_speech")
+
+
+class TestOnReady:
+    def test_called_once_after_warmup_and_calibration(self, monkeypatch, with_fake_key):
+        fake_sd = _install_sd(monkeypatch, blocks=calibration() + [loud_block()] * 3 + [quiet_block()] * 20)
+        _install_urlopen(monkeypatch, [_stt_body("의자")])
+        reads_at_call = []
+
+        assert voice.listen(on_ready=lambda: reads_at_call.append(fake_sd.streams[0].reads)) == "의자"
+        assert reads_at_call == [PREFIX_BLOCKS] == [7]  # after 2 warm-up + 5 calibration, before the first wait block
+
+    def test_called_once_even_when_nobody_speaks(self, monkeypatch, with_fake_key):
+        fake_sd = _install_sd(monkeypatch, blocks=calibration() + [quiet_block()] * 100)
+        calls = []
+        assert voice.listen(on_ready=lambda: calls.append(fake_sd.streams[0].reads)) == ""
+        assert calls == [PREFIX_BLOCKS]
+        assert fake_sd.streams[0].reads == PREFIX_BLOCKS + round(voice.WAIT_SECONDS / voice.BLOCK_SECONDS)
+
+    def test_default_is_no_callback(self, monkeypatch, with_fake_key):
+        import inspect
+        assert inspect.signature(voice.listen).parameters["on_ready"].default is None
+        assert inspect.signature(voice.record).parameters["on_ready"].default is None
+        _install_sd(monkeypatch, blocks=calibration() + [quiet_block()] * 100)
+        assert voice.listen() == ""
+        assert voice.last_error() is None
+
+    def test_callback_exception_propagates(self, monkeypatch, with_fake_key):
+        _install_sd(monkeypatch, blocks=calibration() + [quiet_block()] * 100)
+
+        def broken():
+            raise ValueError("display failed")
+
+        with pytest.raises(ValueError, match="display failed"):
+            voice.listen(on_ready=broken)
+        assert voice.last_error() is None  # not reported as an audio device failure
+
+
+class TestDebugDumpReasons:
+    @pytest.fixture
+    def debug_dir(self, monkeypatch, tmp_path):
+        path = tmp_path / "voice_debug"
+        monkeypatch.setenv(voice.DEBUG_DIR_ENV, str(path))
+        return path
+
+    @staticmethod
+    def _info(debug_dir):
+        return json.loads((debug_dir / "latest_input.json").read_text(encoding="utf-8"))
+
+    def test_no_speech_detected(self, monkeypatch, with_fake_key, debug_dir):
+        _install_sd(monkeypatch, blocks=calibration() + [quiet_block()] * 100)
+        fake_url = _install_urlopen(monkeypatch, [])
+        assert voice.listen() == ""
+        assert fake_url.call_count == 0
+        assert self._info(debug_dir) == {"stt_called": False, "reason": "no_speech_detected", "noise_floor": 0,
+                                         "threshold": voice.RMS_THRESHOLD_MIN, "voiced_seconds": 0.0,
+                                         "duration": voice.WAIT_SECONDS}
+        assert not (debug_dir / "latest_input.wav").exists()
+
+    def test_too_short(self, monkeypatch, with_fake_key, debug_dir):
+        _install_sd(monkeypatch, blocks=calibration() + [quiet_block()] * 4 + [loud_block()] + [quiet_block()] * 20)
+        assert voice.listen() == ""
+        info = self._info(debug_dir)
+        assert (info["stt_called"], info["reason"], info["voiced_seconds"]) == (False, "too_short", 0.1)
+        assert info["duration"] == round((4 + 1 + 10) * voice.BLOCK_SECONDS, 2)  # wait 4 + speech 1 + trailing 10
+
+    def test_weak_input(self, monkeypatch, with_fake_key, debug_dir):
+        level = voice.RMS_THRESHOLD_MIN
+        clicks = [_int16_block(level)] + [quiet_block()] * 9 + [_int16_block(level)] + [quiet_block()] * 9 + [_int16_block(level)]
+        _install_sd(monkeypatch, blocks=calibration() + clicks + [quiet_block()] * 20)
+        assert voice.listen() == ""
+        info = self._info(debug_dir)
+        assert (info["stt_called"], info["reason"], info["voiced_seconds"]) == (False, "weak_input", 0.3)
+
+    @pytest.mark.parametrize("body, reason", [
+        (lambda: _stt_body("흐흐흐흐", no_speech_prob=0.9), "no_speech_prob"),
+        (lambda: _stt_body(voice.STT_PROMPT), "prompt_echo"),
+    ])
+    def test_stt_called_but_rejected(self, monkeypatch, with_fake_key, debug_dir, body, reason):
+        _install_sd(monkeypatch, blocks=calibration() + [loud_block()] * 3 + [quiet_block()] * 20)
+        fake_url = _install_urlopen(monkeypatch, [body()])
+        assert voice.listen() == ""
+        assert fake_url.call_count == 1
+        info = self._info(debug_dir)
+        assert (info["stt_called"], info["reason"]) == (True, reason)
+        assert (debug_dir / "latest_input.wav").exists()  # the WAV that was actually sent
+
+    def test_stale_wav_removed_when_stt_is_not_called(self, monkeypatch, with_fake_key, debug_dir):
+        _install_sd(monkeypatch, blocks=calibration() + [loud_block()] * 3 + [quiet_block()] * 20)
+        _install_urlopen(monkeypatch, [_stt_body("의자")])
+        assert voice.listen() == "의자"
+        assert (debug_dir / "latest_input.wav").exists()
+        _install_sd(monkeypatch, blocks=calibration() + [quiet_block()] * 100)
+        assert voice.listen() == ""
+        assert not (debug_dir / "latest_input.wav").exists()
+        assert self._info(debug_dir)["reason"] == "no_speech_detected"
+
+
+class TestDebugDump:
+    SPEECH = staticmethod(lambda: calibration() + [loud_block()] * 5 + [quiet_block()] * 20)
+
+    def test_dump_written_only_when_env_is_set(self, monkeypatch, with_fake_key, tmp_path):
+        debug_dir = tmp_path / "voice_debug"
+        monkeypatch.setenv(voice.DEBUG_DIR_ENV, str(debug_dir))
+        _install_sd(monkeypatch, blocks=self.SPEECH())
+        _install_urlopen(monkeypatch, [_stt_body("의자")])
+
+        assert voice.listen() == "의자"
+
+        with wave.open(str(debug_dir / "latest_input.wav"), "rb") as wav_file:
+            assert wav_file.getframerate() == voice.SAMPLE_RATE
+            assert wav_file.getnchannels() == 1
+            # the trimmed clip (0.7 s) padded with silence to MIN_CLIP_SECONDS: exactly what was sent to STT
+            assert wav_file.getnframes() == int(voice.MIN_CLIP_SECONDS * voice.SAMPLE_RATE) == 32000
+        info = json.loads((debug_dir / "latest_input.json").read_text(encoding="utf-8"))
+        assert info["sample_rate"] == voice.SAMPLE_RATE and info["channels"] == 1
+        assert info["duration"] == voice.MIN_CLIP_SECONDS == 2.0
+        assert info["peak"] == 3000
+        assert info["noise_floor"] == 0 and info["threshold"] == voice.RMS_THRESHOLD_MIN == 600
+        assert info["voiced_seconds"] == 0.5
+        assert set(info) == {"sample_rate", "channels", "duration", "rms", "peak", "noise_floor", "threshold",
+                             "voiced_seconds", "trimmed_seconds", "stt_called", "reason"}
+        assert info["stt_called"] is True and info["reason"] is None
+        assert FAKE_KEY not in (debug_dir / "latest_input.json").read_text(encoding="utf-8")
+
+    def test_no_dump_without_env(self, monkeypatch, with_fake_key, tmp_path):
+        monkeypatch.chdir(tmp_path)
+        monkeypatch.setattr(voice, "_dump_debug", lambda *a: pytest.fail("debug dump without C_VOICE_DEBUG_DIR"))
+        _install_sd(monkeypatch, blocks=self.SPEECH())
+        _install_urlopen(monkeypatch, [_stt_body("의자")])
+        assert voice.listen() == "의자"
+        assert list(tmp_path.iterdir()) == []
 
 
 # ---------------------------------------------------------------------------
@@ -376,7 +705,7 @@ class TestRecordTiming:
 
 class TestTranscribeRequestShape:
     def test_multipart_fields_and_headers(self, monkeypatch, with_fake_key):
-        fake_url = _install_urlopen(monkeypatch, [json.dumps({"text": "hello"}).encode("utf-8")])
+        fake_url = _install_urlopen(monkeypatch, [_stt_body("hello")])
 
         result = voice.transcribe(_raw_pcm())
 
@@ -387,8 +716,13 @@ class TestTranscribeRequestShape:
 
         assert b'name="model"' in body
         assert b"whisper-1" in body
-        assert b'name="language"' in body
-        assert b"ko" in body
+        assert b'name="language"\r\n\r\nko\r\n' in body
+        assert ('name="prompt"\r\n\r\n' + voice.STT_PROMPT + "\r\n").encode("utf-8") in body
+        assert b'name="response_format"\r\n\r\nverbose_json\r\n' in body
+        assert voice.STT_PROMPT == "의자, 벤치, 소파, 스툴, 만들어줘, 만들고 싶어"
+        # echoed hints must never change the answer's meaning; numbers made whisper invent "3번, 4번, …"
+        for word in ("취소", "원래대로", "재설계", "번", "1", "2"):
+            assert word not in voice.STT_PROMPT
         assert b'name="file"; filename="speech.wav"' in body
         assert b"RIFF" in body
         assert request.get_header("Authorization") == "Bearer " + FAKE_KEY
@@ -409,7 +743,7 @@ class TestTranscribeRequestShape:
 class TestEnvOverrides:
     def test_stt_model_env_override(self, monkeypatch, with_fake_key):
         monkeypatch.setenv("OPENAI_STT_MODEL", "whisper-test")
-        fake_url = _install_urlopen(monkeypatch, [json.dumps({"text": "hi"}).encode("utf-8")])
+        fake_url = _install_urlopen(monkeypatch, [_stt_body("hi")])
 
         voice.transcribe(_raw_pcm())
 
@@ -442,7 +776,7 @@ class TestTranscribeRetries:
 
     def test_429_then_success(self, monkeypatch, with_fake_key):
         fake = _install_urlopen(
-            monkeypatch, [_http_error(429), json.dumps({"text": "ok"}).encode("utf-8")]
+            monkeypatch, [_http_error(429), _stt_body("ok")]
         )
         assert voice.transcribe(_raw_pcm()) == "ok"
         assert fake.call_count == 2
@@ -463,7 +797,7 @@ class TestNoTempFiles:
         monkeypatch.setattr(tempfile, "NamedTemporaryFile", _boom)
         monkeypatch.setattr(tempfile, "mkstemp", _boom)
 
-        _install_urlopen(monkeypatch, [json.dumps({"text": "ok"}).encode("utf-8")])
+        _install_urlopen(monkeypatch, [_stt_body("ok")])
 
         assert voice.transcribe(_raw_pcm()) == "ok"
 
@@ -595,7 +929,7 @@ class TestKeySeparation:
         assert len(fake_sd.play_calls) == 0
 
     def test_transcribe_uses_stt_key_not_tts_key(self, monkeypatch, with_fake_key):
-        fake_url = _install_urlopen(monkeypatch, [json.dumps({"text": "ok"}).encode("utf-8")])
+        fake_url = _install_urlopen(monkeypatch, [_stt_body("ok")])
 
         assert voice.transcribe(_raw_pcm()) == "ok"
 
@@ -626,7 +960,7 @@ class TestSecretLeakage:
             assert err is None or key not in err
 
     def test_stt_success(self, monkeypatch, with_fake_key):
-        _install_urlopen(monkeypatch, [json.dumps({"text": "ok"}).encode("utf-8")])
+        _install_urlopen(monkeypatch, [_stt_body("ok")])
         result = voice.transcribe(_raw_pcm())
         self._assert_key_absent(result)
 

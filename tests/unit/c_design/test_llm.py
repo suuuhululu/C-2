@@ -95,7 +95,7 @@ def fast_retry(monkeypatch):
 
 @pytest.fixture
 def with_fake_key(monkeypatch):
-    monkeypatch.setenv("OPENAI_API_KEY", FAKE_KEY)
+    monkeypatch.setenv("OPENAI_LLM_API_KEY", FAKE_KEY)
     return FAKE_KEY
 
 
@@ -233,10 +233,11 @@ class TestRevisedUserMessage:
 
 
 class TestPromptReinforcement:
-    def test_few_shot_example_is_in_system_prompt_and_passes_the_validator(self):
-        assert validator.validate_design(llm._EXAMPLE_DESIGN) == []
-        assert json.dumps(llm._EXAMPLE_DESIGN) in llm.SYSTEM_PROMPT
-        assert set(llm._EXAMPLE_DESIGN) == {"design_version", "blocks"}
+    def test_no_fixed_example_design_in_any_system_prompt(self):
+        # EXPRESSIVE v4 (2026-10-07): the Revised prompt no longer carries a fixed example chair to copy.
+        assert not hasattr(llm, "_EXAMPLE_DESIGN") and not hasattr(llm, "_CHAIR_SHAPE")
+        for prompt in (llm.SYSTEM_PROMPT_INITIAL, llm.SYSTEM_PROMPT_REVISED):
+            assert "Example:" not in prompt and "exact chair" not in prompt
 
     def test_support_self_check_uses_the_validator_constant(self):
         text = llm.SYSTEM_PROMPT.lower()
@@ -360,7 +361,7 @@ class TestErrors:
         assert fake.call_count == 1
 
     def test_missing_key(self, monkeypatch):
-        monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+        monkeypatch.delenv("OPENAI_LLM_API_KEY", raising=False)
         fake = _install(monkeypatch, [])
         result = llm.generate_initial_design("CHAIR")
         assert result["llm_error"]["kind"] == "missing_key"
@@ -460,35 +461,157 @@ class TestForbiddenKeysLeftToValidator:
         assert any(r["rule"] == "unknown_key" for r in reasons)
 
 
-class TestGeneralizedRevisedStrategy:
-    def _revised_content(self, monkeypatch):
+class TestInitialGoalMessage:
+    def test_initial_message_asks_for_a_recognisable_seating_piece(self, monkeypatch, with_fake_key):
+        fake = _install(monkeypatch, [_body(json.dumps({"design_version": 1, "blocks": []}))])
+        llm.generate_initial_design("CHAIR")
+        payload = json.loads(fake.calls[0]["request"].data)
+        content = next(m["content"] for m in payload["messages"] if m["role"] == "user")
+        assert content.startswith("Target object: CHAIR.\n" + llm._INITIAL_GOAL)
+        for phrase in (
+            "Choose a seating-furniture type that fits the rules",
+            "a complete, recognisable piece",
+            "a real seating area a person could sit on",
+            "Output the JSON only.",
+        ):
+            assert phrase in content, phrase
+
+
+class TestExpressiveRevisedPrompt:
+    """EXPRESSIVE v4 Revised policy: Current exact, previous Design as context only, bold seating families."""
+
+    PHILOSOPHY = (
+        "Preserve the Current exactly. Treat the previous Design as context, not as geometry to preserve. All non-Current "
+        "blocks are future targets and may be freely moved, removed, replaced, or added. Redesign the remaining structure from "
+        "scratch if that produces a more coherent, realistic, expressive seating-furniture design; the seat position, support "
+        "layout, backrest, footprint and even the furniture family may change."
+    )
+
+    def _revised_content(self, monkeypatch, intent=None, feedback=None):
         fake = _install(monkeypatch, [_body(json.dumps({"blocks": []}))])
         current = [{"brick_type": "2x3x1", "color": "blue", "x": 9, "y": 9, "layer": 1, "orientation_deg": 0}]
         differences = [{"expected": current[0], "actual": dict(current[0], y=10)}]
-        llm.generate_revised_design(SIMPLE_DESIGN, current, differences)
+        llm.generate_revised_design(SIMPLE_DESIGN, current, differences, intent=intent, feedback=feedback)
         payload = json.loads(fake.calls[0]["request"].data)
         return next(m["content"] for m in payload["messages"] if m["role"] == "user")
 
-    def test_revised_message_has_general_redesign_strategy(self, monkeypatch, with_fake_key):
-        content = self._revised_content(monkeypatch).lower()
-        for phrase in (
-            "do not hold on to the previous positions",
-            "search for a placement that connects them",
-            "do not extend the structure to places far from the chair body",
-            "run the support and connectivity check",
-        ):
-            assert phrase in content
+    def test_philosophy_sentences_are_kept_verbatim(self, monkeypatch, with_fake_key):
+        assert self.PHILOSOPHY in self._revised_content(monkeypatch)
 
-    def test_strategy_text_names_no_coordinates_or_specific_placement(self):
-        # The strategy must stay general: no case-specific coordinates or brick placements.
+    def test_system_prompt_parts_in_order(self):
+        prompt = llm.SYSTEM_PROMPT_REVISED
+        parts = [llm._PREAMBLE, llm._RULES_INITIAL, llm._SEATING_CONCEPT, llm._BUILD_HINTS, llm._EXPRESSIVE_HINTS,
+                 "Design principle: you are designing a NEW, complete, showcase-worthy piece",
+                 "Assembly-order rule (the planner rejects violations)", llm._PROCEDURE, llm._SELF_CHECK]
+        positions = [prompt.index(part) for part in parts]
+        assert positions == sorted(positions)
+        assert prompt.endswith(llm._SELF_CHECK)
+        assert llm.SYSTEM_PROMPT is llm.SYSTEM_PROMPT_REVISED
+
+    def test_expressive_hints_and_soft_goals_use_validator_constants(self):
+        prompt = llm.SYSTEM_PROMPT_REVISED
+        assert f"rising three layers above the seat so it reaches layer {validator.MAX_LAYER}" in prompt
+        assert f"use as many blocks as the concept needs (up to {validator.MAX_BLOCKS})" in prompt
+        assert f"- blocks: 1..{validator.MAX_BLOCKS}." in prompt and validator.MAX_BLOCKS == 30
+        assert f"- Fifth, layer {validator.MAX_LAYER} is part of a feature" in llm._REVISED_GUIDANCE
+        for phrase in ("- Tall back:", "- Crown / headrest / stepped top:", "- Armrests:", "- Park bench / loveseat:",
+                       "- Throne:", "- Rocking chair:", "- Lounge chair / chaise:", "- Canopy-like / sculptural:"):
+            assert phrase in prompt, phrase
+        assert "never on a lower layer under the footprint of an already-placed block" in prompt
+
+    def test_guidance_priorities_in_order_without_minimal_change_rules(self, monkeypatch, with_fake_key):
+        content = self._revised_content(monkeypatch)
+        steps = ["- First, every Current block appears exactly", "- Second, the result passes every rule above",
+                 "- Third, the result reads at a glance as the chosen family", "- Fourth, every feature is big enough to see",
+                 f"- Fifth, layer {validator.MAX_LAYER} is part of a feature", "- Sixth, use as many blocks as the concept needs"]
+        positions = [content.index(step) for step in steps]
+        assert positions == sorted(positions)
+        for old in ("Do not simply shift every block", "re-center", "minimal structural change", "A block the rules do not require is wrong",
+                    "Redesign strategy (only when a minimal change is not enough)"):
+            assert old not in content, old
+        # nothing pulls the design back to a conservative low single-seat chair as the target
+        assert "a plain low single-seat chair is not acceptable" in content
+
+    def test_current_preservation_sentence_kept(self, monkeypatch, with_fake_key):
+        content = self._revised_content(monkeypatch)
+        assert "brick_type, color, x, y, layer and orientation_deg unchanged: no moving, deleting, altering or omitting" in content
+        assert "Copy the Current blocks into the output first" in content
+        assert "Previous adopted design (context only: what the user was making; not geometry to keep" in content
+
+    def test_intent_paragraph_only_with_intent(self, monkeypatch, with_fake_key):
+        without = self._revised_content(monkeypatch)
+        assert "DESIGN INTENT" not in without
+        assert without.startswith("The user chose REVISE. Design a complete seating-furniture piece around the blocks")
+        intent = {"design_family": "throne", "concept_name": "왕좌"}
+        with_intent = self._revised_content(monkeypatch, intent=intent)
+        assert with_intent.startswith("The user chose REVISE. Design a complete throne (왕좌) around the blocks already on the board.")
+        assert ("DESIGN INTENT (fixed before this design; realise it so that every planned feature is visible): "
+                + json.dumps(intent, ensure_ascii=False)) in with_intent
+
+    def test_feedback_only_when_given(self, monkeypatch, with_fake_key):
+        assert "JUDGE FEEDBACK" not in self._revised_content(monkeypatch)
+        feedback = llm.judge_feedback_text({"family_guess_without_name": "block sculpture", "silhouette_clarity": "ambiguous",
+                                            "feature_check": [{"planned": "crown", "status": "weakly visible"}], "awkward": "없음"})
+        content = self._revised_content(monkeypatch, feedback=feedback)
+        assert feedback in content and content.index(feedback) < content.index("Revised Design goal:")
+        assert "would call it 'block sculpture'" in feedback and '"weakly visible"' in feedback
+
+    def test_robot_and_plan_prohibition_kept(self):
+        for phrase in ("robot commands", "ROS2 code", "Plan, Replan, Remaining, NextPart", "supply slot", "backend state"):
+            assert phrase in llm.SYSTEM_PROMPT_REVISED
+
+    def test_no_coordinates_in_fixed_revised_texts(self):
         import re
-        source = open(llm.__file__, encoding="utf-8").read()
-        start = source.index("Redesign strategy:")
-        end = source.index("Return the complete design (all blocks).", start)
-        strategy = source[start:end]
-        assert not re.search(r"\d", strategy)
-        for specific in ("2x3x1", "2x2x1", "orientation 0", "orientation 90", "x=", "y="):
-            assert specific not in strategy
+        for text in (llm.SYSTEM_PROMPT_REVISED, llm._REVISED_GUIDANCE, llm.SYSTEM_PROMPT_INTENT, llm.SYSTEM_PROMPT_JUDGE):
+            assert not re.search(r'"?\b[xy]"?\s*[:=]\s*\d', text)
+            assert not re.search(r"\(\s*\d+\s*,\s*\d+\s*\)", text)
+
+
+class TestIntentJudgeDescribe:
+    def _request(self, fake):
+        payload = json.loads(fake.calls[0]["request"].data)
+        system = next(m["content"] for m in payload["messages"] if m["role"] == "system")
+        user = next(m["content"] for m in payload["messages"] if m["role"] == "user")
+        return system, user
+
+    def test_intent_request(self, monkeypatch, with_fake_key):
+        intent = {"parent_family": "throne"}
+        fake = _install(monkeypatch, [_body(json.dumps(intent))])
+        result = llm.generate_design_intent(SIMPLE_DESIGN, SIMPLE_DESIGN["blocks"], [], recent_families=("lounge chair",))
+        assert result == intent  # returned as is; main checks INTENT_KEYS
+        system, user = self._request(fake)
+        assert system == llm.SYSTEM_PROMPT_INTENT
+        sent = json.loads(user.split("\n", 1)[1])
+        assert set(sent) == {"previous_design", "current_blocks", "difference", "recent_families_to_avoid"}
+        assert sent["recent_families_to_avoid"] == ["lounge chair"]
+        for family in llm.FURNITURE_FAMILIES:
+            assert family in llm.SYSTEM_PROMPT_INTENT
+        assert f"layer{validator.MAX_LAYER}_feature" in llm.INTENT_KEYS and len(llm.INTENT_KEYS) == 10
+
+    def test_non_object_response_is_bad_response(self, monkeypatch, with_fake_key):
+        _install(monkeypatch, [_body("not json")])
+        assert llm.generate_design_intent(SIMPLE_DESIGN, [], [])["llm_error"]["kind"] == "bad_response"
+
+    def test_judge_request_includes_added_and_removed_blocks(self, monkeypatch, with_fake_key):
+        fake = _install(monkeypatch, [_body(json.dumps({"recognizable_family": True}))])
+        new = {"design_version": 2, "blocks": [dict(SIMPLE_DESIGN["blocks"][0], x=4)]}
+        llm.judge_revised_design({"design_family": "throne"}, SIMPLE_DESIGN, new, [], [])
+        system, user = self._request(fake)
+        assert system == llm.SYSTEM_PROMPT_JUDGE
+        sent = json.loads(user.split("\n", 1)[1])
+        assert sent["blocks_added"] == [new["blocks"][0]]
+        assert sent["blocks_removed"] == SIMPLE_DESIGN["blocks"]
+        assert set(sent) == {"design_intent", "previous_design", "new_design", "current_blocks", "difference",
+                             "blocks_added", "blocks_removed"}
+
+    def test_describe_initial_uses_its_own_system_prompt(self, monkeypatch, with_fake_key):
+        fake = _install(monkeypatch, [_body(json.dumps({"design_name": "의자"}))])
+        assert llm.describe_initial_design(SIMPLE_DESIGN) == {"design_name": "의자"}
+        system, _user = self._request(fake)
+        assert system == llm.SYSTEM_PROMPT_DESCRIBE
+        for key in ("design_family", "design_name", "design_summary", "visible_features", "why_it_is_complete",
+                    "silhouette_clarity", "recognizable_family", "completeness_score"):
+            assert f'"{key}"' in system, key
 
 
 class TestConnectivityFeedbackReachesRevisedPrompt:
@@ -540,3 +663,155 @@ class TestRevisedRetryTemperature:
         fake = _install(monkeypatch, [_http_error(500), _body(json.dumps({"blocks": []}))])
         llm.generate_revised_design(SIMPLE_DESIGN, self.CURRENT, self.DIFFS)
         assert self._temperatures(fake) == [0, 0]
+
+
+# ---------------------------------------------------------------------------
+# LLM key separation (STT / TTS keys are checked in test_voice.py)
+# ---------------------------------------------------------------------------
+
+
+class TestLlmKeySeparation:
+    OTHER_STT_KEY = "sk-test-STTONLY000000000000000"
+    OTHER_TTS_KEY = "sk-test-TTSONLY000000000000000"
+
+    def test_only_the_llm_key_is_used(self, monkeypatch, with_fake_key):
+        monkeypatch.setenv("OPENAI_API_KEY", self.OTHER_STT_KEY)
+        monkeypatch.setenv("OPENAI_TTS_API_KEY", self.OTHER_TTS_KEY)
+        fake = _install(monkeypatch, [_body(json.dumps({"design_version": 1, "blocks": []}))])
+        llm.generate_initial_design("CHAIR")
+        assert llm.LLM_KEY_ENV == "OPENAI_LLM_API_KEY"
+        assert fake.calls[0]["request"].get_header("Authorization") == "Bearer " + FAKE_KEY
+
+    @pytest.mark.parametrize("generate", ["initial", "revised"])
+    def test_no_fallback_to_stt_or_tts_key(self, monkeypatch, generate):
+        monkeypatch.delenv("OPENAI_LLM_API_KEY", raising=False)
+        monkeypatch.setenv("OPENAI_API_KEY", self.OTHER_STT_KEY)
+        monkeypatch.setenv("OPENAI_TTS_API_KEY", self.OTHER_TTS_KEY)
+        fake = _install(monkeypatch, [])
+        if generate == "initial":
+            result = llm.generate_initial_design("CHAIR")
+        else:
+            result = llm.generate_revised_design(SIMPLE_DESIGN, SIMPLE_DESIGN["blocks"], [])
+        assert result == {"llm_error": {"kind": "missing_key", "message": "OPENAI_LLM_API_KEY is not set"}}
+        assert fake.call_count == 0
+        assert self.OTHER_STT_KEY not in json.dumps(result) and self.OTHER_TTS_KEY not in json.dumps(result)
+
+
+# ---------------------------------------------------------------------------
+# model-specific payload (reasoning models reject max_tokens / temperature 0)
+# ---------------------------------------------------------------------------
+
+
+class TestModelPayload:
+    REASONS = [{"rule": "connectivity", "blocks": [], "message": "design is not fully connected"}]
+
+    def _payloads(self, monkeypatch, model, calls):
+        monkeypatch.setenv("OPENAI_MODEL", model)
+        fake = _install(monkeypatch, [_body(json.dumps({"blocks": []}))] * len(calls))
+        for call in calls:
+            call()
+        return [json.loads(c["request"].data) for c in fake.calls]
+
+    @pytest.mark.parametrize("model", ["gpt-4o", "gpt-4o-mini"])
+    def test_legacy_models_use_temperature_and_max_tokens(self, monkeypatch, with_fake_key, model):
+        (payload,) = self._payloads(monkeypatch, model, [lambda: llm.generate_initial_design("CHAIR")])
+        assert payload["model"] == model
+        assert payload["temperature"] == 0
+        assert payload["max_tokens"] == llm.MAX_TOKENS
+        assert payload["response_format"] == {"type": "json_object"}
+        assert "reasoning_effort" not in payload
+        assert "max_completion_tokens" not in payload
+
+    @pytest.mark.parametrize("model", ["gpt-6.1-sol", "gpt-5", "o3-mini"])
+    def test_reasoning_models_use_completion_budget_and_effort(self, monkeypatch, with_fake_key, model):
+        (payload,) = self._payloads(monkeypatch, model, [lambda: llm.generate_initial_design("CHAIR")])
+        assert payload["model"] == model
+        assert "temperature" not in payload
+        assert "max_tokens" not in payload
+        assert payload["max_completion_tokens"] == llm.MAX_COMPLETION_TOKENS == 8000
+        assert payload["reasoning_effort"] == llm.REASONING_EFFORT == "medium"
+        assert payload["response_format"] == {"type": "json_object"}
+
+    def test_revised_regeneration_temperature_only_for_legacy_models(self, monkeypatch, with_fake_key):
+        calls = [
+            lambda: llm.generate_revised_design(SIMPLE_DESIGN, SIMPLE_DESIGN["blocks"], []),
+            lambda: llm.generate_revised_design(SIMPLE_DESIGN, SIMPLE_DESIGN["blocks"], [], reasons=self.REASONS),
+        ]
+        legacy = self._payloads(monkeypatch, "gpt-4o", calls)
+        assert [p["temperature"] for p in legacy] == [0, llm.REVISED_RETRY_TEMPERATURE]
+        reasoning = self._payloads(monkeypatch, "gpt-6.1-sol", calls)
+        assert all("temperature" not in p for p in reasoning)
+
+    def test_model_constants_unchanged(self):
+        assert llm.DEFAULT_MODEL == "gpt-4o-mini"
+        assert llm.MAX_TOKENS == 2000
+        source = open(llm.__file__, encoding="utf-8").read()  # RETRY_BACKOFF is patched by fast_retry here
+        assert "RETRY_BACKOFF = (1, 2, 4)" in source
+        assert llm.REVISED_RETRY_TEMPERATURE == 0.3
+        assert llm.REASONING_MODEL_PREFIXES == ("gpt-6", "gpt-5", "o1", "o3", "o4")
+
+
+# ---------------------------------------------------------------------------
+# Initial / Revised system prompts
+# ---------------------------------------------------------------------------
+
+
+class TestSplitSystemPrompts:
+    def _system_of(self, fake):
+        payload = json.loads(fake.calls[0]["request"].data)
+        return next(m["content"] for m in payload["messages"] if m["role"] == "system")
+
+    def test_initial_and_revised_requests_use_their_own_system_prompt(self, monkeypatch, with_fake_key):
+        fake = _install(monkeypatch, [_body(json.dumps({"design_version": 1, "blocks": []}))])
+        llm.generate_initial_design("CHAIR")
+        assert self._system_of(fake) == llm.SYSTEM_PROMPT_INITIAL
+        fake = _install(monkeypatch, [_body(json.dumps({"blocks": []}))])
+        llm.generate_revised_design(SIMPLE_DESIGN, SIMPLE_DESIGN["blocks"], [])
+        assert self._system_of(fake) == llm.SYSTEM_PROMPT_REVISED
+        assert llm.SYSTEM_PROMPT is llm.SYSTEM_PROMPT_REVISED  # 하위 호환 이름
+
+    def test_initial_system_has_no_example_design(self):
+        prompt = llm.SYSTEM_PROMPT_INITIAL
+        assert '"design_version": 1, "blocks": [{' not in prompt  # no example design JSON
+        assert "exact chair" not in prompt
+        assert "Example:" not in prompt
+        assert "- Shape:" not in prompt  # Revised의 Shape 줄은 Initial에 없는 "Chair shape" 절을 가리키므로 제외
+        assert "Example:" not in llm.SYSTEM_PROMPT_REVISED  # EXPRESSIVE v4: no fixed example in Revised either
+
+    def test_initial_system_parts_in_order(self):
+        prompt = llm.SYSTEM_PROMPT_INITIAL
+        marks = [
+            "Never output robot commands, ROS2 code, world or robot coordinates, a Plan, Replan, Remaining, NextPart",
+            "Rules (the validator rejects any violation):",
+            f"- layer: integer 1..{validator.MAX_LAYER}; layer 1 sits on the board.",
+            "Output schema:",
+            "What CHAIR means here: any seating furniture",
+            "How to build validly with these bricks:",
+            "Work in this order (silently; output only the JSON):",
+            "Before output, for every block on layer >= 2",
+        ]
+        positions = [prompt.index(mark) for mark in marks]
+        assert positions == sorted(positions)
+        assert prompt.endswith(llm._SELF_CHECK)
+
+    def test_initial_seating_concept(self):
+        prompt = llm.SYSTEM_PROMPT_INITIAL
+        for phrase in (
+            "Chairs, dining chairs, armchairs, lounge chairs, stools, benches",
+            "no type is the default",
+            "- A seating area: a clear horizontal surface where a person would sit.",
+            "a single row or column of bricks is a beam or a post, not a seat",
+            "Legs are not required and no number of legs is required.",
+            "- Backrest (optional):",
+            "- Armrests (optional).",
+            "not as a tower, wall, shelf, bar, bridge or an arbitrary block sculpture",
+            "Keep the seating area itself free: nothing stands on the surface a person would sit on.",
+        ):
+            assert phrase in prompt, phrase
+
+    def test_initial_system_has_no_coordinates_or_counts(self):
+        import re
+        prompt = llm.SYSTEM_PROMPT_INITIAL
+        assert not re.search(r'"?\b[xy]"?\s*[:=]\s*\d', prompt)
+        assert not re.search(r"\(\s*\d+\s*,\s*\d+\s*\)", prompt)
+        assert not re.search(r"\d+\s*(blocks?|legs?)\b", prompt, re.IGNORECASE)
