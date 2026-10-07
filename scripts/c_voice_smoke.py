@@ -46,7 +46,7 @@ session or shell history:
         python3 scripts/c_voice_smoke.py echo
 
 TTS model, voice and speaking-style instructions come from OPENAI_TTS_MODEL
-(default gpt-4o-mini-tts), OPENAI_TTS_VOICE (default coral) and
+(default gpt-4o-mini-tts), OPENAI_TTS_VOICE (default marin) and
 OPENAI_TTS_INSTRUCTIONS (sent only to models other than tts-1 / tts-1-hd).
 Compare voices by repeating `questions` with e.g. OPENAI_TTS_VOICE=marin or
 OPENAI_TTS_VOICE=cedar in the same inline form; OPENAI_TTS_MODEL=tts-1 reproduces

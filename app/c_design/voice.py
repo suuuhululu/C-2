@@ -79,9 +79,9 @@ STT_URL = "https://api.openai.com/v1/audio/transcriptions"
 TTS_URL = "https://api.openai.com/v1/audio/speech"
 DEFAULT_STT_MODEL = "whisper-1"  # env OPENAI_STT_MODEL이 호출 시점에 덮어쓴다
 DEFAULT_TTS_MODEL = "gpt-4o-mini-tts"  # env OPENAI_TTS_MODEL(예: tts-1이면 instructions 없이 기존 payload)
-# coral: gpt-4o-mini-tts와 tts-1 모두 지원하는 보이스라 env로 모델만 바꿔도 400이 나지 않는다.
-# marin·cedar는 gpt-4o-mini-tts 전용이라 기본값으로 두지 않고 청취 비교 후 env OPENAI_TTS_VOICE로 지정한다.
-DEFAULT_TTS_VOICE = "coral"  # env OPENAI_TTS_VOICE
+# marin: 2026-10-07 사용자 청취 비교(coral 대비 한국어 발음·자연스러움)로 채택. gpt-4o-mini-tts 전용 보이스이므로
+# env OPENAI_TTS_MODEL로 tts-1을 쓸 때는 OPENAI_TTS_VOICE도 함께 지정해야 한다(D 통합 테스트는 둘 다 지정함).
+DEFAULT_TTS_VOICE = "marin"  # env OPENAI_TTS_VOICE
 # 질문 문장이 반말·존댓말 어느 쪽이든 그대로 읽도록 말투만 지시한다.
 DEFAULT_TTS_INSTRUCTIONS = (
     "차분하고 친근한 한국어 안내 말투로, 또렷하게 너무 빠르지 않게 문장 사이에서 자연스럽게 쉬며 읽어 주세요."
