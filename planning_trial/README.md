@@ -1,5 +1,7 @@
 # A파트 최초 계획·재계획 계산
 
+> 2026-10-07 적용: 현재 제품 목표는 [최종 MVP](../docs/10_FINAL_MVP.md)입니다. 아래 A 코드는 기존 여섯 배치 필드·PLACE 순서·Remaining/Replan의 계산입니다. 최종 요구의 경로 생성·Robot 직접 결착 MotionPlan을 제공하는 것으로 표시하지 않습니다. 경로 생산자·좌표/접촉 인계와 기존 Plan의 관계는 별도 합의 후 검증합니다.
+
 기존 실습 코드를 [Day4 공통 계약](https://github.com/suuuhululu/C-2/blob/main/docs/06_CONTRACT_DRAFT.md)의
 Design·블록·Plan·Step 형식으로 수정했다. 샘플과 실제 연결에서 같은 계산 함수를 사용한다.
 현재 구현 범위는 **최초 Plan**과 **현재 배치 보존＋남은 PLACE Plan** 생성·검증이다.

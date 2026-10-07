@@ -1,5 +1,7 @@
 # Perception → Backend callback 검토용 예시
 
+> 2026-10-07 적용: [최종 MVP](../../../docs/10_FINAL_MVP.md). 아래는 기존 Day4 Observed callback의 합성 예시입니다. 직접 결착·지원 응답·최종 완성상태의 생산 계약/성능 검증 자료가 아닙니다. 기존 check/seq와 OK/UNOBSERVABLE 의미를 유지하며 새 VerificationResult 필드는 별도 합의합니다.
+
 Backend에 직접 입력할 JSON은 `fixtures/`에 있습니다.
 사례별 사전 Current·목표·확인 결과와 로컬 실행 안내는
 [BACKEND_TEST_GUIDE.md](BACKEND_TEST_GUIDE.md)를 참고하세요.
