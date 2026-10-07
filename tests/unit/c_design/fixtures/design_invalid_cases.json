@@ -849,7 +849,7 @@
       }
     },
     {
-      "case": "brick_count_thirty_one",
+      "case": "brick_count_forty_one",
       "expected_rules": [
         "brick_count"
       ],
@@ -1101,6 +1101,86 @@
             "color": "blue",
             "x": 18,
             "y": 20,
+            "layer": 1,
+            "orientation_deg": 0
+          },
+          {
+            "brick_type": "2x2x1",
+            "color": "blue",
+            "x": 0,
+            "y": 22,
+            "layer": 1,
+            "orientation_deg": 0
+          },
+          {
+            "brick_type": "2x2x1",
+            "color": "blue",
+            "x": 2,
+            "y": 22,
+            "layer": 1,
+            "orientation_deg": 0
+          },
+          {
+            "brick_type": "2x2x1",
+            "color": "blue",
+            "x": 4,
+            "y": 22,
+            "layer": 1,
+            "orientation_deg": 0
+          },
+          {
+            "brick_type": "2x2x1",
+            "color": "blue",
+            "x": 6,
+            "y": 22,
+            "layer": 1,
+            "orientation_deg": 0
+          },
+          {
+            "brick_type": "2x2x1",
+            "color": "blue",
+            "x": 8,
+            "y": 22,
+            "layer": 1,
+            "orientation_deg": 0
+          },
+          {
+            "brick_type": "2x2x1",
+            "color": "blue",
+            "x": 10,
+            "y": 22,
+            "layer": 1,
+            "orientation_deg": 0
+          },
+          {
+            "brick_type": "2x2x1",
+            "color": "blue",
+            "x": 12,
+            "y": 22,
+            "layer": 1,
+            "orientation_deg": 0
+          },
+          {
+            "brick_type": "2x2x1",
+            "color": "blue",
+            "x": 14,
+            "y": 22,
+            "layer": 1,
+            "orientation_deg": 0
+          },
+          {
+            "brick_type": "2x2x1",
+            "color": "blue",
+            "x": 16,
+            "y": 22,
+            "layer": 1,
+            "orientation_deg": 0
+          },
+          {
+            "brick_type": "2x2x1",
+            "color": "blue",
+            "x": 18,
+            "y": 22,
             "layer": 1,
             "orientation_deg": 0
           }

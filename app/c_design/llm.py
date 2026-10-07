@@ -65,7 +65,8 @@ _RULE_LINES = f"""Rules (the validator rejects any violation):
 - Board {len(validator.BOARD_RANGE)} x {len(validator.BOARD_RANGE)} studs. x and y are integers: the minimum corner of the block footprint; the whole footprint must stay inside 0..{validator.BOARD_RANGE[-1]}.
 - brick_type: {", ".join(sorted(validator.BRICK_TYPES))}. color: {", ".join(sorted(validator.COLORS))} (lowercase).
 - layer: integer 1..{validator.MAX_LAYER}; layer 1 sits on the board.
-- orientation_deg: 2x3x1 uses 0 (X 2 studs, Y 3 studs) or 90 (X 3 studs, Y 2 studs); 2x2x1 always 0.
+- orientation_deg: 1x2x1 uses 0 (X 1 stud, Y 2 studs) or 90 (X 2 studs, Y 1 stud); 2x3x1 uses 0 (X 2 studs, Y 3 studs) or 90 (X 3 studs, Y 2 studs); 2x2x1 always 0.
+- red is available for accents; 1x2x1 is a thin brick for rails, trims, wings, slats and narrow supports and still needs {validator.MIN_SUPPORT_STUDS} studs of support below.
 - blocks: 1..{validator.MAX_BLOCKS}. No two blocks on the same layer may share a stud.
 - Every block on layer >= 2 must overlap blocks on the layer directly below by at least {validator.MIN_SUPPORT_STUDS} studs in total.
 - All blocks must form one connected structure through stud overlaps between adjacent layers."""
