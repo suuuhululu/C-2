@@ -36,14 +36,15 @@ def test_valid_inputs_preserve_values_and_do_not_share_nested_data(consumer, nam
 
 @pytest.mark.parametrize("brick_type,angle", [("2x2x1", 0), ("2x3x1", 0), ("2x3x1", 90)])
 @pytest.mark.parametrize("color", ["yellow", "blue"])
-def test_supported_blocks_and_field_boundaries(brick_type, angle, color):
-    block = dict(brick_type=brick_type, color=color, x=0, y=23, layer=4, orientation_deg=angle)
+@pytest.mark.parametrize("layer", range(1, 6))
+def test_supported_blocks_and_field_boundaries(brick_type, angle, color, layer):
+    block = dict(brick_type=brick_type, color=color, x=0, y=23, layer=layer, orientation_deg=angle)
     assert validate_block(block) == block
 
 
 @pytest.mark.parametrize("field,value", [
     ("brick_type", "2x4x1"), ("color", "red"), ("x", -1), ("y", 24),
-    ("x", True), ("y", "5"), ("x", 3.5), ("layer", 0), ("layer", 5),
+    ("x", True), ("y", "5"), ("x", 3.5), ("layer", 0), ("layer", 6),
     ("orientation_deg", 90), ("orientation_deg", 180), ("orientation_deg", False),
 ])
 def test_invalid_block_is_rejected_without_normalization(field, value):
@@ -145,7 +146,7 @@ def test_invalid_envelope_fields(consumer, name, field, value):
         consumer(payload)
 
 
-@pytest.mark.parametrize("field,value", [("width", 0), ("height", -1), ("x", 23), ("layer", 5)])
+@pytest.mark.parametrize("field,value", [("width", 0), ("height", -1), ("x", 23), ("layer", 6)])
 def test_invalid_verified_region_is_rejected(field, value):
     observed = deepcopy(FIXTURES["observed_match"])
     observed["verified_regions"][0][field] = value

@@ -1,5 +1,27 @@
 # 현재 진행 상황
 
+## 공통 5층 지원 — 2026-10-07
+
+- **기준/작업 위치:** 원격 main `afd75d0b0943d85b44248ea563e89f860921e1dd`(PR #17 병합)을 확인하고 독립 clone의 `fix/common-five-layer-support`에서 수정했습니다. 완료 시 원격 main도 동일했습니다. 로컬 `work/suhyun-assembly-evidence`/`62b7ffd`의 기존 Backend 연구 코드와 작업 상태는 보존했습니다. 저장소 AGENTS와 관련 정책·계약을 읽었으며 저장소/관련 작업본에 `.agents/skills`는 없었습니다. 검증 단계에서는 commit/push/PR/merge를 하지 않았으며, 이후 사용자 승인으로 이 변경의 commit/push·draft PR 게시를 진행합니다. 병합은 하지 않습니다.
+- **변경:** A `MAX_LAYER`·오류 문구, D 블록/관측 영역 검사·`supported_scope`, Day4 Schema를 1~5층으로 통일했습니다. HMI Schema는 Day4 정의를 참조하므로 같은 범위를 적용합니다. 합성 관측과 수동 Current 확인도 D의 층 상수를 사용합니다. 여섯 배치 필드·PLACE·지지 2 stud·24×24 좌표·판 footprint·Plan/Current 최신성 의미는 유지합니다.
+- **30블록:** C 생성 상한 30을 유지하고 C 검증→실제 A→D 채택→Qt→합성 관측/FakeRobot 완료를 확인했습니다. A/D에 새 수량 제한은 추가하지 않았습니다. REAL 수동 시험의 네 공급열×여섯 슬롯(최대 24 Step) 제한은 유지하며 실제 직접 결착·Vision 판별 범위를 확장했다고 주장하지 않습니다.
+- **검사 변경:** 기존 5층 범위 초과 시험은 6층으로 옮겼습니다. 보관 C 응답과 A 첨부 자료·해시는 보존하고 A의 승인된 두 변경만 제외해 원본 해시를 대조합니다. 새 연결 검사는 1~5층 정상, 30블록, 부분 Current 보존/Remaining, 6층 거절/미채택, 지지 부족/판 밖 좌표, Schema 및 수동 확인 입력을 다룹니다. Qt 기존 4층 가장자리 검사를 유지하고 5층 조건을 추가했습니다.
+- **관련 L1/L3:** `planning_trial/test_planner.py`, unit의 contracts/hmi_current/qt_hmi/current/replan/hmi_contracts/planner_results/c_design validator, integration의 a_backend/abd_callback/c_saved_results_hmi/five_layer_pipeline를 실행해 **645 passed**, 종료 코드 **0**입니다. 5층 가장자리와 30블록 완료 PNG를 실제로 열어 표시를 확인했습니다. Qt offscreen·Robot/관측/LLM/음향은 Fake 또는 미연결이며 실제 장치 검증이 아닙니다.
+- **전체 비교:** 변경 전 main은 **1405 passed, 41 failed, 24 skipped, 11 errors**, 변경 후 최종은 **1444 passed, 41 failed, 24 skipped, 11 errors**, 각각 종료 코드 **1**입니다. 실패·오류 52건의 node ID 집합은 동일하며 새 실패 0건입니다. 24 skip은 별도 실제 DB DSN 미설정입니다. 전체 PASS로 표시하지 않습니다.
+- **분리한 기존 제한:** C LLM의 `OPENAI_LLM_API_KEY`와 D 시험의 `OPENAI_API_KEY` 설정이 다릅니다. 해당 값 대신 시험 프로세스의 명시적 더미와 HTTP Fake만 사용한 10개 비교 검사도 전/후 각각 **3 passed, 7 failed, 1 teardown error**로 동일했습니다. 키 문제 뒤에는 최근 C metadata/judge 호출과 기존 D Fake의 호출 횟수 기대(1/2회)·대기 조건 불일치도 남습니다. Robot 관련 시험은 `/home/ms-02/C_2/...` 설정·외부 원본/측정 자료가 이 편집 PC에 없어 실패합니다. 별도 문제의 코드·장치/계정 설정은 수정하지 않았습니다.
+- **시험 환경:** 편집 Python 3.12.10 / pytest 9.1.1 / Qt offscreen. ROS `launch_testing`과 pytest 충돌로 이번 명령에서만 `PYTEST_DISABLE_PLUGIN_AUTOLOAD=1`을 사용했습니다. 기존 Schema 시험에 필요한 jsonschema 4.26.0을 `/tmp/c2-five-layer-test-deps`에만 준비하고 기존 ROS 환경 site-packages와 함께 PYTHONPATH로 지정했습니다. 저장소 dependency/framework 추가는 없습니다. 일반 검사는 OPENAI 세 key와 `HISTORY_TEST_DSN`을 child process에서 unset했고 실제 비밀값·LLM/Robot/ROS 제어를 사용하지 않았습니다.
+- **최종 확인/후속:** 변경 Python/JSON 파싱, Markdown 새 누락 상대 파일 링크 0, `git diff --check` 통과. lint/type/CI 미구성. 사람 리뷰와 실제 5층 Vision/직접 결착·30블록 실행 환경 검증, D LLM Fake 갱신과 외부 Robot 자료 경로 정합성이 후속입니다. 이전 시험 기록은 아래에 그대로 보존합니다.
+
+전체 실행 명령(원격·실기 연결 없음):
+
+```sh
+env -u OPENAI_LLM_API_KEY -u OPENAI_API_KEY -u OPENAI_TTS_API_KEY -u HISTORY_TEST_DSN \
+  QT_QPA_PLATFORM=offscreen PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 \
+  PYTHONPATH=/tmp/c2-five-layer-test-deps:/Users/suhyun/miniforge3/envs/ros2_jazzy/lib/python3.12/site-packages \
+  python3 -m pytest tests planning_trial/test_planner.py -q
+```
+
+
 ## 최종 MVP 문서 이행 — 2026-10-07
 
 사용자 요청으로 GitHub main `95259bd`의 Markdown/docs를 커스텀 의자 최종 MVP에 맞춰 정렬합니다. [최종 MVP](10_FINAL_MVP.md)에 설계 대화·사용자 확정 → 조립 순서/경로 → Backend/HMI → 로봇 공급판 집기·조립판 직접 결착·필요 시 사람 지지 → 세 단계 종료를 정의했습니다. 목표는 개발 과정에서 수정될 수 있습니다.

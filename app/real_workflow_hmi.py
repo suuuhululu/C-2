@@ -12,7 +12,7 @@ from PyQt5.QtCore import QTimer, Qt
 from PyQt5.QtWidgets import QApplication
 
 from app.backend import Backend
-from app.contracts import _object, validate_block, validate_design
+from app.contracts import MAX_LAYER, _object, validate_block, validate_design
 from app.current import _placements
 from app.hmi_board import dimensions
 from app.jsonl_log import JsonlLog
@@ -224,7 +224,7 @@ class WorkflowTrial:
         # 사람이 조립판 전체·모든 층을 확인하는 시험 입력이다. Camera의 확인 범위를 추정하지 않는다.
         observed = dict(check_id=value["check_id"], observation_seq=check["last_observation_seq"] + 1
             if check["last_observation_seq"] is not None else 0, status="OK", visible_blocks=blocks,
-            verified_regions=[dict(x=0, y=0, layer=layer, width=24, height=24) for layer in range(1, 5)], reason=None)
+            verified_regions=[dict(x=0, y=0, layer=layer, width=24, height=24) for layer in range(1, MAX_LAYER + 1)], reason=None)
         accepted = self.backend.on_observation(observed)
         self.publish()
         return accepted

@@ -4,7 +4,7 @@ from copy import deepcopy
 from uuid import uuid4
 
 from app.completion import evaluate_job_completion, evaluate_observation, freeze_plan_basis
-from app.contracts import _integer, _object, _text, validate_observed
+from app.contracts import MAX_LAYER, _integer, _object, _text, validate_observed
 from app.current import open_observation_check
 from app.hmi_contracts import validate_hmi_command
 from app import replan
@@ -21,7 +21,7 @@ class Backend:
         self._request_owners = {}
         self._state = dict(mode=mode, supported_scope=dict(operations=["PLACE"],
                            brick_types=["2x2x1","2x3x1"],colors=["yellow","blue"],
-                           board_width=24,board_height=24,max_layer=4),workflow_status="IDLE", job_id=None,
+                           board_width=24,board_height=24,max_layer=MAX_LAYER),workflow_status="IDLE", job_id=None,
                            current=dict(current_revision=0, blocks=[]), context=None,
                            planning_request=None, execution_id=None, active_check=None,
                            place_check=None, place_status=None, question_request=None, question=None,

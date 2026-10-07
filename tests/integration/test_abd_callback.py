@@ -325,7 +325,7 @@ def test_place_reverse_duplicate_and_old_check_do_not_dispatch(tmp_path):
 @pytest.mark.parametrize("status", ["NEEDS_CORRECTION", "INVALID"])
 def test_actual_a_errors_hold_before_robot_dispatch(tmp_path, status):
     current = dict(current_revision=1, blocks=[B.block("blue")]) if status == "NEEDS_CORRECTION" else None
-    blocks = [YELLOW] if current else [{**YELLOW, "layer": 5}]
+    blocks = [YELLOW] if current else [{**YELLOW, "layer": 6}]
     harness = connected(tmp_path, blocks=blocks, current=current)
     result = harness["planning"][0]["result"]
     assert result["status"] == status and result["plan"] is None and result["errors"]

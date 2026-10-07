@@ -29,12 +29,14 @@ python3 -m pytest planning_trial/test_planner.py -q
 | brick_type | 2x2x1 또는 2x3x1 |
 | color | yellow 또는 blue |
 | x, y | 0~23 정수, stud 단위. 차지하는 영역의 최소 x/y 모서리 |
-| layer | 1~4 정수. 조립판 위 첫 층은 1 |
+| layer | 1~5 정수. 조립판 위 첫 층은 1 |
 | orientation_deg | 2×2는 0, 2×3은 0 또는 90 |
 
 공통 좌표는 사진 기준 +X 오른쪽, +Y 위다. 2×3의 0도는 X폭 2/Y길이 3,
 90도는 X폭 3/Y길이 2다. 회전해도 기준점은 차지하는 영역의 최소 모서리다.
 x/y 값뿐 아니라 블록 전체가 24×24 판 안에 있어야 한다.
+2026-10-07 사용자 요청으로 최대 5층을 지원한다. C의 30블록 설계도 동일 함수로 계획한다.
+블록 수 상한은 C 생성 정책이며 A/D Consumer에 새 수량 제한을 추가하지 않는다.
 
 공통 block_id·design_id·session_id·trial_rules는 요구하지 않는다.
 C의 선택적 내부 block_id는 입력에 있어도 계산 기준과 공통 출력에서 제외한다.
