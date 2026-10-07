@@ -1,0 +1,168 @@
+{
+  "example_only": true,
+  "source": "Reviewed 2026-10-07 no_motion_check probe/save_rgbd output shape. Recorded timestamps are historical; never attach as fresh live evidence. Camera receipt time adjusted to a synthetic shared UTC window for LIVE boundary tests; image ROS stamp unchanged.",
+  "feedback": {
+    "recorded_utc": "2026-10-07T05:39:31.734826+00:00",
+    "motion_commands_sent": 0,
+    "gripper_commands_sent": 0,
+    "service_reads": [
+      {
+        "service": "/dsr01/dsr_controller2/system/get_robot_state",
+        "request": {},
+        "request_utc": "2026-10-07T05:39:31.716808+00:00",
+        "response": {
+          "robot_state": 1,
+          "success": true
+        },
+        "status": "READ",
+        "response_utc": "2026-10-07T05:39:31.717357+00:00",
+        "elapsed_s": 0.0005377850029617548
+      },
+      {
+        "service": "/dsr01/dsr_controller2/motion/check_motion",
+        "request": {},
+        "request_utc": "2026-10-07T05:39:31.718916+00:00",
+        "response": {
+          "status": 0,
+          "success": true
+        },
+        "status": "READ",
+        "response_utc": "2026-10-07T05:39:31.720917+00:00",
+        "elapsed_s": 0.0019992160086985677
+      },
+      {
+        "service": "/dsr01/dsr_controller2/drl/get_drl_state",
+        "request": {},
+        "request_utc": "2026-10-07T05:39:31.722675+00:00",
+        "response": {
+          "drl_state": 3,
+          "success": true
+        },
+        "status": "READ",
+        "response_utc": "2026-10-07T05:39:31.723074+00:00",
+        "elapsed_s": 0.00039457797538489103
+      },
+      {
+        "service": "/dsr01/dsr_controller2/aux_control/get_current_velj",
+        "request": {},
+        "request_utc": "2026-10-07T05:39:31.724546+00:00",
+        "response": {
+          "joint_speed": [
+            -0.0,
+            -0.0,
+            0.0,
+            -0.0,
+            0.0,
+            -0.0
+          ],
+          "success": true
+        },
+        "status": "READ",
+        "response_utc": "2026-10-07T05:39:31.724982+00:00",
+        "elapsed_s": 0.0004309619835112244
+      },
+      {
+        "service": "/dsr01/dsr_controller2/aux_control/get_tool_force",
+        "request": {
+          "ref": 0
+        },
+        "request_utc": "2026-10-07T05:39:31.726694+00:00",
+        "response": {
+          "tool_force": [
+            0.26338472962379456,
+            -3.482164144515991,
+            3.3799943923950195,
+            0.8940473794937134,
+            0.7307091951370239,
+            0.12944866716861725
+          ],
+          "success": true
+        },
+        "status": "READ",
+        "response_utc": "2026-10-07T05:39:31.727192+00:00",
+        "elapsed_s": 0.0005016129871364683
+      },
+      {
+        "service": "/dsr01/dsr_controller2/aux_control/get_tool_force",
+        "request": {
+          "ref": 1
+        },
+        "request_utc": "2026-10-07T05:39:31.728883+00:00",
+        "response": {
+          "tool_force": [
+            -2.902429282051657,
+            3.6877548267033298,
+            -1.2631582731637714,
+            0.8940473794937134,
+            0.7307091951370239,
+            0.12944866716861725
+          ],
+          "success": true
+        },
+        "status": "READ",
+        "response_utc": "2026-10-07T05:39:31.729303+00:00",
+        "elapsed_s": 0.0004143289988860488
+      }
+    ],
+    "gripper": {
+      "request_utc": "2026-10-07T05:39:31.734833+00:00",
+      "registers": {
+        "width": 267,
+        "status": 268
+      },
+      "device_timestamp": null,
+      "status": "READ",
+      "raw_width": 621,
+      "raw_status": 72,
+      "width_mm": 62.1,
+      "busy": false,
+      "grip_detected": false,
+      "safety_bits": 72,
+      "release_completed": "UNVERIFIED_NO_RELEASE_COMMAND_IN_THIS_TEST",
+      "response_utc": "2026-10-07T05:39:31.780921+00:00"
+    },
+    "camera": {
+      "status": "READ",
+      "response": {
+        "device_name": "realsense_d435i"
+      }
+    },
+    "timestamp_note": "서비스 응답에는 계측 시각 없음. request/response UTC는 PC 기록 시각."
+  },
+  "camera": {
+    "received_utc": "2026-10-07T05:39:31.800000+00:00",
+    "source_topic": "/camera/rgbd",
+    "rgb_header": {
+      "stamp": {
+        "sec": 1791350923,
+        "nanosec": 23479980
+      },
+      "frame_id": "camera_color_optical_frame"
+    },
+    "depth_header": {
+      "stamp": {
+        "sec": 1791350923,
+        "nanosec": 23479980
+      },
+      "frame_id": "camera_color_optical_frame"
+    },
+    "rgb_encoding": "rgb8",
+    "depth_encoding": "16UC1",
+    "rgb_camera_info": {
+      "width": 1280,
+      "height": 720
+    },
+    "depth_camera_info": {
+      "width": 1280,
+      "height": 720
+    },
+    "depth_unit": "mm (ROS RealSense 16UC1 output)",
+    "depth_zero": "invalid measurement; not empty board",
+    "depth_zero_fraction": 0.10921983506944444,
+    "preview_range_mm": [
+      0,
+      1500
+    ],
+    "geometry_calibration_verified": false
+  }
+}

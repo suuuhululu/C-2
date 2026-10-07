@@ -8,6 +8,11 @@ from app.contracts import _integer, _object, _text, validate_observed
 from app.current import open_observation_check
 from app.hmi_contracts import validate_hmi_command
 from app import replan
+from app.assembly_completion import advance_assembly_trial, prepare_assembly_trial
+from app.assembly_human import (close_human_verification, consume_human_response,
+                                open_human_verification, refresh_human_verification)
+from app.assembly_recovery import check_resume, propose_recovery
+from app.assembly_sensor import normalize_sensor_snapshot
 
 
 class Backend:
@@ -35,6 +40,7 @@ class Backend:
         self._place_seq = self._paused_execution = None
         self._robot = self._robot_config_loader = None
         self._manual_trial = manual_trial
+        self._assembly = None
         if manual_trial:
             self._state["manual_trial"] = True
 
@@ -45,7 +51,161 @@ class Backend:
                              at_observe_point=self._at_observe,
                              robot_state=self._robot.state if self._robot is not None else None))
 
+    @property
+    def assembly_state(self) -> dict | None:
+        """별도 연구 시험의 읽기용 상태. 기존 Day4/Qt snapshot에는 넣지 않는다."""
+        return deepcopy(self._assembly)
+
+    def begin_assembly_trial(self, *, active, max_age, physical_context,
+                             physical_max_age, world, target, now) -> dict:
+        """장치 없는 첫 단일 블록 시험. 같은 Backend가 완료의 유일한 Owner다."""
+        if (self._assembly is not None or self._state["mode"] != "FAKE"
+                or self._state["job_id"] is not None or self._robot is not None):
+            raise ValueError("Research trial requires an unused FAKE Backend without a driver")
+        self._assembly = prepare_assembly_trial(active=active, max_age=max_age,
+            physical_context=physical_context, physical_max_age=physical_max_age,
+            world=world, target=target, now=now)
+        return self.assembly_state
+
+    def on_assembly_evidence(self, *, now, event=None, verification=None) -> dict:
+        """정규화 증거 입력만 받는다. Robot 명령/사람 확인/자동 재시도를 수행하지 않는다."""
+        if self._assembly is None:
+            raise ValueError("No active research trial")
+        if self._assembly["completion"] is not None:
+            return dict(committed=False, reason="ALREADY_COMMITTED")
+        candidate = advance_assembly_trial(self._assembly, now=now, event=event,
+                                            verification=verification)
+        return self._adopt_assembly(refresh_human_verification(candidate, now))
+
+    def on_assembly_sensor_snapshot(self, *, snapshot, now, clock_id):
+        """읽기 전용 projection 연결. 명령/자동 결착/긍정 안전 허용은 생성하지 않는다."""
+        if self._assembly is None:
+            raise ValueError("No active research trial")
+        if self._assembly["completion"] is not None:
+            return dict(accepted=False, committed=False, reason="ALREADY_COMMITTED", diagnostic=None)
+        configured_clock = self._assembly["sensor_clock_id"] or clock_id
+        if configured_clock != clock_id:
+            raise ValueError("sensor clock is frozen until a new attempt")
+        candidate = advance_assembly_trial(self._assembly, now=now)
+        collection = candidate["collection"]
+        if collection["blocked_reason"]:
+            stored = self._adopt_assembly(refresh_human_verification(candidate, now))
+            return dict(accepted=False, committed=False, reason=stored["reason"], diagnostic=None)
+        result = normalize_sensor_snapshot(snapshot, active=collection["active"]["motion_permitted"],
+            now=now, max_age=candidate["max_age"]["motion_permitted"],
+            last_sequence=collection["seen_sequence"]["motion_permitted"],
+            last_stamp=collection["seen_stamp"]["motion_permitted"], clock_id=configured_clock)
+        if result["event"] is not None:
+            candidate = advance_assembly_trial(candidate, now=now, event=result["event"])
+            candidate.update(sensor_clock_id=configured_clock, sensor_snapshot=deepcopy(result["diagnostic"]))
+        stored = self._adopt_assembly(refresh_human_verification(candidate, now),
+            event="SENSOR_SNAPSHOT_EVALUATED", details=result)
+        failed = stored["reason"].startswith("LOG_FAILED")
+        return dict(accepted=result["accepted"] and not failed, committed=False,
+            reason=stored["reason"] if failed else result["reason"], diagnostic=deepcopy(result["diagnostic"]))
+
+    def _adopt_assembly(self, candidate, *, event=None, request_id=None, details=None):
+        """센서/사람 경로가 같은 기록·원자 채택·저장 실패 처리를 사용한다."""
+        context = candidate["collection"]["active"]["execution_result"]
+        old, new = self._assembly["human_verification"], candidate["human_verification"]
+        if candidate["completion"] is not None:
+            event = "ASSEMBLY_COMMITTED"
+            details = dict(world=candidate["world"], completion=candidate["completion"],
+                           human_verification=candidate["human_verification"])
+        elif event is None and old is not None and old["status"] == "OPEN" and new["status"] == "CLOSED":
+            event, request_id, details = "HUMAN_VERIFY_CLOSED", new["context"]["request_id"], new
+        if event is not None and self._record is not None:
+            try:
+                self._record(dict(**{key:context[key] for key in
+                    ("job_id", "plan_id", "step_id", "attempt_id")},
+                    request_id=request_id or candidate["collection"]["active"]["vision_verdict"]["request_id"],
+                    event=event, reason=None, result=deepcopy(details)))
+            except (OSError, ValueError) as error:
+                reason = f"LOG_FAILED: {error}"
+                if event == "ASSEMBLY_RESUME_CHECKED":
+                    candidate = deepcopy(self._assembly)
+                decision = candidate["decision"] if candidate["decision"]["decision"] == "SAFE_STOP" else dict(
+                    decision="HOLD", reason=reason, verification_evidence=None)
+                candidate.update(world=deepcopy(self._assembly["world"]), completion=None,
+                    blocked_reason=reason, decision=decision)
+                close_human_verification(candidate, reason)
+        # 한 상태 교체로 world와 완료 기록이 함께 보인다. 저장 실패는 둘 다 미채택이다.
+        self._assembly = candidate
+        reason = candidate["decision"]["reason"]
+        if candidate["blocked_reason"] and candidate["blocked_reason"].startswith("LOG_FAILED"):
+            reason = candidate["blocked_reason"]
+        return dict(committed=candidate["completion"] is not None, reason=reason)
+
+    def open_human_verification(self, *, now, verification, session_closed,
+                                human_source_epoch, timeout, response_max_age):
+        """HMI 연결용 요청 API. 실제 화면/제스처/물리 수정을 수행하지 않는다."""
+        if self._assembly is None:
+            raise ValueError("No active research trial")
+        if self._assembly["completion"] is not None:
+            return dict(accepted=False, reason="ALREADY_COMMITTED", request=None)
+        candidate = advance_assembly_trial(self._assembly, now=now)
+        result = open_human_verification(candidate, request_id=str(uuid4()), now=now,
+            verification=verification, session_closed=session_closed,
+            human_source_epoch=human_source_epoch, timeout=timeout, response_max_age=response_max_age)
+        request = result["state"]["human_verification"]
+        stored = self._adopt_assembly(result["state"],
+            event="HUMAN_VERIFY_OPENED" if result["accepted"] else None,
+            request_id=request["context"]["request_id"] if request else None, details=request)
+        failed = stored["reason"].startswith("LOG_FAILED")
+        accepted = result["accepted"] and not failed
+        return dict(accepted=accepted, reason=stored["reason"] if failed else result["reason"],
+                    request=deepcopy(request) if accepted else None)
+
+    def on_human_verification_response(self, *, response, physical, session_closed, now):
+        if self._assembly is None:
+            raise ValueError("No active research trial")
+        if self._assembly["completion"] is not None:
+            return dict(accepted=False, committed=False, reason="ALREADY_COMMITTED")
+        candidate = advance_assembly_trial(self._assembly, now=now)
+        result = consume_human_response(candidate, now=now, response=response,
+                                         physical=physical, session_closed=session_closed)
+        stored = self._adopt_assembly(result["state"], event="HUMAN_RESPONSE_EVALUATED",
+            request_id=response["metadata"]["request_id"],
+            details=dict(response=response, accepted=result["accepted"], reason=result["reason"],
+                         request=result["state"]["human_verification"]))
+        failed = stored["reason"].startswith("LOG_FAILED")
+        return dict(accepted=result["accepted"] and not failed, committed=stored["committed"],
+                    reason=stored["reason"] if failed else result["reason"])
+
+    def propose_assembly_recovery(self, *, action, parameters, limits, checkpoint, now):
+        if self._assembly is None:
+            raise ValueError("No active research trial")
+        if self._assembly["completion"] is not None:
+            return dict(accepted=False, reason="ALREADY_COMMITTED", proposal=None)
+        candidate = advance_assembly_trial(self._assembly, now=now)
+        result = propose_recovery(candidate, action=action, parameters=parameters,
+                                   limits=limits, checkpoint=checkpoint, now=now)
+        stored = self._adopt_assembly(refresh_human_verification(result["state"], now),
+            event="RECOVERY_PROPOSAL_EVALUATED", details=result["proposal"])
+        failed = stored["reason"].startswith("LOG_FAILED")
+        return dict(accepted=result["accepted"] and not failed,
+                    reason=stored["reason"] if failed else result["reason"], proposal=result["proposal"])
+
+    def resume_assembly_trial(self, *, active, max_age, physical_context, physical_max_age,
+                              world, target, observation, parameters, limits, checkpoint, now):
+        if self._assembly is None:
+            raise ValueError("No active research trial")
+        if self._assembly["completion"] is not None:
+            return dict(accepted=False, committed=False, reason="ALREADY_COMMITTED")
+        candidate = advance_assembly_trial(self._assembly, now=now)
+        result = check_resume(candidate, active=active, max_age=max_age, physical_context=physical_context,
+            physical_max_age=physical_max_age, world=world, target=target, observation=observation,
+            parameters=parameters, limits=limits, checkpoint=checkpoint, now=now)
+        stored = self._adopt_assembly(refresh_human_verification(result["state"], now), event="ASSEMBLY_RESUME_CHECKED",
+            details=dict(accepted=result["accepted"], reason=result["reason"],
+                         context=result["state"]["collection"]["active"], observation=observation))
+        failed = stored["reason"].startswith("LOG_FAILED")
+        return dict(accepted=result["accepted"] and not failed, committed=False,
+                    reason=stored["reason"] if failed else result["reason"])
+
     def connect_robot(self, robot, *, config_loader=None) -> None:
+        if self._assembly is not None:
+            raise ValueError("Research trial cannot bind a motion driver")
         if self._robot is not None or self._state["job_id"] is not None:
             raise ValueError("Robot binding is only allowed before the first Job")
         if robot.state["mode"] != self._state["mode"]:
@@ -136,6 +296,8 @@ class Backend:
 
     def command(self, value: object) -> dict:
         command, state = validate_hmi_command(value), self._state
+        if self._assembly is not None:
+            return dict(accepted=False, reason="RESEARCH_TRIAL_ACTIVE")
         if command["command"] == "PREPARE_OBSERVE":
             if state["mode"] != "REAL" or state["job_id"] is not None or self._robot is None:
                 return dict(accepted=False, reason="PREPARE_NOT_APPLICABLE")

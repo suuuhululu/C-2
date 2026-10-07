@@ -1,0 +1,161 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Read-only assembly sensor projection",
+  "description": "Local acquisition projection, not the remote no_motion_check JSON format or ROS contract. metadata is frozen motion_permitted context; stamp equals host query start on the attempt clock. Query clocks, camera ROS clock, human UTC and device clock remain distinct. success means all listed robot reads succeeded, never command acknowledgment. No vision/contact/execution completion or positive motion permission is produced.",
+  "$ref": "#/$defs/snapshot",
+  "$defs": {
+    "snapshot": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["metadata", "sample_window", "robot", "wrench", "gripper", "camera", "human_confirmation"],
+      "properties": {
+        "metadata": {"$ref": "assembly_evidence.schema.json#/$defs/evidence_metadata"},
+        "sample_window": {"$ref": "#/$defs/sample_window"},
+        "robot": {"$ref": "#/$defs/robot"},
+        "wrench": {"$ref": "#/$defs/wrench"},
+        "gripper": {"$ref": "#/$defs/gripper"},
+        "camera": {"$ref": "#/$defs/camera"},
+        "human_confirmation": {"$ref": "#/$defs/human_confirmation"}
+      }
+    },
+    "sample_window": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["clock_id", "started_at", "finished_at", "request_utc", "response_utc"],
+      "properties": {
+        "clock_id": {"type": "string", "minLength": 1},
+        "started_at": {"type": "number", "minimum": 0},
+        "finished_at": {"type": "number", "minimum": 0},
+        "request_utc": {"type": ["string", "null"], "minLength": 1},
+        "response_utc": {"type": ["string", "null"], "minLength": 1}
+      }
+    },
+    "robot": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["success", "robot_state", "motion_status", "joint_speed", "drl_state"],
+      "properties": {
+        "success": {"type": "boolean"},
+        "robot_state": {"type": ["integer", "null"], "minimum": 0},
+        "motion_status": {"type": ["integer", "null"], "minimum": 0},
+        "joint_speed": {"anyOf": [{"type": "null"}, {"type": "array", "minItems": 6, "maxItems": 6, "items": {"type": "number"}}]},
+        "drl_state": {"type": ["integer", "null"], "minimum": 0}
+      }
+    },
+    "wrench": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["success", "tool_force", "ref", "force_frame", "moment_frame", "frames_verified", "device_stamp", "device_clock_id"],
+      "properties": {
+        "success": {"type": "boolean"},
+        "tool_force": {"anyOf": [{"type": "null"}, {"type": "array", "minItems": 6, "maxItems": 6, "items": {"type": "number"}}]},
+        "ref": {"enum": [0, 1]},
+        "force_frame": {"enum": ["BASE", "TOOL", "UNKNOWN"]},
+        "moment_frame": {"enum": ["BASE", "TOOL", "UNKNOWN"]},
+        "frames_verified": {"type": "boolean"},
+        "device_stamp": {"type": ["number", "null"], "minimum": 0},
+        "device_clock_id": {"type": ["string", "null"], "minLength": 1}
+      }
+    },
+    "gripper": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["success", "status_register", "width_register"],
+      "properties": {
+        "success": {"type": "boolean"},
+        "status_register": {"type": ["integer", "null"], "minimum": 0, "maximum": 65535},
+        "width_register": {"type": ["integer", "null"], "minimum": 0, "maximum": 65535}
+      }
+    },
+    "camera": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["success", "rgb_stamp", "depth_stamp", "rgb_frame", "depth_frame", "rgb_encoding", "depth_encoding", "width", "height", "aligned_to_rgb", "depth_zero_count", "depth_unit"],
+      "properties": {
+        "success": {"type": "boolean"},
+        "rgb_stamp": {"anyOf": [{"type": "null"}, {"type": "object", "additionalProperties": false, "required": ["sec", "nanosec"], "properties": {"sec": {"type": "integer", "minimum": 0}, "nanosec": {"type": "integer", "minimum": 0, "maximum": 999999999}}}]},
+        "depth_stamp": {"anyOf": [{"type": "null"}, {"type": "object", "additionalProperties": false, "required": ["sec", "nanosec"], "properties": {"sec": {"type": "integer", "minimum": 0}, "nanosec": {"type": "integer", "minimum": 0, "maximum": 999999999}}}]},
+        "rgb_frame": {"type": ["string", "null"], "minLength": 1},
+        "depth_frame": {"type": ["string", "null"], "minLength": 1},
+        "rgb_encoding": {"type": ["string", "null"], "minLength": 1},
+        "depth_encoding": {"type": ["string", "null"], "minLength": 1},
+        "width": {"type": ["integer", "null"], "minimum": 0},
+        "height": {"type": ["integer", "null"], "minimum": 0},
+        "aligned_to_rgb": {"type": "boolean"},
+        "depth_zero_count": {"type": ["integer", "null"], "minimum": 0},
+        "depth_unit": {"enum": ["mm", "UNKNOWN"]}
+      }
+    },
+    "human_confirmation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["operator", "confirmed_at_utc", "stopped", "execution_ended", "released"],
+      "properties": {
+        "operator": {"type": ["string", "null"], "minLength": 1},
+        "confirmed_at_utc": {"type": ["string", "null"], "minLength": 1},
+        "stopped": {"type": ["boolean", "null"]},
+        "execution_ended": {"type": ["boolean", "null"]},
+        "released": {"type": ["boolean", "null"]}
+      }
+    },
+    "safety_event": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source", "metadata", "value"],
+      "properties": {
+        "source": {"const": "motion_permitted"},
+        "metadata": {"$ref": "assembly_evidence.schema.json#/$defs/evidence_metadata"},
+        "value": {"enum": [null, false]}
+      }
+    },
+    "diagnostic": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["raw", "robot_idle_indication", "wrench_values", "force_unit", "moment_unit", "wrench_time_basis", "wrench_contact_usable", "gripper_width_mm", "gripper_fault_bits", "rgbd_metadata_usable", "rgbd_reasons", "depth_unit", "depth_zero_meaning", "depth_zero_scope", "image_content_verified", "physical_facts", "execution_result", "contact_state", "vision_verdict", "motion_permitted"],
+      "properties": {
+        "raw": {"$ref": "#/$defs/snapshot"},
+        "robot_idle_indication": {"type": ["boolean", "null"]},
+        "wrench_values": {"anyOf": [{"type": "null"}, {"type": "array", "minItems": 6, "maxItems": 6, "items": {"type": "number"}}]},
+        "force_unit": {"const": "N"},
+        "moment_unit": {"const": "N*m"},
+        "wrench_time_basis": {"enum": ["DEVICE_UNBOUND", "HOST_QUERY_WINDOW"]},
+        "wrench_contact_usable": {"const": false},
+        "gripper_width_mm": {"type": ["number", "null"]},
+        "gripper_fault_bits": {"type": "array", "items": {"enum": [3, 6]}, "uniqueItems": true},
+        "rgbd_metadata_usable": {"type": "boolean"},
+        "rgbd_reasons": {"type": "array", "items": {"type": "string"}},
+        "depth_unit": {"enum": [null, "mm"]},
+        "depth_zero_meaning": {"const": "MISSING_MEASUREMENT"},
+        "depth_zero_scope": {"const": "FULL_FRAME"},
+        "image_content_verified": {"const": false},
+        "physical_facts": {"type": "object", "additionalProperties": false, "required": ["stopped", "execution_ended", "released", "at_observe"], "properties": {"stopped": {"type": "null"}, "execution_ended": {"type": "null"}, "released": {"type": "null"}, "at_observe": {"type": "null"}}},
+        "execution_result": {"type": "null"},
+        "contact_state": {"const": "UNKNOWN"},
+        "vision_verdict": {"const": "UNKNOWN"},
+        "motion_permitted": {"enum": [null, false]}
+      }
+    },
+    "normalization_output": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["accepted", "reason", "event", "diagnostic"],
+      "properties": {
+        "accepted": {"type": "boolean"},
+        "reason": {"type": "string", "minLength": 1},
+        "event": {"anyOf": [{"type": "null"}, {"$ref": "#/$defs/safety_event"}]},
+        "diagnostic": {"anyOf": [{"type": "null"}, {"$ref": "#/$defs/diagnostic"}]}
+      }
+    },
+    "backend_output": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["accepted", "committed", "reason", "diagnostic"],
+      "properties": {
+        "accepted": {"type": "boolean"},
+        "committed": {"const": false},
+        "reason": {"type": "string", "minLength": 1},
+        "diagnostic": {"anyOf": [{"type": "null"}, {"$ref": "#/$defs/diagnostic"}]}
+      }
+    }
+  }
+}

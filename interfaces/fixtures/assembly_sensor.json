@@ -1,0 +1,107 @@
+{
+  "example_only": true,
+  "reported_values_source": "User supplied NO_MOTION_CHECK.md; synthetic attempt clock/context. Not a replay of raw field JSON.",
+  "snapshot": {
+    "metadata": {
+      "job_id": "11111111-1111-4111-8111-111111111111",
+      "plan_id": "P01",
+      "step_id": "S01",
+      "attempt_id": "A01",
+      "calibration_id": "C01",
+      "basis_world_revision": 5,
+      "request_id": null,
+      "source_epoch": "SAFE01",
+      "stamp": 101.5,
+      "sequence": 0,
+      "valid": true
+    },
+    "sample_window": {
+      "clock_id": "TRIAL_MONOTONIC",
+      "started_at": 101.5,
+      "finished_at": 101.6,
+      "request_utc": "2026-10-07T12:00:00+09:00",
+      "response_utc": "2026-10-07T12:00:00.100+09:00"
+    },
+    "robot": {
+      "success": true,
+      "robot_state": 1,
+      "motion_status": 0,
+      "joint_speed": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "drl_state": 3
+    },
+    "wrench": {
+      "success": true,
+      "tool_force": [
+        0.308,
+        -3.9617,
+        3.2456,
+        0.9819,
+        0.7018,
+        0.2018
+      ],
+      "ref": 0,
+      "force_frame": "BASE",
+      "moment_frame": "TOOL",
+      "frames_verified": false,
+      "device_stamp": null,
+      "device_clock_id": null
+    },
+    "gripper": {
+      "success": true,
+      "status_register": 72,
+      "width_register": 621
+    },
+    "camera": {
+      "success": true,
+      "rgb_stamp": {
+        "sec": 1000,
+        "nanosec": 123
+      },
+      "depth_stamp": {
+        "sec": 1000,
+        "nanosec": 123
+      },
+      "rgb_frame": "camera_color_optical_frame",
+      "depth_frame": "camera_color_optical_frame",
+      "rgb_encoding": "rgb8",
+      "depth_encoding": "16UC1",
+      "width": 1280,
+      "height": 720,
+      "aligned_to_rgb": true,
+      "depth_zero_count": null,
+      "depth_unit": "mm"
+    },
+    "human_confirmation": {
+      "operator": "FIELD_OPERATOR_EXAMPLE",
+      "confirmed_at_utc": "2026-10-07T12:01:00+09:00",
+      "stopped": null,
+      "execution_ended": true,
+      "released": true
+    }
+  },
+  "invalid_cases": [
+    "wrong_attempt",
+    "wrong_epoch",
+    "stale_window",
+    "wrong_clock",
+    "reverse_window",
+    "bool_as_force",
+    "five_axis_force",
+    "unsupported_register",
+    "naive_utc"
+  ],
+  "incomplete_cases": [
+    "query_failure",
+    "camera_stamp_mismatch",
+    "depth_unsupported",
+    "missing_human_confirmation",
+    "no_release_transition"
+  ]
+}

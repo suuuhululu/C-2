@@ -1,0 +1,386 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Single-step assembly evidence policy: local function contract",
+  "description": "Research helper only. Caller must validate attempt, freshness, world/calibration and evidence validity before use. Not a ROS message or a completion commit.",
+  "$defs": {
+    "input": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["execution_result", "contact_state", "vision_verdict", "motion_permitted"],
+      "properties": {
+        "execution_result": {"enum": [null, "COMPLETE", "FAILED", "CANCELED", "TIMED_OUT"]},
+        "contact_state": {"enum": [null, "FREE", "CONTACT", "ALIGNING", "INSERTING", "SNAP_CANDIDATE", "SEATED", "JAMMED", "UNKNOWN"]},
+        "vision_verdict": {"enum": [null, "PASS", "FAIL", "UNKNOWN"]},
+        "motion_permitted": {"type": ["boolean", "null"]}
+      }
+    },
+    "active_evidence_context": {
+      "type": "object", "additionalProperties": false,
+      "required": ["job_id", "plan_id", "step_id", "attempt_id", "request_id", "calibration_id", "source_epoch", "basis_world_revision", "opened_at"],
+      "properties": {
+        "job_id": {"type": "string", "minLength": 1},
+        "plan_id": {"type": "string", "minLength": 1},
+        "step_id": {"type": "string", "minLength": 1},
+        "attempt_id": {"type": "string", "minLength": 1},
+        "request_id": {"type": ["string", "null"], "minLength": 1},
+        "calibration_id": {"type": "string", "minLength": 1},
+        "source_epoch": {"type": "string", "minLength": 1},
+        "basis_world_revision": {"type": "integer", "minimum": 0},
+        "opened_at": {"type": "number", "minimum": 0}
+      }
+    },
+    "evidence_metadata": {
+      "type": "object", "additionalProperties": false,
+      "required": ["job_id", "plan_id", "step_id", "attempt_id", "request_id", "calibration_id", "source_epoch", "basis_world_revision", "stamp", "sequence", "valid"],
+      "properties": {
+        "job_id": {"type": "string", "minLength": 1},
+        "plan_id": {"type": "string", "minLength": 1},
+        "step_id": {"type": "string", "minLength": 1},
+        "attempt_id": {"type": "string", "minLength": 1},
+        "request_id": {"type": ["string", "null"], "minLength": 1},
+        "calibration_id": {"type": "string", "minLength": 1},
+        "source_epoch": {"type": "string", "minLength": 1},
+        "basis_world_revision": {"type": "integer", "minimum": 0},
+        "stamp": {"type": "number", "minimum": 0},
+        "sequence": {"type": "integer", "minimum": 0},
+        "valid": {"type": "boolean"}
+      }
+    },
+    "guard_input": {
+      "type": "object", "additionalProperties": false,
+      "required": ["active", "evidence", "now", "max_age", "last_sequence"],
+      "properties": {
+        "active": {"$ref": "#/$defs/active_evidence_context"},
+        "evidence": {"$ref": "#/$defs/evidence_metadata"},
+        "now": {"type": "number", "minimum": 0},
+        "max_age": {"type": "number", "exclusiveMinimum": 0},
+        "last_sequence": {"type": ["integer", "null"], "minimum": 0}
+      }
+    },
+    "guard_output": {
+      "type": "object", "additionalProperties": false,
+      "required": ["accepted", "reason"],
+      "properties": {
+        "accepted": {"type": "boolean"},
+        "reason": {"type": "string", "minLength": 1}
+      }
+    },
+    "source_contexts": {
+      "type": "object", "additionalProperties": false,
+      "required": ["execution_result", "contact_state", "vision_verdict", "motion_permitted"],
+      "properties": {
+        "execution_result": {"$ref": "#/$defs/active_evidence_context"},
+        "contact_state": {"$ref": "#/$defs/active_evidence_context"},
+        "vision_verdict": {"allOf": [{"$ref": "#/$defs/active_evidence_context"}, {"properties": {"request_id": {"type": "string", "minLength": 1}}}]},
+        "motion_permitted": {"$ref": "#/$defs/active_evidence_context"}
+      }
+    },
+    "source_age_limits": {
+      "type": "object", "additionalProperties": false,
+      "required": ["execution_result", "contact_state", "vision_verdict", "motion_permitted"],
+      "properties": {
+        "execution_result": {"type": "number", "exclusiveMinimum": 0},
+        "contact_state": {"type": "number", "exclusiveMinimum": 0},
+        "vision_verdict": {"type": "number", "exclusiveMinimum": 0},
+        "motion_permitted": {"type": "number", "exclusiveMinimum": 0}
+      }
+    },
+    "collection_event": {
+      "type": "object", "additionalProperties": false,
+      "required": ["source", "metadata", "value"],
+      "properties": {
+        "source": {"enum": ["execution_result", "contact_state", "vision_verdict", "motion_permitted"]},
+        "metadata": {"$ref": "#/$defs/evidence_metadata"},
+        "value": {}
+      },
+      "oneOf": [
+        {"properties": {"source": {"const": "execution_result"}, "value": {"$ref": "#/$defs/input/properties/execution_result"}}},
+        {"properties": {"source": {"const": "contact_state"}, "value": {"$ref": "#/$defs/input/properties/contact_state"}}},
+        {"properties": {"source": {"const": "vision_verdict"}, "value": {"$ref": "#/$defs/input/properties/vision_verdict"}}},
+        {"properties": {"source": {"const": "motion_permitted"}, "value": {"$ref": "#/$defs/input/properties/motion_permitted"}}}
+      ]
+    },
+    "collection_input": {
+      "type": "object", "additionalProperties": false,
+      "required": ["state", "active", "now", "max_age"],
+      "properties": {
+        "state": {"type": ["object", "null"], "description": "Opaque in-memory state returned by this function. SM-owned; not a persisted resume format."},
+        "active": {"$ref": "#/$defs/source_contexts"},
+        "now": {"type": "number", "minimum": 0},
+        "max_age": {"$ref": "#/$defs/source_age_limits"},
+        "event": {"anyOf": [{"type": "null"}, {"$ref": "#/$defs/collection_event"}]}
+      }
+    },
+    "collection_output": {
+      "type": "object", "additionalProperties": false,
+      "required": ["state", "decision", "event_result", "discarded"],
+      "properties": {
+        "state": {"type": "object"},
+        "decision": {"$ref": "#/$defs/output"},
+        "event_result": {"anyOf": [{"type": "null"}, {"$ref": "#/$defs/guard_output"}]},
+        "discarded": {"type": "object", "additionalProperties": {"type": "string", "minLength": 1}}
+      }
+    },
+    "output": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["decision", "reason", "verification_evidence"],
+      "properties": {
+        "decision": {"enum": ["HOLD", "SAFE_STOP", "RECOVERY_REQUIRED", "REQUEST_HUMAN_VERIFICATION", "ASSEMBLED"]},
+        "reason": {"type": "string", "minLength": 1},
+        "verification_evidence": {"enum": [null, "SENSOR_VERIFIED"]}
+      }
+    },
+    "trial_block": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["brick_type", "color", "x", "y", "layer", "orientation_deg"],
+      "properties": {
+        "brick_type": {"enum": ["2x2x1", "2x3x1"]},
+        "color": {"enum": ["yellow", "blue"]},
+        "x": {"type": "integer", "minimum": 0, "maximum": 23},
+        "y": {"type": "integer", "minimum": 0, "maximum": 23},
+        "layer": {"type": "integer", "minimum": 1, "maximum": 4},
+        "orientation_deg": {"enum": [0, 90]}
+      }
+    },
+    "trial_world": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["world_revision", "blocks"],
+      "properties": {
+        "world_revision": {"type": "integer", "minimum": 0},
+        "blocks": {"type": "array", "items": {"$ref": "#/$defs/trial_block"}}
+      }
+    },
+    "physical_confirmation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["metadata", "stopped", "execution_ended", "released", "at_observe", "released_at", "observe_ready_at"],
+      "properties": {
+        "metadata": {"$ref": "#/$defs/evidence_metadata"},
+        "stopped": {"type": ["boolean", "null"]},
+        "execution_ended": {"type": ["boolean", "null"]},
+        "released": {"type": ["boolean", "null"]},
+        "at_observe": {"type": ["boolean", "null"]},
+        "released_at": {"type": ["number", "null"], "minimum": 0},
+        "observe_ready_at": {"type": ["number", "null"], "minimum": 0}
+      },
+      "description": "Producer confirms physical facts. observe_ready_at is the time stopped, execution-ended, released and observation pose were jointly confirmed, maintained through capture and this physical snapshot. Unknown facts use null. No command ACK conversion."
+    },
+    "trial_observation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["metadata", "complete", "world"],
+      "properties": {
+        "metadata": {"$ref": "#/$defs/evidence_metadata"},
+        "complete": {"type": "boolean"},
+        "world": {"$ref": "#/$defs/trial_world"}
+      }
+    },
+    "completion_verification": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["physical", "observation"],
+      "properties": {
+        "physical": {"$ref": "#/$defs/physical_confirmation"},
+        "observation": {"$ref": "#/$defs/trial_observation"}
+      },
+      "description": "Producer-normalized physical facts, never command acknowledgments. Same-clock release <= observation-ready <= capture. Observation metadata must equal the retained Vision PASS metadata. Physical sequence is an independent stream. Full bounded trial ROI must be observable."
+    },
+    "trial_begin": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["active", "max_age", "physical_context", "physical_max_age", "world", "target", "now"],
+      "properties": {
+        "active": {"$ref": "#/$defs/source_contexts"},
+        "max_age": {"$ref": "#/$defs/source_age_limits"},
+        "physical_context": {"$ref": "#/$defs/active_evidence_context"},
+        "physical_max_age": {"type": "number", "exclusiveMinimum": 0},
+        "world": {"$ref": "#/$defs/trial_world"},
+        "target": {"$ref": "#/$defs/trial_block"},
+        "now": {"type": "number", "minimum": 0}
+      },
+      "description": "Local first trial: exactly one layer-1 2x2 reference and a layer-2 2x2 target at identical x/y. No motion dispatch or physical verification performed here."
+    },
+    "trial_update": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["now", "event", "verification"],
+      "properties": {
+        "now": {"type": "number", "minimum": 0},
+        "event": {"anyOf": [{"type": "null"}, {"$ref": "#/$defs/collection_event"}]},
+        "verification": {"anyOf": [{"type": "null"}, {"$ref": "#/$defs/completion_verification"}]}
+      }
+    },
+    "human_response": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["metadata", "answer", "source", "inspection"],
+      "properties": {
+        "metadata": {"$ref": "#/$defs/evidence_metadata"},
+        "answer": {"enum": ["POSITIVE", "NEGATIVE", "UNKNOWN"]},
+        "source": {"const": "HMI"},
+        "inspection": {"enum": ["VISUAL_ONLY", "PHYSICAL_CORRECTION"]}
+      },
+      "description": "POSITIVE confirms unchanged fixed reference and correctly seated target by visual inspection only. Human confirmation preserves raw sensor UNKNOWN. PHYSICAL_CORRECTION never completes this attempt. Gesture production/calibration and actual Qt button binding are out of this local stage."
+    },
+    "human_verify_open": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["verification", "session_closed", "human_source_epoch", "timeout", "response_max_age", "now"],
+      "properties": {
+        "verification": {"$ref": "#/$defs/completion_verification"},
+        "session_closed": {"type": "boolean"},
+        "human_source_epoch": {"type": "string", "minLength": 1},
+        "timeout": {"type": "number", "exclusiveMinimum": 0},
+        "response_max_age": {"type": "number", "exclusiveMinimum": 0},
+        "now": {"type": "number", "minimum": 0}
+      }
+    },
+    "human_verify_reply": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["response", "physical", "session_closed", "now"],
+      "properties": {
+        "response": {"$ref": "#/$defs/human_response"},
+        "physical": {"$ref": "#/$defs/physical_confirmation"},
+        "session_closed": {"type": "boolean"},
+        "now": {"type": "number", "minimum": 0}
+      }
+    },
+    "trial_decision": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["decision", "reason", "verification_evidence"],
+      "properties": {
+        "decision": {"enum": ["HOLD", "SAFE_STOP", "RECOVERY_REQUIRED", "REQUEST_HUMAN_VERIFICATION", "ASSEMBLED"]},
+        "reason": {"type": "string", "minLength": 1},
+        "verification_evidence": {"enum": [null, "SENSOR_VERIFIED", "HUMAN_VERIFIED"]}
+      }
+    },
+    "human_verify_request": {
+      "type": "object",
+      "required": ["context", "deadline", "type", "status", "target", "reference", "message"],
+      "properties": {
+        "context": {"$ref": "#/$defs/active_evidence_context"},
+        "type": {"const": "PERCEPTUAL_VERIFICATION"},
+        "status": {"enum": ["OPEN", "CLOSED"]},
+        "deadline": {"type": "number", "minimum": 0},
+        "target": {"$ref": "#/$defs/trial_block"},
+        "reference": {"$ref": "#/$defs/trial_block"},
+        "message": {"type": "string", "minLength": 1}
+      },
+      "description": "Read-only request including opaque SM-owned frozen evidence and sequence bookkeeping. This local snapshot is not a restart or ROS transport format. deadline/response max_age must come from a measured profile; session_closed means no active support/control handoff session, not continuous hand detection."
+    },
+    "human_verify_open_output": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["accepted", "reason", "request"],
+      "properties": {
+        "accepted": {"type": "boolean"},
+        "reason": {"type": "string", "minLength": 1},
+        "request": {"anyOf": [{"type": "null"}, {"$ref": "#/$defs/human_verify_request"}]}
+      }
+    },
+    "human_verify_reply_output": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["accepted", "committed", "reason"],
+      "properties": {
+        "accepted": {"type": "boolean"},
+        "committed": {"type": "boolean"},
+        "reason": {"type": "string", "minLength": 1}
+      }
+    },
+    "recovery_parameters": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["offset_m", "search_radius_m"],
+      "properties": {
+        "offset_m": {"type": "array", "minItems": 3, "maxItems": 3, "items": {"type": "number"}},
+        "search_radius_m": {"type": "number", "minimum": 0}
+      },
+      "description": "Local relevant-change projection in SI metres for first trial; no motion command is emitted. IDs/timestamps/revision alone are excluded from progress."
+    },
+    "recovery_limits": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["max_actions", "max_elapsed_s"],
+      "properties": {
+        "max_actions": {"type": "integer", "minimum": 1},
+        "max_elapsed_s": {"type": "number", "exclusiveMinimum": 0}
+      }
+    },
+    "recovery_checkpoint": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["physical", "session_closed", "grasp_state", "retract_permitted", "search_permitted", "approach_permitted", "dependencies_ready", "motion_plan_valid", "support_ready", "new_observation", "plan_binding"],
+      "properties": {
+        "physical": {"$ref": "#/$defs/physical_confirmation"},
+        "session_closed": {"type": "boolean"},
+        "grasp_state": {"enum": ["HOLDING", "RELEASED", "UNKNOWN"]},
+        "retract_permitted": {"type": ["boolean", "null"]},
+        "search_permitted": {"type": ["boolean", "null"]},
+        "approach_permitted": {"type": ["boolean", "null"]},
+        "dependencies_ready": {"type": ["boolean", "null"]},
+        "motion_plan_valid": {"type": ["boolean", "null"]},
+        "support_ready": {"type": ["boolean", "null"]},
+        "new_observation": {"type": "boolean"},
+        "plan_binding": {"$ref": "#/$defs/recovery_plan_binding"}
+      },
+      "description": "Normalized fresh controller/planner facts for offline policy evaluation. Permit flags must cover actual measured motion/force/range/time limits and corridor validity at later dispatch; this policy neither computes nor enforces physical trajectories. session_closed is required before human correction/restart."
+    },
+    "recovery_proposal_input": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["action", "parameters", "limits", "checkpoint", "now"],
+      "properties": {
+        "action": {"enum": ["RETRACT", "RE_OBSERVE", "MICRO_SEARCH", "RE_APPROACH"]},
+        "parameters": {"$ref": "#/$defs/recovery_parameters"},
+        "limits": {"$ref": "#/$defs/recovery_limits"},
+        "checkpoint": {"$ref": "#/$defs/recovery_checkpoint"},
+        "now": {"type": "number", "minimum": 0}
+      }
+    },
+    "resume_trial_input": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["active", "max_age", "physical_context", "physical_max_age", "world", "target", "observation", "parameters", "limits", "checkpoint", "now"],
+      "properties": {
+        "active": {"$ref": "#/$defs/source_contexts"},
+        "max_age": {"$ref": "#/$defs/source_age_limits"},
+        "physical_context": {"$ref": "#/$defs/active_evidence_context"},
+        "physical_max_age": {"type": "number", "exclusiveMinimum": 0},
+        "world": {"$ref": "#/$defs/trial_world"},
+        "target": {"$ref": "#/$defs/trial_block"},
+        "observation": {"$ref": "#/$defs/trial_observation"},
+        "parameters": {"$ref": "#/$defs/recovery_parameters"},
+        "limits": {"$ref": "#/$defs/recovery_limits"},
+        "checkpoint": {"$ref": "#/$defs/recovery_checkpoint"},
+        "now": {"type": "number", "minimum": 0}
+      }
+    },
+    "recovery_plan_binding": {"type": "object", "additionalProperties": false, "required": ["job_id", "plan_id", "step_id", "attempt_id", "calibration_id", "basis_world_revision", "parameters"], "properties": {"job_id": {"type": "string", "minLength": 1}, "plan_id": {"type": "string", "minLength": 1}, "step_id": {"type": "string", "minLength": 1}, "attempt_id": {"type": "string", "minLength": 1}, "calibration_id": {"type": "string", "minLength": 1}, "basis_world_revision": {"type": "integer", "minimum": 0}, "parameters": {"$ref": "#/$defs/recovery_parameters"}}, "description": "Planner/controller approval is bound to this attempt, calibration, world basis and exact parameter projection. It is not an execution result."},
+    "recovery_proposal": {
+      "type": "object", "additionalProperties": false,
+      "required": ["status", "reason", "action"],
+      "properties": {
+        "status": {"enum": ["PROPOSED", "HOLD", "SAFE_STOP", "HUMAN_ASSISTANCE_REQUIRED"]},
+        "reason": {"type": "string", "minLength": 1},
+        "action": {"enum": [null, "RETRACT", "RE_OBSERVE", "MICRO_SEARCH", "RE_APPROACH"]}
+      }
+    },
+    "recovery_proposal_output": {
+      "type": "object", "additionalProperties": false,
+      "required": ["accepted", "reason", "proposal"],
+      "properties": {
+        "accepted": {"type": "boolean"},
+        "reason": {"type": "string", "minLength": 1},
+        "proposal": {"anyOf": [{"type": "null"}, {"$ref": "#/$defs/recovery_proposal"}]}
+      },
+      "description": "Proposal evaluation only. accepted=false on log failure even if proposal.status is PROPOSED. No motion is dispatched."
+    },
+    "resume_trial_output": {"$ref": "#/$defs/human_verify_reply_output", "description": "Restart evaluation only; committed is always false and accepted does not authorize motion."}
+  }
+}
