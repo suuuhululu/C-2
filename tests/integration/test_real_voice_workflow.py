@@ -16,8 +16,9 @@ from app.c_design import llm, voice
 from app.hmi_contracts import validate_hmi_snapshot
 from app.qt_hmi import HmiWindow
 from app.real_design_controller import RealDesignController, load_workflow_rows
-from app.real_workflow_hmi import WorkflowTrial, main
-from app.robot_trial import prepare_plan
+from workflow_support import WorkflowTrial
+from app.real_workflow_hmi import main
+from app.robot_trial import prepare_plan, resolve_config_path
 from test_c_function_hmi import INITIAL, settled
 from test_c_voice_hmi import audio
 from test_real_workflow_hmi import Process, event, finish_delivery, manual
@@ -35,7 +36,10 @@ def create(tmp_path, monkeypatch):
     def build(*, voice_mode=False, response=None, manifest=None):
         monkeypatch.setenv("C_DESIGN_USE_LLM", "1" if voice_mode else "0")
         config_path = tmp_path / f"manifest-{len(trials)}.json"
-        config_path.write_text(json.dumps(manifest or json.loads(MANIFEST.read_text())))
+        manifest = deepcopy(manifest or json.loads(MANIFEST.read_text()))
+        for key in ("base_config", "measurements_path"):
+            manifest[key] = resolve_config_path(manifest[key], MANIFEST)
+        config_path.write_text(json.dumps(manifest))
         directory = tmp_path / str(len(trials))
         fixture = tmp_path / f"c-{len(trials)}.json"
         fixture.write_text(json.dumps(response or INITIAL))
@@ -190,22 +194,27 @@ def test_initial_voice_failure_never_starts_movement(create, audio, monkeypatch,
     assert workflow.backend.state["current"]["blocks"] == [] and len(processes) == 1
 
 
-@pytest.mark.parametrize("failure", ["too_few_slots", "geometry"])
-def test_whole_plan_rejected_before_first_delivery_with_a_diagnosis_preserved(create, failure):
-    manifest, response = json.loads(MANIFEST.read_text()), deepcopy(INITIAL)
-    if failure == "too_few_slots":
-        manifest["supply_rows"][-1]["first_slot"] = 5
-    else:
-        response["design"]["blocks"][0]["x"] = 23
-    window, workflow, processes = create(manifest=manifest, response=response)
+def test_invalid_geometry_rejected_before_first_delivery_with_a_diagnosis_preserved(create):
+    response = deepcopy(INITIAL)
+    response["design"]["blocks"][0]["x"] = 23
+    _, workflow, processes = create(response=response)
     workflow.command(dict(command="START"))
     assert workflow.backend.state["context"] is None and len(processes) == 1
     log = next(row["result"] for row in records(workflow) if row["event"] == "REAL_PLAN_PREFLIGHT")
     assert log["design"] == response["design"] and not log["robot_plan_accepted"]
-    if failure == "too_few_slots":
-        assert log["a_result"]["status"] == "READY" and "NEEDS_REFILL" in log["reason"]
-    else:
-        assert log["a_result"]["status"] == "INVALID" and log["a_result"]["errors"]
+    assert log["a_result"]["status"] == "INVALID" and log["a_result"]["errors"]
+
+
+def test_plan_can_exceed_remaining_slots_without_preemptive_rejection(create):
+    manifest = json.loads(MANIFEST.read_text())
+    manifest["supply_rows"][-1]["first_slot"] = 5
+    _, workflow, processes = create(manifest=manifest)
+    workflow.command(dict(command="START"))
+    assert workflow.backend.state["context"]["design"] == INITIAL["design"]
+    assert len(processes) == 1
+    log = next(row["result"] for row in records(workflow) if row["event"] == "REAL_PLAN_PREFLIGHT")
+    assert log["a_result"]["status"] == "READY" and log["robot_plan_accepted"]
+    assert workflow.controller.state["supply"][-1]["next_slot"] == 5
 
 
 @pytest.mark.parametrize("failure", ["missing_return", "misplaced", "manifest_changed"])
@@ -278,7 +287,7 @@ def test_wrong_goal_duplicate_pick_and_execution_cannot_switch_or_consume_other_
 
 @pytest.mark.parametrize("change", ["mode", "route", "duplicate", "hash"])
 def test_unverified_or_changed_row_setup_is_rejected_before_process_creation(tmp_path, change):
-    value = json.loads(MANIFEST.read_text())
+    value = load_workflow_rows(MANIFEST)[0]
     if change == "mode":
         value["mode"] = "FAKE"
     elif change == "route":

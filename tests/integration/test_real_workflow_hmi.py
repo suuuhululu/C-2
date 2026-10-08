@@ -11,7 +11,8 @@ from PyQt5.QtWidgets import QApplication
 from app.hmi_contracts import validate_hmi_snapshot
 from app.qt_hmi import HmiWindow
 from app.real_trial_hmi import RealTrialController
-from app.real_workflow_hmi import WorkflowTrial
+from app.robot_trial import load_trial_config
+from workflow_support import WorkflowTrial
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -58,7 +59,7 @@ def trial(tmp_path):
         return process
 
     config_path = tmp_path / "config.json"
-    config_path.write_text((ROOT / "interfaces/robot_trial_blue5.json").read_text())
+    config_path.write_text(json.dumps(load_trial_config(ROOT / "interfaces/robot_trial_blue5.json")))
     fixture_path = tmp_path / "c.json"
     fixture_path.write_text((ROOT / "interfaces/fixtures/c_three_blue4.json").read_text())
     controller = RealTrialController(config_path, tmp_path / "driver", brick_type="2x2x1", color="blue",
