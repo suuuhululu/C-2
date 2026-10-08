@@ -618,7 +618,7 @@ def test_initial_voice_stop_before_greeting_cancels(initial_llm, fake_voice):
 def answer_llm(monkeypatch, llm_mode):
     calls, replies = llm_mode
     calls["answers"] = []
-    replies["answer"] = {"decision": "REVISE", "style_hint": "좌석을 넓고 화려하게", "reason": "더 화려하게 원하셨어요."}
+    replies["answer"] = {"decision": "REVISE", "style_hint": "좌석을 넓고 화려하게", "reason": "더 화려하게 원하셨어요.", "reply": "좋아요. 더 넓고 화려하게 다시 만들어볼게요."}
 
     def fake_answer(text, differences, should_stop=None):
         calls["answers"].append(text)
@@ -644,7 +644,7 @@ def test_intervention_clear_keep_answer_needs_no_llm(scenario, answer_llm):
 def test_intervention_clear_revise_answer_takes_style_hint_from_llm_once(scenario, answer_llm):
     """FIX-1: Rule이 REVISE로 정한 자유 답변도 LLM에서 style_hint만 받는다(decision은 Rule 그대로)."""
     calls, replies = answer_llm
-    replies["answer"] = {"decision": "KEEP", "style_hint": "팔걸이로", "reason": "무시돼야 하는 decision"}
+    replies["answer"] = {"decision": "KEEP", "style_hint": "팔걸이로", "reason": "무시돼야 하는 decision", "reply": "무시돼야 하는 reply"}
     answer = "일부러 그렇게 놨어요. 팔걸이로 살려주세요."
     assert dialogue.parse_response(answer) == dialogue.REVISE
     result = _answer(scenario, answer)
@@ -665,7 +665,7 @@ def test_intervention_number_revise_answer_calls_no_llm(scenario, answer_llm, an
 
 def test_intervention_short_yes_calls_llm_once_and_empty_hint_is_none(scenario, answer_llm):
     calls, replies = answer_llm
-    replies["answer"] = {"decision": "REVISE", "style_hint": "", "reason": "의도하셨어요."}
+    replies["answer"] = {"decision": "REVISE", "style_hint": "", "reason": "의도하셨어요.", "reply": "네, 지금 배치를 살려 새로 만들어볼게요."}
     result = _answer(scenario, "네")
     assert result["hri_result"] == "REVISE"
     assert calls["answers"] == ["네"] and calls["style_hints"] == [None]
@@ -709,7 +709,7 @@ def test_intervention_unclear_rule_goes_to_llm_and_style_hint_reaches_generator(
     assert len(result["questions"]) == 1
 
 
-@pytest.mark.parametrize("reply", [{"decision": "UNCLEAR", "style_hint": "", "reason": "판단하기 어려워요."},
+@pytest.mark.parametrize("reply", [{"decision": "UNCLEAR", "style_hint": "", "reason": "판단하기 어려워요.", "reply": ""},
                                    {"llm_error": {"kind": "server", "message": "HTTP 503"}},
                                    {"decision": "REVISE"}])
 def test_intervention_llm_unclear_or_failure_reasks(scenario, answer_llm, reply):
@@ -723,7 +723,7 @@ def test_intervention_llm_unclear_or_failure_reasks(scenario, answer_llm, reply)
 
 def test_intervention_llm_keep_decision_keeps_design(scenario, answer_llm):
     calls, replies = answer_llm
-    replies["answer"] = {"decision": "KEEP", "style_hint": "", "reason": "실수였어요."}
+    replies["answer"] = {"decision": "KEEP", "style_hint": "", "reason": "실수였어요.", "reply": "네, 원래 자리로 고쳐 주시면 그대로 진행할게요."}
     result = _answer(scenario, "음 그게요")
     assert (result["status"], result["hri_result"]) == ("OK", "KEEP") and calls["design"] == 0
 
