@@ -69,3 +69,14 @@ Stage 2 Wave 1에서 C(`app/c_design/validator.py`, `app/c_design/llm.py`)는 �
 
 - `planning_trial/planner.py:65`의 orientation 허용 계산과 `app/contracts.py:46`의 동일 패턴은 `brick_type=="2x2x1"`만 특별 취급하고 그 외는 `(0,90)`이라, `BRICK_SIZES`/허용 튜플에 `1x2x1`만 추가하면 별도 로직 수정 없이 올바르게 동작합니다.
 - `interfaces/schemas/day4.schema.json`의 `allOf`(2x2x1 → orientation 0 강제) 규칙은 `1x2x1`에는 적용되지 않는 범위라 수정이 필요 없습니다.
+
+## Stage 2 Wave 3 `main` 연결이 D에 주는 영향 (2026-10-08 추가)
+
+C는 아래 D 코드·테스트를 수정하지 않았습니다. 2026-10-08 기준 루트 `pytest` 실패·오류 ID는 Wave 3 전(4b063dc)과 같습니다(`OPENAI_LLM_API_KEY`를 fake로 줘도 D 통합 5파일 결과 동일).
+
+| # | 소유 | 파일:줄 | REQUIRED CHANGE (현재 → 필요) | AFFECTED INTERFACE | REASON |
+| --- | --- | --- | --- | --- | --- |
+| 36 | D | `app/c_text_connection.py:120,161` (`create_initial_design(text=…, should_stop=…)`) | 선호 질문을 쓰려면 `preference_text`(텍스트) 또는 C 음성 모드(`text=None`)와 `on_question` 전달 | C §4.1 `create_initial_design(text=None, should_stop=None, preference_text=None, on_question=None)` | 지금 D 경로는 목표 문장만 넘겨 LLM 모드에서도 선호 질문 없이 무작위 family로 Initial을 만듭니다(호환 동작, 오류 아님). 선호 질문을 HMI에 띄우려면 D 결정 필요 |
+| 37 | D | `app/c_text_connection.py:118` (`voice_call`의 initial 분기) | D가 목표를 직접 STT한 뒤 C를 텍스트 모드로 부름 → 선호 답도 D가 받아 `preference_text`로 넘기거나, C 음성 모드로 위임 | C §4.1 | D가 음성 I/O를 소유하는 현재 구조에서는 C가 선호 질문을 TTS로 낼 수 없습니다 |
+| 38 | D | `tests/integration/test_c_voice_hmi.py:66-74` 등 LLM(live) 모드 fake `_post_json` | Revised 응답을 이전 Design과 같은 블록 수로 돌려주는 fake는 LLM 모드에서 `too_few_blocks`로 탈락(§8.13 `min_blocks` = 이전 + 6, 상한 40) | C §8.13 richness 하한 | 현재는 이 테스트들이 다른 원인(기존 기준선 실패)으로 먼저 실패해 드러나지 않지만, 기준선 원인이 고쳐지면 Revised fake가 이전보다 6블록 이상 많은 유효 Design을 돌려줘야 합니다 |
+| 39 | D | LLM(live) 모드 fake `_post_json` 전반 | Initial 설명(`describe`)·Intervention 답변 해석(`interpret_intervention_answer`)·선호 해석도 같은 transport로 나감 | C §4.1·§4.2 | Rule이 정하지 못한 자유 답변(예: "실수 아니에요")이 들어오면 C가 LLM 해석을 한 번 더 부릅니다. 숫자·명확한 답("1번"·"2번"·"일부러"·"실수")은 추가 호출 없음 |

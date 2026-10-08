@@ -7,9 +7,15 @@
 
 구현 범위 (WAVE 4, docs/C_DESIGN_CONTRACT.md §4·§6·§8·§10):
     - create_initial_design: 목표 문장(텍스트, 또는 voice.listen) → dialogue.parse_goal
-      → designer.build_initial_design → 결과 envelope
-    - run_intervention: 입력 검사 → dialogue.build_question → 응답 턴 반복
-      (KEEP / REVISE / UNCLEAR 재설명 / 명시적 취소 / STOP)
+      → (LLM 모드만) 선호 질문 → 짧은 "아무거나"류는 LLM 없이 무작위 family, 그 밖은 llm.interpret_initial_preference
+      → llm.choose_initial_family → designer.build_initial_design(family·style_hint 주입) → 결과 envelope.
+      선호 답은 음성 모드면 voice.listen, 텍스트 모드면 preference_text이며 침묵·빈 답·없음은 "아무거나"로 본다.
+      Mock 모드는 선호 질문 없이 기존 흐름 그대로(D 통합 호환).
+    - run_intervention: 입력 검사 → dialogue.build_question(주관식) → 응답 턴 반복
+      (KEEP / REVISE / UNCLEAR 재질문 / 명시적 취소 / STOP). LLM 모드에서는 Rule이 결정하지 못한 답을
+      llm.interpret_intervention_answer로 해석하고, Rule이 REVISE로 정한 답(숫자 답 제외)도 같은 함수로 style_hint만
+      받는다(decision은 Rule 그대로). style_hint는 Revised 설계 의도에 넘긴다.
+      Revised(LLM)는 designer.revised_min_blocks 이상의 블록을 요구한다(Mock은 검사 없음).
       → REVISE면 designer.build_revised_design(6회) → 탈락 시 §8.11 escalation 질문
       → "계속 찾기"면 4회 더(합계 10회) → 실패면 DESIGN_GENERATION_FAILED
     - Current가 support 후보 기준을 위반하면 재생성 없이 바로 escalation 질문
@@ -22,7 +28,8 @@
     - design_metadata(2026-10-07): envelope의 design 옆 sibling 키. design 구조({design_version, blocks})는 그대로이며
       design이 None이면 None. Revised(LLM): 설계 의도(intent) → 생성(intent 주입) → judge → judge가 family를 알아볼 수
       없다(recognizable_family False)거나 실루엣이 모호(silhouette_clarity "ambiguous")할 때만 같은 intent + judge 피드백으로
-      재생성 최대 METADATA_REGENERATIONS_MAX(1)회 → 재judge. judge 응답 오류·필드 누락은 재생성 없이 끝내고 error에 남긴다.
+      재생성 최대 METADATA_REGENERATIONS_MAX(1)회 → 재judge. Stage 2: 의자로 읽히지 않거나(chair_likeness "not_chair")
+      이전보다 풍부하지 않을 때(richer_than_previous False)도 재생성 조건이다. judge 응답 오류·필드 누락은 재생성 없이 끝내고 error에 남긴다.
       metadata 생성 실패는 설계 성공을 FAILED로 바꾸지 않는다. KEEP·실패·취소는 None. Mock은 고정 문자열.
 
 하지 않는 것:
@@ -50,6 +57,8 @@ _JUDGE_REQUIRED = {
     "silhouette_clarity": ("clear", "ambiguous"),
     "reads_as_seating": (True, False),
     "explanation_required_to_understand": (True, False),
+    "chair_likeness": ("clear", "weak", "not_chair"),
+    "richer_than_previous": (True, False),
 }
 _HUMAN_STORY_KEYS = ("placed_differently", "interpretation", "imagined_concept", "lego_redesign", "why_final_shape")
 _MOCK_NAME, _MOCK_FAMILY, _MOCK_SUMMARY = "Mock 의자", "chair", "Mock 고정 설계(LLM 미사용)"
@@ -79,16 +88,20 @@ def _meta_error(kind, detail):
     return {"kind": kind, "message": str(detail)}
 
 
-def _initial_metadata(described):
-    """Initial(LLM) design_metadata. described는 llm.describe_initial_design 결과(dict 또는 llm_error)."""
-    error = None
+def _initial_metadata(described, choice):
+    """Initial(LLM) design_metadata. described는 llm.describe_initial_design 결과(dict 또는 llm_error),
+    choice는 _choose_family 결과(선호 해석·고른 family·선호 해석 오류)."""
+    error = choice["error"]
     if _llm_error_kind(described):
         error, described = _meta_error("describe_error", described["llm_error"]), {}
     return {
         "design_name": described.get("design_name"), "design_family": described.get("design_family"),
         "design_summary": described.get("design_summary"), "visible_features": list(described.get("visible_features") or []),
         "human_interpretation": None,
-        "judge": None if error else {key: described.get(key) for key in ("silhouette_clarity", "recognizable_family", "completeness_score")},
+        "judge": None if not described else {
+            key: described.get(key) for key in ("silhouette_clarity", "recognizable_family", "completeness_score")},
+        "preference": choice["preference"], "selected_family": choice["family"], "family_source": choice["source"],
+        "style_hint": choice["style_hint"], "family_design_match": described.get("family_design_match"),
         "source": "LLM", "error": error,
     }
 
@@ -111,17 +124,20 @@ def _judge_problem(judge):
 
 
 def _needs_regeneration(judge):
-    # 사용자 기준: family를 알아볼 수 없거나 실루엣이 모호할 때만. awkward·weakly visible·feature mismatch만으로는 하지 않는다.
-    return judge["recognizable_family"] is False or judge["silhouette_clarity"] == "ambiguous"
+    # 사용자 기준: family를 알아볼 수 없거나 실루엣이 모호할 때, Stage 2부터 의자로 읽히지 않거나 이전보다 풍부하지
+    # 않을 때. awkward·weakly visible·feature mismatch만으로는 하지 않는다.
+    return (judge["recognizable_family"] is False or judge["silhouette_clarity"] == "ambiguous"
+            or judge["chair_likeness"] == "not_chair" or judge["richer_than_previous"] is False)
 
 
 def _verdict(judge):
     showcase = (judge["reads_as_seating"] and judge["recognizable_family"] and judge["silhouette_clarity"] == "clear"
-                and judge["explanation_required_to_understand"] is False)
+                and judge["explanation_required_to_understand"] is False
+                and judge["chair_likeness"] != "not_chair" and judge["richer_than_previous"] is True)
     return "SHOWCASE" if showcase else "NOT_YET"
 
 
-def _revised_metadata(intent, judge, regenerations, error):
+def _revised_metadata(intent, judge, regenerations, error, style_hint):
     """Revised(LLM) design_metadata. judge는 판단 가능한 응답 또는 None, intent는 dict 또는 None."""
     seen, planned = judge or {}, intent or {}
     story = seen.get("human_story")
@@ -138,9 +154,11 @@ def _revised_metadata(intent, judge, regenerations, error):
             "silhouette_clarity": judge["silhouette_clarity"],
             "explanation_required_to_understand": judge["explanation_required_to_understand"],
             "layer5_meaningful": judge.get("layer5_meaningful"), "completeness_score": judge.get("completeness_score"),
-            "awkward": judge.get("awkward"), "verdict": _verdict(judge),
+            "awkward": judge.get("awkward"), "chair_likeness": judge["chair_likeness"],
+            "richer_than_previous": judge["richer_than_previous"], "richer_why": judge.get("richer_why"),
+            "verdict": _verdict(judge),
         },
-        "design_intent": intent, "regenerations": regenerations, "source": "LLM", "error": error,
+        "design_intent": intent, "regenerations": regenerations, "style_hint": style_hint, "source": "LLM", "error": error,
     }
 
 
@@ -172,34 +190,95 @@ def _use_llm():
     return os.environ.get("C_DESIGN_USE_LLM") == "1"
 
 
-def create_initial_design(text=None, should_stop=None):
-    """목표 문장 → Initial Design (§4.1)."""
-    if text is None:
+def _choose_family(answer, should_stop):
+    """선호 답 → {family, source, preference, style_hint, error} 또는 _STOP.
+
+    짧은 "아무거나"류·침묵·빈 답은 LLM 없이 무작위 family. 그 밖은 LLM 해석이며, 해석 실패·키 누락은
+    "아무거나"로 보고 오류만 남긴다(설계는 계속).
+    """
+    preference, error = None, None
+    if dialogue.is_meaningful(answer) and dialogue.parse_initial_preference(answer) is None:
+        interpreted = llm.interpret_initial_preference(answer, should_stop=should_stop)
+        kind = _llm_error_kind(interpreted)
+        if kind == "stopped":
+            return _STOP
+        if kind:
+            error = _meta_error("preference_error", interpreted["llm_error"])
+        elif any(key not in interpreted for key in llm.PREFERENCE_KEYS):
+            error = _meta_error("preference_error", f"missing preference keys: "
+                                f"{[key for key in llm.PREFERENCE_KEYS if key not in interpreted]}")
+        else:
+            preference = interpreted
+    family = llm.choose_initial_family(preference)
+    specific = (preference is not None and preference.get("preference") == "SPECIFIC"
+                and preference.get("family") == family)
+    style_hint = preference.get("style_hint") if preference is not None else None
+    return {"family": family, "source": "preference" if specific else "random", "preference": preference,
+            "style_hint": style_hint if isinstance(style_hint, str) and style_hint else None, "error": error}
+
+
+def create_initial_design(text=None, should_stop=None, preference_text=None, on_question=None):
+    """목표 문장 → (LLM 모드) 선호 질문·family 선택 → Initial Design (§4.1).
+
+    preference_text: 텍스트 모드의 선호 답(None이면 선호 질문 없이 "아무거나"로 본다).
+    on_question: 선호 질문을 낼 때 그 문장으로 호출(HMI 표시용, 예외는 호출자 책임).
+    """
+    voice_mode = text is None
+    if voice_mode:
         text = voice.listen()
         if text is None:
             return _result("FAILED", code="VOICE_IO_FAILED", message=_voice_failure())
     elif not isinstance(text, str):
         return _result("FAILED", code="INVALID_INPUT", message="text must be a str or None")
+    elif preference_text is not None and not isinstance(preference_text, str):
+        return _result("FAILED", code="INVALID_INPUT", message="preference_text must be a str or None")
 
     object_type = dialogue.parse_goal(text)
     if object_type is None:
         return _result("FAILED", code="UNSUPPORTED_OBJECT", message="no supported object in the goal")
 
-    generate = None
-    if _use_llm():
-        def generate(object_type, reasons):
-            return llm.generate_initial_design(object_type, reasons, should_stop=should_stop)
+    if not _use_llm():
+        result = designer.build_initial_design(object_type, delay=designer.RETRY_DELAY, should_stop=should_stop)
+        if result["design"] is None:
+            return _from_designer(result, None, [])
+        return _result("OK", None, result["design"], design_metadata=_mock_metadata(revised=False))
+
+    questions = []
+    answer = preference_text
+    if voice_mode or preference_text is not None:
+        # 텍스트 모드에서 선호 답이 없으면 묻지 않은 것이므로 questions에 남기지 않는다.
+        if should_stop is not None and should_stop():
+            return _stopped(questions)
+        question = dialogue.build_initial_preference_question()
+        questions.append(question)
+        if on_question is not None:
+            on_question(question)
+        if voice_mode:
+            voice.speak(question)
+            answer = voice.listen()
+            if answer is None:
+                return _result("FAILED", questions=questions, code="VOICE_IO_FAILED", message=_voice_failure())
+    if should_stop is not None and should_stop():
+        return _stopped(questions)
+    choice = _choose_family(answer, should_stop)
+    if choice is _STOP:
+        return _stopped(questions)
+    reply = (choice["preference"] or {}).get("reply")
+    if voice_mode and isinstance(reply, str) and reply.strip():
+        voice.speak(reply)  # 해석을 되읽어 준다(질문이 아니므로 questions에는 넣지 않는다)
+
+    def generate(object_type, reasons):
+        return llm.generate_initial_design(object_type, reasons, should_stop=should_stop,
+                                           family=choice["family"], style_hint=choice["style_hint"])
     result = designer.build_initial_design(
         object_type, generate=generate, delay=designer.RETRY_DELAY, should_stop=should_stop
     )
     if result["design"] is None:
-        return _from_designer(result, None, [])
-    if generate is None:
-        return _result("OK", None, result["design"], design_metadata=_mock_metadata(revised=False))
-    described = llm.describe_initial_design(result["design"], should_stop=should_stop)
+        return _from_designer(result, None, questions)
+    described = llm.describe_initial_design(result["design"], should_stop=should_stop, family=choice["family"])
     if _llm_error_kind(described) == "stopped":
-        return _stopped([])
-    return _result("OK", None, result["design"], design_metadata=_initial_metadata(described))
+        return _stopped(questions)
+    return _result("OK", None, result["design"], questions, design_metadata=_initial_metadata(described, choice))
 
 
 def run_intervention(design, current, differences, text_answers=None, on_question=None, should_stop=None):
@@ -260,8 +339,33 @@ def run_intervention(design, current, differences, text_answers=None, on_questio
             ask(question)
 
     use_llm = _use_llm()
-    # LLM 모드에서 설계 의도·metadata 오류를 요청 단위로 모은다(error는 마지막 오류).
-    state = {"intent": None, "error": None}
+    # LLM 모드에서 설계 의도·metadata 오류·답변의 style_hint를 요청 단위로 모은다(error는 마지막 오류).
+    state = {"intent": None, "error": None, "style_hint": None, "stopped": False, "interpreted": False}
+    # Revised(LLM)는 이전 Design보다 풍부해야 한다(§8.13). Mock 후보는 결정론적 이동뿐이라 검사하지 않는다.
+    min_blocks = designer.revised_min_blocks(design) if use_llm else None
+
+    def ask_answer_llm(text):
+        """llm 답변 해석 1회. 쓸 수 있는 dict 또는 None(STOP이면 state["stopped"], 실패·키 누락이면 그냥 None)."""
+        state["interpreted"] = True
+        answer = llm.interpret_intervention_answer(text, differences, should_stop=should_stop)
+        kind = _llm_error_kind(answer)
+        if kind == "stopped":
+            state["stopped"] = True
+        if kind or any(key not in answer for key in llm.INTERVENTION_ANSWER_KEYS):
+            return None
+        return answer
+
+    def usable_hint(answer):
+        hint = answer["style_hint"] if answer is not None else None
+        return hint if isinstance(hint, str) and hint else None
+
+    def interpret_answer(text):
+        """Rule이 결정하지 못한 답(LLM 모드만) → KEEP/REVISE/UNCLEAR/CANCEL. 해석 실패·키 누락은 UNCLEAR(재질문)."""
+        answer = ask_answer_llm(text)
+        if answer is None:
+            return dialogue.UNCLEAR
+        state["style_hint"] = usable_hint(answer) if answer["decision"] == dialogue.REVISE else None
+        return answer["decision"]
 
     def make_generate(feedback=None):
         if not use_llm:
@@ -269,18 +373,19 @@ def run_intervention(design, current, differences, text_answers=None, on_questio
 
         def generate(design, current, differences, reasons):
             return llm.generate_revised_design(design, current, differences, reasons, should_stop=should_stop,
-                                               intent=state["intent"], feedback=feedback)
+                                               intent=state["intent"], feedback=feedback, min_blocks=min_blocks)
         return generate
 
     def build(max_attempts, feedback=None):
         return designer.build_revised_design(
             design, current, differences, generate=make_generate(feedback), max_attempts=max_attempts,
-            delay=designer.RETRY_DELAY, should_stop=should_stop,
+            delay=designer.RETRY_DELAY, should_stop=should_stop, min_blocks=min_blocks,
         )
 
     def decide_intent():
         """설계 의도를 정한다. STOP이면 envelope, 그 밖의 실패는 intent 없이 진행(None 반환)."""
-        intent = llm.generate_design_intent(design, current, differences, should_stop=should_stop)
+        intent = llm.generate_design_intent(design, current, differences, should_stop=should_stop,
+                                            style_hint=state["style_hint"])
         kind = _llm_error_kind(intent)
         if kind == "stopped":
             return _stopped(questions)
@@ -322,7 +427,7 @@ def run_intervention(design, current, differences, text_answers=None, on_questio
                 state["error"] = _meta_error("regeneration_failed", [r["rule"] for r in again["reasons"]])
                 break  # 첫 설계와 그 judge를 그대로 쓴다
             final = again["design"]
-        metadata = _revised_metadata(state["intent"], usable_judge, regenerations, state["error"])
+        metadata = _revised_metadata(state["intent"], usable_judge, regenerations, state["error"], state["style_hint"])
         return _result("OK", dialogue.REVISE, final, questions, design_metadata=metadata)
 
     def revise():
@@ -354,7 +459,15 @@ def run_intervention(design, current, differences, text_answers=None, on_questio
             return _stopped(questions)
         if reply is None:
             return no_reply()
-        choice = dialogue.parse_response(reply)
+        state["interpreted"] = False
+        choice = dialogue.parse_response(reply, interpret_answer if use_llm else None)
+        if (use_llm and choice == dialogue.REVISE and not state["interpreted"]
+                and not dialogue.is_number_answer(reply)):
+            # Rule이 REVISE로 정한 자유 답변("일부러 놨어요. 팔걸이로 살려주세요")에서 바람만 받는다. decision은 Rule 그대로,
+            # 해석 실패는 힌트 없이 진행한다(재질문 없음).
+            state["style_hint"] = usable_hint(ask_answer_llm(reply))
+        if state["stopped"]:
+            return _stopped(questions)
         if choice == dialogue.KEEP:
             return _result("OK", dialogue.KEEP, design, questions)
         if choice == dialogue.CANCEL:

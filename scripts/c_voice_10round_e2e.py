@@ -1,9 +1,11 @@
 """사용자 음성 10회 E2E runner (시험용, production 코드 수정 없음).
 
 흐름(Round마다): 마이크 준비 → "지금 말씀하세요" → 사용자가 "의자 만들어줘" → whisper-1 STT → production
-main.create_initial_design(text=None) → Validator/A Planner → v1 HMI(캡처) → [Enter] → 시험용 Human Error(fixture
-scenario 순환) → production main.run_intervention(..., text_answers=None): TTS 질문 → 사용자가 "2번" → STT →
-EXPRESSIVE v4 Revised(intent → 생성 → judge → 조건부 재생성 1회) → Validator/A Planner → v2 HMI(캡처) → [Enter].
+main.create_initial_design(text=None): TTS 선호 질문 → 사용자 자유 답변(예: "아무거나", "왕좌처럼 높고 화려한 의자요")
+→ family 선택 → Initial → Validator/A Planner → v1 HMI(캡처) → [Enter] → 시험용 Human Error(fixture scenario 순환)
+→ production main.run_intervention(..., text_answers=None): TTS 주관식 질문 → 사용자 자유 답변(예: "일부러 그렇게 놨어요",
+"좀 더 넓고 화려하게 하고 싶어요") → STT → (Rule로 못 정하면 LLM 해석·style_hint) → Revised(intent → 생성 → judge →
+조건부 재생성 1회) → Validator/A Planner → v2 HMI(캡처) → [Enter].
 
 production 경로 그대로: voice.listen/speak, llm(gpt-6.1-sol), main, validator, planning_trial.planner, app.qt_hmi.
 시험용으로만 덧붙인 것: listen() 호출 시 on_ready 안내 출력·STT 결과 기록(voice.listen 래핑), HMI 표시용 5층
@@ -38,7 +40,7 @@ from planning_trial import planner  # noqa: E402
 
 FIELDS = ("brick_type", "color", "x", "y", "layer", "orientation_deg")
 INITIAL_PHRASE = "의자 만들어줘"
-REVISION_PHRASE = "2번"  # production 질문: 1번 = 원래 설계 유지, 2번 = 지금 놓인 상태를 살린 새 설계(REVISE)
+REVISION_PHRASE = "일부러 그렇게 놨어요"  # 기록용 예시 답(주관식 질문, REVISE). "2번"도 호환으로 REVISE
 TOTAL = {"rounds": 10}  # 안내 출력용(main_cli에서 설정)
 DEBUG = {"audio": False}  # --debug-audio
 SETTLE_SECONDS = 1.0  # Round 전환(Enter) 직후 발화·환경 변화가 보정에 섞이지 않게 두는 짧은 간격
@@ -290,7 +292,8 @@ def run_round(k, out, app, window, rec):
         json.dump(meta, open(os.path.join(rdir, "metadata.json"), "w"), ensure_ascii=False, indent=2, default=str)
         json.dump(transcript, open(os.path.join(rdir, "transcript.json"), "w"), ensure_ascii=False, indent=2, default=str)
 
-    print(f"\n=== [Round {k}/{TOTAL['rounds']}] ===\n마이크 준비 중... 마이크 보정 중입니다. '지금 말씀하세요'가 나온 뒤 말씀해주세요.", flush=True)
+    print(f"\n=== [Round {k}/{TOTAL['rounds']}] ===\n마이크 준비 중... 마이크 보정 중입니다. '지금 말씀하세요'가 나온 뒤 말씀해주세요.\n"
+          "목표를 말한 뒤 TTS 선호 질문이 나오면 원하는 의자를 자유롭게 말씀하세요(없으면 '아무거나').", flush=True)
     time.sleep(SETTLE_SECONDS)  # Enter 직후 발화·키 소리가 보정에 섞이지 않게
     rec.round_no, rec.stage, rec.tts_log = k, "initial", []
     rec.phrase, rec.debug_dir, rec.events = INITIAL_PHRASE, os.path.join(rdir, "stt_initial"), []
@@ -306,6 +309,8 @@ def run_round(k, out, app, window, rec):
     meta["v1"].update(shape=shape(d1["blocks"]), validator=validator.validate_design(d1), a_production=plan1_prod["status"],
                       a_shown=plan1["status"], fingerprint=fingerprint(d1["blocks"]), design_name=m1.get("design_name"), design_family=m1.get("design_family"),
                       judge=m1.get("judge"), metadata_error=m1.get("error"),
+                      selected_family=m1.get("selected_family"), family_source=m1.get("family_source"),
+                      preference=m1.get("preference"), style_hint=m1.get("style_hint"), family_design_match=m1.get("family_design_match"),
                       family_key=m1.get("family_key") or (history.family_key(c1) if history else None), shape_key=m1.get("shape_key") or (history.shape_key(d1["blocks"]) if history else None),
                       support=c1["support_style"], category=c1["category"], seat=c1["seat_dims"], footprint=c1["footprint"],
                       history_summary_used=m1.get("history_summary_used"), recent_family_count=m1.get("recent_family_count"),
@@ -339,7 +344,7 @@ def run_round(k, out, app, window, rec):
     meta["scenario"] = {kk: sc[kk] for kk in ("id", "description", "requested", "a_step", "tags", "expected", "actual", "placed_before")}
     e, a = sc["expected"], sc["actual"]
     print(f"Human Error {sc['id']} ({sc['description']}): Step {sc['a_step']} expected ({e['x']},{e['y']}) L{e['layer']} {e['orientation_deg']}° → actual ({a['x']},{a['y']}) L{a['layer']} {a['orientation_deg']}° | Current {len(sc['current']['blocks'])}블록", flush=True)
-    print("TTS 질문이 재생된 뒤 안내가 나오면 \"2번\"이라고 말씀하세요.", flush=True)
+    print("TTS 질문이 재생된 뒤 안내가 나오면 자유롭게 답하세요(예: \"일부러 그렇게 놨어요\", \"좀 더 넓고 화려하게 하고 싶어요\").", flush=True)
 
     rec.stage = "revision"
     rec.phrase, rec.debug_dir, rec.events = REVISION_PHRASE, os.path.join(rdir, "stt_revision"), []
@@ -351,7 +356,8 @@ def run_round(k, out, app, window, rec):
     for ev in rec.events:
         ev["interpreted"] = dialogue.parse_response(ev["stt_text"]) if isinstance(ev.get("stt_text"), str) else None
     json.dump({"envelope": v2, "current": sc["current"], "differences": sc["differences"], "v1": d1}, open(os.path.join(rdir, "v2.json"), "w"), ensure_ascii=False, indent=2)
-    meta["v2"] = {"status": v2["status"], "hri_result": v2["hri_result"], "error": v2["error"], "seconds": round(dt, 1), "questions": len(questions)}
+    meta["v2"] = {"status": v2["status"], "hri_result": v2["hri_result"], "error": v2["error"], "seconds": round(dt, 1), "questions": len(questions),
+                  "style_hint": (v2["design_metadata"] or {}).get("style_hint")}
     if v2["status"] != "OK" or v2["hri_result"] != dialogue.REVISE or not v2["design"]:
         dump(); return fail("v2", f"{v2['status']} {v2['hri_result']} {v2['error']}")
     d2 = v2["design"]; m2 = v2["design_metadata"] or {}; cur = sc["current"]
