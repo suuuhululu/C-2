@@ -26,6 +26,8 @@
     - Initial 요청(Stage 2 Wave 4b): interpret_initial_request가 사용자 첫 자유 발화 한 문장을 object·preference
       (ANY / SPECIFIC / CREATIVE)·family·style_hint·sufficient·follow_up·reply로 한 번에 해석한다. CREATIVE concept
       ("사과 같은 의자")는 카탈로그 family로 바꾸지 않고 generate_initial_design(concept=…)에 그대로 넘긴다.
+    - 모델 역할(Stage 2 Wave 4c): Design 생성·Initial 설명은 OPENAI_MODEL, Revised judge는 JUDGE_MODEL_ENV, 요청·답변
+      해석과 acknowledgment(reply)는 빠른 보조 모델 AUX_MODEL_ENV(기본 DEFAULT_AUX_MODEL). key는 모두 LLM_KEY_ENV.
 
 하지 않는 것:
     - 설계 검증·금지 키 검사(validator 담당), 재생성 정책·버전(designer 담당)
@@ -64,6 +66,10 @@ LLM_KEY_ENV = "OPENAI_LLM_API_KEY"
 # 일치율은 조금 낮지만 latency가 약 15 s 짧다. Sol로 되돌리려면 JUDGE_MODEL_ENV를 설정한다. key는 LLM_KEY_ENV 그대로.
 JUDGE_MODEL_ENV = "OPENAI_JUDGE_MODEL"
 DEFAULT_JUDGE_MODEL = "gpt-4.1-mini"
+# 요청·답변 해석과 acknowledgment(reply) 전용 보조 모델(2026-10-08 사용자 결정: 첫 TTS를 Design 생성보다 먼저, 빠르게).
+# Design 생성·Initial 설명은 OPENAI_MODEL, judge는 JUDGE_MODEL_ENV 그대로다. key는 LLM_KEY_ENV 그대로.
+AUX_MODEL_ENV = "OPENAI_AUX_MODEL"
+DEFAULT_AUX_MODEL = "gpt-4.1-mini"
 # reasoning 모델은 max_tokens·temperature(0)를 받지 않는다(2026-10-06 gpt-6.1-sol 실측: max_tokens는 400
 # unsupported_parameter, temperature 0은 400 unsupported_value). reasoning 토큰도 같은 예산을 쓰므로
 # max_completion_tokens를 넉넉히 둔다(실측 completion 1,067~1,237 중 reasoning 475~609).
@@ -274,9 +280,12 @@ SYSTEM_PROMPT_REQUEST = (
     "둥글고 빨간'), \"\" if nothing; \"sufficient\": false only if object is UNCLEAR or there is no kind, feature, concept or "
     "explicit ANY at all (e.g. '뭔가 만들고 싶어요', '멋진 거 만들어주세요'), true otherwise (an explicit ANY is true); "
     "\"follow_up\": if sufficient is false, one natural Korean question in polite speech (존댓말), e.g. '어떤 느낌의 의자가 "
-    "좋으세요? 팔걸이나 색, 모양을 말씀해 주셔도 돼요.', otherwise \"\"; \"reply\": one natural, warm Korean sentence in "
-    "polite speech (존댓말) that the system will say back, conversational and not a formal announcement, e.g. '좋아요, 사과처럼 "
-    "둥글고 빨간 의자로 만들어 볼게요.'}. JSON only."
+    "좋으세요? 팔걸이나 색, 모양을 말씀해 주셔도 돼요.', otherwise \"\"; \"reply\": one short, natural Korean sentence in "
+    "polite speech (존댓말) that the system says back right away, before the design is made: it briefly restates the request "
+    "and carries its key point (SPECIFIC: the kind and features; CREATIVE: the concept; ANY: that you will choose a fitting "
+    "style), conversational and not a formal announcement, not wordy, and worded freshly each time rather than a fixed "
+    "template, e.g. '좋아요. 길고 편안한 벤치 형태로 만들어볼게요.', '좋아요. 바나나의 곡선 느낌을 살린 의자로 만들어볼게요.', "
+    "or for ANY '좋아요. 제가 어울리는 스타일을 골라서 멋진 의자를 만들어볼게요.'}. JSON only."
 )
 # 요청 해석 응답에 있어야 하는 키(main이 확인한다).
 REQUEST_KEYS = ("object", "preference", "family", "style_hint", "sufficient", "follow_up", "reply")
@@ -290,10 +299,14 @@ SYSTEM_PROMPT_INTERVENTION_ANSWER = (
     "was a mistake and they will move it back to keep the original design, \"CANCEL\" if they want to stop, \"UNCLEAR\" if "
     "you cannot tell; \"style_hint\": a short Korean phrase with what they wanted (e.g. '팔걸이로 쓰려고', '좌석을 더 넓게'), "
     "\"\" if nothing; \"reason\": one natural Korean sentence in polite speech (존댓말) explaining how you read the answer, "
-    "conversational and not a formal announcement}. JSON only."
+    "conversational and not a formal announcement; \"reply\": the short acknowledgment the system says back right away, one "
+    "natural Korean sentence in polite speech (존댓말), worded freshly each time rather than a fixed template: for REVISE it "
+    "confirms the new design and reflects the style_hint (e.g. '알겠습니다. 더 길고 넓은 형태로 다시 만들어볼게요.', '좋아요. 더 "
+    "차갑고 정돈된 분위기의 의자로 바꿔볼게요.'), for KEEP it says you will continue once the block is moved back (e.g. '네, "
+    "원래 자리로 고쳐 주시면 그대로 진행할게요.'), for UNCLEAR or CANCEL \"\"}. JSON only."
 )
-# Intervention 답변 해석 응답에 있어야 하는 키(main이 Wave 3에서 확인한다).
-INTERVENTION_ANSWER_KEYS = ("decision", "style_hint", "reason")
+# Intervention 답변 해석 응답에 있어야 하는 키(main이 확인한다). reply는 Stage 2 Wave 4c acknowledgment.
+INTERVENTION_ANSWER_KEYS = ("decision", "style_hint", "reason", "reply")
 
 
 # Initial 사용자 메시지의 요건: 규칙에 맞는 앉는 가구 종류를 골라 실제 좌석이 있는 완성품으로 설계한다.
@@ -532,17 +545,25 @@ def _json_call(system_prompt, user_message, should_stop, model=None):
     return _error("bad_response", "response is not a JSON object")
 
 
+def _aux_model():
+    """해석·acknowledgment 보조 모델: AUX_MODEL_ENV 또는 DEFAULT_AUX_MODEL."""
+    return os.environ.get(AUX_MODEL_ENV) or DEFAULT_AUX_MODEL
+
+
 def interpret_initial_request(text, should_stop=None):
-    """Initial 첫 자유 발화(또는 첫 발화 + follow-up 답) 해석(dict: REQUEST_KEYS) 또는 llm_error. 키·값 확인은 main이 한다."""
+    """Initial 첫 자유 발화(또는 첫 발화 + follow-up 답) 해석(dict: REQUEST_KEYS) 또는 llm_error. 키·값 확인은 main이 한다.
+    모델은 보조 모델(_aux_model)."""
     return _json_call(SYSTEM_PROMPT_REQUEST, "Interpret this request.\n"
-                      + json.dumps({"answer": text}, ensure_ascii=False), should_stop)
+                      + json.dumps({"answer": text}, ensure_ascii=False), should_stop, model=_aux_model())
 
 
 def interpret_intervention_answer(text, differences, should_stop=None):
-    """Intervention 자유 답변 해석(dict: INTERVENTION_ANSWER_KEYS) 또는 llm_error. Design 전체는 보내지 않는다."""
+    """Intervention 자유 답변 해석(dict: INTERVENTION_ANSWER_KEYS) 또는 llm_error. Design 전체는 보내지 않는다.
+    모델은 보조 모델(_aux_model)."""
     pairs = [{"expected": item.get("expected"), "actual": item.get("actual")} for item in differences]
     return _json_call(SYSTEM_PROMPT_INTERVENTION_ANSWER, "Interpret this answer.\n"
-                      + json.dumps({"answer": text, "differences": pairs}, ensure_ascii=False), should_stop)
+                      + json.dumps({"answer": text, "differences": pairs}, ensure_ascii=False), should_stop,
+                      model=_aux_model())
 
 
 def _block_delta(previous, design):
