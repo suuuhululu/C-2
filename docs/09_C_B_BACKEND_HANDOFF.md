@@ -104,3 +104,8 @@ V0·D1~D4는 초기 시험에서 검출률·가림·촬영 / 이동 시간을 �
   "reason": null
 }
 ```
+
+
+## 2026-10-08 MVP_Day4 D 연결부 변경
+
+사용자 요청에 따라 D의 Qt 대기열 callback 연결부를 추가했다. 공통 Observed 여섯 필드는 유지한다. 요청에 PLACE/ASSEMBLY/CURRENT 문맥을 실어 after=null인 전달판 확인과 실제 Current 재관측을 구분한다. 전달판 결과는 별도 submit_place로 받으며 미수신을 EMPTY로 만들지 않는다. 이 API는 D 구현안이고 홍동의 실제 생산자 반영·연결 성공은 아직 미검증이다. 필드/호출·담당별 남은 작업은 [Day4 통합 안내](D_MVP_DAY4_INTEGRATION.md)를 따른다. C의 DB 의존은 현재 브랜치에서 확인되지 않았으며 Day4에 새 DB 연결을 추가하지 않는다.

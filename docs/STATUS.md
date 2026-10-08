@@ -353,3 +353,13 @@ PR 게시 대상과 최신 main을 합친 독립 파일 트리에서 `QT_QPA_PLA
 - 사용자 요청으로 현재 로컬 기본 실행 코드를 PR로 보존하고 팀장 계정 병합을 준비했다. 최신 main `a459e13`에서 별도 worktree를 만들어 미게시 Backend/Qt·C 함수/STT/TTS·네 공급열·명시 사전 이동·STOP/probe/확인된 기록 재개와 관련 검사/Schema/Fixture만 옮겼다. 기존 main의 C/A/B/DB·최신 팀 계약·CODEOWNERS를 유지했다. 로컬 발표/제출 초안과 새 사람 전달 0단계는 이 PR에서 제외하고 원본/백업에 보존했다.
 - 게시 트리 검사 `env -u HISTORY_TEST_DSN QT_QPA_PLATFORM=offscreen python3 -m pytest tests planning_trial/test_planner.py -q`: **1371 passed, 24 skipped**, 실패/오류 0, 종료 0. 24개는 별도 실제 DB DSN 필요 검사다. Robot/Camera/음향/외부 API는 실행하지 않았다. Python/JSON 파싱·diff 공백 확인. CI/lint/type 추가 없음. 기존 실기 STOP/재개·현재→HOME 경로·음성/Camera 연결의 현장 미검증 상태는 유지한다.
 - 팀원 리뷰가 어려운 상황에서 사용자가 팀장 권한 병합을 명시적으로 요청했다. PR에 동료 리뷰 미수행과 사용자 승인 사유를 기록하며 자기 Approve나 가짜 사람 리뷰를 발행하지 않는다. 기존 보호 규칙은 변경하지 않는다. [기본 버전·백업·복구 방법](D_RUNTIME_BASELINE.md)을 확인한다. 실제 병합과 태그는 GitHub PR/커밋 상태로 구분한다.
+
+
+## 2026-10-08 — MVP_Day4 운영 통합 수정·원격 게시
+
+- 사용자 승인 범위 1~3·4·5~7·8~11을 반영했다. D의 B callback 연결부·PLACE/ASSEMBLY/CURRENT 구분, 운영 STT→C 경로, 빈 조립판 확인 START·완료 후 새 Job, 사람 보충을 전제로 한 Plan 수락·공급열별 보충, 실행 시간 초과 시 한 번 STOP 요청을 적용했다. C/음성 취소는 이전 호출 종료를 기다리는 정책을 유지하고 AMBIGUOUS_RELOCATION을 임의로 완화하지 않았다. B 생산자/Camera 알고리즘은 대신 구현하지 않았다.
+- 검증된 Robot 원본과 공급열 측정 파일을 저장소 안에 byte-identical로 보존하고 설정 파일 기준 상대 경로를 사용한다. measured hash·pose/TCP/속도/힘은 유지했다. 새 위치에 복사한 저장소의 무이동 계획 생성·경로/hash 검사를 수행했다.
+- 작업은 자료 폴더 아래 `work/c2-mvp-day4-integration`에서 검증한 뒤 사용자 요청으로 원격 `MVP_Day4`에 직접 커밋했다. 게시 전 원격 기준 커밋 `95259bd03f3cef32ce2807c25851316655cbd7a0`을 원격 `MVP_day4_2`로 복사해 보존했다. 기존 `/home/ms-02/C_2` 브랜치는 `work/suhyun-hmi-backend-robot-db`이며 원래 checkout의 Git 상태를 동일한 전체 파일 목록 옵션으로 대조해 일치를 확인했다. PR 생성과 main 병합은 하지 않았다. 변경·실행·B에 필요한 반영 사항은 [Day4 통합 안내](D_MVP_DAY4_INTEGRATION.md)를 따른다.
+- 수정 후 전체 `tests` 및 `planning_trial/test_planner.py`: **1383 passed, 24 skipped**, 실패/오류 0, 종료 코드 **0**. Qt offscreen, 실제 API key/DB DSN을 해제하고 시험별 Mock을 사용했다. 24개는 별도 실제 DB DSN 필요 검사다. 증거는 Git 제외 `logs/day4_validation/pytest-full.log`·`pytest-full.xml`이다. 마지막 HMI 표시 문구 변경 후 영향 범위 Qt/운영 연결 검사를 다시 실행해 **42 passed**를 확인했다(`pytest-final-ui.log`). 15 Step·같은 공급열 두 차례 보충·새 Job·1 Step 반복 Job의 정확한 공급 슬롯·늦은 결과 무시·B 실패/재관측·실행 시간 초과 정지 요청을 포함한다.
+- 변경 Python/JSON 파싱, 새 안내의 상대 링크/코드 블록, Git 공백 검사, 원본 두 파일 hash/byte 대조를 확인했다. 기존 lint/type check는 미구성이며 도구 설치는 하지 않았다. 실제 Robot/STOP/probe·Camera 생산·STT/LLM/TTS 서비스·시간 한도 적정성·전체 장치 통합·사람 리뷰는 미검증이다.
+- 현재 브랜치의 C 함수/연결부에는 DB 연결·조회·저장이 공정 선행 조건으로 들어 있지 않다. 사용자 최신 지시에 따라 Day4에 DB를 새로 연결하지 않는다. 기존 별도 PostgreSQL 이력 기능은 유지하며 DB 미실행이어도 공정의 JSONL 기록 경로는 별개다. 확인하지 않은 담당자의 최신 코드에까지 같은 결론을 확대하지 않는다.

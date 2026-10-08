@@ -1,5 +1,7 @@
 # 수현 Backend·HMI 실행과 Robot 개발 계획
 
+**2026-10-08 MVP_Day4 안내:** 이 문서의 저장 Fixture·수동 확인·`--c-mode/--c-voice/--config`를 쓰는 과거 real_workflow_hmi 명령은 개발 기록이며 현재 운영 CLI에는 적용되지 않는다. 최신 실행은 [Day4 통합 안내](D_MVP_DAY4_INTEGRATION.md)를 따른다. 기존 단일 Robot 시험은 별도 진입점으로 유지한다.
+
 갱신: 2026-10-06. 최신 REAL 실행·단축 입력·STOP/재개·질문 TTS는 문서 마지막의 「REAL 정지·재개와 오배치 질문 TTS」를 우선한다. 앞 절은 단계별 개발 기록이다. 현재 Backend는 Python 객체이고 HMI와 **같은 프로세스**에서 실행한다. 독립 서버/웹 API는 아직 없다. FAKE 전체 시나리오·수동 입력 창과 REAL 한 블록 시험 창을 구분한다.
 
 ## 실행 전 확인
