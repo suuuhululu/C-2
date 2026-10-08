@@ -76,7 +76,8 @@ _STOP = object()
 # on_progress 이벤트 단계(Stage 2 Wave 4c). Initial: LISTENING → UNDERSTANDING → ACK → GENERATING → VALIDATING → DESCRIBING
 # → READY. Revised: LISTENING → UNDERSTANDING → ACK(REVISE) 또는 KEEP_ACK(KEEP) → GENERATING_REVISED → VALIDATING → JUDGING
 # → (REGENERATING → VALIDATING → JUDGING) → READY_REVISED. 끝이 실패·취소면 FAILED·CANCELLED, escalation 질문은 ESCALATION.
-PROGRESS_STAGES = ("LISTENING", "UNDERSTANDING", "ACK", "KEEP_ACK", "GENERATING", "GENERATING_REVISED", "VALIDATING",
+# HRI_INTERPRET(Stage 2 Wave 4e, LLM 모드 Intervention): 답변 결정 직후 decision·source(rule|llm)·reason·style_hint 디버그 이벤트.
+PROGRESS_STAGES = ("LISTENING", "UNDERSTANDING", "HRI_INTERPRET", "ACK", "KEEP_ACK", "GENERATING", "GENERATING_REVISED", "VALIDATING",
                    "DESCRIBING", "JUDGING", "REGENERATING", "ESCALATION", "READY", "READY_REVISED", "FAILED", "CANCELLED")
 
 
@@ -494,7 +495,7 @@ def _intervention(design, current, differences, text_answers, on_question, shoul
             ask(question)
 
     # LLM 모드에서 metadata 오류·답변의 style_hint와 확인 문장(reply)을 요청 단위로 모은다(error는 마지막 오류).
-    state = {"error": None, "style_hint": None, "reply": None, "stopped": False, "interpreted": False}
+    state = {"error": None, "style_hint": None, "reply": None, "reason": None, "stopped": False, "interpreted": False}
     # Revised(LLM)는 이전 Design보다 풍부해야 한다(§8.13). Mock 후보는 결정론적 이동뿐이라 검사하지 않는다.
     min_blocks = designer.revised_min_blocks(design) if use_llm else None
 
@@ -507,6 +508,7 @@ def _intervention(design, current, differences, text_answers, on_question, shoul
             state["stopped"] = True
         if kind or any(key not in answer for key in llm.INTERVENTION_ANSWER_KEYS):
             return None
+        state["reason"] = answer["reason"] if isinstance(answer["reason"], str) else None
         return answer
 
     def usable_hint(answer):
@@ -614,10 +616,11 @@ def _intervention(design, current, differences, text_answers, on_question, shoul
             return _stopped(questions)
         if reply is None:
             return no_reply()
-        state["interpreted"] = False
+        state["interpreted"], state["reason"] = False, None
         if use_llm:
             progress("UNDERSTANDING")
         choice = dialogue.parse_response(reply, interpret_answer if use_llm else None)
+        source = "llm" if state["interpreted"] else "rule"  # decision을 정한 쪽(아래 style_hint 전용 호출과 무관)
         if (use_llm and choice == dialogue.REVISE and not state["interpreted"]
                 and not dialogue.is_number_answer(reply)):
             # Rule이 REVISE로 정한 자유 답변("일부러 놨어요. 팔걸이로 살려주세요")에서 바람만 받는다. decision은 Rule 그대로,
@@ -627,6 +630,10 @@ def _intervention(design, current, differences, text_answers, on_question, shoul
             state["reply"] = usable_reply(answer) if answer is not None and answer["decision"] == dialogue.REVISE else None
         if state["stopped"]:
             return _stopped(questions)
+        if use_llm:
+            # 디버그 전용(음성 없음): 사람이 한 말이 어떻게 해석됐는지 ACK/KEEP_ACK·재질문 전에 남긴다.
+            progress("HRI_INTERPRET", f"decision={choice} source={source} reason={state['reason'] or ''} "
+                                      f"style_hint={state['style_hint'] or ''}")
         if choice == dialogue.KEEP:
             return keep()
         if choice == dialogue.CANCEL:

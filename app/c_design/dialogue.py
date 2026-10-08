@@ -418,15 +418,15 @@ def build_question(design, current, differences):
     return "\n".join(lines)
 
 
+REASK_LEAD = (
+    "제가 잘 못 알아들었어요. 어떤 부분을 바꾸고 싶으신지 조금만 더 말씀해 주시겠어요? "
+    "실수로 놓으신 거라면 그렇게 말씀해 주셔도 돼요."
+)
+
+
 def build_reask(question):
-    """불명확 답변 시 답하는 방법을 짧게 알려 주고 전체 질문을 다시 낸다(§4.2)."""
-    lines = [
-        "제가 잘 못 알아들었어요.",
-        "일부러 그렇게 놓으신 거라면 '일부러'라고, 실수였다면 '실수'라고 말씀해 주세요. "
-        "그만하시려면 '취소'라고 해 주세요.",
-        question,
-    ]
-    return "\n".join(lines)
+    """불명확 답변 시 자연스럽게 다시 묻고(키워드·번호 안내 없음) 전체 질문을 다시 낸다(§4.2)."""
+    return "\n".join([REASK_LEAD, question])
 
 
 def escalation_question(differences):

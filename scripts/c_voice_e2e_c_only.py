@@ -25,7 +25,8 @@ A/D 통합 시험은 scripts/c_voice_10round_e2e.py를 쓴다(Stage 2 어휘는 
       --debug-audio(각 listen/TTS의 시각·보정·게이트·Whisper 원문·no_speech_prob·avg_logprob를 터미널에 출력)
 결과 넘겨보기: python3 scripts/c_voice_e2e_c_only_gallery.py
 
-진행 로그(Stage 2 Wave 4c): main의 on_progress 이벤트를 "[C][STAGE] HH:MM:SS.mmm message"로 출력하고(ACK는 문장 인용)
+진행 로그(Stage 2 Wave 4c·4e): listen마다 [C][STT_RAW] "…", main의 on_progress 이벤트를 "[C][STAGE] HH:MM:SS.mmm message"로 출력하고
+(ACK는 문장 인용, Intervention 해석은 [C][HRI_INTERPRET] decision=… source=… reason=… style_hint=…)
 metadata의 v1/v2 "progress"에 남긴다. 첫 확인(ack) TTS의 실제 재생 시작 시각(voice._last_speak)과 마지막 listen 종료 시각을
 transcript "ack_tts"에 남겨 첫 응답 latency를 잴 수 있게 한다.
 """
@@ -227,6 +228,7 @@ class ListenRecorder:
                     pass
             rec.events.append(entry)
             print(f"    STT: {text!r}" + (f" (last_error {voice.last_error()})" if text in (None, "") else ""), flush=True)
+            print(f"[C][STT_RAW] {_now()} \"{text if text is not None else ''}\"", flush=True)  # whisper 최종 텍스트 그대로
             dbg = entry.get("debug") or {}
             if dbg.get("stt_called") and dbg.get("weak_input"):
                 print("    !!! 마이크 입력이 약합니다. 마이크에 조금 더 가까이/크게 말씀해주세요. "

@@ -928,8 +928,9 @@ def test_revised_text_mode_progress_order_and_llm_reply_ack(scenario, answer_llm
     monkeypatch.setattr(main.voice, "speak", lambda sentence: pytest.fail("text mode must not speak"))
     result, events = _progress_answer(scenario, "일부러 그렇게 놨어요. 팔걸이로 살려주세요.")
     assert result["hri_result"] == "REVISE" and set(result) == ENVELOPE_KEYS
-    assert _stages(events) == ["UNDERSTANDING", "ACK", "GENERATING_REVISED", "VALIDATING", "JUDGING", "READY_REVISED"]
-    assert events[1]["message"] == "알겠습니다. 팔걸이를 살린 형태로 다시 만들어볼게요."
+    assert _stages(events) == ["UNDERSTANDING", "HRI_INTERPRET", "ACK", "GENERATING_REVISED", "VALIDATING", "JUDGING",
+                               "READY_REVISED"]
+    assert events[2]["message"] == "알겠습니다. 팔걸이를 살린 형태로 다시 만들어볼게요."
 
 
 def test_revised_number_answer_uses_revise_ack_fallback(scenario, answer_llm):
@@ -950,14 +951,14 @@ def test_revised_hint_only_call_ignores_a_non_revise_reply(scenario, answer_llm)
 def test_keep_answer_has_keep_ack_only(scenario, answer_llm):
     result, events = _progress_answer(scenario, "제가 잘못 놨어요. 다시 고칠게요.")
     assert result["hri_result"] == "KEEP"
-    assert _stages(events) == ["UNDERSTANDING", "KEEP_ACK"] and events[1]["message"] in dialogue.KEEP_ACKS
+    assert _stages(events) == ["UNDERSTANDING", "HRI_INTERPRET", "KEEP_ACK"] and events[2]["message"] in dialogue.KEEP_ACKS
 
 
 def test_regeneration_reports_regenerating_and_second_judging(scenario, llm_mode):
     calls, replies = llm_mode
     replies["judge"] = [judge(chair_likeness="not_chair"), judge()]
     result, events = _progress_answer(scenario, "2번")
-    assert _stages(events) == ["UNDERSTANDING", "ACK", "GENERATING_REVISED", "VALIDATING", "JUDGING", "REGENERATING",
+    assert _stages(events) == ["UNDERSTANDING", "HRI_INTERPRET", "ACK", "GENERATING_REVISED", "VALIDATING", "JUDGING", "REGENERATING",
                                "VALIDATING", "JUDGING", "READY_REVISED"]
 
 
@@ -999,3 +1000,92 @@ def test_on_progress_none_keeps_envelopes_unchanged(scenario, answer_llm):
     without = main.run_intervention(design, current, differences, text_answers=["2번"])
     assert set(with_cb) == set(without) == ENVELOPE_KEYS
     assert with_cb["design"] == without["design"] and with_cb["questions"] == without["questions"]
+
+
+
+# ---------------------------------------------------------------------------
+# Stage 2 Wave 4e: 실제 Intervention 문장(불만·변경 요청 / 실수 인정 / 부정 / 애매), HRI_INTERPRET, 새 재질문
+# ---------------------------------------------------------------------------
+
+DISSATISFIED = ["할로윈 분위기 같지가 않아", "내가 생각한 느낌이 아니야", "컵케이크처럼 안 보여", "더 단순하게 바꾸고 싶어"]
+MISTAKE = ["내가 잘못 놨어", "실수였어", "원래대로 고칠게"]
+NEGATED_MISTAKE = ["실수 아니야", "이상한 건 아닌데 좀 더 길었으면 좋겠어"]
+
+
+def _interpret_event(events):
+    found = [event for event in events if event["stage"] == "HRI_INTERPRET"]
+    assert len(found) == 1
+    return found[0]["message"]
+
+
+@pytest.mark.parametrize("answer", DISSATISFIED)
+def test_dissatisfaction_goes_to_llm_and_becomes_revise_with_ack(scenario, answer_llm, answer):
+    calls, replies = answer_llm
+    assert dialogue.parse_response(answer) == dialogue.UNCLEAR  # 규칙 표는 늘리지 않는다: 뜻은 LLM이 판단
+    replies["answer"] = {"decision": "REVISE", "style_hint": "할로윈 분위기를 더 강하게",
+                         "reason": "현재 Design이 원하는 분위기와 다르다는 말씀으로 이해했어요.",
+                         "reply": "알겠습니다. 할로윈 분위기가 더 잘 느껴지도록 다시 만들어볼게요."}
+    result, events = _progress_answer(scenario, answer)
+    assert (result["status"], result["hri_result"]) == ("OK", "REVISE")
+    assert calls["answers"] == [answer] and calls["style_hints"] == ["할로윈 분위기를 더 강하게"]
+    assert _stages(events)[:3] == ["UNDERSTANDING", "HRI_INTERPRET", "ACK"]
+    assert _interpret_event(events) == ("decision=REVISE source=llm reason=현재 Design이 원하는 분위기와 다르다는 말씀으로 "
+                                        "이해했어요. style_hint=할로윈 분위기를 더 강하게")
+    assert events[2]["message"] == "알겠습니다. 할로윈 분위기가 더 잘 느껴지도록 다시 만들어볼게요."
+
+
+@pytest.mark.parametrize("answer", MISTAKE)
+def test_admitted_mistake_is_rule_keep_without_llm(scenario, answer_llm, answer):
+    calls, _ = answer_llm
+    result, events = _progress_answer(scenario, answer)
+    assert result["hri_result"] == "KEEP" and calls["answers"] == [] and calls["design"] == 0
+    assert _interpret_event(events) == "decision=KEEP source=rule reason= style_hint="
+    assert _stages(events) == ["UNDERSTANDING", "HRI_INTERPRET", "KEEP_ACK"]
+
+
+@pytest.mark.parametrize("answer", NEGATED_MISTAKE)
+def test_negated_mistake_is_never_rule_keep(scenario, answer_llm, answer):
+    calls, replies = answer_llm
+    assert dialogue.parse_response(answer) != dialogue.KEEP
+    replies["answer"] = {"decision": "REVISE", "style_hint": "좀 더 길게", "reason": "더 길게 바꾸길 원하셨어요.",
+                         "reply": "알겠습니다. 더 길게 다시 만들어볼게요."}
+    result, events = _progress_answer(scenario, answer)
+    assert calls["answers"] == [answer] and result["hri_result"] == "REVISE"  # fallback 결과대로
+    assert "source=llm" in _interpret_event(events)
+
+
+def test_vague_answer_with_llm_unclear_gets_the_new_natural_reask(scenario, answer_llm):
+    calls, replies = answer_llm
+    replies["answer"] = [{"decision": "UNCLEAR", "style_hint": "", "reason": "판단하기 어려워요.", "reply": ""}]
+    result, events = _progress_answer(scenario, "음... 좀 그런데", "2번")
+    assert result["hri_result"] == "REVISE" and len(result["questions"]) == 2
+    assert result["questions"][1] == dialogue.build_reask(result["questions"][0])
+    assert result["questions"][1].startswith(dialogue.REASK_LEAD)
+    interprets = [event["message"] for event in events if event["stage"] == "HRI_INTERPRET"]
+    assert interprets == ["decision=UNCLEAR source=llm reason=판단하기 어려워요. style_hint=",
+                          "decision=REVISE source=rule reason= style_hint="]
+
+
+def test_rule_revise_with_hint_call_is_reported_as_rule_decision(scenario, answer_llm):
+    calls, replies = answer_llm
+    replies["answer"] = {"decision": "REVISE", "style_hint": "팔걸이로", "reason": "팔걸이로 쓰려고 놓으셨어요.",
+                         "reply": "알겠습니다. 팔걸이를 살려볼게요."}
+    result, events = _progress_answer(scenario, "일부러 그렇게 놨어요. 팔걸이로 살려주세요.")
+    assert _interpret_event(events) == "decision=REVISE source=rule reason=팔걸이로 쓰려고 놓으셨어요. style_hint=팔걸이로"
+
+
+def test_hri_interpret_is_debug_only(scenario, answer_llm, monkeypatch):
+    assert "HRI_INTERPRET" in main.PROGRESS_STAGES and "HRI_INTERPRET" not in dialogue.PROGRESS_TTS_STAGES
+    spoken = []
+    monkeypatch.setattr(main.voice, "listen", lambda on_ready=None, mode="short", beep=False: "제가 잘못 놨어요")
+    monkeypatch.setattr(main.voice, "speak", spoken.append)
+    design, current, differences = scenario
+    result = main.run_intervention(design, current, differences, text_answers=None, on_progress=lambda e: None)
+    assert result["hri_result"] == "KEEP" and set(result) == ENVELOPE_KEYS
+    assert not any(sentence.startswith("decision=") for sentence in spoken)
+
+
+def test_mock_mode_has_no_hri_interpret_event(scenario, monkeypatch):
+    monkeypatch.delenv("C_DESIGN_USE_LLM", raising=False)
+    result, events = _progress_answer(scenario, "제가 잘못 놨어요")
+    assert result["hri_result"] == "KEEP" and events == []

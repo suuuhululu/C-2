@@ -26,7 +26,7 @@ C 문서·코드·Fixture·테스트는 아래 팀 공용 용어만 씁니다. C
 | Intervention | 00 F06 | `run_intervention` | 실제 차이 발생 시 사용자 의도 확인 과정 |
 | KEEP | 06 §5 | `KEEP` | 현재 채택 목표·`design_version` 유지. 최초 버전 복귀가 아님 |
 | REVISE | 06 §5 | `REVISE` | 사람의 변경 의도를 반영한 전체 Design 후보 |
-| UNCLEAR | 06 §5 | `UNCLEAR` | 판단 불가. 답하는 방법을 짧게 알려 주고 재질문, 계속 불명확하면 명시 답변 대기 |
+| UNCLEAR | 06 §5 | `UNCLEAR` | 판단 불가. 자연스럽게 다시 묻고(키워드 안내 없음) 재질문, 계속 불명확하면 명시 답변 대기 |
 | 명시적 취소 | 09 취소 | `CANCEL` | 사용자의 취소 발화. HRI 결과가 아닌 C 내부 신호 |
 | HRI 결과 | 06 §5 | `hri_result` | KEEP / REVISE / UNCLEAR 중 하나 |
 | 질문 / 재질문 | 06 §5 | `questions` | C가 만든 질문 문장. 같은 문장을 화면·음성으로 제공 |
@@ -184,7 +184,7 @@ Stage 2 Wave 2~4의 `llm.interpret_initial_preference`·`PREFERENCE_KEYS`·`SYST
 | Rule이 정하지 못한 답(두 부류·무일치·부정 구문) | 1회(decision·style_hint 사용, 같은 답에 두 번 부르지 않음) |
 | 숫자 답("2번"·"2번이요"·"이번" 등 답변 전체가 숫자 토큰), KEEP, CANCEL | 0회 |
 | Mock 모드 | 0회 |
-- UNCLEAR → 답하는 방법('일부러'·'실수'·'취소')을 짧게 알려 주고 질문 전체로 재질문. 계속 불명확하면 사용자의 명시적 답변을 기다립니다.
+- UNCLEAR → "제가 잘 못 알아들었어요. 어떤 부분을 바꾸고 싶으신지 조금만 더 말씀해 주시겠어요? 실수로 놓으신 거라면 그렇게 말씀해 주셔도 돼요." + 질문 전체로 재질문(Stage 2 Wave 4e: 번호·키워드 안내 없음, 규칙 표는 늘리지 않고 불만·변경 요청의 뜻은 LLM 해석이 판단). 계속 불명확하면 사용자의 명시적 답변을 기다립니다.
 - 텍스트 모드에서 `text_answers`가 소진될 때까지 불명확이면 `hri_result = "UNCLEAR"`로 반환합니다.
 - KEEP → 입력 `design`을 **변경 없이** 그대로 반환. LLM 호출 없음, `design_version` 동일.
 - REVISE → Revised Design을 생성·검증해 반환(§8).
@@ -195,10 +195,11 @@ Stage 2 Wave 2~4의 `llm.interpret_initial_preference`·`PREFERENCE_KEYS`·`SYST
 | 함수 | `on_progress` 단계 순서 |
 |---|---|
 | Initial (LLM) | (음성) `LISTENING` → `UNDERSTANDING`(발화 확보 뒤, 해석 전; 되묻기 답마다 다시) → `ACK` → `GENERATING` → `VALIDATING`(유효 후보 확정) → `DESCRIBING` → `READY` |
-| Revised (LLM) | (음성) `LISTENING` → `UNDERSTANDING`(답변마다) → `ACK`(REVISE) 또는 `KEEP_ACK`(KEEP, 여기서 끝) → `GENERATING_REVISED` → `VALIDATING` → `JUDGING` → (재생성이면 `REGENERATING` → `VALIDATING` → `JUDGING`) → `READY_REVISED`. escalation 질문 전 `ESCALATION` |
+| Revised (LLM) | (음성) `LISTENING` → `UNDERSTANDING`(답변마다) → `HRI_INTERPRET`(답변 결정 직후, 디버그) → `ACK`(REVISE) 또는 `KEEP_ACK`(KEEP, 여기서 끝) → `GENERATING_REVISED` → `VALIDATING` → `JUDGING` → (재생성이면 `REGENERATING` → `VALIDATING` → `JUDGING`) → `READY_REVISED`. escalation 질문 전 `ESCALATION` |
 | Mock | Initial `GENERATING` → `VALIDATING` → `READY`, Revised `GENERATING_REVISED` → `VALIDATING` → `READY_REVISED`만(ack·음성 없음) |
 | 공통 끝 | 결과가 실패·취소면 마지막에 `FAILED`·`CANCELLED`(message = `"<error.code>: <error.message>"`) |
 
+- `HRI_INTERPRET`(Stage 2 Wave 4e, LLM 모드 Intervention, 음성 없음): 답변마다 결정이 정해진 직후(ACK·KEEP_ACK·재질문 전) 1회, message = `"decision=<KEEP|REVISE|UNCLEAR|CANCEL> source=<rule|llm> reason=<LLM reason 또는 빈칸> style_hint=<힌트 또는 빈칸>"`. `source`는 decision을 정한 쪽이며(Rule이 정하고 style_hint만 LLM에서 받은 경우는 `rule`), 표시·로그 전용으로 envelope·Design에 넣지 않습니다. Mock은 보내지 않습니다.
 - 단계 이름은 `main.PROGRESS_STAGES`, 고정 안내 문장은 `dialogue.PROGRESS_MESSAGES`입니다. `ACK`·`KEEP_ACK`의 message는 그때 낸 확인 문장입니다.
 - **확인(ack) 규칙**: REVISE이면 Revised 생성 **전에 항상** 확인 한 문장을 냅니다. 이 문장은 LLM이 REVISE로 해석한 답의 `reply`이고, 그것이 없으면(숫자 답 "2번"·해석 실패·LLM decision이 REVISE가 아닌 style_hint 전용 호출) `dialogue.revise_ack_fallback(style_hint)`의 무작위 문장입니다. KEEP이면 `dialogue.keep_ack()`(escalation에서 원래대로 옮기겠다는 답 포함). Current support 위반으로 바로 escalation하는 경우에는 생성하지 않으므로 ack가 없습니다.
 - **음성**: LLM 음성 모드에서만 ack·KEEP 확인과 `dialogue.PROGRESS_TTS_STAGES`(`GENERATING`·`READY`·`GENERATING_REVISED`·`JUDGING`·`READY_REVISED`)의 고정 문장을 읽습니다. `LISTENING`·`UNDERSTANDING`·`VALIDATING`·`DESCRIBING` 등은 콜백·로그만. 텍스트 모드와 Mock은 아무것도 읽지 않습니다(콜백만).
@@ -213,7 +214,7 @@ Day4에는 시간 기준 자동 취소·자동 KEEP·임의 종료가 없습니�
 | 상황 | C 동작 |
 |---|---|
 | 침묵·잡음(STT 결과 빈 문자열) | 계속 기다림. 시간 기준 확인 질문·최종 안내 없음 |
-| 의미 있는 발화(정규화 후 비어 있지 않은 STT 텍스트)인데 불명확 | 답하는 방법('일부러'·'실수'·'취소')을 짧게 알려 주고 질문 전체로 재질문 |
+| 의미 있는 발화(정규화 후 비어 있지 않은 STT 텍스트)인데 불명확 | 자연스러운 재질문(§4.2 UNCLEAR 문장)과 짧게 알려 주고 질문 전체로 재질문 |
 | STOP | `CANCELLED` / `STOPPED` |
 | 명시적 취소 발화 | `CANCELLED` / `USER_CANCEL` |
 | 장치·엔진 실패 | 무응답이 아님. 녹음 장치·STT 실패는 §10에 따라 `VOICE_IO_FAILED` |

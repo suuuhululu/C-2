@@ -339,17 +339,34 @@ def test_build_reask_repeats_full_question():
     assert "잘 못 알아들었어요" in reask
 
 
-def test_build_reask_explains_how_to_answer_and_cancel():
+def test_build_reask_is_a_natural_open_reask():
     reask = d.build_reask("질문")
 
-    assert "'일부러'" in reask
-    assert "'실수'" in reask
-    assert "'취소'" in reask
+    assert reask == d.REASK_LEAD + "\n질문"
+    assert d.REASK_LEAD == ("제가 잘 못 알아들었어요. 어떤 부분을 바꾸고 싶으신지 조금만 더 말씀해 주시겠어요? "
+                            "실수로 놓으신 거라면 그렇게 말씀해 주셔도 돼요.")
     _assert_no_numbered_choices(reask)
-    # 재질문에서 안내한 낱말은 그대로 해석된다
-    assert d.parse_response("일부러") == d.REVISE
-    assert d.parse_response("실수") == d.KEEP
-    assert d.parse_response("취소") == d.CANCEL
+    assert "'일부러'" not in reask and "'취소'" not in reask  # 키워드 안내 없음
+
+
+@pytest.mark.parametrize("text", ["할로윈 분위기 같지가 않아", "내가 생각한 느낌이 아니야", "컵케이크처럼 안 보여",
+                                  "더 단순하게 바꾸고 싶어", "음... 좀 그런데"])
+def test_dissatisfaction_and_vague_answers_are_left_to_the_llm(text):
+    assert d.parse_response(text) == d.UNCLEAR
+    assert d.parse_response(text, llm_fallback=lambda answer: d.REVISE) == d.REVISE
+
+
+@pytest.mark.parametrize("text", ["내가 잘못 놨어", "실수였어", "원래대로 고칠게"])
+def test_admitted_mistake_is_rule_keep(text):
+    assert d.parse_response(text, llm_fallback=lambda answer: pytest.fail("rule should decide")) == d.KEEP
+
+
+@pytest.mark.parametrize("text", ["실수 아니야", "이상한 건 아닌데 좀 더 길었으면 좋겠어"])
+def test_negated_mistake_is_not_rule_keep(text):
+    assert d.parse_response(text) != d.KEEP
+    calls = []
+    assert d.parse_response(text, llm_fallback=lambda answer: calls.append(answer) or d.REVISE) == d.REVISE
+    assert calls == [text]
 
 
 def test_escalation_question_mentions_position_and_both_ways():
