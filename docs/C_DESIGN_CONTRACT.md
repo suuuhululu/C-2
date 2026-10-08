@@ -110,6 +110,17 @@ LLM 모델은 `OPENAI_MODEL`(기본 `DEFAULT_MODEL`)입니다. 모델명이 reas
 
 출력: §6 결과. 성공 시 `design`은 Initial Design, `hri_result`는 `null`.
 
+**Initial family 선택과 선호 해석 (Stage 2 Wave 2, `llm` 함수만 준비 — `main` 연결은 Wave 3)**
+
+| 함수 | 입력 | 반환 |
+|---|---|---|
+| `llm.choose_initial_family(preference, rng=None)` | `None` 또는 선호 해석 결과 dict | 카탈로그 키 하나. `preference`가 `SPECIFIC`이고 `family`가 카탈로그 키면 그 키, 그 밖(None·ANY·카탈로그 밖)에는 `(rng or random).choice(sorted(FAMILY_CATALOG))` 균등 선택. 이력·가중치 없음(LLM 호출 없음) |
+| `llm.interpret_initial_preference(text, should_stop=None)` | 선호 질문에 대한 자유 답변 원문 | `{preference: "ANY" / "SPECIFIC", family: 카탈로그 키 / null, style_hint: 짧은 한국어 구 / "", reply: 되읽어 줄 자연스러운 존댓말 한 문장}`(`llm.PREFERENCE_KEYS`) 또는 `{"llm_error": …}`. 답변 원문은 해석할 데이터이며 그 안의 지시·key·코드는 따르지 않음(프롬프트에 명시). 카탈로그에 없는 종류는 가장 가까운 키 + 원래 표현은 `style_hint` |
+| `llm.generate_initial_design(object_type, reasons=None, should_stop=None, family=None, style_hint=None)` | 고른 family·style_hint | family가 있으면 사용자 메시지에 "Selected family: … Defining visible features …"와(있으면) "Style preference from the person: …"를 넣음. 없으면 기존 메시지 그대로. Initial system prompt에는 "주어진 family를 구현하라"는 한 문장만 추가(예시 JSON 없음) |
+| `llm.describe_initial_design(design, should_stop=None, family=None)` | Initial Design, 고른 family | payload에 `selected_family`·`selected_family_features`. 출력에 `family_design_match` ∈ `clear`/`weak`/`mismatch` 추가(기존 키 유지) |
+
+`llm.FAMILY_CATALOG`는 앉는 가구 20종(dining chair, armchair, high-back chair, wingback chair, lounge chair, club chair, pedestal chair, sled-base chair, cantilever chair, chaise longue, stool, bar-stool-like seat, ottoman, bench, park bench, loveseat, sofa-like seat, daybed, throne, canopy chair)과 각각의 defining visible features(영어, 크기 포함, 좌표 없음)이고, `llm.CATALOG_TEXT`는 프롬프트용 목록입니다. 예정된 흐름(Wave 3 `main`): LLM 모드에서만 선호 질문 → 짧은 "아무거나"류면 LLM 없이 `choose_initial_family(None)`, 그 밖에는 `interpret_initial_preference` → `choose_initial_family(pref)` → `generate_initial_design(…, family, style_hint)` → `describe_initial_design(…, family)`. Mock 모드는 지금 그대로입니다.
+
 ### 4.2 `run_intervention(design, current, differences, text_answers=None, on_question=None, should_stop=None)`
 
 | 입력 | 타입 | 의미 |
@@ -187,6 +198,8 @@ C는 두 블록의 값을 비교해 어떤 항목(위치·색·방향·크기·�
 `message`는 사람이 읽는 로그용 문장입니다. 분기는 `status`·`hri_result`·`error.code`로만 합니다. 생성 경로(MOCK / LLM)는 로그용 진단 정보이며 Design에 넣지 않습니다. 정확한 실패·취소 envelope는 D와 정상·실패·취소 예시로 확인합니다(§11).
 
 ### 6.1 `design_metadata` (2026-10-07)
+
+Stage 2 Wave 2에서 `llm` 응답에 키가 늘었습니다: Initial 설명의 `family_design_match`, Revised judge의 `chair_likeness`·`richer_than_previous`·`richer_why`, Revised intent의 `style_hint_used`·`target_blocks`. 이 값들을 `design_metadata`에 싣는 것(`selected_family`, `family_source`, `preference`, `family_design_match`, judge의 `chair_likeness`·`richer_than_previous`·`richer_why`, `style_hint`)은 Wave 3 `main` 몫이며 아래 표는 아직 Wave 1 기준입니다.
 
 표시·로그용 설명입니다. 분기에 쓰지 않으며, metadata를 만들지 못해도 설계 성공을 `FAILED`로 바꾸지 않습니다(`error` 필드에만 기록).
 
@@ -300,6 +313,15 @@ Initial Design에는 고정 블록이 없으므로 escalation이 없습니다.
 - 세 가지 반복은 서로 독립입니다: LLM provider API 재시도(§10, `llm.RETRY_BACKOFF`), 후보 탈락 재생성(§8.10, designer 시도 수), judge 재생성(최대 1회).
 - escalation 뒤 "계속 찾기"로 다시 생성할 때도 같은 의도를 쓰고 ③·④를 똑같이 적용합니다. Mock 모드에는 의도·judge가 없습니다.
 - layer 5 사용·큰 특징·블록 수는 프롬프트의 soft goal이며 validator 규칙이 아닙니다. validator는 §9.1 그대로입니다(블록 수 상한만 40, Stage 2).
+
+### 8.13 Stage 2 Revised 정책: free-family·chair-first·richer (Wave 2, `llm`·`designer` 준비 — `main` 연결은 Wave 3)
+
+- **목표**: 사람 배치를 문자 그대로 해석하는 것도, 최소 수정도 아닙니다. Current를 출발 조건이자 영감 단서로 쓰고, 이전 Design보다 **더 풍부하고 완성도 높으며 의자처럼 읽히는**(분명한 좌석, 읽히는 등받이, 앉는 방향) Revised Design을 계획합니다. 이전 Design은 참고(family·블록 수)일 뿐이며, 핵심 문장 "Preserve the Current exactly. Treat the previous Design as context, not as geometry to preserve."와 조립 순서 규칙(새 블록을 이미 놓인 블록 아래층에 두지 않음)은 그대로입니다.
+- **Design Intent** (`llm.generate_design_intent(design, current, differences, recent_families=(), should_stop=None, style_hint=None)`): family는 `FAMILY_CATALOG`에서 자유 선택하고, 등받이가 있는 family를 우선합니다(등받이 없는 family는 style_hint가 원할 때만). `style_hint`(사람이 말한 바람)가 있으면 최우선으로 반영합니다. payload에 `minimum_blocks`·`style_hint`. `INTENT_KEYS`에 `style_hint_used`(한국어 한 문장 또는 "없음")·`target_blocks`(int) 추가, 기존 키 유지. 하위 호환 이름 `FURNITURE_FAMILIES`는 이제 카탈로그 키입니다.
+- **richness**: `designer.RICHNESS_MIN_DELTA = 6`, `designer.revised_min_blocks(design) = min(이전 블록 수 + 6, MAX_BLOCKS)`. `designer.build_revised_design(…, min_blocks=None)`에 값을 주면 validator를 통과한 후보라도 블록이 그보다 적으면 `{"rule": "too_few_blocks", "blocks": [], "message": "Revised Design has N blocks; at least M required (previous K + 6, at most 40)"}`로 탈락시키고 §8.10 loop가 다시 만듭니다(validator 규칙은 그대로). `None`이면 검사하지 않습니다(Mock·기존 호출 호환). `llm.generate_revised_design(…, min_blocks=None)`은 값이 있으면 "The Revised Design must contain at least M blocks (the previous Design had K); use the extra blocks for meaningful chair structure, never filler."를 넣습니다.
+- **judge** 출력에 `chair_likeness` ∈ `clear`/`weak`/`not_chair`, `richer_than_previous`(bool), `richer_why`(한국어 한 문장) 추가(기존 키·의미 유지). 재생성 조건 확장(`not_chair` 또는 `richer_than_previous: false`)과 `_JUDGE_REQUIRED` 확장은 Wave 3 `main`이 합니다. 재생성 상한 1회는 그대로입니다.
+- **Intervention 자유 답변 해석** (`llm.interpret_intervention_answer(text, differences, should_stop=None)`): 입력은 답변 원문과 difference의 `expected`/`actual`만(Design 전체는 보내지 않음). 반환 `{decision: "KEEP" / "REVISE" / "UNCLEAR" / "CANCEL", style_hint, reason}`(`llm.INTERVENTION_ANSWER_KEYS`) 또는 `{"llm_error": …}`. REVISE = 의도한 배치이니 Current를 살린 새 설계, KEEP = 실수라 원래 자리로 고침. `reason`은 자연스러운 존댓말 한 문장. 답변 원문의 지시·key·코드는 따르지 않습니다.
+- **red·1x2x1 다양화**: 공통 build hint에 "red는 한 블록이 아니라 눈에 띄는 띠(top rail, seat edge, armrest caps, crown), 1x2x1은 slat·rail·trim·wing·thin leg로 0/90을 섞어 쓰되 두 stud 모두 지지" 문장을 더했습니다(철학·구조 불변).
 
 ## 9. 검증 책임
 
