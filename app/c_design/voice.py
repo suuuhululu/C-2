@@ -22,7 +22,8 @@
       whisper 환각이 잦다). 응답은 verbose_json으로 받아, 모든 segment의 no_speech_prob가 NO_SPEECH_REJECT
       이상이거나 segments가 빈 채 text도 비면 ""(last_error stt_no_speech)로 본다. segments 키 자체가 없는
       응답(json 형식·D 통합 테스트 fake)은 text를 그대로 믿는다.
-      whisper가 힌트를 그대로 되풀이한 결과(힌트 전체, 또는 힌트 항목 3개 이상 포함)는 발화가 아니므로
+      whisper가 힌트를 그대로 되풀이한 결과(힌트 전체, 또는 힌트 항목 3개 이상이고 그 항목을 지운 나머지가 2자 이하인
+      힌트 나열)는 발화가 아니므로
       ""로 바꾸고 last_error에 stt_prompt_echo를 남긴다.
       요청·재시도·실패 분류는 llm.py의 _call과 같은 정책(_request).
       환경 변수 C_VOICE_DEBUG_DIR이 있을 때만 보낸 WAV와 게이트 통계를 그 폴더에
@@ -103,6 +104,15 @@ WARMUP_SECONDS = 0.2  # 스트림을 연 직후 버리는 구간(레벨 램프·
 NOISE_CALIBRATION_SECONDS = 0.5  # warm-up 다음 noise floor(중앙값)를 재는 구간
 WAIT_SECONDS = 8.0  # 보정 뒤 이 창 안에 threshold를 넘지 못하면 침묵으로 본다
 TRAILING_SILENCE_SECONDS = 1.0
+# listen(mode="free"): 자유 발화(Initial 요청·Intervention 답변)는 말 사이 쉼이 길고 시작이 늦다(2026-10-08 사용자 E2E:
+# "왕좌처럼 … 의자" 중간 쉼에서 끊김). "short"(기본)는 위 두 값을 그대로 쓴다.
+FREE_WAIT_SECONDS = 10.0
+FREE_TRAILING_SILENCE_SECONDS = 1.5
+# listen(beep=True): 보정이 끝난 직후 짧은 톤으로 말할 차례를 알리고, 톤·잔향이 발화로 잡히지 않게 입력을 버린다.
+BEEP_HZ = 880
+BEEP_SECONDS = 0.12
+BEEP_DISCARD_SECONDS = 0.3
+BEEP_AMPLITUDE = 0.3  # int16 최대값 대비
 MAX_UTTERANCE_SECONDS = 10.0  # 발화 시작부터 센다
 PRE_ROLL_SECONDS = 0.3  # 발화 시작 직전 블록을 앞에 붙여 첫 음절을 살린다
 MIN_SPEECH_SECONDS = 0.2  # 발화로 판정된 블록 합이 이보다 짧으면 STT를 부르지 않는다("1번"·"2번"은 약 0.2~0.45초)
@@ -112,19 +122,26 @@ TRIM_MARGIN_SECONDS = 0.2  # 앞뒤 무음 트리밍 후 남기는 여유
 # 바뀌지 않게 취소·원복·재설계 어휘는 넣지 않는다. 숫자 항목("1번, 2번")은 짧은 "2번" 클립에 "3번, 4번, …"
 # 나열을 지어내게 해서 뺐다(같은 클립이 명사만 힌트로는 "2번"으로 정확히 인식됨). 되풀이는 _is_prompt_echo가 걸러 낸다.
 STT_PROMPT = "의자, 벤치, 소파, 스툴, 만들어줘, 만들고 싶어"
-PROMPT_ECHO_MIN_ITEMS = 3  # 결과에 힌트 항목이 이만큼 이상 들어 있으면 힌트 되풀이로 본다
+PROMPT_ECHO_MIN_ITEMS = 3  # 힌트 항목이 이만큼 이상 들어 있고
+PROMPT_ECHO_MAX_RESIDUAL = 2  # 힌트 항목을 모두 지운 뒤 남는 글자가 이 이하(사실상 힌트 나열뿐)일 때만 되풀이로 본다.
+# 2026-10-08: "벤치처럼 길고 넓은 의자를 만들고 싶어요"처럼 힌트 3개가 들어간 정상 자유 발화가 버려지던 문제 수정.
 MIN_CLIP_SECONDS = 2.0  # 이보다 짧은 클립은 무음 패딩해 이 길이로 보낸다
 PAD_FRONT_SECONDS = 0.3  # 패딩 중 앞쪽 무음(나머지는 뒤쪽)
 CALIBRATION_RETRY_DELAY_SECONDS = 0.3  # 보정 구간에 발화·순간 잡음이 섞였을 때 한 번만 다시 보정하기 전 버리는 길이
 CALIBRATION_RETRIES_MAX = 1  # 재보정은 녹음 한 번당 최대 1회(무한 재보정 금지)
 WEAK_INPUT_PEAK = 4000  # 보낸 WAV의 peak가 이보다 작으면 "입력이 약함" 표시(STT 결과는 바꾸지 않음)
 NO_SPEECH_REJECT = 0.8  # 모든 segment의 no_speech_prob가 이 이상이면 발화 없음(짧은 정상 "2번"도 0.55라 보수적으로 둔다)
+# whisper 자체의 무음 판정과 같은 복합 조건: no_speech_prob만 높고 avg_logprob이 높으면(디코딩이 자신 있으면) 발화다.
+# 2026-10-08 사용자 E2E: whisper_text "왕자처럼 높고 화려한 의자"가 no_speech_prob 0.812 하나로 버려졌다.
+LOGPROB_REJECT = -1.0
 DEBUG_DIR_ENV = "C_VOICE_DEBUG_DIR"  # 설정 시에만 STT 입력 WAV·통계를 남긴다(기본 off)
 POST_SPEAK_DELAY = 0.5  # 0.2-1.0: 재생이 끝난 뒤 방·스피커 잔향이 가라앉을 시간을
 # 줘서 마이크를 그 다음에 여는 순서 자체로 echo를 막는다(echo cancellation 아님)
 
 _last_error = None
 _last_capture = None  # 가장 최근 record()의 게이트 통계(디버그 덤프용, 오디오는 담지 않음)
+# listen()이 정한 듣기 방식. D/HMI·테스트가 record()를 인자 없이 대체하므로 record 인자가 아니라 이 값으로 _capture에 넘긴다.
+_capture_options = {"mode": "short", "beep": False}
 _last_speak = None  # 가장 최근 speak()의 요청·재생 관측값(디버그·runner용, 오디오·key는 담지 않음)
 _last_http_error = None  # 가장 최근 HTTP 실패의 (HTTP code, provider error code, param 존재 여부). 본문은 담지 않는다
 
@@ -281,6 +298,15 @@ def _capture(stream, blocksize, np, on_ready=None):
              "calibration_max": round(float(max(calibration)), 1) if calibration else 0.0,
              "calibration_unstable": bool(_calibration_unstable(first_calibration, np)),  # 첫 보정이 오염됐었는지
              "calibration_retries": retries, "calibration_still_unstable": bool(unstable), "timeline": timeline}
+    free = _capture_options["mode"] == "free"
+    wait_seconds = FREE_WAIT_SECONDS if free else WAIT_SECONDS
+    trailing_seconds = FREE_TRAILING_SILENCE_SECONDS if free else TRAILING_SILENCE_SECONDS
+    stats.update(mode=_capture_options["mode"], beep=False)
+    if _capture_options["beep"]:
+        stats["beep"] = _play_beep(np)
+        for _ in range(_blocks(BEEP_DISCARD_SECONDS)):
+            stream.read(blocksize)  # 톤·잔향: 버린다(보정은 이미 끝났다)
+        timeline["beep_done"] = round(time.monotonic() - started, 3)
     if on_ready is not None:
         try:
             on_ready()
@@ -291,7 +317,7 @@ def _capture(stream, blocksize, np, on_ready=None):
     pre_roll = deque(maxlen=_blocks(PRE_ROLL_SECONDS))
     first = None
     waited = 0
-    for _ in range(_blocks(WAIT_SECONDS)):
+    for _ in range(_blocks(wait_seconds)):
         data, _overflowed = stream.read(blocksize)
         waited += 1
         if _rms(data, np) >= threshold:
@@ -315,7 +341,7 @@ def _capture(stream, blocksize, np, on_ready=None):
             silence_run = 0
         else:
             silence_run += 1
-            if silence_run >= _blocks(TRAILING_SILENCE_SECONDS):
+            if silence_run >= _blocks(trailing_seconds):
                 break
 
     stats["voiced_seconds"] = round(sum(voiced) * BLOCK_SECONDS, 2)
@@ -334,6 +360,32 @@ def _capture(stream, blocksize, np, on_ready=None):
         stats["reason"] = "weak_input"
         return b"", stats  # 환각 억제: 짧거나 전체가 약한 입력은 보내지 않는다
     return _to_pcm_bytes(kept, np), stats
+
+
+def _play_beep(np):
+    """말할 차례를 알리는 짧은 톤. 출력 장치 실패는 무시한다(듣기는 계속). 재생을 시작했으면 True."""
+    try:
+        t = np.arange(int(SAMPLE_RATE * BEEP_SECONDS)) / SAMPLE_RATE
+        tone = (np.sin(2 * np.pi * BEEP_HZ * t) * BEEP_AMPLITUDE * 32767).astype(np.int16)
+        _sounddevice().play(tone, SAMPLE_RATE)  # 기다리지 않는다: 뒤이어 버리는 입력 구간이 톤 길이보다 길다
+        return True
+    except Exception:  # noqa: BLE001 - 알림음은 부가 기능이라 어떤 출력 실패도 듣기를 막지 않는다
+        return False
+
+
+def prewarm():
+    """sounddevice·numpy 지연 import와 입력 스트림 open/close를 미리 한 번 한다(첫 listen 지연 제거).
+
+    실패해도 예외를 던지지 않고 False. 녹음·재생·네트워크는 하지 않는다.
+    """
+    try:
+        sd = _sounddevice()
+        _numpy()
+        with sd.InputStream(samplerate=SAMPLE_RATE, channels=1, dtype="int16", blocksize=int(SAMPLE_RATE * BLOCK_SECONDS)):
+            pass
+        return True
+    except Exception:  # noqa: BLE001 - 준비 단계 실패는 실제 listen에서 다시 드러난다
+        return False
 
 
 def record(on_ready=None):
@@ -457,12 +509,22 @@ def _normalize(text):
 
 
 def _is_prompt_echo(text):
-    """whisper가 STT_PROMPT를 그대로(또는 대부분) 되풀이한 결과인지. 정상 발화는 힌트 항목 1~2개 정도만 담는다."""
+    """whisper가 STT_PROMPT를 그대로 또는 힌트 나열로만 되풀이한 결과인지.
+
+    힌트 전체와 같거나, 힌트 항목이 PROMPT_ECHO_MIN_ITEMS개 이상이면서 그 항목들을 지운 나머지가
+    PROMPT_ECHO_MAX_RESIDUAL자 이하일 때만 되풀이다. 힌트 단어를 여럿 담은 정상 문장은 나머지 글자가 많아 통과한다.
+    """
     normalized = _normalize(text)
     if not normalized:
         return False
-    items = [_normalize(item) for item in STT_PROMPT.split(",")]
-    return normalized == _normalize(STT_PROMPT) or sum(item in normalized for item in items) >= PROMPT_ECHO_MIN_ITEMS
+    if normalized == _normalize(STT_PROMPT):
+        return True
+    items = sorted((_normalize(item) for item in STT_PROMPT.split(",")), key=len, reverse=True)
+    present = [item for item in items if item in normalized]
+    residual = normalized
+    for item in present:
+        residual = residual.replace(item, "")
+    return len(present) >= PROMPT_ECHO_MIN_ITEMS and len(residual) <= PROMPT_ECHO_MAX_RESIDUAL
 
 
 def _pad_short_clip(pcm):
@@ -481,7 +543,16 @@ def _all_no_speech(segments, text):
         return False
     if not isinstance(segments, list) or not segments:
         return not text.strip()
-    return all(isinstance(seg, dict) and seg.get("no_speech_prob", 0) >= NO_SPEECH_REJECT for seg in segments)
+    return all(isinstance(seg, dict) and _segment_is_silence(seg) for seg in segments)
+
+
+def _segment_is_silence(seg):
+    """no_speech_prob ≥ NO_SPEECH_REJECT 그리고 avg_logprob < LOGPROB_REJECT일 때만 무음. avg_logprob가 없는
+    segment(fake·다른 응답 형식)는 no_speech_prob만 본다."""
+    if seg.get("no_speech_prob", 0) < NO_SPEECH_REJECT:
+        return False
+    logprob = seg.get("avg_logprob")
+    return logprob is None or logprob < LOGPROB_REJECT
 
 
 def transcribe(pcm):
@@ -506,10 +577,13 @@ def transcribe(pcm):
         return None
     if debug_dir:
         segments = data.get("segments")
+        listed = [seg for seg in segments if isinstance(seg, dict)] if isinstance(segments, list) else None
         _update_debug_json(debug_dir, whisper_text=text,
-                           no_speech_probs=[seg.get("no_speech_prob") for seg in segments if isinstance(seg, dict)] if isinstance(segments, list) else None)
+                           no_speech_probs=[seg.get("no_speech_prob") for seg in listed] if listed is not None else None,
+                           avg_logprobs=[seg.get("avg_logprob") for seg in listed] if listed is not None else None)
     if _all_no_speech(data.get("segments"), text if isinstance(text, str) else ""):
-        _set_error("stt_no_speech", f"no segment below no_speech_prob {NO_SPEECH_REJECT}; treated as no speech")
+        _set_error("stt_no_speech", f"every segment has no_speech_prob >= {NO_SPEECH_REJECT} and avg_logprob < "
+                   f"{LOGPROB_REJECT}; treated as no speech")
         if debug_dir:
             _mark_debug_reason(debug_dir, "no_speech_prob")
         return ""
@@ -521,14 +595,22 @@ def transcribe(pcm):
     return text
 
 
-def listen(on_ready=None):
+def listen(on_ready=None, mode="short", beep=False):
     """한 번 듣기 결과 텍스트. 침묵이면 "". 장치·provider 실패면 None.
 
     on_ready(선택): 보정이 끝나 발화를 기다리기 시작할 때 1회 호출된다(안내 출력용). 기본 None.
+    mode: "short"(짧은 답, WAIT_SECONDS·TRAILING_SILENCE_SECONDS) 또는 "free"(자유 발화, FREE_* 값).
+    beep: True면 보정 직후 알림음을 내고 BEEP_DISCARD_SECONDS를 버린 뒤(그다음 on_ready) 발화를 기다린다.
     """
+    if mode not in ("short", "free"):
+        raise ValueError(f"unknown listen mode: {mode!r}")
     _clear_error()
-    # D/HMI와 기존 테스트는 record()를 인자 없이 호출·대체한다. on_ready가 있을 때만 넘겨 호환을 유지한다.
-    pcm = record(on_ready) if on_ready is not None else record()
+    _capture_options.update(mode=mode, beep=bool(beep))
+    try:
+        # D/HMI와 기존 테스트는 record()를 인자 없이 호출·대체한다. on_ready가 있을 때만 넘겨 호환을 유지한다.
+        pcm = record(on_ready) if on_ready is not None else record()
+    finally:
+        _capture_options.update(mode="short", beep=False)
     if pcm is None:
         return None
     if pcm == b"":

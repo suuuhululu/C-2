@@ -5,15 +5,17 @@
 
 제공하는 기능:
     - 모든 질문·재질문·escalation 문장은 자연스러운 존댓말 주관식이다(번호·선택지 없음, 2026-10-08 사용자 확정).
-    - Initial 선호 질문(build_initial_preference_question)과 짧은 "아무거나"류 답변 판정
-      (parse_initial_preference → ANY 또는 None. None이면 호출자가 LLM 해석으로 넘긴다).
+    - Initial 인사(build_greeting, Stage 2 Wave 4b: C가 먼저 "오늘 어떤 걸 만들고 싶으세요?"라고 묻는다)와 첫 자유 발화 중
+      명시적 "아무거나·알아서·맡길게요"류 판정(parse_initial_request → ANY 또는 None. None이면 호출자가 LLM 해석으로 넘긴다).
+      지원하지 않는 사물·되묻기 뒤 랜덤 선택·침묵 재질문에 쓰는 고정 문장(UNSUPPORTED_REPLY·FALLBACK_ANY_REPLY·SILENCE_REASK).
+      앉는 가구 단어 없이 흔한 비착석 사물만 요구하는 발화는 LLM 없이 지원 밖으로 판정(is_unsupported_request).
     - 변경 context(채택 Design·Current·Difference)에 따른 Intervention 질문(build_question),
       재질문(build_reask), escalation 질문(§8.11, 잘못 놓인 블록을 채택 Design 위치로 돌려 달라는 제안).
     - 자유 답변 해석 → KEEP / REVISE / UNCLEAR(불명확) / CANCEL(명시 취소).
       명확한 답변은 Python Rule(정규화 → 취소 → 앞머리 예/아니요 → 명시 구문 → 부정 감지),
       두 부류가 함께 나오거나 아무것도 못 찾으면 llm_fallback으로 넘기고, 그래도 아니면 UNCLEAR.
       CANCEL은 HRI 결과(KEEP/REVISE/UNCLEAR)가 아니라 대화 종료를 알리는 내부 신호다.
-    - 최초 목표 사물 인식(parse_goal, CHAIR만)
+    - 최초 목표 사물 인식(parse_goal, CHAIR만. Mock 모드·D 텍스트 호환용)
 
 하지 않는 것:
     - 실제 음성 I/O(녹음·STT·TTS는 voice.py 담당)
@@ -42,7 +44,10 @@ KEEP_SEARCHING = "KEEP_SEARCHING"
 OPTIONS = {"1": KEEP, "2": REVISE}
 ESCALATION_OPTIONS = {"1": MOVE_BACK, "2": KEEP_SEARCHING}
 
-INITIAL_PREFERENCE_QUESTION = "혹시 생각해두셨거나, 만들고 싶은 의자가 있으세요?"
+GREETING = "안녕하세요. 오늘 어떤 걸 만들고 싶으세요?"
+UNSUPPORTED_REPLY = "죄송해요, 지금은 의자나 벤치 같은 앉는 가구만 만들 수 있어요."
+FALLBACK_ANY_REPLY = "알겠어요, 제가 어울리는 의자를 골라 볼게요."
+SILENCE_REASK = "잘 못 들었어요. 오늘 어떤 걸 만들고 싶으세요?"
 
 _INTERVENTION_ASK = "Design과 다르게 놓인 부분이 있는데, 의도하신 건가요?"
 _INTERVENTION_GUIDE = (
@@ -108,20 +113,25 @@ _NEGATION_MARKERS = ("아니", "않", "안해", "안했", "안할", "안한", "�
 # 취소로 보지 않고 일반 파이프라인으로 넘긴다.
 _CANCEL_PHRASES = ("취소", "그만할게", "그만하자", "중단")
 
-# Initial 선호 답변 중 "정해 둔 게 없다"는 표지와, 그 답이 사실은 선호를 담고 있음을 알리는 특징 단어.
-# 특징 단어가 하나라도 있거나 답이 길면 ANY로 보지 않고 LLM 해석에 맡긴다(선호를 놓치지 않는 쪽).
+# Initial 요청 중 "고르는 걸 맡긴다"는 명시적 표지와, 그 요청이 사실은 선호·다른 사물을 담고 있음을 알리는 단어.
+# 특징·사물 단어가 하나라도 있거나 요청이 길면 ANY로 보지 않고 LLM 해석에 맡긴다(선호·지원 밖 사물을 놓치지 않는 쪽).
+# 인사("오늘 어떤 걸 만들고 싶으세요?")에 대한 "모르겠어요"·"없어요"는 맡김이 아니라 되물을 대상이라 넣지 않는다.
 # "길"·"길게"·"긴"은 "맡길게요"·"맡긴"과 겹치므로 겹치지 않는 형태로만 적는다.
 _ANY_MARKERS = (
-    "아무거나", "아무거", "아무의자", "아무렇게", "없어", "없는데", "없습니다", "없네", "딱히", "특별히",
-    "상관없", "알아서", "네가정해", "니가정해", "정해줘", "정해주세요", "맡길게", "맡겨", "마음대로", "맘대로",
-    "자유롭게", "글쎄", "모르겠",
+    "아무거나", "아무거", "아무의자", "아무렇게", "상관없", "알아서", "네가정해", "니가정해", "정해줘", "정해주세요",
+    "맡길게", "맡겨", "마음대로", "맘대로", "자유롭게",
 )
 _PREFERENCE_FEATURE_WORDS = (
     "등받이", "팔걸이", "다리", "좌석", "방석", "높", "낮", "길고", "길쭉", "길이", "기다란", "긴의자", "긴거", "긴걸", "넓", "좁", "크", "작", "두꺼", "얇",
     "빨간", "빨강", "노란", "노랑", "파란", "파랑", "색", "화려", "멋", "예쁜", "예쁘", "귀여", "심플", "단순",
     "튼튼", "벤치", "소파", "스툴", "왕좌", "흔들", "1인", "2인", "두명", "여러명",
+    "처럼", "같은", "책상", "테이블", "탁자", "집", "자동차", "로봇", "선반", "침대", "탑",
 )
-_ANY_MAX_CHARS = 24  # 정규화 후 이보다 긴 답은 "아무거나"류로 보지 않는다
+# 앉는 가구가 아닌 흔한 사물. 앉는 가구 단어 없이 이것만 요구하면 LLM 해석 없이 지원 밖으로 본다(Mock의 parse_goal과
+# 같은 보장: "자동차 만들어줘"에는 LLM 호출이 없다). "자동차 모양 의자"처럼 앉는 가구 단어가 있으면 LLM에 맡긴다.
+_NON_SEATING_OBJECTS = ("책상", "테이블", "탁자", "자동차", "비행기", "로봇", "선반", "컵", "상자", "건물")
+_SEATING_WORDS = ("의자", "벤치", "소파", "쇼파", "스툴", "왕좌", "걸상", "앉")
+_ANY_MAX_CHARS = 30  # 정규화 후 이보다 긴 요청은 "아무거나"류로 보지 않는다("아무거나의자하나만들어주세요"는 14자)
 
 
 def _normalize(text):
@@ -246,24 +256,29 @@ def parse_escalation_response(text, llm_fallback=None):
     return _resolve(text, ESCALATION_OPTIONS, _ESCALATION_PHRASES, llm_fallback)
 
 
-def build_initial_preference_question():
-    """Initial 선호 질문 문장. main·테스트가 같은 경로로 문장을 받게 함수로 둔다."""
-    return INITIAL_PREFERENCE_QUESTION
+def build_greeting():
+    """Initial 첫 질문(인사). main·테스트가 같은 경로로 문장을 받게 함수로 둔다."""
+    return GREETING
 
 
-def parse_initial_preference(text):
-    """Initial 선호 답변 → ANY(정해 둔 게 없음) 또는 None(LLM 해석 필요).
+def is_unsupported_request(text):
+    """앉는 가구 단어 없이 흔한 비착석 사물(책상·자동차 등)만 요구하는가. 그 밖의 판단은 LLM 해석에 맡긴다."""
+    norm = _normalize(text or "")
+    return (any(word in norm for word in _NON_SEATING_OBJECTS)
+            and not any(word in norm for word in _SEATING_WORDS))
 
-    특징 단어 없는 짧은 "아무거나·없어요·알아서" 류와 "아니요"만 ANY. 빈 답·긴 답·특징 언급은 None.
+
+def parse_initial_request(text):
+    """Initial 자유 발화(첫 요청 또는 되묻기 답) → ANY(고르는 걸 맡김) 또는 None(LLM 해석 필요).
+
+    특징·스타일·사물 단어 없는 짧은 "아무거나·알아서·맡길게요" 류만 ANY. 빈 답·긴 답·특징 언급은 None.
     """
     norm = _normalize(text or "")
     if not norm or len(norm) > _ANY_MAX_CHARS:
         return None
     if any(word in norm for word in _PREFERENCE_FEATURE_WORDS):
         return None
-    if _strip_endings(norm) in _NO_WORDS or any(marker in norm for marker in _ANY_MARKERS):
-        return ANY
-    return None
+    return ANY if any(marker in norm for marker in _ANY_MARKERS) else None
 
 
 def parse_goal(text):

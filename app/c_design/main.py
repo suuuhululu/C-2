@@ -6,11 +6,12 @@
     검증·문장·설계 로직은 validator / dialogue / designer에 위임한다.
 
 구현 범위 (WAVE 4, docs/C_DESIGN_CONTRACT.md §4·§6·§8·§10):
-    - create_initial_design: 목표 문장(텍스트, 또는 voice.listen) → dialogue.parse_goal
-      → (LLM 모드만) 선호 질문 → 짧은 "아무거나"류는 LLM 없이 무작위 family, 그 밖은 llm.interpret_initial_preference
-      → llm.choose_initial_family → designer.build_initial_design(family·style_hint 주입) → 결과 envelope.
-      선호 답은 음성 모드면 voice.listen, 텍스트 모드면 preference_text이며 침묵·빈 답·없음은 "아무거나"로 본다.
-      Mock 모드는 선호 질문 없이 기존 흐름 그대로(D 통합 호환).
+    - create_initial_design(Stage 2 Wave 4b): LLM 모드에서 C가 먼저 인사("오늘 어떤 걸 만들고 싶으세요?")하고 자유 발화를
+      한 번 듣는다(voice.listen mode "free"·beep, 침묵이면 재질문 1회; 텍스트 모드는 text). 명시적 "아무거나"류는 LLM 없이
+      무작위 family, 그 밖은 llm.interpret_initial_request → 앉는 가구가 아니면 UNSUPPORTED_OBJECT, 모호하면 되묻기 1회
+      (음성 또는 preference_text) 후 재해석, 그래도 모호하거나 해석 실패면 "아무거나"(무작위). llm.choose_initial_family
+      (CREATIVE면 family 없이 concept) → designer.build_initial_design(family·style_hint·concept 주입) → 설명 → envelope.
+      Mock 모드는 질문 없이 기존 흐름 그대로(목표 문장 parse_goal, D 통합 호환).
     - run_intervention: 입력 검사 → dialogue.build_question(주관식) → 응답 턴 반복
       (KEEP / REVISE / UNCLEAR 재질문 / 명시적 취소 / STOP). LLM 모드에서는 Rule이 결정하지 못한 답을
       llm.interpret_intervention_answer로 해석하고, Rule이 REVISE로 정한 답(숫자 답 제외)도 같은 함수로 style_hint만
@@ -91,7 +92,7 @@ def _meta_error(kind, detail):
 
 def _initial_metadata(described, choice):
     """Initial(LLM) design_metadata. described는 llm.describe_initial_design 결과(dict 또는 llm_error),
-    choice는 _choose_family 결과(선호 해석·고른 family·선호 해석 오류)."""
+    choice는 _family_choice 결과(요청 해석·고른 family 또는 concept·요청 해석 오류)."""
     error = choice["error"]
     if _llm_error_kind(described):
         error, described = _meta_error("describe_error", described["llm_error"]), {}
@@ -191,92 +192,174 @@ def _use_llm():
     return os.environ.get("C_DESIGN_USE_LLM") == "1"
 
 
-def _choose_family(answer, should_stop):
-    """선호 답 → {family, source, preference, style_hint, error} 또는 _STOP.
+_UNSUPPORTED = object()  # Initial 요청이 앉는 가구가 아닌 사물을 분명히 요구했다는 표시
 
-    짧은 "아무거나"류·침묵·빈 답은 LLM 없이 무작위 family. 그 밖은 LLM 해석이며, 해석 실패·키 누락은
-    "아무거나"로 보고 오류만 남긴다(설계는 계속).
+
+def _interpret_request(text, should_stop):
+    """llm.interpret_initial_request → (요청 dict 또는 None, 오류 또는 None) 또는 _STOP.
+
+    해석 실패·REQUEST_KEYS 누락은 (None, request_error)로 돌려 "아무거나"로 진행하게 한다(설계는 계속).
     """
-    preference, error = None, None
-    if dialogue.is_meaningful(answer) and dialogue.parse_initial_preference(answer) is None:
-        interpreted = llm.interpret_initial_preference(answer, should_stop=should_stop)
-        kind = _llm_error_kind(interpreted)
-        if kind == "stopped":
-            return _STOP
-        if kind:
-            error = _meta_error("preference_error", interpreted["llm_error"])
-        elif any(key not in interpreted for key in llm.PREFERENCE_KEYS):
-            error = _meta_error("preference_error", f"missing preference keys: "
-                                f"{[key for key in llm.PREFERENCE_KEYS if key not in interpreted]}")
-        else:
-            preference = interpreted
-    family = llm.choose_initial_family(preference)
-    specific = (preference is not None and preference.get("preference") == "SPECIFIC"
-                and preference.get("family") == family)
-    style_hint = preference.get("style_hint") if preference is not None else None
-    return {"family": family, "source": "preference" if specific else "random", "preference": preference,
-            "style_hint": style_hint if isinstance(style_hint, str) and style_hint else None, "error": error}
+    interpreted = llm.interpret_initial_request(text, should_stop=should_stop)
+    kind = _llm_error_kind(interpreted)
+    if kind == "stopped":
+        return _STOP
+    if kind:
+        return None, _meta_error("request_error", interpreted["llm_error"])
+    missing = [key for key in llm.REQUEST_KEYS if key not in interpreted]
+    if missing:
+        return None, _meta_error("request_error", f"missing request keys: {missing}")
+    return interpreted, None
+
+
+def _needs_follow_up(request):
+    return request["object"] == "UNCLEAR" or request["sufficient"] is not True
+
+
+def _family_choice(request, error):
+    """해석된 요청(또는 None = 아무거나) → {family, source, preference, style_hint, concept, error}.
+
+    CREATIVE는 카탈로그 family로 환원하지 않고(family None) style_hint 전체를 concept로 생성에 넘긴다.
+    """
+    family = llm.choose_initial_family(request)
+    mode = request.get("preference") if request is not None else None
+    style_hint = request.get("style_hint") if request is not None else None
+    style_hint = style_hint if isinstance(style_hint, str) and style_hint else None
+    if mode == "CREATIVE":
+        source = "creative"
+    elif mode == "SPECIFIC" and family is not None and request.get("family") == family:
+        source = "preference"
+    else:
+        source = "random"
+    return {"family": family, "source": source, "preference": request, "style_hint": style_hint,
+            "concept": style_hint if mode == "CREATIVE" else None, "error": error}
 
 
 def create_initial_design(text=None, should_stop=None, preference_text=None, on_question=None):
-    """목표 문장 → (LLM 모드) 선호 질문·family 선택 → Initial Design (§4.1).
+    """첫 자유 발화 → (LLM 모드) 요청 해석·필요 시 되묻기 1회·family 또는 concept 선택 → Initial Design (§4.1).
 
-    preference_text: 텍스트 모드의 선호 답(None이면 선호 질문 없이 "아무거나"로 본다).
-    on_question: 선호 질문을 낼 때 그 문장으로 호출(HMI 표시용, 예외는 호출자 책임).
+    text: 첫 자유 발화 전체(None이면 음성 모드: C가 인사하고 듣는다). Mock 모드에서는 목표 문장(parse_goal).
+    preference_text: 텍스트 모드에서 되묻기(follow-up)에 대한 답(None이면 되묻지 않고 "아무거나"로 진행).
+    on_question: C가 질문(인사·재질문·되묻기)을 낼 때 그 문장으로 호출(HMI 표시용, 예외는 호출자 책임).
     """
     voice_mode = text is None
-    if voice_mode:
-        text = voice.listen()
-        if text is None:
-            return _result("FAILED", code="VOICE_IO_FAILED", message=_voice_failure())
-    elif not isinstance(text, str):
+    if not voice_mode and not isinstance(text, str):
         return _result("FAILED", code="INVALID_INPUT", message="text must be a str or None")
-    elif preference_text is not None and not isinstance(preference_text, str):
+    if preference_text is not None and not isinstance(preference_text, str):
         return _result("FAILED", code="INVALID_INPUT", message="preference_text must be a str or None")
 
-    object_type = dialogue.parse_goal(text)
-    if object_type is None:
-        return _result("FAILED", code="UNSUPPORTED_OBJECT", message="no supported object in the goal")
-
     if not _use_llm():
+        # Mock: 기존 흐름 그대로(목표 문장 한 번, 질문 없음). D 통합·계약 테스트가 이 경로를 쓴다.
+        if voice_mode:
+            text = voice.listen()
+            if text is None:
+                return _result("FAILED", code="VOICE_IO_FAILED", message=_voice_failure())
+        object_type = dialogue.parse_goal(text)
+        if object_type is None:
+            return _result("FAILED", code="UNSUPPORTED_OBJECT", message="no supported object in the goal")
         result = designer.build_initial_design(object_type, delay=designer.RETRY_DELAY, should_stop=should_stop)
         if result["design"] is None:
             return _from_designer(result, None, [])
         return _result("OK", None, result["design"], design_metadata=_mock_metadata(revised=False))
 
     questions = []
-    answer = preference_text
-    if voice_mode or preference_text is not None:
-        # 텍스트 모드에서 선호 답이 없으면 묻지 않은 것이므로 questions에 남기지 않는다.
-        if should_stop is not None and should_stop():
-            return _stopped(questions)
-        question = dialogue.build_initial_preference_question()
-        questions.append(question)
+
+    def ask(sentence):
+        questions.append(sentence)
         if on_question is not None:
-            on_question(question)
+            on_question(sentence)
         if voice_mode:
-            voice.speak(question)
-            answer = voice.listen()
-            if answer is None:
-                return _result("FAILED", questions=questions, code="VOICE_IO_FAILED", message=_voice_failure())
-    if should_stop is not None and should_stop():
+            voice.speak(sentence)
+
+    def say(sentence):
+        if voice_mode:
+            voice.speak(sentence)  # 안내·되읽기(질문이 아니므로 questions에는 넣지 않는다)
+
+    def stop_requested():
+        return should_stop is not None and should_stop()
+
+    def hear():
+        return voice.listen(mode="free", beep=True)
+
+    def voice_failed():
+        return _result("FAILED", questions=questions, code="VOICE_IO_FAILED", message=_voice_failure())
+
+    if voice_mode:
+        voice.prewarm()  # 첫 listen의 장치 준비 지연을 인사 TTS 전에 치른다(실패해도 listen에서 다시 드러남)
+        if stop_requested():
+            return _stopped(questions)
+        ask(dialogue.build_greeting())
+        text = hear()
+        if text is None:
+            return voice_failed()
+        if not dialogue.is_meaningful(text):
+            if stop_requested():
+                return _stopped(questions)
+            ask(dialogue.SILENCE_REASK)  # 침묵은 한 번만 다시 묻고, 그래도 없으면 "아무거나"로 진행한다
+            text = hear()
+            if text is None:
+                return voice_failed()
+
+    request, error, fallback = None, None, False
+    if stop_requested():
         return _stopped(questions)
-    choice = _choose_family(answer, should_stop)
-    if choice is _STOP:
-        return _stopped(questions)
-    reply = (choice["preference"] or {}).get("reply")
-    if voice_mode and isinstance(reply, str) and reply.strip():
-        voice.speak(reply)  # 해석을 되읽어 준다(질문이 아니므로 questions에는 넣지 않는다)
+    if not dialogue.is_meaningful(text):
+        fallback = True
+    elif dialogue.is_unsupported_request(text):  # "자동차 만들어줘": LLM 호출 없이 지원 밖(Mock parse_goal과 같은 보장)
+        request = _UNSUPPORTED
+    elif dialogue.parse_initial_request(text) is None:  # 명시적 "아무거나"는 해석·되묻기 없이 무작위
+        interpreted = _interpret_request(text, should_stop)
+        if interpreted is _STOP:
+            return _stopped(questions)
+        request, error = interpreted
+        if request is None:
+            fallback = True
+        elif request["object"] == "UNSUPPORTED":
+            request = _UNSUPPORTED
+        elif _needs_follow_up(request):
+            follow_up = request["follow_up"] if isinstance(request["follow_up"], str) else ""
+            answer = None
+            if follow_up.strip() and (voice_mode or preference_text is not None):
+                if stop_requested():
+                    return _stopped(questions)
+                ask(follow_up)
+                answer = hear() if voice_mode else preference_text
+                if answer is None:
+                    return voice_failed()
+            request = None
+            if not dialogue.is_meaningful(answer):
+                fallback = True
+            elif dialogue.is_unsupported_request(answer):
+                request = _UNSUPPORTED
+            elif dialogue.parse_initial_request(answer) is None:
+                interpreted = _interpret_request(f"{text} / {answer}", should_stop)
+                if interpreted is _STOP:
+                    return _stopped(questions)
+                request, error = interpreted
+                if request is not None and request["object"] == "UNSUPPORTED":
+                    request = _UNSUPPORTED
+                elif request is None or _needs_follow_up(request):
+                    request, fallback = None, True  # 두 번째도 모호하면 더 묻지 않고 무작위
+    if request is _UNSUPPORTED:
+        say(dialogue.UNSUPPORTED_REPLY)
+        return _result("FAILED", questions=questions, code="UNSUPPORTED_OBJECT",
+                       message="the request is not seating furniture")
+
+    choice = _family_choice(request, error)
+    reply = (request or {}).get("reply")
+    if fallback:
+        say(dialogue.FALLBACK_ANY_REPLY)
+    elif isinstance(reply, str) and reply.strip():
+        say(reply)  # 해석을 되읽어 준다
 
     def generate(object_type, reasons):
-        return llm.generate_initial_design(object_type, reasons, should_stop=should_stop,
-                                           family=choice["family"], style_hint=choice["style_hint"])
-    result = designer.build_initial_design(
-        object_type, generate=generate, delay=designer.RETRY_DELAY, should_stop=should_stop
-    )
+        return llm.generate_initial_design(object_type, reasons, should_stop=should_stop, family=choice["family"],
+                                           style_hint=choice["style_hint"], concept=choice["concept"])
+    result = designer.build_initial_design("CHAIR", generate=generate, delay=designer.RETRY_DELAY, should_stop=should_stop)
     if result["design"] is None:
         return _from_designer(result, None, questions)
-    described = llm.describe_initial_design(result["design"], should_stop=should_stop, family=choice["family"])
+    described = llm.describe_initial_design(result["design"], should_stop=should_stop, family=choice["family"],
+                                            concept=choice["concept"])
     if _llm_error_kind(described) == "stopped":
         return _stopped(questions)
     return _result("OK", None, result["design"], questions, design_metadata=_initial_metadata(described, choice))
@@ -302,7 +385,7 @@ def run_intervention(design, current, differences, text_answers=None, on_questio
     def next_reply():
         """다음 의미 있는 응답. None이면 텍스트 응답 소진 또는 음성 I/O 실패, _STOP이면 STOP."""
         while True:
-            reply = voice.listen() if voice_mode else next(answers, None)
+            reply = voice.listen(mode="free", beep=True) if voice_mode else next(answers, None)
             if reply is None or dialogue.is_meaningful(reply):
                 return reply
             # 침묵·빈 발화: Day4는 시간 기준 재질문·취소 없이 계속 기다리되 STOP은 확인한다(§4.3).

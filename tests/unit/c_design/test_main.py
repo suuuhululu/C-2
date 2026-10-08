@@ -512,7 +512,7 @@ def _stop_from_second_call():
 
 def test_stop_during_voice_silence_wait(initial_design, monkeypatch):
     current, differences = _build_shift_scenario(initial_design)
-    monkeypatch.setattr(main.voice, "listen", lambda: "")  # silence forever
+    monkeypatch.setattr(main.voice, "listen", lambda **kwargs: "")  # silence forever (mode="free", beep=True)
     result = main.run_intervention(
         initial_design, current, differences, text_answers=None, should_stop=_stop_from_second_call()
     )
@@ -547,13 +547,14 @@ def _clean_use_llm_env(monkeypatch):
 
 @pytest.fixture(autouse=True)
 def _no_real_metadata_calls(monkeypatch):
-    # LLM-mode tests here stub only the design generator; the metadata calls (judge / describe) answer with
-    # a provider error so no request is ever built. tests/unit/c_design/test_design_metadata.py covers them.
+    # LLM-mode tests here stub only the design generator; the metadata calls (Initial request / judge / describe) answer
+    # with a provider error so no request is ever built. tests/unit/c_design/test_design_metadata.py covers them.
+    # interpret_initial_request is Opus A's Wave 4b function (raising=False until it exists in llm).
     def not_stubbed(*args, **kwargs):
         return {"llm_error": {"kind": "bad_response", "message": "not stubbed in test_main"}}
 
-    for name in ("judge_revised_design", "describe_initial_design"):
-        monkeypatch.setattr(main.llm, name, not_stubbed)
+    for name in ("judge_revised_design", "describe_initial_design", "interpret_initial_request"):
+        monkeypatch.setattr(main.llm, name, not_stubbed, raising=False)
 
 
 def test_use_llm_unset_takes_the_mock_path(monkeypatch):
@@ -571,7 +572,7 @@ def test_use_llm_set_takes_the_llm_path_for_initial_design(monkeypatch):
     monkeypatch.setenv("C_DESIGN_USE_LLM", "1")
     calls = {"n": 0}
 
-    def fake_generate_initial(object_type, reasons=None, should_stop=None, family=None, style_hint=None):
+    def fake_generate_initial(object_type, reasons=None, should_stop=None, family=None, style_hint=None, concept=None):
         calls["n"] += 1
         calls["object_type"] = object_type
         calls["reasons"] = reasons
@@ -623,7 +624,7 @@ def test_use_llm_set_takes_the_llm_path_for_revised_design(monkeypatch):
 def test_use_llm_set_initial_design_llm_error_is_llm_call_failed(monkeypatch):
     monkeypatch.setenv("C_DESIGN_USE_LLM", "1")
 
-    def fake_generate_initial(object_type, reasons=None, should_stop=None, family=None, style_hint=None):
+    def fake_generate_initial(object_type, reasons=None, should_stop=None, family=None, style_hint=None, concept=None):
         return {"llm_error": {"kind": "rate_limit", "message": "HTTP 429"}}
 
     monkeypatch.setattr(main.llm, "generate_initial_design", fake_generate_initial)

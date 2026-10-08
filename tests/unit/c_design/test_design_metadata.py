@@ -204,33 +204,39 @@ def test_g_metadata_never_changes_the_design_shape_or_version(scenario, llm_mode
 def test_h_initial_metadata_llm(monkeypatch):
     monkeypatch.setenv("C_DESIGN_USE_LLM", "1")
     monkeypatch.setattr(main.llm, "generate_initial_design",
-                        lambda object_type, reasons=None, should_stop=None, family=None, style_hint=None:
+                        lambda object_type, reasons=None, should_stop=None, family=None, style_hint=None, concept=None:
                         designer.mock_initial_candidate(object_type))
+    monkeypatch.setattr(main.llm, "interpret_initial_request", lambda text, should_stop=None: _request("ANY"),
+                        raising=False)
+    monkeypatch.setattr(main.llm, "REQUEST_KEYS", REQUEST_KEYS, raising=False)  # A의 Wave 4b 상수(병합 전 대비)
     described = {"design_family": "high-back chair", "design_name": "높은 의자", "design_summary": "높은 등받이 의자",
                  "visible_features": ["좌석 6×6"], "why_it_is_complete": "다 있다", "silhouette_clarity": "clear",
                  "recognizable_family": True, "completeness_score": 4, "family_design_match": "clear"}
     monkeypatch.setattr(main.llm, "choose_initial_family", lambda preference, rng=None: "high-back chair")
-    monkeypatch.setattr(main.llm, "describe_initial_design", lambda design, should_stop=None, family=None: described)
+    monkeypatch.setattr(main.llm, "describe_initial_design", lambda design, should_stop=None, family=None, concept=None: described)
     result = main.create_initial_design(text=GOAL_TEXT)
     assert set(result) == ENVELOPE_KEYS and result["status"] == "OK"
     assert result["design_metadata"] == {
         "design_name": "높은 의자", "design_family": "high-back chair", "design_summary": "높은 등받이 의자",
         "visible_features": ["좌석 6×6"], "human_interpretation": None,
         "judge": {"silhouette_clarity": "clear", "recognizable_family": True, "completeness_score": 4},
-        "preference": None, "selected_family": "high-back chair", "family_source": "random", "style_hint": None,
+        "preference": _request("ANY"), "selected_family": "high-back chair", "family_source": "random", "style_hint": None,
         "family_design_match": "clear", "source": "LLM", "error": None,
     }
-    assert result["questions"] == []  # 텍스트 모드에서 선호 답이 없으면 선호 질문을 하지 않는다
+    assert result["questions"] == []  # 텍스트 모드: 첫 발화는 호출자가 받았고, 되묻기가 필요 없으면 질문이 없다
     assert set(result["design"]) == {"design_version", "blocks"} and result["design"]["design_version"] == 1
 
 
 def test_h_initial_describe_failure_keeps_the_design(monkeypatch):
     monkeypatch.setenv("C_DESIGN_USE_LLM", "1")
     monkeypatch.setattr(main.llm, "generate_initial_design",
-                        lambda object_type, reasons=None, should_stop=None, family=None, style_hint=None:
+                        lambda object_type, reasons=None, should_stop=None, family=None, style_hint=None, concept=None:
                         designer.mock_initial_candidate(object_type))
+    monkeypatch.setattr(main.llm, "interpret_initial_request", lambda text, should_stop=None: _request("ANY"),
+                        raising=False)
+    monkeypatch.setattr(main.llm, "REQUEST_KEYS", REQUEST_KEYS, raising=False)  # A의 Wave 4b 상수(병합 전 대비)
     monkeypatch.setattr(main.llm, "describe_initial_design",
-                        lambda design, should_stop=None, family=None: {"llm_error": {"kind": "auth", "message": "HTTP 401"}})
+                        lambda design, should_stop=None, family=None, concept=None: {"llm_error": {"kind": "auth", "message": "HTTP 401"}})
     result = main.create_initial_design(text=GOAL_TEXT)
     assert result["status"] == "OK" and result["design"] is not None
     assert result["design_metadata"]["error"] == {"kind": "describe_error", "message": str({"kind": "auth", "message": "HTTP 401"})}
@@ -308,104 +314,203 @@ def test_keep_and_mock_revise_metadata(scenario, monkeypatch):
 
 
 # ---------------------------------------------------------------------------
-# Stage 2 Wave 3: Initial 선호 질문 → family 선택 (fake LLM, fake voice)
+# Stage 2 Wave 4b: Initial 인사 → 자유 발화 해석 → 되묻기 ≤1 → family / concept (fake LLM, fake voice)
 # ---------------------------------------------------------------------------
 
 INITIAL_METADATA_KEYS = {"design_name", "design_family", "design_summary", "visible_features", "human_interpretation",
                          "judge", "preference", "selected_family", "family_source", "style_hint", "family_design_match",
                          "source", "error"}
+REQUEST_KEYS = ("object", "preference", "family", "style_hint", "sufficient", "follow_up", "reply")  # llm.REQUEST_KEYS(A)
+FOLLOW_UP = "어떤 느낌의 의자가 좋으세요? 팔걸이나 색, 모양을 말씀해 주셔도 돼요."
+
+
+def _request(preference, family=None, style_hint="", obj="CHAIR", sufficient=True, follow_up="", reply=""):
+    return {"object": obj, "preference": preference, "family": family, "style_hint": style_hint,
+            "sufficient": sufficient, "follow_up": follow_up, "reply": reply}
 
 
 @pytest.fixture
 def initial_llm(monkeypatch):
-    """LLM 모드 Initial: 선호 해석·family 선택·생성·설명을 fake로 바꾸고 인자를 기록한다."""
+    """LLM 모드 Initial: 요청 해석·family 선택·생성·설명을 fake로 바꾸고 인자를 기록한다(A의 새 시그니처 가정)."""
     monkeypatch.setenv("C_DESIGN_USE_LLM", "1")
     monkeypatch.setattr(designer, "RETRY_DELAY", 0.0)
+    monkeypatch.setattr(main.llm, "REQUEST_KEYS", REQUEST_KEYS, raising=False)
     calls = {"interpret": [], "choose": [], "generate": [], "describe": []}
-    replies = {"interpret": None}
-    real_choose = llm.choose_initial_family
+    replies = {"interpret": []}
 
     def fake_interpret(text, should_stop=None):
         calls["interpret"].append(text)
-        return replies["interpret"]
+        return replies["interpret"].pop(0)
 
-    def fake_choose(preference, rng=None):
+    def fake_choose(preference, rng=None):  # A의 Wave 4b 규칙: SPECIFIC 키 → 그 키, CREATIVE → None, 그 밖 균등
         calls["choose"].append(preference)
-        return real_choose(preference, rng=random.Random(0))
+        if isinstance(preference, dict) and preference.get("preference") == "CREATIVE":
+            return None
+        if isinstance(preference, dict) and preference.get("preference") == "SPECIFIC" and preference.get("family") in llm.FAMILY_CATALOG:
+            return preference["family"]
+        return random.Random(0).choice(sorted(llm.FAMILY_CATALOG))
 
-    def fake_generate(object_type, reasons=None, should_stop=None, family=None, style_hint=None):
-        calls["generate"].append({"family": family, "style_hint": style_hint})
+    def fake_generate(object_type, reasons=None, should_stop=None, family=None, style_hint=None, concept=None):
+        calls["generate"].append({"object_type": object_type, "family": family, "style_hint": style_hint, "concept": concept})
         return designer.mock_initial_candidate(object_type)
 
-    def fake_describe(design, should_stop=None, family=None):
-        calls["describe"].append(family)
-        return {"design_family": family, "design_name": "의자", "design_summary": "요약", "visible_features": [],
+    def fake_describe(design, should_stop=None, family=None, concept=None):
+        calls["describe"].append({"family": family, "concept": concept})
+        return {"design_family": family or "armchair", "design_name": "의자", "design_summary": "요약", "visible_features": [],
                 "silhouette_clarity": "clear", "recognizable_family": True, "completeness_score": 4,
                 "family_design_match": "clear"}
 
-    monkeypatch.setattr(main.llm, "interpret_initial_preference", fake_interpret)
+    monkeypatch.setattr(main.llm, "interpret_initial_request", fake_interpret, raising=False)
     monkeypatch.setattr(main.llm, "choose_initial_family", fake_choose)
     monkeypatch.setattr(main.llm, "generate_initial_design", fake_generate)
     monkeypatch.setattr(main.llm, "describe_initial_design", fake_describe)
     return calls, replies
 
 
-def _preference(family, style_hint, kind="SPECIFIC"):
-    return {"preference": kind, "family": family, "style_hint": style_hint, "reply": f"좋아요, {family}로 해볼게요."}
+RANDOM_FAMILY = random.Random(0).choice(sorted(llm.FAMILY_CATALOG))
 
 
-def test_initial_any_answer_picks_random_family_without_llm_interpretation(initial_llm):
-    calls, _ = initial_llm
-    shown = []
-    result = main.create_initial_design(text=GOAL_TEXT, preference_text="아무거나 괜찮아요", on_question=shown.append)
+def test_initial_creative_concept_goes_to_generation_without_family(initial_llm):
+    calls, replies = initial_llm
+    request = _request("CREATIVE", style_hint="사과처럼 둥글고 빨간", reply="좋아요, 사과처럼 둥글고 빨간 의자로 만들어 볼게요.")
+    replies["interpret"] = [request]
+    result = main.create_initial_design(text="오늘은 사과 같은 의자를 만들고 싶어요")
     metadata = result["design_metadata"]
     assert result["status"] == "OK" and set(result["design"]) == {"design_version", "blocks"}
-    assert result["questions"] == shown == [dialogue.INITIAL_PREFERENCE_QUESTION]
-    assert calls["interpret"] == [] and calls["choose"] == [None]
-    expected_family = llm.choose_initial_family(None, rng=random.Random(0))
-    assert calls["generate"][0] == {"family": expected_family, "style_hint": None}
-    assert calls["describe"] == [expected_family]
+    assert calls["interpret"] == ["오늘은 사과 같은 의자를 만들고 싶어요"]
+    assert calls["generate"][0] == {"object_type": "CHAIR", "family": None, "style_hint": "사과처럼 둥글고 빨간",
+                                    "concept": "사과처럼 둥글고 빨간"}
+    assert calls["describe"] == [{"family": None, "concept": "사과처럼 둥글고 빨간"}]
     assert set(metadata) == INITIAL_METADATA_KEYS
-    assert (metadata["selected_family"], metadata["family_source"], metadata["preference"]) == (expected_family, "random", None)
-    assert metadata["family_design_match"] == "clear" and metadata["error"] is None
-
-
-@pytest.mark.parametrize("answer, family, style_hint", [
-    ("팔걸이가 있는 빨간 의자요", "armchair", "빨간 팔걸이"),
-    ("왕좌처럼 높고 화려한 의자요", "throne", "높고 화려한"),
-])
-def test_initial_specific_preference_selects_that_family(initial_llm, answer, family, style_hint):
-    calls, replies = initial_llm
-    replies["interpret"] = _preference(family, style_hint)
-    result = main.create_initial_design(text=GOAL_TEXT, preference_text=answer)
-    metadata = result["design_metadata"]
-    assert result["status"] == "OK"
-    assert calls["interpret"] == [answer]
-    assert calls["generate"][0] == {"family": family, "style_hint": style_hint}
-    assert calls["describe"] == [family]
-    assert metadata["preference"] == replies["interpret"]
-    assert (metadata["selected_family"], metadata["family_source"], metadata["style_hint"]) == (family, "preference", style_hint)
+    assert (metadata["selected_family"], metadata["family_source"], metadata["preference"]) == (None, "creative", request)
+    assert result["questions"] == []
     json.dumps(result)
 
 
-@pytest.mark.parametrize("reply", [{"llm_error": {"kind": "server", "message": "HTTP 503"}},
-                                   {"preference": "SPECIFIC", "family": "throne"}])
-def test_initial_preference_failure_falls_back_to_random_family(initial_llm, reply):
+def test_initial_specific_request_selects_catalog_family(initial_llm):
     calls, replies = initial_llm
-    replies["interpret"] = reply
-    result = main.create_initial_design(text=GOAL_TEXT, preference_text="왕좌처럼 높고 화려한 의자요")
+    replies["interpret"] = [_request("SPECIFIC", family="bench", style_hint="길고 넓은")]
+    result = main.create_initial_design(text="벤치처럼 길고 넓은 의자")
+    metadata = result["design_metadata"]
+    assert calls["generate"][0] == {"object_type": "CHAIR", "family": "bench", "style_hint": "길고 넓은", "concept": None}
+    assert (metadata["selected_family"], metadata["family_source"], metadata["style_hint"]) == ("bench", "preference", "길고 넓은")
+
+
+def test_initial_explicit_any_by_rule_needs_no_llm(initial_llm):
+    calls, _ = initial_llm
+    result = main.create_initial_design(text="아무거나 만들어 주세요")
+    metadata = result["design_metadata"]
+    assert result["status"] == "OK" and calls["interpret"] == [] and calls["choose"] == [None]
+    assert (metadata["selected_family"], metadata["family_source"], metadata["preference"]) == (RANDOM_FAMILY, "random", None)
+
+
+def test_initial_any_with_style_word_goes_to_llm_and_stays_random(initial_llm):
+    calls, replies = initial_llm
+    replies["interpret"] = [_request("ANY", style_hint="멋진")]
+    result = main.create_initial_design(text="아무거나 멋진 의자")
+    metadata = result["design_metadata"]
+    assert calls["interpret"] == ["아무거나 멋진 의자"]
+    assert calls["generate"][0] == {"object_type": "CHAIR", "family": RANDOM_FAMILY, "style_hint": "멋진", "concept": None}
+    assert metadata["family_source"] == "random" and metadata["style_hint"] == "멋진"
+
+
+def test_initial_insufficient_request_asks_one_follow_up_and_reinterprets(initial_llm):
+    calls, replies = initial_llm
+    replies["interpret"] = [_request("ANY", sufficient=False, follow_up=FOLLOW_UP),
+                            _request("SPECIFIC", family="armchair", style_hint="팔걸이가 넓은")]
+    shown = []
+    result = main.create_initial_design(text="뭔가 만들고 싶어요", preference_text="팔걸이가 넓은 의자요", on_question=shown.append)
+    assert result["status"] == "OK"
+    assert result["questions"] == shown == [FOLLOW_UP]
+    assert calls["interpret"] == ["뭔가 만들고 싶어요", "뭔가 만들고 싶어요 / 팔걸이가 넓은 의자요"]
+    assert result["design_metadata"]["selected_family"] == "armchair"
+
+
+def test_initial_second_unclear_falls_back_to_random(initial_llm):
+    calls, replies = initial_llm
+    replies["interpret"] = [_request("ANY", obj="UNCLEAR", sufficient=False, follow_up=FOLLOW_UP),
+                            _request("ANY", obj="UNCLEAR", sufficient=False, follow_up=FOLLOW_UP)]
+    result = main.create_initial_design(text="뭔가요", preference_text="음 글쎄요 그냥")
+    metadata = result["design_metadata"]
+    assert result["status"] == "OK" and len(calls["interpret"]) == 2 and result["questions"] == [FOLLOW_UP]
+    assert (metadata["family_source"], metadata["preference"]) == ("random", None)
+
+
+def test_initial_insufficient_without_follow_up_answer_in_text_mode_is_random(initial_llm):
+    calls, replies = initial_llm
+    replies["interpret"] = [_request("ANY", sufficient=False, follow_up=FOLLOW_UP)]
+    result = main.create_initial_design(text="뭔가 만들고 싶어요")
+    assert result["status"] == "OK" and result["questions"] == [] and len(calls["interpret"]) == 1
+    assert result["design_metadata"]["family_source"] == "random"
+
+
+def test_initial_follow_up_answer_any_by_rule_needs_no_second_llm_call(initial_llm):
+    calls, replies = initial_llm
+    replies["interpret"] = [_request("ANY", sufficient=False, follow_up=FOLLOW_UP)]
+    result = main.create_initial_design(text="뭔가 만들고 싶어요", preference_text="아무거나요")
+    assert result["status"] == "OK" and len(calls["interpret"]) == 1 and result["questions"] == [FOLLOW_UP]
+
+
+def test_initial_obvious_non_seating_object_fails_without_llm(initial_llm):
+    calls, _ = initial_llm
+    result = main.create_initial_design(text="자동차 만들어줘")  # D 계약: 지원 밖 사물에는 LLM 호출이 없다
+    assert (result["status"], result["error"]["code"]) == ("FAILED", "UNSUPPORTED_OBJECT")
+    assert calls["interpret"] == [] and calls["generate"] == [] and result["design"] is None
+
+
+@pytest.mark.parametrize("first", [True, False])
+def test_initial_unsupported_object_by_llm_fails(initial_llm, first):
+    calls, replies = initial_llm
+    unsupported = _request("ANY", obj="UNSUPPORTED")
+    replies["interpret"] = ([unsupported] if first else
+                            [_request("ANY", sufficient=False, follow_up=FOLLOW_UP), unsupported])
+    result = main.create_initial_design(text="하늘을 나는 걸 만들고 싶어요" if first else "뭔가 만들고 싶어요",
+                                        preference_text="하늘을 나는 거요")
+    assert (result["status"], result["error"]["code"]) == ("FAILED", "UNSUPPORTED_OBJECT")
+    assert result["design"] is None and calls["generate"] == [] and len(calls["interpret"]) == (1 if first else 2)
+
+
+def test_initial_follow_up_answer_naming_non_seating_object_fails(initial_llm):
+    calls, replies = initial_llm
+    replies["interpret"] = [_request("ANY", sufficient=False, follow_up=FOLLOW_UP)]
+    result = main.create_initial_design(text="뭔가 만들고 싶어요", preference_text="책상이요")
+    assert result["error"]["code"] == "UNSUPPORTED_OBJECT" and len(calls["interpret"]) == 1
+
+
+@pytest.mark.parametrize("reply", [{"llm_error": {"kind": "server", "message": "HTTP 503"}},
+                                   {"object": "CHAIR", "preference": "SPECIFIC"}])
+def test_initial_request_failure_falls_back_to_random(initial_llm, reply):
+    calls, replies = initial_llm
+    replies["interpret"] = [reply]
+    result = main.create_initial_design(text="왕좌처럼 높고 화려한 의자요")
     metadata = result["design_metadata"]
     assert result["status"] == "OK" and calls["choose"] == [None]
     assert metadata["family_source"] == "random" and metadata["preference"] is None
-    assert metadata["error"]["kind"] == "preference_error"
+    assert metadata["error"]["kind"] == "request_error"
 
 
-def test_initial_mock_mode_asks_nothing(monkeypatch):
+def test_initial_stop_during_request_interpretation_cancels(initial_llm):
+    calls, replies = initial_llm
+    replies["interpret"] = [{"llm_error": {"kind": "stopped", "message": "stopped"}}]
+    result = main.create_initial_design(text="왕좌처럼 높고 화려한 의자요")
+    assert (result["status"], result["error"]["code"]) == ("CANCELLED", "STOPPED") and calls["generate"] == []
+
+
+def test_initial_mock_mode_is_unchanged(monkeypatch):
     monkeypatch.delenv("C_DESIGN_USE_LLM", raising=False)
-    monkeypatch.setattr(main.llm, "interpret_initial_preference", lambda *a, **k: pytest.fail("Mock must not interpret"))
-    result = main.create_initial_design(text=GOAL_TEXT, preference_text="왕좌요")
-    assert result["status"] == "OK" and result["questions"] == []
-    assert result["design_metadata"]["source"] == "MOCK"
+    monkeypatch.setattr(main.llm, "interpret_initial_request", lambda *a, **k: pytest.fail("Mock must not interpret"),
+                        raising=False)
+    result = main.create_initial_design(text="의자 만들어줘", preference_text="왕좌요")
+    assert result["status"] == "OK" and result["questions"] == [] and result["design_metadata"]["source"] == "MOCK"
+    assert main.create_initial_design(text="책상 만들어줘")["error"]["code"] == "UNSUPPORTED_OBJECT"
+
+
+def test_initial_mock_voice_mode_listens_once_without_arguments(monkeypatch):
+    monkeypatch.delenv("C_DESIGN_USE_LLM", raising=False)
+    heard = []
+    monkeypatch.setattr(main.voice, "listen", lambda: heard.append("listen") or "의자 만들어줘")  # D 호환: 인자 없음
+    monkeypatch.setattr(main.voice, "speak", lambda sentence: pytest.fail("Mock must not speak"))
+    assert main.create_initial_design()["status"] == "OK" and heard == ["listen"]
 
 
 def test_initial_invalid_preference_text_is_invalid_input(monkeypatch):
@@ -418,59 +523,87 @@ def test_initial_invalid_preference_text_is_invalid_input(monkeypatch):
 def fake_voice(monkeypatch):
     events, heard = [], []
 
-    def listen(on_ready=None):
+    def listen(on_ready=None, mode="short", beep=False):
         reply = heard.pop(0)
-        events.append(("listen", reply))
+        events.append(("listen", mode, beep, reply))
         return reply
 
+    monkeypatch.setattr(main.voice, "prewarm", lambda: events.append(("prewarm",)) or True)
     monkeypatch.setattr(main.voice, "listen", listen)
     monkeypatch.setattr(main.voice, "speak", lambda sentence: events.append(("speak", sentence)))
     return events, heard
 
 
-def test_initial_voice_mode_speaks_question_then_listens_then_reads_back(initial_llm, fake_voice):
+def test_initial_voice_mode_greets_listens_free_with_beep_then_reads_back(initial_llm, fake_voice):
     calls, replies = initial_llm
     events, heard = fake_voice
-    heard.extend(["의자 만들어줘", "왕좌처럼 높고 화려한 의자요"])
-    replies["interpret"] = _preference("throne", "높고 화려한")
+    heard.append("왕좌처럼 높고 화려한 의자요")
+    replies["interpret"] = [_request("SPECIFIC", family="throne", style_hint="높고 화려한",
+                                     reply="좋아요, 높고 화려한 왕좌로 만들어 볼게요.")]
     result = main.create_initial_design()
-    assert result["status"] == "OK" and result["questions"] == [dialogue.INITIAL_PREFERENCE_QUESTION]
-    assert events == [("listen", "의자 만들어줘"), ("speak", dialogue.INITIAL_PREFERENCE_QUESTION),
-                      ("listen", "왕좌처럼 높고 화려한 의자요"), ("speak", "좋아요, throne로 해볼게요.")]
+    assert result["status"] == "OK" and result["questions"] == [dialogue.GREETING]
+    assert events == [("prewarm",), ("speak", dialogue.GREETING), ("listen", "free", True, "왕좌처럼 높고 화려한 의자요"),
+                      ("speak", "좋아요, 높고 화려한 왕좌로 만들어 볼게요.")]
     assert result["design_metadata"]["selected_family"] == "throne"
 
 
-def test_initial_voice_silence_is_any(initial_llm, fake_voice):
+def test_initial_voice_follow_up_is_spoken_and_heard_in_free_mode(initial_llm, fake_voice):
+    calls, replies = initial_llm
+    events, heard = fake_voice
+    heard.extend(["뭔가 만들고 싶어요", "팔걸이가 넓은 의자요"])
+    replies["interpret"] = [_request("ANY", sufficient=False, follow_up=FOLLOW_UP),
+                            _request("SPECIFIC", family="armchair", style_hint="팔걸이가 넓은")]
+    result = main.create_initial_design()
+    assert result["questions"] == [dialogue.GREETING, FOLLOW_UP]
+    assert [e for e in events if e[0] == "listen"] == [("listen", "free", True, "뭔가 만들고 싶어요"),
+                                                       ("listen", "free", True, "팔걸이가 넓은 의자요")]
+
+
+def test_initial_voice_silence_reasks_once_then_random(initial_llm, fake_voice):
     calls, _ = initial_llm
     events, heard = fake_voice
-    heard.extend(["의자 만들어줘", ""])
+    heard.extend(["", ""])
     result = main.create_initial_design()
     assert result["status"] == "OK" and calls["interpret"] == [] and calls["choose"] == [None]
+    assert result["questions"] == [dialogue.GREETING, dialogue.SILENCE_REASK]
+    assert events[-1] == ("speak", dialogue.FALLBACK_ANY_REPLY)
     assert result["design_metadata"]["family_source"] == "random"
 
 
-def test_initial_voice_preference_listen_failure_is_voice_io_failed(initial_llm, fake_voice):
+def test_initial_voice_silence_then_request_is_used(initial_llm, fake_voice):
+    calls, replies = initial_llm
+    events, heard = fake_voice
+    heard.extend(["", "아무거나요"])
+    result = main.create_initial_design()
+    assert result["status"] == "OK" and calls["interpret"] == []
+    assert result["questions"] == [dialogue.GREETING, dialogue.SILENCE_REASK]
+    assert ("speak", dialogue.FALLBACK_ANY_REPLY) not in events  # 명시적 "아무거나"는 fallback 문장이 아니다
+
+
+def test_initial_voice_unsupported_speaks_reply(initial_llm, fake_voice):
+    calls, replies = initial_llm
+    events, heard = fake_voice
+    heard.append("책상 만들어줘")
+    replies["interpret"] = [_request("ANY", obj="UNSUPPORTED")]
+    result = main.create_initial_design()
+    assert result["error"]["code"] == "UNSUPPORTED_OBJECT" and events[-1] == ("speak", dialogue.UNSUPPORTED_REPLY)
+
+
+def test_initial_voice_listen_failure_is_voice_io_failed(initial_llm, fake_voice):
     calls, _ = initial_llm
     events, heard = fake_voice
-    heard.extend(["의자 만들어줘", None])
+    heard.append(None)
     result = main.create_initial_design()
     assert (result["status"], result["error"]["code"]) == ("FAILED", "VOICE_IO_FAILED")
-    assert result["questions"] == [dialogue.INITIAL_PREFERENCE_QUESTION] and calls["generate"] == []
+    assert result["questions"] == [dialogue.GREETING] and calls["generate"] == []
 
 
-def test_initial_stop_before_preference_question_cancels(initial_llm):
+def test_initial_voice_stop_before_greeting_cancels(initial_llm, fake_voice):
     calls, _ = initial_llm
-    result = main.create_initial_design(text=GOAL_TEXT, preference_text="아무거나", should_stop=lambda: True)
+    events, heard = fake_voice
+    result = main.create_initial_design(should_stop=lambda: True)
     assert (result["status"], result["error"]["code"]) == ("CANCELLED", "STOPPED")
-    assert result["questions"] == [] and calls["generate"] == []
-
-
-def test_initial_stop_during_preference_interpretation_cancels(initial_llm):
-    calls, replies = initial_llm
-    replies["interpret"] = {"llm_error": {"kind": "stopped", "message": "stopped"}}
-    result = main.create_initial_design(text=GOAL_TEXT, preference_text="왕좌처럼 높고 화려한 의자요")
-    assert (result["status"], result["error"]["code"]) == ("CANCELLED", "STOPPED")
-    assert result["questions"] == [dialogue.INITIAL_PREFERENCE_QUESTION] and calls["generate"] == []
+    assert result["questions"] == [] and calls["generate"] == [] and ("speak", dialogue.GREETING) not in events
 
 
 # ---------------------------------------------------------------------------
@@ -676,3 +809,18 @@ def test_missing_stage2_judge_field_is_judge_error(scenario, llm_mode, missing):
     metadata = _revise(scenario)["design_metadata"]
     assert metadata["regenerations"] == 0 and metadata["judge"] is None
     assert metadata["error"]["kind"] == "judge_error" and missing in metadata["error"]["message"]
+
+
+def test_intervention_voice_answer_is_heard_in_free_mode_with_beep(scenario, monkeypatch):
+    monkeypatch.delenv("C_DESIGN_USE_LLM", raising=False)
+    calls = []
+
+    def listen(on_ready=None, mode="short", beep=False):
+        calls.append((mode, beep))
+        return "일부러 그렇게 놨어요"
+
+    monkeypatch.setattr(main.voice, "listen", listen)
+    monkeypatch.setattr(main.voice, "speak", lambda sentence: None)
+    design, current, differences = scenario
+    result = main.run_intervention(design, current, differences, text_answers=None)
+    assert result["hri_result"] == "REVISE" and calls == [("free", True)]

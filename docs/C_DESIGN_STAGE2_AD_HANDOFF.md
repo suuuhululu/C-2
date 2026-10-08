@@ -80,3 +80,9 @@ C는 아래 D 코드·테스트를 수정하지 않았습니다. 2026-10-08 기�
 | 37 | D | `app/c_text_connection.py:118` (`voice_call`의 initial 분기) | D가 목표를 직접 STT한 뒤 C를 텍스트 모드로 부름 → 선호 답도 D가 받아 `preference_text`로 넘기거나, C 음성 모드로 위임 | C §4.1 | D가 음성 I/O를 소유하는 현재 구조에서는 C가 선호 질문을 TTS로 낼 수 없습니다 |
 | 38 | D | `tests/integration/test_c_voice_hmi.py:66-74` 등 LLM(live) 모드 fake `_post_json` | Revised 응답을 이전 Design과 같은 블록 수로 돌려주는 fake는 LLM 모드에서 `too_few_blocks`로 탈락(§8.13 `min_blocks` = 이전 + 6, 상한 40) | C §8.13 richness 하한 | 현재는 이 테스트들이 다른 원인(기존 기준선 실패)으로 먼저 실패해 드러나지 않지만, 기준선 원인이 고쳐지면 Revised fake가 이전보다 6블록 이상 많은 유효 Design을 돌려줘야 합니다 |
 | 39 | D | LLM(live) 모드 fake `_post_json` 전반 | Initial 설명(`describe`)·Intervention 답변 해석(`interpret_intervention_answer`)·선호 해석도 같은 transport로 나감 | C §4.1·§4.2 | Rule이 정하지 못한 자유 답변(예: "실수 아니에요")이 들어오면 C가 LLM 해석을 한 번 더 부릅니다. 숫자·명확한 답("1번"·"2번"·"일부러"·"실수")은 추가 호출 없음 |
+
+## Stage 2 Wave 4b Initial HRI가 D에 주는 영향 (2026-10-08 추가)
+
+| # | 소유 | 파일:줄 | REQUIRED CHANGE (현재 → 필요) | AFFECTED INTERFACE | REASON |
+| --- | --- | --- | --- | --- | --- |
+| 40 | D | `app/c_text_connection.py:118~120` (`voice_call`의 initial 분기: D가 목표를 STT한 뒤 `create_initial_design(text=…)`) | LLM 모드에서 둘 중 하나를 택해야 함: (a) 첫 듣기를 C에 위임 — `create_initial_design(text=None, on_question=…)`로 부르면 C가 인사 TTS → `listen(mode="free", beep=True)` → 해석·되묻기 1회를 맡음(이 경우 D의 `STT_GOAL` 단계는 필요 없음), 또는 (b) 지금처럼 D가 듣되 사용자 **한 문장 전체**를 `text`로 넘기고(예: "사과 같은 의자를 만들고 싶어요"), 되묻기 답이 있으면 `preference_text`로 넘김 | C §4.1 `create_initial_design(text=None, should_stop=None, preference_text=None, on_question=None)` (시그니처 불변, LLM 모드에서 `text`의 의미가 "목표 문장" → "첫 자유 발화 전체") | LLM 모드에서 C는 더 이상 `parse_goal`("의자" 포함 여부)로 사물을 판정하지 않고 LLM 요청 해석으로 판정합니다(앉는 가구가 아니면 `UNSUPPORTED_OBJECT`). Mock 모드는 그대로 `parse_goal`이라 D 통합 테스트(offline)는 영향이 없습니다. D의 `listen()` 직접 호출은 기본 `mode="short"`(대기 8 s·끝 무음 1 s)라 긴 자유 발화가 중간 쉼에서 끊길 수 있으니, (b)를 택하면 `voice.listen(mode="free", beep=True)` 사용을 권장합니다 |

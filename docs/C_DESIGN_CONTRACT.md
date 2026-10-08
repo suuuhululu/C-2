@@ -105,22 +105,25 @@ LLM 모델은 `OPENAI_MODEL`(기본 `DEFAULT_MODEL`)입니다. 모델명이 reas
 
 | 입력 | 타입 | 의미 |
 |---|---|---|
-| `text` | str 또는 `None` | 텍스트 입력 모드면 목표 문장(예: "오늘은 의자를 만들 거야"). `None`이면 음성 모드: C가 녹음·STT로 목표를 받음. str도 `None`도 아니면 `INVALID_INPUT`, 공백뿐인 문자열은 `UNSUPPORTED_OBJECT` |
-| `should_stop` | `callable() -> bool` 또는 `None` | D의 STOP·닫힌 요청 연결. 선호 질문 앞뒤와 재생성 시도 사이에 확인하고 True면 `CANCELLED` / `STOPPED` |
-| `preference_text` | str 또는 `None` | (LLM 모드, 텍스트 모드) 선호 질문에 대한 답. `None`이면 선호 질문을 하지 않고 "아무거나"로 봄. str도 `None`도 아니면 `INVALID_INPUT`. 음성 모드(`text=None`)에서는 쓰지 않음 |
-| `on_question` | `callable(str)` 또는 `None` | 선호 질문을 낼 때 그 문장으로 호출(HMI 표시). 예외는 호출자 책임(§4.2와 같음) |
+| `text` | str 또는 `None` | Mock 모드: 목표 문장(예: "오늘은 의자를 만들 거야", `parse_goal`). LLM 모드(Stage 2 Wave 4b): 사용자의 첫 자유 발화 전체(예: "오늘은 사과 같은 의자를 만들고 싶어요"). `None`이면 음성 모드: C가 인사하고 녹음·STT로 받음. str도 `None`도 아니면 `INVALID_INPUT` |
+| `should_stop` | `callable() -> bool` 또는 `None` | D의 STOP·닫힌 요청 연결. 인사·되묻기 앞뒤, 요청 해석 중, 재생성 시도 사이에 확인하고 True면 `CANCELLED` / `STOPPED` |
+| `preference_text` | str 또는 `None` | (LLM 모드, 텍스트 모드) 되묻기(follow-up)에 대한 답. `None`이면 되묻지 않고 "아무거나"로 진행. str도 `None`도 아니면 `INVALID_INPUT`. 음성 모드에서는 쓰지 않음 |
+| `on_question` | `callable(str)` 또는 `None` | C가 인사·침묵 재질문·되묻기를 낼 때 그 문장으로 호출(HMI 표시). 예외는 호출자 책임(§4.2와 같음) |
 
 출력: §6 결과. 성공 시 `design`은 Initial Design, `hri_result`는 `null`.
 
-흐름(Stage 2 Wave 3):
+흐름(Stage 2 Wave 4b, 2026-10-08 사용자 결정 — "의자 만들어줘" 같은 선행 발화를 요구하지 않음):
 
-- **Mock 모드**(`C_DESIGN_USE_LLM` ≠ 1): 선호 질문 없이 기존 흐름 그대로입니다(`questions` 빈 배열, D 통합 호환).
-- **LLM 모드**: 목표 확인 뒤 선호 질문 "혹시 생각해두셨거나, 만들고 싶은 의자가 있으세요?"를 `questions`·`on_question`에 내고, 음성 모드면 TTS 재생 뒤 한 번 듣습니다(텍스트 모드는 `preference_text`, `None`이면 질문하지 않음).
-  - 답이 침묵·빈 답이거나 `dialogue.parse_initial_preference`가 `ANY`(짧은 "아무거나·없어요·알아서" 류)면 LLM 없이 `llm.choose_initial_family(None)`(균등 무작위).
-  - 그 밖에는 `llm.interpret_initial_preference` → `llm.choose_initial_family(pref)`. 해석 실패·`PREFERENCE_KEYS` 누락은 "아무거나"로 보고 `design_metadata.error`에 `preference_error`를 남깁니다(설계는 계속). 해석 중 STOP은 `CANCELLED` / `STOPPED`.
-  - 음성 모드에서 해석의 `reply`(되읽기 문장)가 있으면 TTS로 읽어 줍니다(질문이 아니므로 `questions`에 넣지 않음).
-  - 고른 family와 `style_hint`로 `llm.generate_initial_design` → validator(designer loop) → `llm.describe_initial_design(…, family)` → `design_metadata`(§6.1).
-  - 음성 모드에서 선호 답 듣기가 장치·STT 실패(`None`)면 `VOICE_IO_FAILED`.
+- **Mock 모드**(`C_DESIGN_USE_LLM` ≠ 1): 기존 흐름 그대로입니다(목표 문장 `parse_goal`, 음성 모드면 `voice.listen()` 한 번, 질문 없음, `questions` 빈 배열, D 통합 호환).
+- **LLM 모드**:
+  1. (음성) `voice.prewarm()` → 인사 "안녕하세요. 오늘 어떤 걸 만들고 싶으세요?"를 `questions`·`on_question`·TTS로 내고 `voice.listen(mode="free", beep=True)`로 한 번 듣습니다. 침묵이면 "잘 못 들었어요. 오늘 어떤 걸 만들고 싶으세요?"로 한 번만 다시 묻고, 그래도 침묵이면 "아무거나"로 진행합니다. (텍스트) `text`를 씁니다.
+  2. `dialogue.parse_initial_request`가 `ANY`(특징·사물 단어 없는 명시적 "아무거나·알아서·맡길게요" 류)면 해석 호출 없이 무작위 family.
+  3. 그 밖에는 `llm.interpret_initial_request(text)`(키 `llm.REQUEST_KEYS`). 해석 실패·키 누락은 "아무거나"로 진행하고 `design_metadata.error`에 `request_error`, 해석 중 STOP은 `CANCELLED` / `STOPPED`.
+  4. `object`가 `UNSUPPORTED`면 (음성) "죄송해요, 지금은 의자나 벤치 같은 앉는 가구만 만들 수 있어요."를 읽고 `FAILED` / `UNSUPPORTED_OBJECT`.
+  5. `object`가 `UNCLEAR`이거나 `sufficient`가 true가 아니면 해석의 `follow_up` 문장으로 **한 번만** 되묻습니다(음성: 질문 → `listen(mode="free", beep=True)`, 텍스트: `preference_text`가 있을 때만 질문으로 기록). 답이 명시적 "아무거나"면 무작위, 아니면 "첫 발화 / 답"을 합친 문자열로 한 번 다시 해석합니다. 답이 없거나 두 번째도 `UNCLEAR`·불충분·해석 실패면 더 묻지 않고 "아무거나"로 진행하며 (음성) "알겠어요, 제가 어울리는 의자를 골라 볼게요."를 읽습니다. 두 번째가 `UNSUPPORTED`면 4와 같습니다.
+  6. `llm.choose_initial_family(request)`: `SPECIFIC`이면 그 카탈로그 family, `CREATIVE`면 family 없음(None), 그 밖·"아무거나"는 균등 무작위. `llm.generate_initial_design(…, family, style_hint, concept)` — `CREATIVE`일 때만 `concept` = `style_hint`(카탈로그로 환원하지 않음) → validator(designer loop) → `llm.describe_initial_design(…, family, concept)` → `design_metadata`(§6.1, `family_source` = `"preference"` / `"random"` / `"creative"`).
+  7. (음성) 해석의 `reply`(되읽기)가 있으면 TTS로 읽습니다(질문이 아니므로 `questions`에 넣지 않음).
+  - 음성 모드에서 듣기가 장치·STT 실패(`None`)면 `VOICE_IO_FAILED`(그때까지 낸 질문은 `questions`에 남음).
 
 **Initial family 선택과 선호 해석 함수 (Stage 2 Wave 2 `llm`, Wave 3에서 `main`에 연결)**
 
@@ -176,7 +179,9 @@ Day4에는 시간 기준 자동 취소·자동 KEEP·임의 종료가 없습니�
 | 명시적 취소 발화 | `CANCELLED` / `USER_CANCEL` |
 | 장치·엔진 실패 | 무응답이 아님. 녹음 장치·STT 실패는 §10에 따라 `VOICE_IO_FAILED` |
 
-음성 I/O(`voice`, WAVE 6)는 순차로 동작합니다. `speak`는 TTS 재생이 끝나고 짧은 지연(기본 0.5초)을 기다린 뒤 돌아오며, 그 뒤에야 `listen`이 마이크 입력을 엽니다(질문 음성을 답으로 다시 인식하지 않음). `listen` 1회는 소리 크기(RMS) 기준으로 발화를 판정합니다. 스트림을 연 직후 0.2초는 버리고(warm-up: open 직후 레벨 변화·직전 재생 잔향 제외) 그다음 0.5초 동안 방 소음(noise floor, 블록 RMS 중앙값)을 재고, 판정 기준을 max(600, noise floor × 3)으로 정합니다(적응형 임계값: 방 소음이 커도 소음을 발화로 오인하지 않음). 그다음 발화 시작을 기다리고(기본 최대 8초), 발화 직전 0.3초를 앞에 붙여(첫 음절 보존) 발화 끝 무음(기본 1초) 또는 발화 시작부터 최대 길이(기본 10초)에서 녹음을 끝냅니다. 앞뒤 무음은 0.2초만 남기고 잘라 냅니다. 발화가 없거나, 발화로 판정된 길이가 0.2초 미만이거나, 잘라 낸 녹음 전체가 기준의 절반보다 약하면 STT를 호출하지 않고 빈 문자열을 돌려줍니다(무음·소음에서 STT가 자막형 문장을 지어내는 것을 막음). 2초보다 짧은 녹음은 앞 0.3초·뒤 나머지를 무음으로 채워 2초로 보냅니다(1초 미만 클립은 whisper 환각이 잦음). STT 요청에는 `language=ko`와 도메인 어휘 힌트(`prompt`: 의자·벤치·소파·스툴·만들어줘·만들고 싶어)를 함께 보내고 응답은 `verbose_json`으로 받습니다. 힌트에는 취소·원복·재설계 어휘와 숫자("1번"·"2번")를 넣지 않습니다(되풀이돼도 응답 의미가 바뀌지 않게, 숫자 힌트는 짧은 "2번"에 "3번, 4번, …" 나열을 지어내게 함). segment가 없거나 모든 segment의 `no_speech_prob`가 0.8 이상이면 빈 문자열(발화 없음)로 처리하고 `last_error`에 `stt_no_speech`를 남깁니다(짧은 정상 발화도 0.55 안팎이라 보수적으로 둠). STT 결과가 힌트 전체이거나 힌트 항목을 3개 이상 담고 있으면 힌트를 되풀이한 것으로 보고 빈 문자열(발화 없음)로 처리하며 `last_error`에 `stt_prompt_echo`를 남깁니다. 환경 변수 `C_VOICE_DEBUG_DIR`이 있을 때만 STT에 보낸 WAV와 통계(길이·RMS·peak·noise floor·기준·발화 길이·잘라 낸 길이)를 그 폴더에 덮어써 남깁니다(기본 off, key 미기록). 통계에는 STT 전송 여부(`stt_called`)와 빈 문자열로 끝난 이유(`reason`: no_speech_detected / too_short / weak_input / no_speech_prob / prompt_echo)가 들어가며, STT를 부르지 않은 경우에는 통계만 남기고 이전 WAV는 지웁니다. `listen(on_ready=None)`의 선택 콜백은 warm-up·소음 보정이 끝나 발화를 기다리기 시작할 때 1회 호출되며(안내 표시용, 콜백 예외는 그대로 전파), `main`은 쓰지 않습니다(기본 None). 장치·STT 실패는 `None`입니다. 수치는 `voice` 모듈 상수입니다. 별도 thread·watchdog 없이 `main` 대화 루프에서 `should_stop`을 확인합니다. 텍스트 모드에는 대기가 없습니다.
+음성 I/O(`voice`, WAVE 6)는 순차로 동작합니다. `speak`는 TTS 재생이 끝나고 짧은 지연(기본 0.5초)을 기다린 뒤 돌아오며, 그 뒤에야 `listen`이 마이크 입력을 엽니다(질문 음성을 답으로 다시 인식하지 않음). `listen` 1회는 소리 크기(RMS) 기준으로 발화를 판정합니다. 스트림을 연 직후 0.2초는 버리고(warm-up: open 직후 레벨 변화·직전 재생 잔향 제외) 그다음 0.5초 동안 방 소음(noise floor, 블록 RMS 중앙값)을 재고, 판정 기준을 max(600, noise floor × 3)으로 정합니다(적응형 임계값: 방 소음이 커도 소음을 발화로 오인하지 않음). 그다음 발화 시작을 기다리고(기본 최대 8초), 발화 직전 0.3초를 앞에 붙여(첫 음절 보존) 발화 끝 무음(기본 1초) 또는 발화 시작부터 최대 길이(기본 10초)에서 녹음을 끝냅니다. 앞뒤 무음은 0.2초만 남기고 잘라 냅니다. 발화가 없거나, 발화로 판정된 길이가 0.2초 미만이거나, 잘라 낸 녹음 전체가 기준의 절반보다 약하면 STT를 호출하지 않고 빈 문자열을 돌려줍니다(무음·소음에서 STT가 자막형 문장을 지어내는 것을 막음). 2초보다 짧은 녹음은 앞 0.3초·뒤 나머지를 무음으로 채워 2초로 보냅니다(1초 미만 클립은 whisper 환각이 잦음). STT 요청에는 `language=ko`와 도메인 어휘 힌트(`prompt`: 의자·벤치·소파·스툴·만들어줘·만들고 싶어)를 함께 보내고 응답은 `verbose_json`으로 받습니다. 힌트에는 취소·원복·재설계 어휘와 숫자("1번"·"2번")를 넣지 않습니다(되풀이돼도 응답 의미가 바뀌지 않게, 숫자 힌트는 짧은 "2번"에 "3번, 4번, …" 나열을 지어내게 함). segment가 없거나 모든 segment의 `no_speech_prob`가 0.8 이상이면 빈 문자열(발화 없음)로 처리하고 `last_error`에 `stt_no_speech`를 남깁니다(짧은 정상 발화도 0.55 안팎이라 보수적으로 둠). STT 결과가 힌트 전체이거나, 힌트 항목을 3개 이상 담고 그 항목들을 지운 나머지가 2자 이하(사실상 힌트 나열뿐)이면 힌트를 되풀이한 것으로 보고(2026-10-08: 힌트 단어가 여럿 든 정상 자유 발화는 통과) 빈 문자열(발화 없음)로 처리하며 `last_error`에 `stt_prompt_echo`를 남깁니다. 환경 변수 `C_VOICE_DEBUG_DIR`이 있을 때만 STT에 보낸 WAV와 통계(길이·RMS·peak·noise floor·기준·발화 길이·잘라 낸 길이)를 그 폴더에 덮어써 남깁니다(기본 off, key 미기록). 통계에는 STT 전송 여부(`stt_called`)와 빈 문자열로 끝난 이유(`reason`: no_speech_detected / too_short / weak_input / no_speech_prob / prompt_echo)가 들어가며, STT를 부르지 않은 경우에는 통계만 남기고 이전 WAV는 지웁니다. `listen(on_ready=None)`의 선택 콜백은 warm-up·소음 보정이 끝나 발화를 기다리기 시작할 때 1회 호출되며(안내 표시용, 콜백 예외는 그대로 전파), `main`은 쓰지 않습니다(기본 None). 장치·STT 실패는 `None`입니다. 수치는 `voice` 모듈 상수입니다. 별도 thread·watchdog 없이 `main` 대화 루프에서 `should_stop`을 확인합니다. 텍스트 모드에는 대기가 없습니다.
+
+Stage 2 Wave 4b(2026-10-08 사용자 E2E 로그 확정 원인 반영): `listen(on_ready=None, mode="short", beep=False)`. `mode="free"`(Initial 요청·되묻기 답·Intervention 답변)는 발화 시작 대기 10초·끝 무음 1.5초(말 사이 쉼에서 끊기지 않게), `"short"`(기본, D·Mock 경로)는 위 값(8초·1초) 그대로입니다. `beep=True`면 소음 보정이 끝난 직후 880 Hz 0.12초 알림음을 내고 0.3초 입력을 버린 뒤(그다음 `on_ready`) 발화를 기다립니다(알림음 출력 실패는 무시하고 계속 들음). 무음 판정은 whisper와 같은 복합 조건입니다: segment마다 `no_speech_prob` ≥ 0.8 **그리고** `avg_logprob` < −1.0일 때만 무음이고(모든 segment가 무음일 때 빈 문자열), `avg_logprob`가 없는 segment는 `no_speech_prob`만 봅니다. 디버그 통계에 `avg_logprobs`를 함께 남깁니다. `voice.prewarm()`은 음성 모드 Initial 시작 때 장치 준비(지연 import·입력 스트림 open/close)를 미리 하며 실패해도 예외 없이 `False`입니다. `record()`는 여전히 인자 없이 호출·대체할 수 있습니다(듣기 방식은 `listen`이 모듈 안에서 넘김).
 
 ## 5. 입력 형식 (D → C)
 
@@ -408,7 +413,7 @@ C의 Validator 통과는 후보 검증이며 최종 채택이 아닙니다.
 | 실패 | 호출자 입력 오류 | 즉시 반환 | `FAILED` / `INVALID_INPUT`, `UNSUPPORTED_OBJECT` |
 | 실패 | 재생성 10회 한도 도달 | 반환 | `FAILED` / `DESIGN_GENERATION_FAILED` |
 | 실패 | LLM provider 실패: 일시적 실패(network / timeout / 429 / 5xx)만 최대 3회(1·2·4초 backoff) API 재시도 후에도 실패. auth·키 없음(`OPENAI_LLM_API_KEY` 미설정, 다른 key로 대체하지 않음)·비정상 응답(reasoning 모델에 지원하지 않는 파라미터를 보내 생기는 400 포함)은 재시도 없이 즉시. 재시도 사이 `should_stop` 확인 | 반환 | `FAILED` / `LLM_CALL_FAILED` |
-| 실패 | 음성 입력 실패: 녹음 장치를 열거나 읽지 못함, 또는 STT provider 실패(key: `OPENAI_API_KEY`. 일시적 network / timeout / 429 / 5xx는 최대 3회 API 재시도 후, auth·키 없음·비정상 응답은 즉시) | 반환 | `FAILED` / `VOICE_IO_FAILED` |
+| 실패 | 음성 입력 실패(Stage 2 Wave 4b: 자유 발화는 `listen(mode="free", beep=True)`, 무음은 `no_speech_prob` ≥ 0.8 그리고 `avg_logprob` < −1.0일 때만, §4.3): 녹음 장치를 열거나 읽지 못함, 또는 STT provider 실패(key: `OPENAI_API_KEY`. 일시적 network / timeout / 429 / 5xx는 최대 3회 API 재시도 후, auth·키 없음·비정상 응답은 즉시) | 반환 | `FAILED` / `VOICE_IO_FAILED` |
 | 복구 | TTS 재생 실패(key: `OPENAI_TTS_API_KEY` 전용, 없으면 `OPENAI_API_KEY`로 대체하지 않고 `missing_key`. 모델은 `OPENAI_TTS_MODEL`, 기본 `gpt-4o-mini-tts`이며 `tts-1`·`tts-1-hd`에는 `instructions`를 보내지 않음. HTTP 실패 종류는 `auth`·`model_access`·`bad_param`·`billing`·`rate_limit`·`server`·`bad_response`) | 질문은 `on_question`으로 화면에 표시된 채 응답 대기를 계속하고 실패 사유는 `voice.last_error()`에 기록 | 반환하지 않고 계속 |
 
 | `error.code` | 의미 | 함수 |
