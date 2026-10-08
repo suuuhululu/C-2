@@ -129,6 +129,20 @@ def test_mock_initial_candidate_shape():
         assert set(b.keys()) == set(validator.BLOCK_FIELDS)
 
 
+def _in_stock(blocks):
+    return all(b["brick_type"] in validator.ALLOWED_COMBINATIONS[b["color"]] for b in blocks)
+
+
+def test_mock_designs_use_stock_combinations_only(initial_design):
+    """Stage 2 final stock (2026-10-08): Mock Initial and Revised use yellow/blue 2x2x1·2x3x1 only."""
+    assert _in_stock(designer.mock_initial_candidate(CHAIR)["blocks"])
+    assert _in_stock(initial_design["blocks"])
+    leg = _blocks_at(initial_design, 1)[0]
+    seat = _blocks_at(initial_design, 2)[0]
+    revised = designer.mock_revised_candidate(initial_design, [dict(leg)], [{"expected": seat, "actual": seat}])
+    assert _in_stock(revised["blocks"])
+
+
 def test_center_blocks_matches_bbox_formula():
     candidate = designer.mock_initial_candidate(CHAIR)
     centered = designer.center_blocks(candidate["blocks"])
@@ -724,15 +738,16 @@ def test_revised_llm_candidate_with_design_version_is_accepted_and_versioned_by_
 
 
 def _rich_tiny_chair_blocks():
-    """The tiny chair grown to 8 valid blocks (2 + 6): a stacked back column and 1x2x1 slats on the leg's free row."""
+    """The tiny chair grown to 8 valid blocks (2 + 6): a stacked back column and red 1x2x1 slats on the leg's free row
+    (stock combinations only: blue 2x2x1, red 1x2x1)."""
     leg, seat = _tiny_chair_design()["blocks"]
 
     def b(brick_type, x, y, layer, orientation_deg=0, color="blue"):
         return dict(color=color, brick_type=brick_type, x=x, y=y, orientation_deg=orientation_deg, layer=layer)
 
     return [dict(leg), dict(seat),
-            b("1x2x1", 10, 12, 2, 90), b("2x2x1", 10, 10, 3), b("1x2x1", 10, 12, 3, 90, "red"),
-            b("2x2x1", 10, 10, 4), b("1x2x1", 10, 12, 4, 90), b("2x2x1", 10, 10, 5, color="red")]
+            b("1x2x1", 10, 12, 2, 90, "red"), b("2x2x1", 10, 10, 3), b("1x2x1", 10, 12, 3, 90, "red"),
+            b("2x2x1", 10, 10, 4), b("1x2x1", 10, 12, 4, 90, "red"), b("2x2x1", 10, 10, 5)]
 
 
 def test_rich_tiny_chair_fixture_is_valid():

@@ -126,10 +126,19 @@ class TestStage2RuleLines:
         assert "- brick_type: 1x2x1, 2x2x1, 2x3x1. color: blue, red, yellow (lowercase)." in rules
         assert ("- orientation_deg: 1x2x1 uses 0 (X 1 stud, Y 2 studs) or 90 (X 2 studs, Y 1 stud); "
                 "2x3x1 uses 0 (X 2 studs, Y 3 studs) or 90 (X 3 studs, Y 2 studs); 2x2x1 always 0.") in rules
-        assert ("- red is available for accents; 1x2x1 is a thin brick for rails, trims, wings, slats and narrow supports "
-                "and still needs 2 studs of support below.") in rules
+        assert ("- Allowed brick/colour combinations (stock): yellow: 2x2x1, 2x3x1; blue: 2x2x1, 2x3x1; red: 1x2x1 only. "
+                "Never red 2x2x1 or 2x3x1, never yellow or blue 1x2x1.") in rules
+        assert ("- red 1x2x1 is the only red piece: use it for small features (trim, rail, accent, wing edge, armrest cap, "
+                "backrest detail, border), not for large surfaces; it still needs 2 studs of support below. Red is optional, "
+                "never required in quantity.") in rules
+        assert "red is available for accents" not in rules and "narrow supports" not in rules
         assert f"- blocks: 1..{validator.MAX_BLOCKS}." in rules and validator.MAX_BLOCKS == 40
         assert f"- layer: integer 1..{validator.MAX_LAYER};" in rules
+
+    def test_stock_line_follows_the_validator_combinations(self):
+        assert llm._STOCK_TEXT == "; ".join(f"{color}: {', '.join(sorted(types))}"
+                                            for color, types in validator.ALLOWED_COMBINATIONS.items())
+        assert list(validator.ALLOWED_COMBINATIONS) == ["yellow", "blue", "red"]
 
     def test_every_system_prompt_carries_the_rules(self):
         for prompt in (llm.SYSTEM_PROMPT_INITIAL, llm.SYSTEM_PROMPT_REVISED):
@@ -567,14 +576,15 @@ class TestExpressiveRevisedPrompt:
             "Style hint from the person (follow it first): 팔걸이로 쓰려고\n"
             "Choose the furniture family yourself; it may differ from the previous Design. The result must read as a chair "
             "first (a clear seat, a readable backrest, an obvious sitting direction) and be richer and more complete than "
-            f"the previous Design (at least 7 blocks, at most {validator.MAX_BLOCKS}). Red may be used as a visible band and "
-            "1x2x1 for rails, slats, trims, wings or thin legs where natural.\n")
+            f"the previous Design (at least 7 blocks, at most {validator.MAX_BLOCKS}). Red exists only as 1x2x1: use it for "
+            "trims, rails, accents or edges; the body is yellow/blue 2x2x1 and 2x3x1.\n")
         assert content.index(llm._REVISED_GUIDANCE) < content.index("Style hint from the person")
 
     def test_style_hint_and_block_count_omitted_when_not_given(self, monkeypatch, with_fake_key):
         content = self._revised_content(monkeypatch)
         assert "Style hint from the person (follow it first): 없음\n" in content
-        assert "richer and more complete than the previous Design. Red may be used" in content
+        assert "richer and more complete than the previous Design. Red exists only as 1x2x1" in content
+        assert "visible band" not in content and "thin legs" not in content
         assert "at least" not in content.split("Style hint from the person", 1)[1]
 
     def test_feedback_only_when_given(self, monkeypatch, with_fake_key):
@@ -1105,8 +1115,9 @@ class TestFamilyAwareInitial:
 
     CONCEPT = ("Creative concept from the person: 사과처럼 둥글고 빨간. Realise it as a REAL seating piece (clear seat, "
                "visible support, obvious sitting direction), never a sculpture: abstract its silhouette, proportions and "
-               "colour accents with the available bricks (1x2x1/2x2x1/2x3x1) and colours (yellow/blue/red), e.g. rounded "
-               "outline by stepping the footprint, a colour band for the skin, a top feature that recalls the concept.\n")
+               "colour accents with the stock bricks: main body in yellow/blue big bricks (2x2x1/2x3x1), red 1x2x1 for "
+               "outline/trim/accent lines that recall the concept, e.g. rounded outline by stepping the footprint, a top "
+               "feature that recalls the concept.\n")
 
     def test_concept_paragraph_without_family(self, monkeypatch, with_fake_key):
         system, user = self._user(monkeypatch, style_hint="사과처럼 둥글고 빨간", concept="사과처럼 둥글고 빨간")
@@ -1181,7 +1192,10 @@ class TestRicherRevised:
                 "for meaningful chair structure, never filler.\n") in users[1]
 
     def test_red_and_thin_brick_hint_in_both_system_prompts(self):
-        sentence = "Red and the thin 1x2x1: use red as a visible band rather than one stray block"
+        sentence = ("Colours and the thin 1x2x1: the main body (seat, supports, backrest, armrests) is yellow/blue 2x2x1 and "
+                    "2x3x1; red exists only as 1x2x1, so use it only for thin trims, rails, accents and edges on top of "
+                    "supported studs")
         assert sentence in llm._BUILD_HINTS
         for prompt in (llm.SYSTEM_PROMPT_INITIAL, llm.SYSTEM_PROMPT_REVISED):
             assert sentence in prompt and "mixing orientation 0 and 90, always with both of its studs supported" in prompt
+            assert "visible band" not in prompt and "thin legs" not in prompt

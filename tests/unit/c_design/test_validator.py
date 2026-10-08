@@ -182,7 +182,7 @@ def test_block_color_green_invalid_value():
 
 
 def test_block_color_red_accepted():
-    assert v.validate_design(design([block(color="red")])) == []
+    assert v.validate_design(design([block(color="red", brick_type="1x2x1")])) == []
     assert v.validate_design(design([block(color="red", brick_type="1x2x1", orientation_deg=90)])) == []
 
 
@@ -209,13 +209,64 @@ def test_block_orientation_invalid_for_2x2x1():
 
 @pytest.mark.parametrize("orientation", [45, 180, 270])
 def test_block_orientation_invalid_for_1x2x1(orientation):
-    b = block(brick_type="1x2x1", orientation_deg=orientation)
+    b = block(color="red", brick_type="1x2x1", orientation_deg=orientation)
     assert "invalid_value" in rules(v.validate_design(design([b])))
 
 
 @pytest.mark.parametrize("orientation", [0, 90])
 def test_block_orientation_valid_for_1x2x1(orientation):
-    assert v.validate_design(design([block(brick_type="1x2x1", orientation_deg=orientation)])) == []
+    assert v.validate_design(design([block(color="red", brick_type="1x2x1", orientation_deg=orientation)])) == []
+
+
+# ---------------------------------------------------------------------------
+# Stage 2 final stock (2026-10-08): colour x brick_type combinations
+# ---------------------------------------------------------------------------
+
+
+def test_allowed_combinations_match_the_vocabulary():
+    assert v.ALLOWED_COMBINATIONS == {"yellow": frozenset({"2x2x1", "2x3x1"}), "blue": frozenset({"2x2x1", "2x3x1"}),
+                                      "red": frozenset({"1x2x1"})}
+    assert set(v.ALLOWED_COMBINATIONS) == v.COLORS
+    assert set().union(*v.ALLOWED_COMBINATIONS.values()) == v.BRICK_TYPES
+
+
+@pytest.mark.parametrize("color,brick_type,orientation", [
+    ("yellow", "2x2x1", 0), ("yellow", "2x3x1", 0), ("blue", "2x2x1", 0), ("blue", "2x3x1", 90),
+    ("red", "1x2x1", 0), ("red", "1x2x1", 90),
+])
+def test_stock_combinations_are_valid(color, brick_type, orientation):
+    assert v.validate_design(design([block(color=color, brick_type=brick_type, orientation_deg=orientation)])) == []
+
+
+@pytest.mark.parametrize("color,brick_type,message", [
+    ("yellow", "1x2x1", "yellow 1x2x1 is not in stock: yellow allows only 2x2x1, 2x3x1"),
+    ("blue", "1x2x1", "blue 1x2x1 is not in stock: blue allows only 2x2x1, 2x3x1"),
+    ("red", "2x2x1", "red 2x2x1 is not in stock: red allows only 1x2x1"),
+    ("red", "2x3x1", "red 2x3x1 is not in stock: red allows only 1x2x1"),
+])
+def test_out_of_stock_combinations_are_rejected(color, brick_type, message):
+    b = block(color=color, brick_type=brick_type)
+    reasons = v.validate_design(design([b]))
+    assert reasons == [{"rule": "invalid_combination", "blocks": [b], "message": message}]
+
+
+def test_combination_is_not_checked_on_an_invalid_color_or_brick_type():
+    assert "invalid_combination" not in rules(v.validate_design(design([block(color="green", brick_type="1x2x1")])))
+    assert "invalid_combination" not in rules(v.validate_design(design([block(color="red", brick_type="1x4x1")])))
+
+
+def test_out_of_stock_current_block_is_an_input_error():
+    d = design([block(x=10, y=10)])
+    bad = block(color="blue", brick_type="1x2x1", x=10, y=10)
+    found = v.check_intervention_input(d, [bad], [{"expected": d["blocks"][0], "actual": bad}])
+    assert [r for r in found if r["rule"] == "invalid_combination"] and all(
+        r["blocks"] == [bad] for r in found if r["rule"] == "invalid_combination")
+
+
+def test_out_of_stock_revised_candidate_is_rejected():
+    assembled = block(x=10, y=10)
+    candidate = design([assembled, block(color="red", brick_type="2x3x1", x=10, y=10, layer=2)], design_version=2)
+    assert "invalid_combination" in rules(v.validate_revised(candidate, [assembled]))
 
 
 # ---------------------------------------------------------------------------
@@ -224,27 +275,27 @@ def test_block_orientation_valid_for_1x2x1(orientation):
 
 
 def test_1x2x1_overlap_on_the_same_layer():
-    a = block(brick_type="1x2x1", x=3, y=3, orientation_deg=0)  # (3,3) (3,4)
-    b = block(brick_type="1x2x1", x=3, y=4, orientation_deg=90)  # (3,4) (4,4)
+    a = block(color="red", brick_type="1x2x1", x=3, y=3, orientation_deg=0)  # (3,3) (3,4)
+    b = block(color="red", brick_type="1x2x1", x=3, y=4, orientation_deg=90)  # (3,4) (4,4)
     assert "overlap" in rules(v.validate_design(design([a, b])))
 
 
 def test_1x2x1_side_by_side_is_not_an_overlap():
-    a = block(brick_type="1x2x1", x=3, y=3, orientation_deg=0)
-    b = block(brick_type="1x2x1", x=4, y=3, orientation_deg=0)
+    a = block(color="red", brick_type="1x2x1", x=3, y=3, orientation_deg=0)
+    b = block(color="red", brick_type="1x2x1", x=4, y=3, orientation_deg=0)
     base = block(brick_type="2x2x1", x=3, y=3, layer=2)  # joins them from above (2 studs on each)
     assert v.validate_design(design([a, b, base])) == []
 
 
 def test_1x2x1_fully_on_the_block_below_is_supported():
     base = block(brick_type="2x2x1", x=0, y=0, layer=1)
-    top = block(brick_type="1x2x1", x=1, y=0, orientation_deg=0, layer=2)  # (1,0) (1,1): both studs on the base
+    top = block(color="red", brick_type="1x2x1", x=1, y=0, orientation_deg=0, layer=2)  # (1,0) (1,1): both studs on the base
     assert v.validate_design(design([base, top])) == []
 
 
 def test_1x2x1_with_one_stud_overlap_fails_support():
     base = block(brick_type="2x2x1", x=0, y=0, layer=1)
-    top = block(brick_type="1x2x1", x=1, y=1, orientation_deg=0, layer=2)  # (1,1) on the base, (1,2) in the air
+    top = block(color="red", brick_type="1x2x1", x=1, y=1, orientation_deg=0, layer=2)  # (1,1) on the base, (1,2) in the air
     assert "support" in rules(v.validate_design(design([base, top])))
 
 
@@ -252,20 +303,20 @@ def test_1x2x1_on_two_blocks_one_stud_each_is_supported():
     # support counts studs over all blocks of the layer below (total ≥ 2), not per block
     left = block(brick_type="2x2x1", x=0, y=0, layer=1)
     right = block(brick_type="2x2x1", x=2, y=0, layer=1)
-    top = block(brick_type="1x2x1", x=1, y=0, orientation_deg=90, layer=2)  # (1,0) on left, (2,0) on right
+    top = block(color="red", brick_type="1x2x1", x=1, y=0, orientation_deg=90, layer=2)  # (1,0) on left, (2,0) on right
     assert v.validate_design(design([left, right, top])) == []
 
 
 def test_1x2x1_disconnected_piece_fails_connectivity():
     body = block(brick_type="2x2x1", x=0, y=0, layer=1)
-    stray = block(brick_type="1x2x1", x=10, y=10, orientation_deg=0, layer=1)
+    stray = block(color="red", brick_type="1x2x1", x=10, y=10, orientation_deg=0, layer=1)
     assert "connectivity" in rules(v.validate_design(design([body, stray])))
 
 
 def test_1x2x1_out_of_board_uses_its_own_footprint():
-    assert v.validate_design(design([block(brick_type="1x2x1", x=23, y=22, orientation_deg=0)])) == []  # (23,22) (23,23)
-    assert "out_of_board" in rules(v.validate_design(design([block(brick_type="1x2x1", x=23, y=23, orientation_deg=0)])))
-    assert "out_of_board" in rules(v.validate_design(design([block(brick_type="1x2x1", x=23, y=0, orientation_deg=90)])))
+    assert v.validate_design(design([block(color="red", brick_type="1x2x1", x=23, y=22, orientation_deg=0)])) == []  # (23,22) (23,23)
+    assert "out_of_board" in rules(v.validate_design(design([block(color="red", brick_type="1x2x1", x=23, y=23, orientation_deg=0)])))
+    assert "out_of_board" in rules(v.validate_design(design([block(color="red", brick_type="1x2x1", x=23, y=0, orientation_deg=90)])))
 
 
 def test_block_layer_out_of_range():

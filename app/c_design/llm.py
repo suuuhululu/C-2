@@ -77,12 +77,16 @@ REASONING_MODEL_PREFIXES = ("gpt-6", "gpt-5", "o1", "o3", "o4")
 REASONING_EFFORT = "medium"
 MAX_COMPLETION_TOKENS = 8000
 
+# 허용 조합 줄(2026-10-08 최종 재고): validator.ALLOWED_COMBINATIONS 순서(yellow, blue, red)대로 만든다.
+_STOCK_TEXT = "; ".join(f"{color}: {', '.join(sorted(types))}" for color, types in validator.ALLOWED_COMBINATIONS.items())
+
 _RULE_LINES = f"""Rules (the validator rejects any violation):
 - Board {len(validator.BOARD_RANGE)} x {len(validator.BOARD_RANGE)} studs. x and y are integers: the minimum corner of the block footprint; the whole footprint must stay inside 0..{validator.BOARD_RANGE[-1]}.
 - brick_type: {", ".join(sorted(validator.BRICK_TYPES))}. color: {", ".join(sorted(validator.COLORS))} (lowercase).
+- Allowed brick/colour combinations (stock): {_STOCK_TEXT} only. Never red 2x2x1 or 2x3x1, never yellow or blue 1x2x1.
 - layer: integer 1..{validator.MAX_LAYER}; layer 1 sits on the board.
 - orientation_deg: 1x2x1 uses 0 (X 1 stud, Y 2 studs) or 90 (X 2 studs, Y 1 stud); 2x3x1 uses 0 (X 2 studs, Y 3 studs) or 90 (X 3 studs, Y 2 studs); 2x2x1 always 0.
-- red is available for accents; 1x2x1 is a thin brick for rails, trims, wings, slats and narrow supports and still needs {validator.MIN_SUPPORT_STUDS} studs of support below.
+- red 1x2x1 is the only red piece: use it for small features (trim, rail, accent, wing edge, armrest cap, backrest detail, border), not for large surfaces; it still needs {validator.MIN_SUPPORT_STUDS} studs of support below. Red is optional, never required in quantity.
 - blocks: 1..{validator.MAX_BLOCKS}. No two blocks on the same layer may share a stud.
 - Every block on layer >= 2 must overlap blocks on the layer directly below by at least {validator.MIN_SUPPORT_STUDS} studs in total.
 - All blocks must form one connected structure through stud overlaps between adjacent layers."""
@@ -125,7 +129,7 @@ Recognition is the main goal: seen as a whole silhouette, the design must read a
 Size and height are free within the rules: choose the width, depth, number of layers and block count that are natural for the chosen type (a low stool needs few layers, a high-back chair more).
 """
 _BUILD_HINTS = """How to build validly with these bricks: think in layers from the board up. Blocks on one layer may touch side by side but never share a stud. A block on a higher layer must sit on blocks of the layer directly below and overlap them by at least the required studs; a solid way to join two blocks is a block above that overlaps both. Every part (support, seating area, backrest, armrests) must be joined to the rest this way, so the whole design is one connected piece.
-Red and the thin 1x2x1: use red as a visible band rather than one stray block (a top rail, a seat edge, armrest caps, a crown), and use 1x2x1 for slats, rails, trims, wings and thin legs, mixing orientation 0 and 90, always with both of its studs supported from below.
+Colours and the thin 1x2x1: the main body (seat, supports, backrest, armrests) is yellow/blue 2x2x1 and 2x3x1; red exists only as 1x2x1, so use it only for thin trims, rails, accents and edges on top of supported studs (a top rail, a seat edge, armrest caps, a backrest detail), mixing orientation 0 and 90, always with both of its studs supported from below.
 """
 _PROCEDURE = """Work in this order (silently; output only the JSON): 1) pick a seating-furniture type that suits the rules; 2) picture its silhouette: where the seating area is, what carries it, whether it has a back or arms; 3) lay out the blocks layer by layer; 4) check every rule above; 5) output the JSON.
 """
@@ -352,8 +356,9 @@ def _initial_user_message(object_type, reasons, family=None, style_hint=None, co
     if concept is not None:
         selected += (f"Creative concept from the person: {concept}. Realise it as a REAL seating piece (clear seat, visible "
                      "support, obvious sitting direction), never a sculpture: abstract its silhouette, proportions and colour "
-                     "accents with the available bricks (1x2x1/2x2x1/2x3x1) and colours (yellow/blue/red), e.g. rounded outline "
-                     "by stepping the footprint, a colour band for the skin, a top feature that recalls the concept.\n")
+                     "accents with the stock bricks: main body in yellow/blue big bricks (2x2x1/2x3x1), red 1x2x1 for "
+                     "outline/trim/accent lines that recall the concept, e.g. rounded outline by stepping the footprint, a top "
+                     "feature that recalls the concept.\n")
     if style_hint and style_hint != concept:
         selected += f"Style preference from the person: {style_hint}\n"
     return (
@@ -387,7 +392,8 @@ def _revised_user_message(design, current, differences, reasons, feedback=None, 
         + f"Style hint from the person (follow it first): {style_hint or '없음'}\n"
         "Choose the furniture family yourself; it may differ from the previous Design. The result must read as a chair first "
         "(a clear seat, a readable backrest, an obvious sitting direction) and be richer and more complete than the previous "
-        f"Design{count}. Red may be used as a visible band and 1x2x1 for rails, slats, trims, wings or thin legs where natural.\n"
+        f"Design{count}. Red exists only as 1x2x1: use it for trims, rails, accents or edges; the body is yellow/blue 2x2x1 and "
+        "2x3x1.\n"
     )
 
 

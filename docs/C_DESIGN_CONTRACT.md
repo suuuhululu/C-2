@@ -37,14 +37,22 @@ C 문서·코드·Fixture·테스트는 아래 팀 공용 용어만 씁니다. C
 
 | 필드 | 허용 값 | 정의 |
 |---|---|---|
-| `brick_type` | `1x2x1`, `2x2x1`, `2x3x1` | ASCII 소문자 `x`. `1x2x1`은 Stage 2 추가(가는 블록: rail·trim·wing·slat·좁은 지지용) |
-| `color` | `yellow`, `blue`, `red` | 소문자. `red`는 Stage 2 추가 |
+| `brick_type` | `1x2x1`, `2x2x1`, `2x3x1` | ASCII 소문자 `x`. `1x2x1`은 Stage 2 추가(가는 블록, red만: trim·rail·accent 등 작은 특징용) |
+| `color` | `yellow`, `blue`, `red` | 소문자. `red`는 Stage 2 추가(`1x2x1`만) |
 | `x` | 정수 0~23 | 24×24 Board stud 좌표, footprint의 최소 x 모서리. Robot mm·TCP 좌표 아님 |
 | `y` | 정수 0~23 | footprint의 최소 y 모서리 |
 | `layer` | 정수 1~5 | 1층이 판 위 첫 층(최대 5층: 2026-10-06 팀장 결정) |
 | `orientation_deg` | `1x2x1`: 0 또는 90 / `2x3x1`: 0 또는 90 / `2x2x1`: 0 | `1x2x1`: 0 = X 1 stud · Y 2 stud, 90 = X 2 stud · Y 1 stud. `2x3x1`: 0 = X 2 stud · Y 3 stud, 90 = X 3 stud · Y 2 stud. `2x2x1`: X 2 · Y 2 |
 
 - footprint 전체가 0~23 안에 있어야 합니다(예: `2x3x1` 0도 `x = 23`, `1x2x1` 90도 `x = 23`은 범위 초과).
+- **색 × brick_type 허용 조합(최종 Stage 2 재고, 2026-10-08 사용자 결정)**: 실제 공급 재고에 있는 다섯 조합만 허용합니다. 그 밖의 조합은 brick_type·color가 각각 허용 값이어도 `invalid_combination`으로 거부합니다(§9.1). 단일 출처는 `validator.ALLOWED_COMBINATIONS`이며 블록 여섯 필드는 그대로입니다(새 필드 없음).
+
+| color | 허용 brick_type | 금지 |
+|---|---|---|
+| `yellow` | `2x2x1`, `2x3x1` | `1x2x1` |
+| `blue` | `2x2x1`, `2x3x1` | `1x2x1` |
+| `red` | `1x2x1` (orientation 0 = X 1 · Y 2, 90 = X 2 · Y 1) | `2x2x1`, `2x3x1` |
+
 - footprint 크기는 `validator.BRICK_SIZES`(0도 기준 X·Y stud 수, 90도면 바꿈), 허용 orientation은 `validator.ORIENTATIONS`가 단일 출처입니다.
 - Stage 2 어휘(red, `1x2x1`)는 C에 적용됐지만 A·D·공유 문서는 아직 이전 어휘입니다. 바꿔야 할 지점은 [C_DESIGN_STAGE2_AD_HANDOFF.md](C_DESIGN_STAGE2_AD_HANDOFF.md)에 정리했습니다(C는 수정하지 않음).
 - 정수 필드는 소수점 없는 JSON 정수만 허용합니다. `true`/`false`와 `1.0`은 정수가 아닙니다.
@@ -68,7 +76,7 @@ Design은 정확히 두 키를 가집니다. 그 외 키(`design_id`, 부모 버
 }
 ```
 
-생성 경로(MOCK / LLM) 같은 진단 정보와 설계 이름·설명은 Design 밖, envelope의 `design_metadata`에 둡니다(§6.1). layer 1~5·블록 수 1~40·brick_type·color는 validator 상수(`MAX_LAYER`, `MAX_BLOCKS`, `BRICK_TYPES`, `COLORS`)이며 LLM 프롬프트의 Rules 줄도 이 상수를 그대로 씁니다("blocks: 1..40", "brick_type: 1x2x1, 2x2x1, 2x3x1"). Rules 줄의 orientation 문장과 어휘 안내("red is available for accents; 1x2x1 is a thin brick … still needs 2 studs of support below")는 고정 문장입니다.
+생성 경로(MOCK / LLM) 같은 진단 정보와 설계 이름·설명은 Design 밖, envelope의 `design_metadata`에 둡니다(§6.1). layer 1~5·블록 수 1~40·brick_type·color는 validator 상수(`MAX_LAYER`, `MAX_BLOCKS`, `BRICK_TYPES`, `COLORS`)이며 LLM 프롬프트의 Rules 줄도 이 상수를 그대로 씁니다("blocks: 1..40", "brick_type: 1x2x1, 2x2x1, 2x3x1"). 허용 조합 줄("Allowed brick/colour combinations (stock): yellow: 2x2x1, 2x3x1; blue: 2x2x1, 2x3x1; red: 1x2x1 only. Never red 2x2x1 or 2x3x1, never yellow or blue 1x2x1.")은 `validator.ALLOWED_COMBINATIONS`로 만듭니다. Rules 줄의 orientation 문장과 red 안내("red 1x2x1 is the only red piece: use it for small features (trim, rail, accent, wing edge, armrest cap, backrest detail, border), not for large surfaces; it still needs 2 studs of support below. Red is optional, never required in quantity.")는 고정 문장입니다(2026-10-08 최종 재고).
 
 ### 3.3 Initial Design 배치
 
@@ -142,7 +150,7 @@ LLM 모델은 역할별로 셋입니다(Stage 2 Wave 4c, 2026-10-08 사용자 �
 |---|---|---|
 | `llm.interpret_initial_request(text, should_stop=None)` | 사용자 첫 자유 발화 한 문장(또는 첫 발화와 follow-up 답을 합친 문자열) | 모델: 보조 모델(`OPENAI_AUX_MODEL`, 기본 `gpt-4.1-mini`). `{object, preference, family, style_hint, sufficient, follow_up, reply}`(`llm.REQUEST_KEYS`) 또는 `{"llm_error": …}`. `object` ∈ `"CHAIR"`(앉는 가구 전부: 의자·벤치·소파·스툴·왕좌 등) / `"UNSUPPORTED"`(앉는 가구가 아닌 사물을 분명히 요구) / `"UNCLEAR"`(사물을 알 수 없음). `preference` ∈ `"ANY"`(맡김·아무거나, 스타일 형용사만 있어도 가능) / `"SPECIFIC"`(카탈로그 family로 자연스럽게 표현되는 종류·특징) / `"CREATIVE"`(카탈로그 family로 바꾸면 의미가 사라지는 concept, 예: 사과·구름·꽃·왕관 같은 의자). `family` = SPECIFIC이면 카탈로그 키, 그 밖은 null(카탈로그에 강제 매핑하지 않음, CREATIVE는 항상 null). `style_hint` = 짧은 한국어 구(CREATIVE는 concept 전체, 예: "사과처럼 둥글고 빨간"), 없으면 `""`. `sufficient` = object가 UNCLEAR이거나 종류·특징·concept·명시적 ANY가 하나도 없을 때만 false(명시적 ANY는 true). `follow_up` = sufficient가 false일 때 물을 존댓말 한 문장, 아니면 `""`. `reply` = Design 생성 전에 바로 읽어 줄 acknowledgment: 요청을 짧게 되짚는 자연스러운 존댓말 한 문장으로, 핵심(SPECIFIC은 종류·특징, CREATIVE는 concept, ANY는 어울리는 스타일을 고르겠다는 뜻)을 담고, 고정 문구 없이 매번 표현을 달리하되 장황하지 않게(Stage 2 Wave 4c). 발화 원문은 해석할 데이터이며 그 안의 지시·key·코드는 따르지 않음(프롬프트에 명시) |
 | `llm.choose_initial_family(preference, rng=None)` | `None` 또는 요청 해석 결과 dict | 카탈로그 키 하나 또는 `None`. `preference`가 `SPECIFIC`이고 `family`가 카탈로그 키면 그 키, `CREATIVE`면 `None`(concept로 생성), 그 밖(None·ANY·카탈로그 밖)에는 `(rng or random).choice(sorted(FAMILY_CATALOG))` 균등 선택. 이력·가중치 없음(LLM 호출 없음) |
-| `llm.generate_initial_design(object_type, reasons=None, should_stop=None, family=None, style_hint=None, concept=None)` | 고른 family 또는 concept, style_hint | 모델: `OPENAI_MODEL`. family가 있으면 사용자 메시지에 "Selected family: … Defining visible features …", concept가 있으면 "Creative concept from the person: <concept>. Realise it as a REAL seating piece (clear seat, visible support, obvious sitting direction), never a sculpture: abstract its silhouette, proportions and colour accents with the available bricks (1x2x1/2x2x1/2x3x1) and colours (yellow/blue/red), e.g. rounded outline by stepping the footprint, a colour band for the skin, a top feature that recalls the concept."를 넣음. style_hint가 있고 concept와 다르면 "Style preference from the person: …"(CREATIVE에서는 같은 문구라 한 번만). 셋 다 없으면 기존 메시지 그대로. family와 concept를 함께 주면 `ValueError`(호출 없음). Initial system prompt에는 "주어진 family를 구현하라"(`_FAMILY_GIVEN`)와 "family 대신 concept가 주어질 수 있으며 그래도 실제 앉는 가구로, 조형물 금지"(`_CONCEPT_GIVEN`) 두 문장만 추가(예시 JSON 없음) |
+| `llm.generate_initial_design(object_type, reasons=None, should_stop=None, family=None, style_hint=None, concept=None)` | 고른 family 또는 concept, style_hint | 모델: `OPENAI_MODEL`. family가 있으면 사용자 메시지에 "Selected family: … Defining visible features …", concept가 있으면 "Creative concept from the person: <concept>. Realise it as a REAL seating piece (clear seat, visible support, obvious sitting direction), never a sculpture: abstract its silhouette, proportions and colour accents with the stock bricks: main body in yellow/blue big bricks (2x2x1/2x3x1), red 1x2x1 for outline/trim/accent lines that recall the concept, e.g. rounded outline by stepping the footprint, a top feature that recalls the concept."를 넣음. style_hint가 있고 concept와 다르면 "Style preference from the person: …"(CREATIVE에서는 같은 문구라 한 번만). 셋 다 없으면 기존 메시지 그대로. family와 concept를 함께 주면 `ValueError`(호출 없음). Initial system prompt에는 "주어진 family를 구현하라"(`_FAMILY_GIVEN`)와 "family 대신 concept가 주어질 수 있으며 그래도 실제 앉는 가구로, 조형물 금지"(`_CONCEPT_GIVEN`) 두 문장만 추가(예시 JSON 없음) |
 | `llm.describe_initial_design(design, should_stop=None, family=None, concept=None)` | Initial Design, 고른 family 또는 concept | 모델: `OPENAI_MODEL`. payload에 `selected_family`·`selected_family_features`·`concept`. 출력 키는 그대로이며 `family_design_match` ∈ `clear`/`weak`/`mismatch`는 "고른 family(와 defining features) 또는 concept를 실제 앉는 가구로 얼마나 실현했는가"(둘 다 없으면 보이는 family 기준)로 재정의(새 키 없음) |
 
 Stage 2 Wave 2~4의 `llm.interpret_initial_preference`·`PREFERENCE_KEYS`·`SYSTEM_PROMPT_PREFERENCE`는 Wave 4b에서 위 `interpret_initial_request`·`REQUEST_KEYS`·`SYSTEM_PROMPT_REQUEST`로 대체하고 삭제했습니다.
@@ -377,13 +385,13 @@ Initial Design에는 고정 블록이 없으므로 escalation이 없습니다.
 
 - **목표**: 사람 배치를 문자 그대로 해석하는 것도, 최소 수정도 아닙니다. Current를 출발 조건이자 영감 단서로 쓰고, 이전 Design보다 **더 풍부하고 완성도 높으며 의자처럼 읽히는**(분명한 좌석, 읽히는 등받이, 앉는 방향) Revised Design을 만듭니다. 이전 Design은 맥락일 뿐이며, 핵심 문장 "Preserve the Current exactly. Treat the previous Design as context, not as geometry to preserve."와 조립 순서 규칙(새 블록을 이미 놓인 블록 아래층에 두지 않음)은 그대로입니다.
 - **흐름(LLM 모드)**: Intervention 답변 해석(`dialogue.parse_response`, 필요 시 `llm.interpret_intervention_answer`로 `style_hint`, §4.2) → `llm.generate_revised_design` 직접 호출(설계 의도 호출 없음, §8.10 재생성 포함) → validator → judge → 필요 시 재생성 1회 → 재judge. `generate_design_intent`·`SYSTEM_PROMPT_INTENT`·`INTENT_KEYS`는 삭제했습니다. `design_metadata.design_intent`는 가짜로 채우지 않고 null입니다(§6.1).
-- **생성** (`llm.generate_revised_design(design, current, differences, reasons=None, should_stop=None, feedback=None, min_blocks=None, style_hint=None)`): 사용자 메시지 첫 줄은 "The user chose REVISE. Design a complete seating-furniture piece around the blocks already on the board."이고 Current·Difference·이전 Design(맥락)·탈락 사유·최소 블록 수 문장·judge 피드백(재생성 때만)·`_REVISED_GUIDANCE`는 그대로입니다. 끝에 "Style hint from the person (follow it first): <style_hint 또는 없음>"과 "Choose the furniture family yourself; it may differ from the previous Design. The result must read as a chair first (a clear seat, a readable backrest, an obvious sitting direction) and be richer and more complete than the previous Design (at least M blocks, at most 40). Red may be used as a visible band and 1x2x1 for rails, slats, trims, wings or thin legs where natural." 문단을 넣습니다(`min_blocks`가 None이면 괄호의 블록 수 부분을 뺍니다). system prompt(`SYSTEM_PROMPT_REVISED`)는 그대로입니다.
+- **생성** (`llm.generate_revised_design(design, current, differences, reasons=None, should_stop=None, feedback=None, min_blocks=None, style_hint=None)`): 사용자 메시지 첫 줄은 "The user chose REVISE. Design a complete seating-furniture piece around the blocks already on the board."이고 Current·Difference·이전 Design(맥락)·탈락 사유·최소 블록 수 문장·judge 피드백(재생성 때만)·`_REVISED_GUIDANCE`는 그대로입니다. 끝에 "Style hint from the person (follow it first): <style_hint 또는 없음>"과 "Choose the furniture family yourself; it may differ from the previous Design. The result must read as a chair first (a clear seat, a readable backrest, an obvious sitting direction) and be richer and more complete than the previous Design (at least M blocks, at most 40). Red exists only as 1x2x1: use it for trims, rails, accents or edges; the body is yellow/blue 2x2x1 and 2x3x1." (2026-10-08 최종 재고) 문단을 넣습니다(`min_blocks`가 None이면 괄호의 블록 수 부분을 뺍니다). system prompt(`SYSTEM_PROMPT_REVISED`)는 그대로입니다.
 - **richness**: `designer.RICHNESS_MIN_DELTA = 6`, `designer.revised_min_blocks(design) = min(이전 블록 수 + 6, MAX_BLOCKS)`. LLM 모드에서만 `min_blocks`를 `designer.build_revised_design`과 `llm.generate_revised_design`에 넘깁니다(escalation 뒤 남은 4회와 judge 재생성 포함, Mock은 `None`). 값이 있으면 validator를 통과한 후보라도 블록이 그보다 적으면 `{"rule": "too_few_blocks", "blocks": [], "message": "Revised Design has N blocks; at least M required (previous K + 6, at most 40)"}`로 탈락시키고 §8.10 loop가 다시 만듭니다(validator 규칙은 그대로). `llm.generate_revised_design`은 값이 있으면 "The Revised Design must contain at least M blocks (the previous Design had K); use the extra blocks for meaningful chair structure, never filler."도 넣습니다.
 - **judge** (`llm.judge_revised_design(previous, design, current, differences, should_stop=None)`): 설계 의도 인자와 payload의 `design_intent`를 없앴고, 설계 자체와 previous·Current·difference(추가·제거 블록 포함)만으로 판단합니다. `feature_check`(계획한 특징 대조)는 뺐고 `interpretation_status`는 judge가 본 family·특징이 블록에 얼마나 분명한지로 정의합니다. 나머지 출력 키(`design_name`, `design_family`, `family_guess_without_name`, `family_confidence`, `visible_features`, `change_summary`, `interpretation_status`, `recognizable_family`, `silhouette_clarity`, `explanation_required_to_understand`, `family_recognisable`, `looks_designed_not_patched`, `layer5_meaningful`, `completeness_score`, `human_story`, `silhouette_tags`, `chair_likeness`, `richer_than_previous`, `richer_why`, `awkward`, `reads_as_seating`, `why_it_is_complete`)는 유지합니다.
 - **judge 모델**: `llm.DEFAULT_JUDGE_MODEL = "gpt-4.1-mini"`, 환경 변수 `OPENAI_JUDGE_MODEL`(`llm.JUDGE_MODEL_ENV`)로 바꿀 수 있습니다(예: gpt-6.1-sol로 복귀). key는 `OPENAI_LLM_API_KEY` 그대로이며, 생성·Initial 설명은 `OPENAI_MODEL`(없으면 `DEFAULT_MODEL`)을 그대로 씁니다. `llm._call`·`_json_call`의 `model=None` 인자로 judge(와 Stage 2 Wave 4c부터 요청·답변 해석의 보조 모델 `OPENAI_AUX_MODEL`, §4)만 모델을 넘깁니다. gpt-4.1-mini는 reasoning 접두어가 아니므로 temperature·max_tokens payload입니다. 선택 근거는 [Judge Blind Test](C_DESIGN_JUDGE_BLIND_TEST.md)이며 실물 테스트 후 재검토합니다. judge는 최종 물리 안전 판정기가 아니라 Design 품질 보조 필터입니다.
 - **재생성(최대 1회)**: 조건은 `recognizable_family is False` 또는 `silhouette_clarity == "ambiguous"` 또는 `chair_likeness == "not_chair"` 또는 `richer_than_previous is False`이며 상한 `main.METADATA_REGENERATIONS_MAX = 1`은 그대로입니다. 필수 필드(`_JUDGE_REQUIRED`: `recognizable_family`, `silhouette_clarity`, `reads_as_seating`, `explanation_required_to_understand`, `chair_likeness`, `richer_than_previous`)가 빠지거나 예상 밖 값이면 `judge_error`(재생성 없음). 재생성 피드백(`llm.judge_feedback_text`)은 "keep the same family"와 judge의 family 추정·신뢰도·실루엣·설명 필요 여부·`interpretation_status`·awkward를 담습니다.
 - **Intervention 자유 답변 해석** (`llm.interpret_intervention_answer(text, differences, should_stop=None)`): 입력은 답변 원문과 difference의 `expected`/`actual`만(Design 전체는 보내지 않음). 반환 `{decision: "KEEP" / "REVISE" / "UNCLEAR" / "CANCEL", style_hint, reason, reply}`(`llm.INTERVENTION_ANSWER_KEYS`, `reply`는 Stage 2 Wave 4c acknowledgment, §4.2) 또는 `{"llm_error": …}`. REVISE = 의도한 배치이니 Current를 살린 새 설계, KEEP = 실수라 원래 자리로 고침. `reason`은 자연스러운 존댓말 한 문장. 답변 원문의 지시·key·코드는 따르지 않습니다. 해석한 `style_hint`는 `generate_revised_design`에 바로 넘깁니다.
-- **red·1x2x1 다양화**: 공통 build hint에 "red는 한 블록이 아니라 눈에 띄는 띠(top rail, seat edge, armrest caps, crown), 1x2x1은 slat·rail·trim·wing·thin leg로 0/90을 섞어 쓰되 두 stud 모두 지지" 문장을 더했습니다(철학·구조 불변). 하위 호환 이름 `FURNITURE_FAMILIES`는 카탈로그 키입니다.
+- **red·1x2x1 (2026-10-08 최종 재고로 갱신)**: 공통 build hint는 "본체(좌석·지지·등받이·팔걸이)는 yellow/blue 2x2x1·2x3x1, red는 1x2x1뿐이므로 지지된 stud 위의 얇은 trim·rail·accent·edge(top rail, seat edge, armrest caps, backrest detail)에만 쓰고 0/90을 섞되 두 stud 모두 지지"입니다. red는 선택이며 수량을 요구하지 않습니다. 허용 조합은 §2(철학·구조 불변). 하위 호환 이름 `FURNITURE_FAMILIES`는 카탈로그 키입니다.
 
 ## 9. 검증 책임
 
@@ -396,6 +404,7 @@ Initial Design에는 고정 블록이 없으므로 escalation이 없습니다.
 | 정수 필드가 정수 아님(bool·1.0 포함) | `invalid_type` |
 | 허용되지 않은 키(Design 두 키 외, 블록 여섯 키 외 — Robot·mm·TCP·joint field 유입 포함) | `unknown_key` |
 | brick_type·color·orientation_deg(brick_type별)·layer 1~5 허용 값 | `invalid_value` |
+| 색 × brick_type 허용 조합(§2 표: yellow·blue = 2x2x1·2x3x1, red = 1x2x1). brick_type·color가 각각 허용 값일 때만 검사. message 예 `red 2x2x1 is not in stock: red allows only 1x2x1`. Design·Revised 후보뿐 아니라 입력 Current·Difference 블록에도 적용(입력이면 `INVALID_INPUT`) | `invalid_combination` |
 | footprint가 Board 0~23 밖 | `out_of_board` |
 | 블록 수 1~40 밖 | `brick_count` |
 | 같은 layer 안 footprint overlap | `overlap` |
@@ -417,7 +426,7 @@ support는 **2026-10-06 세은(A)의 동의와 수현(D)의 회신으로 통일�
 입력 검사(`INVALID_INPUT`):
 
 - `design`이 §3과 §9.1 Design 규칙을 만족하지 않음
-- `current`·`differences`의 블록 값이 §2 범위·footprint 범위를 벗어남
+- `current`·`differences`의 블록 값이 §2 범위·footprint 범위를 벗어나거나 허용 조합(§2)이 아님(`invalid_combination`). Revised의 Current 정확 보존은 Current가 이 규칙을 만족한다는 전제입니다
 - `current` 자체가 같은 layer overlap을 위반함(같은 stud에 두 블록은 물리적으로 불가능한 관측 오류). support 위반은 입력 오류가 아닙니다: 실제로 가능한 상태이므로 Intervention을 정상 진행하고, REVISE이면 §8.11로 바로 갑니다. connectivity도 검사하지 않습니다.
 - `differences`가 빈 배열이거나 `expected`·`actual`이 모두 `null`
 

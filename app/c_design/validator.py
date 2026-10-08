@@ -7,6 +7,9 @@
 구현 범위(값은 docs/06_CONTRACT_DRAFT.md §1·§2를 따른다):
     - color: yellow / blue / red (소문자, red는 Stage 2 추가)
     - brick_type: 1x2x1 / 2x2x1 / 2x3x1 (1x2x1은 Stage 2 추가)
+    - color × brick_type 허용 조합(ALLOWED_COMBINATIONS, 2026-10-08 사용자 최종 재고): yellow·blue는
+      2x2x1·2x3x1, red는 1x2x1만. 그 밖의 조합은 invalid_combination. Current·Difference·Revised에도
+      같은 _check_block으로 적용된다
     - x, y: 0~23 (24×24 Board stud 위치, Robot mm 아님). footprint 최소 모서리
     - layer: 1~5, 1-based (layer 1 = Board 위 첫 Block 층)
     - orientation_deg: 1x2x1은 0(X 1 / Y 2 stud) 또는 90(X 2 / Y 1 stud),
@@ -48,6 +51,12 @@ COLORS = {"yellow", "blue", "red"}
 BRICK_SIZES = {"1x2x1": (1, 2), "2x2x1": (2, 2), "2x3x1": (2, 3)}
 BRICK_TYPES = set(BRICK_SIZES)
 ORIENTATIONS = {"1x2x1": {0, 90}, "2x2x1": {0}, "2x3x1": {0, 90}}
+# 실제 공급 재고(2026-10-08 사용자 최종 Stage 2 vocabulary): 색별로 쓸 수 있는 brick_type.
+ALLOWED_COMBINATIONS = {
+    "yellow": frozenset({"2x2x1", "2x3x1"}),
+    "blue": frozenset({"2x2x1", "2x3x1"}),
+    "red": frozenset({"1x2x1"}),
+}
 BOARD_RANGE = range(0, 24)
 MAX_LAYER = 5
 MAX_BLOCKS = 40  # Stage 2 사용자 결정(30 → 40): Revised richness(v2 ≥ v1 + 6)가 상한과 충돌하지 않게
@@ -123,6 +132,12 @@ def _check_block(block, reject_unknown_keys=True):
         reasons.append(_reason("invalid_type", [block], "x must be an int"))
     if "y" in block and not y_ok:
         reasons.append(_reason("invalid_type", [block], "y must be an int"))
+
+    color = block.get("color")
+    if type_ok and color in COLORS and brick_type not in ALLOWED_COMBINATIONS[color]:
+        allowed = ", ".join(sorted(ALLOWED_COMBINATIONS[color]))
+        reasons.append(_reason("invalid_combination", [block],
+                               f"{color} {brick_type} is not in stock: {color} allows only {allowed}"))
 
     orientation = block.get("orientation_deg")
     orientation_type_ok = "orientation_deg" in block and _is_int(orientation)
