@@ -1,29 +1,29 @@
 """C 대화의 텍스트 처리(순수 텍스트).
 
 목적:
-    질문 문장을 만들고 사용자 텍스트 응답을 HRI 결과로 해석한다.
+    질문 문장을 만들고 사용자의 자유 답변을 HRI 결과로 해석한다.
 
 제공하는 기능:
-    - 선택지 상수: 1번 = KEEP(원래 설계 유지), 2번 = REVISE(새 설계 생성)
-      (질문 문장과 응답 해석이 같은 OPTIONS 상수를 공유)
-    - 변경 context(채택 Design·Current·Difference)에 따른 질문 문장 생성(build_question)
-    - 재질문(build_reask), escalation 질문 문장(§8.11, 잘못 놓인 Brick을
-      채택 Design 위치로 옮기기 제안)
-    - 사용자 텍스트 응답 해석 → KEEP / REVISE / UNCLEAR(불명확) / CANCEL(명시 취소).
-      명확한 응답은 Python Rule(정규화 → 취소 구문 → 전체 일치 → 구문 일치 → 부정 감지),
-      애매한 응답만 llm_fallback으로 넘기고, 그래도 애매하면 UNCLEAR.
+    - 모든 질문·재질문·escalation 문장은 자연스러운 존댓말 주관식이다(번호·선택지 없음, 2026-10-08 사용자 확정).
+    - Initial 선호 질문(build_initial_preference_question)과 짧은 "아무거나"류 답변 판정
+      (parse_initial_preference → ANY 또는 None. None이면 호출자가 LLM 해석으로 넘긴다).
+    - 변경 context(채택 Design·Current·Difference)에 따른 Intervention 질문(build_question),
+      재질문(build_reask), escalation 질문(§8.11, 잘못 놓인 블록을 채택 Design 위치로 돌려 달라는 제안).
+    - 자유 답변 해석 → KEEP / REVISE / UNCLEAR(불명확) / CANCEL(명시 취소).
+      명확한 답변은 Python Rule(정규화 → 취소 → 앞머리 예/아니요 → 명시 구문 → 부정 감지),
+      두 부류가 함께 나오거나 아무것도 못 찾으면 llm_fallback으로 넘기고, 그래도 아니면 UNCLEAR.
       CANCEL은 HRI 결과(KEEP/REVISE/UNCLEAR)가 아니라 대화 종료를 알리는 내부 신호다.
-    - 최초 목표 사물 인식(parse_goal, Day 4는 CHAIR만)
+    - 최초 목표 사물 인식(parse_goal, CHAIR만)
 
 하지 않는 것:
     - 실제 음성 I/O(녹음·STT·TTS는 voice.py 담당)
-    - 대화 루프·재질문 반복(main.py 담당). Day4는 시간 기준 자동 취소 없음,
-      계속 불명확하면 명시 선택 대기(루프·대기는 main)
+    - 대화 루프·재질문 반복·LLM 호출(main.py 담당). 계속 불명확하면 명시 답변 대기(루프·대기는 main)
+    - 스타일 힌트 추출(애매한 답변의 decision·style_hint는 main이 llm으로 받는다)
     - Design 생성·검증
     - Data Association(블록은 ID 없이 위치(x, y, layer)로 설명한다)
 
 연결:
-    main.py 가 호출한다. 애매한 응답일 때만 호출자가 llm.py fallback을 넘긴다.
+    main.py 가 호출한다. 애매한 답변일 때만 호출자가 llm.py fallback을 넘긴다.
 """
 
 import re
@@ -32,18 +32,24 @@ KEEP = "KEEP"
 REVISE = "REVISE"
 UNCLEAR = "UNCLEAR"
 CANCEL = "CANCEL"
-# 질문 문장과 응답 해석이 같은 상수를 공유한다(§1). CANCEL은 HRI 결과가 아니라
-# 내부 신호이므로 OPTIONS에는 넣지 않는다.
-OPTIONS = {"1": KEEP, "2": REVISE}
+ANY = "ANY"
 
 MOVE_BACK = "MOVE_BACK"
 KEEP_SEARCHING = "KEEP_SEARCHING"
+
+# 숫자 답변 호환용(질문에 노출하지 않음). Stage 1의 "1번/2번" 답변을 쓰는 D fixture·스크립트가
+# 그대로 동작하도록 답변 전체가 숫자이거나 "N번"이 들어 있을 때만 조용히 받는다.
+OPTIONS = {"1": KEEP, "2": REVISE}
 ESCALATION_OPTIONS = {"1": MOVE_BACK, "2": KEEP_SEARCHING}
 
-_OPTION_LABELS = {
-    KEEP: "원래 설계 유지 (놓인 블록을 원래 위치로 고쳐 주시면 그대로 진행)",
-    REVISE: "지금 놓인 상태를 살린 새 설계",
-}
+INITIAL_PREFERENCE_QUESTION = "혹시 생각해두셨거나, 만들고 싶은 의자가 있으세요?"
+
+_INTERVENTION_ASK = "Design과 다르게 놓인 부분이 있는데, 의도하신 건가요?"
+_INTERVENTION_GUIDE = (
+    "일부러 그렇게 놓으셨다면 어떤 생각이셨는지 편하게 말씀해 주세요. "
+    "실수였다면 원래 자리로 고쳐 주시면 돼요."
+)
+_ESCALATION_ALTERNATIVE = "아니면 계속 새 설계를 찾아볼까요?"
 
 # Difference의 어떤 필드가 다른지 질문 문장에 쓸 한국어 단어(§5.2).
 _FIELD_LABELS = {
@@ -55,34 +61,67 @@ _FIELD_LABELS = {
     "layer": "층",
 }
 
-# 숫자 표현 토큰(전체 일치 전용, 한글 수사 포함). §8.11 응답 해석에도 재사용한다.
+# 숫자 표현 토큰(답변 전체 일치 전용, 한글 수사 포함).
 _NUMBER_WORD_TOKENS = {
     "1": ("1", "1번", "일번", "일"),
     "2": ("2", "2번", "이번", "이"),
 }
-# 문장 속에 섞여 나온 숫자 탐색은 숫자 기반 토큰만 본다. 한글 "이번"은
-# "this time"과 겹치는 표현이라 문장 내부 탐색에서는 쓰지 않는다(§4.2 규칙 d).
-_EMBEDDED_DIGIT_RE = re.compile(r"1번|2번|1|2")
+# 문장 속 숫자는 "N번"만 본다. 자유 답변에는 "2층"·"(x=3)" 같은 숫자가 섞이므로 맨 숫자는 쓰지 않는다.
+_EMBEDDED_NUMBER_RE = re.compile(r"([12])번")
 
 # 전체 일치 단계에서만 쓰는 공손체 어미. 구문 일치 단계에서는 벗기지 않는다.
 _ENDINGS = tuple(
     sorted({"요", "이요", "할게", "할게요", "해줘", "으로", "로"}, key=len, reverse=True)
 )
 
-_KEEP_CREATE_PHRASES = {
-    KEEP: ("원래대로", "원래설계", "원래위치"),
-    REVISE: ("이대로", "지금상태", "현재상태", "이대로유지"),
+# 질문("의도하신 건가요?")에 대한 앞머리 예/아니요. 답변 첫 어절(정규화·어미 제거 후)만 본다.
+# "어"는 "어… 모르겠어요" 같은 망설임과 겹쳐 넣지 않는다.
+_YES_WORDS = ("네", "넵", "예", "응", "그래", "그래요", "맞아", "맞아요", "맞습니다", "그렇습니다", "그럼요")
+_NO_WORDS = ("아니", "아니요", "아니오", "아뇨", "아냐", "아니야", "아니에요", "아닙니다")
+
+# 정규화(공백·구두점 제거) 텍스트의 부분 일치 구문.
+_INTERVENTION_PHRASES = {
+    REVISE: (
+        "일부러", "의도", "고의", "이렇게하고싶", "이렇게하려", "이렇게만들", "그렇게하고싶",
+        "이대로", "지금상태", "현재상태", "지금처럼", "살려", "새설계", "새로설계", "다시설계",
+        "새로만들", "다시만들", "더화려", "다른느낌", "바꿔",
+    ),
+    KEEP: (
+        "실수", "잘못", "원래대로", "원래자리", "원래위치", "원래설계", "제자리",
+        "고칠게", "고쳐", "되돌", "수정할게", "다시놓을", "옮길게",
+    ),
 }
+# 부정이 붙은 의도 표현은 그 자체로 KEEP이다("의도하지 않았어요", "일부러 그런 거 아니에요").
+_NEGATED_INTENT_PHRASES = (
+    "의도하지않", "의도한거아니", "의도한게아니", "의도아니", "고의아니",
+    "일부러그런거아니", "일부러그런게아니", "일부러한거아니", "일부러한게아니", "일부러아니",
+)
 _ESCALATION_PHRASES = {
-    MOVE_BACK: ("옮길게", "옮기기", "옮겨"),
-    KEEP_SEARCHING: ("계속찾", "계속해", "새설계"),
+    MOVE_BACK: ("옮길게", "옮기", "옮겨", "원래대로", "원래자리", "제자리", "되돌", "고칠게", "고쳐"),
+    KEEP_SEARCHING: ("계속", "찾아", "새설계", "다시설계", "다른설계"),
 }
 
-_NEGATION_MARKERS = ("싫어", "싫", "하지마", "하지 마", "아니", "안 해", "안해")
+# 정규화 텍스트에서 찾는 부정 표지. "못"은 "잘못"과 겹쳐 넣지 않는다.
+_NEGATION_MARKERS = ("아니", "않", "안해", "안했", "안할", "안한", "싫", "지마", "말아")
 
 # 명시적 취소 구문(정규화된 텍스트 기준 부분 일치). 부정되면(예: "취소하지 마")
 # 취소로 보지 않고 일반 파이프라인으로 넘긴다.
 _CANCEL_PHRASES = ("취소", "그만할게", "그만하자", "중단")
+
+# Initial 선호 답변 중 "정해 둔 게 없다"는 표지와, 그 답이 사실은 선호를 담고 있음을 알리는 특징 단어.
+# 특징 단어가 하나라도 있거나 답이 길면 ANY로 보지 않고 LLM 해석에 맡긴다(선호를 놓치지 않는 쪽).
+# "길"·"길게"·"긴"은 "맡길게요"·"맡긴"과 겹치므로 겹치지 않는 형태로만 적는다.
+_ANY_MARKERS = (
+    "아무거나", "아무거", "아무의자", "아무렇게", "없어", "없는데", "없습니다", "없네", "딱히", "특별히",
+    "상관없", "알아서", "네가정해", "니가정해", "정해줘", "정해주세요", "맡길게", "맡겨", "마음대로", "맘대로",
+    "자유롭게", "글쎄", "모르겠",
+)
+_PREFERENCE_FEATURE_WORDS = (
+    "등받이", "팔걸이", "다리", "좌석", "방석", "높", "낮", "길고", "길쭉", "길이", "기다란", "긴의자", "긴거", "긴걸", "넓", "좁", "크", "작", "두꺼", "얇",
+    "빨간", "빨강", "노란", "노랑", "파란", "파랑", "색", "화려", "멋", "예쁜", "예쁘", "귀여", "심플", "단순",
+    "튼튼", "벤치", "소파", "스툴", "왕좌", "흔들", "1인", "2인", "두명", "여러명",
+)
+_ANY_MAX_CHARS = 24  # 정규화 후 이보다 긴 답은 "아무거나"류로 보지 않는다
 
 
 def _normalize(text):
@@ -91,68 +130,89 @@ def _normalize(text):
 
 
 def _strip_endings(text):
-    """숫자 토큰 전체 일치 비교 전용 어미 제거(최장 일치 1회)."""
+    """전체 일치 비교 전용 어미 제거(최장 일치 1회)."""
     for ending in _ENDINGS:
         if len(text) > len(ending) and text.endswith(ending):
             return text[: -len(ending)]
     return text
 
 
-def _match_number_whole(norm, option_map):
-    stripped = _strip_endings(norm)
-    return {
-        option_map[digit]
-        for digit, tokens in _NUMBER_WORD_TOKENS.items()
-        if stripped in tokens
-    }
-
-
-def _match_number_embedded(norm, option_map):
-    digits = {"1" if m.group().startswith("1") else "2" for m in _EMBEDDED_DIGIT_RE.finditer(norm)}
-    return {option_map[d] for d in digits}
-
-
-def _match_phrase(norm, phrase_map):
-    return {value for value, phrases in phrase_map.items() if any(p in norm for p in phrases)}
-
-
-def _has_negation(raw_text):
-    return any(marker in raw_text for marker in _NEGATION_MARKERS)
+def _has_negation(norm):
+    return any(marker in norm for marker in _NEGATION_MARKERS)
 
 
 def _has_cancel_phrase(norm):
     return any(phrase in norm for phrase in _CANCEL_PHRASES)
 
 
-def _resolve(text, option_map, phrase_map, llm_fallback):
-    """공유 Rule 파이프라인: 정규화 → 말고 → 취소 → 전체 일치 → 내부 숫자 → 구문 → 부정 → fallback."""
+def _match_number(norm, number_map):
+    """숫자 호환: 답변 전체가 숫자 토큰이면 그 값, 아니면 문장 속 "N번"들(부정 확인은 호출자)."""
+    stripped = _strip_endings(norm)
+    whole = {number_map[digit] for digit, tokens in _NUMBER_WORD_TOKENS.items() if stripped in tokens}
+    if whole:
+        return whole, True
+    return {number_map[m.group(1)] for m in _EMBEDDED_NUMBER_RE.finditer(norm)}, False
+
+
+def _split_lead(working):
+    """첫 어절이 예/아니요면 (REVISE|KEEP, 나머지 텍스트), 아니면 (None, 원문)."""
+    first, _, rest = working.partition(" ")
+    word = _strip_endings(_normalize(first))
+    if word in _YES_WORDS:
+        return REVISE, rest
+    if word in _NO_WORDS:
+        return KEEP, rest
+    return None, working
+
+
+def _phrase_votes(norm, phrase_map):
+    """부정이 없을 때만 구문 일치 값을 표로 센다. (표 집합, 부정된 일치가 있었는지)."""
+    matched = {value for value, phrases in phrase_map.items() if any(p in norm for p in phrases)}
+    if matched and _has_negation(norm):
+        return set(), True
+    return matched, False
+
+
+def _finish(text, votes, ambiguous, allowed, llm_fallback):
+    if len(votes) == 1 and not ambiguous:
+        return next(iter(votes))
+    if llm_fallback is not None:
+        result = llm_fallback(text)
+        return result if result in allowed else UNCLEAR
+    return UNCLEAR
+
+
+def _resolve(text, number_map, phrase_map, llm_fallback, use_lead=False, negated_keep=()):
+    """공유 Rule 파이프라인: 말고 → 취소 → 숫자 호환 → 예/아니요 → 부정된 의도 → 구문 → fallback."""
     working = (text or "").strip()
     if "말고" in working:
         # "A 말고 B": A는 취소된 선택이므로 B만 해석한다.
         working = working.rsplit("말고", 1)[-1].strip()
     norm = _normalize(working)
+    allowed = set(number_map.values()) | {UNCLEAR, CANCEL}
 
-    if _has_cancel_phrase(norm) and not _has_negation(working):
+    if _has_cancel_phrase(norm) and not _has_negation(norm):
         return CANCEL
 
-    matched = _match_number_whole(norm, option_map)
-    if not matched:
-        matched = _match_number_embedded(norm, option_map)
-    if not matched:
-        matched = _match_phrase(norm, phrase_map)
+    numbers, whole = _match_number(norm, number_map)
+    if whole:
+        return next(iter(numbers))
+    if numbers:
+        # 문장 속 "N번": 둘 다 나오거나 부정되면("2번은 싫어") 보수적으로 불명확.
+        return _finish(text, numbers, _has_negation(norm), allowed, None)
 
-    if len(matched) > 1:
-        return UNCLEAR
-    if len(matched) == 1:
-        candidate = next(iter(matched))
-        # 부정은 뒤집지 않고 보수적으로 불명확 처리한다(§4.2 규칙 f).
-        return UNCLEAR if _has_negation(working) else candidate
-
-    if llm_fallback is not None:
-        allowed = set(option_map.values()) | {UNCLEAR}
-        result = llm_fallback(text)
-        return result if result in allowed else UNCLEAR
-    return UNCLEAR
+    votes = set()
+    if use_lead:
+        lead, working = _split_lead(working)
+        if lead is not None:
+            votes.add(lead)
+        norm = _normalize(working)
+    for phrase in negated_keep:
+        if phrase in norm:
+            votes.add(KEEP)
+            norm = norm.replace(phrase, "")
+    matched, negated = _phrase_votes(norm, phrase_map)
+    return _finish(text, votes | matched, negated, allowed, llm_fallback)
 
 
 def is_meaningful(text):
@@ -163,13 +223,42 @@ def is_meaningful(text):
 
 
 def parse_response(text, llm_fallback=None):
-    """사용자 텍스트 응답 → KEEP / REVISE / UNCLEAR / CANCEL."""
-    return _resolve(text, OPTIONS, _KEEP_CREATE_PHRASES, llm_fallback)
+    """Intervention 자유 답변 → KEEP / REVISE / UNCLEAR / CANCEL.
+
+    REVISE = 일부러 놓았고 지금 상태를 살린 새 설계를 원함, KEEP = 실수라 원래 Design대로 고침.
+    llm_fallback(text)는 두 부류가 함께 나오거나 아무것도 못 찾았을 때만 부르며, KEEP/REVISE/UNCLEAR/CANCEL
+    밖의 값은 UNCLEAR로 본다.
+    """
+    return _resolve(text, OPTIONS, _INTERVENTION_PHRASES, llm_fallback,
+                    use_lead=True, negated_keep=_NEGATED_INTENT_PHRASES)
 
 
 def parse_escalation_response(text, llm_fallback=None):
-    """§8.11 escalation 응답 → MOVE_BACK / KEEP_SEARCHING / UNCLEAR / CANCEL."""
+    """§8.11 escalation 자유 답변 → MOVE_BACK / KEEP_SEARCHING / UNCLEAR / CANCEL.
+
+    질문이 두 길을 함께 묻으므로 "네"·"아니요"만으로는 고르지 않는다.
+    """
     return _resolve(text, ESCALATION_OPTIONS, _ESCALATION_PHRASES, llm_fallback)
+
+
+def build_initial_preference_question():
+    """Initial 선호 질문 문장. main·테스트가 같은 경로로 문장을 받게 함수로 둔다."""
+    return INITIAL_PREFERENCE_QUESTION
+
+
+def parse_initial_preference(text):
+    """Initial 선호 답변 → ANY(정해 둔 게 없음) 또는 None(LLM 해석 필요).
+
+    특징 단어 없는 짧은 "아무거나·없어요·알아서" 류와 "아니요"만 ANY. 빈 답·긴 답·특징 언급은 None.
+    """
+    norm = _normalize(text or "")
+    if not norm or len(norm) > _ANY_MAX_CHARS:
+        return None
+    if any(word in norm for word in _PREFERENCE_FEATURE_WORDS):
+        return None
+    if _strip_endings(norm) in _NO_WORDS or any(marker in norm for marker in _ANY_MARKERS):
+        return ANY
+    return None
 
 
 def parse_goal(text):
@@ -206,33 +295,28 @@ def _describe_difference(diff):
     return f"{location}: {words}이(가) 다릅니다."
 
 
-def _choice_lines(option_map, labels):
-    return [f"{num}번: {labels[option_map[num]]}" for num in sorted(option_map)]
-
-
 def build_question(design, current, differences):
-    """채택 Design/Current/Difference로 사용자에게 물을 질문 문장을 만든다(§4.2)."""
+    """채택 Design/Current/Difference로 주관식 질문 문장을 만든다(§4.2, 번호·선택지 없음)."""
     del design, current  # 문구에만 쓰일 수 있으나 현재 wording에 불필요
-    lines = [_describe_difference(diff) for diff in differences]
-    lines.append("어떻게 할까요?")
-    lines.extend(_choice_lines(OPTIONS, _OPTION_LABELS))
+    lines = [_INTERVENTION_ASK]
+    lines.extend(_describe_difference(diff) for diff in differences)
+    lines.append(_INTERVENTION_GUIDE)
     return "\n".join(lines)
 
 
 def build_reask(question):
-    """불명확 응답 시 선택지를 다시 설명하고 전체 질문을 다시 낸다(§4.2)."""
+    """불명확 답변 시 답하는 방법을 짧게 알려 주고 전체 질문을 다시 낸다(§4.2)."""
     lines = [
-        "잘 이해하지 못했어요. 선택지를 다시 설명드릴게요.",
-        "1번을 고르면 놓인 블록을 원래 위치로 고치고 원래 설계대로 진행합니다.",
-        "2번을 고르면 지금 놓인 상태를 살린 새 설계를 다시 찾습니다.",
-        "1번 또는 2번으로 말씀해 주세요. 그만하려면 '취소'라고 말씀해 주세요.",
+        "제가 잘 못 알아들었어요.",
+        "일부러 그렇게 놓으신 거라면 '일부러'라고, 실수였다면 '실수'라고 말씀해 주세요. "
+        "그만하시려면 '취소'라고 해 주세요.",
         question,
     ]
     return "\n".join(lines)
 
 
 def escalation_question(differences):
-    """§8.11: 자동 재설계가 거의 불가능할 때 잘못 놓인 Brick을 원래 위치로 옮기자고 제안."""
+    """§8.11: 자동 재설계가 거의 불가능할 때 잘못 놓인 블록을 원래대로 돌려 달라고 제안(번호 없음)."""
     parts = []
     for diff in differences:
         actual, expected = diff.get("actual"), diff.get("expected")
@@ -240,14 +324,13 @@ def escalation_question(differences):
             continue
         name = _location_label(actual)
         if expected is not None:
-            parts.append(f"{name}을(를) (x={expected['x']}, y={expected['y']}) {expected['layer']}층 위치로")
+            parts.append(f"{name}은 (x={expected['x']}, y={expected['y']}) {expected['layer']}층 자리로")
         else:
-            parts.append(name)
-    bricks_text = ", ".join(parts) if parts else "해당 블록"
+            parts.append(f"{name}은 빼서")
+    request = ", ".join(parts) + " " if parts else "놓인 블록을 "
     lines = [
-        "지금 놓인 블록으로는 새 설계를 만들기 어렵습니다.",
-        f"{bricks_text} 옮겨 주시겠어요?",
-        "1번: 원래 위치로 옮기기",
-        "2번: 계속 새 설계 찾기",
+        "지금 놓인 블록으로는 새 설계를 만들기가 어려워요.",
+        f"{request}원래대로 돌려 주실 수 있을까요?",
+        _ESCALATION_ALTERNATIVE,
     ]
     return "\n".join(lines)

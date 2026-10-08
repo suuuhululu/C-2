@@ -15,8 +15,9 @@ What each subcommand checks:
             silence) plus how dialogue.parse_response interprets it.
   tts       Sends the given sentence to the real TTS provider and plays it
             on the real speaker.
-  questions Plays the two Stage 2 open-ended Korean questions (Initial
-            preference and Intervention) one after another and prints, per
+  questions Plays the two Stage 2 open-ended Korean questions exactly as
+            dialogue builds them (Initial preference question, and the full
+            Intervention question for one moved block) one after another and prints, per
             sentence, model / voice / whether instructions were sent, audio
             length and playback start/end clock times (voice._last_speak).
             Listening check for the user: natural Korean, calm tone, no cut-off
@@ -115,9 +116,12 @@ def run_tts(args):
     return 0
 
 
+_SAMPLE_BLOCK = {"brick_type": "2x2x1", "color": "yellow", "x": 6, "y": 5, "orientation_deg": 0, "layer": 1}
+
+# production 문장 그대로: Initial 선호 질문과, 블록 1개가 옮겨진 Intervention 주관식 질문 전체
 QUESTION_SENTENCES = (
-    "혹시 생각했거나 만들고 싶은 의자가 있어?",
-    "Design과 다르게 놓인 부분이 있는데 의도된 행동인가요?",
+    dialogue.build_initial_preference_question(),
+    dialogue.build_question({}, [], [{"expected": _SAMPLE_BLOCK, "actual": dict(_SAMPLE_BLOCK, x=7)}]),
 )
 
 
@@ -167,7 +171,7 @@ def run_dialogue(_args):
     return 0 if result["status"] == "OK" else 1
 
 
-ECHO_SENTENCE = "지금 놓인 블록을 확인했습니다. 1번 또는 2번으로 말씀해 주세요."
+ECHO_SENTENCE = "Design과 다르게 놓인 부분이 있는데, 의도하신 건가요? 어떤 생각이셨는지 편하게 말씀해 주세요."
 
 
 def run_echo(_args):
