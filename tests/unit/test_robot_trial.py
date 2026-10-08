@@ -11,6 +11,7 @@ from app import robot_trial as trial
 
 CONFIG_PATH = Path(__file__).resolve().parents[2] / "interfaces/robot_trial.json"
 CONFIG = json.loads(CONFIG_PATH.read_text())
+CONFIG["source_path"] = trial.resolve_config_path(CONFIG["source_path"], CONFIG_PATH)
 COMMANDS = [
     ("joint", "start", [0.] * 6, None),
     ("initial_approach", "approach", [1.] * 6, 2),

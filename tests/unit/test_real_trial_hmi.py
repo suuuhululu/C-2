@@ -12,6 +12,7 @@ from app.jsonl_log import JsonlLog
 from app.hmi_contracts import validate_hmi_snapshot
 from app.qt_hmi import HmiWindow
 from app.real_trial_hmi import RealTrialController
+from app.robot_trial import load_trial_config
 from app.snapshot import make_snapshot
 
 
@@ -48,7 +49,7 @@ def qapp():
 def make_trial(tmp_path, *, color="blue", slot=5, record=None):
     path = tmp_path / "config.json"
     source = ROOT / ("interfaces/robot_trial_blue5.json" if color == "blue" else "interfaces/robot_trial.json")
-    path.write_text(source.read_text())
+    path.write_text(json.dumps(load_trial_config(source)))
     processes = []
 
     def factory(parent):
