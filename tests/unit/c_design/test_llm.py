@@ -1040,6 +1040,41 @@ class TestInterpretInterventionAnswer:
         assert "'네, 원래 자리로 고쳐 주시면 그대로 진행할게요.'" in prompt
         assert 'for UNCLEAR or CANCEL ""' in prompt
 
+    def test_complaint_or_change_request_is_revise(self):
+        """Wave 4e: a complaint about the current Design (live E2E '어 할로윈 분위기 같지가 않아' was read as KEEP) is REVISE."""
+        prompt = llm.SYSTEM_PROMPT_INTERVENTION_ANSWER
+        assert "Decide by the meaning of the whole sentence, not by keywords." in prompt
+        assert ("REVISE means either (a) they placed the block on purpose and want a new design that keeps the current "
+                "placement, or (b) they are unhappy with the current Design or ask for a different feel, shape, size or mood") in prompt
+        for example in ("'할로윈 분위기 같지가 않아'", "'내가 생각한 느낌이 아니야'", "'컵케이크처럼 안 보여'",
+                        "'더 단순하게 바꾸고 싶어'", "'이런 느낌 말고'", "'좀 더 화려했으면 좋겠어'"):
+            assert example in prompt.split("KEEP means only")[0], example
+
+    def test_keep_is_only_an_admitted_mistake_and_unclear_is_ambiguous(self):
+        prompt = llm.SYSTEM_PROMPT_INTERVENTION_ANSWER
+        keep = prompt.split("KEEP means only", 1)[1].split("UNCLEAR means", 1)[0]
+        assert keep.startswith(" that they admit their own placement was a mistake or say they will put the block back")
+        for example in ("'내가 잘못 놨어'", "'실수였어'", "'원래대로 고칠게'", "'내가 다시 놓을게'"):
+            assert example in keep, example
+        assert "UNCLEAR means neither, or truly ambiguous (e.g. '음… 좀 그런데')" in prompt
+        assert "CANCEL means they want to stop." in prompt
+
+    def test_korean_negation_rules(self):
+        prompt = llm.SYSTEM_PROMPT_INTERVENTION_ANSWER
+        assert "'실수 아니야' or '실수 아닌데' denies a mistake, so it is never KEEP (REVISE or UNCLEAR)" in prompt
+        assert "'같지가 않아', '안 보여', '느낌이 아니야' negate the current result, so they are REVISE" in prompt
+        assert "'잘못한 것 같아' admits a mistake, so it is KEEP" in prompt
+
+    def test_style_hint_reason_and_reply_follow_the_wished_direction(self):
+        prompt = llm.SYSTEM_PROMPT_INTERVENTION_ANSWER
+        assert ("written as the direction they want (for a complaint, the wished-for direction, e.g. '할로윈 분위기를 더 강하게', "
+                "'컵케이크처럼 보이게', '더 단순하게'") in prompt
+        assert "'현재 Design이 원하는 분위기와 다르다는 말씀으로 이해했어요.'" in prompt
+        assert "'알겠습니다. 할로윈 분위기가 더 잘 느껴지도록 다시 만들어볼게요.'" in prompt
+        assert llm.INTERVENTION_ANSWER_KEYS == ("decision", "style_hint", "reason", "reply")
+        for key in llm.INTERVENTION_ANSWER_KEYS:
+            assert f'"{key}"' in prompt, key
+
 
 class TestModelRoles:
     """Design 생성·설명 = OPENAI_MODEL, judge = OPENAI_JUDGE_MODEL, 해석·ack = OPENAI_AUX_MODEL (같은 LLM key)."""

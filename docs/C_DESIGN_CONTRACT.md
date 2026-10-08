@@ -176,6 +176,13 @@ Stage 2 Wave 2~4의 `llm.interpret_initial_preference`·`PREFERENCE_KEYS`·`SYST
 - 질문은 번호·선택지 없는 존댓말 주관식입니다(2026-10-08 사용자 확정, Stage 2 Wave 2). 차이 설명 앞뒤로 의도 여부("Design과 다르게 놓인 부분이 있는데, 의도하신 건가요?")를 묻고, 자유 설명을 유도하며, 실수라면 원래 자리로 고치는 길을 안내합니다.
 - 자유 답변 해석(`dialogue.parse_response`): 취소 → 앞머리 예/아니요 → "일부러·의도·이대로·살려·새 설계·더 화려·다른 느낌" 등(REVISE) / "실수·잘못·원래대로·고칠게·되돌" 등과 "의도하지 않았어요"(KEEP) 구문. 부정된 구문은 뒤집지 않고, 두 부류가 함께 나오거나 아무것도 못 찾으면 LLM 모드에서만 `llm.interpret_intervention_answer`(답변 원문 + Difference)로 해석 → 그래도 아니면 UNCLEAR. LLM 해석 실패·`INTERVENTION_ANSWER_KEYS` 누락은 UNCLEAR(재질문), 해석 중 STOP은 `CANCELLED` / `STOPPED`. Mock 모드는 Rule만 씁니다. Stage 1의 "1번"·"2번" 답변은 질문에 안내하지 않지만 그대로 KEEP·REVISE로 받습니다(호환).
 - `llm.interpret_intervention_answer` 반환 키(`llm.INTERVENTION_ANSWER_KEYS`)는 `decision`·`style_hint`·`reason`·`reply`입니다(Stage 2 Wave 4c에서 `reply` 추가). `reply`는 바로 읽어 줄 acknowledgment 한 문장(존댓말, 고정 문구 없이 매번 다르게): REVISE면 새 설계와 `style_hint`를 반영한 확인(예: "알겠습니다. 더 길고 넓은 형태로 다시 만들어볼게요."), KEEP이면 원래 자리로 고치면 그대로 진행한다는 안내(예: "네, 원래 자리로 고쳐 주시면 그대로 진행할게요."), UNCLEAR·CANCEL이면 `""`. 모델은 보조 모델(`OPENAI_AUX_MODEL`, 기본 `gpt-4.1-mini`)입니다.
+- `llm.interpret_intervention_answer`의 decision 정의(Stage 2 Wave 4e, 실제 E2E에서 "어 할로윈 분위기 같지가 않아"가 KEEP으로 해석된 사례 보강, 키·구조 불변): 키워드가 아니라 문장 뜻으로 판단합니다.
+  - REVISE = (a) 블록을 일부러 그렇게 놓았고 지금 배치를 살린 새 설계를 원함, 또는 (b) 현재 Design에 대한 불만·다른 느낌/모양/크기/분위기로의 변경 요청(예: "할로윈 분위기 같지가 않아", "내가 생각한 느낌이 아니야", "컵케이크처럼 안 보여", "더 단순하게 바꾸고 싶어", "이런 느낌 말고", "좀 더 화려했으면 좋겠어").
+  - KEEP = 자기 배치 실수를 인정하거나 원래 자리로 되돌리겠다는 뜻만(예: "내가 잘못 놨어", "실수였어", "원래대로 고칠게", "내가 다시 놓을게").
+  - UNCLEAR = 둘 다 아니거나 정말 애매함(예: "음… 좀 그런데") → 재질문. CANCEL = 그만.
+  - 한국어 부정: "실수 아니야/아닌데"는 실수 부정이라 KEEP이 아님(REVISE 또는 UNCLEAR), "같지가 않아/안 보여/느낌이 아니야"는 현재 결과 부정이라 REVISE, "잘못한 것 같아"는 실수 인정이라 KEEP.
+  - 불만 표현의 `style_hint`는 바라는 방향으로 적습니다(예: "할로윈 분위기를 더 강하게", "컵케이크처럼 보이게", "더 단순하게"). `reason` 예: "현재 Design이 원하는 분위기와 다르다는 말씀으로 이해했어요.", REVISE `reply` 예: "알겠습니다. 할로윈 분위기가 더 잘 느껴지도록 다시 만들어볼게요."
+  - 이 정의는 LLM 해석(fallback·style_hint 전용 호출)에만 적용됩니다. `dialogue.parse_response` 규칙은 바꾸지 않습니다.
 - LLM 해석이 REVISE이면 그 `style_hint`(사람이 원한 것)를 Revised 생성(`llm.generate_revised_design(…, style_hint=…)`)에 직접 넘기고 `design_metadata.style_hint`에 남깁니다(Stage 2 Wave 4 After 구조: 별도 설계 의도 단계 없음, 생성 → validator → judge → 필요 시 재생성 1회 → 재judge, §8.13). Rule이 REVISE로 정한 자유 답변(예: "일부러 그렇게 놨어요. 팔걸이로 살려주세요.")도 LLM 모드에서는 같은 함수를 한 번 불러 `style_hint`만 받습니다(decision은 Rule 결과 그대로, 해석 실패·키 누락은 힌트 없이 진행하고 재질문·metadata error 없음, STOP은 `CANCELLED` / `STOPPED`). 빈 힌트는 null입니다.
 
 | 답변 (LLM 모드) | `interpret_intervention_answer` 호출 |
