@@ -7,12 +7,14 @@
 판 안·겹침 없음·validator.check_intervention_input 통과) → production main.run_intervention(..., text_answers=None):
 TTS 질문 → beep → 자유 발화(예: "일부러 그렇게 놨어요", "제가 잘못 놨어요") → KEEP/REVISE/UNCLEAR → v2 → validator·
 Current preserved(multiset)·judge → [v1 | Current+Difference | v2] 한 화면(PNG) → Round 요약.
+v1·v2 화면은 생성 직후 HMI 스타일(app/hmi_board.BoardView 투영 + 완성 확대 + 층별 평면 + metadata, scripts/c_design_hmi_render.py)로
+즉시 창에 띄운다(사후 rerender 불필요; 필요하면 python3 scripts/c_design_hmi_render.py --out DIR로 다시 그릴 수 있다).
 말할 차례마다 ">>> 지금 말씀하세요" 안내를 낸다. Round마다 roundNN/v1.png·screen.png·metadata.json·transcript.json,
 끝에 summary.md를 남긴다.
 
 production 경로 그대로: main, voice.listen/speak(자유 발화 모드·beep는 main이 정함), llm, validator.
-시험용으로만 덧붙인 것: voice.listen/speak 래핑(안내 출력·STT 기록, 인자는 그대로 전달), 스크립트 안의 작은 QPainter
-렌더러(위에서 본 24×24 판, 블록마다 층 번호), 시험용 Current/Difference 생성.
+시험용으로만 덧붙인 것: voice.listen/speak 래핑(안내 출력·STT 기록, 인자는 그대로 전달), HMI 스타일 표시 전용 렌더러
+(c_design_hmi_render: BoardView 재사용, Stage 2 어휘는 프로세스 안 표시 패치), 시험용 Current/Difference 생성.
 A/D 통합 시험은 scripts/c_voice_10round_e2e.py를 쓴다(Stage 2 어휘는 A 반영 전 INVALID 가능).
 
 실행(키 값은 명령마다 파일에서 주입, 출력·기록하지 않음):
@@ -35,6 +37,7 @@ from copy import deepcopy
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))  # c_design_hmi_render(같은 scripts/ 폴더)
 
 from app.c_design import dialogue, llm, main, validator, voice  # noqa: E402
 
@@ -117,104 +120,7 @@ def make_scenario(design, k):
 
 
 # ---------------------------------------------------------------- 화면(스크립트 안 QPainter 렌더러, 위에서 본 판)
-COLOR_HEX = {"yellow": "#efc94b", "blue": "#699bde", "red": "#d9534f"}
-CELL = 18
-THUMB = 3
-PANEL_PAD = 20
-BOARD_PX = CELL * len(validator.BOARD_RANGE)
-PANEL_W = BOARD_PX + 2 * PANEL_PAD
-TITLE_H = 30
-THUMB_H = THUMB * len(validator.BOARD_RANGE) + 22
-LINE_FONT_PX = 13
-
-
-def _rect_of(block, cell, ox, oy):
-    cells = validator.footprint(block)
-    xs = [x for x, _ in cells]; ys = [y for _, y in cells]
-    return ox + min(xs) * cell, oy + min(ys) * cell, (max(xs) - min(xs) + 1) * cell, (max(ys) - min(ys) + 1) * cell
-
-
-def _draw_board(p, blocks, ox, oy, cell, labels=True, highlight=None):
-    """blocks를 낮은 층부터 그린다. 높은 층은 층마다 조금씩 안쪽으로 줄여 아래층 가장자리가 보이게 한다.
-    highlight: {"expected": block, "actual": block} → expected 점선 윤곽, actual 굵은 주황 테두리."""
-    from PyQt5.QtCore import QRectF, Qt
-    from PyQt5.QtGui import QColor, QFont, QPen
-    n = len(validator.BOARD_RANGE)
-    p.fillRect(QRectF(ox, oy, n * cell, n * cell), QColor("#f7f7f2"))
-    p.setPen(QPen(QColor("#dddddd"), 1))
-    for i in range(n + 1):
-        p.drawLine(int(ox + i * cell), int(oy), int(ox + i * cell), int(oy + n * cell))
-        p.drawLine(int(ox), int(oy + i * cell), int(ox + n * cell), int(oy + i * cell))
-    font = QFont(); font.setPixelSize(max(8, cell // 2 + 1)); p.setFont(font)
-    for b in sorted(blocks, key=lambda b: b["layer"]):
-        x, y, w, h = _rect_of(b, cell, ox, oy)
-        inset = min((b["layer"] - 1) * max(1, cell // 9), min(w, h) / 3)
-        r = QRectF(x + inset, y + inset, w - 2 * inset, h - 2 * inset)
-        p.fillRect(r, QColor(COLOR_HEX.get(b["color"], "#999999")))
-        p.setPen(QPen(QColor("#333333"), 1)); p.drawRect(r)
-        if labels:
-            p.drawText(r, Qt.AlignCenter, str(b["layer"]))
-    if highlight:
-        e, a = highlight.get("expected"), highlight.get("actual")
-        if e:
-            p.setPen(QPen(QColor("#222222"), 2, Qt.DashLine)); p.setBrush(Qt.NoBrush)
-            p.drawRect(QRectF(*_rect_of(e, cell, ox, oy)))
-        if a:
-            p.setPen(QPen(QColor("#ff6a00"), 4)); p.setBrush(Qt.NoBrush)
-            p.drawRect(QRectF(*_rect_of(a, cell, ox, oy)).adjusted(1, 1, -1, -1))
-
-
-def _draw_panel(p, ox, oy, title, blocks, highlight=None):
-    from PyQt5.QtCore import QRectF, Qt
-    from PyQt5.QtGui import QColor, QFont, QPen
-    font = QFont(); font.setPixelSize(15); font.setBold(True); p.setFont(font)
-    p.setPen(QPen(QColor("#111111"))); p.drawText(QRectF(ox, oy, PANEL_W, TITLE_H), Qt.AlignCenter, title)
-    bx, by = ox + PANEL_PAD, oy + TITLE_H
-    if blocks is None:
-        p.fillRect(QRectF(bx, by, BOARD_PX, BOARD_PX), QColor("#eeeeee"))
-        p.drawText(QRectF(bx, by, BOARD_PX, BOARD_PX), Qt.AlignCenter, "(없음)")
-        return
-    _draw_board(p, blocks, bx, by, CELL, highlight=highlight)
-    # 층별 작은 판: 위에서 가려진 아래층을 확인한다
-    ty = by + BOARD_PX + 8
-    tw = THUMB * len(validator.BOARD_RANGE)
-    gap = (BOARD_PX - validator.MAX_LAYER * tw) / max(1, validator.MAX_LAYER - 1)
-    small = QFont(); small.setPixelSize(11)
-    for i, layer in enumerate(range(1, validator.MAX_LAYER + 1)):
-        tx = bx + i * (tw + gap)
-        _draw_board(p, [b for b in blocks if b["layer"] == layer], tx, ty, THUMB, labels=False,
-                    highlight=highlight if highlight and layer == 1 else None)
-        p.setFont(small); p.setPen(QPen(QColor("#333333")))
-        p.drawText(QRectF(tx, ty + tw + 2, tw, 14), Qt.AlignCenter, f"L{layer}")
-
-
-def render_screen(panels, lines, png_path):
-    """panels: [(title, blocks 또는 None, highlight 또는 None)], lines: 아래 텍스트 줄. QImage에 그려 PNG로 저장, QImage 반환."""
-    from PyQt5.QtCore import QRectF, Qt
-    from PyQt5.QtGui import QColor, QFont, QFontMetrics, QImage, QPainter, QPen
-    width = PANEL_W * len(panels)
-    font = QFont(); font.setPixelSize(LINE_FONT_PX)
-    fm = QFontMetrics(font)
-    flags = Qt.TextWordWrap | Qt.AlignLeft
-    text_w = width - 2 * PANEL_PAD
-    heights = [fm.boundingRect(0, 0, text_w, 10000, flags, line or " ").height() + 2 for line in lines]
-    top = TITLE_H + BOARD_PX + THUMB_H + 10
-    img = QImage(width, top + sum(heights) + PANEL_PAD, QImage.Format_RGB32)
-    img.fill(QColor("#ffffff"))
-    p = QPainter(img)
-    try:
-        p.setRenderHint(QPainter.Antialiasing)
-        for i, (title, blocks, highlight) in enumerate(panels):
-            _draw_panel(p, i * PANEL_W, 4, title, blocks, highlight)
-        p.setFont(font); p.setPen(QPen(QColor("#111111")))
-        y = top
-        for line, h in zip(lines, heights):
-            p.drawText(QRectF(PANEL_PAD, y, text_w, h), flags, line)
-            y += h
-    finally:
-        p.end()
-    img.save(png_path)
-    return img
+from c_design_hmi_render import compose_v1, compose_v2, counts_line  # noqa: E402  표시 전용(HMI 스타일, A/D 미호출)
 
 
 class Viewer:
@@ -227,8 +133,9 @@ class Viewer:
 
     def show(self, app, img, title):
         from PyQt5.QtCore import Qt
-        from PyQt5.QtGui import QPixmap
-        pm = QPixmap.fromImage(img)
+        from PyQt5.QtGui import QImage, QPixmap
+        data = img.convert("RGB").tobytes("raw", "RGB")
+        pm = QPixmap.fromImage(QImage(data, img.width, img.height, img.width * 3, QImage.Format_RGB888).copy())
         screen = app.primaryScreen()
         if screen is not None:
             avail = screen.availableGeometry()
@@ -442,7 +349,8 @@ def run_round(k, out, app, viewer, rec):
     meta["v1"].update(shape=shape(d1["blocks"]), validator=validator.validate_design(d1))
     print(f"v1: {m1.get('design_name')} [{m1.get('design_family')}] · blocks/red/1x2x1/max layer {_counts(meta['v1']['shape'])} · "
           f"validator {_validator_text(meta['v1']['validator'])} · generation {dt:.1f}s", flush=True)
-    img = render_screen([(f"v1 · {m1.get('design_name')}", d1["blocks"], None)], screen_lines(meta), os.path.join(rdir, "v1.png"))
+    meta["screen_lines"] = screen_lines(meta)
+    img = compose_v1(f"Round {k} · v1 · {m1.get('design_name')}", d1["blocks"], meta["screen_lines"], os.path.join(rdir, "v1.png"))
     viewer.show(app, img, f"Round {k} · v1")
     dump()
     ans = _wait_enter(app, "\nv1 화면 표시 중. [Enter] 다음 단계(시험용 Difference → TTS 질문) / r 이 Round 다시 / q 종료")
@@ -488,12 +396,16 @@ def run_round(k, out, app, viewer, rec):
         meta["status"] = str(env2["hri_result"])  # KEEP·UNCLEAR 등: 실패가 아니라 Revised 없음으로 기록
     else:
         meta.update(status="FAILED", failed_stage="v2", reason=f"{env2['status']} {env2['hri_result']} {env2['error']}")
-    hl = {"expected": e, "actual": a}
     v2_title = f"v2 · {v2['design_name']}" if d2 else f"v2 없음 ({env2['status']} {env2['hri_result']})"
-    img = render_screen([(f"v1 · {m1.get('design_name')}", d1["blocks"], None),
-                         ("Current + Difference (점선=expected, 주황=actual)", sc["current"], hl),
-                         (v2_title, d2["blocks"] if d2 else None, hl if d2 else None)],
-                        screen_lines(meta), os.path.join(rdir, "screen.png"))
+    meta["screen_lines"] = screen_lines(meta)
+    captions = [[f"v1 · {m1.get('design_name')}", counts_line(d1["blocks"])],
+                ["Current + Difference", "실선: Current(놓인 블록) · 주황: 사람이 옮긴 블록(actual) · 점선: 원래 Design 위치(expected)",
+                 f"expected ({e['x']},{e['y']}) L{e['layer']} {e['orientation_deg']}° → actual ({a['x']},{a['y']}) L{a['layer']} {a['orientation_deg']}°"],
+                [v2_title, counts_line(d2["blocks"]) if d2 else "",
+                 f"result {v2['hri_result']} · style_hint {v2['style_hint']} · Current preserved {v2.get('preserved')} · judge {v2['verdict']} "
+                 f"(chair {v2['chair_likeness']}, richer {v2['richer_than_previous']}) · v2 latency {dt:.1f}s"]]
+    img = compose_v2(f"Round {k} · v1 | Current+Difference | v2", d1["blocks"], sc["current"], e, a, d2["blocks"] if d2 else None,
+                     captions, meta["screen_lines"], os.path.join(rdir, "screen.png"))
     viewer.show(app, img, f"Round {k} · v1 | Current+Difference | v2")
     dump()
     return meta
