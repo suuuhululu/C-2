@@ -22,6 +22,7 @@ INTENT = {
     "recognition_cue": "넓은 받침, 높은 등받이, 양쪽 팔걸이", "human_reading": "놓인 블록을 받침 모서리로 해석했다",
     "misplaced_block_meaning": "받침의 한 모서리", "planned_visible_features": ["좌석 6×6", "등받이 3층"],
     f"layer{validator.MAX_LAYER}_feature": "등받이 위 crown", "geometry_plan": "plinth under the seat, back behind it",
+    "style_hint_used": "없음", "target_blocks": 21,  # Stage 2 Wave 2 INTENT_KEYS
 }
 
 
