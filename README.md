@@ -17,6 +17,8 @@
 
 ## 현재 상태
 
+`MVP_Day4`의 최신 운영 변경과 실행 조건은 [Day4 통합 안내](docs/D_MVP_DAY4_INTEGRATION.md)를 따른다. STT→C 운영 입력, B callback 연결, 빈 조립판 START·사람 공급 보충·반복 Job을 적용하며 실제 장치 연결은 별도 확인한다.
+
 **C Design·A Planner·Backend·Qt·기본 Board 전달 연결 코드와 모의 통합 검사가 있습니다.** 실제 Camera 생산자 연결, Robot STOP/재개, 음성 API·마이크/스피커와 전체 장치 통합은 별도 현장 검증이 필요합니다. CI는 미구성입니다. 아래 표의 전체 목표를 실기 완료 목록으로 해석하지 않습니다.
 
 현재 로컬 실행부의 게시·검증 범위와 복구 방법은 [기본 실행 버전 기록](docs/D_RUNTIME_BASELINE.md), 실행 절차는 [Robot/HMI 안내](docs/D_BACKEND_RUN_ROBOT_PLAN.md), C 함수·음성 연결은 [C 통합 안내](docs/D_C_FUNCTION_INTEGRATION.md)를 따릅니다. 새 사람 전달 0~12단계는 별도 개발 브랜치에서 진행합니다.
