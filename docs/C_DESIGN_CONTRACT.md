@@ -122,16 +122,20 @@ LLM 모델은 `OPENAI_MODEL`(기본 `DEFAULT_MODEL`)입니다. 모델명이 reas
   - 고른 family와 `style_hint`로 `llm.generate_initial_design` → validator(designer loop) → `llm.describe_initial_design(…, family)` → `design_metadata`(§6.1).
   - 음성 모드에서 선호 답 듣기가 장치·STT 실패(`None`)면 `VOICE_IO_FAILED`.
 
-**Initial family 선택과 선호 해석 함수 (Stage 2 Wave 2 `llm`, Wave 3에서 `main`에 연결)**
+**Initial 요청 해석과 family·concept 함수 (Stage 2 Wave 2 `llm`, Wave 4b에서 한 문장 요청 해석으로 변경)**
 
 | 함수 | 입력 | 반환 |
 |---|---|---|
-| `llm.choose_initial_family(preference, rng=None)` | `None` 또는 선호 해석 결과 dict | 카탈로그 키 하나. `preference`가 `SPECIFIC`이고 `family`가 카탈로그 키면 그 키, 그 밖(None·ANY·카탈로그 밖)에는 `(rng or random).choice(sorted(FAMILY_CATALOG))` 균등 선택. 이력·가중치 없음(LLM 호출 없음) |
-| `llm.interpret_initial_preference(text, should_stop=None)` | 선호 질문에 대한 자유 답변 원문 | `{preference: "ANY" / "SPECIFIC", family: 카탈로그 키 / null, style_hint: 짧은 한국어 구 / "", reply: 되읽어 줄 자연스러운 존댓말 한 문장}`(`llm.PREFERENCE_KEYS`) 또는 `{"llm_error": …}`. 답변 원문은 해석할 데이터이며 그 안의 지시·key·코드는 따르지 않음(프롬프트에 명시). 카탈로그에 없는 종류는 가장 가까운 키 + 원래 표현은 `style_hint` |
-| `llm.generate_initial_design(object_type, reasons=None, should_stop=None, family=None, style_hint=None)` | 고른 family·style_hint | family가 있으면 사용자 메시지에 "Selected family: … Defining visible features …"와(있으면) "Style preference from the person: …"를 넣음. 없으면 기존 메시지 그대로. Initial system prompt에는 "주어진 family를 구현하라"는 한 문장만 추가(예시 JSON 없음) |
-| `llm.describe_initial_design(design, should_stop=None, family=None)` | Initial Design, 고른 family | payload에 `selected_family`·`selected_family_features`. 출력에 `family_design_match` ∈ `clear`/`weak`/`mismatch` 추가(기존 키 유지) |
+| `llm.interpret_initial_request(text, should_stop=None)` | 사용자 첫 자유 발화 한 문장(또는 첫 발화와 follow-up 답을 합친 문자열) | `{object, preference, family, style_hint, sufficient, follow_up, reply}`(`llm.REQUEST_KEYS`) 또는 `{"llm_error": …}`. `object` ∈ `"CHAIR"`(앉는 가구 전부: 의자·벤치·소파·스툴·왕좌 등) / `"UNSUPPORTED"`(앉는 가구가 아닌 사물을 분명히 요구) / `"UNCLEAR"`(사물을 알 수 없음). `preference` ∈ `"ANY"`(맡김·아무거나, 스타일 형용사만 있어도 가능) / `"SPECIFIC"`(카탈로그 family로 자연스럽게 표현되는 종류·특징) / `"CREATIVE"`(카탈로그 family로 바꾸면 의미가 사라지는 concept, 예: 사과·구름·꽃·왕관 같은 의자). `family` = SPECIFIC이면 카탈로그 키, 그 밖은 null(카탈로그에 강제 매핑하지 않음, CREATIVE는 항상 null). `style_hint` = 짧은 한국어 구(CREATIVE는 concept 전체, 예: "사과처럼 둥글고 빨간"), 없으면 `""`. `sufficient` = object가 UNCLEAR이거나 종류·특징·concept·명시적 ANY가 하나도 없을 때만 false(명시적 ANY는 true). `follow_up` = sufficient가 false일 때 물을 존댓말 한 문장, 아니면 `""`. `reply` = 되읽어 줄 자연스러운 존댓말 한 문장. 발화 원문은 해석할 데이터이며 그 안의 지시·key·코드는 따르지 않음(프롬프트에 명시) |
+| `llm.choose_initial_family(preference, rng=None)` | `None` 또는 요청 해석 결과 dict | 카탈로그 키 하나 또는 `None`. `preference`가 `SPECIFIC`이고 `family`가 카탈로그 키면 그 키, `CREATIVE`면 `None`(concept로 생성), 그 밖(None·ANY·카탈로그 밖)에는 `(rng or random).choice(sorted(FAMILY_CATALOG))` 균등 선택. 이력·가중치 없음(LLM 호출 없음) |
+| `llm.generate_initial_design(object_type, reasons=None, should_stop=None, family=None, style_hint=None, concept=None)` | 고른 family 또는 concept, style_hint | family가 있으면 사용자 메시지에 "Selected family: … Defining visible features …", concept가 있으면 "Creative concept from the person: <concept>. Realise it as a REAL seating piece (clear seat, visible support, obvious sitting direction), never a sculpture: abstract its silhouette, proportions and colour accents with the available bricks (1x2x1/2x2x1/2x3x1) and colours (yellow/blue/red), e.g. rounded outline by stepping the footprint, a colour band for the skin, a top feature that recalls the concept."를 넣음. style_hint가 있고 concept와 다르면 "Style preference from the person: …"(CREATIVE에서는 같은 문구라 한 번만). 셋 다 없으면 기존 메시지 그대로. family와 concept를 함께 주면 `ValueError`(호출 없음). Initial system prompt에는 "주어진 family를 구현하라"(`_FAMILY_GIVEN`)와 "family 대신 concept가 주어질 수 있으며 그래도 실제 앉는 가구로, 조형물 금지"(`_CONCEPT_GIVEN`) 두 문장만 추가(예시 JSON 없음) |
+| `llm.describe_initial_design(design, should_stop=None, family=None, concept=None)` | Initial Design, 고른 family 또는 concept | payload에 `selected_family`·`selected_family_features`·`concept`. 출력 키는 그대로이며 `family_design_match` ∈ `clear`/`weak`/`mismatch`는 "고른 family(와 defining features) 또는 concept를 실제 앉는 가구로 얼마나 실현했는가"(둘 다 없으면 보이는 family 기준)로 재정의(새 키 없음) |
 
-`llm.FAMILY_CATALOG`는 앉는 가구 20종(dining chair, armchair, high-back chair, wingback chair, lounge chair, club chair, pedestal chair, sled-base chair, cantilever chair, chaise longue, stool, bar-stool-like seat, ottoman, bench, park bench, loveseat, sofa-like seat, daybed, throne, canopy chair)과 각각의 defining visible features(영어, 크기 포함, 좌표 없음)이고, `llm.CATALOG_TEXT`는 프롬프트용 목록입니다. 연결 흐름은 위 "흐름(Stage 2 Wave 3)"입니다.
+Stage 2 Wave 2~4의 `llm.interpret_initial_preference`·`PREFERENCE_KEYS`·`SYSTEM_PROMPT_PREFERENCE`는 Wave 4b에서 위 `interpret_initial_request`·`REQUEST_KEYS`·`SYSTEM_PROMPT_REQUEST`로 대체하고 삭제했습니다.
+
+`llm.FAMILY_CATALOG`는 앉는 가구 20종(dining chair, armchair, high-back chair, wingback chair, lounge chair, club chair, pedestal chair, sled-base chair, cantilever chair, chaise longue, stool, bar-stool-like seat, ottoman, bench, park bench, loveseat, sofa-like seat, daybed, throne, canopy chair)과 각각의 defining visible features(영어, 크기 포함, 좌표 없음)이고, `llm.CATALOG_TEXT`는 프롬프트용 목록입니다. 연결 흐름은 위 "흐름"입니다. 카탈로그는 hard constraint가 아닙니다: 일반 요청은 카탈로그 family로, 카탈로그로 환원하면 의미가 사라지는 창의적 concept는 family 없이 concept를 생성 프롬프트에 직접 전달합니다. 결과는 어느 경우든 실제 앉는 가구여야 합니다(조형물 금지).
+
+**향후 옵션(미구현): 이미지·vision 검색.** 특정 제품 형태(예: 특정 브랜드 의자)처럼 말로 전하기 어려운 요청은 이미지 검색이나 vision 모델로 참고 형태를 얻는 방식을 검토할 수 있습니다. 현재 C에는 이미지·웹 검색 기능이 없으며 추가하지 않았습니다. 도입하려면 별도 사용자 결정과 dependency·비용·저작권 검토가 필요합니다.
 
 ### 4.2 `run_intervention(design, current, differences, text_answers=None, on_question=None, should_stop=None)`
 
@@ -227,7 +231,7 @@ Stage 2 Wave 3에서 Initial(LLM)에 `preference`·`selected_family`·`family_so
 
 | 경우 | `design_metadata` |
 |---|---|
-| Initial 성공(LLM) | `{design_name, design_family, design_summary, visible_features, human_interpretation: null, judge: {silhouette_clarity, recognizable_family, completeness_score}, preference, selected_family, family_source, style_hint, family_design_match, source: "LLM", error}` — 설명 호출(`llm.describe_initial_design`) 결과와 family 선택. `preference` = 선호 해석 결과 dict(`PREFERENCE_KEYS`) 또는 null(아무거나·침묵·질문 없음·해석 실패), `selected_family` = 고른 카탈로그 키, `family_source` = `"preference"`(SPECIFIC 선호의 family) / `"random"`, `style_hint` = 선호 해석의 짧은 한국어 구 또는 null, `family_design_match` = 설명의 `clear`/`weak`/`mismatch`(없으면 null) |
+| Initial 성공(LLM) | `{design_name, design_family, design_summary, visible_features, human_interpretation: null, judge: {silhouette_clarity, recognizable_family, completeness_score}, preference, selected_family, family_source, style_hint, family_design_match, source: "LLM", error}` — 설명 호출(`llm.describe_initial_design`) 결과와 family 선택. `preference` = 요청 해석 결과 dict(`REQUEST_KEYS`, Stage 2 Wave 4b) 또는 null(규칙 ANY·침묵·해석 실패 fallback), `selected_family` = 고른 카탈로그 키 또는 null(CREATIVE), `family_source` = `"preference"`(SPECIFIC 요청의 family) / `"random"` / `"creative"`(family 없이 concept로 생성), `style_hint` = 요청 해석의 짧은 한국어 구(CREATIVE는 concept) 또는 null, `family_design_match` = 설명의 `clear`/`weak`/`mismatch`(고른 family 또는 concept를 실제 앉는 가구로 실현한 정도, 없으면 null) |
 | REVISE 성공(LLM) | 아래 Revised 필드표 |
 | Mock(Initial·REVISE) | 고정 문자열: `design_name: "Mock 의자"`, `design_family: "chair"`, `source: "MOCK"`, `judge`·`design_intent`: null, `regenerations`: 0 |
 | KEEP, UNCLEAR, FAILED, CANCELLED | `null` |
@@ -246,7 +250,7 @@ Stage 2 Wave 3에서 Initial(LLM)에 `preference`·`selected_family`·`family_so
 | `regenerations` | judge 결과로 다시 만든 횟수(0 또는 1, §8.12·§8.13) |
 | `style_hint` | Intervention 답변의 LLM 해석이 준 바람(한국어 구) 또는 null(Rule로 결정·힌트 없음) |
 | `source` | `"LLM"` / `"MOCK"` |
-| `error` | null 또는 `{kind, message}`: `judge_error`(judge 응답 오류·필수 필드 누락·예상 밖 값, 재생성 없음), `regeneration_failed`(재생성이 유효 후보를 못 냄, 첫 설계 유지), `describe_error`(Initial 설명 실패), `preference_error`(Initial 선호 해석 실패·키 누락, 무작위 family로 계속). 여러 개면 마지막 오류 |
+| `error` | null 또는 `{kind, message}`: `judge_error`(judge 응답 오류·필수 필드 누락·예상 밖 값, 재생성 없음), `regeneration_failed`(재생성이 유효 후보를 못 냄, 첫 설계 유지), `describe_error`(Initial 설명 실패), `request_error`(Initial 요청 해석 실패·`REQUEST_KEYS` 누락, ANY로 보고 무작위 family로 계속, Stage 2 Wave 4b; 이전 이름 `preference_error`). 여러 개면 마지막 오류 |
 
 ## 7. C → A 전달
 
