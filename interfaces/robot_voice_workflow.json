@@ -1,8 +1,8 @@
 {
   "config_id": "day4-four-rows-user-verified-2026-10-06-v1",
   "mode": "REAL",
-  "base_config": "/home/ms-02/C_2/interfaces/robot_trial_blue5.json",
-  "measurements_path": "/home/ms-02/C-2_협동2자료/supply_board_map/supply_pick_lines_provisional.json",
+  "base_config": "robot_trial_blue5.json",
+  "measurements_path": "../supply_board_map/supply_pick_lines_provisional.json",
   "measurements_sha256": "b8606bae5e0fe897beea097c653906f4d6d1b4b915fe98a6da4a7ec64d73a11c",
   "supply_rows": [
     {"brick_type": "2x2x1", "color": "yellow", "first_slot": 1, "return_route_verified": true},

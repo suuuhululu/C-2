@@ -1,7 +1,7 @@
 {
   "config_id": "yellow4-slot2-observe-2026-10-06-v1",
   "mode": "REAL",
-  "source_path": "/home/ms-02/C-2_협동2자료/robot_cycles/yellow4_row_to_place.py",
+  "source_path": "../robot_cycles/yellow4_row_to_place.py",
   "source_sha256": "01d874432e4ed7d635c8728b73e22b47f06964f69a83872976fd855d1df2fe99",
   "slot": 2,
   "settings": {
