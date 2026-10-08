@@ -1,4 +1,5 @@
 """사용자 음성 E2E runner (기본 5 Round, 시험용, production 코드 수정 없음).
+A/D 통합용 runner입니다. Stage 2 어휘(red·1x2x1·5층)는 A/D 반영 전까지 A planner에서 INVALID가 날 수 있습니다. C 단독 시험은 scripts/c_voice_e2e_c_only.py를 쓰세요.
 
 흐름(Round마다): 마이크 준비 → "지금 말씀하세요" → 사용자가 "의자 만들어줘" → whisper-1 STT → production
 main.create_initial_design(text=None): TTS 선호 질문 → 사용자 자유 답변(예: "아무거나", "왕좌처럼 높고 화려한 의자요")

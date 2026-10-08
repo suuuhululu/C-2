@@ -16,7 +16,7 @@ What each subcommand checks:
   tts       Sends the given sentence to the real TTS provider and plays it
             on the real speaker.
   questions Plays the two Stage 2 open-ended Korean questions exactly as
-            dialogue builds them (Initial preference question, and the full
+            dialogue builds them (Initial greeting, and the full
             Intervention question for one moved block) one after another and prints, per
             sentence, model / voice / whether instructions were sent, audio
             length and playback start/end clock times (voice._last_speak).
@@ -120,7 +120,7 @@ _SAMPLE_BLOCK = {"brick_type": "2x2x1", "color": "yellow", "x": 6, "y": 5, "orie
 
 # production 문장 그대로: Initial 선호 질문과, 블록 1개가 옮겨진 Intervention 주관식 질문 전체
 QUESTION_SENTENCES = (
-    dialogue.build_initial_preference_question(),
+    dialogue.build_greeting(),
     dialogue.build_question({}, [], [{"expected": _SAMPLE_BLOCK, "actual": dict(_SAMPLE_BLOCK, x=7)}]),
 )
 

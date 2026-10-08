@@ -181,35 +181,54 @@ def test_parse_escalation_response_fallback_not_called_when_rule_matches():
 
 
 # ---------------------------------------------------------------------------
-# Initial 선호 질문 / parse_initial_preference (ANY 또는 None)
+# Initial 인사 / parse_initial_request (ANY 또는 None) / 고정 문장 (Stage 2 Wave 4b)
 # ---------------------------------------------------------------------------
 
 
-def test_initial_preference_question_is_open_polite_question():
-    question = d.build_initial_preference_question()
-    assert question == d.INITIAL_PREFERENCE_QUESTION
-    assert question.endswith("?")
-    assert "있으세요" in question
-    assert "1번" not in question and "2번" not in question
+def test_greeting_is_a_polite_open_question():
+    assert d.build_greeting() == d.GREETING == "안녕하세요. 오늘 어떤 걸 만들고 싶으세요?"
+
+
+def test_fixed_initial_sentences():
+    assert d.UNSUPPORTED_REPLY == "죄송해요, 지금은 의자나 벤치 같은 앉는 가구만 만들 수 있어요."
+    assert d.FALLBACK_ANY_REPLY == "알겠어요, 제가 어울리는 의자를 골라 볼게요."
+    assert d.SILENCE_REASK == "잘 못 들었어요. 오늘 어떤 걸 만들고 싶으세요?"
+    for sentence in (d.GREETING, d.UNSUPPORTED_REPLY, d.FALLBACK_ANY_REPLY, d.SILENCE_REASK):
+        assert "1번" not in sentence and "2번" not in sentence
 
 
 @pytest.mark.parametrize(
     "text",
-    ["아무거나", "아무거나요", "없어요", "딱히 없는데요", "상관없어요", "알아서 해 주세요", "네가 정해줘",
-     "맡길게요", "글쎄요", "모르겠어요", "아니요", "특별히 생각해 둔 건 없어요"],
+    ["아무거나", "아무거나요", "아무거나 만들어 주세요", "아무 의자나 만들어줘", "알아서 의자 하나 만들어줘", "알아서 해 주세요",
+     "네가 정해줘", "맡길게요", "상관없어요", "오늘은 그냥 아무거나 알아서 의자 하나 만들어 주세요"],
 )
-def test_parse_initial_preference_any(text):
-    assert d.parse_initial_preference(text) == d.ANY
+def test_parse_initial_request_explicit_any(text):
+    assert d.parse_initial_request(text) == d.ANY
 
 
 @pytest.mark.parametrize(
     "text",
-    ["길고 멋진 의자", "빨간 등받이 의자요", "팔걸이 있는 거", "등받이 없는 의자", "소파 같은 거",
-     "긴 의자요", "아무거나 괜찮은데 좀 크게", "의자요", "음", "", "   ", None,
+    ["아무거나 멋진 의자", "벤치처럼 길고 넓은 의자", "오늘은 사과 같은 의자를 만들고 싶어요", "왕좌처럼 높고 화려한 의자",
+     "빨간 등받이 의자요", "팔걸이 있는 거", "등받이 없는 의자", "긴 의자요", "아무거나 책상 만들어줘",
+     "의자 만들어줘", "모르겠어요", "없어요", "아니요", "글쎄요", "뭔가 만들고 싶어요", "음", "", "   ", None,
      "특별히 생각해 둔 건 없지만 그래도 앉기 편하고 튼튼하면 좋겠어요"],
 )
-def test_parse_initial_preference_needs_llm(text):
-    assert d.parse_initial_preference(text) is None
+def test_parse_initial_request_needs_llm(text):
+    assert d.parse_initial_request(text) is None
+
+
+@pytest.mark.parametrize("text, expected", [
+    ("자동차 만들어줘", True), ("책상 만들어줘", True), ("로봇처럼 생긴 거", True),
+    ("자동차 모양 의자", False), ("테이블이랑 의자", False), ("사과 같은 의자", False), ("왕좌 만들어줘", False),
+    ("하늘을 나는 걸 만들고 싶어요", False), ("", False), (None, False),
+])
+def test_is_unsupported_request(text, expected):
+    assert d.is_unsupported_request(text) is expected
+
+
+def test_old_preference_question_api_is_removed():
+    for name in ("INITIAL_PREFERENCE_QUESTION", "build_initial_preference_question", "parse_initial_preference"):
+        assert not hasattr(d, name)
 
 
 # ---------------------------------------------------------------------------

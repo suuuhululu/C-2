@@ -485,7 +485,14 @@ class TestPromptEchoGuard:
         assert self._transcribe(monkeypatch, "의자, 벤치, 소파.") == ""
         assert voice.last_error().startswith("stt_prompt_echo")
 
-    @pytest.mark.parametrize("utterance", ["의자 만들어줘", "의자를 만들고 싶어", "2번", "1번이요"])
+    @pytest.mark.parametrize("utterance", ["의자 벤치 소파 스툴 만들어줘", "의자, 벤치, 소파, 스툴", "의자 벤치 소파요"])
+    def test_hint_listing_is_an_echo(self, monkeypatch, with_fake_key, utterance):
+        assert self._transcribe(monkeypatch, utterance) == ""
+        assert voice.last_error().startswith("stt_prompt_echo")
+
+    @pytest.mark.parametrize("utterance", ["의자 만들어줘", "의자를 만들고 싶어", "2번", "1번이요",
+                                           "벤치처럼 길고 넓은 의자를 만들고 싶어요",  # 2026-10-08 재현: 힌트 3개, 나머지 많음
+                                           "소파 같은 의자 만들어줘 등받이 높게", "왕좌처럼 높고 화려한 의자를 만들고 싶어요"])
     def test_normal_utterances_pass(self, monkeypatch, with_fake_key, utterance):
         assert self._transcribe(monkeypatch, utterance) == utterance
         assert voice.last_error() is None
@@ -536,7 +543,8 @@ class TestNoSpeechGate:
 
     def test_high_no_speech_prob_is_silence(self, monkeypatch, with_fake_key):
         assert self._transcribe(monkeypatch, _stt_body("흐흐흐흐", no_speech_prob=0.9)) == ""
-        assert voice.last_error() == "stt_no_speech: no segment below no_speech_prob 0.8; treated as no speech"
+        assert voice.last_error() == ("stt_no_speech: every segment has no_speech_prob >= 0.8 and avg_logprob < -1.0; "
+                                      "treated as no speech")
 
     def test_low_no_speech_prob_passes(self, monkeypatch, with_fake_key):
         assert self._transcribe(monkeypatch, _stt_body("2번", no_speech_prob=0.3)) == "2번"
@@ -686,10 +694,10 @@ class TestDebugDump:
         assert info["voiced_seconds"] == 0.5
         assert set(info) == {"sample_rate", "channels", "duration", "rms", "peak", "weak_input", "noise_floor", "threshold",
                              "voiced_seconds", "trimmed_seconds", "calibration_unstable", "calibration_retries", "stt_called", "reason",
-                             "whisper_text", "no_speech_probs"}
+                             "whisper_text", "no_speech_probs", "avg_logprobs"}
         assert info["stt_called"] is True and info["reason"] is None
         assert info["weak_input"] is True  # peak 3000 < WEAK_INPUT_PEAK: 표시만 하고 STT 결과는 바꾸지 않는다
-        assert info["whisper_text"] == "의자" and info["no_speech_probs"] == [0.1]
+        assert info["whisper_text"] == "의자" and info["no_speech_probs"] == [0.1] and info["avg_logprobs"] == [None]
         assert FAKE_KEY not in (debug_dir / "latest_input.json").read_text(encoding="utf-8")
 
     def test_no_dump_without_env(self, monkeypatch, with_fake_key, tmp_path):
@@ -1148,3 +1156,139 @@ class TestCalibrationGuard:
         assert set(cap["timeline"]) == {"warmup_done", "calibration_done", "on_ready"}
         assert cap["timeline"]["warmup_done"] <= cap["timeline"]["calibration_done"] <= cap["timeline"]["on_ready"]
         assert cap["stream_opened_at"] <= cap["stream_closed_at"]
+
+
+
+# ---------------------------------------------------------------------------
+# Stage 2 Wave 4b: 복합 무음 규칙, listen mode "free", beep, prewarm
+# ---------------------------------------------------------------------------
+
+
+def _segment(text, no_speech_prob, avg_logprob=None):
+    seg = {"id": 0, "text": text, "no_speech_prob": no_speech_prob}
+    if avg_logprob is not None:
+        seg["avg_logprob"] = avg_logprob
+    return seg
+
+
+class TestCompositeNoSpeech:
+    def _transcribe(self, monkeypatch, segments, text):
+        _install_urlopen(monkeypatch, [_stt_body(text, segments=segments)])
+        return voice.transcribe(_raw_pcm())
+
+    def test_measured_free_request_passes_when_decoding_is_confident(self, monkeypatch, with_fake_key):
+        # 2026-10-08 사용자 E2E: no_speech_prob 0.812 하나로 버려진 실제 발화(avg_logprob은 -1.0 이상이라고 가정)
+        text = "왕자처럼 높고 화려한 의자"
+        assert self._transcribe(monkeypatch, [_segment(text, 0.812, -0.4)], text) == text
+        assert voice.last_error() is None
+
+    def test_high_no_speech_and_low_logprob_is_silence(self, monkeypatch, with_fake_key):
+        assert self._transcribe(monkeypatch, [_segment("흐흐흐흐", 0.9, -1.5)], "흐흐흐흐") == ""
+        assert voice.last_error().startswith("stt_no_speech")
+
+    def test_segment_without_avg_logprob_keeps_the_old_rule(self, monkeypatch, with_fake_key):
+        assert self._transcribe(monkeypatch, [_segment("흐흐흐흐", 0.9)], "흐흐흐흐") == ""
+
+    def test_any_speech_segment_keeps_the_transcript(self, monkeypatch, with_fake_key):
+        segments = [_segment("음", 0.95, -1.8), _segment("벤치처럼 넓은 의자", 0.85, -0.3)]
+        assert self._transcribe(monkeypatch, segments, "음 벤치처럼 넓은 의자") == "음 벤치처럼 넓은 의자"
+
+    def test_debug_records_avg_logprobs(self, monkeypatch, with_fake_key, tmp_path):
+        monkeypatch.setenv(voice.DEBUG_DIR_ENV, str(tmp_path))
+        self._transcribe(monkeypatch, [_segment("왕좌", 0.812, -0.4), _segment("의자", 0.2)], "왕좌 의자")
+        info = json.loads((tmp_path / "latest_input.json").read_text(encoding="utf-8"))
+        assert info["no_speech_probs"] == [0.812, 0.2] and info["avg_logprobs"] == [-0.4, None]
+
+
+def _speech_after(prefix_blocks, speech=5, pause=0, more_speech=0):
+    """warm-up·보정(+버림) 뒤 발화 → (pause 무음) → (more_speech 발화) → 긴 무음."""
+    return (calibration() + [quiet_block() for _ in range(prefix_blocks)] + [loud_block()] * speech
+            + [quiet_block()] * pause + [loud_block()] * more_speech + [quiet_block()] * 40)
+
+
+class TestListenModes:
+    def test_defaults_are_unchanged_and_free_values(self):
+        assert (voice.WAIT_SECONDS, voice.TRAILING_SILENCE_SECONDS) == (8.0, 1.0)
+        assert (voice.FREE_WAIT_SECONDS, voice.FREE_TRAILING_SILENCE_SECONDS) == (10.0, 1.5)
+
+    def test_free_mode_keeps_a_1_2_s_pause_inside_one_utterance(self, monkeypatch, with_fake_key):
+        blocks = _speech_after(0, speech=5, pause=12, more_speech=5)
+        _install_sd(monkeypatch, blocks=list(blocks))
+        short = voice.record()
+        short_voiced = voice._last_capture["voiced_seconds"]
+        _install_sd(monkeypatch, blocks=list(blocks))
+        _install_urlopen(monkeypatch, [_stt_body("왕좌처럼 높고 화려한 의자")])
+        assert voice.listen(mode="free") == "왕좌처럼 높고 화려한 의자"
+        assert voice._last_capture["mode"] == "free"
+        assert short_voiced == 0.5 and voice._last_capture["voiced_seconds"] == 1.0  # short는 쉼에서 끊긴다
+        assert short != b""
+
+    def test_free_mode_waits_longer_for_the_first_word(self, monkeypatch, with_fake_key):
+        blocks = _speech_after(90)  # 9 s 뒤에 말하기 시작
+        _install_sd(monkeypatch, blocks=list(blocks))
+        assert voice.listen() == ""  # short: 8 s 대기 후 침묵
+        _install_sd(monkeypatch, blocks=list(blocks))
+        _install_urlopen(monkeypatch, [_stt_body("벤치")])
+        assert voice.listen(mode="free") == "벤치"
+
+    def test_mode_is_reset_after_each_listen_and_record_stays_argument_free(self, monkeypatch, with_fake_key):
+        seen = []
+        monkeypatch.setattr(voice, "record", lambda: seen.append(dict(voice._capture_options)) or b"")
+        assert voice.listen(mode="free", beep=True) == ""
+        assert seen == [{"mode": "free", "beep": True}]
+        assert voice._capture_options == {"mode": "short", "beep": False}
+
+    def test_unknown_mode_is_rejected(self):
+        with pytest.raises(ValueError):
+            voice.listen(mode="long")
+
+
+class TestBeep:
+    def test_beep_plays_after_calibration_and_discards_input_before_waiting(self, monkeypatch, with_fake_key):
+        discard = round(voice.BEEP_DISCARD_SECONDS / voice.BLOCK_SECONDS)
+        # 버리는 구간을 크게 만들어 두면, 버리지 않을 경우 그 블록이 발화로 잡힌다
+        blocks = calibration() + [loud_block(amplitude=9000)] * discard + [quiet_block()] * 5 + [loud_block()] * 5 + [quiet_block()] * 30
+        events = []
+        fake_sd = _install_sd(monkeypatch, events=events, blocks=blocks)
+        ready = []
+        _install_urlopen(monkeypatch, [_stt_body("네")])
+        assert voice.listen(on_ready=lambda: ready.append(fake_sd.streams[0].reads), mode="free", beep=True) == "네"
+        frames, samplerate = fake_sd.play_calls[0]
+        assert samplerate == voice.SAMPLE_RATE and len(frames) == int(voice.SAMPLE_RATE * voice.BEEP_SECONDS)
+        assert ready == [PREFIX_BLOCKS + discard]  # 보정 → beep → 버림 → on_ready
+        assert voice._last_capture["beep"] is True and voice._last_capture["voiced_seconds"] == 0.5
+
+    def test_beep_output_failure_is_ignored(self, monkeypatch, with_fake_key):
+        fake_sd = _install_sd(monkeypatch, blocks=_speech_after(round(voice.BEEP_DISCARD_SECONDS / voice.BLOCK_SECONDS)))
+
+        def broken_play(*a, **k):
+            raise OSError("no output device")
+
+        monkeypatch.setattr(fake_sd, "play", broken_play)
+        _install_urlopen(monkeypatch, [_stt_body("아무거나")])
+        assert voice.listen(beep=True) == "아무거나"
+        assert voice._last_capture["beep"] is False and voice.last_error() is None
+
+    def test_no_beep_by_default(self, monkeypatch, with_fake_key):
+        fake_sd = _install_sd(monkeypatch, blocks=_speech_after(0))
+        _install_urlopen(monkeypatch, [_stt_body("1번")])
+        assert voice.listen() == "1번"
+        assert fake_sd.play_calls == []
+
+
+class TestPrewarm:
+    def test_prewarm_opens_and_closes_one_stream_without_reading(self, monkeypatch):
+        fake_sd = _install_sd(monkeypatch)
+        assert voice.prewarm() is True
+        assert len(fake_sd.streams) == 1 and fake_sd.streams[0].closed and fake_sd.streams[0].reads == 0
+
+    def test_prewarm_failure_returns_false_without_raising(self, monkeypatch):
+        _install_sd(monkeypatch, open_error=OSError("no input device"))
+        assert voice.prewarm() is False
+
+    def test_prewarm_missing_module_returns_false(self, monkeypatch):
+        def missing():
+            raise ImportError("sounddevice")
+
+        monkeypatch.setattr(voice, "_sounddevice", missing)
+        assert voice.prewarm() is False
