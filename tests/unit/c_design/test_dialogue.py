@@ -191,9 +191,8 @@ def test_greeting_is_a_polite_open_question():
 
 def test_fixed_initial_sentences():
     assert d.UNSUPPORTED_REPLY == "죄송해요, 지금은 의자나 벤치 같은 앉는 가구만 만들 수 있어요."
-    assert d.FALLBACK_ANY_REPLY == "알겠어요, 제가 어울리는 의자를 골라 볼게요."
     assert d.SILENCE_REASK == "잘 못 들었어요. 오늘 어떤 걸 만들고 싶으세요?"
-    for sentence in (d.GREETING, d.UNSUPPORTED_REPLY, d.FALLBACK_ANY_REPLY, d.SILENCE_REASK):
+    for sentence in (d.GREETING, d.UNSUPPORTED_REPLY, d.SILENCE_REASK):
         assert "1번" not in sentence and "2번" not in sentence
 
 
@@ -389,3 +388,56 @@ def test_time_based_prompts_removed():
     assert not hasattr(d, "short_confirm_prompt")
     assert not hasattr(d, "status_check_prompt")
     assert not hasattr(d, "final_notice")
+
+
+# ---------------------------------------------------------------------------
+# Stage 2 Wave 4c: 진행 문장·확인(ack) 문장
+# ---------------------------------------------------------------------------
+
+
+def test_progress_messages_and_tts_stages():
+    expected = {"GENERATING": "디자인을 생성하고 있어요.", "VALIDATING": "구조를 확인하고 있어요.",
+                "DESCRIBING": "디자인을 정리하고 있어요.", "READY": "디자인이 완성됐어요.",
+                "GENERATING_REVISED": "수정된 디자인을 만들고 있어요.", "JUDGING": "완성된 디자인을 확인하고 있어요.",
+                "READY_REVISED": "수정된 디자인이 완성됐어요."}
+    assert {key: d.PROGRESS_MESSAGES[key] for key in expected} == expected
+    assert d.PROGRESS_TTS_STAGES == ("GENERATING", "READY", "GENERATING_REVISED", "JUDGING", "READY_REVISED")
+    assert all(stage in d.PROGRESS_MESSAGES for stage in d.PROGRESS_TTS_STAGES)
+    for stage in ("LISTENING", "UNDERSTANDING", "VALIDATING", "DESCRIBING"):
+        assert stage not in d.PROGRESS_TTS_STAGES
+
+
+@pytest.mark.parametrize("options", [d.INITIAL_ACKS, d.INITIAL_CONCEPT_ACKS, d.REVISE_ACKS, d.REVISE_HINT_ACKS, d.KEEP_ACKS])
+def test_ack_candidates_are_three_or_four_polite_sentences(options):
+    assert 3 <= len(options) <= 4 and len(set(options)) == len(options)
+    for sentence in options:
+        assert sentence.endswith(("요.", "다.")) and "1번" not in sentence
+
+
+def test_keep_ack_picks_from_candidates_without_immediate_repeat():
+    picks = [d.keep_ack() for _ in range(30)]
+    assert set(picks) <= set(d.KEEP_ACKS) and len(set(picks)) >= 2
+    assert all(a != b for a, b in zip(picks, picks[1:]))
+
+
+def test_revise_ack_fallback_with_and_without_style_hint():
+    with_hint = d.revise_ack_fallback("좌석을 넓고 화려하게")
+    assert "좌석을 넓고 화려하게" in with_hint
+    assert with_hint in {t.format(hint="좌석을 넓고 화려하게") for t in d.REVISE_HINT_ACKS}
+    assert d.revise_ack_fallback() in d.REVISE_ACKS and d.revise_ack_fallback("  ") in d.REVISE_ACKS
+
+
+def test_initial_ack_fallback_uses_concept_and_never_reads_family_key():
+    assert d.initial_ack_fallback() in d.INITIAL_ACKS
+    assert d.initial_ack_fallback(family="sled-base chair") in d.INITIAL_ACKS
+    concept = d.initial_ack_fallback(concept="사과처럼 둥글고 빨간")
+    assert "사과처럼 둥글고 빨간" in concept and "sled" not in concept
+
+
+def test_ack_choice_is_random(monkeypatch):
+    seen = []
+    monkeypatch.setattr(d.random, "choice", lambda choices: seen.append(list(choices)) or choices[-1])
+    d._last_pick.clear()
+    assert d.keep_ack() == d.KEEP_ACKS[-1] and seen[0] == list(d.KEEP_ACKS)
+    d.keep_ack()
+    assert d.KEEP_ACKS[-1] not in seen[1]  # 바로 앞 문장은 후보에서 뺀다

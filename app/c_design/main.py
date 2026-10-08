@@ -20,6 +20,9 @@
       → REVISE면 designer.build_revised_design(6회) → 탈락 시 §8.11 escalation 질문
       → "계속 찾기"면 4회 더(합계 10회) → 실패면 DESIGN_GENERATION_FAILED
     - Current가 support 후보 기준을 위반하면 재생성 없이 바로 escalation 질문
+    - 진행 표시(Stage 2 Wave 4c): 두 공개 함수의 on_progress(선택)로 단계 이벤트 {stage, message, at}(PROGRESS_STAGES)를
+      보내고, Design 생성 전에 항상 확인(ack) 한 문장(해석 reply 또는 dialogue fallback, KEEP은 keep_ack)을 낸다.
+      LLM 음성 모드에서만 ack와 dialogue.PROGRESS_TTS_STAGES 문장을 읽는다. 진행은 envelope·Design에 넣지 않는다.
     - 텍스트 모드(text / text_answers)는 Fake Voice로 쓰인다.
     - 음성 모드: voice.speak(질문) 재생이 끝난 뒤 voice.listen()으로 응답을 받는다(WAVE 6).
       listen()이 None(장치·STT 실패)이면 VOICE_IO_FAILED, ""(침묵)이면 계속 기다린다.
@@ -45,6 +48,7 @@
 """
 
 import os
+import time
 
 from app.c_design import designer, dialogue, llm, validator, voice
 
@@ -68,6 +72,40 @@ _MOCK_NAME, _MOCK_FAMILY, _MOCK_SUMMARY = "Mock 의자", "chair", "Mock 고정 �
 
 # next_reply가 침묵 대기 중 STOP을 만났다는 표시(정상 응답 문자열·None과 구분).
 _STOP = object()
+
+# on_progress 이벤트 단계(Stage 2 Wave 4c). Initial: LISTENING → UNDERSTANDING → ACK → GENERATING → VALIDATING → DESCRIBING
+# → READY. Revised: LISTENING → UNDERSTANDING → ACK(REVISE) 또는 KEEP_ACK(KEEP) → GENERATING_REVISED → VALIDATING → JUDGING
+# → (REGENERATING → VALIDATING → JUDGING) → READY_REVISED. 끝이 실패·취소면 FAILED·CANCELLED, escalation 질문은 ESCALATION.
+PROGRESS_STAGES = ("LISTENING", "UNDERSTANDING", "ACK", "KEEP_ACK", "GENERATING", "GENERATING_REVISED", "VALIDATING",
+                   "DESCRIBING", "JUDGING", "REGENERATING", "ESCALATION", "READY", "READY_REVISED", "FAILED", "CANCELLED")
+
+
+def _clock():
+    now = time.time()
+    return time.strftime("%H:%M:%S", time.localtime(now)) + f".{int(now * 1000) % 1000:03d}"
+
+
+def _reporter(on_progress, speak):
+    """progress(stage, message=None, say=False). speak면 PROGRESS_TTS_STAGES와 say=True 문장만 음성으로 읽는다.
+
+    progress는 Design·envelope에 넣지 않는다(표시·로그 전용). on_progress 예외는 호출자 책임(on_question과 같음).
+    """
+    def progress(stage, message=None, say=False):
+        if message is None:
+            message = dialogue.PROGRESS_MESSAGES.get(stage, "")
+        if on_progress is not None:
+            on_progress({"stage": stage, "message": message, "at": _clock()})
+        if speak and (say or stage in dialogue.PROGRESS_TTS_STAGES):
+            voice.speak(message)
+    return progress
+
+
+def _report_end(progress, envelope):
+    """실패·취소 envelope이면 FAILED·CANCELLED 단계를 사유와 함께 알린다(성공 단계는 각 흐름이 알린다)."""
+    if envelope["status"] in ("FAILED", "CANCELLED"):
+        error = envelope["error"] or {}
+        progress(envelope["status"], f"{error.get('code')}: {error.get('message')}")
+    return envelope
 
 
 def _voice_failure():
@@ -235,13 +273,20 @@ def _family_choice(request, error):
             "concept": style_hint if mode == "CREATIVE" else None, "error": error}
 
 
-def create_initial_design(text=None, should_stop=None, preference_text=None, on_question=None):
-    """첫 자유 발화 → (LLM 모드) 요청 해석·필요 시 되묻기 1회·family 또는 concept 선택 → Initial Design (§4.1).
+def create_initial_design(text=None, should_stop=None, preference_text=None, on_question=None, on_progress=None):
+    """첫 자유 발화 → (LLM 모드) 요청 해석·필요 시 되묻기 1회·확인(ack)·family 또는 concept 선택 → Initial Design (§4.1).
 
     text: 첫 자유 발화 전체(None이면 음성 모드: C가 인사하고 듣는다). Mock 모드에서는 목표 문장(parse_goal).
     preference_text: 텍스트 모드에서 되묻기(follow-up)에 대한 답(None이면 되묻지 않고 "아무거나"로 진행).
     on_question: C가 질문(인사·재질문·되묻기)을 낼 때 그 문장으로 호출(HMI 표시용, 예외는 호출자 책임).
+    on_progress: 진행 단계마다 {"stage", "message", "at"}로 호출(PROGRESS_STAGES, 표시·로그용, 예외는 호출자 책임).
     """
+    speak = text is None and _use_llm()  # 진행 음성은 LLM 음성 모드에서만(Mock·텍스트 모드는 콜백·로그만)
+    progress = _reporter(on_progress, speak)
+    return _report_end(progress, _initial(text, should_stop, preference_text, on_question, progress))
+
+
+def _initial(text, should_stop, preference_text, on_question, progress):
     voice_mode = text is None
     if not voice_mode and not isinstance(text, str):
         return _result("FAILED", code="INVALID_INPUT", message="text must be a str or None")
@@ -257,9 +302,12 @@ def create_initial_design(text=None, should_stop=None, preference_text=None, on_
         object_type = dialogue.parse_goal(text)
         if object_type is None:
             return _result("FAILED", code="UNSUPPORTED_OBJECT", message="no supported object in the goal")
+        progress("GENERATING")
         result = designer.build_initial_design(object_type, delay=designer.RETRY_DELAY, should_stop=should_stop)
         if result["design"] is None:
             return _from_designer(result, None, [])
+        progress("VALIDATING")
+        progress("READY")
         return _result("OK", None, result["design"], design_metadata=_mock_metadata(revised=False))
 
     questions = []
@@ -279,6 +327,7 @@ def create_initial_design(text=None, should_stop=None, preference_text=None, on_
         return should_stop is not None and should_stop()
 
     def hear():
+        progress("LISTENING")
         return voice.listen(mode="free", beep=True)
 
     def voice_failed():
@@ -303,6 +352,7 @@ def create_initial_design(text=None, should_stop=None, preference_text=None, on_
     request, error, fallback = None, None, False
     if stop_requested():
         return _stopped(questions)
+    progress("UNDERSTANDING")
     if not dialogue.is_meaningful(text):
         fallback = True
     elif dialogue.is_unsupported_request(text):  # "자동차 만들어줘": LLM 호출 없이 지원 밖(Mock parse_goal과 같은 보장)
@@ -326,6 +376,7 @@ def create_initial_design(text=None, should_stop=None, preference_text=None, on_
                 answer = hear() if voice_mode else preference_text
                 if answer is None:
                     return voice_failed()
+                progress("UNDERSTANDING")
             request = None
             if not dialogue.is_meaningful(answer):
                 fallback = True
@@ -346,11 +397,13 @@ def create_initial_design(text=None, should_stop=None, preference_text=None, on_
                        message="the request is not seating furniture")
 
     choice = _family_choice(request, error)
-    reply = (request or {}).get("reply")
-    if fallback:
-        say(dialogue.FALLBACK_ANY_REPLY)
-    elif isinstance(reply, str) and reply.strip():
-        say(reply)  # 해석을 되읽어 준다
+    # 생성 전에 항상 요청을 되짚는다(ack). 해석의 reply가 있으면 그것, 없으면(규칙 "아무거나"·침묵·해석 실패·되묻기 뒤
+    # 무작위) 확인 문장. 음성 모드에서는 바로 읽어 첫 응답이 Design 생성을 기다리지 않게 한다.
+    reply = None if fallback else (request or {}).get("reply")
+    if not (isinstance(reply, str) and reply.strip()):
+        reply = dialogue.initial_ack_fallback(family=choice["family"], concept=choice["concept"])
+    progress("ACK", reply, say=True)
+    progress("GENERATING")
 
     def generate(object_type, reasons):
         return llm.generate_initial_design(object_type, reasons, should_stop=should_stop, family=choice["family"],
@@ -358,15 +411,27 @@ def create_initial_design(text=None, should_stop=None, preference_text=None, on_
     result = designer.build_initial_design("CHAIR", generate=generate, delay=designer.RETRY_DELAY, should_stop=should_stop)
     if result["design"] is None:
         return _from_designer(result, None, questions)
+    progress("VALIDATING")
+    progress("DESCRIBING")
     described = llm.describe_initial_design(result["design"], should_stop=should_stop, family=choice["family"],
                                             concept=choice["concept"])
     if _llm_error_kind(described) == "stopped":
         return _stopped(questions)
+    progress("READY")
     return _result("OK", None, result["design"], questions, design_metadata=_initial_metadata(described, choice))
 
 
-def run_intervention(design, current, differences, text_answers=None, on_question=None, should_stop=None):
-    """실제 차이에 대한 사용자 의도 확인 (§4.2). 예외를 밖으로 던지지 않는다(on_question 제외)."""
+def run_intervention(design, current, differences, text_answers=None, on_question=None, should_stop=None, on_progress=None):
+    """실제 차이에 대한 사용자 의도 확인 (§4.2). 예외를 밖으로 던지지 않는다(on_question·on_progress 제외).
+
+    on_progress: 진행 단계마다 {"stage", "message", "at"}로 호출(PROGRESS_STAGES, 표시·로그용).
+    """
+    progress = _reporter(on_progress, text_answers is None and _use_llm())
+    return _report_end(progress, _intervention(design, current, differences, text_answers, on_question, should_stop,
+                                               progress))
+
+
+def _intervention(design, current, differences, text_answers, on_question, should_stop, progress):
     reasons = validator.check_intervention_input(design, current, differences)
     if reasons:
         return _result("FAILED", code="INVALID_INPUT", message="invalid intervention input", details=reasons)
@@ -382,9 +447,13 @@ def run_intervention(design, current, differences, text_answers=None, on_questio
         if voice_mode:
             voice.speak(sentence)
 
+    use_llm = _use_llm()
+
     def next_reply():
         """다음 의미 있는 응답. None이면 텍스트 응답 소진 또는 음성 I/O 실패, _STOP이면 STOP."""
         while True:
+            if voice_mode and use_llm:
+                progress("LISTENING")
             reply = voice.listen(mode="free", beep=True) if voice_mode else next(answers, None)
             if reply is None or dialogue.is_meaningful(reply):
                 return reply
@@ -403,6 +472,8 @@ def run_intervention(design, current, differences, text_answers=None, on_questio
     def escalate(can_redesign):
         """§8.11 escalation 질문. 종료 envelope 또는 None(계속 재설계)을 돌려준다."""
         question = dialogue.escalation_question(differences)
+        if use_llm:
+            progress("ESCALATION")
         ask(question)
         while True:
             if stop_requested():
@@ -414,7 +485,7 @@ def run_intervention(design, current, differences, text_answers=None, on_questio
                 return no_reply()
             choice = dialogue.parse_escalation_response(reply)
             if choice == dialogue.MOVE_BACK:
-                return _result("OK", dialogue.KEEP, design, questions)
+                return keep()
             if choice == dialogue.CANCEL:
                 return _user_cancel(questions)
             if choice == dialogue.KEEP_SEARCHING and can_redesign:
@@ -422,9 +493,8 @@ def run_intervention(design, current, differences, text_answers=None, on_questio
             # UNCLEAR, 또는 재설계할 수 없는데 "계속 찾기": 같은 질문으로 명시 선택을 기다린다.
             ask(question)
 
-    use_llm = _use_llm()
-    # LLM 모드에서 metadata 오류·답변의 style_hint를 요청 단위로 모은다(error는 마지막 오류).
-    state = {"error": None, "style_hint": None, "stopped": False, "interpreted": False}
+    # LLM 모드에서 metadata 오류·답변의 style_hint와 확인 문장(reply)을 요청 단위로 모은다(error는 마지막 오류).
+    state = {"error": None, "style_hint": None, "reply": None, "stopped": False, "interpreted": False}
     # Revised(LLM)는 이전 Design보다 풍부해야 한다(§8.13). Mock 후보는 결정론적 이동뿐이라 검사하지 않는다.
     min_blocks = designer.revised_min_blocks(design) if use_llm else None
 
@@ -448,8 +518,19 @@ def run_intervention(design, current, differences, text_answers=None, on_questio
         answer = ask_answer_llm(text)
         if answer is None:
             return dialogue.UNCLEAR
-        state["style_hint"] = usable_hint(answer) if answer["decision"] == dialogue.REVISE else None
+        revise = answer["decision"] == dialogue.REVISE
+        state["style_hint"] = usable_hint(answer) if revise else None
+        state["reply"] = usable_reply(answer) if revise else None
         return answer["decision"]
+
+    def usable_reply(answer):
+        reply = answer.get("reply") if answer is not None else None  # reply 키는 Wave 4c llm(A)부터
+        return reply if isinstance(reply, str) and reply.strip() else None
+
+    def keep():
+        if use_llm:
+            progress("KEEP_ACK", dialogue.keep_ack(), say=True)
+        return _result("OK", dialogue.KEEP, design, questions)
 
     def make_generate(feedback=None):
         if not use_llm:
@@ -470,12 +551,15 @@ def run_intervention(design, current, differences, text_answers=None, on_questio
         """설계 결과 → envelope. LLM이면 judge 후 조건이 맞을 때만 재생성(최대 METADATA_REGENERATIONS_MAX회)."""
         if result["design"] is None:
             return _from_designer(result, dialogue.REVISE, questions)
+        progress("VALIDATING")
         if not use_llm:
+            progress("READY_REVISED")
             return _result("OK", dialogue.REVISE, result["design"], questions, design_metadata=_mock_metadata(revised=True))
         final = result["design"]
         regenerations = 0
         usable_judge = None
         while True:
+            progress("JUDGING")
             judge = llm.judge_revised_design(design, final, current, differences, should_stop=should_stop)
             if _llm_error_kind(judge) == "stopped":
                 return _stopped(questions)
@@ -487,6 +571,7 @@ def run_intervention(design, current, differences, text_answers=None, on_questio
             if regenerations >= METADATA_REGENERATIONS_MAX or not _needs_regeneration(judge):
                 break
             regenerations += 1
+            progress("REGENERATING")
             again = build(FIRST_ATTEMPTS, feedback=llm.judge_feedback_text(judge))
             if again["design"] is None:
                 if any(r["rule"] == "stopped" for r in again["reasons"]):
@@ -494,6 +579,8 @@ def run_intervention(design, current, differences, text_answers=None, on_questio
                 state["error"] = _meta_error("regeneration_failed", [r["rule"] for r in again["reasons"]])
                 break  # 첫 설계와 그 judge를 그대로 쓴다
             final = again["design"]
+            progress("VALIDATING")
+        progress("READY_REVISED")
         metadata = _revised_metadata(usable_judge, regenerations, state["error"], state["style_hint"])
         return _result("OK", dialogue.REVISE, final, questions, design_metadata=metadata)
 
@@ -501,6 +588,10 @@ def run_intervention(design, current, differences, text_answers=None, on_questio
         if validator.current_support_violations(current):
             # Current를 그대로 보존하면 어떤 후보도 support를 통과할 수 없다(§8.11 즉시 진입).
             return escalate(can_redesign=False)
+        if use_llm:
+            # 생성 전에 항상 확인(ack): 해석 reply(LLM이 REVISE로 해석한 경우) 또는 확인 문장(숫자 답·해석 실패).
+            progress("ACK", state["reply"] or dialogue.revise_ack_fallback(state["style_hint"]), say=True)
+        progress("GENERATING_REVISED")
         result = build(FIRST_ATTEMPTS)
         # 설계 성공·STOP·provider 실패는 escalation 대상이 아니다(후보 탈락만 escalation).
         if result["design"] is not None or any(r["rule"] in ("stopped", "llm_call_failed") for r in result["reasons"]):
@@ -510,6 +601,7 @@ def run_intervention(design, current, differences, text_answers=None, on_questio
             return ended
         if stop_requested():
             return _stopped(questions)
+        progress("GENERATING_REVISED")
         return finish(build(EXTRA_ATTEMPTS))
 
     question = dialogue.build_question(design, current, differences)
@@ -523,16 +615,20 @@ def run_intervention(design, current, differences, text_answers=None, on_questio
         if reply is None:
             return no_reply()
         state["interpreted"] = False
+        if use_llm:
+            progress("UNDERSTANDING")
         choice = dialogue.parse_response(reply, interpret_answer if use_llm else None)
         if (use_llm and choice == dialogue.REVISE and not state["interpreted"]
                 and not dialogue.is_number_answer(reply)):
             # Rule이 REVISE로 정한 자유 답변("일부러 놨어요. 팔걸이로 살려주세요")에서 바람만 받는다. decision은 Rule 그대로,
-            # 해석 실패는 힌트 없이 진행한다(재질문 없음).
-            state["style_hint"] = usable_hint(ask_answer_llm(reply))
+            # 해석 실패는 힌트 없이 진행한다(재질문 없음). LLM decision이 REVISE일 때만 그 reply를 확인 문장으로 쓴다.
+            answer = ask_answer_llm(reply)
+            state["style_hint"] = usable_hint(answer)
+            state["reply"] = usable_reply(answer) if answer is not None and answer["decision"] == dialogue.REVISE else None
         if state["stopped"]:
             return _stopped(questions)
         if choice == dialogue.KEEP:
-            return _result("OK", dialogue.KEEP, design, questions)
+            return keep()
         if choice == dialogue.CANCEL:
             return _user_cancel(questions)
         if choice == dialogue.REVISE:

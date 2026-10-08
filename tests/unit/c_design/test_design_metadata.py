@@ -8,6 +8,7 @@ main.METADATA_REGENERATIONS_MAX == 1) and how many design / judge calls were mad
 
 import json
 import random
+import re
 
 import pytest
 
@@ -543,7 +544,8 @@ def test_initial_voice_mode_greets_listens_free_with_beep_then_reads_back(initia
     result = main.create_initial_design()
     assert result["status"] == "OK" and result["questions"] == [dialogue.GREETING]
     assert events == [("prewarm",), ("speak", dialogue.GREETING), ("listen", "free", True, "왕좌처럼 높고 화려한 의자요"),
-                      ("speak", "좋아요, 높고 화려한 왕좌로 만들어 볼게요.")]
+                      ("speak", "좋아요, 높고 화려한 왕좌로 만들어 볼게요."),  # ack(해석 reply)
+                      ("speak", dialogue.PROGRESS_MESSAGES["GENERATING"]), ("speak", dialogue.PROGRESS_MESSAGES["READY"])]
     assert result["design_metadata"]["selected_family"] == "throne"
 
 
@@ -566,7 +568,8 @@ def test_initial_voice_silence_reasks_once_then_random(initial_llm, fake_voice):
     result = main.create_initial_design()
     assert result["status"] == "OK" and calls["interpret"] == [] and calls["choose"] == [None]
     assert result["questions"] == [dialogue.GREETING, dialogue.SILENCE_REASK]
-    assert events[-1] == ("speak", dialogue.FALLBACK_ANY_REPLY)
+    assert events[-3][0] == "speak" and events[-3][1] in dialogue.INITIAL_ACKS  # 무작위 fallback도 생성 전에 확인
+    assert events[-2:] == [("speak", dialogue.PROGRESS_MESSAGES["GENERATING"]), ("speak", dialogue.PROGRESS_MESSAGES["READY"])]
     assert result["design_metadata"]["family_source"] == "random"
 
 
@@ -577,7 +580,7 @@ def test_initial_voice_silence_then_request_is_used(initial_llm, fake_voice):
     result = main.create_initial_design()
     assert result["status"] == "OK" and calls["interpret"] == []
     assert result["questions"] == [dialogue.GREETING, dialogue.SILENCE_REASK]
-    assert ("speak", dialogue.FALLBACK_ANY_REPLY) not in events  # 명시적 "아무거나"는 fallback 문장이 아니다
+    assert events[-3][1] in dialogue.INITIAL_ACKS  # 명시적 "아무거나"도 생성 전에 확인 문장을 읽는다
 
 
 def test_initial_voice_unsupported_speaks_reply(initial_llm, fake_voice):
@@ -824,3 +827,175 @@ def test_intervention_voice_answer_is_heard_in_free_mode_with_beep(scenario, mon
     design, current, differences = scenario
     result = main.run_intervention(design, current, differences, text_answers=None)
     assert result["hri_result"] == "REVISE" and calls == [("free", True)]
+
+
+# ---------------------------------------------------------------------------
+# Stage 2 Wave 4c: on_progress 단계·확인(ack)·진행 음성
+# ---------------------------------------------------------------------------
+
+
+def _stages(events):
+    return [event["stage"] for event in events]
+
+
+def test_progress_event_shape_and_stage_constants():
+    assert main.PROGRESS_STAGES[:2] == ("LISTENING", "UNDERSTANDING")
+    for stage in ("ACK", "KEEP_ACK", "GENERATING", "GENERATING_REVISED", "VALIDATING", "DESCRIBING", "JUDGING",
+                  "REGENERATING", "ESCALATION", "READY", "READY_REVISED", "FAILED", "CANCELLED"):
+        assert stage in main.PROGRESS_STAGES
+
+
+def test_initial_text_mode_progress_order_without_speech(initial_llm, monkeypatch):
+    calls, replies = initial_llm
+    replies["interpret"] = [_request("SPECIFIC", family="bench", style_hint="길고 넓은",
+                                     reply="좋아요. 길고 편안한 벤치 형태로 만들어볼게요.")]
+    monkeypatch.setattr(main.voice, "speak", lambda sentence: pytest.fail("text mode must not speak"))
+    events = []
+    result = main.create_initial_design(text="벤치처럼 길고 넓은 의자", on_progress=events.append)
+    assert result["status"] == "OK" and set(result) == ENVELOPE_KEYS
+    assert _stages(events) == ["UNDERSTANDING", "ACK", "GENERATING", "VALIDATING", "DESCRIBING", "READY"]
+    assert events[1]["message"] == "좋아요. 길고 편안한 벤치 형태로 만들어볼게요."
+    assert events[2]["message"] == dialogue.PROGRESS_MESSAGES["GENERATING"]
+    assert all(re.fullmatch(r"\d\d:\d\d:\d\d\.\d{3}", event["at"]) for event in events)
+    assert set(events[0]) == {"stage", "message", "at"}
+
+
+def test_initial_rule_any_ack_uses_fallback_sentence(initial_llm):
+    events = []
+    main.create_initial_design(text="아무거나 만들어 주세요", on_progress=events.append)
+    ack = [event for event in events if event["stage"] == "ACK"]
+    assert len(ack) == 1 and ack[0]["message"] in dialogue.INITIAL_ACKS
+
+
+def test_initial_voice_ack_is_spoken_before_generation_and_only_tts_stages_are_read(initial_llm, fake_voice, monkeypatch):
+    calls, replies = initial_llm
+    events, heard = fake_voice
+    heard.append("오늘은 사과 같은 의자를 만들고 싶어요")
+    replies["interpret"] = [_request("CREATIVE", style_hint="사과처럼 둥글고 빨간",
+                                     reply="좋아요. 사과의 둥근 느낌을 살린 의자로 만들어볼게요.")]
+    original = main.llm.generate_initial_design
+
+    def generate(*args, **kwargs):
+        events.append(("generate",))
+        return original(*args, **kwargs)
+
+    monkeypatch.setattr(main.llm, "generate_initial_design", generate)
+    progress = []
+    result = main.create_initial_design(on_progress=progress.append)
+    assert result["status"] == "OK"
+    spoken = [e[1] for e in events if e[0] == "speak"]
+    assert spoken == [dialogue.GREETING, "좋아요. 사과의 둥근 느낌을 살린 의자로 만들어볼게요.",
+                      dialogue.PROGRESS_MESSAGES["GENERATING"], dialogue.PROGRESS_MESSAGES["READY"]]
+    ack_at = events.index(("speak", "좋아요. 사과의 둥근 느낌을 살린 의자로 만들어볼게요."))
+    assert ack_at < events.index(("generate",))  # ack는 Design 생성을 기다리지 않는다
+    assert _stages(progress) == ["LISTENING", "UNDERSTANDING", "ACK", "GENERATING", "VALIDATING", "DESCRIBING", "READY"]
+
+
+def test_initial_unsupported_reports_failed_stage(initial_llm):
+    events = []
+    result = main.create_initial_design(text="자동차 만들어줘", on_progress=events.append)
+    assert result["error"]["code"] == "UNSUPPORTED_OBJECT"
+    assert _stages(events) == ["UNDERSTANDING", "FAILED"] and "UNSUPPORTED_OBJECT" in events[-1]["message"]
+
+
+def test_initial_stop_reports_cancelled_stage(initial_llm):
+    calls, replies = initial_llm
+    replies["interpret"] = [{"llm_error": {"kind": "stopped", "message": "stopped"}}]
+    events = []
+    main.create_initial_design(text="왕좌처럼 높고 화려한 의자요", on_progress=events.append)
+    assert _stages(events) == ["UNDERSTANDING", "CANCELLED"] and "STOPPED" in events[-1]["message"]
+
+
+def test_initial_mock_mode_minimal_progress_without_ack_or_speech(monkeypatch):
+    monkeypatch.delenv("C_DESIGN_USE_LLM", raising=False)
+    monkeypatch.setattr(main.voice, "speak", lambda sentence: pytest.fail("Mock must not speak"))
+    events = []
+    result = main.create_initial_design(text=GOAL_TEXT, on_progress=events.append)
+    assert result["status"] == "OK" and _stages(events) == ["GENERATING", "VALIDATING", "READY"]
+
+
+def _progress_answer(scenario, *answers):
+    design, current, differences = scenario
+    events = []
+    result = main.run_intervention(design, current, differences, text_answers=list(answers), on_progress=events.append)
+    return result, events
+
+
+def test_revised_text_mode_progress_order_and_llm_reply_ack(scenario, answer_llm, monkeypatch):
+    calls, replies = answer_llm
+    replies["answer"] = {"decision": "REVISE", "style_hint": "팔걸이로", "reason": "…",
+                         "reply": "알겠습니다. 팔걸이를 살린 형태로 다시 만들어볼게요."}
+    monkeypatch.setattr(main.voice, "speak", lambda sentence: pytest.fail("text mode must not speak"))
+    result, events = _progress_answer(scenario, "일부러 그렇게 놨어요. 팔걸이로 살려주세요.")
+    assert result["hri_result"] == "REVISE" and set(result) == ENVELOPE_KEYS
+    assert _stages(events) == ["UNDERSTANDING", "ACK", "GENERATING_REVISED", "VALIDATING", "JUDGING", "READY_REVISED"]
+    assert events[1]["message"] == "알겠습니다. 팔걸이를 살린 형태로 다시 만들어볼게요."
+
+
+def test_revised_number_answer_uses_revise_ack_fallback(scenario, answer_llm):
+    calls, _ = answer_llm
+    result, events = _progress_answer(scenario, "2번")
+    ack = [event for event in events if event["stage"] == "ACK"]
+    assert calls["answers"] == [] and len(ack) == 1 and ack[0]["message"] in dialogue.REVISE_ACKS
+
+
+def test_revised_hint_only_call_ignores_a_non_revise_reply(scenario, answer_llm):
+    calls, replies = answer_llm
+    replies["answer"] = {"decision": "KEEP", "style_hint": "팔걸이로", "reason": "…", "reply": "네, 원래 자리로 고쳐 주세요."}
+    result, events = _progress_answer(scenario, "일부러 그렇게 놨어요. 팔걸이로 살려주세요.")
+    ack = [event for event in events if event["stage"] == "ACK"][0]["message"]
+    assert result["hri_result"] == "REVISE" and "팔걸이로" in ack and ack != "네, 원래 자리로 고쳐 주세요."
+
+
+def test_keep_answer_has_keep_ack_only(scenario, answer_llm):
+    result, events = _progress_answer(scenario, "제가 잘못 놨어요. 다시 고칠게요.")
+    assert result["hri_result"] == "KEEP"
+    assert _stages(events) == ["UNDERSTANDING", "KEEP_ACK"] and events[1]["message"] in dialogue.KEEP_ACKS
+
+
+def test_regeneration_reports_regenerating_and_second_judging(scenario, llm_mode):
+    calls, replies = llm_mode
+    replies["judge"] = [judge(chair_likeness="not_chair"), judge()]
+    result, events = _progress_answer(scenario, "2번")
+    assert _stages(events) == ["UNDERSTANDING", "ACK", "GENERATING_REVISED", "VALIDATING", "JUDGING", "REGENERATING",
+                               "VALIDATING", "JUDGING", "READY_REVISED"]
+
+
+def test_revised_voice_mode_speaks_ack_before_generation_then_tts_stages(scenario, answer_llm, monkeypatch):
+    calls, replies = answer_llm
+    replies["answer"] = {"decision": "REVISE", "style_hint": "", "reason": "…", "reply": "좋아요. 지금 배치를 살려볼게요."}
+    order = []
+    monkeypatch.setattr(main.voice, "listen", lambda on_ready=None, mode="short", beep=False: "일부러 그렇게 놨어요")
+    monkeypatch.setattr(main.voice, "speak", lambda sentence: order.append(("speak", sentence)))
+    original = main.llm.generate_revised_design
+
+    def generate(*args, **kwargs):
+        order.append(("generate",))
+        return original(*args, **kwargs)
+
+    monkeypatch.setattr(main.llm, "generate_revised_design", generate)
+    design, current, differences = scenario
+    progress = []
+    result = main.run_intervention(design, current, differences, text_answers=None, on_progress=progress.append)
+    assert result["hri_result"] == "REVISE"
+    spoken = [o[1] for o in order if o[0] == "speak"]
+    assert spoken[1:] == ["좋아요. 지금 배치를 살려볼게요.", dialogue.PROGRESS_MESSAGES["GENERATING_REVISED"],
+                          dialogue.PROGRESS_MESSAGES["JUDGING"], dialogue.PROGRESS_MESSAGES["READY_REVISED"]]
+    assert order.index(("speak", "좋아요. 지금 배치를 살려볼게요.")) < order.index(("generate",))
+    assert _stages(progress)[:2] == ["LISTENING", "UNDERSTANDING"]
+
+
+def test_revised_mock_mode_minimal_progress(scenario, monkeypatch):
+    monkeypatch.delenv("C_DESIGN_USE_LLM", raising=False)
+    result, events = _progress_answer(scenario, "2번")
+    assert result["hri_result"] == "REVISE" and _stages(events) == ["GENERATING_REVISED", "VALIDATING", "READY_REVISED"]
+    keep, keep_events = _progress_answer(scenario, "1번")
+    assert keep["hri_result"] == "KEEP" and keep_events == []
+
+
+def test_on_progress_none_keeps_envelopes_unchanged(scenario, answer_llm):
+    design, current, differences = scenario
+    with_cb = main.run_intervention(design, current, differences, text_answers=["2번"], on_progress=lambda e: None)
+    without = main.run_intervention(design, current, differences, text_answers=["2번"])
+    assert set(with_cb) == set(without) == ENVELOPE_KEYS
+    assert with_cb["design"] == without["design"] and with_cb["questions"] == without["questions"]

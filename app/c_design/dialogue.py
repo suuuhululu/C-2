@@ -7,7 +7,10 @@
     - 모든 질문·재질문·escalation 문장은 자연스러운 존댓말 주관식이다(번호·선택지 없음, 2026-10-08 사용자 확정).
     - Initial 인사(build_greeting, Stage 2 Wave 4b: C가 먼저 "오늘 어떤 걸 만들고 싶으세요?"라고 묻는다)와 첫 자유 발화 중
       명시적 "아무거나·알아서·맡길게요"류 판정(parse_initial_request → ANY 또는 None. None이면 호출자가 LLM 해석으로 넘긴다).
-      지원하지 않는 사물·되묻기 뒤 랜덤 선택·침묵 재질문에 쓰는 고정 문장(UNSUPPORTED_REPLY·FALLBACK_ANY_REPLY·SILENCE_REASK).
+      지원하지 않는 사물·침묵 재질문에 쓰는 고정 문장(UNSUPPORTED_REPLY·SILENCE_REASK).
+    - 진행 안내(Stage 2 Wave 4c): 단계별 고정 문장 PROGRESS_MESSAGES와 음성으로 읽는 단계 PROGRESS_TTS_STAGES,
+      LLM 되읽기(reply)가 없을 때 쓰는 확인 문장(initial_ack_fallback·revise_ack_fallback)과 KEEP 확인(keep_ack).
+      확인 문장은 후보 중 무작위로 고르되 바로 앞과 같은 문장은 피한다.
       앉는 가구 단어 없이 흔한 비착석 사물만 요구하는 발화는 LLM 없이 지원 밖으로 판정(is_unsupported_request).
     - 변경 context(채택 Design·Current·Difference)에 따른 Intervention 질문(build_question),
       재질문(build_reask), escalation 질문(§8.11, 잘못 놓인 블록을 채택 Design 위치로 돌려 달라는 제안).
@@ -28,6 +31,7 @@
     main.py 가 호출한다. 애매한 답변일 때만 호출자가 llm.py fallback을 넘긴다.
 """
 
+import random
 import re
 
 KEEP = "KEEP"
@@ -46,8 +50,84 @@ ESCALATION_OPTIONS = {"1": MOVE_BACK, "2": KEEP_SEARCHING}
 
 GREETING = "안녕하세요. 오늘 어떤 걸 만들고 싶으세요?"
 UNSUPPORTED_REPLY = "죄송해요, 지금은 의자나 벤치 같은 앉는 가구만 만들 수 있어요."
-FALLBACK_ANY_REPLY = "알겠어요, 제가 어울리는 의자를 골라 볼게요."
 SILENCE_REASK = "잘 못 들었어요. 오늘 어떤 걸 만들고 싶으세요?"
+
+# 진행 단계별 고정 안내(로그·HMI·음성 공용). 음성 모드에서는 PROGRESS_TTS_STAGES만 읽는다(나머지는 로그·콜백만).
+# LISTENING·UNDERSTANDING·REGENERATING·ESCALATION은 로그·콜백 전용 문장이다(음성으로 읽지 않음).
+PROGRESS_MESSAGES = {
+    "LISTENING": "말씀을 듣고 있어요.",
+    "UNDERSTANDING": "말씀하신 내용을 이해하고 있어요.",
+    "REGENERATING": "디자인을 한 번 더 다듬고 있어요.",
+    "ESCALATION": "새 설계가 어려워 확인을 요청하고 있어요.",
+    "GENERATING": "디자인을 생성하고 있어요.",
+    "VALIDATING": "구조를 확인하고 있어요.",
+    "DESCRIBING": "디자인을 정리하고 있어요.",
+    "READY": "디자인이 완성됐어요.",
+    "GENERATING_REVISED": "수정된 디자인을 만들고 있어요.",
+    "JUDGING": "완성된 디자인을 확인하고 있어요.",
+    "READY_REVISED": "수정된 디자인이 완성됐어요.",
+}
+PROGRESS_TTS_STAGES = ("GENERATING", "READY", "GENERATING_REVISED", "JUDGING", "READY_REVISED")
+
+# 확인(ack) 문장 후보. LLM 되읽기가 있으면 그것을 쓰고, 없을 때(규칙 "아무거나"·숫자 답·해석 실패)만 여기서 고른다.
+INITIAL_ACKS = (
+    "좋아요. 제가 어울리는 스타일을 골라서 멋진 의자를 만들어볼게요.",
+    "알겠어요, 제가 어울리는 의자를 골라 볼게요.",
+    "좋아요. 제가 골라서 앉기 편한 의자를 만들어볼게요.",
+    "네, 어울리는 디자인을 골라서 만들어볼게요.",
+)
+INITIAL_CONCEPT_ACKS = (
+    "좋아요. {concept} 느낌을 살린 의자로 만들어볼게요.",
+    "알겠어요. {concept} 분위기의 의자를 만들어볼게요.",
+    "좋아요. {concept} 모습을 담은 의자로 만들어볼게요.",
+)
+REVISE_ACKS = (
+    "알겠습니다. 지금 놓인 블록을 살려서 새로 만들어볼게요.",
+    "좋아요. 놓아 주신 자리를 살린 디자인으로 다시 만들어볼게요.",
+    "네, 지금 상태에 맞춰 디자인을 새로 만들어볼게요.",
+)
+REVISE_HINT_ACKS = (
+    "알겠습니다. {hint} 느낌으로 다시 만들어볼게요.",
+    "좋아요. 말씀하신 대로 {hint} 쪽으로 새로 만들어볼게요.",
+    "네, {hint} 방향으로 디자인을 다시 만들어볼게요.",
+)
+KEEP_ACKS = (
+    "네, 원래 자리로 고쳐 주시면 그대로 진행할게요.",
+    "알겠습니다. 블록을 원래 자리로 옮겨 주시면 이어서 진행할게요.",
+    "좋아요. 원래 디자인대로 계속할게요. 블록만 제자리로 놓아 주세요.",
+)
+_last_pick = {}  # 후보 묶음별 바로 앞에 고른 문장(같은 문장 연속 반복을 피한다)
+
+
+def _pick(options):
+    previous = _last_pick.get(options)
+    choices = [option for option in options if option != previous] or list(options)
+    chosen = random.choice(choices)
+    _last_pick[options] = chosen
+    return chosen
+
+
+def keep_ack():
+    """KEEP(실수라 원래 자리로 고침) 확인 문장. 후보 중 무작위, 바로 앞과 다른 문장."""
+    return _pick(KEEP_ACKS)
+
+
+def revise_ack_fallback(style_hint=None):
+    """REVISE 확인 문장(LLM 되읽기가 없을 때: 숫자 답·해석 실패). style_hint가 있으면 그 바람을 넣는다."""
+    if isinstance(style_hint, str) and style_hint.strip():
+        return _pick(REVISE_HINT_ACKS).format(hint=style_hint.strip())
+    return _pick(REVISE_ACKS)
+
+
+def initial_ack_fallback(family=None, concept=None):
+    """Initial 확인 문장(LLM 되읽기가 없을 때: 규칙 "아무거나"·침묵·해석 실패). concept가 있으면 그 느낌을 넣는다.
+
+    family는 카탈로그 영어 키라 한국어 음성으로 읽지 않는다(받아 두기만 하며 문장은 일반 확인으로 고른다).
+    """
+    del family
+    if isinstance(concept, str) and concept.strip():
+        return _pick(INITIAL_CONCEPT_ACKS).format(concept=concept.strip())
+    return _pick(INITIAL_ACKS)
 
 _INTERVENTION_ASK = "Design과 다르게 놓인 부분이 있는데, 의도하신 건가요?"
 _INTERVENTION_GUIDE = (
