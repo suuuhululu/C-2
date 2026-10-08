@@ -1,7 +1,8 @@
 """c_voice_10round_e2e.py 결과(HMI 캡처 PNG) gallery. production 코드 미사용.
 
-  python3 scripts/c_voice_10round_gallery.py [--mode paired|v1|v2] [--out ~/c_voice_e2e_10runs] [--rounds 10]
-키: Space / → 다음, ← 이전, Esc / X 종료. 제목에 Round·버전·설계 이름·family·판정을 표시한다.
+  python3 scripts/c_voice_10round_gallery.py [--mode paired|v1|v2] [--out ~/c_voice_e2e_10runs] [--rounds 5]
+키: Space / → 다음, ← 이전, Esc / X 종료. 제목에 Round·버전·설계 이름·selected family·blocks·red·1x2x1·max layer·validator,
+v2는 Current preserved·judge verdict·v2 total latency까지 표시한다(metadata.json 키 기준).
 """
 import argparse
 import json
@@ -22,11 +23,14 @@ def collect(out, rounds, mode):
             png = os.path.join(rdir, f"{ver}_hmi.png")
             if not os.path.exists(png):
                 continue
-            m = meta.get(ver) or {}; j = m.get("judge") or {}; sc = meta.get("scenario") or {}
-            title = f"Round {k} · {ver} · {m.get('design_name')} [{m.get('family_key') or m.get('design_family')}]"
+            m = meta.get(ver) or {}; j = m.get("judge") or {}; sc = meta.get("scenario") or {}; sh = m.get("shape") or {}
+            family = m.get("selected_family") if ver == "v1" else (j.get("design_family") or m.get("design_family"))
+            title = f"Round {k} · {ver} · {m.get('design_name')} [{family}]"
+            title += (f" · blocks {sh.get('blocks')} · red {sh.get('red')} · 1x2x1 {sh.get('1x2x1')} · max layer {sh.get('max_layer')}"
+                      f" · validator {'PASS' if m.get('validator') == [] else 'FAIL'}")
             if ver == "v2":
-                title += f" · {sc.get('id')} · {j.get('verdict')} · regen {m.get('regenerations')} · preserved {m.get('preserved')}"
-            title += f" · blocks {(m.get('shape') or {}).get('blocks')} · max layer {(m.get('shape') or {}).get('max_layer')}"
+                title += (f" · {sc.get('id')} · preserved {m.get('preserved')} · {j.get('verdict')} · regen {m.get('regenerations')}"
+                          f" · {m.get('total_latency_s', m.get('seconds'))} s")
             items.append((title, png))
     return items
 
@@ -60,7 +64,7 @@ class Gallery(QMainWindow):
 def main_cli():
     ap = argparse.ArgumentParser()
     ap.add_argument("--mode", choices=("paired", "v1", "v2"), default="paired")
-    ap.add_argument("--out", default=os.path.expanduser("~/c_voice_e2e_10runs")); ap.add_argument("--rounds", type=int, default=10)
+    ap.add_argument("--out", default=os.path.expanduser("~/c_voice_e2e_10runs")); ap.add_argument("--rounds", type=int, default=5)
     args = ap.parse_args()
     items = collect(args.out, args.rounds, args.mode)
     if not items:

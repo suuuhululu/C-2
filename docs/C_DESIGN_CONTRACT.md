@@ -148,7 +148,7 @@ LLM 모델은 `OPENAI_MODEL`(기본 `DEFAULT_MODEL`)입니다. 모델명이 reas
 
 - 질문은 번호·선택지 없는 존댓말 주관식입니다(2026-10-08 사용자 확정, Stage 2 Wave 2). 차이 설명 앞뒤로 의도 여부("Design과 다르게 놓인 부분이 있는데, 의도하신 건가요?")를 묻고, 자유 설명을 유도하며, 실수라면 원래 자리로 고치는 길을 안내합니다.
 - 자유 답변 해석(`dialogue.parse_response`): 취소 → 앞머리 예/아니요 → "일부러·의도·이대로·살려·새 설계·더 화려·다른 느낌" 등(REVISE) / "실수·잘못·원래대로·고칠게·되돌" 등과 "의도하지 않았어요"(KEEP) 구문. 부정된 구문은 뒤집지 않고, 두 부류가 함께 나오거나 아무것도 못 찾으면 LLM 모드에서만 `llm.interpret_intervention_answer`(답변 원문 + Difference)로 해석 → 그래도 아니면 UNCLEAR. LLM 해석 실패·`INTERVENTION_ANSWER_KEYS` 누락은 UNCLEAR(재질문), 해석 중 STOP은 `CANCELLED` / `STOPPED`. Mock 모드는 Rule만 씁니다. Stage 1의 "1번"·"2번" 답변은 질문에 안내하지 않지만 그대로 KEEP·REVISE로 받습니다(호환).
-- LLM 해석이 REVISE이면 그 `style_hint`(사람이 원한 것)를 Revised 설계 의도(`llm.generate_design_intent(…, style_hint)`)에 넘기고 `design_metadata.style_hint`에 남깁니다. Rule이 REVISE로 정한 자유 답변(예: "일부러 그렇게 놨어요. 팔걸이로 살려주세요.")도 LLM 모드에서는 같은 함수를 한 번 불러 `style_hint`만 받습니다(decision은 Rule 결과 그대로, 해석 실패·키 누락은 힌트 없이 진행하고 재질문·metadata error 없음, STOP은 `CANCELLED` / `STOPPED`). 빈 힌트는 null입니다.
+- LLM 해석이 REVISE이면 그 `style_hint`(사람이 원한 것)를 Revised 생성(`llm.generate_revised_design(…, style_hint=…)`)에 직접 넘기고 `design_metadata.style_hint`에 남깁니다(Stage 2 Wave 4 After 구조: 별도 설계 의도 단계 없음, 생성 → validator → judge → 필요 시 재생성 1회 → 재judge, §8.13). Rule이 REVISE로 정한 자유 답변(예: "일부러 그렇게 놨어요. 팔걸이로 살려주세요.")도 LLM 모드에서는 같은 함수를 한 번 불러 `style_hint`만 받습니다(decision은 Rule 결과 그대로, 해석 실패·키 누락은 힌트 없이 진행하고 재질문·metadata error 없음, STOP은 `CANCELLED` / `STOPPED`). 빈 힌트는 null입니다.
 
 | 답변 (LLM 모드) | `interpret_intervention_answer` 호출 |
 |---|---|
@@ -221,7 +221,7 @@ C는 두 블록의 값을 비교해 어떤 항목(위치·색·방향·크기·�
 
 ### 6.1 `design_metadata` (2026-10-07)
 
-Stage 2 Wave 3에서 Initial(LLM)에 `preference`·`selected_family`·`family_source`·`style_hint`·`family_design_match`, Revised(LLM)에 judge의 `chair_likeness`·`richer_than_previous`·`richer_why`와 `style_hint`를 실었습니다(아래 표). Mock metadata는 그대로입니다. Revised intent의 `style_hint_used`·`target_blocks`는 `design_intent` 안에 그대로 들어 있습니다.
+Stage 2 Wave 3에서 Initial(LLM)에 `preference`·`selected_family`·`family_source`·`style_hint`·`family_design_match`, Revised(LLM)에 judge의 `chair_likeness`·`richer_than_previous`·`richer_why`와 `style_hint`를 실었습니다(아래 표). Mock metadata는 그대로입니다. Stage 2 Wave 4(2026-10-08 사용자 결정)부터 Revised에는 설계 의도 단계가 없으므로 `design_intent`는 항상 null이며(가짜 의도로 채우지 않음), 설명 필드는 모두 judge에서 옵니다.
 
 표시·로그용 설명입니다. 분기에 쓰지 않으며, metadata를 만들지 못해도 설계 성공을 `FAILED`로 바꾸지 않습니다(`error` 필드에만 기록).
 
@@ -234,19 +234,19 @@ Stage 2 Wave 3에서 Initial(LLM)에 `preference`·`selected_family`·`family_so
 
 | Revised 필드 | 내용 |
 |---|---|
-| `design_name` | judge의 `design_name`, 없으면 intent의 `concept_name` |
-| `design_family` | judge의 `design_family`(실제로 보이는 family), 없으면 intent의 `design_family` |
+| `design_name` | judge의 `design_name`(judge를 쓸 수 없으면 null) |
+| `design_family` | judge의 `design_family`(실제로 보이는 family, judge를 쓸 수 없으면 null) |
 | `design_summary` | judge의 `why_it_is_complete` |
 | `visible_features` | judge가 좌표에서 본 기하 특징 문구 목록(이름이 특징을 만들지 않음) |
 | `human_interpretation` | `{placed_differently, interpretation, imagined_concept, lego_redesign, why_final_shape}` (judge `human_story`) 또는 null |
 | `change_summary` | 이전 Design 대비 재설계 요약 문구 목록 |
 | `interpretation_status` | `"clearly visible"` / `"weakly visible"` / `"mismatch"` (계획한 특징이 보이는 정도) |
 | `judge` | `{recognizable_family, family_confidence, silhouette_clarity, explanation_required_to_understand, layer5_meaningful, completeness_score, awkward, chair_likeness, richer_than_previous, richer_why, verdict}` 또는 null(judge 응답을 쓸 수 없을 때). `verdict` = `"SHOWCASE"`(reads_as_seating·recognizable_family가 true, silhouette_clarity가 clear, explanation_required_to_understand가 false, chair_likeness가 not_chair가 아님, richer_than_previous가 true) 그 밖은 `"NOT_YET"`. feature_check 전부 visible은 조건이 아님 |
-| `design_intent` | 생성 전에 정한 설계 의도 전체 또는 null(실패) |
+| `design_intent` | 항상 null(Stage 2 Wave 4부터 설계 의도 단계 없음, 키는 호환을 위해 유지) |
 | `regenerations` | judge 결과로 다시 만든 횟수(0 또는 1, §8.12·§8.13) |
 | `style_hint` | Intervention 답변의 LLM 해석이 준 바람(한국어 구) 또는 null(Rule로 결정·힌트 없음) |
 | `source` | `"LLM"` / `"MOCK"` |
-| `error` | null 또는 `{kind, message}`: `intent_error`(의도 실패, 의도 없이 생성), `judge_error`(judge 응답 오류·필수 필드 누락·예상 밖 값, 재생성 없음), `regeneration_failed`(재생성이 유효 후보를 못 냄, 첫 설계 유지), `describe_error`(Initial 설명 실패), `preference_error`(Initial 선호 해석 실패·키 누락, 무작위 family로 계속). 여러 개면 마지막 오류 |
+| `error` | null 또는 `{kind, message}`: `judge_error`(judge 응답 오류·필수 필드 누락·예상 밖 값, 재생성 없음), `regeneration_failed`(재생성이 유효 후보를 못 냄, 첫 설계 유지), `describe_error`(Initial 설명 실패), `preference_error`(Initial 선호 해석 실패·키 누락, 무작위 family로 계속). 여러 개면 마지막 오류 |
 
 ## 7. C → A 전달
 

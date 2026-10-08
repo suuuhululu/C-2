@@ -1,6 +1,7 @@
 """design_metadata, the judge-driven regeneration cap and the Stage 2 wiring (docs/C_DESIGN_CONTRACT.md §4, §6, §8.12, §8.13).
 
-No real LLM or network: the intent / generator / judge / describe functions of llm are replaced per test.
+No real LLM or network: the generator / judge / describe / interpretation functions of llm are replaced per test.
+Stage 2 Wave 4 (After 구조): Revised has no design-intent step; design_intent in metadata is always None.
 Every Revised test asserts the number of design regenerations for one request (at most
 main.METADATA_REGENERATIONS_MAX == 1) and how many design / judge calls were made.
 """
@@ -19,15 +20,6 @@ REVISED_METADATA_KEYS = {"design_name", "design_family", "design_summary", "visi
                          "change_summary", "interpretation_status", "judge", "design_intent", "regenerations", "style_hint",
                          "source", "error"}
 MOCK_REVISED_METADATA_KEYS = REVISED_METADATA_KEYS - {"style_hint"}
-
-INTENT = {
-    "parent_family": "throne", "variation": "none", "design_family": "throne", "concept_name": "왕좌",
-    "recognition_cue": "넓은 받침, 높은 등받이, 양쪽 팔걸이", "human_reading": "놓인 블록을 받침 모서리로 해석했다",
-    "misplaced_block_meaning": "받침의 한 모서리", "planned_visible_features": ["좌석 6×6", "등받이 3층"],
-    f"layer{validator.MAX_LAYER}_feature": "등받이 위 crown", "geometry_plan": "plinth under the seat, back behind it",
-    "style_hint_used": "없음", "target_blocks": 21,  # Stage 2 Wave 2 INTENT_KEYS
-}
-
 
 def judge(**overrides):
     base = {
@@ -71,33 +63,26 @@ def llm_mode(monkeypatch):
     monkeypatch.setattr(designer, "RETRY_DELAY", 0.0)
     # Mock 후보는 블록 수를 늘리지 않으므로 richness 하한(§8.13)을 이전 블록 수로 둔다. 하한 자체는 richness 테스트가 본다.
     monkeypatch.setattr(designer, "RICHNESS_MIN_DELTA", 0)
-    calls = {"intent": 0, "design": 0, "judge": 0, "design_intents": [], "feedbacks": [], "judges": [],
-             "style_hints": [], "min_blocks": []}
-    replies = {"intent": INTENT, "judge": [judge()], "design": None}
+    calls = {"design": 0, "judge": 0, "feedbacks": [], "judges": [], "style_hints": [], "min_blocks": []}
+    replies = {"judge": [judge()], "design": None}
 
-    def fake_intent(design, current, differences, recent_families=(), should_stop=None, style_hint=None):
-        calls["intent"] += 1
-        calls["style_hints"].append(style_hint)
-        return replies["intent"]
-
-    def fake_generate(design, current, differences, reasons=None, should_stop=None, intent=None, feedback=None,
-                      min_blocks=None):
+    def fake_generate(design, current, differences, reasons=None, should_stop=None, feedback=None, min_blocks=None,
+                      style_hint=None):
         calls["design"] += 1
         calls["min_blocks"].append(min_blocks)
-        calls["design_intents"].append(intent)
+        calls["style_hints"].append(style_hint)
         calls["feedbacks"].append(feedback)
         if replies["design"] is not None:
             return replies["design"](calls["design"])
         return designer.mock_revised_candidate(design, current, differences)
 
-    def fake_judge(intent, previous, design, current, differences, should_stop=None):
+    def fake_judge(previous, design, current, differences, should_stop=None):
         calls["judge"] += 1
         sequence = replies["judge"]
         reply = sequence[min(calls["judge"], len(sequence)) - 1]
         calls["judges"].append(reply)
         return reply
 
-    monkeypatch.setattr(main.llm, "generate_design_intent", fake_intent)
     monkeypatch.setattr(main.llm, "generate_revised_design", fake_generate)
     monkeypatch.setattr(main.llm, "judge_revised_design", fake_judge)
     return calls, replies
@@ -122,9 +107,9 @@ def test_a_unrecognizable_twice_regenerates_exactly_once(scenario, llm_mode):
     metadata = result["design_metadata"]
     assert (result["status"], result["hri_result"]) == ("OK", "REVISE")
     assert metadata["regenerations"] == 1  # design regenerations for this request
-    assert (calls["design"], calls["judge"], calls["intent"]) == (2, 2, 1)
+    assert (calls["design"], calls["judge"]) == (2, 2)
     assert calls["feedbacks"][0] is None and "JUDGE FEEDBACK" in calls["feedbacks"][1]
-    assert calls["design_intents"] == [INTENT, INTENT]  # same intent for the regeneration
+    assert calls["style_hints"] == [None, None]  # the regeneration gets the same (absent) style_hint
     assert metadata["judge"]["recognizable_family"] is False and metadata["judge"]["verdict"] == "NOT_YET"
     assert metadata["error"] is None
 
@@ -141,7 +126,8 @@ def test_b_judge_missing_required_field_does_not_regenerate(scenario, llm_mode):
     assert (calls["design"], calls["judge"]) == (1, 1)
     assert metadata["judge"] is None
     assert metadata["error"]["kind"] == "judge_error" and "silhouette_clarity" in metadata["error"]["message"]
-    assert metadata["design_name"] == INTENT["concept_name"] and metadata["design_family"] == INTENT["design_family"]
+    assert metadata["design_name"] is None and metadata["design_family"] is None  # names come only from the judge
+    assert metadata["design_intent"] is None
 
 
 @pytest.mark.parametrize("bad", [{"silhouette_clarity": "fuzzy"}, {"recognizable_family": "yes"}, {"reads_as_seating": None}])
@@ -186,19 +172,17 @@ def test_e_judge_llm_error_does_not_regenerate(scenario, llm_mode):
     assert metadata["error"]["kind"] == "judge_error" and "timeout" in metadata["error"]["message"]
 
 
-@pytest.mark.parametrize("intent_reply", [{"llm_error": {"kind": "server", "message": "HTTP 500"}}, {"parent_family": "throne"}])
-def test_f_intent_failure_continues_without_intent(scenario, llm_mode, intent_reply):
+def test_f_revised_has_no_design_intent_step(scenario, llm_mode, monkeypatch):
+    """Wave 4 After 구조: 설계 의도 호출이 없고 metadata.design_intent는 가짜로 채우지 않는다."""
     calls, replies = llm_mode
-    replies["intent"] = intent_reply
+    monkeypatch.setattr(main.llm, "generate_design_intent",
+                        lambda *a, **k: pytest.fail("Revised must not call a design-intent step"), raising=False)
     result = _revise(scenario)
     metadata = result["design_metadata"]
-    assert result["status"] == "OK" and result["hri_result"] == "REVISE"
-    assert metadata["regenerations"] == 0
+    assert (result["status"], result["hri_result"]) == ("OK", "REVISE")
     assert (calls["design"], calls["judge"]) == (1, 1)
-    assert calls["design_intents"] == [None]
-    assert metadata["design_intent"] is None
-    assert metadata["error"]["kind"] == "intent_error"
-    assert metadata["design_name"] == "푸른 왕좌"  # judge still names it
+    assert metadata["design_intent"] is None and metadata["error"] is None
+    assert metadata["design_name"] == "푸른 왕좌" and metadata["design_family"] == "throne"
 
 
 def test_g_metadata_never_changes_the_design_shape_or_version(scenario, llm_mode):
@@ -518,7 +502,7 @@ def test_intervention_clear_keep_answer_needs_no_llm(scenario, answer_llm):
     calls, _ = answer_llm
     result = _answer(scenario, "제가 잘못 놨어요. 다시 고칠게요.")
     assert (result["status"], result["hri_result"]) == ("OK", "KEEP") and result["design"] == scenario[0]
-    assert calls["answers"] == [] and calls["intent"] == 0
+    assert calls["answers"] == [] and calls["design"] == 0
 
 
 def test_intervention_clear_revise_answer_takes_style_hint_from_llm_once(scenario, answer_llm):
@@ -567,7 +551,7 @@ def test_intervention_stop_during_style_hint_cancels(scenario, answer_llm):
     calls, replies = answer_llm
     replies["answer"] = {"llm_error": {"kind": "stopped", "message": "stopped"}}
     result = _answer(scenario, "일부러 그렇게 놨어요. 팔걸이로 살려주세요.")
-    assert (result["status"], result["error"]["code"]) == ("CANCELLED", "STOPPED") and calls["intent"] == 0
+    assert (result["status"], result["error"]["code"]) == ("CANCELLED", "STOPPED") and calls["design"] == 0
 
 
 @pytest.mark.parametrize("answer", ["제가 잘못 놨어요. 다시 고칠게요.", "1번", "취소할게"])
@@ -578,7 +562,7 @@ def test_intervention_keep_or_cancel_calls_no_llm(scenario, answer_llm, answer):
 
 
 @pytest.mark.parametrize("answer", ["좀 더 넓고 화려하게 하고 싶어요.", "실수 아니에요"])
-def test_intervention_unclear_rule_goes_to_llm_and_style_hint_reaches_intent(scenario, answer_llm, answer):
+def test_intervention_unclear_rule_goes_to_llm_and_style_hint_reaches_generator(scenario, answer_llm, answer):
     calls, replies = answer_llm
     assert dialogue.parse_response(answer) == dialogue.UNCLEAR  # Rule alone cannot decide
     result = _answer(scenario, answer)
@@ -605,14 +589,14 @@ def test_intervention_llm_keep_decision_keeps_design(scenario, answer_llm):
     calls, replies = answer_llm
     replies["answer"] = {"decision": "KEEP", "style_hint": "", "reason": "실수였어요."}
     result = _answer(scenario, "음 그게요")
-    assert (result["status"], result["hri_result"]) == ("OK", "KEEP") and calls["intent"] == 0
+    assert (result["status"], result["hri_result"]) == ("OK", "KEEP") and calls["design"] == 0
 
 
 def test_intervention_stop_during_answer_interpretation_cancels(scenario, answer_llm):
     calls, replies = answer_llm
     replies["answer"] = {"llm_error": {"kind": "stopped", "message": "stopped"}}
     result = _answer(scenario, "음 그게요", "2번")
-    assert (result["status"], result["error"]["code"]) == ("CANCELLED", "STOPPED") and calls["intent"] == 0
+    assert (result["status"], result["error"]["code"]) == ("CANCELLED", "STOPPED") and calls["design"] == 0
 
 
 def test_intervention_mock_mode_has_no_llm_fallback(scenario, monkeypatch):

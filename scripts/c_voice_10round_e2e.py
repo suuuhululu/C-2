@@ -1,11 +1,13 @@
-"""사용자 음성 10회 E2E runner (시험용, production 코드 수정 없음).
+"""사용자 음성 E2E runner (기본 5 Round, 시험용, production 코드 수정 없음).
 
 흐름(Round마다): 마이크 준비 → "지금 말씀하세요" → 사용자가 "의자 만들어줘" → whisper-1 STT → production
 main.create_initial_design(text=None): TTS 선호 질문 → 사용자 자유 답변(예: "아무거나", "왕좌처럼 높고 화려한 의자요")
 → family 선택 → Initial → Validator/A Planner → v1 HMI(캡처) → [Enter] → 시험용 Human Error(fixture scenario 순환)
 → production main.run_intervention(..., text_answers=None): TTS 주관식 질문 → 사용자 자유 답변(예: "일부러 그렇게 놨어요",
-"좀 더 넓고 화려하게 하고 싶어요") → STT → (Rule로 못 정하면 LLM 해석·style_hint) → Revised(intent → 생성 → judge →
-조건부 재생성 1회) → Validator/A Planner → v2 HMI(캡처) → [Enter].
+"좀 더 넓고 화려하게 하고 싶어요") → STT → (자유 답변 해석·style_hint) → Revised(생성 → validator → judge →
+조건부 재생성 1회, 별도 설계 의도 단계 없음) → Validator/A Planner → v2 HMI(캡처) → [Enter].
+Round마다 selected family·blocks·red·1x2x1·max layer·Current preserved·validator PASS·judge verdict·v2 total latency를
+출력하고 metadata.json·summary.md에 남긴다. 사용자가 말할 차례마다 ">>> 지금 말씀하세요" 안내를 낸다.
 
 production 경로 그대로: voice.listen/speak, llm(gpt-6.1-sol), main, validator, planning_trial.planner, app.qt_hmi.
 시험용으로만 덧붙인 것: listen() 호출 시 on_ready 안내 출력·STT 결과 기록(voice.listen 래핑), HMI 표시용 5층
@@ -15,7 +17,7 @@ production 경로 그대로: voice.listen/speak, llm(gpt-6.1-sol), main, validat
   cd ~/adaptive_coassembly/C-2 && env C_DESIGN_USE_LLM=1 OPENAI_MODEL=gpt-6.1-sol \
     OPENAI_API_KEY="$(cat ~/C2_OpenAi_API_Key.txt)" OPENAI_LLM_API_KEY="$(cat ~/c2_cobot2_API_key.txt)" \
     OPENAI_TTS_API_KEY="$(cat ~/c2_cobot2_API_key.txt)" python3 scripts/c_voice_10round_e2e.py
-옵션: --rounds N(기본 10) --start K(기본 1, 이어서 진행) --out DIR(기본 ~/c_voice_e2e_10runs) --summary(집계만)
+옵션: --rounds N(기본 5) --start K(기본 1, 이어서 진행) --out DIR(기본 ~/c_voice_e2e_10runs) --summary(집계만)
       --debug-audio(각 listen/TTS의 시각·보정·게이트·Whisper 원문·no_speech_prob를 터미널에 출력)
 """
 import argparse
@@ -40,8 +42,9 @@ from planning_trial import planner  # noqa: E402
 
 FIELDS = ("brick_type", "color", "x", "y", "layer", "orientation_deg")
 INITIAL_PHRASE = "의자 만들어줘"
+PREFERENCE_PHRASE = "원하는 의자를 자유롭게(예: 왕좌처럼 높고 화려한 의자요 / 아무거나)"  # Initial 두 번째 listen(선호 답) 안내
 REVISION_PHRASE = "일부러 그렇게 놨어요"  # 기록용 예시 답(주관식 질문, REVISE). "2번"도 호환으로 REVISE
-TOTAL = {"rounds": 10}  # 안내 출력용(main_cli에서 설정)
+TOTAL = {"rounds": 5}  # 안내 출력용(main_cli에서 설정)
 DEBUG = {"audio": False}  # --debug-audio
 SETTLE_SECONDS = 1.0  # Round 전환(Enter) 직후 발화·환경 변화가 보정에 섞이지 않게 두는 짧은 간격
 FAR = [(dx, dy) for dx in range(-3, 4) for dy in range(-3, 4) if 2 <= abs(dx) + abs(dy) <= 3]
@@ -227,9 +230,12 @@ class ListenRecorder:
         rec = self
 
         def listen(on_ready=None):
+            # Initial은 목표 → 선호 답 두 번 듣는다. 두 번째는 선호 질문에 대한 자유 답변 안내를 낸다.
+            phrase = PREFERENCE_PHRASE if rec.stage == "initial" and rec.events else rec.phrase
+
             def ready():
                 rec.ready_at = _now()
-                print(f"\n>>> 지금 말씀하세요: \"{rec.phrase}\"", flush=True)
+                print(f"\n>>> 지금 말씀하세요: \"{phrase}\"", flush=True)
                 if on_ready is not None:
                     on_ready()
             if rec.debug_dir:
@@ -237,7 +243,7 @@ class ListenRecorder:
             print("마이크 보정 중입니다. '지금 말씀하세요'가 나온 뒤 말씀해주세요.", flush=True)
             rec.ready_at = None; started_at = _now(); t = time.monotonic()
             text = rec.original(on_ready=ready)
-            entry = {"stage": rec.stage, "expected_phrase": rec.phrase, "stt_text": text, "last_error": voice.last_error(), "seconds": round(time.monotonic() - t, 1),
+            entry = {"stage": rec.stage, "expected_phrase": phrase, "stt_text": text, "last_error": voice.last_error(), "seconds": round(time.monotonic() - t, 1),
                      "listen_started_at": started_at, "on_ready_at": rec.ready_at, "listen_ended_at": _now(), "capture_stats": deepcopy(voice._last_capture)}
             if rec.debug_dir and os.path.exists(os.path.join(rec.debug_dir, "latest_input.json")):
                 try:
@@ -275,7 +281,19 @@ def fingerprint(blocks):
 def shape(blocks):
     layers = Counter(b["layer"] for b in blocks)
     xs = [c[0] for b in blocks for c in validator.footprint(b)]; ys = [c[1] for b in blocks for c in validator.footprint(b)]
-    return {"blocks": len(blocks), "max_layer": max(layers), "layers": dict(sorted(layers.items())), "footprint": [max(xs) - min(xs) + 1, max(ys) - min(ys) + 1]}
+    return {"blocks": len(blocks), "max_layer": max(layers), "layers": dict(sorted(layers.items())), "footprint": [max(xs) - min(xs) + 1, max(ys) - min(ys) + 1],
+            "red": sum(b["color"] == "red" for b in blocks), "1x2x1": sum(b["brick_type"] == "1x2x1" for b in blocks)}
+
+
+def contains_current(blocks, current):
+    """Current의 여섯 값 multiset이 Design에 모두 들어 있는가(validator와 별개로 표시용 재확인)."""
+    have = Counter(tuple(b[f] for f in FIELDS) for b in blocks)
+    return not (Counter(tuple(b[f] for f in FIELDS) for b in current) - have)
+
+
+def stats_line(label, family, sh, valid, extra=""):
+    return (f"{label}: family {family} · blocks {sh['blocks']} · red {sh['red']} · 1x2x1 {sh['1x2x1']} · max layer {sh['max_layer']} · "
+            f"validator {'PASS' if valid == [] else valid}{extra}")
 
 
 def run_round(k, out, app, window, rec):
@@ -299,6 +317,7 @@ def run_round(k, out, app, window, rec):
     rec.phrase, rec.debug_dir, rec.events = INITIAL_PHRASE, os.path.join(rdir, "stt_initial"), []
     t = time.monotonic(); v1 = main.create_initial_design(text=None); dt = time.monotonic() - t
     transcript["initial"] = rec.events[0] if rec.events else None
+    transcript["preference"] = rec.events[1] if len(rec.events) > 1 else None
     json.dump(v1, open(os.path.join(rdir, "v1.json"), "w"), ensure_ascii=False, indent=2)
     meta["v1"] = {"status": v1["status"], "error": v1["error"], "seconds": round(dt, 1)}
     if v1["status"] != "OK" or not v1["design"]:
@@ -318,6 +337,8 @@ def run_round(k, out, app, window, rec):
     print(f"v1: {meta['v1']['shape']} | validator {meta['v1']['validator']} | A production {plan1_prod['status']} / 표시용(5층) {plan1['status']} | "
           f"{m1.get('design_name')} [{m1.get('design_family')}] family_key {meta['v1']['family_key']} | history summary {m1.get('history_summary_used')} "
           f"hint {m1.get('diversity_hint_applied')} recent_family_count {m1.get('recent_family_count')} entries {len(history.recent()) if history else '-'} {dt:.1f}s", flush=True)
+    print(stats_line("v1", f"{m1.get('selected_family')} ({m1.get('family_source')})", meta["v1"]["shape"], meta["v1"]["validator"],
+                     f" · 선호 답 {(transcript['preference'] or {}).get('stt_text')!r} · style_hint {m1.get('style_hint')}"), flush=True)
     if not plan1["plan"]:
         dump(); return fail("v1_plan", f"A planner: {plan1.get('errors')}")
     s1 = meta["v1"]["shape"]
@@ -362,13 +383,19 @@ def run_round(k, out, app, window, rec):
         dump(); return fail("v2", f"{v2['status']} {v2['hri_result']} {v2['error']}")
     d2 = v2["design"]; m2 = v2["design_metadata"] or {}; cur = sc["current"]
     plan2_prod, plan2 = plan_both(d2, cur)
-    preserved = validator.validate_revised({"blocks": d2["blocks"]}, cur["blocks"]) == []
+    preserved_multiset = contains_current(d2["blocks"], cur["blocks"])
+    preserved = validator.validate_revised({"blocks": d2["blocks"]}, cur["blocks"]) == [] and preserved_multiset
     j = m2.get("judge") or {}
     meta["v2"].update(shape=shape(d2["blocks"]), validator=validator.validate_design(d2), preserved=preserved, a_production=plan2_prod["status"], a_shown=plan2["status"],
+                      preserved_multiset=preserved_multiset, verdict=j.get("verdict"), chair_likeness=j.get("chair_likeness"),
+                      richer_than_previous=j.get("richer_than_previous"), total_latency_s=round(dt, 1),
                       fingerprint=fingerprint(d2["blocks"]), design_name=m2.get("design_name"), design_family=m2.get("design_family"), judge=j,
                       regenerations=m2.get("regenerations"), interpretation_status=m2.get("interpretation_status"), metadata_error=m2.get("error"), design_version=d2["design_version"])
     print(f"v2: {meta['v2']['shape']} | validator {meta['v2']['validator']} | preserved {preserved} | A production {plan2_prod['status']} / 표시 {plan2['status']} | "
           f"{m2.get('design_name')} [{m2.get('design_family')}] verdict {j.get('verdict')} regen {m2.get('regenerations')} {dt:.1f}s", flush=True)
+    print(stats_line("v2", m2.get("design_family"), meta["v2"]["shape"], meta["v2"]["validator"],
+                     f" · Current preserved {preserved} · judge {j.get('verdict')} (chair {j.get('chair_likeness')}, richer {j.get('richer_than_previous')})"
+                     f" · style_hint {m2.get('style_hint')} · v2 total {dt:.1f}s"), flush=True)
     if not plan2["plan"]:
         dump(); return fail("v2_plan", f"A planner: {plan2.get('errors')}")
     s2 = meta["v2"]["shape"]; hi = m2.get("human_interpretation") or {}
@@ -378,7 +405,9 @@ def run_round(k, out, app, window, rec):
               "사람 해석: " + " / ".join(f"{kk}: {hi.get(kk)}" for kk in ("placed_differently", "interpretation", "imagined_concept", "lego_redesign", "why_final_shape")),
               "보이는 특징: " + " / ".join(m2.get("visible_features") or []),
               f"judge: verdict {j.get('verdict')} · recognizable_family {j.get('recognizable_family')} · family_confidence {j.get('family_confidence')} · silhouette {j.get('silhouette_clarity')} · "
-              f"explanation_required {j.get('explanation_required_to_understand')} · score {j.get('completeness_score')} · regenerations {m2.get('regenerations')} · status {m2.get('interpretation_status')} · error {m2.get('error')}"]
+              f"explanation_required {j.get('explanation_required_to_understand')} · score {j.get('completeness_score')} · regenerations {m2.get('regenerations')} · status {m2.get('interpretation_status')} · error {m2.get('error')}",
+              f"chair_likeness {j.get('chair_likeness')} · richer_than_previous {j.get('richer_than_previous')} ({j.get('richer_why')}) · style_hint {m2.get('style_hint')} · "
+              f"red {s2['red']} · 1x2x1 {s2['1x2x1']} · v2 total {dt:.1f}s"]
     footer = (f"Round {k} v2 · {sc['id']} exp ({e['x']},{e['y']})L{e['layer']}→act ({a['x']},{a['y']})L{a['layer']} · Current {len(cur['blocks'])}블록 · Design v{d2['design_version']} · blocks {s2['blocks']} · max layer {s2['max_layer']} · "
               f"preserved {preserved} · A production {plan2_prod['status']} / 표시 {plan2['status']} Remaining {len(plan2['plan']['steps'])} · {j.get('verdict')} · regen {m2.get('regenerations')} · source=LIVE_LLM · voice")
     saved = show_hmi(app, window, d2, plan2["plan"], cur, f"Round {k} · v2 · {m2.get('design_name')}", footer, notice, os.path.join(rdir, "v2_hmi.png"))
@@ -393,15 +422,24 @@ def summarize(out, rounds):
     for k in range(1, rounds + 1):
         p = os.path.join(out, f"round{k:02d}", "metadata.json"); tp = os.path.join(out, f"round{k:02d}", "transcript.json")
         if not os.path.exists(p):
-            rows.append([k, "-", "미실행"] + [""] * 10); continue
+            rows.append([k, "-", "미실행"] + [""] * 15); continue
         m = json.load(open(p)); tr = json.load(open(tp)) if os.path.exists(tp) else {}
         v1, v2, sc = m.get("v1") or {}, m.get("v2") or {}, m.get("scenario") or {}
         stt1 = (tr.get("initial") or {}).get("stt_text"); rev = tr.get("revision") or []
         stt2 = " / ".join(str(ev.get("stt_text")) for ev in rev); interp = [ev.get("interpreted") for ev in rev]
         j = v2.get("judge") or {}
         err = f"{sc.get('id')} {sc.get('a_step')} ({(sc.get('expected') or {}).get('x')},{(sc.get('expected') or {}).get('y')})L{(sc.get('expected') or {}).get('layer')}→({(sc.get('actual') or {}).get('x')},{(sc.get('actual') or {}).get('y')})" if sc else ""
-        rows.append([k, stt1, v1.get("status"), v1.get("design_name"), v1.get("family_key") or v1.get("design_family"), v1.get("support"), v1.get("footprint"), err,
-                     stt2 + (f" → {interp}" if interp else ""), v2.get("design_name"), v2.get("design_family"), v2.get("preserved"), j.get("verdict"), v2.get("regenerations")])
+        s1, s2 = v1.get("shape") or {}, v2.get("shape") or {}
+        pref = (tr.get("preference") or {}).get("stt_text")
+
+        def counts(sh):
+            return f"{sh.get('blocks')}/{sh.get('red')}/{sh.get('1x2x1')}/L{sh.get('max_layer')}" if sh else ""
+
+        rows.append([k, stt1, pref, v1.get("status"), v1.get("selected_family") or v1.get("design_family"), counts(s1),
+                     "PASS" if v1.get("validator") == [] else v1.get("validator"), err,
+                     stt2 + (f" → {interp}" if interp else ""), v2.get("style_hint"), j.get("design_family") or v2.get("design_family"), counts(s2),
+                     v2.get("preserved"), "PASS" if v2.get("validator") == [] else v2.get("validator"), j.get("verdict"),
+                     f"{j.get('chair_likeness')}/{j.get('richer_than_previous')}", v2.get("regenerations"), v2.get("total_latency_s", v2.get("seconds"))])
         agg["rounds"] += 1
         agg["initial_stt_ok"] += bool(stt1 and "의자" in stt1); agg["v1_ok"] += v1.get("status") == "OK"
         agg["history_used"] += bool(v1.get("history_summary_used")); agg["hint_applied"] += bool(v1.get("diversity_hint_applied"))
@@ -416,8 +454,10 @@ def summarize(out, rounds):
         agg["showcase"] += j.get("verdict") == "SHOWCASE"; agg["not_yet"] += j.get("verdict") == "NOT_YET"
         agg["regen0"] += v2.get("regenerations") == 0; agg["regen1"] += v2.get("regenerations") == 1
         if v2.get("design_family"): v2fams[v2["design_family"]] += 1
-    head = "| Round | Initial STT | v1 status | v1 name | v1 family | support | footprint | Human Error | Revision STT | v2 name | v2 family | Current preserved | Judge | Regen |"
-    lines = [head, "|" + "---|" * 14] + ["| " + " | ".join(str(c) for c in r) + " |" for r in rows]
+    head = ("| Round | Initial STT | 선호 답 | v1 status | v1 selected family | v1 blocks/red/1x2x1/max layer | v1 validator | Human Error | "
+            "Revision STT | style_hint | v2 family (judge) | v2 blocks/red/1x2x1/max layer | Current preserved | v2 validator | Judge verdict | "
+            "chair/richer | Regen | v2 total s |")
+    lines = [head, "|" + "---|" * 18] + ["| " + " | ".join(str(c) for c in r) + " |" for r in rows]
     n = agg["rounds"] or 1
     dup_exact = sum(c - 1 for c in fps.values() if c > 1); dup_shape = sum(c - 1 for c in shapes.values() if c > 1)
     lines += ["", f"실행된 Round: {agg['rounds']}/{rounds}", "", "Initial:",
@@ -435,7 +475,7 @@ def summarize(out, rounds):
 
 def main_cli():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--rounds", type=int, default=10); ap.add_argument("--start", type=int, default=1)
+    ap.add_argument("--rounds", type=int, default=5); ap.add_argument("--start", type=int, default=1)
     ap.add_argument("--out", default=os.path.expanduser("~/c_voice_e2e_10runs")); ap.add_argument("--summary", action="store_true")
     ap.add_argument("--debug-audio", action="store_true", help="listen/TTS마다 시각·보정·게이트·Whisper 원문·no_speech_prob 출력")
     args = ap.parse_args(); DEBUG["audio"] = args.debug_audio

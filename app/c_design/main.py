@@ -14,7 +14,7 @@
     - run_intervention: 입력 검사 → dialogue.build_question(주관식) → 응답 턴 반복
       (KEEP / REVISE / UNCLEAR 재질문 / 명시적 취소 / STOP). LLM 모드에서는 Rule이 결정하지 못한 답을
       llm.interpret_intervention_answer로 해석하고, Rule이 REVISE로 정한 답(숫자 답 제외)도 같은 함수로 style_hint만
-      받는다(decision은 Rule 그대로). style_hint는 Revised 설계 의도에 넘긴다.
+      받는다(decision은 Rule 그대로). style_hint는 Revised 생성(llm.generate_revised_design)에 직접 넘긴다.
       Revised(LLM)는 designer.revised_min_blocks 이상의 블록을 요구한다(Mock은 검사 없음).
       → REVISE면 designer.build_revised_design(6회) → 탈락 시 §8.11 escalation 질문
       → "계속 찾기"면 4회 더(합계 10회) → 실패면 DESIGN_GENERATION_FAILED
@@ -26,11 +26,12 @@
     - 설계 생성기: 호출 시점에 환경 변수 C_DESIGN_USE_LLM=1이면 llm(WAVE 5), 아니면 Mock.
       provider 실패는 LLM_CALL_FAILED로 반환한다.
     - design_metadata(2026-10-07): envelope의 design 옆 sibling 키. design 구조({design_version, blocks})는 그대로이며
-      design이 None이면 None. Revised(LLM): 설계 의도(intent) → 생성(intent 주입) → judge → judge가 family를 알아볼 수
-      없다(recognizable_family False)거나 실루엣이 모호(silhouette_clarity "ambiguous")할 때만 같은 intent + judge 피드백으로
-      재생성 최대 METADATA_REGENERATIONS_MAX(1)회 → 재judge. Stage 2: 의자로 읽히지 않거나(chair_likeness "not_chair")
+      design이 None이면 None. Revised(LLM, Stage 2 Wave 4 After 구조): 생성(답변의 style_hint·min_blocks 직접 전달, 별도 설계
+      의도 단계 없음) → validator → judge → judge가 family를 알아볼 수 없다(recognizable_family False)거나 실루엣이
+      모호(silhouette_clarity "ambiguous")할 때만 judge 피드백으로 재생성 최대 METADATA_REGENERATIONS_MAX(1)회 → 재judge. Stage 2: 의자로 읽히지 않거나(chair_likeness "not_chair")
       이전보다 풍부하지 않을 때(richer_than_previous False)도 재생성 조건이다. judge 응답 오류·필드 누락은 재생성 없이 끝내고 error에 남긴다.
       metadata 생성 실패는 설계 성공을 FAILED로 바꾸지 않는다. KEEP·실패·취소는 None. Mock은 고정 문자열.
+      Revised metadata의 design_intent는 항상 None이다(의도 단계가 없으므로 채우지 않는다).
 
 하지 않는 것:
     - 음성 I/O·질문 문장·응답 규칙·LLM 호출·검증 로직 자체 구현(각 모듈에 위임)
@@ -137,13 +138,13 @@ def _verdict(judge):
     return "SHOWCASE" if showcase else "NOT_YET"
 
 
-def _revised_metadata(intent, judge, regenerations, error, style_hint):
-    """Revised(LLM) design_metadata. judge는 판단 가능한 응답 또는 None, intent는 dict 또는 None."""
-    seen, planned = judge or {}, intent or {}
+def _revised_metadata(judge, regenerations, error, style_hint):
+    """Revised(LLM) design_metadata. 설명은 judge(판단 가능한 응답 또는 None)에서만 온다."""
+    seen = judge or {}
     story = seen.get("human_story")
     return {
-        "design_name": seen.get("design_name") or planned.get("concept_name"),
-        "design_family": seen.get("design_family") or planned.get("design_family"),
+        "design_name": seen.get("design_name"),
+        "design_family": seen.get("design_family"),
         "design_summary": seen.get("why_it_is_complete"),
         "visible_features": list(seen.get("visible_features") or []),
         "human_interpretation": {key: story.get(key) for key in _HUMAN_STORY_KEYS} if isinstance(story, dict) else None,
@@ -158,7 +159,7 @@ def _revised_metadata(intent, judge, regenerations, error, style_hint):
             "richer_than_previous": judge["richer_than_previous"], "richer_why": judge.get("richer_why"),
             "verdict": _verdict(judge),
         },
-        "design_intent": intent, "regenerations": regenerations, "style_hint": style_hint, "source": "LLM", "error": error,
+        "design_intent": None, "regenerations": regenerations, "style_hint": style_hint, "source": "LLM", "error": error,
     }
 
 
@@ -339,8 +340,8 @@ def run_intervention(design, current, differences, text_answers=None, on_questio
             ask(question)
 
     use_llm = _use_llm()
-    # LLM 모드에서 설계 의도·metadata 오류·답변의 style_hint를 요청 단위로 모은다(error는 마지막 오류).
-    state = {"intent": None, "error": None, "style_hint": None, "stopped": False, "interpreted": False}
+    # LLM 모드에서 metadata 오류·답변의 style_hint를 요청 단위로 모은다(error는 마지막 오류).
+    state = {"error": None, "style_hint": None, "stopped": False, "interpreted": False}
     # Revised(LLM)는 이전 Design보다 풍부해야 한다(§8.13). Mock 후보는 결정론적 이동뿐이라 검사하지 않는다.
     min_blocks = designer.revised_min_blocks(design) if use_llm else None
 
@@ -373,7 +374,7 @@ def run_intervention(design, current, differences, text_answers=None, on_questio
 
         def generate(design, current, differences, reasons):
             return llm.generate_revised_design(design, current, differences, reasons, should_stop=should_stop,
-                                               intent=state["intent"], feedback=feedback, min_blocks=min_blocks)
+                                               feedback=feedback, min_blocks=min_blocks, style_hint=state["style_hint"])
         return generate
 
     def build(max_attempts, feedback=None):
@@ -381,23 +382,6 @@ def run_intervention(design, current, differences, text_answers=None, on_questio
             design, current, differences, generate=make_generate(feedback), max_attempts=max_attempts,
             delay=designer.RETRY_DELAY, should_stop=should_stop, min_blocks=min_blocks,
         )
-
-    def decide_intent():
-        """설계 의도를 정한다. STOP이면 envelope, 그 밖의 실패는 intent 없이 진행(None 반환)."""
-        intent = llm.generate_design_intent(design, current, differences, should_stop=should_stop,
-                                            style_hint=state["style_hint"])
-        kind = _llm_error_kind(intent)
-        if kind == "stopped":
-            return _stopped(questions)
-        if kind:
-            state["error"] = _meta_error("intent_error", intent["llm_error"])
-            return None
-        missing = [key for key in llm.INTENT_KEYS if key not in intent]
-        if missing:
-            state["error"] = _meta_error("intent_error", f"missing intent keys: {missing}")
-            return None
-        state["intent"] = intent
-        return None
 
     def finish(result):
         """설계 결과 → envelope. LLM이면 judge 후 조건이 맞을 때만 재생성(최대 METADATA_REGENERATIONS_MAX회)."""
@@ -409,7 +393,7 @@ def run_intervention(design, current, differences, text_answers=None, on_questio
         regenerations = 0
         usable_judge = None
         while True:
-            judge = llm.judge_revised_design(state["intent"], design, final, current, differences, should_stop=should_stop)
+            judge = llm.judge_revised_design(design, final, current, differences, should_stop=should_stop)
             if _llm_error_kind(judge) == "stopped":
                 return _stopped(questions)
             problem = _judge_problem(judge)
@@ -427,17 +411,13 @@ def run_intervention(design, current, differences, text_answers=None, on_questio
                 state["error"] = _meta_error("regeneration_failed", [r["rule"] for r in again["reasons"]])
                 break  # 첫 설계와 그 judge를 그대로 쓴다
             final = again["design"]
-        metadata = _revised_metadata(state["intent"], usable_judge, regenerations, state["error"], state["style_hint"])
+        metadata = _revised_metadata(usable_judge, regenerations, state["error"], state["style_hint"])
         return _result("OK", dialogue.REVISE, final, questions, design_metadata=metadata)
 
     def revise():
         if validator.current_support_violations(current):
             # Current를 그대로 보존하면 어떤 후보도 support를 통과할 수 없다(§8.11 즉시 진입).
             return escalate(can_redesign=False)
-        if use_llm:
-            stopped = decide_intent()
-            if stopped is not None:
-                return stopped
         result = build(FIRST_ATTEMPTS)
         # 설계 성공·STOP·provider 실패는 escalation 대상이 아니다(후보 탈락만 escalation).
         if result["design"] is not None or any(r["rule"] in ("stopped", "llm_call_failed") for r in result["reasons"]):

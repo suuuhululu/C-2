@@ -547,12 +547,12 @@ def _clean_use_llm_env(monkeypatch):
 
 @pytest.fixture(autouse=True)
 def _no_real_metadata_calls(monkeypatch):
-    # LLM-mode tests here stub only the design generator; the metadata calls (intent / judge / describe) answer with
+    # LLM-mode tests here stub only the design generator; the metadata calls (judge / describe) answer with
     # a provider error so no request is ever built. tests/unit/c_design/test_design_metadata.py covers them.
     def not_stubbed(*args, **kwargs):
         return {"llm_error": {"kind": "bad_response", "message": "not stubbed in test_main"}}
 
-    for name in ("generate_design_intent", "judge_revised_design", "describe_initial_design"):
+    for name in ("judge_revised_design", "describe_initial_design"):
         monkeypatch.setattr(main.llm, name, not_stubbed)
 
 
@@ -603,8 +603,8 @@ def test_use_llm_set_takes_the_llm_path_for_revised_design(monkeypatch):
     monkeypatch.setattr(designer, "RICHNESS_MIN_DELTA", 0)
     calls = {"n": 0}
 
-    def fake_generate_revised(design_in, current_in, differences_in, reasons=None, should_stop=None, intent=None, feedback=None,
-                              min_blocks=None):
+    def fake_generate_revised(design_in, current_in, differences_in, reasons=None, should_stop=None, feedback=None,
+                              min_blocks=None, style_hint=None):
         calls["n"] += 1
         calls["should_stop"] = should_stop
         return designer.mock_revised_candidate(design_in, current_in, differences_in)
@@ -641,8 +641,8 @@ def test_use_llm_set_revised_design_llm_error_is_llm_call_failed_with_revise_hri
     current, differences = _build_shift_scenario(initial_design)
     monkeypatch.setenv("C_DESIGN_USE_LLM", "1")
 
-    def fake_generate_revised(design_in, current_in, differences_in, reasons=None, should_stop=None, intent=None, feedback=None,
-                              min_blocks=None):
+    def fake_generate_revised(design_in, current_in, differences_in, reasons=None, should_stop=None, feedback=None,
+                              min_blocks=None, style_hint=None):
         return {"llm_error": {"kind": "rate_limit", "message": "HTTP 429"}}
 
     monkeypatch.setattr(main.llm, "generate_revised_design", fake_generate_revised)
