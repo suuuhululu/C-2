@@ -233,6 +233,11 @@ def parse_response(text, llm_fallback=None):
                     use_lead=True, negated_keep=_NEGATED_INTENT_PHRASES)
 
 
+def is_number_answer(text):
+    """답변 전체가 숫자 호환 토큰("1"·"2번"·"일번"·"2번이요" 등)인가. 이런 답에는 해석할 바람이 없다."""
+    return _match_number(_normalize(text or ""), OPTIONS)[1]
+
+
 def parse_escalation_response(text, llm_fallback=None):
     """§8.11 escalation 자유 답변 → MOVE_BACK / KEEP_SEARCHING / UNCLEAR / CANCEL.
 
@@ -282,17 +287,31 @@ def _location_label(brick):
     return f"(x={brick['x']}, y={brick['y']}) {brick['layer']}층 블록"
 
 
+def _has_final_consonant(word):
+    """마지막 글자가 받침 있는 한글 음절인가(조사 이/가·와/과 선택용)."""
+    code = ord(word[-1]) - 0xAC00
+    return 0 <= code < 11172 and code % 28 != 0
+
+
+def _subject(words):
+    """["위치", "색"] → "위치와 색이". 셋 이상은 쉼표로 잇고 마지막 낱말에 맞춰 이/가를 붙인다."""
+    if len(words) == 2:
+        joined = words[0] + ("과 " if _has_final_consonant(words[0]) else "와 ") + words[1]
+    else:
+        joined = ", ".join(words)
+    return joined + ("이" if _has_final_consonant(words[-1]) else "가")
+
+
 def _describe_difference(diff):
-    """Difference 1개를 질문 문장 속 한 줄로 설명한다(Data Association 없음, §5.2)."""
+    """Difference 1개를 질문 문장 속 한 줄(존댓말)로 설명한다(Data Association 없음, §5.2)."""
     expected, actual = diff.get("expected"), diff.get("actual")
     location = _location_label(expected if expected is not None else actual)
     if actual is None:
-        return f"{location}: Design에 있지만 실제로 놓이지 않았습니다 (누락)."
+        return f"{location}이 Design에는 있는데 아직 놓이지 않았어요."
     if expected is None:
-        return f"{location}: Design에 없는 블록이 추가로 놓였습니다."
-    items = _differing_fields(expected, actual)
-    words = ", ".join(items) if items else "배치"
-    return f"{location}: {words}이(가) 다릅니다."
+        return f"{location}은 Design에 없는 블록이에요."
+    items = _differing_fields(expected, actual) or ["배치"]
+    return f"{location}의 {_subject(items)} 달라요."
 
 
 def build_question(design, current, differences):

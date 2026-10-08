@@ -26,7 +26,7 @@ C 문서·코드·Fixture·테스트는 아래 팀 공용 용어만 씁니다. C
 | Intervention | 00 F06 | `run_intervention` | 실제 차이 발생 시 사용자 의도 확인 과정 |
 | KEEP | 06 §5 | `KEEP` | 현재 채택 목표·`design_version` 유지. 최초 버전 복귀가 아님 |
 | REVISE | 06 §5 | `REVISE` | 사람의 변경 의도를 반영한 전체 Design 후보 |
-| UNCLEAR | 06 §5 | `UNCLEAR` | 판단 불가. 선택지를 다시 설명해 재질문, 계속 불명확하면 명시 선택 대기 |
+| UNCLEAR | 06 §5 | `UNCLEAR` | 판단 불가. 답하는 방법을 짧게 알려 주고 재질문, 계속 불명확하면 명시 답변 대기 |
 | 명시적 취소 | 09 취소 | `CANCEL` | 사용자의 취소 발화. HRI 결과가 아닌 C 내부 신호 |
 | HRI 결과 | 06 §5 | `hri_result` | KEEP / REVISE / UNCLEAR 중 하나 |
 | 질문 / 재질문 | 06 §5 | `questions` | C가 만든 질문 문장. 같은 문장을 화면·음성으로 제공 |
@@ -97,20 +97,32 @@ Design은 정확히 두 키를 가집니다. 그 외 키(`design_id`, 부모 버
 |---|---|---|
 | `OPENAI_LLM_API_KEY` | LLM Design 생성(Chat Completions) | `llm.py` (`LLM_KEY_ENV`) |
 | `OPENAI_API_KEY` | STT (`whisper-1`) | `voice.py` (`STT_KEY_ENV`) |
-| `OPENAI_TTS_API_KEY` | TTS (`tts-1`) | `voice.py` (`TTS_KEY_ENV`) |
+| `OPENAI_TTS_API_KEY` | TTS (기본 `gpt-4o-mini-tts`, §10) | `voice.py` (`TTS_KEY_ENV`) |
 
 LLM 모델은 `OPENAI_MODEL`(기본 `DEFAULT_MODEL`)입니다. 모델명이 reasoning 계열(`gpt-6`, `gpt-5`, `o1`, `o3`, `o4`로 시작)이면 요청에 `max_completion_tokens`(8000)와 `reasoning_effort`(medium)를 쓰고 `temperature`·`max_tokens`를 보내지 않습니다. 그 밖의 모델(gpt-4o 등)은 `temperature`·`max_tokens`를 씁니다. 따라서 Revised 재생성 temperature(0.3)는 reasoning 모델에서는 적용되지 않습니다. system prompt는 Initial(예시 설계 없이 넓은 의미의 앉는 가구)과 Revised(의자 형태 목표 + 검증 통과 예시)를 따로 씁니다.
 
-### 4.1 `create_initial_design(text=None, should_stop=None)`
+### 4.1 `create_initial_design(text=None, should_stop=None, preference_text=None, on_question=None)`
 
 | 입력 | 타입 | 의미 |
 |---|---|---|
 | `text` | str 또는 `None` | 텍스트 입력 모드면 목표 문장(예: "오늘은 의자를 만들 거야"). `None`이면 음성 모드: C가 녹음·STT로 목표를 받음. str도 `None`도 아니면 `INVALID_INPUT`, 공백뿐인 문자열은 `UNSUPPORTED_OBJECT` |
-| `should_stop` | `callable() -> bool` 또는 `None` | D의 STOP·닫힌 요청 연결. 재생성 시도 사이에 확인하고 True면 `CANCELLED` / `STOPPED` |
+| `should_stop` | `callable() -> bool` 또는 `None` | D의 STOP·닫힌 요청 연결. 선호 질문 앞뒤와 재생성 시도 사이에 확인하고 True면 `CANCELLED` / `STOPPED` |
+| `preference_text` | str 또는 `None` | (LLM 모드, 텍스트 모드) 선호 질문에 대한 답. `None`이면 선호 질문을 하지 않고 "아무거나"로 봄. str도 `None`도 아니면 `INVALID_INPUT`. 음성 모드(`text=None`)에서는 쓰지 않음 |
+| `on_question` | `callable(str)` 또는 `None` | 선호 질문을 낼 때 그 문장으로 호출(HMI 표시). 예외는 호출자 책임(§4.2와 같음) |
 
 출력: §6 결과. 성공 시 `design`은 Initial Design, `hri_result`는 `null`.
 
-**Initial family 선택과 선호 해석 (Stage 2 Wave 2, `llm` 함수만 준비 — `main` 연결은 Wave 3)**
+흐름(Stage 2 Wave 3):
+
+- **Mock 모드**(`C_DESIGN_USE_LLM` ≠ 1): 선호 질문 없이 기존 흐름 그대로입니다(`questions` 빈 배열, D 통합 호환).
+- **LLM 모드**: 목표 확인 뒤 선호 질문 "혹시 생각해두셨거나, 만들고 싶은 의자가 있으세요?"를 `questions`·`on_question`에 내고, 음성 모드면 TTS 재생 뒤 한 번 듣습니다(텍스트 모드는 `preference_text`, `None`이면 질문하지 않음).
+  - 답이 침묵·빈 답이거나 `dialogue.parse_initial_preference`가 `ANY`(짧은 "아무거나·없어요·알아서" 류)면 LLM 없이 `llm.choose_initial_family(None)`(균등 무작위).
+  - 그 밖에는 `llm.interpret_initial_preference` → `llm.choose_initial_family(pref)`. 해석 실패·`PREFERENCE_KEYS` 누락은 "아무거나"로 보고 `design_metadata.error`에 `preference_error`를 남깁니다(설계는 계속). 해석 중 STOP은 `CANCELLED` / `STOPPED`.
+  - 음성 모드에서 해석의 `reply`(되읽기 문장)가 있으면 TTS로 읽어 줍니다(질문이 아니므로 `questions`에 넣지 않음).
+  - 고른 family와 `style_hint`로 `llm.generate_initial_design` → validator(designer loop) → `llm.describe_initial_design(…, family)` → `design_metadata`(§6.1).
+  - 음성 모드에서 선호 답 듣기가 장치·STT 실패(`None`)면 `VOICE_IO_FAILED`.
+
+**Initial family 선택과 선호 해석 함수 (Stage 2 Wave 2 `llm`, Wave 3에서 `main`에 연결)**
 
 | 함수 | 입력 | 반환 |
 |---|---|---|
@@ -119,7 +131,7 @@ LLM 모델은 `OPENAI_MODEL`(기본 `DEFAULT_MODEL`)입니다. 모델명이 reas
 | `llm.generate_initial_design(object_type, reasons=None, should_stop=None, family=None, style_hint=None)` | 고른 family·style_hint | family가 있으면 사용자 메시지에 "Selected family: … Defining visible features …"와(있으면) "Style preference from the person: …"를 넣음. 없으면 기존 메시지 그대로. Initial system prompt에는 "주어진 family를 구현하라"는 한 문장만 추가(예시 JSON 없음) |
 | `llm.describe_initial_design(design, should_stop=None, family=None)` | Initial Design, 고른 family | payload에 `selected_family`·`selected_family_features`. 출력에 `family_design_match` ∈ `clear`/`weak`/`mismatch` 추가(기존 키 유지) |
 
-`llm.FAMILY_CATALOG`는 앉는 가구 20종(dining chair, armchair, high-back chair, wingback chair, lounge chair, club chair, pedestal chair, sled-base chair, cantilever chair, chaise longue, stool, bar-stool-like seat, ottoman, bench, park bench, loveseat, sofa-like seat, daybed, throne, canopy chair)과 각각의 defining visible features(영어, 크기 포함, 좌표 없음)이고, `llm.CATALOG_TEXT`는 프롬프트용 목록입니다. 예정된 흐름(Wave 3 `main`): LLM 모드에서만 선호 질문 → 짧은 "아무거나"류면 LLM 없이 `choose_initial_family(None)`, 그 밖에는 `interpret_initial_preference` → `choose_initial_family(pref)` → `generate_initial_design(…, family, style_hint)` → `describe_initial_design(…, family)`. Mock 모드는 지금 그대로입니다.
+`llm.FAMILY_CATALOG`는 앉는 가구 20종(dining chair, armchair, high-back chair, wingback chair, lounge chair, club chair, pedestal chair, sled-base chair, cantilever chair, chaise longue, stool, bar-stool-like seat, ottoman, bench, park bench, loveseat, sofa-like seat, daybed, throne, canopy chair)과 각각의 defining visible features(영어, 크기 포함, 좌표 없음)이고, `llm.CATALOG_TEXT`는 프롬프트용 목록입니다. 연결 흐름은 위 "흐름(Stage 2 Wave 3)"입니다.
 
 ### 4.2 `run_intervention(design, current, differences, text_answers=None, on_question=None, should_stop=None)`
 
@@ -135,7 +147,15 @@ LLM 모델은 `OPENAI_MODEL`(기본 `DEFAULT_MODEL`)입니다. 모델명이 reas
 흐름: C가 질문 문장 생성 → `on_question` 통지 → (음성 모드) TTS 재생 → 재생 종료 후 듣기·STT → 응답 해석.
 
 - 질문은 번호·선택지 없는 존댓말 주관식입니다(2026-10-08 사용자 확정, Stage 2 Wave 2). 차이 설명 앞뒤로 의도 여부("Design과 다르게 놓인 부분이 있는데, 의도하신 건가요?")를 묻고, 자유 설명을 유도하며, 실수라면 원래 자리로 고치는 길을 안내합니다.
-- 자유 답변 해석(`dialogue.parse_response`): 취소 → 앞머리 예/아니요 → "일부러·의도·이대로·살려·새 설계·더 화려·다른 느낌" 등(REVISE) / "실수·잘못·원래대로·고칠게·되돌" 등과 "의도하지 않았어요"(KEEP) 구문. 부정된 구문은 뒤집지 않고, 두 부류가 함께 나오거나 아무것도 못 찾으면 LLM fallback(main 연결은 Wave 3) → 그래도 아니면 UNCLEAR. Stage 1의 "1번"·"2번" 답변은 질문에 안내하지 않지만 그대로 KEEP·REVISE로 받습니다(호환).
+- 자유 답변 해석(`dialogue.parse_response`): 취소 → 앞머리 예/아니요 → "일부러·의도·이대로·살려·새 설계·더 화려·다른 느낌" 등(REVISE) / "실수·잘못·원래대로·고칠게·되돌" 등과 "의도하지 않았어요"(KEEP) 구문. 부정된 구문은 뒤집지 않고, 두 부류가 함께 나오거나 아무것도 못 찾으면 LLM 모드에서만 `llm.interpret_intervention_answer`(답변 원문 + Difference)로 해석 → 그래도 아니면 UNCLEAR. LLM 해석 실패·`INTERVENTION_ANSWER_KEYS` 누락은 UNCLEAR(재질문), 해석 중 STOP은 `CANCELLED` / `STOPPED`. Mock 모드는 Rule만 씁니다. Stage 1의 "1번"·"2번" 답변은 질문에 안내하지 않지만 그대로 KEEP·REVISE로 받습니다(호환).
+- LLM 해석이 REVISE이면 그 `style_hint`(사람이 원한 것)를 Revised 설계 의도(`llm.generate_design_intent(…, style_hint)`)에 넘기고 `design_metadata.style_hint`에 남깁니다. Rule이 REVISE로 정한 자유 답변(예: "일부러 그렇게 놨어요. 팔걸이로 살려주세요.")도 LLM 모드에서는 같은 함수를 한 번 불러 `style_hint`만 받습니다(decision은 Rule 결과 그대로, 해석 실패·키 누락은 힌트 없이 진행하고 재질문·metadata error 없음, STOP은 `CANCELLED` / `STOPPED`). 빈 힌트는 null입니다.
+
+| 답변 (LLM 모드) | `interpret_intervention_answer` 호출 |
+|---|---|
+| Rule이 REVISE로 정한 자유 답변("일부러…", "네" 등) | 1회(style_hint만 사용) |
+| Rule이 정하지 못한 답(두 부류·무일치·부정 구문) | 1회(decision·style_hint 사용, 같은 답에 두 번 부르지 않음) |
+| 숫자 답("2번"·"2번이요"·"이번" 등 답변 전체가 숫자 토큰), KEEP, CANCEL | 0회 |
+| Mock 모드 | 0회 |
 - UNCLEAR → 답하는 방법('일부러'·'실수'·'취소')을 짧게 알려 주고 질문 전체로 재질문. 계속 불명확하면 사용자의 명시적 답변을 기다립니다.
 - 텍스트 모드에서 `text_answers`가 소진될 때까지 불명확이면 `hri_result = "UNCLEAR"`로 반환합니다.
 - KEEP → 입력 `design`을 **변경 없이** 그대로 반환. LLM 호출 없음, `design_version` 동일.
@@ -151,7 +171,7 @@ Day4에는 시간 기준 자동 취소·자동 KEEP·임의 종료가 없습니�
 | 상황 | C 동작 |
 |---|---|
 | 침묵·잡음(STT 결과 빈 문자열) | 계속 기다림. 시간 기준 확인 질문·최종 안내 없음 |
-| 의미 있는 발화(정규화 후 비어 있지 않은 STT 텍스트)인데 불명확 | 선택지를 다시 설명해 재질문 |
+| 의미 있는 발화(정규화 후 비어 있지 않은 STT 텍스트)인데 불명확 | 답하는 방법('일부러'·'실수'·'취소')을 짧게 알려 주고 질문 전체로 재질문 |
 | STOP | `CANCELLED` / `STOPPED` |
 | 명시적 취소 발화 | `CANCELLED` / `USER_CANCEL` |
 | 장치·엔진 실패 | 무응답이 아님. 녹음 장치·STT 실패는 §10에 따라 `VOICE_IO_FAILED` |
@@ -185,7 +205,7 @@ C는 두 블록의 값을 비교해 어떤 항목(위치·색·방향·크기·�
 | `hri_result` | `"KEEP"`, `"REVISE"`, `"UNCLEAR"`, `null` | `create_initial_design`은 항상 `null` |
 | `design` | Design 또는 `null` | 성공 시 채택 후보 Design |
 | `design_metadata` | object 또는 `null` | `design`의 이름·설명·평가(§6.1). `design`이 `null`이면 항상 `null`. Design 구조(§3)에는 넣지 않음 |
-| `questions` | str 배열 | 이번 호출에서 C가 낸 질문·재질문 문장(로그·표시용). Initial은 빈 배열 |
+| `questions` | str 배열 | 이번 호출에서 C가 낸 질문·재질문 문장(로그·표시용). Initial은 Mock 모드·선호 답이 없는 텍스트 모드에서 빈 배열, LLM 모드에서 선호 질문을 냈으면 그 문장 1개(§4.1) |
 | `error` | `null` 또는 `{code, message, details}` | `status`가 `OK`가 아닐 때만 값이 있음 |
 
 | 경우 | status | hri_result | design |
@@ -201,13 +221,13 @@ C는 두 블록의 값을 비교해 어떤 항목(위치·색·방향·크기·�
 
 ### 6.1 `design_metadata` (2026-10-07)
 
-Stage 2 Wave 2에서 `llm` 응답에 키가 늘었습니다: Initial 설명의 `family_design_match`, Revised judge의 `chair_likeness`·`richer_than_previous`·`richer_why`, Revised intent의 `style_hint_used`·`target_blocks`. 이 값들을 `design_metadata`에 싣는 것(`selected_family`, `family_source`, `preference`, `family_design_match`, judge의 `chair_likeness`·`richer_than_previous`·`richer_why`, `style_hint`)은 Wave 3 `main` 몫이며 아래 표는 아직 Wave 1 기준입니다.
+Stage 2 Wave 3에서 Initial(LLM)에 `preference`·`selected_family`·`family_source`·`style_hint`·`family_design_match`, Revised(LLM)에 judge의 `chair_likeness`·`richer_than_previous`·`richer_why`와 `style_hint`를 실었습니다(아래 표). Mock metadata는 그대로입니다. Revised intent의 `style_hint_used`·`target_blocks`는 `design_intent` 안에 그대로 들어 있습니다.
 
 표시·로그용 설명입니다. 분기에 쓰지 않으며, metadata를 만들지 못해도 설계 성공을 `FAILED`로 바꾸지 않습니다(`error` 필드에만 기록).
 
 | 경우 | `design_metadata` |
 |---|---|
-| Initial 성공(LLM) | `{design_name, design_family, design_summary, visible_features, human_interpretation: null, judge: {silhouette_clarity, recognizable_family, completeness_score}, source: "LLM", error}` — 설명 호출(`llm.describe_initial_design`) 결과 |
+| Initial 성공(LLM) | `{design_name, design_family, design_summary, visible_features, human_interpretation: null, judge: {silhouette_clarity, recognizable_family, completeness_score}, preference, selected_family, family_source, style_hint, family_design_match, source: "LLM", error}` — 설명 호출(`llm.describe_initial_design`) 결과와 family 선택. `preference` = 선호 해석 결과 dict(`PREFERENCE_KEYS`) 또는 null(아무거나·침묵·질문 없음·해석 실패), `selected_family` = 고른 카탈로그 키, `family_source` = `"preference"`(SPECIFIC 선호의 family) / `"random"`, `style_hint` = 선호 해석의 짧은 한국어 구 또는 null, `family_design_match` = 설명의 `clear`/`weak`/`mismatch`(없으면 null) |
 | REVISE 성공(LLM) | 아래 Revised 필드표 |
 | Mock(Initial·REVISE) | 고정 문자열: `design_name: "Mock 의자"`, `design_family: "chair"`, `source: "MOCK"`, `judge`·`design_intent`: null, `regenerations`: 0 |
 | KEEP, UNCLEAR, FAILED, CANCELLED | `null` |
@@ -221,11 +241,12 @@ Stage 2 Wave 2에서 `llm` 응답에 키가 늘었습니다: Initial 설명의 `
 | `human_interpretation` | `{placed_differently, interpretation, imagined_concept, lego_redesign, why_final_shape}` (judge `human_story`) 또는 null |
 | `change_summary` | 이전 Design 대비 재설계 요약 문구 목록 |
 | `interpretation_status` | `"clearly visible"` / `"weakly visible"` / `"mismatch"` (계획한 특징이 보이는 정도) |
-| `judge` | `{recognizable_family, family_confidence, silhouette_clarity, explanation_required_to_understand, layer5_meaningful, completeness_score, awkward, verdict}` 또는 null(judge 응답을 쓸 수 없을 때). `verdict` = `"SHOWCASE"`(reads_as_seating·recognizable_family가 true, silhouette_clarity가 clear, explanation_required_to_understand가 false) 그 밖은 `"NOT_YET"`. feature_check 전부 visible은 조건이 아님 |
+| `judge` | `{recognizable_family, family_confidence, silhouette_clarity, explanation_required_to_understand, layer5_meaningful, completeness_score, awkward, chair_likeness, richer_than_previous, richer_why, verdict}` 또는 null(judge 응답을 쓸 수 없을 때). `verdict` = `"SHOWCASE"`(reads_as_seating·recognizable_family가 true, silhouette_clarity가 clear, explanation_required_to_understand가 false, chair_likeness가 not_chair가 아님, richer_than_previous가 true) 그 밖은 `"NOT_YET"`. feature_check 전부 visible은 조건이 아님 |
 | `design_intent` | 생성 전에 정한 설계 의도 전체 또는 null(실패) |
-| `regenerations` | judge 결과로 다시 만든 횟수(0 또는 1, §8.12) |
+| `regenerations` | judge 결과로 다시 만든 횟수(0 또는 1, §8.12·§8.13) |
+| `style_hint` | Intervention 답변의 LLM 해석이 준 바람(한국어 구) 또는 null(Rule로 결정·힌트 없음) |
 | `source` | `"LLM"` / `"MOCK"` |
-| `error` | null 또는 `{kind, message}`: `intent_error`(의도 실패, 의도 없이 생성), `judge_error`(judge 응답 오류·필수 필드 누락·예상 밖 값, 재생성 없음), `regeneration_failed`(재생성이 유효 후보를 못 냄, 첫 설계 유지), `describe_error`(Initial 설명 실패). 여러 개면 마지막 오류 |
+| `error` | null 또는 `{kind, message}`: `intent_error`(의도 실패, 의도 없이 생성), `judge_error`(judge 응답 오류·필수 필드 누락·예상 밖 값, 재생성 없음), `regeneration_failed`(재생성이 유효 후보를 못 냄, 첫 설계 유지), `describe_error`(Initial 설명 실패), `preference_error`(Initial 선호 해석 실패·키 누락, 무작위 family로 계속). 여러 개면 마지막 오류 |
 
 ## 7. C → A 전달
 
@@ -316,12 +337,15 @@ Initial Design에는 고정 블록이 없으므로 escalation이 없습니다.
 - escalation 뒤 "계속 찾기"로 다시 생성할 때도 같은 의도를 쓰고 ③·④를 똑같이 적용합니다. Mock 모드에는 의도·judge가 없습니다.
 - layer 5 사용·큰 특징·블록 수는 프롬프트의 soft goal이며 validator 규칙이 아닙니다. validator는 §9.1 그대로입니다(블록 수 상한만 40, Stage 2).
 
-### 8.13 Stage 2 Revised 정책: free-family·chair-first·richer (Wave 2, `llm`·`designer` 준비 — `main` 연결은 Wave 3)
+### 8.13 Stage 2 Revised 정책: free-family·chair-first·richer (Wave 2 `llm`·`designer`, Wave 3 `main` 연결)
+
+`main` 연결(Wave 3): LLM 모드에서만 `min_blocks = designer.revised_min_blocks(design)`을 `designer.build_revised_design`과 `llm.generate_revised_design`에 넘깁니다(escalation 뒤 남은 4회와 judge 재생성 포함, Mock은 `None`). 설계 의도에는 Intervention 답변의 `style_hint`(LLM fallback 해석, 또는 Rule REVISE 자유 답변의 style_hint 전용 해석, §4.2)를 넘깁니다. judge 필수 필드(`_JUDGE_REQUIRED`)에 `chair_likeness`·`richer_than_previous`를 더해 빠지거나 예상 밖 값이면 `judge_error`(재생성 없음), 재생성 조건은 기존 조건 또는 `chair_likeness == "not_chair"` 또는 `richer_than_previous is False`이며 상한은 1회 그대로입니다.
+
 
 - **목표**: 사람 배치를 문자 그대로 해석하는 것도, 최소 수정도 아닙니다. Current를 출발 조건이자 영감 단서로 쓰고, 이전 Design보다 **더 풍부하고 완성도 높으며 의자처럼 읽히는**(분명한 좌석, 읽히는 등받이, 앉는 방향) Revised Design을 계획합니다. 이전 Design은 참고(family·블록 수)일 뿐이며, 핵심 문장 "Preserve the Current exactly. Treat the previous Design as context, not as geometry to preserve."와 조립 순서 규칙(새 블록을 이미 놓인 블록 아래층에 두지 않음)은 그대로입니다.
 - **Design Intent** (`llm.generate_design_intent(design, current, differences, recent_families=(), should_stop=None, style_hint=None)`): family는 `FAMILY_CATALOG`에서 자유 선택하고, 등받이가 있는 family를 우선합니다(등받이 없는 family는 style_hint가 원할 때만). `style_hint`(사람이 말한 바람)가 있으면 최우선으로 반영합니다. payload에 `minimum_blocks`·`style_hint`. `INTENT_KEYS`에 `style_hint_used`(한국어 한 문장 또는 "없음")·`target_blocks`(int) 추가, 기존 키 유지. 하위 호환 이름 `FURNITURE_FAMILIES`는 이제 카탈로그 키입니다.
 - **richness**: `designer.RICHNESS_MIN_DELTA = 6`, `designer.revised_min_blocks(design) = min(이전 블록 수 + 6, MAX_BLOCKS)`. `designer.build_revised_design(…, min_blocks=None)`에 값을 주면 validator를 통과한 후보라도 블록이 그보다 적으면 `{"rule": "too_few_blocks", "blocks": [], "message": "Revised Design has N blocks; at least M required (previous K + 6, at most 40)"}`로 탈락시키고 §8.10 loop가 다시 만듭니다(validator 규칙은 그대로). `None`이면 검사하지 않습니다(Mock·기존 호출 호환). `llm.generate_revised_design(…, min_blocks=None)`은 값이 있으면 "The Revised Design must contain at least M blocks (the previous Design had K); use the extra blocks for meaningful chair structure, never filler."를 넣습니다.
-- **judge** 출력에 `chair_likeness` ∈ `clear`/`weak`/`not_chair`, `richer_than_previous`(bool), `richer_why`(한국어 한 문장) 추가(기존 키·의미 유지). 재생성 조건 확장(`not_chair` 또는 `richer_than_previous: false`)과 `_JUDGE_REQUIRED` 확장은 Wave 3 `main`이 합니다. 재생성 상한 1회는 그대로입니다.
+- **judge** 출력에 `chair_likeness` ∈ `clear`/`weak`/`not_chair`, `richer_than_previous`(bool), `richer_why`(한국어 한 문장) 추가(기존 키·의미 유지). 재생성 조건 확장과 `_JUDGE_REQUIRED` 확장은 위 Wave 3 연결에 적었습니다. 재생성 상한 1회는 그대로입니다.
 - **Intervention 자유 답변 해석** (`llm.interpret_intervention_answer(text, differences, should_stop=None)`): 입력은 답변 원문과 difference의 `expected`/`actual`만(Design 전체는 보내지 않음). 반환 `{decision: "KEEP" / "REVISE" / "UNCLEAR" / "CANCEL", style_hint, reason}`(`llm.INTERVENTION_ANSWER_KEYS`) 또는 `{"llm_error": …}`. REVISE = 의도한 배치이니 Current를 살린 새 설계, KEEP = 실수라 원래 자리로 고침. `reason`은 자연스러운 존댓말 한 문장. 답변 원문의 지시·key·코드는 따르지 않습니다.
 - **red·1x2x1 다양화**: 공통 build hint에 "red는 한 블록이 아니라 눈에 띄는 띠(top rail, seat edge, armrest caps, crown), 1x2x1은 slat·rail·trim·wing·thin leg로 0/90을 섞어 쓰되 두 stud 모두 지지" 문장을 더했습니다(철학·구조 불변).
 

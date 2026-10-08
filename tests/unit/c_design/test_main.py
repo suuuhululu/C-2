@@ -571,7 +571,7 @@ def test_use_llm_set_takes_the_llm_path_for_initial_design(monkeypatch):
     monkeypatch.setenv("C_DESIGN_USE_LLM", "1")
     calls = {"n": 0}
 
-    def fake_generate_initial(object_type, reasons=None, should_stop=None):
+    def fake_generate_initial(object_type, reasons=None, should_stop=None, family=None, style_hint=None):
         calls["n"] += 1
         calls["object_type"] = object_type
         calls["reasons"] = reasons
@@ -599,9 +599,12 @@ def test_use_llm_set_takes_the_llm_path_for_revised_design(monkeypatch):
     current, differences = _build_shift_scenario(design)
 
     monkeypatch.setenv("C_DESIGN_USE_LLM", "1")
+    # Mock 후보는 블록 수를 늘리지 않으므로 richness 하한(§8.13)을 이전 블록 수로 둔다. 하한 전달은 별도 테스트가 본다.
+    monkeypatch.setattr(designer, "RICHNESS_MIN_DELTA", 0)
     calls = {"n": 0}
 
-    def fake_generate_revised(design_in, current_in, differences_in, reasons=None, should_stop=None, intent=None, feedback=None):
+    def fake_generate_revised(design_in, current_in, differences_in, reasons=None, should_stop=None, intent=None, feedback=None,
+                              min_blocks=None):
         calls["n"] += 1
         calls["should_stop"] = should_stop
         return designer.mock_revised_candidate(design_in, current_in, differences_in)
@@ -620,7 +623,7 @@ def test_use_llm_set_takes_the_llm_path_for_revised_design(monkeypatch):
 def test_use_llm_set_initial_design_llm_error_is_llm_call_failed(monkeypatch):
     monkeypatch.setenv("C_DESIGN_USE_LLM", "1")
 
-    def fake_generate_initial(object_type, reasons=None, should_stop=None):
+    def fake_generate_initial(object_type, reasons=None, should_stop=None, family=None, style_hint=None):
         return {"llm_error": {"kind": "rate_limit", "message": "HTTP 429"}}
 
     monkeypatch.setattr(main.llm, "generate_initial_design", fake_generate_initial)
@@ -638,7 +641,8 @@ def test_use_llm_set_revised_design_llm_error_is_llm_call_failed_with_revise_hri
     current, differences = _build_shift_scenario(initial_design)
     monkeypatch.setenv("C_DESIGN_USE_LLM", "1")
 
-    def fake_generate_revised(design_in, current_in, differences_in, reasons=None, should_stop=None, intent=None, feedback=None):
+    def fake_generate_revised(design_in, current_in, differences_in, reasons=None, should_stop=None, intent=None, feedback=None,
+                              min_blocks=None):
         return {"llm_error": {"kind": "rate_limit", "message": "HTTP 429"}}
 
     monkeypatch.setattr(main.llm, "generate_revised_design", fake_generate_revised)

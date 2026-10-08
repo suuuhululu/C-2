@@ -141,6 +141,14 @@ def test_parse_response_fallback_invalid_value_is_unclear():
     assert d.parse_response("음 글쎄요", llm_fallback=lambda text: "NONSENSE") == d.UNCLEAR
 
 
+@pytest.mark.parametrize("text, expected", [
+    ("2번", True), ("2번이요", True), ("이번", True), ("1", True), ("일번", True),
+    ("네", False), ("일부러요", False), ("이번에는 2번", False), ("2층 블록은 일부러", False), ("", False), (None, False),
+])
+def test_is_number_answer(text, expected):
+    assert d.is_number_answer(text) is expected
+
+
 # ---------------------------------------------------------------------------
 # parse_escalation_response (MOVE_BACK / KEEP_SEARCHING / UNCLEAR / CANCEL)
 # ---------------------------------------------------------------------------
@@ -280,11 +288,26 @@ def test_build_question_handles_missing_and_extra_brick():
 
     question = d.build_question(design={}, current=[], differences=[missing, extra])
 
-    assert "(x=6, y=5)" in question
-    assert "누락" in question
-    assert "(x=9, y=10)" in question
-    assert "추가" in question
+    assert "(x=6, y=5) 1층 블록이 Design에는 있는데 아직 놓이지 않았어요." in question
+    assert "(x=9, y=10) 1층 블록은 Design에 없는 블록이에요." in question
     assert "B0" not in question
+
+
+@pytest.mark.parametrize("overrides, sentence", [
+    ({"x": 7}, "(x=6, y=5) 1층 블록의 위치가 달라요."),
+    ({"color": "blue"}, "(x=6, y=5) 1층 블록의 색이 달라요."),
+    ({"orientation_deg": 90}, "(x=6, y=5) 1층 블록의 방향이 달라요."),
+    ({"brick_type": "2x2x1"}, "(x=6, y=5) 1층 블록의 크기가 달라요."),
+    ({"layer": 2}, "(x=6, y=5) 1층 블록의 층이 달라요."),
+    ({"x": 7, "color": "red"}, "(x=6, y=5) 1층 블록의 위치와 색이 달라요."),
+    ({"orientation_deg": 90, "color": "red"}, "(x=6, y=5) 1층 블록의 방향과 색이 달라요."),
+    ({"x": 7, "orientation_deg": 90, "color": "red"}, "(x=6, y=5) 1층 블록의 위치, 방향, 색이 달라요."),
+])
+def test_difference_sentence_uses_matching_particles(overrides, sentence):
+    question = d.build_question(design={}, current=[], differences=[{"expected": _EXPECTED_BRICK,
+                                                                      "actual": _with(_EXPECTED_BRICK, **overrides)}])
+    assert sentence in question
+    assert "(가)" not in question and "다릅니다" not in question
 
 
 def test_build_reask_repeats_full_question():
