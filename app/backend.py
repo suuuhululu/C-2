@@ -11,11 +11,13 @@ from app import replan
 
 
 class Backend:
-    def __init__(self, emit, *, mode: str, record=None, single_trial=False, manual_trial=False):
+    def __init__(self, emit, *, mode: str, record=None, single_trial=False, manual_trial=False, day4_workflow=False):
+        if day4_workflow and (day4_workflow is not True or mode != "REAL" or single_trial or manual_trial):
+            raise ValueError("day4_workflow requires explicit REAL and excludes trial modes")
         if manual_trial and (manual_trial is not True or mode != "REAL" or single_trial):
             raise ValueError("manual_trial requires explicit REAL and excludes single_trial")
-        if mode != "FAKE" and not (mode == "REAL" and (single_trial is True or manual_trial is True)):
-            raise ValueError("Backend: explicit FAKE mode or bounded REAL single_trial/manual_trial required")
+        if mode != "FAKE" and not (mode == "REAL" and (single_trial is True or manual_trial is True or day4_workflow is True)):
+            raise ValueError("Backend: explicit FAKE mode or explicit REAL single_trial/manual_trial/day4_workflow required")
         self._emit = emit
         self._record = record
         self._request_owners = {}
@@ -35,6 +37,9 @@ class Backend:
         self._place_seq = self._paused_execution = None
         self._robot = self._robot_config_loader = None
         self._manual_trial = manual_trial
+        self._day4_workflow = day4_workflow
+        if day4_workflow:
+            self._state["day4_workflow"] = True
         if manual_trial:
             self._state["manual_trial"] = True
 
@@ -147,7 +152,7 @@ class Backend:
                 return self._robot.stop(dict(request_id=str(uuid4()), execution_id=None))
             paused = self._robot.state["stop"]
             return self._robot.resume(dict(execution_id=str(uuid4()), previous_execution_id=None, goal=None)) if paused else dict(accepted=False, reason="RESUME_NOT_APPLICABLE")
-        if state["mode"] == "REAL" and not self._manual_trial and command["command"] == "START":
+        if state["mode"] == "REAL" and not self._manual_trial and not self._day4_workflow and command["command"] == "START":
             return self._command_trial(command)
         if self._manual_trial and (command["command"] not in ("START", "STOP", "RESUME", "CHOOSE_INTENT", "CONTINUE_AFTER_CORRECTION") or
                                    command["command"] == "START" and state["job_id"] is not None):
@@ -185,9 +190,12 @@ class Backend:
                          context=None, comparison="WAITING", difference=None, question=None, fault=None,
                          last_observation=None, step_observation=None,pending_design=None,current_check=None,
                          correction_request=None,correction_required=False,current_check_blocked=False,
-                         choice_required=False,unclear_count=0,planner_errors=[])
+                         choice_required=False,unclear_count=0,planner_errors=[],
+                         active_check=None,place_check=None,place_status=None,execution_id=None,
+                         stop_request=None,current_check_purpose=None)
             self._awaiting_assembly = self._delivery_goal = False
-            if not self._event("JOB_STARTED"):
+            if not self._event("JOB_STARTED", result=dict(empty_assembly_board_confirmed=True,
+                                                         confirmation_source="START")):
                 return dict(accepted=False, reason=state["reason"])
             if self._robot is not None and not self._event("ROBOT_CONFIG_ADOPTED", result=self._robot.configuration):
                 return dict(accepted=False, reason=state["reason"])
@@ -329,6 +337,17 @@ class Backend:
                                         brick_type=config["target"]["brick_type"], color=config["target"]["color"]))
         return dict(accepted=state["fault"] is None, reason=state["fault"])
 
+    def on_robot_timeout(self, execution_id):
+        state = self._state
+        if (state["workflow_status"] != "DELIVERING" or state["execution_id"] != execution_id
+                or state["stop_request"]):
+            return self._ignored(execution_id)
+        state["fault"] = "ROBOT_EXECUTION_TIMEOUT"
+        self._event("ROBOT_EXECUTION_TIMEOUT", request_id=execution_id, reason=state["fault"])
+        # 기존 실행 식별을 보존한 STOP을 요청한다. 종료만으로 실제 정지를 단정하지 않는다.
+        self.command(dict(command="STOP", job_id=state["job_id"]))
+        return True
+
     def on_robot_result(self, value: object) -> bool:
         result = _object(value, ("execution_id", "success", "reason"), "robot.result")
         _text(result["execution_id"], "robot.result.execution_id")
@@ -342,7 +361,7 @@ class Backend:
         if not self._event("DELIVERY_RESULT", request_id=result["execution_id"], result=result):
             return True
         state["execution_id"] = None
-        if state["mode"] == "REAL" and not self._manual_trial:
+        if state["mode"] == "REAL" and not self._manual_trial and not self._day4_workflow:
             self._delivery_goal = False
             self._ready = self._at_observe = result["success"]
             state["fault"] = None if result["success"] else result["reason"]

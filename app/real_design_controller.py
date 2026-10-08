@@ -1,6 +1,5 @@
 """현장에서 검증한 네 공급열을 기존 한 블록 실행/증거 처리에 연결한다."""
 
-from collections import Counter
 from copy import deepcopy
 import hashlib
 import json
@@ -9,7 +8,7 @@ from pathlib import Path
 from app.contracts import _integer, _object, _text
 from app.hmi_contracts import SUPPLY_COLUMNS, _column
 from app.real_trial_hmi import RealTrialController
-from app.robot_trial import load_trial_config, prepare_plan, validate_trial_config
+from app.robot_trial import load_trial_config, prepare_plan, resolve_config_path, validate_trial_config
 
 
 def load_workflow_rows(path):
@@ -18,6 +17,8 @@ def load_workflow_rows(path):
     _text(manifest["config_id"], "workflow.config_id")
     if manifest["mode"] != "REAL":
         raise ValueError("workflow.mode: explicit REAL required")
+    for field in ("base_config", "measurements_path"):
+        manifest[field] = resolve_config_path(manifest[field], path)
     base = load_trial_config(manifest["base_config"])
     measurement_path = Path(manifest["measurements_path"])
     if hashlib.sha256(measurement_path.read_bytes()).hexdigest() != manifest["measurements_sha256"]:
@@ -68,7 +69,9 @@ class RealDesignController(RealTrialController):
             row.update(next_slot=slot, needs_refill=slot is None)
         if self._attempts == 0 and self._ready:
             state["trial_notice"] = ((self._notice + "\n" if self._prepare_attempted else "") +
-                "네 공급열 지정 슬롯부터 준비 · 조립판/전달판 비움 확인 후 시작. Camera 미연결.")
+                "네 공급열 지정 슬롯부터 준비 · 시작은 조립판 비움 확인. 전달판은 B의 새 관측 후 진행.")
+        elif self._ready:
+            state["trial_notice"] = "전달·observe 복귀 확인. B의 조립/전달판 관측을 기다립니다."
         return state
 
     @property
@@ -86,17 +89,43 @@ class RealDesignController(RealTrialController):
         if self._operation is not None or self._stop or self._fault or not self._ready:
             raise ValueError("REAL_PLAN_ROBOT_NOT_READY")
         columns = [(step["after"]["brick_type"], step["after"]["color"]) for step in plan["steps"]]
-        available = {(row["brick_type"], row["color"]): row["next_slot"] for row in self.state["supply"]}
-        for column, count in Counter(columns).items():
+        for column in set(columns):
             if column not in self.slots:
                 raise ValueError(f"UNVERIFIED_TARGET: {column}")
-            slot = available[column]
-            if slot is None or count > 7 - slot:
-                raise ValueError(f"REAL_PLAN_NEEDS_REFILL: {column}, {count}회 전달, 시작 슬롯 {slot}. 이번 시험은 실행 중 보충 미지원")
         self._read_config()
         # 재계획은 남은 전달만 바꾼다. 전달 시도·확인된 집기·공급 순서는 초기화하지 않는다.
         self.plan_columns = (self.plan_columns or [])[:self._attempts] + columns
         self._limit = self._attempts + len(columns)
+
+    def new_job(self, config=None):
+        if config is not None or not self._ready or self._operation or self._stop or self._fault:
+            return dict(accepted=False, reason="REAL_WORKFLOW_NOT_READY")
+        try:
+            if self._read_config() != self._checked_config:
+                return dict(accepted=False, reason="CONFIG_CHANGED_RECHECK_REQUIRED")
+        except (OSError, ValueError) as error:
+            return dict(accepted=False, reason=str(error))
+        self.slots[self.target["brick_type"], self.target["color"]] = self._next_slot
+        # START confirms an empty assembly board; it does not refill supply rows.
+        self._attempts = 0
+        self._used = self._pick_confirmed = self._released = self._returned = False
+        self._identity = self._final = None
+        self.plan_columns = None
+        self._config = deepcopy(self._checked_config)
+        return dict(accepted=True, reason=None)
+
+    def supply_refilled(self, brick_type, color):
+        column = _column(dict(brick_type=brick_type, color=color), "robot.refill")
+        if not self._ready or self._operation or self._stop or self._fault:
+            return dict(accepted=False, reason="NOT_READY_AT_OBSERVE")
+        selected = self.target["brick_type"], self.target["color"]
+        slot = self._next_slot if column == selected else self.slots[column]
+        if slot is not None:
+            return dict(accepted=False, reason="REFILL_NOT_REQUIRED")
+        self.slots[column] = 1
+        if column == selected:
+            self._next_slot = 1
+        return dict(accepted=True, reason=None)
 
     def deliver(self, value):
         goal = _object(value, ("execution_id", "brick_type", "color"), "robot.goal")
@@ -122,6 +151,7 @@ class RealDesignController(RealTrialController):
         self._next_slot = self.slots[column]
         self._checked_config = deepcopy(self.rows[column])
         self._config = deepcopy(self._checked_config)
+        self._config["slot"] = self.target["slot"]
         # 새 EMPTY와 현장 준비 입력을 받은 deliver에서만 실행 복사본을 확인한다.
         self._config["confirmations"]["empty_place_and_slot"] = True
         return super().deliver(goal)

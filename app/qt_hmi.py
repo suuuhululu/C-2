@@ -176,6 +176,7 @@ class HmiWindow(QWidget):
         self._snapshot = snapshot
         mode = snapshot["monitor"]["robot"]["mode"]
         manual_trial = snapshot.get("manual_trial", False)
+        day4_workflow = snapshot.get("day4_workflow", False)
         reported = snapshot.get("reported_placement")
         transfer = snapshot.get("transfer_target")
         self.setWindowTitle(f"협동 조립 · Day4 · {mode}")
@@ -186,14 +187,17 @@ class HmiWindow(QWidget):
         self.buttons["START"].setText("준비 확인 · 1회 시작" if mode == "REAL" else "시작")
         if manual_trial:
             self.buttons["START"].setText("준비 확인 · Job 시작")
+        if day4_workflow:
+            self.heading.setText("협동 조립 · Day4                         실제 Robot REAL · 통합 관측")
+            self.buttons["START"].setText("조립판 비움 확인 · 새 작업 시작")
         self.status.setText(WORKFLOW_LABELS[snapshot["workflow_status"]])
         p = snapshot["progress"]
-        self.progress.setText("한 블록 전달 시험 · 조립 Plan 미채택" if mode == "REAL" and not manual_trial else
+        self.progress.setText("한 블록 전달 시험 · 조립 Plan 미채택" if mode == "REAL" and not manual_trial and not day4_workflow else
                               f"현재 Plan · 조립 확인 {p['completed']} / {p['total']} Step")
         design = snapshot["design"]
         self.design_panel.setTitle(f"전체 완성 목표 · 채택 Design v{design['design_version']}" if design else "전체 완성 목표 · 미채택")
         self.design_board.set_blocks(design["blocks"] if design else [])
-        self.design_caption.setText("조립 Design 미채택 · 지정 블록 1개 전달 시험" if mode == "REAL" and not manual_trial else
+        self.design_caption.setText("조립 Design 미채택 · 지정 블록 1개 전달 시험" if mode == "REAL" and not manual_trial and not day4_workflow else
                                     "등받이 뒤쪽 시점 · 24×24점 전체판 / 같은 목표의 확대")
         step = snapshot["step"]
         self.step_panel.setTitle(f"현재 Step · {step['step_id'] or '없음'}")
@@ -268,3 +272,7 @@ class HmiWindow(QWidget):
                             f"순번 {capture['observation_seq'] if capture['observation_seq'] is not None else '미수신'}")
         if manual_trial:
             self.footer.setText(f"REAL · 현장 수동 확인 · Camera 미연결 · check {capture['check_id'] or '미수신'}")
+
+        if day4_workflow:
+            self.footer.setText(f"REAL · Day4 통합 · check {capture['check_id'] or '미수신'} · "
+                                f"순번 {capture['observation_seq'] if capture['observation_seq'] is not None else '미수신'}")

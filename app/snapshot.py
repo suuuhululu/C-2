@@ -6,6 +6,7 @@ from app.hmi_contracts import validate_hmi_snapshot
 def make_snapshot(state: dict) -> dict:
     real_trial = state["mode"] == "REAL"
     manual_trial = state.get("manual_trial", False)
+    day4_workflow = state.get("day4_workflow", False)
     context, workflow = state["context"], state["workflow_status"]
     robot = state.get("robot_state")
     robot_fault = state["fault"] or (robot.get("fault") if robot else None)
@@ -81,13 +82,15 @@ def make_snapshot(state: dict) -> dict:
                 required_action = "표시된 목표는 현재 Step의 참고 위치입니다. 사람이 배치·색상·층·방향을 확인해 정리해야 합니다. 정리 후 재관측/재개와 목표 수정 의도 처리는 아직 미연결이며 추가 전달하지 않습니다."
         if manual_trial and state["fault"]:
             required_action = "오류로 시험을 중단했습니다. 현장 정지·블록 상태를 확인하세요. 이 창에서 자동 복구/재개하지 않습니다."
-        if not manual_trial and workflow != "IDLE":
+        if not manual_trial and not day4_workflow and workflow != "IDLE":
             reason = ("실제 한 블록 전달·복귀 완료. 조립 완료는 확인하지 않았습니다."
                   if state["reason"] == "REAL_TRANSFER_DONE_ASSEMBLY_UNVERIFIED" else
                   "실제 한 블록 전달 시험입니다." if state["reason"] == "REAL_SINGLE_TRANSFER" else state["reason"])
-        required_action = (("시험용 현장 수동 확인 · Camera 미연결\n" + (required_action or "터미널의 현장 확인 입력을 기다립니다.") + "\n") if manual_trial else "") + "정지는 요청 후 실제 정지·이전 실행 종료·블록 상태를 확인합니다. 확인 완료 후 재개로 같은 작업을 이어갑니다. 긴급 정지는 현장 비상정지를 사용하세요."
+        required_action = (("시험용 현장 수동 확인 · Camera 미연결\n" + (required_action or "터미널의 현장 확인 입력을 기다립니다.") + "\n") if manual_trial else ((required_action + "\n") if day4_workflow and required_action else "")) + "정지는 요청 후 실제 정지·이전 실행 종료·블록 상태를 확인합니다. 확인 완료 후 재개로 같은 작업을 이어갑니다. 긴급 정지는 현장 비상정지를 사용하세요."
         if robot and robot.get("trial_notice") and not (manual_trial and (workflow == "COMPLETE" or state["reason"] == "MANUAL_ASSEMBLY_MISMATCH")):
             required_action = robot["trial_notice"] + "\n" + required_action
+    if day4_workflow and workflow in ("IDLE", "COMPLETE") and state["controller_ready"] and not robot_fault:
+        required_action = "조립판을 비운 뒤 시작하세요. 시작은 빈 조립판 확인이며 새 Job을 만듭니다. 공급열은 자동 초기화하지 않습니다."
     button = lambda enabled: dict(visible=True, enabled=enabled)
     snapshot = dict(
         workflow_status=workflow,
@@ -107,7 +110,7 @@ def make_snapshot(state: dict) -> dict:
         notice=dict(question=state["question"], reason=reason, required_action=required_action,
                     request_id=request_id),
         actions=dict(job_id=state["job_id"], start=button(workflow in ("IDLE", "COMPLETE") and
-                     (not real_trial or state["job_id"] is None and state["controller_ready"] and state["at_observe_point"])),
+                     (not real_trial or (day4_workflow or state["job_id"] is None) and state["controller_ready"] and state["at_observe_point"] and robot_status == "IDLE")),
                      stop=button(workflow not in ("IDLE", "COMPLETE", "STOPPED") or real_trial and state["job_id"] is None and robot_status in ("BUSY", "STOP_PENDING")),
                      resume=button(workflow == "STOPPED" or real_trial and state["job_id"] is None and robot_status == "STOPPED"),
                      intent_choice=dict(visible=choice, enabled=choice, request_id=request_id if choice else None),
@@ -117,8 +120,10 @@ def make_snapshot(state: dict) -> dict:
                                          visible=True, enabled=robot["ready_at_observe"]
                                          and state["fault"] is None and state["stop_request"] is None)
                                     for row in robot["supply"] if row["needs_refill"] and state["job_id"]]
-                                    if robot and not real_trial else []))
-    if manual_trial:
+                                    if robot and (not real_trial or day4_workflow) else []))
+    if day4_workflow:
+        snapshot["day4_workflow"] = True
+    elif manual_trial:
         snapshot["manual_trial"] = True
         if (state.get("manual_reported_placement") is not None and state["comparison"] == "MISMATCH"
                 and observed is not None and state["manual_reported_placement"] in observed["visible_blocks"]):

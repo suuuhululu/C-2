@@ -177,7 +177,7 @@ def _actions(value: object, workflow: str, notice: dict, columns: dict, *, trial
 
 
 def validate_hmi_snapshot(value: object) -> dict:
-    optional = tuple(key for key in ("transfer_target", "manual_trial", "reported_placement") if isinstance(value, dict) and key in value)
+    optional = tuple(key for key in ("transfer_target", "manual_trial", "reported_placement", "day4_workflow") if isinstance(value, dict) and key in value)
     snapshot = _object(value, ("workflow_status", "step", "progress", "monitor",
                                "notice", "actions", "design", "current") + optional, "snapshot")
     _current(snapshot["current"])
@@ -201,6 +201,10 @@ def validate_hmi_snapshot(value: object) -> dict:
         raise ValueError("snapshot.monitor.robot.status: STOP_PENDING is not confirmed STOPPED")
     real_trial = snapshot["monitor"]["robot"]["mode"] == "REAL"
     manual_trial = snapshot.get("manual_trial", False)
+    day4_workflow = snapshot.get("day4_workflow", False)
+    if "day4_workflow" in snapshot and (day4_workflow is not True or not real_trial
+            or manual_trial or "transfer_target" in snapshot):
+        raise ValueError("snapshot.day4_workflow: explicit REAL full workflow required")
     if "manual_trial" in snapshot and (manual_trial is not True or not real_trial):
         raise ValueError("snapshot.manual_trial: explicit REAL manual trial required")
     if manual_trial and "transfer_target" in snapshot:
@@ -219,6 +223,8 @@ def validate_hmi_snapshot(value: object) -> dict:
         _integer(target["slot"], 1, 6, "snapshot.transfer_target.slot")
     trial_start = (snapshot["workflow_status"] == "IDLE" and snapshot["actions"]["job_id"] is None
                    and snapshot["monitor"]["robot"]["status"] == "IDLE") if real_trial else None
+    if day4_workflow:
+        trial_start = snapshot["workflow_status"] in ("IDLE", "COMPLETE") and snapshot["monitor"]["robot"]["status"] == "IDLE"
     startup = snapshot["actions"]["job_id"] is None
     robot_status = snapshot["monitor"]["robot"]["status"]
     controls = (trial_start, snapshot["workflow_status"] not in ("IDLE", "COMPLETE", "STOPPED") or
@@ -229,7 +235,7 @@ def validate_hmi_snapshot(value: object) -> dict:
         if (snapshot["workflow_status"] not in ("IDLE", "PREPARING", "DELIVERING", "WAIT_ASSEMBLY", "WAIT_INTENT", "REPLANNING", "WAIT_CORRECTION", "HOLD", "STOPPED", "COMPLETE") or
                 progress["total"] > 24):
             raise ValueError("snapshot: manual REAL trial requires bounded workflow within four six-slot rows")
-    elif real_trial:
+    elif real_trial and not day4_workflow:
         if (snapshot["workflow_status"] not in ("IDLE", "DELIVERING", "HOLD", "STOPPED") or
                 snapshot["design"] is not None or step["target"] is not None or
                 progress != dict(completed=0, total=0)):

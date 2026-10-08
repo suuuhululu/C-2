@@ -15,7 +15,18 @@ from .jsonl_log import JsonlLog
 
 
 def load_trial_config(path):
-    return validate_trial_config(json.loads(Path(path).read_text(encoding="utf-8")))
+    config = validate_trial_config(json.loads(Path(path).read_text(encoding="utf-8")))
+    config["source_path"] = resolve_config_path(config["source_path"], path)
+    if "pick_line" in config:
+        line = config["pick_line"]
+        line["measurements_path"] = resolve_config_path(line["measurements_path"], path)
+    return config
+
+
+def resolve_config_path(value, config_path):
+    """Resolve beside the declaring JSON, independently of the process cwd."""
+    path = Path(value)
+    return str((path if path.is_absolute() else Path(config_path).resolve().parent / path).resolve())
 
 
 def validate_trial_config(value):

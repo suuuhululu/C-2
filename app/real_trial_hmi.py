@@ -3,8 +3,10 @@
 import argparse
 from copy import deepcopy
 import json
+import math
 from pathlib import Path
 import sys
+from time import monotonic
 from uuid import uuid4
 
 from PyQt5.QtCore import QEvent, QObject, QProcess, QTimer, pyqtSignal
@@ -22,7 +24,8 @@ from app.snapshot import make_snapshot
 class RealTrialController(QObject):
     changed = pyqtSignal()
 
-    def __init__(self, config_path, log_directory, *, brick_type, color, slot, process_factory=QProcess, delivery_limit=1):
+    def __init__(self, config_path, log_directory, *, brick_type, color, slot, process_factory=QProcess, delivery_limit=1,
+                 execution_timeout_seconds=None):
         super().__init__()
         self.target = dict(brick_type=brick_type, color=color, slot=slot)
         _column(self.target, "trial.target")
@@ -49,6 +52,13 @@ class RealTrialController(QObject):
         self.on_stopped = None
         self._stop = self._pause_process = None
         self._stop_ack = False
+        if execution_timeout_seconds is not None and (type(execution_timeout_seconds) not in (int, float)
+                or not math.isfinite(execution_timeout_seconds) or execution_timeout_seconds <= 0):
+            raise ValueError("execution_timeout_seconds: positive finite seconds required")
+        self.execution_timeout_seconds = execution_timeout_seconds
+        self.on_timeout = None
+        self._started_at = None
+        self._timed_out = False
         self.timer = QTimer(self)
         self.timer.setInterval(100)
         self.timer.timeout.connect(self._poll)
@@ -142,8 +152,14 @@ class RealTrialController(QObject):
         if self._operation is not None or self._stop is not None:
             return dict(accepted=False, reason="BUSY")
         if self._attempts == 0:
-            if not self.new_job()["accepted"]:
+            if not self._ready or self._stop or self._fault:
                 return dict(accepted=False, reason="REAL_TRIAL_NOT_READY")
+            try:
+                if self._read_config() != self._checked_config:
+                    return dict(accepted=False, reason="CONFIG_CHANGED_RECHECK_REQUIRED")
+            except (OSError, ValueError) as error:
+                return dict(accepted=False, reason=str(error))
+            self._config["confirmations"]["empty_place_and_slot"] = True
         else:
             if not self._ready or self._fault or self._attempts >= self._limit or self._next_slot is None:
                 return dict(accepted=False, reason="REAL_TRIAL_NOT_READY")
@@ -295,6 +311,7 @@ class RealTrialController(QObject):
         config_path = self.directory / "adopted_config.json"
         config_path.write_text(json.dumps(self._config, ensure_ascii=False, allow_nan=False), encoding="utf-8")
         self._identity, self._operation = identity, operation
+        self._started_at, self._timed_out = monotonic(), False
         self._events_read = 0
         self._final = self._check_complete = None
         self._prepare_complete = None
@@ -321,14 +338,26 @@ class RealTrialController(QObject):
             self._notice = output.splitlines()[-1]
             self.changed.emit()
 
-    def _poll(self):
+    def _poll(self, *, check_timeout=True):
         try:
             self._read_events()
         except (OSError, ValueError, KeyError, TypeError) as error:
             self._fault = f"DRIVER_LOG_INVALID: {error}"
             self._ready = False
             self._notice = self._fault + " · 프로세스 종료를 실제 정지로 해석하지 않습니다."
-            self.timer.stop()
+            self.changed.emit()
+        if (check_timeout and self._operation in ("execute", "prepare-observe") and self._stop is None
+                and not self._timed_out and self.execution_timeout_seconds is not None
+                and self._started_at is not None
+                and monotonic() - self._started_at >= self.execution_timeout_seconds):
+            self._timed_out = True
+            self._fault = "ROBOT_EXECUTION_TIMEOUT"
+            self._ready = False
+            self._notice = "실행 시간 초과. 실제 정지·이전 실행 종료 확인 전 재개할 수 없습니다."
+            if self.on_timeout is not None:
+                self.on_timeout(self._identity, self._operation)
+            else:
+                self.stop(dict(request_id=str(uuid4()), execution_id=self._identity))
             self.changed.emit()
 
     def _read_events(self):
@@ -398,7 +427,7 @@ class RealTrialController(QObject):
     def _finished(self, identity, code, status):
         if identity != self._identity or self._operation is None:
             return
-        self._poll()
+        self._poll(check_timeout=False)
         operation = self._operation
         self._operation = None
         self.timer.stop()
