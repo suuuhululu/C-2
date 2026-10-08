@@ -1,0 +1,390 @@
+{
+  "status": "provisional_xyz_only_not_robot_motion",
+  "tcp_name": "GripperDA_v4",
+  "units": "mm",
+  "assumptions": [
+    "Six blocks per line, uniformly spaced from taught block 1 to block 6",
+    "Board and TCP unchanged since corner measurements"
+  ],
+  "pending": [
+    "Confirm measurements are successful grasp TCP poses, rather than block top contact points",
+    "Confirm uniform four-stud slot spacing and grasp opening",
+    "Validate middle-block XYZ and select reachable grasp orientations",
+    "Red 4-stud and 6-stud line measurements missing"
+  ],
+  "data_issue": "blue_4 block1 posj field duplicates posx; no joint angles inferred",
+  "lines": {
+    "yellow_4": {
+      "start": [
+        -323.991,
+        215.923,
+        -3.178,
+        24.268,
+        178.39,
+        26.818
+      ],
+      "end": [
+        -645.111,
+        216.103,
+        -12.736,
+        83.522,
+        176.955,
+        85.94
+      ],
+      "step_xyz": [
+        -64.224,
+        0.036000000000001364,
+        -1.9116
+      ],
+      "blocks": [
+        {
+          "number": 1,
+          "xyz": [
+            -323.991,
+            215.923,
+            -3.178
+          ],
+          "source": "measured",
+          "orientation_abc": [
+            24.268,
+            178.39,
+            26.818
+          ]
+        },
+        {
+          "number": 2,
+          "xyz": [
+            -388.215,
+            215.959,
+            -5.0896
+          ],
+          "source": "interpolated_uniform_spacing_assumed",
+          "orientation_abc": null
+        },
+        {
+          "number": 3,
+          "xyz": [
+            -452.439,
+            215.995,
+            -7.0012
+          ],
+          "source": "interpolated_uniform_spacing_assumed",
+          "orientation_abc": null
+        },
+        {
+          "number": 4,
+          "xyz": [
+            -516.663,
+            216.031,
+            -8.9128
+          ],
+          "source": "interpolated_uniform_spacing_assumed",
+          "orientation_abc": null
+        },
+        {
+          "number": 5,
+          "xyz": [
+            -580.887,
+            216.067,
+            -10.8244
+          ],
+          "source": "interpolated_uniform_spacing_assumed",
+          "orientation_abc": null
+        },
+        {
+          "number": 6,
+          "xyz": [
+            -645.111,
+            216.103,
+            -12.736
+          ],
+          "source": "measured",
+          "orientation_abc": [
+            83.522,
+            176.955,
+            85.94
+          ]
+        }
+      ]
+    },
+    "blue_4": {
+      "start": [
+        -326.145,
+        86.466,
+        -3.0,
+        112.495,
+        177.804,
+        116.392
+      ],
+      "end": [
+        -644.597,
+        92.299,
+        -12.047,
+        59.895,
+        177.334,
+        57.917
+      ],
+      "step_xyz": [
+        -63.6904,
+        1.1666000000000025,
+        -1.8094000000000001
+      ],
+      "blocks": [
+        {
+          "number": 1,
+          "xyz": [
+            -326.145,
+            86.466,
+            -3.0
+          ],
+          "source": "measured",
+          "orientation_abc": [
+            112.495,
+            177.804,
+            116.392
+          ]
+        },
+        {
+          "number": 2,
+          "xyz": [
+            -389.8354,
+            87.6326,
+            -4.8094
+          ],
+          "source": "interpolated_uniform_spacing_assumed",
+          "orientation_abc": null
+        },
+        {
+          "number": 3,
+          "xyz": [
+            -453.5258,
+            88.7992,
+            -6.6188
+          ],
+          "source": "interpolated_uniform_spacing_assumed",
+          "orientation_abc": null
+        },
+        {
+          "number": 4,
+          "xyz": [
+            -517.2162,
+            89.9658,
+            -8.4282
+          ],
+          "source": "interpolated_uniform_spacing_assumed",
+          "orientation_abc": null
+        },
+        {
+          "number": 5,
+          "xyz": [
+            -580.9066,
+            91.1324,
+            -10.2376
+          ],
+          "source": "interpolated_uniform_spacing_assumed",
+          "orientation_abc": null
+        },
+        {
+          "number": 6,
+          "xyz": [
+            -644.597,
+            92.299,
+            -12.047
+          ],
+          "source": "measured",
+          "orientation_abc": [
+            59.895,
+            177.334,
+            57.917
+          ]
+        }
+      ]
+    },
+    "yellow_6": {
+      "start": [
+        -326.279,
+        158.625,
+        -5.063,
+        75.19,
+        176.73,
+        75.811
+      ],
+      "end": [
+        -645.596,
+        161.494,
+        -7.846,
+        41.179,
+        178.128,
+        40.201
+      ],
+      "step_xyz": [
+        -63.8634,
+        0.5738,
+        -0.5566000000000001
+      ],
+      "blocks": [
+        {
+          "number": 1,
+          "xyz": [
+            -326.279,
+            158.625,
+            -5.063
+          ],
+          "source": "measured",
+          "orientation_abc": [
+            75.19,
+            176.73,
+            75.811
+          ]
+        },
+        {
+          "number": 2,
+          "xyz": [
+            -390.1424,
+            159.1988,
+            -5.6196
+          ],
+          "source": "interpolated_uniform_spacing_assumed",
+          "orientation_abc": null
+        },
+        {
+          "number": 3,
+          "xyz": [
+            -454.0058,
+            159.7726,
+            -6.1762
+          ],
+          "source": "interpolated_uniform_spacing_assumed",
+          "orientation_abc": null
+        },
+        {
+          "number": 4,
+          "xyz": [
+            -517.8692,
+            160.3464,
+            -6.7328
+          ],
+          "source": "interpolated_uniform_spacing_assumed",
+          "orientation_abc": null
+        },
+        {
+          "number": 5,
+          "xyz": [
+            -581.7326,
+            160.9202,
+            -7.2894
+          ],
+          "source": "interpolated_uniform_spacing_assumed",
+          "orientation_abc": null
+        },
+        {
+          "number": 6,
+          "xyz": [
+            -645.596,
+            161.494,
+            -7.846
+          ],
+          "source": "measured",
+          "orientation_abc": [
+            41.179,
+            178.128,
+            40.201
+          ]
+        }
+      ]
+    },
+    "blue_6": {
+      "start": [
+        -325.576,
+        33.453,
+        -5.292,
+        163.311,
+        -176.451,
+        167.435
+      ],
+      "end": [
+        -646.342,
+        33.554,
+        -10.212,
+        42.277,
+        177.164,
+        44.364
+      ],
+      "step_xyz": [
+        -64.1532,
+        0.02019999999999982,
+        -0.984
+      ],
+      "blocks": [
+        {
+          "number": 1,
+          "xyz": [
+            -325.576,
+            33.453,
+            -5.292
+          ],
+          "source": "measured",
+          "orientation_abc": [
+            163.311,
+            -176.451,
+            167.435
+          ]
+        },
+        {
+          "number": 2,
+          "xyz": [
+            -389.7292,
+            33.4732,
+            -6.276
+          ],
+          "source": "interpolated_uniform_spacing_assumed",
+          "orientation_abc": null
+        },
+        {
+          "number": 3,
+          "xyz": [
+            -453.8824,
+            33.4934,
+            -7.26
+          ],
+          "source": "interpolated_uniform_spacing_assumed",
+          "orientation_abc": null
+        },
+        {
+          "number": 4,
+          "xyz": [
+            -518.0356,
+            33.5136,
+            -8.244
+          ],
+          "source": "interpolated_uniform_spacing_assumed",
+          "orientation_abc": null
+        },
+        {
+          "number": 5,
+          "xyz": [
+            -582.1888,
+            33.5338,
+            -9.228
+          ],
+          "source": "interpolated_uniform_spacing_assumed",
+          "orientation_abc": null
+        },
+        {
+          "number": 6,
+          "xyz": [
+            -646.342,
+            33.554,
+            -10.212
+          ],
+          "source": "measured",
+          "orientation_abc": [
+            42.277,
+            177.164,
+            44.364
+          ]
+        }
+      ]
+    }
+  }
+}
