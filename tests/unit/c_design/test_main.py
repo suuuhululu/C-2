@@ -9,8 +9,9 @@ Conventions:
     - ``designer.RETRY_DELAY`` is monkeypatched to 0 in every test that can reach a
       retry loop, per the lead's instruction (main passes delay=designer.RETRY_DELAY).
     - Legs are identified by ``layer == 1`` (no block ids exist, per contract §8.4).
-    - "1번" / "2번" are the fixed KEEP/REVISE (and MOVE_BACK/KEEP_SEARCHING) choice
-      tokens shared by dialogue.OPTIONS / dialogue.ESCALATION_OPTIONS.
+    - Questions are open-ended (no numbered choices); "1번" / "2번" answers are still
+      accepted silently as KEEP/REVISE (and MOVE_BACK/KEEP_SEARCHING) via
+      dialogue.OPTIONS / dialogue.ESCALATION_OPTIONS, so these tests keep using them.
 """
 
 import pytest
@@ -18,6 +19,7 @@ import pytest
 from app.c_design import designer, main, validator
 
 GOAL_TEXT = "오늘은 의자를 만들 거야"
+ESCALATION_MARK = "계속 새 설계를 찾아볼까요"  # dialogue.escalation_question에만 있는 문구
 ENVELOPE_KEYS = {"status", "hri_result", "design", "design_metadata", "questions", "error"}
 
 
@@ -202,7 +204,7 @@ def test_unclear_then_keep_reasks_once(initial_design):
     assert result["status"] == "OK"
     assert result["hri_result"] == "KEEP"
     assert len(result["questions"]) == 2
-    assert "다시 설명" in result["questions"][1]
+    assert "잘 못 알아들었어요" in result["questions"][1]
 
 
 def test_unclear_then_revise(initial_design):
@@ -286,9 +288,9 @@ def test_revise_generation_failure_after_escalation_decline(initial_design, monk
     assert result["design"] is None
     assert result["error"]["details"]
     assert 1 <= calls["n"] <= 10
-    # "옮기기" only appears in dialogue.escalation_question's "1번: 원래 위치로 옮기기"
-    # line; the ordinary HRI question/reask never use this exact phrasing.
-    assert any("옮기기" in q for q in result["questions"]), "escalation question must be among questions"
+    # "계속 새 설계를 찾아볼까요" only appears in dialogue.escalation_question;
+    # the ordinary HRI question/reask never use this exact phrasing.
+    assert any(ESCALATION_MARK in q for q in result["questions"]), "escalation question must be among questions"
 
 
 # ---------------------------------------------------------------------------
@@ -421,7 +423,7 @@ def test_current_support_violation_escalates_once_then_keep(initial_design):
     assert result["status"] == "OK"
     assert result["hri_result"] == "KEEP"
     assert result["design"] == initial_design
-    escalation_questions = [q for q in result["questions"] if "옮기기" in q]
+    escalation_questions = [q for q in result["questions"] if ESCALATION_MARK in q]
     assert len(escalation_questions) == 1
 
 
@@ -432,7 +434,7 @@ def test_current_support_violation_escalates_twice_then_keep(initial_design):
     assert result["status"] == "OK"
     assert result["hri_result"] == "KEEP"
     assert result["design"] == initial_design
-    escalation_questions = [q for q in result["questions"] if "옮기기" in q]
+    escalation_questions = [q for q in result["questions"] if ESCALATION_MARK in q]
     assert len(escalation_questions) == 2
 
 
