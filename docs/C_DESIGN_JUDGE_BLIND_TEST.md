@@ -29,6 +29,7 @@ Judge는 최종 물리 안전 판정기가 아니라 Design 품질 보조 필터
 ## 자료 위치
 
 - `~/c_judge_blind`, `~/c_before_after_ab`: 사용자 로컬 실험 자료입니다. 이 저장소에 포함하지 않으며 저장소 테스트·검증 결과가 아닙니다.
+- 이 실험의 Design은 과거 vocabulary(red 2x2x1·2x3x1, yellow/blue 1x2x1 허용) 기준이며 기록으로만 남깁니다. 2026-10-08 최종 Stage 2 재고(yellow·blue = 2x2x1·2x3x1, red = 1x2x1만, [계약 §2](C_DESIGN_CONTRACT.md))에서는 그 일부 블록이 `invalid_combination`입니다.
 
 ## 적용 범위
 
