@@ -402,7 +402,7 @@ C의 Validator 통과는 후보 검증이며 최종 채택이 아닙니다.
 | 복구 | 일시적 LLM·녹음·STT·TTS 실패 | 간격을 두고 재시도 | 반환하지 않고 계속 |
 | 복구 | 불명확 응답 | 다시 설명해 재질문 | 반환하지 않고 계속 (텍스트 모드 소진 시만 `UNCLEAR`) |
 | 복구 | `current`의 support 위반 | REVISE이면 즉시 §8.11 escalation | 반환하지 않고 계속 |
-| 복구 | 설계 의도·judge·Initial 설명 호출 실패, judge 필수 필드 누락·예상 밖 값, judge 재생성 실패 | 설계는 그대로 반환, `design_metadata.error`에 `intent_error` / `judge_error` / `describe_error` / `regeneration_failed` 기록(§6.1, §8.12) | `OK` (metadata error만) |
+| 복구 | judge·Initial 설명·선호/답변 해석 호출 실패, judge 필수 필드 누락·예상 밖 값, judge 재생성 실패 | 설계는 그대로 반환, `design_metadata.error`에 `preference_error` / `judge_error` / `describe_error` / `regeneration_failed` 기록(§6.1, §8.12) | `OK` (metadata error만) |
 | 취소 | D/HMI STOP (`should_stop`) | 턴·시도 사이에서 중단 | `CANCELLED` / `STOPPED` |
 | 취소 | 사용자 명시적 취소 발화 | 중단 | `CANCELLED` / `USER_CANCEL` |
 | 실패 | 호출자 입력 오류 | 즉시 반환 | `FAILED` / `INVALID_INPUT`, `UNSUPPORTED_OBJECT` |
