@@ -111,7 +111,7 @@ LLM 모델은 역할별로 셋입니다(Stage 2 Wave 4c, 2026-10-08 사용자 �
 
 보조 모델은 첫 TTS(acknowledgment)를 Design 생성보다 먼저, 빠르게 내기 위한 것입니다. Design 생성 정책·모델은 바꾸지 않습니다.
 
-### 4.1 `create_initial_design(text=None, should_stop=None, preference_text=None, on_question=None)`
+### 4.1 `create_initial_design(text=None, should_stop=None, preference_text=None, on_question=None, on_progress=None)`
 
 | 입력 | 타입 | 의미 |
 |---|---|---|
@@ -119,6 +119,7 @@ LLM 모델은 역할별로 셋입니다(Stage 2 Wave 4c, 2026-10-08 사용자 �
 | `should_stop` | `callable() -> bool` 또는 `None` | D의 STOP·닫힌 요청 연결. 인사·되묻기 앞뒤, 요청 해석 중, 재생성 시도 사이에 확인하고 True면 `CANCELLED` / `STOPPED` |
 | `preference_text` | str 또는 `None` | (LLM 모드, 텍스트 모드) 되묻기(follow-up)에 대한 답. `None`이면 되묻지 않고 "아무거나"로 진행. str도 `None`도 아니면 `INVALID_INPUT`. 음성 모드에서는 쓰지 않음 |
 | `on_question` | `callable(str)` 또는 `None` | C가 인사·침묵 재질문·되묻기를 낼 때 그 문장으로 호출(HMI 표시). 예외는 호출자 책임(§4.2와 같음) |
+| `on_progress` | `callable(dict)` 또는 `None` | (Stage 2 Wave 4c) 진행 단계마다 `{"stage", "message", "at": "HH:MM:SS.mmm"}`로 호출(§4.2 끝 "진행 표시"). 표시·로그용이며 envelope·Design에는 넣지 않음. `None`이면 이전과 같음. 예외는 호출자 책임
 
 출력: §6 결과. 성공 시 `design`은 Initial Design, `hri_result`는 `null`.
 
@@ -130,9 +131,9 @@ LLM 모델은 역할별로 셋입니다(Stage 2 Wave 4c, 2026-10-08 사용자 �
   2. `dialogue.parse_initial_request`가 `ANY`(특징·사물 단어 없는 명시적 "아무거나·알아서·맡길게요" 류)면 해석 호출 없이 무작위 family.
   3. 그 밖에는 `llm.interpret_initial_request(text)`(키 `llm.REQUEST_KEYS`). 해석 실패·키 누락은 "아무거나"로 진행하고 `design_metadata.error`에 `request_error`, 해석 중 STOP은 `CANCELLED` / `STOPPED`.
   4. `object`가 `UNSUPPORTED`면 (음성) "죄송해요, 지금은 의자나 벤치 같은 앉는 가구만 만들 수 있어요."를 읽고 `FAILED` / `UNSUPPORTED_OBJECT`.
-  5. `object`가 `UNCLEAR`이거나 `sufficient`가 true가 아니면 해석의 `follow_up` 문장으로 **한 번만** 되묻습니다(음성: 질문 → `listen(mode="free", beep=True)`, 텍스트: `preference_text`가 있을 때만 질문으로 기록). 답이 명시적 "아무거나"면 무작위, 아니면 "첫 발화 / 답"을 합친 문자열로 한 번 다시 해석합니다. 답이 없거나 두 번째도 `UNCLEAR`·불충분·해석 실패면 더 묻지 않고 "아무거나"로 진행하며 (음성) "알겠어요, 제가 어울리는 의자를 골라 볼게요."를 읽습니다. 두 번째가 `UNSUPPORTED`면 4와 같습니다.
+  5. `object`가 `UNCLEAR`이거나 `sufficient`가 true가 아니면 해석의 `follow_up` 문장으로 **한 번만** 되묻습니다(음성: 질문 → `listen(mode="free", beep=True)`, 텍스트: `preference_text`가 있을 때만 질문으로 기록). 답이 명시적 "아무거나"면 무작위, 아니면 "첫 발화 / 답"을 합친 문자열로 한 번 다시 해석합니다. 답이 없거나 두 번째도 `UNCLEAR`·불충분·해석 실패면 더 묻지 않고 "아무거나"로 진행합니다. 두 번째가 `UNSUPPORTED`면 4와 같습니다.
   6. `llm.choose_initial_family(request)`: `SPECIFIC`이면 그 카탈로그 family, `CREATIVE`면 family 없음(None), 그 밖·"아무거나"는 균등 무작위. `llm.generate_initial_design(…, family, style_hint, concept)` — `CREATIVE`일 때만 `concept` = `style_hint`(카탈로그로 환원하지 않음) → validator(designer loop) → `llm.describe_initial_design(…, family, concept)` → `design_metadata`(§6.1, `family_source` = `"preference"` / `"random"` / `"creative"`).
-  7. (음성) 해석의 `reply`(되읽기)가 있으면 TTS로 읽습니다(질문이 아니므로 `questions`에 넣지 않음).
+  7. (Stage 2 Wave 4c) Design 생성 **전에 항상** 요청을 되짚는 확인(ack) 한 문장을 냅니다: 해석의 `reply`가 있으면 그것, 없으면(규칙 "아무거나"·침묵·해석 실패·되묻기 뒤 무작위) `dialogue.initial_ack_fallback`의 무작위 문장(바로 앞과 다른 문장). 음성 모드에서는 바로 읽고(질문이 아니므로 `questions`에 넣지 않음) 이어서 "디자인을 생성하고 있어요."를 읽은 뒤 생성합니다. 즉 6의 생성은 7의 ack 뒤에 시작합니다.
   - 음성 모드에서 듣기가 장치·STT 실패(`None`)면 `VOICE_IO_FAILED`(그때까지 낸 질문은 `questions`에 남음).
 
 **Initial 요청 해석과 family·concept 함수 (Stage 2 Wave 2 `llm`, Wave 4b에서 한 문장 요청 해석으로 변경)**
@@ -150,7 +151,7 @@ Stage 2 Wave 2~4의 `llm.interpret_initial_preference`·`PREFERENCE_KEYS`·`SYST
 
 **향후 옵션(미구현): 이미지·vision 검색.** 특정 제품 형태(예: 특정 브랜드 의자)처럼 말로 전하기 어려운 요청은 이미지 검색이나 vision 모델로 참고 형태를 얻는 방식을 검토할 수 있습니다. 현재 C에는 이미지·웹 검색 기능이 없으며 추가하지 않았습니다. 도입하려면 별도 사용자 결정과 dependency·비용·저작권 검토가 필요합니다.
 
-### 4.2 `run_intervention(design, current, differences, text_answers=None, on_question=None, should_stop=None)`
+### 4.2 `run_intervention(design, current, differences, text_answers=None, on_question=None, should_stop=None, on_progress=None)`
 
 | 입력 | 타입 | 의미 |
 |---|---|---|
@@ -159,6 +160,7 @@ Stage 2 Wave 2~4의 `llm.interpret_initial_preference`·`PREFERENCE_KEYS`·`SYST
 | `differences` | Difference 배열, 1개 이상 | 이번 Intervention의 원인 차이 (§5.2). 빈 배열이면 `INVALID_INPUT` |
 | `text_answers` | str 배열 또는 `None` | 텍스트 입력 모드: 질문마다 순서대로 쓰일 응답. `None`이면 음성 모드 |
 | `on_question` | `callable(str)` 또는 `None` | C가 질문·재질문을 낼 때마다 그 문장으로 호출. D가 HMI 화면에 표시. 콜백이 던진 예외는 C가 잡지 않으며 호출자 책임(§4의 "예외 없음" 약속의 유일한 예외) |
+| `on_progress` | `callable(dict)` 또는 `None` | (Stage 2 Wave 4c) §4.1과 같은 진행 이벤트(아래 "진행 표시"). `None`이면 이전과 같음
 | `should_stop` | `callable() -> bool` 또는 `None` | 질문-응답 턴 사이와 재생성 시도 사이에 확인. True면 `CANCELLED` / `STOPPED` |
 
 흐름: C가 질문 문장 생성 → `on_question` 통지 → (음성 모드) TTS 재생 → 재생 종료 후 듣기·STT → 응답 해석.
@@ -179,6 +181,20 @@ Stage 2 Wave 2~4의 `llm.interpret_initial_preference`·`PREFERENCE_KEYS`·`SYST
 - KEEP → 입력 `design`을 **변경 없이** 그대로 반환. LLM 호출 없음, `design_version` 동일.
 - REVISE → Revised Design을 생성·검증해 반환(§8).
 - 명시적 취소 발화(`CANCEL`, 예: "취소할게") → `status: CANCELLED`, `error.code: USER_CANCEL`.
+
+**진행 표시·확인 문장 (Stage 2 Wave 4c, 2026-10-08 사용자 결정)**
+
+| 함수 | `on_progress` 단계 순서 |
+|---|---|
+| Initial (LLM) | (음성) `LISTENING` → `UNDERSTANDING`(발화 확보 뒤, 해석 전; 되묻기 답마다 다시) → `ACK` → `GENERATING` → `VALIDATING`(유효 후보 확정) → `DESCRIBING` → `READY` |
+| Revised (LLM) | (음성) `LISTENING` → `UNDERSTANDING`(답변마다) → `ACK`(REVISE) 또는 `KEEP_ACK`(KEEP, 여기서 끝) → `GENERATING_REVISED` → `VALIDATING` → `JUDGING` → (재생성이면 `REGENERATING` → `VALIDATING` → `JUDGING`) → `READY_REVISED`. escalation 질문 전 `ESCALATION` |
+| Mock | Initial `GENERATING` → `VALIDATING` → `READY`, Revised `GENERATING_REVISED` → `VALIDATING` → `READY_REVISED`만(ack·음성 없음) |
+| 공통 끝 | 결과가 실패·취소면 마지막에 `FAILED`·`CANCELLED`(message = `"<error.code>: <error.message>"`) |
+
+- 단계 이름은 `main.PROGRESS_STAGES`, 고정 안내 문장은 `dialogue.PROGRESS_MESSAGES`입니다. `ACK`·`KEEP_ACK`의 message는 그때 낸 확인 문장입니다.
+- **확인(ack) 규칙**: REVISE이면 Revised 생성 **전에 항상** 확인 한 문장을 냅니다. 이 문장은 LLM이 REVISE로 해석한 답의 `reply`이고, 그것이 없으면(숫자 답 "2번"·해석 실패·LLM decision이 REVISE가 아닌 style_hint 전용 호출) `dialogue.revise_ack_fallback(style_hint)`의 무작위 문장입니다. KEEP이면 `dialogue.keep_ack()`(escalation에서 원래대로 옮기겠다는 답 포함). Current support 위반으로 바로 escalation하는 경우에는 생성하지 않으므로 ack가 없습니다.
+- **음성**: LLM 음성 모드에서만 ack·KEEP 확인과 `dialogue.PROGRESS_TTS_STAGES`(`GENERATING`·`READY`·`GENERATING_REVISED`·`JUDGING`·`READY_REVISED`)의 고정 문장을 읽습니다. `LISTENING`·`UNDERSTANDING`·`VALIDATING`·`DESCRIBING` 등은 콜백·로그만. 텍스트 모드와 Mock은 아무것도 읽지 않습니다(콜백만).
+- 음성 순서 예: 인사 → (사용자 발화) → ack → "디자인을 생성하고 있어요." → (생성) → "디자인이 완성됐어요." / 질문 → (답변) → ack → "수정된 디자인을 만들고 있어요." → "완성된 디자인을 확인하고 있어요." → "수정된 디자인이 완성됐어요.". ack는 Design 생성을 기다리지 않습니다.
 
 질문 문장·재질문 문장은 C가 만듭니다. D는 질문 문자열을 C에 주지 않습니다. 질문은 블록 ID 대신 위치로 블록을 가리킵니다(예: "(x=3, y=5) 2층 블록").
 
@@ -217,7 +233,7 @@ C는 두 블록의 값을 비교해 어떤 항목(위치·색·방향·크기·�
 
 ## 6. 결과 형식 (C → D)
 
-두 공개 함수는 같은 형식을 반환합니다.
+두 공개 함수는 같은 형식을 반환합니다. 진행 이벤트(`on_progress`, §4.2 끝)와 확인 문장은 envelope·Design에 넣지 않습니다(Stage 2 Wave 4c에서도 envelope 키와 Design `{design_version, blocks}`는 그대로).
 
 | 필드 | 타입 | 의미 |
 |---|---|---|

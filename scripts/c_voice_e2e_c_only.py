@@ -24,6 +24,10 @@ A/D 통합 시험은 scripts/c_voice_10round_e2e.py를 쓴다(Stage 2 어휘는 
 옵션: --rounds N(기본 5) --start K(기본 1, 이어서 진행) --out DIR(기본 ~/c_voice_e2e_c_only) --summary(집계만)
       --debug-audio(각 listen/TTS의 시각·보정·게이트·Whisper 원문·no_speech_prob·avg_logprob를 터미널에 출력)
 결과 넘겨보기: python3 scripts/c_voice_e2e_c_only_gallery.py
+
+진행 로그(Stage 2 Wave 4c): main의 on_progress 이벤트를 "[C][STAGE] HH:MM:SS.mmm message"로 출력하고(ACK는 문장 인용)
+metadata의 v1/v2 "progress"에 남긴다. 첫 확인(ack) TTS의 실제 재생 시작 시각(voice._last_speak)과 마지막 listen 종료 시각을
+transcript "ack_tts"에 남겨 첫 응답 latency를 잴 수 있게 한다.
 """
 import argparse
 import inspect
@@ -234,7 +238,9 @@ class ListenRecorder:
 
         def speak(text):
             t0 = _now(); rec.original_speak(text); t1 = _now()
-            rec.tts_log.append({"stage": rec.stage, "text": text, "started_at": t0, "ended_at": t1, "chars": len(text)})
+            played = getattr(voice, "_last_speak", None) or {}  # 실제 재생 시작/끝(TTS 응답 대기 뒤)
+            rec.tts_log.append({"stage": rec.stage, "text": text, "started_at": t0, "ended_at": t1, "chars": len(text),
+                                "play_started_at": played.get("play_started_at"), "play_ended_at": played.get("play_ended_at")})
             if DEBUG["audio"]:
                 print(f"    [TTS DEBUG] playback start {t0} · end {t1} (POST_SPEAK_DELAY {voice.POST_SPEAK_DELAY}s 포함)", flush=True)
         voice.speak = speak
@@ -306,7 +312,8 @@ def screen_lines(meta):
 def run_round(k, out, app, viewer, rec):
     rdir = os.path.join(out, f"round{k:02d}"); os.makedirs(rdir, exist_ok=True)
     meta = {"round": k, "status": "RUNNING", "model": os.environ.get("OPENAI_MODEL"), "started": time.strftime("%Y-%m-%dT%H:%M:%S")}
-    transcript = {"initial": [], "intervention": [], "questions": {"initial": [], "intervention": []}, "tts": []}
+    transcript = {"initial": [], "intervention": [], "questions": {"initial": [], "intervention": []}, "tts": [],
+                  "ack_tts": {}}
 
     def dump():
         transcript["tts"] = list(rec.tts_log)
@@ -325,20 +332,41 @@ def run_round(k, out, app, viewer, rec):
             print(f"\n[TTS] {q}", flush=True)
         return show
 
+    progress = {"initial": [], "intervention": []}
+
+    def on_progress(stage):
+        def log(event):
+            progress[stage].append(event)
+            message = f"\"{event['message']}\"" if event["stage"] in ("ACK", "KEEP_ACK") else event["message"]
+            print(f"[C][{event['stage']}] {event['at']} {message}", flush=True)
+        return log
+
+    def ack_tts(stage):
+        """그 단계의 첫 ACK/KEEP_ACK 문장이 실제로 재생되기 시작한 시각(첫 응답 latency 측정용)."""
+        acks = [e["message"] for e in progress[stage] if e["stage"] in ("ACK", "KEEP_ACK")]
+        spoken = [t for t in rec.tts_log if t["stage"] == stage and acks and t["text"] == acks[0]]
+        listened = [ev.get("listen_ended_at") for ev in rec.events if ev.get("listen_ended_at")]
+        return {"text": acks[0] if acks else None, "play_started_at": spoken[0].get("play_started_at") if spoken else None,
+                "last_listen_ended_at": listened[-1] if listened else None}
+
     print(f"\n=== [Round {k}/{TOTAL['rounds']}] ===\nC가 먼저 인사합니다(TTS). 삐 소리와 '지금 말씀하세요'가 나오면 "
           "오늘 만들고 싶은 의자를 자유롭게 말씀하세요.", flush=True)
     time.sleep(SETTLE_SECONDS)  # Enter 직후 발화·키 소리가 보정에 섞이지 않게
     rec.round_no, rec.stage, rec.tts_log = k, "initial", []
     rec.debug_dir, rec.events = os.path.join(rdir, "stt_initial"), []
-    t = time.monotonic(); env1 = main.create_initial_design(text=None, on_question=on_question("initial")); dt = time.monotonic() - t
+    t = time.monotonic()
+    env1 = main.create_initial_design(text=None, on_question=on_question("initial"), on_progress=on_progress("initial"))
+    dt = time.monotonic() - t
     transcript["initial"] = rec.events
+    transcript["ack_tts"]["initial"] = ack_tts("initial")
     _write_json(os.path.join(rdir, "v1.json"), env1)
     m1 = env1.get("design_metadata") or {}
     meta["v1"] = {"status": env1["status"], "error": env1["error"], "seconds": round(dt, 1),
                   "stt": [ev.get("stt_text") for ev in rec.events], "interpretation": _interpretation(m1),
                   "family_source": m1.get("family_source"), "selected_family": m1.get("selected_family"),
                   "design_name": m1.get("design_name"), "design_family": m1.get("design_family"),
-                  "family_design_match": m1.get("family_design_match"), "design_metadata": m1}
+                  "family_design_match": m1.get("family_design_match"), "design_metadata": m1,
+                  "progress": progress["initial"], "ack_tts": transcript["ack_tts"]["initial"]}
     print(f"Initial raw STT: {meta['v1']['stt']}", flush=True)
     it = meta["v1"]["interpretation"]
     print(f"해석: mode {it['mode']} · family {it['family']} · style_hint {it['style_hint']} · concept {it['concept']} · "
@@ -371,16 +399,19 @@ def run_round(k, out, app, viewer, rec):
     rec.stage = "intervention"
     rec.debug_dir, rec.events = os.path.join(rdir, "stt_intervention"), []
     t = time.monotonic()
-    env2 = main.run_intervention(d1, sc["current"], sc["differences"], text_answers=None, on_question=on_question("intervention"))
+    env2 = main.run_intervention(d1, sc["current"], sc["differences"], text_answers=None, on_question=on_question("intervention"),
+                                 on_progress=on_progress("intervention"))
     dt = time.monotonic() - t
     transcript["intervention"] = rec.events
+    transcript["ack_tts"]["intervention"] = ack_tts("intervention")
     _write_json(os.path.join(rdir, "v2.json"), {"envelope": env2, "current": sc["current"], "differences": sc["differences"], "v1": d1})
     m2 = env2.get("design_metadata") or {}; j = m2.get("judge") or {}; d2 = env2.get("design")
     meta["v2"] = {"status": env2["status"], "hri_result": env2["hri_result"], "error": env2["error"], "seconds": round(dt, 1),
                   "stt": [ev.get("stt_text") for ev in rec.events], "style_hint": m2.get("style_hint"),
                   "design_name": m2.get("design_name"), "design_family": m2.get("design_family"),
                   "verdict": j.get("verdict"), "chair_likeness": j.get("chair_likeness"), "richer_than_previous": j.get("richer_than_previous"),
-                  "regenerations": m2.get("regenerations"), "design_metadata": m2}
+                  "regenerations": m2.get("regenerations"), "design_metadata": m2,
+                  "progress": progress["intervention"], "ack_tts": transcript["ack_tts"]["intervention"]}
     if d2:
         preserved_multiset = contains_current(d2["blocks"], sc["current"])
         meta["v2"].update(shape=shape(d2["blocks"]), validator=validator.validate_design(d2), preserved_multiset=preserved_multiset,

@@ -86,3 +86,9 @@ C는 아래 D 코드·테스트를 수정하지 않았습니다. 2026-10-08 기�
 | # | 소유 | 파일:줄 | REQUIRED CHANGE (현재 → 필요) | AFFECTED INTERFACE | REASON |
 | --- | --- | --- | --- | --- | --- |
 | 40 | D | `app/c_text_connection.py:118~120` (`voice_call`의 initial 분기: D가 목표를 STT한 뒤 `create_initial_design(text=…)`) | LLM 모드에서 둘 중 하나를 택해야 함: (a) 첫 듣기를 C에 위임 — `create_initial_design(text=None, on_question=…)`로 부르면 C가 인사 TTS → `listen(mode="free", beep=True)` → 해석·되묻기 1회를 맡음(이 경우 D의 `STT_GOAL` 단계는 필요 없음), 또는 (b) 지금처럼 D가 듣되 사용자 **한 문장 전체**를 `text`로 넘기고(예: "사과 같은 의자를 만들고 싶어요"), 되묻기 답이 있으면 `preference_text`로 넘김 | C §4.1 `create_initial_design(text=None, should_stop=None, preference_text=None, on_question=None)` (시그니처 불변, LLM 모드에서 `text`의 의미가 "목표 문장" → "첫 자유 발화 전체") | LLM 모드에서 C는 더 이상 `parse_goal`("의자" 포함 여부)로 사물을 판정하지 않고 LLM 요청 해석으로 판정합니다(앉는 가구가 아니면 `UNSUPPORTED_OBJECT`). Mock 모드는 그대로 `parse_goal`이라 D 통합 테스트(offline)는 영향이 없습니다. D의 `listen()` 직접 호출은 기본 `mode="short"`(대기 8 s·끝 무음 1 s)라 긴 자유 발화가 중간 쉼에서 끊길 수 있으니, (b)를 택하면 `voice.listen(mode="free", beep=True)` 사용을 권장합니다 |
+
+## Stage 2 Wave 4c 진행 표시가 D에 주는 선택지 (2026-10-08 추가)
+
+| # | 소유 | 파일:줄 | REQUIRED CHANGE (현재 → 필요) | AFFECTED INTERFACE | REASON |
+| --- | --- | --- | --- | --- | --- |
+| 41 | D | `app/c_text_connection.py`(`create_initial_design`·`run_intervention` 호출부) | 필수 아님(선택, Stage 3 후보): `on_progress=callback`을 넘기면 C의 진행 단계(`{stage, message, at}`, 예: ACK 문장·"디자인을 생성하고 있어요.")를 HMI에 표시할 수 있음 | C §4.1·§4.2 `on_progress` (기본 `None`이면 지금과 동일) | 진행 이벤트는 envelope·Design에 넣지 않으므로 D가 콜백을 넘기지 않으면 아무 영향이 없습니다. 텍스트 모드 호출에서는 C가 음성을 내지 않습니다 |
