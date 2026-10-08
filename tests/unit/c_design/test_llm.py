@@ -506,11 +506,12 @@ class TestExpressiveRevisedPrompt:
         "layout, backrest, footprint and even the furniture family may change."
     )
 
-    def _revised_content(self, monkeypatch, intent=None, feedback=None):
+    def _revised_content(self, monkeypatch, feedback=None, min_blocks=None, style_hint=None):
         fake = _install(monkeypatch, [_body(json.dumps({"blocks": []}))])
         current = [{"brick_type": "2x3x1", "color": "blue", "x": 9, "y": 9, "layer": 1, "orientation_deg": 0}]
         differences = [{"expected": current[0], "actual": dict(current[0], y=10)}]
-        llm.generate_revised_design(SIMPLE_DESIGN, current, differences, intent=intent, feedback=feedback)
+        llm.generate_revised_design(SIMPLE_DESIGN, current, differences, feedback=feedback, min_blocks=min_blocks,
+                                    style_hint=style_hint)
         payload = json.loads(fake.calls[0]["request"].data)
         return next(m["content"] for m in payload["messages"] if m["role"] == "user")
 
@@ -557,23 +558,34 @@ class TestExpressiveRevisedPrompt:
         assert "Copy the Current blocks into the output first" in content
         assert "Previous adopted design (context only: what the user was making; not geometry to keep" in content
 
-    def test_intent_paragraph_only_with_intent(self, monkeypatch, with_fake_key):
-        without = self._revised_content(monkeypatch)
-        assert "DESIGN INTENT" not in without
-        assert without.startswith("The user chose REVISE. Design a complete seating-furniture piece around the blocks")
-        intent = {"design_family": "throne", "concept_name": "왕좌"}
-        with_intent = self._revised_content(monkeypatch, intent=intent)
-        assert with_intent.startswith("The user chose REVISE. Design a complete throne (왕좌) around the blocks already on the board.")
-        assert ("DESIGN INTENT (fixed before this design; realise it so that every planned feature is visible): "
-                + json.dumps(intent, ensure_ascii=False)) in with_intent
+    def test_head_has_no_intent_and_ends_with_style_hint_paragraph(self, monkeypatch, with_fake_key):
+        content = self._revised_content(monkeypatch, min_blocks=7, style_hint="팔걸이로 쓰려고")
+        assert "DESIGN INTENT" not in content
+        assert content.startswith("The user chose REVISE. Design a complete seating-furniture piece around the blocks "
+                                  "already on the board.\n")
+        assert content.endswith(
+            "Style hint from the person (follow it first): 팔걸이로 쓰려고\n"
+            "Choose the furniture family yourself; it may differ from the previous Design. The result must read as a chair "
+            "first (a clear seat, a readable backrest, an obvious sitting direction) and be richer and more complete than "
+            f"the previous Design (at least 7 blocks, at most {validator.MAX_BLOCKS}). Red may be used as a visible band and "
+            "1x2x1 for rails, slats, trims, wings or thin legs where natural.\n")
+        assert content.index(llm._REVISED_GUIDANCE) < content.index("Style hint from the person")
+
+    def test_style_hint_and_block_count_omitted_when_not_given(self, monkeypatch, with_fake_key):
+        content = self._revised_content(monkeypatch)
+        assert "Style hint from the person (follow it first): 없음\n" in content
+        assert "richer and more complete than the previous Design. Red may be used" in content
+        assert "at least" not in content.split("Style hint from the person", 1)[1]
 
     def test_feedback_only_when_given(self, monkeypatch, with_fake_key):
         assert "JUDGE FEEDBACK" not in self._revised_content(monkeypatch)
         feedback = llm.judge_feedback_text({"family_guess_without_name": "block sculpture", "silhouette_clarity": "ambiguous",
-                                            "feature_check": [{"planned": "crown", "status": "weakly visible"}], "awkward": "없음"})
+                                            "interpretation_status": "weakly visible", "awkward": "없음"})
         content = self._revised_content(monkeypatch, feedback=feedback)
         assert feedback in content and content.index(feedback) < content.index("Revised Design goal:")
-        assert "would call it 'block sculpture'" in feedback and '"weakly visible"' in feedback
+        assert "would call it 'block sculpture'" in feedback and "silhouette ambiguous" in feedback
+        assert "interpretation weakly visible" in feedback and "keep the same family)" in feedback
+        assert "intent" not in feedback and "Features not clearly visible" not in feedback
 
     def test_robot_and_plan_prohibition_kept(self):
         for phrase in ("robot commands", "ROS2 code", "Plan, Replan, Remaining, NextPart", "supply slot", "backend state"):
@@ -581,50 +593,58 @@ class TestExpressiveRevisedPrompt:
 
     def test_no_coordinates_in_fixed_revised_texts(self):
         import re
-        for text in (llm.SYSTEM_PROMPT_REVISED, llm._REVISED_GUIDANCE, llm.SYSTEM_PROMPT_INTENT, llm.SYSTEM_PROMPT_JUDGE):
+        for text in (llm.SYSTEM_PROMPT_REVISED, llm._REVISED_GUIDANCE, llm.SYSTEM_PROMPT_JUDGE):
             assert not re.search(r'"?\b[xy]"?\s*[:=]\s*\d', text)
             assert not re.search(r"\(\s*\d+\s*,\s*\d+\s*\)", text)
 
 
-class TestIntentJudgeDescribe:
+class TestJudgeDescribe:
     def _request(self, fake):
         payload = json.loads(fake.calls[0]["request"].data)
         system = next(m["content"] for m in payload["messages"] if m["role"] == "system")
         user = next(m["content"] for m in payload["messages"] if m["role"] == "user")
         return system, user
 
-    def test_intent_request(self, monkeypatch, with_fake_key):
-        intent = {"parent_family": "throne"}
-        fake = _install(monkeypatch, [_body(json.dumps(intent))])
-        result = llm.generate_design_intent(SIMPLE_DESIGN, SIMPLE_DESIGN["blocks"], [], recent_families=("lounge chair",))
-        assert result == intent  # returned as is; main checks INTENT_KEYS
-        system, user = self._request(fake)
-        assert system == llm.SYSTEM_PROMPT_INTENT
-        sent = json.loads(user.split("\n", 1)[1])
-        assert set(sent) == {"previous_design", "current_blocks", "difference", "minimum_blocks", "style_hint",
-                             "recent_families_to_avoid"}
-        assert sent["recent_families_to_avoid"] == ["lounge chair"]
-        assert sent["minimum_blocks"] == min(len(SIMPLE_DESIGN["blocks"]) + 6, validator.MAX_BLOCKS)
-        assert sent["style_hint"] == ""
-        for family in llm.FURNITURE_FAMILIES:
-            assert family in llm.SYSTEM_PROMPT_INTENT
-        assert f"layer{validator.MAX_LAYER}_feature" in llm.INTENT_KEYS and len(llm.INTENT_KEYS) == 12
-
-    def test_non_object_response_is_bad_response(self, monkeypatch, with_fake_key):
-        _install(monkeypatch, [_body("not json")])
-        assert llm.generate_design_intent(SIMPLE_DESIGN, [], [])["llm_error"]["kind"] == "bad_response"
-
     def test_judge_request_includes_added_and_removed_blocks(self, monkeypatch, with_fake_key):
         fake = _install(monkeypatch, [_body(json.dumps({"recognizable_family": True}))])
         new = {"design_version": 2, "blocks": [dict(SIMPLE_DESIGN["blocks"][0], x=4)]}
-        llm.judge_revised_design({"design_family": "throne"}, SIMPLE_DESIGN, new, [], [])
+        llm.judge_revised_design(SIMPLE_DESIGN, new, [], [])
         system, user = self._request(fake)
         assert system == llm.SYSTEM_PROMPT_JUDGE
         sent = json.loads(user.split("\n", 1)[1])
         assert sent["blocks_added"] == [new["blocks"][0]]
         assert sent["blocks_removed"] == SIMPLE_DESIGN["blocks"]
-        assert set(sent) == {"design_intent", "previous_design", "new_design", "current_blocks", "difference",
-                             "blocks_added", "blocks_removed"}
+        assert set(sent) == {"previous_design", "new_design", "current_blocks", "difference", "blocks_added", "blocks_removed"}
+
+    def test_judge_signature_has_no_intent(self):
+        import inspect
+        assert list(inspect.signature(llm.judge_revised_design).parameters) == [
+            "previous", "design", "current", "differences", "should_stop"]
+
+    def test_judge_uses_default_judge_model_not_design_model(self, monkeypatch, with_fake_key):
+        monkeypatch.setenv("OPENAI_MODEL", "gpt-6.1-sol")
+        monkeypatch.delenv("OPENAI_JUDGE_MODEL", raising=False)
+        fake = _install(monkeypatch, [_body(json.dumps({"recognizable_family": True}))] * 2)
+        llm.judge_revised_design(SIMPLE_DESIGN, SIMPLE_DESIGN, [], [])
+        llm.generate_revised_design(SIMPLE_DESIGN, SIMPLE_DESIGN["blocks"], [])
+        judge, revised = (json.loads(c["request"].data) for c in fake.calls)
+        assert (llm.JUDGE_MODEL_ENV, llm.DEFAULT_JUDGE_MODEL) == ("OPENAI_JUDGE_MODEL", "gpt-4.1-mini")
+        assert judge["model"] == "gpt-4.1-mini"
+        assert judge["temperature"] == 0 and judge["max_tokens"] == llm.MAX_TOKENS and "reasoning_effort" not in judge
+        assert revised["model"] == "gpt-6.1-sol"
+        assert fake.calls[0]["request"].headers["Authorization"] == fake.calls[1]["request"].headers["Authorization"]
+
+    def test_judge_model_env_override(self, monkeypatch, with_fake_key):
+        monkeypatch.setenv("OPENAI_JUDGE_MODEL", "gpt-6.1-sol")
+        fake = _install(monkeypatch, [_body(json.dumps({"recognizable_family": True}))])
+        llm.judge_revised_design(SIMPLE_DESIGN, SIMPLE_DESIGN, [], [])
+        payload = json.loads(fake.calls[0]["request"].data)
+        assert payload["model"] == "gpt-6.1-sol" and payload["reasoning_effort"] == llm.REASONING_EFFORT
+
+    def test_judge_prompt_has_no_intent_or_feature_check(self):
+        prompt = llm.SYSTEM_PROMPT_JUDGE
+        for old in ("intent", "INTENT", "feature_check", "planned_visible_features", "parent family"):
+            assert old not in prompt, old
 
     def test_describe_initial_uses_its_own_system_prompt(self, monkeypatch, with_fake_key):
         fake = _install(monkeypatch, [_body(json.dumps({"design_name": "의자"}))])
@@ -998,29 +1018,15 @@ class TestFamilyAwareInitial:
 
 
 class TestRicherRevised:
-    def test_intent_prompt_free_family_chair_first_richer(self):
-        prompt = llm.SYSTEM_PROMPT_INTENT
-        assert "Preserve the Current exactly. Treat the previous Design as context, not as geometry to preserve." in prompt
-        assert llm.CATALOG_TEXT in prompt
-        assert "a clear seat, a readable backrest and an obvious sitting direction" in prompt
-        assert "the previous block count + 6" in prompt and f"at most {validator.MAX_BLOCKS}" in prompt
-        assert "never on a lower layer under an already-placed block" in prompt
-        assert '"style_hint_used"' in prompt and '"target_blocks": integer' in prompt
-        assert llm.INTENT_KEYS[-2:] == ("style_hint_used", "target_blocks")
-
-    def test_intent_payload_carries_style_hint_and_minimum(self, monkeypatch, with_fake_key):
-        fake = _install(monkeypatch, [_body(json.dumps({"parent_family": "throne"}))])
-        llm.generate_design_intent(SIMPLE_DESIGN, SIMPLE_DESIGN["blocks"], [], style_hint="팔걸이로 쓰려고")
-        sent = json.loads(_sent(fake)[1].split("\n", 1)[1])
-        assert sent["style_hint"] == "팔걸이로 쓰려고"
-        assert sent["minimum_blocks"] == len(SIMPLE_DESIGN["blocks"]) + 6
-
     def test_judge_prompt_new_and_old_keys(self):
         prompt = llm.SYSTEM_PROMPT_JUDGE
         assert '"chair_likeness": "clear"|"weak"|"not_chair"' in prompt
         assert '"richer_than_previous": true/false' in prompt and '"richer_why": one Korean sentence' in prompt
-        for key in ("recognizable_family", "silhouette_clarity", "reads_as_seating", "explanation_required_to_understand",
-                    "family_confidence", "layer5_meaningful", "completeness_score", "human_story", "awkward"):
+        for key in ("design_name", "design_family", "family_guess_without_name", "family_confidence", "visible_features",
+                    "change_summary", "interpretation_status", "recognizable_family", "silhouette_clarity",
+                    "explanation_required_to_understand", "family_recognisable", "looks_designed_not_patched",
+                    "layer5_meaningful", "completeness_score", "human_story", "silhouette_tags", "chair_likeness",
+                    "richer_than_previous", "richer_why", "awkward", "reads_as_seating", "why_it_is_complete"):
             assert f'"{key}"' in prompt, key
 
     def test_revised_min_blocks_sentence_only_when_given(self, monkeypatch, with_fake_key):

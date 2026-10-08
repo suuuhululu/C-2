@@ -19,8 +19,10 @@
       모델(gpt-4o 등)은 temperature·max_tokens를 쓴다.
     - system prompt는 Initial(SYSTEM_PROMPT_INITIAL: 넓은 의미의 앉는 가구, 예시 JSON 없음)과
       Revised(SYSTEM_PROMPT_REVISED: EXPRESSIVE v4 — Current만 고정, 이전 Design은 맥락, family 변경 허용)로 나뉜다.
-    - Revised 보조 호출(2026-10-07): generate_design_intent(설계 의도), judge_revised_design(완성 설계 평가),
-      describe_initial_design(Initial 설명). 결과는 main이 design_metadata와 재생성(최대 1회) 판단에 쓴다.
+    - Revised는 설계 의도 단계 없이 generate_revised_design을 바로 부른다(2026-10-08, style_hint·family 자유·
+      chair-first·richer). 보조 호출: judge_revised_design(완성 설계 평가, 모델은 DEFAULT_JUDGE_MODEL·
+      JUDGE_MODEL_ENV), describe_initial_design(Initial 설명). 결과는 main이 design_metadata와 재생성(최대 1회)
+      판단에 쓴다.
 
 하지 않는 것:
     - 설계 검증·금지 키 검사(validator 담당), 재생성 정책·버전(designer 담당)
@@ -40,13 +42,13 @@ from collections import Counter
 import urllib.error
 import urllib.request
 
-from app.c_design import designer, validator
+from app.c_design import validator
 
 API_URL = "https://api.openai.com/v1/chat/completions"
 DEFAULT_MODEL = "gpt-4o-mini"
 MAX_TOKENS = 2000
-# 2026-10-07 gpt-6.1-sol 실측(EXPRESSIVE v4): intent 20~55 s, Revised 11~73 s, judge 15~26 s. 30 s에서는 intent·Revised가
-# 자주 timeout 되어 의도 없이 생성되므로 120 s로 둔다(D는 C 호출을 비동기로 기다린다).
+# 2026-10-07 gpt-6.1-sol 실측(EXPRESSIVE v4): Revised 11~73 s, judge 15~26 s. 30 s에서는 Revised가 자주 timeout 되므로
+# 120 s로 둔다(D는 C 호출을 비동기로 기다린다).
 TIMEOUT_SECONDS = 120
 RETRY_BACKOFF = (1, 2, 4)  # 일시적 provider 실패 재시도 간격(초), 최대 3회
 # Revised 후보가 거부된 뒤 재생성에서만 쓰는 temperature. 첫 시도와 Initial은 0이며,
@@ -55,6 +57,10 @@ RETRY_BACKOFF = (1, 2, 4)  # 일시적 provider 실패 재시도 간격(초), �
 REVISED_RETRY_TEMPERATURE = 0.3
 # LLM 전용 key 변수. STT(OPENAI_API_KEY)·TTS(OPENAI_TTS_API_KEY)와 분리하며 서로 대체하지 않는다.
 LLM_KEY_ENV = "OPENAI_LLM_API_KEY"
+# Revised judge 전용 모델(2026-10-08 Judge Blind Test 후 사용자 결정, 실물 테스트 후 재검토). gpt-6.1-sol 대비 판정
+# 일치율은 조금 낮지만 latency가 약 15 s 짧다. Sol로 되돌리려면 JUDGE_MODEL_ENV를 설정한다. key는 LLM_KEY_ENV 그대로.
+JUDGE_MODEL_ENV = "OPENAI_JUDGE_MODEL"
+DEFAULT_JUDGE_MODEL = "gpt-4.1-mini"
 # reasoning 모델은 max_tokens·temperature(0)를 받지 않는다(2026-10-06 gpt-6.1-sol 실측: max_tokens는 400
 # unsupported_parameter, temperature 0은 400 unsupported_value). reasoning 토큰도 같은 예산을 쓰므로
 # max_completion_tokens를 넉넉히 둔다(실측 completion 1,067~1,237 중 reasoning 475~609).
@@ -117,7 +123,7 @@ _PROCEDURE = """Work in this order (silently; output only the JSON): 1) pick a s
 
 # Initial family 카탈로그(Stage 2 Wave 2): 앉는 가구 20종과 각 family를 한눈에 알아보게 하는 defining visible features.
 # 키는 영어 family 이름, 값은 영어 특징 문구(크기 포함, 좌표 없음). Initial에서는 choose_initial_family가 고른 family와 그
-# 특징을 사용자 메시지에 넣고, Revised intent는 이 카탈로그에서 family를 자유롭게 고른다. 출처: Fable scratch 초안
+# 특징을 사용자 메시지에 넣는다. Revised는 family를 자유롭게 고른다. 출처: Fable scratch 초안
 # (family_first_3round.py CATALOG)을 블록 규칙(1x2x1·2x2x1·2x3x1, red, 5층, 40블록, 2 stud 지지)에 맞게 옮김.
 FAMILY_CATALOG = {
     "dining chair": ("compact seat (about 6x6)", "backrest one row deep, 1-2 layers above the seat",
@@ -199,59 +205,21 @@ SYSTEM_PROMPT_REVISED = (
 # 하위 호환 이름: 기존 코드·테스트가 쓰는 SYSTEM_PROMPT는 Revised system prompt와 같다.
 SYSTEM_PROMPT = SYSTEM_PROMPT_REVISED
 
-# Revised 직전에 정하는 설계 의도(intent, Stage 2 Wave 2 free-family): Current는 출발 조건이자 영감 단서, 이전 Design은
-# 참고(family·블록 수)일 뿐이다. 문자 그대로의 해석도 최소 수정도 아니며, 이전보다 풍부하고 완성도 높은 "의자처럼 읽히는"
-# 설계(좌석 + 읽히는 등받이 + 앉는 방향)를 카탈로그에서 자유롭게 고른 family로 계획한다. 블록 수 목표 ≥ 이전 + 6(상한 40).
-# style_hint(사람이 말한 바람)가 있으면 최우선. 좌표는 쓰지 않는다.
-# 하위 호환 이름: FURNITURE_FAMILIES는 이제 카탈로그 키다.
+# 하위 호환 이름: FURNITURE_FAMILIES는 카탈로그 키다.
 FURNITURE_FAMILIES = tuple(FAMILY_CATALOG)
-SYSTEM_PROMPT_INTENT = (
-    "You decide the DESIGN INTENT for the Revised Design of a LEGO seating piece after a person placed a block differently "
-    "from the Design. Inputs: the previous Design (reference only: its family and block count), the Current blocks "
-    "(physically on the board), the difference, the minimum block count for the Revised Design, an optional style_hint "
-    "(what the person said they wanted; follow it first), and families recently used (prefer others). "
-    "Preserve the Current exactly. Treat the previous Design as context, not as geometry to preserve. "
-    "The goal is neither a literal reading of the placement nor a minimal fix: use the Current as the starting condition "
-    "and as a clue for inspiration, and plan a richer, more complete piece than the previous Design that reads at once as "
-    "a chair: a clear seat, a readable backrest and an obvious sitting direction. Prefer families with a backrest; choose a "
-    "backless family (stool, bar-stool-like seat, ottoman, bench) only when the style_hint asks for it. "
-    "Choose the family freely from this catalog (key: defining visible features):\n" + CATALOG_TEXT +
-    f"Plan target_blocks of at least the given minimum (the previous block count + {designer.RICHNESS_MIN_DELTA}) and at "
-    f"most {validator.MAX_BLOCKS}; the extra blocks must add meaningful chair structure (back, arms, base, rails, crown), "
-    f"never filler. Use layer {validator.MAX_LAYER} as a real feature when the family has an upper part. Every planned "
-    "feature must be large enough to see: at least two blocks or a full row/column, symmetric or deliberately balanced. "
-    "Use red as a visible band (top rail, seat edge, armrest caps, crown) rather than one stray block, and 1x2x1 for "
-    "slats, rails, trims, wings and thin legs in both orientations, always with both studs supported. "
-    "Assembly-order rule: a new block can only be placed on top of or beside what is already on the board, never on a "
-    "lower layer under an already-placed block. "
-    "Output ONE JSON object: {\"parent_family\": one key from the catalog, \"variation\": short English phrase or 'none', "
-    "\"design_family\": parent_family (+ ' with ' + variation), \"recognition_cue\": one Korean sentence naming the 2-3 large "
-    "shapes that make the family obvious without any label, \"concept_name\": Korean noun phrase, \"human_reading\": one "
-    "Korean sentence in this voice: '놓인 블록의 위치를 …로 해석해, … 형태의 …를 상상했고, 그래서 …로 발전시켰다', "
-    "\"misplaced_block_meaning\": one Korean sentence (which large visible element it starts), "
-    "\"planned_visible_features\": [4-6 Korean phrases, each a geometric feature with size: seat W×D, back height in layers "
-    f"and width, armrest length, plinth, top ornament...], \"layer{validator.MAX_LAYER}_feature\": one Korean sentence, "
-    "\"geometry_plan\": one English paragraph telling the designer where each part goes RELATIVE to the Current blocks, how "
-    "wide and how many layers high, \"style_hint_used\": one Korean sentence saying how the style_hint shaped the plan, or "
-    "'없음', \"target_blocks\": integer}. No coordinates. JSON only."
-)
-# intent 응답에 있어야 하는 키(main이 확인한다; 하나라도 없으면 intent 없이 진행).
-INTENT_KEYS = ("parent_family", "variation", "design_family", "concept_name", "recognition_cue", "human_reading",
-               "misplaced_block_meaning", "planned_visible_features", f"layer{validator.MAX_LAYER}_feature", "geometry_plan",
-               "style_hint_used", "target_blocks")
 
-# 완성된 Revised Design을 좌표만으로 평가한다(이름이 특징을 만들지 않는다). 결과는 design_metadata와
-# 재생성 여부(main) 판단에 쓴다.
+# 완성된 Revised Design을 좌표만으로 평가한다(이름이 특징을 만들지 않는다). 설계 의도 없이 설계 자체와
+# previous·Current·difference만 본다. 결과는 design_metadata와 재생성 여부(main) 판단에 쓴다.
 SYSTEM_PROMPT_JUDGE = (
-    "You judge a revised LEGO seating design from coordinates only, against a DESIGN INTENT fixed before the design. Inputs: intent, "
-    "previous design, new design, Current blocks (fixed), the difference, blocks added/removed vs previous. Output ONE JSON object: "
+    "You judge a revised LEGO seating design from coordinates only, on the design itself and against the previous design, the "
+    "Current blocks and the difference. Inputs: previous design, new design, Current blocks (fixed), the difference, blocks added/removed vs previous. Output ONE JSON object: "
     "{\"design_family\": the family you actually see, \"design_name\": Korean noun phrase, \"visible_features\": [Korean phrases, ONLY "
     "geometric facts a person sees at once: e.g. '좌석 8×6', '등받이 3층 높이(5층까지)', '양쪽 날개', '오른쪽 좌석 높이 플랫폼 3×4'; never a function "
     "that is not visible], \"why_it_is_complete\": one Korean sentence, \"change_summary\": [Korean phrases: how the structure was redesigned "
-    "after the Current], \"feature_check\": [{\"planned\": each planned_visible_features item, \"status\": \"clearly visible\"|\"weakly visible\"|\"mismatch\"}], "
-    "\"interpretation_status\": overall \"clearly visible\"|\"weakly visible\"|\"mismatch\", \"layer5_meaningful\": true/false, \"layer5_note\": one Korean "
-    "sentence (what the layer-5 blocks form), \"reads_as_seating\": true/false, \"family_guess_without_name\": what a person who has NOT read the design name or intent would call this "
-    "piece (English, e.g. 'high-back chair', 'bench', 'block sculpture'), \"recognizable_family\": true/false (that guess matches the intended parent family), "
+    "after the Current], "
+    "\"interpretation_status\": \"clearly visible\"|\"weakly visible\"|\"mismatch\" (how clearly your design_family and visible_features show in the blocks), \"layer5_meaningful\": true/false, \"layer5_note\": one Korean "
+    "sentence (what the layer-5 blocks form), \"reads_as_seating\": true/false, \"family_guess_without_name\": what a person who has NOT read the design name would call this "
+    "piece (English, e.g. 'high-back chair', 'bench', 'block sculpture'), \"recognizable_family\": true/false (that guess is a specific furniture family matching your design_family), "
     "\"family_confidence\": \"clear\"|\"weak\"|\"mismatch\", \"silhouette_clarity\": \"clear\"|\"ambiguous\" (clear = seat, support and the family's defining parts "
     "are large and unmistakable; ambiguous = one-sided stubs or a top that only makes sense with the name), \"explanation_required_to_understand\": true/false, \"family_recognisable\": true/false, \"looks_designed_not_patched\": "
     "true/false, \"completeness_score\": 1-5, \"human_story\": {\"placed_differently\": Korean sentence, \"interpretation\": Korean sentence, "
@@ -356,43 +324,38 @@ def _initial_user_message(object_type, reasons, family=None, style_hint=None):
     )
 
 
-def _revised_user_message(design, current, differences, reasons, intent=None, feedback=None, min_blocks=None):
-    """intent가 없으면 DESIGN INTENT 문단을 빼고, feedback(judge 피드백 문단)은 재생성 때만 넣는다.
+def _revised_user_message(design, current, differences, reasons, feedback=None, min_blocks=None, style_hint=None):
+    """feedback(judge 피드백 문단)은 재생성 때만 넣는다. 끝에 style_hint·family 자유·chair-first·richer 문단을 넣는다.
 
-    min_blocks가 있으면 Revised Design 최소 블록 수 문장을 넣는다(richness, designer.revised_min_blocks).
+    min_blocks가 있으면 최소 블록 수 문장을 넣는다(richness, designer.revised_min_blocks); 없으면 블록 수 문장을 뺀다.
     """
-    if intent is not None:
-        head = (f"The user chose REVISE. Design a complete {intent.get('design_family')} ({intent.get('concept_name')}) "
-                "around the blocks already on the board.\n")
-    else:
-        head = "The user chose REVISE. Design a complete seating-furniture piece around the blocks already on the board.\n"
-    intent_text = ("" if intent is None else
-                   "DESIGN INTENT (fixed before this design; realise it so that every planned feature is visible): "
-                   f"{json.dumps(intent, ensure_ascii=False)}\n")
+    count = ("" if min_blocks is None else f" (at least {min_blocks} blocks, at most {validator.MAX_BLOCKS})")
     return (
-        head
-        + "Latest Current (actually placed blocks). Every Current block must appear in the final Revised Design with brick_type, color, x, y, "
+        "The user chose REVISE. Design a complete seating-furniture piece around the blocks already on the board.\n"
+        "Latest Current (actually placed blocks). Every Current block must appear in the final Revised Design with brick_type, color, x, y, "
         "layer and orientation_deg unchanged: no moving, deleting, altering or omitting. Copy the Current blocks into the output first, then design the rest: "
         f"{json.dumps(current, ensure_ascii=False)}\n"
         f"Differences (expected vs actual): {json.dumps(differences, ensure_ascii=False)}\n"
-        + intent_text
-        + "Previous adopted design (context only: what the user was making; not geometry to keep, its structure and family may change): "
+        "Previous adopted design (context only: what the user was making; not geometry to keep, its structure and family may change): "
         f"{json.dumps(design, ensure_ascii=False)}\n"
         f"Previous candidate was rejected for: {_reasons_text(reasons)}\n"
         + ("" if min_blocks is None else
            f"The Revised Design must contain at least {min_blocks} blocks (the previous Design had {len(design['blocks'])}); "
            "use the extra blocks for meaningful chair structure, never filler.\n")
         + (feedback or "") + _REVISED_GUIDANCE
+        + f"Style hint from the person (follow it first): {style_hint or '없음'}\n"
+        "Choose the furniture family yourself; it may differ from the previous Design. The result must read as a chair first "
+        "(a clear seat, a readable backrest, an obvious sitting direction) and be richer and more complete than the previous "
+        f"Design{count}. Red may be used as a visible band and 1x2x1 for rails, slats, trims, wings or thin legs where natural.\n"
     )
 
 
 def judge_feedback_text(judge):
-    """judge 결과를 재생성 1회에 넣을 피드백 문단으로 만든다(같은 family·intent 유지)."""
-    fails = [f for f in (judge.get("feature_check") or []) if isinstance(f, dict) and f.get("status") != "clearly visible"]
-    return ("JUDGE FEEDBACK on your previous design (fix all of it; keep the same family and intent): a person who had not read the name "
+    """judge 결과를 재생성 1회에 넣을 피드백 문단으로 만든다(같은 family 유지)."""
+    return ("JUDGE FEEDBACK on your previous design (fix all of it; keep the same family): a person who had not read the name "
             f"would call it '{judge.get('family_guess_without_name')}' (family_confidence {judge.get('family_confidence')}, silhouette {judge.get('silhouette_clarity')}, "
-            f"explanation_required {judge.get('explanation_required_to_understand')}). Features not clearly visible: {json.dumps(fails, ensure_ascii=False)}. "
-            f"Awkward: {judge.get('awkward')}. Make the parent family's defining parts larger and unmistakable, remove one-sided stubs, keep every Current block.\n")
+            f"explanation_required {judge.get('explanation_required_to_understand')}, interpretation {judge.get('interpretation_status')}). "
+            f"Awkward: {judge.get('awkward')}. Make the family's defining parts larger and unmistakable, remove one-sided stubs, keep every Current block.\n")
 
 
 def _parse_content(text):
@@ -450,7 +413,8 @@ def _payload(model, messages, temperature):
     }
 
 
-def _call(user_message, should_stop, temperature=0, system_prompt=None):
+def _call(user_message, should_stop, temperature=0, system_prompt=None, model=None):
+    """model이 None이면 OPENAI_MODEL 또는 DEFAULT_MODEL(judge만 따로 넘긴다)."""
     api_key = os.environ.get(LLM_KEY_ENV)
     if not api_key:
         return _error("missing_key", f"{LLM_KEY_ENV} is not set")
@@ -458,7 +422,7 @@ def _call(user_message, should_stop, temperature=0, system_prompt=None):
         {"role": "system", "content": SYSTEM_PROMPT_REVISED if system_prompt is None else system_prompt},
         {"role": "user", "content": user_message},
     ]
-    payload = _payload(os.environ.get("OPENAI_MODEL") or DEFAULT_MODEL, messages, temperature)
+    payload = _payload(model or os.environ.get("OPENAI_MODEL") or DEFAULT_MODEL, messages, temperature)
 
     last_error = None
     for wait in (0,) + RETRY_BACKOFF:
@@ -513,33 +477,24 @@ def generate_initial_design(object_type, reasons=None, should_stop=None, family=
                  system_prompt=SYSTEM_PROMPT_INITIAL)
 
 
-def generate_revised_design(design, current, differences, reasons=None, should_stop=None, intent=None, feedback=None,
-                            min_blocks=None):
-    """Revised Design 후보. Current만 보존하고 나머지는 intent에 맞춰 재설계한다(검증은 validator)."""
+def generate_revised_design(design, current, differences, reasons=None, should_stop=None, feedback=None, min_blocks=None,
+                            style_hint=None):
+    """Revised Design 후보. Current만 보존하고 나머지는 family를 자유롭게 골라 재설계한다(검증은 validator)."""
     # temperature 0에서는 거부 사유를 받아도 같은 후보가 반복돼 재생성에만 다양성을 준다.
     temperature = REVISED_RETRY_TEMPERATURE if reasons else 0
     return _call(
-        _revised_user_message(design, current, differences, reasons, intent=intent, feedback=feedback,
-                              min_blocks=min_blocks), should_stop,
+        _revised_user_message(design, current, differences, reasons, feedback=feedback, min_blocks=min_blocks,
+                              style_hint=style_hint), should_stop,
         temperature, system_prompt=SYSTEM_PROMPT_REVISED,
     )
 
 
-def _json_call(system_prompt, user_message, should_stop):
+def _json_call(system_prompt, user_message, should_stop, model=None):
     """JSON 객체 응답만 받는다. 객체가 아니면 bad_response llm_error."""
-    result = _call(user_message, should_stop, system_prompt=system_prompt)
+    result = _call(user_message, should_stop, system_prompt=system_prompt, model=model)
     if isinstance(result, dict):
         return result
     return _error("bad_response", "response is not a JSON object")
-
-
-def generate_design_intent(design, current, differences, recent_families=(), should_stop=None, style_hint=None):
-    """Revised 직전의 설계 의도(dict) 또는 llm_error. 키 확인(INTENT_KEYS)은 main이 한다."""
-    payload = {"previous_design": design, "current_blocks": current, "difference": differences,
-               "minimum_blocks": designer.revised_min_blocks(design), "style_hint": style_hint or "",
-               "recent_families_to_avoid": list(recent_families)}
-    return _json_call(SYSTEM_PROMPT_INTENT, "Decide the design intent for this Revised Design.\n"
-                      + json.dumps(payload, ensure_ascii=False), should_stop)
 
 
 def interpret_initial_preference(text, should_stop=None):
@@ -563,12 +518,13 @@ def _block_delta(previous, design):
             [dict(zip(validator.BLOCK_FIELDS, k)) for k in sorted((before - after).elements())])
 
 
-def judge_revised_design(intent, previous, design, current, differences, should_stop=None):
-    """완성된 Revised Design 평가(dict) 또는 llm_error. 키 확인은 main이 한다."""
+def judge_revised_design(previous, design, current, differences, should_stop=None):
+    """완성된 Revised Design 평가(dict) 또는 llm_error. 키 확인은 main이 한다. 모델은 JUDGE_MODEL_ENV 또는 DEFAULT_JUDGE_MODEL."""
     added, removed = _block_delta(previous, design)
-    payload = {"design_intent": intent, "previous_design": previous, "new_design": design, "current_blocks": current,
+    payload = {"previous_design": previous, "new_design": design, "current_blocks": current,
                "difference": differences, "blocks_added": added, "blocks_removed": removed}
-    return _json_call(SYSTEM_PROMPT_JUDGE, "Judge this revised design.\n" + json.dumps(payload, ensure_ascii=False), should_stop)
+    return _json_call(SYSTEM_PROMPT_JUDGE, "Judge this revised design.\n" + json.dumps(payload, ensure_ascii=False), should_stop,
+                      model=os.environ.get(JUDGE_MODEL_ENV) or DEFAULT_JUDGE_MODEL)
 
 
 def describe_initial_design(design, should_stop=None, family=None):
