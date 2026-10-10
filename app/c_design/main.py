@@ -668,7 +668,7 @@ def _intervention(design, current, differences, text_answers, on_question, shoul
 
 
 REVIEW_KINDS = ("initial", "revised")
-REVIEW_SCOPES = ("patch", "redesign", "concept_change")  # MODIFY 재생성 방식(내부 값, metadata.review.scope에만 기록)
+REVIEW_SCOPES = llm.REVIEW_SCOPES  # MODIFY 재생성 방식(내부 값, metadata.review.scope에만 기록; 값은 llm이 정의)
 
 
 def review_design_candidate(candidate, *, kind, design_metadata=None, previous_design=None, current=None, differences=None,
