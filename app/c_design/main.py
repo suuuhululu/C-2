@@ -282,12 +282,15 @@ def _family_choice(request, error):
             "concept": style_hint if mode == "CREATIVE" else None, "error": error}
 
 
-def _revised_builder(approved, current, differences, make_generate, min_blocks, should_stop):
-    """approved(Revised 버전 기준 Design)·Current를 보존하는 Revised 후보 생성 함수 build(max_attempts, feedback=None)."""
+def _revised_builder(approved, current, differences, make_generate, min_blocks, should_stop, differ_from=None):
+    """approved(Revised 버전 기준 Design)·Current를 보존하는 Revised 후보 생성 함수 build(max_attempts, feedback=None).
+
+    differ_from은 검토 MODIFY 재생성의 직전 후보(같은 블록이면 designer가 탈락시켜 다시 만든다).
+    """
     def build(max_attempts, feedback=None):
         return designer.build_revised_design(
             approved, current, differences, generate=make_generate(feedback), max_attempts=max_attempts,
-            delay=designer.RETRY_DELAY, should_stop=should_stop, min_blocks=min_blocks,
+            delay=designer.RETRY_DELAY, should_stop=should_stop, min_blocks=min_blocks, differ_from=differ_from,
         )
     return build
 
@@ -791,7 +794,8 @@ def _review(candidate, kind, design_metadata, previous_design, current, differen
                                                        previous_candidate=candidate, scope=scope)
                 return generate
 
-            build = _revised_builder(previous_design, current, differences, make_generate, min_blocks, should_stop)
+            build = _revised_builder(previous_design, current, differences, make_generate, min_blocks, should_stop,
+                                     differ_from=candidate)
             progress("GENERATING_REVISED")
             envelope = _finish_revised(build(designer.MAX_ATTEMPTS), approved=previous_design, current=current,
                                        differences=differences, build=build, use_llm=use_llm, should_stop=should_stop,
@@ -815,8 +819,9 @@ def _review(candidate, kind, design_metadata, previous_design, current, differen
                                                    style_hint=hint, concept=concept, previous_candidate=candidate,
                                                    scope=scope)
             progress("GENERATING")
+            # 직전 후보와 같은 블록은 designer가 탈락시킨다(요청한 변경이 반영된 새 후보만 돌려준다).
             result = designer.build_initial_design("CHAIR", generate=generate, delay=designer.RETRY_DELAY,
-                                                   should_stop=should_stop)
+                                                   should_stop=should_stop, differ_from=candidate)
             if result["design"] is None:
                 return _from_designer(result, dialogue.MODIFY, questions)
             progress("VALIDATING")

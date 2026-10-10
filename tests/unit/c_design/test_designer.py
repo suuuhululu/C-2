@@ -812,3 +812,57 @@ def test_min_blocks_none_does_not_check_richness():
     result = designer.build_revised_design(design, [dict(leg)], [{"expected": seat, "actual": seat}], generate=gen,
                                            max_attempts=1, delay=0)
     assert result["design"] is not None and result["attempts"] == 1 and len(result["design"]["blocks"]) == 2
+
+
+def test_initial_differ_from_rejects_the_same_blocks_then_accepts_a_changed_candidate():
+    previous = designer.build_initial_design("CHAIR", delay=0)["design"]
+    seen = []
+
+    def gen(object_type, reasons):
+        seen.append(list(reasons))
+        blocks = [dict(b) for b in previous["blocks"]]
+        if len(seen) > 1:
+            blocks[0]["color"] = "blue" if blocks[0]["color"] == "yellow" else "yellow"
+        return {"blocks": blocks}
+
+    result = designer.build_initial_design("CHAIR", generate=gen, max_attempts=3, delay=0, differ_from=previous)
+    assert result["design"] is not None and result["attempts"] == 2
+    assert result["design"]["blocks"] != previous["blocks"] and result["design"]["design_version"] == 1
+    assert [r["rule"] for r in seen[1]] == ["unchanged_candidate"]
+
+
+def test_initial_differ_from_until_the_limit_fails_with_the_reason():
+    previous = designer.build_initial_design("CHAIR", delay=0)["design"]
+    result = designer.build_initial_design("CHAIR", generate=lambda o, r: {"blocks": [dict(b) for b in previous["blocks"]]},
+                                           max_attempts=2, delay=0, differ_from=previous)
+    assert result["design"] is None and result["attempts"] == 2
+    assert [r["rule"] for r in result["reasons"]] == ["unchanged_candidate"]
+
+
+def test_revised_differ_from_rejects_the_previous_revised_candidate():
+    design = _tiny_chair_design()
+    leg, seat = design["blocks"]
+    current = [dict(leg)]
+    differences = [{"expected": seat, "actual": seat}]
+    previous = {"design_version": 2, "blocks": _rich_tiny_chair_blocks()}
+    seen = []
+
+    def gen(design_in, current_in, differences_in, reasons):
+        seen.append(list(reasons))
+        blocks = [dict(b) for b in previous["blocks"]]
+        if len(seen) > 1:
+            blocks[-1]["color"] = "blue" if blocks[-1]["color"] == "yellow" else "yellow"
+        return {"blocks": blocks}
+
+    result = designer.build_revised_design(design, current, differences, generate=gen, max_attempts=3, delay=0,
+                                           differ_from=previous)
+    assert result["design"] is not None and result["attempts"] == 2 and result["design"]["design_version"] == 2
+    assert [r["rule"] for r in seen[1]] == ["unchanged_candidate"]
+    assert validator.validate_revised({"blocks": result["design"]["blocks"]}, current) == []
+
+
+def test_differ_from_none_keeps_the_old_behaviour():
+    previous = designer.build_initial_design("CHAIR", delay=0)["design"]
+    result = designer.build_initial_design("CHAIR", generate=lambda o, r: {"blocks": [dict(b) for b in previous["blocks"]]},
+                                           max_attempts=1, delay=0)
+    assert result["design"] == previous

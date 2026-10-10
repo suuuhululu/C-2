@@ -286,7 +286,11 @@ class FakeDCaller:
                 return False
             new = envelope["design"]
             if new == design:
-                _log("[CALLER] MODIFY returned the same candidate (Mock: 재생성 없음, Stage 3 Wave 2 동작)")
+                if os.environ.get("C_DESIGN_USE_LLM") == "1":
+                    _log("[CALLER] WARNING: MODIFY returned the same candidate in LLM mode (designer는 같은 블록을 "
+                         "unchanged_candidate로 탈락시켜야 한다)")
+                else:
+                    _log("[CALLER] MODIFY returned the same candidate (Mock: 재생성 없음, Stage 3 Wave 2 동작)")
             else:
                 _log(f"[CALLER] MODIFY returned a NEW candidate v{new['design_version']} (not approved)")
             # 이전 response의 design_metadata를 그대로 다음 review에 넘긴다(review.round가 이어진다).

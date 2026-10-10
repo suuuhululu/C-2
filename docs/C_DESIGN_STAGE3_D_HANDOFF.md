@@ -60,7 +60,7 @@ review_design_candidate(candidate, *, kind, design_metadata=None, previous_desig
 | 결과 | C | D |
 |---|---|---|
 | `APPROVE` | `status OK`, `design` = 입력 후보 그대로 | 그 후보를 **Approved Design으로 채택** → A Plan 요청 가능. 채택은 D 몫이며 Design에 승인 표시는 없습니다 |
-| `MODIFY` | (LLM 모드) ack 뒤 **새 Candidate**를 만들어 `design`에 담아 반환(Initial 후보는 version 1, Revised 후보는 Approved + 1, Current 보존). `design_metadata.review.round`가 1 늘어남 | 새 Candidate로 Preview 갱신 → `review_design_candidate`를 **다시 호출**합니다. 이때 이번 response의 `design_metadata`를 그대로 넘기면 round가 이어집니다. (Mock 모드는 후보 그대로) |
+| `MODIFY` | (LLM 모드) ack 뒤 **새 Candidate**를 만들어 `design`에 담아 반환(Initial 후보는 version 1, Revised 후보는 Approved + 1, Current 보존). 직전 후보와 블록이 같은 생성 결과는 C가 탈락시키고 다시 만들므로(CONTRACT §8.14 unchanged_candidate) 돌아온 후보는 입력 후보와 다릅니다. `design_metadata.review.round`가 1 늘어남 | 새 Candidate로 Preview 갱신 → `review_design_candidate`를 **다시 호출**합니다. 이때 이번 response의 `design_metadata`를 그대로 넘기면 round가 이어집니다. (Mock 모드는 후보 그대로) |
 | `UNCLEAR` | `status OK`, `design` = 입력 후보 | 보류하거나 다시 검토 호출 |
 | `CANCEL` | `status CANCELLED`, `hri_result "CANCEL"`, `error.code USER_CANCEL`, `design` = 입력 후보 | 작업 중단 |
 | 생성 실패 | `FAILED`/`DESIGN_GENERATION_FAILED`(또는 `LLM_CALL_FAILED`), `hri_result "MODIFY"`, design null | 이전 후보로 다시 검토하거나 보류 |

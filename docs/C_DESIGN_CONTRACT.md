@@ -515,6 +515,7 @@ Preview 검토(§4.4)가 MODIFY이면 C가 새 **Candidate** Design을 만들어
 - **design_version**: Initial 후보는 항상 1(`designer.build_initial_design`가 발급). Revised 후보는 Approved + 1 고정(`designer.build_revised_design(approved, …)`가 approved 기준으로 발급)이며 후보 반복으로 증가하지 않습니다. 버전 값은 LLM이 정하지 않습니다(§8.2).
 - **round**: 후보 반복 횟수는 `design_metadata.review.round`입니다. 입력 metadata의 `review.round`(없으면 0)에 MODIFY 재생성 때만 +1, APPROVE·UNCLEAR·CANCEL은 입력 값을 유지합니다(§6.1).
 - 직전 후보 문단은 사용자 메시지에만 더하며 Initial·Revised system prompt와 설계 철학(§8.12·§8.13)은 바꾸지 않습니다. 재생성 후보도 §9.1 hard constraint(재고 조합 포함)를 그대로 통과해야 합니다.
+- **unchanged_candidate (Stage 3 Wave 3, 2026-10-11)**: `designer.build_initial_design(..., differ_from=None)`·`build_revised_design(..., differ_from=None)`에 직전 후보를 주면 validator를 통과했어도 블록 multiset이 직전 후보와 같은 후보는 `{"rule": "unchanged_candidate", "blocks": [], "message": "candidate has the same blocks as the previous candidate; apply the requested change visibly"}`로 탈락시키고 같은 재생성 loop(§8.10, 최대 `MAX_ATTEMPTS`)이 사유를 생성기에 넘겨 다시 만듭니다. `review_design_candidate`의 MODIFY 재생성만 `differ_from=candidate`를 넘기며 `create_initial_design`·`run_intervention`은 None(기존 동작)입니다. 근거: Wave 3 fake-voice smoke에서 gpt-6.1-sol이 patch "등받이를 더 높게"에 직전 후보와 같은 37블록을 돌려준 사례. 끝까지 같으면 `FAILED`/`DESIGN_GENERATION_FAILED`(hri_result MODIFY)입니다.
 
 ## 9. 검증 책임
 

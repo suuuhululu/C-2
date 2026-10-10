@@ -1107,6 +1107,17 @@ def candidate(monkeypatch):
     return main.create_initial_design(text=GOAL_TEXT)["design"]
 
 
+def _recolored(candidate, keep=()):
+    """Current(keep)에 없는 블록 하나의 색을 yellow↔blue로 바꾼 후보(재고 조합 유지, validator 통과)."""
+    kept = {tuple(b[f] for f in validator.BLOCK_FIELDS) for b in keep}
+    blocks = [dict(b) for b in candidate["blocks"]]
+    for block in blocks:
+        if tuple(block[f] for f in validator.BLOCK_FIELDS) not in kept and block["color"] in ("yellow", "blue"):
+            block["color"] = "blue" if block["color"] == "yellow" else "yellow"
+            break
+    return dict(candidate, blocks=blocks)
+
+
 @pytest.fixture
 def review_llm(monkeypatch, candidate):
     """LLM 모드 검토: 해석·Initial/Revised 생성·설명·judge를 모두 fake로 바꾸고 인자를 기록한다."""
@@ -1126,13 +1137,14 @@ def review_llm(monkeypatch, candidate):
                      previous_candidate=None, scope=None):
         calls["initial"].append({"family": family, "style_hint": style_hint, "concept": concept,
                                  "previous_candidate": previous_candidate, "scope": scope})
-        return designer.mock_initial_candidate(object_type)
+        # 재생성 후보는 직전 후보와 달라야 한다(designer의 unchanged_candidate 탈락): 색만 바꾼 Mock 후보를 돌려준다.
+        return _recolored(designer.mock_initial_candidate(object_type))
 
     def fake_revised(design, current, differences, reasons=None, should_stop=None, feedback=None, min_blocks=None,
                      style_hint=None, previous_candidate=None, scope=None):
         calls["revised"].append({"approved": design, "style_hint": style_hint, "previous_candidate": previous_candidate,
                                  "scope": scope, "min_blocks": min_blocks, "feedback": feedback})
-        return designer.mock_revised_candidate(design, current, differences)
+        return _recolored(designer.mock_revised_candidate(design, current, differences), keep=current)
 
     def fake_describe(design, should_stop=None, family=None, concept=None):
         calls["describe"].append({"family": family, "concept": concept})
@@ -1476,3 +1488,21 @@ def test_review_mock_mode_uses_rules_only_and_never_generates(candidate, monkeyp
 def test_review_progress_stages_are_listed():
     for stage in ("REVIEW_LISTENING", "REVIEW_UNDERSTANDING", "REVIEW_ACK", "REVIEW_READY"):
         assert stage in main.PROGRESS_STAGES and stage not in dialogue.PROGRESS_TTS_STAGES
+
+
+def test_review_regeneration_rejects_an_unchanged_candidate_and_retries(candidate, review_llm, monkeypatch):
+    """Stage 3 Wave 3 smoke에서 LLM이 직전 후보와 같은 블록을 돌려준 사례: designer가 탈락시키고 같은 loop이 다시 만든다."""
+    calls, _ = review_llm
+    seen = []
+
+    def same_then_new(object_type, reasons=None, should_stop=None, **kwargs):
+        seen.append(list(reasons or []))
+        if len(seen) == 1:
+            return {"blocks": [dict(b) for b in candidate["blocks"]]}  # 직전 후보 그대로
+        return _recolored(designer.mock_initial_candidate(object_type))
+
+    monkeypatch.setattr(main.llm, "generate_initial_design", same_then_new)
+    result, _ = _review(candidate, "등받이를 더 높게", metadata={"selected_family": "throne", "family_source": "preference"})
+    assert (result["status"], result["hri_result"]) == ("OK", "MODIFY")
+    assert result["design"]["blocks"] != candidate["blocks"] and result["design"]["design_version"] == 1
+    assert len(seen) == 2 and [r["rule"] for r in seen[1]] == ["unchanged_candidate"]
