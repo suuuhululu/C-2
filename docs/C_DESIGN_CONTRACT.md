@@ -307,6 +307,7 @@ D(외부 caller)가 C를 호출하고 response를 받습니다. C가 D로 push�
 | 버전 | Candidate `design_version` 발급(§8.2·§8.14) | Approved 채택·버전 이력 관리 |
 
   참고(GitHub 상태 기준, 최신이 아닐 수 있음, 읽기만 함): D의 `app/c_text_connection.py`는 이미 `CTextConnection.valid()`에서 `request_id`·`workflow_status`·`stop_request`·`job_id`·`current_revision`·`design_version`을 비교하고, `start()`에서 진행 중 호출이 있으면 `C_CALL_BUSY`로 거절하며, `finish()`에서 무효가 된 응답을 `_ignored`로 버리고, `should_stop`을 `threading.Event`로 넘깁니다. 이번 Wave에서 C에 correlation 필드를 추가하지 않습니다. 추가 후보(예: 입력 `request_id`를 envelope에 그대로 되돌려 주는 echo 필드)는 caller가 이미 같은 정보를 쥐고 있어 중복이며, 넣는다면 envelope 키 추가라 D 계약 합의가 먼저 필요합니다(구현하지 않음).
+- **실패 경로**: 세 API가 침묵·장치 실패·LLM timeout·비 JSON·validator 실패·같은 후보 반복·사용자 취소·`should_stop`에서 돌려주는 값은 §10 "확인(Stage 3 Wave 4)" 행입니다. 어느 경우든 호출은 반환되며(listen·LLM·생성 횟수 상한), 예외는 Intervention 음성 침묵(caller의 `should_stop`으로만 끝남)입니다.
 - **Expected 결론 (Expected 전체 불필요)**: `run_intervention(design, current, differences, …)`는 Expected 전체를 받지 않으며 추가하지 않습니다. 근거:
   - 입력 검사 `validator.check_intervention_input(design, current, differences)`는 Approved Design·Current·Difference만 봅니다.
   - 질문 문장 `dialogue.build_question`은 `design`·`current`를 쓰지 않고(`del design, current`), `_describe_difference`가 각 `differences[i].expected / actual`만으로 위치·차이를 설명합니다. escalation 질문(`escalation_question`)도 `differences`의 `actual`·`expected`만 씁니다.
@@ -579,6 +580,18 @@ C의 Validator 통과는 후보 검증이며 최종 채택이 아닙니다.
 | 실패 | LLM provider 실패: 일시적 실패(network / timeout / 429 / 5xx)만 최대 3회(1·2·4초 backoff) API 재시도 후에도 실패. auth·키 없음(`OPENAI_LLM_API_KEY` 미설정, 다른 key로 대체하지 않음. 모델은 역할별 `OPENAI_MODEL` / `OPENAI_JUDGE_MODEL` / `OPENAI_AUX_MODEL`이며 key는 모두 이것 하나, §4)·비정상 응답(reasoning 모델에 지원하지 않는 파라미터를 보내 생기는 400 포함)은 재시도 없이 즉시. 재시도 사이 `should_stop` 확인 | 반환 | `FAILED` / `LLM_CALL_FAILED` |
 | 실패 | 음성 입력 실패(Stage 2 Wave 4b: 자유 발화는 `listen(mode="free", beep=True)`, 무음은 `no_speech_prob` ≥ 0.8 그리고 `avg_logprob` < −1.0일 때만, §4.3): 녹음 장치를 열거나 읽지 못함, 또는 STT provider 실패(key: `OPENAI_API_KEY`. 일시적 network / timeout / 429 / 5xx는 최대 3회 API 재시도 후, auth·키 없음·비정상 응답은 즉시) | 반환 | `FAILED` / `VOICE_IO_FAILED` |
 | 복구 | TTS 재생 실패(key: `OPENAI_TTS_API_KEY` 전용, 없으면 `OPENAI_API_KEY`로 대체하지 않고 `missing_key`. 모델은 `OPENAI_TTS_MODEL`, 기본 `gpt-4o-mini-tts`이며 `tts-1`·`tts-1-hd`에는 `instructions`를 보내지 않음. HTTP 실패 종류는 `auth`·`model_access`·`bad_param`·`billing`·`rate_limit`·`server`·`bad_response`) | 질문은 `on_question`으로 화면에 표시된 채 응답 대기를 계속하고 실패 사유는 `voice.last_error()`에 기록 | 반환하지 않고 계속 |
+| 확인(Stage 3 Wave 4) | 음성 침묵(`listen`이 `""`): Initial | 인사 → 재질문(`SILENCE_REASK`) 1회, 그래도 침묵이면 "아무거나"로 생성(listen 2회) | caller가 받는 값: 생성 성공 시 `OK` / `null` / design v1 |
+| 확인(Stage 3 Wave 4) | 음성 침묵: Preview 검토 | 재질문 1회(listen 2회) | `OK` / `UNCLEAR` / 입력 후보 그대로 |
+| 확인(Stage 3 Wave 4) | 음성 침묵: Intervention | 시간 한도 없이 계속 듣고 매번 `should_stop` 확인(§4.3, Day4 정책) | caller가 STOP할 때만 반환: `CANCELLED` / `null` / `STOPPED`, design null |
+| 확인(Stage 3 Wave 4) | `listen`이 `None`(장치·STT 실패): 세 API | 즉시 반환(listen 1회, 생성 0회) | `FAILED` / `null` / `VOICE_IO_FAILED`, design null |
+| 확인(Stage 3 Wave 4) | LLM timeout(호출 하나당 transport 1 + 재시도 3 = 4회) | Initial은 요청 해석 실패 → "아무거나" 후 생성 실패. 해석만 실패한 검토 답은 UNCLEAR. provider 실패는 escalation 대상이 아님 | Initial `FAILED` / `null` / `LLM_CALL_FAILED`; 검토 MODIFY `FAILED` / `MODIFY` / `LLM_CALL_FAILED`; 검토 해석 실패 `OK` / `UNCLEAR`(재질문 뒤, 후보 그대로); Intervention REVISE `FAILED` / `REVISE` / `LLM_CALL_FAILED`. design null(UNCLEAR 제외) |
+| 확인(Stage 3 Wave 4) | LLM 응답이 JSON이 아님 | 해석은 `bad_response`로 규칙·fallback 경로, 생성은 `malformed_output` 탈락·재생성 | Initial·검토 MODIFY: 생성 10회 후 `FAILED` / (`null`·`MODIFY`) / `DESIGN_GENERATION_FAILED`. Intervention: 6회 뒤 escalation 질문 → "계속" → 4회 → `FAILED` / `REVISE` / `DESIGN_GENERATION_FAILED`; 텍스트 답 소진이면 `OK` / `UNCLEAR`, design null |
+| 확인(Stage 3 Wave 4) | 생성 후보가 계속 validator 실패(예: overlap) | 위와 같은 재생성·escalation | 위와 같음(`details`에 마지막 탈락 사유) |
+| 확인(Stage 3 Wave 4) | 검토 MODIFY 생성이 직전 후보와 같은 블록 | `unchanged_candidate`로 탈락·재생성(§8.14) | 한 번 뒤 다르면 `OK` / `MODIFY` / 새 후보; 끝까지 같으면 생성 10회 후 `FAILED` / `MODIFY` / `DESIGN_GENERATION_FAILED`(`details` = `unchanged_candidate`) |
+| 확인(Stage 3 Wave 4) | 사용자 취소 발화 | 검토·Intervention만 해석함. Initial에는 취소 발화 경로가 없어 caller가 `should_stop`으로 멈춤 | 검토 `CANCELLED` / `CANCEL` / `USER_CANCEL`, 입력 후보와 `review` metadata; Intervention `CANCELLED` / `null` / `USER_CANCEL`, design null |
+| 확인(Stage 3 Wave 4) | `should_stop`: 호출 전·ack 후·생성 시도 사이 | 그 지점에서 중단(생성 0회 또는 1회) | 세 API 모두 `CANCELLED` / `null` / `STOPPED`, design null |
+
+"확인(Stage 3 Wave 4)" 행의 값은 `status` / `hri_result` / `error.code` 순서이며, 현행 코드가 caller에게 돌려주는 값을 그대로 기록한 것입니다(정책 변경 없음, fake voice·LLM으로 확인: `tests/integration/test_c_stage3_failures.py`, `tests/unit/c_design/test_stage3_contract.py`).
 
 | `error.code` | 의미 | 함수 |
 |---|---|---|
