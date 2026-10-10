@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Stage 3 Wave 3 fake D caller runner (시험용·수동 실행). production 코드는 바꾸지 않는다.
+"""Stage 3 Wave 3·4 fake D caller runner (시험용·수동 실행). production 코드는 바꾸지 않는다.
 
 목적: D가 C를 호출하고 response를 받는 흐름을 C 쪽에서 시험한다. 이 스크립트 안의 FakeDCaller는 C public API를 부르고
 response를 받아 `[CALLER] PREVIEW_READY (assumed)`를 한 줄 남긴 뒤 다음 API를 부를 뿐이다(C-side caller fixture).
@@ -46,8 +46,11 @@ Difference = [{"expected": 원래 블록, "actual": 옮긴 블록}].
 
 로그: [CALLER] call/response/PREVIEW_READY (assumed)/adopt approved, [C][<STAGE>] 진행(ACK·REVIEW_ACK·KEEP_ACK는 따옴표),
 [C][QUESTION], 음성 모드의 [C][STT_RAW]. 마지막에 호출별 lifecycle 요약(status·hri·version·review.round·이전 후보 대비
-변경·validator·Current 보존). FAILED envelope이 하나라도 있으면 종료 코드 1. --out DIR이면 envelope을 DIR/NN_<api>.json,
-요약을 DIR/summary.json으로 저장한다. 키는 환경 변수로만 받고 설정 여부만 출력한다(값은 출력하지 않음).
+변경·validator·Current 보존)과 version·round·Current 보존 수열. FAILED envelope이 하나라도 있으면 종료 코드 1.
+--out DIR이면 envelope을 DIR/NN_<api>.json, 요약을 DIR/summary.json으로 저장한다(호출별 [C][STAGE] timeline 포함).
+--render DIR이면 각 response 직후 scripts/c_design_hmi_render.compose_v1(C 단독 시험용 HMI 스타일 렌더러)로
+DIR/NN_<api>_<hri>.png를 저장한다. 이것은 시험용 표시이며 실제 D Preview·HMI 화면이 아니다.
+mic 모드는 listen마다 voice._last_capture의 스트림 open/close 시각을 [C][MIC] opened … closed … 한 줄로 출력한다. 키는 환경 변수로만 받고 설정 여부만 출력한다(값은 출력하지 않음).
 Mock 모드의 review MODIFY는 후보를 바꾸지 않는다(Stage 3 Wave 2 동작, 오류 아님).
 """
 
@@ -70,7 +73,9 @@ DEFAULT_ANSWERS = {
     "initial": ["의자 만들어줘"],
     "review": ["의자 만들어줘", "등받이를 더 높게", "좋아 이걸로 하자"],
     "intervention": ["의자 만들어줘", "일부러 그렇게 놨어요", "마음에 들어"],
-    "full": ["의자 만들어줘", "등받이를 더 높게", "좋아 이걸로 하자", "일부러 그렇게 놨어요", "마음에 들어"],
+    # Stage 3 Wave 4 최종 lifecycle: Initial → review MODIFY → APPROVE → Difference REVISE → review(revised) MODIFY → APPROVE
+    "full": ["벤치처럼 길고 넓은 의자를 만들고 싶어", "등받이를 조금 더 높게 해줘", "좋아 이걸로 하자",
+             "일부러 그렇게 놨어. 조금 더 넓게 만들고 싶어", "조금 더 화려하게 해줘", "마음에 들어. 이걸로 하자"],
 }
 
 
@@ -132,6 +137,10 @@ def install_mic_log():
             if on_ready is not None:
                 on_ready()
         text = original(on_ready=ready, mode=mode, beep=beep)
+        capture = getattr(voice, "_last_capture", None) or {}
+        opened, closed = capture.get("stream_opened_at"), capture.get("stream_closed_at")
+        if opened or closed:  # 마이크 스트림이 이번 listen에서 열리고 닫혔는지(voice.record가 남긴 시각, 있는 것만)
+            _log("[C][MIC]" + (f" opened {opened}" if opened else "") + (f" closed {closed}" if closed else ""))
         shown = text if text is not None else ""
         _log(f'[C][STT_RAW] {review_smoke._now()} "{shown}"' + (f" (last_error {voice.last_error()})" if text in (None, "") else ""))
         return text
@@ -185,11 +194,13 @@ def make_difference(approved):
 class FakeDCaller:
     """D 역할의 fake caller. C API 호출 → response 수신 → PREVIEW_READY 가정 → 다음 호출 → lifecycle 기록만 한다."""
 
-    def __init__(self, mode, feed, preference, out_dir):
+    def __init__(self, mode, feed, preference, out_dir, render_dir=None):
         self.mode = mode
         self.feed = feed
         self.preference = preference
         self.out_dir = out_dir
+        self.render_dir = render_dir
+        self.timeline = []  # 지금 호출의 [C][STAGE] 이벤트(호출이 끝나면 그 행에 붙이고 비운다)
         self.approved = None  # Approved Design: review가 APPROVE를 돌려줄 때만 채택
         self.candidate = None  # (Candidate Design, design_metadata): 다음 review에 그대로 넘긴다
         self.current = None
@@ -209,6 +220,10 @@ class FakeDCaller:
             return True, None
         return True, self.feed.take()
 
+    def progress(self, event):
+        on_progress(event)
+        self.timeline.append({"stage": event["stage"], "at": event["at"], "message": event["message"]})
+
     # ---- 기록 -----------------------------------------------------------------------------------------------------
     def _record(self, api, kind, envelope, previous, revised):
         design = envelope["design"]
@@ -223,8 +238,9 @@ class FakeDCaller:
             "round": review.get("round"),
             "changed": (design != previous) if design is not None and previous is not None else None,
             "validator": ("PASS" if validator.validate_design(design) == [] else "FAIL") if design else None,
-            "current_preserved": None, "error": error.get("code"),
+            "current_preserved": None, "error": error.get("code"), "timeline": self.timeline,
         }
+        self.timeline = []
         if revised and design is not None and self.current is not None:
             row["current_preserved"] = validator.validate_revised({"blocks": design["blocks"]}, self.current) == []
         self.rows.append(row)
@@ -234,7 +250,24 @@ class FakeDCaller:
             path = os.path.join(self.out_dir, f"{row['n']:02d}_{api}.json")
             with open(path, "w", encoding="utf-8") as handle:
                 json.dump(envelope, handle, ensure_ascii=False, indent=2)
+        if self.render_dir and design is not None:
+            self._render(row, envelope, review)
 
+    def _render(self, row, envelope, review):
+        """시험용 표시(실제 D Preview 아님): 기존 C 단독 렌더러 compose_v1로 PNG 한 장."""
+        import c_design_hmi_render as render
+        design, metadata = envelope["design"], envelope["design_metadata"] or {}
+        blocks = design["blocks"]
+        family = metadata.get("selected_family") or metadata.get("design_family")
+        title = (f"{row['n']:02d} {row['api']} · {row['hri'] or '-'} · v{design['design_version']} · "
+                 f"round {review.get('round', '-')} · scope {review.get('scope') or '-'}")
+        lines = [f"family {family or '-'} · style_hint {metadata.get('style_hint') or review.get('style_hint') or '-'}",
+                 render.counts_line(blocks),
+                 "fake D caller 시험용 표시(실제 D Preview·HMI 화면 아님)"]
+        path = os.path.join(self.render_dir, f"{row['n']:02d}_{row['api']}_{row['hri'] or 'NONE'}.png")
+        render.compose_v1(title, blocks, lines, path)
+        row["render"] = path
+        _log(f"[CALLER] render (test display) → {path}")
     @staticmethod
     def _preview_ready(design):
         _log(f"[CALLER] PREVIEW_READY (assumed) candidate v{design['design_version']} blocks {len(design['blocks'])}")
@@ -247,7 +280,7 @@ class FakeDCaller:
         preference = self.preference if self.mode == "text" else None
         _log(f"[CALLER] call create_initial_design kind=- input={'text' if text is not None else 'voice'}")
         envelope = main.create_initial_design(text=text, preference_text=preference, on_question=on_question,
-                                              on_progress=on_progress)
+                                              on_progress=self.progress)
         self._record("create_initial_design", None, envelope, None, revised=False)
         if envelope["status"] != "OK" or envelope["design"] is None:
             _log("[CALLER] no Initial candidate → scenario stops")
@@ -270,7 +303,7 @@ class FakeDCaller:
                  f"round={((metadata or {}).get('review') or {}).get('round')}")
             envelope = main.review_design_candidate(
                 design, kind=kind, design_metadata=metadata, text_answers=None if answer is None else [answer],
-                on_question=on_question, on_progress=on_progress, **revised_inputs)
+                on_question=on_question, on_progress=self.progress, **revised_inputs)
             self._record("review_design_candidate", kind, envelope, design, revised=kind == "revised")
             if envelope["status"] != "OK":
                 _log(f"[CALLER] review ended with status {envelope['status']} → scenario stops")
@@ -314,7 +347,7 @@ class FakeDCaller:
         _log(f"[CALLER] call run_intervention kind=- approved v{self.approved['design_version']}")
         envelope = main.run_intervention(self.approved, self.current, self.differences,
                                          text_answers=None if answer is None else [answer],
-                                         on_question=on_question, on_progress=on_progress)
+                                         on_question=on_question, on_progress=self.progress)
         self._record("run_intervention", None, envelope, self.approved, revised=envelope["hri_result"] == dialogue.REVISE)
         if envelope["status"] != "OK":
             _log(f"[CALLER] intervention ended with status {envelope['status']} → scenario stops")
@@ -363,6 +396,9 @@ def print_summary(caller):
     _log(f"approved: {'v' + str(approved['design_version']) if approved else 'none'} · "
          f"candidate: {'v' + str(candidate['design_version']) if candidate else 'none'} · "
          f"candidate is approved: {candidate is not None and candidate == approved}")
+    _log("version sequence: " + json.dumps([row["design_version"] for row in caller.rows]))
+    _log("round sequence:   " + json.dumps([row["round"] for row in caller.rows]))
+    _log("Current preserved: " + json.dumps([row["current_preserved"] for row in caller.rows]))
 
 
 def main_cli():
@@ -372,6 +408,7 @@ def main_cli():
     parser.add_argument("--answers", nargs="*", help="시나리오 전체 답(순서대로). 없으면 시나리오별 기본값")
     parser.add_argument("--preference", help="text 모드 LLM Initial 되묻기 답(preference_text, 기본 None)")
     parser.add_argument("--out", help="envelope JSON·summary.json 저장 디렉터리")
+    parser.add_argument("--render", help="각 response의 시험용 표시 PNG 저장 디렉터리(c_design_hmi_render.compose_v1, 실제 D Preview 아님)")
     args = parser.parse_args()
 
     use_llm = os.environ.get("C_DESIGN_USE_LLM") == "1"
@@ -401,17 +438,21 @@ def main_cli():
     elif args.mode == "mic":
         install_mic_log()
         voice.prewarm()
-    if args.out:
-        os.makedirs(args.out, exist_ok=True)
+    for directory in (args.out, args.render):
+        if directory:
+            os.makedirs(directory, exist_ok=True)
 
-    caller = FakeDCaller(args.mode, feed, args.preference, args.out)
+    caller = FakeDCaller(args.mode, feed, args.preference, args.out, args.render)
     run_scenario(caller, args.scenario)
     print_summary(caller)
     exit_code = 1 if caller.failed else 0
     if args.out:
         summary = {"mode": args.mode, "scenario": args.scenario, "use_llm": use_llm, "rows": caller.rows,
                    "approved_version": caller.approved["design_version"] if caller.approved else None,
-                   "answers_used": feed.used if feed else None, "exit_code": exit_code}
+                   "answers_used": feed.used if feed else None, "exit_code": exit_code,
+                   "version_sequence": [row["design_version"] for row in caller.rows],
+                   "round_sequence": [row["round"] for row in caller.rows],
+                   "current_preserved_sequence": [row["current_preserved"] for row in caller.rows]}
         with open(os.path.join(args.out, "summary.json"), "w", encoding="utf-8") as handle:
             json.dump(summary, handle, ensure_ascii=False, indent=2)
         _log(f"saved envelopes and summary.json to {args.out}")

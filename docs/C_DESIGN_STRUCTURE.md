@@ -90,7 +90,7 @@ tests/
 │       └── test_voice.py       # 녹음 energy gate·STT·TTS·실패 분류(fake 장치·네트워크) (WAVE 6)
 └── integration/
     ├── test_c_contract.py      # D → C 입력·C → D envelope·C → A Design 계약 (WAVE 4)
-    └── test_c_stage3_lifecycle.py  # Stage 3 Wave 3: fake D caller(테스트 helper)로 Initial → Preview(가정) → 검토 APPROVE/MODIFY/UNCLEAR/CANCEL, Difference → KEEP/REVISE → 검토(revised) lifecycle, 호출 간 상태 오염·Voice 독립성·record 스트림 open/close (offline, fake llm·listen·speak)
+    └── test_c_stage3_lifecycle.py  # Stage 3 Wave 3: fake D caller(테스트 helper)로 Initial → Preview(가정) → 검토 APPROVE/MODIFY/UNCLEAR/CANCEL, Difference → KEEP/REVISE → 검토(revised) lifecycle, 호출 간 상태 오염·Voice 독립성·record 스트림 open/close (offline, fake llm·listen·speak) · Wave 4: 최종 lifecycle 전체(Revised MODIFY 포함)를 음성 모드로 1회(version [1,1,1,2,2,2]·round·Current 보존·호출별 첫 TTS·listen 1회·record open/close·답 잔존 없음)
 ```
 
 ```text
@@ -99,7 +99,7 @@ scripts/
 ├── c_voice_e2e_c_only.py      # C 단독 음성 E2E(Stage 2 Wave 4b, A planner·Backend·Robot 미사용): 인사 → 자유 발화 → v1 → 시험용 Current/Difference → Intervention → v2, [v1 | Current+Difference | v2] PNG·summary.md (실행은 수동) · Wave 4c: `[C][STAGE] HH:MM:SS.mmm` 진행 로그, metadata `progress`, transcript `ack_tts`(첫 확인 TTS 재생 시작 시각)
 ├── c_voice_e2e_c_only_gallery.py  # 위 결과 PNG 넘겨보기
 ├── c_voice_review_smoke.py     # Preview 검토 smoke(Stage 3 Wave 1, 수동): Mock Initial 또는 --candidate JSON을 후보로 review_design_candidate 1회(음성 또는 --answers 텍스트), [C][…] 로그 · Wave 2: `--kind revised`(`--scenario` 또는 `--previous`·`--current`·`--differences`, 없으면 Mock 시나리오), 결과 후보 version·blocks·round·scope
-├── c_stage3_integration_smoke.py  # Stage 3 Wave 3 fake D caller runner(수동, D 구현 아님): --mode text|fake-voice|mic, --scenario initial|review|intervention|full, [CALLER]·[C][STAGE]·[C][STT_RAW] 로그와 lifecycle 요약, --out envelope JSON
+├── c_stage3_integration_smoke.py  # Stage 3 Wave 3 fake D caller runner(수동, D 구현 아님): --mode text|fake-voice|mic, --scenario initial|review|intervention|full, [CALLER]·[C][STAGE]·[C][STT_RAW] 로그와 lifecycle 요약, --out envelope JSON · Wave 4: full 기본 답에 Revised MODIFY, --render DIR(c_design_hmi_render.compose_v1 시험용 PNG, 실제 D Preview 아님), summary.json에 호출별 STAGE timeline·version/round/Current 수열, mic [C][MIC] opened/closed
 └── c_voice_smoke.py            # L2 장치 시험(수동 실행): stt / tts "<문장>" / dialogue / echo(speak → listen 1회). 오디오 파일을 저장하지 않음 (WAVE 6)
 ```
 
