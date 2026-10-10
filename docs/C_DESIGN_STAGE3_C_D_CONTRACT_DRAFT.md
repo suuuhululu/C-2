@@ -108,6 +108,13 @@
 - 정책은 [계약 §8.14](C_DESIGN_CONTRACT.md)(scope 3종·family/concept 규칙·version·round). 위 §4 초안의 시그니처와 달리 public API는 추가하지 않고 `review_design_candidate`가 MODIFY에서 새 Candidate를 `design`에 담아 반환합니다(명세 Wave 2 §1, main은 B).
 - 계약 영향: Design `{design_version, blocks}`·envelope 키 불변. 새 Candidate는 Approved가 아니며 채택은 D. Initial 후보 version 1, Revised 후보 Approved + 1 고정(위 §8 위험 1의 제안과 같음). `design_metadata.review`에 `scope` 추가, `round`는 후보 반복 횟수로 재정의([계약 §6.1](C_DESIGN_CONTRACT.md)).
 
+## 7.3 Wave 3 반영 (2026-10-11, A: contract·invariant·fixture·조사)
+- 표현: "D가 C를 호출하고 response를 받는다". 이번 Wave의 결과는 C-side caller fixture PASS, fake PREVIEW_READY 기반 review 호출 PASS, D가 Preview 완료 후 호출할 C API 준비 완료입니다. 실제 D/HMI integration은 팀 통합 단계입니다.
+- fixture: `tests/fixtures/c_stage3/*.json`(Fable이 Wave 2 Sol smoke에서 얻은 실제 envelope 8개, 설명은 같은 폴더 README). `tests/unit/c_design/test_stage3_contract.py`가 envelope 키·Design 계약(재고 조합 포함)·version(Initial·MODIFY 후보 1, Revised 후보 2)·Current 보존·review metadata 키·MODIFY ≠ 입력 후보·APPROVE/CANCEL = 입력 후보·비밀값 없음을 검사합니다.
+- invariant(fake LLM, 텍스트 모드): Initial → review MODIFY → MODIFY → APPROVE에서 version 1 고정·round 1, 2, 2·APPROVE 생성 0회; Approved v1 → run_intervention REVISE → review(revised) MODIFY → MODIFY → APPROVE에서 version 2 고정·Current 보존·judge 매 생성 1회; 입력 후보·metadata·Intervention 입력 불변; 같은 입력의 결과가 앞선 호출과 무관(ack 문장 표현 제외); `main`에 모듈 수준 요청·후보 상태 없음.
+- **correlation 결론**: C에는 `request_id`·`job_id`·`current_revision`이 없습니다(grep). 동기 반환으로 호출과 response가 1:1이고, stale·중복·활성 요청 판정은 caller(D) 책임입니다. GitHub 상태 기준(최신 아닐 수 있음) D `CTextConnection`이 이미 `valid()`·`C_CALL_BUSY`·`_ignored`·`threading.Event`로 이를 합니다. production field는 추가하지 않습니다(후보·이유는 [계약 §4.5](C_DESIGN_CONTRACT.md)).
+- **Expected 결론**: Expected 전체는 C에 불필요합니다. `run_intervention`·질문·escalation·Revised 생성·judge·Current 보존 검사는 Approved Design·Current·`differences[].expected / actual`만 씁니다(코드 근거 [계약 §4.5](C_DESIGN_CONTRACT.md)). Expected는 D가 관리하는 입력이며 C API에 추가하지 않습니다.
+
 ## 8. 위험 요소 / 결정 필요
 1. 후보 반복 중 `design_version` 정책(§3.1·§3.2 제안: Initial 후보 1 고정, Revised 후보 승인+1 고정). docs/06 §4와 D `replan.on_intent` 검증과 맞물림.
 2. snapshot `candidate_design` 필드 추가는 D/공유 schema 변경 → D 작업. 대안(채택 `design`에 후보를 넣고 제목만 바꾸기)은 §8 원칙 위반이라 비권장.
