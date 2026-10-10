@@ -1,0 +1,2284 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "A/D split-stage review proposal v3",
+  "oneOf": [
+    {
+      "$ref": "#/$defs/WholePlanRequest"
+    },
+    {
+      "$ref": "#/$defs/WholePlanResult"
+    },
+    {
+      "$ref": "#/$defs/StepReassessmentRequest"
+    },
+    {
+      "$ref": "#/$defs/StepReassessmentResult"
+    },
+    {
+      "$ref": "#/$defs/StepMotionRequest"
+    },
+    {
+      "$ref": "#/$defs/StepMotionResult"
+    },
+    {
+      "$ref": "#/$defs/ExecutionGateReview"
+    },
+    {
+      "$ref": "#/$defs/BoundaryReview"
+    }
+  ],
+  "$defs": {
+    "Block": {
+      "type": "object",
+      "properties": {
+        "brick_type": {
+          "enum": [
+            "2x2x1",
+            "2x3x1"
+          ]
+        },
+        "color": {
+          "enum": [
+            "yellow",
+            "blue"
+          ]
+        },
+        "x": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 23
+        },
+        "y": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 23
+        },
+        "layer": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 4
+        },
+        "orientation_deg": {
+          "enum": [
+            0,
+            90
+          ]
+        }
+      },
+      "required": [
+        "brick_type",
+        "color",
+        "x",
+        "y",
+        "layer",
+        "orientation_deg"
+      ],
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "brick_type": {
+                "const": "2x2x1"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "orientation_deg": {
+                "const": 0
+              }
+            }
+          }
+        }
+      ]
+    },
+    "Step": {
+      "type": "object",
+      "properties": {
+        "step_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "operation": {
+          "const": "PLACE"
+        },
+        "before": {
+          "type": "null"
+        },
+        "after": {
+          "$ref": "#/$defs/Block"
+        },
+        "prerequisites": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true
+        },
+        "requires_delivery": {
+          "const": true
+        }
+      },
+      "required": [
+        "step_id",
+        "operation",
+        "before",
+        "after",
+        "prerequisites",
+        "requires_delivery"
+      ],
+      "additionalProperties": false
+    },
+    "Plan": {
+      "type": "object",
+      "properties": {
+        "plan_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "design_version": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "base_current_revision": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "steps": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Step"
+          }
+        }
+      },
+      "required": [
+        "plan_id",
+        "design_version",
+        "base_current_revision",
+        "steps"
+      ],
+      "additionalProperties": false
+    },
+    "LegacyError": {
+      "type": "object",
+      "properties": {
+        "reason": {
+          "type": "string",
+          "minLength": 1
+        },
+        "block": {
+          "anyOf": [
+            {
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "reason",
+        "block"
+      ],
+      "additionalProperties": false
+    },
+    "PlanningResult": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "enum": [
+            "READY",
+            "NEEDS_CORRECTION",
+            "INVALID"
+          ]
+        },
+        "plan": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Plan"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "errors": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/LegacyError"
+          }
+        }
+      },
+      "required": [
+        "status",
+        "plan",
+        "errors"
+      ],
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "status": {
+                "const": "READY"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "plan": {
+                "$ref": "#/$defs/Plan"
+              },
+              "errors": {
+                "maxItems": 0
+              }
+            }
+          },
+          "else": {
+            "properties": {
+              "plan": {
+                "type": "null"
+              },
+              "errors": {
+                "minItems": 1
+              }
+            }
+          }
+        }
+      ]
+    },
+    "Slot": {
+      "type": "object",
+      "properties": {
+        "slot_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "slot_index": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 6
+        },
+        "brick_type": {
+          "enum": [
+            "2x2x1",
+            "2x3x1"
+          ]
+        },
+        "color": {
+          "enum": [
+            "yellow",
+            "blue"
+          ]
+        },
+        "reservation_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "reservation_generation": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "state": {
+          "enum": [
+            "RESERVED",
+            "RELEASED",
+            "CONSUMED",
+            "UNCERTAIN"
+          ]
+        },
+        "part_confirmation": {
+          "enum": [
+            "CONFIRMED",
+            "UNKNOWN",
+            "MISMATCH"
+          ]
+        },
+        "valid_until_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "bound_workflow_generation": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "slot_id",
+        "slot_index",
+        "brick_type",
+        "color",
+        "reservation_id",
+        "reservation_generation",
+        "state",
+        "part_confirmation",
+        "valid_until_ref",
+        "bound_workflow_generation"
+      ],
+      "additionalProperties": false
+    },
+    "Current": {
+      "type": "object",
+      "properties": {
+        "current_revision": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "blocks": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Block"
+          }
+        }
+      },
+      "required": [
+        "current_revision",
+        "blocks"
+      ],
+      "additionalProperties": false
+    },
+    "Pose": {
+      "type": "object",
+      "properties": {
+        "frame_id": {
+          "const": "base_link"
+        },
+        "xyz_m": {
+          "type": "array",
+          "items": {
+            "type": "number"
+          },
+          "minItems": 3,
+          "maxItems": 3
+        },
+        "quaternion_xyzw": {
+          "type": "array",
+          "items": {
+            "type": "number"
+          },
+          "minItems": 4,
+          "maxItems": 4
+        }
+      },
+      "required": [
+        "frame_id",
+        "xyz_m",
+        "quaternion_xyzw"
+      ],
+      "additionalProperties": false
+    },
+    "Region": {
+      "type": "object",
+      "properties": {
+        "frame_id": {
+          "const": "assembly_board"
+        },
+        "vertices_xyz_m": {
+          "type": "array",
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "number"
+            },
+            "minItems": 3,
+            "maxItems": 3
+          },
+          "minItems": 4,
+          "maxItems": 4
+        }
+      },
+      "required": [
+        "frame_id",
+        "vertices_xyz_m"
+      ],
+      "additionalProperties": false
+    },
+    "Contact": {
+      "type": "object",
+      "properties": {
+        "lower_block": {
+          "$ref": "#/$defs/Block"
+        },
+        "upper_overlap_studs": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "lower_overlap_studs": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "board_supported": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "lower_block",
+        "upper_overlap_studs",
+        "lower_overlap_studs",
+        "board_supported"
+      ],
+      "additionalProperties": false
+    },
+    "HumanAction": {
+      "type": "object",
+      "properties": {
+        "action": {
+          "enum": [
+            "PRESS",
+            "HOLD",
+            "MANUAL_PLACE"
+          ]
+        },
+        "target_block": {
+          "$ref": "#/$defs/Block"
+        },
+        "contact_regions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Region"
+          },
+          "minItems": 1
+        },
+        "approach_sides": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "minItems": 1
+        },
+        "hand_count": {
+          "const": 1
+        },
+        "force_direction_base": {
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "type": "number"
+              },
+              "minItems": 3,
+              "maxItems": 3
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "force_magnitude_n": {
+          "type": "null"
+        },
+        "effect": {
+          "type": "string",
+          "minLength": 1
+        },
+        "access_assessment": {
+          "const": "WRITTEN_GEOMETRY_CANDIDATE_NOT_RUNTIME_VERIFIED"
+        }
+      },
+      "required": [
+        "action",
+        "target_block",
+        "contact_regions",
+        "approach_sides",
+        "hand_count",
+        "force_direction_base",
+        "force_magnitude_n",
+        "effect",
+        "access_assessment"
+      ],
+      "additionalProperties": false
+    },
+    "Gripper": {
+      "type": "object",
+      "properties": {
+        "pickup_policy": {
+          "const": "D_EXISTING_PICKUP"
+        },
+        "release_strategy": {
+          "enum": [
+            "MINIMAL_OPEN",
+            "D_EXISTING_TRAY_RELEASE"
+          ]
+        },
+        "release_owner": {
+          "const": "D"
+        },
+        "policy_at_wait": {
+          "enum": [
+            "HOLD_NO_AUTOMATIC_OPEN",
+            "D_TRAY_RELEASE_AND_RETREAT"
+          ]
+        },
+        "numeric_open_command": {
+          "type": "null"
+        }
+      },
+      "required": [
+        "pickup_policy",
+        "release_strategy",
+        "release_owner",
+        "policy_at_wait",
+        "numeric_open_command"
+      ],
+      "additionalProperties": false
+    },
+    "Action": {
+      "type": "object",
+      "properties": {
+        "plan_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "step_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "block": {
+          "$ref": "#/$defs/Block"
+        },
+        "mode": {
+          "enum": [
+            "ROBOT_GRIP",
+            "ROBOT_RELEASE_PRESS",
+            "HUMAN_ASSEMBLY"
+          ]
+        },
+        "grip_axis": {
+          "anyOf": [
+            {
+              "enum": [
+                "x",
+                "y"
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "gripper": {
+          "$ref": "#/$defs/Gripper"
+        },
+        "support_studs": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "contacts": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Contact"
+          }
+        },
+        "robot_force_model": {
+          "enum": [
+            "NOMINAL_BLOCK_CENTRE_BASE_MINUS_Z",
+            "NOT_ROBOT_INSERTION"
+          ]
+        },
+        "assistance_kind": {
+          "enum": [
+            "NONE",
+            "PRESS",
+            "HOLD",
+            "PRESS_AND_HOLD",
+            "MANUAL_ASSEMBLY",
+            "MANUAL_ASSEMBLY_AND_HOLD"
+          ]
+        },
+        "human_actions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/HumanAction"
+          }
+        },
+        "human_hands_used": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2
+        },
+        "assistance_cost": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "minItems": 3,
+          "maxItems": 3
+        },
+        "selection_basis": {
+          "type": "string",
+          "minLength": 1
+        },
+        "requires_runtime_reassessment": {
+          "const": true
+        },
+        "optimality_verified": {
+          "const": false
+        }
+      },
+      "required": [
+        "plan_id",
+        "step_id",
+        "block",
+        "mode",
+        "grip_axis",
+        "gripper",
+        "support_studs",
+        "contacts",
+        "robot_force_model",
+        "assistance_kind",
+        "human_actions",
+        "human_hands_used",
+        "assistance_cost",
+        "selection_basis",
+        "requires_runtime_reassessment",
+        "optimality_verified"
+      ],
+      "additionalProperties": false
+    },
+    "Validation": {
+      "type": "object",
+      "properties": {
+        "ik_verified": {
+          "const": false
+        },
+        "full_path_collision_verified": {
+          "const": false
+        },
+        "gripper_and_hand_verified": {
+          "const": false
+        },
+        "physical_grasp_verified": {
+          "const": false
+        },
+        "d_execution_approved": {
+          "const": false
+        }
+      },
+      "required": [
+        "ik_verified",
+        "full_path_collision_verified",
+        "gripper_and_hand_verified",
+        "physical_grasp_verified",
+        "d_execution_approved"
+      ],
+      "additionalProperties": false
+    },
+    "Waypoint": {
+      "type": "object",
+      "properties": {
+        "label": {
+          "type": "string",
+          "minLength": 1
+        },
+        "motion_type": {
+          "const": "LINEAR"
+        },
+        "tcp_pose": {
+          "$ref": "#/$defs/Pose"
+        }
+      },
+      "required": [
+        "label",
+        "motion_type",
+        "tcp_pose"
+      ],
+      "additionalProperties": false
+    },
+    "Path": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "const": "CARTESIAN_WAYPOINTS"
+        },
+        "frame_id": {
+          "const": "base_link"
+        },
+        "unit": {
+          "const": "m_quaternion_xyzw"
+        },
+        "speed_profile_ref": {
+          "const": "D_EXISTING_VERIFIED_PROFILE"
+        },
+        "waypoints": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Waypoint"
+          },
+          "minItems": 3
+        }
+      },
+      "required": [
+        "kind",
+        "frame_id",
+        "unit",
+        "speed_profile_ref",
+        "waypoints"
+      ],
+      "additionalProperties": false
+    },
+    "Targets": {
+      "type": "object",
+      "properties": {
+        "target_tcp_pose_hint": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Pose"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "pre_contact_pose": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Pose"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "handover_tray_pose": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Pose"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "insertion_axis_base": {
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "type": "number"
+              },
+              "minItems": 3,
+              "maxItems": 3
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "gap_reference": {
+          "anyOf": [
+            {
+              "const": "HELD_BLOCK_BOTTOM_TO_SUPPORT_STUD_TIP_BASE_Z"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "block_bottom_clearance_m": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "held_tcp_above_block_bottom_m": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "support_stud_tip_z_m": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "target_tcp_pose_hint",
+        "pre_contact_pose",
+        "handover_tray_pose",
+        "insertion_axis_base",
+        "gap_reference",
+        "block_bottom_clearance_m",
+        "held_tcp_above_block_bottom_m",
+        "support_stud_tip_z_m"
+      ],
+      "additionalProperties": false
+    },
+    "Motion": {
+      "type": "object",
+      "properties": {
+        "motion_plan_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "motion_scope": {
+          "enum": [
+            "PICK_TRANSPORT_TO_PRE_CONTACT",
+            "PICK_TRANSPORT_TO_HANDOVER_TRAY"
+          ]
+        },
+        "pickup_tcp_pose": {
+          "$ref": "#/$defs/Pose"
+        },
+        "targets": {
+          "$ref": "#/$defs/Targets"
+        },
+        "path": {
+          "$ref": "#/$defs/Path"
+        },
+        "terminal_gripper_policy": {
+          "type": "string",
+          "minLength": 1
+        },
+        "handoff_to": {
+          "enum": [
+            "D_CONTACT",
+            "D_HANDOVER_RELEASE_AND_RETREAT"
+          ]
+        },
+        "assembly_completed": {
+          "type": "null"
+        },
+        "validation": {
+          "$ref": "#/$defs/Validation"
+        }
+      },
+      "required": [
+        "motion_plan_id",
+        "motion_scope",
+        "pickup_tcp_pose",
+        "targets",
+        "path",
+        "terminal_gripper_policy",
+        "handoff_to",
+        "assembly_completed",
+        "validation"
+      ],
+      "additionalProperties": false
+    },
+    "ReviewError": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "enum": [
+            "CURRENT_MISMATCH",
+            "PATH_BLOCKED",
+            "INPUTS_REQUIRED",
+            "SEARCH_LIMIT",
+            "STALE_RESULT",
+            "FRAME_PROFILE_CHANGED",
+            "SLOT_NOT_READY",
+            "STOP_NOT_VERIFIED",
+            "GRASP_NOT_VERIFIED",
+            "HELP_NOT_READY",
+            "EXECUTION_NOT_APPROVED",
+            "PLAN_NOT_VALID",
+            "LEASE_NOT_TRANSFERRED",
+            "INVALID_CONTEXT",
+            "NO_FEASIBLE_ORDER",
+            "NO_FEASIBLE_METHOD",
+            "CALCULATION_ERROR"
+          ]
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1
+        },
+        "block": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Block"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "code",
+        "reason",
+        "block"
+      ],
+      "additionalProperties": false
+    },
+    "Policy": {
+      "type": "object",
+      "properties": {
+        "finish_layers": {
+          "const": false
+        },
+        "minimum_support_studs": {
+          "const": 2
+        },
+        "gripper_clearance_pitch_per_side": {
+          "const": 1
+        },
+        "hand_clearance_pitch_per_side": {
+          "const": 1
+        },
+        "hand_hold_height_m": {
+          "const": 0.02
+        },
+        "max_human_hands": {
+          "const": 2
+        },
+        "held_block_pre_contact_clearance_m": {
+          "const": 0.02
+        },
+        "hold_gripper_nonintrusion_assumption": {
+          "const": true
+        },
+        "cost_order": {
+          "const": [
+            "assisted_steps",
+            "manual_steps",
+            "human_actions"
+          ]
+        },
+        "help_selection": {
+          "const": "GEOMETRIC_HEURISTIC_PROPOSAL"
+        },
+        "release_command_owner": {
+          "const": "D"
+        }
+      },
+      "required": [
+        "finish_layers",
+        "minimum_support_studs",
+        "gripper_clearance_pitch_per_side",
+        "hand_clearance_pitch_per_side",
+        "hand_hold_height_m",
+        "max_human_hands",
+        "held_block_pre_contact_clearance_m",
+        "hold_gripper_nonintrusion_assumption",
+        "cost_order",
+        "help_selection",
+        "release_command_owner"
+      ],
+      "additionalProperties": false
+    },
+    "Geometry": {
+      "type": "object",
+      "properties": {
+        "sample_kind": {
+          "const": "SYNTHETIC_NOT_USER_CALIBRATION"
+        },
+        "pitch_m": {
+          "type": "number"
+        },
+        "body_height_m": {
+          "const": 0.02
+        },
+        "stud_height_m": {
+          "type": "number"
+        },
+        "assembly_stud_origin_base_m": {
+          "type": "array",
+          "items": {
+            "type": "number"
+          },
+          "minItems": 3,
+          "maxItems": 3
+        },
+        "assembly_axis_rotation": {
+          "const": "IDENTITY_FOR_REVIEW"
+        },
+        "held_tcp_above_block_bottom_m": {
+          "const": 0.01531
+        },
+        "tcp_attitude": {
+          "const": "SYNTHETIC_VERTICAL_DOWNWARD"
+        },
+        "measured_profile_reference": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": [
+        "sample_kind",
+        "pitch_m",
+        "body_height_m",
+        "stud_height_m",
+        "assembly_stud_origin_base_m",
+        "assembly_axis_rotation",
+        "held_tcp_above_block_bottom_m",
+        "tcp_attitude",
+        "measured_profile_reference"
+      ],
+      "additionalProperties": false
+    },
+    "Design": {
+      "type": "object",
+      "properties": {
+        "design_version": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "blocks": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Block"
+          },
+          "minItems": 1
+        }
+      },
+      "required": [
+        "design_version",
+        "blocks"
+      ],
+      "additionalProperties": false
+    },
+    "Context": {
+      "type": "object",
+      "properties": {
+        "job_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "request_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "workflow_generation": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "source_epoch": {
+          "type": "string",
+          "minLength": 1
+        },
+        "design_version": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "input_current_revision": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "world_state_revision": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "frame_profile_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "plan_id": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "step_id": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "job_id",
+        "request_id",
+        "workflow_generation",
+        "source_epoch",
+        "design_version",
+        "input_current_revision",
+        "world_state_revision",
+        "frame_profile_id",
+        "plan_id",
+        "step_id"
+      ],
+      "additionalProperties": false
+    },
+    "FrameProfile": {
+      "type": "object",
+      "properties": {
+        "profile_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "calibration_version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "tcp_offset_version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "tool_geometry_version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "base_frame_id": {
+          "const": "base_link"
+        },
+        "tcp_frame_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "tcp_setting_name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "pose_unit": {
+          "const": "m"
+        },
+        "orientation": {
+          "const": "quaternion_xyzw"
+        },
+        "speed_profile": {
+          "type": "object",
+          "properties": {
+            "profile_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "version": {
+              "type": "string",
+              "minLength": 1
+            },
+            "verification": {
+              "enum": [
+                "UNVERIFIED",
+                "D_VERIFIED"
+              ]
+            }
+          },
+          "required": [
+            "profile_id",
+            "version",
+            "verification"
+          ],
+          "additionalProperties": false
+        },
+        "verification": {
+          "enum": [
+            "UNVERIFIED",
+            "D_VERIFIED"
+          ]
+        },
+        "sample_kind": {
+          "const": "SYNTHETIC_NOT_USER_CALIBRATION"
+        }
+      },
+      "required": [
+        "profile_id",
+        "calibration_version",
+        "tcp_offset_version",
+        "tool_geometry_version",
+        "base_frame_id",
+        "tcp_frame_id",
+        "tcp_setting_name",
+        "pose_unit",
+        "orientation",
+        "speed_profile",
+        "verification",
+        "sample_kind"
+      ],
+      "additionalProperties": false
+    },
+    "RobotSnapshot": {
+      "type": "object",
+      "properties": {
+        "source_epoch": {
+          "type": "string",
+          "minLength": 1
+        },
+        "state_sequence": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "tcp_frame_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "tcp_setting_name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "tcp_pose": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Pose"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "stopped_verified": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "holding_confirmed": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "active_command_count": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "pending_command_count": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "stop_observation_ref": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "freshness_policy_ref": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": [
+        "source_epoch",
+        "state_sequence",
+        "tcp_frame_id",
+        "tcp_setting_name",
+        "tcp_pose",
+        "stopped_verified",
+        "holding_confirmed",
+        "active_command_count",
+        "pending_command_count",
+        "stop_observation_ref",
+        "freshness_policy_ref"
+      ],
+      "additionalProperties": false
+    },
+    "WholePlanRequest": {
+      "type": "object",
+      "properties": {
+        "schema_version": {
+          "const": "assembly-ad-review/0.3"
+        },
+        "contract_status": {
+          "const": "DRAFT_NOT_FROZEN"
+        },
+        "sample_kind": {
+          "const": "SYNTHETIC_NOT_FOR_EXECUTION"
+        },
+        "message_type": {
+          "const": "WholePlanRequest"
+        },
+        "context": {
+          "$ref": "#/$defs/Context"
+        },
+        "design": {
+          "$ref": "#/$defs/Design"
+        },
+        "current": {
+          "$ref": "#/$defs/Current"
+        },
+        "policy": {
+          "$ref": "#/$defs/Policy"
+        },
+        "assembly_context": {
+          "$ref": "#/$defs/AssemblyContext"
+        }
+      },
+      "required": [
+        "schema_version",
+        "contract_status",
+        "sample_kind",
+        "message_type",
+        "context",
+        "design",
+        "current",
+        "policy",
+        "assembly_context"
+      ],
+      "additionalProperties": false
+    },
+    "WholePlanResult": {
+      "type": "object",
+      "properties": {
+        "schema_version": {
+          "const": "assembly-ad-review/0.3"
+        },
+        "contract_status": {
+          "const": "DRAFT_NOT_FROZEN"
+        },
+        "sample_kind": {
+          "const": "SYNTHETIC_NOT_FOR_EXECUTION"
+        },
+        "message_type": {
+          "const": "WholePlanResult"
+        },
+        "context": {
+          "$ref": "#/$defs/Context"
+        },
+        "candidate_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "review_state": {
+          "const": "STORED_FOR_REVIEW"
+        },
+        "execution_allowed": {
+          "const": false
+        },
+        "planning_result": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PlanningResult"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "action_proposals": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Action"
+          }
+        },
+        "provenance": {
+          "const": "SYNTHETIC_ACTIONS_SHARED_A_PLAN_REPLAY_ONLY"
+        },
+        "calculation_status": {
+          "enum": [
+            "COMPLETED",
+            "INPUTS_REQUIRED",
+            "SEARCH_LIMIT",
+            "INVALID_CONTEXT",
+            "NO_FEASIBLE_ORDER",
+            "CALCULATION_ERROR"
+          ]
+        },
+        "stage_errors": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ReviewError"
+          }
+        }
+      },
+      "required": [
+        "schema_version",
+        "contract_status",
+        "sample_kind",
+        "message_type",
+        "context",
+        "candidate_id",
+        "review_state",
+        "execution_allowed",
+        "planning_result",
+        "action_proposals",
+        "provenance",
+        "calculation_status",
+        "stage_errors"
+      ],
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "calculation_status": {
+                "const": "COMPLETED"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "planning_result": {
+                "$ref": "#/$defs/PlanningResult"
+              },
+              "stage_errors": {
+                "maxItems": 0
+              }
+            }
+          },
+          "else": {
+            "properties": {
+              "planning_result": {
+                "type": "null"
+              },
+              "action_proposals": {
+                "maxItems": 0
+              },
+              "stage_errors": {
+                "minItems": 1
+              }
+            }
+          }
+        }
+      ]
+    },
+    "StepReassessmentRequest": {
+      "type": "object",
+      "properties": {
+        "schema_version": {
+          "const": "assembly-ad-review/0.3"
+        },
+        "contract_status": {
+          "const": "DRAFT_NOT_FROZEN"
+        },
+        "sample_kind": {
+          "const": "SYNTHETIC_NOT_FOR_EXECUTION"
+        },
+        "message_type": {
+          "const": "StepReassessmentRequest"
+        },
+        "context": {
+          "$ref": "#/$defs/Context"
+        },
+        "design": {
+          "$ref": "#/$defs/Design"
+        },
+        "plan": {
+          "$ref": "#/$defs/Plan"
+        },
+        "plan_base_current": {
+          "$ref": "#/$defs/Current"
+        },
+        "expected_current_before_step": {
+          "$ref": "#/$defs/Current"
+        },
+        "latest_current": {
+          "$ref": "#/$defs/Current"
+        },
+        "selected_action": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Action"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "policy": {
+          "$ref": "#/$defs/Policy"
+        },
+        "assembly_context": {
+          "$ref": "#/$defs/AssemblyContext"
+        }
+      },
+      "required": [
+        "schema_version",
+        "contract_status",
+        "sample_kind",
+        "message_type",
+        "context",
+        "design",
+        "plan",
+        "plan_base_current",
+        "expected_current_before_step",
+        "latest_current",
+        "selected_action",
+        "policy",
+        "assembly_context"
+      ],
+      "additionalProperties": false
+    },
+    "StepReassessmentResult": {
+      "type": "object",
+      "properties": {
+        "schema_version": {
+          "const": "assembly-ad-review/0.3"
+        },
+        "contract_status": {
+          "const": "DRAFT_NOT_FROZEN"
+        },
+        "sample_kind": {
+          "const": "SYNTHETIC_NOT_FOR_EXECUTION"
+        },
+        "message_type": {
+          "const": "StepReassessmentResult"
+        },
+        "context": {
+          "$ref": "#/$defs/Context"
+        },
+        "assessment_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "status": {
+          "enum": [
+            "CANDIDATE",
+            "BLOCKED",
+            "ALREADY_ASSEMBLED",
+            "WAIT_PREREQUISITES",
+            "INPUTS_REQUIRED",
+            "INVALID",
+            "NEEDS_CORRECTION"
+          ]
+        },
+        "execution_allowed": {
+          "const": false
+        },
+        "action_proposal": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Action"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "errors": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ReviewError"
+          }
+        }
+      },
+      "required": [
+        "schema_version",
+        "contract_status",
+        "sample_kind",
+        "message_type",
+        "context",
+        "assessment_id",
+        "status",
+        "execution_allowed",
+        "action_proposal",
+        "errors"
+      ],
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "status": {
+                "const": "CANDIDATE"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "action_proposal": {
+                "$ref": "#/$defs/Action"
+              },
+              "errors": {
+                "maxItems": 0
+              }
+            }
+          },
+          "else": {
+            "properties": {
+              "action_proposal": {
+                "type": "null"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "StepMotionRequest": {
+      "type": "object",
+      "properties": {
+        "schema_version": {
+          "const": "assembly-ad-review/0.3"
+        },
+        "contract_status": {
+          "const": "DRAFT_NOT_FROZEN"
+        },
+        "sample_kind": {
+          "const": "SYNTHETIC_NOT_FOR_EXECUTION"
+        },
+        "message_type": {
+          "const": "StepMotionRequest"
+        },
+        "context": {
+          "$ref": "#/$defs/Context"
+        },
+        "plan": {
+          "$ref": "#/$defs/Plan"
+        },
+        "selected_step": {
+          "$ref": "#/$defs/Step"
+        },
+        "latest_current": {
+          "$ref": "#/$defs/Current"
+        },
+        "assessment_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "assessment_current_revision": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "action_proposal": {
+          "$ref": "#/$defs/Action"
+        },
+        "reserved_supply_slot": {
+          "$ref": "#/$defs/Slot"
+        },
+        "robot_state": {
+          "$ref": "#/$defs/RobotSnapshot"
+        },
+        "frame_profile": {
+          "$ref": "#/$defs/FrameProfile"
+        },
+        "synthetic_geometry": {
+          "$ref": "#/$defs/Geometry"
+        }
+      },
+      "required": [
+        "schema_version",
+        "contract_status",
+        "sample_kind",
+        "message_type",
+        "context",
+        "plan",
+        "selected_step",
+        "latest_current",
+        "assessment_id",
+        "assessment_current_revision",
+        "action_proposal",
+        "reserved_supply_slot",
+        "robot_state",
+        "frame_profile",
+        "synthetic_geometry"
+      ],
+      "additionalProperties": false
+    },
+    "StepMotionResult": {
+      "type": "object",
+      "properties": {
+        "schema_version": {
+          "const": "assembly-ad-review/0.3"
+        },
+        "contract_status": {
+          "const": "DRAFT_NOT_FROZEN"
+        },
+        "sample_kind": {
+          "const": "SYNTHETIC_NOT_FOR_EXECUTION"
+        },
+        "message_type": {
+          "const": "StepMotionResult"
+        },
+        "context": {
+          "$ref": "#/$defs/Context"
+        },
+        "assessment_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "status": {
+          "enum": [
+            "CANDIDATE",
+            "BLOCKED"
+          ]
+        },
+        "execution_allowed": {
+          "const": false
+        },
+        "motion_proposal": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Motion"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "errors": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ReviewError"
+          }
+        },
+        "reservation_binding": {
+          "$ref": "#/$defs/ReservationBinding"
+        }
+      },
+      "required": [
+        "schema_version",
+        "contract_status",
+        "sample_kind",
+        "message_type",
+        "context",
+        "assessment_id",
+        "status",
+        "execution_allowed",
+        "motion_proposal",
+        "errors",
+        "reservation_binding"
+      ],
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "status": {
+                "const": "CANDIDATE"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "motion_proposal": {
+                "$ref": "#/$defs/Motion"
+              },
+              "errors": {
+                "maxItems": 0
+              }
+            }
+          },
+          "else": {
+            "properties": {
+              "motion_proposal": {
+                "type": "null"
+              },
+              "errors": {
+                "minItems": 1
+              }
+            }
+          }
+        }
+      ]
+    },
+    "ExecutionGateReview": {
+      "type": "object",
+      "properties": {
+        "schema_version": {
+          "const": "assembly-ad-review/0.3"
+        },
+        "contract_status": {
+          "const": "DRAFT_NOT_FROZEN"
+        },
+        "sample_kind": {
+          "const": "SYNTHETIC_NOT_FOR_EXECUTION"
+        },
+        "message_type": {
+          "const": "ExecutionGateReview"
+        },
+        "context": {
+          "$ref": "#/$defs/Context"
+        },
+        "motion_plan_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "checks": {
+          "type": "object",
+          "properties": {
+            "plan_replay": {
+              "enum": [
+                "PASS",
+                "FAIL",
+                "UNKNOWN"
+              ]
+            },
+            "action_reassessed": {
+              "enum": [
+                "PASS",
+                "FAIL",
+                "UNKNOWN"
+              ]
+            },
+            "candidate_is_runtime_data": {
+              "enum": [
+                "PASS",
+                "FAIL",
+                "UNKNOWN"
+              ]
+            },
+            "current_matches_assessment": {
+              "enum": [
+                "PASS",
+                "FAIL",
+                "UNKNOWN"
+              ]
+            },
+            "world_matches_motion": {
+              "enum": [
+                "PASS",
+                "FAIL",
+                "UNKNOWN"
+              ]
+            },
+            "profile_verified": {
+              "enum": [
+                "PASS",
+                "FAIL",
+                "UNKNOWN"
+              ]
+            },
+            "slot_part_ready": {
+              "enum": [
+                "PASS",
+                "FAIL",
+                "UNKNOWN"
+              ]
+            },
+            "path_verified": {
+              "enum": [
+                "PASS",
+                "FAIL",
+                "UNKNOWN"
+              ]
+            },
+            "robot_state_fresh": {
+              "enum": [
+                "PASS",
+                "FAIL",
+                "UNKNOWN"
+              ]
+            },
+            "execution_controller_available": {
+              "enum": [
+                "PASS",
+                "FAIL",
+                "UNKNOWN"
+              ]
+            }
+          },
+          "required": [
+            "plan_replay",
+            "action_reassessed",
+            "candidate_is_runtime_data",
+            "current_matches_assessment",
+            "world_matches_motion",
+            "profile_verified",
+            "slot_part_ready",
+            "path_verified",
+            "robot_state_fresh",
+            "execution_controller_available"
+          ],
+          "additionalProperties": false
+        },
+        "decision": {
+          "const": "HOLD_FOR_REVIEW"
+        },
+        "execution_allowed": {
+          "const": false
+        },
+        "expected_runtime_decision": {
+          "enum": [
+            "BLOCK",
+            "ELIGIBLE_FOR_D_AUTHORIZATION"
+          ]
+        },
+        "reasons": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      },
+      "required": [
+        "schema_version",
+        "contract_status",
+        "sample_kind",
+        "message_type",
+        "context",
+        "motion_plan_id",
+        "checks",
+        "decision",
+        "execution_allowed",
+        "expected_runtime_decision",
+        "reasons"
+      ],
+      "additionalProperties": false
+    },
+    "BoundaryReview": {
+      "type": "object",
+      "properties": {
+        "schema_version": {
+          "const": "assembly-ad-review/0.3"
+        },
+        "contract_status": {
+          "const": "DRAFT_NOT_FROZEN"
+        },
+        "sample_kind": {
+          "const": "SYNTHETIC_NOT_FOR_EXECUTION"
+        },
+        "message_type": {
+          "const": "BoundaryReview"
+        },
+        "context": {
+          "$ref": "#/$defs/Context"
+        },
+        "scenario": {
+          "enum": [
+            "PRE_CONTACT_UNKNOWN",
+            "CONTACT_HANDOFF_READY",
+            "HANDOVER_TRAY",
+            "CANCEL_WHILE_HOLDING"
+          ]
+        },
+        "motion_scope": {
+          "enum": [
+            "PICK_TRANSPORT_TO_PRE_CONTACT",
+            "PICK_TRANSPORT_TO_HANDOVER_TRAY"
+          ]
+        },
+        "motion_result_status": {
+          "enum": [
+            "SUCCEEDED",
+            "CANCELED",
+            "FAILED",
+            "TIMED_OUT",
+            "REJECTED"
+          ]
+        },
+        "stopped_verified": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "holding_confirmed": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "no_active_or_pending_commands": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "target_and_tcp_matched": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "snapshot_fresh": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "help_ready": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "old_motion_lease_invalidated": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "contact_lease_applied_ack": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "d_latest_condition_accepted": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "expected_next_action": {
+          "enum": [
+            "BLOCK_CONTACT",
+            "ELIGIBLE_FOR_D_CONTACT_AUTHORIZATION",
+            "D_RELEASE_AND_RETREAT",
+            "HOLD_AND_WAIT_RECOVERY",
+            "D_RECOVERY_REVIEW"
+          ]
+        },
+        "execution_allowed": {
+          "const": false
+        },
+        "assembly_completed": {
+          "const": false
+        },
+        "terminal_gripper_policy": {
+          "enum": [
+            "HOLD_NO_AUTOMATIC_OPEN",
+            "D_TRAY_RELEASE"
+          ]
+        }
+      },
+      "required": [
+        "schema_version",
+        "contract_status",
+        "sample_kind",
+        "message_type",
+        "context",
+        "scenario",
+        "motion_scope",
+        "motion_result_status",
+        "stopped_verified",
+        "holding_confirmed",
+        "no_active_or_pending_commands",
+        "target_and_tcp_matched",
+        "snapshot_fresh",
+        "help_ready",
+        "old_motion_lease_invalidated",
+        "contact_lease_applied_ack",
+        "d_latest_condition_accepted",
+        "expected_next_action",
+        "execution_allowed",
+        "assembly_completed",
+        "terminal_gripper_policy"
+      ],
+      "additionalProperties": false
+    },
+    "ReservationBinding": {
+      "type": "object",
+      "properties": {
+        "slot_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "reservation_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "reservation_generation": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "bound_workflow_generation": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "slot_id",
+        "reservation_id",
+        "reservation_generation",
+        "bound_workflow_generation"
+      ],
+      "additionalProperties": false
+    },
+    "AssemblyContext": {
+      "type": "object",
+      "properties": {
+        "profile_source": {
+          "enum": [
+            "TEST_ONLY",
+            "MEASURED"
+          ]
+        },
+        "rule_source": {
+          "type": "string",
+          "minLength": 1
+        },
+        "space_model": {
+          "const": "STUD_RULES"
+        },
+        "human_press_policy": {
+          "enum": [
+            "NONE",
+            "CONTACT_HULL"
+          ]
+        },
+        "hold_gripper_nonintrusion_assumption": {
+          "type": "boolean"
+        },
+        "geometry": {
+          "type": "object",
+          "properties": {
+            "pitch_mm": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "body_height_mm": {
+              "const": 20
+            },
+            "stud_height_mm": {
+              "type": "number",
+              "minimum": 0
+            },
+            "grip_bottom_offset_mm": {
+              "type": "number",
+              "minimum": 0
+            }
+          },
+          "required": [
+            "pitch_mm",
+            "body_height_mm",
+            "stud_height_mm",
+            "grip_bottom_offset_mm"
+          ],
+          "additionalProperties": false
+        },
+        "human_sides": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "-x",
+              "+x",
+              "-y",
+              "+y"
+            ]
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "grip_axes": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "x",
+              "y"
+            ]
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "finish_layers": {
+          "type": "boolean"
+        },
+        "max_states": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "minimal_release_model_confirmed": {
+          "type": "boolean"
+        },
+        "press_contact_model_confirmed": {
+          "type": "boolean"
+        },
+        "obstacles": {
+          "type": "array",
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "number"
+            },
+            "minItems": 6,
+            "maxItems": 6
+          }
+        },
+        "assumption_notes": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      },
+      "required": [
+        "profile_source",
+        "rule_source",
+        "space_model",
+        "human_press_policy",
+        "hold_gripper_nonintrusion_assumption",
+        "geometry",
+        "human_sides",
+        "grip_axes",
+        "finish_layers",
+        "max_states",
+        "minimal_release_model_confirmed",
+        "press_contact_model_confirmed",
+        "obstacles",
+        "assumption_notes"
+      ],
+      "additionalProperties": false
+    }
+  }
+}
