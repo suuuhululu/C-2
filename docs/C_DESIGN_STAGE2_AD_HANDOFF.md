@@ -107,3 +107,9 @@ C는 아래 D 코드·테스트를 수정하지 않았습니다. 2026-10-08 기�
 | # | 소유 | 파일:줄 | REQUIRED CHANGE (현재 → 필요) | AFFECTED INTERFACE | REASON |
 | --- | --- | --- | --- | --- | --- |
 | 41 | D | `app/c_text_connection.py`(`create_initial_design`·`run_intervention` 호출부) | 필수 아님(선택, Stage 3 후보): `on_progress=callback`을 넘기면 C의 진행 단계(`{stage, message, at}`, 예: ACK 문장·"디자인을 생성하고 있어요.")를 HMI에 표시할 수 있음 | C §4.1·§4.2 `on_progress` (기본 `None`이면 지금과 동일) | 진행 이벤트는 envelope·Design에 넣지 않으므로 D가 콜백을 넘기지 않으면 아무 영향이 없습니다. 텍스트 모드 호출에서는 C가 음성을 내지 않습니다 |
+
+## Stage 3 Wave 1 Preview 검토가 D에 주는 항목 (2026-10-11 추가)
+
+| # | 소유 | 파일:줄 | REQUIRED CHANGE (현재 → 필요) | AFFECTED INTERFACE | REASON |
+| --- | --- | --- | --- | --- | --- |
+| 42 | D | `app/c_text_connection.py`·HMI Preview 표시 경로(Candidate Design을 그린 직후) | Preview 표시가 끝난 시점에 `c_main.review_design_candidate(candidate, kind="initial"|"revised", design_metadata=…, on_question=…, should_stop=…)`를 부르고, 결과 `hri_result`로 다음 단계 결정: APPROVE → 후보를 승인 Design으로 채택(A Plan·조립 진행), MODIFY → `design_metadata.review.style_hint`로 재생성 요청(C 재생성 API는 Stage 3 Wave 2), UNCLEAR → 보류·다시 검토, CANCEL(status CANCELLED, USER_CANCEL) → 작업 중단. 결과 처리·상태 전이는 Stage 3 Wave 2~3 | C §4.4 `review_design_candidate` (신규, 기존 `create_initial_design`·`run_intervention` 불변) | C는 Preview를 그리지 않고 표시 완료도 확인하지 않으므로 호출 시점은 D가 정합니다. `design`은 입력 후보와 같은 내용이며 승인 여부는 `hri_result`로만 전달됩니다(Design에 승인 표시 없음). 텍스트 모드(`text_answers`)에서는 C가 음성을 내지 않습니다 |

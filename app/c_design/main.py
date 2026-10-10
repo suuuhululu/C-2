@@ -20,6 +20,10 @@
       → REVISE면 designer.build_revised_design(6회) → 탈락 시 §8.11 escalation 질문
       → "계속 찾기"면 4회 더(합계 10회) → 실패면 DESIGN_GENERATION_FAILED
     - Current가 support 후보 기준을 위반하면 재생성 없이 바로 escalation 질문
+    - review_design_candidate(Stage 3 Wave 1): D가 Candidate Design의 Preview를 화면에 보인 뒤 부른다. 검토 질문 →
+      (음성) free·beep 듣기 → dialogue.parse_review_response(LLM 모드에서만 llm.interpret_review_answer fallback) →
+      APPROVE / MODIFY(style_hint까지만, 재생성 없음) / UNCLEAR(재질문 1회) / CANCEL → 확인 문장. design은 입력 candidate를
+      바꾸지 않고 그대로 돌려주며, 검토 결과는 design_metadata.review에만 담는다. Intervention의 KEEP/REVISE와 섞지 않는다.
     - 진행 표시(Stage 2 Wave 4c): 두 공개 함수의 on_progress(선택)로 단계 이벤트 {stage, message, at}(PROGRESS_STAGES)를
       보내고, Design 생성 전에 항상 확인(ack) 한 문장(해석 reply 또는 dialogue fallback, KEEP은 keep_ack)을 낸다.
       LLM 음성 모드에서만 ack와 dialogue.PROGRESS_TTS_STAGES 문장을 읽는다. 진행은 envelope·Design에 넣지 않는다.
@@ -49,6 +53,7 @@
 
 import os
 import time
+from copy import deepcopy
 
 from app.c_design import designer, dialogue, llm, validator, voice
 
@@ -77,8 +82,11 @@ _STOP = object()
 # → READY. Revised: LISTENING → UNDERSTANDING → ACK(REVISE) 또는 KEEP_ACK(KEEP) → GENERATING_REVISED → VALIDATING → JUDGING
 # → (REGENERATING → VALIDATING → JUDGING) → READY_REVISED. 끝이 실패·취소면 FAILED·CANCELLED, escalation 질문은 ESCALATION.
 # HRI_INTERPRET(Stage 2 Wave 4e, LLM 모드 Intervention): 답변 결정 직후 decision·source(rule|llm)·reason·style_hint 디버그 이벤트.
+# Preview 검토(Stage 3 Wave 1): REVIEW_LISTENING → REVIEW_UNDERSTANDING → HRI_INTERPRET → REVIEW_ACK → REVIEW_READY
+# (UNCLEAR·침묵이면 재질문 1회, CANCEL은 REVIEW_ACK 뒤 CANCELLED). 음성으로 읽는 것은 질문·재질문·REVIEW_ACK뿐.
 PROGRESS_STAGES = ("LISTENING", "UNDERSTANDING", "HRI_INTERPRET", "ACK", "KEEP_ACK", "GENERATING", "GENERATING_REVISED", "VALIDATING",
-                   "DESCRIBING", "JUDGING", "REGENERATING", "ESCALATION", "READY", "READY_REVISED", "FAILED", "CANCELLED")
+                   "DESCRIBING", "JUDGING", "REGENERATING", "ESCALATION", "READY", "READY_REVISED", "FAILED", "CANCELLED",
+                   "REVIEW_LISTENING", "REVIEW_UNDERSTANDING", "REVIEW_ACK", "REVIEW_READY")
 
 
 def _clock():
@@ -641,3 +649,124 @@ def _intervention(design, current, differences, text_answers, on_question, shoul
         if choice == dialogue.REVISE:
             return revise()
         ask(dialogue.build_reask(question))
+
+
+
+REVIEW_KINDS = ("initial", "revised")
+
+
+def review_design_candidate(candidate, *, kind, design_metadata=None, text_answers=None, on_question=None, should_stop=None,
+                            on_progress=None):
+    """Preview가 표시된 Candidate Design에 대한 사용자 검토 (§4.4, Stage 3 Wave 1). 예외를 밖으로 던지지 않는다(콜백 제외).
+
+    kind: "initial" 또는 "revised"(질문 문장·LLM 해석 문맥). design_metadata: 후보의 metadata(복사해 review를 붙여 돌려줌).
+    text_answers: 텍스트 모드 답변(None이면 음성 모드). 결과 hri_result는 APPROVE / MODIFY / UNCLEAR, CANCEL이면 status CANCELLED.
+    """
+    use_llm = _use_llm()
+    progress = _reporter(on_progress, text_answers is None and use_llm)  # REVIEW_* 단계는 읽지 않고 ack만 읽는다
+    return _report_end(progress, _review(candidate, kind, design_metadata, text_answers, on_question, should_stop,
+                                         progress, use_llm))
+
+
+def _review(candidate, kind, design_metadata, text_answers, on_question, should_stop, progress, use_llm):
+    if kind not in REVIEW_KINDS:
+        return _result("FAILED", code="INVALID_INPUT", message=f"kind must be one of {list(REVIEW_KINDS)}")
+    reasons = validator.validate_design(candidate)
+    if reasons:
+        return _result("FAILED", code="INVALID_INPUT", message="invalid candidate design", details=reasons)
+    if design_metadata is not None and not isinstance(design_metadata, dict):
+        return _result("FAILED", code="INVALID_INPUT", message="design_metadata must be a dict or None")
+    design = deepcopy(candidate)  # 후보는 읽기 전용: 같은 내용을 새 객체로 돌려준다
+    metadata = deepcopy(design_metadata) if design_metadata is not None else {}
+
+    questions = []
+    voice_mode = text_answers is None
+    answers = None if voice_mode else iter(text_answers)
+    state = {"style_hint": None, "reply": None, "reason": None, "stopped": False, "interpreted": False, "rounds": 0}
+
+    def ask(sentence):
+        questions.append(sentence)
+        if on_question is not None:
+            on_question(sentence)
+        if voice_mode and use_llm:  # Mock은 음성 없이 규칙만(질문은 on_question·questions로 전달)
+            voice.speak(sentence)
+
+    def stop_requested():
+        return should_stop is not None and should_stop()
+
+    def ask_review_llm(text):
+        """llm 검토 해석 1회. 쓸 수 있는 dict 또는 None(STOP이면 state["stopped"])."""
+        state["interpreted"] = True
+        answer = llm.interpret_review_answer(text, kind, should_stop=should_stop)
+        kind_error = _llm_error_kind(answer)
+        if kind_error == "stopped":
+            state["stopped"] = True
+        if kind_error or any(key not in answer for key in llm.REVIEW_KEYS):
+            return None
+        state["reason"] = answer["reason"] if isinstance(answer["reason"], str) else None
+        return answer
+
+    def text_of(answer, key):
+        value = answer.get(key) if answer is not None else None
+        return value if isinstance(value, str) and value.strip() else None
+
+    def interpret(text):
+        """Rule이 정하지 못한 검토 답(LLM 모드만). 해석 실패·키 누락은 UNCLEAR."""
+        answer = ask_review_llm(text)
+        if answer is None:
+            return dialogue.UNCLEAR
+        state["style_hint"] = text_of(answer, "style_hint") if answer["decision"] == dialogue.MODIFY else None
+        state["reply"] = text_of(answer, "reply")
+        return answer["decision"]
+
+    def outcome(decision, source):
+        review = {"kind": kind, "decision": decision, "style_hint": state["style_hint"], "round": state["rounds"],
+                  "source": source, "reply": state["reply"]}
+        return dict(metadata, review=review)
+
+    question = dialogue.build_review_question(kind)
+    for attempt in range(2):  # 첫 질문 + 불명확·침묵일 때 재질문 1회
+        if stop_requested():
+            return _stopped(questions)
+        progress("REVIEW_LISTENING")
+        ask(question if attempt == 0 else dialogue.build_review_reask())
+        reply = voice.listen(mode="free", beep=True) if voice_mode else next(answers, None)
+        if reply is None:
+            if voice_mode:
+                return _result("FAILED", questions=questions, code="VOICE_IO_FAILED", message=_voice_failure())
+            break  # 텍스트 답변 소진
+        if not dialogue.is_meaningful(reply):
+            continue  # 침묵: 한 번만 다시 묻는다
+        state["rounds"] += 1
+        state.update(style_hint=None, reply=None, reason=None, interpreted=False)
+        progress("REVIEW_UNDERSTANDING")
+        decision = dialogue.parse_review_response(reply, interpret if use_llm else None)
+        source = "llm" if state["interpreted"] else "rule"
+        if use_llm and decision == dialogue.MODIFY and not state["interpreted"]:
+            # Rule이 MODIFY로 정한 답에서 바꾸고 싶은 방향만 받는다(decision은 Rule 그대로, 실패면 힌트 없이 진행).
+            answer = ask_review_llm(reply)
+            state["style_hint"] = text_of(answer, "style_hint")
+            state["reply"] = text_of(answer, "reply") if answer is not None and answer["decision"] == dialogue.MODIFY else None
+        if state["stopped"]:
+            return _stopped(questions)
+        progress("HRI_INTERPRET", f"decision={decision} source={source} reason={state['reason'] or ''} "
+                                  f"style_hint={state['style_hint'] or ''}")
+        if decision == dialogue.UNCLEAR:
+            continue
+        if decision == dialogue.APPROVE:
+            ack = state["reply"] or dialogue.approve_ack()
+        elif decision == dialogue.MODIFY:
+            ack = state["reply"] or dialogue.modify_ack_fallback(state["style_hint"])
+        else:
+            ack = state["reply"] or dialogue.cancel_ack()
+        state["reply"] = ack
+        progress("REVIEW_ACK", ack, say=True)
+        if decision == dialogue.CANCEL:
+            return _result("CANCELLED", "CANCEL", design, questions, code="USER_CANCEL", message="cancelled by user",
+                           design_metadata=outcome(decision, source))
+        progress("REVIEW_READY")
+        return _result("OK", decision, design, questions, design_metadata=outcome(decision, source))
+    state["reply"] = None
+    progress("REVIEW_READY")
+    return _result("OK", dialogue.UNCLEAR, design, questions,
+                   design_metadata=outcome(dialogue.UNCLEAR, "llm" if state["interpreted"] else "rule"))

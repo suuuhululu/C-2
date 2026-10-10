@@ -8,6 +8,9 @@
     - Initial 인사(build_greeting, Stage 2 Wave 4b: C가 먼저 "오늘 어떤 걸 만들고 싶으세요?"라고 묻는다)와 첫 자유 발화 중
       명시적 "아무거나·알아서·맡길게요"류 판정(parse_initial_request → ANY 또는 None. None이면 호출자가 LLM 해석으로 넘긴다).
       지원하지 않는 사물·침묵 재질문에 쓰는 고정 문장(UNSUPPORTED_REPLY·SILENCE_REASK).
+    - Preview 검토(Stage 3 Wave 1): D가 Candidate Design을 화면에 보인 뒤 묻는 검토 질문(build_review_question)·재질문,
+      검토 답변 해석 → APPROVE / MODIFY / UNCLEAR / CANCEL(parse_review_response, Intervention의 KEEP/REVISE와 별개),
+      검토 확인 문장(approve_ack·modify_ack_fallback·cancel_ack).
     - 진행 안내(Stage 2 Wave 4c): 단계별 고정 문장 PROGRESS_MESSAGES와 음성으로 읽는 단계 PROGRESS_TTS_STAGES,
       LLM 되읽기(reply)가 없을 때 쓰는 확인 문장(initial_ack_fallback·revise_ack_fallback)과 KEEP 확인(keep_ack).
       확인 문장은 후보 중 무작위로 고르되 바로 앞과 같은 문장은 피한다.
@@ -53,8 +56,11 @@ UNSUPPORTED_REPLY = "죄송해요, 지금은 의자나 벤치 같은 앉는 가�
 SILENCE_REASK = "잘 못 들었어요. 오늘 어떤 걸 만들고 싶으세요?"
 
 # 진행 단계별 고정 안내(로그·HMI·음성 공용). 음성 모드에서는 PROGRESS_TTS_STAGES만 읽는다(나머지는 로그·콜백만).
-# LISTENING·UNDERSTANDING·REGENERATING·ESCALATION은 로그·콜백 전용 문장이다(음성으로 읽지 않음).
+# LISTENING·UNDERSTANDING·REGENERATING·ESCALATION·REVIEW_*는 로그·콜백 전용 문장이다(음성으로 읽지 않음).
 PROGRESS_MESSAGES = {
+    "REVIEW_LISTENING": "검토 답변을 듣고 있어요.",
+    "REVIEW_UNDERSTANDING": "답변을 이해하고 있어요.",
+    "REVIEW_READY": "검토 결과를 정리했어요.",
     "LISTENING": "말씀을 듣고 있어요.",
     "UNDERSTANDING": "말씀하신 내용을 이해하고 있어요.",
     "REGENERATING": "디자인을 한 번 더 다듬고 있어요.",
@@ -117,6 +123,45 @@ def revise_ack_fallback(style_hint=None):
     if isinstance(style_hint, str) and style_hint.strip():
         return _pick(REVISE_HINT_ACKS).format(hint=style_hint.strip())
     return _pick(REVISE_ACKS)
+
+
+APPROVE_ACKS = (
+    "좋아요. 이 디자인으로 진행할게요.",
+    "알겠습니다. 이 디자인으로 확정할게요.",
+    "네, 마음에 드신다니 이대로 진행할게요.",
+)
+MODIFY_ACKS = (
+    "알겠습니다. 어떤 점을 바꾸면 좋을지 반영해서 다시 볼게요.",
+    "좋아요. 말씀하신 대로 바꿔 볼게요.",
+    "네, 디자인을 다시 손볼게요.",
+)
+MODIFY_HINT_ACKS = (
+    "좋아요. {hint} 쪽으로 다시 만들어볼게요.",
+    "알겠습니다. {hint} 느낌으로 바꿔 볼게요.",
+    "네, {hint} 방향으로 디자인을 다시 손볼게요.",
+)
+CANCEL_ACKS = (
+    "알겠습니다. 이번 디자인 작업은 여기서 멈출게요.",
+    "네, 디자인 작업을 여기서 마칠게요.",
+    "알겠어요. 오늘 작업은 여기까지 할게요.",
+)
+
+
+def approve_ack():
+    """Preview 검토 APPROVE 확인 문장(LLM reply가 없을 때). 후보 중 무작위, 바로 앞과 다른 문장."""
+    return _pick(APPROVE_ACKS)
+
+
+def modify_ack_fallback(style_hint=None):
+    """Preview 검토 MODIFY 확인 문장(LLM reply가 없을 때). style_hint가 있으면 그 방향을 넣는다."""
+    if isinstance(style_hint, str) and style_hint.strip():
+        return _pick(MODIFY_HINT_ACKS).format(hint=style_hint.strip())
+    return _pick(MODIFY_ACKS)
+
+
+def cancel_ack():
+    """Preview 검토 CANCEL 확인 문장(LLM reply가 없을 때)."""
+    return _pick(CANCEL_ACKS)
 
 
 def initial_ack_fallback(family=None, concept=None):
@@ -416,6 +461,50 @@ def build_question(design, current, differences):
     lines.extend(_describe_difference(diff) for diff in differences)
     lines.append(_INTERVENTION_GUIDE)
     return "\n".join(lines)
+
+
+APPROVE = "APPROVE"
+MODIFY = "MODIFY"
+REVIEW_QUESTIONS = {
+    "initial": "완성된 디자인이 화면에 표시됐어요. 어떠신가요?",
+    "revised": "수정된 디자인이 화면에 표시됐어요. 어떠신가요?",
+}
+REVIEW_REASK = "어떤 부분을 바꾸고 싶으신지 조금만 더 말씀해 주시겠어요? 이대로 괜찮으시면 그렇게 말씀해 주셔도 돼요."
+
+# 검토 답변 규칙(작게 유지): 명확한 경우만 정하고 나머지 뜻은 LLM 해석에 맡긴다. 숫자 답은 받지 않는다(주관식 전용).
+_REVIEW_CANCEL_PHRASES = _CANCEL_PHRASES + ("그만할래", "안만들래", "작업그만")
+_REVIEW_PHRASES = {
+    APPROVE: ("이걸로", "마음에들", "그대로진행", "이대로진행", "좋아이걸로", "괜찮아이걸로", "이거로하자"),
+    MODIFY: ("바꿔", "바꾸", "다시만들", "다른느낌", "다른모양", "다른걸로", "다른것", "말고", "수정",
+             "더높", "더길", "더넓", "더화려", "더단순", "조금더", "좀더"),
+}
+_REVIEW_APPROVE_WHOLE = ("좋아", "좋아요", "좋습니다", "좋네요", "네좋아요", "응좋아")  # 답변 전체일 때만
+
+
+def build_review_question(kind):
+    """Preview 검토 질문. kind는 "initial" 또는 "revised"."""
+    return REVIEW_QUESTIONS[kind]
+
+
+def build_review_reask():
+    """검토 답변이 불명확할 때 한 번 다시 묻는 문장."""
+    return REVIEW_REASK
+
+
+def parse_review_response(text, llm_fallback=None):
+    """Preview 검토 답변 → APPROVE / MODIFY / UNCLEAR / CANCEL(Intervention의 KEEP/REVISE와 별개).
+
+    정규화 → 취소(부정 없음) → 짧은 긍정 답 전체 → APPROVE·MODIFY 구문(부정이 섞이면 애매) → 두 부류·무일치·애매면
+    llm_fallback(text)(네 값 밖은 UNCLEAR) → UNCLEAR.
+    """
+    norm = _normalize(text or "")
+    allowed = {APPROVE, MODIFY, UNCLEAR, CANCEL}
+    if any(phrase in norm for phrase in _REVIEW_CANCEL_PHRASES) and not _has_negation(norm):
+        return CANCEL
+    if norm in _REVIEW_APPROVE_WHOLE:
+        return APPROVE
+    votes, negated = _phrase_votes(norm, _REVIEW_PHRASES)
+    return _finish(text, votes, negated, allowed, llm_fallback)
 
 
 REASK_LEAD = (
