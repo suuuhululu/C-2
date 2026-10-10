@@ -1,0 +1,250 @@
+#usda 1.0
+(
+    customLayerData = {
+        string creator = "URDF USD Converter v0.3.2"
+    }
+    defaultPrim = "m0609_rg2"
+    endTimeCode = 1000000
+    kilogramsPerUnit = 1
+    metersPerUnit = 1
+    startTimeCode = 0
+    subLayers = [
+        @./physics.usda@
+    ]
+    upAxis = "Z"
+)
+
+over "m0609_rg2"
+{
+    over "Physics"
+    {
+        over "joint_1" (
+            delete apiSchemas = ["PhysicsDriveAPI:angular", "PhysicsJointStateAPI:angular"]
+            prepend apiSchemas = ["MjcJointAPI"]
+        )
+        {
+        }
+
+        over "joint_2" (
+            delete apiSchemas = ["PhysicsDriveAPI:angular", "PhysicsJointStateAPI:angular"]
+            prepend apiSchemas = ["MjcJointAPI"]
+        )
+        {
+        }
+
+        over "joint_3" (
+            delete apiSchemas = ["PhysicsDriveAPI:angular", "PhysicsJointStateAPI:angular"]
+            prepend apiSchemas = ["MjcJointAPI"]
+        )
+        {
+        }
+
+        over "joint_4" (
+            delete apiSchemas = ["PhysicsDriveAPI:angular", "PhysicsJointStateAPI:angular"]
+            prepend apiSchemas = ["MjcJointAPI"]
+        )
+        {
+        }
+
+        over "joint_5" (
+            delete apiSchemas = ["PhysicsDriveAPI:angular", "PhysicsJointStateAPI:angular"]
+            prepend apiSchemas = ["MjcJointAPI"]
+        )
+        {
+        }
+
+        over "joint_6" (
+            delete apiSchemas = ["PhysicsDriveAPI:angular", "PhysicsJointStateAPI:angular"]
+            prepend apiSchemas = ["MjcJointAPI"]
+        )
+        {
+        }
+
+        over "rg2_finger_joint" (
+            delete apiSchemas = ["PhysicsDriveAPI:angular", "PhysicsJointStateAPI:angular"]
+            prepend apiSchemas = ["MjcJointAPI"]
+        )
+        {
+        }
+
+        over "rg2_left_inner_knuckle_joint" (
+            delete apiSchemas = ["PhysicsDriveAPI:angular", "PhysicsJointStateAPI:angular"]
+            prepend apiSchemas = ["MjcJointAPI"]
+        )
+        {
+        }
+
+        over "rg2_left_inner_finger_joint" (
+            delete apiSchemas = ["PhysicsDriveAPI:angular", "PhysicsJointStateAPI:angular"]
+            prepend apiSchemas = ["MjcJointAPI"]
+        )
+        {
+        }
+
+        over "rg2_right_outer_knuckle_joint" (
+            delete apiSchemas = ["PhysicsDriveAPI:angular", "PhysicsJointStateAPI:angular"]
+            prepend apiSchemas = ["MjcJointAPI"]
+        )
+        {
+        }
+
+        over "rg2_right_inner_knuckle_joint" (
+            delete apiSchemas = ["PhysicsDriveAPI:angular", "PhysicsJointStateAPI:angular"]
+            prepend apiSchemas = ["MjcJointAPI"]
+        )
+        {
+        }
+
+        over "rg2_right_inner_finger_joint" (
+            delete apiSchemas = ["PhysicsDriveAPI:angular", "PhysicsJointStateAPI:angular"]
+            prepend apiSchemas = ["MjcJointAPI"]
+        )
+        {
+        }
+
+        def MjcActuator "joint_1_actuator"
+        {
+            uniform double[] mjc:biasPrm = [0, -17.453292846679688, -1.7453292608261108, 0, 0, 0, 0, 0, 0, 0]
+            uniform token mjc:biasType = "affine"
+            uniform double mjc:forceRange:max = 163
+            uniform double mjc:forceRange:min = -163
+            uniform double[] mjc:gainPrm = [17.453292846679688, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+            uniform token mjc:gainType = "fixed"
+            custom rel mjc:target
+            append rel mjc:target = </m0609_rg2/Physics/joint_1>
+        }
+
+        def MjcActuator "joint_2_actuator"
+        {
+            uniform double[] mjc:biasPrm = [0, -17.453292846679688, -1.7453292608261108, 0, 0, 0, 0, 0, 0, 0]
+            uniform token mjc:biasType = "affine"
+            uniform double mjc:forceRange:max = 163
+            uniform double mjc:forceRange:min = -163
+            uniform double[] mjc:gainPrm = [17.453292846679688, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+            uniform token mjc:gainType = "fixed"
+            custom rel mjc:target
+            append rel mjc:target = </m0609_rg2/Physics/joint_2>
+        }
+
+        def MjcActuator "joint_3_actuator"
+        {
+            uniform double[] mjc:biasPrm = [0, -17.453292846679688, -1.7453292608261108, 0, 0, 0, 0, 0, 0, 0]
+            uniform token mjc:biasType = "affine"
+            uniform double mjc:forceRange:max = 96
+            uniform double mjc:forceRange:min = -96
+            uniform double[] mjc:gainPrm = [17.453292846679688, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+            uniform token mjc:gainType = "fixed"
+            custom rel mjc:target
+            append rel mjc:target = </m0609_rg2/Physics/joint_3>
+        }
+
+        def MjcActuator "joint_4_actuator"
+        {
+            uniform double[] mjc:biasPrm = [0, -17.453292846679688, -1.7453292608261108, 0, 0, 0, 0, 0, 0, 0]
+            uniform token mjc:biasType = "affine"
+            uniform double mjc:forceRange:max = 50
+            uniform double mjc:forceRange:min = -50
+            uniform double[] mjc:gainPrm = [17.453292846679688, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+            uniform token mjc:gainType = "fixed"
+            custom rel mjc:target
+            append rel mjc:target = </m0609_rg2/Physics/joint_4>
+        }
+
+        def MjcActuator "joint_5_actuator"
+        {
+            uniform double[] mjc:biasPrm = [0, -17.453292846679688, -1.7453292608261108, 0, 0, 0, 0, 0, 0, 0]
+            uniform token mjc:biasType = "affine"
+            uniform double mjc:forceRange:max = 50
+            uniform double mjc:forceRange:min = -50
+            uniform double[] mjc:gainPrm = [17.453292846679688, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+            uniform token mjc:gainType = "fixed"
+            custom rel mjc:target
+            append rel mjc:target = </m0609_rg2/Physics/joint_5>
+        }
+
+        def MjcActuator "joint_6_actuator"
+        {
+            uniform double[] mjc:biasPrm = [0, -17.453292846679688, -1.7453292608261108, 0, 0, 0, 0, 0, 0, 0]
+            uniform token mjc:biasType = "affine"
+            uniform double mjc:forceRange:max = 50
+            uniform double mjc:forceRange:min = -50
+            uniform double[] mjc:gainPrm = [17.453292846679688, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+            uniform token mjc:gainType = "fixed"
+            custom rel mjc:target
+            append rel mjc:target = </m0609_rg2/Physics/joint_6>
+        }
+
+        def MjcActuator "rg2_finger_joint_actuator"
+        {
+            uniform double[] mjc:biasPrm = [0, -17.453292846679688, -1.7453292608261108, 0, 0, 0, 0, 0, 0, 0]
+            uniform token mjc:biasType = "affine"
+            uniform double mjc:forceRange:max = 1000
+            uniform double mjc:forceRange:min = -1000
+            uniform double[] mjc:gainPrm = [17.453292846679688, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+            uniform token mjc:gainType = "fixed"
+            custom rel mjc:target
+            append rel mjc:target = </m0609_rg2/Physics/rg2_finger_joint>
+        }
+
+        def MjcActuator "rg2_left_inner_knuckle_joint_actuator"
+        {
+            uniform double[] mjc:biasPrm = [0, -17.453292846679688, -1.7453292608261108, 0, 0, 0, 0, 0, 0, 0]
+            uniform token mjc:biasType = "affine"
+            uniform double mjc:forceRange:max = 1000
+            uniform double mjc:forceRange:min = -1000
+            uniform double[] mjc:gainPrm = [17.453292846679688, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+            uniform token mjc:gainType = "fixed"
+            custom rel mjc:target
+            append rel mjc:target = </m0609_rg2/Physics/rg2_left_inner_knuckle_joint>
+        }
+
+        def MjcActuator "rg2_left_inner_finger_joint_actuator"
+        {
+            uniform double[] mjc:biasPrm = [0, -17.453292846679688, -1.7453292608261108, 0, 0, 0, 0, 0, 0, 0]
+            uniform token mjc:biasType = "affine"
+            uniform double mjc:forceRange:max = 1000
+            uniform double mjc:forceRange:min = -1000
+            uniform double[] mjc:gainPrm = [17.453292846679688, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+            uniform token mjc:gainType = "fixed"
+            custom rel mjc:target
+            append rel mjc:target = </m0609_rg2/Physics/rg2_left_inner_finger_joint>
+        }
+
+        def MjcActuator "rg2_right_outer_knuckle_joint_actuator"
+        {
+            uniform double[] mjc:biasPrm = [0, -17.453292846679688, -1.7453292608261108, 0, 0, 0, 0, 0, 0, 0]
+            uniform token mjc:biasType = "affine"
+            uniform double mjc:forceRange:max = 1000
+            uniform double mjc:forceRange:min = -1000
+            uniform double[] mjc:gainPrm = [17.453292846679688, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+            uniform token mjc:gainType = "fixed"
+            custom rel mjc:target
+            append rel mjc:target = </m0609_rg2/Physics/rg2_right_outer_knuckle_joint>
+        }
+
+        def MjcActuator "rg2_right_inner_knuckle_joint_actuator"
+        {
+            uniform double[] mjc:biasPrm = [0, -17.453292846679688, -1.7453292608261108, 0, 0, 0, 0, 0, 0, 0]
+            uniform token mjc:biasType = "affine"
+            uniform double mjc:forceRange:max = 1000
+            uniform double mjc:forceRange:min = -1000
+            uniform double[] mjc:gainPrm = [17.453292846679688, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+            uniform token mjc:gainType = "fixed"
+            custom rel mjc:target
+            append rel mjc:target = </m0609_rg2/Physics/rg2_right_inner_knuckle_joint>
+        }
+
+        def MjcActuator "rg2_right_inner_finger_joint_actuator"
+        {
+            uniform double[] mjc:biasPrm = [0, -17.453292846679688, -1.7453292608261108, 0, 0, 0, 0, 0, 0, 0]
+            uniform token mjc:biasType = "affine"
+            uniform double mjc:forceRange:max = 1000
+            uniform double mjc:forceRange:min = -1000
+            uniform double[] mjc:gainPrm = [17.453292846679688, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+            uniform token mjc:gainType = "fixed"
+            custom rel mjc:target
+            append rel mjc:target = </m0609_rg2/Physics/rg2_right_inner_finger_joint>
+        }
+    }
+}
+
