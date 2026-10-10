@@ -1,0 +1,24 @@
+{
+  "record_kind": "USER_REPORTED_CLOSED_GRIPPER_TIP_CONTACT_REFERENCE",
+  "recorded_date": "2026-10-07",
+  "reported_base_pose_xyz_abc": [
+    324.41,
+    -211.88,
+    10.52,
+    16.06,
+    -179.64,
+    16.93
+  ],
+  "xyz_unit": "mm",
+  "orientation_unit": "degree",
+  "orientation_convention": "ZYZ project convention",
+  "reference_surface_base_z_mm": 0.0,
+  "reference_surface_source": "User confirmed pedestal top is Base Z=0 in preceding measurement.",
+  "gripper_state": "FULLY_CLOSED",
+  "contact_point": "GRIPPER_TIP",
+  "contact_method": "Vertical tip contact with robot pedestal top, as reported by user.",
+  "closed_tip_below_reported_tcp_base_z_mm": 10.52,
+  "validity": "Measured vertical component at the reported attitude and fully closed state; not a full TCP-to-tip transform.",
+  "project_tcp_reference": "GripperDA_v4 with prior flange offset [0,0,228,0,0,0]; no setting changed or new setting readback supplied.",
+  "execution_allowed": false
+}

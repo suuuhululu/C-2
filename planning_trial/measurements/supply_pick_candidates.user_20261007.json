@@ -1,0 +1,595 @@
+{
+  "schema_version": "supply-pick-candidates/0.1",
+  "layout_ref": "supply_layout.user_20261007.json",
+  "frame_id": "robot_base",
+  "xyz_unit": "mm",
+  "orientation_unit": "degree",
+  "orientation_convention": "ZYZ project convention",
+  "execution_allowed": false,
+  "count": 24,
+  "slot_management_implemented": false,
+  "calculation": {
+    "x_grid_step_xy_mm": [
+      15.960434782608697,
+      -0.24326086956521734
+    ],
+    "y_grid_step_xy_mm": [
+      0.17782608695652188,
+      15.853260869565217
+    ],
+    "formula": "candidate_XY = first_taught_TCP_XY + relative_grid_x * x_step_XY + relative_grid_y * y_step_XY",
+    "z_policy": "Keep taught first-pick TCP Z=53.04 mm under user level-board/same-depth assumption; do not use raw corner TCP Z as pickup Z or impose measured Z spread as tilt.",
+    "orientation_policy": "Preserve first taught ABC; centre grip normal along supply X requested by user. Other slots are not independently verified."
+  },
+  "limits": [
+    "Grid count inherited 24x24; same physical hole lattice assumed.",
+    "First static grasp pose does not prove grasp stability or collision-free pickup.",
+    "Same gripping depth, flat board height and width alignment across columns remain assumptions to verify, especially 2x3.",
+    "D manages desired cyclic selection and actual slot readiness; a counter wrap is not refill evidence.",
+    "No old taught path, Isaac configuration, force controller or Robot adapter changed."
+  ],
+  "slots": [
+    {
+      "brick_type": "2x2x1",
+      "color": "yellow",
+      "slot": 1,
+      "relative_grid_centre": [
+        0,
+        0.0
+      ],
+      "candidate_base_tcp_xyz_abc": [
+        -321.4,
+        184.61,
+        53.04,
+        62.73,
+        -179.99,
+        63.5
+      ],
+      "grasp_side": "Long-side midpoint for 2x3; same jaw-closing direction for 2x2.",
+      "execution_allowed": false,
+      "static_grasp_pose_user_reported": true,
+      "full_pick_lift_path_verified": false,
+      "nominal_block_width_along_grip_grid": 2,
+      "gripper_close_parameter_source": "D settings.close_width (existing code)"
+    },
+    {
+      "brick_type": "2x2x1",
+      "color": "yellow",
+      "slot": 2,
+      "relative_grid_centre": [
+        -4,
+        0.0
+      ],
+      "candidate_base_tcp_xyz_abc": [
+        -385.2417391304348,
+        185.5830434782609,
+        53.04,
+        62.73,
+        -179.99,
+        63.5
+      ],
+      "grasp_side": "Long-side midpoint for 2x3; same jaw-closing direction for 2x2.",
+      "execution_allowed": false,
+      "static_grasp_pose_user_reported": false,
+      "full_pick_lift_path_verified": false,
+      "nominal_block_width_along_grip_grid": 2,
+      "gripper_close_parameter_source": "D settings.close_width (existing code)"
+    },
+    {
+      "brick_type": "2x2x1",
+      "color": "yellow",
+      "slot": 3,
+      "relative_grid_centre": [
+        -8,
+        0.0
+      ],
+      "candidate_base_tcp_xyz_abc": [
+        -449.0834782608696,
+        186.55608695652174,
+        53.04,
+        62.73,
+        -179.99,
+        63.5
+      ],
+      "grasp_side": "Long-side midpoint for 2x3; same jaw-closing direction for 2x2.",
+      "execution_allowed": false,
+      "static_grasp_pose_user_reported": false,
+      "full_pick_lift_path_verified": false,
+      "nominal_block_width_along_grip_grid": 2,
+      "gripper_close_parameter_source": "D settings.close_width (existing code)"
+    },
+    {
+      "brick_type": "2x2x1",
+      "color": "yellow",
+      "slot": 4,
+      "relative_grid_centre": [
+        -12,
+        0.0
+      ],
+      "candidate_base_tcp_xyz_abc": [
+        -512.9252173913044,
+        187.52913043478262,
+        53.04,
+        62.73,
+        -179.99,
+        63.5
+      ],
+      "grasp_side": "Long-side midpoint for 2x3; same jaw-closing direction for 2x2.",
+      "execution_allowed": false,
+      "static_grasp_pose_user_reported": false,
+      "full_pick_lift_path_verified": false,
+      "nominal_block_width_along_grip_grid": 2,
+      "gripper_close_parameter_source": "D settings.close_width (existing code)"
+    },
+    {
+      "brick_type": "2x2x1",
+      "color": "yellow",
+      "slot": 5,
+      "relative_grid_centre": [
+        -16,
+        0.0
+      ],
+      "candidate_base_tcp_xyz_abc": [
+        -576.7669565217391,
+        188.5021739130435,
+        53.04,
+        62.73,
+        -179.99,
+        63.5
+      ],
+      "grasp_side": "Long-side midpoint for 2x3; same jaw-closing direction for 2x2.",
+      "execution_allowed": false,
+      "static_grasp_pose_user_reported": false,
+      "full_pick_lift_path_verified": false,
+      "nominal_block_width_along_grip_grid": 2,
+      "gripper_close_parameter_source": "D settings.close_width (existing code)"
+    },
+    {
+      "brick_type": "2x2x1",
+      "color": "yellow",
+      "slot": 6,
+      "relative_grid_centre": [
+        -20,
+        0.0
+      ],
+      "candidate_base_tcp_xyz_abc": [
+        -640.608695652174,
+        189.47521739130437,
+        53.04,
+        62.73,
+        -179.99,
+        63.5
+      ],
+      "grasp_side": "Long-side midpoint for 2x3; same jaw-closing direction for 2x2.",
+      "execution_allowed": false,
+      "static_grasp_pose_user_reported": false,
+      "full_pick_lift_path_verified": false,
+      "nominal_block_width_along_grip_grid": 2,
+      "gripper_close_parameter_source": "D settings.close_width (existing code)"
+    },
+    {
+      "brick_type": "2x3x1",
+      "color": "yellow",
+      "slot": 1,
+      "relative_grid_centre": [
+        0,
+        -3.5
+      ],
+      "candidate_base_tcp_xyz_abc": [
+        -322.0223913043478,
+        129.12358695652176,
+        53.04,
+        62.73,
+        -179.99,
+        63.5
+      ],
+      "grasp_side": "Long-side midpoint for 2x3; same jaw-closing direction for 2x2.",
+      "execution_allowed": false,
+      "static_grasp_pose_user_reported": false,
+      "full_pick_lift_path_verified": false,
+      "nominal_block_width_along_grip_grid": 2,
+      "gripper_close_parameter_source": "D settings.close_width (existing code)"
+    },
+    {
+      "brick_type": "2x3x1",
+      "color": "yellow",
+      "slot": 2,
+      "relative_grid_centre": [
+        -4,
+        -3.5
+      ],
+      "candidate_base_tcp_xyz_abc": [
+        -385.8641304347826,
+        130.09663043478264,
+        53.04,
+        62.73,
+        -179.99,
+        63.5
+      ],
+      "grasp_side": "Long-side midpoint for 2x3; same jaw-closing direction for 2x2.",
+      "execution_allowed": false,
+      "static_grasp_pose_user_reported": false,
+      "full_pick_lift_path_verified": false,
+      "nominal_block_width_along_grip_grid": 2,
+      "gripper_close_parameter_source": "D settings.close_width (existing code)"
+    },
+    {
+      "brick_type": "2x3x1",
+      "color": "yellow",
+      "slot": 3,
+      "relative_grid_centre": [
+        -8,
+        -3.5
+      ],
+      "candidate_base_tcp_xyz_abc": [
+        -449.7058695652174,
+        131.0696739130435,
+        53.04,
+        62.73,
+        -179.99,
+        63.5
+      ],
+      "grasp_side": "Long-side midpoint for 2x3; same jaw-closing direction for 2x2.",
+      "execution_allowed": false,
+      "static_grasp_pose_user_reported": false,
+      "full_pick_lift_path_verified": false,
+      "nominal_block_width_along_grip_grid": 2,
+      "gripper_close_parameter_source": "D settings.close_width (existing code)"
+    },
+    {
+      "brick_type": "2x3x1",
+      "color": "yellow",
+      "slot": 4,
+      "relative_grid_centre": [
+        -12,
+        -3.5
+      ],
+      "candidate_base_tcp_xyz_abc": [
+        -513.5476086956522,
+        132.04271739130436,
+        53.04,
+        62.73,
+        -179.99,
+        63.5
+      ],
+      "grasp_side": "Long-side midpoint for 2x3; same jaw-closing direction for 2x2.",
+      "execution_allowed": false,
+      "static_grasp_pose_user_reported": false,
+      "full_pick_lift_path_verified": false,
+      "nominal_block_width_along_grip_grid": 2,
+      "gripper_close_parameter_source": "D settings.close_width (existing code)"
+    },
+    {
+      "brick_type": "2x3x1",
+      "color": "yellow",
+      "slot": 5,
+      "relative_grid_centre": [
+        -16,
+        -3.5
+      ],
+      "candidate_base_tcp_xyz_abc": [
+        -577.3893478260869,
+        133.01576086956524,
+        53.04,
+        62.73,
+        -179.99,
+        63.5
+      ],
+      "grasp_side": "Long-side midpoint for 2x3; same jaw-closing direction for 2x2.",
+      "execution_allowed": false,
+      "static_grasp_pose_user_reported": false,
+      "full_pick_lift_path_verified": false,
+      "nominal_block_width_along_grip_grid": 2,
+      "gripper_close_parameter_source": "D settings.close_width (existing code)"
+    },
+    {
+      "brick_type": "2x3x1",
+      "color": "yellow",
+      "slot": 6,
+      "relative_grid_centre": [
+        -20,
+        -3.5
+      ],
+      "candidate_base_tcp_xyz_abc": [
+        -641.2310869565218,
+        133.98880434782612,
+        53.04,
+        62.73,
+        -179.99,
+        63.5
+      ],
+      "grasp_side": "Long-side midpoint for 2x3; same jaw-closing direction for 2x2.",
+      "execution_allowed": false,
+      "static_grasp_pose_user_reported": false,
+      "full_pick_lift_path_verified": false,
+      "nominal_block_width_along_grip_grid": 2,
+      "gripper_close_parameter_source": "D settings.close_width (existing code)"
+    },
+    {
+      "brick_type": "2x2x1",
+      "color": "blue",
+      "slot": 1,
+      "relative_grid_centre": [
+        0,
+        -8.0
+      ],
+      "candidate_base_tcp_xyz_abc": [
+        -322.82260869565215,
+        57.78391304347828,
+        53.04,
+        62.73,
+        -179.99,
+        63.5
+      ],
+      "grasp_side": "Long-side midpoint for 2x3; same jaw-closing direction for 2x2.",
+      "execution_allowed": false,
+      "static_grasp_pose_user_reported": false,
+      "full_pick_lift_path_verified": false,
+      "nominal_block_width_along_grip_grid": 2,
+      "gripper_close_parameter_source": "D settings.close_width (existing code)"
+    },
+    {
+      "brick_type": "2x2x1",
+      "color": "blue",
+      "slot": 2,
+      "relative_grid_centre": [
+        -4,
+        -8.0
+      ],
+      "candidate_base_tcp_xyz_abc": [
+        -386.66434782608695,
+        58.756956521739156,
+        53.04,
+        62.73,
+        -179.99,
+        63.5
+      ],
+      "grasp_side": "Long-side midpoint for 2x3; same jaw-closing direction for 2x2.",
+      "execution_allowed": false,
+      "static_grasp_pose_user_reported": false,
+      "full_pick_lift_path_verified": false,
+      "nominal_block_width_along_grip_grid": 2,
+      "gripper_close_parameter_source": "D settings.close_width (existing code)"
+    },
+    {
+      "brick_type": "2x2x1",
+      "color": "blue",
+      "slot": 3,
+      "relative_grid_centre": [
+        -8,
+        -8.0
+      ],
+      "candidate_base_tcp_xyz_abc": [
+        -450.50608695652176,
+        59.730000000000004,
+        53.04,
+        62.73,
+        -179.99,
+        63.5
+      ],
+      "grasp_side": "Long-side midpoint for 2x3; same jaw-closing direction for 2x2.",
+      "execution_allowed": false,
+      "static_grasp_pose_user_reported": false,
+      "full_pick_lift_path_verified": false,
+      "nominal_block_width_along_grip_grid": 2,
+      "gripper_close_parameter_source": "D settings.close_width (existing code)"
+    },
+    {
+      "brick_type": "2x2x1",
+      "color": "blue",
+      "slot": 4,
+      "relative_grid_centre": [
+        -12,
+        -8.0
+      ],
+      "candidate_base_tcp_xyz_abc": [
+        -514.3478260869566,
+        60.70304347826088,
+        53.04,
+        62.73,
+        -179.99,
+        63.5
+      ],
+      "grasp_side": "Long-side midpoint for 2x3; same jaw-closing direction for 2x2.",
+      "execution_allowed": false,
+      "static_grasp_pose_user_reported": false,
+      "full_pick_lift_path_verified": false,
+      "nominal_block_width_along_grip_grid": 2,
+      "gripper_close_parameter_source": "D settings.close_width (existing code)"
+    },
+    {
+      "brick_type": "2x2x1",
+      "color": "blue",
+      "slot": 5,
+      "relative_grid_centre": [
+        -16,
+        -8.0
+      ],
+      "candidate_base_tcp_xyz_abc": [
+        -578.1895652173913,
+        61.67608695652176,
+        53.04,
+        62.73,
+        -179.99,
+        63.5
+      ],
+      "grasp_side": "Long-side midpoint for 2x3; same jaw-closing direction for 2x2.",
+      "execution_allowed": false,
+      "static_grasp_pose_user_reported": false,
+      "full_pick_lift_path_verified": false,
+      "nominal_block_width_along_grip_grid": 2,
+      "gripper_close_parameter_source": "D settings.close_width (existing code)"
+    },
+    {
+      "brick_type": "2x2x1",
+      "color": "blue",
+      "slot": 6,
+      "relative_grid_centre": [
+        -20,
+        -8.0
+      ],
+      "candidate_base_tcp_xyz_abc": [
+        -642.0313043478262,
+        62.649130434782634,
+        53.04,
+        62.73,
+        -179.99,
+        63.5
+      ],
+      "grasp_side": "Long-side midpoint for 2x3; same jaw-closing direction for 2x2.",
+      "execution_allowed": false,
+      "static_grasp_pose_user_reported": false,
+      "full_pick_lift_path_verified": false,
+      "nominal_block_width_along_grip_grid": 2,
+      "gripper_close_parameter_source": "D settings.close_width (existing code)"
+    },
+    {
+      "brick_type": "2x3x1",
+      "color": "blue",
+      "slot": 1,
+      "relative_grid_centre": [
+        0,
+        -11.5
+      ],
+      "candidate_base_tcp_xyz_abc": [
+        -323.445,
+        2.2975000000000136,
+        53.04,
+        62.73,
+        -179.99,
+        63.5
+      ],
+      "grasp_side": "Long-side midpoint for 2x3; same jaw-closing direction for 2x2.",
+      "execution_allowed": false,
+      "static_grasp_pose_user_reported": false,
+      "full_pick_lift_path_verified": false,
+      "nominal_block_width_along_grip_grid": 2,
+      "gripper_close_parameter_source": "D settings.close_width (existing code)"
+    },
+    {
+      "brick_type": "2x3x1",
+      "color": "blue",
+      "slot": 2,
+      "relative_grid_centre": [
+        -4,
+        -11.5
+      ],
+      "candidate_base_tcp_xyz_abc": [
+        -387.2867391304348,
+        3.2705434782608904,
+        53.04,
+        62.73,
+        -179.99,
+        63.5
+      ],
+      "grasp_side": "Long-side midpoint for 2x3; same jaw-closing direction for 2x2.",
+      "execution_allowed": false,
+      "static_grasp_pose_user_reported": false,
+      "full_pick_lift_path_verified": false,
+      "nominal_block_width_along_grip_grid": 2,
+      "gripper_close_parameter_source": "D settings.close_width (existing code)"
+    },
+    {
+      "brick_type": "2x3x1",
+      "color": "blue",
+      "slot": 3,
+      "relative_grid_centre": [
+        -8,
+        -11.5
+      ],
+      "candidate_base_tcp_xyz_abc": [
+        -451.1284782608696,
+        4.243586956521739,
+        53.04,
+        62.73,
+        -179.99,
+        63.5
+      ],
+      "grasp_side": "Long-side midpoint for 2x3; same jaw-closing direction for 2x2.",
+      "execution_allowed": false,
+      "static_grasp_pose_user_reported": false,
+      "full_pick_lift_path_verified": false,
+      "nominal_block_width_along_grip_grid": 2,
+      "gripper_close_parameter_source": "D settings.close_width (existing code)"
+    },
+    {
+      "brick_type": "2x3x1",
+      "color": "blue",
+      "slot": 4,
+      "relative_grid_centre": [
+        -12,
+        -11.5
+      ],
+      "candidate_base_tcp_xyz_abc": [
+        -514.9702173913043,
+        5.216630434782616,
+        53.04,
+        62.73,
+        -179.99,
+        63.5
+      ],
+      "grasp_side": "Long-side midpoint for 2x3; same jaw-closing direction for 2x2.",
+      "execution_allowed": false,
+      "static_grasp_pose_user_reported": false,
+      "full_pick_lift_path_verified": false,
+      "nominal_block_width_along_grip_grid": 2,
+      "gripper_close_parameter_source": "D settings.close_width (existing code)"
+    },
+    {
+      "brick_type": "2x3x1",
+      "color": "blue",
+      "slot": 5,
+      "relative_grid_centre": [
+        -16,
+        -11.5
+      ],
+      "candidate_base_tcp_xyz_abc": [
+        -578.811956521739,
+        6.189673913043492,
+        53.04,
+        62.73,
+        -179.99,
+        63.5
+      ],
+      "grasp_side": "Long-side midpoint for 2x3; same jaw-closing direction for 2x2.",
+      "execution_allowed": false,
+      "static_grasp_pose_user_reported": false,
+      "full_pick_lift_path_verified": false,
+      "nominal_block_width_along_grip_grid": 2,
+      "gripper_close_parameter_source": "D settings.close_width (existing code)"
+    },
+    {
+      "brick_type": "2x3x1",
+      "color": "blue",
+      "slot": 6,
+      "relative_grid_centre": [
+        -20,
+        -11.5
+      ],
+      "candidate_base_tcp_xyz_abc": [
+        -642.653695652174,
+        7.162717391304369,
+        53.04,
+        62.73,
+        -179.99,
+        63.5
+      ],
+      "grasp_side": "Long-side midpoint for 2x3; same jaw-closing direction for 2x2.",
+      "execution_allowed": false,
+      "static_grasp_pose_user_reported": false,
+      "full_pick_lift_path_verified": false,
+      "nominal_block_width_along_grip_grid": 2,
+      "gripper_close_parameter_source": "D settings.close_width (existing code)"
+    }
+  ],
+  "gripper_close_policy": {
+    "policy": "REUSE_D_EXISTING_CLOSE_WIDTH_WITHOUT_GRID_TO_COMMAND_CONVERSION",
+    "user_confirmation_date": "2026-10-08",
+    "source_statement": "이거는 수현님의 기존 코드 폭으로 파지하면 돼",
+    "parameter_source": "D execution settings.close_width; no A override",
+    "reference_settings_file": "isaac_preview/handoff/interfaces/robot_trial.json",
+    "reference_close_width_command_mm": 2.0,
+    "command_vs_geometry": "close_width is a motion command target, not the actual jaw separation while gripping a block. Nominal 2-stud block width is layout geometry only.",
+    "release_policy": "Grasp closure setting does not decide normal/minimal release; release remains a separate D action."
+  }
+}

@@ -1,0 +1,112 @@
+{
+  "record_kind": "USER_REPORTED_FLIPPED_SUPPLY_BOARD_CORNER_HOLE_REFERENCES",
+  "recorded_date": "2026-10-07",
+  "reported_base_poses_xyz_abc": {
+    "1": [
+      -313.14,
+      193.29,
+      49.97,
+      57.87,
+      -179.34,
+      58.86
+    ],
+    "2": [
+      -679.94,
+      197.81,
+      45.2,
+      10.97,
+      -178.62,
+      11.75
+    ],
+    "3": [
+      -684.32,
+      -165.74,
+      45.65,
+      11.89,
+      -177.99,
+      12.41
+    ],
+    "4": [
+      -316.94,
+      -172.41,
+      48.56,
+      19.15,
+      -177.9,
+      19.56
+    ]
+  },
+  "xyz_unit": "mm",
+  "orientation_unit": "degree",
+  "orientation_convention": "ZYZ project convention",
+  "gripper_state": "FULLY_CLOSED",
+  "contact_point": "CLOSED_GRIPPER_TIP_AT_CORNER_HOLE_CENTRE_XY_AND_BLOCK_SUPPORTING_UPPER_FACE_HEIGHT",
+  "source_note": "User reports physical measurements with possible few-mm error and vertical/horizontal motion. Raw attitudes retained.",
+  "reference_measurement": "closed_tip_reference.user_20261007.json",
+  "corner_z_spread_mm": 4.770000000000003,
+  "edge_lengths_xy_mm": {
+    "1_to_2": 366.8278484521044,
+    "2_to_3": 363.576383859018,
+    "3_to_4": 367.44054389792103,
+    "4_to_1": 365.7197424258089
+  },
+  "parallelogram_closure_residual_xyz_mm": [
+    -0.5799999999999841,
+    2.1499999999999773,
+    1.8599999999999994
+  ],
+  "least_squares_affine_corner_residual_norm_mm": 0.7253662867820592,
+  "provisional_grid_assumptions": {
+    "count_source": "Prior 24x24 supply grid; hole centres correspond to stud locations per correction; count not independently restated.",
+    "origin_corner": "3",
+    "positive_x_corner": "4",
+    "positive_y_corner": "2",
+    "opposite_corner": "1",
+    "axis_mapping_status": "Provisional preservation of previous supply-map +X/+Y geometry; not an adopted execution transform.",
+    "grid_feature_count": [
+      24,
+      24
+    ],
+    "estimated_x_grid_pitch_from_opposite_xy_edges_mm": 15.962356355435334,
+    "estimated_y_grid_pitch_from_opposite_xy_edges_mm": 15.854263614887541
+  },
+  "validation": {
+    "full_tcp_to_tip_xyz_transform_measured": false,
+    "attitudes_identical": false,
+    "opening_state_grasp_transform_equivalent": false,
+    "execution_allowed": false,
+    "supply_block_support_plane_verified": false,
+    "supply_block_support_plane_reference_confirmed": true
+  },
+  "limitations": [
+    "10.52 mm is a fully closed vertical reference; do not substitute it for the held-block 15.31 mm offset.",
+    "Constant Z correction is approximate because corner attitudes differ from reference; no arbitrary XYZ tip offset inferred.",
+    "Z spread does not establish actual board tilt; prior user Base-XY parallel assumption retained for preliminary modelling.",
+    "No old Isaac configuration, supply slot, taught path or live robot setting overwritten.",
+    "Previously labelled stud-tip Z values are now reference-point Z only. Do not add/subtract protruding stud height on the supply upward face.",
+    "This correction is for supply board only; assembly board still has upward-facing studs unless user separately changes it.",
+    "User confirmed upper-face contact height. Numerical height remains approximate due reference attitude differences and stated measurement errors; no runtime coordinate map adopted."
+  ],
+  "supply_board_orientation": "STUDS_DOWN; BLOCKS_PLACED_ON_OPPOSITE_FACE",
+  "supply_board_model": "Plate with holes at stud-grid positions on the upward-facing side, per user correction.",
+  "reference_feature": "CORNER_HOLE_CENTRE_ON_UPWARD_FACING_NON_STUD_SIDE",
+  "z_reference_is_block_support_surface_confirmed": true,
+  "block_support_surface_base_z_mm": 36.825,
+  "user_surface_correction": "User reports supply board was flipped because blocks were not level on stud side; studs now face downward, blocks placed on reverse face, corners measured at hole centres.",
+  "correction_history": [
+    {
+      "date": "2026-10-07",
+      "previous_record_kind": "USER_REPORTED_NEW_SUPPLY_BOARD_CORNER_STUD_TIP_CONTACTS",
+      "previous_contact_point": "GRIPPER_TIP_AT_OUTERMOST_CORNER_STUD_CENTRE_TOP",
+      "reason": "User corrected surface/feature interpretation; numerical poses are unchanged."
+    }
+  ],
+  "approximate_reference_point_z_by_constant_vertical_correction_mm": {
+    "1": 39.45,
+    "2": 34.68,
+    "3": 35.13,
+    "4": 38.04
+  },
+  "approximate_reference_point_z_mean_mm": 36.825,
+  "surface_height_confirmation_source": "User replied 이것임 to 블록이 놓이는 윗면 높이에 맞춘 것; tip not inserted into hole.",
+  "block_support_surface_height_status": "APPROXIMATE_LEVEL_PLANE_MEAN_FROM_CONSTANT_VERTICAL_TIP_CORRECTION; NOT EXECUTION_CALIBRATION"
+}
