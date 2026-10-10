@@ -168,10 +168,10 @@ JUDGE_OK = {"recognizable_family": True, "silhouette_clarity": "clear", "reads_a
 class FakeLLM:
     """Records calls; generation returns the fixture designs in a fixed cycle so candidates differ call to call."""
 
-    def __init__(self, monkeypatch):
+    def __init__(self, monkeypatch, initial_order=("initial_candidate_response", "review_modify_patch_response",
+                                                   "review_modify_redesign_response")):
         self.calls = []
-        self.initial = [load(n)["design"] for n in ("initial_candidate_response", "review_modify_patch_response",
-                                                    "review_modify_redesign_response")]
+        self.initial = [load(n)["design"] for n in initial_order]
         self.revised = [load(n)["design"] for n in ("intervention_revise_response", "review_revised_modify_patch_response")]
         monkeypatch.setenv("C_DESIGN_USE_LLM", "1")
         monkeypatch.setattr(designer, "RETRY_DELAY", 0.0)
@@ -205,7 +205,7 @@ class FakeLLM:
                 "completeness_score": 4, "family_design_match": "clear"}
 
     def interpret_review_answer(self, text, kind, should_stop=None, context=None):
-        if "넓게" in text or "높게" in text:
+        if "넓게" in text or "높게" in text or "화려" in text:
             return {"decision": "MODIFY", "style_hint": text, "scope": "patch", "concept": "", "reason": "바꾸고 싶다고 하셨어요.",
                     "reply": "좋아요. 다시 만들어볼게요."}
         if "다른" in text:
@@ -330,3 +330,139 @@ def test_main_keeps_no_module_level_lifecycle_state():
     for name in ("request_id", "job_id", "revision"):
         assert name not in source, name
     assert set(vars(dialogue)) >= {"_last_pick"}
+
+
+# ---------------------------------------------------------------------------
+# 3. Stage 3 Wave 4: final lifecycle invariant and unchanged_candidate protection
+# ---------------------------------------------------------------------------
+
+
+def assert_inventory(design):
+    """Stage 2 final stock and limits on every candidate."""
+    assert_design_contract(design)
+    assert len(design["blocks"]) <= validator.MAX_BLOCKS
+    for block in design["blocks"]:
+        assert 1 <= block["layer"] <= validator.MAX_LAYER
+        if block["brick_type"] == "1x2x1":
+            assert block["orientation_deg"] in (0, 90)
+
+
+def call_frozen(function, *args, **kwargs):
+    """Call a C public API and assert that none of the caller's arguments were mutated."""
+    frozen = copy.deepcopy((args, kwargs))
+    response = function(*args, **kwargs)
+    assert (args, kwargs) == frozen
+    return response
+
+
+def test_final_lifecycle_versions_and_rounds(monkeypatch):
+    """§0 of the Wave 4 spec in one run: Initial -> review MODIFY -> APPROVE -> caller adopts v1 -> Difference ->
+    run_intervention REVISE -> review(revised) MODIFY -> APPROVE. PREVIEW_READY is assumed before every review."""
+    fake = FakeLLM(monkeypatch, initial_order=("review_modify_redesign_response", "initial_candidate_response"))
+    given = load("intervention_revise_input")
+
+    initial = call_frozen(main.create_initial_design, text="벤치처럼 길고 넓은 의자를 만들고 싶어")
+    modified = call_frozen(main.review_design_candidate, initial["design"], kind="initial",
+                           design_metadata=initial["design_metadata"], text_answers=["등받이를 조금 더 높게 해줘"])
+    approved = call_frozen(main.review_design_candidate, modified["design"], kind="initial",
+                           design_metadata=modified["design_metadata"], text_answers=["좋아 이걸로 하자"])
+    # C returns the APPROVE decision; the caller (D) adopts the candidate as the Approved Design v1.
+    approved_v1 = approved["design"]
+    assert approved_v1 == given["design"]  # the Difference fixture was recorded against this Approved v1
+    current, differences = given["current"], given["differences"]
+    revise = call_frozen(main.run_intervention, approved_v1, current, differences,
+                         text_answers=["일부러 그렇게 놨어. 조금 더 넓게 만들고 싶어"])
+    extra = {"previous_design": approved_v1, "current": current, "differences": differences}
+    revised_modify = call_frozen(main.review_design_candidate, revise["design"], kind="revised",
+                                 design_metadata=revise["design_metadata"], text_answers=["조금 더 화려하게 해줘"], **extra)
+    revised_approve = call_frozen(main.review_design_candidate, revised_modify["design"], kind="revised",
+                                  design_metadata=revised_modify["design_metadata"],
+                                  text_answers=["마음에 들어. 이걸로 하자"], **extra)
+
+    responses = [initial, modified, approved, revise, revised_modify, revised_approve]
+    assert [r["status"] for r in responses] == ["OK"] * 6
+    assert [r["hri_result"] for r in responses] == [None, "MODIFY", "APPROVE", "REVISE", "MODIFY", "APPROVE"]
+    assert [r["design"]["design_version"] for r in responses] == [1, 1, 1, 2, 2, 2]
+    rounds = [r["design_metadata"].get("review", {}).get("round", 0) for r in responses]
+    assert rounds == [0, 1, 1, 0, 1, 1]  # Initial 0 -> 1 -> 1 (APPROVE keeps), Revised 0 -> 1 -> 1
+    for response in responses:
+        assert set(response) == ENVELOPE_KEYS
+        assert_inventory(response["design"])
+    for response in responses[3:]:
+        assert validator.validate_revised({"blocks": response["design"]["blocks"]}, current) == []
+        assert preserves(response["design"], current)
+    assert modified["design"] != initial["design"] and revised_modify["design"] != revise["design"]
+    assert approved["design"] == modified["design"] and revised_approve["design"] == revised_modify["design"]
+    # the two APPROVE calls generate nothing: 2 Initial generations (create + MODIFY), 2 Revised (REVISE + MODIFY)
+    assert fake.count("generate_initial_design") == 2 and fake.count("generate_revised_design") == 2
+
+
+def _initial_candidate():
+    initial = load("initial_candidate_response")
+    return initial["design"], initial["design_metadata"]
+
+
+def _generations(monkeypatch, name, outputs):
+    """Replace one llm generation function by a scripted sequence; returns the call log."""
+    log = []
+
+    def generate(*args, **kwargs):
+        log.append(kwargs)
+        return copy.deepcopy(outputs[min(len(log), len(outputs)) - 1])
+    monkeypatch.setattr(llm, name, generate)
+    return log
+
+
+def test_initial_modify_retries_an_unchanged_candidate_once(monkeypatch):
+    FakeLLM(monkeypatch)
+    candidate, metadata = _initial_candidate()
+    other = load("review_modify_patch_response")["design"]
+    log = _generations(monkeypatch, "generate_initial_design", [candidate, other])
+    response = main.review_design_candidate(candidate, kind="initial", design_metadata=metadata,
+                                            text_answers=["등받이를 더 높게"])
+    assert (response["status"], response["hri_result"]) == ("OK", "MODIFY")
+    assert response["design"] != candidate and response["design"]["design_version"] == 1
+    assert len(log) == 2
+    assert log[1]["previous_candidate"] == candidate  # the retry still refers to the reviewed candidate
+
+
+def test_initial_modify_that_stays_unchanged_fails_at_the_attempt_limit(monkeypatch):
+    FakeLLM(monkeypatch)
+    candidate, metadata = _initial_candidate()
+    log = _generations(monkeypatch, "generate_initial_design", [candidate])
+    response = main.review_design_candidate(candidate, kind="initial", design_metadata=metadata,
+                                            text_answers=["등받이를 더 높게"])
+    assert (response["status"], response["hri_result"]) == ("FAILED", "MODIFY")
+    assert response["error"]["code"] == "DESIGN_GENERATION_FAILED" and response["design"] is None
+    assert {r["rule"] for r in response["error"]["details"]} == {"unchanged_candidate"}
+    assert len(log) == designer.MAX_ATTEMPTS  # bounded: no endless loop
+
+
+def test_revised_modify_retries_an_unchanged_candidate_once(monkeypatch):
+    fake = FakeLLM(monkeypatch)
+    given = load("intervention_revise_input")
+    candidate = load("intervention_revise_response")
+    other = load("review_revised_modify_patch_response")["design"]
+    log = _generations(monkeypatch, "generate_revised_design",
+                       [{"blocks": candidate["design"]["blocks"]}, {"blocks": other["blocks"]}])
+    response = main.review_design_candidate(candidate["design"], kind="revised", design_metadata=candidate["design_metadata"],
+                                            previous_design=given["design"], current=given["current"],
+                                            differences=given["differences"], text_answers=["조금 더 넓게"])
+    assert (response["status"], response["hri_result"]) == ("OK", "MODIFY")
+    assert response["design"] != candidate["design"] and response["design"]["design_version"] == 2
+    assert preserves(response["design"], given["current"])
+    assert len(log) == 2 and fake.count("judge_revised_design") == 1
+
+
+def test_revised_modify_that_stays_unchanged_fails_at_the_attempt_limit(monkeypatch):
+    fake = FakeLLM(monkeypatch)
+    given = load("intervention_revise_input")
+    candidate = load("intervention_revise_response")
+    log = _generations(monkeypatch, "generate_revised_design", [{"blocks": candidate["design"]["blocks"]}])
+    response = main.review_design_candidate(candidate["design"], kind="revised", design_metadata=candidate["design_metadata"],
+                                            previous_design=given["design"], current=given["current"],
+                                            differences=given["differences"], text_answers=["조금 더 넓게"])
+    assert (response["status"], response["hri_result"]) == ("FAILED", "MODIFY")
+    assert response["error"]["code"] == "DESIGN_GENERATION_FAILED" and response["design"] is None
+    assert {r["rule"] for r in response["error"]["details"]} == {"unchanged_candidate"}
+    assert len(log) == designer.MAX_ATTEMPTS and fake.count("judge_revised_design") == 0
