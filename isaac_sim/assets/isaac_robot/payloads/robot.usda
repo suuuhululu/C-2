@@ -1,0 +1,234 @@
+#usda 1.0
+(
+    customLayerData = {
+        string creator = "URDF USD Converter v0.3.2"
+    }
+    defaultPrim = "m0609_rg2"
+    endTimeCode = 1000000
+    kilogramsPerUnit = 1
+    metersPerUnit = 1
+    startTimeCode = 0
+    upAxis = "Z"
+)
+
+over "m0609_rg2" (
+    prepend apiSchemas = ["IsaacRobotAPI"]
+)
+{
+    prepend rel isaac:physics:robotJoints = [
+        </m0609_rg2/Physics/joint_1>,
+        </m0609_rg2/Physics/preview_world_base>,
+        </m0609_rg2/Physics/joint_2>,
+        </m0609_rg2/Physics/joint_3>,
+        </m0609_rg2/Physics/joint_4>,
+        </m0609_rg2/Physics/joint_5>,
+        </m0609_rg2/Physics/joint_6>,
+        </m0609_rg2/Physics/joint0>,
+        </m0609_rg2/Physics/rg2_finger_joint>,
+        </m0609_rg2/Physics/rg2_left_inner_knuckle_joint>,
+        </m0609_rg2/Physics/rg2_left_inner_finger_joint>,
+        </m0609_rg2/Physics/rg2_right_outer_knuckle_joint>,
+        </m0609_rg2/Physics/rg2_right_inner_knuckle_joint>,
+        </m0609_rg2/Physics/rg2_right_inner_finger_joint>,
+    ]
+    prepend rel isaac:physics:robotLinks = [
+        </m0609_rg2/Geometry/world/base_link>,
+        </m0609_rg2/Geometry/world/base_link/link_1>,
+        </m0609_rg2/Geometry/world/base_link/link_1/link_2>,
+        </m0609_rg2/Geometry/world/base_link/link_1/link_2/link_3>,
+        </m0609_rg2/Geometry/world/base_link/link_1/link_2/link_3/link_4>,
+        </m0609_rg2/Geometry/world/base_link/link_1/link_2/link_3/link_4/link_5>,
+        </m0609_rg2/Geometry/world/base_link/link_1/link_2/link_3/link_4/link_5/link_6>,
+        </m0609_rg2/Geometry/world/base_link/link_1/link_2/link_3/link_4/link_5/link_6/tool0/rg2_base_link>,
+        </m0609_rg2/Geometry/world/base_link/link_1/link_2/link_3/link_4/link_5/link_6/tool0/rg2_base_link/rg2_left_outer_knuckle>,
+        </m0609_rg2/Geometry/world/base_link/link_1/link_2/link_3/link_4/link_5/link_6/tool0/rg2_base_link/rg2_left_inner_knuckle>,
+        </m0609_rg2/Geometry/world/base_link/link_1/link_2/link_3/link_4/link_5/link_6/tool0/rg2_base_link/rg2_left_outer_knuckle/rg2_left_inner_finger>,
+        </m0609_rg2/Geometry/world/base_link/link_1/link_2/link_3/link_4/link_5/link_6/tool0/rg2_base_link/rg2_right_outer_knuckle>,
+        </m0609_rg2/Geometry/world/base_link/link_1/link_2/link_3/link_4/link_5/link_6/tool0/rg2_base_link/rg2_right_inner_knuckle>,
+        </m0609_rg2/Geometry/world/base_link/link_1/link_2/link_3/link_4/link_5/link_6/tool0/rg2_base_link/rg2_right_outer_knuckle/rg2_right_inner_finger>,
+    ]
+    token isaac:robotType = "Default"
+
+    over "Geometry"
+    {
+        over "world"
+        {
+            over "base_link" (
+                prepend apiSchemas = ["IsaacLinkAPI"]
+            )
+            {
+                over "link_1" (
+                    prepend apiSchemas = ["IsaacLinkAPI"]
+                )
+                {
+                    over "link_2" (
+                        prepend apiSchemas = ["IsaacLinkAPI"]
+                    )
+                    {
+                        over "link_3" (
+                            prepend apiSchemas = ["IsaacLinkAPI"]
+                        )
+                        {
+                            over "link_4" (
+                                prepend apiSchemas = ["IsaacLinkAPI"]
+                            )
+                            {
+                                over "link_5" (
+                                    prepend apiSchemas = ["IsaacLinkAPI"]
+                                )
+                                {
+                                    over "link_6" (
+                                        prepend apiSchemas = ["IsaacLinkAPI"]
+                                    )
+                                    {
+                                        over "tool0"
+                                        {
+                                            over "rg2_base_link" (
+                                                prepend apiSchemas = ["IsaacLinkAPI"]
+                                            )
+                                            {
+                                                over "rg2_left_outer_knuckle" (
+                                                    prepend apiSchemas = ["IsaacLinkAPI"]
+                                                )
+                                                {
+                                                    over "rg2_left_inner_finger" (
+                                                        prepend apiSchemas = ["IsaacLinkAPI"]
+                                                    )
+                                                    {
+                                                    }
+                                                }
+
+                                                over "rg2_left_inner_knuckle" (
+                                                    prepend apiSchemas = ["IsaacLinkAPI"]
+                                                )
+                                                {
+                                                }
+
+                                                over "rg2_right_outer_knuckle" (
+                                                    prepend apiSchemas = ["IsaacLinkAPI"]
+                                                )
+                                                {
+                                                    over "rg2_right_inner_finger" (
+                                                        prepend apiSchemas = ["IsaacLinkAPI"]
+                                                    )
+                                                    {
+                                                    }
+                                                }
+
+                                                over "rg2_right_inner_knuckle" (
+                                                    prepend apiSchemas = ["IsaacLinkAPI"]
+                                                )
+                                                {
+                                                }
+                                            }
+                                        }
+
+                                        over "GripperDA_v4_tcp" (
+                                            prepend apiSchemas = ["IsaacSiteAPI"]
+                                        )
+                                        {
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                over "base" (
+                    prepend apiSchemas = ["IsaacSiteAPI"]
+                )
+                {
+                }
+            }
+        }
+    }
+
+    over "Physics"
+    {
+        over "joint_1" (
+            prepend apiSchemas = ["IsaacJointAPI"]
+        )
+        {
+        }
+
+        over "joint_2" (
+            prepend apiSchemas = ["IsaacJointAPI"]
+        )
+        {
+        }
+
+        over "joint_3" (
+            prepend apiSchemas = ["IsaacJointAPI"]
+        )
+        {
+        }
+
+        over "joint_4" (
+            prepend apiSchemas = ["IsaacJointAPI"]
+        )
+        {
+        }
+
+        over "joint_5" (
+            prepend apiSchemas = ["IsaacJointAPI"]
+        )
+        {
+        }
+
+        over "joint_6" (
+            prepend apiSchemas = ["IsaacJointAPI"]
+        )
+        {
+        }
+
+        over "joint0" (
+            prepend apiSchemas = ["IsaacJointAPI"]
+        )
+        {
+        }
+
+        over "rg2_finger_joint" (
+            prepend apiSchemas = ["IsaacJointAPI"]
+        )
+        {
+        }
+
+        over "rg2_left_inner_knuckle_joint" (
+            prepend apiSchemas = ["IsaacJointAPI"]
+        )
+        {
+        }
+
+        over "rg2_left_inner_finger_joint" (
+            prepend apiSchemas = ["IsaacJointAPI"]
+        )
+        {
+        }
+
+        over "rg2_right_outer_knuckle_joint" (
+            prepend apiSchemas = ["IsaacJointAPI"]
+        )
+        {
+        }
+
+        over "rg2_right_inner_knuckle_joint" (
+            prepend apiSchemas = ["IsaacJointAPI"]
+        )
+        {
+        }
+
+        over "rg2_right_inner_finger_joint" (
+            prepend apiSchemas = ["IsaacJointAPI"]
+        )
+        {
+        }
+
+        over "preview_world_base" (
+            prepend apiSchemas = ["IsaacJointAPI"]
+        )
+        {
+        }
+    }
+}
+

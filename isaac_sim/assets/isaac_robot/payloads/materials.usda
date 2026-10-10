@@ -1,0 +1,114 @@
+#usda 1.0
+(
+    customLayerData = {
+        string creator = "URDF USD Converter v0.3.2"
+    }
+    endTimeCode = 1000000
+    kilogramsPerUnit = 1
+    metersPerUnit = 1
+    startTimeCode = 0
+    upAxis = "Z"
+)
+
+def Scope "Materials"
+{
+    def Material "base_link_visual_0_material"
+    {
+        color3f inputs:diffuseColor = (0.6920712, 0.6920712, 0.6920712)
+        float inputs:metallic = 0
+        float inputs:opacity = 1
+        float inputs:roughness = 0.5
+        token inputs:wrapMode = "repeat"
+        token outputs:displacement (
+            displayGroup = "Outputs"
+        )
+        prepend token outputs:displacement.connect = </Materials/base_link_visual_0_material/PreviewSurface.outputs:displacement>
+        token outputs:surface (
+            displayGroup = "Outputs"
+        )
+        prepend token outputs:surface.connect = </Materials/base_link_visual_0_material/PreviewSurface.outputs:surface>
+        token outputs:volume (
+            displayGroup = "Outputs"
+        )
+
+        def Shader "PreviewSurface" (
+            apiSchemas = ["NodeDefAPI"]
+        )
+        {
+            token info:id = "UsdPreviewSurface"
+            prepend color3f inputs:diffuseColor.connect = </Materials/base_link_visual_0_material.inputs:diffuseColor>
+            prepend float inputs:metallic.connect = </Materials/base_link_visual_0_material.inputs:metallic>
+            prepend float inputs:opacity.connect = </Materials/base_link_visual_0_material.inputs:opacity>
+            prepend float inputs:roughness.connect = </Materials/base_link_visual_0_material.inputs:roughness>
+            token outputs:displacement
+            token outputs:surface
+        }
+    }
+
+    def Material "rg2_base_link_visual_0_material"
+    {
+        color3f inputs:diffuseColor = (0.6038274, 0.6038274, 0.6038274)
+        float inputs:metallic = 0
+        float inputs:opacity = 1
+        float inputs:roughness = 0.5
+        token inputs:wrapMode = "repeat"
+        token outputs:displacement (
+            displayGroup = "Outputs"
+        )
+        prepend token outputs:displacement.connect = </Materials/rg2_base_link_visual_0_material/PreviewSurface.outputs:displacement>
+        token outputs:surface (
+            displayGroup = "Outputs"
+        )
+        prepend token outputs:surface.connect = </Materials/rg2_base_link_visual_0_material/PreviewSurface.outputs:surface>
+        token outputs:volume (
+            displayGroup = "Outputs"
+        )
+
+        def Shader "PreviewSurface" (
+            apiSchemas = ["NodeDefAPI"]
+        )
+        {
+            token info:id = "UsdPreviewSurface"
+            prepend color3f inputs:diffuseColor.connect = </Materials/rg2_base_link_visual_0_material.inputs:diffuseColor>
+            prepend float inputs:metallic.connect = </Materials/rg2_base_link_visual_0_material.inputs:metallic>
+            prepend float inputs:opacity.connect = </Materials/rg2_base_link_visual_0_material.inputs:opacity>
+            prepend float inputs:roughness.connect = </Materials/rg2_base_link_visual_0_material.inputs:roughness>
+            token outputs:displacement
+            token outputs:surface
+        }
+    }
+
+    def Material "rg2_left_inner_finger_visual_0_material"
+    {
+        color3f inputs:diffuseColor = (0.010022826, 0.010022826, 0.010022826)
+        float inputs:metallic = 0
+        float inputs:opacity = 1
+        float inputs:roughness = 0.5
+        token inputs:wrapMode = "repeat"
+        token outputs:displacement (
+            displayGroup = "Outputs"
+        )
+        prepend token outputs:displacement.connect = </Materials/rg2_left_inner_finger_visual_0_material/PreviewSurface.outputs:displacement>
+        token outputs:surface (
+            displayGroup = "Outputs"
+        )
+        prepend token outputs:surface.connect = </Materials/rg2_left_inner_finger_visual_0_material/PreviewSurface.outputs:surface>
+        token outputs:volume (
+            displayGroup = "Outputs"
+        )
+
+        def Shader "PreviewSurface" (
+            apiSchemas = ["NodeDefAPI"]
+        )
+        {
+            token info:id = "UsdPreviewSurface"
+            prepend color3f inputs:diffuseColor.connect = </Materials/rg2_left_inner_finger_visual_0_material.inputs:diffuseColor>
+            prepend float inputs:metallic.connect = </Materials/rg2_left_inner_finger_visual_0_material.inputs:metallic>
+            prepend float inputs:opacity.connect = </Materials/rg2_left_inner_finger_visual_0_material.inputs:opacity>
+            prepend float inputs:roughness.connect = </Materials/rg2_left_inner_finger_visual_0_material.inputs:roughness>
+            token outputs:displacement
+            token outputs:surface
+        }
+    }
+}
+
