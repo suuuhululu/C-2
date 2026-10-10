@@ -1,0 +1,5 @@
+cmake_minimum_required(VERSION 3.16)
+project(m0609_rg2_sim_model)
+find_package(ament_cmake REQUIRED)
+install(DIRECTORY urdf meshes config licenses DESTINATION share/${PROJECT_NAME})
+ament_package()

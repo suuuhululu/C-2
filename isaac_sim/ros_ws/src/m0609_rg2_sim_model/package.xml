@@ -1,0 +1,11 @@
+<?xml version="1.0"?>
+<package format="3">
+  <name>m0609_rg2_sim_model</name>
+  <version>0.1.0</version>
+  <description>Isolated canonical M0609 RG2 model for Isaac MoveIt alignment review.</description>
+  <maintainer email="sim-review@example.invalid">SIM review</maintainer>
+  <license>Apache-2.0</license>
+  <license>MIT</license>
+  <buildtool_depend>ament_cmake</buildtool_depend>
+  <export><build_type>ament_cmake</build_type></export>
+</package>
