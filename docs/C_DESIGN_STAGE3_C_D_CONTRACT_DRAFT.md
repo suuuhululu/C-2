@@ -94,6 +94,14 @@
 - Wave 3(B 중심): fake D 콜백·preview_rendered 동기화 fixture, D handoff(상태·snapshot 필드·이벤트·`question_preview` 명칭 정리) 문서.
 - Wave 4(Fable): C-only runner에 검토 루프 추가해 음성 E2E, 회귀, 보고.
 
+## 7.1 Wave 1 반영 (2026-10-11, A: llm·계약 문서)
+- llm: `interpret_review_answer(text, kind, should_stop=None)`, `SYSTEM_PROMPT_REVIEW`, `REVIEW_KEYS = ("decision", "style_hint", "reason", "reply")`, `REVIEW_CONTEXT`(kind별 문맥 문장). 보조 모델(`OPENAI_AUX_MODEL`, 기본 gpt-4.1-mini), Design은 보내지 않음. kind는 `"initial"` / `"revised"`만(그 밖은 `ValueError`, 호출 없음).
+- decision 값은 APPROVE / MODIFY / UNCLEAR / CANCEL이며 Intervention의 KEEP / REVISE와 값·프롬프트·키가 별개입니다(프롬프트에 KEEP·REVISE 단어 없음). 위 §4의 초안 `hri_result` ∈ {APPROVE, MODIFY, UNCLEAR}에 CANCEL이 더해졌습니다(명세 Wave 1).
+- 한국어 부정·혼합: "나쁘진 않은데 조금 더 길었으면 좋겠어"·"싫은 건 아닌데 다른 것도 보고 싶어" → MODIFY, "싫은 건 아니야" 단독·"그냥 됐어"(문맥 없음) → UNCLEAR. 위 §4 초안의 규칙 예 "됐어 → APPROVE"는 LLM 해석에서는 쓰지 않습니다(규칙 표는 B 소유 dialogue에서 정함).
+- 계약 영향: Design `{design_version, blocks}`와 envelope 키는 불변입니다. 검토 결과는 `design_metadata.review = {kind, decision, style_hint, round, source, reply}`로만 싣습니다([계약 §6.1](C_DESIGN_CONTRACT.md)). 후보 Design은 그대로 반환되고 `design_version`은 바뀌지 않습니다.
+- `review.style_hint`(MODIFY 방향, 예: "그냥 다시" → "현재 디자인과 다른 새로운 형태")는 Wave 2 후보 재생성의 입력입니다. Wave 1에서는 재생성하지 않습니다.
+- D 코드·공유 schema는 수정하지 않았습니다. snapshot `candidate_design`·`preview_rendered` 등 D 쪽 상태는 위 §2·§8 그대로 미결입니다.
+
 ## 8. 위험 요소 / 결정 필요
 1. 후보 반복 중 `design_version` 정책(§3.1·§3.2 제안: Initial 후보 1 고정, Revised 후보 승인+1 고정). docs/06 §4와 D `replan.on_intent` 검증과 맞물림.
 2. snapshot `candidate_design` 필드 추가는 D/공유 schema 변경 → D 작업. 대안(채택 `design`에 후보를 넣고 제목만 바꾸기)은 §8 원칙 위반이라 비권장.
