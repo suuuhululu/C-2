@@ -1,0 +1,86 @@
+{
+  "schema_version": "assembly-ad-review/0.3",
+  "contract_status": "DRAFT_NOT_FROZEN",
+  "sample_kind": "SYNTHETIC_NOT_FOR_EXECUTION",
+  "message_type": "WholePlanRequest",
+  "context": {
+    "job_id": "review-job-01",
+    "request_id": "review-request-01-whole",
+    "workflow_generation": 1,
+    "source_epoch": "review-epoch-01",
+    "design_version": 1,
+    "input_current_revision": 0,
+    "world_state_revision": 11,
+    "frame_profile_id": "SYNTHETIC_ONLY_FRAME_PROFILE",
+    "plan_id": null,
+    "step_id": null
+  },
+  "design": {
+    "design_version": 1,
+    "blocks": [
+      {
+        "brick_type": "2x2x1",
+        "color": "yellow",
+        "x": 4,
+        "y": 6,
+        "layer": 1,
+        "orientation_deg": 0
+      }
+    ]
+  },
+  "current": {
+    "current_revision": 0,
+    "blocks": []
+  },
+  "policy": {
+    "finish_layers": false,
+    "minimum_support_studs": 2,
+    "gripper_clearance_pitch_per_side": 1,
+    "hand_clearance_pitch_per_side": 1,
+    "hand_hold_height_m": 0.02,
+    "max_human_hands": 2,
+    "held_block_pre_contact_clearance_m": 0.02,
+    "hold_gripper_nonintrusion_assumption": true,
+    "cost_order": [
+      "assisted_steps",
+      "manual_steps",
+      "human_actions"
+    ],
+    "help_selection": "GEOMETRIC_HEURISTIC_PROPOSAL",
+    "release_command_owner": "D"
+  },
+  "assembly_context": {
+    "profile_source": "TEST_ONLY",
+    "rule_source": "USER_SELECTED_20261008_NOT_TEAM_FROZEN",
+    "space_model": "STUD_RULES",
+    "human_press_policy": "CONTACT_HULL",
+    "hold_gripper_nonintrusion_assumption": true,
+    "geometry": {
+      "pitch_mm": 16,
+      "body_height_mm": 20,
+      "stud_height_mm": 5,
+      "grip_bottom_offset_mm": 8
+    },
+    "human_sides": [
+      "-x",
+      "+x",
+      "-y",
+      "+y"
+    ],
+    "grip_axes": [
+      "x",
+      "y"
+    ],
+    "finish_layers": false,
+    "max_states": 10000,
+    "minimal_release_model_confirmed": true,
+    "press_contact_model_confirmed": false,
+    "obstacles": [],
+    "assumption_notes": [
+      "1 stud side gap permits gripper entry/release in the local rule; D determines the actual small-opening command.",
+      "HOLD checks two local side spaces one pitch wide and one body high. U gripper intrusion into L grip space is assumed absent.",
+      "PRESS uses a one-pitch patch and local side entry; full finger/arm reach and exact tool body are not verified.",
+      "Internal assembly_board_mm has Z=0 at board body support face, XY at first stud centre. SI/D frame mapping remains draft."
+    ]
+  }
+}
