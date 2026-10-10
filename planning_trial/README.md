@@ -1,5 +1,7 @@
 # A파트 최초 계획·재계획 계산
 
+2026-10-10 로컬 반영본: 기존 `plan_from_current()`의 기본 순서와 `status / plan / errors` 경계를 유지하며, 별도 조립 후보 API·완성 우선 계산·도움 정보·빨강 1×2 확장을 추가했습니다. SIM 실행 안내와 신규 검증 범위는 [isaac_sim/README.txt](../isaac_sim/README.txt)를 참고합니다. 아래 2026-10-06 기록은 당시 구현·시험 범위입니다. 이 설명은 게시 전 로컬 준비 기록이며, 게시 상태는 브랜치 이력에서 확인합니다.
+
 기존 실습 코드를 [Day4 공통 계약](https://github.com/suuuhululu/C-2/blob/main/docs/06_CONTRACT_DRAFT.md)의
 Design·블록·Plan·Step 형식으로 수정했다. 샘플과 실제 연결에서 같은 계산 함수를 사용한다.
 현재 구현 범위는 **최초 Plan**과 **현재 배치 보존＋남은 PLACE Plan** 생성·검증이다.

@@ -1,0 +1,93 @@
+{
+  "fixture_note": "TEST_ONLY: one stud-row gap; invented geometry. Not measured or executable robot data.",
+  "design": {
+    "design_version": 1,
+    "blocks": [
+      {
+        "brick_type": "2x2x1",
+        "color": "yellow",
+        "x": 3,
+        "y": 6,
+        "layer": 1,
+        "orientation_deg": 0
+      },
+      {
+        "brick_type": "2x2x1",
+        "color": "yellow",
+        "x": 9,
+        "y": 6,
+        "layer": 1,
+        "orientation_deg": 0
+      },
+      {
+        "brick_type": "2x2x1",
+        "color": "yellow",
+        "x": 6,
+        "y": 6,
+        "layer": 1,
+        "orientation_deg": 0
+      }
+    ]
+  },
+  "current": {
+    "current_revision": 2,
+    "blocks": [
+      {
+        "brick_type": "2x2x1",
+        "color": "yellow",
+        "x": 3,
+        "y": 6,
+        "layer": 1,
+        "orientation_deg": 0
+      },
+      {
+        "brick_type": "2x2x1",
+        "color": "yellow",
+        "x": 9,
+        "y": 6,
+        "layer": 1,
+        "orientation_deg": 0
+      }
+    ]
+  },
+  "assembly_context": {
+    "profile_source": "TEST_ONLY",
+    "geometry": {
+      "pitch_mm": 10,
+      "body_height_mm": 10,
+      "stud_height_mm": 2,
+      "finger_thickness_mm": 3,
+      "finger_length_mm": 8,
+      "finger_height_mm": 10,
+      "grip_bottom_offset_mm": 5,
+      "jaw_open_margin_mm": 8,
+      "minimal_jaw_open_margin_mm": 1,
+      "tool_body_width_mm": 12,
+      "tool_body_depth_mm": 12,
+      "tool_body_height_mm": 15,
+      "press_pad_width_mm": 12,
+      "press_pad_depth_mm": 12,
+      "press_tip_height_mm": 6,
+      "release_raise_mm": 12,
+      "hand_width_mm": 8,
+      "hand_depth_mm": 8,
+      "hand_height_mm": 4,
+      "hand_reach_mm": 300,
+      "clearance_mm": 0
+    },
+    "human_sides": [
+      "-x",
+      "+x",
+      "-y",
+      "+y"
+    ],
+    "grip_axes": [
+      "x"
+    ],
+    "finish_layers": false,
+    "minimal_release_model_confirmed": true,
+    "max_states": 10000,
+    "press_contact_model_confirmed": false,
+    "obstacles": []
+  }
+}

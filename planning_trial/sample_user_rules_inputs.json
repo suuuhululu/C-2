@@ -1,0 +1,33 @@
+{
+  "fixture_note": "좌표와 pitch=16mm는 작은 규칙 비교용 TEST_ONLY 예시. 몸체20mm/끝단8mm/한칸 공간은 사용자 선택 기준이며 실기·전체도구·힘 검증 자료가 아님.",
+  "design": {
+    "design_version": 1,
+    "blocks": [
+      {"brick_type":"2x2x1","color":"yellow","x":4,"y":6,"layer":1,"orientation_deg":0},
+      {"brick_type":"2x3x1","color":"blue","x":6,"y":6,"layer":1,"orientation_deg":0},
+      {"brick_type":"2x2x1","color":"yellow","x":8,"y":6,"layer":1,"orientation_deg":0}
+    ]
+  },
+  "current": {"current_revision":0,"blocks":[]},
+  "assembly_context": {
+    "profile_source":"TEST_ONLY",
+    "rule_source":"USER_SELECTED_20261008_NOT_TEAM_FROZEN",
+    "space_model":"STUD_RULES",
+    "human_press_policy":"CONTACT_HULL",
+    "hold_gripper_nonintrusion_assumption":true,
+    "geometry":{"pitch_mm":16,"body_height_mm":20,"stud_height_mm":5,"grip_bottom_offset_mm":8},
+    "human_sides":["-x","+x","-y","+y"],
+    "grip_axes":["x","y"],
+    "finish_layers":false,
+    "max_states":10000,
+    "minimal_release_model_confirmed":true,
+    "press_contact_model_confirmed":false,
+    "obstacles":[],
+    "assumption_notes":[
+      "1 stud side gap permits gripper entry/release in the local rule; D determines the actual small-opening command.",
+      "HOLD checks two local side spaces one pitch wide and one body high. U gripper intrusion into L grip space is assumed absent.",
+      "PRESS uses a one-pitch patch and local side entry; full finger/arm reach and exact tool body are not verified.",
+      "Internal assembly_board_mm has Z=0 at board body support face, XY at first stud centre. SI/D frame mapping remains draft."
+    ]
+  }
+}
