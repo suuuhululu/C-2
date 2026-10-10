@@ -476,3 +476,97 @@ def test_record_opens_and_closes_the_input_stream_on_every_call(monkeypatch):
     monkeypatch.setattr(voice, "_sounddevice", lambda: FakeSD())
     assert voice.record() == b"" and voice.record() == b""  # 무음 → b""
     assert log == ["open", "close", "open", "close"]
+
+
+# ---------------------------------------------------------------------------
+# Stage 3 Wave 4: 최종 lifecycle 전체(Revised MODIFY 포함)를 음성 모드로 1회
+# ---------------------------------------------------------------------------
+
+FINAL_ANSWERS = ["벤치처럼 길고 넓은 의자를 만들고 싶어", "등받이를 조금 더 높게 해줘", "좋아 이걸로 하자",
+                 "일부러 그렇게 놨어. 조금 더 넓게 만들고 싶어", "조금 더 화려하게 해줘", "마음에 들어. 이걸로 하자"]
+
+
+def test_final_lifecycle_voice_mode_end_to_end(fake_llm, monkeypatch):
+    """Initial → review MODIFY → APPROVE → Difference REVISE → review(revised) MODIFY → APPROVE (fake listen/speak).
+
+    fake listen은 실제 voice.record(가짜 sounddevice, 무음)를 한 번 부른 뒤 정해 둔 답 하나를 돌려준다: 호출마다
+    마이크 스트림이 열리고 닫히는지와 답(STT buffer)이 다음 호출로 남지 않는지를 함께 본다.
+    """
+    events, stream_log, heard = [], [], list(FINAL_ANSWERS)
+
+    class FakeSD:
+        def InputStream(self, **kwargs):
+            return _Stream(stream_log)
+
+        def play(self, *args, **kwargs):
+            pass
+
+    def listen(on_ready=None, mode="short", beep=False):
+        assert voice._capture_options == {"mode": "short", "beep": False}  # 이전 listen의 설정이 남지 않음
+        assert voice.record() == b""  # 실제 record: 열고 닫는다(무음)
+        answer = heard.pop(0)
+        events.append(("listen", mode, beep, answer))
+        return answer
+
+    monkeypatch.setattr(voice, "_sounddevice", lambda: FakeSD())
+    monkeypatch.setattr(voice, "prewarm", lambda: events.append(("prewarm",)) or True)
+    monkeypatch.setattr(voice, "listen", listen)
+    monkeypatch.setattr(voice, "speak", lambda sentence: events.append(("speak", sentence)))
+    fake_llm.reviews = [review_reply("MODIFY", "등받이를 더 높게", "patch", reply="좋아요. 등받이를 높여 볼게요."),
+                        review_reply("MODIFY", "더 화려하게", "patch", reply="좋아요. 더 화려하게 바꿔 볼게요.")]
+    fake_llm.answers = [{"decision": "REVISE", "style_hint": "조금 더 넓게", "reason": "…", "reply": "알겠습니다. 더 넓게 만들어볼게요."}]
+
+    calls, marks = [], []
+
+    def call(api, func, *args, **kwargs):
+        marks.append(len(events))
+        response = func(*args, **kwargs)
+        assert set(response) == ENVELOPE_KEYS and response["status"] == "OK"
+        calls.append((api, response))
+        return response
+
+    initial = call("initial", main.create_initial_design)
+    modify_a = call("review", main.review_design_candidate, initial["design"], kind="initial",
+                    design_metadata=initial["design_metadata"])
+    approve_a = call("review", main.review_design_candidate, modify_a["design"], kind="initial",
+                     design_metadata=modify_a["design_metadata"])
+    approved_v1 = approve_a["design"]  # caller가 채택
+    case = _difference_from(approved_v1)
+    revise = call("intervention", main.run_intervention, approved_v1, case["current"], case["differences"])
+    revised_inputs = {"previous_design": approved_v1, "current": case["current"], "differences": case["differences"]}
+    modify_b = call("review", main.review_design_candidate, revise["design"], kind="revised",
+                    design_metadata=revise["design_metadata"], **revised_inputs)
+    generated, judged = len(fake_llm.calls["revised"]), len(fake_llm.calls["judge"])
+    approve_b = call("review", main.review_design_candidate, modify_b["design"], kind="revised",
+                     design_metadata=modify_b["design_metadata"], **revised_inputs)
+
+    # 결정 수열과 version·round·Current 보존
+    assert [r["hri_result"] for _, r in calls] == [None, "MODIFY", "APPROVE", "REVISE", "MODIFY", "APPROVE"]
+    assert [r["design"]["design_version"] for _, r in calls] == [1, 1, 1, 2, 2, 2]
+    rounds = [(r["design_metadata"].get("review") or {}).get("round", 0) for _, r in calls]
+    assert rounds == [0, 1, 1, 0, 1, 1]
+    for _, response in calls[3:]:
+        assert validator.validate_revised({"blocks": response["design"]["blocks"]}, case["current"]) == []
+    assert modify_a["design"] != initial["design"] and modify_b["design"] != revise["design"]  # MODIFY는 새 후보
+    assert approve_a["design"] == modify_a["design"] and approve_b["design"] == modify_b["design"]  # APPROVE는 그대로
+    assert len(fake_llm.calls["revised"]) == generated and len(fake_llm.calls["judge"]) == judged  # 마지막 APPROVE 생성 0회
+    assert all(set(r["design"]) == DESIGN_KEYS for _, r in calls)
+
+    # 호출마다 자기 첫 TTS로 시작하고 listen은 free·beep로 정확히 1회
+    marks.append(len(events))
+    first_tts, listens = [], []
+    for start, end in zip(marks, marks[1:]):
+        part = events[start:end]
+        first_tts.append(next(e[1] for e in part if e[0] == "speak"))
+        listens.append([e for e in part if e[0] == "listen"])
+    assert first_tts[0] == dialogue.GREETING
+    assert first_tts[1] == first_tts[2] == REVIEW_QUESTION["initial"]
+    assert first_tts[3].startswith("Design과 다르게 놓인 부분이 있는데") and "(x=" in first_tts[3]
+    assert first_tts[4] == first_tts[5] == REVIEW_QUESTION["revised"]
+    assert [len(part) for part in listens] == [1] * 6
+    assert all(part[0][1:3] == ("free", True) for part in listens)
+    assert [part[0][3] for part in listens] == FINAL_ANSWERS and heard == []  # 답이 다음 호출로 남지 않음
+
+    # 마이크 스트림: listen마다 한 번 열고 닫는다(호출 사이에 열려 있지 않음)
+    assert stream_log == ["open", "close"] * 6
+    assert voice._capture_options == {"mode": "short", "beep": False}

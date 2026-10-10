@@ -129,10 +129,10 @@ Mock 텍스트(키 없음):
 python3 scripts/c_stage3_integration_smoke.py --mode text --scenario full
 ```
 
-fake-voice(정해 둔 답을 순서대로, TTS는 실제):
+fake-voice(정해 둔 답을 순서대로, TTS는 실제. `full` 기본 답은 Revised MODIFY "조금 더 화려하게 해줘"를 포함한 최종 lifecycle 6개):
 
 ```bash
-env C_DESIGN_USE_LLM=1 OPENAI_LLM_API_KEY="$(cat ~/c2_cobot2_API_key.txt)" OPENAI_TTS_API_KEY="$(cat ~/c2_cobot2_API_key.txt)" python3 scripts/c_stage3_integration_smoke.py --mode fake-voice --scenario full --answers "벤치처럼 길고 넓은 의자" "등받이를 더 높게" "좋아 이걸로 하자" "일부러 그렇게 놨어요" "마음에 들어"
+env C_DESIGN_USE_LLM=1 OPENAI_LLM_API_KEY="$(cat ~/c2_cobot2_API_key.txt)" OPENAI_TTS_API_KEY="$(cat ~/c2_cobot2_API_key.txt)" python3 scripts/c_stage3_integration_smoke.py --mode fake-voice --scenario full
 ```
 
 실제 마이크·TTS(사용자 실행):
@@ -145,4 +145,49 @@ offline 검증:
 
 ```bash
 python3 -m pytest tests/integration/test_c_stage3_lifecycle.py -q
+```
+
+## 최종 상태(Stage 3 Wave 4)
+
+C는 APPROVE 의사를 반환하고, D가 Candidate를 Approved Design으로 채택합니다. C는 Approved를 저장하지 않습니다. Candidate와 Approved는 다릅니다. MODIFY·REVISE가 돌려주는 Design은 승인 전 Candidate이며, 채택은 D 몫입니다. correlation(request_id 등)과 Expected 관리는 D(caller) 책임이고 C API는 확장하지 않았습니다(§5, CONTRACT §4.5).
+
+검증한 최종 lifecycle(C-side, fake D caller):
+- 순서: Initial → PREVIEW_READY(가정) → review MODIFY → 새 Candidate v1 → review APPROVE → caller 채택 v1 → Difference → `run_intervention` REVISE → Revised v2‑A → review(revised) MODIFY("조금 더 화려하게 해줘") → v2‑B → review APPROVE
+- version 수열 `[1, 1, 1, 2, 2, 2]`, round는 Initial 0→1→1 / Revised 0→1→1
+- Revised 후보는 모두 Current 보존, 마지막 APPROVE는 생성 0회이고 후보를 그대로 돌려줌
+- 근거: `tests/integration/test_c_stage3_lifecycle.py`의 `test_final_lifecycle_voice_mode_end_to_end`(fake listen/speak 음성 모드, 호출마다 첫 TTS·listen 1회·마이크 open/close 확인)와 runner의 Mock 텍스트 실행
+
+### C-side ✅
+
+| # | 항목 | 상태 |
+|---|---|---|
+| 1 | Initial Voice/HRI(인사 TTS → beep → STT → 해석 → ack → 생성 → READY TTS) | ✅ C-side |
+| 2 | Candidate Design(Initial v1, validator PASS) | ✅ C-side |
+| 3 | Preview Review API(`review_design_candidate`, PREVIEW_READY 뒤 caller가 호출) | ✅ C-side (fake PREVIEW_READY 기반 review 호출 PASS) |
+| 4 | MODIFY regeneration(patch / redesign / concept_change, 직전 후보와 같은 블록은 탈락·재생성) | ✅ C-side |
+| 5 | APPROVE / MODIFY / UNCLEAR / CANCEL | ✅ C-side |
+| 6 | Intervention KEEP / REVISE / UNCLEAR | ✅ C-side |
+| 7 | Revised Candidate(Approved + 1, Current 보존, judge·재생성 ≤1) | ✅ C-side |
+| 8 | Candidate re-review(이전 response의 design_metadata를 넘기면 round가 이어짐) | ✅ C-side |
+| 9 | version lifecycle(Initial 1 고정, Revised = Approved + 1 고정, 호출 횟수로 늘지 않음) | ✅ C-side |
+| 10 | inventory / validator(허용 색·브릭 조합, MAX_LAYER·MAX_BLOCKS, support·connectivity) | ✅ C-side |
+| 11 | C-side caller fixture(fake D caller 테스트·runner) | ✅ C-side caller fixture PASS |
+| 12 | C-side Voice lifecycle E2E(호출별 첫 TTS, listen 1회, 마이크 open/close, 답 잔존 없음) | ✅ C-side (fake listen/speak) |
+
+### Team integration ❌ (팀 통합 단계)
+
+| # | 항목 | 상태 |
+|---|---|---|
+| 1 | 실제 D HMI Preview 연결(Preview 표시 완료 → `review_design_candidate` 호출) | ❌ 미연결 |
+| 2 | D Candidate / Approved state 연결(APPROVE 채택·MODIFY 새 후보 보관) | ❌ 미연결 |
+| 3 | 실제 A Planning 연결(Approved Design → Plan) | ❌ 미연결 |
+| 4 | 실제 Vision Current / Difference 연결 | ❌ 미연결 |
+| 5 | Robot REAL E2E | ❌ 미연결 |
+
+**사용자 실행(실제 마이크·TTS, 최종 lifecycle 1회)**
+
+결과 PNG는 시험용 표시이며 실제 D Preview가 아닙니다.
+
+```bash
+env C_DESIGN_USE_LLM=1 OPENAI_API_KEY="$(cat ~/C2_OpenAi_API_Key.txt)" OPENAI_LLM_API_KEY="$(cat ~/c2_cobot2_API_key.txt)" OPENAI_TTS_API_KEY="$(cat ~/c2_cobot2_API_key.txt)" python3 scripts/c_stage3_integration_smoke.py --mode mic --scenario full --out ~/c_stage3_final --render ~/c_stage3_final/png
 ```
