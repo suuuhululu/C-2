@@ -115,6 +115,23 @@
 - **correlation 결론**: C에는 `request_id`·`job_id`·`current_revision`이 없습니다(grep). 동기 반환으로 호출과 response가 1:1이고, stale·중복·활성 요청 판정은 caller(D) 책임입니다. GitHub 상태 기준(최신 아닐 수 있음) D `CTextConnection`이 이미 `valid()`·`C_CALL_BUSY`·`_ignored`·`threading.Event`로 이를 합니다. production field는 추가하지 않습니다(후보·이유는 [계약 §4.5](C_DESIGN_CONTRACT.md)).
 - **Expected 결론**: Expected 전체는 C에 불필요합니다. `run_intervention`·질문·escalation·Revised 생성·judge·Current 보존 검사는 Approved Design·Current·`differences[].expected / actual`만 씁니다(코드 근거 [계약 §4.5](C_DESIGN_CONTRACT.md)). Expected는 D가 관리하는 입력이며 C API에 추가하지 않습니다.
 
+## 7.4 Wave 4 반영 — C-side Final E2E 최종 상태 (2026-10-11, Fable)
+C는 APPROVE 의사를 반환하고, D가 Candidate를 Approved Design으로 채택합니다. C는 Approved를 저장하지 않으며 DB·HMI·A를 직접 다루지 않습니다. 검증은 fake D caller·fake PREVIEW_READY 기준이고, 실제 D/HMI/A/Vision/Robot integration은 팀 통합 단계입니다.
+
+- 최종 lifecycle(C-side): Initial → PREVIEW_READY(가정) → review MODIFY → 새 Candidate v1 → review APPROVE → caller 채택 v1 → Difference → `run_intervention` REVISE → Revised v2‑A → review(revised) MODIFY → v2‑B → review APPROVE. version `[1, 1, 1, 2, 2, 2]`, round Initial 0→1→1 / Revised 0→1→1, Revised 후보 Current 보존, 마지막 APPROVE 생성 0회. 근거: `tests/unit/c_design/test_stage3_contract.py`(invariant·unchanged_candidate), `tests/integration/test_c_stage3_lifecycle.py`(음성 모드 전체 1회 포함), `tests/integration/test_c_stage3_failures.py`(실패 경로 29건), runner `scripts/c_stage3_integration_smoke.py`(fake-voice·gpt-6.1-sol).
+- Wave 4에서 고친 것(최소 변경, llm.py 프롬프트만): Initial patch 재생성에서 family 정의(bench "no backrest")가 "등받이를 더 높게"를 막아 블록 재배치만 하던 사례 → patch 문단을 "변경을 먼저·눈에 보이게, 없는 부위 추가, 40블록 한도면 다른 부위 축소"로 바꾸고 family 줄에 "요청한 변경이 충돌하는 defining feature보다 우선"을 추가(계약 §8.14). 실 호출 재확인: 수정 전 벤치 0/4 반영, 수정 후 벤치 2/2·데이베드 1/1(등받이 2층 추가, 블록 비교·렌더로 확인).
+- 범위 유지: correlation(request_id 등)·Expected 전체는 C API에 추가하지 않음(7.3). Mock 모드 MODIFY는 후보 불변.
+
+| C-side | 상태 |
+|---|---|
+| Initial Voice/HRI · Candidate Design · Preview Review API · MODIFY regeneration · APPROVE/MODIFY/UNCLEAR/CANCEL · Intervention KEEP/REVISE/UNCLEAR · Revised Candidate · Candidate re-review · version lifecycle · inventory/validator · C-side caller fixture · C-side Voice lifecycle E2E | ✅ (fake D caller·fake PREVIEW_READY 기준; 실제 mic E2E는 사용자 실행 기록 참조) |
+
+| Team integration | 상태 |
+|---|---|
+| 실제 D HMI Preview 연결 · D Candidate/Approved state 연결 · 실제 A Planning 연결 · 실제 Vision Current/Difference 연결 · Robot REAL E2E | ❌ 팀 통합 단계 |
+
+D 호출 가이드는 [C_DESIGN_STAGE3_D_HANDOFF.md](C_DESIGN_STAGE3_D_HANDOFF.md)(최종 상태 절 포함)입니다.
+
 ## 8. 위험 요소 / 결정 필요
 1. 후보 반복 중 `design_version` 정책(§3.1·§3.2 제안: Initial 후보 1 고정, Revised 후보 승인+1 고정). docs/06 §4와 D `replan.on_intent` 검증과 맞물림.
 2. snapshot `candidate_design` 필드 추가는 D/공유 schema 변경 → D 작업. 대안(채택 `design`에 후보를 넣고 제목만 바꾸기)은 §8 원칙 위반이라 비권장.
