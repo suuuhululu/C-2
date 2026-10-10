@@ -1151,6 +1151,8 @@ class TestInterpretReviewAnswer:
         assert ('"concept_change" when the current candidate follows a creative concept and they want a different concept '
                 "instead (e.g. '컵케이크 말고 바나나 느낌')") in prompt
         assert ("'치즈컵케이크 느낌으로 바꿔줘' gives scope \"patch\" and concept '치즈컵케이크 느낌'") in prompt
+        # 실 호출에서 scope 값이 decision으로 새어 나온 사례("CONCEPT_CHANGE")를 막는 문장(Fable smoke FIX).
+        assert 'decision for all three scopes is "MODIFY"; scope values are never used as the decision' in prompt
         assert ("'컵케이크 말고 바나나 느낌' gives scope \"concept_change\" and concept '바나나 느낌'") in prompt
         assert "KEEP" not in prompt and "REVISE" not in prompt
 
