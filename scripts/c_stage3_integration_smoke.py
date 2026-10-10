@@ -22,7 +22,7 @@ integration은 팀 통합 단계에서 한다. caller는 `approved`(review가 AP
   fake-voice  이 프로세스 안에서만 voice.listen을 fake로 바꿔 --answers를 listen 호출마다 하나씩 돌려준다(voice.prewarm도
               마이크를 열지 않는 no-op로 바꾼다). voice.speak는 실제 함수 그대로(TTS 키가 없으면 소리 없이 last_error만 남김).
               C API는 음성 모드(text=None·text_answers=None)로 부른다.
-  mic         실제 마이크·TTS. C API를 음성 모드로 부르고 c_voice_review_smoke.install_listen_log로 안내·STT 원문을 출력한다.
+  mic         실제 마이크·TTS. C API를 음성 모드로 부르고 listen마다 공통 안내와 [C][STT_RAW] 원문을 출력한다.
 --scenario
   initial       create_initial_design만.
   review        Initial → PREVIEW_READY → review(kind="initial")를 MODIFY인 동안 반복(최대 3회) → APPROVE면 채택.
@@ -120,6 +120,23 @@ def install_fake_voice(feed):
 
     voice.listen = listen
     voice.prewarm = lambda: True
+
+
+def install_mic_log():
+    """mic 모드: 실제 voice.listen을 감싸 단계에 맞지 않는 검토용 안내 대신 공통 안내와 [C][STT_RAW]만 출력한다."""
+    original = voice.listen
+
+    def listen(on_ready=None, mode="short", beep=False):
+        def ready():
+            _log(">>> 지금 말씀하세요(알림음 뒤에 자유롭게 답해 주세요).")
+            if on_ready is not None:
+                on_ready()
+        text = original(on_ready=ready, mode=mode, beep=beep)
+        shown = text if text is not None else ""
+        _log(f'[C][STT_RAW] {review_smoke._now()} "{shown}"' + (f" (last_error {voice.last_error()})" if text in (None, "") else ""))
+        return text
+
+    voice.listen = listen
 
 
 def make_difference(approved):
@@ -378,7 +395,7 @@ def main_cli():
     if args.mode == "fake-voice":
         install_fake_voice(feed)
     elif args.mode == "mic":
-        review_smoke.install_listen_log()
+        install_mic_log()
         voice.prewarm()
     if args.out:
         os.makedirs(args.out, exist_ok=True)
