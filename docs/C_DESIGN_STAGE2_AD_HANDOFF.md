@@ -119,3 +119,9 @@ C는 아래 D 코드·테스트를 수정하지 않았습니다. 2026-10-08 기�
 | # | 소유 | 파일:줄 | REQUIRED CHANGE (현재 → 필요) | AFFECTED INTERFACE | REASON |
 | --- | --- | --- | --- | --- | --- |
 | 43 | D | Preview·검토 호출 경로(42번과 같은 위치) | `review_design_candidate`가 `hri_result: "MODIFY"`·`status: OK`로 돌려준 `design`은 **새 Candidate**입니다: D가 Preview를 이 후보로 갱신하고 같은 함수로 다시 검토를 부릅니다(`design_metadata`는 받은 것을 그대로 넘기면 `review.round`가 이어짐). APPROVE면 그 후보를 Approved Design으로 채택(A Plan·조립 진행)하는 것은 D 몫. `kind="revised"` 검토에는 `previous_design`(Approved)·`current`·`differences`를 함께 넘겨야 함(없으면 `INVALID_INPUT`). `FAILED`/`DESIGN_GENERATION_FAILED`(hri_result MODIFY)는 이전 후보로 다시 검토하거나 보류 | C §4.4 확장 시그니처 | 새 Candidate는 승인 전 상태이며 Design에 승인 표시가 없습니다(승인은 `hri_result`로만). Revised 후보의 design_version은 Approved+1로 고정이라 후보 반복으로 늘지 않습니다 |
+
+## Stage 3 Wave 3 C-side integration readiness (2026-10-11 추가)
+
+| # | 소유 | 파일:줄 | REQUIRED CHANGE (현재 → 필요) | AFFECTED INTERFACE | REASON |
+| --- | --- | --- | --- | --- | --- |
+| 44 | D | Initial·Preview·Intervention 호출 경로(`app/c_text_connection.py` 등, 팀 통합 단계에서 결정) | [C_DESIGN_STAGE3_D_HANDOFF.md](C_DESIGN_STAGE3_D_HANDOFF.md)의 호출 순서대로 D가 C를 호출하고 response를 받음: `create_initial_design`(C가 Initial Voice/HRI 전체) → Preview 표시 완료 후 `review_design_candidate` → APPROVE면 채택(A 요청), MODIFY면 새 Candidate Preview 후 재검토 → Difference면 `run_intervention(Approved, Current, differences)` → REVISE면 Revised Candidate Preview 후 `review_design_candidate(kind="revised", previous_design=Approved, current, differences)` | C §4.1·§4.2·§4.4·§4.5 (C public API 시그니처 불변) | Wave 3에서는 fake D caller 기준으로만 확인했습니다(C-side caller fixture PASS, fake PREVIEW_READY 기반 review 호출 PASS). 실제 D/HMI integration은 팀 통합 단계이며 D 코드는 수정하지 않았습니다. request_id 등 correlation과 Expected 관리는 D 책임(CONTRACT §4.5) |
