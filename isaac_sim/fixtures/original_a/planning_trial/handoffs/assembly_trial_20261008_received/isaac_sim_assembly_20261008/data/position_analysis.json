@@ -1,0 +1,58 @@
+{
+  "status": "OFFLINE_POSITION_INTERPOLATION_CANDIDATE",
+  "source": "logs/assembly_board_5point_20261008/5170b7e1-72a0-4072-a689-2f1630041873/points.json",
+  "source_sha256": "5006a30bfa660bea581eec474aca9ff7495886e10dece336639424b4ac0462ab",
+  "reference": "BASE",
+  "unit": "mm",
+  "coordinate_convention": "minimum occupied stud x/y of held 2x2 block",
+  "formula": "XYZ = origin + x*x_coefficient + y*y_coefficient + x*y*xy_coefficient",
+  "origin": [
+    295.1910095214844,
+    -86.7551498413086,
+    16.536252975463867
+  ],
+  "x_coefficient": [
+    0.050367875532670456,
+    15.879434412175959,
+    0.03352841463955966
+  ],
+  "y_coefficient": [
+    15.97572049227628,
+    -0.08312121304598721,
+    0.04126210646195845
+  ],
+  "xy_coefficient": [
+    0.0007364572572314049,
+    0.0022486379323912063,
+    -0.0018036739885314438
+  ],
+  "domain_xy": [
+    0,
+    22
+  ],
+  "center_predicted_xyz": [
+    471.5670928955078,
+    87.27638053894043,
+    17.14070415496826
+  ],
+  "center_measured_xyz": [
+    471.5614318847656,
+    86.8033218383789,
+    16.409549713134766
+  ],
+  "center_measured_minus_predicted_mm": [
+    -0.0056610107421875,
+    -0.47305870056152344,
+    -0.7311544418334961
+  ],
+  "center_residual_norm_mm": 0.8708635938150311,
+  "axis_edge_pitch_mm": {
+    "x": 15.879549689083502,
+    "y": 15.975990014544456
+  },
+  "software_z_offset_applied_mm": 0,
+  "extra_press_requested_mm": 1,
+  "orientation_interpolated": false,
+  "execution_config_updated": false,
+  "motion_commands": 0
+}

@@ -1,0 +1,307 @@
+{
+  "status": "CAPTURE_COMPLETE_NOT_YET_FITTED",
+  "source": "USER_TAUGHT_SEATED_TCP",
+  "reference": "BASE",
+  "position_unit": "mm",
+  "orientation_convention": "ZYZ degree",
+  "coordinate_convention": "minimum occupied stud x/y of held 2x2 block",
+  "expected_points": [
+    [
+      0,
+      0
+    ],
+    [
+      0,
+      22
+    ],
+    [
+      22,
+      0
+    ],
+    [
+      22,
+      22
+    ],
+    [
+      11,
+      11
+    ]
+  ],
+  "stud_pitch_mm": 16.0,
+  "extra_press_requested_mm": 1.0,
+  "software_z_offset_applied_mm": 0.0,
+  "motion_commands": 0,
+  "gripper_commands": 0,
+  "points": [
+    {
+      "grid": [
+        0,
+        0
+      ],
+      "recorded_utc": "2026-10-08T04:34:42.710630+00:00",
+      "seated_user_confirmed": true,
+      "sensor_seating_verified": false,
+      "sample": {
+        "posj": [
+          -15.424046516418457,
+          -1.9205938577651978,
+          120.87903594970703,
+          -1.766196846961975,
+          60.911441802978516,
+          -15.02481746673584
+        ],
+        "posx": [
+          295.1910095214844,
+          -86.7551498413086,
+          16.536252975463867,
+          79.57137298583984,
+          -178.49293518066406,
+          79.48140716552734
+        ],
+        "velx": [
+          -0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "motion_status": 0,
+        "query_started_monotonic_s": 13601.600379393,
+        "query_duration_s": 0.04300998200051254,
+        "robot_state": 1,
+        "robot_mode": 0,
+        "drl_state": 3,
+        "tcp": "GripperDA_v4",
+        "tool": "ToolWeight0",
+        "wrench": [
+          1.240309715270996,
+          -2.052948236465454,
+          3.7810850143432617,
+          0.25642481446266174,
+          0.011098160408437252,
+          -0.02655351348221302
+        ],
+        "gripper_status": 2,
+        "gripper_width_mm": 40.7,
+        "query_finished_monotonic_s": 13601.643390175
+      }
+    },
+    {
+      "grid": [
+        0,
+        22
+      ],
+      "recorded_utc": "2026-10-08T04:35:31.831947+00:00",
+      "seated_user_confirmed": true,
+      "sensor_seating_verified": false,
+      "sample": {
+        "posj": [
+          -7.024539470672607,
+          45.18171691894531,
+          53.639766693115234,
+          -1.905871868133545,
+          81.36344909667969,
+          -7.51322078704834
+        ],
+        "posx": [
+          646.6568603515625,
+          -88.58381652832031,
+          17.444019317626953,
+          77.88407135009766,
+          -177.86114501953125,
+          77.35955810546875
+        ],
+        "velx": [
+          -0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "motion_status": 0,
+        "query_started_monotonic_s": 13650.724453624,
+        "query_duration_s": 0.04025143100079731,
+        "robot_state": 1,
+        "robot_mode": 0,
+        "drl_state": 3,
+        "tcp": "GripperDA_v4",
+        "tool": "ToolWeight0",
+        "wrench": [
+          -3.7820005416870117,
+          -0.30329644680023193,
+          11.775402069091797,
+          -0.29220110177993774,
+          10.038867950439453,
+          -0.585627019405365
+        ],
+        "gripper_status": 2,
+        "gripper_width_mm": 40.7,
+        "query_finished_monotonic_s": 13650.764705843
+      }
+    },
+    {
+      "grid": [
+        22,
+        0
+      ],
+      "recorded_utc": "2026-10-08T04:35:56.167998+00:00",
+      "seated_user_confirmed": true,
+      "sensor_seating_verified": false,
+      "sample": {
+        "posj": [
+          42.3198356628418,
+          11.472602844238281,
+          105.97564697265625,
+          -1.6182925701141357,
+          64.34565734863281,
+          42.058868408203125
+        ],
+        "posx": [
+          296.2991027832031,
+          262.5924072265625,
+          17.27387809753418,
+          82.10115814208984,
+          -177.66490173339844,
+          81.47732543945312
+        ],
+        "velx": [
+          -0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "motion_status": 0,
+        "query_started_monotonic_s": 13675.065728554,
+        "query_duration_s": 0.035029697999561904,
+        "robot_state": 1,
+        "robot_mode": 0,
+        "drl_state": 3,
+        "tcp": "GripperDA_v4",
+        "tool": "ToolWeight0",
+        "wrench": [
+          1.775024652481079,
+          -1.625744104385376,
+          5.635000228881836,
+          0.5647376179695129,
+          -0.11744415014982224,
+          -0.11016017198562622
+        ],
+        "gripper_status": 2,
+        "gripper_width_mm": 40.7,
+        "query_finished_monotonic_s": 13675.100758645
+      }
+    },
+    {
+      "grid": [
+        22,
+        22
+      ],
+      "recorded_utc": "2026-10-08T04:36:26.372147+00:00",
+      "seated_user_confirmed": true,
+      "sensor_seating_verified": false,
+      "sample": {
+        "posj": [
+          22.677631378173828,
+          55.361289978027344,
+          34.739444732666016,
+          -1.843526840209961,
+          90.86650085449219,
+          22.09130096435547
+        ],
+        "posx": [
+          648.1213989257812,
+          261.8520812988281,
+          17.308666229248047,
+          88.10823822021484,
+          -177.6547393798828,
+          87.73725891113281
+        ],
+        "velx": [
+          -0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "motion_status": 0,
+        "query_started_monotonic_s": 13705.276500365,
+        "query_duration_s": 0.028404677999787964,
+        "robot_state": 1,
+        "robot_mode": 0,
+        "drl_state": 3,
+        "tcp": "GripperDA_v4",
+        "tool": "ToolWeight0",
+        "wrench": [
+          -5.28040075302124,
+          -2.815110683441162,
+          14.395277976989746,
+          -6.6105265617370605,
+          11.385924339294434,
+          -0.5236459374427795
+        ],
+        "gripper_status": 2,
+        "gripper_width_mm": 40.7,
+        "query_finished_monotonic_s": 13705.304905601
+      }
+    },
+    {
+      "grid": [
+        11,
+        11
+      ],
+      "recorded_utc": "2026-10-08T04:37:10.185518+00:00",
+      "seated_user_confirmed": true,
+      "sensor_seating_verified": false,
+      "sample": {
+        "posj": [
+          11.230657577514648,
+          21.34314727783203,
+          92.78303527832031,
+          -1.74009108543396,
+          66.60382080078125,
+          11.301219940185547
+        ],
+        "posx": [
+          471.5614318847656,
+          86.8033218383789,
+          16.409549713134766,
+          78.01061248779297,
+          -178.14669799804688,
+          77.7216567993164
+        ],
+        "velx": [
+          -0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "motion_status": 0,
+        "query_started_monotonic_s": 13749.083508061,
+        "query_duration_s": 0.03477055900111736,
+        "robot_state": 1,
+        "robot_mode": 0,
+        "drl_state": 3,
+        "tcp": "GripperDA_v4",
+        "tool": "ToolWeight0",
+        "wrench": [
+          -6.420300006866455,
+          2.636686325073242,
+          15.02820110321045,
+          0.13735845685005188,
+          -0.6657500863075256,
+          -0.1091180071234703
+        ],
+        "gripper_status": 2,
+        "gripper_width_mm": 40.7,
+        "query_finished_monotonic_s": 13749.118279086
+      }
+    }
+  ]
+}
