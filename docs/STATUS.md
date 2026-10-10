@@ -1,5 +1,15 @@
 # 현재 진행 상황
 
+## A파트 — Isaac·MoveIt 경로 정리와 기존 연결 보존, 로컬 반영본 (2026-10-10)
+
+- 사용자 요청 범위는 게시 전 준비입니다. `work/seeun-planning`의 `319a2755676f2432e3bf3dfdbcd7b22c4d68b17d`를 가져와 최신 A와 필요한 SIM 소스를 파일별로 반영했습니다. 이 절은 게시 전 로컬 준비 기록입니다. 게시 상태는 브랜치 이력에서 확인합니다.
+- A는 기존 `planning_trial/` 한 곳을 사용합니다. 기존 C→A 확인 스크립트·테스트·샘플과 C 앱은 보존했습니다. `planner.py`의 기존 API 기본 동작은 유지하며 층 혼합·조립 후보 API·빨강 1×2 확장은 별도로 연결합니다. 원본 A와 입력·로봇 자산은 별도 fixture 및 SHA256으로 보존합니다.
+- `isaac_sim/` 안으로 필요한 충돌 검사·입력·로봇 USD/mesh·ROS 소스를 모았습니다. Isaac 설치 경로는 `ISAAC_SIM_ROOT`, ROS 설정은 `ROS_SETUP_PATH`로 받습니다. 실행기는 자기 폴더의 빌드 결과를 사용하며 USD는 상대 참조, 실행용 URDF의 로컬 URI는 빌드 시 생성합니다.
+- 실제 신규 검증: A/SIM CPU 테스트 365개 통과, 공백·한글을 포함한 다른 폴더에서도 같은 테스트와 chair 12 Step/red 1 Step 후보 생성 통과. FCL 원본/정리본의 17 mesh 형상·제외 목록·8개 관절 상태 결과 일치. 이동한 USD 의존 layer 10개 모두 해석, 누락 0개. MoveIt/model ROS 패키지 2개를 로컬에서 Release 빌드했습니다.
+- 기존 확인 스크립트 4개로 Initial/Revised/C 공유 fixture/C→A→D 재계획 검증 통과. C/D는 기존 시험과 같은 팀 commit `101d9d85efe8bdf7cf82bef2a199f4919e1e6c84`를 별도로 사용했습니다. 이 A 브랜치의 C 뼈대에는 `create_initial_design`이 없어 그 자체의 전체 연결은 확인할 수 없습니다. 이를 고치기 위해 다른 담당자의 코드를 합치거나 스크립트를 완화하지 않았습니다.
+- 정리본의 Isaac 재생은 수행하지 않았습니다. 기존 12블록 mock 조립 및 빨강 첫 슬롯의 SIM 기록은 이전 버전 검증입니다. 전달판 대기 좌표에서 먼저 여는 최신 변경, 실물 보정·중력 낙하·정밀 해제·물리 체결·힘 제어·실제 사람 도움·B 관측은 신규 검증 완료로 표시하지 않습니다.
+- 실행 안내: [isaac_sim/README.txt](../isaac_sim/README.txt). 파일별 근거와 상세 검증은 `isaac_sim/review/` 및 로컬 `runtime_reports/`에 보관합니다. 다음 단계는 정리본의 SIM 재생 확인과 사용자가 요청할 때 웹 게시입니다.
+
 ## A파트 — C 공개 수정 함수·D Current 기반 채택 시험 공유 (2026-10-06)
 
 - 고정 A 브랜치에 `planning_trial/check_c_a_d_revised.py`와 README 재현 절차를 추가했습니다. 계산 코드·공통 계약·D/C 운영 코드는 변경하지 않았습니다.
