@@ -281,6 +281,38 @@ STOP은 `CANCELLED` / `STOPPED`(design null), 음성 듣기 실패는 `VOICE_IO_
 
 **진행 이벤트**: `REVIEW_LISTENING` → `REVIEW_UNDERSTANDING` → `HRI_INTERPRET`(decision·source·reason·style_hint, 모든 모드) → `REVIEW_ACK` → `REVIEW_READY`입니다. UNCLEAR면 REVIEW_LISTENING부터 한 번 더 하고, CANCEL은 REVIEW_ACK 뒤 `CANCELLED`로 끝납니다. LLM 모드 MODIFY는 REVIEW_ACK 뒤 7의 생성 단계로 이어지고 `REVIEW_READY` 대신 `READY`·`READY_REVISED`로 끝납니다. 음성으로 읽는 것은 질문·재질문·REVIEW_ACK와 생성 단계의 `PROGRESS_TTS_STAGES`(생성 중·판정 중·완성)이며 `PROGRESS_TTS_STAGES`는 바뀌지 않았습니다.
 
+### 4.5 외부 caller 호출 계약 (Stage 3 Wave 3, 2026-10-11)
+
+D(외부 caller)가 C를 호출하고 response를 받습니다. C가 D로 push하지 않습니다. 이 절은 C 쪽 준비 상태와 경계를 정합니다. 검증은 C-side caller fixture(fake D caller, fake PREVIEW_READY)로만 했으며, 실제 D/HMI integration은 팀 통합 단계입니다.
+
+| public API | 언제 부르나 | C가 하는 일 | 돌려주는 것 |
+|---|---|---|---|
+| `create_initial_design(...)` (§4.1) | Initial 시작 | (음성) 인사 TTS → beep → STT → 해석 → ack → 생성·검증·설명 → READY TTS. D가 Initial STT를 대신하지 않는 구조 | Initial **Candidate**(version 1) envelope |
+| `review_design_candidate(...)` (§4.4) | D가 Candidate의 Preview 표시를 끝낸 뒤 | 검토 질문 TTS → STT → 해석(APPROVE / MODIFY / UNCLEAR / CANCEL) → ack, LLM 모드 MODIFY면 새 Candidate 생성(§8.14) | 같은 후보(APPROVE·UNCLEAR·CANCEL) 또는 새 Candidate(MODIFY), `design_metadata.review` |
+| `run_intervention(...)` (§4.2) | D가 Difference를 확정한 뒤 | 차이 설명 질문 TTS → STT → 해석(KEEP / REVISE / UNCLEAR) → ack, REVISE면 Revised Candidate 생성 | 입력 Design(KEEP) 또는 Revised **Candidate**(Approved + 1) |
+
+- **동기 호출·독립성**: 세 함수는 동기 함수이며 호출 하나가 끝나면 envelope(§6)을 반환합니다. 각 호출은 독립적입니다. 이전 호출의 상태를 C 안에 보관하지 않고, 필요한 맥락(후보 Design, 그 `design_metadata`, Approved Design, Current, Difference)은 caller가 인자로 다시 넘깁니다. `main`에는 모듈 수준 요청·후보·버전 상태가 없습니다. 모듈 수준 상태는 `dialogue._last_pick`(ack 문장의 연속 반복 회피)과 `voice._last_*`(진단 기록)뿐이며 Design·version·round·판정에 쓰이지 않습니다(`tests/unit/c_design/test_stage3_contract.py`).
+- **Candidate vs Approved**: C가 돌려주는 Initial·Revised·MODIFY 결과 Design은 모두 Candidate입니다. 승인은 검토의 APPROVE이고, **채택(Approved로 저장·A 요청)은 D**가 합니다. C는 Approved 여부를 Design에 표시하지 않습니다(§3 불변). version 정책은 §8.14입니다(Initial 후보 1, Revised 후보 Approved + 1 고정, 반복은 `review.round`).
+- **Preview 완료 전제**: `review_design_candidate`는 caller가 Preview 표시를 끝냈다고 보고 부릅니다. C는 Preview 표시 여부를 확인하지 않으며(sleep·폴링 없음), 실제 Preview Ready 신호는 D/HMI 통합 단계의 일입니다.
+- **D가 준비할 입력**: C가 받는 것은 후보 Design과 그 `design_metadata`(검토), Approved Design·Current 블록 목록·`differences`(Intervention·Revised 검토)뿐입니다. **Expected 전체는 받지 않습니다**(아래 결론).
+- **DB·HMI·A 경계**: C는 DB에 쓰지 않고, HMI를 직접 그리지 않으며, A(Planner)를 부르지 않습니다. caller가 response를 받아 HMI 표시·Backend 상태·DB 저장·A 요청에 씁니다. 질문 문장은 `on_question`, 진행 단계는 `on_progress` 콜백으로도 전달합니다(표시·로그용).
+- **correlation·stale (C가 지원하는 것 / caller가 관리할 것)**: C 세 함수와 voice·dialogue는 `request_id`·`job_id`·`current_revision`을 받지도 돌려주지도 않습니다(코드 grep으로 확인).
+
+| 항목 | C가 지원 | caller(D)가 관리 |
+|---|---|---|
+| 요청 대응 | 동기 반환: 호출 한 번 = response 한 개(호출한 스레드가 받음) | `request_id`·`job_id`를 자기 요청 객체에 보관하고 response를 그 요청에 대응 |
+| 중단 | `should_stop` 콜백(턴·시도 사이 확인 → `CANCELLED` / `STOPPED`) | 요청이 무효가 되면 `should_stop`이 True가 되게 함 |
+| stale 판정 | 없음(입력 검증만, §9.1) | 응답 도착 시 활성 요청·`current_revision`·`design_version`이 그대로인지 확인하고 아니면 폐기 |
+| 중복 호출 | 없음(재진입 금지 장치 없음) | 진행 중 호출이 있으면 새 호출을 시작하지 않음 |
+| 버전 | Candidate `design_version` 발급(§8.2·§8.14) | Approved 채택·버전 이력 관리 |
+
+  참고(GitHub 상태 기준, 최신이 아닐 수 있음, 읽기만 함): D의 `app/c_text_connection.py`는 이미 `CTextConnection.valid()`에서 `request_id`·`workflow_status`·`stop_request`·`job_id`·`current_revision`·`design_version`을 비교하고, `start()`에서 진행 중 호출이 있으면 `C_CALL_BUSY`로 거절하며, `finish()`에서 무효가 된 응답을 `_ignored`로 버리고, `should_stop`을 `threading.Event`로 넘깁니다. 이번 Wave에서 C에 correlation 필드를 추가하지 않습니다. 추가 후보(예: 입력 `request_id`를 envelope에 그대로 되돌려 주는 echo 필드)는 caller가 이미 같은 정보를 쥐고 있어 중복이며, 넣는다면 envelope 키 추가라 D 계약 합의가 먼저 필요합니다(구현하지 않음).
+- **Expected 결론 (Expected 전체 불필요)**: `run_intervention(design, current, differences, …)`는 Expected 전체를 받지 않으며 추가하지 않습니다. 근거:
+  - 입력 검사 `validator.check_intervention_input(design, current, differences)`는 Approved Design·Current·Difference만 봅니다.
+  - 질문 문장 `dialogue.build_question`은 `design`·`current`를 쓰지 않고(`del design, current`), `_describe_difference`가 각 `differences[i].expected / actual`만으로 위치·차이를 설명합니다. escalation 질문(`escalation_question`)도 `differences`의 `actual`·`expected`만 씁니다.
+  - Revised 생성 `llm.generate_revised_design(design, current, differences, …)`과 judge `llm.judge_revised_design(previous, design, current, differences)`는 Approved Design(전체 목표)·Current·Difference만 보냅니다. Current 보존 검사(`validate_revised`)는 Current만 씁니다.
+  - Expected(채택 Plan 기준 Current + 완료 Step 효과)는 D(Backend)가 소유·계산하며(AGENTS), 어긋난 블록의 Expected 값은 이미 `differences[].expected`로 들어옵니다. Expected 전체를 더 받는 것은 중복입니다.
+
 ## 5. 입력 형식 (D → C)
 
 C는 아래 필드만 읽고 나머지 키는 무시합니다. D는 자기 객체를 그대로 넘겨도 됩니다. D는 블록 ID를 주지 않으며 C는 같은 값 블록 간 대응(Data Association)을 하지 않습니다.
