@@ -1,0 +1,15 @@
+{
+  "record_kind": "USER_REQUESTED_SUPPLY_GRASP_DEPTH_CHANGE",
+  "recorded_date": "2026-10-08",
+  "source_statement": "수현님 시험처럼 블록 밑면이 그리퍼 패드 하단 아래로 5mm 돌출되도록 공급판 블록을 잡기",
+  "target_grip_height_above_block_bottom_mm": 5.0,
+  "target_reference_point": "GRIPPER_PAD_BOTTOM",
+  "anchor_reference_point": "USER_REPORTED_GRIPPER_TIP_AT_8MM",
+  "reference_equivalence": "USER_CONFIRMED_SAME_REFERENCE",
+  "block_body_height_mm": 20.0,
+  "same_reference_height_shift_mm": -3.0,
+  "height_shift_definition": "target grip height 5mm minus taught anchor grip height 8mm; apply to Base TCP Z while preserving original XY/attitude",
+  "derived_pose_not_remeasured": true,
+  "execution_allowed": false,
+  "reference_confirmation_source": "사용자가 기존8mm 끝부분과 새5mm 패드 하단은 같은 부분이라고 확인함"
+}

@@ -1,0 +1,33 @@
+{
+  "record_kind": "USER_LATEST_BLOCK_GEOMETRY_CORRECTION",
+  "recorded_date": "2026-10-08",
+  "source_statement": "블럭 높이 19mm, 스터드 높이 4.5mm, 두 스터드 중심 사이의 간격 16mm",
+  "body_height_mm": 19.0,
+  "body_height_excludes_studs": true,
+  "stud_height_mm": 4.5,
+  "pitch_mm": 16.0,
+  "assembled_height_check": {
+    "source_statement": "두 블럭 상하로 조립하고 스터드 제외 높이를 쟀는데 38mm",
+    "block_count": 2,
+    "assembled_height_excluding_top_studs_mm": 38.0,
+    "layer_height_increment_mm": 19.0,
+    "measurement_scope": "User-measured assembled pair; socket dimensions, force and repeatability unverified"
+  },
+  "material": {
+    "source_statement": "블럭이랑 보드 basic material은 ABS",
+    "block": "ABS",
+    "board": "ABS",
+    "density_kg_m3": null,
+    "static_friction": null,
+    "dynamic_friction": null,
+    "elastic_modulus_pa": null,
+    "contact_stiffness_n_m": null,
+    "policy": "Material identity only; no physical coefficients inferred"
+  },
+  "precontact_block_bottom_clearance_mm": 20.0,
+  "precontact_policy": "Keep separately selected 20mm bottom-to-lower-stud-tip gap; body correction does not change the requested gap.",
+  "supersedes_body_height_mm": 20.0,
+  "supersedes_stud_height_mm": 5.0,
+  "execution_allowed": false,
+  "physical_socket_geometry_verified": false
+}
