@@ -1,0 +1,526 @@
+{
+  "schema_version": "assembly-ad-calculation-draft/0.5",
+  "contract_status": "DRAFT_NOT_FROZEN",
+  "sample_kind": "REVIEW_INPUT_NOT_FOR_EXECUTION",
+  "message_type": "WholePlanRequest",
+  "context": {
+    "job_id": "chair-moveit-mock-sim",
+    "request_id": "whole-chair-mock",
+    "workflow_generation": 1,
+    "source_epoch": "chair-sim-20261010",
+    "design_version": 1,
+    "input_current_revision": 0,
+    "world_state_revision": 11,
+    "frame_profile_id": "D_FIXTURE_FRAME_PROFILE",
+    "plan_id": null,
+    "step_id": null,
+    "frame_profile_version": "fixture-v1"
+  },
+  "design": {
+    "design_version": 1,
+    "blocks": [
+      {
+        "brick_type": "2x2x1",
+        "color": "blue",
+        "x": 8,
+        "y": 6,
+        "layer": 4,
+        "orientation_deg": 0
+      },
+      {
+        "brick_type": "2x3x1",
+        "color": "yellow",
+        "x": 7,
+        "y": 6,
+        "layer": 2,
+        "orientation_deg": 90
+      },
+      {
+        "brick_type": "2x2x1",
+        "color": "yellow",
+        "x": 4,
+        "y": 4,
+        "layer": 1,
+        "orientation_deg": 0
+      },
+      {
+        "brick_type": "2x3x1",
+        "color": "blue",
+        "x": 7,
+        "y": 6,
+        "layer": 3,
+        "orientation_deg": 90
+      },
+      {
+        "brick_type": "2x2x1",
+        "color": "yellow",
+        "x": 8,
+        "y": 6,
+        "layer": 1,
+        "orientation_deg": 0
+      },
+      {
+        "brick_type": "2x3x1",
+        "color": "yellow",
+        "x": 7,
+        "y": 4,
+        "layer": 2,
+        "orientation_deg": 90
+      },
+      {
+        "brick_type": "2x2x1",
+        "color": "blue",
+        "x": 4,
+        "y": 6,
+        "layer": 4,
+        "orientation_deg": 0
+      },
+      {
+        "brick_type": "2x2x1",
+        "color": "yellow",
+        "x": 4,
+        "y": 6,
+        "layer": 1,
+        "orientation_deg": 0
+      },
+      {
+        "brick_type": "2x3x1",
+        "color": "blue",
+        "x": 4,
+        "y": 6,
+        "layer": 3,
+        "orientation_deg": 90
+      },
+      {
+        "brick_type": "2x3x1",
+        "color": "yellow",
+        "x": 4,
+        "y": 4,
+        "layer": 2,
+        "orientation_deg": 90
+      },
+      {
+        "brick_type": "2x2x1",
+        "color": "yellow",
+        "x": 8,
+        "y": 4,
+        "layer": 1,
+        "orientation_deg": 0
+      },
+      {
+        "brick_type": "2x3x1",
+        "color": "yellow",
+        "x": 4,
+        "y": 6,
+        "layer": 2,
+        "orientation_deg": 90
+      }
+    ]
+  },
+  "current": {
+    "current_revision": 0,
+    "blocks": []
+  },
+  "policy": {
+    "finish_layers": false,
+    "minimum_support_studs": 2,
+    "gripper_clearance_pitch_per_side": 1,
+    "hand_clearance_pitch_per_side": 1,
+    "hand_hold_height_m": 0.019,
+    "max_human_hands": 2,
+    "held_block_pre_contact_clearance_m": 0.02,
+    "hold_gripper_nonintrusion_assumption": true,
+    "cost_order": [
+      "assisted_steps",
+      "manual_steps",
+      "human_actions"
+    ],
+    "help_selection": "GEOMETRIC_HEURISTIC_PROPOSAL",
+    "release_command_owner": "D"
+  },
+  "assembly_context": {
+    "profile_source": "TEST_ONLY",
+    "rule_source": "USER_GEOMETRY_REV2_20261008;MANUAL_APPROACH_TOP_CONTACT_REVIEW_20261010",
+    "space_model": "STUD_RULES",
+    "human_press_policy": "CONTACT_HULL",
+    "hold_gripper_nonintrusion_assumption": true,
+    "geometry": {
+      "pitch_mm": 16,
+      "body_height_mm": 19,
+      "stud_height_mm": 4.5,
+      "grip_bottom_offset_mm": 5
+    },
+    "human_sides": [
+      "-x",
+      "+x",
+      "-y",
+      "+y"
+    ],
+    "grip_axes": [
+      "x",
+      "y"
+    ],
+    "finish_layers": false,
+    "max_states": 10000,
+    "minimal_release_model_confirmed": true,
+    "press_contact_model_confirmed": false,
+    "obstacles": [],
+    "assumption_notes": [
+      "1 stud side gap permits gripper entry/release in the local rule; D determines the actual small-opening command.",
+      "HOLD checks two local side spaces one pitch wide and one body high. U gripper intrusion into L grip space is assumed absent.",
+      "PRESS uses a one-pitch patch and local side entry; full finger/arm reach and exact tool body are not verified.",
+      "Internal assembly_board_mm has Z=0 at board body support face, XY at first stud centre. SI/D frame mapping remains draft.",
+      "Finger lower boundary at 5mm equals nominal stud top. Box model allows tangency without positive measured clearance; full collision/mesh validation remains required.",
+      "MANUAL_PLACE review separates raised side hold, target-body vertical corridor, and top-contact access. Continuous hand release/regrasp/insertion and measured hand geometry are not verified. HOLD unchanged; no automatic HUMAN fallback after MoveIt failure.",
+      "Priority: first find a complete model-feasible Plan, then minimize assisted Steps/manual Steps/human actions. Keep a complete witness if help optimization reaches its search budget; do not mark optimality then. MoveIt transport validation remains separate."
+    ],
+    "supported_modes": [
+      "ROBOT_GRIP",
+      "HUMAN_ASSEMBLY"
+    ],
+    "human_assembly_model": "APPROACH_AND_TOP_CONTACT_REVIEW",
+    "planning_priority": "COMPLETE_DESIGN_THEN_MIN_HELP"
+  },
+  "frame_profile": {
+    "profile_id": "D_FIXTURE_FRAME_PROFILE",
+    "profile_version": "fixture-v1",
+    "calibration_version": "USER_ORIGIN_CONFIRMED_20261008",
+    "tcp_offset_version": "GripperDA_v4_228mm_SOURCE",
+    "tool_geometry_version": "LOCAL_STUD_RULE_NOT_FULL_MESH",
+    "base_frame_id": "base_link",
+    "tcp_frame_id": "GripperDA_v4_tcp",
+    "tcp_setting_name": "GripperDA_v4",
+    "pose_unit": "m",
+    "orientation": "quaternion_xyzw",
+    "speed_profile": {
+      "profile_id": "D_PROFILE_REQUIRED",
+      "version": "UNCONFIRMED",
+      "verification": "UNVERIFIED"
+    },
+    "verification": "UNVERIFIED",
+    "sample_kind": "MEASURED_SOURCE_WITH_UNVERIFIED_EXTENSIONS",
+    "calculation_profiles": {
+      "supply": {
+        "profile_version": "supply-pick-measured-rule/0.2",
+        "profile_id": "supply-16a5614e1d41e95c",
+        "source_hashes": {
+          "supply_board_corners.user_20261007.pass2.json": "d6322209edd1b913506040c92389fb4077320ba53309791a588ab6402df40f61",
+          "supply_layout.user_20261007.json": "0329126082e364be72780e64dc96da2623fa8944218022a670a15be7dcc7690d",
+          "first_supply_grasp.user_20261007.json": "6768736e0f02fde4c7bd7ac1bd234224ab8464169f11d47f38c520825649259d",
+          "closed_tip_reference.user_20261007.json": "508594396f6b3b4907db7c3db15a0b989cab8421626ef8ee74a10b8b419f847e",
+          "pedestal_grasp.user_20261007.json": "d59c842d97ca0aa81558ece236eabbd5caf7bd842c5932105f5b105858dd9716",
+          "supply_grasp_depth_policy.user_20261008.json": "216abb3339a8c3d68e3f688c5db8a1d3dddf27f4a89d29ea494089ff3e2a7a64",
+          "block_geometry.user_20261008.rev2.json": "017917fb82e3aa6ec689bc46193880e30ed6a0c5be79c8222e2835eaf7d29dc7",
+          "abs_reference_properties.user_20261008.json": "ac1f03f55952d46c3876d4dc162e20656068447effbc17f16deeb8e3cadba999"
+        },
+        "corners_tcp_mm_zyz_deg": {
+          "1": [
+            -313.14,
+            193.29,
+            49.97,
+            57.87,
+            -179.34,
+            58.86
+          ],
+          "2": [
+            -679.94,
+            197.81,
+            45.2,
+            10.97,
+            -178.62,
+            11.75
+          ],
+          "3": [
+            -684.32,
+            -165.74,
+            45.65,
+            11.89,
+            -177.99,
+            12.41
+          ],
+          "4": [
+            -316.94,
+            -172.41,
+            48.56,
+            19.15,
+            -177.9,
+            19.56
+          ]
+        },
+        "grid_feature_count": [
+          24,
+          24
+        ],
+        "grid_count_source": "Existing 24x24 supply board; count assumed unchanged.",
+        "origin_corner": "3",
+        "positive_x_corner": "4",
+        "positive_y_corner": "2",
+        "opposite_corner": "1",
+        "first_pick_tcp_mm_zyz_deg": [
+          -321.4,
+          184.61,
+          53.04,
+          62.73,
+          -179.99,
+          63.5
+        ],
+        "first_pick_identity": {
+          "brick_type": "2x2x1",
+          "color": "yellow",
+          "slot_index": 1
+        },
+        "columns": [
+          {
+            "photo_order_left_to_right": 1,
+            "brick_type": "2x2x1",
+            "color": "yellow",
+            "occupied_grid_x": 2,
+            "occupied_grid_y": 2,
+            "gap_before_column_y": null,
+            "slot_count": 6,
+            "gap_between_slots_x": 2,
+            "slot_centre_step_grid_x": -4,
+            "first_slot_centre_relative_to_yellow_2x2_slot1_grid": [
+              0.0,
+              0.0
+            ],
+            "grasp_centre": "MIDPOINT_OF_TWO_OPPOSITE_SIDE_FACES",
+            "gripper_closing_direction": "SUPPLY_GRID_X (approximately Base X)",
+            "six_stud_long_side_direction": null,
+            "nominal_block_width_along_grip_grid": 2,
+            "gripper_close_parameter_source": "D settings.close_width (existing code)"
+          },
+          {
+            "photo_order_left_to_right": 2,
+            "brick_type": "2x3x1",
+            "color": "yellow",
+            "occupied_grid_x": 2,
+            "occupied_grid_y": 3,
+            "gap_before_column_y": 1,
+            "slot_count": 6,
+            "gap_between_slots_x": 2,
+            "slot_centre_step_grid_x": -4,
+            "first_slot_centre_relative_to_yellow_2x2_slot1_grid": [
+              0.0,
+              -3.5
+            ],
+            "grasp_centre": "MIDPOINT_OF_TWO_OPPOSITE_SIDE_FACES",
+            "gripper_closing_direction": "SUPPLY_GRID_X (approximately Base X)",
+            "six_stud_long_side_direction": "SUPPLY_GRID_Y (approximately Base Y)",
+            "nominal_block_width_along_grip_grid": 2,
+            "gripper_close_parameter_source": "D settings.close_width (existing code)"
+          },
+          {
+            "photo_order_left_to_right": 3,
+            "brick_type": "2x2x1",
+            "color": "blue",
+            "occupied_grid_x": 2,
+            "occupied_grid_y": 2,
+            "gap_before_column_y": 2,
+            "slot_count": 6,
+            "gap_between_slots_x": 2,
+            "slot_centre_step_grid_x": -4,
+            "first_slot_centre_relative_to_yellow_2x2_slot1_grid": [
+              0.0,
+              -8.0
+            ],
+            "grasp_centre": "MIDPOINT_OF_TWO_OPPOSITE_SIDE_FACES",
+            "gripper_closing_direction": "SUPPLY_GRID_X (approximately Base X)",
+            "six_stud_long_side_direction": null,
+            "nominal_block_width_along_grip_grid": 2,
+            "gripper_close_parameter_source": "D settings.close_width (existing code)"
+          },
+          {
+            "photo_order_left_to_right": 4,
+            "brick_type": "2x3x1",
+            "color": "blue",
+            "occupied_grid_x": 2,
+            "occupied_grid_y": 3,
+            "gap_before_column_y": 1,
+            "slot_count": 6,
+            "gap_between_slots_x": 2,
+            "slot_centre_step_grid_x": -4,
+            "first_slot_centre_relative_to_yellow_2x2_slot1_grid": [
+              0.0,
+              -11.5
+            ],
+            "grasp_centre": "MIDPOINT_OF_TWO_OPPOSITE_SIDE_FACES",
+            "gripper_closing_direction": "SUPPLY_GRID_X (approximately Base X)",
+            "six_stud_long_side_direction": "SUPPLY_GRID_Y (approximately Base Y)",
+            "nominal_block_width_along_grip_grid": 2,
+            "gripper_close_parameter_source": "D settings.close_width (existing code)"
+          }
+        ],
+        "same_setup_confirmed": true,
+        "support_surface_kind": "FLIPPED_PLATE_UPPER_FACE_WITH_HOLES",
+        "z_policy": "TAUGHT_FIRST_PICK_Z_PLUS_EXPLICIT_GRIP_HEIGHT_SHIFT",
+        "orientation_policy": "PRESERVE_TAUGHT_FIRST_PICK_ZYZ",
+        "closed_tip_z_offset_reference_mm": 10.52,
+        "held_tcp_above_bottom_reference_mm": 15.31,
+        "anchor_grip_height_above_bottom_mm": 8,
+        "desired_grip_height_above_bottom_mm": 5.0,
+        "grip_height_reference_equivalence": "USER_CONFIRMED_SAME_REFERENCE",
+        "target_grip_reference": "GRIPPER_PAD_BOTTOM",
+        "block_body_height_mm": 19.0,
+        "material_metadata": {
+          "source_statement": "블럭이랑 보드 basic material은 ABS",
+          "block": "ABS",
+          "board": "ABS",
+          "density_kg_m3": null,
+          "static_friction": null,
+          "dynamic_friction": null,
+          "elastic_modulus_pa": null,
+          "contact_stiffness_n_m": null,
+          "policy": "Material identity only; no physical coefficients inferred",
+          "reference_properties": {
+            "record_kind": "USER_APPROVED_ABS_REFERENCE_PROPERTIES",
+            "recorded_date": "2026-10-08",
+            "status": "REFERENCE_GRADE_NOT_MEASURED_BLOCK_PROPERTIES",
+            "reference_grade": "INEOS Styrolution TERLURAN GP-22, general-purpose injection-molding ABS",
+            "reference_url": "https://www.ineos-styrolution.com/Product/Terluran_Terluran-GP-22_SKU300600120827_lang_de_DE.html",
+            "user_confirmation": "일반 ABS 밀도와 탄성계수를 참고값으로 사용하고 마찰·체결력은 별도로 맞추자는 제안에 동의",
+            "density_kg_m3": 1040.0,
+            "elastic_modulus_pa": 2300000000.0,
+            "static_friction": null,
+            "dynamic_friction": null,
+            "contact_stiffness_n_m": null,
+            "insertion_force_n": null,
+            "physical_fit_verified": false,
+            "execution_allowed": false,
+            "limits": [
+              "Actual block/board ABS grade and material coefficients have not been measured",
+              "Elastic modulus in Pa is not a compliant-contact spring stiffness in N/m",
+              "No solid-box mass or contact-force parameters are inferred from reference density"
+            ]
+          }
+        },
+        "absolute_first_block_grid_footprint": null,
+        "execution_allowed": false
+      },
+      "assembly": {
+        "profile_id": "seated-tcp-96ce91465973e920",
+        "source_sha256": {
+          "data/points.json": "5006a30bfa660bea581eec474aca9ff7495886e10dece336639424b4ac0462ab",
+          "data/position_analysis.json": "11c9d7fed733eeb1e993b41d05050e5138c3c9b0a191c29eb2fdfcaa0f50b4a0",
+          "data/sequence_plan.json": "3132f24547f85e33ebfe29f719d3acd484e6cfdb1b3dcb9b752f1b8aef2c4008",
+          "measurements/block_geometry.user_20261008.rev2.json": "017917fb82e3aa6ec689bc46193880e30ed6a0c5be79c8222e2835eaf7d29dc7",
+          "measurements/abs_reference_properties.user_20261008.json": "ac1f03f55952d46c3876d4dc162e20656068447effbc17f16deeb8e3cadba999"
+        },
+        "coefficient_xyz_mm": {
+          "origin": [
+            295.1910095214844,
+            -86.7551498413086,
+            16.536252975463867
+          ],
+          "x_coefficient": [
+            0.050367875532670456,
+            15.879434412175959,
+            0.03352841463955966
+          ],
+          "y_coefficient": [
+            15.97572049227628,
+            -0.08312121304598721,
+            0.04126210646195845
+          ],
+          "xy_coefficient": [
+            0.0007364572572314049,
+            0.0022486379323912063,
+            -0.0018036739885314438
+          ]
+        },
+        "grid_mapping": {
+          "planner_to_trial_xy": [
+            [
+              0,
+              1
+            ],
+            [
+              1,
+              0
+            ]
+          ],
+          "offset_trial_xy": [
+            0,
+            0
+          ],
+          "status": "USER_CONFIRMED_COMMON_ORIGIN_AXIS_SWAP",
+          "confirmation_source": "USER_CHAT_20261008_SAME_PHYSICAL_CORNER_STUD",
+          "meaning": "GRID_LABEL_TRANSFORM_NOT_3D_ROTATION"
+        },
+        "reference": {
+          "brick_type": "2x2x1",
+          "color": "blue",
+          "layer": 1,
+          "grip_axis_planner": "x",
+          "pad_bottom_above_block_bottom_mm": 5,
+          "tcp_setting_name": "GripperDA_v4",
+          "tcp_zyz_deg": [
+            78.01061248779297,
+            -178.14669799804688,
+            77.7216567993164
+          ]
+        },
+        "geometry": {
+          "body_height_mm": 19.0,
+          "stud_height_mm": 4.5,
+          "precontact_block_bottom_clearance_mm": 20.0
+        },
+        "geometry_source": "USER_BODY19_STUD4_5_PITCH16_20261008_NOT_SOCKET_CALIBRATION",
+        "material_metadata": {
+          "source_statement": "블럭이랑 보드 basic material은 ABS",
+          "block": "ABS",
+          "board": "ABS",
+          "density_kg_m3": null,
+          "static_friction": null,
+          "dynamic_friction": null,
+          "elastic_modulus_pa": null,
+          "contact_stiffness_n_m": null,
+          "policy": "Material identity only; no physical coefficients inferred",
+          "reference_properties": {
+            "record_kind": "USER_APPROVED_ABS_REFERENCE_PROPERTIES",
+            "recorded_date": "2026-10-08",
+            "status": "REFERENCE_GRADE_NOT_MEASURED_BLOCK_PROPERTIES",
+            "reference_grade": "INEOS Styrolution TERLURAN GP-22, general-purpose injection-molding ABS",
+            "reference_url": "https://www.ineos-styrolution.com/Product/Terluran_Terluran-GP-22_SKU300600120827_lang_de_DE.html",
+            "user_confirmation": "일반 ABS 밀도와 탄성계수를 참고값으로 사용하고 마찰·체결력은 별도로 맞추자는 제안에 동의",
+            "density_kg_m3": 1040.0,
+            "elastic_modulus_pa": 2300000000.0,
+            "static_friction": null,
+            "dynamic_friction": null,
+            "contact_stiffness_n_m": null,
+            "insertion_force_n": null,
+            "physical_fit_verified": false,
+            "execution_allowed": false,
+            "limits": [
+              "Actual block/board ABS grade and material coefficients have not been measured",
+              "Elastic modulus in Pa is not a compliant-contact spring stiffness in N/m",
+              "No solid-box mass or contact-force parameters are inferred from reference density"
+            ]
+          }
+        },
+        "extensions": {
+          "allow_nominal_sizes_layers_and_grip_rotation": true,
+          "assumption": "TCP_XY_AT_COMMON_BLOCK_CENTRE_AND_SAME_5MM_GRASP; UNVERIFIED_RIGID_GRASP_TRANSFORM"
+        },
+        "centre_residual_norm_mm": 0.8708635938150311,
+        "recorded_transfer_height_candidate_mm": 111.83796691894531,
+        "execution_allowed": false
+      },
+      "pickup_approach_clearance_mm": 30,
+      "tray": {
+        "profile_id": "EXISTING_HANDOFF_REFERENCE_SIM_ONLY",
+        "tcp_pose_mm_zyz_deg": [
+          417.561,
+          -184.622,
+          19.712,
+          58.132,
+          -176.4,
+          -121.902
+        ],
+        "travel_tcp_z_mm": 400,
+        "source_reference": "/home/ms-02/seeun_sim_gpu_20261006/isaac_preview/config/pose_references.json#handoff_release",
+        "verification": "USER_SELECTED_EXISTING_REFERENCE_FOR_SIM_NOT_NEW_GRIPPER_CALIBRATION"
+      }
+    }
+  }
+}
