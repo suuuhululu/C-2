@@ -407,9 +407,14 @@ def _previous_candidate_text(label, candidate, scope, style_hint, keep_current=F
     blocks = json.dumps(candidate, ensure_ascii=False)
     current = " the Current blocks stay exactly as given;" if keep_current else ""
     if scope == "patch":
-        return (f"{label} (keep its family, overall silhouette and most of its blocks; apply this change: "
-                f"{style_hint or 'the change the person asked for'};{current} move other blocks only as needed to stay "
-                f"valid): {blocks}\n")
+        # Stage 3 Wave 4 smoke: "keep the silhouette; apply the change" 순서로는 등받이 없는 벤치에 "등받이를 더 높게"가
+        # 반영되지 않았다(4층 블록만 재배치). 변경을 먼저·눈에 보이게, 없는 부위는 추가하도록 바꿨다.
+        return (f"{label} (apply this change first and make it clearly visible in the blocks: "
+                f"{style_hint or 'the change the person asked for'}; if the part it names (backrest, armrest, seat, legs, "
+                f"headboard…) does not exist yet, add it; if the {validator.MAX_BLOCKS}-block limit leaves no room, remove or "
+                f"shorten other parts (thinner seat, shorter length) so the change still shows; keep its family and reuse "
+                f"most of its blocks where they do not conflict with the change;{current} move other blocks only as needed "
+                f"to stay valid): {blocks}\n")
     if scope == "redesign":
         return (f"{label} (reference only: make a clearly different seating design;{current} the family may change; do "
                 f"not reproduce its layout): {blocks}\n")
@@ -437,6 +442,10 @@ def _initial_user_message(object_type, reasons, family=None, style_hint=None, co
         selected = f"Selected family: {family}."
         if features:
             selected += f" Defining visible features (make every one of them visible in the blocks): {'; '.join(features)}"
+        if scope == "patch":
+            # Stage 3 Wave 4: bench("no backrest")에 "등받이를 더 높게"처럼 family 정의와 충돌하는 변경이 무시되던 사례.
+            selected += (" For this revision the person's requested change wins over any defining feature it conflicts with "
+                         "(e.g. a bench may gain a backrest if asked).")
         selected += "\n"
     if concept is not None:
         selected += (f"Creative concept from the person: {concept}. Realise it as a REAL seating piece (clear seat, visible "

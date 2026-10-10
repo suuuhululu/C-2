@@ -1226,11 +1226,18 @@ class TestCandidateRegeneration:
     def test_initial_patch_keeps_family_and_applies_the_change(self, monkeypatch, with_fake_key):
         user = self._initial(monkeypatch, family="throne", style_hint="등받이를 더 높게", previous_candidate=self.CANDIDATE,
                              scope="patch")
-        paragraph = ("Previous candidate (keep its family, overall silhouette and most of its blocks; apply this change: "
-                     "등받이를 더 높게; move other blocks only as needed to stay valid): "
+        paragraph = ("Previous candidate (apply this change first and make it clearly visible in the blocks: 등받이를 더 높게; "
+                     "if the part it names (backrest, armrest, seat, legs, headboard…) does not exist yet, add it; if the "
+                     "40-block limit leaves no room, remove or shorten other parts (thinner seat, shorter length) so the "
+                     "change still shows; keep its family and reuse most of its blocks where they do not conflict with the "
+                     "change; move other blocks only as needed to stay valid): "
                      + json.dumps(self.CANDIDATE, ensure_ascii=False) + "\n")
         assert paragraph in user
         assert user.index("Selected family: throne.") < user.index(paragraph) < user.index("Previous candidate was rejected")
+        # patch에서는 family 정의보다 사용자의 변경이 우선한다(bench "no backrest" + "등받이를 더 높게" 충돌 사례)
+        assert "the person's requested change wins over any defining feature it conflicts with" in user
+        plain = self._initial(monkeypatch, family="throne", style_hint="등받이를 더 높게")
+        assert "requested change wins" not in plain
 
     def test_initial_redesign_and_concept_change(self, monkeypatch, with_fake_key):
         blocks = json.dumps(self.CANDIDATE, ensure_ascii=False)
@@ -1246,7 +1253,7 @@ class TestCandidateRegeneration:
     def test_initial_patch_without_style_hint(self):
         user = llm._initial_user_message("CHAIR", None, concept="치즈컵케이크 느낌", previous_candidate=self.CANDIDATE,
                                          scope="patch")
-        assert "apply this change: the change the person asked for;" in user
+        assert "make it clearly visible in the blocks: the change the person asked for;" in user
 
     def test_without_previous_candidate_messages_are_unchanged(self, monkeypatch, with_fake_key):
         assert (llm._initial_user_message("CHAIR", None, family="throne", style_hint="빨간")
@@ -1259,9 +1266,12 @@ class TestCandidateRegeneration:
         blocks = json.dumps(self.CANDIDATE, ensure_ascii=False)
         user = self._revised(monkeypatch, style_hint="팔걸이를 더 크게", min_blocks=7, previous_candidate=self.CANDIDATE,
                              scope="patch")
-        paragraph = ("Previous Revised candidate (keep its family, overall silhouette and most of its blocks; apply this "
-                     "change: 팔걸이를 더 크게; the Current blocks stay exactly as given; move other blocks only as needed to "
-                     "stay valid): " + blocks + "\n")
+        paragraph = ("Previous Revised candidate (apply this change first and make it clearly visible in the blocks: "
+                     "팔걸이를 더 크게; if the part it names (backrest, armrest, seat, legs, headboard…) does not exist yet, add "
+                     "it; if the 40-block limit leaves no room, remove or shorten other parts (thinner seat, shorter length) "
+                     "so the change still shows; keep its family and reuse most of its blocks where they do not conflict "
+                     "with the change; the Current blocks stay exactly as given; move other blocks only as needed to stay "
+                     "valid): " + blocks + "\n")
         assert paragraph in user
         assert user.index("Previous adopted design (context only") < user.index(paragraph) < user.index(
             "Previous candidate was rejected")
