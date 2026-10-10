@@ -232,7 +232,7 @@ Day4에는 시간 기준 자동 취소·자동 KEEP·임의 종료가 없습니�
 
 Stage 2 Wave 4b(2026-10-08 사용자 E2E 로그 확정 원인 반영): `listen(on_ready=None, mode="short", beep=False)`. `mode="free"`(Initial 요청·되묻기 답·Intervention 답변)는 발화 시작 대기 10초·끝 무음 1.5초(말 사이 쉼에서 끊기지 않게), `"short"`(기본, D·Mock 경로)는 위 값(8초·1초) 그대로입니다. `beep=True`면 소음 보정이 끝난 직후 880 Hz 0.12초 알림음을 내고 0.3초 입력을 버린 뒤(그다음 `on_ready`) 발화를 기다립니다(알림음 출력 실패는 무시하고 계속 들음). 무음 판정은 whisper와 같은 복합 조건입니다: segment마다 `no_speech_prob` ≥ 0.8 **그리고** `avg_logprob` < −1.0일 때만 무음이고(모든 segment가 무음일 때 빈 문자열), `avg_logprob`가 없는 segment는 `no_speech_prob`만 봅니다. 디버그 통계에 `avg_logprobs`를 함께 남깁니다. `voice.prewarm()`은 음성 모드 Initial 시작 때 장치 준비(지연 import·입력 스트림 open/close)를 미리 하며 실패해도 예외 없이 `False`입니다. `record()`는 여전히 인자 없이 호출·대체할 수 있습니다(듣기 방식은 `listen`이 모듈 안에서 넘김).
 
-### 4.4 `review_design_candidate(candidate, *, kind, design_metadata=None, text_answers=None, on_question=None, should_stop=None, on_progress=None)` — Preview 검토 (Stage 3 Wave 1)
+### 4.4 `review_design_candidate(candidate, *, kind, design_metadata=None, previous_design=None, current=None, differences=None, text_answers=None, on_question=None, should_stop=None, on_progress=None)` — Preview 검토 (Stage 3 Wave 1·2)
 
 **호출 전제**: D가 Candidate Design(Initial 또는 Revised)의 HMI Preview 표시를 끝낸 뒤 부릅니다. C는 Preview를 그리지 않고, 표시 완료를 확인하지도 않습니다. 이번 Wave에서 D 코드는 바뀌지 않았습니다(D 연결은 handoff 42번).
 
@@ -240,7 +240,8 @@ Stage 2 Wave 4b(2026-10-08 사용자 E2E 로그 확정 원인 반영): `listen(o
 |---|---|---|
 | `candidate` | Design (§3) | 화면에 보인 후보. §9.1 `validate_design`을 통과해야 하며(아니면 `INVALID_INPUT`, `details`에 사유), C는 바꾸지 않고 같은 내용을 새 객체로 돌려줍니다 |
 | `kind` | `"initial"` 또는 `"revised"` (키워드 전용) | 질문 문장과 LLM 해석 문맥. 그 밖의 값은 `INVALID_INPUT` |
-| `design_metadata` | dict 또는 `None` | 후보의 metadata. 복사해 `review`를 붙여 돌려줌(입력은 바꾸지 않음). dict도 `None`도 아니면 `INVALID_INPUT` |
+| `design_metadata` | dict 또는 `None` | 후보의 metadata. 복사해 `review`를 붙여 돌려줌(입력은 바꾸지 않음). dict도 `None`도 아니면 `INVALID_INPUT`. `selected_family`·`family_source`·`style_hint`·이전 `review`(round·concept)가 검토 해석 문맥과 MODIFY 재생성에 쓰임 |
+| `previous_design` / `current` / `differences` | Design / 블록 배열 / Difference 배열 (Stage 3 Wave 2) | `kind="revised"`일 때 **필수**: 채택(Approved) Design, Current, 이번 Intervention의 Difference. 하나라도 없거나 `validator.check_intervention_input` 위반이면 `INVALID_INPUT`. `kind="initial"`은 쓰지 않음 |
 | `text_answers` | str 배열 또는 `None` | 텍스트 모드 답변. `None`이면 음성 모드 |
 | `on_question` / `should_stop` / `on_progress` | §4.2와 같음 | 질문·재질문 표시, STOP, 진행 이벤트 |
 
@@ -249,7 +250,7 @@ Stage 2 Wave 4b(2026-10-08 사용자 E2E 로그 확정 원인 반영): `listen(o
 | `hri_result` | 의미 | 결과 |
 |---|---|---|
 | `APPROVE` | 이 후보가 마음에 들어 이대로 진행 | `status: OK`, `design` = 입력 후보 |
-| `MODIFY` | 바꾸고 싶음 | `status: OK`, `design` = 입력 후보(재생성 없음 — Stage 3 Wave 2), 바꿀 방향은 `design_metadata.review.style_hint` |
+| `MODIFY` | 바꾸고 싶음 | (LLM 모드, Stage 3 Wave 2) `status: OK`, `design` = **새 Candidate**(Approved 아님 — 승인은 다음 검토의 APPROVE, 채택은 D), `design_metadata` = 새 후보의 metadata + `review`. (Mock) `design` = 입력 후보 그대로(재생성 없음). 생성 실패는 아래 "실패" |
 | `UNCLEAR` | 재질문 1회 뒤에도 불명확(침묵 포함), 또는 텍스트 답변 소진 | `status: OK`, `design` = 입력 후보 |
 | `CANCEL` | 작업 중단 | `status: CANCELLED`, `hri_result: "CANCEL"`, `error.code: USER_CANCEL`, `design` = 입력 후보 |
 
@@ -260,12 +261,25 @@ Stage 2 Wave 4b(2026-10-08 사용자 E2E 로그 확정 원인 반영): `listen(o
 4. 규칙이 MODIFY로 정한 답은 LLM 모드에서 같은 함수를 한 번 더 불러 `style_hint`·`reply`만 받습니다(decision은 규칙 그대로, 실패면 힌트 없이 진행).
 5. UNCLEAR이거나 침묵이면 "어떤 부분을 바꾸고 싶으신지 조금만 더 말씀해 주시겠어요? 이대로 괜찮으시면 그렇게 말씀해 주셔도 돼요."로 **한 번만** 다시 묻습니다.
 6. 확인 문장(ack)은 LLM `reply`가 있으면 그것, 없으면 `dialogue.approve_ack` / `modify_ack_fallback(style_hint)` / `cancel_ack`입니다. LLM 음성 모드면 읽습니다.
+7. (Stage 3 Wave 2, LLM 모드 MODIFY) ack 바로 뒤에 새 Candidate를 만듭니다. 해석에는 문맥 `context = {"family": metadata.selected_family, "concept": 후보의 concept}`(이전 검토가 갱신한 `review.concept`, 아니면 CREATIVE Initial의 `style_hint`)를 넘기고, 해석의 `scope`(`patch` / `redesign` / `concept_change`, 없거나 알 수 없으면 `patch`)·`concept`·`style_hint`로 재생성합니다(정책은 §8.14).
+   - **initial**: `designer.build_initial_design("CHAIR", generate=…)`, generate = `llm.generate_initial_design(…, family=F, style_hint=H, concept=C, previous_candidate=candidate, scope=S)`.
+     - `patch`: F = 기존 `selected_family`, C = 갱신 concept 또는 기존 concept, H = 기존 `style_hint`(기존 concept와 같으면 빼고) + " / " + 새 style_hint
+     - `redesign`: F = C = None, H = 새 style_hint
+     - `concept_change`: F = None, C = 갱신 concept, H = 새 style_hint
+     - 진행은 `GENERATING` → `VALIDATING` → `DESCRIBING`(`describe_initial_design(…, family=F, concept=C)`) → `READY`. metadata는 §6.1 Initial 형식이고 `family_source` = scope입니다. design_version은 항상 1입니다.
+   - **revised**: `designer.build_revised_design(previous_design, current, differences, generate=…, max_attempts=10, min_blocks=revised_min_blocks(previous_design))`, generate = `llm.generate_revised_design(previous_design, …, style_hint=H, previous_candidate=candidate, scope=S)`. 그 뒤 judge와 조건부 재생성(최대 1회)은 `run_intervention`의 REVISE와 같은 코드(`_finish_revised`)입니다. 진행은 `GENERATING_REVISED` → `VALIDATING` → `JUDGING` → (`REGENERATING`) → `READY_REVISED`. metadata는 §6.1 Revised 형식이고, design_version은 Approved + 1입니다(후보를 몇 번 고쳐도 늘지 않음). Current는 보존됩니다.
+   - **실패**: 생성 한도 안에 유효 후보가 없으면 `FAILED` / `DESIGN_GENERATION_FAILED`, `hri_result: "MODIFY"`, design null. provider 실패는 `LLM_CALL_FAILED`, 생성·judge·설명 중 STOP은 `CANCELLED` / `STOPPED`.
+   - APPROVE·UNCLEAR·CANCEL과 Mock 모드는 생성하지 않습니다. 텍스트 모드도 LLM 모드면 재생성합니다(음성만 없음).
 
 STOP은 `CANCELLED` / `STOPPED`(design null), 음성 듣기 실패는 `VOICE_IO_FAILED`입니다.
 
-**`design_metadata.review`** = `{kind, decision, style_hint, round(답을 받은 횟수), source("rule" | "llm"), reply(낸 확인 문장 또는 null)}`. 입력 metadata의 다른 키는 그대로이고, Design `{design_version, blocks}`에는 아무것도 넣지 않습니다.
+**`design_metadata.review`** = `{kind, decision, style_hint, scope, concept, round, answers, source("rule" | "llm"), reply(낸 확인 문장 또는 null)}`.
+- `round`(Stage 3 Wave 2): Candidate 반복 횟수입니다. 입력 metadata의 `review.round`(없으면 0)를 그대로 두고, MODIFY로 새 Candidate를 만들 때만 +1합니다.
+- `answers`: 이번 호출에서 받은 의미 있는 답의 수입니다(Wave 1의 `round` 의미).
+- `scope`·`concept`: MODIFY 해석 값입니다(그 밖에는 null).
+- 입력 metadata의 다른 키는 그대로이고, Design `{design_version, blocks}`에는 아무것도 넣지 않습니다.
 
-**진행 이벤트**: `REVIEW_LISTENING` → `REVIEW_UNDERSTANDING` → `HRI_INTERPRET`(decision·source·reason·style_hint, 모든 모드) → `REVIEW_ACK` → `REVIEW_READY`입니다. UNCLEAR면 REVIEW_LISTENING부터 한 번 더 하고, CANCEL은 REVIEW_ACK 뒤 `CANCELLED`로 끝납니다. 음성으로 읽는 것은 질문·재질문·REVIEW_ACK뿐이며 `PROGRESS_TTS_STAGES`는 바뀌지 않았습니다.
+**진행 이벤트**: `REVIEW_LISTENING` → `REVIEW_UNDERSTANDING` → `HRI_INTERPRET`(decision·source·reason·style_hint, 모든 모드) → `REVIEW_ACK` → `REVIEW_READY`입니다. UNCLEAR면 REVIEW_LISTENING부터 한 번 더 하고, CANCEL은 REVIEW_ACK 뒤 `CANCELLED`로 끝납니다. LLM 모드 MODIFY는 REVIEW_ACK 뒤 7의 생성 단계로 이어지고 `REVIEW_READY` 대신 `READY`·`READY_REVISED`로 끝납니다. 음성으로 읽는 것은 질문·재질문·REVIEW_ACK와 생성 단계의 `PROGRESS_TTS_STAGES`(생성 중·판정 중·완성)이며 `PROGRESS_TTS_STAGES`는 바뀌지 않았습니다.
 
 ## 5. 입력 형식 (D → C)
 

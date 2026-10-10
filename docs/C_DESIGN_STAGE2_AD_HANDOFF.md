@@ -113,3 +113,9 @@ C는 아래 D 코드·테스트를 수정하지 않았습니다. 2026-10-08 기�
 | # | 소유 | 파일:줄 | REQUIRED CHANGE (현재 → 필요) | AFFECTED INTERFACE | REASON |
 | --- | --- | --- | --- | --- | --- |
 | 42 | D | `app/c_text_connection.py`·HMI Preview 표시 경로(Candidate Design을 그린 직후) | Preview 표시가 끝난 시점에 `c_main.review_design_candidate(candidate, kind="initial"|"revised", design_metadata=…, on_question=…, should_stop=…)`를 부르고, 결과 `hri_result`로 다음 단계 결정: APPROVE → 후보를 승인 Design으로 채택(A Plan·조립 진행), MODIFY → `design_metadata.review.style_hint`로 재생성 요청(C 재생성 API는 Stage 3 Wave 2), UNCLEAR → 보류·다시 검토, CANCEL(status CANCELLED, USER_CANCEL) → 작업 중단. 결과 처리·상태 전이는 Stage 3 Wave 2~3 | C §4.4 `review_design_candidate` (신규, 기존 `create_initial_design`·`run_intervention` 불변) | C는 Preview를 그리지 않고 표시 완료도 확인하지 않으므로 호출 시점은 D가 정합니다. `design`은 입력 후보와 같은 내용이며 승인 여부는 `hri_result`로만 전달됩니다(Design에 승인 표시 없음). 텍스트 모드(`text_answers`)에서는 C가 음성을 내지 않습니다 |
+
+## Stage 3 Wave 2 Candidate 재생성이 D에 주는 항목 (2026-10-11 추가)
+
+| # | 소유 | 파일:줄 | REQUIRED CHANGE (현재 → 필요) | AFFECTED INTERFACE | REASON |
+| --- | --- | --- | --- | --- | --- |
+| 43 | D | Preview·검토 호출 경로(42번과 같은 위치) | `review_design_candidate`가 `hri_result: "MODIFY"`·`status: OK`로 돌려준 `design`은 **새 Candidate**입니다: D가 Preview를 이 후보로 갱신하고 같은 함수로 다시 검토를 부릅니다(`design_metadata`는 받은 것을 그대로 넘기면 `review.round`가 이어짐). APPROVE면 그 후보를 Approved Design으로 채택(A Plan·조립 진행)하는 것은 D 몫. `kind="revised"` 검토에는 `previous_design`(Approved)·`current`·`differences`를 함께 넘겨야 함(없으면 `INVALID_INPUT`). `FAILED`/`DESIGN_GENERATION_FAILED`(hri_result MODIFY)는 이전 후보로 다시 검토하거나 보류 | C §4.4 확장 시그니처 | 새 Candidate는 승인 전 상태이며 Design에 승인 표시가 없습니다(승인은 `hri_result`로만). Revised 후보의 design_version은 Approved+1로 고정이라 후보 반복으로 늘지 않습니다 |
