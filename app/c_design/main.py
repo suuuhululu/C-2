@@ -282,6 +282,57 @@ def _family_choice(request, error):
             "concept": style_hint if mode == "CREATIVE" else None, "error": error}
 
 
+def _revised_builder(approved, current, differences, make_generate, min_blocks, should_stop):
+    """approved(Revised 버전 기준 Design)·Current를 보존하는 Revised 후보 생성 함수 build(max_attempts, feedback=None)."""
+    def build(max_attempts, feedback=None):
+        return designer.build_revised_design(
+            approved, current, differences, generate=make_generate(feedback), max_attempts=max_attempts,
+            delay=designer.RETRY_DELAY, should_stop=should_stop, min_blocks=min_blocks,
+        )
+    return build
+
+
+def _finish_revised(result, *, approved, current, differences, build, use_llm, should_stop, progress, questions, hri_result,
+                    style_hint):
+    """Revised 설계 결과 → envelope. LLM이면 judge 후 조건이 맞을 때만 재생성(최대 METADATA_REGENERATIONS_MAX회).
+
+    run_intervention(REVISE)과 review_design_candidate(Revised 후보 MODIFY)가 같이 쓴다.
+    """
+    if result["design"] is None:
+        return _from_designer(result, hri_result, questions)
+    progress("VALIDATING")
+    if not use_llm:
+        progress("READY_REVISED")
+        return _result("OK", hri_result, result["design"], questions, design_metadata=_mock_metadata(revised=True))
+    final = result["design"]
+    regenerations, usable_judge, error = 0, None, None
+    while True:
+        progress("JUDGING")
+        judge = llm.judge_revised_design(approved, final, current, differences, should_stop=should_stop)
+        if _llm_error_kind(judge) == "stopped":
+            return _stopped(questions)
+        problem = _judge_problem(judge)
+        if problem is not None:
+            error = _meta_error("judge_error", problem)  # 재생성하지 않고 그대로 끝낸다
+            break
+        usable_judge = judge
+        if regenerations >= METADATA_REGENERATIONS_MAX or not _needs_regeneration(judge):
+            break
+        regenerations += 1
+        progress("REGENERATING")
+        again = build(FIRST_ATTEMPTS, feedback=llm.judge_feedback_text(judge))
+        if again["design"] is None:
+            if any(r["rule"] == "stopped" for r in again["reasons"]):
+                return _stopped(questions)
+            error = _meta_error("regeneration_failed", [r["rule"] for r in again["reasons"]])
+            break  # 첫 설계와 그 judge를 그대로 쓴다
+        final = again["design"]
+        progress("VALIDATING")
+    progress("READY_REVISED")
+    metadata = _revised_metadata(usable_judge, regenerations, error, style_hint)
+    return _result("OK", hri_result, final, questions, design_metadata=metadata)
+
+
 def create_initial_design(text=None, should_stop=None, preference_text=None, on_question=None, on_progress=None):
     """첫 자유 발화 → (LLM 모드) 요청 해석·필요 시 되묻기 1회·확인(ack)·family 또는 concept 선택 → Initial Design (§4.1).
 
@@ -502,8 +553,8 @@ def _intervention(design, current, differences, text_answers, on_question, shoul
             # UNCLEAR, 또는 재설계할 수 없는데 "계속 찾기": 같은 질문으로 명시 선택을 기다린다.
             ask(question)
 
-    # LLM 모드에서 metadata 오류·답변의 style_hint와 확인 문장(reply)을 요청 단위로 모은다(error는 마지막 오류).
-    state = {"error": None, "style_hint": None, "reply": None, "reason": None, "stopped": False, "interpreted": False}
+    # LLM 모드에서 답변의 style_hint와 확인 문장(reply)을 요청 단위로 모은다.
+    state = {"style_hint": None, "reply": None, "reason": None, "stopped": False, "interpreted": False}
     # Revised(LLM)는 이전 Design보다 풍부해야 한다(§8.13). Mock 후보는 결정론적 이동뿐이라 검사하지 않는다.
     min_blocks = designer.revised_min_blocks(design) if use_llm else None
 
@@ -551,48 +602,12 @@ def _intervention(design, current, differences, text_answers, on_question, shoul
                                                feedback=feedback, min_blocks=min_blocks, style_hint=state["style_hint"])
         return generate
 
-    def build(max_attempts, feedback=None):
-        return designer.build_revised_design(
-            design, current, differences, generate=make_generate(feedback), max_attempts=max_attempts,
-            delay=designer.RETRY_DELAY, should_stop=should_stop, min_blocks=min_blocks,
-        )
+    build = _revised_builder(design, current, differences, make_generate, min_blocks, should_stop)
 
     def finish(result):
-        """설계 결과 → envelope. LLM이면 judge 후 조건이 맞을 때만 재생성(최대 METADATA_REGENERATIONS_MAX회)."""
-        if result["design"] is None:
-            return _from_designer(result, dialogue.REVISE, questions)
-        progress("VALIDATING")
-        if not use_llm:
-            progress("READY_REVISED")
-            return _result("OK", dialogue.REVISE, result["design"], questions, design_metadata=_mock_metadata(revised=True))
-        final = result["design"]
-        regenerations = 0
-        usable_judge = None
-        while True:
-            progress("JUDGING")
-            judge = llm.judge_revised_design(design, final, current, differences, should_stop=should_stop)
-            if _llm_error_kind(judge) == "stopped":
-                return _stopped(questions)
-            problem = _judge_problem(judge)
-            if problem is not None:
-                state["error"] = _meta_error("judge_error", problem)  # 재생성하지 않고 그대로 끝낸다
-                break
-            usable_judge = judge
-            if regenerations >= METADATA_REGENERATIONS_MAX or not _needs_regeneration(judge):
-                break
-            regenerations += 1
-            progress("REGENERATING")
-            again = build(FIRST_ATTEMPTS, feedback=llm.judge_feedback_text(judge))
-            if again["design"] is None:
-                if any(r["rule"] == "stopped" for r in again["reasons"]):
-                    return _stopped(questions)
-                state["error"] = _meta_error("regeneration_failed", [r["rule"] for r in again["reasons"]])
-                break  # 첫 설계와 그 judge를 그대로 쓴다
-            final = again["design"]
-            progress("VALIDATING")
-        progress("READY_REVISED")
-        metadata = _revised_metadata(usable_judge, regenerations, state["error"], state["style_hint"])
-        return _result("OK", dialogue.REVISE, final, questions, design_metadata=metadata)
+        return _finish_revised(result, approved=design, current=current, differences=differences, build=build,
+                               use_llm=use_llm, should_stop=should_stop, progress=progress, questions=questions,
+                               hri_result=dialogue.REVISE, style_hint=state["style_hint"])
 
     def revise():
         if validator.current_support_violations(current):
@@ -653,22 +668,36 @@ def _intervention(design, current, differences, text_answers, on_question, shoul
 
 
 REVIEW_KINDS = ("initial", "revised")
+REVIEW_SCOPES = ("patch", "redesign", "concept_change")  # MODIFY 재생성 방식(내부 값, metadata.review.scope에만 기록)
 
 
-def review_design_candidate(candidate, *, kind, design_metadata=None, text_answers=None, on_question=None, should_stop=None,
-                            on_progress=None):
-    """Preview가 표시된 Candidate Design에 대한 사용자 검토 (§4.4, Stage 3 Wave 1). 예외를 밖으로 던지지 않는다(콜백 제외).
+def review_design_candidate(candidate, *, kind, design_metadata=None, previous_design=None, current=None, differences=None,
+                            text_answers=None, on_question=None, should_stop=None, on_progress=None):
+    """Preview가 표시된 Candidate Design에 대한 사용자 검토 (§4.4, Stage 3 Wave 1·2). 예외를 밖으로 던지지 않는다(콜백 제외).
 
     kind: "initial" 또는 "revised"(질문 문장·LLM 해석 문맥). design_metadata: 후보의 metadata(복사해 review를 붙여 돌려줌).
+    previous_design·current·differences: kind="revised"일 때 필수(Approved Design·Current 블록·Difference, Revised 재생성 기준).
     text_answers: 텍스트 모드 답변(None이면 음성 모드). 결과 hri_result는 APPROVE / MODIFY / UNCLEAR, CANCEL이면 status CANCELLED.
+    LLM 모드의 MODIFY는 새 Candidate를 만들어 design에 담는다(Approved 아님, 승인은 다음 검토의 APPROVE·채택은 D).
     """
     use_llm = _use_llm()
-    progress = _reporter(on_progress, text_answers is None and use_llm)  # REVIEW_* 단계는 읽지 않고 ack만 읽는다
-    return _report_end(progress, _review(candidate, kind, design_metadata, text_answers, on_question, should_stop,
-                                         progress, use_llm))
+    progress = _reporter(on_progress, text_answers is None and use_llm)  # REVIEW_* 단계는 읽지 않고 ack·생성 진행만 읽는다
+    return _report_end(progress, _review(candidate, kind, design_metadata, previous_design, current, differences,
+                                         text_answers, on_question, should_stop, progress, use_llm))
 
 
-def _review(candidate, kind, design_metadata, text_answers, on_question, should_stop, progress, use_llm):
+def _candidate_concept(metadata):
+    """후보가 따르는 concept: 앞선 검토가 갱신한 concept, 아니면 CREATIVE Initial의 style_hint(=concept)."""
+    review = metadata.get("review") if isinstance(metadata.get("review"), dict) else {}
+    if isinstance(review.get("concept"), str) and review["concept"]:
+        return review["concept"]
+    if metadata.get("family_source") == "creative" and isinstance(metadata.get("style_hint"), str):
+        return metadata["style_hint"] or None
+    return None
+
+
+def _review(candidate, kind, design_metadata, previous_design, current, differences, text_answers, on_question,
+            should_stop, progress, use_llm):
     if kind not in REVIEW_KINDS:
         return _result("FAILED", code="INVALID_INPUT", message=f"kind must be one of {list(REVIEW_KINDS)}")
     reasons = validator.validate_design(candidate)
@@ -676,13 +705,24 @@ def _review(candidate, kind, design_metadata, text_answers, on_question, should_
         return _result("FAILED", code="INVALID_INPUT", message="invalid candidate design", details=reasons)
     if design_metadata is not None and not isinstance(design_metadata, dict):
         return _result("FAILED", code="INVALID_INPUT", message="design_metadata must be a dict or None")
+    if kind == "revised":
+        if previous_design is None or current is None or differences is None:
+            return _result("FAILED", code="INVALID_INPUT",
+                           message="kind 'revised' needs previous_design, current and differences")
+        reasons = validator.check_intervention_input(previous_design, current, differences)
+        if reasons:
+            return _result("FAILED", code="INVALID_INPUT", message="invalid revised review input", details=reasons)
     design = deepcopy(candidate)  # 후보는 읽기 전용: 같은 내용을 새 객체로 돌려준다
     metadata = deepcopy(design_metadata) if design_metadata is not None else {}
+    previous_review = metadata.get("review") if isinstance(metadata.get("review"), dict) else {}
+    base_round = previous_review.get("round") if isinstance(previous_review.get("round"), int) else 0
+    context = {"family": metadata.get("selected_family"), "concept": _candidate_concept(metadata)}
 
     questions = []
     voice_mode = text_answers is None
     answers = None if voice_mode else iter(text_answers)
-    state = {"style_hint": None, "reply": None, "reason": None, "stopped": False, "interpreted": False, "rounds": 0}
+    state = {"style_hint": None, "scope": None, "concept": None, "reply": None, "reason": None, "stopped": False,
+             "interpreted": False, "answers": 0}
 
     def ask(sentence):
         questions.append(sentence)
@@ -697,7 +737,7 @@ def _review(candidate, kind, design_metadata, text_answers, on_question, should_
     def ask_review_llm(text):
         """llm 검토 해석 1회. 쓸 수 있는 dict 또는 None(STOP이면 state["stopped"])."""
         state["interpreted"] = True
-        answer = llm.interpret_review_answer(text, kind, should_stop=should_stop)
+        answer = llm.interpret_review_answer(text, kind, should_stop=should_stop, context=context)
         kind_error = _llm_error_kind(answer)
         if kind_error == "stopped":
             state["stopped"] = True
@@ -715,14 +755,81 @@ def _review(candidate, kind, design_metadata, text_answers, on_question, should_
         answer = ask_review_llm(text)
         if answer is None:
             return dialogue.UNCLEAR
-        state["style_hint"] = text_of(answer, "style_hint") if answer["decision"] == dialogue.MODIFY else None
+        modify = answer["decision"] == dialogue.MODIFY
+        take_modify(answer if modify else None)
         state["reply"] = text_of(answer, "reply")
         return answer["decision"]
 
+    def take_modify(answer):
+        """MODIFY 해석에서 바꿀 방향·재생성 방식·갱신 concept을 받는다(없으면 None)."""
+        state["style_hint"] = text_of(answer, "style_hint")
+        scope = text_of(answer, "scope")
+        state["scope"] = scope if scope in REVIEW_SCOPES else None
+        state["concept"] = text_of(answer, "concept")
+
+    def review_of(decision, source, round_):
+        return {"kind": kind, "decision": decision, "style_hint": state["style_hint"], "scope": state["scope"],
+                "concept": state["concept"], "round": round_, "answers": state["answers"], "source": source,
+                "reply": state["reply"]}
+
     def outcome(decision, source):
-        review = {"kind": kind, "decision": decision, "style_hint": state["style_hint"], "round": state["rounds"],
-                  "source": source, "reply": state["reply"]}
-        return dict(metadata, review=review)
+        return dict(metadata, review=review_of(decision, source, base_round))
+
+    def regenerate(source):
+        """LLM 모드 MODIFY: 새 Candidate를 만든다(Initial은 version 1, Revised는 Approved + 1). envelope 또는 실패."""
+        scope = state["scope"] or "patch"  # 해석이 방식을 주지 못하면 현재 후보를 살린 부분 수정
+        state["scope"] = scope
+        hint = state["style_hint"]
+        review = review_of(dialogue.MODIFY, source, base_round + 1)
+        if kind == "revised":
+            min_blocks = designer.revised_min_blocks(previous_design)
+
+            def make_generate(feedback=None):
+                def generate(design_, current_, differences_, reasons_):
+                    return llm.generate_revised_design(design_, current_, differences_, reasons_, should_stop=should_stop,
+                                                       feedback=feedback, min_blocks=min_blocks, style_hint=hint,
+                                                       previous_candidate=candidate, scope=scope)
+                return generate
+
+            build = _revised_builder(previous_design, current, differences, make_generate, min_blocks, should_stop)
+            progress("GENERATING_REVISED")
+            envelope = _finish_revised(build(designer.MAX_ATTEMPTS), approved=previous_design, current=current,
+                                       differences=differences, build=build, use_llm=use_llm, should_stop=should_stop,
+                                       progress=progress, questions=questions, hri_result=dialogue.MODIFY, style_hint=hint)
+        else:
+            family, concept = None, None
+            if scope == "patch":
+                family = metadata.get("selected_family")
+                concept = state["concept"] or context["concept"]
+                previous_hint = metadata.get("style_hint")
+                # 이전 요청의 방향은 이어 붙이되, CREATIVE 후보의 style_hint(=이전 concept)는 concept로 따로 다룬다.
+                if isinstance(previous_hint, str) and previous_hint and previous_hint not in (concept, context["concept"]):
+                    hint = " / ".join(part for part in (previous_hint, hint) if part)
+            elif scope == "concept_change":
+                concept = state["concept"]
+            choice = {"family": family, "source": scope, "preference": metadata.get("preference"), "style_hint": hint,
+                      "concept": concept, "error": None}
+
+            def generate(object_type, reasons_):
+                return llm.generate_initial_design(object_type, reasons_, should_stop=should_stop, family=family,
+                                                   style_hint=hint, concept=concept, previous_candidate=candidate,
+                                                   scope=scope)
+            progress("GENERATING")
+            result = designer.build_initial_design("CHAIR", generate=generate, delay=designer.RETRY_DELAY,
+                                                   should_stop=should_stop)
+            if result["design"] is None:
+                return _from_designer(result, dialogue.MODIFY, questions)
+            progress("VALIDATING")
+            progress("DESCRIBING")
+            described = llm.describe_initial_design(result["design"], should_stop=should_stop, family=family, concept=concept)
+            if _llm_error_kind(described) == "stopped":
+                return _stopped(questions)
+            progress("READY")
+            envelope = _result("OK", dialogue.MODIFY, result["design"], questions,
+                               design_metadata=_initial_metadata(described, choice))
+        if envelope["status"] == "OK":
+            envelope["design_metadata"] = dict(envelope["design_metadata"], review=review)
+        return envelope
 
     question = dialogue.build_review_question(kind)
     for attempt in range(2):  # 첫 질문 + 불명확·침묵일 때 재질문 1회
@@ -737,15 +844,15 @@ def _review(candidate, kind, design_metadata, text_answers, on_question, should_
             break  # 텍스트 답변 소진
         if not dialogue.is_meaningful(reply):
             continue  # 침묵: 한 번만 다시 묻는다
-        state["rounds"] += 1
-        state.update(style_hint=None, reply=None, reason=None, interpreted=False)
+        state["answers"] += 1
+        state.update(style_hint=None, scope=None, concept=None, reply=None, reason=None, interpreted=False)
         progress("REVIEW_UNDERSTANDING")
         decision = dialogue.parse_review_response(reply, interpret if use_llm else None)
         source = "llm" if state["interpreted"] else "rule"
         if use_llm and decision == dialogue.MODIFY and not state["interpreted"]:
             # Rule이 MODIFY로 정한 답에서 바꾸고 싶은 방향만 받는다(decision은 Rule 그대로, 실패면 힌트 없이 진행).
             answer = ask_review_llm(reply)
-            state["style_hint"] = text_of(answer, "style_hint")
+            take_modify(answer)
             state["reply"] = text_of(answer, "reply") if answer is not None and answer["decision"] == dialogue.MODIFY else None
         if state["stopped"]:
             return _stopped(questions)
@@ -764,6 +871,10 @@ def _review(candidate, kind, design_metadata, text_answers, on_question, should_
         if decision == dialogue.CANCEL:
             return _result("CANCELLED", "CANCEL", design, questions, code="USER_CANCEL", message="cancelled by user",
                            design_metadata=outcome(decision, source))
+        if decision == dialogue.MODIFY and use_llm:
+            if stop_requested():
+                return _stopped(questions)
+            return regenerate(source)  # ack 뒤에 바로 새 Candidate(Mock은 Wave 1처럼 후보 그대로)
         progress("REVIEW_READY")
         return _result("OK", decision, design, questions, design_metadata=outcome(decision, source))
     state["reply"] = None
