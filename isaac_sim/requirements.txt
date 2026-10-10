@@ -1,0 +1,8 @@
+# Python 3.12 / ROS Jazzy adapter and Isaac host. No vendored site-packages.
+numpy
+scipy
+PyYAML
+jsonschema
+python-fcl==0.7.0.11
+pycollada==0.9.3
+pytest
