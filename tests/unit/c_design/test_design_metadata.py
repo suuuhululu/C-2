@@ -1089,3 +1089,199 @@ def test_mock_mode_has_no_hri_interpret_event(scenario, monkeypatch):
     monkeypatch.delenv("C_DESIGN_USE_LLM", raising=False)
     result, events = _progress_answer(scenario, "제가 잘못 놨어요")
     assert result["hri_result"] == "KEEP" and events == []
+
+
+# ---------------------------------------------------------------------------
+# Stage 3 Wave 1: review_design_candidate (Preview 검토, fake LLM — A의 interpret_review_answer·REVIEW_KEYS 가정)
+# ---------------------------------------------------------------------------
+
+REVIEW_KEYS = ("decision", "style_hint", "reason", "reply")
+
+
+@pytest.fixture
+def candidate(monkeypatch):
+    monkeypatch.delenv("C_DESIGN_USE_LLM", raising=False)
+    return main.create_initial_design(text=GOAL_TEXT)["design"]
+
+
+@pytest.fixture
+def review_llm(monkeypatch, candidate):
+    monkeypatch.setenv("C_DESIGN_USE_LLM", "1")
+    monkeypatch.setattr(main.llm, "REVIEW_KEYS", REVIEW_KEYS, raising=False)
+    calls = {"review": []}
+    replies = {"review": {"decision": "MODIFY", "style_hint": "등받이를 더 높고 화려하게", "reason": "더 화려하게 원하셨어요.",
+                          "reply": "좋아요. 등받이를 조금 더 높여서 다시 만들어볼게요."}}
+
+    def fake_review(text, kind, should_stop=None):
+        calls["review"].append((text, kind))
+        reply = replies["review"]
+        return reply.pop(0) if isinstance(reply, list) else reply
+
+    monkeypatch.setattr(main.llm, "interpret_review_answer", fake_review, raising=False)
+    return calls, replies
+
+
+def _review(candidate, *answers, kind="initial", metadata=None, **kwargs):
+    events = []
+    snapshot = json.loads(json.dumps(candidate))
+    result = main.review_design_candidate(candidate, kind=kind, design_metadata=metadata, text_answers=list(answers),
+                                          on_progress=events.append, **kwargs)
+    assert set(result) == ENVELOPE_KEYS
+    assert candidate == snapshot  # 입력 후보는 바뀌지 않는다
+    return result, events
+
+
+def test_review_approve_by_rule_returns_candidate_unchanged(candidate, review_llm):
+    calls, _ = review_llm
+    metadata = {"design_name": "왕좌", "source": "LLM"}
+    result, events = _review(candidate, "좋아 이걸로 하자", metadata=metadata)
+    assert (result["status"], result["hri_result"], result["error"]) == ("OK", "APPROVE", None)
+    assert result["design"] == candidate and result["design"] is not candidate
+    assert set(result["design"]) == {"design_version", "blocks"} and "review" not in result["design"]
+    review = result["design_metadata"]["review"]
+    assert review["decision"] == "APPROVE" and review["source"] == "rule" and review["round"] == 1
+    assert review["reply"] in dialogue.APPROVE_ACKS and review["kind"] == "initial" and review["style_hint"] is None
+    assert result["design_metadata"]["design_name"] == "왕좌" and "review" not in metadata  # 입력 metadata도 그대로
+    assert calls["review"] == []  # APPROVE 규칙 답에는 LLM을 부르지 않는다
+    assert result["questions"] == [dialogue.REVIEW_QUESTIONS["initial"]]
+    assert [e["stage"] for e in events] == ["REVIEW_LISTENING", "REVIEW_UNDERSTANDING", "HRI_INTERPRET", "REVIEW_ACK",
+                                            "REVIEW_READY"]
+
+
+def test_review_rule_modify_takes_style_hint_and_reply_from_llm(candidate, review_llm):
+    calls, _ = review_llm
+    result, events = _review(candidate, "등받이를 더 높게", kind="revised")
+    review = result["design_metadata"]["review"]
+    assert result["hri_result"] == "MODIFY" and result["design"] == candidate  # 재생성 없음(Wave 2)
+    assert calls["review"] == [("등받이를 더 높게", "revised")]
+    assert review["style_hint"] == "등받이를 더 높고 화려하게" and review["source"] == "rule"
+    assert review["reply"] == "좋아요. 등받이를 조금 더 높여서 다시 만들어볼게요."
+    assert result["questions"] == [dialogue.REVIEW_QUESTIONS["revised"]]
+    interpret = [e["message"] for e in events if e["stage"] == "HRI_INTERPRET"]
+    assert interpret == ["decision=MODIFY source=rule reason=더 화려하게 원하셨어요. style_hint=등받이를 더 높고 화려하게"]
+
+
+def test_review_mixed_answer_goes_to_llm(candidate, review_llm):
+    calls, replies = review_llm
+    replies["review"] = {"decision": "MODIFY", "style_hint": "조금 더 길게", "reason": "…", "reply": ""}
+    result, _ = _review(candidate, "나쁘진 않은데 조금 더 길었으면 좋겠어")
+    review = result["design_metadata"]["review"]
+    assert result["hri_result"] == "MODIFY" and review["source"] == "llm" and review["style_hint"] == "조금 더 길게"
+    assert len(calls["review"]) == 1
+    assert "조금 더 길게" in review["reply"]  # LLM reply가 비면 style_hint를 넣은 확인 문장
+
+
+def test_review_llm_failure_on_rule_modify_keeps_modify_without_hint(candidate, review_llm):
+    calls, replies = review_llm
+    replies["review"] = {"llm_error": {"kind": "server", "message": "HTTP 503"}}
+    result, _ = _review(candidate, "다른 느낌으로 다시")
+    review = result["design_metadata"]["review"]
+    assert result["hri_result"] == "MODIFY" and review["style_hint"] is None and review["reply"] in dialogue.MODIFY_ACKS
+
+
+def test_review_unclear_reasks_once_then_unclear(candidate, review_llm):
+    calls, replies = review_llm
+    replies["review"] = [{"decision": "UNCLEAR", "style_hint": "", "reason": "…", "reply": ""},
+                         {"decision": "UNCLEAR", "style_hint": "", "reason": "…", "reply": ""}]
+    result, events = _review(candidate, "음…", "글쎄", "좋아 이걸로 하자")
+    assert (result["status"], result["hri_result"]) == ("OK", "UNCLEAR")
+    assert result["questions"] == [dialogue.REVIEW_QUESTIONS["initial"], dialogue.REVIEW_REASK]  # 재질문 1회만
+    assert result["design"] == candidate and result["design_metadata"]["review"]["round"] == 2
+    assert [e["stage"] for e in events].count("HRI_INTERPRET") == 2 and events[-1]["stage"] == "REVIEW_READY"
+
+
+def test_review_unclear_then_approve(candidate, review_llm):
+    calls, replies = review_llm
+    replies["review"] = [{"decision": "UNCLEAR", "style_hint": "", "reason": "…", "reply": ""}]
+    result, _ = _review(candidate, "음…", "마음에 들어")
+    assert result["hri_result"] == "APPROVE" and result["design_metadata"]["review"]["round"] == 2
+
+
+def test_review_cancel(candidate, review_llm):
+    result, events = _review(candidate, "그만할래")
+    assert (result["status"], result["hri_result"]) == ("CANCELLED", "CANCEL")
+    assert result["error"]["code"] == "USER_CANCEL" and result["design"] == candidate
+    assert result["design_metadata"]["review"]["decision"] == "CANCEL"
+    assert result["design_metadata"]["review"]["reply"] in dialogue.CANCEL_ACKS
+    assert [e["stage"] for e in events][-2:] == ["REVIEW_ACK", "CANCELLED"]
+
+
+def test_review_llm_cancel_uses_llm_reply(candidate, review_llm):
+    calls, replies = review_llm
+    replies["review"] = {"decision": "CANCEL", "style_hint": "", "reason": "…", "reply": "알겠습니다. 여기서 멈출게요."}
+    result, _ = _review(candidate, "오늘은 이만하자")
+    assert result["hri_result"] == "CANCEL" and result["design_metadata"]["review"]["reply"] == "알겠습니다. 여기서 멈출게요."
+
+
+def test_review_text_answers_exhausted_is_unclear(candidate, review_llm):
+    result, _ = _review(candidate)
+    assert result["hri_result"] == "UNCLEAR" and result["design_metadata"]["review"]["round"] == 0
+
+
+@pytest.mark.parametrize("kind, bad", [("final", None), ("initial", {"design_version": 1, "blocks": []}),
+                                       ("initial", "not a design")])
+def test_review_invalid_input(candidate, kind, bad):
+    result = main.review_design_candidate(bad if bad is not None else candidate, kind=kind, text_answers=["좋아요"])
+    assert (result["status"], result["error"]["code"]) == ("FAILED", "INVALID_INPUT") and result["design"] is None
+
+
+def test_review_stop(candidate, review_llm):
+    result, _ = _review(candidate, "좋아요", should_stop=lambda: True)
+    assert (result["status"], result["error"]["code"]) == ("CANCELLED", "STOPPED")
+
+
+def test_review_stop_during_llm_interpretation(candidate, review_llm):
+    calls, replies = review_llm
+    replies["review"] = {"llm_error": {"kind": "stopped", "message": "stopped"}}
+    result, _ = _review(candidate, "음…")
+    assert (result["status"], result["error"]["code"]) == ("CANCELLED", "STOPPED")
+
+
+def test_review_voice_mode_order(candidate, review_llm, monkeypatch):
+    calls, replies = review_llm
+    events = []
+
+    def listen(on_ready=None, mode="short", beep=False):
+        events.append(("listen", mode, beep))
+        return "좋아 이걸로 하자"
+
+    monkeypatch.setattr(main.voice, "listen", listen)
+    monkeypatch.setattr(main.voice, "speak", lambda sentence: events.append(("speak", sentence)))
+    result = main.review_design_candidate(candidate, kind="initial")
+    assert result["hri_result"] == "APPROVE"
+    assert events[0] == ("speak", dialogue.REVIEW_QUESTIONS["initial"]) and events[1] == ("listen", "free", True)
+    assert events[2][0] == "speak" and events[2][1] in dialogue.APPROVE_ACKS and len(events) == 3  # REVIEW_* 단계는 읽지 않음
+
+
+def test_review_voice_silence_reasks_once_then_unclear(candidate, review_llm, monkeypatch):
+    spoken = []
+    monkeypatch.setattr(main.voice, "listen", lambda on_ready=None, mode="short", beep=False: "")
+    monkeypatch.setattr(main.voice, "speak", spoken.append)
+    result = main.review_design_candidate(candidate, kind="initial")
+    assert result["hri_result"] == "UNCLEAR" and spoken == [dialogue.REVIEW_QUESTIONS["initial"], dialogue.REVIEW_REASK]
+
+
+def test_review_voice_listen_failure(candidate, review_llm, monkeypatch):
+    monkeypatch.setattr(main.voice, "listen", lambda on_ready=None, mode="short", beep=False: None)
+    monkeypatch.setattr(main.voice, "speak", lambda sentence: None)
+    result = main.review_design_candidate(candidate, kind="initial")
+    assert (result["status"], result["error"]["code"]) == ("FAILED", "VOICE_IO_FAILED")
+
+
+def test_review_text_mode_never_speaks(candidate, review_llm, monkeypatch):
+    monkeypatch.setattr(main.voice, "speak", lambda sentence: pytest.fail("text mode must not speak"))
+    assert _review(candidate, "등받이를 더 높게")[0]["hri_result"] == "MODIFY"
+
+
+def test_review_mock_mode_uses_rules_only(candidate, monkeypatch):
+    monkeypatch.delenv("C_DESIGN_USE_LLM", raising=False)
+    monkeypatch.setattr(main.llm, "interpret_review_answer", lambda *a, **k: pytest.fail("Mock must not call LLM"),
+                        raising=False)
+    result, _ = _review(candidate, "나쁘진 않은데 조금 더 길었으면 좋겠어", "등받이를 더 높게")
+    assert result["hri_result"] == "MODIFY" and result["design_metadata"]["review"]["style_hint"] is None
+    assert result["questions"] == [dialogue.REVIEW_QUESTIONS["initial"], dialogue.REVIEW_REASK]
+
+
+def test_review_progress_stages_are_listed():
+    for stage in ("REVIEW_LISTENING", "REVIEW_UNDERSTANDING", "REVIEW_ACK", "REVIEW_READY"):
+        assert stage in main.PROGRESS_STAGES and stage not in dialogue.PROGRESS_TTS_STAGES

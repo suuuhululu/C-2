@@ -458,3 +458,73 @@ def test_ack_choice_is_random(monkeypatch):
     assert d.keep_ack() == d.KEEP_ACKS[-1] and seen[0] == list(d.KEEP_ACKS)
     d.keep_ack()
     assert d.KEEP_ACKS[-1] not in seen[1]  # 바로 앞 문장은 후보에서 뺀다
+
+
+# ---------------------------------------------------------------------------
+# Stage 3 Wave 1: Preview 검토(APPROVE / MODIFY / UNCLEAR / CANCEL)
+# ---------------------------------------------------------------------------
+
+# 문장 표(명세 개수: APPROVE 3, MODIFY 4, UNCLEAR 3, CANCEL 3, 혼합 3; 예문은 명세 §1 A 정의에서 가져옴)
+REVIEW_RULE_TABLE = [
+    ("좋아 이걸로 하자", d.APPROVE), ("마음에 들어", d.APPROVE), ("그대로 진행해", d.APPROVE),
+    ("등받이를 더 높게", d.MODIFY), ("좀 더 화려하게", d.MODIFY), ("다른 느낌으로 다시", d.MODIFY), ("그냥 다시 만들어줘", d.MODIFY),
+    ("음…", d.UNCLEAR), ("글쎄", d.UNCLEAR), ("잘 모르겠어", d.UNCLEAR),
+    ("그만할래", d.CANCEL), ("취소해줘", d.CANCEL), ("오늘은 안 만들래", d.CANCEL),
+]
+REVIEW_MIXED = ["나쁘진 않은데 조금 더 길었으면 좋겠어", "싫은 건 아닌데 다른 것도 보고 싶어", "싫은 건 아니야"]
+
+
+@pytest.mark.parametrize("text, expected", REVIEW_RULE_TABLE)
+def test_review_rule_table(text, expected):
+    calls = []
+    fallback = lambda answer: calls.append(answer) or d.UNCLEAR  # noqa: E731
+    assert d.parse_review_response(text, llm_fallback=fallback) == expected
+    # 명확한 세 부류는 LLM을 부르지 않고, 애매한 답만 fallback으로 넘어간다
+    assert calls == ([text] if expected == d.UNCLEAR else [])
+
+
+@pytest.mark.parametrize("text", REVIEW_MIXED + ["그냥 됐어", "마음에 안 들어", "이걸로 하되 등받이만 바꿔줘"])
+def test_review_mixed_or_negated_answers_go_to_llm(text):
+    assert d.parse_review_response(text) == d.UNCLEAR
+    calls = []
+    assert d.parse_review_response(text, llm_fallback=lambda answer: calls.append(answer) or d.MODIFY) == d.MODIFY
+    assert calls == [text]
+
+
+@pytest.mark.parametrize("text", ["2번", "1번", "네"])
+def test_review_has_no_number_or_yes_shortcut(text):
+    assert d.parse_review_response(text) == d.UNCLEAR  # 검토는 주관식 전용(숫자 호환 없음, "네"도 LLM 판단)
+
+
+def test_review_cancel_negation_and_invalid_fallback_value():
+    assert d.parse_review_response("취소하지 마") == d.UNCLEAR
+    assert d.parse_review_response("음…", llm_fallback=lambda answer: "KEEP") == d.UNCLEAR  # Intervention 값은 받지 않는다
+    assert d.parse_review_response("음…", llm_fallback=lambda answer: d.CANCEL) == d.CANCEL
+
+
+def test_review_values_are_separate_from_intervention():
+    assert {d.APPROVE, d.MODIFY}.isdisjoint({d.KEEP, d.REVISE})
+    assert d.parse_response("좋아 이걸로 하자") != d.APPROVE
+
+
+def test_review_questions_and_reask():
+    assert d.build_review_question("initial") == "완성된 디자인이 화면에 표시됐어요. 어떠신가요?"
+    assert d.build_review_question("revised") == "수정된 디자인이 화면에 표시됐어요. 어떠신가요?"
+    assert d.build_review_reask() == d.REVIEW_REASK == (
+        "어떤 부분을 바꾸고 싶으신지 조금만 더 말씀해 주시겠어요? 이대로 괜찮으시면 그렇게 말씀해 주셔도 돼요.")
+    for name in ("REVIEW_LISTENING", "REVIEW_UNDERSTANDING", "REVIEW_READY"):
+        assert d.PROGRESS_MESSAGES[name] and name not in d.PROGRESS_TTS_STAGES
+
+
+@pytest.mark.parametrize("options", [d.APPROVE_ACKS, d.MODIFY_ACKS, d.MODIFY_HINT_ACKS, d.CANCEL_ACKS])
+def test_review_ack_candidates(options):
+    assert len(options) == 3 and len(set(options)) == 3
+    assert all(sentence.endswith("요.") for sentence in options)
+
+
+def test_review_ack_pickers():
+    assert d.approve_ack() in d.APPROVE_ACKS and d.cancel_ack() in d.CANCEL_ACKS
+    assert d.modify_ack_fallback() in d.MODIFY_ACKS
+    assert "등받이를 더 높게" in d.modify_ack_fallback("등받이를 더 높게")
+    picks = [d.approve_ack() for _ in range(20)]
+    assert all(a != b for a, b in zip(picks, picks[1:]))

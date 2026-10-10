@@ -95,7 +95,7 @@ Design은 정확히 두 키를 가집니다. 그 외 키(`design_id`, 부모 버
 
 ## 4. 공개 함수 (`app.c_design.main`)
 
-외부 모듈은 이 두 함수만 호출합니다. 두 함수 모두 예외를 밖으로 던지지 않고 §6의 결과 dict를 반환합니다. 후보 하나의 검증 탈락은 곧바로 Job 실패가 아니며 C 내부에서 **유한하게** 재생성합니다(§8.10). 실제 `main` 구현은 WAVE 4입니다.
+외부 모듈은 이 공개 함수들(§4.1·§4.2, Stage 3 Wave 1부터 §4.4 `review_design_candidate`)만 호출합니다. 두 함수 모두 예외를 밖으로 던지지 않고 §6의 결과 dict를 반환합니다. 후보 하나의 검증 탈락은 곧바로 Job 실패가 아니며 C 내부에서 **유한하게** 재생성합니다(§8.10). 실제 `main` 구현은 WAVE 4입니다.
 
 실제 LLM 사용 여부는 호출 환경의 `C_DESIGN_USE_LLM=1`로 정하며 기본은 Mock입니다.
 
@@ -230,6 +230,41 @@ Day4에는 시간 기준 자동 취소·자동 KEEP·임의 종료가 없습니�
 음성 I/O(`voice`, WAVE 6)는 순차로 동작합니다. `speak`는 TTS 재생이 끝나고 짧은 지연(기본 0.5초)을 기다린 뒤 돌아오며, 그 뒤에야 `listen`이 마이크 입력을 엽니다(질문 음성을 답으로 다시 인식하지 않음). `listen` 1회는 소리 크기(RMS) 기준으로 발화를 판정합니다. 스트림을 연 직후 0.2초는 버리고(warm-up: open 직후 레벨 변화·직전 재생 잔향 제외) 그다음 0.5초 동안 방 소음(noise floor, 블록 RMS 중앙값)을 재고, 판정 기준을 max(600, noise floor × 3)으로 정합니다(적응형 임계값: 방 소음이 커도 소음을 발화로 오인하지 않음). 그다음 발화 시작을 기다리고(기본 최대 8초), 발화 직전 0.3초를 앞에 붙여(첫 음절 보존) 발화 끝 무음(기본 1초) 또는 발화 시작부터 최대 길이(기본 10초)에서 녹음을 끝냅니다. 앞뒤 무음은 0.2초만 남기고 잘라 냅니다. 발화가 없거나, 발화로 판정된 길이가 0.2초 미만이거나, 잘라 낸 녹음 전체가 기준의 절반보다 약하면 STT를 호출하지 않고 빈 문자열을 돌려줍니다(무음·소음에서 STT가 자막형 문장을 지어내는 것을 막음). 2초보다 짧은 녹음은 앞 0.3초·뒤 나머지를 무음으로 채워 2초로 보냅니다(1초 미만 클립은 whisper 환각이 잦음). STT 요청에는 `language=ko`와 도메인 어휘 힌트(`prompt`: 의자·벤치·소파·스툴·만들어줘·만들고 싶어)를 함께 보내고 응답은 `verbose_json`으로 받습니다. 힌트에는 취소·원복·재설계 어휘와 숫자("1번"·"2번")를 넣지 않습니다(되풀이돼도 응답 의미가 바뀌지 않게, 숫자 힌트는 짧은 "2번"에 "3번, 4번, …" 나열을 지어내게 함). segment가 없거나 모든 segment의 `no_speech_prob`가 0.8 이상이면 빈 문자열(발화 없음)로 처리하고 `last_error`에 `stt_no_speech`를 남깁니다(짧은 정상 발화도 0.55 안팎이라 보수적으로 둠). STT 결과가 힌트 전체이거나, 힌트 항목을 3개 이상 담고 그 항목들을 지운 나머지가 2자 이하(사실상 힌트 나열뿐)이면 힌트를 되풀이한 것으로 보고(2026-10-08: 힌트 단어가 여럿 든 정상 자유 발화는 통과) 빈 문자열(발화 없음)로 처리하며 `last_error`에 `stt_prompt_echo`를 남깁니다. 환경 변수 `C_VOICE_DEBUG_DIR`이 있을 때만 STT에 보낸 WAV와 통계(길이·RMS·peak·noise floor·기준·발화 길이·잘라 낸 길이)를 그 폴더에 덮어써 남깁니다(기본 off, key 미기록). 통계에는 STT 전송 여부(`stt_called`)와 빈 문자열로 끝난 이유(`reason`: no_speech_detected / too_short / weak_input / no_speech_prob / prompt_echo)가 들어가며, STT를 부르지 않은 경우에는 통계만 남기고 이전 WAV는 지웁니다. `listen(on_ready=None)`의 선택 콜백은 warm-up·소음 보정이 끝나 발화를 기다리기 시작할 때 1회 호출되며(안내 표시용, 콜백 예외는 그대로 전파), `main`은 쓰지 않습니다(기본 None). 장치·STT 실패는 `None`입니다. 수치는 `voice` 모듈 상수입니다. 별도 thread·watchdog 없이 `main` 대화 루프에서 `should_stop`을 확인합니다. 텍스트 모드에는 대기가 없습니다.
 
 Stage 2 Wave 4b(2026-10-08 사용자 E2E 로그 확정 원인 반영): `listen(on_ready=None, mode="short", beep=False)`. `mode="free"`(Initial 요청·되묻기 답·Intervention 답변)는 발화 시작 대기 10초·끝 무음 1.5초(말 사이 쉼에서 끊기지 않게), `"short"`(기본, D·Mock 경로)는 위 값(8초·1초) 그대로입니다. `beep=True`면 소음 보정이 끝난 직후 880 Hz 0.12초 알림음을 내고 0.3초 입력을 버린 뒤(그다음 `on_ready`) 발화를 기다립니다(알림음 출력 실패는 무시하고 계속 들음). 무음 판정은 whisper와 같은 복합 조건입니다: segment마다 `no_speech_prob` ≥ 0.8 **그리고** `avg_logprob` < −1.0일 때만 무음이고(모든 segment가 무음일 때 빈 문자열), `avg_logprob`가 없는 segment는 `no_speech_prob`만 봅니다. 디버그 통계에 `avg_logprobs`를 함께 남깁니다. `voice.prewarm()`은 음성 모드 Initial 시작 때 장치 준비(지연 import·입력 스트림 open/close)를 미리 하며 실패해도 예외 없이 `False`입니다. `record()`는 여전히 인자 없이 호출·대체할 수 있습니다(듣기 방식은 `listen`이 모듈 안에서 넘김).
+
+### 4.4 `review_design_candidate(candidate, *, kind, design_metadata=None, text_answers=None, on_question=None, should_stop=None, on_progress=None)` — Preview 검토 (Stage 3 Wave 1)
+
+**호출 전제**: D가 Candidate Design(Initial 또는 Revised)의 HMI Preview 표시를 끝낸 뒤 부릅니다. C는 Preview를 그리지 않고, 표시 완료를 확인하지도 않습니다. 이번 Wave에서 D 코드는 바뀌지 않았습니다(D 연결은 handoff 42번).
+
+| 입력 | 타입 | 의미 |
+|---|---|---|
+| `candidate` | Design (§3) | 화면에 보인 후보. §9.1 `validate_design`을 통과해야 하며(아니면 `INVALID_INPUT`, `details`에 사유), C는 바꾸지 않고 같은 내용을 새 객체로 돌려줍니다 |
+| `kind` | `"initial"` 또는 `"revised"` (키워드 전용) | 질문 문장과 LLM 해석 문맥. 그 밖의 값은 `INVALID_INPUT` |
+| `design_metadata` | dict 또는 `None` | 후보의 metadata. 복사해 `review`를 붙여 돌려줌(입력은 바꾸지 않음). dict도 `None`도 아니면 `INVALID_INPUT` |
+| `text_answers` | str 배열 또는 `None` | 텍스트 모드 답변. `None`이면 음성 모드 |
+| `on_question` / `should_stop` / `on_progress` | §4.2와 같음 | 질문·재질문 표시, STOP, 진행 이벤트 |
+
+**네 상태 (Intervention의 KEEP / REVISE / UNCLEAR와 별개, 값·파서·프롬프트를 섞지 않음)**
+
+| `hri_result` | 의미 | 결과 |
+|---|---|---|
+| `APPROVE` | 이 후보가 마음에 들어 이대로 진행 | `status: OK`, `design` = 입력 후보 |
+| `MODIFY` | 바꾸고 싶음 | `status: OK`, `design` = 입력 후보(재생성 없음 — Stage 3 Wave 2), 바꿀 방향은 `design_metadata.review.style_hint` |
+| `UNCLEAR` | 재질문 1회 뒤에도 불명확(침묵 포함), 또는 텍스트 답변 소진 | `status: OK`, `design` = 입력 후보 |
+| `CANCEL` | 작업 중단 | `status: CANCELLED`, `hri_result: "CANCEL"`, `error.code: USER_CANCEL`, `design` = 입력 후보 |
+
+흐름:
+1. 질문 "완성된 디자인이 화면에 표시됐어요. 어떠신가요?"(revised: "수정된 디자인이 화면에 표시됐어요. 어떠신가요?")을 `questions`·`on_question`에 내고, LLM 음성 모드면 TTS로 읽습니다.
+2. (음성) `voice.listen(mode="free", beep=True)` / (텍스트) `text_answers`로 답을 받습니다.
+3. `dialogue.parse_review_response`로 해석합니다. 취소 구문 → 짧은 긍정 답 전체("좋아요" 등) → 작은 APPROVE·MODIFY 구문 표 순서이고, 숫자 답은 받지 않습니다. 두 부류가 함께 나오거나, 부정어가 섞이거나("나쁘진 않은데…"), 무일치면 LLM 모드에서만 `llm.interpret_review_answer(text, kind)`(키 `llm.REVIEW_KEYS` = decision·style_hint·reason·reply)로 넘깁니다. 해석 실패·키 누락은 UNCLEAR입니다. Mock 모드는 규칙만 쓰고 음성을 내지 않습니다.
+4. 규칙이 MODIFY로 정한 답은 LLM 모드에서 같은 함수를 한 번 더 불러 `style_hint`·`reply`만 받습니다(decision은 규칙 그대로, 실패면 힌트 없이 진행).
+5. UNCLEAR이거나 침묵이면 "어떤 부분을 바꾸고 싶으신지 조금만 더 말씀해 주시겠어요? 이대로 괜찮으시면 그렇게 말씀해 주셔도 돼요."로 **한 번만** 다시 묻습니다.
+6. 확인 문장(ack)은 LLM `reply`가 있으면 그것, 없으면 `dialogue.approve_ack` / `modify_ack_fallback(style_hint)` / `cancel_ack`입니다. LLM 음성 모드면 읽습니다.
+
+STOP은 `CANCELLED` / `STOPPED`(design null), 음성 듣기 실패는 `VOICE_IO_FAILED`입니다.
+
+**`design_metadata.review`** = `{kind, decision, style_hint, round(답을 받은 횟수), source("rule" | "llm"), reply(낸 확인 문장 또는 null)}`. 입력 metadata의 다른 키는 그대로이고, Design `{design_version, blocks}`에는 아무것도 넣지 않습니다.
+
+**진행 이벤트**: `REVIEW_LISTENING` → `REVIEW_UNDERSTANDING` → `HRI_INTERPRET`(decision·source·reason·style_hint, 모든 모드) → `REVIEW_ACK` → `REVIEW_READY`입니다. UNCLEAR면 REVIEW_LISTENING부터 한 번 더 하고, CANCEL은 REVIEW_ACK 뒤 `CANCELLED`로 끝납니다. 음성으로 읽는 것은 질문·재질문·REVIEW_ACK뿐이며 `PROGRESS_TTS_STAGES`는 바뀌지 않았습니다.
 
 ## 5. 입력 형식 (D → C)
 
