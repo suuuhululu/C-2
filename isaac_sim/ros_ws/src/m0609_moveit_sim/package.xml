@@ -1,0 +1,12 @@
+<?xml version="1.0"?>
+<package format="3">
+ <name>m0609_moveit_sim</name><version>0.1.0</version>
+ <description>Isaac-only MoveIt pickup and Current avoidance adapter.</description>
+ <maintainer email="sim-review@example.invalid">SIM review</maintainer><license>Apache-2.0</license>
+ <buildtool_depend>ament_cmake</buildtool_depend>
+ <depend>rclcpp</depend><depend>rclcpp_action</depend><depend>moveit_ros_planning_interface</depend>
+ <depend>moveit_ros_planning</depend><depend>moveit_core</depend><depend>yaml_cpp_vendor</depend>
+ <depend>std_msgs</depend><depend>control_msgs</depend><depend>trajectory_msgs</depend>
+ <exec_depend>moveit_ros_move_group</exec_depend><exec_depend>robot_state_publisher</exec_depend>
+ <export><build_type>ament_cmake</build_type></export>
+</package>
