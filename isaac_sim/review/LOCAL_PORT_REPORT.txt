@@ -1,0 +1,71 @@
+Local preparation completed — 2026-10-10
+
+Target baseline
+  Repository: suuuhululu/C-2
+  Branch: work/seeun-planning
+  HEAD: 319a2755676f2432e3bf3dfdbcd7b22c4d68b17d (unchanged)
+  During local preparation, no upload, commit, PR, merge or force push was
+  performed. This report records pre-publication checks; see branch history
+  for subsequent publishing.
+
+Existing remote files
+  45 tracked files were checked. 42 remain byte-for-byte identical.
+  Changed: planning_trial/planner.py, planning_trial/README.md, docs/STATUS.md.
+  All existing tests, check_c*.py runners, C app files and saved sample JSONs
+  are unchanged. Existing common Plan/Step fields and plan_from_current()
+  default ordering remain available. New assembly candidates use separate APIs.
+
+Ported files and paths
+  230 files were copied individually from existing local implementations,
+  fixtures and models; no original source file was modified.
+  Source/destination paths and SHA256: file_port_manifest.json.
+  Source-copy path patches: path_changes.diff.
+  Remote preservation: preservation_report.json and remote_baseline.json.
+  Active A resides in planning_trial/; SIM imports it from the repository root.
+  Necessary old collision code and original mesh inputs reside in isaac_sim/.
+  Isaac stage reference is relative; generated local mesh URIs are not committed.
+  BUILD/RUN use configurable installations and this folder's own ROS install.
+  Red and chair inputs are selectable; continuing a run reuses its saved input.
+  Raw historical source_reference/provenance paths were preserved as metadata;
+  runtime does not open those paths. Original inputs remain hash-protected.
+
+Verification after the port
+  A/SIM pytest: 365 passed. The same 365 pass from a relocated folder with
+  spaces/Korean characters. Repository-root pytest collection is configured;
+  frozen original test snapshots are preserved as evidence, not collected twice.
+  A 0.5 calculation API exercise: 34/34 checks passed; actor=agent.
+  Relocated scenarios: chair 12 Steps and red 1 Step calculate candidates.
+  All Step reassessments preserve the original Plan baseline, use successive
+  mock revisions, and return execution_allowed=false.
+  ROS build: m0609_moveit_sim + m0609_rg2_sim_model passed (Release).
+  FCL port: 17 source hull parts, exclusion lists and 8 sampled joint-state
+  results exactly equal the original. This is equivalence, not a new safety proof.
+  Relocated USD: 10 dependency layers, 0 unresolved, /World/Robot valid.
+  Python compilation, shell syntax and git diff --check passed.
+  Full logs: ../runtime_reports/ (retained locally, ignored by Git).
+
+Existing C/A connection verification
+  Unchanged check_c_initial.py, check_c_fixtures.py, check_c_revised.py and
+  check_c_a_d_revised.py all passed against the pinned team checkout:
+  101d9d85efe8bdf7cf82bef2a199f4919e1e6c84.
+  The fixture suite covers 12 cases; the C/A/D revised scenario passes 17 checks.
+  No C/D production files were copied over this A branch.
+  Directly using this A branch itself as the C checkout fails because its earlier
+  C skeleton lacks create_initial_design. That existing dependency is reported,
+  not replaced with a fabricated result or a weakened test.
+
+Not verified in this task
+  Isaac animation/control replay of this port; the latest tray-open-at-wait
+  change; physical gravity release, stud fitting, force control, precise opening,
+  real human access/help, actual B observation or real Robot execution.
+  Earlier successful chair/red SIM records remain valid only for their tested
+  source versions. They were not counted as a replay of this port.
+
+Scope/complexity
+  This preparation moves existing sources and their required assets; it does
+  not introduce a service, framework or change another team's app contracts.
+  python-fcl and pycollada were installed only into ignored local python_deps/
+  to verify the already-existing collision code. Isaac was not reinstalled.
+  Build/install/log, runtime files, caches and vendored dependencies are ignored.
+  Original robot and canonical model licences remain beside their assets.
+  Future web publishing remains a separate user-requested action.
