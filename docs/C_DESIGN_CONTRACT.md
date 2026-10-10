@@ -115,7 +115,7 @@ LLM 모델은 역할별로 셋입니다(Stage 2 Wave 4c, 2026-10-08 사용자 �
 |---|---|---|---|---|
 | Design 생성·Initial 설명 | `generate_initial_design`, `generate_revised_design`, `describe_initial_design` | `OPENAI_MODEL` | `DEFAULT_MODEL` (`gpt-4o-mini`) | `gpt-6.1-sol` |
 | Revised judge | `judge_revised_design` | `OPENAI_JUDGE_MODEL` (`llm.JUDGE_MODEL_ENV`) | `llm.DEFAULT_JUDGE_MODEL` (`gpt-4.1-mini`) | `gpt-4.1-mini` (§8.13) |
-| 요청·답변 해석과 acknowledgment(`reply`) | `interpret_initial_request`, `interpret_intervention_answer` | `OPENAI_AUX_MODEL` (`llm.AUX_MODEL_ENV`) | `llm.DEFAULT_AUX_MODEL` (`gpt-4.1-mini`) | `gpt-4.1-mini` |
+| 요청·답변 해석과 acknowledgment(`reply`) | `interpret_initial_request`, `interpret_intervention_answer`, `interpret_review_answer`(Stage 3 Wave 1, §4.4) | `OPENAI_AUX_MODEL` (`llm.AUX_MODEL_ENV`) | `llm.DEFAULT_AUX_MODEL` (`gpt-4.1-mini`) | `gpt-4.1-mini` |
 
 보조 모델은 첫 TTS(acknowledgment)를 Design 생성보다 먼저, 빠르게 내기 위한 것입니다. Design 생성 정책·모델은 바꾸지 않습니다.
 
@@ -183,6 +183,7 @@ Stage 2 Wave 2~4의 `llm.interpret_initial_preference`·`PREFERENCE_KEYS`·`SYST
   - 한국어 부정: "실수 아니야/아닌데"는 실수 부정이라 KEEP이 아님(REVISE 또는 UNCLEAR), "같지가 않아/안 보여/느낌이 아니야"는 현재 결과 부정이라 REVISE, "잘못한 것 같아"는 실수 인정이라 KEEP.
   - 불만 표현의 `style_hint`는 바라는 방향으로 적습니다(예: "할로윈 분위기를 더 강하게", "컵케이크처럼 보이게", "더 단순하게"). `reason` 예: "현재 Design이 원하는 분위기와 다르다는 말씀으로 이해했어요.", REVISE `reply` 예: "알겠습니다. 할로윈 분위기가 더 잘 느껴지도록 다시 만들어볼게요."
   - 이 정의는 LLM 해석(fallback·style_hint 전용 호출)에만 적용됩니다. `dialogue.parse_response` 규칙은 바꾸지 않습니다.
+- Preview 검토(Stage 3 Wave 1, §4.4)의 답변은 이 함수가 아니라 별도 함수 `llm.interpret_review_answer(text, kind, should_stop=None)`로 해석합니다. 값(APPROVE / MODIFY / UNCLEAR / CANCEL)·프롬프트(`SYSTEM_PROMPT_REVIEW`)·키(`llm.REVIEW_KEYS`)가 Intervention의 KEEP / REVISE / UNCLEAR와 섞이지 않습니다.
 - LLM 해석이 REVISE이면 그 `style_hint`(사람이 원한 것)를 Revised 생성(`llm.generate_revised_design(…, style_hint=…)`)에 직접 넘기고 `design_metadata.style_hint`에 남깁니다(Stage 2 Wave 4 After 구조: 별도 설계 의도 단계 없음, 생성 → validator → judge → 필요 시 재생성 1회 → 재judge, §8.13). Rule이 REVISE로 정한 자유 답변(예: "일부러 그렇게 놨어요. 팔걸이로 살려주세요.")도 LLM 모드에서는 같은 함수를 한 번 불러 `style_hint`만 받습니다(decision은 Rule 결과 그대로, 해석 실패·키 누락은 힌트 없이 진행하고 재질문·metadata error 없음, STOP은 `CANCELLED` / `STOPPED`). 빈 힌트는 null입니다.
 
 | 답변 (LLM 모드) | `interpret_intervention_answer` 호출 |
@@ -283,6 +284,18 @@ Stage 2 Wave 3에서 Initial(LLM)에 `preference`·`selected_family`·`family_so
 | REVISE 성공(LLM) | 아래 Revised 필드표 |
 | Mock(Initial·REVISE) | 고정 문자열: `design_name: "Mock 의자"`, `design_family: "chair"`, `source: "MOCK"`, `judge`·`design_intent`: null, `regenerations`: 0 |
 | KEEP, UNCLEAR, FAILED, CANCELLED | `null` |
+| Preview 검토 결과(Stage 3 Wave 1, §4.4) | 입력 `design_metadata`(없으면 `{}`)에 `review` 키 하나를 더해 그대로 돌려줌(아래 review 필드표). APPROVE·MODIFY·UNCLEAR·CANCEL 모두 같음 |
+
+**`design_metadata.review` (Stage 3 Wave 1, `main.review_design_candidate`)**: 검토 결과 기록입니다. 형식은 `{kind, decision, style_hint, round, source, reply}`이며 Design(`{design_version, blocks}`)에는 넣지 않습니다(후보 Design은 그대로 반환, §3 불변). 기존 `design_metadata` 키(`design_name`·`judge`·`style_hint` 등)는 덮어쓰지 않고 그대로 둡니다. 이 위치에서 Stage 2 키와 이름이 같은 것은 `review.style_hint`뿐이며 최상위 `style_hint`(Initial 요청·Intervention 해석의 바람)와 별개입니다.
+
+| review 필드 | 내용 |
+|---|---|
+| `kind` | `"initial"` / `"revised"` (검토한 후보 종류, 호출 인자 그대로) |
+| `decision` | `"APPROVE"` / `"MODIFY"` / `"UNCLEAR"` / `"CANCEL"` (최종 해석, Intervention 값과 별개) |
+| `style_hint` | MODIFY일 때 바꾸고 싶은 방향(한국어 구, LLM 해석 `style_hint`), 그 밖이나 얻지 못하면 null. Stage 3 Wave 2 후보 재생성의 입력 |
+| `round` | 받은 답변 횟수(재질문 포함, 1 또는 2) |
+| `source` | 최종 decision을 정한 곳: `"rule"`(`dialogue.parse_review_response` 규칙) / `"llm"`(`llm.interpret_review_answer`) |
+| `reply` | 읽어 준 acknowledgment 문장(LLM `reply` 또는 dialogue 고정 후보), 없으면 null |
 
 | Revised 필드 | 내용 |
 |---|---|
