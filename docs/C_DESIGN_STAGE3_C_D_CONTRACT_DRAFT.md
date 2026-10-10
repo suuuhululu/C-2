@@ -102,6 +102,12 @@
 - `review.style_hint`(MODIFY 방향, 예: "그냥 다시" → "현재 디자인과 다른 새로운 형태")는 Wave 2 후보 재생성의 입력입니다. Wave 1에서는 재생성하지 않습니다.
 - D 코드·공유 schema는 수정하지 않았습니다. snapshot `candidate_design`·`preview_rendered` 등 D 쪽 상태는 위 §2·§8 그대로 미결입니다.
 
+## 7.2 Wave 2 반영 (2026-10-11, A: llm·계약 문서)
+- llm: `REVIEW_KEYS = ("decision", "style_hint", "scope", "concept", "reason", "reply")`, `REVIEW_SCOPES = ("patch", "redesign", "concept_change")`. `interpret_review_answer(text, kind, should_stop=None, context=None)` — context `{family, concept}`를 payload `current_candidate`로 보냄(블록 미전송). `SYSTEM_PROMPT_REVIEW`에 scope·concept 정의와 예문 추가(기존 네 decision 정의·부정 지시·reply 규칙 유지).
+- `generate_initial_design(…, previous_candidate=None, scope=None)`, `generate_revised_design(…, previous_candidate=None, scope=None)`: 둘을 함께 주면 scope별 직전 후보 문단을 사용자 메시지에 넣음(하나만이거나 scope가 밖이면 `ValueError`, 호출 없음). system prompt·Current 보존·min_blocks·judge 불변.
+- 정책은 [계약 §8.14](C_DESIGN_CONTRACT.md)(scope 3종·family/concept 규칙·version·round). 위 §4 초안의 시그니처와 달리 public API는 추가하지 않고 `review_design_candidate`가 MODIFY에서 새 Candidate를 `design`에 담아 반환합니다(명세 Wave 2 §1, main은 B).
+- 계약 영향: Design `{design_version, blocks}`·envelope 키 불변. 새 Candidate는 Approved가 아니며 채택은 D. Initial 후보 version 1, Revised 후보 Approved + 1 고정(위 §8 위험 1의 제안과 같음). `design_metadata.review`에 `scope` 추가, `round`는 후보 반복 횟수로 재정의([계약 §6.1](C_DESIGN_CONTRACT.md)).
+
 ## 8. 위험 요소 / 결정 필요
 1. 후보 반복 중 `design_version` 정책(§3.1·§3.2 제안: Initial 후보 1 고정, Revised 후보 승인+1 고정). docs/06 §4와 D `replan.on_intent` 검증과 맞물림.
 2. snapshot `candidate_design` 필드 추가는 D/공유 schema 변경 → D 작업. 대안(채택 `design`에 후보를 넣고 제목만 바꾸기)은 §8 원칙 위반이라 비권장.

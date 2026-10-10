@@ -1080,13 +1080,14 @@ class TestInterpretReviewAnswer:
     """Stage 3 Wave 1: Preview review answers (APPROVE / MODIFY / UNCLEAR / CANCEL), separate from Intervention."""
 
     EXAMPLES = [
-        ("좋아 이걸로 하자", {"decision": "APPROVE", "style_hint": "", "reason": "마음에 드신다고 하셨어요.",
-                             "reply": "좋아요. 이 디자인으로 진행할게요."}),
-        ("등받이를 더 높게", {"decision": "MODIFY", "style_hint": "등받이를 더 높게", "reason": "등받이를 바꾸고 싶다고 하셨어요.",
-                            "reply": "좋아요. 등받이를 조금 더 높여서 다시 만들어볼게요."}),
-        ("음… 글쎄", {"decision": "UNCLEAR", "style_hint": "", "reason": "아직 정하지 못하신 것 같아요.", "reply": ""}),
-        ("그만할래", {"decision": "CANCEL", "style_hint": "", "reason": "작업을 멈추고 싶다고 하셨어요.",
-                     "reply": "알겠습니다. 이번 디자인 작업은 여기서 멈출게요."}),
+        ("좋아 이걸로 하자", {"decision": "APPROVE", "style_hint": "", "scope": "", "concept": "",
+                             "reason": "마음에 드신다고 하셨어요.", "reply": "좋아요. 이 디자인으로 진행할게요."}),
+        ("등받이를 더 높게", {"decision": "MODIFY", "style_hint": "등받이를 더 높게", "scope": "patch", "concept": "",
+                            "reason": "등받이를 바꾸고 싶다고 하셨어요.", "reply": "좋아요. 등받이를 조금 더 높여서 다시 만들어볼게요."}),
+        ("음… 글쎄", {"decision": "UNCLEAR", "style_hint": "", "scope": "", "concept": "",
+                     "reason": "아직 정하지 못하신 것 같아요.", "reply": ""}),
+        ("그만할래", {"decision": "CANCEL", "style_hint": "", "scope": "", "concept": "",
+                     "reason": "작업을 멈추고 싶다고 하셨어요.", "reply": "알겠습니다. 이번 디자인 작업은 여기서 멈출게요."}),
     ]
 
     @pytest.mark.parametrize("text,reply", EXAMPLES)
@@ -1122,8 +1123,38 @@ class TestInterpretReviewAnswer:
         assert [json.loads(c["request"].data)["model"] for c in fake.calls] == ["gpt-4.1-mini", "gpt-4o-mini"]
 
     def test_keys(self):
-        assert llm.REVIEW_KEYS == ("decision", "style_hint", "reason", "reply")
+        assert llm.REVIEW_KEYS == ("decision", "style_hint", "scope", "concept", "reason", "reply")
         assert set(llm.REVIEW_CONTEXT) == {"initial", "revised"}
+        assert llm.REVIEW_SCOPES == ("patch", "redesign", "concept_change")
+
+    def test_context_is_sent_as_current_candidate(self, monkeypatch, with_fake_key):
+        """Stage 3 Wave 2: main passes the current candidate's family / concept; only those two values are sent."""
+        fake = _install(monkeypatch, [_body(json.dumps(self.EXAMPLES[1][1], ensure_ascii=False))] * 2)
+        llm.interpret_review_answer("치즈컵케이크 느낌으로 바꿔줘", "initial",
+                                    context={"family": None, "concept": "컵케이크 느낌", "blocks": [{"x": 1}]})
+        llm.interpret_review_answer("등받이를 더 높게", "initial", context={"family": "throne"})
+        first = json.loads(_sent(fake)[1].split("\n", 2)[2])
+        assert first == {"answer": "치즈컵케이크 느낌으로 바꿔줘", "current_candidate": {"family": None, "concept": "컵케이크 느낌"}}
+        second = json.loads(fake.calls[1]["request"].data)["messages"][1]["content"].split("\n", 2)[2]
+        assert json.loads(second)["current_candidate"] == {"family": "throne", "concept": None}
+
+    def test_prompt_defines_scope_and_concept(self):
+        prompt = llm.SYSTEM_PROMPT_REVIEW
+        assert "The user message may also give the current candidate's family and creative concept (current_candidate)" in prompt
+        assert '"scope": for MODIFY, how the next candidate should be made' in prompt
+        patch = prompt.split('"patch" for a change to part of the current candidate that keeps its family or concept', 1)[1]
+        for example in ("'등받이를 더 높게'", "'조금 더 길게'", "'팔걸이를 더 크게'", "'조금 더 화려하게'"):
+            assert example in patch.split('"redesign"', 1)[0], example
+        redesign = prompt.split('"redesign" for a clearly different design that uses the current candidate only as reference', 1)[1]
+        for example in ("'완전히 다른 느낌으로'", "'다른 모양으로 다시'", "'그냥 새로'", "'지금 거 말고 다른 스타일'"):
+            assert example in redesign.split('"concept_change"', 1)[0], example
+        assert ('"concept_change" when the current candidate follows a creative concept and they want a different concept '
+                "instead (e.g. '컵케이크 말고 바나나 느낌')") in prompt
+        assert ("'치즈컵케이크 느낌으로 바꿔줘' gives scope \"patch\" and concept '치즈컵케이크 느낌'") in prompt
+        # 실 호출에서 scope 값이 decision으로 새어 나온 사례("CONCEPT_CHANGE")를 막는 문장(Fable smoke FIX).
+        assert 'decision for all three scopes is "MODIFY"; scope values are never used as the decision' in prompt
+        assert ("'컵케이크 말고 바나나 느낌' gives scope \"concept_change\" and concept '바나나 느낌'") in prompt
+        assert "KEEP" not in prompt and "REVISE" not in prompt
 
     def test_prompt_defines_four_review_states_with_examples(self):
         prompt = llm.SYSTEM_PROMPT_REVIEW
@@ -1174,6 +1205,86 @@ class TestInterpretReviewAnswer:
         assert llm.interpret_review_answer("좋아요", "initial")["llm_error"]["kind"] == "auth"
         _install(monkeypatch, [_body("그냥 텍스트")])
         assert llm.interpret_review_answer("좋아요", "initial")["llm_error"]["kind"] == "bad_response"
+
+
+class TestCandidateRegeneration:
+    """Stage 3 Wave 2: MODIFY regeneration refers to the previous candidate according to scope."""
+
+    CANDIDATE = {"design_version": 1, "blocks": [{"brick_type": "2x3x1", "color": "yellow", "x": 9, "y": 9, "layer": 1,
+                                                  "orientation_deg": 0}]}
+
+    def _initial(self, monkeypatch, **kwargs):
+        fake = _install(monkeypatch, [_body(json.dumps({"design_version": 1, "blocks": []}))])
+        llm.generate_initial_design("CHAIR", **kwargs)
+        return _sent(fake)[1]
+
+    def _revised(self, monkeypatch, **kwargs):
+        fake = _install(monkeypatch, [_body(json.dumps({"blocks": []}))])
+        llm.generate_revised_design(SIMPLE_DESIGN, SIMPLE_DESIGN["blocks"], [], **kwargs)
+        return _sent(fake)[1]
+
+    def test_initial_patch_keeps_family_and_applies_the_change(self, monkeypatch, with_fake_key):
+        user = self._initial(monkeypatch, family="throne", style_hint="등받이를 더 높게", previous_candidate=self.CANDIDATE,
+                             scope="patch")
+        paragraph = ("Previous candidate (keep its family, overall silhouette and most of its blocks; apply this change: "
+                     "등받이를 더 높게; move other blocks only as needed to stay valid): "
+                     + json.dumps(self.CANDIDATE, ensure_ascii=False) + "\n")
+        assert paragraph in user
+        assert user.index("Selected family: throne.") < user.index(paragraph) < user.index("Previous candidate was rejected")
+
+    def test_initial_redesign_and_concept_change(self, monkeypatch, with_fake_key):
+        blocks = json.dumps(self.CANDIDATE, ensure_ascii=False)
+        user = self._initial(monkeypatch, style_hint="완전히 다른 느낌", previous_candidate=self.CANDIDATE, scope="redesign")
+        assert ("Previous candidate (reference only: make a clearly different seating design; the family may change; do "
+                "not reproduce its layout): " + blocks + "\n") in user
+        assert "Selected family" not in user
+        user = self._initial(monkeypatch, style_hint="바나나 느낌", concept="바나나 느낌", previous_candidate=self.CANDIDATE,
+                             scope="concept_change")
+        assert ("Previous candidate followed a different concept; do not reproduce its layout: " + blocks + "\n") in user
+        assert "Creative concept from the person: 바나나 느낌." in user
+
+    def test_initial_patch_without_style_hint(self):
+        user = llm._initial_user_message("CHAIR", None, concept="치즈컵케이크 느낌", previous_candidate=self.CANDIDATE,
+                                         scope="patch")
+        assert "apply this change: the change the person asked for;" in user
+
+    def test_without_previous_candidate_messages_are_unchanged(self, monkeypatch, with_fake_key):
+        assert (llm._initial_user_message("CHAIR", None, family="throne", style_hint="빨간")
+                == llm._initial_user_message("CHAIR", None, family="throne", style_hint="빨간", previous_candidate=None,
+                                             scope=None))
+        assert "Previous candidate (" not in self._initial(monkeypatch)
+        assert "Previous Revised candidate" not in self._revised(monkeypatch)
+
+    def test_revised_patch_and_redesign_keep_the_current(self, monkeypatch, with_fake_key):
+        blocks = json.dumps(self.CANDIDATE, ensure_ascii=False)
+        user = self._revised(monkeypatch, style_hint="팔걸이를 더 크게", min_blocks=7, previous_candidate=self.CANDIDATE,
+                             scope="patch")
+        paragraph = ("Previous Revised candidate (keep its family, overall silhouette and most of its blocks; apply this "
+                     "change: 팔걸이를 더 크게; the Current blocks stay exactly as given; move other blocks only as needed to "
+                     "stay valid): " + blocks + "\n")
+        assert paragraph in user
+        assert user.index("Previous adopted design (context only") < user.index(paragraph) < user.index(
+            "Previous candidate was rejected")
+        # Current preservation, richness and guidance are unchanged
+        assert "Every Current block must appear in the final Revised Design" in user
+        assert "The Revised Design must contain at least 7 blocks" in user and llm._REVISED_GUIDANCE in user
+        user = self._revised(monkeypatch, style_hint="다른 모양", previous_candidate=self.CANDIDATE, scope="redesign")
+        assert ("Previous Revised candidate (reference only: make a clearly different seating design; the Current blocks "
+                "stay exactly as given; the family may change; do not reproduce its layout): " + blocks + "\n") in user
+
+    @pytest.mark.parametrize("kwargs", [
+        {"previous_candidate": CANDIDATE},
+        {"scope": "patch"},
+        {"previous_candidate": CANDIDATE, "scope": "rewrite"},
+        {"previous_candidate": CANDIDATE, "scope": ""},
+    ])
+    def test_previous_candidate_and_scope_are_checked_without_a_call(self, monkeypatch, with_fake_key, kwargs):
+        fake = _install(monkeypatch, [])
+        with pytest.raises(ValueError):
+            llm.generate_initial_design("CHAIR", **kwargs)
+        with pytest.raises(ValueError):
+            llm.generate_revised_design(SIMPLE_DESIGN, SIMPLE_DESIGN["blocks"], [], **kwargs)
+        assert fake.calls == []
 
 
 class TestModelRoles:
