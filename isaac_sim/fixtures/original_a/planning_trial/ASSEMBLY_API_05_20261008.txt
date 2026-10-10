@@ -1,0 +1,133 @@
+A 계산 API 0.5 — 수현님 회신 반영, 2026-10-08
+
+상태: 로컬 계산 구현과 검증 자료. D 최종 공통 명세는 아직 미배포.
+기존 0.4/0.4.1 요청·사용자 직접 실행 기록·압축파일은 변경하지 않았다.
+이 문서와 새 0.5 실행이 현재 코드의 기준이다. 기존 ASSEMBLY_API_20261008.txt는 0.4.1 기록이다.
+샘플/Isaac/실물에서 같은 계산 함수 사용. 입력 데이터만 다르다.
+
+1. 프로필 ID·버전과 해시 분리
+
+  frame_profile.profile_id / profile_version: D가 발급한 문자열, 그대로 반환.
+  context.frame_profile_id / frame_profile_version: 위 참조와 일치해야 한다.
+  내용 해시를 profile_id와 같게 요구하지 않는다. 임의의 유효한 D ID도 계산 가능.
+  assembly_profiles.profile_content_digest(): A 내부의 내용 지문. D ID를 대체하지 않는다.
+  내부 supply/assembly 계산 프로필의 source hash와 측정 이력은 그대로 유지한다.
+
+  재평가 반환의 assessment_input_digest는 A가 frame_profile 내용과 assembly_context로 계산한다.
+  D는 원래 assessment_id와 함께 이 값을 보관해 경로 요청에 그대로 연결한다.
+  D가 해시를 발급하거나 계산할 필요는 없다. 최종 외부 필드명은 D Schema에 맞춘다.
+  프로필 ID/버전이 같아도 내용이나 계산 설정이 달라지면 FRAME_PROFILE_CHANGED로 보류한다.
+  새 ID/버전을 옛 평가에 연결해도 REFERENCE_MISMATCH로 보류한다.
+  새 재평가를 요청하면 기존 D ID를 유지한 채 변경된 프로필 내용으로 다시 계산할 수 있다.
+  D의 활성 평가·프로필 registry 검사까지 A가 완료한 것은 아니다.
+
+2. 구현된 작업 방식 안에서 최적화
+
+  assembly_context.supported_modes: 초기 허용값 ROBOT_GRIP / HUMAN_ASSEMBLY.
+  전체 순서 탐색(mode_options → Dijkstra)부터 제한하며 재평가와 경로에도 적용한다.
+  누르기가 기하상 가능해도 ROBOT_RELEASE_PRESS를 신규 Plan에 선택하지 않는다.
+  가능한 허용 방식이 없으면 전체 계획은 NO_FEASIBLE_ORDER, 재평가는 BLOCKED + 사유.
+  HUMAN_ASSEMBLY의 전달판 프로필이 없으면 경로 계산은 INPUTS_REQUIRED로 보류한다.
+  과거 selected_action이 미구현 누르기이면 재평가도 UNSUPPORTED_METHOD로 보류한다.
+  과거 미구현 동작을 다른 동작으로 조용히 교체하지 않는다. 새 지원 방식 Plan/선택 요청이 필요하다.
+  명시적으로 전달된 미구현 경로 요청도 UNSUPPORTED_METHOD이며 motion_proposal=null이다.
+  사람 PRESS(로봇이 잡는 U를 사람이 누름)와 ROBOT_RELEASE_PRESS는 다른 개념이다.
+  사람 도움 정보와 손 수 제한은 기존 계산을 유지한다.
+  구형 기하 연구 fixture의 전체 방식 비교는 이력 재현용이다. 현재 wire API는 지원 방식을 명시해야 한다.
+
+3. 세 request → 실제 함수 → result 매핑
+
+전체 계획 — handle_whole_plan(request, audit=...)
+  request.design/current/assembly_context
+    → plan_assembly_from_current(design, current, assembly_context)
+  추가 frame_profile은 참조 대조와 B/D 공통 자료 구성에 사용.
+  raw.planning_result → result.planning_result (기존 Plan/Step 본문 유지)
+  raw.assembly_actions → result.action_proposals
+  READY에만 result.shared_planning_bundle 생성. 오류/계산 불가는 null.
+
+직전 재평가 — handle_step_reassessment(request, audit=...)
+  request.design/plan/context.step_id/latest_current/assembly_context
+    → assess_step(design, plan, step_id, latest_current, assembly_context)
+  request.plan_base_current + 확인된 순차 prefix → expected/latest Current 일관성 검사.
+  frame_profile 참조 대조 및 A 입력 지문 생성.
+  result.assessment_id/action_proposal/assessment_input_digest → D의 평가 기록.
+  이미 조립됨·선행 대기·지원 방식 불가·입력 오류는 정상 후보로 바꾸지 않는다.
+
+경로 — handle_step_motion(request, audit=...)
+  plan/context.step_id/latest_current/action_proposal/reserved_supply_slot
+  robot_state/frame_profile/assembly_context
+    → plan_step_motion(*, plan, step_id, latest_current, action,
+                        supply_slot, robot_state, frame_profile, assembly_context)
+  assessment_id/context/input_digest/assessed_action은 사전 참조·내용 대조에 사용.
+  request의 D profile_id/profile_version을 motion_proposal에 그대로 반환.
+  픽업 접근 → D 집기·파지 확인 → 파지 유지 이송의 segments는 유지.
+
+공통 request 변경(0.4.1 대비, 로컬 초안)
+  context.frame_profile_version 추가.
+  frame_profile.profile_version 추가.
+  WholePlanRequest / StepReassessmentRequest에도 frame_profile 명시.
+  assembly_context.supported_modes 필수.
+  StepReassessmentResult / StepMotionRequest에 A assessment_input_digest 연결.
+  WholePlanResult에 shared_planning_bundle, Motion에 profile_version 추가.
+  전체 frame_profile을 중복 전달하지 않는 참조/registry 방식은 D 최종 Schema에 맞춰 변경 가능.
+  기존 0.4.1 JSON을 0.5 요청으로 가장하지 않는다. 새 Fixture를 사용한다.
+
+4. B/D 공통 계획 자료
+
+  정상 WholePlanResult.shared_planning_bundle 및 common_planning_bundle.json
+  B/D별로 Plan을 다시 계산하지 않는다. 같은 bundle_id/digest/Plan ID와 본문을 제공한다.
+  D 연결부가 채택한 공통 자료를 B와 D에 배포하는 제안이며 현재 실제 배포는 미연결이다.
+
+  포함 정보:
+    승인 입력 Design, 계산된 Plan, 원래 plan_base_current (revision 포함)
+    frame_profile snapshot와 ID/버전, A 내용 지문
+    geometry: m, assembly_board 좌표, stud 기준 x/y, layer 1부터, orientation 정의
+      pitch .016, body .019, stud .0045, layer increment .019
+      body size는 stud 개수×pitch의 명목 외곽 상자(공차/모서리/정밀 socket 제외)
+      2×2: .032×.032×.019, 2×3: .032×.048×.019 (90도면 XY 교환)
+      Z 원점은 조립판 stud 끝. 1층 몸체 밑면 Z=-.0045, k층 밑면=(k-1)*.019-.0045
+      stud 끝 높이=k*.019. 보드 윗면 Z=0으로 혼동하지 않는다.
+    expected_steps: Step별 before_blocks / after_blocks
+    final_expected_blocks: 기준 Current+모든 PLACE 누적 결과
+
+  expected_steps는 관측 Current가 아니다. 미래 current_revision을 임의 발급하지 않는다.
+  B가 실제 관측·비교·Current/revision을 확정하고 D가 보관·중계한다.
+  재평가에서 기준 Plan.base_current_revision은 유지한다.
+  deviation에 맞춰 기존 예상 배치를 수정하지 않는다. 승인 수정 Design의 새 Plan을 계산한다.
+  B의 카메라 보정·높이맵/3D 비교 모델 생성·영상 판단은 B 담당이다.
+  원본 실측 TCP는 파지된 TCP이고 조립판 표면 좌표가 아니다.
+
+5. 검증 범위와 직접 실행
+
+  24개 시나리오 / 34개 단계·자료 검사. BLOCKED 등 기대 오류 처리도 PASS로 센다.
+  실제 A 함수 + 로컬 adapter + 로컬 consumer. C/B/D 실제 수신/로봇/Isaac 실행 없음.
+  입력 RobotState·예약·Current는 시험 데이터이며 장치 관측 증거가 아니다.
+  파지5mm, 밑면20mm 대기 간격 유지. 몸체19mm/stud4.5mm 반영.
+  IK·전체 팔 충돌·실물 파지·물리 체결·도움 준비·정지는 미검증, D 실행 승인 별도.
+  매 Step 사용자 승인 추가 없음. D가 활성 조건을 확인해 자동 승인/진행.
+
+터미널:
+  cd "/home/rokey/Documents/ChatGPT/협동2"
+  bash planning_trial/run_user_assembly_05.sh planning_trial/assembly_api_results_user_05_01
+
+  Checks: 34/34 PASS, 실행 종료 코드: 0을 확인.
+  다시 실행할 때 user_05_02 등 새 경로 사용. 기존 폴더는 덮어쓰지 않는다.
+
+확인할 파일:
+  01_initial/whole.result.json: READY, Plan, action_proposals, shared_planning_bundle
+  01_initial/common_planning_bundle.json: B/D에 제공할 공통 Plan·예상 배치·기하 정보
+  02_same_plan_next_step/motion.result.json: 같은 Plan base0 / 평가 및 경로 Current1
+  09_profile_changed/motion.result.json: 같은 ID/버전에서 내용 변경 → FRAME_PROFILE_CHANGED
+  12_press_excluded/whole.result.json: 누르기 선택 없음
+  18_d_profile_reference/motion.result.json: D-frame-calibration-custom / D-v17 유지
+  19_old_profile_version/motion.result.json: 이전 평가의 다른 버전 → 보류
+  20_no_supported_method/whole.result.json: 지원 방식 불가 → NO_FEASIBLE_ORDER
+  21_reassessment_no_method/reassessment.result.json: 후보 없음 → BLOCKED
+  22_forced_unsupported_motion/motion.result.json: 미구현 경로 요청 → UNSUPPORTED_METHOD
+  23_common_b_d_bundle/distribution_refs.json: B/D 동일 파일·Plan ID·SHA256
+  24_old_press_action/reassessment.result.json: 과거 누르기 동작을 임의 대체하지 않고 보류
+  report.json, run.log, 출력 폴더 옆 .execution.log: 실행자·입출력·코드 hash·결과
+
+다음 공동 단계:
+  D 최종 Schema/Fixture 배포 → A wire 정합 → 실제 D 프로필/예약/RobotState 수신 시험.
+  B/D 동시 배포와 실제 후보 보관·채택·자동 진행은 현 단계 완료로 표시하지 않는다.
