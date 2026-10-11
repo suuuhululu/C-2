@@ -1,18 +1,6 @@
 # 수현 DB 이력 — 독립 적재·조회 실행 안내
 
-## 최종 MVP의 저장·웹 이행 (2026-10-07)
-
-[최종 MVP](10_FINAL_MVP.md)는 현재 설계와 조립 기록의 **사용자별 DB 저장과 웹앱 반영**을 서비스 종료의 3단계에 포함합니다. 아래 명령/Schema는 현재 게시된 독립 JSONL→PostgreSQL 적재·조회/계정 구현이며 유지합니다. ‘개인 도안·소유자·웹 제외’는 당시 구현 범위이며 최종 제품의 제외 조건이 아닙니다.
-
-현재 [schema.sql](../history/schema.sql)의 jobs는 job_id만 저장하고 users와 연결되지 않습니다. 계정 확인은 세션·웹 권한을 발급하지 않습니다. 새로운 사용자–Job 소유자 연결과 채택 Design/Plan·Current·Step/최종 판정·지원/실패 근거의 저장 계약, 사용자별 조회·웹 반영 경로가 필요합니다. 저장 시점·이벤트/필드·중복 방지·세션/권한은 아직 확정하지 않았으며 이번 PR에서 SQL·적재 코드·API를 변경하지 않습니다.
-
-1. 필요한 블록 사용 종료만으로 DB에 정상 조립 완료를 기록하지 않습니다.
-2. Vision 근거와 Backend 최종 판정으로 물리 조립 종료를 기록합니다.
-3. 사용자 연결·설계/조립 이력 저장·웹 반영 결과를 따로 확인합니다. 저장/반영 실패를 성공으로 숨기거나 Robot 재실행으로 해결하지 않습니다.
-
-기존 Job에 소유자를 추정해서 붙이거나 DB에서 Current를 자동 복원하지 않습니다. JSONL 주요 이벤트·실험 F/T 원자료의 보관 위치/참조 관계는 별도 설계하고, 기존 DB에 매 프레임·힘 시계열이 이미 저장됐다고 표시하지 않습니다. 기존 집계의 전달→사람 조립 시간도 직접 결착의 삽입 시간으로 이름만 바꾸지 않습니다.
-
-## 기존 DB 구현·실행·검증 안내
+**최신: 2026-10-08 사용자별 이력·최종 MVP DB 내부 확장.** 아래 10월 6일 설명·시험 수치는 당시 기록이다. 현재 사용법·완료 의미·미연결 범위는 [최신 확장 절](#2026-10-08--사용자별-이력최종-mvp-db-내부-확장)을 우선한다. 이번 변경은 로컬 개발이며 새 commit/push/PR/merge는 수행하지 않았다.
 
 2026-10-06 사용자의 최신 요청으로 **기존 Day4 공정을 유지하면서 컨테이너·PostgreSQL을 병행 개발**한다. 과거 DB 제외 결정에 대한 이번 추가 범위다. 구현·검증 뒤 사용자의 PR 게시 요청에 따라 DB 변경만 별도 PR로 게시한다. merge는 별도 승인 범위다. 개발 위치는 `/home/ms-02/C_2`, 브랜치는 `work/suhyun-hmi-backend-robot-db`다.
 
@@ -224,3 +212,76 @@ hri의 record_status는 INTENT_RECORDED / C_RESPONSE_RECORDED / FAILURE_RECORDED
 추가 단위 검사는 tests/unit/test_history_views.py다. 기존 tests/integration/test_history_db.py에 네 CLI·보고서 일치, C 실패 원문/문맥 누락, 새 입력 검사 실패/재적재 검사를 추가했다. 최신 실행 수치와 컨테이너 증거는 STATUS의 이번 항목과 logs/history_reports/views-container-validation.json을 따른다.
 
 계정 독립 검사는 `tests/unit/test_accounts.py`, 실제 PostgreSQL 검사는 `tests/integration/test_accounts_db.py`다. 신규 account fixture는 트랜잭션 rollback으로 격리해 실제 다섯 계정에 섞지 않는다. 최종 결과는 [STATUS](STATUS.md)에 기록한다. 계정표/해시/명령/검사와 직접 관련 안내만 추가했으며 HMI·공정 코드·장치·의존성은 변경하지 않았다.
+
+## 2026-10-08 — 사용자별 이력·최종 MVP DB 내부 확장
+
+사용자가 Drive 01~10 문서 검토 후 권장한 DB 내부 개발 1~6단계를 채택했다. 충돌하는 역할 설명은 [10월 8일 확정 계약](handover/final_mvp_interface_20261008/README.md)을 우선한다. B가 Current/revision·Expected·비교를 확정하고 D가 실행·검사·의도·완료를 기록한다. DB는 원문과 연결 근거를 보존하며 공간 비교·Expected 재계산·Current 복원·Robot 재실행을 하지 않는다. 실제 Producer 연결은 이번 범위가 아니다.
+
+### 구조 변경과 기존 자료
+
+`init`은 기존 기본 Schema 뒤 [001 변경 SQL](../history/migrations/001_personal_history.sql)을 트랜잭션으로 한 번 적용한다. 적용 번호는 schema_migrations에 기록하며 동시에 실행한 init은 잠금으로 순서화한다. 실패하면 그 변경 전체가 되돌려지고 성공한 기존 자료는 유지된다. 운영 시 적용 전 백업은 별도 보관하며 초기화를 위한 DROP/TRUNCATE·볼륨 삭제를 하지 않는다.
+
+| 대상 | 변경·보존 의미 |
+|---|---|
+| jobs | owner_user_id·연결 시각·연결 사유 추가. 기존 Job은 소유자 미지정으로 보존 |
+| sources | 입력 계약 이름 추가. 기존 입력은 day4 유지, 같은 source의 계약 변경 거절 |
+| save_receipts | 저장 요청 키·Job·소유자·적재 스냅샷 해시·이벤트 수·저장 시각 보존 |
+| schema_migrations | SQL 변경 적용 번호·시각. 업무 데이터 표가 아닌 관리 표 |
+| events/artifacts/users | 기존 원문·채택 자료·계정·비밀번호 해시 유지. 새 개인 Design 표 없이 사용자 소유 Job의 채택 Design 조회 |
+
+업무 표는 기존 5개+save_receipts 1개이며 관리 표 1개가 추가됐다. 소유권은 jobs→users 외래 키로 연결한다. 계정별 물리 DB를 만들지 않는다. 이전 Design version은 계속 Job 범위이며 초안·미승인 설계를 개인 승인 도안으로 자동 승격하지 않는다.
+
+### 입력 계약: 기존 로그와 새 DB용 매핑 구분
+
+기존 `ingest`의 기본값은 day4이며 기존 Schema·검사와 원문을 유지한다. `--contract final-mvp-20261008`은 [별도 DB 보관 Schema](../history/final_mvp.schema.json)의 명시 선택이다. 이는 공통 메시지 버전 필드를 추가하거나 실제 B/D 생산 코드를 바꾼 것이 아니다. 새 이벤트 이름·response 봉투·disposition은 **독립 DB 소비자용 매핑**이며 실제 함수/콜백·JSONL 생산 필드와 연결할 때 확인해야 한다. 실제 반환을 이 문서용 예시로 바꿔 실행하지 않는다.
+
+| DB용 입력 | 저장·조회 의미 |
+|---|---|
+| PLAN_ADOPTED | 기존 design/plan/base_current/confirmed_steps. 문서의 plan_base_current를 base_current로 명시 매핑. 최신 입력은 구조·버전·기준 revision 연결만 검사하고 Expected를 계산하지 않음 |
+| CHECK_RESULT | result={response: B 원문 결과, disposition: ACCEPTED 또는 REJECTED, disposition_reason: 사유 또는 null}. request_id=check_id, plan_id/step_id도 원문 대상과 일치해야 함 |
+| 검사 종류/결과 | INITIAL/STEP/FINAL, OK/UNOBSERVABLE/ERROR/CANCELED와 비교·Current·Expected·Difference·관측 근거 보존. 오류/취소의 null을 빈 정상 상태로 바꾸지 않음 |
+| 늦은/충돌 응답 | D가 거절했다고 기록한 결과도 원문 보존. Current·완료 근거에는 사용하지 않음. 동일 check_id의 서로 다른 ACCEPTED 결과는 적재 실패·원본 유지, 실제 충돌 진단은 REJECTED로 기록 |
+| C_INTERVENTION_RESULT / INTENT_RECEIVED | 최신 계약에서 REVISE 즉시 Design이 없어도 허용. KEEP도 C 응답에 Design을 강제하지 않음. UNCLEAR는 questions 또는 question의 명시 질문 필요. 제공된 Design은 검사하며 원문 유지 |
+| DESIGN_PREVIEW 등 추가 이벤트 | 원문 보존. PLAN_ADOPTED가 아니면 채택 Design/Plan으로 조회하지 않음 |
+| PLAN_WORK_EXHAUSTED | D가 해당 Plan의 필요한 작업 소진을 기록. 최종 조립 완료와 별개 |
+| ASSEMBLY_COMPLETED | final_check_id·design_version을 명시한 D 결론. 채택 Plan/버전·작업 소진·수락한 FINAL OK/MATCH가 연결돼야 조립 종료 근거로 표시 |
+
+이 검사로 실제 관측·조립·공정의 정확성이 검증되지는 않는다. ACCEPTED/REJECTED는 D가 결정한 결과를 보관하는 값이다. DB는 활성 요청을 추정하지 않는다. 원래 timestamp와 파일/행 근거를 보존하며 TEST/Fake·SIM·REAL·설정·실행 증거가 추가 필드에 있으면 그대로 보관한다. 모드가 없으면 REAL·실기 성공을 추정하지 않는다. 로그에 없는 사진·설정·물리 성공률을 만들지 않는다.
+
+조회 집계도 새 ACCEPTED 검사 ERROR는 CHECK_ERROR, 관측 불가는 UNOBSERVABLE로 구분한다. REJECTED 진단을 현재 장애로 집계하지 않는다. 같은 Plan/Step의 읽을 수 있는 정상 검사만 해당 검사 보류의 종료 근거이며 다른 대상 확인으로 해제하지 않는다. REVISE는 의도 대기 종료 뒤 DESIGN_CHANGE_WAIT를 시작하고, 수정 중 미리보기로 끝내지 않으며 새 Plan 채택 근거로 종료한다. 정상 설계 변경 대기를 장애 수에 합산하지 않는다.
+
+### 사용자별 조회와 저장 명령
+
+아래 실행은 개발자가 관리하는 로컬 DB 명령이다. `<JOB_UUID>`는 적재된 작업이다. 기존 관리자 jobs/timeline/report/artifacts 등은 전체 기록을 읽을 수 있으므로 일반 사용자 웹 API로 노출하면 안 된다.
+
+```bash
+python3 -m history init
+python3 -m history ingest --source-root ./logs ./logs/old-job.jsonl
+python3 -m history ingest --contract final-mvp-20261008 --source-root ./logs ./logs/new-job.jsonl
+python3 -m history bind-job <JOB_UUID> test --reason '시험 작업의 소유자 확인'
+python3 -m history my-jobs test
+python3 -m history my-designs test
+python3 -m history my-job test <JOB_UUID>
+python3 -m history save-job test <JOB_UUID> --save-key <이번_저장요청_고유키>
+python3 -m history checks <JOB_UUID>
+```
+
+기존 DSN/PG 환경 설정이 필요하다. 컨테이너에서도 `app` 뒤 같은 명령을 사용한다. my-*·save-job은 매 명령 비밀번호를 숨겨 입력받으며 시험 자동화에만 --password-stdin을 사용할 수 있다. 사용자 번호를 임의 입력하는 옵션은 없고 인증 결과의 user_id로 SQL 소유권을 검사한다. 타 사용자/미지정/없는 Job의 상세·저장은 동일한 접근 오류다. 자신의 작업이 없으면 빈 목록, 연결 실패는 명시 오류·종료 1이다. 비밀번호·해시는 공개 출력에 없다. 로그인 세션·만료·계정 전환 정책은 미구현이다.
+
+**bind-job은 DB 관리자의 명시 배정 명령이며 사용자 셀프 등록 API가 아니다.** 로그에 임의 user_id를 넣어도 소유권을 설정하지 않는다. 동일 소유자 재요청은 최초 연결 사유·시각을 유지하고 다른 소유자로 바꾸는 요청은 거절한다. 과거 기록을 test 계정으로 자동 배정하지 않았다. 향후 서비스는 인증된 사용자와 새 Job을 시작 경계에서 연결해야 하며 이 관리자 명령을 그대로 공개하지 않는다.
+
+my-designs는 자신의 Job에 채택된 전체 Design과 버전/Plan 채택 근거를 반환한다. my-job은 소유권 검사 후 Design/Plan/고정 기준 Current·B 검사/Current·HRI·실패·타임라인·조립/저장 상태를 함께 반환한다. 가린 아래층의 Current 이력과 이번 visible_blocks를 분리 보존한다. 수정 중 도안 이름·즐겨찾기·작업 전 별도 도안 보관함은 추가하지 않았다.
+
+### 조립·저장·웹 완료와 재처리
+
+completion.work_exhaustion은 RECORDED/NOT_RECORDED, completion.assembly는 RECORDED/UNVERIFIED_RECORD/NOT_RECORDED다. 근거가 연결되지 않은 D 완료 기록은 숨기지 않고 UNVERIFIED_RECORD로 표시한다. 기존 Day4 JOB_COMPLETED 집계는 유지하되 최신 입력의 FINAL 근거로 대신 쓰지 않는다. 웹은 연결 전이므로 항상 NOT_CONNECTED이며 DB 조회 성공을 웹 표시 완료로 표시하지 않는다.
+
+storage.status의 SAVED는 **현재 DB에 적재된 이벤트 스냅샷**의 저장 확인 기록이 있다는 뜻이다. 진행 중·실패 작업에도 발급 가능하므로 조립 완료·JSONL 파일 전체 소비·웹 완료를 뜻하지 않는다. 미완성 마지막 행은 계속 pending_line으로 보류되며 아직 적재되지 않은 내용은 저장 확인 범위 밖이다. 저장 확인 기록이 없거나 이후 새 이벤트가 적재되면 PENDING이다. PENDING도 기존 이벤트가 사라졌다는 뜻은 아니다.
+
+save-job은 Job 잠금과 트랜잭션으로 원본 경로/행/해시/입력 계약의 스냅샷을 확인한다. 같은 save_key·같은 Job/소유자/내용은 같은 확인 기록을 반환한다. 같은 키의 다른 내용/Job/소유자는 실패·덮어쓰기 금지다. 새 스냅샷은 새 키로 저장한다. 파일 행 재적재 중복 규칙과 서비스 저장 요청 중복 규칙은 별개다. 저장/적재 실패는 종료 1·사유 반환, 원본 JSONL 보존 후 명시 재실행하며 자동 재시도하지 않는다. 저장만 재처리하며 공정 상태·Robot 명령을 만들지 않는다.
+
+### 검증과 한계
+
+독립 Fixture는 [문서 예시 사본](../tests/fixtures/history_final_mvp.json), 단위 검사는 [최신 입력 검사](../tests/unit/test_history_final_mvp.py), 실제 PostgreSQL 검사는 [소유권·저장 검사](../tests/integration/test_history_personal_db.py)다. 기존 DB/계정 검사도 함께 실행한다. 신규 실행 의존성·ORM·웹 framework·ROS 노드는 추가하지 않았다. 변경 규모는 입력 Schema·독립 예시·정상/실패 검사와 SQL 변경·조회·명령 구현에 필요하며 범용 계층이나 B 전용 저장소를 추가하지 않았다.
+
+실제 실행 결과는 [STATUS](STATUS.md)의 2026-10-08 항목과 로컬 logs/history_reports/mvp-* 기록에 남긴다. 사용자별 웹 인증·세션 만료(V12), 실제 B/D Producer–Consumer 연결, HMI·Camera·Robot·전체 공정은 미연결·미검증이다. V11/V14의 DB 내부 항목을 검사한 것이며 최종 MVP 전체 시험 완료가 아니다.

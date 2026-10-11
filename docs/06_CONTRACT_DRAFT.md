@@ -1,5 +1,7 @@
 # Day4 공통 인터페이스 계약
 
+> 2026-10-11 수현 확인: 최신 1차 통합의 상태 소유·검사 결과·C 확정 흐름은 [10/8 계약](handover/final_mvp_interface_20261008/README.md)을 우선합니다. B가 Current·revision·Expected·비교를 확정하고 D가 실행·진행·최종 종료를 담당합니다. 여섯 배치 필드·24×24·정수 layer 1~5는 유지합니다. 아래 §1~9의 Observed→D 채택 경로는 기존 Day4 구현이며 B 소유 경로와 동시에 적용하지 않습니다.
+
 > 2026-10-11 1차 통합 기준: 공통 배치와 관측 영역의 `layer`는 정수 1~5입니다. 현재 코드·Schema·문서와 별도 작업 브랜치의 차이는 [1차 통합 인터페이스 점검](11_ROUND1_INTERFACE_AUDIT.md)에 기록합니다. 아래 JSON 예시는 설명용이며 실제 구조 검사는 `interfaces/schemas/day4.schema.json`과 Consumer를 함께 확인합니다.
 
 ## 0. 최종 MVP 이행 범위 (2026-10-07)

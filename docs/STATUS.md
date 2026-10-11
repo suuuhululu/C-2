@@ -1,5 +1,14 @@
 # 현재 진행 상황
 
+## 2026-10-11 수현 HMI·DB 1차 통합 제출
+
+- 최신 기준: 10/8 B 소유 Current·revision·Expected·비교, D 실행·진행·최종 종료. 공통 정수 layer 1~5.
+- HMI·DB ZIP 소스 선택 반영, 4→5층 정합, B 검사/완료 표시 충돌 거절, PostgreSQL 개인 이력과 실행 안내 포함.
+- 관련 회귀 1,159 passed(실제 DB 시험 포함), 별도 DB 33 passed, 이력 Docker 이미지 빌드 통과. 탐색적 전체 시험은 기존 PC 절대경로와 C 실패로 PASS가 아닙니다.
+- 최신 실제 B→D·HMI 요청 수신·로그인 owner·웹·Robot/Camera 실기는 미완료/미검증. Draft PR로 리뷰합니다. 상세 범위·실행 환경·차단 사항은 [검토 기록](D_HMI_DB_ROUND1.md)을 따릅니다.
+
+
+
 ## 1차 통합 5층·인터페이스 정합 점검 — 2026-10-11
 
 - 대상은 사용자 생성 `codex/integration-round1`이며 시작 SHA는 main과 같은 `afd75d0b0943d85b44248ea563e89f860921e1dd`다. 기존 `fix/common-five-layer-support`의 `27907c8` 변경을 별도 작업본에 재사용했다. C/A/D MAX_LAYER, 블록/관측 영역 Schema, HMI·합성 관측·수동 Current 확인을 1~5층으로 맞춘다. 원격 반영은 해당 PR의 병합 상태로 구분한다.
