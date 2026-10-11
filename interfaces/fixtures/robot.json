@@ -1,5 +1,5 @@
 {
-  "config_id": "day4-fake-robot-fixture-v1",
+  "config_id": "c-stage3-fake-five-row-v2",
   "mode": "FAKE",
   "slot_count": 6,
   "place_point": "fake-place-board",
@@ -8,6 +8,7 @@
     {"brick_type":"2x2x1","color":"yellow","supply_point":"fake-yellow-4-row"},
     {"brick_type":"2x2x1","color":"blue","supply_point":"fake-blue-4-row"},
     {"brick_type":"2x3x1","color":"yellow","supply_point":"fake-yellow-6-row"},
-    {"brick_type":"2x3x1","color":"blue","supply_point":"fake-blue-6-row"}
+    {"brick_type":"2x3x1","color":"blue","supply_point":"fake-blue-6-row"},
+    {"brick_type":"1x2x1","color":"red","supply_point":"fake-red-2-row"}
   ]
 }
