@@ -5,7 +5,7 @@ import json
 from pathlib import Path
 
 from app.contracts import _array, _integer, _object, _text
-from app.hmi_contracts import SUPPLY_COLUMNS, _column
+from app.hmi_contracts import LEGACY_SUPPLY_COLUMNS, SUPPLY_COLUMNS, _column
 
 
 def validate_robot_config(value: object) -> dict:
@@ -25,7 +25,7 @@ def validate_robot_config(value: object) -> dict:
         if column in columns:
             raise ValueError(f"{path}: duplicate supply column")
         columns.add(column)
-    if columns != SUPPLY_COLUMNS:
+    if columns not in (LEGACY_SUPPLY_COLUMNS, SUPPLY_COLUMNS):
         raise ValueError("robot.config.supply_rows: expected all Day4 supply columns")
     return deepcopy(config)
 
@@ -99,6 +99,8 @@ class RobotController:
             return dict(accepted=False, reason="STOP_OR_FAULT_PENDING")
         if not self.state["ready_at_observe"]:
             return dict(accepted=False, reason="NOT_READY_AT_OBSERVE")
+        if column not in self._next_slots:
+            return dict(accepted=False, reason="UNCONFIGURED_SUPPLY_COLUMN")
         slot = self._next_slots[column]
         if slot is None:
             return dict(accepted=False, reason="NEEDS_REFILL")
@@ -243,6 +245,8 @@ class RobotController:
         column = _column(dict(brick_type=brick_type, color=color), "robot.refill")
         if not self.state["ready_at_observe"]:
             return dict(accepted=False, reason="NOT_READY_AT_OBSERVE")
+        if column not in self._next_slots:
+            return dict(accepted=False, reason="UNCONFIGURED_SUPPLY_COLUMN")
         if self._next_slots[column] is not None:
             return dict(accepted=False, reason="REFILL_NOT_REQUIRED")
         # 예외 운영 입력이다. Backend가 현재 Job과 해당 열을 확인해 호출한다.

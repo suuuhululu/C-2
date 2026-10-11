@@ -17,6 +17,15 @@ def _request(row):
 
 def _issue(row, request_ports):
     event, result, reason = row["event"], row["document"]["result"], row["reason"]
+    if row.get("contract") == "final-mvp-20261008":
+        if event == "CHECK_RESULT" and result["disposition"] == "ACCEPTED":
+            response = result["response"]
+            if response["status"] == "ERROR":
+                return "CHECK_ERROR", response["reason"]
+            if response["status"] == "UNOBSERVABLE":
+                return "UNOBSERVABLE", response["reason"]
+        if event == "INTENT_RECEIVED" and result.get("decision") == "REVISE":
+            return "DESIGN_CHANGE_WAIT", "WAIT_APPROVED_DESIGN_PLAN"
     if event == "OBSERVATION_HOLD":
         return "UNOBSERVABLE", reason
     if event == "PLACE_STATUS_CHANGED" and result == "UNOBSERVABLE":
@@ -57,7 +66,15 @@ def episodes(rows: list[dict]) -> list[dict]:
         if event == "INTENT_RECEIVED" and row["document"]["result"].get("decision") in ("KEEP", "REVISE"):
             close.add("INTENT_WAIT")
         if event == "PLAN_ADOPTED":
-            close.update(("INTENT_WAIT", "CORRECTION_WAIT", "PLAN_ERROR"))
+            close.update(("INTENT_WAIT", "CORRECTION_WAIT", "PLAN_ERROR", "DESIGN_CHANGE_WAIT"))
+        if row.get("contract") == "final-mvp-20261008" and event == "CHECK_RESULT":
+            data = row["document"]["result"]
+            response = data["response"]
+            if data["disposition"] == "ACCEPTED" and response["status"] == "OK" and not response["difference"]["unobservable"]:
+                for category in ("UNOBSERVABLE", "CHECK_ERROR"):
+                    key = (job, category, "ASSEMBLY")
+                    if key in active and (active[key]["plan_id"], active[key]["step_id"]) == (row["plan_id"], row["step_id"]):
+                        _end(active.pop(key), row)
         if event == "SUPPLY_REFILLED":
             close.add("SUPPLY_WAIT")
         if event == "PLACE_STATUS_CHANGED" and row["document"]["result"] in ("EMPTY", "OCCUPIED"):
@@ -116,16 +133,23 @@ def jobs(rows: list[dict]) -> list[dict]:
         groups[row["job_id"]].append(row)
     output = []
     for job_id, events in groups.items():
+        from history.final_mvp import CONTRACT, completion
+        final_mvp = any(row.get("contract") == CONTRACT for row in events)
+        stages = completion(events) if final_mvp else None
         starts = [row for row in events if row["event"] == "JOB_STARTED"]
-        ends = [row for row in events if row["event"] == "JOB_COMPLETED"]
+        ends = [row for row in events if row["event"] == "JOB_COMPLETED"] if not final_mvp else []
         start, end = (_time(starts[0]) if starts else None), (_time(ends[-1]) if ends else None)
+        if stages and stages["assembly"] == "RECORDED":
+            end = stages["assembly_evidence"]["recorded_at"]
+            end = end if isinstance(end, datetime) else datetime.fromisoformat(end)
         issues = episodes(events)
         unresolved = [item for item in issues if item["ended_at"] is None]
         output.append(dict(job_id=job_id, started_at=start, ended_at=end,
-                           result="COMPLETE" if ends else "NO_COMPLETION_RECORDED",
+                           result="COMPLETE" if end else "NO_COMPLETION_RECORDED",
                            duration_seconds=(end-start).total_seconds() if start and end and end >= start else None,
                            last_event=events[-1]["event"], last_seen_at=_time(events[-1]),
-                           event_count=len(events), unresolved_conditions=unresolved))
+                           event_count=len(events), unresolved_conditions=unresolved,
+                           completion=stages))
     return output
 
 
@@ -176,14 +200,19 @@ def currents(rows: list[dict]) -> list[dict]:
         data = row["document"]["result"]
         if row["event"] == "PLAN_ADOPTED":
             current, observed, kind = data["base_current"], None, "PLAN_BASIS"
-        elif row["event"] == "CURRENT_ADOPTED":
+        elif row["event"] == "CURRENT_ADOPTED" and row.get("contract") != "final-mvp-20261008":
             current, observed, kind = data["current"], data["observed"], "OBSERVATION_ADOPTED"
+        elif row.get("contract") == "final-mvp-20261008" and row["event"] == "CHECK_RESULT":
+            response = data["response"]
+            if data["disposition"] != "ACCEPTED" or response["current"] is None:
+                continue
+            current, observed, kind = response["current"], response["observation"], "B_CONFIRMED"
         else:
             continue
         output.append(dict(**_evidence(row), job_id=row["job_id"], plan_id=row["plan_id"],
                            step_id=row["step_id"], kind=kind,
                            current_revision=current["current_revision"], current=current,
-                           check_id=observed["check_id"] if observed else None,
+                           check_id=(row["request_id"] if kind == "B_CONFIRMED" else observed["check_id"]) if observed else None,
                            observation_seq=observed["observation_seq"] if observed else None,
                            observed=observed))
     return deepcopy(output)

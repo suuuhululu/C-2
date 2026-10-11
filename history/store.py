@@ -18,7 +18,16 @@ def connect(dsn: str):
 
 def initialize(connection) -> None:
     with connection.transaction():
+        connection.execute("SELECT pg_advisory_xact_lock(hashtextextended('c2_history_schema',0))")
         connection.execute(SCHEMA.read_text(encoding="utf-8"))
+        connection.execute("""CREATE TABLE IF NOT EXISTS c2_history.schema_migrations (
+            version integer PRIMARY KEY, applied_at timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP)""")
+        for path in sorted(SCHEMA.with_name("migrations").glob("*.sql")):
+            version = int(path.name.split("_", 1)[0])
+            if connection.execute("SELECT 1 FROM c2_history.schema_migrations WHERE version=%s",
+                                  (version,)).fetchone() is None:
+                connection.execute(path.read_text(encoding="utf-8"))
+                connection.execute("INSERT INTO c2_history.schema_migrations(version) VALUES (%s)", (version,))
 
 
 def _save_artifact(connection, item: dict, event_id: int) -> None:
@@ -46,7 +55,12 @@ def _save_event(connection, record: dict) -> bool:
         if existing["line_sha256"] != record["digest"] or existing["raw_line"] != record["raw"]:
             raise ValueError("previously imported line changed; use a new source for a distinct log")
         return False
-    connection.execute("INSERT INTO c2_history.jobs VALUES (%s) ON CONFLICT DO NOTHING", (doc["job_id"],))
+    connection.execute("INSERT INTO c2_history.jobs(job_id) VALUES (%s) ON CONFLICT DO NOTHING", (doc["job_id"],))
+    # Serialize different source imports and save receipts for this Job, too.
+    connection.execute("SELECT job_id FROM c2_history.jobs WHERE job_id=%s FOR UPDATE", (doc["job_id"],))
+    if record["contract"] == "final-mvp-20261008" and doc["event"] == "CHECK_RESULT":
+        from history.final_mvp import check_conflict
+        check_conflict(connection, doc)
     event = connection.execute("""INSERT INTO c2_history.events
         (source_key,line_number,line_sha256,raw_line,occurred_at,job_id,plan_id,step_id,
          request_id,event,outcome,reason,design_version,base_current_revision,observation_seq,document)
@@ -60,15 +74,19 @@ def _save_event(connection, record: dict) -> bool:
     return True
 
 
-def ingest(connection, path: Path, source: str) -> dict:
+def ingest(connection, path: Path, source: str, *, contract: str = "day4") -> dict:
     inserted = 0
     with connection.transaction():
         # Serialize imports of the same source, including concurrent app invocations.
         connection.execute("SELECT pg_advisory_xact_lock(hashtextextended(%s,0))", (source,))
-        records, pending = read_source(path, source)
-        connection.execute("INSERT INTO c2_history.sources VALUES (%s,0) ON CONFLICT DO NOTHING", (source,))
-        previous = connection.execute("SELECT last_line FROM c2_history.sources WHERE source_key=%s",
-                                      (source,)).fetchone()["last_line"]
+        records, pending = read_source(path, source, contract=contract)
+        connection.execute("""INSERT INTO c2_history.sources(source_key,last_line,contract)
+            VALUES (%s,0,%s) ON CONFLICT DO NOTHING""", (source,contract))
+        state = connection.execute("SELECT last_line,contract FROM c2_history.sources WHERE source_key=%s",
+                                   (source,)).fetchone()
+        if state["contract"] != contract:
+            raise InputError(f"{source}: archive contract differs from previous import")
+        previous = state["last_line"]
         if len(records) < previous:
             raise InputError(f"{source}:{len(records)+1}: previously imported source truncated")
         for record in records:
@@ -82,12 +100,19 @@ def ingest(connection, path: Path, source: str) -> dict:
     return dict(source=source, inserted=inserted, skipped=len(records)-inserted, pending_line=pending)
 
 
-def timeline(connection, job_id: str | None = None) -> list[dict]:
-    clause, params = ("", ()) if job_id is None else ("WHERE job_id=%s", (job_id,))
+def timeline(connection, job_id: str | None = None, *, owner_user_id: str | None = None) -> list[dict]:
+    clauses, params = [], []
+    if job_id is not None:
+        clauses.append("e.job_id=%s")
+        params.append(job_id)
+    if owner_user_id is not None:
+        clauses.append("e.job_id IN (SELECT job_id FROM c2_history.jobs WHERE owner_user_id=%s)")
+        params.append(owner_user_id)
+    clause = "WHERE " + " AND ".join(clauses) if clauses else ""
     return connection.execute(f"""SELECT source_key, line_number, occurred_at,
         job_id::text, plan_id, step_id, request_id, event, outcome, reason,
-        design_version, base_current_revision, observation_seq, document, raw_line
-        FROM c2_history.events {clause}
+        design_version, base_current_revision, observation_seq, document, raw_line, s.contract
+        FROM c2_history.events e JOIN c2_history.sources s USING(source_key) {clause}
         ORDER BY occurred_at, source_key, line_number""", params).fetchall()
 
 

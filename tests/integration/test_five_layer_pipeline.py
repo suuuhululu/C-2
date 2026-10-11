@@ -15,6 +15,7 @@ from app import contracts as d_contracts
 from app.hmi_contracts import validate_hmi_snapshot
 from app.qt_hmi import HmiWindow
 from app.snapshot import make_snapshot
+from history.records import parse_record
 from planning_trial.planner import plan_from_current
 from planning_trial import planner as a_planner
 from test_a_backend import connected, finish_delivery, start_design
@@ -85,6 +86,10 @@ def test_valid_c_a_d_qt_and_synthetic_observation_to_completion(qapp, tmp_path, 
             frozenset(b.items()) for b in design["blocks"]}
         assert demo.backend.state["current"]["current_revision"] == count
         assert sum(row["event"] == "JOB_COMPLETED" for row in records(demo)) == 1
+        source = demo.backend.state["job_id"] + ".jsonl"
+        for number, raw in enumerate((tmp_path / source).read_bytes().splitlines(keepends=True), 1):
+            parsed = parse_record(raw, source, number, contract="day4")
+            assert parsed["raw"] == raw.decode()
         assert len(demo.driver.calls) == count * 3
         qapp.processEvents()
         assert window.status.text() == "전체 조립 완료"
@@ -166,10 +171,10 @@ def test_five_layer_support_and_footprint_are_still_checked():
 
 def test_shared_schema_five_layer_boundary():
     from jsonschema import Draft202012Validator, ValidationError
-    from referencing import Registry, Resource
+    from jsonschema import RefResolver
     schema = json.loads((ROOT / "interfaces/schemas/day4.schema.json").read_text())
     hmi = json.loads((ROOT / "interfaces/schemas/hmi.schema.json").read_text())
-    registry = Registry().with_resource("https://c-2.invalid/schemas/day4.schema.json", Resource.from_contents(schema))
+    resolver = RefResolver.from_schema(hmi, store={schema["$id"]: schema, hmi["$id"]: hmi, "https://c-2.invalid/schemas/day4.schema.json": schema})
     consumer = Draft202012Validator(schema)
     design = tower(5)
     consumer.validate(design)
@@ -188,10 +193,10 @@ def test_shared_schema_five_layer_boundary():
     snapshot = json.loads((ROOT / "interfaces/fixtures/hmi.json").read_text())["snapshots"]["waiting"]
     snapshot["design"] = design
     snapshot["step"]["target"] = design["blocks"][-1]
-    Draft202012Validator(hmi, registry=registry).validate(snapshot)
+    Draft202012Validator(hmi, resolver=resolver).validate(snapshot)
     snapshot["step"]["target"] = tower(6)["blocks"][-1]
     with pytest.raises(ValidationError):
-        Draft202012Validator(hmi, registry=registry).validate(snapshot)
+        Draft202012Validator(hmi, resolver=resolver).validate(snapshot)
 
 
 def test_manual_current_confirmation_covers_five_layers_without_device_calls(monkeypatch):

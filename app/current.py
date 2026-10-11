@@ -12,7 +12,7 @@ def _key(block: dict) -> tuple:
 
 
 def _footprint(block: dict) -> set[tuple[int, int, int]]:
-    width, height = (2, 2) if block["brick_type"] == "2x2x1" else (2, 3)
+    width, height = {"1x2x1": (1, 2), "2x2x1": (2, 2), "2x3x1": (2, 3)}[block["brick_type"]]
     if block["orientation_deg"] == 90:
         width, height = height, width
     if block["x"] + width > 24 or block["y"] + height > 24:

@@ -73,7 +73,7 @@ def test_invalid_config_cannot_issue_driver_commands(field, value):
 def test_supply_configuration_must_match_day4_columns(change):
     config = deepcopy(CONFIG)
     if change == "missing":
-        config["supply_rows"].pop()
+        config["supply_rows"].pop(0)
     elif change == "duplicate":
         config["supply_rows"][-1] = deepcopy(config["supply_rows"][0])
     elif change == "unsupported":

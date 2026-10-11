@@ -112,11 +112,24 @@ def test_actual_a_reproduces_archived_case_status_and_remaining_count(name):
         assert result["plan"] is None and result["errors"]
 
 
-def test_a_source_preserves_archived_calculation_except_five_layer_limit():
-    # 보관된 원본 해시는 유지하고 승인된 두 변경만 되돌려 대조한다.
+def test_a_source_preserves_archived_calculation_except_authorized_contract_changes():
+    # 보관된 원본 해시는 유지하고 승인된 계약 경계 변경만 역변환해 계산 본문을 대조한다.
     source = (ROOT / "planning_trial/planner.py").read_text()
     source = source.replace("MAX_LAYER = 5", "MAX_LAYER = 4").replace(
         "from 1 to {MAX_LAYER}", "from 1 to 4")
+    source = source.replace("The caller relays B-confirmed Current and its B-issued revision through D.",
+                            "The caller provides Backend's adopted actual blocks and their revision.")
+    source = source.replace('BRICK_SIZES = {"1x2x1": (1, 2), "2x2x1": (2, 2), "2x3x1": (2, 3)}',
+                            'BRICK_SIZES = {"2x2x1": (2, 2), "2x3x1": (2, 3)}')
+    source = source.replace('if (brick["brick_type"] == "1x2x1" and brick["color"] != "red" or\n'
+                            '            brick["brick_type"] != "1x2x1" and brick["color"] not in ("yellow", "blue")):\n'
+                            '        raise PlanningError(f"{prefix}: unsupported brick_type/color inventory pair", brick)',
+                            'if brick["color"] not in ("yellow", "blue"):\n'
+                            '        raise PlanningError(f"{prefix}: color must be yellow or blue", brick)')
+    source = source.replace('if not isinstance(values, list) or not 1 <= len(values) <= 40:\n'
+                            '        raise ValueError("blocks must contain 1..40 placements")',
+                            'if not isinstance(values, list) or not values:\n'
+                            '        raise ValueError("blocks must be a nonempty list")')
     assert hashlib.sha256(source.encode()).hexdigest() == DATA["a_source_sha256"]
 
 

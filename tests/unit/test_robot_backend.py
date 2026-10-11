@@ -59,7 +59,7 @@ def test_normal_three_steps_join_controller_slots_backend_current_snapshot_and_j
     snapshot = make_snapshot(backend.state)
     assert snapshot["workflow_status"] == "COMPLETE" and snapshot["progress"] == dict(completed=3, total=3)
     assert backend.state["current"]["blocks"] == [A, B, C]
-    assert [row["next_slot"] for row in snapshot["monitor"]["supply"]] == [3, 1, 1, 2]
+    assert [row["next_slot"] for row in snapshot["monitor"]["supply"]] == [3, 1, 1, 2, 1]
     assert len(driver.calls) == 9 and ports.calls("robot.deliver") == []
     events = records(tmp_path, backend.state["job_id"])
     for event in ("ROBOT_PICK_CONFIRMED", "ROBOT_PLACE_CONFIRMED", "ROBOT_OBSERVE_CONFIRMED", "DELIVERY_RESULT", "STEP_CONFIRMED"):

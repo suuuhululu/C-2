@@ -18,8 +18,8 @@ STUD_HEIGHT = 4/20
 
 
 def dimensions(block):
-    return (2, 2) if block["brick_type"] == "2x2x1" else (
-        (3, 2) if block["orientation_deg"] == 90 else (2, 3))
+    width, depth = {"1x2x1": (1, 2), "2x2x1": (2, 2), "2x3x1": (2, 3)}[block["brick_type"]]
+    return (depth, width) if block["orientation_deg"] == 90 else (width, depth)
 
 
 class BoardView(QWidget):
@@ -32,6 +32,8 @@ class BoardView(QWidget):
         self.target = None
         self.transfer_target = None
         self.reported_placement = None
+        self.zoom_caption = "완성 목표 확대"
+        self.overview = True
         self.setMinimumHeight(155)
         self.setAccessibleName("전체 목표 투영과 확대" if isometric else "현재 목표 위에서 보기와 확대")
 
@@ -73,18 +75,38 @@ class BoardView(QWidget):
             painter.drawText(self.rect(), Qt.AlignCenter, text)
             return
         if self.isometric:
-            self._isometric(painter)
+            if self.overview:
+                self._isometric(painter)
+            else:
+                self._compact_isometric(painter)
         else:
             self._overhead(painter)
+
+    def _compact_isometric(self, painter):
+        # 한 페이지의 작은 카드에서도 같은 좌표/비율로 구조를 크게 보여준다.
+        blocks = sorted(self.blocks, key=lambda block: (block["layer"], block["x"]+block["y"]))
+        if self.current is not None and self.target is not None:
+            blocks = [block for block in blocks if _key(block) != _key(self.target)] + [self.target]
+        points = [self._project(x, y, z) for block in blocks
+                  for x in (block["x"], block["x"]+dimensions(block)[0])
+                  for y in (block["y"], block["y"]+dimensions(block)[1])
+                  for z in (block["layer"]-1, block["layer"]+STUD_HEIGHT/self.brick_height_per_stud)]
+        left, right = min(p.x() for p in points), max(p.x() for p in points)
+        top, bottom = min(p.y() for p in points), max(p.y() for p in points)
+        scale = min((self.width()-18)/max(right-left, 1), (self.height()-18)/max(bottom-top, 1), 28)
+        project = lambda x, y, z: QPointF(self.width()/2, self.height()/2) + (
+            self._project(x,y,z)-QPointF((left+right)/2, (top+bottom)/2))*scale
+        for block in blocks:
+            self._brick(painter, block, project, scale)
 
     def _transfer(self, painter):
         # 종류 그림만 그린다. 조립 좌표·층·자세를 만들어 Board 배치로 사용하지 않는다.
         target = self.transfer_target
-        w, d = (2, 2) if target["brick_type"] == "2x2x1" else (2, 3)
+        w, d = dimensions(dict(target, orientation_deg=0))
         scale = min((self.width()-40)/w, (self.height()-70)/d, 48)
         left, top = (self.width()-w*scale)/2, 30
         painter.drawText(QRectF(0, 0, self.width(), 25), Qt.AlignCenter, f"전달할 블록 · 공급 슬롯 {target['slot']}번")
-        painter.setBrush(QColor("#efc94b" if target["color"] == "yellow" else "#699bde"))
+        painter.setBrush(QColor({"yellow": "#efc94b", "blue": "#699bde", "red": "#df5454"}[target["color"]]))
         painter.setPen(QColor("#344453"))
         painter.drawRect(QRectF(left, top, w*scale, d*scale))
         for x in range(w):
@@ -99,7 +121,7 @@ class BoardView(QWidget):
     def _brick(self, painter, block, project, scale):
         x, y, z = block["x"], block["y"], block["layer"]
         w, d = dimensions(block)
-        color = QColor("#efc94b" if block["color"] == "yellow" else "#699bde")
+        color = QColor({"yellow": "#efc94b", "blue": "#699bde", "red": "#df5454"}[block["color"]])
         target = self.target is not None and _key(block) == _key(self.target)
         ghost = target and not any(_key(block) == _key(self.target) for block in self.current["blocks"])
         if ghost:
@@ -179,7 +201,7 @@ class BoardView(QWidget):
         cx, cy = (min_x+max_x)/2, (min_y+max_y)/2
         project_zoom = lambda x,y,z: QPointF(area+(self.width()-area)/2,(height+(45 if assembly else 30))/2) + (
             self._project(x,y,z)-QPointF(cx,cy))*zoom
-        caption = "완성 목표 확대"
+        caption = self.zoom_caption
         if assembly:
             caption = (f"이번 목표 · ({self.target['x']},{self.target['y']})\n"
                        f"{self.target['layer']}층 · {self.target['orientation_deg']}° · 주변 확대" if self.target else "최종 Current / 현재 구조")
@@ -205,7 +227,7 @@ class BoardView(QWidget):
             painter.drawText(QPointF(left+(i+.5)*scale-4,top+size+16), str(i))
             painter.drawText(QPointF(left-17,top+(23.5-i)*scale+4), str(i))
         w, d = dimensions(block)
-        color = QColor("#efc94b" if block["color"] == "yellow" else "#699bde")
+        color = QColor({"yellow": "#efc94b", "blue": "#699bde", "red": "#df5454"}[block["color"]])
         painter.setBrush(color)
         painter.setPen(QColor("#344453"))
         painter.drawRect(QRectF(left+block["x"]*scale, top+(24-block["y"]-d)*scale, w*scale,d*scale))
