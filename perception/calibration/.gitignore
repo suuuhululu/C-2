@@ -1,0 +1,6 @@
+__pycache__/
+.pytest_cache/
+captures/
+runs/
+results/
+markers/

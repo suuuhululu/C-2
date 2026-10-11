@@ -1,5 +1,30 @@
 # 현재 진행 상황
 
+## 2026-10-11 — 홍동 B 제출 코드 최신 integration 기준 정렬
+
+- 사용자 승인 범위: fetch·별도 로컬 작업 브랜치 구성·B 수정/검증. 최신 명시 지시로
+  D 파트 수정/추가는 제외한다. add/commit/push/PR 변경은 하지 않았다.
+- 원격 `codex/integration-round1` HEAD `02137d8`을 확인하고 managed worktree의
+  `codex/b-round1-realign`에서 작업한다. 기존 `work/hongdong-vision-round1`과
+  원래 작업 폴더의 미커밋 변경·원자료는 보존한다.
+- PR #24 head `262ae61`에서 `perception/`와 B 설계 제안서만 옮겼다.
+  이전 PR에 섞인 D 핵심 코드·A/C·Robot 설정은 옮기지 않았다.
+  `app/`, `tests/`, `interfaces/`, `planning_trial/`의 tracked 파일은 `02137d8`과 차이 없음.
+  최신 Preview→C Review·B Current/revision relay·빨강/5층/40블록·stale/STOP을 유지한다.
+- 별도 공간에 추가했던 D 수신부·호환 bridge·D 연결 시험 3개는 B 제출 범위에서 제외하고
+  `/tmp/c2-d-review-preserved-N09hR5/`에 복구 가능하게 보관했다. 원래 로컬 파일도 보존한다.
+  최신 D에 없는 구형 bridge를 production에 추가하지 않는다. B 호환 시험은 명시된 Qt
+  계약 대역으로 B 진입/queue 전달을 검사하도록 정리하고 D 실연결 시험과 구분한다.
+- 최종 관련 검사 **692 passed**, 실패/오류/skip 0, 종료 0. B 검사/보정/공급판/호환,
+  실제 최신 DB/HMI 입력 검증 함수 대조, 기존 최신 A/C/D Stage3·relay·STOP/stale 및
+  공통 블록 계약·5층 회귀·Planner 검사를 실행했다. Qt offscreen·합성 관측·FAKE Robot이다.
+  첫 실행은 HMI 검증 파일 경로 오류와 빠진 구형 bridge로 2 failed/701 passed였다.
+  D 추가 시제품을 포함했던 중간 706 passed는 최종 B-only 제출 검증 수치로 쓰지 않는다.
+- 미검증: 실제 Camera/Controller 관측 callable, 최신 D 전체 공정과 B 결과 bind,
+  실시간 HMI/DB 서버·Robot/5층 실측. D 연결 요구는 B의
+  `perception/docs/D_INSPECTION_CONNECTION.md`에 인계하며 D 파일은 수정하지 않는다.
+  다음: B-only diff 사람 검토 → 사용자 별도 승인 후 선별 add/commit/push 및 Draft PR.
+
 ## 2026-10-11 C Stage3 기준 A·D 연결 정합
 
 - C PR #23이 반영된 1차 통합 코드를 기준으로 A·D 및 공통 Schema를 맞췄습니다. 노랑/파랑 4·6점, 빨강 2점, 0°/90° 방향, 1~5층·최대 40블록과 FAKE 공급 5열을 지원합니다. B 소유 Current·revision·Expected·비교 계약은 유지합니다.

@@ -1,0 +1,37 @@
+# Null values are REQUIRED real inputs, not defaults or test calibration.
+camera:
+  serial: null
+  width: null
+  height: null
+  fps: null
+  timeout_ms: null
+hand:
+  weights: null
+  confidence: null
+  board_roi_v0: null
+  min_valid_depth_fraction: null
+  stable_mean_difference: null
+  stable_seconds: null
+  max_frame_gap_seconds: null
+  exit_seconds: 3.0  # strict >3 seconds per user decision
+geometry:
+  calibration_id: null
+  coordinate_rules: '+X right, +Y up; minimum footprint anchor; layer 1..5'
+  point_reference: visible_surface_center
+  threshold_status: null
+  stud_pitch_m: null
+  board_bounds_m: null
+  top_heights_m: null
+  footprint_sizes_m: null
+  center_offsets_stud: null
+  center_to_anchor_offsets_stud: null
+  min_confidence: null
+  min_valid_fraction: null
+  min_depth_pixels: null
+  min_depth_m: null
+  max_depth_m: null
+  grid_tolerance_stud: null
+  size_tolerance_m: null
+  height_tolerance_m: null
+  max_height_spread_m: null
+  angle_tolerance_deg: null

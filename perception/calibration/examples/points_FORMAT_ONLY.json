@@ -1,0 +1,40 @@
+{
+  "_note": "FORMAT ONLY. Replace every null with measured raw-image pixels. Board coordinates below assume pitch=16.75 mm; change them if the measured pitch differs. A is red lower-right origin, B is upper-right, C is upper-left, D is lower-left in the supplied photo.",
+  "pixel_xy": [
+    [
+      null,
+      null
+    ],
+    [
+      null,
+      null
+    ],
+    [
+      null,
+      null
+    ],
+    [
+      null,
+      null
+    ]
+  ],
+  "board_xy_mm": [
+    [
+      0,
+      0
+    ],
+    [
+      385.25,
+      0
+    ],
+    [
+      385.25,
+      385.25
+    ],
+    [
+      0,
+      385.25
+    ]
+  ],
+  "surface_height_mm": 0
+}

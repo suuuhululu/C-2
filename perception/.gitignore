@@ -1,0 +1,10 @@
+# Measured data and old submission archives remain local, not PR payloads.
+/recordings/
+/local_results/
+/archives/
+/models/
+/runs/
+/labeling/
+/datasets/
+__pycache__/
+.pytest_cache/

@@ -1,0 +1,16 @@
+{
+  "check_id": "example-check-replace-with-active-check",
+  "observation_seq": 0,
+  "status": "UNOBSERVABLE",
+  "visible_blocks": [],
+  "verified_regions": [
+    {
+      "x": 0,
+      "y": 0,
+      "width": 4,
+      "height": 24,
+      "layer": 1
+    }
+  ],
+  "reason": "target_occluded_or_insufficient_depth"
+}
