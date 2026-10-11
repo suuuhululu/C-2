@@ -383,7 +383,7 @@ C의 Validator 통과는 후보 검증이며 최종 채택이 아닙니다.
 | Difference `{expected, actual}` 블록 쌍 | §5.2 | D (수현) |
 | support "아래 블록 개수와 무관하게 겹침 합계 2 stud 이상, 중복 합산 없음"(Case A~D)을 A Plan 검증과 같은 기준으로 사용 — 2026-10-06 A 동의·D 회신으로 통일 | §9.1 | A (세은) |
 | A가 Step 목표를 블록 여섯 값으로 참조 | §7 | A (세은) |
-| 최대 층수 5(2026-10-06 팀장 결정): C validator·문서는 적용 완료. 공유 계약(06·00), A planner(`MAX_LAYER` 4), D contracts(layer 1..4), D HMI schema는 아직 4층 — 팀 반영 필요 | §2, §9.1 | A (세은), D (수현), 공유 문서 Owner |
+| 최대 층수 5: 2026-10-07 사용자 요청으로 공유 계약(06·00), A planner, D 블록·관측 영역 검사와 HMI 참조 Schema를 1..5로 통일. 30블록 C→A→D/Qt 오프라인 검증은 STATUS 참조. 실제 Vision 판별·Robot 직접 결착은 미검증 | §2, §9.1 | A (세은), D (수현), 공유 문서 Owner |
 
 ## 12. 이 계약에서 정하지 않는 것
 

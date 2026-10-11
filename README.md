@@ -17,6 +17,8 @@ LLM과 사용자가 대화로 **커스텀 의자**를 설계·확정하면 조�
 
 협업 문서는 레포 안 Markdown으로 관리합니다. 새 AI 채팅은 [AGENTS.md](AGENTS.md)를 먼저 읽습니다.
 
+2026-10-11 1차 통합의 5층 기준·현재 인터페이스 정합·별도 브랜치의 미연결 계약은 [1차 통합 인터페이스 점검](docs/11_ROUND1_INTERFACE_AUDIT.md)을 확인합니다. 변경은 `codex/integration-round1`을 대상으로 검토하며 main 반영 여부와 시험 수준을 구분합니다.
+
 ## 현재 구현과 최종 목표
 
 GitHub main `95259bd`에는 C Design·A Planner·Backend·Qt·기존 Board 전달 연결 및 독립 PostgreSQL 이력 코드가 있습니다. 아래는 소스와 기존 기록을 확인한 결과이며 이번 문서 작업에서 앱·장치 시험을 다시 실행한 결과가 아닙니다.
@@ -49,7 +51,7 @@ GitHub main `95259bd`에는 C Design·A Planner·Backend·Qt·기존 Board 전�
 
 ## 환경·지원 범위와 근거
 
-기존 환경은 사용자 제공 Ubuntu 24.04 / Docker 29.8.2 / NVIDIA 4060 / Python 3.12.3 / ROS2 Jazzy / M0609 / D435i / RG2입니다. 기존 구현 범위는 4점·6점 × 노랑·파랑, 24×24 stud, 최대 4층입니다. 최종 의자 구조·직접 결착 가능 범위와 보정은 확인이 필요하며 블록·층 범위를 임의 확대하지 않습니다.
+기존 환경은 사용자 제공 Ubuntu 24.04 / Docker 29.8.2 / NVIDIA 4060 / Python 3.12.3 / ROS2 Jazzy / M0609 / D435i / RG2입니다. 기존 구현 범위는 4점·6점 × 노랑·파랑, 24×24 stud, 최대 5층입니다(2026-10-07 사용자 요청). C Design은 1~30블록을 허용하며 A/D/Qt는 30블록을 수신·계획·표시합니다. 실제 Vision 판별·직접 결착 가능 범위와 보정은 별도 검증입니다. REAL 수동 시험의 24슬롯 제한은 유지합니다.
 
 - 최신 목표는 [최종 MVP](docs/10_FINAL_MVP.md), 상세 연구 근거는 [첨부 연구 설계](docs/suhyun_individual_research_topic.md)를 봅니다.
 - [참고자료 적용 안내](docs/reference/README.md)의 원본 정책·과거 계획·GT는 보존합니다. 과거 TBD·Day4 흐름보다 최신 사용자 결정이 우선합니다.

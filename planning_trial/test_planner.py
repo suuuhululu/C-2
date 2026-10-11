@@ -70,7 +70,7 @@ def test_internal_ids_are_optional_and_not_used_for_common_comparison(design):
 @pytest.mark.parametrize("field,value", [
     ("color", "red"), ("color", []), ("brick_type", "1x1x1"), ("brick_type", {}),
     ("x", -1), ("x", 24), ("x", True), ("y", 1.0),
-    ("layer", 0), ("layer", 5), ("layer", True),
+    ("layer", 0), ("layer", 6), ("layer", True),
     ("orientation_deg", 45), ("orientation_deg", True),
     ("orientation_deg", 90),
 ])
@@ -319,7 +319,7 @@ def test_malformed_current_block_list_is_rejected(design, current):
 
 
 def test_remaining_rejects_invalid_revised_target_before_comparison():
-    invalid = {"design_version": 2, "blocks": [brick(layer=5)]}
+    invalid = {"design_version": 2, "blocks": [brick(layer=6)]}
     with pytest.raises(ValueError, match="layer"):
         calculate_remaining_blocks(invalid, [])
 

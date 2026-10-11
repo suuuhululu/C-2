@@ -324,12 +324,13 @@ def test_back_view_axes_match_design_and_current_without_swapping_coordinates(wi
 
 @pytest.mark.parametrize("x,y,width,height", [(0,0,420,155), (21,0,420,260),
                                               (0,21,420,260), (21,21,280,155)])
-def test_four_layer_preview_and_zoom_fit_with_studs_and_preserve_input(qapp, monkeypatch, tmp_path, x,y,width,height):
+@pytest.mark.parametrize("layers", [4, 5])
+def test_layer_preview_and_zoom_fit_with_studs_and_preserve_input(qapp, monkeypatch, tmp_path, x,y,width,height,layers):
     from app.hmi_board import BoardView, dimensions, STUD_HEIGHT
 
     board = BoardView(isometric=True)
     blocks = [dict(brick_type="2x3x1",color="blue",x=x,y=y,layer=layer,orientation_deg=90)
-              for layer in range(1,5)]
+              for layer in range(1,layers+1)]
     before = deepcopy(blocks)
     board.resize(width,height)
     board.set_blocks(blocks)
@@ -346,11 +347,11 @@ def test_four_layer_preview_and_zoom_fit_with_studs_and_preserve_input(qapp, mon
 
     monkeypatch.setattr(board,"_brick",draw)
     board.show();qapp.processEvents()
-    assert board.grab().save(str(tmp_path/f"four-layer-{x}-{y}.png"))
-    assert draws and len(draws)%8==0
-    for group in range(0,len(draws),8):
-        for index,points in enumerate(draws[group:group+8]):
-            left,right=(0,width*.6) if index<4 else (width*.6,width)
+    assert board.grab().save(str(tmp_path/f"{layers}-layer-{x}-{y}.png"))
+    assert draws and len(draws)%(layers*2)==0
+    for group in range(0,len(draws),layers*2):
+        for index,points in enumerate(draws[group:group+layers*2]):
+            left,right=(0,width*.6) if index<layers else (width*.6,width)
             assert all(left < point.x() < right and 22 < point.y() < height-10 for point in points)
     assert blocks == before and board.blocks == before
     board.close()
