@@ -1,0 +1,4 @@
+# Existing ROS/OpenCV installation can be used without reinstalling.
+numpy>=1.24
+opencv-contrib-python>=4.6
+# pytest is only needed to run the synthetic tests.

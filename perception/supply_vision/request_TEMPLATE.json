@@ -1,0 +1,11 @@
+{
+  "request_id": null,
+  "step_id": null,
+  "brick_type": "2x3x1",
+  "color": "blue",
+  "observation_id": null,
+  "config_id": null,
+  "stopped": false,
+  "not_before_ns": null,
+  "expires_at_ns": null
+}
