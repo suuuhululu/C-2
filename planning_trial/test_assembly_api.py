@@ -293,7 +293,7 @@ def test_common_bundle_replays_same_plan_baseline_and_exact_target_without_obser
     validate_planning_bundle(bundle)
     assert bundle['plan'] == result['planning_result']['plan']
     assert bundle['plan_base_current'] == req['current'] and req == before
-    assert bundle['current_provenance'] == 'D_ADOPTED_CURRENT'
+    assert bundle['current_provenance'] == 'B_CONFIRMED_D_RELAYED'
     assert bundle['geometry']['layer_increment_m'] == .019
     assert bundle['geometry']['first_layer_body_bottom_z_m'] == -.0045
     assert bundle['final_expected_blocks'] == req['design']['blocks']
@@ -343,7 +343,7 @@ def test_five_layer_whole_reassessment_and_motion_keep_d_current_and_draft_gate(
     plan = whole['planning_result']['plan']
     bundle = whole['shared_planning_bundle']
     assert bundle['bundle_schema'] == 'a-b-d-planning-bundle-draft/0.1.1'
-    assert bundle['current_provenance'] == 'D_ADOPTED_CURRENT'
+    assert bundle['current_provenance'] == 'B_CONFIRMED_D_RELAYED'
     validate_message(whole)
     current = {'current_revision': 17, 'blocks': deepcopy(design['blocks'][:4])}
     re_req = reassess_request(req, whole, current, 4)
@@ -378,14 +378,14 @@ def test_layer_out_of_contract_cannot_produce_a_plan(layer, calculation_status):
     assert result['shared_planning_bundle'] is None and result['execution_allowed'] is False
 
 
-def test_previous_contract_version_and_b_owned_current_bundle_are_rejected():
+def test_previous_contract_version_and_wrong_current_provenance_are_rejected():
     req = whole_request()
     req['schema_version'] = 'assembly-ad-calculation-draft/0.5'
     result = handle_whole_plan(req)
     assert result['calculation_status'] == 'INVALID_CONTEXT'
     assert result['planning_result'] is None and result['execution_allowed'] is False
     result = handle_whole_plan(whole_request())
-    result['shared_planning_bundle']['current_provenance'] = 'B_CONFIRMED_D_RELAYED'
+    result['shared_planning_bundle']['current_provenance'] = 'D_ADOPTED_CURRENT'
     with pytest.raises(ValueError):
         validate_message(result)
     with pytest.raises(ValueError):

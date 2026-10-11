@@ -3,7 +3,7 @@ A 계산 API 0.5.1 — 1차 통합 계약 정합, 2026-10-11
 현재 범위: layer 정수 1~5. 6층 이상·bool·float는 A에서 거절한다.
 API schema_version=assembly-ad-calculation-draft/0.5.1.
 shared_planning_bundle.bundle_schema=a-b-d-planning-bundle-draft/0.1.1.
-current_provenance=D_ADOPTED_CURRENT. B는 Observed, D는 Current 채택·revision 발급·비교·최종 판정 담당.
+current_provenance=B_CONFIRMED_D_RELAYED. B는 Current·revision·Expected·비교, D는 실행·진행·최종 종료 담당.
 과거 v4 리뷰 Schema는 보존하고 assembly_contract.schema()에서 현재 층 상한을 확장한다.
 0.5 요청과 이전 bundle 표기는 새 계약으로 가장하지 않으며 검증에서 거절한다.
 기존 run_user_assembly_05.sh 이름은 유지하고 새 실행 자료에 현재 버전을 기록한다.
@@ -100,8 +100,8 @@ current_provenance=D_ADOPTED_CURRENT. B는 Observed, D는 Current 채택·revisi
     final_expected_blocks: 기준 Current+모든 PLACE 누적 결과
 
   expected_steps는 관측 Current가 아니다. 미래 current_revision을 임의 발급하지 않는다.
-  B는 실제 관측·관측 품질을 제공한다. D가 유효 Observed를 Current로 채택하고
-  revision을 발급하며 Expected 비교·진행·최종 판정을 소유한다. A는 입력 revision을 복사한다.
+  B가 실제 관측·Current·revision·Expected·비교를 확정한다.
+  D는 활성 검사 대응·실행·진행·최종 종료를 소유하고 A는 B 입력 revision을 복사한다.
   재평가에서 기준 Plan.base_current_revision은 유지한다.
   deviation에 맞춰 기존 예상 배치를 수정하지 않는다. 승인 수정 Design의 새 Plan을 계산한다.
   B의 카메라 보정·높이맵/3D 비교 모델 생성·영상 판단은 B 담당이다.

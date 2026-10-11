@@ -66,7 +66,7 @@ def schema():
             'bundle_id': {'type': 'string', 'minLength': 1}, 'bundle_digest': digest,
             'bundle_schema': {'const': 'a-b-d-planning-bundle-draft/0.1.1'},
             'contract_status': {'const': 'DRAFT_NOT_FROZEN'}, 'execution_allowed': {'const': False},
-            'current_provenance': {'const': 'D_ADOPTED_CURRENT'},
+            'current_provenance': {'const': 'B_CONFIRMED_D_RELAYED'},
             'expected_state_kind': {'const': 'PLAN_EXPECTATION_NOT_OBSERVATION'},
             'design': {'$ref': '#/$defs/Design'}, 'plan': {'$ref': '#/$defs/Plan'},
             'plan_base_current': {'$ref': '#/$defs/Current'}, 'profile_snapshot': {'$ref': '#/$defs/FrameProfile'},
