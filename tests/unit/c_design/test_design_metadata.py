@@ -835,7 +835,8 @@ def test_intervention_voice_answer_is_heard_in_free_mode_with_beep(scenario, mon
 
 
 def _stages(events):
-    return [event["stage"] for event in events]
+    """진행 단계 순서(디버그 전용 DESIGN_ATTEMPT는 제외: 생성기 호출마다 끼어드는 로그용 이벤트)."""
+    return [event["stage"] for event in events if event["stage"] != "DESIGN_ATTEMPT"]
 
 
 def test_progress_event_shape_and_stage_constants():
@@ -1233,7 +1234,7 @@ def test_review_initial_patch_regenerates_with_family_and_previous_candidate(can
     review = meta["review"]
     assert (review["round"], review["scope"], review["source"], review["decision"]) == (2, "patch", "rule", "MODIFY")
     assert review["reply"] == MODIFY_REPLY["reply"]
-    stages = [e["stage"] for e in events]
+    stages = _stages(events)
     assert stages[stages.index("REVIEW_ACK"):] == ["REVIEW_ACK", "GENERATING", "VALIDATING", "DESCRIBING", "READY"]
 
 
@@ -1327,7 +1328,7 @@ def test_review_revised_patch_regenerates_from_approved(revised_case, review_llm
     meta = result["design_metadata"]
     assert meta["review"]["round"] == 1 and meta["review"]["scope"] == "patch" and meta["design_intent"] is None
     assert meta["judge"]["verdict"] == "SHOWCASE" and meta["style_hint"] == "등받이를 더 높고 화려하게"
-    stages = [e["stage"] for e in events]
+    stages = _stages(events)
     assert stages[stages.index("REVIEW_ACK"):] == ["REVIEW_ACK", "GENERATING_REVISED", "VALIDATING", "JUDGING", "READY_REVISED"]
 
 
@@ -1506,3 +1507,28 @@ def test_review_regeneration_rejects_an_unchanged_candidate_and_retries(candidat
     assert (result["status"], result["hri_result"]) == ("OK", "MODIFY")
     assert result["design"]["blocks"] != candidate["blocks"] and result["design"]["design_version"] == 1
     assert len(seen) == 2 and [r["rule"] for r in seen[1]] == ["unchanged_candidate"]
+
+
+def test_design_attempt_debug_events_summarise_previous_rejection(monkeypatch):
+    """actual mic E2E(2026-10-11)에서 생성 실패 원인이 보이지 않던 사례: 생성기 호출마다 DESIGN_ATTEMPT(음성 없음)."""
+    monkeypatch.setenv("C_DESIGN_USE_LLM", "1")
+    monkeypatch.setattr(designer, "RETRY_DELAY", 0.0)
+    monkeypatch.setattr(main.llm, "interpret_initial_request", lambda text, should_stop=None: _request("ANY"), raising=False)
+    monkeypatch.setattr(main.llm, "REQUEST_KEYS", REQUEST_KEYS, raising=False)
+    monkeypatch.setattr(main.llm, "choose_initial_family", lambda preference, rng=None: "armchair")
+    good = designer.mock_initial_candidate("CHAIR")
+    floating = {"blocks": [dict(good["blocks"][0], layer=3)]}  # 층 3에 혼자: support 탈락
+    outputs = [floating, good]
+    monkeypatch.setattr(main.llm, "generate_initial_design", lambda *a, **k: outputs.pop(0))
+    monkeypatch.setattr(main.llm, "describe_initial_design", lambda *a, **k: {"design_family": "armchair", "design_name": "x",
+                        "design_summary": "", "visible_features": [], "silhouette_clarity": "clear",
+                        "recognizable_family": True, "completeness_score": 4, "family_design_match": "clear"})
+    spoken = []
+    monkeypatch.setattr(main.voice, "speak", lambda text: spoken.append(text))
+    events = []
+    result = main.create_initial_design("아무거나", on_progress=events.append)
+    assert result["status"] == "OK"
+    attempts = [e["message"] for e in events if e["stage"] == "DESIGN_ATTEMPT"]
+    assert attempts[0] == "attempt 1" and attempts[1].startswith("attempt 2 (previous rejected: support×1")
+    assert "DESIGN_ATTEMPT" in main.PROGRESS_STAGES and "DESIGN_ATTEMPT" not in dialogue.PROGRESS_TTS_STAGES
+    assert spoken == []  # 텍스트 모드: 디버그 이벤트는 읽지 않는다

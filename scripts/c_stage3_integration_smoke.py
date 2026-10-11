@@ -10,11 +10,11 @@ integration은 팀 통합 단계에서 한다. caller는 `approved`(review가 AP
     python3 scripts/c_stage3_integration_smoke.py                                   # text · full · Mock(규칙만)
     python3 scripts/c_stage3_integration_smoke.py --mode text --scenario review --answers "의자 만들어줘" "좋아 이걸로 하자"
     python3 scripts/c_stage3_integration_smoke.py --mode text --scenario full --out /tmp/s3w3_smoke
-    env C_DESIGN_USE_LLM=1 OPENAI_LLM_API_KEY="$(cat ~/c2_cobot2_API_key.txt)" \\
+    env C_DESIGN_USE_LLM=1 OPENAI_MODEL=gpt-6.1-sol OPENAI_LLM_API_KEY="$(cat ~/c2_cobot2_API_key.txt)" \\
         python3 scripts/c_stage3_integration_smoke.py --mode text --scenario full          # text · LLM
-    env C_DESIGN_USE_LLM=1 OPENAI_LLM_API_KEY="$(cat ~/c2_cobot2_API_key.txt)" OPENAI_TTS_API_KEY="$(cat ~/c2_cobot2_API_key.txt)" \\
+    env C_DESIGN_USE_LLM=1 OPENAI_MODEL=gpt-6.1-sol OPENAI_LLM_API_KEY="$(cat ~/c2_cobot2_API_key.txt)" OPENAI_TTS_API_KEY="$(cat ~/c2_cobot2_API_key.txt)" \\
         python3 scripts/c_stage3_integration_smoke.py --mode fake-voice --scenario full    # fake listen · 실제 TTS
-    env C_DESIGN_USE_LLM=1 OPENAI_API_KEY="$(cat ~/c2_cobot2_API_key.txt)" OPENAI_LLM_API_KEY="$(cat ~/c2_cobot2_API_key.txt)" \\
+    env C_DESIGN_USE_LLM=1 OPENAI_MODEL=gpt-6.1-sol OPENAI_API_KEY="$(cat ~/c2_cobot2_API_key.txt)" OPENAI_LLM_API_KEY="$(cat ~/c2_cobot2_API_key.txt)" \\
         OPENAI_TTS_API_KEY="$(cat ~/c2_cobot2_API_key.txt)" python3 scripts/c_stage3_integration_smoke.py --mode mic --scenario full
 
 --mode
@@ -250,6 +250,13 @@ class FakeDCaller:
         self.rows.append(row)
         if envelope["status"] == "FAILED":
             self.failed = True
+            details = error.get("details") or []
+            if details:  # 마지막 생성 시도의 validator 탈락 사유(규칙별 개수와 첫 메시지, 좌표는 envelope JSON에)
+                counts = {}
+                for reason in details:
+                    counts[reason.get("rule")] = counts.get(reason.get("rule"), 0) + 1
+                _log("[CALLER] last rejection: " + ", ".join(f"{rule}×{count}" for rule, count in counts.items())
+                     + f" · e.g. {str(details[0].get('message', ''))[:120]!r}")
         if self.out_dir:
             path = os.path.join(self.out_dir, f"{row['n']:02d}_{api}.json")
             with open(path, "w", encoding="utf-8") as handle:
@@ -425,6 +432,14 @@ def main_cli():
         _log(f"{name}: {'configured' if configured else 'not set'}")
         if not configured:
             missing.append(name)
+    if use_llm:
+        generation_model = os.environ.get("OPENAI_MODEL") or llm.DEFAULT_MODEL
+        _log(f"models: generation {generation_model} · judge {os.environ.get(llm.JUDGE_MODEL_ENV) or llm.DEFAULT_JUDGE_MODEL}"
+             f" · aux {os.environ.get(llm.AUX_MODEL_ENV) or llm.DEFAULT_AUX_MODEL}")
+        if not os.environ.get("OPENAI_MODEL"):
+            # 2026-10-11 actual mic E2E: OPENAI_MODEL 없이 실행 → 기본 gpt-4o-mini가 10회 모두 support/overlap/connectivity 탈락
+            _log(f"WARNING: OPENAI_MODEL이 없어 기본 {llm.DEFAULT_MODEL}로 생성한다. 실측상 유효 후보를 만들지 못하므로 "
+                 "OPENAI_MODEL=gpt-6.1-sol을 함께 주는 것을 권장한다. 계속 진행한다.")
     if use_llm and llm.LLM_KEY_ENV in missing:
         _log(f"WARNING: LLM 모드인데 {llm.LLM_KEY_ENV}가 없다(LLM 호출이 실패로 끝난다). 계속 진행한다.")
     if args.mode != "text" and use_llm and (voice.TTS_KEY_ENV in missing or (args.mode == "mic" and voice.STT_KEY_ENV in missing)):

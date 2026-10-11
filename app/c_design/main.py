@@ -86,7 +86,30 @@ _STOP = object()
 # (UNCLEAR·침묵이면 재질문 1회, CANCEL은 REVIEW_ACK 뒤 CANCELLED). 음성으로 읽는 것은 질문·재질문·REVIEW_ACK뿐.
 PROGRESS_STAGES = ("LISTENING", "UNDERSTANDING", "HRI_INTERPRET", "ACK", "KEEP_ACK", "GENERATING", "GENERATING_REVISED", "VALIDATING",
                    "DESCRIBING", "JUDGING", "REGENERATING", "ESCALATION", "READY", "READY_REVISED", "FAILED", "CANCELLED",
-                   "REVIEW_LISTENING", "REVIEW_UNDERSTANDING", "REVIEW_ACK", "REVIEW_READY")
+                   "REVIEW_LISTENING", "REVIEW_UNDERSTANDING", "REVIEW_ACK", "REVIEW_READY", "DESIGN_ATTEMPT")
+
+
+def _rejection_summary(reasons):
+    """validator 탈락 사유를 규칙별 개수로 요약한다(디버그 로그용, 블록 좌표·본문 없음). 예: "support×11, connectivity×1"."""
+    counts = {}
+    for reason in reasons or ():
+        counts[reason["rule"]] = counts.get(reason["rule"], 0) + 1
+    return ", ".join(f"{rule}×{count}" for rule, count in counts.items())
+
+
+def _attempt_logger(progress):
+    """생성기 호출마다 DESIGN_ATTEMPT 디버그 이벤트(음성 없음)를 낸다: 몇 번째 시도인지와 직전 시도의 탈락 사유 요약.
+
+    2026-10-11 actual mic E2E에서 "no valid design within the attempt limit"만 보여 원인을 알 수 없던 사례용. 마지막 시도의
+    사유는 FAILED envelope의 error.details에 그대로 남는다.
+    """
+    count = {"n": 0}
+
+    def note(reasons):
+        count["n"] += 1
+        summary = _rejection_summary(reasons)
+        progress("DESIGN_ATTEMPT", f"attempt {count['n']}" + (f" (previous rejected: {summary})" if summary else ""))
+    return note
 
 
 def _clock():
@@ -468,7 +491,10 @@ def _initial(text, should_stop, preference_text, on_question, progress):
     progress("ACK", reply, say=True)
     progress("GENERATING")
 
+    note_attempt = _attempt_logger(progress)
+
     def generate(object_type, reasons):
+        note_attempt(reasons)
         return llm.generate_initial_design(object_type, reasons, should_stop=should_stop, family=choice["family"],
                                            style_hint=choice["style_hint"], concept=choice["concept"])
     result = designer.build_initial_design("CHAIR", generate=generate, delay=designer.RETRY_DELAY, should_stop=should_stop)
@@ -596,11 +622,14 @@ def _intervention(design, current, differences, text_answers, on_question, shoul
             progress("KEEP_ACK", dialogue.keep_ack(), say=True)
         return _result("OK", dialogue.KEEP, design, questions)
 
+    note_attempt = _attempt_logger(progress)
+
     def make_generate(feedback=None):
         if not use_llm:
             return None
 
         def generate(design, current, differences, reasons):
+            note_attempt(reasons)
             return llm.generate_revised_design(design, current, differences, reasons, should_stop=should_stop,
                                                feedback=feedback, min_blocks=min_blocks, style_hint=state["style_hint"])
         return generate
@@ -787,8 +816,11 @@ def _review(candidate, kind, design_metadata, previous_design, current, differen
         if kind == "revised":
             min_blocks = designer.revised_min_blocks(previous_design)
 
+            note_attempt = _attempt_logger(progress)
+
             def make_generate(feedback=None):
                 def generate(design_, current_, differences_, reasons_):
+                    note_attempt(reasons_)
                     return llm.generate_revised_design(design_, current_, differences_, reasons_, should_stop=should_stop,
                                                        feedback=feedback, min_blocks=min_blocks, style_hint=hint,
                                                        previous_candidate=candidate, scope=scope)
@@ -814,7 +846,10 @@ def _review(candidate, kind, design_metadata, previous_design, current, differen
             choice = {"family": family, "source": scope, "preference": metadata.get("preference"), "style_hint": hint,
                       "concept": concept, "error": None}
 
+            note_attempt = _attempt_logger(progress)
+
             def generate(object_type, reasons_):
+                note_attempt(reasons_)
                 return llm.generate_initial_design(object_type, reasons_, should_stop=should_stop, family=family,
                                                    style_hint=hint, concept=concept, previous_candidate=candidate,
                                                    scope=scope)

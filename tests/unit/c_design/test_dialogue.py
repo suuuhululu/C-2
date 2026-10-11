@@ -528,3 +528,11 @@ def test_review_ack_pickers():
     assert "등받이를 더 높게" in d.modify_ack_fallback("등받이를 더 높게")
     picks = [d.approve_ack() for _ in range(20)]
     assert all(a != b for a, b in zip(picks, picks[1:]))
+
+
+def test_abstract_style_request_goes_to_llm_interpretation_not_unsupported():
+    """2026-10-11 actual mic E2E 발화: 추상적 스타일 요청은 규칙에서 버리지(UNSUPPORTED) 않고 ANY 단정도 하지 않는다(LLM 해석)."""
+    for text in ("신기한 의자를 만들고 싶어", "특이한 의자 만들어줘", "독특한 느낌의 의자"):
+        assert d.is_unsupported_request(text) is False
+        assert d.parse_initial_request(text) is None
+        assert d.parse_goal(text) == "CHAIR"

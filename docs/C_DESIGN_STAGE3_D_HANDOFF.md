@@ -121,6 +121,8 @@ C 세 함수는 request_id·job_id·current_revision을 **받지도 돌려주지
 
 ## 9. 실행 명령
 
+**생성 모델은 반드시 `OPENAI_MODEL=gpt-6.1-sol`로 지정합니다.** 2026-10-11 actual mic E2E에서 이 변수 없이 실행해 기본 `gpt-4o-mini`로 생성한 결과 Initial 10회 시도가 모두 validator(support·overlap·connectivity) 탈락으로 `DESIGN_GENERATION_FAILED`였습니다(같은 요청을 gpt-6.1-sol로 돌리면 20 family 모두 ≤2회에 통과). runner는 LLM 모드에서 모델을 출력하고 `OPENAI_MODEL`이 없으면 경고합니다.
+
 fake D caller runner: [scripts/c_stage3_integration_smoke.py](../scripts/c_stage3_integration_smoke.py). C 시험용이며 D 구현이 아닙니다.
 
 Mock 텍스트(키 없음):
@@ -132,13 +134,13 @@ python3 scripts/c_stage3_integration_smoke.py --mode text --scenario full
 fake-voice(정해 둔 답을 순서대로, TTS는 실제. `full` 기본 답은 Revised MODIFY "조금 더 화려하게 해줘"를 포함한 최종 lifecycle 6개):
 
 ```bash
-env C_DESIGN_USE_LLM=1 OPENAI_LLM_API_KEY="$(cat ~/c2_cobot2_API_key.txt)" OPENAI_TTS_API_KEY="$(cat ~/c2_cobot2_API_key.txt)" python3 scripts/c_stage3_integration_smoke.py --mode fake-voice --scenario full
+env C_DESIGN_USE_LLM=1 OPENAI_MODEL=gpt-6.1-sol OPENAI_LLM_API_KEY="$(cat ~/c2_cobot2_API_key.txt)" OPENAI_TTS_API_KEY="$(cat ~/c2_cobot2_API_key.txt)" python3 scripts/c_stage3_integration_smoke.py --mode fake-voice --scenario full
 ```
 
 실제 마이크·TTS(사용자 실행):
 
 ```bash
-env C_DESIGN_USE_LLM=1 OPENAI_API_KEY="$(cat ~/c2_cobot2_API_key.txt)" OPENAI_LLM_API_KEY="$(cat ~/c2_cobot2_API_key.txt)" OPENAI_TTS_API_KEY="$(cat ~/c2_cobot2_API_key.txt)" python3 scripts/c_stage3_integration_smoke.py --mode mic --scenario full
+env C_DESIGN_USE_LLM=1 OPENAI_MODEL=gpt-6.1-sol OPENAI_API_KEY="$(cat ~/c2_cobot2_API_key.txt)" OPENAI_LLM_API_KEY="$(cat ~/c2_cobot2_API_key.txt)" OPENAI_TTS_API_KEY="$(cat ~/c2_cobot2_API_key.txt)" python3 scripts/c_stage3_integration_smoke.py --mode mic --scenario full
 ```
 
 offline 검증:
@@ -189,5 +191,5 @@ C는 APPROVE 의사를 반환하고, D가 Candidate를 Approved Design으로 채
 결과 PNG는 시험용 표시이며 실제 D Preview가 아닙니다.
 
 ```bash
-env C_DESIGN_USE_LLM=1 OPENAI_API_KEY="$(cat ~/c2_cobot2_API_key.txt)" OPENAI_LLM_API_KEY="$(cat ~/c2_cobot2_API_key.txt)" OPENAI_TTS_API_KEY="$(cat ~/c2_cobot2_API_key.txt)" python3 scripts/c_stage3_integration_smoke.py --mode mic --scenario full --out ~/c_stage3_final --render ~/c_stage3_final/png
+env C_DESIGN_USE_LLM=1 OPENAI_MODEL=gpt-6.1-sol OPENAI_API_KEY="$(cat ~/c2_cobot2_API_key.txt)" OPENAI_LLM_API_KEY="$(cat ~/c2_cobot2_API_key.txt)" OPENAI_TTS_API_KEY="$(cat ~/c2_cobot2_API_key.txt)" python3 scripts/c_stage3_integration_smoke.py --mode mic --scenario full --out ~/c_stage3_final --render ~/c_stage3_final/png
 ```

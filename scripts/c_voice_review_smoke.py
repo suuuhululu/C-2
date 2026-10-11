@@ -7,7 +7,7 @@ D가 Candidate Design의 Preview 표시를 끝냈다고 가정하고 main.review
     python3 scripts/c_voice_review_smoke.py --answers "좋아 이걸로 하자"                 # 텍스트 모드(마이크·스피커 없음)
     python3 scripts/c_voice_review_smoke.py --kind revised --answers "음..." "등받이를 더 높게"   # Mock 시나리오 자동 생성
     python3 scripts/c_voice_review_smoke.py --kind revised --candidate v2.json --scenario v2.json --answers "등받이를 더 높게"
-    env C_DESIGN_USE_LLM=1 OPENAI_API_KEY=… OPENAI_LLM_API_KEY=… OPENAI_TTS_API_KEY=… \\
+    env C_DESIGN_USE_LLM=1 OPENAI_MODEL=gpt-6.1-sol OPENAI_API_KEY=… OPENAI_LLM_API_KEY=… OPENAI_TTS_API_KEY=… \\
         python3 scripts/c_voice_review_smoke.py --candidate ~/c_voice_e2e_c_only/round01/v1.json   # 음성 모드
 
 로그: [C][QUESTION] 질문, [C][STT_RAW] 음성 인식 원문, [C][<STAGE>] 진행 이벤트(HRI_INTERPRET·REVIEW_ACK 포함),
