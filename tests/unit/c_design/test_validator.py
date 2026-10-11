@@ -111,9 +111,15 @@ def test_blocks_count_zero_is_brick_count():
     assert "brick_count" in rules(v.validate_design(design([])))
 
 
-def test_blocks_count_over_twenty_is_brick_count():
-    blocks = [block(x=0, y=i) for i in range(21)]
+def test_blocks_count_over_max_is_brick_count():
+    assert v.MAX_BLOCKS == 30  # 2026-10-07 사용자 승인(20 → 30)
+    blocks = [block(x=2 * (i % 12), y=2 * (i // 12)) for i in range(v.MAX_BLOCKS + 1)]
     assert "brick_count" in rules(v.validate_design(design(blocks)))
+
+
+def test_blocks_count_at_max_is_not_brick_count():
+    blocks = [block(x=2 * (i % 12), y=2 * (i // 12)) for i in range(v.MAX_BLOCKS)]
+    assert "brick_count" not in rules(v.validate_design(design(blocks)))
 
 
 # ---------------------------------------------------------------------------
@@ -175,8 +181,15 @@ def test_block_orientation_invalid_for_2x2x1():
 
 
 def test_block_layer_out_of_range():
-    b = block(layer=5)
+    b = block(layer=6)
     assert "invalid_value" in rules(v.validate_design(design([b])))
+
+
+def test_block_layer_five_is_valid():
+    # 최대 5층(팀장 결정): 같은 자리에 2x2를 1~5층으로 쌓으면 support·connectivity를 모두 만족한다.
+    assert v.MAX_LAYER == 5
+    stack = [block(layer=layer) for layer in range(1, 6)]
+    assert v.validate_design(design(stack)) == []
 
 
 def test_out_of_board():

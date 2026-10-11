@@ -1,5 +1,7 @@
 # C·B와 Backend 연결 합의 및 검증
 
+> 2026-10-07 적용 범위: 아래는 기존 Day4의 C/B/D 연결 합의와 검사 기록입니다. 현재 제품 목표는 [최종 MVP](10_FINAL_MVP.md)이며, 설계 확정·직접 결착·지원 응답·최종 Vision 확인·사용자별 DB/웹의 새 계약은 별도 합의가 필요합니다. 기존 block_id 필수 제외·OK/UNOBSERVABLE·check/촬영 순서 의미는 현행 코드에 유지합니다. 연구의 brick_id·PASS/FAIL/UNKNOWN을 합의 없이 기존 callback에 강제하지 않습니다. 두 stud 기하 기준은 최종 Support Risk/결착 증거가 아닙니다.
+
 합의 기준 2026-10-05, GitHub 반영 2026-10-06. 시율의 개발 기준 공유와 홍동의 연결 동의 DM, 이후 사용자의 최종 결정 및 홍동에게 회신한 내용을 반영합니다. DM 자체의 제안을 모두 확정으로 취급하지 않습니다. 기본 계약은 main에 병합된 [Day4 공통 계약](https://github.com/suuuhululu/C-2/blob/main/docs/06_CONTRACT_DRAFT.md)입니다. 이 문서는 이후 결정의 보완이며 구현·장치 시험 결과와 구분합니다.
 
 ## C 연결 결정

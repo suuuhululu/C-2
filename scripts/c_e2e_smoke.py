@@ -116,18 +116,25 @@ class Observer:
         self._saved = []
 
     def _listen(self, original):
-        def listen():
+        def listen(on_ready=None):
+            hint = None
             if self.prompted_for is not self.last_question:
                 self.prompted_for = self.last_question
                 hint = self.hint
                 if self.escalation_question is not None and self.last_question == self.escalation_question:
                     hint = self.escalation_hint
-                print(f"\n>>> 지금 말씀하세요: {hint}")
-            text = original()
+
+            def ready():
+                # voice.listen이 warm-up·소음 보정을 마친 뒤 부른다: 이때 말해야 발화가 보정에 섞이지 않는다.
+                if hint is not None:
+                    print(f"\n>>> 지금 말씀하세요: {hint}", flush=True)
+                if on_ready is not None:
+                    on_ready()
+            text = original(on_ready=ready)
             if text is None:
                 print(f"STT: 실패 ({voice.last_error()})")
             elif text == "":
-                print("STT: (침묵, STT 호출 없음) 계속 기다립니다")
+                print(f"STT: (발화 없음: {voice.last_error() or '침묵, STT 호출 없음'}) 계속 기다립니다")
             else:
                 print(f"STT: {text!r}")
             return text

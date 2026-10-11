@@ -19,6 +19,11 @@
     - Day4: 시간 기준 자동 취소 없음. 침묵(빈 발화)은 재질문 없이 계속 기다린다.
     - 설계 생성기: 호출 시점에 환경 변수 C_DESIGN_USE_LLM=1이면 llm(WAVE 5), 아니면 Mock.
       provider 실패는 LLM_CALL_FAILED로 반환한다.
+    - design_metadata(2026-10-07): envelope의 design 옆 sibling 키. design 구조({design_version, blocks})는 그대로이며
+      design이 None이면 None. Revised(LLM): 설계 의도(intent) → 생성(intent 주입) → judge → judge가 family를 알아볼 수
+      없다(recognizable_family False)거나 실루엣이 모호(silhouette_clarity "ambiguous")할 때만 같은 intent + judge 피드백으로
+      재생성 최대 METADATA_REGENERATIONS_MAX(1)회 → 재judge. judge 응답 오류·필드 누락은 재생성 없이 끝내고 error에 남긴다.
+      metadata 생성 실패는 설계 성공을 FAILED로 바꾸지 않는다. KEEP·실패·취소는 None. Mock은 고정 문자열.
 
 하지 않는 것:
     - 음성 I/O·질문 문장·응답 규칙·LLM 호출·검증 로직 자체 구현(각 모듈에 위임)
@@ -37,6 +42,17 @@ from app.c_design import designer, dialogue, llm, validator, voice
 # §8.10·§8.11: 연속 6회 탈락하면 escalation 질문, "계속 찾기"면 남은 4회(합계 10회).
 FIRST_ATTEMPTS = 6
 EXTRA_ATTEMPTS = designer.MAX_ATTEMPTS - FIRST_ATTEMPTS
+# judge 결과에 따른 설계 재생성 상한(요청 하나당). provider 재시도(llm.RETRY_BACKOFF)·후보 재생성(designer 시도 수)과 별개다.
+METADATA_REGENERATIONS_MAX = 1
+# judge 응답에서 재생성·verdict 판단에 꼭 필요한 필드와 허용 값. 하나라도 어긋나면 judge_error(재생성 없음).
+_JUDGE_REQUIRED = {
+    "recognizable_family": (True, False),
+    "silhouette_clarity": ("clear", "ambiguous"),
+    "reads_as_seating": (True, False),
+    "explanation_required_to_understand": (True, False),
+}
+_HUMAN_STORY_KEYS = ("placed_differently", "interpretation", "imagined_concept", "lego_redesign", "why_final_shape")
+_MOCK_NAME, _MOCK_FAMILY, _MOCK_SUMMARY = "Mock 의자", "chair", "Mock 고정 설계(LLM 미사용)"
 
 
 # next_reply가 침묵 대기 중 STOP을 만났다는 표시(정상 응답 문자열·None과 구분).
@@ -48,9 +64,84 @@ def _voice_failure():
     return f"voice I/O failed: {voice.last_error() or 'unknown'}"
 
 
-def _result(status, hri_result=None, design=None, questions=(), code=None, message="", details=()):
+def _result(status, hri_result=None, design=None, questions=(), code=None, message="", details=(), design_metadata=None):
     error = None if status == "OK" else {"code": code, "message": message, "details": list(details)}
-    return {"status": status, "hri_result": hri_result, "design": design, "questions": list(questions), "error": error}
+    return {"status": status, "hri_result": hri_result, "design": design,
+            "design_metadata": design_metadata if design is not None else None,
+            "questions": list(questions), "error": error}
+
+
+def _llm_error_kind(result):
+    return result["llm_error"]["kind"] if isinstance(result, dict) and "llm_error" in result else None
+
+
+def _meta_error(kind, detail):
+    return {"kind": kind, "message": str(detail)}
+
+
+def _initial_metadata(described):
+    """Initial(LLM) design_metadata. described는 llm.describe_initial_design 결과(dict 또는 llm_error)."""
+    error = None
+    if _llm_error_kind(described):
+        error, described = _meta_error("describe_error", described["llm_error"]), {}
+    return {
+        "design_name": described.get("design_name"), "design_family": described.get("design_family"),
+        "design_summary": described.get("design_summary"), "visible_features": list(described.get("visible_features") or []),
+        "human_interpretation": None,
+        "judge": None if error else {key: described.get(key) for key in ("silhouette_clarity", "recognizable_family", "completeness_score")},
+        "source": "LLM", "error": error,
+    }
+
+
+def _mock_metadata(revised):
+    metadata = {"design_name": _MOCK_NAME, "design_family": _MOCK_FAMILY, "design_summary": _MOCK_SUMMARY,
+                "visible_features": [], "human_interpretation": None, "judge": None, "source": "MOCK", "error": None}
+    if revised:
+        metadata.update(change_summary=[], interpretation_status=None, design_intent=None, regenerations=0)
+    return metadata
+
+
+def _judge_problem(judge):
+    """judge 응답이 재생성·verdict 판단에 쓸 수 있으면 None, 아니면 오류 설명."""
+    if _llm_error_kind(judge):
+        return judge["llm_error"]
+    bad = [key for key, allowed in _JUDGE_REQUIRED.items() if key not in judge or judge[key] not in allowed
+           or (allowed == (True, False) and not isinstance(judge[key], bool))]
+    return f"missing or invalid judge fields: {bad}" if bad else None
+
+
+def _needs_regeneration(judge):
+    # 사용자 기준: family를 알아볼 수 없거나 실루엣이 모호할 때만. awkward·weakly visible·feature mismatch만으로는 하지 않는다.
+    return judge["recognizable_family"] is False or judge["silhouette_clarity"] == "ambiguous"
+
+
+def _verdict(judge):
+    showcase = (judge["reads_as_seating"] and judge["recognizable_family"] and judge["silhouette_clarity"] == "clear"
+                and judge["explanation_required_to_understand"] is False)
+    return "SHOWCASE" if showcase else "NOT_YET"
+
+
+def _revised_metadata(intent, judge, regenerations, error):
+    """Revised(LLM) design_metadata. judge는 판단 가능한 응답 또는 None, intent는 dict 또는 None."""
+    seen, planned = judge or {}, intent or {}
+    story = seen.get("human_story")
+    return {
+        "design_name": seen.get("design_name") or planned.get("concept_name"),
+        "design_family": seen.get("design_family") or planned.get("design_family"),
+        "design_summary": seen.get("why_it_is_complete"),
+        "visible_features": list(seen.get("visible_features") or []),
+        "human_interpretation": {key: story.get(key) for key in _HUMAN_STORY_KEYS} if isinstance(story, dict) else None,
+        "change_summary": list(seen.get("change_summary") or []),
+        "interpretation_status": seen.get("interpretation_status"),
+        "judge": None if judge is None else {
+            "recognizable_family": judge["recognizable_family"], "family_confidence": judge.get("family_confidence"),
+            "silhouette_clarity": judge["silhouette_clarity"],
+            "explanation_required_to_understand": judge["explanation_required_to_understand"],
+            "layer5_meaningful": judge.get("layer5_meaningful"), "completeness_score": judge.get("completeness_score"),
+            "awkward": judge.get("awkward"), "verdict": _verdict(judge),
+        },
+        "design_intent": intent, "regenerations": regenerations, "source": "LLM", "error": error,
+    }
 
 
 def _stopped(questions):
@@ -101,7 +192,14 @@ def create_initial_design(text=None, should_stop=None):
     result = designer.build_initial_design(
         object_type, generate=generate, delay=designer.RETRY_DELAY, should_stop=should_stop
     )
-    return _from_designer(result, None, [])
+    if result["design"] is None:
+        return _from_designer(result, None, [])
+    if generate is None:
+        return _result("OK", None, result["design"], design_metadata=_mock_metadata(revised=False))
+    described = llm.describe_initial_design(result["design"], should_stop=should_stop)
+    if _llm_error_kind(described) == "stopped":
+        return _stopped([])
+    return _result("OK", None, result["design"], design_metadata=_initial_metadata(described))
 
 
 def run_intervention(design, current, differences, text_answers=None, on_question=None, should_stop=None):
@@ -161,32 +259,90 @@ def run_intervention(design, current, differences, text_answers=None, on_questio
             # UNCLEAR, 또는 재설계할 수 없는데 "계속 찾기": 같은 질문으로 명시 선택을 기다린다.
             ask(question)
 
-    generate = None
-    if _use_llm():
+    use_llm = _use_llm()
+    # LLM 모드에서 설계 의도·metadata 오류를 요청 단위로 모은다(error는 마지막 오류).
+    state = {"intent": None, "error": None}
+
+    def make_generate(feedback=None):
+        if not use_llm:
+            return None
+
         def generate(design, current, differences, reasons):
-            return llm.generate_revised_design(design, current, differences, reasons, should_stop=should_stop)
+            return llm.generate_revised_design(design, current, differences, reasons, should_stop=should_stop,
+                                               intent=state["intent"], feedback=feedback)
+        return generate
+
+    def build(max_attempts, feedback=None):
+        return designer.build_revised_design(
+            design, current, differences, generate=make_generate(feedback), max_attempts=max_attempts,
+            delay=designer.RETRY_DELAY, should_stop=should_stop,
+        )
+
+    def decide_intent():
+        """설계 의도를 정한다. STOP이면 envelope, 그 밖의 실패는 intent 없이 진행(None 반환)."""
+        intent = llm.generate_design_intent(design, current, differences, should_stop=should_stop)
+        kind = _llm_error_kind(intent)
+        if kind == "stopped":
+            return _stopped(questions)
+        if kind:
+            state["error"] = _meta_error("intent_error", intent["llm_error"])
+            return None
+        missing = [key for key in llm.INTENT_KEYS if key not in intent]
+        if missing:
+            state["error"] = _meta_error("intent_error", f"missing intent keys: {missing}")
+            return None
+        state["intent"] = intent
+        return None
+
+    def finish(result):
+        """설계 결과 → envelope. LLM이면 judge 후 조건이 맞을 때만 재생성(최대 METADATA_REGENERATIONS_MAX회)."""
+        if result["design"] is None:
+            return _from_designer(result, dialogue.REVISE, questions)
+        if not use_llm:
+            return _result("OK", dialogue.REVISE, result["design"], questions, design_metadata=_mock_metadata(revised=True))
+        final = result["design"]
+        regenerations = 0
+        usable_judge = None
+        while True:
+            judge = llm.judge_revised_design(state["intent"], design, final, current, differences, should_stop=should_stop)
+            if _llm_error_kind(judge) == "stopped":
+                return _stopped(questions)
+            problem = _judge_problem(judge)
+            if problem is not None:
+                state["error"] = _meta_error("judge_error", problem)  # 재생성하지 않고 그대로 끝낸다
+                break
+            usable_judge = judge
+            if regenerations >= METADATA_REGENERATIONS_MAX or not _needs_regeneration(judge):
+                break
+            regenerations += 1
+            again = build(FIRST_ATTEMPTS, feedback=llm.judge_feedback_text(judge))
+            if again["design"] is None:
+                if any(r["rule"] == "stopped" for r in again["reasons"]):
+                    return _stopped(questions)
+                state["error"] = _meta_error("regeneration_failed", [r["rule"] for r in again["reasons"]])
+                break  # 첫 설계와 그 judge를 그대로 쓴다
+            final = again["design"]
+        metadata = _revised_metadata(state["intent"], usable_judge, regenerations, state["error"])
+        return _result("OK", dialogue.REVISE, final, questions, design_metadata=metadata)
 
     def revise():
         if validator.current_support_violations(current):
             # Current를 그대로 보존하면 어떤 후보도 support를 통과할 수 없다(§8.11 즉시 진입).
             return escalate(can_redesign=False)
-        result = designer.build_revised_design(
-            design, current, differences, generate=generate, max_attempts=FIRST_ATTEMPTS,
-            delay=designer.RETRY_DELAY, should_stop=should_stop,
-        )
+        if use_llm:
+            stopped = decide_intent()
+            if stopped is not None:
+                return stopped
+        result = build(FIRST_ATTEMPTS)
         # 설계 성공·STOP·provider 실패는 escalation 대상이 아니다(후보 탈락만 escalation).
         if result["design"] is not None or any(r["rule"] in ("stopped", "llm_call_failed") for r in result["reasons"]):
-            return _from_designer(result, dialogue.REVISE, questions)
+            return finish(result)
         ended = escalate(can_redesign=True)
         if ended is not None:
             return ended
         if stop_requested():
             return _stopped(questions)
-        result = designer.build_revised_design(
-            design, current, differences, generate=generate, max_attempts=EXTRA_ATTEMPTS,
-            delay=designer.RETRY_DELAY, should_stop=should_stop,
-        )
-        return _from_designer(result, dialogue.REVISE, questions)
+        return finish(build(EXTRA_ATTEMPTS))
 
     question = dialogue.build_question(design, current, differences)
     ask(question)

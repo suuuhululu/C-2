@@ -18,7 +18,7 @@ import pytest
 from app.c_design import designer, main, validator
 
 GOAL_TEXT = "오늘은 의자를 만들 거야"
-ENVELOPE_KEYS = {"status", "hri_result", "design", "questions", "error"}
+ENVELOPE_KEYS = {"status", "hri_result", "design", "design_metadata", "questions", "error"}
 
 
 # ---------------------------------------------------------------------------
@@ -543,6 +543,17 @@ def _clean_use_llm_env(monkeypatch):
     monkeypatch.delenv("C_DESIGN_USE_LLM", raising=False)
 
 
+@pytest.fixture(autouse=True)
+def _no_real_metadata_calls(monkeypatch):
+    # LLM-mode tests here stub only the design generator; the metadata calls (intent / judge / describe) answer with
+    # a provider error so no request is ever built. tests/unit/c_design/test_design_metadata.py covers them.
+    def not_stubbed(*args, **kwargs):
+        return {"llm_error": {"kind": "bad_response", "message": "not stubbed in test_main"}}
+
+    for name in ("generate_design_intent", "judge_revised_design", "describe_initial_design"):
+        monkeypatch.setattr(main.llm, name, not_stubbed)
+
+
 def test_use_llm_unset_takes_the_mock_path(monkeypatch):
     def must_not_be_called(object_type, reasons=None, should_stop=None):
         raise AssertionError("llm.generate_initial_design must not be called when C_DESIGN_USE_LLM is unset")
@@ -588,7 +599,7 @@ def test_use_llm_set_takes_the_llm_path_for_revised_design(monkeypatch):
     monkeypatch.setenv("C_DESIGN_USE_LLM", "1")
     calls = {"n": 0}
 
-    def fake_generate_revised(design_in, current_in, differences_in, reasons=None, should_stop=None):
+    def fake_generate_revised(design_in, current_in, differences_in, reasons=None, should_stop=None, intent=None, feedback=None):
         calls["n"] += 1
         calls["should_stop"] = should_stop
         return designer.mock_revised_candidate(design_in, current_in, differences_in)
@@ -625,7 +636,7 @@ def test_use_llm_set_revised_design_llm_error_is_llm_call_failed_with_revise_hri
     current, differences = _build_shift_scenario(initial_design)
     monkeypatch.setenv("C_DESIGN_USE_LLM", "1")
 
-    def fake_generate_revised(design_in, current_in, differences_in, reasons=None, should_stop=None):
+    def fake_generate_revised(design_in, current_in, differences_in, reasons=None, should_stop=None, intent=None, feedback=None):
         return {"llm_error": {"kind": "rate_limit", "message": "HTTP 429"}}
 
     monkeypatch.setattr(main.llm, "generate_revised_design", fake_generate_revised)

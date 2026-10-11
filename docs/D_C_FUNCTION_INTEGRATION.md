@@ -1,5 +1,7 @@
 # 최신 C 함수와 A–D–Qt 통합 시험
 
+> 2026-10-07 적용: 현재 제품 목표는 [최종 MVP](10_FINAL_MVP.md)입니다. 아래는 기존 C 공개 함수·A PLACE 계획·D/Qt와 Fake/합성 입력의 연결 검사입니다. 커스텀 의자 대화와 사용자 확정 전체 경로·실제 직접 결착·사람 지지·최종 Vision·사용자별 웹 반영의 성공 증거로 확대하지 않습니다. 과거 기록과 현재 소스의 게시 상태도 구분합니다.
+
 2026-10-06 로컬 준비. [C PR #11](https://github.com/suuuhululu/C-2/pull/11)은 main에 병합됐다. C 원본 head `4a0300e72ade26312a7889bd4829d3e2e75b4b61`, merge `f45e9f3afdea992256518d0686bf3eec7589dd9c`를 확인했다. 로컬에 없던 C 소스·문서·독립 검사·smoke scripts 29개를 head에서 바이트 그대로 가져왔다. C 알고리즘·모델·음성 구현은 수정하지 않았다.
 
 A는 `f9b841c8f090b0b25c30ab27459781ad2017fd9e` 원본 `plan_from_current`, B는 `c75c80374b848a395fded62ad901020d06b92913` 합성 예시의 `deliver_example`을 사용한다. D는 로컬 `work/suhyun-hmi-backend-robot-db` HEAD `7af9daeb3812f9e87fb36f172293434fd827e42f` 기반 작업 파일이며 앞선 [D PR #12](https://github.com/suuuhululu/C-2/pull/12)에 이번 준비가 자동 포함되지는 않는다.
