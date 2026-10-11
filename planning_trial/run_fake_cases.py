@@ -29,7 +29,7 @@ def main():
     misplaced["color"] = "yellow" if misplaced["color"] == "blue" else "blue"
     conflicting = {"current_revision": 1, "blocks": [misplaced]}
     invalid = copy.deepcopy(design)
-    invalid["blocks"][0]["layer"] = 5
+    invalid["blocks"][0]["layer"] = 6
     cases = [
         ("empty", design, empty, "READY", len(design["blocks"])),
         ("partial", design, partial, "READY", len(design["blocks"]) - len(assembled)),

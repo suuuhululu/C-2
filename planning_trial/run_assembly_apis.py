@@ -181,7 +181,7 @@ def main():
                 'source_sha256': {f: sha256((root/f).read_bytes()).hexdigest() for f in sources},
                 'scope': 'ACTUAL_A_FUNCTIONS_AND_LOCAL_ADAPTER; SAMPLE_INPUTS; LOCAL_CONSUMER_NOT_ACTUAL_D',
                 'fixture_state_is_not_device_observation': True, 'execution_allowed': False,
-                'current_contract_provenance': 'B_CONFIRMED_D_RELAYED',
+                'current_contract_provenance': 'D_ADOPTED_CURRENT',
                 'd_receipt_verified': False, 'isaac_ik_collision_verified': False,
                 'python_version': sys.version, 'checks': report,
                 'passed': sum(r['pass'] for r in report), 'total': len(report)}

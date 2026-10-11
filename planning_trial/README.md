@@ -1,5 +1,15 @@
 # A파트 최초 계획·재계획 계산
 
+2026-10-11 1차 통합 계약 수정: 현재 A의 층 범위는 정수 1~5입니다.
+B는 Observed를 제공하고 D가 Current 채택·revision 발급·Expected 비교·최종 판정을 담당합니다.
+별도 조립 후보 API는 `assembly-ad-calculation-draft/0.5.1`, 공통 계획 자료는
+`a-b-d-planning-bundle-draft/0.1.1`과 `current_provenance=D_ADOPTED_CURRENT`를 사용합니다.
+기존 v4 리뷰 Schema와 아래 날짜가 붙은 과거 시험 기록은 보존합니다.
+구형 0.5 요청·자료는 새 계약으로 자동 변환하지 않습니다. `run_user_assembly_05.sh`의
+파일명은 유지하지만 새 실행 결과에는 현재 계약 버전이 기록됩니다.
+이 후보 API의 `execution_allowed=false`는 유지하며 D 실제 수신·장치 연결은 별도 검증입니다.
+공통 5층 수정은 [PR #19](https://github.com/suuuhululu/C-2/pull/19)를 참고합니다.
+
 2026-10-10 로컬 반영본: 기존 `plan_from_current()`의 기본 순서와 `status / plan / errors` 경계를 유지하며, 별도 조립 후보 API·완성 우선 계산·도움 정보·빨강 1×2 확장을 추가했습니다. SIM 실행 안내와 신규 검증 범위는 [isaac_sim/README.txt](../isaac_sim/README.txt)를 참고합니다. 아래 2026-10-06 기록은 당시 구현·시험 범위입니다. 이 설명은 게시 전 로컬 준비 기록이며, 게시 상태는 브랜치 이력에서 확인합니다.
 
 기존 실습 코드를 [Day4 공통 계약](https://github.com/suuuhululu/C-2/blob/main/docs/06_CONTRACT_DRAFT.md)의
@@ -29,7 +39,7 @@ python3 -m pytest planning_trial/test_planner.py -q
 | brick_type | 2x2x1 또는 2x3x1 |
 | color | yellow 또는 blue |
 | x, y | 0~23 정수, stud 단위. 차지하는 영역의 최소 x/y 모서리 |
-| layer | 1~4 정수. 조립판 위 첫 층은 1 |
+| layer | 1~5 정수. 조립판 위 첫 층은 1 |
 | orientation_deg | 2×2는 0, 2×3은 0 또는 90 |
 
 공통 좌표는 사진 기준 +X 오른쪽, +Y 위다. 2×3의 0도는 X폭 2/Y길이 3,
@@ -324,7 +334,7 @@ python3 planning_trial/run_fake_cases.py
 | 빈 Current | READY, PLACE 15개, 기준 revision 0 |
 | 1층 4개가 조립된 Current | READY, 남은 PLACE 11개, 기준 revision 1. 기존 4개 재요청 없음 |
 | 파랑 목표 자리에 노랑이 있는 Current | NEEDS_CORRECTION, plan=null, 문제 배치·사유 |
-| 목표 블록 layer=5 | INVALID, plan=null, 문제 배치·허용 층 범위 사유 |
+| 목표 블록 layer=5 (2026-10-06 당시 4층 기준) | 당시 INVALID. 현재 범위 초과 재현 입력은 layer=6 |
 
 `integration_results/fake_cases/execution.txt`와 사례별 실제 입력·반환인
 `integration_results/fake_cases/runs.json`을 실행 시 저장한다.

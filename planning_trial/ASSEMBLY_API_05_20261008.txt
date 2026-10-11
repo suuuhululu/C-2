@@ -1,8 +1,17 @@
-A 계산 API 0.5 — 수현님 회신 반영, 2026-10-08
+A 계산 API 0.5.1 — 1차 통합 계약 정합, 2026-10-11
+
+현재 범위: layer 정수 1~5. 6층 이상·bool·float는 A에서 거절한다.
+API schema_version=assembly-ad-calculation-draft/0.5.1.
+shared_planning_bundle.bundle_schema=a-b-d-planning-bundle-draft/0.1.1.
+current_provenance=D_ADOPTED_CURRENT. B는 Observed, D는 Current 채택·revision 발급·비교·최종 판정 담당.
+과거 v4 리뷰 Schema는 보존하고 assembly_contract.schema()에서 현재 층 상한을 확장한다.
+0.5 요청과 이전 bundle 표기는 새 계약으로 가장하지 않으며 검증에서 거절한다.
+기존 run_user_assembly_05.sh 이름은 유지하고 새 실행 자료에 현재 버전을 기록한다.
+아래 2026-10-08 검증 수치는 당시 기록이며 이번 수정 후 결과는 docs/STATUS.md를 따른다.
 
 상태: 로컬 계산 구현과 검증 자료. D 최종 공통 명세는 아직 미배포.
 기존 0.4/0.4.1 요청·사용자 직접 실행 기록·압축파일은 변경하지 않았다.
-이 문서와 새 0.5 실행이 현재 코드의 기준이다. 기존 ASSEMBLY_API_20261008.txt는 0.4.1 기록이다.
+이 문서와 새 0.5.1 실행이 현재 코드의 기준이다. 기존 ASSEMBLY_API_20261008.txt는 0.4.1 기록이다.
 샘플/Isaac/실물에서 같은 계산 함수 사용. 입력 데이터만 다르다.
 
 1. 프로필 ID·버전과 해시 분리
@@ -70,7 +79,7 @@ A 계산 API 0.5 — 수현님 회신 반영, 2026-10-08
   StepReassessmentResult / StepMotionRequest에 A assessment_input_digest 연결.
   WholePlanResult에 shared_planning_bundle, Motion에 profile_version 추가.
   전체 frame_profile을 중복 전달하지 않는 참조/registry 방식은 D 최종 Schema에 맞춰 변경 가능.
-  기존 0.4.1 JSON을 0.5 요청으로 가장하지 않는다. 새 Fixture를 사용한다.
+  기존 0.4.1/0.5 JSON을 0.5.1 요청으로 가장하지 않는다. 새 Fixture를 사용한다.
 
 4. B/D 공통 계획 자료
 
@@ -91,7 +100,8 @@ A 계산 API 0.5 — 수현님 회신 반영, 2026-10-08
     final_expected_blocks: 기준 Current+모든 PLACE 누적 결과
 
   expected_steps는 관측 Current가 아니다. 미래 current_revision을 임의 발급하지 않는다.
-  B가 실제 관측·비교·Current/revision을 확정하고 D가 보관·중계한다.
+  B는 실제 관측·관측 품질을 제공한다. D가 유효 Observed를 Current로 채택하고
+  revision을 발급하며 Expected 비교·진행·최종 판정을 소유한다. A는 입력 revision을 복사한다.
   재평가에서 기준 Plan.base_current_revision은 유지한다.
   deviation에 맞춰 기존 예상 배치를 수정하지 않는다. 승인 수정 Design의 새 Plan을 계산한다.
   B의 카메라 보정·높이맵/3D 비교 모델 생성·영상 판단은 B 담당이다.

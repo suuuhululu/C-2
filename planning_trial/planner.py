@@ -1,6 +1,6 @@
 """Build initial and remaining PLACE Plans using the team's Day4 contract.
 
-The caller relays B-confirmed actual blocks and their revision through D Backend.
+The caller supplies D-adopted Current and its D-issued revision.
 Samples and live integration use the same calculation and validation.
 """
 
@@ -13,7 +13,7 @@ from uuid import uuid4
 
 
 BOARD_SIZE = 24
-MAX_LAYER = 4
+MAX_LAYER = 5
 MIN_SUPPORT_STUDS = 2  # A/C rule confirmed in Backend's 2026-10-06 reply.
 BRICK_SIZES = {"2x2x1": (2, 2), "2x3x1": (2, 3), "1x2x1": (1, 2)}
 BLOCK_FIELDS = ("brick_type", "color", "x", "y", "layer", "orientation_deg")
@@ -63,7 +63,7 @@ def validate_brick(value, index):
         if type(brick[field]) is not int or not 0 <= brick[field] < BOARD_SIZE:
             raise PlanningError(f"{prefix}: {field} must be an integer from 0 to 23", brick)
     if type(brick["layer"]) is not int or not 1 <= brick["layer"] <= MAX_LAYER:
-        raise PlanningError(f"{prefix}: layer must be an integer from 1 to 4", brick)
+        raise PlanningError(f"{prefix}: layer must be an integer from 1 to {MAX_LAYER}", brick)
     allowed = (0,) if brick["brick_type"] == "2x2x1" else (0, 90)
     angle = brick["orientation_deg"]
     if type(angle) is not int or angle not in allowed:
