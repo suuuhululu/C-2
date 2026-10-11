@@ -9,8 +9,9 @@ Conventions:
     - ``designer.RETRY_DELAY`` is monkeypatched to 0 in every test that can reach a
       retry loop, per the lead's instruction (main passes delay=designer.RETRY_DELAY).
     - Legs are identified by ``layer == 1`` (no block ids exist, per contract §8.4).
-    - "1번" / "2번" are the fixed KEEP/REVISE (and MOVE_BACK/KEEP_SEARCHING) choice
-      tokens shared by dialogue.OPTIONS / dialogue.ESCALATION_OPTIONS.
+    - Questions are open-ended (no numbered choices); "1번" / "2번" answers are still
+      accepted silently as KEEP/REVISE (and MOVE_BACK/KEEP_SEARCHING) via
+      dialogue.OPTIONS / dialogue.ESCALATION_OPTIONS, so these tests keep using them.
 """
 
 import pytest
@@ -18,6 +19,7 @@ import pytest
 from app.c_design import designer, main, validator
 
 GOAL_TEXT = "오늘은 의자를 만들 거야"
+ESCALATION_MARK = "계속 새 설계를 찾아볼까요"  # dialogue.escalation_question에만 있는 문구
 ENVELOPE_KEYS = {"status", "hri_result", "design", "design_metadata", "questions", "error"}
 
 
@@ -202,7 +204,7 @@ def test_unclear_then_keep_reasks_once(initial_design):
     assert result["status"] == "OK"
     assert result["hri_result"] == "KEEP"
     assert len(result["questions"]) == 2
-    assert "다시 설명" in result["questions"][1]
+    assert "잘 못 알아들었어요" in result["questions"][1]
 
 
 def test_unclear_then_revise(initial_design):
@@ -286,9 +288,9 @@ def test_revise_generation_failure_after_escalation_decline(initial_design, monk
     assert result["design"] is None
     assert result["error"]["details"]
     assert 1 <= calls["n"] <= 10
-    # "옮기기" only appears in dialogue.escalation_question's "1번: 원래 위치로 옮기기"
-    # line; the ordinary HRI question/reask never use this exact phrasing.
-    assert any("옮기기" in q for q in result["questions"]), "escalation question must be among questions"
+    # "계속 새 설계를 찾아볼까요" only appears in dialogue.escalation_question;
+    # the ordinary HRI question/reask never use this exact phrasing.
+    assert any(ESCALATION_MARK in q for q in result["questions"]), "escalation question must be among questions"
 
 
 # ---------------------------------------------------------------------------
@@ -421,7 +423,7 @@ def test_current_support_violation_escalates_once_then_keep(initial_design):
     assert result["status"] == "OK"
     assert result["hri_result"] == "KEEP"
     assert result["design"] == initial_design
-    escalation_questions = [q for q in result["questions"] if "옮기기" in q]
+    escalation_questions = [q for q in result["questions"] if ESCALATION_MARK in q]
     assert len(escalation_questions) == 1
 
 
@@ -432,7 +434,7 @@ def test_current_support_violation_escalates_twice_then_keep(initial_design):
     assert result["status"] == "OK"
     assert result["hri_result"] == "KEEP"
     assert result["design"] == initial_design
-    escalation_questions = [q for q in result["questions"] if "옮기기" in q]
+    escalation_questions = [q for q in result["questions"] if ESCALATION_MARK in q]
     assert len(escalation_questions) == 2
 
 
@@ -510,7 +512,7 @@ def _stop_from_second_call():
 
 def test_stop_during_voice_silence_wait(initial_design, monkeypatch):
     current, differences = _build_shift_scenario(initial_design)
-    monkeypatch.setattr(main.voice, "listen", lambda: "")  # silence forever
+    monkeypatch.setattr(main.voice, "listen", lambda **kwargs: "")  # silence forever (mode="free", beep=True)
     result = main.run_intervention(
         initial_design, current, differences, text_answers=None, should_stop=_stop_from_second_call()
     )
@@ -545,13 +547,14 @@ def _clean_use_llm_env(monkeypatch):
 
 @pytest.fixture(autouse=True)
 def _no_real_metadata_calls(monkeypatch):
-    # LLM-mode tests here stub only the design generator; the metadata calls (intent / judge / describe) answer with
-    # a provider error so no request is ever built. tests/unit/c_design/test_design_metadata.py covers them.
+    # LLM-mode tests here stub only the design generator; the metadata calls (Initial request / judge / describe) answer
+    # with a provider error so no request is ever built. tests/unit/c_design/test_design_metadata.py covers them.
+    # interpret_initial_request is Opus A's Wave 4b function (raising=False until it exists in llm).
     def not_stubbed(*args, **kwargs):
         return {"llm_error": {"kind": "bad_response", "message": "not stubbed in test_main"}}
 
-    for name in ("generate_design_intent", "judge_revised_design", "describe_initial_design"):
-        monkeypatch.setattr(main.llm, name, not_stubbed)
+    for name in ("judge_revised_design", "describe_initial_design", "interpret_initial_request"):
+        monkeypatch.setattr(main.llm, name, not_stubbed, raising=False)
 
 
 def test_use_llm_unset_takes_the_mock_path(monkeypatch):
@@ -569,7 +572,7 @@ def test_use_llm_set_takes_the_llm_path_for_initial_design(monkeypatch):
     monkeypatch.setenv("C_DESIGN_USE_LLM", "1")
     calls = {"n": 0}
 
-    def fake_generate_initial(object_type, reasons=None, should_stop=None):
+    def fake_generate_initial(object_type, reasons=None, should_stop=None, family=None, style_hint=None, concept=None):
         calls["n"] += 1
         calls["object_type"] = object_type
         calls["reasons"] = reasons
@@ -597,9 +600,12 @@ def test_use_llm_set_takes_the_llm_path_for_revised_design(monkeypatch):
     current, differences = _build_shift_scenario(design)
 
     monkeypatch.setenv("C_DESIGN_USE_LLM", "1")
+    # Mock 후보는 블록 수를 늘리지 않으므로 richness 하한(§8.13)을 이전 블록 수로 둔다. 하한 전달은 별도 테스트가 본다.
+    monkeypatch.setattr(designer, "RICHNESS_MIN_DELTA", 0)
     calls = {"n": 0}
 
-    def fake_generate_revised(design_in, current_in, differences_in, reasons=None, should_stop=None, intent=None, feedback=None):
+    def fake_generate_revised(design_in, current_in, differences_in, reasons=None, should_stop=None, feedback=None,
+                              min_blocks=None, style_hint=None):
         calls["n"] += 1
         calls["should_stop"] = should_stop
         return designer.mock_revised_candidate(design_in, current_in, differences_in)
@@ -618,7 +624,7 @@ def test_use_llm_set_takes_the_llm_path_for_revised_design(monkeypatch):
 def test_use_llm_set_initial_design_llm_error_is_llm_call_failed(monkeypatch):
     monkeypatch.setenv("C_DESIGN_USE_LLM", "1")
 
-    def fake_generate_initial(object_type, reasons=None, should_stop=None):
+    def fake_generate_initial(object_type, reasons=None, should_stop=None, family=None, style_hint=None, concept=None):
         return {"llm_error": {"kind": "rate_limit", "message": "HTTP 429"}}
 
     monkeypatch.setattr(main.llm, "generate_initial_design", fake_generate_initial)
@@ -636,7 +642,8 @@ def test_use_llm_set_revised_design_llm_error_is_llm_call_failed_with_revise_hri
     current, differences = _build_shift_scenario(initial_design)
     monkeypatch.setenv("C_DESIGN_USE_LLM", "1")
 
-    def fake_generate_revised(design_in, current_in, differences_in, reasons=None, should_stop=None, intent=None, feedback=None):
+    def fake_generate_revised(design_in, current_in, differences_in, reasons=None, should_stop=None, feedback=None,
+                              min_blocks=None, style_hint=None):
         return {"llm_error": {"kind": "rate_limit", "message": "HTTP 429"}}
 
     monkeypatch.setattr(main.llm, "generate_revised_design", fake_generate_revised)

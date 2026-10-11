@@ -129,6 +129,20 @@ def test_mock_initial_candidate_shape():
         assert set(b.keys()) == set(validator.BLOCK_FIELDS)
 
 
+def _in_stock(blocks):
+    return all(b["brick_type"] in validator.ALLOWED_COMBINATIONS[b["color"]] for b in blocks)
+
+
+def test_mock_designs_use_stock_combinations_only(initial_design):
+    """Stage 2 final stock (2026-10-08): Mock Initial and Revised use yellow/blue 2x2x1·2x3x1 only."""
+    assert _in_stock(designer.mock_initial_candidate(CHAIR)["blocks"])
+    assert _in_stock(initial_design["blocks"])
+    leg = _blocks_at(initial_design, 1)[0]
+    seat = _blocks_at(initial_design, 2)[0]
+    revised = designer.mock_revised_candidate(initial_design, [dict(leg)], [{"expected": seat, "actual": seat}])
+    assert _in_stock(revised["blocks"])
+
+
 def test_center_blocks_matches_bbox_formula():
     candidate = designer.mock_initial_candidate(CHAIR)
     centered = designer.center_blocks(candidate["blocks"])
@@ -716,3 +730,139 @@ def test_revised_llm_candidate_with_design_version_is_accepted_and_versioned_by_
     )
     assert rejected["design"] is None
     assert "unknown_key" in {r["rule"] for r in rejected["reasons"]}
+
+
+# ---------------------------------------------------------------------------
+# Stage 2 Wave 2: Revised richness (min_blocks = previous + RICHNESS_MIN_DELTA, capped at MAX_BLOCKS)
+# ---------------------------------------------------------------------------
+
+
+def _rich_tiny_chair_blocks():
+    """The tiny chair grown to 8 valid blocks (2 + 6): a stacked back column and red 1x2x1 slats on the leg's free row
+    (stock combinations only: blue 2x2x1, red 1x2x1)."""
+    leg, seat = _tiny_chair_design()["blocks"]
+
+    def b(brick_type, x, y, layer, orientation_deg=0, color="blue"):
+        return dict(color=color, brick_type=brick_type, x=x, y=y, orientation_deg=orientation_deg, layer=layer)
+
+    return [dict(leg), dict(seat),
+            b("1x2x1", 10, 12, 2, 90, "red"), b("2x2x1", 10, 10, 3), b("1x2x1", 10, 12, 3, 90, "red"),
+            b("2x2x1", 10, 10, 4), b("1x2x1", 10, 12, 4, 90, "red"), b("2x2x1", 10, 10, 5)]
+
+
+def test_rich_tiny_chair_fixture_is_valid():
+    blocks = _rich_tiny_chair_blocks()
+    assert len(blocks) == 8 and validator.validate_design({"design_version": 1, "blocks": blocks}) == []
+
+
+def test_revised_min_blocks_is_previous_plus_six_capped_at_max_blocks():
+    assert designer.RICHNESS_MIN_DELTA == 6
+    one = {"brick_type": "2x2x1", "color": "blue", "x": 0, "y": 0, "layer": 1, "orientation_deg": 0}
+    assert designer.revised_min_blocks({"design_version": 1, "blocks": [one] * 15}) == 21
+    assert designer.revised_min_blocks({"design_version": 1, "blocks": [one] * 34}) == validator.MAX_BLOCKS == 40
+    assert designer.revised_min_blocks({"design_version": 1, "blocks": [one] * 38}) == 40
+    assert designer.revised_min_blocks(_tiny_chair_design()) == 8
+
+
+def test_too_few_blocks_rejects_then_the_loop_regenerates():
+    design = _tiny_chair_design()
+    leg, seat = design["blocks"]
+    current = [dict(leg)]
+    differences = [{"expected": seat, "actual": seat}]
+    seen_reasons = []
+
+    def gen(design_in, current_in, differences_in, reasons):
+        seen_reasons.append(reasons)
+        if len(seen_reasons) == 1:
+            return {"blocks": [dict(b) for b in design_in["blocks"]]}  # valid but only 2 blocks
+        return {"blocks": _rich_tiny_chair_blocks()}
+
+    min_blocks = designer.revised_min_blocks(design)
+    result = designer.build_revised_design(design, current, differences, generate=gen, max_attempts=3, delay=0,
+                                           min_blocks=min_blocks)
+    assert result["design"] is not None, result["reasons"]
+    assert result["attempts"] == 2
+    assert len(result["design"]["blocks"]) == 8 and result["design"]["design_version"] == 2
+    (rejection,) = seen_reasons[1]
+    assert rejection == {"rule": "too_few_blocks", "blocks": [],
+                         "message": "Revised Design has 2 blocks; at least 8 required (previous 2 + 6, at most 40)"}
+
+
+def test_too_few_blocks_until_the_limit_fails_with_the_reason():
+    design = _tiny_chair_design()
+    leg, seat = design["blocks"]
+
+    def gen(design_in, current_in, differences_in, reasons):
+        return {"blocks": [dict(b) for b in design_in["blocks"]]}
+
+    result = designer.build_revised_design(design, [dict(leg)], [{"expected": seat, "actual": seat}], generate=gen,
+                                           max_attempts=2, delay=0, min_blocks=8)
+    assert result["design"] is None and result["attempts"] == 2
+    assert [r["rule"] for r in result["reasons"]] == ["too_few_blocks"]
+
+
+def test_min_blocks_none_does_not_check_richness():
+    design = _tiny_chair_design()
+    leg, seat = design["blocks"]
+    moved_seat = dict(seat, x=seat["x"] + 1)
+
+    def gen(design_in, current_in, differences_in, reasons):
+        return {"blocks": [dict(leg), moved_seat]}
+
+    result = designer.build_revised_design(design, [dict(leg)], [{"expected": seat, "actual": seat}], generate=gen,
+                                           max_attempts=1, delay=0)
+    assert result["design"] is not None and result["attempts"] == 1 and len(result["design"]["blocks"]) == 2
+
+
+def test_initial_differ_from_rejects_the_same_blocks_then_accepts_a_changed_candidate():
+    previous = designer.build_initial_design("CHAIR", delay=0)["design"]
+    seen = []
+
+    def gen(object_type, reasons):
+        seen.append(list(reasons))
+        blocks = [dict(b) for b in previous["blocks"]]
+        if len(seen) > 1:
+            blocks[0]["color"] = "blue" if blocks[0]["color"] == "yellow" else "yellow"
+        return {"blocks": blocks}
+
+    result = designer.build_initial_design("CHAIR", generate=gen, max_attempts=3, delay=0, differ_from=previous)
+    assert result["design"] is not None and result["attempts"] == 2
+    assert result["design"]["blocks"] != previous["blocks"] and result["design"]["design_version"] == 1
+    assert [r["rule"] for r in seen[1]] == ["unchanged_candidate"]
+
+
+def test_initial_differ_from_until_the_limit_fails_with_the_reason():
+    previous = designer.build_initial_design("CHAIR", delay=0)["design"]
+    result = designer.build_initial_design("CHAIR", generate=lambda o, r: {"blocks": [dict(b) for b in previous["blocks"]]},
+                                           max_attempts=2, delay=0, differ_from=previous)
+    assert result["design"] is None and result["attempts"] == 2
+    assert [r["rule"] for r in result["reasons"]] == ["unchanged_candidate"]
+
+
+def test_revised_differ_from_rejects_the_previous_revised_candidate():
+    design = _tiny_chair_design()
+    leg, seat = design["blocks"]
+    current = [dict(leg)]
+    differences = [{"expected": seat, "actual": seat}]
+    previous = {"design_version": 2, "blocks": _rich_tiny_chair_blocks()}
+    seen = []
+
+    def gen(design_in, current_in, differences_in, reasons):
+        seen.append(list(reasons))
+        blocks = [dict(b) for b in previous["blocks"]]
+        if len(seen) > 1:
+            blocks[-1]["color"] = "blue" if blocks[-1]["color"] == "yellow" else "yellow"
+        return {"blocks": blocks}
+
+    result = designer.build_revised_design(design, current, differences, generate=gen, max_attempts=3, delay=0,
+                                           differ_from=previous)
+    assert result["design"] is not None and result["attempts"] == 2 and result["design"]["design_version"] == 2
+    assert [r["rule"] for r in seen[1]] == ["unchanged_candidate"]
+    assert validator.validate_revised({"blocks": result["design"]["blocks"]}, current) == []
+
+
+def test_differ_from_none_keeps_the_old_behaviour():
+    previous = designer.build_initial_design("CHAIR", delay=0)["design"]
+    result = designer.build_initial_design("CHAIR", generate=lambda o, r: {"blocks": [dict(b) for b in previous["blocks"]]},
+                                           max_attempts=1, delay=0)
+    assert result["design"] == previous

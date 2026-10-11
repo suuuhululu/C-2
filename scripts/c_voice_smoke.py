@@ -5,6 +5,7 @@ Run from the repo root, one subcommand at a time:
 
     python3 scripts/c_voice_smoke.py stt
     python3 scripts/c_voice_smoke.py tts "문장"
+    python3 scripts/c_voice_smoke.py questions
     python3 scripts/c_voice_smoke.py dialogue
     python3 scripts/c_voice_smoke.py echo
 
@@ -14,6 +15,13 @@ What each subcommand checks:
             silence) plus how dialogue.parse_response interprets it.
   tts       Sends the given sentence to the real TTS provider and plays it
             on the real speaker.
+  questions Plays the two Stage 2 open-ended Korean questions exactly as
+            dialogue builds them (Initial greeting, and the full
+            Intervention question for one moved block) one after another and prints, per
+            sentence, model / voice / whether instructions were sent, audio
+            length and playback start/end clock times (voice._last_speak).
+            Listening check for the user: natural Korean, calm tone, no cut-off
+            at the end of a 2-3 sentence question.
   dialogue  Runs one full run_intervention() turn against a Mock CHAIR
             design with text_answers=None, i.e. voice mode: it speaks the
             question through the real speaker and listens on the real mic
@@ -35,8 +43,17 @@ command, not exported into your shell, so they do not linger in your
 session or shell history:
 
     OPENAI_TTS_API_KEY="$(tr -d '[:space:]' < ~/c2_cobot2_API_key.txt)" \\
-    OPENAI_API_KEY="$(tr -d '[:space:]' < ~/C2_OpenAi_API_Key.txt)" \\
+    OPENAI_API_KEY="$(tr -d '[:space:]' < ~/c2_cobot2_API_key.txt)" \\
         python3 scripts/c_voice_smoke.py echo
+
+TTS model, voice and speaking-style instructions come from OPENAI_TTS_MODEL
+(default gpt-4o-mini-tts), OPENAI_TTS_VOICE (default marin) and
+OPENAI_TTS_INSTRUCTIONS (sent only to models other than tts-1 / tts-1-hd).
+Compare voices by repeating `questions` with e.g. OPENAI_TTS_VOICE=marin or
+OPENAI_TTS_VOICE=cedar in the same inline form; OPENAI_TTS_MODEL=tts-1 reproduces
+the Stage 1 voice (no instructions). On failure the printed last_error is
+"kind: HTTP code" (auth / model_access / bad_param / billing / rate_limit /
+server / bad_response), never the response body.
 
 Do not `export OPENAI_API_KEY=...` or `export OPENAI_TTS_API_KEY=...` -- that
 leaves the key set for every later command in the shell. Prefer the inline
@@ -66,6 +83,11 @@ def _print_key_and_models():
     tts_model = os.environ.get("OPENAI_TTS_MODEL") or voice.DEFAULT_TTS_MODEL
     print(f"STT model: {stt_model}")
     print(f"TTS model: {tts_model}")
+    print(f"TTS voice: {os.environ.get('OPENAI_TTS_VOICE') or voice.DEFAULT_TTS_VOICE}")
+    if tts_model in voice.TTS_MODELS_WITHOUT_INSTRUCTIONS:
+        print("TTS instructions: not sent for this model")
+    else:
+        print(f"TTS instructions: {os.environ.get('OPENAI_TTS_INSTRUCTIONS') or voice.DEFAULT_TTS_INSTRUCTIONS}")
 
 
 def run_stt(_args):
@@ -92,6 +114,32 @@ def run_tts(args):
         print(str(error))
         return 1
     return 0
+
+
+_SAMPLE_BLOCK = {"brick_type": "2x2x1", "color": "yellow", "x": 6, "y": 5, "orientation_deg": 0, "layer": 1}
+
+# production 문장 그대로: Initial 선호 질문과, 블록 1개가 옮겨진 Intervention 주관식 질문 전체
+QUESTION_SENTENCES = (
+    dialogue.build_greeting(),
+    dialogue.build_question({}, [], [{"expected": _SAMPLE_BLOCK, "actual": dict(_SAMPLE_BLOCK, x=7)}]),
+)
+
+
+def run_questions(_args):
+    _print_key_and_models()
+    failed = False
+    for sentence in QUESTION_SENTENCES:
+        print("sentence: " + sentence)
+        voice.speak(sentence)
+        info = voice._last_speak or {}
+        print(f"  model {info.get('model')}, voice {info.get('voice')}, instructions sent {info.get('instructions_sent')}, "
+              f"audio {info.get('audio_seconds')} s at {info.get('samplerate')} Hz, "
+              f"play {info.get('play_started_at')} -> {info.get('play_ended_at')}")
+        error = voice.last_error()
+        if error:
+            print("  speak failed: " + str(error))
+            failed = True
+    return 1 if failed else 0
 
 
 def run_dialogue(_args):
@@ -123,7 +171,7 @@ def run_dialogue(_args):
     return 0 if result["status"] == "OK" else 1
 
 
-ECHO_SENTENCE = "지금 놓인 블록을 확인했습니다. 1번 또는 2번으로 말씀해 주세요."
+ECHO_SENTENCE = "Design과 다르게 놓인 부분이 있는데, 의도하신 건가요? 어떤 생각이셨는지 편하게 말씀해 주세요."
 
 
 def run_echo(_args):
@@ -213,6 +261,7 @@ def main_cli():
 
     tts_parser = subparsers.add_parser("tts", help="speak one sentence on the real speaker")
     tts_parser.add_argument("sentence", help="Korean sentence to speak")
+    subparsers.add_parser("questions", help="speak the two Stage 2 open-ended Korean questions")
 
     subparsers.add_parser("dialogue", help="run one run_intervention turn (voice mode, real mic/speaker)")
     subparsers.add_parser("echo", help="speak one fixed sentence, then listen once (echo check)")
@@ -222,6 +271,8 @@ def main_cli():
         return run_stt(args)
     if args.command == "tts":
         return run_tts(args)
+    if args.command == "questions":
+        return run_questions(args)
     if args.command == "echo":
         return run_echo(args)
     return run_dialogue(args)

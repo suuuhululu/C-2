@@ -1,0 +1,370 @@
+{
+ "status": "OK",
+ "hri_result": "REVISE",
+ "design": {
+  "design_version": 2,
+  "blocks": [
+   {
+    "brick_type": "2x3x1",
+    "color": "blue",
+    "x": 9,
+    "y": 9,
+    "layer": 1,
+    "orientation_deg": 90
+   },
+   {
+    "brick_type": "2x3x1",
+    "color": "blue",
+    "x": 12,
+    "y": 9,
+    "layer": 1,
+    "orientation_deg": 90
+   },
+   {
+    "brick_type": "2x3x1",
+    "color": "blue",
+    "x": 15,
+    "y": 9,
+    "layer": 1,
+    "orientation_deg": 90
+   },
+   {
+    "brick_type": "2x2x1",
+    "color": "blue",
+    "x": 6,
+    "y": 11,
+    "layer": 1,
+    "orientation_deg": 0
+   },
+   {
+    "brick_type": "2x3x1",
+    "color": "blue",
+    "x": 8,
+    "y": 11,
+    "layer": 1,
+    "orientation_deg": 90
+   },
+   {
+    "brick_type": "2x3x1",
+    "color": "blue",
+    "x": 11,
+    "y": 11,
+    "layer": 1,
+    "orientation_deg": 90
+   },
+   {
+    "brick_type": "2x2x1",
+    "color": "blue",
+    "x": 14,
+    "y": 11,
+    "layer": 1,
+    "orientation_deg": 0
+   },
+   {
+    "brick_type": "2x2x1",
+    "color": "blue",
+    "x": 16,
+    "y": 11,
+    "layer": 1,
+    "orientation_deg": 0
+   },
+   {
+    "brick_type": "2x3x1",
+    "color": "blue",
+    "x": 6,
+    "y": 13,
+    "layer": 1,
+    "orientation_deg": 90
+   },
+   {
+    "brick_type": "2x3x1",
+    "color": "blue",
+    "x": 9,
+    "y": 13,
+    "layer": 1,
+    "orientation_deg": 90
+   },
+   {
+    "brick_type": "2x3x1",
+    "color": "blue",
+    "x": 12,
+    "y": 13,
+    "layer": 1,
+    "orientation_deg": 90
+   },
+   {
+    "brick_type": "2x3x1",
+    "color": "blue",
+    "x": 15,
+    "y": 13,
+    "layer": 1,
+    "orientation_deg": 90
+   },
+   {
+    "brick_type": "2x3x1",
+    "color": "blue",
+    "x": 5,
+    "y": 9,
+    "layer": 1,
+    "orientation_deg": 90
+   },
+   {
+    "brick_type": "2x3x1",
+    "color": "yellow",
+    "x": 6,
+    "y": 9,
+    "layer": 2,
+    "orientation_deg": 0
+   },
+   {
+    "brick_type": "2x3x1",
+    "color": "yellow",
+    "x": 8,
+    "y": 9,
+    "layer": 2,
+    "orientation_deg": 0
+   },
+   {
+    "brick_type": "2x3x1",
+    "color": "yellow",
+    "x": 10,
+    "y": 9,
+    "layer": 2,
+    "orientation_deg": 0
+   },
+   {
+    "brick_type": "2x3x1",
+    "color": "yellow",
+    "x": 12,
+    "y": 9,
+    "layer": 2,
+    "orientation_deg": 0
+   },
+   {
+    "brick_type": "2x3x1",
+    "color": "yellow",
+    "x": 14,
+    "y": 9,
+    "layer": 2,
+    "orientation_deg": 0
+   },
+   {
+    "brick_type": "2x3x1",
+    "color": "yellow",
+    "x": 16,
+    "y": 9,
+    "layer": 2,
+    "orientation_deg": 0
+   },
+   {
+    "brick_type": "2x3x1",
+    "color": "yellow",
+    "x": 6,
+    "y": 12,
+    "layer": 2,
+    "orientation_deg": 90
+   },
+   {
+    "brick_type": "2x3x1",
+    "color": "yellow",
+    "x": 9,
+    "y": 12,
+    "layer": 2,
+    "orientation_deg": 90
+   },
+   {
+    "brick_type": "2x3x1",
+    "color": "yellow",
+    "x": 12,
+    "y": 12,
+    "layer": 2,
+    "orientation_deg": 90
+   },
+   {
+    "brick_type": "2x3x1",
+    "color": "yellow",
+    "x": 15,
+    "y": 12,
+    "layer": 2,
+    "orientation_deg": 90
+   },
+   {
+    "brick_type": "2x2x1",
+    "color": "blue",
+    "x": 6,
+    "y": 9,
+    "layer": 3,
+    "orientation_deg": 0
+   },
+   {
+    "brick_type": "2x2x1",
+    "color": "blue",
+    "x": 6,
+    "y": 11,
+    "layer": 3,
+    "orientation_deg": 0
+   },
+   {
+    "brick_type": "2x2x1",
+    "color": "blue",
+    "x": 16,
+    "y": 9,
+    "layer": 3,
+    "orientation_deg": 0
+   },
+   {
+    "brick_type": "2x2x1",
+    "color": "blue",
+    "x": 16,
+    "y": 11,
+    "layer": 3,
+    "orientation_deg": 0
+   },
+   {
+    "brick_type": "2x3x1",
+    "color": "blue",
+    "x": 6,
+    "y": 13,
+    "layer": 3,
+    "orientation_deg": 90
+   },
+   {
+    "brick_type": "2x3x1",
+    "color": "blue",
+    "x": 9,
+    "y": 13,
+    "layer": 3,
+    "orientation_deg": 90
+   },
+   {
+    "brick_type": "2x3x1",
+    "color": "blue",
+    "x": 12,
+    "y": 13,
+    "layer": 3,
+    "orientation_deg": 90
+   },
+   {
+    "brick_type": "2x3x1",
+    "color": "blue",
+    "x": 15,
+    "y": 13,
+    "layer": 3,
+    "orientation_deg": 90
+   },
+   {
+    "brick_type": "2x3x1",
+    "color": "yellow",
+    "x": 6,
+    "y": 9,
+    "layer": 4,
+    "orientation_deg": 0
+   },
+   {
+    "brick_type": "2x3x1",
+    "color": "yellow",
+    "x": 16,
+    "y": 9,
+    "layer": 4,
+    "orientation_deg": 0
+   },
+   {
+    "brick_type": "2x3x1",
+    "color": "blue",
+    "x": 6,
+    "y": 13,
+    "layer": 4,
+    "orientation_deg": 90
+   },
+   {
+    "brick_type": "2x3x1",
+    "color": "yellow",
+    "x": 9,
+    "y": 13,
+    "layer": 4,
+    "orientation_deg": 90
+   },
+   {
+    "brick_type": "2x3x1",
+    "color": "yellow",
+    "x": 12,
+    "y": 13,
+    "layer": 4,
+    "orientation_deg": 90
+   },
+   {
+    "brick_type": "2x3x1",
+    "color": "blue",
+    "x": 15,
+    "y": 13,
+    "layer": 4,
+    "orientation_deg": 90
+   },
+   {
+    "brick_type": "2x3x1",
+    "color": "blue",
+    "x": 9,
+    "y": 13,
+    "layer": 5,
+    "orientation_deg": 90
+   },
+   {
+    "brick_type": "2x3x1",
+    "color": "blue",
+    "x": 12,
+    "y": 13,
+    "layer": 5,
+    "orientation_deg": 90
+   }
+  ]
+ },
+ "design_metadata": {
+  "design_name": "확장된 좌석 벤치",
+  "design_family": "벤치",
+  "design_summary": "좌석과 등받이, 팔걸이가 명확히 구분되어 완전한 벤치 형태를 이룬다.",
+  "visible_features": [
+   "좌석 8×5",
+   "등받이 2층 높이",
+   "양쪽 팔걸이",
+   "좌우 대칭 구조",
+   "플랫폼 확장"
+  ],
+  "human_interpretation": {
+   "placed_differently": "좌석이 왼쪽으로 확장되어 더 넓은 공간을 차지한다.",
+   "interpretation": "기존 벤치에 팔걸이와 등받이 높이를 추가하여 편안함을 높였다.",
+   "imagined_concept": "더 넓고 안정적인 벤치 형태를 상상했고",
+   "lego_redesign": "좌석 폭 확장과 등받이 층수 증가, 팔걸이 추가로 발전시켰다.",
+   "why_final_shape": "사용자가 앉기에 충분한 공간과 지지 구조를 제공하기 위해서이다."
+  },
+  "change_summary": [
+   "좌석 폭이 1칸 왼쪽으로 확장됨",
+   "등받이 블록이 2층에서 3~5층까지 높아짐",
+   "팔걸이 역할의 블록이 양쪽 끝에 추가됨",
+   "기존 2층 옐로우 블록 일부가 90도 회전하여 등받이 역할 강화",
+   "좌석과 등받이의 색상 대비가 명확해짐"
+  ],
+  "interpretation_status": "clearly visible",
+  "judge": {
+   "recognizable_family": true,
+   "family_confidence": "clear",
+   "silhouette_clarity": "clear",
+   "explanation_required_to_understand": false,
+   "layer5_meaningful": true,
+   "completeness_score": 5,
+   "awkward": "없음",
+   "chair_likeness": "clear",
+   "richer_than_previous": true,
+   "richer_why": "좌석 확장과 등받이 층수 증가, 팔걸이 추가로 구조가 더 완성되고 안정적이다.",
+   "verdict": "SHOWCASE"
+  },
+  "design_intent": null,
+  "regenerations": 0,
+  "style_hint": "더 넓게",
+  "source": "LLM",
+  "error": null
+ },
+ "questions": [
+  "Design과 다르게 놓인 부분이 있는데, 의도하신 건가요?\n(x=6, y=9) 1층 블록의 위치가 달라요.\n일부러 그렇게 놓으셨다면 어떤 생각이셨는지 편하게 말씀해 주세요. 실수였다면 원래 자리로 고쳐 주시면 돼요."
+ ],
+ "error": null
+}

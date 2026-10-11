@@ -849,7 +849,7 @@
       }
     },
     {
-      "case": "brick_count_thirty_one",
+      "case": "brick_count_forty_one",
       "expected_rules": [
         "brick_count"
       ],
@@ -1103,6 +1103,86 @@
             "y": 20,
             "layer": 1,
             "orientation_deg": 0
+          },
+          {
+            "brick_type": "2x2x1",
+            "color": "blue",
+            "x": 0,
+            "y": 22,
+            "layer": 1,
+            "orientation_deg": 0
+          },
+          {
+            "brick_type": "2x2x1",
+            "color": "blue",
+            "x": 2,
+            "y": 22,
+            "layer": 1,
+            "orientation_deg": 0
+          },
+          {
+            "brick_type": "2x2x1",
+            "color": "blue",
+            "x": 4,
+            "y": 22,
+            "layer": 1,
+            "orientation_deg": 0
+          },
+          {
+            "brick_type": "2x2x1",
+            "color": "blue",
+            "x": 6,
+            "y": 22,
+            "layer": 1,
+            "orientation_deg": 0
+          },
+          {
+            "brick_type": "2x2x1",
+            "color": "blue",
+            "x": 8,
+            "y": 22,
+            "layer": 1,
+            "orientation_deg": 0
+          },
+          {
+            "brick_type": "2x2x1",
+            "color": "blue",
+            "x": 10,
+            "y": 22,
+            "layer": 1,
+            "orientation_deg": 0
+          },
+          {
+            "brick_type": "2x2x1",
+            "color": "blue",
+            "x": 12,
+            "y": 22,
+            "layer": 1,
+            "orientation_deg": 0
+          },
+          {
+            "brick_type": "2x2x1",
+            "color": "blue",
+            "x": 14,
+            "y": 22,
+            "layer": 1,
+            "orientation_deg": 0
+          },
+          {
+            "brick_type": "2x2x1",
+            "color": "blue",
+            "x": 16,
+            "y": 22,
+            "layer": 1,
+            "orientation_deg": 0
+          },
+          {
+            "brick_type": "2x2x1",
+            "color": "blue",
+            "x": 18,
+            "y": 22,
+            "layer": 1,
+            "orientation_deg": 0
           }
         ]
       },
@@ -1334,6 +1414,326 @@
         ]
       },
       "_note": "Design must be exactly {design_version, blocks}; any other top-level key is unknown_key."
+    },
+    {
+      "case": "combination_yellow_1x2x1",
+      "expected_rules": [
+        "invalid_combination"
+      ],
+      "design": {
+        "design_version": 1,
+        "blocks": [
+          {
+            "brick_type": "2x2x1",
+            "color": "blue",
+            "x": 10,
+            "y": 10,
+            "layer": 1,
+            "orientation_deg": 0
+          },
+          {
+            "brick_type": "2x2x1",
+            "color": "blue",
+            "x": 12,
+            "y": 10,
+            "layer": 1,
+            "orientation_deg": 0
+          },
+          {
+            "brick_type": "2x2x1",
+            "color": "blue",
+            "x": 10,
+            "y": 12,
+            "layer": 1,
+            "orientation_deg": 0
+          },
+          {
+            "brick_type": "2x2x1",
+            "color": "blue",
+            "x": 12,
+            "y": 12,
+            "layer": 1,
+            "orientation_deg": 0
+          },
+          {
+            "brick_type": "2x3x1",
+            "color": "yellow",
+            "x": 10,
+            "y": 10,
+            "layer": 2,
+            "orientation_deg": 0
+          },
+          {
+            "brick_type": "2x3x1",
+            "color": "yellow",
+            "x": 12,
+            "y": 10,
+            "layer": 2,
+            "orientation_deg": 0
+          },
+          {
+            "brick_type": "2x2x1",
+            "color": "blue",
+            "x": 11,
+            "y": 11,
+            "layer": 3,
+            "orientation_deg": 0
+          },
+          {
+            "brick_type": "2x2x1",
+            "color": "yellow",
+            "x": 11,
+            "y": 11,
+            "layer": 4,
+            "orientation_deg": 0
+          },
+          {
+            "brick_type": "1x2x1",
+            "color": "yellow",
+            "x": 11,
+            "y": 11,
+            "layer": 5,
+            "orientation_deg": 0
+          }
+        ]
+      },
+      "_note": "Stage 2 final stock (2026-10-08): 1x2x1 exists only in red. A fully supported yellow 1x2x1 on layer 5 is rejected only for the combination."
+    },
+    {
+      "case": "combination_blue_1x2x1",
+      "expected_rules": [
+        "invalid_combination"
+      ],
+      "design": {
+        "design_version": 1,
+        "blocks": [
+          {
+            "brick_type": "2x2x1",
+            "color": "blue",
+            "x": 10,
+            "y": 10,
+            "layer": 1,
+            "orientation_deg": 0
+          },
+          {
+            "brick_type": "2x2x1",
+            "color": "blue",
+            "x": 12,
+            "y": 10,
+            "layer": 1,
+            "orientation_deg": 0
+          },
+          {
+            "brick_type": "2x2x1",
+            "color": "blue",
+            "x": 10,
+            "y": 12,
+            "layer": 1,
+            "orientation_deg": 0
+          },
+          {
+            "brick_type": "2x2x1",
+            "color": "blue",
+            "x": 12,
+            "y": 12,
+            "layer": 1,
+            "orientation_deg": 0
+          },
+          {
+            "brick_type": "2x3x1",
+            "color": "yellow",
+            "x": 10,
+            "y": 10,
+            "layer": 2,
+            "orientation_deg": 0
+          },
+          {
+            "brick_type": "2x3x1",
+            "color": "yellow",
+            "x": 12,
+            "y": 10,
+            "layer": 2,
+            "orientation_deg": 0
+          },
+          {
+            "brick_type": "2x2x1",
+            "color": "blue",
+            "x": 11,
+            "y": 11,
+            "layer": 3,
+            "orientation_deg": 0
+          },
+          {
+            "brick_type": "2x2x1",
+            "color": "yellow",
+            "x": 11,
+            "y": 11,
+            "layer": 4,
+            "orientation_deg": 0
+          },
+          {
+            "brick_type": "1x2x1",
+            "color": "blue",
+            "x": 11,
+            "y": 11,
+            "layer": 5,
+            "orientation_deg": 0
+          }
+        ]
+      },
+      "_note": "Stage 2 final stock (2026-10-08): 1x2x1 exists only in red. A fully supported blue 1x2x1 on layer 5 is rejected only for the combination."
+    },
+    {
+      "case": "combination_red_2x2x1",
+      "expected_rules": [
+        "invalid_combination"
+      ],
+      "design": {
+        "design_version": 1,
+        "blocks": [
+          {
+            "brick_type": "2x2x1",
+            "color": "red",
+            "x": 10,
+            "y": 10,
+            "layer": 1,
+            "orientation_deg": 0
+          },
+          {
+            "brick_type": "2x2x1",
+            "color": "blue",
+            "x": 12,
+            "y": 10,
+            "layer": 1,
+            "orientation_deg": 0
+          },
+          {
+            "brick_type": "2x2x1",
+            "color": "blue",
+            "x": 10,
+            "y": 12,
+            "layer": 1,
+            "orientation_deg": 0
+          },
+          {
+            "brick_type": "2x2x1",
+            "color": "blue",
+            "x": 12,
+            "y": 12,
+            "layer": 1,
+            "orientation_deg": 0
+          },
+          {
+            "brick_type": "2x3x1",
+            "color": "yellow",
+            "x": 10,
+            "y": 10,
+            "layer": 2,
+            "orientation_deg": 0
+          },
+          {
+            "brick_type": "2x3x1",
+            "color": "yellow",
+            "x": 12,
+            "y": 10,
+            "layer": 2,
+            "orientation_deg": 0
+          },
+          {
+            "brick_type": "2x2x1",
+            "color": "blue",
+            "x": 11,
+            "y": 11,
+            "layer": 3,
+            "orientation_deg": 0
+          },
+          {
+            "brick_type": "2x2x1",
+            "color": "yellow",
+            "x": 11,
+            "y": 11,
+            "layer": 4,
+            "orientation_deg": 0
+          }
+        ]
+      },
+      "_note": "Stage 2 final stock (2026-10-08): red exists only as 1x2x1. The first layer-1 blue 2x2x1 recoloured red."
+    },
+    {
+      "case": "combination_red_2x3x1",
+      "expected_rules": [
+        "invalid_combination"
+      ],
+      "design": {
+        "design_version": 1,
+        "blocks": [
+          {
+            "brick_type": "2x2x1",
+            "color": "blue",
+            "x": 10,
+            "y": 10,
+            "layer": 1,
+            "orientation_deg": 0
+          },
+          {
+            "brick_type": "2x2x1",
+            "color": "blue",
+            "x": 12,
+            "y": 10,
+            "layer": 1,
+            "orientation_deg": 0
+          },
+          {
+            "brick_type": "2x2x1",
+            "color": "blue",
+            "x": 10,
+            "y": 12,
+            "layer": 1,
+            "orientation_deg": 0
+          },
+          {
+            "brick_type": "2x2x1",
+            "color": "blue",
+            "x": 12,
+            "y": 12,
+            "layer": 1,
+            "orientation_deg": 0
+          },
+          {
+            "brick_type": "2x3x1",
+            "color": "red",
+            "x": 10,
+            "y": 10,
+            "layer": 2,
+            "orientation_deg": 0
+          },
+          {
+            "brick_type": "2x3x1",
+            "color": "yellow",
+            "x": 12,
+            "y": 10,
+            "layer": 2,
+            "orientation_deg": 0
+          },
+          {
+            "brick_type": "2x2x1",
+            "color": "blue",
+            "x": 11,
+            "y": 11,
+            "layer": 3,
+            "orientation_deg": 0
+          },
+          {
+            "brick_type": "2x2x1",
+            "color": "yellow",
+            "x": 11,
+            "y": 11,
+            "layer": 4,
+            "orientation_deg": 0
+          }
+        ]
+      },
+      "_note": "Stage 2 final stock (2026-10-08): red exists only as 1x2x1. The first layer-2 yellow 2x3x1 recoloured red."
     }
   ]
 }

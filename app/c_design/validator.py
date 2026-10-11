@@ -5,11 +5,16 @@
     LLM 판단에 맡기지 않으며 A / D / HMI 없이 단독으로 통과해야 한다.
 
 구현 범위(값은 docs/06_CONTRACT_DRAFT.md §1·§2를 따른다):
-    - color: yellow / blue (소문자)
-    - brick_type: 2x2x1 / 2x3x1
+    - color: yellow / blue / red (소문자, red는 Stage 2 추가)
+    - brick_type: 1x2x1 / 2x2x1 / 2x3x1 (1x2x1은 Stage 2 추가)
+    - color × brick_type 허용 조합(ALLOWED_COMBINATIONS, 2026-10-08 사용자 최종 재고): yellow·blue는
+      2x2x1·2x3x1, red는 1x2x1만. 그 밖의 조합은 invalid_combination. Current·Difference·Revised에도
+      같은 _check_block으로 적용된다
     - x, y: 0~23 (24×24 Board stud 위치, Robot mm 아님). footprint 최소 모서리
     - layer: 1~5, 1-based (layer 1 = Board 위 첫 Block 층)
-    - orientation_deg: 2x3x1은 0(X 2 / Y 3 stud) 또는 90(X 3 / Y 2 stud), 2x2x1은 0
+    - orientation_deg: 1x2x1은 0(X 1 / Y 2 stud) 또는 90(X 2 / Y 1 stud),
+      2x3x1은 0(X 2 / Y 3 stud) 또는 90(X 3 / Y 2 stud), 2x2x1은 0
+    - 블록 수 1~MAX_BLOCKS(40, Stage 2 사용자 결정: Revised richness와 충돌 방지)
     - Board 범위, overlap, support, connectivity
     - support 규칙 "바로 아래 layer와 겹치는 stud 합계 2 이상(아래 Block 개수 무관,
       같은 stud 중복 합산 없음)"은 2026-10-06 A 동의·D 회신으로 통일한 Day4
@@ -41,23 +46,30 @@ from collections import Counter
 TOP_FIELDS = ("design_version", "blocks")
 BLOCK_FIELDS = ("brick_type", "color", "x", "y", "layer", "orientation_deg")
 
-COLORS = {"yellow", "blue"}
-BRICK_TYPES = {"2x2x1", "2x3x1"}
+COLORS = {"yellow", "blue", "red"}
+# brick_type별 orientation 0의 footprint (X stud 수, Y stud 수). orientation 90이면 둘을 바꾼다.
+BRICK_SIZES = {"1x2x1": (1, 2), "2x2x1": (2, 2), "2x3x1": (2, 3)}
+BRICK_TYPES = set(BRICK_SIZES)
+ORIENTATIONS = {"1x2x1": {0, 90}, "2x2x1": {0}, "2x3x1": {0, 90}}
+# 실제 공급 재고(2026-10-08 사용자 최종 Stage 2 vocabulary): 색별로 쓸 수 있는 brick_type.
+ALLOWED_COMBINATIONS = {
+    "yellow": frozenset({"2x2x1", "2x3x1"}),
+    "blue": frozenset({"2x2x1", "2x3x1"}),
+    "red": frozenset({"1x2x1"}),
+}
 BOARD_RANGE = range(0, 24)
 MAX_LAYER = 5
-MAX_BLOCKS = 30  # 2026-10-07 사용자 승인(EXPRESSIVE v4: 큰 가구 설계 허용)
+MAX_BLOCKS = 40  # Stage 2 사용자 결정(30 → 40): Revised richness(v2 ≥ v1 + 6)가 상한과 충돌하지 않게
 # 2026-10-06 A 동의·D 회신으로 통일한 Day4 기하 기준(물리 안정성 검증 아님).
 MIN_SUPPORT_STUDS = 2
 
 
 def footprint(block):
     """Studs covered by a block's brick_type/orientation at its anchor (x, y)."""
-    brick_type = block["brick_type"]
+    w, h = BRICK_SIZES[block["brick_type"]]
+    if block["orientation_deg"] == 90:
+        w, h = h, w
     x, y = block["x"], block["y"]
-    if brick_type == "2x2x1":
-        w, h = 2, 2
-    else:  # "2x3x1"
-        w, h = (2, 3) if block["orientation_deg"] == 0 else (3, 2)
     return {(x + dx, y + dy) for dx in range(w) for dy in range(h)}
 
 
@@ -121,6 +133,12 @@ def _check_block(block, reject_unknown_keys=True):
     if "y" in block and not y_ok:
         reasons.append(_reason("invalid_type", [block], "y must be an int"))
 
+    color = block.get("color")
+    if type_ok and color in COLORS and brick_type not in ALLOWED_COMBINATIONS[color]:
+        allowed = ", ".join(sorted(ALLOWED_COMBINATIONS[color]))
+        reasons.append(_reason("invalid_combination", [block],
+                               f"{color} {brick_type} is not in stock: {color} allows only {allowed}"))
+
     orientation = block.get("orientation_deg")
     orientation_type_ok = "orientation_deg" in block and _is_int(orientation)
     if "orientation_deg" in block and not orientation_type_ok:
@@ -128,8 +146,7 @@ def _check_block(block, reject_unknown_keys=True):
 
     orientation_ok = False
     if type_ok and orientation_type_ok:
-        allowed = {0, 90} if brick_type == "2x3x1" else {0}
-        orientation_ok = orientation in allowed
+        orientation_ok = orientation in ORIENTATIONS[brick_type]
         if not orientation_ok:
             reasons.append(
                 _reason("invalid_value", [block], f"orientation_deg '{orientation}' invalid for {brick_type}")

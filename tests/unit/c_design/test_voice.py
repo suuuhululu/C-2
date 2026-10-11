@@ -9,6 +9,7 @@ printed and we assert they never leak into last_error() or any returned value.
 """
 
 import importlib
+import email.message
 import io
 import json
 import struct
@@ -485,7 +486,14 @@ class TestPromptEchoGuard:
         assert self._transcribe(monkeypatch, "의자, 벤치, 소파.") == ""
         assert voice.last_error().startswith("stt_prompt_echo")
 
-    @pytest.mark.parametrize("utterance", ["의자 만들어줘", "의자를 만들고 싶어", "2번", "1번이요"])
+    @pytest.mark.parametrize("utterance", ["의자 벤치 소파 스툴 만들어줘", "의자, 벤치, 소파, 스툴", "의자 벤치 소파요"])
+    def test_hint_listing_is_an_echo(self, monkeypatch, with_fake_key, utterance):
+        assert self._transcribe(monkeypatch, utterance) == ""
+        assert voice.last_error().startswith("stt_prompt_echo")
+
+    @pytest.mark.parametrize("utterance", ["의자 만들어줘", "의자를 만들고 싶어", "2번", "1번이요",
+                                           "벤치처럼 길고 넓은 의자를 만들고 싶어요",  # 2026-10-08 재현: 힌트 3개, 나머지 많음
+                                           "소파 같은 의자 만들어줘 등받이 높게", "왕좌처럼 높고 화려한 의자를 만들고 싶어요"])
     def test_normal_utterances_pass(self, monkeypatch, with_fake_key, utterance):
         assert self._transcribe(monkeypatch, utterance) == utterance
         assert voice.last_error() is None
@@ -536,7 +544,8 @@ class TestNoSpeechGate:
 
     def test_high_no_speech_prob_is_silence(self, monkeypatch, with_fake_key):
         assert self._transcribe(monkeypatch, _stt_body("흐흐흐흐", no_speech_prob=0.9)) == ""
-        assert voice.last_error() == "stt_no_speech: no segment below no_speech_prob 0.8; treated as no speech"
+        assert voice.last_error() == ("stt_no_speech: every segment has no_speech_prob >= 0.8 and avg_logprob < -1.0; "
+                                      "treated as no speech")
 
     def test_low_no_speech_prob_passes(self, monkeypatch, with_fake_key):
         assert self._transcribe(monkeypatch, _stt_body("2번", no_speech_prob=0.3)) == "2번"
@@ -620,7 +629,7 @@ class TestDebugDumpReasons:
         assert fake_url.call_count == 0
         assert self._info(debug_dir) == {"stt_called": False, "reason": "no_speech_detected", "noise_floor": 0,
                                          "threshold": voice.RMS_THRESHOLD_MIN, "voiced_seconds": 0.0,
-                                         "duration": voice.WAIT_SECONDS}
+                                         "duration": voice.WAIT_SECONDS, "calibration_unstable": False, "calibration_retries": 0}
         assert not (debug_dir / "latest_input.wav").exists()
 
     def test_too_short(self, monkeypatch, with_fake_key, debug_dir):
@@ -684,9 +693,12 @@ class TestDebugDump:
         assert info["peak"] == 3000
         assert info["noise_floor"] == 0 and info["threshold"] == voice.RMS_THRESHOLD_MIN == 600
         assert info["voiced_seconds"] == 0.5
-        assert set(info) == {"sample_rate", "channels", "duration", "rms", "peak", "noise_floor", "threshold",
-                             "voiced_seconds", "trimmed_seconds", "stt_called", "reason"}
+        assert set(info) == {"sample_rate", "channels", "duration", "rms", "peak", "weak_input", "noise_floor", "threshold",
+                             "voiced_seconds", "trimmed_seconds", "calibration_unstable", "calibration_retries", "stt_called", "reason",
+                             "whisper_text", "no_speech_probs", "avg_logprobs"}
         assert info["stt_called"] is True and info["reason"] is None
+        assert info["weak_input"] is True  # peak 3000 < WEAK_INPUT_PEAK: 표시만 하고 STT 결과는 바꾸지 않는다
+        assert info["whisper_text"] == "의자" and info["no_speech_probs"] == [0.1] and info["avg_logprobs"] == [None]
         assert FAKE_KEY not in (debug_dir / "latest_input.json").read_text(encoding="utf-8")
 
     def test_no_dump_without_env(self, monkeypatch, with_fake_key, tmp_path):
@@ -822,6 +834,126 @@ class TestSpeakPayload:
         request = fake_url.calls[0]["request"]
         assert request.get_header("Authorization") == "Bearer " + FAKE_TTS_KEY
         assert request.get_full_url() == voice.TTS_URL
+
+
+def _tts_http_error(code, provider_code=None, param=None):
+    """OpenAI 형식 오류 본문을 가진 HTTPError(본문 문장은 last_error에 남으면 안 된다)."""
+    body = json.dumps({"error": {"message": "secret-ish provider sentence", "type": "invalid_request_error",
+                                 "param": param, "code": provider_code}}).encode("utf-8")
+    return urllib.error.HTTPError("https://example.invalid/", code, "error", None, io.BytesIO(body))
+
+
+@pytest.fixture
+def clean_tts_env(monkeypatch):
+    for name in ("OPENAI_TTS_MODEL", "OPENAI_TTS_VOICE", "OPENAI_TTS_INSTRUCTIONS"):
+        monkeypatch.delenv(name, raising=False)
+
+
+class TestTtsModelPayload:
+    """Stage 2: 기본 gpt-4o-mini-tts + instructions, tts-1은 기존 payload 그대로(D 통합 테스트 호환)."""
+
+    def _payload(self, monkeypatch):
+        _install_sd(monkeypatch)
+        fake_url = _install_urlopen(monkeypatch, [_build_wav_bytes()])
+        voice.speak("혹시 생각했거나 만들고 싶은 의자가 있어?")
+        return json.loads(fake_url.calls[0]["request"].data)
+
+    def test_default_is_gpt_4o_mini_tts_with_instructions(self, monkeypatch, with_fake_key, clean_tts_env):
+        payload = self._payload(monkeypatch)
+        assert voice.DEFAULT_TTS_MODEL == "gpt-4o-mini-tts"
+        assert payload == {
+            "model": "gpt-4o-mini-tts",
+            "input": "혹시 생각했거나 만들고 싶은 의자가 있어?",
+            "voice": voice.DEFAULT_TTS_VOICE,
+            "response_format": "wav",
+            "instructions": voice.DEFAULT_TTS_INSTRUCTIONS,
+        }
+
+    @pytest.mark.parametrize("model", ["tts-1", "tts-1-hd"])
+    def test_legacy_model_payload_has_no_instructions(self, monkeypatch, with_fake_key, clean_tts_env, model):
+        monkeypatch.setenv("OPENAI_TTS_MODEL", model)
+        monkeypatch.setenv("OPENAI_TTS_VOICE", "alloy")
+        monkeypatch.setenv("OPENAI_TTS_INSTRUCTIONS", "무시돼야 하는 지시")
+        payload = self._payload(monkeypatch)
+        assert payload == {"model": model, "input": "혹시 생각했거나 만들고 싶은 의자가 있어?",
+                           "voice": "alloy", "response_format": "wav"}
+
+    def test_env_overrides_voice_and_instructions(self, monkeypatch, with_fake_key, clean_tts_env):
+        monkeypatch.setenv("OPENAI_TTS_VOICE", "marin")
+        monkeypatch.setenv("OPENAI_TTS_INSTRUCTIONS", "밝게 말해 주세요.")
+        payload = self._payload(monkeypatch)
+        assert payload["model"] == "gpt-4o-mini-tts"
+        assert payload["voice"] == "marin"
+        assert payload["instructions"] == "밝게 말해 주세요."
+
+    def test_empty_env_values_fall_back_to_defaults(self, monkeypatch, with_fake_key, clean_tts_env):
+        for name in ("OPENAI_TTS_MODEL", "OPENAI_TTS_VOICE", "OPENAI_TTS_INSTRUCTIONS"):
+            monkeypatch.setenv(name, "")
+        payload = self._payload(monkeypatch)
+        assert payload["model"] == voice.DEFAULT_TTS_MODEL
+        assert payload["voice"] == voice.DEFAULT_TTS_VOICE
+        assert payload["instructions"] == voice.DEFAULT_TTS_INSTRUCTIONS
+
+    def test_playback_call_shape_and_last_speak(self, monkeypatch, with_fake_key, clean_tts_env):
+        fake_sd = _install_sd(monkeypatch)
+        _install_urlopen(monkeypatch, [_build_wav_bytes(sample_rate=24000, n_samples=2400)])
+
+        voice.speak("Design과 다르게 놓인 부분이 있는데 의도된 행동인가요?")
+
+        assert len(fake_sd.play_calls) == 1 and fake_sd.wait_calls == 1
+        frames, samplerate = fake_sd.play_calls[0]
+        assert samplerate == 24000 and len(frames) == 2400
+        info = voice._last_speak
+        assert info["model"] == "gpt-4o-mini-tts" and info["instructions_sent"] is True
+        assert info["audio_seconds"] == 0.1 and info["samplerate"] == 24000
+        assert info["play_started_at"] and info["play_ended_at"]
+        assert FAKE_TTS_KEY not in json.dumps(info)
+        assert voice.last_error() is None
+
+
+class TestTtsErrorKinds:
+    """TTS 실패는 kind와 HTTP code만 남긴다(응답 본문·key 미기록)."""
+
+    @pytest.mark.parametrize("outcomes, expected", [
+        ([_tts_http_error(401)], "auth: HTTP 401"),
+        ([_tts_http_error(403)], "auth: HTTP 403"),
+        ([_tts_http_error(403, "model_not_found")], "model_access: HTTP 403"),
+        ([_tts_http_error(404, "model_not_found")], "model_access: HTTP 404"),
+        ([_tts_http_error(400, "model_not_found")], "model_access: HTTP 400"),
+        ([_tts_http_error(400, None, "instructions")], "bad_param: HTTP 400"),
+        ([_tts_http_error(400, "unsupported_parameter")], "bad_param: HTTP 400"),
+        ([_tts_http_error(400)], "bad_response: HTTP 400"),
+        ([_tts_http_error(429, "insufficient_quota") for _ in range(4)], "billing: HTTP 429"),
+        ([_tts_http_error(429, "rate_limit_exceeded") for _ in range(4)], "rate_limit: HTTP 429"),
+        ([_tts_http_error(503) for _ in range(4)], "server: HTTP 503"),
+        ([TimeoutError()] * 4, f"timeout: no response within {voice.TIMEOUT_SECONDS} s"),
+        ([_http_error(403)], "auth: HTTP 403"),  # 본문 없는 오류도 분류는 유지
+    ])
+    def test_kind(self, monkeypatch, with_fake_key, clean_tts_env, outcomes, expected):
+        fake_sd = _install_sd(monkeypatch)
+        _install_urlopen(monkeypatch, outcomes)
+
+        voice.speak("hello")  # must not raise
+
+        assert voice.last_error() == expected
+        assert "provider sentence" not in voice.last_error()
+        assert FAKE_TTS_KEY not in voice.last_error()
+        assert len(fake_sd.play_calls) == 0
+
+    def test_stale_http_error_is_not_reused_for_missing_key(self, monkeypatch, with_fake_key, clean_tts_env):
+        _install_sd(monkeypatch)
+        _install_urlopen(monkeypatch, [_tts_http_error(403, "model_not_found")])
+        voice.speak("hello")
+        monkeypatch.delenv("OPENAI_TTS_API_KEY")
+
+        voice.speak("hello")
+
+        assert voice.last_error() == "missing_key: OPENAI_TTS_API_KEY is not set"
+
+    def test_stt_error_kinds_are_unchanged(self, monkeypatch, with_fake_key):
+        _install_urlopen(monkeypatch, [_tts_http_error(403, "model_not_found")])
+        assert voice.transcribe(_raw_pcm()) is None
+        assert voice.last_error() == "auth: HTTP 403"
 
 
 class TestSpeakOrdering:
@@ -979,3 +1111,237 @@ class TestSecretLeakage:
         _install_urlopen(monkeypatch, [_http_error(403)])
         voice.speak("hello")
         self._assert_key_absent(None)
+
+
+class TestCalibrationGuard:
+    """보정 구간에 발화·순간 잡음이 섞이면 0.3 s를 버리고 딱 한 번만 다시 보정한다(무한 재보정 금지)."""
+
+    def _blocks(self, first_cal, second_cal, after):
+        retry_gap = round(voice.CALIBRATION_RETRY_DELAY_SECONDS / voice.BLOCK_SECONDS)
+        return ([quiet_block() for _ in range(WARMUP_BLOCKS)] + first_cal + [_int16_block(9999)] * retry_gap + second_cal + after)
+
+    def test_speech_in_calibration_triggers_exactly_one_retry(self, monkeypatch, with_fake_key):
+        first = [quiet_block(), quiet_block(), _int16_block(3000), _int16_block(3000), quiet_block()]  # 발화가 섞인 보정
+        second = [quiet_block() for _ in range(CAL_BLOCKS)]
+        fake_sd = _install_sd(monkeypatch, blocks=self._blocks(first, second, [loud_block()] * 5 + [quiet_block()] * 20))
+        pcm = voice.record()
+        cap = voice._last_capture
+        assert cap["calibration_unstable"] is True and cap["calibration_retries"] == 1 and cap["calibration_still_unstable"] is False
+        assert cap["noise_floor"] == 0 and cap["threshold"] == voice.RMS_THRESHOLD_MIN  # 재보정 결과를 쓴다
+        assert cap["calibration_max"] == 0 and cap["calibration_median"] == 0
+        assert pcm != b"" and cap["voiced_seconds"] == 0.5  # 뒤따르는 발화를 놓치지 않는다
+        assert fake_sd.streams[-1].reads >= WARMUP_BLOCKS + CAL_BLOCKS + 3 + CAL_BLOCKS + 5
+
+    def test_second_unstable_calibration_is_not_retried_again(self, monkeypatch, with_fake_key):
+        noisy = [quiet_block(), _int16_block(3000), quiet_block(), quiet_block(), quiet_block()]
+        _install_sd(monkeypatch, blocks=self._blocks(list(noisy), list(noisy), [quiet_block()] * 100))
+        voice.record()
+        cap = voice._last_capture
+        assert cap["calibration_retries"] == voice.CALIBRATION_RETRIES_MAX == 1  # 두 번째 보정도 불안정하지만 더 재보정하지 않는다
+        assert cap["calibration_unstable"] is True and cap["calibration_still_unstable"] is True
+        assert cap["calibration_max"] == 3000 and cap["noise_floor"] == 0
+
+    def test_steady_noise_is_not_unstable(self, monkeypatch, with_fake_key):
+        _install_sd(monkeypatch, blocks=calibration(800) + [_int16_block(800)] * 100)
+        voice.record()
+        cap = voice._last_capture
+        assert cap["calibration_unstable"] is False and cap["calibration_retries"] == 0
+        assert cap["calibration_min"] == cap["calibration_median"] == cap["calibration_max"] == 800
+
+    def test_timeline_and_stream_timestamps_are_recorded(self, monkeypatch, with_fake_key):
+        _install_sd(monkeypatch, blocks=calibration() + [loud_block()] * 5 + [quiet_block()] * 20)
+        seen = []
+        voice.record(on_ready=lambda: seen.append("ready"))
+        cap = voice._last_capture
+        assert seen == ["ready"]
+        assert set(cap["timeline"]) == {"warmup_done", "calibration_done", "on_ready"}
+        assert cap["timeline"]["warmup_done"] <= cap["timeline"]["calibration_done"] <= cap["timeline"]["on_ready"]
+        assert cap["stream_opened_at"] <= cap["stream_closed_at"]
+
+
+
+# ---------------------------------------------------------------------------
+# Stage 2 Wave 4b: 복합 무음 규칙, listen mode "free", beep, prewarm
+# ---------------------------------------------------------------------------
+
+
+def _segment(text, no_speech_prob, avg_logprob=None):
+    seg = {"id": 0, "text": text, "no_speech_prob": no_speech_prob}
+    if avg_logprob is not None:
+        seg["avg_logprob"] = avg_logprob
+    return seg
+
+
+class TestCompositeNoSpeech:
+    def _transcribe(self, monkeypatch, segments, text):
+        _install_urlopen(monkeypatch, [_stt_body(text, segments=segments)])
+        return voice.transcribe(_raw_pcm())
+
+    def test_measured_free_request_passes_when_decoding_is_confident(self, monkeypatch, with_fake_key):
+        # 2026-10-08 사용자 E2E: no_speech_prob 0.812 하나로 버려진 실제 발화(avg_logprob은 -1.0 이상이라고 가정)
+        text = "왕자처럼 높고 화려한 의자"
+        assert self._transcribe(monkeypatch, [_segment(text, 0.812, -0.4)], text) == text
+        assert voice.last_error() is None
+
+    def test_high_no_speech_and_low_logprob_is_silence(self, monkeypatch, with_fake_key):
+        assert self._transcribe(monkeypatch, [_segment("흐흐흐흐", 0.9, -1.5)], "흐흐흐흐") == ""
+        assert voice.last_error().startswith("stt_no_speech")
+
+    def test_segment_without_avg_logprob_keeps_the_old_rule(self, monkeypatch, with_fake_key):
+        assert self._transcribe(monkeypatch, [_segment("흐흐흐흐", 0.9)], "흐흐흐흐") == ""
+
+    def test_any_speech_segment_keeps_the_transcript(self, monkeypatch, with_fake_key):
+        segments = [_segment("음", 0.95, -1.8), _segment("벤치처럼 넓은 의자", 0.85, -0.3)]
+        assert self._transcribe(monkeypatch, segments, "음 벤치처럼 넓은 의자") == "음 벤치처럼 넓은 의자"
+
+    def test_debug_records_avg_logprobs(self, monkeypatch, with_fake_key, tmp_path):
+        monkeypatch.setenv(voice.DEBUG_DIR_ENV, str(tmp_path))
+        self._transcribe(monkeypatch, [_segment("왕좌", 0.812, -0.4), _segment("의자", 0.2)], "왕좌 의자")
+        info = json.loads((tmp_path / "latest_input.json").read_text(encoding="utf-8"))
+        assert info["no_speech_probs"] == [0.812, 0.2] and info["avg_logprobs"] == [-0.4, None]
+
+
+def _speech_after(prefix_blocks, speech=5, pause=0, more_speech=0):
+    """warm-up·보정(+버림) 뒤 발화 → (pause 무음) → (more_speech 발화) → 긴 무음."""
+    return (calibration() + [quiet_block() for _ in range(prefix_blocks)] + [loud_block()] * speech
+            + [quiet_block()] * pause + [loud_block()] * more_speech + [quiet_block()] * 40)
+
+
+class TestListenModes:
+    def test_defaults_are_unchanged_and_free_values(self):
+        assert (voice.WAIT_SECONDS, voice.TRAILING_SILENCE_SECONDS) == (8.0, 1.0)
+        assert (voice.FREE_WAIT_SECONDS, voice.FREE_TRAILING_SILENCE_SECONDS) == (10.0, 1.5)
+
+    def test_free_mode_keeps_a_1_2_s_pause_inside_one_utterance(self, monkeypatch, with_fake_key):
+        blocks = _speech_after(0, speech=5, pause=12, more_speech=5)
+        _install_sd(monkeypatch, blocks=list(blocks))
+        short = voice.record()
+        short_voiced = voice._last_capture["voiced_seconds"]
+        _install_sd(monkeypatch, blocks=list(blocks))
+        _install_urlopen(monkeypatch, [_stt_body("왕좌처럼 높고 화려한 의자")])
+        assert voice.listen(mode="free") == "왕좌처럼 높고 화려한 의자"
+        assert voice._last_capture["mode"] == "free"
+        assert short_voiced == 0.5 and voice._last_capture["voiced_seconds"] == 1.0  # short는 쉼에서 끊긴다
+        assert short != b""
+
+    def test_free_mode_waits_longer_for_the_first_word(self, monkeypatch, with_fake_key):
+        blocks = _speech_after(90)  # 9 s 뒤에 말하기 시작
+        _install_sd(monkeypatch, blocks=list(blocks))
+        assert voice.listen() == ""  # short: 8 s 대기 후 침묵
+        _install_sd(monkeypatch, blocks=list(blocks))
+        _install_urlopen(monkeypatch, [_stt_body("벤치")])
+        assert voice.listen(mode="free") == "벤치"
+
+    def test_mode_is_reset_after_each_listen_and_record_stays_argument_free(self, monkeypatch, with_fake_key):
+        seen = []
+        monkeypatch.setattr(voice, "record", lambda: seen.append(dict(voice._capture_options)) or b"")
+        assert voice.listen(mode="free", beep=True) == ""
+        assert seen == [{"mode": "free", "beep": True}]
+        assert voice._capture_options == {"mode": "short", "beep": False}
+
+    def test_unknown_mode_is_rejected(self):
+        with pytest.raises(ValueError):
+            voice.listen(mode="long")
+
+
+class TestBeep:
+    def test_beep_plays_after_calibration_and_discards_input_before_waiting(self, monkeypatch, with_fake_key):
+        discard = round(voice.BEEP_DISCARD_SECONDS / voice.BLOCK_SECONDS)
+        # 버리는 구간을 크게 만들어 두면, 버리지 않을 경우 그 블록이 발화로 잡힌다
+        blocks = calibration() + [loud_block(amplitude=9000)] * discard + [quiet_block()] * 5 + [loud_block()] * 5 + [quiet_block()] * 30
+        events = []
+        fake_sd = _install_sd(monkeypatch, events=events, blocks=blocks)
+        ready = []
+        _install_urlopen(monkeypatch, [_stt_body("네")])
+        assert voice.listen(on_ready=lambda: ready.append(fake_sd.streams[0].reads), mode="free", beep=True) == "네"
+        frames, samplerate = fake_sd.play_calls[0]
+        assert samplerate == voice.SAMPLE_RATE and len(frames) == int(voice.SAMPLE_RATE * voice.BEEP_SECONDS)
+        assert ready == [PREFIX_BLOCKS + discard]  # 보정 → beep → 버림 → on_ready
+        assert voice._last_capture["beep"] is True and voice._last_capture["voiced_seconds"] == 0.5
+
+    def test_beep_output_failure_is_ignored(self, monkeypatch, with_fake_key):
+        fake_sd = _install_sd(monkeypatch, blocks=_speech_after(round(voice.BEEP_DISCARD_SECONDS / voice.BLOCK_SECONDS)))
+
+        def broken_play(*a, **k):
+            raise OSError("no output device")
+
+        monkeypatch.setattr(fake_sd, "play", broken_play)
+        _install_urlopen(monkeypatch, [_stt_body("아무거나")])
+        assert voice.listen(beep=True) == "아무거나"
+        assert voice._last_capture["beep"] is False and voice.last_error() is None
+
+    def test_no_beep_by_default(self, monkeypatch, with_fake_key):
+        fake_sd = _install_sd(monkeypatch, blocks=_speech_after(0))
+        _install_urlopen(monkeypatch, [_stt_body("1번")])
+        assert voice.listen() == "1번"
+        assert fake_sd.play_calls == []
+
+
+class TestPrewarm:
+    def test_prewarm_opens_and_closes_one_stream_without_reading(self, monkeypatch):
+        fake_sd = _install_sd(monkeypatch)
+        assert voice.prewarm() is True
+        assert len(fake_sd.streams) == 1 and fake_sd.streams[0].closed and fake_sd.streams[0].reads == 0
+
+    def test_prewarm_failure_returns_false_without_raising(self, monkeypatch):
+        _install_sd(monkeypatch, open_error=OSError("no input device"))
+        assert voice.prewarm() is False
+
+    def test_prewarm_missing_module_returns_false(self, monkeypatch):
+        def missing():
+            raise ImportError("sounddevice")
+
+        monkeypatch.setattr(voice, "_sounddevice", missing)
+        assert voice.prewarm() is False
+
+
+# ---------------------------------------------------------------------------
+# Stage 3 mic E2E 429 진단: STT 429의 세부(type·code·message·Retry-After)와 quota 즉시 실패
+# ---------------------------------------------------------------------------
+
+
+def _stt_http_error(code, provider_code, error_type, message, retry_after=None):
+    body = json.dumps({"error": {"message": message, "type": error_type, "param": None, "code": provider_code}}).encode("utf-8")
+    headers = email.message.Message()
+    if retry_after is not None:
+        headers["Retry-After"] = retry_after
+    return urllib.error.HTTPError("https://example.invalid/", code, "error", headers, io.BytesIO(body))
+
+
+class TestStt429Diagnostics:
+    def test_insufficient_quota_fails_immediately_as_billing_with_detail(self, monkeypatch, with_fake_key):
+        fake = _install_urlopen(monkeypatch, [_stt_http_error(429, "insufficient_quota", "insufficient_quota",
+                                                              "You exceeded your current quota sk-abcdefghijkl end")
+                                              for _ in range(4)])
+        assert voice.transcribe(_raw_pcm()) is None
+        assert fake.call_count == 1  # quota/billing 429는 재시도하지 않는다
+        assert voice.last_error() == "billing: HTTP 429"
+        detail = voice.last_http_error()
+        assert detail["http_status"] == 429 and detail["code"] == "insufficient_quota"
+        assert detail["type"] == "insufficient_quota" and detail["retry_after"] is None
+        assert "quota" in detail["message"] and "sk-abcdefghijkl" not in detail["message"] and "[redacted]" in detail["message"]
+        assert FAKE_KEY not in json.dumps(detail)
+
+    def test_real_credit_balance_exhausted_shape_is_billing_without_retry(self, monkeypatch, with_fake_key):
+        # 2026-10-11 실측 응답 형식: type insufficient_quota, code credit_balance_exhausted
+        fake = _install_urlopen(monkeypatch, [_stt_http_error(429, "credit_balance_exhausted", "insufficient_quota",
+                                                              "You have no credits remaining. Add credits to continue.")
+                                              for _ in range(4)])
+        assert voice.transcribe(_raw_pcm()) is None and fake.call_count == 1
+        assert voice.last_error() == "billing: HTTP 429"
+        assert voice.last_http_error()["code"] == "credit_balance_exhausted"
+
+    def test_rate_limit_exceeded_keeps_the_limited_retry_and_records_retry_after(self, monkeypatch, with_fake_key):
+        fake = _install_urlopen(monkeypatch, [_stt_http_error(429, "rate_limit_exceeded", "requests", "Rate limit reached",
+                                                              retry_after="20") for _ in range(4)])  # 본문은 1회만 읽힌다
+        assert voice.transcribe(_raw_pcm()) is None
+        assert fake.call_count == 4  # 기존 정책: 일시적 429는 최대 3회 재시도
+        assert voice.last_error() == "rate_limit: HTTP 429"
+        detail = voice.last_http_error()
+        assert (detail["code"], detail["type"], detail["retry_after"]) == ("rate_limit_exceeded", "requests", "20")
+
+    def test_success_clears_the_http_detail(self, monkeypatch, with_fake_key):
+        _install_urlopen(monkeypatch, [_stt_http_error(429, "rate_limit_exceeded", "requests", "x"), _stt_body("ok")])
+        assert voice.transcribe(_raw_pcm()) == "ok"
+        _install_urlopen(monkeypatch, [_stt_body("ok")])
+        assert voice.transcribe(_raw_pcm()) == "ok" and voice.last_http_error() is None
