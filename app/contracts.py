@@ -117,7 +117,24 @@ def _region(value: object, path: str) -> None:
         raise ValueError(f"{path}: verified region extends outside board")
 
 
+B_CURRENT_PROVENANCE = "B_CONFIRMED_D_RELAYED"  # 2026-10-08 계약: B가 확정한 Current·revision을 D가 그대로 전달
+
+
+def validate_current(value: object, path: str = "observed.current") -> dict:
+    current = _object(value, ("current_revision", "blocks"), path)
+    _integer(current["current_revision"], 0, None, f"{path}.current_revision")
+    _blocks(current["blocks"], f"{path}.blocks")
+    return deepcopy(current)
+
+
 def validate_observed(value: object) -> dict:
+    relayed = None
+    if isinstance(value, dict) and ("current" in value or "current_provenance" in value):
+        # B 확정 Current relay(2026-10-11 Wave 2): 두 키는 함께 와야 하며 D는 이 Current·revision을 재발급하지 않는다.
+        if value.get("current_provenance") != B_CURRENT_PROVENANCE or "current" not in value:
+            raise ValueError(f"observed.current_provenance: {B_CURRENT_PROVENANCE} requires observed.current")
+        relayed = validate_current(value["current"])
+        value = {key: item for key, item in value.items() if key not in ("current", "current_provenance")}
     observed = _object(value, ("check_id", "observation_seq", "status", "visible_blocks",
                                "verified_regions", "reason"), "observed")
     _text(observed["check_id"], "observed.check_id")
@@ -129,7 +146,10 @@ def validate_observed(value: object) -> dict:
         _region(region, f"observed.verified_regions[{index}]")
     if observed["status"] == "UNOBSERVABLE" or observed["reason"] is not None:
         _text(observed["reason"], "observed.reason")
-    return deepcopy(observed)
+    observed = deepcopy(observed)
+    if relayed is not None:
+        observed.update(current=relayed, current_provenance=B_CURRENT_PROVENANCE)
+    return observed
 
 
 def validate_plan_result(value: object) -> dict:

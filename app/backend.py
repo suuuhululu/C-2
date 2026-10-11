@@ -402,8 +402,10 @@ class Backend:
         previous = (state["workflow_status"], state["reason"])
         state.update(last_observation=observation, step_observation=observation)
         if result["current"] != state["current"]:
-            if not self._event("CURRENT_ADOPTED", request_id=observation["check_id"],
-                               result=dict(current=result["current"],observed=observation)):
+            adopted = dict(current=result["current"], observed=observation)
+            if "current_provenance" in result:  # B relay: provenance를 기록에 남긴다(D 발급 아님)
+                adopted["current_provenance"] = result["current_provenance"]
+            if not self._event("CURRENT_ADOPTED", request_id=observation["check_id"], result=adopted):
                 state["current"] = result["current"]
                 return True
         if result["step_confirmed"]:
