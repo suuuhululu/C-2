@@ -117,7 +117,7 @@ C 세 함수는 request_id·job_id·current_revision을 **받지도 돌려주지
 | 검토 MODIFY | 후보 그대로(재생성 없음) | 새 Candidate 생성 |
 | 음성 | 검토는 음성 없음(질문은 `on_question`). Intervention 음성 모드는 질문을 읽음 | 질문·ack·주요 진행 문장 TTS |
 
-키는 용도별 환경 변수 `OPENAI_LLM_API_KEY`(LLM)·`OPENAI_API_KEY`(STT)·`OPENAI_TTS_API_KEY`(TTS)이며 서로 대체하지 않습니다(§4).
+키는 용도별 환경 변수 `OPENAI_LLM_API_KEY`(LLM)·`OPENAI_API_KEY`(STT)·`OPENAI_TTS_API_KEY`(TTS)이며 서로 대체하지 않습니다(§4). 2026-10-11부터 실제 실행 명령은 세 변수에 같은 개인 key 파일(`~/c2_cobot2_API_key.txt`)을 넣습니다(기관 STT key는 크레딧 소진 `credit_balance_exhausted`로 기록, 코드 fallback 없음).
 
 ## 9. 실행 명령
 
@@ -138,7 +138,7 @@ env C_DESIGN_USE_LLM=1 OPENAI_LLM_API_KEY="$(cat ~/c2_cobot2_API_key.txt)" OPENA
 실제 마이크·TTS(사용자 실행):
 
 ```bash
-env C_DESIGN_USE_LLM=1 OPENAI_API_KEY="$(cat ~/C2_OpenAi_API_Key.txt)" OPENAI_LLM_API_KEY="$(cat ~/c2_cobot2_API_key.txt)" OPENAI_TTS_API_KEY="$(cat ~/c2_cobot2_API_key.txt)" python3 scripts/c_stage3_integration_smoke.py --mode mic --scenario full
+env C_DESIGN_USE_LLM=1 OPENAI_API_KEY="$(cat ~/c2_cobot2_API_key.txt)" OPENAI_LLM_API_KEY="$(cat ~/c2_cobot2_API_key.txt)" OPENAI_TTS_API_KEY="$(cat ~/c2_cobot2_API_key.txt)" python3 scripts/c_stage3_integration_smoke.py --mode mic --scenario full
 ```
 
 offline 검증:
@@ -189,5 +189,5 @@ C는 APPROVE 의사를 반환하고, D가 Candidate를 Approved Design으로 채
 결과 PNG는 시험용 표시이며 실제 D Preview가 아닙니다.
 
 ```bash
-env C_DESIGN_USE_LLM=1 OPENAI_API_KEY="$(cat ~/C2_OpenAi_API_Key.txt)" OPENAI_LLM_API_KEY="$(cat ~/c2_cobot2_API_key.txt)" OPENAI_TTS_API_KEY="$(cat ~/c2_cobot2_API_key.txt)" python3 scripts/c_stage3_integration_smoke.py --mode mic --scenario full --out ~/c_stage3_final --render ~/c_stage3_final/png
+env C_DESIGN_USE_LLM=1 OPENAI_API_KEY="$(cat ~/c2_cobot2_API_key.txt)" OPENAI_LLM_API_KEY="$(cat ~/c2_cobot2_API_key.txt)" OPENAI_TTS_API_KEY="$(cat ~/c2_cobot2_API_key.txt)" python3 scripts/c_stage3_integration_smoke.py --mode mic --scenario full --out ~/c_stage3_final --render ~/c_stage3_final/png
 ```

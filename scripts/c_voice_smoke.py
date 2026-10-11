@@ -43,7 +43,7 @@ command, not exported into your shell, so they do not linger in your
 session or shell history:
 
     OPENAI_TTS_API_KEY="$(tr -d '[:space:]' < ~/c2_cobot2_API_key.txt)" \\
-    OPENAI_API_KEY="$(tr -d '[:space:]' < ~/C2_OpenAi_API_Key.txt)" \\
+    OPENAI_API_KEY="$(tr -d '[:space:]' < ~/c2_cobot2_API_key.txt)" \\
         python3 scripts/c_voice_smoke.py echo
 
 TTS model, voice and speaking-style instructions come from OPENAI_TTS_MODEL

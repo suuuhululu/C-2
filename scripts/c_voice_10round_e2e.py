@@ -16,7 +16,7 @@ production 경로 그대로: voice.listen/speak, llm(gpt-6.1-sol), main, validat
 
 실행(키 값은 명령마다 파일에서 주입, 출력·기록하지 않음):
   cd ~/adaptive_coassembly/C-2 && env C_DESIGN_USE_LLM=1 OPENAI_MODEL=gpt-6.1-sol \
-    OPENAI_API_KEY="$(cat ~/C2_OpenAi_API_Key.txt)" OPENAI_LLM_API_KEY="$(cat ~/c2_cobot2_API_key.txt)" \
+    OPENAI_API_KEY="$(cat ~/c2_cobot2_API_key.txt)" OPENAI_LLM_API_KEY="$(cat ~/c2_cobot2_API_key.txt)" \
     OPENAI_TTS_API_KEY="$(cat ~/c2_cobot2_API_key.txt)" python3 scripts/c_voice_10round_e2e.py
 옵션: --rounds N(기본 5) --start K(기본 1, 이어서 진행) --out DIR(기본 ~/c_voice_e2e_10runs) --summary(집계만)
       --debug-audio(각 listen/TTS의 시각·보정·게이트·Whisper 원문·no_speech_prob를 터미널에 출력)

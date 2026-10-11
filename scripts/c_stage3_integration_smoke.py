@@ -14,7 +14,7 @@ integration은 팀 통합 단계에서 한다. caller는 `approved`(review가 AP
         python3 scripts/c_stage3_integration_smoke.py --mode text --scenario full          # text · LLM
     env C_DESIGN_USE_LLM=1 OPENAI_LLM_API_KEY="$(cat ~/c2_cobot2_API_key.txt)" OPENAI_TTS_API_KEY="$(cat ~/c2_cobot2_API_key.txt)" \\
         python3 scripts/c_stage3_integration_smoke.py --mode fake-voice --scenario full    # fake listen · 실제 TTS
-    env C_DESIGN_USE_LLM=1 OPENAI_API_KEY="$(cat ~/C2_OpenAi_API_Key.txt)" OPENAI_LLM_API_KEY="$(cat ~/c2_cobot2_API_key.txt)" \\
+    env C_DESIGN_USE_LLM=1 OPENAI_API_KEY="$(cat ~/c2_cobot2_API_key.txt)" OPENAI_LLM_API_KEY="$(cat ~/c2_cobot2_API_key.txt)" \\
         OPENAI_TTS_API_KEY="$(cat ~/c2_cobot2_API_key.txt)" python3 scripts/c_stage3_integration_smoke.py --mode mic --scenario full
 
 --mode

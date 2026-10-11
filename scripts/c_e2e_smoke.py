@@ -40,7 +40,7 @@ an Authorization header or a response body; it only reports whether each variabl
 Supply the keys for that one command, not exported into your shell:
 
     OPENAI_TTS_API_KEY="$(tr -d '[:space:]' < ~/c2_cobot2_API_key.txt)" \\
-    OPENAI_API_KEY="$(tr -d '[:space:]' < ~/C2_OpenAi_API_Key.txt)" \\
+    OPENAI_API_KEY="$(tr -d '[:space:]' < ~/c2_cobot2_API_key.txt)" \\
     C_DESIGN_USE_LLM=1 OPENAI_MODEL=gpt-4o \\
         python3 scripts/c_e2e_smoke.py initial
 
