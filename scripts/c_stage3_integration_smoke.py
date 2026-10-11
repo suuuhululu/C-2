@@ -48,8 +48,14 @@ Difference = [{"expected": 원래 블록, "actual": 옮긴 블록}].
 [C][QUESTION], 음성 모드의 [C][STT_RAW]. 마지막에 호출별 lifecycle 요약(status·hri·version·review.round·이전 후보 대비
 변경·validator·Current 보존)과 version·round·Current 보존 수열. FAILED envelope이 하나라도 있으면 종료 코드 1.
 --out DIR이면 envelope을 DIR/NN_<api>.json, 요약을 DIR/summary.json으로 저장한다(호출별 [C][STAGE] timeline 포함).
---render DIR이면 각 response 직후 scripts/c_design_hmi_render.compose_v1(C 단독 시험용 HMI 스타일 렌더러)로
-DIR/NN_<api>_<hri>.png를 저장한다. 이것은 시험용 표시이며 실제 D Preview·HMI 화면이 아니다.
+--show-preview(명시 옵션)이면 새 Candidate를 받을 때마다 C-side Test Preview 창(scripts/c_voice_e2e_c_only.Viewer, 비차단
+QLabel + processEvents)에 그린 뒤에야 다음 review를 부른다: response → PNG 합성 → 창 표시(그려진 뒤) → 로그 →
+review(질문 TTS → beep → STT). fake PREVIEW_READY이며 Not D Production HMI다(D Preview integration 아님). Enter 입력 없이
+음성만으로 진행하고, 창을 닫아도 흐름은 계속되며 다음 표시 때 다시 뜬다. --render DIR이면 같은 화면을 lifecycle state 이름
+PNG로 저장한다: 01_initial_candidate.png, 02_initial_modified_candidate_r<round>.png, 03_revised_candidate.png,
+04_revised_modified_candidate_r<round>.png. 후보가 바뀌지 않은 응답(APPROVE·UNCLEAR·CANCEL·KEEP)은 저장·표시하지 않는다.
+Initial 후보는 compose_v1(현재 후보), Revised 후보는 compose_v2(Approved v1 | Current+Difference | v2)로 그린다
+(scripts/c_design_hmi_render, app/hmi_board.BoardView 재사용). 둘 다 C-side test visualization이며 실제 D Preview가 아니다.
 mic 모드는 listen마다 voice._last_capture의 스트림 open/close 시각을 [C][MIC] opened … closed … 한 줄로 출력한다. 키는 환경 변수로만 받고 설정 여부만 출력한다(값은 출력하지 않음).
 Mock 모드의 review MODIFY는 후보를 바꾸지 않는다(Stage 3 Wave 2 동작, 오류 아님).
 """
@@ -198,12 +204,15 @@ def make_difference(approved):
 class FakeDCaller:
     """D 역할의 fake caller. C API 호출 → response 수신 → PREVIEW_READY 가정 → 다음 호출 → lifecycle 기록만 한다."""
 
-    def __init__(self, mode, feed, preference, out_dir, render_dir=None):
+    def __init__(self, mode, feed, preference, out_dir, render_dir=None, viewer=None, app=None):
         self.mode = mode
         self.feed = feed
         self.preference = preference
         self.out_dir = out_dir
         self.render_dir = render_dir
+        self.viewer = viewer  # --show-preview: C-side Test Preview 창(Viewer), 없으면 None
+        self.app = app
+        self.previews = []  # [{"state", "png", "shown_at"}] — 표시·저장한 후보 상태
         self.timeline = []  # 지금 호출의 [C][STAGE] 이벤트(호출이 끝나면 그 행에 붙이고 비운다)
         self.approved = None  # Approved Design: review가 APPROVE를 돌려줄 때만 채택
         self.candidate = None  # (Candidate Design, design_metadata): 다음 review에 그대로 넘긴다
@@ -261,24 +270,71 @@ class FakeDCaller:
             path = os.path.join(self.out_dir, f"{row['n']:02d}_{api}.json")
             with open(path, "w", encoding="utf-8") as handle:
                 json.dump(envelope, handle, ensure_ascii=False, indent=2)
-        if self.render_dir and design is not None:
-            self._render(row, envelope, review)
+        if self.render_dir or self.viewer is not None:
+            state = self._preview_state(api, kind, envelope, previous)
+            if state is None:
+                if design is not None:
+                    _log("[CALLER] candidate unchanged (not re-saved)")
+            else:
+                self._present(row, state, envelope, review)
 
-    def _render(self, row, envelope, review):
-        """시험용 표시(실제 D Preview 아님): 기존 C 단독 렌더러 compose_v1로 PNG 한 장."""
+    @staticmethod
+    def _preview_state(api, kind, envelope, previous):
+        """새 Candidate를 받은 응답이면 lifecycle state 이름, 후보가 그대로면 None."""
+        design = envelope["design"]
+        if envelope["status"] != "OK" or design is None:
+            return None
+        if api == "create_initial_design":
+            return "initial_candidate"
+        if api == "run_intervention":
+            return "revised_candidate" if envelope["hri_result"] == dialogue.REVISE else None
+        if envelope["hri_result"] == dialogue.MODIFY and design != previous:
+            round_ = ((envelope["design_metadata"] or {}).get("review") or {}).get("round")
+            return f"{kind}_modified_candidate_r{round_}"
+        return None
+
+    def _present(self, row, state, envelope, review):
+        """C-side Test Preview: PNG 합성 → (--show-preview) 창에 그린 뒤 → 로그. 실제 D Preview·HMI가 아니다."""
         import c_design_hmi_render as render
         design, metadata = envelope["design"], envelope["design_metadata"] or {}
         blocks = design["blocks"]
-        family = metadata.get("selected_family") or metadata.get("design_family")
-        title = (f"{row['n']:02d} {row['api']} · {row['hri'] or '-'} · v{design['design_version']} · "
-                 f"round {review.get('round', '-')} · scope {review.get('scope') or '-'}")
-        lines = [f"family {family or '-'} · style_hint {metadata.get('style_hint') or review.get('style_hint') or '-'}",
-                 render.counts_line(blocks),
-                 "fake D caller 시험용 표시(실제 D Preview·HMI 화면 아님)"]
-        path = os.path.join(self.render_dir, f"{row['n']:02d}_{row['api']}_{row['hri'] or 'NONE'}.png")
-        render.compose_v1(title, blocks, lines, path)
-        row["render"] = path
-        _log(f"[CALLER] render (test display) → {path}")
+        title = f"C-side Test Preview — {state} — Not D Production HMI"
+        detail = [f"{key} {metadata.get(key) or review.get(key)}" for key in ("selected_family", "style_hint", "scope", "concept")
+                  if metadata.get(key) or review.get(key)]
+        lines = [f"design_version {design['design_version']} · review.round {review.get('round', '-')} · {render.counts_line(blocks)}"
+                 f" · validator {row['validator']}",
+                 " · ".join(detail) if detail else "family/concept/style_hint 없음",
+                 "fake PREVIEW_READY · C-side test visualization (Not D Production HMI)"]
+        prefix = {"initial_candidate": "01", "revised_candidate": "03"}.get(state) or ("02" if state.startswith("initial") else "04")
+        directory = self.render_dir or self._scratch_dir()
+        path = os.path.join(directory, f"{prefix}_{state}.png")
+        if state.startswith("revised"):
+            diff = self.differences[0]
+            captions = [[f"Approved v{self.approved['design_version']}"], ["Current + Difference(actual 주황)"],
+                        [f"Candidate v{design['design_version']}"]]
+            image = render.compose_v2(title, self.approved["blocks"], self.current, diff["expected"], diff["actual"], blocks,
+                                      captions, lines, path)
+        else:
+            image = render.compose_v1(title, blocks, lines, path)
+        entry = {"state": state, "png": path if self.render_dir else None, "shown_at": None}
+        if self.viewer is not None:
+            reopened = not self.viewer.label.isVisible() and bool(self.previews)
+            self.viewer.show(self.app, image, title)  # processEvents로 실제 그려진 뒤 돌아온다
+            entry["shown_at"] = review_smoke._now()
+            if reopened:
+                _log("[CALLER] C-side Test Preview window had been closed → shown again")
+            _log(f"[CALLER] C-side Test Preview shown: {state} (fake PREVIEW_READY, Not D Production HMI)")
+        if self.render_dir:
+            _log(f"[CALLER] C-side Test Preview png → {path}")
+        self.previews.append(entry)
+        row["preview"] = entry
+
+    def _scratch_dir(self):
+        """--render 없이 --show-preview만 줄 때 합성 PNG를 둘 임시 폴더(보고·저장 대상 아님)."""
+        if not getattr(self, "_tmp", None):
+            import tempfile
+            self._tmp = tempfile.mkdtemp(prefix="c_stage3_preview_")
+        return self._tmp
     @staticmethod
     def _preview_ready(design):
         _log(f"[CALLER] PREVIEW_READY (assumed) candidate v{design['design_version']} blocks {len(design['blocks'])}")
@@ -419,7 +475,11 @@ def main_cli():
     parser.add_argument("--answers", nargs="*", help="시나리오 전체 답(순서대로). 없으면 시나리오별 기본값")
     parser.add_argument("--preference", help="text 모드 LLM Initial 되묻기 답(preference_text, 기본 None)")
     parser.add_argument("--out", help="envelope JSON·summary.json 저장 디렉터리")
-    parser.add_argument("--render", help="각 response의 시험용 표시 PNG 저장 디렉터리(c_design_hmi_render.compose_v1, 실제 D Preview 아님)")
+    parser.add_argument("--render", help="새 Candidate마다 C-side Test Preview PNG를 lifecycle state 이름으로 저장할 디렉터리"
+                                         "(c_design_hmi_render compose_v1/compose_v2, 실제 D Preview 아님)")
+    parser.add_argument("--show-preview", action="store_true",
+                        help="새 Candidate를 C-side Test Preview 창에 그린 뒤 다음 review를 부른다(fake PREVIEW_READY, "
+                             "Not D Production HMI)")
     args = parser.parse_args()
 
     use_llm = os.environ.get("C_DESIGN_USE_LLM") == "1"
@@ -460,9 +520,22 @@ def main_cli():
     for directory in (args.out, args.render):
         if directory:
             os.makedirs(directory, exist_ok=True)
+    app = viewer = None
+    if args.show_preview or args.render:
+        from PyQt5.QtWidgets import QApplication
+        app = QApplication.instance() or QApplication([])
+    if args.show_preview:
+        from c_voice_e2e_c_only import Viewer  # Stage 2 C 단독 runner의 비차단 창 재사용
+        viewer = Viewer()
+    _log(f"preview: {'C-side Test Preview (window, Not D Production HMI)' if viewer else 'none'} / "
+         f"png: {args.render or 'none'}")
 
-    caller = FakeDCaller(args.mode, feed, args.preference, args.out, args.render)
-    run_scenario(caller, args.scenario)
+    caller = FakeDCaller(args.mode, feed, args.preference, args.out, args.render, viewer=viewer, app=app)
+    try:
+        run_scenario(caller, args.scenario)
+    finally:
+        if viewer is not None:
+            viewer.close()
     print_summary(caller)
     exit_code = 1 if caller.failed else 0
     if args.out:
@@ -471,7 +544,8 @@ def main_cli():
                    "answers_used": feed.used if feed else None, "exit_code": exit_code,
                    "version_sequence": [row["design_version"] for row in caller.rows],
                    "round_sequence": [row["round"] for row in caller.rows],
-                   "current_preserved_sequence": [row["current_preserved"] for row in caller.rows]}
+                   "current_preserved_sequence": [row["current_preserved"] for row in caller.rows],
+                   "previews": caller.previews}
         with open(os.path.join(args.out, "summary.json"), "w", encoding="utf-8") as handle:
             json.dump(summary, handle, ensure_ascii=False, indent=2)
         _log(f"saved envelopes and summary.json to {args.out}")

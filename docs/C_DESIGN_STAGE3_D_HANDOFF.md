@@ -137,11 +137,18 @@ fake-voice(정해 둔 답을 순서대로, TTS는 실제. `full` 기본 답은 R
 env C_DESIGN_USE_LLM=1 OPENAI_MODEL=gpt-6.1-sol OPENAI_LLM_API_KEY="$(cat ~/c2_cobot2_API_key.txt)" OPENAI_TTS_API_KEY="$(cat ~/c2_cobot2_API_key.txt)" python3 scripts/c_stage3_integration_smoke.py --mode fake-voice --scenario full
 ```
 
-실제 마이크·TTS(사용자 실행):
+실제 마이크·TTS + C-side Test Preview 창(사용자 실행, Stage 3 Interactive Preview):
 
 ```bash
-env C_DESIGN_USE_LLM=1 OPENAI_MODEL=gpt-6.1-sol OPENAI_API_KEY="$(cat ~/c2_cobot2_API_key.txt)" OPENAI_LLM_API_KEY="$(cat ~/c2_cobot2_API_key.txt)" OPENAI_TTS_API_KEY="$(cat ~/c2_cobot2_API_key.txt)" python3 scripts/c_stage3_integration_smoke.py --mode mic --scenario full
+cd /home/skywalker/adaptive_coassembly/C-2 && env C_DESIGN_USE_LLM=1 OPENAI_MODEL=gpt-6.1-sol OPENAI_API_KEY="$(cat ~/c2_cobot2_API_key.txt)" OPENAI_LLM_API_KEY="$(cat ~/c2_cobot2_API_key.txt)" OPENAI_TTS_API_KEY="$(cat ~/c2_cobot2_API_key.txt)" python3 scripts/c_stage3_integration_smoke.py --mode mic --scenario full --show-preview --out ~/c_stage3_final --render ~/c_stage3_final/png
 ```
+
+`--show-preview`는 **C-side test visualization**입니다. D Preview·D Production HMI가 아니며, PREVIEW_READY는 fake caller의 가정입니다.
+
+- 새 Candidate(Initial 후보·MODIFY 후보·Revised 후보·Revised MODIFY 후보)를 받을 때마다 "C-side Test Preview — <state> — Not D Production HMI" 창에 그리고, 화면이 갱신된 뒤에야 다음 `review_design_candidate`(질문 TTS → beep → STT)를 부릅니다.
+- Enter 입력 없이 음성만으로 진행합니다. 창을 닫아도 흐름은 계속되고 다음 표시 때 다시 뜹니다.
+- `--render DIR`은 같은 화면을 `01_initial_candidate.png` · `02_initial_modified_candidate_r<round>.png` · `03_revised_candidate.png` · `04_revised_modified_candidate_r<round>.png`로 저장합니다(APPROVE 등 후보가 그대로인 응답은 저장하지 않음).
+- 화면은 Initial이 현재 후보 1장(`compose_v1`), Revised가 `Approved v1 | Current+Difference(actual 주황) | v2`(`compose_v2`)입니다.
 
 offline 검증:
 
