@@ -144,6 +144,10 @@ _last_capture = None  # 가장 최근 record()의 게이트 통계(디버그 덤
 _capture_options = {"mode": "short", "beep": False}
 _last_speak = None  # 가장 최근 speak()의 요청·재생 관측값(디버그·runner용, 오디오·key는 담지 않음)
 _last_http_error = None  # 가장 최근 HTTP 실패의 (HTTP code, provider error code, param 존재 여부). 본문은 담지 않는다
+# 가장 최근 HTTP 실패의 진단용 요약(Stage 3 mic E2E 429 진단): {"http_status", "type", "code", "message", "retry_after"}.
+# message는 provider 오류 문장을 200자로 자른 것이며 Authorization·key는 절대 담지 않는다(요청 헤더를 읽지 않음).
+_last_http_detail = None
+_SECRET_RE = re.compile(r"sk-[A-Za-z0-9_-]{8,}")
 
 
 def _sounddevice():
@@ -171,6 +175,12 @@ def last_error():
     return _last_error
 
 
+def last_http_error():
+    """가장 최근 HTTP 실패의 진단 요약 dict(복사본) 또는 None. 429의 세부(type·code·message·Retry-After)를 사람이 보게
+    한다(debug/log용, envelope 구조와 무관). key·Authorization은 담지 않는다."""
+    return dict(_last_http_detail) if _last_http_detail is not None else None
+
+
 def _post(url, data, content_type, api_key):
     request = urllib.request.Request(
         url, data=data, headers={"Authorization": f"Bearer {api_key}", "Content-Type": content_type}
@@ -187,17 +197,27 @@ def _remember_http_error(exc):
 
     응답 본문 문장은 남기지 않는다. 본문을 못 읽거나 JSON이 아니면 provider code는 None.
     """
-    global _last_http_error
-    provider_code, has_param = None, False
+    global _last_http_error, _last_http_detail
+    provider_code, has_param, error_type, message = None, False, None, None
     try:
         error = json.loads(exc.read(4096) or b"{}").get("error") or {}
         code = error.get("code")
         if isinstance(code, str) and _PROVIDER_CODE_RE.fullmatch(code):
             provider_code = code
         has_param = bool(error.get("param"))
+        kind = error.get("type")
+        if isinstance(kind, str) and _PROVIDER_CODE_RE.fullmatch(kind):
+            error_type = kind
+        text = error.get("message")
+        if isinstance(text, str):
+            message = _SECRET_RE.sub("[redacted]", text)[:200]
     except (OSError, ValueError, AttributeError):
         pass
+    headers = getattr(exc, "headers", None)
+    retry_after = headers.get("Retry-After") if headers is not None else None
     _last_http_error = (exc.code, provider_code, has_param)
+    _last_http_detail = {"http_status": exc.code, "type": error_type, "code": provider_code, "message": message,
+                         "retry_after": retry_after}
 
 
 def _request(url, data, content_type, key_env):
@@ -219,6 +239,10 @@ def _request(url, data, content_type, key_env):
                 _set_error("auth", f"HTTP {exc.code}")
                 return None
             if exc.code == 429:
+                if _last_http_error[1] == "insufficient_quota":
+                    # 2026-10-11 mic E2E 실측: quota/billing 429는 초 단위 재시도로 풀리지 않는다 → 즉시 반환(사용자 대기 없음)
+                    _set_error("billing", f"HTTP {exc.code}")
+                    return None
                 _set_error("rate_limit", f"HTTP {exc.code}")
             elif exc.code >= 500:
                 _set_error("server", f"HTTP {exc.code}")
@@ -557,7 +581,9 @@ def _segment_is_silence(seg):
 
 def transcribe(pcm):
     """PCM(int16 bytes) → 한국어 텍스트. 발화 없음으로 판정되면 "". 실패면 None."""
+    global _last_http_detail
     _clear_error()
+    _last_http_detail = None
     model = os.environ.get("OPENAI_STT_MODEL") or DEFAULT_STT_MODEL
     boundary = uuid.uuid4().hex
     pcm = _pad_short_clip(pcm)
@@ -670,9 +696,10 @@ def _tts_error_kind(http_code, provider_code, has_param):
 
 def speak(text):
     """질문 문장을 OpenAI TTS로 재생한 뒤 POST_SPEAK_DELAY만큼 쉰다. 절대 예외를 던지지 않는다."""
-    global _last_speak, _last_http_error
+    global _last_speak, _last_http_error, _last_http_detail
     _clear_error()
     _last_http_error = None
+    _last_http_detail = None
     payload, info = _tts_payload(text)
     _last_speak = info
     response = _request(TTS_URL, payload, "application/json", TTS_KEY_ENV)

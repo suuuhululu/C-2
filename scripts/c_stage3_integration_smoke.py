@@ -143,6 +143,10 @@ def install_mic_log():
             _log("[C][MIC]" + (f" opened {opened}" if opened else "") + (f" closed {closed}" if closed else ""))
         shown = text if text is not None else ""
         _log(f'[C][STT_RAW] {review_smoke._now()} "{shown}"' + (f" (last_error {voice.last_error()})" if text in (None, "") else ""))
+        detail = voice.last_http_error() if text in (None, "") else None
+        if detail:  # STT HTTP 실패의 세부(429 유형 진단용; key·헤더 비밀값 없음)
+            _log("[C][STT_ERROR] " + " ".join(f"{key}={detail.get(key)}" for key in ("http_status", "type", "code", "retry_after"))
+                 + f" message={detail.get('message')!r}")
         return text
 
     voice.listen = listen

@@ -9,6 +9,7 @@ printed and we assert they never leak into last_error() or any returned value.
 """
 
 import importlib
+import email.message
 import io
 import json
 import struct
@@ -1292,3 +1293,46 @@ class TestPrewarm:
 
         monkeypatch.setattr(voice, "_sounddevice", missing)
         assert voice.prewarm() is False
+
+
+# ---------------------------------------------------------------------------
+# Stage 3 mic E2E 429 진단: STT 429의 세부(type·code·message·Retry-After)와 quota 즉시 실패
+# ---------------------------------------------------------------------------
+
+
+def _stt_http_error(code, provider_code, error_type, message, retry_after=None):
+    body = json.dumps({"error": {"message": message, "type": error_type, "param": None, "code": provider_code}}).encode("utf-8")
+    headers = email.message.Message()
+    if retry_after is not None:
+        headers["Retry-After"] = retry_after
+    return urllib.error.HTTPError("https://example.invalid/", code, "error", headers, io.BytesIO(body))
+
+
+class TestStt429Diagnostics:
+    def test_insufficient_quota_fails_immediately_as_billing_with_detail(self, monkeypatch, with_fake_key):
+        fake = _install_urlopen(monkeypatch, [_stt_http_error(429, "insufficient_quota", "insufficient_quota",
+                                                              "You exceeded your current quota sk-abcdefghijkl end")
+                                              for _ in range(4)])
+        assert voice.transcribe(_raw_pcm()) is None
+        assert fake.call_count == 1  # quota/billing 429는 재시도하지 않는다
+        assert voice.last_error() == "billing: HTTP 429"
+        detail = voice.last_http_error()
+        assert detail["http_status"] == 429 and detail["code"] == "insufficient_quota"
+        assert detail["type"] == "insufficient_quota" and detail["retry_after"] is None
+        assert "quota" in detail["message"] and "sk-abcdefghijkl" not in detail["message"] and "[redacted]" in detail["message"]
+        assert FAKE_KEY not in json.dumps(detail)
+
+    def test_rate_limit_exceeded_keeps_the_limited_retry_and_records_retry_after(self, monkeypatch, with_fake_key):
+        fake = _install_urlopen(monkeypatch, [_stt_http_error(429, "rate_limit_exceeded", "requests", "Rate limit reached",
+                                                              retry_after="20") for _ in range(4)])  # 본문은 1회만 읽힌다
+        assert voice.transcribe(_raw_pcm()) is None
+        assert fake.call_count == 4  # 기존 정책: 일시적 429는 최대 3회 재시도
+        assert voice.last_error() == "rate_limit: HTTP 429"
+        detail = voice.last_http_error()
+        assert (detail["code"], detail["type"], detail["retry_after"]) == ("rate_limit_exceeded", "requests", "20")
+
+    def test_success_clears_the_http_detail(self, monkeypatch, with_fake_key):
+        _install_urlopen(monkeypatch, [_stt_http_error(429, "rate_limit_exceeded", "requests", "x"), _stt_body("ok")])
+        assert voice.transcribe(_raw_pcm()) == "ok"
+        _install_urlopen(monkeypatch, [_stt_body("ok")])
+        assert voice.transcribe(_raw_pcm()) == "ok" and voice.last_http_error() is None
