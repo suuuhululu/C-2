@@ -1322,6 +1322,15 @@ class TestStt429Diagnostics:
         assert "quota" in detail["message"] and "sk-abcdefghijkl" not in detail["message"] and "[redacted]" in detail["message"]
         assert FAKE_KEY not in json.dumps(detail)
 
+    def test_real_credit_balance_exhausted_shape_is_billing_without_retry(self, monkeypatch, with_fake_key):
+        # 2026-10-11 실측 응답 형식: type insufficient_quota, code credit_balance_exhausted
+        fake = _install_urlopen(monkeypatch, [_stt_http_error(429, "credit_balance_exhausted", "insufficient_quota",
+                                                              "You have no credits remaining. Add credits to continue.")
+                                              for _ in range(4)])
+        assert voice.transcribe(_raw_pcm()) is None and fake.call_count == 1
+        assert voice.last_error() == "billing: HTTP 429"
+        assert voice.last_http_error()["code"] == "credit_balance_exhausted"
+
     def test_rate_limit_exceeded_keeps_the_limited_retry_and_records_retry_after(self, monkeypatch, with_fake_key):
         fake = _install_urlopen(monkeypatch, [_stt_http_error(429, "rate_limit_exceeded", "requests", "Rate limit reached",
                                                               retry_after="20") for _ in range(4)])  # 본문은 1회만 읽힌다

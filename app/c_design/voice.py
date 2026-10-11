@@ -148,6 +148,13 @@ _last_http_error = None  # 가장 최근 HTTP 실패의 (HTTP code, provider err
 # message는 provider 오류 문장을 200자로 자른 것이며 Authorization·key는 절대 담지 않는다(요청 헤더를 읽지 않음).
 _last_http_detail = None
 _SECRET_RE = re.compile(r"sk-[A-Za-z0-9_-]{8,}")
+# quota/billing 429 식별자(2026-10-11 실측: type "insufficient_quota" + code "credit_balance_exhausted"). 재시도해도 풀리지 않는다.
+_QUOTA_IDS = ("insufficient_quota", "credit_balance_exhausted")
+
+
+def _quota_exhausted(provider_code):
+    detail = _last_http_detail or {}
+    return provider_code in _QUOTA_IDS or detail.get("type") in _QUOTA_IDS or detail.get("code") in _QUOTA_IDS
 
 
 def _sounddevice():
@@ -239,7 +246,7 @@ def _request(url, data, content_type, key_env):
                 _set_error("auth", f"HTTP {exc.code}")
                 return None
             if exc.code == 429:
-                if _last_http_error[1] == "insufficient_quota":
+                if _quota_exhausted(_last_http_error[1]):
                     # 2026-10-11 mic E2E 실측: quota/billing 429는 초 단위 재시도로 풀리지 않는다 → 즉시 반환(사용자 대기 없음)
                     _set_error("billing", f"HTTP {exc.code}")
                     return None
@@ -686,7 +693,7 @@ def _tts_error_kind(http_code, provider_code, has_param):
     if http_code == 404:
         return "model_access"
     if http_code == 429:
-        return "billing" if provider_code == "insufficient_quota" else "rate_limit"
+        return "billing" if _quota_exhausted(provider_code) else "rate_limit"
     if http_code == 400 and (has_param or (provider_code or "").startswith(("unsupported", "invalid"))):
         return "bad_param"
     if http_code >= 500:

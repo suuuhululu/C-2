@@ -600,7 +600,7 @@ C의 Validator 통과는 후보 검증이며 최종 채택이 아닙니다.
 | `DESIGN_GENERATION_FAILED` | 재생성 한도 안에 유효 Design 없음. `details`에 마지막 탈락 사유 | 둘 다 |
 | `STOPPED` | D/HMI STOP·닫힌 요청 | 둘 다 |
 | `USER_CANCEL` | 사용자의 명시적 취소 발화 | run_intervention |
-| `VOICE_IO_FAILED` | 녹음 장치 또는 STT provider 실패(위 재시도 정책 후). message는 실패 종류만 담음(`voice I/O failed: <kind>`). 2026-10-11 mic E2E 실측(HTTP 429) 반영: STT 429는 provider code가 `insufficient_quota`면 `billing`(재시도 없이 즉시 반환), 그 밖은 `rate_limit`(기존 1·2·4초 재시도). 세부(`http_status`·`type`·`code`·`message` 200자·`Retry-After`)는 `voice.last_http_error()`(debug용 dict, key·Authorization 미포함)에 남고 runner가 `[C][STT_ERROR]`로 출력. envelope 구조·message 형식은 그대로 | 둘 다 |
+| `VOICE_IO_FAILED` | 녹음 장치 또는 STT provider 실패(위 재시도 정책 후). message는 실패 종류만 담음(`voice I/O failed: <kind>`). 2026-10-11 mic E2E 실측(HTTP 429) 반영: STT 429는 type 또는 code가 `insufficient_quota`/`credit_balance_exhausted`면 `billing`(재시도 없이 즉시 반환; 실측 응답은 type `insufficient_quota` + code `credit_balance_exhausted`), 그 밖은 `rate_limit`(기존 1·2·4초 재시도). 세부(`http_status`·`type`·`code`·`message` 200자·`Retry-After`)는 `voice.last_http_error()`(debug용 dict, key·Authorization 미포함)에 남고 runner가 `[C][STT_ERROR]`로 출력. envelope 구조·message 형식은 그대로 | 둘 다 |
 | `LLM_CALL_FAILED` | LLM provider 실패. 일시적 실패(network / timeout / 429 / 5xx)는 최대 3회(1·2·4초) API 재시도 후, auth·키 없음·비정상 응답은 즉시. 재시도 사이 `should_stop` 확인 | 둘 다 |
 
 - 음성 실패 판정은 장치·provider 실패에만 쓰며 사용자 무응답과 무관합니다(사용자 무응답에는 시간 한도 없음).
