@@ -293,7 +293,7 @@ def test_common_bundle_replays_same_plan_baseline_and_exact_target_without_obser
     validate_planning_bundle(bundle)
     assert bundle['plan'] == result['planning_result']['plan']
     assert bundle['plan_base_current'] == req['current'] and req == before
-    assert bundle['current_provenance'] == 'B_CONFIRMED_D_RELAYED'
+    assert bundle['current_provenance'] == 'D_ADOPTED_CURRENT'
     assert bundle['geometry']['layer_increment_m'] == .019
     assert bundle['geometry']['first_layer_body_bottom_z_m'] == -.0045
     assert bundle['final_expected_blocks'] == req['design']['blocks']
@@ -332,3 +332,61 @@ def test_old_geometry_context_cannot_silently_mix_with_latest_target_profile():
     req['assembly_context']['geometry']['body_height_mm'] = 20
     result = handle_step_motion(req)
     assert result['status'] == 'BLOCKED' and result['errors'][0]['code'] == 'FRAME_PROFILE_CHANGED'
+
+
+def test_five_layer_whole_reassessment_and_motion_keep_d_current_and_draft_gate():
+    design = {'design_version': 3, 'blocks': [brick(layer=n) for n in range(1, 6)]}
+    req = whole_request(design=design)
+    before = deepcopy(req)
+    whole = handle_whole_plan(req)
+    assert whole['planning_result']['status'] == 'READY'
+    plan = whole['planning_result']['plan']
+    bundle = whole['shared_planning_bundle']
+    assert bundle['bundle_schema'] == 'a-b-d-planning-bundle-draft/0.1.1'
+    assert bundle['current_provenance'] == 'D_ADOPTED_CURRENT'
+    validate_message(whole)
+    current = {'current_revision': 17, 'blocks': deepcopy(design['blocks'][:4])}
+    re_req = reassess_request(req, whole, current, 4)
+    assessed = handle_step_reassessment(re_req)
+    assert assessed['status'] == 'CANDIDATE'
+    assert assessed['context']['input_current_revision'] == 17
+    motion = handle_step_motion(motion_request(re_req, assessed))
+    assert motion['status'] == 'CANDIDATE'
+    assert motion['motion_proposal']['current_revision'] == 17
+    assert plan['base_current_revision'] == 0
+    assert all(result['execution_allowed'] is False for result in (whole, assessed, motion))
+    partial = handle_whole_plan(whole_request(design=design, current=current))
+    assert partial['planning_result']['status'] == 'READY'
+    assert partial['planning_result']['plan']['base_current_revision'] == 17
+    assert [s['after'] for s in partial['planning_result']['plan']['steps']] == [brick(layer=5)]
+    assert req == before and current['current_revision'] == 17
+
+
+@pytest.mark.parametrize('layer,calculation_status', [
+    (0, 'INVALID_CONTEXT'), (6, 'INVALID_CONTEXT'), (True, 'INVALID_CONTEXT'),
+    (5.0, 'COMPLETED'),  # JSON integer accepts 5.0; Python planner rejects its type.
+])
+def test_layer_out_of_contract_cannot_produce_a_plan(layer, calculation_status):
+    req = whole_request(design={'design_version': 1, 'blocks': [brick(layer=layer)]})
+    result = handle_whole_plan(req)
+    assert result['calculation_status'] == calculation_status
+    if result['planning_result'] is not None:
+        assert result['planning_result']['status'] == 'INVALID'
+        assert result['planning_result']['plan'] is None and result['planning_result']['errors']
+    else:
+        assert result['stage_errors']
+    assert result['shared_planning_bundle'] is None and result['execution_allowed'] is False
+
+
+def test_previous_contract_version_and_b_owned_current_bundle_are_rejected():
+    req = whole_request()
+    req['schema_version'] = 'assembly-ad-calculation-draft/0.5'
+    result = handle_whole_plan(req)
+    assert result['calculation_status'] == 'INVALID_CONTEXT'
+    assert result['planning_result'] is None and result['execution_allowed'] is False
+    result = handle_whole_plan(whole_request())
+    result['shared_planning_bundle']['current_provenance'] = 'B_CONFIRMED_D_RELAYED'
+    with pytest.raises(ValueError):
+        validate_message(result)
+    with pytest.raises(ValueError):
+        validate_planning_bundle(result['shared_planning_bundle'])

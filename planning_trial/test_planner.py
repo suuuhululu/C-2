@@ -70,7 +70,7 @@ def test_internal_ids_are_optional_and_not_used_for_common_comparison(design):
 @pytest.mark.parametrize("field,value", [
     ("color", "red"), ("color", []), ("brick_type", "1x1x1"), ("brick_type", {}),
     ("x", -1), ("x", 24), ("x", True), ("y", 1.0),
-    ("layer", 0), ("layer", 5), ("layer", True),
+    ("layer", 0), ("layer", 6), ("layer", True),
     ("orientation_deg", 45), ("orientation_deg", True),
     ("orientation_deg", 90),
 ])
@@ -319,9 +319,23 @@ def test_malformed_current_block_list_is_rejected(design, current):
 
 
 def test_remaining_rejects_invalid_revised_target_before_comparison():
-    invalid = {"design_version": 2, "blocks": [brick(layer=5)]}
+    invalid = {"design_version": 2, "blocks": [brick(layer=6)]}
     with pytest.raises(ValueError, match="layer"):
         calculate_remaining_blocks(invalid, [])
+
+
+@pytest.mark.parametrize("assembled", [0, 4, 5])
+def test_five_layer_initial_partial_and_complete_current_preserves_d_revision(assembled):
+    target = {"design_version": 2, "blocks": [brick(layer=n) for n in range(1, 6)]}
+    current = {"current_revision": 17, "blocks": copy.deepcopy(target["blocks"][:assembled])}
+    before = copy.deepcopy((target, current))
+    result = plan_from_current(target, current)
+    assert result["status"] == "READY" and result["errors"] == []
+    plan = result["plan"]
+    assert plan["base_current_revision"] == 17
+    assert [s["after"] for s in plan["steps"]] == target["blocks"][assembled:]
+    validate_plan(target, current["blocks"], 17, plan)
+    assert (target, current) == before
 
 
 def test_replan_sample_has_nine_steps_and_copies_revision():
