@@ -48,6 +48,9 @@ class WorkflowTrial:
             self.c_connection = CTextConnection(self.backend, self.publish, initial_text="의자 만들어줘",
                                                 voice_mode=c_voice)
             window.destroyed.connect(self.c_connection.close)
+            # Stage 3 (2026-10-11 Wave 2): REAL path too — Qt emits preview_ready after the candidate screen is drawn, and
+            # only then C's review_design_candidate is started (same wiring as abd_input_hmi).
+            window.preview_ready.connect(self.c_connection.preview_ready)
         self.publish()
 
     def publish(self, message=None):
