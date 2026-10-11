@@ -58,7 +58,7 @@ def generate(directory: Path, *, revise=False) -> dict:
 def _observe(backend, blocks):
     backend.on_observation(dict(check_id=backend.state["active_check"]["check_id"],observation_seq=0,
         status="OK",visible_blocks=deepcopy(blocks),reason=None,
-        verified_regions=[dict(x=0,y=0,width=24,height=24,layer=layer) for layer in range(1,5)]))
+        verified_regions=[dict(x=0,y=0,width=24,height=24,layer=layer) for layer in range(1,6)]))
 
 
 if __name__ == "__main__":

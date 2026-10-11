@@ -47,8 +47,8 @@ def test_keep_requests_original_goal_latest_actual_and_needs_correction_without_
     request=ports.calls("planner")[-1]
     assert request["design"]==FIXTURES["design"] and request["current"]==actual
     assert request["base_current_revision"]==1 and len(ports.calls("planner"))==2
-    assert request["supported_scope"]==dict(operations=["PLACE"],brick_types=["2x2x1","2x3x1"],
-        colors=["yellow","blue"],board_width=24,board_height=24,max_layer=5)
+    assert request["supported_scope"]==dict(operations=["PLACE"],brick_types=["1x2x1","2x2x1","2x3x1"],
+        colors=["red","yellow","blue"],max_blocks=40,board_width=24,board_height=24,max_layer=5)
     assert ports.calls("hri")[-1]["supported_scope"]==request["supported_scope"]
     assert backend.on_plan_result(request["request_id"],dict(status="NEEDS_CORRECTION",plan=None,errors=[dict(reason="정리 필요",block=block) for block in actual["blocks"]]))
     snapshot=make_snapshot(backend.state)

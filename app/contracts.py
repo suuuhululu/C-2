@@ -36,10 +36,11 @@ def _array(value: object, path: str) -> list:
 
 def _block(value: object, path: str) -> None:
     block = _object(value, BLOCK_FIELDS, path)
-    if block["brick_type"] not in ("2x2x1", "2x3x1"):
+    if block["brick_type"] not in ("1x2x1", "2x2x1", "2x3x1"):
         raise ValueError(f"{path}.brick_type: unsupported brick type")
-    if block["color"] not in ("yellow", "blue"):
-        raise ValueError(f"{path}.color: unsupported color")
+    if (block["brick_type"] == "1x2x1" and block["color"] != "red" or
+            block["brick_type"] != "1x2x1" and block["color"] not in ("yellow", "blue")):
+        raise ValueError(f"{path}.color: unsupported brick_type/color inventory pair")
     for field in ("x", "y"):
         _integer(block[field], 0, 23, f"{path}.{field}")
     _integer(block["layer"], 1, MAX_LAYER, f"{path}.layer")
@@ -63,6 +64,8 @@ def validate_design(value: object) -> dict:
     design = _object(value, ("design_version", "blocks"), "design")
     _integer(design["design_version"], 1, None, "design.design_version")
     _blocks(design["blocks"], "design.blocks")
+    if len(design["blocks"]) > 40:
+        raise ValueError("design.blocks: maximum 40 placements")
     return deepcopy(design)
 
 

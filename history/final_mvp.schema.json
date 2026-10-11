@@ -1,0 +1,357 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.c2.invalid/history/final-mvp-20261008.json",
+  "title": "Offline final MVP archive mapping, not live B/D Schema",
+  "$defs": {
+    "text": {"$ref": "log-v1.json#/$defs/text"},
+    "nullable_text": {"$ref": "log-v1.json#/$defs/nullable_text"},
+    "design": {"$ref": "log-v1.json#/$defs/design"},
+    "candidate": {"$ref": "log-v1.json#/$defs/candidate"},
+    "current": {"$ref": "log-v1.json#/$defs/current"},
+    "hri_payload": {"$ref": "log-v1.json#/$defs/hri_payload"},
+    "c_result": {"$ref": "log-v1.json#/$defs/c_result"},
+    "region": {"$ref": "../day4.schema.json#/$defs/region"}
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"event": {"const": "PLAN_ADOPTED"}}},
+      "then": {
+        "properties": {
+          "result": {
+            "type": "object",
+            "required": ["design", "plan", "base_current", "confirmed_steps"],
+            "properties": {
+              "design": {"$ref": "#/$defs/design"},
+              "plan": {"$ref": "../day4.schema.json#/$defs/plan"},
+              "base_current": {"$ref": "#/$defs/current"},
+              "confirmed_steps": {"type": "array"}
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {"properties": {"event": {"const": "CURRENT_ADOPTED"}}},
+      "then": {
+        "properties": {
+          "request_id": {"$ref": "#/$defs/text"},
+          "result": {
+            "type": "object",
+            "required": ["current", "observed"],
+            "properties": {"current": {"$ref": "#/$defs/current"}, "observed": {"$ref": "../day4.schema.json#/$defs/observed"}}
+          }
+        }
+      }
+    },
+    {
+      "if": {"properties": {"event": {"const": "PLAN_RESULT"}}},
+      "then": {"properties": {"result": {"$ref": "../day4.schema.json#/$defs/plan_result"}}}
+    },
+    {
+      "if": {"properties": {"event": {"enum": ["QUESTION_OPENED", "QUESTION_RECEIVED"]}}},
+      "then": {"properties": {"request_id": {"$ref": "#/$defs/text"}, "result": {"$ref": "#/$defs/text"}}}
+    },
+    {
+      "if": {"properties": {"event": {"const": "REQUEST_SENT"}}},
+      "then": {
+        "properties": {
+          "result": {
+            "type": "object",
+            "required": ["port", "payload"],
+            "properties": {"port": {"$ref": "#/$defs/text"}, "payload": {"type": "object"}},
+            "if": {"properties": {"port": {"const": "hri"}}},
+            "then": {"properties": {"payload": {"$ref": "#/$defs/hri_payload"}}}
+          }
+        }
+      }
+    },
+    {
+      "if": {"properties": {"event": {"const": "REQUEST_SENT"}, "result": {"properties": {"port": {"const": "hri"}}}}},
+      "then": {"properties": {"request_id": {"$ref": "#/$defs/text"}}}
+    },
+    {
+      "if": {"properties": {"event": {"const": "DELIVERY_RESULT"}}},
+      "then": {
+        "properties": {
+          "result": {
+            "type": "object",
+            "required": ["success", "reason"],
+            "properties": {"success": {"type": "boolean"}, "reason": {"$ref": "#/$defs/nullable_text"}},
+            "if": {"properties": {"success": {"const": false}}},
+            "then": {"properties": {"reason": {"$ref": "#/$defs/text"}}}
+          }
+        }
+      }
+    },
+    {
+      "if": {"properties": {"event": {"enum": ["INITIAL_DESIGN_RECEIVED", "C_INTERVENTION_RESULT"]}}},
+      "then": {"properties": {"result": {"$ref": "#/$defs/c_result"}}}
+    },
+    {
+      "if": {
+        "properties": {"event": {"const": "INITIAL_DESIGN_RECEIVED"}, "result": {"properties": {"status": {"const": "OK"}}}}
+      },
+      "then": {
+        "properties": {
+          "result": {
+            "required": ["design"],
+            "properties": {"design": {"$ref": "#/$defs/candidate"}, "hri_result": {"type": "null"}}
+          }
+        }
+      }
+    },
+    {
+      "if": {"properties": {"event": {"const": "INTENT_RECEIVED"}}},
+      "then": {
+        "properties": {
+          "request_id": {"$ref": "log-v1.json#/$defs/text"},
+          "result": {
+            "type": "object",
+            "required": ["decision"],
+            "properties": {
+              "decision": {"enum": ["KEEP", "REVISE", "UNCLEAR"]},
+              "design": {"oneOf": [{"$ref": "log-v1.json#/$defs/design"}, {"type": "null"}]},
+              "question": {"$ref": "log-v1.json#/$defs/text"}
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {"event": {"const": "INTENT_RECEIVED"}, "result": {"properties": {"decision": {"const": "UNCLEAR"}}}}
+      },
+      "then": {"properties": {"result": {"required": ["question"]}}}
+    },
+    {
+      "if": {"properties": {"event": {"const": "C_INTERVENTION_RESULT"}}},
+      "then": {
+        "properties": {
+          "request_id": {"$ref": "log-v1.json#/$defs/text"},
+          "result": {
+            "allOf": [
+              {"$ref": "log-v1.json#/$defs/c_result"},
+              {
+                "if": {"properties": {"status": {"const": "OK"}}},
+                "then": {
+                  "required": ["hri_result"],
+                  "properties": {"hri_result": {"enum": ["KEEP", "REVISE", "UNCLEAR"]}},
+                  "allOf": [
+                    {
+                      "if": {"properties": {"hri_result": {"const": "UNCLEAR"}}},
+                      "then": {
+                        "anyOf": [
+                          {"required": ["questions"], "properties": {"questions": {"type": "array", "minItems": 1}}},
+                          {"required": ["question"], "properties": {"question": {"$ref": "log-v1.json#/$defs/text"}}}
+                        ]
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {"properties": {"event": {"const": "CHECK_RESULT"}}},
+      "then": {
+        "properties": {
+          "request_id": {"$ref": "log-v1.json#/$defs/text"},
+          "result": {
+            "type": "object",
+            "required": ["response", "disposition", "disposition_reason"],
+            "properties": {
+              "response": {
+                "type": "object",
+                "required": [
+                  "check_id",
+                  "check_kind",
+                  "plan_id",
+                  "step_id",
+                  "status",
+                  "comparison",
+                  "current",
+                  "expected",
+                  "difference",
+                  "observation",
+                  "reason"
+                ],
+                "properties": {
+                  "check_id": {"$ref": "log-v1.json#/$defs/text"},
+                  "check_kind": {"enum": ["INITIAL", "STEP", "FINAL"]},
+                  "plan_id": {"$ref": "log-v1.json#/$defs/nullable_text"},
+                  "step_id": {"$ref": "log-v1.json#/$defs/nullable_text"},
+                  "status": {"enum": ["OK", "UNOBSERVABLE", "ERROR", "CANCELED"]},
+                  "comparison": {"enum": [null, "MATCH", "MISMATCH", "UNOBSERVABLE"]},
+                  "current": {"oneOf": [{"$ref": "log-v1.json#/$defs/current"}, {"type": "null"}]},
+                  "expected": {
+                    "oneOf": [
+                      {
+                        "type": "object",
+                        "required": ["plan_id", "step_id", "blocks"],
+                        "properties": {
+                          "plan_id": {"$ref": "log-v1.json#/$defs/text"},
+                          "step_id": {"$ref": "log-v1.json#/$defs/nullable_text"},
+                          "blocks": {"$ref": "../day4.schema.json#/$defs/blocks"}
+                        }
+                      },
+                      {"type": "null"}
+                    ]
+                  },
+                  "difference": {
+                    "oneOf": [
+                      {
+                        "type": "object",
+                        "required": ["missing", "unexpected", "unobservable"],
+                        "properties": {
+                          "missing": {"$ref": "../day4.schema.json#/$defs/blocks"},
+                          "unexpected": {"$ref": "../day4.schema.json#/$defs/blocks"},
+                          "unobservable": {"$ref": "../day4.schema.json#/$defs/blocks"}
+                        }
+                      },
+                      {"type": "null"}
+                    ]
+                  },
+                  "observation": {
+                    "oneOf": [
+                      {
+                        "type": "object",
+                        "required": ["observation_seq", "visible_blocks", "verified_regions", "reason"],
+                        "properties": {
+                          "observation_seq": {"type": "integer", "minimum": 0},
+                          "visible_blocks": {"$ref": "../day4.schema.json#/$defs/blocks"},
+                          "verified_regions": {"type": "array", "items": {"$ref": "#/$defs/region"}},
+                          "reason": {"$ref": "log-v1.json#/$defs/nullable_text"}
+                        }
+                      },
+                      {"type": "null"}
+                    ]
+                  },
+                  "reason": {"$ref": "log-v1.json#/$defs/nullable_text"}
+                },
+                "allOf": [
+                  {
+                    "if": {"properties": {"status": {"enum": ["ERROR", "CANCELED"]}}},
+                    "then": {
+                      "properties": {
+                        "comparison": {"type": "null"},
+                        "current": {"type": "null"},
+                        "expected": {"type": "null"},
+                        "difference": {"type": "null"},
+                        "observation": {"type": "null"},
+                        "reason": {"$ref": "log-v1.json#/$defs/text"}
+                      }
+                    },
+                    "else": {
+                      "properties": {
+                        "current": {"$ref": "log-v1.json#/$defs/current"},
+                        "difference": {
+                          "type": "object",
+                          "required": ["missing", "unexpected", "unobservable"],
+                          "properties": {
+                            "missing": {"$ref": "../day4.schema.json#/$defs/blocks"},
+                            "unexpected": {"$ref": "../day4.schema.json#/$defs/blocks"},
+                            "unobservable": {"$ref": "../day4.schema.json#/$defs/blocks"}
+                          }
+                        },
+                        "observation": {
+                          "type": "object",
+                          "required": ["observation_seq", "visible_blocks", "verified_regions", "reason"],
+                          "properties": {
+                            "observation_seq": {"type": "integer", "minimum": 0},
+                            "visible_blocks": {"$ref": "../day4.schema.json#/$defs/blocks"},
+                            "verified_regions": {"type": "array", "items": {"$ref": "#/$defs/region"}},
+                            "reason": {"$ref": "log-v1.json#/$defs/nullable_text"}
+                          }
+                        }
+                      },
+                      "allOf": [
+                        {
+                          "if": {"properties": {"check_kind": {"const": "INITIAL"}}},
+                          "then": {
+                            "properties": {
+                              "plan_id": {"type": "null"},
+                              "step_id": {"type": "null"},
+                              "expected": {"type": "null"},
+                              "comparison": {"type": "null"}
+                            }
+                          },
+                          "else": {
+                            "properties": {
+                              "plan_id": {"$ref": "log-v1.json#/$defs/text"},
+                              "expected": {
+                                "type": "object",
+                                "required": ["plan_id", "step_id", "blocks"],
+                                "properties": {
+                                  "plan_id": {"$ref": "log-v1.json#/$defs/text"},
+                                  "step_id": {"$ref": "log-v1.json#/$defs/nullable_text"},
+                                  "blocks": {"$ref": "../day4.schema.json#/$defs/blocks"}
+                                }
+                              }
+                            },
+                            "allOf": [
+                              {
+                                "if": {"properties": {"check_kind": {"const": "STEP"}}},
+                                "then": {"properties": {"step_id": {"$ref": "log-v1.json#/$defs/text"}}},
+                                "else": {"properties": {"step_id": {"type": "null"}}}
+                              },
+                              {
+                                "if": {"properties": {"status": {"const": "OK"}}},
+                                "then": {"properties": {"comparison": {"enum": ["MATCH", "MISMATCH"]}}},
+                                "else": {"properties": {"comparison": {"const": "UNOBSERVABLE"}}}
+                              }
+                            ]
+                          }
+                        },
+                        {
+                          "if": {"properties": {"status": {"const": "UNOBSERVABLE"}}},
+                          "then": {"properties": {"reason": {"$ref": "log-v1.json#/$defs/text"}}}
+                        }
+                      ]
+                    }
+                  }
+                ]
+              },
+              "disposition": {"enum": ["ACCEPTED", "REJECTED"]},
+              "disposition_reason": {"$ref": "log-v1.json#/$defs/nullable_text"}
+            },
+            "if": {"properties": {"disposition": {"const": "REJECTED"}}},
+            "then": {"properties": {"disposition_reason": {"$ref": "log-v1.json#/$defs/text"}}}
+          }
+        }
+      }
+    },
+    {
+      "if": {"properties": {"event": {"enum": ["PLAN_WORK_EXHAUSTED", "ASSEMBLY_COMPLETED"]}}},
+      "then": {"properties": {"plan_id": {"$ref": "log-v1.json#/$defs/text"}, "step_id": {"type": "null"}}}
+    },
+    {
+      "if": {"properties": {"event": {"const": "ASSEMBLY_COMPLETED"}}},
+      "then": {
+        "properties": {
+          "result": {
+            "type": "object",
+            "required": ["final_check_id", "design_version"],
+            "properties": {
+              "final_check_id": {"$ref": "log-v1.json#/$defs/text"},
+              "design_version": {"type": "integer", "minimum": 1}
+            }
+          }
+        }
+      }
+    }
+  ],
+  "type": "object",
+  "required": ["timestamp", "job_id", "plan_id", "step_id", "request_id", "event", "result", "reason"],
+  "properties": {
+    "timestamp": {"type": "string", "format": "date-time"},
+    "job_id": {"type": "string", "format": "uuid"},
+    "plan_id": {"$ref": "#/$defs/nullable_text"},
+    "step_id": {"$ref": "#/$defs/nullable_text"},
+    "request_id": {"$ref": "#/$defs/nullable_text"},
+    "event": {"$ref": "#/$defs/text"},
+    "reason": {"$ref": "#/$defs/nullable_text"}
+  }
+}

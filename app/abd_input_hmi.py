@@ -47,8 +47,8 @@ class AbdInputDemo:
             raise ValueError("C function mode requires normal scenario without saved C results")
         if c_mode and (os.environ.get("C_DESIGN_USE_LLM") == "1") != (c_mode == "live"):
             raise ValueError("C_DESIGN_USE_LLM must match the explicit C function mode")
-        if type(c_voice) is not bool or c_voice and not c_mode:
-            raise ValueError("--c-voice requires explicit --c-mode")
+        if type(c_voice) is not bool or c_voice and c_mode != "live":
+            raise ValueError("--c-voice requires explicit --c-mode live")
         spec = importlib.util.spec_from_file_location("b_pr10_examples", B_PATH / "callback_examples.py")
         self.b = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(self.b)
@@ -82,6 +82,7 @@ class AbdInputDemo:
             self.c_connection = CTextConnection(self.backend, self.publish, initial_text=initial_text,
                                                 voice_mode=c_voice)
             window.destroyed.connect(self.c_connection.close)
+            window.preview_ready.connect(self.c_connection.preview_ready)
         window.command_requested.connect(self.command)
         window.setWindowTitle("협동 조립 · A–B–D 합성 JSON 화면 시험 · FAKE")
         self.publish()
@@ -226,6 +227,8 @@ class AbdInputDemo:
         if event == "observe":
             if wrong_color:
                 target = self.backend._next_step()["after"]
+                if target["color"] == "red":
+                    raise ValueError("빨강 2점은 다른 허용 색상이 없습니다. observe actual로 위치/방향 차이를 입력하세요.")
                 actual = {**target, "color": "blue" if target["color"] == "yellow" else "yellow"}
             case, source = self.assembly_case(identity, seq, actual=actual)
             details = case.get("vision_diagnostics", {}).get("delivery_board")
@@ -263,8 +266,8 @@ def main(argv=None):
     if args.revised_result and not args.initial_result or args.initial_result and args.scenario != "normal":
         parser.error("C results require --initial-result and --scenario normal")
     if args.c_voice:
-        if not args.c_mode:
-            parser.error("--c-voice requires --c-mode")
+        if args.c_mode != "live":
+            parser.error("--c-voice requires --c-mode live")
         for name in ("OPENAI_API_KEY", "OPENAI_TTS_API_KEY"):
             if not os.environ.get(name):
                 parser.error(name + " is not set; inject it in this terminal")
@@ -273,8 +276,8 @@ def main(argv=None):
             parser.error("--c-mode requires normal scenario without result files")
         if (os.environ.get("C_DESIGN_USE_LLM") == "1") != (args.c_mode == "live"):
             parser.error("C_DESIGN_USE_LLM must match --c-mode (live=1, offline=unset or 0)")
-        if args.c_mode == "live" and not os.environ.get("OPENAI_API_KEY"):
-            parser.error("OPENAI_API_KEY is not set; inject it in this terminal")
+        if args.c_mode == "live" and not os.environ.get("OPENAI_LLM_API_KEY"):
+            parser.error("OPENAI_LLM_API_KEY is not set; inject it in this terminal")
     application = QApplication.instance() or QApplication(sys.argv[:1])
     window = HmiWindow()
     demo = AbdInputDemo(window, args.log_dir, scenario=args.scenario, delay_ms=args.delay_ms,

@@ -1,6 +1,6 @@
 """Build initial and remaining PLACE Plans using the team's Day4 contract.
 
-The caller provides Backend's adopted actual blocks and their revision.
+The caller relays B-confirmed Current and its B-issued revision through D.
 Samples and live integration use the same calculation and validation.
 """
 
@@ -15,7 +15,7 @@ from uuid import uuid4
 BOARD_SIZE = 24
 MAX_LAYER = 5
 MIN_SUPPORT_STUDS = 2  # A/C rule confirmed in Backend's 2026-10-06 reply.
-BRICK_SIZES = {"2x2x1": (2, 2), "2x3x1": (2, 3)}
+BRICK_SIZES = {"1x2x1": (1, 2), "2x2x1": (2, 2), "2x3x1": (2, 3)}
 BLOCK_FIELDS = ("brick_type", "color", "x", "y", "layer", "orientation_deg")
 
 
@@ -55,8 +55,9 @@ def validate_brick(value, index):
     brick = {field: value[field] for field in BLOCK_FIELDS}
     if brick["brick_type"] not in tuple(BRICK_SIZES):
         raise PlanningError(f"{prefix}: unsupported brick_type", brick)
-    if brick["color"] not in ("yellow", "blue"):
-        raise PlanningError(f"{prefix}: color must be yellow or blue", brick)
+    if (brick["brick_type"] == "1x2x1" and brick["color"] != "red" or
+            brick["brick_type"] != "1x2x1" and brick["color"] not in ("yellow", "blue")):
+        raise PlanningError(f"{prefix}: unsupported brick_type/color inventory pair", brick)
     for field in ("x", "y"):
         if type(brick[field]) is not int or not 0 <= brick[field] < BOARD_SIZE:
             raise PlanningError(f"{prefix}: {field} must be an integer from 0 to 23", brick)
@@ -93,8 +94,8 @@ def validate_design(design):
     if type(version) is not int or version < 1:
         raise ValueError("design_version must be a positive integer")
     values = design.get("blocks")
-    if not isinstance(values, list) or not values:
-        raise ValueError("blocks must be a nonempty list")
+    if not isinstance(values, list) or not 1 <= len(values) <= 40:
+        raise ValueError("blocks must contain 1..40 placements")
     bricks = [validate_brick(value, i) for i, value in enumerate(values)]
     occupancy = {}
     for i, brick in enumerate(bricks):

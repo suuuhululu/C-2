@@ -1,5 +1,7 @@
 # 1차 통합 인터페이스 점검
 
+> 2026-10-11 수현 최신 결정: 10/8 B 소유 Current·revision·Expected·비교 계약이 우선합니다. 아래 D 소유 점검은 이전 Day4 구현에 대한 기록입니다. [HMI·DB 최신 검토](D_HMI_DB_ROUND1.md)의 실제 연결 차단 항목을 확인하세요.
+
 점검일: 2026-10-11. 대상 저장소는 `suuuhululu/C-2`이며 제출 대상은 사용자 생성 브랜치 `codex/integration-round1`입니다. 이 문서는 계약 정합과 오프라인 시험 범위이며 실제 Camera·Robot·음성 API·DB·웹 통합 성공을 뜻하지 않습니다.
 
 ## 기준과 반영 범위
