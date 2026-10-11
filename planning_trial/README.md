@@ -1,9 +1,9 @@
 # A파트 최초 계획·재계획 계산
 
 2026-10-11 1차 통합 계약 수정: 현재 A의 층 범위는 정수 1~5입니다.
-B는 Observed를 제공하고 D가 Current 채택·revision 발급·Expected 비교·최종 판정을 담당합니다.
+2026-10-11 수현 확인: 10/8 계약을 우선합니다. B가 Current·revision·Expected·비교를 확정하고 D는 실행·진행·최종 종료를 담당합니다.
 별도 조립 후보 API는 `assembly-ad-calculation-draft/0.5.1`, 공통 계획 자료는
-`a-b-d-planning-bundle-draft/0.1.1`과 `current_provenance=D_ADOPTED_CURRENT`를 사용합니다.
+`a-b-d-planning-bundle-draft/0.1.1`과 `current_provenance=B_CONFIRMED_D_RELAYED`를 사용합니다.
 기존 v4 리뷰 Schema와 아래 날짜가 붙은 과거 시험 기록은 보존합니다.
 구형 0.5 요청·자료는 새 계약으로 자동 변환하지 않습니다. `run_user_assembly_05.sh`의
 파일명은 유지하지만 새 실행 결과에는 현재 계약 버전이 기록됩니다.

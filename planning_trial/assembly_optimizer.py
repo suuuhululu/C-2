@@ -31,7 +31,7 @@ MINIMAL_RELEASE_INSTRUCTION = "이 블록을 조립한 후에는 그리퍼를 �
 
 
 def assess_step(design, plan, step_id, current, context):
-    """Use fresh D-adopted Current; D issues revisions and execution permits.
+    """Use fresh B-confirmed Current; D relays it and checks execution permits.
 
     Normal progress may increase Current revision beyond Plan's original base.
     A new hand readiness request remains a D/C responsibility, never assumed here.

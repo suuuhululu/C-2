@@ -26,7 +26,7 @@ def build_planning_bundle(design, plan, plan_base_current, assembly_context, fra
     payload = {
         'bundle_schema': 'a-b-d-planning-bundle-draft/0.1.1',
         'contract_status': 'DRAFT_NOT_FROZEN', 'execution_allowed': False,
-        'current_provenance': 'D_ADOPTED_CURRENT',
+        'current_provenance': 'B_CONFIRMED_D_RELAYED',
         'expected_state_kind': 'PLAN_EXPECTATION_NOT_OBSERVATION',
         'design': deepcopy(design), 'plan': deepcopy(plan),
         'plan_base_current': deepcopy(plan_base_current),
@@ -48,8 +48,8 @@ def build_planning_bundle(design, plan, plan_base_current, assembly_context, fra
             'socket_geometry_verified': False,
         },
         'expected_steps': expected_steps, 'final_expected_blocks': deepcopy(blocks),
-        'limits': ['B_OWNS_CAMERA_CALIBRATION_MODEL_GENERATION_AND_OBSERVATIONS',
-                   'D_OWNS_CURRENT_REVISION_COMPARISON_AND_FINAL_JUDGEMENT',
+        'limits': ['B_OWNS_CAMERA_CALIBRATION_MODEL_GENERATION_AND_ACTUAL_COMPARISON',
+                   'B_OWNS_CURRENT_REVISION_EXPECTED_AND_COMPARISON',
                    'TCP_CALIBRATION_IS_NOT_A_MEASURED_BOARD_SURFACE_TRANSFORM',
                    'NO_SOCKET_FRICTION_OR_PHYSICAL_INTERLOCK_VERIFICATION'],
     }

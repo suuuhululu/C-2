@@ -1,6 +1,6 @@
 """Build initial and remaining PLACE Plans using the team's Day4 contract.
 
-The caller supplies D-adopted Current and its D-issued revision.
+The caller relays B-confirmed Current and its B-issued revision through D.
 Samples and live integration use the same calculation and validation.
 """
 
