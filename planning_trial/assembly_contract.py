@@ -16,6 +16,13 @@ def schema():
     defs = s['$defs']
     # Extend the current draft without rewriting the archived v4 review schema.
     defs['Block']['properties']['layer']['maximum'] = 5
+    # Final C inventory (2026-10-08): red exists only as 1x2x1; yellow/blue only as 2x2x1/2x3x1. The archived v4 schema
+    # lists the enums separately, so the combination is constrained here (planner.validate_brick is the runtime check).
+    defs['Block']['allOf'].append({
+        'if': {'properties': {'color': {'const': 'red'}}},
+        'then': {'properties': {'brick_type': {'const': '1x2x1'}}},
+        'else': {'properties': {'brick_type': {'enum': ['2x2x1', '2x3x1']}}}})
+    defs['Design']['properties']['blocks']['maxItems'] = 40  # planner.MAX_BLOCKS
     names = ('WholePlanRequest', 'WholePlanResult', 'StepReassessmentRequest',
              'StepReassessmentResult', 'StepMotionRequest', 'StepMotionResult')
     s['oneOf'] = [{'$ref': '#/$defs/'+name} for name in names]

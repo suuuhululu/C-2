@@ -390,3 +390,39 @@ def test_previous_contract_version_and_wrong_current_provenance_are_rejected():
         validate_message(result)
     with pytest.raises(ValueError):
         validate_planning_bundle(result['shared_planning_bundle'])
+
+
+# ---- Draft schema mirrors the final C inventory contract (2026-10-11 Wave 1) --------------------------------------------
+
+
+def _design_validator():
+    from jsonschema import Draft202012Validator
+    from planning_trial.assembly_contract import schema
+    return Draft202012Validator({'$ref': '#/$defs/Design', '$defs': schema()['$defs']})
+
+
+def _block(brick_type, color, angle=0, layer=1):
+    return {'brick_type': brick_type, 'color': color, 'x': 4, 'y': 4, 'layer': layer, 'orientation_deg': angle}
+
+
+@pytest.mark.parametrize('block', [
+    _block('2x2x1', 'yellow'), _block('2x3x1', 'blue'), _block('1x2x1', 'red'), _block('1x2x1', 'red', 90), _block('2x2x1', 'yellow', layer=5),
+])
+def test_schema_accepts_final_inventory_block(block):
+    assert not list(_design_validator().iter_errors({'design_version': 1, 'blocks': [block]}))
+
+
+@pytest.mark.parametrize('block', [
+    _block('2x3x1', 'red'), _block('2x2x1', 'red'), _block('1x2x1', 'blue'), _block('1x2x1', 'yellow'),
+    _block('2x2x1', 'yellow', 90), _block('2x2x1', 'yellow', layer=6),
+])
+def test_schema_rejects_wrong_combination_orientation_or_layer(block):
+    assert list(_design_validator().iter_errors({'design_version': 1, 'blocks': [block]}))
+
+
+def test_schema_block_count_limit_matches_planner():
+    from planning_trial.planner import MAX_BLOCKS
+    validator = _design_validator()
+    blocks = [_block('2x2x1', 'yellow')] * MAX_BLOCKS  # schema checks count, not geometry
+    assert not list(validator.iter_errors({'design_version': 1, 'blocks': blocks}))
+    assert list(validator.iter_errors({'design_version': 1, 'blocks': blocks + [_block('2x2x1', 'yellow')]}))
