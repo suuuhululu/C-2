@@ -17,6 +17,8 @@ LLM과 사용자가 대화로 **커스텀 의자**를 설계·확정하면 조�
 
 협업 문서는 레포 안 Markdown으로 관리합니다. 새 AI 채팅은 [AGENTS.md](AGENTS.md)를 먼저 읽습니다.
 
+2026-10-11 1차 통합의 5층 기준·현재 인터페이스 정합·별도 브랜치의 미연결 계약은 [1차 통합 인터페이스 점검](docs/11_ROUND1_INTERFACE_AUDIT.md)을 확인합니다. 변경은 `codex/integration-round1`을 대상으로 검토하며 main 반영 여부와 시험 수준을 구분합니다.
+
 ## 현재 구현과 최종 목표
 
 GitHub main `95259bd`에는 C Design·A Planner·Backend·Qt·기존 Board 전달 연결 및 독립 PostgreSQL 이력 코드가 있습니다. 아래는 소스와 기존 기록을 확인한 결과이며 이번 문서 작업에서 앱·장치 시험을 다시 실행한 결과가 아닙니다.

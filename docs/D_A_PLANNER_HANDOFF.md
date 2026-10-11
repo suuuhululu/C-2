@@ -59,7 +59,7 @@ C의 성공 KEEP/REVISE/UNCLEAR를 기존 D 의도 경로로 연결한다. quest
 | NEEDS_CORRECTION | null / reason·block 목록 | Current 유지, 사람 정리 안내, 다음 전달 보류 |
 | INVALID | null / reason·block 목록 | 채택 Design·Current 유지, 진단 표시·기록, 자동 재시도 없음 |
 
-오류 block은 object 또는 null이며 범위 밖 좌표·5층 등 잘못된 값도 원본대로 남긴다. 정상 실행 Plan 검사는 별도로 수행한다. A가 새 request_id를 발급하지 않고 연결부가 원래 호출 식별을 돌려준다. READY의 base_current_revision을 결과 수신 시점 값으로 덮어쓰지 않는다.
+오류 block은 object 또는 null이며 범위 밖 좌표·6층 등 잘못된 값도 원본대로 남긴다. 현재 5층은 지원 범위이며 아래 5층 INVALID 시험은 당시 4층 계약의 기록이다. 정상 실행 Plan 검사는 별도로 수행한다. A가 새 request_id를 발급하지 않고 연결부가 원래 호출 식별을 돌려준다. READY의 base_current_revision을 결과 수신 시점 값으로 덮어쓰지 않는다.
 
 ## 최초 Plan 없는 사람 정리 관측
 

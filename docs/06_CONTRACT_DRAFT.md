@@ -1,5 +1,7 @@
 # Day4 공통 인터페이스 계약
 
+> 2026-10-11 1차 통합 기준: 공통 배치와 관측 영역의 `layer`는 정수 1~5입니다. 현재 코드·Schema·문서와 별도 작업 브랜치의 차이는 [1차 통합 인터페이스 점검](11_ROUND1_INTERFACE_AUDIT.md)에 기록합니다. 아래 JSON 예시는 설명용이며 실제 구조 검사는 `interfaces/schemas/day4.schema.json`과 Consumer를 함께 확인합니다.
+
 ## 0. 최종 MVP 이행 범위 (2026-10-07)
 
 현재 제품 목표는 [최종 MVP](10_FINAL_MVP.md)입니다. **이하 §1~9는 기존 전달형 Day4 구현의 계약·예시**로 보존합니다. ‘현재/확정/제외’ 표현도 그 구현 범위에 적용합니다. 제품 목표의 변경이 기존 Schema·함수·ROS Action·실행 명령을 자동 변경하지 않습니다.
@@ -28,15 +30,15 @@
 
 | 객체 | 확정된 의미 / Owner | 확인할 필드·표현 |
 |---|---|---|
-| Brick | 블록 종류·색상·위치·층·방향 | Design 내 ID와 공급 slot 구분, 기하·anchor·rotation·layer·필수 여부. 이전 Design의 Brick은 Revised에서 같은 `block_id` 유지, Current·Difference에 `block_id` 포함, support는 바로 아래 layer와 겹침 합계 2 stud 이상 |
-| Design | 목표 배치·Initial / Revised·시율 | 식별 / `design_version`·`parent_version`(발급 시율, 검증 통과 후)·출처·블록·지원 제약 |
+| Block | 블록 종류·색상·위치·층·방향 | 아래 여섯 배치 필드와 개수로 비교. 공급 slot과 구분하며 `block_id`를 공통 필수값으로 넣지 않음. 지지는 바로 아래층과 겹치는 고유 stud 총 2개 이상 |
+| Design | 목표 배치·Initial / Revised·시율 | `design_version, blocks` 두 필드. 버전은 C가 발급하고 D가 채택. `parent_version`·출처·진단은 공통 Design 본문에 넣지 않음 |
 | Observed | 촬영 당시 실제 관측·홍동 | 관측 ID / 순번·촬영 시각·보정·가림 / 실패 / 완전 관측·항목별 confidence |
 | Current | 유효 관측 채택·Backend | 채택 관측·상태 revision·블록 상태·유효성 |
 | Plan | 기준 Design / Current·세은 | Plan 버전·기준 상태 revision·Step 목록·검증 / 사유 |
 | Step | 사람 조립 작업·세은 | 블록 목표·동작·선행조건·효과·Robot 전달 필요 여부 |
 | Expected | 기준 상태 + 해당 Plan 효과·Backend | 기준 Design / Plan·비교 Step·목표 배치 |
 | Difference | 일치 / 차이 / 판단 불가·Backend | 대상·항목·기대 / 실제·품질·근거 |
-| HRI | 유지 / 수정 / 불명확·시율 | 질문·응답 연결·기준 Design / Current·결과 Design / 재질문. 질문 문장은 시율 생성, 무응답 시 CANCELLED 상태 |
+| HRI | 유지 / 수정 / 불명확·시율 | 질문·응답 연결·기준 Design / Current·결과 Design / 재질문. 질문 문장은 C가 생성. 무응답은 입력 대기이며 자동 취소·자동 KEEP 없음. 명시 취소·STOP은 C의 CANCELLED 반환과 구분 |
 | Delivery | 종류·색상 요청·Robot | 실행 식별·수락 / 진행 / 최종 결과·슬롯·실패·취소 완료 |
 모든 배치는 `brick_type, color, x, y, layer, orientation_deg` 여섯 값으로 표현합니다.
 

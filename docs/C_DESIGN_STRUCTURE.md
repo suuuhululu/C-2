@@ -109,7 +109,7 @@ scripts/
 | `dialogue.py` | 대화 텍스트 처리 | 질문·재질문 문장, 선택지 상수(1번 KEEP / 2번 REVISE), 응답 해석(Rule → LLM fallback → UNCLEAR), 명시적 취소 신호(CANCEL), 목표 사물 인식 | 음성 I/O, 대화 루프 |
 | `llm.py` | LLM 호출 전용 | 구현(WAVE 5): Design 후보 생성 함수 2개(Initial / Revised), 프롬프트 상수(validator 상수로 규칙 표기), JSON 파싱, provider 실패 분류(`llm_error`), 일시적 실패만 최대 3회 API 재시도. 모델 `DEFAULT_MODEL` / 환경 변수 `OPENAI_MODEL`, key는 LLM 전용 `OPENAI_LLM_API_KEY`(STT·TTS key로 대체 없음). 모델별 payload(`_payload`: reasoning 모델은 `max_completion_tokens`·`reasoning_effort`, 그 밖은 `temperature`·`max_tokens`). system prompt 분리: `SYSTEM_PROMPT_INITIAL`(넓은 의미의 앉는 가구, 예시 JSON 없음) / `SYSTEM_PROMPT_REVISED`(의자 형태 목표 + 예시, `SYSTEM_PROMPT`는 이 이름의 하위 호환 alias). main이 호출 시점 `C_DESIGN_USE_LLM=1`일 때만 사용. smoke test로 확인된 모델: gpt-4o(환경변수 지정). Revised는 일부 사례(다리 이동으로 생긴 빈 줄)에서 유효 후보를 만들지 못하며, 이때 Day4는 escalation → 원복 → KEEP 경로를 사용 2026-10-07 EXPRESSIVE v4: `SYSTEM_PROMPT_REVISED` = Initial과 같은 Rules·concept·build hints + `_EXPRESSIVE_HINTS`(굵은 family 구성법) + 설계 원칙 + 조립 순서 규칙 + procedure + self-check, 고정 예시 의자·`_CHAIR_SHAPE` 삭제. `_REVISED_GUIDANCE`(Current만 고정, 이전 Design은 맥락, family 변경 허용, First~Sixth). `_revised_user_message(…, intent=None, feedback=None)`. 새 함수 `generate_design_intent`(`SYSTEM_PROMPT_INTENT`, `FURNITURE_FAMILIES`, `INTENT_KEYS`), `judge_revised_design`(`SYSTEM_PROMPT_JUDGE`), `describe_initial_design`(`SYSTEM_PROMPT_DESCRIBE`), `judge_feedback_text`, `generate_revised_design(…, intent=None, feedback=None)` | 설계 검증·금지 키 검사, 설계 재생성 정책·버전, 응답 보정, import 시 secret loading |
 | `designer.py` | Design 생성 | Mock Initial / Revised 구현(WAVE 3), LLM 생성기 주입 자리(`generate`). Initial / Revised 생성, 보존 대상 Python 결정, 탈락 사유로 재생성(최대 10회), 배치가 바뀐 경우에만 검증 통과 후 버전 +1 | 조립 순서, NextPart, Robot 좌표 |
-| `validator.py` | Design 검증 | brick_type, color, x / y, orientation_deg, layer 1~5, 블록 수 1~30(`MAX_BLOCKS`, 2026-10-07 20 → 30), Board 범위, overlap, support(C 후보 기준: 아래 블록 개수와 무관하게 겹침 합계 2 stud 이상, A 확인 대기), connectivity, Current 보존(여섯 값), malformed, Robot field 유입 거부 | LLM 호출, Plan 검증 |
+| `validator.py` | Design 검증 | brick_type, color, x / y, orientation_deg, layer 1~5, 블록 수 1~30(`MAX_BLOCKS`, 2026-10-07 20 → 30), Board 범위, overlap, support(A/C 기하 합의: 바로 아래층 고유 stud 총 2개 이상, 아래 블록 개수 무관), connectivity, Current 보존(여섯 값), malformed, Robot field 유입 거부 | LLM 호출, Plan 검증 |
 
 ### 공통 LEGO / Board 규약 (Day 4 MVP)
 
@@ -121,7 +121,7 @@ scripts/
 | x, y | 0~23, Board의 stud 위치, footprint 최소 모서리 (Robot mm 좌표 아님) |
 | layer | 1~5, **1-based** (layer 1 = Board 위 첫 LEGO 층, 최대 5층: 2026-10-06 팀장 결정) |
 | orientation_deg | 2x3x1: 0 = X 2 / Y 3 stud, 90 = X 3 / Y 2 stud. 2x2x1: 0 |
-| support | 바로 아래 layer와 겹치는 stud 합계 2 이상(아래 블록 개수 무관). 세은(A)과 확인할 C 후보 기준이며 팀 공용 확정값 아님 |
+| support | 바로 아래 layer와 겹치는 고유 stud 총 2개 이상(아래 블록 개수 무관, 중복 stud 중복 합산 없음). 2026-10-06 A/C Day4 기하 합의이며 실제 체결·물리 안정성 기준은 아님 |
 
 `docs/reference/` GT 원본의 0-based layer 표기는 원자료 규약이며 C 구현에는 적용하지 않습니다.
 

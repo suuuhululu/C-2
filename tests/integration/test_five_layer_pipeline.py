@@ -11,14 +11,23 @@ from PyQt5.QtWidgets import QApplication
 from app.abd_input_hmi import AbdInputDemo
 from app.c_design import validator as c_validator
 from app.contracts import validate_block, validate_observed
+from app import contracts as d_contracts
 from app.hmi_contracts import validate_hmi_snapshot
 from app.qt_hmi import HmiWindow
 from app.snapshot import make_snapshot
 from planning_trial.planner import plan_from_current
-from test_a_backend import connected, start_design
+from planning_trial import planner as a_planner
+from test_a_backend import connected, finish_delivery, start_design
+from test_abd_callback import B
 from test_abd_input_hmi import records, wait_for
 
 ROOT = Path(__file__).resolve().parents[2]
+
+
+def test_producer_consumer_and_shared_schema_agree_on_layer_limit():
+    schema = json.loads((ROOT / "interfaces/schemas/day4.schema.json").read_text())
+    assert schema["$defs"]["layer"]["minimum"] == 1
+    assert c_validator.MAX_LAYER == a_planner.MAX_LAYER == d_contracts.MAX_LAYER == schema["$defs"]["layer"]["maximum"] == 5
 
 
 def tower(layers):
@@ -98,6 +107,32 @@ def test_partial_five_layer_replan_keeps_current_and_places_only_remaining(tmp_p
     assert not driver.calls
     full = dict(current_revision=5, blocks=design["blocks"])
     assert plan_from_current(design, full)["plan"]["steps"] == []
+
+
+def test_b_synthetic_callback_fifth_layer_preserves_hidden_layers_and_rejects_sixth(tmp_path):
+    design = tower(5)
+    current = dict(current_revision=4, blocks=deepcopy(design["blocks"][:4]))
+    backend, driver, _ = connected(tmp_path, current=current)
+    start_design(backend, dict(status="OK", hri_result=None, design=design))
+    check_id = finish_delivery(backend, driver)
+    before = backend.state
+    observed = dict(check_id=check_id, observation_seq=0, status="OK",
+        visible_blocks=deepcopy(design["blocks"][-1:]),
+        verified_regions=[dict(x=21, y=22, width=3, height=2, layer=5)], reason=None)
+    invalid = deepcopy(observed)
+    invalid["visible_blocks"][0]["layer"] = 6
+    invalid["verified_regions"][0]["layer"] = 6
+    with pytest.raises(ValueError, match="layer"):
+        B.deliver_example(dict(vision_result=invalid), backend.on_observation)
+    assert backend.state == before
+    source = deepcopy(observed)
+    B.deliver_example(dict(vision_result=observed), backend.on_observation)
+    assert observed == source
+    assert backend.state["current"] == dict(current_revision=5, blocks=design["blocks"])
+    assert backend.state["workflow_status"] == "COMPLETE"
+    completed = backend.state
+    B.deliver_example(dict(vision_result=observed), backend.on_observation)
+    assert backend.state == completed
 
 
 def test_six_layers_rejected_by_c_a_d_and_never_adopted(tmp_path):

@@ -1,5 +1,33 @@
 # 현재 진행 상황
 
+## 1차 통합 5층·인터페이스 정합 점검 — 2026-10-11
+
+- 대상은 사용자 생성 `codex/integration-round1`이며 시작 SHA는 main과 같은 `afd75d0b0943d85b44248ea563e89f860921e1dd`다. 기존 `fix/common-five-layer-support`의 `27907c8` 변경을 별도 작업본에 재사용했다. C/A/D MAX_LAYER, 블록/관측 영역 Schema, HMI·합성 관측·수동 Current 확인을 1~5층으로 맞춘다. 원격 반영은 해당 PR의 병합 상태로 구분한다.
+- 공통 계약의 block_id/parent_version 요구·무응답 자동 취소 표현을 실제 C·D 계약에 맞췄다. 팀 가이드·C 구조의 미확정 지지 표현과 A/D 인계의 현재 5층 invalid 설명을 정리했다. [1차 통합 인터페이스 점검](11_ROUND1_INTERFACE_AUDIT.md)에 기준·수정 사항·별도 브랜치 차이·담당별 연결 과제를 기록했다. 과거 시험·원본 Fixture·측정값·참고자료는 보존한다.
+- 기존 5층 연결 시험에 C/A/D/Schema 상한 일치와 B 합성 callback의 5층 관측 채택·가린 아래층 보존·6층 입력 거절 후 상태 보존·중복 무효화를 추가했다. 새 production 모듈·class·framework·실행 dependency는 없다.
+- 실제 관련 검사 **678 passed**, 실패·오류·skip **0**, 종료 코드 **0**. C validator·A planner·D contracts/current/replan·HMI/Qt·A/D·A/B/D 합성 callback·C 저장 응답·5층/30블록·Schema/HMI 참조·팀 인계 및 B 예시 검사를 포함한다. Qt는 offscreen, Robot은 Fake, B는 합성 입력이다. 로그와 JUnit은 ignored `logs/round1-interface/tests.log`·`tests.xml`이다. 기존 RefResolver deprecation 경고 2건이 남는다.
+- 환경은 Python 3.12.3·pytest 7.4.4·기존 PyQt5다. 초기 관련 검사에서 `referencing` 미설치로 Schema 시험 1건만 실패(312 passed)했고, 이전 5층 검증에서 사용한 jsonschema 4.26.0과 해당 의존성을 `/tmp/c2-round1-schema-test-deps`에만 준비해 재검사했다. 저장소 dependency·ROS 환경은 바꾸지 않았다. LLM/음향 key·HISTORY_TEST_DSN은 child process에서 unset했고 pytest plugin 자동 로드를 끈 장치 없는 시험이다.
+- 전체 저장소 시험은 이번에 실행하지 않았다. 아래 2026-10-07 기록의 기존 전체 실패·장치 자료 경로·C HTTP Fake 정합 문제를 해결했다고 주장하지 않는다. 실제 Camera/Robot·LLM/음향·DB/웹은 이번 시험 범위 밖이다. lint/type/CI는 미구성이다.
+- 문서·정적 검증: 기존 5층 변경을 포함한 변경 파일 **34개**, 상대 링크 **245개**, JSON 예시 코드 블록 **25개**(보존된 JSON Lines 블록 1개 포함)를 검사했다. 새 누락 링크·새 잘못된 anchor **0**, 변경 Python/JSON 파싱·`git diff --check` 통과. ignored 과거 로그를 가리키는 기존 누락 링크 **23개**는 보존했다. reference 원문 변경 **0**. 결과는 ignored `logs/round1-interface/static-checks.json`이다.
+- 남은 BLOCKER: A API 0.5 문서의 B Current/revision Owner 표현과 현행 D 단일 상태 Owner 차이, A 재평가/경로 wire와 D 최종 Schema 미연결, B 실제 촬영 생산자/최종 확인 미제출. 설계 확정 이벤트·좌표 단위/frame 변환·직접 결착/정지·사용자–Job/웹 연결도 담당 PR로 검증해야 한다. 이 점검을 전체 인터페이스 통합 완료나 실물 5층 성공으로 표시하지 않는다.
+
+관련 검사 실행 명령:
+
+```sh
+env -u OPENAI_LLM_API_KEY -u OPENAI_API_KEY -u OPENAI_TTS_API_KEY -u HISTORY_TEST_DSN \
+  QT_QPA_PLATFORM=offscreen PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 \
+  PYTHONPATH=/tmp/c2-round1-schema-test-deps \
+  python3 -m pytest planning_trial/test_planner.py \
+  tests/unit/test_contracts.py tests/unit/test_hmi_current.py tests/unit/test_qt_hmi.py \
+  tests/unit/test_current.py tests/unit/test_replan.py tests/unit/test_hmi_contracts.py \
+  tests/unit/test_planner_results.py tests/unit/test_team_handoff.py \
+  tests/unit/c_design/test_validator.py tests/integration/test_a_backend.py \
+  tests/integration/test_abd_callback.py tests/integration/test_c_saved_results_hmi.py \
+  tests/integration/test_five_layer_pipeline.py \
+  tests/integration/perception_backend_callback_examples/tests/test_callback_examples.py \
+  -q --junitxml=logs/round1-interface/tests.xml
+```
+
 ## 공통 5층 지원 — 2026-10-07
 
 - **기준/작업 위치:** 원격 main `afd75d0b0943d85b44248ea563e89f860921e1dd`(PR #17 병합)을 확인하고 독립 clone의 `fix/common-five-layer-support`에서 수정했습니다. 완료 시 원격 main도 동일했습니다. 로컬 `work/suhyun-assembly-evidence`/`62b7ffd`의 기존 Backend 연구 코드와 작업 상태는 보존했습니다. 저장소 AGENTS와 관련 정책·계약을 읽었으며 저장소/관련 작업본에 `.agents/skills`는 없었습니다. 검증 단계에서는 commit/push/PR/merge를 하지 않았으며, 이후 사용자 승인으로 이 변경의 commit/push·draft PR 게시를 진행합니다. 병합은 하지 않습니다.
