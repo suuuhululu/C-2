@@ -106,4 +106,6 @@ python3 -m pytest perception/perception_mvp/tests perception/legacy/tests -q
    반환한다. PR #22 validator가 UNOBSERVABLE에도 Current 객체를 요구하기 때문에 미관측 빈 상태를
    만들지 않는다. D와 초기 미확인 상태의 표시/재검사 정책을 확인해야 한다.
 
-GitHub 게시는 사용자 보류 요청에 따라 하지 않는다. 기존 작업 브랜치·원자료·실측 파일을 보존한다.
+정렬 단계의 GitHub 게시 보류 이후 사용자가 기존 PR #24 갱신을 명시 승인했다.
+최신 integration과 기존 제출 이력을 보존하는 merge·일반 push를 사용한다.
+기존 작업 브랜치·원자료·실측 파일은 보존하고 force push·PR 병합은 하지 않는다.

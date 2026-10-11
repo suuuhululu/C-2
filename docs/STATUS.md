@@ -3,7 +3,8 @@
 ## 2026-10-11 — 홍동 B 제출 코드 최신 integration 기준 정렬
 
 - 사용자 승인 범위: fetch·별도 로컬 작업 브랜치 구성·B 수정/검증. 최신 명시 지시로
-  D 파트 수정/추가는 제외한다. add/commit/push/PR 변경은 하지 않았다.
+  D 파트 수정/추가는 제외했다. 이후 사용자 명시 승인으로 기존 PR #24의
+  commit·일반 push·본문 갱신을 진행한다. force push와 PR 병합은 승인 범위 밖이다.
 - 원격 `codex/integration-round1` HEAD `02137d8`을 확인하고 managed worktree의
   `codex/b-round1-realign`에서 작업한다. 기존 `work/hongdong-vision-round1`과
   원래 작업 폴더의 미커밋 변경·원자료는 보존한다.
@@ -23,7 +24,11 @@
 - 미검증: 실제 Camera/Controller 관측 callable, 최신 D 전체 공정과 B 결과 bind,
   실시간 HMI/DB 서버·Robot/5층 실측. D 연결 요구는 B의
   `perception/docs/D_INSPECTION_CONNECTION.md`에 인계하며 D 파일은 수정하지 않는다.
-  다음: B-only diff 사람 검토 → 사용자 별도 승인 후 선별 add/commit/push 및 Draft PR.
+  게시 준비: B-only snapshot 커밋 `061da09`에 PR #24 기존 head `262ae61`을
+  병합하여 두 이력을 보존한다. 충돌 파일은 검증한 B snapshot과 최신 integration D를
+  유지하는 방향으로 해결했다. 병합 후 관련 검사를 재실행해 **692 passed**, 종료 0을 확인했다.
+  다음: 같은 PR 제출 브랜치에 fast-forward 일반 push → PR 본문 갱신·사람 리뷰.
+  이 작업은 전체 팀 연결 완료나 실제 장치 검증을 의미하지 않는다.
 
 ## 2026-10-11 C Stage3 기준 A·D 연결 정합
 

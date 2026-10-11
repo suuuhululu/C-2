@@ -193,7 +193,9 @@ D 연결 시험의 추가/수정은 제외한다. 최신 A/C/D·공통 계약·R
 Qt는 offscreen, 관측은 합성 입력, Robot은 FAKE다. D 코드가 B 실결선까지
 완성됐다는 뜻은 아니다. D가 제공해야 할 연결은
 [B→D 인계](../perception/docs/D_INSPECTION_CONNECTION.md)를 따른다.
-add/commit/push 및 PR #24 수정은 하지 않았다.
+정렬 단계에서는 Git 게시를 하지 않았고, 이후 사용자 명시 승인으로 기존 PR #24를
+일반 merge/push 방식으로 갱신한다. D 파일은 최신 integration과 동일하게 유지하고,
+force push·PR 병합은 하지 않는다.
 
 남은 연결:
 1. D 요청/취소/Plan 공유 및 스레드 안전 결과 수신.
