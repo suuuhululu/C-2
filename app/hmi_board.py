@@ -18,8 +18,8 @@ STUD_HEIGHT = 4/20
 
 
 def dimensions(block):
-    return (2, 2) if block["brick_type"] == "2x2x1" else (
-        (3, 2) if block["orientation_deg"] == 90 else (2, 3))
+    width, depth = {"1x2x1": (1, 2), "2x2x1": (2, 2), "2x3x1": (2, 3)}[block["brick_type"]]
+    return (depth, width) if block["orientation_deg"] == 90 else (width, depth)
 
 
 class BoardView(QWidget):
@@ -102,11 +102,11 @@ class BoardView(QWidget):
     def _transfer(self, painter):
         # 종류 그림만 그린다. 조립 좌표·층·자세를 만들어 Board 배치로 사용하지 않는다.
         target = self.transfer_target
-        w, d = (2, 2) if target["brick_type"] == "2x2x1" else (2, 3)
+        w, d = dimensions(dict(target, orientation_deg=0))
         scale = min((self.width()-40)/w, (self.height()-70)/d, 48)
         left, top = (self.width()-w*scale)/2, 30
         painter.drawText(QRectF(0, 0, self.width(), 25), Qt.AlignCenter, f"전달할 블록 · 공급 슬롯 {target['slot']}번")
-        painter.setBrush(QColor("#efc94b" if target["color"] == "yellow" else "#699bde"))
+        painter.setBrush(QColor({"yellow": "#efc94b", "blue": "#699bde", "red": "#df5454"}[target["color"]]))
         painter.setPen(QColor("#344453"))
         painter.drawRect(QRectF(left, top, w*scale, d*scale))
         for x in range(w):
@@ -121,7 +121,7 @@ class BoardView(QWidget):
     def _brick(self, painter, block, project, scale):
         x, y, z = block["x"], block["y"], block["layer"]
         w, d = dimensions(block)
-        color = QColor("#efc94b" if block["color"] == "yellow" else "#699bde")
+        color = QColor({"yellow": "#efc94b", "blue": "#699bde", "red": "#df5454"}[block["color"]])
         target = self.target is not None and _key(block) == _key(self.target)
         ghost = target and not any(_key(block) == _key(self.target) for block in self.current["blocks"])
         if ghost:
@@ -227,7 +227,7 @@ class BoardView(QWidget):
             painter.drawText(QPointF(left+(i+.5)*scale-4,top+size+16), str(i))
             painter.drawText(QPointF(left-17,top+(23.5-i)*scale+4), str(i))
         w, d = dimensions(block)
-        color = QColor("#efc94b" if block["color"] == "yellow" else "#699bde")
+        color = QColor({"yellow": "#efc94b", "blue": "#699bde", "red": "#df5454"}[block["color"]])
         painter.setBrush(color)
         painter.setPen(QColor("#344453"))
         painter.drawRect(QRectF(left+block["x"]*scale, top+(24-block["y"]-d)*scale, w*scale,d*scale))

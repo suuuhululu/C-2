@@ -24,9 +24,10 @@ COMMAND_FIELDS = {
     "CONTINUE_AFTER_CORRECTION": ("command", "job_id", "request_id"),
     "SUPPLY_REFILLED": ("command", "job_id", "brick_type", "color"),
 }
-SUPPLY_COLUMNS = {
+LEGACY_SUPPLY_COLUMNS = {
     (brick, color) for brick in ("2x2x1", "2x3x1") for color in ("yellow", "blue")
 }
+SUPPLY_COLUMNS = LEGACY_SUPPLY_COLUMNS | {("1x2x1", "red")}
 
 
 def _nullable_text(value: object, path: str) -> None:
@@ -40,11 +41,10 @@ def _boolean(value: object, path: str) -> None:
 
 
 def _column(value: dict, path: str) -> tuple[str, str]:
-    if value["brick_type"] not in ("2x2x1", "2x3x1"):
-        raise ValueError(f"{path}.brick_type: unsupported supply column")
-    if value["color"] not in ("yellow", "blue"):
-        raise ValueError(f"{path}.color: unsupported supply column")
-    return value["brick_type"], value["color"]
+    column = value["brick_type"], value["color"]
+    if column not in SUPPLY_COLUMNS:
+        raise ValueError(f"{path}.brick_type/color: unsupported supply column")
+    return column
 
 
 def _button(value: object, path: str, fields=("visible", "enabled")) -> dict:
@@ -125,8 +125,8 @@ def _monitor(value: object, step: dict) -> dict:
         if item["needs_refill"] is not None:
             _boolean(item["needs_refill"], f"{item_path}.needs_refill")
         columns[key] = item
-    if columns.keys() != SUPPLY_COLUMNS:
-        raise ValueError(f"{path}.supply: requires all four supply columns")
+    if columns.keys() not in (LEGACY_SUPPLY_COLUMNS, SUPPLY_COLUMNS):
+        raise ValueError(f"{path}.supply: requires all four supply columns (legacy) or five Stage3 columns")
     return columns
 
 

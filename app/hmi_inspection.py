@@ -51,8 +51,8 @@ class InspectionView(QWidget):
                 blocks = result["difference"][key]
                 parts.append(f"{title}: {len(blocks)}개")
                 for block in blocks:
-                    color = "노랑" if block["color"] == "yellow" else "파랑"
-                    kind = "4점" if block["brick_type"] == "2x2x1" else "6점"
+                    color = {"yellow":"노랑", "blue":"파랑", "red":"빨강"}[block["color"]]
+                    kind = {"1x2x1":"2점", "2x2x1":"4점", "2x3x1":"6점"}[block["brick_type"]]
                     parts.append(f"  {color} {kind} · ({block['x']}, {block['y']}) · {block['layer']}층 · {block['orientation_deg']}°")
         if result["reason"]:
             parts.append("사유: " + result["reason"])

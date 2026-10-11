@@ -1,6 +1,6 @@
 """단일 Qt 화면: Backend snapshot 표시와 명령 신호만 담당한다."""
 
-from PyQt5.QtCore import QSize, Qt, pyqtSignal, pyqtSlot
+from PyQt5.QtCore import QSize, Qt, QTimer, pyqtSignal, pyqtSlot
 from PyQt5.QtGui import QFont
 from PyQt5.QtWidgets import (
     QApplication, QGridLayout, QGroupBox, QHBoxLayout, QLabel, QPushButton,
@@ -29,13 +29,18 @@ def label(value):
     return "미확인" if value is None else STATUS_LABELS.get(value, value)
 
 
+BRICK_LABELS = {"1x2x1": "2점 (1×2)", "2x2x1": "4점 (2×2)", "2x3x1": "6점 (2×3)"}
+COLOR_LABELS = {"red": "빨강", "yellow": "노랑", "blue": "파랑"}
+
+
 def fields(block):
-    return (["4점 (2×2)" if block["brick_type"] == "2x2x1" else "6점 (2×3)",
-             "노랑" if block["color"] == "yellow" else "파랑", f"({block['x']}, {block['y']})",
+    return ([BRICK_LABELS[block["brick_type"]],
+             COLOR_LABELS[block["color"]], f"({block['x']}, {block['y']})",
              f"{block['layer']}층", f"{block['orientation_deg']}°"] if block else ["—"]*5)
 
 
 class HmiWindow(QWidget):
+    preview_ready = pyqtSignal(str)
     command_requested = pyqtSignal(dict)
     snapshot_received = pyqtSignal(dict)
     mvp_request_requested = pyqtSignal(dict)
@@ -88,9 +93,9 @@ class HmiWindow(QWidget):
                 button.hide()
         controls.setFixedWidth(345)
         self.refill_buttons = {}
-        for index,(brick,color) in enumerate(( (brick,color) for brick in ("2x2x1","2x3x1")
-                                               for color in ("yellow","blue") )):
-            button = QPushButton(f"{'노랑' if color=='yellow' else '파랑'} {'4점' if brick=='2x2x1' else '6점'} 보충")
+        for index,(brick,color) in enumerate(tuple((brick,color) for brick in ("2x2x1","2x3x1")
+                                               for color in ("yellow","blue")) + (("1x2x1", "red"),)):
+            button = QPushButton(f"{COLOR_LABELS[color]} {BRICK_LABELS[brick]} 보충")
             button.clicked.connect(lambda checked=False, brick=brick,color=color: self._refill(brick,color))
             control_layout.addWidget(button,2+index//2,index%2)
             button.hide()
@@ -276,6 +281,10 @@ class HmiWindow(QWidget):
         self.design_panel.setTitle(f"전체 완성 목표 · 채택 Design v{design['design_version']}" if design else "전체 완성 목표 · 미채택")
         self.design_board.set_blocks(design["blocks"] if design else [])
         self.design_dialogue.render_snapshot(snapshot)
+        if snapshot.get("design_preview"):
+            identity = snapshot["design_preview"]["request_id"]
+            QTimer.singleShot(0, lambda: self.preview_ready.emit(identity)
+                if self._snapshot.get("design_preview", {}).get("request_id") == identity else None)
         self.inspection_view.render_snapshot(snapshot)
         self.assistance_view.render_snapshot(snapshot)
         self.completion_view.render_snapshot(snapshot)
@@ -309,8 +318,8 @@ class HmiWindow(QWidget):
             actual = [fields(reported)]
         target = fields(step["target"])
         if transfer:
-            target = ["4점 (2×2)" if transfer["brick_type"] == "2x2x1" else "6점 (2×3)",
-                      "노랑" if transfer["color"] == "yellow" else "파랑", "미채택", "미채택", "미채택"]
+            target = [BRICK_LABELS[transfer["brick_type"]],
+                      COLOR_LABELS[transfer["color"]], "미채택", "미채택", "미채택"]
         # 관측 목록의 블록마다 한 열을 사용한다. 목표와 물리 블록의 대응을 추정하지 않는다.
         self.table.setColumnCount(2+max(1,len(actual)))
         self.table.setHorizontalHeaderLabels(["항목","전달할 블록" if transfer else "현재 목표"]+
@@ -328,8 +337,8 @@ class HmiWindow(QWidget):
         m = snapshot["monitor"]
         self.monitor.setText(f"Robot: {label(m['robot']['status'])}\n관측: {label(m['observation']['status'])}"
                              f"\n전달판: {label(m['place_status'])}")
-        self.supply.setText("\n".join(f"{'노랑' if item['color']=='yellow' else '파랑'} "
-            f"{'4점' if item['brick_type']=='2x2x1' else '6점'}: "
+        self.supply.setText("\n".join(f"{COLOR_LABELS[item['color']]} "
+            f"{BRICK_LABELS[item['brick_type']]}: "
             f"{'보충 필요' if item['needs_refill'] else str(item['next_slot'])+'번' if item['next_slot'] else '미확인'}"
             for item in m["supply"]))
         self.notice.setPlainText("\n".join(text for text in snapshot["notice"].values() if text and
