@@ -1,0 +1,58 @@
+<?xml version='1.0' encoding='utf-8'?>
+<robot name="m0609_rg2">
+  <group name="manipulator">
+    <chain base_link="base_link" tip_link="GripperDA_v4_tcp" />
+  </group>
+  <group name="gripper">
+    <link name="rg2_base_link" />
+    <link name="rg2_left_outer_knuckle" />
+    <link name="rg2_left_inner_knuckle" />
+    <link name="rg2_left_inner_finger" />
+    <link name="rg2_right_outer_knuckle" />
+    <link name="rg2_right_inner_knuckle" />
+    <link name="rg2_right_inner_finger" />
+    <joint name="rg2_finger_joint" />
+  </group>
+  <end_effector name="rg2_gripper" parent_link="link_6" group="gripper" parent_group="manipulator" />
+  <group_state name="sim_open" group="gripper">
+    <joint name="rg2_finger_joint" value="-0.4" />
+  </group_state>
+  <group_state name="sim_grasp_2wide" group="gripper">
+    <joint name="rg2_finger_joint" value="0.4793595967442058" />
+  </group_state>
+  <group_state name="sim_initial" group="manipulator">
+    <joint name="joint_1" value="0" />
+    <joint name="joint_2" value="0" />
+    <joint name="joint_3" value="1.57" />
+    <joint name="joint_4" value="0" />
+    <joint name="joint_5" value="1.57" />
+    <joint name="joint_6" value="0" />
+  </group_state>
+  <disable_collisions link1="base_link" link2="link_1" reason="AdjacentBody" />
+  <disable_collisions link1="link_1" link2="link_2" reason="AdjacentBody" />
+  <disable_collisions link1="link_2" link2="link_3" reason="AdjacentBody" />
+  <disable_collisions link1="link_3" link2="link_4" reason="AdjacentBody" />
+  <disable_collisions link1="link_4" link2="link_5" reason="AdjacentBody" />
+  <disable_collisions link1="link_5" link2="link_6" reason="AdjacentBody" />
+  <disable_collisions link1="link_5" link2="rg2_base_link" reason="AdjacentBody" />
+  <disable_collisions link1="link_6" link2="rg2_base_link" reason="FixedBody" />
+  <disable_collisions link1="link_6" link2="rg2_left_inner_knuckle" reason="AdjacentBody" />
+  <disable_collisions link1="link_6" link2="rg2_left_outer_knuckle" reason="AdjacentBody" />
+  <disable_collisions link1="link_6" link2="rg2_right_inner_knuckle" reason="AdjacentBody" />
+  <disable_collisions link1="link_6" link2="rg2_right_outer_knuckle" reason="AdjacentBody" />
+  <disable_collisions link1="rg2_base_link" link2="rg2_left_inner_knuckle" reason="AdjacentBody" />
+  <disable_collisions link1="rg2_base_link" link2="rg2_left_outer_knuckle" reason="AdjacentBody" />
+  <disable_collisions link1="rg2_base_link" link2="rg2_right_inner_knuckle" reason="AdjacentBody" />
+  <disable_collisions link1="rg2_base_link" link2="rg2_right_outer_knuckle" reason="AdjacentBody" />
+  <disable_collisions link1="rg2_left_inner_finger" link2="rg2_left_inner_knuckle" reason="RG2MechanicalHinge" />
+  <disable_collisions link1="rg2_left_inner_finger" link2="rg2_left_outer_knuckle" reason="AdjacentBody" />
+  <disable_collisions link1="rg2_left_inner_knuckle" link2="rg2_left_outer_knuckle" reason="RG2MechanicalHinge" />
+  <disable_collisions link1="rg2_right_inner_finger" link2="rg2_right_inner_knuckle" reason="RG2MechanicalHinge" />
+  <disable_collisions link1="rg2_right_inner_finger" link2="rg2_right_outer_knuckle" reason="AdjacentBody" />
+  <disable_collisions link1="rg2_right_inner_knuckle" link2="rg2_right_outer_knuckle" reason="RG2MechanicalHinge" />
+  <passive_joint name="rg2_left_inner_knuckle_joint" />
+  <passive_joint name="rg2_left_inner_finger_joint" />
+  <passive_joint name="rg2_right_outer_knuckle_joint" />
+  <passive_joint name="rg2_right_inner_knuckle_joint" />
+  <passive_joint name="rg2_right_inner_finger_joint" />
+</robot>

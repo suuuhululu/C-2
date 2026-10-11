@@ -1,0 +1,1406 @@
+{
+  "remote_commit": "319a2755676f2432e3bf3dfdbcd7b22c4d68b17d",
+  "copies": [
+    {
+      "source": "outputs/red_1x2_support_20261010/a_sim_copy/code/planning_trial/ASSEMBLY_API_05_20261008.txt",
+      "destination": "planning_trial/ASSEMBLY_API_05_20261008.txt",
+      "source_sha256": "ed8506e3033b9099a9b5af628f22249ef73f5d11d247f1c50912bfb84d9aa66d",
+      "destination_sha256": "eb448590348a643fbd843c37ca079140f647c824ae29573966e50fd239eff16e"
+    },
+    {
+      "source": "outputs/red_1x2_support_20261010/a_sim_copy/code/planning_trial/assembly_adapter.py",
+      "destination": "planning_trial/assembly_adapter.py",
+      "source_sha256": "2925b6e56f1414f204fe109f982d524dfbbfb841c203fcdfaea46c012653e2aa",
+      "destination_sha256": "2925b6e56f1414f204fe109f982d524dfbbfb841c203fcdfaea46c012653e2aa"
+    },
+    {
+      "source": "outputs/red_1x2_support_20261010/a_sim_copy/code/planning_trial/assembly_api_fixtures.py",
+      "destination": "planning_trial/assembly_api_fixtures.py",
+      "source_sha256": "a2e945dcf3b02da2448987d9ed52313d2be8b1a82afe8e4607670c17b77f916b",
+      "destination_sha256": "a2e945dcf3b02da2448987d9ed52313d2be8b1a82afe8e4607670c17b77f916b"
+    },
+    {
+      "source": "outputs/red_1x2_support_20261010/a_sim_copy/code/planning_trial/assembly_context.template.json",
+      "destination": "planning_trial/assembly_context.template.json",
+      "source_sha256": "68630d618ac3b65505a414295002fc6d1f316e2a3d35695b40ca4985d3782294",
+      "destination_sha256": "68630d618ac3b65505a414295002fc6d1f316e2a3d35695b40ca4985d3782294"
+    },
+    {
+      "source": "outputs/red_1x2_support_20261010/a_sim_copy/code/planning_trial/assembly_contract.py",
+      "destination": "planning_trial/assembly_contract.py",
+      "source_sha256": "847927d82b89178d516c5b26b3a4d817e56f2fc8e4e4aa58480f270c5189dfa6",
+      "destination_sha256": "847927d82b89178d516c5b26b3a4d817e56f2fc8e4e4aa58480f270c5189dfa6"
+    },
+    {
+      "source": "outputs/red_1x2_support_20261010/a_sim_copy/code/planning_trial/assembly_geometry.py",
+      "destination": "planning_trial/assembly_geometry.py",
+      "source_sha256": "039bfe0daee2579d006c38a6d4f1b044f4d4cda2ed8d82de3d33edfdb6bec94f",
+      "destination_sha256": "039bfe0daee2579d006c38a6d4f1b044f4d4cda2ed8d82de3d33edfdb6bec94f"
+    },
+    {
+      "source": "outputs/red_1x2_support_20261010/a_sim_copy/code/planning_trial/assembly_motion.py",
+      "destination": "planning_trial/assembly_motion.py",
+      "source_sha256": "3edfaeece856587f4ccc6a124a770f7a1da43af53f70c7baeb2ffdb343246f7e",
+      "destination_sha256": "3edfaeece856587f4ccc6a124a770f7a1da43af53f70c7baeb2ffdb343246f7e"
+    },
+    {
+      "source": "outputs/red_1x2_support_20261010/a_sim_copy/code/planning_trial/assembly_optimizer.py",
+      "destination": "planning_trial/assembly_optimizer.py",
+      "source_sha256": "519ac8ee8e14bac86f48dd412e148b20c9cf89b6642beb5d8416d79650ed0fd0",
+      "destination_sha256": "519ac8ee8e14bac86f48dd412e148b20c9cf89b6642beb5d8416d79650ed0fd0"
+    },
+    {
+      "source": "outputs/red_1x2_support_20261010/a_sim_copy/code/planning_trial/assembly_profiles.py",
+      "destination": "planning_trial/assembly_profiles.py",
+      "source_sha256": "8ca8e95fd8bad62f1013da505053539e78a8962f032d6b6e450a10bddddaf27b",
+      "destination_sha256": "8ca8e95fd8bad62f1013da505053539e78a8962f032d6b6e450a10bddddaf27b"
+    },
+    {
+      "source": "outputs/red_1x2_support_20261010/a_sim_copy/code/planning_trial/assembly_target.py",
+      "destination": "planning_trial/assembly_target.py",
+      "source_sha256": "d8293c36690c6fcd6f958e45ec2679fac07edf0ecd0e7b8d882778c93cd91ef9",
+      "destination_sha256": "d8293c36690c6fcd6f958e45ec2679fac07edf0ecd0e7b8d882778c93cd91ef9"
+    },
+    {
+      "source": "outputs/red_1x2_support_20261010/a_sim_copy/code/planning_trial/assembly_wire.py",
+      "destination": "planning_trial/assembly_wire.py",
+      "source_sha256": "30e3ada2978140b9da06ab2fdc1f82ad2134368c64e61aac2ccc7b0d7e02856d",
+      "destination_sha256": "30e3ada2978140b9da06ab2fdc1f82ad2134368c64e61aac2ccc7b0d7e02856d"
+    },
+    {
+      "source": "outputs/red_1x2_support_20261010/a_sim_copy/code/planning_trial/connection_contract_review_20261008_v4/examples/01_robot_grip/01_whole.request.json",
+      "destination": "planning_trial/connection_contract_review_20261008_v4/examples/01_robot_grip/01_whole.request.json",
+      "source_sha256": "2b57e085619344a9e85635e085b7c32ea85fb5cc59dda3f6c4e3006b4d8a9d07",
+      "destination_sha256": "2b57e085619344a9e85635e085b7c32ea85fb5cc59dda3f6c4e3006b4d8a9d07"
+    },
+    {
+      "source": "outputs/red_1x2_support_20261010/a_sim_copy/code/planning_trial/connection_contract_review_20261008_v4/schema.json",
+      "destination": "planning_trial/connection_contract_review_20261008_v4/schema.json",
+      "source_sha256": "905bc94fa252d53f762cbde4034fdf28c97593b3ab2447a1df71578d963ba6e2",
+      "destination_sha256": "905bc94fa252d53f762cbde4034fdf28c97593b3ab2447a1df71578d963ba6e2"
+    },
+    {
+      "source": "outputs/red_1x2_support_20261010/a_sim_copy/code/planning_trial/handoff_examples.json",
+      "destination": "planning_trial/handoff_examples.json",
+      "source_sha256": "588cb4986d24d6cfce38f21a56387151dc7809938e1f498b8e67553759adbe98",
+      "destination_sha256": "588cb4986d24d6cfce38f21a56387151dc7809938e1f498b8e67553759adbe98"
+    },
+    {
+      "source": "outputs/red_1x2_support_20261010/a_sim_copy/code/planning_trial/handoffs/assembly_trial_20261008_received/isaac_sim_assembly_20261008/data/points.json",
+      "destination": "planning_trial/handoffs/assembly_trial_20261008_received/isaac_sim_assembly_20261008/data/points.json",
+      "source_sha256": "5006a30bfa660bea581eec474aca9ff7495886e10dece336639424b4ac0462ab",
+      "destination_sha256": "5006a30bfa660bea581eec474aca9ff7495886e10dece336639424b4ac0462ab"
+    },
+    {
+      "source": "outputs/red_1x2_support_20261010/a_sim_copy/code/planning_trial/handoffs/assembly_trial_20261008_received/isaac_sim_assembly_20261008/data/position_analysis.json",
+      "destination": "planning_trial/handoffs/assembly_trial_20261008_received/isaac_sim_assembly_20261008/data/position_analysis.json",
+      "source_sha256": "11c9d7fed733eeb1e993b41d05050e5138c3c9b0a191c29eb2fdfcaa0f50b4a0",
+      "destination_sha256": "11c9d7fed733eeb1e993b41d05050e5138c3c9b0a191c29eb2fdfcaa0f50b4a0"
+    },
+    {
+      "source": "outputs/red_1x2_support_20261010/a_sim_copy/code/planning_trial/handoffs/assembly_trial_20261008_received/isaac_sim_assembly_20261008/data/sequence_plan.json",
+      "destination": "planning_trial/handoffs/assembly_trial_20261008_received/isaac_sim_assembly_20261008/data/sequence_plan.json",
+      "source_sha256": "3132f24547f85e33ebfe29f719d3acd484e6cfdb1b3dcb9b752f1b8aef2c4008",
+      "destination_sha256": "3132f24547f85e33ebfe29f719d3acd484e6cfdb1b3dcb9b752f1b8aef2c4008"
+    },
+    {
+      "source": "outputs/red_1x2_support_20261010/a_sim_copy/code/planning_trial/handoffs/assembly_trial_20261008_received/isaac_sim_assembly_20261008/generated/sim_targets.json",
+      "destination": "planning_trial/handoffs/assembly_trial_20261008_received/isaac_sim_assembly_20261008/generated/sim_targets.json",
+      "source_sha256": "7580fa640e9d33c9655e4cff7a98c87999691d758b40a1578c5201f63ee8d978",
+      "destination_sha256": "7580fa640e9d33c9655e4cff7a98c87999691d758b40a1578c5201f63ee8d978"
+    },
+    {
+      "source": "outputs/red_1x2_support_20261010/a_sim_copy/code/planning_trial/measurement_geometry.py",
+      "destination": "planning_trial/measurement_geometry.py",
+      "source_sha256": "d76e48c4833acdaeff35ff2212ae1263354483eefa6f06a5fb3a5a558e6a8490",
+      "destination_sha256": "d76e48c4833acdaeff35ff2212ae1263354483eefa6f06a5fb3a5a558e6a8490"
+    },
+    {
+      "source": "outputs/red_1x2_support_20261010/a_sim_copy/code/planning_trial/measurements/abs_reference_properties.user_20261008.json",
+      "destination": "planning_trial/measurements/abs_reference_properties.user_20261008.json",
+      "source_sha256": "ac1f03f55952d46c3876d4dc162e20656068447effbc17f16deeb8e3cadba999",
+      "destination_sha256": "ac1f03f55952d46c3876d4dc162e20656068447effbc17f16deeb8e3cadba999"
+    },
+    {
+      "source": "outputs/red_1x2_support_20261010/a_sim_copy/code/planning_trial/measurements/block_geometry.user_20261008.rev2.json",
+      "destination": "planning_trial/measurements/block_geometry.user_20261008.rev2.json",
+      "source_sha256": "017917fb82e3aa6ec689bc46193880e30ed6a0c5be79c8222e2835eaf7d29dc7",
+      "destination_sha256": "017917fb82e3aa6ec689bc46193880e30ed6a0c5be79c8222e2835eaf7d29dc7"
+    },
+    {
+      "source": "outputs/red_1x2_support_20261010/a_sim_copy/code/planning_trial/measurements/closed_tip_reference.user_20261007.json",
+      "destination": "planning_trial/measurements/closed_tip_reference.user_20261007.json",
+      "source_sha256": "508594396f6b3b4907db7c3db15a0b989cab8421626ef8ee74a10b8b419f847e",
+      "destination_sha256": "508594396f6b3b4907db7c3db15a0b989cab8421626ef8ee74a10b8b419f847e"
+    },
+    {
+      "source": "outputs/red_1x2_support_20261010/a_sim_copy/code/planning_trial/measurements/first_supply_grasp.user_20261007.json",
+      "destination": "planning_trial/measurements/first_supply_grasp.user_20261007.json",
+      "source_sha256": "6768736e0f02fde4c7bd7ac1bd234224ab8464169f11d47f38c520825649259d",
+      "destination_sha256": "6768736e0f02fde4c7bd7ac1bd234224ab8464169f11d47f38c520825649259d"
+    },
+    {
+      "source": "outputs/red_1x2_support_20261010/a_sim_copy/code/planning_trial/measurements/pedestal_grasp.user_20261007.json",
+      "destination": "planning_trial/measurements/pedestal_grasp.user_20261007.json",
+      "source_sha256": "d59c842d97ca0aa81558ece236eabbd5caf7bd842c5932105f5b105858dd9716",
+      "destination_sha256": "d59c842d97ca0aa81558ece236eabbd5caf7bd842c5932105f5b105858dd9716"
+    },
+    {
+      "source": "outputs/red_1x2_support_20261010/a_sim_copy/code/planning_trial/measurements/supply_board_corners.user_20261007.pass2.json",
+      "destination": "planning_trial/measurements/supply_board_corners.user_20261007.pass2.json",
+      "source_sha256": "d6322209edd1b913506040c92389fb4077320ba53309791a588ab6402df40f61",
+      "destination_sha256": "d6322209edd1b913506040c92389fb4077320ba53309791a588ab6402df40f61"
+    },
+    {
+      "source": "outputs/red_1x2_support_20261010/a_sim_copy/code/planning_trial/measurements/supply_grasp_depth_policy.user_20261008.json",
+      "destination": "planning_trial/measurements/supply_grasp_depth_policy.user_20261008.json",
+      "source_sha256": "216abb3339a8c3d68e3f688c5db8a1d3dddf27f4a89d29ea494089ff3e2a7a64",
+      "destination_sha256": "216abb3339a8c3d68e3f688c5db8a1d3dddf27f4a89d29ea494089ff3e2a7a64"
+    },
+    {
+      "source": "outputs/red_1x2_support_20261010/a_sim_copy/code/planning_trial/measurements/supply_layout.user_20261007.json",
+      "destination": "planning_trial/measurements/supply_layout.user_20261007.json",
+      "source_sha256": "0329126082e364be72780e64dc96da2623fa8944218022a670a15be7dcc7690d",
+      "destination_sha256": "0329126082e364be72780e64dc96da2623fa8944218022a670a15be7dcc7690d"
+    },
+    {
+      "source": "outputs/red_1x2_support_20261010/a_sim_copy/code/planning_trial/measurements/supply_pick_candidates.user_20261007.json",
+      "destination": "planning_trial/measurements/supply_pick_candidates.user_20261007.json",
+      "source_sha256": "703f97c93fcecfd39fcfdda5b5c27c7e3dabcbb10b4fc9f341330bbb3312139a",
+      "destination_sha256": "703f97c93fcecfd39fcfdda5b5c27c7e3dabcbb10b4fc9f341330bbb3312139a"
+    },
+    {
+      "source": "outputs/red_1x2_support_20261010/a_sim_copy/code/planning_trial/planner.py",
+      "destination": "planning_trial/planner.py",
+      "source_sha256": "85fd92ebed6d796d96462fcd10b8397d24e4919ea61f73b4d5942d5e60fb1eea",
+      "destination_sha256": "85fd92ebed6d796d96462fcd10b8397d24e4919ea61f73b4d5942d5e60fb1eea"
+    },
+    {
+      "source": "outputs/red_1x2_support_20261010/a_sim_copy/code/planning_trial/planning_bundle.py",
+      "destination": "planning_trial/planning_bundle.py",
+      "source_sha256": "90a0a450918d6e1c83ca9fa2014a720bd8d79a99706291147ae0cba720e69600",
+      "destination_sha256": "90a0a450918d6e1c83ca9fa2014a720bd8d79a99706291147ae0cba720e69600"
+    },
+    {
+      "source": "outputs/red_1x2_support_20261010/a_sim_copy/code/planning_trial/run_assembly_apis.py",
+      "destination": "planning_trial/run_assembly_apis.py",
+      "source_sha256": "2f527a1eb979e1edeeafbe9d7006431040110cb64a053bbcc934eb9741992b3f",
+      "destination_sha256": "2f527a1eb979e1edeeafbe9d7006431040110cb64a053bbcc934eb9741992b3f"
+    },
+    {
+      "source": "outputs/red_1x2_support_20261010/a_sim_copy/code/planning_trial/run_user_assembly_05.sh",
+      "destination": "planning_trial/run_user_assembly_05.sh",
+      "source_sha256": "df142c4f1e30b14ed9954ce6062ba7f0d27b46350680189edae4c85858dd8aa1",
+      "destination_sha256": "df142c4f1e30b14ed9954ce6062ba7f0d27b46350680189edae4c85858dd8aa1"
+    },
+    {
+      "source": "outputs/red_1x2_support_20261010/a_sim_copy/code/planning_trial/sample_assembly_inputs.json",
+      "destination": "planning_trial/sample_assembly_inputs.json",
+      "source_sha256": "5a060c66fcc570c6edf5471732779cdd251d2a9befa04c4d16c0b49f7758ab37",
+      "destination_sha256": "5a060c66fcc570c6edf5471732779cdd251d2a9befa04c4d16c0b49f7758ab37"
+    },
+    {
+      "source": "outputs/red_1x2_support_20261010/a_sim_copy/code/planning_trial/sample_current_state.json",
+      "destination": "planning_trial/sample_current_state.json",
+      "source_sha256": "e648e5c7d18be595fc391ff347d01f7934ca909d9491d87485054bb71ee94458",
+      "destination_sha256": "e648e5c7d18be595fc391ff347d01f7934ca909d9491d87485054bb71ee94458"
+    },
+    {
+      "source": "outputs/red_1x2_support_20261010/a_sim_copy/code/planning_trial/sample_design.json",
+      "destination": "planning_trial/sample_design.json",
+      "source_sha256": "63eb80170f0bc74096eb7e8480decb9d1fa1d8eb303591cca59e863ee04dbd97",
+      "destination_sha256": "63eb80170f0bc74096eb7e8480decb9d1fa1d8eb303591cca59e863ee04dbd97"
+    },
+    {
+      "source": "outputs/red_1x2_support_20261010/a_sim_copy/code/planning_trial/sample_minimal_release_inputs.json",
+      "destination": "planning_trial/sample_minimal_release_inputs.json",
+      "source_sha256": "3282b0ec0256e5b4b23b842dd9439cfc2f5da1d8dd9a8744d4d207b6955aca10",
+      "destination_sha256": "3282b0ec0256e5b4b23b842dd9439cfc2f5da1d8dd9a8744d4d207b6955aca10"
+    },
+    {
+      "source": "outputs/red_1x2_support_20261010/a_sim_copy/code/planning_trial/sample_modified_design.json",
+      "destination": "planning_trial/sample_modified_design.json",
+      "source_sha256": "d75e7a325ef4bde481b75515470998611c2afc3e6ea4a240d39f884122888059",
+      "destination_sha256": "d75e7a325ef4bde481b75515470998611c2afc3e6ea4a240d39f884122888059"
+    },
+    {
+      "source": "outputs/red_1x2_support_20261010/a_sim_copy/code/planning_trial/sample_plan.json",
+      "destination": "planning_trial/sample_plan.json",
+      "source_sha256": "2fd8619df20efd49aabb23004da3a37aeb9f50ae2723043dd6ff65d176275030",
+      "destination_sha256": "2fd8619df20efd49aabb23004da3a37aeb9f50ae2723043dd6ff65d176275030"
+    },
+    {
+      "source": "outputs/red_1x2_support_20261010/a_sim_copy/code/planning_trial/sample_replan.json",
+      "destination": "planning_trial/sample_replan.json",
+      "source_sha256": "58a31a97414dd42a12e5f0d19879eec307d7ce947b1ec047893fb4c9f86c7efd",
+      "destination_sha256": "58a31a97414dd42a12e5f0d19879eec307d7ce947b1ec047893fb4c9f86c7efd"
+    },
+    {
+      "source": "outputs/red_1x2_support_20261010/a_sim_copy/code/planning_trial/sample_user_rules_5mm_inputs.json",
+      "destination": "planning_trial/sample_user_rules_5mm_inputs.json",
+      "source_sha256": "b074579fef10ff2d54c1f5463881af7899363671ae01e2e6cf7079e14efa0f1a",
+      "destination_sha256": "b074579fef10ff2d54c1f5463881af7899363671ae01e2e6cf7079e14efa0f1a"
+    },
+    {
+      "source": "outputs/red_1x2_support_20261010/a_sim_copy/code/planning_trial/sample_user_rules_5mm_measured_rev2_inputs.json",
+      "destination": "planning_trial/sample_user_rules_5mm_measured_rev2_inputs.json",
+      "source_sha256": "43b7be5844382d0c2a9be0ff6a181ebcf268225483cbb37b91ace33295d57608",
+      "destination_sha256": "43b7be5844382d0c2a9be0ff6a181ebcf268225483cbb37b91ace33295d57608"
+    },
+    {
+      "source": "outputs/red_1x2_support_20261010/a_sim_copy/code/planning_trial/sample_user_rules_inputs.json",
+      "destination": "planning_trial/sample_user_rules_inputs.json",
+      "source_sha256": "cafed28e555e62ef2c9cdb487068e6502c04723b59f44b74d9316323a1e0e348",
+      "destination_sha256": "cafed28e555e62ef2c9cdb487068e6502c04723b59f44b74d9316323a1e0e348"
+    },
+    {
+      "source": "outputs/red_1x2_support_20261010/a_sim_copy/code/planning_trial/supply_pick.py",
+      "destination": "planning_trial/supply_pick.py",
+      "source_sha256": "1e1a21874670c5f25a7726d0c68af795cca03a73d5d9c8e5d790deaf4bbfe3d7",
+      "destination_sha256": "1e1a21874670c5f25a7726d0c68af795cca03a73d5d9c8e5d790deaf4bbfe3d7"
+    },
+    {
+      "source": "outputs/red_1x2_support_20261010/a_sim_copy/code/planning_trial/test_assembly_api.py",
+      "destination": "planning_trial/test_assembly_api.py",
+      "source_sha256": "ce943dfd69ae2a8d7e2a67419ecda5e85d7043ee671a326519b8be1f15837657",
+      "destination_sha256": "ce943dfd69ae2a8d7e2a67419ecda5e85d7043ee671a326519b8be1f15837657"
+    },
+    {
+      "source": "outputs/red_1x2_support_20261010/a_sim_copy/code/planning_trial/test_assembly_optimizer.py",
+      "destination": "planning_trial/test_assembly_optimizer.py",
+      "source_sha256": "a0e6b9721bac397640d30f65f58742c1cf8faa8e23293fb66932c9b65a8ef872",
+      "destination_sha256": "a0e6b9721bac397640d30f65f58742c1cf8faa8e23293fb66932c9b65a8ef872"
+    },
+    {
+      "source": "outputs/red_1x2_support_20261010/a_sim_copy/code/planning_trial/test_assembly_target.py",
+      "destination": "planning_trial/test_assembly_target.py",
+      "source_sha256": "e0c95775dc2b00ed8296ec19139b51592bc0c0187655f8604e88d0326376c6f4",
+      "destination_sha256": "e0c95775dc2b00ed8296ec19139b51592bc0c0187655f8604e88d0326376c6f4"
+    },
+    {
+      "source": "outputs/red_1x2_support_20261010/a_sim_copy/code/planning_trial/test_planner.py",
+      "destination": "planning_trial/test_planner.py",
+      "source_sha256": "d717e14726d7e9da2c1c1c49ff6581802a3d0b102b31df216836e8bfaf2ad972",
+      "destination_sha256": "d717e14726d7e9da2c1c1c49ff6581802a3d0b102b31df216836e8bfaf2ad972"
+    },
+    {
+      "source": "outputs/red_1x2_support_20261010/a_sim_copy/code/planning_trial/test_supply_pick.py",
+      "destination": "planning_trial/test_supply_pick.py",
+      "source_sha256": "20870a8cd3502dc75fc32d7f5628b8a6d6247e04fa8f367c9bf92037365980c9",
+      "destination_sha256": "20870a8cd3502dc75fc32d7f5628b8a6d6247e04fa8f367c9bf92037365980c9"
+    },
+    {
+      "source": "outputs/red_1x2_support_20261010/a_sim_copy/code/planning_trial/test_user_assembly_rules.py",
+      "destination": "planning_trial/test_user_assembly_rules.py",
+      "source_sha256": "fc61a11bd79c517540a565f803016d1f1885affff76635dea580afe0855d8ac2",
+      "destination_sha256": "fc61a11bd79c517540a565f803016d1f1885affff76635dea580afe0855d8ac2"
+    },
+    {
+      "source": "outputs/pick_transport_execution_20261008/isaac_pick_transport_20261008_01/code/planning_trial/ASSEMBLY_API_05_20261008.txt",
+      "destination": "isaac_sim/fixtures/original_a/planning_trial/ASSEMBLY_API_05_20261008.txt",
+      "source_sha256": "ed8506e3033b9099a9b5af628f22249ef73f5d11d247f1c50912bfb84d9aa66d",
+      "destination_sha256": "ed8506e3033b9099a9b5af628f22249ef73f5d11d247f1c50912bfb84d9aa66d"
+    },
+    {
+      "source": "outputs/pick_transport_execution_20261008/isaac_pick_transport_20261008_01/code/planning_trial/assembly_adapter.py",
+      "destination": "isaac_sim/fixtures/original_a/planning_trial/assembly_adapter.py",
+      "source_sha256": "2925b6e56f1414f204fe109f982d524dfbbfb841c203fcdfaea46c012653e2aa",
+      "destination_sha256": "2925b6e56f1414f204fe109f982d524dfbbfb841c203fcdfaea46c012653e2aa"
+    },
+    {
+      "source": "outputs/pick_transport_execution_20261008/isaac_pick_transport_20261008_01/code/planning_trial/assembly_api_fixtures.py",
+      "destination": "isaac_sim/fixtures/original_a/planning_trial/assembly_api_fixtures.py",
+      "source_sha256": "a2e945dcf3b02da2448987d9ed52313d2be8b1a82afe8e4607670c17b77f916b",
+      "destination_sha256": "a2e945dcf3b02da2448987d9ed52313d2be8b1a82afe8e4607670c17b77f916b"
+    },
+    {
+      "source": "outputs/pick_transport_execution_20261008/isaac_pick_transport_20261008_01/code/planning_trial/assembly_context.template.json",
+      "destination": "isaac_sim/fixtures/original_a/planning_trial/assembly_context.template.json",
+      "source_sha256": "68630d618ac3b65505a414295002fc6d1f316e2a3d35695b40ca4985d3782294",
+      "destination_sha256": "68630d618ac3b65505a414295002fc6d1f316e2a3d35695b40ca4985d3782294"
+    },
+    {
+      "source": "outputs/pick_transport_execution_20261008/isaac_pick_transport_20261008_01/code/planning_trial/assembly_contract.py",
+      "destination": "isaac_sim/fixtures/original_a/planning_trial/assembly_contract.py",
+      "source_sha256": "847927d82b89178d516c5b26b3a4d817e56f2fc8e4e4aa58480f270c5189dfa6",
+      "destination_sha256": "847927d82b89178d516c5b26b3a4d817e56f2fc8e4e4aa58480f270c5189dfa6"
+    },
+    {
+      "source": "outputs/pick_transport_execution_20261008/isaac_pick_transport_20261008_01/code/planning_trial/assembly_geometry.py",
+      "destination": "isaac_sim/fixtures/original_a/planning_trial/assembly_geometry.py",
+      "source_sha256": "d51b6873ca0361687aa2f2fd658def4ee17af354e3bba2dfc36c80e435ab9672",
+      "destination_sha256": "d51b6873ca0361687aa2f2fd658def4ee17af354e3bba2dfc36c80e435ab9672"
+    },
+    {
+      "source": "outputs/pick_transport_execution_20261008/isaac_pick_transport_20261008_01/code/planning_trial/assembly_motion.py",
+      "destination": "isaac_sim/fixtures/original_a/planning_trial/assembly_motion.py",
+      "source_sha256": "3edfaeece856587f4ccc6a124a770f7a1da43af53f70c7baeb2ffdb343246f7e",
+      "destination_sha256": "3edfaeece856587f4ccc6a124a770f7a1da43af53f70c7baeb2ffdb343246f7e"
+    },
+    {
+      "source": "outputs/pick_transport_execution_20261008/isaac_pick_transport_20261008_01/code/planning_trial/assembly_optimizer.py",
+      "destination": "isaac_sim/fixtures/original_a/planning_trial/assembly_optimizer.py",
+      "source_sha256": "c1219eca24b7c807673536b585712d0173c2b7ec397e0455ee210ac35e5a7095",
+      "destination_sha256": "c1219eca24b7c807673536b585712d0173c2b7ec397e0455ee210ac35e5a7095"
+    },
+    {
+      "source": "outputs/pick_transport_execution_20261008/isaac_pick_transport_20261008_01/code/planning_trial/assembly_profiles.py",
+      "destination": "isaac_sim/fixtures/original_a/planning_trial/assembly_profiles.py",
+      "source_sha256": "8ca8e95fd8bad62f1013da505053539e78a8962f032d6b6e450a10bddddaf27b",
+      "destination_sha256": "8ca8e95fd8bad62f1013da505053539e78a8962f032d6b6e450a10bddddaf27b"
+    },
+    {
+      "source": "outputs/pick_transport_execution_20261008/isaac_pick_transport_20261008_01/code/planning_trial/assembly_target.py",
+      "destination": "isaac_sim/fixtures/original_a/planning_trial/assembly_target.py",
+      "source_sha256": "2538aa55de14451fad59d9eb81e0187c7c667757294c1b3765c010eb28de8ae1",
+      "destination_sha256": "2538aa55de14451fad59d9eb81e0187c7c667757294c1b3765c010eb28de8ae1"
+    },
+    {
+      "source": "outputs/pick_transport_execution_20261008/isaac_pick_transport_20261008_01/code/planning_trial/assembly_wire.py",
+      "destination": "isaac_sim/fixtures/original_a/planning_trial/assembly_wire.py",
+      "source_sha256": "d1682e48fb84f0d2dc04df280ebbab78414dc4027015605c6f55fcc28ddf22dd",
+      "destination_sha256": "d1682e48fb84f0d2dc04df280ebbab78414dc4027015605c6f55fcc28ddf22dd"
+    },
+    {
+      "source": "outputs/pick_transport_execution_20261008/isaac_pick_transport_20261008_01/code/planning_trial/connection_contract_review_20261008_v4/examples/01_robot_grip/01_whole.request.json",
+      "destination": "isaac_sim/fixtures/original_a/planning_trial/connection_contract_review_20261008_v4/examples/01_robot_grip/01_whole.request.json",
+      "source_sha256": "2b57e085619344a9e85635e085b7c32ea85fb5cc59dda3f6c4e3006b4d8a9d07",
+      "destination_sha256": "2b57e085619344a9e85635e085b7c32ea85fb5cc59dda3f6c4e3006b4d8a9d07"
+    },
+    {
+      "source": "outputs/pick_transport_execution_20261008/isaac_pick_transport_20261008_01/code/planning_trial/connection_contract_review_20261008_v4/schema.json",
+      "destination": "isaac_sim/fixtures/original_a/planning_trial/connection_contract_review_20261008_v4/schema.json",
+      "source_sha256": "16edf3361e2b18d33d56fbe209ba9bf536312a9f39572c10c06adb499c423a5b",
+      "destination_sha256": "16edf3361e2b18d33d56fbe209ba9bf536312a9f39572c10c06adb499c423a5b"
+    },
+    {
+      "source": "outputs/pick_transport_execution_20261008/isaac_pick_transport_20261008_01/code/planning_trial/handoff_examples.json",
+      "destination": "isaac_sim/fixtures/original_a/planning_trial/handoff_examples.json",
+      "source_sha256": "588cb4986d24d6cfce38f21a56387151dc7809938e1f498b8e67553759adbe98",
+      "destination_sha256": "588cb4986d24d6cfce38f21a56387151dc7809938e1f498b8e67553759adbe98"
+    },
+    {
+      "source": "outputs/pick_transport_execution_20261008/isaac_pick_transport_20261008_01/code/planning_trial/handoffs/assembly_trial_20261008_received/isaac_sim_assembly_20261008/data/points.json",
+      "destination": "isaac_sim/fixtures/original_a/planning_trial/handoffs/assembly_trial_20261008_received/isaac_sim_assembly_20261008/data/points.json",
+      "source_sha256": "5006a30bfa660bea581eec474aca9ff7495886e10dece336639424b4ac0462ab",
+      "destination_sha256": "5006a30bfa660bea581eec474aca9ff7495886e10dece336639424b4ac0462ab"
+    },
+    {
+      "source": "outputs/pick_transport_execution_20261008/isaac_pick_transport_20261008_01/code/planning_trial/handoffs/assembly_trial_20261008_received/isaac_sim_assembly_20261008/data/position_analysis.json",
+      "destination": "isaac_sim/fixtures/original_a/planning_trial/handoffs/assembly_trial_20261008_received/isaac_sim_assembly_20261008/data/position_analysis.json",
+      "source_sha256": "11c9d7fed733eeb1e993b41d05050e5138c3c9b0a191c29eb2fdfcaa0f50b4a0",
+      "destination_sha256": "11c9d7fed733eeb1e993b41d05050e5138c3c9b0a191c29eb2fdfcaa0f50b4a0"
+    },
+    {
+      "source": "outputs/pick_transport_execution_20261008/isaac_pick_transport_20261008_01/code/planning_trial/handoffs/assembly_trial_20261008_received/isaac_sim_assembly_20261008/data/sequence_plan.json",
+      "destination": "isaac_sim/fixtures/original_a/planning_trial/handoffs/assembly_trial_20261008_received/isaac_sim_assembly_20261008/data/sequence_plan.json",
+      "source_sha256": "3132f24547f85e33ebfe29f719d3acd484e6cfdb1b3dcb9b752f1b8aef2c4008",
+      "destination_sha256": "3132f24547f85e33ebfe29f719d3acd484e6cfdb1b3dcb9b752f1b8aef2c4008"
+    },
+    {
+      "source": "outputs/pick_transport_execution_20261008/isaac_pick_transport_20261008_01/code/planning_trial/handoffs/assembly_trial_20261008_received/isaac_sim_assembly_20261008/generated/sim_targets.json",
+      "destination": "isaac_sim/fixtures/original_a/planning_trial/handoffs/assembly_trial_20261008_received/isaac_sim_assembly_20261008/generated/sim_targets.json",
+      "source_sha256": "7580fa640e9d33c9655e4cff7a98c87999691d758b40a1578c5201f63ee8d978",
+      "destination_sha256": "7580fa640e9d33c9655e4cff7a98c87999691d758b40a1578c5201f63ee8d978"
+    },
+    {
+      "source": "outputs/pick_transport_execution_20261008/isaac_pick_transport_20261008_01/code/planning_trial/measurement_geometry.py",
+      "destination": "isaac_sim/fixtures/original_a/planning_trial/measurement_geometry.py",
+      "source_sha256": "d76e48c4833acdaeff35ff2212ae1263354483eefa6f06a5fb3a5a558e6a8490",
+      "destination_sha256": "d76e48c4833acdaeff35ff2212ae1263354483eefa6f06a5fb3a5a558e6a8490"
+    },
+    {
+      "source": "outputs/pick_transport_execution_20261008/isaac_pick_transport_20261008_01/code/planning_trial/measurements/abs_reference_properties.user_20261008.json",
+      "destination": "isaac_sim/fixtures/original_a/planning_trial/measurements/abs_reference_properties.user_20261008.json",
+      "source_sha256": "ac1f03f55952d46c3876d4dc162e20656068447effbc17f16deeb8e3cadba999",
+      "destination_sha256": "ac1f03f55952d46c3876d4dc162e20656068447effbc17f16deeb8e3cadba999"
+    },
+    {
+      "source": "outputs/pick_transport_execution_20261008/isaac_pick_transport_20261008_01/code/planning_trial/measurements/block_geometry.user_20261008.rev2.json",
+      "destination": "isaac_sim/fixtures/original_a/planning_trial/measurements/block_geometry.user_20261008.rev2.json",
+      "source_sha256": "017917fb82e3aa6ec689bc46193880e30ed6a0c5be79c8222e2835eaf7d29dc7",
+      "destination_sha256": "017917fb82e3aa6ec689bc46193880e30ed6a0c5be79c8222e2835eaf7d29dc7"
+    },
+    {
+      "source": "outputs/pick_transport_execution_20261008/isaac_pick_transport_20261008_01/code/planning_trial/measurements/closed_tip_reference.user_20261007.json",
+      "destination": "isaac_sim/fixtures/original_a/planning_trial/measurements/closed_tip_reference.user_20261007.json",
+      "source_sha256": "508594396f6b3b4907db7c3db15a0b989cab8421626ef8ee74a10b8b419f847e",
+      "destination_sha256": "508594396f6b3b4907db7c3db15a0b989cab8421626ef8ee74a10b8b419f847e"
+    },
+    {
+      "source": "outputs/pick_transport_execution_20261008/isaac_pick_transport_20261008_01/code/planning_trial/measurements/first_supply_grasp.user_20261007.json",
+      "destination": "isaac_sim/fixtures/original_a/planning_trial/measurements/first_supply_grasp.user_20261007.json",
+      "source_sha256": "6768736e0f02fde4c7bd7ac1bd234224ab8464169f11d47f38c520825649259d",
+      "destination_sha256": "6768736e0f02fde4c7bd7ac1bd234224ab8464169f11d47f38c520825649259d"
+    },
+    {
+      "source": "outputs/pick_transport_execution_20261008/isaac_pick_transport_20261008_01/code/planning_trial/measurements/pedestal_grasp.user_20261007.json",
+      "destination": "isaac_sim/fixtures/original_a/planning_trial/measurements/pedestal_grasp.user_20261007.json",
+      "source_sha256": "d59c842d97ca0aa81558ece236eabbd5caf7bd842c5932105f5b105858dd9716",
+      "destination_sha256": "d59c842d97ca0aa81558ece236eabbd5caf7bd842c5932105f5b105858dd9716"
+    },
+    {
+      "source": "outputs/pick_transport_execution_20261008/isaac_pick_transport_20261008_01/code/planning_trial/measurements/supply_board_corners.user_20261007.pass2.json",
+      "destination": "isaac_sim/fixtures/original_a/planning_trial/measurements/supply_board_corners.user_20261007.pass2.json",
+      "source_sha256": "d6322209edd1b913506040c92389fb4077320ba53309791a588ab6402df40f61",
+      "destination_sha256": "d6322209edd1b913506040c92389fb4077320ba53309791a588ab6402df40f61"
+    },
+    {
+      "source": "outputs/pick_transport_execution_20261008/isaac_pick_transport_20261008_01/code/planning_trial/measurements/supply_grasp_depth_policy.user_20261008.json",
+      "destination": "isaac_sim/fixtures/original_a/planning_trial/measurements/supply_grasp_depth_policy.user_20261008.json",
+      "source_sha256": "216abb3339a8c3d68e3f688c5db8a1d3dddf27f4a89d29ea494089ff3e2a7a64",
+      "destination_sha256": "216abb3339a8c3d68e3f688c5db8a1d3dddf27f4a89d29ea494089ff3e2a7a64"
+    },
+    {
+      "source": "outputs/pick_transport_execution_20261008/isaac_pick_transport_20261008_01/code/planning_trial/measurements/supply_layout.user_20261007.json",
+      "destination": "isaac_sim/fixtures/original_a/planning_trial/measurements/supply_layout.user_20261007.json",
+      "source_sha256": "0329126082e364be72780e64dc96da2623fa8944218022a670a15be7dcc7690d",
+      "destination_sha256": "0329126082e364be72780e64dc96da2623fa8944218022a670a15be7dcc7690d"
+    },
+    {
+      "source": "outputs/pick_transport_execution_20261008/isaac_pick_transport_20261008_01/code/planning_trial/measurements/supply_pick_candidates.user_20261007.json",
+      "destination": "isaac_sim/fixtures/original_a/planning_trial/measurements/supply_pick_candidates.user_20261007.json",
+      "source_sha256": "703f97c93fcecfd39fcfdda5b5c27c7e3dabcbb10b4fc9f341330bbb3312139a",
+      "destination_sha256": "703f97c93fcecfd39fcfdda5b5c27c7e3dabcbb10b4fc9f341330bbb3312139a"
+    },
+    {
+      "source": "outputs/pick_transport_execution_20261008/isaac_pick_transport_20261008_01/code/planning_trial/planner.py",
+      "destination": "isaac_sim/fixtures/original_a/planning_trial/planner.py",
+      "source_sha256": "f41a79cb0c72cd74d188d8f42faa750a2c7d942306a25a3c0c393adac9a34c33",
+      "destination_sha256": "f41a79cb0c72cd74d188d8f42faa750a2c7d942306a25a3c0c393adac9a34c33"
+    },
+    {
+      "source": "outputs/pick_transport_execution_20261008/isaac_pick_transport_20261008_01/code/planning_trial/planning_bundle.py",
+      "destination": "isaac_sim/fixtures/original_a/planning_trial/planning_bundle.py",
+      "source_sha256": "90a0a450918d6e1c83ca9fa2014a720bd8d79a99706291147ae0cba720e69600",
+      "destination_sha256": "90a0a450918d6e1c83ca9fa2014a720bd8d79a99706291147ae0cba720e69600"
+    },
+    {
+      "source": "outputs/pick_transport_execution_20261008/isaac_pick_transport_20261008_01/code/planning_trial/run_assembly_apis.py",
+      "destination": "isaac_sim/fixtures/original_a/planning_trial/run_assembly_apis.py",
+      "source_sha256": "2f527a1eb979e1edeeafbe9d7006431040110cb64a053bbcc934eb9741992b3f",
+      "destination_sha256": "2f527a1eb979e1edeeafbe9d7006431040110cb64a053bbcc934eb9741992b3f"
+    },
+    {
+      "source": "outputs/pick_transport_execution_20261008/isaac_pick_transport_20261008_01/code/planning_trial/run_user_assembly_05.sh",
+      "destination": "isaac_sim/fixtures/original_a/planning_trial/run_user_assembly_05.sh",
+      "source_sha256": "df142c4f1e30b14ed9954ce6062ba7f0d27b46350680189edae4c85858dd8aa1",
+      "destination_sha256": "df142c4f1e30b14ed9954ce6062ba7f0d27b46350680189edae4c85858dd8aa1"
+    },
+    {
+      "source": "outputs/pick_transport_execution_20261008/isaac_pick_transport_20261008_01/code/planning_trial/sample_assembly_inputs.json",
+      "destination": "isaac_sim/fixtures/original_a/planning_trial/sample_assembly_inputs.json",
+      "source_sha256": "5a060c66fcc570c6edf5471732779cdd251d2a9befa04c4d16c0b49f7758ab37",
+      "destination_sha256": "5a060c66fcc570c6edf5471732779cdd251d2a9befa04c4d16c0b49f7758ab37"
+    },
+    {
+      "source": "outputs/pick_transport_execution_20261008/isaac_pick_transport_20261008_01/code/planning_trial/sample_current_state.json",
+      "destination": "isaac_sim/fixtures/original_a/planning_trial/sample_current_state.json",
+      "source_sha256": "e648e5c7d18be595fc391ff347d01f7934ca909d9491d87485054bb71ee94458",
+      "destination_sha256": "e648e5c7d18be595fc391ff347d01f7934ca909d9491d87485054bb71ee94458"
+    },
+    {
+      "source": "outputs/pick_transport_execution_20261008/isaac_pick_transport_20261008_01/code/planning_trial/sample_design.json",
+      "destination": "isaac_sim/fixtures/original_a/planning_trial/sample_design.json",
+      "source_sha256": "63eb80170f0bc74096eb7e8480decb9d1fa1d8eb303591cca59e863ee04dbd97",
+      "destination_sha256": "63eb80170f0bc74096eb7e8480decb9d1fa1d8eb303591cca59e863ee04dbd97"
+    },
+    {
+      "source": "outputs/pick_transport_execution_20261008/isaac_pick_transport_20261008_01/code/planning_trial/sample_minimal_release_inputs.json",
+      "destination": "isaac_sim/fixtures/original_a/planning_trial/sample_minimal_release_inputs.json",
+      "source_sha256": "3282b0ec0256e5b4b23b842dd9439cfc2f5da1d8dd9a8744d4d207b6955aca10",
+      "destination_sha256": "3282b0ec0256e5b4b23b842dd9439cfc2f5da1d8dd9a8744d4d207b6955aca10"
+    },
+    {
+      "source": "outputs/pick_transport_execution_20261008/isaac_pick_transport_20261008_01/code/planning_trial/sample_modified_design.json",
+      "destination": "isaac_sim/fixtures/original_a/planning_trial/sample_modified_design.json",
+      "source_sha256": "d75e7a325ef4bde481b75515470998611c2afc3e6ea4a240d39f884122888059",
+      "destination_sha256": "d75e7a325ef4bde481b75515470998611c2afc3e6ea4a240d39f884122888059"
+    },
+    {
+      "source": "outputs/pick_transport_execution_20261008/isaac_pick_transport_20261008_01/code/planning_trial/sample_plan.json",
+      "destination": "isaac_sim/fixtures/original_a/planning_trial/sample_plan.json",
+      "source_sha256": "2fd8619df20efd49aabb23004da3a37aeb9f50ae2723043dd6ff65d176275030",
+      "destination_sha256": "2fd8619df20efd49aabb23004da3a37aeb9f50ae2723043dd6ff65d176275030"
+    },
+    {
+      "source": "outputs/pick_transport_execution_20261008/isaac_pick_transport_20261008_01/code/planning_trial/sample_replan.json",
+      "destination": "isaac_sim/fixtures/original_a/planning_trial/sample_replan.json",
+      "source_sha256": "58a31a97414dd42a12e5f0d19879eec307d7ce947b1ec047893fb4c9f86c7efd",
+      "destination_sha256": "58a31a97414dd42a12e5f0d19879eec307d7ce947b1ec047893fb4c9f86c7efd"
+    },
+    {
+      "source": "outputs/pick_transport_execution_20261008/isaac_pick_transport_20261008_01/code/planning_trial/sample_user_rules_5mm_inputs.json",
+      "destination": "isaac_sim/fixtures/original_a/planning_trial/sample_user_rules_5mm_inputs.json",
+      "source_sha256": "b074579fef10ff2d54c1f5463881af7899363671ae01e2e6cf7079e14efa0f1a",
+      "destination_sha256": "b074579fef10ff2d54c1f5463881af7899363671ae01e2e6cf7079e14efa0f1a"
+    },
+    {
+      "source": "outputs/pick_transport_execution_20261008/isaac_pick_transport_20261008_01/code/planning_trial/sample_user_rules_5mm_measured_rev2_inputs.json",
+      "destination": "isaac_sim/fixtures/original_a/planning_trial/sample_user_rules_5mm_measured_rev2_inputs.json",
+      "source_sha256": "43b7be5844382d0c2a9be0ff6a181ebcf268225483cbb37b91ace33295d57608",
+      "destination_sha256": "43b7be5844382d0c2a9be0ff6a181ebcf268225483cbb37b91ace33295d57608"
+    },
+    {
+      "source": "outputs/pick_transport_execution_20261008/isaac_pick_transport_20261008_01/code/planning_trial/sample_user_rules_inputs.json",
+      "destination": "isaac_sim/fixtures/original_a/planning_trial/sample_user_rules_inputs.json",
+      "source_sha256": "cafed28e555e62ef2c9cdb487068e6502c04723b59f44b74d9316323a1e0e348",
+      "destination_sha256": "cafed28e555e62ef2c9cdb487068e6502c04723b59f44b74d9316323a1e0e348"
+    },
+    {
+      "source": "outputs/pick_transport_execution_20261008/isaac_pick_transport_20261008_01/code/planning_trial/supply_pick.py",
+      "destination": "isaac_sim/fixtures/original_a/planning_trial/supply_pick.py",
+      "source_sha256": "cd88c0af429fd22c26d31d157727346bc767b7c6b4e3f146cdbe070222b40d63",
+      "destination_sha256": "cd88c0af429fd22c26d31d157727346bc767b7c6b4e3f146cdbe070222b40d63"
+    },
+    {
+      "source": "outputs/pick_transport_execution_20261008/isaac_pick_transport_20261008_01/code/planning_trial/test_assembly_api.py",
+      "destination": "isaac_sim/fixtures/original_a/planning_trial/test_assembly_api.py",
+      "source_sha256": "ce943dfd69ae2a8d7e2a67419ecda5e85d7043ee671a326519b8be1f15837657",
+      "destination_sha256": "ce943dfd69ae2a8d7e2a67419ecda5e85d7043ee671a326519b8be1f15837657"
+    },
+    {
+      "source": "outputs/pick_transport_execution_20261008/isaac_pick_transport_20261008_01/code/planning_trial/test_assembly_optimizer.py",
+      "destination": "isaac_sim/fixtures/original_a/planning_trial/test_assembly_optimizer.py",
+      "source_sha256": "a0e6b9721bac397640d30f65f58742c1cf8faa8e23293fb66932c9b65a8ef872",
+      "destination_sha256": "a0e6b9721bac397640d30f65f58742c1cf8faa8e23293fb66932c9b65a8ef872"
+    },
+    {
+      "source": "outputs/pick_transport_execution_20261008/isaac_pick_transport_20261008_01/code/planning_trial/test_assembly_target.py",
+      "destination": "isaac_sim/fixtures/original_a/planning_trial/test_assembly_target.py",
+      "source_sha256": "e0c95775dc2b00ed8296ec19139b51592bc0c0187655f8604e88d0326376c6f4",
+      "destination_sha256": "e0c95775dc2b00ed8296ec19139b51592bc0c0187655f8604e88d0326376c6f4"
+    },
+    {
+      "source": "outputs/pick_transport_execution_20261008/isaac_pick_transport_20261008_01/code/planning_trial/test_planner.py",
+      "destination": "isaac_sim/fixtures/original_a/planning_trial/test_planner.py",
+      "source_sha256": "d717e14726d7e9da2c1c1c49ff6581802a3d0b102b31df216836e8bfaf2ad972",
+      "destination_sha256": "d717e14726d7e9da2c1c1c49ff6581802a3d0b102b31df216836e8bfaf2ad972"
+    },
+    {
+      "source": "outputs/pick_transport_execution_20261008/isaac_pick_transport_20261008_01/code/planning_trial/test_supply_pick.py",
+      "destination": "isaac_sim/fixtures/original_a/planning_trial/test_supply_pick.py",
+      "source_sha256": "20870a8cd3502dc75fc32d7f5628b8a6d6247e04fa8f367c9bf92037365980c9",
+      "destination_sha256": "20870a8cd3502dc75fc32d7f5628b8a6d6247e04fa8f367c9bf92037365980c9"
+    },
+    {
+      "source": "outputs/pick_transport_execution_20261008/isaac_pick_transport_20261008_01/code/planning_trial/test_user_assembly_rules.py",
+      "destination": "isaac_sim/fixtures/original_a/planning_trial/test_user_assembly_rules.py",
+      "source_sha256": "fc61a11bd79c517540a565f803016d1f1885affff76635dea580afe0855d8ac2",
+      "destination_sha256": "fc61a11bd79c517540a565f803016d1f1885affff76635dea580afe0855d8ac2"
+    },
+    {
+      "source": "outputs/red_1x2_support_20261010/scripts/run_chair.py",
+      "destination": "isaac_sim/scripts/run_chair.py",
+      "source_sha256": "48f571278f286553e018a957c784b2d152abe9ae7bf2393a2e49a6608164400b",
+      "destination_sha256": "48f571278f286553e018a957c784b2d152abe9ae7bf2393a2e49a6608164400b"
+    },
+    {
+      "source": "outputs/red_1x2_support_20261010/scripts/sim_host.py",
+      "destination": "isaac_sim/scripts/sim_host.py",
+      "source_sha256": "a5a5c8a3d3550f4b49c670d34db6262384a13d0c22cb1869d4e3b619d37471d2",
+      "destination_sha256": "38edcb3f91ed0f317f5668b6d7c123299059726a53400093780a41faff7cd241"
+    },
+    {
+      "source": "outputs/red_1x2_support_20261010/scripts/scenario_core.py",
+      "destination": "isaac_sim/scripts/scenario_core.py",
+      "source_sha256": "ff00a3b1bd0855cbdd09d2963f5c2ecedc9c30a662a6fbefb92d052086c42cab",
+      "destination_sha256": "27fe412fe9407fc01f2ce8b132eee872a71986a319d07508ff8ded152878ebe2"
+    },
+    {
+      "source": "outputs/red_1x2_support_20261010/scripts/sim_utils.py",
+      "destination": "isaac_sim/scripts/sim_utils.py",
+      "source_sha256": "ca20337bb85210cb116925552747e2175386bdf45e50a47b21dadc652cb1e177",
+      "destination_sha256": "9420508c658062e74d3e84e1ed834cf39e804e01d27d1defb5aebacdd6197ca5"
+    },
+    {
+      "source": "outputs/red_1x2_support_20261010/scripts/runtime_guard.py",
+      "destination": "isaac_sim/scripts/runtime_guard.py",
+      "source_sha256": "f280e057c4fb494f9ea1d3b9ab2acab507551bbd1c700371a6184d1a6bfa3771",
+      "destination_sha256": "905ede9e7826965adaee62c76fff0a55c38ea3ddf037a0d3afff0ce9fac8d791"
+    },
+    {
+      "source": "outputs/red_1x2_support_20261010/scripts/scenario_collision.py",
+      "destination": "isaac_sim/scripts/scenario_collision.py",
+      "source_sha256": "75246da4db3bf7a9b4f57c958456ef904d626155bb04594fbae59e026a1560a3",
+      "destination_sha256": "75246da4db3bf7a9b4f57c958456ef904d626155bb04594fbae59e026a1560a3"
+    },
+    {
+      "source": "outputs/red_1x2_support_20261010/scripts/native_compat.py",
+      "destination": "isaac_sim/scripts/native_compat.py",
+      "source_sha256": "2ccda53a5ecc385b343d8608443e077f054df6b72382ca683bc7d95c0d588c2e",
+      "destination_sha256": "2ccda53a5ecc385b343d8608443e077f054df6b72382ca683bc7d95c0d588c2e"
+    },
+    {
+      "source": "outputs/red_1x2_support_20261010/scripts/prepare_config.py",
+      "destination": "isaac_sim/scripts/prepare_config.py",
+      "source_sha256": "1a53dcb65aa7655605d9512deb7b1811d7294f0a5066adfdfa3e532785ad8ef0",
+      "destination_sha256": "1a53dcb65aa7655605d9512deb7b1811d7294f0a5066adfdfa3e532785ad8ef0"
+    },
+    {
+      "source": "outputs/red_1x2_support_20261010/scripts/prepare_scenario.py",
+      "destination": "isaac_sim/scripts/prepare_scenario.py",
+      "source_sha256": "708242f194b76dd5b9bbd5e6054b8849aecf3fcba070cd694e2faa70710ce978",
+      "destination_sha256": "8b86de281c9372df7db0e8911be68fa5a93fcd945a63368038b3bed87ea85662"
+    },
+    {
+      "source": "outputs/red_1x2_support_20261010/scripts/test_hand_review.py",
+      "destination": "isaac_sim/scripts/test_hand_review.py",
+      "source_sha256": "fd9454e8dec9297137b1040a15cae4547950392ad6c951e286ef85ae90267155",
+      "destination_sha256": "cac926b4f64726ea932ee84bdf73824ee3700dd7c4e74a2baf4b5f1c5c797125"
+    },
+    {
+      "source": "outputs/red_1x2_support_20261010/scripts/test_completion_priority.py",
+      "destination": "isaac_sim/scripts/test_completion_priority.py",
+      "source_sha256": "84cb1d702142e7fecd091fb3585abbc889f50246b1a964e38f6669d1247e14ee",
+      "destination_sha256": "e33d23c3a57d4ced67d8048d2692bb3604090a012b0f9bb6b4cf046b9aad1ea7"
+    },
+    {
+      "source": "outputs/red_1x2_support_20261010/scripts/test_red_supply.py",
+      "destination": "isaac_sim/scripts/test_red_supply.py",
+      "source_sha256": "8f7fd8767730926500c028dc0b22df6d47d9c3d31e3f16d44ad816868ea36e78",
+      "destination_sha256": "a130727aa0c881e5fab1e8f2f7aeeabf75dca1ffb4913fbd74eef907a4f14ca2"
+    },
+    {
+      "source": "outputs/red_1x2_support_20261010/scripts/check_chair.py",
+      "destination": "isaac_sim/scripts/check_chair.py",
+      "source_sha256": "3962637770479f4bba752da850cb5c1aa0dc68bb2048069d65827cc65dc13d0f",
+      "destination_sha256": "842fc2f8965daf4fc4571529d36e371091a20136d69d0666038a1671e6b8d711"
+    },
+    {
+      "source": "outputs/red_1x2_support_20261010/scripts/check_red_run.py",
+      "destination": "isaac_sim/scripts/check_red_run.py",
+      "source_sha256": "5f26d63206dcbc55a7ef188c88a5da2f01020ef1af9f2f7875bbf631a07ba02f",
+      "destination_sha256": "2fabcae0722dddfda5dee0fe6f9024f9af18178471f39e8e9ee27d5769baff5d"
+    },
+    {
+      "source": "outputs/red_1x2_support_20261010/scripts/check_handover_lift.py",
+      "destination": "isaac_sim/scripts/check_handover_lift.py",
+      "source_sha256": "d7ff205fa217edbc1a4005cc87fcc1140d5709a6b0de1395efac93585de72511",
+      "destination_sha256": "b4dbc4b91b9d50b1ad276b5677a27cf7d14b42624442b0056ed9361981411a73"
+    },
+    {
+      "source": "outputs/red_1x2_support_20261010/config/red_supply.layout.json",
+      "destination": "isaac_sim/config/red_supply.layout.json",
+      "source_sha256": "70856963cde14dc747bedf2a15f06b1fd0496a0fed2b911b7a17efd7beb3efa0",
+      "destination_sha256": "70856963cde14dc747bedf2a15f06b1fd0496a0fed2b911b7a17efd7beb3efa0"
+    },
+    {
+      "source": "outputs/red_1x2_support_20261010/config/validation_three_blocks.request.json",
+      "destination": "isaac_sim/config/validation_three_blocks.request.json",
+      "source_sha256": "2aea943b379ba0be02937d92954164b2018f3df46a9b2edc152f76b187ebfd56",
+      "destination_sha256": "2aea943b379ba0be02937d92954164b2018f3df46a9b2edc152f76b187ebfd56"
+    },
+    {
+      "source": "outputs/red_1x2_support_20261010/config/whole.complete_first.request.json",
+      "destination": "isaac_sim/config/whole.complete_first.request.json",
+      "source_sha256": "910de8a29aea83523fd658d0dfc079dc43c9aebb833b6f2baffee16b849245c2",
+      "destination_sha256": "910de8a29aea83523fd658d0dfc079dc43c9aebb833b6f2baffee16b849245c2"
+    },
+    {
+      "source": "outputs/red_1x2_support_20261010/config/transport.sim.json",
+      "destination": "isaac_sim/config/transport.sim.json",
+      "source_sha256": "a25819780144f08396f5c58246b39607d00edd0bf123426ffdd6955c54e84ae2",
+      "destination_sha256": "a25819780144f08396f5c58246b39607d00edd0bf123426ffdd6955c54e84ae2"
+    },
+    {
+      "source": "outputs/red_1x2_support_20261010/config/tray.sim.json",
+      "destination": "isaac_sim/config/tray.sim.json",
+      "source_sha256": "de5b6820cc9f7f5b61015cbd169eb41fb679b2471aba10eaeeedc6f517cb6607",
+      "destination_sha256": "de5b6820cc9f7f5b61015cbd169eb41fb679b2471aba10eaeeedc6f517cb6607"
+    },
+    {
+      "source": "outputs/red_1x2_support_20261010/config/whole.chair.regression.request.json",
+      "destination": "isaac_sim/config/whole.chair.regression.request.json",
+      "source_sha256": "27baab3b90c6168c97720c35fa765e88273262c704d01b165f3678f1567dcf71",
+      "destination_sha256": "27baab3b90c6168c97720c35fa765e88273262c704d01b165f3678f1567dcf71"
+    },
+    {
+      "source": "outputs/red_1x2_support_20261010/config/whole.hand_review.request.json",
+      "destination": "isaac_sim/config/whole.hand_review.request.json",
+      "source_sha256": "53fe3b2a25497c52057f81a15a18e358398100033cefe0ed255961d7be072dc0",
+      "destination_sha256": "53fe3b2a25497c52057f81a15a18e358398100033cefe0ed255961d7be072dc0"
+    },
+    {
+      "source": "outputs/red_1x2_support_20261010/config/ompl.yaml",
+      "destination": "isaac_sim/config/ompl.yaml",
+      "source_sha256": "bb065cd912a66a29de2f0b17ea3ca82b32e48f81507fc072d694f1aec05c6ba2",
+      "destination_sha256": "bb065cd912a66a29de2f0b17ea3ca82b32e48f81507fc072d694f1aec05c6ba2"
+    },
+    {
+      "source": "outputs/red_1x2_support_20261010/config/controllers.yaml",
+      "destination": "isaac_sim/config/controllers.yaml",
+      "source_sha256": "05b5547bc06f76e0c53201512e2435b76711df698a8135900735406e92a67d73",
+      "destination_sha256": "05b5547bc06f76e0c53201512e2435b76711df698a8135900735406e92a67d73"
+    },
+    {
+      "source": "outputs/red_1x2_support_20261010/config/joint_limits.sim.yaml",
+      "destination": "isaac_sim/config/joint_limits.sim.yaml",
+      "source_sha256": "651c969efd8146563c36af77d1acb6e4f80d0c255e8da5e9ab7b38c23aab5360",
+      "destination_sha256": "651c969efd8146563c36af77d1acb6e4f80d0c255e8da5e9ab7b38c23aab5360"
+    },
+    {
+      "source": "outputs/red_1x2_support_20261010/config/moveit_controllers.yaml",
+      "destination": "isaac_sim/config/moveit_controllers.yaml",
+      "source_sha256": "c0ecca27d416ab06ecf8c916123c4c7bc5e590a5d2d505a3bad23140022934b1",
+      "destination_sha256": "c0ecca27d416ab06ecf8c916123c4c7bc5e590a5d2d505a3bad23140022934b1"
+    },
+    {
+      "source": "outputs/red_1x2_support_20261010/config/design.json",
+      "destination": "isaac_sim/config/design.json",
+      "source_sha256": "68b84e3542d68e0b81523a399157b3be86794e5fa2696fd82b455672a6778015",
+      "destination_sha256": "68b84e3542d68e0b81523a399157b3be86794e5fa2696fd82b455672a6778015"
+    },
+    {
+      "source": "outputs/red_1x2_support_20261010/config/whole.request.json",
+      "destination": "isaac_sim/config/whole.request.json",
+      "source_sha256": "45eb2d4072ceda0ab3ef505309be89b54126f4318e92871c0cb7bcf87249bedf",
+      "destination_sha256": "45eb2d4072ceda0ab3ef505309be89b54126f4318e92871c0cb7bcf87249bedf"
+    },
+    {
+      "source": "outputs/red_1x2_support_20261010/ros_ws/src/m0609_moveit_sim/CMakeLists.txt",
+      "destination": "isaac_sim/ros_ws/src/m0609_moveit_sim/CMakeLists.txt",
+      "source_sha256": "155f8f97a97cad6bcc24fb986c1201673c41fec035c7ee48f9c84b476865dce6",
+      "destination_sha256": "155f8f97a97cad6bcc24fb986c1201673c41fec035c7ee48f9c84b476865dce6"
+    },
+    {
+      "source": "outputs/red_1x2_support_20261010/ros_ws/src/m0609_moveit_sim/launch/sim_moveit.launch.py",
+      "destination": "isaac_sim/ros_ws/src/m0609_moveit_sim/launch/sim_moveit.launch.py",
+      "source_sha256": "150bb9868257795c927f1affe23a64ac4e15be07fa021956775948f2efbbe89b",
+      "destination_sha256": "150bb9868257795c927f1affe23a64ac4e15be07fa021956775948f2efbbe89b"
+    },
+    {
+      "source": "outputs/red_1x2_support_20261010/ros_ws/src/m0609_moveit_sim/package.xml",
+      "destination": "isaac_sim/ros_ws/src/m0609_moveit_sim/package.xml",
+      "source_sha256": "6c7ed11db7770f42245b456f4731b4b58380c3fc5f41b738f41080b7851ffec9",
+      "destination_sha256": "6c7ed11db7770f42245b456f4731b4b58380c3fc5f41b738f41080b7851ffec9"
+    },
+    {
+      "source": "outputs/red_1x2_support_20261010/ros_ws/src/m0609_moveit_sim/src/moveit_step.cpp",
+      "destination": "isaac_sim/ros_ws/src/m0609_moveit_sim/src/moveit_step.cpp",
+      "source_sha256": "c0466f9449485894171e3da45d4ba85d314edfc430a9ab17160c8b9817c332be",
+      "destination_sha256": "c0466f9449485894171e3da45d4ba85d314edfc430a9ab17160c8b9817c332be"
+    },
+    {
+      "source": "outputs/red_1x2_support_20261010/ros_ws/src/m0609_moveit_sim/src/perf_replay.cpp",
+      "destination": "isaac_sim/ros_ws/src/m0609_moveit_sim/src/perf_replay.cpp",
+      "source_sha256": "e56b220bfc99fc3472df04fed4f1477bbd15efe2ba326aab7af4a8dae393eb2d",
+      "destination_sha256": "e56b220bfc99fc3472df04fed4f1477bbd15efe2ba326aab7af4a8dae393eb2d"
+    },
+    {
+      "source": "outputs/red_1x2_support_20261010/ros_ws/src/m0609_rg2_sim_model/CMakeLists.txt",
+      "destination": "isaac_sim/ros_ws/src/m0609_rg2_sim_model/CMakeLists.txt",
+      "source_sha256": "7403dfc4ba15944319a5827e489855adee8043c027a545337eef47a27d95759c",
+      "destination_sha256": "7403dfc4ba15944319a5827e489855adee8043c027a545337eef47a27d95759c"
+    },
+    {
+      "source": "outputs/red_1x2_support_20261010/ros_ws/src/m0609_rg2_sim_model/config/alignment.sim.json",
+      "destination": "isaac_sim/ros_ws/src/m0609_rg2_sim_model/config/alignment.sim.json",
+      "source_sha256": "1873febfaca41b38d6c4eae6a3b9187ac2464c7700f9a24d707d4ed6626e9044",
+      "destination_sha256": "1873febfaca41b38d6c4eae6a3b9187ac2464c7700f9a24d707d4ed6626e9044"
+    },
+    {
+      "source": "outputs/red_1x2_support_20261010/ros_ws/src/m0609_rg2_sim_model/config/joint_limits.yaml",
+      "destination": "isaac_sim/ros_ws/src/m0609_rg2_sim_model/config/joint_limits.yaml",
+      "source_sha256": "9ef20a619e9ac0b9210f0c178ae17b5f3dff4c7a33e701c6c3aa923945de0d0a",
+      "destination_sha256": "9ef20a619e9ac0b9210f0c178ae17b5f3dff4c7a33e701c6c3aa923945de0d0a"
+    },
+    {
+      "source": "outputs/red_1x2_support_20261010/ros_ws/src/m0609_rg2_sim_model/config/kinematics.yaml",
+      "destination": "isaac_sim/ros_ws/src/m0609_rg2_sim_model/config/kinematics.yaml",
+      "source_sha256": "0a7abcc4950769e280077d989ab02239128c48a08f3979d73c1c99a133ea3bf3",
+      "destination_sha256": "0a7abcc4950769e280077d989ab02239128c48a08f3979d73c1c99a133ea3bf3"
+    },
+    {
+      "source": "outputs/red_1x2_support_20261010/ros_ws/src/m0609_rg2_sim_model/config/m0609_rg2_sim.srdf",
+      "destination": "isaac_sim/ros_ws/src/m0609_rg2_sim_model/config/m0609_rg2_sim.srdf",
+      "source_sha256": "4175e96ee8d6700cf25c2d50dcaac2284ae316116504f3de9d0f417547c1018d",
+      "destination_sha256": "4175e96ee8d6700cf25c2d50dcaac2284ae316116504f3de9d0f417547c1018d"
+    },
+    {
+      "source": "outputs/red_1x2_support_20261010/ros_ws/src/m0609_rg2_sim_model/licenses/dsr_description2/LICENSE",
+      "destination": "isaac_sim/ros_ws/src/m0609_rg2_sim_model/licenses/dsr_description2/LICENSE",
+      "source_sha256": "03b0926f73de511cb3b094d4b34b48aacae408b0f8cb723ba4382f5d67e41f92",
+      "destination_sha256": "03b0926f73de511cb3b094d4b34b48aacae408b0f8cb723ba4382f5d67e41f92"
+    },
+    {
+      "source": "outputs/red_1x2_support_20261010/ros_ws/src/m0609_rg2_sim_model/licenses/dsr_description2/package.xml",
+      "destination": "isaac_sim/ros_ws/src/m0609_rg2_sim_model/licenses/dsr_description2/package.xml",
+      "source_sha256": "2cd76be675ac64507da99dc3916cc0ce2b34cf28d508a6cbe85f6c6411cea0fa",
+      "destination_sha256": "2cd76be675ac64507da99dc3916cc0ce2b34cf28d508a6cbe85f6c6411cea0fa"
+    },
+    {
+      "source": "outputs/red_1x2_support_20261010/ros_ws/src/m0609_rg2_sim_model/licenses/m0609_rg2_bringup/package.xml",
+      "destination": "isaac_sim/ros_ws/src/m0609_rg2_sim_model/licenses/m0609_rg2_bringup/package.xml",
+      "source_sha256": "a59848ac7585184ac3728f2f7c651aa9d3986637460688a7f289b31bfaa352c3",
+      "destination_sha256": "a59848ac7585184ac3728f2f7c651aa9d3986637460688a7f289b31bfaa352c3"
+    },
+    {
+      "source": "outputs/red_1x2_support_20261010/ros_ws/src/m0609_rg2_sim_model/licenses/onrobot_rg_description/LICENSE",
+      "destination": "isaac_sim/ros_ws/src/m0609_rg2_sim_model/licenses/onrobot_rg_description/LICENSE",
+      "source_sha256": "e65df8d88980a71fa1b4c084ca8d7a4fcc1b685a60b078674a86e3a6343147ed",
+      "destination_sha256": "e65df8d88980a71fa1b4c084ca8d7a4fcc1b685a60b078674a86e3a6343147ed"
+    },
+    {
+      "source": "outputs/red_1x2_support_20261010/ros_ws/src/m0609_rg2_sim_model/licenses/onrobot_rg_description/package.xml",
+      "destination": "isaac_sim/ros_ws/src/m0609_rg2_sim_model/licenses/onrobot_rg_description/package.xml",
+      "source_sha256": "e4f99fa5d7b2afd88c5c7c7d21cdfbeb5ba7af85aeec35d2a07d3b3f6140f81f",
+      "destination_sha256": "e4f99fa5d7b2afd88c5c7c7d21cdfbeb5ba7af85aeec35d2a07d3b3f6140f81f"
+    },
+    {
+      "source": "outputs/red_1x2_support_20261010/ros_ws/src/m0609_rg2_sim_model/meshes/base_link_collision_0.stl",
+      "destination": "isaac_sim/ros_ws/src/m0609_rg2_sim_model/meshes/base_link_collision_0.stl",
+      "source_sha256": "6670bb88425250451dca0d67e75e4e9c6587bbbe8c7c81bbe1eb5c53bb1471d9",
+      "destination_sha256": "6670bb88425250451dca0d67e75e4e9c6587bbbe8c7c81bbe1eb5c53bb1471d9"
+    },
+    {
+      "source": "outputs/red_1x2_support_20261010/ros_ws/src/m0609_rg2_sim_model/meshes/base_link_visual_0.stl",
+      "destination": "isaac_sim/ros_ws/src/m0609_rg2_sim_model/meshes/base_link_visual_0.stl",
+      "source_sha256": "f279b304a69163e994a625ad28b111911d1930ce46919e61fee0f718daa9f7e2",
+      "destination_sha256": "f279b304a69163e994a625ad28b111911d1930ce46919e61fee0f718daa9f7e2"
+    },
+    {
+      "source": "outputs/red_1x2_support_20261010/ros_ws/src/m0609_rg2_sim_model/meshes/link_1_collision_0.stl",
+      "destination": "isaac_sim/ros_ws/src/m0609_rg2_sim_model/meshes/link_1_collision_0.stl",
+      "source_sha256": "ac63ff239ed2eb9ea71384d78731d146a1c0a64c138fffd7302a05d6fff83aea",
+      "destination_sha256": "ac63ff239ed2eb9ea71384d78731d146a1c0a64c138fffd7302a05d6fff83aea"
+    },
+    {
+      "source": "outputs/red_1x2_support_20261010/ros_ws/src/m0609_rg2_sim_model/meshes/link_1_visual_0.stl",
+      "destination": "isaac_sim/ros_ws/src/m0609_rg2_sim_model/meshes/link_1_visual_0.stl",
+      "source_sha256": "f5585d90d8e77505b2956a36ee814ee2299a99cddb9660dd2dbfbb906b8401a0",
+      "destination_sha256": "f5585d90d8e77505b2956a36ee814ee2299a99cddb9660dd2dbfbb906b8401a0"
+    },
+    {
+      "source": "outputs/red_1x2_support_20261010/ros_ws/src/m0609_rg2_sim_model/meshes/link_2_collision_0.stl",
+      "destination": "isaac_sim/ros_ws/src/m0609_rg2_sim_model/meshes/link_2_collision_0.stl",
+      "source_sha256": "8a07b87850ac86472098851da4fca30aeadf790ac813cccefbdafebe6ff316b3",
+      "destination_sha256": "8a07b87850ac86472098851da4fca30aeadf790ac813cccefbdafebe6ff316b3"
+    },
+    {
+      "source": "outputs/red_1x2_support_20261010/ros_ws/src/m0609_rg2_sim_model/meshes/link_2_collision_1.stl",
+      "destination": "isaac_sim/ros_ws/src/m0609_rg2_sim_model/meshes/link_2_collision_1.stl",
+      "source_sha256": "95f2a1d05d5e5d6613f79a79f2d61ad1be9a46288da6fdaaee7facfe8d445f9e",
+      "destination_sha256": "95f2a1d05d5e5d6613f79a79f2d61ad1be9a46288da6fdaaee7facfe8d445f9e"
+    },
+    {
+      "source": "outputs/red_1x2_support_20261010/ros_ws/src/m0609_rg2_sim_model/meshes/link_2_collision_2.stl",
+      "destination": "isaac_sim/ros_ws/src/m0609_rg2_sim_model/meshes/link_2_collision_2.stl",
+      "source_sha256": "c77bacf338e9bd6640fa2e8e1e28e568155dbe1725408def9c1b07f94e188f58",
+      "destination_sha256": "c77bacf338e9bd6640fa2e8e1e28e568155dbe1725408def9c1b07f94e188f58"
+    },
+    {
+      "source": "outputs/red_1x2_support_20261010/ros_ws/src/m0609_rg2_sim_model/meshes/link_2_visual_0.stl",
+      "destination": "isaac_sim/ros_ws/src/m0609_rg2_sim_model/meshes/link_2_visual_0.stl",
+      "source_sha256": "a762cc7a856f43e551a50d47ca8dea01f58511872b001dcb98915921ec5cec36",
+      "destination_sha256": "a762cc7a856f43e551a50d47ca8dea01f58511872b001dcb98915921ec5cec36"
+    },
+    {
+      "source": "outputs/red_1x2_support_20261010/ros_ws/src/m0609_rg2_sim_model/meshes/link_2_visual_1.stl",
+      "destination": "isaac_sim/ros_ws/src/m0609_rg2_sim_model/meshes/link_2_visual_1.stl",
+      "source_sha256": "42dba12985fc5581b8c546d9d48c7a57dc311526924bdfacd51b10e98b444a9c",
+      "destination_sha256": "42dba12985fc5581b8c546d9d48c7a57dc311526924bdfacd51b10e98b444a9c"
+    },
+    {
+      "source": "outputs/red_1x2_support_20261010/ros_ws/src/m0609_rg2_sim_model/meshes/link_2_visual_2.stl",
+      "destination": "isaac_sim/ros_ws/src/m0609_rg2_sim_model/meshes/link_2_visual_2.stl",
+      "source_sha256": "8dd8dae3904df4cc069b6144db131cd52eeae03936481610f0aef2f47bb4a4ae",
+      "destination_sha256": "8dd8dae3904df4cc069b6144db131cd52eeae03936481610f0aef2f47bb4a4ae"
+    },
+    {
+      "source": "outputs/red_1x2_support_20261010/ros_ws/src/m0609_rg2_sim_model/meshes/link_3_collision_0.stl",
+      "destination": "isaac_sim/ros_ws/src/m0609_rg2_sim_model/meshes/link_3_collision_0.stl",
+      "source_sha256": "4f95d61c497143d1aafdd060b92f910c8940e37f5a12a2d8fd581a1ae2166a58",
+      "destination_sha256": "4f95d61c497143d1aafdd060b92f910c8940e37f5a12a2d8fd581a1ae2166a58"
+    },
+    {
+      "source": "outputs/red_1x2_support_20261010/ros_ws/src/m0609_rg2_sim_model/meshes/link_3_visual_0.stl",
+      "destination": "isaac_sim/ros_ws/src/m0609_rg2_sim_model/meshes/link_3_visual_0.stl",
+      "source_sha256": "5816ec2644f6ea1015493416fc22e614470d01da9e44d318384225746c283088",
+      "destination_sha256": "5816ec2644f6ea1015493416fc22e614470d01da9e44d318384225746c283088"
+    },
+    {
+      "source": "outputs/red_1x2_support_20261010/ros_ws/src/m0609_rg2_sim_model/meshes/link_4_collision_0.stl",
+      "destination": "isaac_sim/ros_ws/src/m0609_rg2_sim_model/meshes/link_4_collision_0.stl",
+      "source_sha256": "f2f6ed00cc8bf16a6cd8448bc6356a44b503048f831bfbaf6a4be387d996bc64",
+      "destination_sha256": "f2f6ed00cc8bf16a6cd8448bc6356a44b503048f831bfbaf6a4be387d996bc64"
+    },
+    {
+      "source": "outputs/red_1x2_support_20261010/ros_ws/src/m0609_rg2_sim_model/meshes/link_4_collision_1.stl",
+      "destination": "isaac_sim/ros_ws/src/m0609_rg2_sim_model/meshes/link_4_collision_1.stl",
+      "source_sha256": "1616e8398d8e2bab9ea2bcc02d58c64599cf782217d3ff11791425598ccb6f76",
+      "destination_sha256": "1616e8398d8e2bab9ea2bcc02d58c64599cf782217d3ff11791425598ccb6f76"
+    },
+    {
+      "source": "outputs/red_1x2_support_20261010/ros_ws/src/m0609_rg2_sim_model/meshes/link_4_visual_0.stl",
+      "destination": "isaac_sim/ros_ws/src/m0609_rg2_sim_model/meshes/link_4_visual_0.stl",
+      "source_sha256": "055ade9f74c603683d5389feef7c4d7db2640175ebb37baa569d2129b868f8bc",
+      "destination_sha256": "055ade9f74c603683d5389feef7c4d7db2640175ebb37baa569d2129b868f8bc"
+    },
+    {
+      "source": "outputs/red_1x2_support_20261010/ros_ws/src/m0609_rg2_sim_model/meshes/link_4_visual_1.stl",
+      "destination": "isaac_sim/ros_ws/src/m0609_rg2_sim_model/meshes/link_4_visual_1.stl",
+      "source_sha256": "0349c2eddc663541f82b7299e38d50059894dcb550ede9599679c6d5ccf33cfa",
+      "destination_sha256": "0349c2eddc663541f82b7299e38d50059894dcb550ede9599679c6d5ccf33cfa"
+    },
+    {
+      "source": "outputs/red_1x2_support_20261010/ros_ws/src/m0609_rg2_sim_model/meshes/link_5_collision_0.stl",
+      "destination": "isaac_sim/ros_ws/src/m0609_rg2_sim_model/meshes/link_5_collision_0.stl",
+      "source_sha256": "a853a06b74147742df97551beba469e132fdd711aef3dd42e2de217338b4ce88",
+      "destination_sha256": "a853a06b74147742df97551beba469e132fdd711aef3dd42e2de217338b4ce88"
+    },
+    {
+      "source": "outputs/red_1x2_support_20261010/ros_ws/src/m0609_rg2_sim_model/meshes/link_5_visual_0.stl",
+      "destination": "isaac_sim/ros_ws/src/m0609_rg2_sim_model/meshes/link_5_visual_0.stl",
+      "source_sha256": "c98311272c56301831c606d54f34edc394e5efd31226e0024d0ae2a0a4bbc181",
+      "destination_sha256": "c98311272c56301831c606d54f34edc394e5efd31226e0024d0ae2a0a4bbc181"
+    },
+    {
+      "source": "outputs/red_1x2_support_20261010/ros_ws/src/m0609_rg2_sim_model/meshes/link_6_collision_0.stl",
+      "destination": "isaac_sim/ros_ws/src/m0609_rg2_sim_model/meshes/link_6_collision_0.stl",
+      "source_sha256": "7ce76d57d60742355e6caeb8b26b280df20669622e2ffae7ea0d78ae666ec894",
+      "destination_sha256": "7ce76d57d60742355e6caeb8b26b280df20669622e2ffae7ea0d78ae666ec894"
+    },
+    {
+      "source": "outputs/red_1x2_support_20261010/ros_ws/src/m0609_rg2_sim_model/meshes/link_6_visual_0.stl",
+      "destination": "isaac_sim/ros_ws/src/m0609_rg2_sim_model/meshes/link_6_visual_0.stl",
+      "source_sha256": "8c40da04000e70b0dfc310638104ea40b61bb159ae52907db447a7c1513773df",
+      "destination_sha256": "8c40da04000e70b0dfc310638104ea40b61bb159ae52907db447a7c1513773df"
+    },
+    {
+      "source": "outputs/red_1x2_support_20261010/ros_ws/src/m0609_rg2_sim_model/meshes/rg2_base_link_collision_0.stl",
+      "destination": "isaac_sim/ros_ws/src/m0609_rg2_sim_model/meshes/rg2_base_link_collision_0.stl",
+      "source_sha256": "448454b5c791ba6f29f6f2999738f7c236e2977d5b5a36e7cbe62aa6211c91f6",
+      "destination_sha256": "448454b5c791ba6f29f6f2999738f7c236e2977d5b5a36e7cbe62aa6211c91f6"
+    },
+    {
+      "source": "outputs/red_1x2_support_20261010/ros_ws/src/m0609_rg2_sim_model/meshes/rg2_base_link_visual_0.stl",
+      "destination": "isaac_sim/ros_ws/src/m0609_rg2_sim_model/meshes/rg2_base_link_visual_0.stl",
+      "source_sha256": "23229cf67dfd0cee2f6e8e62b3d7b3f8df3cf7642db06588843f6ed5c98e3e2e",
+      "destination_sha256": "23229cf67dfd0cee2f6e8e62b3d7b3f8df3cf7642db06588843f6ed5c98e3e2e"
+    },
+    {
+      "source": "outputs/red_1x2_support_20261010/ros_ws/src/m0609_rg2_sim_model/meshes/rg2_left_inner_finger_collision_0.stl",
+      "destination": "isaac_sim/ros_ws/src/m0609_rg2_sim_model/meshes/rg2_left_inner_finger_collision_0.stl",
+      "source_sha256": "1d8ecd5333e05f229b230d77b3781ba82a2f6e28a199c7a3093f61cf23e75f0f",
+      "destination_sha256": "1d8ecd5333e05f229b230d77b3781ba82a2f6e28a199c7a3093f61cf23e75f0f"
+    },
+    {
+      "source": "outputs/red_1x2_support_20261010/ros_ws/src/m0609_rg2_sim_model/meshes/rg2_left_inner_finger_visual_0.stl",
+      "destination": "isaac_sim/ros_ws/src/m0609_rg2_sim_model/meshes/rg2_left_inner_finger_visual_0.stl",
+      "source_sha256": "3f21b54a4219fc87fc785508435d3d88ab4ffb799cbd8802f0d1d4d45856c1e8",
+      "destination_sha256": "3f21b54a4219fc87fc785508435d3d88ab4ffb799cbd8802f0d1d4d45856c1e8"
+    },
+    {
+      "source": "outputs/red_1x2_support_20261010/ros_ws/src/m0609_rg2_sim_model/meshes/rg2_left_inner_knuckle_collision_0.stl",
+      "destination": "isaac_sim/ros_ws/src/m0609_rg2_sim_model/meshes/rg2_left_inner_knuckle_collision_0.stl",
+      "source_sha256": "72cb39cca2eb23e5f708f0e59f38afaa6247ae5b1fac16356b831167a96f50d1",
+      "destination_sha256": "72cb39cca2eb23e5f708f0e59f38afaa6247ae5b1fac16356b831167a96f50d1"
+    },
+    {
+      "source": "outputs/red_1x2_support_20261010/ros_ws/src/m0609_rg2_sim_model/meshes/rg2_left_inner_knuckle_visual_0.stl",
+      "destination": "isaac_sim/ros_ws/src/m0609_rg2_sim_model/meshes/rg2_left_inner_knuckle_visual_0.stl",
+      "source_sha256": "9515341736761cd25bdab5dced1f80b96f5c782e13caeb7b795e296d4d71d815",
+      "destination_sha256": "9515341736761cd25bdab5dced1f80b96f5c782e13caeb7b795e296d4d71d815"
+    },
+    {
+      "source": "outputs/red_1x2_support_20261010/ros_ws/src/m0609_rg2_sim_model/meshes/rg2_left_outer_knuckle_collision_0.stl",
+      "destination": "isaac_sim/ros_ws/src/m0609_rg2_sim_model/meshes/rg2_left_outer_knuckle_collision_0.stl",
+      "source_sha256": "ffbe39fb95eddfb1a612825d7aee230f1f8df08958278c7fe53227d27ea28931",
+      "destination_sha256": "ffbe39fb95eddfb1a612825d7aee230f1f8df08958278c7fe53227d27ea28931"
+    },
+    {
+      "source": "outputs/red_1x2_support_20261010/ros_ws/src/m0609_rg2_sim_model/meshes/rg2_left_outer_knuckle_visual_0.stl",
+      "destination": "isaac_sim/ros_ws/src/m0609_rg2_sim_model/meshes/rg2_left_outer_knuckle_visual_0.stl",
+      "source_sha256": "0459184584920020808d0d9a2f89dbaa4eeab67c79c68bcd8dead8f8edc705ef",
+      "destination_sha256": "0459184584920020808d0d9a2f89dbaa4eeab67c79c68bcd8dead8f8edc705ef"
+    },
+    {
+      "source": "outputs/red_1x2_support_20261010/ros_ws/src/m0609_rg2_sim_model/meshes/rg2_right_inner_finger_collision_0.stl",
+      "destination": "isaac_sim/ros_ws/src/m0609_rg2_sim_model/meshes/rg2_right_inner_finger_collision_0.stl",
+      "source_sha256": "1d8ecd5333e05f229b230d77b3781ba82a2f6e28a199c7a3093f61cf23e75f0f",
+      "destination_sha256": "1d8ecd5333e05f229b230d77b3781ba82a2f6e28a199c7a3093f61cf23e75f0f"
+    },
+    {
+      "source": "outputs/red_1x2_support_20261010/ros_ws/src/m0609_rg2_sim_model/meshes/rg2_right_inner_finger_visual_0.stl",
+      "destination": "isaac_sim/ros_ws/src/m0609_rg2_sim_model/meshes/rg2_right_inner_finger_visual_0.stl",
+      "source_sha256": "3f21b54a4219fc87fc785508435d3d88ab4ffb799cbd8802f0d1d4d45856c1e8",
+      "destination_sha256": "3f21b54a4219fc87fc785508435d3d88ab4ffb799cbd8802f0d1d4d45856c1e8"
+    },
+    {
+      "source": "outputs/red_1x2_support_20261010/ros_ws/src/m0609_rg2_sim_model/meshes/rg2_right_inner_knuckle_collision_0.stl",
+      "destination": "isaac_sim/ros_ws/src/m0609_rg2_sim_model/meshes/rg2_right_inner_knuckle_collision_0.stl",
+      "source_sha256": "72cb39cca2eb23e5f708f0e59f38afaa6247ae5b1fac16356b831167a96f50d1",
+      "destination_sha256": "72cb39cca2eb23e5f708f0e59f38afaa6247ae5b1fac16356b831167a96f50d1"
+    },
+    {
+      "source": "outputs/red_1x2_support_20261010/ros_ws/src/m0609_rg2_sim_model/meshes/rg2_right_inner_knuckle_visual_0.stl",
+      "destination": "isaac_sim/ros_ws/src/m0609_rg2_sim_model/meshes/rg2_right_inner_knuckle_visual_0.stl",
+      "source_sha256": "9515341736761cd25bdab5dced1f80b96f5c782e13caeb7b795e296d4d71d815",
+      "destination_sha256": "9515341736761cd25bdab5dced1f80b96f5c782e13caeb7b795e296d4d71d815"
+    },
+    {
+      "source": "outputs/red_1x2_support_20261010/ros_ws/src/m0609_rg2_sim_model/meshes/rg2_right_outer_knuckle_collision_0.stl",
+      "destination": "isaac_sim/ros_ws/src/m0609_rg2_sim_model/meshes/rg2_right_outer_knuckle_collision_0.stl",
+      "source_sha256": "ffbe39fb95eddfb1a612825d7aee230f1f8df08958278c7fe53227d27ea28931",
+      "destination_sha256": "ffbe39fb95eddfb1a612825d7aee230f1f8df08958278c7fe53227d27ea28931"
+    },
+    {
+      "source": "outputs/red_1x2_support_20261010/ros_ws/src/m0609_rg2_sim_model/meshes/rg2_right_outer_knuckle_visual_0.stl",
+      "destination": "isaac_sim/ros_ws/src/m0609_rg2_sim_model/meshes/rg2_right_outer_knuckle_visual_0.stl",
+      "source_sha256": "0459184584920020808d0d9a2f89dbaa4eeab67c79c68bcd8dead8f8edc705ef",
+      "destination_sha256": "0459184584920020808d0d9a2f89dbaa4eeab67c79c68bcd8dead8f8edc705ef"
+    },
+    {
+      "source": "outputs/red_1x2_support_20261010/ros_ws/src/m0609_rg2_sim_model/package.xml",
+      "destination": "isaac_sim/ros_ws/src/m0609_rg2_sim_model/package.xml",
+      "source_sha256": "4ee8293545f78d5ce5c708b1d08f77136e087ae3fad2b810b428cb24ca38d12f",
+      "destination_sha256": "4ee8293545f78d5ce5c708b1d08f77136e087ae3fad2b810b428cb24ca38d12f"
+    },
+    {
+      "source": "outputs/red_1x2_support_20261010/ros_ws/src/m0609_rg2_sim_model/urdf/m0609_rg2_sim.urdf",
+      "destination": "isaac_sim/ros_ws/src/m0609_rg2_sim_model/urdf/m0609_rg2_sim.urdf",
+      "source_sha256": "1faf53808e24330801cc6d164086f1eb796dbc3c8e83b88f62e62022142857a4",
+      "destination_sha256": "1faf53808e24330801cc6d164086f1eb796dbc3c8e83b88f62e62022142857a4"
+    },
+    {
+      "source": "outputs/robot_avoidance_20261008/scripts/route_collision.py",
+      "destination": "isaac_sim/scripts/route_collision.py",
+      "source_sha256": "bb5254ebadf7503eb37bdd8bf0d04b29aa82171ebc8c9357b4ea7d8d75c33219",
+      "destination_sha256": "02cf5a3cd47954cfd1be61e5f938acb0a2899ea8d7f4f58cf524ac95fda0848d"
+    },
+    {
+      "source": "outputs/robot_avoidance_20261008/contact_config.sim.json",
+      "destination": "isaac_sim/config/contact.sim.json",
+      "source_sha256": "88b2500d0a0c82eb720976708e0792628429b274050d6e0559f6e8db52ec8c3b",
+      "destination_sha256": "88b2500d0a0c82eb720976708e0792628429b274050d6e0559f6e8db52ec8c3b"
+    },
+    {
+      "source": "outputs/pick_transport_execution_20261008/isaac_pick_transport_20261008_01/review/initial.model.json",
+      "destination": "isaac_sim/fixtures/initial.model.json",
+      "source_sha256": "cfa268a81fae9e61d6688ab86db964d20f668acc703eb48b74c54dade85219fc",
+      "destination_sha256": "cfa268a81fae9e61d6688ab86db964d20f668acc703eb48b74c54dade85219fc"
+    },
+    {
+      "source": "outputs/pick_transport_execution_20261008/isaac_pick_transport_20261008_01/review/03_CHECK_AND_REPORT.txt",
+      "destination": "isaac_sim/fixtures/03_CHECK_AND_REPORT.txt",
+      "source_sha256": "864f73fc5cb365678e26831dbedffc0c5cc7990f38f47afb26a949a79646a465",
+      "destination_sha256": "864f73fc5cb365678e26831dbedffc0c5cc7990f38f47afb26a949a79646a465"
+    },
+    {
+      "source": "outputs/pick_transport_execution_20261008/isaac_pick_transport_20261008_01/review/source/01_initial/reassessment.request.json",
+      "destination": "isaac_sim/fixtures/source/01_initial/reassessment.request.json",
+      "source_sha256": "41f033e08595a28218035a107dc9463d1e9e1f2780953ded37a67668765470f0",
+      "destination_sha256": "41f033e08595a28218035a107dc9463d1e9e1f2780953ded37a67668765470f0"
+    },
+    {
+      "source": "outputs/pick_transport_execution_20261008/isaac_pick_transport_20261008_01/review/source/01_initial/motion.request.json",
+      "destination": "isaac_sim/fixtures/source/01_initial/motion.request.json",
+      "source_sha256": "d6363faa9764cc30140e254c0363cc70008c6dd4d31a17e73b2f8e8527613efe",
+      "destination_sha256": "d6363faa9764cc30140e254c0363cc70008c6dd4d31a17e73b2f8e8527613efe"
+    },
+    {
+      "source": "outputs/pick_transport_execution_20261008/isaac_pick_transport_20261008_01/robot_assets/dsr_description2/meshes/m0609_collision/MF0609_0_0.dae",
+      "destination": "isaac_sim/assets/original_robot/dsr_description2/meshes/m0609_collision/MF0609_0_0.dae",
+      "source_sha256": "ddfea75f55c1ed24b398d9f7daae6e9ad39b5db88f5f0c3a61140c0a4b9cdfcc",
+      "destination_sha256": "ddfea75f55c1ed24b398d9f7daae6e9ad39b5db88f5f0c3a61140c0a4b9cdfcc"
+    },
+    {
+      "source": "outputs/pick_transport_execution_20261008/isaac_pick_transport_20261008_01/robot_assets/dsr_description2/meshes/m0609_collision/MF0609_1_0.dae",
+      "destination": "isaac_sim/assets/original_robot/dsr_description2/meshes/m0609_collision/MF0609_1_0.dae",
+      "source_sha256": "e691a7841acb87e65ec29669ddcf717ff46f495cbff187d0af75cf0353539b79",
+      "destination_sha256": "e691a7841acb87e65ec29669ddcf717ff46f495cbff187d0af75cf0353539b79"
+    },
+    {
+      "source": "outputs/pick_transport_execution_20261008/isaac_pick_transport_20261008_01/robot_assets/dsr_description2/meshes/m0609_collision/MF0609_2_0.dae",
+      "destination": "isaac_sim/assets/original_robot/dsr_description2/meshes/m0609_collision/MF0609_2_0.dae",
+      "source_sha256": "34c60817577e9306d67130270d9e306341772960697401d49fceb70b31ec23fd",
+      "destination_sha256": "34c60817577e9306d67130270d9e306341772960697401d49fceb70b31ec23fd"
+    },
+    {
+      "source": "outputs/pick_transport_execution_20261008/isaac_pick_transport_20261008_01/robot_assets/dsr_description2/meshes/m0609_collision/MF0609_2_1.dae",
+      "destination": "isaac_sim/assets/original_robot/dsr_description2/meshes/m0609_collision/MF0609_2_1.dae",
+      "source_sha256": "8c58f9a1622198f788dcec7a428beaa637cdb8e7bee5e752c4badf449abe10c6",
+      "destination_sha256": "8c58f9a1622198f788dcec7a428beaa637cdb8e7bee5e752c4badf449abe10c6"
+    },
+    {
+      "source": "outputs/pick_transport_execution_20261008/isaac_pick_transport_20261008_01/robot_assets/dsr_description2/meshes/m0609_collision/MF0609_2_2.dae",
+      "destination": "isaac_sim/assets/original_robot/dsr_description2/meshes/m0609_collision/MF0609_2_2.dae",
+      "source_sha256": "9e12604d6513ae32a7a1edfe458b43985ecbc92d2834fbd788ccff54a7936b4a",
+      "destination_sha256": "9e12604d6513ae32a7a1edfe458b43985ecbc92d2834fbd788ccff54a7936b4a"
+    },
+    {
+      "source": "outputs/pick_transport_execution_20261008/isaac_pick_transport_20261008_01/robot_assets/dsr_description2/meshes/m0609_collision/MF0609_3_0.dae",
+      "destination": "isaac_sim/assets/original_robot/dsr_description2/meshes/m0609_collision/MF0609_3_0.dae",
+      "source_sha256": "b043a82f3b24a7472eb1fa930ee9ea1b07b701f74c7ca3064fe6b46b79b46f23",
+      "destination_sha256": "b043a82f3b24a7472eb1fa930ee9ea1b07b701f74c7ca3064fe6b46b79b46f23"
+    },
+    {
+      "source": "outputs/pick_transport_execution_20261008/isaac_pick_transport_20261008_01/robot_assets/dsr_description2/meshes/m0609_collision/MF0609_4_0.dae",
+      "destination": "isaac_sim/assets/original_robot/dsr_description2/meshes/m0609_collision/MF0609_4_0.dae",
+      "source_sha256": "555f541ef4f1f399cf6bc8bc84e97a22f9a3bb867be8b0910340c8f1fb41631a",
+      "destination_sha256": "555f541ef4f1f399cf6bc8bc84e97a22f9a3bb867be8b0910340c8f1fb41631a"
+    },
+    {
+      "source": "outputs/pick_transport_execution_20261008/isaac_pick_transport_20261008_01/robot_assets/dsr_description2/meshes/m0609_collision/MF0609_4_1.dae",
+      "destination": "isaac_sim/assets/original_robot/dsr_description2/meshes/m0609_collision/MF0609_4_1.dae",
+      "source_sha256": "1ba1d47d0695fc1c7d37979d9097d67ca54ea02106e0f679f5f8d29781dc8ac9",
+      "destination_sha256": "1ba1d47d0695fc1c7d37979d9097d67ca54ea02106e0f679f5f8d29781dc8ac9"
+    },
+    {
+      "source": "outputs/pick_transport_execution_20261008/isaac_pick_transport_20261008_01/robot_assets/dsr_description2/meshes/m0609_collision/MF0609_5_0.dae",
+      "destination": "isaac_sim/assets/original_robot/dsr_description2/meshes/m0609_collision/MF0609_5_0.dae",
+      "source_sha256": "19715079541b721074cdc75cf38d56cfa69a5e67e2e597f292061db5a0430627",
+      "destination_sha256": "19715079541b721074cdc75cf38d56cfa69a5e67e2e597f292061db5a0430627"
+    },
+    {
+      "source": "outputs/pick_transport_execution_20261008/isaac_pick_transport_20261008_01/robot_assets/dsr_description2/meshes/m0609_collision/MF0609_6_0.dae",
+      "destination": "isaac_sim/assets/original_robot/dsr_description2/meshes/m0609_collision/MF0609_6_0.dae",
+      "source_sha256": "cb1833387564d62311b934f58a29396e68fd6cdf528b82cac6edd01498c9f5bf",
+      "destination_sha256": "cb1833387564d62311b934f58a29396e68fd6cdf528b82cac6edd01498c9f5bf"
+    },
+    {
+      "source": "outputs/pick_transport_execution_20261008/isaac_pick_transport_20261008_01/robot_assets/dsr_description2/meshes/m0609_white/MF0609_0_0.dae",
+      "destination": "isaac_sim/assets/original_robot/dsr_description2/meshes/m0609_white/MF0609_0_0.dae",
+      "source_sha256": "b5ea6d7c273067ad28648e27c9c0f5d634adf05ef0e4e9b9db6ca1af87f699fc",
+      "destination_sha256": "b5ea6d7c273067ad28648e27c9c0f5d634adf05ef0e4e9b9db6ca1af87f699fc"
+    },
+    {
+      "source": "outputs/pick_transport_execution_20261008/isaac_pick_transport_20261008_01/robot_assets/dsr_description2/meshes/m0609_white/MF0609_1_0.dae",
+      "destination": "isaac_sim/assets/original_robot/dsr_description2/meshes/m0609_white/MF0609_1_0.dae",
+      "source_sha256": "02f51c7dabacc1318ca197d453236258c4e6381ed8012958a09ce1020f274a0c",
+      "destination_sha256": "02f51c7dabacc1318ca197d453236258c4e6381ed8012958a09ce1020f274a0c"
+    },
+    {
+      "source": "outputs/pick_transport_execution_20261008/isaac_pick_transport_20261008_01/robot_assets/dsr_description2/meshes/m0609_white/MF0609_2_0.dae",
+      "destination": "isaac_sim/assets/original_robot/dsr_description2/meshes/m0609_white/MF0609_2_0.dae",
+      "source_sha256": "8705cfe468a652efff54fa7795bb1c3c96112d2e37af87775e47ac113f6071ff",
+      "destination_sha256": "8705cfe468a652efff54fa7795bb1c3c96112d2e37af87775e47ac113f6071ff"
+    },
+    {
+      "source": "outputs/pick_transport_execution_20261008/isaac_pick_transport_20261008_01/robot_assets/dsr_description2/meshes/m0609_white/MF0609_2_1.dae",
+      "destination": "isaac_sim/assets/original_robot/dsr_description2/meshes/m0609_white/MF0609_2_1.dae",
+      "source_sha256": "dd8a53685a4ba713cd49f612dde3a4f26dfbf9b39e249726f1c2ddf6a64c55e8",
+      "destination_sha256": "dd8a53685a4ba713cd49f612dde3a4f26dfbf9b39e249726f1c2ddf6a64c55e8"
+    },
+    {
+      "source": "outputs/pick_transport_execution_20261008/isaac_pick_transport_20261008_01/robot_assets/dsr_description2/meshes/m0609_white/MF0609_2_2.dae",
+      "destination": "isaac_sim/assets/original_robot/dsr_description2/meshes/m0609_white/MF0609_2_2.dae",
+      "source_sha256": "41fe327cb4f28beccb3c43f184c18417efafe95b4df62b5d3d0c121b57186a20",
+      "destination_sha256": "41fe327cb4f28beccb3c43f184c18417efafe95b4df62b5d3d0c121b57186a20"
+    },
+    {
+      "source": "outputs/pick_transport_execution_20261008/isaac_pick_transport_20261008_01/robot_assets/dsr_description2/meshes/m0609_white/MF0609_3_0.dae",
+      "destination": "isaac_sim/assets/original_robot/dsr_description2/meshes/m0609_white/MF0609_3_0.dae",
+      "source_sha256": "576b23dd703eb92558e1ecf78b63f5a7cb0e9f0495f8d2651f8ba1b9b2c99c8a",
+      "destination_sha256": "576b23dd703eb92558e1ecf78b63f5a7cb0e9f0495f8d2651f8ba1b9b2c99c8a"
+    },
+    {
+      "source": "outputs/pick_transport_execution_20261008/isaac_pick_transport_20261008_01/robot_assets/dsr_description2/meshes/m0609_white/MF0609_4_0.dae",
+      "destination": "isaac_sim/assets/original_robot/dsr_description2/meshes/m0609_white/MF0609_4_0.dae",
+      "source_sha256": "5acc53898d28f6b3760779b9db9ddbb32090e41df182410073dacab407ac04d6",
+      "destination_sha256": "5acc53898d28f6b3760779b9db9ddbb32090e41df182410073dacab407ac04d6"
+    },
+    {
+      "source": "outputs/pick_transport_execution_20261008/isaac_pick_transport_20261008_01/robot_assets/dsr_description2/meshes/m0609_white/MF0609_4_1.dae",
+      "destination": "isaac_sim/assets/original_robot/dsr_description2/meshes/m0609_white/MF0609_4_1.dae",
+      "source_sha256": "e6897ff6778d712ba305c406056d0dadd02ad65fa01753c245a3c4b652ecaa06",
+      "destination_sha256": "e6897ff6778d712ba305c406056d0dadd02ad65fa01753c245a3c4b652ecaa06"
+    },
+    {
+      "source": "outputs/pick_transport_execution_20261008/isaac_pick_transport_20261008_01/robot_assets/dsr_description2/meshes/m0609_white/MF0609_5_0.dae",
+      "destination": "isaac_sim/assets/original_robot/dsr_description2/meshes/m0609_white/MF0609_5_0.dae",
+      "source_sha256": "421b1cde607c5f0c1324af093ddda094d5b39e9f5386bf998058a50e37e269db",
+      "destination_sha256": "421b1cde607c5f0c1324af093ddda094d5b39e9f5386bf998058a50e37e269db"
+    },
+    {
+      "source": "outputs/pick_transport_execution_20261008/isaac_pick_transport_20261008_01/robot_assets/dsr_description2/meshes/m0609_white/MF0609_6_0.dae",
+      "destination": "isaac_sim/assets/original_robot/dsr_description2/meshes/m0609_white/MF0609_6_0.dae",
+      "source_sha256": "c5cdb0d284055524b99fc3ee5f0e1b7ce73d0cc39f831f651ecb24b72f69925a",
+      "destination_sha256": "c5cdb0d284055524b99fc3ee5f0e1b7ce73d0cc39f831f651ecb24b72f69925a"
+    },
+    {
+      "source": "outputs/pick_transport_execution_20261008/isaac_pick_transport_20261008_01/robot_assets/licenses/dsr_description2/LICENSE",
+      "destination": "isaac_sim/assets/original_robot/licenses/dsr_description2/LICENSE",
+      "source_sha256": "03b0926f73de511cb3b094d4b34b48aacae408b0f8cb723ba4382f5d67e41f92",
+      "destination_sha256": "03b0926f73de511cb3b094d4b34b48aacae408b0f8cb723ba4382f5d67e41f92"
+    },
+    {
+      "source": "outputs/pick_transport_execution_20261008/isaac_pick_transport_20261008_01/robot_assets/licenses/dsr_description2/package.xml",
+      "destination": "isaac_sim/assets/original_robot/licenses/dsr_description2/package.xml",
+      "source_sha256": "2cd76be675ac64507da99dc3916cc0ce2b34cf28d508a6cbe85f6c6411cea0fa",
+      "destination_sha256": "2cd76be675ac64507da99dc3916cc0ce2b34cf28d508a6cbe85f6c6411cea0fa"
+    },
+    {
+      "source": "outputs/pick_transport_execution_20261008/isaac_pick_transport_20261008_01/robot_assets/licenses/m0609_rg2_bringup/package.xml",
+      "destination": "isaac_sim/assets/original_robot/licenses/m0609_rg2_bringup/package.xml",
+      "source_sha256": "a59848ac7585184ac3728f2f7c651aa9d3986637460688a7f289b31bfaa352c3",
+      "destination_sha256": "a59848ac7585184ac3728f2f7c651aa9d3986637460688a7f289b31bfaa352c3"
+    },
+    {
+      "source": "outputs/pick_transport_execution_20261008/isaac_pick_transport_20261008_01/robot_assets/licenses/onrobot_rg_description/LICENSE",
+      "destination": "isaac_sim/assets/original_robot/licenses/onrobot_rg_description/LICENSE",
+      "source_sha256": "e65df8d88980a71fa1b4c084ca8d7a4fcc1b685a60b078674a86e3a6343147ed",
+      "destination_sha256": "e65df8d88980a71fa1b4c084ca8d7a4fcc1b685a60b078674a86e3a6343147ed"
+    },
+    {
+      "source": "outputs/pick_transport_execution_20261008/isaac_pick_transport_20261008_01/robot_assets/licenses/onrobot_rg_description/package.xml",
+      "destination": "isaac_sim/assets/original_robot/licenses/onrobot_rg_description/package.xml",
+      "source_sha256": "e4f99fa5d7b2afd88c5c7c7d21cdfbeb5ba7af85aeec35d2a07d3b3f6140f81f",
+      "destination_sha256": "e4f99fa5d7b2afd88c5c7c7d21cdfbeb5ba7af85aeec35d2a07d3b3f6140f81f"
+    },
+    {
+      "source": "outputs/pick_transport_execution_20261008/isaac_pick_transport_20261008_01/robot_assets/m0609_rg2.urdf",
+      "destination": "isaac_sim/assets/original_robot/m0609_rg2.urdf",
+      "source_sha256": "d7573ebee5be447c0570c468fd5de090cd86a995dbb8eb6db7e60928003b7c7d",
+      "destination_sha256": "d7573ebee5be447c0570c468fd5de090cd86a995dbb8eb6db7e60928003b7c7d"
+    },
+    {
+      "source": "outputs/pick_transport_execution_20261008/isaac_pick_transport_20261008_01/robot_assets/onrobot_rg_description/meshes/rg2/collision/base_link.stl",
+      "destination": "isaac_sim/assets/original_robot/onrobot_rg_description/meshes/rg2/collision/base_link.stl",
+      "source_sha256": "4219aced900a1450fab8fc712984e5e05a71a0e8a5e90139bae7c8a20869ec1e",
+      "destination_sha256": "4219aced900a1450fab8fc712984e5e05a71a0e8a5e90139bae7c8a20869ec1e"
+    },
+    {
+      "source": "outputs/pick_transport_execution_20261008/isaac_pick_transport_20261008_01/robot_assets/onrobot_rg_description/meshes/rg2/collision/inner_finger.stl",
+      "destination": "isaac_sim/assets/original_robot/onrobot_rg_description/meshes/rg2/collision/inner_finger.stl",
+      "source_sha256": "74e9e686396ee3ad7036297e89a5f05f74ced6116ba3976bf6ab040ca0a2b83e",
+      "destination_sha256": "74e9e686396ee3ad7036297e89a5f05f74ced6116ba3976bf6ab040ca0a2b83e"
+    },
+    {
+      "source": "outputs/pick_transport_execution_20261008/isaac_pick_transport_20261008_01/robot_assets/onrobot_rg_description/meshes/rg2/collision/inner_knuckle.stl",
+      "destination": "isaac_sim/assets/original_robot/onrobot_rg_description/meshes/rg2/collision/inner_knuckle.stl",
+      "source_sha256": "a9ff9e0b6cc405c15b4ee6a9ce5562bf5927cd1590d80b5af4e623ded79f64eb",
+      "destination_sha256": "a9ff9e0b6cc405c15b4ee6a9ce5562bf5927cd1590d80b5af4e623ded79f64eb"
+    },
+    {
+      "source": "outputs/pick_transport_execution_20261008/isaac_pick_transport_20261008_01/robot_assets/onrobot_rg_description/meshes/rg2/collision/outer_knuckle.stl",
+      "destination": "isaac_sim/assets/original_robot/onrobot_rg_description/meshes/rg2/collision/outer_knuckle.stl",
+      "source_sha256": "c2c9aa12b6e42360f4192f55002d56a86df696b4e6161e773d794e5da30c5db0",
+      "destination_sha256": "c2c9aa12b6e42360f4192f55002d56a86df696b4e6161e773d794e5da30c5db0"
+    },
+    {
+      "source": "outputs/pick_transport_execution_20261008/isaac_pick_transport_20261008_01/robot_assets/onrobot_rg_description/meshes/rg2/visual/base_link.stl",
+      "destination": "isaac_sim/assets/original_robot/onrobot_rg_description/meshes/rg2/visual/base_link.stl",
+      "source_sha256": "cd87cb1974c6d68eac7261827d2c0fde9326ad9c221cc50586921d5ece1cc46b",
+      "destination_sha256": "cd87cb1974c6d68eac7261827d2c0fde9326ad9c221cc50586921d5ece1cc46b"
+    },
+    {
+      "source": "outputs/pick_transport_execution_20261008/isaac_pick_transport_20261008_01/robot_assets/onrobot_rg_description/meshes/rg2/visual/inner_finger.stl",
+      "destination": "isaac_sim/assets/original_robot/onrobot_rg_description/meshes/rg2/visual/inner_finger.stl",
+      "source_sha256": "45f3d2fe8a69b041fa1ebe36fb6c26a680799b19521bbcc013516f9b5c345897",
+      "destination_sha256": "45f3d2fe8a69b041fa1ebe36fb6c26a680799b19521bbcc013516f9b5c345897"
+    },
+    {
+      "source": "outputs/pick_transport_execution_20261008/isaac_pick_transport_20261008_01/robot_assets/onrobot_rg_description/meshes/rg2/visual/inner_knuckle.stl",
+      "destination": "isaac_sim/assets/original_robot/onrobot_rg_description/meshes/rg2/visual/inner_knuckle.stl",
+      "source_sha256": "0367c4cfb9c343f5df547316949a7076010f38ef7d59b0fcf4e60a74ddf69aa1",
+      "destination_sha256": "0367c4cfb9c343f5df547316949a7076010f38ef7d59b0fcf4e60a74ddf69aa1"
+    },
+    {
+      "source": "outputs/pick_transport_execution_20261008/isaac_pick_transport_20261008_01/robot_assets/onrobot_rg_description/meshes/rg2/visual/outer_knuckle.stl",
+      "destination": "isaac_sim/assets/original_robot/onrobot_rg_description/meshes/rg2/visual/outer_knuckle.stl",
+      "source_sha256": "44fc34b5c8d6218339acae1764530fc99eaffd16ca57ba7e4d67a60032a04e44",
+      "destination_sha256": "44fc34b5c8d6218339acae1764530fc99eaffd16ca57ba7e4d67a60032a04e44"
+    },
+    {
+      "source": "outputs/pick_transport_execution_20261008/isaac_pick_transport_20261008_01/robot_assets/source_manifest.json",
+      "destination": "isaac_sim/assets/original_robot/source_manifest.json",
+      "source_sha256": "d8caa39d55a429973e965df88f972ac97905b20a8f49fd58fa88a7c51576037b",
+      "destination_sha256": "d8caa39d55a429973e965df88f972ac97905b20a8f49fd58fa88a7c51576037b"
+    },
+    {
+      "source": "outputs/moveit_model_alignment_20261010/isaac_asset/m0609_rg2_sim_isaac_1/m0609_rg2_sim_isaac.usda",
+      "destination": "isaac_sim/assets/isaac_robot/m0609_rg2_sim_isaac.usda",
+      "source_sha256": "562caf3258701146bf6e1c8c917238f4b22f56cf9569d3a2cda0991e82c41d48",
+      "destination_sha256": "562caf3258701146bf6e1c8c917238f4b22f56cf9569d3a2cda0991e82c41d48"
+    },
+    {
+      "source": "outputs/moveit_model_alignment_20261010/isaac_asset/m0609_rg2_sim_isaac_1/payloads/Physics/mujoco.usda",
+      "destination": "isaac_sim/assets/isaac_robot/payloads/Physics/mujoco.usda",
+      "source_sha256": "dceeadbab1e613f06efcc1f23642a466712efd8f10a8b46568f1ed9c08342f99",
+      "destination_sha256": "dceeadbab1e613f06efcc1f23642a466712efd8f10a8b46568f1ed9c08342f99"
+    },
+    {
+      "source": "outputs/moveit_model_alignment_20261010/isaac_asset/m0609_rg2_sim_isaac_1/payloads/Physics/physics.usda",
+      "destination": "isaac_sim/assets/isaac_robot/payloads/Physics/physics.usda",
+      "source_sha256": "fd355c463ed4e0e24bfafbf4d17da7fb7d29d59898a776ddb51f6ef51ce64ffd",
+      "destination_sha256": "fd355c463ed4e0e24bfafbf4d17da7fb7d29d59898a776ddb51f6ef51ce64ffd"
+    },
+    {
+      "source": "outputs/moveit_model_alignment_20261010/isaac_asset/m0609_rg2_sim_isaac_1/payloads/Physics/physx.usda",
+      "destination": "isaac_sim/assets/isaac_robot/payloads/Physics/physx.usda",
+      "source_sha256": "4834fc70af3e2de6f25d5357daf4f340b70f8e75afbf6b331a1c8052b3a8b635",
+      "destination_sha256": "4834fc70af3e2de6f25d5357daf4f340b70f8e75afbf6b331a1c8052b3a8b635"
+    },
+    {
+      "source": "outputs/moveit_model_alignment_20261010/isaac_asset/m0609_rg2_sim_isaac_1/payloads/base.usda",
+      "destination": "isaac_sim/assets/isaac_robot/payloads/base.usda",
+      "source_sha256": "03596588e224d52558d919e9ddb252240a69197910319d30d7e72d63b91c31b8",
+      "destination_sha256": "03596588e224d52558d919e9ddb252240a69197910319d30d7e72d63b91c31b8"
+    },
+    {
+      "source": "outputs/moveit_model_alignment_20261010/isaac_asset/m0609_rg2_sim_isaac_1/payloads/geometries.usd",
+      "destination": "isaac_sim/assets/isaac_robot/payloads/geometries.usd",
+      "source_sha256": "f273768be9c016848d49b116ca8fa872bd3beefe8379ba87edfe8dc92d66d3ad",
+      "destination_sha256": "f273768be9c016848d49b116ca8fa872bd3beefe8379ba87edfe8dc92d66d3ad"
+    },
+    {
+      "source": "outputs/moveit_model_alignment_20261010/isaac_asset/m0609_rg2_sim_isaac_1/payloads/instances.usda",
+      "destination": "isaac_sim/assets/isaac_robot/payloads/instances.usda",
+      "source_sha256": "5b23c30e3c4d9389146d867ade9de48386b19c0c871dc529677acee3fb8912b9",
+      "destination_sha256": "5b23c30e3c4d9389146d867ade9de48386b19c0c871dc529677acee3fb8912b9"
+    },
+    {
+      "source": "outputs/moveit_model_alignment_20261010/isaac_asset/m0609_rg2_sim_isaac_1/payloads/materials.usda",
+      "destination": "isaac_sim/assets/isaac_robot/payloads/materials.usda",
+      "source_sha256": "5beb0dccde01f73c517ade1e9e9eb7b2834a809a8bf21d3dc51710bdecd3c0bd",
+      "destination_sha256": "5beb0dccde01f73c517ade1e9e9eb7b2834a809a8bf21d3dc51710bdecd3c0bd"
+    },
+    {
+      "source": "outputs/moveit_model_alignment_20261010/isaac_asset/m0609_rg2_sim_isaac_1/payloads/robot.usda",
+      "destination": "isaac_sim/assets/isaac_robot/payloads/robot.usda",
+      "source_sha256": "a43c78711d43ea09547883684d86ab598ffef83a1d386d172a0383f558cbee35",
+      "destination_sha256": "a43c78711d43ea09547883684d86ab598ffef83a1d386d172a0383f558cbee35"
+    },
+    {
+      "source": "outputs/moveit_model_alignment_20261010/aligned_robot.sim.usda",
+      "destination": "isaac_sim/assets/aligned_robot.sim.usda",
+      "source_sha256": "c239018b6624df8a953a3a21e3621b607217d97f159f403d13879a03a0a1b245",
+      "destination_sha256": "a8c86f540bb9809c84f85399b86abe11a260edc1e796eb64941fff8bf5f56038"
+    },
+    {
+      "source": "outputs/moveit_chair_assembly_20261010/BUILD.sh",
+      "destination": "isaac_sim/BUILD.sh",
+      "source_sha256": "5950b9f5a7c706210aa33fe42e2a8f75f0ed7a673b7d42fba8dd7494c06564e0",
+      "destination_sha256": "2b476a0a37c196b5194815e48e3f1e5068fe568de158933d679d8a336da88c1e"
+    },
+    {
+      "source": "outputs/red_1x2_support_20261010/RUN_SIM.sh",
+      "destination": "isaac_sim/RUN_SIM.sh",
+      "source_sha256": "f725b3bf6eee6ccc494d69d0f97bd6c0d96a184ac183ce21def2faa3618e0823",
+      "destination_sha256": "baedaf5229da988d44e073b5f9a934d7e30db131dda73d3e5a82a4a38313f467"
+    }
+  ],
+  "scope": "LOCAL_PATH_PORT_NO_COMMIT_NO_PUBLISH",
+  "a_api": "existing plan_from_current defaults retained; assembly draft extensions separate",
+  "modified_copies": [
+    "planning_trial/ASSEMBLY_API_05_20261008.txt",
+    "isaac_sim/scripts/sim_host.py",
+    "isaac_sim/scripts/scenario_core.py",
+    "isaac_sim/scripts/sim_utils.py",
+    "isaac_sim/scripts/runtime_guard.py",
+    "isaac_sim/scripts/prepare_scenario.py",
+    "isaac_sim/scripts/test_hand_review.py",
+    "isaac_sim/scripts/test_completion_priority.py",
+    "isaac_sim/scripts/test_red_supply.py",
+    "isaac_sim/scripts/check_chair.py",
+    "isaac_sim/scripts/check_red_run.py",
+    "isaac_sim/scripts/check_handover_lift.py",
+    "isaac_sim/scripts/route_collision.py",
+    "isaac_sim/assets/aligned_robot.sim.usda",
+    "isaac_sim/BUILD.sh",
+    "isaac_sim/RUN_SIM.sh"
+  ],
+  "original_sources_unchanged": true
+}
