@@ -1,5 +1,7 @@
 # Adaptive Co Assembly — C-2 팀 개발 안내
 
+> 2026-10-11 C Stage3 기준: 노랑·파랑 4점/6점 + 빨강 2점(1x2x1만), 24×24, 정수 layer 1~5, 실행 후보 1~40블록입니다. D는 후보를 Preview→Review→APPROVE한 뒤에만 A에 전달합니다. B의 상태·비교 소유는 유지합니다. 상세 구현/미검증 범위는 [A·D 연결 안내](docs/D_C_STAGE3_AD_ALIGNMENT.md)를 따릅니다. 아래 이전 Day4/ZIP 기록의 4종·30블록 범위보다 이 기준이 우선합니다.
+
 > 2026-10-11 1차 통합 기준: [10/8 최신 계약](docs/handover/final_mvp_interface_20261008/README.md)과 [HMI·DB 통합 안내](docs/D_HMI_DB_ROUND1.md)를 먼저 확인하세요. B가 Current/revision·Expected·비교를 소유하고 D는 실행·진행·최종 종료를 담당합니다. 공통 layer는 1~5입니다. 기존 Day4 실행 예시는 B 소유 경로 연결 완료를 뜻하지 않습니다.
 
 LLM과 사용자가 대화로 **커스텀 의자**를 설계·확정하면 조립 순서와 경로를 생성하고 Backend·HMI에 반영합니다. 로봇은 supply board에서 블록을 집어 assembly board에 직접 결착하며, 지지가 필요한 부분은 사람에게 고정 도움을 요청합니다. 계획에 필요한 블록 사용 종료 → Vision 확인과 Backend 최종 조립 판정 → 사용자별 DB 저장·웹앱 반영의 세 단계로 마칩니다.
@@ -53,7 +55,7 @@ GitHub main `95259bd`에는 C Design·A Planner·Backend·Qt·기존 Board 전�
 
 ## 환경·지원 범위와 근거
 
-기존 환경은 사용자 제공 Ubuntu 24.04 / Docker 29.8.2 / NVIDIA 4060 / Python 3.12.3 / ROS2 Jazzy / M0609 / D435i / RG2입니다. 기존 구현 범위는 4점·6점 × 노랑·파랑, 24×24 stud, 최대 5층입니다(2026-10-07 사용자 요청). C Design은 1~30블록을 허용하며 A/D/Qt는 30블록을 수신·계획·표시합니다. 실제 Vision 판별·직접 결착 가능 범위와 보정은 별도 검증입니다. REAL 수동 시험의 24슬롯 제한은 유지합니다.
+기존 환경은 사용자 제공 Ubuntu 24.04 / Docker 29.8.2 / NVIDIA 4060 / Python 3.12.3 / ROS2 Jazzy / M0609 / D435i / RG2입니다. C Stage3 기준 구현 범위는 노랑·파랑 4점/6점 및 빨강 2점, 24×24 stud, 최대 5층, 1~40블록입니다. A/D/Qt는 사용자 승인 뒤 이를 수신·계획·표시합니다. 실제 Vision 판별·직접 결착 가능 범위와 보정은 별도 검증입니다. REAL 수동 시험의 24슬롯 제한은 유지합니다.
 
 - 최신 목표는 [최종 MVP](docs/10_FINAL_MVP.md), 상세 연구 근거는 [첨부 연구 설계](docs/suhyun_individual_research_topic.md)를 봅니다.
 - [참고자료 적용 안내](docs/reference/README.md)의 원본 정책·과거 계획·GT는 보존합니다. 과거 TBD·Day4 흐름보다 최신 사용자 결정이 우선합니다.
