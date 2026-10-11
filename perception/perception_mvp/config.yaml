@@ -1,12 +1,13 @@
-# Null values are REQUIRED real inputs, not defaults or test calibration.
+# Confirmed values only. Remaining null values require actual inputs; do not
+# substitute block-stack ruler heights for Board-referenced surface heights.
 camera:
   serial: null
-  width: null
-  height: null
+  width: 1280  # Recorded RGB CameraInfo; verify against the live ROS stream.
+  height: 720
   fps: null
   timeout_ms: null
 hand:
-  weights: null
+  weights: models/hand_yolo11n_trial_20261010/hand_yolo11n_trial_best.pt
   confidence: null
   board_roi_v0: null
   min_valid_depth_fraction: null
@@ -19,13 +20,13 @@ geometry:
   coordinate_rules: '+X right, +Y up; minimum footprint anchor; layer 1..5'
   point_reference: visible_surface_center
   threshold_status: null
-  stud_pitch_m: null
+  stud_pitch_m: 0.016  # User-adopted 16 mm; matches all three active calibrations.
   board_bounds_m: null
   top_heights_m: null
   footprint_sizes_m: null
   center_offsets_stud: null
   center_to_anchor_offsets_stud: null
-  min_confidence: null
+  min_confidence: 0.25  # Existing block inference trial setting, not validated accuracy.
   min_valid_fraction: null
   min_depth_pixels: null
   min_depth_m: null

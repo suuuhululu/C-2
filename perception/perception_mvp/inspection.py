@@ -160,6 +160,10 @@ class VisionInspection:
         verified = region_cells(observed["verified_regions"])
         if any(not footprint(b) & verified for b in visible):
             raise ValueError("visible placement requires actual same-layer evidence")
+        if final and not verified:
+            # Historical Current cannot replace evidence from this FINAL check.
+            # No regions also implies no admissible visible placement above.
+            issues = [*issues, 'FINAL_OBSERVATION_EVIDENCE_MISSING']
         old = self._current["blocks"]
         seen = _keys(visible)
         # Positive conflicting placement disproves the old exact placement; no
@@ -184,6 +188,8 @@ class VisionInspection:
                 unknown.append(deepcopy(target))
         comparison = "MISMATCH" if missing or unexpected else (
             "UNOBSERVABLE" if unknown or issues or observed["status"] == "UNOBSERVABLE" else "MATCH")
+        if final and not verified:
+            comparison = 'UNOBSERVABLE'
         historical = [deepcopy(b) for b in merged if placement_key(b) not in seen]
         result = dict(**context, comparison=comparison, current=deepcopy(next_current),
             expected=deepcopy(expected), difference=dict(missing=missing, unexpected=unexpected,
@@ -251,6 +257,9 @@ class VisionInspection:
                                 expected=None, difference=dict(missing=[], unexpected=[], unobservable=[]))
                 visible = _blocks(observed['visible_blocks'])
                 verified = region_cells(observed['verified_regions'])
+                if not self._initialized and _unverified_regions(verified):
+                    self._active = None
+                    raise ValueError('INITIAL_STATE_UNAVAILABLE: initial board coverage incomplete')
                 if not verified or any(not footprint(b) <= verified for b in visible):
                     raise ValueError('INITIAL requires actual coverage for initial state')
                 old = self._current['blocks']

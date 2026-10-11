@@ -1,5 +1,18 @@
 # 현재 진행 상황
 
+## 2026-10-11 — B INITIAL/FINAL 관측 근거 보완（PR24 리뷰）
+
+- B inspection.py와 기존 round1 테스트만 수정. 첫 Current 확정은 24×24, layer 1~5 전체의 verified_regions 근거가 필요하며 일부 빈 영역만으로 Current=[]를 초기화하지 않는다. 부족하면 INITIAL_STATE_UNAVAILABLE로 반환하고 Current 미확인 및 Plan 채택 차단을 유지한다. 초기 단계에는 보존 가능한 아래층 확정 이력이 없으므로 전체 범위를 요구한다.
+- FINAL의 verified_regions가 없으면 과거 Current의 MATCH/MISMATCH를 재사용하지 않고 UNOBSERVABLE로 보류한다. 기존 same-layer evidence 검사상 visible_blocks만 있고 verified_regions가 없는 입력은 여전히 오류다. 근거 없는 FINAL은 Current/revision 유지. 새 유효 근거가 있는 FINAL은 기존 비교 및 아래층 가림 이력 유지 정책을 따른다.
+- 수정 전 신규 핵심 검사: 2 failed / 1 passed로 두 결함 재현. 수정 후 B MVP/legacy/calibration/supply 검사 246 passed, 1 skipped(실제 PR22 Consumer 소스 경로 미제공), 종료 0. 정상 INITIAL·FINAL, 부분/빈 INITIAL, 근거 없는 FINAL 및 과거 불일치 재사용 차단, fresh MISMATCH, layer5 아래층 유지, 취소·늦은 결과 검사 포함. 대상 diff --check 통과. app/ 변경 없음.
+- 기본 전체 pytest는 수집 중 psycopg 미설치 및 test_hmi_remaining import 경로 누락으로 중단(오류 2); 전체 통과로 보고하지 않는다. 실제 Camera/Controller/D 수신 연결은 미검증. Git commit/push/PR 갱신 미수행. 기존 사용자의 perception/.gitignore 변경과 자산은 이번 수정에 포함하지 않았다.
+
+## 2026-10-11 — 원래 C-2 작업 폴더 PR24 수정본으로 갱신
+
+- 기존 work/hongdong-vision-round1의 262ae61에서 PR24 수정본 2058d80으로 fast-forward. 원격 최신 여부를 추가 fetch한 작업은 아니며, realign 작업 폴더와 같은 기준 커밋으로 맞췄다.
+- 이전 미커밋 변경·미추적 파일은 stash와 /home/roh/Documents/ChatGPT/협동2/C2_before_update_eVmIvWWW/local_changes.tar.gz에 보존했다. 모델·촬영·보정 자료는 이동/삭제하지 않았다. 기존 A/C/D 로컬 변경은 재적용하지 않았다.
+- B 설정 확인값과 INITIAL/FINAL 재현 테스트만 이어받았다. 재현 테스트는 보완 전 단계이며 아직 전체 검사 통과를 주장하지 않는다. app/planning_trial/interfaces는 2058d80과 diff 없음. 설정 관련 live_view/runtime 검사 43 passed. GitHub 게시 없음.
+
 ## 2026-10-11 — 홍동 B 제출 코드 최신 integration 기준 정렬
 
 - 사용자 승인 범위: fetch·별도 로컬 작업 브랜치 구성·B 수정/검증. 최신 명시 지시로

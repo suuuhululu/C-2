@@ -1,0 +1,53 @@
+{
+  "pixel_xy": [
+    [
+      465.0,
+      607.0
+    ],
+    [
+      424.0,
+      126.0
+    ],
+    [
+      673.0,
+      363.0
+    ],
+    [
+      937.0,
+      561.0
+    ],
+    [
+      899.0,
+      96.0
+    ]
+  ],
+  "board_xy_mm": [
+    [
+      33.5,
+      33.5
+    ],
+    [
+      351.75,
+      33.5
+    ],
+    [
+      184.25,
+      184.25
+    ],
+    [
+      33.5,
+      351.75
+    ],
+    [
+      351.75,
+      351.75
+    ]
+  ],
+  "surface_height_mm": 0,
+  "image_size": [
+    1280,
+    720
+  ],
+  "source_image": "/home/rokey/corecode/Calibration_Tutorial/lego_calibration/captures/empty.png",
+  "note": "Physically identify stud/centre positions; do not derive reference pixels from the predicted grid"
+}

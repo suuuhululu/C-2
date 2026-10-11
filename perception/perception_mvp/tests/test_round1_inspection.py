@@ -147,6 +147,72 @@ def test_initial_actual_empty_enables_plan(connection):
     assert result['current'] == dict(current_revision=0,blocks=[])
 
 
+@pytest.mark.parametrize('regions', [
+    [dict(x=0, y=0, width=1, height=1, layer=1)],
+    [dict(x=0, y=0, width=24, height=24, layer=1)],
+    []])
+def test_initial_partial_empty_does_not_initialize_or_enable_plan(regions):
+    responses = []
+    def observe(context, active):
+        result = observation(context, [])
+        result['verified_regions'] = regions
+        return result, {}
+    value = connect_inspection(responses.append, observe=observe, geometry_reference='test-profile')
+    try:
+        value.request(request('partial', 'INITIAL')); value._queue.join()
+        assert responses[-1]['status'] == 'ERROR'
+        assert responses[-1]['current'] is None
+        assert 'INITIAL_STATE_UNAVAILABLE' in responses[-1]['reason']
+        with pytest.raises(ValueError, match='INITIAL'):
+            value.load_plan(*materials([block()]), geometry_reference='test-profile')
+    finally:
+        value.close()
+
+
+def test_initial_full_evidence_initializes_unknown_state():
+    responses = []
+    value = connect_inspection(responses.append, geometry_reference='test-profile',
+        observe=lambda ctx, active: (observation(ctx, []), {}))
+    try:
+        value.request(request('full', 'INITIAL')); value._queue.join()
+        assert responses[-1]['status'] == 'OK'
+        assert responses[-1]['current'] == dict(current_revision=0, blocks=[])
+        value.load_plan(*materials([block()]), geometry_reference='test-profile')
+    finally:
+        value.close()
+
+
+def test_final_without_fresh_evidence_preserves_current(connection):
+    value, _, _ = connection
+    value.load_plan(*materials([block()]), geometry_reference='test-profile')
+    execute(connection, request('step'), [block()])
+    before = value.inspection.current
+    result = execute(connection, request('empty-final', 'FINAL'), [], layers=[])
+    assert result['status'] == 'UNOBSERVABLE'
+    assert result['comparison'] == 'UNOBSERVABLE'
+    assert result['current'] == before == value.inspection.current
+
+
+def test_final_fresh_mismatch_remains_mismatch(connection):
+    value, _, _ = connection
+    value.load_plan(*materials([block()]), geometry_reference='test-profile')
+    execute(connection, request('step'), [block()])
+    result = execute(connection, request('wrong-final', 'FINAL'), [block(color='blue')])
+    assert result['comparison'] == 'MISMATCH'
+    assert result['current']['blocks'] == [block(color='blue')]
+
+
+def test_evidenceless_final_does_not_reuse_historical_mismatch(connection):
+    value, _, _ = connection
+    value.load_plan(*materials([block()]), geometry_reference='test-profile')
+    execute(connection, request('step'), [block()])
+    execute(connection, request('changed-step'), [block(color='blue')])
+    before = value.inspection.current
+    result = execute(connection, request('unknown-final', 'FINAL'), [], layers=[])
+    assert result['comparison'] == 'UNOBSERVABLE'
+    assert result['current'] == before == value.inspection.current
+
+
 def test_actual_producer_exception_is_error_without_state_change(connection):
     value,responses,_ = connection
     value.load_plan(*materials([block()]),geometry_reference='test-profile')

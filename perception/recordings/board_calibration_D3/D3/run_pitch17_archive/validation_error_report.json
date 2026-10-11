@@ -1,0 +1,16 @@
+{
+  "source": "/home/roh/C-2/perception/recordings/board_calibration_20261007_114332/D3/captures/validation_clicked_points.json",
+  "surface_height_mm": 0.0,
+  "count": 5,
+  "errors_mm": [
+    0.8805017817611165,
+    1.5525334912000952,
+    0.39919256518994894,
+    0.5552738413392637,
+    1.034836311634374
+  ],
+  "max_error_mm": 1.5525334912000952,
+  "rmse_mm": 0.9720302015717501,
+  "threshold_mm": 2.0,
+  "passed": true
+}

@@ -1,0 +1,11 @@
+{
+  "pixel_xy": [[453.0,652.0],[1048.0,652.0],[1060.0,49.0],[445.0,48.0],[737.0,651.0],[1053.0,369.0],[738.0,49.0],[450.0,368.0]],
+  "board_xy_mm": [[0.0,0.0],[391.0,0.0],[391.0,391.0],[0.0,391.0],[187.0,0.0],[391.0,187.0],[187.0,391.0],[0.0,187.0]],
+  "input_index_base": 0,
+  "surface_height_mm": 0,
+  "image_size": [1280,720],
+  "source_image": "/home/roh/C-2/perception/recordings/board_calibration_20261007_110850/V0/captures/empty.png",
+  "note": "Original human reference points preserved except points 7 and 8. Both selected by AI from original RGB stud appearance, not from grid prediction or held-out validation targets. Human review and actual block validation remain required.",
+  "point_7_correction": {"original_pixel_xy": [737.0,368.0], "corrected_pixel_xy": [738.0,49.0], "selector": "AI_visual_original_RGB", "human_confirmed": false},
+  "point_8_correction": {"original_pixel_xy": [453.0,369.0], "corrected_pixel_xy": [450.0,368.0], "selector": "AI_visual_original_RGB", "human_confirmed": false}
+}
