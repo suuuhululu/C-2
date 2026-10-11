@@ -7,7 +7,7 @@ from pathlib import Path
 from uuid import UUID
 
 from app.completion import _current, freeze_plan_basis
-from app.contracts import validate_block, validate_design, validate_observed, validate_plan_result
+from app.contracts import validate_block, validate_design, validate_observed, validate_plan, validate_plan_result
 
 
 class InputError(ValueError):
@@ -34,8 +34,13 @@ def _constant(value):
     raise ValueError(f"nonfinite JSON number: {value}")
 
 
-def parse_record(raw: bytes, source: str, line: int) -> dict:
+CONTRACTS = ("day4", "final-mvp-20261008")
+
+
+def parse_record(raw: bytes, source: str, line: int, *, contract: str = "day4") -> dict:
     try:
+        if contract not in CONTRACTS:
+            raise ValueError("unsupported archive contract")
         document = json.loads(raw.decode("utf-8"), object_pairs_hook=_pairs,
                               parse_constant=_constant)
         if not isinstance(document, dict):
@@ -56,25 +61,38 @@ def parse_record(raw: bytes, source: str, line: int) -> dict:
         encoded = json.dumps(document, ensure_ascii=False, allow_nan=False)
         if "\\u0000" in encoded or "\0" in encoded:
             raise ValueError("JSON contains NUL")
-        _validate_event_result(document)
+        _validate_event_result(document, contract=contract)
+        if contract == "final-mvp-20261008":
+            from history.final_mvp import validate_event
+            validate_event(document)
         if document["event"] == "PLAN_ADOPTED":
             context = document["result"]
             if not isinstance(context, dict) or "confirmed_steps" not in context:
                 raise ValueError("PLAN_ADOPTED.result: expected adoption context")
             if not isinstance(context["confirmed_steps"], list):
                 raise ValueError("PLAN_ADOPTED.result.confirmed_steps: expected array")
-            freeze_plan_basis(context.get("design"), context.get("plan"), context.get("base_current"))
+            if contract == "day4":
+                freeze_plan_basis(context.get("design"), context.get("plan"), context.get("base_current"))
+            else:
+                # Final-MVP history checks links; Expected computation belongs to B.
+                design = validate_design(context.get("design"))
+                plan = validate_plan(context.get("plan"))
+                current = _current(context.get("base_current"))
+                if design["design_version"] != plan["design_version"]:
+                    raise ValueError("plan.design_version: differs from adopted Design")
+                if current["current_revision"] != plan["base_current_revision"]:
+                    raise ValueError("plan.base_current_revision: differs from adoption Current")
             if document["plan_id"] != context["plan"]["plan_id"]:
                 raise ValueError("PLAN_ADOPTED.plan_id: differs from result.plan")
         metadata = event_fields(document)
-        return dict(source=source, line=line, timestamp=timestamp, document=document,
+        return dict(source=source, line=line, timestamp=timestamp, document=document, contract=contract,
                     raw=raw.decode("utf-8"), digest=hashlib.sha256(raw).hexdigest(), **metadata)
     except (ValueError, TypeError, KeyError, OverflowError, RecursionError) as error:
         raise InputError(f"{source}:{line}: {error}") from error
 
 
 
-def _validate_event_result(document):
+def _validate_event_result(document, *, contract="day4"):
     name, result = document["event"], document["result"]
     consumed = ("REQUEST_SENT", "DELIVERY_RESULT", "INTENT_RECEIVED", "PLAN_RESULT",
                 "CURRENT_ADOPTED", "INITIAL_DESIGN_RECEIVED", "C_INTERVENTION_RESULT",
@@ -106,7 +124,7 @@ def _validate_event_result(document):
         _text(document["request_id"], "INTENT_RECEIVED.request_id")
         if "request_id" in result and result["request_id"] != document["request_id"]:
             raise ValueError("INTENT_RECEIVED.request_id: differs from result.request_id")
-        if result["decision"] == "REVISE":
+        if result["decision"] == "REVISE" and (contract == "day4" or result.get("design") is not None):
             validate_design(result.get("design"))
         elif result["decision"] == "UNCLEAR":
             _text(result.get("question"), "INTENT_RECEIVED.result.question")
@@ -126,7 +144,7 @@ def _validate_event_result(document):
         if document["request_id"] != observed["check_id"]:
             raise ValueError("CURRENT_ADOPTED.request_id: differs from observed.check_id")
     elif name in ("INITIAL_DESIGN_RECEIVED", "C_INTERVENTION_RESULT"):
-        _validate_c_result(result, intervention=name == "C_INTERVENTION_RESULT")
+        _validate_c_result(result, intervention=name == "C_INTERVENTION_RESULT", contract=contract)
         if name == "C_INTERVENTION_RESULT":
             _text(document["request_id"], "C_INTERVENTION_RESULT.request_id")
 
@@ -156,7 +174,7 @@ def _validate_hri_payload(payload, document):
                 validate_block(block)
 
 
-def _validate_c_result(result, *, intervention):
+def _validate_c_result(result, *, intervention, contract="day4"):
     if result.get("status") not in ("OK", "FAILED", "CANCELLED"):
         raise ValueError("C result.status: unsupported status")
     if "questions" in result:
@@ -174,7 +192,10 @@ def _validate_c_result(result, *, intervention):
             raise ValueError("C result.hri_result: Initial requires null")
         if intervention and decision is None:
             raise ValueError("C result.hri_result: Intervention requires a decision")
-        if not intervention or decision in ("KEEP", "REVISE"):
+        needs_design = not intervention or decision in ("KEEP", "REVISE")
+        if intervention and contract != "day4" and decision in ("KEEP", "REVISE"):
+            needs_design = result.get("design") is not None
+        if needs_design:
             # C responses are candidates. Preserve invalid placements for A/D diagnostics;
             # only PLAN_ADOPTED/INTENT_RECEIVED documents get the accepted-data contract.
             candidate = result.get("design")
@@ -183,7 +204,10 @@ def _validate_c_result(result, *, intervention):
             version = candidate.get("design_version")
             if type(version) is not int or version < 1:
                 raise ValueError("C result.design.design_version: expected positive integer")
-        elif not result.get("questions"):
+        elif decision == "UNCLEAR" and not result.get("questions"):
+            if contract != "day4" and result.get("question") is not None:
+                _text(result["question"], "C result.question")
+                return
             raise ValueError("C result.questions: UNCLEAR requires a question")
     else:
         error = result.get("error")
@@ -204,7 +228,12 @@ def event_fields(document: dict) -> dict:
     basis = basis if isinstance(basis, dict) else {}
     observed = data.get("observed", data)
     observed = observed if isinstance(observed, dict) else {}
+    if document["event"] == "CHECK_RESULT" and isinstance(data.get("response"), dict):
+        observation = data["response"].get("observation")
+        observed = observation if isinstance(observation, dict) else {}
     outcome = data.get("status")
+    if document["event"] == "CHECK_RESULT" and isinstance(data.get("response"), dict):
+        outcome = data["response"].get("status")
     if type(data.get("success")) is bool:
         outcome = "SUCCESS" if data["success"] else "FAILURE"
     if isinstance(result, str):
@@ -215,9 +244,11 @@ def event_fields(document: dict) -> dict:
                 outcome=outcome if isinstance(outcome, str) else None)
 
 
-def read_source(path: Path, source: str) -> tuple[list[dict], int | None]:
+def read_source(path: Path, source: str, *, contract: str = "day4") -> tuple[list[dict], int | None]:
     """Read a bounded snapshot; defer any last line without a newline, even valid JSON."""
     _text(source, "source")
+    if contract not in CONTRACTS:
+        raise InputError(f"{source}: unsupported archive contract")
     records, pending = [], None
     with path.open("rb") as stream:
         stream.seek(0, 2)
@@ -233,7 +264,7 @@ def read_source(path: Path, source: str) -> tuple[list[dict], int | None]:
             if not raw.endswith(b"\n"):
                 pending = line
                 break
-            records.append(parse_record(raw, source, line))
+            records.append(parse_record(raw, source, line, contract=contract))
     return records, pending
 
 
