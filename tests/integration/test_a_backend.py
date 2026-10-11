@@ -112,12 +112,12 @@ def test_actual_a_reproduces_archived_case_status_and_remaining_count(name):
         assert result["plan"] is None and result["errors"]
 
 
-def test_a_source_preserves_archived_calculation_except_five_layer_limit():
-    # 보관된 원본 해시는 유지하고 승인된 두 변경만 되돌려 대조한다.
+def test_a_source_preserves_archived_calculation_except_authorized_contract_changes():
+    # 2026-10-11 Wave 3-light: A 계산 본문의 기준을 A branch(work/siyul-a-wave1-integration ba1a047 = PR #21 + MAX_BLOCKS 40)
+    # planner.py로 갱신했다. D가 덧붙인 승인 변경은 없으므로 역변환 목록은 비어 있고, planner.py가 그대로 보존돼야 한다.
+    # 이전 기준(Day4 원본 + D의 5층·재고·1..40 편집 역변환)은 interfaces/fixtures/a_backend_cases.json의 a_source_basis 참조.
     source = (ROOT / "planning_trial/planner.py").read_text()
-    source = source.replace("MAX_LAYER = 5", "MAX_LAYER = 4").replace(
-        "from 1 to {MAX_LAYER}", "from 1 to 4")
-    assert hashlib.sha256(source.encode()).hexdigest() == DATA["a_source_sha256"]
+    assert hashlib.sha256(source.encode()).hexdigest() == DATA["a_source_sha256"], DATA["a_source_basis"]
 
 
 @pytest.mark.parametrize("name", DATA["cases"])

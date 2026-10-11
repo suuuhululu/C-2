@@ -7,7 +7,7 @@ import json
 from pathlib import Path
 
 from app.contracts import _integer, _object, _text
-from app.hmi_contracts import SUPPLY_COLUMNS, _column
+from app.hmi_contracts import LEGACY_SUPPLY_COLUMNS, _column
 from app.real_trial_hmi import RealTrialController
 from app.robot_trial import load_trial_config, prepare_plan, validate_trial_config
 
@@ -27,6 +27,8 @@ def load_workflow_rows(path):
     for entry in manifest["supply_rows"]:
         row = _object(entry, ("brick_type", "color", "first_slot", "return_route_verified"), "workflow.row")
         column = _column(row, "workflow.row")
+        if column not in LEGACY_SUPPLY_COLUMNS:
+            raise ValueError(f"UNVERIFIED_TARGET: {column}")
         _integer(row["first_slot"], 1, 6, "workflow.row.first_slot")
         if row["return_route_verified"] is not True or column in rows:
             raise ValueError("workflow.row: verified route and unique column required")
@@ -42,7 +44,7 @@ def load_workflow_rows(path):
             raise ValueError("workflow: onsite/setup/return confirmation required")
         prepare_plan(config)  # 원본 경로/hash만 확인한다. ROS 연결 또는 이동 없음.
         rows[column] = config
-    if set(rows) != SUPPLY_COLUMNS:
+    if set(rows) != LEGACY_SUPPLY_COLUMNS:
         raise ValueError("workflow: all four Day4 rows required")
     return deepcopy(manifest), rows
 

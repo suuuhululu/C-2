@@ -1,0 +1,50 @@
+{
+  "record_kind": "USER_REPORTED_FIRST_SUPPLY_BLOCK_GRASP_RAW",
+  "recorded_date": "2026-10-07",
+  "source_statement": "이 좌표가 공급판에 놓인 첫번째 블럭을 블록 밑면으로부터 잡았을 때 그리퍼 끝부분 기준 8mm간격을 두고 잡은 위치야 조인트값(-210.48, 4.44, 108.01, 0.02, 67.56, -210.08) 베이스기준(-321.40, 184.61, 53.04, 62.73, -179.99, 63.50)",
+  "joint_positions_deg": [
+    -210.48,
+    4.44,
+    108.01,
+    0.02,
+    67.56,
+    -210.08
+  ],
+  "reported_base_pose_xyz_abc": [
+    -321.4,
+    184.61,
+    53.04,
+    62.73,
+    -179.99,
+    63.5
+  ],
+  "xyz_unit": "mm",
+  "orientation_unit": "degree",
+  "orientation_convention": "ZYZ assumed from existing project; not independently confirmed for this reading",
+  "supply_slot_reported": 1,
+  "brick_type": "2x2x1",
+  "color": "yellow",
+  "gripper_tip_to_block_bottom_distance_reported_mm": 8,
+  "tip_above_or_below_bottom": null,
+  "tip_coincides_with_configured_tcp": null,
+  "project_tcp_reference": {
+    "name": "GripperDA_v4",
+    "flange_offset_xyz_mm_zyz_deg": [
+      0,
+      0,
+      228,
+      0,
+      0,
+      0
+    ],
+    "confirmed_for_this_reading": null
+  },
+  "supply_board_measurement_ref": "supply_board_corners.user_20261007.pass2.json",
+  "grasp_and_new_board_coordinates_same_setup_confirmed": true,
+  "tcp_to_block_bottom_transform": null,
+  "execution_allowed": false,
+  "status": "SETUP_AND_BLOCK_IDENTITY_RECORDED; FULL_GRASP_TRANSFORM_NOT_CALIBRATED",
+  "setup_confirmation_source": "User replied 이번 공급판 배치임 to whether this first-block grasp was measured in the supplied new board arrangement.",
+  "supply_board_orientation": "STUDS_DOWN; BLOCKS_ON_REVERSE_FACE_WITH_HOLES_AT_STUD_POSITIONS",
+  "identity_source": "Latest layout/photo: first upper-left block is yellow 2x2, associated with earlier first-supply grasp."
+}

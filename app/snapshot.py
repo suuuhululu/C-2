@@ -20,7 +20,7 @@ def make_snapshot(state: dict) -> dict:
                     "STOPPED" if workflow == "STOPPED" else "BUSY" if state["execution_id"] else
                     "BUSY" if robot and robot.get("active_execution") else
                     "IDLE" if state["controller_ready"] and state["at_observe_point"] else None)
-    request = state.get("correction_request") or state["question_request"]
+    request = state.get("c_review") or state.get("correction_request") or state["question_request"]
     request_id = request["request_id"] if request else None
     choice = workflow == "WAIT_INTENT" and state.get("choice_required", False)
     correction = workflow == "WAIT_CORRECTION" and request_id is not None
@@ -43,8 +43,8 @@ def make_snapshot(state: dict) -> dict:
     required_action = ("목표 유지 또는 목표 수정 중 선택해주세요." if choice else
                        "문제 블록을 정리한 뒤 정리 완료를 눌러 재관측하세요." if correction else
                        "정지 확인 후 재개할 수 있습니다." if workflow == "STOPPED" else
-                       f"{'파랑' if step['after']['color']=='blue' else '노랑'} "
-                       f"{'4점' if step['after']['brick_type']=='2x2x1' else '6점'}을 "
+                       f"{ {'blue':'파랑','yellow':'노랑','red':'빨강'}[step['after']['color']]} "
+                       f"{ {'1x2x1':'2점','2x2x1':'4점','2x3x1':'6점'}[step['after']['brick_type']]}을 "
                        f"({step['after']['x']}, {step['after']['y']}) · {step['after']['layer']}층에 조립해주세요. "
                        "관측으로 확인하며 다음 전달을 진행합니다." if workflow == "WAIT_ASSEMBLY" else
                        "시작 버튼으로 새 작업을 요청하세요." if workflow == "IDLE" else None)
@@ -127,4 +127,10 @@ def make_snapshot(state: dict) -> dict:
         snapshot["transfer_target"] = robot["transfer_target"]
     if real_trial and robot is not None and state["job_id"] is None and "prepare_available" in robot:
         snapshot["actions"]["prepare_observe"] = dict(visible=True, enabled=robot["prepare_available"])
+    review = state.get("c_review")
+    if review:
+        snapshot["design_preview"] = dict(request_id=review["request_id"], design=review["design"])
+        snapshot["dialogue"] = dict(request_id=review["request_id"],
+            phase="WAIT_APPROVAL" if review["phase"] == "WAIT_ANSWER" else "REVIEW",
+            user_text=None, assistant_text=review["question"], reason=None)
     return validate_hmi_snapshot(snapshot)

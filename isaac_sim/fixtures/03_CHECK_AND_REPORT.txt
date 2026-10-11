@@ -1,0 +1,67 @@
+GPU 확인 순서와 결과 기록 양식
+
+[화면 설명]
+Supply: 노랑 2×2/2×3, 파랑 2×2/2×3 각각 6개. 주황색은 선택 슬롯.
+SupplyTCP: 24개 픽업 TCP. Stage prim 이름 끝 01~06이 사용 순서.
+AssemblyGrid: 조립판 격자 표시. 판 표면 CAD가 아니라 명목 외곽·격자입니다.
+Current: 현재 입력의 조립 블록. initial=0개 / partial=1개.
+Target: 이번 Step이 최종적으로 들어갈 위치. 실제 Current와 구분합니다.
+FinalDesign: 최종 목표 2개 블록, 반투명. 겹치면 --hide-final-design으로 감춥니다.
+PreContactHeldBlock: 잡은 블록이 20mm 대기 간격에 있을 때의 명목 박스.
+Waypoints: 반환된 TCP와 방향 축. 빨강 X / 초록 Y / 파랑 Z.
+Paths: 공급 접근과 파지 유지 이송. 집기 확인 경계는 D가 수행할 이벤트입니다.
+Stage 창에서 해당 그룹을 선택해 위치를 확인합니다.
+아직 정확한 stud/socket/rib와 그리퍼 외형의 물리 모델은 포함하지 않습니다.
+
+[확인 순서]
+1. 패키지 무결성 검사 PASS, 두 USD가 정상적으로 파싱·표시되는지.
+2. 공급판 종류/색상/24개/선택 슬롯이 기대와 맞는지.
+3. initial=Current 0개, S01 목표. partial=Current 1개, S02 목표인지.
+4. 기존 장면 overlay 때 Robot Base와 표시 Base가 같은 위치·축인지.
+5. GripperDA_v4 실제 TCP 기준점과 표시 TCP가 맞는지.
+6. 선택 슬롯의 파지 중심과 블록 긴 옆면 파지 방향을 비교할 수 있는지.
+7. 기존 블록과 상승→이송→목표 위 하강 경유점 관계가 맞는지.
+8. 20mm는 TCP-표면 거리가 아니라 잡은 블록 밑면-아래 stud 끝 간격인지.
+
+정적 경로 선은 로봇이 그 선을 따라 움직였다는 증거가 아닙니다.
+현재 자세 한 장면으로 전체 팔 충돌을 판정하지 않습니다.
+IK/팔·그리퍼 경로/파지 유지/체결 시험을 안 했다면 '미실행'으로 남깁니다.
+
+[결과 기록 — 사본으로 작성]
+확인 일시:
+GPU PC OS / GPU:
+Isaac Sim 버전:
+사용한 기존 로봇 USD 경로 (없으면 표시만):
+장면 metersPerUnit / upAxis:
+사용한 alignment JSON / 실제 정합 확인 여부:
+TCP 기준점 / 이름:
+
+빈 보드 initial
+  파일 검사: PASS / FAIL / 미실행
+  USD 파싱·표시: 성공 / 실패 / 미실행
+  공급판 24개·선택 슬롯: 확인 / 불일치 / 미확인
+  Current 0개·S01 목표: 확인 / 불일치 / 미확인
+  Base·TCP 정합: 확인 / 불일치 / 미확인
+  20mm 명목 높이 표시: 확인 / 불일치 / 미확인
+  실제 로봇 모델 IK·경로 실행: 미실행 / 별도 결과:
+  팔·그리퍼 전체 충돌 검사: 미실행 / 별도 결과:
+
+부분 조립 partial
+  파일 검사: PASS / FAIL / 미실행
+  USD 파싱·표시: 성공 / 실패 / 미실행
+  Current 1개·S02 목표: 확인 / 불일치 / 미확인
+  기존 블록과 경유점 관계: 확인 / 불일치 / 미확인
+  Base·TCP 정합: 확인 / 불일치 / 미확인
+  20mm 명목 높이 표시: 확인 / 불일치 / 미확인
+  실제 로봇 모델 IK·경로 실행: 미실행 / 별도 결과:
+  팔·그리퍼 전체 충돌 검사: 미실행 / 별도 결과:
+
+오류 메시지 / 재현 명령:
+화면 캡처 파일(initial / partial):
+runtime_logs 콘솔 로그 파일:
+runtime_reports 결과 JSON 파일:
+다음 수정이 필요한 항목:
+
+runtime_reports의 usd_parsed=true와 scene_displayed=true는 표시 결과입니다.
+robot_motion_verified / ik_verified / collision_verified / physical_fit_verified는
+이 표시 프로그램에서 true로 변경되지 않습니다. 별도 시험 기록으로 관리합니다.

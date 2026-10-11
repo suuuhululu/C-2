@@ -1,0 +1,12 @@
+{
+  "columns": 2,
+  "slots_per_column": 6,
+  "occupied_grid_x": 2,
+  "occupied_grid_y": 1,
+  "gap_from_blue_y": 2,
+  "gap_between_red_columns_y": 2,
+  "gap_between_rows_x": 2,
+  "user_confirmed_small_faces": true,
+  "basis": "USER_PHOTO_20261010_RELATIVE_LAYOUT",
+  "pickup_xyz_and_orientation_status": "DERIVED_CANDIDATE_NOT_RED_TEACH_CALIBRATED"
+}

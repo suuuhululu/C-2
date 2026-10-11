@@ -313,3 +313,61 @@ def test_planless_initial_check_can_adopt_current_without_a_step():
 def test_planless_check_requires_both_plan_and_step_to_be_absent(plan_id, step_id):
     with pytest.raises(ValueError, match="active_check"):
         open_observation_check("initial-check", "J01", plan_id, step_id)
+
+
+# ---- B 확정 Current relay (2026-10-11 Wave 2, 10/8 계약: B가 revision 발급, D는 전달) ---------------------------------
+
+
+def relayed(blocks, revision, seq=12, status="OK"):
+    payload = {**observed([], [], seq), "status": status, "reason": "occluded" if status == "UNOBSERVABLE" else None,
+               "current": {"current_revision": revision, "blocks": [deepcopy(b) for b in blocks]},
+               "current_provenance": "B_CONFIRMED_D_RELAYED"}
+    return payload
+
+
+def test_b_confirmed_current_is_adopted_verbatim_without_reissuing_revision():
+    result = adopt_observation(state([A], 5), check(), relayed([A, B], 12))
+    assert result["current"] == state([A, B], 12)  # B revision 12 그대로, 5 + 1이 아님
+    assert result["disposition"] == "ADOPTED" and result["reason"] == "B_CURRENT_RELAYED"
+    assert result["current_provenance"] == "B_CONFIRMED_D_RELAYED"
+    assert result["active_check"]["last_observation_seq"] == 12
+
+
+def test_b_confirmed_current_same_state_is_unchanged_and_keeps_b_revision():
+    result = adopt_observation(state([A, B], 12), check(), relayed([A, B], 12, seq=13))
+    assert result["current"] == state([A, B], 12) and result["disposition"] == "UNCHANGED"
+
+
+def test_b_relay_respects_check_mismatch_stale_sequence_and_unobservable():
+    assert adopt_observation(state([A], 5), check("J01:C99"), relayed([A, B], 12))["reason"] == "CHECK_MISMATCH"
+    context = {**check(), "last_observation_seq": 12}
+    assert adopt_observation(state([A], 5), context, relayed([A, B], 12, seq=12))["reason"] == "STALE_OBSERVATION"
+    held = adopt_observation(state([A], 5), check(), relayed([A], 5, status="UNOBSERVABLE"))
+    assert held["disposition"] == "HOLD" and held["current"] == state([A], 5)
+    with pytest.raises(ValueError, match="UNOBSERVABLE"):  # 관측 불가인데 B가 새 revision을 보내면 계약 위반
+        adopt_observation(state([A], 5), check(), relayed([A, B], 12, status="UNOBSERVABLE"))
+
+
+def test_b_relay_rejects_revision_regression_or_same_revision_layout_change():
+    with pytest.raises(ValueError, match="went back"):
+        adopt_observation(state([A, B], 12), check(), relayed([A, B], 11))
+    with pytest.raises(ValueError, match="went back"):
+        adopt_observation(state([A], 12), check(), relayed([A, B], 12))
+    reordered = adopt_observation(state([A, B], 12), check(), relayed([B, A], 12))
+    assert reordered["disposition"] == "UNCHANGED"  # 순서만 다른 같은 배치는 변화 아님
+
+
+def test_provenance_without_current_or_wrong_provenance_is_rejected():
+    from app.contracts import validate_observed
+    with pytest.raises(ValueError, match="current_provenance"):
+        validate_observed({**observed([], []), "current_provenance": "B_CONFIRMED_D_RELAYED"})
+    with pytest.raises(ValueError, match="current_provenance"):
+        validate_observed({**observed([], []), "current": state([A], 1), "current_provenance": "D_ADOPTED_CURRENT"})
+    with pytest.raises(ValueError):
+        validate_observed({**observed([], []), "current": {"current_revision": -1, "blocks": []},
+                           "current_provenance": "B_CONFIRMED_D_RELAYED"})
+
+
+def test_legacy_observation_without_relay_still_issues_d_revision():
+    result = adopt_observation(state([A], 1), check(), observed([A, B], [RA, RB]))
+    assert result["current"]["current_revision"] == 2 and "current_provenance" not in result

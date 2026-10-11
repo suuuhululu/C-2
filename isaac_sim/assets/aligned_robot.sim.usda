@@ -1,0 +1,310 @@
+#usda 1.0
+(
+    defaultPrim = "World"
+    endTimeCode = 1000000
+    metersPerUnit = 1
+    startTimeCode = 0
+    timeCodesPerSecond = 60
+    upAxis = "Z"
+)
+
+def "Render" (
+    hide_in_stage_window = true
+    no_delete = true
+)
+{
+    def "OmniverseKit"
+    {
+        def "HydraTextures" (
+            hide_in_stage_window = true
+            no_delete = true
+        )
+        {
+            def RenderProduct "omni_kit_widget_viewport_ViewportTexture_0" (
+                prepend apiSchemas = ["OmniRtxSettingsCommonAdvancedAPI_1", "OmniRtxSettingsRtAdvancedAPI_1", "OmniRtxSettingsPtAdvancedAPI_1", "OmniRtxSettingsParticleFieldAPI_1", "OmniRtxPostColorGradingAPI_1", "OmniRtxPostChromaticAberrationAPI_1", "OmniRtxPostBloomPhysicalAPI_1", "OmniRtxPostMatteObjectAPI_1", "OmniRtxPostCompositingAPI_1", "OmniRtxPostDofAPI_1", "OmniRtxPostMotionBlurAPI_1", "OmniRtxPostTvNoiseAPI_1", "OmniRtxPostTonemapIrayReinhardAPI_1", "OmniRtxPostDebugSettingsAPI_1", "OmniRtxDebugSettingsAPI_1"]
+                hide_in_stage_window = true
+                no_delete = true
+            )
+            {
+                rel camera = </OmniverseKit_Persp>
+                token omni:rtx:ambientOcclusion:denoiserMode = "none"
+                token omni:rtx:background:source:texture:textureMode = "repeatMirrored"
+                token omni:rtx:background:source:type = "domeLight"
+                bool omni:rtx:debug:view:pixelDebug:enableFixedTextPos = 1
+                token omni:rtx:directLighting:sampledLighting:denoisingTechnique = "None"
+                bool omni:rtx:dlss:frameGeneration = 0
+                bool omni:rtx:indirectDiffuse:denoiser:enabled = 0
+                bool omni:rtx:material:db:syncLoads = 1
+                token omni:rtx:post:dlss:execMode = "performance"
+                bool omni:rtx:post:registeredCompositing:invertColorCorrection = 1
+                bool omni:rtx:post:registeredCompositing:invertToneMap = 1
+                bool omni:rtx:pt:adaptiveSampling:filterError = 0
+                uint omni:rtx:pt:adaptiveSampling:fixedSppIterations = 2
+                int omni:rtx:pt:clampSpp = 64
+                uint omni:rtx:pt:limits:maxBounces = 3
+                uint omni:rtx:pt:limits:maxGlossyBounces = 3
+                uint omni:rtx:pt:maxSamplesPerLaunch = 2073600
+                uint omni:rtx:pt:mgpu:maxPixelsPerRegionExponent = 12
+                int omni:rtx:pt:samplesPerIteration = 64
+                uint omni:rtx:pt:samplesPerPixel = 64
+                bool omni:rtx:reflections:denoiser:enabled = 0
+                token omni:rtx:rendermode = "RealTimePathTracing"
+                color3f omni:rtx:rt:ambientLight:color = (0.1, 0.1, 0.1)
+                bool omni:rtx:rt:demoire = 0
+                bool omni:rtx:rt:lightcache:spatialCache:dontResolveConflicts = 1
+                int omni:rtx:rt:sss:samples = 1
+                uint omni:rtx:rtpt:maxVolumeBounces = 15
+                float omni:rtx:rtpt:modulatingRoughnessThreshold = 0.08
+                bool omni:rtx:scene:hydra:materialSyncLoads = 1
+                bool omni:rtx:scene:hydra:mdlMaterialWarmup = 1
+                rel orderedVars = </Render/Vars/LdrColor>
+                custom bool overrideClipRange = 0
+                uniform int2 resolution = (640, 480)
+            }
+        }
+    }
+
+    def RenderSettings "OmniverseGlobalRenderSettings" (
+        prepend apiSchemas = ["OmniRtxSettingsGlobalRtAdvancedAPI_1", "OmniRtxSettingsGlobalPtAdvancedAPI_1"]
+        no_delete = true
+    )
+    {
+        rel products = </Render/OmniverseKit/HydraTextures/omni_kit_widget_viewport_ViewportTexture_0>
+    }
+
+    def "Vars" (
+        hide_in_stage_window = true
+        no_delete = true
+    )
+    {
+        def RenderVar "LdrColor" (
+            hide_in_stage_window = true
+            no_delete = true
+        )
+        {
+            uniform string sourceName = "LdrColor"
+            uniform token sourceType = "raw"
+        }
+    }
+}
+
+over "OmniverseKit_Persp"
+{
+    float exposure:fStop = 5
+    float exposure:responsivity = 1.1026709
+    float exposure:time = 0.02
+}
+
+def Xform "World"
+{
+    def Xform "Robot" (
+        prepend references = @./isaac_robot/m0609_rg2_sim_isaac.usda@</m0609_rg2>
+        variants = {
+            string Physics = "physx"
+        }
+    )
+    {
+        over "Geometry"
+        {
+            over "world"
+            {
+                over "base_link" (
+                    prepend apiSchemas = ["PhysxArticulationAPI"]
+                )
+                {
+                    bool physxArticulation:enabledSelfCollisions = 1
+
+                    over "link_1"
+                    {
+                        over "link_2"
+                        {
+                            over "link_3"
+                            {
+                                over "link_4"
+                                {
+                                    over "link_5"
+                                    {
+                                        over "link_6"
+                                        {
+                                            over "GripperDA_v4_tcp"
+                                            {
+                                                double3 xformOp:translate = (0, 0, 0.228)
+                                                uniform token[] xformOpOrder = ["xformOp:translate"]
+                                            }
+
+                                            over "tool0"
+                                            {
+                                                over "rg2_base_link"
+                                                {
+                                                    over "rg2_left_outer_knuckle"
+                                                    {
+                                                        over "rg2_left_inner_finger" (
+                                                            prepend apiSchemas = ["PhysicsFilteredPairsAPI"]
+                                                        )
+                                                        {
+                                                            prepend rel physics:filteredPairs = </World/Robot/Geometry/world/base_link/link_1/link_2/link_3/link_4/link_5/link_6/tool0/rg2_base_link/rg2_left_inner_knuckle>
+                                                        }
+                                                    }
+
+                                                    over "rg2_left_inner_knuckle" (
+                                                        prepend apiSchemas = ["PhysicsFilteredPairsAPI"]
+                                                    )
+                                                    {
+                                                        prepend rel physics:filteredPairs = </World/Robot/Geometry/world/base_link/link_1/link_2/link_3/link_4/link_5/link_6/tool0/rg2_base_link/rg2_left_outer_knuckle>
+                                                    }
+
+                                                    over "rg2_right_outer_knuckle"
+                                                    {
+                                                        over "rg2_right_inner_finger" (
+                                                            prepend apiSchemas = ["PhysicsFilteredPairsAPI"]
+                                                        )
+                                                        {
+                                                            prepend rel physics:filteredPairs = </World/Robot/Geometry/world/base_link/link_1/link_2/link_3/link_4/link_5/link_6/tool0/rg2_base_link/rg2_right_inner_knuckle>
+                                                        }
+                                                    }
+
+                                                    over "rg2_right_inner_knuckle" (
+                                                        prepend apiSchemas = ["PhysicsFilteredPairsAPI"]
+                                                    )
+                                                    {
+                                                        prepend rel physics:filteredPairs = </World/Robot/Geometry/world/base_link/link_1/link_2/link_3/link_4/link_5/link_6/tool0/rg2_base_link/rg2_right_outer_knuckle>
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        over "Physics"
+        {
+            over "joint_1" (
+                prepend apiSchemas = ["PhysicsDriveAPI:angular", "PhysxJointAPI"]
+            )
+            {
+                float drive:angular:physics:damping = 300
+                float drive:angular:physics:maxForce = 163
+                float drive:angular:physics:stiffness = 20000
+                uniform token drive:angular:physics:type = "acceleration"
+                float physxJoint:maxJointVelocity = 150.00035
+            }
+
+            over "joint_2" (
+                prepend apiSchemas = ["PhysicsDriveAPI:angular", "PhysxJointAPI"]
+            )
+            {
+                float drive:angular:physics:damping = 300
+                float drive:angular:physics:maxForce = 163
+                float drive:angular:physics:stiffness = 20000
+                uniform token drive:angular:physics:type = "acceleration"
+                float physxJoint:maxJointVelocity = 150.00035
+            }
+
+            over "joint_3" (
+                prepend apiSchemas = ["PhysicsDriveAPI:angular", "PhysxJointAPI"]
+            )
+            {
+                float drive:angular:physics:damping = 300
+                float drive:angular:physics:maxForce = 96
+                float drive:angular:physics:stiffness = 20000
+                uniform token drive:angular:physics:type = "acceleration"
+                float physxJoint:maxJointVelocity = 180.00043
+            }
+
+            over "joint_4" (
+                prepend apiSchemas = ["PhysicsDriveAPI:angular", "PhysxJointAPI"]
+            )
+            {
+                float drive:angular:physics:damping = 300
+                float drive:angular:physics:maxForce = 50
+                float drive:angular:physics:stiffness = 20000
+                uniform token drive:angular:physics:type = "acceleration"
+                float physxJoint:maxJointVelocity = 225.00052
+            }
+
+            over "joint_5" (
+                prepend apiSchemas = ["PhysicsDriveAPI:angular", "PhysxJointAPI"]
+            )
+            {
+                float drive:angular:physics:damping = 300
+                float drive:angular:physics:maxForce = 50
+                float drive:angular:physics:stiffness = 20000
+                uniform token drive:angular:physics:type = "acceleration"
+                float physxJoint:maxJointVelocity = 225.00052
+            }
+
+            over "joint_6" (
+                prepend apiSchemas = ["PhysicsDriveAPI:angular", "PhysxJointAPI"]
+            )
+            {
+                float drive:angular:physics:damping = 300
+                float drive:angular:physics:maxForce = 50
+                float drive:angular:physics:stiffness = 20000
+                uniform token drive:angular:physics:type = "acceleration"
+                float physxJoint:maxJointVelocity = 225.00052
+            }
+
+            over "rg2_finger_joint" (
+                prepend apiSchemas = ["PhysicsDriveAPI:angular", "PhysxJointAPI"]
+            )
+            {
+                float drive:angular:physics:damping = 2
+                float drive:angular:physics:maxForce = 0.5
+                float drive:angular:physics:stiffness = 100
+                uniform token drive:angular:physics:type = "force"
+                float physxJoint:maxJointVelocity = 5729.578
+            }
+
+            over "rg2_left_inner_knuckle_joint" (
+                prepend apiSchemas = ["PhysicsDriveAPI:angular", "PhysxJointAPI"]
+            )
+            {
+                float drive:angular:physics:damping = 0
+                float drive:angular:physics:stiffness = 0
+                float physxJoint:maxJointVelocity = 5729.578
+            }
+
+            over "rg2_left_inner_finger_joint" (
+                prepend apiSchemas = ["PhysicsDriveAPI:angular", "PhysxJointAPI"]
+            )
+            {
+                float drive:angular:physics:damping = 0
+                float drive:angular:physics:stiffness = 0
+                float physxJoint:maxJointVelocity = 5729.578
+            }
+
+            over "rg2_right_outer_knuckle_joint" (
+                prepend apiSchemas = ["PhysicsDriveAPI:angular", "PhysxJointAPI"]
+            )
+            {
+                float drive:angular:physics:damping = 0
+                float drive:angular:physics:stiffness = 0
+                float physxJoint:maxJointVelocity = 5729.578
+            }
+
+            over "rg2_right_inner_knuckle_joint" (
+                prepend apiSchemas = ["PhysicsDriveAPI:angular", "PhysxJointAPI"]
+            )
+            {
+                float drive:angular:physics:damping = 0
+                float drive:angular:physics:stiffness = 0
+                float physxJoint:maxJointVelocity = 5729.578
+            }
+
+            over "rg2_right_inner_finger_joint" (
+                prepend apiSchemas = ["PhysicsDriveAPI:angular", "PhysxJointAPI"]
+            )
+            {
+                float drive:angular:physics:damping = 0
+                float drive:angular:physics:stiffness = 0
+                float physxJoint:maxJointVelocity = 5729.578
+            }
+        }
+    }
+}
+

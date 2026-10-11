@@ -142,7 +142,7 @@ def test_qt_stop_resume_routes_to_controller_without_duplicate_consumption(windo
     new = demo.backend.state["execution_id"]
     assert new != old and demo.driver.calls[-1][0] == next_operation
     wait_for(demo, "COMPLETE"); qapp.processEvents()
-    assert [row["next_slot"] for row in window._snapshot["monitor"]["supply"]] == [3,1,1,2]
+    assert [row["next_slot"] for row in window._snapshot["monitor"]["supply"]] == [3,1,1,2,1]
     assert demo.backend.state["current"]["blocks"] == demo.fixtures["design"]["blocks"]
 
 

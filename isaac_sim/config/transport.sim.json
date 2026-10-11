@@ -1,0 +1,6 @@
+{
+  "manual_source_lift_m": 0.1,
+  "scope": "SIM_ONLY_RELATIVE_LIFT_FROM_ORIGINAL_A_PICKUP",
+  "source": "User corrected handover initial rise from 10mm to 100mm",
+  "on_invalid_lift": "STOP_WITHOUT_EXECUTING_PARTIAL_PATH"
+}

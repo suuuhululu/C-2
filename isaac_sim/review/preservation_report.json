@@ -1,0 +1,16 @@
+{
+  "remote_commit": "319a2755676f2432e3bf3dfdbcd7b22c4d68b17d",
+  "tracked_file_count": 45,
+  "preserved_tracked_file_count": 42,
+  "modified_tracked_files": [
+    "docs/STATUS.md",
+    "planning_trial/README.md",
+    "planning_trial/planner.py"
+  ],
+  "copied_source_files": 230,
+  "source_files_changed": [],
+  "all_existing_test_and_c_check_files_preserved": true,
+  "application_files_unchanged": true,
+  "publication_performed": false,
+  "commit_performed": false
+}

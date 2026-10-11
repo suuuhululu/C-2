@@ -20,10 +20,10 @@ class Backend:
         self._record = record
         self._request_owners = {}
         self._state = dict(mode=mode, supported_scope=dict(operations=["PLACE"],
-                           brick_types=["2x2x1","2x3x1"],colors=["yellow","blue"],
+                           brick_types=["1x2x1","2x2x1","2x3x1"],colors=["red","yellow","blue"],max_blocks=40,
                            board_width=24,board_height=24,max_layer=MAX_LAYER),workflow_status="IDLE", job_id=None,
                            current=dict(current_revision=0, blocks=[]), context=None,
-                           planning_request=None, execution_id=None, active_check=None,
+                           planning_request=None, c_review=None, approved_design=None, execution_id=None, active_check=None,
                            place_check=None, place_status=None, question_request=None, question=None,
                            stop_request=None, reason=None, fault=None, comparison="WAITING", difference=None,
                            last_observation=None, step_observation=None, pending_design=None,
@@ -104,7 +104,7 @@ class Backend:
     def _hold(self, reason: str) -> None:
         self._state.update(workflow_status="HOLD", reason=reason, active_check=None,
                            place_check=None, planning_request=None, question_request=None,
-                           current_check=None,correction_request=None,choice_required=False)
+                           current_check=None,correction_request=None,choice_required=False,c_review=None)
 
     def _send(self, port: str, payload: dict) -> None:
         identity = payload.get("request_id", payload.get("execution_id", payload.get("check_id")))
@@ -185,7 +185,7 @@ class Backend:
                          context=None, comparison="WAITING", difference=None, question=None, fault=None,
                          last_observation=None, step_observation=None,pending_design=None,current_check=None,
                          correction_request=None,correction_required=False,current_check_blocked=False,
-                         choice_required=False,unclear_count=0,planner_errors=[])
+                         choice_required=False,unclear_count=0,planner_errors=[],c_review=None,approved_design=None)
             self._awaiting_assembly = self._delivery_goal = False
             if not self._event("JOB_STARTED"):
                 return dict(accepted=False, reason=state["reason"])
@@ -207,7 +207,7 @@ class Backend:
                 return dict(accepted=False, reason="RESUME_NOT_APPLICABLE")
             state.update(workflow_status="DELIVERING", reason=None, execution_id=str(uuid4()))
             step = self._next_step() if state["context"] is not None else None
-            target = step["after"] if step else self._robot.state["transfer_target"] if self._robot else None
+            target = step["after"] if step else self._robot.state.get("transfer_target") if self._robot else None
             goal = (dict(execution_id=state["execution_id"], brick_type=target["brick_type"],
                          color=target["color"]) if self._delivery_goal else None)
             self._send("robot.resume", dict(execution_id=state["execution_id"], goal=goal,
@@ -402,8 +402,10 @@ class Backend:
         previous = (state["workflow_status"], state["reason"])
         state.update(last_observation=observation, step_observation=observation)
         if result["current"] != state["current"]:
-            if not self._event("CURRENT_ADOPTED", request_id=observation["check_id"],
-                               result=dict(current=result["current"],observed=observation)):
+            adopted = dict(current=result["current"], observed=observation)
+            if "current_provenance" in result:  # B relay: provenance를 기록에 남긴다(D 발급 아님)
+                adopted["current_provenance"] = result["current_provenance"]
+            if not self._event("CURRENT_ADOPTED", request_id=observation["check_id"], result=adopted):
                 state["current"] = result["current"]
                 return True
         if result["step_confirmed"]:
@@ -428,7 +430,10 @@ class Backend:
         else:
             state["workflow_status"] = "HOLD"
             if previous != ("HOLD", state["reason"]):
-                self._event("OBSERVATION_HOLD", request_id=observation["check_id"], reason=state["reason"])
+                self._event("OBSERVATION_HOLD", request_id=observation["check_id"], reason=state["reason"],
+                            result=dict(observed=observation, expected=result["expected"],
+                                        current=state["current"], comparison=state["comparison"],
+                                        difference=state["difference"]))
         return True
 
     def _request_question(self) -> None:

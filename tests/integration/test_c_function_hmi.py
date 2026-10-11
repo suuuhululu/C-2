@@ -13,7 +13,7 @@ from PyQt5.QtTest import QTest
 from PyQt5.QtWidgets import QApplication
 
 from app.abd_input_hmi import AbdInputDemo
-from app.c_design import llm, main as c_main
+from app.c_design import designer, llm, main as c_main
 from app.c_text_connection import differences_for_c
 from app.qt_hmi import HmiWindow
 from test_abd_input_hmi import records, transfer, wait_for
@@ -29,21 +29,38 @@ def qapp():
 
 
 def settled(demo):
-    for _ in range(300):
+    """Stage3 호출과 실제 Qt 후보 표시를 기다린 뒤 명시적 시험 승인을 보낸다."""
+    for _ in range(600):
         QTest.qWait(2)
+        QApplication.instance().processEvents()
+        review = demo.backend.state.get("c_review")
         if not demo.c_connection.active:
-            QApplication.instance().processEvents()
-            return
-    pytest.fail("C call did not settle")
+            if review and review["phase"] == "WAIT_ANSWER" and not demo.c_connection.voice_mode:
+                demo.receive(dict(event="answer", request_id=review["request_id"], text="좋아요"))
+            elif not review or review["phase"] == "WAIT_ANSWER":
+                state, snapshot = demo.backend.state, demo.window._snapshot
+                design = state["context"]["design"] if state["context"] else None
+                if (snapshot and snapshot["workflow_status"] == state["workflow_status"]
+                        and snapshot["design"] == design and snapshot["current"] == state["current"]):
+                    return
+    pytest.fail("C call/preview did not settle")
 
 
 @pytest.fixture
 def create(qapp, tmp_path, monkeypatch):
     windows = []
+    from test_c_stage3_lifecycle import FakeLLM
+    fake = FakeLLM()
+    # 이 저장 fixture는 경계/계획 시험용이다. 풍성함 재시도 자체는 C의 독립 테스트에서 검사한다.
+    monkeypatch.setattr(designer, "RETRY_DELAY", 0)
+    monkeypatch.setattr(designer, "RICHNESS_MIN_DELTA", 0)
+    for name in ("interpret_initial_request", "describe_initial_design", "judge_revised_design"):
+        monkeypatch.setattr(llm, name, getattr(fake, name))
 
     def build(mode="offline", text="의자 만들어줘", key=True):
         monkeypatch.setenv("C_DESIGN_USE_LLM", "1" if mode == "live" else "0")
         monkeypatch.setenv("OPENAI_API_KEY", "test-secret-not-a-real-key" if key else "")
+        monkeypatch.setenv("OPENAI_LLM_API_KEY", "test-secret-not-a-real-key" if key else "")
         monkeypatch.setenv("OPENAI_MODEL", "gpt-4o")
         window = HmiWindow(screen_size=QSize(1920, 1080))
         demo = AbdInputDemo(window, tmp_path, c_mode=mode, initial_text=text, delay_ms=1)
@@ -106,18 +123,18 @@ def test_actual_c_offline_initial_full_job_only_completes_after_observation(crea
     expected = c_main.create_initial_design(text="의자 만들어줘")["design"]
     assert window.design_board.blocks == expected["blocks"]
     assert not demo.driver.calls
-    assert len(demo.backend.state["context"]["plan"]["steps"]) == 15
-    for index in range(15):
+    assert len(demo.backend.state["context"]["plan"]["steps"]) == len(expected["blocks"])
+    for index in range(len(expected["blocks"])):
         transfer(demo)
         assert demo.backend.state["workflow_status"] == "WAIT_ASSEMBLY"
         assert len(demo.backend.state["context"]["confirmed_steps"]) == index
         demo.receive(dict(event="observe"))
-        if index < 14:
+        if index < len(expected["blocks"]) - 1:
             assert demo.backend.state["place_check"] is not None
             assert len(demo.driver.calls) == (index + 1) * 3
     qapp.processEvents()
     assert window.status.text() == "전체 조립 완료"
-    assert demo.backend.state["current"]["current_revision"] == 15
+    assert demo.backend.state["current"]["current_revision"] == len(expected["blocks"])
     assert sum(row["event"] == "JOB_COMPLETED" for row in records(demo)) == 1
     assert window.grab().save(str(tmp_path / "c-function-complete.png"))
 
@@ -282,10 +299,10 @@ def test_duplicate_c_initial_result_does_not_replan_or_transfer(create):
 def test_live_cli_requires_key_and_explicit_llm_mode(tmp_path):
     import os
     env = dict(os.environ, QT_QPA_PLATFORM="offscreen", C_DESIGN_USE_LLM="1")
-    env.pop("OPENAI_API_KEY", None)
+    env.pop("OPENAI_LLM_API_KEY", None)
     command = [sys.executable, "-m", "app.abd_input_hmi", "--synthetic-b", "--c-mode", "live"]
     result = subprocess.run(command, cwd=ROOT, env=env, capture_output=True, text=True, timeout=10)
-    assert result.returncode == 2 and "OPENAI_API_KEY is not set" in result.stderr
+    assert result.returncode == 2 and "OPENAI_LLM_API_KEY is not set" in result.stderr
     env["C_DESIGN_USE_LLM"] = "0"
     result = subprocess.run(command, cwd=ROOT, env=env, capture_output=True, text=True, timeout=10)
     assert result.returncode == 2 and "C_DESIGN_USE_LLM must match" in result.stderr
