@@ -6,6 +6,7 @@ from .completion import _current
 from .contracts import (
     _array, _block, _integer, _object, _text, validate_design, validate_observed,
 )
+from .hmi_mvp_contracts import MVP_FIELDS, validate_mvp_fields
 
 
 WORKFLOW_STATUSES = (
@@ -177,7 +178,8 @@ def _actions(value: object, workflow: str, notice: dict, columns: dict, *, trial
 
 
 def validate_hmi_snapshot(value: object) -> dict:
-    optional = tuple(key for key in ("transfer_target", "manual_trial", "reported_placement") if isinstance(value, dict) and key in value)
+    optional = tuple(key for key in ("transfer_target", "manual_trial", "reported_placement") + MVP_FIELDS
+                     if isinstance(value, dict) and key in value)
     snapshot = _object(value, ("workflow_status", "step", "progress", "monitor",
                                "notice", "actions", "design", "current") + optional, "snapshot")
     _current(snapshot["current"])
@@ -234,6 +236,7 @@ def validate_hmi_snapshot(value: object) -> dict:
                 snapshot["design"] is not None or step["target"] is not None or
                 progress != dict(completed=0, total=0)):
             raise ValueError("snapshot: REAL currently supports a single transfer trial, no simulated assembly/STOP proof")
+    validate_mvp_fields(snapshot)
     return deepcopy(snapshot)
 
 

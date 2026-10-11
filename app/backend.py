@@ -428,7 +428,10 @@ class Backend:
         else:
             state["workflow_status"] = "HOLD"
             if previous != ("HOLD", state["reason"]):
-                self._event("OBSERVATION_HOLD", request_id=observation["check_id"], reason=state["reason"])
+                self._event("OBSERVATION_HOLD", request_id=observation["check_id"], reason=state["reason"],
+                            result=dict(observed=observation, expected=result["expected"],
+                                        current=state["current"], comparison=state["comparison"],
+                                        difference=state["difference"]))
         return True
 
     def _request_question(self) -> None:
