@@ -2,6 +2,8 @@
 
 > 2026-10-07 적용: 현재 제품 목표는 [최종 MVP](10_FINAL_MVP.md)입니다. 아래는 기존 A PLACE 순서/Remaining/Replan과 D 연결 기록입니다. 최종 요구의 경로 생성·조립판 직접 결착은 이 Plan 출력만으로 구현되지 않습니다. 경로 생산자·인계·유효성 계약은 별도 합의 대상입니다. 기존 원본 코드·시험 수치는 보존합니다.
 
+2026-10-07 공통 5층 지원: A의 층 상한과 오류 문구만 갱신하고 계산 순서·지지·재계획 의미는 유지했습니다. 아래 원본 커밋·해시는 당시 자료의 기록입니다. 현재 시험은 승인된 두 변경을 제외한 원본 해시 일치와 1~5층·30블록·6층 거절을 확인합니다([STATUS](STATUS.md)).
+
 세은의 `a_manual_execution.tar.gz` 로그·입출력·검증 기록을 확인하고, 원격 `work/seeun-planning`의 **f9b841c8f090b0b25c30ab27459781ad2017fd9e**에서 planning_trial 폴더를 가져왔다. Planner 소스 SHA-256은 첨부 기록의 `0f96d24b8fad195185b68c9c520976b3c97d91aa179fcd91382426772f2e7835`와 일치한다. A 코드는 수정하지 않았다. 수현 브랜치 `work/suhyun-hmi-backend-robot-db`와 기존 미커밋 변경을 보존했다. 이 기록 작성 당시에는 게시하지 않았으며, 이번 PR에서 A–D 연결을 게시한다. main 병합은 수행하지 않는다.
 
 ## 구현과 범위
@@ -57,7 +59,7 @@ C의 성공 KEEP/REVISE/UNCLEAR를 기존 D 의도 경로로 연결한다. quest
 | NEEDS_CORRECTION | null / reason·block 목록 | Current 유지, 사람 정리 안내, 다음 전달 보류 |
 | INVALID | null / reason·block 목록 | 채택 Design·Current 유지, 진단 표시·기록, 자동 재시도 없음 |
 
-오류 block은 object 또는 null이며 범위 밖 좌표·5층 등 잘못된 값도 원본대로 남긴다. 정상 실행 Plan 검사는 별도로 수행한다. A가 새 request_id를 발급하지 않고 연결부가 원래 호출 식별을 돌려준다. READY의 base_current_revision을 결과 수신 시점 값으로 덮어쓰지 않는다.
+오류 block은 object 또는 null이며 범위 밖 좌표·6층 등 잘못된 값도 원본대로 남긴다. 현재 5층은 지원 범위이며 아래 5층 INVALID 시험은 당시 4층 계약의 기록이다. 정상 실행 Plan 검사는 별도로 수행한다. A가 새 request_id를 발급하지 않고 연결부가 원래 호출 식별을 돌려준다. READY의 base_current_revision을 결과 수신 시점 값으로 덮어쓰지 않는다.
 
 ## 최초 Plan 없는 사람 정리 관측
 

@@ -3,6 +3,7 @@
 from copy import deepcopy
 
 
+MAX_LAYER = 5
 BLOCK_FIELDS = ("brick_type", "color", "x", "y", "layer", "orientation_deg")
 
 
@@ -41,7 +42,7 @@ def _block(value: object, path: str) -> None:
         raise ValueError(f"{path}.color: unsupported color")
     for field in ("x", "y"):
         _integer(block[field], 0, 23, f"{path}.{field}")
-    _integer(block["layer"], 1, 4, f"{path}.layer")
+    _integer(block["layer"], 1, MAX_LAYER, f"{path}.layer")
     _integer(block["orientation_deg"], 0, 90, f"{path}.orientation_deg")
     angles = (0,) if block["brick_type"] == "2x2x1" else (0, 90)
     if block["orientation_deg"] not in angles:
@@ -108,7 +109,7 @@ def _region(value: object, path: str) -> None:
         _integer(region[field], 0, 23, f"{path}.{field}")
     for field in ("width", "height"):
         _integer(region[field], 1, 24, f"{path}.{field}")
-    _integer(region["layer"], 1, 4, f"{path}.layer")
+    _integer(region["layer"], 1, MAX_LAYER, f"{path}.layer")
     if region["x"] + region["width"] > 24 or region["y"] + region["height"] > 24:
         raise ValueError(f"{path}: verified region extends outside board")
 

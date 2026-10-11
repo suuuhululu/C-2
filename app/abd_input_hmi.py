@@ -13,7 +13,7 @@ from PyQt5.QtCore import Qt, QTimer
 from PyQt5.QtWidgets import QApplication
 
 from app.backend import Backend
-from app.contracts import _integer, _object, validate_block
+from app.contracts import MAX_LAYER, _integer, _object, validate_block
 from app.fake_robot_driver import FakeRobotDriver
 from app.jsonl_log import JsonlLog
 from app.planning_connection import on_c_intervention, run_planning_request
@@ -173,7 +173,7 @@ class AbdInputDemo:
             placement = actual if actual is not None else self.backend._next_step()["after"]
             return dict(vision_result=dict(check_id=check_id, observation_seq=seq, status="OK",
                 visible_blocks=deepcopy(state["current"]["blocks"] + [placement]),
-                verified_regions=[self.b.region(layer=layer) for layer in range(1, 5)], reason=None)), "D 합성 관측 / C Design"
+                verified_regions=[self.b.region(layer=layer) for layer in range(1, MAX_LAYER + 1)], reason=None)), "D 합성 관측 / C Design"
         index = len(state["context"]["confirmed_steps"])
         if index == 0:
             return self.stored_case(CASES[self.scenario], check_id, seq), "B PR #10 저장 합성 JSON"

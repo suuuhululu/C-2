@@ -1,5 +1,56 @@
 # 현재 진행 상황
 
+## 1차 통합 5층·인터페이스 정합 점검 — 2026-10-11
+
+- 대상은 사용자 생성 `codex/integration-round1`이며 시작 SHA는 main과 같은 `afd75d0b0943d85b44248ea563e89f860921e1dd`다. 기존 `fix/common-five-layer-support`의 `27907c8` 변경을 별도 작업본에 재사용했다. C/A/D MAX_LAYER, 블록/관측 영역 Schema, HMI·합성 관측·수동 Current 확인을 1~5층으로 맞춘다. 원격 반영은 해당 PR의 병합 상태로 구분한다.
+- 공통 계약의 block_id/parent_version 요구·무응답 자동 취소 표현을 실제 C·D 계약에 맞췄다. 팀 가이드·C 구조의 미확정 지지 표현과 A/D 인계의 현재 5층 invalid 설명을 정리했다. [1차 통합 인터페이스 점검](11_ROUND1_INTERFACE_AUDIT.md)에 기준·수정 사항·별도 브랜치 차이·담당별 연결 과제를 기록했다. 과거 시험·원본 Fixture·측정값·참고자료는 보존한다.
+- 기존 5층 연결 시험에 C/A/D/Schema 상한 일치와 B 합성 callback의 5층 관측 채택·가린 아래층 보존·6층 입력 거절 후 상태 보존·중복 무효화를 추가했다. 새 production 모듈·class·framework·실행 dependency는 없다.
+- 실제 관련 검사 **678 passed**, 실패·오류·skip **0**, 종료 코드 **0**. C validator·A planner·D contracts/current/replan·HMI/Qt·A/D·A/B/D 합성 callback·C 저장 응답·5층/30블록·Schema/HMI 참조·팀 인계 및 B 예시 검사를 포함한다. Qt는 offscreen, Robot은 Fake, B는 합성 입력이다. 로그와 JUnit은 ignored `logs/round1-interface/tests.log`·`tests.xml`이다. 기존 RefResolver deprecation 경고 2건이 남는다.
+- 환경은 Python 3.12.3·pytest 7.4.4·기존 PyQt5다. 초기 관련 검사에서 `referencing` 미설치로 Schema 시험 1건만 실패(312 passed)했고, 이전 5층 검증에서 사용한 jsonschema 4.26.0과 해당 의존성을 `/tmp/c2-round1-schema-test-deps`에만 준비해 재검사했다. 저장소 dependency·ROS 환경은 바꾸지 않았다. LLM/음향 key·HISTORY_TEST_DSN은 child process에서 unset했고 pytest plugin 자동 로드를 끈 장치 없는 시험이다.
+- 전체 저장소 시험은 이번에 실행하지 않았다. 아래 2026-10-07 기록의 기존 전체 실패·장치 자료 경로·C HTTP Fake 정합 문제를 해결했다고 주장하지 않는다. 실제 Camera/Robot·LLM/음향·DB/웹은 이번 시험 범위 밖이다. lint/type/CI는 미구성이다.
+- 문서·정적 검증: 기존 5층 변경을 포함한 변경 파일 **34개**, 상대 링크 **245개**, JSON 예시 코드 블록 **25개**(보존된 JSON Lines 블록 1개 포함)를 검사했다. 새 누락 링크·새 잘못된 anchor **0**, 변경 Python/JSON 파싱·`git diff --check` 통과. ignored 과거 로그를 가리키는 기존 누락 링크 **23개**는 보존했다. reference 원문 변경 **0**. 결과는 ignored `logs/round1-interface/static-checks.json`이다.
+- 남은 BLOCKER: A API 0.5 문서의 B Current/revision Owner 표현과 현행 D 단일 상태 Owner 차이, A 재평가/경로 wire와 D 최종 Schema 미연결, B 실제 촬영 생산자/최종 확인 미제출. 설계 확정 이벤트·좌표 단위/frame 변환·직접 결착/정지·사용자–Job/웹 연결도 담당 PR로 검증해야 한다. 이 점검을 전체 인터페이스 통합 완료나 실물 5층 성공으로 표시하지 않는다.
+
+관련 검사 실행 명령:
+
+```sh
+env -u OPENAI_LLM_API_KEY -u OPENAI_API_KEY -u OPENAI_TTS_API_KEY -u HISTORY_TEST_DSN \
+  QT_QPA_PLATFORM=offscreen PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 \
+  PYTHONPATH=/tmp/c2-round1-schema-test-deps \
+  python3 -m pytest planning_trial/test_planner.py \
+  tests/unit/test_contracts.py tests/unit/test_hmi_current.py tests/unit/test_qt_hmi.py \
+  tests/unit/test_current.py tests/unit/test_replan.py tests/unit/test_hmi_contracts.py \
+  tests/unit/test_planner_results.py tests/unit/test_team_handoff.py \
+  tests/unit/c_design/test_validator.py tests/integration/test_a_backend.py \
+  tests/integration/test_abd_callback.py tests/integration/test_c_saved_results_hmi.py \
+  tests/integration/test_five_layer_pipeline.py \
+  tests/integration/perception_backend_callback_examples/tests/test_callback_examples.py \
+  -q --junitxml=logs/round1-interface/tests.xml
+```
+
+## 공통 5층 지원 — 2026-10-07
+
+- **기준/작업 위치:** 원격 main `afd75d0b0943d85b44248ea563e89f860921e1dd`(PR #17 병합)을 확인하고 독립 clone의 `fix/common-five-layer-support`에서 수정했습니다. 완료 시 원격 main도 동일했습니다. 로컬 `work/suhyun-assembly-evidence`/`62b7ffd`의 기존 Backend 연구 코드와 작업 상태는 보존했습니다. 저장소 AGENTS와 관련 정책·계약을 읽었으며 저장소/관련 작업본에 `.agents/skills`는 없었습니다. 검증 단계에서는 commit/push/PR/merge를 하지 않았으며, 이후 사용자 승인으로 이 변경의 commit/push·draft PR 게시를 진행합니다. 병합은 하지 않습니다.
+- **변경:** A `MAX_LAYER`·오류 문구, D 블록/관측 영역 검사·`supported_scope`, Day4 Schema를 1~5층으로 통일했습니다. HMI Schema는 Day4 정의를 참조하므로 같은 범위를 적용합니다. 합성 관측과 수동 Current 확인도 D의 층 상수를 사용합니다. 여섯 배치 필드·PLACE·지지 2 stud·24×24 좌표·판 footprint·Plan/Current 최신성 의미는 유지합니다.
+- **30블록:** C 생성 상한 30을 유지하고 C 검증→실제 A→D 채택→Qt→합성 관측/FakeRobot 완료를 확인했습니다. A/D에 새 수량 제한은 추가하지 않았습니다. REAL 수동 시험의 네 공급열×여섯 슬롯(최대 24 Step) 제한은 유지하며 실제 직접 결착·Vision 판별 범위를 확장했다고 주장하지 않습니다.
+- **검사 변경:** 기존 5층 범위 초과 시험은 6층으로 옮겼습니다. 보관 C 응답과 A 첨부 자료·해시는 보존하고 A의 승인된 두 변경만 제외해 원본 해시를 대조합니다. 새 연결 검사는 1~5층 정상, 30블록, 부분 Current 보존/Remaining, 6층 거절/미채택, 지지 부족/판 밖 좌표, Schema 및 수동 확인 입력을 다룹니다. Qt 기존 4층 가장자리 검사를 유지하고 5층 조건을 추가했습니다.
+- **관련 L1/L3:** `planning_trial/test_planner.py`, unit의 contracts/hmi_current/qt_hmi/current/replan/hmi_contracts/planner_results/c_design validator, integration의 a_backend/abd_callback/c_saved_results_hmi/five_layer_pipeline를 실행해 **645 passed**, 종료 코드 **0**입니다. 5층 가장자리와 30블록 완료 PNG를 실제로 열어 표시를 확인했습니다. Qt offscreen·Robot/관측/LLM/음향은 Fake 또는 미연결이며 실제 장치 검증이 아닙니다.
+- **전체 비교:** 변경 전 main은 **1405 passed, 41 failed, 24 skipped, 11 errors**, 변경 후 최종은 **1444 passed, 41 failed, 24 skipped, 11 errors**, 각각 종료 코드 **1**입니다. 실패·오류 52건의 node ID 집합은 동일하며 새 실패 0건입니다. 24 skip은 별도 실제 DB DSN 미설정입니다. 전체 PASS로 표시하지 않습니다.
+- **분리한 기존 제한:** C LLM의 `OPENAI_LLM_API_KEY`와 D 시험의 `OPENAI_API_KEY` 설정이 다릅니다. 해당 값 대신 시험 프로세스의 명시적 더미와 HTTP Fake만 사용한 10개 비교 검사도 전/후 각각 **3 passed, 7 failed, 1 teardown error**로 동일했습니다. 키 문제 뒤에는 최근 C metadata/judge 호출과 기존 D Fake의 호출 횟수 기대(1/2회)·대기 조건 불일치도 남습니다. Robot 관련 시험은 `/home/ms-02/C_2/...` 설정·외부 원본/측정 자료가 이 편집 PC에 없어 실패합니다. 별도 문제의 코드·장치/계정 설정은 수정하지 않았습니다.
+- **시험 환경:** 편집 Python 3.12.10 / pytest 9.1.1 / Qt offscreen. ROS `launch_testing`과 pytest 충돌로 이번 명령에서만 `PYTEST_DISABLE_PLUGIN_AUTOLOAD=1`을 사용했습니다. 기존 Schema 시험에 필요한 jsonschema 4.26.0을 `/tmp/c2-five-layer-test-deps`에만 준비하고 기존 ROS 환경 site-packages와 함께 PYTHONPATH로 지정했습니다. 저장소 dependency/framework 추가는 없습니다. 일반 검사는 OPENAI 세 key와 `HISTORY_TEST_DSN`을 child process에서 unset했고 실제 비밀값·LLM/Robot/ROS 제어를 사용하지 않았습니다.
+- **최종 확인/후속:** 변경 Python/JSON 파싱, Markdown 새 누락 상대 파일 링크 0, `git diff --check` 통과. lint/type/CI 미구성. 사람 리뷰와 실제 5층 Vision/직접 결착·30블록 실행 환경 검증, D LLM Fake 갱신과 외부 Robot 자료 경로 정합성이 후속입니다. 이전 시험 기록은 아래에 그대로 보존합니다.
+- **문서 전체 재점검:** 저장소 Markdown·작업 지침·Schema와 층 관련 코드/시험을 검색해 callback 예시 README의 현재 계약 누락을 1~5층으로 고쳤습니다. C/D 진행 기록에는 현재 범위 안내를 추가하고 과거의 4층 계약·시험 결과를 보존했습니다. 기존 1~4층 Fixture·고정 예시·Qt 회귀 시험·A 원본 해시 비교는 당시 자료 또는 유효한 하위 범위 사례입니다. Day1~4는 일정, 공급열/시작 슬롯 1~4와 REAL 최대 24 Step은 장치 시험 한계, Schema의 width/height 최대 24는 판 크기이므로 층 상한 변경 대상이 아닙니다. 실제 Vision/직접 결착의 5층 성능은 미검증입니다.
+
+전체 실행 명령(원격·실기 연결 없음):
+
+```sh
+env -u OPENAI_LLM_API_KEY -u OPENAI_API_KEY -u OPENAI_TTS_API_KEY -u HISTORY_TEST_DSN \
+  QT_QPA_PLATFORM=offscreen PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 \
+  PYTHONPATH=/tmp/c2-five-layer-test-deps:/Users/suhyun/miniforge3/envs/ros2_jazzy/lib/python3.12/site-packages \
+  python3 -m pytest tests planning_trial/test_planner.py -q
+```
+
+
 ## 최종 MVP 문서 이행 — 2026-10-07
 
 사용자 요청으로 GitHub main `95259bd`의 Markdown/docs를 커스텀 의자 최종 MVP에 맞춰 정렬합니다. [최종 MVP](10_FINAL_MVP.md)에 설계 대화·사용자 확정 → 조립 순서/경로 → Backend/HMI → 로봇 공급판 집기·조립판 직접 결착·필요 시 사람 지지 → 세 단계 종료를 정의했습니다. 목표는 개발 과정에서 수정될 수 있습니다.
