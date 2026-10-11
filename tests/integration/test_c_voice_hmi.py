@@ -13,7 +13,7 @@ from PyQt5.QtTest import QTest
 from PyQt5.QtWidgets import QApplication
 
 from app.abd_input_hmi import AbdInputDemo
-from app.c_design import llm, voice
+from app.c_design import designer, llm, voice
 from app.qt_hmi import HmiWindow
 from test_abd_input_hmi import records, transfer, wait_for
 from test_c_function_hmi import INITIAL, settled
@@ -80,8 +80,18 @@ def create(audio, monkeypatch, tmp_path):
     monkeypatch.setattr(llm, "_post_json", http)
     monkeypatch.setenv("C_DESIGN_USE_LLM", "1")
     monkeypatch.setenv("OPENAI_MODEL", "gpt-4o")
+    monkeypatch.setenv("OPENAI_LLM_API_KEY", "mock-llm-secret")
+    from test_c_stage3_lifecycle import FakeLLM
+    fake = FakeLLM()
+    # 이 저장 fixture는 경계/계획 시험용이다. 풍성함 재시도 자체는 C의 독립 테스트에서 검사한다.
+    monkeypatch.setattr(designer, "RETRY_DELAY", 0)
+    monkeypatch.setattr(designer, "RICHNESS_MIN_DELTA", 0)
+    for name in ("interpret_initial_request", "describe_initial_design", "judge_revised_design"):
+        monkeypatch.setattr(llm, name, getattr(fake, name))
+
 
     def build(start=True):
+        audio[0].insert(1, "좋아요")  # 화면 후보에 대한 별도 승인 답변
         window = HmiWindow(screen_size=QSize(1920, 1080))
         demo = AbdInputDemo(window, tmp_path, c_mode="live", c_voice=True, delay_ms=1)
         windows.append((window, demo))
@@ -112,7 +122,8 @@ def test_start_mic_design_actual_a_fake_delivery_only_observation_completes(crea
     assert audio[1] == [] and not demo.driver.calls
     window.buttons["START"].click()
     settled(demo)
-    assert audio[1] == ["record", "stt"] and len(calls) == 1
+    assert audio[1].count("record") == audio[1].count("stt") == 2 and len(calls) == 1
+    assert audio[1][:5] == [("tts", "안녕하세요. 오늘 어떤 걸 만들고 싶으세요?"), "play", "play_finished", "record", "stt"]
     assert window.design_board.blocks == INITIAL["design"]["blocks"]
     assert not demo.driver.calls and demo.backend.state["current"]["blocks"] == []
     transfer(demo)
@@ -125,7 +136,7 @@ def test_start_mic_design_actual_a_fake_delivery_only_observation_completes(crea
     assert "AI 생성 음성" in window.notice.toPlainText()
     assert window.grab().save(str(tmp_path / "voice-start-observed.png"))
     log = records(demo)
-    assert any(r["event"] == "C_VOICE_RESULT" and r["result"]["text"] == "의자 만들어줘" for r in log)
+    assert any(r["event"] == "C_DESIGN_APPROVED" for r in log)
     assert "mock-stt-secret" not in json.dumps(log) and "mock-tts-secret" not in json.dumps(log)
     assert any(r["event"] == "SYNTHETIC_OBSERVATION_INPUT" for r in log)
 
@@ -135,14 +146,17 @@ def test_start_mic_design_actual_a_fake_delivery_only_observation_completes(crea
 def test_question_playback_before_spoken_answer_and_revise_uses_actual_a(create, audio, answer, workflow):
     audio[0].append(answer)
     window, demo, calls = create()
+    audio[1].clear()
+    if answer == "2번":
+        audio[0].append("좋아요")  # Revised 후보도 별도 승인이 필요하다.
     target = mismatch(demo)
     state = demo.backend.state
     actual = {**target, "color": "blue" if target["color"] == "yellow" else "yellow"}
     assert state["current"] == dict(current_revision=1, blocks=[actual])
     assert state["workflow_status"] == workflow and len(demo.driver.calls) == 3
     events = audio[1]
-    assert isinstance(events[2], tuple) and events[2][0] == "tts"
-    assert events[3:] == ["play", "play_finished", "record", "stt"]
+    assert isinstance(events[0], tuple) and events[0][0] == "tts"
+    assert events[1:5] == ["play", "play_finished", "record", "stt"]
     QApplication.instance().processEvents()
     assert actual in window.target_board.blocks
     if answer == "2번":
@@ -156,18 +170,37 @@ def test_question_playback_before_spoken_answer_and_revise_uses_actual_a(create,
         assert len(calls) == 1 and state["context"]["design"]["design_version"] == 1
 
 
-def test_two_unclear_answers_wait_for_explicit_choice_without_more_recording(create, audio):
+def test_unclear_voice_answers_keep_c_dialogue_active_until_user_stop(create, audio, monkeypatch):
     audio[0].extend(["모르겠어요", "모르겠어요"])
     window, demo, _ = create()
-    mismatch(demo)
-    assert demo.backend.state["workflow_status"] == "WAIT_INTENT"
-    assert demo.backend.state["choice_required"] and not demo.c_connection.active
-    assert audio[1].count("record") == 3
-    before = deepcopy(audio[1])
-    QTest.qWait(30)
-    assert audio[1] == before and len(demo.driver.calls) == 3
+    entered, release = Event(), Event()
+    original = voice._request
+    def request(url, *args):
+        if url == voice.STT_URL and not audio[0]:
+            entered.set()
+            assert release.wait(2)
+            return json.dumps(dict(text="")).encode()
+        return original(url, *args)
+    monkeypatch.setattr(voice, "_request", request)
+    monkeypatch.setattr(llm, "interpret_intervention_answer", lambda *a, **k:
+        dict(decision="UNCLEAR", style_hint="", reason="불명확", reply=""))
+    transfer(demo)
+    demo.receive(dict(event="observe_wrong_color"))
+    try:
+        assert entered.wait(1)
+        QApplication.instance().processEvents()
+        assert demo.backend.state["workflow_status"] == "WAIT_INTENT"
+        assert not demo.backend.state["choice_required"] and demo.c_connection.active
+        assert audio[1].count("record") == 5  # Initial, Review, 두 답변, 현재 C 재질문
+        assert len(demo.driver.calls) == 3
+        window.buttons["STOP"].click()
+        wait_for(demo, "STOPPED")
+    finally:
+        release.set()
+    settled(demo)
+    assert demo.backend.state["workflow_status"] == "STOPPED"
     with pytest.raises(ValueError, match="음성 시험"):
-        demo.receive(dict(event="answer", request_id=demo.backend.state["question_request"]["request_id"], text="1번"))
+        demo.receive(dict(event="answer", request_id="closed", text="1번"))
 
 
 @pytest.mark.parametrize("failure", ["silence", "device", "auth", "unsupported"])
@@ -189,14 +222,17 @@ def test_initial_audio_failure_has_no_plan_or_mock_fallback(create, audio, monke
         audio[0][0] = "자동차 만들어줘"
     window, demo, calls = create()
     assert demo.backend.state["workflow_status"] == "HOLD"
-    assert demo.backend.state["context"] is None and not demo.driver.calls and not calls
+    assert demo.backend.state["context"] is None and not demo.driver.calls
+    assert demo.backend.state["approved_design"] is None
+    assert len(calls) == (1 if failure == "silence" else 0)
     assert not window.design_board.blocks
     reason = demo.backend.state["reason"]
-    assert ("UNSUPPORTED_OBJECT" if failure == "unsupported" else "VOICE_IO_FAILED") in reason
+    assert ("UNSUPPORTED_OBJECT" if failure == "unsupported" else "C_REVIEW_UNCLEAR" if failure == "silence" else "VOICE_IO_FAILED") in reason
 
 
 def test_tts_failure_holds_without_listening_to_an_unheard_question(create, audio, monkeypatch):
     _, demo, _ = create()
+    audio[1].clear()
     original = voice._request
     def request(url, *args):
         if url == voice.TTS_URL:
@@ -207,8 +243,8 @@ def test_tts_failure_holds_without_listening_to_an_unheard_question(create, audi
     mismatch(demo)
     assert demo.backend.state["workflow_status"] == "HOLD"
     assert "VOICE_IO_FAILED" in demo.backend.state["reason"]
-    assert audio[1] == ["record", "stt"] and len(demo.driver.calls) == 3
-    assert any(r["event"] == "C_VOICE_FAILED" and r["result"]["phase"] == "TTS_QUESTION" for r in records(demo))
+    assert audio[1] == [] and len(demo.driver.calls) == 3
+    assert any(r["event"] == "C_VOICE_FAILED" and r["result"]["phase"] == "VOICE_IO" for r in records(demo))
 
 
 def test_stop_while_recording_ignores_late_audio_without_generating_design(create, monkeypatch):
@@ -236,11 +272,12 @@ def test_stop_while_recording_ignores_late_audio_without_generating_design(creat
     assert any(r["event"] == "LATE_RESULT_IGNORED" for r in records(demo))
 
 
-@pytest.mark.parametrize("mode,missing", [(None, None), ("offline", "OPENAI_API_KEY"),
-                                         ("offline", "OPENAI_TTS_API_KEY")])
+@pytest.mark.parametrize("mode,missing", [(None, None), ("offline", None), ("live", "OPENAI_API_KEY"),
+                                         ("live", "OPENAI_TTS_API_KEY"), ("live", "OPENAI_LLM_API_KEY")])
 def test_voice_cli_requires_explicit_mode_and_both_keys_before_devices(monkeypatch, mode, missing):
     import os
-    environment = dict(os.environ, C_DESIGN_USE_LLM="0", OPENAI_API_KEY="mock", OPENAI_TTS_API_KEY="mock")
+    environment = dict(os.environ, C_DESIGN_USE_LLM="1" if mode == "live" else "0",
+                       OPENAI_API_KEY="mock", OPENAI_TTS_API_KEY="mock", OPENAI_LLM_API_KEY="mock")
     if missing:
         environment.pop(missing)
     arguments = [sys.executable, "-m", "app.abd_input_hmi", "--synthetic-b", "--c-voice"]
@@ -255,6 +292,7 @@ def test_stop_during_question_playback_keeps_same_question_and_never_opens_answe
         create, audio, monkeypatch, tmp_path):
     window, demo, _ = create()
     entered, release = Event(), Event()
+    audio[1].clear()
     output = voice._sounddevice
     class BlockingOutput(output):
         def wait(self):
@@ -280,7 +318,7 @@ def test_stop_during_question_playback_keeps_same_question_and_never_opens_answe
     finally:
         release.set()
     settled(demo)
-    assert audio[1].count("record") == 1
+    assert audio[1].count("record") == 0
     assert demo.backend.state["current"]["current_revision"] == 1
     assert not demo.backend.state["context"]["confirmed_steps"]
     assert demo.backend.state["workflow_status"] == "STOPPED"
