@@ -12,8 +12,14 @@ from pathlib import Path
 from uuid import uuid4
 
 
+# ---- Input validation (common C/A/D contract) -------------------------------------------------------------------
+# Constants, occupied_cells, validate_brick, check_support and validate_design recheck the C Machine Design contract
+# (final inventory: yellow/blue 2x2x1·2x3x1, red 1x2x1 only; layer 1..5; 1..40 placements). Planning logic starts at
+# calculate_remaining_blocks below. Keep the two parts separate so a future merge with the Backend-side planner
+# edits (PR #22: same rules, different wording) only touches this section.
 BOARD_SIZE = 24
 MAX_LAYER = 5
+MAX_BLOCKS = 40  # C MAX_BLOCKS (2026-10-08 final inventory); A rejects 41+ placements instead of planning them.
 MIN_SUPPORT_STUDS = 2  # A/C rule confirmed in Backend's 2026-10-06 reply.
 BRICK_SIZES = {"2x2x1": (2, 2), "2x3x1": (2, 3), "1x2x1": (1, 2)}
 BLOCK_FIELDS = ("brick_type", "color", "x", "y", "layer", "orientation_deg")
@@ -97,6 +103,8 @@ def validate_design(design):
     values = design.get("blocks")
     if not isinstance(values, list) or not values:
         raise ValueError("blocks must be a nonempty list")
+    if len(values) > MAX_BLOCKS:
+        raise ValueError(f"blocks must contain 1..{MAX_BLOCKS} placements; got {len(values)}")
     bricks = [validate_brick(value, i) for i, value in enumerate(values)]
     occupancy = {}
     for i, brick in enumerate(bricks):
@@ -111,6 +119,8 @@ def validate_design(design):
     return bricks
 
 
+
+# ---- Planning logic (A-owned: remaining, order, Step, Replan) ------------------------------------------------------
 def calculate_remaining_blocks(design, current_blocks):
     """Subtract adopted actual placements from the full target.
 
