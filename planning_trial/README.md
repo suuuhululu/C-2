@@ -443,3 +443,11 @@ echo "실행 종료 코드: $?"
 한 Job 안에서 생성/요청/관측/질문/재계획/채택 기록을 연결한다. 재실행하면 요약 파일은 갱신되고
 Job 로그는 새 ID로 추가된다. HMI snapshot 계약은 확인하지만 Qt 창을 표시한 시험은 아니다.
 남은 11개 전달·조립 전체 사이클, 실제 LLM·음성·카메라·로봇, 여러 차이의 자동 대응은 미검증이다.
+
+
+## 2026-10-11 Wave 1 — 최종 C 재고 계약 정합 (planner·draft schema)
+
+- `planner.MAX_BLOCKS = 40`: `validate_design`이 41개 이상 placement를 `INVALID`로 거절합니다(`plan_from_current` 결과 `status INVALID`, 이유 "blocks must contain 1..40 placements; got N"). C `MAX_BLOCKS`와 같은 값이며 이전 "A/D Consumer에 수량 제한을 추가하지 않는다" 문장은 이 결정으로 대체됩니다.
+- `assembly_contract.schema()`: 보관된 v4 review schema를 바꾸지 않고 `Block`에 color × brick_type 조합(red → 1x2x1만, yellow/blue → 2x2x1·2x3x1), `Design.blocks.maxItems = 40`을 덧씌웁니다(2x2x1 → orientation 0은 v4에 이미 있음). 재고 조합·orientation·layer 1..5의 runtime 권위는 `planner.validate_brick`입니다.
+- **D 수신부 주의**: 금지 조합·layer 6·41블록 요청은 이제 `handle_whole_plan`에서 `calculation_status = INVALID_CONTEXT`(planning_result None)로 입력 단계에서 거절됩니다. 이전에는 금지 조합이 `COMPLETED` + `planning_result.status = INVALID`로 돌아갔습니다.
+- `planner.py`는 "Input validation(공통 C/A/D 계약)"과 "Planning logic(A 소유)" 두 구역으로 주석 구분했습니다. 함수 이동·이름 변경은 없습니다.

@@ -426,3 +426,13 @@ def test_schema_block_count_limit_matches_planner():
     blocks = [_block('2x2x1', 'yellow')] * MAX_BLOCKS  # schema checks count, not geometry
     assert not list(validator.iter_errors({'design_version': 1, 'blocks': blocks}))
     assert list(validator.iter_errors({'design_version': 1, 'blocks': blocks + [_block('2x2x1', 'yellow')]}))
+
+
+@pytest.mark.parametrize('blocks', [[_block('2x3x1', 'red')], [_block('1x2x1', 'blue')], [_block('2x2x1', 'yellow', layer=6)],
+                                    [_block('2x2x1', 'yellow')] * 41])
+def test_api_rejects_out_of_contract_design_before_planning(blocks):
+    """Wave 1 (2026-10-11): schema rejects wrong inventory combinations / layer 6 / 41 placements as INVALID_CONTEXT before
+    planning (previously forbidden combinations came back COMPLETED with planning_result INVALID)."""
+    result = handle_whole_plan(whole_request({'design_version': 1, 'blocks': blocks}))
+    assert result['calculation_status'] == 'INVALID_CONTEXT' and result['planning_result'] is None
+    assert result['action_proposals'] == [] and result['shared_planning_bundle'] is None
