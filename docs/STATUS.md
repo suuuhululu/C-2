@@ -1,5 +1,18 @@
 # 현재 진행 상황
 
+## 2026-10-11 A 1차 통합 계약 정합
+
+- 수현(통합 담당)의 요청 및 세은 수정 동의에 따라 `work/seeun-planning`의 `1cc01b884446db566e8c3d35ca4da0f9d2b4ab99`에서 계약 수정만 분리했습니다. 아래 과거 4층·B 상태 Owner 기록보다 이번 A 계약이 우선합니다. 공통 C/D/HMI 5층 변경은 [PR #19](https://github.com/suuuhululu/C-2/pull/19)에서 별도로 검토 중입니다.
+- A Planner는 정수 1~5층을 허용하고 기존 invalid 재현 입력을 6층으로 변경했습니다. 보존·선행 관계·기하 지지·실행 판단은 변경하지 않았습니다.
+- B는 관측을 제공하고 D가 Current 채택·revision 발급·Expected 비교·진행·최종 판정을 소유합니다. A는 D 입력 revision을 복사합니다. 후보 API·bundle·실행 보고의 상태 책임 표현을 함께 정렬했습니다.
+- 현재 API는 `assembly-ad-calculation-draft/0.5.1`, bundle은 `a-b-d-planning-bundle-draft/0.1.1`, 출처는 `D_ADOPTED_CURRENT`입니다. 기존 0.5 요청·구형 bundle을 자동 변환하지 않습니다. 과거 v4 리뷰 Schema는 보존하고 현재 파생 Schema만 5층으로 확장했습니다. `run_user_assembly_05.sh` 파일명은 유지하며 새 실행 자료는 현재 버전을 기록합니다.
+- 실제 검증: Python 3.12.3, pytest 7.4.4, 시험용 jsonschema 4.26.0에서 `planning_trial/test_planner.py`, `test_assembly_optimizer.py`, `test_assembly_api.py`, `test_assembly_target.py`, `test_supply_pick.py`, `test_user_assembly_rules.py` 실행 → **351 passed**, 실패·오류·skip 0, 종료 코드 0. 시험 의존성은 임시 경로를 사용했고 저장소 의존성은 변경하지 않았습니다.
+- 실제 API 재현: `python3 -m planning_trial.run_assembly_apis --actor agent --output-dir <새 결과 경로>` → **34/34 PASS**, 종료 코드 0. 기존 정상·실패·지원 모드·프로필 변경·늦은 결과 경계를 확인했습니다. 사용자 직접 실행이나 D 수신 증거로 표시하지 않습니다.
+- 추가 시험: 5층 Initial·부분/전체 Current, D revision 보존, 5층 whole→reassessment→motion 후보, 부분 재계획, 6층·bool·float 거절, 구형 계약 거절. JSON Schema가 정수값 float(5.0)를 수용해도 A는 INVALID·plan=null을 반환합니다. 모든 후보의 `execution_allowed=false`를 유지합니다.
+- 코드 diff 검토와 구문·JSON·변경 범위·원자료 보존·공백 검사를 수행했습니다. 수정은 관련 11개 파일이며 신규 class·dependency·framework는 없습니다. PR 게시 상태는 GitHub 이력에서 확인합니다.
+- 미검증: 실제 D의 후보 API 수신·채택, C/B 실제 데이터·음성·Camera·Robot·접촉·DB·웹 및 Isaac 실행. 기존 빨강/1×2 개발과 현재 PC의 별도 0.6 수정사항은 이번 계약 수정에 추가로 이식하지 않았습니다. 원격 작업본과 원자료는 보존합니다. A 코드의 통합 브랜치 제출은 이 계약 PR 리뷰 이후 별도 진행합니다.
+
+
 ## A파트 — Isaac·MoveIt 경로 정리와 기존 연결 보존, 로컬 반영본 (2026-10-10)
 
 - 사용자 요청 범위는 게시 전 준비입니다. `work/seeun-planning`의 `319a2755676f2432e3bf3dfdbcd7b22c4d68b17d`를 가져와 최신 A와 필요한 SIM 소스를 파일별로 반영했습니다. 이 절은 게시 전 로컬 준비 기록입니다. 게시 상태는 브랜치 이력에서 확인합니다.
