@@ -50,15 +50,18 @@
     },
     "refill_button": {
       "type":"object", "additionalProperties":false, "required":["brick_type","color","visible","enabled"],
-      "properties":{"brick_type":{"enum":["2x2x1","2x3x1"]},"color":{"enum":["yellow","blue"]},"visible":{"type":"boolean"},"enabled":{"type":"boolean"}}
+      "properties":{"brick_type":{"enum":["1x2x1","2x2x1","2x3x1"]},"color":{"enum":["red","yellow","blue"]},"visible":{"type":"boolean"},"enabled":{"type":"boolean"}},
+      "allOf":[{"if":{"properties":{"brick_type":{"const":"1x2x1"}},"required":["brick_type"]},"then":{"properties":{"color":{"const":"red"}}},"else":{"properties":{"color":{"enum":["yellow","blue"]}}}}]
     },
     "supply": {
       "type":"object", "additionalProperties":false, "required":["brick_type","color","next_slot","needs_refill"],
-      "properties":{"brick_type":{"enum":["2x2x1","2x3x1"]},"color":{"enum":["yellow","blue"]},"next_slot":{"type":["integer","null"],"minimum":1,"maximum":6},"needs_refill":{"type":["boolean","null"]}}
+      "properties":{"brick_type":{"enum":["1x2x1","2x2x1","2x3x1"]},"color":{"enum":["red","yellow","blue"]},"next_slot":{"type":["integer","null"],"minimum":1,"maximum":6},"needs_refill":{"type":["boolean","null"]}},
+      "allOf":[{"if":{"properties":{"brick_type":{"const":"1x2x1"}},"required":["brick_type"]},"then":{"properties":{"color":{"const":"red"}}},"else":{"properties":{"color":{"enum":["yellow","blue"]}}}}]
     },
     "transfer_target": {
       "type":"object", "additionalProperties":false, "required":["brick_type","color","slot"],
-      "properties":{"brick_type":{"enum":["2x2x1","2x3x1"]},"color":{"enum":["yellow","blue"]},"slot":{"type":"integer","minimum":1,"maximum":6}}
+      "properties":{"brick_type":{"enum":["1x2x1","2x2x1","2x3x1"]},"color":{"enum":["red","yellow","blue"]},"slot":{"type":"integer","minimum":1,"maximum":6}},
+      "allOf":[{"if":{"properties":{"brick_type":{"const":"1x2x1"}},"required":["brick_type"]},"then":{"properties":{"color":{"const":"red"}}},"else":{"properties":{"color":{"enum":["yellow","blue"]}}}}]
     },
     "step": {
       "type":"object", "additionalProperties":false, "required":["plan_id","step_id","target","observed","comparison"],
@@ -83,7 +86,7 @@
     },
     "monitor": {
       "type":"object", "additionalProperties":false, "required":["robot","observation","place_status","supply"],
-      "properties":{"robot":{"$ref":"#/$defs/robot"},"observation":{"$ref":"#/$defs/observation"},"place_status":{"enum":[null,"EMPTY","OCCUPIED","UNOBSERVABLE"]},"supply":{"type":"array","minItems":4,"maxItems":4,"items":{"$ref":"#/$defs/supply"}}}
+      "properties":{"robot":{"$ref":"#/$defs/robot"},"observation":{"$ref":"#/$defs/observation"},"place_status":{"enum":[null,"EMPTY","OCCUPIED","UNOBSERVABLE"]},"supply":{"type":"array","minItems":4,"maxItems":5,"items":{"$ref":"#/$defs/supply"}}}
     },
     "notice": {
       "type":"object", "additionalProperties":false, "required":["question","reason","required_action","request_id"],
@@ -95,7 +98,7 @@
         "job_id":{"$ref":"#/$defs/nullable_id"},"start":{"$ref":"#/$defs/button"},"stop":{"$ref":"#/$defs/button"},"resume":{"$ref":"#/$defs/button"},
         "prepare_observe":{"$ref":"#/$defs/button"},
         "intent_choice":{"$ref":"#/$defs/request_button"},"correction_continue":{"$ref":"#/$defs/request_button"},
-        "supply_refill":{"type":"array","maxItems":4,"items":{"$ref":"#/$defs/refill_button"}}
+        "supply_refill":{"type":"array","maxItems":5,"items":{"$ref":"#/$defs/refill_button"}}
       }
     },
     "snapshot": {
@@ -150,7 +153,7 @@
         {"type":"object","additionalProperties":false,"required":["command","job_id"],"properties":{"command":{"enum":["STOP","RESUME"]},"job_id":{"$ref":"day4.schema.json#/$defs/id"}}},
         {"type":"object","additionalProperties":false,"required":["command","job_id","request_id","choice"],"properties":{"command":{"const":"CHOOSE_INTENT"},"job_id":{"$ref":"day4.schema.json#/$defs/id"},"request_id":{"$ref":"day4.schema.json#/$defs/id"},"choice":{"enum":["KEEP","REVISE"]}}},
         {"type":"object","additionalProperties":false,"required":["command","job_id","request_id"],"properties":{"command":{"const":"CONTINUE_AFTER_CORRECTION"},"job_id":{"$ref":"day4.schema.json#/$defs/id"},"request_id":{"$ref":"day4.schema.json#/$defs/id"}}},
-        {"type":"object","additionalProperties":false,"required":["command","job_id","brick_type","color"],"properties":{"command":{"const":"SUPPLY_REFILLED"},"job_id":{"$ref":"day4.schema.json#/$defs/id"},"brick_type":{"enum":["2x2x1","2x3x1"]},"color":{"enum":["yellow","blue"]}}}
+        {"type":"object","additionalProperties":false,"required":["command","job_id","brick_type","color"],"properties":{"command":{"const":"SUPPLY_REFILLED"},"job_id":{"$ref":"day4.schema.json#/$defs/id"},"brick_type":{"enum":["1x2x1","2x2x1","2x3x1"]},"color":{"enum":["red","yellow","blue"]}},"allOf":[{"if":{"properties":{"brick_type":{"const":"1x2x1"}},"required":["brick_type"]},"then":{"properties":{"color":{"const":"red"}}},"else":{"properties":{"color":{"enum":["yellow","blue"]}}}}]}
       ]
     }
   }
