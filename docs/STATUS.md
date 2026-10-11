@@ -27,7 +27,10 @@
   게시 준비: B-only snapshot 커밋 `061da09`에 PR #24 기존 head `262ae61`을
   병합하여 두 이력을 보존한다. 충돌 파일은 검증한 B snapshot과 최신 integration D를
   유지하는 방향으로 해결했다. 병합 후 관련 검사를 재실행해 **692 passed**, 종료 0을 확인했다.
-  다음: 같은 PR 제출 브랜치에 fast-forward 일반 push → PR 본문 갱신·사람 리뷰.
+  게시 결과: 병합 커밋 `f9b8912`를 기존 `work/hongdong-vision-round1`에 일반 push했고
+  PR #24 본문과 기준 SHA를 갱신했다. GitHub에서 base `02137d8`, Draft/open,
+  mergeable=true·clean과 변경 106개(B 코드·설계 제안서·B 작업 기록만)를 확인했다.
+  PR merge·force push·Issue 댓글은 하지 않았다. 다음: 사람 리뷰·D 결선 확인·공동 시험.
   이 작업은 전체 팀 연결 완료나 실제 장치 검증을 의미하지 않는다.
 
 ## 2026-10-11 C Stage3 기준 A·D 연결 정합
