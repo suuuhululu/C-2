@@ -1,5 +1,14 @@
 # 현재 진행 상황
 
+## 2026-10-11 C Stage3 기준 A·D 연결 정합
+
+- C PR #23이 반영된 1차 통합 코드를 기준으로 A·D 및 공통 Schema를 맞췄습니다. 노랑/파랑 4·6점, 빨강 2점, 0°/90° 방향, 1~5층·최대 40블록과 FAKE 공급 5열을 지원합니다. B 소유 Current·revision·Expected·비교 계약은 유지합니다.
+- Candidate → Qt Preview 완료 → C Review → MODIFY 재표시 / APPROVE → A 계획 → Backend 채택 순서입니다. Revised도 다시 승인하며 동일 후보군 수정은 버전을 올리지 않습니다. C가 음성 입출력 전체를 담당하고 D가 요청/Job/Current revision 및 STOP 이후 늦은 결과를 검사합니다.
+- 관련 회귀 **504 passed, 4 warnings**, 신규 연결 경계 **22 passed**입니다. 전체 검사 **2243 passed, 31 failed, 11 errors, 34 skipped**이며 전체 PASS가 아닙니다. 남은 REAL 실패·오류 42개의 node ID는 수정 전 같은 기준 코드에서도 동일합니다. 외부 측정 자료와 원본 절대경로가 없는 환경입니다.
+- 실제 마이크/LLM, 최신 B 생산자, Camera/Robot 및 REAL 빨강 공급은 미검증입니다. REAL은 검증된 기존 네 열만 사용하며 빨강을 실행 전에 거절합니다. 실물 pose를 임의 생성하지 않습니다.
+- 기존 Draft PR #22에 반영하며 병합은 하지 않습니다. [변경 안내](D_C_STAGE3_AD_ALIGNMENT.md)와 [검증 보고서](../reports/c_stage3_ad_alignment_20261011/validation.md)를 참고해 B 연결 확인 → FAKE 공동 통합 → 장치 측정/REAL 검증 순서로 진행합니다.
+
+
 ## 2026-10-11 수현 HMI·DB 1차 통합 제출
 
 - 최신 기준: 10/8 B 소유 Current·revision·Expected·비교, D 실행·진행·최종 종료. 공통 정수 layer 1~5.

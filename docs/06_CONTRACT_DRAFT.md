@@ -1,5 +1,7 @@
 # Day4 공통 인터페이스 계약
 
+> 2026-10-11 C Stage3 기준: 노랑·파랑 4점/6점 + 빨강 2점(1x2x1만), 24×24, 정수 layer 1~5, 실행 후보 1~40블록입니다. D는 후보를 Preview→Review→APPROVE한 뒤에만 A에 전달합니다. B의 상태·비교 소유는 유지합니다. 상세 구현/미검증 범위는 [A·D 연결 안내](D_C_STAGE3_AD_ALIGNMENT.md)를 따릅니다. 아래 이전 Day4/ZIP 기록의 4종·30블록 범위보다 이 기준이 우선합니다.
+
 > 2026-10-11 수현 확인: 최신 1차 통합의 상태 소유·검사 결과·C 확정 흐름은 [10/8 계약](handover/final_mvp_interface_20261008/README.md)을 우선합니다. B가 Current·revision·Expected·비교를 확정하고 D가 실행·진행·최종 종료를 담당합니다. 여섯 배치 필드·24×24·정수 layer 1~5는 유지합니다. 아래 §1~9의 Observed→D 채택 경로는 기존 Day4 구현이며 B 소유 경로와 동시에 적용하지 않습니다.
 
 > 2026-10-11 1차 통합 기준: 공통 배치와 관측 영역의 `layer`는 정수 1~5입니다. 현재 코드·Schema·문서와 별도 작업 브랜치의 차이는 [1차 통합 인터페이스 점검](11_ROUND1_INTERFACE_AUDIT.md)에 기록합니다. 아래 JSON 예시는 설명용이며 실제 구조 검사는 `interfaces/schemas/day4.schema.json`과 Consumer를 함께 확인합니다.
@@ -58,7 +60,7 @@
 
 ## 2 Design과 정상 Plan
 
-Design은 `design_version, blocks`이며 최종 목표 **전체** 배치를 담습니다. C 생성 상한은 1~30블록이며 A/D/Qt는 30블록을 동일 계약으로 수신·계획·표시합니다. Consumer에 새 수량 제한은 추가하지 않습니다. REAL 수동 시험의 24개 공급 슬롯 제한은 별도 실행 범위로 유지합니다. 별도 design_id는 필요하지 않습니다. Revised도 동일 형식이며 이미 조립한 목표 블록을 포함합니다.
+Design은 `design_version, blocks`이며 최종 목표 **전체** 배치를 담습니다. C Stage3 생성/실행 후보 상한은 1~40블록이며 A/D/Qt는 이를 동일 계약으로 수신·계획·표시합니다. REAL 수동 시험의 24개 공급 슬롯 제한은 별도 실행 범위로 유지합니다. 별도 design_id는 필요하지 않습니다. Revised도 동일 형식이며 이미 조립한 목표 블록을 포함합니다.
 
 ```json
 {
@@ -174,7 +176,7 @@ LLM / STT 호출 오류·malformed 출력은 UNCLEAR와 다릅니다. 유효 의
 
 ## 6 Remaining과 Replan
 
-세은 입력은 전체 채택 Design(또는 시율의 Revised 후보), 최신 Current 배치·revision, Day4 제약입니다. 목표에 이미 맞는 실제 배치는 Remaining에서 제외합니다. 결과 분기는 아래 의미를 사용하며 정확한 함수명·실패 envelope 세부는 연결 구현에서 맞춥니다.
+세은 입력은 사용자가 APPROVE한 전체 Design(최초 또는 Revised), 최신 Current 배치·revision, Day4 제약입니다. 목표에 이미 맞는 실제 배치는 Remaining에서 제외합니다. 결과 분기는 아래 의미를 사용하며 정확한 함수명·실패 envelope 세부는 연결 구현에서 맞춥니다.
 
 | 결과 | 반환 / 처리 |
 |---|---|
