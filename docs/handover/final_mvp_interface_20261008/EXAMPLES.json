@@ -1,0 +1,506 @@
+{
+  "document_only": true,
+  "field_mapping": "문서용 초안; 기존 실행 Schema 입력 금지",
+  "scenario_scope": "사례는 독립 분기이며 작은 두 블록 구조. 실제 의자·촬영·로봇 출력 아님",
+  "shared_plan": {
+    "design": {"design_version": 1, "blocks": [{"brick_type": "2x2x1", "color": "yellow", "x": 3, "y": 5, "layer": 1, "orientation_deg": 0}, {"brick_type": "2x2x1", "color": "blue", "x": 3, "y": 5, "layer": 2, "orientation_deg": 0}]},
+    "plan": {
+      "plan_id": "P1",
+      "design_version": 1,
+      "base_current_revision": 0,
+      "steps": [
+        {"step_id": "S01", "operation": "PLACE", "before": null, "after": {"brick_type": "2x2x1", "color": "yellow", "x": 3, "y": 5, "layer": 1, "orientation_deg": 0}, "prerequisites": [], "requires_delivery": true},
+        {"step_id": "S02", "operation": "PLACE", "before": null, "after": {"brick_type": "2x2x1", "color": "blue", "x": 3, "y": 5, "layer": 2, "orientation_deg": 0}, "prerequisites": ["S01"], "requires_delivery": true}
+      ]
+    },
+    "plan_base_current": {"current_revision": 0, "blocks": []},
+    "assembly_context": {"coordinate_basis": "README 2절의 기존 공통 좌표", "geometry_basis": "기존 공통 블록 형상·검증 프로필 참조; 실물 값 미포함"}
+  },
+  "cases": [
+    {
+      "name": "initial",
+      "before_current": {"current_revision": 0, "blocks": []},
+      "request": {"check_id": "check-initial", "check_kind": "INITIAL", "plan_id": null, "step_id": null},
+      "result": {
+        "check_id": "check-initial",
+        "check_kind": "INITIAL",
+        "plan_id": null,
+        "step_id": null,
+        "status": "OK",
+        "comparison": null,
+        "current": {"current_revision": 0, "blocks": []},
+        "expected": null,
+        "difference": {"missing": [], "unexpected": [], "unobservable": []},
+        "observation": {"observation_seq": 1, "visible_blocks": [], "verified_regions": [{"x": 0, "y": 0, "width": 24, "height": 24, "layer": 1}], "reason": null},
+        "reason": null
+      },
+      "d_action": "초기 실제 상태 확보; Step 완료 아님"
+    },
+    {
+      "name": "normal_step",
+      "before_current": {"current_revision": 0, "blocks": []},
+      "request": {"check_id": "check-s01", "check_kind": "STEP", "plan_id": "P1", "step_id": "S01"},
+      "result": {
+        "check_id": "check-s01",
+        "check_kind": "STEP",
+        "plan_id": "P1",
+        "step_id": "S01",
+        "status": "OK",
+        "comparison": "MATCH",
+        "current": {"current_revision": 1, "blocks": [{"brick_type": "2x2x1", "color": "yellow", "x": 3, "y": 5, "layer": 1, "orientation_deg": 0}]},
+        "expected": {"plan_id": "P1", "step_id": "S01", "blocks": [{"brick_type": "2x2x1", "color": "yellow", "x": 3, "y": 5, "layer": 1, "orientation_deg": 0}]},
+        "difference": {"missing": [], "unexpected": [], "unobservable": []},
+        "observation": {"observation_seq": 1, "visible_blocks": [{"brick_type": "2x2x1", "color": "yellow", "x": 3, "y": 5, "layer": 1, "orientation_deg": 0}], "verified_regions": [{"x": 3, "y": 5, "width": 2, "height": 2, "layer": 1}], "reason": null},
+        "reason": null
+      },
+      "d_action": "S01 한 번 확인; 조건 충족 시 S02 자동 진행"
+    },
+    {
+      "name": "lower_layer_occluded",
+      "before_current": {"current_revision": 1, "blocks": [{"brick_type": "2x2x1", "color": "yellow", "x": 3, "y": 5, "layer": 1, "orientation_deg": 0}]},
+      "request": {"check_id": "check-s02", "check_kind": "STEP", "plan_id": "P1", "step_id": "S02"},
+      "result": {
+        "check_id": "check-s02",
+        "check_kind": "STEP",
+        "plan_id": "P1",
+        "step_id": "S02",
+        "status": "OK",
+        "comparison": "MATCH",
+        "current": {"current_revision": 2, "blocks": [{"brick_type": "2x2x1", "color": "yellow", "x": 3, "y": 5, "layer": 1, "orientation_deg": 0}, {"brick_type": "2x2x1", "color": "blue", "x": 3, "y": 5, "layer": 2, "orientation_deg": 0}]},
+        "expected": {"plan_id": "P1", "step_id": "S02", "blocks": [{"brick_type": "2x2x1", "color": "yellow", "x": 3, "y": 5, "layer": 1, "orientation_deg": 0}, {"brick_type": "2x2x1", "color": "blue", "x": 3, "y": 5, "layer": 2, "orientation_deg": 0}]},
+        "difference": {"missing": [], "unexpected": [], "unobservable": []},
+        "observation": {
+          "observation_seq": 1,
+          "visible_blocks": [
+            {"brick_type": "2x2x1", "color": "blue", "x": 3, "y": 5, "layer": 2, "orientation_deg": 0}
+          ],
+          "verified_regions": [
+            {"x": 3, "y": 5, "width": 2, "height": 2, "layer": 2}
+          ],
+          "reason": "아래층은 이전 확인 이력으로 유지; 이번 새 관측 아님"
+        },
+        "reason": "아래층은 이전 확인 이력으로 유지; 이번 새 관측 아님"
+      },
+      "d_action": "S02 한 번 확인; FINAL 검사 요청",
+      "retained_from_history": [
+        {"brick_type": "2x2x1", "color": "yellow", "x": 3, "y": 5, "layer": 1, "orientation_deg": 0}
+      ]
+    },
+    {
+      "name": "final",
+      "before_current": {"current_revision": 2, "blocks": [{"brick_type": "2x2x1", "color": "yellow", "x": 3, "y": 5, "layer": 1, "orientation_deg": 0}, {"brick_type": "2x2x1", "color": "blue", "x": 3, "y": 5, "layer": 2, "orientation_deg": 0}]},
+      "request": {"check_id": "check-final", "check_kind": "FINAL", "plan_id": "P1", "step_id": null},
+      "result": {
+        "check_id": "check-final",
+        "check_kind": "FINAL",
+        "plan_id": "P1",
+        "step_id": null,
+        "status": "OK",
+        "comparison": "MATCH",
+        "current": {"current_revision": 2, "blocks": [{"brick_type": "2x2x1", "color": "yellow", "x": 3, "y": 5, "layer": 1, "orientation_deg": 0}, {"brick_type": "2x2x1", "color": "blue", "x": 3, "y": 5, "layer": 2, "orientation_deg": 0}]},
+        "expected": {"plan_id": "P1", "step_id": null, "blocks": [{"brick_type": "2x2x1", "color": "yellow", "x": 3, "y": 5, "layer": 1, "orientation_deg": 0}, {"brick_type": "2x2x1", "color": "blue", "x": 3, "y": 5, "layer": 2, "orientation_deg": 0}]},
+        "difference": {"missing": [], "unexpected": [], "unobservable": []},
+        "observation": {
+          "observation_seq": 1,
+          "visible_blocks": [
+            {"brick_type": "2x2x1", "color": "blue", "x": 3, "y": 5, "layer": 2, "orientation_deg": 0}
+          ],
+          "verified_regions": [
+            {"x": 3, "y": 5, "width": 2, "height": 2, "layer": 2}
+          ],
+          "reason": "가린 아래층은 누적 확인 이력 사용"
+        },
+        "reason": "가린 아래층은 누적 확인 이력 사용"
+      },
+      "d_action": "누적 Step 확인과 FINAL MATCH로 조립 종료 판단; 저장/웹 완료는 별도",
+      "confirmed_steps": [
+        "S01",
+        "S02"
+      ]
+    },
+    {
+      "name": "wrong_position_layer",
+      "before_current": {"current_revision": 1, "blocks": [{"brick_type": "2x2x1", "color": "yellow", "x": 3, "y": 5, "layer": 1, "orientation_deg": 0}]},
+      "request": {"check_id": "check-wrong-position", "check_kind": "STEP", "plan_id": "P1", "step_id": "S02"},
+      "result": {
+        "check_id": "check-wrong-position",
+        "check_kind": "STEP",
+        "plan_id": "P1",
+        "step_id": "S02",
+        "status": "OK",
+        "comparison": "MISMATCH",
+        "current": {"current_revision": 2, "blocks": [{"brick_type": "2x2x1", "color": "yellow", "x": 3, "y": 5, "layer": 1, "orientation_deg": 0}, {"brick_type": "2x2x1", "color": "blue", "x": 7, "y": 5, "layer": 1, "orientation_deg": 0}]},
+        "expected": {"plan_id": "P1", "step_id": "S02", "blocks": [{"brick_type": "2x2x1", "color": "yellow", "x": 3, "y": 5, "layer": 1, "orientation_deg": 0}, {"brick_type": "2x2x1", "color": "blue", "x": 3, "y": 5, "layer": 2, "orientation_deg": 0}]},
+        "difference": {"missing": [{"brick_type": "2x2x1", "color": "blue", "x": 3, "y": 5, "layer": 2, "orientation_deg": 0}], "unexpected": [{"brick_type": "2x2x1", "color": "blue", "x": 7, "y": 5, "layer": 1, "orientation_deg": 0}], "unobservable": []},
+        "observation": {
+          "observation_seq": 1,
+          "visible_blocks": [
+            {"brick_type": "2x2x1", "color": "yellow", "x": 3, "y": 5, "layer": 1, "orientation_deg": 0},
+            {"brick_type": "2x2x1", "color": "blue", "x": 7, "y": 5, "layer": 1, "orientation_deg": 0}
+          ],
+          "verified_regions": [
+            {"x": 0, "y": 0, "width": 24, "height": 24, "layer": 1},
+            {"x": 3, "y": 5, "width": 2, "height": 2, "layer": 2}
+          ],
+          "reason": null
+        },
+        "reason": null
+      },
+      "d_action": "진행 보류; 실제 다른 위치/층을 C에 전달"
+    },
+    {
+      "name": "existing_structure_changed",
+      "before_current": {"current_revision": 1, "blocks": [{"brick_type": "2x2x1", "color": "yellow", "x": 3, "y": 5, "layer": 1, "orientation_deg": 0}]},
+      "request": {"check_id": "check-existing-change", "check_kind": "STEP", "plan_id": "P1", "step_id": "S02"},
+      "result": {
+        "check_id": "check-existing-change",
+        "check_kind": "STEP",
+        "plan_id": "P1",
+        "step_id": "S02",
+        "status": "OK",
+        "comparison": "MISMATCH",
+        "current": {"current_revision": 2, "blocks": [{"brick_type": "2x2x1", "color": "blue", "x": 3, "y": 5, "layer": 1, "orientation_deg": 0}, {"brick_type": "2x2x1", "color": "blue", "x": 3, "y": 5, "layer": 2, "orientation_deg": 0}]},
+        "expected": {"plan_id": "P1", "step_id": "S02", "blocks": [{"brick_type": "2x2x1", "color": "yellow", "x": 3, "y": 5, "layer": 1, "orientation_deg": 0}, {"brick_type": "2x2x1", "color": "blue", "x": 3, "y": 5, "layer": 2, "orientation_deg": 0}]},
+        "difference": {"missing": [{"brick_type": "2x2x1", "color": "yellow", "x": 3, "y": 5, "layer": 1, "orientation_deg": 0}], "unexpected": [{"brick_type": "2x2x1", "color": "blue", "x": 3, "y": 5, "layer": 1, "orientation_deg": 0}], "unobservable": []},
+        "observation": {
+          "observation_seq": 1,
+          "visible_blocks": [
+            {"brick_type": "2x2x1", "color": "blue", "x": 3, "y": 5, "layer": 1, "orientation_deg": 0},
+            {"brick_type": "2x2x1", "color": "blue", "x": 3, "y": 5, "layer": 2, "orientation_deg": 0}
+          ],
+          "verified_regions": [
+            {"x": 3, "y": 5, "width": 2, "height": 2, "layer": 1},
+            {"x": 3, "y": 5, "width": 2, "height": 2, "layer": 2}
+          ],
+          "reason": null
+        },
+        "reason": null
+      },
+      "d_action": "현재 목표 B가 맞아도 기존 구조 색상 변경으로 C 호출; Expected는 노랑 유지"
+    },
+    {
+      "name": "unobservable",
+      "before_current": {"current_revision": 1, "blocks": [{"brick_type": "2x2x1", "color": "yellow", "x": 3, "y": 5, "layer": 1, "orientation_deg": 0}]},
+      "request": {"check_id": "check-occluded", "check_kind": "STEP", "plan_id": "P1", "step_id": "S02"},
+      "result": {
+        "check_id": "check-occluded",
+        "check_kind": "STEP",
+        "plan_id": "P1",
+        "step_id": "S02",
+        "status": "UNOBSERVABLE",
+        "comparison": "UNOBSERVABLE",
+        "current": {"current_revision": 1, "blocks": [{"brick_type": "2x2x1", "color": "yellow", "x": 3, "y": 5, "layer": 1, "orientation_deg": 0}]},
+        "expected": {"plan_id": "P1", "step_id": "S02", "blocks": [{"brick_type": "2x2x1", "color": "yellow", "x": 3, "y": 5, "layer": 1, "orientation_deg": 0}, {"brick_type": "2x2x1", "color": "blue", "x": 3, "y": 5, "layer": 2, "orientation_deg": 0}]},
+        "difference": {"missing": [], "unexpected": [], "unobservable": [{"brick_type": "2x2x1", "color": "blue", "x": 3, "y": 5, "layer": 2, "orientation_deg": 0}]},
+        "observation": {"observation_seq": 1, "visible_blocks": [], "verified_regions": [], "reason": "현재 Step 영역이 손에 가림"},
+        "reason": "현재 Step 영역이 손에 가림"
+      },
+      "d_action": "Current/revision 유지; 보류 후 새 check_id 재검사"
+    },
+    {
+      "name": "invalid_input",
+      "before_current": {"current_revision": 1, "blocks": [{"brick_type": "2x2x1", "color": "yellow", "x": 3, "y": 5, "layer": 1, "orientation_deg": 0}]},
+      "request": {"check_id": "check-invalid_input", "check_kind": "STEP", "plan_id": "P1", "step_id": null},
+      "result": {"check_id": "check-invalid_input", "check_kind": "STEP", "plan_id": "P1", "step_id": null, "status": "ERROR", "comparison": null, "current": null, "expected": null, "difference": null, "observation": null, "reason": "INVALID_INPUT"},
+      "d_action": "업무 오류 보류; 카메라 관측 불가/성공으로 바꾸지 않음",
+      "b_current_after": {"current_revision": 1, "blocks": [{"brick_type": "2x2x1", "color": "yellow", "x": 3, "y": 5, "layer": 1, "orientation_deg": 0}]}
+    },
+    {
+      "name": "plan_missing",
+      "before_current": {"current_revision": 1, "blocks": [{"brick_type": "2x2x1", "color": "yellow", "x": 3, "y": 5, "layer": 1, "orientation_deg": 0}]},
+      "request": {"check_id": "check-plan_missing", "check_kind": "STEP", "plan_id": "not-received-plan", "step_id": "S02"},
+      "result": {
+        "check_id": "check-plan_missing",
+        "check_kind": "STEP",
+        "plan_id": "not-received-plan",
+        "step_id": "S02",
+        "status": "ERROR",
+        "comparison": null,
+        "current": null,
+        "expected": null,
+        "difference": null,
+        "observation": null,
+        "reason": "PLAN_NOT_FOUND"
+      },
+      "d_action": "업무 오류 보류; 카메라 관측 불가/성공으로 바꾸지 않음",
+      "b_current_after": {"current_revision": 1, "blocks": [{"brick_type": "2x2x1", "color": "yellow", "x": 3, "y": 5, "layer": 1, "orientation_deg": 0}]}
+    },
+    {
+      "name": "processing_failed",
+      "before_current": {"current_revision": 1, "blocks": [{"brick_type": "2x2x1", "color": "yellow", "x": 3, "y": 5, "layer": 1, "orientation_deg": 0}]},
+      "request": {"check_id": "check-processing_failed", "check_kind": "STEP", "plan_id": "P1", "step_id": "S02"},
+      "result": {
+        "check_id": "check-processing_failed",
+        "check_kind": "STEP",
+        "plan_id": "P1",
+        "step_id": "S02",
+        "status": "ERROR",
+        "comparison": null,
+        "current": null,
+        "expected": null,
+        "difference": null,
+        "observation": null,
+        "reason": "PROCESSING_FAILED"
+      },
+      "d_action": "업무 오류 보류; 카메라 관측 불가/성공으로 바꾸지 않음",
+      "b_current_after": {"current_revision": 1, "blocks": [{"brick_type": "2x2x1", "color": "yellow", "x": 3, "y": 5, "layer": 1, "orientation_deg": 0}]}
+    },
+    {
+      "name": "old_result",
+      "before_current": {"current_revision": 1, "blocks": [{"brick_type": "2x2x1", "color": "yellow", "x": 3, "y": 5, "layer": 1, "orientation_deg": 0}]},
+      "request": {"check_id": "check-old", "check_kind": "STEP", "plan_id": "P1", "step_id": "S02"},
+      "result": {
+        "check_id": "check-old",
+        "check_kind": "STEP",
+        "plan_id": "P1",
+        "step_id": "S02",
+        "status": "OK",
+        "comparison": "MATCH",
+        "current": {"current_revision": 2, "blocks": [{"brick_type": "2x2x1", "color": "yellow", "x": 3, "y": 5, "layer": 1, "orientation_deg": 0}, {"brick_type": "2x2x1", "color": "blue", "x": 3, "y": 5, "layer": 2, "orientation_deg": 0}]},
+        "expected": {"plan_id": "P1", "step_id": "S02", "blocks": [{"brick_type": "2x2x1", "color": "yellow", "x": 3, "y": 5, "layer": 1, "orientation_deg": 0}, {"brick_type": "2x2x1", "color": "blue", "x": 3, "y": 5, "layer": 2, "orientation_deg": 0}]},
+        "difference": {"missing": [], "unexpected": [], "unobservable": []},
+        "observation": {
+          "observation_seq": 1,
+          "visible_blocks": [
+            {"brick_type": "2x2x1", "color": "yellow", "x": 3, "y": 5, "layer": 1, "orientation_deg": 0},
+            {"brick_type": "2x2x1", "color": "blue", "x": 3, "y": 5, "layer": 2, "orientation_deg": 0}
+          ],
+          "verified_regions": [
+            {"x": 3, "y": 5, "width": 2, "height": 2, "layer": 1},
+            {"x": 3, "y": 5, "width": 2, "height": 2, "layer": 2}
+          ],
+          "reason": null
+        },
+        "reason": null
+      },
+      "d_action": "이미 닫힌 check이므로 진행/Step/명령 변경 없음; 새 check로 최신 B 상태 확보",
+      "event_order": [
+        "B 확정",
+        "D STOP 및 check 로컬 종료",
+        "B 취소 경계 완료",
+        "옛 결과 지연 수신"
+      ],
+      "d_active_check_id": null
+    },
+    {
+      "name": "canceled_before_commit",
+      "before_current": {"current_revision": 1, "blocks": [{"brick_type": "2x2x1", "color": "yellow", "x": 3, "y": 5, "layer": 1, "orientation_deg": 0}]},
+      "request": {"check_id": "check-cancel-first", "check_kind": "STEP", "plan_id": "P1", "step_id": "S02"},
+      "result": {"check_id": "check-cancel-first", "check_kind": "STEP", "plan_id": "P1", "step_id": "S02", "status": "CANCELED", "comparison": null, "current": null, "expected": null, "difference": null, "observation": null, "reason": "CHECK_CLOSED"},
+      "d_action": "진행 없음; 취소 완료 뒤 새 검사 가능",
+      "event_order": [
+        "D 로컬 종료·취소",
+        "B 취소 경계 완료",
+        "옛 계산 종료·확정 차단"
+      ],
+      "b_current_after": {"current_revision": 1, "blocks": [{"brick_type": "2x2x1", "color": "yellow", "x": 3, "y": 5, "layer": 1, "orientation_deg": 0}]}
+    },
+    {
+      "name": "committed_before_cancel",
+      "before_current": {"current_revision": 1, "blocks": [{"brick_type": "2x2x1", "color": "yellow", "x": 3, "y": 5, "layer": 1, "orientation_deg": 0}]},
+      "request": {"check_id": "check-commit-first", "check_kind": "STEP", "plan_id": "P1", "step_id": "S02"},
+      "result": {
+        "check_id": "check-commit-first",
+        "check_kind": "STEP",
+        "plan_id": "P1",
+        "step_id": "S02",
+        "status": "OK",
+        "comparison": "MATCH",
+        "current": {"current_revision": 2, "blocks": [{"brick_type": "2x2x1", "color": "yellow", "x": 3, "y": 5, "layer": 1, "orientation_deg": 0}, {"brick_type": "2x2x1", "color": "blue", "x": 3, "y": 5, "layer": 2, "orientation_deg": 0}]},
+        "expected": {"plan_id": "P1", "step_id": "S02", "blocks": [{"brick_type": "2x2x1", "color": "yellow", "x": 3, "y": 5, "layer": 1, "orientation_deg": 0}, {"brick_type": "2x2x1", "color": "blue", "x": 3, "y": 5, "layer": 2, "orientation_deg": 0}]},
+        "difference": {"missing": [], "unexpected": [], "unobservable": []},
+        "observation": {"observation_seq": 1, "visible_blocks": [{"brick_type": "2x2x1", "color": "blue", "x": 3, "y": 5, "layer": 2, "orientation_deg": 0}], "verified_regions": [{"x": 3, "y": 5, "width": 2, "height": 2, "layer": 2}], "reason": null},
+        "reason": null
+      },
+      "d_action": "옛 결과로 진행하지 않음; B 확정 롤백 없음; 취소 완료 뒤 새 INITIAL 결과를 새 Plan 기준으로 사용",
+      "event_order": [
+        "B Current r2 확정",
+        "D 종료·취소",
+        "B 취소 경계 완료",
+        "결과 지연 수신"
+      ],
+      "b_current_after": {"current_revision": 2, "blocks": [{"brick_type": "2x2x1", "color": "yellow", "x": 3, "y": 5, "layer": 1, "orientation_deg": 0}, {"brick_type": "2x2x1", "color": "blue", "x": 3, "y": 5, "layer": 2, "orientation_deg": 0}]},
+      "d_active_check_id": null
+    },
+    {
+      "name": "same_state_recheck",
+      "before_current": {"current_revision": 1, "blocks": [{"brick_type": "2x2x1", "color": "yellow", "x": 3, "y": 5, "layer": 1, "orientation_deg": 0}]},
+      "request": {"check_id": "check-same-state", "check_kind": "STEP", "plan_id": "P1", "step_id": "S02"},
+      "result": {
+        "check_id": "check-same-state",
+        "check_kind": "STEP",
+        "plan_id": "P1",
+        "step_id": "S02",
+        "status": "OK",
+        "comparison": "MISMATCH",
+        "current": {"current_revision": 1, "blocks": [{"brick_type": "2x2x1", "color": "yellow", "x": 3, "y": 5, "layer": 1, "orientation_deg": 0}]},
+        "expected": {"plan_id": "P1", "step_id": "S02", "blocks": [{"brick_type": "2x2x1", "color": "yellow", "x": 3, "y": 5, "layer": 1, "orientation_deg": 0}, {"brick_type": "2x2x1", "color": "blue", "x": 3, "y": 5, "layer": 2, "orientation_deg": 0}]},
+        "difference": {"missing": [{"brick_type": "2x2x1", "color": "blue", "x": 3, "y": 5, "layer": 2, "orientation_deg": 0}], "unexpected": [], "unobservable": []},
+        "observation": {
+          "observation_seq": 1,
+          "visible_blocks": [
+            {"brick_type": "2x2x1", "color": "yellow", "x": 3, "y": 5, "layer": 1, "orientation_deg": 0}
+          ],
+          "verified_regions": [
+            {"x": 3, "y": 5, "width": 2, "height": 2, "layer": 1},
+            {"x": 3, "y": 5, "width": 2, "height": 2, "layer": 2}
+          ],
+          "reason": "목표 영역 비어 있음 확인"
+        },
+        "reason": "목표 영역 비어 있음 확인"
+      },
+      "d_action": "revision 증가 없음; 아직 없는 목표를 성공 처리하지 않음"
+    },
+    {
+      "name": "conflicting_duplicate",
+      "before_current": {"current_revision": 0, "blocks": []},
+      "request": {"check_id": "check-conflict", "check_kind": "STEP", "plan_id": "P1", "step_id": "S01"},
+      "result": {
+        "check_id": "check-conflict",
+        "check_kind": "STEP",
+        "plan_id": "P1",
+        "step_id": "S01",
+        "status": "OK",
+        "comparison": "MATCH",
+        "current": {"current_revision": 1, "blocks": [{"brick_type": "2x2x1", "color": "yellow", "x": 3, "y": 5, "layer": 1, "orientation_deg": 0}]},
+        "expected": {"plan_id": "P1", "step_id": "S01", "blocks": [{"brick_type": "2x2x1", "color": "yellow", "x": 3, "y": 5, "layer": 1, "orientation_deg": 0}]},
+        "difference": {"missing": [], "unexpected": [], "unobservable": []},
+        "observation": {"observation_seq": 1, "visible_blocks": [{"brick_type": "2x2x1", "color": "yellow", "x": 3, "y": 5, "layer": 1, "orientation_deg": 0}], "verified_regions": [{"x": 3, "y": 5, "width": 2, "height": 2, "layer": 1}], "reason": null},
+        "reason": null
+      },
+      "d_action": "첫 결과 한 번만 처리; 같은 결과 재수신은 무시; 같은 check의 다른 본문은 충돌 보류",
+      "duplicate_result": {
+        "check_id": "check-conflict",
+        "check_kind": "STEP",
+        "plan_id": "P1",
+        "step_id": "S01",
+        "status": "OK",
+        "comparison": "MATCH",
+        "current": {"current_revision": 1, "blocks": [{"brick_type": "2x2x1", "color": "yellow", "x": 3, "y": 5, "layer": 1, "orientation_deg": 0}]},
+        "expected": {"plan_id": "P1", "step_id": "S01", "blocks": [{"brick_type": "2x2x1", "color": "yellow", "x": 3, "y": 5, "layer": 1, "orientation_deg": 0}]},
+        "difference": {"missing": [], "unexpected": [], "unobservable": []},
+        "observation": {"observation_seq": 1, "visible_blocks": [{"brick_type": "2x2x1", "color": "yellow", "x": 3, "y": 5, "layer": 1, "orientation_deg": 0}], "verified_regions": [{"x": 3, "y": 5, "width": 2, "height": 2, "layer": 1}], "reason": null},
+        "reason": null
+      },
+      "conflicting_result": {
+        "check_id": "check-conflict",
+        "check_kind": "STEP",
+        "plan_id": "P1",
+        "step_id": "S01",
+        "status": "OK",
+        "comparison": "MISMATCH",
+        "current": {"current_revision": 1, "blocks": [{"brick_type": "2x2x1", "color": "yellow", "x": 3, "y": 5, "layer": 1, "orientation_deg": 0}]},
+        "expected": {"plan_id": "P1", "step_id": "S01", "blocks": [{"brick_type": "2x2x1", "color": "yellow", "x": 3, "y": 5, "layer": 1, "orientation_deg": 0}]},
+        "difference": {"missing": [{"brick_type": "2x2x1", "color": "yellow", "x": 3, "y": 5, "layer": 1, "orientation_deg": 0}], "unexpected": [{"brick_type": "2x2x1", "color": "blue", "x": 3, "y": 5, "layer": 1, "orientation_deg": 0}], "unobservable": []},
+        "observation": {"observation_seq": 1, "visible_blocks": [{"brick_type": "2x2x1", "color": "yellow", "x": 3, "y": 5, "layer": 1, "orientation_deg": 0}], "verified_regions": [{"x": 3, "y": 5, "width": 2, "height": 2, "layer": 1}], "reason": null},
+        "reason": null
+      },
+      "b_current_after": {"current_revision": 1, "blocks": [{"brick_type": "2x2x1", "color": "yellow", "x": 3, "y": 5, "layer": 1, "orientation_deg": 0}]}
+    },
+    {
+      "name": "keep",
+      "d_to_c": {
+        "request_id": "intent-01",
+        "current": {"current_revision": 2, "blocks": [{"brick_type": "2x2x1", "color": "blue", "x": 3, "y": 5, "layer": 1, "orientation_deg": 0}, {"brick_type": "2x2x1", "color": "blue", "x": 3, "y": 5, "layer": 2, "orientation_deg": 0}]},
+        "expected": {"plan_id": "P1", "step_id": "S02", "blocks": [{"brick_type": "2x2x1", "color": "yellow", "x": 3, "y": 5, "layer": 1, "orientation_deg": 0}, {"brick_type": "2x2x1", "color": "blue", "x": 3, "y": 5, "layer": 2, "orientation_deg": 0}]},
+        "design": {"design_version": 1, "blocks": [{"brick_type": "2x2x1", "color": "yellow", "x": 3, "y": 5, "layer": 1, "orientation_deg": 0}, {"brick_type": "2x2x1", "color": "blue", "x": 3, "y": 5, "layer": 2, "orientation_deg": 0}]},
+        "difference": {"missing": [{"brick_type": "2x2x1", "color": "yellow", "x": 3, "y": 5, "layer": 1, "orientation_deg": 0}], "unexpected": [{"brick_type": "2x2x1", "color": "blue", "x": 3, "y": 5, "layer": 1, "orientation_deg": 0}], "unobservable": []}
+      },
+      "c_to_d": {"request_id": "intent-01", "status": "OK", "hri_result": "KEEP"},
+      "d_action": "원래 목표 유지; 불일치 해소/새 검사 또는 최신 B Current로 A 재계획 전까지 다음 Step 금지"
+    },
+    {
+      "name": "unclear",
+      "d_to_c": {
+        "request_id": "intent-01",
+        "current": {"current_revision": 2, "blocks": [{"brick_type": "2x2x1", "color": "blue", "x": 3, "y": 5, "layer": 1, "orientation_deg": 0}, {"brick_type": "2x2x1", "color": "blue", "x": 3, "y": 5, "layer": 2, "orientation_deg": 0}]},
+        "expected": {"plan_id": "P1", "step_id": "S02", "blocks": [{"brick_type": "2x2x1", "color": "yellow", "x": 3, "y": 5, "layer": 1, "orientation_deg": 0}, {"brick_type": "2x2x1", "color": "blue", "x": 3, "y": 5, "layer": 2, "orientation_deg": 0}]},
+        "design": {"design_version": 1, "blocks": [{"brick_type": "2x2x1", "color": "yellow", "x": 3, "y": 5, "layer": 1, "orientation_deg": 0}, {"brick_type": "2x2x1", "color": "blue", "x": 3, "y": 5, "layer": 2, "orientation_deg": 0}]},
+        "difference": {"missing": [{"brick_type": "2x2x1", "color": "yellow", "x": 3, "y": 5, "layer": 1, "orientation_deg": 0}], "unexpected": [{"brick_type": "2x2x1", "color": "blue", "x": 3, "y": 5, "layer": 1, "orientation_deg": 0}], "unobservable": []}
+      },
+      "c_to_d": {"request_id": "intent-01", "status": "OK", "hri_result": "UNCLEAR", "question": "원래 목표 유지 또는 수정 중 어느 쪽인가요?"},
+      "d_action": "보류·명시 응답 대기; 시간 경과 자동 KEEP 없음"
+    },
+    {
+      "name": "design_change",
+      "d_to_c": {
+        "request_id": "intent-01",
+        "current": {"current_revision": 2, "blocks": [{"brick_type": "2x2x1", "color": "blue", "x": 3, "y": 5, "layer": 1, "orientation_deg": 0}, {"brick_type": "2x2x1", "color": "blue", "x": 3, "y": 5, "layer": 2, "orientation_deg": 0}]},
+        "expected": {"plan_id": "P1", "step_id": "S02", "blocks": [{"brick_type": "2x2x1", "color": "yellow", "x": 3, "y": 5, "layer": 1, "orientation_deg": 0}, {"brick_type": "2x2x1", "color": "blue", "x": 3, "y": 5, "layer": 2, "orientation_deg": 0}]},
+        "design": {"design_version": 1, "blocks": [{"brick_type": "2x2x1", "color": "yellow", "x": 3, "y": 5, "layer": 1, "orientation_deg": 0}, {"brick_type": "2x2x1", "color": "blue", "x": 3, "y": 5, "layer": 2, "orientation_deg": 0}]},
+        "difference": {"missing": [{"brick_type": "2x2x1", "color": "yellow", "x": 3, "y": 5, "layer": 1, "orientation_deg": 0}], "unexpected": [{"brick_type": "2x2x1", "color": "blue", "x": 3, "y": 5, "layer": 1, "orientation_deg": 0}], "unobservable": []}
+      },
+      "c_to_d": {"request_id": "intent-01", "status": "OK", "hri_result": "REVISE"},
+      "draft_preview": {
+        "design": {
+          "design_version": 2,
+          "blocks": [
+            {"brick_type": "2x2x1", "color": "blue", "x": 3, "y": 5, "layer": 1, "orientation_deg": 0},
+            {"brick_type": "2x2x1", "color": "blue", "x": 3, "y": 5, "layer": 2, "orientation_deg": 0},
+            {"brick_type": "2x2x1", "color": "yellow", "x": 5, "y": 5, "layer": 1, "orientation_deg": 0}
+          ]
+        },
+        "display_label": "수정 중·미승인"
+      },
+      "approval_source": "C와 사용자 대화",
+      "c_to_a_approved_design": {
+        "design_version": 2,
+        "blocks": [
+          {"brick_type": "2x2x1", "color": "blue", "x": 3, "y": 5, "layer": 1, "orientation_deg": 0},
+          {"brick_type": "2x2x1", "color": "blue", "x": 3, "y": 5, "layer": 2, "orientation_deg": 0},
+          {"brick_type": "2x2x1", "color": "yellow", "x": 5, "y": 5, "layer": 1, "orientation_deg": 0}
+        ]
+      },
+      "a_to_b": {
+        "design": {
+          "design_version": 2,
+          "blocks": [
+            {"brick_type": "2x2x1", "color": "blue", "x": 3, "y": 5, "layer": 1, "orientation_deg": 0},
+            {"brick_type": "2x2x1", "color": "blue", "x": 3, "y": 5, "layer": 2, "orientation_deg": 0},
+            {"brick_type": "2x2x1", "color": "yellow", "x": 5, "y": 5, "layer": 1, "orientation_deg": 0}
+          ]
+        },
+        "plan": {
+          "plan_id": "P2",
+          "design_version": 2,
+          "base_current_revision": 2,
+          "steps": [
+            {"step_id": "S01", "operation": "PLACE", "before": null, "after": {"brick_type": "2x2x1", "color": "yellow", "x": 5, "y": 5, "layer": 1, "orientation_deg": 0}, "prerequisites": [], "requires_delivery": true}
+          ]
+        },
+        "plan_base_current": {"current_revision": 2, "blocks": [{"brick_type": "2x2x1", "color": "blue", "x": 3, "y": 5, "layer": 1, "orientation_deg": 0}, {"brick_type": "2x2x1", "color": "blue", "x": 3, "y": 5, "layer": 2, "orientation_deg": 0}]},
+        "assembly_context": {"coordinate_basis": "README 2절의 기존 공통 좌표", "geometry_basis": "기존 공통 블록 형상·검증 프로필 참조; 실물 값 미포함"}
+      },
+      "a_to_d": {
+        "design": {
+          "design_version": 2,
+          "blocks": [
+            {"brick_type": "2x2x1", "color": "blue", "x": 3, "y": 5, "layer": 1, "orientation_deg": 0},
+            {"brick_type": "2x2x1", "color": "blue", "x": 3, "y": 5, "layer": 2, "orientation_deg": 0},
+            {"brick_type": "2x2x1", "color": "yellow", "x": 5, "y": 5, "layer": 1, "orientation_deg": 0}
+          ]
+        },
+        "plan": {
+          "plan_id": "P2",
+          "design_version": 2,
+          "base_current_revision": 2,
+          "steps": [
+            {"step_id": "S01", "operation": "PLACE", "before": null, "after": {"brick_type": "2x2x1", "color": "yellow", "x": 5, "y": 5, "layer": 1, "orientation_deg": 0}, "prerequisites": [], "requires_delivery": true}
+          ]
+        },
+        "plan_base_current": {"current_revision": 2, "blocks": [{"brick_type": "2x2x1", "color": "blue", "x": 3, "y": 5, "layer": 1, "orientation_deg": 0}, {"brick_type": "2x2x1", "color": "blue", "x": 3, "y": 5, "layer": 2, "orientation_deg": 0}]},
+        "assembly_context": {"coordinate_basis": "README 2절의 기존 공통 좌표", "geometry_basis": "기존 공통 블록 형상·검증 프로필 참조; 실물 값 미포함"}
+      },
+      "d_action": "REVISE 즉시 완성 Design 필수 아님; 기존 실행/검사 취소 경계 확인→대화 승인→새 계획 조건 확인·채택→자동 진행",
+      "approval_and_plan_order": [
+        "REVISE 의도 접수",
+        "수정안 표시; 실행 승인 설계 v1 유지",
+        "사용자 대화 승인",
+        "C→A 새 Plan 계산",
+        "A→B·D 동일 자료 공유",
+        "D 새 목표/Plan 실행 전환"
+      ],
+      "b_current_after": {"current_revision": 2, "blocks": [{"brick_type": "2x2x1", "color": "blue", "x": 3, "y": 5, "layer": 1, "orientation_deg": 0}, {"brick_type": "2x2x1", "color": "blue", "x": 3, "y": 5, "layer": 2, "orientation_deg": 0}]}
+    }
+  ]
+}
