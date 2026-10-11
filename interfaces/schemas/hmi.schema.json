@@ -1,10 +1,42 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://c-2.invalid/schemas/hmi.schema.json",
-  "title": "Day4 Backend-HMI snapshot and command contracts",
+  "title": "Day4 Backend-HMI contracts with optional final MVP display fields",
   "description": "Explicit FAKE or REAL display/input. REAL binds a single transfer trial or an explicit manual field-confirmation trial bounded by four six-slot rows (up to 24 Steps). Consumer checks cross-field consistency, not physical completion proof.",
-  "oneOf": [{"$ref":"#/$defs/snapshot"},{"$ref":"#/$defs/command"}],
+  "oneOf": [{"$ref":"#/$defs/snapshot"},{"$ref":"#/$defs/command"},{"$ref":"#/$defs/user_request"},{"$ref":"#/$defs/user_reply"}],
   "$defs": {
+    "design_preview": {
+      "type":"object", "additionalProperties":false, "required":["request_id","design"],
+      "properties":{"request_id":{"$ref":"day4.schema.json#/$defs/id"},"design":{"$ref":"day4.schema.json#/$defs/design"}}
+    },
+    "dialogue": {
+      "type":"object", "additionalProperties":false, "required":["request_id","phase","user_text","assistant_text","reason"],
+      "properties":{"request_id":{"$ref":"day4.schema.json#/$defs/id"},"phase":{"enum":["LISTENING","GENERATING","SPEAKING","REVIEW","WAIT_APPROVAL","FAILED"]},"user_text":{"$ref":"#/$defs/nullable_id"},"assistant_text":{"$ref":"#/$defs/nullable_id"},"reason":{"$ref":"#/$defs/nullable_id"}},
+      "allOf":[{"if":{"properties":{"phase":{"const":"FAILED"}}},"then":{"properties":{"reason":{"$ref":"day4.schema.json#/$defs/id"}}}}]
+    },
+    "execution": {
+      "type":"object", "additionalProperties":false, "required":["plan_id","step_id","motion_plan_id","method","phase"],
+      "properties":{"plan_id":{"$ref":"day4.schema.json#/$defs/id"},"step_id":{"$ref":"day4.schema.json#/$defs/id"},"motion_plan_id":{"$ref":"#/$defs/nullable_id"},"method":{"enum":["ROBOT_GRIP","HUMAN_ASSEMBLY"]},"phase":{"enum":["APPROACH_PICK","PICK_AND_CONFIRM","TRANSPORT_HOLDING","PRE_CONTACT","CONTACT","RELEASE","RETREAT","WAIT_INSPECTION","HOLD"]}},
+      "allOf":[{"if":{"properties":{"method":{"const":"HUMAN_ASSEMBLY"}}},"then":{"properties":{"phase":{"not":{"const":"CONTACT"}}}}}]
+    },
+    "assistance": {
+      "type":"object", "additionalProperties":false, "required":["request_id","plan_id","step_id","kind","target","instruction","phase"],
+      "properties":{"request_id":{"$ref":"day4.schema.json#/$defs/id"},"plan_id":{"$ref":"day4.schema.json#/$defs/id"},"step_id":{"$ref":"day4.schema.json#/$defs/id"},"kind":{"enum":["SUPPORT","HANDOVER","HUMAN_ASSEMBLY"]},"target":{"$ref":"day4.schema.json#/$defs/block"},"instruction":{"$ref":"day4.schema.json#/$defs/id"},"phase":{"enum":["REQUESTED","READY","MAINTAIN","RELEASED","CANCELED"]}}
+    },
+    "completion": {
+      "type":"object", "additionalProperties":false, "required":["blocks_used","assembly","storage","web","reason"],
+      "properties":{"blocks_used":{"type":"boolean"},"assembly":{"enum":["PENDING","MATCH","MISMATCH","UNOBSERVABLE"]},"storage":{"enum":["NOT_STARTED","PENDING","SUCCEEDED","FAILED"]},"web":{"enum":["NOT_STARTED","PENDING","SUCCEEDED","FAILED"]},"reason":{"$ref":"#/$defs/nullable_id"}},
+      "allOf":[
+        {"if":{"properties":{"assembly":{"not":{"const":"PENDING"}}}},"then":{"properties":{"blocks_used":{"const":true}}}},
+        {"if":{"properties":{"storage":{"not":{"const":"NOT_STARTED"}}}},"then":{"properties":{"assembly":{"const":"MATCH"}}}},
+        {"if":{"properties":{"web":{"not":{"const":"NOT_STARTED"}}}},"then":{"properties":{"storage":{"const":"SUCCEEDED"}}}},
+        {"if":{"anyOf":[{"properties":{"assembly":{"enum":["MISMATCH","UNOBSERVABLE"]}}},{"properties":{"storage":{"const":"FAILED"}}},{"properties":{"web":{"const":"FAILED"}}}]},"then":{"properties":{"reason":{"$ref":"day4.schema.json#/$defs/id"}}}}
+      ]
+    },
+    "inspection": {"type":"object","additionalProperties":false,"required":["check_id","check_kind","plan_id","step_id","status","comparison","expected","difference","reason"],"properties":{"check_id":{"$ref":"day4.schema.json#/$defs/id"},"check_kind":{"enum":["INITIAL","STEP","FINAL"]},"plan_id":{"$ref":"#/$defs/nullable_id"},"step_id":{"$ref":"#/$defs/nullable_id"},"status":{"enum":["OK","UNOBSERVABLE","ERROR","CANCELED"]},"comparison":{"enum":[null,"MATCH","MISMATCH","UNOBSERVABLE"]},"expected":{"anyOf":[{"type":"object","additionalProperties":false,"required":["plan_id","step_id","blocks"],"properties":{"plan_id":{"$ref":"day4.schema.json#/$defs/id"},"step_id":{"$ref":"#/$defs/nullable_id"},"blocks":{"type":"array","items":{"$ref":"day4.schema.json#/$defs/block"}}}},{"type":"null"}]},"difference":{"anyOf":[{"type":"object","additionalProperties":false,"required":["missing","unexpected","unobservable"],"properties":{"missing":{"type":"array","items":{"$ref":"day4.schema.json#/$defs/block"}},"unexpected":{"type":"array","items":{"$ref":"day4.schema.json#/$defs/block"}},"unobservable":{"type":"array","items":{"$ref":"day4.schema.json#/$defs/block"}}}},{"type":"null"}]},"reason":{"$ref":"#/$defs/nullable_id"}}},
+    "user_requests": {"type":"object","additionalProperties":false,"required":["change_design","home","assistance_ready"],"properties":{"change_design":{"$ref":"#/$defs/request_button"},"home":{"$ref":"#/$defs/request_button"},"assistance_ready":{"$ref":"#/$defs/request_button"}}},
+    "user_request": {"type":"object","additionalProperties":false,"required":["command","job_id","request_id"],"properties":{"command":{"enum":["REQUEST_DESIGN_CHANGE","REQUEST_HOME","ASSISTANCE_READY"]},"job_id":{"$ref":"day4.schema.json#/$defs/id"},"request_id":{"$ref":"day4.schema.json#/$defs/id"}}},
+    "user_reply": {"type":"object","additionalProperties":false,"required":["command","job_id","request_id","accepted","reason"],"properties":{"command":{"enum":["REQUEST_DESIGN_CHANGE","REQUEST_HOME","ASSISTANCE_READY"]},"job_id":{"$ref":"day4.schema.json#/$defs/id"},"request_id":{"$ref":"day4.schema.json#/$defs/id"},"accepted":{"type":"boolean"},"reason":{"$ref":"#/$defs/nullable_id"}},"allOf":[{"if":{"properties":{"accepted":{"const":false}}},"then":{"properties":{"reason":{"$ref":"day4.schema.json#/$defs/id"}}}}]},
     "nullable_id": {"anyOf":[{"$ref":"day4.schema.json#/$defs/id"},{"type":"null"}]},
     "nullable_sequence": {"anyOf":[{"$ref":"day4.schema.json#/$defs/sequence"},{"type":"null"}]},
     "button": {
@@ -95,7 +127,12 @@
           "step":{"properties":{"comparison":{"const":"MISMATCH"},"observed":{"type":"object"}}}
         }}
       }],
+      "dependentSchemas": {
+        "completion":{"if":{"properties":{"workflow_status":{"const":"COMPLETE"}}},"then":{"properties":{"completion":{"properties":{"assembly":{"const":"MATCH"}}}}}}
+      },
       "properties": {
+        "user_requests":{"$ref":"#/$defs/user_requests"},"inspection":{"$ref":"#/$defs/inspection"},"design_preview":{"$ref":"#/$defs/design_preview"},"dialogue":{"$ref":"#/$defs/dialogue"},
+        "execution":{"$ref":"#/$defs/execution"},"assistance":{"$ref":"#/$defs/assistance"},"completion":{"$ref":"#/$defs/completion"},
         "workflow_status":{"enum":["IDLE","PREPARING","DELIVERING","WAIT_ASSEMBLY","WAIT_INTENT","REPLANNING","WAIT_CORRECTION","HOLD","STOPPED","COMPLETE"]},
         "step":{"$ref":"#/$defs/step"},"progress":{"$ref":"#/$defs/progress"},"monitor":{"$ref":"#/$defs/monitor"},"notice":{"$ref":"#/$defs/notice"},"actions":{"$ref":"#/$defs/actions"},
         "design":{"anyOf":[{"$ref":"day4.schema.json#/$defs/design"},{"type":"null"}]},
