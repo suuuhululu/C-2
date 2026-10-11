@@ -9,4 +9,6 @@
 !interfaces/fixtures/day4.json
 !interfaces/schemas/
 !interfaces/schemas/day4.schema.json
+!planning_trial/
+!planning_trial/**
 **/__pycache__

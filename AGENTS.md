@@ -1,5 +1,7 @@
 # 프로젝트 에이전트 안내
 
+> 2026-10-11 수현의 최신 명시적 확인: 1차 통합은 `docs/handover/final_mvp_interface_20261008/README.md`의 B 소유 계약을 우선합니다. B가 Current·revision·Expected·공간 비교를 확정하고 D는 실행·진행·검사 대응·최종 종료와 HMI/DB를 담당합니다. layer는 정수 1~5입니다. 아래 기존 Day4의 D 상태 채택 구현은 이전 호환 경로이며 최신 B 경로와 중복 실행하지 않습니다.
+
 ## 작업 전 읽기
 
 새 작업의 맥락이 필요하면 README.md → docs/00_CURRENT_DECISIONS.md → docs/STATUS.md를 확인합니다. 일정 작업은 docs/01_DAY_PLAN.md, 역할은 docs/02_TEAM_GUIDE.md, 계약은 docs/06_CONTRACT_DRAFT.md, 장치는 docs/03_MEASUREMENT_GUIDE.md를 읽습니다. 오타·표현 수정은 대상과 직접 관련된 근거만 확인하며 모든 문서를 매번 읽지 않습니다. docs/reference/AI_CODE_POLICY.md와 UNIT_TEST_POLICY.md의 작은 작업·사람 리뷰·검증 원칙을 따릅니다.

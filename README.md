@@ -1,5 +1,7 @@
 # Adaptive Co Assembly — C-2 팀 개발 안내
 
+> 2026-10-11 1차 통합 기준: [10/8 최신 계약](docs/handover/final_mvp_interface_20261008/README.md)과 [HMI·DB 통합 안내](docs/D_HMI_DB_ROUND1.md)를 먼저 확인하세요. B가 Current/revision·Expected·비교를 소유하고 D는 실행·진행·최종 종료를 담당합니다. 공통 layer는 1~5입니다. 기존 Day4 실행 예시는 B 소유 경로 연결 완료를 뜻하지 않습니다.
+
 LLM과 사용자가 대화로 **커스텀 의자**를 설계·확정하면 조립 순서와 경로를 생성하고 Backend·HMI에 반영합니다. 로봇은 supply board에서 블록을 집어 assembly board에 직접 결착하며, 지지가 필요한 부분은 사람에게 고정 도움을 요청합니다. 계획에 필요한 블록 사용 종료 → Vision 확인과 Backend 최종 조립 판정 → 사용자별 DB 저장·웹앱 반영의 세 단계로 마칩니다.
 
 **2026-10-07 최종 MVP 목표이며 개발 과정에서 수정될 수 있습니다.** 문서 목표와 현재 구현·실제 장치 검증은 구분합니다.

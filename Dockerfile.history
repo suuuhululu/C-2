@@ -4,6 +4,7 @@ COPY requirements-history.txt ./
 RUN pip install --no-cache-dir -r requirements-history.txt
 COPY history ./history
 COPY app ./app
+COPY planning_trial ./planning_trial
 COPY interfaces/fixtures/day4.json ./interfaces/fixtures/day4.json
 COPY interfaces/schemas/day4.schema.json ./interfaces/schemas/day4.schema.json
 ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1
