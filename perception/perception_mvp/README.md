@@ -1,5 +1,34 @@
 # 실제 Perception 처리 코드
 
+## 2026-10-12 B 관측 생산자 INITIAL/STEP/FINAL 연결 보완
+
+최신 통합을 포함한 로컬 9f57a7e 기준에서 B 코드만 보완했다. 다른 팀의 코드·문서는 수정하지 않는다.
+
+- main.make_inspection_observer는 기존 connect_inspection의 observe(context, is_active)에 전달할 B callable을 만든다. capture_view(manifest, view, is_active)는 실제 촬영 데이터 폴더·verified_regions·verification_basis를 반환해야 한다. confirm_view, workflow_valid, bundle_valid, 손 stream은 실제 Camera/Controller 조건의 hook이며 함수 존재만으로 실기 연결 완료가 아니다.
+- 요청 문맥을 복사한 뒤 V0 손 진입/이탈·안정 → V0/D1/D3 정지·1쌍 촬영·View별 분석·저장을 수행한다. capture에 전달한 문맥 복사본 변경으로 원래 check_id/순번/검사 종류가 바뀌지 않는다. 취소 시 is_active와 기존 유효성 검사를 적용한다.
+- INITIAL/FINAL에서는 target_after=None이며 가짜 Step 블록을 생성하지 않는다. INITIAL의 전체 24×24×5 확인 범위 부족은 UNOBSERVABLE Observed로 보고하고 검사 코어가 초기 Current 미확인을 유지한다. FINAL 새 확인 근거 없음도 UNOBSERVABLE이다. FINAL의 일부 유효 근거가 있다는 OK는 MATCH가 아니며 실제 Current/Expected 비교는 VisionInspection이 담당한다.
+- STEP과 기존 ASSEMBLY 호출의 기본 동작은 유지한다. 공통 여섯 Observed 필드, 기존 Current/revision 소유, 아래층 이력 정책을 변경하지 않는다. 예상 배치·ROI·빈 검출 목록을 실제 확인 영역으로 대신하지 않는다.
+
+연결 형태(실제 hook이 준비된 경우의 Python 호출 안내이며 독립 실행 명령이 아님):
+
+```python
+from perception_mvp.main import make_inspection_observer
+from perception_mvp.team_connection import connect_inspection
+
+observe = make_inspection_observer(
+    gate, hand_detector, hand_stream, capture_view,
+    weights, calibration, geometry_config, confidence,
+    confirm_view=confirm_view, workflow_valid=workflow_valid,
+    bundle_valid=bundle_valid, output_root=output_root,
+)
+b = connect_inspection(enqueue_result, observe=observe,
+                       geometry_reference=geometry_reference)
+```
+
+실제 Geometry의 보드 기준면·층 높이·허용오차·통합 변환, 실제 정지/안정 hook, verified_regions 생산 근거는 아직 준비/연결 필요다. D 실행기의 합성 observe를 실제 callable로 교체하는 것은 D 담당자가 확인해야 하며 이번 작업에서는 해당 파일을 수정하지 않았다. LLM/API·DB·Robot 제어를 이 함수가 수행하지 않는다.
+
+검증 기록: 2026-10-12 B MVP/legacy/calibration/supply + 로컬 D consumer 입력 검증 함수 대조 **298 passed**, 종료 0. 신규 검사에는 INITIAL/FINAL 범위·가짜 target 거부·문맥 고정/취소와 V0→D1→D3 캡처/저장 hook 실행이 포함된다. 배열·관측 영역·장치 hook은 합성 Fixture이므로 실제 Camera 정확도나 안전·실물 체결 증거가 아니다. Python 문법과 대상 diff 검사도 확인했다. 과거 317개 최신 모의 통합 결과와 중복하므로 합산하지 않는다. 실제 Camera/Controller/DB·웹 검증, commit/push는 수행하지 않았다.
+
 ## 이 PC 실행 환경 — CPU 전용
 
 사용자 결정으로 이 PC는 GPU가 아닌 CPU를 사용합니다. 블록/손 predict는 device=cpu를

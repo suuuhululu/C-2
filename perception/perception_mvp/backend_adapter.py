@@ -7,24 +7,38 @@ from .multiview import merge_views, compare_previous
 
 
 def build_observed(check_id, observation_seq, views, previous_accepted_blocks,
-                   target_after, *, scene_stable):
+                   target_after, *, scene_stable, check_kind='STEP'):
     if not isinstance(check_id, str) or not check_id:
         raise ValueError("Backend check_id required")
     if type(observation_seq) is not int or observation_seq < 0:
         raise ValueError("nonnegative bundle-start sequence required")
-    validate_block(target_after)
+    if check_kind == 'STEP':
+        validate_block(target_after)
+    elif check_kind not in ('INITIAL', 'FINAL') or target_after is not None:
+        raise ValueError('INITIAL/FINAL require explicit kind and no invented target')
     for block in previous_accepted_blocks:
         validate_block(block)
     if any((v["check_id"], v["observation_seq"]) != (check_id, observation_seq) for v in views):
         raise ValueError("view identifiers differ from requested bundle")
     merged = merge_views(views, scene_stable=scene_stable)
     regions, visible = merged["verified_regions"], merged["visible_blocks"]
-    readable = footprint(target_after) <= region_cells(regions)
+    verified = region_cells(regions)
+    if check_kind == 'STEP':
+        readable = footprint(target_after) <= verified
+        reason = 'target_region_unverified'
+    elif check_kind == 'INITIAL':
+        readable = all((x, y, layer) in verified for layer in range(1, 6)
+                       for y in range(24) for x in range(24))
+        reason = 'initial_scope_unverified'
+    else:
+        # FINAL spatial comparison remains VisionInspection's responsibility.
+        readable = bool(verified)
+        reason = 'final_observation_evidence_missing'
     # Expected selects necessary evidence only; mismatch does not filter actual blocks.
     observed = {"check_id": check_id, "observation_seq": observation_seq,
                 "status": "OK" if readable else "UNOBSERVABLE",
                 "visible_blocks": deepcopy(visible), "verified_regions": deepcopy(regions),
-                "reason": None if readable else "target_region_unverified"}
+                "reason": None if readable else reason}
     diagnostics = {"check_id": check_id, "observation_seq": observation_seq,
                    "issues": merged["issues"], "view_ids": [v["view_id"] for v in views],
                    "block_evidence": merged.get("block_evidence", []),
