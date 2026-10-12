@@ -549,3 +549,12 @@ PR 게시 대상과 최신 main을 합친 독립 파일 트리에서 `QT_QPA_PLA
 - 사용자 요청으로 현재 로컬 기본 실행 코드를 PR로 보존하고 팀장 계정 병합을 준비했다. 최신 main `a459e13`에서 별도 worktree를 만들어 미게시 Backend/Qt·C 함수/STT/TTS·네 공급열·명시 사전 이동·STOP/probe/확인된 기록 재개와 관련 검사/Schema/Fixture만 옮겼다. 기존 main의 C/A/B/DB·최신 팀 계약·CODEOWNERS를 유지했다. 로컬 발표/제출 초안과 새 사람 전달 0단계는 이 PR에서 제외하고 원본/백업에 보존했다.
 - 게시 트리 검사 `env -u HISTORY_TEST_DSN QT_QPA_PLATFORM=offscreen python3 -m pytest tests planning_trial/test_planner.py -q`: **1371 passed, 24 skipped**, 실패/오류 0, 종료 0. 24개는 별도 실제 DB DSN 필요 검사다. Robot/Camera/음향/외부 API는 실행하지 않았다. Python/JSON 파싱·diff 공백 확인. CI/lint/type 추가 없음. 기존 실기 STOP/재개·현재→HOME 경로·음성/Camera 연결의 현장 미검증 상태는 유지한다.
 - 팀원 리뷰가 어려운 상황에서 사용자가 팀장 권한 병합을 명시적으로 요청했다. PR에 동료 리뷰 미수행과 사용자 승인 사유를 기록하며 자기 Approve나 가짜 사람 리뷰를 발행하지 않는다. 기존 보호 규칙은 변경하지 않는다. [기본 버전·백업·복구 방법](D_RUNTIME_BASELINE.md)을 확인한다. 실제 병합과 태그는 GitHub PR/커밋 상태로 구분한다.
+
+
+## 2026-10-12 웹앱·DB PR — HMI 제외
+
+사용자 최신 요청으로 웹앱과 DB만 `codex/integration-round1`의 `02137d8` 기준 별도 작업 공간에서 선택 반영했다. `DB 개발용`·`웹앱`의 최신 대화에 따른 제작자별 도안 관리, 버전별 선택 공개/해제, 로그인 없이 공개 모형/제작자/층별 설계도 조회를 제공한다. 기존 계정/JSONL/Job 소유권·개인 저장 코드를 재사용하고 공개 테이블 migration 002를 추가했다. 계정 원문·비밀번호·DSN·실제 로그/DB 데이터는 포함하지 않는다.
+
+기존 8개 단위/DB/웹 검사 파일 **159 passed**, 실패/오류/skip 0, 종료 0(26.29초). 별도 `c2_hmi_web_pr_20261012_test` PostgreSQL과 로컬 HTTP를 사용했다. 첫 실행은 한글 file URL 경로를 디코딩하지 않은 테스트 1 failed/158 passed였고 테스트 경로 해석 수정 후 전부 재실행했다. Node SVG/UI·층 선택·입력 보존 및 JS 구문 검사 종료 0. 검사 산출물은 별도 PR 작업 폴더 `logs/hmi-history-web-pr/`에 보관하며 과거 채팅의 통과 수치를 재사용하지 않았다.
+
+Qt HMI/HMI 로그인 결선/새 D 통합 실행기/A/B/C/로봇·장치 설정은 변경/게시하지 않는다. 원래 `/home/ms-02/C_2`의 지정 브랜치·미커밋 변경은 보존했다. 이번 PR에서 실제 브라우저 수동 화면·외부 서비스 배포·Robot/Camera/음성/API·전체 사람 조립은 시험하지 않았다. 실행·기능 경계는 [웹 안내](D_WEB_HISTORY_RUN.md)를 따른다.

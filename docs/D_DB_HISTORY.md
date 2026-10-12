@@ -285,3 +285,12 @@ save-job은 Job 잠금과 트랜잭션으로 원본 경로/행/해시/입력 계
 독립 Fixture는 [문서 예시 사본](../tests/fixtures/history_final_mvp.json), 단위 검사는 [최신 입력 검사](../tests/unit/test_history_final_mvp.py), 실제 PostgreSQL 검사는 [소유권·저장 검사](../tests/integration/test_history_personal_db.py)다. 기존 DB/계정 검사도 함께 실행한다. 신규 실행 의존성·ORM·웹 framework·ROS 노드는 추가하지 않았다. 변경 규모는 입력 Schema·독립 예시·정상/실패 검사와 SQL 변경·조회·명령 구현에 필요하며 범용 계층이나 B 전용 저장소를 추가하지 않았다.
 
 실제 실행 결과는 [STATUS](STATUS.md)의 2026-10-08 항목과 로컬 logs/history_reports/mvp-* 기록에 남긴다. 사용자별 웹 인증·세션 만료(V12), 실제 B/D Producer–Consumer 연결, HMI·Camera·Robot·전체 공정은 미연결·미검증이다. V11/V14의 DB 내부 항목을 검사한 것이며 최종 MVP 전체 시험 완료가 아니다.
+
+
+## 2026-10-12 웹 제작자 갤러리·선택 공개 (HMI 제외 PR)
+
+`codex/integration-round1`의 `02137d8` 위에 기존 DB 계정/적재/소유권/개인 조회 코드를 유지하고 웹 소비자 `history.web`, 제작자별 조회/공개 제어 `history.gallery`, migration `002_design_publications.sql`과 웹 자산을 추가했다. 공개 도안은 제작자 이름/ID·Design 버전·3D 모형/층별 설계도로 조회하며 개인 Job/대화/관측/로그 경로는 공개하지 않는다. 새 기록은 비공개이고 제작자가 버전별 공개/해제를 선택한다. 저장 확인과 웹 공개, 물리 조립 완료는 별개다.
+
+이번 PR에는 Qt HMI·제작자 HMI 로그인 결선·작업 시작 시 소유자 자동 연결·새 D 실행기·A/B/C·Robot 변경을 포함하지 않는다. 로컬 HMI/실물 시험과 원격 웹·DB 반영 상태를 혼동하지 않는다. 실제 사용자 계정·비밀번호·접속 설정·기존 이력은 배포하지 않는다. [웹 실행 안내](D_WEB_HISTORY_RUN.md)를 따른다.
+
+별도 PostgreSQL 시험 DB에서 기존 단위/DB/웹 HTTP 검사 8개 파일 **159 passed**, 실패/오류/skip 0, 종료 0(26.29초). 인증 성공/실패·세션 만료/로그아웃·타 소유자 차단·기본 비공개·공개/해제/재공개·버전 분리·개인 정보 비노출·저장 의미·DB 장애를 검사했다. Node 실제 SVG/UI 함수의 빨강 2점 0°/90°·5층·공개 층 선택·개인 버튼 숨김·입력 불변 검사와 JavaScript 구문 검사도 종료 0. 첫 검사에서 한글 경로의 file URL 디코딩 누락으로 자산 경로 테스트 1개가 실패했으며 `unquote`로 수정한 뒤 전체를 재검사했다. 앱 자산 경로와 assertion은 유지했다. 증거는 이번 PR 작업 폴더의 `logs/hmi-history-web-pr/`에 보관한다. 이번 실행에서 브라우저 수동 화면/외부 배포·HMI/실제 장치·사람 조립은 검증하지 않았다.
