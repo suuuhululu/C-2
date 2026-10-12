@@ -25,6 +25,58 @@ def overlay_inputs():
     return np.zeros((320,400,3),np.uint8), freeze_overlay_states(current,target,{}), projection
 
 
+@pytest.mark.parametrize('stage,comparison,legend', [
+    ('OBSERVING', None, 'Current (confirmed)'),
+    ('CONFIRMED', 'MATCH', 'Previous confirmed Current'),
+    ('CONFIRMED', 'MISMATCH', 'Previous confirmed Current'),
+    ('UNOBSERVABLE', 'UNOBSERVABLE', 'Current (confirmed)')])
+def test_automatic_overlay_mode_tracks_actual_comparison_stage(monkeypatch, stage, comparison, legend):
+    from perception_mvp.visualization import render_comparison_overlay
+    rgb, snapshot, projection = overlay_inputs()
+    state = dict(check_id='auto', display_stage=stage, comparison=comparison,
+        previous_current=dict(blocks=snapshot['current']),
+        current=dict(blocks=snapshot['expected']), expected=snapshot['expected'])
+    payload = dict(state=state, projection=projection, projection_valid=True,
+        height_reference='board_flat_surface', phase='COMPARISON', view_id='V0', frame_stamp_ns=123)
+    texts = []
+    monkeypatch.setattr('perception_mvp.visualization.cv2.putText',
+                        lambda image,text,*args: texts.append(text))
+    _, report = render_comparison_overlay(rgb, payload, view='V0', frame_stamp_ns=123,
+                                         stopped=True, hand_clear=True)
+    assert report['overlay_visible'] and texts[0] == legend
+
+
+@pytest.mark.parametrize('mode', ['changes', 'target'])
+def test_comparison_overlay_modes_use_confirmed_states(mode):
+    from perception_mvp.visualization import render_comparison_overlay
+    rgb, snapshot, projection = overlay_inputs()
+    state = dict(check_id='c1', previous_current=dict(current_revision=0, blocks=snapshot['current']),
+        current=dict(current_revision=1, blocks=snapshot['expected']), expected=snapshot['expected'])
+    payload = dict(state=state, projection=projection, projection_valid=True,
+                   height_reference='board_flat_surface', phase='COMPARISON', view_id='V0', frame_stamp_ns=123)
+    result, report = render_comparison_overlay(rgb, payload, view='V0', frame_stamp_ns=123,
+        stopped=True, hand_clear=True, mode=mode)
+    assert report['overlay_visible'] and report['render_mode'] == '3d_volume'
+    assert np.any(result != rgb)
+
+
+@pytest.mark.parametrize('field,value,reason', [
+    ('phase', 'CANCELED', 'not_comparison_phase'),
+    ('view_id', 'D1', 'comparison_frame_mismatch'),
+    ('frame_stamp_ns', 456, 'comparison_frame_mismatch'),
+    ('height_reference', 'stud_top', 'board_flat_height_reference_unconfirmed')])
+def test_comparison_overlay_hides_invalid_context(field, value, reason):
+    from perception_mvp.visualization import render_comparison_overlay
+    rgb, snapshot, projection = overlay_inputs()
+    payload = dict(state=dict(check_id='c1',current=dict(blocks=snapshot['current']),
+        expected=snapshot['expected']), projection=projection, projection_valid=True,
+        height_reference='board_flat_surface', phase='COMPARISON', view_id='V0', frame_stamp_ns=123)
+    payload[field] = value
+    _, report = render_comparison_overlay(rgb, payload, view='V0', frame_stamp_ns=123,
+                                         stopped=True, hand_clear=True)
+    assert not report['overlay_visible'] and report['reason'] == reason
+
+
 def test_overlay_projects_top_and_sides_and_preserves_inputs():
     rgb,snapshot,projection = overlay_inputs()
     before = deepcopy(snapshot)

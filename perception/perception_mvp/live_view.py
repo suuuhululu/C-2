@@ -253,6 +253,9 @@ def board_point(pixel, depth, info, calibration):
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--view', choices=('V0', 'D1', 'D3'), required=True)
+    parser.add_argument('--comparison-overlay', type=Path,
+                        help='Local comparison state + actual frame/projection JSON; not Observed')
+    parser.add_argument('--overlay-mode', choices=('auto', 'target', 'changes'), default='auto')
     parser.add_argument('--output', type=Path, required=True)
     parser.add_argument('--calibration', type=Path)
     parser.add_argument('--roi-root', type=Path,
@@ -282,6 +285,8 @@ def main(argv=None):
                         help='Manual diagnostic confirmation, NOT a Controller safety signal')
     args = parser.parse_args(argv)
     args.weights = resolve_live_weights(args.weights, args.integrated)
+    if args.comparison_overlay and not args.integrated:
+        parser.error('--comparison-overlay requires --integrated')
     if args.diagnostic_geometry and not args.integrated:
         parser.error('--diagnostic-geometry requires --integrated')
     if args.roi_root and not args.integrated:
@@ -603,6 +608,21 @@ def main(argv=None):
                 cv2.putText(canvas, 'RESULT FROZEN | receiving OFF | r:new observation' if frozen_canvas is not None
                             else 'RECEIVING ON: stopped observation' if receiver_thread is not None
                             else 'RECEIVING OFF', (8, 136), 0, .42, (0, 220, 255), 1)
+            if args.comparison_overlay:
+                from .visualization import render_comparison_overlay
+                try:
+                    payload = json.loads(args.comparison_overlay.read_text())
+                    overlay, overlay_report = render_comparison_overlay(
+                        cv2.cvtColor(canvas, cv2.COLOR_BGR2RGB), payload, view=args.view,
+                        frame_stamp_ns=stamp(messages['rgb']) if messages and 'rgb' in messages else None,
+                        stopped=args.stopped_and_clear,
+                        hand_clear=bool(hand_event and hand_event.get('observation_allowed'))
+                            if args.view == 'V0' else args.stopped_and_clear,
+                        mode=args.overlay_mode)
+                    canvas = cv2.cvtColor(overlay, cv2.COLOR_RGB2BGR)
+                except (OSError, ValueError) as error:
+                    cv2.putText(canvas, '3D hidden: comparison input unavailable',
+                                (8, 134), 0, .45, (0, 180, 255), 1)
             cv2.imshow(name, canvas)
             key = cv2.waitKey(1) & 255
             if key == ord('q') or cv2.getWindowProperty(name, cv2.WND_PROP_VISIBLE) < 1:

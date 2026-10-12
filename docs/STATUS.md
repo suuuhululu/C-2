@@ -1,5 +1,25 @@
 # 현재 진행 상황
 
+## 2026-10-12 — B 보조 클래스 투표 코드·사이클 연결
+
+- class_vote.py에 metric 중심/높이 기반 보수적 연결, View당 1표, 유효 CANDIDATE 표·UNKNOWN 기권, 2대1/일치/단일표 채택, 동률·모호성·기하 충돌 보류 및 근거 로그 구현. Losing View 검출을 winner 검출로 조작하지 않는다. 기존 빈 영역 충돌 검사 유지.
+- main.observe_cycle→build_observed→merge_views에 선택적 class_vote_policy 연결. 공통 Observed 여섯 필드, D 코드, 기존 Current/revision/아래층/취소 정책 유지. 사용자 미커밋 변경은 보존했다.
+- 실제 연결 허용오차 미채택으로 기본 실행은 기존 판정 유지. 단순 layer UNKNOWN이지만 클래스 유효인 별도 후보 생산, live_view 최종 투표 표시·replay 경로 적용 및 저장 GT 성능 비교는 미완료. 이를 운영 활성화/정확도 개선 완료로 보고하지 않는다. 상세: perception/docs/AUXILIARY_CLASS_VOTE.md.
+- 신규 합성 검사 6개 포함 MVP 전체 276 passed, 1 skipped(D 소비자 경로 미설정), 종료 0. 동일 묶음·부분 View·기권·동률·충돌·연쇄 모호성 검사. 관련 diff --check 통과. 실물/장치 시험 및 Git 게시 없음.
+
+## 2026-10-12 — 3D 비교 모드 자동 전환
+
+- 검증: 최초 회귀 4 failed/266 passed/1 skipped는 auto 단계 검사보다 기존 숨김 사유 검사가 먼저 처리돼야 하는 문제였다. 검사 순서를 수정하고 재실행: 270 passed, 1 skipped(D 수신부 경로 미제공), 종료 0. 대상 diff --check 통과. 실제 장치/팀 화면 검증은 미수행.
+
+- connect_inspection에 선택 display_sink를 연결하고 요청 OBSERVING/확정 CONFIRMED/미확인 UNOBSERVABLE 상태를 제공. 화면 auto 기본 모드는 관측 시 Current/Expected, MATCH/MISMATCH 확정 후 이전/현재 Current, 미확인에는 목표 비교 유지로 동작한다. 새 요청/계획·취소·오류·종료에서 sink에 None 전달. D wire/Observed 변경 없음.
+- 실제 화면 소유 스레드 enqueue·비교 RGB/projection 결선은 별도 필요. STOP/이동·손·frame/View 검사는 기존 표시 함수가 유지하며 Robot 권한을 생성하지 않는다. 현재 실측 높이 미확정 문제는 이 변경으로 해결됐다고 표시하지 않는다. Git 게시/장치 명령 없음.
+
+## 2026-10-12 — 비교 구간 3D 상태 표시 연결
+
+- B inspection은 비교 전 Current를 내부 결과에 보존하고 connection은 읽기 전용 comparison_display_state로 이전/현재 Current·Expected·검사 문맥을 제공. 공통 Observed와 D wire 봉투는 유지. 새 검사/계획·취소·종료·처리 오류는 이전 표시를 무효화한다.
+- visualization에 target/changes 모드를 추가하고 live_view의 선택 comparison-overlay 입력으로 호출. 실제 비교 frame/View·정지·V0 손 조건·평평한 보드 높이 기준·유효 projection을 요구하며 누락/불일치는 숨김. 15% 3D 안내이며 현재/예상과 이전/현재 상태 범례를 구분한다.
+- 신규 검사 포함 B MVP 265 passed, 1 skipped(D 소비자 미지정), 종료 0. 실제 팀 화면 생산자/비교 RGB·보드 평면 기준 변환/층 높이·D 연결은 여전히 필요. 기존 명령만으로 자동 표시 완료라 주장하지 않는다. 기존 사용자 미커밋 변경 보존, D 코드·장치 명령·Git 게시 없음.
+
 ## 2026-10-12 — 손 모델 기본 경로 최신화
 
 - 사용자 요청으로 perception_mvp/config.yaml의 기본 손 weights, live_view.save_hand_roi 및 supply_roi의 V0 손 ROI 설정 생성 경로, README 손 실행 예시를 models/hand_yolo11n_added_20261012/weights/best.pt로 변경했다. 기존 저장된 V0 hand_config.json은 이미 같은 경로다. 블록 모델·시험 임계값·기존 모델·사용자 미완료 변경은 보존한다.
@@ -709,3 +729,18 @@ GPU 현재 A snapshot92파일을 CPU deliverables/GPU_A_수정본_CPU보관_2026
 
 
 후속 완료 검증: 다양한 CPU175/175 예상 동작 확인(정상165/거절10), 3,351단계 재평가 통과. 추가 HMI·연결91 PASS, API샘플 러너도 현재 정책으로 정렬해34/34 PASS를 확인했다. 20/40 밀집1층 whole API30.2099/30.5314초, 전체 집합486.29초, 이번 개별 최장30.5314초. 실제20블록 입력에서도12,753상태까지 탐색하며 완성 후보를 반환했다. 도움273/3,351=8.15%로 동일했다. raw 결과·XML·현재소스 hash는 CPU deliverables/A_탐색상태제한제거_20261012에 보존한다. 이 결과는 GPU 최신 수정본·장치 실기·전체 root 검사100% PASS가 아니다. 검증된 후속 변경을 PR #28의 같은 브랜치에 게시하고 재개하는 범위만 승인받았으며 main/integration 병합은 별도다.
+
+## 2026-10-12 — 서플라이 YOLO OBB 채택 반영
+
+- 사용자 요청에 따라 supply_vision의 모델 입력을 task=obb로 전환했다. OpenCV 색상 후보 → 원본 RGB crop OBB 추론 → 전체 RGB 중심/모서리 복원 → 슬롯 후보·중심·영상 회전 방향 반환이다. detect/segment 모델을 거부한다. Depth/자동 로봇 실행/기존 assembly 변경은 없고 기존 손·설정·모델 삭제 등 다른 작업을 보존했다.
+- obb_geometry.py는 xywhr 중심을 그대로 사용하고 원본 crop offset을 복원한다. 너비/높이가 뒤바뀐 예측을 긴 축 기준으로 정규화하며 직사각형 영상 각도는 [0,180) degree, 정사각 2x2는 90도 동등 축으로 표시한다. 영상 +u 기준 시계방향(v 아래)이며 Robot wrist 각도가 아니다. 파지할 두 변의 중점과 대각선 십자 표시를 유지한다. 모서리 순서/각도 필드는 로컬 인계 문서에 명시했다.
+- README·BACKEND_HANDOFF·config_TEMPLATE와 crop 회귀 검사를 갱신했다. 이제 surface 설정은 HSV 범위/minimum_area만 사용하며 이전 quad 추정 설정은 필요 없다. 이전 top_surface.py는 과거 시험/검사 근거로 보존하지만 실행 경로에서 호출하지 않는다. 공통 Service/Schema를 변경하지 않았다.
+- 실제 검증: supply 검사 **31 passed**, 전체 supply/perception_mvp/legacy **304 passed, 1 skipped**, 각각 종료 0. 모델 결과 adapter/중심/회전/width-height 교환/2x2 동등성/잘못된 모델 거부/색상 우선/crop 원본 좌표 복원을 합성·대체 추론으로 검사했다. compileall·git diff --check 종료 0. 기존 skip은 제공되지 않은 PR22 Consumer 검사이며 실제 D 계약 검증으로 표시하지 않는다. lint/type 미구성.
+- 미검증: 학습된 실제 OBB 모델·실제 RealSense/ROS 수신·중심/각도 오차·D 변환/Service·파지. OBB는 직사각형 예측이므로 원근 사다리꼴 윗면과 정확한 중심이 일치한다고 보장하지 않는다. 라벨 검수/독립 장면 및 실제 crop 평가가 필요하다. 최신 D 빨강 1x2x1과 기존 로컬 별칭 red_2x1/2x1x1 매핑은 연결 시 합의 필요하다. 다음: OBB 라벨링 마무리·학습 → 실제 중심/각도 평가 → D 픽셀/각도 보정 연결. commit/push/PR 없음.
+
+## 2026-10-12 — 서플라이 요청 함수 연결부·RGB replay 추가
+
+- 사용자가 현 시점 구현 가능한 작업을 요청했고 D의 Service 이름/타입은 아직 미정이라고 확인했다. 공통 ROS 타입/Service를 임의 추가하지 않고 supply_vision/request_session.py에 SupplyRequestSession의 submit/observe/cancel/expire를 구현했다. 명시적 TEST/REAL 모드, config 복사 고정, 단일 활성 요청, session 내 요청 ID 재사용 금지, 요청 이후/현재 이하 프레임, 추론 중 취소/만료 결과 폐기와 오류 원인 유지가 있다. mode가 REAL이어도 LOCAL_ONLY 결과이며 Robot 실행권한이 아니다.
+- 기존 단발 ROS 진단 실행도 동일 session으로 요청/결과를 처리한다. replay.py는 원본 저장 RGB·실제 OBB 모델·실측 config·TEST 요청으로 ROS 없이 인식 결과 JSON을 저장한다. 원본/기존 출력 덮어쓰기 없음. request_TEMPLATE에 mode 미입력을 명시하고 README·BACKEND_HANDOFF에 호출 예시/오류 경계/transport 미연결을 기록했다.
+- 실제 검증: supply 단위 검사 **43 passed**, 전체 supply/perception_mvp/legacy **325 passed, 1 skipped**, 각각 종료 0. 단위의 모델/clock/process는 합성·대체 연결이며 실제 D 통신 증거가 아니다. compileall·replay --help·git diff --check 종료 0. 기존 skip은 미제공 Consumer 소스 검사다. lint/type 미구성.
+- 미검증: 실제 학습된 supply OBB 모델이 현재 모델 경로에서 확인되지 않음, 실제 RGB replay 추론/RealSense/ROS 수신·Service·Robot. 슬롯 ROI/HSV/관측·보정 설정은 실제값 필요. Service 타입/취소·응답 오류 형식/worker 연결은 D 합의 후 추가한다. 영상 callback이 STOP executor를 막지 않도록 실제 연결은 별도 검증한다. 새 클래스는 요청 취소가 추론 완료 결과를 무효화하는 독립 책임 때문에 1개로 제한했다. 신규 dependency/로봇 명령/자동 재실행/공통 계약 변경 없음. 사용자 미완료 변경을 보존했고 commit/push/PR 없음.

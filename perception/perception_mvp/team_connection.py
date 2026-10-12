@@ -10,7 +10,8 @@ from .contracts import validate_block
 from .inspection import VisionInspection
 
 
-def connect_inspection(submit_result, *, observe, geometry_reference, initial_current=None):
+def connect_inspection(submit_result, *, observe, geometry_reference, initial_current=None,
+                       display_sink=None):
     """10/8 entry point: D binds request/cancel/load_plan explicitly.
 
     submit_result must enqueue into D's owning thread (not mutate Qt/Backend here).
@@ -21,20 +22,25 @@ def connect_inspection(submit_result, *, observe, geometry_reference, initial_cu
         raise ValueError('actual observe and D result callback required')
     if not isinstance(geometry_reference, str) or not geometry_reference:
         raise ValueError('geometry reference required')
-    connection = InspectionConnection(submit_result, observe, geometry_reference, initial_current)
+    if display_sink is not None and not callable(display_sink):
+        raise ValueError('display_sink must enqueue into the display owner thread')
+    connection = InspectionConnection(submit_result, observe, geometry_reference, initial_current, display_sink)
     connection._worker.start()
     return connection
 
 
 class InspectionConnection:
     """Serial B state owner, asynchronous capture, synchronous cancel boundary."""
-    def __init__(self, submit_result, observe, geometry_reference, current):
+    def __init__(self, submit_result, observe, geometry_reference, current, display_sink=None):
         self.submit_result, self.observe = submit_result, observe
         self.geometry_reference = geometry_reference
         self.inspection = VisionInspection(current)
         self._lock, self._queue = RLock(), Queue()
         self._active, self._closed, self._seen = None, False, {}
         self.last_delivery_error = None
+        self._display_state = None
+        self.display_sink = display_sink
+        self.last_display_error = None
         self._worker = Thread(target=self._run, name='b-inspection-worker', daemon=True)
 
     def load_plan(self, design, plan, plan_base_current, *, geometry_reference):
@@ -45,6 +51,21 @@ class InspectionConnection:
                 raise ValueError('geometry reference mismatch')
             self.inspection.load_plan(design, plan, plan_base_current,
                                       geometry_reference=geometry_reference)
+            self._set_display(None)
+
+    def comparison_display_state(self):
+        """Local display snapshot, not an extension of the common result schema."""
+        with self._lock:
+            return deepcopy(self._display_state)
+
+    def _set_display(self, state):
+        self._display_state = deepcopy(state)
+        if self.display_sink is not None:
+            try:
+                self.display_sink(deepcopy(state))
+            except Exception as error:
+                self.last_display_error = str(error)
+                self._display_state = None
 
     @staticmethod
     def _failure(request, status, reason):
@@ -86,6 +107,7 @@ class InspectionConnection:
                 return  # Completed/canceled identical requests never trigger capture twice.
             if self._active is not None:
                 raise ValueError('cancel current check before replacement')
+            self._set_display(None)
             try:
                 context = self.inspection.start_check(request, geometry_reference=self.geometry_reference)
             except (ValueError, LookupError) as error:
@@ -93,6 +115,9 @@ class InspectionConnection:
                 self._publish(self._failure(request, 'ERROR', str(error)))
                 return
             self._seen[identity], self._active = request, identity
+            self._set_display(dict(**request, display_stage='OBSERVING',
+                previous_current=deepcopy(context['current']), current=deepcopy(context['current']),
+                expected=deepcopy(context['expected']), comparison=None))
             self._queue.put((request, dict(context, check_kind=kind, observation_seq=0,
                                            geometry_reference=self.geometry_reference)))
 
@@ -102,6 +127,8 @@ class InspectionConnection:
 
     def cancel(self, identity):
         with self._lock:
+            if self._display_state and self._display_state['check_id'] == identity:
+                self._set_display(None)
             self.inspection.cancel(identity)
             if self._active == identity:
                 self._active = None
@@ -127,6 +154,11 @@ class InspectionConnection:
                             continue
                         result = self.inspection.finish_check(request, observed,
                             geometry_reference=self.geometry_reference, issues=diagnostics.get('issues', ()))
+                        self._set_display(dict(**request,
+                            display_stage='CONFIRMED' if result['comparison'] in ('MATCH', 'MISMATCH') else 'UNOBSERVABLE',
+                            previous_current=deepcopy(result.get('previous_current')),
+                            current=deepcopy(result['current']), expected=deepcopy(result['expected']),
+                            comparison=result['comparison']))
                         comparison = result['comparison']
                         unavailable = comparison == 'UNOBSERVABLE' or (
                             request['check_kind'] == 'INITIAL' and (
@@ -146,6 +178,7 @@ class InspectionConnection:
                 except Exception as error:
                     with self._lock:
                         if self.is_active(identity):
+                            self._set_display(None)
                             self.inspection.cancel(identity)
                             self._active = None
                             self._publish(self._failure(request, 'ERROR', 'PROCESSING_FAILED: ' + str(error)))
@@ -159,6 +192,7 @@ class InspectionConnection:
             if self._active is not None:
                 self.cancel(self._active)
             self._closed = True
+            self._set_display(None)
             self._queue.put(None)
         self._worker.join(timeout=1.)
 

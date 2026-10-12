@@ -30,11 +30,11 @@ def freeze_overlay_states(current_blocks, expected_blocks, version_context, *, a
 
 
 def render_state_overlay(rgb, snapshot, projection, *, stopped, projection_valid,
-                         hidden_reason=None, alpha=.15):
+                         hidden_reason=None, alpha=.15, labels=None):
     """Invalid projection hides guidance rather than drawing invented geometry."""
     try:
         return _render_state_overlay(rgb, snapshot, projection, stopped=stopped,
-            projection_valid=projection_valid, hidden_reason=hidden_reason, alpha=alpha)
+            projection_valid=projection_valid, hidden_reason=hidden_reason, alpha=alpha, labels=labels)
     except (ValueError, KeyError, TypeError, np.linalg.LinAlgError, cv2.error) as error:
         if rgb.dtype != np.uint8 or rgb.ndim != 3 or rgb.shape[2] != 3 or not rgb.size:
             raise
@@ -45,7 +45,7 @@ def render_state_overlay(rgb, snapshot, projection, *, stopped, projection_valid
 
 
 def _render_state_overlay(rgb, snapshot, projection, *, stopped, projection_valid,
-                          hidden_reason=None, alpha=.15):
+                          hidden_reason=None, alpha=.15, labels=None):
     """Return live RGB guidance + separate display diagnostics, never Observed.
 
     projection: actual camera_to_board, RGB intrinsics, measured grid_origin_m
@@ -145,13 +145,61 @@ def _render_state_overlay(rgb, snapshot, projection, *, stopped, projection_vali
         cv2.fillConvexPoly(tinted, polygon - [x0,y0], fill)
         region[:] = cv2.addWeighted(tinted, alpha, region, 1 - alpha, 0)
         cv2.polylines(output, [polygon], True, edge, thickness)
-    for index, (label, color) in enumerate((("Current (before bundle)", (255,100,220)),
-            ("Expected (THIS step); thick = added target", (80,255,100)))):
+    labels = labels or ('Current (confirmed)', 'Expected (THIS check)')
+    for index, (label, color) in enumerate(zip(labels, ((255,100,220), (80,255,100)))):
         cv2.putText(output, label, (8, 22 + index * 20), cv2.FONT_HERSHEY_SIMPLEX, .45, color, 1)
     return output, {"overlay_visible": True, "reason": None, "guidance_only": True,
                     "skipped": skipped, "render_mode": "3d_volume",
                     "rendered_faces": len(faces),
                     "version_context": deepcopy(snapshot["version_context"])}
+
+
+def render_comparison_overlay(rgb, payload, *, view, frame_stamp_ns, stopped,
+                              hand_clear, mode='auto'):
+    """Local display input with explicit frame/check context, never Robot permission.
+
+    payload contains state from comparison_display_state(), projection, view_id,
+    frame_stamp_ns and phase. Producer must supply the ACTUAL comparison frame.
+    """
+    try:
+        state = payload['state']
+        reason = None
+        if payload['phase'] != 'COMPARISON' or not state['check_id']:
+            reason = 'not_comparison_phase'
+        elif payload['view_id'] != view or payload['frame_stamp_ns'] != frame_stamp_ns:
+            reason = 'comparison_frame_mismatch'
+        elif not hand_clear:
+            reason = 'hand_or_safety_unconfirmed'
+        elif payload.get('height_reference') != 'board_flat_surface':
+            reason = 'board_flat_height_reference_unconfirmed'
+        if reason:
+            return render_state_overlay(rgb, None, None, stopped=stopped,
+                                        projection_valid=False, hidden_reason=reason)
+        if mode == 'auto':
+            stage = state.get('display_stage')
+            if stage == 'CONFIRMED' and state.get('comparison') in ('MATCH', 'MISMATCH'):
+                mode = 'changes'
+            elif stage in ('OBSERVING', 'UNOBSERVABLE'):
+                mode = 'target'
+            else:
+                raise ValueError('automatic overlay stage unavailable')
+        if mode == 'changes':
+            before = state['previous_current']
+            snapshot = freeze_overlay_states(None if before is None else before['blocks'],
+                None if state['current'] is None else state['current']['blocks'], state)
+            labels = ('Previous confirmed Current', 'Current after comparison')
+        elif mode == 'target':
+            snapshot = freeze_overlay_states(None if state['current'] is None else state['current']['blocks'],
+                                              state['expected'], state)
+            labels = ('Current (confirmed)', 'Expected (THIS check)')
+        else:
+            raise ValueError('unknown overlay mode')
+        return render_state_overlay(rgb, snapshot, payload.get('projection'), stopped=stopped,
+            projection_valid=payload.get('projection_valid') is True,
+            hidden_reason=reason, labels=labels)
+    except (KeyError, TypeError, ValueError) as error:
+        return render_state_overlay(rgb, None, None, stopped=stopped, projection_valid=False,
+                                    hidden_reason='comparison_input_invalid: '+str(error))
 
 
 def _block_surfaces(corners, bottom, top, cells, origin, pitch, stud_height):
