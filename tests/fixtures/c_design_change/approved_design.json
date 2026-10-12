@@ -1,0 +1,125 @@
+{
+ "design_version": 1,
+ "blocks": [
+  {
+   "brick_type": "2x3x1",
+   "color": "blue",
+   "x": 8,
+   "y": 8,
+   "layer": 1,
+   "orientation_deg": 90
+  },
+  {
+   "brick_type": "2x3x1",
+   "color": "blue",
+   "x": 11,
+   "y": 8,
+   "layer": 1,
+   "orientation_deg": 90
+  },
+  {
+   "brick_type": "2x3x1",
+   "color": "blue",
+   "x": 8,
+   "y": 12,
+   "layer": 1,
+   "orientation_deg": 90
+  },
+  {
+   "brick_type": "2x3x1",
+   "color": "blue",
+   "x": 11,
+   "y": 12,
+   "layer": 1,
+   "orientation_deg": 90
+  },
+  {
+   "brick_type": "2x3x1",
+   "color": "yellow",
+   "x": 8,
+   "y": 8,
+   "layer": 2,
+   "orientation_deg": 0
+  },
+  {
+   "brick_type": "2x3x1",
+   "color": "yellow",
+   "x": 8,
+   "y": 11,
+   "layer": 2,
+   "orientation_deg": 0
+  },
+  {
+   "brick_type": "2x3x1",
+   "color": "yellow",
+   "x": 10,
+   "y": 8,
+   "layer": 2,
+   "orientation_deg": 0
+  },
+  {
+   "brick_type": "2x3x1",
+   "color": "yellow",
+   "x": 10,
+   "y": 11,
+   "layer": 2,
+   "orientation_deg": 0
+  },
+  {
+   "brick_type": "2x3x1",
+   "color": "yellow",
+   "x": 12,
+   "y": 8,
+   "layer": 2,
+   "orientation_deg": 0
+  },
+  {
+   "brick_type": "2x3x1",
+   "color": "yellow",
+   "x": 12,
+   "y": 11,
+   "layer": 2,
+   "orientation_deg": 0
+  },
+  {
+   "brick_type": "2x3x1",
+   "color": "blue",
+   "x": 8,
+   "y": 8,
+   "layer": 3,
+   "orientation_deg": 0
+  },
+  {
+   "brick_type": "2x3x1",
+   "color": "blue",
+   "x": 8,
+   "y": 11,
+   "layer": 3,
+   "orientation_deg": 0
+  },
+  {
+   "brick_type": "2x3x1",
+   "color": "blue",
+   "x": 8,
+   "y": 8,
+   "layer": 4,
+   "orientation_deg": 0
+  },
+  {
+   "brick_type": "2x3x1",
+   "color": "blue",
+   "x": 8,
+   "y": 11,
+   "layer": 4,
+   "orientation_deg": 0
+  },
+  {
+   "brick_type": "2x3x1",
+   "color": "yellow",
+   "x": 8,
+   "y": 9,
+   "layer": 5,
+   "orientation_deg": 0
+  }
+ ]
+}
