@@ -499,14 +499,22 @@ class FakeDCaller:
         self.planning["first"] = first
         _log(f"[A] handle_whole_plan → {first['calculation_status']} plan={first['plan_status']} steps={first['steps']} "
              f"execution_allowed={first['execution_allowed']}")
+        injected = [b for b in self.approved["blocks"] if b["layer"] == 4][:1] if blocked_block else []
         if first["calculation_status"] == "COMPLETED" and first["plan_status"] == "READY":
-            self.state = "READY_NO_FAILURE"
-            _log("[CALLER] A returned READY → no planning failure to hand to C; scenario stops (Robot not executed)")
-            return False
+            # PR #28(2026-10-12, A complete-order search)부터 이 fixture는 실제 A에서 READY가 된다. HRI 흐름을 시험하려고
+            # Wave 1에 저장한 실제 NO_FEASIBLE_ORDER 결과(fixture)를 D가 받은 것으로 가정해 주입한다(로그에 명시).
+            with open(os.path.join(os.path.dirname(FIXTURE_DIR), "c_plan_failure", "whole_no_feasible_order_real_unpatched.json"),
+                      encoding="utf-8") as handle:
+                stored = json.load(handle)
+            summary = {"calculation_status": stored["calculation_status"], "stage_errors": stored["stage_errors"]}
+            failure = planning_failure_from(summary, injected)
+            self.planning["failure_source"] = "fixture (real A returned READY)"
+            _log("[CALLER] real A returned READY → NO_FEASIBLE_ORDER fixture (Wave 1 stored A result) injected for the HRI test")
+        else:
+            failure = planning_failure_from(first, injected)
+            self.planning["failure_source"] = "real A result"
         self.state = "HOLD"
         _log("[CALLER] Robot HOLD (no execution)")
-        injected = [b for b in self.approved["blocks"] if b["layer"] == 4][:1] if blocked_block else []
-        failure = planning_failure_from(first, injected)
         self.planning["failure"] = failure
         _log(f"[CALLER] planning_failure: code={failure['failure_code']} redesign_required={failure['redesign_required']} "
              f"blocked_blocks={len(failure['blocked_blocks'])}{' (injected: D assumed to know the block)' if injected else ''}")

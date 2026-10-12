@@ -7,13 +7,21 @@ Candidate v2 can be produced without the network; voice is never touched (tests/
 Camera, no DB: the caller counts robot_calls and replan_calls instead.
 """
 
+import json
 import os
 import sys
 from copy import deepcopy
+from pathlib import Path
 
 import pytest
 
 from app.c_design import designer, dialogue, llm, main, validator
+
+PLAN_FAILURE = Path(__file__).parents[1] / "fixtures" / "c_plan_failure"
+
+
+def _load(path):
+    return json.loads(path.read_text(encoding="utf-8"))
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "scripts"))
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "unit", "c_design"))
@@ -93,7 +101,10 @@ def _run(caller, blocked_block=False):
 def test_scenario1_revise_candidate_preview_approve_replan(stub, approved, tmp_path, blocked_block):
     caller = _run(_caller(["응, 수정해줘", "좋아, 이대로 해"], tmp_path), blocked_block=blocked_block)
     first, failure = caller.planning["first"], caller.planning["failure"]
-    assert first["calculation_status"] == "NO_FEASIBLE_ORDER" and first["execution_allowed"] is False  # real A on the fixture
+    # Real A is called read-only; since PR #28 (complete-order search) it plans this fixture (READY), so the caller injects
+    # the Wave 1 stored NO_FEASIBLE_ORDER result as the failure D would hand over. Either way: no execution, one failure.
+    assert first["execution_allowed"] is False and first["calculation_status"] in ("COMPLETED", "NO_FEASIBLE_ORDER")
+    assert caller.planning["failure_source"] in ("real A result", "fixture (real A returned READY)")
     assert failure["failure_code"] == "NO_FEASIBLE_ORDER" and failure["redesign_required"] is True
     assert len(failure["blocked_blocks"]) == (1 if blocked_block else 0)
 
@@ -272,11 +283,15 @@ def test_scenario7_stop_cancels_and_late_result_is_ignored(stub, approved, tmp_p
 # ---------------------------------------------------------------------------
 
 
-def test_planning_failure_from_real_a_result_has_no_block_and_speaks_the_general_sentence(approved):
-    current = runner._fixture("current_prefix.json")
-    summary = runner.a_whole_plan(approved, current, generation=1)
+def test_planning_failure_from_stored_a_result_has_no_block_and_speaks_the_general_sentence(approved):
+    # The Wave 1 stored A result (de59b08: NO_FEASIBLE_ORDER with block null) is what D would convert; the live A after
+    # PR #28 plans this fixture instead, which the caller records as the real first result.
+    stored = _load(PLAN_FAILURE / "whole_no_feasible_order_real_unpatched.json")
+    summary = {"calculation_status": stored["calculation_status"], "stage_errors": stored["stage_errors"]}
     failure = runner.planning_failure_from(summary)
     assert summary["calculation_status"] == "NO_FEASIBLE_ORDER" and failure["blocked_blocks"] == []
     assert validator.check_planning_failure(failure) == []
     assert dialogue.build_plan_failure_question(failure).split("\n")[0] == dialogue.PLAN_FAILURE_GENERAL
     assert "NO_FEASIBLE_ORDER" in failure["detail"]  # diagnostics only, never spoken
+    live = runner.a_whole_plan(approved, runner._fixture("current_prefix.json"), generation=1)
+    assert live["execution_allowed"] is False  # read-only either way

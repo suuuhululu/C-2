@@ -12,3 +12,5 @@ Wave 4~5(Planning failure → C 대화 라우팅)용. 모두 실제 A 계약(`pl
 | `step_current_mismatch.json` | StepReassessmentResult | `assembly_contract.envelope` + `assembly_wire.error("CURRENT_MISMATCH", …, 좌석 블록)` | B/D 최신 Current 문제, C 재설계 라우팅 금지 검증용 |
 
 패치 방식은 `tests/unit/test_mvp_workflow.py::test_a_no_order_opens_c_but_invalid_input_does_not`가 D 쪽에서 쓰는 방식과 같다.
+
+주의(2026-10-12 PR #28 이후): A의 complete-order search 개선으로 같은 fixture Design이 이제 실제 A에서 `COMPLETED/READY`(11 Step)를 돌려준다. 위 `*_real_unpatched.json`은 de59b08 시점의 실제 출력(역사 기록)이며, smoke/harness는 실제 A가 READY면 이 저장 결과를 D가 받은 실패로 가정해 주입한다(로그에 명시).
