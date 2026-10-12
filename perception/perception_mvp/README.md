@@ -1,5 +1,14 @@
 # 실제 Perception 처리 코드
 
+## 2026-10-12 PR29 리뷰 — 검사 시작 조건과 촬영/분석 경계
+
+- make_inspection_observer의 INITIAL/FINAL 기본 시작 조건은 STOPPED_CLEAR다. 새 손 진입과 손 이탈 3초 대기는 요구하지 않는다. 실제 V0 정지·안전 확인, 손 ABSENT·설정된 영상 안정 시간·프레임 품질 확인은 계속 필요하다. 저장된 시험 안정값은 밝기 차이 평균 3 이하·연속 1초이며 안전 인증이나 독립 성능 검증값이 아니다. UNKNOWN이나 손 PRESENT를 무시하는 무조건 촬영이 아니다.
+- STEP의 기본은 기존 HUMAN_ASSEMBLY(새 진입→이탈 >3초→안정)다. 로봇 직접 결착 후 STEP은 D와 합의한 작업 문맥에 따라 make_inspection_observer(..., start_condition=함수)로 STOPPED_CLEAR를 명시한다. 함수는 고정된 검사 context를 받아 HUMAN_ASSEMBLY 또는 STOPPED_CLEAR를 반환한다. STEP 종류만 보고 로봇/사람 작업을 임의 추정하지 않으며 공통 요청/Observed 필드는 추가하지 않았다.
+- hand 대기와 begin_observation에는 프레임 유효성 검사를 유지한다. 실제 V0 캡처 문맥을 확인한 뒤 freeze_capture로 CAPTURED 단계에 들어가며, 이후 CPU 분석 시간이 마지막 손 프레임 age를 증가시켰다는 이유로 finish_observation을 실패시키지 않는다. 기존 bundle_valid/is_active/STOP·취소 검사는 분석 후·전달 전에도 유지한다.
+- 수신 종료 뒤 새 손 진입을 감지할 수 있다고 주장하지 않는다. 캡처 후 장면 연속성/로봇 이동/STOP은 실제 Controller·capture hook의 유효성 근거가 필요하다. 이 변경은 D 실행기나 로컬 live_view의 시작 정책을 자동 교체하는 것이 아니다.
+- 실제 검증: B MVP/legacy/calibration/supply 및 로컬 소비자 입력 검증 함수 대조 310 passed, 종료 0. 새 손 진입 없는 INITIAL/FINAL, 사람 STEP 진입 필수, 명시 로봇 STEP, UNKNOWN/불안정 차단, 1초 허용 간격·1.1초 분석의 상태기계 및 캡처/분석 경로를 검사했다. 합성 clock·관측/장치 hook 결과이며 실제 Camera/Robot 시험은 아니다. 기존 사용자 변경 보존. 다른 팀 코드·문서 및 STATUS.md 변경·commit/push 없음.
+- 3초 대기 제거 후 재검사: 2026-10-12 동일 B 관련 범위 316 passed in 5.51s, 종료 0. STOPPED_CLEAR에서 안정 1초 충족 후 즉시 허용, 사람 모드 정확히 3초 거절/3초 초과 허용, 손 재진입/UNKNOWN/프레임 끊김/불안정의 안정 시간 초기화, 다음 사람 요청의 기존 조건 복원, STOP 때 stream 종료를 추가 확인했다. 기존 취소·분석 지연 검사도 재실행했으며 이전 310개 수치와 합산하지 않는다. 실제 카메라 시험은 별도다.
+
 ## 2026-10-12 B 관측 생산자 INITIAL/STEP/FINAL 연결 보완
 
 최신 통합을 포함한 로컬 9f57a7e 기준에서 B 코드만 보완했다. 다른 팀의 코드·문서는 수정하지 않는다.

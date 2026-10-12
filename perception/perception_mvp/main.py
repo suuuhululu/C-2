@@ -31,7 +31,8 @@ def validate_cycle_target(context):
 def make_inspection_observer(gate, hand_detector, hand_stream, capture_view,
                              weights, calibration, config, detector_confidence, *,
                              confirm_view, workflow_valid, bundle_valid,
-                             frame_sink=None, view_sink=None, output_root=None):
+                             frame_sink=None, view_sink=None, output_root=None,
+                             start_condition=None):
     """B observe(context, is_active) callable for connect_inspection.
 
     capture_view(manifest, view, is_active) must supply actual saved RGB-D and
@@ -39,6 +40,11 @@ def make_inspection_observer(gate, hand_detector, hand_stream, capture_view,
     """
     def observe(context, is_active):
         manifest = deepcopy(context)
+        condition = (start_condition(deepcopy(context)) if start_condition is not None else
+                     'HUMAN_ASSEMBLY' if context['check_kind'] == 'STEP' else 'STOPPED_CLEAR')
+        if condition not in ('HUMAN_ASSEMBLY', 'STOPPED_CLEAR'):
+            raise ValueError('explicit HUMAN_ASSEMBLY or STOPPED_CLEAR start condition required')
+        manifest['start_condition'] = condition
         current = manifest.get('current')
         manifest.update(mode='REAL', view_order=['V0', 'D1', 'D3'],
                         previous_accepted_blocks=deepcopy(current['blocks']) if current is not None else [],
@@ -84,7 +90,14 @@ def run_observation_cycle(gate, hand_detector, hand_stream, capture_view, manife
     try:
         if not valid() or confirm_view("V0") is not True or not valid():
             raise RuntimeError("safe stopped V0 and active context required")
-        gate.reset_for_reobservation()
+        condition = context.get('start_condition', 'HUMAN_ASSEMBLY' if
+                                context.get('check_kind', 'STEP') == 'STEP' else 'STOPPED_CLEAR')
+        if condition not in ('HUMAN_ASSEMBLY', 'STOPPED_CLEAR'):
+            raise ValueError('unknown observation start condition')
+        if condition == 'HUMAN_ASSEMBLY':
+            gate.reset_for_reobservation()
+        else:
+            gate.reset_for_reobservation(require_entry=False)
         hand_detector.reset()
         wait_for_hand_ready(hand_stream(), hand_detector, gate, valid, frame_sink=frame_sink)
         if not valid():
@@ -146,6 +159,8 @@ def observe_cycle(gate, capture_view, manifest, weights, calibration, config,
             if regions and not record.get("verification_basis"):
                 raise ValueError("verified regions require actual occupancy evidence")
             require_valid()
+            if view_id == 'V0':
+                gate.freeze_capture()
             view_directory = save_cycle_view(archive, view_id, rgb, raw, aligned,
                                             meta, record["directory"])
             write_cycle_json(view_directory / "capture_evidence.json", dict(

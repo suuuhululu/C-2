@@ -197,6 +197,30 @@ def test_cycle_initial_final_capture_archive_and_no_fake_target(inputs, monkeypa
     assert saved == observed and observed['visible_blocks'] == []
 
 
+def test_v0_offline_analysis_delay_does_not_expire_hand_gate(inputs, monkeypatch, tmp_path):
+    from perception_mvp.hand_cycle import HandCycle
+    manifest, config, calibration, meta = inputs
+    manifest.update(check_kind='FINAL', target_after=None, view_order=['V0', 'D1', 'D3'])
+    clock = [10.]
+    monkeypatch.setattr('perception_mvp.hand_cycle.time.monotonic', lambda: clock[0])
+    gate = HandCycle(.2, 1.)
+    gate.state, gate.last_time = 'READY', 10.
+    def capture(view):
+        return dict(directory=view, verified_regions=[], verification_basis=None)
+    monkeypatch.setattr(runtime, 'load_frame', lambda view:
+        (np.zeros((2, 2, 3), np.uint8), np.full((2, 2), 1000, np.uint16),
+         np.full((2, 2), 1000, np.uint16), dict(meta, view_id=view)))
+    def analyze(*args):
+        clock[0] += 1.1
+        return dict(candidates=[])
+    monkeypatch.setattr(runtime, 'process_saved', analyze)
+    observed, _ = runtime.observe_cycle(gate, capture, manifest, None, calibration, config, .25,
+        callback=lambda value: None, confirm_view=lambda v: True, bundle_valid=lambda: True,
+        output_root=tmp_path/'delay-cycles')
+    assert observed['status'] == 'UNOBSERVABLE'
+    assert gate.state == 'WAIT_ENTRY'
+
+
 def test_low_quality_v0_is_complemented_without_correction(inputs, monkeypatch, tmp_path):
     from perception_mvp.hand_cycle import HandCycle
     manifest, config, calibration, meta = inputs
