@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="A shared gallery of C-2 assembly designs and their creators">
+  <title>C–2 · Assembly Archive</title><link rel="stylesheet" href="./style.css">
+  <script src="./app.js" defer></script>
+</head>
+<body>
+  <header class="topline"><a href="./index.html" class="wordmark">C–2 ARCHIVE</a>
+    <button id="about-open" class="text-button">INFORMATION</button>
+    <div class="account"><button id="collection-open" class="text-button">COLLECTION</button><button id="creations-open" class="text-button">MY DESIGNS</button><span id="identity" hidden></span><button id="login-open" class="text-button">CREATOR LOG IN</button><button id="logout" class="text-button" hidden>LOG OUT</button></div>
+  </header>
+  <main>
+    <section class="hero"><h1>ASSEMBLY (ARCHIVE)<span id="hero-subtitle">#C–2</span></h1></section>
+    <section class="collection" aria-label="Published assembly designs">
+      <div id="gallery" class="gallery"></div>
+      <div id="empty" class="empty" hidden><span>∅</span><h2>No published designs yet.</h2><p>Creators choose which designs to share in this gallery.</p></div>
+      <div id="welcome" class="welcome"><button id="welcome-login" class="paper" aria-label="Log in to view designs"></button><button id="welcome-history" class="paper short" aria-label="Log in to view job history"></button><button id="welcome-record" class="paper" aria-label="Log in to view checks"></button></div>
+    </section>
+
+  </main>
+  <footer><span>C–2 CO-ASSEMBLY</span><span id="updated">PUBLIC DESIGN GALLERY</span><a id="server-link" href="http://127.0.0.1:8765/" hidden>OPEN LOCAL APP ↗</a><a href="#">↑ TOP</a></footer>
+  <dialog id="collection-dialog"><div class="dialog-top"><span>DESIGN COLLECTION</span><button data-close="collection-dialog" aria-label="Close collection">×</button></div><h2>Explore the gallery</h2>
+      <div class="toolbar"><div class="tabs" role="group" aria-label="Record view"><button class="tab active" data-view="gallery" aria-pressed="true">GALLERY <span id="public-count">—</span></button><button class="tab" data-view="mine" aria-pressed="false">MY DESIGNS <span id="design-count">—</span></button></div>
+        <div class="tools"><label class="search"><span>⌕</span><input id="search" type="search" aria-label="Search records" placeholder="Creator or design version"></label><label class="sr-only" for="filter">Publication status</label><select id="filter"><option value="all">All records</option><option value="published">Published</option><option value="private">Not published</option></select><button id="refresh" class="text-button" aria-label="Refresh records">REFRESH ↻</button></div>
+      </div>
+      <p id="notice" class="notice" role="status" aria-live="polite">Explore published designs. Creator login is for managing your own designs.</p>
+<p>Your selections filter the records on the main page.</p><button class="solid" data-close="collection-dialog">VIEW COLLECTION ↗</button></dialog>
+  <dialog id="preview-dialog"><div class="dialog-top"><span>DESIGN PREVIEW</span><button data-close="preview-dialog" aria-label="Close preview">×</button></div><h2>Open your archive.</h2><p>You are viewing the HTML file. Open the local app to log in and load your DB records.</p><a class="solid" href="http://127.0.0.1:8765/">OPEN LOCAL APP ↗</a></dialog>
+  <dialog id="login-dialog"><form id="login-form"><div class="dialog-top"><span>CREATOR ACCOUNT</span><button type="button" data-close="login-dialog" aria-label="Close login">×</button></div><h2>Welcome<br>back.</h2><p>Log in to manage publication of designs linked to your creator account.</p><label>Username<input name="username" autocomplete="username" required maxlength="200"></label><label>Password<input name="password" type="password" autocomplete="current-password" required></label><p id="login-error" role="alert"></p><button class="solid" type="submit">MANAGE MY DESIGNS ↗</button><small>Account registration and job ownership follow the existing setup process.</small></form></dialog>
+  <dialog id="detail-dialog"><div class="dialog-top"><span id="detail-label">ASSEMBLY RECORD</span><button data-close="detail-dialog" aria-label="Close record">×</button></div><div id="detail-body"></div><p id="publication-status"></p><div id="detail-actions" class="detail-actions"><button id="export" class="text-button">EXPORT JSON ↓</button><button id="save" class="text-button">CONFIRM DB SNAPSHOT ↗</button><button id="publish" class="solid">PUBLISH DESIGN ↗</button></div><p id="detail-notice" role="status"></p></dialog>
+  <dialog id="about-dialog"><div class="dialog-top"><span>ABOUT THIS ARCHIVE</span><button data-close="about-dialog" aria-label="Close information">×</button></div><h2>The process becomes<br>the archive.</h2><p>A shared collection from the C–2 co-assembly project. Each published design is shown with its creator and target model. Visitors can explore the gallery without logging in.</p><p>Creators log in to choose which design versions to publish or unpublish. New DB records start unpublished. The gallery refreshes while open; DB snapshot confirmation and assembly completion remain separate from publication.</p><div class="about-bottom">DESIGN REFERENCE · CARGO V191<br>LOCAL COLLECTION · C–2</div></dialog>
+</body>
+</html>
