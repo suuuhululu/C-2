@@ -7,9 +7,13 @@ from .opencv_live import color_mask, HSV_RANGES, top_surface_points, corners_at_
 LIVE_CLASSES = {'yellow_2x2', 'yellow_2x3', 'blue_2x2', 'blue_2x3', 'red_2x1'}
 
 
-def color_crop(rgb):
+def color_crop(rgb, roi_mask=None):
     hsv = cv2.cvtColor(rgb, cv2.COLOR_RGB2HSV)
     masks = {color: color_mask(hsv, color).astype(bool) for color in HSV_RANGES}
+    if roi_mask is not None:
+        if roi_mask.shape != rgb.shape[:2] or roi_mask.dtype != bool:
+            raise ValueError('ROI must match RGB resolution')
+        masks = {color: mask & roi_mask for color, mask in masks.items()}
     union = np.logical_or.reduce(list(masks.values()))
     ys, xs = np.nonzero(union)
     if not len(xs):
@@ -77,12 +81,12 @@ def measure_instance(rgb, mask, part_class, depth, info, calibration, layer_heig
 
 
 def process_frame(rgb, model, confidence, depth=None, info=None, calibration=None,
-                  layer_heights_mm=None, height_tolerance_mm=None):
+                  layer_heights_mm=None, height_tolerance_mm=None, *, roi_mask=None):
     if rgb.dtype != np.uint8 or rgb.ndim != 3 or rgb.shape[2] != 3:
         raise ValueError('uint8 RGB required')
     if not np.isfinite(confidence) or not 0 < confidence <= 1:
         raise ValueError('explicit confidence in (0,1] required')
-    colors, box = color_crop(rgb)
+    colors, box = color_crop(rgb, roi_mask)
     if box is None:
         return []
     x0, y0, x1, y1 = box
@@ -107,12 +111,20 @@ def process_frame(rgb, model, confidence, depth=None, info=None, calibration=Non
         mask[y0:y1, x0:x1] = small
         if not mask.any():
             raise ValueError('empty_instance_mask')
+        boundary = False
+        if roi_mask is not None:
+            if not np.any(mask & roi_mask):
+                continue
+            boundary = bool(np.any(mask & ~roi_mask))
+            mask &= roi_mask
         votes = {color: int(np.count_nonzero(mask & candidate)) for color, candidate in colors.items()}
         winners = [color for color, count in votes.items() if count == max(votes.values()) and count > 0]
         color = winners[0] if len(winners) == 1 else 'UNKNOWN'
         record = dict(mask=mask, part_class=name, color=color, confidence=float(score),
                       reason='color_missing_or_conflict', layer=None)
-        if color == name.split('_')[0]:
+        if boundary:
+            record['reason'] = 'instance_crosses_roi_boundary'
+        elif color == name.split('_')[0]:
             try:
                 record.update(measure_instance(rgb, mask, name, depth, info, calibration,
                                               layer_heights_mm, height_tolerance_mm))
@@ -122,7 +134,7 @@ def process_frame(rgb, model, confidence, depth=None, info=None, calibration=Non
     return records
 
 
-def draw_integrated(canvas, records):
+def draw_integrated(canvas, records, *, show_height=False):
     for record in records:
         mask = record['mask']
         tint = np.array((80, 220, 80) if record['reason'] is None else (0, 180, 255))
@@ -141,6 +153,8 @@ def draw_integrated(canvas, records):
         xy = f"({grid[0]}, {grid[1]})" if grid is not None else 'XY:?'
         layer = f"L{record['layer']}" if record.get('layer') is not None else 'L:?'
         line = f'{kind} | {xy} | {layer}'
+        if show_height and record.get('height_mm') is not None:
+            line += f" | H:{record['height_mm']:.1f}mm"
         (width, height), baseline = cv2.getTextSize(line, cv2.FONT_HERSHEY_SIMPLEX, .4, 1)
         x = max(0, min(int(xs.min()), canvas.shape[1]-width-4))
         y = min(canvas.shape[0]-baseline-2, int(ys.max())+height+6)

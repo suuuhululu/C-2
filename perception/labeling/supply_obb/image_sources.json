@@ -1,0 +1,67 @@
+[
+  {
+    "source": "/home/roh/C-2/perception/recordings/supply_rgb/supply_20261010_173244_177418.png",
+    "working_image": "/home/roh/C-2/perception/labeling/supply_obb/images/supply_20261010_173244_177418.png",
+    "reviewed": false
+  },
+  {
+    "source": "/home/roh/C-2/perception/recordings/supply_rgb/supply_20261010_173313_600166.png",
+    "working_image": "/home/roh/C-2/perception/labeling/supply_obb/images/supply_20261010_173313_600166.png",
+    "reviewed": false
+  },
+  {
+    "source": "/home/roh/C-2/perception/recordings/supply_rgb/supply_20261010_173319_994194.png",
+    "working_image": "/home/roh/C-2/perception/labeling/supply_obb/images/supply_20261010_173319_994194.png",
+    "reviewed": false
+  },
+  {
+    "source": "/home/roh/C-2/perception/recordings/supply_rgb/supply_20261010_173322_368152.png",
+    "working_image": "/home/roh/C-2/perception/labeling/supply_obb/images/supply_20261010_173322_368152.png",
+    "reviewed": false
+  },
+  {
+    "source": "/home/roh/C-2/perception/recordings/supply_rgb/supply_20261010_173325_884629.png",
+    "working_image": "/home/roh/C-2/perception/labeling/supply_obb/images/supply_20261010_173325_884629.png",
+    "reviewed": false
+  },
+  {
+    "source": "/home/roh/C-2/perception/recordings/supply_rgb/supply_20261010_173329_330442.png",
+    "working_image": "/home/roh/C-2/perception/labeling/supply_obb/images/supply_20261010_173329_330442.png",
+    "reviewed": false
+  },
+  {
+    "source": "/home/roh/C-2/perception/recordings/supply_rgb/supply_20261010_173332_470410.png",
+    "working_image": "/home/roh/C-2/perception/labeling/supply_obb/images/supply_20261010_173332_470410.png",
+    "reviewed": false
+  },
+  {
+    "source": "/home/roh/C-2/perception/recordings/supply_rgb/supply_20261010_173338_457115.png",
+    "working_image": "/home/roh/C-2/perception/labeling/supply_obb/images/supply_20261010_173338_457115.png",
+    "reviewed": false
+  },
+  {
+    "source": "/home/roh/C-2/perception/recordings/supply_rgb/supply_20261010_173417_332094.png",
+    "working_image": "/home/roh/C-2/perception/labeling/supply_obb/images/supply_20261010_173417_332094.png",
+    "reviewed": false
+  },
+  {
+    "source": "/home/roh/C-2/perception/recordings/supply_rgb/supply_20261010_173419_713319.png",
+    "working_image": "/home/roh/C-2/perception/labeling/supply_obb/images/supply_20261010_173419_713319.png",
+    "reviewed": false
+  },
+  {
+    "source": "/home/roh/C-2/perception/recordings/supply_rgb/supply_20261010_173458_689162.png",
+    "working_image": "/home/roh/C-2/perception/labeling/supply_obb/images/supply_20261010_173458_689162.png",
+    "reviewed": false
+  },
+  {
+    "source": "/home/roh/C-2/perception/recordings/supply_rgb/supply_20261010_173501_289346.png",
+    "working_image": "/home/roh/C-2/perception/labeling/supply_obb/images/supply_20261010_173501_289346.png",
+    "reviewed": false
+  },
+  {
+    "source": "/home/roh/C-2/perception/recordings/supply_board_roi/20261012T002844481743Z/rgb.png",
+    "working_image": "/home/roh/C-2/perception/labeling/supply_obb/images/supply_20261012_092844.png",
+    "reviewed": false
+  }
+]

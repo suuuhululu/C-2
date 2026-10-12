@@ -32,7 +32,7 @@ def live_hand_components(view, settings):
     detector = HandDetector(settings['weights'], settings['confidence'], settings['board_roi_v0'],
         min_valid_depth_fraction=settings['min_valid_depth_fraction'],
         stable_mean_difference=settings['stable_mean_difference'],
-        image_size=settings.get('board_image_size'))
+        image_size=settings.get('board_image_size'), board_polygon=settings.get('board_polygon_v0'))
     return detector, HandCycle(settings['stable_seconds'], settings['max_frame_gap_seconds'])
 
 
@@ -113,6 +113,7 @@ class HandCycle:
         self.absent_since = None
         self.stable_since = None
         self.entry_seen = False
+        self.require_entry = True
 
     def update(self, hand, stable, timestamp):
         if hand not in ("PRESENT", "ABSENT", "UNKNOWN") or type(stable) is not bool:
@@ -122,16 +123,16 @@ class HandCycle:
         gap = self.last_time is not None and timestamp - self.last_time > self.max_gap
         self.last_time = timestamp
         if hand == "PRESENT":
-            interrupted = self.state in ("READY", "OBSERVING")
+            interrupted = self.state in ("READY", "OBSERVING", "CAPTURED")
             self.entry_seen = True
             self.absent_since = self.stable_since = None
             self.state = "HAND_PRESENT"
             reason = "hand_reentry_observation_invalidated" if interrupted else "hand_entry_confirmed"
         elif hand == "UNKNOWN" or gap:
             self.absent_since = self.stable_since = None
-            self.state = "HOLD" if self.entry_seen else "WAIT_ENTRY"
+            self.state = "HOLD" if self.entry_seen or not self.require_entry else "WAIT_ENTRY"
             reason = "hand_unknown_or_frame_gap"
-        elif not self.entry_seen:
+        elif self.require_entry and not self.entry_seen:
             self.state = "WAIT_ENTRY"
             reason = "hand_entry_not_confirmed"
         else:
@@ -142,7 +143,8 @@ class HandCycle:
                     self.stable_since = timestamp
             else:
                 self.stable_since = None
-            ready = (timestamp - self.absent_since > 3.0 and self.stable_since is not None and
+            exit_ready = not self.require_entry or timestamp - self.absent_since > 3.0
+            ready = (exit_ready and self.stable_since is not None and
                      timestamp - self.stable_since >= self.stable_seconds)
             if self.state != "OBSERVING":
                 self.state = "READY" if ready else "WAIT_EXIT_STABLE"
@@ -151,7 +153,7 @@ class HandCycle:
             reason = "observation_allowed_not_step_complete" if ready else "exit_or_stability_pending"
         return {"state": self.state, "observation_allowed": self.state == "READY",
                 "reason": reason, "monotonic_time": timestamp,
-                "exit_seconds_required_strictly_greater_than": 3.0}
+                "exit_seconds_required_strictly_greater_than": 3.0 if self.require_entry else None}
 
     def begin_observation(self):
         if (self.state != "READY" or self.last_time is None or
@@ -159,25 +161,71 @@ class HandCycle:
             raise RuntimeError("hand exit and stability not confirmed")
         self.state = "OBSERVING"
 
-    def reset_for_reobservation(self):
+    def reset_for_reobservation(self, *, require_entry=True):
         """Call only after external confirmation of a safe stopped V0."""
-        self.state = "WAIT_ENTRY"
+        if type(require_entry) is not bool:
+            raise ValueError('explicit hand entry requirement must be bool')
+        self.require_entry = require_entry
+        self.state = "WAIT_ENTRY" if require_entry else "WAIT_EXIT_STABLE"
         self.last_time = None
         self.entry_seen = False
         self.absent_since = self.stable_since = None
 
+    def freeze_capture(self):
+        """Actual capture is frozen; no live hand frame is expected during analysis."""
+        if self.state != 'OBSERVING' or self.last_time is None:
+            raise RuntimeError('capture interrupted; do not analyze this bundle')
+        self.state = 'CAPTURED'
+
     def finish_observation(self):
-        if (self.state != "OBSERVING" or self.last_time is None or
-                time.monotonic() - self.last_time > self.max_gap):
+        if (self.state not in ("OBSERVING", "CAPTURED") or self.last_time is None or
+                (self.state == 'OBSERVING' and time.monotonic() - self.last_time > self.max_gap)):
             raise RuntimeError("observation interrupted; do not finalize this bundle")
         self.state = "WAIT_ENTRY"
         self.entry_seen = False
         self.absent_since = self.stable_since = None
 
 
+def validate_polygon(points):
+    """Accept simple convex/concave pixel polygons; reject touching/crossing edges."""
+    polygon = np.asarray(points)
+    if (polygon.ndim != 2 or polygon.shape[1] != 2 or len(polygon) < 3 or
+            not np.issubdtype(polygon.dtype, np.integer)):
+        raise ValueError('At least three integer polygon corners required')
+    polygon = polygon.astype(np.int32)
+    if len(set(map(tuple, polygon.tolist()))) != len(polygon):
+        raise ValueError('Repeated corners: do not click the first corner again')
+    def cross(a, b, c):
+        ax, ay = map(int, a)
+        bx, by = map(int, b)
+        cx, cy = map(int, c)
+        return (bx-ax)*(cy-ay) - (by-ay)*(cx-ax)
+    def on_segment(a, b, c):
+        return (min(a[0], b[0]) <= c[0] <= max(a[0], b[0]) and
+                min(a[1], b[1]) <= c[1] <= max(a[1], b[1]))
+    count = len(polygon)
+    for i in range(count):
+        a, b = polygon[i], polygon[(i+1) % count]
+        c = polygon[(i+2) % count]
+        if cross(a, b, c) == 0 and (on_segment(a, b, c) or on_segment(b, c, a)):
+            raise ValueError('Polygon edges overlap')
+        for j in range(i+1, count):
+            if j == i+1 or (i == 0 and j == count-1):
+                continue
+            c, d = polygon[j], polygon[(j+1) % count]
+            ab_c, ab_d, cd_a, cd_b = cross(a,b,c), cross(a,b,d), cross(c,d,a), cross(c,d,b)
+            if ((ab_c*ab_d < 0 and cd_a*cd_b < 0) or
+                    (ab_c == 0 and on_segment(a,b,c)) or (ab_d == 0 and on_segment(a,b,d)) or
+                    (cd_a == 0 and on_segment(c,d,a)) or (cd_b == 0 and on_segment(c,d,b))):
+                raise ValueError('Polygon edges cross/touch; click corners in perimeter order')
+    if cv2.contourArea(polygon) <= 0:
+        raise ValueError('Polygon must enclose an area')
+    return polygon
+
+
 class HandDetector:
     def __init__(self, weights, confidence, board_roi, *, min_valid_depth_fraction,
-                 stable_mean_difference, image_size=None):
+                 stable_mean_difference, image_size=None, board_polygon=None):
         if not isinstance(weights, (str, Path)) or not Path(weights).is_file():
             raise FileNotFoundError("separate local hand detector weights required")
         if (not math.isfinite(confidence) or not 0 < confidence <= 1 or
@@ -195,6 +243,13 @@ class HandDetector:
                 any(type(v) is not int or v <= 0 for v in image_size)):
             raise ValueError('ROI image size must be positive width/height')
         self.image_size = image_size
+        self.polygon = None
+        if board_polygon is not None:
+            polygon = validate_polygon(board_polygon)
+            if ((polygon[:, 0] < board_roi[0]).any() or (polygon[:, 0] >= board_roi[2]).any() or
+                    (polygon[:, 1] < board_roi[1]).any() or (polygon[:, 1] >= board_roi[3]).any()):
+                raise ValueError('Polygon must fit V0 bounding ROI')
+            self.polygon = polygon
         self.previous = None
 
     def reset(self):
@@ -212,7 +267,13 @@ class HandDetector:
             raise ValueError("V0 board ROI outside image")
         crop = rgb[y0:y1, x0:x1]
         gray = cv2.cvtColor(crop, cv2.COLOR_RGB2GRAY)
-        usable = np.count_nonzero(depth[y0:y1, x0:x1]) / gray.size >= self.min_depth
+        area = np.ones(gray.shape, dtype=np.uint8)
+        if getattr(self, 'polygon', None) is not None:
+            area[:] = 0
+            cv2.fillPoly(area, [self.polygon - np.array([x0, y0], np.int32)], 1)
+        selected = area.astype(bool)
+        gray = gray[selected]
+        usable = np.count_nonzero(depth[y0:y1, x0:x1][selected]) / gray.size >= self.min_depth
         difference = None if self.previous is None else float(np.mean(
             np.abs(gray.astype(float) - self.previous.astype(float))))
         self.previous = gray.copy() if usable else None
@@ -227,7 +288,13 @@ class HandDetector:
             left, top, right, bottom = box
             if (self.model.names[int(cls)] == "hand" and left < x1 and right > x0 and
                     top < y1 and bottom > y0):
-                present = True
+                if getattr(self, 'polygon', None) is None:
+                    present = True
+                elif right > left and bottom > top:
+                    # Use the same raster area as Depth/stability, including concave exclusions.
+                    bx0, by0 = max(x0, int(np.ceil(left))), max(y0, int(np.ceil(top)))
+                    bx1, by1 = min(x1, int(np.ceil(right))), min(y1, int(np.ceil(bottom)))
+                    present = present or bool(np.any(area[by0-y0:by1-y0, bx0-x0:bx1-x0]))
         stable = difference is not None and difference <= self.max_difference
         return ("PRESENT" if present else "ABSENT"), stable, {
             "roi_mean_difference": difference, "basis": "separate_hand_model_and_roi_depth",

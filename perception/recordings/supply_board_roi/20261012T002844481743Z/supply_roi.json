@@ -1,0 +1,29 @@
+{
+  "purpose": "SUPPLY_BOARD",
+  "polygon_px": [
+    [
+      233,
+      79
+    ],
+    [
+      918,
+      80
+    ],
+    [
+      931,
+      670
+    ],
+    [
+      231,
+      687
+    ]
+  ],
+  "image_size": [
+    1280,
+    720
+  ],
+  "topic": "/camera/color/image_raw",
+  "stamp_ns": 1791764872274278564,
+  "frame_id": "camera_color_optical_frame",
+  "status": "PIXEL_ROI_ONLY_NOT_ROBOT_CALIBRATION"
+}
