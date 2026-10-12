@@ -10,7 +10,7 @@
 
 ## 새 사본과 환경
 
-현재 통합 소스에서 만든 문서 branch의 `b588c05`를 로컬 Git에서 **새 clone**으로 받았다. 별도 가상환경에 설치했으며 기존 worktree의 Python 패키지를 공유하지 않았다. 후속 문서 갱신은 계산 소스를 바꾸지 않는다. GitHub 게시 후 원격 clone에서도 동일 예제·보존 경로를 확인한다.
+현재 통합 소스에서 만든 문서 branch의 `b588c05`를 로컬 Git에서 **새 clone**으로 받았다. 별도 가상환경에 설치했으며 기존 worktree의 Python 패키지를 공유하지 않았다. 후속 문서 갱신은 계산 소스를 바꾸지 않는다. GitHub 게시 후 원격 clone에서도 동일 예제·보존 경로를 확인했으며 결과는 아래 별도 기록한다.
 
 실행한 clone 명령의 로컬 원본 경로는 이 PC의 문서 worktree였다:
 
@@ -79,6 +79,30 @@ PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 PYTHONDONTWRITEBYTECODE=1 python3 -B -m pytest 
 종료 코드0. **448 passed, 1 skipped in 6.66s**. 루트 전체·C/D·SIM 시험이 아니다.
 제외된 검사는 `test_world_z_grip_rotation_is_not_a_rotation_matrix_from_swapped_grid_labels`이며 독립 비교 라이브러리 `scipy.spatial.transform`이 최소 환경에 없어서 기존 importorskip이 적용됐다. SciPy 설치 환경의 과거 시험을 이번 결과에 합산하지 않는다.
 API34 검사와 pytest448 검사는 범위가 겹치므로 합산하지 않는다.
+
+## GitHub에서 받은 새 사본 확인
+
+문서 branch를 게시한 뒤 다음 명령으로 GitHub에서 직접 새 사본을 받았다. 내려받은 HEAD는 `0e6248ff7e5bdda44845934a4b7c00c3b1d02950`이다.
+
+```bash
+git clone --depth 1 --single-branch --branch codex/a-documentation-classification-20261012 https://github.com/suuuhululu/C-2.git /home/rokey/Documents/ChatGPT/협동2/tmp/a-docs-github-clone-20261012
+```
+
+clone이 완료된 새 사본에서 위 README의 독립 venv 준비, pip check, 기본 Plan, INVALID 반환, API 예제, A pytest와 보존/링크 검사를 다시 실행했다.
+
+| 확인 대상 | 실제 결과 |
+| --- | --- |
+| GitHub clone·환경 설치·pip check | 종료 코드0. 전역 ROS/Qt 없이 가상환경에 pip/jsonschema/pytest와 전이 의존성만 존재 |
+| 기본 Plan·revision 실패 예제 | 종료 코드0, 12단계·층별4/4/2/2 및 INVALID/plan=null |
+| 세 API와 실패·동일 자료 공유 예제 | 종료 코드0, 34/34 PASS |
+| planning_trial pytest | 종료 코드0, 448 passed / 1 skipped in 6.41s. 제외 사유는 동일한 SciPy 미설치 |
+| GitHub 보존 파일·문서 | 253/253 SHA 일치, 상대 링크44개 존재, Git status clean |
+
+두 clone의 검사는 같은 범위이므로 수치를 합산하지 않는다.
+원격 clone 실행 report.json 시각 `2026-10-12T11:29:19.524502+00:00`, SHA256
+`dc21aa57c169bdff175a0bcbd9707ceef98743eafca5bb1e45a432892352990d`.
+처음에는 다운로드 완료 전에 검증을 시작해 planner.py 파일 없음(종료 코드2)이 있었고, 완료 후 재실행한 위 결과와 구분한다. 이는 계산 계약 실패가 아닌 검증 시작 순서 오류였다.
+이후 이 기록과 STATUS의 문서만 갱신하며, 검증한 코드·설정·자료의 바이트는 유지한다.
 
 ## 보존·문서 확인
 

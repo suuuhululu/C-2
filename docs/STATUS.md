@@ -606,3 +606,4 @@ GPU 현재 A snapshot92파일을 CPU deliverables/GPU_A_수정본_CPU보관_2026
 - 새 clone·독립 최소 가상환경에서 기본12블록 Plan·잘못된 revision 반환·API34/34, A pytest448 passed/1 skipped를 확인했다. SciPy 독립 비교1검사는 최소환경 미설치로 제외됐다. 범위가 겹치는 수치는 합산하지 않는다.
 - [실제 명령·결과와 미검증](A_DOCUMENTATION_VERIFICATION_20261012.md)을 기록했다. 기준 Isaac0.5 불일치는 별도 기능 변경 eb78ad7과 분리하며 이번 PR에는 기능 변경을 포함하지 않는다.
 - 파일 이동/삭제·계산/계약/보정 수정·새 dependency 도입·전역 설치·Git 이력 재작성·Robot/ROS/Isaac 실행·제어권 변경을 수행하지 않았다. 사람 리뷰·실제 연결·실기 검증은 남아 있다.
+- GitHub에서 직접 받은 새 clone(0e6248f)에서도 API34/34, A448 passed/1 skipped, 보존253/253 SHA·상대 링크44개를 확인했다. 로컬 clone과 원격 clone의 수치는 합산하지 않는다.
