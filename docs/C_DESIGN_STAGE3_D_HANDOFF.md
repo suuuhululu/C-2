@@ -339,3 +339,17 @@ C 내부 known defect: 없음(C 그룹 전부 PASS, known xfail 0). 아래는 C 
 | A | `WholePlanResult`에 막힌 블록(`stage_errors[].block` 또는 `blocked_blocks`) 노출 | §3c, fixture `tests/fixtures/c_plan_failure/whole_no_feasible_order_real_unpatched.json` |
 | A | `SEARCH_LIMIT`(탐색 한도) 시 fallback 정책: Wave 5 실측에서 승인된 Revised Candidate(38·39블록) replan이 `SEARCH_LIMIT`로 끝남 | `scripts/c_stage3_integration_smoke.py --scenario plan-failure` 로그 |
 | B / Robot | C 책임 아님(C는 Current를 받기만 하고 Robot을 부르지 않음) | — |
+
+## 11. Full Voice HRI E2E 실행 안내 (Wave 6, 2026-10-12)
+
+C가 사용자에게 말을 거는 네 상황(Initial → 직접 Design Change → Difference → Planning failure → A Replan)을 한 번의 lifecycle로 실제 마이크·Whisper STT·TTS·gpt-6.1-sol로 겪는 C-side harness입니다(`scripts/c_full_voice_hri_e2e.py`, Robot·Camera·DB·MoveIt 없음, A는 read-only 계산만).
+
+```bash
+cd /home/skywalker/adaptive_coassembly/C-2-int
+export OPENAI_API_KEY="$(cat /home/skywalker/c2_cobot2_API_key.txt)" OPENAI_LLM_API_KEY="$(cat /home/skywalker/c2_cobot2_API_key.txt)" OPENAI_TTS_API_KEY="$(cat /home/skywalker/c2_cobot2_API_key.txt)" C_DESIGN_USE_LLM=1 OPENAI_MODEL=gpt-6.1-sol
+python3 scripts/c_full_voice_hri_e2e.py --mode mic --show-preview --out ~/full_hri_$(date +%Y%m%d_%H%M) 2>&1 | tee ~/full_hri_last.log
+```
+
+- 시작 시 `=== FULL VOICE HRI E2E ===`와 말할 문장 9개가, 각 stage 직전에 `[NEXT VOICE INPUT]`이 출력됩니다. 직접 Design Change 요청은 `[NEXT VOICE INPUT]` 뒤 beep 1회 listen으로 받아 `run_design_change(reason=발화)`에 넣습니다(상시 listener 없음).
+- 결과: `--out` 아래 `events.jsonl`(진행·질문·TTS·STT·caller), `01_initial.json` … `08_plan_failure_review.json`, `preview_<stage>.png` 4장, `summary.json`(FINAL PASS/FAIL·version 수열·Current 보존·facing·robot_calls·replan_calls). 오프라인 검증은 `tests/integration/test_c_full_voice_hri_harness.py`.
+- Version 기대: v1 → v2 → v3 → v4(각 REVISE가 블록을 바꿀 때). Difference는 caller가 Approved의 1층 블록 하나를 옮겨 만들고(§5.2 계약 통과), Planning failure는 실제 A 결과가 `NO_FEASIBLE_ORDER`가 아니면 fixture를 주입합니다(로그에 명시). UNCLEAR면 C 재질문 정책 그대로이고 자동 승인·다음 stage 진행은 없습니다.

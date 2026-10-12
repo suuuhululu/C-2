@@ -1,5 +1,10 @@
 # 현재 진행 상황
 
+## 2026-10-12 — C Wave 6 후속: 자연어 수용 표현 APPROVE 보강 + Full Voice HRI E2E harness (`work/siyul-c-remaining`)
+
+- Review 보강(`8d6edfd`): `dialogue.parse_review_response`가 "나쁘지 않아"·"괜찮아"·"이 정도면 됐어" 등 수용 표현을 APPROVE로, 구체적 변경 요구가 섞이면 MODIFY 우선으로 해석(Intervention·Design-Change·Planning failure parser 불변). `SYSTEM_PROMPT_REVIEW`에 같은 의미 추가. 실제 mic 발화 "음... 나쁘진 않은 것 같아"가 UNCLEAR였던 사례. 테스트 `tests/unit/c_design/test_review_acceptance.py`; C 그룹 1134 passed.
+- Harness: `scripts/c_full_voice_hri_e2e.py`(한 번의 lifecycle: Initial → 직접 Design Change → Difference → Planning failure → A Replan, 실제 mic/STT/TTS/Sol, Robot·Camera·DB 없음, 결과 디렉터리에 events.jsonl·envelope 8개·preview PNG 4장·summary.json). 오프라인 검증 `tests/integration/test_c_full_voice_hri_harness.py`. 실행 안내는 handoff §11. 실제 mic 실행은 사용자가 수행(자동 시작 안 함).
+
 ## 2026-10-12 — C Wave 6: 최종 회귀·실제 음성·계약 문서 정리 (`work/siyul-c-remaining`, base de59b08)
 
 - 변경: 테스트·문서만(C production diff 0). `tests/unit/c_design/test_final_c_contract.py`(세 모드 intent 최종 표, planning failure 라우팅 10 조합, version chain v1→v2→MODIFY v2/round 1→APPROVE v2→다음 REVISE v3, metadata 유지, schema/validator 상수 불변). CONTRACT·handoff의 "세 함수" 표현을 네 공개 함수(`create_initial_design`·`review_design_candidate`·`run_intervention`·`run_design_change`)로 정정, handoff 시그니처를 코드와 일치시키고 §10 "남은 통합 항목" 추가.
