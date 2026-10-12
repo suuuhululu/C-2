@@ -36,6 +36,7 @@ git clone --branch codex/integration-round1 https://github.com/suuuhululu/C-2.gi
 cd C-2
 git rev-parse HEAD
 python3 --version
+unset PYTHONPATH
 python3 -m venv .venv
 . .venv/bin/activate
 python3 -m pip install jsonschema==4.10.3 pytest==7.4.4
@@ -44,6 +45,18 @@ python3 -m pip check
 
 현재 정리 PR을 검토하는 동안은 같은 저장소의 `codex/a-documentation-classification-20261012` 브랜치를 받으면 이 안내를 읽을 수 있다. integration의 후속 변경은 이 문서에 기록한 기준 커밋과 구분한다.
 Ubuntu에서 venv 기능이 없으면 `sudo apt install python3-venv`로 준비한다. 가상환경은 로컬 Git 제외 자료다.
+
+이 PC처럼 `ensurepip`가 없지만 전역 pip 22.3 이상이 있는 경우에는 **가상환경 활성화 전** 아래 대안을 사용한다. 설치 대상은 `.venv`이며 전역 Python을 수정하지 않는다. 이미 ROS 환경을 source한 터미널이면 `unset PYTHONPATH`로 A 예제에 ROS Python 경로가 섞이지 않게 한다.
+
+```bash
+unset PYTHONPATH
+python3 -m venv --without-pip .venv
+python3 -m pip --python .venv install pip==24.0 jsonschema==4.10.3 pytest==7.4.4
+. .venv/bin/activate
+python3 -m pip check
+```
+
+이 대안은 [pip의 다른 Python 환경 관리 방법](https://pip.pypa.io/en/stable/topics/python-option/)을 따른다. 이번 재현에서는 이 방법을 사용했으며 sudo/apt 설치는 수행하지 않았다.
 
 설치 근거: [Python 3.12 venv](https://docs.python.org/3.12/library/venv.html), [jsonschema 4.10.3 설치 안내](https://python-jsonschema.readthedocs.io/en/v4.10.3/#installation). 루트 `requirements.txt`는 Qt용이고 `requirements-test.txt`는 Qt 의존성을 함께 가져오므로 최소 A 예제에서는 위 두 패키지만 설치한다. 이번 정리는 의존성 파일이나 설치된 장치 환경을 변경하지 않는다.
 
@@ -76,11 +89,11 @@ PY
 ## 예제 2 — 전체 계획 → 재평가 → 이동 후보와 실패 반환
 
 ```bash
-python3 -m planning_trial.run_assembly_apis --actor user --output-dir reports/a-readme/api-run
+python3 -m planning_trial.run_assembly_apis --actor agent --output-dir reports/a-readme/api-run
 ```
 
 출력 폴더는 매번 새 경로여야 한다. 기존 폴더를 다시 지정하면 프로그램이 거절하므로 새 이름을 사용한다.
-예상 마지막 출력은 `Checks: 34/34 PASS; actor=user; no robot/D/Isaac execution`이다. 각 사례의 실제 입력과 원시 반환도 저장된다.
+예상 마지막 출력은 `Checks: 34/34 PASS; actor=agent; no robot/D/Isaac execution`이다. 각 사례의 실제 입력과 원시 반환도 저장된다.
 
 | 생성 파일 예시 | 확인할 결과 |
 | --- | --- |
@@ -99,6 +112,8 @@ A 전체 회귀 검사는 다음과 같다. 이 명령은 루트의 모든 팀 �
 ```bash
 PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 PYTHONDONTWRITEBYTECODE=1 python3 -B -m pytest planning_trial -q -p no:cacheprovider
 ```
+
+이번 최소 환경 결과는 448 passed / 1 skipped다. SciPy가 없어 독립 회전 행렬 비교1검사가 기존 importorskip으로 제외됐으며 A 계산 함수의 SciPy 의존성을 뜻하지 않는다. 상세 사유는 재현 기록을 본다.
 
 ## 동일 계획 자료의 B/D 공유와 Current
 
