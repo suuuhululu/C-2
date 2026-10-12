@@ -480,9 +480,16 @@ _REVIEW_CANCEL_PHRASES = _CANCEL_PHRASES + ("그만할래", "안만들래", "작
 _REVIEW_PHRASES = {
     APPROVE: ("이걸로", "마음에들", "그대로진행", "이대로진행", "좋아이걸로", "괜찮아이걸로", "이거로하자"),
     MODIFY: ("바꿔", "바꾸", "다시만들", "다른느낌", "다른모양", "다른걸로", "다른것", "말고", "수정",
-             "더높", "더길", "더넓", "더화려", "더단순", "조금더", "좀더"),
+             "더높", "더길", "더넓", "더화려", "더단순", "조금더", "좀더",
+             # Wave 6(2026-10-12): 긍정 표현 뒤에 붙는 구체적 변경 요구("괜찮은데 팔걸이를 추가해줘")
+             "높여", "높게", "낮춰", "낮게", "넓혀", "넓게", "좁게", "줄여", "늘려", "추가", "빼줘", "없애"),
 }
 _REVIEW_APPROVE_WHOLE = ("좋아", "좋아요", "좋습니다", "좋네요", "네좋아요", "응좋아")  # 답변 전체일 때만
+# Wave 6(2026-10-12, 실제 mic E2E "음... 나쁘진 않은 것 같아"가 UNCLEAR였던 사례): 자연스러운 수용 표현은 구체적인 변경
+# 요구가 없으면 APPROVE다. "나쁘지 않아"의 "않"은 수용 표현의 일부이므로 구문을 먼저 지우고 나서 부정 표지를 본다.
+_REVIEW_ACCEPT_PHRASES = ("나쁘지않", "나쁘진않", "괜찮", "이정도면", "진행해", "좋은것같", "좋은거같", "만족")
+# 수용 표현이 있어도 망설임·되물음이 섞이면 APPROVE로 정하지 않는다("나쁘진 않은데 뭔가...", "괜찮은 건가?").
+_REVIEW_HEDGE_PHRASES = ("뭔가", "애매", "아쉬", "글쎄", "모르겠", "건가", "걸까", "일까", "인가", "긴한데", "긴해")
 
 
 def build_review_question(kind):
@@ -498,17 +505,32 @@ def build_review_reask():
 def parse_review_response(text, llm_fallback=None):
     """Preview 검토 답변 → APPROVE / MODIFY / UNCLEAR / CANCEL(Intervention의 KEEP/REVISE와 별개).
 
-    정규화 → 취소(부정 없음) → 짧은 긍정 답 전체 → APPROVE·MODIFY 구문(부정이 섞이면 애매) → 두 부류·무일치·애매면
-    llm_fallback(text)(네 값 밖은 UNCLEAR) → UNCLEAR.
+    정규화 → 취소(부정 없음) → 짧은 긍정 답 전체 → 수용 표현("나쁘지 않아"·"괜찮아"·"이 정도면 됐어")을 떼어 APPROVE 표로
+    세고 → MODIFY 구문(부정 없음)이 있으면 **MODIFY 우선**(구체적 변경 요구가 긍정 표현을 이긴다) → 수용/APPROVE 구문만 있고
+    망설임·되물음·부정이 없으면 APPROVE → 그 밖(두 부류 부정 섞임·무일치·망설임)은 llm_fallback(text)(네 값 밖은 UNCLEAR)
+    → UNCLEAR. (Wave 6, 2026-10-12)
     """
-    norm = _normalize(text or "")
+    raw = text or ""
+    norm = _normalize(raw)
     allowed = {APPROVE, MODIFY, UNCLEAR, CANCEL}
     if any(phrase in norm for phrase in _REVIEW_CANCEL_PHRASES) and not _has_negation(norm):
         return CANCEL
     if norm in _REVIEW_APPROVE_WHOLE:
         return APPROVE
-    votes, negated = _phrase_votes(norm, _REVIEW_PHRASES)
-    return _finish(text, votes, negated, allowed, llm_fallback)
+    accepted = False
+    for phrase in _REVIEW_ACCEPT_PHRASES:
+        if phrase in norm:
+            accepted = True
+            norm = norm.replace(phrase, "")
+    matched = {value for value, phrases in _REVIEW_PHRASES.items() if any(p in norm for p in phrases)}
+    negated = _has_negation(norm)
+    hedged = "?" in raw or any(p in norm for p in _REVIEW_HEDGE_PHRASES)
+    if MODIFY in matched and not negated:
+        return MODIFY  # "나쁘진 않은데 등받이를 높여줘": 구체적 변경 요구가 우선
+    if (accepted or APPROVE in matched) and MODIFY not in matched and not negated and not hedged:
+        return APPROVE
+    votes = matched | ({APPROVE} if accepted else set())
+    return _finish(text, votes, negated or hedged or len(votes) != 1, allowed, llm_fallback)
 
 
 REASK_LEAD = (

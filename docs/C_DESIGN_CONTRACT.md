@@ -259,7 +259,7 @@ Stage 2 Wave 4b(2026-10-08 사용자 E2E 로그 확정 원인 반영): `listen(o
 흐름:
 1. 질문 "완성된 디자인이 화면에 표시됐어요. 어떠신가요?"(revised: "수정된 디자인이 화면에 표시됐어요. 어떠신가요?")을 `questions`·`on_question`에 내고, LLM 음성 모드면 TTS로 읽습니다.
 2. (음성) `voice.listen(mode="free", beep=True)` / (텍스트) `text_answers`로 답을 받습니다.
-3. `dialogue.parse_review_response`로 해석합니다. 취소 구문 → 짧은 긍정 답 전체("좋아요" 등) → 작은 APPROVE·MODIFY 구문 표 순서이고, 숫자 답은 받지 않습니다. 두 부류가 함께 나오거나, 부정어가 섞이거나("나쁘진 않은데…"), 무일치면 LLM 모드에서만 `llm.interpret_review_answer(text, kind)`(키 `llm.REVIEW_KEYS` = decision·style_hint·reason·reply)로 넘깁니다. 해석 실패·키 누락은 UNCLEAR입니다. Mock 모드는 규칙만 쓰고 음성을 내지 않습니다.
+3. `dialogue.parse_review_response`로 해석합니다. 취소 구문 → 짧은 긍정 답 전체("좋아요" 등) → 수용 표현("나쁘지 않아"·"괜찮아"·"이 정도면 됐어"·"진행해도 될 것 같아", Wave 6 2026-10-12)을 떼어 APPROVE 표로 → **MODIFY 구문이 있으면 MODIFY 우선**("나쁘진 않은데 등받이를 높여줘" → MODIFY) → 수용/APPROVE 구문만 있고 망설임·되물음("뭔가", "아쉬", "건가?")·부정이 없으면 APPROVE 순서이고, 숫자 답은 받지 않습니다. 부정어가 섞인 혼합 답("싫은 건 아닌데 다른 것도 보고 싶어"), 망설임, 무일치면 LLM 모드에서만 `llm.interpret_review_answer(text, kind)`(키 `llm.REVIEW_KEYS` = decision·style_hint·reason·reply)로 넘깁니다. 해석 실패·키 누락은 UNCLEAR입니다. Mock 모드는 규칙만 쓰고 음성을 내지 않습니다.
 4. 규칙이 MODIFY로 정한 답은 LLM 모드에서 같은 함수를 한 번 더 불러 `style_hint`·`reply`만 받습니다(decision은 규칙 그대로, 실패면 힌트 없이 진행).
 5. UNCLEAR이거나 침묵이면 "어떤 부분을 바꾸고 싶으신지 조금만 더 말씀해 주시겠어요? 이대로 괜찮으시면 그렇게 말씀해 주셔도 돼요."로 **한 번만** 다시 묻습니다.
 6. 확인 문장(ack)은 LLM `reply`가 있으면 그것, 없으면 `dialogue.approve_ack` / `modify_ack_fallback(style_hint)` / `cancel_ack`입니다. LLM 음성 모드면 읽습니다.
