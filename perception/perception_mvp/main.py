@@ -19,6 +19,45 @@ from .backend_adapter import build_observed
 DEFAULT_CYCLE_OUTPUT = Path(__file__).resolve().parent.parent / "recordings" / "observation_cycles"
 
 
+def validate_cycle_target(context):
+    kind = context.get('check_kind', 'STEP')  # Existing ASSEMBLY callers remain STEP.
+    if kind == 'STEP':
+        validate_block(context['target_after'])
+    elif kind not in ('INITIAL', 'FINAL') or context.get('target_after') is not None:
+        raise ValueError('INITIAL/FINAL require explicit kind and null target_after')
+    return kind
+
+
+def make_inspection_observer(gate, hand_detector, hand_stream, capture_view,
+                             weights, calibration, config, detector_confidence, *,
+                             confirm_view, workflow_valid, bundle_valid,
+                             frame_sink=None, view_sink=None, output_root=None,
+                             start_condition=None):
+    """B observe(context, is_active) callable for connect_inspection.
+
+    capture_view(manifest, view, is_active) must supply actual saved RGB-D and
+    occupancy evidence. Controller/Camera hooks are required, never simulated here.
+    """
+    def observe(context, is_active):
+        manifest = deepcopy(context)
+        condition = (start_condition(deepcopy(context)) if start_condition is not None else
+                     'HUMAN_ASSEMBLY' if context['check_kind'] == 'STEP' else 'STOPPED_CLEAR')
+        if condition not in ('HUMAN_ASSEMBLY', 'STOPPED_CLEAR'):
+            raise ValueError('explicit HUMAN_ASSEMBLY or STOPPED_CLEAR start condition required')
+        manifest['start_condition'] = condition
+        current = manifest.get('current')
+        manifest.update(mode='REAL', view_order=['V0', 'D1', 'D3'],
+                        previous_accepted_blocks=deepcopy(current['blocks']) if current is not None else [],
+                        target_after=manifest.get('target_after'))
+        valid = lambda: is_active() is True and workflow_valid() is True
+        return run_observation_cycle(gate, hand_detector, hand_stream,
+            lambda view: capture_view(deepcopy(manifest), view, is_active), manifest,
+            weights, calibration, config, detector_confidence, callback=lambda value: None,
+            confirm_view=confirm_view, workflow_valid=valid, bundle_valid=bundle_valid,
+            frame_sink=frame_sink, view_sink=view_sink, output_root=output_root)
+    return observe
+
+
 def read_json(path):
     path = Path(path)
     text = path.read_text(encoding="utf-8")
@@ -42,7 +81,7 @@ def run_observation_cycle(gate, hand_detector, hand_stream, capture_view, manife
     check, seq = context.get("check_id"), context.get("observation_seq")
     if not isinstance(check, str) or not check or type(seq) is not int or seq < 0:
         raise ValueError("Backend check and bundle-start sequence required")
-    validate_block(context["target_after"])
+    validate_cycle_target(context)
     calibration, config = deepcopy(calibration), deepcopy(config)
 
     def valid():
@@ -51,7 +90,14 @@ def run_observation_cycle(gate, hand_detector, hand_stream, capture_view, manife
     try:
         if not valid() or confirm_view("V0") is not True or not valid():
             raise RuntimeError("safe stopped V0 and active context required")
-        gate.reset_for_reobservation()
+        condition = context.get('start_condition', 'HUMAN_ASSEMBLY' if
+                                context.get('check_kind', 'STEP') == 'STEP' else 'STOPPED_CLEAR')
+        if condition not in ('HUMAN_ASSEMBLY', 'STOPPED_CLEAR'):
+            raise ValueError('unknown observation start condition')
+        if condition == 'HUMAN_ASSEMBLY':
+            gate.reset_for_reobservation()
+        else:
+            gate.reset_for_reobservation(require_entry=False)
         hand_detector.reset()
         wait_for_hand_ready(hand_stream(), hand_detector, gate, valid, frame_sink=frame_sink)
         if not valid():
@@ -84,7 +130,7 @@ def observe_cycle(gate, capture_view, manifest, weights, calibration, config,
     check, seq = context["check_id"], context["observation_seq"]
     if not isinstance(check, str) or not check or type(seq) is not int or seq < 0:
         raise ValueError("Backend check and bundle-start sequence required")
-    validate_block(context["target_after"])
+    kind = validate_cycle_target(context)
     views, measurements, scenes = [], [], set()
     def require_valid():
         if bundle_valid() is not True:
@@ -113,6 +159,8 @@ def observe_cycle(gate, capture_view, manifest, weights, calibration, config,
             if regions and not record.get("verification_basis"):
                 raise ValueError("verified regions require actual occupancy evidence")
             require_valid()
+            if view_id == 'V0':
+                gate.freeze_capture()
             view_directory = save_cycle_view(archive, view_id, rgb, raw, aligned,
                                             meta, record["directory"])
             write_cycle_json(view_directory / "capture_evidence.json", dict(
@@ -130,7 +178,8 @@ def observe_cycle(gate, capture_view, manifest, weights, calibration, config,
             measurements.append(result)
             require_valid()
             partial, details = build_observed(check, seq, views,
-                context["previous_accepted_blocks"], context["target_after"], scene_stable=True)
+                context["previous_accepted_blocks"], context.get("target_after"),
+                scene_stable=True, check_kind=kind)
             write_cycle_json(view_directory / "measurement.json", result)
             write_cycle_json(view_directory / "view_result.json", views[-1])
             write_cycle_json(view_directory / "partial_observed.json", partial)
@@ -141,7 +190,8 @@ def observe_cycle(gate, capture_view, manifest, weights, calibration, config,
                 gate.finish_observation()  # Finish while live V0 evidence is still available.
         require_valid()
         observed, diagnostics = build_observed(check, seq, views,
-            context["previous_accepted_blocks"], context["target_after"], scene_stable=True)
+            context["previous_accepted_blocks"], context.get("target_after"),
+            scene_stable=True, check_kind=kind)
         diagnostics["source_measurements"] = measurements
         require_valid()
         write_cycle_json(archive / "observed.json", observed)
@@ -204,7 +254,7 @@ def watch_hand(settings, check_id, output):
     detector = HandDetector(hand["weights"], hand["confidence"], hand["board_roi_v0"],
         min_valid_depth_fraction=hand["min_valid_depth_fraction"],
         stable_mean_difference=hand["stable_mean_difference"],
-        image_size=hand.get("board_image_size"))
+        image_size=hand.get("board_image_size"), board_polygon=hand.get("board_polygon_v0"))
     gate = HandCycle(hand["stable_seconds"], hand["max_frame_gap_seconds"])
     stream = stream_v0(camera["serial"], camera["width"], camera["height"], camera["fps"], camera["timeout_ms"])
     monitor_hand(stream, detector, gate, output, {"check_id": check_id})

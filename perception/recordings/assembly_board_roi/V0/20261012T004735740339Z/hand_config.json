@@ -1,0 +1,40 @@
+{
+  "hand": {
+    "weights": "/home/roh/C-2/perception/models/hand_yolo11n_added_20261012/weights/best.pt",
+    "confidence": 0.25,
+    "board_roi_v0": [
+      392,
+      3,
+      1128,
+      702
+    ],
+    "min_valid_depth_fraction": 0.8,
+    "stable_mean_difference": 3.0,
+    "stable_seconds": 1.0,
+    "max_frame_gap_seconds": 1.0,
+    "exit_seconds": 3.0,
+    "board_polygon_v0": [
+      [
+        392,
+        3
+      ],
+      [
+        1127,
+        4
+      ],
+      [
+        1106,
+        699
+      ],
+      [
+        396,
+        701
+      ]
+    ],
+    "board_image_size": [
+      1280,
+      720
+    ]
+  },
+  "status": "TRIAL_VALUES_UNVALIDATED"
+}

@@ -1,0 +1,229 @@
+{
+  "source": "/home/roh/C-2/perception/recordings/supply_board_roi/20261012T002844481743Z/rgb.png",
+  "roi": "/home/roh/C-2/perception/recordings/supply_board_roi/20261012T002844481743Z/supply_roi.json",
+  "weights": "/home/roh/C-2/perception/models/block_v1_six_runs_20261010/blocks_yolo26s_best.pt",
+  "confidence": 0.25,
+  "status": "LOCAL_DIAGNOSTIC_NOT_GROUND_TRUTH",
+  "counts": {
+    "yellow_2x3": 12,
+    "red_2x1": 19,
+    "blue_2x3": 12
+  },
+  "detections": [
+    {
+      "class_name": "yellow_2x3",
+      "confidence": 0.9087247252464294,
+      "crosses_roi": false
+    },
+    {
+      "class_name": "yellow_2x3",
+      "confidence": 0.9074624180793762,
+      "crosses_roi": false
+    },
+    {
+      "class_name": "yellow_2x3",
+      "confidence": 0.9044079184532166,
+      "crosses_roi": false
+    },
+    {
+      "class_name": "yellow_2x3",
+      "confidence": 0.8914380073547363,
+      "crosses_roi": false
+    },
+    {
+      "class_name": "yellow_2x3",
+      "confidence": 0.8862685561180115,
+      "crosses_roi": false
+    },
+    {
+      "class_name": "yellow_2x3",
+      "confidence": 0.8861429691314697,
+      "crosses_roi": false
+    },
+    {
+      "class_name": "yellow_2x3",
+      "confidence": 0.8721722960472107,
+      "crosses_roi": false
+    },
+    {
+      "class_name": "yellow_2x3",
+      "confidence": 0.8701700568199158,
+      "crosses_roi": false
+    },
+    {
+      "class_name": "yellow_2x3",
+      "confidence": 0.8688375353813171,
+      "crosses_roi": false
+    },
+    {
+      "class_name": "red_2x1",
+      "confidence": 0.8628770709037781,
+      "crosses_roi": false
+    },
+    {
+      "class_name": "yellow_2x3",
+      "confidence": 0.8560580611228943,
+      "crosses_roi": false
+    },
+    {
+      "class_name": "yellow_2x3",
+      "confidence": 0.8515820503234863,
+      "crosses_roi": false
+    },
+    {
+      "class_name": "yellow_2x3",
+      "confidence": 0.8411979675292969,
+      "crosses_roi": false
+    },
+    {
+      "class_name": "red_2x1",
+      "confidence": 0.8211539387702942,
+      "crosses_roi": false
+    },
+    {
+      "class_name": "blue_2x3",
+      "confidence": 0.8110716342926025,
+      "crosses_roi": false
+    },
+    {
+      "class_name": "blue_2x3",
+      "confidence": 0.8040688037872314,
+      "crosses_roi": false
+    },
+    {
+      "class_name": "blue_2x3",
+      "confidence": 0.8036637902259827,
+      "crosses_roi": false
+    },
+    {
+      "class_name": "blue_2x3",
+      "confidence": 0.8007423281669617,
+      "crosses_roi": false
+    },
+    {
+      "class_name": "blue_2x3",
+      "confidence": 0.7897933125495911,
+      "crosses_roi": false
+    },
+    {
+      "class_name": "blue_2x3",
+      "confidence": 0.7883580923080444,
+      "crosses_roi": false
+    },
+    {
+      "class_name": "red_2x1",
+      "confidence": 0.7819947004318237,
+      "crosses_roi": false
+    },
+    {
+      "class_name": "red_2x1",
+      "confidence": 0.7667725086212158,
+      "crosses_roi": false
+    },
+    {
+      "class_name": "red_2x1",
+      "confidence": 0.7377102375030518,
+      "crosses_roi": false
+    },
+    {
+      "class_name": "blue_2x3",
+      "confidence": 0.7374705672264099,
+      "crosses_roi": false
+    },
+    {
+      "class_name": "red_2x1",
+      "confidence": 0.7145434021949768,
+      "crosses_roi": false
+    },
+    {
+      "class_name": "red_2x1",
+      "confidence": 0.7031658291816711,
+      "crosses_roi": false
+    },
+    {
+      "class_name": "red_2x1",
+      "confidence": 0.6776440143585205,
+      "crosses_roi": false
+    },
+    {
+      "class_name": "red_2x1",
+      "confidence": 0.6589016318321228,
+      "crosses_roi": false
+    },
+    {
+      "class_name": "blue_2x3",
+      "confidence": 0.6567513942718506,
+      "crosses_roi": false
+    },
+    {
+      "class_name": "blue_2x3",
+      "confidence": 0.6488562226295471,
+      "crosses_roi": false
+    },
+    {
+      "class_name": "red_2x1",
+      "confidence": 0.6381359100341797,
+      "crosses_roi": false
+    },
+    {
+      "class_name": "blue_2x3",
+      "confidence": 0.6179765462875366,
+      "crosses_roi": false
+    },
+    {
+      "class_name": "blue_2x3",
+      "confidence": 0.6050243377685547,
+      "crosses_roi": false
+    },
+    {
+      "class_name": "red_2x1",
+      "confidence": 0.5977638363838196,
+      "crosses_roi": false
+    },
+    {
+      "class_name": "blue_2x3",
+      "confidence": 0.5656394362449646,
+      "crosses_roi": false
+    },
+    {
+      "class_name": "red_2x1",
+      "confidence": 0.5250955820083618,
+      "crosses_roi": false
+    },
+    {
+      "class_name": "red_2x1",
+      "confidence": 0.4211832880973816,
+      "crosses_roi": false
+    },
+    {
+      "class_name": "red_2x1",
+      "confidence": 0.3141746520996094,
+      "crosses_roi": false
+    },
+    {
+      "class_name": "red_2x1",
+      "confidence": 0.3039068877696991,
+      "crosses_roi": false
+    },
+    {
+      "class_name": "red_2x1",
+      "confidence": 0.29914137721061707,
+      "crosses_roi": false
+    },
+    {
+      "class_name": "red_2x1",
+      "confidence": 0.284341037273407,
+      "crosses_roi": false
+    },
+    {
+      "class_name": "red_2x1",
+      "confidence": 0.269226610660553,
+      "crosses_roi": false
+    },
+    {
+      "class_name": "red_2x1",
+      "confidence": 0.26395395398139954,
+      "crosses_roi": false
+    }
+  ]
+}
