@@ -1,5 +1,7 @@
 # Perception → Backend callback 검토용 예시
 
+> 2026-10-07 적용: [최종 MVP](../../../docs/10_FINAL_MVP.md). 아래는 기존 Day4 Observed callback의 합성 예시입니다. 직접 결착·지원 응답·최종 완성상태의 생산 계약/성능 검증 자료가 아닙니다. 기존 check/seq와 OK/UNOBSERVABLE 의미를 유지하며 새 VerificationResult 필드는 별도 합의합니다.
+
 Backend에 직접 입력할 JSON은 `fixtures/`에 있습니다.
 사례별 사전 Current·목표·확인 결과와 로컬 실행 안내는
 [BACKEND_TEST_GUIDE.md](BACKEND_TEST_GUIDE.md)를 참고하세요.
@@ -53,9 +55,13 @@ Current 채택·누적, 닫힌 check_id 결과 처리, 완료·다음 전달 판
 ## 공통 계약에 맞춘 표현
 
 brick_type은 2x2x1/2x3x1, color는 yellow/blue입니다.
-x/y는 0~23 최소 footprint 모서리, layer는 1~4입니다. +X 오른쪽, +Y 위이며
+x/y는 0~23 최소 footprint 모서리, 현재 공통 계약의 layer는 1~5입니다. +X 오른쪽, +Y 위이며
 6점 0도는 X폭 2/Y길이 3, 90도는 X폭 3/Y길이 2, 4점은 대표각 0입니다.
 이는 임의의 장축 각도 규약으로 바꾸지 않습니다.
+
+아래 Fixture와 예시 검사는 기존 1~4층 사례를 보존합니다. 공통 소프트웨어의
+5층 수신·계획·표시 검증은 [STATUS](../../../docs/STATUS.md)를 참고하세요.
+이 예시는 실제 Vision의 5층 판별 성능을 검증한 자료가 아닙니다.
 
 `verified_regions`는 x/y/width/height/layer로 표현하는 실제 점유 확인 영역입니다.
 영역 내부에는 블록과 빈 부분이 함께 있을 수 있으므로 빈 영역 목록이라는 뜻이 아닙니다.

@@ -1,0 +1,10 @@
+python_deps/
+runs/
+runtime_logs/
+runtime_reports/
+session.lock
+latest_run.txt
+config/robot.urdf
+ros_ws/build/
+ros_ws/install/
+ros_ws/log/

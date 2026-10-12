@@ -1,0 +1,31 @@
+{
+  "real_preflight": "PASSED",
+  "real_execution_started": false,
+  "device_connections_in_offline_checks": 0,
+  "physical_simulation": false,
+  "checks": [
+    {
+      "actual_mock_width_mm": 60.0,
+      "status": "AWAITING_BACKEND_OBSERVATION",
+      "mock_moves": 2,
+      "mock_grips": 1
+    },
+    {
+      "actual_mock_width_mm": 64.2,
+      "status": "AWAITING_BACKEND_OBSERVATION",
+      "mock_moves": 2,
+      "mock_grips": 1
+    }
+  ],
+  "vertical_target": [
+    391.2915954589844,
+    5.926418304443359,
+    53.73553237915039,
+    125.77359008789062,
+    -175.8832550048828,
+    124.51361846923828
+  ],
+  "opening_upper_clearance_operator_confirmed": true,
+  "assembly_completion": false,
+  "current_update": false
+}

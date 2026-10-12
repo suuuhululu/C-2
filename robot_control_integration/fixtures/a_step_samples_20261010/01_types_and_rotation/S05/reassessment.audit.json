@@ -1,0 +1,503 @@
+{
+  "raw_result": {
+    "schema_version": "assembly-assistance-candidate/0.2",
+    "execution_allowed": false,
+    "plan_id": "P-94baaf41116e42bba3ecdfedb690bb04",
+    "step_id": "S05",
+    "assessment_current_revision": 4,
+    "context_digest": "d4de7d5e666f1df80b447a9ef2ac7e620510dd158d5f89f8b77548a34a919af5",
+    "options": [
+      {
+        "mode": "ROBOT_GRIP",
+        "grip_axis": "y",
+        "release_strategy": "MINIMAL_OPEN",
+        "release_margin_per_side_mm": null,
+        "clearance_pitch_per_side": 1,
+        "support_targets": [],
+        "assembly_hand": null,
+        "press_hand": null,
+        "press_assessment": {
+          "required": false,
+          "policy": "CONTACT_HULL",
+          "nominal_robot_point_xy_stud": [
+            16.0,
+            10.5
+          ],
+          "contact_hull_xy_stud": [
+            [
+              15,
+              10
+            ],
+            [
+              17,
+              10
+            ],
+            [
+              17,
+              11
+            ],
+            [
+              15,
+              11
+            ]
+          ],
+          "basis": "GEOMETRIC_HEURISTIC_NOT_FORCE_OR_STABILITY_PROOF"
+        },
+        "contacts": {
+          "support_studs": 6,
+          "total_studs": 6,
+          "supported_cells": [
+            [
+              15,
+              10
+            ],
+            [
+              15,
+              11
+            ],
+            [
+              16,
+              10
+            ],
+            [
+              16,
+              11
+            ],
+            [
+              17,
+              10
+            ],
+            [
+              17,
+              11
+            ]
+          ],
+          "missing_components": [],
+          "largest_missing_component": 0,
+          "weak_supports": []
+        },
+        "requires_minimal_release": true,
+        "release_instruction": "이 블록을 조립한 후에는 그리퍼를 소폭 개방하고 후퇴해야 합니다.",
+        "human_actions": [],
+        "assistance_kind": "NONE"
+      },
+      {
+        "mode": "HUMAN_ASSEMBLY",
+        "grip_axis": null,
+        "release_strategy": null,
+        "release_margin_per_side_mm": null,
+        "clearance_pitch_per_side": null,
+        "support_targets": [],
+        "assembly_hand": {
+          "side": "-x/+x",
+          "grip_axis": "x",
+          "boxes": [
+            [
+              216.0,
+              160.0,
+              0,
+              232.0,
+              176.0,
+              19
+            ],
+            [
+              280.0,
+              160.0,
+              0,
+              296.0,
+              176.0,
+              19
+            ]
+          ],
+          "contact_region_board_mm": null,
+          "contact_regions_board_mm": [
+            [
+              232.0,
+              160.0,
+              0,
+              232.0,
+              176.0,
+              19
+            ],
+            [
+              280.0,
+              160.0,
+              0,
+              280.0,
+              176.0,
+              19
+            ]
+          ],
+          "frame_id": "assembly_board_mm",
+          "force_command": null,
+          "hand_count": 1,
+          "effect": "MANUAL_HOLD_AND_PLACE",
+          "space_basis": "PAIRED_LOCAL_ONE_PITCH_BODY_HEIGHT_RULE"
+        },
+        "press_hand": null,
+        "press_assessment": {
+          "required": false,
+          "policy": "CONTACT_HULL",
+          "nominal_robot_point_xy_stud": [
+            16.0,
+            10.5
+          ],
+          "contact_hull_xy_stud": [
+            [
+              15,
+              10
+            ],
+            [
+              17,
+              10
+            ],
+            [
+              17,
+              11
+            ],
+            [
+              15,
+              11
+            ]
+          ],
+          "basis": "GEOMETRIC_HEURISTIC_NOT_FORCE_OR_STABILITY_PROOF"
+        },
+        "contacts": {
+          "support_studs": 6,
+          "total_studs": 6,
+          "supported_cells": [
+            [
+              15,
+              10
+            ],
+            [
+              15,
+              11
+            ],
+            [
+              16,
+              10
+            ],
+            [
+              16,
+              11
+            ],
+            [
+              17,
+              10
+            ],
+            [
+              17,
+              11
+            ]
+          ],
+          "missing_components": [],
+          "largest_missing_component": 0,
+          "weak_supports": []
+        },
+        "requires_minimal_release": false,
+        "release_instruction": null,
+        "human_actions": [
+          {
+            "action": "MANUAL_PLACE",
+            "target_block": {
+              "brick_type": "2x3x1",
+              "color": "blue",
+              "x": 15,
+              "y": 10,
+              "layer": 1,
+              "orientation_deg": 90
+            },
+            "hand": {
+              "side": "-x/+x",
+              "grip_axis": "x",
+              "boxes": [
+                [
+                  216.0,
+                  160.0,
+                  0,
+                  232.0,
+                  176.0,
+                  19
+                ],
+                [
+                  280.0,
+                  160.0,
+                  0,
+                  296.0,
+                  176.0,
+                  19
+                ]
+              ],
+              "contact_region_board_mm": null,
+              "contact_regions_board_mm": [
+                [
+                  232.0,
+                  160.0,
+                  0,
+                  232.0,
+                  176.0,
+                  19
+                ],
+                [
+                  280.0,
+                  160.0,
+                  0,
+                  280.0,
+                  176.0,
+                  19
+                ]
+              ],
+              "frame_id": "assembly_board_mm",
+              "force_command": null,
+              "hand_count": 1,
+              "effect": "MANUAL_HOLD_AND_PLACE",
+              "space_basis": "PAIRED_LOCAL_ONE_PITCH_BODY_HEIGHT_RULE"
+            }
+          }
+        ],
+        "assistance_kind": "MANUAL_ASSEMBLY"
+      },
+      {
+        "mode": "HUMAN_ASSEMBLY",
+        "grip_axis": null,
+        "release_strategy": null,
+        "release_margin_per_side_mm": null,
+        "clearance_pitch_per_side": null,
+        "support_targets": [],
+        "assembly_hand": {
+          "side": "-y/+y",
+          "grip_axis": "y",
+          "boxes": [
+            [
+              248.0,
+              136.0,
+              0,
+              264.0,
+              152.0,
+              19
+            ],
+            [
+              248.0,
+              184.0,
+              0,
+              264.0,
+              200.0,
+              19
+            ]
+          ],
+          "contact_region_board_mm": null,
+          "contact_regions_board_mm": [
+            [
+              248.0,
+              152.0,
+              0,
+              264.0,
+              152.0,
+              19
+            ],
+            [
+              248.0,
+              184.0,
+              0,
+              264.0,
+              184.0,
+              19
+            ]
+          ],
+          "frame_id": "assembly_board_mm",
+          "force_command": null,
+          "hand_count": 1,
+          "effect": "MANUAL_HOLD_AND_PLACE",
+          "space_basis": "PAIRED_LOCAL_ONE_PITCH_BODY_HEIGHT_RULE"
+        },
+        "press_hand": null,
+        "press_assessment": {
+          "required": false,
+          "policy": "CONTACT_HULL",
+          "nominal_robot_point_xy_stud": [
+            16.0,
+            10.5
+          ],
+          "contact_hull_xy_stud": [
+            [
+              15,
+              10
+            ],
+            [
+              17,
+              10
+            ],
+            [
+              17,
+              11
+            ],
+            [
+              15,
+              11
+            ]
+          ],
+          "basis": "GEOMETRIC_HEURISTIC_NOT_FORCE_OR_STABILITY_PROOF"
+        },
+        "contacts": {
+          "support_studs": 6,
+          "total_studs": 6,
+          "supported_cells": [
+            [
+              15,
+              10
+            ],
+            [
+              15,
+              11
+            ],
+            [
+              16,
+              10
+            ],
+            [
+              16,
+              11
+            ],
+            [
+              17,
+              10
+            ],
+            [
+              17,
+              11
+            ]
+          ],
+          "missing_components": [],
+          "largest_missing_component": 0,
+          "weak_supports": []
+        },
+        "requires_minimal_release": false,
+        "release_instruction": null,
+        "human_actions": [
+          {
+            "action": "MANUAL_PLACE",
+            "target_block": {
+              "brick_type": "2x3x1",
+              "color": "blue",
+              "x": 15,
+              "y": 10,
+              "layer": 1,
+              "orientation_deg": 90
+            },
+            "hand": {
+              "side": "-y/+y",
+              "grip_axis": "y",
+              "boxes": [
+                [
+                  248.0,
+                  136.0,
+                  0,
+                  264.0,
+                  152.0,
+                  19
+                ],
+                [
+                  248.0,
+                  184.0,
+                  0,
+                  264.0,
+                  200.0,
+                  19
+                ]
+              ],
+              "contact_region_board_mm": null,
+              "contact_regions_board_mm": [
+                [
+                  248.0,
+                  152.0,
+                  0,
+                  264.0,
+                  152.0,
+                  19
+                ],
+                [
+                  248.0,
+                  184.0,
+                  0,
+                  264.0,
+                  184.0,
+                  19
+                ]
+              ],
+              "frame_id": "assembly_board_mm",
+              "force_command": null,
+              "hand_count": 1,
+              "effect": "MANUAL_HOLD_AND_PLACE",
+              "space_basis": "PAIRED_LOCAL_ONE_PITCH_BODY_HEIGHT_RULE"
+            }
+          }
+        ],
+        "assistance_kind": "MANUAL_ASSEMBLY"
+      }
+    ],
+    "errors": [],
+    "status": "CANDIDATE",
+    "assessment": {
+      "support_studs": 6,
+      "total_studs": 6,
+      "supported_cells": [
+        [
+          15,
+          10
+        ],
+        [
+          15,
+          11
+        ],
+        [
+          16,
+          10
+        ],
+        [
+          16,
+          11
+        ],
+        [
+          17,
+          10
+        ],
+        [
+          17,
+          11
+        ]
+      ],
+      "missing_components": [],
+      "largest_missing_component": 0,
+      "weak_supports": [],
+      "press_assessment": {
+        "required": false,
+        "policy": "CONTACT_HULL",
+        "nominal_robot_point_xy_stud": [
+          16.0,
+          10.5
+        ],
+        "contact_hull_xy_stud": [
+          [
+            15,
+            10
+          ],
+          [
+            17,
+            10
+          ],
+          [
+            17,
+            11
+          ],
+          [
+            15,
+            11
+          ]
+        ],
+        "basis": "GEOMETRIC_HEURISTIC_NOT_FORCE_OR_STABILITY_PROOF"
+      },
+      "reason": "ROBOT_RELEASE_PRESS: disabled by supported_modes"
+    }
+  }
+}

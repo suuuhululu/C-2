@@ -10,5 +10,5 @@
   "observed_unobservable": {"check_id":"J01:C07","observation_seq":16,"status":"UNOBSERVABLE","visible_blocks":[],"verified_regions":[],"reason":"hand occludes current target"},
   "invalid_obsolete_design_id": {"plan_id":"plan-invalid-obsolete-field","design_id":"obsolete-design-id","design_version":1,"base_current_revision":0,"steps":[]},
   "invalid_legacy_observed": {"sequence":1,"usable":true,"blocks":[{"brick_type":"2x2x1","color":"yellow","x":3,"y":5,"layer":1,"orientation_deg":0},{"brick_type":"2x2x1","color":"yellow","x":5,"y":5,"layer":1,"orientation_deg":0},{"brick_type":"2x3x1","color":"blue","x":3,"y":5,"layer":2,"orientation_deg":90}]},
-  "invalid_layer": {"design_version":1,"blocks":[{"brick_type":"2x2x1","color":"yellow","x":3,"y":5,"layer":5,"orientation_deg":0}]}
+  "invalid_layer": {"design_version":1,"blocks":[{"brick_type":"2x2x1","color":"yellow","x":3,"y":5,"layer":6,"orientation_deg":0}]}
 }

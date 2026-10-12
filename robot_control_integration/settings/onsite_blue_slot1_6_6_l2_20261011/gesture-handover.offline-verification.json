@@ -1,0 +1,149 @@
+{
+  "backend": "TEST",
+  "physical_simulation": false,
+  "device_connections": 0,
+  "robot_motion_commands": 0,
+  "robot_gripper_commands": 0,
+  "results": [
+    {
+      "gesture": true,
+      "receiving_hmi": true,
+      "status": "LOCAL_HANDOVER_OBSERVE_COMPLETE",
+      "mock_moves": 10,
+      "mock_gripper_commands": 1,
+      "mock_stops": 1,
+      "result": {
+        "key": "onsite_blue_slot1_trial6_6_layer2_no_turn/S01",
+        "phase": "handover",
+        "mode": "ROBOT_GRIP",
+        "assembly_completion": false,
+        "current_update": false,
+        "automatic_retry": false,
+        "operator_seating_confirmed": false,
+        "preview_is_verified_gesture": false,
+        "release_requires_post_stop_hmi": true,
+        "motion_stop_verified": true,
+        "stop_candidate": {
+          "plan_id": "D_LOCAL_BLUE_SLOT1_TRIAL6_6_L2_20261011",
+          "step_id": "S01",
+          "current_revision": null,
+          "execution_id": "9142f396-2fcf-4bdf-bc46-e4fb135e83ca",
+          "source_epoch": "TEST_LOCAL",
+          "preview_request_id": "b1dc9f05-ee4a-4a95-aacb-6d757a97ca43",
+          "received_monotonic_ns": 800000000,
+          "candidate_event": "OPEN_HAND_HELD_ORIENTATION_UNKNOWN"
+        },
+        "final_sample": {
+          "posx": [
+            400.851,
+            8.573,
+            314.981,
+            175.022,
+            -179.595,
+            175.461
+          ],
+          "velx": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "motion_status": 0,
+          "query_duration_s": 0.0,
+          "tcp": "GripperDA_v4",
+          "tool": "ToolWeight0",
+          "gripper_status": 0,
+          "gripper_width_mm": 62.4,
+          "robot_state": 1,
+          "robot_mode": 1,
+          "drl_state": 3,
+          "wrench": [
+            0.0,
+            0.0,
+            5.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "observe_point_verified": true,
+        "operator_receiving_confirmed": true,
+        "status": "LOCAL_HANDOVER_OBSERVE_COMPLETE",
+        "execution_id": "9142f396-2fcf-4bdf-bc46-e4fb135e83ca",
+        "backend": "TEST",
+        "final_state_sequence": 101,
+        "physical_verified": false,
+        "backend_current_committed": false,
+        "contact_evidence": null,
+        "integration_scope": "LOCAL_TRIAL_NOT_LIVE_A_B_D_CONTRACT"
+      }
+    },
+    {
+      "gesture": true,
+      "receiving_hmi": false,
+      "status": "PAUSED_HANDOVER_RECEIVING_CONFIRMATION",
+      "mock_moves": 6,
+      "mock_gripper_commands": 0,
+      "mock_stops": 1,
+      "result": {
+        "key": "onsite_blue_slot1_trial6_6_layer2_no_turn/S01",
+        "phase": "handover",
+        "mode": "ROBOT_GRIP",
+        "assembly_completion": false,
+        "current_update": false,
+        "automatic_retry": false,
+        "operator_seating_confirmed": false,
+        "preview_is_verified_gesture": false,
+        "release_requires_post_stop_hmi": true,
+        "motion_stop_verified": true,
+        "stop_candidate": {
+          "plan_id": "D_LOCAL_BLUE_SLOT1_TRIAL6_6_L2_20261011",
+          "step_id": "S01",
+          "current_revision": null,
+          "execution_id": "291f1ea2-fd3b-40da-8681-a709acc6c1f5",
+          "source_epoch": "TEST_LOCAL",
+          "preview_request_id": "9e328ce0-873e-4005-a943-ed5c40cd76df",
+          "received_monotonic_ns": 800000000,
+          "candidate_event": "OPEN_HAND_HELD_ORIENTATION_UNKNOWN"
+        },
+        "status": "PAUSED_HANDOVER_RECEIVING_CONFIRMATION",
+        "execution_id": "291f1ea2-fd3b-40da-8681-a709acc6c1f5",
+        "backend": "TEST",
+        "final_state_sequence": 59,
+        "physical_verified": false,
+        "backend_current_committed": false,
+        "contact_evidence": null,
+        "integration_scope": "LOCAL_TRIAL_NOT_LIVE_A_B_D_CONTRACT"
+      }
+    },
+    {
+      "gesture": false,
+      "receiving_hmi": true,
+      "status": "PAUSED_HANDOVER_NO_GESTURE_HOLDING",
+      "mock_moves": 6,
+      "mock_gripper_commands": 0,
+      "mock_stops": 0,
+      "result": {
+        "key": "onsite_blue_slot1_trial6_6_layer2_no_turn/S01",
+        "phase": "handover",
+        "mode": "ROBOT_GRIP",
+        "assembly_completion": false,
+        "current_update": false,
+        "automatic_retry": false,
+        "operator_seating_confirmed": false,
+        "preview_is_verified_gesture": false,
+        "release_requires_post_stop_hmi": true,
+        "status": "PAUSED_HANDOVER_NO_GESTURE_HOLDING",
+        "execution_id": "16d7dc1f-3e64-4613-ade4-0e57dc81f16a",
+        "backend": "TEST",
+        "final_state_sequence": 51,
+        "physical_verified": false,
+        "backend_current_committed": false,
+        "contact_evidence": null,
+        "integration_scope": "LOCAL_TRIAL_NOT_LIVE_A_B_D_CONTRACT"
+      }
+    }
+  ]
+}

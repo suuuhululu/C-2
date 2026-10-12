@@ -1,0 +1,18 @@
+{
+  "scope": "SYNTHETIC_NOT_FOR_EXECUTION",
+  "variants": {
+    "robot_approach_pick": {"base": "robot_pre_contact", "method": "ROBOT_GRIP", "phase": "APPROACH_PICK"},
+    "robot_pick_confirm": {"base": "robot_pre_contact", "method": "ROBOT_GRIP", "phase": "PICK_AND_CONFIRM"},
+    "robot_transport": {"base": "robot_pre_contact", "method": "ROBOT_GRIP", "phase": "TRANSPORT_HOLDING"},
+    "robot_release": {"base": "robot_pre_contact", "method": "ROBOT_GRIP", "phase": "RELEASE"},
+    "robot_retreat": {"base": "robot_pre_contact", "method": "ROBOT_GRIP", "phase": "RETREAT"},
+    "robot_hold": {"base": "robot_pre_contact", "method": "ROBOT_GRIP", "phase": "HOLD"},
+    "human_approach_pick": {"base": "robot_pre_contact", "method": "HUMAN_ASSEMBLY", "phase": "APPROACH_PICK"},
+    "human_pick_confirm": {"base": "robot_pre_contact", "method": "HUMAN_ASSEMBLY", "phase": "PICK_AND_CONFIRM"},
+    "human_transport": {"base": "robot_pre_contact", "method": "HUMAN_ASSEMBLY", "phase": "TRANSPORT_HOLDING"},
+    "human_pre_contact": {"base": "robot_pre_contact", "method": "HUMAN_ASSEMBLY", "phase": "PRE_CONTACT"},
+    "human_release": {"base": "robot_pre_contact", "method": "HUMAN_ASSEMBLY", "phase": "RELEASE"},
+    "human_retreat": {"base": "robot_pre_contact", "method": "HUMAN_ASSEMBLY", "phase": "RETREAT"},
+    "human_hold": {"base": "robot_pre_contact", "method": "HUMAN_ASSEMBLY", "phase": "HOLD"}
+  }
+}

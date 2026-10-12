@@ -1,0 +1,302 @@
+{
+ "status": "CANCELLED",
+ "hri_result": "CANCEL",
+ "design": {
+  "design_version": 1,
+  "blocks": [
+   {
+    "brick_type": "2x3x1",
+    "color": "blue",
+    "x": 6,
+    "y": 9,
+    "layer": 1,
+    "orientation_deg": 90
+   },
+   {
+    "brick_type": "2x3x1",
+    "color": "blue",
+    "x": 9,
+    "y": 9,
+    "layer": 1,
+    "orientation_deg": 90
+   },
+   {
+    "brick_type": "2x3x1",
+    "color": "blue",
+    "x": 12,
+    "y": 9,
+    "layer": 1,
+    "orientation_deg": 90
+   },
+   {
+    "brick_type": "2x3x1",
+    "color": "blue",
+    "x": 15,
+    "y": 9,
+    "layer": 1,
+    "orientation_deg": 90
+   },
+   {
+    "brick_type": "2x2x1",
+    "color": "blue",
+    "x": 6,
+    "y": 11,
+    "layer": 1,
+    "orientation_deg": 0
+   },
+   {
+    "brick_type": "2x3x1",
+    "color": "blue",
+    "x": 8,
+    "y": 11,
+    "layer": 1,
+    "orientation_deg": 90
+   },
+   {
+    "brick_type": "2x3x1",
+    "color": "blue",
+    "x": 11,
+    "y": 11,
+    "layer": 1,
+    "orientation_deg": 90
+   },
+   {
+    "brick_type": "2x2x1",
+    "color": "blue",
+    "x": 14,
+    "y": 11,
+    "layer": 1,
+    "orientation_deg": 0
+   },
+   {
+    "brick_type": "2x2x1",
+    "color": "blue",
+    "x": 16,
+    "y": 11,
+    "layer": 1,
+    "orientation_deg": 0
+   },
+   {
+    "brick_type": "2x3x1",
+    "color": "blue",
+    "x": 6,
+    "y": 13,
+    "layer": 1,
+    "orientation_deg": 90
+   },
+   {
+    "brick_type": "2x3x1",
+    "color": "blue",
+    "x": 9,
+    "y": 13,
+    "layer": 1,
+    "orientation_deg": 90
+   },
+   {
+    "brick_type": "2x3x1",
+    "color": "blue",
+    "x": 12,
+    "y": 13,
+    "layer": 1,
+    "orientation_deg": 90
+   },
+   {
+    "brick_type": "2x3x1",
+    "color": "blue",
+    "x": 15,
+    "y": 13,
+    "layer": 1,
+    "orientation_deg": 90
+   },
+   {
+    "brick_type": "2x3x1",
+    "color": "yellow",
+    "x": 6,
+    "y": 9,
+    "layer": 2,
+    "orientation_deg": 0
+   },
+   {
+    "brick_type": "2x3x1",
+    "color": "yellow",
+    "x": 8,
+    "y": 9,
+    "layer": 2,
+    "orientation_deg": 0
+   },
+   {
+    "brick_type": "2x3x1",
+    "color": "yellow",
+    "x": 10,
+    "y": 9,
+    "layer": 2,
+    "orientation_deg": 0
+   },
+   {
+    "brick_type": "2x3x1",
+    "color": "yellow",
+    "x": 12,
+    "y": 9,
+    "layer": 2,
+    "orientation_deg": 0
+   },
+   {
+    "brick_type": "2x3x1",
+    "color": "yellow",
+    "x": 14,
+    "y": 9,
+    "layer": 2,
+    "orientation_deg": 0
+   },
+   {
+    "brick_type": "2x3x1",
+    "color": "yellow",
+    "x": 16,
+    "y": 9,
+    "layer": 2,
+    "orientation_deg": 0
+   },
+   {
+    "brick_type": "2x3x1",
+    "color": "yellow",
+    "x": 6,
+    "y": 12,
+    "layer": 2,
+    "orientation_deg": 0
+   },
+   {
+    "brick_type": "2x3x1",
+    "color": "yellow",
+    "x": 8,
+    "y": 12,
+    "layer": 2,
+    "orientation_deg": 0
+   },
+   {
+    "brick_type": "2x3x1",
+    "color": "yellow",
+    "x": 10,
+    "y": 12,
+    "layer": 2,
+    "orientation_deg": 0
+   },
+   {
+    "brick_type": "2x3x1",
+    "color": "yellow",
+    "x": 12,
+    "y": 12,
+    "layer": 2,
+    "orientation_deg": 0
+   },
+   {
+    "brick_type": "2x3x1",
+    "color": "yellow",
+    "x": 14,
+    "y": 12,
+    "layer": 2,
+    "orientation_deg": 0
+   },
+   {
+    "brick_type": "2x3x1",
+    "color": "yellow",
+    "x": 16,
+    "y": 12,
+    "layer": 2,
+    "orientation_deg": 0
+   },
+   {
+    "brick_type": "2x2x1",
+    "color": "blue",
+    "x": 6,
+    "y": 9,
+    "layer": 3,
+    "orientation_deg": 0
+   },
+   {
+    "brick_type": "2x2x1",
+    "color": "blue",
+    "x": 6,
+    "y": 11,
+    "layer": 3,
+    "orientation_deg": 0
+   },
+   {
+    "brick_type": "2x2x1",
+    "color": "blue",
+    "x": 6,
+    "y": 13,
+    "layer": 3,
+    "orientation_deg": 0
+   },
+   {
+    "brick_type": "2x3x1",
+    "color": "blue",
+    "x": 6,
+    "y": 9,
+    "layer": 4,
+    "orientation_deg": 0
+   },
+   {
+    "brick_type": "2x3x1",
+    "color": "blue",
+    "x": 6,
+    "y": 12,
+    "layer": 4,
+    "orientation_deg": 0
+   }
+  ]
+ },
+ "design_metadata": {
+  "design_name": "한쪽 머리판이 있는 낮은 데이베드",
+  "design_family": "daybed",
+  "design_summary": "파란색 받침 위에 긴 노란색 좌석이 놓이고 한쪽 짧은 끝에만 파란색 머리판이 솟은 낮은 데이베드이다.",
+  "visible_features": [
+   "전체 바닥 크기 12×6",
+   "파란색 1층 받침과 노란색 1층 좌석",
+   "머리판을 제외한 평평한 좌석 면 10×6",
+   "한쪽 짧은 끝에만 있는 2×6 머리판",
+   "좌석 면보다 2층 높은 머리판",
+   "양쪽 긴 변에 팔걸이가 없는 낮고 긴 윤곽"
+  ],
+  "human_interpretation": null,
+  "judge": {
+   "silhouette_clarity": "clear",
+   "recognizable_family": true,
+   "completeness_score": 5
+  },
+  "preference": {
+   "object": "CHAIR",
+   "preference": "SPECIFIC",
+   "family": "daybed",
+   "style_hint": "데이베드처럼 길게 누울 수 있는",
+   "sufficient": true,
+   "follow_up": "",
+   "reply": "좋아요. 데이베드처럼 길게 누울 수 있는 의자로 만들어볼게요."
+  },
+  "selected_family": "daybed",
+  "family_source": "preference",
+  "style_hint": "데이베드처럼 길게 누울 수 있는",
+  "family_design_match": "clear",
+  "source": "LLM",
+  "error": null,
+  "review": {
+   "kind": "initial",
+   "decision": "CANCEL",
+   "style_hint": null,
+   "scope": null,
+   "concept": null,
+   "round": 0,
+   "answers": 1,
+   "source": "rule",
+   "reply": "네, 디자인 작업을 여기서 마칠게요."
+  }
+ },
+ "questions": [
+  "완성된 디자인이 화면에 표시됐어요. 어떠신가요?"
+ ],
+ "error": {
+  "code": "USER_CANCEL",
+  "message": "cancelled by user",
+  "details": []
+ }
+}

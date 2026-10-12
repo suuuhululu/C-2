@@ -1,0 +1,247 @@
+{
+  "plan_id": "P-a136b83e8f594f3d9f0e0573b3b4ccf8",
+  "design_version": 1,
+  "base_current_revision": 0,
+  "steps": [
+    {
+      "step_id": "S01",
+      "operation": "PLACE",
+      "before": null,
+      "after": {
+        "brick_type": "2x2x1",
+        "color": "yellow",
+        "x": 4,
+        "y": 6,
+        "layer": 1,
+        "orientation_deg": 0
+      },
+      "prerequisites": [],
+      "requires_delivery": true
+    },
+    {
+      "step_id": "S02",
+      "operation": "PLACE",
+      "before": null,
+      "after": {
+        "brick_type": "2x2x1",
+        "color": "yellow",
+        "x": 8,
+        "y": 6,
+        "layer": 1,
+        "orientation_deg": 0
+      },
+      "prerequisites": [],
+      "requires_delivery": true
+    },
+    {
+      "step_id": "S03",
+      "operation": "PLACE",
+      "before": null,
+      "after": {
+        "brick_type": "2x2x1",
+        "color": "yellow",
+        "x": 4,
+        "y": 4,
+        "layer": 1,
+        "orientation_deg": 0
+      },
+      "prerequisites": [],
+      "requires_delivery": true
+    },
+    {
+      "step_id": "S04",
+      "operation": "PLACE",
+      "before": null,
+      "after": {
+        "brick_type": "2x2x1",
+        "color": "yellow",
+        "x": 8,
+        "y": 4,
+        "layer": 1,
+        "orientation_deg": 0
+      },
+      "prerequisites": [],
+      "requires_delivery": true
+    },
+    {
+      "step_id": "S05",
+      "operation": "PLACE",
+      "before": null,
+      "after": {
+        "brick_type": "2x3x1",
+        "color": "yellow",
+        "x": 4,
+        "y": 6,
+        "layer": 2,
+        "orientation_deg": 90
+      },
+      "prerequisites": [
+        "S01",
+        "S02",
+        "S03",
+        "S04"
+      ],
+      "requires_delivery": true
+    },
+    {
+      "step_id": "S06",
+      "operation": "PLACE",
+      "before": null,
+      "after": {
+        "brick_type": "2x3x1",
+        "color": "yellow",
+        "x": 7,
+        "y": 6,
+        "layer": 2,
+        "orientation_deg": 90
+      },
+      "prerequisites": [
+        "S01",
+        "S02",
+        "S03",
+        "S04"
+      ],
+      "requires_delivery": true
+    },
+    {
+      "step_id": "S07",
+      "operation": "PLACE",
+      "before": null,
+      "after": {
+        "brick_type": "2x3x1",
+        "color": "yellow",
+        "x": 4,
+        "y": 4,
+        "layer": 2,
+        "orientation_deg": 90
+      },
+      "prerequisites": [
+        "S01",
+        "S02",
+        "S03",
+        "S04"
+      ],
+      "requires_delivery": true
+    },
+    {
+      "step_id": "S08",
+      "operation": "PLACE",
+      "before": null,
+      "after": {
+        "brick_type": "2x3x1",
+        "color": "yellow",
+        "x": 7,
+        "y": 4,
+        "layer": 2,
+        "orientation_deg": 90
+      },
+      "prerequisites": [
+        "S01",
+        "S02",
+        "S03",
+        "S04"
+      ],
+      "requires_delivery": true
+    },
+    {
+      "step_id": "S09",
+      "operation": "PLACE",
+      "before": null,
+      "after": {
+        "brick_type": "2x3x1",
+        "color": "blue",
+        "x": 4,
+        "y": 6,
+        "layer": 3,
+        "orientation_deg": 90
+      },
+      "prerequisites": [
+        "S01",
+        "S02",
+        "S03",
+        "S04",
+        "S05",
+        "S06",
+        "S07",
+        "S08"
+      ],
+      "requires_delivery": true
+    },
+    {
+      "step_id": "S10",
+      "operation": "PLACE",
+      "before": null,
+      "after": {
+        "brick_type": "2x3x1",
+        "color": "blue",
+        "x": 7,
+        "y": 6,
+        "layer": 3,
+        "orientation_deg": 90
+      },
+      "prerequisites": [
+        "S01",
+        "S02",
+        "S03",
+        "S04",
+        "S05",
+        "S06",
+        "S07",
+        "S08"
+      ],
+      "requires_delivery": true
+    },
+    {
+      "step_id": "S11",
+      "operation": "PLACE",
+      "before": null,
+      "after": {
+        "brick_type": "2x2x1",
+        "color": "blue",
+        "x": 4,
+        "y": 6,
+        "layer": 4,
+        "orientation_deg": 0
+      },
+      "prerequisites": [
+        "S01",
+        "S02",
+        "S03",
+        "S04",
+        "S05",
+        "S06",
+        "S07",
+        "S08",
+        "S09",
+        "S10"
+      ],
+      "requires_delivery": true
+    },
+    {
+      "step_id": "S12",
+      "operation": "PLACE",
+      "before": null,
+      "after": {
+        "brick_type": "2x2x1",
+        "color": "blue",
+        "x": 8,
+        "y": 6,
+        "layer": 4,
+        "orientation_deg": 0
+      },
+      "prerequisites": [
+        "S01",
+        "S02",
+        "S03",
+        "S04",
+        "S05",
+        "S06",
+        "S07",
+        "S08",
+        "S09",
+        "S10"
+      ],
+      "requires_delivery": true
+    }
+  ]
+}

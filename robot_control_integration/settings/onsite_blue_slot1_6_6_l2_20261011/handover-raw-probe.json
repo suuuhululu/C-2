@@ -1,0 +1,15 @@
+{
+  "frames": 150,
+  "elapsed_s": 10.02798225799961,
+  "latest": {
+    "received_s": 8954.564698401,
+    "stamp": 1791693027253277100,
+    "width": 640,
+    "height": 480,
+    "encoding": "rgb8",
+    "bytes": 921600
+  },
+  "max_gap_s": 0.07558038199931616,
+  "robot_motion_commands": 0,
+  "robot_gripper_commands": 0
+}

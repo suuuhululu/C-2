@@ -105,6 +105,7 @@ def checkpoint(harness, label):
     context = backend.state["context"]
     value = dict(label=label, current=backend.state["current"], snapshot=make_snapshot(backend.state),
                  plan_context=context, expected=calculate_expected(context) if context else None,
+                 comparison=backend.state["comparison"], difference=backend.state["difference"],
                  driver_calls=deepcopy(harness["driver"].calls))
     harness["checkpoints"].append(value)
     (directory / "result.json").write_text(json.dumps(dict(
@@ -136,23 +137,28 @@ def events(harness):
     return [json.loads(line) for line in path.read_text().splitlines()]
 
 
-@pytest.mark.parametrize("name,comparison,completed,revision", [
-    ("normal_match", "MATCH", 1, 1),
-    ("mismatch", "MISMATCH", 0, 1),
-    ("verified_empty", "MISMATCH", 0, 0),
-    ("occlusion_or_low_quality", "UNOBSERVABLE", 0, 1),
-    ("lower_layer_only_occluded", "MATCH", 1, 2),
-    ("delivery_unobservable", "MATCH", 1, 1),
+@pytest.mark.parametrize("name,comparison,completed,revision,lower", [
+    ("normal_match", "MATCH", 1, 1, False),
+    ("mismatch", "MISMATCH", 0, 1, False),
+    ("verified_empty", "MISMATCH", 0, 0, False),
+    pytest.param("occlusion_or_low_quality", "UNOBSERVABLE", 0, 0, False, id="occlusion-empty-current"),
+    pytest.param("occlusion_or_low_quality", "UNOBSERVABLE", 0, 1, True, id="occlusion-with-confirmed-lower"),
+    ("lower_layer_only_occluded", "MATCH", 1, 2, True),
+    ("delivery_unobservable", "MATCH", 1, 1, False),
 ])
-def test_b_stored_json_via_actual_callback_with_a_d_hmi_jsonl(tmp_path, name, comparison, completed, revision):
-    lower = name in ("occlusion_or_low_quality", "lower_layer_only_occluded")
+def test_b_stored_json_via_actual_callback_with_a_d_hmi_jsonl(tmp_path, name, comparison, completed, revision, lower):
     current = dict(current_revision=1, blocks=[YELLOW]) if lower else None
     harness = connected(tmp_path, blocks=[YELLOW, UPPER, {**YELLOW, "layer": 3}] if lower else None, current=current)
     backend, driver = harness["backend"], harness["driver"]
     assert backend._next_step()["after"] == (UPPER if lower else YELLOW)
     check = finish_transfer(harness)
+    initial_current = backend.state["current"]
     expected_before = deepcopy(backend.state["context"]["base_current"])
     fixed_expected = calculate_expected(backend.state["context"])
+    if not lower:
+        assert initial_current == dict(current_revision=0, blocks=[])
+        assert fixed_expected["blocks"] == [YELLOW]
+    checkpoint(harness, "before B observation: fixed Expected")
     case = stored_case(name, check)
     assert deliver(harness, case)
     assert len(driver.calls) == 3  # 이전 EMPTY나 Robot 성공만으로 다음 pick을 시작하지 않는다.
@@ -173,15 +179,36 @@ def test_b_stored_json_via_actual_callback_with_a_d_hmi_jsonl(tmp_path, name, co
         assert backend.state["current"]["blocks"] == []
         assert backend.state["workflow_status"] == "WAIT_INTENT"
     elif name == "occlusion_or_low_quality":
-        assert backend.state["current"] == current
+        assert backend.state["current"] == initial_current
         assert backend.state["workflow_status"] == "HOLD"
+        assert backend.state["reason"] == "UNOBSERVABLE"
+        assert backend.state["last_observation"]["reason"] == case["vision_result"]["reason"]
     else:
         assert backend.state["reason"] == "WAIT_PLACE_EMPTY"
+        assert YELLOW in backend.state["current"]["blocks"]
     snapshot = checkpoint(harness, name)
+    assert snapshot["current"] == backend.state["current"]
     assert snapshot["progress"] == dict(completed=completed, total=2)
     rows = events(harness)
     assert sum(row["event"] == "STEP_CONFIRMED" for row in rows) == completed
     assert sum(row["event"] == "CURRENT_ADOPTED" for row in rows) == revision - (1 if lower else 0)
+    adopted_plan = next(row["result"] for row in rows if row["event"] == "PLAN_ADOPTED")
+    assert calculate_expected(adopted_plan) == fixed_expected
+    if revision > (1 if lower else 0):
+        adopted = next(row for row in rows if row["event"] == "CURRENT_ADOPTED")
+        assert adopted["result"]["current"] == snapshot["current"]
+        assert adopted["result"]["observed"] == case["vision_result"]
+    if comparison == "MISMATCH":
+        question = next(row for row in rows if row["event"] == "REQUEST_SENT" and row["result"]["port"] == "hri")
+        assert question["result"]["payload"]["difference"] == backend.state["difference"]
+        assert question["result"]["payload"]["current"] == snapshot["current"]
+    elif comparison == "UNOBSERVABLE":
+        hold = next(row for row in rows if row["event"] == "OBSERVATION_HOLD")
+        assert hold["reason"] == "UNOBSERVABLE"
+        assert hold["result"]["observed"] == case["vision_result"]
+        assert hold["result"]["expected"] == fixed_expected
+        assert hold["result"]["current"] == snapshot["current"]
+        assert hold["result"]["comparison"] == comparison
     if name == "delivery_unobservable":
         row = next(row for row in rows if row["event"] == "PLACE_STATUS_CHANGED" and row["result"] == "UNOBSERVABLE")
         assert row["reason"] == "camera_view_occluded"
@@ -191,6 +218,14 @@ def test_b_stored_json_via_actual_callback_with_a_d_hmi_jsonl(tmp_path, name, co
     window.snapshot_received.emit(snapshot)
     qapp.processEvents()
     assert window.design_board.blocks == backend.state["context"]["design"]["blocks"]
+    assert window.target_board.current == snapshot["current"]
+    assert window.target_board.target == snapshot["step"]["target"]
+    if comparison == "UNOBSERVABLE":
+        assert case["vision_result"]["reason"] == snapshot["monitor"]["observation"]["reason"]
+        assert case["vision_result"]["reason"] in window.notice.toPlainText()
+    if not completed:
+        assert window.table.item(1, 1).text() == ("파랑" if lower else "노랑")
+        assert snapshot["step"]["comparison"] == comparison
     assert f"조립 확인 {completed} / 2" in window.progress.text()
     assert window.notice.toPlainText()
     assert window.grab().save(str(tmp_path / "hmi.png"))
@@ -250,6 +285,55 @@ def test_b_observed_and_place_same_new_bundle_allow_next_transfer(tmp_path):
     assert not deliver(harness, stored_case("normal_match", check), place="EMPTY")
     assert len(driver.calls) == 4
     checkpoint(harness, "same new assembly bundle EMPTY is fresh evidence")
+
+
+def test_occupied_after_confirmed_step_waits_for_fresh_empty_without_assembly(tmp_path):
+    harness = connected(tmp_path)
+    backend, driver = harness["backend"], harness["driver"]
+    check = finish_transfer(harness)
+    assert deliver(harness, stored_case("normal_match", check))
+    fresh = backend.state["place_check"]["check_id"]
+    current = backend.state["current"]
+    assert fresh != check and harness["calls"][-1] == ("vision", dict(check_id=fresh, after=None))
+    assert deliver(harness, B.examples(fresh, 0)[0], place="OCCUPIED", assembly=False)
+    assert backend.state["place_status"] == "OCCUPIED" and len(driver.calls) == 3
+    checkpoint(harness, "completed Step, new place OCCUPIED: no next transfer")
+    callbacks = sum(row["path"] == "B.deliver_example -> D.on_observation" for row in harness["received"])
+    assert deliver(harness, B.examples(fresh, 1)[0], place="EMPTY", assembly=False)
+    assert backend.state["current"] == current
+    assert len(backend.state["context"]["confirmed_steps"]) == 1
+    assert len(driver.calls) == 4 and driver.calls[-1][0] == "pick"
+    assert sum(row["path"] == "B.deliver_example -> D.on_observation" for row in harness["received"]) == callbacks
+    checkpoint(harness, "fresh place EMPTY permits next pick, no fabricated assembly callback")
+
+
+@pytest.mark.parametrize("stage", ["place", "assembly"])
+def test_original_b_callback_during_stop_and_after_resume_cannot_advance(tmp_path, stage):
+    harness = connected(tmp_path)
+    backend, driver = harness["backend"], harness["driver"]
+    identity = finish_transfer(harness) if stage == "assembly" else backend.state["place_check"]["check_id"]
+    pending = stored_case("normal_match", identity)
+    before = backend.state
+    assert backend.command(dict(command="STOP", job_id=before["job_id"]))["accepted"]
+    assert not deliver(harness, pending, place="EMPTY", assembly=stage == "assembly")
+    stop = backend.state["stop_request"]
+    assert driver.confirm_stop(stop, stopped=True, execution_ended=True,
+                               block_state_known=True, block_state="RELEASED" if stage == "assembly" else "UNPICKED")
+    assert backend.state["workflow_status"] == "STOPPED"
+    assert not deliver(harness, pending, place="EMPTY", assembly=stage == "assembly")
+    assert backend.state["current"] == before["current"]
+    assert backend.state["context"]["confirmed_steps"] == before["context"]["confirmed_steps"]
+    assert backend.command(dict(command="RESUME", job_id=before["job_id"]))["accepted"]
+    execution = backend.state["execution_id"]
+    assert driver.confirm(execution, "observe")
+    resumed = backend.state
+    assert not deliver(harness, pending, place="EMPTY", assembly=stage == "assembly")
+    assert backend.state == resumed
+    assert pending["vision_result"]["check_id"] == identity
+    assert pending["vision_result"]["observation_seq"] == 0
+    assert sum(operation == "pick" for operation, _ in driver.calls) == (1 if stage == "assembly" else 0)
+    assert not any(row["event"] == "STEP_CONFIRMED" for row in events(harness))
+    checkpoint(harness, f"STOP/resume {stage}: original pending B identity rejected")
 
 
 @pytest.mark.parametrize("revised", [False, True])

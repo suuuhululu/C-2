@@ -1,0 +1,271 @@
+# C Stage 3 D Handoff
+
+2026-10-11 · C 파트(Stage 3 Wave 3) · 대상: D(Backend·HMI·통합 담당)
+
+이 문서는 **D가 C를 호출하고 response를 받는** 방법을 정리합니다. C는 D에 push하지 않습니다. 모든 C 공개 함수는 **동기 호출**이며 결과 envelope을 반환값으로 돌려줍니다.
+
+현재 상태는 다음까지입니다.
+- C-side caller fixture PASS: [tests/integration/test_c_stage3_lifecycle.py](../tests/integration/test_c_stage3_lifecycle.py)
+- fake PREVIEW_READY 기반 review 호출 PASS
+- D가 Preview 완료 후 호출할 C API 준비 완료
+
+**실제 D/HMI integration은 팀 통합 단계**입니다. 이 문서는 D 코드가 바뀌었거나 연결됐다는 뜻이 아닙니다(D 코드는 수정하지 않았습니다).
+
+계약 세부는 [C_DESIGN_CONTRACT.md](C_DESIGN_CONTRACT.md) §4.1(Initial)·§4.2(Intervention)·§4.4(Preview 검토)·§4.5(외부 caller 호출 계약, A 작성)·§6(envelope)을 기준으로 합니다.
+
+## 공통: response envelope
+
+세 함수 모두 같은 키를 돌려줍니다: `{status, hri_result, design, design_metadata, questions, error}`(§6).
+
+| 필드 | 값 |
+|---|---|
+| `status` | `"OK"` / `"FAILED"` / `"CANCELLED"` |
+| `hri_result` | Initial: `null` · Intervention: `"KEEP"` / `"REVISE"` / `"UNCLEAR"` · 검토: `"APPROVE"` / `"MODIFY"` / `"UNCLEAR"` / `"CANCEL"`(값이 서로 다름) |
+| `design` | `{design_version, blocks}`(블록 6필드) 또는 `null`. Design에는 승인 표시·metadata가 없습니다 |
+| `design_metadata` | 설명·판정·검토 기록(표시·로그용, 분기에 쓰지 않음) 또는 `null` |
+| `questions` | 이번 호출에서 C가 낸 질문 문장 |
+| `error` | `null` 또는 `{code, message, details}`(§10: `INVALID_INPUT`, `UNSUPPORTED_OBJECT`, `DESIGN_GENERATION_FAILED`, `LLM_CALL_FAILED`, `VOICE_IO_FAILED`, `STOPPED`, `USER_CANCEL`) |
+
+세 함수 모두 예외를 밖으로 던지지 않습니다. 단, D가 넘긴 콜백(`on_question`·`on_progress`)이 던진 예외는 호출자 책임입니다.
+
+## 1. Initial 시작
+
+```python
+create_initial_design(text=None, should_stop=None, preference_text=None, on_question=None, on_progress=None)
+```
+
+- **음성 모드(`text=None`, 권장)**: C가 Initial Voice/HRI 전체를 맡습니다. D가 Initial STT를 대신하지 않습니다.
+  - 순서: 인사 TTS("안녕하세요. 오늘 어떤 걸 만들고 싶으세요?") → beep → STT(`listen(mode="free", beep=True)`) → 해석 → (필요 시 되묻기 1회) → ack TTS → 생성 → validator → 설명 → "디자인이 완성됐어요." TTS → response.
+- **텍스트 모드**: `text` = 사용자 첫 발화 전체, `preference_text` = 되묻기 답(선택). C는 음성을 내지 않습니다.
+- **반환**: `status OK`, `hri_result null`, `design` = **Initial Candidate**(`design_version` 1), `design_metadata` = 설명·family 선택·`family_source` 등(§6.1).
+- **실패**: 앉는 가구가 아니면 `FAILED`/`UNSUPPORTED_OBJECT`, 음성 장치·STT 실패면 `VOICE_IO_FAILED`, STOP이면 `CANCELLED`/`STOPPED`.
+
+D가 할 일: `design`을 **Candidate**로 보관하고 HMI Preview에 표시합니다(아직 Approved가 아님).
+
+## 2. Preview 표시 완료 후
+
+```python
+review_design_candidate(candidate, *, kind, design_metadata=None, previous_design=None, current=None, differences=None,
+                        text_answers=None, on_question=None, should_stop=None, on_progress=None)
+```
+
+- **호출 시점**: D가 Candidate의 Preview 표시를 끝낸 뒤(PREVIEW_READY)입니다. C는 표시 완료를 확인하지 않습니다(테스트에서는 caller가 PREVIEW_READY를 가정하며 sleep은 필요 없음).
+- **인자**
+  - `candidate`: 방금 표시한 후보.
+  - `kind`: `"initial"` 또는 `"revised"`.
+  - `design_metadata`: 그 후보를 받은 response의 `design_metadata` **그대로**.
+  - `kind="revised"`면 `previous_design`(Approved)·`current`·`differences`가 필수입니다.
+- **C가 하는 일**: 검토 질문 TTS("완성된 디자인이 화면에 표시됐어요. 어떠신가요?" / revised: "수정된 디자인이 화면에 표시됐어요. 어떠신가요?") → beep → STT → 해석(불명확하면 재질문 1회) → ack TTS.
+
+| 결과 | C | D |
+|---|---|---|
+| `APPROVE` | `status OK`, `design` = 입력 후보 그대로 | 그 후보를 **Approved Design으로 채택** → A Plan 요청 가능. 채택은 D 몫이며 Design에 승인 표시는 없습니다 |
+| `MODIFY` | (LLM 모드) ack 뒤 **새 Candidate**를 만들어 `design`에 담아 반환(Initial 후보는 version 1, Revised 후보는 Approved + 1, Current 보존). 직전 후보와 블록이 같은 생성 결과는 C가 탈락시키고 다시 만들므로(CONTRACT §8.14 unchanged_candidate) 돌아온 후보는 입력 후보와 다릅니다. `design_metadata.review.round`가 1 늘어남 | 새 Candidate로 Preview 갱신 → `review_design_candidate`를 **다시 호출**합니다. 이때 이번 response의 `design_metadata`를 그대로 넘기면 round가 이어집니다. (Mock 모드는 후보 그대로) |
+| `UNCLEAR` | `status OK`, `design` = 입력 후보 | 보류하거나 다시 검토 호출 |
+| `CANCEL` | `status CANCELLED`, `hri_result "CANCEL"`, `error.code USER_CANCEL`, `design` = 입력 후보 | 작업 중단 |
+| 생성 실패 | `FAILED`/`DESIGN_GENERATION_FAILED`(또는 `LLM_CALL_FAILED`), `hri_result "MODIFY"`, design null | 이전 후보로 다시 검토하거나 보류 |
+
+## 3. 조립 중 Difference 발생
+
+```python
+run_intervention(design, current, differences, text_answers=None, on_question=None, should_stop=None, on_progress=None)
+```
+
+- **입력은 세 가지뿐입니다**: `design` = **Approved Design**, `current` = Backend가 채택한 Current 블록 배열, `differences` = 이번 원인 Difference(`[{expected, actual}]`).
+- **Expected 전체는 C API에 넘기지 않습니다.** Expected는 D(Backend)가 관리합니다. C의 질문 문장과 생성·judge는 `differences[].expected/actual`과 Current만 씁니다. 근거와 결론은 A 문서 [C_DESIGN_STAGE3_C_D_CONTRACT_DRAFT.md](C_DESIGN_STAGE3_C_D_CONTRACT_DRAFT.md)의 correlation/Expected 결론 절과 CONTRACT §4.5를 참고하세요.
+- **C가 하는 일**: Difference 설명 질문 TTS("Design과 다르게 놓인 부분이 있는데, 의도하신 건가요?" + 차이 설명) → beep → STT → 해석 → ack → (REVISE면) 생성·validator·judge.
+
+| 결과 | C | D |
+|---|---|---|
+| `KEEP` | `design` = 입력 Approved 그대로 | 사람이 블록을 원래 자리로 고치면 기존 계획대로 진행 |
+| `REVISE` | **Revised Candidate**(`design_version` = Approved + 1, Current 보존)를 `design`에 담아 반환 | Preview 표시 → `review_design_candidate(candidate, kind="revised", design_metadata=…, previous_design=Approved, current=…, differences=…)` |
+| `UNCLEAR` | 텍스트 답변 소진 시 | 보류 |
+| 실패·취소 | §10 코드 | 보류 |
+
+## 4. 데이터 저장
+
+C는 DB·파일·HMI에 직접 쓰지 않습니다. D가 response를 받은 뒤 HMI 표시, Backend state, DB 기록, A Plan 요청에 씁니다. 저장 실패가 C 호출 결과를 바꾸지 않습니다.
+
+## 5. correlation (요청 대응)
+
+C 세 함수는 request_id·job_id·current_revision을 **받지도 돌려주지도 않습니다**(C 코드 grep으로 확인: `app/c_design/main.py`·`voice.py`·`dialogue.py`에 해당 필드 없음). 호출은 동기이므로 D가 자기 스레드·요청 단위로 response를 대응시키며, stale·중복 response 구분과 폐기는 **caller(D) 책임**입니다. 자세한 "C가 지원 / D가 관리" 표는 A 문서(초안 correlation 절, CONTRACT §4.5)에 있습니다.
+
+## 6. Voice 독립성과 마이크 lifecycle
+
+- **질문은 호출마다 자기 것으로 시작합니다**: Initial은 인사, 검토는 "완성된(수정된) 디자인이 화면에 표시됐어요. 어떠신가요?", Intervention은 Difference 설명 질문입니다. 이전 호출의 질문·답이 다음 호출로 넘어가지 않습니다(fake listen/speak 테스트로 확인).
+- **마이크는 호출 사이에 열려 있지 않습니다**: `voice.record()`는 호출마다 `sd.InputStream(...)`을 `with` 블록으로 열고, 녹음이 끝나면 닫습니다(`app/c_design/voice.py`의 `record`). 테스트 `test_record_opens_and_closes_the_input_stream_on_every_call`이 open → close가 호출마다 한 번씩인 것을 확인합니다.
+- `voice.prewarm()`은 Initial 음성 모드 시작 때 스트림을 한 번 열었다 닫는 준비 동작입니다.
+- **C 모듈 전역 값**: `voice._last_error`·`_last_capture`·`_last_speak`(디버그용 마지막 기록), `voice._capture_options`(listen 안에서만 설정하고 끝나면 원복), `dialogue._last_pick`(ack 문장 직전 회피용)이 있습니다. 호출 간 결정에는 쓰이지 않습니다.
+- **D 쪽 주의**: D가 C를 텍스트 모드로 부르면서 자기 마이크를 따로 쓰는 경우, D와 C가 같은 장치를 동시에 열지 않도록 순서를 맞춰야 합니다(C 음성 모드 호출 중에는 D가 마이크를 잡지 않음).
+
+## 7. 음성 / 텍스트 모드 선택
+
+| 함수 | 음성 모드 | 텍스트 모드 |
+|---|---|---|
+| `create_initial_design` | `text=None` | `text="…"`(+ `preference_text`) |
+| `review_design_candidate` | `text_answers=None` | `text_answers=["…"]` |
+| `run_intervention` | `text_answers=None` | `text_answers=["…"]` |
+
+텍스트 모드에서는 C가 TTS를 내지 않습니다. 진행 이벤트(`on_progress`)와 질문(`on_question`)은 두 모드 모두 콜백으로 받을 수 있습니다.
+
+## 8. Mock / LLM 모드
+
+| | Mock(`C_DESIGN_USE_LLM` 미설정 또는 ≠ 1) | LLM(`C_DESIGN_USE_LLM=1`) |
+|---|---|---|
+| Initial | 목표 문장 `parse_goal`, 질문 없음, 고정 Mock 의자 | 인사·해석·family/concept 생성 |
+| 답변 해석 | 규칙만 | 규칙 → 애매하면 LLM 해석 |
+| 검토 MODIFY | 후보 그대로(재생성 없음) | 새 Candidate 생성 |
+| 음성 | 검토는 음성 없음(질문은 `on_question`). Intervention 음성 모드는 질문을 읽음 | 질문·ack·주요 진행 문장 TTS |
+
+키는 용도별 환경 변수 `OPENAI_LLM_API_KEY`(LLM)·`OPENAI_API_KEY`(STT)·`OPENAI_TTS_API_KEY`(TTS)이며 서로 대체하지 않습니다(§4). 2026-10-11부터 실제 실행 명령은 세 변수에 같은 개인 key 파일(`~/c2_cobot2_API_key.txt`)을 넣습니다(기관 STT key는 크레딧 소진 `credit_balance_exhausted`로 기록, 코드 fallback 없음).
+
+## 9. 실행 명령
+
+**생성 모델은 반드시 `OPENAI_MODEL=gpt-6.1-sol`로 지정합니다.** 2026-10-11 actual mic E2E에서 이 변수 없이 실행해 기본 `gpt-4o-mini`로 생성한 결과 Initial 10회 시도가 모두 validator(support·overlap·connectivity) 탈락으로 `DESIGN_GENERATION_FAILED`였습니다(같은 요청을 gpt-6.1-sol로 돌리면 20 family 모두 ≤2회에 통과). runner는 LLM 모드에서 모델을 출력하고 `OPENAI_MODEL`이 없으면 경고합니다.
+
+fake D caller runner: [scripts/c_stage3_integration_smoke.py](../scripts/c_stage3_integration_smoke.py). C 시험용이며 D 구현이 아닙니다.
+
+Mock 텍스트(키 없음):
+
+```bash
+python3 scripts/c_stage3_integration_smoke.py --mode text --scenario full
+```
+
+fake-voice(정해 둔 답을 순서대로, TTS는 실제. `full` 기본 답은 Revised MODIFY "조금 더 화려하게 해줘"를 포함한 최종 lifecycle 6개):
+
+```bash
+env C_DESIGN_USE_LLM=1 OPENAI_MODEL=gpt-6.1-sol OPENAI_LLM_API_KEY="$(cat ~/c2_cobot2_API_key.txt)" OPENAI_TTS_API_KEY="$(cat ~/c2_cobot2_API_key.txt)" python3 scripts/c_stage3_integration_smoke.py --mode fake-voice --scenario full
+```
+
+실제 마이크·TTS + C-side Test Preview 창(사용자 실행, Stage 3 Interactive Preview):
+
+```bash
+cd /home/skywalker/adaptive_coassembly/C-2 && env C_DESIGN_USE_LLM=1 OPENAI_MODEL=gpt-6.1-sol OPENAI_API_KEY="$(cat ~/c2_cobot2_API_key.txt)" OPENAI_LLM_API_KEY="$(cat ~/c2_cobot2_API_key.txt)" OPENAI_TTS_API_KEY="$(cat ~/c2_cobot2_API_key.txt)" python3 scripts/c_stage3_integration_smoke.py --mode mic --scenario full --show-preview --out ~/c_stage3_final --render ~/c_stage3_final/png
+```
+
+`--show-preview`는 **C-side test visualization**입니다. D Preview·D Production HMI가 아니며, PREVIEW_READY는 fake caller의 가정입니다.
+
+- 새 Candidate(Initial 후보·MODIFY 후보·Revised 후보·Revised MODIFY 후보)를 받을 때마다 "C-side Test Preview — <state> — Not D Production HMI" 창에 그리고, 화면이 갱신된 뒤에야 다음 `review_design_candidate`(질문 TTS → beep → STT)를 부릅니다.
+- Enter 입력 없이 음성만으로 진행합니다. 창을 닫아도 흐름은 계속되고 다음 표시 때 다시 뜹니다.
+- `--render DIR`은 같은 화면을 `01_initial_candidate.png` · `02_initial_modified_candidate_r<round>.png` · `03_revised_candidate.png` · `04_revised_modified_candidate_r<round>.png`로 저장합니다(APPROVE 등 후보가 그대로인 응답은 저장하지 않음).
+- 화면은 Initial이 현재 후보 1장(`compose_v1`), Revised가 `Approved v1 | Current+Difference(actual 주황) | v2`(`compose_v2`)입니다.
+
+offline 검증:
+
+```bash
+python3 -m pytest tests/integration/test_c_stage3_lifecycle.py -q
+```
+
+## 최종 상태(Stage 3 Wave 4)
+
+C는 APPROVE 의사를 반환하고, D가 Candidate를 Approved Design으로 채택합니다. C는 Approved를 저장하지 않습니다. Candidate와 Approved는 다릅니다. MODIFY·REVISE가 돌려주는 Design은 승인 전 Candidate이며, 채택은 D 몫입니다. correlation(request_id 등)과 Expected 관리는 D(caller) 책임이고 C API는 확장하지 않았습니다(§5, CONTRACT §4.5).
+
+검증한 최종 lifecycle(C-side, fake D caller):
+- 순서: Initial → PREVIEW_READY(가정) → review MODIFY → 새 Candidate v1 → review APPROVE → caller 채택 v1 → Difference → `run_intervention` REVISE → Revised v2‑A → review(revised) MODIFY("조금 더 화려하게 해줘") → v2‑B → review APPROVE
+- version 수열 `[1, 1, 1, 2, 2, 2]`, round는 Initial 0→1→1 / Revised 0→1→1
+- Revised 후보는 모두 Current 보존, 마지막 APPROVE는 생성 0회이고 후보를 그대로 돌려줌
+- 근거: `tests/integration/test_c_stage3_lifecycle.py`의 `test_final_lifecycle_voice_mode_end_to_end`(fake listen/speak 음성 모드, 호출마다 첫 TTS·listen 1회·마이크 open/close 확인)와 runner의 Mock 텍스트 실행
+
+### C-side ✅
+
+| # | 항목 | 상태 |
+|---|---|---|
+| 1 | Initial Voice/HRI(인사 TTS → beep → STT → 해석 → ack → 생성 → READY TTS) | ✅ C-side |
+| 2 | Candidate Design(Initial v1, validator PASS) | ✅ C-side |
+| 3 | Preview Review API(`review_design_candidate`, PREVIEW_READY 뒤 caller가 호출) | ✅ C-side (fake PREVIEW_READY 기반 review 호출 PASS) |
+| 4 | MODIFY regeneration(patch / redesign / concept_change, 직전 후보와 같은 블록은 탈락·재생성) | ✅ C-side |
+| 5 | APPROVE / MODIFY / UNCLEAR / CANCEL | ✅ C-side |
+| 6 | Intervention KEEP / REVISE / UNCLEAR | ✅ C-side |
+| 7 | Revised Candidate(Approved + 1, Current 보존, judge·재생성 ≤1) | ✅ C-side |
+| 8 | Candidate re-review(이전 response의 design_metadata를 넘기면 round가 이어짐) | ✅ C-side |
+| 9 | version lifecycle(Initial 1 고정, Revised = Approved + 1 고정, 호출 횟수로 늘지 않음) | ✅ C-side |
+| 10 | inventory / validator(허용 색·브릭 조합, MAX_LAYER·MAX_BLOCKS, support·connectivity) | ✅ C-side |
+| 11 | C-side caller fixture(fake D caller 테스트·runner) | ✅ C-side caller fixture PASS |
+| 12 | C-side Voice lifecycle E2E(호출별 첫 TTS, listen 1회, 마이크 open/close, 답 잔존 없음) | ✅ C-side (fake listen/speak) |
+
+### Team integration ❌ (팀 통합 단계)
+
+| # | 항목 | 상태 |
+|---|---|---|
+| 1 | 실제 D HMI Preview 연결(Preview 표시 완료 → `review_design_candidate` 호출) | ❌ 미연결 |
+| 2 | D Candidate / Approved state 연결(APPROVE 채택·MODIFY 새 후보 보관) | ❌ 미연결 |
+| 3 | 실제 A Planning 연결(Approved Design → Plan) | ❌ 미연결 |
+| 4 | 실제 Vision Current / Difference 연결 | ❌ 미연결 |
+| 5 | Robot REAL E2E | ❌ 미연결 |
+
+**사용자 실행(실제 마이크·TTS, 최종 lifecycle 1회)**
+
+결과 PNG는 시험용 표시이며 실제 D Preview가 아닙니다.
+
+```bash
+env C_DESIGN_USE_LLM=1 OPENAI_MODEL=gpt-6.1-sol OPENAI_API_KEY="$(cat ~/c2_cobot2_API_key.txt)" OPENAI_LLM_API_KEY="$(cat ~/c2_cobot2_API_key.txt)" OPENAI_TTS_API_KEY="$(cat ~/c2_cobot2_API_key.txt)" python3 scripts/c_stage3_integration_smoke.py --mode mic --scenario full --out ~/c_stage3_final --render ~/c_stage3_final/png
+```
+
+# D → C 호출 Quick Reference
+
+2026-10-11 · `app/c_design/main.py` 현재 코드(Stage 3 savepoint 4d64992) 기준입니다. D가 C를 호출하고 response를 받습니다. 세 함수 모두 **동기 호출**이며 예외를 밖으로 던지지 않고 envelope `{status, hri_result, design, design_metadata, questions, error}`를 반환합니다. 단, D가 넘긴 콜백(`on_question`·`on_progress`) 안에서 난 예외는 D 쪽으로 그대로 올라옵니다. 세부는 위 §1~§8에 있습니다.
+
+```python
+from app.c_design import main as c_main
+```
+
+**1. Initial — C가 인사 TTS → beep → STT → 해석 → 생성까지 맡음**
+
+```python
+r = c_main.create_initial_design(text=None, should_stop=stop.is_set, on_question=show_question, on_progress=show_progress)
+candidate, meta = r["design"], r["design_metadata"]   # status OK면 Candidate v1 (Approved 아님)
+```
+
+- **음성 모드**(`text=None`)가 권장 방식입니다.
+- **텍스트 모드**도 동작합니다: `text="벤치처럼 길고 넓은 의자"` + 선택 `preference_text=`(되묻기 답). 지금 D(`app/c_text_connection.py`)는 목표를 직접 STT한 뒤 이 텍스트 모드로 부릅니다. 그러면 C의 인사·되묻기·ack 음성은 쓰이지 않습니다.
+
+**2. Preview 표시 완료 후 — 검토**
+
+```python
+r = c_main.review_design_candidate(candidate, kind="initial", design_metadata=meta,
+                                   should_stop=stop.is_set, on_question=show_question, on_progress=show_progress)
+if r["hri_result"] == "APPROVE":   approved = r["design"]                                 # 채택은 D
+elif r["hri_result"] == "MODIFY" and r["status"] == "OK":
+    candidate, meta = r["design"], r["design_metadata"]   # 새 Candidate → Preview 갱신 → 2를 다시 호출
+# UNCLEAR: 보류·재검토 / status CANCELLED + hri "CANCEL": 작업 중단
+```
+
+- C는 Approved를 저장하지 않습니다. APPROVE는 의사만 반환하고, Candidate를 Approved로 채택하는 것은 D 몫입니다.
+- MODIFY 뒤에는 받은 `design_metadata`를 그대로 다시 넘겨야 `review.round`가 이어집니다.
+
+**3. 조립 중 Difference — Approved·Current·differences만 넘김(Expected 전체는 넘기지 않음)**
+
+```python
+r = c_main.run_intervention(approved, current_blocks, [{"expected": expected_block, "actual": actual_block}],
+                            should_stop=stop.is_set, on_question=show_question, on_progress=show_progress)
+# KEEP: design = approved 그대로 / REVISE: design = Revised Candidate / UNCLEAR
+```
+
+**4. Revised Preview 표시 완료 후 — kind="revised" + 세 입력 필수**
+
+```python
+r = c_main.review_design_candidate(revised_candidate, kind="revised", design_metadata=revised_meta,
+                                   previous_design=approved, current=current_blocks, differences=differences,
+                                   should_stop=stop.is_set, on_question=show_question, on_progress=show_progress)
+```
+
+**5. Version**
+
+- Initial Candidate는 항상 v1이고, MODIFY로 다시 만들어도 v1입니다.
+- Revised Candidate는 입력 Approved의 version + 1입니다(`designer.build_revised_design`). Revised를 MODIFY해도 그대로이고, Approved v2에서 다시 REVISE하면 v3입니다.
+- `design_metadata.review.round`는 후보를 고친 횟수입니다. version과 별개입니다.
+
+**6. Error / 중단**
+
+| `status` | `error.code` | 언제 |
+|---|---|---|
+| FAILED | `INVALID_INPUT` | 인자 형식·범위 위반(`kind`, candidate validator, revised 입력 누락, 빈 differences 등) |
+| FAILED | `UNSUPPORTED_OBJECT` | 앉는 가구가 아닌 요청 |
+| FAILED | `VOICE_IO_FAILED` | 마이크·STT 실패(음성 모드) |
+| FAILED | `LLM_CALL_FAILED` | LLM provider 실패 |
+| FAILED | `DESIGN_GENERATION_FAILED` | 시도 한도 안에 유효 Design 없음(`details`에 마지막 탈락 사유) |
+| CANCELLED | `STOPPED` | `should_stop()`이 True(질문-응답 턴 사이·생성 시도 사이·LLM 재시도 사이에 확인) |
+| CANCELLED | `USER_CANCEL` | 사용자가 취소를 말함(검토는 `hri_result: "CANCEL"`) |
+
+- **텍스트 모드 답 소진**: `status: OK`, `hri_result: "UNCLEAR"`입니다(오류 아님).
+- **음성 모드 Intervention**: 침묵이면 시간 제한 없이 계속 기다립니다. 끝내려면 `should_stop`을 씁니다.

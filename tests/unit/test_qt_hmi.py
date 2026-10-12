@@ -142,25 +142,21 @@ def test_qt_stop_resume_routes_to_controller_without_duplicate_consumption(windo
     new = demo.backend.state["execution_id"]
     assert new != old and demo.driver.calls[-1][0] == next_operation
     wait_for(demo, "COMPLETE"); qapp.processEvents()
-    assert [row["next_slot"] for row in window._snapshot["monitor"]["supply"]] == [3,1,1,2]
+    assert [row["next_slot"] for row in window._snapshot["monitor"]["supply"]] == [3,1,1,2,1]
     assert demo.backend.state["current"]["blocks"] == demo.fixtures["design"]["blocks"]
 
 
-def test_qt_refill_button_reaches_backend_controller_and_resumes_after_new_empty(window, qapp, tmp_path):
+def test_qt_cycle_continues_without_refill_button(window, qapp, tmp_path):
     config_path = tmp_path/"robot.json"
     config_path.write_text(json.dumps({**deepcopy(CONFIG), "slot_count":1}))
     demo = FakeDemo(window, tmp_path/"logs", delay_ms=1, robot_config=config_path)
     qapp.processEvents(); window.buttons["START"].click()
-    wait_until(demo, lambda: demo.backend.state["reason"] == "NEEDS_REFILL")
-    qapp.processEvents()
-    button = window.refill_buttons["2x2x1","yellow"]
-    assert button.isVisible() and button.isEnabled() and "보충 필요" in window.supply.text()
-    assert demo.backend.state["current"]["current_revision"] == 1
-    assert len(demo.driver.calls) == 3
-    button.click()
     wait_for(demo, "COMPLETE"); qapp.processEvents()
+    button = window.refill_buttons["2x2x1","yellow"]
+    assert not button.isVisible() and "보충 필요" not in window.supply.text()
     assert len([op for op,_ in demo.driver.calls if op == "pick"]) == 3
-    assert demo.controller.state["supply"][0]["needs_refill"]
+    assert demo.controller.state["supply"][0]["next_slot"] == 1
+    assert not demo.controller.state["supply"][0]["needs_refill"]
 
 
 @pytest.mark.parametrize("scenario,slot", [("robot-pick-failure",1), ("robot-return-failure",2), ("robot-timeout",1)])

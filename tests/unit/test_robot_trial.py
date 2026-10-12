@@ -350,3 +350,11 @@ def test_log_failure_prevents_next_command():
     with pytest.raises(OSError, match="disk full"):
         trial.run_commands(COMMANDS, robot, gripper, [1.] * 6, CONFIG, failed_log)
     assert robot.calls == [] and gripper.calls == []
+
+
+def test_confirmed_pick_at_slot_six_reports_next_slot_one():
+    robot,gripper,events=Robot(),Gripper(),[]
+    config=deepcopy(CONFIG);config['slot']=6
+    trial.run_commands(COMMANDS,robot,gripper,[1.]*6,config,
+        lambda event,payload:events.append((event,payload)))
+    assert [payload for event,payload in events if event=='ROBOT_PICK_CONFIRMED']==[dict(slot=6,next_slot=1)]

@@ -1,0 +1,65 @@
+{
+  "kind": "LOCAL_OPERATOR_ALIGNMENT_OBSERVATION",
+  "operator_statement": "평행. 바로 하강 가능",
+  "observed_unix_s": 1791689935.506726,
+  "approach_execution_id": "de49aab8-8531-4ffd-904a-f9c5e33542c6",
+  "plan_id": "D_LOCAL_HELD_TRIAL5_18_L4_NO_TURN_20261011",
+  "step_id": "S01",
+  "trial_min_xy": [
+    5,
+    18
+  ],
+  "layer": 4,
+  "color": "yellow",
+  "readiness_ref": "settings/onsite_5_18_l4_20261011/contact-readiness.json",
+  "read_only_sample": {
+    "posj": [
+      27.21651268005371,
+      9.991957664489746,
+      95.25941467285156,
+      0.06181292235851288,
+      74.73886108398438,
+      27.205459594726562
+    ],
+    "posx": [
+      376.4134826660156,
+      197.8729248046875,
+      91.70816040039062,
+      90.19214630126953,
+      179.97808837890625,
+      90.55794525146484
+    ],
+    "velx": [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+    ],
+    "motion_status": 0,
+    "query_started_monotonic_s": 5822.736265299,
+    "query_duration_s": 0.20124594700064335,
+    "query_finished_monotonic_s": 5822.937512451,
+    "robot_state": 1,
+    "robot_mode": 1,
+    "drl_state": 3,
+    "tcp": "GripperDA_v4",
+    "tool": "ToolWeight0",
+    "wrench": [
+      -2.3420350551605225,
+      -2.1912643909454346,
+      3.9548230171203613,
+      0.5193800926208496,
+      -0.3784712553024292,
+      0.2573889493942261
+    ],
+    "gripper_status": 2,
+    "gripper_width_mm": 40.4,
+    "gripper_fingertip_offset_mm": 0.0,
+    "gripper_width_with_offset_mm": 40.4
+  },
+  "assembly_completion": false,
+  "current_update": false,
+  "physical_calibration_adopted": false
+}

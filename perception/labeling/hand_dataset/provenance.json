@@ -1,0 +1,213 @@
+{
+  "source_video": "/home/roh/Videos/Screencasts/손 yolo학습 시켜야 할 거.mp4",
+  "source_sha256": "1ddc1cab305aeb122820d63d5d4d071b6e70805387078fd914c852e2f4cf7996",
+  "class_names": {
+    "0": "hand"
+  },
+  "frames": [
+    {
+      "image": "images/train/hand_v0_00s.png",
+      "label": "labels/train/hand_v0_00s.txt",
+      "timestamp_seconds_requested": 0,
+      "scene_id": "hand_video_01",
+      "annotation": "AI_visual_bbox_draft",
+      "human_reviewed": false,
+      "hand_count": 2,
+      "sha256": "753bb3fec6c7f58f1b6721427c289c3f5e5413c68e1c4f9b68849a26a0cb67c6"
+    },
+    {
+      "image": "images/train/hand_v0_02s.png",
+      "label": "labels/train/hand_v0_02s.txt",
+      "timestamp_seconds_requested": 2,
+      "scene_id": "hand_video_01",
+      "annotation": "AI_visual_bbox_draft",
+      "human_reviewed": false,
+      "hand_count": 2,
+      "sha256": "25c7261ce447630c3969a59f2ff4df7e5f4cd918eab6e1d8e96f962270c55aa3"
+    },
+    {
+      "image": "images/train/hand_v0_04s.png",
+      "label": "labels/train/hand_v0_04s.txt",
+      "timestamp_seconds_requested": 4,
+      "scene_id": "hand_video_01",
+      "annotation": "AI_visual_bbox_draft",
+      "human_reviewed": false,
+      "hand_count": 2,
+      "sha256": "c3991f43383077f6879f7572ade923af1fb41162a5906e96ca24295f28462b49"
+    },
+    {
+      "image": "review_required/images/hand_v0_06s.png",
+      "label": "review_required/labels/hand_v0_06s.txt",
+      "timestamp_seconds_requested": 6,
+      "scene_id": "hand_video_01",
+      "annotation": "AI_visual_bbox_draft",
+      "human_reviewed": false,
+      "hand_count": 2,
+      "sha256": "b82947f98a3e9a982727149633b0a2ecfbc766f735faa46360909c44a59e6385",
+      "reason": "motion_blur_or_tiny_edge_hand"
+    },
+    {
+      "image": "images/train/hand_v0_08s.png",
+      "label": "labels/train/hand_v0_08s.txt",
+      "timestamp_seconds_requested": 8,
+      "scene_id": "hand_video_01",
+      "annotation": "AI_visual_bbox_draft",
+      "human_reviewed": false,
+      "hand_count": 2,
+      "sha256": "7bdfa9c77f67c5cf7ba57221f4662546b8e65a7993e19fff4e6e981e859fad78"
+    },
+    {
+      "image": "images/train/hand_v0_10s.png",
+      "label": "labels/train/hand_v0_10s.txt",
+      "timestamp_seconds_requested": 10,
+      "scene_id": "hand_video_01",
+      "annotation": "AI_visual_bbox_draft",
+      "human_reviewed": false,
+      "hand_count": 2,
+      "sha256": "5ce3a57a2d8ebc7bd1406ee67e553400f0980c955e542f87b594ccdd82638be9"
+    },
+    {
+      "image": "images/train/hand_v0_12s.png",
+      "label": "labels/train/hand_v0_12s.txt",
+      "timestamp_seconds_requested": 12,
+      "scene_id": "hand_video_01",
+      "annotation": "AI_visual_bbox_draft",
+      "human_reviewed": false,
+      "hand_count": 1,
+      "sha256": "cdc14be78275c2eb9486505f1faed9c5b67f0b89af75ec3e0c01b7ac1cd014cd"
+    },
+    {
+      "image": "images/train/hand_v0_14s.png",
+      "label": "labels/train/hand_v0_14s.txt",
+      "timestamp_seconds_requested": 14,
+      "scene_id": "hand_video_01",
+      "annotation": "AI_visual_bbox_draft",
+      "human_reviewed": false,
+      "hand_count": 1,
+      "sha256": "0b4a42006984b99dd8d2d06ecbe0938e358ed3240ee441d3d91f57a5678e448e"
+    },
+    {
+      "image": "images/train/hand_v0_16s.png",
+      "label": "labels/train/hand_v0_16s.txt",
+      "timestamp_seconds_requested": 16,
+      "scene_id": "hand_video_01",
+      "annotation": "AI_visual_bbox_draft",
+      "human_reviewed": false,
+      "hand_count": 2,
+      "sha256": "e51f618ca1790ff7057237483b0cac5e03820892eee58a98aa2e7ae21be89df7"
+    },
+    {
+      "image": "review_required/images/hand_v0_18s.png",
+      "label": "review_required/labels/hand_v0_18s.txt",
+      "timestamp_seconds_requested": 18,
+      "scene_id": "hand_video_01",
+      "annotation": "AI_visual_bbox_draft",
+      "human_reviewed": false,
+      "hand_count": 2,
+      "sha256": "3f04677b7e6dcfcc805719a7330175b50a0d9f84b4374325c385888026af76fd",
+      "reason": "motion_blur_or_tiny_edge_hand"
+    },
+    {
+      "image": "images/train/hand_v0_20s.png",
+      "label": "labels/train/hand_v0_20s.txt",
+      "timestamp_seconds_requested": 20,
+      "scene_id": "hand_video_01",
+      "annotation": "AI_visual_bbox_draft",
+      "human_reviewed": false,
+      "hand_count": 2,
+      "sha256": "94a2429907cdabcc9f8b976367bdaf1c036cf462d6789771e931b051fd6e4225"
+    },
+    {
+      "image": "images/train/hand_v0_22s.png",
+      "label": "labels/train/hand_v0_22s.txt",
+      "timestamp_seconds_requested": 22,
+      "scene_id": "hand_video_01",
+      "annotation": "AI_visual_bbox_draft",
+      "human_reviewed": false,
+      "hand_count": 0,
+      "sha256": "5533d3623bef12a363c0783914f57f2bbe21495f463fe95f0606f8b463c2e6b3"
+    },
+    {
+      "image": "images/train/hand_v0_24s.png",
+      "label": "labels/train/hand_v0_24s.txt",
+      "timestamp_seconds_requested": 24,
+      "scene_id": "hand_video_01",
+      "annotation": "AI_visual_bbox_draft",
+      "human_reviewed": false,
+      "hand_count": 2,
+      "sha256": "24e4ba16996a5792935f5a4f6243041f4698f7a165ae192af8a074e67aa3c066"
+    },
+    {
+      "image": "images/train/hand_v0_26s.png",
+      "label": "labels/train/hand_v0_26s.txt",
+      "timestamp_seconds_requested": 26,
+      "scene_id": "hand_video_01",
+      "annotation": "AI_visual_bbox_draft",
+      "human_reviewed": false,
+      "hand_count": 2,
+      "sha256": "444e19144f76d6542d245647e7cb1f32379a0dd354a1273df4b7c2097e5919ea"
+    },
+    {
+      "image": "images/train/hand_v0_28s.png",
+      "label": "labels/train/hand_v0_28s.txt",
+      "timestamp_seconds_requested": 28,
+      "scene_id": "hand_video_01",
+      "annotation": "AI_visual_bbox_draft",
+      "human_reviewed": false,
+      "hand_count": 2,
+      "sha256": "6d4e6a2aee55ae39fc4eac4ddc14f86bc25612c7801aba10ecdf45b77c2dfdac"
+    },
+    {
+      "image": "review_required/images/hand_v0_30s.png",
+      "label": "review_required/labels/hand_v0_30s.txt",
+      "timestamp_seconds_requested": 30,
+      "scene_id": "hand_video_01",
+      "annotation": "AI_visual_bbox_draft",
+      "human_reviewed": false,
+      "hand_count": 2,
+      "sha256": "710b1b7b118e5fe3bcc8ba564d11aacf3c1819a1edf20f6903aa9c1663c95449",
+      "reason": "motion_blur_or_tiny_edge_hand"
+    },
+    {
+      "image": "review_required/images/hand_v0_32s.png",
+      "label": "review_required/labels/hand_v0_32s.txt",
+      "timestamp_seconds_requested": 32,
+      "scene_id": "hand_video_01",
+      "annotation": "AI_visual_bbox_draft",
+      "human_reviewed": false,
+      "hand_count": 2,
+      "sha256": "01ecd377a1ea493fa3782b0b0bd4887afe0100ce6ffbb4fc6678d38373fc8f03",
+      "reason": "motion_blur_or_tiny_edge_hand"
+    },
+    {
+      "image": "images/train/hand_v0_34s.png",
+      "label": "labels/train/hand_v0_34s.txt",
+      "timestamp_seconds_requested": 34,
+      "scene_id": "hand_video_01",
+      "annotation": "AI_visual_bbox_draft",
+      "human_reviewed": false,
+      "hand_count": 1,
+      "sha256": "f1312b46eabbd825001d874439238e7057adb09201cdcbac408b2ffd3d3634e7"
+    },
+    {
+      "image": "images/train/hand_v0_36s.png",
+      "label": "labels/train/hand_v0_36s.txt",
+      "timestamp_seconds_requested": 36,
+      "scene_id": "hand_video_01",
+      "annotation": "AI_visual_bbox_draft",
+      "human_reviewed": false,
+      "hand_count": 2,
+      "sha256": "8803e0a5e3de428c7a8c2f09609cebdd5c6572981eff6df4f4c2a15c3d27784d"
+    },
+    {
+      "image": "images/train/hand_v0_38s.png",
+      "label": "labels/train/hand_v0_38s.txt",
+      "timestamp_seconds_requested": 38,
+      "scene_id": "hand_video_01",
+      "annotation": "AI_visual_bbox_draft",
+      "human_reviewed": false,
+      "hand_count": 2,
+      "sha256": "3a55184bebef6250bada412f6da19fd4b5d502bc5790899ae382f55297e84477"
+    }
+  ]
+}

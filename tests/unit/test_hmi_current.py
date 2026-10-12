@@ -100,7 +100,7 @@ def test_target_deduplication_requires_all_six_placement_fields(window, field, v
 
 @pytest.mark.parametrize('field,value', [('current_revision',True), ('current_revision',-1),
                                         ('blocks',[A,A]), ('blocks',[{**A,'block_id':'invented'}]),
-                                        ('blocks',[{**A,'layer':5}])])
+                                        ('blocks',[{**A,'layer':6}])])
 def test_snapshot_reuses_current_rejection_rules(field, value):
     snapshot = scene('waiting')
     snapshot['current'][field] = value

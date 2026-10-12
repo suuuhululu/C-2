@@ -1,0 +1,10 @@
+# 2026-10-06 installed/import-checked on local Python 3.12.3; real model/device untested.
+# CPU wheels must come from the official PyTorch CPU index.
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch==2.14.1+cpu
+torchvision==0.29.1+cpu
+numpy==1.26.4
+opencv-python==4.11.0.86
+PyYAML==6.0.3
+ultralytics==8.4.173
+pyrealsense2==2.58.4.10922

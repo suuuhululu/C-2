@@ -1,0 +1,178 @@
+{
+  "case_id": "01_types_and_rotation",
+  "step_id": "S05",
+  "plan_id": "P-94baaf41116e42bba3ecdfedb690bb04",
+  "block": {
+    "brick_type": "2x3x1",
+    "color": "blue",
+    "x": 15,
+    "y": 10,
+    "layer": 1,
+    "orientation_deg": 90
+  },
+  "current_revision": 4,
+  "base_current_revision": 0,
+  "mode": "ROBOT_GRIP",
+  "grip_axis": "y",
+  "assistance_kind": "NONE",
+  "human_actions": [],
+  "support_studs": 6,
+  "contacts": [],
+  "reserved_supply_slot": {
+    "slot_id": "blue_2x3x1_02",
+    "slot_index": 2,
+    "brick_type": "2x3x1",
+    "color": "blue",
+    "reservation_id": "01_types_and_rotation-S05-mock-reservation",
+    "reservation_generation": 5,
+    "bound_workflow_generation": 1,
+    "state": "RESERVED",
+    "part_confirmation": "CONFIRMED",
+    "valid_until_ref": "D_RUNTIME_VALIDITY_REQUIRED"
+  },
+  "pickup_tcp_pose": {
+    "frame_id": "base_link",
+    "xyz_m": [
+      -0.3872867391304348,
+      0.0032705434782608904,
+      0.05004
+    ],
+    "quaternion_xyzw": [
+      -0.006719467028189488,
+      -0.9999774203187898,
+      7.783434946000023e-05,
+      3.9462000956418785e-05
+    ]
+  },
+  "transport_destination_tcp_pose": {
+    "frame_id": "base_link",
+    "xyz_m": [
+      0.5434325067819643,
+      0.07109935435775883,
+      0.04173153030379745
+    ],
+    "quaternion_xyzw": [
+      0.7087948719588383,
+      -0.7052292412906347,
+      0.01358386304908347,
+      -0.008776410322770208
+    ]
+  },
+  "nominal_assembly_target": {
+    "schema_version": "assembly-target-coordinate-candidate/0.1",
+    "status": "COORDINATE_CANDIDATE",
+    "execution_allowed": false,
+    "profile_id": "seated-tcp-96ce91465973e920",
+    "step_id": "S05",
+    "block": {
+      "brick_type": "2x3x1",
+      "color": "blue",
+      "x": 15,
+      "y": 10,
+      "layer": 1,
+      "orientation_deg": 90
+    },
+    "grid_alignment_status": "USER_CONFIRMED_COMMON_ORIGIN_AXIS_SWAP",
+    "grip_axis_planner": "y",
+    "equivalent_reference_2x2_anchor_planner": [
+      15.5,
+      10.0
+    ],
+    "trial_grid_reference_2x2_anchor": [
+      10.0,
+      15.5
+    ],
+    "scope": "NOMINAL_GEOMETRIC_EXTENSION",
+    "nominal_seated_tcp": {
+      "frame_id": "robot_base",
+      "xyz_mm_zyz_deg": [
+        543.4325067819643,
+        71.09935435775883,
+        17.23153030379745,
+        168.01061248779297,
+        -178.14669799804688,
+        77.7216567993164
+      ],
+      "position_m": [
+        0.5434325067819643,
+        0.07109935435775883,
+        0.017231530303797447
+      ],
+      "quaternion_xyzw": [
+        0.7087948719588383,
+        -0.7052292412906347,
+        0.01358386304908347,
+        -0.008776410322770208
+      ]
+    },
+    "pre_contact_tcp": {
+      "frame_id": "robot_base",
+      "xyz_mm_zyz_deg": [
+        543.4325067819643,
+        71.09935435775883,
+        41.73153030379745,
+        168.01061248779297,
+        -178.14669799804688,
+        77.7216567993164
+      ],
+      "position_m": [
+        0.5434325067819643,
+        0.07109935435775883,
+        0.04173153030379745
+      ],
+      "quaternion_xyzw": [
+        0.7087948719588383,
+        -0.7052292412906347,
+        0.01358386304908347,
+        -0.008776410322770208
+      ]
+    },
+    "D_contact_minus2mm_trial_candidate": {
+      "frame_id": "robot_base",
+      "xyz_mm_zyz_deg": [
+        543.4325067819643,
+        71.09935435775883,
+        15.231530303797449,
+        168.01061248779297,
+        -178.14669799804688,
+        77.7216567993164
+      ],
+      "position_m": [
+        0.5434325067819643,
+        0.07109935435775883,
+        0.015231530303797449
+      ],
+      "quaternion_xyzw": [
+        0.7087948719588383,
+        -0.7052292412906347,
+        0.01358386304908347,
+        -0.008776410322770208
+      ]
+    },
+    "precontact_tcp_lift_from_nominal_seated_mm": 24.5,
+    "precontact_gap_reference": "HELD_BLOCK_BOTTOM_TO_LOWER_STUD_TIP_20MM",
+    "pad_bottom_above_block_bottom_mm": 5,
+    "raw_reference_centre_residual_mm": 0.8708635938150311,
+    "limits": [
+      "GRID_LABEL_MAPPING_USER_CONFIRMED_NOT_PHYSICAL_PATH_VALIDATION",
+      "NO_IK_OR_FULL_TOOL_PATH_VALIDATION",
+      "REFERENCE_SEATED_TCP_ALREADY_INCLUDES_GRASP_AND_CENTRE",
+      "BLUE_REFERENCE_COLOUR",
+      "NOMINAL_SIZE_LAYER_ROTATION_EXTENSION_NOT_PHYSICALLY_CALIBRATED"
+    ],
+    "motion_generated": false
+  },
+  "handoff_to": "D_CONTACT",
+  "terminal_gripper_policy": "HOLD_NO_AUTOMATIC_OPEN",
+  "numeric_open_command": null,
+  "execution_allowed": false,
+  "assembly_completed": false,
+  "validation": {
+    "ik_verified": false,
+    "full_path_collision_verified": false,
+    "physical_grasp_verified": false,
+    "d_execution_approved": false
+  },
+  "current_source": "OFFLINE_MOCK_PLAN_PREFIX_NOT_B_OBSERVATION",
+  "robot_state_source": "OFFLINE_FIXTURE_NOT_DEVICE_OR_ISAAC"
+}

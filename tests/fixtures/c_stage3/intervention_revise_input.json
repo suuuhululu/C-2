@@ -1,0 +1,376 @@
+{
+ "design": {
+  "design_version": 1,
+  "blocks": [
+   {
+    "brick_type": "2x3x1",
+    "color": "blue",
+    "x": 6,
+    "y": 9,
+    "layer": 1,
+    "orientation_deg": 90
+   },
+   {
+    "brick_type": "2x3x1",
+    "color": "blue",
+    "x": 9,
+    "y": 9,
+    "layer": 1,
+    "orientation_deg": 90
+   },
+   {
+    "brick_type": "2x3x1",
+    "color": "blue",
+    "x": 12,
+    "y": 9,
+    "layer": 1,
+    "orientation_deg": 90
+   },
+   {
+    "brick_type": "2x3x1",
+    "color": "blue",
+    "x": 15,
+    "y": 9,
+    "layer": 1,
+    "orientation_deg": 90
+   },
+   {
+    "brick_type": "2x2x1",
+    "color": "blue",
+    "x": 6,
+    "y": 11,
+    "layer": 1,
+    "orientation_deg": 0
+   },
+   {
+    "brick_type": "2x3x1",
+    "color": "blue",
+    "x": 8,
+    "y": 11,
+    "layer": 1,
+    "orientation_deg": 90
+   },
+   {
+    "brick_type": "2x3x1",
+    "color": "blue",
+    "x": 11,
+    "y": 11,
+    "layer": 1,
+    "orientation_deg": 90
+   },
+   {
+    "brick_type": "2x2x1",
+    "color": "blue",
+    "x": 14,
+    "y": 11,
+    "layer": 1,
+    "orientation_deg": 0
+   },
+   {
+    "brick_type": "2x2x1",
+    "color": "blue",
+    "x": 16,
+    "y": 11,
+    "layer": 1,
+    "orientation_deg": 0
+   },
+   {
+    "brick_type": "2x3x1",
+    "color": "blue",
+    "x": 6,
+    "y": 13,
+    "layer": 1,
+    "orientation_deg": 90
+   },
+   {
+    "brick_type": "2x3x1",
+    "color": "blue",
+    "x": 9,
+    "y": 13,
+    "layer": 1,
+    "orientation_deg": 90
+   },
+   {
+    "brick_type": "2x3x1",
+    "color": "blue",
+    "x": 12,
+    "y": 13,
+    "layer": 1,
+    "orientation_deg": 90
+   },
+   {
+    "brick_type": "2x3x1",
+    "color": "blue",
+    "x": 15,
+    "y": 13,
+    "layer": 1,
+    "orientation_deg": 90
+   },
+   {
+    "brick_type": "2x3x1",
+    "color": "yellow",
+    "x": 6,
+    "y": 9,
+    "layer": 2,
+    "orientation_deg": 0
+   },
+   {
+    "brick_type": "2x3x1",
+    "color": "yellow",
+    "x": 8,
+    "y": 9,
+    "layer": 2,
+    "orientation_deg": 0
+   },
+   {
+    "brick_type": "2x3x1",
+    "color": "yellow",
+    "x": 10,
+    "y": 9,
+    "layer": 2,
+    "orientation_deg": 0
+   },
+   {
+    "brick_type": "2x3x1",
+    "color": "yellow",
+    "x": 12,
+    "y": 9,
+    "layer": 2,
+    "orientation_deg": 0
+   },
+   {
+    "brick_type": "2x3x1",
+    "color": "yellow",
+    "x": 14,
+    "y": 9,
+    "layer": 2,
+    "orientation_deg": 0
+   },
+   {
+    "brick_type": "2x3x1",
+    "color": "yellow",
+    "x": 16,
+    "y": 9,
+    "layer": 2,
+    "orientation_deg": 0
+   },
+   {
+    "brick_type": "2x3x1",
+    "color": "yellow",
+    "x": 6,
+    "y": 12,
+    "layer": 2,
+    "orientation_deg": 0
+   },
+   {
+    "brick_type": "2x3x1",
+    "color": "yellow",
+    "x": 8,
+    "y": 12,
+    "layer": 2,
+    "orientation_deg": 0
+   },
+   {
+    "brick_type": "2x3x1",
+    "color": "yellow",
+    "x": 10,
+    "y": 12,
+    "layer": 2,
+    "orientation_deg": 0
+   },
+   {
+    "brick_type": "2x3x1",
+    "color": "yellow",
+    "x": 12,
+    "y": 12,
+    "layer": 2,
+    "orientation_deg": 0
+   },
+   {
+    "brick_type": "2x3x1",
+    "color": "yellow",
+    "x": 14,
+    "y": 12,
+    "layer": 2,
+    "orientation_deg": 0
+   },
+   {
+    "brick_type": "2x3x1",
+    "color": "yellow",
+    "x": 16,
+    "y": 12,
+    "layer": 2,
+    "orientation_deg": 0
+   },
+   {
+    "brick_type": "2x2x1",
+    "color": "blue",
+    "x": 6,
+    "y": 9,
+    "layer": 3,
+    "orientation_deg": 0
+   },
+   {
+    "brick_type": "2x2x1",
+    "color": "blue",
+    "x": 6,
+    "y": 11,
+    "layer": 3,
+    "orientation_deg": 0
+   },
+   {
+    "brick_type": "2x2x1",
+    "color": "blue",
+    "x": 6,
+    "y": 13,
+    "layer": 3,
+    "orientation_deg": 0
+   },
+   {
+    "brick_type": "2x3x1",
+    "color": "blue",
+    "x": 6,
+    "y": 9,
+    "layer": 4,
+    "orientation_deg": 0
+   },
+   {
+    "brick_type": "2x3x1",
+    "color": "blue",
+    "x": 6,
+    "y": 12,
+    "layer": 4,
+    "orientation_deg": 0
+   }
+  ]
+ },
+ "current": [
+  {
+   "brick_type": "2x3x1",
+   "color": "blue",
+   "x": 9,
+   "y": 9,
+   "layer": 1,
+   "orientation_deg": 90
+  },
+  {
+   "brick_type": "2x3x1",
+   "color": "blue",
+   "x": 12,
+   "y": 9,
+   "layer": 1,
+   "orientation_deg": 90
+  },
+  {
+   "brick_type": "2x3x1",
+   "color": "blue",
+   "x": 15,
+   "y": 9,
+   "layer": 1,
+   "orientation_deg": 90
+  },
+  {
+   "brick_type": "2x2x1",
+   "color": "blue",
+   "x": 6,
+   "y": 11,
+   "layer": 1,
+   "orientation_deg": 0
+  },
+  {
+   "brick_type": "2x3x1",
+   "color": "blue",
+   "x": 8,
+   "y": 11,
+   "layer": 1,
+   "orientation_deg": 90
+  },
+  {
+   "brick_type": "2x3x1",
+   "color": "blue",
+   "x": 11,
+   "y": 11,
+   "layer": 1,
+   "orientation_deg": 90
+  },
+  {
+   "brick_type": "2x2x1",
+   "color": "blue",
+   "x": 14,
+   "y": 11,
+   "layer": 1,
+   "orientation_deg": 0
+  },
+  {
+   "brick_type": "2x2x1",
+   "color": "blue",
+   "x": 16,
+   "y": 11,
+   "layer": 1,
+   "orientation_deg": 0
+  },
+  {
+   "brick_type": "2x3x1",
+   "color": "blue",
+   "x": 6,
+   "y": 13,
+   "layer": 1,
+   "orientation_deg": 90
+  },
+  {
+   "brick_type": "2x3x1",
+   "color": "blue",
+   "x": 9,
+   "y": 13,
+   "layer": 1,
+   "orientation_deg": 90
+  },
+  {
+   "brick_type": "2x3x1",
+   "color": "blue",
+   "x": 12,
+   "y": 13,
+   "layer": 1,
+   "orientation_deg": 90
+  },
+  {
+   "brick_type": "2x3x1",
+   "color": "blue",
+   "x": 15,
+   "y": 13,
+   "layer": 1,
+   "orientation_deg": 90
+  },
+  {
+   "brick_type": "2x3x1",
+   "color": "blue",
+   "x": 5,
+   "y": 9,
+   "layer": 1,
+   "orientation_deg": 90
+  }
+ ],
+ "differences": [
+  {
+   "expected": {
+    "brick_type": "2x3x1",
+    "color": "blue",
+    "x": 6,
+    "y": 9,
+    "layer": 1,
+    "orientation_deg": 90
+   },
+   "actual": {
+    "brick_type": "2x3x1",
+    "color": "blue",
+    "x": 5,
+    "y": 9,
+    "layer": 1,
+    "orientation_deg": 90
+   }
+  }
+ ],
+ "text_answers": [
+  "일부러 옮겼어, 더 넓게 만들고 싶어"
+ ]
+}

@@ -1,0 +1,185 @@
+{
+  "recording_format": "ros_rgbd_capture_v1",
+  "mode": "REAL",
+  "scope": "CAPTURE_ONLY",
+  "view_id": "D3",
+  "captured_at": "2026-10-08T01:36:51.378367+00:00",
+  "topics": {
+    "rgb": "/camera/color/image_raw",
+    "rgb_info": "/camera/color/camera_info",
+    "raw": "/camera/depth/image_rect_raw",
+    "raw_info": "/camera/depth/camera_info",
+    "aligned": "/camera/aligned_depth_to_color/image_raw",
+    "aligned_info": "/camera/aligned_depth_to_color/camera_info"
+  },
+  "sensor_timestamps_ns": {
+    "rgb": 1791423410859386230,
+    "raw": 1791423410859386230,
+    "aligned": 1791423410859386230
+  },
+  "timestamp_span_ms": 0.0,
+  "synchronization": {
+    "max_delta_ms": 50.0,
+    "threshold_status": "temporary_test"
+  },
+  "camera_info": {
+    "aligned": {
+      "width": 1280,
+      "height": 720,
+      "frame_id": "camera_color_optical_frame",
+      "distortion_model": "plumb_bob",
+      "d": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "k": [
+        907.924560546875,
+        0.0,
+        652.287109375,
+        0.0,
+        907.717529296875,
+        366.0758972167969,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "r": [
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "p": [
+        907.924560546875,
+        0.0,
+        652.287109375,
+        0.0,
+        0.0,
+        907.717529296875,
+        366.0758972167969,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0
+      ]
+    },
+    "rgb": {
+      "width": 1280,
+      "height": 720,
+      "frame_id": "camera_color_optical_frame",
+      "distortion_model": "plumb_bob",
+      "d": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "k": [
+        907.924560546875,
+        0.0,
+        652.287109375,
+        0.0,
+        907.717529296875,
+        366.0758972167969,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "r": [
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "p": [
+        907.924560546875,
+        0.0,
+        652.287109375,
+        0.0,
+        0.0,
+        907.717529296875,
+        366.0758972167969,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0
+      ]
+    },
+    "raw": {
+      "width": 848,
+      "height": 480,
+      "frame_id": "camera_depth_optical_frame",
+      "distortion_model": "plumb_bob",
+      "d": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "k": [
+        428.5902404785156,
+        0.0,
+        427.5955810546875,
+        0.0,
+        428.5902404785156,
+        234.27520751953125,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "r": [
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "p": [
+        428.5902404785156,
+        0.0,
+        427.5955810546875,
+        0.0,
+        0.0,
+        428.5902404785156,
+        234.27520751953125,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0
+      ]
+    }
+  },
+  "depth_scale_m": 0.001,
+  "depth_unit_basis": "RealSense ROS published 16UC1 millimeters",
+  "valid_aligned_depth_fraction": 0.9879437934027778,
+  "robot_pose": null,
+  "calibration_id": null,
+  "limitations": [
+    "pose_and_board_calibration_not_recorded",
+    "not_ready_for_board_geometry",
+    "ROS_driver_filters_not_verified",
+    "not_backend_observation"
+  ]
+}

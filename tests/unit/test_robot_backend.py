@@ -59,7 +59,7 @@ def test_normal_three_steps_join_controller_slots_backend_current_snapshot_and_j
     snapshot = make_snapshot(backend.state)
     assert snapshot["workflow_status"] == "COMPLETE" and snapshot["progress"] == dict(completed=3, total=3)
     assert backend.state["current"]["blocks"] == [A, B, C]
-    assert [row["next_slot"] for row in snapshot["monitor"]["supply"]] == [3, 1, 1, 2]
+    assert [row["next_slot"] for row in snapshot["monitor"]["supply"]] == [3, 1, 1, 2, 1]
     assert len(driver.calls) == 9 and ports.calls("robot.deliver") == []
     events = records(tmp_path, backend.state["job_id"])
     for event in ("ROBOT_PICK_CONFIRMED", "ROBOT_PLACE_CONFIRMED", "ROBOT_OBSERVE_CONFIRMED", "DELIVERY_RESULT", "STEP_CONFIRMED"):
@@ -94,26 +94,21 @@ def test_unobservable_and_actual_mismatch_do_not_dispatch_next_robot_pick(tmp_pa
     assert len(driver.calls) == 3
 
 
-def test_refill_uses_existing_job_bound_command_and_new_empty_check_before_pick(tmp_path):
+def test_cycled_slot_needs_new_empty_check_without_refill_command(tmp_path):
     config = {**deepcopy(CONFIG), "slot_count":1}
     backend, driver, controller, _ = connected(tmp_path, config=config)
     returned(backend, driver)
-    frame = assembled(backend, [A], [RA])
-    assert backend.state["reason"] == "NEEDS_REFILL" and len(driver.calls) == 3
-    action = make_snapshot(backend.state)["actions"]["supply_refill"][0]
-    assert action == dict(brick_type=A["brick_type"], color=A["color"], visible=True, enabled=True)
-    command = dict(command="SUPPLY_REFILLED", job_id="old-job", brick_type=A["brick_type"], color=A["color"])
-    assert backend.command(command)["reason"] == "OLD_JOB"
-    command["job_id"] = backend.state["job_id"]
-    assert backend.command(command)["accepted"]
-    assert not backend.command(command)["accepted"]
-    assert len(driver.calls) == 3
+    frame = observation(backend, [A], [RA])
+    backend.on_observation(frame)
+    assert backend.state["reason"] != "NEEDS_REFILL" and len(driver.calls) == 3
+    assert make_snapshot(backend.state)["actions"]["supply_refill"] == []
+    assert controller.state["supply"][0]["next_slot"] == 1
     assert not backend.on_place(frame["check_id"], 1, "EMPTY")
     backend.on_place(backend.state["place_check"]["check_id"], 0, "EMPTY")
     assert driver.calls[-1][1]["slot"] == 1 and len(driver.calls) == 4
-    events = records(tmp_path, backend.state["job_id"])
-    assert sum(row["event"] == "SUPPLY_REFILLED" for row in events) == 1
+    assert not any(row["event"] == "SUPPLY_REFILLED" for row in records(tmp_path, backend.state["job_id"]))
     assert controller.state["supply"][1]["next_slot"] == 1
+
 
 
 @pytest.mark.parametrize("completed,state,remaining", [

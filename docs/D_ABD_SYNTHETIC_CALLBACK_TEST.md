@@ -1,5 +1,7 @@
 # A–B–D 합성 JSON callback 통합 검사 (2026-10-06)
 
+> 2026-10-07 적용: 현재 제품 목표는 [최종 MVP](10_FINAL_MVP.md)입니다. 아래는 기존 PLACE/전달 공정의 실제 A 계산·B 합성 JSON·D·Fake Robot 검사 기록입니다. 직접 결착·F/T·지원 제스처·최종 완성상태의 실기·사용자별 DB/웹 검사는 포함하지 않습니다. 기존 수치·입력·결과는 그대로 보존합니다.
+
 **실제 A 계산 + B PR의 합성 JSON 전달 함수 + 현재 D + Fake Robot**을 연결했다.
 실제 Camera 인식·인식 성능·Robot/Camera 장치 통합 성공이 아니다. C는 Mock 응답이다.
 공통 계약·application 코드·A/B 원본·장치 설정을 수정하지 않았다.

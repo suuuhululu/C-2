@@ -1,13 +1,12 @@
 """현장에서 검증한 네 공급열을 기존 한 블록 실행/증거 처리에 연결한다."""
 
-from collections import Counter
 from copy import deepcopy
 import hashlib
 import json
 from pathlib import Path
 
 from app.contracts import _integer, _object, _text
-from app.hmi_contracts import SUPPLY_COLUMNS, _column
+from app.hmi_contracts import LEGACY_SUPPLY_COLUMNS, _column
 from app.real_trial_hmi import RealTrialController
 from app.robot_trial import load_trial_config, prepare_plan, validate_trial_config
 
@@ -27,6 +26,8 @@ def load_workflow_rows(path):
     for entry in manifest["supply_rows"]:
         row = _object(entry, ("brick_type", "color", "first_slot", "return_route_verified"), "workflow.row")
         column = _column(row, "workflow.row")
+        if column not in LEGACY_SUPPLY_COLUMNS:
+            raise ValueError(f"UNVERIFIED_TARGET: {column}")
         _integer(row["first_slot"], 1, 6, "workflow.row.first_slot")
         if row["return_route_verified"] is not True or column in rows:
             raise ValueError("workflow.row: verified route and unique column required")
@@ -42,7 +43,7 @@ def load_workflow_rows(path):
             raise ValueError("workflow: onsite/setup/return confirmation required")
         prepare_plan(config)  # 원본 경로/hash만 확인한다. ROS 연결 또는 이동 없음.
         rows[column] = config
-    if set(rows) != SUPPLY_COLUMNS:
+    if set(rows) != LEGACY_SUPPLY_COLUMNS:
         raise ValueError("workflow: all four Day4 rows required")
     return deepcopy(manifest), rows
 
@@ -86,13 +87,9 @@ class RealDesignController(RealTrialController):
         if self._operation is not None or self._stop or self._fault or not self._ready:
             raise ValueError("REAL_PLAN_ROBOT_NOT_READY")
         columns = [(step["after"]["brick_type"], step["after"]["color"]) for step in plan["steps"]]
-        available = {(row["brick_type"], row["color"]): row["next_slot"] for row in self.state["supply"]}
-        for column, count in Counter(columns).items():
+        for column in set(columns):
             if column not in self.slots:
                 raise ValueError(f"UNVERIFIED_TARGET: {column}")
-            slot = available[column]
-            if slot is None or count > 7 - slot:
-                raise ValueError(f"REAL_PLAN_NEEDS_REFILL: {column}, {count}회 전달, 시작 슬롯 {slot}. 이번 시험은 실행 중 보충 미지원")
         self._read_config()
         # 재계획은 남은 전달만 바꾼다. 전달 시도·확인된 집기·공급 순서는 초기화하지 않는다.
         self.plan_columns = (self.plan_columns or [])[:self._attempts] + columns

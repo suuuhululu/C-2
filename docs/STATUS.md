@@ -1,5 +1,158 @@
 # 현재 진행 상황
 
+## 2026-10-12 — ms-02 현재 시험 소스와 PR24 이후 통합 업데이트
+
+- 기준: PR #24 merge `8914320`; 별도 `codex/current-runtime-update-20261012`. 원래 실행 폴더의 브랜치 전환/덮어쓰기 없음. 원본 544개 파일을 보존 ZIP과 SHA256으로 재확인했으며 변경 0개. 웹 자산은 별도 백업. 게시·PR 상태는 실제 GitHub 결과를 기준으로 확인한다.
+- 현재 A 계산 보정·C 설계 변경 문맥·D 진행/Robot 별도 프로세스·한 화면 HMI·개인 DB/웹 소스를 포함. 외부 D 소스를 `robot_control_integration/`에 함께 보존하고 기존 DRCF2 소스 수정은 패치/해시로 포함. #24 B 파일과 최신 Stage3/Current relay/5층/40블록 기준 유지.
+- 이번 합침에서 발견한 HMI FINAL 검증, 합성 관측 5층 범위, 공급 슬롯 1~6 순환/표시, 웹 정적 자산 누락·한글 경로 시험을 정리. 현재 지원 블록 모의 실행 시험을 갱신하고 실제 체결 미확정 검사는 유지.
+- PR24 관련 재검사 **699 passed**, 종료 0. B+기존 callback 예제 별도 검사 **261 passed**, 종료 0. Robot 주요 실행/Contact/제스처/STOP 검사 **364 passed**, 종료 0.
+- 새 통합/HMI/저장/웹/모의 C→A→D 검사 **155 passed, 18 skipped**, 종료 0. UI/진행/슬롯/프로세스/드라이버 단위 검사 **220 passed, 6 skipped**, 종료 0. 추가 병합 경계 검사 **81 passed**, 종료 0. 서로 중복되는 검사이므로 합계를 고유 검사 수로 사용하지 않는다.
+- 넓은 범위 재검사: **2697 passed, 51 skipped, 2 failed, 11 errors**, 종료 1. 같은 구형 음성 시험을 PR24 원본에서 별도 재현: **70 passed, 2 failed, 11 errors**, 종료 1. Initial 승인/녹음 이벤트·LLM key Mock 전제가 현재 Stage3와 맞지 않는 `test_real_voice_workflow`, `test_real_voice_replan`, `test_real_stop_resume` 실패이며 전체 통과로 보고하지 않는다. 테스트 삭제·skip 추가·판정 완화로 숨기지 않았다.
+- D 보존본 전체 단위 검사 **916 passed, 1 skipped**, 종료 0. 처음에는 기존 로컬 logs 의존으로 복구 검사 17개가 오류였고, 역사적 READ_ONLY 표본을 명시적 Fixture로 분리해 재검사했다. 실행 승인이나 최신 실물 상태로 사용하지 않는다. B/A 현장 경로가 필요한 기존 조건 검사 1개는 건너뜀.
+- 1024×768 및 1500×1000 Qt offscreen 화면에서 Design/Current/Expected/Step 네 패널이 한 화면 안에 들어가는지 확인. 실제 모니터·WM/DPI는 별도.
+- 실제 Robot/Camera/LLM/STT/TTS/PostgreSQL 연결·드라이버 재빌드/재시작은 이번 검증에 포함하지 않았다. DB DSN 없는 검사는 기존 조건으로 건너뜀. A `SEARCH_LIMIT`, D 정밀 체결/XY 탐색 연결, B 실영상·실물 전체 통합, DB 시작/저장 시 로그인 정책은 [업데이트 안내](13_RUNTIME_UPDATE_20261012.md)의 후속 항목.
+
+## 2026-10-11 — B INITIAL/FINAL 관측 근거 보완（PR24 리뷰）
+
+- B inspection.py와 기존 round1 테스트만 수정. 첫 Current 확정은 24×24, layer 1~5 전체의 verified_regions 근거가 필요하며 일부 빈 영역만으로 Current=[]를 초기화하지 않는다. 부족하면 INITIAL_STATE_UNAVAILABLE로 반환하고 Current 미확인 및 Plan 채택 차단을 유지한다. 초기 단계에는 보존 가능한 아래층 확정 이력이 없으므로 전체 범위를 요구한다.
+- FINAL의 verified_regions가 없으면 과거 Current의 MATCH/MISMATCH를 재사용하지 않고 UNOBSERVABLE로 보류한다. 기존 same-layer evidence 검사상 visible_blocks만 있고 verified_regions가 없는 입력은 여전히 오류다. 근거 없는 FINAL은 Current/revision 유지. 새 유효 근거가 있는 FINAL은 기존 비교 및 아래층 가림 이력 유지 정책을 따른다.
+- 수정 전 신규 핵심 검사: 2 failed / 1 passed로 두 결함 재현. 수정 후 B MVP/legacy/calibration/supply 검사 246 passed, 1 skipped(실제 PR22 Consumer 소스 경로 미제공), 종료 0. 정상 INITIAL·FINAL, 부분/빈 INITIAL, 근거 없는 FINAL 및 과거 불일치 재사용 차단, fresh MISMATCH, layer5 아래층 유지, 취소·늦은 결과 검사 포함. 대상 diff --check 통과. app/ 변경 없음.
+- 기본 전체 pytest는 수집 중 psycopg 미설치 및 test_hmi_remaining import 경로 누락으로 중단(오류 2); 전체 통과로 보고하지 않는다. 실제 Camera/Controller/D 수신 연결은 미검증. Git commit/push/PR 갱신 미수행. 기존 사용자의 perception/.gitignore 변경과 자산은 이번 수정에 포함하지 않았다.
+
+## 2026-10-11 — 원래 C-2 작업 폴더 PR24 수정본으로 갱신
+
+- 기존 work/hongdong-vision-round1의 262ae61에서 PR24 수정본 2058d80으로 fast-forward. 원격 최신 여부를 추가 fetch한 작업은 아니며, realign 작업 폴더와 같은 기준 커밋으로 맞췄다.
+- 이전 미커밋 변경·미추적 파일은 stash와 /home/roh/Documents/ChatGPT/협동2/C2_before_update_eVmIvWWW/local_changes.tar.gz에 보존했다. 모델·촬영·보정 자료는 이동/삭제하지 않았다. 기존 A/C/D 로컬 변경은 재적용하지 않았다.
+- B 설정 확인값과 INITIAL/FINAL 재현 테스트만 이어받았다. 재현 테스트는 보완 전 단계이며 아직 전체 검사 통과를 주장하지 않는다. app/planning_trial/interfaces는 2058d80과 diff 없음. 설정 관련 live_view/runtime 검사 43 passed. GitHub 게시 없음.
+
+## 2026-10-11 — 홍동 B 제출 코드 최신 integration 기준 정렬
+
+- 사용자 승인 범위: fetch·별도 로컬 작업 브랜치 구성·B 수정/검증. 최신 명시 지시로
+  D 파트 수정/추가는 제외했다. 이후 사용자 명시 승인으로 기존 PR #24의
+  commit·일반 push·본문 갱신을 진행한다. force push와 PR 병합은 승인 범위 밖이다.
+- 원격 `codex/integration-round1` HEAD `02137d8`을 확인하고 managed worktree의
+  `codex/b-round1-realign`에서 작업한다. 기존 `work/hongdong-vision-round1`과
+  원래 작업 폴더의 미커밋 변경·원자료는 보존한다.
+- PR #24 head `262ae61`에서 `perception/`와 B 설계 제안서만 옮겼다.
+  이전 PR에 섞인 D 핵심 코드·A/C·Robot 설정은 옮기지 않았다.
+  `app/`, `tests/`, `interfaces/`, `planning_trial/`의 tracked 파일은 `02137d8`과 차이 없음.
+  최신 Preview→C Review·B Current/revision relay·빨강/5층/40블록·stale/STOP을 유지한다.
+- 별도 공간에 추가했던 D 수신부·호환 bridge·D 연결 시험 3개는 B 제출 범위에서 제외하고
+  `/tmp/c2-d-review-preserved-N09hR5/`에 복구 가능하게 보관했다. 원래 로컬 파일도 보존한다.
+  최신 D에 없는 구형 bridge를 production에 추가하지 않는다. B 호환 시험은 명시된 Qt
+  계약 대역으로 B 진입/queue 전달을 검사하도록 정리하고 D 실연결 시험과 구분한다.
+- 최종 관련 검사 **692 passed**, 실패/오류/skip 0, 종료 0. B 검사/보정/공급판/호환,
+  실제 최신 DB/HMI 입력 검증 함수 대조, 기존 최신 A/C/D Stage3·relay·STOP/stale 및
+  공통 블록 계약·5층 회귀·Planner 검사를 실행했다. Qt offscreen·합성 관측·FAKE Robot이다.
+  첫 실행은 HMI 검증 파일 경로 오류와 빠진 구형 bridge로 2 failed/701 passed였다.
+  D 추가 시제품을 포함했던 중간 706 passed는 최종 B-only 제출 검증 수치로 쓰지 않는다.
+- 미검증: 실제 Camera/Controller 관측 callable, 최신 D 전체 공정과 B 결과 bind,
+  실시간 HMI/DB 서버·Robot/5층 실측. D 연결 요구는 B의
+  `perception/docs/D_INSPECTION_CONNECTION.md`에 인계하며 D 파일은 수정하지 않는다.
+  게시 준비: B-only snapshot 커밋 `061da09`에 PR #24 기존 head `262ae61`을
+  병합하여 두 이력을 보존한다. 충돌 파일은 검증한 B snapshot과 최신 integration D를
+  유지하는 방향으로 해결했다. 병합 후 관련 검사를 재실행해 **692 passed**, 종료 0을 확인했다.
+  게시 결과: 병합 커밋 `f9b8912`를 기존 `work/hongdong-vision-round1`에 일반 push했고
+  PR #24 본문과 기준 SHA를 갱신했다. GitHub에서 base `02137d8`, Draft/open,
+  mergeable=true·clean과 변경 106개(B 코드·설계 제안서·B 작업 기록만)를 확인했다.
+  PR merge·force push·Issue 댓글은 하지 않았다. 다음: 사람 리뷰·D 결선 확인·공동 시험.
+  이 작업은 전체 팀 연결 완료나 실제 장치 검증을 의미하지 않는다.
+
+## 2026-10-11 C Stage3 기준 A·D 연결 정합
+
+- C PR #23이 반영된 1차 통합 코드를 기준으로 A·D 및 공통 Schema를 맞췄습니다. 노랑/파랑 4·6점, 빨강 2점, 0°/90° 방향, 1~5층·최대 40블록과 FAKE 공급 5열을 지원합니다. B 소유 Current·revision·Expected·비교 계약은 유지합니다.
+- Candidate → Qt Preview 완료 → C Review → MODIFY 재표시 / APPROVE → A 계획 → Backend 채택 순서입니다. Revised도 다시 승인하며 동일 후보군 수정은 버전을 올리지 않습니다. C가 음성 입출력 전체를 담당하고 D가 요청/Job/Current revision 및 STOP 이후 늦은 결과를 검사합니다.
+- 관련 회귀 **504 passed, 4 warnings**, 신규 연결 경계 **22 passed**입니다. 전체 검사 **2243 passed, 31 failed, 11 errors, 34 skipped**이며 전체 PASS가 아닙니다. 남은 REAL 실패·오류 42개의 node ID는 수정 전 같은 기준 코드에서도 동일합니다. 외부 측정 자료와 원본 절대경로가 없는 환경입니다.
+- 실제 마이크/LLM, 최신 B 생산자, Camera/Robot 및 REAL 빨강 공급은 미검증입니다. REAL은 검증된 기존 네 열만 사용하며 빨강을 실행 전에 거절합니다. 실물 pose를 임의 생성하지 않습니다.
+- 기존 Draft PR #22에 반영하며 병합은 하지 않습니다. [변경 안내](D_C_STAGE3_AD_ALIGNMENT.md)와 [검증 보고서](../reports/c_stage3_ad_alignment_20261011/validation.md)를 참고해 B 연결 확인 → FAKE 공동 통합 → 장치 측정/REAL 검증 순서로 진행합니다.
+
+
+## 2026-10-11 수현 HMI·DB 1차 통합 제출
+
+- 최신 기준: 10/8 B 소유 Current·revision·Expected·비교, D 실행·진행·최종 종료. 공통 정수 layer 1~5.
+- HMI·DB ZIP 소스 선택 반영, 4→5층 정합, B 검사/완료 표시 충돌 거절, PostgreSQL 개인 이력과 실행 안내 포함.
+- 관련 회귀 1,159 passed(실제 DB 시험 포함), 별도 DB 33 passed, 이력 Docker 이미지 빌드 통과. 탐색적 전체 시험은 기존 PC 절대경로와 C 실패로 PASS가 아닙니다.
+- 최신 실제 B→D·HMI 요청 수신·로그인 owner·웹·Robot/Camera 실기는 미완료/미검증. Draft PR로 리뷰합니다. 상세 범위·실행 환경·차단 사항은 [검토 기록](D_HMI_DB_ROUND1.md)을 따릅니다.
+
+
+
+## 1차 통합 5층·인터페이스 정합 점검 — 2026-10-11
+
+- 대상은 사용자 생성 `codex/integration-round1`이며 시작 SHA는 main과 같은 `afd75d0b0943d85b44248ea563e89f860921e1dd`다. 기존 `fix/common-five-layer-support`의 `27907c8` 변경을 별도 작업본에 재사용했다. C/A/D MAX_LAYER, 블록/관측 영역 Schema, HMI·합성 관측·수동 Current 확인을 1~5층으로 맞춘다. 원격 반영은 해당 PR의 병합 상태로 구분한다.
+- 공통 계약의 block_id/parent_version 요구·무응답 자동 취소 표현을 실제 C·D 계약에 맞췄다. 팀 가이드·C 구조의 미확정 지지 표현과 A/D 인계의 현재 5층 invalid 설명을 정리했다. [1차 통합 인터페이스 점검](11_ROUND1_INTERFACE_AUDIT.md)에 기준·수정 사항·별도 브랜치 차이·담당별 연결 과제를 기록했다. 과거 시험·원본 Fixture·측정값·참고자료는 보존한다.
+- 기존 5층 연결 시험에 C/A/D/Schema 상한 일치와 B 합성 callback의 5층 관측 채택·가린 아래층 보존·6층 입력 거절 후 상태 보존·중복 무효화를 추가했다. 새 production 모듈·class·framework·실행 dependency는 없다.
+- 실제 관련 검사 **678 passed**, 실패·오류·skip **0**, 종료 코드 **0**. C validator·A planner·D contracts/current/replan·HMI/Qt·A/D·A/B/D 합성 callback·C 저장 응답·5층/30블록·Schema/HMI 참조·팀 인계 및 B 예시 검사를 포함한다. Qt는 offscreen, Robot은 Fake, B는 합성 입력이다. 로그와 JUnit은 ignored `logs/round1-interface/tests.log`·`tests.xml`이다. 기존 RefResolver deprecation 경고 2건이 남는다.
+- 환경은 Python 3.12.3·pytest 7.4.4·기존 PyQt5다. 초기 관련 검사에서 `referencing` 미설치로 Schema 시험 1건만 실패(312 passed)했고, 이전 5층 검증에서 사용한 jsonschema 4.26.0과 해당 의존성을 `/tmp/c2-round1-schema-test-deps`에만 준비해 재검사했다. 저장소 dependency·ROS 환경은 바꾸지 않았다. LLM/음향 key·HISTORY_TEST_DSN은 child process에서 unset했고 pytest plugin 자동 로드를 끈 장치 없는 시험이다.
+- 전체 저장소 시험은 이번에 실행하지 않았다. 아래 2026-10-07 기록의 기존 전체 실패·장치 자료 경로·C HTTP Fake 정합 문제를 해결했다고 주장하지 않는다. 실제 Camera/Robot·LLM/음향·DB/웹은 이번 시험 범위 밖이다. lint/type/CI는 미구성이다.
+- 문서·정적 검증: 기존 5층 변경을 포함한 변경 파일 **34개**, 상대 링크 **245개**, JSON 예시 코드 블록 **25개**(보존된 JSON Lines 블록 1개 포함)를 검사했다. 새 누락 링크·새 잘못된 anchor **0**, 변경 Python/JSON 파싱·`git diff --check` 통과. ignored 과거 로그를 가리키는 기존 누락 링크 **23개**는 보존했다. reference 원문 변경 **0**. 결과는 ignored `logs/round1-interface/static-checks.json`이다.
+- 남은 BLOCKER: A API 0.5 문서의 B Current/revision Owner 표현과 현행 D 단일 상태 Owner 차이, A 재평가/경로 wire와 D 최종 Schema 미연결, B 실제 촬영 생산자/최종 확인 미제출. 설계 확정 이벤트·좌표 단위/frame 변환·직접 결착/정지·사용자–Job/웹 연결도 담당 PR로 검증해야 한다. 이 점검을 전체 인터페이스 통합 완료나 실물 5층 성공으로 표시하지 않는다.
+
+관련 검사 실행 명령:
+
+```sh
+env -u OPENAI_LLM_API_KEY -u OPENAI_API_KEY -u OPENAI_TTS_API_KEY -u HISTORY_TEST_DSN \
+  QT_QPA_PLATFORM=offscreen PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 \
+  PYTHONPATH=/tmp/c2-round1-schema-test-deps \
+  python3 -m pytest planning_trial/test_planner.py \
+  tests/unit/test_contracts.py tests/unit/test_hmi_current.py tests/unit/test_qt_hmi.py \
+  tests/unit/test_current.py tests/unit/test_replan.py tests/unit/test_hmi_contracts.py \
+  tests/unit/test_planner_results.py tests/unit/test_team_handoff.py \
+  tests/unit/c_design/test_validator.py tests/integration/test_a_backend.py \
+  tests/integration/test_abd_callback.py tests/integration/test_c_saved_results_hmi.py \
+  tests/integration/test_five_layer_pipeline.py \
+  tests/integration/perception_backend_callback_examples/tests/test_callback_examples.py \
+  -q --junitxml=logs/round1-interface/tests.xml
+```
+
+## 공통 5층 지원 — 2026-10-07
+
+- **기준/작업 위치:** 원격 main `afd75d0b0943d85b44248ea563e89f860921e1dd`(PR #17 병합)을 확인하고 독립 clone의 `fix/common-five-layer-support`에서 수정했습니다. 완료 시 원격 main도 동일했습니다. 로컬 `work/suhyun-assembly-evidence`/`62b7ffd`의 기존 Backend 연구 코드와 작업 상태는 보존했습니다. 저장소 AGENTS와 관련 정책·계약을 읽었으며 저장소/관련 작업본에 `.agents/skills`는 없었습니다. 검증 단계에서는 commit/push/PR/merge를 하지 않았으며, 이후 사용자 승인으로 이 변경의 commit/push·draft PR 게시를 진행합니다. 병합은 하지 않습니다.
+- **변경:** A `MAX_LAYER`·오류 문구, D 블록/관측 영역 검사·`supported_scope`, Day4 Schema를 1~5층으로 통일했습니다. HMI Schema는 Day4 정의를 참조하므로 같은 범위를 적용합니다. 합성 관측과 수동 Current 확인도 D의 층 상수를 사용합니다. 여섯 배치 필드·PLACE·지지 2 stud·24×24 좌표·판 footprint·Plan/Current 최신성 의미는 유지합니다.
+- **30블록:** C 생성 상한 30을 유지하고 C 검증→실제 A→D 채택→Qt→합성 관측/FakeRobot 완료를 확인했습니다. A/D에 새 수량 제한은 추가하지 않았습니다. REAL 수동 시험의 네 공급열×여섯 슬롯(최대 24 Step) 제한은 유지하며 실제 직접 결착·Vision 판별 범위를 확장했다고 주장하지 않습니다.
+- **검사 변경:** 기존 5층 범위 초과 시험은 6층으로 옮겼습니다. 보관 C 응답과 A 첨부 자료·해시는 보존하고 A의 승인된 두 변경만 제외해 원본 해시를 대조합니다. 새 연결 검사는 1~5층 정상, 30블록, 부분 Current 보존/Remaining, 6층 거절/미채택, 지지 부족/판 밖 좌표, Schema 및 수동 확인 입력을 다룹니다. Qt 기존 4층 가장자리 검사를 유지하고 5층 조건을 추가했습니다.
+- **관련 L1/L3:** `planning_trial/test_planner.py`, unit의 contracts/hmi_current/qt_hmi/current/replan/hmi_contracts/planner_results/c_design validator, integration의 a_backend/abd_callback/c_saved_results_hmi/five_layer_pipeline를 실행해 **645 passed**, 종료 코드 **0**입니다. 5층 가장자리와 30블록 완료 PNG를 실제로 열어 표시를 확인했습니다. Qt offscreen·Robot/관측/LLM/음향은 Fake 또는 미연결이며 실제 장치 검증이 아닙니다.
+- **전체 비교:** 변경 전 main은 **1405 passed, 41 failed, 24 skipped, 11 errors**, 변경 후 최종은 **1444 passed, 41 failed, 24 skipped, 11 errors**, 각각 종료 코드 **1**입니다. 실패·오류 52건의 node ID 집합은 동일하며 새 실패 0건입니다. 24 skip은 별도 실제 DB DSN 미설정입니다. 전체 PASS로 표시하지 않습니다.
+- **분리한 기존 제한:** C LLM의 `OPENAI_LLM_API_KEY`와 D 시험의 `OPENAI_API_KEY` 설정이 다릅니다. 해당 값 대신 시험 프로세스의 명시적 더미와 HTTP Fake만 사용한 10개 비교 검사도 전/후 각각 **3 passed, 7 failed, 1 teardown error**로 동일했습니다. 키 문제 뒤에는 최근 C metadata/judge 호출과 기존 D Fake의 호출 횟수 기대(1/2회)·대기 조건 불일치도 남습니다. Robot 관련 시험은 `/home/ms-02/C_2/...` 설정·외부 원본/측정 자료가 이 편집 PC에 없어 실패합니다. 별도 문제의 코드·장치/계정 설정은 수정하지 않았습니다.
+- **시험 환경:** 편집 Python 3.12.10 / pytest 9.1.1 / Qt offscreen. ROS `launch_testing`과 pytest 충돌로 이번 명령에서만 `PYTEST_DISABLE_PLUGIN_AUTOLOAD=1`을 사용했습니다. 기존 Schema 시험에 필요한 jsonschema 4.26.0을 `/tmp/c2-five-layer-test-deps`에만 준비하고 기존 ROS 환경 site-packages와 함께 PYTHONPATH로 지정했습니다. 저장소 dependency/framework 추가는 없습니다. 일반 검사는 OPENAI 세 key와 `HISTORY_TEST_DSN`을 child process에서 unset했고 실제 비밀값·LLM/Robot/ROS 제어를 사용하지 않았습니다.
+- **최종 확인/후속:** 변경 Python/JSON 파싱, Markdown 새 누락 상대 파일 링크 0, `git diff --check` 통과. lint/type/CI 미구성. 사람 리뷰와 실제 5층 Vision/직접 결착·30블록 실행 환경 검증, D LLM Fake 갱신과 외부 Robot 자료 경로 정합성이 후속입니다. 이전 시험 기록은 아래에 그대로 보존합니다.
+- **문서 전체 재점검:** 저장소 Markdown·작업 지침·Schema와 층 관련 코드/시험을 검색해 callback 예시 README의 현재 계약 누락을 1~5층으로 고쳤습니다. C/D 진행 기록에는 현재 범위 안내를 추가하고 과거의 4층 계약·시험 결과를 보존했습니다. 기존 1~4층 Fixture·고정 예시·Qt 회귀 시험·A 원본 해시 비교는 당시 자료 또는 유효한 하위 범위 사례입니다. Day1~4는 일정, 공급열/시작 슬롯 1~4와 REAL 최대 24 Step은 장치 시험 한계, Schema의 width/height 최대 24는 판 크기이므로 층 상한 변경 대상이 아닙니다. 실제 Vision/직접 결착의 5층 성능은 미검증입니다.
+
+전체 실행 명령(원격·실기 연결 없음):
+
+```sh
+env -u OPENAI_LLM_API_KEY -u OPENAI_API_KEY -u OPENAI_TTS_API_KEY -u HISTORY_TEST_DSN \
+  QT_QPA_PLATFORM=offscreen PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 \
+  PYTHONPATH=/tmp/c2-five-layer-test-deps:/Users/suhyun/miniforge3/envs/ros2_jazzy/lib/python3.12/site-packages \
+  python3 -m pytest tests planning_trial/test_planner.py -q
+```
+
+
+## 최종 MVP 문서 이행 — 2026-10-07
+
+사용자 요청으로 GitHub main `95259bd`의 Markdown/docs를 커스텀 의자 최종 MVP에 맞춰 정렬합니다. [최종 MVP](10_FINAL_MVP.md)에 설계 대화·사용자 확정 → 조립 순서/경로 → Backend/HMI → 로봇 공급판 집기·조립판 직접 결착·필요 시 사람 지지 → 세 단계 종료를 정의했습니다. 목표는 개발 과정에서 수정될 수 있습니다.
+
+- 1단계는 해당 계획에 필요한 모든 블록 사용 종료, 2단계는 Vision 완성상태 확인과 Backend 최종 조립 판정/종료, 3단계는 사용자별 현재 설계·조립 기록 DB 저장과 웹앱 반영입니다. 명령 완료·마지막 블록 사용·JSONL만으로 세 단계 완료를 처리하지 않습니다.
+- [첨부 연구 설계](suhyun_individual_research_topic.md)를 제품 적용 안내와 함께 포함했습니다. 지지 프로토콜을 반영하고 원문 D1~D13·접촉/복구·필드·역할 제안은 연구 설계와 팀/장치 합의 상태로 구분합니다.
+- README·최신 결정·AGENTS·계약/팀 가이드·개발 단계·측정·실행·DB·C/A/B 연결/시험 안내를 정렬했습니다. 기존 전달형 Day4 계약·코드 명령·시험 수치·측정 원자료는 보존하며 [reference 적용 안내](reference/README.md)를 추가했습니다. GitHub에 없는 로컬 final_docs/발표 초안·미완료 코드 변경은 포함하지 않습니다.
+- **현재 구현:** C Design/HRI·A PLACE Plan·D/Qt/기존 전달·B 합성 callback과 독립 PostgreSQL 이력/계정 코드가 게시되어 있습니다. 이 문서 작업에서 앱을 다시 시험하지 않았으며 아래 이전 시험 수치는 당시 대상의 기록입니다.
+- **남은 구현/합의:** 직접 결착 좌표·경로/접촉 인계·지원 제스처/준비·최종 Vision 계약·사용자–Job 소유자/세션/웹 반영·Qt/웹 분담. 계정표는 있지만 jobs에 사용자 소유자 연결이 없고 사용자별 웹 화면도 없습니다. 기존 전달/Mock·DB 검사는 최종 서비스 전체 검증이 아닙니다.
+- **이번 검증:** 변경 Markdown 29개를 포함한 문서 38개의 상대 링크 298개·표 123개·fenced 코드 블록 128개(JSON 예시 36개)를 검사했습니다. 신규 링크/앵커·표·JSON/코드 블록 오류 0, 종료 코드 0입니다. Git 제외 로컬 logs 산출물을 가리키는 기존 미존재 링크 28개는 게시 원자료의 한계로 보존했습니다(D_ABD_SYNTHETIC_CALLBACK_TEST·D_A_PLANNER_HANDOFF·D_BACKEND_RUN_ROBOT_PLAN·STATUS). diff 공백 검사 종료 코드 0, 기존 reference 원문 8개·첨부 원문 본문·측정/개발/시험 기록 본문 보존을 확인했습니다. 코드·Schema·장치 설정은 변경하지 않았고 앱·실제 DB·웹·Camera/Robot 검사는 수행하지 않았습니다. 기존 CI/lint/type는 미구성이며 새 도구를 도입하지 않았습니다.
+- 지정 `/home/ms-02/C_2`의 개발 브랜치·미완료 변경을 보존하고 최신 main 기반 별도 `docs/final-mvp-chair` 작업 공간에서 문서만 commit/push/PR을 준비합니다. merge·장치 실행은 요청 범위가 아닙니다.
+
+## 이전 개발·시험 기록의 범위
+
+아래는 각 기록 날짜의 구현·검증 결과입니다. 새 제품 목표의 구현·통합 완료율이나 이번 문서 PR의 재검사 결과로 사용하지 않습니다.
+
+## A파트 — 지지 합의 문구 정리·Day3 재검사 (2026-10-07)
+
+- 2026-10-06 세은의 동의와 수현의 회신에 맞춰 A/C의 지지 조건을 바로 아래층과 겹치는 고유 stud 총 2개 이상으로 문서·C 주석에 통일했습니다. 아래 블록 개수와 무관하고 중복 stud를 합산하지 않으며, layer=1은 제외합니다. Day4 기하 검사 기준이며 실제 체결·물리 안정성 검증이나 프로젝트 전체의 영구 기준은 아닙니다.
+- 새 수정은 현재 결정·공통 계약·C/B 연결 합의·C 계약·C validator의 설명·이 진행 기록입니다. A/C 함수·조건·상수·입출력·로봇 설정은 변경하지 않습니다. 사용자가 이번 문서 PR에 한해 별도 브랜치를 허용했습니다. 최신 main에서 문구 수정만 준비하며, 고정 A 브랜치의 기존 자료·이력은 유지합니다.
+- 수정 전 main `6fb971cad619de398b1c47e7d669912cdb470fad`에서 A 독립 **112 passed**, A–D **24 passed**, C 함수→A/D·Qt **16 passed**, C 공개 Mock 재현 **17 checks PASS**를 확인했습니다. 사용자가 같은 명령을 직접 실행한 로그도 모두 종료 코드 0입니다. 사용자 직접 실행과 에이전트 검사 로그는 별도 경로·Job으로 보존합니다.
+- 문구 수정 후 C validator 기존 검사 **52 passed**·종료 코드 0, diff 공백·Markdown 코드 블록·새 문서 링크와 변경 범위를 확인했습니다. validator의 실행 AST는 주석/docstring을 제외하고 main과 동일하며 A 계산·재현 파일·README는 변경하지 않았습니다.
+- 직접 실행 사례: Initial 15 PLACE → D Current 4개·revision 5 → Revised v2의 11 PLACE 채택. Current 보존·중복 PLACE 제외·선행 조건·최종 목표 일치를 확인했습니다. C는 Mock 또는 HTTP Fake, 관측은 fixture, Robot은 Fake, Qt 검사는 offscreen입니다. 실제 LLM·음성·Camera·Robot·사람 조립은 이번 결과에 포함하지 않습니다.
+- 이번 PR은 문서 5개와 C validator 설명만 변경합니다. 재현 스크립트·README·A 과거 진행 기록은 포함하지 않습니다. 기존 재현 코드는 고정 A 브랜치 `work/seeun-planning`의 `319a275`에 그대로 보존하며, 새 알고리즘·dependency·class·SIM/REAL 계산 분리는 추가하지 않습니다.
+- 공유 압축 파일은 사용자 직접 실행 로그·입출력·해당 Job JSONL·검증 기록과 실행 명령을 별도로 제공합니다. 생성 산출물은 원격 소스에 커밋하지 않습니다. 다음 작업은 실제 C 출력과 같은 기준의 D Current, 실물 조립 순서 및 최종 목표 대조입니다. 문구 정리의 main 반영은 수현 리뷰·승인 후 별도로 확인합니다.
+
 ## 수현 누적 D 수정 PR 게시 준비 (2026-10-06)
 
 - 사용자 요청으로 Robot 시험 진입점/설정·수동/합성 HMI·잘못 놓음 표시·A–B–D callback·C 저장 Design·블록 비율의 누적 수정과 검사를 PR로 준비했다. 별도 DB/컨테이너·발표/제출 초안·미완료 공통 문서는 제외한다. [게시 범위와 검증](D_BACKEND_PROGRESS.md#2026-10-06--누적-d-수정-pr-게시-준비).
@@ -224,6 +377,71 @@
 - 실제 로컬 확인: 2026-10-06 수현 checkout에서 tests/unit/test_team_handoff.py의 소비 검사 17개 통과, 종료 코드 0. 2026-10-05 전체 283개 통과는 당시 기록입니다. 코드·Fixture·테스트는 현재 별도 로컬 미커밋 개발 상태이며 이번 문서 PR에 포함하지 않습니다. 이 문서 게시를 GitHub CI·실제 B/C 연결·Camera/Robot·다음 전달 gate 검증으로 표시하지 않습니다.
 - 다음 확인: B 실제 반환/순번/전달판 예시, C 수정 반환 예시, A/C 지지 후보 규칙. 이후 해당 개발 단계에서 완료·전달 gate 및 실제 모듈 연결을 검증합니다.
 
+## 2026-10-11 A 1차 통합 계약 정합 (최신 사용자 확인 반영)
+
+- 수현의 최신 확인에 따라 10/8 계약을 우선합니다. B가 Current·revision·Expected·비교를 확정하고 D는 전달·실행·진행·최종 종료를 담당합니다. PR #20 초안의 D 소유 변경은 철회했습니다.
+- A의 정수 layer 범위는 1~5, 범위 밖 재현 입력은 6으로 맞춥니다. A는 받은 B revision을 복사하며 `current_provenance=B_CONFIRMED_D_RELAYED`를 유지합니다.
+- 층 확장 구분을 위해 API `assembly-ad-calculation-draft/0.5.1`, bundle `a-b-d-planning-bundle-draft/0.1.1`를 사용합니다. 구형 0.5 요청은 거절합니다. 원본 v4 Schema·보정·측정값은 보존합니다.
+- `execution_allowed=false`, `DRAFT_NOT_FROZEN`을 유지합니다. 최신 변경 후 A CPU 단위·회귀 시험 351개 통과, API 계약 검사 34/34 통과(2026-10-11, agent 실행). 실제 D 수신·B/C 장치·Robot·Isaac·DB 전체 공정은 미검증입니다.
+
+
+## A파트 — Isaac·MoveIt 경로 정리와 기존 연결 보존, 로컬 반영본 (2026-10-10)
+
+- 사용자 요청 범위는 게시 전 준비입니다. `work/seeun-planning`의 `319a2755676f2432e3bf3dfdbcd7b22c4d68b17d`를 가져와 최신 A와 필요한 SIM 소스를 파일별로 반영했습니다. 이 절은 게시 전 로컬 준비 기록입니다. 게시 상태는 브랜치 이력에서 확인합니다.
+- A는 기존 `planning_trial/` 한 곳을 사용합니다. 기존 C→A 확인 스크립트·테스트·샘플과 C 앱은 보존했습니다. `planner.py`의 기존 API 기본 동작은 유지하며 층 혼합·조립 후보 API·빨강 1×2 확장은 별도로 연결합니다. 원본 A와 입력·로봇 자산은 별도 fixture 및 SHA256으로 보존합니다.
+- `isaac_sim/` 안으로 필요한 충돌 검사·입력·로봇 USD/mesh·ROS 소스를 모았습니다. Isaac 설치 경로는 `ISAAC_SIM_ROOT`, ROS 설정은 `ROS_SETUP_PATH`로 받습니다. 실행기는 자기 폴더의 빌드 결과를 사용하며 USD는 상대 참조, 실행용 URDF의 로컬 URI는 빌드 시 생성합니다.
+- 실제 신규 검증: A/SIM CPU 테스트 365개 통과, 공백·한글을 포함한 다른 폴더에서도 같은 테스트와 chair 12 Step/red 1 Step 후보 생성 통과. FCL 원본/정리본의 17 mesh 형상·제외 목록·8개 관절 상태 결과 일치. 이동한 USD 의존 layer 10개 모두 해석, 누락 0개. MoveIt/model ROS 패키지 2개를 로컬에서 Release 빌드했습니다.
+- 기존 확인 스크립트 4개로 Initial/Revised/C 공유 fixture/C→A→D 재계획 검증 통과. C/D는 기존 시험과 같은 팀 commit `101d9d85efe8bdf7cf82bef2a199f4919e1e6c84`를 별도로 사용했습니다. 이 A 브랜치의 C 뼈대에는 `create_initial_design`이 없어 그 자체의 전체 연결은 확인할 수 없습니다. 이를 고치기 위해 다른 담당자의 코드를 합치거나 스크립트를 완화하지 않았습니다.
+- 정리본의 Isaac 재생은 수행하지 않았습니다. 기존 12블록 mock 조립 및 빨강 첫 슬롯의 SIM 기록은 이전 버전 검증입니다. 전달판 대기 좌표에서 먼저 여는 최신 변경, 실물 보정·중력 낙하·정밀 해제·물리 체결·힘 제어·실제 사람 도움·B 관측은 신규 검증 완료로 표시하지 않습니다.
+- 실행 안내: [isaac_sim/README.txt](../isaac_sim/README.txt). 파일별 근거와 상세 검증은 `isaac_sim/review/` 및 로컬 `runtime_reports/`에 보관합니다. 다음 단계는 정리본의 SIM 재생 확인과 사용자가 요청할 때 웹 게시입니다.
+
+## A파트 — C 공개 수정 함수·D Current 기반 채택 시험 공유 (2026-10-06)
+
+- 고정 A 브랜치에 `planning_trial/check_c_a_d_revised.py`와 README 재현 절차를 추가했습니다. 계산 코드·공통 계약·D/C 운영 코드는 변경하지 않았습니다.
+- 팀 main `101d9d85efe8bdf7cf82bef2a199f4919e1e6c84`에서 C 공개 Initial/Revised 함수와 D를 가져와, 이 A checkout의 기존 `plan_from_current()`를 호출합니다. 저장된 C 응답을 성공 결과로 대신 넣지 않습니다. C 생성기는 Mock, 관측은 fixture, Robot은 Fake입니다.
+- Initial 15 PLACE를 D가 채택한 뒤 네 Step의 관측 fixture로 D Current revision=4를 만듭니다. 다리 하나를 (9,9,1)→(8,9,1)로 옮긴 관측 후 revision=5를 만들고, 실제 C REVISE v2 → 같은 Current의 A 11 PLACE → D 채택까지 확인했습니다.
+- D Difference에 포함된 이동 전후 다리와 확인된 빈 다음 Step을 시험에서 명시적으로 연결합니다. 일반적인 D–C 차이 변환·여러 블록의 대응 추정·가림 해석을 새로 구현하거나 확정하지 않았습니다.
+- 사용자가 직접 터미널 실행해 **PASS (17 checks)**·종료 코드 0을 확인하고 공유한 기록이 있습니다. 게시 준비 checkout에서도 같은 runner를 재실행해 17개 검사를 통과했습니다. 후자는 사용자 직접 실행 증거와 다른 Job으로 기록하고 공유 압축 파일에 혼입하지 않습니다.
+- 검사 범위: Current 보존·수정 Design v2·base_current_revision=5·새 Plan ID·기존 4개 중복 PLACE 제외·Remaining 11개·D가 실제 A 결과 채택·C 응답/Plan 결과 JSONL 기록. HMI snapshot 계약을 생성하며 Qt 창을 직접 표시하는 시험은 아닙니다.
+- 소스 변경은 runner·README·이 기록 3개입니다. 기존 단일 계산 코드의 SHA256 `0f96d24b8fad195185b68c9c520976b3c97d91aa179fcd91382426772f2e7835`를 유지합니다. 신규 dependency·class·시뮬레이션/REAL 분리는 없습니다.
+- 사용자 직접 실행 로그·입출력 JSON·검증 결과·해당 Job JSONL·재현 안내는 새 공유 압축 파일로 별도 준비하고 기존 첨부는 보존합니다. 원격 소스에는 생성 산출물을 커밋하지 않습니다.
+- 미검증: 실제 LLM/STT/TTS·B callback/촬영·실제 Robot/체결·여러 차이의 자동 변환·이번 수정 이후 남은 11개 전체 사이클. 이번 시험은 명시한 사례의 C 공개 함수→A→D 소프트웨어 연결 증거이며 일반 변환 기능·실제 장치 완료로 보고하지 않습니다. main 병합·PR 생성은 이번 작업 범위가 아닙니다.
+
+## A파트 — C Mock·공유 fixture 재현 실행 파일 게시 (2026-10-06)
+
+- 기존 고정 브랜치 `work/seeun-planning`에 [실행 안내](../planning_trial/README.md)와 재현용 실행 파일 4개를 추가했습니다. A 계산 코드 `planner.py`와 공통 입출력은 변경하지 않았습니다.
+- `check_c_initial.py`: C 공개 Initial 성공 응답의 Design → A, `check_c_revised.py`: C 공개 Revised 성공 응답의 Design + 같은 Current → A, `check_c_fixtures.py`: C가 공유한 JSON fixture → A, `run_fake_cases.py`: 저장된 Initial 응답으로 네 가지 A 반환 사례를 실행합니다.
+- 최초 Initial 기록은 C `3e18f04`, Revised·fixture 기록은 C `9de685b`였습니다. 게시 준비 checkout에서는 **네 실행 모두 `9de685b6b135d3a46968fabc9031befb02f91301`로 다시 실행**했습니다. C source checkout 경로를 인자로 받으며 README에 별도 checkout과 해당 커밋 고정 방법을 적었습니다. 특정 PC의 임시 경로를 팀 재현 지침으로 사용하지 않습니다.
+- C Initial/Revised 실행에서 기존 Mock provider를 명시적으로 선택합니다. shell의 LLM 설정과 관계없이 이 재현은 외부 LLM을 호출하지 않습니다. A는 샘플/실제 연결에 같은 `plan_from_current()`를 사용하며 시뮬레이션/REAL 구현을 분리하지 않습니다.
+- 게시 준비 실제 실행: Initial **READY·15 PLACE**, 부분 Current 4개를 제외한 **READY·11 PLACE**, 목표와 다른 색상 **NEEDS_CORRECTION**, 5층 입력 **INVALID**, C REVISE·Design v2 후 **READY·11 PLACE**. 각 실행 종료 코드 0과 검증 JSON의 통과 결과를 확인했습니다.
+- C 공유 fixture 12개 사례 PASS: 최초 8 PLACE·부분 2개 보존 후 6 PLACE·전체 조립 0 PLACE·수정 Current 4개 보존 후 4 PLACE·목표와 다른 배치 보류·중복 점유 INVALID. `support_violation` fixture는 보존 불일치가 먼저 반환되므로 이 사례로 지지 오류 사유 반환을 증명하지 않습니다. Difference fixture는 참고·원본 해시 기록만 하며 A 계산 입력으로 사용하지 않습니다.
+- `python3 -m pytest planning_trial/test_planner.py -q` → **112 passed**, 종료 코드 0. 변경 후 네 실행 파일도 모두 실제로 실행했습니다. A 소스 SHA256은 `0f96d24b8fad195185b68c9c520976b3c97d91aa179fcd91382426772f2e7835`로 이전 공유 계산 코드와 같습니다.
+- 사용자 직접 실행 기록(Initial·네 가지 A 사례·Revised)과 이번 게시 준비 실행을 구분합니다. 원래 로그·산출물·첨부 압축 파일은 사용자 로컬에 보존했습니다. 소스에는 결과 생성 경로·기대값·로그 수집·압축 방법을 포함하며, 결과 JSON/로그는 실행 시 생성해 별도 공유합니다. fixture runner에 대한 사용자 직접 실행은 이번 기록에서 완료로 주장하지 않습니다.
+- 이번 게시 범위는 실행 파일 4개·README·이 기록 **6개 파일**입니다. 변경량 300줄 초과는 기존에 준비한 독립 실행 4종을 팀이 재현하도록 공유하는 규모이며, 신규 계산 구현·class·dependency·추상 계층은 없습니다. 실행 파일마다 실제 입력·출력·검사·실패 경로를 표시했습니다.
+- 미검증/다음 작업: D Consumer의 최신 A 출력 수용·최초/재계획 채택·화면/JSONL 반영·실제 LLM/음성·Camera/Robot/실물 조립. Current는 명시한 revision을 붙인 샘플이며 D의 실제 관측 채택이 아닙니다. 소스 게시를 공동 연결 체크박스 완료로 보고하지 않습니다. main 병합·PR 생성은 이번 작업 범위가 아닙니다.
+
+## A파트 — Current 연결·결과 반환 형식 적용 (2026-10-06)
+
+- 수현의 답변에 맞춰 `plan_from_current(design, current)`를 추가했습니다. Current는 `current_revision / blocks`, 반환은 `status / plan / errors`입니다. 실제 배치 채택과 결과 최신성 확인은 Backend 책임입니다.
+- 기존 단일 `build_plan`을 호출하며 최초와 재계획 구현을 분리하지 않았습니다. revision을 그대로 Plan에 복사하고 이미 조립된 목표 배치는 PLACE에서 제외합니다.
+- READY는 검증된 Plan·빈 errors, NEEDS_CORRECTION과 INVALID는 plan=null·사유·문제 배치이며 특정할 수 없는 배치는 block=null입니다. 처음 발견한 오류 하나를 반환합니다. 예외 문구를 분석하지 않도록 ValueError 하위 PlanningError 하나에 분기·배치 정보를 담았습니다.
+- Current 누락을 빈 보드로 추측하지 않습니다. 목표에 보존되지 않은 실제 배치·삽입 방해·현재 지지 부족은 사람 정리가 필요하다고 반환하고 자동 MOVE/REMOVE는 생성하지 않습니다. malformed 입력·겹치는 Current·목표 또는 Plan 검증 실패는 INVALID입니다.
+- 바로 아래층과 중복을 제외한 총 2 stud 이상 지지는 수현의 2026-10-06 회신에서 A/C 통일에 동의한 기준입니다. 공통 문서의 후보 표기 갱신은 별도입니다.
+- [Current 샘플](../planning_trial/sample_current_state.json)을 합의된 바깥 구조로 바꿨습니다. revision=7과 블록 배치는 가상 시험 자료이며 실제 관측 증거가 아닙니다. [연결 예시](../planning_trial/handoff_examples.json)는 정상·부분 조립·전체 일치·사람 정리 필요·invalid 입력과 테스트 기대값입니다.
+- 실제 게시 준비 checkout 검증: `python3 -m pytest planning_trial/test_planner.py -q` → **112 passed**, 종료 코드 0. 기존 최초 12 Step·재계획 9 Step의 내용과 입력 revision 유지도 확인했습니다.
+- 수정 범위는 planning 파일 5개와 이 기록입니다. 신규 dependency·framework·모드 분리는 없습니다. 기존 테스트 파일 400줄 초과는 정상/invalid/경계/반환 검증의 길이이며 테스트를 약화하거나 분할용 구조를 추가하지 않았습니다.
+- 미검증/다음 작업: D의 기존 reason/conflicts 수신부 조정 후 실제 C/D 함수 호출 연결, Camera·HMI·Robot·실물 조립·통합 CI. 독립 샘플 검증을 실제 모듈 통합 성공으로 표시하지 않습니다. 기존 최초 계획 CLI는 호환성을 위해 Plan만 저장하며 Backend는 새 연결 함수 반환을 사용합니다.
+
+## A파트 — 최초 Plan·보존＋추가 Replan 공유 (2026-10-06)
+
+- 세은의 고정 작업 브랜치 `work/seeun-planning`에서 기존 main(7dffb50) 이력을 보존하며 [계획 코드와 실행 안내](../planning_trial/README.md)를 공유합니다. main 병합·다른 파트 구현 변경은 이번 작업 범위가 아닙니다.
+- 기존 로컬에서 개발·검증한 단일 계산 구현을 `planning_trial/`에 게시합니다. 최초·재계획 모두 `build_plan(design, current_blocks, current_revision)`을 사용하며 `base_current_revision`은 입력 revision을 복사합니다. 이 인자 구성은 내부 계산 API이며 실제 Backend Current 전체 구조와 실패 envelope를 확정한 것은 아닙니다.
+- 규격·색상·좌표·층·방향 및 수량으로 실제 배치를 대조하고, 보존되지 않는 배치를 오류로 처리합니다. 남은 PLACE만 생성하며 자동 MOVE/REMOVE·재고 수량 검사·물리 안정성 시뮬레이션·Robot 실행을 추가하지 않았습니다.
+- 현재 블록을 시작 배치로 두고 단계별 선행 관계·겹침·지지·목표 일치를 검사합니다. 위에서 수직 삽입한다는 단순 footprint 가정의 가림 검사이며 실제 손/그리퍼 경로 검증은 아닙니다. 2 stud 이상 지지는 세은이 적용하기로 선택한 기준이고 A/C 공통 계약 반영은 확인 중입니다.
+- 게시 전 실제 독립 검증: `python3 -m pytest planning_trial/test_planner.py -q` → **89 passed**, 종료 코드 0. 저장된 최초 Plan 12 Step과 보존 3개＋남은 Plan 9 Step을 공통 validator로 재검사했습니다.
+- [Current 샘플](../planning_trial/sample_current_state.json)은 가상 자료입니다. 바깥 필드는 Backend 확정 Schema가 아니고, [재계획 예시](../planning_trial/sample_replan.json)의 revision=7도 시험용 값입니다. 의자 사진을 복원한 GT·실제 관측·실물 검증 결과로 사용하지 않습니다.
+- 규모 설명: 기존 작성 자료 8개(계산 코드 268줄, 테스트 437줄, README 1개, JSON 샘플 5개)를 같은 경로로 공유하고 이 진행 기록을 추가합니다. 테스트와 JSON의 길이는 독립 검증·재현용입니다. 신규 class·dependency·framework·계산 모드 분리는 없습니다. 공통 app 패키지로의 이동·API 확정은 연결 시 별도 확인합니다.
+- 미검증/다음 작업: C/D 실제 모듈·Current 구조·최종 status/plan/errors·진행 중 부품 처리·HMI·Robot·실물 조립·통합 CI는 미검증입니다. 수현의 실제 Current 및 실패 반환 규약과 생산자/소비자 예시로 연결 검증해야 합니다. 새 lint/type-check/CI 도구는 도입하지 않았습니다.
 
 ## 최신 작업 — Day4 결정 계약과 팀원 준수 사항 (2026-10-05)
 
@@ -344,146 +562,22 @@ PR 게시 대상과 최신 main을 합친 독립 파일 트리에서 `QT_QPA_PLA
 - 게시 트리 검사 `env -u HISTORY_TEST_DSN QT_QPA_PLATFORM=offscreen python3 -m pytest tests planning_trial/test_planner.py -q`: **1371 passed, 24 skipped**, 실패/오류 0, 종료 0. 24개는 별도 실제 DB DSN 필요 검사다. Robot/Camera/음향/외부 API는 실행하지 않았다. Python/JSON 파싱·diff 공백 확인. CI/lint/type 추가 없음. 기존 실기 STOP/재개·현재→HOME 경로·음성/Camera 연결의 현장 미검증 상태는 유지한다.
 - 팀원 리뷰가 어려운 상황에서 사용자가 팀장 권한 병합을 명시적으로 요청했다. PR에 동료 리뷰 미수행과 사용자 승인 사유를 기록하며 자기 Approve나 가짜 사람 리뷰를 발행하지 않는다. 기존 보호 규칙은 변경하지 않는다. [기본 버전·백업·복구 방법](D_RUNTIME_BASELINE.md)을 확인한다. 실제 병합과 태그는 GitHub PR/커밋 상태로 구분한다.
 
-## 2026-10-07 — 직접 조립 연구 1단계: 단일 Step 증거 판정
 
-- 사용자 결정: 첫 시험은 이미 파지한 2×2 블록을 조립판에 고정한 2×2 기준 블록 위에 쌓는 구성이다. 최종 MVP는 공급판 집기·운반·직접 조립을 포함한다. 기존 사람 조립 공정 유지와 별도 연구 경로 추가, 수현의 초기 단일 목표 비전 검증은 팀 제안 방향으로 채택했다. 팀 공정 계약/역할표 변경 승인을 완료했다는 뜻은 아니다. RGB·Depth 및 실제 촬영 자료의 사용 가능 여부는 사용자 확인이며 이 노트북에서 다시 검증하지 않았다.
-- main `6fb971c` 기준의 로컬 feature branch `work/suhyun-assembly-evidence`에서 순수 함수 `app/assembly_evidence.py`를 추가했다. 기존 Backend·Day4 완료 판정·HMI·Robot·ROS 이름을 변경하지 않았다.
-- 내부 함수 계약은 `interfaces/schemas/assembly_evidence.schema.json`의 input/output이다. 필수 입력은 execution_result/contact_state/vision_verdict/motion_permitted이며 None은 미수신, UNKNOWN은 판별 불가다. schema는 후속 ROS transport의 확정 계약이 아니다.
-- 안전 차단/미확인 → 명확한 실행·접촉·Vision 실패 → 취소/미수신 대기 → 결착·검증 증거 판정 순서다. COMPLETE+SEATED+PASS+명시적 안전 허용일 때만 ASSEMBLED 후보와 SENSOR_VERIFIED를 반환한다. 불확실 결착은 REQUEST_HUMAN_VERIFICATION, 실패는 RECOVERY_REQUIRED다. 잘못된 값은 ValueError, 누락/추가 인자는 TypeError로 거절한다.
-- 함수는 상태를 commit하거나 로봇·사람 요청을 실행하지 않는다. 호출 전 동일 attempt·증거 유효성/최신성·world/calibration 및 실제 정지·해제·관측 조건의 검사가 필요하다. 아직 그 guard와 Backend 연결은 구현하지 않았다. ASSEMBLED 반환만으로 실기 완료나 물리 결착을 주장하지 않는다. CANCELED도 실제 정지 증거가 아니다.
-- 합성 정상/불확실/실패/잘못된 입력 Fixture와 L1을 추가했다. schema에 선언한 540개 값 조합에서 안전 우선·자동 완료 필요조건·출력 필드/enum을 검사한다. 센서 인식 성능이나 물리 안전 성능 검사는 아니다.
-- 실제 검사: `env -u PYTHONPATH -u PYTHONHOME /Users/suhyun/miniforge3/envs/ros2_jazzy/bin/python -m pytest -p no:launch_testing -p no:launch_ros tests/unit/test_assembly_evidence.py tests/unit/test_completion.py tests/unit/test_contracts.py -q` → **192 passed**, 종료 **0**. 새 증거 판정과 기존 완료·계약 검사를 포함한다. 기본 python3 실행은 외부 ROS launch_testing 플러그인과 pytest hook 불일치로 검사 시작 전 실패했다. 위 명령은 기존 Conda Python을 사용하고 이 순수 Python 검사와 무관한 ROS launch 플러그인 두 개의 자동 로드만 막는다. 프로젝트 검사/assertion은 제외·약화하지 않았다.
-- 복잡성: application 56줄·함수 1개·신규 클래스 0·신규 의존성 0, 신규 파일 4개와 이 진행 기록이다. 설치·업데이트·CI/lint/type 도구 도입을 하지 않았다. 전용 JSON Schema validator 실행은 라이브러리 미설치로 미실시이며 JSON 파싱과 필드/enum 정합성만 검사했다.
-- 미실시: Backend/센서/장치 L2~L4, 실제 Vision·F/T·로봇·Isaac, CI·사람 리뷰·commit/push/PR/merge. 다음 작업은 동일 attempt·최신성/유효성 guard이며, 후속 계약은 팀 합의 내용과 연결한다.
+## 2026-10-12 웹앱·DB PR — HMI 제외
 
-## 2026-10-07 — 직접 조립 연구 2단계: 증거 문맥·최신성 검사
+사용자 최신 요청으로 웹앱과 DB만 `codex/integration-round1`의 `02137d8` 기준 별도 작업 공간에서 선택 반영했다. `DB 개발용`·`웹앱`의 최신 대화에 따른 제작자별 도안 관리, 버전별 선택 공개/해제, 로그인 없이 공개 모형/제작자/층별 설계도 조회를 제공한다. 기존 계정/JSONL/Job 소유권·개인 저장 코드를 재사용하고 공개 테이블 migration 002를 추가했다. 계정 원문·비밀번호·DSN·실제 로그/DB 데이터는 포함하지 않는다.
 
-- 같은 로컬 feature branch에서 `check_evidence_context`를 추가했다. 기존 증거 조합 판정의 signature와 Day4 Backend는 유지한다. 내부 schema/Fixture/단위 검사를 확장했으며 새로운 ROS 이름·클래스·의존성을 추가하지 않았다.
-- active 문맥과 증거의 job/plan/step/attempt/request/calibration/source_epoch/basis_world_revision을 비교한다. request 없는 접촉 증거는 양쪽에 None을 명시하며, Vision 요청 ID는 SM가 해당 활성 요청으로 설정해야 한다. source_epoch와 순번 이력은 생산자/요청별로 관리한다.
-- 생산자가 valid=false라고 한 증거, 요청 구간 전/미래 촬영, age 초과, 중복·역순 sequence, 열린 구간보다 뒤로 돌아간 시계를 거절한다. 잘못된 필드/비유한 시각/잘못된 허용 시간은 ValueError다. None/False/True 및 수치 타입을 구분하며 bool을 초·순번·revision으로 허용하지 않는다.
-- now/opened_at/stamp는 같은 시계의 초여야 한다. max_age와 last_sequence는 기본값 없이 필수 입력이다. 첫 수신만 last_sequence=None을 사용하고 채택된 순번을 기록하는 주체는 SM다. Fixture의 시간·age 수치는 합성값이며 실기 threshold가 아니다. 연속 시계 감독과 실제 producer epoch 발급은 후속 연결이다.
-- basis_world_revision은 attempt 시작 기준이다. 정상 삽입으로 바뀐 observed world revision을 이 필드에 넣지 않는다. 이 검사는 실제 reference geometry 불변을 증명하지 않으며, 구조 변화 시 active 문맥 무효화/새 attempt와 원자적 World·완료 commit은 후속 SM 연결에서 검사한다.
-- 실제 검사: 1단계와 같은 Conda Python 및 ROS launch 플러그인 제외 설정으로 `tests/unit/test_assembly_evidence.py tests/unit/test_completion.py tests/unit/test_contracts.py -q` → **235 passed**, 종료 **0**. 이전 192개에 문맥/시간/순번 및 잘못된 입력 43개를 추가했다. 입력 자료와 순번 이력을 함수가 변경하지 않는 것도 확인했다. 아직 두 함수는 Backend에 연결하지 않았으므로 이 결과는 L1이며 실제 센서·장치/L2~L4·전용 JSON Schema validator·CI·사람 리뷰 결과가 아니다.
-- 다음 작업: 연구 경로에서 사용할 한 attempt의 증거 수집·문맥 무효화·재평가 연결. 사용 거절/만료된 증거를 완료 판정 입력에 남기지 않으며, 관련 World·정지·해제·관측 조건을 확인한 뒤 SM만 완료를 기록한다. commit/push/PR/merge는 수행하지 않았다.
+기존 8개 단위/DB/웹 검사 파일 **159 passed**, 실패/오류/skip 0, 종료 0(26.29초). 별도 `c2_hmi_web_pr_20261012_test` PostgreSQL과 로컬 HTTP를 사용했다. 첫 실행은 한글 file URL 경로를 디코딩하지 않은 테스트 1 failed/158 passed였고 테스트 경로 해석 수정 후 전부 재실행했다. Node SVG/UI·층 선택·입력 보존 및 JS 구문 검사 종료 0. 검사 산출물은 별도 PR 작업 폴더 `logs/hmi-history-web-pr/`에 보관하며 과거 채팅의 통과 수치를 재사용하지 않았다.
 
-## 2026-10-07 — 직접 조립 연구 3단계: 수집→검사→판정 연결
+Qt HMI/HMI 로그인 결선/새 D 통합 실행기/A/B/C/로봇·장치 설정은 변경/게시하지 않는다. 원래 `/home/ms-02/C_2`의 지정 브랜치·미커밋 변경은 보존했다. 이번 PR에서 실제 브라우저 수동 화면·외부 서비스 배포·Robot/Camera/음성/API·전체 사람 조립은 시험하지 않았다. 실행·기능 경계는 [웹 안내](D_WEB_HISTORY_RUN.md)를 따른다.
 
-- 권장안으로 다음 단계까지 진행하라는 사용자 요청에 따라 `app/assembly_attempt.py`의 `update_attempt_evidence`를 추가했다. SM가 입력/반환 state를 소유하는 순수 연결 함수이며, 독립 State Manager·장치 명령·기존 Day4 Backend 연결을 추가하지 않았다. 실제 정지/해제/관측·reference geometry 검사는 완료 commit 전 호출자의 후속 책임이다.
-- execution/contact/Vision/safety별 active 문맥·허용 age와 event를 받아 기존 context guard와 증거 조합 정책을 연결한다. state=None은 새 수집, event=None은 주기 재평가다. 매 호출 저장된 증거를 재검사하며 만료 증거를 제거한다. 기존 단일 판정/guard의 signature는 유지했다.
-- job/plan/step/attempt가 바뀌면 모든 증거를 비운다. source/request/epoch 창 변경은 해당 캐시를 비운다. 같은 attempt의 보정/basis 변경이나 시계 역행은 그 attempt를 닫고 새 attempt까지 HOLD한다. 정상 target 삽입의 observed revision을 basis로 덮어쓰지 않는다. 실제 reference 변화 감지는 아직 구현하지 않았다.
-- 유효하고 더 최신인 invalid 샘플은 이전 성공 캐시를 비우고 소비 순번을 유지한다. 따라서 그보다 늦게 도착한 낮은 순번의 성공으로 되살아나지 않는다. 다른 attempt/닫힌 요청/역순 결과는 현재 유효한 캐시를 손상시키지 않는다. 높은 순번이어도 촬영 시각이 뒤로 간 결과는 거절한다.
-- 같은 attempt의 FAILED/TIMED_OUT/CANCELED/JAMMED/FAIL/안전 차단은 latched 기록으로 유지한다. 만료 또는 늦은 긍정으로 실패/정지를 덮지 않는다. 새 attempt는 로컬 기록만 새로 만들며 장치 안전 latch를 reset하지 않는다. 새 시도에서도 fresh 안전·실행·접촉·Vision 증거가 모두 필요하다. latched는 과거 확인된 원인 기록이며 현재 센서값으로 표시하면 안 된다.
-- Fixture·내부 collection schema·연결 검사를 추가했다. source별 시각/age는 합성 예시이며 REAL 설정이 아니다. 상태는 메모리 내 반환값으로, DB·파일에서 복원해 자동 재개하는 형식이 아니다.
-- 최종 검사: 앞선 단계와 같은 Conda Python/ROS launch 플러그인 제외 설정에서 `tests/unit/test_assembly_attempt.py tests/unit/test_assembly_evidence.py tests/unit/test_completion.py tests/unit/test_contracts.py -q` → **292 passed**, 종료 **0**. 기존 235개와 새 57개를 포함한다. 네 source 도착 순서 24종, 만료 tick·무효 최신 샘플·새 attempt·재관측·epoch 변경·실패/정지 유지·시계 역행·순번/시각 역전·UNKNOWN·입력 보존을 검사했다. 코드 내 함수 연결을 실제 실행한 L1이며 실제 Backend/센서/ROS/Isaac/장치 L2~L4 통과를 주장하지 않는다.
-- 규모 검토: 새 연결 모듈 126줄·함수 3개(43/31/27줄), 새 검사 모듈 227줄, 신규 클래스/의존성 0이다. 이번 단계는 schema/Fixture/진행 기록과 guard 설명 정합성 보완을 포함해 약 450줄이며, 300줄 검토 기준 초과의 이유는 증거 수명·실패 유지와 실제 연결의 정상/실패 검사다. 더 작은 대안으로 새 framework/class 없이 상태 입력/출력 함수를 사용했다. 게시 시 누적 1~3단계 규모도 함께 검토한다. CI/lint/type·전용 JSON Schema validator·사람 리뷰·commit/push/PR/merge는 미실시다.
-- 다음 단계: 실제 정지·해제·관측 조건을 갖춘 연구용 SM 연결, 요청/전이 로그와 HMI 상태 표시. 이 단계의 ASSEMBLED는 완료 후보이며 현재 사람 조립 공정을 자동 체결로 전환하거나 물리 완료를 기록하지 않는다.
-- 누적 1~3단계의 검토 규모는 신규 6파일 816줄 + 진행 기록 약 35줄 = 약 850줄이다. application은 두 모듈 238줄이고 테스트 361줄·schema/Fixture 217줄이다. 각 승인된 기능을 별도 단계로 구현했으며 이번 단계 전에 내부 계약 확장/예상 규모/단순 대안을 보고했다. 이후 PR에서는 300줄·신규 5파일 이상 검토 기준과 누적 규모를 설명해야 하며, 사람 리뷰/merge 승인으로 처리하지 않는다. 합성 연결 실행 예시는 Git에서 제외되는 `logs/assembly_attempt/step3_demo.json`에 남겼다.
 
-## 2026-10-07 — 직접 조립 연구 4단계: 완료 조건과 Backend 채택
+## 2026-10-12 조립 증거 작업 브랜치 integration 동기화
 
-- 사용자 요청에 따라 4단계까지 진행했다. `app/assembly_completion.py`에서 기존 1~3단계 증거 수집·판정을 재사용하고, 기존 Backend에 `begin_assembly_trial` / `on_assembly_evidence` / 읽기용 `assembly_state`를 연결했다. 새 State Manager·클래스·의존성은 없다. 첫 범위는 이미 파지한 2×2 블록을 같은 x/y의 layer-1 고정 2×2 기준 블록 위 layer-2에 추가하는 시험이며, Fixture 좌표·시각·max_age는 합성 예시다.
-- 입력 계약: 기존 네 source의 active/max_age, 독립 Controller physical_context/physical_max_age, 동결 world와 target. 완료 검증에는 실제 정지·실행 종료·RELEASED·관측 위치의 사실과 그 확인 시각, Vision PASS와 **동일 metadata의 관측 world**가 필요하다. OPEN/STOP 명령 ACK는 사실로 변환하지 않는다. `observe_ready_at`은 네 물리 조건이 함께 충족되고 촬영부터 최신 physical snapshot까지 유지된 구간의 시작이다. 이 사실을 생산하는 실제 Controller adapter는 아직 미연결이다.
-- 흐름: 네 성공 증거 → `HOLD / WAIT_COMPLETION_VERIFICATION` → 문맥·만료·독립 physical 순번/시각 검사 → `SEATED 시각 ≤ RELEASED ≤ 관측 준비 ≤ 촬영 ≤ physical snapshot` 및 실행 완료 시각 검사 → 기준 구조 불변·목표 하나 추가·expected effect에 따른 world revision +1 확인 → `ASSEMBLED / SENSOR_VERIFIED`. basis revision은 시작 값으로 유지하고 observed revision과 구분한다. 실제 센서가 증명한 것으로 주장하는 결과가 아니라 해당 정규화 증거를 받았을 때의 소프트웨어 동작이다.
-- 가림/부분 관측은 사람 확인 후보, 정지·해제 미확인은 대기다. 다른 attempt/calibration/request/epoch·무효/만료/역순·다른 Vision frame·촬영 전 physical 보고로는 완료하지 않는다. 먼저 온 무효 physical도 유효한 순번이면 소비해 옛 성공의 재사용을 막는다. 기준 블록 변경·추가 효과·revision 불일치·목표 불일치는 해당 attempt를 닫으며 늦은 정상 입력으로 해제하지 않는다. 실패·Safety 차단을 성공 proof로 덮지 않는다.
-- 완료 채택은 Backend의 한 메모리 상태 교체로 research world와 완료 기록을 함께 반영한다. 설정된 기록기가 있으면 채택 전에 기존 JSONL callback으로 전체 증거/검증/세계 결과를 기록하며 저장 실패 시 world와 완료를 모두 미채택하고 HOLD한다. 중복·만료 tick으로 이미 commit한 완료 이력을 다시 생성하거나 취소하지 않는다. 이 원자성은 메모리 상태의 범위이며 디스크 transaction·재시작 복원·DB 적재 보장은 아니다.
-- 연구 진입은 아직 **사용하지 않은 FAKE Backend + motion driver 없음**으로 제한한다. 연구 시험 동안 기존 Day4 command와 driver binding은 거절하며 Robot 명령을 발행하지 않는다. 실제 제어/HMI STOP 경로를 이 시험 API에 연결한 상태가 아니다. 연구에 진입하지 않은 기존 사람 조립 Backend/Qt snapshot/REAL 전달의 계약과 동작은 유지한다. 새 attempt 재시작·사람 응답·motion dispatch는 후속 범위다.
-- 최종 실행: 같은 Conda Python/ROS launch 플러그인 제외 설정으로 `tests/unit/test_assembly_completion.py tests/unit/test_assembly_attempt.py tests/unit/test_assembly_evidence.py tests/unit/test_completion.py tests/unit/test_contracts.py tests/unit/test_backend.py tests/unit/test_snapshot_log.py -q` → **376 passed**, 실패/오류 0, 종료 **0**. 완료 조건의 L1과 실제 Python Backend→증거 함수→임시 파일 JSONL 연결, 기존 Day4 회귀 검사를 포함한다. 실제 Camera/F/T/Robot producer·ROS/Isaac·실기 안전/결착·전체 L2~L4·CI·사람 리뷰는 미실시다.
-- Python 구문·JSON 파싱·schema 내부 `$ref` 해석과 Git diff 공백을 확인했다. 전용 JSON Schema validator는 라이브러리 미설치로 미실시이며, lint/type check·CI는 미구성이다. 합성 입력부터 완료까지의 6개 전이와 원본 증거는 Git에서 제외되는 `logs/assembly_attempt/step4_demo.json`에 남겼다. 실제 로봇 이동 명령은 0개다.
-- 코드 정책: 변경 전에 기능·파일·예상 400~550줄·내부 계약 영향을 보고했다. 실제 추가량은 약 680줄(구현 202줄, 검사 약 298줄, schema/Fixture 165줄, 기록)로 경계 검사가 늘어 예상보다 커졌다. 새 구현 모듈 156줄·최대 함수 33줄, 새 클래스/의존성 0, 4단계 신규 2파일/수정 4파일이다. 기존 Backend 492→538줄과 누적 1~4단계 약 1,530줄/신규 8파일은 향후 PR 복잡성·사람 리뷰 대상이다. 별도 구조 계층이나 기존 장문 함수 리팩터링을 추가하지 않았다.
-- 다음 작업: 불확실 결착의 Human Verify 요청·응답 연결. 실제 정지/실행 종료와 세션 식별을 확인하고, 사람의 긍정으로 명확한 실패/안전 차단을 덮지 않는 범위부터 진행한다. 실제 정지·그리퍼/6축 Wrench·단일 목표 RGB/Depth 생산자의 정규화 입력 연결과 현장 임계값 검증은 별도다. 로컬 feature branch 유지, commit/push/PR/merge 없음.
-
-## 2026-10-07 — 직접 조립 연구 5단계: Human Verify 요청·응답
-
-- 사용자 승인 범위인 불확실 결착의 사람 확인 요청·응답을 구현했다. `app/assembly_human.py`의 순수 프로토콜을 기존 Backend의 `open_human_verification` / `on_human_verification_response`에 연결했다. 기존 `assembly_state`로 요청 대상·문구·대기/종료 사유를 읽는다. 이번 결과는 HMI가 호출할 Backend API이며, 실제 Qt 버튼·화면 진입점과 제스처 인식기는 미연결이다. GESTURE 입력은 현재 구현 범위 밖으로 명시 거절한다.
-- 요청은 새 UUID·동결 job/plan/step/attempt/calibration/basis revision·HMI source_epoch·opened_at·deadline·응답 max_age에 연결한다. 현재 센서가 불확실하거나 제한 영역이 부분 관측된 경우만 대상이며, 실제 정지·실행 종료·RELEASED·관측 준비와 지원/제어 인계 세션 종료의 정규화 확인이 필요하다. 세션 종료는 연속 손 감지 결과가 아니다. 실제 사실을 생산하는 Controller/HMI adapter는 후속이다. Fixture의 대기/유효 시간은 합성 예시이며 현장 보정값으로 사용하지 않는다.
-- 요청 문구는 블록을 누르거나 옮기지 않고 **고정 기준 블록 유지와 해당 목표 블록의 완전 결착을 함께 확인**하도록 안내한다. 유효 POSITIVE/VISUAL_ONLY는 `ASSEMBLED/HUMAN_VERIFIED`로 완료한다. World는 동결 기준+확인한 목표를 채택하며, 실제 Vision 관측 결과로 위장하지 않는다. 원본 Vision/Contact `UNKNOWN`, 요청 당시 관측·최신 센서 증거·응답·정지 확인을 별도 보존한다. `SENSOR_VERIFIED` 자동 경로와 같은 Backend 로그/한 메모리 상태 교체를 사용한다.
-- NEGATIVE는 `RECOVERY_REQUIRED/HUMAN_NEGATIVE`이며 자동 이동을 실행하지 않는다. PHYSICAL_CORRECTION은 답변 긍정/불확실 여부와 무관하게 `HOLD/PHYSICAL_CORRECTION_REQUIRED`로 닫는다. 해당 attempt에서 늦은 긍정으로 완료하지 않는다. 수정 이후 새 attempt·새 관측·전제 재검사와 HUMAN_VERIFIED_AFTER_CORRECTION은 아직 후속 범위다.
-- 응답 문맥·source/request/epoch·수락 창·최신성·순번/시각을 검사한다. UNKNOWN과 유효한 순서의 최신 invalid 응답도 순번을 소비해 옛 긍정 재사용을 막는다. 요청 만료·시계 역행·증거 만료/무효·새 Vision frame/접촉 결론·안전/실행 실패 시 요청을 닫는다. 정상 센서 완료가 먼저 commit하면 해당 사람 요청도 닫힌다. 사람 응답 시 fresh 물리 확인과 세션 종료를 다시 검사하며, 정지/해제 사실을 잃은 요청의 늦은 긍정은 수락하지 않는다.
-- 알려진 기준 구조/목표 변경이나 불일치가 부분 관측에서도 보이면 사람 확인으로 우회하지 못한다. 타이머 만료와 로그 실패가 동시에 발생해도 SAFE_STOP을 HOLD나 긍정 완료로 덮지 않는다. 기록기를 연결하면 요청 열림/종료·응답 평가·완료 증거를 기존 JSONL callback에 남긴다. 저장 실패 시 World/완료를 미채택하고 요청을 닫는다. 디스크 transaction·재시작 복원·DB 이력 consumer 호환을 검증한 결과가 아니다.
-- 최종 실행: 앞선 단계와 같은 Conda Python/ROS launch 플러그인 제외 설정으로 `tests/unit/test_assembly_human.py tests/unit/test_assembly_completion.py tests/unit/test_assembly_attempt.py tests/unit/test_assembly_evidence.py tests/unit/test_completion.py tests/unit/test_contracts.py tests/unit/test_backend.py tests/unit/test_snapshot_log.py -q` → **431 passed**, 실패/오류 0, 종료 **0**. 이전 376개와 새 55개다. L1 및 실제 Python Backend→프로토콜→임시 JSONL 연결, 기존 Day4 회귀를 포함한다. 실제 사람 검사·HMI 화면·Camera/Gesture/F/T/Robot·전체 L2~L4·CI·사람 리뷰는 미실시다.
-- Python 구문·JSON 파싱·schema 내부 참조 37개·Git diff 공백을 확인했다. 전용 JSON Schema validator 미설치, lint/type check·CI 미구성 상태다. Git에서 제외되는 `logs/assembly_attempt/step5_demo.json`에 합성 긍정 완료/부정 복구 평가/물리 수정 보류의 세 흐름과 원본 증거를 남겼다. 세 흐름 모두 로봇 명령 0개다.
-- 코드 정책: 구현 전 예상 600~800줄·대상 7파일·계약 영향·단순 대안을 보고했다. 신규 모듈 181줄(최대 함수 49줄), 신규 검사 336줄, Backend 538→592줄, schema +80줄·Fixture +27줄·완료 조건 소규모 변경·진행 기록으로 약 700줄 규모다. 신규 2파일·클래스/의존성 0이며, 기록/상태 채택 중복은 센서와 사람의 실제 두 경로가 공유하도록 기존 Backend 안에서 묶었다. 누적 1~5단계 약 2,230줄·신규 10파일/수정 2파일과 기존 Backend 크기는 향후 PR에서 사람 복잡성 리뷰가 필요하다. 승인된 단계별 구현을 사람 리뷰/merge 승인으로 간주하지 않는다.
-- 현재 전체 상태: ① 증거 조합 정책 ② 문맥/최신성 guard ③ attempt별 수집·만료·실패 유지 ④ 정지/해제/관측/구조 조건과 SM 완료 채택 ⑤ 사람 확인 요청·응답의 **로컬 코드 경로**가 연결됐다. 첫 목표의 실제 접촉·삽입 제어 및 현장 결착 시험, 제한 목표 RGB/Depth 생산자, 실제 6축 Wrench/정지·그리퍼 입력과 HMI 버튼, 공급판 집기·운반을 포함한 최종 MVP는 아직 미완료다. D435i/촬영 자료 사용 가능 여부는 사용자 확인을 유지한다.
-- 다음 권장 범위는 실패/수정 뒤의 복구 판단과 새 attempt 재검사이며, 실제 HMI/센서 producer를 연결할 때 이 완료·사람 응답 의미를 유지한다. 연구 진입은 FAKE·driver 없음으로 계속 제한한다. 로컬 feature branch 유지, commit/push/PR/merge 없음.
-
-## 2026-10-07 — 직접 조립 연구 6단계: 복구 제안·새 시도 재검사
-
-- 전체 진행상황 비교와 다음 단계 진행 요청에 따라 `app/assembly_recovery.py`를 추가하고 기존 Backend의 `propose_assembly_recovery` / `resume_assembly_trial`에 연결했다. 입력은 복구 종류·관련 파라미터·횟수/시간 한도·fresh 정지/실행 종료/파지/세션 사실과 Plan 승인 문맥이다. 출력은 제안 또는 보류 사유, 새 시도 검사 결과다. 연구 경로는 FAKE·driver 없음으로 제한하며, 실제 복구 이동이나 장치 안전 reset은 구현하지 않았다.
-- 제안 종류는 RETRACT / RE_OBSERVE / MICRO_SEARCH / RE_APPROACH 네 가지다. 현재 단일 시험에서 RETRACT/MICRO_SEARCH는 JAMMED에 한정한다. 파지 소실·구조 변경·물리 수정 등은 사람 도움으로 넘기며 REGRASP/REMOVE/구조 수정은 자동 action으로 받지 않는다. SAFE_STOP과 불명확한 안전 허용, 정지/실행 종료 미확인은 이동 제안을 막는다. permit 플래그는 실제 Controller/Planner가 측정된 범위·힘·시간·경로를 확인한 결과여야 하며, 이번 함수가 물리 궤적이나 제한값을 계산·검증한 것은 아니다.
-- Step별 횟수/경과 시간 한도를 처음 진입 시 동결하고 새 attempt에서도 유지한다. 현재 횟수는 **제안 예약 수 + 채택한 새 시도 수**이며 실제 실행 성공 횟수는 아니다. 같은 실패·action·구조·파지·파라미터에서 UUID/revision/순번/시각만 바꾼 반복은 NO_MEANINGFUL_CHANGE다. 단위는 SI m이고 Fixture의 offset/search radius/시간/횟수는 합성값이며 실기 설정이 아니다.
-- 새 시도는 실제 정지·실행 종료·세션 종료, HOLDING, 새 관측, 선행 조건·MotionPlan·support·approach 허용을 다시 확인한다. Plan 승인을 새 attempt/calibration/basis와 정확한 관련 파라미터에 묶으며 이전 승인 플래그만 재사용하지 않는다. execution/Vision 요청 ID는 이전 시도 이력과 달라야 한다. 촬영 시각은 fresh checkpoint 이상이고, 관측은 완전하며 제안 기준 world와 일치해야 한다. 새 시도는 의미 있는 조건 변화가 있어야 한다. 사람이 이미 목표를 결착한 관측은 POST_CORRECTION_VERIFICATION_REQUIRED로 보류하며 HUMAN_VERIFIED_AFTER_CORRECTION 완료 경로는 아직 미구현이다.
-- 채택하면 이전 시도의 원본 증거·실패·사람 요청·복구 기록을 archive하고 새 시도의 센서 cache/latch와 사람 요청을 비운다. 이전 attempt/닫힌 HMI 요청이 새 시도를 완료할 수 없다. 새 안전·실행·접촉·Vision 입력이 오기 전에는 HOLD이며, 재개 검사 통과는 조립 완료나 실제 motion 허가를 뜻하지 않는다. 기존 Safety false latch는 일반 true 응답이나 새 attempt로 reset할 수 없다. 로그 실패 시 새 시도 채택을 rollback하고 SAFE_STOP을 보존한다. 디스크 transaction·재시작 복원은 미구현이다.
-- 작업 시작 시 완료 상태 초기화의 `human_verification` 필드와 HUMAN_NEGATIVE 복구 분기가 현재 파일에 없는 것을 확인해 같은 연구 경로에 복원했다. 5단계 사람 응답과 기존 완료 회귀를 함께 실행해 정합성을 확인했다. 사용자 파일 변경 원인이나 다른 작업의 상태를 추정하지 않는다.
-- 최종 관련 검사: `env -u PYTHONPATH -u PYTHONHOME /Users/suhyun/miniforge3/envs/ros2_jazzy/bin/python -m pytest -p no:launch_testing -p no:launch_ros tests/unit/test_assembly_recovery.py tests/unit/test_assembly_human.py tests/unit/test_assembly_completion.py tests/unit/test_assembly_attempt.py tests/unit/test_assembly_evidence.py tests/unit/test_completion.py tests/unit/test_contracts.py tests/unit/test_backend.py tests/unit/test_snapshot_log.py -q` → **473 passed**, 실패/오류 0, 종료 **0**. 이전 431개와 새 42개다. 정상/거절/동일 조건 반복/한도/안전 정지/옛 Plan 승인/구문맥·관측/옛 HMI/새 시도/로그 실패 경로와 기존 Day4 회귀를 포함한다. L1 및 실제 Python Backend·임시 JSONL 연결이며 센서/ROS/Robot 전체 통합이나 물리 성능 통과가 아니다.
-- Python 구문·JSON 파싱·schema 내부 참조 **54개**와 diff 공백을 확인했다. Schema는 로컬 함수/API의 입력·출력 초안이며 팀 ROS 계약 확정이 아니다. 전용 JSON Schema validator 미설치, lint/type/CI 미구성, 사람 리뷰 미수행 상태다. `logs/assembly_attempt/step6_demo.json`은 Git에서 제외되는 합성 사례로, JAMMED→제안→동일 조건 거절→조건 변경 후 새 시도와 Safety 차단 사례를 담는다. 두 사례 모두 로봇 명령 **0개**다.
-- 코드 정책: 구현 전에 예상 650~850줄·대상 7파일·내부 계약 영향과 함수 기반 단순 대안을 보고했다. 실제 규모는 약 750줄(신규 구현 223줄·검사 334줄, Backend/완료 초기화·schema/Fixture·기록)이며 신규 2파일·클래스/의존성 0이다. 복구 모듈 최대 함수 45줄, 기존 Backend 592→626줄이다. 누적 1~6단계 약 3,000줄·신규 12파일/수정 2파일은 향후 PR 복잡성·사람 리뷰 대상이며, 단계별 사용자 진행 승인을 사람 리뷰/merge 승인으로 간주하지 않는다. commit/push/PR/merge 없음.
-
-### 전체 직접 조립 MVP와의 비교
-
-| 영역 | 현재 확인된 상태 | 남은 작업 |
-| --- | --- | --- |
-| 증거·시도·완료 상태 관리 | 1~4단계 로컬 코드 경로와 Backend 연결 검증 | 실제 source/시계/보정 문맥 연결 |
-| 사람 확인·복구·재개 | 5~6단계 API와 제안/거절/새 시도 검사 검증 | HMI 화면, 수정 후 완료 검증, 실제 복구 action 실행 결과 연결 |
-| 단일 목표 RGB/Depth 비전 | 사용자가 D435i와 실제 촬영 자료 사용 가능 확인 | 기준/목표 인식·부분 결착/가림/이동 판정 및 독립 정답 대조 |
-| 접촉·삽입 제어 | 완료 정책에서 SEATED/JAMMED 입력을 소비 | 6축 Wrench adapter, ContactController, 접근/접촉 전환·탐색·현장 임계값 검증 |
-| LOW/HIGH 지원 판단 | 관련 support_ready 전제만 입력으로 소비 | 기하 위험도 계산, 지원 위치·세션 준비/종료·알림 흐름 연결 |
-| 공급판 집기→운반→직접 조립 | 기존 Day4 전달 코드와 별도 연구 경로 | 직접 조립 MotionPlan·좌표 보정·실행 연결; Day4 전달을 결착 완료로 세지 않음 |
-| 실제 장치 통합·평가 | 현장 무이동 확인 진행 예정 | 첫 파지 상태 단일 블록 시험, 이후 전 공정 시험·성공률/시간/실패 기록 |
-
-- **첫 물리 목표는 아직 달성되지 않았다.** 로컬 판단·상태 관리 기반을 연결한 상태이며, 6단계 소프트웨어 완료를 전체 MVP 완료율로 환산하지 않는다. 팀 공정 계약/역할 변경은 제안 방향이고 팀 승인·메시지 발송은 수행하지 않았다.
-- 현장 확인: 사용자는 지금 무이동 확인이 가능하고 결과를 알려주겠다고 답했다. 정지·실행 종료 상태에서 기준만 있음/완전 결착/부분 결착/가림/기준 이동의 RGB·Depth와 독립 정답, 힘/모멘트 6축의 필드·단위·좌표계·시각, 실제 정지·실행 종료·그리퍼 해제 완료 피드백을 확인 중이며 **결과 대기**다. 자료가 이 노트북에 있다는 가정이나 장치 성공 주장을 하지 않는다. 삽입·접촉 이동 시험은 요청하지 않았다.
-- 다음 범위는 현장 결과에 맞춘 읽기 전용 센서/Controller 입력 정규화다. ACK와 실제 완료를 구분하고 읽히지 않는 값은 미확인으로 유지한다. 접촉 제어·MotionPlan·물리 제한/좌표 보정을 연결·검증한 뒤 실제 단일 결착 시험의 조건과 기록을 구체적으로 요청한다.
-
-## 2026-10-07 — 직접 조립 연구 7단계: 읽기 전용 센서 입력 정규화
-
-- 사용자가 제공한 `NO_MOTION_CHECK.md` / `NO_MOTION_RUN_20261007.md`를 읽고 다음 단계 개발 요청에 따라 `app/assembly_sensor.py`의 `normalize_sensor_snapshot`와 기존 Backend의 `on_assembly_sensor_snapshot(snapshot=..., now=..., clock_id=...)`를 구현했다. 실제 조회 원문/사진은 이 작업에서 재수신·재검증하지 않았다. 문서가 보고한 RGB·Depth 6장면 저장/무결성 및 현장 도구 55개 검사와 이번 로컬 연구 검사 결과를 구분한다. 촬영은 진단 snapshot + 별도 사람 정답이고 strict capture/session 완료로 소급하지 않는다.
-- 입력/출력 초안은 `interfaces/schemas/assembly_sensor.schema.json`, 합성 예시는 `interfaces/fixtures/assembly_sensor.json`이다. 이는 **현장 JSON에서 필요한 필드를 추출한 뒤 만드는 로컬 projection**이며 현장 `feedback_before.json`/`camera.json`의 실제 파일 형식이나 확정 ROS 메시지가 아니다. 기존 기록 도구를 이 노트북에서 가져오거나 실행하지 않았다. 새로운 장치 조회·ROS 구독·TCP/Modbus 연결을 만들지 않고 기존 Day4 장치/Qt 계약을 유지한다.
-- 입력은 metadata / sample_window / robot / wrench / gripper / camera / human_confirmation 일곱 묶음이다. 원본 서비스의 `tool_force[0..5]`는 Fx/Fy/Fz/Mx/My/Mz 순서의 값과 N/N·m 단위를 보존하며 회전·영점/부하 보정·threshold 추정을 하지 않는다. ref=0의 힘 BASE/모멘트 TOOL과 ref=1의 힘 TOOL/모멘트 TOOL은 입력의 **보고된 좌표계**로 남긴다. frames_verified=true나 device timestamp가 들어와도 아직 contact_usable=false / UNKNOWN이며 별도 접촉 판정기를 대신하지 않는다.
-- 조회 시작 전에 motion_permitted 활성 문맥의 job/plan/step/attempt/request/calibration/source_epoch/basis를 동결해야 한다. metadata.stamp는 **조회 창 시작 시각**이고 sample_window.started_at/finished_at/now/opened_at은 같은 attempt host clock의 초다. clock_id를 명시하고 첫 채택 이후 같은 attempt에서 동결한다. PC UTC 요청/응답·카메라 ROS sec/nanosec·장치 계측 시각/clock·사람 UTC 확인은 원문 그대로 별도 보존하며 숫자 변환/시계 동기화를 추정하지 않는다. UTC query pair를 장치 계측 시각으로 표시하지 않는다. sequence는 해당 source_epoch의 기존 수집 순번과 공유하므로 입력 생산자를 같은 source에 중복 연결하면 안 된다.
-- robot.success는 목록에 포함한 상태 조회들의 성공을 나타내며 명령 ACK가 아니다. 대기 상태·motion=0·속도 0은 robot_idle_indication만 만들고 physical stopped=true로 승격하지 않는다. DRL LAST=3은 execution COMPLETE/ended로 바꾸지 않는다. register 267은 기록된 단위에 따라 /10으로 폭 mm를 표시하고 register 268의 문서에서 확인된 bit3/bit6만 차단 근거로 해석한다. 폭/파지 없음·사람의 촬영 후 해제 확인은 자동 released/at_observe/released_at 증거가 아니다.
-- 유효하고 fresh한 상태 조회에서 bit3/bit6이 있으면 motion_permitted=false만 기존 수집기에 전달한다. 오류가 없거나 조회 실패이면 **긍정 안전 허용을 만들지 않고** 최신 invalid 안전 event로 이전 긍정 cache를 비운다. 이후 정상 상태 조회만으로 기존 Safety false latch를 reset할 수 없다. 이 함수는 하드웨어 정지 명령/안전 장치를 대신하지 않으며 연구 Backend의 판단만 SAFE_STOP/HOLD로 유지한다. 알려진 오류는 카메라 시각/정렬 미확인과 별개로 보존한다.
-- RGB·Depth ROS stamp/frame·정렬·encoding·크기·명시된 Depth 단위를 검사한다. 16UC1 encoding만으로 mm를 추정하지 않으며 현장 ROS Depth 생산자가 mm임을 명시해야 한다. 불일치/미확인 때 RGBD metadata unusable 사유를 남긴다. 이미지/NPY/hash/CameraInfo 보정은 이번 함수의 검사 대상이 아니며 image_content_verified=false다. Depth=0은 MISSING_MEASUREMENT, zero count는 FULL_FRAME이며 조립판 ROI·빈 판·결착/FAIL/PASS로 해석하지 않는다. SEATED/JAMMED/PASS/COMPLETE를 이번 어댑터가 생성하지 않는다.
-- human_confirmation은 확인자·timezone 있는 시각·정지/종료/해제의 nullable 사실을 보존한다. 이 보고는 HMI 요청에 대한 VISUAL_ONLY 응답이나 자동 physical proof가 아니다. 완료 조건의 네 physical 사실은 계속 null로 남긴다. 따라서 센서 입력을 받았다는 accepted=true는 조회 projection을 처리했다는 뜻이고 committed는 항상 false다. 별도 실제 안전/접촉/비전/실행 생산자가 검증된 입력을 내기 전에는 첫 실제 결착 목표가 완료되지 않는다.
-- 같은 문맥의 최신 invalid는 순번을 소비해 이전 성공으로 되살아나지 않는다. 다른 attempt/epoch·만료/중복/역순·미래 입력·조회 창 종료 전 수신·잘못된 clock을 거절한다. Backend의 시계 역행 차단을 우회하지 못한다. 잘못된 타입/6축 길이/비유한 값/UTC/uint16 범위/추가 필드는 ValueError이며 입력과 상태를 변경하지 않는다. 새 attempt는 sensor clock/diagnostic을 비우고 이전 진단은 시도 archive에 남긴다.
-- `assembly_state.sensor_snapshot`에 원문과 분리된 진단값을 읽기용 복사본으로 보존한다. 기존 JSONL callback에 SENSOR_SNAPSHOT_EVALUATED 및 평가 결과/원문을 남긴다. 기록 실패는 accepted=false / LOG_FAILED로 알리고 world/완료를 채택하지 않으며 SAFE_STOP은 유지한다. 장치 사실·사람 응답·센서 조합 정책을 새 State Manager나 서비스로 중복 구현하지 않았다.
-- 최종 검사: `env -u PYTHONPATH -u PYTHONHOME /Users/suhyun/miniforge3/envs/ros2_jazzy/bin/python -m pytest -p no:launch_testing -p no:launch_ros tests/unit/test_assembly_sensor.py tests/unit/test_assembly_recovery.py tests/unit/test_assembly_human.py tests/unit/test_assembly_completion.py tests/unit/test_assembly_attempt.py tests/unit/test_assembly_evidence.py tests/unit/test_completion.py tests/unit/test_contracts.py tests/unit/test_backend.py tests/unit/test_snapshot_log.py -q` → **526 passed**, 실패/오류 0, 종료 **0**. 이전 473개 + 새 53개다. 타입·조회 실패·시간/문맥·안전 차단/미확인·사람 보고 분리·Depth metadata·원자료 보존·JSONL 실패·요청 종료·새 attempt 및 기존 완료/복구/Day4 회귀를 검사했다. L1 및 Python Backend/임시 JSONL 연결이며 실제 ROS service→producer→Backend 통합이나 접촉 제어 성능은 미검증이다.
-- Python 구문·JSON 파싱·두 Schema의 내부/파일 간 참조 **67개** 해석과 Fixture/출력 required key 정합성·diff 공백을 확인했다. 전용 JSON Schema validator 미설치로 전체 Schema validation 미실시이며 lint/type/CI는 미구성이다. Git에서 제외되는 `logs/assembly_attempt/step7_demo.json`에는 보고된 값에 합성 문맥/시각을 붙인 register72→SAFE_STOP, register0→HOLD/SAFETY_UNKNOWN 두 사례를 남겼다. 실제 로그 replay·현장 성능 시험이 아니며 로봇 명령은 **0개**다.
-- 코드 정책: 구현 전 예상 600~800줄·대상 7파일·계약 영향·단순 대안을 보고했다. 실제 약 760줄: 신규 구현 188줄(최대 함수 37줄), 검사 248줄, schema 161줄·Fixture 107줄, Backend +28줄·초기화/기록이다. 신규 4파일/수정 3파일·클래스/의존성 0이다. 기존 Backend 626→654줄과 누적 1~7단계 약 3,760줄·신규 16파일/기존 수정 2파일은 향후 PR 복잡성 리뷰 대상이다. 사람 리뷰·CI·commit/push/PR/merge는 수행하지 않았다.
-- 전체 진행: 1~6단계 판단/상태 관리에 **현장 값을 소비할 읽기 전용 정규화 경로**가 추가됐다. 다음은 현장 코드에서 원본 서비스/카메라 결과를 이 projection에 연결하는 producer 검증과 제한 목표 비전 개발이다. 실제 삽입 시험 전에는 컨트롤러 버전/실행 바이너리·힘/모멘트 실물 축/부하 보정·RG2 오류 원인·정지/실행 종료/해제/관측 준비의 자동 사실·시계/좌표 보정·ContactController/MotionPlan 검증이 남아 있다. 이번 단계에서 추가 이동/개방/접촉 시험을 요청하거나 실행하지 않았다.
-
-## 2026-10-07 — 직접 조립 연구 8단계: 현장 조회 코드 연결·무이동 통합 시험
-
-- 우선순위대로 진행하라는 요청과 사용자가 제공한 SSH 접속으로 기존 현장 소스/실제 JSON을 확인했다. 접속 정보는 코드/기록에 넣지 않는다. `/home/ms-02/C_2`의 브랜치 `work/suhyun-hmi-backend-robot-db`와 미커밋 app/scripts/문서를 보존했다. 현재 연구 checkout은 기존 로컬 feature branch다. 장치 기록 코드의 검토된 SHA256과 실행 방법은 [현장 읽기 연결 안내](D_ASSEMBLY_SENSOR_BRIDGE.md)에 남겼다.
-- 새 `app/assembly_sensor_readings.py`는 실제 `probe`의 service_reads/gripper와 `save_rgbd`의 metadata를 7단계 snapshot으로 변환한다. service namespace·request ref를 정확히 선택하고 두 force 샘플을 합치지 않는다. 원본 query timestamp/error·CameraInfo/hash는 raw에 별도 보존한다. 알려지지 않은 좌표계는 UNKNOWN, native timestamp는 null이다. service READ/성공/필드 누락을 구분하고 중복·register 주소 불일치·명령 발생/미확인 기록을 거절한다. 이전 사람 정답이나 DRL LAST·그리퍼 폭을 완료 증거로 승격하지 않는다.
-- 새 `scripts/assembly_sensor_bridge.py`는 검토한 기존 reader를 SHA256 확인 후 재사용한다. 기본은 안내만 출력하며 실제 읽기는 --live-read/config/domain/max-age를 명시한다. 조회 직전에 문맥/monotonic 창을 동결하고 PC query UTC/Camera 수신 UTC도 창 안에 있는지 검사한다. 과거 파일은 기본 invalid이며 새 시각으로 LIVE를 위장할 수 없다. UTC 창 확인을 장치 계측 clock/ROS 동기화 검증으로 해석하지 않는다.
-- 실제 장치는 REAL_READ_ONLY, Backend는 driver 없는 FAKE_DIAGNOSTIC이고 world/target/calibration은 **가상 진단 문맥**임을 기록한다. 현재 사용자 공정의 실제 geometry/Current/Step 완료를 채택하지 않는다. 기존 Backend를 별도 State Manager로 복제하지 않았고 실제 app을 덮어쓰지 않았다. 현장 실행은 Git에서 제외되는 별도 runtime 사본 29파일이며 소스 원본/최초 실패 사본과 최신 사본을 각각 보존했다. 이동/STOP/개폐/안전 reset/네트워크·Camera 설정 변경·노드 자동 재시작은 없다.
-- 최종 로컬 관련 검사: 기존 7단계 명령에 `tests/unit/test_assembly_sensor_readings.py`를 추가해 **563 passed**, 실패/오류 0, 종료 **0**. 이전 526개 + 새 37개다. 실제 원문 형태의 Fixture, missing/FAILED/ACK만 있음/중복/namespace/ref/register/시각·SHA 변경·Camera timeout·기본 무조회·출력 보존·Backend/JSONL과 기존 완료/사람/복구/Day4 회귀를 포함한다. 현장 Ubuntu 최신 사본의 연구 tests/unit은 **375 passed**, 종료 **0**, 기존 원본의 `tests/unit/test_no_motion_check.py`는 **6 passed**, 종료 **0**다. 연구 사본 검사 수는 로컬 563개 전체와 범위가 다르며 합산하지 않는다.
-- 현장의 기존 6장면 `feedback_before.json`/`camera.json` 원문 쌍을 변환해 원문 보존과 **fresh 증거 채택 0건**을 확인했다. 이는 과거 실제 기록의 파일 계약 검사이며 신규 장치 시험이나 현재 장치값이 아니다. `interfaces/fixtures/assembly_sensor_readings.json`은 검사 예시로 식별용 Camera 항목을 제외하고 Camera 수신 UTC만 합성 공통 창으로 조정했음을 명시했다. 실제 원문은 Git에서 제외된 logs에 그대로 보존했다.
-- 첫 실제 무이동 조회: `/home/ms-02/C_2/logs/assembly_sensor_bridge_20261007_c4762d97/live_01`, 종료 **1**. 로봇 service 8개 SERVICE_UNAVAILABLE, RG2_READ_CONNECTION_FAILED, RGBD_TOPIC_TIMEOUT. 획득 창 약 **39.4초 > age 2초**, Backend 입력 STALE_EVIDENCE로 거절, **HOLD/SAFETY_UNKNOWN**, 물리 완료 false, 발행 이동/개폐 명령 **0회**. enp3s0 DOWN, 192.168.1.1 경로가 Wi-Fi를 사용함을 읽기 조회로 확인했다. 코드 연결의 실패 처리 근거이며 정상 장치 통합 PASS가 아니다. 같은 실패를 반복하거나 장치/네트워크를 자동 복구하지 않았다.
-- 최초 LIVE 실행 이후 원문 UTC 창 검사를 보강하고 관련 검사를 다시 통과했다. 최신 runtime은 `/home/ms-02/C_2/logs/assembly_sensor_bridge_20261007_c4762d97_v2`, `deployment_v2.json`에 파일 hash가 있다. 최신 코드의 정상 LIVE는 환경 준비 전이라 미실시다. 로컬 증거는 `logs/assembly_attempt/stage8_28a736d4/`의 원문/실패 결과/변환 보고·배포 manifest에 보존한다. Python/JSON/문서 링크·diff 공백을 확인하며 lint/type/CI·전용 Schema validator·사람 리뷰·commit/push/PR/merge는 미실시다.
-- 코드 정책: 구현 전 약 600~800줄·6개 작업 파일·기존 reader 재사용/별도 runtime·계약 의미를 보고했다. 구현 모듈 103줄(최대 함수 43줄)·실행 도구 129줄(최대 45줄)·검사 195줄·Fixture 168줄·안내/진행 기록으로 약 700줄이다. 신규 5파일/수정 1파일·클래스/의존성 0이다. 누적 연구 코드/자료 및 runtime의 기존 Backend 크기는 향후 PR 복잡성 리뷰 대상이며 AI 검사 결과를 사람 리뷰로 대체하지 않는다.
-- **다음 우선순위:** 현장 장치 연결과 기존 조회/카메라 노드 준비 → 새 경로에서 정상 무이동 연결 검증 → 제한 목표 비전 개발. 현장 환경 준비 가능 여부를 사용자에게 요청했고 결과 대기다. source 확인/변환 코드/실행 도구는 준비됐지만 정상 장치 통합과 첫 실제 결착 목표는 아직 미완료다.
-
-## 2026-10-07 — 8단계 후속: SSH 실제 무이동 연결 통과
-
-- 사용자가 현장 PC에서 로봇과 Camera를 켰다고 확인한 뒤 기존 최신 진단 사본을 실행했다. SSH 연결과 유선 RG2 경로를 확인하고, 실행 중인 노드의 ROS_DOMAIN_ID=20 / rmw_cyclonedds_cpp / 기존 CycloneDDS loopback 설정을 조회 프로세스에만 적용했다. 처음 domain만 적용한 조회에서 노드가 보이지 않았던 원인을 확인했으며 장치/네트워크 설정이나 실행 중인 노드는 변경하지 않았다. 재실행 안내에 이 환경을 명시했다.
-- `/home/ms-02/C_2/logs/assembly_sensor_bridge_20261007_c4762d97_v2/live_02`: 15:37:19~20 KST, **CONNECTED_READ_ONLY**, 종료 **0**. 로봇 서비스 8개 READ/성공, force ref=0/1 원문 보존 및 projection ref=0 선택, RG2 status=0 / width=621(62.1mm), RGBD 1280×720 rgb8/16UC1 동일 stamp/frame 수신. 획득 창 **0.430초 < 2초**이며 Backend accepted=true / committed=false다. 원본 reader hash는 기존 검토값과 같았다.
-- Backend는 driver 없는 FAKE_DIAGNOSTIC·가상 기하이고 실제 센서 입력만 REAL_READ_ONLY다. **HOLD/SAFETY_UNKNOWN**, 접촉/비전 UNKNOWN, physical completion=false, 이동/STOP/개폐/reset 명령 **0회**. RG2 오류 bit 없음·robot idle·DRL LAST를 실행 허용이나 실제 정지/종료/해제 증거로 승격하지 않았다. 블록 이미지 내용·좌표 보정·접촉 제어·첫 결착/공급판 운반은 미검증이다.
-- 실제 원문/사진/Depth/Backend/JSONL을 현장 새 경로와 로컬 ignored `logs/assembly_attempt/stage8_28a736d4/live_02`에 보존했다. 기존 실패 `live_01`과 현장 branch/app/미커밋 파일은 유지했다. 이번 변경은 실행 환경 안내/진행 기록이며 application/test 코드는 변경하지 않았고 단위 검사를 다시 실행하지 않았다. 문서 diff/링크와 복사 기록 hash를 확인한다. commit/push/PR/merge 없음.
-- **전체 진행:** 1~7단계 상태 관리·정규화와 8단계 실제 센서 조회→진단 Backend 연결이 확인됐다. 첫 실제 결착과 최종 직접 조립 MVP는 아직 미달성이다. **다음 우선순위는 기존 6장면 자료로 기준/목표 블록·부분 결착·가림·기준 이동을 구분하는 제한 목표 비전 개발**이며, 이후 좌표/접촉/MotionPlan 검증을 거쳐 단일 결착 시험을 준비한다.
-
-## 2026-10-07 — 사용자 우선순위 변경: 현장 실제 Backend/HMI 실행
-
-- 사용자가 Backend 실행을 먼저 요청해 현장 기존 `app.real_workflow_hmi --real-workflow`를 Ubuntu 데스크톱에 열었다. 기존 `robot_trial_blue5.json`/네 공급열 `robot_voice_workflow.json`/저장 C Design Fixture를 그대로 사용한다. LLM/음성 API·START·현장 확인·사전 이동 입력을 보내지 않았다. Backend는 HMI와 같은 프로세스의 REAL manual_trial 경로이며 새 결착 연구 진단 Backend나 Camera producer가 이 화면에 통합된 것은 아니다.
-- 15:46 KST, 프로세스 **1211579**와 X11 창 「협동 조립 · Day4 · REAL」, 입력용 터미널 「C-2 Backend REAL」을 확인했다. 프로그램은 실행 상태로 남겼다. 시작 자동 조회는 상태 1/이동 0, TCP `GripperDA_v4`, tool `ToolWeight0`, RG2 status=0을 읽은 뒤 **OBSERVE_POSE_MISMATCH**로 시작을 보류했다. 현재 TCP와 설정된 관측 위치의 위치 차이는 약 **66.9mm**, 자세 차이는 약 **3.32°**다. 위치/설정/허용 오차를 변경하지 않았다.
-- 현장 증거 `logs/backend_launch_20261007_a5ba9b37/`의 console/launch/startup_verification과 workflow driver JSONL을 로컬 ignored `logs/assembly_attempt/stage8_28a736d4/`에 복사했다. 실제 창·프로세스·조회 실패를 확인했으며 Job 진행/이동/조립 성공은 미검증이다. 소스/테스트/장치 설정 변경은 없고 문서 diff 확인만 수행했다. 기존 브랜치와 미커밋 작업, 로봇/Camera 노드를 유지했다. 다음 실제 공정 진행 전 관측 위치 불일치 해소가 필요하며 첫 결착 연구 개발은 여전히 별도다.
-
-## 2026-10-07 — 다른 PC 개발 인계를 위한 연구 브랜치 게시
-
-- 사용자가 다른 PC에서 브랜치를 받아 이어서 개발할 수 있도록 원격 게시를 명시 요청했다. 대상은 로컬 `work/suhyun-assembly-evidence`의 1~8단계 직접 결착 연구 변경이다. 기존 원격 `work/suhyun-hmi-backend-robot-db`나 ms-02의 미커밋 작업을 덮어쓰지 않는다. PR/merge는 요청 범위가 아니다.
-- 게시 대상은 24파일, 약 4,575줄의 누적 추가분이다. 8단계로 나눠 승인·개발한 상태 관리/센서 정규화·변환/API와 검사·Schema/Fixture·기록을 한 개발 인계 snapshot으로 보존한다. 신규 class/dependency/framework는 없다. 큰 누적 변경, 신규 파일 수, Backend 654줄은 향후 PR 복잡성·사람 리뷰 대상이며 게시를 리뷰/merge 승인으로 해석하지 않는다.
-- 새 [개발 인계](D_ASSEMBLY_HANDOVER.md)에 브랜치 받기, 연구 API 제한, 현장에만 있는 자료/reader, 기존 REAL HMI와의 차이, 실제 실행을 유발하는 입력 및 다음 작업을 기록했다. 현재 다음 우선순위는 **홍동 캘리브레이션 범위 확인→assembly board 목표의 로봇 접근 좌표 연결→송신 없는 검증**이다. 사용자가 기존 파랑 6점 1번 place board 전달 성공을 보고한 사실과 로봇 직접 결착 성공을 구분한다.
-- 게시 전 관련 검사 **563 passed**, 종료 **0**. Git index의 게시 파일과 기존 tracked 파일만 내보낸 별도 깨끗한 폴더에서도 같은 **563 passed**, 종료 **0** 및 기본 bridge 실행(안내만, 실제 reader/장치 조회 없음) 종료 **0**을 확인했다. ignored 로그나 미게시 파일에 기대지 않는 코드 인계 검증이다. 전역 ROS launch pytest plugin만 앞선 같은 이유로 제외했다.
-- Python 구문·JSON 파싱·새 문서 링크·Git staged 범위 24파일·diff 공백·알려진 자격 증명/키 패턴 유입을 확인했다. 실제 사진/Depth/실행 로그와 접속 비밀번호는 게시하지 않는다. 원자료는 기존 ignored 폴더에 보존하며 다른 PC에 자동 복제되지 않는다. lint/type/CI·사람 리뷰·실제 접촉/직접 결착은 미검증이다.
-- 기준 커밋은 `6fb971c`다. 조회한 최신 원격 main은 `afd75d0`이며 이 연구 브랜치에 후속 main 변경을 임의 병합하지 않았다. 새 PC는 별도 폴더로 clone하고, 팀 코드와의 통합은 실제 차이를 확인한 별도 작업으로 진행한다. 원격 게시 성공은 push 결과와 원격 ref의 로컬 HEAD 일치로 확인한다.
-- 실제 게시: 연구 commit **62b7ffd**를 `origin/work/suhyun-assembly-evidence`에 push했고 원격 SHA와 로컬 SHA 일치를 확인했다. ms-02의 새 `/home/ms-02/C_2_assembly_20261007`에 해당 원격 브랜치를 clone해 같은 SHA를 확인한 뒤 관련 검사 **563 passed**, 종료 **0**과 기본 bridge 안내 실행 종료 **0**을 확인했다. 이는 Ubuntu에서 원격 게시 코드만 받은 검증이며 기존 진단 사본 375개 결과와 구분한다. 기존 `/home/ms-02/C_2`와 실제 로봇/Camera/Backend 프로세스는 변경하지 않았다. 이 후속 기록과 인계 문서의 준비된 폴더 안내는 문서 commit으로 같은 브랜치에 추가한다.
+- 사용자 요청으로 `work/suhyun-assembly-evidence`의 연구 기준 `0ca498d`와 이력을 보존하며 integration `de59b083ad7a5b2225b372078654d2af3a28255b`를 병합했다(PR #24·#26·#27 포함). STATUS 충돌은 최신 기록을 유지하고 과거 연구 기록은 `0ca498d:docs/STATUS.md`에서 확인할 수 있다.
+- 기존 `app/assembly_*.py`, Fixture/Schema, 센서 bridge, 연구 단위 검사를 그대로 유지했다. 최신 Backend에 기존 연구 API 162행 추가가 자동 병합됐으며 그 외 최신 D 코드와 A/B/C·장치 설정은 integration을 따른다. 원래 연구 소스/문서 22개는 문서 갱신 전 바이트 동일성을 확인했고, 그중 인계 문서만 이번 기준 설명을 추가했다.
+- 연구 `assembly_state/world`는 새 FAKE Backend·driver 없음에서만 시작한다. 운영 명령/driver 연결은 차단하고 실제 B 확정 Current·revision·Expected 및 MVP 완료와 별개다. 실제 접촉 제어·자동 복구·센서→운영 승인·HMI 자동 연결을 추가하지 않았다.
+- 최종 검사: 기존 연구 7개 및 최신 Backend/계약/완료/기록, Robot STOP/재개, Qt Current, MVP B 소비·MOCK Robot, 합성 callback·HMI/DB 경계 등 20개 파일 **804 passed, 1 skipped, 실패/오류 0, 종료 0**. skip 1개는 이 검사에서 실제 PostgreSQL DSN을 제공하지 않은 `test_b_five_layer_result_round_trip_actual_postgresql`이다. 같은 기준의 HMI·DB 작업 폴더에서는 별도 시험 DB로 해당 왕복 검사도 실행했다.
+- `python3 -m scripts.assembly_sensor_bridge` 기본 안내 실행 종료 0, 실제 조회/ROS import/이동 없음. 검사 환경은 `QT_QPA_PLATFORM=offscreen`, `C_DESIGN_USE_LLM=0`, `C2_ROBOT_ROOT=<작업폴더>/robot_control_integration`, 기존 psycopg 의존성 경로와 ROS launch plugin 제외를 사용했다.
+- 작업 폴더: `/home/ms-02/C-2_협동2자료/work/branch-sync-20261012/assembly`. 결과: 인접 `results/assembly-final-tests.xml`, `assembly-final-tests.log`, `assembly-final-exit.json`. 원본 `/home/ms-02/C_2`의 브랜치·미완료 변경과 기존 현장 clone은 전환·덮어쓰지 않는다.
+- 실제 Camera/Robot/마이크/LLM/센서 조회·정밀 결착·전체 장치 시연은 수행하지 않았다. 이 결과는 연구 API의 최신 코드 호환성과 장치 없는 인접 통합 검증이다. 실제 운영 MVP로 증거를 연결하는 작업과 현장 reader 배포는 별도로 남는다.

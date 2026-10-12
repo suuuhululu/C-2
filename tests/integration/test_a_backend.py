@@ -25,6 +25,8 @@ from planning_trial.planner import plan_from_current
 
 ROOT = Path(__file__).resolve().parents[2]
 DATA = json.loads((ROOT / "interfaces/fixtures/a_backend_cases.json").read_text())
+# 보관된 4층 기준 자료는 유지하고 범위 초과 시험 입력을 6층으로 파생한다.
+DATA["cases"]["invalid"]["design"]["blocks"][0]["layer"] = 6
 CONFIG = json.loads((ROOT / "interfaces/fixtures/robot.json").read_text())
 
 
@@ -110,8 +112,12 @@ def test_actual_a_reproduces_archived_case_status_and_remaining_count(name):
         assert result["plan"] is None and result["errors"]
 
 
-def test_a_source_is_exactly_the_manually_verified_commit():
-    assert hashlib.sha256((ROOT / "planning_trial/planner.py").read_bytes()).hexdigest() == DATA["a_source_sha256"]
+def test_a_source_preserves_archived_calculation_except_authorized_contract_changes():
+    # 2026-10-11 Wave 3-light: A 계산 본문의 기준을 A branch(work/siyul-a-wave1-integration ba1a047 = PR #21 + MAX_BLOCKS 40)
+    # planner.py로 갱신했다. D가 덧붙인 승인 변경은 없으므로 역변환 목록은 비어 있고, planner.py가 그대로 보존돼야 한다.
+    # 이전 기준(Day4 원본 + D의 5층·재고·1..40 편집 역변환)은 interfaces/fixtures/a_backend_cases.json의 a_source_basis 참조.
+    source = (ROOT / "planning_trial/planner.py").read_text()
+    assert hashlib.sha256(source.encode()).hexdigest() == DATA["a_source_sha256"], DATA["a_source_basis"]
 
 
 @pytest.mark.parametrize("name", DATA["cases"])
@@ -135,7 +141,7 @@ def test_all_initial_outcomes_connect_to_backend_hmi_and_log(tmp_path, name):
         assert snapshot["workflow_status"] == ("WAIT_CORRECTION" if name == "needs_correction" else "HOLD")
         assert result["errors"][0]["reason"] in snapshot["notice"]["reason"]
         assert all(error["reason"] in snapshot["notice"]["required_action"] for error in result["errors"])
-        if name == "invalid": assert result["errors"][0]["block"]["layer"] == 5
+        if name == "invalid": assert result["errors"][0]["block"]["layer"] == 6
     assert not backend.on_initial_design(identity, response)
     assert len([p for port,p in calls if port == "planner" and "design" in p]) == 1
 

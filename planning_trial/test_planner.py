@@ -7,7 +7,7 @@ from pathlib import Path
 import pytest
 
 from planner import (
-    build_initial_plan, build_plan, calculate_remaining_blocks, validate_design,
+    MAX_BLOCKS, build_initial_plan, build_plan, calculate_remaining_blocks, validate_design,
     validate_initial_plan, validate_plan, plan_from_current,
 )
 
@@ -70,7 +70,7 @@ def test_internal_ids_are_optional_and_not_used_for_common_comparison(design):
 @pytest.mark.parametrize("field,value", [
     ("color", "red"), ("color", []), ("brick_type", "1x1x1"), ("brick_type", {}),
     ("x", -1), ("x", 24), ("x", True), ("y", 1.0),
-    ("layer", 0), ("layer", 5), ("layer", True),
+    ("layer", 0), ("layer", 6), ("layer", True),
     ("orientation_deg", 45), ("orientation_deg", True),
     ("orientation_deg", 90),
 ])
@@ -319,9 +319,23 @@ def test_malformed_current_block_list_is_rejected(design, current):
 
 
 def test_remaining_rejects_invalid_revised_target_before_comparison():
-    invalid = {"design_version": 2, "blocks": [brick(layer=5)]}
+    invalid = {"design_version": 2, "blocks": [brick(layer=6)]}
     with pytest.raises(ValueError, match="layer"):
         calculate_remaining_blocks(invalid, [])
+
+
+@pytest.mark.parametrize("assembled", [0, 4, 5])
+def test_five_layer_initial_partial_and_complete_current_preserves_d_revision(assembled):
+    target = {"design_version": 2, "blocks": [brick(layer=n) for n in range(1, 6)]}
+    current = {"current_revision": 17, "blocks": copy.deepcopy(target["blocks"][:assembled])}
+    before = copy.deepcopy((target, current))
+    result = plan_from_current(target, current)
+    assert result["status"] == "READY" and result["errors"] == []
+    plan = result["plan"]
+    assert plan["base_current_revision"] == 17
+    assert [s["after"] for s in plan["steps"]] == target["blocks"][assembled:]
+    validate_plan(target, current["blocks"], 17, plan)
+    assert (target, current) == before
 
 
 def test_replan_sample_has_nine_steps_and_copies_revision():
@@ -543,3 +557,43 @@ def test_boundary_design_error_precedes_current_conflict_and_can_have_no_block()
     assert result["status"] == "INVALID"
     assert result["errors"][0]["block"] is None
     assert "design_version" in result["errors"][0]["reason"]
+
+
+# ---- Final C inventory contract (2026-10-11 Wave 1): combinations, orientation, block count ----------------------------
+
+
+def _stack(n):
+    """n valid 2x2x1 placements: a 6x4 grid of 2x2 on layer 1 (24), then layer 2 on top (up to 16 more)."""
+    blocks = []
+    for i in range(n):
+        layer, k = (1, i) if i < 24 else (2, i - 24)
+        blocks.append(brick(x=(k % 6) * 2, y=(k // 6) * 2, layer=layer, color="yellow" if layer == 1 else "blue"))
+    return {"design_version": 1, "blocks": blocks}
+
+
+@pytest.mark.parametrize("brick_type,color,angle", [
+    ("2x2x1", "yellow", 0), ("2x3x1", "blue", 0), ("2x3x1", "blue", 90), ("1x2x1", "red", 0), ("1x2x1", "red", 90),
+])
+def test_final_inventory_combinations_are_valid(brick_type, color, angle):
+    design = {"design_version": 1, "blocks": [brick(x=4, y=4, brick_type=brick_type, color=color, angle=angle)]}
+    assert len(validate_design(design)) == 1
+
+
+@pytest.mark.parametrize("brick_type,color,angle", [
+    ("2x3x1", "red", 0), ("2x2x1", "red", 0), ("1x2x1", "blue", 0), ("1x2x1", "yellow", 90), ("2x2x1", "yellow", 90),
+])
+def test_final_inventory_rejects_wrong_combination_or_orientation(brick_type, color, angle):
+    design = {"design_version": 1, "blocks": [brick(x=4, y=4, brick_type=brick_type, color=color, angle=angle)]}
+    with pytest.raises(ValueError):
+        validate_design(design)
+
+
+def test_block_count_limit_is_forty():
+    assert MAX_BLOCKS == 40
+    assert len(validate_design(_stack(40))) == 40
+    empty_current = {"current_revision": 1, "blocks": []}
+    assert plan_from_current(_stack(40), empty_current)["status"] == "READY"
+    with pytest.raises(ValueError, match="1..40 placements; got 41"):
+        validate_design(_stack(41))
+    result = plan_from_current(_stack(41), empty_current)
+    assert result["status"] == "INVALID" and "1..40 placements" in result["errors"][0]["reason"]

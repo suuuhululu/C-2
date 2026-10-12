@@ -1,0 +1,17 @@
+diff --git a/dsr_hardware2/src/dsr_hw_interface2.cpp b/dsr_hardware2/src/dsr_hw_interface2.cpp
+index b76a0d4..b8f4914 100755
+--- a/dsr_hardware2/src/dsr_hw_interface2.cpp
++++ b/dsr_hardware2/src/dsr_hw_interface2.cpp
+@@ -252,7 +252,11 @@ CallbackReturn DRHWInterface::on_init(const hardware_interface::HardwareInfo & i
+     //--- Get version -------------------------------------            
+     SYSTEM_VERSION tSysVerion;
+     memset(&tSysVerion, 0, sizeof(tSysVerion));
+-    assert(m_Drfl.get_system_version(&tSysVerion));
++    // This query must run in Release too; assert expressions disappear with NDEBUG.
++    if (!m_Drfl.get_system_version(&tSysVerion)) {
++        RCLCPP_ERROR(rclcpp::get_logger("dsr_hw_interface2"), "Unable to read controller version");
++        return CallbackReturn::ERROR;
++    }
+ 
+     //--- Get DRCF version & convert to integer  ----------            
+     m_nVersionDRCF = 0; 

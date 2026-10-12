@@ -1,0 +1,62 @@
+{
+  "backend": "REAL",
+  "provenance": "LOCAL_OPERATOR_TRIAL",
+  "execution_id": "98487345-5111-4ebe-8d2e-ff5cee059009",
+  "source_epoch": "ONSITE_SLOT2_APPROACH_33742be5aa7549ff97136d2c30bd6fd4",
+  "frame_profile_id": "BASE_EXISTING_BOARD_20261007_EXPERIMENTAL",
+  "plan_id": "D_LOCAL_HUMAN_11_11_L5_20261011",
+  "step_id": "S02",
+  "current_revision": null,
+  "expires_unix_s": 0,
+  "request_timeout_s": 30.0,
+  "frame_max_age_s": 0.3,
+  "frame_max_gap_s": 0.3,
+  "inference_max_latency_s": 0.3,
+  "stillness": {
+    "window_s": 0.25,
+    "max_gap_s": 0.5,
+    "timeout_s": 5.0,
+    "min_samples": 3,
+    "sample_max_duration_s": 0.5,
+    "position_mm": 0.05,
+    "orientation_deg": 0.05,
+    "linear_mm_s": 0.01,
+    "angular_deg_s": 0.01
+  },
+  "profile_id": "D_LOCAL_SLOT2_2_2_L1_APPROACH_98487345-5111-4ebe-8d2e-ff5cee059009",
+  "exclusive_control_reviewed": true,
+  "device_feedback_reviewed": true,
+  "stillness_parameters_reviewed": true,
+  "hand_clear_reviewed": true,
+  "seating_evidence_ref": null,
+  "alignment_evidence_ref": null,
+  "parameter_source": "EXPERIMENTAL_STILLNESS_SETTINGS_OPERATOR_REVIEWED_NOT_SAFETY_LIMITS",
+  "allowed_trial_phase": "approach",
+  "physical_verified": false,
+  "readiness_ref": "settings/onsite_ack_continue_blue_slot2_2_2_l1_20261011/approach-readonly.json",
+  "session_duration_reason": "30 minute one-shot manual assembly trial; routine sensor checks, open hand handover, thumbs-up human completion.",
+  "transport_blend_review_ref": "settings/onsite_ack_continue_blue_slot2_2_2_l1_20261011/operator-review.json",
+  "arming_readonly_ref": "settings/onsite_ack_continue_blue_slot2_2_2_l1_20261011/approach-readonly.json",
+  "automatic_stage_checks": {
+    "enabled": true,
+    "review_ref": "settings/onsite_ack_continue_blue_slot2_2_2_l1_20261011/operator-review.json",
+    "block": {
+      "brick_type": "2x2x1",
+      "color": "blue",
+      "x": 2,
+      "y": 2,
+      "layer": 1,
+      "orientation_deg": 0
+    },
+    "release_after_contact_stop": true
+  },
+  "automatic_start_pose": [
+    -397.2894287109375,
+    50.045448303222656,
+    52.20606231689453,
+    125.77470397949219,
+    -175.8832244873047,
+    124.51473999023438
+  ],
+  "parent_pickup_execution_id": "20a1f960-ab46-41ce-be7a-4f2c4d3ca49c"
+}

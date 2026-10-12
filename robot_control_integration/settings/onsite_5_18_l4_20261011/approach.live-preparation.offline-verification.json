@@ -1,0 +1,17 @@
+{
+  "device_connections": 0,
+  "checks": [
+    {
+      "hmi_reply": false,
+      "status": "PAUSED_START",
+      "mock_moves": 0,
+      "mock_grips": 0
+    },
+    {
+      "hmi_reply": true,
+      "status": "PAUSED_APPROACH_REACHED",
+      "mock_moves": 2,
+      "mock_grips": 0
+    }
+  ]
+}

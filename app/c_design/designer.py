@@ -26,6 +26,10 @@
       안에는 들어가지 않는다
     - generate 인자로 LLM 등 다른 생성기를 주입할 수 있게 열어 두되, Mock 생성기는
       결정론적이라 재생성하지 않는다(main·test는 max_attempts=1로 호출)
+    - Revised richness(Stage 2 Wave 2): build_revised_design(..., min_blocks=N)이면 validator를 통과한 후보라도
+      블록이 N개 미만이면 "too_few_blocks"로 탈락시켜 같은 재생성 loop이 다시 만든다. N은 보통
+      revised_min_blocks(design) = min(이전 블록 수 + RICHNESS_MIN_DELTA, validator.MAX_BLOCKS). None이면 검사하지
+      않는다(Mock·기존 호출 호환). validator 규칙은 바뀌지 않는다
     - Mock Revised는 다리(layer 1)만 조립된 상태를 다룬다; layer ≥ 2 Block이 이미
       조립돼 재설계 상부와 겹치면 검증이 거부하고 사유를 반환한다(실제 LLM 경로·
       main escalation 몫)
@@ -50,6 +54,13 @@ from app.c_design import validator
 
 RETRY_DELAY = 1.0
 MAX_ATTEMPTS = 10
+# Revised는 이전 Design보다 블록이 이만큼 이상 많아야 한다(Stage 2 사용자 결정, 상한 validator.MAX_BLOCKS).
+RICHNESS_MIN_DELTA = 6
+
+
+def revised_min_blocks(design):
+    """Revised Design의 최소 블록 수: 이전 블록 수 + RICHNESS_MIN_DELTA, validator.MAX_BLOCKS로 자른다."""
+    return min(len(design["blocks"]) + RICHNESS_MIN_DELTA, validator.MAX_BLOCKS)
 
 BOARD_SIZE = 24
 
@@ -103,8 +114,13 @@ def _generate_until_valid(make_candidate, finalize, max_attempts, delay, should_
             time.sleep(delay)  # busy loop 금지(§8.10)
 
 
-def build_initial_design(object_type, generate=None, max_attempts=MAX_ATTEMPTS, delay=RETRY_DELAY, should_stop=None):
-    """Initial Design(design_version=1)을 만든다(§3.3)."""
+def build_initial_design(object_type, generate=None, max_attempts=MAX_ATTEMPTS, delay=RETRY_DELAY, should_stop=None,
+                         differ_from=None):
+    """Initial Design(design_version=1)을 만든다(§3.3).
+
+    differ_from(Design)가 있으면 그 블록과 같은 후보는 "unchanged_candidate"로 탈락시켜 같은 loop이 다시 만든다
+    (Stage 3 Wave 3: Preview 검토 MODIFY 재생성이 직전 후보를 그대로 돌려주지 않게).
+    """
     source = "LLM" if generate else "MOCK"
 
     if object_type != "CHAIR":
@@ -134,6 +150,8 @@ def build_initial_design(object_type, generate=None, max_attempts=MAX_ATTEMPTS, 
         reasons = validator.validate_design(design)
         if reasons:
             return None, reasons
+        if differ_from is not None and _same_blocks(design["blocks"], differ_from["blocks"]):
+            return None, [_unchanged_reason()]
         return design, []
 
     if generate is not None and should_stop is not None and should_stop():
@@ -145,9 +163,10 @@ def build_initial_design(object_type, generate=None, max_attempts=MAX_ATTEMPTS, 
     return result
 
 
-def build_revised_design(design, current, differences, generate=None, max_attempts=MAX_ATTEMPTS, delay=RETRY_DELAY, should_stop=None):
+def build_revised_design(design, current, differences, generate=None, max_attempts=MAX_ATTEMPTS, delay=RETRY_DELAY, should_stop=None,
+                         min_blocks=None, differ_from=None):
     """Revised Design(입력 design.design_version + 1, 레이아웃이 실제로 바뀔 때만)을
-    만든다. full object, patch 아님."""
+    만든다. full object, patch 아님. differ_from(직전 Revised 후보)과 같은 블록이면 "unchanged_candidate"로 탈락(§8.14)."""
     source = "LLM" if generate else "MOCK"
 
     input_reasons = validator.check_intervention_input(design, current, differences)
@@ -184,6 +203,16 @@ def build_revised_design(design, current, differences, generate=None, max_attemp
         parsed = json.loads(candidate) if isinstance(candidate, str) else candidate
         blocks = [dict(block) for block in parsed["blocks"]]
 
+        if min_blocks is not None and len(blocks) < min_blocks:
+            # 규칙은 통과했지만 이전보다 충분히 풍부하지 않다: 같은 loop이 사유를 받아 다시 만든다.
+            message = (f"Revised Design has {len(blocks)} blocks; at least {min_blocks} required "
+                       f"(previous {len(design['blocks'])} + {RICHNESS_MIN_DELTA}, at most {validator.MAX_BLOCKS})")
+            return None, [{"rule": "too_few_blocks", "blocks": [], "message": message}]
+
+        if differ_from is not None and _same_blocks(blocks, differ_from["blocks"]):
+            # 검토 MODIFY 재생성인데 직전 후보와 같다: 요청한 변경이 반영되지 않았으므로 같은 loop이 다시 만든다.
+            return None, [_unchanged_reason()]
+
         if _same_blocks(blocks, design["blocks"]):
             # 목표 배치가 실제로 바뀌지 않았으면 design_version을 올리지 않는다(§4).
             return design, []
@@ -202,6 +231,11 @@ def build_revised_design(design, current, differences, generate=None, max_attemp
     result = _generate_until_valid(make_candidate, finalize, max_attempts, delay, should_stop)
     result["source"] = source
     return result
+
+
+def _unchanged_reason():
+    return {"rule": "unchanged_candidate", "blocks": [],
+            "message": "candidate has the same blocks as the previous candidate; apply the requested change visibly"}
 
 
 def _same_blocks(blocks_a, blocks_b):

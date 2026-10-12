@@ -73,7 +73,7 @@ def test_invalid_config_cannot_issue_driver_commands(field, value):
 def test_supply_configuration_must_match_day4_columns(change):
     config = deepcopy(CONFIG)
     if change == "missing":
-        config["supply_rows"].pop()
+        config["supply_rows"].pop(0)
     elif change == "duplicate":
         config["supply_rows"][-1] = deepcopy(config["supply_rows"][0])
     elif change == "unsupported":
@@ -151,23 +151,18 @@ def test_duplicate_out_of_order_and_old_confirmations_do_not_consume_or_progress
 
 
 @pytest.mark.parametrize("column", COLUMNS)
-def test_six_slots_then_refill_only_that_row_without_reusing_execution_ids(column):
+def test_supply_cycles_after_six_without_reusing_execution_ids(column):
     controller, driver, results = setup_controller()
-    for slot in range(1, 7):
-        identity = f"delivery-{slot}"
+    for attempt, slot in enumerate([1, 2, 3, 4, 5, 6, 1, 2], 1):
+        identity = f"delivery-{attempt}"
         assert controller.deliver(goal(identity, column))["accepted"]
         assert driver.calls[-1][1]["slot"] == slot
         finish(driver, identity)
     assert supply(controller, column) == dict(brick_type=column[0], color=column[1],
-                                              next_slot=None, needs_refill=True)
-    assert controller.deliver(goal("overflow", column))["reason"] == "NEEDS_REFILL"
-    assert len(driver.calls) == 18 and len(results) == 6
-    untouched = next(other for other in COLUMNS if other != column)
-    assert controller.supply_refilled(*untouched)["reason"] == "REFILL_NOT_REQUIRED"
-    assert controller.supply_refilled(*column)["accepted"]
+                                              next_slot=3, needs_refill=False)
+    assert len(driver.calls) == 24 and len(results) == 8
+    assert controller.supply_refilled(*column)["reason"] == "REFILL_NOT_REQUIRED"
     assert controller.deliver(goal("delivery-6", column))["reason"] == "DUPLICATE"
-    assert controller.deliver(goal("after-refill", column))["accepted"]
-    assert driver.calls[-1][1]["slot"] == 1
     assert all(supply(controller, other)["next_slot"] == 1 for other in COLUMNS if other != column)
 
 
@@ -195,10 +190,10 @@ def test_injected_config_is_frozen_and_smaller_fake_slot_count_is_observed():
         finish(driver, identity)
     assert [request["point"] for _, request in driver.calls] == [
         "fake-alternate-supply", "fake-alternate-place", "fake-alternate-observe"]*2
-    assert supply(controller, COLUMNS[0])["needs_refill"]
+    assert not supply(controller, COLUMNS[0])["needs_refill"]
     snapshot = controller.state
     snapshot["supply"][0]["next_slot"] = 6
-    assert supply(controller, COLUMNS[0])["next_slot"] is None
+    assert supply(controller, COLUMNS[0])["next_slot"] == 1
     assert len(results) == 2
 
 

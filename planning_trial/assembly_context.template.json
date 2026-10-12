@@ -1,0 +1,25 @@
+{
+  "note":"UNFILLED measurement/contract template. null is unknown, not zero or clear space. Do not copy TEST_ONLY fixture dimensions as measurements.",
+  "profile_source":null,
+  "space_model":"STUD_RULES",
+  "human_press_policy":"CONTACT_HULL",
+  "hold_gripper_nonintrusion_assumption":true,
+  "model_note":"최신 STUD_RULES는 pitch/body/stud/grip_bottom 네 기하값만 요구. 다른 상세 외형 치수는 legacy envelope/향후 도구 경로용이며 실제 개방 명령은 D 담당. 값 미입력은 임의 채우지 않음.",
+  "geometry":{
+    "pitch_mm":null,"body_height_mm":null,"stud_height_mm":null,
+    "finger_thickness_mm":null,"finger_length_mm":null,"finger_height_mm":null,
+    "grip_bottom_offset_mm":null,"jaw_open_margin_mm":null,"minimal_jaw_open_margin_mm":null,
+    "tool_body_width_mm":null,"tool_body_depth_mm":null,"tool_body_height_mm":null,
+    "press_pad_width_mm":null,"press_pad_depth_mm":null,"press_tip_height_mm":null,
+    "release_raise_mm":null,
+    "hand_width_mm":null,"hand_depth_mm":null,"hand_height_mm":null,
+    "hand_reach_mm":null,"clearance_mm":null
+  },
+  "human_sides":null,
+  "grip_axes":null,
+  "finish_layers":false,
+  "minimal_release_model_confirmed":false,
+  "max_states":10000,
+  "press_contact_model_confirmed":false,
+  "obstacles":null
+}

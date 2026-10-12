@@ -1,0 +1,126 @@
+{
+  "status": "CONTACT_TRIAL_SUCCEEDED_OPERATOR_CONFIRMED",
+  "trial_min_xy": [
+    12,
+    1
+  ],
+  "layer": 5,
+  "block": {
+    "color": "yellow",
+    "brick_type": "2x2x1",
+    "extra_yaw_rotation_deg": 0
+  },
+  "execution_id": "b32ca82a-9423-4d31-96cc-560333ed2b88",
+  "plan_id": "D_LOCAL_HELD_TRIAL12_1_L5_NO_TURN_20261011",
+  "step_id": "S01",
+  "recorded_unix_s": 1791686834.4795308,
+  "operator_seating_confirmed": true,
+  "operator_statement": "정말 잘 결착됨;;;",
+  "seating_hmi_response": {
+    "event": "HUMAN_RESPONSE",
+    "data": {
+      "request": {
+        "request_id": "9b77fdfa-e1e3-43cc-afa9-acdb4d7aa59d",
+        "kind": "FULL_SEATING",
+        "mode": "QUESTION",
+        "plan_id": "D_LOCAL_HELD_TRIAL12_1_L5_NO_TURN_20261011",
+        "step_id": "S01",
+        "current_revision": null,
+        "execution_id": "b32ca82a-9423-4d31-96cc-560333ed2b88",
+        "source_epoch": "ONSITE_CONTACT_20261011_da18b25d0ac1448b8203a8c805f40faa",
+        "opened_monotonic_s": 2608.978628268,
+        "deadline_monotonic_s": 2668.978628268
+      },
+      "positive": true,
+      "source": "HMI",
+      "preview_candidate": null,
+      "assembly_completion": false
+    },
+    "monotonic_s": 2618.671226506,
+    "execution_id": "b32ca82a-9423-4d31-96cc-560333ed2b88",
+    "plan_id": "D_LOCAL_HELD_TRIAL12_1_L5_NO_TURN_20261011",
+    "step_id": "S01"
+  },
+  "force_stop_observed_n": 35.26392271483856,
+  "threshold_tcp_z_mm": 90.41709899902344,
+  "stopped_tcp_posx": [
+    486.6987609863281,
+    -74.75698852539062,
+    89.65460968017578,
+    116.5051040649414,
+    179.97332763671875,
+    116.87103271484375
+  ],
+  "stop_acknowledged": true,
+  "actual_stop_window": {
+    "event": "STOP_WINDOW_RESULT",
+    "data": {
+      "actual_stop_verified": true,
+      "stillness_window_verified": true,
+      "pending_command_outcome_unknown": false,
+      "sample": {
+        "posj": [
+          -9.17792797088623,
+          19.180889129638672,
+          83.74199676513672,
+          0.12478196620941162,
+          77.09263610839844,
+          -9.184885025024414
+        ],
+        "posx": [
+          486.701416015625,
+          -74.75743103027344,
+          89.65460968017578,
+          115.72915649414062,
+          179.9735870361328,
+          116.09508514404297
+        ],
+        "velx": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "motion_status": 0,
+        "query_started_monotonic_s": 2607.851074514,
+        "query_duration_s": 0.12334932099975049,
+        "query_finished_monotonic_s": 2607.974424638,
+        "robot_state": 1,
+        "robot_mode": 1,
+        "drl_state": 3,
+        "tcp": "GripperDA_v4",
+        "tool": "ToolWeight0",
+        "wrench": [
+          -4.795656681060791,
+          4.036945819854736,
+          30.21255111694336,
+          -0.07814545929431915,
+          -0.35549888014793396,
+          -0.3074615001678467
+        ],
+        "gripper_status": 2,
+        "gripper_width_mm": 40.6,
+        "gripper_fingertip_offset_mm": 0.0,
+        "gripper_width_with_offset_mm": 40.6
+      }
+    },
+    "monotonic_s": 2607.974931184,
+    "execution_id": "b32ca82a-9423-4d31-96cc-560333ed2b88",
+    "plan_id": "D_LOCAL_HELD_TRIAL12_1_L5_NO_TURN_20261011",
+    "step_id": "S01"
+  },
+  "gripper_status": 2,
+  "gripper_width_mm": 40.6,
+  "gripper_opened": false,
+  "move_command_count": 2,
+  "gripper_command_count": 0,
+  "assembly_completion": false,
+  "current_update": false,
+  "calibration_adopted": false,
+  "scope": "ONE_ONSITE_TARGET_NO_GLOBAL_CALIBRATION_ADOPTION",
+  "source_result": "logs/onsite_12_1_l5_20261011/contact-b32ca82a-9423-4d31-96cc-560333ed2b88/result.json",
+  "source_trace": "logs/onsite_12_1_l5_20261011/contact-b32ca82a-9423-4d31-96cc-560333ed2b88/trial-2e7fa729b7a34f008ae5e4b5d2374564.jsonl",
+  "source_trace_sha256": "a8165d4b04443cfba8bdb04f2419b703bef248506934fab49a6ca6714735430e"
+}

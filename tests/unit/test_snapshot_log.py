@@ -90,10 +90,17 @@ def test_repeated_unobservable_only_logs_hold_entry_and_late_result(tmp_path):
     snapshot = make_snapshot(backend.state)
     assert snapshot["step"]["comparison"] == "UNOBSERVABLE"
     assert snapshot["monitor"]["observation"]["observation_seq"] == 12
+    assert FIXTURES["observed_unobservable"]["reason"] in snapshot["notice"]["reason"]
     assert not backend.on_observation({**FIXTURES["observed_unobservable"], "check_id": check,
                                        "observation_seq": 11})
     records = [json.loads(line) for line in next(tmp_path.glob("*.jsonl")).read_text().splitlines()]
     assert sum(record["event"] == "OBSERVATION_HOLD" for record in records) == 1
+    hold = next(record for record in records if record["event"] == "OBSERVATION_HOLD")
+    assert hold["result"]["observed"]["observation_seq"] == 10
+    assert hold["result"]["observed"]["reason"] == FIXTURES["observed_unobservable"]["reason"]
+    assert hold["result"]["current"] == backend.state["current"]
+    assert hold["result"]["comparison"] == "UNOBSERVABLE"
+    assert hold["result"]["expected"]["blocks"] == [A]
     assert records[-1]["event"] == "LATE_RESULT_IGNORED"
     assert not any(record["event"] == "CURRENT_ADOPTED" for record in records)
 

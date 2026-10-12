@@ -1,0 +1,8 @@
+{
+  "description": "Original A selects RELEASE_PRESS with blocked side grip, full board support, assumed confirmed press contact model.",
+  "release_press_is_original_calculation_mode": true,
+  "current_source": "OFFLINE_MOCK_NOT_B_OBSERVATION",
+  "press_contact_model_confirmed_source": "EXPLICIT_TEST_ASSUMPTION_NOT_MEASUREMENT",
+  "original_source_modified": false,
+  "integrated_motion_available": false
+}

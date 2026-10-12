@@ -169,8 +169,10 @@ def on_current_observation(backend, value):
     state.update(current=result["current"],current_check=result["active_check"],last_observation=observation,
                  step_observation=observation if backend._next_step() else None)
     if result["disposition"] == "ADOPTED":
-        if not backend._event("CURRENT_ADOPTED",request_id=observation["check_id"],
-                              result=dict(current=state["current"],observed=observation)):
+        adopted = dict(current=state["current"], observed=observation)
+        if "current_provenance" in result:  # B relay(Wave 2): revision은 B 값 그대로
+            adopted["current_provenance"] = result["current_provenance"]
+        if not backend._event("CURRENT_ADOPTED", request_id=observation["check_id"], result=adopted):
             return True
     if result["disposition"] == "HOLD":
         state["reason"] = result["reason"]

@@ -1,6 +1,6 @@
 {
   "a_commit": "f9b841c8f090b0b25c30ab27459781ad2017fd9e",
-  "a_source_sha256": "0f96d24b8fad195185b68c9c520976b3c97d91aa179fcd91382426772f2e7835",
+  "a_source_sha256": "50cbcb3d13a0ee7f94e92888f706ec7ce1215989366f61feee9592d819b1e19e",
   "source_archive": "a_manual_execution.tar.gz",
   "initial_response": {
     "status": "OK",
@@ -1028,5 +1028,6 @@
       "expected_status": "INVALID",
       "expected_steps": null
     }
-  }
+  },
+  "a_source_basis": "planning_trial/planner.py from A branch work/siyul-a-wave1-integration ba1a047 (PR #21 71c11cc + MAX_BLOCKS 40); D applied no edits on top"
 }

@@ -1,0 +1,66 @@
+{
+  "kind": "LOCAL_OPERATOR_ALIGNMENT_OBSERVATION",
+  "operator_statement": "ㅇㅇ 잘 되어있음",
+  "approach_execution_id": "b18e419f-b78a-4bb3-b855-c3bcc33121ae",
+  "plan_id": "D_LOCAL_HELD_TRIAL12_1_L5_NO_TURN_20261011",
+  "step_id": "S01",
+  "trial_min_xy": [
+    12,
+    1
+  ],
+  "layer": 5,
+  "color": "yellow",
+  "observed_unix_s": 1791686585.2017906,
+  "read_only_sample": {
+    "posj": [
+      -9.178520202636719,
+      18.59268569946289,
+      81.26781463623047,
+      0.12053769826889038,
+      80.1434555053711,
+      -9.179408073425293
+    ],
+    "posx": [
+      486.7526550292969,
+      -74.76769256591797,
+      110.29167938232422,
+      90.22549438476562,
+      179.9781494140625,
+      90.59132385253906
+    ],
+    "velx": [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+    ],
+    "motion_status": 0,
+    "query_started_monotonic_s": 2511.814060471,
+    "query_duration_s": 0.10728379900001528,
+    "query_finished_monotonic_s": 2511.921345774,
+    "robot_state": 1,
+    "robot_mode": 1,
+    "drl_state": 3,
+    "tcp": "GripperDA_v4",
+    "tool": "ToolWeight0",
+    "wrench": [
+      -3.514626979827881,
+      0.016247788444161415,
+      3.5806713104248047,
+      -0.0637742429971695,
+      -0.7552881836891174,
+      -0.17748059332370758
+    ],
+    "gripper_status": 2,
+    "gripper_width_mm": 40.4,
+    "gripper_fingertip_offset_mm": 0.0,
+    "gripper_width_with_offset_mm": 40.4
+  },
+  "position_difference_from_approach_mm": 0.0007621892698596838,
+  "orientation_difference_from_approach_deg": 9.795384079941545e-05,
+  "assembly_completion": false,
+  "current_update": false,
+  "physical_calibration_adopted": false
+}

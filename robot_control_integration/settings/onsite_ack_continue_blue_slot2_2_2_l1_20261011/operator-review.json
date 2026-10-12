@@ -1,0 +1,22 @@
+{
+  "source": "DIRECT_USER_IN_THIS_CHAT",
+  "ack_timeout_policy": "CONTINUE_NEXT_INDEPENDENT_PICKUP_WITH_UNOBSERVED_ASSEMBLY",
+  "next_source": "blue_2x2x1_02",
+  "next_block": {
+    "brick_type": "2x2x1",
+    "color": "blue",
+    "x": 2,
+    "y": 2,
+    "layer": 1,
+    "orientation_deg": 0
+  },
+  "user_statement": "아무것도 없습니다 1층에 결착. 목표 상공 비어있음 공급판 블록 채워져있음",
+  "orientation_assumption": "NO_TURN_CONSISTENT_WITH_CURRENT_TRIALS",
+  "source_slot2_pose_basis": "Actual blue slot1 XY plus A calibrated slot1-to-slot2 relative XY; slot1 taught Z and orientation retained, NOT remeasured slot2",
+  "geometry_ref": "settings/onsite_ack_continue_blue_slot2_2_2_l1_20261011/geometry-candidate.json",
+  "readonly_ref": "settings/onsite_ack_continue_blue_slot2_2_2_l1_20261011/readonly.json",
+  "current_state": "EMPTY_STOPPED_ABOVE_PREVIOUS_TARGET",
+  "previous_successful_execution_id": "612c67a7-0ba5-4cd3-86c3-f588fd631829",
+  "robot_motion_commands": 0,
+  "robot_gripper_commands": 0
+}

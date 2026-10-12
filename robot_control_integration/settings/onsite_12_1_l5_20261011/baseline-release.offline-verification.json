@@ -1,0 +1,17 @@
+{
+  "device_connections": 0,
+  "checks": [
+    {
+      "release_reply": false,
+      "status": "PAUSED_RELEASE",
+      "mock_grips": 0,
+      "mock_moves": 0
+    },
+    {
+      "release_reply": true,
+      "status": "AWAITING_BACKEND_OBSERVATION",
+      "mock_grips": 1,
+      "mock_moves": 2
+    }
+  ]
+}

@@ -1,0 +1,50 @@
+{
+  "case_id": "03_human_assembly_tray",
+  "description": "기존 양옆 블록이 2x3의 유일한 그립 X축을 차단. 손 Y축 접근은 가능. 전달판 분기를 A가 선택.",
+  "current": [
+    {
+      "brick_type": "2x2x1",
+      "color": "blue",
+      "x": 4,
+      "y": 6,
+      "layer": 1,
+      "orientation_deg": 0
+    },
+    {
+      "brick_type": "2x2x1",
+      "color": "blue",
+      "x": 8,
+      "y": 6,
+      "layer": 1,
+      "orientation_deg": 0
+    }
+  ],
+  "design": [
+    {
+      "brick_type": "2x2x1",
+      "color": "blue",
+      "x": 4,
+      "y": 6,
+      "layer": 1,
+      "orientation_deg": 0
+    },
+    {
+      "brick_type": "2x2x1",
+      "color": "blue",
+      "x": 8,
+      "y": 6,
+      "layer": 1,
+      "orientation_deg": 0
+    },
+    {
+      "brick_type": "2x3x1",
+      "color": "yellow",
+      "x": 6,
+      "y": 6,
+      "layer": 1,
+      "orientation_deg": 0
+    }
+  ],
+  "expected_mode": "HUMAN_ASSEMBLY",
+  "expected_help": "MANUAL_ASSEMBLY"
+}

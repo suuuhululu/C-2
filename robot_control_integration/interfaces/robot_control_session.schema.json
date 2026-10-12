@@ -1,0 +1,213 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Local integrated robot trial session (not a frozen public ROS contract)",
+  "type": "object",
+  "properties": {
+    "execution_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "source_epoch": {
+      "type": "string",
+      "minLength": 1
+    },
+    "frame_profile_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "plan_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "step_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "backend": {
+      "enum": [
+        "TEST",
+        "REAL"
+      ]
+    },
+    "provenance": {
+      "enum": [
+        "SYNTHETIC",
+        "LOCAL_OPERATOR_TRIAL",
+        "LIVE_D_RUNTIME"
+      ]
+    },
+    "current_revision": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "minimum": 0
+    },
+    "expires_unix_s": {
+      "type": "number",
+      "exclusiveMinimum": 0
+    },
+    "request_timeout_s": {
+      "type": "number",
+      "exclusiveMinimum": 0
+    },
+    "frame_max_age_s": {
+      "type": "number",
+      "exclusiveMinimum": 0
+    },
+    "frame_max_gap_s": {
+      "type": "number",
+      "exclusiveMinimum": 0
+    },
+    "inference_max_latency_s": {
+      "type": "number",
+      "exclusiveMinimum": 0
+    },
+    "stillness": {
+      "type": "object",
+      "properties": {
+        "window_s": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "max_gap_s": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "timeout_s": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "sample_max_duration_s": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "position_mm": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "orientation_deg": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "linear_mm_s": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "angular_deg_s": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "min_samples": {
+          "type": "integer",
+          "minimum": 2
+        }
+      },
+      "required": [
+        "window_s",
+        "max_gap_s",
+        "timeout_s",
+        "sample_max_duration_s",
+        "position_mm",
+        "orientation_deg",
+        "linear_mm_s",
+        "angular_deg_s",
+        "min_samples"
+      ]
+    },
+    "profile_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "alignment_evidence_ref": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "seating_evidence_ref": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "exclusive_control_reviewed": {
+      "type": "boolean"
+    },
+    "device_feedback_reviewed": {
+      "type": "boolean"
+    },
+    "stillness_parameters_reviewed": {
+      "type": "boolean"
+    },
+    "hand_clear_reviewed": {
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "execution_id",
+    "source_epoch",
+    "frame_profile_id",
+    "plan_id",
+    "step_id",
+    "backend",
+    "provenance",
+    "current_revision",
+    "expires_unix_s",
+    "request_timeout_s",
+    "frame_max_age_s",
+    "frame_max_gap_s",
+    "inference_max_latency_s",
+    "stillness"
+  ],
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "backend": {
+            "const": "REAL"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "profile_id",
+          "exclusive_control_reviewed",
+          "device_feedback_reviewed",
+          "stillness_parameters_reviewed",
+          "hand_clear_reviewed"
+        ],
+        "properties": {
+          "exclusive_control_reviewed": {
+            "const": true
+          },
+          "device_feedback_reviewed": {
+            "const": true
+          },
+          "stillness_parameters_reviewed": {
+            "const": true
+          },
+          "hand_clear_reviewed": {
+            "const": true
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "backend": {
+            "const": "TEST"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "provenance": {
+            "const": "SYNTHETIC"
+          }
+        }
+      }
+    }
+  ]
+}

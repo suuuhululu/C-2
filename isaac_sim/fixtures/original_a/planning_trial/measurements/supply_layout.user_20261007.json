@@ -1,0 +1,141 @@
+{
+  "schema_version": "supply-layout-candidate/0.1",
+  "recorded_date": "2026-10-07",
+  "source_image": "supply_layout.user_20261007.png",
+  "source_image_sha256": "24aa6dc98437cd80207c02b71ebacfdb99d633211bf3a9631b39a754350d0fdb",
+  "supply_board_reference": "supply_board_corners.user_20261007.pass2.json",
+  "board_face": "STUDS_DOWN; BLOCKS_ON_UPWARD_REVERSE_FACE_WITH_HOLES",
+  "photo_base_axes": {
+    "+X": "UP",
+    "+Y": "LEFT"
+  },
+  "corner_photo_association_derived_from_base_axes": {
+    "1": "TOP_LEFT",
+    "2": "BOTTOM_LEFT",
+    "3": "BOTTOM_RIGHT",
+    "4": "TOP_RIGHT"
+  },
+  "supply_grid_origin_corner": "3",
+  "supply_grid_positive_x_corner": "4",
+  "supply_grid_positive_y_corner": "2",
+  "grid_feature_count": [
+    24,
+    24
+  ],
+  "count_source": "Existing 24x24 supply board; count assumed unchanged.",
+  "absolute_first_block_grid_footprint": null,
+  "coordinate_method": "Relative hole-grid displacement from first taught yellow 2x2 TCP; no arbitrary TCP-tip XY offset or outer-edge alignment imposed.",
+  "first_pick_reference": "first_supply_grasp.user_20261007.json",
+  "columns": [
+    {
+      "photo_order_left_to_right": 1,
+      "brick_type": "2x2x1",
+      "color": "yellow",
+      "occupied_grid_x": 2,
+      "occupied_grid_y": 2,
+      "gap_before_column_y": null,
+      "slot_count": 6,
+      "gap_between_slots_x": 2,
+      "slot_centre_step_grid_x": -4,
+      "first_slot_centre_relative_to_yellow_2x2_slot1_grid": [
+        0.0,
+        0.0
+      ],
+      "grasp_centre": "MIDPOINT_OF_TWO_OPPOSITE_SIDE_FACES",
+      "gripper_closing_direction": "SUPPLY_GRID_X (approximately Base X)",
+      "six_stud_long_side_direction": null,
+      "nominal_block_width_along_grip_grid": 2,
+      "gripper_close_parameter_source": "D settings.close_width (existing code)"
+    },
+    {
+      "photo_order_left_to_right": 2,
+      "brick_type": "2x3x1",
+      "color": "yellow",
+      "occupied_grid_x": 2,
+      "occupied_grid_y": 3,
+      "gap_before_column_y": 1,
+      "slot_count": 6,
+      "gap_between_slots_x": 2,
+      "slot_centre_step_grid_x": -4,
+      "first_slot_centre_relative_to_yellow_2x2_slot1_grid": [
+        0.0,
+        -3.5
+      ],
+      "grasp_centre": "MIDPOINT_OF_TWO_OPPOSITE_SIDE_FACES",
+      "gripper_closing_direction": "SUPPLY_GRID_X (approximately Base X)",
+      "six_stud_long_side_direction": "SUPPLY_GRID_Y (approximately Base Y)",
+      "nominal_block_width_along_grip_grid": 2,
+      "gripper_close_parameter_source": "D settings.close_width (existing code)"
+    },
+    {
+      "photo_order_left_to_right": 3,
+      "brick_type": "2x2x1",
+      "color": "blue",
+      "occupied_grid_x": 2,
+      "occupied_grid_y": 2,
+      "gap_before_column_y": 2,
+      "slot_count": 6,
+      "gap_between_slots_x": 2,
+      "slot_centre_step_grid_x": -4,
+      "first_slot_centre_relative_to_yellow_2x2_slot1_grid": [
+        0.0,
+        -8.0
+      ],
+      "grasp_centre": "MIDPOINT_OF_TWO_OPPOSITE_SIDE_FACES",
+      "gripper_closing_direction": "SUPPLY_GRID_X (approximately Base X)",
+      "six_stud_long_side_direction": null,
+      "nominal_block_width_along_grip_grid": 2,
+      "gripper_close_parameter_source": "D settings.close_width (existing code)"
+    },
+    {
+      "photo_order_left_to_right": 4,
+      "brick_type": "2x3x1",
+      "color": "blue",
+      "occupied_grid_x": 2,
+      "occupied_grid_y": 3,
+      "gap_before_column_y": 1,
+      "slot_count": 6,
+      "gap_between_slots_x": 2,
+      "slot_centre_step_grid_x": -4,
+      "first_slot_centre_relative_to_yellow_2x2_slot1_grid": [
+        0.0,
+        -11.5
+      ],
+      "grasp_centre": "MIDPOINT_OF_TWO_OPPOSITE_SIDE_FACES",
+      "gripper_closing_direction": "SUPPLY_GRID_X (approximately Base X)",
+      "six_stud_long_side_direction": "SUPPLY_GRID_Y (approximately Base Y)",
+      "nominal_block_width_along_grip_grid": 2,
+      "gripper_close_parameter_source": "D settings.close_width (existing code)"
+    }
+  ],
+  "replenishment_scenario": {
+    "per_kind_and_color_independent": true,
+    "requested_slot_sequence": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      1
+    ],
+    "user_statement": "Human immediately replenishes blocks; after sixth slot use first slot again.",
+    "slot_consumption_event": "Confirmed pickup; retain D ownership and deduplication.",
+    "return_to_first_after_six_requested": true,
+    "supply_readiness_confirmation_method": null,
+    "counter_owner": "D Backend/Robot",
+    "policy_status": "NEW_USER_SCENARIO; reconcile with D refill-wait behaviour; not applied to live code."
+  },
+  "execution_allowed": false,
+  "runtime_configuration_adopted": false,
+  "gripper_close_policy": {
+    "policy": "REUSE_D_EXISTING_CLOSE_WIDTH_WITHOUT_GRID_TO_COMMAND_CONVERSION",
+    "user_confirmation_date": "2026-10-08",
+    "source_statement": "이거는 수현님의 기존 코드 폭으로 파지하면 돼",
+    "parameter_source": "D execution settings.close_width; no A override",
+    "reference_settings_file": "isaac_preview/handoff/interfaces/robot_trial.json",
+    "reference_close_width_command_mm": 2.0,
+    "command_vs_geometry": "close_width is a motion command target, not the actual jaw separation while gripping a block. Nominal 2-stud block width is layout geometry only.",
+    "release_policy": "Grasp closure setting does not decide normal/minimal release; release remains a separate D action."
+  }
+}

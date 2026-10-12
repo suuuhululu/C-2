@@ -1,0 +1,11 @@
+{
+  "profile": "settings/onsite_human_11_11_l4_20261011/human-wait-761616d2-fd06-403b-a3fa-2f7865c8b905.profile.json",
+  "session": "settings/onsite_human_11_11_l4_20261011/human-wait-761616d2-fd06-403b-a3fa-2f7865c8b905.session.json",
+  "output": "logs/onsite_human_11_11_l4_20261011/human-wait-761616d2-fd06-403b-a3fa-2f7865c8b905",
+  "execution_id": "761616d2-fd06-403b-a3fa-2f7865c8b905",
+  "readiness": "settings/onsite_human_11_11_l4_20261011/readonly-f5d26917-c931-4ab7-bcd2-764b48ac236a.json",
+  "phase": "human-wait",
+  "start_zone": "assembly",
+  "prepared_unix_s": 1791702270.5898232,
+  "expires_unix_s": 1791704070.2015173
+}

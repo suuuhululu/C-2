@@ -1,0 +1,109 @@
+{
+  "status": "OPERATOR_TAUGHT_WAYPOINT_NOT_COMPLETE_ROUTE_VALIDATION",
+  "reference": "BASE",
+  "tcp": "GripperDA_v4",
+  "tool": "ToolWeight0",
+  "posx": [
+    -27.878286361694336,
+    -411.9568176269531,
+    90.12272644042969,
+    158.0706024169922,
+    179.84872436523438,
+    158.97332763671875
+  ],
+  "posj": [
+    -94.26286315917969,
+    8.428079605102539,
+    97.3695068359375,
+    -0.11932510137557983,
+    74.24740600585938,
+    -93.69000244140625
+  ],
+  "operator_report": "지금 멈춘곳은 place board와 supply 사이인데, 여길 지나면 안부딪힘",
+  "stillness_verified": true,
+  "gripper_status": 0,
+  "gripper_width_mm": 62.1,
+  "transit_tcp_z_mm": 93.87,
+  "source_log_file": "/home/rokey/Documents/ChatGPT/로봇제어 개발/handoff_20261008/assembly_development_transfer_20261008/return_evidence/onsite_teaching/f32a615c-fff5-4f98-8d93-a97f01319790/supply_bypass_manual_waypoint_probe/9045ec48-0c5c-4a6b-9498-0ca36ce24003.jsonl",
+  "whole_robot_collision_verified": false,
+  "automatic_return_from_place_verified": false,
+  "supply_corner_trial_grid": [
+    0,
+    0
+  ],
+  "supply_corner_reference_xy_mm": [
+    -684.32,
+    -165.74
+  ],
+  "operator_grid_correction": "반대쪽 6번 모서리/사진3은 (0,0); 이전 (0,23) 매핑 수정",
+  "bypass_to_corner_trial_status": "OPERATOR_STOP_REQUEST_ACKNOWLEDGED_STILLNESS_CONFIRMED",
+  "last_stopped_corner_sample": {
+    "posj": [
+      -166.7786865234375,
+      57.64706802368164,
+      18.2437686920166,
+      0.22555533051490784,
+      103.98316192626953,
+      -166.00929260253906
+    ],
+    "posx": [
+      -684.213623046875,
+      -165.714599609375,
+      93.82316589355469,
+      158.60055541992188,
+      179.84677124023438,
+      159.5032958984375
+    ],
+    "velx": [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+    ],
+    "motion_status": 0,
+    "query_started_monotonic_s": 4469.865695903,
+    "query_duration_s": 0.08154063499932818,
+    "query_finished_monotonic_s": 4469.947238035,
+    "robot_state": 1,
+    "robot_mode": 1,
+    "drl_state": 3,
+    "tcp": "GripperDA_v4",
+    "tool": "ToolWeight0",
+    "wrench": [
+      2.243548631668091,
+      -0.6043553352355957,
+      5.591989040374756,
+      -0.5386945009231567,
+      5.5544891357421875,
+      -0.04467737302184105
+    ],
+    "gripper_status": 0,
+    "gripper_width_mm": 62.1,
+    "gripper_fingertip_offset_mm": 0.0,
+    "gripper_width_with_offset_mm": 62.1
+  },
+  "latest_requested_supply_transit_grid": [
+    20,
+    0
+  ],
+  "latest_supply_transit_xy_mm": [
+    -364.8591304347826,
+    -171.54
+  ],
+  "yellow6_held_return_to_place_single_trial": {
+    "status": "PLACE_BOARD_ABOVE_REACHED_HELD_NO_DESCENT",
+    "log_file": "/home/rokey/Documents/ChatGPT/로봇제어 개발/handoff_20261008/assembly_development_transfer_20261008/return_evidence/onsite_teaching/f32a615c-fff5-4f98-8d93-a97f01319790/yellow6_held_return_place_via20_0_resume1/8230dd39-29a9-4190-8c72-d72127cf181a.jsonl",
+    "force_norm_stop_n": 35,
+    "velocity": [
+      16,
+      16
+    ],
+    "acceleration": [
+      16,
+      16
+    ],
+    "whole_route_collision_verified": false
+  }
+}

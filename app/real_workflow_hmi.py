@@ -12,7 +12,7 @@ from PyQt5.QtCore import QTimer, Qt
 from PyQt5.QtWidgets import QApplication
 
 from app.backend import Backend
-from app.contracts import _object, validate_block, validate_design
+from app.contracts import MAX_LAYER, _object, validate_block, validate_design
 from app.current import _placements
 from app.hmi_board import dimensions
 from app.jsonl_log import JsonlLog
@@ -48,6 +48,9 @@ class WorkflowTrial:
             self.c_connection = CTextConnection(self.backend, self.publish, initial_text="의자 만들어줘",
                                                 voice_mode=c_voice)
             window.destroyed.connect(self.c_connection.close)
+            # Stage 3 (2026-10-11 Wave 2): REAL path too — Qt emits preview_ready after the candidate screen is drawn, and
+            # only then C's review_design_candidate is started (same wiring as abd_input_hmi).
+            window.preview_ready.connect(self.c_connection.preview_ready)
         self.publish()
 
     def publish(self, message=None):
@@ -224,7 +227,7 @@ class WorkflowTrial:
         # 사람이 조립판 전체·모든 층을 확인하는 시험 입력이다. Camera의 확인 범위를 추정하지 않는다.
         observed = dict(check_id=value["check_id"], observation_seq=check["last_observation_seq"] + 1
             if check["last_observation_seq"] is not None else 0, status="OK", visible_blocks=blocks,
-            verified_regions=[dict(x=0, y=0, layer=layer, width=24, height=24) for layer in range(1, 5)], reason=None)
+            verified_regions=[dict(x=0, y=0, layer=layer, width=24, height=24) for layer in range(1, MAX_LAYER + 1)], reason=None)
         accepted = self.backend.on_observation(observed)
         self.publish()
         return accepted
@@ -259,7 +262,7 @@ def main(argv=None):
     parser.add_argument("--c-voice", action="store_true", help="초기 목표/의도 답변 STT와 오배치 질문 TTS")
     parser.add_argument("--c-fixture")
     parser.add_argument("--color", choices=("blue", "yellow"))
-    parser.add_argument("--first-slot", type=int, choices=range(1, 5))
+    parser.add_argument("--first-slot", type=int, choices=range(1, 7))
     parser.add_argument("--log-dir", default="logs/real_workflow")
     args = parser.parse_args(argv)
     if args.c_voice and args.c_mode != "live":

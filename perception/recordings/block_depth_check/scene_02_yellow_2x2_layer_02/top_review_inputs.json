@@ -1,0 +1,20 @@
+[
+  {
+    "recording": "/home/roh/C-2/perception/recordings/block_depth_check/scene_02_yellow_2x2_layer_02/V0/20261007T105654373062Z",
+    "empty_recording": "/home/roh/C-2/perception/recordings/empty_board_depth/V0/20261007T055736220382Z",
+    "calibration_path": "/home/roh/C-2/perception/recordings/board_calibration_V0/V0/run/calibration.json",
+    "polygon": [[678, 277], [723, 277], [723, 321], [678, 321]]
+  },
+  {
+    "recording": "/home/roh/C-2/perception/recordings/block_depth_check/scene_02_yellow_2x2_layer_02/D1/20261007T105733133222Z",
+    "empty_recording": "/home/roh/C-2/perception/recordings/empty_board_depth/D1/20261007T093600059227Z",
+    "calibration_path": "/home/roh/C-2/perception/recordings/board_calibration_D1/D1/run/calibration.json",
+    "polygon": [[632, 295], [668, 281], [688, 302], [652, 320]]
+  },
+  {
+    "recording": "/home/roh/C-2/perception/recordings/block_depth_check/scene_02_yellow_2x2_layer_02/D3/20261007T105810419609Z",
+    "empty_recording": "/home/roh/C-2/perception/recordings/empty_board_depth/D3/20261007T055935222566Z",
+    "calibration_path": "/home/roh/C-2/perception/recordings/board_calibration_D3/D3/run/calibration.json",
+    "polygon": [[587, 223], [627, 234], [618, 263], [579, 252]]
+  }
+]

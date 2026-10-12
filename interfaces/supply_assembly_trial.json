@@ -1,0 +1,90 @@
+{
+  "config_id": "supply-5mm-to-assembly-centre-20261008-v1",
+  "mode": "REAL",
+  "pickup_source": "interfaces/sources/pickup_coordinates_20261008.md",
+  "pickup_sha256": "f9e76611580307973091da6f80011226cfa1184b3f3793a714f3c59489f8f042",
+  "assembly_source": "interfaces/sources/assembly_centre_seated_tcp_20261008.json",
+  "assembly_sha256": "d347f800c18fc3b1efa4bf6bede7a0dbfaec925830c8767f39d7dad5d5cf60b0",
+  "target": {
+    "brick_type": "2x2x1",
+    "color": "blue",
+    "x": 11,
+    "y": 11,
+    "layer": 1,
+    "orientation_deg": 0
+  },
+  "slot": 1,
+  "seated_posx": [
+    471.5614318847656,
+    86.8033218383789,
+    16.409549713134766,
+    78.01061248779297,
+    -178.14669799804688,
+    77.7216567993164
+  ],
+  "start_posx": null,
+  "to_pick": [],
+  "transport": [],
+  "retreat": [],
+  "connection": {
+    "robot_id": "dsr01",
+    "tcp": "GripperDA_v4",
+    "tool": "ToolWeight0",
+    "gripper_ip": "192.168.1.1",
+    "ros_domain_id": 20
+  },
+  "velocity": {
+    "transfer": [
+      16.0,
+      16.0
+    ],
+    "descent": [
+      8.0,
+      8.0
+    ]
+  },
+  "acceleration": {
+    "transfer": [
+      16.0,
+      16.0
+    ],
+    "descent": [
+      8.0,
+      8.0
+    ]
+  },
+  "gripper": {
+    "open_width_mm": 60.0,
+    "close_width_mm": 2.0,
+    "force_n": 40.0,
+    "open_tolerance_mm": 3.0,
+    "held_width_range_mm": null
+  },
+  "timing": {
+    "service_timeout_s": 0.5,
+    "sample_max_duration_s": 0.5,
+    "poll_interval_s": 0.05,
+    "motion_timeout_s": null,
+    "stop_timeout_s": 5.0,
+    "gripper_timeout_s": 8.0,
+    "gripper_settle_s": 0.5
+  },
+  "limits": {
+    "position_tolerance_mm": 0.05,
+    "orientation_tolerance_deg": 0.05,
+    "fz_stop_n": null
+  },
+  "confirmations": {
+    "onsite_operator": false,
+    "exclusive_control": false,
+    "tcp_tool_verified": false,
+    "empty_gripper_and_supply_verified": false,
+    "supply_5mm_grasp_verified": false,
+    "assembly_grasp_equivalence_verified": false,
+    "board_target_verified": false,
+    "entire_route_reviewed": false,
+    "contact_release_reviewed": false,
+    "motion_force_policy_verified": false,
+    "compliance_inactive": false
+  }
+}

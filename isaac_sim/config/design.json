@@ -1,0 +1,13 @@
+{
+  "design_version": 1,
+  "blocks": [
+    {
+      "brick_type": "1x2x1",
+      "color": "red",
+      "x": 6,
+      "y": 4,
+      "layer": 1,
+      "orientation_deg": 90
+    }
+  ]
+}

@@ -1,0 +1,82 @@
+{
+  "case_id": "04_human_hold",
+  "description": "U-L별 2개 접점 및 L-아래 2개 접점. 총 지지는 4개지만 약한 아래 블록 2개를 각각 HOLD.",
+  "current": [
+    {
+      "brick_type": "2x2x1",
+      "color": "blue",
+      "x": 4,
+      "y": 6,
+      "layer": 1,
+      "orientation_deg": 0
+    },
+    {
+      "brick_type": "2x2x1",
+      "color": "blue",
+      "x": 8,
+      "y": 6,
+      "layer": 1,
+      "orientation_deg": 0
+    },
+    {
+      "brick_type": "2x2x1",
+      "color": "blue",
+      "x": 5,
+      "y": 6,
+      "layer": 2,
+      "orientation_deg": 0
+    },
+    {
+      "brick_type": "2x2x1",
+      "color": "blue",
+      "x": 7,
+      "y": 6,
+      "layer": 2,
+      "orientation_deg": 0
+    }
+  ],
+  "design": [
+    {
+      "brick_type": "2x2x1",
+      "color": "blue",
+      "x": 4,
+      "y": 6,
+      "layer": 1,
+      "orientation_deg": 0
+    },
+    {
+      "brick_type": "2x2x1",
+      "color": "blue",
+      "x": 8,
+      "y": 6,
+      "layer": 1,
+      "orientation_deg": 0
+    },
+    {
+      "brick_type": "2x2x1",
+      "color": "blue",
+      "x": 5,
+      "y": 6,
+      "layer": 2,
+      "orientation_deg": 0
+    },
+    {
+      "brick_type": "2x2x1",
+      "color": "blue",
+      "x": 7,
+      "y": 6,
+      "layer": 2,
+      "orientation_deg": 0
+    },
+    {
+      "brick_type": "2x2x1",
+      "color": "blue",
+      "x": 6,
+      "y": 6,
+      "layer": 3,
+      "orientation_deg": 0
+    }
+  ],
+  "expected_mode": "ROBOT_GRIP",
+  "expected_help": "HOLD"
+}

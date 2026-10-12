@@ -13,7 +13,7 @@ from PyQt5.QtTest import QTest
 from PyQt5.QtWidgets import QApplication
 
 from app.abd_input_hmi import AbdInputDemo
-from app.c_design import llm, main as c_main
+from app.c_design import designer, llm, main as c_main
 from app.c_text_connection import differences_for_c
 from app.qt_hmi import HmiWindow
 from test_abd_input_hmi import records, transfer, wait_for
@@ -21,6 +21,10 @@ from test_abd_input_hmi import records, transfer, wait_for
 ROOT = Path(__file__).resolve().parents[2]
 INITIAL = json.loads((ROOT / "interfaces/fixtures/c_design_initial_result.json").read_text())
 REVISED = json.loads((ROOT / "interfaces/fixtures/c_design_revised_result.json").read_text())
+# 최신 C의 v2 >= v1 + 6 조건을 만족하는 별도 live 시험 입력(원본 fixture 보존).
+LIVE_REVISED=deepcopy(REVISED)
+LIVE_REVISED['design']['blocks'] += [dict(brick_type='2x2x1',color='yellow',x=x,y=9,layer=3,orientation_deg=0) for x in (9,13)]
+
 
 
 @pytest.fixture(scope="module")
@@ -29,21 +33,38 @@ def qapp():
 
 
 def settled(demo):
-    for _ in range(300):
+    """Stage3 호출과 실제 Qt 후보 표시를 기다린 뒤 명시적 시험 승인을 보낸다."""
+    for _ in range(600):
         QTest.qWait(2)
+        QApplication.instance().processEvents()
+        review = demo.backend.state.get("c_review")
         if not demo.c_connection.active:
-            QApplication.instance().processEvents()
-            return
-    pytest.fail("C call did not settle")
+            if review and review["phase"] == "WAIT_ANSWER" and not demo.c_connection.voice_mode:
+                demo.receive(dict(event="answer", request_id=review["request_id"], text="좋아요"))
+            elif not review or review["phase"] == "WAIT_ANSWER":
+                state, snapshot = demo.backend.state, demo.window._snapshot
+                design = state["context"]["design"] if state["context"] else None
+                if (snapshot and snapshot["workflow_status"] == state["workflow_status"]
+                        and snapshot["design"] == design and snapshot["current"] == state["current"]):
+                    return
+    pytest.fail("C call/preview did not settle")
 
 
 @pytest.fixture
 def create(qapp, tmp_path, monkeypatch):
     windows = []
+    from test_c_stage3_lifecycle import FakeLLM
+    fake = FakeLLM()
+    # 이 저장 fixture는 경계/계획 시험용이다. 풍성함 재시도 자체는 C의 독립 테스트에서 검사한다.
+    monkeypatch.setattr(designer, "RETRY_DELAY", 0)
+    monkeypatch.setattr(designer, "RICHNESS_MIN_DELTA", 0)
+    for name in ("interpret_initial_request", "describe_initial_design", "judge_revised_design"):
+        monkeypatch.setattr(llm, name, getattr(fake, name))
 
     def build(mode="offline", text="의자 만들어줘", key=True):
         monkeypatch.setenv("C_DESIGN_USE_LLM", "1" if mode == "live" else "0")
         monkeypatch.setenv("OPENAI_API_KEY", "test-secret-not-a-real-key" if key else "")
+        monkeypatch.setenv("OPENAI_LLM_API_KEY", "test-secret-not-a-real-key" if key else "")
         monkeypatch.setenv("OPENAI_MODEL", "gpt-4o")
         window = HmiWindow(screen_size=QSize(1920, 1080))
         demo = AbdInputDemo(window, tmp_path, c_mode=mode, initial_text=text, delay_ms=1)
@@ -106,18 +127,18 @@ def test_actual_c_offline_initial_full_job_only_completes_after_observation(crea
     expected = c_main.create_initial_design(text="의자 만들어줘")["design"]
     assert window.design_board.blocks == expected["blocks"]
     assert not demo.driver.calls
-    assert len(demo.backend.state["context"]["plan"]["steps"]) == 15
-    for index in range(15):
+    assert len(demo.backend.state["context"]["plan"]["steps"]) == len(expected["blocks"])
+    for index in range(len(expected["blocks"])):
         transfer(demo)
         assert demo.backend.state["workflow_status"] == "WAIT_ASSEMBLY"
         assert len(demo.backend.state["context"]["confirmed_steps"]) == index
         demo.receive(dict(event="observe"))
-        if index < 14:
+        if index < len(expected["blocks"]) - 1:
             assert demo.backend.state["place_check"] is not None
             assert len(demo.driver.calls) == (index + 1) * 3
     qapp.processEvents()
     assert window.status.text() == "전체 조립 완료"
-    assert demo.backend.state["current"]["current_revision"] == 15
+    assert demo.backend.state["current"]["current_revision"] == len(expected["blocks"])
     assert sum(row["event"] == "JOB_COMPLETED" for row in records(demo)) == 1
     assert window.grab().save(str(tmp_path / "c-function-complete.png"))
 
@@ -127,7 +148,7 @@ def test_live_mode_actual_c_llm_http_fake_revise_actual_a_preserves_current(crea
 
     def http(payload, key):
         calls.append(deepcopy(payload))
-        candidate = INITIAL if len(calls) == 1 else REVISED
+        candidate = INITIAL if len(calls) == 1 else LIVE_REVISED
         return dict(choices=[dict(message=dict(content=json.dumps(candidate["design"])) )])
 
     monkeypatch.setattr(llm, "_post_json", http)
@@ -140,16 +161,16 @@ def test_live_mode_actual_c_llm_http_fake_revise_actual_a_preserves_current(crea
     reply(demo, "2번")
     context = demo.backend.state["context"]
     assert len(calls) == 2 and all(p["model"] == "gpt-4o" for p in calls)
-    assert context["design"] == REVISED["design"]
+    assert context["design"] == LIVE_REVISED["design"]
     assert context["base_current"] == current and demo.backend.state["current"] == current
-    assert len(context["plan"]["steps"]) == 10
+    assert len(context["plan"]["steps"]) == 12
     assert len(demo.driver.calls) == 27  # Revised만으로 새 집기를 시작하지 않는다.
-    for _ in range(10):
+    for _ in range(12):
         transfer(demo)
         demo.receive(dict(event="observe"))
     qapp.processEvents()
     assert window.status.text() == "전체 조립 완료"
-    assert len(demo.backend.state["current"]["blocks"]) == 19
+    assert len(demo.backend.state["current"]["blocks"]) == 21
     assert "test-secret" not in json.dumps(records(demo))
 
 
@@ -238,7 +259,7 @@ def test_current_changes_during_revised_c_call_old_response_does_not_adopt(creat
         if len(calls) > 1:
             entered.set()
             assert release.wait(2)
-        response = INITIAL if len(calls) == 1 else REVISED
+        response = INITIAL if len(calls) == 1 else LIVE_REVISED
         return dict(choices=[dict(message=dict(content=json.dumps(response["design"])) )])
 
     monkeypatch.setattr(llm, "_post_json", http)
@@ -282,10 +303,10 @@ def test_duplicate_c_initial_result_does_not_replan_or_transfer(create):
 def test_live_cli_requires_key_and_explicit_llm_mode(tmp_path):
     import os
     env = dict(os.environ, QT_QPA_PLATFORM="offscreen", C_DESIGN_USE_LLM="1")
-    env.pop("OPENAI_API_KEY", None)
+    env.pop("OPENAI_LLM_API_KEY", None)
     command = [sys.executable, "-m", "app.abd_input_hmi", "--synthetic-b", "--c-mode", "live"]
     result = subprocess.run(command, cwd=ROOT, env=env, capture_output=True, text=True, timeout=10)
-    assert result.returncode == 2 and "OPENAI_API_KEY is not set" in result.stderr
+    assert result.returncode == 2 and "OPENAI_LLM_API_KEY is not set" in result.stderr
     env["C_DESIGN_USE_LLM"] = "0"
     result = subprocess.run(command, cwd=ROOT, env=env, capture_output=True, text=True, timeout=10)
     assert result.returncode == 2 and "C_DESIGN_USE_LLM must match" in result.stderr

@@ -1,5 +1,24 @@
 # 직접 결착 연구 개발 인계
 
+## 2026-10-12 integration 기준 갱신
+
+사용자 요청으로 `codex/integration-round1`의 `de59b083ad7a5b2225b372078654d2af3a28255b`
+(PR #24·#26·#27 반영)을 이 작업 브랜치에 병합했다. 기존 연구 기준 `0ca498d`와
+그 이력을 보존했으며, 아래 10/7의 “최신 main 미병합” 설명은 당시 상태 기록이다.
+
+최신 A/B/C, D 진행·HMI, DB·웹 코드는 integration을 따른다. 기존 연구의
+`app/assembly_*.py`·Fixture·Schema·센서 bridge·단위 검사는 보존하고,
+최신 `app.backend.Backend`에 기존 연구 API를 유지했다. 연구의 `world`·완료
+기록은 사용 전 FAKE/driver 없음으로 제한된 별도 진단 상태다. B의 확정
+Current·revision·Expected·공간 판정이나 운영 MVP의 완료 상태를 대신하지 않는다.
+`app.mvp_integration`의 B 결과 소비와 직접 결착 실행에 자동 연결하지 않는다.
+
+`/home/ms-02/C_2`의 기존 브랜치·미커밋 변경은 그대로 보존했다. 갱신 코드는
+자료 폴더의 `work/branch-sync-20261012/assembly`에서 검증했으며, 기존 작업
+폴더에서 무조건 pull/checkout하지 않는다. 새 clone은 위 브랜치명을 사용한다.
+이번 검사 결과·한계는 [STATUS](STATUS.md)의 2026-10-12 브랜치 동기화 기록을 따른다.
+실제 Robot·Camera·마이크·외부 LLM 호출, motion/센서 조회는 수행하지 않았다.
+
 2026-10-07. 개발 브랜치는 `work/suhyun-assembly-evidence`다.
 사용자가 이 브랜치를 다른 PC에서 받아 이어서 개발하도록 게시를 요청했다.
 main 병합이나 기존 ms-02 Day4 작업 폴더 교체는 이번 게시 범위가 아니다.

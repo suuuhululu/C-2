@@ -1,0 +1,412 @@
+--- outputs/red_1x2_support_20261010/a_sim_copy/code/planning_trial/ASSEMBLY_API_05_20261008.txt
++++ planning_trial/ASSEMBLY_API_05_20261008.txt
+@@ -107,7 +107,7 @@
+   매 Step 사용자 승인 추가 없음. D가 활성 조건을 확인해 자동 승인/진행.
+ 
+ 터미널:
+-  cd "/home/rokey/Documents/ChatGPT/협동2"
++  cd <이 저장소를 압축 해제하거나 checkout한 폴더>
+   bash planning_trial/run_user_assembly_05.sh planning_trial/assembly_api_results_user_05_01
+ 
+   Checks: 34/34 PASS, 실행 종료 코드: 0을 확인.
+--- outputs/red_1x2_support_20261010/scripts/sim_host.py
++++ isaac_sim/scripts/sim_host.py
+@@ -11,13 +11,11 @@
+ from scipy.spatial.transform import Rotation
+ 
+ ROOT = Path(__file__).resolve().parents[1]
+-WORK = ROOT.parents[1]
+-PKG = ROOT.parent/'pick_transport_execution_20261008/isaac_pick_transport_20261008_01'
+-ALIGN = ROOT.parent/'moveit_model_alignment_20261010'
++ALIGN = ROOT/'assets'
+ parser=argparse.ArgumentParser();parser.add_argument('--run-dir',type=Path,required=True)
+ parser.add_argument('--headless',action='store_true');parser.add_argument('--auto-start',action='store_true')
+ args=parser.parse_args();out=args.run_dir.resolve();out.mkdir(parents=True,exist_ok=True)
+-cfg=json.loads((ROOT.parent/'robot_avoidance_20261008/contact_config.sim.json').read_text())
++cfg=json.loads((ROOT/'config/contact.sim.json').read_text())
+ model=json.loads((out/'initial.model.json').read_text())
+ selected=next(s for s in model['supply']['slots'] if s['selected'])
+ 
+@@ -25,6 +23,13 @@
+ app=SimulationApp({'headless':args.headless,'width':1440,'height':900})
+ status={'scope':'ISOLATED_SIM_MOVEIT_NATIVE_CONTROL','ready':False,'direct_arm_trajectory_loop':False,
+         'virtual_block_attachment_used':False,'current_revision':model['current']['current_revision']}
++import importlib.metadata
++try:
++    status['isaac_version']=importlib.metadata.version('isaacsim')
++except importlib.metadata.PackageNotFoundError:
++    import os
++    version=Path(os.environ['ISAAC_SIM_ROOT'])/'VERSION'
++    status['isaac_version']=version.read_text().strip() if version.is_file() else 'UNAVAILABLE'
+ 
+ def save(name,data):
+     path=out/name;temp=path.with_suffix(path.suffix+'.tmp')
+--- outputs/red_1x2_support_20261010/scripts/scenario_core.py
++++ isaac_sim/scripts/scenario_core.py
+@@ -3,10 +3,8 @@
+ from copy import deepcopy
+ import sys, json
+ HOME=Path(__file__).resolve().parents[1]
+-AVOID=HOME.parent/'robot_avoidance_20261008'
+-sys.path.insert(0,str(AVOID/'scripts'))
+-PKG=HOME.parent/'pick_transport_execution_20261008/isaac_pick_transport_20261008_01'
+-sys.path.insert(0,str(HOME/'a_sim_copy/code'))
++FIXTURES=HOME/'fixtures'
++sys.path.insert(0,str(HOME.parent))
+ from planning_trial.assembly_adapter import handle_whole_plan,handle_step_reassessment,handle_step_motion
+ from planning_trial.assembly_target import calculate_step_tcp
+ from sim_utils import load,save,pose_matrix
+@@ -16,10 +14,10 @@
+ class Scenario:
+  def __init__(self,out,whole_request=None,reuse=False):
+   self.out=Path(out);self.out.mkdir(parents=True,exist_ok=True)
+-  self.cfg=load(AVOID/'contact_config.sim.json')
+-  self.template_model=load(PKG/'review/initial.model.json')
++  self.cfg=load(HOME/'config/contact.sim.json')
++  self.template_model=load(FIXTURES/'initial.model.json')
+   from planning_trial.supply_pick import calculate_supply_pick
+-  whole=deepcopy(whole_request) if whole_request is not None else load(HOME/'config/whole.complete_first.request.json')
++  whole=deepcopy(whole_request) if whole_request is not None else load(self.out/'whole.request.json' if reuse else HOME/'config/whole.complete_first.request.json')
+   self.design_file=HOME/'config/design.json'
+   whole['context'].update(job_id='chair-moveit-mock-sim',request_id='whole-chair-mock',source_epoch='chair-sim-20261010')
+   whole['frame_profile']['calculation_profiles']['tray']=load(HOME/'config/tray.sim.json')
+@@ -27,12 +25,14 @@
+   whole['context']['frame_profile_version']=whole['frame_profile']['profile_version']
+   self.whole_request=whole;self.baseline=deepcopy(whole['current']);self.current=deepcopy(self.baseline);self.used=[]
+   source_yaw=self.template_model['supply']['slots'][0]['yaw_rad']
+-  for i in range(1,13):
++  has_red='red_extension' in whole['frame_profile']['calculation_profiles']['supply']
++  for i in (range(1,13) if has_red else []):
+    pick=calculate_supply_pick('1x2x1','red',i,profile=whole['frame_profile']['calculation_profiles']['supply'])
+    position=np.array(pick['pickup_tcp_pose']['xyz_abc'][:3])/1000
+    position[2]=.03773+.0095
+    self.template_model['supply']['slots'].append({'slot_id':f'red_1x2x1_{i:02}','slot_index':i,'brick_type':'1x2x1','color':'red','centre_m':position.tolist(),'pickup_tcp_pose':{'xyz_m':[v/1000 for v in pick['pickup_tcp_pose']['xyz_abc'][:3]],'quaternion_xyzw':self.template_model['supply']['slots'][0]['pickup_tcp_pose']['quaternion_xyzw']},'size_m':[.016,.032,.019],'yaw_rad':source_yaw+np.pi/2,'selected':False,'column_index':pick['column_index'],'slot_within_column':pick['slot_within_column'],'grasp_contact':'SMALL_END_SIDE_MIDPOINT','coordinate_status':'DERIVED_FROM_EXISTING_GRID_NOT_RED_TEACH_CALIBRATED'})
+-  self.template_model['red_supply_status']={'count':12,'total_count':36,'layout':whole['frame_profile']['calculation_profiles']['supply']['red_extension'],'physical_grasp_verified':False}
++  if has_red:
++   self.template_model['red_supply_status']={'count':12,'total_count':36,'layout':whole['frame_profile']['calculation_profiles']['supply']['red_extension'],'physical_grasp_verified':False}
+   audit={}
+   wr=load(self.out/'whole.result.json') if reuse else handle_whole_plan(whole,audit=audit)
+   if not reuse:save(self.out/'whole.audit.json',audit)
+@@ -41,7 +41,7 @@
+   self.whole_result=wr;self.plan=wr['planning_result']['plan'];self.actions={a['step_id']:a for a in wr['action_proposals']}
+   if any(a['mode'] not in ('ROBOT_GRIP','HUMAN_ASSEMBLY') for a in self.actions.values()):raise ValueError('Unsupported motion mode; no replacement')
+   if max(b['layer'] for b in whole['design']['blocks'])>4:raise ValueError('Mock Design must be <=4 layers')
+-  save(self.out/'scenario_manifest.json',{'design_source':str(self.design_file),'a_source':str(HOME/'a_sim_copy/code/planning_trial'),'plan_id':self.plan['plan_id'],'baseline_revision':self.baseline['current_revision'],'steps':self.plan['steps'],'completion_mode':'SIM_MOCK_AT_PRECONTACT_NO_PHYSICAL_INSERTION_NO_B_OBSERVATION','real_execution_allowed':False})
++  save(self.out/'scenario_manifest.json',{'design_source':str(self.design_file),'a_source':str(HOME.parent/'planning_trial'),'plan_id':self.plan['plan_id'],'baseline_revision':self.baseline['current_revision'],'steps':self.plan['steps'],'completion_mode':'SIM_MOCK_AT_PRECONTACT_NO_PHYSICAL_INSERTION_NO_B_OBSERVATION','real_execution_allowed':False})
+  def block_model(self,b):
+   s={'step_id':'MODEL','operation':'PLACE','before':None,'after':deepcopy(b),'prerequisites':[],'requires_delivery':True}
+   t=calculate_step_tcp(s,profile=self.whole_request['frame_profile']['calculation_profiles']['assembly'])
+@@ -71,10 +71,10 @@
+   available=[s for s in self.template_model['supply']['slots'] if s['slot_id'] not in self.used and all(s[k]==step['after'][k] for k in ('color','brick_type'))]
+   if not available:raise ValueError('No unconsumed matching supply slot')
+   slot=deepcopy(available[0]);ctx=deepcopy(self.whole_request['context']);ctx.update(plan_id=self.plan['plan_id'],step_id=sid,input_current_revision=self.current['current_revision'],world_state_revision=11+index,request_id='mock-reassessment-'+sid)
+-  ra=load(PKG/'review/source/01_initial/reassessment.request.json');ra.update(context=ctx,design=deepcopy(self.whole_request['design']),plan=deepcopy(self.plan),plan_base_current=deepcopy(self.baseline),expected_current_before_step=deepcopy(self.current),latest_current=deepcopy(self.current),selected_action=deepcopy(self.actions[sid]),policy=deepcopy(self.whole_request['policy']),assembly_context=deepcopy(self.whole_request['assembly_context']),frame_profile=deepcopy(self.whole_request['frame_profile']))
++  ra=load(FIXTURES/'source/01_initial/reassessment.request.json');ra.update(context=ctx,design=deepcopy(self.whole_request['design']),plan=deepcopy(self.plan),plan_base_current=deepcopy(self.baseline),expected_current_before_step=deepcopy(self.current),latest_current=deepcopy(self.current),selected_action=deepcopy(self.actions[sid]),policy=deepcopy(self.whole_request['policy']),assembly_context=deepcopy(self.whole_request['assembly_context']),frame_profile=deepcopy(self.whole_request['frame_profile']))
+   rr=handle_step_reassessment(ra);save(out/'reassessment.request.json',ra);save(out/'reassessment.result.json',rr)
+   if rr['status']!='CANDIDATE':raise ValueError('A reassessment blocked '+str(rr['errors']))
+-  mr=load(PKG/'review/source/01_initial/motion.request.json');mctx=deepcopy(ctx);mctx['request_id']='mock-motion-'+sid
++  mr=load(FIXTURES/'source/01_initial/motion.request.json');mctx=deepcopy(ctx);mctx['request_id']='mock-motion-'+sid
+   mr.update(context=mctx,plan=deepcopy(self.plan),selected_step=deepcopy(step),latest_current=deepcopy(self.current),assessment_id=rr['assessment_id'],assessment_input_digest=rr['assessment_input_digest'],assessment_context=deepcopy(rr['context']),assessment_current_revision=self.current['current_revision'],action_proposal=deepcopy(rr['action_proposal']),assessed_action=deepcopy(rr['action_proposal']),assembly_context=deepcopy(self.whole_request['assembly_context']),frame_profile=deepcopy(self.whole_request['frame_profile']))
+   mr['robot_state'].update(source_epoch=ctx['source_epoch'],state_sequence=index+1,tcp_pose=deepcopy(start),stop_observation_ref='ISAAC_ACTUAL_SIM_STATE_'+sid)
+   mr['reserved_supply_slot'].update(**{k:slot[k] for k in ('slot_id','slot_index','brick_type','color')},reservation_id='mock-reservation-'+sid,reservation_generation=index+1,valid_until_ref='SIM_STEP_ONLY_'+sid)
+--- outputs/red_1x2_support_20261010/scripts/sim_utils.py
++++ isaac_sim/scripts/sim_utils.py
+@@ -5,5 +5,19 @@
+ def save(path,data):
+  path=Path(path);path.parent.mkdir(parents=True,exist_ok=True);temp=path.with_suffix(path.suffix+'.tmp');temp.write_text(json.dumps(data,ensure_ascii=False,indent=2)+'\n');temp.replace(path)
+ def pose_matrix(pose):
+- t=np.eye(4);t[:3,3]=pose['xyz_m'];t[:3,:3]=Rotation.from_quat(pose['quaternion_xyzw']).as_matrix();return t
++ t=np.eye(4);t[:3,3]=pose['xyz_m'];t[:3,:3]=Rotation.from_quat(pose['quaternion_xyzw']).as_matrix();return rigid(t)
+ def error(a,b):return [float(np.linalg.norm(a[:3,3]-b[:3,3])),float(Rotation.from_matrix(b[:3,:3].T@a[:3,:3]).magnitude())]
++
++def rigid(value):
++    value = np.asarray(value, dtype=float)
++    if value.shape != (4, 4) or not np.isfinite(value).all():
++        raise ValueError('Expected a finite 4x4 rigid transform')
++    if not np.allclose(value[3], [0, 0, 0, 1], atol=1e-9):
++        raise ValueError('Invalid homogeneous transform row')
++    rotation = value[:3, :3]
++    if not np.allclose(rotation.T @ rotation, np.eye(3), atol=1e-9) or not np.isclose(np.linalg.det(rotation), 1, atol=1e-9):
++        raise ValueError('Expected a proper rotation, without scale/reflection')
++    return value
++
++def matrix_pose(t):
++ return {"frame_id":"base_link","xyz_m":t[:3,3].tolist(),"quaternion_xyzw":Rotation.from_matrix(t[:3,:3]).as_quat().tolist()}
+--- outputs/red_1x2_support_20261010/scripts/runtime_guard.py
++++ isaac_sim/scripts/runtime_guard.py
+@@ -1,10 +1,6 @@
+ """Independent FCL checks using actual USD rigid-body and held-block poses."""
+-from pathlib import Path
+-import sys
+ import numpy as np
+ from scipy.spatial.transform import Rotation
+-ROOT=Path(__file__).resolve().parents[1]
+-sys.path.insert(0,str(ROOT.parent/'robot_avoidance_20261008/scripts'))
+ from route_collision import fcl
+ from scenario_collision import Scene as BaseScene
+ 
+--- outputs/red_1x2_support_20261010/scripts/prepare_scenario.py
++++ isaac_sim/scripts/prepare_scenario.py
+@@ -3,7 +3,7 @@
+ from scenario_core import Scenario
+ from sim_utils import save,load
+ from copy import deepcopy
+-p=argparse.ArgumentParser();p.add_argument('--run-dir',required=True,type=Path);p.add_argument('--manual-regression-from',type=Path);a=p.parse_args()
++p=argparse.ArgumentParser();p.add_argument('--run-dir',required=True,type=Path);p.add_argument('--manual-regression-from',type=Path);p.add_argument('--whole-request',type=Path);a=p.parse_args()
+ start=0
+ if a.manual_regression_from:
+  previous=load(a.manual_regression_from/'status.json')
+@@ -14,7 +14,7 @@
+  s.current=deepcopy(s.baseline);s.current['blocks']=[deepcopy(v['after']) for v in s.plan['steps'][:start]];s.current['current_revision']=start;s.used=[v['slot_id'] for v in previous['steps'][:start]]
+  q=load(a.manual_regression_from/'S10/OPEN_RESET.actual.json')['q_rad']
+  save(a.run_dir/'fixture_seed.json',{'source_run':str(a.manual_regression_from.resolve()),'kind':'MOCK_CURRENT_PREFIX_SEEDED_NOT_EXECUTED_IN_THIS_RUN','start_index':start,'current':s.current,'used_slots':s.used,'initial_q_rad':q,'base_current_revision':s.baseline['current_revision']})
+-else:s=Scenario(a.run_dir)
++else:s=Scenario(a.run_dir,whole_request=load(a.whole_request) if a.whole_request else None)
+ step=s.plan['steps'][start]
+ slot=next(v for v in s.template_model['supply']['slots'] if v['slot_id'] not in s.used and all(v[k]==step['after'][k] for k in ('color','brick_type')))
+ save(a.run_dir/'initial.model.json',s.model(step,slot));print('READY',len(s.plan['steps']),'steps',s.plan['plan_id'])
+--- outputs/red_1x2_support_20261010/scripts/test_hand_review.py
++++ isaac_sim/scripts/test_hand_review.py
+@@ -3,7 +3,7 @@
+ from copy import deepcopy
+ from pathlib import Path
+ ROOT=Path(__file__).resolve().parents[1]
+-sys.path.insert(0,str(ROOT/'a_sim_copy/code'))
++sys.path.insert(0,str(ROOT.parent))
+ from planning_trial.assembly_geometry import hand_options,manual_approach_top_options,body_box,paired_hand_options
+ from planning_trial.assembly_adapter import handle_whole_plan
+ REQ=json.loads((ROOT/'config/whole.hand_review.request.json').read_text())
+--- outputs/red_1x2_support_20261010/scripts/test_completion_priority.py
++++ isaac_sim/scripts/test_completion_priority.py
+@@ -3,7 +3,7 @@
+ from copy import deepcopy
+ from pathlib import Path
+ ROOT=Path(__file__).resolve().parents[1]
+-sys.path.insert(0,str(ROOT/'a_sim_copy/code'))
++sys.path.insert(0,str(ROOT.parent))
+ from planning_trial.assembly_adapter import handle_whole_plan
+ from planning_trial.planner import validate_plan
+ REQ=json.loads((ROOT/'config/whole.chair.regression.request.json').read_text())
+--- outputs/red_1x2_support_20261010/scripts/test_red_supply.py
++++ isaac_sim/scripts/test_red_supply.py
+@@ -3,7 +3,7 @@
+ from pathlib import Path
+ import pytest
+ ROOT=Path(__file__).resolve().parents[1]
+-sys.path.insert(0,str(ROOT/'a_sim_copy/code'))
++sys.path.insert(0,str(ROOT.parent))
+ from planning_trial.supply_pick import calculate_supply_pick,calculate_all_supply_picks,load_supply_profile,relative_centres
+ from planning_trial.assembly_geometry import grip_options
+ from planning_trial.assembly_target import calculate_step_tcp
+@@ -44,7 +44,7 @@
+ 
+ def test_all_slots_model_and_last_red_wire_motion_candidate(tmp_path):
+  scenario=Scenario(tmp_path);assert len(scenario.template_model['supply']['slots'])==36
+- original=json.loads((ROOT.parent/'pick_transport_execution_20261008/isaac_pick_transport_20261008_01/review/initial.model.json').read_text())
++ original=json.loads((ROOT/'fixtures/initial.model.json').read_text())
+  assert scenario.template_model['supply']['slots'][:24]==original['supply']['slots']
+  start={'frame_id':'base_link','xyz_m':[.3,0,.2],'quaternion_xyzw':[0,1,0,0]}
+  step,slot,model,result,folder=scenario.prepare(0,start,[])
+--- outputs/red_1x2_support_20261010/scripts/check_chair.py
++++ isaac_sim/scripts/check_chair.py
+@@ -2,6 +2,8 @@
+ from pathlib import Path
+ import argparse,json,hashlib,math,xml.etree.ElementTree as ET
+ import yaml,numpy as np
++from ament_index_python.packages import get_package_share_directory
++from sim_utils import pose_matrix,error
+ ROOT=Path(__file__).resolve().parents[1]
+ def load(p):return yaml.load(p.read_text(),Loader=yaml.CSafeLoader)
+ def main():
+@@ -37,6 +39,9 @@
+    rejected=load(folder/'LIFT_A_candidate_rejected/LIFT.result.yaml');override=row['lift_intermediate_override']
+    check(sid+' failed high lift not executed and clearance fallback recorded',not rejected.get('execution_issued') and not rejected.get('execution_success') and rejected['cartesian_fraction']<1 and override['sim_clearance_lift']['xyz_m'][2]<override['original_a_lift']['xyz_m'][2] and load(folder/'LIFT.request.yaml')['goal']==override['sim_clearance_lift'])
+   if row['action_mode']=='HUMAN_ASSEMBLY':
++   opening=load(folder/'OPEN_RESET.actual.json');policy=row.get('tray_open_at_wait',{})
++   pe,re=error(pose_matrix(opening['tcp_pose']),pose_matrix(row['a_wait_goal']))
++   check(sid+' open at tray wait before arm retreat',policy.get('policy')=='OPEN_AT_REACHED_TRAY_TCP_BEFORE_ARM_RETREAT' and policy.get('physical_drop_verified') is False and pe<=.002 and re<=math.radians(1) and (folder/'tray_open_at_wait.json').exists())
+    h=load(folder/'MANUAL_ASSEMBLY_DONE.hmi.json');keys=('request_id','kind','plan_id','step_id','current_revision')
+    check(sid+' handover and bound human mock response',row['destination']=='HANDOVER_TRAY' and row['tray_mock_release'] and all(h['request'][k]==h['response'][k] for k in keys) and h['request']['current_revision']==i and h['response']['source'] in ('AUTO_MOCK_RESPONSE','USER_MOCK_CONFIRMATION') and (run/(sid+'_tray_delivered.png')).exists())
+   else:
+@@ -49,11 +54,10 @@
+   try:collisions.append(json.loads(line))
+   except json.JSONDecodeError:pass
+  check('Actual pose collision guard clean',bool(collisions) and all(not r['hits'] and not r.get('context_error') and r['holding_drift_m_rad'][0]<=.005 and r['holding_drift_m_rad'][1]<=.15 for r in collisions) and not (run/'runtime_guard_failure.json').exists(),{'samples':len(collisions)})
+- hashes=load(ROOT/'runtime_reports/original_source_hashes.json');changed=[name for name,digest in hashes.items() if hashlib.sha256(Path(name).read_bytes()).hexdigest()!=digest]
++ hashes=load(ROOT/'fixtures/protected_sources.json');changed=[name for name,digest in hashes.items() if hashlib.sha256((ROOT/name).read_bytes()).hexdigest()!=digest]
+  check('Original A preserved',not changed,changed)
+- hashes=load(ROOT.parent/'moveit_model_alignment_20261010/runtime_reports/protected_sources.before.json');changed=[name for name,digest in hashes.items() if hashlib.sha256(Path(name).read_bytes()).hexdigest()!=digest]
+- check('Original robot/input assets preserved',not changed,changed)
+- report={'all_pass':all(c['pass'] for c in checks),'checks':checks,'run':str(run),'isaac_version':Path('/home/ms-02/isaacsim/VERSION').read_text().strip(),'moveit_version':ET.parse('/opt/ros/jazzy/share/moveit_core/package.xml').getroot().findtext('version'),'physical_fit_verified':False,'real_human_access_verified':False,'continuous_swept_collision_proof':False,'runtime_sampling_sim_s':.1,'post_timing_joint_interval_rad':.001,'completed_count':len(steps),'scenario_wall_s':status.get('scenario_wall_s')}
++ report={'all_pass':all(c['pass'] for c in checks),'checks':checks,'run':str(run),'isaac_version':host.get('isaac_version','UNAVAILABLE'),'moveit_version':ET.parse(Path(get_package_share_directory('moveit_core'))/'package.xml').getroot().findtext('version'),'physical_fit_verified':False,'real_human_access_verified':False,'continuous_swept_collision_proof':False,'runtime_sampling_sim_s':.1,'post_timing_joint_interval_rad':.001,'completed_count':len(steps),'scenario_wall_s':status.get('scenario_wall_s')}
++ (ROOT/'runtime_reports').mkdir(exist_ok=True)
+  (ROOT/'runtime_reports/verification.json').write_text(json.dumps(report,ensure_ascii=False,indent=2)+'\n')
+  print(('PASS' if report['all_pass'] else 'FAIL'),sum(c['pass'] for c in checks),'/',len(checks))
+  for c in checks:
+--- outputs/red_1x2_support_20261010/scripts/check_red_run.py
++++ isaac_sim/scripts/check_red_run.py
+@@ -26,9 +26,10 @@
+   try:records.append(json.loads(line))
+   except json.JSONDecodeError:pass
+  check('Actual-pose collision guard clean',bool(records) and all(not v['hits'] and not v.get('context_error') for v in records) and not (r/'runtime_guard_failure.json').exists(),{'samples':len(records)})
+- hashes=load(ROOT/'runtime_reports/original_source_hashes.json');check('Original A input/calibration preserved',all(hashlib.sha256(Path(n).read_bytes()).hexdigest()==d for n,d in hashes.items()))
++ hashes=load(ROOT/'fixtures/protected_sources.json');check('Original A input/calibration preserved',all(hashlib.sha256((ROOT/n).read_bytes()).hexdigest()==d for n,d in hashes.items()))
+  check('Supply/lift/wait/final captures',all((r/(name+'.png')).exists() for name in ('red_supply_initial','S01_lift','S01_wait','chair_completed')))
+  report={'all_pass':all(v['pass'] for v in checks),'checks':checks,'run':str(r),'a_fixture':'Single red1x2 orientation90 layer1; original chair design preserved separately','red_slots_calculated':12,'red_slots_physically_simulated':1,'source_total':36,'tcp_error_mm':row['tcp_error_m_rad'][0]*1000,'angle_error_deg':math.degrees(row['tcp_error_m_rad'][1]),'gap_mm':row['bottom_to_lower_stud_tip_gap_m']*1000,'physical_insertion':False,'red_real_calibration_verified':False,'real_robot_execution':False,'scenario_wall_s':s['scenario_wall_s']}
++ (ROOT/'runtime_reports').mkdir(exist_ok=True)
+  (ROOT/'runtime_reports/verification.json').write_text(json.dumps(report,ensure_ascii=False,indent=2)+'\n');print(('PASS' if report['all_pass'] else 'FAIL'),sum(v['pass'] for v in checks),'/',len(checks))
+  for v in checks:
+   if not v['pass']:print(v['name'],v['evidence'])
+--- outputs/red_1x2_support_20261010/scripts/check_handover_lift.py
++++ isaac_sim/scripts/check_handover_lift.py
+@@ -28,9 +28,10 @@
+   try:collisions.append(json.loads(line))
+   except json.JSONDecodeError:pass
+  check('Actual-pose guard clean',bool(collisions) and all(not v['hits'] and not v.get('context_error') for v in collisions) and not (run/'runtime_guard_failure.json').exists(),{'samples':len(collisions)})
+- hashes=load(ROOT/'runtime_reports/original_source_hashes.json');check('Original A preserved',all(hashlib.sha256(Path(n).read_bytes()).hexdigest()==d for n,d in hashes.items()))
++ hashes=load(ROOT/'fixtures/protected_sources.json');check('Original A preserved',all(hashlib.sha256((ROOT/n).read_bytes()).hexdigest()==d for n,d in hashes.items()))
+  check('Final mock Current12; physical assembly not claimed',s['mock_current']['current_revision']==12 and len(s['mock_current']['blocks'])==12 and not s['physical_insertion_executed'] and not s['real_B_observation'] and not s['real_human_help_verified'])
+  report={'all_pass':all(c['pass'] for c in checks),'checks':checks,'run':str(run),'newly_executed_steps':['S11','S12'],'seeded_prefix_count':10,'selected_lift_m':.1,'physical_insertion':False,'real_human_completion':False,'wall_s':s.get('scenario_wall_s')}
++ (ROOT/'runtime_reports').mkdir(exist_ok=True)
+  (ROOT/'runtime_reports/handover_100mm_verification.json').write_text(json.dumps(report,ensure_ascii=False,indent=2)+'\n')
+  print(('PASS' if report['all_pass'] else 'FAIL'),sum(c['pass'] for c in checks),'/',len(checks))
+  for c in checks:
+--- outputs/robot_avoidance_20261008/scripts/route_collision.py
++++ isaac_sim/scripts/route_collision.py
+@@ -2,16 +2,14 @@
+ Explicit connected-link and grasp contact exclusions. No hardware access.
+ """
+ from pathlib import Path
+-import sys,struct,xml.etree.ElementTree as ET
++import struct,xml.etree.ElementTree as ET
+ import numpy as np
+ from scipy.spatial.transform import Rotation
+ from scipy.spatial import ConvexHull
+ HERE=Path(__file__).resolve().parents[1]
+-WORKSPACE=HERE.parents[1]
+-PKG=HERE.parent/'pick_transport_execution_20261008/isaac_pick_transport_20261008_01'
+-sys.path[:0]=[str(HERE/'python_deps'),str(WORKSPACE/'work/collision_route_deps'),str(HERE.parent/'pick_transport_execution_20261008/gpu_tools/python_deps'),str(PKG),'/home/ms-02/isaacsim/exts/isaacsim.asset.importer.urdf/pip_prebundle']
++ROBOT_ASSETS=HERE/'assets/original_robot'
+ import fcl,collada
+-from sim_core import pose_matrix,matrix_pose
++from sim_utils import pose_matrix,matrix_pose
+ 
+ def origin(item):
+  t=np.eye(4);o=item.find('origin')
+@@ -28,7 +26,7 @@
+ 
+ class Scene:
+  def __init__(self,model):
+-  self.model=model;self.urdf=ET.parse(PKG/'robot_assets/m0609_rg2.urdf').getroot();self.joints=self.urdf.findall('joint');self.parts=[];self.exclusions=[]
++  self.model=model;self.urdf=ET.parse(ROBOT_ASSETS/'m0609_rg2.urdf').getroot();self.joints=self.urdf.findall('joint');self.parts=[];self.exclusions=[]
+   self.parent={j.find('child').get('link'):j.find('parent').get('link') for j in self.joints}
+   # Connected links can intersect at their bearing/joint. Fixed links collapse into one body.
+   self.body={l.get('name'):l.get('name') for l in self.urdf.findall('link')}
+@@ -39,7 +37,7 @@
+    for idx,col in enumerate(link.findall('collision')):
+     m=col.find('geometry/mesh')
+     if m is None:continue
+-    p=PKG/'robot_assets'/m.get('filename')
++    p=ROBOT_ASSETS/m.get('filename')
+     if p.suffix=='.dae':
+      cm=collada.Collada(str(p));vertices=[]
+      for ob in cm.scene.objects('geometry'):
+--- outputs/moveit_model_alignment_20261010/aligned_robot.sim.usda
++++ isaac_sim/assets/aligned_robot.sim.usda
+@@ -98,7 +98,7 @@
+ def Xform "World"
+ {
+     def Xform "Robot" (
+-        prepend references = @/home/ms-02/Documents/Codex/2026-10-08/saac-sim-a-planning-pc-isaac/outputs/moveit_model_alignment_20261010/isaac_asset/m0609_rg2_sim_isaac_1/m0609_rg2_sim_isaac.usda@</m0609_rg2>
++        prepend references = @./isaac_robot/m0609_rg2_sim_isaac.usda@</m0609_rg2>
+         variants = {
+             string Physics = "physx"
+         }
+--- outputs/moveit_chair_assembly_20261010/BUILD.sh
++++ isaac_sim/BUILD.sh
+@@ -2,6 +2,7 @@
+ set -eo pipefail
+ ROOT=$(cd "$(dirname "$0")" && pwd)
+ cd "$ROOT"
+-source /opt/ros/jazzy/setup.bash
+-python3 scripts/prepare_config.py
++export PYTHONPATH="$ROOT/python_deps${PYTHONPATH:+:$PYTHONPATH}"
++source "${ROS_SETUP_PATH:-/opt/ros/jazzy/setup.bash}"
++"${SIM_PYTHON:-python3}" scripts/prepare_config.py
+ colcon --log-base ros_ws/log build --base-paths ros_ws/src --build-base ros_ws/build --install-base ros_ws/install --cmake-args -DCMAKE_BUILD_TYPE=Release
+--- outputs/red_1x2_support_20261010/RUN_SIM.sh
++++ isaac_sim/RUN_SIM.sh
+@@ -2,27 +2,44 @@
+ set -eo pipefail
+ ROOT=$(cd "$(dirname "$0")" && pwd)
+ cd "$ROOT"
+-source /opt/ros/jazzy/setup.bash
+-source "../moveit_chair_assembly_20261010/ros_ws/install/setup.bash"
+-export ROS_DOMAIN_ID=77 ROS_AUTOMATIC_DISCOVERY_RANGE=LOCALHOST
++if [ "${1:-}" = --help ]; then
++ echo 'RUN_SIM.sh [--scenario red|chair] [--headless] [--auto-start] [--auto-human]'
++ echo 'Set ISAAC_SIM_ROOT, ROS_SETUP_PATH, SIM_PYTHON as needed. Build with bash BUILD.sh first.'
++ exit 0
++fi
++export ISAAC_SIM_ROOT="${ISAAC_SIM_ROOT:-$HOME/isaacsim}"
++SIM_PYTHON="${SIM_PYTHON:-python3}"
++export PYTHONPATH="$ROOT/python_deps${PYTHONPATH:+:$PYTHONPATH}"
++[ -x "$ISAAC_SIM_ROOT/python.sh" ] || { echo "Isaac python.sh missing: $ISAAC_SIM_ROOT"; exit 1; }
++[ -f "$ROOT/ros_ws/install/setup.bash" ] || { echo 'Local ROS build missing; run bash BUILD.sh first'; exit 1; }
++source "${ROS_SETUP_PATH:-/opt/ros/jazzy/setup.bash}"
++source "$ROOT/ros_ws/install/setup.bash"
++export ROS_DOMAIN_ID="${ROS_DOMAIN_ID:-77}" ROS_AUTOMATIC_DISCOVERY_RANGE=LOCALHOST
+ exec 9>"$ROOT/session.lock"
+ flock -n 9 || { echo 'Chair SIM already running'; exit 1; }
+ if ros2 service list --no-daemon --spin-time 2 | rg -q '^/get_planning_scene$'; then
+- echo 'An isolated domain77 MoveIt session is already active'; exit 1
++ echo "An isolated domain $ROS_DOMAIN_ID MoveIt session is already active"; exit 1
+ fi
+ HOST_ARGS=()
+ ADAPTER_ARGS=()
+ PREP_ARGS=()
++SCENARIO=red
+ while [ "$#" -gt 0 ]; do
+  value=$1;shift
+  if [ "$value" = --auto-human ]; then ADAPTER_ARGS+=(--auto-human)
+  elif [ "$value" = --manual-regression-from ]; then PREP_ARGS+=("$value" "$1");shift
++ elif [ "$value" = --scenario ]; then SCENARIO=$1;shift
+  else HOST_ARGS+=("$value"); fi
+ done
++case "$SCENARIO" in
++ red) PREP_ARGS+=(--whole-request "$ROOT/config/whole.complete_first.request.json");;
++ chair) PREP_ARGS+=(--whole-request "$ROOT/config/whole.chair.regression.request.json");;
++ *) echo 'Scenario must be red or chair';exit 1;;
++esac
+ RUN="$ROOT/runs/chair_$(TZ=Asia/Seoul date +%Y%m%d_%H%M%S)"
+ mkdir -p "$RUN"
+ printf '%s\n' "$RUN" > latest_run.txt
+-python3 scripts/prepare_scenario.py --run-dir "$RUN" "${PREP_ARGS[@]}" >"$RUN/prepare.log" 2>&1
++"$SIM_PYTHON" scripts/prepare_scenario.py --run-dir "$RUN" "${PREP_ARGS[@]}" >"$RUN/prepare.log" 2>&1
+ SIM_PID= MOVEIT_PID= ADAPTER_PID=
+ cleanup() {
+  [ -z "$ADAPTER_PID" ] || kill -TERM -- "-$ADAPTER_PID" 2>/dev/null || true
+@@ -32,11 +49,11 @@
+ trap cleanup EXIT INT TERM
+ (
+  exec 9>&-
+- export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:/home/ms-02/isaacsim/exts/isaacsim.ros2.core/jazzy/lib"
+- exec /home/ms-02/isaacsim/python.sh scripts/sim_host.py --run-dir "$RUN" "${HOST_ARGS[@]}"
++ export LD_LIBRARY_PATH="${LD_LIBRARY_PATH:+$LD_LIBRARY_PATH:}$ISAAC_SIM_ROOT/exts/isaacsim.ros2.core/jazzy/lib"
++ exec "$ISAAC_SIM_ROOT/python.sh" scripts/sim_host.py --run-dir "$RUN" "${HOST_ARGS[@]}"
+ ) >"$RUN/host.log" 2>&1 &
+ SIM_PID=$!
+-python3 - "$RUN" "$SIM_PID" <<'PY'
++"$SIM_PYTHON" - "$RUN" "$SIM_PID" <<'PY'
+ import json,os,sys,time
+ from pathlib import Path
+ run=Path(sys.argv[1]);pid=int(sys.argv[2]);end=time.monotonic()+100
+@@ -49,7 +66,7 @@
+ PY
+ setsid ros2 launch m0609_moveit_sim sim_moveit.launch.py root:="$ROOT" >"$RUN/move_group.log" 2>&1 9>&- &
+ MOVEIT_PID=$!
+-setsid python3 scripts/run_chair.py --run-dir "$RUN" "${ADAPTER_ARGS[@]}" >"$RUN/adapter.log" 2>&1 9>&- &
++setsid "$SIM_PYTHON" scripts/run_chair.py --run-dir "$RUN" "${ADAPTER_ARGS[@]}" >"$RUN/adapter.log" 2>&1 9>&- &
+ ADAPTER_PID=$!
+ printf 'Chair SIM ready: %s\n' "$RUN"
+ wait "$SIM_PID"
