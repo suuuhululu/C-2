@@ -1,0 +1,840 @@
+{
+  "source": "/home/roh/C-2/perception/recordings/supply_board_roi/20261012T002844481743Z/rgb.png",
+  "image_size": [
+    1280,
+    720
+  ],
+  "purpose": "TOP_FACE_LABEL_REVIEW",
+  "method": "visually_placed_polygon_draft_drawn_with_opencv",
+  "status": "UNREVIEWED_NOT_TRAINING_GT",
+  "annotations": [
+    {
+      "id": 1,
+      "class_name": "yellow_2x2",
+      "top_polygon_uv": [
+        [
+          293,
+          95
+        ],
+        [
+          347,
+          95
+        ],
+        [
+          348,
+          150
+        ],
+        [
+          293,
+          150
+        ]
+      ],
+      "reviewed": false
+    },
+    {
+      "id": 2,
+      "class_name": "yellow_2x2",
+      "top_polygon_uv": [
+        [
+          413,
+          95
+        ],
+        [
+          466,
+          95
+        ],
+        [
+          468,
+          151
+        ],
+        [
+          414,
+          151
+        ]
+      ],
+      "reviewed": false
+    },
+    {
+      "id": 3,
+      "class_name": "yellow_2x2",
+      "top_polygon_uv": [
+        [
+          513,
+          96
+        ],
+        [
+          567,
+          95
+        ],
+        [
+          567,
+          151
+        ],
+        [
+          514,
+          151
+        ]
+      ],
+      "reviewed": false
+    },
+    {
+      "id": 4,
+      "class_name": "yellow_2x2",
+      "top_polygon_uv": [
+        [
+          631,
+          95
+        ],
+        [
+          685,
+          95
+        ],
+        [
+          685,
+          150
+        ],
+        [
+          631,
+          150
+        ]
+      ],
+      "reviewed": false
+    },
+    {
+      "id": 5,
+      "class_name": "yellow_2x2",
+      "top_polygon_uv": [
+        [
+          739,
+          99
+        ],
+        [
+          793,
+          99
+        ],
+        [
+          792,
+          151
+        ],
+        [
+          738,
+          151
+        ]
+      ],
+      "reviewed": false
+    },
+    {
+      "id": 6,
+      "class_name": "yellow_2x2",
+      "top_polygon_uv": [
+        [
+          850,
+          95
+        ],
+        [
+          904,
+          94
+        ],
+        [
+          902,
+          148
+        ],
+        [
+          849,
+          149
+        ]
+      ],
+      "reviewed": false
+    },
+    {
+      "id": 7,
+      "class_name": "yellow_2x3",
+      "top_polygon_uv": [
+        [
+          291,
+          180
+        ],
+        [
+          345,
+          181
+        ],
+        [
+          342,
+          263
+        ],
+        [
+          289,
+          261
+        ]
+      ],
+      "reviewed": false
+    },
+    {
+      "id": 8,
+      "class_name": "yellow_2x3",
+      "top_polygon_uv": [
+        [
+          413,
+          182
+        ],
+        [
+          464,
+          183
+        ],
+        [
+          466,
+          263
+        ],
+        [
+          412,
+          263
+        ]
+      ],
+      "reviewed": false
+    },
+    {
+      "id": 9,
+      "class_name": "yellow_2x3",
+      "top_polygon_uv": [
+        [
+          518,
+          180
+        ],
+        [
+          572,
+          180
+        ],
+        [
+          572,
+          260
+        ],
+        [
+          518,
+          260
+        ]
+      ],
+      "reviewed": false
+    },
+    {
+      "id": 10,
+      "class_name": "yellow_2x3",
+      "top_polygon_uv": [
+        [
+          632,
+          180
+        ],
+        [
+          685,
+          179
+        ],
+        [
+          685,
+          261
+        ],
+        [
+          632,
+          262
+        ]
+      ],
+      "reviewed": false
+    },
+    {
+      "id": 11,
+      "class_name": "yellow_2x3",
+      "top_polygon_uv": [
+        [
+          739,
+          180
+        ],
+        [
+          790,
+          180
+        ],
+        [
+          790,
+          261
+        ],
+        [
+          738,
+          261
+        ]
+      ],
+      "reviewed": false
+    },
+    {
+      "id": 12,
+      "class_name": "yellow_2x3",
+      "top_polygon_uv": [
+        [
+          852,
+          179
+        ],
+        [
+          905,
+          178
+        ],
+        [
+          904,
+          257
+        ],
+        [
+          851,
+          258
+        ]
+      ],
+      "reviewed": false
+    },
+    {
+      "id": 13,
+      "class_name": "blue_2x2",
+      "top_polygon_uv": [
+        [
+          294,
+          317
+        ],
+        [
+          348,
+          316
+        ],
+        [
+          348,
+          368
+        ],
+        [
+          294,
+          368
+        ]
+      ],
+      "reviewed": false
+    },
+    {
+      "id": 14,
+      "class_name": "blue_2x2",
+      "top_polygon_uv": [
+        [
+          408,
+          321
+        ],
+        [
+          462,
+          319
+        ],
+        [
+          462,
+          371
+        ],
+        [
+          408,
+          372
+        ]
+      ],
+      "reviewed": false
+    },
+    {
+      "id": 15,
+      "class_name": "blue_2x2",
+      "top_polygon_uv": [
+        [
+          525,
+          318
+        ],
+        [
+          578,
+          318
+        ],
+        [
+          578,
+          370
+        ],
+        [
+          525,
+          370
+        ]
+      ],
+      "reviewed": false
+    },
+    {
+      "id": 16,
+      "class_name": "blue_2x2",
+      "top_polygon_uv": [
+        [
+          634,
+          317
+        ],
+        [
+          687,
+          317
+        ],
+        [
+          687,
+          368
+        ],
+        [
+          634,
+          369
+        ]
+      ],
+      "reviewed": false
+    },
+    {
+      "id": 17,
+      "class_name": "blue_2x2",
+      "top_polygon_uv": [
+        [
+          742,
+          317
+        ],
+        [
+          795,
+          318
+        ],
+        [
+          794,
+          368
+        ],
+        [
+          741,
+          368
+        ]
+      ],
+      "reviewed": false
+    },
+    {
+      "id": 18,
+      "class_name": "blue_2x2",
+      "top_polygon_uv": [
+        [
+          854,
+          320
+        ],
+        [
+          906,
+          320
+        ],
+        [
+          906,
+          370
+        ],
+        [
+          854,
+          370
+        ]
+      ],
+      "reviewed": false
+    },
+    {
+      "id": 19,
+      "class_name": "blue_2x3",
+      "top_polygon_uv": [
+        [
+          299,
+          405
+        ],
+        [
+          353,
+          405
+        ],
+        [
+          353,
+          483
+        ],
+        [
+          299,
+          483
+        ]
+      ],
+      "reviewed": false
+    },
+    {
+      "id": 20,
+      "class_name": "blue_2x3",
+      "top_polygon_uv": [
+        [
+          411,
+          404
+        ],
+        [
+          464,
+          405
+        ],
+        [
+          463,
+          483
+        ],
+        [
+          410,
+          482
+        ]
+      ],
+      "reviewed": false
+    },
+    {
+      "id": 21,
+      "class_name": "blue_2x3",
+      "top_polygon_uv": [
+        [
+          522,
+          402
+        ],
+        [
+          572,
+          402
+        ],
+        [
+          573,
+          481
+        ],
+        [
+          521,
+          481
+        ]
+      ],
+      "reviewed": false
+    },
+    {
+      "id": 22,
+      "class_name": "blue_2x3",
+      "top_polygon_uv": [
+        [
+          635,
+          401
+        ],
+        [
+          682,
+          397
+        ],
+        [
+          689,
+          475
+        ],
+        [
+          642,
+          480
+        ]
+      ],
+      "reviewed": false
+    },
+    {
+      "id": 23,
+      "class_name": "blue_2x3",
+      "top_polygon_uv": [
+        [
+          746,
+          408
+        ],
+        [
+          796,
+          409
+        ],
+        [
+          795,
+          486
+        ],
+        [
+          745,
+          486
+        ]
+      ],
+      "reviewed": false
+    },
+    {
+      "id": 24,
+      "class_name": "blue_2x3",
+      "top_polygon_uv": [
+        [
+          853,
+          408
+        ],
+        [
+          904,
+          409
+        ],
+        [
+          904,
+          488
+        ],
+        [
+          853,
+          487
+        ]
+      ],
+      "reviewed": false
+    },
+    {
+      "id": 25,
+      "class_name": "red_2x1",
+      "top_polygon_uv": [
+        [
+          299,
+          545
+        ],
+        [
+          351,
+          543
+        ],
+        [
+          352,
+          569
+        ],
+        [
+          300,
+          570
+        ]
+      ],
+      "reviewed": false
+    },
+    {
+      "id": 26,
+      "class_name": "red_2x1",
+      "top_polygon_uv": [
+        [
+          415,
+          549
+        ],
+        [
+          468,
+          548
+        ],
+        [
+          467,
+          573
+        ],
+        [
+          415,
+          573
+        ]
+      ],
+      "reviewed": false
+    },
+    {
+      "id": 27,
+      "class_name": "red_2x1",
+      "top_polygon_uv": [
+        [
+          519,
+          544
+        ],
+        [
+          569,
+          545
+        ],
+        [
+          568,
+          569
+        ],
+        [
+          518,
+          568
+        ]
+      ],
+      "reviewed": false
+    },
+    {
+      "id": 28,
+      "class_name": "red_2x1",
+      "top_polygon_uv": [
+        [
+          634,
+          541
+        ],
+        [
+          683,
+          541
+        ],
+        [
+          683,
+          566
+        ],
+        [
+          634,
+          566
+        ]
+      ],
+      "reviewed": false
+    },
+    {
+      "id": 29,
+      "class_name": "red_2x1",
+      "top_polygon_uv": [
+        [
+          743,
+          537
+        ],
+        [
+          794,
+          538
+        ],
+        [
+          794,
+          562
+        ],
+        [
+          743,
+          562
+        ]
+      ],
+      "reviewed": false
+    },
+    {
+      "id": 30,
+      "class_name": "red_2x1",
+      "top_polygon_uv": [
+        [
+          856,
+          545
+        ],
+        [
+          907,
+          540
+        ],
+        [
+          909,
+          565
+        ],
+        [
+          859,
+          571
+        ]
+      ],
+      "reviewed": false
+    },
+    {
+      "id": 31,
+      "class_name": "red_2x1",
+      "top_polygon_uv": [
+        [
+          299,
+          631
+        ],
+        [
+          350,
+          628
+        ],
+        [
+          352,
+          652
+        ],
+        [
+          299,
+          658
+        ]
+      ],
+      "reviewed": false
+    },
+    {
+      "id": 32,
+      "class_name": "red_2x1",
+      "top_polygon_uv": [
+        [
+          416,
+          633
+        ],
+        [
+          467,
+          632
+        ],
+        [
+          469,
+          655
+        ],
+        [
+          416,
+          660
+        ]
+      ],
+      "reviewed": false
+    },
+    {
+      "id": 33,
+      "class_name": "red_2x1",
+      "top_polygon_uv": [
+        [
+          529,
+          631
+        ],
+        [
+          580,
+          628
+        ],
+        [
+          581,
+          652
+        ],
+        [
+          530,
+          658
+        ]
+      ],
+      "reviewed": false
+    },
+    {
+      "id": 34,
+      "class_name": "red_2x1",
+      "top_polygon_uv": [
+        [
+          636,
+          632
+        ],
+        [
+          683,
+          632
+        ],
+        [
+          684,
+          656
+        ],
+        [
+          636,
+          657
+        ]
+      ],
+      "reviewed": false
+    },
+    {
+      "id": 35,
+      "class_name": "red_2x1",
+      "top_polygon_uv": [
+        [
+          745,
+          623
+        ],
+        [
+          791,
+          626
+        ],
+        [
+          791,
+          649
+        ],
+        [
+          745,
+          646
+        ]
+      ],
+      "reviewed": false
+    },
+    {
+      "id": 36,
+      "class_name": "red_2x1",
+      "top_polygon_uv": [
+        [
+          856,
+          625
+        ],
+        [
+          903,
+          625
+        ],
+        [
+          906,
+          649
+        ],
+        [
+          859,
+          652
+        ]
+      ],
+      "reviewed": false
+    }
+  ]
+}

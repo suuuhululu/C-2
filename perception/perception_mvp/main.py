@@ -204,7 +204,7 @@ def watch_hand(settings, check_id, output):
     detector = HandDetector(hand["weights"], hand["confidence"], hand["board_roi_v0"],
         min_valid_depth_fraction=hand["min_valid_depth_fraction"],
         stable_mean_difference=hand["stable_mean_difference"],
-        image_size=hand.get("board_image_size"))
+        image_size=hand.get("board_image_size"), board_polygon=hand.get("board_polygon_v0"))
     gate = HandCycle(hand["stable_seconds"], hand["max_frame_gap_seconds"])
     stream = stream_v0(camera["serial"], camera["width"], camera["height"], camera["fps"], camera["timeout_ms"])
     monitor_hand(stream, detector, gate, output, {"check_id": check_id})

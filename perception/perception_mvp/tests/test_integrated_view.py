@@ -66,6 +66,34 @@ def test_no_color_does_not_infer_or_claim_empty_board():
     assert process_frame(np.zeros((50, 50, 3), np.uint8), None, .5) == []
 
 
+def test_roi_excludes_outside_candidates():
+    rgb = np.zeros((100, 150, 3), np.uint8)
+    rgb[10:20, 10:20] = [255, 0, 0]
+    roi = np.zeros((100, 150), bool)
+    roi[40:80, 60:120] = True
+    assert process_frame(rgb, None, .25, roi_mask=roi) == []
+    rgb[50:60, 80:90] = [255, 0, 0]
+    record = process_frame(rgb, Model(), .25, roi_mask=roi)[0]
+    assert record['mask'][55, 85] and not record['mask'][15, 15]
+
+
+def test_roi_boundary_is_not_valid_geometry():
+    rgb = np.zeros((100, 150, 3), np.uint8)
+    rgb[40:60, 70:100] = [255, 0, 0]
+    roi = np.zeros((100, 150), bool)
+    roi[:, :85] = True
+    record = process_frame(rgb, Model(), .25, roi_mask=roi)[0]
+    assert record['reason'] == 'instance_crosses_roi_boundary'
+    assert 'grid' not in record and record['layer'] is None
+    assert not record['mask'][:, 85:].any()
+
+
+def test_roi_resolution_mismatch_blocks_inference():
+    with pytest.raises(ValueError, match='resolution'):
+        process_frame(np.zeros((100, 150, 3), np.uint8), None, .25,
+                      roi_mask=np.ones((50, 50), bool))
+
+
 def test_insufficient_depth_stays_unknown():
     rgb = np.zeros((100, 150, 3), np.uint8)
     rgb[40:60, 70:100] = [255, 0, 0]
