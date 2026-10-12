@@ -596,3 +596,14 @@ GPU 현재 A snapshot92파일을 CPU deliverables/GPU_A_수정본_CPU보관_2026
 
 
 후속 완료 검증: 다양한 CPU175/175 예상 동작 확인(정상165/거절10), 3,351단계 재평가 통과. 추가 HMI·연결91 PASS, API샘플 러너도 현재 정책으로 정렬해34/34 PASS를 확인했다. 20/40 밀집1층 whole API30.2099/30.5314초, 전체 집합486.29초, 이번 개별 최장30.5314초. 실제20블록 입력에서도12,753상태까지 탐색하며 완성 후보를 반환했다. 도움273/3,351=8.15%로 동일했다. raw 결과·XML·현재소스 hash는 CPU deliverables/A_탐색상태제한제거_20261012에 보존한다. 이 결과는 GPU 최신 수정본·장치 실기·전체 root 검사100% PASS가 아니다. 검증된 후속 변경을 PR #28의 같은 브랜치에 게시하고 재개하는 범위만 승인받았으며 main/integration 병합은 별도다.
+
+
+## 2026-10-12 A 안내·자료 분류 정리 (기준 integration 1b820405)
+
+- 루트 README에서 현재 A 안내를 직접 연결하고, 기본 Planner·확장 세 API·SIM 경계를 구분했다.
+- Python/jsonschema/pytest 설치와 ensurepip 없는 환경의 독립 venv 대안, 예제 입력·명령·정상/실패 결과, 동일 계획 자료의 B/D 공유를 안내했다. Current/revision은 B 확정·D 중계 기준이다.
+- [A 분류·보존 안내](A_MATERIALS_AND_PRESERVATION.md)와 [253파일 SHA 목록](A_PRESERVATION_MANIFEST_20261012.json)을 추가했다. 외부 원본·실측·Fixture·시험 기록은 기존 경로/바이트 유지, 과거 A README 457줄은 원문 그대로 보존했다.
+- 새 clone·독립 최소 가상환경에서 기본12블록 Plan·잘못된 revision 반환·API34/34, A pytest448 passed/1 skipped를 확인했다. SciPy 독립 비교1검사는 최소환경 미설치로 제외됐다. 범위가 겹치는 수치는 합산하지 않는다.
+- [실제 명령·결과와 미검증](A_DOCUMENTATION_VERIFICATION_20261012.md)을 기록했다. 기준 Isaac0.5 불일치는 별도 기능 변경 eb78ad7과 분리하며 이번 PR에는 기능 변경을 포함하지 않는다.
+- 파일 이동/삭제·계산/계약/보정 수정·새 dependency 도입·전역 설치·Git 이력 재작성·Robot/ROS/Isaac 실행·제어권 변경을 수행하지 않았다. 사람 리뷰·실제 연결·실기 검증은 남아 있다.
+- GitHub에서 직접 받은 새 clone(0e6248f)에서도 API34/34, A448 passed/1 skipped, 보존253/253 SHA·상대 링크44개를 확인했다. 로컬 clone과 원격 clone의 수치는 합산하지 않는다.
