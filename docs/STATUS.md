@@ -1,5 +1,12 @@
 # 현재 진행 상황
 
+## 2026-10-12 — C Wave 6: 최종 회귀·실제 음성·계약 문서 정리 (`work/siyul-c-remaining`, base de59b08)
+
+- 변경: 테스트·문서만(C production diff 0). `tests/unit/c_design/test_final_c_contract.py`(세 모드 intent 최종 표, planning failure 라우팅 10 조합, version chain v1→v2→MODIFY v2/round 1→APPROVE v2→다음 REVISE v3, metadata 유지, schema/validator 상수 불변). CONTRACT·handoff의 "세 함수" 표현을 네 공개 함수(`create_initial_design`·`review_design_candidate`·`run_intervention`·`run_design_change`)로 정정, handoff 시그니처를 코드와 일치시키고 §10 "남은 통합 항목" 추가.
+- 검증: C 그룹(`tests/unit/c_design` 1024 + Stage3 lifecycle/failures/runner_preview/plan_failure + Wave2 relay + relay scenarios) **1096 passed, 0 xfailed, 0 failed**. C 관련 integration 152 passed. D 호환 그룹은 Wave 3 handoff의 D 테스트 1건만 실패(D-owned expectation mismatch, C runtime 정상). compileall·pyflakes(변경 파일) clean, `git diff --check` 0, commit 범위에 키·개인 경로·scratch 경로·debug print 없음.
+- 실제 음성(mic, gpt-6.1-sol, 실제 STT/TTS, Robot 0회) 2회: Planning failure 질문 TTS → 실제 STT 전사 → (주변 무관 발화를 aux LLM이 REVISE로 해석) → Sol Revised Candidate v2(34블록·28블록, validator PASS, Current 보존, facing PASS) → Preview PNG → 검토 질문 TTS까지 실제 동작. 그러나 조작자가 목표 발화("응, 수정해줘"/"좋아, 이대로 해")를 하지 않아 **APPROVE·A Replan 구간은 음성으로 미완료**(검토 UNCLEAR → HOLD, 무한 loop·자동 승인·Robot 없음). 텍스트 모드 Sol 2회는 Wave 5에서 APPROVE·replan까지 완료.
+- 판정: C 내부 결함 0, 테스트 green, facing·planning failure HRI·validator/schema/version/metadata 검증 완료. 단 실제 음성 lifecycle의 APPROVE 구간 미완료로 Wave 6 기준 `C_NOT_READY`(조작자 참여 mic 1회로 전환 가능). 관찰된 위험: 무관한 배경 발화를 aux LLM이 REVISE로 읽어 Sol 생성이 시작될 수 있음(정책 변경은 별도 승인 대상).
+
 ## 2026-10-12 — C Wave 5: Planning failure → C 수정 대화 → Candidate → Preview → APPROVE → A Replan 연결 검증 (`work/siyul-c-remaining`)
 
 - 변경: 테스트·스크립트·문서만. `scripts/c_stage3_integration_smoke.py`에 `--scenario plan-failure`(`--blocked-block`)와 D 역할 trace(`plan_failure`/`replan`, `candidate_phase` PREVIEW→REVIEW 가드, stale APPROVE 거절, robot/replan 호출 횟수) 추가. `tests/integration/test_c_stage3_plan_failure.py`(시나리오 1 REVISE→Preview→APPROVE→replan ×2(blocked block 유무), 2 KEEP→HOLD, 3 UNCLEAR 재질문, 4 SEARCH_LIMIT 거절, 5 생성 실패 시 Approved 유지, 6 PREVIEW_READY 전 review 거절·stale APPROVE 거절, 7 STOP/late result). A는 실제 `handle_whole_plan`(read-only, FAKE 설정). C production 변경 없음.

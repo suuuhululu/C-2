@@ -95,7 +95,7 @@ Design은 정확히 두 키를 가집니다. 그 외 키(`design_id`, 부모 버
 
 ## 4. 공개 함수 (`app.c_design.main`)
 
-외부 모듈은 이 공개 함수들(§4.1·§4.2, Stage 3 Wave 1부터 §4.4 `review_design_candidate`)만 호출합니다. 두 함수 모두 예외를 밖으로 던지지 않고 §6의 결과 dict를 반환합니다. 후보 하나의 검증 탈락은 곧바로 Job 실패가 아니며 C 내부에서 **유한하게** 재생성합니다(§8.10). 실제 `main` 구현은 WAVE 4입니다.
+외부 모듈은 이 공개 함수들(§4.1·§4.2, Stage 3 Wave 1부터 §4.4 `review_design_candidate`, 2026-10-12 Wave 3부터 §4.6 `run_design_change`)만 호출합니다. 네 함수 모두 예외를 밖으로 던지지 않고 §6의 결과 dict를 반환합니다. 후보 하나의 검증 탈락은 곧바로 Job 실패가 아니며 C 내부에서 **유한하게** 재생성합니다(§8.10). 실제 `main` 구현은 WAVE 4입니다.
 
 실제 LLM 사용 여부는 호출 환경의 `C_DESIGN_USE_LLM=1`로 정하며 기본은 Mock입니다.
 
@@ -293,12 +293,12 @@ D(외부 caller)가 C를 호출하고 response를 받습니다. C가 D로 push�
 | `review_design_candidate(...)` (§4.4) | D가 Candidate의 Preview 표시를 끝낸 뒤 | 검토 질문 TTS → STT → 해석(APPROVE / MODIFY / UNCLEAR / CANCEL) → ack, LLM 모드 MODIFY면 새 Candidate 생성(§8.14) | 같은 후보(APPROVE·UNCLEAR·CANCEL) 또는 새 Candidate(MODIFY), `design_metadata.review` |
 | `run_intervention(...)` (§4.2) | D가 Difference를 확정한 뒤 | 차이 설명 질문 TTS → STT → 해석(KEEP / REVISE / UNCLEAR) → ack, REVISE면 Revised Candidate 생성 | 입력 Design(KEEP) 또는 Revised **Candidate**(Approved + 1) |
 
-- **동기 호출·독립성**: 세 함수는 동기 함수이며 호출 하나가 끝나면 envelope(§6)을 반환합니다. 각 호출은 독립적입니다. 이전 호출의 상태를 C 안에 보관하지 않고, 필요한 맥락(후보 Design, 그 `design_metadata`, Approved Design, Current, Difference)은 caller가 인자로 다시 넘깁니다. `main`에는 모듈 수준 요청·후보·버전 상태가 없습니다. 모듈 수준 상태는 `dialogue._last_pick`(ack 문장의 연속 반복 회피)과 `voice._last_*`(진단 기록)뿐이며 Design·version·round·판정에 쓰이지 않습니다(`tests/unit/c_design/test_stage3_contract.py`).
+- **동기 호출·독립성**: 네 함수는 동기 함수이며 호출 하나가 끝나면 envelope(§6)을 반환합니다. 각 호출은 독립적입니다. 이전 호출의 상태를 C 안에 보관하지 않고, 필요한 맥락(후보 Design, 그 `design_metadata`, Approved Design, Current, Difference)은 caller가 인자로 다시 넘깁니다. `main`에는 모듈 수준 요청·후보·버전 상태가 없습니다. 모듈 수준 상태는 `dialogue._last_pick`(ack 문장의 연속 반복 회피)과 `voice._last_*`(진단 기록)뿐이며 Design·version·round·판정에 쓰이지 않습니다(`tests/unit/c_design/test_stage3_contract.py`).
 - **Candidate vs Approved**: C가 돌려주는 Initial·Revised·MODIFY 결과 Design은 모두 Candidate입니다. 승인은 검토의 APPROVE이고, **채택(Approved로 저장·A 요청)은 D**가 합니다. C는 Approved 여부를 Design에 표시하지 않습니다(§3 불변). version 정책은 §8.14입니다(Initial 후보 1, Revised 후보 Approved + 1 고정, 반복은 `review.round`).
 - **Preview 완료 전제**: `review_design_candidate`는 caller가 Preview 표시를 끝냈다고 보고 부릅니다. C는 Preview 표시 여부를 확인하지 않으며(sleep·폴링 없음), 실제 Preview Ready 신호는 D/HMI 통합 단계의 일입니다.
 - **D가 준비할 입력**: C가 받는 것은 후보 Design과 그 `design_metadata`(검토), Approved Design·Current 블록 목록·`differences`(Intervention·Revised 검토)뿐입니다. **Expected 전체는 받지 않습니다**(아래 결론).
 - **DB·HMI·A 경계**: C는 DB에 쓰지 않고, HMI를 직접 그리지 않으며, A(Planner)를 부르지 않습니다. caller가 response를 받아 HMI 표시·Backend 상태·DB 저장·A 요청에 씁니다. 질문 문장은 `on_question`, 진행 단계는 `on_progress` 콜백으로도 전달합니다(표시·로그용).
-- **correlation·stale (C가 지원하는 것 / caller가 관리할 것)**: C 세 함수와 voice·dialogue는 `request_id`·`job_id`·`current_revision`을 받지도 돌려주지도 않습니다(코드 grep으로 확인).
+- **correlation·stale (C가 지원하는 것 / caller가 관리할 것)**: C 네 함수와 voice·dialogue는 `request_id`·`job_id`·`current_revision`을 받지도 돌려주지도 않습니다(코드 grep으로 확인).
 
 | 항목 | C가 지원 | caller(D)가 관리 |
 |---|---|---|
@@ -309,7 +309,7 @@ D(외부 caller)가 C를 호출하고 response를 받습니다. C가 D로 push�
 | 버전 | Candidate `design_version` 발급(§8.2·§8.14) | Approved 채택·버전 이력 관리 |
 
   참고(GitHub 상태 기준, 최신이 아닐 수 있음, 읽기만 함): D의 `app/c_text_connection.py`는 이미 `CTextConnection.valid()`에서 `request_id`·`workflow_status`·`stop_request`·`job_id`·`current_revision`·`design_version`을 비교하고, `start()`에서 진행 중 호출이 있으면 `C_CALL_BUSY`로 거절하며, `finish()`에서 무효가 된 응답을 `_ignored`로 버리고, `should_stop`을 `threading.Event`로 넘깁니다. 이번 Wave에서 C에 correlation 필드를 추가하지 않습니다. 추가 후보(예: 입력 `request_id`를 envelope에 그대로 되돌려 주는 echo 필드)는 caller가 이미 같은 정보를 쥐고 있어 중복이며, 넣는다면 envelope 키 추가라 D 계약 합의가 먼저 필요합니다(구현하지 않음).
-- **실패 경로**: 세 API가 침묵·장치 실패·LLM timeout·비 JSON·validator 실패·같은 후보 반복·사용자 취소·`should_stop`에서 돌려주는 값은 §10 "확인(Stage 3 Wave 4)" 행입니다. 어느 경우든 호출은 반환되며(listen·LLM·생성 횟수 상한), 예외는 Intervention 음성 침묵(caller의 `should_stop`으로만 끝남)입니다.
+- **실패 경로**: 네 API가 침묵·장치 실패·LLM timeout·비 JSON·validator 실패·같은 후보 반복·사용자 취소·`should_stop`에서 돌려주는 값은 §10 "확인(Stage 3 Wave 4)" 행입니다. 어느 경우든 호출은 반환되며(listen·LLM·생성 횟수 상한), 예외는 Intervention 음성 침묵(caller의 `should_stop`으로만 끝남)입니다.
 - **Expected 결론 (Expected 전체 불필요)**: `run_intervention(design, current, differences, …)`는 Expected 전체를 받지 않으며 추가하지 않습니다. 근거:
   - 입력 검사 `validator.check_intervention_input(design, current, differences)`는 Approved Design·Current·Difference만 봅니다.
   - 질문 문장 `dialogue.build_question`은 `design`·`current`를 쓰지 않고(`del design, current`), `_describe_difference`가 각 `differences[i].expected / actual`만으로 위치·차이를 설명합니다. escalation 질문(`escalation_question`)도 `differences`의 `actual`·`expected`만 씁니다.
@@ -390,7 +390,7 @@ C는 두 블록의 값을 비교해 어떤 항목(위치·색·방향·크기·�
 
 ## 6. 결과 형식 (C → D)
 
-두 공개 함수는 같은 형식을 반환합니다. 진행 이벤트(`on_progress`, §4.2 끝)와 확인 문장은 envelope·Design에 넣지 않습니다(Stage 2 Wave 4c에서도 envelope 키와 Design `{design_version, blocks}`는 그대로).
+네 공개 함수는 같은 형식을 반환합니다. 진행 이벤트(`on_progress`, §4.2 끝)와 확인 문장은 envelope·Design에 넣지 않습니다(Stage 2 Wave 4c에서도 envelope 키와 Design `{design_version, blocks}`는 그대로).
 
 | 필드 | 타입 | 의미 |
 |---|---|---|
@@ -643,13 +643,13 @@ C의 Validator 통과는 후보 검증이며 최종 채택이 아닙니다.
 | 확인(Stage 3 Wave 4) | 음성 침묵(`listen`이 `""`): Initial | 인사 → 재질문(`SILENCE_REASK`) 1회, 그래도 침묵이면 "아무거나"로 생성(listen 2회) | caller가 받는 값: 생성 성공 시 `OK` / `null` / design v1 |
 | 확인(Stage 3 Wave 4) | 음성 침묵: Preview 검토 | 재질문 1회(listen 2회) | `OK` / `UNCLEAR` / 입력 후보 그대로 |
 | 확인(Stage 3 Wave 4) | 음성 침묵: Intervention | 시간 한도 없이 계속 듣고 매번 `should_stop` 확인(§4.3, Day4 정책) | caller가 STOP할 때만 반환: `CANCELLED` / `null` / `STOPPED`, design null |
-| 확인(Stage 3 Wave 4) | `listen`이 `None`(장치·STT 실패): 세 API | 즉시 반환(listen 1회, 생성 0회) | `FAILED` / `null` / `VOICE_IO_FAILED`, design null |
+| 확인(Stage 3 Wave 4) | `listen`이 `None`(장치·STT 실패): 네 API | 즉시 반환(listen 1회, 생성 0회) | `FAILED` / `null` / `VOICE_IO_FAILED`, design null |
 | 확인(Stage 3 Wave 4) | LLM timeout(호출 하나당 transport 1 + 재시도 3 = 4회) | Initial은 요청 해석 실패 → "아무거나" 후 생성 실패. 해석만 실패한 검토 답은 UNCLEAR. provider 실패는 escalation 대상이 아님 | Initial `FAILED` / `null` / `LLM_CALL_FAILED`; 검토 MODIFY `FAILED` / `MODIFY` / `LLM_CALL_FAILED`; 검토 해석 실패 `OK` / `UNCLEAR`(재질문 뒤, 후보 그대로); Intervention REVISE `FAILED` / `REVISE` / `LLM_CALL_FAILED`. design null(UNCLEAR 제외) |
 | 확인(Stage 3 Wave 4) | LLM 응답이 JSON이 아님 | 해석은 `bad_response`로 규칙·fallback 경로, 생성은 `malformed_output` 탈락·재생성 | Initial·검토 MODIFY: 생성 10회 후 `FAILED` / (`null`·`MODIFY`) / `DESIGN_GENERATION_FAILED`. Intervention: 6회 뒤 escalation 질문 → "계속" → 4회 → `FAILED` / `REVISE` / `DESIGN_GENERATION_FAILED`; 텍스트 답 소진이면 `OK` / `UNCLEAR`, design null |
 | 확인(Stage 3 Wave 4) | 생성 후보가 계속 validator 실패(예: overlap) | 위와 같은 재생성·escalation | 위와 같음(`details`에 마지막 탈락 사유) |
 | 확인(Stage 3 Wave 4) | 검토 MODIFY 생성이 직전 후보와 같은 블록 | `unchanged_candidate`로 탈락·재생성(§8.14) | 한 번 뒤 다르면 `OK` / `MODIFY` / 새 후보; 끝까지 같으면 생성 10회 후 `FAILED` / `MODIFY` / `DESIGN_GENERATION_FAILED`(`details` = `unchanged_candidate`) |
 | 확인(Stage 3 Wave 4) | 사용자 취소 발화 | 검토·Intervention만 해석함. Initial에는 취소 발화 경로가 없어 caller가 `should_stop`으로 멈춤 | 검토 `CANCELLED` / `CANCEL` / `USER_CANCEL`, 입력 후보와 `review` metadata; Intervention `CANCELLED` / `null` / `USER_CANCEL`, design null |
-| 확인(Stage 3 Wave 4) | `should_stop`: 호출 전·ack 후·생성 시도 사이 | 그 지점에서 중단(생성 0회 또는 1회) | 세 API 모두 `CANCELLED` / `null` / `STOPPED`, design null |
+| 확인(Stage 3 Wave 4) | `should_stop`: 호출 전·ack 후·생성 시도 사이 | 그 지점에서 중단(생성 0회 또는 1회) | 네 API 모두 `CANCELLED` / `null` / `STOPPED`, design null |
 
 "확인(Stage 3 Wave 4)" 행의 값은 `status` / `hri_result` / `error.code` 순서이며, 현행 코드가 caller에게 돌려주는 값을 그대로 기록한 것입니다(정책 변경 없음, fake voice·LLM으로 확인: `tests/integration/test_c_stage3_failures.py`, `tests/unit/c_design/test_stage3_contract.py`).
 
