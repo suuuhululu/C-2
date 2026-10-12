@@ -164,12 +164,21 @@ def build_initial_design(object_type, generate=None, max_attempts=MAX_ATTEMPTS, 
 
 
 def build_revised_design(design, current, differences, generate=None, max_attempts=MAX_ATTEMPTS, delay=RETRY_DELAY, should_stop=None,
-                         min_blocks=None, differ_from=None):
+                         min_blocks=None, differ_from=None, design_change=False):
     """Revised Design(입력 design.design_version + 1, 레이아웃이 실제로 바뀔 때만)을
-    만든다. full object, patch 아님. differ_from(직전 Revised 후보)과 같은 블록이면 "unchanged_candidate"로 탈락(§8.14)."""
+    만든다. full object, patch 아님. differ_from(직전 Revised 후보)과 같은 블록이면 "unchanged_candidate"로 탈락(§8.14).
+
+    design_change(Wave 3): 직접 Design Change는 Difference가 없는 것이 정상이므로 입력 검사가 check_design_change_input이고
+    differences는 빈 목록이어야 한다. 기본값(False)은 Intervention 그대로(빈 differences 거절)."""
     source = "LLM" if generate else "MOCK"
 
-    input_reasons = validator.check_intervention_input(design, current, differences)
+    if design_change:
+        input_reasons = validator.check_design_change_input(design, current)
+        if differences:
+            input_reasons.append({"rule": "invalid_value", "blocks": [],
+                                  "message": "differences must be empty for a design change"})
+    else:
+        input_reasons = validator.check_intervention_input(design, current, differences)
     if input_reasons:
         return {"design": None, "reasons": input_reasons, "attempts": 0, "source": source}
 

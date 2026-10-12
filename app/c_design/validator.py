@@ -385,6 +385,20 @@ def check_intervention_input(design, current, differences):
     return reasons
 
 
+def check_design_change_input(design, current):
+    """Reasons for an INVALID_INPUT verdict on run_design_change's arguments (Wave 3, 2026-10-12).
+
+    A direct Design Change has no Difference: the Approved Design must be a valid Design and the Current a
+    well-formed, non-overlapping block list. These are the same checks check_intervention_input applies to its
+    design and current arguments; nothing is relaxed and nothing new is enforced. Whether the Current fits the
+    Design is not an input error: the Revised Candidate must preserve the Current (validate_revised) and Current
+    support violations go to escalation (current_support_violations), exactly as in an Intervention.
+    """
+    reasons = list(validate_design(design))
+    reasons.extend(_check_current(current))
+    return reasons
+
+
 def current_support_violations(current):
     """Support reasons for Current blocks only (escalation trigger, not an input error)."""
     if not isinstance(current, list):

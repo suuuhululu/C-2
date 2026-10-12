@@ -518,6 +518,84 @@ def build_reask(question):
     return "\n".join([REASK_LEAD, question])
 
 
+# ---------------------------------------------------------------------------
+# Direct Design Change (Wave 3, 2026-10-12): Difference 없이 "채택 Design 자체를 바꿀지"를 묻는다.
+# Intervention(parse_response)과 뜻이 다르므로 표·질문·확인 문장을 따로 둔다: 여기서 KEEP = Approved Design 그대로,
+# REVISE = Design 변경 요청. Intervention 표의 "수정할게·고칠게"(블록 되돌리기 = KEEP)·"이대로·지금 상태"(배치 살리기 = REVISE)는
+# 이 표에서 각각 REVISE·KEEP이다. 두 표를 섞지 않는다(§4.6).
+# ---------------------------------------------------------------------------
+
+DESIGN_CHANGE_QUESTION = "현재 설계를 그대로 둘까요, 아니면 새 설계로 바꿀까요? 바꾸고 싶은 부분이 있으면 말씀해 주세요."
+DESIGN_CHANGE_REASK_LEAD = (
+    "제가 잘 못 알아들었어요. 지금 설계를 그대로 둘지, 바꿀지 말씀해 주세요. "
+    "바꾸고 싶은 부분이 있으면 함께 말씀해 주셔도 돼요."
+)
+# 호출자(D)가 준 reason 중 "USER_DESIGN_CHANGE" 같은 식별자 토큰은 읽지 않는다(문장은 그대로 앞에 둔다).
+_CODE_TOKEN_RE = re.compile(r"^[A-Z0-9_]+$")
+
+_DESIGN_CHANGE_PHRASES = {
+    REVISE: (
+        "수정", "바꿔", "바꾸", "바꿀", "변경", "새설계", "새로", "다시만들", "다시설계", "반영",
+        "높여", "높게", "낮춰", "낮게", "넓혀", "넓게", "줄여", "늘려", "추가", "빼줘", "없애",
+        "다른걸로", "다른느낌", "다른모양",
+    ),
+    KEEP: ("그대로", "유지", "원래설계", "원래대로", "지금설계", "현재설계", "이대로", "놔둬", "놔두", "냅둬"),
+}
+# 부정형은 그 자체로 KEEP이며 구문 일치 전에 지운다("수정하지 마"가 "수정"으로 REVISE가 되지 않게).
+_DESIGN_CHANGE_NEGATED_PHRASES = (
+    "바꾸지마", "바꾸지말", "바꾸지않", "수정하지마", "수정하지말", "수정하지않", "고치지마", "고치지말", "고치지않",
+    "변경하지마", "변경하지말", "변경하지않", "안바꿀", "안바꿔", "안바꾸", "안고칠", "안고쳐",
+)
+
+DESIGN_CHANGE_KEEP_ACKS = (
+    "네, 지금 설계 그대로 진행할게요.",
+    "알겠습니다. 현재 설계를 그대로 두고 이어서 진행할게요.",
+    "좋아요. 설계는 바꾸지 않고 그대로 갈게요.",
+)
+DESIGN_CHANGE_REVISE_ACKS = (
+    "알겠습니다. 이미 조립된 부분은 그대로 두고 새 설계를 만들어볼게요.",
+    "좋아요. 지금까지 쌓은 블록은 살리고 설계를 새로 만들어볼게요.",
+    "네, 조립된 블록은 그대로 두고 디자인을 다시 만들어볼게요.",
+)
+
+
+def build_design_change_question(reason=None):
+    """Direct Design Change 질문(§4.6, 번호·선택지 없음). reason이 식별자 토큰이 아닌 문장이면 그 줄을 앞에 둔다."""
+    lines = []
+    if isinstance(reason, str) and reason.strip() and not _CODE_TOKEN_RE.match(reason.strip()):
+        lines.append(reason.strip())
+    lines.append(DESIGN_CHANGE_QUESTION)
+    return "\n".join(lines)
+
+
+def build_design_change_reask(question):
+    """불명확 답변 시 두 선택(그대로 / 바꾸기)을 다시 말하고 전체 질문을 다시 낸다."""
+    return "\n".join([DESIGN_CHANGE_REASK_LEAD, question])
+
+
+def parse_design_change_response(text, llm_fallback=None):
+    """Direct Design Change 답변 → KEEP / REVISE / UNCLEAR / CANCEL (Intervention 표를 쓰지 않는다).
+
+    KEEP = Approved Design 그대로, REVISE = Design을 바꾸고 싶음. 질문이 두 선택을 주므로 "네"·"아니"만으로는 정하지
+    않는다(앞머리 예/아니요 없음 → UNCLEAR 또는 LLM). "1번"·"2번"은 D 흐름 호환으로 KEEP·REVISE. 부정형
+    ("바꾸지 마"·"안 바꿀게")은 KEEP으로 먼저 처리한다.
+    """
+    return _resolve(text, OPTIONS, _DESIGN_CHANGE_PHRASES, llm_fallback,
+                    use_lead=False, negated_keep=_DESIGN_CHANGE_NEGATED_PHRASES)
+
+
+def design_change_keep_ack():
+    """KEEP(설계 그대로) 확인 문장. Intervention의 keep_ack("원래 자리로 고쳐 주시면")와 다르다."""
+    return _pick(DESIGN_CHANGE_KEEP_ACKS)
+
+
+def design_change_revise_ack_fallback(style_hint=None):
+    """REVISE 확인 문장(LLM 되읽기가 없을 때). style_hint가 있으면 그 바람을 넣는다."""
+    if isinstance(style_hint, str) and style_hint.strip():
+        return _pick(REVISE_HINT_ACKS).format(hint=style_hint.strip())
+    return _pick(DESIGN_CHANGE_REVISE_ACKS)
+
+
 def escalation_question(differences):
     """§8.11: 자동 재설계가 거의 불가능할 때 잘못 놓인 블록을 원래대로 돌려 달라고 제안(번호 없음)."""
     parts = []

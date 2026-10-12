@@ -316,6 +316,34 @@ D(외부 caller)가 C를 호출하고 response를 받습니다. C가 D로 push�
   - Revised 생성 `llm.generate_revised_design(design, current, differences, …)`과 judge `llm.judge_revised_design(previous, design, current, differences)`는 Approved Design(전체 목표)·Current·Difference만 보냅니다. Current 보존 검사(`validate_revised`)는 Current만 씁니다.
   - Expected(채택 Plan 기준 Current + 완료 Step 효과)는 D(Backend)가 소유·계산하며(AGENTS), 어긋난 블록의 Expected 값은 이미 `differences[].expected`로 들어옵니다. Expected 전체를 더 받는 것은 중복입니다.
 
+### 4.6 `run_design_change(design, current, *, reason, text_answers=None, on_question=None, should_stop=None, on_progress=None, inspection_context=None)` — 직접 Design Change (PR #26 → Wave 3, 2026-10-12)
+
+Difference 없이 "채택 Design 자체를 바꿀지"를 묻는 네 번째 공개 함수입니다. PR #26이 D 통합(`app/mvp_integration`의 `c.intent` USER_DESIGN_CHANGE·`c.plan_failure`)을 위해 추가했고, Wave 3에서 Intervention과 의미를 분리했습니다. 관측 차이를 만들어 `run_intervention`에 넣지 않습니다.
+
+| 입력 | 타입 | 의미 |
+|---|---|---|
+| `design` / `current` | Design / 블록 배열 | §4.2와 같음. 입력 검사는 `validator.check_design_change_input(design, current)`(= `validate_design` + Current 형식·겹침 검사, Difference 검사 없음, 규칙 동일) |
+| `reason` | 비어 있지 않은 str (키워드 전용) | 호출자가 준 변경 사유. `"USER_DESIGN_CHANGE"` 같은 식별자 토큰은 질문에서 읽지 않고, 문장이면 질문 첫 줄에 둡니다. 빈 문자열은 `INVALID_INPUT` |
+| `text_answers` / `on_question` / `should_stop` / `on_progress` | §4.2와 같음 | `on_progress` 단계 이름은 Revised(§4.2 표)와 같음 |
+| `inspection_context` | dict 또는 `None` | D의 검사 문맥(expected·difference·observation·reason). LLM 해석 payload에 그대로 실림(생성 프롬프트에는 안 들어감) |
+
+**질문** (`dialogue.build_design_change_question`, 번호 없음): "현재 설계를 그대로 둘까요, 아니면 새 설계로 바꿀까요? 바꾸고 싶은 부분이 있으면 말씀해 주세요." 재질문은 `build_design_change_reask`("…그대로 둘지, 바꿀지 말씀해 주세요"). "수정할까요?" 같은 표현은 쓰지 않습니다(아래 표의 Intervention KEEP 구문과 충돌).
+
+**의미 분리** (`hri_result` 값은 §6 그대로, 새 enum 없음)
+
+| 모드 | KEEP | REVISE | 규칙 표 / LLM 프롬프트 |
+|---|---|---|---|
+| Difference Intervention (`run_intervention`) | 실수 인정, 사용자가 블록을 원래 자리로 되돌림, Approved 유지 | 의도적 배치, Current 보존 Revised Candidate | `dialogue.parse_response`(`_INTERVENTION_PHRASES`) / `SYSTEM_PROMPT_INTERVENTION_ANSWER` — **Wave 3에서 변경 없음** |
+| 직접 Design Change (`run_design_change`) | Approved Design 그대로 | Design 변경 요청, Current 보존 Revised Candidate | `dialogue.parse_design_change_response`(`_DESIGN_CHANGE_PHRASES`) / `SYSTEM_PROMPT_DESIGN_CHANGE_ANSWER` |
+
+같은 말이 반대로 읽힙니다: "수정할게요"·"고칠게"는 Intervention에서 KEEP(블록을 고치겠다), Design Change에서 REVISE(설계를 바꾸겠다). "이대로"·"지금 상태"는 Intervention에서 REVISE(배치를 살려라), Design Change에서 KEEP(설계 그대로). 두 표·프롬프트를 섞지 않습니다.
+
+- Design Change 규칙(`parse_design_change_response`): 취소 → 숫자 호환("1번" KEEP, "2번" REVISE, D 흐름 호환) → 부정형 KEEP("바꾸지 마"·"수정하지 마"·"고치지 마"·"안 바꿀게", 구문 일치 전에 지움) → 구문(REVISE: 수정·바꿔·새 설계·다시 만들·반영·높여/낮춰/넓혀/추가 등, KEEP: 그대로·유지·원래 설계·지금 설계·이대로 등) → LLM fallback(LLM 모드) → UNCLEAR. 질문이 두 선택을 주므로 "네"·"아니"만으로는 정하지 않습니다(앞머리 예/아니요 없음).
+- LLM 해석 `llm.interpret_design_change_answer(text, reason, should_stop=None, context=None)`: 키 `INTERVENTION_ANSWER_KEYS`(decision·style_hint·reason·reply) 그대로, 프롬프트만 `SYSTEM_PROMPT_DESIGN_CHANGE_ANSWER`. 내부적으로 `interpret_intervention_answer(text, [], context={…, "change_reason": reason})`를 거치며, 이 함수는 context의 `change_reason`으로 프롬프트를 고릅니다(보조 LLM 해석의 단일 진입점, PR #26 D 테스트가 이 이름을 대체함).
+- KEEP → `design` = 입력 Approved 그대로, metadata `null`, ack `dialogue.design_change_keep_ack()`("지금 설계 그대로 진행할게요"). REVISE → ack(LLM reply 또는 `design_change_revise_ack_fallback`) → Revised Candidate(`design_version` = Approved + 1, Current 보존, §8 규칙·judge·metadata는 §4.2 REVISE와 같음). 생성 메시지는 `llm.generate_revised_design(…, change_request=reason)`의 Design-Change 변형(Difference 줄·"misplaced block" 문단 대신 "User requested change"와 변경 우선 문단). designer는 `build_revised_design(…, design_change=True)`로 빈 `differences`를 정상 입력으로 받습니다(기본값은 Intervention 그대로 빈 목록 거절).
+- Candidate 검토: D는 `review_design_candidate(candidate, kind="revised", design_metadata=…, previous_design=Approved, current=…, differences=[], change_reason=reason)`로 부릅니다. `change_reason`이 있고 `differences`가 빈 목록이면 입력 검사·MODIFY 재생성이 Design-Change 모드이며 version은 Approved + 1로 유지되고 `review.round`만 늘어납니다(§8.14). `design_metadata`를 넘기지 않으면 round가 0부터 다시 시작하고 Stage 2 키가 사라집니다(C가 복원할 수 없음).
+- 실패·취소 코드는 §10과 같습니다. 2026-10-12 이전(de59b08)에는 REVISE가 designer의 빈 differences 거절 때문에 항상 escalation → UNCLEAR/`DESIGN_GENERATION_FAILED`였고 "수정할게요"가 KEEP이었습니다(`tests/unit/c_design/test_design_change_characterization.py`).
+
 ## 5. 입력 형식 (D → C)
 
 C는 아래 필드만 읽고 나머지 키는 무시합니다. D는 자기 객체를 그대로 넘겨도 됩니다. D는 블록 ID를 주지 않으며 C는 같은 값 블록 간 대응(Data Association)을 하지 않습니다.

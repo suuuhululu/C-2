@@ -82,6 +82,26 @@ run_intervention(design, current, differences, text_answers=None, on_question=No
 | `UNCLEAR` | 텍스트 답변 소진 시 | 보류 |
 | 실패·취소 | §10 코드 | 보류 |
 
+## 3b. 직접 Design Change (Wave 3, 2026-10-12)
+
+```python
+run_design_change(design, current, *, reason, text_answers=None, on_question=None, should_stop=None, on_progress=None,
+                  inspection_context=None)
+```
+
+- 언제: Difference 없이 사용자가 설계 변경을 요청했을 때(`USER_DESIGN_CHANGE`). 질문·KEEP/REVISE 해석이 Intervention과 **다릅니다**(CONTRACT §4.6): KEEP = 채택 Design 그대로, REVISE = Design 변경. "수정할게요"·"바꿔줘"·"등받이를 높여줘" → REVISE, "그대로 갈게"·"바꾸지 마" → KEEP, "1번"/"2번" 호환.
+- 반환: KEEP이면 `design` = Approved 그대로. REVISE면 **Revised Candidate**(`design_version` = Approved + 1, Current 보존) → Preview → `review_design_candidate(candidate, kind="revised", design_metadata=response["design_metadata"], previous_design=Approved, current=…, differences=[], change_reason=reason)`.
+- `reason`은 식별자 토큰이면 질문에서 읽지 않습니다. 문장을 주면 질문 첫 줄에 그대로 읽힙니다.
+
+D 쪽 known issues(C는 D 파일을 고치지 않았습니다):
+
+| 항목 | 위치 | 내용 |
+|---|---|---|
+| Review에 `design_metadata` 미전달 | `app/mvp_integration.py` `c.review` 호출 | `review.round`가 매번 0, concept/style 문맥·Stage 2 키가 사라짐. 직전 response의 `design_metadata`를 그대로 넘기면 됩니다 |
+| D 테스트의 LLM 대체 전제 | `tests/unit/test_mvp_workflow.py::test_inspection_context_keeps_expected_and_unknown_regions_for_c` | 답 "기존 목표 그대로 갈래"가 Wave 3부터 규칙 KEEP("그대로")으로 끝나 LLM 대체 함수가 호출되지 않아 `seen[0]` IndexError. 규칙이 못 정하는 답(예: "음, 기존 목표가 더 나을 것 같은데")으로 바꾸면 그대로 통과합니다(`interpret_intervention_answer` 대체는 계속 유효) |
+| HMI 질문 문구 | `app/mvp_integration.py` `c.intent`/`c.plan_failure` 표시 문자열 "기존 목표를 유지할까요, 설계를 수정할까요?" | C 질문(`questions[-1]`)을 표시하면 음성·화면 문구가 같아집니다. 답 해석은 C가 하므로 현재 문구도 동작은 합니다 |
+| `c.plan_failure`의 `reason=str(errors)` | `app/mvp_workflow.py` | A 오류 리스트 문자열이 질문 첫 줄에 들어갑니다. Wave 4(planning failure 입력)에서 다룹니다 |
+
 ## 4. 데이터 저장
 
 C는 DB·파일·HMI에 직접 쓰지 않습니다. D가 response를 받은 뒤 HMI 표시, Backend state, DB 기록, A Plan 요청에 씁니다. 저장 실패가 C 호출 결과를 바꾸지 않습니다.
