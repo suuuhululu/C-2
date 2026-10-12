@@ -1,0 +1,47 @@
+{
+  "raw_result": {
+    "schema_version": "assembly-assistance-candidate/0.2",
+    "status": "INVALID",
+    "execution_allowed": false,
+    "planning_result": {
+      "status": "INVALID",
+      "plan": null,
+      "errors": [
+        {
+          "reason": "blocks[1]: support requires at least 2 studs in the immediately lower layer; found 1",
+          "block": {
+            "brick_type": "1x2x1",
+            "color": "red",
+            "x": 5,
+            "y": 5,
+            "layer": 2,
+            "orientation_deg": 0
+          }
+        }
+      ]
+    },
+    "assembly_actions": [],
+    "optimization": null,
+    "contract_status": "DRAFT_NOT_CONNECTED_TO_D",
+    "errors": [
+      {
+        "reason": "blocks[1]: support requires at least 2 studs in the immediately lower layer; found 1",
+        "block": {
+          "brick_type": "1x2x1",
+          "color": "red",
+          "x": 5,
+          "y": 5,
+          "layer": 2,
+          "orientation_deg": 0
+        }
+      }
+    ],
+    "limits": [
+      "Space rules/envelopes are not robot IK/full-path/human safety verification",
+      "Stud overlap and void rules are not physical stability proof",
+      "PRESS is a contact-hull heuristic, not a measured force requirement",
+      "Force control, contact success and readiness belong to D/C",
+      "Each assisted Step opens a new request; no readiness reuse"
+    ]
+  }
+}

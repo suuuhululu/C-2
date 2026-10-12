@@ -12,7 +12,7 @@ def _key(block: dict) -> tuple:
 
 
 def _footprint(block: dict) -> set[tuple[int, int, int]]:
-    width, height = (2, 2) if block["brick_type"] == "2x2x1" else (2, 3)
+    width, height = {"1x2x1": (1, 2), "2x2x1": (2, 2), "2x3x1": (2, 3)}[block["brick_type"]]
     if block["orientation_deg"] == 90:
         width, height = height, width
     if block["x"] + width > 24 or block["y"] + height > 24:
@@ -37,7 +37,7 @@ def _placements(value: object, path: str, *, allow_duplicates: bool) -> list[dic
     return blocks
 
 
-def open_observation_check(check_id: str, job_id: str, plan_id: str, step_id: str) -> dict:
+def open_observation_check(check_id: str, job_id: str, plan_id: str | None, step_id: str | None) -> dict:
     """Backend가 새 고유 ID로 연 check의 문맥. 닫힌 check는 호출 시 None이다."""
     context = dict(check_id=check_id, job_id=job_id, plan_id=plan_id, step_id=step_id,
                    last_observation_seq=None)
@@ -48,8 +48,12 @@ def open_observation_check(check_id: str, job_id: str, plan_id: str, step_id: st
 def _check_context(value: object) -> None:
     context = _object(value, ("check_id", "job_id", "plan_id", "step_id",
                               "last_observation_seq"), "active_check")
-    for field in ("check_id", "job_id", "plan_id", "step_id"):
+    for field in ("check_id", "job_id"):
         _text(context[field], f"active_check.{field}")
+    # 최초 사람 정리에는 아직 채택 Plan이 없다. 가짜 Plan/Step 식별을 만들지 않는다.
+    if context["plan_id"] is not None or context["step_id"] is not None:
+        for field in ("plan_id", "step_id"):
+            _text(context[field], f"active_check.{field}")
     if context["last_observation_seq"] is not None:
         _integer(context["last_observation_seq"], 0, None,
                  "active_check.last_observation_seq")
@@ -112,6 +116,29 @@ def adopt_observation(current: object, active_check: dict | None, value: object)
     previous_seq = active_check["last_observation_seq"]
     if previous_seq is not None and observation["observation_seq"] <= previous_seq:
         result["reason"] = "STALE_OBSERVATION"
+        return result
+
+    if "current" in observation:
+        # B 확정 Current relay(2026-10-11 Wave 2, 10/8 계약): D는 병합·공간 비교·revision 재발급 없이 B의 Current와
+        # current_revision을 그대로 채택한다. provenance는 결과에 남겨 로그·A 전달에 쓴다.
+        relayed = observation["current"]
+        relayed_blocks = _placements(relayed["blocks"], "observed.current.blocks", allow_duplicates=False)
+        same_layout = {_key(block) for block in relayed_blocks} == {_key(block) for block in blocks}
+        # 구조 검사만 한다(공간 재판단 아님): B revision은 역행하지 않고, 같은 revision이면 같은 배치다.
+        if (relayed["current_revision"] < state["current_revision"] or
+                relayed["current_revision"] == state["current_revision"] and not same_layout):
+            raise ValueError("observed.current: B revision went back or changed layout without a new revision")
+        if observation["status"] == "UNOBSERVABLE" and relayed["current_revision"] != state["current_revision"]:
+            raise ValueError("observed.current: UNOBSERVABLE keeps the B Current and revision")
+        result["active_check"]["last_observation_seq"] = observation["observation_seq"]
+        if observation["status"] == "UNOBSERVABLE":
+            result.update(disposition="HOLD", reason="UNOBSERVABLE", pending_observation=observation)
+            return result
+        changed = relayed["current_revision"] != state["current_revision"]
+        result["current"] = dict(current_revision=relayed["current_revision"], blocks=relayed_blocks)
+        result.update(disposition="ADOPTED" if changed else "UNCHANGED",
+                      reason="B_CURRENT_RELAYED" if changed else "NO_LAYOUT_CHANGE",
+                      current_provenance=observation["current_provenance"])
         return result
 
     if observation["status"] == "UNOBSERVABLE":

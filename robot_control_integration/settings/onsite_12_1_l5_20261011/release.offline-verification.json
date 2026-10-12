@@ -1,0 +1,14 @@
+{
+  "status": "RELEASE_WORKFLOW_OFFLINE_VERIFIED",
+  "backend": "TEST",
+  "physical_simulation": false,
+  "release_width_mm": 62.4,
+  "open_feedback_before_retreat": true,
+  "vertical_retreat_only": true,
+  "mock_gripper_commands": 1,
+  "mock_moves": 2,
+  "device_connections": 0,
+  "robot_motion_commands": 0,
+  "robot_gripper_commands": 0,
+  "assembly_completion": false
+}

@@ -1,42 +1,76 @@
-"""명시적인 FAKE 모드의 Backend 흐름. emit은 비동기 요청을 전달하는 연결부다."""
+"""FAKE 전체 흐름과 명시적인 REAL 전달 시험. emit은 비동기 연결부다."""
 
 from copy import deepcopy
 from uuid import uuid4
 
 from app.completion import evaluate_job_completion, evaluate_observation, freeze_plan_basis
-from app.contracts import _integer, _object, _text, validate_observed
+from app.contracts import MAX_LAYER, _integer, _object, _text, validate_observed
 from app.current import open_observation_check
 from app.hmi_contracts import validate_hmi_command
 from app import replan
 
 
 class Backend:
-    def __init__(self, emit, *, mode: str, record=None):
-        if mode != "FAKE":
-            raise ValueError("Backend: explicit FAKE mode required")
+    def __init__(self, emit, *, mode: str, record=None, single_trial=False, manual_trial=False):
+        if manual_trial and (manual_trial is not True or mode != "REAL" or single_trial):
+            raise ValueError("manual_trial requires explicit REAL and excludes single_trial")
+        if mode != "FAKE" and not (mode == "REAL" and (single_trial is True or manual_trial is True)):
+            raise ValueError("Backend: explicit FAKE mode or bounded REAL single_trial/manual_trial required")
         self._emit = emit
         self._record = record
         self._request_owners = {}
         self._state = dict(mode=mode, supported_scope=dict(operations=["PLACE"],
-                           brick_types=["2x2x1","2x3x1"],colors=["yellow","blue"],
-                           board_width=24,board_height=24,max_layer=4),workflow_status="IDLE", job_id=None,
+                           brick_types=["1x2x1","2x2x1","2x3x1"],colors=["red","yellow","blue"],max_blocks=40,
+                           board_width=24,board_height=24,max_layer=MAX_LAYER),workflow_status="IDLE", job_id=None,
                            current=dict(current_revision=0, blocks=[]), context=None,
-                           planning_request=None, execution_id=None, active_check=None,
+                           planning_request=None, c_review=None, approved_design=None, execution_id=None, active_check=None,
                            place_check=None, place_status=None, question_request=None, question=None,
                            stop_request=None, reason=None, fault=None, comparison="WAITING", difference=None,
                            last_observation=None, step_observation=None, pending_design=None,
                            current_check=None,current_check_purpose=None,current_check_blocked=False,
                            choice_required=False,unclear_count=0,
                            correction_request=None,correction_required=False,correction_reason=None,
-                           correction_conflicts=[])
+                           correction_conflicts=[],planner_errors=[])
         self._ready = self._at_observe = self._awaiting_assembly = self._delivery_goal = False
         self._place_seq = self._paused_execution = None
+        self._robot = self._robot_config_loader = None
+        self._manual_trial = manual_trial
+        if manual_trial:
+            self._state["manual_trial"] = True
 
     @property
     def state(self) -> dict:
         """내부 상태의 읽기용 복사본. Qt snapshot 형식으로 해석하지 않는다."""
         return deepcopy(dict(**self._state, controller_ready=self._ready,
-                             at_observe_point=self._at_observe))
+                             at_observe_point=self._at_observe,
+                             robot_state=self._robot.state if self._robot is not None else None))
+
+    def connect_robot(self, robot, *, config_loader=None) -> None:
+        if self._robot is not None or self._state["job_id"] is not None:
+            raise ValueError("Robot binding is only allowed before the first Job")
+        if robot.state["mode"] != self._state["mode"]:
+            raise ValueError("Robot mode differs from Backend")
+        self._robot, self._robot_config_loader = robot, config_loader
+        ready = robot.state["ready_at_observe"]
+        self.controller_ready(ready=ready, at_observe_point=ready)
+
+    def on_robot_event(self, event: str, execution_id: str, state: dict) -> bool:
+        return self._event(event, request_id=execution_id, result=state,
+                           owner=self._request_owners.get(execution_id))
+
+    def on_robot_cleanup(self, job_id: str) -> bool:
+        state = self._state
+        if (job_id != state["job_id"] or state["workflow_status"] != "HOLD"
+                or self._robot is None or not state["fault"]
+                or state["stop_request"] or state["execution_id"] is not None
+                or not self._robot.state["cleanup_ready"]):
+            return False
+        if not self._event("ROBOT_CLEANUP_CONFIRMED", result=self._robot.state):
+            return False
+        # 정리된 장치의 별도 확인이다. Current/공급/오류는 START 이전에 초기화하지 않는다.
+        state.update(workflow_status="IDLE", reason="INITIAL_LAYOUT_CONFIRM_START")
+        self._ready = self._at_observe = True
+        return True
 
     def _event(self, event: str, *, request_id=None, result=None, reason=None, owner=None) -> bool:
         state, context = self._state, self._state["context"]
@@ -70,7 +104,7 @@ class Backend:
     def _hold(self, reason: str) -> None:
         self._state.update(workflow_status="HOLD", reason=reason, active_check=None,
                            place_check=None, planning_request=None, question_request=None,
-                           current_check=None,correction_request=None,choice_required=False)
+                           current_check=None,correction_request=None,choice_required=False,c_review=None)
 
     def _send(self, port: str, payload: dict) -> None:
         identity = payload.get("request_id", payload.get("execution_id", payload.get("check_id")))
@@ -82,7 +116,16 @@ class Backend:
             if port != "robot.stop":
                 return
         try:
-            self._emit(port, deepcopy(payload))
+            if self._robot is not None and port.startswith("robot."):
+                reply = getattr(self._robot, port.split(".")[1])(deepcopy(payload))
+                if not reply["accepted"] and reply["reason"] != "DUPLICATE":
+                    if port != "robot.stop":
+                        self.on_robot_result(dict(execution_id=payload["execution_id"],
+                                                  success=False, reason=reply["reason"]))
+                    else:
+                        self._hold(reply["reason"])
+            else:
+                self._emit(port, deepcopy(payload))
         except Exception as error:
             # 호출 실패를 정상 반환/빈 Plan으로 바꾸거나 자동으로 재시도하지 않는다.
             if port.startswith("robot."):
@@ -93,9 +136,36 @@ class Backend:
 
     def command(self, value: object) -> dict:
         command, state = validate_hmi_command(value), self._state
+        if command["command"] == "PREPARE_OBSERVE":
+            if state["mode"] != "REAL" or state["job_id"] is not None or self._robot is None:
+                return dict(accepted=False, reason="PREPARE_NOT_APPLICABLE")
+            return self._robot.prepare()
+        if command["command"] in ("STOP_PREPARATION", "RESUME_PREPARATION"):
+            if state["mode"] != "REAL" or state["job_id"] is not None or self._robot is None:
+                return dict(accepted=False, reason="PREPARATION_NOT_APPLICABLE")
+            if command["command"] == "STOP_PREPARATION":
+                return self._robot.stop(dict(request_id=str(uuid4()), execution_id=None))
+            paused = self._robot.state["stop"]
+            return self._robot.resume(dict(execution_id=str(uuid4()), previous_execution_id=None, goal=None)) if paused else dict(accepted=False, reason="RESUME_NOT_APPLICABLE")
+        if state["mode"] == "REAL" and not self._manual_trial and command["command"] == "START":
+            return self._command_trial(command)
+        if self._manual_trial and (command["command"] not in ("START", "STOP", "RESUME", "CHOOSE_INTENT", "CONTINUE_AFTER_CORRECTION") or
+                                   command["command"] == "START" and state["job_id"] is not None):
+            return dict(accepted=False, reason="MANUAL_TRIAL_COMMAND_UNAVAILABLE")
         name = command["command"]
         if name != "START" and command["job_id"] != state["job_id"]:
             return dict(accepted=False, reason="OLD_JOB")
+        if name == "SUPPLY_REFILLED" and self._robot is not None:
+            if state["stop_request"] or state["fault"]:
+                return dict(accepted=False, reason="REFILL_NOT_APPLICABLE")
+            if not self._event("SUPPLY_REFILL_REQUESTED", result=command):
+                return dict(accepted=False, reason=state["reason"])
+            reply = self._robot.supply_refilled(command["brick_type"], command["color"])
+            if reply["accepted"]:
+                self._event("SUPPLY_REFILLED", result=self._robot.state)
+                if state["reason"] == "NEEDS_REFILL":
+                    self._open_vision()
+            return reply
         if name not in ("START", "STOP", "RESUME"):
             return replan.exception_command(self,command)
         if name == "START":
@@ -103,18 +173,30 @@ class Backend:
                 return dict(accepted=False, reason="JOB_ACTIVE")
             if not self._ready or not self._at_observe:
                 return dict(accepted=False, reason="CONTROLLER_NOT_READY_AT_OBSERVE")
+            if self._robot is not None:
+                try:
+                    config = self._robot_config_loader() if self._robot_config_loader else None
+                    reply = self._robot.new_job(config)
+                except (OSError, ValueError) as error:
+                    return dict(accepted=False, reason=f"ROBOT_CONFIG_INVALID: {error}")
+                if not reply["accepted"]:
+                    return reply
             state.update(job_id=str(uuid4()), current=dict(current_revision=0, blocks=[]),
                          context=None, comparison="WAITING", difference=None, question=None, fault=None,
                          last_observation=None, step_observation=None,pending_design=None,current_check=None,
                          correction_request=None,correction_required=False,current_check_blocked=False,
-                         choice_required=False,unclear_count=0)
+                         choice_required=False,unclear_count=0,planner_errors=[],c_review=None,approved_design=None)
             self._awaiting_assembly = self._delivery_goal = False
             if not self._event("JOB_STARTED"):
+                return dict(accepted=False, reason=state["reason"])
+            if self._robot is not None and not self._event("ROBOT_CONFIG_ADOPTED", result=self._robot.configuration):
                 return dict(accepted=False, reason=state["reason"])
             self._request_plan()
         elif name == "STOP":
             if state["workflow_status"] in ("IDLE", "COMPLETE", "STOPPED") or state["stop_request"]:
                 return dict(accepted=False, reason="STOP_NOT_APPLICABLE")
+            if self._robot is not None and self._robot.state["stop"] is not None:
+                return dict(accepted=False, reason="STOP_ALREADY_REQUESTED")
             self._paused_execution = state["execution_id"]
             self._at_observe = False
             self._hold("STOP_PENDING")
@@ -125,8 +207,9 @@ class Backend:
                 return dict(accepted=False, reason="RESUME_NOT_APPLICABLE")
             state.update(workflow_status="DELIVERING", reason=None, execution_id=str(uuid4()))
             step = self._next_step() if state["context"] is not None else None
-            goal = (dict(execution_id=state["execution_id"], brick_type=step["after"]["brick_type"],
-                         color=step["after"]["color"]) if self._delivery_goal else None)
+            target = step["after"] if step else self._robot.state.get("transfer_target") if self._robot else None
+            goal = (dict(execution_id=state["execution_id"], brick_type=target["brick_type"],
+                         color=target["color"]) if self._delivery_goal else None)
             self._send("robot.resume", dict(execution_id=state["execution_id"], goal=goal,
                                              previous_execution_id=self._paused_execution))
         return dict(accepted=True, reason=state["reason"])
@@ -179,6 +262,8 @@ class Backend:
 
     def _next_step(self) -> dict | None:
         context = self._state["context"]
+        if context is None:
+            return None
         index = len(context["confirmed_steps"])
         return context["plan"]["steps"][index] if index < len(context["plan"]["steps"]) else None
 
@@ -207,6 +292,13 @@ class Backend:
         step = self._next_step()
         if step is None:
             return
+        if self._robot is not None:
+            column = next(row for row in self._robot.state["supply"]
+                          if all(row[key] == step["after"][key] for key in ("brick_type", "color")))
+            if column["needs_refill"]:
+                self._hold("NEEDS_REFILL")
+                self._event("SUPPLY_WAIT", result=column, reason="NEEDS_REFILL")
+                return
         state.update(workflow_status="DELIVERING", execution_id=str(uuid4()), reason=None,
                      active_check=None, place_check=None, place_status=None, comparison="WAITING")
         state["step_observation"] = None
@@ -214,6 +306,28 @@ class Backend:
         self._delivery_goal = True
         self._send("robot.deliver", dict(execution_id=state["execution_id"],
                                          brick_type=step["after"]["brick_type"], color=step["after"]["color"]))
+
+    def _command_trial(self, command):
+        state = self._state
+        if command["command"] != "START":
+            return dict(accepted=False, reason="REAL_TRIAL_COMMAND_UNAVAILABLE")
+        if state["job_id"] is not None:
+            return dict(accepted=False, reason="SINGLE_TRIAL_ALREADY_STARTED")
+        if self._robot is None or not self._ready or not self._at_observe:
+            return dict(accepted=False, reason="CONTROLLER_NOT_READY_AT_OBSERVE")
+        reply = self._robot.new_job()
+        if not reply["accepted"]:
+            return reply
+        state.update(job_id=str(uuid4()), execution_id=str(uuid4()), workflow_status="DELIVERING",
+                     reason="REAL_SINGLE_TRANSFER", fault=None)
+        if not self._event("JOB_STARTED") or not self._event("ROBOT_CONFIG_ADOPTED", result=self._robot.configuration):
+            return dict(accepted=False, reason=state["reason"])
+        self._ready = self._at_observe = False
+        self._delivery_goal = True
+        config = self._robot.configuration
+        self._send("robot.deliver", dict(execution_id=state["execution_id"],
+                                        brick_type=config["target"]["brick_type"], color=config["target"]["color"]))
+        return dict(accepted=state["fault"] is None, reason=state["fault"])
 
     def on_robot_result(self, value: object) -> bool:
         result = _object(value, ("execution_id", "success", "reason"), "robot.result")
@@ -228,6 +342,12 @@ class Backend:
         if not self._event("DELIVERY_RESULT", request_id=result["execution_id"], result=result):
             return True
         state["execution_id"] = None
+        if state["mode"] == "REAL" and not self._manual_trial:
+            self._delivery_goal = False
+            self._ready = self._at_observe = result["success"]
+            state["fault"] = None if result["success"] else result["reason"]
+            self._hold("REAL_TRANSFER_DONE_ASSEMBLY_UNVERIFIED" if result["success"] else result["reason"])
+            return True
         if not result["success"]:
             state["fault"] = result["reason"]
             self._ready = self._at_observe = False
@@ -282,8 +402,10 @@ class Backend:
         previous = (state["workflow_status"], state["reason"])
         state.update(last_observation=observation, step_observation=observation)
         if result["current"] != state["current"]:
-            if not self._event("CURRENT_ADOPTED", request_id=observation["check_id"],
-                               result=dict(current=result["current"],observed=observation)):
+            adopted = dict(current=result["current"], observed=observation)
+            if "current_provenance" in result:  # B relay: provenance를 기록에 남긴다(D 발급 아님)
+                adopted["current_provenance"] = result["current_provenance"]
+            if not self._event("CURRENT_ADOPTED", request_id=observation["check_id"], result=adopted):
                 state["current"] = result["current"]
                 return True
         if result["step_confirmed"]:
@@ -308,7 +430,10 @@ class Backend:
         else:
             state["workflow_status"] = "HOLD"
             if previous != ("HOLD", state["reason"]):
-                self._event("OBSERVATION_HOLD", request_id=observation["check_id"], reason=state["reason"])
+                self._event("OBSERVATION_HOLD", request_id=observation["check_id"], reason=state["reason"],
+                            result=dict(observed=observation, expected=result["expected"],
+                                        current=state["current"], comparison=state["comparison"],
+                                        difference=state["difference"]))
         return True
 
     def _request_question(self) -> None:
@@ -326,8 +451,12 @@ class Backend:
     def on_intent(self, value: object) -> bool:
         return replan.on_intent(self,value)
 
-    def on_plan_result(self, request_id: str, value: object) -> bool:
-        return replan.on_plan_result(self,request_id,value)
+    def on_plan_result(self, request_id: str, value: object, *, design=None) -> bool:
+        return replan.on_plan_result(self,request_id,value,design=design)
+
+    def on_initial_design(self, request_id: str, response: object) -> bool:
+        from app.planning_connection import on_initial_design
+        return on_initial_design(self,request_id,response)
 
     def on_failure(self, port: str, request_id: str, reason: str) -> bool:
         _text(reason,"failure.reason")

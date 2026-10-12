@@ -1,0 +1,202 @@
+{
+  "schema_version": 1,
+  "image_size": [
+    1280,
+    720
+  ],
+  "rows": 24,
+  "cols": 24,
+  "pitch_mm": 17.0,
+  "origin": "stud(row=1,col=1) centre; X increasing columns, Y increasing rows",
+  "reference_plane": "plane through reference points, normally empty stud tops",
+  "H_board_from_undistorted_pixel": [
+    [
+      0.6349138891735329,
+      -0.008767546773107376,
+      -282.0317544244445
+    ],
+    [
+      0.0008480767800382298,
+      -0.6470745796947786,
+      421.0732916617012
+    ],
+    [
+      7.836151144648761e-07,
+      -5.461099994314011e-05,
+      1.0
+    ]
+  ],
+  "intrinsics": {
+    "image_size": [
+      1280,
+      720
+    ],
+    "camera_matrix": [
+      [
+        907.924560546875,
+        0.0,
+        652.287109375
+      ],
+      [
+        0.0,
+        907.717529296875,
+        366.0758972167969
+      ],
+      [
+        0.0,
+        0.0,
+        1.0
+      ]
+    ],
+    "dist_coeffs": [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+    ],
+    "distortion_model": "plumb_bob"
+  },
+  "reference_pixels": [
+    [
+      453.0,
+      652.0
+    ],
+    [
+      1048.0,
+      652.0
+    ],
+    [
+      1060.0,
+      49.0
+    ],
+    [
+      445.0,
+      48.0
+    ],
+    [
+      737.0,
+      651.0
+    ],
+    [
+      1053.0,
+      369.0
+    ],
+    [
+      738.0,
+      49.0
+    ],
+    [
+      450.0,
+      368.0
+    ]
+  ],
+  "reference_board_xy_mm": [
+    [
+      0.0,
+      0.0
+    ],
+    [
+      391.0,
+      0.0
+    ],
+    [
+      391.0,
+      391.0
+    ],
+    [
+      0.0,
+      391.0
+    ],
+    [
+      187.0,
+      0.0
+    ],
+    [
+      391.0,
+      187.0
+    ],
+    [
+      187.0,
+      391.0
+    ],
+    [
+      0.0,
+      187.0
+    ]
+  ],
+  "fit_errors_mm": [
+    0.47141239336549173,
+    0.2613915414604812,
+    0.2696796021317847,
+    0.29273082118424,
+    0.5450585122171282,
+    0.24452737483400544,
+    0.5375495001792153,
+    0.4627928700239082
+  ],
+  "max_fit_error_mm": 0.5450585122171282,
+  "independently_validated": true,
+  "robot": null,
+  "camera_pose": {
+    "R_camera_from_board": [
+      [
+        0.9999976607207258,
+        -0.0006570210487250069,
+        -0.0020607950935541326
+      ],
+      [
+        -0.0005551096248171059,
+        -0.9987952365079878,
+        0.049069006330443136
+      ],
+      [
+        -0.0020905516928600228,
+        -0.04906774757714242,
+        -0.9987932647656999
+      ]
+    ],
+    "t_camera_from_board_mm": [
+      -131.37263102228297,
+      188.30715557871693,
+      597.9361212033465
+    ],
+    "height_normal_sign": 1,
+    "reprojection_errors_px": [
+      0.2016295446744359,
+      0.9484583588185109,
+      0.9140411618218539,
+      1.2054305450705776,
+      0.9901876472636582,
+      0.8935638957116975,
+      1.295863227336385,
+      0.6586532667251671
+    ]
+  },
+  "view_id": "V0",
+  "coordinate_convention": {
+    "origin": "A: red-marked corner stud centre",
+    "positive_x": "A to B along the physical +X marking; increasing column index",
+    "positive_y": "A to D along the physical +Y marking; increasing row index",
+    "index_base": 1,
+    "note": "Orientation is established by reference point identities, not image screen position"
+  },
+  "source_image": "/home/roh/C-2/perception/recordings/board_calibration_20261007_110850/V0/captures/empty.png",
+  "baseline_file": "empty.png",
+  "last_validation": {
+    "source": "/home/roh/C-2/perception/recordings/board_calibration_20261007_110850/V0/captures/validation_clicked_points.json",
+    "surface_height_mm": 0.0,
+    "count": 5,
+    "errors_mm": [
+      1.3661454131224107,
+      0.9079237277068551,
+      0.7271860892591465,
+      0.8409832386174312,
+      0.9180867379285983
+    ],
+    "max_error_mm": 1.3661454131224107,
+    "rmse_mm": 0.9766897623643204,
+    "threshold_mm": 2.0,
+    "passed": true
+  }
+}

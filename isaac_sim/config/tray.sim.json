@@ -1,0 +1,1 @@
+{"profile_id":"EXISTING_HANDOFF_REFERENCE_SIM_ONLY","tcp_pose_mm_zyz_deg":[417.561,-184.622,19.712,58.132,-176.4,-121.902],"travel_tcp_z_mm":400,"source_reference":"/home/ms-02/seeun_sim_gpu_20261006/isaac_preview/config/pose_references.json#handoff_release","verification":"USER_SELECTED_EXISTING_REFERENCE_FOR_SIM_NOT_NEW_GRIPPER_CALIBRATION"}

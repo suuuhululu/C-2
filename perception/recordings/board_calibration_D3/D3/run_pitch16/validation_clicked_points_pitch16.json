@@ -1,0 +1,55 @@
+{
+  "pixel_xy": [
+    [
+      349.0,
+      463.0
+    ],
+    [
+      796.0,
+      589.0
+    ],
+    [
+      617.0,
+      336.0
+    ],
+    [
+      492.0,
+      107.0
+    ],
+    [
+      853.0,
+      223.0
+    ]
+  ],
+  "board_xy_mm": [
+    [
+      48.0,
+      48.0
+    ],
+    [
+      320.0,
+      48.0
+    ],
+    [
+      176.0,
+      176.0
+    ],
+    [
+      48.0,
+      320.0
+    ],
+    [
+      320.0,
+      320.0
+    ]
+  ],
+  "input_index_base": 0,
+  "surface_height_mm": 0,
+  "image_size": [
+    1280,
+    720
+  ],
+  "source_image": "/home/roh/C-2/perception/recordings/board_calibration_D3/D3/captures/empty.png",
+  "note": "Original held-out clicked pixels preserved; stud identities rescaled from 17 to 16 mm. Not newly measured pixels.",
+  "pitch_mm": 16.0
+}

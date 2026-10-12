@@ -1,0 +1,102 @@
+{
+  "step": {
+    "case_id": "FILL_CASE_ID",
+    "plan_id": "FAKE_PLAN",
+    "step_id": "S01",
+    "block": {
+      "brick_type": "2x2x1",
+      "color": "blue",
+      "x": 6,
+      "y": 8,
+      "layer": 1,
+      "orientation_deg": 0
+    },
+    "action": {
+      "plan_id": "FAKE_PLAN",
+      "step_id": "S01",
+      "block": {
+        "brick_type": "2x2x1",
+        "color": "blue",
+        "x": 6,
+        "y": 8,
+        "layer": 1,
+        "orientation_deg": 0
+      },
+      "mode": "ROBOT_GRIP",
+      "assistance_kind": "NONE"
+    },
+    "current_revision": 0,
+    "reservation": {
+      "slot_id": "blue_2x2x1_01",
+      "reservation_id": "FAKE_SLOT",
+      "reservation_generation": 1,
+      "bound_workflow_generation": 7
+    },
+    "source_execution_allowed": false
+  },
+  "d_profile": {
+    "profile_id": "FILL_D_PROFILE_ID",
+    "physical_route_reviewed": false,
+    "human_collaboration_commissioning_ref": null,
+    "clearance_z_mm": null,
+    "supply_transit_xy_mm": null,
+    "body_bypass_xy_mm": null,
+    "place_pose": null,
+    "approach_offset_mm": null,
+    "near_contact_offset_mm": null,
+    "force_stop_n": null,
+    "max_press_travel_mm": null,
+    "transfer_velocity": null,
+    "transfer_acceleration": null,
+    "descent_velocity": null,
+    "descent_acceleration": null,
+    "gripper_force_n": null,
+    "steps": {
+      "FILL_CASE_ID/S01": {
+        "reference_pose": null,
+        "pickup_pose": null,
+        "pickup_width_mm": null,
+        "release_width_mm": null,
+        "turn_base_z_deg": null,
+        "physical_reference_reviewed": false,
+        "xy_grasp_rotation_compensation_measured": false,
+        "pickup_start_open_range_mm": null,
+        "release_feedback_range_mm": null
+      }
+    }
+  },
+  "session": {
+    "backend": "REAL",
+    "provenance": "LIVE_D_RUNTIME",
+    "execution_id": "",
+    "source_epoch": "",
+    "frame_profile_id": "",
+    "plan_id": "FAKE_PLAN",
+    "step_id": "S01",
+    "current_revision": 0,
+    "expires_unix_s": 0,
+    "request_timeout_s": 30,
+    "frame_max_age_s": 0.3,
+    "frame_max_gap_s": 0.3,
+    "inference_max_latency_s": 0.3,
+    "stillness": {
+      "window_s": null,
+      "max_gap_s": null,
+      "timeout_s": null,
+      "min_samples": null,
+      "sample_max_duration_s": null,
+      "position_mm": null,
+      "orientation_deg": null,
+      "linear_mm_s": null,
+      "angular_deg_s": null
+    },
+    "profile_id": "",
+    "exclusive_control_reviewed": false,
+    "device_feedback_reviewed": false,
+    "stillness_parameters_reviewed": false,
+    "hand_clear_reviewed": false,
+    "alignment_evidence_ref": null,
+    "d_runtime": {}
+  },
+  "start_zone": "assembly"
+}

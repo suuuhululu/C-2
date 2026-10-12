@@ -1,0 +1,17 @@
+{
+  "device_connections": 0,
+  "physical_simulation": false,
+  "real_execution_started": false,
+  "real_preflight": "PASSED",
+  "status": "AWAITING_BACKEND_OBSERVATION",
+  "mock_moves": 2,
+  "mock_grips": 1,
+  "vertical_target": [
+    376.4137878417969,
+    197.87327575683594,
+    91.70824584960937,
+    89.90977478027344,
+    179.97811889648438,
+    90.27552032470703
+  ]
+}

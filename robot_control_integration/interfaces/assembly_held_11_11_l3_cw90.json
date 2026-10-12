@@ -1,0 +1,113 @@
+{
+  "trial_kind": "D_LOCAL_HELD_TEST_NOT_A_BACKEND_WORKFLOW",
+  "desired_target": {
+    "brick_type": "2x2x1",
+    "color": "yellow",
+    "trial_min_xy": [
+      11,
+      11
+    ],
+    "layer": 3,
+    "turn_view": "TOP_DOWN_CLOCKWISE",
+    "turn_base_z_deg": -90.0,
+    "turn_reference": "CURRENT_GRASP"
+  },
+  "initial_phase": "approach",
+  "start_zone": null,
+  "reference_pose": [
+    471.61138916015625,
+    85.72891998291016,
+    52.92000961303711,
+    70.23124694824219,
+    -177.07777404785156,
+    70.48985290527344
+  ],
+  "approach_z_mm": 73.0200096130371,
+  "final_absolute_orientation": null,
+  "start_live_pose": null,
+  "assembly_completion": false,
+  "current_update": false,
+  "step": {
+    "case_id": "onsite_11_11_layer3_cw90",
+    "step_id": "S01",
+    "plan_id": "D_LOCAL_HELD_11_11_L3_CW90",
+    "block": {
+      "brick_type": "2x2x1",
+      "color": "yellow",
+      "x": 11,
+      "y": 11,
+      "layer": 3,
+      "orientation_deg": 90
+    },
+    "action": {
+      "mode": "ROBOT_GRIP",
+      "assistance_kind": "NONE",
+      "human_actions": []
+    },
+    "current_revision": null,
+    "reservation": null,
+    "summary": {}
+  },
+  "d_profile": {
+    "profile_id": "D_STEP_CANDIDATE_20261010",
+    "physical_route_reviewed": false,
+    "human_collaboration_commissioning_ref": null,
+    "clearance_z_mm": 111.83796691894531,
+    "supply_transit_xy_mm": [
+      -364.8591304347826,
+      -171.54
+    ],
+    "body_bypass_xy_mm": [
+      -27.878286361694336,
+      -411.9568176269531
+    ],
+    "place_pose": [
+      418.2707214355469,
+      -181.1972198486328,
+      14.935303688049316,
+      161.52828979492188,
+      179.58567810058594,
+      161.99119567871094
+    ],
+    "approach_offset_mm": 20.1,
+    "near_contact_offset_mm": 1.0,
+    "force_stop_n": 35.0,
+    "max_press_travel_mm": 5.0,
+    "transfer_velocity": 32.0,
+    "transfer_acceleration": 16.0,
+    "descent_velocity": 2.0,
+    "descent_acceleration": 1.0,
+    "gripper_force_n": 40.0,
+    "steps": {
+      "onsite_11_11_layer3_cw90/S01": {
+        "reference_pose": [
+          471.61138916015625,
+          85.72891998291016,
+          52.92000961303711,
+          70.23124694824219,
+          -177.07777404785156,
+          70.48985290527344
+        ],
+        "pickup_pose": null,
+        "physical_reference_reviewed": false,
+        "pickup_width_mm": null,
+        "release_width_mm": null,
+        "release_pose": null,
+        "press_approach_pose": null,
+        "press_start_pose": null,
+        "press_width_mm": null,
+        "notes": [
+          "SAME_GRASP_TCP_AND_ORIENTATION_MUST_BE_REVIEWED",
+          "PICKUP_AND_MINIMAL_RELEASE_WIDTH_MUST_BE_TAUGHT",
+          "LAYER_MEASURED_AT_CENTRE_XY_SPATIAL_CANDIDATE_ONLY",
+          "90_DEGREE_GRASP_ROTATION_NOT_PHYSICALLY_VALIDATED",
+          "CURRENT_LIVE_GRASP_ORIENTATION_REQUIRED_NO_STORED_ABC_OVERRIDE"
+        ],
+        "turn_base_z_deg": -90.0,
+        "turn_reference": "CURRENT_SESSION_GRASP_BASE_Z",
+        "turn_stage": "ABOVE_TARGET_AT_TRANSPORT_CLEARANCE",
+        "xy_grasp_rotation_compensation_measured": false
+      }
+    }
+  }
+}

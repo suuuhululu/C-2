@@ -1,0 +1,197 @@
+{
+  "schema_version": "assembly-assistance-candidate/0.2",
+  "execution_allowed": false,
+  "plan_id": "P-8a6d1c8f81aa4ecf8bd76d3196285b9a",
+  "step_id": "S01",
+  "assessment_current_revision": 4,
+  "context_digest": "8b9da029b6b008f8995fde895b43c79e562a6ca9f538ded599920952d55fb24f",
+  "options": [
+    {
+      "mode": "ROBOT_RELEASE_PRESS",
+      "grip_axis": "x",
+      "release_strategy": "MINIMAL_OPEN",
+      "release_margin_per_side_mm": null,
+      "clearance_pitch_per_side": 1,
+      "support_targets": [],
+      "assembly_hand": null,
+      "press_hand": null,
+      "press_assessment": {
+        "required": false,
+        "policy": "CONTACT_HULL",
+        "nominal_robot_point_xy_stud": [
+          6.5,
+          6.5
+        ],
+        "contact_hull_xy_stud": [
+          [
+            6,
+            6
+          ],
+          [
+            7,
+            6
+          ],
+          [
+            7,
+            7
+          ],
+          [
+            6,
+            7
+          ]
+        ],
+        "basis": "GEOMETRIC_HEURISTIC_NOT_FORCE_OR_STABILITY_PROOF"
+      },
+      "contacts": {
+        "support_studs": 4,
+        "total_studs": 4,
+        "supported_cells": [
+          [
+            6,
+            6
+          ],
+          [
+            6,
+            7
+          ],
+          [
+            7,
+            6
+          ],
+          [
+            7,
+            7
+          ]
+        ],
+        "missing_components": [],
+        "largest_missing_component": 0,
+        "weak_supports": []
+      },
+      "requires_minimal_release": true,
+      "release_instruction": "이 블록을 조립한 후에는 그리퍼를 소폭 개방하고 후퇴해야 합니다.",
+      "human_actions": [],
+      "assistance_kind": "NONE"
+    },
+    {
+      "mode": "ROBOT_RELEASE_PRESS",
+      "grip_axis": "y",
+      "release_strategy": "MINIMAL_OPEN",
+      "release_margin_per_side_mm": null,
+      "clearance_pitch_per_side": 1,
+      "support_targets": [],
+      "assembly_hand": null,
+      "press_hand": null,
+      "press_assessment": {
+        "required": false,
+        "policy": "CONTACT_HULL",
+        "nominal_robot_point_xy_stud": [
+          6.5,
+          6.5
+        ],
+        "contact_hull_xy_stud": [
+          [
+            6,
+            6
+          ],
+          [
+            7,
+            6
+          ],
+          [
+            7,
+            7
+          ],
+          [
+            6,
+            7
+          ]
+        ],
+        "basis": "GEOMETRIC_HEURISTIC_NOT_FORCE_OR_STABILITY_PROOF"
+      },
+      "contacts": {
+        "support_studs": 4,
+        "total_studs": 4,
+        "supported_cells": [
+          [
+            6,
+            6
+          ],
+          [
+            6,
+            7
+          ],
+          [
+            7,
+            6
+          ],
+          [
+            7,
+            7
+          ]
+        ],
+        "missing_components": [],
+        "largest_missing_component": 0,
+        "weak_supports": []
+      },
+      "requires_minimal_release": true,
+      "release_instruction": "이 블록을 조립한 후에는 그리퍼를 소폭 개방하고 후퇴해야 합니다.",
+      "human_actions": [],
+      "assistance_kind": "NONE"
+    }
+  ],
+  "errors": [],
+  "status": "CANDIDATE",
+  "assessment": {
+    "support_studs": 4,
+    "total_studs": 4,
+    "supported_cells": [
+      [
+        6,
+        6
+      ],
+      [
+        6,
+        7
+      ],
+      [
+        7,
+        6
+      ],
+      [
+        7,
+        7
+      ]
+    ],
+    "missing_components": [],
+    "largest_missing_component": 0,
+    "weak_supports": [],
+    "press_assessment": {
+      "required": false,
+      "policy": "CONTACT_HULL",
+      "nominal_robot_point_xy_stud": [
+        6.5,
+        6.5
+      ],
+      "contact_hull_xy_stud": [
+        [
+          6,
+          6
+        ],
+        [
+          7,
+          6
+        ],
+        [
+          7,
+          7
+        ],
+        [
+          6,
+          7
+        ]
+      ],
+      "basis": "GEOMETRIC_HEURISTIC_NOT_FORCE_OR_STABILITY_PROOF"
+    },
+    "reason": "ROBOT_GRIP: local approach/release envelope blocked; HUMAN_ASSEMBLY: assembly hand corridor inaccessible"
+  }
+}

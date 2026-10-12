@@ -1,0 +1,33 @@
+{
+  "config_id": "yellow4-slot2-observe-2026-10-06-v1",
+  "mode": "REAL",
+  "source_path": "/home/ms-02/C-2_협동2자료/robot_cycles/yellow4_row_to_place.py",
+  "source_sha256": "01d874432e4ed7d635c8728b73e22b47f06964f69a83872976fd855d1df2fe99",
+  "slot": 2,
+  "settings": {
+    "robot_id": "dsr01",
+    "tcp": "GripperDA_v4",
+    "tool": "ToolWeight0",
+    "gripper_ip": "192.168.1.1",
+    "lift": 30,
+    "joint_speed": 20,
+    "joint_acc": 20,
+    "local_speed": 40,
+    "transit_speed": 80,
+    "linear_acc": 60,
+    "transit_z": 200,
+    "bypass_y": 400,
+    "supply_staging_x": -450,
+    "open_width": 60,
+    "close_width": 2,
+    "force": 40
+  },
+  "observe_posj": [0.712, 7.268, 63.143, -0.006, 109.185, 0.785],
+  "observe_posx": [400.851, 8.573, 314.981, 175.022, -179.595, 175.461],
+  "confirmations": {
+    "onsite_operator": true,
+    "unchanged_setup": true,
+    "empty_place_and_slot": true,
+    "return_route_verified": true
+  }
+}

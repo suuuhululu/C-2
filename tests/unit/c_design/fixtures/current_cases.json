@@ -1,0 +1,284 @@
+{
+  "_note": "design is the valid v1 chair (design_initial_valid.json). Each case's `current` is a plausible actually-placed Block list (§5): extra keys are ignored, not errors. expected_input_rules are INVALID_INPUT rules that MUST be produced for this current input (support violation is NOT an input rule, hence its own boolean field). support_violation is hand-computed: true only when a layer>=2 block in `current` has total below-layer stud overlap < 2 against other blocks present in the same `current` list.",
+  "design": {
+    "design_version": 1,
+    "blocks": [
+      {
+        "brick_type": "2x2x1",
+        "color": "blue",
+        "x": 10,
+        "y": 10,
+        "layer": 1,
+        "orientation_deg": 0
+      },
+      {
+        "brick_type": "2x2x1",
+        "color": "blue",
+        "x": 12,
+        "y": 10,
+        "layer": 1,
+        "orientation_deg": 0
+      },
+      {
+        "brick_type": "2x2x1",
+        "color": "blue",
+        "x": 10,
+        "y": 12,
+        "layer": 1,
+        "orientation_deg": 0
+      },
+      {
+        "brick_type": "2x2x1",
+        "color": "blue",
+        "x": 12,
+        "y": 12,
+        "layer": 1,
+        "orientation_deg": 0
+      },
+      {
+        "brick_type": "2x3x1",
+        "color": "yellow",
+        "x": 10,
+        "y": 10,
+        "layer": 2,
+        "orientation_deg": 0
+      },
+      {
+        "brick_type": "2x3x1",
+        "color": "yellow",
+        "x": 12,
+        "y": 10,
+        "layer": 2,
+        "orientation_deg": 0
+      },
+      {
+        "brick_type": "2x2x1",
+        "color": "blue",
+        "x": 11,
+        "y": 11,
+        "layer": 3,
+        "orientation_deg": 0
+      },
+      {
+        "brick_type": "2x2x1",
+        "color": "yellow",
+        "x": 11,
+        "y": 11,
+        "layer": 4,
+        "orientation_deg": 0
+      }
+    ]
+  },
+  "cases": [
+    {
+      "case": "matches_design",
+      "current": [
+        {
+          "brick_type": "2x2x1",
+          "color": "blue",
+          "x": 10,
+          "y": 10,
+          "layer": 1,
+          "orientation_deg": 0
+        },
+        {
+          "brick_type": "2x2x1",
+          "color": "blue",
+          "x": 12,
+          "y": 10,
+          "layer": 1,
+          "orientation_deg": 0
+        }
+      ],
+      "expected_input_rules": [],
+      "support_violation": false,
+      "_note": "Subset of assembled layer-1 legs, exact design values."
+    },
+    {
+      "case": "position_changed",
+      "current": [
+        {
+          "brick_type": "2x2x1",
+          "color": "blue",
+          "x": 11,
+          "y": 10,
+          "layer": 1,
+          "orientation_deg": 0
+        }
+      ],
+      "expected_input_rules": [],
+      "support_violation": false,
+      "_note": "block0 shifted 1 stud in x (10 -> 11); still fully within the board, actual-value reporting is always accepted as input."
+    },
+    {
+      "case": "orientation_changed",
+      "current": [
+        {
+          "brick_type": "2x2x1",
+          "color": "blue",
+          "x": 10,
+          "y": 10,
+          "layer": 1,
+          "orientation_deg": 0
+        },
+        {
+          "brick_type": "2x2x1",
+          "color": "blue",
+          "x": 12,
+          "y": 10,
+          "layer": 1,
+          "orientation_deg": 0
+        },
+        {
+          "brick_type": "2x2x1",
+          "color": "blue",
+          "x": 10,
+          "y": 12,
+          "layer": 1,
+          "orientation_deg": 0
+        },
+        {
+          "brick_type": "2x2x1",
+          "color": "blue",
+          "x": 12,
+          "y": 12,
+          "layer": 1,
+          "orientation_deg": 0
+        },
+        {
+          "brick_type": "2x3x1",
+          "color": "yellow",
+          "x": 10,
+          "y": 10,
+          "layer": 2,
+          "orientation_deg": 90
+        }
+      ],
+      "expected_input_rules": [],
+      "support_violation": false,
+      "_note": "block4 (2x3x1) actually placed rotated 90 instead of design's 0; footprint x10-12,y10-11 still inside the board and supported by the four legs."
+    },
+    {
+      "case": "color_changed",
+      "current": [
+        {
+          "brick_type": "2x2x1",
+          "color": "yellow",
+          "x": 10,
+          "y": 10,
+          "layer": 1,
+          "orientation_deg": 0
+        }
+      ],
+      "expected_input_rules": [],
+      "support_violation": false,
+      "_note": "block0 actually placed as yellow instead of design's blue (wrong-color block physically placed)."
+    },
+    {
+      "case": "board_position_moved",
+      "current": [
+        {
+          "brick_type": "2x2x1",
+          "color": "blue",
+          "x": 0,
+          "y": 0,
+          "layer": 1,
+          "orientation_deg": 0
+        }
+      ],
+      "expected_input_rules": [],
+      "support_violation": false,
+      "_note": "block0 actually placed far from its design position, still a valid board location."
+    },
+    {
+      "case": "layer_changed",
+      "current": [
+        {
+          "brick_type": "2x2x1",
+          "color": "blue",
+          "x": 12,
+          "y": 10,
+          "layer": 1,
+          "orientation_deg": 0
+        },
+        {
+          "brick_type": "2x2x1",
+          "color": "blue",
+          "x": 10,
+          "y": 12,
+          "layer": 1,
+          "orientation_deg": 0
+        },
+        {
+          "brick_type": "2x2x1",
+          "color": "blue",
+          "x": 12,
+          "y": 12,
+          "layer": 1,
+          "orientation_deg": 0
+        },
+        {
+          "brick_type": "2x2x1",
+          "color": "blue",
+          "x": 11,
+          "y": 10,
+          "layer": 2,
+          "orientation_deg": 0
+        }
+      ],
+      "expected_input_rules": [],
+      "support_violation": false,
+      "_note": "block0 actually placed one layer up (1 -> 2) at (11,10) over block1 with 2 shared studs, so only the layer/assembly point changes and support_violation stays false."
+    },
+    {
+      "case": "support_violation",
+      "current": [
+        {
+          "brick_type": "2x2x1",
+          "color": "blue",
+          "x": 10,
+          "y": 10,
+          "layer": 1,
+          "orientation_deg": 0
+        },
+        {
+          "brick_type": "2x3x1",
+          "color": "yellow",
+          "x": 11,
+          "y": 11,
+          "layer": 2,
+          "orientation_deg": 0
+        }
+      ],
+      "expected_input_rules": [],
+      "support_violation": true,
+      "_note": "block4 actually placed at (11,11) instead of (10,10): overlap with block0 (x10-11,y10-11) = x intersect {11}, y intersect {11} = 1 stud. Total support sum = 1 < 2 -> support_violation true. This is not an INVALID_INPUT rule."
+    },
+    {
+      "case": "overlap_violation",
+      "current": [
+        {
+          "brick_type": "2x2x1",
+          "color": "blue",
+          "x": 10,
+          "y": 10,
+          "layer": 1,
+          "orientation_deg": 0
+        },
+        {
+          "brick_type": "2x2x1",
+          "color": "blue",
+          "x": 10,
+          "y": 10,
+          "layer": 1,
+          "orientation_deg": 0
+        }
+      ],
+      "expected_input_rules": [
+        "overlap"
+      ],
+      "support_violation": false,
+      "_note": "Two current blocks occupy the identical layer-1 footprint -- a same-layer overlap, which is a genuine input error (physically impossible observation)."
+    }
+  ]
+}

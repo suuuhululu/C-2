@@ -1,0 +1,62 @@
+{
+  "backend": "REAL",
+  "provenance": "LOCAL_OPERATOR_TRIAL",
+  "execution_id": "612c67a7-0ba5-4cd3-86c3-f588fd631829",
+  "source_epoch": "ONSITE_HUMAN_FULL_11_11_L5_d34a4dcd0fbf4e019639a0bdd2fe1840",
+  "frame_profile_id": "BASE_EXISTING_BOARD_20261007_EXPERIMENTAL",
+  "plan_id": "D_LOCAL_HUMAN_11_11_L5_20261011",
+  "step_id": "S01",
+  "current_revision": null,
+  "expires_unix_s": 0,
+  "request_timeout_s": 30.0,
+  "frame_max_age_s": 0.3,
+  "frame_max_gap_s": 0.3,
+  "inference_max_latency_s": 0.3,
+  "stillness": {
+    "window_s": 0.25,
+    "max_gap_s": 0.5,
+    "timeout_s": 5.0,
+    "min_samples": 3,
+    "sample_max_duration_s": 0.5,
+    "position_mm": 0.05,
+    "orientation_deg": 0.05,
+    "linear_mm_s": 0.01,
+    "angular_deg_s": 0.01
+  },
+  "profile_id": "D_LOCAL_HUMAN_FULL_11_11_L5_612c67a7-0ba5-4cd3-86c3-f588fd631829",
+  "exclusive_control_reviewed": true,
+  "device_feedback_reviewed": true,
+  "stillness_parameters_reviewed": true,
+  "hand_clear_reviewed": true,
+  "seating_evidence_ref": null,
+  "alignment_evidence_ref": null,
+  "parameter_source": "EXPERIMENTAL_STILLNESS_SETTINGS_OPERATOR_REVIEWED_NOT_SAFETY_LIMITS",
+  "allowed_trial_phase": "full",
+  "physical_verified": false,
+  "readiness_ref": "settings/onsite_human_11_11_l5_20261011/readonly-612c67a7-0ba5-4cd3-86c3-f588fd631829.json",
+  "session_duration_reason": "30 minute one-shot manual assembly trial; routine sensor checks, open hand handover, thumbs-up human completion.",
+  "transport_blend_review_ref": "settings/onsite_human_11_11_l5_20261011/operator-review-612c67a7-0ba5-4cd3-86c3-f588fd631829.json",
+  "arming_readonly_ref": "settings/onsite_human_11_11_l5_20261011/readonly-612c67a7-0ba5-4cd3-86c3-f588fd631829.json",
+  "automatic_stage_checks": {
+    "enabled": true,
+    "review_ref": "settings/onsite_human_11_11_l5_20261011/operator-review-612c67a7-0ba5-4cd3-86c3-f588fd631829.json",
+    "block": {
+      "brick_type": "2x2x1",
+      "color": "blue",
+      "x": 11,
+      "y": 11,
+      "layer": 5,
+      "orientation_deg": 0
+    },
+    "release_after_contact_stop": true
+  },
+  "human_step_gestures_review_ref": "settings/onsite_human_11_11_l5_20261011/operator-review-612c67a7-0ba5-4cd3-86c3-f588fd631829.json",
+  "automatic_start_pose": [
+    471.22943115234375,
+    84.79048156738281,
+    194.73321533203125,
+    125.80794525146484,
+    -175.8805389404297,
+    124.54740905761719
+  ]
+}

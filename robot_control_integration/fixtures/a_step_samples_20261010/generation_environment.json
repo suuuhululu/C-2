@@ -1,0 +1,9 @@
+{
+  "python": "3.12.3",
+  "platform": "Linux-7.0.0-38-generic-x86_64-with-glibc2.39",
+  "jsonschema": "4.10.3",
+  "generator": "generate_samples.py",
+  "device_commands_issued": 0,
+  "source_business_logic_modified": false,
+  "positive_step_count": 18
+}

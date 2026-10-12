@@ -1,36 +1,42 @@
 # 프로젝트 에이전트 안내
 
+> 2026-10-11 C Stage3 기준: 노랑·파랑 4점/6점 + 빨강 2점(1x2x1만), 24×24, 정수 layer 1~5, 실행 후보 1~40블록입니다. D는 후보를 Preview→Review→APPROVE한 뒤에만 A에 전달합니다. B의 상태·비교 소유는 유지합니다. 상세 구현/미검증 범위는 [A·D 연결 안내](docs/D_C_STAGE3_AD_ALIGNMENT.md)를 따릅니다. 아래 이전 Day4/ZIP 기록의 4종·30블록 범위보다 이 기준이 우선합니다.
+
+> 2026-10-11 수현의 최신 명시적 확인: 1차 통합은 `docs/handover/final_mvp_interface_20261008/README.md`의 B 소유 계약을 우선합니다. B가 Current·revision·Expected·공간 비교를 확정하고 D는 실행·진행·검사 대응·최종 종료와 HMI/DB를 담당합니다. layer는 정수 1~5입니다. 아래 기존 Day4의 D 상태 채택 구현은 이전 호환 경로이며 최신 B 경로와 중복 실행하지 않습니다.
+
 ## 작업 전 읽기
 
 새 작업의 맥락이 필요하면 README.md → docs/00_CURRENT_DECISIONS.md → docs/STATUS.md를 확인합니다. 일정 작업은 docs/01_DAY_PLAN.md, 역할은 docs/02_TEAM_GUIDE.md, 계약은 docs/06_CONTRACT_DRAFT.md, 장치는 docs/03_MEASUREMENT_GUIDE.md를 읽습니다. 오타·표현 수정은 대상과 직접 관련된 근거만 확인하며 모든 문서를 매번 읽지 않습니다. docs/reference/AI_CODE_POLICY.md와 UNIT_TEST_POLICY.md의 작은 작업·사람 리뷰·검증 원칙을 따릅니다.
 
-사용자의 최신 명시적 지시와 최신 TBD 작성 내용이 이전 역할·구조·일정보다 우선합니다. docs/reference는 역사적 출처이며 과거 PostgreSQL·다중 서비스·역할표를 자동 적용하지 않습니다. 확정된 방향·제안·실제 검증을 구분합니다.
+사용자의 최신 명시적 지시와 날짜가 확인된 채택 결정이 이전 역할·구조·일정보다 우선합니다. 과거 TBD 설명을 최신 최종 MVP보다 우선 적용하지 않습니다. docs/reference는 역사적 출처이며 과거 PostgreSQL·다중 서비스·역할표를 자동 적용하지 않습니다. 확정된 방향·제안·실제 검증을 구분합니다.
 
-## 최신 목표와 책임
+## 최신 목표와 책임 (2026-10-07)
 
-- Day 4: 키워드 Initial → Plan 검증 → Robot 전달 → 사람 조립 → 지속 관측 → 실제 차이의 의도 확인 → 유지 / Revised → 재계획 → 진행.
-- 시율: Design·질문·STT·의도 해석. 세은: 사람 조립 Plan·Remaining·Replan·검증. 홍동: Observed·품질·오류. 수현: Current·Expected·비교·상태·버전·Robot·HMI·통합.
-- Robot은 supply board에서 place board로 전달하며 place board는 조립판이 아닙니다. 배치·체결·물리 수정은 사람 담당입니다.
-- 4점·6점 × 노랑·파랑, 24×24점, 최대 4층. 기하·좌표·관측 능력은 계약과 시험으로 확인합니다.
-- 환경: Ubuntu 24.04 / Docker 29.8.2 / NVIDIA 4060 / Python 3.12.3 / ROS2 Jazzy / M0609 / D435i / RG2 gripper. 환경·역할은 사용자 재확인, driver·펌웨어·보정값·실제 호환성은 미확인입니다.
+- 제품 목표는 `docs/10_FINAL_MVP.md`와 `docs/00_CURRENT_DECISIONS.md`를 우선합니다. 개발 과정에서 수정 가능하며 문서 반영과 구현·실기 완료를 구분합니다.
+- 서비스 시작 → LLM/사용자 커스텀 의자 설계 대화·확정 → 조립 순서/경로 생성 → Backend 채택·HMI 반영 → Robot 공급판 집기·조립판 직접 결착입니다.
+- 디자인상 지지가 필요한 부분은 사람의 고정 도움·요청별 준비 응답과 실행 전 알림을 거칩니다. 정상 매 Step 수동 완료 입력은 요구하지 않습니다.
+- 종료는 필요한 블록 모두 사용 → Vision 완성상태 확인과 Backend 최종 판정·조립 종료 → 사용자별 현재 설계/조립 기록 DB 저장·웹앱 반영의 세 단계입니다.
+- 기존 C 시율 Design/HRI·A 세은 Plan·B 홍동 Vision·D 수현 Backend/Robot/HMI/DB·통합은 이행 기준입니다. 첨부 연구의 Assembly/Motion Planner 재분담은 합의 없이 확정하지 않습니다.
+- 현재 구현은 전달형 Day4·Qt·JSONL와 독립 PostgreSQL 이력/계정입니다. 직접 결착·지원·사용자–Job 소유자·웹 전체 연결이 구현됐다고 가정하지 않습니다.
+- 노랑·파랑 4점/6점 및 빨강 2점, 24×24점, 최대 5층·40블록은 C Stage3 기준 공통 소프트웨어 범위입니다. 사용자 APPROVE 뒤에만 A 계획을 요청합니다. 실제 Vision 판별·Robot 직접 결착 가능 범위는 별도 검증입니다.
+- 환경은 사용자 제공 Ubuntu 24.04 / Docker 29.8.2 / NVIDIA 4060 / Python 3.12.3 / ROS2 Jazzy / M0609 / D435i / RG2입니다. 실제 호환성·보정과 제어 한계는 장치에서 확인합니다.
 
 ## 구현 경계
 
-- 승인된 현재 작업만 진행합니다. 설계문서가 전체 시스템 구현 요청은 아닙니다.
-- Day 4 1PC. LLM / Planner / Backend 함수, Vision callback, Qt 단일 화면, Robot 전달 Action. 현재 공유 계약은 docs/06_CONTRACT_DRAFT.md이며 ROS 이름·adapter 세부는 구현에서 확인합니다.
-- Design 최초 경로는 시율 → 세은 → Design과 검증된 Plan을 Backend. Backend가 전체 상태·대화·진행·goal 발행을 중재합니다.
-- Observed는 Vision 출력, Current는 Backend 채택 상태, Expected는 Backend 단일 Owner입니다. Expected와 다르다고 유효 관측을 거절하지 않습니다.
-- 확인 완료한 가림 영역은 보존하고 visible_blocks와 verified_regions로 실제 Current를 병합합니다. 홍동의 완료 확인 시점에 OK / UNOBSERVABLE을 받으며 OK는 목표 일치가 아닙니다. 목록 누락만으로 삭제하지 않습니다.
-- 재계획 Expected는 고정 기준 Current와 새 Plan 효과로 계산합니다. Robot 전달 완료를 조립 효과로 반영하지 않습니다.
-- Planner는 선행 관계 규칙 기반, 수량 재고 검사는 제외합니다. 공급 슬롯 종류별 1~6 선택·순서는 Robot 책임입니다.
-- Day 4는 고정 검증 좌표로 전달합니다. 조립 grid → Robot 변환·실행 중 별도 reachability / 경로 검증을 필수로 추가하지 않습니다.
-- LLM이 joint / TCP / 속도 / 힘 / 저수준 궤적을 생성하도록 만들지 않습니다. pose·motion parameter를 임의 추정하지 않습니다.
-- STOP은 Job·완료 이력·공급 소모를 유지합니다. 미집기 시 새 실행 식별로 goal 재전송, 들고 있으면 전달 후 복귀, 이미 놓았으면 observe point 복귀입니다. 실제 Controller 정지·재개 시험은 별도이며 Robot 실패 자동 복구·재시도·앱 종료 후 복원은 제외합니다.
-- Intervention의 응답·유효 Plan 후 자동 진행과 STOP / Robot 오류의 수동 재개를 구분합니다.
-- Step·질문 하나씩 처리해도 ID·최신성 계약은 필요합니다. 활성 check·질문·실행과 목표 / Current 버전을 확인하고 닫힌 요청·중복·역순 결과로 진행하지 않습니다.
-- DB 제외·Job별 주요 이벤트 JSONL. Qt 반폭 고정 단일 창·단순 시작/정지/재개·채택 Design 미리보기를 포함합니다. 상세 Schema·경로·Qt 바인딩의 실제 구현은 별도 확인합니다.
-- 이전 GT는 원자료입니다. 공통 계약은 x/y 최소 footprint 모서리·+X 오른쪽/+Y 위·layer 1~4·6점 0도 X2/Y3, 90도 X3/Y2입니다. 공통 필드는 brick_type/color/x/y/layer/orientation_deg, 정상 Plan은 PLACE만입니다.
-- Mock / Real 입출력 의미를 유지합니다. 모드 누락을 Real로 해석하지 않습니다. Isaac은 후속 검토이며 Day 4 필수 설치가 아닙니다.
+- 승인된 현재 작업만 진행합니다. 최종 MVP·첨부 연구 문서 갱신은 전체 시스템 구현 지시가 아닙니다.
+- `docs/06_CONTRACT_DRAFT.md`의 Day4 필드·Qt·전달/STOP 계약은 기존 코드의 운영 기준입니다. 새 목표를 이유로 Schema·ROS 타입·기존 명령의 의미를 임의 변경하지 않습니다.
+- Robot의 최종 목표는 supply→assembly 직접 결착입니다. 기존 place board 전달·사람 조립 결과는 직접 결착의 구현·실기 증거가 아닙니다. grid→robot 보정·경로·접촉 제어 계약과 검증이 먼저 필요합니다.
+- LLM이 joint/TCP/속도/힘·저수준 궤적을 생성하지 않습니다. 기존 검증 pose·보정·motion parameter를 임의 변경하거나 결착용으로 재사용하지 않습니다.
+- Backend/State Manager가 Current·Expected·진행·최종 판정을 소유합니다. 유효한 실제 관측을 목표와 다르다는 이유로 거절하지 않고, 확인 완료 아래층 가림을 삭제 증거로 쓰지 않습니다.
+- Expected는 채택 Plan의 고정 기준 Current와 완료/현재 Step 효과로 계산합니다. 실행 명령 완료·블록 소모는 조립 확인이 아닙니다.
+- 활성 요청·버전·최신성을 검사하며 닫힌 요청·중복·역순 결과나 이전 지원 응답으로 실행하지 않습니다.
+- 연구의 지원 판단은 LOW/HIGH, 대상/영역/방향, 엄지척 긍정·엄지+검지 부정, 지지 유지 가정입니다. 지속 hand-presence 검증은 MVP 제외이며 준비 응답은 안전 기능을 대신하지 않습니다.
+- 접촉·복구 연구의 메시지·임계값·역할은 구현 전 합의 대상입니다. 연구 자율 경계 네 행동을 이유로 기존 운영에서 자동 복구를 활성화하지 않습니다. 안전 정지를 제스처로 해제하지 않습니다.
+- 정상 Plan의 자동 재파지·구조 수정·제거를 임의 추가하지 않습니다. 자동 Camera 재시작·실행 중 재보정·DB 자동 Current 복원·Robot 재실행도 추가하지 않습니다.
+- 사용자별 저장·웹 반영은 최종 요구입니다. 현재 계정표만으로 Job 소유자/로그인 세션/웹 권한을 제공한다고 표시하지 않습니다. Qt/웹 역할·API·세션은 미확정입니다.
+- DB/웹 실패는 물리 조립 완료와 구분하며 실패를 성공·빈 정상값으로 감추지 않습니다. 저장 실패로 물리 조립을 반복하지 않습니다.
+- 원자료 GT는 보존하고 공통 여섯 배치 필드·layer 1~5를 현재 구현 기준으로 사용합니다. 첨부의 brick_id/run_id 등 초안을 합의 없이 공통 필수로 추가하지 않습니다.
+- Mock/Real 계약 의미를 유지하고 모드 누락을 Real로 해석하지 않습니다. Isaac은 필수 설치가 아닙니다.
 
 ## 작은 작업과 검증
 
@@ -70,3 +76,11 @@ dependency·framework·무관한 대규모 변경을 피합니다. 문서 작업
 2026-10-05 사용자가 요청한 [노마드 코더 영상](https://www.youtube.com/watch?v=3JCgiVYlLFo)의 설명과 영어 자동 생성 자막을 확인했습니다. 02:00 Attention Span은 간결한 답변, 03:05 Karpathy Skills는 생각 후 최소 수정·완료 기준, 04:05 Anti Slop은 자동 검사, 08:42 Verification Before Completion은 검증 증거 후 완료 보고에 해당합니다. 위 규칙은 Python·ROS2 프로젝트에 맞춘 적용안입니다. JavaScript/TypeScript 도구 설치와 Kotlin 전환은 포함하지 않습니다.
 
 AGENTS.md는 행동 지침이며 lint·테스트·사람 리뷰를 대신하는 강제 장치가 아닙니다. 이 저장소를 작업 위치로 사용하는 새 Codex 대화에 적용합니다. 이미 열린 다른 대화의 지침이 자동 갱신됐다고 가정하지 않습니다. 도구의 지침 탐색 방식은 [공식 AGENTS.md 안내](https://learn.chatgpt.com/docs/agent-configuration/agents-md)를 참고합니다.
+
+## 2026-10-06 DB 병행 개발 당시 범위
+
+당시 사용자 요청으로 기존 Day4 공정을 유지하면서 PostgreSQL·컨테이너 이력을 별도로 구현했다. DB 제외는 이전 공정 범위 기록이다. 이번 추가는 Backend JSONL → 별도 적재·조회 app → PostgreSQL이며 Qt/Robot/Camera 실행 환경·판단·채택 계약·정상 Step 입력은 바꾸지 않는다. DB에서 Current를 자동 복원하거나 Robot을 재실행하지 않는다. 로컬 구현·검증만 허용하며 commit/push/PR/merge는 별도 요청 범위다. 실행·검증·한계는 `docs/D_DB_HISTORY.md`를 따른다.
+
+## 2026-10-07 최종 MVP 문서·PR 범위
+
+사용자가 GitHub Markdown/docs 전반을 최종 MVP에 맞춰 수정하고 PR을 올리도록 요청했습니다. 문서 commit/push/PR은 이 요청 범위에서 수행하며 merge는 별도 요청입니다. 지정 `/home/ms-02/C_2`의 개발 브랜치와 미완료 변경은 보존하고 최신 main의 별도 문서 작업 공간을 사용합니다. 2026-10-06의 Qt·웹/사용자 소유자 제외는 당시 구현 범위이며 최종 제품 목표의 제외 조건으로 적용하지 않습니다.

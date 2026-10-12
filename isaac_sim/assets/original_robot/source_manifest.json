@@ -1,0 +1,125 @@
+{
+  "model_status": "LOCAL_MODEL_NOT_CALIBRATED",
+  "doosan_repository_commit": "4d5657f36a160eedb533ab1c975cd8a30c3e53b2",
+  "combined_xacro_source": "/home/rokey/ws_cobot_pjt/ws_dsr/src/rg2/m0609_rg2_bringup/urdf/m0609_with_rg2.urdf.xacro",
+  "changes": [
+    "Expanded existing xacro",
+    "Converted package mesh URIs to relative paths",
+    "Added fixed world-to-base_link joint",
+    "No TCP frame added; flange mapping unverified"
+  ],
+  "files": {
+    "assets/robot/dsr_description2/meshes/m0609_collision/MF0609_0_0.dae": {
+      "source": "/home/rokey/ws_cobot_pjt/ws_dsr/src/doosan-robot2/dsr_description2/meshes/m0609_collision/MF0609_0_0.dae",
+      "sha256": "ddfea75f55c1ed24b398d9f7daae6e9ad39b5db88f5f0c3a61140c0a4b9cdfcc"
+    },
+    "assets/robot/dsr_description2/meshes/m0609_white/MF0609_0_0.dae": {
+      "source": "/home/rokey/ws_cobot_pjt/ws_dsr/src/doosan-robot2/dsr_description2/meshes/m0609_white/MF0609_0_0.dae",
+      "sha256": "b5ea6d7c273067ad28648e27c9c0f5d634adf05ef0e4e9b9db6ca1af87f699fc"
+    },
+    "assets/robot/dsr_description2/meshes/m0609_collision/MF0609_1_0.dae": {
+      "source": "/home/rokey/ws_cobot_pjt/ws_dsr/src/doosan-robot2/dsr_description2/meshes/m0609_collision/MF0609_1_0.dae",
+      "sha256": "e691a7841acb87e65ec29669ddcf717ff46f495cbff187d0af75cf0353539b79"
+    },
+    "assets/robot/dsr_description2/meshes/m0609_white/MF0609_1_0.dae": {
+      "source": "/home/rokey/ws_cobot_pjt/ws_dsr/src/doosan-robot2/dsr_description2/meshes/m0609_white/MF0609_1_0.dae",
+      "sha256": "02f51c7dabacc1318ca197d453236258c4e6381ed8012958a09ce1020f274a0c"
+    },
+    "assets/robot/dsr_description2/meshes/m0609_collision/MF0609_2_0.dae": {
+      "source": "/home/rokey/ws_cobot_pjt/ws_dsr/src/doosan-robot2/dsr_description2/meshes/m0609_collision/MF0609_2_0.dae",
+      "sha256": "34c60817577e9306d67130270d9e306341772960697401d49fceb70b31ec23fd"
+    },
+    "assets/robot/dsr_description2/meshes/m0609_white/MF0609_2_0.dae": {
+      "source": "/home/rokey/ws_cobot_pjt/ws_dsr/src/doosan-robot2/dsr_description2/meshes/m0609_white/MF0609_2_0.dae",
+      "sha256": "8705cfe468a652efff54fa7795bb1c3c96112d2e37af87775e47ac113f6071ff"
+    },
+    "assets/robot/dsr_description2/meshes/m0609_collision/MF0609_2_1.dae": {
+      "source": "/home/rokey/ws_cobot_pjt/ws_dsr/src/doosan-robot2/dsr_description2/meshes/m0609_collision/MF0609_2_1.dae",
+      "sha256": "8c58f9a1622198f788dcec7a428beaa637cdb8e7bee5e752c4badf449abe10c6"
+    },
+    "assets/robot/dsr_description2/meshes/m0609_white/MF0609_2_1.dae": {
+      "source": "/home/rokey/ws_cobot_pjt/ws_dsr/src/doosan-robot2/dsr_description2/meshes/m0609_white/MF0609_2_1.dae",
+      "sha256": "dd8a53685a4ba713cd49f612dde3a4f26dfbf9b39e249726f1c2ddf6a64c55e8"
+    },
+    "assets/robot/dsr_description2/meshes/m0609_collision/MF0609_2_2.dae": {
+      "source": "/home/rokey/ws_cobot_pjt/ws_dsr/src/doosan-robot2/dsr_description2/meshes/m0609_collision/MF0609_2_2.dae",
+      "sha256": "9e12604d6513ae32a7a1edfe458b43985ecbc92d2834fbd788ccff54a7936b4a"
+    },
+    "assets/robot/dsr_description2/meshes/m0609_white/MF0609_2_2.dae": {
+      "source": "/home/rokey/ws_cobot_pjt/ws_dsr/src/doosan-robot2/dsr_description2/meshes/m0609_white/MF0609_2_2.dae",
+      "sha256": "41fe327cb4f28beccb3c43f184c18417efafe95b4df62b5d3d0c121b57186a20"
+    },
+    "assets/robot/dsr_description2/meshes/m0609_collision/MF0609_3_0.dae": {
+      "source": "/home/rokey/ws_cobot_pjt/ws_dsr/src/doosan-robot2/dsr_description2/meshes/m0609_collision/MF0609_3_0.dae",
+      "sha256": "b043a82f3b24a7472eb1fa930ee9ea1b07b701f74c7ca3064fe6b46b79b46f23"
+    },
+    "assets/robot/dsr_description2/meshes/m0609_white/MF0609_3_0.dae": {
+      "source": "/home/rokey/ws_cobot_pjt/ws_dsr/src/doosan-robot2/dsr_description2/meshes/m0609_white/MF0609_3_0.dae",
+      "sha256": "576b23dd703eb92558e1ecf78b63f5a7cb0e9f0495f8d2651f8ba1b9b2c99c8a"
+    },
+    "assets/robot/dsr_description2/meshes/m0609_collision/MF0609_4_0.dae": {
+      "source": "/home/rokey/ws_cobot_pjt/ws_dsr/src/doosan-robot2/dsr_description2/meshes/m0609_collision/MF0609_4_0.dae",
+      "sha256": "555f541ef4f1f399cf6bc8bc84e97a22f9a3bb867be8b0910340c8f1fb41631a"
+    },
+    "assets/robot/dsr_description2/meshes/m0609_white/MF0609_4_0.dae": {
+      "source": "/home/rokey/ws_cobot_pjt/ws_dsr/src/doosan-robot2/dsr_description2/meshes/m0609_white/MF0609_4_0.dae",
+      "sha256": "5acc53898d28f6b3760779b9db9ddbb32090e41df182410073dacab407ac04d6"
+    },
+    "assets/robot/dsr_description2/meshes/m0609_collision/MF0609_4_1.dae": {
+      "source": "/home/rokey/ws_cobot_pjt/ws_dsr/src/doosan-robot2/dsr_description2/meshes/m0609_collision/MF0609_4_1.dae",
+      "sha256": "1ba1d47d0695fc1c7d37979d9097d67ca54ea02106e0f679f5f8d29781dc8ac9"
+    },
+    "assets/robot/dsr_description2/meshes/m0609_white/MF0609_4_1.dae": {
+      "source": "/home/rokey/ws_cobot_pjt/ws_dsr/src/doosan-robot2/dsr_description2/meshes/m0609_white/MF0609_4_1.dae",
+      "sha256": "e6897ff6778d712ba305c406056d0dadd02ad65fa01753c245a3c4b652ecaa06"
+    },
+    "assets/robot/dsr_description2/meshes/m0609_collision/MF0609_5_0.dae": {
+      "source": "/home/rokey/ws_cobot_pjt/ws_dsr/src/doosan-robot2/dsr_description2/meshes/m0609_collision/MF0609_5_0.dae",
+      "sha256": "19715079541b721074cdc75cf38d56cfa69a5e67e2e597f292061db5a0430627"
+    },
+    "assets/robot/dsr_description2/meshes/m0609_white/MF0609_5_0.dae": {
+      "source": "/home/rokey/ws_cobot_pjt/ws_dsr/src/doosan-robot2/dsr_description2/meshes/m0609_white/MF0609_5_0.dae",
+      "sha256": "421b1cde607c5f0c1324af093ddda094d5b39e9f5386bf998058a50e37e269db"
+    },
+    "assets/robot/dsr_description2/meshes/m0609_collision/MF0609_6_0.dae": {
+      "source": "/home/rokey/ws_cobot_pjt/ws_dsr/src/doosan-robot2/dsr_description2/meshes/m0609_collision/MF0609_6_0.dae",
+      "sha256": "cb1833387564d62311b934f58a29396e68fd6cdf528b82cac6edd01498c9f5bf"
+    },
+    "assets/robot/dsr_description2/meshes/m0609_white/MF0609_6_0.dae": {
+      "source": "/home/rokey/ws_cobot_pjt/ws_dsr/src/doosan-robot2/dsr_description2/meshes/m0609_white/MF0609_6_0.dae",
+      "sha256": "c5cdb0d284055524b99fc3ee5f0e1b7ce73d0cc39f831f651ecb24b72f69925a"
+    },
+    "assets/robot/onrobot_rg_description/meshes/rg2/visual/base_link.stl": {
+      "source": "/home/rokey/ws_cobot_pjt/ws_dsr/src/onrobot-ros2/onrobot_rg_description/meshes/rg2/visual/base_link.stl",
+      "sha256": "cd87cb1974c6d68eac7261827d2c0fde9326ad9c221cc50586921d5ece1cc46b"
+    },
+    "assets/robot/onrobot_rg_description/meshes/rg2/collision/base_link.stl": {
+      "source": "/home/rokey/ws_cobot_pjt/ws_dsr/src/onrobot-ros2/onrobot_rg_description/meshes/rg2/collision/base_link.stl",
+      "sha256": "4219aced900a1450fab8fc712984e5e05a71a0e8a5e90139bae7c8a20869ec1e"
+    },
+    "assets/robot/onrobot_rg_description/meshes/rg2/visual/outer_knuckle.stl": {
+      "source": "/home/rokey/ws_cobot_pjt/ws_dsr/src/onrobot-ros2/onrobot_rg_description/meshes/rg2/visual/outer_knuckle.stl",
+      "sha256": "44fc34b5c8d6218339acae1764530fc99eaffd16ca57ba7e4d67a60032a04e44"
+    },
+    "assets/robot/onrobot_rg_description/meshes/rg2/collision/outer_knuckle.stl": {
+      "source": "/home/rokey/ws_cobot_pjt/ws_dsr/src/onrobot-ros2/onrobot_rg_description/meshes/rg2/collision/outer_knuckle.stl",
+      "sha256": "c2c9aa12b6e42360f4192f55002d56a86df696b4e6161e773d794e5da30c5db0"
+    },
+    "assets/robot/onrobot_rg_description/meshes/rg2/visual/inner_knuckle.stl": {
+      "source": "/home/rokey/ws_cobot_pjt/ws_dsr/src/onrobot-ros2/onrobot_rg_description/meshes/rg2/visual/inner_knuckle.stl",
+      "sha256": "0367c4cfb9c343f5df547316949a7076010f38ef7d59b0fcf4e60a74ddf69aa1"
+    },
+    "assets/robot/onrobot_rg_description/meshes/rg2/collision/inner_knuckle.stl": {
+      "source": "/home/rokey/ws_cobot_pjt/ws_dsr/src/onrobot-ros2/onrobot_rg_description/meshes/rg2/collision/inner_knuckle.stl",
+      "sha256": "a9ff9e0b6cc405c15b4ee6a9ce5562bf5927cd1590d80b5af4e623ded79f64eb"
+    },
+    "assets/robot/onrobot_rg_description/meshes/rg2/visual/inner_finger.stl": {
+      "source": "/home/rokey/ws_cobot_pjt/ws_dsr/src/onrobot-ros2/onrobot_rg_description/meshes/rg2/visual/inner_finger.stl",
+      "sha256": "45f3d2fe8a69b041fa1ebe36fb6c26a680799b19521bbcc013516f9b5c345897"
+    },
+    "assets/robot/onrobot_rg_description/meshes/rg2/collision/inner_finger.stl": {
+      "source": "/home/rokey/ws_cobot_pjt/ws_dsr/src/onrobot-ros2/onrobot_rg_description/meshes/rg2/collision/inner_finger.stl",
+      "sha256": "74e9e686396ee3ad7036297e89a5f05f74ced6116ba3976bf6ab040ca0a2b83e"
+    }
+  }
+}

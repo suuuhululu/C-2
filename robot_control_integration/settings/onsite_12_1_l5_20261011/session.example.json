@@ -1,0 +1,33 @@
+{
+  "backend": "REAL",
+  "provenance": "LOCAL_OPERATOR_TRIAL",
+  "execution_id": "",
+  "source_epoch": "",
+  "frame_profile_id": "",
+  "plan_id": "D_LOCAL_HELD_TRIAL12_1_L5_NO_TURN_20261011",
+  "step_id": "S01",
+  "current_revision": null,
+  "expires_unix_s": 0,
+  "request_timeout_s": 30,
+  "frame_max_age_s": 0.3,
+  "frame_max_gap_s": 0.3,
+  "inference_max_latency_s": 0.3,
+  "stillness": {
+    "window_s": null,
+    "max_gap_s": null,
+    "timeout_s": null,
+    "min_samples": null,
+    "sample_max_duration_s": null,
+    "position_mm": null,
+    "orientation_deg": null,
+    "linear_mm_s": null,
+    "angular_deg_s": null
+  },
+  "profile_id": "D_LOCAL_TRIAL12_1_L5_UNREVIEWED_20261011",
+  "exclusive_control_reviewed": false,
+  "device_feedback_reviewed": false,
+  "stillness_parameters_reviewed": false,
+  "hand_clear_reviewed": false,
+  "seating_evidence_ref": null,
+  "alignment_evidence_ref": null
+}

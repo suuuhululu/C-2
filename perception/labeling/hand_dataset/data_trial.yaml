@@ -1,0 +1,6 @@
+# In-sample diagnostics only: no independent validation session exists.
+path: /content/c2_hand_trial
+train: images/train
+val: images/train
+names:
+  0: hand

@@ -1,0 +1,263 @@
+{
+  "_note": "Scenario: the leg at design (10,12) was actually placed 1 stud off (y12 -> y13). current carries the 4 assembled legs at their actual values. candidate is a hand-shaped LLM-style redesign (this specific asymmetric leg shift is beyond what designer.mock_revised_candidate's _chair_upper can lay out, per its own documented limits): the 4 current legs are repeated byte-for-byte (hard preserve, by value -- no ids exist), and the unassembled seat/backrest is redesigned around them, still satisfying overlap/support/connectivity. revised is the actual output of designer.build_revised_design(design, current, differences, generate=lambda *a: candidate): design_version is input design_version + 1 (2) because the target layout really changed; source is a result-dict field, not part of the Design.",
+  "design": {
+    "design_version": 1,
+    "blocks": [
+      {
+        "brick_type": "2x2x1",
+        "color": "blue",
+        "x": 10,
+        "y": 10,
+        "layer": 1,
+        "orientation_deg": 0
+      },
+      {
+        "brick_type": "2x2x1",
+        "color": "blue",
+        "x": 12,
+        "y": 10,
+        "layer": 1,
+        "orientation_deg": 0
+      },
+      {
+        "brick_type": "2x2x1",
+        "color": "blue",
+        "x": 10,
+        "y": 12,
+        "layer": 1,
+        "orientation_deg": 0
+      },
+      {
+        "brick_type": "2x2x1",
+        "color": "blue",
+        "x": 12,
+        "y": 12,
+        "layer": 1,
+        "orientation_deg": 0
+      },
+      {
+        "brick_type": "2x3x1",
+        "color": "yellow",
+        "x": 10,
+        "y": 10,
+        "layer": 2,
+        "orientation_deg": 0
+      },
+      {
+        "brick_type": "2x3x1",
+        "color": "yellow",
+        "x": 12,
+        "y": 10,
+        "layer": 2,
+        "orientation_deg": 0
+      },
+      {
+        "brick_type": "2x2x1",
+        "color": "blue",
+        "x": 11,
+        "y": 11,
+        "layer": 3,
+        "orientation_deg": 0
+      },
+      {
+        "brick_type": "2x2x1",
+        "color": "yellow",
+        "x": 11,
+        "y": 11,
+        "layer": 4,
+        "orientation_deg": 0
+      }
+    ]
+  },
+  "current": [
+    {
+      "brick_type": "2x2x1",
+      "color": "blue",
+      "x": 10,
+      "y": 10,
+      "layer": 1,
+      "orientation_deg": 0
+    },
+    {
+      "brick_type": "2x2x1",
+      "color": "blue",
+      "x": 12,
+      "y": 10,
+      "layer": 1,
+      "orientation_deg": 0
+    },
+    {
+      "brick_type": "2x2x1",
+      "color": "blue",
+      "x": 10,
+      "y": 13,
+      "layer": 1,
+      "orientation_deg": 0
+    },
+    {
+      "brick_type": "2x2x1",
+      "color": "blue",
+      "x": 12,
+      "y": 12,
+      "layer": 1,
+      "orientation_deg": 0
+    }
+  ],
+  "differences": [
+    {
+      "expected": {
+        "brick_type": "2x2x1",
+        "color": "blue",
+        "x": 10,
+        "y": 12,
+        "layer": 1,
+        "orientation_deg": 0
+      },
+      "actual": {
+        "brick_type": "2x2x1",
+        "color": "blue",
+        "x": 10,
+        "y": 13,
+        "layer": 1,
+        "orientation_deg": 0
+      }
+    }
+  ],
+  "candidate": {
+    "blocks": [
+      {
+        "brick_type": "2x2x1",
+        "color": "blue",
+        "x": 10,
+        "y": 10,
+        "layer": 1,
+        "orientation_deg": 0
+      },
+      {
+        "brick_type": "2x2x1",
+        "color": "blue",
+        "x": 12,
+        "y": 10,
+        "layer": 1,
+        "orientation_deg": 0
+      },
+      {
+        "brick_type": "2x2x1",
+        "color": "blue",
+        "x": 10,
+        "y": 13,
+        "layer": 1,
+        "orientation_deg": 0
+      },
+      {
+        "brick_type": "2x2x1",
+        "color": "blue",
+        "x": 12,
+        "y": 12,
+        "layer": 1,
+        "orientation_deg": 0
+      },
+      {
+        "brick_type": "2x3x1",
+        "color": "yellow",
+        "x": 10,
+        "y": 11,
+        "layer": 2,
+        "orientation_deg": 0
+      },
+      {
+        "brick_type": "2x3x1",
+        "color": "blue",
+        "x": 12,
+        "y": 10,
+        "layer": 2,
+        "orientation_deg": 0
+      },
+      {
+        "brick_type": "2x2x1",
+        "color": "yellow",
+        "x": 11,
+        "y": 11,
+        "layer": 3,
+        "orientation_deg": 0
+      },
+      {
+        "brick_type": "2x2x1",
+        "color": "blue",
+        "x": 11,
+        "y": 11,
+        "layer": 4,
+        "orientation_deg": 0
+      }
+    ]
+  },
+  "revised": {
+    "design_version": 2,
+    "blocks": [
+      {
+        "brick_type": "2x2x1",
+        "color": "blue",
+        "x": 10,
+        "y": 10,
+        "layer": 1,
+        "orientation_deg": 0
+      },
+      {
+        "brick_type": "2x2x1",
+        "color": "blue",
+        "x": 12,
+        "y": 10,
+        "layer": 1,
+        "orientation_deg": 0
+      },
+      {
+        "brick_type": "2x2x1",
+        "color": "blue",
+        "x": 10,
+        "y": 13,
+        "layer": 1,
+        "orientation_deg": 0
+      },
+      {
+        "brick_type": "2x2x1",
+        "color": "blue",
+        "x": 12,
+        "y": 12,
+        "layer": 1,
+        "orientation_deg": 0
+      },
+      {
+        "brick_type": "2x3x1",
+        "color": "yellow",
+        "x": 10,
+        "y": 11,
+        "layer": 2,
+        "orientation_deg": 0
+      },
+      {
+        "brick_type": "2x3x1",
+        "color": "blue",
+        "x": 12,
+        "y": 10,
+        "layer": 2,
+        "orientation_deg": 0
+      },
+      {
+        "brick_type": "2x2x1",
+        "color": "yellow",
+        "x": 11,
+        "y": 11,
+        "layer": 3,
+        "orientation_deg": 0
+      },
+      {
+        "brick_type": "2x2x1",
+        "color": "blue",
+        "x": 11,
+        "y": 11,
+        "layer": 4,
+        "orientation_deg": 0
+      }
+    ]
+  }
+}

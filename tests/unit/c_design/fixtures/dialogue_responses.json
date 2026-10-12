@@ -1,0 +1,32 @@
+{
+  "_note": "intervention: text answers for run_intervention's choice question (1 = KEEP, 2 = REVISE per dialogue.py's shared option constants; CANCEL is an explicit-cancel internal signal, not an HRI result). meaningful mirrors §4.3's definition: normalized (stripped) non-empty STT/text counts as meaningful speech, even if its HRI interpretation is UNCLEAR or CANCEL; only empty string and whitespace-only are not meaningful. goal: text answers for create_initial_design's goal-sentence recognition (Day 4 supports CHAIR only).",
+  "intervention": [
+    {"case": "one_beon", "text": "1번", "expected": "KEEP", "meaningful": true},
+    {"case": "two_beon", "text": "2번", "expected": "REVISE", "meaningful": true},
+    {"case": "il_beon_word", "text": "일번", "expected": "KEEP", "meaningful": true},
+    {"case": "bare_digit_one", "text": "1", "expected": "KEEP", "meaningful": true},
+    {"case": "two_beon_iyo", "text": "2번이요", "expected": "REVISE", "meaningful": true},
+    {"case": "this_time_one", "text": "이번에는 1번", "expected": "KEEP", "meaningful": true},
+    {"case": "two_malgo_one", "text": "2번 말고 1번", "expected": "KEEP", "meaningful": true},
+    {"case": "original_halge", "text": "원래대로 할게", "expected": "KEEP", "meaningful": true},
+    {"case": "original_yo", "text": "원래대로요", "expected": "KEEP", "meaningful": true},
+    {"case": "keep_as_is_yujihalge", "text": "이대로 유지할게", "expected": "REVISE", "meaningful": true},
+    {"case": "current_state_halge", "text": "지금 상태로 할게", "expected": "REVISE", "meaningful": true},
+    {"case": "original_haji_ma_negation", "text": "원래대로 하지 마", "expected": "UNCLEAR", "meaningful": true},
+    {"case": "two_beon_dislike", "text": "2번은 싫어", "expected": "UNCLEAR", "meaningful": true},
+    {"case": "both_numbers", "text": "1번 2번", "expected": "UNCLEAR", "meaningful": true},
+    {"case": "hesitant_geulsseyo", "text": "음 글쎄요", "expected": "UNCLEAR", "meaningful": true},
+    {"case": "wait_a_moment", "text": "잠시만요", "expected": "UNCLEAR", "meaningful": true},
+    {"case": "what_did_you_say", "text": "뭐라고요?", "expected": "UNCLEAR", "meaningful": true},
+    {"case": "empty_string", "text": "", "expected": "UNCLEAR", "meaningful": false},
+    {"case": "whitespace_only", "text": "   ", "expected": "UNCLEAR", "meaningful": false},
+    {"case": "explicit_cancel", "text": "취소할게", "expected": "CANCEL", "meaningful": true},
+    {"case": "negated_cancel", "text": "취소하지 마", "expected": "UNCLEAR", "meaningful": true}
+  ],
+  "goal": [
+    {"case": "goal_chair_full_sentence", "text": "오늘은 의자를 만들 거야", "expected": "CHAIR"},
+    {"case": "goal_chair_short", "text": "의자 만들자", "expected": "CHAIR"},
+    {"case": "goal_desk_unsupported", "text": "책상 만들 거야", "expected": null},
+    {"case": "goal_empty", "text": "", "expected": null}
+  ]
+}

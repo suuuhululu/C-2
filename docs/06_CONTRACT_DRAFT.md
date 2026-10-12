@@ -1,12 +1,49 @@
 # Day4 공통 인터페이스 계약
 
-> 2026-10-06 보완: C/B DM 이후 확정 내용과 연결 책임은 [C·B Backend 연결 합의](09_C_B_BACKEND_HANDOFF.md)를 함께 확인합니다. block_id 필수 제외·5분 자동 취소 제외·유한 후보 재생성·촬영 순서·확인 영역·전달판 미확인을 명확히 했습니다. 지지 2 stud 및 관측 묶음 순번 범위는 확인 전 후보/제안입니다.
+> 2026-10-11 C Stage3 기준: 노랑·파랑 4점/6점 + 빨강 2점(1x2x1만), 24×24, 정수 layer 1~5, 실행 후보 1~40블록입니다. D는 후보를 Preview→Review→APPROVE한 뒤에만 A에 전달합니다. B의 상태·비교 소유는 유지합니다. 상세 구현/미검증 범위는 [A·D 연결 안내](D_C_STAGE3_AD_ALIGNMENT.md)를 따릅니다. 아래 이전 Day4/ZIP 기록의 4종·30블록 범위보다 이 기준이 우선합니다.
+
+> 2026-10-11 수현 확인: 최신 1차 통합의 상태 소유·검사 결과·C 확정 흐름은 [10/8 계약](handover/final_mvp_interface_20261008/README.md)을 우선합니다. B가 Current·revision·Expected·비교를 확정하고 D가 실행·진행·최종 종료를 담당합니다. 여섯 배치 필드·24×24·정수 layer 1~5는 유지합니다. 아래 §1~9의 Observed→D 채택 경로는 기존 Day4 구현이며 B 소유 경로와 동시에 적용하지 않습니다.
+
+> 2026-10-11 1차 통합 기준: 공통 배치와 관측 영역의 `layer`는 정수 1~5입니다. 현재 코드·Schema·문서와 별도 작업 브랜치의 차이는 [1차 통합 인터페이스 점검](11_ROUND1_INTERFACE_AUDIT.md)에 기록합니다. 아래 JSON 예시는 설명용이며 실제 구조 검사는 `interfaces/schemas/day4.schema.json`과 Consumer를 함께 확인합니다.
+
+## 0. 최종 MVP 이행 범위 (2026-10-07)
+
+현재 제품 목표는 [최종 MVP](10_FINAL_MVP.md)입니다. **이하 §1~9는 기존 전달형 Day4 구현의 계약·예시**로 보존합니다. ‘현재/확정/제외’ 표현도 그 구현 범위에 적용합니다. 제품 목표의 변경이 기존 Schema·함수·ROS Action·실행 명령을 자동 변경하지 않습니다.
+
+| 경계 | 최종 목표의 논리 입력 → 출력 | 기존 계약과의 차이 / 아직 합의할 내용 |
+|---|---|---|
+| 사용자/LLM → 계획 | 대화 요구·사용자 확정 Design → 조립 순서와 경로 생성 | 최초 키워드 수신과 확정 이벤트 분리; 경로 생산자/필드·실패 반환 미확정 |
+| 계획 → Backend/HMI | 채택할 Design·순서·경로·기준 상태 → 실행 준비·미리보기·현재 Step | 현재 Plan은 조립 순서이며 직접 결착 MotionPlan 인계·유효성 검사가 필요 |
+| Backend → Robot | 유효 Step·블록·공급/조립 목표와 경로·지원 준비 → 집기·직접 결착과 실행/접촉 결과 | §7의 종류/색상 전달 goal만으로 직접 결착을 명령할 수 없음; grid/robot 변환·제어권 합의 필요 |
+| 지원 → 사람 → Backend | LOW/HIGH·대상/영역/방향·활성 요청 → 긍정/부정/미확정 응답 | 엄지척/엄지+검지·HMI 보조 입력, 실행 전 알림과 지지 유지 가정; 응답 품질·ID 대응 초안 |
+| Vision → Backend | Step/최종 완성상태 확인 문맥 → 실제 관측·검증 근거 | 기존 OK는 판별 가능이고 MATCH가 아님; 연구 PASS/FAIL/UNKNOWN 매핑과 최종 요청 형식 미확정 |
+| Backend → DB → 웹앱 | 사용자와 Job·현재 채택 Design·조립 기록/판정 → 저장 결과·사용자별 조회/반영 | 현재 users와 jobs 소유자 미연결; 소유자·세션·권한·저장/반영 실패와 중복 처리 계약 필요 |
+
+종료는 1) 해당 계획에 필요한 블록 모두 사용, 2) Vision 확인과 Backend 최종 조립 판정·종료, 3) 사용자별 DB 저장·웹앱 반영으로 구분합니다. 마지막 Robot result나 JSONL 쓰기만으로 세 단계 완료를 처리하지 않습니다. 최종 Vision이 불확실하면 조립 종료를 보류하고, 저장/반영 실패는 실제 조립을 재실행시키지 않습니다.
+
+[첨부 연구](suhyun_individual_research_topic.md)의 지지 프로토콜은 반영하되 run_id/brick_id/plan_version·새 상태명·ROS 타입·F/T 임계값은 논리 초안입니다. 기존 여섯 필드·ID에 임의로 강제하지 않습니다. 두 stud 기하 지지 검사는 LOW/HIGH·접촉 결착 판정의 대체물이 아닙니다. Qt/웹 분담도 아직 확정하지 않습니다.
+
+## 기존 Day4 계약·예시
+
+> 2026-10-06 보완: C/B DM 이후 확정 내용과 연결 책임은 [C·B Backend 연결 합의](09_C_B_BACKEND_HANDOFF.md)를 함께 확인합니다. block_id 필수 제외·5분 자동 취소 제외·유한 후보 재생성·촬영 순서·확인 영역·전달판 미확인을 명확히 했습니다. 지지 기준은 2026-10-06 세은의 동의와 수현의 회신에 따라 A/C가 바로 아래층과 겹치는 고유 stud 총 2개 이상으로 통일했습니다. 이는 Day4 기하 검사 기준이며 물리 안정성 검증이 아닙니다. 관측 묶음 순번 범위는 해당 연결 문서의 확인 상태를 따릅니다.
 
 
-갱신: 2026-10-05. 파일명은 기존 링크를 위해 유지합니다. 아래는 현재 사용자가 채택한 설계 계약입니다. **JSON 예시는 계약 설명용이며 실행 가능한 Schema·ROS msg·실제 Camera 출력은 아닙니다.** 홍동 검토 가능 제안과 구현 시 정할 연결 세부는 별도 표시합니다. 책임·이행은 [팀 가이드](02_TEAM_GUIDE.md), 구현 증거는 [STATUS](STATUS.md)를 봅니다.
+갱신: 2026-10-05. 파일명은 기존 링크를 위해 유지합니다. 아래는 기존 Day4에서 사용자가 채택한 설계 계약입니다. **JSON 예시는 계약 설명용이며 실행 가능한 Schema·ROS msg·실제 Camera 출력은 아닙니다.** 홍동 검토 가능 제안과 구현 시 정할 연결 세부는 별도 표시합니다. 책임·이행은 [팀 가이드](02_TEAM_GUIDE.md), 구현 증거는 [STATUS](STATUS.md)를 봅니다.
 
 ## 1 공통 블록과 좌표
 
+| 객체 | 확정된 의미 / Owner | 확인할 필드·표현 |
+|---|---|---|
+| Block | 블록 종류·색상·위치·층·방향 | 아래 여섯 배치 필드와 개수로 비교. 공급 slot과 구분하며 `block_id`를 공통 필수값으로 넣지 않음. 지지는 바로 아래층과 겹치는 고유 stud 총 2개 이상 |
+| Design | 목표 배치·Initial / Revised·시율 | `design_version, blocks` 두 필드. 버전은 C가 발급하고 D가 채택. `parent_version`·출처·진단은 공통 Design 본문에 넣지 않음 |
+| Observed | 촬영 당시 실제 관측·홍동 | 관측 ID / 순번·촬영 시각·보정·가림 / 실패 / 완전 관측·항목별 confidence |
+| Current | 유효 관측 채택·Backend | 채택 관측·상태 revision·블록 상태·유효성 |
+| Plan | 기준 Design / Current·세은 | Plan 버전·기준 상태 revision·Step 목록·검증 / 사유 |
+| Step | 사람 조립 작업·세은 | 블록 목표·동작·선행조건·효과·Robot 전달 필요 여부 |
+| Expected | 기준 상태 + 해당 Plan 효과·Backend | 기준 Design / Plan·비교 Step·목표 배치 |
+| Difference | 일치 / 차이 / 판단 불가·Backend | 대상·항목·기대 / 실제·품질·근거 |
+| HRI | 유지 / 수정 / 불명확·시율 | 질문·응답 연결·기준 Design / Current·결과 Design / 재질문. 질문 문장은 C가 생성. 무응답은 입력 대기이며 자동 취소·자동 KEEP 없음. 명시 취소·STOP은 C의 CANCELLED 반환과 구분 |
+| Delivery | 종류·색상 요청·Robot | 실행 식별·수락 / 진행 / 최종 결과·슬롯·실패·취소 완료 |
 모든 배치는 `brick_type, color, x, y, layer, orientation_deg` 여섯 값으로 표현합니다.
 
 | 필드 | 계약 |
@@ -14,16 +51,16 @@
 | brick_type | `2x2x1` 또는 `2x3x1` |
 | color | `yellow` 또는 `blue` |
 | x, y | 정수 0~23, stud 단위. 블록 footprint의 최소 x / y 모서리 |
-| layer | 정수 1~4. 1층이 판 위 첫 층 |
+| layer | 정수 1~5(2026-10-07 공통 지원 확대). 1층이 판 위 첫 층 |
 | orientation_deg | 6점: 0 또는 90. 4점 정사각형은 대표값 0 |
 
 사용자 사진의 원점은 (0,0), +X 오른쪽, +Y 위입니다. 6점 0도는 X폭 2 / Y길이 3, 90도는 X폭 3 / Y길이 2입니다. long_axis는 사용하지 않습니다. 조립판 각도와 gripper 자세는 별개입니다.
 
-좌표 필드가 0~23이어도 footprint 전체가 판 안에 있어야 합니다. 예: 6점 0도 x=23은 범위 초과이며 세은이 재검사합니다. 목표 layer=5는 시율에게 재설계를 요청합니다. 임의로 x=22 / layer=4로 고치지 않습니다. Plan 검증은 전체 footprint·중복·지지·선행 관계를 포함합니다.
+좌표 필드가 0~23이어도 footprint 전체가 판 안에 있어야 합니다. 예: 6점 0도 x=23은 범위 초과이며 세은이 재검사합니다. 목표 layer=6 이상은 시율에게 재설계를 요청합니다. 임의로 x=22 / layer=5로 고치지 않습니다. Plan 검증은 전체 footprint·중복·지지·선행 관계를 포함합니다.
 
 ## 2 Design과 정상 Plan
 
-Design은 `design_version, blocks`이며 최종 목표 **전체** 배치를 담습니다. 별도 design_id는 필요하지 않습니다. Revised도 동일 형식이며 이미 조립한 목표 블록을 포함합니다.
+Design은 `design_version, blocks`이며 최종 목표 **전체** 배치를 담습니다. C Stage3 생성/실행 후보 상한은 1~40블록이며 A/D/Qt는 이를 동일 계약으로 수신·계획·표시합니다. REAL 수동 시험의 24개 공급 슬롯 제한은 별도 실행 범위로 유지합니다. 별도 design_id는 필요하지 않습니다. Revised도 동일 형식이며 이미 조립한 목표 블록을 포함합니다.
 
 ```json
 {
@@ -59,6 +96,11 @@ before / after는 한 Step의 전후 효과입니다. 두 개의 블록을 뜻�
 
 ## 3 관측 요청과 완료 확인
 
+- Plan 실패는 검증 대상·위치·사유를 Backend로 반환하고 Design 수정 / 재질문 동안 전달 보류.
+- LLM / STT 호출 실패와 사용자의 불명확한 응답을 구분. malformed / unsupported 출력은 실행 Design으로 채택하지 않는 방향을 확인. malformed LLM 출력·후보 거부는 시율 내부에서 재생성하며 Backend에 실패로 전달하지 않음. C 상세는 [C_DESIGN_CONTRACT.md](C_DESIGN_CONTRACT.md).
+- 대화 중 Current가 바뀌면 질문 context와 최종 재계획의 기준 상태를 확인하고, 채택 전 최신 상태를 대조.
+- Robot 오류·부분 완료 뒤 재개 시 실제 전달 여부·슬롯 소모·남은 동작을 사람이 확인하는 기록 / UI 결정.
+- 공급 보충 신호·확인 주체와 pick 성공 / 실패별 슬롯 증가 조건 결정.
 수현은 활성 `check_id`를 Job·Plan·Step·확인 대기에 연결해 보관하고 홍동에게 check_id와 해당 after를 전달합니다. 이는 대상 안내이며 즉시 촬영 명령이 아닙니다. 홍동이 완료 확인 시점을 정합니다.
 
 반환은 `check_id, observation_seq, status, visible_blocks, verified_regions, reason`을 기준으로 합니다. 반복 callback의 순서 구분에는 촬영 순번 observation_seq를 사용하고 별도 observation_id를 추가하지 않습니다. 정확한 순번 제공 방식은 Vision 연결부에서 맞춥니다.
@@ -134,7 +176,7 @@ LLM / STT 호출 오류·malformed 출력은 UNCLEAR와 다릅니다. 유효 의
 
 ## 6 Remaining과 Replan
 
-세은 입력은 전체 채택 Design(또는 시율의 Revised 후보), 최신 Current 배치·revision, Day4 제약입니다. 목표에 이미 맞는 실제 배치는 Remaining에서 제외합니다. 결과 분기는 아래 의미를 사용하며 정확한 함수명·실패 envelope 세부는 연결 구현에서 맞춥니다.
+세은 입력은 사용자가 APPROVE한 전체 Design(최초 또는 Revised), 최신 Current 배치·revision, Day4 제약입니다. 목표에 이미 맞는 실제 배치는 Remaining에서 제외합니다. 결과 분기는 아래 의미를 사용하며 정확한 함수명·실패 envelope 세부는 연결 구현에서 맞춥니다.
 
 | 결과 | 반환 / 처리 |
 |---|---|

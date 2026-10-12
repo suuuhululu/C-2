@@ -33,6 +33,7 @@ def test_normal_snapshots_and_job_jsonl_trace_delivery_separately_from_assembly(
         backend.on_observation(payload)
     snapshot = make_snapshot(backend.state)
     assert snapshot["workflow_status"] == "COMPLETE"
+    assert snapshot["current"] == dict(current_revision=3, blocks=[A, B, C])
     assert snapshot["progress"] == dict(completed=3, total=3)
     assert "누적 실제 배치 3개 일치" in snapshot["notice"]["reason"]
     assert snapshot["actions"]["start"]["enabled"]
@@ -69,6 +70,9 @@ def test_unknown_idle_snapshot_and_copy_do_not_invent_supply_or_readiness():
     backend = Backend(FakePorts(), mode="FAKE")
     snapshot = make_snapshot(backend.state)
     assert snapshot["design"] is None and snapshot["monitor"]["robot"]["status"] is None
+    assert snapshot["current"] == dict(current_revision=0, blocks=[])
+    snapshot["current"]["blocks"].append(A)
+    assert backend.state["current"]["blocks"] == []
     assert snapshot["monitor"]["place_status"] is None
     snapshot["monitor"]["supply"][0]["next_slot"] = 6
     assert make_snapshot(backend.state)["monitor"]["supply"][0]["next_slot"] is None
@@ -86,10 +90,17 @@ def test_repeated_unobservable_only_logs_hold_entry_and_late_result(tmp_path):
     snapshot = make_snapshot(backend.state)
     assert snapshot["step"]["comparison"] == "UNOBSERVABLE"
     assert snapshot["monitor"]["observation"]["observation_seq"] == 12
+    assert FIXTURES["observed_unobservable"]["reason"] in snapshot["notice"]["reason"]
     assert not backend.on_observation({**FIXTURES["observed_unobservable"], "check_id": check,
                                        "observation_seq": 11})
     records = [json.loads(line) for line in next(tmp_path.glob("*.jsonl")).read_text().splitlines()]
     assert sum(record["event"] == "OBSERVATION_HOLD" for record in records) == 1
+    hold = next(record for record in records if record["event"] == "OBSERVATION_HOLD")
+    assert hold["result"]["observed"]["observation_seq"] == 10
+    assert hold["result"]["observed"]["reason"] == FIXTURES["observed_unobservable"]["reason"]
+    assert hold["result"]["current"] == backend.state["current"]
+    assert hold["result"]["comparison"] == "UNOBSERVABLE"
+    assert hold["result"]["expected"]["blocks"] == [A]
     assert records[-1]["event"] == "LATE_RESULT_IGNORED"
     assert not any(record["event"] == "CURRENT_ADOPTED" for record in records)
 
@@ -102,6 +113,7 @@ def test_mismatch_snapshot_contains_actual_and_source_question(tmp_path):
     backend.on_question(ports.calls("hri")[-1]["request_id"], "원래 목표를 유지할까요?")
     snapshot = make_snapshot(backend.state)
     assert snapshot["step"]["target"]["color"] == "yellow"
+    assert snapshot["current"] == dict(current_revision=1, blocks=[{**A, "color": "blue"}])
     assert snapshot["step"]["observed"]["visible_blocks"][0]["color"] == "blue"
     assert snapshot["notice"]["question"] == "원래 목표를 유지할까요?"
     assert not snapshot["actions"]["intent_choice"]["visible"]

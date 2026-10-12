@@ -1,0 +1,766 @@
+{
+  "generated_at_unix_s": 1791693155.4060147,
+  "samples": [
+    {
+      "posj": [
+        -22.20710563659668,
+        9.418148040771484,
+        79.86103057861328,
+        -2.1208958625793457,
+        87.21627044677734,
+        -23.788427352905273
+      ],
+      "posx": [
+        418.2706298828125,
+        -181.19732666015625,
+        194.73263549804688,
+        125.77471923828125,
+        -175.88330078125,
+        124.51486206054688
+      ],
+      "velx": [
+        0.0,
+        0.0,
+        -0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "motion_status": 0,
+      "query_started_monotonic_s": 9073.652662176,
+      "query_duration_s": 0.12305847099923994,
+      "query_finished_monotonic_s": 9073.775723265,
+      "robot_state": 1,
+      "robot_mode": 1,
+      "drl_state": 3,
+      "tcp": "GripperDA_v4",
+      "tool": "ToolWeight0",
+      "wrench": [
+        -3.999462127685547,
+        -0.0955529510974884,
+        1.3139883279800415,
+        0.06829852610826492,
+        -1.3851053714752197,
+        0.25886672735214233
+      ],
+      "gripper_status": 2,
+      "gripper_width_mm": 40.1,
+      "gripper_fingertip_offset_mm": 0.0,
+      "gripper_width_with_offset_mm": 40.1
+    },
+    {
+      "posj": [
+        -22.20710563659668,
+        9.418148040771484,
+        79.86103057861328,
+        -2.1208958625793457,
+        87.21627044677734,
+        -23.788427352905273
+      ],
+      "posx": [
+        418.2706298828125,
+        -181.19732666015625,
+        194.73263549804688,
+        125.77471923828125,
+        -175.88330078125,
+        124.51486206054688
+      ],
+      "velx": [
+        0.0,
+        0.0,
+        -0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "motion_status": 0,
+      "query_started_monotonic_s": 9073.826834598,
+      "query_duration_s": 0.11378406800031371,
+      "query_finished_monotonic_s": 9073.940619414,
+      "robot_state": 1,
+      "robot_mode": 1,
+      "drl_state": 3,
+      "tcp": "GripperDA_v4",
+      "tool": "ToolWeight0",
+      "wrench": [
+        -4.004531383514404,
+        -0.12885744869709015,
+        1.3251603841781616,
+        0.08014079928398132,
+        -1.3894603252410889,
+        0.2581731379032135
+      ],
+      "gripper_status": 2,
+      "gripper_width_mm": 40.1,
+      "gripper_fingertip_offset_mm": 0.0,
+      "gripper_width_with_offset_mm": 40.1
+    },
+    {
+      "posj": [
+        -22.20710563659668,
+        9.418148040771484,
+        79.86103057861328,
+        -2.1208958625793457,
+        87.21627044677734,
+        -23.788427352905273
+      ],
+      "posx": [
+        418.2706298828125,
+        -181.19732666015625,
+        194.73263549804688,
+        125.77471923828125,
+        -175.88330078125,
+        124.51486206054688
+      ],
+      "velx": [
+        0.0,
+        0.0,
+        -0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "motion_status": 0,
+      "query_started_monotonic_s": 9073.991064631,
+      "query_duration_s": 0.12680537599953823,
+      "query_finished_monotonic_s": 9074.117872064,
+      "robot_state": 1,
+      "robot_mode": 1,
+      "drl_state": 3,
+      "tcp": "GripperDA_v4",
+      "tool": "ToolWeight0",
+      "wrench": [
+        -4.017991065979004,
+        -0.0994105413556099,
+        1.3016122579574585,
+        0.06916781514883041,
+        -1.3912982940673828,
+        0.2603910267353058
+      ],
+      "gripper_status": 2,
+      "gripper_width_mm": 40.1,
+      "gripper_fingertip_offset_mm": 0.0,
+      "gripper_width_with_offset_mm": 40.1
+    },
+    {
+      "posj": [
+        -22.20710563659668,
+        9.418148040771484,
+        79.86103057861328,
+        -2.1208958625793457,
+        87.21627044677734,
+        -23.788427352905273
+      ],
+      "posx": [
+        418.2706298828125,
+        -181.19732666015625,
+        194.73263549804688,
+        125.77471923828125,
+        -175.88330078125,
+        124.51486206054688
+      ],
+      "velx": [
+        0.0,
+        0.0,
+        -0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "motion_status": 0,
+      "query_started_monotonic_s": 9074.173115212,
+      "query_duration_s": 0.14204238500133215,
+      "query_finished_monotonic_s": 9074.31516076,
+      "robot_state": 1,
+      "robot_mode": 1,
+      "drl_state": 3,
+      "tcp": "GripperDA_v4",
+      "tool": "ToolWeight0",
+      "wrench": [
+        -3.955286979675293,
+        -0.06931324303150177,
+        1.323777198791504,
+        0.05735861882567406,
+        -1.3684132099151611,
+        0.2544702887535095
+      ],
+      "gripper_status": 2,
+      "gripper_width_mm": 40.1,
+      "gripper_fingertip_offset_mm": 0.0,
+      "gripper_width_with_offset_mm": 40.1
+    },
+    {
+      "posj": [
+        -22.20710563659668,
+        9.418148040771484,
+        79.86103057861328,
+        -2.1208958625793457,
+        87.21627044677734,
+        -23.788427352905273
+      ],
+      "posx": [
+        418.2706298828125,
+        -181.19732666015625,
+        194.73263549804688,
+        125.77471923828125,
+        -175.88330078125,
+        124.51486206054688
+      ],
+      "velx": [
+        0.0,
+        0.0,
+        -0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "motion_status": 0,
+      "query_started_monotonic_s": 9074.366025672,
+      "query_duration_s": 0.13368167500084382,
+      "query_finished_monotonic_s": 9074.499708531,
+      "robot_state": 1,
+      "robot_mode": 1,
+      "drl_state": 3,
+      "tcp": "GripperDA_v4",
+      "tool": "ToolWeight0",
+      "wrench": [
+        -4.00187349319458,
+        -0.03853187337517738,
+        1.2876110076904297,
+        0.04704452306032181,
+        -1.386867642402649,
+        0.2546255588531494
+      ],
+      "gripper_status": 2,
+      "gripper_width_mm": 40.1,
+      "gripper_fingertip_offset_mm": 0.0,
+      "gripper_width_with_offset_mm": 40.1
+    },
+    {
+      "posj": [
+        -22.20710563659668,
+        9.418148040771484,
+        79.86103057861328,
+        -2.1208958625793457,
+        87.21627044677734,
+        -23.788427352905273
+      ],
+      "posx": [
+        418.2706298828125,
+        -181.19732666015625,
+        194.73263549804688,
+        125.77471923828125,
+        -175.88330078125,
+        124.51486206054688
+      ],
+      "velx": [
+        0.0,
+        0.0,
+        -0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "motion_status": 0,
+      "query_started_monotonic_s": 9074.551030115,
+      "query_duration_s": 0.13510596699961752,
+      "query_finished_monotonic_s": 9074.686138605,
+      "robot_state": 1,
+      "robot_mode": 1,
+      "drl_state": 3,
+      "tcp": "GripperDA_v4",
+      "tool": "ToolWeight0",
+      "wrench": [
+        -4.021617412567139,
+        -0.07240009307861328,
+        1.2385082244873047,
+        0.05747649818658829,
+        -1.3943839073181152,
+        0.25725001096725464
+      ],
+      "gripper_status": 2,
+      "gripper_width_mm": 40.1,
+      "gripper_fingertip_offset_mm": 0.0,
+      "gripper_width_with_offset_mm": 40.1
+    },
+    {
+      "posj": [
+        -22.20710563659668,
+        9.418148040771484,
+        79.86103057861328,
+        -2.1208958625793457,
+        87.21627044677734,
+        -23.788427352905273
+      ],
+      "posx": [
+        418.2706298828125,
+        -181.19732666015625,
+        194.73263549804688,
+        125.77471923828125,
+        -175.88330078125,
+        124.51486206054688
+      ],
+      "velx": [
+        0.0,
+        0.0,
+        -0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "motion_status": 0,
+      "query_started_monotonic_s": 9074.73696983,
+      "query_duration_s": 0.12654435399963404,
+      "query_finished_monotonic_s": 9074.863516068,
+      "robot_state": 1,
+      "robot_mode": 1,
+      "drl_state": 3,
+      "tcp": "GripperDA_v4",
+      "tool": "ToolWeight0",
+      "wrench": [
+        -3.9804153442382812,
+        -0.047114498913288116,
+        1.2665272951126099,
+        0.04845177382230759,
+        -1.3813815116882324,
+        0.2561359703540802
+      ],
+      "gripper_status": 2,
+      "gripper_width_mm": 40.1,
+      "gripper_fingertip_offset_mm": 0.0,
+      "gripper_width_with_offset_mm": 40.1
+    },
+    {
+      "posj": [
+        -22.20710563659668,
+        9.418148040771484,
+        79.86103057861328,
+        -2.1208958625793457,
+        87.21627044677734,
+        -23.788427352905273
+      ],
+      "posx": [
+        418.2706298828125,
+        -181.19732666015625,
+        194.73263549804688,
+        125.77471923828125,
+        -175.88330078125,
+        124.51486206054688
+      ],
+      "velx": [
+        0.0,
+        0.0,
+        -0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "motion_status": 0,
+      "query_started_monotonic_s": 9074.919099969,
+      "query_duration_s": 0.12071243600075832,
+      "query_finished_monotonic_s": 9075.039815415,
+      "robot_state": 1,
+      "robot_mode": 1,
+      "drl_state": 3,
+      "tcp": "GripperDA_v4",
+      "tool": "ToolWeight0",
+      "wrench": [
+        -3.9663209915161133,
+        -0.05716213583946228,
+        1.290185809135437,
+        0.055772148072719574,
+        -1.3753514289855957,
+        0.255414754152298
+      ],
+      "gripper_status": 2,
+      "gripper_width_mm": 40.1,
+      "gripper_fingertip_offset_mm": 0.0,
+      "gripper_width_with_offset_mm": 40.1
+    }
+  ],
+  "checks": [
+    {
+      "segment": "incoming",
+      "target": [
+        391.2919964334239,
+        5.926653256623638,
+        194.73294067382812,
+        125.77471923828125,
+        -175.88330078125,
+        124.51486206054688
+      ],
+      "fk": [
+        391.2911376953125,
+        5.923050880432129,
+        194.7299346923828,
+        125.77436828613281,
+        -175.88331604003906,
+        124.51498413085938
+      ],
+      "position_error_mm": 0.0047697452572089015,
+      "orientation_error_deg": 0.0004730348960800114
+    },
+    {
+      "segment": "empty_place",
+      "target": [
+        418.2707214355469,
+        -181.1972198486328,
+        194.73294067382812,
+        125.77471923828125,
+        -175.88330078125,
+        124.51486206054688
+      ],
+      "fk": [
+        418.2684326171875,
+        -181.20013427734375,
+        194.7302703857422,
+        125.77372741699219,
+        -175.88327026367188,
+        124.51429748535156
+      ],
+      "position_error_mm": 0.0045676057902634985,
+      "orientation_error_deg": 0.0004316944056492078
+    },
+    {
+      "segment": "observe_lift",
+      "target": [
+        418.2707214355469,
+        -181.1972198486328,
+        314.981,
+        125.77471923828125,
+        -175.88330078125,
+        124.51486206054688
+      ],
+      "fk": [
+        418.268798828125,
+        -181.2005157470703,
+        314.978271484375,
+        125.77317810058594,
+        -175.8832550048828,
+        124.51378631591797
+      ],
+      "position_error_mm": 0.004690859550743673,
+      "orientation_error_deg": 0.000476698241837055
+    },
+    {
+      "segment": "observe",
+      "target": [
+        400.851,
+        8.573,
+        314.981,
+        175.022,
+        -179.595,
+        175.461
+      ],
+      "fk": [
+        400.8507080078125,
+        8.569172859191895,
+        314.9779357910156,
+        175.01512145996094,
+        -179.59500122070312,
+        175.4546356201172
+      ],
+      "position_error_mm": 0.00491137892068213,
+      "orientation_error_deg": 0.0005162843063070991
+    }
+  ],
+  "camera_transport": "raw",
+  "camera_inference_rows": [
+    {
+      "received_monotonic_ns": 9077333912576,
+      "age_s": 0.048653259,
+      "candidate_event": null
+    },
+    {
+      "received_monotonic_ns": 9077392358300,
+      "age_s": 0.081765143,
+      "candidate_event": null
+    },
+    {
+      "received_monotonic_ns": 9077470868058,
+      "age_s": 0.090792732,
+      "candidate_event": null
+    },
+    {
+      "received_monotonic_ns": 9077537699556,
+      "age_s": 0.111841657,
+      "candidate_event": null
+    },
+    {
+      "received_monotonic_ns": 9077667995024,
+      "age_s": 0.058685656,
+      "candidate_event": null
+    },
+    {
+      "received_monotonic_ns": 9077725335504,
+      "age_s": 0.07866052,
+      "candidate_event": null
+    },
+    {
+      "received_monotonic_ns": 9077787070773,
+      "age_s": 0.079378876,
+      "candidate_event": null
+    },
+    {
+      "received_monotonic_ns": 9077845393308,
+      "age_s": 0.097733505,
+      "candidate_event": null
+    },
+    {
+      "received_monotonic_ns": 9077922986580,
+      "age_s": 0.111329261,
+      "candidate_event": null
+    },
+    {
+      "received_monotonic_ns": 9078052722804,
+      "age_s": 0.052555563,
+      "candidate_event": null
+    },
+    {
+      "received_monotonic_ns": 9078118778010,
+      "age_s": 0.066665342,
+      "candidate_event": null
+    },
+    {
+      "received_monotonic_ns": 9078191160538,
+      "age_s": 0.079293331,
+      "candidate_event": null
+    },
+    {
+      "received_monotonic_ns": 9078289401396,
+      "age_s": 0.079136494,
+      "candidate_event": null
+    },
+    {
+      "received_monotonic_ns": 9078389473853,
+      "age_s": 0.066302,
+      "candidate_event": null
+    },
+    {
+      "received_monotonic_ns": 9078472042943,
+      "age_s": 0.07519089,
+      "candidate_event": null
+    },
+    {
+      "received_monotonic_ns": 9078536073053,
+      "age_s": 0.098524396,
+      "candidate_event": null
+    },
+    {
+      "received_monotonic_ns": 9078663474386,
+      "age_s": 0.030165811,
+      "candidate_event": null
+    },
+    {
+      "received_monotonic_ns": 9078719978902,
+      "age_s": 0.030289411,
+      "candidate_event": null
+    },
+    {
+      "received_monotonic_ns": 9078779942236,
+      "age_s": 0.037673926,
+      "candidate_event": null
+    },
+    {
+      "received_monotonic_ns": 9078848554451,
+      "age_s": 0.03761733,
+      "candidate_event": null
+    },
+    {
+      "received_monotonic_ns": 9078914390636,
+      "age_s": 0.027432029,
+      "candidate_event": null
+    },
+    {
+      "received_monotonic_ns": 9078983992320,
+      "age_s": 0.049392827,
+      "candidate_event": null
+    },
+    {
+      "received_monotonic_ns": 9079053424377,
+      "age_s": 0.051907054,
+      "candidate_event": null
+    },
+    {
+      "received_monotonic_ns": 9079115304930,
+      "age_s": 0.059856259,
+      "candidate_event": null
+    },
+    {
+      "received_monotonic_ns": 9079186194040,
+      "age_s": 0.072728692,
+      "candidate_event": null
+    },
+    {
+      "received_monotonic_ns": 9079258446307,
+      "age_s": 0.07566682,
+      "candidate_event": null
+    },
+    {
+      "received_monotonic_ns": 9079326701441,
+      "age_s": 0.093676207,
+      "candidate_event": null
+    },
+    {
+      "received_monotonic_ns": 9079398439007,
+      "age_s": 0.102006986,
+      "candidate_event": null
+    },
+    {
+      "received_monotonic_ns": 9079525289846,
+      "age_s": 0.033498402,
+      "candidate_event": null
+    },
+    {
+      "received_monotonic_ns": 9079586688989,
+      "age_s": 0.036379528,
+      "candidate_event": null
+    },
+    {
+      "received_monotonic_ns": 9079657543889,
+      "age_s": 0.097371302,
+      "candidate_event": null
+    },
+    {
+      "received_monotonic_ns": 9079746020606,
+      "age_s": 0.109785354,
+      "candidate_event": null
+    },
+    {
+      "received_monotonic_ns": 9079871870203,
+      "age_s": 0.091274867,
+      "candidate_event": null
+    },
+    {
+      "received_monotonic_ns": 9079950105713,
+      "age_s": 0.120226296,
+      "candidate_event": null
+    },
+    {
+      "received_monotonic_ns": 9080082376499,
+      "age_s": 0.08717677,
+      "candidate_event": null
+    },
+    {
+      "received_monotonic_ns": 9080201347284,
+      "age_s": 0.084048958,
+      "candidate_event": null
+    },
+    {
+      "received_monotonic_ns": 9080273387558,
+      "age_s": 0.124970057,
+      "candidate_event": null
+    },
+    {
+      "received_monotonic_ns": 9080411402059,
+      "age_s": 0.089083279,
+      "candidate_event": null
+    },
+    {
+      "received_monotonic_ns": 9080491871327,
+      "age_s": 0.11259658,
+      "candidate_event": null
+    },
+    {
+      "received_monotonic_ns": 9080617059813,
+      "age_s": 0.080459653,
+      "candidate_event": null
+    },
+    {
+      "received_monotonic_ns": 9080675640425,
+      "age_s": 0.123991985,
+      "candidate_event": null
+    },
+    {
+      "received_monotonic_ns": 9080803366869,
+      "age_s": 0.103368462,
+      "candidate_event": null
+    },
+    {
+      "received_monotonic_ns": 9080929902364,
+      "age_s": 0.069429981,
+      "candidate_event": null
+    },
+    {
+      "received_monotonic_ns": 9081006492728,
+      "age_s": 0.079902432,
+      "candidate_event": null
+    },
+    {
+      "received_monotonic_ns": 9081060995158,
+      "age_s": 0.107312544,
+      "candidate_event": null
+    },
+    {
+      "received_monotonic_ns": 9081195597388,
+      "age_s": 0.049235293,
+      "candidate_event": null
+    },
+    {
+      "received_monotonic_ns": 9081252641665,
+      "age_s": 0.073696627,
+      "candidate_event": null
+    },
+    {
+      "received_monotonic_ns": 9081323999028,
+      "age_s": 0.072658289,
+      "candidate_event": null
+    },
+    {
+      "received_monotonic_ns": 9081395633983,
+      "age_s": 0.090382529,
+      "candidate_event": null
+    },
+    {
+      "received_monotonic_ns": 9081471798821,
+      "age_s": 0.118855489,
+      "candidate_event": null
+    },
+    {
+      "received_monotonic_ns": 9081610874614,
+      "age_s": 0.067971306,
+      "candidate_event": null
+    },
+    {
+      "received_monotonic_ns": 9081688896102,
+      "age_s": 0.08502914,
+      "candidate_event": null
+    },
+    {
+      "received_monotonic_ns": 9081799539784,
+      "age_s": 0.070082378,
+      "candidate_event": null
+    },
+    {
+      "received_monotonic_ns": 9081874052399,
+      "age_s": 0.097594388,
+      "candidate_event": null
+    },
+    {
+      "received_monotonic_ns": 9081934350401,
+      "age_s": 0.13925954,
+      "candidate_event": null
+    },
+    {
+      "received_monotonic_ns": 9082064283718,
+      "age_s": 0.087937244,
+      "candidate_event": null
+    },
+    {
+      "received_monotonic_ns": 9082127108610,
+      "age_s": 0.082959741,
+      "candidate_event": null
+    },
+    {
+      "received_monotonic_ns": 9082192548742,
+      "age_s": 0.082109051,
+      "candidate_event": null
+    }
+  ],
+  "camera_fresh_frames": 58,
+  "camera_max_age_s": 0.13925954,
+  "robot_motion_commands": 0,
+  "robot_gripper_commands": 0,
+  "parent_failed_execution_id": "76c95482-bd6c-4806-888b-694012226771",
+  "physical_verified": false
+}

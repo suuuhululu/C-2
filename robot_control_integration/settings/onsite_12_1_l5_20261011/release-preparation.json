@@ -1,0 +1,59 @@
+{
+  "status": "RELEASE_SESSION_PREPARED_NO_DEVICE_WRITES",
+  "execution_id": "f64459f0-9ea2-4a3e-aa57-61f9ce988015",
+  "release_width_mm": 62.4,
+  "retreat_z_mm": 194.73294067382812,
+  "retreat_speed_mm_s": 6.0,
+  "read_only_sample": {
+    "posj": [
+      -9.17802619934082,
+      19.176054000854492,
+      83.73595428466797,
+      0.12463393807411194,
+      77.09337615966797,
+      -9.1851806640625
+    ],
+    "posx": [
+      486.7454833984375,
+      -74.76651763916016,
+      89.73403930664062,
+      93.87202453613281,
+      179.9779510498047,
+      94.23770904541016
+    ],
+    "velx": [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+    ],
+    "motion_status": 0,
+    "query_started_monotonic_s": 2795.063704196,
+    "query_duration_s": 0.07461637799997334,
+    "query_finished_monotonic_s": 2795.138321949,
+    "robot_state": 1,
+    "robot_mode": 1,
+    "drl_state": 3,
+    "tcp": "GripperDA_v4",
+    "tool": "ToolWeight0",
+    "wrench": [
+      -2.0138094425201416,
+      1.971832513809204,
+      14.580859184265137,
+      0.03498459607362747,
+      -0.23485951125621796,
+      -0.24141262471675873
+    ],
+    "gripper_status": 2,
+    "gripper_width_mm": 40.6,
+    "gripper_fingertip_offset_mm": 0.0,
+    "gripper_width_with_offset_mm": 40.6
+  },
+  "position_difference_from_confirmed_seating_mm": 0.09264369035663221,
+  "orientation_difference_from_confirmed_seating_deg": 0.010583829037020482,
+  "output": "logs/onsite_12_1_l5_20261011/release-f64459f0-9ea2-4a3e-aa57-61f9ce988015",
+  "robot_motion_commands": 0,
+  "robot_gripper_commands": 0
+}

@@ -1,0 +1,1089 @@
+{
+  "scope": "SYNTHETIC_NOT_FOR_EXECUTION",
+  "cases": {
+    "b_mismatch": {
+      "base": "mismatch",
+      "overrides": {
+        "inspection": {
+          "check_id": "J01:C07",
+          "check_kind": "STEP",
+          "plan_id": "plan-fixture-initial",
+          "step_id": "S03",
+          "status": "OK",
+          "comparison": "MISMATCH",
+          "expected": {
+            "plan_id": "plan-fixture-initial",
+            "step_id": "S03",
+            "blocks": [
+              {
+                "brick_type": "2x2x1",
+                "color": "yellow",
+                "x": 3,
+                "y": 5,
+                "layer": 1,
+                "orientation_deg": 0
+              },
+              {
+                "brick_type": "2x2x1",
+                "color": "yellow",
+                "x": 5,
+                "y": 5,
+                "layer": 1,
+                "orientation_deg": 0
+              },
+              {
+                "brick_type": "2x3x1",
+                "color": "blue",
+                "x": 3,
+                "y": 5,
+                "layer": 2,
+                "orientation_deg": 90
+              }
+            ]
+          },
+          "difference": {
+            "missing": [
+              {
+                "brick_type": "2x3x1",
+                "color": "blue",
+                "x": 3,
+                "y": 5,
+                "layer": 2,
+                "orientation_deg": 90
+              }
+            ],
+            "unexpected": [
+              {
+                "brick_type": "2x3x1",
+                "color": "yellow",
+                "x": 3,
+                "y": 5,
+                "layer": 2,
+                "orientation_deg": 90
+              }
+            ],
+            "unobservable": []
+          },
+          "reason": null
+        }
+      }
+    },
+    "b_unobservable": {
+      "base": "unobservable",
+      "overrides": {
+        "inspection": {
+          "check_id": "J01:C07",
+          "check_kind": "STEP",
+          "plan_id": "plan-fixture-initial",
+          "step_id": "S03",
+          "status": "UNOBSERVABLE",
+          "comparison": "UNOBSERVABLE",
+          "expected": {
+            "plan_id": "plan-fixture-initial",
+            "step_id": "S03",
+            "blocks": [
+              {
+                "brick_type": "2x2x1",
+                "color": "yellow",
+                "x": 3,
+                "y": 5,
+                "layer": 1,
+                "orientation_deg": 0
+              },
+              {
+                "brick_type": "2x2x1",
+                "color": "yellow",
+                "x": 5,
+                "y": 5,
+                "layer": 1,
+                "orientation_deg": 0
+              },
+              {
+                "brick_type": "2x3x1",
+                "color": "blue",
+                "x": 3,
+                "y": 5,
+                "layer": 2,
+                "orientation_deg": 90
+              }
+            ]
+          },
+          "difference": {
+            "missing": [],
+            "unexpected": [],
+            "unobservable": [
+              {
+                "brick_type": "2x3x1",
+                "color": "blue",
+                "x": 3,
+                "y": 5,
+                "layer": 2,
+                "orientation_deg": 90
+              }
+            ]
+          },
+          "reason": "가림으로 이번 목표 확인 불가"
+        }
+      }
+    },
+    "b_error": {
+      "base": "inspection_wait",
+      "overrides": {
+        "workflow_status": "HOLD",
+        "inspection": {
+          "check_id": "J01:C07",
+          "check_kind": "STEP",
+          "plan_id": "plan-fixture-initial",
+          "step_id": "S03",
+          "status": "ERROR",
+          "comparison": null,
+          "expected": null,
+          "difference": null,
+          "reason": "가짜 검사 처리 오류"
+        }
+      }
+    },
+    "b_canceled": {
+      "base": "inspection_wait",
+      "overrides": {
+        "workflow_status": "HOLD",
+        "inspection": {
+          "check_id": "J01:C07",
+          "check_kind": "STEP",
+          "plan_id": "plan-fixture-initial",
+          "step_id": "S03",
+          "status": "CANCELED",
+          "comparison": null,
+          "expected": null,
+          "difference": null,
+          "reason": "가짜 검사 취소 완료"
+        }
+      }
+    },
+    "support_ready": {
+      "base": "support_requested",
+      "overrides": {
+        "assistance": {
+          "request_id": "fake-help-01",
+          "plan_id": "plan-fixture-initial",
+          "step_id": "S03",
+          "kind": "SUPPORT",
+          "target": {
+            "brick_type": "2x2x1",
+            "color": "yellow",
+            "x": 3,
+            "y": 5,
+            "layer": 1,
+            "orientation_deg": 0
+          },
+          "instruction": "검토용: 표시된 아래 블록 옆면을 지지해주세요. 실제 손 영역은 미검증입니다.",
+          "phase": "READY"
+        }
+      }
+    },
+    "support_canceled": {
+      "base": "support_requested",
+      "overrides": {
+        "assistance": {
+          "request_id": "fake-help-01",
+          "plan_id": "plan-fixture-initial",
+          "step_id": "S03",
+          "kind": "SUPPORT",
+          "target": {
+            "brick_type": "2x2x1",
+            "color": "yellow",
+            "x": 3,
+            "y": 5,
+            "layer": 1,
+            "orientation_deg": 0
+          },
+          "instruction": "검토용: 표시된 아래 블록 옆면을 지지해주세요. 실제 손 영역은 미검증입니다.",
+          "phase": "CANCELED"
+        }
+      }
+    },
+    "requests_ready": {
+      "base": "support_requested",
+      "overrides": {
+        "user_requests": {
+          "change_design": {
+            "visible": true,
+            "enabled": true,
+            "request_id": "fake-change-01"
+          },
+          "home": {
+            "visible": true,
+            "enabled": false,
+            "request_id": "fake-home-01"
+          },
+          "assistance_ready": {
+            "visible": true,
+            "enabled": true,
+            "request_id": "fake-help-01"
+          }
+        }
+      }
+    },
+    "requests_rejected": {
+      "base": "support_requested",
+      "overrides": {
+        "user_requests": {
+          "change_design": {
+            "visible": true,
+            "enabled": true,
+            "request_id": "fake-change-rejected"
+          },
+          "home": {
+            "visible": true,
+            "enabled": false,
+            "request_id": "fake-home-rejected"
+          },
+          "assistance_ready": {
+            "visible": true,
+            "enabled": true,
+            "request_id": "fake-help-rejected"
+          }
+        },
+        "assistance": {
+          "request_id": "fake-help-rejected",
+          "plan_id": "plan-fixture-initial",
+          "step_id": "S03",
+          "kind": "SUPPORT",
+          "target": {
+            "brick_type": "2x2x1",
+            "color": "yellow",
+            "x": 3,
+            "y": 5,
+            "layer": 1,
+            "orientation_deg": 0
+          },
+          "instruction": "검토용: 표시된 아래 블록 옆면을 지지해주세요. 실제 손 영역은 미검증입니다.",
+          "phase": "REQUESTED"
+        },
+        "notice": {
+          "question": "가짜 도움 요청: 준비되셨나요?",
+          "reason": null,
+          "required_action": "가짜 안내입니다. 실제 로봇 실행에 사용하지 마세요.",
+          "request_id": "fake-help-rejected"
+        }
+      }
+    },
+    "requests_stopped": {
+      "base": "stopped",
+      "overrides": {
+        "user_requests": {
+          "change_design": {
+            "visible": true,
+            "enabled": true,
+            "request_id": "fake-change-01"
+          },
+          "home": {
+            "visible": true,
+            "enabled": true,
+            "request_id": "fake-home-01"
+          },
+          "assistance_ready": {
+            "visible": false,
+            "enabled": false,
+            "request_id": null
+          }
+        }
+      }
+    },
+    "requests_disabled": {
+      "base": "robot_contact",
+      "overrides": {
+        "user_requests": {
+          "change_design": {
+            "visible": true,
+            "enabled": false,
+            "request_id": "fake-change-01"
+          },
+          "home": {
+            "visible": true,
+            "enabled": false,
+            "request_id": "fake-home-01"
+          },
+          "assistance_ready": {
+            "visible": false,
+            "enabled": false,
+            "request_id": null
+          }
+        }
+      }
+    },
+    "b_match": {
+      "base": "mismatch",
+      "overrides": {
+        "current": {
+          "current_revision": 3,
+          "blocks": [
+            {
+              "brick_type": "2x2x1",
+              "color": "yellow",
+              "x": 3,
+              "y": 5,
+              "layer": 1,
+              "orientation_deg": 0
+            },
+            {
+              "brick_type": "2x2x1",
+              "color": "yellow",
+              "x": 5,
+              "y": 5,
+              "layer": 1,
+              "orientation_deg": 0
+            },
+            {
+              "brick_type": "2x3x1",
+              "color": "blue",
+              "x": 3,
+              "y": 5,
+              "layer": 2,
+              "orientation_deg": 90
+            }
+          ]
+        },
+        "step": {
+          "plan_id": "plan-fixture-initial",
+          "step_id": "S03",
+          "target": {
+            "brick_type": "2x3x1",
+            "color": "blue",
+            "x": 3,
+            "y": 5,
+            "layer": 2,
+            "orientation_deg": 90
+          },
+          "observed": {
+            "check_id": "J01:C07",
+            "observation_seq": 13,
+            "status": "OK",
+            "visible_blocks": [
+              {
+                "brick_type": "2x3x1",
+                "color": "blue",
+                "x": 3,
+                "y": 5,
+                "layer": 2,
+                "orientation_deg": 90
+              }
+            ],
+            "verified_regions": [
+              {
+                "x": 3,
+                "y": 5,
+                "width": 3,
+                "height": 2,
+                "layer": 2
+              }
+            ],
+            "reason": null
+          },
+          "comparison": "MATCH"
+        },
+        "workflow_status": "WAIT_ASSEMBLY",
+        "notice": {
+          "question": null,
+          "reason": null,
+          "required_action": "가짜 B 일치 결과입니다. D의 Step 진행은 별도입니다.",
+          "request_id": null
+        },
+        "inspection": {
+          "check_id": "J01:C07",
+          "check_kind": "STEP",
+          "plan_id": "plan-fixture-initial",
+          "step_id": "S03",
+          "status": "OK",
+          "comparison": "MATCH",
+          "expected": {
+            "plan_id": "plan-fixture-initial",
+            "step_id": "S03",
+            "blocks": [
+              {
+                "brick_type": "2x2x1",
+                "color": "yellow",
+                "x": 3,
+                "y": 5,
+                "layer": 1,
+                "orientation_deg": 0
+              },
+              {
+                "brick_type": "2x2x1",
+                "color": "yellow",
+                "x": 5,
+                "y": 5,
+                "layer": 1,
+                "orientation_deg": 0
+              },
+              {
+                "brick_type": "2x3x1",
+                "color": "blue",
+                "x": 3,
+                "y": 5,
+                "layer": 2,
+                "orientation_deg": 90
+              }
+            ]
+          },
+          "difference": {
+            "missing": [],
+            "unexpected": [],
+            "unobservable": []
+          },
+          "reason": null
+        }
+      }
+    },
+    "b_initial_ok": {
+      "base": "draft_initial",
+      "overrides": {
+        "monitor": {
+          "robot": {
+            "mode": "FAKE",
+            "status": null
+          },
+          "observation": {
+            "status": "OK",
+            "check_id": "fake-b-initial-ok",
+            "observation_seq": 1,
+            "reason": null
+          },
+          "place_status": null,
+          "supply": [
+            {
+              "brick_type": "2x2x1",
+              "color": "yellow",
+              "next_slot": null,
+              "needs_refill": null
+            },
+            {
+              "brick_type": "2x2x1",
+              "color": "blue",
+              "next_slot": null,
+              "needs_refill": null
+            },
+            {
+              "brick_type": "2x3x1",
+              "color": "yellow",
+              "next_slot": null,
+              "needs_refill": null
+            },
+            {
+              "brick_type": "2x3x1",
+              "color": "blue",
+              "next_slot": null,
+              "needs_refill": null
+            }
+          ]
+        },
+        "inspection": {
+          "check_id": "fake-b-initial-ok",
+          "check_kind": "INITIAL",
+          "plan_id": null,
+          "step_id": null,
+          "status": "OK",
+          "comparison": null,
+          "expected": null,
+          "difference": {
+            "missing": [],
+            "unexpected": [],
+            "unobservable": []
+          },
+          "reason": null
+        }
+      }
+    },
+    "b_initial_unobservable": {
+      "base": "draft_initial",
+      "overrides": {
+        "monitor": {
+          "robot": {
+            "mode": "FAKE",
+            "status": null
+          },
+          "observation": {
+            "status": "UNOBSERVABLE",
+            "check_id": "fake-b-initial-unobservable",
+            "observation_seq": 1,
+            "reason": "가짜 초기 가림"
+          },
+          "place_status": null,
+          "supply": [
+            {
+              "brick_type": "2x2x1",
+              "color": "yellow",
+              "next_slot": null,
+              "needs_refill": null
+            },
+            {
+              "brick_type": "2x2x1",
+              "color": "blue",
+              "next_slot": null,
+              "needs_refill": null
+            },
+            {
+              "brick_type": "2x3x1",
+              "color": "yellow",
+              "next_slot": null,
+              "needs_refill": null
+            },
+            {
+              "brick_type": "2x3x1",
+              "color": "blue",
+              "next_slot": null,
+              "needs_refill": null
+            }
+          ]
+        },
+        "inspection": {
+          "check_id": "fake-b-initial-unobservable",
+          "check_kind": "INITIAL",
+          "plan_id": null,
+          "step_id": null,
+          "status": "UNOBSERVABLE",
+          "comparison": null,
+          "expected": null,
+          "difference": {
+            "missing": [],
+            "unexpected": [],
+            "unobservable": []
+          },
+          "reason": "가짜 초기 가림"
+        }
+      }
+    },
+    "b_final_match": {
+      "base": "complete",
+      "overrides": {
+        "monitor": {
+          "robot": {
+            "mode": "FAKE",
+            "status": "IDLE"
+          },
+          "observation": {
+            "status": "OK",
+            "check_id": "fake-b-final",
+            "observation_seq": 30,
+            "reason": null
+          },
+          "place_status": null,
+          "supply": [
+            {
+              "brick_type": "2x2x1",
+              "color": "yellow",
+              "next_slot": 3,
+              "needs_refill": false
+            },
+            {
+              "brick_type": "2x2x1",
+              "color": "blue",
+              "next_slot": 1,
+              "needs_refill": false
+            },
+            {
+              "brick_type": "2x3x1",
+              "color": "yellow",
+              "next_slot": 1,
+              "needs_refill": false
+            },
+            {
+              "brick_type": "2x3x1",
+              "color": "blue",
+              "next_slot": 2,
+              "needs_refill": false
+            }
+          ]
+        },
+        "inspection": {
+          "check_id": "fake-b-final",
+          "check_kind": "FINAL",
+          "plan_id": "plan-fixture-initial",
+          "step_id": null,
+          "status": "OK",
+          "comparison": "MATCH",
+          "expected": {
+            "plan_id": "plan-fixture-initial",
+            "step_id": null,
+            "blocks": [
+              {
+                "brick_type": "2x2x1",
+                "color": "yellow",
+                "x": 3,
+                "y": 5,
+                "layer": 1,
+                "orientation_deg": 0
+              },
+              {
+                "brick_type": "2x2x1",
+                "color": "yellow",
+                "x": 5,
+                "y": 5,
+                "layer": 1,
+                "orientation_deg": 0
+              },
+              {
+                "brick_type": "2x3x1",
+                "color": "blue",
+                "x": 3,
+                "y": 5,
+                "layer": 2,
+                "orientation_deg": 90
+              }
+            ]
+          },
+          "difference": {
+            "missing": [],
+            "unexpected": [],
+            "unobservable": []
+          },
+          "reason": null
+        }
+      }
+    },
+    "b_existing_changed": {
+      "base": "mismatch",
+      "overrides": {
+        "current": {
+          "current_revision": 4,
+          "blocks": [
+            {
+              "brick_type": "2x2x1",
+              "color": "blue",
+              "x": 3,
+              "y": 5,
+              "layer": 1,
+              "orientation_deg": 0
+            },
+            {
+              "brick_type": "2x2x1",
+              "color": "yellow",
+              "x": 5,
+              "y": 5,
+              "layer": 1,
+              "orientation_deg": 0
+            },
+            {
+              "brick_type": "2x3x1",
+              "color": "blue",
+              "x": 3,
+              "y": 5,
+              "layer": 2,
+              "orientation_deg": 90
+            }
+          ]
+        },
+        "step": {
+          "plan_id": "plan-fixture-initial",
+          "step_id": "S03",
+          "target": {
+            "brick_type": "2x3x1",
+            "color": "blue",
+            "x": 3,
+            "y": 5,
+            "layer": 2,
+            "orientation_deg": 90
+          },
+          "observed": {
+            "check_id": "J01:C07",
+            "observation_seq": 13,
+            "status": "OK",
+            "visible_blocks": [
+              {
+                "brick_type": "2x2x1",
+                "color": "blue",
+                "x": 3,
+                "y": 5,
+                "layer": 1,
+                "orientation_deg": 0
+              },
+              {
+                "brick_type": "2x3x1",
+                "color": "blue",
+                "x": 3,
+                "y": 5,
+                "layer": 2,
+                "orientation_deg": 90
+              }
+            ],
+            "verified_regions": [
+              {
+                "x": 3,
+                "y": 5,
+                "width": 3,
+                "height": 2,
+                "layer": 2
+              }
+            ],
+            "reason": null
+          },
+          "comparison": "MISMATCH"
+        },
+        "workflow_status": "WAIT_INTENT",
+        "notice": {
+          "question": "목표와 실제 배치가 다릅니다. 목표를 유지할까요, 변경할까요?",
+          "reason": null,
+          "required_action": "음성 답변을 기다립니다. 다음 전달을 보류합니다.",
+          "request_id": "J01:Q02"
+        },
+        "inspection": {
+          "check_id": "J01:C07",
+          "check_kind": "STEP",
+          "plan_id": "plan-fixture-initial",
+          "step_id": "S03",
+          "status": "OK",
+          "comparison": "MISMATCH",
+          "expected": {
+            "plan_id": "plan-fixture-initial",
+            "step_id": "S03",
+            "blocks": [
+              {
+                "brick_type": "2x2x1",
+                "color": "yellow",
+                "x": 3,
+                "y": 5,
+                "layer": 1,
+                "orientation_deg": 0
+              },
+              {
+                "brick_type": "2x2x1",
+                "color": "yellow",
+                "x": 5,
+                "y": 5,
+                "layer": 1,
+                "orientation_deg": 0
+              },
+              {
+                "brick_type": "2x3x1",
+                "color": "blue",
+                "x": 3,
+                "y": 5,
+                "layer": 2,
+                "orientation_deg": 90
+              }
+            ]
+          },
+          "difference": {
+            "missing": [
+              {
+                "brick_type": "2x2x1",
+                "color": "yellow",
+                "x": 3,
+                "y": 5,
+                "layer": 1,
+                "orientation_deg": 0
+              }
+            ],
+            "unexpected": [
+              {
+                "brick_type": "2x2x1",
+                "color": "blue",
+                "x": 3,
+                "y": 5,
+                "layer": 1,
+                "orientation_deg": 0
+              }
+            ],
+            "unobservable": []
+          },
+          "reason": null
+        }
+      }
+    },
+    "final_mismatch": {
+      "base": "final_unobservable",
+      "overrides": {
+        "current": {
+          "current_revision": 4,
+          "blocks": [
+            {
+              "brick_type": "2x2x1",
+              "color": "yellow",
+              "x": 3,
+              "y": 5,
+              "layer": 1,
+              "orientation_deg": 0
+            },
+            {
+              "brick_type": "2x2x1",
+              "color": "yellow",
+              "x": 5,
+              "y": 5,
+              "layer": 1,
+              "orientation_deg": 0
+            },
+            {
+              "brick_type": "2x3x1",
+              "color": "yellow",
+              "x": 3,
+              "y": 5,
+              "layer": 2,
+              "orientation_deg": 90
+            }
+          ]
+        },
+        "completion": {
+          "blocks_used": true,
+          "assembly": "MISMATCH",
+          "storage": "NOT_STARTED",
+          "web": "NOT_STARTED",
+          "reason": "가짜 최종 색상 불일치"
+        },
+        "monitor": {
+          "robot": {
+            "mode": "FAKE",
+            "status": "IDLE"
+          },
+          "observation": {
+            "status": "OK",
+            "check_id": "fake-final-mismatch",
+            "observation_seq": 31,
+            "reason": null
+          },
+          "place_status": null,
+          "supply": [
+            {
+              "brick_type": "2x2x1",
+              "color": "yellow",
+              "next_slot": 3,
+              "needs_refill": false
+            },
+            {
+              "brick_type": "2x2x1",
+              "color": "blue",
+              "next_slot": 1,
+              "needs_refill": false
+            },
+            {
+              "brick_type": "2x3x1",
+              "color": "yellow",
+              "next_slot": 1,
+              "needs_refill": false
+            },
+            {
+              "brick_type": "2x3x1",
+              "color": "blue",
+              "next_slot": 2,
+              "needs_refill": false
+            }
+          ]
+        },
+        "inspection": {
+          "check_id": "fake-final-mismatch",
+          "check_kind": "FINAL",
+          "plan_id": "plan-fixture-initial",
+          "step_id": null,
+          "status": "OK",
+          "comparison": "MISMATCH",
+          "expected": {
+            "plan_id": "plan-fixture-initial",
+            "step_id": null,
+            "blocks": [
+              {
+                "brick_type": "2x2x1",
+                "color": "yellow",
+                "x": 3,
+                "y": 5,
+                "layer": 1,
+                "orientation_deg": 0
+              },
+              {
+                "brick_type": "2x2x1",
+                "color": "yellow",
+                "x": 5,
+                "y": 5,
+                "layer": 1,
+                "orientation_deg": 0
+              },
+              {
+                "brick_type": "2x3x1",
+                "color": "blue",
+                "x": 3,
+                "y": 5,
+                "layer": 2,
+                "orientation_deg": 90
+              }
+            ]
+          },
+          "difference": {
+            "missing": [
+              {
+                "brick_type": "2x3x1",
+                "color": "blue",
+                "x": 3,
+                "y": 5,
+                "layer": 2,
+                "orientation_deg": 90
+              }
+            ],
+            "unexpected": [
+              {
+                "brick_type": "2x3x1",
+                "color": "yellow",
+                "x": 3,
+                "y": 5,
+                "layer": 2,
+                "orientation_deg": 90
+              }
+            ],
+            "unobservable": []
+          },
+          "reason": "가짜 최종 색상 불일치"
+        }
+      }
+    },
+    "overview_all": {
+      "base": "unobservable",
+      "overrides": {
+        "inspection": {
+          "check_id": "J01:C07",
+          "check_kind": "STEP",
+          "plan_id": "plan-fixture-initial",
+          "step_id": "S03",
+          "status": "UNOBSERVABLE",
+          "comparison": "UNOBSERVABLE",
+          "expected": {
+            "plan_id": "plan-fixture-initial",
+            "step_id": "S03",
+            "blocks": [
+              {
+                "brick_type": "2x2x1",
+                "color": "yellow",
+                "x": 3,
+                "y": 5,
+                "layer": 1,
+                "orientation_deg": 0
+              },
+              {
+                "brick_type": "2x2x1",
+                "color": "yellow",
+                "x": 5,
+                "y": 5,
+                "layer": 1,
+                "orientation_deg": 0
+              },
+              {
+                "brick_type": "2x3x1",
+                "color": "blue",
+                "x": 3,
+                "y": 5,
+                "layer": 2,
+                "orientation_deg": 90
+              }
+            ]
+          },
+          "difference": {
+            "missing": [],
+            "unexpected": [],
+            "unobservable": [
+              {
+                "brick_type": "2x3x1",
+                "color": "blue",
+                "x": 3,
+                "y": 5,
+                "layer": 2,
+                "orientation_deg": 90
+              }
+            ]
+          },
+          "reason": "가림으로 이번 목표 확인 불가"
+        },
+        "design_preview": {
+          "request_id": "fake-dialogue-01",
+          "design": {
+            "design_version": 1,
+            "blocks": [
+              {
+                "brick_type": "2x2x1",
+                "color": "yellow",
+                "x": 3,
+                "y": 5,
+                "layer": 1,
+                "orientation_deg": 0
+              },
+              {
+                "brick_type": "2x2x1",
+                "color": "yellow",
+                "x": 5,
+                "y": 5,
+                "layer": 1,
+                "orientation_deg": 0
+              },
+              {
+                "brick_type": "2x3x1",
+                "color": "yellow",
+                "x": 3,
+                "y": 5,
+                "layer": 2,
+                "orientation_deg": 90
+              }
+            ]
+          }
+        },
+        "dialogue": {
+          "request_id": "fake-dialogue-01",
+          "phase": "WAIT_APPROVAL",
+          "user_text": "등받이가 있는 의자를 보여주세요.",
+          "assistant_text": "가짜 설계 미리보기입니다.",
+          "reason": null
+        },
+        "execution": {
+          "plan_id": "plan-fixture-initial",
+          "step_id": "S03",
+          "motion_plan_id": "fake-motion-01",
+          "method": "ROBOT_GRIP",
+          "phase": "PRE_CONTACT"
+        },
+        "assistance": {
+          "request_id": "fake-help-01",
+          "plan_id": "plan-fixture-initial",
+          "step_id": "S03",
+          "kind": "SUPPORT",
+          "target": {
+            "brick_type": "2x2x1",
+            "color": "yellow",
+            "x": 3,
+            "y": 5,
+            "layer": 1,
+            "orientation_deg": 0
+          },
+          "instruction": "검토용: 표시된 아래 블록 옆면을 지지해주세요. 실제 손 영역은 미검증입니다.",
+          "phase": "REQUESTED"
+        },
+        "notice": {
+          "question": "가짜 도움 요청: 준비되셨나요?",
+          "reason": "가짜 통합 표시: 이번 목표 가림으로 진행을 보류합니다.",
+          "required_action": "실제 실행 없이 모든 영역을 동시에 확인하는 합성 화면입니다.",
+          "request_id": "fake-help-01"
+        },
+        "completion": {
+          "blocks_used": false,
+          "assembly": "PENDING",
+          "storage": "NOT_STARTED",
+          "web": "NOT_STARTED",
+          "reason": null
+        },
+        "user_requests": {
+          "change_design": {
+            "visible": true,
+            "enabled": true,
+            "request_id": "fake-change-01"
+          },
+          "home": {
+            "visible": true,
+            "enabled": false,
+            "request_id": "fake-home-01"
+          },
+          "assistance_ready": {
+            "visible": true,
+            "enabled": false,
+            "request_id": "fake-help-01"
+          }
+        }
+      }
+    }
+  },
+  "request_rejections": {
+    "requests_rejected": "가짜 D 거절: 요청 이후 실행 조건이 변경되었습니다."
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "provenance": "PLAN_EXPECTATION_ONLY_NOT_B_OBSERVATION_OR_PHYSICAL_COMPLETION",
+  "current": {
+    "current_revision": 1,
+    "blocks": [
+      {
+        "brick_type": "1x2x1",
+        "color": "red",
+        "x": 3,
+        "y": 17,
+        "layer": 1,
+        "orientation_deg": 0
+      }
+    ]
+  }
+}

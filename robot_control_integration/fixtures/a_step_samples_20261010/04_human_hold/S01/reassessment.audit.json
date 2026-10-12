@@ -1,0 +1,770 @@
+{
+  "raw_result": {
+    "schema_version": "assembly-assistance-candidate/0.2",
+    "execution_allowed": false,
+    "plan_id": "P-33a661bbd6494afd91d2eac6acbd9113",
+    "step_id": "S01",
+    "assessment_current_revision": 4,
+    "context_digest": "d4de7d5e666f1df80b447a9ef2ac7e620510dd158d5f89f8b77548a34a919af5",
+    "options": [
+      {
+        "mode": "ROBOT_GRIP",
+        "grip_axis": "x",
+        "release_strategy": "MINIMAL_OPEN",
+        "release_margin_per_side_mm": null,
+        "clearance_pitch_per_side": 1,
+        "support_targets": [
+          {
+            "block": {
+              "brick_type": "2x2x1",
+              "color": "blue",
+              "x": 5,
+              "y": 6,
+              "layer": 2,
+              "orientation_deg": 0
+            },
+            "upper_studs": 2,
+            "lower_studs": 2,
+            "side": "-y/+y",
+            "grip_axis": "y",
+            "boxes": [
+              [
+                80.0,
+                72.0,
+                19,
+                96.0,
+                88.0,
+                38
+              ],
+              [
+                80.0,
+                120.0,
+                19,
+                96.0,
+                136.0,
+                38
+              ]
+            ],
+            "contact_region_board_mm": null,
+            "contact_regions_board_mm": [
+              [
+                80.0,
+                88.0,
+                19,
+                96.0,
+                88.0,
+                38
+              ],
+              [
+                80.0,
+                120.0,
+                19,
+                96.0,
+                120.0,
+                38
+              ]
+            ],
+            "frame_id": "assembly_board_mm",
+            "force_command": null,
+            "hand_count": 1,
+            "effect": "RESTRAIN_TRANSLATION_AND_TILT_NOT_EXTRA_DOWN_PRESS",
+            "space_basis": "PAIRED_LOCAL_ONE_PITCH_BODY_HEIGHT_RULE"
+          },
+          {
+            "block": {
+              "brick_type": "2x2x1",
+              "color": "blue",
+              "x": 7,
+              "y": 6,
+              "layer": 2,
+              "orientation_deg": 0
+            },
+            "upper_studs": 2,
+            "lower_studs": 2,
+            "side": "-y/+y",
+            "grip_axis": "y",
+            "boxes": [
+              [
+                112.0,
+                72.0,
+                19,
+                128.0,
+                88.0,
+                38
+              ],
+              [
+                112.0,
+                120.0,
+                19,
+                128.0,
+                136.0,
+                38
+              ]
+            ],
+            "contact_region_board_mm": null,
+            "contact_regions_board_mm": [
+              [
+                112.0,
+                88.0,
+                19,
+                128.0,
+                88.0,
+                38
+              ],
+              [
+                112.0,
+                120.0,
+                19,
+                128.0,
+                120.0,
+                38
+              ]
+            ],
+            "frame_id": "assembly_board_mm",
+            "force_command": null,
+            "hand_count": 1,
+            "effect": "RESTRAIN_TRANSLATION_AND_TILT_NOT_EXTRA_DOWN_PRESS",
+            "space_basis": "PAIRED_LOCAL_ONE_PITCH_BODY_HEIGHT_RULE"
+          }
+        ],
+        "assembly_hand": null,
+        "press_hand": null,
+        "press_assessment": {
+          "required": false,
+          "policy": "CONTACT_HULL",
+          "nominal_robot_point_xy_stud": [
+            6.5,
+            6.5
+          ],
+          "contact_hull_xy_stud": [
+            [
+              6,
+              6
+            ],
+            [
+              7,
+              6
+            ],
+            [
+              7,
+              7
+            ],
+            [
+              6,
+              7
+            ]
+          ],
+          "basis": "GEOMETRIC_HEURISTIC_NOT_FORCE_OR_STABILITY_PROOF"
+        },
+        "contacts": {
+          "support_studs": 4,
+          "total_studs": 4,
+          "supported_cells": [
+            [
+              6,
+              6
+            ],
+            [
+              6,
+              7
+            ],
+            [
+              7,
+              6
+            ],
+            [
+              7,
+              7
+            ]
+          ],
+          "missing_components": [],
+          "largest_missing_component": 0,
+          "weak_supports": [
+            {
+              "block": {
+                "brick_type": "2x2x1",
+                "color": "blue",
+                "x": 5,
+                "y": 6,
+                "layer": 2,
+                "orientation_deg": 0
+              },
+              "upper_studs": 2,
+              "lower_studs": 2
+            },
+            {
+              "block": {
+                "brick_type": "2x2x1",
+                "color": "blue",
+                "x": 7,
+                "y": 6,
+                "layer": 2,
+                "orientation_deg": 0
+              },
+              "upper_studs": 2,
+              "lower_studs": 2
+            }
+          ]
+        },
+        "requires_minimal_release": true,
+        "release_instruction": "이 블록을 조립한 후에는 그리퍼를 소폭 개방하고 후퇴해야 합니다.",
+        "human_actions": [
+          {
+            "action": "HOLD",
+            "target_block": {
+              "brick_type": "2x2x1",
+              "color": "blue",
+              "x": 5,
+              "y": 6,
+              "layer": 2,
+              "orientation_deg": 0
+            },
+            "hand": {
+              "block": {
+                "brick_type": "2x2x1",
+                "color": "blue",
+                "x": 5,
+                "y": 6,
+                "layer": 2,
+                "orientation_deg": 0
+              },
+              "upper_studs": 2,
+              "lower_studs": 2,
+              "side": "-y/+y",
+              "grip_axis": "y",
+              "boxes": [
+                [
+                  80.0,
+                  72.0,
+                  19,
+                  96.0,
+                  88.0,
+                  38
+                ],
+                [
+                  80.0,
+                  120.0,
+                  19,
+                  96.0,
+                  136.0,
+                  38
+                ]
+              ],
+              "contact_region_board_mm": null,
+              "contact_regions_board_mm": [
+                [
+                  80.0,
+                  88.0,
+                  19,
+                  96.0,
+                  88.0,
+                  38
+                ],
+                [
+                  80.0,
+                  120.0,
+                  19,
+                  96.0,
+                  120.0,
+                  38
+                ]
+              ],
+              "frame_id": "assembly_board_mm",
+              "force_command": null,
+              "hand_count": 1,
+              "effect": "RESTRAIN_TRANSLATION_AND_TILT_NOT_EXTRA_DOWN_PRESS",
+              "space_basis": "PAIRED_LOCAL_ONE_PITCH_BODY_HEIGHT_RULE"
+            }
+          },
+          {
+            "action": "HOLD",
+            "target_block": {
+              "brick_type": "2x2x1",
+              "color": "blue",
+              "x": 7,
+              "y": 6,
+              "layer": 2,
+              "orientation_deg": 0
+            },
+            "hand": {
+              "block": {
+                "brick_type": "2x2x1",
+                "color": "blue",
+                "x": 7,
+                "y": 6,
+                "layer": 2,
+                "orientation_deg": 0
+              },
+              "upper_studs": 2,
+              "lower_studs": 2,
+              "side": "-y/+y",
+              "grip_axis": "y",
+              "boxes": [
+                [
+                  112.0,
+                  72.0,
+                  19,
+                  128.0,
+                  88.0,
+                  38
+                ],
+                [
+                  112.0,
+                  120.0,
+                  19,
+                  128.0,
+                  136.0,
+                  38
+                ]
+              ],
+              "contact_region_board_mm": null,
+              "contact_regions_board_mm": [
+                [
+                  112.0,
+                  88.0,
+                  19,
+                  128.0,
+                  88.0,
+                  38
+                ],
+                [
+                  112.0,
+                  120.0,
+                  19,
+                  128.0,
+                  120.0,
+                  38
+                ]
+              ],
+              "frame_id": "assembly_board_mm",
+              "force_command": null,
+              "hand_count": 1,
+              "effect": "RESTRAIN_TRANSLATION_AND_TILT_NOT_EXTRA_DOWN_PRESS",
+              "space_basis": "PAIRED_LOCAL_ONE_PITCH_BODY_HEIGHT_RULE"
+            }
+          }
+        ],
+        "assistance_kind": "HOLD"
+      },
+      {
+        "mode": "ROBOT_GRIP",
+        "grip_axis": "y",
+        "release_strategy": "MINIMAL_OPEN",
+        "release_margin_per_side_mm": null,
+        "clearance_pitch_per_side": 1,
+        "support_targets": [
+          {
+            "block": {
+              "brick_type": "2x2x1",
+              "color": "blue",
+              "x": 5,
+              "y": 6,
+              "layer": 2,
+              "orientation_deg": 0
+            },
+            "upper_studs": 2,
+            "lower_studs": 2,
+            "side": "-y/+y",
+            "grip_axis": "y",
+            "boxes": [
+              [
+                80.0,
+                72.0,
+                19,
+                96.0,
+                88.0,
+                38
+              ],
+              [
+                80.0,
+                120.0,
+                19,
+                96.0,
+                136.0,
+                38
+              ]
+            ],
+            "contact_region_board_mm": null,
+            "contact_regions_board_mm": [
+              [
+                80.0,
+                88.0,
+                19,
+                96.0,
+                88.0,
+                38
+              ],
+              [
+                80.0,
+                120.0,
+                19,
+                96.0,
+                120.0,
+                38
+              ]
+            ],
+            "frame_id": "assembly_board_mm",
+            "force_command": null,
+            "hand_count": 1,
+            "effect": "RESTRAIN_TRANSLATION_AND_TILT_NOT_EXTRA_DOWN_PRESS",
+            "space_basis": "PAIRED_LOCAL_ONE_PITCH_BODY_HEIGHT_RULE"
+          },
+          {
+            "block": {
+              "brick_type": "2x2x1",
+              "color": "blue",
+              "x": 7,
+              "y": 6,
+              "layer": 2,
+              "orientation_deg": 0
+            },
+            "upper_studs": 2,
+            "lower_studs": 2,
+            "side": "-y/+y",
+            "grip_axis": "y",
+            "boxes": [
+              [
+                112.0,
+                72.0,
+                19,
+                128.0,
+                88.0,
+                38
+              ],
+              [
+                112.0,
+                120.0,
+                19,
+                128.0,
+                136.0,
+                38
+              ]
+            ],
+            "contact_region_board_mm": null,
+            "contact_regions_board_mm": [
+              [
+                112.0,
+                88.0,
+                19,
+                128.0,
+                88.0,
+                38
+              ],
+              [
+                112.0,
+                120.0,
+                19,
+                128.0,
+                120.0,
+                38
+              ]
+            ],
+            "frame_id": "assembly_board_mm",
+            "force_command": null,
+            "hand_count": 1,
+            "effect": "RESTRAIN_TRANSLATION_AND_TILT_NOT_EXTRA_DOWN_PRESS",
+            "space_basis": "PAIRED_LOCAL_ONE_PITCH_BODY_HEIGHT_RULE"
+          }
+        ],
+        "assembly_hand": null,
+        "press_hand": null,
+        "press_assessment": {
+          "required": false,
+          "policy": "CONTACT_HULL",
+          "nominal_robot_point_xy_stud": [
+            6.5,
+            6.5
+          ],
+          "contact_hull_xy_stud": [
+            [
+              6,
+              6
+            ],
+            [
+              7,
+              6
+            ],
+            [
+              7,
+              7
+            ],
+            [
+              6,
+              7
+            ]
+          ],
+          "basis": "GEOMETRIC_HEURISTIC_NOT_FORCE_OR_STABILITY_PROOF"
+        },
+        "contacts": {
+          "support_studs": 4,
+          "total_studs": 4,
+          "supported_cells": [
+            [
+              6,
+              6
+            ],
+            [
+              6,
+              7
+            ],
+            [
+              7,
+              6
+            ],
+            [
+              7,
+              7
+            ]
+          ],
+          "missing_components": [],
+          "largest_missing_component": 0,
+          "weak_supports": [
+            {
+              "block": {
+                "brick_type": "2x2x1",
+                "color": "blue",
+                "x": 5,
+                "y": 6,
+                "layer": 2,
+                "orientation_deg": 0
+              },
+              "upper_studs": 2,
+              "lower_studs": 2
+            },
+            {
+              "block": {
+                "brick_type": "2x2x1",
+                "color": "blue",
+                "x": 7,
+                "y": 6,
+                "layer": 2,
+                "orientation_deg": 0
+              },
+              "upper_studs": 2,
+              "lower_studs": 2
+            }
+          ]
+        },
+        "requires_minimal_release": true,
+        "release_instruction": "이 블록을 조립한 후에는 그리퍼를 소폭 개방하고 후퇴해야 합니다.",
+        "human_actions": [
+          {
+            "action": "HOLD",
+            "target_block": {
+              "brick_type": "2x2x1",
+              "color": "blue",
+              "x": 5,
+              "y": 6,
+              "layer": 2,
+              "orientation_deg": 0
+            },
+            "hand": {
+              "block": {
+                "brick_type": "2x2x1",
+                "color": "blue",
+                "x": 5,
+                "y": 6,
+                "layer": 2,
+                "orientation_deg": 0
+              },
+              "upper_studs": 2,
+              "lower_studs": 2,
+              "side": "-y/+y",
+              "grip_axis": "y",
+              "boxes": [
+                [
+                  80.0,
+                  72.0,
+                  19,
+                  96.0,
+                  88.0,
+                  38
+                ],
+                [
+                  80.0,
+                  120.0,
+                  19,
+                  96.0,
+                  136.0,
+                  38
+                ]
+              ],
+              "contact_region_board_mm": null,
+              "contact_regions_board_mm": [
+                [
+                  80.0,
+                  88.0,
+                  19,
+                  96.0,
+                  88.0,
+                  38
+                ],
+                [
+                  80.0,
+                  120.0,
+                  19,
+                  96.0,
+                  120.0,
+                  38
+                ]
+              ],
+              "frame_id": "assembly_board_mm",
+              "force_command": null,
+              "hand_count": 1,
+              "effect": "RESTRAIN_TRANSLATION_AND_TILT_NOT_EXTRA_DOWN_PRESS",
+              "space_basis": "PAIRED_LOCAL_ONE_PITCH_BODY_HEIGHT_RULE"
+            }
+          },
+          {
+            "action": "HOLD",
+            "target_block": {
+              "brick_type": "2x2x1",
+              "color": "blue",
+              "x": 7,
+              "y": 6,
+              "layer": 2,
+              "orientation_deg": 0
+            },
+            "hand": {
+              "block": {
+                "brick_type": "2x2x1",
+                "color": "blue",
+                "x": 7,
+                "y": 6,
+                "layer": 2,
+                "orientation_deg": 0
+              },
+              "upper_studs": 2,
+              "lower_studs": 2,
+              "side": "-y/+y",
+              "grip_axis": "y",
+              "boxes": [
+                [
+                  112.0,
+                  72.0,
+                  19,
+                  128.0,
+                  88.0,
+                  38
+                ],
+                [
+                  112.0,
+                  120.0,
+                  19,
+                  128.0,
+                  136.0,
+                  38
+                ]
+              ],
+              "contact_region_board_mm": null,
+              "contact_regions_board_mm": [
+                [
+                  112.0,
+                  88.0,
+                  19,
+                  128.0,
+                  88.0,
+                  38
+                ],
+                [
+                  112.0,
+                  120.0,
+                  19,
+                  128.0,
+                  120.0,
+                  38
+                ]
+              ],
+              "frame_id": "assembly_board_mm",
+              "force_command": null,
+              "hand_count": 1,
+              "effect": "RESTRAIN_TRANSLATION_AND_TILT_NOT_EXTRA_DOWN_PRESS",
+              "space_basis": "PAIRED_LOCAL_ONE_PITCH_BODY_HEIGHT_RULE"
+            }
+          }
+        ],
+        "assistance_kind": "HOLD"
+      }
+    ],
+    "errors": [],
+    "status": "CANDIDATE",
+    "assessment": {
+      "support_studs": 4,
+      "total_studs": 4,
+      "supported_cells": [
+        [
+          6,
+          6
+        ],
+        [
+          6,
+          7
+        ],
+        [
+          7,
+          6
+        ],
+        [
+          7,
+          7
+        ]
+      ],
+      "missing_components": [],
+      "largest_missing_component": 0,
+      "weak_supports": [
+        {
+          "block": {
+            "brick_type": "2x2x1",
+            "color": "blue",
+            "x": 5,
+            "y": 6,
+            "layer": 2,
+            "orientation_deg": 0
+          },
+          "upper_studs": 2,
+          "lower_studs": 2
+        },
+        {
+          "block": {
+            "brick_type": "2x2x1",
+            "color": "blue",
+            "x": 7,
+            "y": 6,
+            "layer": 2,
+            "orientation_deg": 0
+          },
+          "upper_studs": 2,
+          "lower_studs": 2
+        }
+      ],
+      "press_assessment": {
+        "required": false,
+        "policy": "CONTACT_HULL",
+        "nominal_robot_point_xy_stud": [
+          6.5,
+          6.5
+        ],
+        "contact_hull_xy_stud": [
+          [
+            6,
+            6
+          ],
+          [
+            7,
+            6
+          ],
+          [
+            7,
+            7
+          ],
+          [
+            6,
+            7
+          ]
+        ],
+        "basis": "GEOMETRIC_HEURISTIC_NOT_FORCE_OR_STABILITY_PROOF"
+      },
+      "reason": "ROBOT_RELEASE_PRESS: disabled by supported_modes; HUMAN_ASSEMBLY: no remaining hand or support corridor"
+    }
+  }
+}

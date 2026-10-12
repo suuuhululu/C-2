@@ -1,0 +1,63 @@
+{
+  "real_preflight": "PASSED",
+  "real_execution_started": false,
+  "physical_simulation": false,
+  "device_connections_in_offline_checks": 0,
+  "checks": [
+    {
+      "denied_request": null,
+      "status": "PAUSED_PICKUP_COMPLETE_HOLDING",
+      "mock_moves": 7,
+      "mock_grips": 1,
+      "start_open_samples": 3,
+      "final_gripper_status": 2
+    },
+    {
+      "denied_request": "START_PICKUP",
+      "status": "PAUSED_START",
+      "mock_moves": 0,
+      "mock_grips": 0,
+      "start_open_samples": 0,
+      "final_gripper_status": 0
+    },
+    {
+      "denied_request": "PICKUP_ALIGNMENT",
+      "status": "PAUSED_PICKUP_ALIGNMENT",
+      "mock_moves": 6,
+      "mock_grips": 0,
+      "start_open_samples": 3,
+      "final_gripper_status": 0
+    },
+    {
+      "denied_request": "GRASP_CONFIRMED",
+      "status": "PAUSED_GRASP_CONFIRMED",
+      "mock_moves": 7,
+      "mock_grips": 1,
+      "start_open_samples": 3,
+      "final_gripper_status": 2
+    }
+  ],
+  "transfer_velocity_mm_s": 16.0,
+  "transfer_acceleration_mm_s2": 8.0,
+  "pickup_descent_velocity_mm_s": 2.0,
+  "pickup_descent_acceleration_mm_s2": 1.0,
+  "release_feedback_range_mm_unchanged": [
+    61.4,
+    64.2
+  ],
+  "prior_failure": {
+    "execution_id": "c47bd497-fbf6-403e-846f-d7c06e8375ac",
+    "reason": "GRIPPER_COMPLETION_NOT_VERIFIED",
+    "robot_moves": 0,
+    "gripper_commands": 1,
+    "actual_status": 0,
+    "actual_width_mm_range": [
+      60.0,
+      60.2
+    ]
+  },
+  "core_files_changed": 2,
+  "new_test_cases": 14,
+  "new_dependencies": 0,
+  "new_classes": 0
+}

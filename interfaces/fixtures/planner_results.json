@@ -1,0 +1,152 @@
+{
+  "initial_ready": {
+    "status": "READY",
+    "plan": {
+      "plan_id": "plan-fixture-initial",
+      "design_version": 1,
+      "base_current_revision": 0,
+      "steps": [
+        {
+          "step_id": "S01",
+          "operation": "PLACE",
+          "before": null,
+          "after": {
+            "brick_type": "2x2x1",
+            "color": "yellow",
+            "x": 3,
+            "y": 5,
+            "layer": 1,
+            "orientation_deg": 0
+          },
+          "prerequisites": [],
+          "requires_delivery": true
+        },
+        {
+          "step_id": "S02",
+          "operation": "PLACE",
+          "before": null,
+          "after": {
+            "brick_type": "2x2x1",
+            "color": "yellow",
+            "x": 5,
+            "y": 5,
+            "layer": 1,
+            "orientation_deg": 0
+          },
+          "prerequisites": [],
+          "requires_delivery": true
+        },
+        {
+          "step_id": "S03",
+          "operation": "PLACE",
+          "before": null,
+          "after": {
+            "brick_type": "2x3x1",
+            "color": "blue",
+            "x": 3,
+            "y": 5,
+            "layer": 2,
+            "orientation_deg": 90
+          },
+          "prerequisites": [
+            "S01",
+            "S02"
+          ],
+          "requires_delivery": true
+        }
+      ]
+    },
+    "errors": []
+  },
+  "remaining_ready": {
+    "status": "READY",
+    "plan": {
+      "plan_id": "plan-fixture-remaining",
+      "design_version": 1,
+      "base_current_revision": 1,
+      "steps": [
+        {
+          "step_id": "S02",
+          "operation": "PLACE",
+          "before": null,
+          "after": {
+            "brick_type": "2x2x1",
+            "color": "yellow",
+            "x": 5,
+            "y": 5,
+            "layer": 1,
+            "orientation_deg": 0
+          },
+          "prerequisites": [],
+          "requires_delivery": true
+        },
+        {
+          "step_id": "S03",
+          "operation": "PLACE",
+          "before": null,
+          "after": {
+            "brick_type": "2x3x1",
+            "color": "blue",
+            "x": 3,
+            "y": 5,
+            "layer": 2,
+            "orientation_deg": 90
+          },
+          "prerequisites": [
+            "S02"
+          ],
+          "requires_delivery": true
+        }
+      ]
+    },
+    "errors": []
+  },
+  "completed_ready": {
+    "status": "READY",
+    "plan": {
+      "plan_id": "plan-fixture-completed",
+      "design_version": 1,
+      "base_current_revision": 3,
+      "steps": []
+    },
+    "errors": []
+  },
+  "needs_correction": {
+    "status": "NEEDS_CORRECTION",
+    "plan": null,
+    "errors": [
+      {
+        "reason": "현재 배치를 사람이 정리해야 합니다.",
+        "block": {
+          "brick_type": "2x2x1",
+          "color": "yellow",
+          "x": 3,
+          "y": 5,
+          "layer": 1,
+          "orientation_deg": 0
+        }
+      }
+    ]
+  },
+  "invalid": {
+    "status": "INVALID",
+    "plan": null,
+    "errors": [
+      {
+        "reason": "6점 블록이 보드 범위를 벗어납니다.",
+        "block": {
+          "brick_type": "2x3x1",
+          "color": "yellow",
+          "x": 23,
+          "y": 5,
+          "layer": 1,
+          "orientation_deg": 0
+        }
+      },
+      {
+        "reason": "입력 조건을 다시 확인해주세요.",
+        "block": null
+      }
+    ]
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "raw_result": {
+    "status": "BLOCKED",
+    "execution_allowed": false,
+    "motion_proposal": null,
+    "errors": [
+      {
+        "code": "UNSUPPORTED_METHOD",
+        "reason": "Motion method not implemented; no automatic fallback",
+        "block": {
+          "brick_type": "2x2x1",
+          "color": "blue",
+          "x": 6,
+          "y": 6,
+          "layer": 1,
+          "orientation_deg": 0
+        }
+      }
+    ],
+    "coordinate_audit": null
+  }
+}

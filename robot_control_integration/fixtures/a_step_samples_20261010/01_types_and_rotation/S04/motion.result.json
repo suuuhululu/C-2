@@ -1,0 +1,217 @@
+{
+  "schema_version": "assembly-ad-calculation-draft/0.5",
+  "contract_status": "DRAFT_NOT_FROZEN",
+  "sample_kind": "CALCULATED_FROM_REVIEW_INPUT_NOT_FOR_EXECUTION",
+  "message_type": "StepMotionResult",
+  "context": {
+    "job_id": "suhyun-01_types_and_rotation",
+    "request_id": "01_types_and_rotation-S04-motion",
+    "workflow_generation": 1,
+    "source_epoch": "OFFLINE_MOCK_20261010",
+    "design_version": 1,
+    "input_current_revision": 3,
+    "world_state_revision": 0,
+    "frame_profile_id": "D_FIXTURE_FRAME_PROFILE",
+    "plan_id": "P-94baaf41116e42bba3ecdfedb690bb04",
+    "step_id": "S04",
+    "frame_profile_version": "fixture-v1"
+  },
+  "execution_allowed": false,
+  "assessment_id": "assessment-1f8571913a804a7b9ea6b384e7ca1ff8",
+  "reservation_binding": {
+    "slot_id": "blue_2x3x1_01",
+    "reservation_id": "01_types_and_rotation-S04-mock-reservation",
+    "reservation_generation": 4,
+    "bound_workflow_generation": 1
+  },
+  "status": "CANDIDATE",
+  "motion_proposal": {
+    "motion_plan_id": "motion-078ca006d31c4b72bb3bfac968d48093",
+    "motion_scope": "PICK_TRANSPORT_TO_PRE_CONTACT",
+    "pickup_tcp_pose": {
+      "frame_id": "base_link",
+      "xyz_m": [
+        -0.323445,
+        0.0022975000000000135,
+        0.05004
+      ],
+      "quaternion_xyzw": [
+        -0.006719467028189488,
+        -0.9999774203187898,
+        7.783434946000023e-05,
+        3.9462000956418785e-05
+      ]
+    },
+    "segments": [
+      {
+        "stage": "APPROACH_PICK",
+        "waypoints": [
+          {
+            "label": "RISE_FROM_CURRENT",
+            "motion_type": "LINEAR",
+            "tcp_pose": {
+              "frame_id": "base_link",
+              "xyz_m": [
+                0.3,
+                0,
+                0.2
+              ],
+              "quaternion_xyzw": [
+                0,
+                0,
+                0,
+                1
+              ]
+            }
+          },
+          {
+            "label": "ABOVE_PICK",
+            "motion_type": "LINEAR",
+            "tcp_pose": {
+              "frame_id": "base_link",
+              "xyz_m": [
+                -0.323445,
+                0.0022975000000000135,
+                0.2
+              ],
+              "quaternion_xyzw": [
+                -0.006719467028189488,
+                -0.9999774203187898,
+                7.783434946000023e-05,
+                3.9462000956418785e-05
+              ]
+            }
+          },
+          {
+            "label": "PICK_APPROACH",
+            "motion_type": "LINEAR",
+            "tcp_pose": {
+              "frame_id": "base_link",
+              "xyz_m": [
+                -0.323445,
+                0.0022975000000000135,
+                0.08003999999999999
+              ],
+              "quaternion_xyzw": [
+                -0.006719467028189488,
+                -0.9999774203187898,
+                7.783434946000023e-05,
+                3.9462000956418785e-05
+              ]
+            }
+          },
+          {
+            "label": "PICK_TCP",
+            "motion_type": "LINEAR",
+            "tcp_pose": {
+              "frame_id": "base_link",
+              "xyz_m": [
+                -0.323445,
+                0.0022975000000000135,
+                0.05004
+              ],
+              "quaternion_xyzw": [
+                -0.006719467028189488,
+                -0.9999774203187898,
+                7.783434946000023e-05,
+                3.9462000956418785e-05
+              ]
+            }
+          }
+        ],
+        "gripper_event": null
+      },
+      {
+        "stage": "D_PICK_AND_CONFIRM",
+        "waypoints": [],
+        "gripper_event": "D_EXISTING_PICKUP_CLOSE_AND_CONFIRM"
+      },
+      {
+        "stage": "TRANSPORT_HOLDING",
+        "waypoints": [
+          {
+            "label": "LIFT_HOLDING",
+            "motion_type": "LINEAR",
+            "tcp_pose": {
+              "frame_id": "base_link",
+              "xyz_m": [
+                -0.323445,
+                0.0022975000000000135,
+                0.1118379669189453
+              ],
+              "quaternion_xyzw": [
+                -0.006719467028189488,
+                -0.9999774203187898,
+                7.783434946000023e-05,
+                3.9462000956418785e-05
+              ]
+            }
+          },
+          {
+            "label": "TRANSIT_ABOVE_TARGET",
+            "motion_type": "LINEAR",
+            "tcp_pose": {
+              "frame_id": "base_link",
+              "xyz_m": [
+                0.4395709518558723,
+                0.07944331685373605,
+                0.1118379669189453
+              ],
+              "quaternion_xyzw": [
+                0.002521281624693446,
+                -0.999866039239997,
+                0.015811100930422723,
+                0.0033993824230098627
+              ]
+            }
+          },
+          {
+            "label": "PRE_CONTACT_HOLDING",
+            "motion_type": "LINEAR",
+            "tcp_pose": {
+              "frame_id": "base_link",
+              "xyz_m": [
+                0.4395709518558723,
+                0.07944331685373605,
+                0.041589213095420643
+              ],
+              "quaternion_xyzw": [
+                0.002521281624693446,
+                -0.999866039239997,
+                0.015811100930422723,
+                0.0033993824230098627
+              ]
+            }
+          }
+        ],
+        "gripper_event": null
+      }
+    ],
+    "terminal_gripper_policy": "HOLD_NO_AUTOMATIC_OPEN",
+    "handoff_to": "D_CONTACT",
+    "assembly_completed": false,
+    "validation": {
+      "ik_verified": false,
+      "full_path_collision_verified": false,
+      "physical_grasp_verified": false,
+      "d_execution_approved": false
+    },
+    "limits": [
+      "GRASP_RIGID_TRANSFORM_AND_ISAAC_WORLD_BASE_ALIGNMENT_UNVERIFIED",
+      "OVERHEAD_RULE_NOT_FULL_ROBOT_COLLISION_PROOF",
+      "NO_RELEASE_RETURN_FORCE_OR_ROBOT_COMMAND",
+      "PICKUP_OPEN_CLOSE_AND_GRASP_CONFIRMATION_D_OWNED",
+      "START_STATE_AND_RESERVATION_FRESHNESS_D_REGISTRY_REQUIRED",
+      "UNLOADED_APPROACH_AND_ORIENTATION_CHANGE_NOT_COLLISION_VERIFIED"
+    ],
+    "speed_profile_ref": {
+      "profile_id": "D_PROFILE_REQUIRED",
+      "version": "UNCONFIRMED",
+      "verification": "UNVERIFIED"
+    },
+    "profile_id": "D_FIXTURE_FRAME_PROFILE",
+    "profile_version": "fixture-v1",
+    "current_revision": 3
+  },
+  "errors": []
+}

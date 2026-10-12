@@ -27,6 +27,16 @@ def initial_context():
     return freeze_plan_basis(FIXTURES["design"], FIXTURES["initial_plan"], current())
 
 
+def test_planless_current_check_cannot_confirm_an_assembly_step():
+    context = initial_context()
+    check = open_observation_check("initial-check", "J01", None, None)
+    observation = {**FIXTURES["observed_match"],"check_id":"initial-check",
+                   "visible_blocks":[A],"verified_regions":[RA]}
+    result = evaluate_observation(context, current(), check, observation)
+    assert result["reason"] == "CHECK_CONTEXT_MISMATCH"
+    assert not result["step_confirmed"] and result["current"] == current()
+
+
 def confirmation(context, state, blocks, regions, seq=12, check_id=None):
     index = len(context["confirmed_steps"])
     step_id = context["plan"]["steps"][index]["step_id"]

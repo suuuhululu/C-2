@@ -32,7 +32,7 @@ def remaining(backend,blocks=None):
                 base_current_revision=request["base_current_revision"])
     if blocks is not None:
         plan["steps"]=[]
-    return dict(status="READY",plan=plan)
+    return dict(status="READY",plan=plan,errors=[])
 
 
 def current_observation(backend,blocks,regions,seq=0):
@@ -47,23 +47,22 @@ def test_keep_requests_original_goal_latest_actual_and_needs_correction_without_
     request=ports.calls("planner")[-1]
     assert request["design"]==FIXTURES["design"] and request["current"]==actual
     assert request["base_current_revision"]==1 and len(ports.calls("planner"))==2
-    assert request["supported_scope"]==dict(operations=["PLACE"],brick_types=["2x2x1","2x3x1"],
-        colors=["yellow","blue"],board_width=24,board_height=24,max_layer=4)
+    assert request["supported_scope"]==dict(operations=["PLACE"],brick_types=["1x2x1","2x2x1","2x3x1"],
+        colors=["red","yellow","blue"],max_blocks=40,board_width=24,board_height=24,max_layer=5)
     assert ports.calls("hri")[-1]["supported_scope"]==request["supported_scope"]
-    assert backend.on_plan_result(request["request_id"],dict(status="NEEDS_CORRECTION",reason="정리 필요",
-                                                           conflicts=actual["blocks"]))
+    assert backend.on_plan_result(request["request_id"],dict(status="NEEDS_CORRECTION",plan=None,errors=[dict(reason="정리 필요",block=block) for block in actual["blocks"]]))
     snapshot=make_snapshot(backend.state)
     assert snapshot["workflow_status"]=="WAIT_CORRECTION"
     assert snapshot["actions"]["correction_continue"]["enabled"]
     assert backend.state["current"]==actual and len(ports.calls("robot.deliver"))==1
-    assert not backend.on_plan_result(request["request_id"],dict(status="READY",plan=FIXTURES["completed_plan"]))
+    assert not backend.on_plan_result(request["request_id"],dict(status="READY",plan=FIXTURES["completed_plan"],errors=[]))
     assert len(ports.calls("planner"))==2
 
 
 def test_correction_command_only_reobserves_then_requests_latest_baseline():
     backend,ports=mismatch();intent(backend,"KEEP")
     request=backend.state["planning_request"]["request_id"]
-    backend.on_plan_result(request,dict(status="NEEDS_CORRECTION",reason="정리 필요",conflicts=backend.state["current"]["blocks"]))
+    backend.on_plan_result(request,dict(status="NEEDS_CORRECTION",plan=None,errors=[dict(reason="정리 필요",block=block) for block in backend.state["current"]["blocks"]]))
     actual=backend.state["current"]
     command=dict(command="CONTINUE_AFTER_CORRECTION",job_id=backend.state["job_id"],
                  request_id=backend.state["correction_request"]["request_id"])
@@ -79,8 +78,7 @@ def test_correction_command_only_reobserves_then_requests_latest_baseline():
 @pytest.mark.parametrize("status",["UNCHANGED","UNOBSERVABLE"])
 def test_failed_or_unobservable_cleanup_does_not_reissue_same_plan(status):
     backend,ports=mismatch();intent(backend,"KEEP")
-    backend.on_plan_result(backend.state["planning_request"]["request_id"],dict(status="NEEDS_CORRECTION",
-        reason="정리 필요",conflicts=backend.state["current"]["blocks"]))
+    backend.on_plan_result(backend.state["planning_request"]["request_id"],dict(status="NEEDS_CORRECTION",plan=None,errors=[dict(reason="정리 필요",block=block) for block in backend.state["current"]["blocks"]]))
     backend.command(dict(command="CONTINUE_AFTER_CORRECTION",job_id=backend.state["job_id"],
                          request_id=backend.state["correction_request"]["request_id"]))
     value=current_observation(backend,backend.state["current"]["blocks"],[RA])
@@ -167,7 +165,7 @@ def test_invalid_hri_is_failure_not_unclear_or_goal_adoption(change):
     value=dict(request_id=backend.state["question_request"]["request_id"],decision="REVISE",design=design)
     if change=="version":design["design_version"]=1
     elif change=="partial":design.pop("blocks")
-    elif change=="unsupported":design["blocks"][0]["layer"]=5
+    elif change=="unsupported":design["blocks"][0]["layer"]=6
     else:value["decision"]="ERROR"
     assert backend.on_intent(value)
     assert backend.state["workflow_status"]=="HOLD" and "HRI_INVALID" in backend.state["reason"]
@@ -178,7 +176,8 @@ def test_invalid_hri_is_failure_not_unclear_or_goal_adoption(change):
 @pytest.mark.parametrize("status",["INVALID","BROKEN","READY_WITHOUT_PLAN"])
 def test_invalid_planner_output_does_not_change_adopted_goal(status):
     backend,ports=mismatch();intent(backend,"REVISE",design=revised(backend))
-    value=dict(status="READY") if status=="READY_WITHOUT_PLAN" else dict(status=status,reason="unsupported")
+    value=dict(status="READY",errors=[]) if status=="READY_WITHOUT_PLAN" else dict(
+        status=status,plan=None,errors=[dict(reason="unsupported",block=None)])
     assert backend.on_plan_result(backend.state["planning_request"]["request_id"],value)
     assert backend.state["workflow_status"]=="HOLD"
     assert make_snapshot(backend.state)["design"]["design_version"]==1
@@ -221,8 +220,7 @@ def test_stop_closes_replan_and_resume_revalidates_candidate_with_fresh_request(
 
 def test_stop_and_resume_correction_wait_does_not_repeat_failed_planner():
     backend,ports=mismatch();intent(backend,"KEEP")
-    backend.on_plan_result(backend.state["planning_request"]["request_id"],dict(status="NEEDS_CORRECTION",
-        reason="정리 필요",conflicts=backend.state["current"]["blocks"]))
+    backend.on_plan_result(backend.state["planning_request"]["request_id"],dict(status="NEEDS_CORRECTION",plan=None,errors=[dict(reason="정리 필요",block=block) for block in backend.state["current"]["blocks"]]))
     old=backend.state["correction_request"]["request_id"]
     stop_confirmed(backend)
     backend.command(dict(command="RESUME",job_id=backend.state["job_id"]))
@@ -319,14 +317,13 @@ def test_human_corrects_final_block_then_empty_remaining_needs_actual_whole_desi
     robot_success(backend)
     backend.on_observation(observation(backend,[{**C,"color":"yellow"}],[RC]))
     intent(backend,"KEEP")
-    backend.on_plan_result(backend.state["planning_request"]["request_id"],dict(status="NEEDS_CORRECTION",
-        reason="정리 필요",conflicts=[{**C,"color":"yellow"}]))
+    backend.on_plan_result(backend.state["planning_request"]["request_id"],dict(status="NEEDS_CORRECTION",plan=None,errors=[dict(reason="정리 필요",block=block) for block in [{**C,"color":"yellow"}]]))
     backend.command(dict(command="CONTINUE_AFTER_CORRECTION",job_id=backend.state["job_id"],
         request_id=backend.state["correction_request"]["request_id"]))
     backend.on_observation(current_observation(backend,[C],[RC]))
     request=backend.state["planning_request"]
     plan={**deepcopy(FIXTURES["completed_plan"]),"base_current_revision":request["base_current_revision"]}
-    assert backend.on_plan_result(request["request_id"],dict(status="READY",plan=plan))
+    assert backend.on_plan_result(request["request_id"],dict(status="READY",plan=plan,errors=[]))
     assert backend.state["workflow_status"]=="COMPLETE"
     assert backend.state["current"]==dict(current_revision=4,blocks=[A,B,C])
     assert len(ports.calls("robot.deliver"))==3

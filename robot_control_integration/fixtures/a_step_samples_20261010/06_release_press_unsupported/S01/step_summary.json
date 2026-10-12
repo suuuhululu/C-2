@@ -1,0 +1,177 @@
+{
+  "case_id": "06_release_press_unsupported",
+  "step_id": "S01",
+  "plan_id": "P-e8ee90ba7a524945beb3491ff3adcb48",
+  "block": {
+    "brick_type": "2x2x1",
+    "color": "blue",
+    "x": 6,
+    "y": 6,
+    "layer": 1,
+    "orientation_deg": 0
+  },
+  "current_revision": 0,
+  "base_current_revision": 0,
+  "mode": "ROBOT_GRIP",
+  "grip_axis": "x",
+  "assistance_kind": "NONE",
+  "human_actions": [],
+  "support_studs": 4,
+  "contacts": [],
+  "reserved_supply_slot": {
+    "slot_id": "blue_2x2x1_01",
+    "slot_index": 1,
+    "brick_type": "2x2x1",
+    "color": "blue",
+    "reservation_id": "06_release_press_unsupported-S01-mock-reservation",
+    "reservation_generation": 1,
+    "bound_workflow_generation": 1,
+    "state": "RESERVED",
+    "part_confirmation": "CONFIRMED",
+    "valid_until_ref": "D_RUNTIME_VALIDITY_REQUIRED"
+  },
+  "pickup_tcp_pose": {
+    "frame_id": "base_link",
+    "xyz_m": [
+      -0.32282260869565216,
+      0.057783913043478276,
+      0.05004
+    ],
+    "quaternion_xyzw": [
+      -0.006719467028189488,
+      -0.9999774203187898,
+      7.783434946000023e-05,
+      3.9462000956418785e-05
+    ]
+  },
+  "transport_destination_tcp_pose": {
+    "frame_id": "base_link",
+    "xyz_m": [
+      0.39137405218959836,
+      0.008103680319037316,
+      0.04142006383848584
+    ],
+    "quaternion_xyzw": [
+      0.002521281624693446,
+      -0.999866039239997,
+      0.015811100930422723,
+      0.0033993824230098627
+    ]
+  },
+  "nominal_assembly_target": {
+    "schema_version": "assembly-target-coordinate-candidate/0.1",
+    "status": "COORDINATE_CANDIDATE",
+    "execution_allowed": false,
+    "profile_id": "seated-tcp-96ce91465973e920",
+    "step_id": "S01",
+    "block": {
+      "brick_type": "2x2x1",
+      "color": "blue",
+      "x": 6,
+      "y": 6,
+      "layer": 1,
+      "orientation_deg": 0
+    },
+    "grid_alignment_status": "USER_CONFIRMED_COMMON_ORIGIN_AXIS_SWAP",
+    "grip_axis_planner": "x",
+    "equivalent_reference_2x2_anchor_planner": [
+      6.0,
+      6.0
+    ],
+    "trial_grid_reference_2x2_anchor": [
+      6.0,
+      6.0
+    ],
+    "scope": "TAUGHT_2X2_LAYER1_INTERPOLATION",
+    "nominal_seated_tcp": {
+      "frame_id": "robot_base",
+      "xyz_mm_zyz_deg": [
+        391.3740521895984,
+        8.103680319037316,
+        16.920063838485845,
+        78.01061248779297,
+        -178.14669799804688,
+        77.7216567993164
+      ],
+      "position_m": [
+        0.39137405218959836,
+        0.008103680319037316,
+        0.016920063838485846
+      ],
+      "quaternion_xyzw": [
+        0.002521281624693446,
+        -0.999866039239997,
+        0.015811100930422723,
+        0.0033993824230098627
+      ]
+    },
+    "pre_contact_tcp": {
+      "frame_id": "robot_base",
+      "xyz_mm_zyz_deg": [
+        391.3740521895984,
+        8.103680319037316,
+        41.420063838485845,
+        78.01061248779297,
+        -178.14669799804688,
+        77.7216567993164
+      ],
+      "position_m": [
+        0.39137405218959836,
+        0.008103680319037316,
+        0.04142006383848584
+      ],
+      "quaternion_xyzw": [
+        0.002521281624693446,
+        -0.999866039239997,
+        0.015811100930422723,
+        0.0033993824230098627
+      ]
+    },
+    "D_contact_minus2mm_trial_candidate": {
+      "frame_id": "robot_base",
+      "xyz_mm_zyz_deg": [
+        391.3740521895984,
+        8.103680319037316,
+        14.920063838485845,
+        78.01061248779297,
+        -178.14669799804688,
+        77.7216567993164
+      ],
+      "position_m": [
+        0.39137405218959836,
+        0.008103680319037316,
+        0.014920063838485846
+      ],
+      "quaternion_xyzw": [
+        0.002521281624693446,
+        -0.999866039239997,
+        0.015811100930422723,
+        0.0033993824230098627
+      ]
+    },
+    "precontact_tcp_lift_from_nominal_seated_mm": 24.5,
+    "precontact_gap_reference": "HELD_BLOCK_BOTTOM_TO_LOWER_STUD_TIP_20MM",
+    "pad_bottom_above_block_bottom_mm": 5,
+    "raw_reference_centre_residual_mm": 0.8708635938150311,
+    "limits": [
+      "GRID_LABEL_MAPPING_USER_CONFIRMED_NOT_PHYSICAL_PATH_VALIDATION",
+      "NO_IK_OR_FULL_TOOL_PATH_VALIDATION",
+      "REFERENCE_SEATED_TCP_ALREADY_INCLUDES_GRASP_AND_CENTRE",
+      "BLUE_REFERENCE_COLOUR"
+    ],
+    "motion_generated": false
+  },
+  "handoff_to": "D_CONTACT",
+  "terminal_gripper_policy": "HOLD_NO_AUTOMATIC_OPEN",
+  "numeric_open_command": null,
+  "execution_allowed": false,
+  "assembly_completed": false,
+  "validation": {
+    "ik_verified": false,
+    "full_path_collision_verified": false,
+    "physical_grasp_verified": false,
+    "d_execution_approved": false
+  },
+  "current_source": "OFFLINE_MOCK_PLAN_PREFIX_NOT_B_OBSERVATION",
+  "robot_state_source": "OFFLINE_FIXTURE_NOT_DEVICE_OR_ISAAC"
+}

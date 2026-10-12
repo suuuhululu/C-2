@@ -1,0 +1,59 @@
+{
+  "schema_version": "assembly-ad-calculation-draft/0.5",
+  "contract_status": "DRAFT_NOT_FROZEN",
+  "sample_kind": "CALCULATED_FROM_REVIEW_INPUT_NOT_FOR_EXECUTION",
+  "message_type": "StepReassessmentResult",
+  "context": {
+    "job_id": "suhyun-02_layers_1_to_4",
+    "request_id": "02_layers_1_to_4-S04-reassessment",
+    "workflow_generation": 1,
+    "source_epoch": "OFFLINE_MOCK_20261010",
+    "design_version": 1,
+    "input_current_revision": 3,
+    "world_state_revision": 0,
+    "frame_profile_id": "D_FIXTURE_FRAME_PROFILE",
+    "plan_id": "P-db72518eb7a348ef84f41b31e3fdc5d2",
+    "step_id": "S04",
+    "frame_profile_version": "fixture-v1"
+  },
+  "execution_allowed": false,
+  "assessment_id": "assessment-780f118753c5426e9a513a1e705c445e",
+  "status": "CANDIDATE",
+  "action_proposal": {
+    "plan_id": "P-db72518eb7a348ef84f41b31e3fdc5d2",
+    "step_id": "S04",
+    "block": {
+      "brick_type": "2x2x1",
+      "color": "yellow",
+      "x": 6,
+      "y": 6,
+      "layer": 4,
+      "orientation_deg": 0
+    },
+    "mode": "ROBOT_GRIP",
+    "grip_axis": "x",
+    "gripper": {
+      "pickup_policy": "D_EXISTING_PICKUP",
+      "release_strategy": "MINIMAL_OPEN",
+      "release_owner": "D",
+      "policy_at_wait": "HOLD_NO_AUTOMATIC_OPEN",
+      "numeric_open_command": null
+    },
+    "support_studs": 4,
+    "contacts": [],
+    "robot_force_model": "NOMINAL_BLOCK_CENTRE_BASE_MINUS_Z",
+    "assistance_kind": "NONE",
+    "human_actions": [],
+    "human_hands_used": 0,
+    "assistance_cost": [
+      0,
+      0,
+      0
+    ],
+    "selection_basis": "완성 가능한 전체 계획 확보 후 사람 도움 최소화; MoveIt 운반 검증은 별도",
+    "requires_runtime_reassessment": true,
+    "optimality_verified": false
+  },
+  "errors": [],
+  "assessment_input_digest": "850a257894221337a33b52b1d7a295ec3285c4f8e44f0fe6de54d47b9ae42101"
+}

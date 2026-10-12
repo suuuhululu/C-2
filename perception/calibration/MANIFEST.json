@@ -1,0 +1,150 @@
+{
+  "generated_at": "2026-10-06T22:11:00+09:00",
+  "status": "DRAFT_VALIDATION_PENDING",
+  "independently_validated": false,
+  "calibration_file": "runs/view01/calibration.json",
+  "stud_count": 576,
+  "block_height_and_detection_validation_completed": false,
+  "files": [
+    {
+      "path": ".gitignore",
+      "bytes": 62,
+      "sha256": "87a634ba2c9b0982834d626d1fc36d5a917d7c1145b6d8c26aa7b16a181e7e02"
+    },
+    {
+      "path": "HANDOFF_STATUS.md",
+      "bytes": 757,
+      "sha256": "6e68f9e3c5f5beec71e210eecfec43b37cf91385118a8e1c775f63ee1061ca15"
+    },
+    {
+      "path": "HONGDONG_DELIVERY_NOTE.md",
+      "bytes": 1433,
+      "sha256": "35a788566817f3f8932eaea849569047ee125ea2919fc6f41f8c5d13bb573285"
+    },
+    {
+      "path": "HONGDONG_VISION_GUIDE.md",
+      "bytes": 11954,
+      "sha256": "2bb8d03ad41e7a336e3ff92e7c55b0000b8b0093693a4af6ae74e833361a8503"
+    },
+    {
+      "path": "README_ko.md",
+      "bytes": 23745,
+      "sha256": "cf1f95bba37e0c5c36c09d193abbc7f9f2cf79c42a1c2aad7a9e88ccdcd4825f"
+    },
+    {
+      "path": "build_handoff.py",
+      "bytes": 4000,
+      "sha256": "66266fbd2234188623b49b4a97bdf240b2753db189fc7ad56b15e7f147a0a83c"
+    },
+    {
+      "path": "capture_ros.py",
+      "bytes": 3520,
+      "sha256": "4ed045c18792f697e5e3ba3895d6683707e39db65200334357d2ae895ce4b607"
+    },
+    {
+      "path": "captures/empty.intrinsics.json",
+      "bytes": 545,
+      "sha256": "481639dc392e144b94f12a8554a3e36e043d38093a388fb439c57a84547de82e"
+    },
+    {
+      "path": "captures/empty.png",
+      "bytes": 1187086,
+      "sha256": "5154db834b542156c2aaa866ce49418731a7fab8b96864be1a74722cb336308d"
+    },
+    {
+      "path": "captures/validation_points.json",
+      "bytes": 704,
+      "sha256": "2ec15390a19a8c2926195c57675732dd9ed3f77bc62bac0c36c97685bef488c0"
+    },
+    {
+      "path": "captures/validation_points_zero_based_corrected.json",
+      "bytes": 1496,
+      "sha256": "e91f7531d4ee21f0d2d101f951ed37810092d32caf6e4f3cbc6c4c6922da29da"
+    },
+    {
+      "path": "examples/intrinsics_FORMAT_ONLY.json",
+      "bytes": 318,
+      "sha256": "99c890f7ccee5a10464473781a170724a2ea25b95326a2588edc06ef477ac713"
+    },
+    {
+      "path": "examples/marker_layout_FORMAT_ONLY.json",
+      "bytes": 712,
+      "sha256": "f49fd156f62f10dd395cc5fb79f9a27aad6ab2999ddb7b765e9fa787d0c00ba6"
+    },
+    {
+      "path": "examples/points_FORMAT_ONLY.json",
+      "bytes": 627,
+      "sha256": "f13e9c85685c96d89c621ab5daf093dac567ed85be593bda431890309242b003"
+    },
+    {
+      "path": "examples/robot_points_FORMAT_ONLY.json",
+      "bytes": 618,
+      "sha256": "0a1743e5dfbe31aeaa5beb60fb4cc480c51a6c17f6859579c2c9c5793db1f265"
+    },
+    {
+      "path": "geometry.py",
+      "bytes": 13384,
+      "sha256": "dd164fb4aaddf4aa434cad0ba52604db8d5a8d54863ab778cefaca6320de009d"
+    },
+    {
+      "path": "lego_grid.py",
+      "bytes": 24185,
+      "sha256": "df261391f5ca7776565345649424ddf98a192a0465edd2159dfe9e42d914f51c"
+    },
+    {
+      "path": "requirements.txt",
+      "bytes": 160,
+      "sha256": "224e8a8a43cf0c5f135164358c128856a079b882b2bcbe914e2285b2039b082e"
+    },
+    {
+      "path": "runs/view01/calibration.json",
+      "bytes": 3281,
+      "sha256": "73a83510b9ecc7a2dc73af0d540aabf363f3cb460c828c7db32ca3167b7a2658"
+    },
+    {
+      "path": "runs/view01/empty.png",
+      "bytes": 1187086,
+      "sha256": "5154db834b542156c2aaa866ce49418731a7fab8b96864be1a74722cb336308d"
+    },
+    {
+      "path": "runs/view01/grid_overlay.png",
+      "bytes": 1285977,
+      "sha256": "1002bad67ad5157d639419a7e7e9e1b2888c6fad98b48d38cede711c23c4ff9e"
+    },
+    {
+      "path": "runs/view01/stud_coordinates.csv",
+      "bytes": 33457,
+      "sha256": "0e930190c3985172963abdc9e330b284ed6cd989d6cc39baeceba7cfab3ca699"
+    },
+    {
+      "path": "runs/view01/validation.json",
+      "bytes": 398,
+      "sha256": "5dd65fee24a6565b3ef1aa514bd6089a1fee7998f2cbe5e8992af8d51c5270ef"
+    },
+    {
+      "path": "runs/view01/validation_zero_based_corrected.json",
+      "bytes": 427,
+      "sha256": "ce1af868d2a15ba91a444ede90b8b01c6eb16c2e8ec8eb7faad97b62038aae3a"
+    },
+    {
+      "path": "tests/test_geometry.py",
+      "bytes": 11342,
+      "sha256": "6d3516bc05bb1822cd028973e563eef4bfd6843ec03e828fed6e1e5bd0b41bb0"
+    },
+    {
+      "path": "tests/test_vision_coordinates.py",
+      "bytes": 1976,
+      "sha256": "da3018df0eef22260cc92f6d21a1c09fe074ee4198eae52df9bd792202a8804c"
+    },
+    {
+      "path": "vision_coordinates.py",
+      "bytes": 3344,
+      "sha256": "3aa02424c7b3912671e36e9f7307e49bde0474a2d7799c4a8492662bc7a483e7"
+    },
+    {
+      "path": "vision_demo_node.py",
+      "bytes": 4284,
+      "sha256": "719e95e8c43af03c3837bd1f147d6a0b3596a67fa94522a9d336788a2623ba10"
+    }
+  ]
+}

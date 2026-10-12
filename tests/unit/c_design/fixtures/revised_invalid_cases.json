@@ -1,0 +1,256 @@
+{
+  "_note": "current reuses the revised_before_after.json scenario (one leg actually placed at (10,13) instead of design (10,12)). Each case starts from the valid candidate verified in revised_before_after.json and applies exactly one defect to an assembled (current) leg's value-based identity. expected_rules lists rules that MUST appear; this is a subset check.",
+  "current": [
+    {
+      "brick_type": "2x2x1",
+      "color": "blue",
+      "x": 10,
+      "y": 10,
+      "layer": 1,
+      "orientation_deg": 0
+    },
+    {
+      "brick_type": "2x2x1",
+      "color": "blue",
+      "x": 12,
+      "y": 10,
+      "layer": 1,
+      "orientation_deg": 0
+    },
+    {
+      "brick_type": "2x2x1",
+      "color": "blue",
+      "x": 10,
+      "y": 13,
+      "layer": 1,
+      "orientation_deg": 0
+    },
+    {
+      "brick_type": "2x2x1",
+      "color": "blue",
+      "x": 12,
+      "y": 12,
+      "layer": 1,
+      "orientation_deg": 0
+    }
+  ],
+  "cases": [
+    {
+      "case": "assembled_block_moved",
+      "expected_rules": [
+        "assembled_not_preserved"
+      ],
+      "candidate": {
+        "blocks": [
+          {
+            "brick_type": "2x2x1",
+            "color": "blue",
+            "x": 11,
+            "y": 10,
+            "layer": 1,
+            "orientation_deg": 0
+          },
+          {
+            "brick_type": "2x2x1",
+            "color": "blue",
+            "x": 12,
+            "y": 10,
+            "layer": 1,
+            "orientation_deg": 0
+          },
+          {
+            "brick_type": "2x2x1",
+            "color": "blue",
+            "x": 10,
+            "y": 13,
+            "layer": 1,
+            "orientation_deg": 0
+          },
+          {
+            "brick_type": "2x2x1",
+            "color": "blue",
+            "x": 12,
+            "y": 12,
+            "layer": 1,
+            "orientation_deg": 0
+          },
+          {
+            "brick_type": "2x3x1",
+            "color": "yellow",
+            "x": 10,
+            "y": 11,
+            "layer": 2,
+            "orientation_deg": 0
+          },
+          {
+            "brick_type": "2x3x1",
+            "color": "blue",
+            "x": 12,
+            "y": 10,
+            "layer": 2,
+            "orientation_deg": 0
+          },
+          {
+            "brick_type": "2x2x1",
+            "color": "yellow",
+            "x": 11,
+            "y": 11,
+            "layer": 3,
+            "orientation_deg": 0
+          },
+          {
+            "brick_type": "2x2x1",
+            "color": "blue",
+            "x": 11,
+            "y": 11,
+            "layer": 4,
+            "orientation_deg": 0
+          }
+        ]
+      },
+      "_note": "Leg at current (10,10) reported at (11,10) instead."
+    },
+    {
+      "case": "assembled_block_missing",
+      "expected_rules": [
+        "assembled_not_preserved"
+      ],
+      "candidate": {
+        "blocks": [
+          {
+            "brick_type": "2x2x1",
+            "color": "blue",
+            "x": 10,
+            "y": 10,
+            "layer": 1,
+            "orientation_deg": 0
+          },
+          {
+            "brick_type": "2x2x1",
+            "color": "blue",
+            "x": 10,
+            "y": 13,
+            "layer": 1,
+            "orientation_deg": 0
+          },
+          {
+            "brick_type": "2x2x1",
+            "color": "blue",
+            "x": 12,
+            "y": 12,
+            "layer": 1,
+            "orientation_deg": 0
+          },
+          {
+            "brick_type": "2x3x1",
+            "color": "yellow",
+            "x": 10,
+            "y": 11,
+            "layer": 2,
+            "orientation_deg": 0
+          },
+          {
+            "brick_type": "2x3x1",
+            "color": "blue",
+            "x": 12,
+            "y": 10,
+            "layer": 2,
+            "orientation_deg": 0
+          },
+          {
+            "brick_type": "2x2x1",
+            "color": "yellow",
+            "x": 11,
+            "y": 11,
+            "layer": 3,
+            "orientation_deg": 0
+          },
+          {
+            "brick_type": "2x2x1",
+            "color": "blue",
+            "x": 11,
+            "y": 11,
+            "layer": 4,
+            "orientation_deg": 0
+          }
+        ]
+      },
+      "_note": "Leg at current (12,10) is omitted entirely from the candidate."
+    },
+    {
+      "case": "assembled_value_changed_color",
+      "expected_rules": [
+        "assembled_not_preserved"
+      ],
+      "candidate": {
+        "blocks": [
+          {
+            "brick_type": "2x2x1",
+            "color": "blue",
+            "x": 10,
+            "y": 10,
+            "layer": 1,
+            "orientation_deg": 0
+          },
+          {
+            "brick_type": "2x2x1",
+            "color": "blue",
+            "x": 12,
+            "y": 10,
+            "layer": 1,
+            "orientation_deg": 0
+          },
+          {
+            "brick_type": "2x2x1",
+            "color": "blue",
+            "x": 10,
+            "y": 13,
+            "layer": 1,
+            "orientation_deg": 0
+          },
+          {
+            "brick_type": "2x2x1",
+            "color": "yellow",
+            "x": 12,
+            "y": 12,
+            "layer": 1,
+            "orientation_deg": 0
+          },
+          {
+            "brick_type": "2x3x1",
+            "color": "yellow",
+            "x": 10,
+            "y": 11,
+            "layer": 2,
+            "orientation_deg": 0
+          },
+          {
+            "brick_type": "2x3x1",
+            "color": "blue",
+            "x": 12,
+            "y": 10,
+            "layer": 2,
+            "orientation_deg": 0
+          },
+          {
+            "brick_type": "2x2x1",
+            "color": "yellow",
+            "x": 11,
+            "y": 11,
+            "layer": 3,
+            "orientation_deg": 0
+          },
+          {
+            "brick_type": "2x2x1",
+            "color": "blue",
+            "x": 11,
+            "y": 11,
+            "layer": 4,
+            "orientation_deg": 0
+          }
+        ]
+      },
+      "_note": "Leg at current (12,12) (actual color blue) reported as yellow in the candidate."
+    }
+  ]
+}

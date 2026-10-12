@@ -1,0 +1,2 @@
+# Only the offline history container/optional local history environment needs this.
+psycopg[binary]==3.3.6

@@ -1,0 +1,93 @@
+{
+  "reference_id": "PLACE_BOARD_BOTTOM_CONTACT_REGRASP_5MM_20261010",
+  "status": "OPERATOR_CONTACT_AND_5MM_GRASP_REFERENCE_RECORDED",
+  "record_date": "2026-10-10",
+  "board": "place_board",
+  "block": {
+    "brick_type": "2x2x1",
+    "color": "blue",
+    "supply_slot_origin": 1
+  },
+  "operator_report": "block bottom touches place board; held5mm above block bottom",
+  "operator_report_original": "지금 로봇 높이 기억해주세요. 내려놓고 잡으면 딱 블록 바닥으로부터 5mm 위 잡음. 암튼 지금 바닥에 닿아있고 파지함.",
+  "block_bottom_contact_confirmed": true,
+  "pad_bottom_above_block_bottom_mm": 5,
+  "physical_measurement_source": "operator report",
+  "frame": "robot_BASE",
+  "position_unit": "mm",
+  "orientation_convention": "ZYZ degree",
+  "tcp": "GripperDA_v4",
+  "tool": "ToolWeight0",
+  "posx": [
+    418.2707214355469,
+    -181.1972198486328,
+    14.935303688049316,
+    161.52828979492188,
+    179.58567810058594,
+    161.99119567871094
+  ],
+  "posj": [
+    -23.86263084411621,
+    18.17481231689453,
+    97.49366760253906,
+    0.05386481434106827,
+    64.74397277832031,
+    -23.77154541015625
+  ],
+  "tcp_z_mm": 14.935303688049316,
+  "sample": {
+    "posj": [
+      -23.86263084411621,
+      18.17481231689453,
+      97.49366760253906,
+      0.05386481434106827,
+      64.74397277832031,
+      -23.77154541015625
+    ],
+    "posx": [
+      418.2707214355469,
+      -181.1972198486328,
+      14.935303688049316,
+      161.52828979492188,
+      179.58567810058594,
+      161.99119567871094
+    ],
+    "velx": [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+    ],
+    "motion_status": 0,
+    "query_started_monotonic_s": 2450.542084485,
+    "query_duration_s": 0.262825740000153,
+    "query_finished_monotonic_s": 2450.805164795,
+    "robot_state": 1,
+    "robot_mode": 0,
+    "drl_state": 3,
+    "tcp": "GripperDA_v4",
+    "tool": "ToolWeight0",
+    "wrench": [
+      -2.518446207046509,
+      0.4288841784000397,
+      8.703198432922363,
+      -0.6135945320129395,
+      -0.8956857919692993,
+      -0.095533587038517
+    ],
+    "gripper_status": 2,
+    "gripper_width_mm": 40.4,
+    "gripper_fingertip_offset_mm": 0.0,
+    "gripper_width_with_offset_mm": 40.4
+  },
+  "actual_gripper_width_mm": 40.4,
+  "commanded_width_mm": null,
+  "commanded_force_n": null,
+  "full_tcp_to_block_transform_calibrated": false,
+  "assembly_target_same_grasp_verified": false,
+  "motion_commands": 0,
+  "gripper_commands": 0,
+  "probe_log_file": "/home/rokey/Documents/ChatGPT/로봇제어 개발/handoff_20261008/assembly_development_transfer_20261008/return_evidence/onsite_teaching/f32a615c-fff5-4f98-8d93-a97f01319790/place_board_flat_regrasp_5mm_probe/8255f925-8b01-455e-a0fa-19a101f98427.jsonl"
+}

@@ -1,0 +1,152 @@
+[
+  {
+    "view_id": "V0",
+    "recording": "/home/roh/C-2/perception/recordings/block_depth_check/scene_03_yellow_2x2_layer_03/V0/20261007T110344124429Z",
+    "empty_recording": "/home/roh/C-2/perception/recordings/empty_board_depth/V0/20261007T055736220382Z",
+    "calibration": "/home/roh/C-2/perception/recordings/board_calibration_V0/V0/run/calibration.json",
+    "top_polygon_pixels": [
+      [
+        679,
+        277
+      ],
+      [
+        725,
+        277
+      ],
+      [
+        725,
+        323
+      ],
+      [
+        679,
+        323
+      ]
+    ],
+    "polygon_origin": "AI visual selection; human review pending",
+    "top_pixels": 2209,
+    "nonzero_pixels": 2183,
+    "nonzero_fraction": 0.9882299683114532,
+    "camera_optical_z_mm": {
+      "p05": 497.0,
+      "median": 502.0,
+      "p95": 505.0
+    },
+    "rgb_pose_board_z_mm": {
+      "p05": 81.44563816014404,
+      "median": 84.88695937996863,
+      "p95": 88.97497616829541
+    },
+    "height_above_diagnostic_empty_plane_mm": {
+      "p05": 55.50056853360955,
+      "median": 58.95283102052549,
+      "p95": 63.0288604873292
+    },
+    "decision": "DIAGNOSTIC_ONLY_NOT_LAYER_VALIDATION",
+    "limitations": [
+      "polygon includes stud tops and lower top face; not YOLO training labels",
+      "empty plane mixes stud tops and lower board surface; not adopted reference Z=0",
+      "no measured block height or agreed layer tolerance provided",
+      "one frame per View; pose repeatability not verified"
+    ]
+  },
+  {
+    "view_id": "D1",
+    "recording": "/home/roh/C-2/perception/recordings/block_depth_check/scene_03_yellow_2x2_layer_03/D1/20261007T110423836402Z",
+    "empty_recording": "/home/roh/C-2/perception/recordings/empty_board_depth/D1/20261007T093600059227Z",
+    "calibration": "/home/roh/C-2/perception/recordings/board_calibration_D1/D1/run/calibration.json",
+    "top_polygon_pixels": [
+      [
+        631,
+        274
+      ],
+      [
+        667,
+        259
+      ],
+      [
+        688,
+        280
+      ],
+      [
+        652,
+        297
+      ]
+    ],
+    "polygon_origin": "AI visual selection; human review pending",
+    "top_pixels": 1186,
+    "nonzero_pixels": 1186,
+    "nonzero_fraction": 1.0,
+    "camera_optical_z_mm": {
+      "p05": 510.0,
+      "median": 514.0,
+      "p95": 520.0
+    },
+    "rgb_pose_board_z_mm": {
+      "p05": 75.62162919026329,
+      "median": 78.37641276665738,
+      "p95": 79.58202356869289
+    },
+    "height_above_diagnostic_empty_plane_mm": {
+      "p05": 58.66678034061391,
+      "median": 61.54592563294152,
+      "p95": 62.85005476897589
+    },
+    "decision": "DIAGNOSTIC_ONLY_NOT_LAYER_VALIDATION",
+    "limitations": [
+      "polygon includes stud tops and lower top face; not YOLO training labels",
+      "empty plane mixes stud tops and lower board surface; not adopted reference Z=0",
+      "no measured block height or agreed layer tolerance provided",
+      "one frame per View; pose repeatability not verified"
+    ]
+  },
+  {
+    "view_id": "D3",
+    "recording": "/home/roh/C-2/perception/recordings/block_depth_check/scene_03_yellow_2x2_layer_03/D3/20261007T110504844991Z",
+    "empty_recording": "/home/roh/C-2/perception/recordings/empty_board_depth/D3/20261007T055935222566Z",
+    "calibration": "/home/roh/C-2/perception/recordings/board_calibration_D3/D3/run/calibration.json",
+    "top_polygon_pixels": [
+      [
+        591,
+        210
+      ],
+      [
+        632,
+        220
+      ],
+      [
+        624,
+        249
+      ],
+      [
+        583,
+        239
+      ]
+    ],
+    "polygon_origin": "AI visual selection; human review pending",
+    "top_pixels": 1340,
+    "nonzero_pixels": 1340,
+    "nonzero_fraction": 1.0,
+    "camera_optical_z_mm": {
+      "p05": 551.0,
+      "median": 553.0,
+      "p95": 557.0
+    },
+    "rgb_pose_board_z_mm": {
+      "p05": 79.87499423547987,
+      "median": 84.25881459750318,
+      "p95": 86.37329812138373
+    },
+    "height_above_diagnostic_empty_plane_mm": {
+      "p05": 57.48459970470857,
+      "median": 61.62786871824221,
+      "p95": 63.59728733319516
+    },
+    "decision": "DIAGNOSTIC_ONLY_NOT_LAYER_VALIDATION",
+    "limitations": [
+      "polygon includes stud tops and lower top face; not YOLO training labels",
+      "empty plane mixes stud tops and lower board surface; not adopted reference Z=0",
+      "no measured block height or agreed layer tolerance provided",
+      "one frame per View; pose repeatability not verified"
+    ]
+  }
+]

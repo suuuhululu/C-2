@@ -1,0 +1,21 @@
+{
+  "record_kind": "USER_APPROVED_ABS_REFERENCE_PROPERTIES",
+  "recorded_date": "2026-10-08",
+  "status": "REFERENCE_GRADE_NOT_MEASURED_BLOCK_PROPERTIES",
+  "reference_grade": "INEOS Styrolution TERLURAN GP-22, general-purpose injection-molding ABS",
+  "reference_url": "https://www.ineos-styrolution.com/Product/Terluran_Terluran-GP-22_SKU300600120827_lang_de_DE.html",
+  "user_confirmation": "일반 ABS 밀도와 탄성계수를 참고값으로 사용하고 마찰·체결력은 별도로 맞추자는 제안에 동의",
+  "density_kg_m3": 1040.0,
+  "elastic_modulus_pa": 2300000000.0,
+  "static_friction": null,
+  "dynamic_friction": null,
+  "contact_stiffness_n_m": null,
+  "insertion_force_n": null,
+  "physical_fit_verified": false,
+  "execution_allowed": false,
+  "limits": [
+    "Actual block/board ABS grade and material coefficients have not been measured",
+    "Elastic modulus in Pa is not a compliant-contact spring stiffness in N/m",
+    "No solid-box mass or contact-force parameters are inferred from reference density"
+  ]
+}

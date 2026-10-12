@@ -1,0 +1,203 @@
+{
+  "status": "FUTURE_PROFILE_TEMPLATE_NO_ACTIVE_SESSION",
+  "trial_kind": "D_LOCAL_SLOT_PICKUP_TRIAL_NOT_LIVE_A_B_D_CONTRACT",
+  "desired_target": {
+    "brick_type": "2x2x1",
+    "color": "blue",
+    "trial_min_xy": [
+      11,
+      11
+    ],
+    "layer": 2,
+    "orientation_deg": 0
+  },
+  "source_slot": {
+    "slot_id": "blue_2x2x1_01",
+    "operator_statement": "파랑 2*2의 1열",
+    "backend_reservation_committed": false
+  },
+  "step": {
+    "case_id": "onsite_blue_slot1_trial11_11_layer2_no_turn",
+    "step_id": "S01",
+    "plan_id": "D_LOCAL_AUTO_HANDOVER_OR_TRIAL11_11_L2_20261011",
+    "block": {
+      "brick_type": "2x2x1",
+      "color": "blue",
+      "x": 11,
+      "y": 11,
+      "layer": 2,
+      "orientation_deg": 0
+    },
+    "action": {
+      "mode": "ROBOT_GRIP",
+      "assistance_kind": "NONE",
+      "human_actions": []
+    },
+    "current_revision": null,
+    "reservation": null,
+    "summary": {}
+  },
+  "d_profile": {
+    "profile_id": "D_LOCAL_11_11_AUTO_BLEND_ASSEMBLY_bbf322ae-980b-48c1-b750-d1c5c2ef04d2_SMOOTH040_TEMPLATE",
+    "physical_route_reviewed": true,
+    "human_collaboration_commissioning_ref": null,
+    "clearance_z_mm": 194.73294067382812,
+    "supply_transit_xy_mm": [
+      -364.8591304347826,
+      -171.54
+    ],
+    "body_bypass_xy_mm": [
+      -27.878286361694336,
+      -411.9568176269531
+    ],
+    "place_pose": [
+      418.2707214355469,
+      -181.1972198486328,
+      14.935303688049316,
+      161.52828979492188,
+      179.58567810058594,
+      161.99119567871094
+    ],
+    "approach_offset_mm": 20.1,
+    "near_contact_offset_mm": 1.0,
+    "force_stop_n": 35.0,
+    "max_press_travel_mm": 5.0,
+    "transfer_velocity": 96.0,
+    "transfer_acceleration": 48.0,
+    "descent_velocity": 2.0,
+    "descent_acceleration": 1.0,
+    "gripper_force_n": 40.0,
+    "steps": {
+      "onsite_blue_slot1_trial11_11_layer2_no_turn/S01": {
+        "reference_pose": [
+          471.38330078125,
+          85.36578369140625,
+          33.63553237915039,
+          73.10492706298828,
+          -177.20652770996094,
+          73.32064056396484
+        ],
+        "pickup_pose": [
+          -333.4477844238281,
+          49.072635650634766,
+          52.20610046386719,
+          125.77477264404297,
+          -175.88323974609375,
+          124.51481628417969
+        ],
+        "physical_reference_reviewed": true,
+        "pickup_width_mm": 35.0,
+        "release_width_mm": 48.0,
+        "release_pose": null,
+        "press_approach_pose": null,
+        "press_start_pose": null,
+        "press_width_mm": null,
+        "notes": [
+          "SAME_GRASP_TCP_AND_ORIENTATION_MUST_BE_REVIEWED",
+          "PICKUP_AND_MINIMAL_RELEASE_WIDTH_MUST_BE_TAUGHT",
+          "LAYER_MEASURED_AT_CENTRE_XY_SPATIAL_CANDIDATE_ONLY"
+        ],
+        "release_feedback_range_mm": [
+          47.0,
+          110.0
+        ],
+        "turn_base_z_deg": 0.0,
+        "turn_reference": "CURRENT_SESSION_GRASP_BASE_Z",
+        "pickup_start_open_range_mm": [
+          47.0,
+          110.0
+        ],
+        "handover_trial": {
+          "operator_armed_preview_stop_trial": true,
+          "observe_route_reviewed": true,
+          "observe_pose": [
+            400.851,
+            8.573,
+            314.981,
+            175.022,
+            -179.595,
+            175.461
+          ],
+          "observe_source": "/home/rokey/Documents/ChatGPT/로봇제어 개발/handoff_20261008/assembly_development_transfer_20261008/source_snapshot/interfaces/robot_trial.json",
+          "operator_route_review": "User confirms clear empty return via place board, vertical314.981mm lift and taught observe orientation on2026-10-11",
+          "route_check_ref": "settings/onsite_blue_slot1_6_6_l2_20261011/gesture-handover.route-check.json",
+          "no_receive_action": "ASSEMBLE",
+          "release_policy": "AUTO_AFTER_STOP",
+          "incoming_velocity": 32.0,
+          "incoming_acceleration": 16.0,
+          "open_hold_seconds": 0.4
+        }
+      }
+    },
+    "transport_blending": {
+      "radius_mm": 15.0,
+      "reviewed": true
+    }
+  },
+  "operator_confirmations": {
+    "one_layer_support_present": true,
+    "board_and_slot_layout_unchanged": true,
+    "roundtrip_path_and_target_clear": true,
+    "source": "Human replies in integration chat on 2026-10-11"
+  },
+  "pickup_source": {
+    "path": "fixtures/teaching_sources/supply_slot1_grasp_summary.json",
+    "sha256": "550916f2bfdb5de240642d27a13308268f15fdb83157e5f09f1c98306052045e",
+    "kind": "ACTUAL_OPERATOR_CONFIRMED_SLOT1_GRASP_AT_REPORTED_5MM_HEIGHT",
+    "uniform_slot_interpolation_used": false
+  },
+  "assembly_completion": false,
+  "current_update": false,
+  "physical_verified": false,
+  "hardware_verified": false,
+  "current_grasp_transform_verified": false,
+  "exact_target_taught": false,
+  "pending": [
+    "Current yellow block release and vertical retreat result",
+    "Fresh stopped open-gripper start sample",
+    "Read-only IK/FK check of route and changed grasp attitude",
+    "Onsite PICKUP_ALIGNMENT and GRASP_CONFIRMED",
+    "Onsite ALIGNMENT_AND_PARALLEL at target before descent",
+    "FULL_SEATING and RELEASE observations"
+  ],
+  "opening_feedback_policy": "Task upper opening restriction removed at explicit human request. Minimum60mm, RG2 status0 and three fresh stopped samples required. Command remains62.4mm/40N;110mm is hardware measurement plausibility only.",
+  "readiness_ref": "settings/onsite_blue_slot1_11_11_l2_20261011/auto-blend-1fec868f-e364-408b-8cea-fd897635b65c.readiness.json",
+  "initial_phase": "assemble-held",
+  "start_zone": "supply",
+  "camera_transport": "raw",
+  "operator_target_review": "Human requests11,11 layer2; supportlayer1present and blue slot1refilled.",
+  "assembly_reference_source": {
+    "kind": "EXISTING_TEACHING_AND_CALIBRATION_CANDIDATE_NOT_EXACT_TARGET_TEACHING",
+    "reference_pose": [
+      471.38330078125,
+      85.36578369140625,
+      33.63553237915039,
+      73.10492706298828,
+      -177.20652770996094,
+      73.32064056396484
+    ]
+  },
+  "pickup_width_review": "Human WebLogic35mm closing target verified rawgripstatus2; actualwidth39.5. Future pickup35mm40N.",
+  "speed_review": {
+    "user_request": "속도 한 세배는 높여도 될듯.. 하강속도도 너무 느려",
+    "transfer_mm_s": 96.0,
+    "transfer_acc_mm_s2": 48.0,
+    "pickup_descent_mm_s": 6.0,
+    "pickup_descent_acc_mm_s2": 3.0,
+    "receiving_incoming_mm_s": 32.0,
+    "contact_press_mm_s": 2.0,
+    "applies_to": "Next unused commands only; completed pickup preserved",
+    "updated_unix_s": 1791696388.2642617
+  },
+  "physical_corridor_review_ref": "settings/onsite_blue_slot1_11_11_l2_20261011/auto-blend-1fec868f-e364-408b-8cea-fd897635b65c.smooth040.route-review.json",
+  "arming_readonly_ref": "settings/onsite_blue_slot1_11_11_l2_20261011/auto-blend-1fec868f-e364-408b-8cea-fd897635b65c.arming-readonly.json",
+  "future_trial_status": "Requires replenished slot, fresh read-only start, new execution IDs and sessions; do not reuse previous commands.",
+  "seated_release_review": {
+    "user_request": "결착 후 그리퍼 48mm",
+    "command_width_mm": 48.0,
+    "scope": "SEATED_ASSEMBLY_RELEASE_AND_FUTURE_PICKUP_OPEN_PREPARATION",
+    "feedback_min_mm": 47.0,
+    "feedback_max_mm": 110.0,
+    "feedback_policy": "Raw status0 and stillness/freshness required; task upper limit remains removed. Physical48mm release pending."
+  }
+}

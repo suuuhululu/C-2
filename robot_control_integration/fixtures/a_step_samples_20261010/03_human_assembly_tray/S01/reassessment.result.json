@@ -1,0 +1,132 @@
+{
+  "schema_version": "assembly-ad-calculation-draft/0.5",
+  "contract_status": "DRAFT_NOT_FROZEN",
+  "sample_kind": "CALCULATED_FROM_REVIEW_INPUT_NOT_FOR_EXECUTION",
+  "message_type": "StepReassessmentResult",
+  "context": {
+    "job_id": "suhyun-03_human_assembly_tray",
+    "request_id": "03_human_assembly_tray-S01-reassessment",
+    "workflow_generation": 1,
+    "source_epoch": "OFFLINE_MOCK_20261010",
+    "design_version": 1,
+    "input_current_revision": 2,
+    "world_state_revision": 0,
+    "frame_profile_id": "D_FIXTURE_FRAME_PROFILE",
+    "plan_id": "P-6f4b66b3d106450eb40267a293aafb1d",
+    "step_id": "S01",
+    "frame_profile_version": "fixture-v1"
+  },
+  "execution_allowed": false,
+  "assessment_id": "assessment-d8ebb306b25c4067923a5031dd0e42fb",
+  "status": "CANDIDATE",
+  "action_proposal": {
+    "plan_id": "P-6f4b66b3d106450eb40267a293aafb1d",
+    "step_id": "S01",
+    "block": {
+      "brick_type": "2x3x1",
+      "color": "yellow",
+      "x": 6,
+      "y": 6,
+      "layer": 1,
+      "orientation_deg": 0
+    },
+    "mode": "HUMAN_ASSEMBLY",
+    "grip_axis": null,
+    "gripper": {
+      "pickup_policy": "D_EXISTING_PICKUP",
+      "release_strategy": "D_EXISTING_TRAY_RELEASE",
+      "release_owner": "D",
+      "policy_at_wait": "D_TRAY_RELEASE_AND_RETREAT",
+      "numeric_open_command": null
+    },
+    "support_studs": 6,
+    "contacts": [],
+    "robot_force_model": "NOT_ROBOT_INSERTION",
+    "assistance_kind": "MANUAL_ASSEMBLY",
+    "human_actions": [
+      {
+        "action": "MANUAL_PLACE",
+        "target_block": {
+          "brick_type": "2x3x1",
+          "color": "yellow",
+          "x": 6,
+          "y": 6,
+          "layer": 1,
+          "orientation_deg": 0
+        },
+        "contact_regions": [
+          {
+            "frame_id": "assembly_board",
+            "vertices_xyz_m": [
+              [
+                0.096,
+                0.088,
+                -0.0045
+              ],
+              [
+                0.112,
+                0.088,
+                -0.0045
+              ],
+              [
+                0.112,
+                0.088,
+                0.0145
+              ],
+              [
+                0.096,
+                0.088,
+                0.0145
+              ]
+            ]
+          },
+          {
+            "frame_id": "assembly_board",
+            "vertices_xyz_m": [
+              [
+                0.096,
+                0.136,
+                -0.0045
+              ],
+              [
+                0.112,
+                0.136,
+                -0.0045
+              ],
+              [
+                0.112,
+                0.136,
+                0.0145
+              ],
+              [
+                0.096,
+                0.136,
+                0.0145
+              ]
+            ]
+          }
+        ],
+        "approach_sides": [
+          "-y",
+          "+y"
+        ],
+        "hand_count": 1,
+        "force_direction_base": null,
+        "force_magnitude_n": null,
+        "effect": "사람이 직접 조립",
+        "access_assessment": "GEOMETRIC_CANDIDATE_NOT_RUNTIME_VERIFIED"
+      }
+    ],
+    "human_hands_used": 1,
+    "assistance_cost": [
+      1,
+      1,
+      1
+    ],
+    "selection_basis": "완성 가능한 전체 계획 확보 후 사람 도움 최소화; MoveIt 운반 검증은 별도",
+    "requires_runtime_reassessment": true,
+    "optimality_verified": false
+  },
+  "errors": [],
+  "assessment_input_digest": "850a257894221337a33b52b1d7a295ec3285c4f8e44f0fe6de54d47b9ae42101"
+}

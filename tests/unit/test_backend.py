@@ -66,6 +66,15 @@ def stop_confirmed(backend):
     assert backend.on_stopped(request, stopped=True, execution_ended=True, block_state_known=True)
 
 
+@pytest.mark.parametrize("mode", ["FAKE", "REAL"])
+def test_prepare_without_real_controller_does_not_start_job_or_emit_motion(mode):
+    ports = FakePorts()
+    backend = Backend(ports, mode=mode, single_trial=mode == "REAL")
+    before = deepcopy(backend.state)
+    assert backend.command(dict(command="PREPARE_OBSERVE")) == dict(accepted=False, reason="PREPARE_NOT_APPLICABLE")
+    assert backend.state == before and ports.requests == []
+
+
 def test_normal_three_steps_need_delivery_return_actual_assembly_and_fresh_place_empty():
     backend, ports = delivering()
     for index, (blocks, regions) in enumerate([([A], [RA]), ([A, B], [RA, RB]), ([C], [RC])]):

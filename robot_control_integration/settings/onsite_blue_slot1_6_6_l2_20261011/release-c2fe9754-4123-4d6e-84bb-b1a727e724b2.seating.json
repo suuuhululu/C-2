@@ -1,0 +1,15 @@
+{
+  "kind": "LOCAL_OPERATOR_SEATING_AND_RELEASE_REVIEW",
+  "contact_execution_id": "d20247c7-7656-4e5e-a678-37d0d4cebcd0",
+  "operator_seating_confirmed": true,
+  "seating_confirmation_source": "FULL_SEATING live HMI yes",
+  "contact_result_ref": "logs/onsite_blue_slot1_6_6_l2_20261011/contact-d20247c7-7656-4e5e-a678-37d0d4cebcd0/result.json",
+  "contact_result_sha256": "ea7111a64abe869b256ca3cb8a643d68fc1e2a85106df2d4842f7f11d2fd4e06",
+  "operator_clearance_statement": "네, 개방·수직 상승 모두 간섭 없음",
+  "upper_opening_clearance_mm": 64.2,
+  "vertical_target_z_mm": 53.73553237915039,
+  "readiness_ref": "settings/onsite_blue_slot1_6_6_l2_20261011/release-readiness.json",
+  "recorded_unix_s": 1791691783.9634998,
+  "assembly_completion": false,
+  "current_update": false
+}

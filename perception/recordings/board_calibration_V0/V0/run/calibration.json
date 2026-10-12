@@ -1,0 +1,209 @@
+{
+  "schema_version": 1,
+  "image_size": [
+    1280,
+    720
+  ],
+  "rows": 24,
+  "cols": 24,
+  "pitch_mm": 16.0,
+  "origin": "stud(row=1,col=1) centre; X increasing columns, Y increasing rows",
+  "reference_plane": "plane through reference points, normally empty stud tops",
+  "H_board_from_undistorted_pixel": [
+    [
+      0.5975660133397954,
+      -0.008251808727630504,
+      -265.44165122300643
+    ],
+    [
+      0.0007981899106241574,
+      -0.6090113691244973,
+      396.3042745051305
+    ],
+    [
+      7.836151144645276e-07,
+      -5.4610999943139826e-05,
+      1.0
+    ]
+  ],
+  "intrinsics": {
+    "image_size": [
+      1280,
+      720
+    ],
+    "camera_matrix": [
+      [
+        907.924560546875,
+        0.0,
+        652.287109375
+      ],
+      [
+        0.0,
+        907.717529296875,
+        366.0758972167969
+      ],
+      [
+        0.0,
+        0.0,
+        1.0
+      ]
+    ],
+    "dist_coeffs": [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+    ],
+    "distortion_model": "plumb_bob"
+  },
+  "reference_pixels": [
+    [
+      453.0,
+      652.0
+    ],
+    [
+      1048.0,
+      652.0
+    ],
+    [
+      1060.0,
+      49.0
+    ],
+    [
+      445.0,
+      48.0
+    ],
+    [
+      737.0,
+      651.0
+    ],
+    [
+      1053.0,
+      369.0
+    ],
+    [
+      738.0,
+      49.0
+    ],
+    [
+      450.0,
+      368.0
+    ]
+  ],
+  "reference_board_xy_mm": [
+    [
+      0.0,
+      0.0
+    ],
+    [
+      368.0,
+      0.0
+    ],
+    [
+      368.0,
+      368.0
+    ],
+    [
+      0.0,
+      368.0
+    ],
+    [
+      176.0,
+      0.0
+    ],
+    [
+      368.0,
+      176.0
+    ],
+    [
+      176.0,
+      368.0
+    ],
+    [
+      0.0,
+      176.0
+    ]
+  ],
+  "fit_errors_mm": [
+    0.4436822525792186,
+    0.24601556843338548,
+    0.2538160961240861,
+    0.27551136111458235,
+    0.5129962467926346,
+    0.23014341160835236,
+    0.5059289413450465,
+    0.43556976002258424
+  ],
+  "max_fit_error_mm": 0.5129962467926346,
+  "independently_validated": true,
+  "robot": null,
+  "camera_pose": {
+    "R_camera_from_board": [
+      [
+        0.9999976607207254,
+        -0.0006570210487250284,
+        -0.002060795093553898
+      ],
+      [
+        -0.0005551096248171388,
+        -0.9987952365079878,
+        0.04906900633044313
+      ],
+      [
+        -0.002090551692859789,
+        -0.04906774757714241,
+        -0.9987932647656999
+      ]
+    ],
+    "t_camera_from_board_mm": [
+      -123.64482919744279,
+      177.23026407408653,
+      562.7634081913849
+    ],
+    "height_normal_sign": 1,
+    "reprojection_errors_px": [
+      0.2016295446744359,
+      0.9484583588187383,
+      0.9140411618219222,
+      1.2054305450704599,
+      0.9901876472637023,
+      0.8935638957116349,
+      1.295863227336173,
+      0.6586532667252095
+    ]
+  },
+  "view_id": "V0",
+  "coordinate_convention": {
+    "origin": "A: red-marked corner stud centre",
+    "positive_x": "A to B along the physical +X marking; increasing column index",
+    "positive_y": "A to D along the physical +Y marking; increasing row index",
+    "index_base": 1,
+    "note": "Orientation is established by reference point identities, not image screen position"
+  },
+  "source_image": "/home/roh/C-2/perception/recordings/board_calibration_V0/V0/captures/empty.png",
+  "baseline_file": "empty.png",
+  "pitch_basis": {
+    "value_mm": 16.0,
+    "status": "adopted_approximate_measurement",
+    "source": "User 2026-10-08: outer stud centres taught by Seeun",
+    "previous_pitch_mm": 17.0,
+    "limitations": "TCP/contact-point and metric RGB-D validation pending"
+  },
+  "last_validation": {
+    "source": "/home/roh/C-2/perception/recordings/board_calibration_V0/V0/run_pitch16/validation_clicked_points_pitch16.json",
+    "surface_height_mm": 0.0,
+    "count": 5,
+    "errors_mm": [
+      1.2857839182328523,
+      0.8545164496065014,
+      0.6844104369497453,
+      0.7915136363458979,
+      0.8640816356974684
+    ],
+    "max_error_mm": 1.2857839182328523,
+    "rmse_mm": 0.9192374234017223,
+    "threshold_mm": 2.0,
+    "passed": true
+  }
+}

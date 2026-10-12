@@ -3,7 +3,7 @@
 from copy import deepcopy
 from uuid import uuid4
 
-from app.contracts import _object, _text, validate_design, validate_observed
+from app.contracts import _object, _text, validate_design, validate_observed, validate_plan_result
 from app.current import _key, _placements, adopt_observation, open_observation_check
 from app.completion import _difference, calculate_expected
 
@@ -18,7 +18,7 @@ def begin_replan(backend, design):
                    base_current_revision=state["current"]["current_revision"],design=deepcopy(design))
     state.update(workflow_status="REPLANNING",planning_request=request,pending_design=deepcopy(design),
                  question_request=None,choice_required=False,correction_request=None,active_check=None,
-                 place_check=None,current_check=None,place_status=None,reason=None)
+                 place_check=None,current_check=None,place_status=None,reason=None,planner_errors=[])
     backend._awaiting_assembly = backend._delivery_goal = False
     backend._send("planner",dict(**request,current=state["current"],supported_scope=state["supported_scope"]))
     if state["workflow_status"] == "REPLANNING":
@@ -31,8 +31,9 @@ def open_current_check(backend, purpose):
         backend._hold("OBSERVE_POINT_NOT_READY")
         return
     step = backend._next_step()
-    check = open_observation_check(str(uuid4()),state["job_id"],state["context"]["plan"]["plan_id"],
-                                    step["step_id"] if step else "FINAL")
+    context = state["context"]
+    check = open_observation_check(str(uuid4()),state["job_id"],context["plan"]["plan_id"] if context else None,
+                                    (step["step_id"] if step else "FINAL") if context else None)
     state.update(current_check=check,current_check_purpose=purpose)
     backend._send("vision",dict(check_id=check["check_id"],after=None))
 
@@ -91,32 +92,40 @@ def request_correction(backend, reason, conflicts):
                    result=conflicts,reason=reason)
 
 
-def on_plan_result(backend, request_id, value):
+def on_plan_result(backend, request_id, value, *, design=None):
     state, request = backend._state,backend._state["planning_request"]
-    if request is None or request_id != request["request_id"] or state["workflow_status"] != "REPLANNING":
+    if request is None or request_id != request["request_id"] or state["workflow_status"] not in ("PREPARING", "REPLANNING"):
         return backend._ignored(request_id)
     if "ready_result" in request:
         return backend._ignored(request_id)
     try:
-        status = value.get("status") if isinstance(value,dict) else None
-        if status == "READY":
-            _object(value,("status","plan"),"planner.result")
-            return backend.on_plan(request_id,request["design"],value["plan"])
-        extra = ("conflicts",) if status == "NEEDS_CORRECTION" else ()
-        _object(value,("status","reason")+extra,"planner.result")
-        _text(value["reason"],"planner.reason")
-        if status not in ("NEEDS_CORRECTION","INVALID"):
-            raise ValueError("planner.status: unsupported result")
-        conflicts = _placements(value["conflicts"],"planner.conflicts",allow_duplicates=False) if extra else []
+        result = validate_plan_result(value)
+        candidate = request.get("design") if result["status"] != "INVALID" else None
+        if design is not None and result["status"] != "INVALID":
+            received = validate_design(design)
+            if candidate is not None and received != candidate:
+                raise ValueError("Design differs from pending candidate")
+            candidate = received
+        if candidate is not None and candidate["design_version"] != request["design_version"]:
+            raise ValueError("Design differs from active request version")
+        if result["status"] in ("READY", "NEEDS_CORRECTION") and candidate is None:
+            raise ValueError("Initial result requires the Design used for planning")
     except ValueError as error:
         backend._hold(f"PLAN_INVALID: {error}")
         return True
-    if not backend._event("REPLAN_RESULT",request_id=request_id,result=value):
+    if not backend._event("PLAN_RESULT",request_id=request_id,result=result):
         return True
-    if status == "NEEDS_CORRECTION":
-        request_correction(backend,value["reason"],conflicts)
+    state["planner_errors"] = deepcopy(result["errors"])
+    if candidate is not None:
+        state["pending_design"] = deepcopy(candidate)
+    if result["status"] == "READY":
+        return backend.on_plan(request_id,candidate,result["plan"])
+    reason = result["errors"][0]["reason"]
+    if result["status"] == "NEEDS_CORRECTION":
+        conflicts = [error["block"] for error in result["errors"] if error["block"] is not None]
+        request_correction(backend,reason,conflicts)
     else:
-        backend._hold(f"PLAN_INVALID: {value['reason']}")
+        backend._hold(f"PLAN_INVALID: {reason}")
     return True
 
 
@@ -160,8 +169,10 @@ def on_current_observation(backend, value):
     state.update(current=result["current"],current_check=result["active_check"],last_observation=observation,
                  step_observation=observation if backend._next_step() else None)
     if result["disposition"] == "ADOPTED":
-        if not backend._event("CURRENT_ADOPTED",request_id=observation["check_id"],
-                              result=dict(current=state["current"],observed=observation)):
+        adopted = dict(current=state["current"], observed=observation)
+        if "current_provenance" in result:  # B relay(Wave 2): revision은 B 값 그대로
+            adopted["current_provenance"] = result["current_provenance"]
+        if not backend._event("CURRENT_ADOPTED", request_id=observation["check_id"], result=adopted):
             return True
     if result["disposition"] == "HOLD":
         state["reason"] = result["reason"]

@@ -1,0 +1,99 @@
+{
+  "scope": "SIM_MODEL_ALIGNMENT_ONLY",
+  "source_robot_calibrated": false,
+  "base_frame": "base_link",
+  "world_to_base": [
+    [
+      1.0,
+      0.0,
+      0.0,
+      0.0
+    ],
+    [
+      0.0,
+      1.0,
+      0.0,
+      0.0
+    ],
+    [
+      0.0,
+      0.0,
+      1.0,
+      0.0
+    ],
+    [
+      0.0,
+      0.0,
+      0.0,
+      1.0
+    ]
+  ],
+  "world_to_base_status": "ISOLATED_SIM_IDENTITY_NOT_PHYSICAL_CALIBRATION",
+  "tcp_frame": "GripperDA_v4_tcp",
+  "tcp_setting_name": "GripperDA_v4",
+  "flange_link": "link_6",
+  "flange_from_tcp": [
+    [
+      1.0,
+      0.0,
+      0.0,
+      0.0
+    ],
+    [
+      0.0,
+      1.0,
+      0.0,
+      0.0
+    ],
+    [
+      0.0,
+      0.0,
+      1.0,
+      0.228
+    ],
+    [
+      0.0,
+      0.0,
+      0.0,
+      1.0
+    ]
+  ],
+  "tcp_status": "MATCHES_EXISTING_SIM_AND_A_228MM_SETTING_NOT_PHYSICAL_CALIBRATION",
+  "tool0_from_tcp": [
+    [
+      -2.051035452598302e-10,
+      1.9906995341588998e-27,
+      1.0,
+      0.228
+    ],
+    [
+      -8.979318433952317e-11,
+      -1.0,
+      -1.8416906910373206e-20,
+      -4.199054775565091e-21
+    ],
+    [
+      1.0,
+      -8.979318433952317e-11,
+      2.051035452578145e-10,
+      4.676360831878171e-11
+    ],
+    [
+      0.0,
+      0.0,
+      0.0,
+      1.0
+    ]
+  ],
+  "fingertip_offset_mm": 40.0,
+  "fingertip_offset_semantics": "USER_RG2_WEB_FINGERTIP_OFFSET_NOT_JAW_WIDTH_OR_TCP_TRANSLATION",
+  "fingertip_offset_applied_to_mesh_or_tcp": false,
+  "gripper_open_q_rad": -0.4,
+  "gripper_grasp_q_rad": 0.4793595967442058,
+  "actual_pad_geometry_verified": false,
+  "full_tcp_block_transform_verified": false,
+  "collision_mesh_policy": "PER_SOURCE_PART_CONVEX_HULL_IN_METRES",
+  "units": "m",
+  "up_axis": "Z",
+  "robot_motion_executed": false
+}

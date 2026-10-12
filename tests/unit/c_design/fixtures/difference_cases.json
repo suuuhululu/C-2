@@ -1,0 +1,144 @@
+{
+  "_note": "Each Difference entry (§5) pairs an `expected` Block (or null) with an `actual` Block (or null). expected_input_rules are INVALID_INPUT rules that MUST appear; only the empty-list case is an input error (empty `differences` -> INVALID_INPUT, rule name invalid_value).",
+  "cases": [
+    {
+      "case": "position_diff",
+      "differences": [
+        {
+          "expected": {
+            "brick_type": "2x2x1",
+            "color": "blue",
+            "x": 10,
+            "y": 10,
+            "layer": 1,
+            "orientation_deg": 0
+          },
+          "actual": {
+            "brick_type": "2x2x1",
+            "color": "blue",
+            "x": 11,
+            "y": 10,
+            "layer": 1,
+            "orientation_deg": 0
+          }
+        }
+      ],
+      "expected_input_rules": []
+    },
+    {
+      "case": "orientation_diff",
+      "differences": [
+        {
+          "expected": {
+            "brick_type": "2x3x1",
+            "color": "yellow",
+            "x": 10,
+            "y": 10,
+            "layer": 2,
+            "orientation_deg": 0
+          },
+          "actual": {
+            "brick_type": "2x3x1",
+            "color": "yellow",
+            "x": 10,
+            "y": 10,
+            "layer": 2,
+            "orientation_deg": 90
+          }
+        }
+      ],
+      "expected_input_rules": []
+    },
+    {
+      "case": "color_diff",
+      "differences": [
+        {
+          "expected": {
+            "brick_type": "2x2x1",
+            "color": "blue",
+            "x": 10,
+            "y": 10,
+            "layer": 1,
+            "orientation_deg": 0
+          },
+          "actual": {
+            "brick_type": "2x2x1",
+            "color": "yellow",
+            "x": 10,
+            "y": 10,
+            "layer": 1,
+            "orientation_deg": 0
+          }
+        }
+      ],
+      "expected_input_rules": []
+    },
+    {
+      "case": "layer_diff",
+      "differences": [
+        {
+          "expected": {
+            "brick_type": "2x2x1",
+            "color": "blue",
+            "x": 10,
+            "y": 10,
+            "layer": 1,
+            "orientation_deg": 0
+          },
+          "actual": {
+            "brick_type": "2x2x1",
+            "color": "blue",
+            "x": 10,
+            "y": 10,
+            "layer": 2,
+            "orientation_deg": 0
+          }
+        }
+      ],
+      "expected_input_rules": []
+    },
+    {
+      "case": "actual_null_missing_block",
+      "differences": [
+        {
+          "expected": {
+            "brick_type": "2x2x1",
+            "color": "blue",
+            "x": 10,
+            "y": 12,
+            "layer": 1,
+            "orientation_deg": 0
+          },
+          "actual": null
+        }
+      ],
+      "expected_input_rules": [],
+      "_note": "Design expected block2 but it was not observed on the board at all."
+    },
+    {
+      "case": "expected_null_extra_block",
+      "differences": [
+        {
+          "expected": null,
+          "actual": {
+            "brick_type": "2x2x1",
+            "color": "blue",
+            "x": 10,
+            "y": 10,
+            "layer": 1,
+            "orientation_deg": 0
+          }
+        }
+      ],
+      "expected_input_rules": [],
+      "_note": "A block was observed on the board that the Design did not call for at this position."
+    },
+    {
+      "case": "empty_differences_list",
+      "differences": [],
+      "expected_input_rules": [
+        "invalid_value"
+      ]
+    }
+  ]
+}

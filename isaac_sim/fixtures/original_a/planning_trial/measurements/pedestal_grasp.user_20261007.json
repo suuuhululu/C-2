@@ -1,0 +1,49 @@
+{
+  "record_kind": "USER_REPORTED_PEDESTAL_SUPPORTED_BLOCK_GRASP_RAW",
+  "recorded_date": "2026-10-07",
+  "source_statement": "이건 로봇받침대에 블럭을 올려놓고 8mm 간격을 두고 잡았을때 base기준 좌표값(325.40, -212.5, 15.31, 16.8, -179.66, 17.68)",
+  "reported_base_pose_xyz_abc": [
+    325.4,
+    -212.5,
+    15.31,
+    16.8,
+    -179.66,
+    17.68
+  ],
+  "xyz_unit": "mm",
+  "orientation_unit": "degree",
+  "orientation_convention": "ZYZ assumed from existing project; not independently confirmed for this reading",
+  "reference_surface": "ROBOT_PEDESTAL_TOP",
+  "reference_surface_base_z_mm": 0.0,
+  "block_bottom_flush_on_reference_surface_confirmed": true,
+  "brick_type": null,
+  "color": null,
+  "gripper_tip_to_block_bottom_distance_reported_mm": 8,
+  "tip_above_or_below_bottom": null,
+  "project_tcp_reference": {
+    "name": "GripperDA_v4",
+    "flange_offset_xyz_mm_zyz_deg": [
+      0,
+      0,
+      228,
+      0,
+      0,
+      0
+    ],
+    "confirmed_for_this_reading": null
+  },
+  "pose_is_active_tcp_confirmed": null,
+  "tip_coincides_with_configured_tcp": null,
+  "tcp_to_block_bottom_height_difference_mm": 15.31,
+  "execution_allowed": false,
+  "status": "REFERENCE_CONFIRMED_HEIGHT_DIFFERENCE_DERIVED_FOR_REPORTED_GRASP",
+  "reference_confirmation_source": "User replied 웅 to confirmation that pedestal top is Base Z=0 and block bottom directly contacts it.",
+  "height_difference_definition": "Base Z_TCP minus Base Z_block_bottom; derived from reported Base pose and user-confirmed reference plane.",
+  "derived_precontact_height": {
+    "block_bottom_above_support_stud_tip_mm": 20.0,
+    "tcp_above_support_stud_tip_mm": 35.31,
+    "clearance_updated_date": "2026-10-08",
+    "clearance_update_source": "사용자가 기존 15 mm 대기 간격을 20 mm로 변경하고, 스터드를 제외한 블록 몸체 높이가 20 mm라고 설명함.",
+    "validity": "Same gripping depth and vertical tool attitude as this measurement; actual TCP interpretation/setting and block type remain unconfirmed. Not a full rigid grasp transform or executable pose."
+  }
+}
