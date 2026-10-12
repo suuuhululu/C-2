@@ -30,6 +30,12 @@ integration은 팀 통합 단계에서 한다. caller는 `approved`(review가 AP
                 PREVIEW_READY → review(kind="revised") 반복.
   full          Initial → PREVIEW_READY → review 반복(APPROVE 채택) → caller Difference → run_intervention →
                 PREVIEW_READY → review(kind="revised") 반복.
+  plan-failure  (Wave 5) Wave 1 fixture Approved v1 + Current(다리 4) → 실제 A handle_whole_plan(FAKE 설정, read-only) →
+                NO_FEASIBLE_ORDER면 Robot HOLD → planning_failure 구성 → run_design_change(planning_failure=…) →
+                REVISE면 PREVIEW_READY → review(kind="revised", differences=[], change_reason, planning_failure) 반복 →
+                APPROVE 채택 → A Replan(handle_whole_plan) 결과 기록 → 종료(Robot 실행 없음). KEEP → HOLD(재계획 없음).
+                --blocked-block이면 D가 막힌 블록을 알았다고 가정해 fixture의 4층 등받이 블록을 blocked_blocks에 넣는다
+                (실제 A 결과에는 블록이 없다). 기본 답: "응, 수정해줘", "좋아, 이대로 해".
 
 답(--answers)은 시나리오 전체에서 순서대로 쓴다.
   text 모드: create_initial_design은 답 하나를 text로 받는다(Mock은 목표 문장, 예: "의자 만들어줘"; LLM 되묻기 답은
@@ -82,7 +88,37 @@ DEFAULT_ANSWERS = {
     # Stage 3 Wave 4 최종 lifecycle: Initial → review MODIFY → APPROVE → Difference REVISE → review(revised) MODIFY → APPROVE
     "full": ["벤치처럼 길고 넓은 의자를 만들고 싶어", "등받이를 조금 더 높게 해줘", "좋아 이걸로 하자",
              "일부러 그렇게 놨어. 조금 더 넓게 만들고 싶어", "조금 더 화려하게 해줘", "마음에 들어. 이걸로 하자"],
+    # Wave 5: planning failure 질문 답 → Revised 후보 검토 답
+    "plan-failure": ["응, 수정해줘", "좋아, 이대로 해"],
 }
+FIXTURE_DIR = os.path.join(os.path.dirname(SCRIPTS_DIR), "tests", "fixtures", "c_design_change")
+
+
+def _fixture(name):
+    with open(os.path.join(FIXTURE_DIR, name), encoding="utf-8") as handle:
+        return json.load(handle)
+
+
+def a_whole_plan(design, current_blocks, generation):
+    """실제 A handle_whole_plan(read-only 계산, Robot 없음)을 D MVP와 같은 FAKE 설정으로 부른다. 결과 요약 dict를 돌려준다."""
+    from app.mvp_calculation import whole_input
+    from app.mvp_fake import settings
+    from planning_trial.assembly_adapter import handle_whole_plan
+    request = whole_input(design, {"current_revision": 1, "blocks": deepcopy(current_blocks)}, settings(),
+                          "c-stage3-plan-failure", generation, "c-stage3")
+    result = handle_whole_plan(request)
+    plan = result.get("planning_result") or {}
+    return {"calculation_status": result["calculation_status"], "plan_status": plan.get("status"),
+            "steps": len((plan.get("plan") or {}).get("steps") or []), "stage_errors": result.get("stage_errors") or [],
+            "execution_allowed": result.get("execution_allowed")}
+
+
+def planning_failure_from(summary, blocked_blocks=()):
+    """D 역할: A 결과 요약 → C planning_failure(CONTRACT §4.6). detail은 로그용 문자열이며 C는 읽지 않는다."""
+    code = summary["calculation_status"]
+    blocks = [e["block"] for e in summary["stage_errors"] if e.get("block")] + list(blocked_blocks)
+    return {"failure_code": code, "redesign_required": code == "NO_FEASIBLE_ORDER", "retryable": code == "SEARCH_LIMIT",
+            "blocked_blocks": blocks, "detail": str(summary["stage_errors"])}
 
 
 def _log(line):
@@ -216,10 +252,16 @@ class FakeDCaller:
         self.timeline = []  # 지금 호출의 [C][STAGE] 이벤트(호출이 끝나면 그 행에 붙이고 비운다)
         self.approved = None  # Approved Design: review가 APPROVE를 돌려줄 때만 채택
         self.candidate = None  # (Candidate Design, design_metadata): 다음 review에 그대로 넘긴다
+        self.candidate_phase = None  # "PREVIEW"(받음) → "REVIEW"(PREVIEW_READY 뒤): review는 REVIEW에서만 부른다
         self.current = None
         self.differences = None
         self.rows = []
         self.failed = False
+        # Wave 5 plan-failure: D 상태·호출 횟수 기록(Robot은 절대 부르지 않는다)
+        self.state = "IDLE"
+        self.robot_calls = 0
+        self.replan_calls = 0
+        self.planning = {}
 
     # ---- 답 배분 -------------------------------------------------------------------------------------------------
     def _slot(self, api):
@@ -286,7 +328,7 @@ class FakeDCaller:
             return None
         if api == "create_initial_design":
             return "initial_candidate"
-        if api == "run_intervention":
+        if api in ("run_intervention", "run_design_change"):
             return "revised_candidate" if envelope["hri_result"] == dialogue.REVISE else None
         if envelope["hri_result"] == dialogue.MODIFY and design != previous:
             round_ = ((envelope["design_metadata"] or {}).get("review") or {}).get("round")
@@ -308,7 +350,7 @@ class FakeDCaller:
         prefix = {"initial_candidate": "01", "revised_candidate": "03"}.get(state) or ("02" if state.startswith("initial") else "04")
         directory = self.render_dir or self._scratch_dir()
         path = os.path.join(directory, f"{prefix}_{state}.png")
-        if state.startswith("revised"):
+        if state.startswith("revised") and self.differences:
             diff = self.differences[0]
             captions = [[f"Approved v{self.approved['design_version']}"], ["Current + Difference(actual 주황)"],
                         [f"Candidate v{design['design_version']}"]]
@@ -335,8 +377,8 @@ class FakeDCaller:
             import tempfile
             self._tmp = tempfile.mkdtemp(prefix="c_stage3_preview_")
         return self._tmp
-    @staticmethod
-    def _preview_ready(design):
+    def _preview_ready(self, design):
+        self.candidate_phase = "REVIEW"
         _log(f"[CALLER] PREVIEW_READY (assumed) candidate v{design['design_version']} blocks {len(design['blocks'])}")
 
     # ---- C public API 호출 ----------------------------------------------------------------------------------------
@@ -356,12 +398,20 @@ class FakeDCaller:
         self._preview_ready(envelope["design"])
         return True
 
-    def review(self, kind):
-        """MODIFY인 동안 review를 다시 부른다(최대 MAX_REVIEWS). APPROVE면 approved 채택 후 True."""
+    def review(self, kind, extra=None):
+        """MODIFY인 동안 review를 다시 부른다(최대 MAX_REVIEWS). APPROVE면 approved 채택 후 True.
+
+        extra(Wave 5): kind="revised"의 Difference 대신 넘길 입력(differences=[], change_reason, planning_failure).
+        review는 PREVIEW_READY 뒤(candidate_phase "REVIEW")에만 부르고, APPROVE는 표시한 후보와 같은 design일 때만 채택한다.
+        """
         revised_inputs = {}
         if kind == "revised":
             revised_inputs = {"previous_design": self.approved, "current": self.current, "differences": self.differences}
+            if extra:
+                revised_inputs.update(extra)
         for _ in range(MAX_REVIEWS):
+            if self.candidate_phase != "REVIEW":
+                raise RuntimeError(f"review called before PREVIEW_READY (candidate_phase={self.candidate_phase})")
             go, answer = self._slot("review_design_candidate")
             if not go:
                 return False
@@ -377,8 +427,12 @@ class FakeDCaller:
                 return False
             hri = envelope["hri_result"]
             if hri == dialogue.APPROVE:
+                if envelope["design"] != design:
+                    _log("[CALLER] APPROVE response does not match the displayed candidate → refused (stale)")
+                    return False
                 self.approved = deepcopy(envelope["design"])
                 self.candidate = (envelope["design"], envelope["design_metadata"])
+                self.candidate_phase = None
                 _log(f"[CALLER] adopt approved v{self.approved['design_version']} blocks {len(self.approved['blocks'])}")
                 return True
             if hri != dialogue.MODIFY:
@@ -430,8 +484,86 @@ class FakeDCaller:
         self.approved = deepcopy(self.candidate[0])
         _log(f"[CALLER] approved (assumed for intervention scenario) v{self.approved['design_version']}")
 
+    # ---- Wave 5: A Planning failure → C design-change HRI → Candidate → Preview → APPROVE → A Replan -------------
+    def plan_failure(self, blocked_block=False):
+        """D 역할: Approved v1 + Current로 실제 A를 부르고, NO_FEASIBLE_ORDER면 Robot HOLD 뒤 C run_design_change를 부른다.
 
-def run_scenario(caller, scenario):
+        True면 REVISE 후보가 PREVIEW_READY까지 갔다(다음은 review("revised", extra=...)). KEEP/UNCLEAR/실패는 HOLD로 끝난다.
+        """
+        self.approved = _fixture("approved_design.json")
+        self.current = _fixture("current_prefix.json")
+        self.differences = []
+        _log(f"[CALLER] approved v{self.approved['design_version']} blocks {len(self.approved['blocks'])} · "
+             f"Current {len(self.current)} blocks (Wave 1 fixture)")
+        first = a_whole_plan(self.approved, self.current, generation=1)
+        self.planning["first"] = first
+        _log(f"[A] handle_whole_plan → {first['calculation_status']} plan={first['plan_status']} steps={first['steps']} "
+             f"execution_allowed={first['execution_allowed']}")
+        injected = [b for b in self.approved["blocks"] if b["layer"] == 4][:1] if blocked_block else []
+        if first["calculation_status"] == "COMPLETED" and first["plan_status"] == "READY":
+            # PR #28(2026-10-12, A complete-order search)부터 이 fixture는 실제 A에서 READY가 된다. HRI 흐름을 시험하려고
+            # Wave 1에 저장한 실제 NO_FEASIBLE_ORDER 결과(fixture)를 D가 받은 것으로 가정해 주입한다(로그에 명시).
+            with open(os.path.join(os.path.dirname(FIXTURE_DIR), "c_plan_failure", "whole_no_feasible_order_real_unpatched.json"),
+                      encoding="utf-8") as handle:
+                stored = json.load(handle)
+            summary = {"calculation_status": stored["calculation_status"], "stage_errors": stored["stage_errors"]}
+            failure = planning_failure_from(summary, injected)
+            self.planning["failure_source"] = "fixture (real A returned READY)"
+            _log("[CALLER] real A returned READY → NO_FEASIBLE_ORDER fixture (Wave 1 stored A result) injected for the HRI test")
+        else:
+            failure = planning_failure_from(first, injected)
+            self.planning["failure_source"] = "real A result"
+        self.state = "HOLD"
+        _log("[CALLER] Robot HOLD (no execution)")
+        self.planning["failure"] = failure
+        _log(f"[CALLER] planning_failure: code={failure['failure_code']} redesign_required={failure['redesign_required']} "
+             f"blocked_blocks={len(failure['blocked_blocks'])}{' (injected: D assumed to know the block)' if injected else ''}")
+        go, answer = self._slot("run_design_change")
+        if not go:
+            return False
+        _log(f"[CALLER] call run_design_change reason=PLANNING_FAILURE planning_failure={failure['failure_code']}")
+        envelope = main.run_design_change(self.approved, self.current, reason="PLANNING_FAILURE", planning_failure=failure,
+                                          text_answers=None if answer is None else [answer],
+                                          on_question=on_question, on_progress=self.progress)
+        self._record("run_design_change", None, envelope, self.approved, revised=envelope["hri_result"] == dialogue.REVISE)
+        self.planning["c_result"] = {"status": envelope["status"], "hri": envelope["hri_result"],
+                                     "error": (envelope["error"] or {}).get("code"), "questions": envelope["questions"]}
+        if envelope["status"] != "OK":
+            _log(f"[CALLER] run_design_change ended with {envelope['status']} → HOLD (Approved·Current 유지, Robot 없음)")
+            return False
+        if envelope["hri_result"] == dialogue.KEEP:
+            _log("[CALLER] KEEP → HOLD: same Design already failed planning, D must not re-plan it (replan_calls stays "
+                 f"{self.replan_calls})")
+            return False
+        if envelope["hri_result"] != dialogue.REVISE or envelope["design"] is None:
+            _log(f"[CALLER] {envelope['hri_result']} → HOLD, no Candidate (C re-asked {max(len(envelope['questions']) - 1, 0)} time(s))")
+            return False
+        self.candidate = (envelope["design"], envelope["design_metadata"])
+        self.candidate_phase = "PREVIEW"
+        _log(f"[CALLER] Revised Candidate v{envelope['design']['design_version']} received (NOT approved; Approved stays "
+             f"v{self.approved['design_version']})")
+        self._preview_ready(envelope["design"])
+        return True
+
+    def replan(self):
+        """APPROVE 뒤에만: 새 Approved로 실제 A를 다시 부른다(read-only, Robot 없음). 결과를 그대로 기록한다."""
+        self.replan_calls += 1
+        result = a_whole_plan(self.approved, self.current, generation=2)
+        self.planning["replan"] = result
+        self.state = "REPLANNED"
+        _log(f"[A] replan handle_whole_plan(approved v{self.approved['design_version']}) → {result['calculation_status']} "
+             f"plan={result['plan_status']} steps={result['steps']} execution_allowed={result['execution_allowed']}")
+        _log(f"[CALLER] STOP: robot_calls={self.robot_calls} replan_calls={self.replan_calls} (Robot not executed)")
+        return result
+
+
+def run_scenario(caller, scenario, blocked_block=False):
+    if scenario == "plan-failure":
+        if caller.plan_failure(blocked_block=blocked_block):
+            extra = {"differences": [], "change_reason": "PLANNING_FAILURE", "planning_failure": caller.planning["failure"]}
+            if caller.review("revised", extra=extra):
+                caller.replan()
+        return
     if not caller.initial() or scenario == "initial":
         return
     if scenario == "intervention":
@@ -466,12 +598,19 @@ def print_summary(caller):
     _log("version sequence: " + json.dumps([row["design_version"] for row in caller.rows]))
     _log("round sequence:   " + json.dumps([row["round"] for row in caller.rows]))
     _log("Current preserved: " + json.dumps([row["current_preserved"] for row in caller.rows]))
+    if caller.planning:
+        first, replan = caller.planning.get("first") or {}, caller.planning.get("replan")
+        _log(f"planning: first A {first.get('calculation_status')} → C {((caller.planning.get('c_result') or {}).get('hri'))} → "
+             f"replan {replan['calculation_status'] + ' plan=' + str(replan['plan_status']) if replan else 'none'} · "
+             f"state {caller.state} · robot_calls {caller.robot_calls} · replan_calls {caller.replan_calls}")
 
 
 def main_cli():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--mode", choices=("text", "fake-voice", "mic"), default="text")
-    parser.add_argument("--scenario", choices=("initial", "review", "intervention", "full"), default="full")
+    parser.add_argument("--scenario", choices=("initial", "review", "intervention", "full", "plan-failure"), default="full")
+    parser.add_argument("--blocked-block", action="store_true",
+                        help="plan-failure: D가 막힌 블록을 알았다고 가정해 fixture의 4층 블록을 planning_failure.blocked_blocks에 넣는다")
     parser.add_argument("--answers", nargs="*", help="시나리오 전체 답(순서대로). 없으면 시나리오별 기본값")
     parser.add_argument("--preference", help="text 모드 LLM Initial 되묻기 답(preference_text, 기본 None)")
     parser.add_argument("--out", help="envelope JSON·summary.json 저장 디렉터리")
@@ -532,7 +671,7 @@ def main_cli():
 
     caller = FakeDCaller(args.mode, feed, args.preference, args.out, args.render, viewer=viewer, app=app)
     try:
-        run_scenario(caller, args.scenario)
+        run_scenario(caller, args.scenario, blocked_block=args.blocked_block)
     finally:
         if viewer is not None:
             viewer.close()
@@ -545,7 +684,9 @@ def main_cli():
                    "version_sequence": [row["design_version"] for row in caller.rows],
                    "round_sequence": [row["round"] for row in caller.rows],
                    "current_preserved_sequence": [row["current_preserved"] for row in caller.rows],
-                   "previews": caller.previews}
+                   "previews": caller.previews,
+                   "planning": caller.planning, "state": caller.state, "robot_calls": caller.robot_calls,
+                   "replan_calls": caller.replan_calls}
         with open(os.path.join(args.out, "summary.json"), "w", encoding="utf-8") as handle:
             json.dump(summary, handle, ensure_ascii=False, indent=2)
         _log(f"saved envelopes and summary.json to {args.out}")

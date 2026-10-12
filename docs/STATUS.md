@@ -89,6 +89,43 @@
 - 실제 최신 B MVP/legacy/calibration/supply 및 로컬 DB/HMI 입력 함수 대조 247 passed, 13.48초, 종료 0. 근거/명령은 발표 폴더 evidence/test_result.md에 기록. 전체 저장소·장치·DB 적재 시험은 실행하지 않았다. 문서 링크·블록·diff를 검사했다. 코드/설정 변경·장치 이동·Git 게시·Drive 업로드/DM 없음.
 - 다음: 본인 선택 이유/정답/제스처 담당 검토, 이미지 시각 QA·원본 자료 묶음, D/Controller 실제 결선·시연 설정과 독립 성능 근거 확인 후 제출.
 
+## 2026-10-12 — C Wave 6 후속: 자연어 수용 표현 APPROVE 보강 + Full Voice HRI E2E harness (`work/siyul-c-remaining`)
+
+- Review 보강(`8d6edfd`): `dialogue.parse_review_response`가 "나쁘지 않아"·"괜찮아"·"이 정도면 됐어" 등 수용 표현을 APPROVE로, 구체적 변경 요구가 섞이면 MODIFY 우선으로 해석(Intervention·Design-Change·Planning failure parser 불변). `SYSTEM_PROMPT_REVIEW`에 같은 의미 추가. 실제 mic 발화 "음... 나쁘진 않은 것 같아"가 UNCLEAR였던 사례. 테스트 `tests/unit/c_design/test_review_acceptance.py`; C 그룹 1134 passed.
+- Harness: `scripts/c_full_voice_hri_e2e.py`(한 번의 lifecycle: Initial → 직접 Design Change → Difference → Planning failure → A Replan, 실제 mic/STT/TTS/Sol, Robot·Camera·DB 없음, 결과 디렉터리에 events.jsonl·envelope 8개·preview PNG 4장·summary.json). 오프라인 검증 `tests/integration/test_c_full_voice_hri_harness.py`. 실행 안내는 handoff §11. 실제 mic 실행은 사용자가 수행(자동 시작 안 함).
+
+## 2026-10-12 — C Wave 6: 최종 회귀·실제 음성·계약 문서 정리 (`work/siyul-c-remaining`, base de59b08)
+
+- 변경: 테스트·문서만(C production diff 0). `tests/unit/c_design/test_final_c_contract.py`(세 모드 intent 최종 표, planning failure 라우팅 10 조합, version chain v1→v2→MODIFY v2/round 1→APPROVE v2→다음 REVISE v3, metadata 유지, schema/validator 상수 불변). CONTRACT·handoff의 "세 함수" 표현을 네 공개 함수(`create_initial_design`·`review_design_candidate`·`run_intervention`·`run_design_change`)로 정정, handoff 시그니처를 코드와 일치시키고 §10 "남은 통합 항목" 추가.
+- 검증: C 그룹(`tests/unit/c_design` 1024 + Stage3 lifecycle/failures/runner_preview/plan_failure + Wave2 relay + relay scenarios) **1096 passed, 0 xfailed, 0 failed**. C 관련 integration 152 passed. D 호환 그룹은 Wave 3 handoff의 D 테스트 1건만 실패(D-owned expectation mismatch, C runtime 정상). compileall·pyflakes(변경 파일) clean, `git diff --check` 0, commit 범위에 키·개인 경로·scratch 경로·debug print 없음.
+- 실제 음성(mic, gpt-6.1-sol, 실제 STT/TTS, Robot 0회) 2회: Planning failure 질문 TTS → 실제 STT 전사 → (주변 무관 발화를 aux LLM이 REVISE로 해석) → Sol Revised Candidate v2(34블록·28블록, validator PASS, Current 보존, facing PASS) → Preview PNG → 검토 질문 TTS까지 실제 동작. 그러나 조작자가 목표 발화("응, 수정해줘"/"좋아, 이대로 해")를 하지 않아 **APPROVE·A Replan 구간은 음성으로 미완료**(검토 UNCLEAR → HOLD, 무한 loop·자동 승인·Robot 없음). 텍스트 모드 Sol 2회는 Wave 5에서 APPROVE·replan까지 완료.
+- 판정: C 내부 결함 0, 테스트 green, facing·planning failure HRI·validator/schema/version/metadata 검증 완료. 단 실제 음성 lifecycle의 APPROVE 구간 미완료로 Wave 6 기준 `C_NOT_READY`(조작자 참여 mic 1회로 전환 가능). 관찰된 위험: 무관한 배경 발화를 aux LLM이 REVISE로 읽어 Sol 생성이 시작될 수 있음(정책 변경은 별도 승인 대상).
+
+## 2026-10-12 — C Wave 5: Planning failure → C 수정 대화 → Candidate → Preview → APPROVE → A Replan 연결 검증 (`work/siyul-c-remaining`)
+
+- 변경: 테스트·스크립트·문서만. `scripts/c_stage3_integration_smoke.py`에 `--scenario plan-failure`(`--blocked-block`)와 D 역할 trace(`plan_failure`/`replan`, `candidate_phase` PREVIEW→REVIEW 가드, stale APPROVE 거절, robot/replan 호출 횟수) 추가. `tests/integration/test_c_stage3_plan_failure.py`(시나리오 1 REVISE→Preview→APPROVE→replan ×2(blocked block 유무), 2 KEEP→HOLD, 3 UNCLEAR 재질문, 4 SEARCH_LIMIT 거절, 5 생성 실패 시 Approved 유지, 6 PREVIEW_READY 전 review 거절·stale APPROVE 거절, 7 STOP/late result). A는 실제 `handle_whole_plan`(read-only, FAKE 설정). C production 변경 없음.
+- 검증: 실제 gpt-6.1-sol 텍스트 모드 2회(blocked block 없음/있음) — NO_FEASIBLE_ORDER → C 자연어 질문 → REVISE → Candidate v2(validator PASS·Current 보존) → Preview PNG → review APPROVE → Approved v2 → replan 결과 기록(수치는 Wave 5 보고). 회귀 수치는 Wave 5 보고 참조. Robot/Camera/DB 미실행.
+- 미검증·한계: Revised Candidate(38블록)의 replan은 A `SEARCH_LIMIT`로 끝남(A fallback 정책 필요, D/A handoff). 실제 mic/TTS smoke 결과는 Wave 5 보고에 별도 기록. D 테스트 1건 실패는 Wave 3 handoff 그대로.
+
+## 2026-10-12 — C Wave 4: A Planning failure → C Design-Change HRI/TTS (`work/siyul-c-remaining`)
+
+- 변경: `app/c_design/{main,dialogue,llm,validator}.py`. `run_design_change(..., planning_failure=None)`(선택 인자, `inspection_context`와 분리)·`review_design_candidate(..., planning_failure=None)`. `validator.check_planning_failure`(형식), `main.REDESIGN_FAILURE_CODES = ("NO_FEASIBLE_ORDER",)`로 `redesign_required` true + 허용 코드일 때만 질문, 아니면 질문·TTS 없이 `FAILED / PLANNING_FAILURE_NOT_REDESIGN`. `dialogue.build_plan_failure_question`(코드·detail 미노출, 막힌 블록은 위치·층만), `llm.planning_failure_change_request`(생성 메시지용 짧은 요약)·`planning_failure_summary`(LLM 해석 payload 별도 키). Design-Change 질문은 한글 문장 reason만 읽음(`str(errors)` 차단). Design-Change parser는 앞머리 예/아니요를 떼고(표에 세지 않음) "기존설계"를 KEEP에 추가. 기존 `ask()`/`next_reply()`/TTS/STT 흐름 재사용, 새 public 함수·enum·schema 없음. CONTRACT §4.6·§10, handoff §3c(D 라우팅·KEEP→HOLD·A blocked block).
+- 검증: 신규 `tests/unit/c_design/test_plan_failure.py`(라우팅·형식·질문·intent·REVISE v2/Current/facing/metadata·KEEP·voice mock). Wave 1 xfail(`test_plan_failure_question_should_not_read_machine_codes`) → PASS, known xfail 0. 회귀 수치는 Wave 4 보고 참조. 실제 LLM/TTS/STT/Robot 미실행.
+- 미검증·handoff: D `mvp_workflow`는 아직 `SEARCH_LIMIT`도 C로 보내고 KEEP이면 같은 Design을 재계획함(D 수정 필요). A `WholePlanResult`에 막힌 블록 없음(A 제안). D 테스트 1건 실패는 Wave 3 handoff 그대로.
+
+## 2026-10-12 — C Wave 2: canonical facing(정면 +X·등받이 low-x)을 생성 prompt 공통 적용 (`work/siyul-c-remaining`)
+
+- 변경: `app/c_design/llm.py`만. `_FACING_RULE` 상수 하나를 `SYSTEM_PROMPT_INITIAL`(`_BUILD_HINTS` 뒤)·`SYSTEM_PROMPT_REVISED`(`_EXPRESSIVE_HINTS` 앞)가 공유하고, `_REVISED_PRIORITIES`에 "Current가 허용하는 범위에서 facing 유지, Current를 옮기거나 돌리지 않고 Current가 다른 방향을 고정하면 그 방향을 따른다" 한 줄 추가(Difference·Design-Change 두 Revised 메시지 변형이 공유). validator·schema·designer·dialogue·main 변경 없음. CONTRACT §8.8·§8.9 facing 행 추가. 테스트 `tests/unit/c_design/test_facing_prompt.py`.
+- 검증(gpt-6.1-sol 실제, 텍스트 모드, production retry): Initial 5/5 facing PASS·validator PASS(loveseat·안락의자×2·park bench·평상형 긴 의자). Initial MODIFY 3/3 validator PASS·v1 유지·round 1(facing PASS 2, UNDEFINED 1 = 팔걸이 추가로 helper 중심 휴리스틱이 중립, 이미지상 등받이 low-x). Difference REVISE 3/3 Current 보존·v2·validator PASS(PASS 1, UNDEFINED 1 = 같은 helper 한계, 거울 fixture는 FOLLOWS_CURRENT). 직접 Design Change 3/3 REVISE·v2·Current 보존·facing PASS. C 그룹 1017 passed / 1 xfailed(Wave 4용). 결과 PNG·envelope는 scratch(저장소 밖).
+- 미검증·한계: 이번 요청("편안한 침대 같은 느낌의 의자")에서는 등받이 없는 family가 나오지 않아 "불필요한 등받이 추가 없음"은 규칙 문구로만 보장. STT/TTS·Robot 미실행. D 테스트 1건 실패는 Wave 3 handoff 그대로.
+
+## 2026-10-12 — C Wave 3: 직접 Design Change intent 분리·REVISE Candidate 생성 복구 (`work/siyul-c-remaining`, base de59b08)
+
+- 변경: `app/c_design/{dialogue,llm,main,designer,validator}.py`. `run_design_change`가 Intervention과 별도 질문·규칙 표·LLM 프롬프트(`SYSTEM_PROMPT_DESIGN_CHANGE_ANSWER`)·입력 검사(`validator.check_design_change_input`, 규칙 동일)·Revised 메시지(`change_request`)를 쓰고 `on_progress`를 받는다. "수정할게요" → REVISE, "그대로 갈게"·"바꾸지 마" → KEEP. REVISE가 빈 differences 때문에 escalation/FAILED로 끝나던 결함(de59b08) 수정. Difference Intervention 표·프롬프트·호출 인자는 변경 없음. CONTRACT §4.6, D handoff §3b 추가.
+- 검증: Wave 1 characterization xfail 3 → PASS, Wave 4용 xfail 1 유지. 신규 `tests/unit/c_design/test_design_change.py`. C 그룹·D MVP 테스트 결과는 Wave 3 보고 참조. 실제 LLM/STT/TTS/Robot 미실행.
+- 미검증·handoff: D `tests/unit/test_mvp_workflow.py::test_inspection_context_keeps_expected_and_unknown_regions_for_c`는 규칙 KEEP으로 LLM 대체가 안 불려 실패(D 수정 필요, handoff 표). MVP Review `design_metadata` 미전달은 D 범위. Facing rule·Planning failure HRI는 다음 Wave.
+
+
 ## 2026-10-12 — ms-02 현재 시험 소스와 PR24 이후 통합 업데이트
 
 - 기준: PR #24 merge `8914320`; 별도 `codex/current-runtime-update-20261012`. 원래 실행 폴더의 브랜치 전환/덮어쓰기 없음. 원본 544개 파일을 보존 ZIP과 SHA256으로 재확인했으며 변경 0개. 웹 자산은 별도 백업. 게시·PR 상태는 실제 GitHub 결과를 기준으로 확인한다.

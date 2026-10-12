@@ -317,8 +317,12 @@ def _finish(text, votes, ambiguous, allowed, llm_fallback):
     return UNCLEAR
 
 
-def _resolve(text, number_map, phrase_map, llm_fallback, use_lead=False, negated_keep=()):
-    """공유 Rule 파이프라인: 말고 → 취소 → 숫자 호환 → 예/아니요 → 부정된 의도 → 구문 → fallback."""
+def _resolve(text, number_map, phrase_map, llm_fallback, use_lead=False, negated_keep=(), strip_lead=False):
+    """공유 Rule 파이프라인: 말고 → 취소 → 숫자 호환 → 예/아니요 → 부정된 의도 → 구문 → fallback.
+
+    use_lead는 앞머리 예/아니요를 표로 세고, strip_lead(Wave 4, Design Change)는 앞머리만 떼어내고 세지 않는다
+    (두 선택 질문이라 "네"만으로는 정하지 않되 "아니, 기존 설계로 할래"의 "아니"가 부정 표지로 뒤 구문을 흐리지 않게).
+    """
     working = (text or "").strip()
     if "말고" in working:
         # "A 말고 B": A는 취소된 선택이므로 B만 해석한다.
@@ -337,9 +341,9 @@ def _resolve(text, number_map, phrase_map, llm_fallback, use_lead=False, negated
         return _finish(text, numbers, _has_negation(norm), allowed, None)
 
     votes = set()
-    if use_lead:
+    if use_lead or strip_lead:
         lead, working = _split_lead(working)
-        if lead is not None:
+        if lead is not None and use_lead:
             votes.add(lead)
         norm = _normalize(working)
     for phrase in negated_keep:
@@ -476,9 +480,16 @@ _REVIEW_CANCEL_PHRASES = _CANCEL_PHRASES + ("그만할래", "안만들래", "작
 _REVIEW_PHRASES = {
     APPROVE: ("이걸로", "마음에들", "그대로진행", "이대로진행", "좋아이걸로", "괜찮아이걸로", "이거로하자"),
     MODIFY: ("바꿔", "바꾸", "다시만들", "다른느낌", "다른모양", "다른걸로", "다른것", "말고", "수정",
-             "더높", "더길", "더넓", "더화려", "더단순", "조금더", "좀더"),
+             "더높", "더길", "더넓", "더화려", "더단순", "조금더", "좀더",
+             # Wave 6(2026-10-12): 긍정 표현 뒤에 붙는 구체적 변경 요구("괜찮은데 팔걸이를 추가해줘")
+             "높여", "높게", "낮춰", "낮게", "넓혀", "넓게", "좁게", "줄여", "늘려", "추가", "빼줘", "없애"),
 }
 _REVIEW_APPROVE_WHOLE = ("좋아", "좋아요", "좋습니다", "좋네요", "네좋아요", "응좋아")  # 답변 전체일 때만
+# Wave 6(2026-10-12, 실제 mic E2E "음... 나쁘진 않은 것 같아"가 UNCLEAR였던 사례): 자연스러운 수용 표현은 구체적인 변경
+# 요구가 없으면 APPROVE다. "나쁘지 않아"의 "않"은 수용 표현의 일부이므로 구문을 먼저 지우고 나서 부정 표지를 본다.
+_REVIEW_ACCEPT_PHRASES = ("나쁘지않", "나쁘진않", "괜찮", "이정도면", "진행해", "좋은것같", "좋은거같", "만족")
+# 수용 표현이 있어도 망설임·되물음이 섞이면 APPROVE로 정하지 않는다("나쁘진 않은데 뭔가...", "괜찮은 건가?").
+_REVIEW_HEDGE_PHRASES = ("뭔가", "애매", "아쉬", "글쎄", "모르겠", "건가", "걸까", "일까", "인가", "긴한데", "긴해")
 
 
 def build_review_question(kind):
@@ -494,17 +505,32 @@ def build_review_reask():
 def parse_review_response(text, llm_fallback=None):
     """Preview 검토 답변 → APPROVE / MODIFY / UNCLEAR / CANCEL(Intervention의 KEEP/REVISE와 별개).
 
-    정규화 → 취소(부정 없음) → 짧은 긍정 답 전체 → APPROVE·MODIFY 구문(부정이 섞이면 애매) → 두 부류·무일치·애매면
-    llm_fallback(text)(네 값 밖은 UNCLEAR) → UNCLEAR.
+    정규화 → 취소(부정 없음) → 짧은 긍정 답 전체 → 수용 표현("나쁘지 않아"·"괜찮아"·"이 정도면 됐어")을 떼어 APPROVE 표로
+    세고 → MODIFY 구문(부정 없음)이 있으면 **MODIFY 우선**(구체적 변경 요구가 긍정 표현을 이긴다) → 수용/APPROVE 구문만 있고
+    망설임·되물음·부정이 없으면 APPROVE → 그 밖(두 부류 부정 섞임·무일치·망설임)은 llm_fallback(text)(네 값 밖은 UNCLEAR)
+    → UNCLEAR. (Wave 6, 2026-10-12)
     """
-    norm = _normalize(text or "")
+    raw = text or ""
+    norm = _normalize(raw)
     allowed = {APPROVE, MODIFY, UNCLEAR, CANCEL}
     if any(phrase in norm for phrase in _REVIEW_CANCEL_PHRASES) and not _has_negation(norm):
         return CANCEL
     if norm in _REVIEW_APPROVE_WHOLE:
         return APPROVE
-    votes, negated = _phrase_votes(norm, _REVIEW_PHRASES)
-    return _finish(text, votes, negated, allowed, llm_fallback)
+    accepted = False
+    for phrase in _REVIEW_ACCEPT_PHRASES:
+        if phrase in norm:
+            accepted = True
+            norm = norm.replace(phrase, "")
+    matched = {value for value, phrases in _REVIEW_PHRASES.items() if any(p in norm for p in phrases)}
+    negated = _has_negation(norm)
+    hedged = "?" in raw or any(p in norm for p in _REVIEW_HEDGE_PHRASES)
+    if MODIFY in matched and not negated:
+        return MODIFY  # "나쁘진 않은데 등받이를 높여줘": 구체적 변경 요구가 우선
+    if (accepted or APPROVE in matched) and MODIFY not in matched and not negated and not hedged:
+        return APPROVE
+    votes = matched | ({APPROVE} if accepted else set())
+    return _finish(text, votes, negated or hedged or len(votes) != 1, allowed, llm_fallback)
 
 
 REASK_LEAD = (
@@ -516,6 +542,107 @@ REASK_LEAD = (
 def build_reask(question):
     """불명확 답변 시 자연스럽게 다시 묻고(키워드·번호 안내 없음) 전체 질문을 다시 낸다(§4.2)."""
     return "\n".join([REASK_LEAD, question])
+
+
+# ---------------------------------------------------------------------------
+# Direct Design Change (Wave 3, 2026-10-12): Difference 없이 "채택 Design 자체를 바꿀지"를 묻는다.
+# Intervention(parse_response)과 뜻이 다르므로 표·질문·확인 문장을 따로 둔다: 여기서 KEEP = Approved Design 그대로,
+# REVISE = Design 변경 요청. Intervention 표의 "수정할게·고칠게"(블록 되돌리기 = KEEP)·"이대로·지금 상태"(배치 살리기 = REVISE)는
+# 이 표에서 각각 REVISE·KEEP이다. 두 표를 섞지 않는다(§4.6).
+# ---------------------------------------------------------------------------
+
+DESIGN_CHANGE_QUESTION = "현재 설계를 그대로 둘까요, 아니면 새 설계로 바꿀까요? 바꾸고 싶은 부분이 있으면 말씀해 주세요."
+DESIGN_CHANGE_REASK_LEAD = (
+    "제가 잘 못 알아들었어요. 지금 설계를 그대로 둘지, 바꿀지 말씀해 주세요. "
+    "바꾸고 싶은 부분이 있으면 함께 말씀해 주셔도 돼요."
+)
+# 호출자(D)가 준 reason은 한글 문장일 때만 읽는다. "USER_DESIGN_CHANGE" 같은 식별자나 "[{'code': …}]" 같은 A 오류 문자열
+# (Wave 4: D가 str(errors)를 reason으로 넘기는 경우)은 질문에 넣지 않는다.
+_HANGUL_RE = re.compile(r"[가-힣]")
+
+_DESIGN_CHANGE_PHRASES = {
+    REVISE: (
+        "수정", "바꿔", "바꾸", "바꿀", "변경", "새설계", "새로", "다시만들", "다시설계", "반영",
+        "높여", "높게", "낮춰", "낮게", "넓혀", "넓게", "줄여", "늘려", "추가", "빼줘", "없애",
+        "다른걸로", "다른느낌", "다른모양",
+    ),
+    KEEP: ("그대로", "유지", "원래설계", "원래대로", "지금설계", "현재설계", "기존설계", "이대로", "놔둬", "놔두", "냅둬"),
+}
+# 부정형은 그 자체로 KEEP이며 구문 일치 전에 지운다("수정하지 마"가 "수정"으로 REVISE가 되지 않게).
+_DESIGN_CHANGE_NEGATED_PHRASES = (
+    "바꾸지마", "바꾸지말", "바꾸지않", "수정하지마", "수정하지말", "수정하지않", "고치지마", "고치지말", "고치지않",
+    "변경하지마", "변경하지말", "변경하지않", "안바꿀", "안바꿔", "안바꾸", "안고칠", "안고쳐",
+)
+
+DESIGN_CHANGE_KEEP_ACKS = (
+    "네, 지금 설계 그대로 진행할게요.",
+    "알겠습니다. 현재 설계를 그대로 두고 이어서 진행할게요.",
+    "좋아요. 설계는 바꾸지 않고 그대로 갈게요.",
+)
+DESIGN_CHANGE_REVISE_ACKS = (
+    "알겠습니다. 이미 조립된 부분은 그대로 두고 새 설계를 만들어볼게요.",
+    "좋아요. 지금까지 쌓은 블록은 살리고 설계를 새로 만들어볼게요.",
+    "네, 조립된 블록은 그대로 두고 디자인을 다시 만들어볼게요.",
+)
+
+
+def build_design_change_question(reason=None):
+    """Direct Design Change 질문(§4.6, 번호·선택지 없음). reason이 한글 문장이면 그 줄을 앞에 둔다(코드·오류 문자열은 제외)."""
+    lines = []
+    if isinstance(reason, str) and reason.strip() and _HANGUL_RE.search(reason):
+        lines.append(reason.strip())
+    lines.append(DESIGN_CHANGE_QUESTION)
+    return "\n".join(lines)
+
+
+# A Planning failure 질문(Wave 4, §4.6): 기계 코드·raw detail은 읽지 않고 설명 1문장 + 현재 상태 1문장 + 선택 1문장.
+PLAN_FAILURE_GENERAL = "현재 설계는 로봇이 조립할 수 있는 순서를 만들지 못했어요."
+PLAN_FAILURE_CONSEQUENCE = "그대로 두면 현재 설계로는 로봇 조립을 진행할 수 없어요."
+PLAN_FAILURE_CHOICE_BLOCKED = "그 부분을 조금 바꿔서 다시 설계할까요, 아니면 현재 설계 그대로 멈출까요?"
+PLAN_FAILURE_CHOICE_GENERAL = "일부를 바꿔서 다시 설계할까요, 아니면 현재 설계 그대로 멈출까요?"
+PLAN_FAILURE_MAX_SPOKEN_BLOCKS = 2  # 그 이상은 "등"으로 줄여 음성으로 듣기 쉽게 한다
+
+
+def build_plan_failure_question(planning_failure):
+    """A Planning failure(설계 수정으로 풀 수 있는 실패) 질문. blocked_blocks가 있으면 위치·층으로만 가리킨다(§5.2 표현,
+    등받이·팔걸이 같은 의미 이름은 A가 주지 않으므로 붙이지 않는다). failure_code·detail은 읽지 않는다."""
+    blocks = planning_failure.get("blocked_blocks") or []
+    if blocks:
+        spoken = [_location_label(block) for block in blocks[:PLAN_FAILURE_MAX_SPOKEN_BLOCKS]]
+        where = ", ".join(spoken) + (" 등" if len(blocks) > len(spoken) else "")
+        first = f"{where}은 로봇이 조립할 수 있는 순서를 찾지 못했어요."
+        choice = PLAN_FAILURE_CHOICE_BLOCKED
+    else:
+        first, choice = PLAN_FAILURE_GENERAL, PLAN_FAILURE_CHOICE_GENERAL
+    return "\n".join([first, PLAN_FAILURE_CONSEQUENCE, choice])
+
+
+def build_design_change_reask(question):
+    """불명확 답변 시 두 선택(그대로 / 바꾸기)을 다시 말하고 전체 질문을 다시 낸다."""
+    return "\n".join([DESIGN_CHANGE_REASK_LEAD, question])
+
+
+def parse_design_change_response(text, llm_fallback=None):
+    """Direct Design Change 답변 → KEEP / REVISE / UNCLEAR / CANCEL (Intervention 표를 쓰지 않는다).
+
+    KEEP = Approved Design 그대로, REVISE = Design을 바꾸고 싶음. 질문이 두 선택을 주므로 "네"·"아니"만으로는 정하지
+    않는다(앞머리 예/아니요 없음 → UNCLEAR 또는 LLM). "1번"·"2번"은 D 흐름 호환으로 KEEP·REVISE. 부정형
+    ("바꾸지 마"·"안 바꿀게")은 KEEP으로 먼저 처리한다.
+    """
+    return _resolve(text, OPTIONS, _DESIGN_CHANGE_PHRASES, llm_fallback,
+                    use_lead=False, negated_keep=_DESIGN_CHANGE_NEGATED_PHRASES, strip_lead=True)
+
+
+def design_change_keep_ack():
+    """KEEP(설계 그대로) 확인 문장. Intervention의 keep_ack("원래 자리로 고쳐 주시면")와 다르다."""
+    return _pick(DESIGN_CHANGE_KEEP_ACKS)
+
+
+def design_change_revise_ack_fallback(style_hint=None):
+    """REVISE 확인 문장(LLM 되읽기가 없을 때). style_hint가 있으면 그 바람을 넣는다."""
+    if isinstance(style_hint, str) and style_hint.strip():
+        return _pick(REVISE_HINT_ACKS).format(hint=style_hint.strip())
+    return _pick(DESIGN_CHANGE_REVISE_ACKS)
 
 
 def escalation_question(differences):

@@ -27,6 +27,11 @@
     - 진행 표시(Stage 2 Wave 4c): 두 공개 함수의 on_progress(선택)로 단계 이벤트 {stage, message, at}(PROGRESS_STAGES)를
       보내고, Design 생성 전에 항상 확인(ack) 한 문장(해석 reply 또는 dialogue fallback, KEEP은 keep_ack)을 낸다.
       LLM 음성 모드에서만 ack와 dialogue.PROGRESS_TTS_STAGES 문장을 읽는다. 진행은 envelope·Design에 넣지 않는다.
+    - run_design_change(PR #26 → Wave 3, 2026-10-12): Difference 없는 직접 Design Change. _intervention을 "design_change"
+      모드로 공유한다: 질문 dialogue.build_design_change_question, 해석 dialogue.parse_design_change_response +
+      llm.interpret_design_change_answer(Intervention 표·프롬프트와 별개: KEEP = 채택 Design 그대로, REVISE = Design 변경),
+      입력 검사 validator.check_design_change_input, Revised 생성은 differences=[]로 designer(design_change=True)와
+      llm.generate_revised_design(change_request=reason). 응답 턴·escalation·judge·version(+1)·metadata는 REVISE와 같다.
     - 텍스트 모드(text / text_answers)는 Fake Voice로 쓰인다.
     - 음성 모드: voice.speak(질문) 재생이 끝난 뒤 voice.listen()으로 응답을 받는다(WAVE 6).
       listen()이 None(장치·STT 실패)이면 VOICE_IO_FAILED, ""(침묵)이면 계속 기다린다.
@@ -73,6 +78,10 @@ _JUDGE_REQUIRED = {
 }
 _HUMAN_STORY_KEYS = ("placed_differently", "interpretation", "imagined_concept", "lego_redesign", "why_final_shape")
 _MOCK_NAME, _MOCK_FAMILY, _MOCK_SUMMARY = "Mock 의자", "chair", "Mock 고정 설계(LLM 미사용)"
+# A Planning failure 중 C가 사용자에게 설계 변경을 물어도 되는 코드(Wave 4, CONTRACT §4.6 routing). SEARCH_LIMIT(탐색 한도)·
+# CURRENT_MISMATCH(B/D Current)·INVALID_CONTEXT/INPUTS_REQUIRED/INVALID(계약)·CALCULATION_ERROR(A 내부)·Robot/공급 문제는 설계
+# 문제가 아니므로 redesign_required가 True여도 질문을 시작하지 않고 PLANNING_FAILURE_NOT_REDESIGN으로 돌려준다.
+REDESIGN_FAILURE_CODES = ("NO_FEASIBLE_ORDER",)
 
 
 # next_reply가 침묵 대기 중 STOP을 만났다는 표시(정상 응답 문자열·None과 구분).
@@ -305,15 +314,23 @@ def _family_choice(request, error):
             "concept": style_hint if mode == "CREATIVE" else None, "error": error}
 
 
-def _revised_builder(approved, current, differences, make_generate, min_blocks, should_stop, differ_from=None):
+def _change_request(change_reason, planning_failure):
+    """Revised 생성 메시지에 넣을 변경 요청: planning failure면 C가 만든 요약(Wave 4), 아니면 호출자의 reason."""
+    return llm.planning_failure_change_request(planning_failure) if planning_failure is not None else change_reason
+
+
+def _revised_builder(approved, current, differences, make_generate, min_blocks, should_stop, differ_from=None,
+                     design_change=False):
     """approved(Revised 버전 기준 Design)·Current를 보존하는 Revised 후보 생성 함수 build(max_attempts, feedback=None).
 
     differ_from은 검토 MODIFY 재생성의 직전 후보(같은 블록이면 designer가 탈락시켜 다시 만든다).
+    design_change(Wave 3)는 직접 Design Change(Difference 없음)라는 뜻이며 designer의 입력 검사만 바꾼다.
     """
     def build(max_attempts, feedback=None):
         return designer.build_revised_design(
             approved, current, differences, generate=make_generate(feedback), max_attempts=max_attempts,
             delay=designer.RETRY_DELAY, should_stop=should_stop, min_blocks=min_blocks, differ_from=differ_from,
+            design_change=design_change,
         )
     return build
 
@@ -520,18 +537,44 @@ def run_intervention(design, current, differences, text_answers=None, on_questio
                                                progress, inspection_context=inspection_context))
 
 
-def run_design_change(design, current, *, reason, text_answers=None, on_question=None, should_stop=None, inspection_context=None):
-    """사용자의 변경 요청/계산 보류. 관측 차이를 만들어서 기존 API에 넣지 않는다."""
+def run_design_change(design, current, *, reason, text_answers=None, on_question=None, should_stop=None, on_progress=None,
+                      inspection_context=None, planning_failure=None):
+    """직접 Design Change (§4.6, PR #26 → Wave 3): Difference 없이 채택 Design을 바꿀지 묻고, REVISE면 Current를 보존한
+    Revised Candidate를 만든다. 관측 차이를 만들어서 run_intervention에 넣지 않는다.
+
+    reason: 호출자(D)가 준 변경 사유(비어 있지 않은 str, 예: "USER_DESIGN_CHANGE" 또는 문장). 질문 문장은 C가 만든다
+    (dialogue.build_design_change_question: 한글 문장만 읽고 코드·오류 문자열은 읽지 않음). KEEP/REVISE 해석은 Intervention과
+    별도 표·프롬프트다. on_progress: §4.1·§4.2와 같은 진행 이벤트(Revised 단계 이름 동일). inspection_context: D의 B 검사 문맥
+    (LLM 해석 context에만 쓰임).
+    planning_failure(Wave 4): A Planning 실패 문맥 {failure_code, redesign_required, retryable?, blocked_blocks?, detail?}
+    (validator.check_planning_failure). inspection_context와 섞지 않는다. 주어지면 질문은 dialogue.build_plan_failure_question
+    (코드·detail을 읽지 않음)이고 Revised 생성에는 llm.planning_failure_change_request가 들어간다. redesign_required가 True가
+    아니거나 failure_code가 REDESIGN_FAILURE_CODES 밖이면 질문·TTS 없이 FAILED / PLANNING_FAILURE_NOT_REDESIGN.
+    KEEP은 채택 Design 그대로를 뜻하며 C는 A를 다시 부르지 않는다(같은 Design의 Plan은 이미 실패했으므로 D는 HOLD).
+    """
     if not isinstance(reason, str) or not reason.strip():
         return _result('FAILED', code='INVALID_INPUT', message='change reason required')
-    progress = _reporter(None, text_answers is None and _use_llm())
+    if planning_failure is not None:
+        reasons = validator.check_planning_failure(planning_failure)
+        if reasons:
+            return _result("FAILED", code="INVALID_INPUT", message="invalid planning_failure", details=reasons)
+        code = planning_failure["failure_code"]
+        if planning_failure["redesign_required"] is not True or code not in REDESIGN_FAILURE_CODES:
+            return _result("FAILED", code="PLANNING_FAILURE_NOT_REDESIGN",
+                           message=f"planning failure {code} (redesign_required={planning_failure['redesign_required']}) is not "
+                                   f"a design-change request; C asked nothing")
+    progress = _reporter(on_progress, text_answers is None and _use_llm())
     return _report_end(progress, _intervention(design, current, [], text_answers, on_question,
-        should_stop, progress, change_reason=reason, inspection_context=inspection_context))
+        should_stop, progress, change_reason=reason, inspection_context=inspection_context, planning_failure=planning_failure))
 
 
-def _intervention(design, current, differences, text_answers, on_question, should_stop, progress, change_reason=None, inspection_context=None):
-    reasons = (list(validator.validate_design(design)) + validator._check_current(current)
-               if change_reason is not None else validator.check_intervention_input(design, current, differences))
+def _intervention(design, current, differences, text_answers, on_question, should_stop, progress, change_reason=None, inspection_context=None,
+                  planning_failure=None):
+    # 두 모드(Wave 3): change_reason이 있으면 직접 Design Change(질문·parser·LLM 해석·입력 검사·Revised 메시지가 다름),
+    # 없으면 Difference Intervention(기존 그대로). 응답 턴·escalation·Revised 생성 loop·judge는 공유한다.
+    design_change = change_reason is not None
+    reasons = (validator.check_design_change_input(design, current) if design_change
+               else validator.check_intervention_input(design, current, differences))
     if reasons:
         return _result("FAILED", code="INVALID_INPUT", message="invalid intervention input", details=reasons)
 
@@ -600,9 +643,13 @@ def _intervention(design, current, differences, text_answers, on_question, shoul
     def ask_answer_llm(text):
         """llm 답변 해석 1회. 쓸 수 있는 dict 또는 None(STOP이면 state["stopped"], 실패·키 누락이면 그냥 None)."""
         state["interpreted"] = True
-        context = dict(inspection_context or {}, change_reason=change_reason) if inspection_context is not None or change_reason is not None else None
-        extra = {"context":deepcopy(context)} if context is not None else {}
-        answer = llm.interpret_intervention_answer(text, differences, should_stop=should_stop, **extra)
+        if design_change:
+            failure_kwargs = {"planning_failure": deepcopy(planning_failure)} if planning_failure is not None else {}
+            answer = llm.interpret_design_change_answer(text, change_reason, should_stop=should_stop,
+                                                       context=deepcopy(inspection_context), **failure_kwargs)
+        else:
+            extra = {"context": deepcopy(inspection_context)} if inspection_context is not None else {}
+            answer = llm.interpret_intervention_answer(text, differences, should_stop=should_stop, **extra)
         kind = _llm_error_kind(answer)
         if kind == "stopped":
             state["stopped"] = True
@@ -631,10 +678,13 @@ def _intervention(design, current, differences, text_answers, on_question, shoul
 
     def keep():
         if use_llm:
-            progress("KEEP_ACK", dialogue.keep_ack(), say=True)
+            progress("KEEP_ACK", dialogue.design_change_keep_ack() if design_change else dialogue.keep_ack(), say=True)
         return _result("OK", dialogue.KEEP, design, questions)
 
     note_attempt = _attempt_logger(progress)
+    # Design Change만 변경 요청 문장을 Revised 메시지에 넣는다(Intervention 호출 인자는 Wave 3 이전과 동일).
+    # Planning failure(Wave 4)는 raw reason 대신 C가 만든 짧은 change request를 넣는다.
+    change_kwargs = {"change_request": _change_request(change_reason, planning_failure)} if design_change else {}
 
     def make_generate(feedback=None):
         if not use_llm:
@@ -643,10 +693,12 @@ def _intervention(design, current, differences, text_answers, on_question, shoul
         def generate(design, current, differences, reasons):
             note_attempt(reasons)
             return llm.generate_revised_design(design, current, differences, reasons, should_stop=should_stop,
-                                               feedback=feedback, min_blocks=min_blocks, style_hint=state["style_hint"])
+                                               feedback=feedback, min_blocks=min_blocks, style_hint=state["style_hint"],
+                                               **change_kwargs)
         return generate
 
-    build = _revised_builder(design, current, differences, make_generate, min_blocks, should_stop)
+    build = _revised_builder(design, current, differences, make_generate, min_blocks, should_stop,
+                             design_change=design_change)
 
     def finish(result):
         return _finish_revised(result, approved=design, current=current, differences=differences, build=build,
@@ -659,7 +711,8 @@ def _intervention(design, current, differences, text_answers, on_question, shoul
             return escalate(can_redesign=False)
         if use_llm:
             # 생성 전에 항상 확인(ack): 해석 reply(LLM이 REVISE로 해석한 경우) 또는 확인 문장(숫자 답·해석 실패).
-            progress("ACK", state["reply"] or dialogue.revise_ack_fallback(state["style_hint"]), say=True)
+            fallback = dialogue.design_change_revise_ack_fallback if design_change else dialogue.revise_ack_fallback
+            progress("ACK", state["reply"] or fallback(state["style_hint"]), say=True)
         progress("GENERATING_REVISED")
         result = build(FIRST_ATTEMPTS)
         # 설계 성공·STOP·provider 실패는 escalation 대상이 아니다(후보 탈락만 escalation).
@@ -673,8 +726,13 @@ def _intervention(design, current, differences, text_answers, on_question, shoul
         progress("GENERATING_REVISED")
         return finish(build(EXTRA_ATTEMPTS))
 
-    question = (change_reason + '\n현재 설계를 유지할까요, 현재 조립 상태를 보존하며 설계를 수정할까요?'
-                if change_reason is not None else dialogue.build_question(design, current, differences))
+    if design_change:
+        question = (dialogue.build_plan_failure_question(planning_failure) if planning_failure is not None
+                    else dialogue.build_design_change_question(change_reason))
+        parse, reask = dialogue.parse_design_change_response, dialogue.build_design_change_reask
+    else:
+        question = dialogue.build_question(design, current, differences)
+        parse, reask = dialogue.parse_response, dialogue.build_reask
     ask(question)
     while True:
         if stop_requested():
@@ -687,7 +745,7 @@ def _intervention(design, current, differences, text_answers, on_question, shoul
         state["interpreted"], state["reason"] = False, None
         if use_llm:
             progress("UNDERSTANDING")
-        choice = dialogue.parse_response(reply, interpret_answer if use_llm else None)
+        choice = parse(reply, interpret_answer if use_llm else None)
         source = "llm" if state["interpreted"] else "rule"  # decision을 정한 쪽(아래 style_hint 전용 호출과 무관)
         if (use_llm and choice == dialogue.REVISE and not state["interpreted"]
                 and not dialogue.is_number_answer(reply)):
@@ -708,7 +766,7 @@ def _intervention(design, current, differences, text_answers, on_question, shoul
             return _user_cancel(questions)
         if choice == dialogue.REVISE:
             return revise()
-        ask(dialogue.build_reask(question))
+        ask(reask(question))
 
 
 
@@ -717,18 +775,26 @@ REVIEW_SCOPES = llm.REVIEW_SCOPES  # MODIFY 재생성 방식(내부 값, metadat
 
 
 def review_design_candidate(candidate, *, kind, design_metadata=None, previous_design=None, current=None, differences=None,
-                            text_answers=None, on_question=None, should_stop=None, on_progress=None, change_reason=None):
+                            text_answers=None, on_question=None, should_stop=None, on_progress=None, change_reason=None,
+                            planning_failure=None):
     """Preview가 표시된 Candidate Design에 대한 사용자 검토 (§4.4, Stage 3 Wave 1·2). 예외를 밖으로 던지지 않는다(콜백 제외).
 
     kind: "initial" 또는 "revised"(질문 문장·LLM 해석 문맥). design_metadata: 후보의 metadata(복사해 review를 붙여 돌려줌).
     previous_design·current·differences: kind="revised"일 때 필수(Approved Design·Current 블록·Difference, Revised 재생성 기준).
     text_answers: 텍스트 모드 답변(None이면 음성 모드). 결과 hri_result는 APPROVE / MODIFY / UNCLEAR, CANCEL이면 status CANCELLED.
     LLM 모드의 MODIFY는 새 Candidate를 만들어 design에 담는다(Approved 아님, 승인은 다음 검토의 APPROVE·채택은 D).
+    change_reason(PR #26)·planning_failure(Wave 4): 직접 Design Change / Planning failure에서 나온 Revised 후보의 검토. 둘 다
+    MODIFY 재생성의 입력 검사·메시지를 Design-Change 모드로 만들며, planning_failure는 형식 검사만 한다(라우팅 판단은 run_design_change).
     """
     use_llm = _use_llm()
+    if planning_failure is not None:
+        reasons = validator.check_planning_failure(planning_failure)
+        if reasons:
+            return _result("FAILED", code="INVALID_INPUT", message="invalid planning_failure", details=reasons)
     progress = _reporter(on_progress, text_answers is None and use_llm)  # REVIEW_* 단계는 읽지 않고 ack·생성 진행만 읽는다
     return _report_end(progress, _review(candidate, kind, design_metadata, previous_design, current, differences,
-                                         text_answers, on_question, should_stop, progress, use_llm, change_reason))
+                                         text_answers, on_question, should_stop, progress, use_llm, change_reason,
+                                         planning_failure))
 
 
 def _candidate_concept(metadata):
@@ -742,7 +808,7 @@ def _candidate_concept(metadata):
 
 
 def _review(candidate, kind, design_metadata, previous_design, current, differences, text_answers, on_question,
-            should_stop, progress, use_llm, change_reason=None):
+            should_stop, progress, use_llm, change_reason=None, planning_failure=None):
     if kind not in REVIEW_KINDS:
         return _result("FAILED", code="INVALID_INPUT", message=f"kind must be one of {list(REVIEW_KINDS)}")
     reasons = validator.validate_design(candidate)
@@ -754,11 +820,14 @@ def _review(candidate, kind, design_metadata, previous_design, current, differen
         if previous_design is None or current is None or differences is None:
             return _result("FAILED", code="INVALID_INPUT",
                            message="kind 'revised' needs previous_design, current and differences")
-        reasons = (list(validator.validate_design(previous_design))+validator._check_current(current)
-                   if isinstance(change_reason,str) and change_reason.strip() and differences==[] else
-                   validator.check_intervention_input(previous_design, current, differences))
+        # 직접 Design Change의 Revised 후보(Wave 3): Difference가 없으므로 입력 검사·재생성 메시지가 Design-Change 모드다.
+        design_change = isinstance(change_reason, str) and change_reason.strip() != "" and differences == []
+        reasons = (validator.check_design_change_input(previous_design, current) if design_change
+                   else validator.check_intervention_input(previous_design, current, differences))
         if reasons:
             return _result("FAILED", code="INVALID_INPUT", message="invalid revised review input", details=reasons)
+    else:
+        design_change = False
     design = deepcopy(candidate)  # 후보는 읽기 전용: 같은 내용을 새 객체로 돌려준다
     metadata = deepcopy(design_metadata) if design_metadata is not None else {}
     previous_review = metadata.get("review") if isinstance(metadata.get("review"), dict) else {}
@@ -832,17 +901,18 @@ def _review(candidate, kind, design_metadata, previous_design, current, differen
             min_blocks = designer.revised_min_blocks(previous_design)
 
             note_attempt = _attempt_logger(progress)
+            change_kwargs = {"change_request": _change_request(change_reason, planning_failure)} if design_change else {}
 
             def make_generate(feedback=None):
                 def generate(design_, current_, differences_, reasons_):
                     note_attempt(reasons_)
                     return llm.generate_revised_design(design_, current_, differences_, reasons_, should_stop=should_stop,
                                                        feedback=feedback, min_blocks=min_blocks, style_hint=hint,
-                                                       previous_candidate=candidate, scope=scope)
+                                                       previous_candidate=candidate, scope=scope, **change_kwargs)
                 return generate
 
             build = _revised_builder(previous_design, current, differences, make_generate, min_blocks, should_stop,
-                                     differ_from=candidate)
+                                     differ_from=candidate, design_change=design_change)
             progress("GENERATING_REVISED")
             envelope = _finish_revised(build(designer.MAX_ATTEMPTS), approved=previous_design, current=current,
                                        differences=differences, build=build, use_llm=use_llm, should_stop=should_stop,

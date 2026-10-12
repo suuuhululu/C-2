@@ -1,0 +1,34 @@
+{
+ "schema_version": "assembly-ad-calculation-draft/0.5.1",
+ "contract_status": "DRAFT_NOT_FROZEN",
+ "sample_kind": "CALCULATED_FROM_REVIEW_INPUT_NOT_FOR_EXECUTION",
+ "message_type": "WholePlanResult",
+ "context": {
+  "job_id": "fixture-job",
+  "request_id": "fixture-request-whole",
+  "workflow_generation": 1,
+  "source_epoch": "fixture-epoch",
+  "design_version": 1,
+  "input_current_revision": 1,
+  "world_state_revision": 1,
+  "frame_profile_id": "FAKE_MVP_FRAME",
+  "plan_id": null,
+  "step_id": null,
+  "frame_profile_version": "FAKE_1"
+ },
+ "execution_allowed": false,
+ "review_state": "CANDIDATE_FOR_D_REVIEW",
+ "provenance": "ACTUAL_A_FUNCTIONS_LOCAL_ADAPTER_NO_D_RECEIPT",
+ "calculation_status": "SEARCH_LIMIT",
+ "planning_result": null,
+ "action_proposals": [],
+ "stage_errors": [
+  {
+   "code": "SEARCH_LIMIT",
+   "reason": "SEARCH_LIMIT",
+   "block": null
+  }
+ ],
+ "shared_planning_bundle": null,
+ "candidate_id": "candidate-fixture-search_limit"
+}

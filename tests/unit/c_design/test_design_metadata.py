@@ -1284,7 +1284,8 @@ def test_review_missing_scope_defaults_to_patch(candidate, review_llm):
 def test_review_mixed_answer_goes_to_llm_then_regenerates(candidate, review_llm):
     calls, replies = review_llm
     replies["review"] = dict(MODIFY_REPLY, style_hint="조금 더 길게", reply="")
-    result, _ = _review(candidate, "나쁘진 않은데 조금 더 길었으면 좋겠어")
+    # Wave 6: "나쁘진 않은데 …"는 이제 규칙 MODIFY(구체적 변경 우선)이므로 부정이 섞인 혼합 답으로 LLM 경로를 시험한다.
+    result, _ = _review(candidate, "싫은 건 아닌데 조금 더 길었으면 좋겠어")
     review = result["design_metadata"]["review"]
     assert result["hri_result"] == "MODIFY" and review["source"] == "llm" and review["style_hint"] == "조금 더 길게"
     assert len(calls["review"]) == 1 and len(calls["initial"]) == 1
@@ -1480,7 +1481,7 @@ def test_review_mock_mode_uses_rules_only_and_never_generates(candidate, monkeyp
     monkeypatch.delenv("C_DESIGN_USE_LLM", raising=False)
     for name in ("interpret_review_answer", "generate_initial_design", "generate_revised_design"):
         monkeypatch.setattr(main.llm, name, lambda *a, **k: pytest.fail("Mock must not call LLM"), raising=False)
-    result, _ = _review(candidate, "나쁘진 않은데 조금 더 길었으면 좋겠어", "등받이를 더 높게")
+    result, _ = _review(candidate, "싫은 건 아닌데 조금 더 길었으면 좋겠어", "등받이를 더 높게")  # Wave 6: 혼합 답은 부정 포함형
     assert result["hri_result"] == "MODIFY" and result["design"] == candidate  # Wave 1 동작: 후보 그대로
     assert result["design_metadata"]["review"]["style_hint"] is None and result["design_metadata"]["review"]["round"] == 0
     assert result["questions"] == [dialogue.REVIEW_QUESTIONS["initial"], dialogue.REVIEW_REASK]

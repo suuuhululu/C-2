@@ -95,7 +95,7 @@ Design은 정확히 두 키를 가집니다. 그 외 키(`design_id`, 부모 버
 
 ## 4. 공개 함수 (`app.c_design.main`)
 
-외부 모듈은 이 공개 함수들(§4.1·§4.2, Stage 3 Wave 1부터 §4.4 `review_design_candidate`)만 호출합니다. 두 함수 모두 예외를 밖으로 던지지 않고 §6의 결과 dict를 반환합니다. 후보 하나의 검증 탈락은 곧바로 Job 실패가 아니며 C 내부에서 **유한하게** 재생성합니다(§8.10). 실제 `main` 구현은 WAVE 4입니다.
+외부 모듈은 이 공개 함수들(§4.1·§4.2, Stage 3 Wave 1부터 §4.4 `review_design_candidate`, 2026-10-12 Wave 3부터 §4.6 `run_design_change`)만 호출합니다. 네 함수 모두 예외를 밖으로 던지지 않고 §6의 결과 dict를 반환합니다. 후보 하나의 검증 탈락은 곧바로 Job 실패가 아니며 C 내부에서 **유한하게** 재생성합니다(§8.10). 실제 `main` 구현은 WAVE 4입니다.
 
 실제 LLM 사용 여부는 호출 환경의 `C_DESIGN_USE_LLM=1`로 정하며 기본은 Mock입니다.
 
@@ -259,7 +259,7 @@ Stage 2 Wave 4b(2026-10-08 사용자 E2E 로그 확정 원인 반영): `listen(o
 흐름:
 1. 질문 "완성된 디자인이 화면에 표시됐어요. 어떠신가요?"(revised: "수정된 디자인이 화면에 표시됐어요. 어떠신가요?")을 `questions`·`on_question`에 내고, LLM 음성 모드면 TTS로 읽습니다.
 2. (음성) `voice.listen(mode="free", beep=True)` / (텍스트) `text_answers`로 답을 받습니다.
-3. `dialogue.parse_review_response`로 해석합니다. 취소 구문 → 짧은 긍정 답 전체("좋아요" 등) → 작은 APPROVE·MODIFY 구문 표 순서이고, 숫자 답은 받지 않습니다. 두 부류가 함께 나오거나, 부정어가 섞이거나("나쁘진 않은데…"), 무일치면 LLM 모드에서만 `llm.interpret_review_answer(text, kind)`(키 `llm.REVIEW_KEYS` = decision·style_hint·reason·reply)로 넘깁니다. 해석 실패·키 누락은 UNCLEAR입니다. Mock 모드는 규칙만 쓰고 음성을 내지 않습니다.
+3. `dialogue.parse_review_response`로 해석합니다. 취소 구문 → 짧은 긍정 답 전체("좋아요" 등) → 수용 표현("나쁘지 않아"·"괜찮아"·"이 정도면 됐어"·"진행해도 될 것 같아", Wave 6 2026-10-12)을 떼어 APPROVE 표로 → **MODIFY 구문이 있으면 MODIFY 우선**("나쁘진 않은데 등받이를 높여줘" → MODIFY) → 수용/APPROVE 구문만 있고 망설임·되물음("뭔가", "아쉬", "건가?")·부정이 없으면 APPROVE 순서이고, 숫자 답은 받지 않습니다. 부정어가 섞인 혼합 답("싫은 건 아닌데 다른 것도 보고 싶어"), 망설임, 무일치면 LLM 모드에서만 `llm.interpret_review_answer(text, kind)`(키 `llm.REVIEW_KEYS` = decision·style_hint·reason·reply)로 넘깁니다. 해석 실패·키 누락은 UNCLEAR입니다. Mock 모드는 규칙만 쓰고 음성을 내지 않습니다.
 4. 규칙이 MODIFY로 정한 답은 LLM 모드에서 같은 함수를 한 번 더 불러 `style_hint`·`reply`만 받습니다(decision은 규칙 그대로, 실패면 힌트 없이 진행).
 5. UNCLEAR이거나 침묵이면 "어떤 부분을 바꾸고 싶으신지 조금만 더 말씀해 주시겠어요? 이대로 괜찮으시면 그렇게 말씀해 주셔도 돼요."로 **한 번만** 다시 묻습니다.
 6. 확인 문장(ack)은 LLM `reply`가 있으면 그것, 없으면 `dialogue.approve_ack` / `modify_ack_fallback(style_hint)` / `cancel_ack`입니다. LLM 음성 모드면 읽습니다.
@@ -293,12 +293,12 @@ D(외부 caller)가 C를 호출하고 response를 받습니다. C가 D로 push�
 | `review_design_candidate(...)` (§4.4) | D가 Candidate의 Preview 표시를 끝낸 뒤 | 검토 질문 TTS → STT → 해석(APPROVE / MODIFY / UNCLEAR / CANCEL) → ack, LLM 모드 MODIFY면 새 Candidate 생성(§8.14) | 같은 후보(APPROVE·UNCLEAR·CANCEL) 또는 새 Candidate(MODIFY), `design_metadata.review` |
 | `run_intervention(...)` (§4.2) | D가 Difference를 확정한 뒤 | 차이 설명 질문 TTS → STT → 해석(KEEP / REVISE / UNCLEAR) → ack, REVISE면 Revised Candidate 생성 | 입력 Design(KEEP) 또는 Revised **Candidate**(Approved + 1) |
 
-- **동기 호출·독립성**: 세 함수는 동기 함수이며 호출 하나가 끝나면 envelope(§6)을 반환합니다. 각 호출은 독립적입니다. 이전 호출의 상태를 C 안에 보관하지 않고, 필요한 맥락(후보 Design, 그 `design_metadata`, Approved Design, Current, Difference)은 caller가 인자로 다시 넘깁니다. `main`에는 모듈 수준 요청·후보·버전 상태가 없습니다. 모듈 수준 상태는 `dialogue._last_pick`(ack 문장의 연속 반복 회피)과 `voice._last_*`(진단 기록)뿐이며 Design·version·round·판정에 쓰이지 않습니다(`tests/unit/c_design/test_stage3_contract.py`).
+- **동기 호출·독립성**: 네 함수는 동기 함수이며 호출 하나가 끝나면 envelope(§6)을 반환합니다. 각 호출은 독립적입니다. 이전 호출의 상태를 C 안에 보관하지 않고, 필요한 맥락(후보 Design, 그 `design_metadata`, Approved Design, Current, Difference)은 caller가 인자로 다시 넘깁니다. `main`에는 모듈 수준 요청·후보·버전 상태가 없습니다. 모듈 수준 상태는 `dialogue._last_pick`(ack 문장의 연속 반복 회피)과 `voice._last_*`(진단 기록)뿐이며 Design·version·round·판정에 쓰이지 않습니다(`tests/unit/c_design/test_stage3_contract.py`).
 - **Candidate vs Approved**: C가 돌려주는 Initial·Revised·MODIFY 결과 Design은 모두 Candidate입니다. 승인은 검토의 APPROVE이고, **채택(Approved로 저장·A 요청)은 D**가 합니다. C는 Approved 여부를 Design에 표시하지 않습니다(§3 불변). version 정책은 §8.14입니다(Initial 후보 1, Revised 후보 Approved + 1 고정, 반복은 `review.round`).
 - **Preview 완료 전제**: `review_design_candidate`는 caller가 Preview 표시를 끝냈다고 보고 부릅니다. C는 Preview 표시 여부를 확인하지 않으며(sleep·폴링 없음), 실제 Preview Ready 신호는 D/HMI 통합 단계의 일입니다.
 - **D가 준비할 입력**: C가 받는 것은 후보 Design과 그 `design_metadata`(검토), Approved Design·Current 블록 목록·`differences`(Intervention·Revised 검토)뿐입니다. **Expected 전체는 받지 않습니다**(아래 결론).
 - **DB·HMI·A 경계**: C는 DB에 쓰지 않고, HMI를 직접 그리지 않으며, A(Planner)를 부르지 않습니다. caller가 response를 받아 HMI 표시·Backend 상태·DB 저장·A 요청에 씁니다. 질문 문장은 `on_question`, 진행 단계는 `on_progress` 콜백으로도 전달합니다(표시·로그용).
-- **correlation·stale (C가 지원하는 것 / caller가 관리할 것)**: C 세 함수와 voice·dialogue는 `request_id`·`job_id`·`current_revision`을 받지도 돌려주지도 않습니다(코드 grep으로 확인).
+- **correlation·stale (C가 지원하는 것 / caller가 관리할 것)**: C 네 함수와 voice·dialogue는 `request_id`·`job_id`·`current_revision`을 받지도 돌려주지도 않습니다(코드 grep으로 확인).
 
 | 항목 | C가 지원 | caller(D)가 관리 |
 |---|---|---|
@@ -309,12 +309,67 @@ D(외부 caller)가 C를 호출하고 response를 받습니다. C가 D로 push�
 | 버전 | Candidate `design_version` 발급(§8.2·§8.14) | Approved 채택·버전 이력 관리 |
 
   참고(GitHub 상태 기준, 최신이 아닐 수 있음, 읽기만 함): D의 `app/c_text_connection.py`는 이미 `CTextConnection.valid()`에서 `request_id`·`workflow_status`·`stop_request`·`job_id`·`current_revision`·`design_version`을 비교하고, `start()`에서 진행 중 호출이 있으면 `C_CALL_BUSY`로 거절하며, `finish()`에서 무효가 된 응답을 `_ignored`로 버리고, `should_stop`을 `threading.Event`로 넘깁니다. 이번 Wave에서 C에 correlation 필드를 추가하지 않습니다. 추가 후보(예: 입력 `request_id`를 envelope에 그대로 되돌려 주는 echo 필드)는 caller가 이미 같은 정보를 쥐고 있어 중복이며, 넣는다면 envelope 키 추가라 D 계약 합의가 먼저 필요합니다(구현하지 않음).
-- **실패 경로**: 세 API가 침묵·장치 실패·LLM timeout·비 JSON·validator 실패·같은 후보 반복·사용자 취소·`should_stop`에서 돌려주는 값은 §10 "확인(Stage 3 Wave 4)" 행입니다. 어느 경우든 호출은 반환되며(listen·LLM·생성 횟수 상한), 예외는 Intervention 음성 침묵(caller의 `should_stop`으로만 끝남)입니다.
+- **실패 경로**: 네 API가 침묵·장치 실패·LLM timeout·비 JSON·validator 실패·같은 후보 반복·사용자 취소·`should_stop`에서 돌려주는 값은 §10 "확인(Stage 3 Wave 4)" 행입니다. 어느 경우든 호출은 반환되며(listen·LLM·생성 횟수 상한), 예외는 Intervention 음성 침묵(caller의 `should_stop`으로만 끝남)입니다.
 - **Expected 결론 (Expected 전체 불필요)**: `run_intervention(design, current, differences, …)`는 Expected 전체를 받지 않으며 추가하지 않습니다. 근거:
   - 입력 검사 `validator.check_intervention_input(design, current, differences)`는 Approved Design·Current·Difference만 봅니다.
   - 질문 문장 `dialogue.build_question`은 `design`·`current`를 쓰지 않고(`del design, current`), `_describe_difference`가 각 `differences[i].expected / actual`만으로 위치·차이를 설명합니다. escalation 질문(`escalation_question`)도 `differences`의 `actual`·`expected`만 씁니다.
   - Revised 생성 `llm.generate_revised_design(design, current, differences, …)`과 judge `llm.judge_revised_design(previous, design, current, differences)`는 Approved Design(전체 목표)·Current·Difference만 보냅니다. Current 보존 검사(`validate_revised`)는 Current만 씁니다.
   - Expected(채택 Plan 기준 Current + 완료 Step 효과)는 D(Backend)가 소유·계산하며(AGENTS), 어긋난 블록의 Expected 값은 이미 `differences[].expected`로 들어옵니다. Expected 전체를 더 받는 것은 중복입니다.
+
+### 4.6 `run_design_change(design, current, *, reason, text_answers=None, on_question=None, should_stop=None, on_progress=None, inspection_context=None)` — 직접 Design Change (PR #26 → Wave 3, 2026-10-12)
+
+Difference 없이 "채택 Design 자체를 바꿀지"를 묻는 네 번째 공개 함수입니다. PR #26이 D 통합(`app/mvp_integration`의 `c.intent` USER_DESIGN_CHANGE·`c.plan_failure`)을 위해 추가했고, Wave 3에서 Intervention과 의미를 분리했습니다. 관측 차이를 만들어 `run_intervention`에 넣지 않습니다.
+
+| 입력 | 타입 | 의미 |
+|---|---|---|
+| `design` / `current` | Design / 블록 배열 | §4.2와 같음. 입력 검사는 `validator.check_design_change_input(design, current)`(= `validate_design` + Current 형식·겹침 검사, Difference 검사 없음, 규칙 동일) |
+| `reason` | 비어 있지 않은 str (키워드 전용) | 호출자가 준 변경 사유. `"USER_DESIGN_CHANGE"` 같은 식별자 토큰은 질문에서 읽지 않고, 문장이면 질문 첫 줄에 둡니다. 빈 문자열은 `INVALID_INPUT` |
+| `text_answers` / `on_question` / `should_stop` / `on_progress` | §4.2와 같음 | `on_progress` 단계 이름은 Revised(§4.2 표)와 같음 |
+| `inspection_context` | dict 또는 `None` | D의 검사 문맥(expected·difference·observation·reason). LLM 해석 payload에 그대로 실림(생성 프롬프트에는 안 들어감) |
+
+**질문** (`dialogue.build_design_change_question`, 번호 없음): "현재 설계를 그대로 둘까요, 아니면 새 설계로 바꿀까요? 바꾸고 싶은 부분이 있으면 말씀해 주세요." 재질문은 `build_design_change_reask`("…그대로 둘지, 바꿀지 말씀해 주세요"). "수정할까요?" 같은 표현은 쓰지 않습니다(아래 표의 Intervention KEEP 구문과 충돌).
+
+**의미 분리** (`hri_result` 값은 §6 그대로, 새 enum 없음)
+
+| 모드 | KEEP | REVISE | 규칙 표 / LLM 프롬프트 |
+|---|---|---|---|
+| Difference Intervention (`run_intervention`) | 실수 인정, 사용자가 블록을 원래 자리로 되돌림, Approved 유지 | 의도적 배치, Current 보존 Revised Candidate | `dialogue.parse_response`(`_INTERVENTION_PHRASES`) / `SYSTEM_PROMPT_INTERVENTION_ANSWER` — **Wave 3에서 변경 없음** |
+| 직접 Design Change (`run_design_change`) | Approved Design 그대로 | Design 변경 요청, Current 보존 Revised Candidate | `dialogue.parse_design_change_response`(`_DESIGN_CHANGE_PHRASES`) / `SYSTEM_PROMPT_DESIGN_CHANGE_ANSWER` |
+
+같은 말이 반대로 읽힙니다: "수정할게요"·"고칠게"는 Intervention에서 KEEP(블록을 고치겠다), Design Change에서 REVISE(설계를 바꾸겠다). "이대로"·"지금 상태"는 Intervention에서 REVISE(배치를 살려라), Design Change에서 KEEP(설계 그대로). 두 표·프롬프트를 섞지 않습니다.
+
+- Design Change 규칙(`parse_design_change_response`): 취소 → 숫자 호환("1번" KEEP, "2번" REVISE, D 흐름 호환) → 부정형 KEEP("바꾸지 마"·"수정하지 마"·"고치지 마"·"안 바꿀게", 구문 일치 전에 지움) → 구문(REVISE: 수정·바꿔·새 설계·다시 만들·반영·높여/낮춰/넓혀/추가 등, KEEP: 그대로·유지·원래 설계·지금 설계·이대로 등) → LLM fallback(LLM 모드) → UNCLEAR. 질문이 두 선택을 주므로 "네"·"아니"만으로는 정하지 않습니다(앞머리 예/아니요 없음).
+- LLM 해석 `llm.interpret_design_change_answer(text, reason, should_stop=None, context=None)`: 키 `INTERVENTION_ANSWER_KEYS`(decision·style_hint·reason·reply) 그대로, 프롬프트만 `SYSTEM_PROMPT_DESIGN_CHANGE_ANSWER`. 내부적으로 `interpret_intervention_answer(text, [], context={…, "change_reason": reason})`를 거치며, 이 함수는 context의 `change_reason`으로 프롬프트를 고릅니다(보조 LLM 해석의 단일 진입점, PR #26 D 테스트가 이 이름을 대체함).
+- KEEP → `design` = 입력 Approved 그대로, metadata `null`, ack `dialogue.design_change_keep_ack()`("지금 설계 그대로 진행할게요"). REVISE → ack(LLM reply 또는 `design_change_revise_ack_fallback`) → Revised Candidate(`design_version` = Approved + 1, Current 보존, §8 규칙·judge·metadata는 §4.2 REVISE와 같음). 생성 메시지는 `llm.generate_revised_design(…, change_request=reason)`의 Design-Change 변형(Difference 줄·"misplaced block" 문단 대신 "User requested change"와 변경 우선 문단). designer는 `build_revised_design(…, design_change=True)`로 빈 `differences`를 정상 입력으로 받습니다(기본값은 Intervention 그대로 빈 목록 거절).
+- Candidate 검토: D는 `review_design_candidate(candidate, kind="revised", design_metadata=…, previous_design=Approved, current=…, differences=[], change_reason=reason)`로 부릅니다. `change_reason`이 있고 `differences`가 빈 목록이면 입력 검사·MODIFY 재생성이 Design-Change 모드이며 version은 Approved + 1로 유지되고 `review.round`만 늘어납니다(§8.14). `design_metadata`를 넘기지 않으면 round가 0부터 다시 시작하고 Stage 2 키가 사라집니다(C가 복원할 수 없음).
+- 실패·취소 코드는 §10과 같습니다. 2026-10-12 이전(de59b08)에는 REVISE가 designer의 빈 differences 거절 때문에 항상 escalation → UNCLEAR/`DESIGN_GENERATION_FAILED`였고 "수정할게요"가 KEEP이었습니다(`tests/unit/c_design/test_design_change_characterization.py`).
+
+**A Planning failure → C 대화 (Wave 4, 2026-10-12)**: 같은 함수에 선택 인자 `planning_failure`를 줍니다. `inspection_context`(B 관측 문맥)와 섞지 않습니다. 새 public 함수·새 hri_result 값·Design 형식 변경은 없습니다.
+
+```json
+{"failure_code": "NO_FEASIBLE_ORDER", "redesign_required": true, "retryable": false,
+ "blocked_blocks": [{"brick_type": "2x3x1", "color": "blue", "x": 8, "y": 11, "layer": 4, "orientation_deg": 0}],
+ "detail": "[{'code': 'NO_FEASIBLE_ORDER', ...}]"}
+```
+
+- 형식(`validator.check_planning_failure`, 위반 시 `INVALID_INPUT`): `failure_code`(비어 있지 않은 str)·`redesign_required`(bool) 필수, `retryable`(bool)·`blocked_blocks`(여섯 필드 블록 목록, 비어 있어도 됨)·`detail`(str, 진단용) 선택, 그 밖의 키는 무시. `detail`·`reason`·raw A 오류는 로그용이며 사용자 질문·TTS에 들어가지 않습니다.
+- 라우팅(`main.REDESIGN_FAILURE_CODES`): `redesign_required`가 `true`이고 `failure_code`가 아래 "C 대화" 코드일 때만 질문을 시작합니다. 아니면 질문·TTS 없이 `FAILED` / `PLANNING_FAILURE_NOT_REDESIGN`(`questions: []`). D의 라우팅 수정 여부와 무관하게 C가 방어합니다.
+
+| A failure (실제 코드 값) | C 대화 | 근거 |
+|---|---|---|
+| `NO_FEASIBLE_ORDER` + `redesign_required: true` | **예** | 설계 수정으로 해결 가능 |
+| `NO_FEASIBLE_ORDER` + `redesign_required: false` | 아니오 (`PLANNING_FAILURE_NOT_REDESIGN`) | D가 재설계 요청으로 표시하지 않음 |
+| `SEARCH_LIMIT` (redesign_required 값과 무관) | 아니오 | 탐색 한도. 설계 문제로 단정 불가, A/D fallback·HOLD |
+| step `CURRENT_MISMATCH` | 아니오 | B/D 최신 Current 문제 |
+| `INVALID_CONTEXT` / `INPUTS_REQUIRED` / `INVALID` / `NEEDS_CORRECTION` | 아니오 | 계약·통합·사람 정리 문제 |
+| `CALCULATION_ERROR` | 아니오 | A 내부 오류 |
+| Robot/공급/STOP | 아니오 | D/Robot 문제 |
+
+- 질문(`dialogue.build_plan_failure_question`, 세 문장, 코드 없음): `blocked_blocks`가 있으면 "(x=8, y=11) 4층 블록은 로봇이 조립할 수 있는 순서를 찾지 못했어요." + "그대로 두면 현재 설계로는 로봇 조립을 진행할 수 없어요." + "그 부분을 조금 바꿔서 다시 설계할까요, 아니면 현재 설계 그대로 멈출까요?" (최대 2개 위치, 그 이상은 "등"; 등받이·팔걸이 같은 의미 이름은 A가 주지 않으므로 붙이지 않음). 없으면 "현재 설계는 로봇이 조립할 수 있는 순서를 만들지 못했어요." + 같은 상태 문장 + "일부를 바꿔서 다시 설계할까요, 아니면 현재 설계 그대로 멈출까요?". 재질문은 `build_design_change_reask`. 기존 `ask()`(questions·`on_question`·음성 모드 `voice.speak`)와 `next_reply()`(`voice.listen`/`text_answers`)를 그대로 씁니다.
+- 답변 해석: Design-Change 표·프롬프트 그대로("응, 수정해줘"·"수정할게요"·"바꿔줘" REVISE, "아니, 기존 설계로 할래"·"그대로 둘게"·"안 바꿀게" KEEP, "무슨 뜻이야?"·"글쎄" UNCLEAR, "취소할게" CANCEL). LLM fallback payload에는 `planning_failure` 요약(`llm.planning_failure_summary`: 코드·막힌 블록 위치)이 `inspection_context`와 별도 키로 갑니다.
+- REVISE: ack → Revised Candidate(`design_version` = Approved + 1, Current 보존, §8 규칙·judge·metadata 동일, facing은 §8.9 soft goal 순서 그대로). 생성 메시지의 `change_request`는 raw A JSON이 아니라 `llm.planning_failure_change_request`(순서를 못 찾았다는 사실, 막힌 블록 위치, Current 보존·미조립 부분 수정 지시)입니다. 후보 검토는 `review_design_candidate(…, differences=[], change_reason=…, planning_failure=…)`로 부르면 MODIFY 재생성에도 같은 change request가 들어갑니다(version 유지, `review.round`만 증가).
+- KEEP: `OK / KEEP / design = Approved`. 같은 Design의 Plan은 이미 실패했으므로 **D는 HOLD**해야 하며(자동 재계획 금지), C는 A를 부르지 않습니다. Revised Candidate가 APPROVE되기 전까지 Approved·Current·Robot 상태는 그대로입니다.
+- `planning_failure`는 Design JSON·`design_metadata`에 넣지 않습니다(입력 context로만 유지).
 
 ## 5. 입력 형식 (D → C)
 
@@ -335,7 +390,7 @@ C는 두 블록의 값을 비교해 어떤 항목(위치·색·방향·크기·�
 
 ## 6. 결과 형식 (C → D)
 
-두 공개 함수는 같은 형식을 반환합니다. 진행 이벤트(`on_progress`, §4.2 끝)와 확인 문장은 envelope·Design에 넣지 않습니다(Stage 2 Wave 4c에서도 envelope 키와 Design `{design_version, blocks}`는 그대로).
+네 공개 함수는 같은 형식을 반환합니다. 진행 이벤트(`on_progress`, §4.2 끝)와 확인 문장은 envelope·Design에 넣지 않습니다(Stage 2 Wave 4c에서도 envelope 키와 Design `{design_version, blocks}`는 그대로).
 
 | 필드 | 타입 | 의미 |
 |---|---|---|
@@ -428,6 +483,7 @@ A에게 가는 객체는 §3의 Design 그대로입니다(Initial·Revised 동�
 | 직전 후보의 탈락 사유(재생성 시) | §8.10 |
 | 사람이 말한 바람(`style_hint`, 없으면 "없음")·family 자유·chair-first·richer 문단, 최소 블록 수(LLM 모드) | Intervention 답변 해석(§4.2), `designer.revised_min_blocks` (§8.13) |
 | judge 피드백(judge 결과 재생성 1회에만) | `llm.judge_feedback_text` (§8.12) |
+| canonical facing(soft, Current 보존·validator 다음 순위) | `llm._FACING_RULE`(system) + `_REVISED_PRIORITIES` facing 줄 (§8.9) |
 
 LLM 출력은 블록 여섯 값의 목록(`{"blocks": [...]}`)뿐입니다. 버전은 Python이 채우고, 고정 블록을 바꾼 출력은 §9.1에서 거부합니다.
 
@@ -451,6 +507,7 @@ LLM 출력은 블록 여섯 값의 목록(`{"blocks": [...]}`)뿐입니다. 버�
 | layer 5를 특징의 일부로 사용(crown, headrest, stepped top, tall back). validator 규칙이 아님 |
 | 필요한 만큼 블록 사용(최대 40). 블록 수를 줄이는 것은 목표가 아님 |
 | 기계적 평행이동이 아닌 전체 재설계(§8.6). 이전 Design과 다른 구조·family도 허용(§8.12) |
+| **Canonical facing**(Wave 2, 2026-10-12): 좌석의 정면(앉으러 오는 열린 쪽)은 +X(큰 x), 등받이는 좌석의 low-x 변(설계에서 x가 가장 작은 블록들), 팔걸이는 y 양 끝. HMI Preview(`app/hmi_board.BoardView`, 투영 `((y−x)·cos30°, (x+y)·sin30°−z)`)가 +X 쪽에서 보므로 화면 왼쪽 아래 = 정면, 오른쪽 위 = 등받이. 등받이 없는 family(stool·ottoman·bench)에 방향 표시용 등받이를 붙이지 않음. `llm._FACING_RULE` 하나를 `SYSTEM_PROMPT_INITIAL`·`SYSTEM_PROMPT_REVISED`가 공유(Initial·MODIFY·Difference REVISE·직접 Design Change 네 경로 모두 이 둘을 지남). **Revised 우선순위: Current 보존 → validator hard rule → facing**(`_REVISED_PRIORITIES`의 facing 줄): Current 블록을 옮기거나 돌려 정면을 맞추지 않고, Current가 이미 다른 방향을 고정하면 그 방향을 따른다(테스트 판정 FOLLOWS_CURRENT). validator·Design 형식에는 facing 항목이 없고 판정은 테스트 전용 `tests/unit/c_design/c_facing_helper.py`(PASS / FAIL / UNDEFINED / FOLLOWS_CURRENT)로만 한다 |
 
 Soft design goal은 테스트로 강제하지 않습니다.
 
@@ -578,6 +635,7 @@ C의 Validator 통과는 후보 검증이며 최종 채택이 아닙니다.
 | 취소 | D/HMI STOP (`should_stop`) | 턴·시도 사이에서 중단 | `CANCELLED` / `STOPPED` |
 | 취소 | 사용자 명시적 취소 발화 | 중단 | `CANCELLED` / `USER_CANCEL` |
 | 실패 | 호출자 입력 오류 | 즉시 반환 | `FAILED` / `INVALID_INPUT`, `UNSUPPORTED_OBJECT` |
+| 실패 | `run_design_change`의 `planning_failure`가 재설계 대상이 아님(`redesign_required` false, 또는 `SEARCH_LIMIT`·`CURRENT_MISMATCH`·계약·A 내부·Robot 코드) (Wave 4, §4.6) | 질문·TTS 없이 즉시 반환 | `FAILED` / `PLANNING_FAILURE_NOT_REDESIGN` |
 | 실패 | 재생성 10회 한도 도달 | 반환 | `FAILED` / `DESIGN_GENERATION_FAILED` |
 | 실패 | LLM provider 실패: 일시적 실패(network / timeout / 429 / 5xx)만 최대 3회(1·2·4초 backoff) API 재시도 후에도 실패. auth·키 없음(`OPENAI_LLM_API_KEY` 미설정, 다른 key로 대체하지 않음. 모델은 역할별 `OPENAI_MODEL` / `OPENAI_JUDGE_MODEL` / `OPENAI_AUX_MODEL`이며 key는 모두 이것 하나, §4)·비정상 응답(reasoning 모델에 지원하지 않는 파라미터를 보내 생기는 400 포함)은 재시도 없이 즉시. 재시도 사이 `should_stop` 확인 | 반환 | `FAILED` / `LLM_CALL_FAILED` |
 | 실패 | 음성 입력 실패(Stage 2 Wave 4b: 자유 발화는 `listen(mode="free", beep=True)`, 무음은 `no_speech_prob` ≥ 0.8 그리고 `avg_logprob` < −1.0일 때만, §4.3): 녹음 장치를 열거나 읽지 못함, 또는 STT provider 실패(key: `OPENAI_API_KEY`. 일시적 network / timeout / 429 / 5xx는 최대 3회 API 재시도 후, auth·키 없음·비정상 응답은 즉시) | 반환 | `FAILED` / `VOICE_IO_FAILED` |
@@ -585,13 +643,13 @@ C의 Validator 통과는 후보 검증이며 최종 채택이 아닙니다.
 | 확인(Stage 3 Wave 4) | 음성 침묵(`listen`이 `""`): Initial | 인사 → 재질문(`SILENCE_REASK`) 1회, 그래도 침묵이면 "아무거나"로 생성(listen 2회) | caller가 받는 값: 생성 성공 시 `OK` / `null` / design v1 |
 | 확인(Stage 3 Wave 4) | 음성 침묵: Preview 검토 | 재질문 1회(listen 2회) | `OK` / `UNCLEAR` / 입력 후보 그대로 |
 | 확인(Stage 3 Wave 4) | 음성 침묵: Intervention | 시간 한도 없이 계속 듣고 매번 `should_stop` 확인(§4.3, Day4 정책) | caller가 STOP할 때만 반환: `CANCELLED` / `null` / `STOPPED`, design null |
-| 확인(Stage 3 Wave 4) | `listen`이 `None`(장치·STT 실패): 세 API | 즉시 반환(listen 1회, 생성 0회) | `FAILED` / `null` / `VOICE_IO_FAILED`, design null |
+| 확인(Stage 3 Wave 4) | `listen`이 `None`(장치·STT 실패): 네 API | 즉시 반환(listen 1회, 생성 0회) | `FAILED` / `null` / `VOICE_IO_FAILED`, design null |
 | 확인(Stage 3 Wave 4) | LLM timeout(호출 하나당 transport 1 + 재시도 3 = 4회) | Initial은 요청 해석 실패 → "아무거나" 후 생성 실패. 해석만 실패한 검토 답은 UNCLEAR. provider 실패는 escalation 대상이 아님 | Initial `FAILED` / `null` / `LLM_CALL_FAILED`; 검토 MODIFY `FAILED` / `MODIFY` / `LLM_CALL_FAILED`; 검토 해석 실패 `OK` / `UNCLEAR`(재질문 뒤, 후보 그대로); Intervention REVISE `FAILED` / `REVISE` / `LLM_CALL_FAILED`. design null(UNCLEAR 제외) |
 | 확인(Stage 3 Wave 4) | LLM 응답이 JSON이 아님 | 해석은 `bad_response`로 규칙·fallback 경로, 생성은 `malformed_output` 탈락·재생성 | Initial·검토 MODIFY: 생성 10회 후 `FAILED` / (`null`·`MODIFY`) / `DESIGN_GENERATION_FAILED`. Intervention: 6회 뒤 escalation 질문 → "계속" → 4회 → `FAILED` / `REVISE` / `DESIGN_GENERATION_FAILED`; 텍스트 답 소진이면 `OK` / `UNCLEAR`, design null |
 | 확인(Stage 3 Wave 4) | 생성 후보가 계속 validator 실패(예: overlap) | 위와 같은 재생성·escalation | 위와 같음(`details`에 마지막 탈락 사유) |
 | 확인(Stage 3 Wave 4) | 검토 MODIFY 생성이 직전 후보와 같은 블록 | `unchanged_candidate`로 탈락·재생성(§8.14) | 한 번 뒤 다르면 `OK` / `MODIFY` / 새 후보; 끝까지 같으면 생성 10회 후 `FAILED` / `MODIFY` / `DESIGN_GENERATION_FAILED`(`details` = `unchanged_candidate`) |
 | 확인(Stage 3 Wave 4) | 사용자 취소 발화 | 검토·Intervention만 해석함. Initial에는 취소 발화 경로가 없어 caller가 `should_stop`으로 멈춤 | 검토 `CANCELLED` / `CANCEL` / `USER_CANCEL`, 입력 후보와 `review` metadata; Intervention `CANCELLED` / `null` / `USER_CANCEL`, design null |
-| 확인(Stage 3 Wave 4) | `should_stop`: 호출 전·ack 후·생성 시도 사이 | 그 지점에서 중단(생성 0회 또는 1회) | 세 API 모두 `CANCELLED` / `null` / `STOPPED`, design null |
+| 확인(Stage 3 Wave 4) | `should_stop`: 호출 전·ack 후·생성 시도 사이 | 그 지점에서 중단(생성 0회 또는 1회) | 네 API 모두 `CANCELLED` / `null` / `STOPPED`, design null |
 
 "확인(Stage 3 Wave 4)" 행의 값은 `status` / `hri_result` / `error.code` 순서이며, 현행 코드가 caller에게 돌려주는 값을 그대로 기록한 것입니다(정책 변경 없음, fake voice·LLM으로 확인: `tests/integration/test_c_stage3_failures.py`, `tests/unit/c_design/test_stage3_contract.py`).
 
