@@ -1,0 +1,54 @@
+{
+  "pixel_xy": [
+    [
+      530.0,
+      573.0
+    ],
+    [
+      970.0,
+      575.0
+    ],
+    [
+      737.0,
+      368.0
+    ],
+    [
+      527.0,
+      130.0
+    ],
+    [
+      977.0,
+      129.0
+    ]
+  ],
+  "board_xy_mm": [
+    [
+      51.0,
+      51.0
+    ],
+    [
+      340.0,
+      51.0
+    ],
+    [
+      187.0,
+      187.0
+    ],
+    [
+      51.0,
+      340.0
+    ],
+    [
+      340.0,
+      340.0
+    ]
+  ],
+  "input_index_base": 0,
+  "surface_height_mm": 0,
+  "image_size": [
+    1280,
+    720
+  ],
+  "source_image": "/home/roh/C-2/perception/recordings/board_calibration_20261007_110850/V0/captures/empty.png",
+  "note": "Physically identify stud/centre positions; do not derive reference pixels from the predicted grid"
+}

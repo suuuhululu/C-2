@@ -1,0 +1,43 @@
+{
+  "scope": "EMPTY_BOARD_DEPTH_DIAGNOSTIC",
+  "view_id": "D1",
+  "recording": "/home/roh/C-2/perception/recordings/empty_board_depth/D1/20261007T093600059227Z",
+  "calibration": "/home/roh/C-2/perception/recordings/board_calibration_D1/D1/run/calibration.json",
+  "captured_at": "2026-10-07T09:36:01.281546+00:00",
+  "timestamp_span_ms": 0.0,
+  "roi": "reference stud grid inset one pitch; not verified_regions",
+  "roi_pixels": 206370,
+  "valid_pixels": 204992,
+  "valid_fraction": 0.9933226728691186,
+  "camera_optical_z_mm": {
+    "p05": 472.5500000000011,
+    "median": 570.0,
+    "p95": 688.0
+  },
+  "rgb_pose_board_height_mm": {
+    "p05": 10.819926901495098,
+    "median": 17.20015246736539,
+    "p95": 20.532868116864506
+  },
+  "dominant_plane_z_equals_ax_plus_by_plus_c_mm": [
+    -0.019248541233223865,
+    -0.005607764668827231,
+    20.898373956914863
+  ],
+  "tilt_from_rgb_reference_deg": 1.1485562985436828,
+  "plane_sample_fraction": 0.9938143927567905,
+  "all_pixel_plane_residual_mm": {
+    "p05": -3.660349599061456,
+    "median": 0.06058136730186625,
+    "p95": 3.3194772248182987
+  },
+  "trimmed_plane_rmse_mm": 2.0479037343863604,
+  "decision": "NOT_VALIDATED_NO_AGREED_DEPTH_THRESHOLD",
+  "limitations": [
+    "one frame per View; temporal repeatability not measured",
+    "stud tops and lower board surface are mixed; fitted plane is not an adopted Z=0",
+    "matching View/intrinsics does not prove identical physical pose",
+    "Depth/height acceptance and layer spacing not validated",
+    "source capture has no robot pose/calibration ID; manual association only"
+  ]
+}

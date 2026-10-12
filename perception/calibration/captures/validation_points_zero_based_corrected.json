@@ -1,0 +1,84 @@
+{
+  "pixel_xy": [
+    [
+      465.0,
+      607.0
+    ],
+    [
+      937.0,
+      561.0
+    ],
+    [
+      673.0,
+      363.0
+    ],
+    [
+      424.0,
+      126.0
+    ],
+    [
+      899.0,
+      96.0
+    ]
+  ],
+  "board_xy_mm": [
+    [
+      50.25,
+      50.25
+    ],
+    [
+      368.5,
+      50.25
+    ],
+    [
+      201.0,
+      201.0
+    ],
+    [
+      50.25,
+      368.5
+    ],
+    [
+      368.5,
+      368.5
+    ]
+  ],
+  "surface_height_mm": 0,
+  "image_size": [
+    1280,
+    720
+  ],
+  "source_image": "/home/rokey/corecode/Calibration_Tutorial/lego_calibration/captures/empty.png",
+  "note": "Physically identify stud/centre positions; do not derive reference pixels from the predicted grid",
+  "correction_provenance": {
+    "source": "/home/rokey/corecode/Calibration_Tutorial/lego_calibration/captures/validation_points.json",
+    "user_counting_index_base": 0,
+    "requested_zero_based_row_col": [
+      [
+        3,
+        3
+      ],
+      [
+        3,
+        22
+      ],
+      [
+        12,
+        12
+      ],
+      [
+        22,
+        3
+      ],
+      [
+        22,
+        22
+      ]
+    ],
+    "point_order_correction": "Swapped second and fourth original clicked pixels to align lower-right and upper-left identities",
+    "expected_coordinate_correction": "Added one pitch to both expected coordinates based on user zero-based counting",
+    "measured_pixels_preserved": true,
+    "calibration_transform_unchanged": true,
+    "predicted_grid_pixels_not_used": true
+  }
+}

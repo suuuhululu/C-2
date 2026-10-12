@@ -1,5 +1,51 @@
 # 현재 진행 상황
 
+## 2026-10-11 — B INITIAL/FINAL 관측 근거 보완（PR24 리뷰）
+
+- B inspection.py와 기존 round1 테스트만 수정. 첫 Current 확정은 24×24, layer 1~5 전체의 verified_regions 근거가 필요하며 일부 빈 영역만으로 Current=[]를 초기화하지 않는다. 부족하면 INITIAL_STATE_UNAVAILABLE로 반환하고 Current 미확인 및 Plan 채택 차단을 유지한다. 초기 단계에는 보존 가능한 아래층 확정 이력이 없으므로 전체 범위를 요구한다.
+- FINAL의 verified_regions가 없으면 과거 Current의 MATCH/MISMATCH를 재사용하지 않고 UNOBSERVABLE로 보류한다. 기존 same-layer evidence 검사상 visible_blocks만 있고 verified_regions가 없는 입력은 여전히 오류다. 근거 없는 FINAL은 Current/revision 유지. 새 유효 근거가 있는 FINAL은 기존 비교 및 아래층 가림 이력 유지 정책을 따른다.
+- 수정 전 신규 핵심 검사: 2 failed / 1 passed로 두 결함 재현. 수정 후 B MVP/legacy/calibration/supply 검사 246 passed, 1 skipped(실제 PR22 Consumer 소스 경로 미제공), 종료 0. 정상 INITIAL·FINAL, 부분/빈 INITIAL, 근거 없는 FINAL 및 과거 불일치 재사용 차단, fresh MISMATCH, layer5 아래층 유지, 취소·늦은 결과 검사 포함. 대상 diff --check 통과. app/ 변경 없음.
+- 기본 전체 pytest는 수집 중 psycopg 미설치 및 test_hmi_remaining import 경로 누락으로 중단(오류 2); 전체 통과로 보고하지 않는다. 실제 Camera/Controller/D 수신 연결은 미검증. Git commit/push/PR 갱신 미수행. 기존 사용자의 perception/.gitignore 변경과 자산은 이번 수정에 포함하지 않았다.
+
+## 2026-10-11 — 원래 C-2 작업 폴더 PR24 수정본으로 갱신
+
+- 기존 work/hongdong-vision-round1의 262ae61에서 PR24 수정본 2058d80으로 fast-forward. 원격 최신 여부를 추가 fetch한 작업은 아니며, realign 작업 폴더와 같은 기준 커밋으로 맞췄다.
+- 이전 미커밋 변경·미추적 파일은 stash와 /home/roh/Documents/ChatGPT/협동2/C2_before_update_eVmIvWWW/local_changes.tar.gz에 보존했다. 모델·촬영·보정 자료는 이동/삭제하지 않았다. 기존 A/C/D 로컬 변경은 재적용하지 않았다.
+- B 설정 확인값과 INITIAL/FINAL 재현 테스트만 이어받았다. 재현 테스트는 보완 전 단계이며 아직 전체 검사 통과를 주장하지 않는다. app/planning_trial/interfaces는 2058d80과 diff 없음. 설정 관련 live_view/runtime 검사 43 passed. GitHub 게시 없음.
+
+## 2026-10-11 — 홍동 B 제출 코드 최신 integration 기준 정렬
+
+- 사용자 승인 범위: fetch·별도 로컬 작업 브랜치 구성·B 수정/검증. 최신 명시 지시로
+  D 파트 수정/추가는 제외했다. 이후 사용자 명시 승인으로 기존 PR #24의
+  commit·일반 push·본문 갱신을 진행한다. force push와 PR 병합은 승인 범위 밖이다.
+- 원격 `codex/integration-round1` HEAD `02137d8`을 확인하고 managed worktree의
+  `codex/b-round1-realign`에서 작업한다. 기존 `work/hongdong-vision-round1`과
+  원래 작업 폴더의 미커밋 변경·원자료는 보존한다.
+- PR #24 head `262ae61`에서 `perception/`와 B 설계 제안서만 옮겼다.
+  이전 PR에 섞인 D 핵심 코드·A/C·Robot 설정은 옮기지 않았다.
+  `app/`, `tests/`, `interfaces/`, `planning_trial/`의 tracked 파일은 `02137d8`과 차이 없음.
+  최신 Preview→C Review·B Current/revision relay·빨강/5층/40블록·stale/STOP을 유지한다.
+- 별도 공간에 추가했던 D 수신부·호환 bridge·D 연결 시험 3개는 B 제출 범위에서 제외하고
+  `/tmp/c2-d-review-preserved-N09hR5/`에 복구 가능하게 보관했다. 원래 로컬 파일도 보존한다.
+  최신 D에 없는 구형 bridge를 production에 추가하지 않는다. B 호환 시험은 명시된 Qt
+  계약 대역으로 B 진입/queue 전달을 검사하도록 정리하고 D 실연결 시험과 구분한다.
+- 최종 관련 검사 **692 passed**, 실패/오류/skip 0, 종료 0. B 검사/보정/공급판/호환,
+  실제 최신 DB/HMI 입력 검증 함수 대조, 기존 최신 A/C/D Stage3·relay·STOP/stale 및
+  공통 블록 계약·5층 회귀·Planner 검사를 실행했다. Qt offscreen·합성 관측·FAKE Robot이다.
+  첫 실행은 HMI 검증 파일 경로 오류와 빠진 구형 bridge로 2 failed/701 passed였다.
+  D 추가 시제품을 포함했던 중간 706 passed는 최종 B-only 제출 검증 수치로 쓰지 않는다.
+- 미검증: 실제 Camera/Controller 관측 callable, 최신 D 전체 공정과 B 결과 bind,
+  실시간 HMI/DB 서버·Robot/5층 실측. D 연결 요구는 B의
+  `perception/docs/D_INSPECTION_CONNECTION.md`에 인계하며 D 파일은 수정하지 않는다.
+  게시 준비: B-only snapshot 커밋 `061da09`에 PR #24 기존 head `262ae61`을
+  병합하여 두 이력을 보존한다. 충돌 파일은 검증한 B snapshot과 최신 integration D를
+  유지하는 방향으로 해결했다. 병합 후 관련 검사를 재실행해 **692 passed**, 종료 0을 확인했다.
+  게시 결과: 병합 커밋 `f9b8912`를 기존 `work/hongdong-vision-round1`에 일반 push했고
+  PR #24 본문과 기준 SHA를 갱신했다. GitHub에서 base `02137d8`, Draft/open,
+  mergeable=true·clean과 변경 106개(B 코드·설계 제안서·B 작업 기록만)를 확인했다.
+  PR merge·force push·Issue 댓글은 하지 않았다. 다음: 사람 리뷰·D 결선 확인·공동 시험.
+  이 작업은 전체 팀 연결 완료나 실제 장치 검증을 의미하지 않는다.
+
 ## 2026-10-11 C Stage3 기준 A·D 연결 정합
 
 - C PR #23이 반영된 1차 통합 코드를 기준으로 A·D 및 공통 Schema를 맞췄습니다. 노랑/파랑 4·6점, 빨강 2점, 0°/90° 방향, 1~5층·최대 40블록과 FAKE 공급 5열을 지원합니다. B 소유 Current·revision·Expected·비교 계약은 유지합니다.

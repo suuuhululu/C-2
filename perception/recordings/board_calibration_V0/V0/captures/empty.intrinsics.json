@@ -1,0 +1,35 @@
+{
+  "image_size": [
+    1280,
+    720
+  ],
+  "camera_matrix": [
+    [
+      907.924560546875,
+      0.0,
+      652.287109375
+    ],
+    [
+      0.0,
+      907.717529296875,
+      366.0758972167969
+    ],
+    [
+      0.0,
+      0.0,
+      1.0
+    ]
+  ],
+  "dist_coeffs": [
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+  ],
+  "distortion_model": "plumb_bob",
+  "frame_id": "camera_color_optical_frame",
+  "image_topic": "/camera/color/image_raw",
+  "info_topic": "/camera/color/camera_info",
+  "image_stamp_ns": 1791338931516666504
+}

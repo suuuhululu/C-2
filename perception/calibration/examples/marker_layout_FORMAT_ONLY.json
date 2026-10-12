@@ -1,0 +1,10 @@
+{
+  "_note": "FORMAT ONLY. Measure all XY(mm) corners at the SAME HEIGHT as empty stud tops. Order each marker's physical corners by decoded marker orientation: top-left, top-right, bottom-right, bottom-left. Place IDs 0..3 widely around the board; printed size/position is not prescribed by this file.",
+  "dictionary": "DICT_4X4_50",
+  "markers": [
+    {"id": 0, "corners_board_xy_mm": [[null,null],[null,null],[null,null],[null,null]]},
+    {"id": 1, "corners_board_xy_mm": [[null,null],[null,null],[null,null],[null,null]]},
+    {"id": 2, "corners_board_xy_mm": [[null,null],[null,null],[null,null],[null,null]]},
+    {"id": 3, "corners_board_xy_mm": [[null,null],[null,null],[null,null],[null,null]]}
+  ]
+}

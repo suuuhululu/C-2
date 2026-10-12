@@ -1,0 +1,7 @@
+{
+  "_note": "FORMAT ONLY. Prefer capture_ros.py to save actual color CameraInfo. No camera parameters are inferred from a model name.",
+  "image_size": [null, null],
+  "camera_matrix": [[null, 0, null], [0, null, null], [0, 0, 1]],
+  "dist_coeffs": [null, null, null, null, null],
+  "distortion_model": "plumb_bob"
+}

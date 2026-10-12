@@ -1,0 +1,11 @@
+[
+  {
+    "image": "images/assembly_01__step_00_empty__V0__20261006T084518851632Z__e24bd887f198df4d.png",
+    "scene_id": "/home/roh/C-2/perception/recordings/assembly_01",
+    "recording": "/home/roh/C-2/perception/recordings/assembly_01/step_00_empty/V0/20261006T084518851632Z",
+    "source_rgb": "/home/roh/C-2/perception/recordings/assembly_01/step_00_empty/V0/20261006T084518851632Z/rgb.png",
+    "view_id": "V0",
+    "captured_at": "2026-10-06T08:45:20.236884+00:00",
+    "sha256": "5c36aa1c3da62cc23e2a33d11501f89d6f84d72ec99ccf6c84d3ec804c3cdd04"
+  }
+]

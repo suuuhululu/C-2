@@ -1,0 +1,43 @@
+{
+  "_note": "OPTIONAL FORMAT ONLY. Robot base XYZ(mm) must be the measured physical reference points on the same empty-stud-top plane, with calibrated TCP offsets. Board XY here assumes pitch=16.75 mm. No robot movement is implemented.",
+  "board_xy_mm": [
+    [
+      0,
+      0
+    ],
+    [
+      385.25,
+      0
+    ],
+    [
+      385.25,
+      385.25
+    ],
+    [
+      0,
+      385.25
+    ]
+  ],
+  "base_xyz_mm": [
+    [
+      null,
+      null,
+      null
+    ],
+    [
+      null,
+      null,
+      null
+    ],
+    [
+      null,
+      null,
+      null
+    ],
+    [
+      null,
+      null,
+      null
+    ]
+  ]
+}
