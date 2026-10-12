@@ -456,6 +456,7 @@ A에게 가는 객체는 §3의 Design 그대로입니다(Initial·Revised 동�
 | 직전 후보의 탈락 사유(재생성 시) | §8.10 |
 | 사람이 말한 바람(`style_hint`, 없으면 "없음")·family 자유·chair-first·richer 문단, 최소 블록 수(LLM 모드) | Intervention 답변 해석(§4.2), `designer.revised_min_blocks` (§8.13) |
 | judge 피드백(judge 결과 재생성 1회에만) | `llm.judge_feedback_text` (§8.12) |
+| canonical facing(soft, Current 보존·validator 다음 순위) | `llm._FACING_RULE`(system) + `_REVISED_PRIORITIES` facing 줄 (§8.9) |
 
 LLM 출력은 블록 여섯 값의 목록(`{"blocks": [...]}`)뿐입니다. 버전은 Python이 채우고, 고정 블록을 바꾼 출력은 §9.1에서 거부합니다.
 
@@ -479,6 +480,7 @@ LLM 출력은 블록 여섯 값의 목록(`{"blocks": [...]}`)뿐입니다. 버�
 | layer 5를 특징의 일부로 사용(crown, headrest, stepped top, tall back). validator 규칙이 아님 |
 | 필요한 만큼 블록 사용(최대 40). 블록 수를 줄이는 것은 목표가 아님 |
 | 기계적 평행이동이 아닌 전체 재설계(§8.6). 이전 Design과 다른 구조·family도 허용(§8.12) |
+| **Canonical facing**(Wave 2, 2026-10-12): 좌석의 정면(앉으러 오는 열린 쪽)은 +X(큰 x), 등받이는 좌석의 low-x 변(설계에서 x가 가장 작은 블록들), 팔걸이는 y 양 끝. HMI Preview(`app/hmi_board.BoardView`, 투영 `((y−x)·cos30°, (x+y)·sin30°−z)`)가 +X 쪽에서 보므로 화면 왼쪽 아래 = 정면, 오른쪽 위 = 등받이. 등받이 없는 family(stool·ottoman·bench)에 방향 표시용 등받이를 붙이지 않음. `llm._FACING_RULE` 하나를 `SYSTEM_PROMPT_INITIAL`·`SYSTEM_PROMPT_REVISED`가 공유(Initial·MODIFY·Difference REVISE·직접 Design Change 네 경로 모두 이 둘을 지남). **Revised 우선순위: Current 보존 → validator hard rule → facing**(`_REVISED_PRIORITIES`의 facing 줄): Current 블록을 옮기거나 돌려 정면을 맞추지 않고, Current가 이미 다른 방향을 고정하면 그 방향을 따른다(테스트 판정 FOLLOWS_CURRENT). validator·Design 형식에는 facing 항목이 없고 판정은 테스트 전용 `tests/unit/c_design/c_facing_helper.py`(PASS / FAIL / UNDEFINED / FOLLOWS_CURRENT)로만 한다 |
 
 Soft design goal은 테스트로 강제하지 않습니다.
 

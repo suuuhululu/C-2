@@ -192,9 +192,21 @@ _CONCEPT_GIVEN = ("Instead of a family, a concept may be given that is not a fur
                   "still design a real seating piece and let its silhouette, proportions and colour accents recall the "
                   "concept, never a sculpture.\n")
 
+# 정면 방향 규칙(Wave 2, 2026-10-12 사용자 요청; 2026-10-12 별도 branch에서 gpt-6.1-sol Initial 5/5 확인). HMI 미리보기
+# (app/hmi_board.BoardView, 투영 screen = ((y-x)·cos30°, (x+y)·sin30°-z))는 +X 쪽에서 본다 → 화면 왼쪽 아래 = 큰 x(정면·보는 사람),
+# 오른쪽 위 = 작은 x(등받이). Design JSON·validator는 바꾸지 않는 soft 배치 규칙이며 생성 system prompt 둘(Initial·Revised)이
+# 공유한다. Revised에서는 Current 보존 → validator → facing 순서(_REVISED_PRIORITIES의 facing 줄).
+_FACING_RULE = (
+    "Canonical facing (the board preview is viewed from the +X side, i.e. from larger x): the front of the seat, the open "
+    "side a person sits down from, faces +X (larger x). When the family has a backrest, build it along the seat's "
+    "low-x edge (the backrest blocks have the smallest x values of the design) rising from there, so it stands opposite "
+    "the viewer; armrests run along the two y-edges. Never add a backrest only to show direction: families without one "
+    "(stool, ottoman, bench) stay without it.\n"
+)
+
 SYSTEM_PROMPT_INITIAL = (
-    _PREAMBLE + _RULES_INITIAL + "\n" + _SEATING_CONCEPT + _BUILD_HINTS + _PROCEDURE + _FAMILY_GIVEN + _CONCEPT_GIVEN
-    + _SELF_CHECK
+    _PREAMBLE + _RULES_INITIAL + "\n" + _SEATING_CONCEPT + _BUILD_HINTS + _FACING_RULE + _PROCEDURE + _FAMILY_GIVEN
+    + _CONCEPT_GIVEN + _SELF_CHECK
 )
 
 # Revised(EXPRESSIVE v4, 2026-10-07 사용자 승인): Current만 고정하고 이전 Design은 맥락으로만 쓴다. 나머지 블록은 자유롭게
@@ -214,7 +226,7 @@ _EXPRESSIVE_HINTS = f"""How strong seating concepts are built with these bricks 
 A feature counts only when it is clearly visible in the silhouette: it spans at least two blocks or a whole row, and it is symmetric or deliberately balanced.
 """
 SYSTEM_PROMPT_REVISED = (
-    _PREAMBLE + _RULES_INITIAL + "\n" + _SEATING_CONCEPT + _BUILD_HINTS + _EXPRESSIVE_HINTS +
+    _PREAMBLE + _RULES_INITIAL + "\n" + _SEATING_CONCEPT + _BUILD_HINTS + _FACING_RULE + _EXPRESSIVE_HINTS +
     "Design principle: you are designing a NEW, complete, showcase-worthy piece of the requested family, bigger and bolder than the previous design. The blocks already on the "
     "board stay exactly where they are and must be visible parts of the piece; everything else is yours. The previous adopted design "
     "is only context (what the user asked for: seating furniture, its rough scale and colour scheme, any good trait worth carrying over), never geometry to keep: "
@@ -413,6 +425,7 @@ _REVISED_GUIDANCE = f"""Revised Design goal: Preserve the Current exactly. Treat
 - Fourth, every feature is big enough to see: at least two blocks or a whole row, symmetric or deliberately balanced; no single-block bumps, no off-centre back, no one-sided stub.
 - Fifth, layer {validator.MAX_LAYER} is part of a feature (crown, headrest, stepped top, tall back), not a token block.
 - Sixth, use as many blocks as the concept needs (up to {validator.MAX_BLOCKS}); a small block count is not a goal, and a plain low single-seat chair is not acceptable.
+- Then, where the Current blocks allow it, keep the canonical facing from the system message (open front toward +X, backrest along the low-x edge). This never outranks the Current: do not move, rotate, recolour or drop a Current block to achieve it, and if the Current already fixes a different facing (for example a backrest row already built at high x), follow the Current's facing instead.
 All blocks not in the Current are future targets: move, remove, replace or add them freely. Use the previous adopted design only as context. """
 _REVISED_CLOSING = """Before answering, run the support and connectivity check from the system message again on the complete output.
 Return the complete design (all blocks).

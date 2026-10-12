@@ -1,5 +1,11 @@
 # 현재 진행 상황
 
+## 2026-10-12 — C Wave 2: canonical facing(정면 +X·등받이 low-x)을 생성 prompt 공통 적용 (`work/siyul-c-remaining`)
+
+- 변경: `app/c_design/llm.py`만. `_FACING_RULE` 상수 하나를 `SYSTEM_PROMPT_INITIAL`(`_BUILD_HINTS` 뒤)·`SYSTEM_PROMPT_REVISED`(`_EXPRESSIVE_HINTS` 앞)가 공유하고, `_REVISED_PRIORITIES`에 "Current가 허용하는 범위에서 facing 유지, Current를 옮기거나 돌리지 않고 Current가 다른 방향을 고정하면 그 방향을 따른다" 한 줄 추가(Difference·Design-Change 두 Revised 메시지 변형이 공유). validator·schema·designer·dialogue·main 변경 없음. CONTRACT §8.8·§8.9 facing 행 추가. 테스트 `tests/unit/c_design/test_facing_prompt.py`.
+- 검증(gpt-6.1-sol 실제, 텍스트 모드, production retry): Initial 5/5 facing PASS·validator PASS(loveseat·안락의자×2·park bench·평상형 긴 의자). Initial MODIFY 3/3 validator PASS·v1 유지·round 1(facing PASS 2, UNDEFINED 1 = 팔걸이 추가로 helper 중심 휴리스틱이 중립, 이미지상 등받이 low-x). Difference REVISE 3/3 Current 보존·v2·validator PASS(PASS 1, UNDEFINED 1 = 같은 helper 한계, 거울 fixture는 FOLLOWS_CURRENT). 직접 Design Change 3/3 REVISE·v2·Current 보존·facing PASS. C 그룹 1017 passed / 1 xfailed(Wave 4용). 결과 PNG·envelope는 scratch(저장소 밖).
+- 미검증·한계: 이번 요청("편안한 침대 같은 느낌의 의자")에서는 등받이 없는 family가 나오지 않아 "불필요한 등받이 추가 없음"은 규칙 문구로만 보장. STT/TTS·Robot 미실행. D 테스트 1건 실패는 Wave 3 handoff 그대로.
+
 ## 2026-10-12 — C Wave 3: 직접 Design Change intent 분리·REVISE Candidate 생성 복구 (`work/siyul-c-remaining`, base de59b08)
 
 - 변경: `app/c_design/{dialogue,llm,main,designer,validator}.py`. `run_design_change`가 Intervention과 별도 질문·규칙 표·LLM 프롬프트(`SYSTEM_PROMPT_DESIGN_CHANGE_ANSWER`)·입력 검사(`validator.check_design_change_input`, 규칙 동일)·Revised 메시지(`change_request`)를 쓰고 `on_progress`를 받는다. "수정할게요" → REVISE, "그대로 갈게"·"바꾸지 마" → KEEP. REVISE가 빈 differences 때문에 escalation/FAILED로 끝나던 결함(de59b08) 수정. Difference Intervention 표·프롬프트·호출 인자는 변경 없음. CONTRACT §4.6, D handoff §3b 추가.
