@@ -1,0 +1,262 @@
+{
+  "design": {
+    "design_version": 1,
+    "blocks": [
+      {
+        "brick_type": "2x3x1",
+        "color": "blue",
+        "x": 7,
+        "y": 10,
+        "layer": 1,
+        "orientation_deg": 90
+      },
+      {
+        "brick_type": "2x3x1",
+        "color": "blue",
+        "x": 7,
+        "y": 12,
+        "layer": 1,
+        "orientation_deg": 90
+      },
+      {
+        "brick_type": "2x3x1",
+        "color": "blue",
+        "x": 14,
+        "y": 10,
+        "layer": 1,
+        "orientation_deg": 90
+      },
+      {
+        "brick_type": "2x3x1",
+        "color": "blue",
+        "x": 14,
+        "y": 12,
+        "layer": 1,
+        "orientation_deg": 90
+      },
+      {
+        "brick_type": "2x2x1",
+        "color": "blue",
+        "x": 7,
+        "y": 11,
+        "layer": 2,
+        "orientation_deg": 0
+      },
+      {
+        "brick_type": "2x3x1",
+        "color": "blue",
+        "x": 9,
+        "y": 10,
+        "layer": 2,
+        "orientation_deg": 90
+      },
+      {
+        "brick_type": "2x3x1",
+        "color": "blue",
+        "x": 9,
+        "y": 12,
+        "layer": 2,
+        "orientation_deg": 90
+      },
+      {
+        "brick_type": "2x3x1",
+        "color": "blue",
+        "x": 12,
+        "y": 10,
+        "layer": 2,
+        "orientation_deg": 90
+      },
+      {
+        "brick_type": "2x3x1",
+        "color": "blue",
+        "x": 12,
+        "y": 12,
+        "layer": 2,
+        "orientation_deg": 90
+      },
+      {
+        "brick_type": "2x2x1",
+        "color": "blue",
+        "x": 15,
+        "y": 11,
+        "layer": 2,
+        "orientation_deg": 0
+      },
+      {
+        "brick_type": "2x3x1",
+        "color": "yellow",
+        "x": 7,
+        "y": 10,
+        "layer": 3,
+        "orientation_deg": 90
+      },
+      {
+        "brick_type": "2x3x1",
+        "color": "yellow",
+        "x": 10,
+        "y": 10,
+        "layer": 3,
+        "orientation_deg": 90
+      },
+      {
+        "brick_type": "2x2x1",
+        "color": "yellow",
+        "x": 13,
+        "y": 10,
+        "layer": 3,
+        "orientation_deg": 0
+      },
+      {
+        "brick_type": "2x2x1",
+        "color": "yellow",
+        "x": 15,
+        "y": 10,
+        "layer": 3,
+        "orientation_deg": 0
+      },
+      {
+        "brick_type": "2x3x1",
+        "color": "yellow",
+        "x": 7,
+        "y": 12,
+        "layer": 3,
+        "orientation_deg": 90
+      },
+      {
+        "brick_type": "2x3x1",
+        "color": "yellow",
+        "x": 10,
+        "y": 12,
+        "layer": 3,
+        "orientation_deg": 90
+      },
+      {
+        "brick_type": "2x2x1",
+        "color": "yellow",
+        "x": 13,
+        "y": 12,
+        "layer": 3,
+        "orientation_deg": 0
+      },
+      {
+        "brick_type": "2x2x1",
+        "color": "yellow",
+        "x": 15,
+        "y": 12,
+        "layer": 3,
+        "orientation_deg": 0
+      },
+      {
+        "brick_type": "2x3x1",
+        "color": "blue",
+        "x": 7,
+        "y": 12,
+        "layer": 4,
+        "orientation_deg": 90
+      },
+      {
+        "brick_type": "2x3x1",
+        "color": "blue",
+        "x": 10,
+        "y": 12,
+        "layer": 4,
+        "orientation_deg": 90
+      },
+      {
+        "brick_type": "2x2x1",
+        "color": "blue",
+        "x": 13,
+        "y": 12,
+        "layer": 4,
+        "orientation_deg": 0
+      },
+      {
+        "brick_type": "2x2x1",
+        "color": "blue",
+        "x": 15,
+        "y": 12,
+        "layer": 4,
+        "orientation_deg": 0
+      },
+      {
+        "brick_type": "2x2x1",
+        "color": "blue",
+        "x": 7,
+        "y": 12,
+        "layer": 5,
+        "orientation_deg": 0
+      },
+      {
+        "brick_type": "2x2x1",
+        "color": "blue",
+        "x": 9,
+        "y": 12,
+        "layer": 5,
+        "orientation_deg": 0
+      },
+      {
+        "brick_type": "2x3x1",
+        "color": "blue",
+        "x": 11,
+        "y": 12,
+        "layer": 5,
+        "orientation_deg": 90
+      },
+      {
+        "brick_type": "2x3x1",
+        "color": "blue",
+        "x": 14,
+        "y": 12,
+        "layer": 5,
+        "orientation_deg": 90
+      }
+    ]
+  },
+  "current": {
+    "current_revision": 0,
+    "blocks": []
+  },
+  "assembly_context": {
+    "profile_source": "TEST_ONLY",
+    "rule_source": "USER_GEOMETRY_REV2_20261008",
+    "space_model": "STUD_RULES",
+    "human_press_policy": "CONTACT_HULL",
+    "hold_gripper_nonintrusion_assumption": true,
+    "geometry": {
+      "pitch_mm": 16,
+      "body_height_mm": 19,
+      "stud_height_mm": 4.5,
+      "grip_bottom_offset_mm": 5
+    },
+    "human_sides": [
+      "-x",
+      "+x",
+      "-y",
+      "+y"
+    ],
+    "grip_axes": [
+      "x",
+      "y"
+    ],
+    "finish_layers": false,
+    "max_states": 10000,
+    "minimal_release_model_confirmed": true,
+    "press_contact_model_confirmed": false,
+    "obstacles": [],
+    "assumption_notes": [
+      "1 stud side gap permits gripper entry/release in the local rule; D determines the actual small-opening command.",
+      "HOLD checks two local side spaces one pitch wide and one body high. U gripper intrusion into L grip space is assumed absent.",
+      "PRESS uses a one-pitch patch and local side entry; full finger/arm reach and exact tool body are not verified.",
+      "Internal assembly_board_mm has Z=0 at board body support face, XY at first stud centre. SI/D frame mapping remains draft.",
+      "Finger lower boundary at 5mm equals nominal stud top. Box model allows tangency without positive measured clearance; full collision/mesh validation remains required."
+    ],
+    "supported_modes": [
+      "ROBOT_GRIP"
+    ]
+  },
+  "provenance": {
+    "design": "GPU D packaged APPROVED C design, unchanged",
+    "context": "Reconstructed from current D measured_inputs; not recorded original HMI request",
+    "source": "/home/ms-02/C_2; actual modules verified by SHA-256"
+  }
+}
