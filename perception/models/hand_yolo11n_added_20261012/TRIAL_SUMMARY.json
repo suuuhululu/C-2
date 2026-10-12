@@ -1,0 +1,11 @@
+{
+  "training_images": 29,
+  "training_hands": 53,
+  "epochs": 60,
+  "initialization": "20261010 trial best.pt",
+  "human_label_review": false,
+  "independent_validation": false,
+  "held_frames_used": false,
+  "device": "Colab T4",
+  "warning": "Evaluation uses training images; NOT generalization evidence."
+}

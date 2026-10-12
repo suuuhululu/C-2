@@ -1,13 +1,14 @@
 # 서플라이 RGB 중심 후보 인식 — RealSense
 
 현재 사용자 결정: 로봇 장착 RealSense가 서플라이를 수직 관측하며 정지한 뒤 RGB만 사용한다.
-일반 YOLO Detection으로 노랑/파랑 2x2·2x3, 빨강 2x1을 검출한다. OBB/Depth는 사용하지 않는다.
+OpenCV HSV로 슬롯 내 노랑·파랑·빨강 후보를 먼저 구분하고, 후보 영역의 원본 RGB를
+일반 YOLO Detection에 넣어 노랑/파랑 2x2·2x3, 빨강 2x1 종류를 구분한다. OBB/Depth는 사용하지 않는다.
 고정 슬롯 좌표만으로 파지 중심 오차가 발생하므로 실제 윗면 외곽과 파지할 두 변의 중점을 추정한다.
 기존 assembly 모듈은 수정하지 않는다. Robot 명령·TCP·파지 높이·좌표 변환을 생성하지 않는다.
 
 ## 구성과 실제 구현 범위
 
-- main.py: RealSense ROS RGB Topic 수신, 로컬 일반 detection 모델 CPU 추론,
+- main.py: RealSense ROS RGB Topic 수신, OpenCV 색상 후보 추출 → 원본 RGB crop의 일반 detection CPU 추론,
   기존 brick_type/color/slot(1~6) 대응, 요청 후 프레임과 유효 시간 검사, 결과 JSON/진단 화면.
 - top_surface.py: 검출 주변 색상 외곽의 단일 볼록 사각형 후보 추출.
   사각형에 단위 직사각형을 투영하여 원근을 반영한 중심과 두 변의 중점을 구한다.
@@ -15,6 +16,13 @@
 - config_TEMPLATE.json: 실제 슬롯 ROI·해상도·관측 ID·설정 ID·보정 ID·파지할 변·시험 임계값 준비 양식.
 - request_TEMPLATE.json: D 요청 의미를 확인할 로컬 입력 양식.
 - BACKEND_HANDOFF.md: D 전달/수신 항목·책임·미확정 연결 계약.
+
+OpenCV 후보가 없으면 YOLO를 실행하지 않는다. 모델 입력에는 마스크/박스/글자를 그리지 않는다.
+후보 crop의 검출 좌표를 원본 영상 좌표로 복원한 뒤 슬롯/중심을 처리한다.
+HSV와 YOLO 색상이 다르면 UNKNOWN으로 보류한다. 후보끼리의 중복을 자동 병합하지 않으며
+복수 검출은 보류한다. 후보 영역은 슬롯 ROI와 영상 해상도 안에서 잘라낸다.
+색상 범위가 블록을 놓치면 YOLO도 해당 대상을 볼 수 없으므로 HSV 누락률을 먼저 검증한다.
+학습 라벨은 오버레이 없는 원본 RGB에 일반 박스로 작성하며, 실제 후보 crop 입력에서도 별도 평가한다.
 
 색상 외곽이 실제 윗면이라고 보장되지 않는다. 측면·반사·가림으로 잘못된 사각형이 나올 수 있다.
 출력 CENTER_CANDIDATE는 실측 검증 전 진단 후보이며 파지 가능/안전/실행 허가가 아니다.

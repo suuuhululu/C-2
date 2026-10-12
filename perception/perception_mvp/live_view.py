@@ -5,6 +5,7 @@ from datetime import datetime, timezone
 import json
 from pathlib import Path
 import time
+from threading import Lock, Thread
 
 import cv2
 import numpy as np
@@ -21,6 +22,30 @@ def resolve_live_weights(weights, integrated):
     return DEFAULT_INTEGRATED_WEIGHTS if integrated and weights is None else weights
 
 
+def load_view_rois(root):
+    from .hand_cycle import validate_polygon
+    result = {}
+    for view in ('V0', 'D1', 'D3'):
+        paths = sorted((Path(root) / view).glob('*/assembly_roi.json'))
+        if not paths:
+            raise ValueError('Missing assembly ROI for ' + view)
+        path = paths[-1]
+        data = json.loads(path.read_text())
+        if data.get('purpose') != 'ASSEMBLY_BOARD' or data.get('view_id', 'V0') != view:
+            raise ValueError('Assembly ROI View mismatch: ' + str(path))
+        polygon = validate_polygon(data['polygon_px'])
+        width, height = data['image_size']
+        if type(width) is not int or type(height) is not int or min(width, height) <= 0:
+            raise ValueError('Invalid ROI image size')
+        if (polygon < 0).any() or (polygon[:, 0] >= width).any() or (polygon[:, 1] >= height).any():
+            raise ValueError('ROI outside image')
+        mask = np.zeros((height, width), np.uint8)
+        cv2.fillPoly(mask, [polygon], 1)
+        result[view] = (mask.astype(bool), polygon)
+        print('ROI ' + view + ': ' + str(path))
+    return result
+
+
 def save_hand_roi(directory, rgb, rectangle, rgb_message):
     """Pixel ROI setup only. Unknown hand-quality thresholds stay unconfigured."""
     x, y, width, height = (int(v) for v in rectangle)
@@ -35,7 +60,7 @@ def save_hand_roi(directory, rgb, rectangle, rgb_message):
     hand['board_roi_v0'] = [x, y, x + width, y + height]
     hand['board_image_size'] = [rgb.shape[1], rgb.shape[0]]
     hand['weights'] = str(DEFAULT_INTEGRATED_WEIGHTS.parent.parent /
-                          'hand_yolo11n_trial_20261010' / 'hand_yolo11n_trial_best.pt')
+                          'hand_yolo11n_added_20261012' / 'weights' / 'best.pt')
     directory = Path(directory) / datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%S%fZ')
     directory.mkdir(parents=True, exist_ok=False)
     write_cycle_json(directory / 'hand_config.json', dict(hand=hand, roi_capture=dict(
@@ -115,6 +140,88 @@ def synchronized_packet(queues, max_delta_ns=50_000_000):
     return None
 
 
+class LiveFrameBuffer:
+    """Short bounded callback buffer; inference reads one immutable snapshot."""
+    def __init__(self):
+        self.lock = Lock()
+        self.frames = {key: deque(maxlen=10) for key in ('rgb', 'raw', 'aligned')}
+        self.infos = {}
+
+    def image(self, key, message):
+        with self.lock:
+            self.frames[key].append((message, time.monotonic()))
+
+    def info(self, key, message):
+        with self.lock:
+            self.infos[key] = message
+
+    def clear(self):
+        with self.lock:
+            for queue in self.frames.values():
+                queue.clear()
+
+    def snapshot(self):
+        with self.lock:
+            frames = {key: list(queue) for key, queue in self.frames.items()}
+            infos = dict(self.infos)
+        queues = {key: [msg for msg, _ in queue] for key, queue in frames.items()}
+        received = {key: queue[-1][1] for key, queue in frames.items() if queue}
+        arrivals = {(key, stamp(msg)): at for key, queue in frames.items() for msg, at in queue}
+        return queues, infos, received, arrivals
+
+
+def geometry_display_allowed(synchronized, has_info, stopped, view, hand_event,
+                             *, diagnostic=False):
+    """Display permission only; never grants hand/cycle/Robot authorization."""
+    return bool(synchronized and has_info and stopped and
+                (diagnostic or view != 'V0' or hand_event['observation_allowed']))
+
+
+def sync_diagnostic(queues, received, now, packet_received):
+    """Header delta and local arrival ages are separate clocks, in milliseconds."""
+    delta = None
+    if queues['rgb'] and queues['aligned']:
+        latest = stamp(queues['rgb'][-1])
+        if latest > 0:
+            delta = min((abs(latest-stamp(m)) / 1e6 for m in queues['aligned']
+                         if stamp(m) > 0), default=None)
+    age = lambda key: None if key not in received else 1000*(now-received[key])
+    return dict(delta_ms=delta, rgb_age_ms=age('rgb'), depth_age_ms=age('aligned'),
+                packet_age_ms=None if not packet_received else 1000*(now-packet_received))
+
+
+def sync_diagnostic_text(values):
+    value = lambda key: 'missing' if values[key] is None else f'{values[key]:.0f}ms'
+    return ('SYNC dt:'+value('delta_ms')+' (limit 50ms) RGB age:'+value('rgb_age_ms')+
+            ' Depth age:'+value('depth_age_ms')+' pair age:'+value('packet_age_ms')+' (limit 250ms)')
+
+
+def geometry_input_reasons(calibration, depth_received, has_info, synchronized,
+                           stopped, view, hand_event, *, diagnostic=False):
+    reasons = []
+    if calibration is None:
+        reasons.append('calibration_missing')
+    if not depth_received:
+        reasons.append('aligned_depth_not_received')
+    elif not synchronized:
+        reasons.append('rgb_depth_not_fresh_or_synchronized')
+    if not has_info:
+        reasons.append('aligned_camera_info_not_received')
+    if not stopped:
+        reasons.append('stop_not_confirmed')
+    if view == 'V0' and not diagnostic and not hand_event['observation_allowed']:
+        reasons.append('v0_hand_gate_not_ready')
+    return reasons
+
+
+def stopped_analysis_ready(view, stopped, synchronized, has_info, hand_event,
+                           frame_stamp, minimum_stamp, *, completed=False):
+    """One fresh stopped observation; diagnostics cannot bypass the V0 hand gate."""
+    return bool(not completed and stopped and synchronized and has_info and
+                frame_stamp > minimum_stamp and
+                (view != 'V0' or hand_event['observation_allowed']))
+
+
 def board_point(pixel, depth, info, calibration):
     """Measured clicked surface point in mm, not a block-anchor detection."""
     if not calibration['independently_validated']:
@@ -148,6 +255,8 @@ def main(argv=None):
     parser.add_argument('--view', choices=('V0', 'D1', 'D3'), required=True)
     parser.add_argument('--output', type=Path, required=True)
     parser.add_argument('--calibration', type=Path)
+    parser.add_argument('--roi-root', type=Path,
+                        help='Assembly ROI root with V0/D1/D3; loads latest saved selection per View')
     parser.add_argument('--manual-views', action='store_true',
                         help='Single window: m moving, v V0, d D1, f D3, s confirm stopped')
     parser.add_argument('--calibration-root', type=Path,
@@ -157,6 +266,8 @@ def main(argv=None):
     parser.add_argument('--confidence', type=float)
     parser.add_argument('--integrated', action='store_true',
                         help='HSV -> original RGB crop -> five-class YOLO -> Board diagnostics')
+    parser.add_argument('--diagnostic-geometry', action='store_true',
+                        help='Stopped local Depth/Grid display without hand gate; NOT cycle permission')
     parser.add_argument('--layer-reference', type=Path,
                         help='JSON: top_heights_mm (four or five Board-referenced measured levels; fifth needs measurement), tolerance_mm')
     parser.add_argument('--hand-config', type=Path,
@@ -171,6 +282,11 @@ def main(argv=None):
                         help='Manual diagnostic confirmation, NOT a Controller safety signal')
     args = parser.parse_args(argv)
     args.weights = resolve_live_weights(args.weights, args.integrated)
+    if args.diagnostic_geometry and not args.integrated:
+        parser.error('--diagnostic-geometry requires --integrated')
+    if args.roi_root and not args.integrated:
+        parser.error('--roi-root requires --integrated')
+    view_rois = load_view_rois(args.roi_root) if args.roi_root else None
     if args.select_hand_roi and (args.view != 'V0' or not args.stopped_and_clear or
             args.weights or args.integrated or args.manual_views or args.hand_detect_only or
             args.hand_config or args.opencv_separated or args.calibration or args.calibration_root):
@@ -227,8 +343,14 @@ def main(argv=None):
               'aligned': '/camera/aligned_depth_to_color/image_raw',
               'rgb-info': '/camera/color/camera_info', 'raw-info': '/camera/depth/camera_info',
               'aligned-info': '/camera/aligned_depth_to_color/camera_info'}
-    queues = {key: deque(maxlen=10) for key in ('rgb', 'raw', 'aligned')}
-    infos, subscriptions = {}, []
+    buffer = LiveFrameBuffer()
+    queues, infos, received, arrivals = buffer.snapshot()
+    subscriptions = []
+    from rclpy.executors import SingleThreadedExecutor
+    executor = SingleThreadedExecutor()
+    executor.add_node(node)
+    receiver_thread = None
+    last_sync_log = 0.
     clicked = []
     name = 'Perception LIVE - LOCAL DIAGNOSTIC'
     cv2.namedWindow(name, cv2.WINDOW_AUTOSIZE)
@@ -239,14 +361,44 @@ def main(argv=None):
     reference, measurement = None, None
     tracks, candidate_stamp = [], None
     packet, packet_received = None, 0.
+    frozen_canvas = None
+    hand_ready_stamp = None
     view_generation = selection.generation if selection else 0
-    try:
-        for key in queues:
+    def stop_receiving():
+        nonlocal receiver_thread, executor
+        if receiver_thread is not None:
+            executor.shutdown(timeout_sec=2.)
+            receiver_thread.join(timeout=2.)
+            if receiver_thread.is_alive():
+                raise RuntimeError('ROS receiver did not stop; observation blocked')
+            receiver_thread = None
+        for subscription in subscriptions:
+            node.destroy_subscription(subscription)
+        subscriptions.clear()
+        executor.remove_node(node)
+        executor = SingleThreadedExecutor()
+        executor.add_node(node)
+
+    def start_receiving():
+        nonlocal receiver_thread, buffer
+        if receiver_thread is not None:
+            return
+        buffer = LiveFrameBuffer()  # No old View frames or CameraInfo.
+        for key in ('rgb', 'raw', 'aligned'):
             subscriptions.append(node.create_subscription(Image, topics[key],
-                lambda msg, k=key: queues[k].append(msg),
+                lambda msg, k=key, b=buffer: b.image(k, msg),
                 rgb_qos if key == 'rgb' else qos_profile_sensor_data))
             subscriptions.append(node.create_subscription(CameraInfo, topics[key+'-info'],
-                lambda msg, k=key: infos.update({k: msg}), qos_profile_sensor_data))
+                lambda msg, k=key, b=buffer: b.info(k, msg), qos_profile_sensor_data))
+        receiver_thread = Thread(target=executor.spin, name='ros-rgbd-receiver', daemon=True)
+        receiver_thread.start()
+
+    try:
+        if not args.integrated:
+            start_receiving()
+        else:
+            print('STOPPED OBSERVATION: no receiving while moving; one RGB-D pair, one analysis. '
+                  'V0 hand monitoring stays continuous until ready; r requests a new observation.')
         if args.select_hand_roi:
             print('V0 HAND ROI SETUP: r = freeze RGB and select board rectangle; q = quit. No Robot/cycle permission.')
         elif args.hand_detect_only:
@@ -260,11 +412,12 @@ def main(argv=None):
             print('MANUAL VIEW: m BEFORE moving; v=V0 d=D1 f=D3; s AFTER actual stop. No Robot commands.')
         while rclpy.ok():
             if selection and selection.generation != view_generation:
+                stop_receiving()
                 args.view, args.stopped_and_clear = selection.view, selection.stopped
                 args.calibration, calibration = selection.calibrations[args.view]
-                for queue in queues.values():
-                    queue.clear()
+                buffer.clear()
                 packet, packet_received, last_rgb = None, 0., None
+                frozen_canvas, hand_ready_stamp = None, None
                 clicked.clear()
                 reference, tracks, candidate_stamp = None, [], None
                 hand_stamp, hand_event = None, None
@@ -276,18 +429,30 @@ def main(argv=None):
                 view_generation = selection.generation
                 print(f'VIEW {args.view}: '+('STOPPED (manual)' if selection.stopped else 'MOVING/UNCONFIRMED'))
             measurement = None
-            rclpy.spin_once(node, timeout_sec=.01)
-            # Drain ready callbacks so RGB does not repeatedly outrun aligned Depth.
-            for _ in range(12):
-                rclpy.spin_once(node, timeout_sec=0.)
-            if not queues['rgb']:
+            loop_started = time.monotonic()
+            if args.integrated:
+                if args.stopped_and_clear and frozen_canvas is None:
+                    start_receiving()
+                elif receiver_thread is not None:
+                    stop_receiving()
+            queues, infos, received, arrivals = buffer.snapshot()
+            if args.integrated and frozen_canvas is not None:
+                canvas = frozen_canvas.copy()
+            elif args.integrated and not args.stopped_and_clear:
+                canvas = np.zeros((180, 1000, 3), np.uint8)
+                cv2.putText(canvas, 'MOVING / UNCONFIRMED: receiving and inference OFF',
+                            (12, 40), 0, .6, (0, 180, 255), 2)
+                messages = None
+            elif not queues['rgb']:
                 canvas = np.zeros((180, 800, 3), np.uint8)
                 cv2.putText(canvas, 'Waiting for ROS RGB...', (12, 40), 0, .7, (0, 180, 255), 2)
                 messages = None
             else:
                 matched = synchronized_packet(queues)
                 if matched and (packet is None or stamp(matched['rgb']) != stamp(packet['rgb'])):
-                    packet, packet_received = matched, time.monotonic()
+                    packet = matched
+                    packet_received = min(arrivals[(key, stamp(matched[key]))]
+                                          for key in ('rgb', 'aligned'))
                 synchronized = packet is not None and time.monotonic()-packet_received < .25
                 # Retain the matched image AND its overlays briefly, never overlay old masks on new RGB.
                 rgb_msg = packet['rgb'] if synchronized else queues['rgb'][-1]
@@ -306,6 +471,19 @@ def main(argv=None):
                         hand_stamp = stamp(rgb_msg)
                     if hand_error and args.view == 'V0':
                         hand_event['reason'] = hand_error
+                    if args.view == 'V0':
+                        if not hand_event['observation_allowed']:
+                            hand_ready_stamp = None
+                        elif hand_ready_stamp is None:
+                            hand_ready_stamp = stamp(rgb_msg)
+                    analysis_ready = stopped_analysis_ready(args.view, args.stopped_and_clear,
+                        synchronized, 'aligned' in infos and 'rgb' in infos, hand_event,
+                        stamp(rgb_msg), hand_ready_stamp if args.view == 'V0' and
+                        hand_ready_stamp is not None else 0)
+                    if not analysis_ready:
+                        cv2.putText(canvas, 'WAIT: V0 hand entry/exit and stability' if args.view == 'V0'
+                                    else 'WAIT: fresh synchronized RGB-D and CameraInfo',
+                                    (8, 70), 0, .5, (0, 180, 255), 1)
                 if args.opencv_separated:
                     from .opencv_live import candidates, stabilize, draw
                     if fresh and synchronized and 'aligned' in infos:
@@ -328,22 +506,43 @@ def main(argv=None):
                                     (8, 70), 0, .5, (0, 0, 255), 1)
                     cv2.putText(canvas, 'HSV TEST: separated only; no layer/Backend; thresholds temporary',
                                 (8, 48), 0, .5, (0, 220, 255), 1)
-                if args.integrated and fresh:
+                if args.integrated and fresh and analysis_ready:
+                    stop_receiving()  # Freeze the selected RGB-D before slow inference.
                     try:
+                        input_reasons = geometry_input_reasons(calibration, bool(queues['aligned']),
+                            'aligned' in infos, synchronized, args.stopped_and_clear,
+                            args.view, hand_event, diagnostic=args.diagnostic_geometry)
                         # Never infer on a rendered canvas: text and masks are presentation only.
-                        has_geometry = (synchronized and 'aligned' in infos and args.stopped_and_clear and
-                            (args.view != 'V0' or hand_event['observation_allowed']))
+                        has_geometry = geometry_display_allowed(synchronized, 'aligned' in infos,
+                            args.stopped_and_clear, args.view, hand_event,
+                            diagnostic=args.diagnostic_geometry)
                         records = process_frame(rgb, model, args.confidence,
                             image_array(messages['aligned']) if has_geometry else None,
                             info_dict(infos['aligned']) if has_geometry else None,
                             calibration if args.stopped_and_clear else None,
-                            layer_reference.get('top_heights_mm'), layer_reference.get('tolerance_mm'))
-                        canvas = draw_integrated(canvas, records)
+                            layer_reference.get('top_heights_mm'), layer_reference.get('tolerance_mm'),
+                            roi_mask=view_rois[args.view][0] if view_rois else None)
+                        for record in records:
+                            if record.get('reason') == 'calibration_or_synced_depth_missing':
+                                record['reason'] = ', '.join(input_reasons)
+                        canvas = draw_integrated(canvas, records, show_height=args.diagnostic_geometry)
+                        if view_rois:
+                            cv2.polylines(canvas, [view_rois[args.view][1]], True, (0, 255, 0), 2)
                         cv2.putText(canvas, 'HSV -> YOLO -> DEPTH/GRID | trial geometry thresholds; LOCAL ONLY',
                                     (8, 48), 0, .5, (0, 220, 255), 1)
+                        reasons = sorted(set(input_reasons) | {
+                            r['reason'] for r in records if r.get('reason')})
+                        if reasons:
+                            cv2.putText(canvas, 'GEOMETRY: '+', '.join(reasons),
+                                        (8, 70), 0, .45, (0, 180, 255), 1)
+                        if args.diagnostic_geometry:
+                            cv2.putText(canvas, 'MEASUREMENT DISPLAY ONLY - NO CYCLE / ROBOT PERMISSION',
+                                        (8, 92), 0, .45, (0, 180, 255), 1)
                     except (ValueError, KeyError, cv2.error) as error:
                         cv2.putText(canvas, 'UNKNOWN: '+str(error), (8, 70), 0, .5, (0, 0, 255), 1)
-                elif model and fresh:
+                    frozen_canvas = canvas.copy()
+                    print('OBSERVATION FINISHED: receiving OFF; result frozen. r=new observation.', flush=True)
+                elif model and fresh and not args.integrated:
                     result = model.predict(canvas, conf=args.confidence, retina_masks=True,
                                            device='cpu', verbose=False)[0]
                     canvas = result.plot()
@@ -389,13 +588,37 @@ def main(argv=None):
                 cv2.putText(canvas, str(hand_event['reason'])+' | NOT STEP COMPLETE',
                             (8, canvas.shape[0]-12), 0, .4, (0, 220, 255), 1)
             if selection:
-                mode = 'STOPPED (manual)' if selection.stopped else 'MOVING/UNCONFIRMED - geometry blocked'
+                mode = 'STOPPED (manual)' if selection.stopped else 'MOVING/UNCONFIRMED - receiving/inference OFF'
                 cv2.putText(canvas, f'{selection.view} {mode} | m:move v:V0 d:D1 f:D3 s:stop',
                             (8,canvas.shape[0]-54),0,.5,(0,220,255),1)
+            if args.integrated and frozen_canvas is None:
+                now = time.monotonic()
+                latest_queues, _, latest_received, _ = buffer.snapshot()
+                sync_text = sync_diagnostic_text(sync_diagnostic(latest_queues, latest_received, now, packet_received))
+                cv2.putText(canvas, sync_text, (8, 114), 0, .42, (0, 220, 255), 1)
+                if now-last_sync_log >= 2.:
+                    print(sync_text+f' loop:{1000*(now-loop_started):.0f}ms', flush=True)
+                    last_sync_log = now
+            if args.integrated:
+                cv2.putText(canvas, 'RESULT FROZEN | receiving OFF | r:new observation' if frozen_canvas is not None
+                            else 'RECEIVING ON: stopped observation' if receiver_thread is not None
+                            else 'RECEIVING OFF', (8, 136), 0, .42, (0, 220, 255), 1)
             cv2.imshow(name, canvas)
             key = cv2.waitKey(1) & 255
             if key == ord('q') or cv2.getWindowProperty(name, cv2.WND_PROP_VISIBLE) < 1:
                 break
+            if args.integrated and key == ord('r'):
+                if not args.stopped_and_clear:
+                    print('Re-observation blocked: actual stop confirmation required')
+                    continue
+                stop_receiving()
+                frozen_canvas, hand_ready_stamp = None, None
+                packet, packet_received, last_rgb = None, 0., None
+                hand_stamp, hand_event = None, None
+                if hand_gate is not None:
+                    hand_gate.reset_for_reobservation()
+                    hand_detector.reset()
+                continue
             if selection and key in map(ord, 'mvdfs'):
                 try:
                     if key == ord('m'):
@@ -476,6 +699,8 @@ def main(argv=None):
                     print('Capture failed: ' + str(error))
     finally:
         cv2.destroyAllWindows()
+        stop_receiving()
+        executor.shutdown(timeout_sec=2.)
         node.destroy_node()
         rclpy.shutdown()
 

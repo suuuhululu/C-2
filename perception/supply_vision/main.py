@@ -67,6 +67,8 @@ def assign_slots(layout, detections, confidence):
                 state['reason'] = 'detection_crosses_slot'
             elif hit['confidence'] < confidence:
                 state['reason'] = 'low_confidence'
+            elif hit.get('color_mismatch', False):
+                state['reason'] = 'opencv_yolo_color_mismatch'
             elif hit['class_name'] != expected:
                 state['reason'] = 'unexpected_class'
             else:
@@ -98,6 +100,45 @@ def infer(model, frame, candidate_confidence):
                               result.boxes.cls.cpu().numpy(), result.boxes.conf.cpu().numpy())]
 
 
+def color_candidates(frame, config):
+    """HSV proposes crops only; it never assigns a YOLO block class."""
+    hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+    candidates = []
+    for entry in config['slots']:
+        x1, y1, x2, y2 = entry['roi_xyxy']
+        for color, bands in config['surface']['hsv_ranges'].items():
+            mask = np.zeros((y2-y1, x2-x1), np.uint8)
+            for lower, upper in bands:
+                mask |= cv2.inRange(hsv[y1:y2, x1:x2], np.array(lower, np.uint8),
+                                    np.array(upper, np.uint8))
+            contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+            for contour in contours:
+                if cv2.contourArea(contour) < config['surface']['minimum_area']:
+                    continue
+                x, y, w, h = cv2.boundingRect(contour)
+                # Original RGB with context; no mask/labels painted into model input.
+                candidates.append({'color': color, 'crop_xyxy': [
+                    max(x1, x1+x-3), max(y1, y1+y-3),
+                    min(x2, x1+x+w+3), min(y2, y1+y+h+3)]})
+    return candidates
+
+
+def infer_color_candidates(model, frame, config):
+    detections = []
+    for candidate in color_candidates(frame, config):
+        x1, y1, x2, y2 = candidate['crop_xyxy']
+        crop = frame[y1:y2, x1:x2].copy()
+        for detection in infer(model, crop, config['candidate_confidence']):
+            box = detection['box']
+            if not (0 <= box[0] < box[2] <= x2-x1 and 0 <= box[1] < box[3] <= y2-y1):
+                raise ValueError('YOLO box outside original RGB candidate crop')
+            detections.append({**detection,
+                'box': [box[0]+x1, box[1]+y1, box[2]+x1, box[3]+y1],
+                'opencv_color': candidate['color'],
+                'color_mismatch': detection['class_name'].split('_')[0] != candidate['color']})
+    return detections
+
+
 def process(frame, model, config, request, stamp_ns):
     from .top_surface import top_geometry
     if list(frame.shape[1::-1]) != config['image_size']:
@@ -107,7 +148,7 @@ def process(frame, model, config, request, stamp_ns):
         raise ValueError('observation/config mismatch or stop not confirmed')
     if not request['not_before_ns'] < stamp_ns <= request['expires_at_ns']:
         raise ValueError('frame outside active request time window')
-    detections = infer(model, frame, config['candidate_confidence'])
+    detections = infer_color_candidates(model, frame, config)
     states = assign_slots(config, detections, config['confidence'])
     for state, entry in zip(states, config['slots']):
         if state['status'] == 'DETECTED':

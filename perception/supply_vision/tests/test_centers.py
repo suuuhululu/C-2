@@ -65,12 +65,13 @@ def test_pipeline_candidate_and_no_detection(monkeypatch):
                'brick_type':'2x3x1','color':'blue'}
     frame = np.zeros((180,200,3),np.uint8)
     cv2.rectangle(frame,(40,30),(120,130),(255,0,0),-1)
-    monkeypatch.setattr(module,'infer',lambda *a:[{'box':[35,25,125,135],
+    monkeypatch.setattr(module,'infer',lambda *a:[{'box':[3,3,84,104],
                         'class_name':'blue_2x3','confidence':.9}])
     result = process(frame,None,config,request,150)
     assert result['status'] == 'CANDIDATES'
     assert result['candidates'][0]['slot'] == 3
     assert result['units'] == 'pixel'
+    np.testing.assert_allclose(result['candidates'][0]['geometry']['center_uv'], [80,80], atol=.01)
     monkeypatch.setattr(module,'infer',lambda *a:[])
     result = process(frame,None,config,request,160)
     assert result['status'] == 'HOLD'

@@ -1,0 +1,295 @@
+{
+  "records": [
+    {
+      "source": "/home/roh/Pictures/Screenshots/Screenshot from 2026-10-12 10-03-43.png",
+      "image": "/home/roh/C-2/perception/labeling/hand_dataset/images/train/hand_v0_20261012_100343.png",
+      "sha256": "c2e0a15a8a80038c2804696db9f44efcafe0dd79cea323e2000d495fc3b5bbbe",
+      "boxes_xyxy": [
+        [
+          716,
+          92,
+          1101,
+          350
+        ],
+        [
+          737,
+          420,
+          1175,
+          721
+        ]
+      ],
+      "human_reviewed": false,
+      "annotation": "AI_visual_bbox_draft",
+      "scene_id": "hand_screenshots_20261012"
+    },
+    {
+      "source": "/home/roh/Pictures/Screenshots/Screenshot from 2026-10-12 10-03-49.png",
+      "image": "/home/roh/C-2/perception/labeling/hand_dataset/images/train/hand_v0_20261012_100349.png",
+      "sha256": "910ab8513159343dbfa62e6728018677f408870f8ebaeb913aec31b91c8cbb79",
+      "boxes_xyxy": [
+        [
+          716,
+          90,
+          1098,
+          354
+        ],
+        [
+          738,
+          420,
+          1176,
+          721
+        ]
+      ],
+      "human_reviewed": false,
+      "annotation": "AI_visual_bbox_draft",
+      "scene_id": "hand_screenshots_20261012"
+    },
+    {
+      "source": "/home/roh/Pictures/Screenshots/Screenshot from 2026-10-12 10-03-58.png",
+      "image": "/home/roh/C-2/perception/labeling/hand_dataset/images/train/hand_v0_20261012_100358.png",
+      "sha256": "a2f26b854160b96f24958af7aa9cdcc06998659cfed081a990d900000f8ddcbf",
+      "boxes_xyxy": [
+        [
+          668,
+          118,
+          1018,
+          378
+        ],
+        [
+          711,
+          435,
+          1141,
+          724
+        ]
+      ],
+      "human_reviewed": false,
+      "annotation": "AI_visual_bbox_draft",
+      "scene_id": "hand_screenshots_20261012"
+    },
+    {
+      "source": "/home/roh/Pictures/Screenshots/Screenshot from 2026-10-12 10-04-03.png",
+      "image": "/home/roh/C-2/perception/labeling/hand_dataset/images/train/hand_v0_20261012_100403.png",
+      "sha256": "cfc2414bf2721141f3cf26f52089283f72db1365a941d970e0e848252573d0c0",
+      "boxes_xyxy": [
+        [
+          571,
+          108,
+          949,
+          367
+        ],
+        [
+          600,
+          413,
+          1058,
+          724
+        ]
+      ],
+      "human_reviewed": false,
+      "annotation": "AI_visual_bbox_draft",
+      "scene_id": "hand_screenshots_20261012"
+    },
+    {
+      "source": "/home/roh/Pictures/Screenshots/Screenshot from 2026-10-12 10-04-06.png",
+      "image": "/home/roh/C-2/perception/labeling/hand_dataset/images/train/hand_v0_20261012_100406.png",
+      "sha256": "ad4a1fa7044a6dfbc4318179d58fb417164beebb9b12534dbb53f4fa69613c72",
+      "boxes_xyxy": [
+        [
+          547,
+          167,
+          841,
+          417
+        ],
+        [
+          555,
+          413,
+          989,
+          666
+        ]
+      ],
+      "human_reviewed": false,
+      "annotation": "AI_visual_bbox_draft",
+      "scene_id": "hand_screenshots_20261012"
+    },
+    {
+      "source": "/home/roh/Pictures/Screenshots/Screenshot from 2026-10-12 10-04-11.png",
+      "image": "/home/roh/C-2/perception/labeling/hand_dataset/images/train/hand_v0_20261012_100411.png",
+      "sha256": "ca93bdcf3c0997f8b4544f336ec29a8461699762d0a648b423623f83fc2c57d2",
+      "boxes_xyxy": [
+        [
+          887,
+          122,
+          1271,
+          373
+        ],
+        [
+          865,
+          394,
+          1338,
+          704
+        ]
+      ],
+      "human_reviewed": false,
+      "annotation": "AI_visual_bbox_draft",
+      "scene_id": "hand_screenshots_20261012"
+    },
+    {
+      "source": "/home/roh/Pictures/Screenshots/Screenshot from 2026-10-12 10-04-26.png",
+      "image": "/home/roh/C-2/perception/labeling/hand_dataset/images/train/hand_v0_20261012_100426.png",
+      "sha256": "16f770900ae922f938792cdcaf67268fc3f2e961f8af69f20c324beb94bd7cdc",
+      "boxes_xyxy": [
+        [
+          559,
+          348,
+          790,
+          750
+        ],
+        [
+          887,
+          293,
+          1120,
+          652
+        ]
+      ],
+      "human_reviewed": false,
+      "annotation": "AI_visual_bbox_draft",
+      "scene_id": "hand_screenshots_20261012"
+    },
+    {
+      "source": "/home/roh/Pictures/Screenshots/Screenshot from 2026-10-12 10-04-27.png",
+      "image": "/home/roh/C-2/perception/labeling/hand_dataset/images/train/hand_v0_20261012_100427.png",
+      "sha256": "d389b5fcc69437f3c88e56eed4a402dc1126c8258b1a752fd1e59e1246454488",
+      "boxes_xyxy": [
+        [
+          475,
+          285,
+          714,
+          702
+        ],
+        [
+          759,
+          293,
+          1008,
+          661
+        ]
+      ],
+      "human_reviewed": false,
+      "annotation": "AI_visual_bbox_draft",
+      "scene_id": "hand_screenshots_20261012"
+    },
+    {
+      "source": "/home/roh/Pictures/Screenshots/Screenshot from 2026-10-12 10-04-29.png",
+      "image": "/home/roh/C-2/perception/labeling/hand_dataset/images/train/hand_v0_20261012_100429.png",
+      "sha256": "12706593fdb5c8cd3b75feadfef764f35edbbaa4d8263ee25fda6fd140d74aab",
+      "boxes_xyxy": [
+        [
+          585,
+          215,
+          847,
+          672
+        ],
+        [
+          935,
+          225,
+          1183,
+          569
+        ]
+      ],
+      "human_reviewed": false,
+      "annotation": "AI_visual_bbox_draft",
+      "scene_id": "hand_screenshots_20261012"
+    },
+    {
+      "source": "/home/roh/Pictures/Screenshots/Screenshot from 2026-10-12 10-04-32.png",
+      "image": "/home/roh/C-2/perception/labeling/hand_dataset/images/train/hand_v0_20261012_100432.png",
+      "sha256": "393a72716620014d081bd323b2d5b6b5a3a35d983b175da6d085714cdc54277d",
+      "boxes_xyxy": [
+        [
+          712,
+          467,
+          885,
+          787
+        ],
+        [
+          958,
+          479,
+          1182,
+          755
+        ]
+      ],
+      "human_reviewed": false,
+      "annotation": "AI_visual_bbox_draft",
+      "scene_id": "hand_screenshots_20261012"
+    },
+    {
+      "source": "/home/roh/Pictures/Screenshots/Screenshot from 2026-10-12 10-04-35.png",
+      "image": "/home/roh/C-2/perception/labeling/hand_dataset/images/train/hand_v0_20261012_100435.png",
+      "sha256": "aa070eba3e1584a54d3098f4256e6fbc81f18228fadeb43c26831bc55f80eff0",
+      "boxes_xyxy": [
+        [
+          522,
+          393,
+          795,
+          787
+        ],
+        [
+          943,
+          387,
+          1276,
+          747
+        ]
+      ],
+      "human_reviewed": false,
+      "annotation": "AI_visual_bbox_draft",
+      "scene_id": "hand_screenshots_20261012"
+    },
+    {
+      "source": "/home/roh/Pictures/Screenshots/Screenshot from 2026-10-12 10-04-37.png",
+      "image": "/home/roh/C-2/perception/labeling/hand_dataset/images/train/hand_v0_20261012_100437.png",
+      "sha256": "466af162992b6a4fc2f36c13db53be84b07fcd10295e9fb88fb6909b18e47a2f",
+      "boxes_xyxy": [
+        [
+          444,
+          279,
+          721,
+          752
+        ],
+        [
+          881,
+          161,
+          1208,
+          487
+        ]
+      ],
+      "human_reviewed": false,
+      "annotation": "AI_visual_bbox_draft",
+      "scene_id": "hand_screenshots_20261012"
+    },
+    {
+      "source": "/home/roh/Pictures/Screenshots/Screenshot from 2026-10-12 10-04-39.png",
+      "image": "/home/roh/C-2/perception/labeling/hand_dataset/images/train/hand_v0_20261012_100439.png",
+      "sha256": "4a38247da6e721a7b8b167ccd2740af83bf1a14b02e7555974a24b4e7b162cfc",
+      "boxes_xyxy": [
+        [
+          516,
+          230,
+          638,
+          700
+        ],
+        [
+          965,
+          174,
+          1226,
+          567
+        ]
+      ],
+      "human_reviewed": false,
+      "annotation": "AI_visual_bbox_draft",
+      "scene_id": "hand_screenshots_20261012"
+    }
+  ],
+  "excluded_duplicate": "/tmp/codex-clipboard-6a2b3f8f-7710-44bf-bf95-170a37835a73.png",
+  "duplicate_of": "/home/roh/Pictures/Screenshots/Screenshot from 2026-10-12 10-03-58.png",
+  "training_images": 29,
+  "training_hands": 53,
+  "independent_validation": false
+}

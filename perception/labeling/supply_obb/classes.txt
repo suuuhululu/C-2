@@ -1,0 +1,5 @@
+yellow_2x2
+yellow_2x3
+blue_2x2
+blue_2x3
+red_2x1

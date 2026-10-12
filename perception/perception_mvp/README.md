@@ -1,5 +1,43 @@
 # 실제 Perception 처리 코드
 
+## 2026-10-12 PR29 리뷰 — 검사 시작 조건과 촬영/분석 경계
+
+- make_inspection_observer의 INITIAL/FINAL 기본 시작 조건은 STOPPED_CLEAR다. 새 손 진입과 손 이탈 3초 대기는 요구하지 않는다. 실제 V0 정지·안전 확인, 손 ABSENT·설정된 영상 안정 시간·프레임 품질 확인은 계속 필요하다. 저장된 시험 안정값은 밝기 차이 평균 3 이하·연속 1초이며 안전 인증이나 독립 성능 검증값이 아니다. UNKNOWN이나 손 PRESENT를 무시하는 무조건 촬영이 아니다.
+- STEP의 기본은 기존 HUMAN_ASSEMBLY(새 진입→이탈 >3초→안정)다. 로봇 직접 결착 후 STEP은 D와 합의한 작업 문맥에 따라 make_inspection_observer(..., start_condition=함수)로 STOPPED_CLEAR를 명시한다. 함수는 고정된 검사 context를 받아 HUMAN_ASSEMBLY 또는 STOPPED_CLEAR를 반환한다. STEP 종류만 보고 로봇/사람 작업을 임의 추정하지 않으며 공통 요청/Observed 필드는 추가하지 않았다.
+- hand 대기와 begin_observation에는 프레임 유효성 검사를 유지한다. 실제 V0 캡처 문맥을 확인한 뒤 freeze_capture로 CAPTURED 단계에 들어가며, 이후 CPU 분석 시간이 마지막 손 프레임 age를 증가시켰다는 이유로 finish_observation을 실패시키지 않는다. 기존 bundle_valid/is_active/STOP·취소 검사는 분석 후·전달 전에도 유지한다.
+- 수신 종료 뒤 새 손 진입을 감지할 수 있다고 주장하지 않는다. 캡처 후 장면 연속성/로봇 이동/STOP은 실제 Controller·capture hook의 유효성 근거가 필요하다. 이 변경은 D 실행기나 로컬 live_view의 시작 정책을 자동 교체하는 것이 아니다.
+- 실제 검증: B MVP/legacy/calibration/supply 및 로컬 소비자 입력 검증 함수 대조 310 passed, 종료 0. 새 손 진입 없는 INITIAL/FINAL, 사람 STEP 진입 필수, 명시 로봇 STEP, UNKNOWN/불안정 차단, 1초 허용 간격·1.1초 분석의 상태기계 및 캡처/분석 경로를 검사했다. 합성 clock·관측/장치 hook 결과이며 실제 Camera/Robot 시험은 아니다. 기존 사용자 변경 보존. 다른 팀 코드·문서 및 STATUS.md 변경·commit/push 없음.
+- 3초 대기 제거 후 재검사: 2026-10-12 동일 B 관련 범위 316 passed in 5.51s, 종료 0. STOPPED_CLEAR에서 안정 1초 충족 후 즉시 허용, 사람 모드 정확히 3초 거절/3초 초과 허용, 손 재진입/UNKNOWN/프레임 끊김/불안정의 안정 시간 초기화, 다음 사람 요청의 기존 조건 복원, STOP 때 stream 종료를 추가 확인했다. 기존 취소·분석 지연 검사도 재실행했으며 이전 310개 수치와 합산하지 않는다. 실제 카메라 시험은 별도다.
+
+## 2026-10-12 B 관측 생산자 INITIAL/STEP/FINAL 연결 보완
+
+최신 통합을 포함한 로컬 9f57a7e 기준에서 B 코드만 보완했다. 다른 팀의 코드·문서는 수정하지 않는다.
+
+- main.make_inspection_observer는 기존 connect_inspection의 observe(context, is_active)에 전달할 B callable을 만든다. capture_view(manifest, view, is_active)는 실제 촬영 데이터 폴더·verified_regions·verification_basis를 반환해야 한다. confirm_view, workflow_valid, bundle_valid, 손 stream은 실제 Camera/Controller 조건의 hook이며 함수 존재만으로 실기 연결 완료가 아니다.
+- 요청 문맥을 복사한 뒤 V0 손 진입/이탈·안정 → V0/D1/D3 정지·1쌍 촬영·View별 분석·저장을 수행한다. capture에 전달한 문맥 복사본 변경으로 원래 check_id/순번/검사 종류가 바뀌지 않는다. 취소 시 is_active와 기존 유효성 검사를 적용한다.
+- INITIAL/FINAL에서는 target_after=None이며 가짜 Step 블록을 생성하지 않는다. INITIAL의 전체 24×24×5 확인 범위 부족은 UNOBSERVABLE Observed로 보고하고 검사 코어가 초기 Current 미확인을 유지한다. FINAL 새 확인 근거 없음도 UNOBSERVABLE이다. FINAL의 일부 유효 근거가 있다는 OK는 MATCH가 아니며 실제 Current/Expected 비교는 VisionInspection이 담당한다.
+- STEP과 기존 ASSEMBLY 호출의 기본 동작은 유지한다. 공통 여섯 Observed 필드, 기존 Current/revision 소유, 아래층 이력 정책을 변경하지 않는다. 예상 배치·ROI·빈 검출 목록을 실제 확인 영역으로 대신하지 않는다.
+
+연결 형태(실제 hook이 준비된 경우의 Python 호출 안내이며 독립 실행 명령이 아님):
+
+```python
+from perception_mvp.main import make_inspection_observer
+from perception_mvp.team_connection import connect_inspection
+
+observe = make_inspection_observer(
+    gate, hand_detector, hand_stream, capture_view,
+    weights, calibration, geometry_config, confidence,
+    confirm_view=confirm_view, workflow_valid=workflow_valid,
+    bundle_valid=bundle_valid, output_root=output_root,
+)
+b = connect_inspection(enqueue_result, observe=observe,
+                       geometry_reference=geometry_reference)
+```
+
+실제 Geometry의 보드 기준면·층 높이·허용오차·통합 변환, 실제 정지/안정 hook, verified_regions 생산 근거는 아직 준비/연결 필요다. D 실행기의 합성 observe를 실제 callable로 교체하는 것은 D 담당자가 확인해야 하며 이번 작업에서는 해당 파일을 수정하지 않았다. LLM/API·DB·Robot 제어를 이 함수가 수행하지 않는다.
+
+검증 기록: 2026-10-12 B MVP/legacy/calibration/supply + 로컬 D consumer 입력 검증 함수 대조 **298 passed**, 종료 0. 신규 검사에는 INITIAL/FINAL 범위·가짜 target 거부·문맥 고정/취소와 V0→D1→D3 캡처/저장 hook 실행이 포함된다. 배열·관측 영역·장치 hook은 합성 Fixture이므로 실제 Camera 정확도나 안전·실물 체결 증거가 아니다. Python 문법과 대상 diff 검사도 확인했다. 과거 317개 최신 모의 통합 결과와 중복하므로 합산하지 않는다. 실제 Camera/Controller/DB·웹 검증, commit/push는 수행하지 않았다.
+
 ## 이 PC 실행 환경 — CPU 전용
 
 사용자 결정으로 이 PC는 GPU가 아닌 CPU를 사용합니다. 블록/손 predict는 device=cpu를

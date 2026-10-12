@@ -228,7 +228,7 @@ def main(argv=None):
         detector = HandDetector(hand["weights"], hand["confidence"], hand["board_roi_v0"],
             min_valid_depth_fraction=hand["min_valid_depth_fraction"],
             stable_mean_difference=hand["stable_mean_difference"],
-            image_size=hand.get("board_image_size"))
+            image_size=hand.get("board_image_size"), board_polygon=hand.get("board_polygon_v0"))
         gate = HandCycle(hand["stable_seconds"], hand["max_frame_gap_seconds"])
         output = args.output or new_path("local_results").with_suffix(".jsonl")
         output.parent.mkdir(parents=True, exist_ok=True)

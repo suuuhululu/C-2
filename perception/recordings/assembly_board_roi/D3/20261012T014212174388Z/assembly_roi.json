@@ -1,0 +1,42 @@
+{
+  "purpose": "ASSEMBLY_BOARD",
+  "polygon_px": [
+    [
+      131,
+      589
+    ],
+    [
+      609,
+      715
+    ],
+    [
+      964,
+      716
+    ],
+    [
+      1035,
+      69
+    ],
+    [
+      702,
+      6
+    ],
+    [
+      347,
+      4
+    ],
+    [
+      284,
+      4
+    ]
+  ],
+  "image_size": [
+    1280,
+    720
+  ],
+  "topic": "/camera/color/image_raw",
+  "stamp_ns": 1791769270807464600,
+  "frame_id": "camera_color_optical_frame",
+  "view_id": "D3",
+  "status": "PIXEL_ROI_ONLY_NOT_ROBOT_CALIBRATION"
+}

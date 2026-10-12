@@ -1,5 +1,94 @@
 # 현재 진행 상황
 
+## 2026-10-12 — 손 모델 기본 경로 최신화
+
+- 사용자 요청으로 perception_mvp/config.yaml의 기본 손 weights, live_view.save_hand_roi 및 supply_roi의 V0 손 ROI 설정 생성 경로, README 손 실행 예시를 models/hand_yolo11n_added_20261012/weights/best.pt로 변경했다. 기존 저장된 V0 hand_config.json은 이미 같은 경로다. 블록 모델·시험 임계값·기존 모델·사용자 미완료 변경은 보존한다.
+- 최초 저장소 루트 pytest는 perception_mvp import 경로 누락으로 수집 실패(2). 올바른 perception 작업 위치에서 polygon_roi/live_view 검사 32 passed 종료0, 변경 Python 문법·git diff --check 종료0. 새 ROI 생성 경로 회귀 검사를 포함한다. 실제 카메라/손 사이클 실행·독립 성능 검증은 미수행이다.
+
+## 2026-10-12 — V0 손 프레임 끊김 시험값 지정
+
+- 사용자 명시 승인으로 assembly_board_roi/V0/20261012T004735740339Z/hand_config.json의 max_frame_gap_seconds를 1.0초로 설정했다. 상태는 TRIAL_VALUES_UNVALIDATED이며 확인 주기가 아닌 연속 처리 프레임 간격의 허용 한도다. 손 재진입 초기화·손 이탈 연속 3초 초과 조건·나머지 설정과 코드는 변경하지 않았다.
+- JSON/적용값/exit_seconds 유지 검사와 git diff --check 종료0. 실제 CPU 처리 간격·카메라 손 재진입·끊김 시험은 미수행이며 현장 시험 후 조정한다.
+
+## 2026-10-12 — V0 손 설정 현장 시험값 적용
+
+- 사용자 승인으로 저장된 assembly_board_roi/V0/20261012T004735740339Z/hand_config.json에 최신 추가 학습 weights/best.pt와 confidence=0.25, min_valid_depth_fraction=0.8, stable_mean_difference=3.0, stable_seconds=1.0을 적용했다. 현장 미검증 시험값이며 실제 ROI/해상도/exit_seconds=3.0은 보존했다. 전역 설정·손 사이클 코드·사용자 미완료 변경은 변경하지 않았다.
+- max_frame_gap_seconds는 실제 프레임 처리 간격 미측정으로 null을 유지한다. 이 파일로 전체 손 사이클 실행은 아직 불가하며 프레임 간격 실측·설정이 필요하다. JSON/모델 경로·적용값 및 유지값 검사 종료0, git diff --check 종료0. 실제 Camera·Depth 품질·안정성·손 사이클은 미검증이다.
+
+## 2026-10-12 — 정지 관측 구간 수신·RGB-D 1쌍/1회 분석
+
+- 사용자 최종 결정에 따라 integrated live_view는 이동/정지 미확인에서 영상·CameraInfo 구독 없음. 정지 시 구독 시작, 새 동기화 RGB-D 1쌍 선택 후 구독/수신 스레드를 종료하고 기존 HSV/YOLO/DepthGrid 1회 분석. 결과는 고정 표시하며 r 명시 재관측 또는 m→View 선택→s 새 정지 확인으로만 갱신한다. 이전 View 프레임·CameraInfo는 재사용하지 않는다.
+- V0 정지 후 손 진입/이탈·엄격한 >3초/안정 조건은 연속 수신으로 확인. 손 조건 충족 프레임보다 새로운 RGB-D로 블록을 관측하며 진단 옵션도 손 조건을 우회하지 않는다. D1/D3는 손 추론 없음. 기존 수동 s는 정지·안정화의 로컬 확인이며 Controller 실결선/안전 승인이 아니다. raw Depth는 저장 보조로 동일 구간에 수신하며 분석에는 aligned Depth를 사용한다.
+- main.py의 confirm_view→capture_view→분석 hook 경로는 기존 구조를 유지했고 실제 Controller/D 수신 구현을 추가하지 않았다. D production·모델/기하 알고리즘·다수결·층/높이 기준은 변경하지 않았다. setup/hand-detect-only 등 별도 진단 모드는 본 integrated 관측 정책과 구분한다.
+- B MVP 검사 224 passed, 1 skipped(D 소비자 경로 미설정), 종료 0; py_compile 및 대상 diff --check 확인. 이동 차단·V0 새 프레임/손 필요·D1/D3 손 불필요·완료 중복 차단 검사 포함. 실제 ROS 구독 lifecycle/카메라·Robot 시연은 미검증. 저장 hand_config의 confidence/Depth 품질/안정/프레임 간격이 null인 상태라 실제 V0 자동 게이트는 보류된다. 설정을 임의 생성하지 않았다. 기존 사용자 변경·삭제 자료는 그대로 보존. Git 게시 없음.
+
+## 2026-10-12 — ROS 수신과 통합 화면 추론 분리
+
+- 사용자 화면의 loop 약 2~4초/수신 age 지연에 대해 live_view를 별도 SingleThreadedExecutor 수신 스레드로 변경. 잠금·최근 10개 bounded 버퍼에서 RGB/Depth/CameraInfo 스냅샷을 복사해 추론하므로 콜백과 추론이 동일 deque를 동시 순회하지 않는다. View 전환은 프레임 버퍼를 비우며 종료 시 executor/thread 정리한다.
+- matched 묶음 경과시간은 처리 시각이 아닌 해당 RGB/Depth의 실제 로컬 수신 시각으로 계산. 진단 수신 age는 추론 후 최신 버퍼로 갱신한다. 50ms/250ms 기준과 Robot·손 권한은 변경하지 않음. 동일 Python torch.cuda.is_available() False; CPU 유지, 자동 CUDA fallback/의존성 변경 없음.
+- B MVP 검사 216 passed, 1 skipped(D 수신부 경로 미제공), 종료 0. snapshot 불변·bounded 버퍼 신규 검사와 기존 검사 포함. py_compile 및 대상 diff --check 통과. 실제 ROS 수신/실시간 성능·카메라 timestamp 경고 원인은 재실행 후 확인 필요. D 코드 변경·Git 게시·장치 명령 없음.
+
+## 2026-10-12 — RGB/Depth 동기화 수치 진단
+
+- live_view에 최신 RGB와 큐 내 가장 가까운 aligned Depth header 차이(dt), RGB/Depth callback 수신 경과, 마지막 새 matched pair 경과, 처리 loop 시간을 표시/2초 주기 터미널 출력하도록 추가했다. 헤더 시각과 monotonic 시각을 직접 빼지 않는다. 기존 50ms/250ms 임계값·손/정지/Robot 권한은 변경 없음.
+- 관련 표시/live_view/integrated_view 검사 47 passed, 종료 0; 대상 diff --check 통과. 현재 사용자 실행기의 실시간 수치는 재실행 후 확인해야 하며 수신 지연을 카메라 장애로 단정하지 않는다. 로컬 ROS header 진단은 별도 6초 제한 실행; 실제 사용자 ROS 환경과 다를 수 있다. 기존 사용자 변경 보존, Git 게시/장치 이동 없음.
+
+## 2026-10-12 — 통합 화면 측정 입력 누락 구분
+
+- live_view의 GEOMETRY 표시를 calibration_missing / aligned_depth_not_received / aligned_camera_info_not_received / rgb_depth_not_fresh_or_synchronized / stop_not_confirmed / v0_hand_gate_not_ready로 구분했다. 기존 입력 차단 의미는 유지하며 블록이 검출되지 않아도 입력 사유를 표시한다. 다른 사용자의 미커밋 수정은 보존.
+- 관련 geometry_display/live_view/integrated_view 검사 45 passed, 종료 0; 대상 diff --check 통과. 로컬 ROS topic info 및 aligned Depth/CameraInfo header echo는 각각 8초 제한 동안 출력 없이 종료 124. 이는 카메라 미발행 확정이 아니며 현재 프로세스의 실제 입력은 재시작 화면에서 확인해야 한다. 장치 이동/카메라 재시작/Git 게시 없음.
+
+## 2026-10-12 — 통합 화면 Depth/Grid 로컬 측정 표시 연결
+
+- 기존 사용자 ROI/손 관련 미커밋 변경을 보존하고 live_view/integrated_view에 --diagnostic-geometry를 추가했다. 명시적 로컬 진단에서는 손 게이트 미설정이어도 실제 정지 확인·동기화·CameraInfo가 있을 때 기존 Depth/Grid 계산에 전달한다. 기본 경로의 손 허용 조건은 유지하며 손 상태/사이클/Robot 권한은 변경하지 않는다.
+- 진단 화면은 계산된 Grid와 Board pose 기준 H:mm, 미확인 사유를 표시한다. 실측 층 기준이 없는 경우 layer는 미확인으로 유지한다. 기존 진단 상면 보고서가 AI polygon 미검토·기준면 미채택이므로 운영 층 설정으로 자동 채택하지 않았다.
+- 신규 표시/게이트 검사 5개 포함 B MVP 검사 207 passed, 1 skipped(D 소비자 경로 미설정), 종료 0. 최초 개별 검사 명령은 없는 test_hand_cycle.py 경로로 종료 4; 전체 MVP 범위로 바로잡아 재검사했다. 대상 diff --check 통과. 실제 ROS 화면/정답 좌표·층·장치 시험은 미수행. 코드 존재를 실기 정확도 확인으로 표시하지 않는다. Git 게시 없음.
+
+## 2026-10-12 — 세 View ROI의 통합 블록 화면 연결
+
+- 사용자 요청으로 live_view --roi-root를 추가했다. 시작 시 V0/D1/D3 최신 저장 ROI의 목적/View/해상도/단순 다각형을 검증하고 현재 View의 ROI를 process_frame에 전달한다. HSV 후보는 ROI 내부만 사용하고 YOLO 입력 crop의 원본 RGB는 보존한다. 밖의 검출은 제외하며 경계 걸친 mask는 표시 영역만 제한하고 geometry 판정을 보류한다. 수동 View 전환 시 같은 조회 경계로 ROI가 바뀐다. 손 설정/보정/Backend·Controller 경로는 변경하지 않는다.
+- 실제 검증: 저장된 세 실제 ROI 로드(각 1280×720) 종료 0, 전체 perception_mvp+legacy 219 passed, 1 skipped 종료 0, compileall/git diff --check 종료 0. ROI 밖 후보 제외·경계 geometry 차단·해상도 불일치 차단 검사를 추가했다. 실제 ROS 통합 화면은 사용자 다음 시험이다. 이 연결은 live_view 블록 진단 화면이며 팀 관측 producer 연결·손 안정화/층 기준 완성은 아니다.
+
+## 2026-10-12 — 오목 다각형 ROI 지원
+
+- 사용자 요청으로 supply/assembly 공통 선택기의 볼록 다각형 제한을 제거했다. 기존 hand_cycle에 공유 검증 함수를 두어 3개 이상 정수점의 오목 영역을 원형 그대로 보존하고 교차/겹침/반복점/면적 없는 영역은 저장 전에 거부한다. V0 손 감지의 볼록 교차 연산을 실제 ROI 픽셀과 손 박스의 겹침 검사로 변경해 오목하게 제외한 영역을 Depth·안정화·손 판정 모두에서 제외한다. D1/D3 손 감지 없음·기존 ROI/사용자 모델/라벨 변경은 유지한다.
+- 실제 검증: perception_mvp+legacy 216 passed, 1 skipped 종료 0. 오목 6점 저장·역순 허용·교차/중복/겹침 거부·오목 제외 영역의 손/Depth/차분 제외 및 내부 손 검사를 포함한다. compileall/git diff --check 종료 0. 실행 중인 선택기는 재시작해야 새 코드가 적용된다. 실제 GUI 선택은 사용자 다음 작업이며 Robot 동작 없음.
+
+## 2026-10-12 — B 손 사진 추가 라벨링·시험 학습 완료
+
+- 사용자 첨부 14개 중 clipboard와 10-03-58 PNG가 픽셀 동일함을 검사해 중복 1개를 제외했다. 원본 13장 복사와 손 Detection AI 육안 박스 26개를 기존 hand_dataset/images/train·labels/train에 추가했다. 기존 16장과 합쳐 29장·손 53개이며 기존 보류 4장은 제외했다. 원본·기존 모델·기존 ZIP은 보존한다. source/SHA256/박스/중복 정보는 provenance_20261012.json, 새 라벨 미리보기는 previews/added_20261012_contact_1.jpg~4.jpg에 있다.
+- CPU 첫 실행은 종료 143으로 중단(원인 미확정), batch2 재시도는 느려 담당 에이전트가 중단(130)하고 무료 Colab T4로 전환했다. 중간 폴더와 로그는 완료 모델로 취급하지 않는다. 10/10 손 best.pt 초기값으로 29장·60epoch·imgsz640·batch8·seed42·Ultralytics8.4.173 추가 학습을 완료했다. Colab 노트는 다른 변경과 저장 충돌이 표시돼 강제 덮어쓰지 않고 신규 스크립트와 학습 출력·결과를 로컬 보존했다.
+- 전체 결과 ZIP 19,850,417 bytes 및 weights/best.pt·last.pt·CSV·곡선·추론 미리보기를 perception/models/hand_yolo11n_added_20261012/에 저장했다. ZIP 무결성 검사 종료0, 데이터 29쌍·정규화 박스53개 검사 종료0, 13장 새 라벨 시각 확인, 문법·diff 검사 종료0, CPU best 모델 로드 task=detect/names={0:hand}·CSV60행·새 실제 PNG 추론(손2개) 검사 종료0이다. 원본 AI 라벨은 사람 검수 미완료다.
+- 최종 학습 내 평가 P=0.956/R=1.000/mAP50=0.994/mAP50-95=0.847이다. train/val 동일 29장이고 독립 평가가 아니므로 실제 정확도·일반화 개선 증거로 주장하지 않는다. 실제 V0 손 진입·이탈/3초·새 사람/조명·Backend·Robot 시험은 미수행이다. 운영 설정·안전·계약은 변경하지 않았다. 다음은 사람 라벨 검수와 별도 세션의 손 없는/가림/경계손 포함 독립 시험이다.
+
+## 2026-10-12 — 대각 관측점 ROI 저장 구분
+
+- 사용자 D1 ROI 요청으로 기존 선택기에 --view V0/D1/D3를 추가하고 assembly_roi.json에 View를 기록한다. V0만 hand_config.json을 생성하며 D1/D3에는 손 설정을 생성하지 않는다. 저장된 기존 데이터·로봇 제어·보정은 변경하지 않는다.
+- 관련 polygon ROI 검사 3 passed 종료 0, compileall/git diff --check 종료 0. 실제 D1/D3 선택은 사용자 장치에서 수행할 단계이며 블록 추론에 대한 ROI 연결은 이번 변경에 포함하지 않는다.
+
+## 2026-10-12 — V0 어셈블리 보드 다각형 손 ROI
+
+- 기존 supply_roi 선택기를 --board assembly로 재사용해 별도 assembly_roi.json/hand_config.json을 저장한다. 손 감지는 다각형 내부의 Depth 유효율·영상 차분 및 손 박스와 다각형 교차를 사용하며 기존 사각형 설정 호환을 유지한다. D1/D3 손 감지 및 3초 초과 조건·로봇 제어·보정값은 변경하지 않는다. ROI 외 손 감지 임계값은 미확정 그대로다.
+- 실제 검증: 전체 perception_mvp+legacy 209 passed, 1 skipped 종료 0. 신규 검사는 assembly 저장 및 사각 경계 안/다각형 밖의 손·Depth 누락·영상 변화 제외, 내부 손 검출을 포함한다. compileall/git diff --check 종료 0. 실제 ROS 선택/손 시험은 사용자 장치에서 다음 진행한다. commit/push 없음.
+
+## 2026-10-12 — 서플라이 ROI 저장 RGB의 기존 모델 시험
+
+- 승인된 ROI와 실제 저장 RGB에 HSV 후보→원본 RGB 후보 범위 crop→YOLO26s CPU segmentation을 적용하는 supply_test.py를 추가했다. 원본 crop 내 반사 영역은 지우지 않으며 ROI와 겹치는 검출을 표시/기록한다. 로봇 좌표/집기/EMPTY 판단/실시간 연결은 없다.
+- 실제 사진 추론 종료 0: yellow_2x3 12, blue_2x3 12, red_2x1 19로 43개 검출. 실제 배치 36개와 다르며 2x2 분류 실패 및 중복/오검출이 있어 공급판 적용 정확도 통과가 아니다. 결과는 perception/recordings/supply_board_test/20261012T003652858704Z. confidence 0.25는 시험값이다.
+- 기존 perception_mvp+legacy 검사 207 passed, 1 skipped 종료 0; compileall/git diff --check 종료 0. 이 검사는 새 CLI의 전체 정확도 검증을 뜻하지 않는다. 다음은 공급판 실제 RGB 라벨 검수·학습 데이터 보강 및 별도 평가다. commit/push 없음.
+
+## 2026-10-12 — 서플라이 보드 다각형 ROI 선택
+
+- 사용자 요청으로 supply_roi.py에 실제 ROS raw RGB 정지 화면의 모서리 클릭·취소점(u)·Enter 저장을 추가했다. 조립 보드 손 ROI와 분리하며 별도 시각 폴더에 픽셀 다각형·해상도·프레임 출처·원본/확인 이미지를 보존한다. 로봇 이동·YOLO·공통 계약 변경은 없으며 ROI의 실제 추론 연결과 robot 좌표 보정은 포함하지 않는다.
+- 실제 검증: 저장 좌표/해상도·파일 생성·폴더 중복 방지·영역 밖/교차 다각형 거부 검사 종료 0, compileall 및 git diff --check 종료 0. 실제 ROS 수신·GUI 클릭은 사용자 장치에서 미검증이며 다음 단계다. 사용자 제공 Supply posx/posj는 이동 명령으로 실행하지 않았다.
+
+## 2026-10-11 — 홍동 B 최종 MVP 발표 초안
+
+- 사용자 요청으로 docs/presentation/B/홍동_B_최종MVP_발표준비.md에 제출 안내의 9개 항목·한 장 요약·정상/실패 예시·현재/목표 구성·B 추가 항목·대본/시연/질문을 작성했다. 원본 이미지 후보 링크와 의미를 연결하고 미선정 자료·본인 확인 항목을 표시했다. 로컬 저장 위치는 작업 편의이며 팀장 지정 위치는 Drive라는 점을 명시했다.
+- 현재 HEAD 8f75e5a의 소스/설정과 활성 16mm 보정·View별 5점 최대 오차(V0 1.286/D1 1.771/D3 1.461mm, 기준 2mm), 저장 Depth 진단을 확인했다. 과거 17mm·평면 pass·Depth 진단을 최신 전체 층/물리 결착 검증으로 확대하지 않았다. 손/높이 설정 null, 블록 보드 ROI·HSV 자동 사이클·3D 실시간 결선 미확인을 구분했다.
+- 실제 최신 B MVP/legacy/calibration/supply 및 로컬 DB/HMI 입력 함수 대조 247 passed, 13.48초, 종료 0. 근거/명령은 발표 폴더 evidence/test_result.md에 기록. 전체 저장소·장치·DB 적재 시험은 실행하지 않았다. 문서 링크·블록·diff를 검사했다. 코드/설정 변경·장치 이동·Git 게시·Drive 업로드/DM 없음.
+- 다음: 본인 선택 이유/정답/제스처 담당 검토, 이미지 시각 QA·원본 자료 묶음, D/Controller 실제 결선·시연 설정과 독립 성능 근거 확인 후 제출.
+
 ## 2026-10-12 — ms-02 현재 시험 소스와 PR24 이후 통합 업데이트
 
 - 기준: PR #24 merge `8914320`; 별도 `codex/current-runtime-update-20261012`. 원래 실행 폴더의 브랜치 전환/덮어쓰기 없음. 원본 544개 파일을 보존 ZIP과 SHA256으로 재확인했으며 변경 0개. 웹 자산은 별도 백업. 게시·PR 상태는 실제 GitHub 결과를 기준으로 확인한다.
@@ -561,6 +650,30 @@ PR 게시 대상과 최신 main을 합친 독립 파일 트리에서 `QT_QPA_PLA
 - 사용자 요청으로 현재 로컬 기본 실행 코드를 PR로 보존하고 팀장 계정 병합을 준비했다. 최신 main `a459e13`에서 별도 worktree를 만들어 미게시 Backend/Qt·C 함수/STT/TTS·네 공급열·명시 사전 이동·STOP/probe/확인된 기록 재개와 관련 검사/Schema/Fixture만 옮겼다. 기존 main의 C/A/B/DB·최신 팀 계약·CODEOWNERS를 유지했다. 로컬 발표/제출 초안과 새 사람 전달 0단계는 이 PR에서 제외하고 원본/백업에 보존했다.
 - 게시 트리 검사 `env -u HISTORY_TEST_DSN QT_QPA_PLATFORM=offscreen python3 -m pytest tests planning_trial/test_planner.py -q`: **1371 passed, 24 skipped**, 실패/오류 0, 종료 0. 24개는 별도 실제 DB DSN 필요 검사다. Robot/Camera/음향/외부 API는 실행하지 않았다. Python/JSON 파싱·diff 공백 확인. CI/lint/type 추가 없음. 기존 실기 STOP/재개·현재→HOME 경로·음성/Camera 연결의 현장 미검증 상태는 유지한다.
 - 팀원 리뷰가 어려운 상황에서 사용자가 팀장 권한 병합을 명시적으로 요청했다. PR에 동료 리뷰 미수행과 사용자 승인 사유를 기록하며 자기 Approve나 가짜 사람 리뷰를 발행하지 않는다. 기존 보호 규칙은 변경하지 않는다. [기본 버전·백업·복구 방법](D_RUNTIME_BASELINE.md)을 확인한다. 실제 병합과 태그는 GitHub PR/커밋 상태로 구분한다.
+
+## 2026-10-12 — 서플라이 OpenCV 색상 후보 → YOLO 순서 수정
+
+- 사용자 명시 지시에 따라 supply_vision/main.py를 RGB → 슬롯 ROI 내 OpenCV HSV 노랑/파랑/빨강 후보 → 후보 영역 원본 RGB의 일반 YOLO 종류 구분 → 원본 픽셀 좌표 복원 → 윗면/중심 추정 순서로 수정했다. Depth/OBB/Robot 명령을 추가하지 않았으며 기존 assembly·손 작업의 미완료 변경을 보존했다.
+- 색상 후보가 없으면 YOLO를 호출하지 않는다. 마스크/오버레이를 모델 입력으로 쓰지 않으며 HSV와 YOLO 색상 불일치는 UNKNOWN으로 보류한다. 기존 HSV/minimum_area 설정을 재사용하고 새 dependency/공통 계약/자동 병합/재시도를 추가하지 않았다. README에 색상 누락 시 YOLO 누락과 crop 입력 평가 필요를 기록했다.
+- 신규 회귀 검사로 색상 없는 영상의 YOLO 미호출, 원본 crop 입력, 전체 영상 좌표 복원, 색상 불일치 보류를 확인했다. 기존 중심 연결 검사도 crop 기준으로 수정하고 실제 중심 결과를 확인한다. supply 검사 **22 passed**, 전체 supply/perception_mvp/legacy **246 passed, 1 skipped**, 각각 종료 0. compileall·git diff --check 종료 0. 실제 YOLO 모델/ROS/RealSense/파지 검증은 수행하지 않았다. skip은 기존 검사의 환경 조건으로 미검증이며 PASS로 계산하지 않는다.
+- 다음: 원본 RGB 라벨링·일반 detection 학습, 실제 HSV 후보 누락 및 crop 종류 구분 평가, 윗면 중심 오차와 D 연결 검증. commit/push/PR 없음.
+
+## 2026-10-12 — 공급판 RGB 윗면 polygon 라벨 검수 초안
+
+- 사용자 요청으로 오늘 supply_board_roi/20261012T002844481743Z/rgb.png의 36개 블록에 윗면만을 목표로 polygon 초안을 작성했다. 원본을 시각 확인해 모서리를 지정하고 OpenCV로 표시했으며 자동 추출/YOLO/생성 이미지 결과가 아니다. 옆면 포함을 피하는 라벨링 예시이며 경계의 pixel 정확도는 사람 검수 전 미확정이다.
+- perception/labeling/supply_top_review_20261012/에 전체 미리보기, 확대 미리보기, polygon JSON, 재현 draw_draft.py를 저장했다. JSON reviewed=false, status=UNREVIEWED_NOT_TRAINING_GT로 구분하며 학습 dataset으로 자동 적재하지 않았다. 원본 RGB와 운영 코드는 변경하지 않았다.
+- 실제 확인: 재현 스크립트 종료 0, PNG 저장 확인, 확대 이미지를 열어 36개 외곽 표시를 확인했다. 실제 자동 윗면 분리·정답 검수·중심 오차·학습·Robot 검증은 수행하지 않았다. 다음은 사용자 경계 검수와 나머지 사진의 일관된 윗면 polygon 라벨링이다.
+
+## 2026-10-12 — X-AnyLabeling OBB 라벨링 작업 준비
+
+- 사용자 요청으로 Roboflow 작업을 중단하고 X-AnyLabeling을 준비했다. 공식 GitHub latest release 조회 결과 v4.1.0 및 Linux CPU 배포 파일을 확인했다. 실행 파일 다운로드 권한 요청이 사용자 거절로 종료되어 설치/실행하지 않았다. 재요청·우회 설치 없음.
+- perception/labeling/supply_obb/에 원본 RGB 작업 복사본 13장, 출처 manifest, 다섯 클래스 목록, annotations 폴더와 안내를 준비했다. 기존 RGB/Roboflow 라벨/운영 환경은 변경하지 않았다. 원본 복사 결과와 기존 파일 충돌 검사를 확인했다. 실제 GUI/OBB 라벨/내보내기/학습은 미수행이다.
+- 다음: 공식 Linux CPU 실행 파일 설치/GUI 실행 → 윗면 수동 OBB 라벨링·검수. 공급 실행기의 OBB 추론 전환은 별도 구현 필요. 자동 라벨을 정답으로 생성하지 않았다.
+
+## 2026-10-12 — X-AnyLabeling 공식 CPU 실행 파일 다운로드
+
+- 사용자가 다운로드를 명시적으로 재요청하여 공식 v4.1.0 Linux CPU 실행 파일을 /home/roh/Documents/ChatGPT/협동2/tools/xanylabeling/에 저장했다. curl 종료 0, 크기 414057936 bytes와 GitHub release asset SHA256 8c4c624d453b4b7e93b2d342867e901601822632d07bebba17b8405c9fff70bf 일치를 확인했고 실행 권한을 부여했다.
+- 기존 Python/ROS 패키지는 변경하지 않았다. GUI 실행/호환성/라벨링은 아직 미검증이다. 다음은 실행 파일로 GUI를 열고 supply_obb/images를 선택해 수동 윗면 OBB 작업을 시작하는 것이다.
 
 
 ## 2026-10-12 웹앱·DB PR — HMI 제외
