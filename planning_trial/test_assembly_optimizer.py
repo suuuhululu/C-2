@@ -110,15 +110,17 @@ def test_full_support_alone_does_not_override_press_obstacle(context):
     assert all(o["mode"] != "ROBOT_RELEASE_PRESS" for o in options)
 
 
-def test_hand_needs_a_clear_corridor_and_reach(context):
+def test_hand_contacts_do_not_check_corridor_or_reach(context):
     target = brick(layer=2)
     context["human_sides"] = ["+x"]
     assert hand_options(target,[],context)
     context["obstacles"] = [[100,50,10,110,80,30]]
-    assert hand_options(target,[],context) == []
+    assert hand_options(target,[],context)
     context["obstacles"] = []
     context["geometry"]["hand_reach_mm"] = 1
-    assert hand_options(target,[],context) == []
+    choices = hand_options(target,[],context)
+    assert choices and all(c['access_assessment'] == 'HUMAN_ACCESS_NOT_CHECKED' for c in choices)
+    assert all(c['boxes'] == [] for c in choices)
 
 
 def test_two_support_hands_are_not_reused_as_a_third_assembly_hand(context):

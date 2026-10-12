@@ -1,6 +1,6 @@
 """Minimize human-assisted Steps over feasible placement orders.
 
-Dijkstra searches subsets of remaining blocks. Every Step ends with tools/hands
+Searches deduplicated subsets of remaining blocks. Every Step ends with tools/hands
 withdrawn; no old readiness response or support hold is reused across Steps.
 Feasibility is the explicitly supplied envelope model, not physical execution.
 """
@@ -14,9 +14,9 @@ import json
 from pathlib import Path
 
 from planning_trial.assembly_geometry import (
-    MissingContext, contacts, grip_options, hand_options, human_press_assessment,
+    MissingContext, block_box, contacts, footprint, grip_options, hand_options, human_press_assessment,
     human_press_options, press_options, support_assignments,
-    validate_context,
+    intersects, validate_context,
 )
 from planning_trial.planner import (
     block_key, build_plan, calculate_remaining_blocks,
@@ -86,12 +86,14 @@ def assess_step(design, plan, step_id, current, context):
 
 
 def mode_options(brick, current, context):
-    """All model-feasible methods, including hand/tool corridor compatibility."""
+    """Methods meeting placement/tool checks; human access space is not checked."""
     occupied = set().union(*(occupied_cells(b) for b in current))
     try:
         check_placement(brick, occupied, "candidate")
     except ValueError as exc:
         return [], {"reason": str(exc)}
+    if any(intersects(block_box(brick, context), obstacle) for obstacle in context["obstacles"]):
+        return [], {"reason": "candidate: target block overlaps a static obstacle"}
     support = contacts(brick, current)
     weak, options, reasons = support["weak_supports"], [], []
     press_assessment = human_press_assessment(brick, support, context)
@@ -118,12 +120,12 @@ def mode_options(brick, current, context):
             presses = (human_press_options(brick,current,context,support,tool["tool_boxes"])
                        if press_assessment["required"] else [None])
             if not presses:
-                reasons.append(mode + ": required upper press area blocked by gripper or blocks")
+                reasons.append(mode + ": no supported contact stud for required human press")
             for press in presses:
                 assignments = support_assignments(weak, brick, current, context, tool["tool_boxes"],
                                                   press_hand=press)
                 if not assignments:
-                    reasons.append(mode + ": support hands inaccessible or exceed two hands")
+                    reasons.append(mode + ": required human actions exceed two hands")
                 for assignment in assignments:
                     options.append({"mode": mode, "grip_axis": tool["grip_axis"],
                                     "release_strategy": tool["release_strategy"],
@@ -138,7 +140,7 @@ def mode_options(brick, current, context):
     if 'HUMAN_ASSEMBLY' not in supported_modes:
         reasons.append('HUMAN_ASSEMBLY: disabled by supported_modes')
     if not hands:
-        reasons.append("HUMAN_ASSEMBLY: assembly hand corridor inaccessible")
+        reasons.append("HUMAN_ASSEMBLY: no nominal assembly contact suggestion")
     for hand in hands:
         for assignment in support_assignments(weak, brick, current, context, assembly_hand=hand):
             options.append({"mode": "HUMAN_ASSEMBLY", "grip_axis": None,
@@ -148,7 +150,7 @@ def mode_options(brick, current, context):
                             "press_hand":None,"press_assessment":press_assessment,
                             "contacts": support})
     if hands and not any(o["mode"] == "HUMAN_ASSEMBLY" for o in options):
-        reasons.append("HUMAN_ASSEMBLY: no remaining hand or support corridor")
+        reasons.append("HUMAN_ASSEMBLY: required human actions exceed two hands")
     for option in options:
         minimal = option["release_strategy"] == "MINIMAL_OPEN"
         option.update(requires_minimal_release=minimal,
@@ -175,7 +177,45 @@ def option_cost(option):
     return (int(bool(option["human_actions"])), int(manual), len(option["human_actions"]))
 
 
-def _minimize_help_search(remaining, current, context, incumbent_path=None):
+def _order_precedence(remaining, current, context):
+    """Necessary ordering from existing insertion and local-access checks.
+
+    An overlapping upper placement permanently prevents insertion from above,
+    regardless of assembly mode. Disjoint footprints do not require whole layers.
+    Grip edges additionally require every enabled axis to be blocked in the
+    monotone STUD_RULES model; alternative assembly modes skip that grip proof.
+    """
+    predecessors = [0] * len(remaining)
+    footprints = [footprint(brick) for brick in remaining]
+    for i, lower in enumerate(remaining):
+        for j, upper in enumerate(remaining):
+            if lower["layer"] < upper["layer"] and footprints[i] & footprints[j]:
+                predecessors[j] |= 1 << i
+    if (context.get("space_model") != "STUD_RULES" or
+            context.get("supported_modes") != ["ROBOT_GRIP"]):
+        return predecessors, None
+    for i, brick in enumerate(remaining):
+        if not grip_options(brick, current, context):
+            return predecessors, [{"block": brick, "assessment": {
+                "reason": "ROBOT_GRIP corridor blocked by Current/static obstacles; adding blocks cannot clear it"}}]
+        for j, other in enumerate(remaining):
+            if i != j and not grip_options(brick, current + [other], context):
+                predecessors[j] |= 1 << i
+    full, resolved = (1 << len(remaining)) - 1, 0
+    while resolved != full:
+        available = sum(1 << i for i, required in enumerate(predecessors)
+                        if not resolved & (1 << i) and required & resolved == required)
+        if not available:
+            return predecessors, [{"block": brick, "assessment": {
+                "reason": "ROBOT_GRIP necessary ordering blocked by a cycle",
+                "required_before": [remaining[j] for j in range(len(remaining))
+                                    if predecessors[i] & (1 << j)]}}
+                for i, brick in enumerate(remaining) if not resolved & (1 << i)]
+        resolved |= available
+    return predecessors, None
+
+
+def _minimize_help_search(remaining, current, context, incumbent_path=None, predecessors=None):
     """Exact nonnegative-cost shortest path unless max_states is reached."""
     full = (1 << len(remaining)) - 1
     serial = count()
@@ -212,6 +252,8 @@ def _minimize_help_search(remaining, current, context, incumbent_path=None):
         lowest = min(b["layer"] for _, b in left)
         explanations, successors = [], 0
         for index, brick in left:
+            if predecessors and predecessors[index] & mask != predecessors[index]:
+                continue
             if context["finish_layers"] and brick["layer"] != lowest:
                 continue
             options, explanation = mode_options(brick, placed, context)
@@ -238,39 +280,56 @@ def _minimize_help_search(remaining, current, context, incumbent_path=None):
                   "blocked_candidates": dead_end[1] if dead_end else []}
 
 
-def _complete_plan_first(remaining,current,context):
+def _complete_plan_first(remaining,current,context,predecessors=None):
     """Find a complete model-feasible witness before assistance optimization.
 
     A subset has the same future block effect for all feasible methods under the
     existing withdrawn-hands model. This is not MoveIt transport validation.
     """
-    full=(1<<len(remaining))-1;visited=set();expanded=0;deepest=None
-    stack=[(0,[])];limited=False
-    while stack:
-        mask,path=stack.pop()
-        if mask==full:return path,{"expanded_states":expanded}
-        if mask in visited:continue
+    full=(1<<len(remaining))-1;visited=set();expanded=0;deepest=None;limited=False
+    ordered=sorted(enumerate(remaining),key=lambda pair:(pair[1]["layer"],-pair[1]["y"],pair[1]["x"],pair[0]))
+    path=[]
+
+    def visit(mask):
+        nonlocal expanded, deepest, limited
+        if mask==full:return list(path)
+        if mask in visited:return None
         if expanded>=context["max_states"]:
-            limited=True;break
+            limited=True;return None
         visited.add(mask);expanded+=1
         placed=current+[b for i,b in enumerate(remaining) if mask&(1<<i)]
-        left=[(i,b) for i,b in enumerate(remaining) if not mask&(1<<i)]
-        lowest=min(b["layer"] for _,b in left);successors=[];blocked=[]
-        for i,brick in sorted(left,key=lambda pair:(pair[1]["layer"],-pair[1]["y"],pair[1]["x"],pair[0])):
+        lowest=min(b["layer"] for i,b in ordered if not mask&(1<<i));successors=0;blocked=[]
+        for i,brick in ordered:
+            if mask&(1<<i):continue
+            if predecessors and predecessors[i]&mask!=predecessors[i]:continue
             if context["finish_layers"] and brick["layer"]!=lowest:continue
             options,assessment=mode_options(brick,placed,context)
             if not options:blocked.append({"block":brick,"assessment":assessment});continue
             option=min(options,key=lambda o:(option_cost(o),MODES.index(o["mode"]),o["release_strategy"]=="MINIMAL_OPEN"))
-            successors.append((mask|(1<<i),path+[(i,option)]))
+            # Check the next sibling only after this branch fails. A straightforward
+            # complete order needs n method checks instead of n*(n+1)/2.
+            successors+=1;path.append((i,option))
+            complete=visit(mask|(1<<i));path.pop()
+            if complete is not None:return complete
+            if limited:return None
         if not successors and (deepest is None or mask.bit_count()>deepest[0]):deepest=(mask.bit_count(),blocked)
-        stack.extend(reversed(successors))
+        return None
+
+    complete=visit(0)
+    if complete is not None:return complete,{"expanded_states":expanded}
     return None,{"expanded_states":expanded,"reason":"SEARCH_LIMIT" if limited else "NO_FEASIBLE_ORDER","blocked_candidates":deepest[1] if deepest else []}
 
 
 def order_search(remaining,current,context):
+    predecessors,blocked=_order_precedence(remaining,current,context)
+    if blocked is not None:
+        return None,{"reason":"NO_FEASIBLE_ORDER","expanded_states":0,"optimal":False,
+                     "complete_plan_found":False,"feasibility_expanded_states":0,
+                     "completion_feasibility_basis":"A_SUPPORT_AND_LOCAL_ACCESS_NOT_MOVEIT_TRANSPORT",
+                     "blocked_candidates":blocked,"selection":"PROVEN_GRIP_ORDERING_CONFLICT"}
     if context.get("planning_priority","COMPLETE_DESIGN_THEN_MIN_HELP")!="COMPLETE_DESIGN_THEN_MIN_HELP":
-        return _minimize_help_search(remaining,current,context)
-    witness,first=_complete_plan_first(remaining,current,context)
+        return _minimize_help_search(remaining,current,context,predecessors=predecessors)
+    witness,first=_complete_plan_first(remaining,current,context,predecessors)
     evidence={"priority":["COMPLETE_DESIGN","ASSISTED_STEPS","MANUAL_STEPS","HUMAN_ACTIONS"],
               "completion_feasibility_basis":"A_SUPPORT_AND_LOCAL_ACCESS_NOT_MOVEIT_TRANSPORT",
               "complete_plan_found":witness is not None,"feasibility_expanded_states":first["expanded_states"]}
@@ -282,7 +341,7 @@ def order_search(remaining,current,context):
     if budget<=0:
         return witness,{**evidence,"optimal":False,"expanded_states":first["expanded_states"],"help_optimization_expanded_states":0,"cost":list(cost),"selection":"COMPLETE_FEASIBILITY_WITNESS","optimization_stop_reason":"NO_BUDGET_AFTER_COMPLETE_PLAN"}
     search_context=deepcopy(context);search_context["max_states"]=budget
-    optimized,second=_minimize_help_search(remaining,current,search_context,incumbent_path=witness)
+    optimized,second=_minimize_help_search(remaining,current,search_context,incumbent_path=witness,predecessors=predecessors)
     if optimized is None and second.get("reason")!="SEARCH_LIMIT":
         raise ValueError("Help search contradicted a verified complete feasibility witness")
     result={**second,**evidence,"expanded_states":first["expanded_states"]+second["expanded_states"],"help_optimization_expanded_states":second["expanded_states"]}
@@ -342,7 +401,8 @@ def plan_assembly(design, current, context):
     result = {"schema_version": SCHEMA, "status": None, "execution_allowed": False,
               "planning_result": None, "assembly_actions": [], "optimization": None,
               "contract_status": "DRAFT_NOT_CONNECTED_TO_D", "errors": [],
-              "limits": ["Space rules/envelopes are not robot IK/full-path/human safety verification",
+              "limits": ["Human hand access-space checks excluded by user policy; contact regions are nominal suggestions",
+                         "Space rules/envelopes are not robot IK/full-path/human safety verification",
                          "Stud overlap and void rules are not physical stability proof",
                          "PRESS is a contact-hull heuristic, not a measured force requirement",
                          "Force control, contact success and readiness belong to D/C",

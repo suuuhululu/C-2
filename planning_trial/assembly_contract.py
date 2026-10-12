@@ -33,10 +33,14 @@ def schema():
                                'CALCULATED_FROM_REVIEW_INPUT_NOT_FOR_EXECUTION'}
     defs['WholePlanResult']['properties']['review_state'] = {'const': 'CANDIDATE_FOR_D_REVIEW'}
     defs['WholePlanResult']['properties']['provenance'] = {'const': 'ACTUAL_A_FUNCTIONS_LOCAL_ADAPTER_NO_D_RECEIPT'}
-    defs['HumanAction']['properties']['access_assessment'] = {'const': 'GEOMETRIC_CANDIDATE_NOT_RUNTIME_VERIFIED'}
+    defs['HumanAction']['properties']['access_assessment'] = {
+        'enum': ['GEOMETRIC_CANDIDATE_NOT_RUNTIME_VERIFIED', 'HUMAN_ACCESS_NOT_CHECKED']}
     defs['ReviewError']['properties']['code']['enum'] += ['INVALID_INPUT', 'REFERENCE_MISMATCH', 'UNSUPPORTED_METHOD']
     defs['AssemblyContext']['properties']['geometry']['properties']['body_height_mm'] = {'type': 'number', 'exclusiveMinimum': 0}
     defs['Policy']['properties']['hand_hold_height_m'] = {'type': 'number', 'exclusiveMinimum': 0}
+    defs['Policy']['properties']['finish_layers'] = {'type': 'boolean'}
+    # Accept historical review requests; the current fixtures no longer request a hand gap.
+    defs['Policy']['properties']['hand_clearance_pitch_per_side'] = {'enum': [1, None]}
     defs['Context']['properties']['frame_profile_version'] = {'type': 'string', 'minLength': 1}
     defs['Context']['required'].append('frame_profile_version')
     defs['AssemblyContext']['properties']['supported_modes'] = {
