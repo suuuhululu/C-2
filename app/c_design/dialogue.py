@@ -317,8 +317,12 @@ def _finish(text, votes, ambiguous, allowed, llm_fallback):
     return UNCLEAR
 
 
-def _resolve(text, number_map, phrase_map, llm_fallback, use_lead=False, negated_keep=()):
-    """공유 Rule 파이프라인: 말고 → 취소 → 숫자 호환 → 예/아니요 → 부정된 의도 → 구문 → fallback."""
+def _resolve(text, number_map, phrase_map, llm_fallback, use_lead=False, negated_keep=(), strip_lead=False):
+    """공유 Rule 파이프라인: 말고 → 취소 → 숫자 호환 → 예/아니요 → 부정된 의도 → 구문 → fallback.
+
+    use_lead는 앞머리 예/아니요를 표로 세고, strip_lead(Wave 4, Design Change)는 앞머리만 떼어내고 세지 않는다
+    (두 선택 질문이라 "네"만으로는 정하지 않되 "아니, 기존 설계로 할래"의 "아니"가 부정 표지로 뒤 구문을 흐리지 않게).
+    """
     working = (text or "").strip()
     if "말고" in working:
         # "A 말고 B": A는 취소된 선택이므로 B만 해석한다.
@@ -337,9 +341,9 @@ def _resolve(text, number_map, phrase_map, llm_fallback, use_lead=False, negated
         return _finish(text, numbers, _has_negation(norm), allowed, None)
 
     votes = set()
-    if use_lead:
+    if use_lead or strip_lead:
         lead, working = _split_lead(working)
-        if lead is not None:
+        if lead is not None and use_lead:
             votes.add(lead)
         norm = _normalize(working)
     for phrase in negated_keep:
@@ -530,8 +534,9 @@ DESIGN_CHANGE_REASK_LEAD = (
     "제가 잘 못 알아들었어요. 지금 설계를 그대로 둘지, 바꿀지 말씀해 주세요. "
     "바꾸고 싶은 부분이 있으면 함께 말씀해 주셔도 돼요."
 )
-# 호출자(D)가 준 reason 중 "USER_DESIGN_CHANGE" 같은 식별자 토큰은 읽지 않는다(문장은 그대로 앞에 둔다).
-_CODE_TOKEN_RE = re.compile(r"^[A-Z0-9_]+$")
+# 호출자(D)가 준 reason은 한글 문장일 때만 읽는다. "USER_DESIGN_CHANGE" 같은 식별자나 "[{'code': …}]" 같은 A 오류 문자열
+# (Wave 4: D가 str(errors)를 reason으로 넘기는 경우)은 질문에 넣지 않는다.
+_HANGUL_RE = re.compile(r"[가-힣]")
 
 _DESIGN_CHANGE_PHRASES = {
     REVISE: (
@@ -539,7 +544,7 @@ _DESIGN_CHANGE_PHRASES = {
         "높여", "높게", "낮춰", "낮게", "넓혀", "넓게", "줄여", "늘려", "추가", "빼줘", "없애",
         "다른걸로", "다른느낌", "다른모양",
     ),
-    KEEP: ("그대로", "유지", "원래설계", "원래대로", "지금설계", "현재설계", "이대로", "놔둬", "놔두", "냅둬"),
+    KEEP: ("그대로", "유지", "원래설계", "원래대로", "지금설계", "현재설계", "기존설계", "이대로", "놔둬", "놔두", "냅둬"),
 }
 # 부정형은 그 자체로 KEEP이며 구문 일치 전에 지운다("수정하지 마"가 "수정"으로 REVISE가 되지 않게).
 _DESIGN_CHANGE_NEGATED_PHRASES = (
@@ -560,12 +565,34 @@ DESIGN_CHANGE_REVISE_ACKS = (
 
 
 def build_design_change_question(reason=None):
-    """Direct Design Change 질문(§4.6, 번호·선택지 없음). reason이 식별자 토큰이 아닌 문장이면 그 줄을 앞에 둔다."""
+    """Direct Design Change 질문(§4.6, 번호·선택지 없음). reason이 한글 문장이면 그 줄을 앞에 둔다(코드·오류 문자열은 제외)."""
     lines = []
-    if isinstance(reason, str) and reason.strip() and not _CODE_TOKEN_RE.match(reason.strip()):
+    if isinstance(reason, str) and reason.strip() and _HANGUL_RE.search(reason):
         lines.append(reason.strip())
     lines.append(DESIGN_CHANGE_QUESTION)
     return "\n".join(lines)
+
+
+# A Planning failure 질문(Wave 4, §4.6): 기계 코드·raw detail은 읽지 않고 설명 1문장 + 현재 상태 1문장 + 선택 1문장.
+PLAN_FAILURE_GENERAL = "현재 설계는 로봇이 조립할 수 있는 순서를 만들지 못했어요."
+PLAN_FAILURE_CONSEQUENCE = "그대로 두면 현재 설계로는 로봇 조립을 진행할 수 없어요."
+PLAN_FAILURE_CHOICE_BLOCKED = "그 부분을 조금 바꿔서 다시 설계할까요, 아니면 현재 설계 그대로 멈출까요?"
+PLAN_FAILURE_CHOICE_GENERAL = "일부를 바꿔서 다시 설계할까요, 아니면 현재 설계 그대로 멈출까요?"
+PLAN_FAILURE_MAX_SPOKEN_BLOCKS = 2  # 그 이상은 "등"으로 줄여 음성으로 듣기 쉽게 한다
+
+
+def build_plan_failure_question(planning_failure):
+    """A Planning failure(설계 수정으로 풀 수 있는 실패) 질문. blocked_blocks가 있으면 위치·층으로만 가리킨다(§5.2 표현,
+    등받이·팔걸이 같은 의미 이름은 A가 주지 않으므로 붙이지 않는다). failure_code·detail은 읽지 않는다."""
+    blocks = planning_failure.get("blocked_blocks") or []
+    if blocks:
+        spoken = [_location_label(block) for block in blocks[:PLAN_FAILURE_MAX_SPOKEN_BLOCKS]]
+        where = ", ".join(spoken) + (" 등" if len(blocks) > len(spoken) else "")
+        first = f"{where}은 로봇이 조립할 수 있는 순서를 찾지 못했어요."
+        choice = PLAN_FAILURE_CHOICE_BLOCKED
+    else:
+        first, choice = PLAN_FAILURE_GENERAL, PLAN_FAILURE_CHOICE_GENERAL
+    return "\n".join([first, PLAN_FAILURE_CONSEQUENCE, choice])
 
 
 def build_design_change_reask(question):
@@ -581,7 +608,7 @@ def parse_design_change_response(text, llm_fallback=None):
     ("바꾸지 마"·"안 바꿀게")은 KEEP으로 먼저 처리한다.
     """
     return _resolve(text, OPTIONS, _DESIGN_CHANGE_PHRASES, llm_fallback,
-                    use_lead=False, negated_keep=_DESIGN_CHANGE_NEGATED_PHRASES)
+                    use_lead=False, negated_keep=_DESIGN_CHANGE_NEGATED_PHRASES, strip_lead=True)
 
 
 def design_change_keep_ack():

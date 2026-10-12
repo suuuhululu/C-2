@@ -100,7 +100,35 @@ D 쪽 known issues(C는 D 파일을 고치지 않았습니다):
 | Review에 `design_metadata` 미전달 | `app/mvp_integration.py` `c.review` 호출 | `review.round`가 매번 0, concept/style 문맥·Stage 2 키가 사라짐. 직전 response의 `design_metadata`를 그대로 넘기면 됩니다 |
 | D 테스트의 LLM 대체 전제 | `tests/unit/test_mvp_workflow.py::test_inspection_context_keeps_expected_and_unknown_regions_for_c` | 답 "기존 목표 그대로 갈래"가 Wave 3부터 규칙 KEEP("그대로")으로 끝나 LLM 대체 함수가 호출되지 않아 `seen[0]` IndexError. 규칙이 못 정하는 답(예: "음, 기존 목표가 더 나을 것 같은데")으로 바꾸면 그대로 통과합니다(`interpret_intervention_answer` 대체는 계속 유효) |
 | HMI 질문 문구 | `app/mvp_integration.py` `c.intent`/`c.plan_failure` 표시 문자열 "기존 목표를 유지할까요, 설계를 수정할까요?" | C 질문(`questions[-1]`)을 표시하면 음성·화면 문구가 같아집니다. 답 해석은 C가 하므로 현재 문구도 동작은 합니다 |
-| `c.plan_failure`의 `reason=str(errors)` | `app/mvp_workflow.py` | A 오류 리스트 문자열이 질문 첫 줄에 들어갑니다. Wave 4(planning failure 입력)에서 다룹니다 |
+| `c.plan_failure`의 `reason=str(errors)` | `app/mvp_workflow.py` | Wave 4부터 C는 한글이 없는 reason을 읽지 않습니다. 대신 아래 `planning_failure`를 넘겨 주세요 |
+
+## 3c. A Planning failure → C (Wave 4, 2026-10-12)
+
+```python
+run_design_change(approved_design, current_blocks, reason="PLANNING_FAILURE",
+                  planning_failure={"failure_code": "NO_FEASIBLE_ORDER", "redesign_required": True, "retryable": False,
+                                    "blocked_blocks": [...six-field blocks, may be empty...], "detail": str(stage_errors)},
+                  text_answers=[...] 또는 None, on_question=..., on_progress=..., inspection_context=None)
+```
+
+**D가 C로 보낼 조건 — ONLY** `calculation_status == "NO_FEASIBLE_ORDER"` **AND** D가 `redesign_required=True`로 판단한 경우. 그 밖의 코드는 C가 `FAILED / PLANNING_FAILURE_NOT_REDESIGN`으로 돌려주며 질문·TTS를 하지 않습니다(CONTRACT §4.6 표).
+
+| D가 보낼 값 | 비고 |
+|---|---|
+| Approved Design, Current 블록 목록 | §3과 같음 |
+| `planning_failure` | 위 형식. `blocked_blocks`는 A 결과에 있을 때만(현재 `WholePlanResult.stage_errors[].block`은 `null`) |
+| `inspection_context` | B 관측 문맥만. A 실패를 여기에 넣지 않음 |
+
+| D가 하지 말아야 할 것 | 현재 코드 위치 |
+|---|---|
+| `SEARCH_LIMIT`를 C로 보내기 | `app/mvp_workflow.py` `receive('a.whole')`가 `SEARCH_LIMIT`도 `c.plan_failure`로 보냄 → A/D fallback 또는 HOLD로 변경 필요 |
+| raw error string을 `reason`으로 읽게 하기 | 같은 곳 `reason=str(errors)` → C 질문은 `planning_failure`에서 만들어지므로 문자열은 로그용으로만 |
+| KEEP 결과 뒤 같은 실패 Plan 자동 재시도 | `receive_c`의 `elif decision == 'KEEP': self.plan()` → `c.plan_failure`에서는 **HOLD**(같은 Design은 이미 실패) |
+| Revised Candidate 승인 전 Robot 실행 | REVISE 응답의 `design`은 Candidate. Preview → `review_design_candidate(kind="revised", design_metadata=…, differences=[], change_reason=…, planning_failure=…)` → APPROVE 뒤에만 `plan()` |
+
+흐름: REVISE → Candidate Preview → Review(MODIFY면 같은 change request로 재생성, version 유지) → APPROVE → A Replan. KEEP → HOLD(사용자가 다시 바꾸거나 운영자가 조치).
+
+**A owner handoff**: 현재 `handle_whole_plan`의 `WholePlanResult`에는 막힌 블록 정보가 없습니다(`stage_errors[0].block == null`; optimizer의 `blocked_candidates[].block`은 raw/audit에만 있음, fixture `tests/fixtures/c_plan_failure/whole_no_feasible_order_real_unpatched.json`). 가능하면 `NO_FEASIBLE_ORDER`일 때 `stage_errors[].block` 또는 별도 `blocked_blocks`에 Design 블록(여섯 필드)을 노출해 주세요. 없어도 C는 일반 문장("현재 설계는 로봇이 조립할 수 있는 순서를 만들지 못했어요.")으로 동작합니다.
 
 ## 4. 데이터 저장
 

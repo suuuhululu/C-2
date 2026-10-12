@@ -399,6 +399,42 @@ def check_design_change_input(design, current):
     return reasons
 
 
+PLANNING_FAILURE_REQUIRED = ("failure_code", "redesign_required")
+
+
+def check_planning_failure(planning_failure):
+    """Reasons for an INVALID_INPUT verdict on run_design_change's planning_failure (Wave 4, 2026-10-12).
+
+    Minimal D → C contract (CONTRACT §4.6): failure_code (non-empty str), redesign_required (bool), optional
+    retryable (bool), optional blocked_blocks (list of blocks with the six fields, extra keys ignored) and optional
+    detail (str, diagnostics only). Other keys are ignored. Whether C may ask the person is a routing decision made
+    in main (REDESIGN_FAILURE_CODES), not a format check. This is not part of the Design schema.
+    """
+    if not isinstance(planning_failure, dict):
+        return [_reason("invalid_type", [], "planning_failure must be an object")]
+    reasons = []
+    for key in PLANNING_FAILURE_REQUIRED:
+        if key not in planning_failure:
+            reasons.append(_reason("missing_field", [], f"planning_failure missing '{key}'"))
+    code = planning_failure.get("failure_code")
+    if "failure_code" in planning_failure and (not isinstance(code, str) or not code.strip()):
+        reasons.append(_reason("invalid_type", [], "planning_failure.failure_code must be a non-empty string"))
+    if "redesign_required" in planning_failure and not isinstance(planning_failure["redesign_required"], bool):
+        reasons.append(_reason("invalid_type", [], "planning_failure.redesign_required must be a boolean"))
+    if planning_failure.get("retryable") is not None and not isinstance(planning_failure["retryable"], bool):
+        reasons.append(_reason("invalid_type", [], "planning_failure.retryable must be a boolean"))
+    blocked = planning_failure.get("blocked_blocks")
+    if blocked is not None:
+        if not isinstance(blocked, list):
+            reasons.append(_reason("invalid_type", [], "planning_failure.blocked_blocks must be a list"))
+        else:
+            for block in blocked:
+                reasons.extend(_check_block(block, reject_unknown_keys=False)[0])
+    if planning_failure.get("detail") is not None and not isinstance(planning_failure["detail"], str):
+        reasons.append(_reason("invalid_type", [], "planning_failure.detail must be a string"))
+    return reasons
+
+
 def current_support_violations(current):
     """Support reasons for Current blocks only (escalation trigger, not an input error)."""
     if not isinstance(current, list):

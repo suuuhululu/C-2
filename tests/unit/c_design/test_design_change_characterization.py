@@ -202,10 +202,15 @@ def test_design_change_requires_a_reason(approved, current):
 # ---------------------------------------------------------------------------
 
 
-@pytest.mark.xfail(strict=True, reason="de59b08: D (app/mvp_integration) passes str(A stage_errors) as `reason` and main "
-                                       "prepends it verbatim to the question, so the spoken question starts with machine "
-                                       "codes such as NO_FEASIBLE_ORDER (Wave 4)")
 def test_plan_failure_question_should_not_read_machine_codes(approved, current):
+    # de59b08: D passed str(A stage_errors) as `reason` and the question started with "[{'code': 'NO_FEASIBLE_ORDER', …}]".
+    # Wave 4: a reason without Hangul is never spoken, and a planning_failure gets its own natural-language question.
     stage_errors = _load(PLAN_FAILURE / "whole_no_feasible_order_real_unpatched.json")["stage_errors"]
     envelope = main.run_design_change(approved, current, reason=str(stage_errors), text_answers=["1번"])
-    assert "NO_FEASIBLE_ORDER" not in envelope["questions"][0]
+    question = envelope["questions"][0]
+    assert "NO_FEASIBLE_ORDER" not in question and "[" not in question and "{" not in question
+    assert question == dialogue.DESIGN_CHANGE_QUESTION
+    failure = {"failure_code": "NO_FEASIBLE_ORDER", "redesign_required": True, "blocked_blocks": [], "detail": str(stage_errors)}
+    spoken = main.run_design_change(approved, current, reason=str(stage_errors), planning_failure=failure,
+                                    text_answers=["1번"])["questions"][0]
+    assert spoken == dialogue.build_plan_failure_question(failure) and "로봇" in spoken and "NO_FEASIBLE_ORDER" not in spoken

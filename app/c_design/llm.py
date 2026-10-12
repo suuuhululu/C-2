@@ -357,6 +357,9 @@ SYSTEM_PROMPT_DESIGN_CHANGE_ANSWER = (
     "Korean negation: '바꾸지 마', '수정하지 마', '안 바꿀게' deny a change, so they are KEEP; '그대로는 싫어', '이대로 말고' "
     "reject the current Design, so they are REVISE. A bare '네' or '아니' does not answer a two-way question, so it is UNCLEAR "
     "unless the rest of the sentence decides. "
+    "The user message may carry planning_failure: the robot planner found no feasible assembly order for the current Design "
+    "and the person was told that keeping the Design means the robot cannot continue; the same KEEP / REVISE meanings apply "
+    "('응, 수정해줘' REVISE, '아니, 기존 설계로 할래' KEEP, '무슨 뜻이야?' UNCLEAR). "
     "Output ONE JSON object: "
     "{\"decision\": \"REVISE\" | \"KEEP\" | \"CANCEL\" | \"UNCLEAR\" as defined above; \"style_hint\": a short Korean phrase with "
     "the change they want, written as the direction they want (e.g. '등받이를 더 높게', '팔걸이 추가', '더 단순하게'), \"\" if "
@@ -738,29 +741,51 @@ def interpret_initial_request(text, should_stop=None):
                       + json.dumps({"answer": text}, ensure_ascii=False), should_stop, model=_aux_model())
 
 
-def interpret_intervention_answer(text, differences, should_stop=None, context=None):
+def planning_failure_summary(planning_failure):
+    """LLM 해석 payload용 요약(Wave 4): 코드와 막힌 블록 위치만. raw detail은 보내지 않는다."""
+    return {"failure_code": planning_failure.get("failure_code"),
+            "blocked_blocks": [{"x": b["x"], "y": b["y"], "layer": b["layer"]} for b in planning_failure.get("blocked_blocks") or []]}
+
+
+def planning_failure_change_request(planning_failure):
+    """A Planning failure → Revised 생성에 넣을 짧은 change request(Wave 4). raw A JSON은 넣지 않는다."""
+    blocks = planning_failure.get("blocked_blocks") or []
+    where = "; ".join(f"layer {b['layer']} at (x={b['x']}, y={b['y']}), {b['brick_type']} {b['color']}" for b in blocks[:4])
+    return ("The robot planner found no feasible assembly order for the adopted Design (planning failure "
+            f"{planning_failure.get('failure_code')}). "
+            + (f"Blocked block(s): {where}. " if where else "No specific blocked block was reported. ")
+            + "Change the unassembled structure (around the blocked part when one is given) so that every remaining block can be "
+            "placed on top of or beside what is already on the board in some order; keep every Current block exactly.")
+
+
+def interpret_intervention_answer(text, differences, should_stop=None, context=None, planning_failure=None):
     """Intervention 자유 답변 해석(dict: INTERVENTION_ANSWER_KEYS) 또는 llm_error. Design 전체는 보내지 않는다.
     모델은 보조 모델(_aux_model).
 
     context(PR #26)는 D의 inspection_context(expected·difference·observation·reason)를 그대로 payload에 싣는다. context에
     change_reason(None 아님)이 있으면 직접 Design Change 답변이므로 SYSTEM_PROMPT_DESIGN_CHANGE_ANSWER로 해석한다(Wave 3).
+    planning_failure(Wave 4)는 inspection_context와 별도 payload 키 "planning_failure"(planning_failure_summary)로 간다.
     main은 interpret_design_change_answer를 부르며, 이 함수가 보조 LLM 해석의 단일 진입점이다(D 테스트가 이 이름을 대체한다).
     """
     pairs = [{"expected": item.get("expected"), "actual": item.get("actual")} for item in differences]
     design_change = isinstance(context, dict) and context.get("change_reason") is not None
     system_prompt = SYSTEM_PROMPT_DESIGN_CHANGE_ANSWER if design_change else SYSTEM_PROMPT_INTERVENTION_ANSWER
-    return _json_call(system_prompt, "Interpret this answer.\n"
-                      + json.dumps({"answer": text, "differences": pairs, **({"inspection_context":context} if context is not None else {})}, ensure_ascii=False), should_stop,
+    payload = {"answer": text, "differences": pairs, **({"inspection_context": context} if context is not None else {})}
+    if planning_failure is not None:
+        payload["planning_failure"] = planning_failure_summary(planning_failure)
+    return _json_call(system_prompt, "Interpret this answer.\n" + json.dumps(payload, ensure_ascii=False), should_stop,
                       model=_aux_model())
 
 
-def interpret_design_change_answer(text, reason, should_stop=None, context=None):
+def interpret_design_change_answer(text, reason, should_stop=None, context=None, planning_failure=None):
     """직접 Design Change 답변 해석(Wave 3): 키는 INTERVENTION_ANSWER_KEYS, 프롬프트는 SYSTEM_PROMPT_DESIGN_CHANGE_ANSWER.
 
-    reason은 호출자가 준 변경 사유(문자열), context는 D의 inspection_context(없으면 None). differences는 없다.
+    reason은 호출자가 준 변경 사유(문자열), context는 D의 inspection_context(없으면 None), planning_failure는 A 실패 문맥
+    (Wave 4, 없으면 넘기지 않는다). differences는 없다.
     """
     merged = dict(context or {}, change_reason=reason)
-    return interpret_intervention_answer(text, [], should_stop=should_stop, context=merged)
+    extra = {"planning_failure": planning_failure} if planning_failure is not None else {}
+    return interpret_intervention_answer(text, [], should_stop=should_stop, context=merged, **extra)
 
 
 def interpret_review_answer(text, kind, should_stop=None, context=None):

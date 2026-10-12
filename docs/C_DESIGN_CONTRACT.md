@@ -344,6 +344,33 @@ Difference 없이 "채택 Design 자체를 바꿀지"를 묻는 네 번째 공�
 - Candidate 검토: D는 `review_design_candidate(candidate, kind="revised", design_metadata=…, previous_design=Approved, current=…, differences=[], change_reason=reason)`로 부릅니다. `change_reason`이 있고 `differences`가 빈 목록이면 입력 검사·MODIFY 재생성이 Design-Change 모드이며 version은 Approved + 1로 유지되고 `review.round`만 늘어납니다(§8.14). `design_metadata`를 넘기지 않으면 round가 0부터 다시 시작하고 Stage 2 키가 사라집니다(C가 복원할 수 없음).
 - 실패·취소 코드는 §10과 같습니다. 2026-10-12 이전(de59b08)에는 REVISE가 designer의 빈 differences 거절 때문에 항상 escalation → UNCLEAR/`DESIGN_GENERATION_FAILED`였고 "수정할게요"가 KEEP이었습니다(`tests/unit/c_design/test_design_change_characterization.py`).
 
+**A Planning failure → C 대화 (Wave 4, 2026-10-12)**: 같은 함수에 선택 인자 `planning_failure`를 줍니다. `inspection_context`(B 관측 문맥)와 섞지 않습니다. 새 public 함수·새 hri_result 값·Design 형식 변경은 없습니다.
+
+```json
+{"failure_code": "NO_FEASIBLE_ORDER", "redesign_required": true, "retryable": false,
+ "blocked_blocks": [{"brick_type": "2x3x1", "color": "blue", "x": 8, "y": 11, "layer": 4, "orientation_deg": 0}],
+ "detail": "[{'code': 'NO_FEASIBLE_ORDER', ...}]"}
+```
+
+- 형식(`validator.check_planning_failure`, 위반 시 `INVALID_INPUT`): `failure_code`(비어 있지 않은 str)·`redesign_required`(bool) 필수, `retryable`(bool)·`blocked_blocks`(여섯 필드 블록 목록, 비어 있어도 됨)·`detail`(str, 진단용) 선택, 그 밖의 키는 무시. `detail`·`reason`·raw A 오류는 로그용이며 사용자 질문·TTS에 들어가지 않습니다.
+- 라우팅(`main.REDESIGN_FAILURE_CODES`): `redesign_required`가 `true`이고 `failure_code`가 아래 "C 대화" 코드일 때만 질문을 시작합니다. 아니면 질문·TTS 없이 `FAILED` / `PLANNING_FAILURE_NOT_REDESIGN`(`questions: []`). D의 라우팅 수정 여부와 무관하게 C가 방어합니다.
+
+| A failure (실제 코드 값) | C 대화 | 근거 |
+|---|---|---|
+| `NO_FEASIBLE_ORDER` + `redesign_required: true` | **예** | 설계 수정으로 해결 가능 |
+| `NO_FEASIBLE_ORDER` + `redesign_required: false` | 아니오 (`PLANNING_FAILURE_NOT_REDESIGN`) | D가 재설계 요청으로 표시하지 않음 |
+| `SEARCH_LIMIT` (redesign_required 값과 무관) | 아니오 | 탐색 한도. 설계 문제로 단정 불가, A/D fallback·HOLD |
+| step `CURRENT_MISMATCH` | 아니오 | B/D 최신 Current 문제 |
+| `INVALID_CONTEXT` / `INPUTS_REQUIRED` / `INVALID` / `NEEDS_CORRECTION` | 아니오 | 계약·통합·사람 정리 문제 |
+| `CALCULATION_ERROR` | 아니오 | A 내부 오류 |
+| Robot/공급/STOP | 아니오 | D/Robot 문제 |
+
+- 질문(`dialogue.build_plan_failure_question`, 세 문장, 코드 없음): `blocked_blocks`가 있으면 "(x=8, y=11) 4층 블록은 로봇이 조립할 수 있는 순서를 찾지 못했어요." + "그대로 두면 현재 설계로는 로봇 조립을 진행할 수 없어요." + "그 부분을 조금 바꿔서 다시 설계할까요, 아니면 현재 설계 그대로 멈출까요?" (최대 2개 위치, 그 이상은 "등"; 등받이·팔걸이 같은 의미 이름은 A가 주지 않으므로 붙이지 않음). 없으면 "현재 설계는 로봇이 조립할 수 있는 순서를 만들지 못했어요." + 같은 상태 문장 + "일부를 바꿔서 다시 설계할까요, 아니면 현재 설계 그대로 멈출까요?". 재질문은 `build_design_change_reask`. 기존 `ask()`(questions·`on_question`·음성 모드 `voice.speak`)와 `next_reply()`(`voice.listen`/`text_answers`)를 그대로 씁니다.
+- 답변 해석: Design-Change 표·프롬프트 그대로("응, 수정해줘"·"수정할게요"·"바꿔줘" REVISE, "아니, 기존 설계로 할래"·"그대로 둘게"·"안 바꿀게" KEEP, "무슨 뜻이야?"·"글쎄" UNCLEAR, "취소할게" CANCEL). LLM fallback payload에는 `planning_failure` 요약(`llm.planning_failure_summary`: 코드·막힌 블록 위치)이 `inspection_context`와 별도 키로 갑니다.
+- REVISE: ack → Revised Candidate(`design_version` = Approved + 1, Current 보존, §8 규칙·judge·metadata 동일, facing은 §8.9 soft goal 순서 그대로). 생성 메시지의 `change_request`는 raw A JSON이 아니라 `llm.planning_failure_change_request`(순서를 못 찾았다는 사실, 막힌 블록 위치, Current 보존·미조립 부분 수정 지시)입니다. 후보 검토는 `review_design_candidate(…, differences=[], change_reason=…, planning_failure=…)`로 부르면 MODIFY 재생성에도 같은 change request가 들어갑니다(version 유지, `review.round`만 증가).
+- KEEP: `OK / KEEP / design = Approved`. 같은 Design의 Plan은 이미 실패했으므로 **D는 HOLD**해야 하며(자동 재계획 금지), C는 A를 부르지 않습니다. Revised Candidate가 APPROVE되기 전까지 Approved·Current·Robot 상태는 그대로입니다.
+- `planning_failure`는 Design JSON·`design_metadata`에 넣지 않습니다(입력 context로만 유지).
+
 ## 5. 입력 형식 (D → C)
 
 C는 아래 필드만 읽고 나머지 키는 무시합니다. D는 자기 객체를 그대로 넘겨도 됩니다. D는 블록 ID를 주지 않으며 C는 같은 값 블록 간 대응(Data Association)을 하지 않습니다.
@@ -608,6 +635,7 @@ C의 Validator 통과는 후보 검증이며 최종 채택이 아닙니다.
 | 취소 | D/HMI STOP (`should_stop`) | 턴·시도 사이에서 중단 | `CANCELLED` / `STOPPED` |
 | 취소 | 사용자 명시적 취소 발화 | 중단 | `CANCELLED` / `USER_CANCEL` |
 | 실패 | 호출자 입력 오류 | 즉시 반환 | `FAILED` / `INVALID_INPUT`, `UNSUPPORTED_OBJECT` |
+| 실패 | `run_design_change`의 `planning_failure`가 재설계 대상이 아님(`redesign_required` false, 또는 `SEARCH_LIMIT`·`CURRENT_MISMATCH`·계약·A 내부·Robot 코드) (Wave 4, §4.6) | 질문·TTS 없이 즉시 반환 | `FAILED` / `PLANNING_FAILURE_NOT_REDESIGN` |
 | 실패 | 재생성 10회 한도 도달 | 반환 | `FAILED` / `DESIGN_GENERATION_FAILED` |
 | 실패 | LLM provider 실패: 일시적 실패(network / timeout / 429 / 5xx)만 최대 3회(1·2·4초 backoff) API 재시도 후에도 실패. auth·키 없음(`OPENAI_LLM_API_KEY` 미설정, 다른 key로 대체하지 않음. 모델은 역할별 `OPENAI_MODEL` / `OPENAI_JUDGE_MODEL` / `OPENAI_AUX_MODEL`이며 key는 모두 이것 하나, §4)·비정상 응답(reasoning 모델에 지원하지 않는 파라미터를 보내 생기는 400 포함)은 재시도 없이 즉시. 재시도 사이 `should_stop` 확인 | 반환 | `FAILED` / `LLM_CALL_FAILED` |
 | 실패 | 음성 입력 실패(Stage 2 Wave 4b: 자유 발화는 `listen(mode="free", beep=True)`, 무음은 `no_speech_prob` ≥ 0.8 그리고 `avg_logprob` < −1.0일 때만, §4.3): 녹음 장치를 열거나 읽지 못함, 또는 STT provider 실패(key: `OPENAI_API_KEY`. 일시적 network / timeout / 429 / 5xx는 최대 3회 API 재시도 후, auth·키 없음·비정상 응답은 즉시) | 반환 | `FAILED` / `VOICE_IO_FAILED` |

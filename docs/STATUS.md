@@ -1,5 +1,11 @@
 # 현재 진행 상황
 
+## 2026-10-12 — C Wave 4: A Planning failure → C Design-Change HRI/TTS (`work/siyul-c-remaining`)
+
+- 변경: `app/c_design/{main,dialogue,llm,validator}.py`. `run_design_change(..., planning_failure=None)`(선택 인자, `inspection_context`와 분리)·`review_design_candidate(..., planning_failure=None)`. `validator.check_planning_failure`(형식), `main.REDESIGN_FAILURE_CODES = ("NO_FEASIBLE_ORDER",)`로 `redesign_required` true + 허용 코드일 때만 질문, 아니면 질문·TTS 없이 `FAILED / PLANNING_FAILURE_NOT_REDESIGN`. `dialogue.build_plan_failure_question`(코드·detail 미노출, 막힌 블록은 위치·층만), `llm.planning_failure_change_request`(생성 메시지용 짧은 요약)·`planning_failure_summary`(LLM 해석 payload 별도 키). Design-Change 질문은 한글 문장 reason만 읽음(`str(errors)` 차단). Design-Change parser는 앞머리 예/아니요를 떼고(표에 세지 않음) "기존설계"를 KEEP에 추가. 기존 `ask()`/`next_reply()`/TTS/STT 흐름 재사용, 새 public 함수·enum·schema 없음. CONTRACT §4.6·§10, handoff §3c(D 라우팅·KEEP→HOLD·A blocked block).
+- 검증: 신규 `tests/unit/c_design/test_plan_failure.py`(라우팅·형식·질문·intent·REVISE v2/Current/facing/metadata·KEEP·voice mock). Wave 1 xfail(`test_plan_failure_question_should_not_read_machine_codes`) → PASS, known xfail 0. 회귀 수치는 Wave 4 보고 참조. 실제 LLM/TTS/STT/Robot 미실행.
+- 미검증·handoff: D `mvp_workflow`는 아직 `SEARCH_LIMIT`도 C로 보내고 KEEP이면 같은 Design을 재계획함(D 수정 필요). A `WholePlanResult`에 막힌 블록 없음(A 제안). D 테스트 1건 실패는 Wave 3 handoff 그대로.
+
 ## 2026-10-12 — C Wave 2: canonical facing(정면 +X·등받이 low-x)을 생성 prompt 공통 적용 (`work/siyul-c-remaining`)
 
 - 변경: `app/c_design/llm.py`만. `_FACING_RULE` 상수 하나를 `SYSTEM_PROMPT_INITIAL`(`_BUILD_HINTS` 뒤)·`SYSTEM_PROMPT_REVISED`(`_EXPRESSIVE_HINTS` 앞)가 공유하고, `_REVISED_PRIORITIES`에 "Current가 허용하는 범위에서 facing 유지, Current를 옮기거나 돌리지 않고 Current가 다른 방향을 고정하면 그 방향을 따른다" 한 줄 추가(Difference·Design-Change 두 Revised 메시지 변형이 공유). validator·schema·designer·dialogue·main 변경 없음. CONTRACT §8.8·§8.9 facing 행 추가. 테스트 `tests/unit/c_design/test_facing_prompt.py`.
