@@ -35,6 +35,8 @@ def make_snapshot(state: dict) -> dict:
               "CURRENT_RECHECK_REQUIRED":"재계획 결과를 받았지만 실제 배치를 다시 확인하기 전에는 채택하지 않습니다.",
               "MANUAL_ASSEMBLY_MISMATCH":"현장에서 잘못 놓았다고 신고했습니다. 다음 전달을 보류했습니다. 실제 배치 좌표는 아직 받지 않았습니다.",
               "TARGET_UNVERIFIED":"이번 목표를 확인할 관측 근거가 부족합니다."}.get(state["reason"],state["reason"])
+    if state["reason"] == "UNOBSERVABLE" and observation and observation["reason"]:
+        reason = f"이번 목표 관측 불가 · {observation['reason']}"
     if workflow == "COMPLETE":
         reason = (f"현재 Plan 관측 확인 {completed}/{total} · 채택 기준 Current {len(context['base_current']['blocks'])}개 · "
                   f"전체 목표 {len(context['design']['blocks'])}개와 "
@@ -46,7 +48,7 @@ def make_snapshot(state: dict) -> dict:
                        f"{ {'blue':'파랑','yellow':'노랑','red':'빨강'}[step['after']['color']]} "
                        f"{ {'1x2x1':'2점','2x2x1':'4점','2x3x1':'6점'}[step['after']['brick_type']]}을 "
                        f"({step['after']['x']}, {step['after']['y']}) · {step['after']['layer']}층에 조립해주세요. "
-                       "관측으로 확인하며 다음 전달을 진행합니다." if workflow == "WAIT_ASSEMBLY" else
+                       "관측으로 확인하며 다음 전달을 진행합니다." if workflow == "WAIT_ASSEMBLY" and step else
                        "시작 버튼으로 새 작업을 요청하세요." if workflow == "IDLE" else None)
     if correction:
         placements = "; ".join(f"{block.get('brick_type', '?')} {block.get('color', '?')} "

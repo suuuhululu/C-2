@@ -76,7 +76,7 @@ def records(workflow):
 def finish_confirmed_delivery(workflow, processes):
     controller = workflow.controller
     slot = controller.target["slot"]
-    event(controller, "ROBOT_PICK_CONFIRMED", dict(slot=slot, next_slot=slot+1 if slot < 6 else None))
+    event(controller, "ROBOT_PICK_CONFIRMED", dict(slot=slot, next_slot=slot % 6+1))
     event(controller, "ROBOT_RELEASE_CONFIRMED", dict(slot=slot))
     event(controller, "ROBOT_RETURN_CONFIRMED", dict(robot_state=1, motion_status=0))
     finish_delivery(workflow, processes, proof=False)
@@ -133,7 +133,7 @@ def test_c_saved_chair_actual_a_fifteen_manual_steps_and_column_slots(create):
         Counter(tuple(sorted(block.items())) for block in backend.state["context"]["design"]["blocks"])
     supply = {(row["brick_type"], row["color"]): row["next_slot"] for row in window._snapshot["monitor"]["supply"]}
     assert supply == {("2x2x1", "yellow"): 1, ("2x2x1", "blue"): 4,
-                      ("2x3x1", "yellow"): None, ("2x3x1", "blue"): None}
+                      ("2x3x1", "yellow"): 1, ("2x3x1", "blue"): 1}
     log = records(workflow)
     assert sum(row["event"] == "STEP_CONFIRMED" for row in log) == 15
     assert any(row["event"] == "REAL_PLAN_PREFLIGHT" and row["result"]["robot_plan_accepted"] for row in log)
@@ -190,22 +190,32 @@ def test_initial_voice_failure_never_starts_movement(create, audio, monkeypatch,
     assert workflow.backend.state["current"]["blocks"] == [] and len(processes) == 1
 
 
-@pytest.mark.parametrize("failure", ["too_few_slots", "geometry"])
-def test_whole_plan_rejected_before_first_delivery_with_a_diagnosis_preserved(create, failure):
-    manifest, response = json.loads(MANIFEST.read_text()), deepcopy(INITIAL)
-    if failure == "too_few_slots":
-        manifest["supply_rows"][-1]["first_slot"] = 5
-    else:
-        response["design"]["blocks"][0]["x"] = 23
-    window, workflow, processes = create(manifest=manifest, response=response)
+def test_whole_plan_geometry_rejected_before_first_delivery_with_a_diagnosis_preserved(create):
+    response = deepcopy(INITIAL)
+    response["design"]["blocks"][0]["x"] = 23
+    window, workflow, processes = create(response=response)
     workflow.command(dict(command="START"))
     assert workflow.backend.state["context"] is None and len(processes) == 1
     log = next(row["result"] for row in records(workflow) if row["event"] == "REAL_PLAN_PREFLIGHT")
     assert log["design"] == response["design"] and not log["robot_plan_accepted"]
-    if failure == "too_few_slots":
-        assert log["a_result"]["status"] == "READY" and "NEEDS_REFILL" in log["reason"]
-    else:
-        assert log["a_result"]["status"] == "INVALID" and log["a_result"]["errors"]
+    assert log["a_result"]["status"] == "INVALID" and log["a_result"]["errors"]
+
+
+def test_plan_crossing_slot_six_is_admitted_and_starts_at_configured_slot(create):
+    manifest = json.loads(MANIFEST.read_text())
+    manifest["supply_rows"][-1]["first_slot"] = 5
+    window,workflow,processes = create(manifest=manifest)
+    workflow.command(dict(command="START"))
+    assert workflow.backend.state["context"] is not None and len(processes)==1
+    assert workflow.receive(manual(workflow.backend,'place_empty'))
+    assert workflow.controller.target['slot']==5 and len(processes)==2
+    finish_confirmed_delivery(workflow,processes)
+    workflow.receive(manual(workflow.backend,'assembly'))
+    assert workflow.controller.target['slot']==6
+    finish_confirmed_delivery(workflow,processes)
+    workflow.receive(manual(workflow.backend,'assembly'))
+    assert workflow.controller.target['slot']==1
+    assert not any(r['needs_refill'] for r in workflow.controller.state['supply'])
 
 
 @pytest.mark.parametrize("failure", ["missing_return", "misplaced", "manifest_changed"])

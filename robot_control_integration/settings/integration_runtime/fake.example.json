@@ -1,0 +1,129 @@
+{
+  "step": {
+    "case_id": "fake",
+    "plan_id": "FAKE_PLAN",
+    "step_id": "S01",
+    "block": {
+      "brick_type": "2x2x1",
+      "color": "blue",
+      "x": 6,
+      "y": 8,
+      "layer": 1,
+      "orientation_deg": 0
+    },
+    "action": {
+      "plan_id": "FAKE_PLAN",
+      "step_id": "S01",
+      "block": {
+        "brick_type": "2x2x1",
+        "color": "blue",
+        "x": 6,
+        "y": 8,
+        "layer": 1,
+        "orientation_deg": 0
+      },
+      "mode": "ROBOT_GRIP",
+      "assistance_kind": "NONE"
+    },
+    "current_revision": 0,
+    "reservation": {
+      "slot_id": "blue_2x2x1_01",
+      "reservation_id": "FAKE_SLOT",
+      "reservation_generation": 1,
+      "bound_workflow_generation": 7
+    },
+    "source_execution_allowed": false
+  },
+  "d_profile": {
+    "profile_id": "MOCK_INTEGRATION_ONLY",
+    "physical_route_reviewed": false,
+    "human_collaboration_commissioning_ref": null,
+    "clearance_z_mm": 200.0,
+    "supply_transit_xy_mm": [
+      -350.0,
+      -170.0
+    ],
+    "body_bypass_xy_mm": [
+      0.0,
+      -410.0
+    ],
+    "place_pose": [
+      400.0,
+      -180.0,
+      50.0,
+      0.0,
+      180.0,
+      0.0
+    ],
+    "approach_offset_mm": 24.5,
+    "near_contact_offset_mm": 1.0,
+    "force_stop_n": 35.0,
+    "max_press_travel_mm": 5.0,
+    "transfer_velocity": 32.0,
+    "transfer_acceleration": 16.0,
+    "descent_velocity": 2.0,
+    "descent_acceleration": 1.0,
+    "gripper_force_n": 40.0,
+    "steps": {
+      "fake/S01": {
+        "reference_pose": [
+          436.0,
+          104.0,
+          50.0,
+          0.0,
+          180.0,
+          0.0
+        ],
+        "pickup_pose": [
+          -300.0,
+          50.0,
+          50.0,
+          0.0,
+          180.0,
+          0.0
+        ],
+        "pickup_width_mm": 40.0,
+        "release_width_mm": 62.0,
+        "turn_base_z_deg": 0,
+        "physical_reference_reviewed": false,
+        "xy_grasp_rotation_compensation_measured": false,
+        "pickup_start_open_range_mm": [
+          61.0,
+          110.0
+        ],
+        "release_feedback_range_mm": [
+          61.0,
+          110.0
+        ]
+      }
+    }
+  },
+  "session": {
+    "backend": "TEST",
+    "provenance": "SYNTHETIC",
+    "execution_id": "7b93596f-d090-4ceb-b544-4c0c969326e1",
+    "source_epoch": "TEST_LOCAL",
+    "frame_profile_id": "SYNTHETIC_BASE",
+    "plan_id": "FAKE_PLAN",
+    "step_id": "S01",
+    "current_revision": 0,
+    "expires_unix_s": 1791721592.333855,
+    "request_timeout_s": 30,
+    "frame_max_age_s": 0.3,
+    "frame_max_gap_s": 0.3,
+    "inference_max_latency_s": 0.3,
+    "stillness": {
+      "window_s": 0.1,
+      "max_gap_s": 0.25,
+      "timeout_s": 3,
+      "min_samples": 3,
+      "sample_max_duration_s": 0.5,
+      "position_mm": 0.05,
+      "orientation_deg": 0.05,
+      "linear_mm_s": 0.01,
+      "angular_deg_s": 0.01
+    }
+  },
+  "start_zone": "assembly",
+  "fixture_kind": "FAKE_NO_DEVICE_NO_PHYSICAL_VALIDATION"
+}

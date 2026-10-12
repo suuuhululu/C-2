@@ -1,0 +1,37 @@
+{
+  "config_id": "assembly-centre-noncontact-pending-20261007",
+  "mode": "REAL",
+  "target": {"brick_type": "2x2x1", "color": "blue", "x": 11, "y": 11, "layer": 1, "orientation_deg": 0},
+  "connection": {"robot_id": "dsr01", "tcp": "GripperDA_v4", "tool": "ToolWeight0", "gripper_ip": "192.168.1.1", "ros_domain_id": 20},
+  "pose_source": "ON_SITE_TAUGHT_NONCONTACT",
+  "start_posx": null,
+  "waypoints": null,
+  "velocity": null,
+  "acceleration": null,
+  "timing": {
+    "service_timeout_s": null,
+    "sample_max_duration_s": null,
+    "poll_interval_s": null,
+    "motion_timeout_s": null,
+    "stop_timeout_s": null,
+    "hold_s": null
+  },
+  "limits": {
+    "position_tolerance_mm": null,
+    "orientation_tolerance_deg": null,
+    "linear_still_mm_s": null,
+    "angular_still_deg_s": null,
+    "force_delta_n": null,
+    "moment_delta_nm": null,
+    "path_min_clearance_mm": null
+  },
+  "confirmations": {
+    "onsite_operator": false,
+    "exclusive_control": false,
+    "tcp_tool_verified": false,
+    "already_holding": false,
+    "noncontact_route_reviewed": false,
+    "compliance_inactive": false,
+    "feedback_and_wrench_verified": false
+  }
+}

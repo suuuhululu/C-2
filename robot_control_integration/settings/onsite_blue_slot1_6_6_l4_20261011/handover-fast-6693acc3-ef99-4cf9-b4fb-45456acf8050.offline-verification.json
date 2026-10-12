@@ -1,0 +1,56 @@
+{
+  "status": "THREE_SETUP_TEST_FLOWS_PASSED",
+  "cases": [
+    {
+      "case": "camera_unavailable",
+      "handover_status": "ASSEMBLY_REQUIRED",
+      "assembly_status": "AWAITING_BACKEND_OBSERVATION",
+      "test_only": true,
+      "device_connections": 0,
+      "real_robot_motion_commands": 0,
+      "real_gripper_commands": 0,
+      "pickup_command_width_mm": 35.0,
+      "transfer_velocity_mm_s": 32.0,
+      "test_gripper_commands": [
+        [
+          62.4,
+          40.0
+        ]
+      ]
+    },
+    {
+      "case": "no_signal",
+      "handover_status": "ASSEMBLY_REQUIRED",
+      "assembly_status": "AWAITING_BACKEND_OBSERVATION",
+      "test_only": true,
+      "device_connections": 0,
+      "real_robot_motion_commands": 0,
+      "real_gripper_commands": 0,
+      "pickup_command_width_mm": 35.0,
+      "transfer_velocity_mm_s": 32.0,
+      "test_gripper_commands": [
+        [
+          62.4,
+          40.0
+        ]
+      ]
+    },
+    {
+      "case": "open_hand",
+      "handover_status": "LOCAL_HANDOVER_OBSERVE_COMPLETE",
+      "assembly_status": null,
+      "test_only": true,
+      "device_connections": 0,
+      "real_robot_motion_commands": 0,
+      "real_gripper_commands": 0,
+      "pickup_command_width_mm": 35.0,
+      "transfer_velocity_mm_s": 32.0,
+      "test_gripper_commands": [
+        [
+          62.4,
+          40.0
+        ]
+      ]
+    }
+  ]
+}

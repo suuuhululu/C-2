@@ -1,0 +1,66 @@
+{
+  "kind": "LOCAL_OPERATOR_APPROACH_REVIEW_AND_DESCENT_AUTHORIZATION",
+  "operator_statement": "굿 이제 하강",
+  "operator_context": "Response to request to check alignment and parallel condition at target. Fresh ALIGNMENT_AND_PARALLEL HMI remains required before motion.",
+  "parent_approach_execution_id": "0969295c-ebe4-4b17-ac29-14eee0a89028",
+  "approach_result_ref": "logs/onsite_blue_slot1_6_6_l2_20261011/approach-0969295c-ebe4-4b17-ac29-14eee0a89028/result.json",
+  "approach_result_sha256": "c9f371ff1a3b23beb8fa1a8950a05079cc1b7232fb08f8013598d0c74bedbc97",
+  "trial_min_xy": [
+    6,
+    6
+  ],
+  "layer": 2,
+  "color": "blue",
+  "readiness_ref": "settings/onsite_blue_slot1_6_6_l2_20261011/contact-readiness.json",
+  "read_only_sample": {
+    "posj": [
+      3.424342155456543,
+      5.384764671325684,
+      106.99604797363281,
+      -3.7995362281799316,
+      65.43778991699219,
+      3.31296968460083
+    ],
+    "posx": [
+      391.29254150390625,
+      5.926508903503418,
+      53.73572540283203,
+      125.77508544921875,
+      -175.88314819335938,
+      124.51504516601562
+    ],
+    "velx": [
+      0.0,
+      0.0,
+      -0.0,
+      0.0,
+      0.0,
+      0.0
+    ],
+    "motion_status": 0,
+    "query_started_monotonic_s": 7425.570176751,
+    "query_duration_s": 0.1241463289998137,
+    "query_finished_monotonic_s": 7425.694323799,
+    "robot_state": 1,
+    "robot_mode": 1,
+    "drl_state": 3,
+    "tcp": "GripperDA_v4",
+    "tool": "ToolWeight0",
+    "wrench": [
+      -1.9645336866378784,
+      -1.5584183931350708,
+      4.015472412109375,
+      0.8423648476600647,
+      -0.17766278982162476,
+      0.2789398431777954
+    ],
+    "gripper_status": 2,
+    "gripper_width_mm": 40.3,
+    "gripper_fingertip_offset_mm": 0.0,
+    "gripper_width_with_offset_mm": 40.3
+  },
+  "recorded_unix_s": 1791691531.7724354,
+  "assembly_completion": false,
+  "current_update": false,
+  "physical_calibration_adopted": false
+}

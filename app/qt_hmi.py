@@ -3,7 +3,7 @@
 from PyQt5.QtCore import QSize, Qt, QTimer, pyqtSignal, pyqtSlot
 from PyQt5.QtGui import QFont
 from PyQt5.QtWidgets import (
-    QApplication, QGridLayout, QGroupBox, QHBoxLayout, QLabel, QPushButton,
+    QApplication, QGridLayout, QGroupBox, QHBoxLayout, QLabel, QPushButton, QLineEdit,
     QTableWidget, QTableWidgetItem, QTextBrowser, QVBoxLayout, QWidget, QHeaderView,
 )
 
@@ -40,11 +40,13 @@ def fields(block):
 
 
 class HmiWindow(QWidget):
-    preview_ready = pyqtSignal(str)
     command_requested = pyqtSignal(dict)
     snapshot_received = pyqtSignal(dict)
     mvp_request_requested = pyqtSignal(dict)
     mvp_reply_received = pyqtSignal(dict)
+    preview_ready = pyqtSignal(str)
+    dialogue_answered = pyqtSignal(str)
+    reinspection_requested = pyqtSignal()
 
     def __init__(self, *, screen_size=None, window_size=None):
         super().__init__()
@@ -68,6 +70,18 @@ class HmiWindow(QWidget):
         root.setSpacing(3)
         self.heading = QLabel("협동 조립 · Day4                         모의 연결 FAKE · 실제 장치 미연결")
         root.addWidget(self.heading)
+        self.creator_bar = QWidget()
+        creator_layout = QHBoxLayout(self.creator_bar)
+        creator_layout.setContentsMargins(0,0,0,0)
+        self.creator_identity, self.creator_job, self.creator_notice = QLabel(), QLabel(), QLabel()
+        self.creator_login, self.creator_logout = QPushButton('제작자 로그인'), QPushButton('로그아웃')
+        for widget in (self.creator_identity,self.creator_job,self.creator_notice):
+            widget.setWordWrap(True)
+            creator_layout.addWidget(widget)
+        creator_layout.addStretch()
+        creator_layout.addWidget(self.creator_login);creator_layout.addWidget(self.creator_logout)
+        root.addWidget(self.creator_bar)
+        self.creator_bar.hide()  # Only an entry point with configured DB authentication enables it.
         process = QHBoxLayout()
         text = QVBoxLayout()
         self.status, self.progress = QLabel(), QLabel()
@@ -111,34 +125,47 @@ class HmiWindow(QWidget):
         self.assistance_view = AssistanceView()
         self.completion_view = CompletionView()
         self.execution_view = ExecutionView()
-        self.design_panel = self.design_dialogue.approved_panel
-        self.design_board = self.design_dialogue.approved_board
-        self.design_caption = self.design_dialogue.approved_caption
-        boards = QHBoxLayout()
-        for panel in (self.design_panel, self.design_dialogue.preview_panel, *self.inspection_view.board_panels):
-            panel.layout().setContentsMargins(5, 5, 5, 5)
-            panel.layout().setSpacing(2)
-            boards.addWidget(panel, 1)
-        root.addLayout(boards, 3)
-        for board in (self.design_board, self.design_dialogue.preview_board,
-                      self.inspection_view.current_board, self.inspection_view.expected_board):
-            board.setMinimumHeight(70)
-            board.overview = False
-        middle = QHBoxLayout()
-        monitor_panel = QGroupBox("장치·공급")
+        self.design_panel = self.design_dialogue.target_panel
+        self.design_board = self.design_dialogue.target_board
+        self.design_caption = self.design_dialogue.target_caption
+        compact = self._frame_size.height() < 800
+        dialogue_panel = QGroupBox("설계 대화 진행")
+        dialogue_layout = QVBoxLayout(dialogue_panel)
+        dialogue_layout.addWidget(self.design_dialogue)
+        if compact:
+            self.design_dialogue.setFixedHeight(32)
+            self.design_dialogue.reason.setFixedHeight(30)
+        dialogue_panel.setFixedHeight(60 if compact else 67)
+        root.addWidget(dialogue_panel)
+        self.dialogue_input = QLineEdit()
+        self.dialogue_input.setPlaceholderText('C에게 목표나 답변을 입력하세요')
+        self.dialogue_send = QPushButton('C에게 답하기')
+        self.dialogue_send.clicked.connect(self._dialogue_answer)
+        self.dialogue_input.returnPressed.connect(self._dialogue_answer)
+        self.reinspection_button = QPushButton('다시 검사')
+        self.reinspection_button.clicked.connect(self.reinspection_requested)
+        dialogue_row = QHBoxLayout()
+        dialogue_row.addWidget(self.dialogue_input,1)
+        dialogue_row.addWidget(self.dialogue_send)
+        dialogue_row.addWidget(self.reinspection_button)
+        root.addLayout(dialogue_row)
+        self.dialogue_input.hide(); self.dialogue_send.hide(); self.reinspection_button.hide()
+        assembly = QHBoxLayout()
+        assembly.addWidget(self.design_panel, 2)
+        for panel in self.inspection_view.board_panels:
+            assembly.addWidget(panel, 2)
+        self.monitor_panel = monitor_panel = QGroupBox("장치·공급")
         monitor_layout = QVBoxLayout(monitor_panel)
         self.monitor, self.supply = QLabel(), QLabel()
         self.monitor.setWordWrap(True)
         self.supply.setWordWrap(True)
         monitor_layout.addWidget(self.monitor)
         monitor_layout.addWidget(self.supply)
-        middle.addWidget(monitor_panel, 2)
         execution_panel = QGroupBox("현재 실행")
         execution_layout = QVBoxLayout(execution_panel)
         execution_layout.addWidget(self.execution_view)
-        middle.addWidget(execution_panel, 3)
         self.step_panel = QGroupBox("현재 Step · 없음")
-        self.step_panel.setMinimumHeight(175)
+        self.step_panel.setMinimumHeight(210 if compact else 260)
         step_layout = QVBoxLayout(self.step_panel)
         step_layout.setContentsMargins(4, 4, 4, 4)
         step_layout.setSpacing(2)
@@ -147,14 +174,14 @@ class HmiWindow(QWidget):
         step_body = QHBoxLayout()
         board_layout = QVBoxLayout()
         self.target_board = BoardView(isometric=True)
-        self.target_board.setMinimumHeight(65)
+        self.target_board.setMinimumHeight(100 if compact else 150)
         board_layout.addWidget(self.target_board,1)
         self.target_caption = QLabel()
         self.target_caption.setFont(QFont("Noto Sans CJK KR",9))
         self.target_caption.setWordWrap(True)
-        self.target_caption.setMaximumHeight(46)
+        self.target_caption.setMaximumHeight(62)
         board_layout.addWidget(self.target_caption)
-        step_body.addLayout(board_layout,4)
+        step_body.addLayout(board_layout,5)
         self.table = QTableWidget(5,3)
         self.table.setFont(QFont("Noto Sans CJK KR", 8))
         self.table.verticalHeader().setMinimumSectionSize(20)
@@ -168,25 +195,28 @@ class HmiWindow(QWidget):
         for row,caption in enumerate(("종류","색상","좌표 (x,y)","층","방향")):
             self.table.setItem(row,0,QTableWidgetItem(caption))
             self.table.setRowHeight(row,20)
-        step_body.addWidget(self.table,6)
+        step_body.addWidget(self.table,5)
         step_layout.addLayout(step_body)
-        middle.addWidget(self.step_panel, 5)
-        root.addLayout(middle, 3)
-        lower = QHBoxLayout()
+        assembly.addWidget(self.step_panel, 5)
+        root.addLayout(assembly, 1)
+        support_row = QHBoxLayout()
+        support_row.addWidget(monitor_panel, 2)
+        support_row.addWidget(execution_panel, 2)
         self.overview_panels = []
-        for title, view in (("C 대화 · 설계 승인은 대화에서", self.design_dialogue),
-                            ("비전 판정·차이", self.inspection_view),
+        for title, view in (("비전 판정·차이", self.inspection_view),
                             ("도움·인계 안내", self.assistance_view)):
             panel = QGroupBox(title)
             layout = QVBoxLayout(panel)
             layout.addWidget(view)
             self.overview_panels.append(panel)
-            lower.addWidget(panel, 1)
-        root.addLayout(lower, 3)
+            support_row.addWidget(panel, 3)
+        for panel in (monitor_panel, execution_panel, *self.overview_panels):
+            panel.setFixedHeight(150 if compact else 185)
+        root.addLayout(support_row)
         root.addWidget(self.completion_view)
 
         notice_panel = QGroupBox("질문 · 보류 사유 · 해야 할 일")
-        notice_panel.setFixedHeight(51)
+        notice_panel.setFixedHeight(65 if compact else 80)
         notice_layout = QVBoxLayout(notice_panel)
         self.notice = QTextBrowser()
         self.notice.setOpenExternalLinks(False)
@@ -241,6 +271,12 @@ class HmiWindow(QWidget):
         for button in (*self.refill_buttons.values(), *self.user_request_controls.buttons.values()):
             button.setEnabled(False)
 
+    def _dialogue_answer(self):
+        text = self.dialogue_input.text().strip()
+        if text and self.dialogue_send.isEnabled():
+            self.dialogue_input.clear()
+            self.dialogue_answered.emit(text)
+
     @pyqtSlot(dict)
     def receive_snapshot(self, value):
         try:
@@ -277,19 +313,17 @@ class HmiWindow(QWidget):
         p = snapshot["progress"]
         self.progress.setText("한 블록 전달 시험 · 조립 Plan 미채택" if mode == "REAL" and not manual_trial else
                               f"현재 Plan · 조립 확인 {p['completed']} / {p['total']} Step")
-        design = snapshot["design"]
-        self.design_panel.setTitle(f"전체 완성 목표 · 채택 Design v{design['design_version']}" if design else "전체 완성 목표 · 미채택")
-        self.design_board.set_blocks(design["blocks"] if design else [])
         self.design_dialogue.render_snapshot(snapshot)
-        if snapshot.get("design_preview"):
-            identity = snapshot["design_preview"]["request_id"]
+        if snapshot.get('design_preview'):
+            identity = snapshot['design_preview']['request_id']
+            from PyQt5.QtCore import QTimer
             QTimer.singleShot(0, lambda: self.preview_ready.emit(identity)
                 if self._snapshot.get("design_preview", {}).get("request_id") == identity else None)
         self.inspection_view.render_snapshot(snapshot)
         self.assistance_view.render_snapshot(snapshot)
         self.completion_view.render_snapshot(snapshot)
-        self.design_caption.setText("조립 Design 미채택 · 지정 블록 1개 전달 시험" if mode == "REAL" and not manual_trial else
-                                    "등받이 뒤쪽 시점")
+        if mode == "REAL" and not manual_trial:
+            self.design_caption.setText("조립 Design 미채택 · 지정 블록 1개 전달 시험")
         step = snapshot["step"]
         self.step_panel.setTitle(f"현재 Step · {step['step_id'] or '없음'}")
         self.comparison.setText((label(step["comparison"]) if step["target"] else "현재 Step 없음") +
@@ -337,8 +371,8 @@ class HmiWindow(QWidget):
         m = snapshot["monitor"]
         self.monitor.setText(f"Robot: {label(m['robot']['status'])}\n관측: {label(m['observation']['status'])}"
                              f"\n전달판: {label(m['place_status'])}")
-        self.supply.setText("\n".join(f"{COLOR_LABELS[item['color']]} "
-            f"{BRICK_LABELS[item['brick_type']]}: "
+        self.supply.setText("\n".join(f"{dict(yellow='노랑',blue='파랑',red='빨강')[item['color']]} "
+            f"{dict(zip(('1x2x1','2x2x1','2x3x1'),('2점','4점','6점')))[item['brick_type']]}: "
             f"{'보충 필요' if item['needs_refill'] else str(item['next_slot'])+'번' if item['next_slot'] else '미확인'}"
             for item in m["supply"]))
         self.notice.setPlainText("\n".join(text for text in snapshot["notice"].values() if text and

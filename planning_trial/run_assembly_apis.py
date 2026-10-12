@@ -115,8 +115,8 @@ def main():
     manual_assessed = run('14_manual_test_tray', 'reassessment', manual_re, 'CANDIDATE')
     run('14_manual_test_tray', 'motion', motion_request(manual_re, manual_assessed, tray), 'CANDIDATE')
 
-    limited = deepcopy(initial); limited['assembly_context']['max_states'] = 1
-    run('15_search_limit', 'whole', limited, 'SEARCH_LIMIT')
+    legacy_limit = deepcopy(initial); legacy_limit['assembly_context']['max_states'] = 1
+    run('15_legacy_state_limit_ignored', 'whole', legacy_limit, 'READY')
     bad = deepcopy(initial); bad['design']['blocks'][0]['x'] = 24
     run('16_outside_board', 'whole', bad, 'INVALID_CONTEXT')
     mismatch = deepcopy(reassessment)

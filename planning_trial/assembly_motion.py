@@ -5,7 +5,7 @@ from uuid import uuid4
 
 from planning_trial.assembly_optimizer import mode_options
 from planning_trial.assembly_geometry import validate_context
-from planning_trial.assembly_target import calculate_step_waypoints, validate_profile, trial_nominal_tcp
+from planning_trial.assembly_target import calculate_step_waypoints, validate_profile, trial_nominal_tcp, onsite_step_geometry
 from planning_trial.assembly_wire import error, normalize_action, comparable_action, pose_mm_zyz
 from planning_trial.planner import validate_current, validate_step, block_key
 from planning_trial.supply_pick import calculate_supply_pick
@@ -108,6 +108,11 @@ def plan_step_motion(*, plan, step_id, latest_current, action, supply_slot,
             transport = [waypoint('LIFT_HOLDING', pickup[:2]+[travel]+pickup[3:]),
                          waypoint('TRANSIT_ABOVE_TRAY', end[:2]+[travel]+end[3:]),
                          waypoint('HANDOVER_TRAY_HOLDING', end)]
+            if tray.get('d_loaded_transit') is not None:
+                route = tray['d_loaded_transit']
+                if [r['label'] for r in route] != ['SUPPLY_20_0', 'BODY_BYPASS', 'PLACE_BOARD']:
+                    raise MotionBlocked('INVALID_INPUT', 'D tray bypass route required', target)
+                transport[1:1] = [waypoint(r['label'], r['xy_mm']+[travel]+pickup[3:]) for r in route]
             limits = ['D_TRAY_PROFILE_REQUIRED_AND_NOT_REVALIDATED_ON_DEVICE',
                       'OVERHEAD_WAYPOINTS_NOT_FULL_ROBOT_COLLISION_PROOF']
             audit = {'pickup': pick, 'tray': deepcopy(tray)}
@@ -125,14 +130,30 @@ def plan_step_motion(*, plan, step_id, latest_current, action, supply_slot,
         overhead[2] = max(transport[0]['tcp_pose']['xyz_m'][2]*1000, approach[2], robot_state['tcp_pose']['xyz_m'][2]*1000)
         current_high = deepcopy(robot_state['tcp_pose'])
         current_high['xyz_m'][2] = overhead[2]/1000
+        approach_points=[{'label': 'RISE_FROM_CURRENT', 'motion_type': 'LINEAR', 'tcp_pose': current_high},
+                         waypoint('ABOVE_PICK', overhead), waypoint('PICK_APPROACH', approach), waypoint('PICK_TCP', pickup)]
+        onsite=None if manual else onsite_step_geometry(p,target,action['grip_axis'])
+        if onsite:
+            if manual:
+                raise MotionBlocked('INPUTS_REQUIRED','D scoped onsite route covers ROBOT_GRIP only',target)
+            travel=onsite['clearance_z_mm']
+            reverse=list(reversed(onsite['loaded_transit']))
+            place=reverse[0]['xy_mm']
+            approach_points=[approach_points[0],waypoint('PLACE_BOARD_EMPTY',place+[travel]+pickup[3:])]
+            approach_points += [waypoint(r['label']+'_EMPTY',r['xy_mm']+[travel]+pickup[3:]) for r in reverse[1:]]
+            approach_points += [waypoint('ABOVE_PICK',pickup[:2]+[travel]+pickup[3:]),waypoint('PICK_TCP',pickup)]
+        elif manual and tray.get('d_loaded_transit') is not None:
+            reverse=list(reversed(tray['d_loaded_transit']))
+            place=reverse[0]['xy_mm']
+            approach_points=[approach_points[0],waypoint('PLACE_BOARD_EMPTY',place+[travel]+pickup[3:])]
+            approach_points += [waypoint(r['label']+'_EMPTY',r['xy_mm']+[travel]+pickup[3:]) for r in reverse[1:]]
+            approach_points += [waypoint('ABOVE_PICK',pickup[:2]+[travel]+pickup[3:]),waypoint('PICK_TCP',pickup)]
         result.update(status='CANDIDATE', motion_proposal={
             'motion_plan_id': 'motion-'+uuid4().hex,
             'motion_scope': 'PICK_TRANSPORT_TO_HANDOVER_TRAY' if manual else 'PICK_TRANSPORT_TO_PRE_CONTACT',
             'pickup_tcp_pose': pose_mm_zyz(pickup),
             'segments': [
-                {'stage': 'APPROACH_PICK', 'waypoints': [
-                    {'label': 'RISE_FROM_CURRENT', 'motion_type': 'LINEAR', 'tcp_pose': current_high},
-                    waypoint('ABOVE_PICK', overhead), waypoint('PICK_APPROACH', approach), waypoint('PICK_TCP', pickup)],
+                {'stage': 'APPROACH_PICK', 'waypoints': approach_points,
                  'gripper_event': None},
                 {'stage': 'D_PICK_AND_CONFIRM', 'waypoints': [], 'gripper_event': 'D_EXISTING_PICKUP_CLOSE_AND_CONFIRM'},
                 {'stage': 'TRANSPORT_HOLDING', 'waypoints': transport, 'gripper_event': None}],

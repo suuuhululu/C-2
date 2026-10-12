@@ -1,0 +1,37 @@
+{
+  "status": "PREPARED_NOT_EXECUTED",
+  "created_unix_s": 1791698182.4395347,
+  "expires_unix_s": 1791699982.4395347,
+  "configs": {
+    "pickup": {
+      "profile": "settings/onsite_11_11_release48_20261011/pickup-06825f73-ae71-4da0-942d-52bf3dc227d3.profile.json",
+      "session": "settings/onsite_11_11_release48_20261011/pickup-06825f73-ae71-4da0-942d-52bf3dc227d3.session.json",
+      "execution_id": "06825f73-ae71-4da0-942d-52bf3dc227d3",
+      "output": "logs/onsite_11_11_release48_20261011/pickup-06825f73-ae71-4da0-942d-52bf3dc227d3"
+    },
+    "handover": {
+      "profile": "settings/onsite_11_11_release48_20261011/handover-52251bfc-de58-419f-88e5-b73d6d6a8c20.profile.json",
+      "session": "settings/onsite_11_11_release48_20261011/handover-52251bfc-de58-419f-88e5-b73d6d6a8c20.session.json",
+      "execution_id": "52251bfc-de58-419f-88e5-b73d6d6a8c20",
+      "output": "logs/onsite_11_11_release48_20261011/handover-52251bfc-de58-419f-88e5-b73d6d6a8c20"
+    },
+    "assembly": {
+      "profile": "settings/onsite_11_11_release48_20261011/assembly-f03da87f-0fb6-4b0f-9199-9211e021ccb9.profile.json",
+      "session": "settings/onsite_11_11_release48_20261011/assembly-f03da87f-0fb6-4b0f-9199-9211e021ccb9.session.json",
+      "execution_id": "f03da87f-0fb6-4b0f-9199-9211e021ccb9",
+      "output": "logs/onsite_11_11_release48_20261011/assembly-f03da87f-0fb6-4b0f-9199-9211e021ccb9"
+    }
+  },
+  "readiness": "settings/onsite_11_11_release48_20261011/readonly-f8ffe768-d74e-427a-a26b-670cd6bb926a.json",
+  "target": {
+    "x": 11,
+    "y": 11,
+    "layer": 2,
+    "color": "blue",
+    "brick_type": "2x2x1",
+    "orientation_deg": 0
+  },
+  "human_source_confirmation": "네, 슬롯 보충했고 (11,11)은 1층만 있음",
+  "robot_motion_commands": 0,
+  "robot_gripper_commands": 0
+}

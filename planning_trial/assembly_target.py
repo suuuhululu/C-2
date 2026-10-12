@@ -8,6 +8,7 @@ from copy import deepcopy
 from hashlib import sha256
 import json
 import math
+import re
 from pathlib import Path
 
 from planning_trial.planner import validate_brick, validate_current, occupied_cells, block_key, check_placement, check_support, validate_step
@@ -63,6 +64,7 @@ def load_assembly_target_profile(handoff_dir=HANDOFF):
 
 def profile_fingerprint(p):
     content={k:p[k] for k in ('source_sha256','coefficient_xyz_mm','grid_mapping','reference','geometry','extensions','recorded_transfer_height_candidate_mm')}
+    if 'd_onsite_step' in p:content['d_onsite_step']=p['d_onsite_step']
     return 'seated-tcp-'+sha256(json.dumps(content,sort_keys=True).encode()).hexdigest()[:16]
 
 
@@ -104,6 +106,33 @@ def _pose(xyz,abc):
             'position_m':[v/1000 for v in xyz],'quaternion_xyzw':quaternion_xyzw_from_zyz(abc)}
 
 
+def onsite_step_geometry(p, block, axis):
+    """A D-owned, single-step reference must never become a global calibration."""
+    g=p.get('d_onsite_step')
+    if g is None:return None
+    if g['block']!=block or g['grip_axis']!=axis or g['turn_base_z_deg'] not in (0, 90, -90, 180):
+        raise ValueError('D onsite geometry does not cover this block/grip/rotation')
+    for key in ('reference_pose','pickup_pose'):
+        value=g[key]
+        if (not isinstance(value,list) or len(value)!=6 or
+            any(type(v) not in (int,float) or not math.isfinite(v) for v in value)):
+            raise ValueError('Finite D onsite pose required: '+key)
+    for key in ('approach_offset_mm','clearance_z_mm'):
+        if type(g[key]) not in (int,float) or not math.isfinite(g[key]) or g[key]<=0:
+            raise ValueError('Positive finite D onsite clearance required')
+    if g['clearance_z_mm'] < max(g['reference_pose'][2]+g['approach_offset_mm'],g['pickup_pose'][2]):
+        raise ValueError('D transport height below approach/pickup')
+    if [r['label'] for r in g['loaded_transit']]!=['SUPPLY_20_0','BODY_BYPASS','PLACE_BOARD']:
+        raise ValueError('Explicit D supply/bypass/place route required')
+    for r in g['loaded_transit']:
+        if (not isinstance(r['xy_mm'],list) or len(r['xy_mm'])!=2 or
+            any(type(v) not in (int,float) or not math.isfinite(v) for v in r['xy_mm'])):
+            raise ValueError('Finite D transit XY required')
+    if not isinstance(g['source_sha256'],str) or not re.fullmatch('[0-9a-f]{64}',g['source_sha256']):
+        raise ValueError('D onsite geometry source SHA256 required')
+    return g
+
+
 def calculate_step_tcp(step,*,profile=None,grip_axis=None):
     """A selected PLACE -> seated/20mm bottom-gap TCP candidates and provenance."""
     p=load_assembly_target_profile() if profile is None else profile
@@ -124,8 +153,9 @@ def calculate_step_tcp(step,*,profile=None,grip_axis=None):
     axis=grip_axis or required_axis
     if axis not in ('x','y') or (b['brick_type']!='2x2x1' and axis!=required_axis):
         raise ValueError('Grip must span 2 studs: small end faces for red1x2, long side faces for2x3')
+    onsite=onsite_step_geometry(p,b,axis)
     extended=b['brick_type']!='2x2x1' or b['layer']!=1 or axis!=p['reference']['grip_axis_planner']
-    if extended and not p['extensions']['allow_nominal_sizes_layers_and_grip_rotation']:
+    if extended and not onsite and not p['extensions']['allow_nominal_sizes_layers_and_grip_rotation']:
         return {'status':'INPUTS_REQUIRED','step_id':step['step_id'],'execution_allowed':False,
                 'errors':[{'reason':'Only taught blue 2x2 layer1/reference grip calibrated','block':b}]}
     # The calibration's x/y already includes the 2x2 centre/grasp relation.
@@ -134,27 +164,35 @@ def calculate_step_tcp(step,*,profile=None,grip_axis=None):
     m=p['grid_mapping']['planner_to_trial_xy'];off=p['grid_mapping']['offset_trial_xy']
     centre=[b['x']+(width-1)/2,b['y']+(depth-1)/2]
     trial=[sum(m[j][k]*centre[k] for k in range(2))+off[j]-.5 for j in range(2)]
-    xyz=trial_nominal_tcp(*trial,profile=p)
-    xyz[2]+=(b['layer']-1)*p['geometry']['body_height_mm']
+    # 명시적으로 주어진 D Step pose는 2x2 보간 범위 밖에서도 그대로 사용한다.
+    # D 기준을 쓰기 전에 관련 없는 가상 2x2 anchor 계산으로 거절하지 않는다.
+    xyz=list(onsite['reference_pose'][:3]) if onsite else trial_nominal_tcp(*trial,profile=p)
+    if not onsite: xyz[2]+=(b['layer']-1)*p['geometry']['body_height_mm']
     abc=list(p['reference']['tcp_zyz_deg'])
     if axis!=p['reference']['grip_axis_planner']:abc[0]+=90 # world Base +Z left-multiplication, not Euler ZYX.
     gap=p['geometry']['stud_height_mm']+p['geometry']['precontact_block_bottom_clearance_mm']
+    if onsite:
+        xyz=list(onsite['reference_pose'][:3])
+        abc=list(onsite['pickup_pose'][3:])
+        abc[0] += onsite['turn_base_z_deg']
+        gap=onsite['approach_offset_mm']
     pre=list(xyz);pre[2]+=gap
     trial_corrected=list(xyz);trial_corrected[2]-=2
     limits=['GRID_LABEL_MAPPING_USER_CONFIRMED_NOT_PHYSICAL_PATH_VALIDATION',
             'NO_IK_OR_FULL_TOOL_PATH_VALIDATION','REFERENCE_SEATED_TCP_ALREADY_INCLUDES_GRASP_AND_CENTRE',
             'COLOUR_TRANSFER_NOT_INDEPENDENTLY_TESTED' if b['color']!='blue' else 'BLUE_REFERENCE_COLOUR']
-    if extended:limits.append('NOMINAL_SIZE_LAYER_ROTATION_EXTENSION_NOT_PHYSICALLY_CALIBRATED')
+    if extended and not onsite:limits.append('NOMINAL_SIZE_LAYER_ROTATION_EXTENSION_NOT_PHYSICALLY_CALIBRATED')
+    if onsite:limits.append('D_SCOPED_REFERENCE_CANDIDATE_NOT_EXACT_TARGET_TEACHING')
     return {'schema_version':'assembly-target-coordinate-candidate/0.1','status':'COORDINATE_CANDIDATE',
             'execution_allowed':False,'profile_id':profile_fingerprint(p),'step_id':step['step_id'],'block':b,
             'grid_alignment_status':p['grid_mapping']['status'],
             'grip_axis_planner':axis,'equivalent_reference_2x2_anchor_planner':equivalent,
             'trial_grid_reference_2x2_anchor':trial,
-            'scope':'NOMINAL_GEOMETRIC_EXTENSION' if extended else 'TAUGHT_2X2_LAYER1_INTERPOLATION',
+            'scope':'D_ONSITE_SCOPED_REFERENCE' if onsite else ('NOMINAL_GEOMETRIC_EXTENSION' if extended else 'TAUGHT_2X2_LAYER1_INTERPOLATION'),
             'nominal_seated_tcp':_pose(xyz,abc),'pre_contact_tcp':_pose(pre,abc),
             'D_contact_minus2mm_trial_candidate':_pose(trial_corrected,abc),
             'precontact_tcp_lift_from_nominal_seated_mm':gap,
-            'precontact_gap_reference':'HELD_BLOCK_BOTTOM_TO_LOWER_STUD_TIP_20MM',
+            'precontact_gap_reference':'D_TAUGHT_REFERENCE_TCP_PLUS_APPROACH_OFFSET' if onsite else 'HELD_BLOCK_BOTTOM_TO_LOWER_STUD_TIP_20MM',
             'pad_bottom_above_block_bottom_mm':5,'raw_reference_centre_residual_mm':p['centre_residual_norm_mm'],
             'limits':limits,'motion_generated':False}
 
@@ -215,12 +253,21 @@ def calculate_step_waypoints(step,current,pick,assembly_context,*,profile=None,g
     travel=max(recorded,overhead,pre[2],start[2]+20)
     lift=start[:];lift[2]=travel
     above=pre[:];above[2]=travel
+    waypoints=[('LIFT_HOLDING',lift),('TRANSIT_ABOVE_TARGET',above),('PRE_CONTACT_HOLDING',pre)]
+    onsite=onsite_step_geometry(p,target['block'],target['grip_axis_planner'])
+    if onsite:
+        if start!=onsite['pickup_pose'] or overhead>onsite['clearance_z_mm']:
+            raise ValueError('D scoped pickup mismatch or Current exceeds reviewed transport height')
+        travel=onsite['clearance_z_mm']
+        lift[2]=above[2]=travel
+        waypoints=[('LIFT_HOLDING',lift)]+[(r['label'],r['xy_mm']+[travel]+start[3:]) for r in onsite['loaded_transit']]
+        waypoints += [('TARGET_HIGH',above),('PRE_CONTACT_HOLDING',pre)]
     return {'schema_version':'assembly-waypoint-candidate/0.1','status':'WAYPOINT_CANDIDATE','execution_allowed':False,
             'step_id':step['step_id'],'motion_current_revision':revision,'profile_id':target['profile_id'],
             'pad_bottom_above_block_bottom_mm':5,'travel_tcp_z_mm':travel,
             'nominal_structure_envelope_tcp_z_mm':overhead,
             'waypoints':[{'label':label,'pose':_pose(pose[:3],pose[3:])} for label,pose in
-                         [('LIFT_HOLDING',lift),('TRANSIT_ABOVE_TARGET',above),('PRE_CONTACT_HOLDING',pre)]],
+                         waypoints],
             'terminal_gripper_policy':'HOLD_NO_AUTOMATIC_OPEN','assembly_completed':False,
             'local_grip_corridor_checked':True,'full_robot_collision_checked':False,'ik_checked':False,
             'speed_profile':None,'grid_alignment_status':p['grid_mapping']['status'],

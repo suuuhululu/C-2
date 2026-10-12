@@ -1,0 +1,634 @@
+[
+  {
+    "record_id": "826f19a4-0f2c-49b3-af6c-0c0dda8adbce",
+    "target": {
+      "brick_type": "2x2x1",
+      "color": "yellow",
+      "x": 11,
+      "y": 11,
+      "layer": 1,
+      "orientation_deg": 0
+    },
+    "sample": {
+      "posj": [
+        11.625,
+        21.799514770507812,
+        92.30934143066406,
+        -2.5214831829071045,
+        67.09913635253906,
+        12.41186237335205
+      ],
+      "posx": [
+        472.05499267578125,
+        85.7425765991211,
+        15.51624870300293,
+        75.28691864013672,
+        -177.2896270751953,
+        75.40895080566406
+      ],
+      "velx": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "motion_status": 0,
+      "query_started_monotonic_s": 19789.586844052,
+      "query_duration_s": 0.19372840100186295,
+      "query_finished_monotonic_s": 19789.780575766,
+      "robot_state": 1,
+      "robot_mode": 0,
+      "drl_state": 3,
+      "tcp": "GripperDA_v4",
+      "tool": "ToolWeight0",
+      "wrench": [
+        -14.2706880569458,
+        1.642288327217102,
+        5.917637348175049,
+        0.46543240547180176,
+        -1.2169989347457886,
+        0.23011918365955353
+      ],
+      "gripper_status": 2,
+      "gripper_width_mm": 40.4,
+      "gripper_fingertip_offset_mm": 0.0,
+      "gripper_width_with_offset_mm": 40.4
+    },
+    "floor_z_mm": 15.51624870300293,
+    "setup_id": "onsite_20261010",
+    "grasp_id": "yellow4_a",
+    "role": "fit",
+    "tcp": "GripperDA_v4",
+    "tool": "ToolWeight0",
+    "captured_at_unix_s": 1791612472.1389136,
+    "coordinate_convention": "BOARD_MINIMUM_OCCUPIED_STUD_XY",
+    "source": "OPERATOR_SEATED_CURRENT_GRASP",
+    "motion_commands": 0,
+    "gripper_commands": 0
+  },
+  {
+    "record_id": "b83de7ed-d3eb-4e10-be43-00e1f0462fcb",
+    "target": {
+      "brick_type": "2x2x1",
+      "color": "yellow",
+      "x": 11,
+      "y": 11,
+      "layer": 2,
+      "orientation_deg": 0
+    },
+    "sample": {
+      "posj": [
+        11.616908073425293,
+        20.818614959716797,
+        90.66191101074219,
+        -2.5079691410064697,
+        69.85609436035156,
+        12.380777359008789
+      ],
+      "posx": [
+        471.38330078125,
+        85.36578369140625,
+        33.63553237915039,
+        73.10492706298828,
+        -177.20652770996094,
+        73.32064056396484
+      ],
+      "velx": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "motion_status": 0,
+      "query_started_monotonic_s": 19951.288531165,
+      "query_duration_s": 0.10879006500181276,
+      "query_finished_monotonic_s": 19951.397322483,
+      "robot_state": 1,
+      "robot_mode": 0,
+      "drl_state": 3,
+      "tcp": "GripperDA_v4",
+      "tool": "ToolWeight0",
+      "wrench": [
+        -0.5796757340431213,
+        1.7128444910049438,
+        7.3136396408081055,
+        0.3090512752532959,
+        -0.357697993516922,
+        0.17540259659290314
+      ],
+      "gripper_status": 2,
+      "gripper_width_mm": 40.6,
+      "gripper_fingertip_offset_mm": 0.0,
+      "gripper_width_with_offset_mm": 40.6
+    },
+    "floor_z_mm": 33.63553237915039,
+    "setup_id": "onsite_20261010",
+    "grasp_id": "yellow4_a",
+    "role": "fit",
+    "tcp": "GripperDA_v4",
+    "tool": "ToolWeight0",
+    "captured_at_unix_s": 1791612633.7556355,
+    "coordinate_convention": "BOARD_MINIMUM_OCCUPIED_STUD_XY",
+    "source": "OPERATOR_SEATED_CURRENT_GRASP",
+    "motion_commands": 0,
+    "gripper_commands": 0
+  },
+  {
+    "record_id": "8adda728-d663-4bd1-8553-90c2cce3524a",
+    "target": {
+      "brick_type": "2x2x1",
+      "color": "yellow",
+      "x": 11,
+      "y": 11,
+      "layer": 3,
+      "orientation_deg": 0
+    },
+    "sample": {
+      "posj": [
+        11.682730674743652,
+        20.076833724975586,
+        88.51860046386719,
+        -2.5082056522369385,
+        72.92996215820312,
+        12.36493968963623
+      ],
+      "posx": [
+        471.61138916015625,
+        85.72891998291016,
+        52.92000961303711,
+        70.23124694824219,
+        -177.07777404785156,
+        70.48985290527344
+      ],
+      "velx": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "motion_status": 0,
+      "query_started_monotonic_s": 20268.531761999,
+      "query_duration_s": 0.0854547070011904,
+      "query_finished_monotonic_s": 20268.617219886,
+      "robot_state": 1,
+      "robot_mode": 0,
+      "drl_state": 3,
+      "tcp": "GripperDA_v4",
+      "tool": "ToolWeight0",
+      "wrench": [
+        -2.593435049057007,
+        -0.9259729981422424,
+        6.638485908508301,
+        0.26796236634254456,
+        -0.5337169170379639,
+        0.11955168843269348
+      ],
+      "gripper_status": 2,
+      "gripper_width_mm": 40.4,
+      "gripper_fingertip_offset_mm": 0.0,
+      "gripper_width_with_offset_mm": 40.4
+    },
+    "floor_z_mm": 52.92000961303711,
+    "setup_id": "onsite_20261010",
+    "grasp_id": "yellow4_a",
+    "role": "fit",
+    "tcp": "GripperDA_v4",
+    "tool": "ToolWeight0",
+    "captured_at_unix_s": 1791612950.9755354,
+    "coordinate_convention": "BOARD_MINIMUM_OCCUPIED_STUD_XY",
+    "source": "OPERATOR_SEATED_CURRENT_GRASP",
+    "motion_commands": 0,
+    "gripper_commands": 0
+  },
+  {
+    "record_id": "2409ad04-94d7-425e-bf7c-dd2bc1eda277",
+    "target": {
+      "brick_type": "2x2x1",
+      "color": "yellow",
+      "x": 11,
+      "y": 11,
+      "layer": 4,
+      "orientation_deg": 0
+    },
+    "sample": {
+      "posj": [
+        11.714308738708496,
+        19.433115005493164,
+        86.3484115600586,
+        -2.511044979095459,
+        75.86277770996094,
+        12.363162994384766
+      ],
+      "posx": [
+        471.9372863769531,
+        85.85430908203125,
+        71.7586898803711,
+        68.62421417236328,
+        -176.98472595214844,
+        68.97066497802734
+      ],
+      "velx": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "motion_status": 0,
+      "query_started_monotonic_s": 20317.841638683,
+      "query_duration_s": 0.07702111300022807,
+      "query_finished_monotonic_s": 20317.918662124,
+      "robot_state": 1,
+      "robot_mode": 0,
+      "drl_state": 3,
+      "tcp": "GripperDA_v4",
+      "tool": "ToolWeight0",
+      "wrench": [
+        -4.2136616706848145,
+        -1.1971865892410278,
+        10.87508773803711,
+        0.23906204104423523,
+        -0.6212217807769775,
+        0.1560778170824051
+      ],
+      "gripper_status": 2,
+      "gripper_width_mm": 40.6,
+      "gripper_fingertip_offset_mm": 0.0,
+      "gripper_width_with_offset_mm": 40.6
+    },
+    "floor_z_mm": 71.7586898803711,
+    "setup_id": "onsite_20261010",
+    "grasp_id": "yellow4_a",
+    "role": "fit",
+    "tcp": "GripperDA_v4",
+    "tool": "ToolWeight0",
+    "captured_at_unix_s": 1791613000.2770402,
+    "coordinate_convention": "BOARD_MINIMUM_OCCUPIED_STUD_XY",
+    "source": "OPERATOR_SEATED_CURRENT_GRASP",
+    "motion_commands": 0,
+    "gripper_commands": 0
+  },
+  {
+    "record_id": "d94f9aeb-9309-4a59-abf2-b79d2ee926eb",
+    "target": {
+      "brick_type": "2x2x1",
+      "color": "yellow",
+      "x": 11,
+      "y": 11,
+      "layer": 5,
+      "orientation_deg": 0
+    },
+    "sample": {
+      "posj": [
+        11.62598705291748,
+        18.618608474731445,
+        84.42361450195312,
+        -2.5150105953216553,
+        78.57137298583984,
+        12.36153507232666
+      ],
+      "posx": [
+        471.2296142578125,
+        84.79029846191406,
+        90.69181823730469,
+        69.2514877319336,
+        -176.9781494140625,
+        69.80133819580078
+      ],
+      "velx": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "motion_status": 0,
+      "query_started_monotonic_s": 20367.510144746,
+      "query_duration_s": 0.1656660170010582,
+      "query_finished_monotonic_s": 20367.675811998,
+      "robot_state": 1,
+      "robot_mode": 0,
+      "drl_state": 3,
+      "tcp": "GripperDA_v4",
+      "tool": "ToolWeight0",
+      "wrench": [
+        -1.0162056684494019,
+        -0.6595993041992188,
+        3.845005750656128,
+        0.3831299841403961,
+        -0.37581348419189453,
+        0.1411273181438446
+      ],
+      "gripper_status": 2,
+      "gripper_width_mm": 40.4,
+      "gripper_fingertip_offset_mm": 0.0,
+      "gripper_width_with_offset_mm": 40.4
+    },
+    "floor_z_mm": 90.69181823730469,
+    "setup_id": "onsite_20261010",
+    "grasp_id": "yellow4_a",
+    "role": "fit",
+    "tcp": "GripperDA_v4",
+    "tool": "ToolWeight0",
+    "captured_at_unix_s": 1791613050.0340896,
+    "coordinate_convention": "BOARD_MINIMUM_OCCUPIED_STUD_XY",
+    "source": "OPERATOR_SEATED_CURRENT_GRASP",
+    "motion_commands": 0,
+    "gripper_commands": 0
+  },
+  {
+    "record_id": "3bba0b6d-7d0d-4a16-b71a-fabc5569139c",
+    "target": {
+      "brick_type": "2x2x1",
+      "color": "yellow",
+      "x": 11,
+      "y": 9,
+      "layer": 5,
+      "orientation_deg": 0
+    },
+    "sample": {
+      "posj": [
+        7.919013023376465,
+        17.852561950683594,
+        85.54423522949219,
+        -2.6253790855407715,
+        78.04916381835938,
+        8.696106910705566
+      ],
+      "posx": [
+        471.1397399902344,
+        52.891178131103516,
+        90.19197845458984,
+        69.25106811523438,
+        -176.97811889648438,
+        69.8008804321289
+      ],
+      "velx": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "motion_status": 0,
+      "query_started_monotonic_s": 21022.985577785,
+      "query_duration_s": 0.13067903699993622,
+      "query_finished_monotonic_s": 21023.116258802,
+      "robot_state": 1,
+      "robot_mode": 1,
+      "drl_state": 3,
+      "tcp": "GripperDA_v4",
+      "tool": "ToolWeight0",
+      "wrench": [
+        -2.031501293182373,
+        -2.10270619392395,
+        16.914817810058594,
+        0.5460073947906494,
+        -0.2842296361923218,
+        0.18193985521793365
+      ],
+      "gripper_status": 2,
+      "gripper_width_mm": 40.6,
+      "gripper_fingertip_offset_mm": 0.0,
+      "gripper_width_with_offset_mm": 40.6
+    },
+    "floor_z_mm": 90.19197845458984,
+    "setup_id": "onsite_20261010",
+    "grasp_id": "yellow4_a",
+    "role": "fit",
+    "tcp": "GripperDA_v4",
+    "tool": "ToolWeight0",
+    "captured_at_unix_s": 1791613705.4746134,
+    "coordinate_convention": "BOARD_MINIMUM_OCCUPIED_STUD_XY",
+    "source": "OPERATOR_SEATED_CURRENT_GRASP",
+    "motion_commands": 0,
+    "gripper_commands": 0,
+    "adopt_as_layer_z": true,
+    "adoption_reason": "Operator confirmed full seating after actual0.5mm extra descent and requested layer5 seatingZ update."
+  },
+  {
+    "record_id": "fbc4c86b-4318-4802-b5e5-d73abcd8f00f",
+    "target": {
+      "brick_type": "2x2x1",
+      "color": "yellow",
+      "x": 11,
+      "y": 11,
+      "layer": 4,
+      "orientation_deg": 0
+    },
+    "sample": {
+      "posj": [
+        11.743914604187012,
+        19.278928756713867,
+        86.51880645751953,
+        -2.5555813312530518,
+        75.58853912353516,
+        12.416748046875
+      ],
+      "posx": [
+        472.43536376953125,
+        85.9559326171875,
+        71.9937973022461,
+        73.34466552734375,
+        -177.08193969726562,
+        73.69747924804688
+      ],
+      "velx": [
+        1.7914215326309204,
+        0.36314627528190613,
+        1.4026119709014893,
+        -0.04737395420670509,
+        -0.22748136520385742,
+        0.010045226663351059
+      ],
+      "motion_status": 0,
+      "query_started_monotonic_s": 21882.928282211,
+      "query_duration_s": 0.13733142300043255,
+      "query_finished_monotonic_s": 21883.065615195,
+      "robot_state": 1,
+      "robot_mode": 1,
+      "drl_state": 3,
+      "tcp": "GripperDA_v4",
+      "tool": "ToolWeight0",
+      "wrench": [
+        -7.313229084014893,
+        -2.855646848678589,
+        -3.117473602294922,
+        0.846770703792572,
+        -1.177965760231018,
+        0.3103850781917572
+      ],
+      "gripper_status": 2,
+      "gripper_width_mm": 40.6,
+      "gripper_fingertip_offset_mm": 0.0,
+      "gripper_width_with_offset_mm": 40.6
+    },
+    "floor_z_mm": 71.9937973022461,
+    "setup_id": "onsite_20261010",
+    "grasp_id": "yellow4_a",
+    "role": "fit",
+    "tcp": "GripperDA_v4",
+    "tool": "ToolWeight0",
+    "captured_at_unix_s": 1791614565.4238932,
+    "coordinate_convention": "BOARD_MINIMUM_OCCUPIED_STUD_XY",
+    "source": "OPERATOR_SEATED_CURRENT_GRASP",
+    "motion_commands": 0,
+    "gripper_commands": 0,
+    "model_excluded": true,
+    "model_exclusion_reason": "Residual velocity in seated capture; preserve raw sample and adopt subsequent zero-velocity record instead."
+  },
+  {
+    "record_id": "fc4193e4-04a2-4418-b516-cb33274460a7",
+    "target": {
+      "brick_type": "2x2x1",
+      "color": "yellow",
+      "x": 11,
+      "y": 11,
+      "layer": 4,
+      "orientation_deg": 0
+    },
+    "sample": {
+      "posj": [
+        11.743914604187012,
+        19.2784366607666,
+        86.58346557617188,
+        -2.5555813312530518,
+        75.58838653564453,
+        12.416748046875
+      ],
+      "posx": [
+        471.9385681152344,
+        85.85523986816406,
+        71.60824584960938,
+        72.24752807617188,
+        -177.0513153076172,
+        72.59900665283203
+      ],
+      "velx": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "motion_status": 0,
+      "query_started_monotonic_s": 21934.788566497,
+      "query_duration_s": 0.19609174599827384,
+      "query_finished_monotonic_s": 21934.984659814,
+      "robot_state": 1,
+      "robot_mode": 1,
+      "drl_state": 3,
+      "tcp": "GripperDA_v4",
+      "tool": "ToolWeight0",
+      "wrench": [
+        -3.81823992729187,
+        -2.4823057651519775,
+        6.143704891204834,
+        0.8664893507957458,
+        -0.7558526992797852,
+        0.2854035198688507
+      ],
+      "gripper_status": 2,
+      "gripper_width_mm": 40.6,
+      "gripper_fingertip_offset_mm": 0.0,
+      "gripper_width_with_offset_mm": 40.6
+    },
+    "floor_z_mm": 71.60824584960938,
+    "setup_id": "onsite_20261010",
+    "grasp_id": "yellow4_a",
+    "role": "fit",
+    "tcp": "GripperDA_v4",
+    "tool": "ToolWeight0",
+    "captured_at_unix_s": 1791614617.3430078,
+    "coordinate_convention": "BOARD_MINIMUM_OCCUPIED_STUD_XY",
+    "source": "OPERATOR_SEATED_CURRENT_GRASP",
+    "motion_commands": 0,
+    "gripper_commands": 0,
+    "adopt_as_layer_z": true,
+    "adoption_reason": "Operator confirmed full layer4 seating after minus0.2degree boardY tilt and extra0.15mm position commands."
+  },
+  {
+    "record_id": "e12cca19-b060-4661-8169-bf7fe4f2c2e1",
+    "target": {
+      "brick_type": "2x2x1",
+      "color": "yellow",
+      "x": 0,
+      "y": 18,
+      "layer": 2,
+      "orientation_deg": 0
+    },
+    "sample": {
+      "posj": [
+        34.82042694091797,
+        5.641299247741699,
+        110.5428695678711,
+        -1.9001680612564087,
+        66.00934600830078,
+        35.476287841796875
+      ],
+      "posx": [
+        295.9917297363281,
+        197.69163513183594,
+        30.842016220092773,
+        73.10157012939453,
+        -177.20640563964844,
+        73.31722259521484
+      ],
+      "velx": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "motion_status": 0,
+      "query_started_monotonic_s": 23906.633884419,
+      "query_duration_s": 0.08871284400083823,
+      "query_finished_monotonic_s": 23906.722599889,
+      "robot_state": 1,
+      "robot_mode": 1,
+      "drl_state": 3,
+      "tcp": "GripperDA_v4",
+      "tool": "ToolWeight0",
+      "wrench": [
+        3.889862537384033,
+        -0.07441534101963043,
+        21.571077346801758,
+        0.5084520578384399,
+        0.5693073272705078,
+        0.25691327452659607
+      ],
+      "gripper_status": 2,
+      "gripper_width_mm": 40.4,
+      "gripper_fingertip_offset_mm": 0.0,
+      "gripper_width_with_offset_mm": 40.4
+    },
+    "floor_z_mm": 30.842016220092773,
+    "setup_id": "onsite_20261010",
+    "grasp_id": "yellow4_a",
+    "role": "fit",
+    "tcp": "GripperDA_v4",
+    "tool": "ToolWeight0",
+    "captured_at_unix_s": 1791616589.0809655,
+    "coordinate_convention": "BOARD_MINIMUM_OCCUPIED_STUD_XY",
+    "source": "OPERATOR_SEATED_CURRENT_GRASP",
+    "motion_commands": 0,
+    "gripper_commands": 0,
+    "press_trial_log_id": "043c3cdc-060f-4ae4-978a-af28359fa09f",
+    "raw_force_norm_stop_n": 35,
+    "operator_full_seating_confirmed_after_force_stop": true,
+    "measurement_condition": "loaded gripping pose after35N STOP; raw wrench preserved",
+    "adopt_as_layer_z": false
+  }
+]

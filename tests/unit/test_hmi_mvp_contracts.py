@@ -118,6 +118,39 @@ def test_schema_is_valid():
     Draft202012Validator.check_schema(SCHEMA)
 
 
+@pytest.mark.parametrize("angle", (0, 90))
+def test_latest_red_footprint_and_six_slot_cycle_match_schema(angle):
+    payload = deepcopy(FIXTURES["snapshots"]["draft_updated"])
+    red = dict(brick_type="1x2x1", color="red", x=6, y=6, layer=1, orientation_deg=angle)
+    adjacent = dict(red, x=7) if angle == 0 else dict(red, y=7)
+    payload["current"]["blocks"] = [red, adjacent]
+    payload["monitor"]["supply"].append(dict(brick_type="1x2x1", color="red", next_slot=6, needs_refill=False))
+    VALIDATOR.validate(payload)
+    assert validate_hmi_snapshot(payload) == payload
+    payload["monitor"]["supply"][-1]["next_slot"] = 7
+    with pytest.raises(ValidationError):
+        VALIDATOR.validate(payload)
+    with pytest.raises(ValueError):
+        validate_hmi_snapshot(payload)
+
+
+@pytest.mark.parametrize("invalid", ("sixth_layer", "forty_one", "red_large", "yellow_slot_seven"))
+def test_latest_vocabulary_limits_match_schema_and_consumer(invalid):
+    payload = deepcopy(FIXTURES["snapshots"]["draft_updated"])
+    if invalid == "sixth_layer":
+        payload["design"]["blocks"][-1]["layer"] = 6
+    elif invalid == "forty_one":
+        payload["design"]["blocks"] = (payload["design"]["blocks"] * 14)[:41]
+    elif invalid == "red_large":
+        payload["design"]["blocks"][-1]["color"] = "red"
+    else:
+        payload["monitor"]["supply"][0]["next_slot"] = 7
+    with pytest.raises(ValidationError):
+        VALIDATOR.validate(payload)
+    with pytest.raises(ValueError):
+        validate_hmi_snapshot(payload)
+
+
 @pytest.fixture(scope="session")
 def qapp():
     from PyQt5.QtWidgets import QApplication
@@ -131,6 +164,9 @@ def test_existing_qt_accepts_extensions_without_rendering_draft_as_approved(qapp
         for payload in FIXTURES["snapshots"].values():
             window.render_snapshot(payload)
             assert window._snapshot == payload
-            assert window.design_board.blocks == (payload["design"]["blocks"] if payload["design"] else [])
+            preview = payload.get("design_preview") if payload["workflow_status"] != "COMPLETE" else None
+            design = preview["design"] if preview else payload["design"]
+            assert window.design_board.blocks == (design["blocks"] if design else [])
+            assert ("미승인" in window.design_panel.title()) == bool(preview)
     finally:
         window.close()

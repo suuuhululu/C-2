@@ -1,0 +1,22 @@
+{
+  "status": "EXACT_NEW_CONFIGS_OFFLINE_FLOW_PASS",
+  "results": {
+    "pickup": "PAUSED_PICKUP_COMPLETE_HOLDING",
+    "handover": "ASSEMBLY_REQUIRED",
+    "assembly": "AWAITING_BACKEND_OBSERVATION"
+  },
+  "synthetic_gripper_commands": [
+    [
+      35.0,
+      40.0
+    ],
+    [
+      48.0,
+      40.0
+    ]
+  ],
+  "device_connections": 0,
+  "real_motion_commands": 0,
+  "real_gripper_commands": 0,
+  "physical_verified": false
+}

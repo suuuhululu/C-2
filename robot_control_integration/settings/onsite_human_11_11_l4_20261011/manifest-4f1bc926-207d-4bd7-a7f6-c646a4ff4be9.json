@@ -1,0 +1,11 @@
+{
+  "profile": "settings/onsite_human_11_11_l4_20261011/full-4f1bc926-207d-4bd7-a7f6-c646a4ff4be9.profile.json",
+  "session": "settings/onsite_human_11_11_l4_20261011/full-4f1bc926-207d-4bd7-a7f6-c646a4ff4be9.session.json",
+  "output": "logs/onsite_human_11_11_l4_20261011/full-4f1bc926-207d-4bd7-a7f6-c646a4ff4be9",
+  "execution_id": "4f1bc926-207d-4bd7-a7f6-c646a4ff4be9",
+  "readiness": "settings/onsite_human_11_11_l4_20261011/readonly-a4fa26ec-dd3a-4506-9b0d-5eb152348522.json",
+  "phase": "full",
+  "start_zone": "place",
+  "prepared_unix_s": 1791701407.9668977,
+  "expires_unix_s": 1791703207.623729
+}

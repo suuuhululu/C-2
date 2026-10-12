@@ -52,7 +52,7 @@ def normalize_action(option, plan, step, assembly_context):
                       'force_magnitude_n': None,
                       'effect': {'HOLD': '아래 블록의 옆면을 잡아 유지', 'PRESS': '윗블록의 결합부를 아래로 누르기',
                                  'MANUAL_PLACE': '사람이 직접 조립'}[raw['action']],
-                      'access_assessment': 'GEOMETRIC_CANDIDATE_NOT_RUNTIME_VERIFIED'})
+                      'access_assessment': hand['access_assessment']})
     contacts = [{'lower_block': deepcopy(c['block']), 'upper_overlap_studs': c['upper_studs'],
                  'lower_overlap_studs': c['lower_studs'], 'board_supported': c['block']['layer'] == 1}
                 for c in option['contacts']['weak_supports']]

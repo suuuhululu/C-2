@@ -165,7 +165,7 @@ def test_revised_candidate_preserves_b_current_and_does_not_change_approved():
     assert b.state["current"]["blocks"] == [red()] and b.state["context"]["design"] == initial
 
 
-def test_red_fake_supply_exhausts_refills_and_legacy_config_rejects_without_io():
+def test_red_fake_supply_cycles_and_legacy_config_rejects_without_io():
     config = json.loads((ROOT / "interfaces/fixtures/robot.json").read_text())
     driver = FakeRobotDriver(ready_at_observe=True)
     robot = RobotController(config, driver, lambda result: None)
@@ -174,8 +174,8 @@ def test_red_fake_supply_exhausts_refills_and_legacy_config_rejects_without_io()
         assert robot.deliver(dict(execution_id=identity, brick_type="1x2x1", color="red"))["accepted"]
         for operation in ("pick", "place", "observe"):
             driver.confirm(identity, operation)
-    assert robot.deliver(dict(execution_id="seventh", brick_type="1x2x1", color="red")) == dict(accepted=False, reason="NEEDS_REFILL")
-    assert robot.supply_refilled("1x2x1", "red")["accepted"]
+    assert robot.state["supply"][-1]["next_slot"] == 1
+    assert not robot.state["supply"][-1]["needs_refill"]
     assert robot.deliver(dict(execution_id="seventh", brick_type="1x2x1", color="red"))["accepted"]
     legacy = deepcopy(config);legacy["supply_rows"].pop()
     validate_robot_config(legacy)

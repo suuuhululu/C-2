@@ -42,7 +42,7 @@ def validate_context(context):
     if context.get("planning_priority","COMPLETE_DESIGN_THEN_MIN_HELP") not in ("MIN_HELP_COMPLETE_DESIGN_SEARCH","COMPLETE_DESIGN_THEN_MIN_HELP"):
         raise ValueError("Unknown planning_priority")
     required = {"profile_source", "geometry", "human_sides", "grip_axes",
-                "finish_layers", "max_states", "minimal_release_model_confirmed",
+                "finish_layers", "minimal_release_model_confirmed",
                 "press_contact_model_confirmed", "obstacles"}
     missing = sorted(name for name in required if context.get(name) is None)
     if missing:
@@ -90,8 +90,9 @@ def validate_context(context):
     for name in ("finish_layers", "press_contact_model_confirmed", "minimal_release_model_confirmed"):
         if type(context[name]) is not bool:
             raise ValueError(name + " must be a boolean")
-    if type(context["max_states"]) is not int or context["max_states"] <= 0:
-        raise ValueError("max_states must be a positive integer")
+    # Historical inputs may retain this field, but it no longer stops a search.
+    if context.get("max_states") is not None and (type(context["max_states"]) is not int or context["max_states"] <= 0):
+        raise ValueError("Legacy max_states must be a positive integer or null")
     if not isinstance(context["obstacles"], list):
         raise ValueError("obstacles must be a list of board-mm boxes")
     for box in context["obstacles"]:
@@ -236,70 +237,40 @@ def press_options(brick, current, context):
 
 
 def hand_options(brick, current, context, other_boxes=(), *, assembly=False):
-    """Straight side corridor of a hand/fixture envelope; human arm reach is unproved."""
-    if context.get("space_model") == "STUD_RULES":
-        if assembly and context.get("human_assembly_model","PAIRED_SEATED_SIDES") == "APPROACH_AND_TOP_CONTACT_REVIEW":
-            seated=paired_hand_options(brick,current,context,other_boxes,assembly=True)
-            return seated or manual_approach_top_options(brick,current,context,other_boxes)
-        return paired_hand_options(brick, current, context, other_boxes, assembly=assembly)
-    g, b = context["geometry"], block_box(brick, context)
-    cx, cy = (b[0] + b[3]) / 2, (b[1] + b[4]) / 2
-    low = b[2] + g["body_height_mm"] / 2 - g["hand_height_mm"] / 2
-    high = low + g["hand_height_mm"]
-    half, depth, result = g["hand_width_mm"] / 2, g["hand_depth_mm"], []
-    board_lo, board_hi = -.5 * g["pitch_mm"], (BOARD_SIZE - .5) * g["pitch_mm"]
-    world = [c for c in current if c != brick]
-    for side in context["human_sides"]:
-        if side == "-x":
-            box, reach = (board_lo - depth, cy - half, low, b[0], cy + half, high), b[0] - board_lo
-        elif side == "+x":
-            box, reach = (b[3], cy - half, low, board_hi + depth, cy + half, high), board_hi - b[3]
-        elif side == "-y":
-            box, reach = (cx - half, board_lo - depth, low, cx + half, b[1], high), b[1] - board_lo
+    """Nominal contact suggestions; human access checks are excluded by user policy.
+
+    Empty boxes do not assert a free corridor. Side/contact geometry describes
+    the requested help only, without checking reach or collisions with tools,
+    blocks, obstacles, or other hands.
+    """
+    g, b = context["geometry"], body_box(brick, context)
+    p, cx, cy = g["pitch_mm"], (b[0]+b[3])/2, (b[1]+b[4])/2
+    result = []
+    for axis in dict.fromkeys(side[-1] for side in context["human_sides"]):
+        if axis == "x":
+            regions = [[b[0],cy-p/2,b[2],b[0],cy+p/2,b[5]],
+                       [b[3],cy-p/2,b[2],b[3],cy+p/2,b[5]]]
         else:
-            box, reach = (cx - half, b[4], low, cx + half, board_hi + depth, high), board_hi - b[4]
-        if assembly:
-            # Include vertical insertion/withdrawal sweep of the manually held target.
-            top = max([b[5]] + [block_box(c, context)[5] for c in world] +
-                      [o[5] for o in context["obstacles"]]) + g["hand_height_mm"]
-            boxes = [box, (min(box[0], b[0]), min(box[1], b[1]), low,
-                           max(box[3], b[3]), max(box[4], b[4]), top)]
-        else:
-            boxes = [box]
-        if reach <= g["hand_reach_mm"] and free_boxes(boxes, world, context, other_boxes):
-            z0, z1 = max(low, b[2]), min(high, b[2] + g["body_height_mm"])
-            if side.endswith("x"):
-                x = b[0] if side == "-x" else b[3]
-                region = [x, max(cy-half,b[1]), z0, x, min(cy+half,b[4]), z1]
-            else:
-                y = b[1] if side == "-y" else b[4]
-                region = [max(cx-half,b[0]), y, z0, min(cx+half,b[3]), y, z1]
-            result.append({"side": side, "boxes": boxes,
-                           "contact_region_board_mm": region,
-                           "frame_id": "assembly_board_mm", "force_command": None,
-                           "effect": ("MANUAL_HOLD_AND_PLACE" if assembly else
-                                      "RESTRAIN_TRANSLATION_AND_TILT_NOT_EXTRA_DOWN_PRESS")})
+            regions = [[cx-p/2,b[1],b[2],cx+p/2,b[1],b[5]],
+                       [cx-p/2,b[4],b[2],cx+p/2,b[4],b[5]]]
+        result.append({"side":f"-{axis}/+{axis}","grip_axis":axis,"boxes":[],
+                       "contact_region_board_mm":None,"contact_regions_board_mm":regions,
+                       "frame_id":"assembly_board_mm","force_command":None,"hand_count":1,
+                       "effect":"MANUAL_HOLD_AND_PLACE" if assembly else "RESTRAIN_TRANSLATION_AND_TILT_NOT_EXTRA_DOWN_PRESS",
+                       "space_basis":"NOMINAL_CONTACT_ONLY_HUMAN_ACCESS_NOT_CHECKED",
+                       "access_assessment":"HUMAN_ACCESS_NOT_CHECKED"})
     return result
 
 
 def support_assignments(weak, brick, current, context, tool_boxes=(), assembly_hand=None,
                         press_hand=None):
+    # Keep the two-hand resource limit and each required lower-block hold.
     reserved = assembly_hand or press_hand
-    max_targets = 1 if reserved is not None else 2
-    if len(weak) > max_targets:
+    if len(weak) > (1 if reserved is not None else 2):
         return []
-    ignore_tool = (context.get("space_model") == "STUD_RULES" and
-                   context["hold_gripper_nonintrusion_assumption"])
-    other = ([] if ignore_tool else list(tool_boxes)) + (reserved["boxes"] if reserved else [])
-    occupied = current + [brick]
-    choices = [hand_options(w["block"], occupied, context, other) for w in weak]
-    result = []
-    for assignment in product(*choices):
-        if any(intersects(a, b) for i, first in enumerate(assignment)
-               for second in assignment[i + 1:] for a in first["boxes"] for b in second["boxes"]):
-            continue
-        result.append([{**w, **hand} for w, hand in zip(weak, assignment)])
-    return result
+    choices = [hand_options(w["block"], current, context) for w in weak]
+    return [[{**w, **hand} for w, hand in zip(weak, assignment)]
+            for assignment in product(*choices)]
 
 
 def stud_grip_options(brick, current, context, *, raise_mm=0):
@@ -332,67 +303,6 @@ def stud_grip_options(brick, current, context, *, raise_mm=0):
 def body_box(brick, context):
     b = block_box(brick, context)
     return b[:5]+(b[2]+context["geometry"]["body_height_mm"],)
-
-
-def hand_boxes_clear(boxes, current, context, other_boxes=()):
-    # Local side-body rule; no arm corridor, lower stud detail or reachability claim.
-    obstacles = [body_box(b,context) for b in current] + context["obstacles"] + list(other_boxes)
-    return not any(intersects(box,obstacle) for box in boxes for obstacle in obstacles)
-
-
-def paired_hand_options(brick, current, context, other_boxes=(), *, assembly=False, raise_mm=0):
-    g, result = context["geometry"], []
-    b = body_box(brick,context)
-    b = tuple(v+raise_mm if i in (2,5) else v for i,v in enumerate(b))
-    p, cx, cy = g["pitch_mm"], (b[0]+b[3])/2, (b[1]+b[4])/2
-    world = [c for c in current if c != brick]
-    axes = list(dict.fromkeys(side[-1] for side in context["human_sides"]))
-    for axis in axes:
-        if axis == "x":
-            boxes = [(b[0]-p,cy-p/2,b[2],b[0],cy+p/2,b[5]),
-                     (b[3],cy-p/2,b[2],b[3]+p,cy+p/2,b[5])]
-            regions = [[b[0],cy-p/2,b[2],b[0],cy+p/2,b[5]],
-                       [b[3],cy-p/2,b[2],b[3],cy+p/2,b[5]]]
-        else:
-            boxes = [(cx-p/2,b[1]-p,b[2],cx+p/2,b[1],b[5]),
-                     (cx-p/2,b[4],b[2],cx+p/2,b[4]+p,b[5])]
-            regions = [[cx-p/2,b[1],b[2],cx+p/2,b[1],b[5]],
-                       [cx-p/2,b[4],b[2],cx+p/2,b[4],b[5]]]
-        if hand_boxes_clear(boxes,world,context,other_boxes):
-            result.append({"side":f"-{axis}/+{axis}","grip_axis":axis,"boxes":boxes,
-                           "contact_region_board_mm":None,"contact_regions_board_mm":regions,
-                           "frame_id":"assembly_board_mm","force_command":None,"hand_count":1,
-                           "effect":"MANUAL_HOLD_AND_PLACE" if assembly else "RESTRAIN_TRANSLATION_AND_TILT_NOT_EXTRA_DOWN_PRESS",
-                           "space_basis":"PAIRED_LOCAL_ONE_PITCH_BODY_HEIGHT_RULE"})
-    return result
-
-
-def manual_approach_top_options(brick,current,context,other_boxes=()):
-    """Review candidate: side hold above neighbours, then top contact access.
-
-    Keeps HOLD rules unchanged. Checks nominal approach, target-body vertical
-    corridor, and top access. Human release/regrasp/final insertion is unverified;
-    these independent free regions are not a verified continuous hand motion.
-    """
-    g=context["geometry"];b=body_box(brick,context)
-    clearance=g["stud_height_mm"]+20.0  # same nominal pre-contact gap used by A
-    hands=paired_hand_options(brick,current,context,other_boxes,assembly=True,raise_mm=clearance)
-    if not hands:return []
-    sweep=(b[0],b[1],b[2],b[3],b[4],b[5]+clearance)
-    if not hand_boxes_clear([sweep],current,context,other_boxes):return []
-    p=g["pitch_mm"];cx=(b[0]+b[3])/2;cy=(b[1]+b[4])/2
-    low=b[5]+g["stud_height_mm"]
-    high=max([low]+[block_box(c,context)[5] for c in current]+[o[5] for o in context["obstacles"]])+g["body_height_mm"]
-    top=(cx-p/2,cy-p/2,low,cx+p/2,cy+p/2,high)
-    if not free_boxes([top],current,context,other_boxes):return []
-    for hand in hands:
-        hand.update(boxes=hand["boxes"]+[sweep,top],
-                    effect="MANUAL_HOLD_AND_PLACE",
-                    space_basis="REVIEW_APPROACH_TARGET_CORRIDOR_AND_TOP_CONTACT_NOT_CONTINUOUS_HAND_PATH",
-                    nominal_precontact_gap_mm=20.0,final_side_hold_required=False,
-                    continuous_hand_transition_verified=False,physical_insertion_verified=False,
-                    stages={"target_vertical_corridor":sweep,"final_top_contact_access":top})
-    return hands
 
 
 def convex_hull(points):
@@ -436,23 +346,13 @@ def human_press_assessment(brick, support, context):
 
 
 def human_press_options(brick,current,context,support,tool_boxes):
-    """One-pitch patch above an actual contact stud; optional local side entry."""
+    """Nominal contact-stud patches, without any human access-space checks."""
     g,b=context["geometry"],block_box(brick,context)
     p=g["pitch_mm"]
-    result=[]
-    for x,y in support["supported_cells"]:
-        cx,cy=x*p,y*p
-        patch=(cx-p/2,cy-p/2,b[5],cx+p/2,cy+p/2,b[5]+p)
-        for side in context["human_sides"]:
-            if side=="-x": entry=(b[0]-p,cy-p/2,b[5],cx-p/2,cy+p/2,b[5]+p)
-            elif side=="+x": entry=(cx+p/2,cy-p/2,b[5],b[3]+p,cy+p/2,b[5]+p)
-            elif side=="-y": entry=(cx-p/2,b[1]-p,b[5],cx+p/2,cy-p/2,b[5]+p)
-            else: entry=(cx-p/2,cy+p/2,b[5],cx+p/2,b[4]+p,b[5]+p)
-            boxes=[patch,entry]
-            if free_boxes(boxes,current,context,tool_boxes):
-                result.append({"side":side,"boxes":boxes,"contact_point_board_mm":[cx,cy,b[5]],
-                               "contact_region_board_mm":[cx-p/2,cy-p/2,b[5],cx+p/2,cy+p/2,b[5]],
-                               "frame_id":"assembly_board_mm","hand_count":1,
-                               "requested_force_direction_board":[0,0,-1],"force_command":None,
-                               "space_basis":"ONE_PITCH_PATCH_AND_LOCAL_ENTRY_NOT_FULL_HAND_REACH"})
-    return result
+    return [{"side":"UNSPECIFIED","boxes":[],"contact_point_board_mm":[x*p,y*p,b[5]],
+             "contact_region_board_mm":[x*p-p/2,y*p-p/2,b[5],x*p+p/2,y*p+p/2,b[5]],
+             "frame_id":"assembly_board_mm","hand_count":1,
+             "requested_force_direction_board":[0,0,-1],"force_command":None,
+             "space_basis":"NOMINAL_CONTACT_ONLY_HUMAN_ACCESS_NOT_CHECKED",
+             "access_assessment":"HUMAN_ACCESS_NOT_CHECKED"}
+            for x,y in support["supported_cells"]]

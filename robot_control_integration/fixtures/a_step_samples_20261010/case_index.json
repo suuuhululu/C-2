@@ -1,0 +1,58 @@
+[
+  {
+    "case_id": "01_types_and_rotation",
+    "description": "5종 색상·규격 조합과 비정사각 블록 0/90도. 빈 Current에서 8 Step.",
+    "step_count": 8,
+    "base_current_revision": 0,
+    "mock_final_revision": 8,
+    "negative_release_press": false
+  },
+  {
+    "case_id": "02_layers_1_to_4",
+    "description": "같은 XY의 2x2 타워. 층 간 TCP Z 증가 19mm.",
+    "step_count": 4,
+    "base_current_revision": 0,
+    "mock_final_revision": 4,
+    "negative_release_press": false
+  },
+  {
+    "case_id": "03_human_assembly_tray",
+    "description": "기존 양옆 블록이 2x3의 유일한 그립 X축을 차단. 손 Y축 접근은 가능. 전달판 분기를 A가 선택.",
+    "step_count": 1,
+    "base_current_revision": 2,
+    "mock_final_revision": 3,
+    "negative_release_press": false
+  },
+  {
+    "case_id": "04_human_hold",
+    "description": "U-L별 2개 접점 및 L-아래 2개 접점. 총 지지는 4개지만 약한 아래 블록 2개를 각각 HOLD.",
+    "step_count": 1,
+    "base_current_revision": 4,
+    "mock_final_revision": 5,
+    "negative_release_press": false
+  },
+  {
+    "case_id": "05_human_press_and_hold",
+    "description": "어긋난 2x3의 L2를 HOLD, 새 L3를 사람이 PRESS. 로봇 윗면 누르기와 다른 요청.",
+    "step_count": 1,
+    "base_current_revision": 2,
+    "mock_final_revision": 3,
+    "negative_release_press": false
+  },
+  {
+    "case_id": "06_release_press_unsupported",
+    "description": "놓은 뒤 그리퍼 끝으로 누르기. 기하 진단 후보 및 통합 API 미지원 차단.",
+    "step_count": 1,
+    "base_current_revision": 0,
+    "mock_final_revision": 1,
+    "negative_release_press": true
+  },
+  {
+    "case_id": "08_red_full_support",
+    "description": "빨강 1x2 L2 0/90도. 각 2-stud 전체 지지 통과, 1-stud 부분 지지 거절.",
+    "step_count": 2,
+    "base_current_revision": 2,
+    "mock_final_revision": 4,
+    "negative_release_press": false
+  }
+]

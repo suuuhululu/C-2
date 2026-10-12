@@ -1,0 +1,143 @@
+{
+  "trial_kind": "D_LOCAL_HELD_TEST_NOT_A_BACKEND_WORKFLOW",
+  "status": "LOCAL_RELEASE_AND_VERTICAL_RETREAT_TRIAL",
+  "desired_target": {
+    "brick_type": "2x2x1",
+    "color": "yellow",
+    "trial_min_xy": [
+      12,
+      1
+    ],
+    "layer": 5,
+    "orientation_deg": 0,
+    "turn_base_z_deg": null
+  },
+  "coordinate_mapping": {
+    "user_convention": "LEGACY_TRIAL_MIN_XY",
+    "planner_min_xy": [
+      1,
+      12
+    ],
+    "explanation": "Existing trial_footprint swaps planner X/Y into trial X/Y."
+  },
+  "initial_phase": "approach",
+  "start_zone": null,
+  "reference_pose": [
+    486.75300085979956,
+    -74.76708273846168,
+    90.19197845458984,
+    89.9950942993164,
+    179.97811889648438,
+    90.36089324951172
+  ],
+  "approach_z_mm": 110.29197845458984,
+  "source_execution_allowed": false,
+  "hardware_verified": false,
+  "assembly_completion": false,
+  "current_update": false,
+  "step": {
+    "case_id": "onsite_trial12_1_layer5_no_turn",
+    "step_id": "S01",
+    "plan_id": "D_LOCAL_HELD_TRIAL12_1_L5_NO_TURN_20261011",
+    "block": {
+      "brick_type": "2x2x1",
+      "color": "yellow",
+      "x": 1,
+      "y": 12,
+      "layer": 5,
+      "orientation_deg": 0
+    },
+    "action": {
+      "mode": "ROBOT_GRIP",
+      "assistance_kind": "NONE",
+      "human_actions": []
+    },
+    "current_revision": null,
+    "reservation": null,
+    "summary": {}
+  },
+  "d_profile": {
+    "profile_id": "D_LOCAL_EXTRAPOLATION_12_1_L5_APPROACH_20261011",
+    "physical_route_reviewed": true,
+    "human_collaboration_commissioning_ref": null,
+    "clearance_z_mm": 194.73294067382812,
+    "supply_transit_xy_mm": [
+      -364.8591304347826,
+      -171.54
+    ],
+    "body_bypass_xy_mm": [
+      -27.878286361694336,
+      -411.9568176269531
+    ],
+    "place_pose": [
+      418.2707214355469,
+      -181.1972198486328,
+      14.935303688049316,
+      161.52828979492188,
+      179.58567810058594,
+      161.99119567871094
+    ],
+    "approach_offset_mm": 20.1,
+    "near_contact_offset_mm": 1.0,
+    "force_stop_n": 35.0,
+    "max_press_travel_mm": 5.0,
+    "transfer_velocity": 6.0,
+    "transfer_acceleration": 3.0,
+    "descent_velocity": 2.0,
+    "descent_acceleration": 1.0,
+    "gripper_force_n": 40.0,
+    "steps": {
+      "onsite_trial12_1_layer5_no_turn/S01": {
+        "reference_pose": [
+          486.75300085979956,
+          -74.76708273846168,
+          90.19197845458984,
+          89.9950942993164,
+          179.97811889648438,
+          90.36089324951172
+        ],
+        "pickup_pose": null,
+        "physical_reference_reviewed": true,
+        "pickup_width_mm": null,
+        "release_width_mm": 62.4,
+        "release_pose": null,
+        "press_approach_pose": null,
+        "press_start_pose": null,
+        "press_width_mm": null,
+        "notes": [
+          "SAME_GRASP_TCP_AND_ORIENTATION_MUST_BE_REVIEWED",
+          "PICKUP_AND_MINIMAL_RELEASE_WIDTH_MUST_BE_TAUGHT",
+          "LAYER_MEASURED_AT_CENTRE_XY_SPATIAL_CANDIDATE_ONLY",
+          "USER_TARGET_IS_LEGACY_TRIAL_MIN_XY_12_1_CONVERTED_TO_PLANNER_MIN_XY_1_12",
+          "NO_EXACT_TAUGHT_LAYER5_POINT_AT_TARGET",
+          "LAYER5_Z_SOURCE_TRIAL_11_9_NOT_VALIDATED_AT_12_1",
+          "CURRENT_GRASP_TRANSFORM_AND_ABSOLUTE_ATTITUDE_NOT_VERIFIED",
+          "FOUR_LAYER_SUPPORT_AND_TRANSIT_PATH_REQUIRE_ONSITE_REVIEW",
+          "ZERO_RELATIVE_TURN_PRESERVES_LIVE_ABC_APPROACH_ONLY"
+        ],
+        "turn_base_z_deg": 0.0,
+        "turn_reference": "CURRENT_SESSION_GRASP_BASE_Z",
+        "turn_stage": "ABOVE_TARGET_AT_TRANSPORT_CLEARANCE"
+      }
+    }
+  },
+  "physical_verified": false,
+  "current_grasp_transform_verified": false,
+  "extra_yaw_rotation_deg": 0.0,
+  "operator_review_scope": "Trial use of existing calibration candidate; not validation of this new target; local trial envelope and stillness settings reviewed",
+  "operator_confirmations": {
+    "held_yellow_2x2": true,
+    "teaching_layout_unchanged": true,
+    "no_other_writers": true,
+    "route_and_target_clear": true,
+    "four_layer_support_present": true,
+    "source": "Human responses in integration chat on 2026-10-11"
+  },
+  "parent_approach_execution_id": "b18e419f-b78a-4bb3-b855-c3bcc33121ae",
+  "release_width_candidate_mm": 62.4,
+  "release_width_candidate_source": "logs/tomorrow-doctor: observed gripper_status0 / width62.4mm; not a measured minimum release width",
+  "parent_contact_execution_id": "b32ca82a-9423-4d31-96cc-560333ed2b88",
+  "seating_evidence_ref": "settings/onsite_12_1_l5_20261011/seating-evidence.json",
+  "gripper_release_envelope_reviewed": true,
+  "release_envelope_operator_statement": "62.4mm까지 열어도 간섭 없습니다"
+}

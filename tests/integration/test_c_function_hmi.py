@@ -21,6 +21,10 @@ from test_abd_input_hmi import records, transfer, wait_for
 ROOT = Path(__file__).resolve().parents[2]
 INITIAL = json.loads((ROOT / "interfaces/fixtures/c_design_initial_result.json").read_text())
 REVISED = json.loads((ROOT / "interfaces/fixtures/c_design_revised_result.json").read_text())
+# 최신 C의 v2 >= v1 + 6 조건을 만족하는 별도 live 시험 입력(원본 fixture 보존).
+LIVE_REVISED=deepcopy(REVISED)
+LIVE_REVISED['design']['blocks'] += [dict(brick_type='2x2x1',color='yellow',x=x,y=9,layer=3,orientation_deg=0) for x in (9,13)]
+
 
 
 @pytest.fixture(scope="module")
@@ -144,7 +148,7 @@ def test_live_mode_actual_c_llm_http_fake_revise_actual_a_preserves_current(crea
 
     def http(payload, key):
         calls.append(deepcopy(payload))
-        candidate = INITIAL if len(calls) == 1 else REVISED
+        candidate = INITIAL if len(calls) == 1 else LIVE_REVISED
         return dict(choices=[dict(message=dict(content=json.dumps(candidate["design"])) )])
 
     monkeypatch.setattr(llm, "_post_json", http)
@@ -157,16 +161,16 @@ def test_live_mode_actual_c_llm_http_fake_revise_actual_a_preserves_current(crea
     reply(demo, "2번")
     context = demo.backend.state["context"]
     assert len(calls) == 2 and all(p["model"] == "gpt-4o" for p in calls)
-    assert context["design"] == REVISED["design"]
+    assert context["design"] == LIVE_REVISED["design"]
     assert context["base_current"] == current and demo.backend.state["current"] == current
-    assert len(context["plan"]["steps"]) == 10
+    assert len(context["plan"]["steps"]) == 12
     assert len(demo.driver.calls) == 27  # Revised만으로 새 집기를 시작하지 않는다.
-    for _ in range(10):
+    for _ in range(12):
         transfer(demo)
         demo.receive(dict(event="observe"))
     qapp.processEvents()
     assert window.status.text() == "전체 조립 완료"
-    assert len(demo.backend.state["current"]["blocks"]) == 19
+    assert len(demo.backend.state["current"]["blocks"]) == 21
     assert "test-secret" not in json.dumps(records(demo))
 
 
@@ -255,7 +259,7 @@ def test_current_changes_during_revised_c_call_old_response_does_not_adopt(creat
         if len(calls) > 1:
             entered.set()
             assert release.wait(2)
-        response = INITIAL if len(calls) == 1 else REVISED
+        response = INITIAL if len(calls) == 1 else LIVE_REVISED
         return dict(choices=[dict(message=dict(content=json.dumps(response["design"])) )])
 
     monkeypatch.setattr(llm, "_post_json", http)

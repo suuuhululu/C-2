@@ -1,0 +1,18 @@
+{
+  "case_id": "06_release_press_unsupported",
+  "description": "놓은 뒤 그리퍼 끝으로 누르기. 기하 진단 후보 및 통합 API 미지원 차단.",
+  "current": [],
+  "design": [
+    {
+      "brick_type": "2x2x1",
+      "color": "blue",
+      "x": 6,
+      "y": 6,
+      "layer": 1,
+      "orientation_deg": 0
+    }
+  ],
+  "negative_release_press": true,
+  "expected_mode": "ROBOT_GRIP",
+  "expected_help": "NONE"
+}

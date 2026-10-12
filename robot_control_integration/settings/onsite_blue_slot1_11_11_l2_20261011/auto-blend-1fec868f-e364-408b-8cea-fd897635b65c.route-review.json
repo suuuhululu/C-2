@@ -1,0 +1,51 @@
+{
+  "reviewed": true,
+  "radius_mm": 5.0,
+  "clearance_z_mm": 194.73294067382812,
+  "empty_route_xy": [
+    [
+      418.2707214355469,
+      -181.1972198486328
+    ],
+    [
+      -27.878286361694336,
+      -411.9568176269531
+    ],
+    [
+      -364.8591304347826,
+      -171.54
+    ],
+    [
+      -333.4477844238281,
+      49.072635650634766
+    ]
+  ],
+  "loaded_route_xy": [
+    [
+      -333.4477844238281,
+      49.072635650634766
+    ],
+    [
+      -364.8591304347826,
+      -171.54
+    ],
+    [
+      -27.878286361694336,
+      -411.9568176269531
+    ],
+    [
+      418.2707214355469,
+      -181.1972198486328
+    ]
+  ],
+  "incoming_target_xy": [
+    471.38330078125,
+    85.36578369140625
+  ],
+  "receiving_policy": "Open hand means receiving ready in this local trial; verifiedSTOP then freshpostSTOPopenhand1second, no postSTOPHMI; camera doesnotverify3Dreceiverposition.",
+  "support_layer1_present": true,
+  "operator_reply_pending": false,
+  "reviewed_at_unix_s": 1791696024.6215317,
+  "operator_reply": "경로·코너·목표 상부가 비어 있고, 받을 준비 후 편 손 신호 사용",
+  "source": "Direct human reply in integration chat2026-10-11"
+}

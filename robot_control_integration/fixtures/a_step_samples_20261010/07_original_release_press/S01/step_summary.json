@@ -1,0 +1,103 @@
+{
+  "case_id": "07_original_release_press",
+  "step_id": "S01",
+  "block": {
+    "brick_type": "2x2x1",
+    "color": "blue",
+    "x": 6,
+    "y": 6,
+    "layer": 1,
+    "orientation_deg": 0
+  },
+  "mode": "ROBOT_RELEASE_PRESS",
+  "action": {
+    "mode": "ROBOT_RELEASE_PRESS",
+    "grip_axis": "x",
+    "release_strategy": "MINIMAL_OPEN",
+    "release_margin_per_side_mm": null,
+    "clearance_pitch_per_side": 1,
+    "support_targets": [],
+    "assembly_hand": null,
+    "press_hand": null,
+    "press_assessment": {
+      "required": false,
+      "policy": "CONTACT_HULL",
+      "nominal_robot_point_xy_stud": [
+        6.5,
+        6.5
+      ],
+      "contact_hull_xy_stud": [
+        [
+          6,
+          6
+        ],
+        [
+          7,
+          6
+        ],
+        [
+          7,
+          7
+        ],
+        [
+          6,
+          7
+        ]
+      ],
+      "basis": "GEOMETRIC_HEURISTIC_NOT_FORCE_OR_STABILITY_PROOF"
+    },
+    "contacts": {
+      "support_studs": 4,
+      "total_studs": 4,
+      "supported_cells": [
+        [
+          6,
+          6
+        ],
+        [
+          6,
+          7
+        ],
+        [
+          7,
+          6
+        ],
+        [
+          7,
+          7
+        ]
+      ],
+      "missing_components": [],
+      "largest_missing_component": 0,
+      "weak_supports": []
+    },
+    "requires_minimal_release": true,
+    "release_instruction": "이 블록을 조립한 후에는 그리퍼를 소폭 개방하고 후퇴해야 합니다.",
+    "human_actions": [],
+    "assistance_kind": "NONE",
+    "plan_id": "P-8a6d1c8f81aa4ecf8bd76d3196285b9a",
+    "step_id": "S01",
+    "block": {
+      "brick_type": "2x2x1",
+      "color": "blue",
+      "x": 6,
+      "y": 6,
+      "layer": 1,
+      "orientation_deg": 0
+    },
+    "base_current_revision": 4,
+    "needs_human_request": false,
+    "human_hands_used": 0,
+    "insertion_direction_board": [
+      0,
+      0,
+      -1
+    ],
+    "requires_runtime_reassessment": true
+  },
+  "execution_allowed": false,
+  "source": "ORIGINAL_A_UNMODIFIED_PLAN_ASSEMBLY_AND_ASSESS_STEP",
+  "profile_kind": "TEST_ONLY_CONTACT_MODEL_FLAG_ASSUMPTION",
+  "integrated_motion_available": false,
+  "physical_fit_verified": false
+}

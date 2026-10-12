@@ -1,0 +1,55 @@
+{
+  "real_preflight": "PASSED",
+  "real_execution_started": false,
+  "device_connections_in_offline_checks": 0,
+  "physical_simulation": false,
+  "checks": [
+    {
+      "start_reply": false,
+      "status": "PAUSED_START",
+      "mock_moves": 0,
+      "mock_grips": 0,
+      "labels": [],
+      "final_pose": [
+        -333.4477844238281,
+        49.072635650634766,
+        52.20610046386719,
+        125.77477264404297,
+        -175.88323974609375,
+        124.51481628417969
+      ]
+    },
+    {
+      "start_reply": true,
+      "status": "PAUSED_APPROACH_REACHED",
+      "mock_moves": 7,
+      "mock_grips": 0,
+      "labels": [
+        "LIFT",
+        "SUPPLY_20_0",
+        "BODY_BYPASS",
+        "PLACE_BOARD",
+        "TARGET_HIGH_BEFORE_TURN",
+        "TURN_AT_TARGET_CLEARANCE",
+        "TARGET_APPROACH_20MM"
+      ],
+      "final_pose": [
+        391.2919964334239,
+        5.926653256623638,
+        53.73553237915039,
+        125.77477264404297,
+        -175.88323974609375,
+        124.51481628417969
+      ]
+    }
+  ],
+  "parent_pickup_result_sha256": "e507fc9a55ebd4a97ad211e678f9cea4ec4bc0973a8e3924599deeeaf10c536c",
+  "read_only_route_ik_checks": 24,
+  "whole_robot_collision_verified": false,
+  "parallel_alignment_verified": false,
+  "transfer_velocity_mm_s": 16.0,
+  "descent_velocity_mm_s": 2.0,
+  "reference_pose_kind": "LAYER2_CENTRE_CALIBRATION_WITH_AFFINE_XY_OFFSET_NOT_EXACT_TARGET_TEACHING",
+  "assembly_completion": false,
+  "current_update": false
+}

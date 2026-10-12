@@ -10,6 +10,8 @@ from uuid import uuid4
 from PyQt5.QtCore import QEvent, QObject, QProcess, QTimer, pyqtSignal
 from PyQt5.QtWidgets import QApplication
 
+from app.supply_slots import next_supply_slot
+
 from app.backend import Backend
 from app.contracts import _integer, _object, _text
 from app.hmi_contracts import _column
@@ -28,8 +30,6 @@ class RealTrialController(QObject):
         _column(self.target, "trial.target")
         _integer(slot, 1, 6, "trial.target.slot")
         _integer(delivery_limit, 1, 3, "trial.delivery_limit")
-        if slot + delivery_limit - 1 > 6:
-            raise ValueError("Trial needs consecutive prepared slots within 1..6")
         self._start_slot, self._limit, self._attempts = slot, delivery_limit, 0
         self.config_path, self.directory = Path(config_path), Path(log_directory) / str(uuid4())
         self._factory = process_factory
@@ -231,7 +231,7 @@ class RealTrialController(QObject):
                 raise ValueError("STOP_PICK_EVIDENCE_CONFLICT")
             if checkpoint["consumed"] and not self._pick_confirmed:
                 self._pick_confirmed = True
-                self._next_slot = self.target["slot"] + 1 if self.target["slot"] < 6 else None
+                self._next_slot = next_supply_slot(self.target["slot"])
                 if self.on_event and not self.on_event("ROBOT_PICK_CONFIRMED", self._identity, self.state):
                     raise ValueError("BACKEND_LOG_FAILED")
             self._stop.update(confirmed=True, checkpoint=checkpoint, at_observe=proof["at_observe"] is True)
@@ -378,7 +378,7 @@ class RealTrialController(QObject):
                 self._pick_confirmed = True
                 if payload["next_slot"] is not None:
                     _integer(payload["next_slot"], 1, 6, "driver.next_slot")
-                if payload["next_slot"] != (self.target["slot"] + 1 if self.target["slot"] < 6 else None):
+                if payload["next_slot"] != (next_supply_slot(self.target["slot"])):
                     raise ValueError("Driver next slot differs from confirmed pick")
                 self._next_slot = payload["next_slot"]
             elif name == "ROBOT_PICK_CONFIRMED":
@@ -418,7 +418,8 @@ class RealTrialController(QObject):
                 self._fault = "PREPARE_COMPLETION_UNCONFIRMED"
             self._notice = f"무이동 조회 완료. {'파랑' if self.target['color'] == 'blue' else '노랑'} 4점 {self.target['slot']}번 준비·전달판 비움을 확인하고 시작하세요. 첫 실기 시험이며 한 번만 전달합니다." if self._ready else f"조회 실패: {self._fault or self._notice or code}"
             if self._ready and self._limit > 1:
-                self._notice = f"무이동 조회 완료. 공급 슬롯 {self._start_slot}~{self._start_slot+self._limit-1} 준비·조립판/전달판 비움을 확인하고 시작하세요. 현장 확인마다 한 번씩 전달합니다."
+                slots = ", ".join(str((self._start_slot+i-1) % 6+1) for i in range(self._limit))
+                self._notice = f"무이동 조회 완료. 공급 슬롯 {slots} 준비·조립판/전달판 비움을 확인하고 시작하세요. 현장 확인마다 한 번씩 전달합니다."
             if operation == "prepare-observe":
                 self._notice = ("사전 이동 HOME→observe 도착/대기 확인 완료. 집기·슬롯 소모 없음. 준비 확인 후 Job을 시작하세요."
                     if self._ready else f"사전 이동 실패: {self._fault}. 현장 정지·위치를 확인하세요. 자동 재시도 없음.")

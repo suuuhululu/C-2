@@ -1,0 +1,9 @@
+{
+  "profile": "settings/onsite_ack_continue_blue_slot2_2_2_l1_20261011/contact-88de5e27-8c09-4ea5-97e2-cbe5f68d5367.profile.json",
+  "session": "settings/onsite_ack_continue_blue_slot2_2_2_l1_20261011/contact-88de5e27-8c09-4ea5-97e2-cbe5f68d5367.session.json",
+  "phase": "contact",
+  "start_zone": "assembly",
+  "execution_id": "88de5e27-8c09-4ea5-97e2-cbe5f68d5367",
+  "output": "logs/onsite_ack_continue_blue_slot2_2_2_l1_20261011/contact-88de5e27-8c09-4ea5-97e2-cbe5f68d5367",
+  "expires_unix_s": 1791707049.2723649
+}

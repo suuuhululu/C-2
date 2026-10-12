@@ -1,0 +1,9 @@
+{
+  "actor": "user",
+  "confirmed_unix_s": 1791700904.9566412,
+  "statement": "네, 3층 유지·슬롯 보충·경로와 인계 공간 비어 있음",
+  "workflow": "blue slot1 pickup -> (11,11) TCP Z194.733mm -> palm0.4s handover -> human seats layer4 -> thumb2s",
+  "existing_route_and_15mm_blend_review_retained": true,
+  "robot_contact_descent": false,
+  "automatic_routine_checks": true
+}

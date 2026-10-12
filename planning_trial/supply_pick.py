@@ -8,6 +8,7 @@ from copy import deepcopy
 from hashlib import sha256
 import json
 import math
+import re
 from pathlib import Path
 
 
@@ -196,6 +197,15 @@ def calculate_supply_pick(brick_type, color, slot_index, *, profile=None):
     shift_z = p['desired_grip_height_above_bottom_mm'] - p['anchor_grip_height_above_bottom_mm']
     pose = [anchor[j] + dx * grid['x_step_xy_mm'][j] + dy * grid['y_step_xy_mm'][j]
             for j in range(2)] + [anchor[2] + shift_z] + list(anchor[3:])
+    taught = p.get('d_taught_slot')
+    if taught is not None:
+        if taught['identity'] != dict(brick_type=brick_type, color=color, slot_index=slot_index):
+            raise ValueError('D onsite profile does not cover this supply slot; no global offset inferred')
+        finite(taught['tcp_mm_zyz_deg'], 6, 'D taught slot pose')
+        if not isinstance(taught['source_sha256'], str) or not re.fullmatch('[0-9a-f]{64}', taught['source_sha256']):
+            raise ValueError('D taught slot source SHA256 required')
+        pose = list(taught['tcp_mm_zyz_deg'])
+        shift_z = 0.0  # This pose already includes the taught grip depth.
     return {
         'schema_version': 'supply-pick-coordinate-candidate/0.2',
         'profile_id': p['profile_id'], 'status': 'COORDINATE_CANDIDATE',
@@ -207,16 +217,18 @@ def calculate_supply_pick(brick_type, color, slot_index, *, profile=None):
         'grasp': {'width_grid_cells': 2, 'closing_axis': 'SUPPLY_GRID_X',
                   'contact': 'LONG_SIDE_MIDPOINT' if brick_type == '2x3x1' else 'OPPOSITE_SIDE_MIDPOINT',
                   'pad_bottom_above_block_bottom_mm': p['desired_grip_height_above_bottom_mm'],
-                  'taught_reference_height_mm': p['anchor_grip_height_above_bottom_mm'],
+                  'taught_reference_height_mm': p['desired_grip_height_above_bottom_mm'] if taught else p['anchor_grip_height_above_bottom_mm'],
                   'tcp_z_shift_from_taught_mm': shift_z,
                   'reference_equivalence': p['grip_height_reference_equivalence'],
                   'target_reference': p['target_grip_reference'],
-                  'derived_not_remeasured': True,
+                  'derived_not_remeasured': not bool(taught),
                   'close_command_source': 'D_EXISTING_SETTINGS_NO_A_OVERRIDE'},
         'execution_allowed': False, 'slot_readiness_checked': False,
         'slot_management_owner': 'D',
-        'provenance': 'FOUR_CORNER_XY_SPACING_PLUS_TAUGHT_FIRST_PICK_TCP',
-        'height_policy': p['z_policy'], 'orientation_policy': p['orientation_policy'],
+        'provenance': 'D_EXACT_TAUGHT_SLOT' if taught else 'FOUR_CORNER_XY_SPACING_PLUS_TAUGHT_FIRST_PICK_TCP',
+        'd_taught_slot_source': deepcopy(taught),
+        'height_policy': 'D_TAUGHT_SLOT_NO_SECOND_DEPTH_SHIFT' if taught else p['z_policy'],
+        'orientation_policy': p['orientation_policy'],
     }
 
 

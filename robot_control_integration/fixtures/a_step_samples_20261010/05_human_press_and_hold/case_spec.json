@@ -1,0 +1,50 @@
+{
+  "case_id": "05_human_press_and_hold",
+  "description": "어긋난 2x3의 L2를 HOLD, 새 L3를 사람이 PRESS. 로봇 윗면 누르기와 다른 요청.",
+  "current": [
+    {
+      "brick_type": "2x3x1",
+      "color": "blue",
+      "x": 4,
+      "y": 4,
+      "layer": 1,
+      "orientation_deg": 0
+    },
+    {
+      "brick_type": "2x3x1",
+      "color": "blue",
+      "x": 5,
+      "y": 4,
+      "layer": 2,
+      "orientation_deg": 0
+    }
+  ],
+  "design": [
+    {
+      "brick_type": "2x3x1",
+      "color": "blue",
+      "x": 4,
+      "y": 4,
+      "layer": 1,
+      "orientation_deg": 0
+    },
+    {
+      "brick_type": "2x3x1",
+      "color": "blue",
+      "x": 5,
+      "y": 4,
+      "layer": 2,
+      "orientation_deg": 0
+    },
+    {
+      "brick_type": "2x3x1",
+      "color": "blue",
+      "x": 6,
+      "y": 4,
+      "layer": 3,
+      "orientation_deg": 0
+    }
+  ],
+  "expected_mode": "ROBOT_GRIP",
+  "expected_help": "PRESS_AND_HOLD"
+}
