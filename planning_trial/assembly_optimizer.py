@@ -12,6 +12,7 @@ from heapq import heappop, heappush
 from itertools import count
 import json
 from pathlib import Path
+from time import monotonic
 
 from planning_trial.assembly_geometry import (
     MissingContext, block_box, contacts, footprint, grip_options, hand_options, human_press_assessment,
@@ -27,6 +28,7 @@ from planning_trial.planner import (
 
 SCHEMA = "assembly-assistance-candidate/0.2"
 MODES = ("ROBOT_GRIP", "ROBOT_RELEASE_PRESS", "HUMAN_ASSEMBLY")
+HELP_OPTIMIZATION_WINDOW_S = 30.0
 MINIMAL_RELEASE_INSTRUCTION = "이 블록을 조립한 후에는 그리퍼를 소폭 개방하고 후퇴해야 합니다."
 
 
@@ -215,43 +217,60 @@ def _order_precedence(remaining, current, context):
     return predecessors, None
 
 
-def _minimize_help_search(remaining, current, context, incumbent_path=None, predecessors=None):
-    """Exact nonnegative-cost shortest path unless max_states is reached."""
+def _search_path(parent, mask):
+    path = []
+    while mask:
+        previous, index, option = parent[mask]
+        path.append((index, option))
+        mask = previous
+    return list(reversed(path))
+
+
+def _minimize_help_search(remaining, current, context, incumbent_path=None, predecessors=None, deadline=None):
+    """Minimize help until proven optimal or the window ends with a complete plan.
+
+    No state-count cutoff. A deadline without any complete plan never aborts
+    feasibility or turns a partial path into a candidate.
+    """
     full = (1 << len(remaining)) - 1
     serial = count()
     queue = [((0, 0, 0), 0, next(serial), 0)]
     costs, parent, expanded, dead_end = {0: (0, 0, 0)}, {}, 0, None
+
+    def completed_at_deadline(lower_bound):
+        if deadline is None or monotonic() < deadline:
+            return None
+        best = incumbent_path
+        best_cost = (tuple(sum(option_cost(o)[k] for _, o in best) for k in range(3))
+                     if best is not None else None)
+        if full in parent and (best_cost is None or costs[full] < best_cost):
+            best, best_cost = _search_path(parent, full), costs[full]
+        if best is None:
+            return None
+        return best, {"optimal": False, "expanded_states": expanded,
+                      "cost": list(best_cost), "lower_bound_cost": list(lower_bound),
+                      "best_known_complete_plan_retained": True,
+                      "optimization_stop_reason": "HELP_OPTIMIZATION_WINDOW_ELAPSED"}
+
     while queue:
         cost, _, _, mask = heappop(queue)
         if costs[mask] != cost:
             continue
         if mask == full:
-            path = []
-            while mask:
-                previous, index, option = parent[mask]
-                path.append((index, option))
-                mask = previous
-            return list(reversed(path)), {"optimal": True, "expanded_states": expanded,
+            return _search_path(parent, mask), {"optimal": True, "expanded_states": expanded,
                                          "cost": list(cost)}
-        if expanded >= context["max_states"]:
-            info={"optimal":False,"expanded_states":expanded,"reason":"SEARCH_LIMIT","lower_bound_cost":list(cost)}
-            if incumbent_path is not None:
-                best=incumbent_path
-                best_cost=tuple(sum(option_cost(option)[k] for _,option in best) for k in range(3))
-                if full in parent and costs[full]<best_cost:
-                    best=[];cursor=full
-                    while cursor:
-                        previous,index,option=parent[cursor];best.append((index,option));cursor=previous
-                    best.reverse();best_cost=costs[full]
-                info.update(cost=list(best_cost),best_known_complete_plan_retained=True)
-                return best,info
-            return None,info
+        completed = completed_at_deadline(cost)
+        if completed is not None:
+            return completed
         expanded += 1
         placed = current + [b for i, b in enumerate(remaining) if mask & (1 << i)]
         left = [(i, b) for i, b in enumerate(remaining) if not mask & (1 << i)]
         lowest = min(b["layer"] for _, b in left)
         explanations, successors = [], 0
         for index, brick in left:
+            completed = completed_at_deadline(cost)
+            if completed is not None:
+                return completed
             if predecessors and predecessors[index] & mask != predecessors[index]:
                 continue
             if context["finish_layers"] and brick["layer"] != lowest:
@@ -286,16 +305,14 @@ def _complete_plan_first(remaining,current,context,predecessors=None):
     A subset has the same future block effect for all feasible methods under the
     existing withdrawn-hands model. This is not MoveIt transport validation.
     """
-    full=(1<<len(remaining))-1;visited=set();expanded=0;deepest=None;limited=False
+    full=(1<<len(remaining))-1;visited=set();expanded=0;deepest=None
     ordered=sorted(enumerate(remaining),key=lambda pair:(pair[1]["layer"],-pair[1]["y"],pair[1]["x"],pair[0]))
     path=[]
 
     def visit(mask):
-        nonlocal expanded, deepest, limited
+        nonlocal expanded, deepest
         if mask==full:return list(path)
         if mask in visited:return None
-        if expanded>=context["max_states"]:
-            limited=True;return None
         visited.add(mask);expanded+=1
         placed=current+[b for i,b in enumerate(remaining) if mask&(1<<i)]
         lowest=min(b["layer"] for i,b in ordered if not mask&(1<<i));successors=0;blocked=[]
@@ -311,47 +328,44 @@ def _complete_plan_first(remaining,current,context,predecessors=None):
             successors+=1;path.append((i,option))
             complete=visit(mask|(1<<i));path.pop()
             if complete is not None:return complete
-            if limited:return None
         if not successors and (deepest is None or mask.bit_count()>deepest[0]):deepest=(mask.bit_count(),blocked)
         return None
 
     complete=visit(0)
     if complete is not None:return complete,{"expanded_states":expanded}
-    return None,{"expanded_states":expanded,"reason":"SEARCH_LIMIT" if limited else "NO_FEASIBLE_ORDER","blocked_candidates":deepest[1] if deepest else []}
+    return None,{"expanded_states":expanded,"reason":"NO_FEASIBLE_ORDER","blocked_candidates":deepest[1] if deepest else []}
 
 
 def order_search(remaining,current,context):
+    started = monotonic()
+    deadline = started + HELP_OPTIMIZATION_WINDOW_S
+    policy = {"state_limit_applied": False,
+              "help_optimization_window_s": HELP_OPTIMIZATION_WINDOW_S}
     predecessors,blocked=_order_precedence(remaining,current,context)
     if blocked is not None:
-        return None,{"reason":"NO_FEASIBLE_ORDER","expanded_states":0,"optimal":False,
+        return None,{**policy,"reason":"NO_FEASIBLE_ORDER","expanded_states":0,"optimal":False,
                      "complete_plan_found":False,"feasibility_expanded_states":0,
                      "completion_feasibility_basis":"A_SUPPORT_AND_LOCAL_ACCESS_NOT_MOVEIT_TRANSPORT",
                      "blocked_candidates":blocked,"selection":"PROVEN_GRIP_ORDERING_CONFLICT"}
     if context.get("planning_priority","COMPLETE_DESIGN_THEN_MIN_HELP")!="COMPLETE_DESIGN_THEN_MIN_HELP":
-        return _minimize_help_search(remaining,current,context,predecessors=predecessors)
+        path, info = _minimize_help_search(remaining,current,context,predecessors=predecessors,deadline=deadline)
+        return path, {**info, **policy, "complete_plan_found": path is not None}
     witness,first=_complete_plan_first(remaining,current,context,predecessors)
-    evidence={"priority":["COMPLETE_DESIGN","ASSISTED_STEPS","MANUAL_STEPS","HUMAN_ACTIONS"],
+    evidence={**policy,"priority":["COMPLETE_DESIGN","ASSISTED_STEPS","MANUAL_STEPS","HUMAN_ACTIONS"],
               "completion_feasibility_basis":"A_SUPPORT_AND_LOCAL_ACCESS_NOT_MOVEIT_TRANSPORT",
               "complete_plan_found":witness is not None,"feasibility_expanded_states":first["expanded_states"]}
     if witness is None:return None,{**first,**evidence,"optimal":False}
     cost=tuple(sum(option_cost(option)[k] for _,option in witness) for k in range(3))
-    budget=context["max_states"]-first["expanded_states"]
     if cost==(0,0,0):
         return witness,{**evidence,"optimal":True,"expanded_states":first["expanded_states"],"help_optimization_expanded_states":0,"cost":list(cost),"selection":"COMPLETE_ZERO_HELP_PLAN"}
-    if budget<=0:
-        return witness,{**evidence,"optimal":False,"expanded_states":first["expanded_states"],"help_optimization_expanded_states":0,"cost":list(cost),"selection":"COMPLETE_FEASIBILITY_WITNESS","optimization_stop_reason":"NO_BUDGET_AFTER_COMPLETE_PLAN"}
-    search_context=deepcopy(context);search_context["max_states"]=budget
-    optimized,second=_minimize_help_search(remaining,current,search_context,incumbent_path=witness,predecessors=predecessors)
-    if optimized is None and second.get("reason")!="SEARCH_LIMIT":
+    if monotonic() >= deadline:
+        return witness,{**evidence,"optimal":False,"expanded_states":first["expanded_states"],"help_optimization_expanded_states":0,"cost":list(cost),"selection":"FIRST_COMPLETE_PLAN_AFTER_WINDOW","optimization_stop_reason":"HELP_OPTIMIZATION_WINDOW_ELAPSED"}
+    optimized,second=_minimize_help_search(remaining,current,context,incumbent_path=witness,predecessors=predecessors,deadline=deadline)
+    if optimized is None:
         raise ValueError("Help search contradicted a verified complete feasibility witness")
     result={**second,**evidence,"expanded_states":first["expanded_states"]+second["expanded_states"],"help_optimization_expanded_states":second["expanded_states"]}
-    if optimized is not None:
-        if second.get("reason")=="SEARCH_LIMIT":
-            result.pop("reason",None);result.update(selection="BEST_KNOWN_COMPLETE_PLAN",optimization_stop_reason="HELP_OPTIMIZATION_SEARCH_LIMIT")
-        else:result["selection"]="COMPLETE_PLAN_MIN_HELP"
-        return optimized,result
-    result.pop("reason",None);result.update(cost=list(cost),optimal=False,selection="COMPLETE_FEASIBILITY_WITNESS",optimization_stop_reason="HELP_OPTIMIZATION_SEARCH_LIMIT")
-    return witness,result
+    result["selection"] = "COMPLETE_PLAN_MIN_HELP" if second["optimal"] else "BEST_KNOWN_COMPLETE_PLAN"
+    return optimized,result
 
 
 def action_signature(option):

@@ -207,11 +207,12 @@ def test_invalid_dimensions_are_not_replaced_with_defaults(inputs,field,value):
     assert result["status"] == "INVALID_CONTEXT" and result["assembly_actions"] == []
 
 
-def test_search_limit_does_not_claim_optimality_or_return_partial_plan(inputs):
+def test_legacy_state_limit_does_not_stop_complete_plan(inputs):
     inputs["assembly_context"]["max_states"] = 1
     result = plan_assembly(inputs["design"],inputs["current"],inputs["assembly_context"])
-    assert result["status"] == "SEARCH_LIMIT"
-    assert result["planning_result"] is None and result["optimization"]["optimal"] is False
+    assert result["status"] == "CANDIDATE"
+    assert len(result["assembly_actions"]) == len(inputs["design"]["blocks"])
+    assert result["optimization"]["state_limit_applied"] is False
 
 
 def test_fully_inaccessible_workspace_has_no_feasible_order(inputs):

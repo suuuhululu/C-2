@@ -42,7 +42,7 @@ def validate_context(context):
     if context.get("planning_priority","COMPLETE_DESIGN_THEN_MIN_HELP") not in ("MIN_HELP_COMPLETE_DESIGN_SEARCH","COMPLETE_DESIGN_THEN_MIN_HELP"):
         raise ValueError("Unknown planning_priority")
     required = {"profile_source", "geometry", "human_sides", "grip_axes",
-                "finish_layers", "max_states", "minimal_release_model_confirmed",
+                "finish_layers", "minimal_release_model_confirmed",
                 "press_contact_model_confirmed", "obstacles"}
     missing = sorted(name for name in required if context.get(name) is None)
     if missing:
@@ -90,8 +90,9 @@ def validate_context(context):
     for name in ("finish_layers", "press_contact_model_confirmed", "minimal_release_model_confirmed"):
         if type(context[name]) is not bool:
             raise ValueError(name + " must be a boolean")
-    if type(context["max_states"]) is not int or context["max_states"] <= 0:
-        raise ValueError("max_states must be a positive integer")
+    # Historical inputs may retain this field, but it no longer stops a search.
+    if context.get("max_states") is not None and (type(context["max_states"]) is not int or context["max_states"] <= 0):
+        raise ValueError("Legacy max_states must be a positive integer or null")
     if not isinstance(context["obstacles"], list):
         raise ValueError("obstacles must be a list of board-mm boxes")
     for box in context["obstacles"]:

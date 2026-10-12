@@ -38,6 +38,7 @@ def whole_request(design=None, current=None, assembly_context=None, profile=None
     seed['assembly_context'] = deepcopy(assembly_context or json.loads((ROOT/'sample_user_rules_5mm_measured_rev2_inputs.json').read_text())['assembly_context'])
     if assembly_context is None:
         seed['assembly_context']['finish_layers'] = True
+        seed['assembly_context'].pop('max_states', None)
     seed['assembly_context'].setdefault('supported_modes', list(IMPLEMENTED_MOTION_MODES))
     seed['policy']['finish_layers'] = seed['assembly_context']['finish_layers']
     seed['policy']['hand_clearance_pitch_per_side'] = None

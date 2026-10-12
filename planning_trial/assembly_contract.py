@@ -47,6 +47,10 @@ def schema():
         'type': 'array', 'minItems': 1, 'uniqueItems': True,
         'items': {'enum': ['ROBOT_GRIP', 'HUMAN_ASSEMBLY']}}
     defs['AssemblyContext']['required'].append('supported_modes')
+    defs['AssemblyContext']['required'].remove('max_states')
+    defs['AssemblyContext']['properties']['max_states'] = {
+        'type': ['integer', 'null'], 'minimum': 1,
+        'description': 'Historical compatibility field; no state-count limit is applied.'}
     # Diagnostic placements may be outside the board; do not erase the offending values.
     for name in ('ReviewError', 'LegacyError'):
         defs[name]['properties']['block'] = {'anyOf': [{'type': 'object'}, {'type': 'null'}]}
