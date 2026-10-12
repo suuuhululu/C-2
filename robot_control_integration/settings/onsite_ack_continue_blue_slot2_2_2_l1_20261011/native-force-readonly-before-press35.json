@@ -1,0 +1,203 @@
+{
+  "status": "READ_ONLY_PRESS_ONLY_PREPARATION_COMPLETE",
+  "generated_at_unix_s": 1791707516.7681186,
+  "samples": [
+    {
+      "posj": [
+        -7.487565994262695,
+        -1.014815092086792,
+        119.70674896240234,
+        -3.4319405555725098,
+        58.42607498168945,
+        -7.39895486831665
+      ],
+      "posx": [
+        327.2102966308594,
+        -56.86041259765625,
+        18.97435760498047,
+        127.49998474121094,
+        -175.8902587890625,
+        126.23377990722656
+      ],
+      "velx": [
+        0.0,
+        0.0,
+        -0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "motion_status": 0,
+      "query_started_monotonic_s": 23443.759817223,
+      "query_duration_s": 0.05045410000093398,
+      "query_finished_monotonic_s": 23443.810272594,
+      "robot_state": 1,
+      "robot_mode": 1,
+      "drl_state": 3,
+      "tcp": "GripperDA_v4",
+      "tool": "ToolWeight0",
+      "wrench": [
+        0.6087998151779175,
+        0.8467636108398438,
+        7.3569254875183105,
+        0.438189834356308,
+        -0.5637906193733215,
+        0.10009054839611053
+      ],
+      "gripper_status": 2,
+      "gripper_width_mm": 40.6,
+      "gripper_fingertip_offset_mm": 0.0,
+      "gripper_width_with_offset_mm": 40.6
+    },
+    {
+      "posj": [
+        -7.487565994262695,
+        -1.014815092086792,
+        119.70674896240234,
+        -3.4319405555725098,
+        58.42607498168945,
+        -7.39895486831665
+      ],
+      "posx": [
+        327.2102966308594,
+        -56.86041259765625,
+        18.97435760498047,
+        127.49998474121094,
+        -175.8902587890625,
+        126.23377990722656
+      ],
+      "velx": [
+        0.0,
+        0.0,
+        -0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "motion_status": 0,
+      "query_started_monotonic_s": 23443.810276307,
+      "query_duration_s": 0.043118199002492474,
+      "query_finished_monotonic_s": 23443.853395523,
+      "robot_state": 1,
+      "robot_mode": 1,
+      "drl_state": 3,
+      "tcp": "GripperDA_v4",
+      "tool": "ToolWeight0",
+      "wrench": [
+        0.6087998151779175,
+        0.8467636108398438,
+        7.3569254875183105,
+        0.438189834356308,
+        -0.5637906193733215,
+        0.10009054839611053
+      ],
+      "gripper_status": 2,
+      "gripper_width_mm": 40.6,
+      "gripper_fingertip_offset_mm": 0.0,
+      "gripper_width_with_offset_mm": 40.6
+    },
+    {
+      "posj": [
+        -7.487565994262695,
+        -1.014815092086792,
+        119.70674896240234,
+        -3.4319405555725098,
+        58.42607498168945,
+        -7.39895486831665
+      ],
+      "posx": [
+        327.2102966308594,
+        -56.86041259765625,
+        18.97435760498047,
+        127.49998474121094,
+        -175.8902587890625,
+        126.23377990722656
+      ],
+      "velx": [
+        0.0,
+        0.0,
+        -0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "motion_status": 0,
+      "query_started_monotonic_s": 23443.853398125,
+      "query_duration_s": 0.021426066999993054,
+      "query_finished_monotonic_s": 23443.874825421,
+      "robot_state": 1,
+      "robot_mode": 1,
+      "drl_state": 3,
+      "tcp": "GripperDA_v4",
+      "tool": "ToolWeight0",
+      "wrench": [
+        0.6087998151779175,
+        0.8467636108398438,
+        7.3569254875183105,
+        0.438189834356308,
+        -0.5637906193733215,
+        0.10009054839611053
+      ],
+      "gripper_status": 2,
+      "gripper_width_mm": 40.6,
+      "gripper_fingertip_offset_mm": 0.0,
+      "gripper_width_with_offset_mm": 40.6
+    }
+  ],
+  "services": [
+    "/dsr01/dsr_controller2/force/task_compliance_ctrl",
+    "/dsr01/dsr_controller2/force/set_desired_force",
+    "/dsr01/dsr_controller2/force/release_force",
+    "/dsr01/dsr_controller2/force/release_compliance_ctrl",
+    "/dsr01/dsr_controller2/motion/move_line",
+    "/dsr01/dsr_controller2/motion/move_stop"
+  ],
+  "unload_pose": [
+    327.2102966308594,
+    -56.86041259765625,
+    22.97435760498047,
+    127.49998474121094,
+    -175.8902587890625,
+    126.23377990722656
+  ],
+  "seek_z_mm": 22.2,
+  "floor_z_mm": 11.51624870300293,
+  "ik_fk_checks": [
+    {
+      "target": [
+        327.2102966308594,
+        -56.86041259765625,
+        22.97435760498047,
+        127.49998474121094,
+        -175.8902587890625,
+        126.23377990722656
+      ],
+      "error_mm": 0.00499717515782235,
+      "error_deg": 0.0005360158712735294
+    },
+    {
+      "target": [
+        327.2102966308594,
+        -56.86041259765625,
+        22.2,
+        127.49998474121094,
+        -175.8902587890625,
+        126.23377990722656
+      ],
+      "error_mm": 0.00499180750361815,
+      "error_deg": 0.0005436789026327656
+    }
+  ],
+  "robot_motion_commands": 0,
+  "robot_gripper_commands": 0,
+  "native_force_commands": 0,
+  "reason": "POST_OPERATOR_STOP_PRESS_ONLY_PREPARATION",
+  "driver_restart_required": false,
+  "required_drcf_version": 2,
+  "driver_pid": 62967,
+  "pressure_stages_n": [
+    25.0,
+    30.0
+  ],
+  "force_mode": "ABSOLUTE"
+}

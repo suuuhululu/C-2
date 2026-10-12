@@ -675,12 +675,12 @@ def interpret_initial_request(text, should_stop=None):
                       + json.dumps({"answer": text}, ensure_ascii=False), should_stop, model=_aux_model())
 
 
-def interpret_intervention_answer(text, differences, should_stop=None):
+def interpret_intervention_answer(text, differences, should_stop=None, context=None):
     """Intervention 자유 답변 해석(dict: INTERVENTION_ANSWER_KEYS) 또는 llm_error. Design 전체는 보내지 않는다.
     모델은 보조 모델(_aux_model)."""
     pairs = [{"expected": item.get("expected"), "actual": item.get("actual")} for item in differences]
     return _json_call(SYSTEM_PROMPT_INTERVENTION_ANSWER, "Interpret this answer.\n"
-                      + json.dumps({"answer": text, "differences": pairs}, ensure_ascii=False), should_stop,
+                      + json.dumps({"answer": text, "differences": pairs, **({"inspection_context":context} if context is not None else {})}, ensure_ascii=False), should_stop,
                       model=_aux_model())
 
 

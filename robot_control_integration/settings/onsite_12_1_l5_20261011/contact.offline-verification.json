@@ -1,0 +1,14 @@
+{
+  "status": "CONTACT_WORKFLOW_OFFLINE_VERIFIED",
+  "backend": "TEST",
+  "physical_simulation": false,
+  "result_status": "PAUSED_SEATED_RELEASE_PENDING",
+  "contact_status": "FORCE_THRESHOLD_REACHED_STOP_VERIFIED",
+  "xy_and_abc_preserved": true,
+  "mock_move_count": 2,
+  "mock_gripper_commands": 0,
+  "device_connections": 0,
+  "robot_motion_commands": 0,
+  "robot_gripper_commands": 0,
+  "physical_verified": false
+}

@@ -1,0 +1,23 @@
+{
+  "status": "PREPARED_HELD_CONTINUATION_NOT_EXECUTED",
+  "configs": {
+    "handover": {
+      "execution_id": "e080b3af-0930-481e-bae5-47190a64f448",
+      "profile": "settings/onsite_11_11_release48_20261011/handover-e080b3af-0930-481e-bae5-47190a64f448.profile.json",
+      "session": "settings/onsite_11_11_release48_20261011/handover-e080b3af-0930-481e-bae5-47190a64f448.session.json",
+      "output": "logs/onsite_11_11_release48_20261011/handover-e080b3af-0930-481e-bae5-47190a64f448"
+    },
+    "assembly": {
+      "execution_id": "1f326393-3cf9-4c5c-b324-97a0b9ff1ae6",
+      "profile": "settings/onsite_11_11_release48_20261011/assembly-1f326393-3cf9-4c5c-b324-97a0b9ff1ae6.profile.json",
+      "session": "settings/onsite_11_11_release48_20261011/assembly-1f326393-3cf9-4c5c-b324-97a0b9ff1ae6.session.json",
+      "output": "logs/onsite_11_11_release48_20261011/assembly-1f326393-3cf9-4c5c-b324-97a0b9ff1ae6"
+    }
+  },
+  "failed_pickup_execution_id": "06825f73-ae71-4da0-942d-52bf3dc227d3",
+  "readiness": "settings/onsite_11_11_release48_20261011/held-readonly-08f276fe-6944-4d5c-9110-42fc25b0838a.json",
+  "created_unix_s": 1791698548.1859672,
+  "expires_unix_s": 1791700348.1859672,
+  "robot_motion_commands": 0,
+  "robot_gripper_commands": 0
+}

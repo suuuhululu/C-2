@@ -1,0 +1,15 @@
+{
+  "status": "EXACT_HELD_CONTINUATION_OFFLINE_PASS",
+  "handover": "ASSEMBLY_REQUIRED",
+  "assembly": "AWAITING_BACKEND_OBSERVATION",
+  "synthetic_gripper_commands": [
+    [
+      48.0,
+      40.0
+    ]
+  ],
+  "repeated_pickup_commands": 0,
+  "device_connections": 0,
+  "real_motion_commands": 0,
+  "real_gripper_commands": 0
+}

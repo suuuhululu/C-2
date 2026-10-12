@@ -1,0 +1,56 @@
+{
+  "provenance": "PLAN_EXPECTATION_ONLY_NOT_B_OBSERVATION_OR_PHYSICAL_COMPLETION",
+  "current": {
+    "current_revision": 6,
+    "blocks": [
+      {
+        "brick_type": "1x2x1",
+        "color": "red",
+        "x": 3,
+        "y": 17,
+        "layer": 1,
+        "orientation_deg": 0
+      },
+      {
+        "brick_type": "1x2x1",
+        "color": "red",
+        "x": 9,
+        "y": 17,
+        "layer": 1,
+        "orientation_deg": 90
+      },
+      {
+        "brick_type": "2x3x1",
+        "color": "yellow",
+        "x": 3,
+        "y": 10,
+        "layer": 1,
+        "orientation_deg": 90
+      },
+      {
+        "brick_type": "2x3x1",
+        "color": "blue",
+        "x": 9,
+        "y": 10,
+        "layer": 1,
+        "orientation_deg": 0
+      },
+      {
+        "brick_type": "2x3x1",
+        "color": "blue",
+        "x": 15,
+        "y": 10,
+        "layer": 1,
+        "orientation_deg": 90
+      },
+      {
+        "brick_type": "2x2x1",
+        "color": "yellow",
+        "x": 3,
+        "y": 3,
+        "layer": 1,
+        "orientation_deg": 0
+      }
+    ]
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "source": "DIRECT_HUMAN_MESSAGES_IN_THIS_CHAT",
+  "requests": [
+    "각 단계별 확인?대기시간이 좀 긴거같아서 반으로 줄이면 좋을듯. 그리고 이제 yes로 확인 안하고 시도 해봐도 좋을듯.",
+    "네, 2층 유지·파랑 첫 슬롯 보충 후 3층 시험"
+  ],
+  "existing_authorizations": "Unchanged supply slot layout, place/bypass/supply corridor including15mm corners; no rotation; grip35mm; seated release48mm; receiving release62.4mm; open hand0.4s.",
+  "scope": "LOCAL_OPERATOR_TRIAL_ONLY_ONE_BLUE_SLOT1_11_11_LAYER3_STEP",
+  "automatic_stage_policy": "Fresh stopped samples and stage pose/gripper checks; contact35N plus verified STOP permits local release. No inferred human seating or backend completion.",
+  "stillness_window_s": 0.25,
+  "stillness_min_samples": 3,
+  "created_unix_s": 1791699267.6846037,
+  "robot_motion_commands": 0,
+  "robot_gripper_commands": 0
+}

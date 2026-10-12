@@ -1,0 +1,148 @@
+{
+  "case_id": "03_human_assembly_tray",
+  "step_id": "S01",
+  "plan_id": "P-6f4b66b3d106450eb40267a293aafb1d",
+  "block": {
+    "brick_type": "2x3x1",
+    "color": "yellow",
+    "x": 6,
+    "y": 6,
+    "layer": 1,
+    "orientation_deg": 0
+  },
+  "current_revision": 2,
+  "base_current_revision": 2,
+  "mode": "HUMAN_ASSEMBLY",
+  "grip_axis": null,
+  "assistance_kind": "MANUAL_ASSEMBLY",
+  "human_actions": [
+    {
+      "action": "MANUAL_PLACE",
+      "target_block": {
+        "brick_type": "2x3x1",
+        "color": "yellow",
+        "x": 6,
+        "y": 6,
+        "layer": 1,
+        "orientation_deg": 0
+      },
+      "contact_regions": [
+        {
+          "frame_id": "assembly_board",
+          "vertices_xyz_m": [
+            [
+              0.096,
+              0.088,
+              -0.0045
+            ],
+            [
+              0.112,
+              0.088,
+              -0.0045
+            ],
+            [
+              0.112,
+              0.088,
+              0.0145
+            ],
+            [
+              0.096,
+              0.088,
+              0.0145
+            ]
+          ]
+        },
+        {
+          "frame_id": "assembly_board",
+          "vertices_xyz_m": [
+            [
+              0.096,
+              0.136,
+              -0.0045
+            ],
+            [
+              0.112,
+              0.136,
+              -0.0045
+            ],
+            [
+              0.112,
+              0.136,
+              0.0145
+            ],
+            [
+              0.096,
+              0.136,
+              0.0145
+            ]
+          ]
+        }
+      ],
+      "approach_sides": [
+        "-y",
+        "+y"
+      ],
+      "hand_count": 1,
+      "force_direction_base": null,
+      "force_magnitude_n": null,
+      "effect": "사람이 직접 조립",
+      "access_assessment": "GEOMETRIC_CANDIDATE_NOT_RUNTIME_VERIFIED"
+    }
+  ],
+  "support_studs": 6,
+  "contacts": [],
+  "reserved_supply_slot": {
+    "slot_id": "yellow_2x3x1_01",
+    "slot_index": 1,
+    "brick_type": "2x3x1",
+    "color": "yellow",
+    "reservation_id": "03_human_assembly_tray-S01-mock-reservation",
+    "reservation_generation": 1,
+    "bound_workflow_generation": 1,
+    "state": "RESERVED",
+    "part_confirmation": "CONFIRMED",
+    "valid_until_ref": "D_RUNTIME_VALIDITY_REQUIRED"
+  },
+  "pickup_tcp_pose": {
+    "frame_id": "base_link",
+    "xyz_m": [
+      -0.32202239130434784,
+      0.12912358695652176,
+      0.05004
+    ],
+    "quaternion_xyzw": [
+      -0.006719467028189488,
+      -0.9999774203187898,
+      7.783434946000023e-05,
+      3.9462000956418785e-05
+    ]
+  },
+  "transport_destination_tcp_pose": {
+    "frame_id": "base_link",
+    "xyz_m": [
+      0.41756099999999996,
+      -0.184622,
+      0.019712
+    ],
+    "quaternion_xyzw": [
+      0.9995065163702346,
+      0.0002965595620009024,
+      -0.0165916672871306,
+      0.026671189746566834
+    ]
+  },
+  "nominal_assembly_target": null,
+  "handoff_to": "D_HANDOVER_RELEASE_AND_RETREAT",
+  "terminal_gripper_policy": "HOLD_NO_AUTOMATIC_OPEN",
+  "numeric_open_command": null,
+  "execution_allowed": false,
+  "assembly_completed": false,
+  "validation": {
+    "ik_verified": false,
+    "full_path_collision_verified": false,
+    "physical_grasp_verified": false,
+    "d_execution_approved": false
+  },
+  "current_source": "OFFLINE_MOCK_PLAN_PREFIX_NOT_B_OBSERVATION",
+  "robot_state_source": "OFFLINE_FIXTURE_NOT_DEVICE_OR_ISAAC"
+}

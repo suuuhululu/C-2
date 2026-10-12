@@ -219,14 +219,15 @@ def test_real_stop_during_tts_ignores_answer_then_resume_reasks_same_difference(
     assert len(processes) == 3 and workflow.backend.state["place_check"]  # 정지 probe 외 새 이동 없음.
 
 
-def test_replan_slot_bound_uses_consumed_slot_and_retains_old_plan_on_rejection(live):
+def test_replan_preserves_consumed_slot_and_accepts_next_cycle(live):
     _, workflow, processes, _, _ = live
     controller = workflow.controller
     before = deepcopy(controller.plan_columns)
-    with pytest.raises(ValueError, match="NEEDS_REFILL"):
-        controller.prepare_design_plan(dict(steps=[dict(after=dict(brick_type="2x3x1", color="blue"))] * 6))
-    assert controller.plan_columns == before and controller._attempts == 1
-    assert controller.state["supply"][-1]["next_slot"] == 2 and len(processes) == 2
+    columns = [dict(after=dict(brick_type="2x3x1",color="blue"))] * 6
+    controller.prepare_design_plan(dict(steps=columns))
+    assert controller.plan_columns == before[:1]+[("2x3x1","blue")]*6
+    assert controller._attempts==1 and controller._limit==7
+    assert controller.state["supply"][-1]["next_slot"]==2 and len(processes)==2
 
 
 def test_current_changes_during_answer_recording_cannot_adopt_old_revised_plan(live, audio, monkeypatch):

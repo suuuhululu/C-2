@@ -1,0 +1,21 @@
+{
+  "profile": "settings/onsite_ack_continue_blue_slot2_2_2_l1_20261011/ack-479bd0c4-47df-4ed8-8c0b-7b3c4ef76a8e.profile.json",
+  "session": "settings/onsite_ack_continue_blue_slot2_2_2_l1_20261011/ack-479bd0c4-47df-4ed8-8c0b-7b3c4ef76a8e.session.json",
+  "phase": "human-ack",
+  "start_zone": "assembly",
+  "execution_id": "479bd0c4-47df-4ed8-8c0b-7b3c4ef76a8e",
+  "next_pickup_profile": "settings/onsite_ack_continue_blue_slot2_2_2_l1_20261011/next-pickup-20a1f960-ab46-41ce-be7a-4f2c4d3ca49c.profile.json",
+  "next_pickup_session": "settings/onsite_ack_continue_blue_slot2_2_2_l1_20261011/next-pickup-20a1f960-ab46-41ce-be7a-4f2c4d3ca49c.session.json",
+  "next_execution_id": "20a1f960-ab46-41ce-be7a-4f2c4d3ca49c",
+  "next_target": {
+    "brick_type": "2x2x1",
+    "color": "blue",
+    "x": 2,
+    "y": 2,
+    "layer": 1,
+    "orientation_deg": 0
+  },
+  "output": "logs/onsite_ack_continue_blue_slot2_2_2_l1_20261011/479bd0c4-47df-4ed8-8c0b-7b3c4ef76a8e",
+  "prepared_unix_s": 1791704614.9159107,
+  "expires_unix_s": 1791706414.9159107
+}

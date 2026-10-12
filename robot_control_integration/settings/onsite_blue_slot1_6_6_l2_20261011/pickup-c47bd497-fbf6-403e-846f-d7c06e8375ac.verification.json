@@ -1,0 +1,67 @@
+{
+  "real_preflight": "PASSED",
+  "device_connections_in_offline_checks": 0,
+  "physical_simulation": false,
+  "real_execution_started": false,
+  "checks": [
+    {
+      "denied_request": null,
+      "status": "PAUSED_PICKUP_COMPLETE_HOLDING",
+      "mock_moves": 7,
+      "mock_grips": 2,
+      "mock_final_gripper_status": 2,
+      "labels": [
+        "LIFT",
+        "PLACE_BOARD_EMPTY",
+        "BODY_BYPASS_EMPTY",
+        "SUPPLY_20_0_EMPTY",
+        "PICKUP_APPROACH",
+        "PICKUP_LOWER"
+      ]
+    },
+    {
+      "denied_request": "START_PICKUP",
+      "status": "PAUSED_START",
+      "mock_moves": 0,
+      "mock_grips": 0,
+      "mock_final_gripper_status": 0,
+      "labels": []
+    },
+    {
+      "denied_request": "PICKUP_ALIGNMENT",
+      "status": "PAUSED_PICKUP_ALIGNMENT",
+      "mock_moves": 6,
+      "mock_grips": 1,
+      "mock_final_gripper_status": 0,
+      "labels": [
+        "LIFT",
+        "PLACE_BOARD_EMPTY",
+        "BODY_BYPASS_EMPTY",
+        "SUPPLY_20_0_EMPTY",
+        "PICKUP_APPROACH"
+      ]
+    },
+    {
+      "denied_request": "GRASP_CONFIRMED",
+      "status": "PAUSED_GRASP_CONFIRMED",
+      "mock_moves": 7,
+      "mock_grips": 2,
+      "mock_final_gripper_status": 2,
+      "labels": [
+        "LIFT",
+        "PLACE_BOARD_EMPTY",
+        "BODY_BYPASS_EMPTY",
+        "SUPPLY_20_0_EMPTY",
+        "PICKUP_APPROACH",
+        "PICKUP_LOWER"
+      ]
+    }
+  ],
+  "read_only_ik_checks": 24,
+  "whole_robot_collision_verified": false,
+  "change_summary": "Reuse existing empty return and slot grasp branch; pickup phase returns holding before loaded transport/contact. Real pickup requires taught route, pickup pose, open/close widths and fresh HMI. One-shot phase-bound session.",
+  "code_files_changed": 4,
+  "new_test_files": 1,
+  "new_classes": 0,
+  "new_dependencies": 0
+}

@@ -1,0 +1,12 @@
+{
+  "valid_request": {"request_id": "handover-1", "execution_id": "transport-1"},
+  "invalid_request": {"request_id": "handover-1", "execution_id": null},
+  "stop_evidence": {
+    "request_id": "handover-1",
+    "stopped": true,
+    "execution_ended": true,
+    "block_state_known": true,
+    "block_state": "HOLDING"
+  },
+  "verification_level": "FAKE"
+}

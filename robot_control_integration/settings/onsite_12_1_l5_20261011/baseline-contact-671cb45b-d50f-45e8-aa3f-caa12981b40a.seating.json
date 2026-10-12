@@ -1,0 +1,29 @@
+{
+  "status": "LOCAL_OPERATOR_SEATING_CONFIRMED",
+  "execution_id": "671cb45b-d50f-45e8-aa3f-caa12981b40a",
+  "operator_seating_confirmed": true,
+  "actual_stop_verified": true,
+  "assembly_completion": false,
+  "current_update": false,
+  "force_threshold_sample_n": 38.18132286776363,
+  "seating_reply": {
+    "request": {
+      "request_id": "9b85f7ac-5474-46dc-82fe-d2f666356170",
+      "kind": "FULL_SEATING",
+      "mode": "QUESTION",
+      "plan_id": "D_LOCAL_HELD_TRIAL12_1_L5_NO_TURN_20261011",
+      "step_id": "S01",
+      "current_revision": null,
+      "execution_id": "671cb45b-d50f-45e8-aa3f-caa12981b40a",
+      "source_epoch": "ONSITE_BASELINE_CONTACT_20261011_4595bab5c40548038e271e69b69c99dd",
+      "opened_monotonic_s": 4132.936505914,
+      "deadline_monotonic_s": 4192.936505914
+    },
+    "positive": true,
+    "source": "HMI",
+    "preview_candidate": null,
+    "assembly_completion": false
+  },
+  "source_result": "logs/onsite_12_1_l5_20261011/baseline-contact-671cb45b-d50f-45e8-aa3f-caa12981b40a/result.json",
+  "source_result_sha256": "bda428f8bb5ecb184265e454720c7f0cd7c801984bf69c623358127a942bbda0"
+}

@@ -510,18 +510,28 @@ def _initial(text, should_stop, preference_text, on_question, progress):
     return _result("OK", None, result["design"], questions, design_metadata=_initial_metadata(described, choice))
 
 
-def run_intervention(design, current, differences, text_answers=None, on_question=None, should_stop=None, on_progress=None):
+def run_intervention(design, current, differences, text_answers=None, on_question=None, should_stop=None, on_progress=None, inspection_context=None):
     """실제 차이에 대한 사용자 의도 확인 (§4.2). 예외를 밖으로 던지지 않는다(on_question·on_progress 제외).
 
     on_progress: 진행 단계마다 {"stage", "message", "at"}로 호출(PROGRESS_STAGES, 표시·로그용).
     """
     progress = _reporter(on_progress, text_answers is None and _use_llm())
     return _report_end(progress, _intervention(design, current, differences, text_answers, on_question, should_stop,
-                                               progress))
+                                               progress, inspection_context=inspection_context))
 
 
-def _intervention(design, current, differences, text_answers, on_question, should_stop, progress):
-    reasons = validator.check_intervention_input(design, current, differences)
+def run_design_change(design, current, *, reason, text_answers=None, on_question=None, should_stop=None, inspection_context=None):
+    """사용자의 변경 요청/계산 보류. 관측 차이를 만들어서 기존 API에 넣지 않는다."""
+    if not isinstance(reason, str) or not reason.strip():
+        return _result('FAILED', code='INVALID_INPUT', message='change reason required')
+    progress = _reporter(None, text_answers is None and _use_llm())
+    return _report_end(progress, _intervention(design, current, [], text_answers, on_question,
+        should_stop, progress, change_reason=reason, inspection_context=inspection_context))
+
+
+def _intervention(design, current, differences, text_answers, on_question, should_stop, progress, change_reason=None, inspection_context=None):
+    reasons = (list(validator.validate_design(design)) + validator._check_current(current)
+               if change_reason is not None else validator.check_intervention_input(design, current, differences))
     if reasons:
         return _result("FAILED", code="INVALID_INPUT", message="invalid intervention input", details=reasons)
 
@@ -590,7 +600,9 @@ def _intervention(design, current, differences, text_answers, on_question, shoul
     def ask_answer_llm(text):
         """llm 답변 해석 1회. 쓸 수 있는 dict 또는 None(STOP이면 state["stopped"], 실패·키 누락이면 그냥 None)."""
         state["interpreted"] = True
-        answer = llm.interpret_intervention_answer(text, differences, should_stop=should_stop)
+        context = dict(inspection_context or {}, change_reason=change_reason) if inspection_context is not None or change_reason is not None else None
+        extra = {"context":deepcopy(context)} if context is not None else {}
+        answer = llm.interpret_intervention_answer(text, differences, should_stop=should_stop, **extra)
         kind = _llm_error_kind(answer)
         if kind == "stopped":
             state["stopped"] = True
@@ -661,7 +673,8 @@ def _intervention(design, current, differences, text_answers, on_question, shoul
         progress("GENERATING_REVISED")
         return finish(build(EXTRA_ATTEMPTS))
 
-    question = dialogue.build_question(design, current, differences)
+    question = (change_reason + '\n현재 설계를 유지할까요, 현재 조립 상태를 보존하며 설계를 수정할까요?'
+                if change_reason is not None else dialogue.build_question(design, current, differences))
     ask(question)
     while True:
         if stop_requested():
@@ -704,7 +717,7 @@ REVIEW_SCOPES = llm.REVIEW_SCOPES  # MODIFY 재생성 방식(내부 값, metadat
 
 
 def review_design_candidate(candidate, *, kind, design_metadata=None, previous_design=None, current=None, differences=None,
-                            text_answers=None, on_question=None, should_stop=None, on_progress=None):
+                            text_answers=None, on_question=None, should_stop=None, on_progress=None, change_reason=None):
     """Preview가 표시된 Candidate Design에 대한 사용자 검토 (§4.4, Stage 3 Wave 1·2). 예외를 밖으로 던지지 않는다(콜백 제외).
 
     kind: "initial" 또는 "revised"(질문 문장·LLM 해석 문맥). design_metadata: 후보의 metadata(복사해 review를 붙여 돌려줌).
@@ -715,7 +728,7 @@ def review_design_candidate(candidate, *, kind, design_metadata=None, previous_d
     use_llm = _use_llm()
     progress = _reporter(on_progress, text_answers is None and use_llm)  # REVIEW_* 단계는 읽지 않고 ack·생성 진행만 읽는다
     return _report_end(progress, _review(candidate, kind, design_metadata, previous_design, current, differences,
-                                         text_answers, on_question, should_stop, progress, use_llm))
+                                         text_answers, on_question, should_stop, progress, use_llm, change_reason))
 
 
 def _candidate_concept(metadata):
@@ -729,7 +742,7 @@ def _candidate_concept(metadata):
 
 
 def _review(candidate, kind, design_metadata, previous_design, current, differences, text_answers, on_question,
-            should_stop, progress, use_llm):
+            should_stop, progress, use_llm, change_reason=None):
     if kind not in REVIEW_KINDS:
         return _result("FAILED", code="INVALID_INPUT", message=f"kind must be one of {list(REVIEW_KINDS)}")
     reasons = validator.validate_design(candidate)
@@ -741,7 +754,9 @@ def _review(candidate, kind, design_metadata, previous_design, current, differen
         if previous_design is None or current is None or differences is None:
             return _result("FAILED", code="INVALID_INPUT",
                            message="kind 'revised' needs previous_design, current and differences")
-        reasons = validator.check_intervention_input(previous_design, current, differences)
+        reasons = (list(validator.validate_design(previous_design))+validator._check_current(current)
+                   if isinstance(change_reason,str) and change_reason.strip() and differences==[] else
+                   validator.check_intervention_input(previous_design, current, differences))
         if reasons:
             return _result("FAILED", code="INVALID_INPUT", message="invalid revised review input", details=reasons)
     design = deepcopy(candidate)  # 후보는 읽기 전용: 같은 내용을 새 객체로 돌려준다

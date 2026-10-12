@@ -46,7 +46,10 @@ def test_fixture_schema_and_display_preserve_current_progress_and_commands(windo
     view = window.execution_view
     assert window._snapshot == before == snapshot
     assert window.target_board.current == before["current"]
-    assert window.design_board.blocks == (before["design"]["blocks"] if before["design"] else [])
+    preview = before.get("design_preview") if before["workflow_status"] != "COMPLETE" else None
+    displayed = preview["design"] if preview else before["design"]
+    assert window.design_board.blocks == (displayed["blocks"] if displayed else [])
+    assert ("미승인" in window.design_panel.title()) == bool(preview)
     if "execution" in snapshot:
         assert window.execution_view.isVisible()
         assert "보고 단계" in view.phase.text()

@@ -1,0 +1,45 @@
+{
+  "provenance": "SYNTHETIC",
+  "scope": "Independent preview failure/recovery cases; not sensor ground truth, identity/orientation verification, or robot integration.",
+  "scenarios": [
+    {
+      "case": "L hold interrupted by invalid second center coordinate",
+      "context": ["QUESTION", "validation-question-1"],
+      "steps": [
+        {"received_ns": 0,"source_ns": 1,"frame": "validation-camera","hands": [{"pose": "L","center": [320.25,240.75],"palm_size": 21.5}],"expected_candidate": null,"expected_held_ns": 0,"expected_reason": "PREVIEW_ONLY_UNVERIFIED"},
+        {"received_ns": 250000000,"source_ns": 250000001,"frame": "validation-camera","hands": [{"pose": "L","center": [320.25,240.75],"palm_size": 21.5}],"expected_candidate": null,"expected_held_ns": 250000000,"expected_reason": "PREVIEW_ONLY_UNVERIFIED"},
+        {"received_ns": 500000000,"source_ns": 500000001,"frame": "validation-camera","hands": [{"pose": "L","center": [320.25,240.75],"palm_size": 21.5}],"expected_candidate": null,"expected_held_ns": 500000000,"expected_reason": "PREVIEW_ONLY_UNVERIFIED"},
+        {"received_ns": 750000000,"source_ns": 750000001,"frame": "validation-camera","hands": [{"pose": "L","center": [320.25,240.75],"palm_size": 21.5}],"expected_candidate": null,"expected_held_ns": 750000000,"expected_reason": "PREVIEW_ONLY_UNVERIFIED"},
+        {"received_ns": 1000000000,"source_ns": 1000000001,"frame": "validation-camera","hands": [{"pose": "L","center": [320.25,240.75],"palm_size": 21.5}],"expected_candidate": null,"expected_held_ns": 1000000000,"expected_reason": "PREVIEW_ONLY_UNVERIFIED"},
+        {"received_ns": 1250000000,"source_ns": 1250000001,"frame": "validation-camera","hands": [{"pose": "L","center": [320.25,240.75],"palm_size": 21.5}],"expected_candidate": null,"expected_held_ns": 1250000000,"expected_reason": "PREVIEW_ONLY_UNVERIFIED"},
+        {"received_ns": 1500000000,"source_ns": 1500000001,"frame": "validation-camera","hands": [{"pose": "L","center": [320.25,240.75],"palm_size": 21.5}],"expected_candidate": null,"expected_held_ns": 1500000000,"expected_reason": "PREVIEW_ONLY_UNVERIFIED"},
+        {"received_ns": 1750000000,"source_ns": 1750000001,"frame": "validation-camera","hands": [{"pose": "L","center": [320.25,240.75],"palm_size": 21.5}],"expected_candidate": null,"expected_held_ns": 1750000000,"expected_reason": "PREVIEW_ONLY_UNVERIFIED"},
+        {"received_ns": 2000000000,"source_ns": 2000000001,"frame": "validation-camera","hands": [{"pose": "L","center": [320.25,null],"palm_size": 21.5}],"expected_candidate": null,"expected_held_ns": 0,"expected_reason": "INVALID_HAND_GEOMETRY"},
+        {"received_ns": 2250000000,"source_ns": 2250000001,"frame": "validation-camera","hands": [{"pose": "L","center": [320.25,240.75],"palm_size": 21.5}],"expected_candidate": null,"expected_held_ns": 0,"expected_reason": "PREVIEW_ONLY_UNVERIFIED"},
+        {"received_ns": 2500000000,"source_ns": 2500000001,"frame": "validation-camera","hands": [{"pose": "L","center": [320.25,240.75],"palm_size": 21.5}],"expected_candidate": null,"expected_held_ns": 250000000,"expected_reason": "PREVIEW_ONLY_UNVERIFIED"},
+        {"received_ns": 2750000000,"source_ns": 2750000001,"frame": "validation-camera","hands": [{"pose": "L","center": [320.25,240.75],"palm_size": 21.5}],"expected_candidate": null,"expected_held_ns": 500000000,"expected_reason": "PREVIEW_ONLY_UNVERIFIED"},
+        {"received_ns": 3000000000,"source_ns": 3000000001,"frame": "validation-camera","hands": [{"pose": "L","center": [320.25,240.75],"palm_size": 21.5}],"expected_candidate": null,"expected_held_ns": 750000000,"expected_reason": "PREVIEW_ONLY_UNVERIFIED"},
+        {"received_ns": 3250000000,"source_ns": 3250000001,"frame": "validation-camera","hands": [{"pose": "L","center": [320.25,240.75],"palm_size": 21.5}],"expected_candidate": null,"expected_held_ns": 1000000000,"expected_reason": "PREVIEW_ONLY_UNVERIFIED"},
+        {"received_ns": 3500000000,"source_ns": 3500000001,"frame": "validation-camera","hands": [{"pose": "L","center": [320.25,240.75],"palm_size": 21.5}],"expected_candidate": null,"expected_held_ns": 1250000000,"expected_reason": "PREVIEW_ONLY_UNVERIFIED"},
+        {"received_ns": 3750000000,"source_ns": 3750000001,"frame": "validation-camera","hands": [{"pose": "L","center": [320.25,240.75],"palm_size": 21.5}],"expected_candidate": null,"expected_held_ns": 1500000000,"expected_reason": "PREVIEW_ONLY_UNVERIFIED"},
+        {"received_ns": 4000000000,"source_ns": 4000000001,"frame": "validation-camera","hands": [{"pose": "L","center": [320.25,240.75],"palm_size": 21.5}],"expected_candidate": null,"expected_held_ns": 1750000000,"expected_reason": "PREVIEW_ONLY_UNVERIFIED"},
+        {"received_ns": 4250000000,"source_ns": 4250000001,"frame": "validation-camera","hands": [{"pose": "L","center": [320.25,240.75],"palm_size": 21.5}],"expected_candidate": "L_HELD_ORIENTATION_UNKNOWN","expected_held_ns": 2000000000,"expected_reason": "PREVIEW_ONLY_UNVERIFIED"},
+        {"received_ns": 4500000000,"source_ns": 4500000001,"frame": "validation-camera","hands": [{"pose": "L","center": [320.25,240.75],"palm_size": 21.5}],"expected_candidate": null,"expected_held_ns": 2250000000,"expected_reason": "PREVIEW_ONLY_UNVERIFIED"}
+      ]
+    },
+    {
+      "case": "Receive interrupted by list-valued size and replayed source",
+      "context": ["RECEIVE", "validation-receive-1"],
+      "steps": [
+        {"received_ns": 0,"source_ns": 1,"frame": "validation-camera","hands": [{"pose": "FIST","center": [320.25,240.75],"palm_size": 21.5}],"expected_candidate": null,"expected_held_ns": 0,"expected_reason": "PREVIEW_ONLY_UNVERIFIED"},
+        {"received_ns": 80000000,"source_ns": 80000001,"frame": "validation-camera","hands": [{"pose": "OPEN_HAND","center": [320.25,240.75],"palm_size": []}],"expected_candidate": null,"expected_held_ns": 0,"expected_reason": "INVALID_HAND_GEOMETRY"},
+        {"received_ns": 120000000,"source_ns": 1,"frame": "validation-camera","hands": [{"pose": "FIST","center": [320.25,240.75],"palm_size": 21.5}],"expected_candidate": null,"expected_held_ns": 0,"expected_reason": "OLD_OR_INVALID_SOURCE"},
+        {"received_ns": 160000000,"source_ns": 160000001,"frame": "validation-camera","hands": [{"pose": "OPEN_HAND","center": [320.25,240.75],"palm_size": 21.5}],"expected_candidate": null,"expected_held_ns": 0,"expected_reason": "PREVIEW_ONLY_UNVERIFIED"},
+        {"received_ns": 240000000,"source_ns": 240000001,"frame": "validation-camera","hands": [{"pose": "FIST","center": [320.25,240.75],"palm_size": 21.5}],"expected_candidate": null,"expected_held_ns": 0,"expected_reason": "PREVIEW_ONLY_UNVERIFIED"},
+        {"received_ns": 320000000,"source_ns": 320000001,"frame": "validation-camera","hands": [{"pose": "OPEN_HAND","center": [320.25,240.75],"palm_size": 21.5}],"expected_candidate": "FIST_TO_OPEN_ORIENTATION_UNKNOWN","expected_held_ns": 0,"expected_reason": "PREVIEW_ONLY_UNVERIFIED"},
+        {"received_ns": 400000000,"source_ns": 400000001,"frame": "validation-camera","hands": [{"pose": "FIST","center": [320.25,240.75],"palm_size": 21.5}],"expected_candidate": null,"expected_held_ns": 0,"expected_reason": "PREVIEW_ONLY_UNVERIFIED"},
+        {"received_ns": 480000000,"source_ns": 480000001,"frame": "validation-camera","hands": [{"pose": "OPEN_HAND","center": [320.25,240.75],"palm_size": 21.5}],"expected_candidate": null,"expected_held_ns": 0,"expected_reason": "PREVIEW_ONLY_UNVERIFIED"}
+      ]
+    }
+  ]
+}

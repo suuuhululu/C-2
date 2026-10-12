@@ -1,0 +1,9 @@
+{
+  "profile": "settings/onsite_ack_continue_blue_slot2_2_2_l1_20261011/approach-98487345-5111-4ebe-8d2e-ff5cee059009.profile.json",
+  "session": "settings/onsite_ack_continue_blue_slot2_2_2_l1_20261011/approach-98487345-5111-4ebe-8d2e-ff5cee059009.session.json",
+  "phase": "approach",
+  "start_zone": "supply",
+  "execution_id": "98487345-5111-4ebe-8d2e-ff5cee059009",
+  "output": "logs/onsite_ack_continue_blue_slot2_2_2_l1_20261011/approach-98487345-5111-4ebe-8d2e-ff5cee059009",
+  "expires_unix_s": 1791706827.3457925
+}

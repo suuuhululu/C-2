@@ -1,0 +1,23 @@
+{
+  "status": "CONTACT_SESSION_PREPARED_NO_MOTION",
+  "execution_id": "b32ca82a-9423-4d31-96cc-560333ed2b88",
+  "profile": "settings/onsite_12_1_l5_20261011/held-contact.profile.json",
+  "session": "settings/onsite_12_1_l5_20261011/session.contact.live.json",
+  "output": "logs/onsite_12_1_l5_20261011/contact-b32ca82a-9423-4d31-96cc-560333ed2b88",
+  "read_only_sample_posx": [
+    486.7526550292969,
+    -74.76769256591797,
+    110.29167938232422,
+    90.22549438476562,
+    179.9781494140625,
+    90.59132385253906
+  ],
+  "gripper_width_mm": 40.4,
+  "contact_near_reference_z_mm": 91.19197845458984,
+  "initial_monitored_descent_mm": 19.099700927734375,
+  "max_extra_descent_mm": 5.0,
+  "force_stop_n": 35.0,
+  "velocity_mm_s": 2.0,
+  "robot_motion_commands": 0,
+  "robot_gripper_commands": 0
+}

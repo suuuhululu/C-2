@@ -1,0 +1,85 @@
+{
+  "status": "FOUR_PREPARED_SETUP_FLOWS_PASSED",
+  "cases": [
+    {
+      "case": "camera_unavailable",
+      "pickup_status": "PAUSED_PICKUP_COMPLETE_HOLDING",
+      "handover_status": "ASSEMBLY_REQUIRED",
+      "assembly_status": "AWAITING_BACKEND_OBSERVATION",
+      "blend_batches": 2,
+      "test_gripper_commands": [
+        [
+          35.0,
+          40.0
+        ],
+        [
+          62.4,
+          40.0
+        ]
+      ],
+      "test_only": true,
+      "device_connections": 0,
+      "real_motion_commands": 0,
+      "real_gripper_commands": 0
+    },
+    {
+      "case": "no_signal",
+      "pickup_status": "PAUSED_PICKUP_COMPLETE_HOLDING",
+      "handover_status": "ASSEMBLY_REQUIRED",
+      "assembly_status": "AWAITING_BACKEND_OBSERVATION",
+      "blend_batches": 2,
+      "test_gripper_commands": [
+        [
+          35.0,
+          40.0
+        ],
+        [
+          62.4,
+          40.0
+        ]
+      ],
+      "test_only": true,
+      "device_connections": 0,
+      "real_motion_commands": 0,
+      "real_gripper_commands": 0
+    },
+    {
+      "case": "auto_open_hand",
+      "pickup_status": "PAUSED_PICKUP_COMPLETE_HOLDING",
+      "handover_status": "LOCAL_HANDOVER_OBSERVE_COMPLETE",
+      "assembly_status": null,
+      "blend_batches": 2,
+      "test_gripper_commands": [
+        [
+          35.0,
+          40.0
+        ],
+        [
+          62.4,
+          40.0
+        ]
+      ],
+      "test_only": true,
+      "device_connections": 0,
+      "real_motion_commands": 0,
+      "real_gripper_commands": 0
+    },
+    {
+      "case": "withdraw_after_stop",
+      "pickup_status": "PAUSED_PICKUP_COMPLETE_HOLDING",
+      "handover_status": "PAUSED_HANDOVER_NO_FRESH_RECEIVING_SIGNAL",
+      "assembly_status": null,
+      "blend_batches": 2,
+      "test_gripper_commands": [
+        [
+          35.0,
+          40.0
+        ]
+      ],
+      "test_only": true,
+      "device_connections": 0,
+      "real_motion_commands": 0,
+      "real_gripper_commands": 0
+    }
+  ]
+}

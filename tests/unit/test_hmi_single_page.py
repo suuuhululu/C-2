@@ -47,20 +47,20 @@ def test_all_major_information_is_visible_together_without_tabs_or_page_scroll(q
     settle(qapp)
     assert window.findChildren(QTabWidget) == []
     assert window.findChildren(QScrollArea) == []
-    items = (window.design_panel, window.design_board, window.design_dialogue.preview_panel,
-        window.design_dialogue.preview_board, window.inspection_view.current_board,
-        window.inspection_view.expected_board, window.execution_view.method, window.execution_view.phase,
-        window.monitor, window.supply, window.step_panel, window.table, window.target_board,
-        window.design_dialogue.phase, window.design_dialogue.conversation, window.inspection_view.summary,
+    items = (window.design_panel, window.design_board, window.execution_view.method, window.execution_view.phase,
+        window.monitor, window.supply, window.step_panel, window.table, window.target_board, window.target_caption,
+        window.design_dialogue.phase, window.design_dialogue.context, window.inspection_view.summary,
         window.inspection_view.details, window.assistance_view.summary, window.assistance_view.target_board,
         window.assistance_view.instruction, *window.completion_view.states.values(), window.notice,
         window.buttons["STOP"], window.user_request_controls.buttons["change_design"])
     for widget in items:
         assert_unclipped(window, widget)
     assert window.table.verticalScrollBar().maximum() == 0
-    assert window.design_board.blocks[-1]["color"] == "blue"
-    assert window.design_dialogue.preview_board.blocks[-1]["color"] == "yellow"
-    assert window.inspection_view.current_board.blocks == before["current"]["blocks"]
+    assert window.design_board.blocks[-1]["color"] == "yellow"
+    assert window._snapshot["design"]["blocks"][-1]["color"] == "blue"
+    assert window.target_board.current == before["current"]
+    assert window.step_panel.height() > window.overview_panels[0].height()
+    assert window.design_dialogue.height() < window.step_panel.height()/4
     assert window._snapshot == before
     demo.selector.setCurrentText("requests_ready")
     settle(qapp)
@@ -83,7 +83,7 @@ def test_case_changes_do_not_hide_other_status_sections_or_mutate_process(qapp, 
         for view in (window.design_dialogue, window.inspection_view, window.execution_view,
                      window.assistance_view, window.completion_view):
             assert view.isVisible()
-        for widget in (window.table, window.buttons["STOP"], window.inspection_view.summary,
+        for widget in (window.table, window.target_caption, window.buttons["STOP"], window.inspection_view.summary,
                        window.design_dialogue.phase, window.assistance_view.summary,
                        *window.completion_view.states.values(), window.notice):
             assert_unclipped(window, widget)
@@ -91,15 +91,17 @@ def test_case_changes_do_not_hide_other_status_sections_or_mutate_process(qapp, 
     window.close()
 
 
-def test_compact_boards_preserve_dimensions_and_fit_five_layers(qapp, monkeypatch):
+def test_compact_boards_preserve_dimensions_and_fit_four_layers(qapp, monkeypatch):
     window = HmiWindow(screen_size=QSize(1024, 768))
     snapshot = deepcopy(load_snapshots()["overview_all"])
     snapshot["design"]["blocks"] = [dict(brick_type="2x2x1", color="blue", x=22, y=22, layer=layer, orientation_deg=0)
-                                     for layer in range(1, 6)]
+                                     for layer in range(1, 5)]
+    del snapshot["design_preview"]
     window.render_snapshot(snapshot)
     window.show()
     settle(qapp)
     board = window.design_board
+    board.overview = False
     points = []
     original = board._brick
     def record(painter, block, project, scale):

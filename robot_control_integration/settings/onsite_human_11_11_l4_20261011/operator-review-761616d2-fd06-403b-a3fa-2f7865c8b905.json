@@ -1,0 +1,14 @@
+{
+  "user_request": "실제 코드에서는 이렇게 한순간의 실패가 모든 공정을 잡아먹지 않도록 유의해야합니다",
+  "previous_execution_id": "127adc43-a3de-4188-900c-98a08a1d2ca1",
+  "existing_operator_space_review_retained": true,
+  "readonly_ref": "settings/onsite_human_11_11_l4_20261011/readonly-f5d26917-c931-4ab7-bcd2-764b48ac236a.json",
+  "accepted_palm_hold_seconds": 0.4,
+  "thumb_hold_seconds": 0.8,
+  "phase": "human-wait",
+  "resume_at_target_high": true,
+  "recognition_reacquire_s": 1.0,
+  "persistent_loss_action": "PAUSE_ONLY_HUMAN_RECEIVE_STAGE_KEEP_GRASP",
+  "robot_motion_commands": 0,
+  "robot_gripper_commands": 0
+}

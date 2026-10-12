@@ -1,0 +1,24 @@
+{
+  "actor": "user",
+  "confirmed_unix_s": 1791703802.0302603,
+  "statement": "네, 4층 유지·5층 제거·슬롯 보충·경로와 인계 공간 비어 있음",
+  "target": {
+    "brick_type": "2x2x1",
+    "color": "blue",
+    "x": 11,
+    "y": 11,
+    "layer": 5,
+    "orientation_deg": 0
+  },
+  "four_layer_support_present": true,
+  "fifth_layer_removed": true,
+  "source_slot_refilled": true,
+  "roundtrip_path_and_target_clear": true,
+  "receiving_space_clear": true,
+  "existing_route_and_15mm_blend_review_retained": true,
+  "robot_contact_descent": false,
+  "automatic_routine_checks": true,
+  "pickup_descent_mm_s": 12.0,
+  "pickup_descent_acc_mm_s2": 6.0,
+  "other_descent_parameters_unchanged": true
+}

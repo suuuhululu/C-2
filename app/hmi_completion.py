@@ -1,6 +1,7 @@
 """물리 조립 종료와 저장·웹 반영 상태를 분리해 표시한다."""
 
-from PyQt5.QtWidgets import QHBoxLayout, QLabel, QTextBrowser, QVBoxLayout, QWidget
+from PyQt5.QtCore import pyqtSignal
+from PyQt5.QtWidgets import QHBoxLayout, QLabel, QPushButton, QTextBrowser, QVBoxLayout, QWidget
 
 
 STORAGE_LABELS = dict(NOT_STARTED="아직 시작 안 함", PENDING="처리 중", SUCCEEDED="완료", FAILED="실패")
@@ -20,6 +21,8 @@ def completion_heading(snapshot):
 
 
 class CompletionView(QWidget):
+    save_requested = pyqtSignal()
+
     def __init__(self):
         super().__init__()
         root = QVBoxLayout(self)
@@ -36,6 +39,10 @@ class CompletionView(QWidget):
             states_row.addWidget(item, 1)
             self.states[name] = item
         root.addLayout(states_row)
+        self.save_button = QPushButton('개인 이력 저장')
+        self.save_button.hide()
+        self.save_button.clicked.connect(self.save_requested)
+        root.addWidget(self.save_button)
         self.reason = QTextBrowser()
         self.reason.setOpenExternalLinks(False)
         self.reason.setFixedHeight(23)
@@ -43,6 +50,8 @@ class CompletionView(QWidget):
 
     def render_snapshot(self, snapshot):
         completion = snapshot.get("completion")
+        self.save_button.setVisible(bool(completion and snapshot['workflow_status'] == 'COMPLETE'))
+        self.save_button.setEnabled(bool(completion and completion['storage'] != 'PENDING'))
         self.summary.setText("완료·저장 정보 미수신" if not completion else
                              f"현재 기록 r{snapshot['current']['current_revision']} · 조립 확인 {snapshot['progress']['completed']}/{snapshot['progress']['total']}")
         titles = dict(blocks_used="필요 블록 사용/작업 소진", assembly="최종 조립 확인", storage="기록 저장", web="개인 웹 반영")

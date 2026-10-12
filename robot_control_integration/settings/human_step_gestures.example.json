@@ -1,0 +1,55 @@
+{
+  "status": "UNARMED_CONFIGURATION_EXAMPLE_NO_EXECUTION_SESSION",
+  "scope": "LOCAL_OPERATOR_TRIAL",
+  "reference_pose_requirement": "D reference_pose must describe the assembly target XY. A legacy HUMAN_ASSEMBLY tray pose must be replaced with a separately reviewed assembly-board target; never copy tray XY as target XY.",
+  "step_settings_patches": {
+    "HUMAN_ASSEMBLY_MANUAL_ASSEMBLY": {
+      "human_step_gestures": {
+        "enabled": true,
+        "wait_z_mm": 194.73294067382812,
+        "handover_width_mm": 62.4,
+        "handover_feedback_range_mm": [
+          60.0,
+          110.0
+        ],
+        "thumb_hold_seconds": 0.8
+      }
+    },
+    "ROBOT_GRIP_HOLD": {
+      "human_step_gestures": {
+        "enabled": true,
+        "wait_z_mm": 194.73294067382812,
+        "thumb_hold_seconds": 0.8
+      }
+    },
+    "ROBOT_GRIP_PRESS_AND_HOLD": {
+      "human_step_gestures": {
+        "enabled": true,
+        "wait_z_mm": 194.73294067382812,
+        "thumb_hold_seconds": 0.8
+      }
+    }
+  },
+  "session_patch": {
+    "human_step_gestures_review_ref": null,
+    "automatic_stage_checks": null
+  },
+  "physical_preparation_required": [
+    "Fresh per-Step target/reference pose and held block binding",
+    "Actual supply-slot grasp and target-high path review",
+    "Human collaboration commissioning reference for HOLD/PRESS_AND_HOLD",
+    "Fresh REAL execution ID/session with explicit local review reference"
+  ],
+  "gesture_policy": {
+    "manual_receive": "OPEN_HAND_0.4_SECONDS_AT_TARGET_HIGH",
+    "manual_completion": "THUMBS_UP_0.8_SECONDS_NEW_REQUEST",
+    "assistance_ready": "THUMBS_UP_0.8_SECONDS_BEFORE_APPROACH_DESCENT",
+    "signal_absent": "PAUSE_HOLDING_NO_AUTONOMOUS_ASSEMBLY_FALLBACK",
+    "other_existing_hmi_stages": "UNCHANGED",
+    "global_open_hand_takeover": "DESIGN_RECOMMENDATION_ONLY_NOT_ENABLED"
+  },
+  "robot_motion_commands": 0,
+  "robot_gripper_commands": 0,
+  "physical_verified": false,
+  "assembly_completion": false
+}

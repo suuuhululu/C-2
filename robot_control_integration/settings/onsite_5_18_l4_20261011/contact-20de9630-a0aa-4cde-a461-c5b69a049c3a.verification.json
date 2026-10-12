@@ -1,0 +1,36 @@
+{
+  "device_connections": 0,
+  "physical_simulation": false,
+  "checks": [
+    {
+      "seating_reply": false,
+      "status": "PAUSED_FULL_SEATING",
+      "mock_moves": 1,
+      "mock_grips": 0,
+      "target": [
+        376.4140028978431,
+        197.87263117251186,
+        67.60824584960938,
+        90.19214630126953,
+        179.97808837890625,
+        90.55794525146484
+      ]
+    },
+    {
+      "seating_reply": true,
+      "status": "PAUSED_SEATED_RELEASE_PENDING",
+      "mock_moves": 1,
+      "mock_grips": 0,
+      "target": [
+        376.4140028978431,
+        197.87263117251186,
+        67.60824584960938,
+        90.19214630126953,
+        179.97808837890625,
+        90.55794525146484
+      ]
+    }
+  ],
+  "real_preflight": "PASSED",
+  "real_execution_started": false
+}

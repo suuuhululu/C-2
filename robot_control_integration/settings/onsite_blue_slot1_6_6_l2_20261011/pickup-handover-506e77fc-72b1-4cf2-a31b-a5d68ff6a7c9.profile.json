@@ -1,0 +1,148 @@
+{
+  "status": "LOCAL_BLUE_REFILLED_SLOT1_PICKUP_FOR_HANDOVER",
+  "trial_kind": "D_LOCAL_SLOT_PICKUP_TRIAL_NOT_LIVE_A_B_D_CONTRACT",
+  "desired_target": {
+    "brick_type": "2x2x1",
+    "color": "blue",
+    "trial_min_xy": [
+      6,
+      6
+    ],
+    "layer": 2,
+    "orientation_deg": 0
+  },
+  "source_slot": {
+    "slot_id": "blue_2x2x1_01",
+    "operator_statement": "파랑 2*2의 1열",
+    "backend_reservation_committed": false
+  },
+  "step": {
+    "case_id": "onsite_blue_slot1_trial6_6_layer2_no_turn",
+    "step_id": "S01",
+    "plan_id": "D_LOCAL_BLUE_SLOT1_TRIAL6_6_L2_20261011",
+    "block": {
+      "brick_type": "2x2x1",
+      "color": "blue",
+      "x": 6,
+      "y": 6,
+      "layer": 2,
+      "orientation_deg": 0
+    },
+    "action": {
+      "mode": "ROBOT_GRIP",
+      "assistance_kind": "NONE",
+      "human_actions": []
+    },
+    "current_revision": null,
+    "reservation": null,
+    "summary": {}
+  },
+  "d_profile": {
+    "profile_id": "D_LOCAL_BLUE_REFILL_PICKUP_506e77fc-72b1-4cf2-a31b-a5d68ff6a7c9",
+    "physical_route_reviewed": true,
+    "human_collaboration_commissioning_ref": null,
+    "clearance_z_mm": 194.73294067382812,
+    "supply_transit_xy_mm": [
+      -364.8591304347826,
+      -171.54
+    ],
+    "body_bypass_xy_mm": [
+      -27.878286361694336,
+      -411.9568176269531
+    ],
+    "place_pose": [
+      418.2707214355469,
+      -181.1972198486328,
+      14.935303688049316,
+      161.52828979492188,
+      179.58567810058594,
+      161.99119567871094
+    ],
+    "approach_offset_mm": 20.1,
+    "near_contact_offset_mm": 1.0,
+    "force_stop_n": 35.0,
+    "max_press_travel_mm": 5.0,
+    "transfer_velocity": 16.0,
+    "transfer_acceleration": 8.0,
+    "descent_velocity": 2.0,
+    "descent_acceleration": 1.0,
+    "gripper_force_n": 40.0,
+    "steps": {
+      "onsite_blue_slot1_trial6_6_layer2_no_turn/S01": {
+        "reference_pose": [
+          391.2919964334239,
+          5.926653256623638,
+          33.63553237915039,
+          73.10492706298828,
+          -177.20652770996094,
+          73.32064056396484
+        ],
+        "pickup_pose": [
+          -333.4477844238281,
+          49.072635650634766,
+          52.20610046386719,
+          125.77477264404297,
+          -175.88323974609375,
+          124.51481628417969
+        ],
+        "physical_reference_reviewed": true,
+        "pickup_width_mm": 40.0,
+        "release_width_mm": 62.4,
+        "release_pose": null,
+        "press_approach_pose": null,
+        "press_start_pose": null,
+        "press_width_mm": null,
+        "notes": [
+          "SAME_GRASP_TCP_AND_ORIENTATION_MUST_BE_REVIEWED",
+          "PICKUP_AND_MINIMAL_RELEASE_WIDTH_MUST_BE_TAUGHT",
+          "LAYER_MEASURED_AT_CENTRE_XY_SPATIAL_CANDIDATE_ONLY"
+        ],
+        "release_feedback_range_mm": [
+          61.4,
+          64.2
+        ],
+        "turn_base_z_deg": 0.0,
+        "turn_reference": "CURRENT_SESSION_GRASP_BASE_Z",
+        "pickup_start_open_range_mm": [
+          60.0,
+          110.0
+        ],
+        "pickup_start_open_range_source": "Failed initial opening feedback:54status0samples at60.0..60.2mm; eightfresh stopped status0samples at60mm; prior cleared upper opening64.2mm; taught blue32mm external span and successful40mm grasp command."
+      }
+    }
+  },
+  "operator_confirmations": {
+    "one_layer_support_present": true,
+    "board_and_slot_layout_unchanged": true,
+    "roundtrip_path_and_target_clear": true,
+    "source": "Human replies in integration chat on 2026-10-11"
+  },
+  "pickup_source": {
+    "path": "fixtures/teaching_sources/supply_slot1_grasp_summary.json",
+    "sha256": "550916f2bfdb5de240642d27a13308268f15fdb83157e5f09f1c98306052045e",
+    "kind": "ACTUAL_OPERATOR_CONFIRMED_SLOT1_GRASP_AT_REPORTED_5MM_HEIGHT",
+    "uniform_slot_interpolation_used": false
+  },
+  "assembly_completion": false,
+  "current_update": false,
+  "physical_verified": false,
+  "hardware_verified": false,
+  "current_grasp_transform_verified": false,
+  "exact_target_taught": false,
+  "pending": [
+    "PICKUP_ALIGNMENT at slot before lowering",
+    "GRASP_CONFIRMED after feedback",
+    "New held approach session for loaded return",
+    "ALIGNMENT_AND_PARALLEL at assembly target before contact",
+    "FULL_SEATING and RELEASE observations"
+  ],
+  "initial_phase": "pickup",
+  "start_zone": "assembly",
+  "readiness_ref": "settings/onsite_blue_slot1_6_6_l2_20261011/pickup-fast-readiness.json",
+  "parent_release_execution_id": "556ebfda-b7d5-4adb-b4cc-7aed4b743347",
+  "operator_release_observation": "잘 유지됨. 이제 place board 경유해서 공급판으로 가면될듯",
+  "operator_review_scope": "Same operator-cleared route and teaching. Read-only samples verify stopped open gripper at60mm. Pickup requires three fresh open readings in60..64.2mm and avoids redundant opening; actual seated-block release range unchanged.",
+  "failed_pickup_execution_id": "c47bd497-fbf6-403e-846f-d7c06e8375ac",
+  "operator_speed_request": "속도좀 높여줘",
+  "parent_retreat_execution_id": "70b6e624-c78f-403c-b7cb-4f8bfd129352"
+}

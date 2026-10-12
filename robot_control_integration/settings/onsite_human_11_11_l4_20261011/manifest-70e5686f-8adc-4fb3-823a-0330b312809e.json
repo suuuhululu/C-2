@@ -1,0 +1,11 @@
+{
+  "profile": "settings/onsite_human_11_11_l4_20261011/full-70e5686f-8adc-4fb3-823a-0330b312809e.profile.json",
+  "session": "settings/onsite_human_11_11_l4_20261011/full-70e5686f-8adc-4fb3-823a-0330b312809e.session.json",
+  "output": "logs/onsite_human_11_11_l4_20261011/full-70e5686f-8adc-4fb3-823a-0330b312809e",
+  "execution_id": "70e5686f-8adc-4fb3-823a-0330b312809e",
+  "readiness": "settings/onsite_human_11_11_l4_20261011/readonly-39a1d98b-156f-4372-b365-41d8048a9ea8.json",
+  "phase": "full",
+  "start_zone": "assembly",
+  "prepared_unix_s": 1791700904.9583945,
+  "expires_unix_s": 1791702704.490601
+}

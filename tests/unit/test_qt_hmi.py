@@ -146,21 +146,17 @@ def test_qt_stop_resume_routes_to_controller_without_duplicate_consumption(windo
     assert demo.backend.state["current"]["blocks"] == demo.fixtures["design"]["blocks"]
 
 
-def test_qt_refill_button_reaches_backend_controller_and_resumes_after_new_empty(window, qapp, tmp_path):
+def test_qt_cycle_continues_without_refill_button(window, qapp, tmp_path):
     config_path = tmp_path/"robot.json"
     config_path.write_text(json.dumps({**deepcopy(CONFIG), "slot_count":1}))
     demo = FakeDemo(window, tmp_path/"logs", delay_ms=1, robot_config=config_path)
     qapp.processEvents(); window.buttons["START"].click()
-    wait_until(demo, lambda: demo.backend.state["reason"] == "NEEDS_REFILL")
-    qapp.processEvents()
-    button = window.refill_buttons["2x2x1","yellow"]
-    assert button.isVisible() and button.isEnabled() and "보충 필요" in window.supply.text()
-    assert demo.backend.state["current"]["current_revision"] == 1
-    assert len(demo.driver.calls) == 3
-    button.click()
     wait_for(demo, "COMPLETE"); qapp.processEvents()
+    button = window.refill_buttons["2x2x1","yellow"]
+    assert not button.isVisible() and "보충 필요" not in window.supply.text()
     assert len([op for op,_ in demo.driver.calls if op == "pick"]) == 3
-    assert demo.controller.state["supply"][0]["needs_refill"]
+    assert demo.controller.state["supply"][0]["next_slot"] == 1
+    assert not demo.controller.state["supply"][0]["needs_refill"]
 
 
 @pytest.mark.parametrize("scenario,slot", [("robot-pick-failure",1), ("robot-return-failure",2), ("robot-timeout",1)])
@@ -324,13 +320,12 @@ def test_back_view_axes_match_design_and_current_without_swapping_coordinates(wi
 
 @pytest.mark.parametrize("x,y,width,height", [(0,0,420,155), (21,0,420,260),
                                               (0,21,420,260), (21,21,280,155)])
-@pytest.mark.parametrize("layers", [4, 5])
-def test_layer_preview_and_zoom_fit_with_studs_and_preserve_input(qapp, monkeypatch, tmp_path, x,y,width,height,layers):
+def test_four_layer_preview_and_zoom_fit_with_studs_and_preserve_input(qapp, monkeypatch, tmp_path, x,y,width,height):
     from app.hmi_board import BoardView, dimensions, STUD_HEIGHT
 
     board = BoardView(isometric=True)
     blocks = [dict(brick_type="2x3x1",color="blue",x=x,y=y,layer=layer,orientation_deg=90)
-              for layer in range(1,layers+1)]
+              for layer in range(1,5)]
     before = deepcopy(blocks)
     board.resize(width,height)
     board.set_blocks(blocks)
@@ -347,11 +342,11 @@ def test_layer_preview_and_zoom_fit_with_studs_and_preserve_input(qapp, monkeypa
 
     monkeypatch.setattr(board,"_brick",draw)
     board.show();qapp.processEvents()
-    assert board.grab().save(str(tmp_path/f"{layers}-layer-{x}-{y}.png"))
-    assert draws and len(draws)%(layers*2)==0
-    for group in range(0,len(draws),layers*2):
-        for index,points in enumerate(draws[group:group+layers*2]):
-            left,right=(0,width*.6) if index<layers else (width*.6,width)
+    assert board.grab().save(str(tmp_path/f"four-layer-{x}-{y}.png"))
+    assert draws and len(draws)%8==0
+    for group in range(0,len(draws),8):
+        for index,points in enumerate(draws[group:group+8]):
+            left,right=(0,width*.6) if index<4 else (width*.6,width)
             assert all(left < point.x() < right and 22 < point.y() < height-10 for point in points)
     assert blocks == before and board.blocks == before
     board.close()

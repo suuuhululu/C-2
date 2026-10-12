@@ -1,0 +1,251 @@
+{
+  "status": "CORNER_22_21_EXCLUDED_RETEACH_REQUIRED",
+  "brick_type": "2x3x1",
+  "color": "yellow",
+  "long_axis": "Y",
+  "minimum_anchor_domain": {
+    "x": [
+      0,
+      22
+    ],
+    "y": [
+      0,
+      21
+    ]
+  },
+  "tcp": "GripperDA_v4",
+  "tool": "ToolWeight0",
+  "reference": "BASE",
+  "position_units": "mm",
+  "orientation_convention": "ZYZ degrees",
+  "points": [
+    {
+      "grid": [
+        0,
+        0
+      ],
+      "posx": [
+        295.55718994140625,
+        -79.97845458984375,
+        16.273054122924805,
+        162.76258850097656,
+        179.6156768798828,
+        163.4340057373047
+      ],
+      "posj": [
+        -15.912039756774902,
+        -1.6716995239257812,
+        120.6675033569336,
+        -0.03967704623937607,
+        61.38825225830078,
+        -15.589094161987305
+      ],
+      "source_evidence": "/home/rokey/Documents/ChatGPT/로봇제어 개발/handoff_20261008/assembly_development_transfer_20261008/return_evidence/onsite_teaching/f32a615c-fff5-4f98-8d93-a97f01319790/yellow6_seated_0_0_c31d76e0-ae1a-43f9-88a3-4ef5ca052445.json",
+      "gripper_width_mm": 40.1,
+      "wrench": [
+        -1.9838699102401733,
+        -2.413200616836548,
+        9.726788520812988,
+        0.22218365967273712,
+        -0.6503158211708069,
+        -0.04377107694745064
+      ]
+    },
+    {
+      "grid": [
+        0,
+        21
+      ],
+      "posx": [
+        296.70880126953125,
+        253.71669006347656,
+        16.414976119995117,
+        42.28896713256836,
+        -179.02447509765625,
+        42.73518371582031
+      ],
+      "posj": [
+        40.005985260009766,
+        10.160356521606445,
+        107.70801544189453,
+        -0.008192172273993492,
+        63.10614776611328,
+        40.09396743774414
+      ],
+      "source_evidence": "/home/rokey/Documents/ChatGPT/로봇제어 개발/handoff_20261008/assembly_development_transfer_20261008/return_evidence/onsite_teaching/f32a615c-fff5-4f98-8d93-a97f01319790/yellow6_seated_0_21_c1459f06-ee91-45f4-a845-62aed216648a.json",
+      "gripper_width_mm": 40.1,
+      "wrench": [
+        -5.241264820098877,
+        -5.567071914672852,
+        18.169370651245117,
+        0.5670439600944519,
+        -0.5250876545906067,
+        0.20162244141101837
+      ]
+    },
+    {
+      "grid": [
+        22,
+        0
+      ],
+      "posx": [
+        646.7575073242188,
+        -82.06021881103516,
+        16.96608543395996,
+        60.62116241455078,
+        -178.9788360595703,
+        61.093406677246094
+      ],
+      "posj": [
+        -7.091842174530029,
+        45.27627182006836,
+        53.51556396484375,
+        -0.706743597984314,
+        81.59210205078125,
+        -6.767316818237305
+      ],
+      "source_evidence": "/home/rokey/Documents/ChatGPT/로봇제어 개발/handoff_20261008/assembly_development_transfer_20261008/return_evidence/onsite_teaching/f32a615c-fff5-4f98-8d93-a97f01319790/yellow6_seated_22_0_0e1e00da-2534-4209-93be-d12d409d190e.json",
+      "gripper_width_mm": 40.1,
+      "wrench": [
+        -3.8408865928649902,
+        -0.01843118481338024,
+        13.484724044799805,
+        -1.1913306713104248,
+        5.5488080978393555,
+        -0.07236433774232864
+      ]
+    },
+    {
+      "grid": [
+        22,
+        21
+      ],
+      "posx": [
+        647.6683349609375,
+        252.32098388671875,
+        18.393085479736328,
+        48.34785079956055,
+        -177.42982482910156,
+        49.08353805541992
+      ],
+      "posj": [
+        21.471216201782227,
+        56.39634704589844,
+        32.590267181396484,
+        -0.8739250302314758,
+        93.3017807006836,
+        21.973329544067383
+      ],
+      "source_evidence": "/home/rokey/Documents/ChatGPT/로봇제어 개발/handoff_20261008/assembly_development_transfer_20261008/return_evidence/onsite_teaching/f32a615c-fff5-4f98-8d93-a97f01319790/yellow6_seated_22_21_119f07f6-2225-4753-9134-f12d4fc7e51b.json",
+      "gripper_width_mm": 40.1,
+      "wrench": [
+        7.724942207336426,
+        -0.8824914693832397,
+        -3.0865180492401123,
+        -1.156092643737793,
+        5.565338611602783,
+        0.23963379859924316
+      ]
+    }
+  ],
+  "affine_candidate": {
+    "formula": "xyz = origin_xyz + x * step_x_xyz + y * step_y_xyz",
+    "origin_xyz": [
+      295.61738586425776,
+      -80.1499691009522,
+      15.951784610748296
+    ],
+    "step_x_xyz": [
+      15.958178433504976,
+      -0.07903341813521081,
+      0.06070774251764463
+    ],
+    "step_y_xyz": [
+      0.049105689639130645,
+      15.906579698835102,
+      0.03735528673444463
+    ],
+    "step_x_length_mm": 15.95848960982107,
+    "step_y_length_mm": 15.906699359125229,
+    "residual_xyz_mm": [
+      [
+        -0.06019592285150566,
+        0.17151451110845528,
+        0.32126951217650834
+      ],
+      [
+        0.06019592285173303,
+        -0.17151451110839844,
+        -0.3212695121765172
+      ],
+      [
+        0.0601959228515625,
+        -0.17151451110831317,
+        -0.3212695121765172
+      ],
+      [
+        -0.06019592285144881,
+        0.17151451110842686,
+        0.32126951217651367
+      ]
+    ],
+    "fit_rmse_3d_mm": 0.3691271814738648,
+    "eligible_for_motion": false,
+    "status": "HISTORICAL_FIT_INCLUDES_EXCLUDED_POINT_DO_NOT_USE"
+  },
+  "corner_closure_xyz_mm": [
+    -0.24078369140625,
+    0.6860580444335938,
+    1.2850780487060547
+  ],
+  "corner_closure_norm_mm": 1.476508725895458,
+  "actual_orientation_difference_from_0_0_deg": [
+    0.0,
+    0.8766544424935985,
+    1.0313699836335137,
+    2.4376319666096324
+  ],
+  "z_range_mm": [
+    16.273054122924805,
+    18.393085479736328
+  ],
+  "extra_4_0_comparison": {
+    "fit_uses_this_point": false,
+    "predicted_xyz": [
+      359.4500995982777,
+      -80.46610277349305,
+      16.194615580818876
+    ],
+    "measured_xyz": [
+      359.34515380859375,
+      -80.94698333740234,
+      16.05805206298828
+    ],
+    "measured_minus_predicted_xyz_mm": [
+      -0.10494578968393853,
+      -0.48088056390929523,
+      -0.13656351783059506
+    ],
+    "error_norm_mm": 0.5107928444294951
+  },
+  "orientation_interpolation_implemented": false,
+  "full_tcp_to_block_transform_calibrated": false,
+  "whole_robot_collision_verified": false,
+  "automatic_motion_enabled": false,
+  "global_board_transform_replaced": false,
+  "limitations": [
+    "All seating is operator-reported; no independent camera or tactile verification",
+    "Corner attitudes differ; do not interpret all TCP Z variation as board slope",
+    "Same-grasp rigid transform and centre offsets are not verified",
+    "Affine in-sample residual is not independent validation of full workspace"
+  ],
+  "motion_commands": 0,
+  "gripper_commands": 0,
+  "excluded_grid": [
+    [
+      22,
+      21
+    ]
+  ],
+  "latest_repeat_source": "/home/rokey/Documents/ChatGPT/로봇제어 개발/handoff_20261008/assembly_development_transfer_20261008/return_evidence/onsite_teaching/f32a615c-fff5-4f98-8d93-a97f01319790/yellow6_seated_22_21_repeat_e4509014-bd4c-45eb-87bb-84f24f6965fb.json"
+}

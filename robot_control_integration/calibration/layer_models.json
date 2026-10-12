@@ -1,0 +1,305 @@
+{
+  "schema_version": 1,
+  "status": "MEASUREMENT_REPORT",
+  "models": [
+    {
+      "group": {
+        "setup_id": "onsite_20261010",
+        "grasp_id": "yellow4_a",
+        "brick_type": "2x2x1",
+        "color": "yellow",
+        "orientation_deg": 0,
+        "layer": 1,
+        "tcp": "GripperDA_v4",
+        "tool": "ToolWeight0"
+      },
+      "fit_record_ids": [
+        "826f19a4-0f2c-49b3-af6c-0c0dda8adbce"
+      ],
+      "check_record_ids": [],
+      "executable": false,
+      "taught_points": [
+        {
+          "target": {
+            "brick_type": "2x2x1",
+            "color": "yellow",
+            "x": 11,
+            "y": 11,
+            "layer": 1,
+            "orientation_deg": 0
+          },
+          "posx": [
+            472.05499267578125,
+            85.7425765991211,
+            15.51624870300293,
+            75.28691864013672,
+            -177.2896270751953,
+            75.40895080566406
+          ],
+          "record_id": "826f19a4-0f2c-49b3-af6c-0c0dda8adbce"
+        }
+      ],
+      "status": "POINT_REFERENCES_ONLY",
+      "global_fit_missing": "THREE_NONCOLLINEAR_SEATED_POINTS"
+    },
+    {
+      "group": {
+        "setup_id": "onsite_20261010",
+        "grasp_id": "yellow4_a",
+        "brick_type": "2x2x1",
+        "color": "yellow",
+        "orientation_deg": 0,
+        "layer": 2,
+        "tcp": "GripperDA_v4",
+        "tool": "ToolWeight0"
+      },
+      "fit_record_ids": [
+        "b83de7ed-d3eb-4e10-be43-00e1f0462fcb",
+        "e12cca19-b060-4661-8169-bf7fe4f2c2e1"
+      ],
+      "check_record_ids": [],
+      "executable": false,
+      "taught_points": [
+        {
+          "target": {
+            "brick_type": "2x2x1",
+            "color": "yellow",
+            "x": 11,
+            "y": 11,
+            "layer": 2,
+            "orientation_deg": 0
+          },
+          "posx": [
+            471.38330078125,
+            85.36578369140625,
+            33.63553237915039,
+            73.10492706298828,
+            -177.20652770996094,
+            73.32064056396484
+          ],
+          "record_id": "b83de7ed-d3eb-4e10-be43-00e1f0462fcb"
+        },
+        {
+          "target": {
+            "brick_type": "2x2x1",
+            "color": "yellow",
+            "x": 0,
+            "y": 18,
+            "layer": 2,
+            "orientation_deg": 0
+          },
+          "posx": [
+            295.9917297363281,
+            197.69163513183594,
+            30.842016220092773,
+            73.10157012939453,
+            -177.20640563964844,
+            73.31722259521484
+          ],
+          "record_id": "e12cca19-b060-4661-8169-bf7fe4f2c2e1"
+        }
+      ],
+      "status": "POINT_REFERENCES_ONLY",
+      "global_fit_missing": "THREE_NONCOLLINEAR_SEATED_POINTS"
+    },
+    {
+      "group": {
+        "setup_id": "onsite_20261010",
+        "grasp_id": "yellow4_a",
+        "brick_type": "2x2x1",
+        "color": "yellow",
+        "orientation_deg": 0,
+        "layer": 3,
+        "tcp": "GripperDA_v4",
+        "tool": "ToolWeight0"
+      },
+      "fit_record_ids": [
+        "8adda728-d663-4bd1-8553-90c2cce3524a"
+      ],
+      "check_record_ids": [],
+      "executable": false,
+      "taught_points": [
+        {
+          "target": {
+            "brick_type": "2x2x1",
+            "color": "yellow",
+            "x": 11,
+            "y": 11,
+            "layer": 3,
+            "orientation_deg": 0
+          },
+          "posx": [
+            471.61138916015625,
+            85.72891998291016,
+            52.92000961303711,
+            70.23124694824219,
+            -177.07777404785156,
+            70.48985290527344
+          ],
+          "record_id": "8adda728-d663-4bd1-8553-90c2cce3524a"
+        }
+      ],
+      "status": "POINT_REFERENCES_ONLY",
+      "global_fit_missing": "THREE_NONCOLLINEAR_SEATED_POINTS"
+    },
+    {
+      "group": {
+        "setup_id": "onsite_20261010",
+        "grasp_id": "yellow4_a",
+        "brick_type": "2x2x1",
+        "color": "yellow",
+        "orientation_deg": 0,
+        "layer": 4,
+        "tcp": "GripperDA_v4",
+        "tool": "ToolWeight0"
+      },
+      "fit_record_ids": [
+        "2409ad04-94d7-425e-bf7c-dd2bc1eda277",
+        "fc4193e4-04a2-4418-b516-cb33274460a7"
+      ],
+      "check_record_ids": [],
+      "executable": false,
+      "taught_points": [
+        {
+          "target": {
+            "brick_type": "2x2x1",
+            "color": "yellow",
+            "x": 11,
+            "y": 11,
+            "layer": 4,
+            "orientation_deg": 0
+          },
+          "posx": [
+            471.9372863769531,
+            85.85430908203125,
+            71.7586898803711,
+            68.62421417236328,
+            -176.98472595214844,
+            68.97066497802734
+          ],
+          "record_id": "2409ad04-94d7-425e-bf7c-dd2bc1eda277"
+        },
+        {
+          "target": {
+            "brick_type": "2x2x1",
+            "color": "yellow",
+            "x": 11,
+            "y": 11,
+            "layer": 4,
+            "orientation_deg": 0
+          },
+          "posx": [
+            471.9385681152344,
+            85.85523986816406,
+            71.60824584960938,
+            72.24752807617188,
+            -177.0513153076172,
+            72.59900665283203
+          ],
+          "record_id": "fc4193e4-04a2-4418-b516-cb33274460a7"
+        }
+      ],
+      "seated_z_reference": {
+        "record_id": "fc4193e4-04a2-4418-b516-cb33274460a7",
+        "floor_z_mm": 71.60824584960938,
+        "measured_target": {
+          "brick_type": "2x2x1",
+          "color": "yellow",
+          "x": 11,
+          "y": 11,
+          "layer": 4,
+          "orientation_deg": 0
+        },
+        "source": "OPERATOR_ADOPTED_LAYER_Z"
+      },
+      "status": "POINT_REFERENCES_ONLY",
+      "global_fit_missing": "THREE_NONCOLLINEAR_SEATED_POINTS"
+    },
+    {
+      "group": {
+        "setup_id": "onsite_20261010",
+        "grasp_id": "yellow4_a",
+        "brick_type": "2x2x1",
+        "color": "yellow",
+        "orientation_deg": 0,
+        "layer": 5,
+        "tcp": "GripperDA_v4",
+        "tool": "ToolWeight0"
+      },
+      "fit_record_ids": [
+        "d94f9aeb-9309-4a59-abf2-b79d2ee926eb",
+        "3bba0b6d-7d0d-4a16-b71a-fabc5569139c"
+      ],
+      "check_record_ids": [],
+      "executable": false,
+      "taught_points": [
+        {
+          "target": {
+            "brick_type": "2x2x1",
+            "color": "yellow",
+            "x": 11,
+            "y": 11,
+            "layer": 5,
+            "orientation_deg": 0
+          },
+          "posx": [
+            471.2296142578125,
+            84.79029846191406,
+            90.69181823730469,
+            69.2514877319336,
+            -176.9781494140625,
+            69.80133819580078
+          ],
+          "record_id": "d94f9aeb-9309-4a59-abf2-b79d2ee926eb"
+        },
+        {
+          "target": {
+            "brick_type": "2x2x1",
+            "color": "yellow",
+            "x": 11,
+            "y": 9,
+            "layer": 5,
+            "orientation_deg": 0
+          },
+          "posx": [
+            471.1397399902344,
+            52.891178131103516,
+            90.19197845458984,
+            69.25106811523438,
+            -176.97811889648438,
+            69.8008804321289
+          ],
+          "record_id": "3bba0b6d-7d0d-4a16-b71a-fabc5569139c"
+        }
+      ],
+      "seated_z_reference": {
+        "record_id": "3bba0b6d-7d0d-4a16-b71a-fabc5569139c",
+        "floor_z_mm": 90.19197845458984,
+        "measured_target": {
+          "brick_type": "2x2x1",
+          "color": "yellow",
+          "x": 11,
+          "y": 9,
+          "layer": 5,
+          "orientation_deg": 0
+        },
+        "source": "OPERATOR_ADOPTED_LAYER_Z"
+      },
+      "status": "POINT_REFERENCES_ONLY",
+      "global_fit_missing": "THREE_NONCOLLINEAR_SEATED_POINTS"
+    }
+  ],
+  "excluded_record_ids": [
+    "fbc4c86b-4318-4802-b5e5-d73abcd8f00f"
+  ],
+  "measured_layers": [
+    1,
+    2,
+    3,
+    4,
+    5
+  ],
+  "fitted_layers": [],
+  "automatic_layer_height": false,
+  "automatic_motion": false
+}

@@ -1,0 +1,255 @@
+{
+  "raw_result": {
+    "status": "CANDIDATE",
+    "execution_allowed": false,
+    "motion_proposal": {
+      "motion_plan_id": "motion-7b0a52ceecba46acbe3430de28e4255c",
+      "motion_scope": "PICK_TRANSPORT_TO_HANDOVER_TRAY",
+      "pickup_tcp_pose": {
+        "frame_id": "base_link",
+        "xyz_m": [
+          -0.32202239130434784,
+          0.12912358695652176,
+          0.05004
+        ],
+        "quaternion_xyzw": [
+          -0.006719467028189488,
+          -0.9999774203187898,
+          7.783434946000023e-05,
+          3.9462000956418785e-05
+        ]
+      },
+      "segments": [
+        {
+          "stage": "APPROACH_PICK",
+          "waypoints": [
+            {
+              "label": "RISE_FROM_CURRENT",
+              "motion_type": "LINEAR",
+              "tcp_pose": {
+                "frame_id": "base_link",
+                "xyz_m": [
+                  0.3,
+                  0,
+                  0.4
+                ],
+                "quaternion_xyzw": [
+                  0,
+                  0,
+                  0,
+                  1
+                ]
+              }
+            },
+            {
+              "label": "ABOVE_PICK",
+              "motion_type": "LINEAR",
+              "tcp_pose": {
+                "frame_id": "base_link",
+                "xyz_m": [
+                  -0.32202239130434784,
+                  0.12912358695652176,
+                  0.4
+                ],
+                "quaternion_xyzw": [
+                  -0.006719467028189488,
+                  -0.9999774203187898,
+                  7.783434946000023e-05,
+                  3.9462000956418785e-05
+                ]
+              }
+            },
+            {
+              "label": "PICK_APPROACH",
+              "motion_type": "LINEAR",
+              "tcp_pose": {
+                "frame_id": "base_link",
+                "xyz_m": [
+                  -0.32202239130434784,
+                  0.12912358695652176,
+                  0.08003999999999999
+                ],
+                "quaternion_xyzw": [
+                  -0.006719467028189488,
+                  -0.9999774203187898,
+                  7.783434946000023e-05,
+                  3.9462000956418785e-05
+                ]
+              }
+            },
+            {
+              "label": "PICK_TCP",
+              "motion_type": "LINEAR",
+              "tcp_pose": {
+                "frame_id": "base_link",
+                "xyz_m": [
+                  -0.32202239130434784,
+                  0.12912358695652176,
+                  0.05004
+                ],
+                "quaternion_xyzw": [
+                  -0.006719467028189488,
+                  -0.9999774203187898,
+                  7.783434946000023e-05,
+                  3.9462000956418785e-05
+                ]
+              }
+            }
+          ],
+          "gripper_event": null
+        },
+        {
+          "stage": "D_PICK_AND_CONFIRM",
+          "waypoints": [],
+          "gripper_event": "D_EXISTING_PICKUP_CLOSE_AND_CONFIRM"
+        },
+        {
+          "stage": "TRANSPORT_HOLDING",
+          "waypoints": [
+            {
+              "label": "LIFT_HOLDING",
+              "motion_type": "LINEAR",
+              "tcp_pose": {
+                "frame_id": "base_link",
+                "xyz_m": [
+                  -0.32202239130434784,
+                  0.12912358695652176,
+                  0.4
+                ],
+                "quaternion_xyzw": [
+                  -0.006719467028189488,
+                  -0.9999774203187898,
+                  7.783434946000023e-05,
+                  3.9462000956418785e-05
+                ]
+              }
+            },
+            {
+              "label": "TRANSIT_ABOVE_TRAY",
+              "motion_type": "LINEAR",
+              "tcp_pose": {
+                "frame_id": "base_link",
+                "xyz_m": [
+                  0.41756099999999996,
+                  -0.184622,
+                  0.4
+                ],
+                "quaternion_xyzw": [
+                  0.9995065163702346,
+                  0.0002965595620009024,
+                  -0.0165916672871306,
+                  0.026671189746566834
+                ]
+              }
+            },
+            {
+              "label": "HANDOVER_TRAY_HOLDING",
+              "motion_type": "LINEAR",
+              "tcp_pose": {
+                "frame_id": "base_link",
+                "xyz_m": [
+                  0.41756099999999996,
+                  -0.184622,
+                  0.019712
+                ],
+                "quaternion_xyzw": [
+                  0.9995065163702346,
+                  0.0002965595620009024,
+                  -0.0165916672871306,
+                  0.026671189746566834
+                ]
+              }
+            }
+          ],
+          "gripper_event": null
+        }
+      ],
+      "terminal_gripper_policy": "HOLD_NO_AUTOMATIC_OPEN",
+      "handoff_to": "D_HANDOVER_RELEASE_AND_RETREAT",
+      "assembly_completed": false,
+      "validation": {
+        "ik_verified": false,
+        "full_path_collision_verified": false,
+        "physical_grasp_verified": false,
+        "d_execution_approved": false
+      },
+      "limits": [
+        "D_TRAY_PROFILE_REQUIRED_AND_NOT_REVALIDATED_ON_DEVICE",
+        "OVERHEAD_WAYPOINTS_NOT_FULL_ROBOT_COLLISION_PROOF",
+        "PICKUP_OPEN_CLOSE_AND_GRASP_CONFIRMATION_D_OWNED",
+        "START_STATE_AND_RESERVATION_FRESHNESS_D_REGISTRY_REQUIRED",
+        "UNLOADED_APPROACH_AND_ORIENTATION_CHANGE_NOT_COLLISION_VERIFIED"
+      ],
+      "speed_profile_ref": {
+        "profile_id": "D_PROFILE_REQUIRED",
+        "version": "UNCONFIRMED",
+        "verification": "UNVERIFIED"
+      },
+      "profile_id": "D_FIXTURE_FRAME_PROFILE",
+      "profile_version": "fixture-v1",
+      "current_revision": 2
+    },
+    "errors": [],
+    "coordinate_audit": {
+      "pickup": {
+        "schema_version": "supply-pick-coordinate-candidate/0.2",
+        "profile_id": "supply-16a5614e1d41e95c-red-user20261010",
+        "status": "COORDINATE_CANDIDATE",
+        "brick_type": "2x3x1",
+        "color": "yellow",
+        "slot_index": 1,
+        "relative_block_centre_grid": [
+          0,
+          -3.5
+        ],
+        "pickup_tcp_pose": {
+          "frame_id": "robot_base",
+          "position_unit": "mm",
+          "orientation_unit": "degree",
+          "orientation_convention": "ZYZ",
+          "xyz_abc": [
+            -322.0223913043478,
+            129.12358695652176,
+            50.04,
+            62.73,
+            -179.99,
+            63.5
+          ]
+        },
+        "grasp": {
+          "width_grid_cells": 2,
+          "closing_axis": "SUPPLY_GRID_X",
+          "contact": "LONG_SIDE_MIDPOINT",
+          "pad_bottom_above_block_bottom_mm": 5.0,
+          "taught_reference_height_mm": 8,
+          "tcp_z_shift_from_taught_mm": -3.0,
+          "reference_equivalence": "USER_CONFIRMED_SAME_REFERENCE",
+          "target_reference": "GRIPPER_PAD_BOTTOM",
+          "derived_not_remeasured": true,
+          "close_command_source": "D_EXISTING_SETTINGS_NO_A_OVERRIDE"
+        },
+        "execution_allowed": false,
+        "slot_readiness_checked": false,
+        "slot_management_owner": "D",
+        "provenance": "FOUR_CORNER_XY_SPACING_PLUS_TAUGHT_FIRST_PICK_TCP",
+        "height_policy": "TAUGHT_FIRST_PICK_Z_PLUS_EXPLICIT_GRIP_HEIGHT_SHIFT",
+        "orientation_policy": "PRESERVE_TAUGHT_FIRST_PICK_ZYZ"
+      },
+      "tray": {
+        "profile_id": "EXISTING_HANDOFF_REFERENCE_SIM_ONLY",
+        "tcp_pose_mm_zyz_deg": [
+          417.561,
+          -184.622,
+          19.712,
+          58.132,
+          -176.4,
+          -121.902
+        ],
+        "travel_tcp_z_mm": 400,
+        "source_reference": "/home/ms-02/seeun_sim_gpu_20261006/isaac_preview/config/pose_references.json#handoff_release",
+        "verification": "USER_SELECTED_EXISTING_REFERENCE_FOR_SIM_NOT_NEW_GRIPPER_CALIBRATION"
+      },
+      "profile_content_digest": "8df5efd8119754501ed6baec7cfcbc0cc9f88597395d9821ab6b4fe36f7a191f"
+    }
+  }
+}
