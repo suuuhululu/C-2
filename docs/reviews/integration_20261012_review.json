@@ -1,0 +1,238 @@
+{
+  "date": "2026-10-12",
+  "scope": "documentation and isolated no-hardware review; no code fixes",
+  "integration_sha": "de59b083ad7a5b2225b372078654d2af3a28255b",
+  "main_sha": "afd75d0b0943d85b44248ea563e89f860921e1dd",
+  "pr26_and_pr27_ancestor": true,
+  "boundary_reproduction": {
+    "slot_reinspection": {
+      "accepted": true,
+      "before": "{('2x2x1', 'blue'): 2}",
+      "after": "{('2x2x1', 'blue'): 3}",
+      "completed": 1
+    },
+    "error_reinspection": {
+      "original_reason": "PROCESSING_FAILED: injected transient capture failure",
+      "accepted": true,
+      "status": "HOLD",
+      "reason": "NO_REINSPECTION_PENDING",
+      "b_check": null
+    },
+    "stop_during_mismatch_dialogue": {
+      "accepted": true,
+      "execution_id_retained": true,
+      "status": "HOLD",
+      "reason": "STOP_PENDING",
+      "stop_events": [
+        "ROBOT_STOP_ACK",
+        "ROBOT_STOP_WINDOW_RESULT",
+        "ROBOT_STOP_ACCEPTED",
+        "ROBOT_STOP_IDLE"
+      ],
+      "resume": false
+    }
+  },
+  "consumer_probes": {
+    "conflicting_duplicate": {
+      "first_status": "DELIVERING",
+      "second_accepted": false,
+      "after_status": "DELIVERING",
+      "reason": null,
+      "robot_decisions": [
+        [
+          "robot.INSPECTION",
+          {
+            "result": {
+              "decision": "KEEP",
+              "current": {
+                "current_revision": 1,
+                "blocks": [
+                  {
+                    "brick_type": "2x2x1",
+                    "color": "yellow",
+                    "x": 3,
+                    "y": 5,
+                    "layer": 1,
+                    "orientation_deg": 0
+                  }
+                ]
+              },
+              "plan_id": "P1",
+              "step_id": "S01",
+              "execution_id": "execution-now"
+            }
+          }
+        ]
+      ]
+    },
+    "delayed_revise": {
+      "error": "ValueError",
+      "reason": "design: expected object"
+    }
+  },
+  "plan_cases": [
+    {
+      "profile": "MVP",
+      "design": "C offline chair",
+      "blocks": 15,
+      "status": "NO_FEASIBLE_ORDER",
+      "seconds": 1.142,
+      "errors": [
+        {
+          "code": "NO_FEASIBLE_ORDER",
+          "reason": "NO_FEASIBLE_ORDER",
+          "block": null
+        }
+      ]
+    },
+    {
+      "profile": "MVP",
+      "design": "sample_design.json",
+      "blocks": 12,
+      "status": "NO_FEASIBLE_ORDER",
+      "seconds": 0.111,
+      "errors": [
+        {
+          "code": "NO_FEASIBLE_ORDER",
+          "reason": "NO_FEASIBLE_ORDER",
+          "block": null
+        }
+      ]
+    },
+    {
+      "profile": "MVP",
+      "design": "sample_modified_design.json",
+      "blocks": 12,
+      "status": "NO_FEASIBLE_ORDER",
+      "seconds": 0.112,
+      "errors": [
+        {
+          "code": "NO_FEASIBLE_ORDER",
+          "reason": "NO_FEASIBLE_ORDER",
+          "block": null
+        }
+      ]
+    },
+    {
+      "profile": "MVP",
+      "design": "five layers",
+      "blocks": 5,
+      "status": "COMPLETED",
+      "seconds": 0.015,
+      "errors": []
+    },
+    {
+      "profile": "CAD",
+      "design": "C offline chair",
+      "blocks": 15,
+      "status": "NO_FEASIBLE_ORDER",
+      "seconds": 0.351,
+      "errors": [
+        {
+          "code": "NO_FEASIBLE_ORDER",
+          "reason": "NO_FEASIBLE_ORDER",
+          "block": null
+        }
+      ]
+    },
+    {
+      "profile": "CAD",
+      "design": "sample_design.json",
+      "blocks": 12,
+      "status": "NO_FEASIBLE_ORDER",
+      "seconds": 0.088,
+      "errors": [
+        {
+          "code": "NO_FEASIBLE_ORDER",
+          "reason": "NO_FEASIBLE_ORDER",
+          "block": null
+        }
+      ]
+    },
+    {
+      "profile": "CAD",
+      "design": "sample_modified_design.json",
+      "blocks": 12,
+      "status": "NO_FEASIBLE_ORDER",
+      "seconds": 0.059,
+      "errors": [
+        {
+          "code": "NO_FEASIBLE_ORDER",
+          "reason": "NO_FEASIBLE_ORDER",
+          "block": null
+        }
+      ]
+    },
+    {
+      "profile": "CAD",
+      "design": "five layers",
+      "blocks": 5,
+      "status": "COMPLETED",
+      "seconds": 0.016,
+      "errors": []
+    }
+  ],
+  "commands": [
+    {
+      "script": "reproduce_boundaries.py",
+      "scenarios": 3,
+      "exit_code": 0,
+      "meaning": "known faults reproduced"
+    },
+    {
+      "script": "probe_consumer_contracts.py",
+      "scenarios": 2,
+      "exit_code": 0,
+      "meaning": "known faults reproduced"
+    },
+    {
+      "script": "probe_plans.py",
+      "cases": 8,
+      "exit_code": 0
+    },
+    {
+      "pytest": "isaac_sim/scripts/test_completion_priority.py",
+      "passed": 1,
+      "failed": 4,
+      "skipped": 0,
+      "errors": 0,
+      "exit_code": 1
+    },
+    {
+      "pytest": "perception/supply_vision/tests",
+      "passed": 19,
+      "failed": 0,
+      "skipped": 0,
+      "errors": 0,
+      "exit_code": 0
+    }
+  ],
+  "not_run": [
+    "full pytest",
+    "real robot",
+    "real camera",
+    "real voice",
+    "external LLM",
+    "PostgreSQL",
+    "Isaac physics"
+  ],
+  "d_fixes": "in progress in a different chat; not validated as fixed here",
+  "documentation_verification": {
+    "markdown_files": 9,
+    "new_links_checked": 22,
+    "tables_checked": 5,
+    "code_blocks_checked": 4,
+    "errors": [],
+    "existing_documents_preserved": [
+      "README.md",
+      "docs/04_ISAAC_SIM.md",
+      "docs/12_INTEGRATION_SYNC_20261011.md",
+      "docs/D_MVP_INTEGRATION_20261011.md",
+      "docs/handover/final_mvp_interface_20261008/README.md",
+      "docs/STATUS.md"
+    ],
+    "timeline_preserved": true,
+    "reviewed_source_blobs": 1687,
+    "changed_source_blobs": []
+  }
+}

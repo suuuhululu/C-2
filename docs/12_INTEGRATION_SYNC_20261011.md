@@ -1,5 +1,7 @@
 # 최종 MVP integration 문서 동기화 — 2026-10-11
 
+> **2026-10-12 최신 문서 기준:** [최종 대화 반영·원격/로컬 상태](16_FINAL_INTEGRATION_CHAT_SYNC_20261012.md)와 [발표·배포 문서 10종](final_mvp/README.md)을 우선합니다. B가 Expected/전체 판 비교/Current·revision, D가 실행·지정 검사·진행/HMI/제스처/기존 이력·웹을 맡습니다. A 3분류 호출과 후보 실행권 분리는 유지합니다. 로컬 D 수정·계획 실패 KEEP 보류와 원격 미반영 상태를 구분하며 아래 본문은 이전 시점 기록으로 보존합니다.
+
 2026-10-12 갱신: 아래 10/11 기록 이후 PR #24가 integration `8914320`에 병합됐습니다. ms-02 현재 시험 코드의 후속 업데이트 범위·검증 상태는 [10/12 안내](13_RUNTIME_UPDATE_20261012.md)를 우선하세요.
 
 비교 기준: 원격 `codex/integration-round1`, **`02137d80ef28bab678e49855d7b6150219028881`**, 2026-10-11 15:01:57 +09:00. [고정 커밋](https://github.com/suuuhululu/C-2/commit/02137d80ef28bab678e49855d7b6150219028881). 이 문서는 해당 소스의 정적 확인 결과다. 로컬 `work/suhyun-hmi-backend-robot-db`가 이 커밋으로 병합·갱신됐다는 뜻이 아니다.

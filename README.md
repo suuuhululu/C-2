@@ -1,5 +1,7 @@
 # Adaptive Co Assembly — C-2 팀 개발 안내
 
+> **2026-10-12 최신 문서 기준:** [최종 대화 반영·원격/로컬 상태](docs/16_FINAL_INTEGRATION_CHAT_SYNC_20261012.md)와 [발표·배포 문서 10종](docs/final_mvp/README.md)을 우선합니다. B가 Expected/전체 판 비교/Current·revision, D가 실행·지정 검사·진행/HMI/제스처/기존 이력·웹을 맡습니다. A 3분류 호출과 후보 실행권 분리는 유지합니다. 로컬 D 수정·계획 실패 KEEP 보류와 원격 미반영 상태를 구분하며 아래 본문은 이전 시점 기록으로 보존합니다.
+
 **A 담당 예제를 처음 실행하려면 [A 계획·도움·이동 후보 안내](planning_trial/README.md)를 먼저 보세요.** Python 환경 준비 → 예제 입력 → 장치 없는 계산 → 정상·실패 결과 확인과 동일 계획 자료의 B/D 공유를 설명합니다. [자료 분류·GitHub 보존 목록](docs/A_MATERIALS_AND_PRESERVATION.md)과 [새 사본 재현 결과](docs/A_DOCUMENTATION_VERIFICATION_20261012.md)도 연결되어 있습니다.
 
 이 A 안내의 소스 기준은 `codex/integration-round1 @ 1b820405`입니다. 아직 별도 기능 변경인 Isaac 계약 정렬 `eb78ad7`은 이번 문서·자료 정리와 구분합니다. main과 통합 브랜치, 장치 없는 계산과 실제 장치 실행을 구분해 읽어 주세요.
