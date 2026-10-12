@@ -1,0 +1,62 @@
+{
+  "case_id": "08_red_full_support",
+  "description": "빨강 1x2 L2 0/90도. 각 2-stud 전체 지지 통과, 1-stud 부분 지지 거절.",
+  "current": [
+    {
+      "brick_type": "2x2x1",
+      "color": "blue",
+      "x": 4,
+      "y": 4,
+      "layer": 1,
+      "orientation_deg": 0
+    },
+    {
+      "brick_type": "2x2x1",
+      "color": "blue",
+      "x": 10,
+      "y": 4,
+      "layer": 1,
+      "orientation_deg": 0
+    }
+  ],
+  "design": [
+    {
+      "brick_type": "2x2x1",
+      "color": "blue",
+      "x": 4,
+      "y": 4,
+      "layer": 1,
+      "orientation_deg": 0
+    },
+    {
+      "brick_type": "2x2x1",
+      "color": "blue",
+      "x": 10,
+      "y": 4,
+      "layer": 1,
+      "orientation_deg": 0
+    },
+    {
+      "brick_type": "1x2x1",
+      "color": "red",
+      "x": 4,
+      "y": 4,
+      "layer": 2,
+      "orientation_deg": 0
+    },
+    {
+      "brick_type": "1x2x1",
+      "color": "red",
+      "x": 10,
+      "y": 4,
+      "layer": 2,
+      "orientation_deg": 90
+    }
+  ],
+  "expected_mode": "ROBOT_GRIP",
+  "expected_help": "NONE",
+  "negative_red_support_rotations": [
+    0,
+    90
+  ]
+}

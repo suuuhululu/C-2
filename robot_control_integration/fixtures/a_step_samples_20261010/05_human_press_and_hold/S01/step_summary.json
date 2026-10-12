@@ -1,0 +1,315 @@
+{
+  "case_id": "05_human_press_and_hold",
+  "step_id": "S01",
+  "plan_id": "P-2f7514696ea24554bab132a5550f85b5",
+  "block": {
+    "brick_type": "2x3x1",
+    "color": "blue",
+    "x": 6,
+    "y": 4,
+    "layer": 3,
+    "orientation_deg": 0
+  },
+  "current_revision": 2,
+  "base_current_revision": 2,
+  "mode": "ROBOT_GRIP",
+  "grip_axis": "x",
+  "assistance_kind": "PRESS_AND_HOLD",
+  "human_actions": [
+    {
+      "action": "HOLD",
+      "target_block": {
+        "brick_type": "2x3x1",
+        "color": "blue",
+        "x": 5,
+        "y": 4,
+        "layer": 2,
+        "orientation_deg": 0
+      },
+      "contact_regions": [
+        {
+          "frame_id": "assembly_board",
+          "vertices_xyz_m": [
+            [
+              0.072,
+              0.072,
+              0.0145
+            ],
+            [
+              0.072,
+              0.088,
+              0.0145
+            ],
+            [
+              0.072,
+              0.088,
+              0.0335
+            ],
+            [
+              0.072,
+              0.072,
+              0.0335
+            ]
+          ]
+        },
+        {
+          "frame_id": "assembly_board",
+          "vertices_xyz_m": [
+            [
+              0.104,
+              0.072,
+              0.0145
+            ],
+            [
+              0.104,
+              0.088,
+              0.0145
+            ],
+            [
+              0.104,
+              0.088,
+              0.0335
+            ],
+            [
+              0.104,
+              0.072,
+              0.0335
+            ]
+          ]
+        }
+      ],
+      "approach_sides": [
+        "-x",
+        "+x"
+      ],
+      "hand_count": 1,
+      "force_direction_base": null,
+      "force_magnitude_n": null,
+      "effect": "아래 블록의 옆면을 잡아 유지",
+      "access_assessment": "GEOMETRIC_CANDIDATE_NOT_RUNTIME_VERIFIED"
+    },
+    {
+      "action": "PRESS",
+      "target_block": {
+        "brick_type": "2x3x1",
+        "color": "blue",
+        "x": 6,
+        "y": 4,
+        "layer": 3,
+        "orientation_deg": 0
+      },
+      "contact_regions": [
+        {
+          "frame_id": "assembly_board",
+          "vertices_xyz_m": [
+            [
+              0.088,
+              0.056,
+              0.057
+            ],
+            [
+              0.104,
+              0.056,
+              0.057
+            ],
+            [
+              0.104,
+              0.072,
+              0.057
+            ],
+            [
+              0.088,
+              0.072,
+              0.057
+            ]
+          ]
+        }
+      ],
+      "approach_sides": [
+        "-y"
+      ],
+      "hand_count": 1,
+      "force_direction_base": [
+        0,
+        0,
+        -1
+      ],
+      "force_magnitude_n": null,
+      "effect": "윗블록의 결합부를 아래로 누르기",
+      "access_assessment": "GEOMETRIC_CANDIDATE_NOT_RUNTIME_VERIFIED"
+    }
+  ],
+  "support_studs": 3,
+  "contacts": [
+    {
+      "lower_block": {
+        "brick_type": "2x3x1",
+        "color": "blue",
+        "x": 5,
+        "y": 4,
+        "layer": 2,
+        "orientation_deg": 0
+      },
+      "upper_overlap_studs": 3,
+      "lower_overlap_studs": 3,
+      "board_supported": false
+    }
+  ],
+  "reserved_supply_slot": {
+    "slot_id": "blue_2x3x1_01",
+    "slot_index": 1,
+    "brick_type": "2x3x1",
+    "color": "blue",
+    "reservation_id": "05_human_press_and_hold-S01-mock-reservation",
+    "reservation_generation": 1,
+    "bound_workflow_generation": 1,
+    "state": "RESERVED",
+    "part_confirmation": "CONFIRMED",
+    "valid_until_ref": "D_RUNTIME_VALIDITY_REQUIRED"
+  },
+  "pickup_tcp_pose": {
+    "frame_id": "base_link",
+    "xyz_m": [
+      -0.323445,
+      0.0022975000000000135,
+      0.05004
+    ],
+    "quaternion_xyzw": [
+      -0.006719467028189488,
+      -0.9999774203187898,
+      7.783434946000023e-05,
+      3.9462000956418785e-05
+    ]
+  },
+  "transport_destination_tcp_pose": {
+    "frame_id": "base_link",
+    "xyz_m": [
+      0.3912918722609843,
+      -0.015735709040618134,
+      0.07938600428242329
+    ],
+    "quaternion_xyzw": [
+      0.002521281624693446,
+      -0.999866039239997,
+      0.015811100930422723,
+      0.0033993824230098627
+    ]
+  },
+  "nominal_assembly_target": {
+    "schema_version": "assembly-target-coordinate-candidate/0.1",
+    "status": "COORDINATE_CANDIDATE",
+    "execution_allowed": false,
+    "profile_id": "seated-tcp-96ce91465973e920",
+    "step_id": "S01",
+    "block": {
+      "brick_type": "2x3x1",
+      "color": "blue",
+      "x": 6,
+      "y": 4,
+      "layer": 3,
+      "orientation_deg": 0
+    },
+    "grid_alignment_status": "USER_CONFIRMED_COMMON_ORIGIN_AXIS_SWAP",
+    "grip_axis_planner": "x",
+    "equivalent_reference_2x2_anchor_planner": [
+      6.0,
+      4.5
+    ],
+    "trial_grid_reference_2x2_anchor": [
+      4.5,
+      6.0
+    ],
+    "scope": "NOMINAL_GEOMETRIC_EXTENSION",
+    "nominal_seated_tcp": {
+      "frame_id": "robot_base",
+      "xyz_mm_zyz_deg": [
+        391.2918722609843,
+        -15.735709040618135,
+        54.886004282423286,
+        78.01061248779297,
+        -178.14669799804688,
+        77.7216567993164
+      ],
+      "position_m": [
+        0.3912918722609843,
+        -0.015735709040618134,
+        0.05488600428242329
+      ],
+      "quaternion_xyzw": [
+        0.002521281624693446,
+        -0.999866039239997,
+        0.015811100930422723,
+        0.0033993824230098627
+      ]
+    },
+    "pre_contact_tcp": {
+      "frame_id": "robot_base",
+      "xyz_mm_zyz_deg": [
+        391.2918722609843,
+        -15.735709040618135,
+        79.38600428242329,
+        78.01061248779297,
+        -178.14669799804688,
+        77.7216567993164
+      ],
+      "position_m": [
+        0.3912918722609843,
+        -0.015735709040618134,
+        0.07938600428242329
+      ],
+      "quaternion_xyzw": [
+        0.002521281624693446,
+        -0.999866039239997,
+        0.015811100930422723,
+        0.0033993824230098627
+      ]
+    },
+    "D_contact_minus2mm_trial_candidate": {
+      "frame_id": "robot_base",
+      "xyz_mm_zyz_deg": [
+        391.2918722609843,
+        -15.735709040618135,
+        52.886004282423286,
+        78.01061248779297,
+        -178.14669799804688,
+        77.7216567993164
+      ],
+      "position_m": [
+        0.3912918722609843,
+        -0.015735709040618134,
+        0.052886004282423286
+      ],
+      "quaternion_xyzw": [
+        0.002521281624693446,
+        -0.999866039239997,
+        0.015811100930422723,
+        0.0033993824230098627
+      ]
+    },
+    "precontact_tcp_lift_from_nominal_seated_mm": 24.5,
+    "precontact_gap_reference": "HELD_BLOCK_BOTTOM_TO_LOWER_STUD_TIP_20MM",
+    "pad_bottom_above_block_bottom_mm": 5,
+    "raw_reference_centre_residual_mm": 0.8708635938150311,
+    "limits": [
+      "GRID_LABEL_MAPPING_USER_CONFIRMED_NOT_PHYSICAL_PATH_VALIDATION",
+      "NO_IK_OR_FULL_TOOL_PATH_VALIDATION",
+      "REFERENCE_SEATED_TCP_ALREADY_INCLUDES_GRASP_AND_CENTRE",
+      "BLUE_REFERENCE_COLOUR",
+      "NOMINAL_SIZE_LAYER_ROTATION_EXTENSION_NOT_PHYSICALLY_CALIBRATED"
+    ],
+    "motion_generated": false
+  },
+  "handoff_to": "D_CONTACT",
+  "terminal_gripper_policy": "HOLD_NO_AUTOMATIC_OPEN",
+  "numeric_open_command": null,
+  "execution_allowed": false,
+  "assembly_completed": false,
+  "validation": {
+    "ik_verified": false,
+    "full_path_collision_verified": false,
+    "physical_grasp_verified": false,
+    "d_execution_approved": false
+  },
+  "current_source": "OFFLINE_MOCK_PLAN_PREFIX_NOT_B_OBSERVATION",
+  "robot_state_source": "OFFLINE_FIXTURE_NOT_DEVICE_OR_ISAAC"
+}

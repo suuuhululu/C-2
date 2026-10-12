@@ -1,0 +1,58 @@
+{
+  "usage": "HISTORICAL_READ_ONLY_TEST_FIXTURE_NOT_CURRENT_ROBOT_STATE",
+  "source_file": "trial-02c66d2c98b545dd89373993264ab7b5.jsonl",
+  "sample": {
+    "event": "READ_ONLY_DOCTOR",
+    "data": {
+      "posj": [
+        -9.17802619934082,
+        19.176054000854492,
+        83.73595428466797,
+        0.12463393807411194,
+        77.09337615966797,
+        -9.1851806640625
+      ],
+      "posx": [
+        486.7454833984375,
+        -74.76651763916016,
+        89.73403930664062,
+        93.87202453613281,
+        179.9779510498047,
+        94.23770904541016
+      ],
+      "velx": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "motion_status": 0,
+      "query_started_monotonic_s": 3384.360366461,
+      "query_duration_s": 0.15479239300020708,
+      "query_finished_monotonic_s": 3384.515160389,
+      "robot_state": 1,
+      "robot_mode": 1,
+      "drl_state": 3,
+      "tcp": "GripperDA_v4",
+      "tool": "ToolWeight0",
+      "wrench": [
+        -2.773341417312622,
+        -0.06731223315000534,
+        4.685787200927734,
+        0.031583271920681,
+        -0.31895437836647034,
+        -0.15446048974990845
+      ],
+      "gripper_status": 0,
+      "gripper_width_mm": 64.2,
+      "gripper_fingertip_offset_mm": 0.0,
+      "gripper_width_with_offset_mm": 64.2
+    },
+    "monotonic_s": 3384.51516727,
+    "execution_id": null,
+    "plan_id": "P-db72518eb7a348ef84f41b31e3fdc5d2",
+    "step_id": "S01"
+  }
+}

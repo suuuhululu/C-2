@@ -1,6 +1,5 @@
 """현장에서 검증한 네 공급열을 기존 한 블록 실행/증거 처리에 연결한다."""
 
-from collections import Counter
 from copy import deepcopy
 import hashlib
 import json
@@ -88,13 +87,9 @@ class RealDesignController(RealTrialController):
         if self._operation is not None or self._stop or self._fault or not self._ready:
             raise ValueError("REAL_PLAN_ROBOT_NOT_READY")
         columns = [(step["after"]["brick_type"], step["after"]["color"]) for step in plan["steps"]]
-        available = {(row["brick_type"], row["color"]): row["next_slot"] for row in self.state["supply"]}
-        for column, count in Counter(columns).items():
+        for column in set(columns):
             if column not in self.slots:
                 raise ValueError(f"UNVERIFIED_TARGET: {column}")
-            slot = available[column]
-            if slot is None or count > 7 - slot:
-                raise ValueError(f"REAL_PLAN_NEEDS_REFILL: {column}, {count}회 전달, 시작 슬롯 {slot}. 이번 시험은 실행 중 보충 미지원")
         self._read_config()
         # 재계획은 남은 전달만 바꾼다. 전달 시도·확인된 집기·공급 순서는 초기화하지 않는다.
         self.plan_columns = (self.plan_columns or [])[:self._attempts] + columns

@@ -1,0 +1,209 @@
+{
+  "status": "PREPARED_LOCAL_HUMAN_STEP_TRIAL_NOT_EXECUTED",
+  "trial_kind": "LOCAL_HUMAN_ASSEMBLY_NOT_LIVE_A_B_D_CONTRACT",
+  "desired_target": {
+    "brick_type": "2x2x1",
+    "color": "blue",
+    "trial_min_xy": [
+      11,
+      11
+    ],
+    "layer": 4,
+    "orientation_deg": 0
+  },
+  "source_slot": {
+    "slot_id": "blue_2x2x1_01",
+    "operator_statement": "파랑 2*2의 1열",
+    "backend_reservation_committed": false
+  },
+  "step": {
+    "case_id": "onsite_blue_slot1_manual11_11_layer4_no_turn",
+    "step_id": "S01",
+    "plan_id": "D_LOCAL_HUMAN_11_11_L4_20261011",
+    "block": {
+      "brick_type": "2x2x1",
+      "color": "blue",
+      "x": 11,
+      "y": 11,
+      "layer": 4,
+      "orientation_deg": 0
+    },
+    "action": {
+      "mode": "HUMAN_ASSEMBLY",
+      "assistance_kind": "MANUAL_ASSEMBLY",
+      "human_actions": [
+        {
+          "type": "MANUAL_PLACE",
+          "block": {
+            "brick_type": "2x2x1",
+            "color": "blue",
+            "x": 11,
+            "y": 11,
+            "layer": 4,
+            "orientation_deg": 0
+          }
+        }
+      ]
+    },
+    "current_revision": null,
+    "reservation": null,
+    "summary": {}
+  },
+  "d_profile": {
+    "profile_id": "D_LOCAL_HUMAN_WAIT_11_11_L4_761616d2-fd06-403b-a3fa-2f7865c8b905",
+    "physical_route_reviewed": true,
+    "human_collaboration_commissioning_ref": null,
+    "clearance_z_mm": 194.73294067382812,
+    "supply_transit_xy_mm": [
+      -364.8591304347826,
+      -171.54
+    ],
+    "body_bypass_xy_mm": [
+      -27.878286361694336,
+      -411.9568176269531
+    ],
+    "place_pose": [
+      418.2707214355469,
+      -181.1972198486328,
+      14.935303688049316,
+      161.52828979492188,
+      179.58567810058594,
+      161.99119567871094
+    ],
+    "approach_offset_mm": 20.1,
+    "near_contact_offset_mm": 1.0,
+    "force_stop_n": 35.0,
+    "max_press_travel_mm": 5.0,
+    "transfer_velocity": 96.0,
+    "transfer_acceleration": 48.0,
+    "descent_velocity": 6.0,
+    "descent_acceleration": 3.0,
+    "gripper_force_n": 40.0,
+    "steps": {
+      "onsite_blue_slot1_manual11_11_layer4_no_turn/S01": {
+        "reference_pose": [
+          471.9385681152344,
+          85.85523986816406,
+          71.60824584960938,
+          72.24752807617188,
+          -177.0513153076172,
+          72.59900665283203
+        ],
+        "pickup_pose": [
+          -333.4477844238281,
+          49.072635650634766,
+          52.20610046386719,
+          125.77477264404297,
+          -175.88323974609375,
+          124.51481628417969
+        ],
+        "physical_reference_reviewed": true,
+        "pickup_width_mm": 35.0,
+        "release_width_mm": 48.0,
+        "release_pose": null,
+        "press_approach_pose": null,
+        "press_start_pose": null,
+        "press_width_mm": null,
+        "notes": [
+          "SAME_GRASP_TCP_AND_ORIENTATION_MUST_BE_REVIEWED",
+          "PICKUP_AND_MINIMAL_RELEASE_WIDTH_MUST_BE_TAUGHT",
+          "LAYER_MEASURED_AT_CENTRE_XY_SPATIAL_CANDIDATE_ONLY"
+        ],
+        "release_feedback_range_mm": [
+          47.0,
+          110.0
+        ],
+        "turn_base_z_deg": 0.0,
+        "turn_reference": "CURRENT_SESSION_GRASP_BASE_Z",
+        "pickup_start_open_range_mm": [
+          47.0,
+          110.0
+        ],
+        "human_step_gestures": {
+          "enabled": true,
+          "wait_z_mm": 194.73294067382812,
+          "handover_width_mm": 62.4,
+          "handover_feedback_range_mm": [
+            60.0,
+            110.0
+          ],
+          "thumb_hold_seconds": 0.8
+        }
+      }
+    },
+    "transport_blending": {
+      "radius_mm": 15.0,
+      "reviewed": true
+    }
+  },
+  "operator_confirmations": {
+    "three_layer_support_present": true,
+    "source_slot_refilled": true,
+    "roundtrip_path_and_target_clear": true,
+    "receiving_space_clear": true,
+    "source": "settings/onsite_human_11_11_l4_20261011/operator-review-70e5686f-8adc-4fb3-823a-0330b312809e.json"
+  },
+  "pickup_source": {
+    "path": "fixtures/teaching_sources/supply_slot1_grasp_summary.json",
+    "sha256": "550916f2bfdb5de240642d27a13308268f15fdb83157e5f09f1c98306052045e",
+    "kind": "ACTUAL_OPERATOR_CONFIRMED_SLOT1_GRASP_AT_REPORTED_5MM_HEIGHT",
+    "uniform_slot_interpolation_used": false
+  },
+  "assembly_completion": false,
+  "current_update": false,
+  "physical_verified": false,
+  "hardware_verified": false,
+  "current_grasp_transform_verified": false,
+  "exact_target_taught": false,
+  "pending": [
+    "Fresh runtime admission and stage feedback",
+    "User execution of prepared one-shot trial",
+    "Backend physical completion observation"
+  ],
+  "opening_feedback_policy": "Seated release48mm, handover release62.4mm; minimum47/60mm respectively, rawstatus0 and fresh stopped feedback.110mm measurement plausibility only.",
+  "readiness_ref": "settings/onsite_human_11_11_l4_20261011/readonly-f5d26917-c931-4ab7-bcd2-764b48ac236a.json",
+  "initial_phase": "human-wait",
+  "start_zone": "assembly",
+  "camera_transport": "raw",
+  "operator_target_review": "settings/onsite_human_11_11_l4_20261011/operator-review-70e5686f-8adc-4fb3-823a-0330b312809e.json",
+  "assembly_reference_source": {
+    "kind": "EXISTING_TEACHING_AND_CALIBRATION_CANDIDATE_NOT_EXACT_TARGET_TEACHING",
+    "reference_pose": [
+      471.9385681152344,
+      85.85523986816406,
+      71.60824584960938,
+      72.24752807617188,
+      -177.0513153076172,
+      72.59900665283203
+    ]
+  },
+  "pickup_width_review": "Human WebLogic35mm closing target verified rawgripstatus2; actualwidth39.5. Future pickup35mm40N.",
+  "speed_review": {
+    "user_request": "속도 한 세배는 높여도 될듯.. 하강속도도 너무 느려",
+    "transfer_mm_s": 96.0,
+    "transfer_acc_mm_s2": 48.0,
+    "pickup_descent_mm_s": 6.0,
+    "pickup_descent_acc_mm_s2": 3.0,
+    "receiving_incoming_mm_s": 32.0,
+    "contact_press_mm_s": 2.0,
+    "applies_to": "Next unused commands only; completed pickup preserved",
+    "updated_unix_s": 1791696388.2642617
+  },
+  "physical_corridor_review_ref": "settings/onsite_human_11_11_l4_20261011/operator-review-70e5686f-8adc-4fb3-823a-0330b312809e.json",
+  "arming_readonly_ref": "settings/onsite_human_11_11_l4_20261011/readonly-f5d26917-c931-4ab7-bcd2-764b48ac236a.json",
+  "future_trial_status": "Single execution IDs; never rerun after an attempted execution.",
+  "seated_release_review": {
+    "user_request": "결착 후 그리퍼 48mm",
+    "command_width_mm": 48.0,
+    "scope": "SEATED_ASSEMBLY_RELEASE_AND_FUTURE_PICKUP_OPEN_PREPARATION",
+    "feedback_min_mm": 47.0,
+    "feedback_max_mm": 110.0,
+    "feedback_policy": "Raw status0 and stillness/freshness required; task upper limit remains removed. Physical48mm release pending."
+  },
+  "retry_context": {
+    "previous_execution_id": "127adc43-a3de-4188-900c-98a08a1d2ca1",
+    "previous_status": "UNKNOWN_FRAME_BEFORE_OPEN",
+    "current_block_already_held": true,
+    "resume_only_human_stages": true
+  }
+}

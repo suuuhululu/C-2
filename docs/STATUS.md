@@ -1,5 +1,17 @@
 # 현재 진행 상황
 
+## 2026-10-12 — ms-02 현재 시험 소스와 PR24 이후 통합 업데이트
+
+- 기준: PR #24 merge `8914320`; 별도 `codex/current-runtime-update-20261012`. 원래 실행 폴더의 브랜치 전환/덮어쓰기 없음. 원본 544개 파일을 보존 ZIP과 SHA256으로 재확인했으며 변경 0개. 웹 자산은 별도 백업. 게시·PR 상태는 실제 GitHub 결과를 기준으로 확인한다.
+- 현재 A 계산 보정·C 설계 변경 문맥·D 진행/Robot 별도 프로세스·한 화면 HMI·개인 DB/웹 소스를 포함. 외부 D 소스를 `robot_control_integration/`에 함께 보존하고 기존 DRCF2 소스 수정은 패치/해시로 포함. #24 B 파일과 최신 Stage3/Current relay/5층/40블록 기준 유지.
+- 이번 합침에서 발견한 HMI FINAL 검증, 합성 관측 5층 범위, 공급 슬롯 1~6 순환/표시, 웹 정적 자산 누락·한글 경로 시험을 정리. 현재 지원 블록 모의 실행 시험을 갱신하고 실제 체결 미확정 검사는 유지.
+- PR24 관련 재검사 **699 passed**, 종료 0. B+기존 callback 예제 별도 검사 **261 passed**, 종료 0. Robot 주요 실행/Contact/제스처/STOP 검사 **364 passed**, 종료 0.
+- 새 통합/HMI/저장/웹/모의 C→A→D 검사 **155 passed, 18 skipped**, 종료 0. UI/진행/슬롯/프로세스/드라이버 단위 검사 **220 passed, 6 skipped**, 종료 0. 추가 병합 경계 검사 **81 passed**, 종료 0. 서로 중복되는 검사이므로 합계를 고유 검사 수로 사용하지 않는다.
+- 넓은 범위 재검사: **2697 passed, 51 skipped, 2 failed, 11 errors**, 종료 1. 같은 구형 음성 시험을 PR24 원본에서 별도 재현: **70 passed, 2 failed, 11 errors**, 종료 1. Initial 승인/녹음 이벤트·LLM key Mock 전제가 현재 Stage3와 맞지 않는 `test_real_voice_workflow`, `test_real_voice_replan`, `test_real_stop_resume` 실패이며 전체 통과로 보고하지 않는다. 테스트 삭제·skip 추가·판정 완화로 숨기지 않았다.
+- D 보존본 전체 단위 검사 **916 passed, 1 skipped**, 종료 0. 처음에는 기존 로컬 logs 의존으로 복구 검사 17개가 오류였고, 역사적 READ_ONLY 표본을 명시적 Fixture로 분리해 재검사했다. 실행 승인이나 최신 실물 상태로 사용하지 않는다. B/A 현장 경로가 필요한 기존 조건 검사 1개는 건너뜀.
+- 1024×768 및 1500×1000 Qt offscreen 화면에서 Design/Current/Expected/Step 네 패널이 한 화면 안에 들어가는지 확인. 실제 모니터·WM/DPI는 별도.
+- 실제 Robot/Camera/LLM/STT/TTS/PostgreSQL 연결·드라이버 재빌드/재시작은 이번 검증에 포함하지 않았다. DB DSN 없는 검사는 기존 조건으로 건너뜀. A `SEARCH_LIMIT`, D 정밀 체결/XY 탐색 연결, B 실영상·실물 전체 통합, DB 시작/저장 시 로그인 정책은 [업데이트 안내](13_RUNTIME_UPDATE_20261012.md)의 후속 항목.
+
 ## 2026-10-11 — B INITIAL/FINAL 관측 근거 보완（PR24 리뷰）
 
 - B inspection.py와 기존 round1 테스트만 수정. 첫 Current 확정은 24×24, layer 1~5 전체의 verified_regions 근거가 필요하며 일부 빈 영역만으로 Current=[]를 초기화하지 않는다. 부족하면 INITIAL_STATE_UNAVAILABLE로 반환하고 Current 미확인 및 Plan 채택 차단을 유지한다. 초기 단계에는 보존 가능한 아래층 확정 이력이 없으므로 전체 범위를 요구한다.

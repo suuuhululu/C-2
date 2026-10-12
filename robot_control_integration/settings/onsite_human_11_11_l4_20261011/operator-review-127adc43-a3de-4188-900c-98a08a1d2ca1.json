@@ -1,0 +1,12 @@
+{
+  "user_request": "오류 남. 그리고 엄지척도 0.8초정도면 될듯",
+  "previous_execution_id": "4f1bc926-207d-4bd7-a7f6-c646a4ff4be9",
+  "existing_operator_space_review_retained": true,
+  "readonly_ref": "settings/onsite_human_11_11_l4_20261011/readonly-efcfd832-f744-40ce-9d8b-330d71582c51.json",
+  "acknowledged_palm_hold_seconds": 0.4,
+  "thumb_hold_seconds": 0.8,
+  "phase": "human-wait",
+  "resume_at_target_high": true,
+  "robot_motion_commands": 0,
+  "robot_gripper_commands": 0
+}

@@ -1,0 +1,41 @@
+{
+  "case_id": "02_layers_1_to_4",
+  "description": "같은 XY의 2x2 타워. 층 간 TCP Z 증가 19mm.",
+  "current": [],
+  "design": [
+    {
+      "brick_type": "2x2x1",
+      "color": "blue",
+      "x": 6,
+      "y": 6,
+      "layer": 1,
+      "orientation_deg": 0
+    },
+    {
+      "brick_type": "2x2x1",
+      "color": "yellow",
+      "x": 6,
+      "y": 6,
+      "layer": 2,
+      "orientation_deg": 0
+    },
+    {
+      "brick_type": "2x2x1",
+      "color": "blue",
+      "x": 6,
+      "y": 6,
+      "layer": 3,
+      "orientation_deg": 0
+    },
+    {
+      "brick_type": "2x2x1",
+      "color": "yellow",
+      "x": 6,
+      "y": 6,
+      "layer": 4,
+      "orientation_deg": 0
+    }
+  ],
+  "expected_mode": "ROBOT_GRIP",
+  "expected_help": "NONE"
+}

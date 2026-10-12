@@ -1,0 +1,24 @@
+{
+  "prefix": "auto-blend-1fec868f-e364-408b-8cea-fd897635b65c",
+  "status": "LOCAL_REVIEWED_READY_USER_EXECUTION",
+  "configs": {
+    "pickup": {
+      "execution_id": "f362231f-fb6f-4ff6-8ad7-f1ae623c9155",
+      "profile": "settings/onsite_blue_slot1_11_11_l2_20261011/auto-blend-1fec868f-e364-408b-8cea-fd897635b65c.pickup.profile.json",
+      "session": "settings/onsite_blue_slot1_11_11_l2_20261011/auto-blend-1fec868f-e364-408b-8cea-fd897635b65c.pickup.session.json"
+    },
+    "handover": {
+      "execution_id": "1fec868f-e364-408b-8cea-fd897635b65c",
+      "profile": "settings/onsite_blue_slot1_11_11_l2_20261011/auto-blend-1fec868f-e364-408b-8cea-fd897635b65c.handover.profile.json",
+      "session": "settings/onsite_blue_slot1_11_11_l2_20261011/auto-blend-1fec868f-e364-408b-8cea-fd897635b65c.handover.session.json"
+    },
+    "assembly": {
+      "execution_id": "bbf322ae-980b-48c1-b750-d1c5c2ef04d2",
+      "profile": "settings/onsite_blue_slot1_11_11_l2_20261011/auto-blend-1fec868f-e364-408b-8cea-fd897635b65c.assembly.profile.json",
+      "session": "settings/onsite_blue_slot1_11_11_l2_20261011/auto-blend-1fec868f-e364-408b-8cea-fd897635b65c.assembly.session.json"
+    }
+  },
+  "route_review": "settings/onsite_blue_slot1_11_11_l2_20261011/auto-blend-1fec868f-e364-408b-8cea-fd897635b65c.route-review.json",
+  "readiness": "settings/onsite_blue_slot1_11_11_l2_20261011/auto-blend-1fec868f-e364-408b-8cea-fd897635b65c.readiness.json",
+  "armed_at_unix_s": 1791696024.6215317
+}

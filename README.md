@@ -1,5 +1,7 @@
 # Adaptive Co Assembly — C-2 팀 개발 안내
 
+2026-10-12 현재 시험 코드와 통합 진입점은 [업데이트 안내](docs/13_RUNTIME_UPDATE_20261012.md)를 먼저 확인하세요. PR #24 이후 기준, 모의/실물 실행 구분과 남은 병목을 정리했습니다.
+
 > 2026-10-11 C Stage3 기준: 노랑·파랑 4점/6점 + 빨강 2점(1x2x1만), 24×24, 정수 layer 1~5, 실행 후보 1~40블록입니다. D는 후보를 Preview→Review→APPROVE한 뒤에만 A에 전달합니다. B의 상태·비교 소유는 유지합니다. 상세 구현/미검증 범위는 [A·D 연결 안내](docs/D_C_STAGE3_AD_ALIGNMENT.md)를 따릅니다. 아래 이전 Day4/ZIP 기록의 4종·30블록 범위보다 이 기준이 우선합니다.
 
 > 2026-10-11 1차 통합 기준: [10/8 최신 계약](docs/handover/final_mvp_interface_20261008/README.md)과 [HMI·DB 통합 안내](docs/D_HMI_DB_ROUND1.md)를 먼저 확인하세요. B가 Current/revision·Expected·비교를 소유하고 D는 실행·진행·최종 종료를 담당합니다. 공통 layer는 1~5입니다. 기존 Day4 실행 예시는 B 소유 경로 연결 완료를 뜻하지 않습니다.

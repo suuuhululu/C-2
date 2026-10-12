@@ -1,0 +1,48 @@
+{
+  "device_connections": 0,
+  "physical_simulation": false,
+  "checks": [
+    {
+      "denied_request": null,
+      "status": "AWAITING_BACKEND_OBSERVATION",
+      "mock_moves": 17,
+      "mock_grips": 3,
+      "final_gripper_status": 0
+    },
+    {
+      "denied_request": "PICKUP_ALIGNMENT",
+      "status": "PAUSED_PICKUP_ALIGNMENT",
+      "mock_moves": 6,
+      "mock_grips": 1,
+      "final_gripper_status": 0
+    },
+    {
+      "denied_request": "GRASP_CONFIRMED",
+      "status": "PAUSED_GRASP_CONFIRMED",
+      "mock_moves": 7,
+      "mock_grips": 2,
+      "final_gripper_status": 2
+    },
+    {
+      "denied_request": "ALIGNMENT_AND_PARALLEL",
+      "status": "PAUSED_ALIGNMENT",
+      "mock_moves": 14,
+      "mock_grips": 2,
+      "final_gripper_status": 2
+    },
+    {
+      "denied_request": "FULL_SEATING",
+      "status": "PAUSED_FULL_SEATING",
+      "mock_moves": 15,
+      "mock_grips": 2,
+      "final_gripper_status": 2
+    },
+    {
+      "denied_request": "RELEASE",
+      "status": "PAUSED_RELEASE",
+      "mock_moves": 15,
+      "mock_grips": 2,
+      "final_gripper_status": 2
+    }
+  ]
+}

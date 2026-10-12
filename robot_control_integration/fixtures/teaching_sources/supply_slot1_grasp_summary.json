@@ -1,0 +1,60 @@
+{
+  "status": "SUPPLY_SLOT1_GRASP_TCP_CAPTURED_HEIGHT_5MM_OPERATOR_CONFIRMED",
+  "operator_reported_context": "Grasped blue 2x2 block at supply slot1, resting on supply board",
+  "input_width_mm": 40,
+  "force_setting_n_operator_reported": 40,
+  "force_measured_n": null,
+  "block_external_width_mm_operator_reported": 32,
+  "actual_raw_width_mm": 40.6,
+  "actual_width_with_offset_mm": 40.6,
+  "fingertip_offset_setting_mm": 0.0,
+  "grip_detected": true,
+  "gripper_status": 2,
+  "stopped_in_this_sample": true,
+  "current_tcp_posx": [
+    -333.4477844238281,
+    49.072635650634766,
+    52.20610046386719,
+    125.77477264404297,
+    -175.88323974609375,
+    124.51481628417969
+  ],
+  "posj": [
+    -191.90989685058594,
+    2.3943192958831787,
+    110.49247741699219,
+    2.9103024005889893,
+    70.20178985595703,
+    -194.59584045410156
+  ],
+  "raw_base_wrench": [
+    4.351887226104736,
+    -0.7397419214248657,
+    8.127352714538574,
+    0.2447161227464676,
+    1.2607769966125488,
+    -0.10443438589572906
+  ],
+  "pickup_reference_xyz_difference_mm": [
+    -10.624784423828146,
+    -8.711364349365233,
+    2.1661004638671884
+  ],
+  "pickup_reference_xyz_distance_mm": 13.909202137426085,
+  "pickup_reference_orientation_difference_deg": 4.5856457055409,
+  "assembly_reference_xyz_distance_mm": 806.6875702944877,
+  "pad_thickness_measured_mm": null,
+  "left_right_5mm_height_confirmed": false,
+  "fully_seated_confirmed": false,
+  "execution_route_adopted": false,
+  "source_log": "/home/rokey/Documents/ChatGPT/로봇제어 개발/handoff_20261008/assembly_development_transfer_20261008/return_evidence/onsite_teaching/f32a615c-fff5-4f98-8d93-a97f01319790/assembly_board_touch_manual/adb86dd7-5517-4742-b832-102d77d76a23.jsonl",
+  "source_log_sha256": "1b09b1e71806f2269712de4741e61d27a6cf0c0202a091a9aa7e2e399d04ddc0",
+  "operator_confirmed_board": "SUPPLY",
+  "operator_confirmed_slot": 1,
+  "operator_confirmation": "지금 파랑 2*2 1번슬롯에 있음",
+  "confirmed_utc": "2026-10-08T12:36:08.129410+00:00",
+  "source_directory_name_is_historical_misclassification": true,
+  "operator_confirmed_grasp_height_mm": 5,
+  "grasp_height_confirmation": "그거 5mm 인데",
+  "grasp_height_source": "OPERATOR_REPORTED"
+}

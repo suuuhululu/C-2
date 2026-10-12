@@ -1,0 +1,29 @@
+{
+  "status": "PREPARED_NOT_EXECUTED",
+  "configs": {
+    "pickup": {
+      "execution_id": "7e92be63-d1c3-43e6-8bb9-3ed28d93100b",
+      "profile": "settings/onsite_11_11_l3_automatic_20261011/pickup-7e92be63-d1c3-43e6-8bb9-3ed28d93100b.profile.json",
+      "session": "settings/onsite_11_11_l3_automatic_20261011/pickup-7e92be63-d1c3-43e6-8bb9-3ed28d93100b.session.json",
+      "output": "logs/onsite_11_11_l3_automatic_20261011/pickup-7e92be63-d1c3-43e6-8bb9-3ed28d93100b"
+    },
+    "handover": {
+      "execution_id": "3cc02ce1-91ca-4841-8a38-7444d5aac344",
+      "profile": "settings/onsite_11_11_l3_automatic_20261011/handover-3cc02ce1-91ca-4841-8a38-7444d5aac344.profile.json",
+      "session": "settings/onsite_11_11_l3_automatic_20261011/handover-3cc02ce1-91ca-4841-8a38-7444d5aac344.session.json",
+      "output": "logs/onsite_11_11_l3_automatic_20261011/handover-3cc02ce1-91ca-4841-8a38-7444d5aac344"
+    },
+    "assembly": {
+      "execution_id": "287f4278-26d4-4277-9aeb-90a7ef2f14f3",
+      "profile": "settings/onsite_11_11_l3_automatic_20261011/assembly-287f4278-26d4-4277-9aeb-90a7ef2f14f3.profile.json",
+      "session": "settings/onsite_11_11_l3_automatic_20261011/assembly-287f4278-26d4-4277-9aeb-90a7ef2f14f3.session.json",
+      "output": "logs/onsite_11_11_l3_automatic_20261011/assembly-287f4278-26d4-4277-9aeb-90a7ef2f14f3"
+    }
+  },
+  "created_unix_s": 1791699267.6846037,
+  "expires_unix_s": 1791701067.6846037,
+  "readiness": "settings/onsite_11_11_l3_automatic_20261011/readonly-bafc62f4-b9f5-4793-902c-3462bf6af607.json",
+  "operator_review": "settings/onsite_11_11_l3_automatic_20261011/operator-review-7e92be63-d1c3-43e6-8bb9-3ed28d93100b.json",
+  "robot_motion_commands": 0,
+  "robot_gripper_commands": 0
+}

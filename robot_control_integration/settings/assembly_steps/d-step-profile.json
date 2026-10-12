@@ -1,0 +1,480 @@
+{
+  "profile_id": "D_STEP_CANDIDATE_20261010",
+  "physical_route_reviewed": false,
+  "human_collaboration_commissioning_ref": null,
+  "clearance_z_mm": 111.83796691894531,
+  "supply_transit_xy_mm": [
+    -364.8591304347826,
+    -171.54
+  ],
+  "body_bypass_xy_mm": [
+    -27.878286361694336,
+    -411.9568176269531
+  ],
+  "place_pose": [
+    418.2707214355469,
+    -181.1972198486328,
+    14.935303688049316,
+    161.52828979492188,
+    179.58567810058594,
+    161.99119567871094
+  ],
+  "approach_offset_mm": 20.1,
+  "near_contact_offset_mm": 1.0,
+  "force_stop_n": 35.0,
+  "max_press_travel_mm": 5.0,
+  "transfer_velocity": 32.0,
+  "transfer_acceleration": 16.0,
+  "descent_velocity": 2.0,
+  "descent_acceleration": 1.0,
+  "gripper_force_n": 40.0,
+  "steps": {
+    "01_types_and_rotation/S01": {
+      "reference_pose": [
+        336.0178640696628,
+        183.08299924519437,
+        17.132735145978693,
+        168.01061248779297,
+        -178.14669799804688,
+        77.7216567993164
+      ],
+      "pickup_pose": null,
+      "physical_reference_reviewed": false,
+      "pickup_width_mm": null,
+      "release_width_mm": null,
+      "release_pose": null,
+      "press_approach_pose": null,
+      "press_start_pose": null,
+      "press_width_mm": null,
+      "notes": [
+        "SAME_GRASP_TCP_AND_ORIENTATION_MUST_BE_REVIEWED",
+        "PICKUP_AND_MINIMAL_RELEASE_WIDTH_MUST_BE_TAUGHT"
+      ]
+    },
+    "01_types_and_rotation/S02": {
+      "reference_pose": [
+        439.9129278009588,
+        174.84134977514094,
+        17.19298518787731,
+        78.01061248779297,
+        -178.14669799804688,
+        77.7216567993164
+      ],
+      "pickup_pose": null,
+      "physical_reference_reviewed": false,
+      "pickup_width_mm": null,
+      "release_width_mm": null,
+      "release_pose": null,
+      "press_approach_pose": null,
+      "press_start_pose": null,
+      "press_width_mm": null,
+      "notes": [
+        "SAME_GRASP_TCP_AND_ORIENTATION_MUST_BE_REVIEWED",
+        "PICKUP_AND_MINIMAL_RELEASE_WIDTH_MUST_BE_TAUGHT"
+      ]
+    },
+    "01_types_and_rotation/S03": {
+      "reference_pose": [
+        351.6354860037811,
+        71.82697236242373,
+        16.952825904877717,
+        168.01061248779297,
+        -178.14669799804688,
+        77.7216567993164
+      ],
+      "pickup_pose": [
+        -320.5955505371094,
+        138.4237823486328,
+        51.31666946411133,
+        159.38967895507812,
+        -179.285400390625,
+        159.7829132080078
+      ],
+      "physical_reference_reviewed": false,
+      "pickup_width_mm": 40.0,
+      "release_width_mm": null,
+      "release_pose": null,
+      "press_approach_pose": null,
+      "press_start_pose": null,
+      "press_width_mm": null,
+      "notes": [
+        "SAME_GRASP_TCP_AND_ORIENTATION_MUST_BE_REVIEWED",
+        "PICKUP_AND_MINIMAL_RELEASE_WIDTH_MUST_BE_TAUGHT",
+        "FAR_CORNER_22_21_EXCLUDED_NO_VALIDATED_FULL_BOARD_SIX_STUD_MODEL"
+      ]
+    },
+    "01_types_and_rotation/S04": {
+      "reference_pose": [
+        439.5709518558723,
+        79.44331685373605,
+        17.089213095420646,
+        78.01061248779297,
+        -178.14669799804688,
+        77.7216567993164
+      ],
+      "pickup_pose": null,
+      "physical_reference_reviewed": false,
+      "pickup_width_mm": null,
+      "release_width_mm": null,
+      "release_pose": null,
+      "press_approach_pose": null,
+      "press_start_pose": null,
+      "press_width_mm": null,
+      "notes": [
+        "SAME_GRASP_TCP_AND_ORIENTATION_MUST_BE_REVIEWED",
+        "PICKUP_AND_MINIMAL_RELEASE_WIDTH_MUST_BE_TAUGHT",
+        "FAR_CORNER_22_21_EXCLUDED_NO_VALIDATED_FULL_BOARD_SIX_STUD_MODEL"
+      ]
+    },
+    "01_types_and_rotation/S05": {
+      "reference_pose": [
+        543.4325067819643,
+        71.09935435775883,
+        17.23153030379745,
+        168.01061248779297,
+        -178.14669799804688,
+        77.7216567993164
+      ],
+      "pickup_pose": null,
+      "physical_reference_reviewed": false,
+      "pickup_width_mm": null,
+      "release_width_mm": null,
+      "release_pose": null,
+      "press_approach_pose": null,
+      "press_start_pose": null,
+      "press_width_mm": null,
+      "notes": [
+        "SAME_GRASP_TCP_AND_ORIENTATION_MUST_BE_REVIEWED",
+        "PICKUP_AND_MINIMAL_RELEASE_WIDTH_MUST_BE_TAUGHT",
+        "FAR_CORNER_22_21_EXCLUDED_NO_VALIDATED_FULL_BOARD_SIX_STUD_MODEL"
+      ]
+    },
+    "01_types_and_rotation/S06": {
+      "reference_pose": [
+        343.90890571925945,
+        -41.36003209653107,
+        15.51624870300293,
+        75.28691864013672,
+        -177.2896270751953,
+        75.40895080566406
+      ],
+      "pickup_pose": null,
+      "physical_reference_reviewed": false,
+      "pickup_width_mm": null,
+      "release_width_mm": null,
+      "release_pose": null,
+      "press_approach_pose": null,
+      "press_start_pose": null,
+      "press_width_mm": null,
+      "notes": [
+        "SAME_GRASP_TCP_AND_ORIENTATION_MUST_BE_REVIEWED",
+        "PICKUP_AND_MINIMAL_RELEASE_WIDTH_MUST_BE_TAUGHT",
+        "LAYER_MEASURED_AT_CENTRE_XY_SPATIAL_CANDIDATE_ONLY"
+      ]
+    },
+    "01_types_and_rotation/S07": {
+      "reference_pose": [
+        344.1789057192595,
+        54.33735920781673,
+        15.51624870300293,
+        75.28691864013672,
+        -177.2896270751953,
+        75.40895080566406
+      ],
+      "pickup_pose": null,
+      "physical_reference_reviewed": false,
+      "pickup_width_mm": null,
+      "release_width_mm": null,
+      "release_pose": null,
+      "press_approach_pose": null,
+      "press_start_pose": null,
+      "press_width_mm": null,
+      "notes": [
+        "SAME_GRASP_TCP_AND_ORIENTATION_MUST_BE_REVIEWED",
+        "PICKUP_AND_MINIMAL_RELEASE_WIDTH_MUST_BE_TAUGHT",
+        "LAYER_MEASURED_AT_CENTRE_XY_SPATIAL_CANDIDATE_ONLY"
+      ]
+    },
+    "01_types_and_rotation/S08": {
+      "reference_pose": [
+        535.0417684759975,
+        -32.305894102932,
+        17.1778411392338,
+        78.01061248779297,
+        -178.14669799804688,
+        77.7216567993164
+      ],
+      "pickup_pose": null,
+      "physical_reference_reviewed": false,
+      "pickup_width_mm": null,
+      "release_width_mm": null,
+      "release_pose": null,
+      "press_approach_pose": null,
+      "press_start_pose": null,
+      "press_width_mm": null,
+      "notes": [
+        "SAME_GRASP_TCP_AND_ORIENTATION_MUST_BE_REVIEWED",
+        "PICKUP_AND_MINIMAL_RELEASE_WIDTH_MUST_BE_TAUGHT",
+        "FAR_CORNER_22_21_EXCLUDED_NO_VALIDATED_FULL_BOARD_SIX_STUD_MODEL"
+      ]
+    },
+    "02_layers_1_to_4/S01": {
+      "reference_pose": [
+        391.96368832795514,
+        6.303446164338482,
+        15.51624870300293,
+        75.28691864013672,
+        -177.2896270751953,
+        75.40895080566406
+      ],
+      "pickup_pose": null,
+      "physical_reference_reviewed": false,
+      "pickup_width_mm": null,
+      "release_width_mm": null,
+      "release_pose": null,
+      "press_approach_pose": null,
+      "press_start_pose": null,
+      "press_width_mm": null,
+      "notes": [
+        "SAME_GRASP_TCP_AND_ORIENTATION_MUST_BE_REVIEWED",
+        "PICKUP_AND_MINIMAL_RELEASE_WIDTH_MUST_BE_TAUGHT",
+        "LAYER_MEASURED_AT_CENTRE_XY_SPATIAL_CANDIDATE_ONLY"
+      ]
+    },
+    "02_layers_1_to_4/S02": {
+      "reference_pose": [
+        391.2919964334239,
+        5.926653256623638,
+        33.63553237915039,
+        73.10492706298828,
+        -177.20652770996094,
+        73.32064056396484
+      ],
+      "pickup_pose": null,
+      "physical_reference_reviewed": false,
+      "pickup_width_mm": null,
+      "release_width_mm": null,
+      "release_pose": null,
+      "press_approach_pose": null,
+      "press_start_pose": null,
+      "press_width_mm": null,
+      "notes": [
+        "SAME_GRASP_TCP_AND_ORIENTATION_MUST_BE_REVIEWED",
+        "PICKUP_AND_MINIMAL_RELEASE_WIDTH_MUST_BE_TAUGHT",
+        "LAYER_MEASURED_AT_CENTRE_XY_SPATIAL_CANDIDATE_ONLY"
+      ]
+    },
+    "02_layers_1_to_4/S03": {
+      "reference_pose": [
+        391.52008481233014,
+        6.289789548127544,
+        52.92000961303711,
+        70.23124694824219,
+        -177.07777404785156,
+        70.48985290527344
+      ],
+      "pickup_pose": null,
+      "physical_reference_reviewed": false,
+      "pickup_width_mm": null,
+      "release_width_mm": null,
+      "release_pose": null,
+      "press_approach_pose": null,
+      "press_start_pose": null,
+      "press_width_mm": null,
+      "notes": [
+        "SAME_GRASP_TCP_AND_ORIENTATION_MUST_BE_REVIEWED",
+        "PICKUP_AND_MINIMAL_RELEASE_WIDTH_MUST_BE_TAUGHT",
+        "LAYER_MEASURED_AT_CENTRE_XY_SPATIAL_CANDIDATE_ONLY"
+      ]
+    },
+    "02_layers_1_to_4/S04": {
+      "reference_pose": [
+        391.84726376740826,
+        6.41610943338145,
+        71.60824584960938,
+        72.24752807617188,
+        -177.0513153076172,
+        72.59900665283203
+      ],
+      "pickup_pose": null,
+      "physical_reference_reviewed": false,
+      "pickup_width_mm": null,
+      "release_width_mm": null,
+      "release_pose": null,
+      "press_approach_pose": null,
+      "press_start_pose": null,
+      "press_width_mm": null,
+      "notes": [
+        "SAME_GRASP_TCP_AND_ORIENTATION_MUST_BE_REVIEWED",
+        "PICKUP_AND_MINIMAL_RELEASE_WIDTH_MUST_BE_TAUGHT",
+        "LAYER_MEASURED_AT_CENTRE_XY_SPATIAL_CANDIDATE_ONLY"
+      ]
+    },
+    "03_human_assembly_tray/S01": {
+      "reference_pose": [
+        418.2707214355469,
+        -181.1972198486328,
+        14.935303688049316,
+        161.52828979492188,
+        179.58567810058594,
+        161.99119567871094
+      ],
+      "pickup_pose": [
+        -320.5955505371094,
+        138.4237823486328,
+        51.31666946411133,
+        159.38967895507812,
+        -179.285400390625,
+        159.7829132080078
+      ],
+      "physical_reference_reviewed": false,
+      "pickup_width_mm": 40.0,
+      "release_width_mm": null,
+      "release_pose": null,
+      "press_approach_pose": null,
+      "press_start_pose": null,
+      "press_width_mm": null,
+      "notes": [
+        "SAME_GRASP_TCP_AND_ORIENTATION_MUST_BE_REVIEWED",
+        "PICKUP_AND_MINIMAL_RELEASE_WIDTH_MUST_BE_TAUGHT",
+        "FAR_CORNER_22_21_EXCLUDED_NO_VALIDATED_FULL_BOARD_SIX_STUD_MODEL"
+      ]
+    },
+    "04_human_hold/S01": {
+      "reference_pose": [
+        391.52008481233014,
+        6.289789548127544,
+        52.92000961303711,
+        70.23124694824219,
+        -177.07777404785156,
+        70.48985290527344
+      ],
+      "pickup_pose": null,
+      "physical_reference_reviewed": false,
+      "pickup_width_mm": null,
+      "release_width_mm": null,
+      "release_pose": null,
+      "press_approach_pose": null,
+      "press_start_pose": null,
+      "press_width_mm": null,
+      "notes": [
+        "SAME_GRASP_TCP_AND_ORIENTATION_MUST_BE_REVIEWED",
+        "PICKUP_AND_MINIMAL_RELEASE_WIDTH_MUST_BE_TAUGHT",
+        "LAYER_MEASURED_AT_CENTRE_XY_SPATIAL_CANDIDATE_ONLY"
+      ]
+    },
+    "05_human_press_and_hold/S01": {
+      "reference_pose": [
+        391.2918722609843,
+        -15.735709040618135,
+        54.886004282423286,
+        78.01061248779297,
+        -178.14669799804688,
+        77.7216567993164
+      ],
+      "pickup_pose": null,
+      "physical_reference_reviewed": false,
+      "pickup_width_mm": null,
+      "release_width_mm": null,
+      "release_pose": null,
+      "press_approach_pose": null,
+      "press_start_pose": null,
+      "press_width_mm": null,
+      "notes": [
+        "SAME_GRASP_TCP_AND_ORIENTATION_MUST_BE_REVIEWED",
+        "PICKUP_AND_MINIMAL_RELEASE_WIDTH_MUST_BE_TAUGHT",
+        "FAR_CORNER_22_21_EXCLUDED_NO_VALIDATED_FULL_BOARD_SIX_STUD_MODEL"
+      ]
+    },
+    "06_release_press_unsupported/S01": {
+      "reference_pose": [
+        391.96368832795514,
+        6.303446164338482,
+        15.51624870300293,
+        75.28691864013672,
+        -177.2896270751953,
+        75.40895080566406
+      ],
+      "pickup_pose": null,
+      "physical_reference_reviewed": false,
+      "pickup_width_mm": null,
+      "release_width_mm": null,
+      "release_pose": null,
+      "press_approach_pose": null,
+      "press_start_pose": null,
+      "press_width_mm": null,
+      "notes": [
+        "SAME_GRASP_TCP_AND_ORIENTATION_MUST_BE_REVIEWED",
+        "PICKUP_AND_MINIMAL_RELEASE_WIDTH_MUST_BE_TAUGHT",
+        "LAYER_MEASURED_AT_CENTRE_XY_SPATIAL_CANDIDATE_ONLY"
+      ]
+    },
+    "07_original_release_press/S01": {
+      "reference_pose": [
+        391.96368832795514,
+        6.303446164338482,
+        15.51624870300293,
+        75.28691864013672,
+        -177.2896270751953,
+        75.40895080566406
+      ],
+      "pickup_pose": null,
+      "physical_reference_reviewed": false,
+      "pickup_width_mm": null,
+      "release_width_mm": null,
+      "release_pose": null,
+      "press_approach_pose": null,
+      "press_start_pose": null,
+      "press_width_mm": null,
+      "notes": [
+        "SAME_GRASP_TCP_AND_ORIENTATION_MUST_BE_REVIEWED",
+        "PICKUP_AND_MINIMAL_RELEASE_WIDTH_MUST_BE_TAUGHT",
+        "LAYER_MEASURED_AT_CENTRE_XY_SPATIAL_CANDIDATE_ONLY"
+      ]
+    },
+    "08_red_full_support/S01": {
+      "reference_pose": [
+        351.3178131481833,
+        -23.49685550721224,
+        35.78953257079952,
+        168.01061248779297,
+        -178.14669799804688,
+        77.7216567993164
+      ],
+      "pickup_pose": null,
+      "physical_reference_reviewed": false,
+      "pickup_width_mm": null,
+      "release_width_mm": null,
+      "release_pose": null,
+      "press_approach_pose": null,
+      "press_start_pose": null,
+      "press_width_mm": null,
+      "notes": [
+        "SAME_GRASP_TCP_AND_ORIENTATION_MUST_BE_REVIEWED",
+        "PICKUP_AND_MINIMAL_RELEASE_WIDTH_MUST_BE_TAUGHT"
+      ]
+    },
+    "08_red_full_support/S02": {
+      "reference_pose": [
+        455.15027801261465,
+        -31.929639201518917,
+        36.00309490172331,
+        78.01061248779297,
+        -178.14669799804688,
+        77.7216567993164
+      ],
+      "pickup_pose": null,
+      "physical_reference_reviewed": false,
+      "pickup_width_mm": null,
+      "release_width_mm": null,
+      "release_pose": null,
+      "press_approach_pose": null,
+      "press_start_pose": null,
+      "press_width_mm": null,
+      "notes": [
+        "SAME_GRASP_TCP_AND_ORIENTATION_MUST_BE_REVIEWED",
+        "PICKUP_AND_MINIMAL_RELEASE_WIDTH_MUST_BE_TAUGHT"
+      ]
+    }
+  }
+}

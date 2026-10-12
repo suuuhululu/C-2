@@ -1,0 +1,19 @@
+{
+  "sample_kind": "EXAMPLE_NOT_LIVE",
+  "source_epoch": "REPLACE_WITH_D_LIVE_EPOCH",
+  "execution_id": null,
+  "plan_id": null,
+  "step_id": null,
+  "current_revision": null,
+  "profile_id": "D_STEP_CANDIDATE_20261010",
+  "valid_until_unix_s": 0,
+  "reassessment_ref": null,
+  "reassessed_block": null,
+  "reassessed_mode": null,
+  "reassessed_assistance_kind": null,
+  "current_ref": null,
+  "reservation_ref": null,
+  "start_pose_ref": null,
+  "reservation_confirmed": false,
+  "slot_id": null
+}

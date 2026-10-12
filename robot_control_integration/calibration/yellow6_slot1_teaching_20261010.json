@@ -1,0 +1,64 @@
+{
+  "status": "OPERATOR_CONFIRMED_SLOT1_PICKUP_REFERENCE",
+  "selection": {
+    "brick_type": "2x3x1",
+    "color": "yellow",
+    "slot": 1
+  },
+  "robot_reference": "BASE",
+  "tcp": "GripperDA_v4",
+  "tool": "ToolWeight0",
+  "approach_posx": [
+    -318.978759765625,
+    139.00714111328125,
+    91.57837677001953,
+    152.6222381591797,
+    -179.8138885498047,
+    153.41893005371094
+  ],
+  "approach_posj": [
+    -204.1807861328125,
+    -0.43442294001579285,
+    106.71229553222656,
+    -0.021177202463150024,
+    73.90782928466797,
+    -203.74459838867188
+  ],
+  "pad_contact_faces": "48mm_long_side_faces",
+  "grasp_span_mm": 32,
+  "pickup_posx": [
+    -320.5955505371094,
+    138.4237823486328,
+    51.31666946411133,
+    159.38967895507812,
+    -179.285400390625,
+    159.7829132080078
+  ],
+  "pickup_posj": [
+    -203.94483947753906,
+    2.2037782669067383,
+    110.69352722167969,
+    -0.06467528641223907,
+    67.81566619873047,
+    -203.89352416992188
+  ],
+  "pickup_height_5mm_verified": true,
+  "manual_gripper_input_reference": {
+    "target_width_mm": 40,
+    "force_n": 40,
+    "scope": "previous successful 32mm span operator setting; current yellow pickup not yet performed"
+  },
+  "source_log_file": "/home/rokey/Documents/ChatGPT/로봇제어 개발/handoff_20261008/assembly_development_transfer_20261008/return_evidence/onsite_teaching/f32a615c-fff5-4f98-8d93-a97f01319790/yellow6_slot1_manual_alignment_probe/bd0cab9e-43b8-4967-8376-e8b5ed3a7119.jsonl",
+  "whole_route_verified": false,
+  "held_status": 2,
+  "held_width_mm": 40.6,
+  "robot_mode": 1,
+  "pickup_log_file": "/home/rokey/Documents/ChatGPT/로봇제어 개발/handoff_20261008/assembly_development_transfer_20261008/return_evidence/onsite_teaching/f32a615c-fff5-4f98-8d93-a97f01319790/yellow6_slot1_held_pickup_probe/c70804c1-b5be-4993-b80b-07c78924eb9d.jsonl",
+  "operator_surface_report": "바닥에 닿은 상태입니다",
+  "block_parallel_verified": true,
+  "operator_geometry_confirmation": "밑면 접촉·양쪽 5mm·기울어짐 없음 확인",
+  "geometry_confirmation_source": "ONSITE_OPERATOR",
+  "repeat_pick_execution_verified": false,
+  "automatic_gripper_execution_verified": false,
+  "other_slots_calibrated": false
+}

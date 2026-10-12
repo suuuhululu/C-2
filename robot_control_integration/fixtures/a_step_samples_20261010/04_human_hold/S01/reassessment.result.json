@@ -1,0 +1,231 @@
+{
+  "schema_version": "assembly-ad-calculation-draft/0.5",
+  "contract_status": "DRAFT_NOT_FROZEN",
+  "sample_kind": "CALCULATED_FROM_REVIEW_INPUT_NOT_FOR_EXECUTION",
+  "message_type": "StepReassessmentResult",
+  "context": {
+    "job_id": "suhyun-04_human_hold",
+    "request_id": "04_human_hold-S01-reassessment",
+    "workflow_generation": 1,
+    "source_epoch": "OFFLINE_MOCK_20261010",
+    "design_version": 1,
+    "input_current_revision": 4,
+    "world_state_revision": 0,
+    "frame_profile_id": "D_FIXTURE_FRAME_PROFILE",
+    "plan_id": "P-33a661bbd6494afd91d2eac6acbd9113",
+    "step_id": "S01",
+    "frame_profile_version": "fixture-v1"
+  },
+  "execution_allowed": false,
+  "assessment_id": "assessment-4ea53df0b3354dff99f757b6a2487d68",
+  "status": "CANDIDATE",
+  "action_proposal": {
+    "plan_id": "P-33a661bbd6494afd91d2eac6acbd9113",
+    "step_id": "S01",
+    "block": {
+      "brick_type": "2x2x1",
+      "color": "blue",
+      "x": 6,
+      "y": 6,
+      "layer": 3,
+      "orientation_deg": 0
+    },
+    "mode": "ROBOT_GRIP",
+    "grip_axis": "x",
+    "gripper": {
+      "pickup_policy": "D_EXISTING_PICKUP",
+      "release_strategy": "MINIMAL_OPEN",
+      "release_owner": "D",
+      "policy_at_wait": "HOLD_NO_AUTOMATIC_OPEN",
+      "numeric_open_command": null
+    },
+    "support_studs": 4,
+    "contacts": [
+      {
+        "lower_block": {
+          "brick_type": "2x2x1",
+          "color": "blue",
+          "x": 5,
+          "y": 6,
+          "layer": 2,
+          "orientation_deg": 0
+        },
+        "upper_overlap_studs": 2,
+        "lower_overlap_studs": 2,
+        "board_supported": false
+      },
+      {
+        "lower_block": {
+          "brick_type": "2x2x1",
+          "color": "blue",
+          "x": 7,
+          "y": 6,
+          "layer": 2,
+          "orientation_deg": 0
+        },
+        "upper_overlap_studs": 2,
+        "lower_overlap_studs": 2,
+        "board_supported": false
+      }
+    ],
+    "robot_force_model": "NOMINAL_BLOCK_CENTRE_BASE_MINUS_Z",
+    "assistance_kind": "HOLD",
+    "human_actions": [
+      {
+        "action": "HOLD",
+        "target_block": {
+          "brick_type": "2x2x1",
+          "color": "blue",
+          "x": 5,
+          "y": 6,
+          "layer": 2,
+          "orientation_deg": 0
+        },
+        "contact_regions": [
+          {
+            "frame_id": "assembly_board",
+            "vertices_xyz_m": [
+              [
+                0.08,
+                0.088,
+                0.0145
+              ],
+              [
+                0.096,
+                0.088,
+                0.0145
+              ],
+              [
+                0.096,
+                0.088,
+                0.0335
+              ],
+              [
+                0.08,
+                0.088,
+                0.0335
+              ]
+            ]
+          },
+          {
+            "frame_id": "assembly_board",
+            "vertices_xyz_m": [
+              [
+                0.08,
+                0.12,
+                0.0145
+              ],
+              [
+                0.096,
+                0.12,
+                0.0145
+              ],
+              [
+                0.096,
+                0.12,
+                0.0335
+              ],
+              [
+                0.08,
+                0.12,
+                0.0335
+              ]
+            ]
+          }
+        ],
+        "approach_sides": [
+          "-y",
+          "+y"
+        ],
+        "hand_count": 1,
+        "force_direction_base": null,
+        "force_magnitude_n": null,
+        "effect": "아래 블록의 옆면을 잡아 유지",
+        "access_assessment": "GEOMETRIC_CANDIDATE_NOT_RUNTIME_VERIFIED"
+      },
+      {
+        "action": "HOLD",
+        "target_block": {
+          "brick_type": "2x2x1",
+          "color": "blue",
+          "x": 7,
+          "y": 6,
+          "layer": 2,
+          "orientation_deg": 0
+        },
+        "contact_regions": [
+          {
+            "frame_id": "assembly_board",
+            "vertices_xyz_m": [
+              [
+                0.112,
+                0.088,
+                0.0145
+              ],
+              [
+                0.128,
+                0.088,
+                0.0145
+              ],
+              [
+                0.128,
+                0.088,
+                0.0335
+              ],
+              [
+                0.112,
+                0.088,
+                0.0335
+              ]
+            ]
+          },
+          {
+            "frame_id": "assembly_board",
+            "vertices_xyz_m": [
+              [
+                0.112,
+                0.12,
+                0.0145
+              ],
+              [
+                0.128,
+                0.12,
+                0.0145
+              ],
+              [
+                0.128,
+                0.12,
+                0.0335
+              ],
+              [
+                0.112,
+                0.12,
+                0.0335
+              ]
+            ]
+          }
+        ],
+        "approach_sides": [
+          "-y",
+          "+y"
+        ],
+        "hand_count": 1,
+        "force_direction_base": null,
+        "force_magnitude_n": null,
+        "effect": "아래 블록의 옆면을 잡아 유지",
+        "access_assessment": "GEOMETRIC_CANDIDATE_NOT_RUNTIME_VERIFIED"
+      }
+    ],
+    "human_hands_used": 2,
+    "assistance_cost": [
+      1,
+      0,
+      2
+    ],
+    "selection_basis": "완성 가능한 전체 계획 확보 후 사람 도움 최소화; MoveIt 운반 검증은 별도",
+    "requires_runtime_reassessment": true,
+    "optimality_verified": false
+  },
+  "errors": [],
+  "assessment_input_digest": "850a257894221337a33b52b1d7a295ec3285c4f8e44f0fe6de54d47b9ae42101"
+}

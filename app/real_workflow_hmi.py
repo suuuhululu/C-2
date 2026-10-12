@@ -262,7 +262,7 @@ def main(argv=None):
     parser.add_argument("--c-voice", action="store_true", help="초기 목표/의도 답변 STT와 오배치 질문 TTS")
     parser.add_argument("--c-fixture")
     parser.add_argument("--color", choices=("blue", "yellow"))
-    parser.add_argument("--first-slot", type=int, choices=range(1, 5))
+    parser.add_argument("--first-slot", type=int, choices=range(1, 7))
     parser.add_argument("--log-dir", default="logs/real_workflow")
     args = parser.parse_args(argv)
     if args.c_voice and args.c_mode != "live":

@@ -10,6 +10,8 @@ from pathlib import Path
 from types import SimpleNamespace
 from uuid import UUID, uuid4
 
+from app.supply_slots import next_supply_slot
+
 from .contracts import _integer, _object, _text
 from .jsonl_log import JsonlLog
 
@@ -194,8 +196,7 @@ def run_commands(commands, robot, gripper, initial, config, record, *, resume=No
                     raise RuntimeError(f"PICK_HOLD_UNCONFIRMED: status={status}")
                 consumed = True
                 lifted = False
-                record("ROBOT_PICK_CONFIRMED", dict(slot=config["slot"], next_slot=config["slot"] + 1
-                                                    if config["slot"] < 6 else None))
+                record("ROBOT_PICK_CONFIRMED", dict(slot=config["slot"], next_slot=next_supply_slot(config["slot"])))
         elif kind == "grip_close":
             gripper.move(robot.args.close_width, require_grip=True)
             lifted = True
@@ -324,7 +325,7 @@ def main(argv=None):
             for name, flag in (("ROBOT_PICK_CONFIRMED", verified["consumed"]),
                                ("ROBOT_RELEASE_CONFIRMED", verified["released"])):
                 if flag:
-                    record(name, dict(slot=config["slot"], next_slot=config["slot"] + 1 if config["slot"] < 6 else None))
+                    record(name, dict(slot=config["slot"], next_slot=next_supply_slot(config["slot"])))
         record("ROBOT_TRIAL_STARTED", dict(slot=config["slot"], preflight=read_status(robot, gripper, config, allow_holding=resume is not None)))
         started = True
         run_commands(commands, robot, gripper, initial, config, record, resume=resume, cancelled=cancelled)

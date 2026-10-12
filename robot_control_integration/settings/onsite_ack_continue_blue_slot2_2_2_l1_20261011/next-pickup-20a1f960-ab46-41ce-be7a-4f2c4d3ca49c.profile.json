@@ -1,0 +1,178 @@
+{
+  "status": "PREPARED_LOCAL_NEXT_PICKUP_NOT_EXECUTED",
+  "trial_kind": "LOCAL_HUMAN_ASSEMBLY_NOT_LIVE_A_B_D_CONTRACT",
+  "desired_target": {
+    "brick_type": "2x2x1",
+    "color": "blue",
+    "x": 2,
+    "y": 2,
+    "layer": 1,
+    "orientation_deg": 0
+  },
+  "source_slot": {
+    "slot_id": "blue_2x2x1_02",
+    "operator_statement": "슬롯 파랑2*2 두번째",
+    "backend_reservation_committed": false
+  },
+  "step": {
+    "case_id": "onsite_blue_slot2_trial2_2_layer1_no_turn",
+    "step_id": "S02",
+    "plan_id": "D_LOCAL_HUMAN_11_11_L5_20261011",
+    "block": {
+      "brick_type": "2x2x1",
+      "color": "blue",
+      "x": 2,
+      "y": 2,
+      "layer": 1,
+      "orientation_deg": 0
+    },
+    "action": {
+      "mode": "ROBOT_GRIP",
+      "assistance_kind": "NONE",
+      "human_actions": []
+    },
+    "current_revision": null,
+    "reservation": null,
+    "summary": {}
+  },
+  "d_profile": {
+    "profile_id": "D_LOCAL_NEXT_SLOT2_20a1f960-ab46-41ce-be7a-4f2c4d3ca49c",
+    "physical_route_reviewed": true,
+    "human_collaboration_commissioning_ref": null,
+    "clearance_z_mm": 194.73294067382812,
+    "supply_transit_xy_mm": [
+      -364.8591304347826,
+      -171.54
+    ],
+    "body_bypass_xy_mm": [
+      -27.878286361694336,
+      -411.9568176269531
+    ],
+    "place_pose": [
+      418.2707214355469,
+      -181.1972198486328,
+      14.935303688049316,
+      161.52828979492188,
+      179.58567810058594,
+      161.99119567871094
+    ],
+    "approach_offset_mm": 20.1,
+    "near_contact_offset_mm": 1.0,
+    "force_stop_n": 35.0,
+    "max_press_travel_mm": 5.0,
+    "transfer_velocity": 96.0,
+    "transfer_acceleration": 48.0,
+    "descent_velocity": 2.0,
+    "descent_acceleration": 1.0,
+    "gripper_force_n": 40.0,
+    "steps": {
+      "onsite_blue_slot2_trial2_2_layer1_no_turn/S02": {
+        "reference_pose": [
+          327.89064484969424,
+          -57.24785818348761,
+          15.51624870300293,
+          75.28691864013672,
+          -177.2896270751953,
+          75.40895080566406
+        ],
+        "pickup_pose": [
+          -397.28952355426287,
+          50.04567912889564,
+          52.20610046386719,
+          125.77477264404297,
+          -175.88323974609375,
+          124.51481628417969
+        ],
+        "physical_reference_reviewed": true,
+        "pickup_width_mm": 35.0,
+        "release_width_mm": 62.4,
+        "release_pose": null,
+        "press_approach_pose": null,
+        "press_start_pose": null,
+        "press_width_mm": null,
+        "notes": [
+          "SAME_GRASP_TCP_AND_ORIENTATION_MUST_BE_REVIEWED",
+          "PICKUP_AND_MINIMAL_RELEASE_WIDTH_MUST_BE_TAUGHT",
+          "LAYER_MEASURED_AT_CENTRE_XY_SPATIAL_CANDIDATE_ONLY"
+        ],
+        "release_feedback_range_mm": [
+          60.0,
+          110.0
+        ],
+        "turn_base_z_deg": 0.0,
+        "turn_reference": "CURRENT_SESSION_GRASP_BASE_Z",
+        "pickup_start_open_range_mm": [
+          47.0,
+          110.0
+        ]
+      }
+    },
+    "transport_blending": {
+      "radius_mm": 15.0,
+      "reviewed": true
+    },
+    "pickup_descent_velocity": 12.0,
+    "pickup_descent_acceleration": 6.0
+  },
+  "operator_confirmations": {
+    "source_slot2_filled": true,
+    "target_empty_layer1": true,
+    "target_above_clear": true,
+    "source": "settings/onsite_ack_continue_blue_slot2_2_2_l1_20261011/operator-review.json"
+  },
+  "pickup_source": {
+    "kind": "CALIBRATED_RELATIVE_SLOT2_CANDIDATE_ANCHORED_TO_ACTUAL_SLOT1",
+    "path": "settings/onsite_ack_continue_blue_slot2_2_2_l1_20261011/geometry-candidate.json",
+    "physically_taught": false
+  },
+  "assembly_completion": false,
+  "current_update": false,
+  "physical_verified": false,
+  "hardware_verified": false,
+  "current_grasp_transform_verified": false,
+  "exact_target_taught": false,
+  "pending": [
+    "User execution of timeout-to-next-pickup trial",
+    "Physical slot2 pickup confirmation",
+    "Later target(2,2) layer1 transport and seating trial"
+  ],
+  "opening_feedback_policy": "Pickup-only empty preparation62.4mm; future seated release48mm. Raw grip status2 verifies hold; nominal closing35mm is not a measured-width equality constraint.",
+  "readiness_ref": "settings/onsite_ack_continue_blue_slot2_2_2_l1_20261011/readonly.json",
+  "initial_phase": "pickup",
+  "start_zone": "assembly",
+  "camera_transport": "raw",
+  "operator_target_review": "settings/onsite_ack_continue_blue_slot2_2_2_l1_20261011/operator-review.json",
+  "assembly_reference_source": {
+    "kind": "EXISTING_TEACHING_AND_CALIBRATION_CANDIDATE_NOT_EXACT_TARGET_TEACHING",
+    "reference_pose": [
+      327.89064484969424,
+      -57.24785818348761,
+      15.51624870300293,
+      75.28691864013672,
+      -177.2896270751953,
+      75.40895080566406
+    ]
+  },
+  "pickup_width_review": "Human WebLogic35mm closing target verified rawgripstatus2; actualwidth39.5. Future pickup35mm40N.",
+  "speed_review": {
+    "pickup_descent_mm_s": 12.0,
+    "pickup_descent_acc_mm_s2": 6.0,
+    "previous_pickup_descent_mm_s": 6.0,
+    "other_descent_velocity_unchanged": 6.0,
+    "other_descent_acceleration_unchanged": 3.0,
+    "applies_to": "This new full execution: pickup descent12mm/s6mm/s2; contact parameters retained"
+  },
+  "physical_corridor_review_ref": "settings/onsite_ack_continue_blue_slot2_2_2_l1_20261011/operator-review.json",
+  "arming_readonly_ref": "settings/onsite_ack_continue_blue_slot2_2_2_l1_20261011/readonly.json",
+  "future_trial_status": "Single execution IDs; never rerun after an attempted execution.",
+  "seated_release_review": {
+    "user_request": "결착 후 그리퍼 48mm",
+    "command_width_mm": 48.0,
+    "scope": "SEATED_ASSEMBLY_RELEASE_AND_FUTURE_PICKUP_OPEN_PREPARATION",
+    "feedback_min_mm": 47.0,
+    "feedback_max_mm": 110.0,
+    "feedback_policy": "Raw status0 and stillness/freshness required; task upper limit remains removed. Physical48mm release pending."
+  },
+  "initial_opening_policy": "HUMAN_ASSEMBLY_ONLY: empty pickup preparation and handover62.4mm; robot seated assembly profiles remain48mm",
+  "future_seated_release_width_mm": 48.0
+}

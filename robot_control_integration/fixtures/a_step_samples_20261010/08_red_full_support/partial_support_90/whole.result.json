@@ -1,0 +1,44 @@
+{
+  "schema_version": "assembly-ad-calculation-draft/0.5",
+  "contract_status": "DRAFT_NOT_FROZEN",
+  "sample_kind": "CALCULATED_FROM_REVIEW_INPUT_NOT_FOR_EXECUTION",
+  "message_type": "WholePlanResult",
+  "context": {
+    "job_id": "suhyun-08_red_full_support",
+    "request_id": "08_red_full_support-partial-support-90",
+    "workflow_generation": 1,
+    "source_epoch": "OFFLINE_MOCK_20261010",
+    "design_version": 1,
+    "input_current_revision": 1,
+    "world_state_revision": 0,
+    "frame_profile_id": "D_FIXTURE_FRAME_PROFILE",
+    "plan_id": null,
+    "step_id": null,
+    "frame_profile_version": "fixture-v1"
+  },
+  "execution_allowed": false,
+  "candidate_id": "candidate-0d6be975ee2949f5b6fc85fd98468322",
+  "review_state": "CANDIDATE_FOR_D_REVIEW",
+  "provenance": "ACTUAL_A_FUNCTIONS_LOCAL_ADAPTER_NO_D_RECEIPT",
+  "calculation_status": "COMPLETED",
+  "planning_result": {
+    "status": "INVALID",
+    "plan": null,
+    "errors": [
+      {
+        "reason": "blocks[1]: support requires at least 2 studs in the immediately lower layer; found 1",
+        "block": {
+          "brick_type": "1x2x1",
+          "color": "red",
+          "x": 5,
+          "y": 5,
+          "layer": 2,
+          "orientation_deg": 90
+        }
+      }
+    ]
+  },
+  "action_proposals": [],
+  "stage_errors": [],
+  "shared_planning_bundle": null
+}

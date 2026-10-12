@@ -1,0 +1,2882 @@
+{
+  "result": {
+    "key": "onsite_blue_slot1_trial6_6_layer2_no_turn/S01",
+    "phase": "handover",
+    "mode": "ROBOT_GRIP",
+    "assembly_completion": false,
+    "current_update": false,
+    "automatic_retry": false,
+    "operator_seating_confirmed": false,
+    "preview_is_verified_gesture": false,
+    "release_requires_post_stop_hmi": true,
+    "motion_stop_verified": true,
+    "stop_candidate": {
+      "plan_id": "D_LOCAL_BLUE_SLOT1_TRIAL6_6_L2_20261011",
+      "step_id": "S01",
+      "current_revision": null,
+      "execution_id": "92b49de9-b03a-49f1-a633-0bfe452f2a0e",
+      "source_epoch": "TEST_LOCAL",
+      "preview_request_id": "ac6416dd-aa9a-4a0f-8059-f8cb90204440",
+      "received_monotonic_ns": 350000000,
+      "candidate_event": "OPEN_HAND_HELD_ORIENTATION_UNKNOWN"
+    },
+    "final_sample": {
+      "posx": [
+        400.851,
+        8.573,
+        314.981,
+        175.022,
+        -179.595,
+        175.461
+      ],
+      "velx": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "motion_status": 0,
+      "query_duration_s": 0.0,
+      "tcp": "GripperDA_v4",
+      "tool": "ToolWeight0",
+      "gripper_status": 0,
+      "gripper_width_mm": 62.4,
+      "robot_state": 1,
+      "robot_mode": 1,
+      "drl_state": 3,
+      "wrench": [
+        0.0,
+        0.0,
+        5.0,
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    "observe_point_verified": true,
+    "operator_receiving_confirmed": true,
+    "status": "LOCAL_HANDOVER_OBSERVE_COMPLETE",
+    "execution_id": "92b49de9-b03a-49f1-a633-0bfe452f2a0e",
+    "backend": "TEST",
+    "final_state_sequence": 69,
+    "physical_verified": false,
+    "backend_current_committed": false,
+    "contact_evidence": null,
+    "integration_scope": "LOCAL_TRIAL_NOT_LIVE_A_B_D_CONTRACT"
+  },
+  "labels": [
+    "HANDOVER_INCOMING",
+    "HANDOVER_EMPTY_PLACE",
+    "OBSERVE_HEIGHT_LIFT",
+    "OBSERVE_POINT"
+  ],
+  "events": [
+    {
+      "event": "STILLNESS_WINDOW_VERIFIED",
+      "data": {
+        "sample": {
+          "posx": [
+            418.2706298828125,
+            -181.19732666015625,
+            194.73263549804688,
+            125.77471923828125,
+            -175.88330078125,
+            124.51486206054688
+          ],
+          "velx": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "motion_status": 0,
+          "query_duration_s": 0.0,
+          "tcp": "GripperDA_v4",
+          "tool": "ToolWeight0",
+          "gripper_status": 2,
+          "gripper_width_mm": 40.1,
+          "robot_state": 1,
+          "robot_mode": 1,
+          "drl_state": 3,
+          "wrench": [
+            0.0,
+            0.0,
+            5.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "samples": 3,
+        "window_s": 0.1,
+        "state_sequence": 3,
+        "pending_commands": 0,
+        "queue_scope": "THIS_SINGLE_WRITER_ONLY",
+        "measurement_timestamp_available": false
+      }
+    },
+    {
+      "event": "ADAPTER_LEASE_APPLIED",
+      "data": {
+        "old_lease": null,
+        "new_lease": "47b97692-930c-4ac8-a3f2-0a688826c28f",
+        "owner": "WAIT",
+        "state_sequence": 3,
+        "snapshot": {
+          "posx": [
+            418.2706298828125,
+            -181.19732666015625,
+            194.73263549804688,
+            125.77471923828125,
+            -175.88330078125,
+            124.51486206054688
+          ],
+          "velx": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "motion_status": 0,
+          "query_duration_s": 0.0,
+          "tcp": "GripperDA_v4",
+          "tool": "ToolWeight0",
+          "gripper_status": 2,
+          "gripper_width_mm": 40.1,
+          "robot_state": 1,
+          "robot_mode": 1,
+          "drl_state": 3,
+          "wrench": [
+            0.0,
+            0.0,
+            5.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "scope": "LOCAL_TRIAL_IN_PROCESS_ACK_NOT_EXTERNAL_D_ACK"
+      }
+    },
+    {
+      "event": "WAIT_START_HANDOVER",
+      "data": {
+        "sample": {
+          "posx": [
+            418.2706298828125,
+            -181.19732666015625,
+            194.73263549804688,
+            125.77471923828125,
+            -175.88330078125,
+            124.51486206054688
+          ],
+          "velx": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "motion_status": 0,
+          "query_duration_s": 0.0,
+          "tcp": "GripperDA_v4",
+          "tool": "ToolWeight0",
+          "gripper_status": 2,
+          "gripper_width_mm": 40.1,
+          "robot_state": 1,
+          "robot_mode": 1,
+          "drl_state": 3,
+          "wrench": [
+            0.0,
+            0.0,
+            5.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "block": {
+          "brick_type": "2x2x1",
+          "color": "blue",
+          "x": 6,
+          "y": 6,
+          "layer": 2,
+          "orientation_deg": 0
+        }
+      }
+    },
+    {
+      "event": "STILLNESS_WINDOW_VERIFIED",
+      "data": {
+        "sample": {
+          "posx": [
+            418.2706298828125,
+            -181.19732666015625,
+            194.73263549804688,
+            125.77471923828125,
+            -175.88330078125,
+            124.51486206054688
+          ],
+          "velx": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "motion_status": 0,
+          "query_duration_s": 0.0,
+          "tcp": "GripperDA_v4",
+          "tool": "ToolWeight0",
+          "gripper_status": 2,
+          "gripper_width_mm": 40.1,
+          "robot_state": 1,
+          "robot_mode": 1,
+          "drl_state": 3,
+          "wrench": [
+            0.0,
+            0.0,
+            5.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "samples": 3,
+        "window_s": 0.1,
+        "state_sequence": 8,
+        "pending_commands": 0,
+        "queue_scope": "THIS_SINGLE_WRITER_ONLY",
+        "measurement_timestamp_available": false
+      }
+    },
+    {
+      "event": "ADAPTER_LEASE_APPLIED",
+      "data": {
+        "old_lease": "47b97692-930c-4ac8-a3f2-0a688826c28f",
+        "new_lease": "546cc8e4-db08-4af7-98f1-3d90547f12ec",
+        "owner": "WAIT",
+        "state_sequence": 8,
+        "snapshot": {
+          "posx": [
+            418.2706298828125,
+            -181.19732666015625,
+            194.73263549804688,
+            125.77471923828125,
+            -175.88330078125,
+            124.51486206054688
+          ],
+          "velx": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "motion_status": 0,
+          "query_duration_s": 0.0,
+          "tcp": "GripperDA_v4",
+          "tool": "ToolWeight0",
+          "gripper_status": 2,
+          "gripper_width_mm": 40.1,
+          "robot_state": 1,
+          "robot_mode": 1,
+          "drl_state": 3,
+          "wrench": [
+            0.0,
+            0.0,
+            5.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "scope": "LOCAL_TRIAL_IN_PROCESS_ACK_NOT_EXTERNAL_D_ACK"
+      }
+    },
+    {
+      "event": "HUMAN_REQUEST_OPENED",
+      "data": {
+        "request_id": "22f60262-1b85-4735-bec5-e916412db20d",
+        "kind": "START_HANDOVER",
+        "mode": "QUESTION",
+        "plan_id": "D_LOCAL_BLUE_SLOT1_TRIAL6_6_L2_20261011",
+        "step_id": "S01",
+        "current_revision": null,
+        "execution_id": "92b49de9-b03a-49f1-a633-0bfe452f2a0e",
+        "source_epoch": "TEST_LOCAL",
+        "opened_monotonic_s": 0.2,
+        "deadline_monotonic_s": 30.2
+      }
+    },
+    {
+      "event": "HUMAN_RESPONSE",
+      "data": {
+        "request": {
+          "request_id": "22f60262-1b85-4735-bec5-e916412db20d",
+          "kind": "START_HANDOVER",
+          "mode": "QUESTION",
+          "plan_id": "D_LOCAL_BLUE_SLOT1_TRIAL6_6_L2_20261011",
+          "step_id": "S01",
+          "current_revision": null,
+          "execution_id": "92b49de9-b03a-49f1-a633-0bfe452f2a0e",
+          "source_epoch": "TEST_LOCAL",
+          "opened_monotonic_s": 0.2,
+          "deadline_monotonic_s": 30.2
+        },
+        "positive": true,
+        "source": "HMI",
+        "preview_candidate": null,
+        "assembly_completion": false
+      }
+    },
+    {
+      "event": "HUMAN_REQUEST_CLOSED",
+      "data": {
+        "request_id": "22f60262-1b85-4735-bec5-e916412db20d",
+        "kind": "START_HANDOVER",
+        "mode": "QUESTION",
+        "plan_id": "D_LOCAL_BLUE_SLOT1_TRIAL6_6_L2_20261011",
+        "step_id": "S01",
+        "current_revision": null,
+        "execution_id": "92b49de9-b03a-49f1-a633-0bfe452f2a0e",
+        "source_epoch": "TEST_LOCAL",
+        "opened_monotonic_s": 0.2,
+        "deadline_monotonic_s": 30.2
+      }
+    },
+    {
+      "event": "HUMAN_REQUEST_OPENED",
+      "data": {
+        "request_id": "0a78b32b-cc68-41d7-ba3e-a47704bf720e",
+        "kind": "RECEIVE",
+        "mode": "RECEIVE",
+        "plan_id": "D_LOCAL_BLUE_SLOT1_TRIAL6_6_L2_20261011",
+        "step_id": "S01",
+        "current_revision": null,
+        "execution_id": "92b49de9-b03a-49f1-a633-0bfe452f2a0e",
+        "source_epoch": "TEST_LOCAL",
+        "opened_monotonic_s": 0.2,
+        "deadline_monotonic_s": 30.2
+      }
+    },
+    {
+      "event": "HANDOVER_CAMERA_READY_BEFORE_MOTION",
+      "data": {
+        "received_monotonic_ns": 200000000
+      }
+    },
+    {
+      "event": "HUMAN_REQUEST_CLOSED",
+      "data": {
+        "request_id": "0a78b32b-cc68-41d7-ba3e-a47704bf720e",
+        "kind": "RECEIVE",
+        "mode": "RECEIVE",
+        "plan_id": "D_LOCAL_BLUE_SLOT1_TRIAL6_6_L2_20261011",
+        "step_id": "S01",
+        "current_revision": null,
+        "execution_id": "92b49de9-b03a-49f1-a633-0bfe452f2a0e",
+        "source_epoch": "TEST_LOCAL",
+        "opened_monotonic_s": 0.2,
+        "deadline_monotonic_s": 30.2
+      }
+    },
+    {
+      "event": "HUMAN_REQUEST_OPENED",
+      "data": {
+        "request_id": "ac6416dd-aa9a-4a0f-8059-f8cb90204440",
+        "kind": "RECEIVE",
+        "mode": "RECEIVE",
+        "plan_id": "D_LOCAL_BLUE_SLOT1_TRIAL6_6_L2_20261011",
+        "step_id": "S01",
+        "current_revision": null,
+        "execution_id": "92b49de9-b03a-49f1-a633-0bfe452f2a0e",
+        "source_epoch": "TEST_LOCAL",
+        "opened_monotonic_s": 0.2,
+        "deadline_monotonic_s": 30.2
+      }
+    },
+    {
+      "event": "STILLNESS_WINDOW_VERIFIED",
+      "data": {
+        "sample": {
+          "posx": [
+            418.2706298828125,
+            -181.19732666015625,
+            194.73263549804688,
+            125.77471923828125,
+            -175.88330078125,
+            124.51486206054688
+          ],
+          "velx": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "motion_status": 0,
+          "query_duration_s": 0.0,
+          "tcp": "GripperDA_v4",
+          "tool": "ToolWeight0",
+          "gripper_status": 2,
+          "gripper_width_mm": 40.1,
+          "robot_state": 1,
+          "robot_mode": 1,
+          "drl_state": 3,
+          "wrench": [
+            0.0,
+            0.0,
+            5.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "samples": 4,
+        "window_s": 0.14999999999999997,
+        "state_sequence": 13,
+        "pending_commands": 0,
+        "queue_scope": "THIS_SINGLE_WRITER_ONLY",
+        "measurement_timestamp_available": false
+      }
+    },
+    {
+      "event": "ADAPTER_LEASE_APPLIED",
+      "data": {
+        "old_lease": "546cc8e4-db08-4af7-98f1-3d90547f12ec",
+        "new_lease": "c03ca7ce-cda3-420a-820b-d18e6111330e",
+        "owner": "MOTION",
+        "state_sequence": 13,
+        "snapshot": {
+          "posx": [
+            418.2706298828125,
+            -181.19732666015625,
+            194.73263549804688,
+            125.77471923828125,
+            -175.88330078125,
+            124.51486206054688
+          ],
+          "velx": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "motion_status": 0,
+          "query_duration_s": 0.0,
+          "tcp": "GripperDA_v4",
+          "tool": "ToolWeight0",
+          "gripper_status": 2,
+          "gripper_width_mm": 40.1,
+          "robot_state": 1,
+          "robot_mode": 1,
+          "drl_state": 3,
+          "wrench": [
+            0.0,
+            0.0,
+            5.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "scope": "LOCAL_TRIAL_IN_PROCESS_ACK_NOT_EXTERNAL_D_ACK"
+      }
+    },
+    {
+      "event": "STEP_MOVE",
+      "data": {
+        "label": "HANDOVER_INCOMING",
+        "target": [
+          391.2919964334239,
+          5.926653256623638,
+          194.73294067382812,
+          125.77471923828125,
+          -175.88330078125,
+          124.51486206054688
+        ],
+        "gripper_status": 2
+      }
+    },
+    {
+      "event": "INITIAL_SAMPLE",
+      "data": {
+        "posx": [
+          418.2706298828125,
+          -181.19732666015625,
+          194.73263549804688,
+          125.77471923828125,
+          -175.88330078125,
+          124.51486206054688
+        ],
+        "velx": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "motion_status": 0,
+        "query_duration_s": 0.0,
+        "tcp": "GripperDA_v4",
+        "tool": "ToolWeight0",
+        "gripper_status": 2,
+        "gripper_width_mm": 40.1,
+        "robot_state": 1,
+        "robot_mode": 1,
+        "drl_state": 3,
+        "wrench": [
+          0.0,
+          0.0,
+          5.0,
+          0.0,
+          0.0,
+          0.0
+        ]
+      }
+    },
+    {
+      "event": "IK_FK_CHECK",
+      "data": {
+        "target": [
+          391.2919964334239,
+          5.926653256623638,
+          194.73294067382812,
+          125.77471923828125,
+          -175.88330078125,
+          124.51486206054688
+        ],
+        "fk": [
+          391.2919964334239,
+          5.926653256623638,
+          194.73294067382812,
+          125.77471923828125,
+          -175.88330078125,
+          124.51486206054688
+        ]
+      }
+    },
+    {
+      "event": "PRE_MOVE_SAMPLE",
+      "data": {
+        "segment": "ABOVE_TARGET",
+        "sample": {
+          "posx": [
+            418.2706298828125,
+            -181.19732666015625,
+            194.73263549804688,
+            125.77471923828125,
+            -175.88330078125,
+            124.51486206054688
+          ],
+          "velx": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "motion_status": 0,
+          "query_duration_s": 0.0,
+          "tcp": "GripperDA_v4",
+          "tool": "ToolWeight0",
+          "gripper_status": 2,
+          "gripper_width_mm": 40.1,
+          "robot_state": 1,
+          "robot_mode": 1,
+          "drl_state": 3,
+          "wrench": [
+            0.0,
+            0.0,
+            5.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        }
+      }
+    },
+    {
+      "event": "MOVE_REQUEST",
+      "data": {
+        "segment": "ABOVE_TARGET",
+        "target": [
+          391.2919964334239,
+          5.926653256623638,
+          194.73294067382812,
+          125.77471923828125,
+          -175.88330078125,
+          124.51486206054688
+        ],
+        "velocity": [
+          16.0,
+          16.0
+        ],
+        "acceleration": [
+          8.0,
+          8.0
+        ]
+      }
+    },
+    {
+      "event": "SINGLE_WRITER_MOVE",
+      "data": {
+        "lease": "c03ca7ce-cda3-420a-820b-d18e6111330e",
+        "target": [
+          391.2919964334239,
+          5.926653256623638,
+          194.73294067382812,
+          125.77471923828125,
+          -175.88330078125,
+          124.51486206054688
+        ]
+      }
+    },
+    {
+      "event": "MOTION_SAMPLE",
+      "data": {
+        "segment": "ABOVE_TARGET",
+        "sample": {
+          "posx": [
+            391.2919964334239,
+            5.926653256623638,
+            194.73294067382812,
+            125.77471923828125,
+            -175.88330078125,
+            124.51486206054688
+          ],
+          "velx": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "motion_status": 0,
+          "query_duration_s": 0.0,
+          "tcp": "GripperDA_v4",
+          "tool": "ToolWeight0",
+          "gripper_status": 2,
+          "gripper_width_mm": 40.1,
+          "robot_state": 1,
+          "robot_mode": 1,
+          "drl_state": 3,
+          "wrench": [
+            0.0,
+            0.0,
+            5.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        }
+      }
+    },
+    {
+      "event": "HANDOVER_PREVIEW_REQUESTED_STOP",
+      "data": {
+        "candidate": {
+          "plan_id": "D_LOCAL_BLUE_SLOT1_TRIAL6_6_L2_20261011",
+          "step_id": "S01",
+          "current_revision": null,
+          "execution_id": "92b49de9-b03a-49f1-a633-0bfe452f2a0e",
+          "source_epoch": "TEST_LOCAL",
+          "preview_request_id": "ac6416dd-aa9a-4a0f-8059-f8cb90204440",
+          "received_monotonic_ns": 350000000,
+          "candidate_event": "OPEN_HAND_HELD_ORIENTATION_UNKNOWN"
+        },
+        "automatic_release_authorized": false,
+        "verified_gesture": false
+      }
+    },
+    {
+      "event": "STOP_ACK",
+      "data": {
+        "actual_stop_verified": false
+      }
+    },
+    {
+      "event": "STILLNESS_WINDOW_VERIFIED",
+      "data": {
+        "sample": {
+          "posx": [
+            391.2919964334239,
+            5.926653256623638,
+            194.73294067382812,
+            125.77471923828125,
+            -175.88330078125,
+            124.51486206054688
+          ],
+          "velx": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "motion_status": 0,
+          "query_duration_s": 0.0,
+          "tcp": "GripperDA_v4",
+          "tool": "ToolWeight0",
+          "gripper_status": 2,
+          "gripper_width_mm": 40.1,
+          "robot_state": 1,
+          "robot_mode": 1,
+          "drl_state": 3,
+          "wrench": [
+            0.0,
+            0.0,
+            25.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "samples": 4,
+        "window_s": 0.14999999999999997,
+        "state_sequence": 21,
+        "pending_commands": 0,
+        "queue_scope": "THIS_SINGLE_WRITER_ONLY",
+        "measurement_timestamp_available": false
+      }
+    },
+    {
+      "event": "STOP_WINDOW_RESULT",
+      "data": {
+        "actual_stop_verified": true,
+        "stillness_window_verified": true,
+        "pending_command_outcome_unknown": false,
+        "sample": {
+          "posx": [
+            391.2919964334239,
+            5.926653256623638,
+            194.73294067382812,
+            125.77471923828125,
+            -175.88330078125,
+            124.51486206054688
+          ],
+          "velx": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "motion_status": 0,
+          "query_duration_s": 0.0,
+          "tcp": "GripperDA_v4",
+          "tool": "ToolWeight0",
+          "gripper_status": 2,
+          "gripper_width_mm": 40.1,
+          "robot_state": 1,
+          "robot_mode": 1,
+          "drl_state": 3,
+          "wrench": [
+            0.0,
+            0.0,
+            25.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        }
+      }
+    },
+    {
+      "event": "ABORT",
+      "data": {
+        "reason": "OPEN_HAND_PREVIEW_REQUESTED_STOP",
+        "stop": {
+          "requested": true,
+          "acknowledged": true,
+          "stillness_verified": true,
+          "feedback": {
+            "posx": [
+              391.2919964334239,
+              5.926653256623638,
+              194.73294067382812,
+              125.77471923828125,
+              -175.88330078125,
+              124.51486206054688
+            ],
+            "velx": [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            "motion_status": 0,
+            "query_duration_s": 0.0,
+            "tcp": "GripperDA_v4",
+            "tool": "ToolWeight0",
+            "gripper_status": 2,
+            "gripper_width_mm": 40.1,
+            "robot_state": 1,
+            "robot_mode": 1,
+            "drl_state": 3,
+            "wrench": [
+              0.0,
+              0.0,
+              25.0,
+              0.0,
+              0.0,
+              0.0
+            ]
+          }
+        }
+      }
+    },
+    {
+      "event": "STILLNESS_WINDOW_VERIFIED",
+      "data": {
+        "sample": {
+          "posx": [
+            391.2919964334239,
+            5.926653256623638,
+            194.73294067382812,
+            125.77471923828125,
+            -175.88330078125,
+            124.51486206054688
+          ],
+          "velx": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "motion_status": 0,
+          "query_duration_s": 0.0,
+          "tcp": "GripperDA_v4",
+          "tool": "ToolWeight0",
+          "gripper_status": 2,
+          "gripper_width_mm": 40.1,
+          "robot_state": 1,
+          "robot_mode": 1,
+          "drl_state": 3,
+          "wrench": [
+            0.0,
+            0.0,
+            25.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "samples": 3,
+        "window_s": 0.10000000000000003,
+        "state_sequence": 24,
+        "pending_commands": 0,
+        "queue_scope": "THIS_SINGLE_WRITER_ONLY",
+        "measurement_timestamp_available": false
+      }
+    },
+    {
+      "event": "ADAPTER_LEASE_APPLIED",
+      "data": {
+        "old_lease": "c03ca7ce-cda3-420a-820b-d18e6111330e",
+        "new_lease": "6b9ed1b1-ba0f-4c91-87d4-ef4375fbe959",
+        "owner": "WAIT",
+        "state_sequence": 24,
+        "snapshot": {
+          "posx": [
+            391.2919964334239,
+            5.926653256623638,
+            194.73294067382812,
+            125.77471923828125,
+            -175.88330078125,
+            124.51486206054688
+          ],
+          "velx": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "motion_status": 0,
+          "query_duration_s": 0.0,
+          "tcp": "GripperDA_v4",
+          "tool": "ToolWeight0",
+          "gripper_status": 2,
+          "gripper_width_mm": 40.1,
+          "robot_state": 1,
+          "robot_mode": 1,
+          "drl_state": 3,
+          "wrench": [
+            0.0,
+            0.0,
+            25.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "scope": "LOCAL_TRIAL_IN_PROCESS_ACK_NOT_EXTERNAL_D_ACK"
+      }
+    },
+    {
+      "event": "HUMAN_REQUEST_CLOSED",
+      "data": {
+        "request_id": "ac6416dd-aa9a-4a0f-8059-f8cb90204440",
+        "kind": "RECEIVE",
+        "mode": "RECEIVE",
+        "plan_id": "D_LOCAL_BLUE_SLOT1_TRIAL6_6_L2_20261011",
+        "step_id": "S01",
+        "current_revision": null,
+        "execution_id": "92b49de9-b03a-49f1-a633-0bfe452f2a0e",
+        "source_epoch": "TEST_LOCAL",
+        "opened_monotonic_s": 0.2,
+        "deadline_monotonic_s": 30.2
+      }
+    },
+    {
+      "event": "WAIT_HANDOVER_RELEASE",
+      "data": {
+        "sample": {
+          "posx": [
+            391.2919964334239,
+            5.926653256623638,
+            194.73294067382812,
+            125.77471923828125,
+            -175.88330078125,
+            124.51486206054688
+          ],
+          "velx": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "motion_status": 0,
+          "query_duration_s": 0.0,
+          "tcp": "GripperDA_v4",
+          "tool": "ToolWeight0",
+          "gripper_status": 2,
+          "gripper_width_mm": 40.1,
+          "robot_state": 1,
+          "robot_mode": 1,
+          "drl_state": 3,
+          "wrench": [
+            0.0,
+            0.0,
+            25.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "block": {
+          "brick_type": "2x2x1",
+          "color": "blue",
+          "x": 6,
+          "y": 6,
+          "layer": 2,
+          "orientation_deg": 0
+        }
+      }
+    },
+    {
+      "event": "STILLNESS_WINDOW_VERIFIED",
+      "data": {
+        "sample": {
+          "posx": [
+            391.2919964334239,
+            5.926653256623638,
+            194.73294067382812,
+            125.77471923828125,
+            -175.88330078125,
+            124.51486206054688
+          ],
+          "velx": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "motion_status": 0,
+          "query_duration_s": 0.0,
+          "tcp": "GripperDA_v4",
+          "tool": "ToolWeight0",
+          "gripper_status": 2,
+          "gripper_width_mm": 40.1,
+          "robot_state": 1,
+          "robot_mode": 1,
+          "drl_state": 3,
+          "wrench": [
+            0.0,
+            0.0,
+            25.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "samples": 3,
+        "window_s": 0.10000000000000009,
+        "state_sequence": 28,
+        "pending_commands": 0,
+        "queue_scope": "THIS_SINGLE_WRITER_ONLY",
+        "measurement_timestamp_available": false
+      }
+    },
+    {
+      "event": "ADAPTER_LEASE_APPLIED",
+      "data": {
+        "old_lease": "6b9ed1b1-ba0f-4c91-87d4-ef4375fbe959",
+        "new_lease": "21f350f8-2f4e-4a62-8197-5330d2efbb71",
+        "owner": "WAIT",
+        "state_sequence": 28,
+        "snapshot": {
+          "posx": [
+            391.2919964334239,
+            5.926653256623638,
+            194.73294067382812,
+            125.77471923828125,
+            -175.88330078125,
+            124.51486206054688
+          ],
+          "velx": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "motion_status": 0,
+          "query_duration_s": 0.0,
+          "tcp": "GripperDA_v4",
+          "tool": "ToolWeight0",
+          "gripper_status": 2,
+          "gripper_width_mm": 40.1,
+          "robot_state": 1,
+          "robot_mode": 1,
+          "drl_state": 3,
+          "wrench": [
+            0.0,
+            0.0,
+            25.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "scope": "LOCAL_TRIAL_IN_PROCESS_ACK_NOT_EXTERNAL_D_ACK"
+      }
+    },
+    {
+      "event": "HUMAN_REQUEST_OPENED",
+      "data": {
+        "request_id": "db87181b-8f1f-4b8a-93c9-fce34cf74366",
+        "kind": "HANDOVER_RELEASE",
+        "mode": "QUESTION",
+        "plan_id": "D_LOCAL_BLUE_SLOT1_TRIAL6_6_L2_20261011",
+        "step_id": "S01",
+        "current_revision": null,
+        "execution_id": "92b49de9-b03a-49f1-a633-0bfe452f2a0e",
+        "source_epoch": "TEST_LOCAL",
+        "opened_monotonic_s": 0.7000000000000001,
+        "deadline_monotonic_s": 30.7
+      }
+    },
+    {
+      "event": "HUMAN_RESPONSE",
+      "data": {
+        "request": {
+          "request_id": "db87181b-8f1f-4b8a-93c9-fce34cf74366",
+          "kind": "HANDOVER_RELEASE",
+          "mode": "QUESTION",
+          "plan_id": "D_LOCAL_BLUE_SLOT1_TRIAL6_6_L2_20261011",
+          "step_id": "S01",
+          "current_revision": null,
+          "execution_id": "92b49de9-b03a-49f1-a633-0bfe452f2a0e",
+          "source_epoch": "TEST_LOCAL",
+          "opened_monotonic_s": 0.7000000000000001,
+          "deadline_monotonic_s": 30.7
+        },
+        "positive": true,
+        "source": "HMI",
+        "preview_candidate": null,
+        "assembly_completion": false
+      }
+    },
+    {
+      "event": "HUMAN_REQUEST_CLOSED",
+      "data": {
+        "request_id": "db87181b-8f1f-4b8a-93c9-fce34cf74366",
+        "kind": "HANDOVER_RELEASE",
+        "mode": "QUESTION",
+        "plan_id": "D_LOCAL_BLUE_SLOT1_TRIAL6_6_L2_20261011",
+        "step_id": "S01",
+        "current_revision": null,
+        "execution_id": "92b49de9-b03a-49f1-a633-0bfe452f2a0e",
+        "source_epoch": "TEST_LOCAL",
+        "opened_monotonic_s": 0.7000000000000001,
+        "deadline_monotonic_s": 30.7
+      }
+    },
+    {
+      "event": "STILLNESS_WINDOW_VERIFIED",
+      "data": {
+        "sample": {
+          "posx": [
+            391.2919964334239,
+            5.926653256623638,
+            194.73294067382812,
+            125.77471923828125,
+            -175.88330078125,
+            124.51486206054688
+          ],
+          "velx": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "motion_status": 0,
+          "query_duration_s": 0.0,
+          "tcp": "GripperDA_v4",
+          "tool": "ToolWeight0",
+          "gripper_status": 2,
+          "gripper_width_mm": 40.1,
+          "robot_state": 1,
+          "robot_mode": 1,
+          "drl_state": 3,
+          "wrench": [
+            0.0,
+            0.0,
+            25.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "samples": 3,
+        "window_s": 0.10000000000000009,
+        "state_sequence": 32,
+        "pending_commands": 0,
+        "queue_scope": "THIS_SINGLE_WRITER_ONLY",
+        "measurement_timestamp_available": false
+      }
+    },
+    {
+      "event": "ADAPTER_LEASE_APPLIED",
+      "data": {
+        "old_lease": "21f350f8-2f4e-4a62-8197-5330d2efbb71",
+        "new_lease": "a58c954c-2a25-4b17-9302-8f7972cab7dd",
+        "owner": "GRIPPER",
+        "state_sequence": 32,
+        "snapshot": {
+          "posx": [
+            391.2919964334239,
+            5.926653256623638,
+            194.73294067382812,
+            125.77471923828125,
+            -175.88330078125,
+            124.51486206054688
+          ],
+          "velx": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "motion_status": 0,
+          "query_duration_s": 0.0,
+          "tcp": "GripperDA_v4",
+          "tool": "ToolWeight0",
+          "gripper_status": 2,
+          "gripper_width_mm": 40.1,
+          "robot_state": 1,
+          "robot_mode": 1,
+          "drl_state": 3,
+          "wrench": [
+            0.0,
+            0.0,
+            25.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "scope": "LOCAL_TRIAL_IN_PROCESS_ACK_NOT_EXTERNAL_D_ACK"
+      }
+    },
+    {
+      "event": "GRIPPER_REQUEST",
+      "data": {
+        "width_mm": 62.4,
+        "force_n": 40.0,
+        "expected_status": 0,
+        "feedback_range_mm": [
+          60.0,
+          110.0
+        ]
+      }
+    },
+    {
+      "event": "STILLNESS_WINDOW_VERIFIED",
+      "data": {
+        "sample": {
+          "posx": [
+            391.2919964334239,
+            5.926653256623638,
+            194.73294067382812,
+            125.77471923828125,
+            -175.88330078125,
+            124.51486206054688
+          ],
+          "velx": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "motion_status": 0,
+          "query_duration_s": 0.0,
+          "tcp": "GripperDA_v4",
+          "tool": "ToolWeight0",
+          "gripper_status": 2,
+          "gripper_width_mm": 40.1,
+          "robot_state": 1,
+          "robot_mode": 1,
+          "drl_state": 3,
+          "wrench": [
+            0.0,
+            0.0,
+            25.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "samples": 3,
+        "window_s": 0.10000000000000009,
+        "state_sequence": 35,
+        "pending_commands": 0,
+        "queue_scope": "THIS_SINGLE_WRITER_ONLY",
+        "measurement_timestamp_available": false
+      }
+    },
+    {
+      "event": "SINGLE_WRITER_GRIPPER",
+      "data": {
+        "lease": "a58c954c-2a25-4b17-9302-8f7972cab7dd",
+        "width_mm": 62.4,
+        "force_n": 40.0,
+        "transport": "DIRECT_MODBUS"
+      }
+    },
+    {
+      "event": "GRIPPER_FEEDBACK",
+      "data": {
+        "posx": [
+          391.2919964334239,
+          5.926653256623638,
+          194.73294067382812,
+          125.77471923828125,
+          -175.88330078125,
+          124.51486206054688
+        ],
+        "velx": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "motion_status": 0,
+        "query_duration_s": 0.0,
+        "tcp": "GripperDA_v4",
+        "tool": "ToolWeight0",
+        "gripper_status": 0,
+        "gripper_width_mm": 62.4,
+        "robot_state": 1,
+        "robot_mode": 1,
+        "drl_state": 3,
+        "wrench": [
+          0.0,
+          0.0,
+          5.0,
+          0.0,
+          0.0,
+          0.0
+        ]
+      }
+    },
+    {
+      "event": "GRIPPER_FEEDBACK",
+      "data": {
+        "posx": [
+          391.2919964334239,
+          5.926653256623638,
+          194.73294067382812,
+          125.77471923828125,
+          -175.88330078125,
+          124.51486206054688
+        ],
+        "velx": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "motion_status": 0,
+        "query_duration_s": 0.0,
+        "tcp": "GripperDA_v4",
+        "tool": "ToolWeight0",
+        "gripper_status": 0,
+        "gripper_width_mm": 62.4,
+        "robot_state": 1,
+        "robot_mode": 1,
+        "drl_state": 3,
+        "wrench": [
+          0.0,
+          0.0,
+          5.0,
+          0.0,
+          0.0,
+          0.0
+        ]
+      }
+    },
+    {
+      "event": "GRIPPER_FEEDBACK",
+      "data": {
+        "posx": [
+          391.2919964334239,
+          5.926653256623638,
+          194.73294067382812,
+          125.77471923828125,
+          -175.88330078125,
+          124.51486206054688
+        ],
+        "velx": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "motion_status": 0,
+        "query_duration_s": 0.0,
+        "tcp": "GripperDA_v4",
+        "tool": "ToolWeight0",
+        "gripper_status": 0,
+        "gripper_width_mm": 62.4,
+        "robot_state": 1,
+        "robot_mode": 1,
+        "drl_state": 3,
+        "wrench": [
+          0.0,
+          0.0,
+          5.0,
+          0.0,
+          0.0,
+          0.0
+        ]
+      }
+    },
+    {
+      "event": "STILLNESS_WINDOW_VERIFIED",
+      "data": {
+        "sample": {
+          "posx": [
+            391.2919964334239,
+            5.926653256623638,
+            194.73294067382812,
+            125.77471923828125,
+            -175.88330078125,
+            124.51486206054688
+          ],
+          "velx": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "motion_status": 0,
+          "query_duration_s": 0.0,
+          "tcp": "GripperDA_v4",
+          "tool": "ToolWeight0",
+          "gripper_status": 0,
+          "gripper_width_mm": 62.4,
+          "robot_state": 1,
+          "robot_mode": 1,
+          "drl_state": 3,
+          "wrench": [
+            0.0,
+            0.0,
+            5.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "samples": 3,
+        "window_s": 0.10000000000000009,
+        "state_sequence": 41,
+        "pending_commands": 0,
+        "queue_scope": "THIS_SINGLE_WRITER_ONLY",
+        "measurement_timestamp_available": false
+      }
+    },
+    {
+      "event": "ADAPTER_LEASE_APPLIED",
+      "data": {
+        "old_lease": "a58c954c-2a25-4b17-9302-8f7972cab7dd",
+        "new_lease": "bc9f0e73-8824-4342-9826-81bd59c8598b",
+        "owner": "WAIT",
+        "state_sequence": 41,
+        "snapshot": {
+          "posx": [
+            391.2919964334239,
+            5.926653256623638,
+            194.73294067382812,
+            125.77471923828125,
+            -175.88330078125,
+            124.51486206054688
+          ],
+          "velx": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "motion_status": 0,
+          "query_duration_s": 0.0,
+          "tcp": "GripperDA_v4",
+          "tool": "ToolWeight0",
+          "gripper_status": 0,
+          "gripper_width_mm": 62.4,
+          "robot_state": 1,
+          "robot_mode": 1,
+          "drl_state": 3,
+          "wrench": [
+            0.0,
+            0.0,
+            5.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "scope": "LOCAL_TRIAL_IN_PROCESS_ACK_NOT_EXTERNAL_D_ACK"
+      }
+    },
+    {
+      "event": "STILLNESS_WINDOW_VERIFIED",
+      "data": {
+        "sample": {
+          "posx": [
+            391.2919964334239,
+            5.926653256623638,
+            194.73294067382812,
+            125.77471923828125,
+            -175.88330078125,
+            124.51486206054688
+          ],
+          "velx": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "motion_status": 0,
+          "query_duration_s": 0.0,
+          "tcp": "GripperDA_v4",
+          "tool": "ToolWeight0",
+          "gripper_status": 0,
+          "gripper_width_mm": 62.4,
+          "robot_state": 1,
+          "robot_mode": 1,
+          "drl_state": 3,
+          "wrench": [
+            0.0,
+            0.0,
+            5.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "samples": 3,
+        "window_s": 0.10000000000000009,
+        "state_sequence": 45,
+        "pending_commands": 0,
+        "queue_scope": "THIS_SINGLE_WRITER_ONLY",
+        "measurement_timestamp_available": false
+      }
+    },
+    {
+      "event": "ADAPTER_LEASE_APPLIED",
+      "data": {
+        "old_lease": "bc9f0e73-8824-4342-9826-81bd59c8598b",
+        "new_lease": "78d92b8e-f628-4abe-b6a8-df0cd5e5e832",
+        "owner": "MOTION",
+        "state_sequence": 45,
+        "snapshot": {
+          "posx": [
+            391.2919964334239,
+            5.926653256623638,
+            194.73294067382812,
+            125.77471923828125,
+            -175.88330078125,
+            124.51486206054688
+          ],
+          "velx": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "motion_status": 0,
+          "query_duration_s": 0.0,
+          "tcp": "GripperDA_v4",
+          "tool": "ToolWeight0",
+          "gripper_status": 0,
+          "gripper_width_mm": 62.4,
+          "robot_state": 1,
+          "robot_mode": 1,
+          "drl_state": 3,
+          "wrench": [
+            0.0,
+            0.0,
+            5.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "scope": "LOCAL_TRIAL_IN_PROCESS_ACK_NOT_EXTERNAL_D_ACK"
+      }
+    },
+    {
+      "event": "STEP_MOVE",
+      "data": {
+        "label": "HANDOVER_EMPTY_PLACE",
+        "target": [
+          418.2707214355469,
+          -181.1972198486328,
+          194.73294067382812,
+          125.77471923828125,
+          -175.88330078125,
+          124.51486206054688
+        ],
+        "gripper_status": 0
+      }
+    },
+    {
+      "event": "INITIAL_SAMPLE",
+      "data": {
+        "posx": [
+          391.2919964334239,
+          5.926653256623638,
+          194.73294067382812,
+          125.77471923828125,
+          -175.88330078125,
+          124.51486206054688
+        ],
+        "velx": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "motion_status": 0,
+        "query_duration_s": 0.0,
+        "tcp": "GripperDA_v4",
+        "tool": "ToolWeight0",
+        "gripper_status": 0,
+        "gripper_width_mm": 62.4,
+        "robot_state": 1,
+        "robot_mode": 1,
+        "drl_state": 3,
+        "wrench": [
+          0.0,
+          0.0,
+          5.0,
+          0.0,
+          0.0,
+          0.0
+        ]
+      }
+    },
+    {
+      "event": "IK_FK_CHECK",
+      "data": {
+        "target": [
+          418.2707214355469,
+          -181.1972198486328,
+          194.73294067382812,
+          125.77471923828125,
+          -175.88330078125,
+          124.51486206054688
+        ],
+        "fk": [
+          418.2707214355469,
+          -181.1972198486328,
+          194.73294067382812,
+          125.77471923828125,
+          -175.88330078125,
+          124.51486206054688
+        ]
+      }
+    },
+    {
+      "event": "PRE_MOVE_SAMPLE",
+      "data": {
+        "segment": "ABOVE_TARGET",
+        "sample": {
+          "posx": [
+            391.2919964334239,
+            5.926653256623638,
+            194.73294067382812,
+            125.77471923828125,
+            -175.88330078125,
+            124.51486206054688
+          ],
+          "velx": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "motion_status": 0,
+          "query_duration_s": 0.0,
+          "tcp": "GripperDA_v4",
+          "tool": "ToolWeight0",
+          "gripper_status": 0,
+          "gripper_width_mm": 62.4,
+          "robot_state": 1,
+          "robot_mode": 1,
+          "drl_state": 3,
+          "wrench": [
+            0.0,
+            0.0,
+            5.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        }
+      }
+    },
+    {
+      "event": "MOVE_REQUEST",
+      "data": {
+        "segment": "ABOVE_TARGET",
+        "target": [
+          418.2707214355469,
+          -181.1972198486328,
+          194.73294067382812,
+          125.77471923828125,
+          -175.88330078125,
+          124.51486206054688
+        ],
+        "velocity": [
+          16.0,
+          16.0
+        ],
+        "acceleration": [
+          8.0,
+          8.0
+        ]
+      }
+    },
+    {
+      "event": "SINGLE_WRITER_MOVE",
+      "data": {
+        "lease": "78d92b8e-f628-4abe-b6a8-df0cd5e5e832",
+        "target": [
+          418.2707214355469,
+          -181.1972198486328,
+          194.73294067382812,
+          125.77471923828125,
+          -175.88330078125,
+          124.51486206054688
+        ]
+      }
+    },
+    {
+      "event": "MOTION_SAMPLE",
+      "data": {
+        "segment": "ABOVE_TARGET",
+        "sample": {
+          "posx": [
+            418.2707214355469,
+            -181.1972198486328,
+            194.73294067382812,
+            125.77471923828125,
+            -175.88330078125,
+            124.51486206054688
+          ],
+          "velx": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "motion_status": 0,
+          "query_duration_s": 0.0,
+          "tcp": "GripperDA_v4",
+          "tool": "ToolWeight0",
+          "gripper_status": 0,
+          "gripper_width_mm": 62.4,
+          "robot_state": 1,
+          "robot_mode": 1,
+          "drl_state": 3,
+          "wrench": [
+            0.0,
+            0.0,
+            5.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        }
+      }
+    },
+    {
+      "event": "RESULT",
+      "data": {
+        "status": "ABOVE_TARGET_REACHED_NO_DESCENT",
+        "final_sample": {
+          "posx": [
+            418.2707214355469,
+            -181.1972198486328,
+            194.73294067382812,
+            125.77471923828125,
+            -175.88330078125,
+            124.51486206054688
+          ],
+          "velx": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "motion_status": 0,
+          "query_duration_s": 0.0,
+          "tcp": "GripperDA_v4",
+          "tool": "ToolWeight0",
+          "gripper_status": 0,
+          "gripper_width_mm": 62.4,
+          "robot_state": 1,
+          "robot_mode": 1,
+          "drl_state": 3,
+          "wrench": [
+            0.0,
+            0.0,
+            5.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "contact_sample": null,
+        "returned_to_clearance": false,
+        "gripper_commands": 0,
+        "target_posx": [
+          418.2707214355469,
+          -181.1972198486328,
+          194.73294067382812,
+          125.77471923828125,
+          -175.88330078125,
+          124.51486206054688
+        ]
+      }
+    },
+    {
+      "event": "STILLNESS_WINDOW_VERIFIED",
+      "data": {
+        "sample": {
+          "posx": [
+            418.2707214355469,
+            -181.1972198486328,
+            194.73294067382812,
+            125.77471923828125,
+            -175.88330078125,
+            124.51486206054688
+          ],
+          "velx": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "motion_status": 0,
+          "query_duration_s": 0.0,
+          "tcp": "GripperDA_v4",
+          "tool": "ToolWeight0",
+          "gripper_status": 0,
+          "gripper_width_mm": 62.4,
+          "robot_state": 1,
+          "robot_mode": 1,
+          "drl_state": 3,
+          "wrench": [
+            0.0,
+            0.0,
+            5.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "samples": 3,
+        "window_s": 0.10000000000000009,
+        "state_sequence": 53,
+        "pending_commands": 0,
+        "queue_scope": "THIS_SINGLE_WRITER_ONLY",
+        "measurement_timestamp_available": false
+      }
+    },
+    {
+      "event": "ADAPTER_LEASE_APPLIED",
+      "data": {
+        "old_lease": "78d92b8e-f628-4abe-b6a8-df0cd5e5e832",
+        "new_lease": "47662324-d045-45a2-9690-5504530b2acc",
+        "owner": "MOTION",
+        "state_sequence": 53,
+        "snapshot": {
+          "posx": [
+            418.2707214355469,
+            -181.1972198486328,
+            194.73294067382812,
+            125.77471923828125,
+            -175.88330078125,
+            124.51486206054688
+          ],
+          "velx": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "motion_status": 0,
+          "query_duration_s": 0.0,
+          "tcp": "GripperDA_v4",
+          "tool": "ToolWeight0",
+          "gripper_status": 0,
+          "gripper_width_mm": 62.4,
+          "robot_state": 1,
+          "robot_mode": 1,
+          "drl_state": 3,
+          "wrench": [
+            0.0,
+            0.0,
+            5.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "scope": "LOCAL_TRIAL_IN_PROCESS_ACK_NOT_EXTERNAL_D_ACK"
+      }
+    },
+    {
+      "event": "STEP_MOVE",
+      "data": {
+        "label": "OBSERVE_HEIGHT_LIFT",
+        "target": [
+          418.2707214355469,
+          -181.1972198486328,
+          314.981,
+          125.77471923828125,
+          -175.88330078125,
+          124.51486206054688
+        ],
+        "gripper_status": 0
+      }
+    },
+    {
+      "event": "INITIAL_SAMPLE",
+      "data": {
+        "posx": [
+          418.2707214355469,
+          -181.1972198486328,
+          194.73294067382812,
+          125.77471923828125,
+          -175.88330078125,
+          124.51486206054688
+        ],
+        "velx": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "motion_status": 0,
+        "query_duration_s": 0.0,
+        "tcp": "GripperDA_v4",
+        "tool": "ToolWeight0",
+        "gripper_status": 0,
+        "gripper_width_mm": 62.4,
+        "robot_state": 1,
+        "robot_mode": 1,
+        "drl_state": 3,
+        "wrench": [
+          0.0,
+          0.0,
+          5.0,
+          0.0,
+          0.0,
+          0.0
+        ]
+      }
+    },
+    {
+      "event": "IK_FK_CHECK",
+      "data": {
+        "target": [
+          418.2707214355469,
+          -181.1972198486328,
+          314.981,
+          125.77471923828125,
+          -175.88330078125,
+          124.51486206054688
+        ],
+        "fk": [
+          418.2707214355469,
+          -181.1972198486328,
+          314.981,
+          125.77471923828125,
+          -175.88330078125,
+          124.51486206054688
+        ]
+      }
+    },
+    {
+      "event": "IK_FK_CHECK",
+      "data": {
+        "target": [
+          418.2707214355469,
+          -181.1972198486328,
+          314.981,
+          125.77471923828125,
+          -175.88330078125,
+          124.51486206054688
+        ],
+        "fk": [
+          418.2707214355469,
+          -181.1972198486328,
+          314.981,
+          125.77471923828125,
+          -175.88330078125,
+          124.51486206054688
+        ]
+      }
+    },
+    {
+      "event": "PRE_MOVE_SAMPLE",
+      "data": {
+        "segment": "LIFT",
+        "sample": {
+          "posx": [
+            418.2707214355469,
+            -181.1972198486328,
+            194.73294067382812,
+            125.77471923828125,
+            -175.88330078125,
+            124.51486206054688
+          ],
+          "velx": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "motion_status": 0,
+          "query_duration_s": 0.0,
+          "tcp": "GripperDA_v4",
+          "tool": "ToolWeight0",
+          "gripper_status": 0,
+          "gripper_width_mm": 62.4,
+          "robot_state": 1,
+          "robot_mode": 1,
+          "drl_state": 3,
+          "wrench": [
+            0.0,
+            0.0,
+            5.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        }
+      }
+    },
+    {
+      "event": "MOVE_REQUEST",
+      "data": {
+        "segment": "LIFT",
+        "target": [
+          418.2707214355469,
+          -181.1972198486328,
+          314.981,
+          125.77471923828125,
+          -175.88330078125,
+          124.51486206054688
+        ],
+        "velocity": [
+          16.0,
+          16.0
+        ],
+        "acceleration": [
+          8.0,
+          8.0
+        ]
+      }
+    },
+    {
+      "event": "SINGLE_WRITER_MOVE",
+      "data": {
+        "lease": "47662324-d045-45a2-9690-5504530b2acc",
+        "target": [
+          418.2707214355469,
+          -181.1972198486328,
+          314.981,
+          125.77471923828125,
+          -175.88330078125,
+          124.51486206054688
+        ]
+      }
+    },
+    {
+      "event": "MOTION_SAMPLE",
+      "data": {
+        "segment": "LIFT",
+        "sample": {
+          "posx": [
+            418.2707214355469,
+            -181.1972198486328,
+            314.981,
+            125.77471923828125,
+            -175.88330078125,
+            124.51486206054688
+          ],
+          "velx": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "motion_status": 0,
+          "query_duration_s": 0.0,
+          "tcp": "GripperDA_v4",
+          "tool": "ToolWeight0",
+          "gripper_status": 0,
+          "gripper_width_mm": 62.4,
+          "robot_state": 1,
+          "robot_mode": 1,
+          "drl_state": 3,
+          "wrench": [
+            0.0,
+            0.0,
+            5.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        }
+      }
+    },
+    {
+      "event": "PRE_MOVE_SAMPLE",
+      "data": {
+        "segment": "ABOVE_TARGET",
+        "sample": {
+          "posx": [
+            418.2707214355469,
+            -181.1972198486328,
+            314.981,
+            125.77471923828125,
+            -175.88330078125,
+            124.51486206054688
+          ],
+          "velx": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "motion_status": 0,
+          "query_duration_s": 0.0,
+          "tcp": "GripperDA_v4",
+          "tool": "ToolWeight0",
+          "gripper_status": 0,
+          "gripper_width_mm": 62.4,
+          "robot_state": 1,
+          "robot_mode": 1,
+          "drl_state": 3,
+          "wrench": [
+            0.0,
+            0.0,
+            5.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        }
+      }
+    },
+    {
+      "event": "MOVE_REQUEST",
+      "data": {
+        "segment": "ABOVE_TARGET",
+        "target": [
+          418.2707214355469,
+          -181.1972198486328,
+          314.981,
+          125.77471923828125,
+          -175.88330078125,
+          124.51486206054688
+        ],
+        "velocity": [
+          16.0,
+          16.0
+        ],
+        "acceleration": [
+          8.0,
+          8.0
+        ]
+      }
+    },
+    {
+      "event": "SINGLE_WRITER_MOVE",
+      "data": {
+        "lease": "47662324-d045-45a2-9690-5504530b2acc",
+        "target": [
+          418.2707214355469,
+          -181.1972198486328,
+          314.981,
+          125.77471923828125,
+          -175.88330078125,
+          124.51486206054688
+        ]
+      }
+    },
+    {
+      "event": "MOTION_SAMPLE",
+      "data": {
+        "segment": "ABOVE_TARGET",
+        "sample": {
+          "posx": [
+            418.2707214355469,
+            -181.1972198486328,
+            314.981,
+            125.77471923828125,
+            -175.88330078125,
+            124.51486206054688
+          ],
+          "velx": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "motion_status": 0,
+          "query_duration_s": 0.0,
+          "tcp": "GripperDA_v4",
+          "tool": "ToolWeight0",
+          "gripper_status": 0,
+          "gripper_width_mm": 62.4,
+          "robot_state": 1,
+          "robot_mode": 1,
+          "drl_state": 3,
+          "wrench": [
+            0.0,
+            0.0,
+            5.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        }
+      }
+    },
+    {
+      "event": "RESULT",
+      "data": {
+        "status": "ABOVE_TARGET_REACHED_NO_DESCENT",
+        "final_sample": {
+          "posx": [
+            418.2707214355469,
+            -181.1972198486328,
+            314.981,
+            125.77471923828125,
+            -175.88330078125,
+            124.51486206054688
+          ],
+          "velx": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "motion_status": 0,
+          "query_duration_s": 0.0,
+          "tcp": "GripperDA_v4",
+          "tool": "ToolWeight0",
+          "gripper_status": 0,
+          "gripper_width_mm": 62.4,
+          "robot_state": 1,
+          "robot_mode": 1,
+          "drl_state": 3,
+          "wrench": [
+            0.0,
+            0.0,
+            5.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "contact_sample": null,
+        "returned_to_clearance": false,
+        "gripper_commands": 0,
+        "target_posx": [
+          418.2707214355469,
+          -181.1972198486328,
+          314.981,
+          125.77471923828125,
+          -175.88330078125,
+          124.51486206054688
+        ]
+      }
+    },
+    {
+      "event": "STILLNESS_WINDOW_VERIFIED",
+      "data": {
+        "sample": {
+          "posx": [
+            418.2707214355469,
+            -181.1972198486328,
+            314.981,
+            125.77471923828125,
+            -175.88330078125,
+            124.51486206054688
+          ],
+          "velx": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "motion_status": 0,
+          "query_duration_s": 0.0,
+          "tcp": "GripperDA_v4",
+          "tool": "ToolWeight0",
+          "gripper_status": 0,
+          "gripper_width_mm": 62.4,
+          "robot_state": 1,
+          "robot_mode": 1,
+          "drl_state": 3,
+          "wrench": [
+            0.0,
+            0.0,
+            5.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "samples": 3,
+        "window_s": 0.10000000000000009,
+        "state_sequence": 62,
+        "pending_commands": 0,
+        "queue_scope": "THIS_SINGLE_WRITER_ONLY",
+        "measurement_timestamp_available": false
+      }
+    },
+    {
+      "event": "ADAPTER_LEASE_APPLIED",
+      "data": {
+        "old_lease": "47662324-d045-45a2-9690-5504530b2acc",
+        "new_lease": "55fa22c3-c4ca-48ab-9ae4-5df43cc4c208",
+        "owner": "MOTION",
+        "state_sequence": 62,
+        "snapshot": {
+          "posx": [
+            418.2707214355469,
+            -181.1972198486328,
+            314.981,
+            125.77471923828125,
+            -175.88330078125,
+            124.51486206054688
+          ],
+          "velx": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "motion_status": 0,
+          "query_duration_s": 0.0,
+          "tcp": "GripperDA_v4",
+          "tool": "ToolWeight0",
+          "gripper_status": 0,
+          "gripper_width_mm": 62.4,
+          "robot_state": 1,
+          "robot_mode": 1,
+          "drl_state": 3,
+          "wrench": [
+            0.0,
+            0.0,
+            5.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "scope": "LOCAL_TRIAL_IN_PROCESS_ACK_NOT_EXTERNAL_D_ACK"
+      }
+    },
+    {
+      "event": "STEP_MOVE",
+      "data": {
+        "label": "OBSERVE_POINT",
+        "target": [
+          400.851,
+          8.573,
+          314.981,
+          175.022,
+          -179.595,
+          175.461
+        ],
+        "gripper_status": 0
+      }
+    },
+    {
+      "event": "INITIAL_SAMPLE",
+      "data": {
+        "posx": [
+          418.2707214355469,
+          -181.1972198486328,
+          314.981,
+          125.77471923828125,
+          -175.88330078125,
+          124.51486206054688
+        ],
+        "velx": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "motion_status": 0,
+        "query_duration_s": 0.0,
+        "tcp": "GripperDA_v4",
+        "tool": "ToolWeight0",
+        "gripper_status": 0,
+        "gripper_width_mm": 62.4,
+        "robot_state": 1,
+        "robot_mode": 1,
+        "drl_state": 3,
+        "wrench": [
+          0.0,
+          0.0,
+          5.0,
+          0.0,
+          0.0,
+          0.0
+        ]
+      }
+    },
+    {
+      "event": "IK_FK_CHECK",
+      "data": {
+        "target": [
+          400.851,
+          8.573,
+          314.981,
+          175.022,
+          -179.595,
+          175.461
+        ],
+        "fk": [
+          400.851,
+          8.573,
+          314.981,
+          175.022,
+          -179.595,
+          175.461
+        ]
+      }
+    },
+    {
+      "event": "PRE_MOVE_SAMPLE",
+      "data": {
+        "segment": "ABOVE_TARGET",
+        "sample": {
+          "posx": [
+            418.2707214355469,
+            -181.1972198486328,
+            314.981,
+            125.77471923828125,
+            -175.88330078125,
+            124.51486206054688
+          ],
+          "velx": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "motion_status": 0,
+          "query_duration_s": 0.0,
+          "tcp": "GripperDA_v4",
+          "tool": "ToolWeight0",
+          "gripper_status": 0,
+          "gripper_width_mm": 62.4,
+          "robot_state": 1,
+          "robot_mode": 1,
+          "drl_state": 3,
+          "wrench": [
+            0.0,
+            0.0,
+            5.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        }
+      }
+    },
+    {
+      "event": "MOVE_REQUEST",
+      "data": {
+        "segment": "ABOVE_TARGET",
+        "target": [
+          400.851,
+          8.573,
+          314.981,
+          175.022,
+          -179.595,
+          175.461
+        ],
+        "velocity": [
+          16.0,
+          16.0
+        ],
+        "acceleration": [
+          8.0,
+          8.0
+        ]
+      }
+    },
+    {
+      "event": "SINGLE_WRITER_MOVE",
+      "data": {
+        "lease": "55fa22c3-c4ca-48ab-9ae4-5df43cc4c208",
+        "target": [
+          400.851,
+          8.573,
+          314.981,
+          175.022,
+          -179.595,
+          175.461
+        ]
+      }
+    },
+    {
+      "event": "MOTION_SAMPLE",
+      "data": {
+        "segment": "ABOVE_TARGET",
+        "sample": {
+          "posx": [
+            400.851,
+            8.573,
+            314.981,
+            175.022,
+            -179.595,
+            175.461
+          ],
+          "velx": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "motion_status": 0,
+          "query_duration_s": 0.0,
+          "tcp": "GripperDA_v4",
+          "tool": "ToolWeight0",
+          "gripper_status": 0,
+          "gripper_width_mm": 62.4,
+          "robot_state": 1,
+          "robot_mode": 1,
+          "drl_state": 3,
+          "wrench": [
+            0.0,
+            0.0,
+            5.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        }
+      }
+    },
+    {
+      "event": "RESULT",
+      "data": {
+        "status": "ABOVE_TARGET_REACHED_NO_DESCENT",
+        "final_sample": {
+          "posx": [
+            400.851,
+            8.573,
+            314.981,
+            175.022,
+            -179.595,
+            175.461
+          ],
+          "velx": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "motion_status": 0,
+          "query_duration_s": 0.0,
+          "tcp": "GripperDA_v4",
+          "tool": "ToolWeight0",
+          "gripper_status": 0,
+          "gripper_width_mm": 62.4,
+          "robot_state": 1,
+          "robot_mode": 1,
+          "drl_state": 3,
+          "wrench": [
+            0.0,
+            0.0,
+            5.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "contact_sample": null,
+        "returned_to_clearance": false,
+        "gripper_commands": 0,
+        "target_posx": [
+          400.851,
+          8.573,
+          314.981,
+          175.022,
+          -179.595,
+          175.461
+        ]
+      }
+    },
+    {
+      "event": "STILLNESS_WINDOW_VERIFIED",
+      "data": {
+        "sample": {
+          "posx": [
+            400.851,
+            8.573,
+            314.981,
+            175.022,
+            -179.595,
+            175.461
+          ],
+          "velx": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "motion_status": 0,
+          "query_duration_s": 0.0,
+          "tcp": "GripperDA_v4",
+          "tool": "ToolWeight0",
+          "gripper_status": 0,
+          "gripper_width_mm": 62.4,
+          "robot_state": 1,
+          "robot_mode": 1,
+          "drl_state": 3,
+          "wrench": [
+            0.0,
+            0.0,
+            5.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "samples": 3,
+        "window_s": 0.10000000000000009,
+        "state_sequence": 69,
+        "pending_commands": 0,
+        "queue_scope": "THIS_SINGLE_WRITER_ONLY",
+        "measurement_timestamp_available": false
+      }
+    },
+    {
+      "event": "ADAPTER_LEASE_APPLIED",
+      "data": {
+        "old_lease": "55fa22c3-c4ca-48ab-9ae4-5df43cc4c208",
+        "new_lease": "a0b8b2eb-9fb7-4608-bf36-2e27526ca73a",
+        "owner": "WAIT",
+        "state_sequence": 69,
+        "snapshot": {
+          "posx": [
+            400.851,
+            8.573,
+            314.981,
+            175.022,
+            -179.595,
+            175.461
+          ],
+          "velx": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "motion_status": 0,
+          "query_duration_s": 0.0,
+          "tcp": "GripperDA_v4",
+          "tool": "ToolWeight0",
+          "gripper_status": 0,
+          "gripper_width_mm": 62.4,
+          "robot_state": 1,
+          "robot_mode": 1,
+          "drl_state": 3,
+          "wrench": [
+            0.0,
+            0.0,
+            5.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "scope": "LOCAL_TRIAL_IN_PROCESS_ACK_NOT_EXTERNAL_D_ACK"
+      }
+    },
+    {
+      "event": "STEP_RESULT",
+      "data": {
+        "key": "onsite_blue_slot1_trial6_6_layer2_no_turn/S01",
+        "phase": "handover",
+        "mode": "ROBOT_GRIP",
+        "assembly_completion": false,
+        "current_update": false,
+        "automatic_retry": false,
+        "operator_seating_confirmed": false,
+        "preview_is_verified_gesture": false,
+        "release_requires_post_stop_hmi": true,
+        "motion_stop_verified": true,
+        "stop_candidate": {
+          "plan_id": "D_LOCAL_BLUE_SLOT1_TRIAL6_6_L2_20261011",
+          "step_id": "S01",
+          "current_revision": null,
+          "execution_id": "92b49de9-b03a-49f1-a633-0bfe452f2a0e",
+          "source_epoch": "TEST_LOCAL",
+          "preview_request_id": "ac6416dd-aa9a-4a0f-8059-f8cb90204440",
+          "received_monotonic_ns": 350000000,
+          "candidate_event": "OPEN_HAND_HELD_ORIENTATION_UNKNOWN"
+        },
+        "final_sample": {
+          "posx": [
+            400.851,
+            8.573,
+            314.981,
+            175.022,
+            -179.595,
+            175.461
+          ],
+          "velx": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "motion_status": 0,
+          "query_duration_s": 0.0,
+          "tcp": "GripperDA_v4",
+          "tool": "ToolWeight0",
+          "gripper_status": 0,
+          "gripper_width_mm": 62.4,
+          "robot_state": 1,
+          "robot_mode": 1,
+          "drl_state": 3,
+          "wrench": [
+            0.0,
+            0.0,
+            5.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "observe_point_verified": true,
+        "operator_receiving_confirmed": true,
+        "status": "LOCAL_HANDOVER_OBSERVE_COMPLETE"
+      }
+    },
+    {
+      "event": "INTEGRATED_EXECUTION_RESULT",
+      "data": {
+        "key": "onsite_blue_slot1_trial6_6_layer2_no_turn/S01",
+        "phase": "handover",
+        "mode": "ROBOT_GRIP",
+        "assembly_completion": false,
+        "current_update": false,
+        "automatic_retry": false,
+        "operator_seating_confirmed": false,
+        "preview_is_verified_gesture": false,
+        "release_requires_post_stop_hmi": true,
+        "motion_stop_verified": true,
+        "stop_candidate": {
+          "plan_id": "D_LOCAL_BLUE_SLOT1_TRIAL6_6_L2_20261011",
+          "step_id": "S01",
+          "current_revision": null,
+          "execution_id": "92b49de9-b03a-49f1-a633-0bfe452f2a0e",
+          "source_epoch": "TEST_LOCAL",
+          "preview_request_id": "ac6416dd-aa9a-4a0f-8059-f8cb90204440",
+          "received_monotonic_ns": 350000000,
+          "candidate_event": "OPEN_HAND_HELD_ORIENTATION_UNKNOWN"
+        },
+        "final_sample": {
+          "posx": [
+            400.851,
+            8.573,
+            314.981,
+            175.022,
+            -179.595,
+            175.461
+          ],
+          "velx": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "motion_status": 0,
+          "query_duration_s": 0.0,
+          "tcp": "GripperDA_v4",
+          "tool": "ToolWeight0",
+          "gripper_status": 0,
+          "gripper_width_mm": 62.4,
+          "robot_state": 1,
+          "robot_mode": 1,
+          "drl_state": 3,
+          "wrench": [
+            0.0,
+            0.0,
+            5.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        "observe_point_verified": true,
+        "operator_receiving_confirmed": true,
+        "status": "LOCAL_HANDOVER_OBSERVE_COMPLETE",
+        "execution_id": "92b49de9-b03a-49f1-a633-0bfe452f2a0e",
+        "backend": "TEST",
+        "final_state_sequence": 69,
+        "physical_verified": false,
+        "backend_current_committed": false,
+        "contact_evidence": null,
+        "integration_scope": "LOCAL_TRIAL_NOT_LIVE_A_B_D_CONTRACT"
+      }
+    }
+  ],
+  "backend": "TEST",
+  "device_connections": 0,
+  "robot_motion_commands": 0,
+  "robot_gripper_commands": 0,
+  "physical_simulation": false
+}

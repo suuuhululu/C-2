@@ -274,3 +274,18 @@ def test_transfer_metadata_rejects_invalid_target_or_mode(qapp, tmp_path, change
         snapshot["transfer_target"]["x"] = 0
     with pytest.raises(ValueError, match="transfer_target"):
         validate_hmi_snapshot(snapshot)
+
+
+def test_slot_six_pick_advances_to_one_without_refill(qapp,tmp_path):
+    backend,controller,processes,_=make_trial(tmp_path,slot=6)
+    config=json.loads(controller.config_path.read_text());config['slot']=6
+    controller.config_path.write_text(json.dumps(config))
+    ready(controller,processes)
+    assert backend.command(dict(command='START'))['accepted']
+    event(controller,'ROBOT_PICK_CONFIRMED',dict(slot=6,next_slot=1))
+    controller._poll()
+    assert controller._next_slot==1 and controller._fault is None
+    row=next(r for r in controller.state['supply'] if r['brick_type']=='2x2x1' and r['color']=='blue')
+    assert row['next_slot']==1 and not row['needs_refill']
+    # 다음 슬롯이 바뀌어도 전달/체결 완료로 기록하지 않는다.
+    assert backend.state['current']['blocks']==[]

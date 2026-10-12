@@ -4,8 +4,11 @@ from copy import deepcopy
 import json
 from pathlib import Path
 
+from app.supply_slots import next_supply_slot
+
 from app.contracts import _array, _integer, _object, _text
 from app.hmi_contracts import LEGACY_SUPPLY_COLUMNS, SUPPLY_COLUMNS, _column
+from app.handover import handover_capabilities
 
 
 def validate_robot_config(value: object) -> dict:
@@ -36,10 +39,13 @@ def load_robot_config(path: str | Path) -> dict:
 
 
 class RobotController:
-    def __init__(self, config: dict, driver, on_result, *, on_stopped=None, on_event=None):
+    def __init__(self, config: dict, driver, on_result, *, on_stopped=None, on_event=None,
+                 handover_enabled: bool = False):
         self._config = validate_robot_config(config)
         if driver.mode != "FAKE":
             raise ValueError("RobotController: explicit Fake driver required")
+        if type(handover_enabled) is not bool:
+            raise ValueError("handover_enabled: expected boolean")
         self._driver, self._on_result = driver, on_result
         self._on_stopped = on_stopped
         self._on_event = on_event
@@ -50,6 +56,67 @@ class RobotController:
         self._active = None
         self._stop = None
         self._fault = None
+        self._handover_enabled = handover_enabled
+        self._handover_ids = set()
+        self._handover = dict(status="IDLE", request_id=None, execution_id=None,
+                              reason=None, receipt_reported=False)
+
+    @property
+    def handover(self) -> dict:
+        return deepcopy(dict(**self._handover, enabled=self._handover_enabled,
+            config_version="handover-stage00-v1",
+            stages={str(stage): self._handover_enabled if stage == 0 else False
+                    for stage in range(13)}, capabilities=handover_capabilities("FAKE")))
+
+    def request_handover(self, value: object) -> dict:
+        """HMI용 0단계 요청. 기존 Controller의 stop만 사용하며 접근/개방은 없다."""
+        request = _object(value, ("request_id", "execution_id"), "handover.request")
+        for field in ("request_id", "execution_id"):
+            _text(request[field], f"handover.request.{field}")
+        if not self._handover_enabled:
+            return dict(accepted=False, reason="HANDOVER_DISABLED")
+        if request["request_id"] in self._handover_ids:
+            return dict(accepted=False, reason="DUPLICATE")
+        if self._handover["status"] != "IDLE" or self._stop is not None or self._fault:
+            return dict(accepted=False, reason="STOP_OR_HANDOVER_PENDING")
+        active = self._active
+        if active is None or request["execution_id"] != active["execution_id"]:
+            return dict(accepted=False, reason="OLD_EXECUTION")
+        if active["stage"] != "place" or not active["consumed"]:
+            return dict(accepted=False, reason="NOT_TRANSPORTING_BLOCK")
+        self._handover_ids.add(request["request_id"])
+        self._handover.update(status="STOP_PENDING", **request, reason=None, receipt_reported=False)
+        try:
+            reply = self.stop(request)
+        except Exception as error:
+            self._handover.update(status="CHECK_REQUIRED", reason=f"STOP_CALL_FAILED: {error}")
+            return dict(accepted=False, reason=self._handover["reason"])
+        if not reply["accepted"]:
+            self._handover.update(status="CHECK_REQUIRED", reason=reply["reason"])
+        return reply
+
+    def cancel_handover(self, request_id: str) -> dict:
+        _text(request_id, "handover.cancel.request_id")
+        if request_id != self._handover["request_id"] or self._handover["status"] not in ("STOP_PENDING", "WAIT_RECEIVER"):
+            return dict(accepted=False, reason="NO_CURRENT_HANDOVER")
+        # 취소와 시간 경과는 접촉 해제/복귀 경로의 증거가 아니다.
+        self._handover.update(status="CHECK_REQUIRED", reason="CANCELLED_MANUAL_CHECK_REQUIRED")
+        return dict(accepted=True, reason=self._handover["reason"])
+
+    def report_handover_receipt(self, request_id: str) -> dict:
+        _text(request_id, "handover.receipt.request_id")
+        if request_id != self._handover["request_id"] or self._handover["status"] != "WAIT_RECEIVER":
+            return dict(accepted=False, reason="NO_CURRENT_RECEIVER_WAIT")
+        # 사람의 버튼 입력은 개방 확인/실제 수신 증거를 대신하지 않는다.
+        self._handover.update(status="CHECK_REQUIRED", receipt_reported=True,
+                              reason="RELEASE_CONFIRMATION_UNAVAILABLE")
+        return dict(accepted=True, reason=self._handover["reason"])
+
+    def on_handover_safety(self, reason: str) -> None:
+        if reason not in ("PROTECTIVE_STOP", "EMERGENCY_STOP", "ROBOT_FAULT"):
+            raise ValueError("handover.safety: unsupported safety state")
+        self._fault = reason
+        self._handover.update(status="SAFETY_HOLD", reason=reason)
 
     @property
     def state(self) -> dict:
@@ -70,12 +137,16 @@ class RobotController:
 
     def new_job(self, config=None) -> dict:
         settings = validate_robot_config(self._config if config is None else config)
+        if self._handover["status"] == "SAFETY_HOLD":
+            return dict(accepted=False, reason="SAFETY_RECOVERY_UNAVAILABLE")
         if not (self.state["ready_at_observe"] or self.state["cleanup_ready"]):
             return dict(accepted=False, reason="CONTROLLER_NOT_READY_AT_OBSERVE")
         self._config = settings
         self._rows = {(row["brick_type"], row["color"]): row for row in settings["supply_rows"]}
         self._next_slots = {column: 1 for column in self._rows}
         self._active = self._stop = self._fault = None
+        self._handover.update(status="IDLE", request_id=None, execution_id=None,
+                              reason=None, receipt_reported=False)
         # 새 시작은 초기 배치/공급판 채움의 명시 확인이다. 이전 ID는 계속 닫혀 있다.
         return dict(accepted=True, reason=None)
 
@@ -126,7 +197,7 @@ class RobotController:
         if not active["consumed"]:
             column = active["brick_type"], active["color"]
             slot = active["slot"]
-            self._next_slots[column] = slot + 1 if slot < self._config["slot_count"] else None
+            self._next_slots[column] = next_supply_slot(slot, self._config["slot_count"])
             active["consumed"] = True
 
     def on_confirmation(self, execution_id: str, operation: str) -> bool:
@@ -136,6 +207,7 @@ class RobotController:
             raise ValueError("robot.confirmation.operation: unsupported confirmation")
         active = self._active
         if (active is None or self._stop is not None or self._fault is not None
+                or self._handover["status"] != "IDLE"
                 or execution_id != active["execution_id"] or operation != active["stage"]):
             return False
         if operation == "pick":
@@ -203,6 +275,14 @@ class RobotController:
                 if not consumed:
                     self._note("ROBOT_PICK_CONFIRMED", active["execution_id"])
             self._stop.update(confirmed=True, block_state=block_state)
+        handover = self._handover
+        if request_id == handover["request_id"] and handover["status"] == "STOP_PENDING":
+            if confirmed and block_state == "HOLDING":
+                handover.update(status="WAIT_RECEIVER", reason=None)
+            elif confirmed:
+                handover.update(status="CHECK_REQUIRED", reason="BLOCK_NOT_HELD")
+            else:
+                handover["reason"] = "STOP_UNCONFIRMED"
         if self._on_stopped:
             self._on_stopped(request_id, stopped=stopped, execution_ended=execution_ended,
                              block_state_known=known)
@@ -221,6 +301,8 @@ class RobotController:
                 raise ValueError("robot.resume.goal: execution_id differs")
         if identity in self._requests:
             return dict(accepted=False, reason="DUPLICATE")
+        if self._handover["status"] != "IDLE":
+            return dict(accepted=False, reason="HANDOVER_MANUAL_CHECK_REQUIRED")
         if self._stop is None or not self._stop["confirmed"] or self._fault:
             return dict(accepted=False, reason="STOP_OR_FAULT_UNCONFIRMED")
         if previous != self._stop["previous_execution_id"]:

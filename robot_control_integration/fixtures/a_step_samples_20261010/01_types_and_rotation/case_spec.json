@@ -1,0 +1,73 @@
+{
+  "case_id": "01_types_and_rotation",
+  "description": "5종 색상·규격 조합과 비정사각 블록 0/90도. 빈 Current에서 8 Step.",
+  "current": [],
+  "design": [
+    {
+      "brick_type": "2x2x1",
+      "color": "yellow",
+      "x": 3,
+      "y": 3,
+      "layer": 1,
+      "orientation_deg": 0
+    },
+    {
+      "brick_type": "2x2x1",
+      "color": "blue",
+      "x": 9,
+      "y": 3,
+      "layer": 1,
+      "orientation_deg": 0
+    },
+    {
+      "brick_type": "2x3x1",
+      "color": "yellow",
+      "x": 15,
+      "y": 3,
+      "layer": 1,
+      "orientation_deg": 0
+    },
+    {
+      "brick_type": "2x3x1",
+      "color": "yellow",
+      "x": 3,
+      "y": 10,
+      "layer": 1,
+      "orientation_deg": 90
+    },
+    {
+      "brick_type": "2x3x1",
+      "color": "blue",
+      "x": 9,
+      "y": 10,
+      "layer": 1,
+      "orientation_deg": 0
+    },
+    {
+      "brick_type": "2x3x1",
+      "color": "blue",
+      "x": 15,
+      "y": 10,
+      "layer": 1,
+      "orientation_deg": 90
+    },
+    {
+      "brick_type": "1x2x1",
+      "color": "red",
+      "x": 3,
+      "y": 17,
+      "layer": 1,
+      "orientation_deg": 0
+    },
+    {
+      "brick_type": "1x2x1",
+      "color": "red",
+      "x": 9,
+      "y": 17,
+      "layer": 1,
+      "orientation_deg": 90
+    }
+  ],
+  "expected_mode": "ROBOT_GRIP",
+  "expected_help": "NONE"
+}

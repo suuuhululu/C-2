@@ -1,0 +1,17 @@
+{
+  "actor": "user",
+  "confirmed_unix_s": 1791702745.6737597,
+  "statement": "네, 슬롯 보충·4층 유지·경로와 인계 공간 비어 있음",
+  "workflow": "blue slot1 pickup -> (11,11) high TCP Z194.733mm -> palm0.4s handover -> human seats layer5 -> thumb0.8s",
+  "target": {
+    "brick_type": "2x2x1",
+    "color": "blue",
+    "x": 11,
+    "y": 11,
+    "layer": 5,
+    "orientation_deg": 0
+  },
+  "existing_route_and_15mm_blend_review_retained": true,
+  "robot_contact_descent": false,
+  "automatic_routine_checks": true
+}

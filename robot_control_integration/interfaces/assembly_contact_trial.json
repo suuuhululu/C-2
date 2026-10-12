@@ -1,0 +1,61 @@
+{
+  "schema_version": 1,
+  "mode": "REAL",
+  "connection": {
+    "robot_id": "dsr01",
+    "ros_domain_id": 20,
+    "gripper_ip": "192.168.1.1",
+    "tcp": "GripperDA_v4",
+    "tool": "ToolWeight0"
+  },
+  "reference": null,
+  "floor_z_mm": null,
+  "reviewed": false,
+  "probe_force_n": 20.0,
+  "force_band_n": 0.5,
+  "raw_force_stop_n": 35.0,
+  "raw_moment_stop_nm": null,
+  "free_force_max_n": 15.0,
+  "stiffness": [
+    3000.0,
+    3000.0,
+    3000.0,
+    200.0,
+    200.0,
+    200.0
+  ],
+  "transition_s": 0.2,
+  "force_window_mm": 3.0,
+  "xy_limit_mm": 1.0,
+  "rotation_limit_deg": 1.0,
+  "max_joint_step_deg": 10.0,
+  "xy_step_mm": 0.25,
+  "rotation_step_deg": 0.2,
+  "improvement_mm": 0.05,
+  "repeatability_mm": 0.3,
+  "width_drift_mm": 0.5,
+  "baseline_return_n": 2.0,
+  "position_tolerance_mm": 0.05,
+  "orientation_tolerance_deg": 0.05,
+  "velocity": [
+    1.0,
+    1.0
+  ],
+  "acceleration": [
+    1.0,
+    1.0
+  ],
+  "rounds": 1,
+  "max_probes": 20,
+  "timing": {
+    "service_timeout_s": 0.5,
+    "sample_max_duration_s": 0.5,
+    "poll_interval_s": 0.05,
+    "motion_timeout_s": 45.0,
+    "stop_timeout_s": 3.0,
+    "probe_timeout_s": 3.0,
+    "session_timeout_s": 600.0,
+    "reference_max_age_s": 600.0
+  },
+  "parameter_source": "INITIAL_EXPERIMENTAL_VALUES_NOT_PHYSICALLY_VALIDATED"
+}

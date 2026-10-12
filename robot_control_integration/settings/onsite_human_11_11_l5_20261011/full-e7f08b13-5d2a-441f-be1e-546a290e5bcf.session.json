@@ -1,0 +1,63 @@
+{
+  "backend": "REAL",
+  "provenance": "LOCAL_OPERATOR_TRIAL",
+  "execution_id": "e7f08b13-5d2a-441f-be1e-546a290e5bcf",
+  "source_epoch": "ONSITE_HUMAN_FULL_11_11_L5_da371c63f0ac416cae35ca1f9fea966e",
+  "frame_profile_id": "BASE_EXISTING_BOARD_20261007_EXPERIMENTAL",
+  "plan_id": "D_LOCAL_HUMAN_11_11_L5_20261011",
+  "step_id": "S01",
+  "current_revision": null,
+  "expires_unix_s": 0,
+  "request_timeout_s": 30.0,
+  "frame_max_age_s": 0.3,
+  "frame_max_gap_s": 0.3,
+  "inference_max_latency_s": 0.3,
+  "stillness": {
+    "window_s": 0.25,
+    "max_gap_s": 0.5,
+    "timeout_s": 5.0,
+    "min_samples": 3,
+    "sample_max_duration_s": 0.5,
+    "position_mm": 0.05,
+    "orientation_deg": 0.05,
+    "linear_mm_s": 0.01,
+    "angular_deg_s": 0.01
+  },
+  "profile_id": "D_LOCAL_HUMAN_11_11_L5_e7f08b13-5d2a-441f-be1e-546a290e5bcf",
+  "exclusive_control_reviewed": true,
+  "device_feedback_reviewed": true,
+  "stillness_parameters_reviewed": true,
+  "hand_clear_reviewed": true,
+  "seating_evidence_ref": null,
+  "alignment_evidence_ref": null,
+  "parameter_source": "EXPERIMENTAL_STILLNESS_SETTINGS_OPERATOR_REVIEWED_NOT_SAFETY_LIMITS",
+  "allowed_trial_phase": "full",
+  "physical_verified": false,
+  "readiness_ref": "settings/onsite_human_11_11_l5_20261011/readonly-e7f08b13-5d2a-441f-be1e-546a290e5bcf.json",
+  "session_duration_reason": "30 minute one-shot manual assembly trial; routine sensor checks, open hand handover, thumbs-up human completion.",
+  "operator_web_logic_grasp_review": "Human manually closes35mm; latestfresh rawstatus2verified, no automatic grip override.",
+  "transport_blend_review_ref": "settings/onsite_human_11_11_l5_20261011/operator-review-e7f08b13-5d2a-441f-be1e-546a290e5bcf.json",
+  "arming_readonly_ref": "settings/onsite_human_11_11_l5_20261011/readonly-e7f08b13-5d2a-441f-be1e-546a290e5bcf.json",
+  "automatic_stage_checks": {
+    "enabled": true,
+    "review_ref": "settings/onsite_human_11_11_l5_20261011/operator-review-e7f08b13-5d2a-441f-be1e-546a290e5bcf.json",
+    "block": {
+      "brick_type": "2x2x1",
+      "color": "blue",
+      "x": 11,
+      "y": 11,
+      "layer": 5,
+      "orientation_deg": 0
+    },
+    "release_after_contact_stop": true
+  },
+  "human_step_gestures_review_ref": "settings/onsite_human_11_11_l5_20261011/operator-review-e7f08b13-5d2a-441f-be1e-546a290e5bcf.json",
+  "automatic_start_pose": [
+    471.9382019042969,
+    85.8552017211914,
+    194.73257446289062,
+    125.80892944335938,
+    -175.88037109375,
+    124.54871368408203
+  ]
+}

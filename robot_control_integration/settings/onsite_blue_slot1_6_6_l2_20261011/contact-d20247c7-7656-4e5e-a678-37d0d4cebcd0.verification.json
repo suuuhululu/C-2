@@ -1,0 +1,39 @@
+{
+  "real_preflight": "PASSED",
+  "real_execution_started": false,
+  "device_connections_in_offline_checks": 0,
+  "physical_simulation": false,
+  "checks": [
+    {
+      "denied_request": null,
+      "status": "PAUSED_SEATED_RELEASE_PENDING",
+      "mock_moves": 1,
+      "mock_grips": 0,
+      "contact_status": "FORCE_THRESHOLD_REACHED_STOP_VERIFIED"
+    },
+    {
+      "denied_request": "ALIGNMENT_AND_PARALLEL",
+      "status": "PAUSED_ALIGNMENT",
+      "mock_moves": 0,
+      "mock_grips": 0,
+      "contact_status": null
+    },
+    {
+      "denied_request": "FULL_SEATING",
+      "status": "PAUSED_FULL_SEATING",
+      "mock_moves": 1,
+      "mock_grips": 0,
+      "contact_status": "FORCE_THRESHOLD_REACHED_STOP_VERIFIED"
+    }
+  ],
+  "start_tcp_z_mm": 53.73572540283203,
+  "lowest_tcp_z_mm": 29.63553237915039,
+  "max_descent_travel_mm": 24.10019302368164,
+  "force_stop_n": 35.0,
+  "velocity_mm_s": 2.0,
+  "acceleration_mm_s2": 1.0,
+  "native_force_control": false,
+  "automatic_gripper_release": false,
+  "assembly_completion": false,
+  "current_update": false
+}

@@ -1,0 +1,14 @@
+{
+  "kind": "LOCAL_OPERATOR_SEATING_AND_RELEASE_REVIEW",
+  "operator_statement": "아주 굿. 그리퍼 열어도 되고 상승도 ㄱㅊ",
+  "contact_execution_id": "20de9630-a0aa-4cde-a461-c5b69a049c3a",
+  "contact_result_ref": "logs/onsite_5_18_l4_20261011/contact-20de9630-a0aa-4cde-a461-c5b69a049c3a/result.json",
+  "contact_result_sha256": "33942c6474aa26f9f527132585edb254a66eced0af2934225a7762318a256958",
+  "operator_seating_confirmed": true,
+  "release_opening_up_to_mm": 64.2,
+  "vertical_retreat_clear": true,
+  "readiness_ref": "settings/onsite_5_18_l4_20261011/release-readiness.json",
+  "recorded_unix_s": 1791690264.6494372,
+  "assembly_completion": false,
+  "current_update": false
+}
