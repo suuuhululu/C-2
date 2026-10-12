@@ -191,12 +191,30 @@ def test_log_failure_holds_before_any_a_request(h):
     assert w.status=='HOLD' and [p for p,_ in h.ports]==['robot.STOP']
 
 
-def test_actual_offline_chair_without_feasible_order_opens_c_not_robot(h):
+def test_robot_only_offline_chair_without_feasible_order_opens_c_not_robot(h):
     w=h.workflow;w.start();h.check()
+    w.settings['assembly_context']['supported_modes']=['ROBOT_GRIP']
     w.approved=c.create_initial_design(text='의자')['design'];w.plan()
     payload=deepcopy(w.active['request'])
     result=handle_whole_plan(payload['input'])
     assert result['calculation_status']=='NO_FEASIBLE_ORDER'
     w.receive('a.whole',payload['request_id'],result)
     assert w.active['port']=='c.plan_failure' and w.status=='WAIT_INTENT'
+    assert not any(p=='robot.EXECUTE' for p,_ in h.ports)
+
+
+def test_offline_chair_with_manual_help_returns_complete_candidate(h):
+    w=h.workflow;w.start();h.check()
+    design=c.create_initial_design(text='의자')['design']
+    w.approved=design;w.plan()
+    payload=deepcopy(w.active['request'])
+    result=handle_whole_plan(payload['input'])
+    assert result['calculation_status']=='COMPLETED'
+    assert result['planning_result']['status']=='READY'
+    actions=result['action_proposals']
+    assert len(actions)==len(design['blocks'])==15
+    assert sum(a['mode']=='HUMAN_ASSEMBLY' for a in actions)==2
+    assert all(human['access_assessment']=='HUMAN_ACCESS_NOT_CHECKED'
+               for a in actions for human in a['human_actions'])
+    assert result['execution_allowed'] is False
     assert not any(p=='robot.EXECUTE' for p,_ in h.ports)

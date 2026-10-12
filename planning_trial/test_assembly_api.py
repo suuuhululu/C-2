@@ -169,9 +169,9 @@ def test_diagnostic_out_of_board_block_is_preserved_and_null_error_allowed():
     req = whole_request(); req['design']['blocks'][0]['x'] = 24
     result = handle_whole_plan(req)
     assert result['stage_errors'][0]['block']['x'] == 24
-    req = whole_request(); req['assembly_context']['max_states'] = 1
+    req = whole_request(); req['assembly_context']['geometry']['body_height_mm'] = 0
     result = handle_whole_plan(req)
-    assert result['calculation_status'] == 'SEARCH_LIMIT' and result['stage_errors'][0]['block'] is None
+    assert result['calculation_status'] == 'INVALID_CONTEXT' and result['stage_errors'][0]['block'] is None
 
 
 def test_preservation_and_support_errors_keep_legacy_result_branches():
@@ -229,7 +229,7 @@ def test_arbitrary_d_profile_id_and_version_are_preserved_independent_of_hash():
 
 def test_context_change_with_same_action_requires_new_assessment():
     _, _, _, _, req = chain()
-    req['assembly_context']['max_states'] += 1
+    req['assembly_context']['max_states'] = 1
     result = handle_step_motion(req)
     assert result['status'] == 'BLOCKED' and result['errors'][0]['code'] == 'FRAME_PROFILE_CHANGED'
 
