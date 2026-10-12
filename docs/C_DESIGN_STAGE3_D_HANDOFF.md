@@ -128,6 +128,8 @@ run_design_change(approved_design, current_blocks, reason="PLANNING_FAILURE",
 
 흐름: REVISE → Candidate Preview → Review(MODIFY면 같은 change request로 재생성, version 유지) → APPROVE → A Replan. KEEP → HOLD(사용자가 다시 바꾸거나 운영자가 조치).
 
+**실행 가능한 D 역할 trace (Wave 5, 2026-10-12)**: `scripts/c_stage3_integration_smoke.py --scenario plan-failure`의 `FakeDCaller.plan_failure / review / replan`이 위 순서를 코드로 보여 줍니다(실제 A `handle_whole_plan` read-only 호출, `planning_failure_from`으로 A 결과 → `planning_failure` 변환, Robot HOLD, REVISE 후보는 `candidate_phase PREVIEW → REVIEW`(PREVIEW_READY) 뒤에만 review, APPROVE는 표시한 후보와 같은 design일 때만 채택, 그 뒤에만 replan, KEEP/UNCLEAR/실패는 HOLD에서 종료). 자동 테스트는 `tests/integration/test_c_stage3_plan_failure.py`(시나리오 1~7). 실측: fixture Approved v1(15블록)은 A에서 NO_FEASIBLE_ORDER, gpt-6.1-sol Revised Candidate v2(38블록)는 APPROVE 뒤 replan에서 `SEARCH_LIMIT`(탐색 한도)로 끝났습니다 — lifecycle은 이어지지만 A 쪽 fallback 정책(Known Issue)이 필요합니다.
+
 **A owner handoff**: 현재 `handle_whole_plan`의 `WholePlanResult`에는 막힌 블록 정보가 없습니다(`stage_errors[0].block == null`; optimizer의 `blocked_candidates[].block`은 raw/audit에만 있음, fixture `tests/fixtures/c_plan_failure/whole_no_feasible_order_real_unpatched.json`). 가능하면 `NO_FEASIBLE_ORDER`일 때 `stage_errors[].block` 또는 별도 `blocked_blocks`에 Design 블록(여섯 필드)을 노출해 주세요. 없어도 C는 일반 문장("현재 설계는 로봇이 조립할 수 있는 순서를 만들지 못했어요.")으로 동작합니다.
 
 ## 4. 데이터 저장

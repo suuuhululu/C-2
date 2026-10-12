@@ -1,5 +1,11 @@
 # 현재 진행 상황
 
+## 2026-10-12 — C Wave 5: Planning failure → C 수정 대화 → Candidate → Preview → APPROVE → A Replan 연결 검증 (`work/siyul-c-remaining`)
+
+- 변경: 테스트·스크립트·문서만. `scripts/c_stage3_integration_smoke.py`에 `--scenario plan-failure`(`--blocked-block`)와 D 역할 trace(`plan_failure`/`replan`, `candidate_phase` PREVIEW→REVIEW 가드, stale APPROVE 거절, robot/replan 호출 횟수) 추가. `tests/integration/test_c_stage3_plan_failure.py`(시나리오 1 REVISE→Preview→APPROVE→replan ×2(blocked block 유무), 2 KEEP→HOLD, 3 UNCLEAR 재질문, 4 SEARCH_LIMIT 거절, 5 생성 실패 시 Approved 유지, 6 PREVIEW_READY 전 review 거절·stale APPROVE 거절, 7 STOP/late result). A는 실제 `handle_whole_plan`(read-only, FAKE 설정). C production 변경 없음.
+- 검증: 실제 gpt-6.1-sol 텍스트 모드 2회(blocked block 없음/있음) — NO_FEASIBLE_ORDER → C 자연어 질문 → REVISE → Candidate v2(validator PASS·Current 보존) → Preview PNG → review APPROVE → Approved v2 → replan 결과 기록(수치는 Wave 5 보고). 회귀 수치는 Wave 5 보고 참조. Robot/Camera/DB 미실행.
+- 미검증·한계: Revised Candidate(38블록)의 replan은 A `SEARCH_LIMIT`로 끝남(A fallback 정책 필요, D/A handoff). 실제 mic/TTS smoke 결과는 Wave 5 보고에 별도 기록. D 테스트 1건 실패는 Wave 3 handoff 그대로.
+
 ## 2026-10-12 — C Wave 4: A Planning failure → C Design-Change HRI/TTS (`work/siyul-c-remaining`)
 
 - 변경: `app/c_design/{main,dialogue,llm,validator}.py`. `run_design_change(..., planning_failure=None)`(선택 인자, `inspection_context`와 분리)·`review_design_candidate(..., planning_failure=None)`. `validator.check_planning_failure`(형식), `main.REDESIGN_FAILURE_CODES = ("NO_FEASIBLE_ORDER",)`로 `redesign_required` true + 허용 코드일 때만 질문, 아니면 질문·TTS 없이 `FAILED / PLANNING_FAILURE_NOT_REDESIGN`. `dialogue.build_plan_failure_question`(코드·detail 미노출, 막힌 블록은 위치·층만), `llm.planning_failure_change_request`(생성 메시지용 짧은 요약)·`planning_failure_summary`(LLM 해석 payload 별도 키). Design-Change 질문은 한글 문장 reason만 읽음(`str(errors)` 차단). Design-Change parser는 앞머리 예/아니요를 떼고(표에 세지 않음) "기존설계"를 KEEP에 추가. 기존 `ask()`/`next_reply()`/TTS/STT 흐름 재사용, 새 public 함수·enum·schema 없음. CONTRACT §4.6·§10, handoff §3c(D 라우팅·KEEP→HOLD·A blocked block).
