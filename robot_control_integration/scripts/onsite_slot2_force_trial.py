@@ -23,7 +23,7 @@ PREPARATION = ROOT/'settings/onsite_ack_continue_blue_slot2_2_2_l1_20261011/nati
 
 
 def require_drcf2_runtime(proc=Path('/proc')):
-    expected = ROOT/'runtime/drcf2/install'
+    expected = Path(os.environ.get('C2_DRIVER_ROOT', ROOT/'runtime/drcf2')).resolve()/'install'
     for process in proc.iterdir():
         if not process.name.isdigit():
             continue
@@ -37,7 +37,7 @@ def require_drcf2_runtime(proc=Path('/proc')):
         libraries = [str(expected/package/'lib'/f'lib{package}.so')
                      for package in ('dsr_controller2', 'dsr_hardware2')]
         if not all(path in maps for path in libraries):
-            raise RuntimeError('DRCF2_DRIVER_RESTART_REQUIRED: run ./robot-driver-drcf2.sh after stopping existing bringup')
+            raise RuntimeError('DRCF2_DRIVER_RESTART_REQUIRED: restart bringup with selected DRCF2 overlay: '+str(expected))
         return int(process.name)
     raise RuntimeError('LOCAL_DSR01_DRIVER_NOT_RUNNING')
 

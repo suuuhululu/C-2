@@ -131,6 +131,30 @@ def test_next_supply_slot_prepares_with_stopped_residual_velocity(monkeypatch,tm
     finally:r.close()
 
 
+def test_empty_supply_slot_is_rejected_before_geometry_or_execution_document(monkeypatch):
+    from app import mvp_real_trial
+    touched=[]
+    monkeypatch.setattr(mvp_real_trial,'step_geometry',lambda *args:touched.append('geometry'))
+    monkeypatch.setattr(mvp_real_trial,'execution_document',lambda *args:touched.append('document'))
+    with pytest.raises(ValueError,match='SUPPLY_SLOT_UNAVAILABLE'):
+        mvp_real_trial.prepare_measured(None,None,None,6,None,None,'operator-review')
+    with pytest.raises(ValueError,match='SUPPLY_SLOT_UNAVAILABLE'):
+        mvp_real_trial.measured_document(dict(request=dict(reserved_supply_slot=dict(slot_index=6))),
+            'blocked-execution','epoch')
+    assert touched==[]
+
+
+def test_old_empty_slot_document_cannot_be_resumed():
+    from types import SimpleNamespace
+    r=FullFeatureRealTrial.__new__(FullFeatureRealTrial)
+    r.last_document=dict(request=dict(reserved_supply_slot=dict(slot_index=6)))
+    sent=[]
+    r.robot=SimpleNamespace(send=lambda *args,**kwargs:sent.append((args,kwargs)))
+    with pytest.raises(ValueError,match='SUPPLY_SLOT_UNAVAILABLE'):
+        r.emit('robot.RESUME',{})
+    assert sent==[]
+
+
 def test_measured_real_adapter_keeps_all_methods_and_actual_a_apis(monkeypatch,tmp_path):
     blocks=[brick(x) for x in (4,6,8)]+[brick(x,2) for x in (5,7,9)]+[brick(10,3)]
     r=install(monkeypatch,tmp_path,dict(design_version=1,blocks=blocks))
@@ -447,7 +471,7 @@ def test_real_trial_ui_confirmation_button_sends_one_operator_answer(monkeypatch
     main(runtime_class=lambda *args,**kwargs:r,real_trial=True)
 
 
-def test_real_adapter_supply_cycle_1_to_6_to_1_has_only_loaded_blending(monkeypatch,tmp_path):
+def test_real_adapter_supply_cycle_1_to_5_to_1_excludes_empty_six_and_has_only_loaded_blending(monkeypatch,tmp_path):
     design=dict(design_version=1,blocks=[brick(x) for x in (4,6,8)]+[brick(x,2) for x in (5,7,9)]+[brick(10,3)])
     r=install(monkeypatch,tmp_path,design,contact_alignment_trial=True)
     try:
@@ -455,7 +479,10 @@ def test_real_adapter_supply_cycle_1_to_6_to_1_has_only_loaded_blending(monkeypa
         settle(r,lambda:r.workflow.status=='COMPLETE',seconds=120)
         docs=r.robot.documents
         assert [d['step']['reservation']['slot_id'] for d in docs]==[
-            f'blue_2x3x1_{slot:02}' for slot in (1,2,3,4,5,6,1)]
+            f'blue_2x3x1_{slot:02}' for slot in (1,2,3,4,5,1,2)]
+        assert all(1 <= d['request']['reserved_supply_slot']['slot_index'] <= 5 for d in docs)
+        assert all(d['d_profile']['supply_slot_count']==5 and d['d_profile']['supply_unavailable_slots']==[6]
+                   and d['d_profile']['supply_slots_always_replenished'] is True for d in docs)
         rows=[json.loads(v) for v in (tmp_path/(r.workflow.job_id+'.jsonl')).read_text().splitlines()]
         batches=[v['result'] for v in rows if v['event']=='ROBOT_SINGLE_WRITER_BLEND']
         assert len(batches)==7

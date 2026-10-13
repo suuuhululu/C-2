@@ -162,7 +162,8 @@ def test_seated_start_unloads_above_seek_before_pressing():
     assert result['status']=='PRESS_ONLY_FORCE_LIMIT_REACHED_STOP_VERIFIED'
 
 
-def test_runtime_guard_rejects_old_loaded_plugins_until_both_are_restarted(tmp_path):
+def test_runtime_guard_rejects_old_loaded_plugins_until_both_are_restarted(tmp_path, monkeypatch):
+    monkeypatch.delenv('C2_DRIVER_ROOT', raising=False)
     process = tmp_path/'123'; process.mkdir()
     (process/'cmdline').write_bytes(b'/opt/ros/jazzy/lib/controller_manager/ros2_control_node\0-r\0__ns:=/dsr01\0')
     paths = [str(ROOT/'runtime/drcf2/install'/package/'lib'/f'lib{package}.so')
@@ -175,3 +176,25 @@ def test_runtime_guard_rejects_old_loaded_plugins_until_both_are_restarted(tmp_p
         require_drcf2_runtime(tmp_path)
     (process/'maps').write_text('\n'.join(paths))
     assert require_drcf2_runtime(tmp_path) == 123
+
+
+@pytest.mark.parametrize('loaded', ['both', 'controller_only', 'old'])
+def test_runtime_guard_uses_selected_external_overlay_and_checks_both_plugins(tmp_path, monkeypatch, loaded):
+    driver_root = tmp_path/'external driver'
+    monkeypatch.setenv('C2_DRIVER_ROOT', str(driver_root))
+    proc = tmp_path/'proc'; proc.mkdir()
+    process = proc/'123'; process.mkdir()
+    (process/'cmdline').write_bytes(b'/opt/ros/jazzy/lib/controller_manager/ros2_control_node\0-r\0__ns:=/dsr01\0')
+    paths = [str(driver_root/'install'/package/'lib'/f'lib{package}.so')
+             for package in ('dsr_controller2', 'dsr_hardware2')]
+    if loaded == 'controller_only':
+        paths = paths[:1]
+    elif loaded == 'old':
+        paths = [str(ROOT/'runtime/drcf2/install'/package/'lib'/f'lib{package}.so')
+                 for package in ('dsr_controller2', 'dsr_hardware2')]
+    (process/'maps').write_text('\n'.join(paths))
+    if loaded == 'both':
+        assert require_drcf2_runtime(proc) == 123
+    else:
+        with pytest.raises(RuntimeError, match='DRCF2_DRIVER_RESTART_REQUIRED'):
+            require_drcf2_runtime(proc)
