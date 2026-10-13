@@ -1,0 +1,306 @@
+{
+  "date": "2026-10-12",
+  "base_integration_sha": "727d10119751225c46e943ae4bdcf92634de02e3",
+  "scope": "documentation publication only",
+  "markdown_files": 23,
+  "links_checked": 85,
+  "tables_checked": 14,
+  "code_blocks_checked": 5,
+  "errors": [],
+  "original_tracked_document_bodies_preserved": true,
+  "runtime_code_schema_db_robot_settings_changed": false,
+  "app_or_hardware_tests_run": false,
+  "changed_files": [
+    "README.md",
+    "docs/04_ISAAC_SIM.md",
+    "docs/12_INTEGRATION_SYNC_20261011.md",
+    "docs/14_INTEGRATION_REVIEW_20261012.md",
+    "docs/15_CLEANUP_PROMPTS_20261012.md",
+    "docs/16_FINAL_INTEGRATION_CHAT_SYNC_20261012.md",
+    "docs/D_HMI_DB_ROUND1.md",
+    "docs/D_MVP_INTEGRATION_20261011.md",
+    "docs/STATUS.md",
+    "docs/final_mvp/01_Business_Requirements.md",
+    "docs/final_mvp/02_System_Requirements.md",
+    "docs/final_mvp/03_System_Architecture_and_Network.md",
+    "docs/final_mvp/04_Flow_Chart.md",
+    "docs/final_mvp/05_Interface_Specification.md",
+    "docs/final_mvp/06_ROS2_Node_Structure.md",
+    "docs/final_mvp/07_HMI_UI_Design.md",
+    "docs/final_mvp/08_Exception_and_Error_List.md",
+    "docs/final_mvp/09_Risks_and_Safety_Measures.md",
+    "docs/final_mvp/10_Measurement_and_Operation_Validation.md",
+    "docs/final_mvp/CONTRACTS.md",
+    "docs/final_mvp/DECISION_TIMELINE.md",
+    "docs/final_mvp/README.md",
+    "docs/final_mvp/publication_validation.json",
+    "docs/handover/final_mvp_interface_20261008/README.md",
+    "docs/reviews/integration_20261012_review.json"
+  ],
+  "github_pull_request": "https://github.com/suuuhululu/C-2/pull/32",
+  "github_merge_performed": false,
+  "drive_documents": [
+    {
+      "title": "10 측정·조작 검증 결과와 최종 MVP 시험 계획",
+      "url": "https://docs.google.com/document/d/1tyyZlJbQWOa1JWn8LQzQVjZ-20f5xjY3oC6KBGh4oa0",
+      "originalParagraphsAndStylesPreserved": true,
+      "originalMetadataPreserved": true,
+      "nativeObjectsPreserved": true,
+      "topicParagraphsMatched": true,
+      "counts": {
+        "table": [
+          9,
+          9
+        ],
+        "inlineObjectElement": [
+          0,
+          0
+        ],
+        "dateElement": [
+          2,
+          2
+        ],
+        "positionedObjectIds": [
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "title": "09 위험요소 및 안전대책",
+      "url": "https://docs.google.com/document/d/1UXxf5BdQ2XcuAPQBEqdr7RMflnp46E0WuKh-zBSaq-Q",
+      "originalParagraphsAndStylesPreserved": true,
+      "originalMetadataPreserved": true,
+      "nativeObjectsPreserved": true,
+      "topicParagraphsMatched": true,
+      "counts": {
+        "table": [
+          2,
+          2
+        ],
+        "inlineObjectElement": [
+          0,
+          0
+        ],
+        "dateElement": [
+          1,
+          1
+        ],
+        "positionedObjectIds": [
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "title": "08 예상되는 예외상황·오류상황 리스트",
+      "url": "https://docs.google.com/document/d/1SwMc0VkeLbBVqYu9FEdmXsepbldldk6XVK8ttRLho-c",
+      "originalParagraphsAndStylesPreserved": true,
+      "originalMetadataPreserved": true,
+      "nativeObjectsPreserved": true,
+      "topicParagraphsMatched": true,
+      "counts": {
+        "table": [
+          7,
+          7
+        ],
+        "inlineObjectElement": [
+          0,
+          0
+        ],
+        "dateElement": [
+          1,
+          1
+        ],
+        "positionedObjectIds": [
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "title": "07 HMI 대시보드와 UI 화면 구성도",
+      "url": "https://docs.google.com/document/d/1T9orlKThBy928f5fby-IHIYH1Y9p7db0gdjqSQQooIE",
+      "originalParagraphsAndStylesPreserved": true,
+      "originalMetadataPreserved": true,
+      "nativeObjectsPreserved": true,
+      "topicParagraphsMatched": true,
+      "counts": {
+        "table": [
+          6,
+          6
+        ],
+        "inlineObjectElement": [
+          1,
+          1
+        ],
+        "dateElement": [
+          1,
+          1
+        ],
+        "positionedObjectIds": [
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "title": "06 ROS2 Node 구조도",
+      "url": "https://docs.google.com/document/d/1sBqnvj5ptyG61IUREJb604Na5RpdlzZaN4FX5xs8mGY",
+      "originalParagraphsAndStylesPreserved": true,
+      "originalMetadataPreserved": true,
+      "nativeObjectsPreserved": true,
+      "topicParagraphsMatched": true,
+      "counts": {
+        "table": [
+          3,
+          3
+        ],
+        "inlineObjectElement": [
+          2,
+          2
+        ],
+        "dateElement": [
+          1,
+          1
+        ],
+        "positionedObjectIds": [
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "title": "05 Interface Specification 인터페이스 명세",
+      "url": "https://docs.google.com/document/d/1wsdFQmEPoTMYQc8GSvshQ5Js_VWjne4d_NfzIZ0hksM",
+      "originalParagraphsAndStylesPreserved": true,
+      "originalMetadataPreserved": true,
+      "nativeObjectsPreserved": true,
+      "topicParagraphsMatched": true,
+      "counts": {
+        "table": [
+          6,
+          6
+        ],
+        "inlineObjectElement": [
+          0,
+          0
+        ],
+        "dateElement": [
+          1,
+          1
+        ],
+        "positionedObjectIds": [
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "title": "04 Flow Chart 최종 MVP 동작 흐름도",
+      "url": "https://docs.google.com/document/d/19iVCsTSssEAXXWRzs3cx54i489iQBLV7WhlAp7cdxvg",
+      "originalParagraphsAndStylesPreserved": true,
+      "originalMetadataPreserved": true,
+      "nativeObjectsPreserved": true,
+      "topicParagraphsMatched": true,
+      "counts": {
+        "table": [
+          2,
+          2
+        ],
+        "inlineObjectElement": [
+          4,
+          4
+        ],
+        "dateElement": [
+          1,
+          1
+        ],
+        "positionedObjectIds": [
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "title": "03 System Architecture & Network 시스템 구조와 네트워크",
+      "url": "https://docs.google.com/document/d/14apUajwJvDHAd4D6xVPrXE_0tFtfXlkqqi9mfkD2Vpw",
+      "originalParagraphsAndStylesPreserved": true,
+      "originalMetadataPreserved": true,
+      "nativeObjectsPreserved": true,
+      "topicParagraphsMatched": true,
+      "counts": {
+        "table": [
+          4,
+          4
+        ],
+        "inlineObjectElement": [
+          1,
+          1
+        ],
+        "dateElement": [
+          1,
+          1
+        ],
+        "positionedObjectIds": [
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "title": "02 System Requirements Docs 시스템 요구사항",
+      "url": "https://docs.google.com/document/d/1bWF4WIzHjcMrFjANTqZvTGHAgdUESTfuXBxN5ZhGu0o",
+      "originalParagraphsAndStylesPreserved": true,
+      "originalMetadataPreserved": true,
+      "nativeObjectsPreserved": true,
+      "topicParagraphsMatched": true,
+      "counts": {
+        "table": [
+          4,
+          4
+        ],
+        "inlineObjectElement": [
+          0,
+          0
+        ],
+        "dateElement": [
+          2,
+          2
+        ],
+        "positionedObjectIds": [
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "title": "01 Business Requirements Docs 서비스 요구사항",
+      "url": "https://docs.google.com/document/d/12UwWi3ttnL5J43eAfjjFHHXuKrtqUseU4GopXcvwTGU",
+      "originalParagraphsAndStylesPreserved": true,
+      "originalMetadataPreserved": true,
+      "nativeObjectsPreserved": true,
+      "topicParagraphsMatched": true,
+      "counts": {
+        "table": [
+          6,
+          6
+        ],
+        "inlineObjectElement": [
+          0,
+          0
+        ],
+        "dateElement": [
+          1,
+          1
+        ],
+        "positionedObjectIds": [
+          0,
+          0
+        ]
+      }
+    }
+  ],
+  "drive_readback_errors": [],
+  "drive_layout_verification": "Native styles, original text, table/image/date counts and stable image properties checked. Temporary contentUri URLs excluded; visual rendering not performed."
+}

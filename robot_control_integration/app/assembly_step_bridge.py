@@ -183,6 +183,11 @@ def build_plan(step, profile):
         raise ValueError('RG2_FORCE_OUT_OF_RANGE')
     key = step['case_id']+'/'+step['step_id']
     settings = deepcopy(profile['steps'][key])
+    if 'assembly_tcp_zyz_deg' in settings:
+        abc=settings['assembly_tcp_zyz_deg']
+        if not isinstance(abc,list) or len(abc)!=3:
+            raise ValueError('ASSEMBLY_TCP_ZYZ_TRIPLE_REQUIRED')
+        pose([0.,0.,0.]+abc,'assembly_tcp_zyz_deg')
     if 'release_feedback_range_mm' in settings:
         width = settings.get('release_width_mm')
         if type(width) not in (int, float) or not math.isfinite(width):
@@ -199,7 +204,7 @@ def build_plan(step, profile):
     action = step['action']
     mode, assistance = action['mode'], action.get('assistance_kind', 'NONE')
     if mode not in ('ROBOT_GRIP', 'HUMAN_ASSEMBLY', 'ROBOT_RELEASE_PRESS') or assistance not in (
-            'NONE', 'HOLD', 'PRESS_AND_HOLD', 'MANUAL_ASSEMBLY'):
+            'NONE', 'HOLD', 'PRESS', 'PRESS_AND_HOLD', 'MANUAL_ASSEMBLY', 'MANUAL_ASSEMBLY_AND_HOLD'):
         raise ValueError('UNSUPPORTED_METHOD')
     footprint = trial_footprint(step['block'])
     operations = ['PICK_AND_CONFIRM', 'LIFT', 'SUPPLY_20_0', 'BODY_BYPASS', 'PLACE_BOARD']
@@ -210,7 +215,7 @@ def build_plan(step, profile):
         if mode == 'ROBOT_RELEASE_PRESS':
             operations += ['RELEASE_POSITION', 'CONFIRM_RELEASE', 'OPEN', 'PRESS_TOOL_APPROACH',
                            'CLOSE_EMPTY_PRESS_TOOL', 'PRESS_TOOL_LOWER', 'PRESS_35N']
-        elif assistance == 'PRESS_AND_HOLD':
+        elif assistance in ('PRESS', 'PRESS_AND_HOLD'):
             operations += ['HUMAN_HOLD_READY', 'DESCEND_TO_NEAR_CONTACT', 'CONFIRM_SUPPORTED_RELEASE', 'OPEN', 'RETREAT',
                            'HUMAN_PRESS_AND_HOLD_ACK']
         else:
@@ -218,9 +223,9 @@ def build_plan(step, profile):
                 operations.append('HUMAN_READY')
             operations += ['DESCEND_TO_NEAR_CONTACT', 'PRESS_35N']
         operations += ['CONFIRM_FULL_SEATING']
-        if mode != 'ROBOT_RELEASE_PRESS' and assistance != 'PRESS_AND_HOLD':
+        if mode != 'ROBOT_RELEASE_PRESS' and assistance not in ('PRESS', 'PRESS_AND_HOLD'):
             operations += ['CONFIRM_RELEASE', 'OPEN']
-        if assistance != 'PRESS_AND_HOLD':
+        if assistance not in ('PRESS', 'PRESS_AND_HOLD'):
             operations.append('RETREAT')
     if settings.get('human_step_gestures'):
         if mode == 'HUMAN_ASSEMBLY':
@@ -260,7 +265,7 @@ def validate_physical(plan, profile, phase):
     blend = profile.get('transport_blending')
     if blend is not None and (not isinstance(blend, dict) or blend.get('reviewed') is not True or
             type(blend.get('radius_mm')) not in (int, float) or
-            not math.isfinite(blend['radius_mm']) or not 0 < blend['radius_mm'] <= 30):
+            not math.isfinite(blend['radius_mm']) or not 0 < blend['radius_mm'] <= 40):
         raise ValueError('REVIEWED_SMALL_TRANSPORT_BLEND_REQUIRED')
     if phase == 'grasp-recovery':
         if (plan['mode'] != 'ROBOT_GRIP' or plan['assistance_kind'] != 'NONE' or
@@ -305,5 +310,5 @@ def validate_physical(plan, profile, phase):
             pose(s[name], name)
         if type(s['press_width_mm']) not in (int, float) or not 0 <= s['press_width_mm'] <= 110:
             raise ValueError('D_PRESS_TOOL_WIDTH_REQUIRED')
-    if plan['assistance_kind'] in ('HOLD', 'PRESS_AND_HOLD') and not profile.get('human_collaboration_commissioning_ref'):
+    if plan['assistance_kind'] in ('HOLD', 'PRESS', 'PRESS_AND_HOLD', 'MANUAL_ASSEMBLY_AND_HOLD') and not profile.get('human_collaboration_commissioning_ref'):
         raise ValueError('D_HUMAN_COLLABORATION_COMMISSIONING_REQUIRED')

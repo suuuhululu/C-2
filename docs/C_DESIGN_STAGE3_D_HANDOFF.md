@@ -1,6 +1,6 @@
 # C Stage 3 D Handoff
 
-2026-10-11 · C 파트(Stage 3 Wave 3) · 대상: D(Backend·HMI·통합 담당)
+2026-10-11 · C 파트(Stage 3 Wave 3) · 2026-10-12 C Remaining Work Wave 1~6 반영 · 대상: D(Backend·HMI·통합 담당)
 
 이 문서는 **D가 C를 호출하고 response를 받는** 방법을 정리합니다. C는 D에 push하지 않습니다. 모든 C 공개 함수는 **동기 호출**이며 결과 envelope을 반환값으로 돌려줍니다.
 
@@ -8,14 +8,15 @@
 - C-side caller fixture PASS: [tests/integration/test_c_stage3_lifecycle.py](../tests/integration/test_c_stage3_lifecycle.py)
 - fake PREVIEW_READY 기반 review 호출 PASS
 - D가 Preview 완료 후 호출할 C API 준비 완료
+- 2026-10-12 Wave 3~5: 직접 Design Change(§3b)·A Planning failure HRI(§3c)·canonical facing(CONTRACT §8.9) 추가, planning-failure lifecycle fake D caller 검증(`tests/integration/test_c_stage3_plan_failure.py`). 남은 통합 항목은 §10
 
 **실제 D/HMI integration은 팀 통합 단계**입니다. 이 문서는 D 코드가 바뀌었거나 연결됐다는 뜻이 아닙니다(D 코드는 수정하지 않았습니다).
 
-계약 세부는 [C_DESIGN_CONTRACT.md](C_DESIGN_CONTRACT.md) §4.1(Initial)·§4.2(Intervention)·§4.4(Preview 검토)·§4.5(외부 caller 호출 계약, A 작성)·§6(envelope)을 기준으로 합니다.
+계약 세부는 [C_DESIGN_CONTRACT.md](C_DESIGN_CONTRACT.md) §4.1(Initial)·§4.2(Intervention)·§4.4(Preview 검토)·§4.5(외부 caller 호출 계약, A 작성)·§4.6(직접 Design Change·Planning failure)·§6(envelope)을 기준으로 합니다.
 
 ## 공통: response envelope
 
-세 함수 모두 같은 키를 돌려줍니다: `{status, hri_result, design, design_metadata, questions, error}`(§6).
+네 함수(`create_initial_design`·`review_design_candidate`·`run_intervention`·`run_design_change`) 모두 같은 키를 돌려줍니다: `{status, hri_result, design, design_metadata, questions, error}`(§6).
 
 | 필드 | 값 |
 |---|---|
@@ -26,7 +27,7 @@
 | `questions` | 이번 호출에서 C가 낸 질문 문장 |
 | `error` | `null` 또는 `{code, message, details}`(§10: `INVALID_INPUT`, `UNSUPPORTED_OBJECT`, `DESIGN_GENERATION_FAILED`, `LLM_CALL_FAILED`, `VOICE_IO_FAILED`, `STOPPED`, `USER_CANCEL`) |
 
-세 함수 모두 예외를 밖으로 던지지 않습니다. 단, D가 넘긴 콜백(`on_question`·`on_progress`)이 던진 예외는 호출자 책임입니다.
+네 함수 모두 예외를 밖으로 던지지 않습니다. 단, D가 넘긴 콜백(`on_question`·`on_progress`)이 던진 예외는 호출자 책임입니다.
 
 ## 1. Initial 시작
 
@@ -46,7 +47,8 @@ D가 할 일: `design`을 **Candidate**로 보관하고 HMI Preview에 표시합
 
 ```python
 review_design_candidate(candidate, *, kind, design_metadata=None, previous_design=None, current=None, differences=None,
-                        text_answers=None, on_question=None, should_stop=None, on_progress=None)
+                        text_answers=None, on_question=None, should_stop=None, on_progress=None, change_reason=None,
+                        planning_failure=None)
 ```
 
 - **호출 시점**: D가 Candidate의 Preview 표시를 끝낸 뒤(PREVIEW_READY)입니다. C는 표시 완료를 확인하지 않습니다(테스트에서는 caller가 PREVIEW_READY를 가정하며 sleep은 필요 없음).
@@ -54,7 +56,7 @@ review_design_candidate(candidate, *, kind, design_metadata=None, previous_desig
   - `candidate`: 방금 표시한 후보.
   - `kind`: `"initial"` 또는 `"revised"`.
   - `design_metadata`: 그 후보를 받은 response의 `design_metadata` **그대로**.
-  - `kind="revised"`면 `previous_design`(Approved)·`current`·`differences`가 필수입니다.
+  - `kind="revised"`면 `previous_design`(Approved)·`current`·`differences`가 필수입니다. 직접 Design Change·Planning failure에서 나온 후보는 `differences=[]`와 `change_reason`(그리고 있으면 `planning_failure`)을 함께 줍니다(§3b·§3c).
 - **C가 하는 일**: 검토 질문 TTS("완성된 디자인이 화면에 표시됐어요. 어떠신가요?" / revised: "수정된 디자인이 화면에 표시됐어요. 어떠신가요?") → beep → STT → 해석(불명확하면 재질문 1회) → ack TTS.
 
 | 결과 | C | D |
@@ -68,10 +70,11 @@ review_design_candidate(candidate, *, kind, design_metadata=None, previous_desig
 ## 3. 조립 중 Difference 발생
 
 ```python
-run_intervention(design, current, differences, text_answers=None, on_question=None, should_stop=None, on_progress=None)
+run_intervention(design, current, differences, text_answers=None, on_question=None, should_stop=None, on_progress=None,
+                 inspection_context=None)
 ```
 
-- **입력은 세 가지뿐입니다**: `design` = **Approved Design**, `current` = Backend가 채택한 Current 블록 배열, `differences` = 이번 원인 Difference(`[{expected, actual}]`).
+- **입력은 세 가지뿐입니다**: `design` = **Approved Design**, `current` = Backend가 채택한 Current 블록 배열, `differences` = 이번 원인 Difference(`[{expected, actual}]`). `inspection_context`(PR #26, 선택)는 B 관측 문맥이며 LLM 답변 해석 payload에만 실립니다.
 - **Expected 전체는 C API에 넘기지 않습니다.** Expected는 D(Backend)가 관리합니다. C의 질문 문장과 생성·judge는 `differences[].expected/actual`과 Current만 씁니다. 근거와 결론은 A 문서 [C_DESIGN_STAGE3_C_D_CONTRACT_DRAFT.md](C_DESIGN_STAGE3_C_D_CONTRACT_DRAFT.md)의 correlation/Expected 결론 절과 CONTRACT §4.5를 참고하세요.
 - **C가 하는 일**: Difference 설명 질문 TTS("Design과 다르게 놓인 부분이 있는데, 의도하신 건가요?" + 차이 설명) → beep → STT → 해석 → ack → (REVISE면) 생성·validator·judge.
 
@@ -82,13 +85,63 @@ run_intervention(design, current, differences, text_answers=None, on_question=No
 | `UNCLEAR` | 텍스트 답변 소진 시 | 보류 |
 | 실패·취소 | §10 코드 | 보류 |
 
+## 3b. 직접 Design Change (Wave 3, 2026-10-12)
+
+```python
+run_design_change(design, current, *, reason, text_answers=None, on_question=None, should_stop=None, on_progress=None,
+                  inspection_context=None, planning_failure=None)
+```
+
+- 언제: Difference 없이 사용자가 설계 변경을 요청했을 때(`USER_DESIGN_CHANGE`). 질문·KEEP/REVISE 해석이 Intervention과 **다릅니다**(CONTRACT §4.6): KEEP = 채택 Design 그대로, REVISE = Design 변경. "수정할게요"·"바꿔줘"·"등받이를 높여줘" → REVISE, "그대로 갈게"·"바꾸지 마" → KEEP, "1번"/"2번" 호환.
+- 반환: KEEP이면 `design` = Approved 그대로. REVISE면 **Revised Candidate**(`design_version` = Approved + 1, Current 보존) → Preview → `review_design_candidate(candidate, kind="revised", design_metadata=response["design_metadata"], previous_design=Approved, current=…, differences=[], change_reason=reason)`.
+- `reason`은 한글 문장일 때만 질문 첫 줄에 읽힙니다. `USER_DESIGN_CHANGE` 같은 식별자나 `str(errors)` 같은 오류 문자열은 읽지 않습니다.
+
+D 쪽 known issues(C는 D 파일을 고치지 않았습니다):
+
+| 항목 | 위치 | 내용 |
+|---|---|---|
+| Review에 `design_metadata` 미전달 | `app/mvp_integration.py` `c.review` 호출 | `review.round`가 매번 0, concept/style 문맥·Stage 2 키가 사라짐. 직전 response의 `design_metadata`를 그대로 넘기면 됩니다 |
+| D 테스트의 LLM 대체 전제 | `tests/unit/test_mvp_workflow.py::test_inspection_context_keeps_expected_and_unknown_regions_for_c` | 답 "기존 목표 그대로 갈래"가 Wave 3부터 규칙 KEEP("그대로")으로 끝나 LLM 대체 함수가 호출되지 않아 `seen[0]` IndexError. 규칙이 못 정하는 답(예: "음, 기존 목표가 더 나을 것 같은데")으로 바꾸면 그대로 통과합니다(`interpret_intervention_answer` 대체는 계속 유효) |
+| HMI 질문 문구 | `app/mvp_integration.py` `c.intent`/`c.plan_failure` 표시 문자열 "기존 목표를 유지할까요, 설계를 수정할까요?" | C 질문(`questions[-1]`)을 표시하면 음성·화면 문구가 같아집니다. 답 해석은 C가 하므로 현재 문구도 동작은 합니다 |
+| `c.plan_failure`의 `reason=str(errors)` | `app/mvp_workflow.py` | Wave 4부터 C는 한글이 없는 reason을 읽지 않습니다. 대신 아래 `planning_failure`를 넘겨 주세요 |
+
+## 3c. A Planning failure → C (Wave 4, 2026-10-12)
+
+```python
+run_design_change(approved_design, current_blocks, reason="PLANNING_FAILURE",
+                  planning_failure={"failure_code": "NO_FEASIBLE_ORDER", "redesign_required": True, "retryable": False,
+                                    "blocked_blocks": [...six-field blocks, may be empty...], "detail": str(stage_errors)},
+                  text_answers=[...] 또는 None, on_question=..., on_progress=..., inspection_context=None)
+```
+
+**D가 C로 보낼 조건 — ONLY** `calculation_status == "NO_FEASIBLE_ORDER"` **AND** D가 `redesign_required=True`로 판단한 경우. 그 밖의 코드는 C가 `FAILED / PLANNING_FAILURE_NOT_REDESIGN`으로 돌려주며 질문·TTS를 하지 않습니다(CONTRACT §4.6 표).
+
+| D가 보낼 값 | 비고 |
+|---|---|
+| Approved Design, Current 블록 목록 | §3과 같음 |
+| `planning_failure` | 위 형식. `blocked_blocks`는 A 결과에 있을 때만(현재 `WholePlanResult.stage_errors[].block`은 `null`) |
+| `inspection_context` | B 관측 문맥만. A 실패를 여기에 넣지 않음 |
+
+| D가 하지 말아야 할 것 | 현재 코드 위치 |
+|---|---|
+| `SEARCH_LIMIT`를 C로 보내기 | `app/mvp_workflow.py` `receive('a.whole')`가 `SEARCH_LIMIT`도 `c.plan_failure`로 보냄 → A/D fallback 또는 HOLD로 변경 필요 |
+| raw error string을 `reason`으로 읽게 하기 | 같은 곳 `reason=str(errors)` → C 질문은 `planning_failure`에서 만들어지므로 문자열은 로그용으로만 |
+| KEEP 결과 뒤 같은 실패 Plan 자동 재시도 | `receive_c`의 `elif decision == 'KEEP': self.plan()` → `c.plan_failure`에서는 **HOLD**(같은 Design은 이미 실패) |
+| Revised Candidate 승인 전 Robot 실행 | REVISE 응답의 `design`은 Candidate. Preview → `review_design_candidate(kind="revised", design_metadata=…, differences=[], change_reason=…, planning_failure=…)` → APPROVE 뒤에만 `plan()` |
+
+흐름: REVISE → Candidate Preview → Review(MODIFY면 같은 change request로 재생성, version 유지) → APPROVE → A Replan. KEEP → HOLD(사용자가 다시 바꾸거나 운영자가 조치).
+
+**실행 가능한 D 역할 trace (Wave 5, 2026-10-12)**: `scripts/c_stage3_integration_smoke.py --scenario plan-failure`의 `FakeDCaller.plan_failure / review / replan`이 위 순서를 코드로 보여 줍니다(실제 A `handle_whole_plan` read-only 호출, `planning_failure_from`으로 A 결과 → `planning_failure` 변환, Robot HOLD, REVISE 후보는 `candidate_phase PREVIEW → REVIEW`(PREVIEW_READY) 뒤에만 review, APPROVE는 표시한 후보와 같은 design일 때만 채택, 그 뒤에만 replan, KEEP/UNCLEAR/실패는 HOLD에서 종료). 자동 테스트는 `tests/integration/test_c_stage3_plan_failure.py`(시나리오 1~7). 실측: fixture Approved v1(15블록)은 A에서 NO_FEASIBLE_ORDER, gpt-6.1-sol Revised Candidate v2(38블록)는 APPROVE 뒤 replan에서 `SEARCH_LIMIT`(탐색 한도)로 끝났습니다 — lifecycle은 이어지지만 A 쪽 fallback 정책(Known Issue)이 필요합니다. (PR #28 `1b82040`, 2026-10-12: A가 state-count cutoff를 없애 complete-order search를 하므로 같은 fixture가 이제 READY이고 SEARCH_LIMIT는 더 이상 나오지 않습니다. smoke/harness는 실제 A가 READY면 Wave 1 저장 NO_FEASIBLE_ORDER 결과를 주입해 HRI 흐름을 시험합니다.)
+
+**A owner handoff**: 현재 `handle_whole_plan`의 `WholePlanResult`에는 막힌 블록 정보가 없습니다(`stage_errors[0].block == null`; optimizer의 `blocked_candidates[].block`은 raw/audit에만 있음, fixture `tests/fixtures/c_plan_failure/whole_no_feasible_order_real_unpatched.json`). 가능하면 `NO_FEASIBLE_ORDER`일 때 `stage_errors[].block` 또는 별도 `blocked_blocks`에 Design 블록(여섯 필드)을 노출해 주세요. 없어도 C는 일반 문장("현재 설계는 로봇이 조립할 수 있는 순서를 만들지 못했어요.")으로 동작합니다.
+
 ## 4. 데이터 저장
 
 C는 DB·파일·HMI에 직접 쓰지 않습니다. D가 response를 받은 뒤 HMI 표시, Backend state, DB 기록, A Plan 요청에 씁니다. 저장 실패가 C 호출 결과를 바꾸지 않습니다.
 
 ## 5. correlation (요청 대응)
 
-C 세 함수는 request_id·job_id·current_revision을 **받지도 돌려주지도 않습니다**(C 코드 grep으로 확인: `app/c_design/main.py`·`voice.py`·`dialogue.py`에 해당 필드 없음). 호출은 동기이므로 D가 자기 스레드·요청 단위로 response를 대응시키며, stale·중복 response 구분과 폐기는 **caller(D) 책임**입니다. 자세한 "C가 지원 / D가 관리" 표는 A 문서(초안 correlation 절, CONTRACT §4.5)에 있습니다.
+C 네 함수는 request_id·job_id·current_revision을 **받지도 돌려주지도 않습니다**(C 코드 grep으로 확인: `app/c_design/main.py`·`voice.py`·`dialogue.py`에 해당 필드 없음). 호출은 동기이므로 D가 자기 스레드·요청 단위로 response를 대응시키며, stale·중복 response 구분과 폐기는 **caller(D) 책임**입니다. 자세한 "C가 지원 / D가 관리" 표는 A 문서(초안 correlation 절, CONTRACT §4.5)에 있습니다.
 
 ## 6. Voice 독립성과 마이크 lifecycle
 
@@ -203,7 +256,7 @@ env C_DESIGN_USE_LLM=1 OPENAI_MODEL=gpt-6.1-sol OPENAI_API_KEY="$(cat ~/c2_cobot
 
 # D → C 호출 Quick Reference
 
-2026-10-11 · `app/c_design/main.py` 현재 코드(Stage 3 savepoint 4d64992) 기준입니다. D가 C를 호출하고 response를 받습니다. 세 함수 모두 **동기 호출**이며 예외를 밖으로 던지지 않고 envelope `{status, hri_result, design, design_metadata, questions, error}`를 반환합니다. 단, D가 넘긴 콜백(`on_question`·`on_progress`) 안에서 난 예외는 D 쪽으로 그대로 올라옵니다. 세부는 위 §1~§8에 있습니다.
+2026-10-11 · `app/c_design/main.py` 현재 코드(Stage 3 savepoint 4d64992; 2026-10-12 Wave 3~5로 `run_design_change`·`planning_failure`가 더해짐, §3b·§3c) 기준입니다. D가 C를 호출하고 response를 받습니다. 네 함수 모두 **동기 호출**이며 예외를 밖으로 던지지 않고 envelope `{status, hri_result, design, design_metadata, questions, error}`를 반환합니다. 단, D가 넘긴 콜백(`on_question`·`on_progress`) 안에서 난 예외는 D 쪽으로 그대로 올라옵니다. 세부는 위 §1~§8에 있습니다.
 
 ```python
 from app.c_design import main as c_main
@@ -269,3 +322,34 @@ r = c_main.review_design_candidate(revised_candidate, kind="revised", design_met
 
 - **텍스트 모드 답 소진**: `status: OK`, `hri_result: "UNCLEAR"`입니다(오류 아님).
 - **음성 모드 Intervention**: 침묵이면 시간 제한 없이 계속 기다립니다. 끝내려면 `should_stop`을 씁니다.
+
+## 10. 남은 통합 항목 (Wave 6 최종, 2026-10-12)
+
+C 내부 known defect: 없음(C 그룹 전부 PASS, known xfail 0). 아래는 C 밖에서 처리할 항목입니다.
+
+| 소유 | 항목 | 위치·근거 |
+|---|---|---|
+| D | `review_design_candidate`에 직전 response의 `design_metadata`·`change_reason`·`planning_failure` 전달 | `app/mvp_integration.py` `c.review`(§3b) |
+| D | `SEARCH_LIMIT`를 `c.plan_failure`로 보내지 않기(A/D fallback 또는 HOLD) | `app/mvp_workflow.py` `receive('a.whole')`(§3c) |
+| D | `c.plan_failure` KEEP 뒤 같은 Design `plan()` 재호출 금지 → HOLD | `app/mvp_workflow.py` `receive_c`(§3c) |
+| D | `reason=str(errors)` 대신 `planning_failure` dict 전달(ONLY `NO_FEASIBLE_ORDER` AND `redesign_required=true`) | §3c |
+| D | Candidate 승인 전 Robot 실행·A 재호출 금지(현재 MVP도 APPROVE 뒤 `plan()`이라 유지) | §3c |
+| D | 테스트 `tests/unit/test_mvp_workflow.py::test_inspection_context_keeps_expected_and_unknown_regions_for_c` 기대값 갱신(답 "기존 목표 그대로 갈래"가 Wave 3부터 규칙 KEEP) — C runtime 정상, D-owned expectation mismatch | §3b |
+| D | HMI 캡션 "등받이 뒤쪽 시점"(`app/hmi_board.py`·`hmi_design_dialogue.py`)은 canonical facing 적용 뒤 "정면(+X) 시점"이 맞음 | CONTRACT §8.9 |
+| A | `WholePlanResult`에 막힌 블록(`stage_errors[].block` 또는 `blocked_blocks`) 노출 | §3c, fixture `tests/fixtures/c_plan_failure/whole_no_feasible_order_real_unpatched.json` |
+| A | `SEARCH_LIMIT`(탐색 한도) 시 fallback 정책: Wave 5 실측에서 승인된 Revised Candidate(38·39블록) replan이 `SEARCH_LIMIT`로 끝남 | `scripts/c_stage3_integration_smoke.py --scenario plan-failure` 로그 |
+| B / Robot | C 책임 아님(C는 Current를 받기만 하고 Robot을 부르지 않음) | — |
+
+## 11. Full Voice HRI E2E 실행 안내 (Wave 6, 2026-10-12)
+
+C가 사용자에게 말을 거는 네 상황(Initial → 직접 Design Change → Difference → Planning failure → A Replan)을 한 번의 lifecycle로 실제 마이크·Whisper STT·TTS·gpt-6.1-sol로 겪는 C-side harness입니다(`scripts/c_full_voice_hri_e2e.py`, Robot·Camera·DB·MoveIt 없음, A는 read-only 계산만).
+
+```bash
+cd <C-2 작업 폴더>
+export OPENAI_API_KEY="$(cat ~/c2_cobot2_API_key.txt)" OPENAI_LLM_API_KEY="$(cat ~/c2_cobot2_API_key.txt)" OPENAI_TTS_API_KEY="$(cat ~/c2_cobot2_API_key.txt)" C_DESIGN_USE_LLM=1 OPENAI_MODEL=gpt-6.1-sol
+python3 scripts/c_full_voice_hri_e2e.py --mode mic --show-preview --out ~/full_hri_$(date +%Y%m%d_%H%M) 2>&1 | tee ~/full_hri_last.log
+```
+
+- 시작 시 `=== FULL VOICE HRI E2E ===`와 말할 문장 9개가, 각 stage 직전에 `[NEXT VOICE INPUT]`이 출력됩니다. 직접 Design Change 요청은 `[NEXT VOICE INPUT]` 뒤 beep 1회 listen으로 받아 `run_design_change(reason=발화)`에 넣습니다(상시 listener 없음).
+- 결과: `--out` 아래 `events.jsonl`(진행·질문·TTS·STT·caller), `01_initial.json` … `08_plan_failure_review.json`, `preview_<stage>.png` 4장, `summary.json`(FINAL PASS/FAIL·version 수열·Current 보존·facing·robot_calls·replan_calls). 오프라인 검증은 `tests/integration/test_c_full_voice_hri_harness.py`.
+- Version 기대: v1 → v2 → v3 → v4(각 REVISE가 블록을 바꿀 때). Difference는 caller가 Approved의 1층 블록 하나를 옮겨 만들고(§5.2 계약 통과), Planning failure는 실제 A 결과가 `NO_FEASIBLE_ORDER`가 아니면 fixture를 주입합니다(로그에 명시). UNCLEAR면 C 재질문 정책 그대로이고 자동 승인·다음 stage 진행은 없습니다.

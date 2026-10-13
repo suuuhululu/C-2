@@ -1,5 +1,14 @@
 # 현재 진행 상황
 
+## 2026-10-14 — B 비전: 층 기준·허용 오차·V0/D1·D3 역할 분리 (`work/hongdong-vision-round1-v2`)
+
+- 변경(B-only, perception/): 층 기준을 측정 윗면 평면 + 스터드 4mm(TOP_PLANE_PLUS_STUD)로 변경했다. 층 허용 오차는 ±2.5mm→±5mm(층 간격 18.625mm, 2×허용<간격 유지), 깊이 범위 min_depth는 V0 0.441·D1 0.332·D3 0.395로 2mm 낮췄다(캘리브레이션 무변경).
+- UNKNOWN은 후보 단위로 처리한다. 후보 하나가 실패해도 그 후보만 제외하고 시점 전체를 무효화하지 않는다. V0의 UNKNOWN은 MATCH를 막고(비교는 UNOBSERVABLE), D1/D3의 UNKNOWN은 막지 않는다.
+- 역할 분리(view_roles.py): 층·블록·점유 footprint는 V0만 결정하고, D1/D3는 빈 칸 증거와 같은 층 교차 확인만 담당한다. opencv_live의 윗면 선택을 보강했다.
+- 테스트: `cd perception && python -m pytest perception_mvp/tests` 432 passed, 1 skipped(합성 데이터 단위 테스트). 새 테스트 5파일, 기존 테스트의 옛 import(rgbd_io, saved_perception) 수정, perception/conftest.py 추가(저장소 루트를 경로에 추가, 백엔드 파일 무변경).
+- 미검증: 실제 YOLO·카메라·로봇, D/A/C 연동, 공급 비전. D1/D3 윗면 선택은 저장 촬영본에서 아직 실패하며 층은 V0만 사용한다. D가 UNOBSERVABLE을 받았을 때의 동작은 확인하지 못했다. README의 ±2.5mm 문구는 아직 갱신하지 않았다.
+- 팀장 확인 필요: V0만 층 결정, D1/D3 UNKNOWN 비차단, 허용 오차 ±5mm, 윗면 선택 완화.
+
 ## 2026-10-13 — 3D 오버레이 가독성 조정
 
 - 사용자 실카메라 피드백으로 면 기본 불투명도 15%→8%(배경 92%), Expected의 3픽셀 초록 경계선을 모든 면 1픽셀로 변경했다. 블록 면 색상과 상태 비교 로직은 유지한다. 표시 관련 회귀 36 passed, 종료 0; 대상 diff --check 통과. 실제 화면 가독성은 재실행 후 사용자 확인 필요. Git 게시/장치 명령 없음.
@@ -83,6 +92,51 @@
 - B inspection은 비교 전 Current를 내부 결과에 보존하고 connection은 읽기 전용 comparison_display_state로 이전/현재 Current·Expected·검사 문맥을 제공. 공통 Observed와 D wire 봉투는 유지. 새 검사/계획·취소·종료·처리 오류는 이전 표시를 무효화한다.
 - visualization에 target/changes 모드를 추가하고 live_view의 선택 comparison-overlay 입력으로 호출. 실제 비교 frame/View·정지·V0 손 조건·평평한 보드 높이 기준·유효 projection을 요구하며 누락/불일치는 숨김. 15% 3D 안내이며 현재/예상과 이전/현재 상태 범례를 구분한다.
 - 신규 검사 포함 B MVP 265 passed, 1 skipped(D 소비자 미지정), 종료 0. 실제 팀 화면 생산자/비교 RGB·보드 평면 기준 변환/층 높이·D 연결은 여전히 필요. 기존 명령만으로 자동 표시 완료라 주장하지 않는다. 기존 사용자 미커밋 변경 보존, D 코드·장치 명령·Git 게시 없음.
+## 2026-10-13 — C Robot-only design rule: support min(4, studs)·사용자 제약 우선·Current 충돌 HRI (`work/siyul-c-robot-rule`, base ebeeef2)
+
+- 변경(C-only, A/B/D production 무변경): `app/c_design/validator.py` support hard rule을 "바로 아래 한 층과 고유 stud ≥ min(4, 블록 stud 수)"(2x2x1 4/4·2x3x1 ≥4/6·1x2x1 2/2, 중복 금지, layer 1 제외)로 강화하고 `validate_design`·`validate_revised`·`current_support_violations`가 같은 함수를 쓰므로 Initial·Revised·Difference REVISE·Direct Design Change·Review MODIFY·Planning Failure 재설계 전 경로와 입력·Current 판정에 동일 적용(production 2-stud 예외 없음). `llm.py` 규칙 줄·self-check·build hint를 블록별 규칙으로, Initial 기본 선호 문단과 Revised 우선순위(Current 보존 > 규칙 > 사용자 명시 요구 > 품질/expressive > facing)를 추가. `dialogue.py` 규칙 기반 `extract_constraints`(N층 이하·낮게·간단하게·블록 적게/N개·넓게/작게) + 해석 LLM 선택 키 `constraints`, `llm.stated_limits` 컨텍스트로 전달(기존 fake 시그니처 호환). 제한 시 `+6` 블록 하한·judge richer 재생성·5층 안내 해제, family 무작위 선택에서 키 큰 family 제외. `main.py` Current 충돌(요청 상한 < Current 최대층/블록 수, 조립 블록 제거 요구)을 생성·ACK 전에 감지해 기존 질문 루프로 1회 재선택(KEEP/REVISE(clamp)/UNCLEAR/CANCEL), Review MODIFY는 clamp+고지. `designer.py` Mock Revised가 다리 1칸 y·대각 이동에서도 4-stud bridge(72경우 10→20 성공), LLM 후보에 `user_constraint`(max_layer/max_blocks) 거부. metadata `user_constraints`·`constraint_clamp` 추가. 새 hri/status/error 값·공개 API 변경 없음.
+- 테스트: 신규 `test_robot_rule_characterization.py`(Wave 1 pin → 수용 테스트), `test_user_constraints.py`(53), `test_constraint_conflict.py`(32), 72경우 Mock 표. historical Sol fixture(`tests/fixtures/c_stage3/*`, 2026-10-11, 2x3x1 3-stud 4블록)는 원본 보존·기록 검사에만 당시 기준 필터, production 되먹임은 재배치 사본. **D 소유 테스트 2건(`test_five_layer_pipeline` thirty_blocks, `test_mvp_supply_cycle` 40블록)은 합성 Design 생성식만 새 규칙에 맞게 수정**(사용자 결정, D production unchanged, synthetic test input only).
+- 실제 검증(2026-10-13): C unit 1190 passed, C integration 139 passed, A planning_trial 458 passed(무변경), D 호환 13파일 121 P·82 S·22 F·11 E(실패·오류 node ID 33건이 ebeeef2 기준선과 동일, 새 실패 0), 루트 전체 40 F·16 E node ID 56건 기준선 동일(새 실패 0; passed는 신규 테스트로 증가), compileall·`git diff --check` 0. 실제 gpt-6.1-sol 텍스트 smoke 21회(scripts/c_stage3_integration_smoke.py text + 충돌 driver; 저장소 밖 출력): FAILED 0, 새 Candidate 27개 모두 validator PASS·support ≥ min(4, studs), "3층까지만" 3/3 ≤3층, Revised "3층 이하로 간단하게" 3/3 ≤3층·블록 감소·Current 보존, 무제한 4~5층·Revised 36~40블록(expressive 기본 유지), "간단하고 낮고 넓게" 3·4·4층 13~27블록, "블록 적게·작은" 17~21블록, Current 4층 + "3층 이하" 3/3 충돌 질문(REVISE→4층 clamp·보존·APPROVE / KEEP / UNCLEAR). 독립 리뷰(Opus A structural, Opus B HRI)는 `C_DESIGN_PROGRESS.md` 2026-10-13 행 참조.
+- 미검증: 실제 마이크·TTS·HMI·로봇·카메라·DB, D 경유 실제 음성 E2E, 해석 LLM의 `constraints` 키 충족률, "낮게·넓게"(soft) 정량 평가.
+- 다음 작업·AFFECTED INTERFACE: [C_DESIGN_ROBOT_RULE_HANDOFF.md](C_DESIGN_ROBOT_RULE_HANDOFF.md) — A 검증 기준 2 유지 안내, 공유 문서(06/09/00) 병기 제안, D의 metadata 새 키 pass-through 확인, 이전 2-stud Approved/Current 재생 시 INVALID_INPUT/escalation, 제약의 요청 단위 한계(세션 유지는 D inspection_context 합의 필요), Current 블록 수 = 상한 clamp 시 운영 문구. PR 생성·병합은 별도 요청.
+## 2026-10-13 — REAL 슬롯1~5·외부 DRCF2·roboton2 후속 PR
+
+- PR #39가 병합된 `codex/integration-round1 @ 115271e` 기준으로 현장 수정만 반영했다. full-real은 종류/색상별1→2→3→4→5→1 순환하며 빈 슬롯6 준비·실행 문서 생성·기존 문서 재개를 거부한다. 사용자 전제는1~5번 항상 보충·6번 항상 비어 있음이다. 집기 성공 확인/중복 소비 보호, MOCK/레거시 기본6슬롯, 공통 계약·기존 교시·A 좌표 모델과 PR36의40N/공급 MoveL/loaded MoveB는 유지한다.
+- runtime guard는 `C2_DRIVER_ROOT`의 외부 DRCF2 경로를 읽고 실제 dsr01에 두 라이브러리가 모두 로드됐는지 검사한다. roboton2의 ms-02 고정 경로를 제거하고 C2_ROBOT_ROOT/checkout 기본 경로·Camera/RViz 옵션을 연결했다. 기존 TCP/Tool 선택 및 mode 복원 절차를 사용한다. [다른 PC 안내](D_ROBOT_TRIAL_OTHER_PC_20261013.md)를 갱신했다.
+- 최신 기준의 장치/네트워크 차단 D 오프라인 **1,157 passed**, 종료0 (53.49초). 슬롯/드라이버 설정/실제 A/D 문서→MOCK/영역 보정/통합 시나리오 **66 passed**, 종료0 (247.64초). 슬롯1,2,3,4,5,1,2 예약·6번 차단·기존 재검사/재개/인계·PR39의 사람 PRESS 규칙을 함께 확인했다.
+- roboton2 기본/env 경로 해석 및 `--show-args`, Python AST·가이드 Bash13블록 문법·diff 검사 통과. PR 검증 중 실제 장치 기동/이동·카메라·외부 API·DB 연결은 수행하지 않았다. PC 전용 alias/실행 스크립트·API 키·모델·드라이버 바이너리·개인 DB 데이터는 게시 범위에서 제외했다. 실물 결착 품질과 사람이 필요한 지지/재개 판단은 별도 검증 대상이다.
+
+## 2026-10-13 — A PRESS를 아래 블록의 두 결착 조건에 연결
+
+- 사용자 결정: 아래 블록 L과 자기 아래층의 결착이 4점 미만이고, 이번 목표 U와 L의 결착도 4점 미만인 `HOLD` 대상이 있을 때만 중심 위치로 사람 `PRESS`를 추가 판단한다. 보드 위 1층 L은 제외한다. U의 중심이 아래층 전체 접촉점 지지 영역 밖이면 `PRESS_AND_HOLD`, 안이나 경계면 `HOLD`다. `human_press_policy=NONE`은 추가 눌러주기를 끈다.
+- 기존 `contacts().weak_supports`를 재사용해 공통 A의 `human_press_assessment()`만 수정했다. 보드에 4점 결착된 1층 2×2 위에 2층 2×2가 2점 결합하는 사례와, 4점 결착된 2층 L 위의 부분 결합은 로봇 접근 가능 시 `ROBOT_GRIP/NONE`이다. 기본 최소 2점 지지·겹침·삽입·그리퍼 접근 검사는 유지한다. API 0.5.1·공통 필드·기존 PRESS enum·D 실행/제스처·교시·힘 설정은 변경하지 않았다.
+- 실제 검증: 관련 pytest **548 passed / failures 0 / errors 0 / skipped 0 / 종료0**. A 전체 465개, Workflow/PR30 전달 49개, 모의 통합 34개다. 회귀 검사에서 변경 전 안정된 L의 부분 접촉 2사례에 불필요한 PRESS가 발생함을 확인했고, 변경 후 두 결착 임계값·중심 경계·다중 L 지지·눌러주기 해제 정책을 검사했다. 전체 계획→직전 재평가→이동 후보와 REAL 문서 검증→MOCK D 실행에서 해당 2×2 배치의 도움 요청 없이 Robot 결착 및 기존 도움 단계 STOP/RESUME를 확인했다.
+- 재현: 저장소 루트에서 `C2_ROBOT_ROOT="$PWD/robot_control_integration" QT_QPA_PLATFORM=offscreen python3 -m pytest -q planning_trial tests/unit/test_mvp_workflow.py tests/unit/test_mvp_pr30_relay.py tests/integration/test_mvp_scenarios.py tests/integration/test_mvp_full_real_adapter.py --junitxml=reports/press-lower-attachment-tests.xml`. JUnit은 로컬 reports에 보관한다(Git 제외). 변경 Python 5개 AST 문법·README 정책 링크·git diff --check도 통과했다. lint/type 설정은 미구성이다.
+- 기준 `codex/integration-round1@ebeeef2`와 `codex/integration-round2@ebeeef2`는 동일하며 두 브랜치 대상으로 각각 PR을 준비한다. 작업 브랜치는 `codex/press-lower-attachment-rule`이다. 실제 Robot·ROS·Camera·Isaac·외부 API·DB는 실행하지 않았다. 새 판단에서 Robot 결착으로 바뀌는 단계의 실물 결과는 미검증이며, PR 사람 리뷰와 통합 후 현장 재시험이 필요하다. 기존 사용자 작업 폴더와 보존 fixture는 변경하지 않았다.
+
+## 2026-10-13 — PR #36: 공급 MoveL·결착40N·영역 보정·확인 버튼
+
+- full-real 공급 접근은 상승→BODY_BYPASS→SUPPLY_TRANSIT→현재 Step 슬롯 상부의 단독 MoveL로 바꿨다. loaded MoveB는 유지한다. 마지막 슬롯 정렬24mm/s·12mm/s², 기존 집기·결착 하강 구조를 유지하며 이전 슬롯 복귀를 제거한다.
+- Robot 결착의 XYZ 전체 반력 임계값을40N으로 적용했다. desired-force/힘 유지 명령은 없다. 조립 Grid x>11의 Base X −1mm는 기존6점/2×2 회전 보정에 한 번 합산한다. 공급 교시 원자료는 변경하지 않았다.
+- 인계/도움/조립 완료/정렬 요청에 HMI 확인 버튼을 제공하고 알려진 정지 체크포인트에서 수동 재개한다. 오래된 요청·미확인 개방 명령을 반복하지 않는다. [시나리오](reviews/robot-resume-scenarios-20261013.md).
+- 실제 최종 검사: D 오프라인1,139 passed·기존 외부 A 자료 수집 skip1·종료0. Workflow/Robot 프로세스/실제 A/D REAL 문서→MOCK/화면 버튼/보정179 passed·종료0. PR checkout의 공급1→6→1·화면 버튼·경계 보정24 passed·종료0. D9파일 byte 일치·앱 변경5메서드 AST 일치, 가이드 bash12블록 문법 확인. [검증 기록](reviews/robot-trial-followup-verification-20261013.json).
+- [다른 PC 실행 가이드](D_ROBOT_TRIAL_OTHER_PC_20261013.md)에 브랜치 받기·환경/모델 준비·장치 없는 검사·REAL 명령·속도/힘/움직임 정보를 기록했다. DRCF2 바이너리·손 모델·API 키는 Git에 포함하지 않는다. 기존 C callback 차이/로컬 개발 브랜치·사용자 변경은 보존한다. 사용자 요청으로 [PR #36](https://github.com/suuuhululu/C-2/pull/36)을 `codex/integration-round1` 대상으로 게시했다. head는 `codex/robot-trial-fixes-20261013`이며 병합은 수행하지 않았다.
+- 실제 Robot/ROS/Camera/외부 API/DB·다른 PC 설치는 미수행. MoveB/최종 MoveL의 제어기 미도달 물리 원인, 새40N의 완전 결착/미끄러짐은 현장 재검증 대상이다. 기존 프로세스의 실시간 변경·Job 복원은 제공하지 않는다. lint/type 설정은 미구성이다.
+
+## 2026-10-13 — 손/엄지척 인식 실패의 확인 버튼·재개 점검 (로컬)
+
+- 사용자 최종 결정: 인식이 실패하면 버튼으로 확인. full-real 화면에 인계/도움 준비/조립 완료/정렬 확인 버튼을 추가했다. 엄지척 시간 초과는 같은 요청을 유지하며 버튼을 기다린다. 현재 요청 ID에 묶인 HMI 답변이며 중복·이전 요청 클릭을 반복 실행하지 않는다. 버튼은 조립 완료 판정 또는 카메라 감지값을 위조하지 않는다.
+- `HANDOVER_READINESS_LOST` 개방 전 오류는 현재 파지/정지 위치에서 인계 대기로 처리한다. 수동 정지·알려진 이동 timeout·마지막 목표 근처의 블렌딩 timeout에 재개 체크포인트를 추가했다. 인계/픽업/과거 경유점을 반복하지 않는다. 미확인 파지/개방 결과·실제 정지 미확인은 별도 상태 확인이 필요하다. [전체 시나리오 점검](reviews/robot-resume-scenarios-20261013.md).
+- 최종 실제 검증: D 오프라인 1,126 passed·기존 수집 skip 1·종료0. Workflow/Robot 로컬 프로세스/실제 A/D REAL 문서→MOCK/화면 버튼 클릭 77 passed·종료0. 새 회귀는 손/엄지척 센서 확인 없이 버튼 진행, 엄지척 timeout 후 같은 요청 유지, 인계 개방 1회, 수동 재개 동일 Step·예약·픽업 반복 없음, 정지 확인/불명확한 결과 차단을 포함한다. [검증 기록](/home/ms-02/C_2/logs/handover-resume-20261013/verification.json).
+- D 실제 실행 소스와 검토 checkout 6개 관련 파일은 동일하며 HMI/main·REAL 생성자/버튼·Workflow Robot 이벤트 메서드를 AST 대조했다. 기존 C callback/metadata 차이는 보존했다. 기존 lint/type 설정은 미구성이다. 실물 Robot·카메라 시험은 미수행, 실행 중인 구 창에는 실시간 적용되지 않는다. 새 commit/push/PR 없음.
+
+## 2026-10-13 — round1 Robot 시험 경로 통합
+
+- 최근 현장 시험의 전체힘35N 정지/정지 후 개방, 연속 운반, 완화된 정지 허용오차, 슬롯 순환/중복 소비 방지, 승인 후 수정 질문 반복 방지, 슬롯2 펌웨어 최소 반경 오류의 재현·명령 전 검사를 통합했다.
+- PR #30의 C 구현은 보존하고 D에서 설계 metadata·구조화 planning_failure를 전달한다. HMI에 REAL Robot + SYNTHETIC B 시험 표시를 명시하며 기존 REAL 단일 전달/수동 시험 제한은 유지한다. A는 D가 제공한 Step 조립 자세와 빈 복귀 경로 선택만 반영한다.
+- 추가 지시에 따라2×2 회전 때 Base X −1.5mm, 손바닥 인계 의미 유지, 하강 전 손 감지 시 새 인계 대기, 확인된 보류의 재개를 반영했다.
+- D 오프라인1064 passed/1 skipped, 통합 앱231 passed, A/HMI 계약257 passed, 2×2 회전12 passed, 각각 종료0. 외부 A 참고 경로가 없는 레거시 검사만 건너뛰었고 실제 장치 동작은 실행하지 않았다.
+- 실행 방법·교시 원자료·실물 검증 한계·2×2 회전/인계 정지 원인은 [REAL 시험 안내](D_FULL_FEATURE_REAL_TRIAL_20261012.md)에 기록했다. 실제 Robot/Camera/완성 조립 성공을 주장하지 않는다.
 
 ## 2026-10-12 — 손 모델 기본 경로 최신화
 
@@ -172,6 +226,43 @@
 - 현재 HEAD 8f75e5a의 소스/설정과 활성 16mm 보정·View별 5점 최대 오차(V0 1.286/D1 1.771/D3 1.461mm, 기준 2mm), 저장 Depth 진단을 확인했다. 과거 17mm·평면 pass·Depth 진단을 최신 전체 층/물리 결착 검증으로 확대하지 않았다. 손/높이 설정 null, 블록 보드 ROI·HSV 자동 사이클·3D 실시간 결선 미확인을 구분했다.
 - 실제 최신 B MVP/legacy/calibration/supply 및 로컬 DB/HMI 입력 함수 대조 247 passed, 13.48초, 종료 0. 근거/명령은 발표 폴더 evidence/test_result.md에 기록. 전체 저장소·장치·DB 적재 시험은 실행하지 않았다. 문서 링크·블록·diff를 검사했다. 코드/설정 변경·장치 이동·Git 게시·Drive 업로드/DM 없음.
 - 다음: 본인 선택 이유/정답/제스처 담당 검토, 이미지 시각 QA·원본 자료 묶음, D/Controller 실제 결선·시연 설정과 독립 성능 근거 확인 후 제출.
+
+## 2026-10-12 — C Wave 6 후속: 자연어 수용 표현 APPROVE 보강 + Full Voice HRI E2E harness (`work/siyul-c-remaining`)
+
+- Review 보강(`8d6edfd`): `dialogue.parse_review_response`가 "나쁘지 않아"·"괜찮아"·"이 정도면 됐어" 등 수용 표현을 APPROVE로, 구체적 변경 요구가 섞이면 MODIFY 우선으로 해석(Intervention·Design-Change·Planning failure parser 불변). `SYSTEM_PROMPT_REVIEW`에 같은 의미 추가. 실제 mic 발화 "음... 나쁘진 않은 것 같아"가 UNCLEAR였던 사례. 테스트 `tests/unit/c_design/test_review_acceptance.py`; C 그룹 1134 passed.
+- Harness: `scripts/c_full_voice_hri_e2e.py`(한 번의 lifecycle: Initial → 직접 Design Change → Difference → Planning failure → A Replan, 실제 mic/STT/TTS/Sol, Robot·Camera·DB 없음, 결과 디렉터리에 events.jsonl·envelope 8개·preview PNG 4장·summary.json). 오프라인 검증 `tests/integration/test_c_full_voice_hri_harness.py`. 실행 안내는 handoff §11. 실제 mic 실행은 사용자가 수행(자동 시작 안 함).
+
+## 2026-10-12 — C Wave 6: 최종 회귀·실제 음성·계약 문서 정리 (`work/siyul-c-remaining`, base de59b08)
+
+- 변경: 테스트·문서만(C production diff 0). `tests/unit/c_design/test_final_c_contract.py`(세 모드 intent 최종 표, planning failure 라우팅 10 조합, version chain v1→v2→MODIFY v2/round 1→APPROVE v2→다음 REVISE v3, metadata 유지, schema/validator 상수 불변). CONTRACT·handoff의 "세 함수" 표현을 네 공개 함수(`create_initial_design`·`review_design_candidate`·`run_intervention`·`run_design_change`)로 정정, handoff 시그니처를 코드와 일치시키고 §10 "남은 통합 항목" 추가.
+- 검증: C 그룹(`tests/unit/c_design` 1024 + Stage3 lifecycle/failures/runner_preview/plan_failure + Wave2 relay + relay scenarios) **1096 passed, 0 xfailed, 0 failed**. C 관련 integration 152 passed. D 호환 그룹은 Wave 3 handoff의 D 테스트 1건만 실패(D-owned expectation mismatch, C runtime 정상). compileall·pyflakes(변경 파일) clean, `git diff --check` 0, commit 범위에 키·개인 경로·scratch 경로·debug print 없음.
+- 실제 음성(mic, gpt-6.1-sol, 실제 STT/TTS, Robot 0회) 2회: Planning failure 질문 TTS → 실제 STT 전사 → (주변 무관 발화를 aux LLM이 REVISE로 해석) → Sol Revised Candidate v2(34블록·28블록, validator PASS, Current 보존, facing PASS) → Preview PNG → 검토 질문 TTS까지 실제 동작. 그러나 조작자가 목표 발화("응, 수정해줘"/"좋아, 이대로 해")를 하지 않아 **APPROVE·A Replan 구간은 음성으로 미완료**(검토 UNCLEAR → HOLD, 무한 loop·자동 승인·Robot 없음). 텍스트 모드 Sol 2회는 Wave 5에서 APPROVE·replan까지 완료.
+- 판정: C 내부 결함 0, 테스트 green, facing·planning failure HRI·validator/schema/version/metadata 검증 완료. 단 실제 음성 lifecycle의 APPROVE 구간 미완료로 Wave 6 기준 `C_NOT_READY`(조작자 참여 mic 1회로 전환 가능). 관찰된 위험: 무관한 배경 발화를 aux LLM이 REVISE로 읽어 Sol 생성이 시작될 수 있음(정책 변경은 별도 승인 대상).
+
+## 2026-10-12 — C Wave 5: Planning failure → C 수정 대화 → Candidate → Preview → APPROVE → A Replan 연결 검증 (`work/siyul-c-remaining`)
+
+- 변경: 테스트·스크립트·문서만. `scripts/c_stage3_integration_smoke.py`에 `--scenario plan-failure`(`--blocked-block`)와 D 역할 trace(`plan_failure`/`replan`, `candidate_phase` PREVIEW→REVIEW 가드, stale APPROVE 거절, robot/replan 호출 횟수) 추가. `tests/integration/test_c_stage3_plan_failure.py`(시나리오 1 REVISE→Preview→APPROVE→replan ×2(blocked block 유무), 2 KEEP→HOLD, 3 UNCLEAR 재질문, 4 SEARCH_LIMIT 거절, 5 생성 실패 시 Approved 유지, 6 PREVIEW_READY 전 review 거절·stale APPROVE 거절, 7 STOP/late result). A는 실제 `handle_whole_plan`(read-only, FAKE 설정). C production 변경 없음.
+- 검증: 실제 gpt-6.1-sol 텍스트 모드 2회(blocked block 없음/있음) — NO_FEASIBLE_ORDER → C 자연어 질문 → REVISE → Candidate v2(validator PASS·Current 보존) → Preview PNG → review APPROVE → Approved v2 → replan 결과 기록(수치는 Wave 5 보고). 회귀 수치는 Wave 5 보고 참조. Robot/Camera/DB 미실행.
+- 미검증·한계: Revised Candidate(38블록)의 replan은 A `SEARCH_LIMIT`로 끝남(A fallback 정책 필요, D/A handoff). 실제 mic/TTS smoke 결과는 Wave 5 보고에 별도 기록. D 테스트 1건 실패는 Wave 3 handoff 그대로.
+
+## 2026-10-12 — C Wave 4: A Planning failure → C Design-Change HRI/TTS (`work/siyul-c-remaining`)
+
+- 변경: `app/c_design/{main,dialogue,llm,validator}.py`. `run_design_change(..., planning_failure=None)`(선택 인자, `inspection_context`와 분리)·`review_design_candidate(..., planning_failure=None)`. `validator.check_planning_failure`(형식), `main.REDESIGN_FAILURE_CODES = ("NO_FEASIBLE_ORDER",)`로 `redesign_required` true + 허용 코드일 때만 질문, 아니면 질문·TTS 없이 `FAILED / PLANNING_FAILURE_NOT_REDESIGN`. `dialogue.build_plan_failure_question`(코드·detail 미노출, 막힌 블록은 위치·층만), `llm.planning_failure_change_request`(생성 메시지용 짧은 요약)·`planning_failure_summary`(LLM 해석 payload 별도 키). Design-Change 질문은 한글 문장 reason만 읽음(`str(errors)` 차단). Design-Change parser는 앞머리 예/아니요를 떼고(표에 세지 않음) "기존설계"를 KEEP에 추가. 기존 `ask()`/`next_reply()`/TTS/STT 흐름 재사용, 새 public 함수·enum·schema 없음. CONTRACT §4.6·§10, handoff §3c(D 라우팅·KEEP→HOLD·A blocked block).
+- 검증: 신규 `tests/unit/c_design/test_plan_failure.py`(라우팅·형식·질문·intent·REVISE v2/Current/facing/metadata·KEEP·voice mock). Wave 1 xfail(`test_plan_failure_question_should_not_read_machine_codes`) → PASS, known xfail 0. 회귀 수치는 Wave 4 보고 참조. 실제 LLM/TTS/STT/Robot 미실행.
+- 미검증·handoff: D `mvp_workflow`는 아직 `SEARCH_LIMIT`도 C로 보내고 KEEP이면 같은 Design을 재계획함(D 수정 필요). A `WholePlanResult`에 막힌 블록 없음(A 제안). D 테스트 1건 실패는 Wave 3 handoff 그대로.
+
+## 2026-10-12 — C Wave 2: canonical facing(정면 +X·등받이 low-x)을 생성 prompt 공통 적용 (`work/siyul-c-remaining`)
+
+- 변경: `app/c_design/llm.py`만. `_FACING_RULE` 상수 하나를 `SYSTEM_PROMPT_INITIAL`(`_BUILD_HINTS` 뒤)·`SYSTEM_PROMPT_REVISED`(`_EXPRESSIVE_HINTS` 앞)가 공유하고, `_REVISED_PRIORITIES`에 "Current가 허용하는 범위에서 facing 유지, Current를 옮기거나 돌리지 않고 Current가 다른 방향을 고정하면 그 방향을 따른다" 한 줄 추가(Difference·Design-Change 두 Revised 메시지 변형이 공유). validator·schema·designer·dialogue·main 변경 없음. CONTRACT §8.8·§8.9 facing 행 추가. 테스트 `tests/unit/c_design/test_facing_prompt.py`.
+- 검증(gpt-6.1-sol 실제, 텍스트 모드, production retry): Initial 5/5 facing PASS·validator PASS(loveseat·안락의자×2·park bench·평상형 긴 의자). Initial MODIFY 3/3 validator PASS·v1 유지·round 1(facing PASS 2, UNDEFINED 1 = 팔걸이 추가로 helper 중심 휴리스틱이 중립, 이미지상 등받이 low-x). Difference REVISE 3/3 Current 보존·v2·validator PASS(PASS 1, UNDEFINED 1 = 같은 helper 한계, 거울 fixture는 FOLLOWS_CURRENT). 직접 Design Change 3/3 REVISE·v2·Current 보존·facing PASS. C 그룹 1017 passed / 1 xfailed(Wave 4용). 결과 PNG·envelope는 scratch(저장소 밖).
+- 미검증·한계: 이번 요청("편안한 침대 같은 느낌의 의자")에서는 등받이 없는 family가 나오지 않아 "불필요한 등받이 추가 없음"은 규칙 문구로만 보장. STT/TTS·Robot 미실행. D 테스트 1건 실패는 Wave 3 handoff 그대로.
+
+## 2026-10-12 — C Wave 3: 직접 Design Change intent 분리·REVISE Candidate 생성 복구 (`work/siyul-c-remaining`, base de59b08)
+
+- 변경: `app/c_design/{dialogue,llm,main,designer,validator}.py`. `run_design_change`가 Intervention과 별도 질문·규칙 표·LLM 프롬프트(`SYSTEM_PROMPT_DESIGN_CHANGE_ANSWER`)·입력 검사(`validator.check_design_change_input`, 규칙 동일)·Revised 메시지(`change_request`)를 쓰고 `on_progress`를 받는다. "수정할게요" → REVISE, "그대로 갈게"·"바꾸지 마" → KEEP. REVISE가 빈 differences 때문에 escalation/FAILED로 끝나던 결함(de59b08) 수정. Difference Intervention 표·프롬프트·호출 인자는 변경 없음. CONTRACT §4.6, D handoff §3b 추가.
+- 검증: Wave 1 characterization xfail 3 → PASS, Wave 4용 xfail 1 유지. 신규 `tests/unit/c_design/test_design_change.py`. C 그룹·D MVP 테스트 결과는 Wave 3 보고 참조. 실제 LLM/STT/TTS/Robot 미실행.
+- 미검증·handoff: D `tests/unit/test_mvp_workflow.py::test_inspection_context_keeps_expected_and_unknown_regions_for_c`는 규칙 KEEP으로 LLM 대체가 안 불려 실패(D 수정 필요, handoff 표). MVP Review `design_metadata` 미전달은 D 범위. Facing rule·Planning failure HRI는 다음 Wave.
+
 
 ## 2026-10-12 — ms-02 현재 시험 소스와 PR24 이후 통합 업데이트
 
@@ -950,3 +1041,39 @@ GPU 현재 A snapshot92파일을 CPU deliverables/GPU_A_수정본_CPU보관_2026
 - 2026-10-13 RUN_GUIDE.md 작성: 저장소 루트 기준 상대 경로로 모델/config 준비·저장 RGB replay·ROS RGB 단독 시험·D Python 함수 호출 안내. TEMPLATE 미확정 값과 실제 연결 미완료를 명시. CLI --help, 경로/코드펜스/개인 절대 경로 미포함 확인. 실제 카메라·D 연결 실행은 이번 문서 작업에서 하지 않음.
 
 - 2026-10-13 RUN_GUIDE 최신화: 팀장님 PC에서 첨부 모델을 저장소 상대 경로 models/supply_top_yolo26s_seg_20261013/best.pt로 배치하는 방법, SHA256 확인, 함께 전달할 저장 RGB/ROI 및 값이 채워진 local 설정·요청 추가. 개인 절대 경로 없음과 코드펜스 정합 확인. 코드·모델 및 실제 시험 동작 변경 없음.
+
+## 2026-10-12 A 안내·자료 분류 정리 (기준 integration 1b820405)
+
+- 루트 README에서 현재 A 안내를 직접 연결하고, 기본 Planner·확장 세 API·SIM 경계를 구분했다.
+- Python/jsonschema/pytest 설치와 ensurepip 없는 환경의 독립 venv 대안, 예제 입력·명령·정상/실패 결과, 동일 계획 자료의 B/D 공유를 안내했다. Current/revision은 B 확정·D 중계 기준이다.
+- [A 분류·보존 안내](A_MATERIALS_AND_PRESERVATION.md)와 [253파일 SHA 목록](A_PRESERVATION_MANIFEST_20261012.json)을 추가했다. 외부 원본·실측·Fixture·시험 기록은 기존 경로/바이트 유지, 과거 A README 457줄은 원문 그대로 보존했다.
+- 새 clone·독립 최소 가상환경에서 기본12블록 Plan·잘못된 revision 반환·API34/34, A pytest448 passed/1 skipped를 확인했다. SciPy 독립 비교1검사는 최소환경 미설치로 제외됐다. 범위가 겹치는 수치는 합산하지 않는다.
+- [실제 명령·결과와 미검증](A_DOCUMENTATION_VERIFICATION_20261012.md)을 기록했다. 기준 Isaac0.5 불일치는 별도 기능 변경 eb78ad7과 분리하며 이번 PR에는 기능 변경을 포함하지 않는다.
+- 파일 이동/삭제·계산/계약/보정 수정·새 dependency 도입·전역 설치·Git 이력 재작성·Robot/ROS/Isaac 실행·제어권 변경을 수행하지 않았다. 사람 리뷰·실제 연결·실기 검증은 남아 있다.
+- GitHub에서 직접 받은 새 clone(0e6248f)에서도 API34/34, A448 passed/1 skipped, 보존253/253 SHA·상대 링크44개를 확인했다. 로컬 clone과 원격 clone의 수치는 합산하지 않는다.
+
+
+## 2026-10-12 A 손 수 상한 제거·실패 진단 보완
+
+- 사용자 요청으로 최대 2손 제한을 계산·후검사·현재 0.5.1 계약에서 함께 제거했다. 필요한 동작/손 수, 지지/겹침/삽입/로봇 접근 검사는 유지한다.
+- D 현재 원본에서 승인 24블록 실패를 재현했으며, 제한 제거 후 같은 설계/Current로 CPU 약 0.82초·GPU 약 0.47초에 전체 계획 생성. 3손 단계 3개를 포함한다.
+- CPU A/C 전달 검사 480개, GPU A 검사 458개 통과(합산하지 않음). 실패는 기존 block/reason으로 구체화하고 실제 물리 미판정 범위를 표시했다.
+- [입력 복원 근거·변경·검증·적용 위치](A_HAND_COUNT_POLICY_20261012.md). D 작업 폴더/로봇/제어권은 변경하지 않았다. `codex/a-plan-failure-diagnostics-20261012`를 통합 브랜치 대상으로 리뷰하며 병합·배포·실기 검증은 별도다.
+- 2026-10-13 제출 전 통합 `7b1a5ff`에 충돌 없이 정렬했다. 관련 검사479 PASS / 1 FAIL(A458 PASS, Workflow21 PASS / 1 FAIL). C의 `test_inspection_context_keeps_expected_and_unknown_regions_for_c`는 변경 없는 통합 사본에서도 같은 IndexError로 실패했으며 이번 패치에서 수정/제외하지 않았다. 기존480 PASS는 이전 통합 기준 결과다.
+- PR #34(`gimseeun`) 게시 중 통합에 PR #33이 반영돼 `f247132`로 갱신됐다. 최신 통합을 일반 merge로 반영하고 양쪽 Workflow 검사를 보존해 충돌 해결. A/Workflow/PR30 전달 검사501 PASS / 0 FAIL(19.16초). 이전 기준 실패 검사도 PR #33의 입력 정렬 후 통과한다. 최종 범위는 원래13파일이며 실물/제어권 변경은 없다.
+
+
+## 2026-10-13 09:39 REAL 후속 — D 빈 복귀·힘 검사 범위 수정
+
+- 이전 Step의 공급 슬롯으로 복귀하던 연속 이송을 제거했다. 결착 후 조립 위치 위로 상승/검사하고 다음 Step의 최신 선택 슬롯으로 경유 접근한다.
+- 사용자 요청대로 `full-real`의 비결착 단계에서 앱의 35N 합력/Fz 검사를 해제했다. 결착의 전체 반력35N STOP·정지 확인·개방과 장치/피드백 검사는 유지한다.
+- 실제 검사: D 오프라인1,076 passed·외부 A 자료 collection skip1, A/D REAL 문서+MOCK21 passed, Workflow/슬롯43 passed. 실제 Robot/ROS/카메라/외부 API/DB 미실행. 물리 부드러움/충돌/결착 성공은 재시험 필요.
+- 원격 A PR34 반영(`ca3101a`) 확인, 로컬 A는 자동 동기화하지 않았다. 로컬 D 실행 소스/검토 복사본만 수정했으며 commit/push/PR/merge·브랜치 전환 없음. 상세는 `docs/D_FULL_FEATURE_REAL_TRIAL_20261012.md` 최신 절 참조.
+
+
+## 2026-10-13 S06 블렌딩 경유 기준 확대 — 후속 PR 반영
+
+- 요청: 블렌딩 도중의 과도한 판정을 완화하고 공급 슬롯6을 포함해 진행. contact-alignment 시험의 경유10mm/5°, 경로80mm, timeout 최솟값45초를 적용했다. 도달/정지 확인 후 즉시 진행하며 고정45초 대기를 넣지 않았다.
+- MoveB가 목표 근처에서 멈추면 원래 최종 목표까지 MoveL 한 번으로 마친 후1mm/1° 도착을 확인한다. 교시·속도/가속도·블렌딩 반경40·결착 XYZ 반력35N 조건은 유지한다. 최종 미도달은 실패/보류이며 집기로 넘기지 않는다. 구 실행의 `resume_allowed=False`를 터미널/로그 편집으로 바꾸는 복구 기능은 추가하지 않았다.
+- 실제 검증: D 오프라인1,106 passed/collection skip1, 최신 로컬 A/D REAL 문서→MOCK21 passed, 모두 종료0. 기록된 S06의 기존 timeout 재현/새 정책 도착,4점/6점×노랑/파랑×로봇/사람 인계에서1→2→3→4→5→6→1(56가상Step), 정상/실패 경로를 검사했다. Python/실행 명령 구문과 D 소스 복사본 일치도 확인했다. 외부A onsite 자료 부재1건 제외.
+- 실물/실행 중 프로세스 미검증. 사용자 요청으로 후속 PR 게시 대상에 포함한다. 실물 검증·병합은 별도이며 로컬 고정 개발 브랜치를 유지한다. [검증 기록](reviews/robot-blend-slot6-verification-20261013.json), [실행 안내](D_FULL_FEATURE_REAL_TRIAL_20261012.md).

@@ -11,6 +11,52 @@ from test_control_session import setup, verified_sample
 CONNECTION=dict(tcp='GripperDA_v4',tool='ToolWeight0')
 
 
+@pytest.mark.parametrize('owner',['MOTION','CONTACT'])
+@pytest.mark.parametrize('change',['fresh','expired','new_sample','cancelled'])
+def test_owner_reuses_current_stop_proof_but_rechecks_stale_or_cancelled(owner,change):
+    s,plan,_,events,clock=setup();raw=StepReplayDriver(plan['settings']['reference_pose'])
+    driver=ControlledDriver(raw,s,CONNECTION,clock=clock,sleep=clock.sleep)
+    proof=driver.stillness();verified=sum(e=='STILLNESS_WINDOW_VERIFIED' for e,_ in events)
+    if change=='expired':clock.sleep(s.value['stillness']['sample_max_duration_s']+.01)
+    if change=='new_sample':driver.sample()
+    if change=='cancelled':
+        s.request_stop()
+        with pytest.raises(RuntimeError,match='STOP_REQUESTED'):driver.own(owner,verified_snapshot=proof)
+        assert not raw.moves and not raw.grips
+        return
+    driver.own(owner,verified_snapshot=proof)
+    assert sum(e=='STILLNESS_WINDOW_VERIFIED' for e,_ in events)==verified+(change!='fresh')
+    assert s.owner==owner and driver.last_verified_sample is None
+
+
+def test_gripper_command_consumes_fresh_owner_stillness_once_without_duplicate_window():
+    s,plan,_,events,clock=setup();raw=StepReplayDriver(plan['settings']['reference_pose'])
+    driver=ControlledDriver(raw,s,CONNECTION,clock=clock,sleep=clock.sleep)
+    driver.own('GRIPPER')
+    verified=sum(e=='STILLNESS_WINDOW_VERIFIED' for e,_ in events)
+    driver.command_gripper(35.,40.)
+    assert sum(e=='STILLNESS_WINDOW_VERIFIED' for e,_ in events)==verified
+    assert raw.grips==[(35.,40.)]
+    driver.command_gripper(48.,40.)
+    assert sum(e=='STILLNESS_WINDOW_VERIFIED' for e,_ in events)==verified+1
+
+
+@pytest.mark.parametrize('change',['expired','new_sample','monitor','precondition'])
+def test_gripper_rechecks_when_owner_proof_is_old_or_human_response_is_needed(change):
+    s,plan,_,events,clock=setup();raw=StepReplayDriver(plan['settings']['reference_pose'])
+    driver=ControlledDriver(raw,s,CONNECTION,clock=clock,sleep=clock.sleep)
+    driver.own('GRIPPER');verified=sum(e=='STILLNESS_WINDOW_VERIFIED' for e,_ in events)
+    callbacks=[];kwargs={}
+    if change=='expired':clock.sleep(s.value['stillness']['sample_max_duration_s']+.01)
+    if change=='new_sample':driver.sample()
+    if change=='monitor':kwargs['during_stillness']=lambda _:callbacks.append(True)
+    if change=='precondition':kwargs['precondition']=lambda:callbacks.append(True)
+    driver.command_gripper(35.,40.,**kwargs)
+    assert sum(e=='STILLNESS_WINDOW_VERIFIED' for e,_ in events)==verified+1
+    if change in ('monitor','precondition'):assert callbacks
+    assert raw.grips==[(35.,40.)]
+
+
 def run(s,plan,profile,clock,raw,confirm=lambda *a:True,phase='full',record=None):
     return execute_step(raw,s,CONNECTION,plan,profile,confirm,record or s.record,
                         phase=phase,clock=clock,sleep=clock.sleep)
@@ -28,6 +74,20 @@ def test_full_integration_uses_one_driver_and_leaves_current_for_backend():
     assert owners=={'WAIT','MOTION','CONTACT','GRIPPER'}
     assert result['contact_evidence']['status']=='FORCE_THRESHOLD_REACHED_STOP_VERIFIED'
     assert sum(e=='SINGLE_WRITER_GRIPPER' for e,_ in events)==len(raw.grips)
+
+
+@pytest.mark.parametrize('speed',[.017,1.,5.])
+def test_pickup_uses_session_stop_tolerances_for_start_grip_and_wait(speed):
+    s,plan,profile,events,clock=setup();raw=StepReplayDriver(plan['settings']['reference_pose'])
+    s.value['stillness'].update(linear_mm_s=5.,angular_deg_s=5.,position_mm=1.,orientation_deg=1.)
+    original=raw.sample
+    def sample():
+        row=original();row['velx']=[speed,0.,0.,0.,speed,0.];return row
+    raw.sample=sample
+    result=run(s,plan,profile,clock,raw,phase='pickup')
+    assert result['status']=='PAUSED_PICKUP_COMPLETE_HOLDING'
+    assert raw.grips[-1]==(plan['settings']['pickup_width_mm'],profile['gripper_force_n'])
+    assert not raw.stops
 
 
 @pytest.mark.parametrize('settling_speed',[.001,.02])
@@ -198,3 +258,17 @@ def test_lost_command_ack_cannot_be_hidden_by_an_idle_stop_window():
     result=next(d for e,d in events if e=='STOP_WINDOW_RESULT')
     assert result['stillness_window_verified'] and not result['actual_stop_verified']
     assert result['pending_command_outcome_unknown']
+
+
+@pytest.mark.parametrize('change',['fresh','expired','new_sample','wrong_proof'])
+def test_handover_precondition_still_runs_when_consuming_current_stop_proof(change):
+    s,plan,_,events,clock=setup();raw=StepReplayDriver(plan['settings']['reference_pose'])
+    driver=ControlledDriver(raw,s,CONNECTION,clock=clock,sleep=clock.sleep)
+    driver.own('GRIPPER');proof=driver.last_verified_sample
+    verified=sum(e=='STILLNESS_WINDOW_VERIFIED' for e,_ in events);calls=[]
+    if change=='expired':clock.sleep(s.value['stillness']['sample_max_duration_s']+.01)
+    if change=='new_sample':driver.sample()
+    if change=='wrong_proof':proof=dict(proof)
+    driver.command_gripper(62.,40.,precondition=lambda:calls.append(True),verified_snapshot=proof)
+    assert calls==[True] and raw.grips==[(62.,40.)]
+    assert sum(e=='STILLNESS_WINDOW_VERIFIED' for e,_ in events)==verified+(change!='fresh')

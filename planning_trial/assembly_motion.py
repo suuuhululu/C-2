@@ -139,13 +139,13 @@ def plan_step_motion(*, plan, step_id, latest_current, action, supply_slot,
             travel=onsite['clearance_z_mm']
             reverse=list(reversed(onsite['loaded_transit']))
             place=reverse[0]['xy_mm']
-            approach_points=[approach_points[0],waypoint('PLACE_BOARD_EMPTY',place+[travel]+pickup[3:])]
+            approach_points=[approach_points[0]]+([] if onsite.get('empty_return_skip_place') else [waypoint('PLACE_BOARD_EMPTY',place+[travel]+pickup[3:])])
             approach_points += [waypoint(r['label']+'_EMPTY',r['xy_mm']+[travel]+pickup[3:]) for r in reverse[1:]]
             approach_points += [waypoint('ABOVE_PICK',pickup[:2]+[travel]+pickup[3:]),waypoint('PICK_TCP',pickup)]
         elif manual and tray.get('d_loaded_transit') is not None:
             reverse=list(reversed(tray['d_loaded_transit']))
             place=reverse[0]['xy_mm']
-            approach_points=[approach_points[0],waypoint('PLACE_BOARD_EMPTY',place+[travel]+pickup[3:])]
+            approach_points=[approach_points[0]]+([] if tray.get('empty_return_skip_place') else [waypoint('PLACE_BOARD_EMPTY',place+[travel]+pickup[3:])])
             approach_points += [waypoint(r['label']+'_EMPTY',r['xy_mm']+[travel]+pickup[3:]) for r in reverse[1:]]
             approach_points += [waypoint('ABOVE_PICK',pickup[:2]+[travel]+pickup[3:]),waypoint('PICK_TCP',pickup)]
         result.update(status='CANDIDATE', motion_proposal={

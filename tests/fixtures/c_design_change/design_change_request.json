@@ -1,0 +1,4 @@
+{
+ "reason": "등받이를 더 높여줘",
+ "note": "run_design_change(design, current, reason=...) 입력. reason은 현재 계약대로 str (app/c_design/main.py)."
+}

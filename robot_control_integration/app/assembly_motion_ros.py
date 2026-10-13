@@ -134,17 +134,20 @@ class AssemblyMotionRos:
 
     def move_blending_async(self, targets, radius, velocity, acceleration):
         import math
-        if (not isinstance(targets, list) or not 2 <= len(targets) <= 4 or
-                type(radius) not in (int, float) or not math.isfinite(radius) or not 0 < radius <= 30):
-            raise ValueError('REVIEWED_SMALL_BLEND_BATCH_REQUIRED')
+        if not isinstance(targets,list) or not 2 <= len(targets) <= 50:
+            raise ValueError('DOOSAN_BLEND_POINT_COUNT_REQUIRED')
+        radii = radius if isinstance(radius,list) else [radius]*len(targets)
+        if (len(radii)!=len(targets) or any(type(v) not in (int,float) or
+                not math.isfinite(v) or v < 0 for v in radii)):
+            raise ValueError('FINITE_NONNEGATIVE_SEGMENT_RADII_REQUIRED')
         for values in (velocity, acceleration):
             if len(values) != 2 or any(type(v) not in (int,float) or not math.isfinite(v) or v <= 0 for v in values):
                 raise ValueError('POSITIVE_FINITE_BLEND_RATES_REQUIRED')
         from std_msgs.msg import Float64MultiArray
         segments = []
-        for target in targets:
+        for target,segment_radius in zip(targets,radii):
             segment = Float64MultiArray()
-            segment.data = [*vector(target, 6, 'blend target'), *([0.]*6), 0., float(radius)]
+            segment.data = [*vector(target, 6, 'blend target'), *([0.]*6), 0., float(segment_radius)]
             segments.append(segment)
         self.call('motion/move_blending', 'MoveBlending', segment=segments, pos_cnt=len(segments),
                   vel=velocity, acc=acceleration, time=0., ref=0, mode=0, sync_type=1)

@@ -2,7 +2,7 @@
 import math
 import time
 
-from app.assembly_motion import pose_error
+from app.assembly_motion import pose_error,motion_still
 from app.assembly_step_bridge import pose, release_feedback_range
 from scripts.assembly_position_trial import guard, run
 from app.assembly_blend_trial import run_blend
@@ -298,7 +298,7 @@ def run_handover(driver, connection, plan, profile, confirm, record, camera_poll
         if not 0 <= actual <= 110:
             raise RuntimeError('INVALID_GRIPPER_WIDTH_FEEDBACK')
         complete = (sample['gripper_status'] == 0 and bounds[0] <= actual <= bounds[1] and
-                    sample['motion_status'] == 0 and not any(sample['velx']))
+                    motion_still(sample,session.value['stillness']))
         consecutive = consecutive+1 if complete else 0
         if consecutive >= 3:
             break

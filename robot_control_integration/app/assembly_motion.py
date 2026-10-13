@@ -23,6 +23,14 @@ def vector(value, count, name):
     return [float(v) for v in value]
 
 
+def motion_still(sample, policy=None):
+    policy=policy or {}
+    speed=vector(sample['velx'],6,'motion velocity')
+    return (sample['motion_status']==0 and
+            max(map(abs,speed[:3]))<=policy.get('linear_mm_s',0.) and
+            max(map(abs,speed[3:]))<=policy.get('angular_deg_s',0.))
+
+
 def pose_error(actual, expected):
     from scipy.spatial.transform import Rotation
     actual, expected = vector(actual, 6, "actual pose"), vector(expected, 6, "expected pose")

@@ -127,7 +127,7 @@ def mode_options(brick, current, context):
                 assignments = support_assignments(weak, brick, current, context, tool["tool_boxes"],
                                                   press_hand=press)
                 if not assignments:
-                    reasons.append(mode + ": required human actions exceed two hands")
+                    reasons.append(mode + ": required support contact suggestions unavailable")
                 for assignment in assignments:
                     options.append({"mode": mode, "grip_axis": tool["grip_axis"],
                                     "release_strategy": tool["release_strategy"],
@@ -136,7 +136,7 @@ def mode_options(brick, current, context):
                                     "support_targets": assignment, "assembly_hand": None,
                                     "press_hand":press,"press_assessment":press_assessment,
                                     "contacts": support})
-    # One hand assembles; at most the other hand can support one lower block.
+    # One hand assembles; every required lower-block hold remains a separate action.
     hands = (hand_options(brick, current, context, assembly=True)
              if 'HUMAN_ASSEMBLY' in supported_modes else [])
     if 'HUMAN_ASSEMBLY' not in supported_modes:
@@ -152,7 +152,7 @@ def mode_options(brick, current, context):
                             "press_hand":None,"press_assessment":press_assessment,
                             "contacts": support})
     if hands and not any(o["mode"] == "HUMAN_ASSEMBLY" for o in options):
-        reasons.append("HUMAN_ASSEMBLY: required human actions exceed two hands")
+        reasons.append("HUMAN_ASSEMBLY: required support contact suggestions unavailable")
     for option in options:
         minimal = option["release_strategy"] == "MINIMAL_OPEN"
         option.update(requires_minimal_release=minimal,
@@ -170,7 +170,17 @@ def mode_options(brick, current, context):
             "MANUAL_ASSEMBLY" if "MANUAL_PLACE" in kinds else
             "PRESS_AND_HOLD" if kinds=={"PRESS","HOLD"} else
             "PRESS" if "PRESS" in kinds else "HOLD" if "HOLD" in kinds else "NONE")
-    return options, {**support, "press_assessment":press_assessment,
+    mode_checks = []
+    for mode in MODES:
+        enabled = mode in supported_modes
+        count = sum(o["mode"] == mode for o in options)
+        mode_checks.append({"mode": mode, "enabled": enabled, "candidate_count": count,
+            "reasons": list(dict.fromkeys(r for r in reasons if r.startswith(mode + ":"))) if not count else [],
+            "required_human_hands": (len(weak) + (1 if mode == "HUMAN_ASSEMBLY" or
+                press_assessment["required"] else 0)) if enabled else None,
+            "human_hand_limit": None, "human_hand_limit_applied": False})
+    return options, {**support, "press_assessment":press_assessment, "mode_checks": mode_checks,
+                     "human_access_space_checked": False, "robot_ik_full_path_checked": False,
                      "reason": "; ".join(dict.fromkeys(reasons))}
 
 
@@ -293,10 +303,14 @@ def _minimize_help_search(remaining, current, context, incumbent_path=None, pred
                 heappush(queue, (new_cost, -next_mask.bit_count(), next(serial), next_mask))
             successors += 1
         if not successors and (dead_end is None or mask.bit_count() > dead_end[0]):
-            dead_end = (mask.bit_count(), explanations)
+            dead_end = (mask.bit_count(), explanations, deepcopy(placed), [deepcopy(b) for _, b in left])
     return None, {"optimal": False, "expanded_states": expanded,
                   "reason": "NO_FEASIBLE_ORDER",
-                  "blocked_candidates": dead_end[1] if dead_end else []}
+                  "blocked_candidates": dead_end[1] if dead_end else [],
+                  "diagnostic_state": {"placed_blocks": dead_end[2], "remaining_blocks": dead_end[3],
+                      "placed_remaining_count": dead_end[0],
+                      "scope": "ONE_DEEPEST_DEAD_END_NOT_PER_BLOCK_GLOBAL_IMPOSSIBILITY"} if dead_end else None,
+                  "feasibility_search_exhausted": True}
 
 
 def _complete_plan_first(remaining,current,context,predecessors=None):
@@ -328,12 +342,18 @@ def _complete_plan_first(remaining,current,context,predecessors=None):
             successors+=1;path.append((i,option))
             complete=visit(mask|(1<<i));path.pop()
             if complete is not None:return complete
-        if not successors and (deepest is None or mask.bit_count()>deepest[0]):deepest=(mask.bit_count(),blocked)
+        if not successors and (deepest is None or mask.bit_count()>deepest[0]):
+            deepest=(mask.bit_count(),blocked,deepcopy(placed),
+                     [deepcopy(b) for i,b in ordered if not mask&(1<<i)])
         return None
 
     complete=visit(0)
     if complete is not None:return complete,{"expanded_states":expanded}
-    return None,{"expanded_states":expanded,"reason":"NO_FEASIBLE_ORDER","blocked_candidates":deepest[1] if deepest else []}
+    return None,{"expanded_states":expanded,"reason":"NO_FEASIBLE_ORDER","blocked_candidates":deepest[1] if deepest else [],
+                "diagnostic_state":{"placed_blocks":deepest[2],"remaining_blocks":deepest[3],
+                    "placed_remaining_count":deepest[0],
+                    "scope":"ONE_DEEPEST_DEAD_END_NOT_PER_BLOCK_GLOBAL_IMPOSSIBILITY"} if deepest else None,
+                "feasibility_search_exhausted":True}
 
 
 def order_search(remaining,current,context):
@@ -399,7 +419,6 @@ def validate_candidate(design, current, context, plan, actions):
                 raise ValueError("Action contact/hand geometry differs from reassessment")
         if (action["needs_human_request"] is not bool(option_cost(chosen)[0]) or
                 action["human_hands_used"] != len(chosen["human_actions"]) or
-                action["human_hands_used"] > 2 or
                 action["insertion_direction_board"] != [0, 0, -1] or
                 action["requires_minimal_release"] is not (chosen["release_strategy"] == "MINIMAL_OPEN") or
                 action["release_instruction"] != (MINIMAL_RELEASE_INSTRUCTION
@@ -411,11 +430,31 @@ def validate_candidate(design, current, context, plan, actions):
     return list(total)
 
 
+def blocked_error(candidate, optimization):
+    """Expose a checked dead-end witness through existing block/reason fields."""
+    assessment = candidate['assessment']
+    parts = [assessment.get('reason') or '이 진단 상태에서 가능한 작업 방식이 없습니다.']
+    if 'support_studs' in assessment:
+        parts.append(f"아래층 접촉 stud {assessment['support_studs']}/{assessment['total_studs']}; "
+                     f"지지가 필요한 아래 블록 {len(assessment['weak_supports'])}개")
+    for check in assessment.get('mode_checks', []):
+        if check['enabled']:
+            parts.append(f"{check['mode']}: 필요한 사람 손 {check['required_human_hands']}개; 손 수 상한 미적용")
+    state = optimization.get('diagnostic_state')
+    if state:
+        parts.append(f"진단 상태: Current 포함 {len(state['placed_blocks'])}블록 배치, "
+                     f"{len(state['remaining_blocks'])}블록 남음; "
+                     "특정 막힘 상태의 원인이며 이 블록의 모든 순서에서의 불가 증명은 아닙니다")
+    parts.append("현재 설정/모델에서 완성 순서 없음; 실물 구조 안정성·로봇 IK/전체 경로·사람 손 접근 공간은 판단하지 않았습니다")
+    return {'reason': '; '.join(parts), 'block': deepcopy(candidate['block'])}
+
+
 def plan_assembly(design, current, context):
     result = {"schema_version": SCHEMA, "status": None, "execution_allowed": False,
               "planning_result": None, "assembly_actions": [], "optimization": None,
               "contract_status": "DRAFT_NOT_CONNECTED_TO_D", "errors": [],
               "limits": ["Human hand access-space checks excluded by user policy; contact regions are nominal suggestions",
+                         "Human hand count is reported without a resource ceiling; D coordinates actual participants/readiness",
                          "Space rules/envelopes are not robot IK/full-path/human safety verification",
                          "Stud overlap and void rules are not physical stability proof",
                          "PRESS is a contact-hull heuristic, not a measured force requirement",
@@ -448,8 +487,11 @@ def plan_assembly(design, current, context):
     path, optimization = order_search(remaining, blocks, context)
     result["optimization"] = optimization
     if path is None:
-        result.update(status=optimization["reason"], errors=[{
-            "reason": optimization["reason"], "block": None}])
+        blocked = optimization.get('blocked_candidates', [])
+        result.update(status=optimization["reason"], errors=(
+            [blocked_error(candidate, optimization) for candidate in blocked] or
+            [{"reason": optimization["reason"] +
+              ": 모델 내 완성 순서 없음; 개별 막힘 상태 미확보, 실물 조립 불가는 미판정", "block": None}]))
         return result
     ordered = [remaining[index] for index, _ in path]
     plan = build_plan(design, blocks, revision, ordered_blocks=ordered,

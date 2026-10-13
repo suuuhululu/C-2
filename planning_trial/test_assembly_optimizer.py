@@ -131,7 +131,10 @@ def test_two_support_hands_are_not_reused_as_a_third_assembly_hand(context):
     assert len(info["weak_supports"]) == 2
     supported = [o for o in options if o["mode"] == "ROBOT_GRIP"]
     assert supported and all(len(o["support_targets"]) == 2 for o in supported)
-    assert all(o["mode"] != "HUMAN_ASSEMBLY" for o in options)
+    manual = [o for o in options if o["mode"] == "HUMAN_ASSEMBLY"]
+    assert manual and all(len(o["human_actions"]) == 3 for o in manual)
+    assert all(sum(a['action']=='HOLD' for a in o['human_actions'])==2 and
+               sum(a['action']=='MANUAL_PLACE' for a in o['human_actions'])==1 for o in manual)
 
 
 def test_three_required_supports_cannot_be_silently_reduced_to_two(context):
@@ -140,7 +143,9 @@ def test_three_required_supports_cannot_be_silently_reduced_to_two(context):
     upper = brick(6,6,3,"2x3x1",90)
     options,info = mode_options(upper,base+lower,context)
     assert len(info["weak_supports"]) == 3
-    assert options == []
+    assert options and all(len(o['support_targets'])==3 for o in options)
+    assert all(sum(a['action']=='HOLD' for a in o['human_actions'])==3 for o in options)
+    assert all(len(o['human_actions'])==3+int(o['mode']=='HUMAN_ASSEMBLY') for o in options)
 
 
 def brute_force_cost(blocks,context):

@@ -62,7 +62,7 @@ def test_stage2_vocabulary_constants():
     assert v.BRICK_TYPES == {"1x2x1", "2x2x1", "2x3x1"}
     assert v.BRICK_SIZES == {"1x2x1": (1, 2), "2x2x1": (2, 2), "2x3x1": (2, 3)}
     assert v.ORIENTATIONS == {"1x2x1": {0, 90}, "2x2x1": {0}, "2x3x1": {0, 90}}
-    assert (v.MAX_LAYER, v.MAX_BLOCKS, v.MIN_SUPPORT_STUDS) == (5, 40, 2)
+    assert (v.MAX_LAYER, v.MAX_BLOCKS, v.MIN_SUPPORT_STUDS) == (5, 40, 4)  # 2026-10-13 robot-only rule (당시 2)
 
 
 # ---------------------------------------------------------------------------
@@ -270,7 +270,7 @@ def test_out_of_stock_revised_candidate_is_rejected():
 
 
 # ---------------------------------------------------------------------------
-# 1x2x1 (Stage 2): overlap, support (2 studs = fully on the blocks below), connectivity
+# 1x2x1 (Stage 2): overlap, support (min(4, 2) = both studs on the blocks below), connectivity
 # ---------------------------------------------------------------------------
 
 
@@ -300,7 +300,7 @@ def test_1x2x1_with_one_stud_overlap_fails_support():
 
 
 def test_1x2x1_on_two_blocks_one_stud_each_is_supported():
-    # support counts studs over all blocks of the layer below (total ≥ 2), not per block
+    # support counts unique studs over all blocks of the layer below (1x2x1 needs both = 2), not per block
     left = block(brick_type="2x2x1", x=0, y=0, layer=1)
     right = block(brick_type="2x2x1", x=2, y=0, layer=1)
     top = block(color="red", brick_type="1x2x1", x=1, y=0, orientation_deg=90, layer=2)  # (1,0) on left, (2,0) on right
@@ -361,12 +361,15 @@ def test_connectivity_two_disconnected_clusters():
 # ---------------------------------------------------------------------------
 
 
-def test_support_case_a_one_below_block_two_studs_pass():
+def test_support_case_a_one_below_block_two_studs_fails():
+    # 당시(2026-10-06 Day4 기하 기준) 2 stud 통과 사례. 2026-10-13 robot-only 규칙: 2x2x1은 4/4 지지가 필요하다.
     blocks = [
         block(brick_type="2x3x1", orientation_deg=0, x=3, y=0, layer=1),
         block(brick_type="2x2x1", x=3, y=2, layer=2),
     ]
-    assert v.validate_design(design(blocks)) == []
+    reasons = v.validate_design(design(blocks))
+    assert rules(reasons) == {"support"}
+    assert "studs=2 < 4" in reasons[0]["message"]
 
 
 def test_support_case_a_one_below_block_four_studs_pass():
@@ -377,13 +380,67 @@ def test_support_case_a_one_below_block_four_studs_pass():
     assert v.validate_design(design(blocks)) == []
 
 
-def test_support_case_b_two_below_blocks_one_stud_each_pass():
+def test_support_case_b_two_below_blocks_one_stud_each_fails():
+    # 당시 Case B(1 + 1 = 2 stud 통과). 2026-10-13: 고유 stud 2 < 4 → 거부.
     blocks = [
         block(brick_type="2x2x1", x=4, y=4, layer=1),
         block(brick_type="2x2x1", x=6, y=6, layer=1),
         block(brick_type="2x2x1", x=5, y=5, layer=2),
     ]
+    assert rules(v.validate_design(design(blocks))) == {"support"}
+
+
+def test_support_two_below_blocks_two_studs_each_pass():
+    # 2 + 2 = 4 고유 stud: 2x2x1이 두 블록에 완전히 얹힌다.
+    blocks = [
+        block(brick_type="2x2x1", x=4, y=4, layer=1),
+        block(brick_type="2x2x1", x=6, y=4, layer=1),
+        block(brick_type="2x2x1", x=5, y=4, layer=2),
+    ]
     assert v.validate_design(design(blocks)) == []
+
+
+def test_support_2x2x1_on_three_studs_fails():
+    blocks = [
+        block(brick_type="2x3x1", orientation_deg=0, x=0, y=0, layer=1),
+        block(brick_type="2x2x1", x=2, y=1, layer=1),
+        block(brick_type="2x2x1", x=1, y=0, layer=2),  # 2 studs on the 2x3x1 + 1 stud on the 2x2x1 = 3 < 4
+    ]
+    assert rules(v.validate_design(design(blocks))) == {"support"}
+
+
+def test_support_2x3x1_needs_four_of_six_studs():
+    base = block(brick_type="2x3x1", orientation_deg=0, x=0, y=0, layer=1)  # x0-1, y0-2
+    three = block(brick_type="2x3x1", orientation_deg=0, x=1, y=0, layer=2)  # x1-2, y0-2 → 3 studs
+    four = block(brick_type="2x3x1", orientation_deg=0, x=0, y=1, layer=2)  # x0-1, y1-3 → 4 studs
+    six = block(brick_type="2x3x1", orientation_deg=0, x=0, y=0, layer=2)
+    assert rules(v.validate_design(design([base, three]))) == {"support"}
+    assert v.validate_design(design([base, four])) == []
+    assert v.validate_design(design([base, six])) == []
+
+
+def test_support_required_studs_per_brick():
+    assert v.required_support_studs(block(brick_type="2x2x1")) == 4
+    assert v.required_support_studs(block(brick_type="2x3x1", orientation_deg=90)) == 4
+    assert v.required_support_studs(block(color="red", brick_type="1x2x1")) == 2
+
+
+def test_support_counts_unique_studs_only_from_the_layer_directly_below():
+    # layer 1 fully under the layer-3 block does not count; only layer 2 does (2 studs) → rejected.
+    blocks = [
+        block(brick_type="2x3x1", orientation_deg=0, x=0, y=0, layer=1),
+        block(brick_type="2x3x1", orientation_deg=0, x=2, y=0, layer=1),
+        block(brick_type="2x2x1", x=1, y=0, layer=2),
+        block(brick_type="2x3x1", orientation_deg=90, x=0, y=1, layer=2),  # overlaps the 2x2x1? no: y1-2 vs y0-1 share y1 → overlap
+    ]
+    blocks = [
+        block(brick_type="2x3x1", orientation_deg=0, x=0, y=0, layer=1),  # x0-1 y0-2
+        block(brick_type="2x3x1", orientation_deg=0, x=2, y=0, layer=1),  # x2-3 y0-2
+        block(brick_type="2x2x1", x=1, y=0, layer=2),                     # x1-2 y0-1 (2+2 = 4 ok)
+        block(brick_type="2x2x1", x=1, y=1, layer=3),                     # x1-2 y1-2: layer 2 shares only y1 → 2 studs
+    ]
+    reasons = v.validate_design(design(blocks))
+    assert [r["blocks"][0]["layer"] for r in reasons if r["rule"] == "support"] == [3]
 
 
 def test_support_case_c_three_below_blocks_sum_pass():

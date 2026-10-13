@@ -24,6 +24,7 @@ FIELDS = ("schema_version", "mode", "connection", "reference", "floor_z_mm", "re
     "acceleration", "rounds", "max_probes", "timing", "parameter_source")
 TIMING = ("service_timeout_s", "sample_max_duration_s", "poll_interval_s", "motion_timeout_s",
           "stop_timeout_s", "probe_timeout_s", "session_timeout_s", "reference_max_age_s")
+SEATING_Z_ABOVE_TOLERANCE_MM = 10.
 
 
 def positive(number, name):
@@ -163,10 +164,13 @@ def validate_pressure_stages(stages,c):
 
 
 def run_contact(driver,plan,record, *, cancelled=lambda:False, finish_contact=False, in_contact=False,
-                pressure_stages=None,now=time.monotonic,sleep=time.sleep,utc=time.time):
+                pressure_stages=None,seating_goal_z_mm=None,seek_motion=None,ik_fk_tolerances=(.05,.05),
+                now=time.monotonic,sleep=time.sleep,utc=time.time):
     c=plan["config"];r=c["reference"];timing=c["timing"]
+    # Native seating accepts insertion below the target; standalone comparison trials retain their floor.
+    sample_reference = None if seating_goal_z_mm is not None else r
     attempted=False;force_active=False;uncertain=False;started=now();probe_count=0
-    observations=[];contact_baseline=None;last_sample=None;pressure_target=None
+    observations=[];contact_baseline=None;last_sample=None;pressure_target=None;q=[0.]*5;applied_q=None
     def check_cancel():
         if cancelled(): raise RuntimeError("OPERATOR_CANCELLED")
         if now()-started>=timing["session_timeout_s"]: raise TimeoutError("SESSION_TIMEOUT")
@@ -174,7 +178,7 @@ def run_contact(driver,plan,record, *, cancelled=lambda:False, finish_contact=Fa
         nonlocal last_sample
         check_cancel();s=driver.sample();last_sample=s
         record("CONTACT_SAMPLE",dict(phase=phase,sample=s))
-        validate_sample(s,c,reference=r);check_cancel();return s
+        validate_sample(s,c,reference=sample_reference);check_cancel();return s
     def write(name,fn):
         nonlocal attempted,uncertain
         check_cancel();attempted=True;uncertain=True;fn();uncertain=False
@@ -191,7 +195,7 @@ def run_contact(driver,plan,record, *, cancelled=lambda:False, finish_contact=Fa
         if force_active:
             # Z belongs to native force control; command only XY/orientation.
             pose=[*pose[:2],s["posx"][2],*pose[3:]]
-        validate_sample(dict(s,posx=pose),c,reference=r)
+        validate_sample(dict(s,posx=pose),c,reference=sample_reference)
         # Force release can leave a brief settling velocity after STOP ACK.
         # Wait for the same stop confirmation instead of rejecting one sample.
         stop_deadline=now()+timing["stop_timeout_s"]
@@ -200,12 +204,15 @@ def run_contact(driver,plan,record, *, cancelled=lambda:False, finish_contact=Fa
             sleep(timing["poll_interval_s"]);s=sample("BEFORE_MOVE_SETTLING")
         if vertical:
             pose=[*s["posx"][:2],pose[2],*s["posx"][3:]]
-            validate_sample(dict(s,posx=pose),c,reference=r)
+            validate_sample(dict(s,posx=pose),c,reference=sample_reference)
         fk=driver.check_pose(pose,max_joint_delta_deg=c["max_joint_step_deg"])
-        if pose_error(fk,pose)[0]>.05 or pose_error(fk,pose)[1]>.05:
-            raise RuntimeError("IK_FK_MISMATCH")
+        mm,deg=pose_error(fk,pose)
+        record('IK_FK_CHECK',dict(target=pose,fk=fk,position_error_mm=mm,orientation_error_deg=deg))
+        if mm>ik_fk_tolerances[0] or deg>ik_fk_tolerances[1]:raise RuntimeError('IK_FK_MISMATCH')
+        if mm>.05 or deg>.05:record('IK_FK_NUMERICAL_WARNING',dict(target=pose,fk=fk,position_error_mm=mm,orientation_error_deg=deg))
         record("CONTACT_MOVE_REQUEST",dict(target=pose))
-        write("move",lambda:driver.move_line_async(pose,c["velocity"],c["acceleration"]))
+        velocity,acceleration=seek_motion if vertical and seek_motion is not None else (c["velocity"],c["acceleration"])
+        write("move",lambda:driver.move_line_async(pose,velocity,acceleration))
         deadline=now()+timing["motion_timeout_s"];seen_moving=False
         while now()<deadline:
             s=sample("MOVE")
@@ -225,11 +232,24 @@ def run_contact(driver,plan,record, *, cancelled=lambda:False, finish_contact=Fa
         write("stop",driver.stop);wait_still()
         write("release_compliance",driver.release_compliance);wait_still();force_active=False
     def probe(q, *, leave_contact=False):
-        nonlocal force_active,probe_count,contact_baseline
+        nonlocal force_active,probe_count,contact_baseline,applied_q
         if probe_count>=c["max_probes"]:raise RuntimeError("PROBE_BUDGET_EXHAUSTED")
         approach=correction_pose(r["posx"],q)
         if in_contact and force_active:
-            move(approach)
+            # Re-observe the selected pose without undoing a successful insertion.
+            if seating_goal_z_mm is not None:
+                if q!=applied_q:
+                    current=sample('BEFORE_SEATING_CORRECTION')
+                    # Native compliance may change tilt. Command only the selected
+                    # XY correction and incremental Base yaw, never reset roll/pitch.
+                    target=correction_pose(current['posx'],[0.,0.,0.,0.,q[4]-applied_q[4]])
+                    target[:2]=approach[:2]
+                    move(target)
+                    applied_q=q.copy()
+                else:
+                    record('CONTACT_REOBSERVE',dict(q=q.copy(),position_command_sent=False))
+            else:
+                move(approach)
             baseline=contact_baseline
             probe_count+=1
         else:
@@ -237,14 +257,15 @@ def run_contact(driver,plan,record, *, cancelled=lambda:False, finish_contact=Fa
         return observe_probe(q,approach,baseline,leave_contact=leave_contact)
 
     def start_probe(q,approach, *, leave_contact=False):
-        nonlocal force_active,probe_count,contact_baseline
+        nonlocal force_active,probe_count,contact_baseline,applied_q
         entry=sample("CONTACT_ENTRY")
         if in_contact and entry['posx'][2]<approach[2]-c['position_tolerance_mm']:
             # An operator-directed new trial may start near existing contact.
             # Do not label this a free baseline or raise it back to clearance.
             free_baseline=None;s=entry
         else:
-            move(approach)
+            if seating_goal_z_mm is None or max(pose_error(entry['posx'],approach))>c['position_tolerance_mm']:
+                move(approach)
             free=[sample("FREE_BASELINE") for _ in range(3)]
             if any(not still(s) or math.hypot(*s["wrench"][:3])>=c["free_force_max_n"] for s in free):
                 raise RuntimeError("NONCONTACT_BASELINE_NOT_CONFIRMED")
@@ -252,7 +273,7 @@ def run_contact(driver,plan,record, *, cancelled=lambda:False, finish_contact=Fa
         # Position-limited slow seek precedes force mode; no free-space force
         # drive across the full gap. Each seek target is above the absolute floor.
         p=s["posx"].copy();p[2]=min(p[2],c["floor_z_mm"]+c["force_window_mm"])
-        s=move(p)
+        s=move(p,vertical=True)
         # Relative controller force is referenced to the stopped seek pose,
         # not the earlier moving/approach wrench. Raw force/moment guards remain.
         force_active=True;probe_count+=1
@@ -262,9 +283,15 @@ def run_contact(driver,plan,record, *, cancelled=lambda:False, finish_contact=Fa
         sleep(c["transition_s"])
         reference_samples=[sample("FORCE_REFERENCE") for _ in range(3)]
         baseline=np.median([s["wrench"] for s in reference_samples],axis=0)
+        if seating_goal_z_mm is not None:
+            # An absolute target prevents a loaded baseline from accumulating force.
+            baseline=np.zeros(6)
         contact_baseline=baseline
-        record("CONTACT_FORCE_REFERENCE",dict(approach_wrench=None if free_baseline is None else free_baseline.tolist(),seek_wrench=baseline.tolist(),relative_force_n=c["probe_force_n"]))
-        write("desired_force",lambda:driver.set_downward_force(c["probe_force_n"],c["transition_s"]))
+        record("CONTACT_FORCE_REFERENCE",dict(approach_wrench=None if free_baseline is None else free_baseline.tolist(),seek_wrench=baseline.tolist(),relative_force_n=c['probe_force_n'] if seating_goal_z_mm is None else None,
+            absolute_force_n=c['probe_force_n'] if seating_goal_z_mm is not None else None))
+        kwargs={} if seating_goal_z_mm is None else dict(relative=False)
+        write("desired_force",lambda:driver.set_downward_force(c["probe_force_n"],c["transition_s"],**kwargs))
+        applied_q=q.copy()
         return observe_probe(q,approach,baseline,leave_contact=leave_contact)
 
     def observe_probe(q,approach,baseline, *, leave_contact=False):
@@ -273,21 +300,31 @@ def run_contact(driver,plan,record, *, cancelled=lambda:False, finish_contact=Fa
             s=sample("FORCE_PROBE");reaction=s["wrench"][2]-baseline[2]
             # Compliance/force transition can first unload an existing contact.
             # A transient negative delta is not an immediate contact fault.
-            # Raw guards remain active; only settled matched-load samples count.
+            # Raw guards remain active; the observation criteria depend on trial mode.
             response.append(s)
             if now()>=deadline:break
-            if still(s) and abs(reaction-c["probe_force_n"])<=c["force_band_n"]:
+            # Seating follows measured depth under native force control. Exact
+            # force matching is only needed by the standalone load-comparison trial.
+            if still(s) and (seating_goal_z_mm is not None or abs(reaction-c["probe_force_n"])<=c["force_band_n"]):
                 settled.append(s)
-                if len(settled)==3:break
+                if len(settled)==3:
+                    if (seating_goal_z_mm is not None and
+                            np.ptp([v['posx'][2] for v in settled])>c['repeatability_mm']):
+                        # Motion status can be idle during native force descent.
+                        # Keep observing that descent instead of probing XY mid-air.
+                        settled=settled[-2:]
+                    else:break
             else:settled=[]
             sleep(timing["poll_interval_s"])
-        matched_load=len(settled)==3
-        measured=settled if matched_load else response[-3:]
+        response_ready=len(settled)==3
+        matched_load=response_ready and all(abs(s['wrench'][2]-baseline[2]-c['probe_force_n'])<=c['force_band_n'] for s in settled)
+        measured=settled if response_ready else response[-3:]
         depths=[r["posx"][2]-s["posx"][2] for s in measured]
         observation=dict(q=q.copy(),depth_mm=float(np.median(depths)),noise_mm=float(np.ptp(depths)),
                          delta_wrench=(np.median([s["wrench"] for s in measured],axis=0)-baseline).tolist(),
                          matched_load=matched_load,
-                         outcome="MATCHED_LOAD" if matched_load else "LOAD_NOT_SETTLED",
+                         response_ready=response_ready,
+                         outcome="MATCHED_LOAD" if matched_load else "DEPTH_RESPONSE" if response_ready else "LOAD_NOT_SETTLED",
                          sample=measured[-1])
         observations.append(observation);record("CONTACT_OBSERVATION",observation)
         if in_contact:return observation
@@ -303,6 +340,17 @@ def run_contact(driver,plan,record, *, cancelled=lambda:False, finish_contact=Fa
         return observation
     result=dict(assembled=False,gripper_commands=0,observations=observations,in_contact_search=in_contact)
     try:
+        if len(ik_fk_tolerances)!=2 or any(type(v) not in (int,float) or not math.isfinite(v) or not 0<v<=1 for v in ik_fk_tolerances):
+            raise ValueError('INVALID_IK_FK_TOLERANCES')
+        if seating_goal_z_mm is not None:
+            if (type(seating_goal_z_mm) not in (int,float) or not math.isfinite(seating_goal_z_mm)
+                    or not in_contact or pressure_stages is not None or
+                    not c['floor_z_mm']<seating_goal_z_mm<r['posx'][2]):
+                raise ValueError('INVALID_SEATING_SEARCH_GOAL')
+            if seek_motion is None:raise ValueError('SEATING_SEEK_MOTION_REQUIRED')
+        if seek_motion is not None:
+            if len(seek_motion)!=2 or any(min(vector(v,2,'seek motion'))<=0 for v in seek_motion):
+                raise ValueError('INVALID_SEEK_MOTION')
         validate_pressure_stages(pressure_stages,c)
         if pressure_stages is not None and in_contact:raise ValueError('PRESS_ONLY_REQUIRES_FREE_REFERENCE')
         fresh=prepare_contact(c,utc=utc)
@@ -339,6 +387,7 @@ def run_contact(driver,plan,record, *, cancelled=lambda:False, finish_contact=Fa
                 measured=response[-3:]
                 observation=dict(force_target_n=force,force_mode='ABSOLUTE',
                     measured_fz_n=float(np.median([s['wrench'][2] for s in measured])),
+                    measured_force_norm_n=float(np.median([math.hypot(*s['wrench'][:3]) for s in measured])),
                     depth_mm=float(np.median([r['posx'][2]-s['posx'][2] for s in measured])),
                     sample=measured[-1])
                 observations.append(observation);record('PRESSURE_OBSERVATION',observation)
@@ -347,18 +396,42 @@ def run_contact(driver,plan,record, *, cancelled=lambda:False, finish_contact=Fa
                 stopped=True,force_released=True,compliance_released=True,probe_count=probe_count,
                 final_sample=sample('FINISHED'))
             record('CONTACT_TRIAL_RESULT',result);return result
-        q=[0.]*5;steps=[c["xy_step_mm"]]*2+[c["rotation_step_deg"]]*3
+        steps=[c["xy_step_mm"]]*2+[c["rotation_step_deg"]]*3
         status="LOCAL_TRIAL_LIMIT_REVIEW_REQUIRED"
+        rotate=True
         for iteration in range(c["rounds"]):
-            centre=probe(q);best=centre if centre["matched_load"] else None
+            centre=probe(q);best=centre if (centre["response_ready"] if seating_goal_z_mm is not None else centre["matched_load"]) else None
+            if seating_goal_z_mm is not None:
+                # An unsettled centre is a search candidate, not proof that all
+                # nearby XY/yaw positions fail. Explore the same bounded envelope.
+                if best is not None and centre['sample']['posx'][2]<=seating_goal_z_mm+.5:break
             for candidate in neighbours(q,steps,c):
+                if seating_goal_z_mm is not None and (any(candidate[2:4]) or not rotate and candidate[4]!=q[4]):
+                    continue
                 observation=probe(candidate)
-                if not observation["matched_load"]:continue
+                if not (observation["response_ready"] if seating_goal_z_mm is not None else observation["matched_load"]):continue
                 if best is None:
                     best=observation;continue
                 margin=max(c["improvement_mm"],best["noise_mm"],observation["noise_mm"])
-                matched=abs(observation["delta_wrench"][2]-best["delta_wrench"][2])<=c["force_band_n"]/2
-                if matched and observation["depth_mm"]>best["depth_mm"]+margin:best=observation
+                matched=seating_goal_z_mm is not None or abs(observation["delta_wrench"][2]-best["delta_wrench"][2])<=c["force_band_n"]/2
+                if matched and observation["depth_mm"]>best["depth_mm"]+margin:
+                    best=observation
+                    if seating_goal_z_mm is not None:
+                        rotate=False
+                        break
+                if seating_goal_z_mm is not None and observation['sample']['posx'][2]<=seating_goal_z_mm+.5:
+                    best=observation;break
+            if seating_goal_z_mm is not None:
+                if best is None:
+                    status='CONTACT_RESPONSE_NOT_READY';break
+                final=probe(best['q'])
+                if not final['response_ready']:
+                    status='CONTACT_RESPONSE_NOT_READY';break
+                q=best['q'].copy()
+                record('CONTACT_CORRECTION_SELECTED',dict(iteration=iteration,q=q,
+                    depth_gain_mm=best['depth_mm']-centre['depth_mm']))
+                if final['sample']['posx'][2]<=seating_goal_z_mm+.5 or best is centre:break
+                continue
             repeated=probe(q)
             if best is None:
                 status="NO_MATCHED_LOAD_HOLD";break
@@ -379,6 +452,29 @@ def run_contact(driver,plan,record, *, cancelled=lambda:False, finish_contact=Fa
             q=best["q"].copy()
             record("CONTACT_CORRECTION_SELECTED",dict(iteration=iteration,q=q,
                 depth_gain_mm=best["depth_mm"]-centre["depth_mm"] if centre["matched_load"] else None))
+        if seating_goal_z_mm is not None:
+            if status=='CONTACT_RESPONSE_NOT_READY':
+                raise RuntimeError(status)
+            # XY/yaw is finished. The controller owns only vertical pressing now.
+            final=probe(q,leave_contact=True)
+            if not final['response_ready']:raise RuntimeError('CONTACT_RESPONSE_NOT_READY')
+            pressure_target=c['raw_force_stop_n']
+            record('PRESSURE_STAGE',dict(force_n=pressure_target,force_mode='ABSOLUTE',hold_s=timing['probe_timeout_s']))
+            write('desired_force',lambda:driver.set_downward_force(pressure_target,c['transition_s'],relative=False))
+            deadline=now()+timing['probe_timeout_s'];response=[]
+            while now()<deadline:
+                response.append(sample('SEATING_PRESS'))
+                if (len(response)>=3 and all(still(s) and s['posx'][2]<=seating_goal_z_mm+SEATING_Z_ABOVE_TOLERANCE_MM
+                        and math.hypot(*s['wrench'][:3])>=pressure_target for s in response[-3:])):break
+                sleep(timing['poll_interval_s'])
+            observation=dict(force_target_n=pressure_target,force_mode='ABSOLUTE',
+                measured_fz_n=float(np.median([s['wrench'][2] for s in response[-3:]])),
+                measured_force_norm_n=float(np.median([math.hypot(*s['wrench'][:3]) for s in response[-3:]])),sample=response[-1])
+            observations.append(observation);release()
+            result.update(status='PRESS_ONLY_FORCE_RELEASED_REVIEW_REQUIRED',correction=q,
+                stopped=True,force_released=True,compliance_released=True,probe_count=probe_count,
+                final_sample=sample('FINISHED'),seating_goal_z_mm=seating_goal_z_mm)
+            record('CONTACT_TRIAL_RESULT',result);return result
         if finish_contact and status not in ("CONTACT_RESPONSE_CHANGED_HOLD","NO_MATCHED_LOAD_HOLD"):
             final=probe(q,leave_contact=True)
             status="CONTACT_CANDIDATE_REVIEW_REQUIRED" if final["matched_load"] else "NO_MATCHED_LOAD_HOLD"
@@ -405,12 +501,12 @@ def run_contact(driver,plan,record, *, cancelled=lambda:False, finish_contact=Fa
         # The final pressure target may equal the existing raw-force guard.
         # Crossing that guard ends pressing, never raises the guard or resumes.
         # Report the planned boundary only after every cleanup ACK and STOP.
-        if (pressure_stages is not None and pressure_target==c['raw_force_stop_n'] and
+        if ((pressure_stages is not None or seating_goal_z_mm is not None) and pressure_target==c['raw_force_stop_n'] and
                 str(error)=='RAW_FORCE_STOP' and result['stopped'] is True and
                 result.get('release_force_ack') and result.get('release_compliance_ack')):
             result.update(status='PRESS_ONLY_FORCE_LIMIT_REACHED_STOP_VERIFIED',
                 force_released=True,compliance_released=True,force_limit_sample=last_sample,
-                correction=[0.]*5)
+                correction=q if seating_goal_z_mm is not None else [0.]*5)
             record('PRESSURE_LIMIT_STOP',dict(limit_n=c['raw_force_stop_n'],sample=last_sample))
         try:record("CONTACT_TRIAL_ABORT" if result['status']=='CONTACT_TRIAL_ABORTED' else "CONTACT_TRIAL_RESULT",result)
         except Exception as e:result["log_error"]=str(e)

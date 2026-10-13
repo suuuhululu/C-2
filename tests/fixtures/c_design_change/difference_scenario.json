@@ -1,0 +1,56 @@
+{
+ "current": [
+  {
+   "brick_type": "2x3x1",
+   "color": "blue",
+   "x": 8,
+   "y": 8,
+   "layer": 1,
+   "orientation_deg": 90
+  },
+  {
+   "brick_type": "2x3x1",
+   "color": "blue",
+   "x": 11,
+   "y": 8,
+   "layer": 1,
+   "orientation_deg": 90
+  },
+  {
+   "brick_type": "2x3x1",
+   "color": "blue",
+   "x": 8,
+   "y": 12,
+   "layer": 1,
+   "orientation_deg": 90
+  },
+  {
+   "brick_type": "2x3x1",
+   "color": "blue",
+   "x": 11,
+   "y": 13,
+   "layer": 1,
+   "orientation_deg": 90
+  }
+ ],
+ "differences": [
+  {
+   "expected": {
+    "brick_type": "2x3x1",
+    "color": "blue",
+    "x": 11,
+    "y": 12,
+    "layer": 1,
+    "orientation_deg": 90
+   },
+   "actual": {
+    "brick_type": "2x3x1",
+    "color": "blue",
+    "x": 11,
+    "y": 13,
+    "layer": 1,
+    "orientation_deg": 90
+   }
+  }
+ ]
+}

@@ -58,6 +58,28 @@ MAX_ATTEMPTS = 10
 RICHNESS_MIN_DELTA = 6
 
 
+def constraint_violations(blocks, constraints):
+    """사용자 수치 제약(Wave 3, 2026-10-13) 위반 사유. LLM 후보에만 적용한다(Mock은 고정 설계라 제약을 반영할 수 없다).
+
+    max_layer: 그보다 높은 layer의 블록이 있으면 "user_constraint". validator 규칙이 아니라 후보 거부 사유이며 같은 재생성
+    loop이 다시 만든다. 호출자(main)는 Current와 충돌하지 않게 clamp한 값을 넘긴다(Current가 이미 그 층을 쓰면 상한이 올라간다).
+    """
+    c = constraints or {}
+    reasons = []
+    max_layer = c.get("max_layer")
+    if isinstance(max_layer, int) and not isinstance(max_layer, bool):
+        too_high = [b for b in blocks if isinstance(b, dict) and isinstance(b.get("layer"), int) and b["layer"] > max_layer]
+        if too_high:
+            reasons.append({"rule": "user_constraint", "blocks": too_high,
+                            "message": f"design uses layer {max(b['layer'] for b in too_high)} but the person asked for at most "
+                                       f"{max_layer} layers"})
+    max_blocks = c.get("max_blocks")
+    if isinstance(max_blocks, int) and not isinstance(max_blocks, bool) and len(blocks) > max_blocks:
+        reasons.append({"rule": "user_constraint", "blocks": [],
+                        "message": f"design has {len(blocks)} blocks but the person asked for at most {max_blocks}"})
+    return reasons
+
+
 def revised_min_blocks(design):
     """Revised Design의 최소 블록 수: 이전 블록 수 + RICHNESS_MIN_DELTA, validator.MAX_BLOCKS로 자른다."""
     return min(len(design["blocks"]) + RICHNESS_MIN_DELTA, validator.MAX_BLOCKS)
@@ -115,7 +137,7 @@ def _generate_until_valid(make_candidate, finalize, max_attempts, delay, should_
 
 
 def build_initial_design(object_type, generate=None, max_attempts=MAX_ATTEMPTS, delay=RETRY_DELAY, should_stop=None,
-                         differ_from=None):
+                         differ_from=None, constraints=None):
     """Initial Design(design_version=1)을 만든다(§3.3).
 
     differ_from(Design)가 있으면 그 블록과 같은 후보는 "unchanged_candidate"로 탈락시켜 같은 loop이 다시 만든다
@@ -150,6 +172,10 @@ def build_initial_design(object_type, generate=None, max_attempts=MAX_ATTEMPTS, 
         reasons = validator.validate_design(design)
         if reasons:
             return None, reasons
+        if generate is not None and constraints:
+            limit_reasons = constraint_violations(design["blocks"], constraints)
+            if limit_reasons:
+                return None, limit_reasons
         if differ_from is not None and _same_blocks(design["blocks"], differ_from["blocks"]):
             return None, [_unchanged_reason()]
         return design, []
@@ -164,12 +190,21 @@ def build_initial_design(object_type, generate=None, max_attempts=MAX_ATTEMPTS, 
 
 
 def build_revised_design(design, current, differences, generate=None, max_attempts=MAX_ATTEMPTS, delay=RETRY_DELAY, should_stop=None,
-                         min_blocks=None, differ_from=None):
+                         min_blocks=None, differ_from=None, design_change=False, constraints=None):
     """Revised Design(입력 design.design_version + 1, 레이아웃이 실제로 바뀔 때만)을
-    만든다. full object, patch 아님. differ_from(직전 Revised 후보)과 같은 블록이면 "unchanged_candidate"로 탈락(§8.14)."""
+    만든다. full object, patch 아님. differ_from(직전 Revised 후보)과 같은 블록이면 "unchanged_candidate"로 탈락(§8.14).
+
+    design_change(Wave 3): 직접 Design Change는 Difference가 없는 것이 정상이므로 입력 검사가 check_design_change_input이고
+    differences는 빈 목록이어야 한다. 기본값(False)은 Intervention 그대로(빈 differences 거절)."""
     source = "LLM" if generate else "MOCK"
 
-    input_reasons = validator.check_intervention_input(design, current, differences)
+    if design_change:
+        input_reasons = validator.check_design_change_input(design, current)
+        if differences:
+            input_reasons.append({"rule": "invalid_value", "blocks": [],
+                                  "message": "differences must be empty for a design change"})
+    else:
+        input_reasons = validator.check_intervention_input(design, current, differences)
     if input_reasons:
         return {"design": None, "reasons": input_reasons, "attempts": 0, "source": source}
 
@@ -202,6 +237,11 @@ def build_revised_design(design, current, differences, generate=None, max_attemp
 
         parsed = json.loads(candidate) if isinstance(candidate, str) else candidate
         blocks = [dict(block) for block in parsed["blocks"]]
+
+        if generate is not None and constraints:
+            limit_reasons = constraint_violations(blocks, constraints)
+            if limit_reasons:
+                return None, limit_reasons
 
         if min_blocks is not None and len(blocks) < min_blocks:
             # 규칙은 통과했지만 이전보다 충분히 풍부하지 않다: 같은 loop이 사유를 받아 다시 만든다.
@@ -284,8 +324,28 @@ BASE_LEGS = (
 )
 
 
+def _side_rows(front, back):
+    """한쪽(앞·뒤 다리 2개)의 좌석 배치 방식과 layer 2 좌석 행 후보.
+
+    adjacent: 다리가 맞붙음(앞에서부터 2칸씩 좌석). connector: 다리 사이 빈 행 1개이고 앞뒤 다리 열이 같다(3칸 connector가
+    앞뒤에 2 + 2 stud로 걸린다). split: 빈 행 1개인데 앞뒤 다리 열이 한 칸 엇갈림(connector가 최대 3 stud라 support
+    min(4, studs)를 못 채운다) — 다리마다 좌석을 따로 얹고 layer 3 bridge로 반대쪽과 잇는다. 그 밖은 None.
+    """
+    f0, f1 = _yrange(front)
+    k0, k1 = _yrange(back)
+    if k0 == f1 + 1:
+        return "adjacent"
+    if k0 == f1 + 2:
+        return "connector" if _xrange(front) == _xrange(back) else "split"
+    return None
+
+
 def _chair_upper(legs):
-    """다리(legs) 위에 좌석·등받이·상단 bridge를 쌓는다. 처리 못 하는 배치는 None(거부)."""
+    """다리(legs) 위에 좌석·등받이·상단 bridge를 쌓는다. 처리 못 하는 배치는 None(거부).
+
+    support 규칙(2026-10-13, min(4, studs)): 모든 layer ≥ 2 블록이 바로 아래 층에 4 stud(2x2x1은 4/4, 2x3x1은 6 중 4) 이상
+    얹히도록 행을 고른다. 좌우 등받이 행은 가능하면 같게 맞춰 layer 4 bridge가 양쪽에 2 + 2 stud로 걸리게 한다.
+    """
     if not legs:  # 조립된 다리가 상대편 다리를 밀어내 한쪽이 통째로 비는 경우(예외 없이 None)
         return None
     all_x = [x for leg in legs for x in _xrange(leg)]
@@ -295,42 +355,75 @@ def _chair_upper(legs):
         "R": [leg for leg in legs if sum(_xrange(leg)) / 2 >= mid],
     }
 
-    out = []
-    back_row = {}
-    strip = {}
+    plan = {}
     for side, side_legs in sides.items():
         if len(side_legs) != 2:  # Mock은 한 쪽에 다리 2개인 chair만 안다; 그 외는 validator가 거부
             return None
         front, back = sorted(side_legs, key=lambda leg: _yrange(leg)[0])
+        kind = _side_rows(front, back)
+        if kind is None:
+            return None
         side_x = min(_xrange(leg)[0] for leg in side_legs) if side == "L" else max(_xrange(leg)[1] for leg in side_legs) - 2
-        strip[side] = (side_x, side_x + 2)
+        plan[side] = {"kind": kind, "front": front, "back": back, "strip": (side_x, side_x + 2)}
+    gap = plan["R"]["strip"][0] - plan["L"]["strip"][1] - 1  # 좌우 반쪽 사이 빈 열(상단 bridge가 잇는다)
+    if gap not in (0, 1):
+        return None
+
+    def covered_rows(side):
+        """그 쪽 layer 2 좌석이 덮는 행(반대쪽 split 좌석의 layer 3 bridge 행 선택용)."""
+        p = plan[side]
+        f0 = _yrange(p["front"])[0]
+        k1 = _yrange(p["back"])[1]
+        return set(range(f0, k1 + 1)) if p["kind"] in ("adjacent", "connector") else set()
+
+    # 1) 맞붙은 쪽의 등받이 행은 고정(앞에서부터 2칸씩 채운 마지막 행).
+    back_row = {}
+    for side, p in plan.items():
+        if p["kind"] == "adjacent":
+            f0, _ = _yrange(p["front"])
+            _, k1 = _yrange(p["back"])
+            back_row[side] = list(range(f0, k1, 2))[-1]
+    # 2) 빈 행이 있는 쪽은 k1 - 2(기본) 또는 k1 - 1 중 반대쪽 등받이 행과 같은 것을 고른다(둘 다 뒤 좌석 위에 4 stud 이상).
+    for side, p in plan.items():
+        if p["kind"] == "adjacent":
+            continue
+        _, k1 = _yrange(p["back"])
+        other = back_row.get("R" if side == "L" else "L")
+        back_row[side] = k1 - 1 if other == k1 - 1 else k1 - 2  # 둘 다 다리 위 행(k0, k0 + 1)이다
+
+    out = []
+    for side, p in plan.items():
+        side_x = p["strip"][0]
+        front, back = p["front"], p["back"]
         f0, f1 = _yrange(front)
         k0, k1 = _yrange(back)
-        if k0 == f1 + 1:  # 다리가 맞붙음: 앞에서부터 2칸씩 좌석을 채움, 각 행 경계가 다리 안에 들어감
-            rows = list(range(f0, k1, 2))
-            for y in rows:
+        if p["kind"] == "adjacent":  # 다리가 맞붙음: 앞에서부터 2칸씩 좌석을 채움, 각 행 경계가 다리 안에 들어감
+            for y in range(f0, k1, 2):
                 out.append(_block("2x3x1", side_x, y, 90, 2, "yellow"))
-            back_row[side] = rows[-1]
-        elif k0 == f1 + 2:  # 다리 사이 빈 행 1개: 3칸짜리 connector로 앞뒤를 잇는다
+        elif p["kind"] == "connector":  # 다리 사이 빈 행 1개: 3칸짜리 connector로 앞뒤를 잇는다
             link_x = min(_xrange(front)[0], _xrange(back)[0])
             out.append(_block("2x3x1", side_x, f0, 90, 2, "yellow"))
             out.append(_block("2x3x1", link_x, f1, 0, 2, "yellow"))
+            # 등받이 행 k1 - 2는 connector(2 stud)와 뒤 좌석(3 stud)에 5 stud, k1 - 1은 뒤 좌석에 6 stud로 얹힌다.
             out.append(_block("2x3x1", side_x, k1 - 1, 90, 2, "yellow"))
-            back_row[side] = k1 - 1
-        else:
-            return None
+        else:  # split: 다리마다 좌석(각 다리 위 2열 × 2행 = 4 stud)을 얹고, 앞 좌석은 layer 3 bridge로 반대쪽과 잇는다
+            other = covered_rows("R" if side == "L" else "L")
+            front_row = next((y for y in (f0, f0 + 1) if {y, y + 1} <= other), None)
+            if front_row is None:
+                return None
+            out.append(_block("2x3x1", side_x, front_row, 90, 2, "yellow"))
+            out.append(_block("2x3x1", side_x, back_row[side], 90, 2, "yellow"))
+            bridge_x = p["strip"][1] if side == "L" else p["strip"][0] - (gap + 1)
+            out.append(_block("2x2x1" if gap == 0 else "2x3x1", bridge_x, front_row, 0 if gap == 0 else 90, 3, "blue"))
 
     for side in ("L", "R"):
-        out.append(_block("2x3x1", strip[side][0], back_row[side], 90, 3, "blue"))  # 등받이
-    out.append(_block("2x2x1", strip["L"][0], back_row["L"], 0, 4, "blue"))
-    out.append(_block("2x2x1", strip["R"][1] - 1, back_row["R"], 0, 4, "blue"))
-    gap = strip["R"][0] - strip["L"][1] - 1  # 상단 bridge가 좌우 반쪽을 연결한다
+        out.append(_block("2x3x1", plan[side]["strip"][0], back_row[side], 90, 3, "blue"))  # 등받이
+    out.append(_block("2x2x1", plan["L"]["strip"][0], back_row["L"], 0, 4, "blue"))
+    out.append(_block("2x2x1", plan["R"]["strip"][1] - 1, back_row["R"], 0, 4, "blue"))
     if gap == 0:
-        out.append(_block("2x2x1", strip["L"][1], min(back_row.values()), 0, 4, "blue"))
-    elif gap == 1:
-        out.append(_block("2x3x1", strip["L"][1], min(back_row.values()), 90, 4, "blue"))
+        out.append(_block("2x2x1", plan["L"]["strip"][1], min(back_row.values()), 0, 4, "blue"))
     else:
-        return None
+        out.append(_block("2x3x1", plan["L"]["strip"][1], min(back_row.values()), 90, 4, "blue"))
     return out
 
 

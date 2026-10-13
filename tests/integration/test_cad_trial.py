@@ -79,8 +79,8 @@ def test_supply_anchor_is_latest_blue_5mm_and_order_is_preserved():
 def test_rotation_offset_uses_board_y_not_base_y():
     assembly = cad_trial.measured_inputs(ROOT)['frame']['calculation_profiles']['assembly']
     correction = cad_trial.rotation_correction(assembly,[6,6],turn=90)
-    assert math.hypot(*correction) == pytest.approx(2.5)
-    assert correction[0] < -2.49 and abs(correction[1]) < .02
+    assert math.hypot(*correction) == pytest.approx(2.)
+    assert correction[1] < -1.99 and abs(correction[0]) < .02
     assert cad_trial.rotation_correction(assembly,[6,6],turn=-90) == correction
     assert cad_trial.rotation_correction(assembly,[6,6],turn=0) == [0.,0.]
 
@@ -126,7 +126,7 @@ def test_requested_color_stack_executes_five_mock_steps(monkeypatch):
     moves=[e['data'] for e in result['events'] if e['event']=='MOVE_REQUEST']
     blends=[d for d in moves if d['segment']=='BLENDED_TRANSIT']
     assert len(blends)==10
-    assert all(d['radius_mm']==30. and d['velocity']==[192.,192.]
+    assert all(d['radius_mm']==40. and d['velocity']==[230.4,230.4]
                and d['acceleration']==[48.,48.] for d in blends)
     grips=[e['data']['width_mm'] for e in result['events'] if e['event']=='SINGLE_WRITER_GRIPPER']
     assert grips==[55.,35.,48.]*5
@@ -140,7 +140,7 @@ def test_requested_color_stack_executes_five_mock_steps(monkeypatch):
     assert all(d['velocity']==[24.,24.] and d['acceleration']==[6.,6.] for d in pickup)
     assert len(approaches)==len(precontacts)==5
     assert all(d['velocity']==[24.,24.] and d['acceleration']==[6.,6.] for d in approaches)
-    assert all(d['velocity']==[2.,2.] and d['acceleration']==[1.,1.] for d in precontacts)
+    assert all(d['velocity']==[24.,24.] and d['acceleration']==[6.,6.] for d in precontacts)
     assert all(abs(a['target'][2]-b['target'][2]-10.)<1e-6 for a,b in zip(approaches,precontacts))
     out=Path('logs/cad-five-layer-20261012');out.mkdir(parents=True,exist_ok=True)
     (out/'five-layer.result.json').write_text(json.dumps(result,ensure_ascii=False,indent=2)+'\n')

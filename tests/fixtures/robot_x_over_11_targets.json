@@ -1,0 +1,45 @@
+{
+  "source_job": "974c168c-df55-4226-88da-bb7ac51eb98a",
+  "records": [
+    {
+      "source": "/home/ms-02/C_2/logs/full-feature-real/974c168c-df55-4226-88da-bb7ac51eb98a/ec254203-ea51-4e09-82ec-44fdbe09da7e.execution.json",
+      "step_id": "S03",
+      "block": {
+        "brick_type": "2x3x1",
+        "color": "blue",
+        "x": 12,
+        "y": 13,
+        "layer": 1,
+        "orientation_deg": 90
+      },
+      "previous_reference_pose": [
+        495.17728572696825,
+        118.54112887692142,
+        13.937942628736616,
+        153.39594114517408,
+        179.54046095976398,
+        63.617103579882055
+      ]
+    },
+    {
+      "source": "/home/ms-02/C_2/logs/full-feature-real/974c168c-df55-4226-88da-bb7ac51eb98a/1fa48b02-102a-4a08-90ab-dfb3f9e31ce5.execution.json",
+      "step_id": "S04",
+      "block": {
+        "brick_type": "2x3x1",
+        "color": "blue",
+        "x": 15,
+        "y": 13,
+        "layer": 1,
+        "orientation_deg": 90
+      },
+      "previous_reference_pose": [
+        543.0607281969739,
+        118.32806768045798,
+        13.996028751521912,
+        153.39594114517408,
+        179.54046095976398,
+        63.617103579882055
+      ]
+    }
+  ]
+}

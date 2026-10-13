@@ -23,8 +23,13 @@ from planning_trial.assembly_adapter import handle_whole_plan, handle_step_reass
 
 class MvpIntegration:
     """모든 채택은 poll() 호출 스레드에서 수행한다. 작업 thread는 결과만 큐에 넣는다."""
+    supply_slot_count = 6
+
     def __init__(self, robot_root, directory, *, fixture_design=None, c_mode='offline',
-                 history_dsn=None, web_url='http://127.0.0.1:8765'):
+                 history_dsn=None, web_url='http://127.0.0.1:8765', robot_mode='MOCK',
+                 runtime_settings=None, gestures=False):
+        if robot_mode not in ('MOCK', 'REAL'):
+            raise ValueError('explicit robot mode required')
         if c_mode not in ('offline', 'live'):
             raise ValueError('explicit C mode required')
         if (os.environ.get('C_DESIGN_USE_LLM') == '1') != (c_mode == 'live'):
@@ -38,7 +43,11 @@ class MvpIntegration:
         self.workers = []
         self.last_document = None
         self.ready_signal = None
+        self.robot_mode = robot_mode
+        self.auto_gestures, self.direct_handover = robot_mode == 'MOCK', False
         self.slot_indices = {}
+        self.consumed_executions = set()
+        self.scene_executions = set()
         self.robot_sample=None
         self.robot_sequence=0
         self.closed = False
@@ -48,11 +57,17 @@ class MvpIntegration:
         self.login_pending = False
         self.creator_reason = None
         self.owner_state = 'NOT_STARTED'
-        self.workflow = MvpWorkflow(self.emit, settings(), directory)
+        self.workflow = MvpWorkflow(self.emit, runtime_settings or settings(), directory,
+                                    mode='REAL' if robot_mode == 'REAL' else 'FAKE')
         self.b = connect_inspection(lambda value:self.inbox.put(('b',value)),
             observe=self.observe, geometry_reference=self.workflow.settings['geometry_reference'])
         self.workflow.b = self.b
-        self.robot = RobotProcess(robot_root, mode='MOCK')
+        self.robot = RobotProcess(robot_root, mode=robot_mode,
+            config=Path(robot_root)/'interfaces/assembly_contact_trial.json' if robot_mode == 'REAL' else None,
+            gestures=gestures)
+
+    def state_snapshot(self, value):
+        pass  # The measured REAL adapter consumes explicit read-only snapshots.
 
     def observe(self, context, active):
         if not active():
@@ -127,12 +142,14 @@ class MvpIntegration:
                 return c_main.review_design_candidate(payload['candidate'],kind=payload['kind'],
                     previous_design=payload['previous_design'],current=payload['current']['blocks'],
                     differences=pairs,text_answers=[text],should_stop=token.is_set,
-                    change_reason=payload.get('change_reason'))
+                    change_reason=payload.get('change_reason'),
+                    design_metadata=payload.get('design_metadata'),planning_failure=payload.get('planning_failure'))
             if pairs:
                 return c_main.run_intervention(payload['design'],payload['current']['blocks'],pairs,
                     text_answers=[text],should_stop=token.is_set,inspection_context=context)
             return c_main.run_design_change(payload['design'],payload['current']['blocks'],
-                reason=payload['reason'],text_answers=[text],should_stop=token.is_set,inspection_context=context)
+                reason=payload['reason'],text_answers=[text],should_stop=token.is_set,inspection_context=context,
+                planning_failure=payload.get('planning_failure'))
         self.background(port,payload,call)
         return True
 
@@ -144,6 +161,8 @@ class MvpIntegration:
                 self.creator_reason='시작 전에 제작자 로그인이 필요합니다.'
                 return False
             self.scene, self.slot_indices = [],{}
+            self.consumed_executions.clear()
+            self.scene_executions.clear()
             self.cancelled = Event()
             self.b.close()
             self.b=connect_inspection(lambda value:self.inbox.put(('b',value)),observe=self.observe,
@@ -300,6 +319,10 @@ class MvpIntegration:
                 if job==self.workflow.job_id:
                     self.workflow.web='FAILED' if error else 'SUCCEEDED'
                     self.workflow.save_reason=error
+            elif kind=='voice_progress':
+                identity,value=data
+                if self.workflow.active and self.workflow.active['request']['request_id']==identity:
+                    self.workflow.dialogue['assistant_text']=str(value.get('message',''))[:1200]
             else:
                 port,identity,reason=data
                 active=self.workflow.active
@@ -309,33 +332,73 @@ class MvpIntegration:
         while True:
             try: row=self.robot.events.get_nowait()
             except Empty: break
+            if row['event'] == 'STATE_SNAPSHOT':
+                self.state_snapshot(row['data'])
+                continue
+            if (row['event']=='GESTURE_STOP_REQUESTED'
+                    and row['data'].get('execution_id') in (self.workflow.execution_id,self.workflow.last_execution_id)):
+                # 제스처 정지도 HMI 정지와 같이 C 요청과 계산 세대를 닫는다.
+                self.command('STOP')
+            if (row['event']=='ASSEMBLY_CUE_FINISHED' and self.robot_mode == 'REAL'
+                    and not row['data'].get('received')
+                    and self.workflow.settings.get('observation_kind')=='SYNTHETIC'):
+                # 가짜 B가 사람 조립 확인 시간 초과를 완료로 대신 승인하지 않는다.
+                self.next_fake_check='UNOBSERVABLE'
             if row['data'].get('sample'):
                 self.robot_sequence+=1
                 self.robot_sample=dict(deepcopy(row['data']['sample']),state_sequence=self.robot_sequence)
             if row['event']=='SIGNAL_REQUEST':
                 self.ready_signal=deepcopy(row['data'])
             elif row['event']=='SIGNAL_REQUEST_CLOSED':self.ready_signal=None
-            elif row['event']=='INSPECTION_REQUIRED' and not row['data'].get('automatic_reinspection'):
-                # 실제 관측 대신 모의 장면을 변경한다. Current는 B 결과가 올 때만 바뀐다.
-                target=self.workflow.step()['after']
-                if target not in self.scene:self.scene.append(deepcopy(target))
-                column=target['brick_type'],target['color']
-                self.slot_indices[column]=next_supply_slot(self.slot_indices.get(column,1))
+            elif (row['event']=='GRIP_SUCCEEDED' and row['data'].get('label')=='PICKUP_CLOSE'
+                  and row['data'].get('execution_id')==self.workflow.execution_id
+                  and self.workflow.execution_id not in self.consumed_executions):
+                slot=self.workflow.step_inputs['slot']
+                column=slot['brick_type'],slot['color']
+                self.consumed_executions.add(self.workflow.execution_id)
+                self.slot_indices[column]=next_supply_slot(slot['slot_index'],self.supply_slot_count)
                 for supply in self.workflow.supply:
                     if (supply['brick_type'],supply['color'])==column:
                         index=self.slot_indices[column]
                         supply.update(next_slot=index,needs_refill=False)
+            elif (row['event']=='INSPECTION_REQUIRED'
+                  and row['data'].get('execution_id')==self.workflow.execution_id
+                  and self.workflow.reason!='STOP_PENDING' and self.workflow.status!='STOPPED'
+                  and self.workflow.execution_id not in self.scene_executions):
+                # 새 실행의 물리 효과만 모의 장면에 적용한다. 재검사는 B만 다시 호출한다.
+                target=self.workflow.step()['after']
+                self.scene_executions.add(self.workflow.execution_id)
+                if target not in self.scene:self.scene.append(deepcopy(target))
             elif row['event']=='PROCESS_EXITED' and not self.closed:
                 self.workflow.status,self.workflow.reason='HOLD','ROBOT_PROCESS_EXITED'
             self.workflow.robot_event(row)
-        if self.ready_signal and self.workflow.status not in ('STOPPED','HOLD'):
-            if self.ready_signal.get('_sent') and self.ready_signal['kind']!='RECEIVE':return
-            signal=dict(self.ready_signal,source='FAKE',sequence=time.monotonic_ns(),verified=True)
-            signal.pop('_sent',None)
-            if signal['kind']=='RECEIVE':signal.update(hand_present=False,receiving_ready=False)
-            else:signal['ready']=True  # 모의 엄지척. 실제 gesture producer를 호출하지 않는다.
-            self.robot.send('SIGNAL',signal=signal)
-            self.ready_signal['_sent']=True
+        if self.auto_gestures and self.ready_signal and self.workflow.status not in ('STOPPED', 'HOLD'):
+            if self.ready_signal.get('_sent') and self.ready_signal['kind'] != 'RECEIVE':
+                return
+            pose = ('OPEN_HAND' if self.direct_handover else None) if self.ready_signal['kind'] == 'RECEIVE' else 'THUMBS_UP'
+            self.gesture(pose)
+            self.ready_signal['_sent'] = True
+
+    def gesture(self, pose):
+        """Synthetic camera candidate through D's actual stage dispatcher; no camera/ROS."""
+        if self.robot_mode != 'MOCK':
+            raise ValueError('SYNTHETIC_GESTURE_CANNOT_CONTROL_REAL_ROBOT')
+        if pose not in (None, 'OPEN_HAND', 'THUMBS_UP', 'FIST'):
+            raise ValueError('unsupported synthetic hand pose')
+        if not self.last_document:
+            return False
+        session = self.last_document['session']
+        request = self.ready_signal
+        now = time.monotonic_ns()
+        sample = dict(provenance='SYNTHETIC', execution_id=session['execution_id'],
+            source_epoch=session['source_epoch'], preview_request_id=request['request_id'] if request else None,
+            received_monotonic_ns=now, source_ns=now+1, frame='FAKE_GESTURE_CAMERA',
+            hands=[] if pose is None else [dict(pose=pose, center=[100.,100.], palm_size=40.)],
+            candidate_event='THUMBS_UP_HELD' if pose == 'THUMBS_UP' else
+                'OPEN_HAND_HELD_ORIENTATION_UNKNOWN' if pose == 'OPEN_HAND' else None,
+            continuity_estimate=True, pose_verified=False)
+        self.robot.send('GESTURE_SAMPLE', sample=sample)
+        return True
 
     def close(self):
         self.closed=True
@@ -362,12 +425,16 @@ def render_creator(window, runtime):
         window.completion_view.save_button.setEnabled(window.completion_view.save_button.isEnabled() and can_save and runtime.owner_state!='PENDING')
 
 
-def main():
-    parser=argparse.ArgumentParser(description=__doc__)
+def main(runtime_class=MvpIntegration, *, real_trial=False):
+    parser=argparse.ArgumentParser(description='C/A 전체 함수·REAL Robot/카메라 제스처 시험. B 관측/Current는 가짜입니다.' if real_trial else __doc__)
     parser.add_argument('--robot-root',required=True,type=Path)
     parser.add_argument('--log-directory',type=Path,default=Path('logs/mvp-integration'))
     parser.add_argument('--design',type=Path,help='명시적인 FAKE C 후보 파일; 생략하면 C 생성 함수 사용')
     parser.add_argument('--c-mode',choices=('offline','live'),default='offline')
+    if real_trial:
+        parser.add_argument('--contact-alignment-trial',action='store_true',help='연속 결착 하강 · 전체 반력 40N 정지 시험; 실물 미검증')
+        parser.add_argument('--execute',action='store_true',required=True,
+            help='실제 Robot·카메라 제스처 연결 허용. B 관측은 가짜 시험 입력')
     args=parser.parse_args()
     from PyQt5.QtCore import QTimer
     from PyQt5.QtWidgets import QApplication, QInputDialog, QLineEdit, QMessageBox
@@ -375,19 +442,69 @@ def main():
     app=QApplication([])
     window=HmiWindow()
     design=json.loads(args.design.read_text()) if args.design else None
-    runtime=MvpIntegration(args.robot_root,args.log_directory,fixture_design=design,c_mode=args.c_mode,
+    runtime=runtime_class(args.robot_root,args.log_directory,fixture_design=design,c_mode=args.c_mode,
         history_dsn=os.environ.get('HISTORY_DATABASE_DSN'),
-        web_url=os.environ.get('HISTORY_WEB_URL','http://127.0.0.1:8765'))
+        web_url=os.environ.get('HISTORY_WEB_URL','http://127.0.0.1:8765'),
+        **({'contact_alignment_trial':args.contact_alignment_trial} if real_trial else {}))
     window.creator_bar.setVisible(runtime.history_dsn is not None)
+    if real_trial:
+        from PyQt5.QtWidgets import QCheckBox, QPushButton, QComboBox
+        trial_suffix=' · 결착 반력 40N 정지 시험' if args.contact_alignment_trial else ''
+        review=QCheckBox('실물 시험 준비: 빈 조립판·공급 보충·교시 경로·도움/인계 영역 확인 · B는 가짜'+trial_suffix)
+        window.layout().insertWidget(1,review)
+        review.toggled.connect(runtime.review_preparation)
+        voice=QPushButton('C 음성 대화')
+        window.layout().insertWidget(2,voice)
+        voice.clicked.connect(runtime.answer_voice)
+        fake_check=QComboBox()
+        fake_check.addItems(['B 가짜: 기본 일치','B 가짜: 다음 Step 불일치',
+                            'B 가짜: 다음 Step 관측 불가','B 가짜: 다음 Step ERROR'])
+        window.layout().insertWidget(3,fake_check)
+        operator_confirm=QPushButton('확인')
+        operator_confirm.setVisible(False)
+        window.layout().insertWidget(4,operator_confirm)
+        operator_confirm.clicked.connect(lambda:runtime.confirm_operator(runtime.ready_signal['request_id'])
+            if runtime.ready_signal else None)
+        fake_check.currentIndexChanged.connect(lambda index:setattr(runtime,'next_fake_check',
+            ('MATCH','MISMATCH','UNOBSERVABLE','ERROR')[index]))
+        window.setWindowTitle('전체 기능 실물 시험 · REAL Robot/제스처 · 가짜 B'+trial_suffix)
     def publish():
         runtime.poll()
         snapshot=runtime.workflow.snapshot()
         window.render_snapshot(snapshot)
         render_creator(window,runtime)
-        window.heading.setText('협동 조립 · 최종 MVP · FAKE Robot/Camera/제스처 · A/B 실제 계산')
+        window.heading.setText('전체 기능 실물 시험 · C/A 실제 함수 · REAL Robot/제스처 · B 가짜 관측/Current'
+            if real_trial else '협동 조립 · 최종 MVP · FAKE Robot/Camera/제스처 · A/B 실제 계산')
+        if real_trial:
+            window.setWindowTitle('전체 기능 실물 시험 · REAL Robot/제스처 · 가짜 B'+trial_suffix)
+            review.setEnabled(runtime.workflow.status in ('IDLE','COMPLETE'))
+            fake_check.blockSignals(True)
+            fake_check.setCurrentIndex(('MATCH','MISMATCH','UNOBSERVABLE','ERROR').index(runtime.next_fake_check))
+            fake_check.blockSignals(False)
+            window.buttons['START'].setEnabled(window.buttons['START'].isEnabled() and runtime.review_ref is not None)
+            voice.setEnabled(runtime.c_pending is not None and runtime.c_mode == 'live')
+            if runtime.workflow.status=='COMPLETE':
+                window.status.setText('통합 시험 흐름 완료 · B 가짜 · 실물 완성 판정은 별도')
         window.dialogue_input.setVisible(runtime.c_pending is not None)
         window.dialogue_send.setVisible(runtime.c_pending is not None)
-        window.reinspection_button.setVisible(runtime.workflow.status=='HOLD' and runtime.workflow.inspection is not None)
+        window.reinspection_button.setVisible(runtime.workflow.status=='HOLD' and runtime.workflow.inspection is not None
+            and runtime.workflow.inspection['status'] in ('ERROR','UNOBSERVABLE'))
+        if real_trial and runtime.ready_signal and runtime.workflow.status not in ('STOPPED','HOLD'):
+            messages=dict(ALIGNMENT_READY='블록과 목표의 실물 정렬을 확인한 뒤 엄지척을 2초 보여주세요. 접촉 전 대기 중입니다.',
+                HELP_READY='표시된 도움을 준비한 뒤 엄지척을 2초 보여주세요. 해제 안내 전까지 도움을 유지해주세요.',
+                RECEIVE='받을 준비가 됐으면 편 손을 보여주세요. 인계 대기 중 편 손은 정지가 아니라 받기 응답입니다.',
+                ASSEMBLY_ACK='다음 스텝으로 넘어갈까요? 사람 조립을 마쳤으면 엄지척을 2초 보여주세요. B 관측은 가짜입니다.')
+            window.notice.setPlainText(messages[runtime.ready_signal['kind']])
+        if real_trial:
+            request=runtime.ready_signal
+            available=bool(request and request.get('operator_button_allowed') and
+                runtime.workflow.status not in ('STOPPED','HOLD'))
+            operator_confirm.setVisible(available)
+            operator_confirm.setEnabled(available and not request.get('_operator_sent',False))
+            if available:
+                operator_confirm.setText(dict(RECEIVE='손으로 받을 준비 완료',HELP_READY='도움 준비 완료',
+                    ASSEMBLY_ACK='조립 완료 · 검사 진행',ALIGNMENT_READY='정렬 확인 완료')[request['kind']])
+                window.notice.setPlainText(window.notice.toPlainText()+'\n제스처가 인식되지 않으면 확인 버튼을 누르세요.')
         if runtime.c_pending:window.notice.setPlainText(runtime.question)
     def request(value):
         accepted=runtime.request(value)

@@ -10,7 +10,7 @@ import signal
 import time
 from uuid import uuid4
 
-from app.assembly_motion import pose_error, vector
+from app.assembly_motion import motion_still, pose_error, vector
 from app.assembly_motion_ros import AssemblyMotionRos
 from app.jsonl_log import JsonlLog
 
@@ -22,7 +22,7 @@ def guard(sample, connection, limit, *, automatic, force_norm_limit=None, requir
             raise ValueError('POSITIVE_FINITE_FORCE_NORM_LIMIT_REQUIRED')
         if math.dist(sample['wrench'][:3], [0., 0., 0.]) >= force_norm_limit:
             raise RuntimeError('FORCE_NORM_STOP_LIMIT_REACHED')
-    if abs(sample['wrench'][2]) >= limit:
+    if limit is not None and abs(sample['wrench'][2]) >= limit:
         raise RuntimeError('FZ_STOP_LIMIT_REACHED')
     if sample['query_duration_s'] > .5:
         raise RuntimeError('FEEDBACK_TOO_OLD')
@@ -43,9 +43,17 @@ def run(driver, connection, target, limit, record, *, clearance_z=None,
         lift_only=False, transfer_only=False, set_automatic_mode=True, force_norm_stop_n=None,
         required_gripper_status=2,
         transfer_acceleration=None, descent_acceleration=None,
+        ik_fk_position_tolerance_mm=.05, ik_fk_orientation_tolerance_deg=.05,
+        position_tolerance_mm=.05, orientation_tolerance_deg=.05,
         clock=time.monotonic, sleep=time.sleep):
     attempted = False
+    stillness_policy=getattr(getattr(driver,'session',None),'value',{}).get('stillness',{})
     try:
+        if any(type(v) not in (int,float) or not math.isfinite(v) or not 0<v<=1 for v in (ik_fk_position_tolerance_mm,ik_fk_orientation_tolerance_deg)):
+            raise ValueError('INVALID_IK_FK_TOLERANCES')
+        if any(type(v) not in (int,float) or not math.isfinite(v) or not 0<v<=1
+               for v in (position_tolerance_mm,orientation_tolerance_deg)):
+            raise ValueError('INVALID_MOTION_ARRIVAL_TOLERANCES')
         if transfer_only and (lift_only or finish_lift):
             raise ValueError('INVALID_TRANSFER_ONLY_REQUEST')
         if any(not math.isfinite(v) or v <= 0 for v in (transfer_rate, descent_rate)):
@@ -61,7 +69,7 @@ def run(driver, connection, target, limit, record, *, clearance_z=None,
         guard(first, connection, limit, automatic=not set_automatic_mode, force_norm_limit=force_norm_stop_n,
               required_gripper_status=required_gripper_status)
         still_deadline = clock()+5.
-        while first['motion_status'] != 0 or any(first['velx']):
+        while not motion_still(first,stillness_policy):
             if clock() >= still_deadline:
                 raise RuntimeError('START_NOT_STILL')
             sleep(.05)
@@ -82,8 +90,8 @@ def run(driver, connection, target, limit, record, *, clearance_z=None,
         if clearance_z is not None and height-first['posx'][2] > .05:
             lifted = [*first['posx'][:2], height, *first['posx'][3:]]
             # A pure vertical lift already reaches ABOVE_TARGET. Do not send
-            # the identical destination again and repeat its network/stop checks.
-            if route[0][0] == 'ABOVE_TARGET' and pose_error(lifted,above) == (0.,0.):
+            # a destination already within arrival tolerance and repeat its stop checks.
+            if route[0][0] == 'ABOVE_TARGET' and max(pose_error(lifted,above)) <= .05:
                 route.pop(0)
             route.insert(0, ('LIFT', lifted))
         if finish_lift:
@@ -96,9 +104,12 @@ def run(driver, connection, target, limit, record, *, clearance_z=None,
             route = [(label, pose) for label, pose in route if label != 'DESCENT']
         for _, pose in route:
             fk = driver.check_pose(pose)
-            record('IK_FK_CHECK', dict(target=pose, fk=fk))
-            if pose_error(fk, pose)[0] > .05 or pose_error(fk, pose)[1] > .05:
+            mm, deg = pose_error(fk, pose)
+            record('IK_FK_CHECK', dict(target=pose, fk=fk, position_error_mm=mm, orientation_error_deg=deg))
+            if mm > ik_fk_position_tolerance_mm or deg > ik_fk_orientation_tolerance_deg:
                 raise RuntimeError('IK_FK_ROUNDTRIP_MISMATCH')
+            if mm > .05 or deg > .05:
+                record('IK_FK_NUMERICAL_WARNING', dict(target=pose, fk=fk, position_error_mm=mm, orientation_error_deg=deg))
         if set_automatic_mode:
             driver.call('system/set_robot_mode', 'SetRobotMode', robot_mode=1)
         contact_sample = None
@@ -109,7 +120,7 @@ def run(driver, connection, target, limit, record, *, clearance_z=None,
             guard(sample, connection, limit, automatic=True, force_norm_limit=force_norm_stop_n,
                   required_gripper_status=required_gripper_status)
             still_deadline = clock()+5.
-            while sample['motion_status'] != 0 or any(sample['velx']):
+            while not motion_still(sample,stillness_policy):
                 if clock() >= still_deadline:
                     raise RuntimeError('PRE_MOVE_NOT_STILL')
                 sleep(.05)
@@ -129,7 +140,7 @@ def run(driver, connection, target, limit, record, *, clearance_z=None,
                 guard(sample, connection, limit, automatic=True, force_norm_limit=force_norm_stop_n,
                       required_gripper_status=required_gripper_status)
                 distance, angle = pose_error(sample['posx'], pose)
-                if sample['motion_status'] == 0 and not any(sample['velx']) and distance <= .05 and angle <= .05:
+                if motion_still(sample,stillness_policy) and distance <= position_tolerance_mm and angle <= orientation_tolerance_deg:
                     break
                 if clock() >= deadline:
                     raise TimeoutError('MOTION_TIMEOUT')
@@ -150,7 +161,7 @@ def run(driver, connection, target, limit, record, *, clearance_z=None,
                 stop['acknowledged'] = True
                 feedback = driver.motion_feedback()
                 stop['feedback'] = feedback
-                stop['stillness_verified'] = feedback['motion_status'] == 0 and not any(feedback['velx'])
+                stop['stillness_verified'] = motion_still(feedback,stillness_policy)
             except Exception as stop_error:
                 stop['error'] = str(stop_error)
         record('ABORT', dict(reason=str(error) or type(error).__name__, stop=stop))

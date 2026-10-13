@@ -191,7 +191,7 @@ def test_blend_uses_fresh_start_after_ik_instead_of_rejecting_position_differenc
 
 
 @pytest.mark.parametrize('changes',[
-    dict(radius=0),dict(radius=31),dict(radius=float('nan')),
+    dict(radius=0),dict(radius=41),dict(radius=float('nan')),
     dict(points=[[20.,0.,100.,0.,0.,0.]]),
     dict(points=[[20.,0.,90.,0.,0.,0.],[20.,20.,90.,0.,0.,0.]]),
     dict(points=[[20.,0.,100.,0.,0.,0.],[40.,0.,100.,0.,0.,0.]]),
@@ -217,7 +217,7 @@ def test_blend_failure_stops_without_another_move_or_gripper(failure):
     if failure=='ack':assert d.command_outcome_unknown
 
 
-@pytest.mark.parametrize('radius',[5.,15.,30.])
+@pytest.mark.parametrize('radius',[5.,15.,30.,40.])
 def test_ros_serialization_is_14_fields_per_line_and_async_base_absolute(monkeypatch,radius):
     class Message:pass
     module=SimpleNamespace(Float64MultiArray=Message)

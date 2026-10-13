@@ -471,7 +471,9 @@ REVIEW_RULE_TABLE = [
     ("음…", d.UNCLEAR), ("글쎄", d.UNCLEAR), ("잘 모르겠어", d.UNCLEAR),
     ("그만할래", d.CANCEL), ("취소해줘", d.CANCEL), ("오늘은 안 만들래", d.CANCEL),
 ]
-REVIEW_MIXED = ["나쁘진 않은데 조금 더 길었으면 좋겠어", "싫은 건 아닌데 다른 것도 보고 싶어", "싫은 건 아니야"]
+# Wave 6(2026-10-12): "나쁘진 않은데 조금 더 길었으면 좋겠어"·"이걸로 하되 등받이만 바꿔줘"는 이제 규칙 MODIFY
+# (구체적 변경 요구 우선, tests/unit/c_design/test_review_acceptance.py). 부정이 섞인 혼합 답만 LLM으로 간다.
+REVIEW_MIXED = ["싫은 건 아닌데 다른 것도 보고 싶어", "싫은 건 아니야"]
 
 
 @pytest.mark.parametrize("text, expected", REVIEW_RULE_TABLE)
@@ -483,7 +485,7 @@ def test_review_rule_table(text, expected):
     assert calls == ([text] if expected == d.UNCLEAR else [])
 
 
-@pytest.mark.parametrize("text", REVIEW_MIXED + ["그냥 됐어", "마음에 안 들어", "이걸로 하되 등받이만 바꿔줘"])
+@pytest.mark.parametrize("text", REVIEW_MIXED + ["그냥 됐어", "마음에 안 들어"])
 def test_review_mixed_or_negated_answers_go_to_llm(text):
     assert d.parse_review_response(text) == d.UNCLEAR
     calls = []

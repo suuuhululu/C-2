@@ -19,7 +19,8 @@ _REAL_GENERATE_REVISED = llm.generate_revised_design  # saved before any test re
 ENVELOPE_KEYS = {"status", "hri_result", "design", "design_metadata", "questions", "error"}
 REVISED_METADATA_KEYS = {"design_name", "design_family", "design_summary", "visible_features", "human_interpretation",
                          "change_summary", "interpretation_status", "judge", "design_intent", "regenerations", "style_hint",
-                         "source", "error"}
+                         "user_constraints", "constraint_clamp", "source", "error"}
+# user_constraints: 2026-10-13 Wave 3 명시 제약(없으면 None). constraint_clamp: Wave 4 Current 때문에 올린 제약 기록(없으면 None)
 MOCK_REVISED_METADATA_KEYS = REVISED_METADATA_KEYS - {"style_hint"}
 
 def judge(**overrides):
@@ -222,7 +223,7 @@ def test_h_initial_metadata_llm(monkeypatch):
         "visible_features": ["좌석 6×6"], "human_interpretation": None,
         "judge": {"silhouette_clarity": "clear", "recognizable_family": True, "completeness_score": 4},
         "preference": _request("ANY"), "selected_family": "high-back chair", "family_source": "random", "style_hint": None,
-        "family_design_match": "clear", "source": "LLM", "error": None,
+        "family_design_match": "clear", "user_constraints": None, "source": "LLM", "error": None,
     }
     assert result["questions"] == []  # 텍스트 모드: 첫 발화는 호출자가 받았고, 되묻기가 필요 없으면 질문이 없다
     assert set(result["design"]) == {"design_version", "blocks"} and result["design"]["design_version"] == 1
@@ -320,7 +321,7 @@ def test_keep_and_mock_revise_metadata(scenario, monkeypatch):
 
 INITIAL_METADATA_KEYS = {"design_name", "design_family", "design_summary", "visible_features", "human_interpretation",
                          "judge", "preference", "selected_family", "family_source", "style_hint", "family_design_match",
-                         "source", "error"}
+                         "user_constraints", "source", "error"}  # user_constraints: Wave 3 명시 제약(없으면 None)
 REQUEST_KEYS = ("object", "preference", "family", "style_hint", "sufficient", "follow_up", "reply")  # llm.REQUEST_KEYS(A)
 FOLLOW_UP = "어떤 느낌의 의자가 좋으세요? 팔걸이나 색, 모양을 말씀해 주셔도 돼요."
 
@@ -1284,7 +1285,8 @@ def test_review_missing_scope_defaults_to_patch(candidate, review_llm):
 def test_review_mixed_answer_goes_to_llm_then_regenerates(candidate, review_llm):
     calls, replies = review_llm
     replies["review"] = dict(MODIFY_REPLY, style_hint="조금 더 길게", reply="")
-    result, _ = _review(candidate, "나쁘진 않은데 조금 더 길었으면 좋겠어")
+    # Wave 6: "나쁘진 않은데 …"는 이제 규칙 MODIFY(구체적 변경 우선)이므로 부정이 섞인 혼합 답으로 LLM 경로를 시험한다.
+    result, _ = _review(candidate, "싫은 건 아닌데 조금 더 길었으면 좋겠어")
     review = result["design_metadata"]["review"]
     assert result["hri_result"] == "MODIFY" and review["source"] == "llm" and review["style_hint"] == "조금 더 길게"
     assert len(calls["review"]) == 1 and len(calls["initial"]) == 1
@@ -1480,7 +1482,7 @@ def test_review_mock_mode_uses_rules_only_and_never_generates(candidate, monkeyp
     monkeypatch.delenv("C_DESIGN_USE_LLM", raising=False)
     for name in ("interpret_review_answer", "generate_initial_design", "generate_revised_design"):
         monkeypatch.setattr(main.llm, name, lambda *a, **k: pytest.fail("Mock must not call LLM"), raising=False)
-    result, _ = _review(candidate, "나쁘진 않은데 조금 더 길었으면 좋겠어", "등받이를 더 높게")
+    result, _ = _review(candidate, "싫은 건 아닌데 조금 더 길었으면 좋겠어", "등받이를 더 높게")  # Wave 6: 혼합 답은 부정 포함형
     assert result["hri_result"] == "MODIFY" and result["design"] == candidate  # Wave 1 동작: 후보 그대로
     assert result["design_metadata"]["review"]["style_hint"] is None and result["design_metadata"]["review"]["round"] == 0
     assert result["questions"] == [dialogue.REVIEW_QUESTIONS["initial"], dialogue.REVIEW_REASK]

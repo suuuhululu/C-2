@@ -30,7 +30,7 @@ Stage 2 Wave 1에서 C(`app/c_design/validator.py`, `app/c_design/llm.py`)는 �
 | 허용 orientation_deg | `1x2x1` {0, 90} · `2x2x1` {0} · `2x3x1` {0, 90}. 90도는 X/Y footprint를 교환 |
 | MAX_LAYER | 5 |
 | MAX_BLOCKS | 40 (기존 30) |
-| support 규칙(불변) | 바로 아래 layer와 겹치는 **고유 stud 합계 ≥ 2**(아래 블록 개수 무관, 같은 stud 중복 합산 없음). `1x2x1`은 footprint 전체가 stud 2개뿐이므로, 이 규칙을 만족하려면 두 stud 모두 아래 블록 위에 있어야 함(즉 완전히 아래 블록 위에 올라가야 함) |
+| support 규칙(당시 2026-10-07 기준; 2026-10-13부터 C 생성 Candidate는 min(4, stud 수)로 강화, CONTRACT §9.1) | 바로 아래 layer와 겹치는 **고유 stud 합계 ≥ 2**(아래 블록 개수 무관, 같은 stud 중복 합산 없음). `1x2x1`은 footprint 전체가 stud 2개뿐이므로, 이 규칙을 만족하려면 두 stud 모두 아래 블록 위에 있어야 함(즉 완전히 아래 블록 위에 올라가야 함) |
 
 ## 변경 지점 (번호 | 소유 | 파일:줄 | REQUIRED CHANGE | AFFECTED INTERFACE | REASON)
 

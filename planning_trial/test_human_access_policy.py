@@ -59,7 +59,7 @@ def test_approved_26_blocks_complete_with_human_help_and_lower_layers():
     assert any(a['mode'] == 'HUMAN_ASSEMBLY' for a in actions)
     assert all(h['access_assessment'] == 'HUMAN_ACCESS_NOT_CHECKED'
                for a in actions for h in a['human_actions'])
-    assert all(a['human_hands_used'] <= 2 for a in actions)
+    assert all(a['human_hands_used'] == len(a['human_actions']) for a in actions)
     raw = audit['raw_result']
     assert validate_candidate(data['design'], data['current'], data['assembly_context'],
                               raw['planning_result']['plan'], raw['assembly_actions']) == raw['optimization']['cost']

@@ -1,0 +1,155 @@
+{
+  "scope": "LOCAL_BLENDING_TRANSIT_TOLERANCES_AND_ENDPOINT_FINISH",
+  "checks": [
+    {
+      "tests": 1107,
+      "errors": 0,
+      "failures": 0,
+      "skipped": 1,
+      "report": "local-test-report:pr-robot-unit.xml",
+      "passed": 1106,
+      "duration_s": 22.407,
+      "exit_code": 0
+    },
+    {
+      "tests": 21,
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0,
+      "report": "local-test-report:pr-real-adapter-mock.xml",
+      "passed": 21,
+      "duration_s": 88.216,
+      "exit_code": 0
+    }
+  ],
+  "recorded_S06_reproduced_with_old_policy": true,
+  "recorded_S06_finishes_target_once_with_new_policy": true,
+  "slot_cycle": {
+    "slots": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      1
+    ],
+    "types": [
+      "2x2x1",
+      "2x3x1"
+    ],
+    "colors": [
+      "yellow",
+      "blue"
+    ],
+    "modes": [
+      "ROBOT_GRIP",
+      "HUMAN_ASSEMBLY"
+    ],
+    "completed_mock_steps": 56,
+    "blend_endpoint_residual_mm": 6.2
+  },
+  "thresholds": {
+    "transit_position_mm": 10.0,
+    "transit_orientation_deg": 5.0,
+    "corridor_mm": 80.0,
+    "blend_timeout_floor_s": 45.0,
+    "endpoint_position_mm": 1.0,
+    "endpoint_orientation_deg": 1.0
+  },
+  "guards_tested": [
+    "final_position_not_reached",
+    "robot_state",
+    "gripper_state",
+    "stale_feedback",
+    "nonfinite_force",
+    "corridor_outside_80mm",
+    "invalid_settings"
+  ],
+  "skipped_reason": "Existing external A onsite module unavailable during unit collection",
+  "syntax_and_source_parity": true,
+  "devices_executed": false,
+  "physical_slot6_verified": false,
+  "active_process_resume_changed": false,
+  "fixed_local_branch": "work/suhyun-hmi-backend-robot-db",
+  "publication": "FOLLOWUP_PR_TO_CODEX_INTEGRATION_ROUND1",
+  "reproduce_commands": [
+    "python3 scripts/test_robot_trial_offline.py",
+    "C_DESIGN_USE_LLM=0 C2_ROBOT_ROOT=\"$PWD/robot_control_integration\" PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 python3 -m pytest tests/integration/test_mvp_full_real_adapter.py -q --tb=short"
+  ],
+  "prior_real_evidence": {
+    "source_job": "92bf80d8-9455-4a07-9bfd-ecc27575228c",
+    "S01_threshold_force_norm_n": 36.8105483254874,
+    "S01_old_return_endpoint": [
+      -331.85260009765625,
+      9.898046493530273,
+      194.73294067382812,
+      125.3236312866211,
+      -177.62391662597656,
+      126.60347747802734
+    ],
+    "S02_actual_pickup_endpoint": [
+      -395.02966308593756,
+      12.587860584259033,
+      194.73294067382812,
+      -50.54710367422485,
+      177.43495012931803,
+      -49.374049679339805
+    ],
+    "S02_hold_reason": "FORCE_NORM_STOP_LIMIT_REACHED",
+    "post_fix_recorded_route_rebuild": {
+      "kind": "PURE_ROUTE_BUILD_NO_DEVICE_COMMAND",
+      "first_step_after_release": [
+        "lift",
+        [
+          194.73294067382812,
+          0
+        ]
+      ],
+      "second_step_empty_targets": [
+        [
+          -27.878286361694336,
+          -411.9568176269531,
+          194.73294067382812,
+          -50.54710367422485,
+          177.43495012931803,
+          -49.374049679339805
+        ],
+        [
+          -364.8591304347826,
+          -171.54,
+          194.73294067382812,
+          -50.54710367422485,
+          177.43495012931803,
+          -49.374049679339805
+        ],
+        [
+          -395.02966308593756,
+          12.587860584259033,
+          194.73294067382812,
+          -50.54710367422485,
+          177.43495012931803,
+          -49.374049679339805
+        ]
+      ],
+      "previous_slot_pose": [
+        -331.85260009765625,
+        9.898046493530273,
+        50.785804748535156,
+        125.3236312866211,
+        -177.62391662597656,
+        126.60347747802734
+      ],
+      "current_slot_pose": [
+        -395.02966308593756,
+        12.587860584259033,
+        49.33174705505371,
+        -50.54710367422485,
+        177.43495012931803,
+        -49.374049679339805
+      ],
+      "previous_slot_revisited": false
+    }
+  },
+  "validation_checkout": "codex/robot-trial-fixes-20261013 on ca3101a integration-round1"
+}

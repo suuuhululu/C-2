@@ -9,11 +9,15 @@ from app.hmi_contracts import SUPPLY_COLUMNS
 
 
 @pytest.mark.parametrize('column', sorted(SUPPLY_COLUMNS))
-def test_every_block_column_wraps_six_to_one_independently(monkeypatch, column):
+@pytest.mark.parametrize('slot_count', [6, 5])
+def test_every_block_column_wraps_available_slots_independently(monkeypatch, column, slot_count):
     runtime = mvp_integration.MvpIntegration.__new__(mvp_integration.MvpIntegration)
+    runtime.supply_slot_count = slot_count
     runtime.inbox = Queue()
     runtime.robot = SimpleNamespace(events=Queue())
     runtime.scene, runtime.slot_indices = [], {}
+    runtime.consumed_executions, runtime.scene_executions = set(), set()
+    runtime.auto_gestures = False
     runtime.robot_sample, runtime.ready_signal = None, None
     block = dict(brick_type=column[0], color=column[1], x=6, y=6, layer=1, orientation_deg=0)
     prepared, received = [], []
@@ -21,19 +25,27 @@ def test_every_block_column_wraps_six_to_one_independently(monkeypatch, column):
         supply=[dict(brick_type=k, color=c, next_slot=1, needs_refill=False) for k,c in SUPPLY_COLUMNS],
         step=lambda:dict(after=block), prepared_step=prepared.append, robot_event=received.append)
     monkeypatch.setattr(mvp_integration, 'prepare', lambda workflow,payload,**kwargs: kwargs['slot_index'])
-    for slot in [1,2,3,4,5,6,1,2,3,4,5,6,1]:
+    slots = list(range(1,slot_count+1))*2+[1]
+    for slot in slots:
         runtime.emit('d.prepare_step', dict(step=dict(after=block)))
         assert prepared[-1] == slot
-        runtime.robot.events.put(dict(event='INSPECTION_REQUIRED', data={}))
+        runtime.workflow.execution_id = f'execution-{len(prepared)}'
+        runtime.workflow.reason = None
+        runtime.workflow.step_inputs = dict(slot=dict(brick_type=column[0], color=column[1], slot_index=slot))
+        data = dict(execution_id=runtime.workflow.execution_id)
+        runtime.robot.events.put(dict(event='GRIP_SUCCEEDED', data=dict(data,label='PICKUP_CLOSE')))
+        runtime.robot.events.put(dict(event='INSPECTION_REQUIRED', data=data))
         runtime.poll()
         assert runtime.workflow.status == 'RUNNING'
         row = next(r for r in runtime.workflow.supply if (r['brick_type'],r['color']) == column)
-        assert row['next_slot'] == (1 if slot == 6 else slot+1)
+        assert row['next_slot'] == (1 if slot == slot_count else slot+1)
         assert row['needs_refill'] is False
         assert all(r['next_slot']==1 for r in runtime.workflow.supply if (r['brick_type'],r['color'])!=column)
-    assert len(received)==13
-    # 자동 재관측은 같은 블록을 다시 소비한 것으로 계산하지 않는다.
-    runtime.robot.events.put(dict(event='INSPECTION_REQUIRED', data=dict(automatic_reinspection=True)))
+    assert len(received)==len(slots)*2
+    # 수동/자동 재검사 및 중복 집기 완료는 같은 블록을 다시 소비하지 않는다.
+    runtime.robot.events.put(dict(event='INSPECTION_REQUIRED', data=dict(data,automatic_reinspection=False)))
+    runtime.robot.events.put(dict(event='INSPECTION_REQUIRED', data=dict(data,automatic_reinspection=True)))
+    runtime.robot.events.put(dict(event='GRIP_SUCCEEDED', data=dict(data,label='PICKUP_CLOSE')))
     runtime.poll()
     assert runtime.slot_indices[column] == 2
 
@@ -57,9 +69,11 @@ def test_real_plan_preflight_does_not_limit_plan_to_remaining_supply_slots():
 def test_design_count_limit_remains_forty_in_c_and_a():
     from app.c_design import validator
     from planning_trial.planner import validate_design
-    # 위층을 한 stud씩 엇갈려 놓아 한 구조로 연결된 41개 입력을 만든다.
-    blocks=[dict(brick_type='2x2x1',color='yellow',x=2*i+(layer+1)%2,y=0,layer=layer,
-        orientation_deg=0) for layer,count in [(1,11),(2,10),(3,11),(4,9)] for i in range(count)]
+    # 위층을 한 stud씩 엇갈려 놓되 층마다 양 끝을 한 칸씩 안으로 들여 모든 위층 블록이 아래 두 블록에 2+2=4 stud로
+    # 얹히게 한 41개 입력(2026-10-13 C support 규칙 min(4, stud 수); 이전의 끝단 블록은 2 stud뿐이라 새 규칙에서 무효).
+    # 피라미드 11+10+9+8+7 = 45개에서 앞 41개를 쓴다. 테스트 목적(40개 통과·41개 거부)은 그대로다.
+    blocks=[dict(brick_type='2x2x1',color='yellow',x=2*i+(layer-1),y=0,layer=layer,
+        orientation_deg=0) for layer,count in [(1,11),(2,10),(3,9),(4,8),(5,7)] for i in range(count)][:41]
     design=dict(design_version=1,blocks=blocks[:40])
     assert validator.validate_design(design)==[]
     assert len(validate_design(design))==40

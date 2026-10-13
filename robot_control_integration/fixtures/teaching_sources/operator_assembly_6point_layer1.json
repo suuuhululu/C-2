@@ -1,0 +1,884 @@
+{
+  "sample_kind": "OPERATOR_TAUGHT_READ_ONLY",
+  "execution_allowed": false,
+  "tcp": "GripperDA_v4",
+  "tool": "ToolWeight0",
+  "records": {
+    "assembly/blue/2x3x1/90/1": {
+      "case_id": "assembly/blue/2x3x1/90/1",
+      "section": "assembly",
+      "color": "blue",
+      "brick_type": "2x3x1",
+      "orientation_deg": 90,
+      "layer": 1,
+      "planner_xy": [
+        11,
+        11
+      ],
+      "instruction": "blue 2x3x1 방향 90° · 1층 · Planner (11,11): 사람이 완전 체결한 블록을 정상 파지 높이로 수동 정렬합니다. 자동 누르기를 수행하지 않습니다.",
+      "captured_unix_s": 1791795358.1663685,
+      "tcp_pose_mm_zyz_deg": [
+        479.96270751953125,
+        84.16621398925781,
+        15.032864570617676,
+        136.16897583007812,
+        -179.09410095214844,
+        -132.9127197265625
+      ],
+      "robot_sample": {
+        "posj": [
+          10.035099029541016,
+          21.433237075805664,
+          92.86467742919922,
+          -0.6803791522979736,
+          65.16509246826172,
+          100.89591979980469
+        ],
+        "posx": [
+          479.96270751953125,
+          84.16621398925781,
+          15.032864570617676,
+          136.16897583007812,
+          -179.09410095214844,
+          -132.9127197265625
+        ],
+        "velx": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "motion_status": 0,
+        "query_started_monotonic_s": 202675.902730299,
+        "query_duration_s": 0.1179140399908647,
+        "query_finished_monotonic_s": 202676.020644788,
+        "robot_state": 1,
+        "robot_mode": 0,
+        "drl_state": 3,
+        "tcp": "GripperDA_v4",
+        "tool": "ToolWeight0",
+        "wrench": [
+          -0.4573914706707001,
+          -2.1617233753204346,
+          5.0607404708862305,
+          0.8026778697967529,
+          -0.19055619835853577,
+          0.49334046244621277
+        ],
+        "gripper_status": 2,
+        "gripper_width_mm": 40.6,
+        "gripper_fingertip_offset_mm": 0.0,
+        "gripper_width_with_offset_mm": 40.6
+      },
+      "receipt": {
+        "samples": [
+          {
+            "posj": [
+              10.035099029541016,
+              21.433237075805664,
+              92.86467742919922,
+              -0.6803791522979736,
+              65.16509246826172,
+              100.89591979980469
+            ],
+            "posx": [
+              479.96270751953125,
+              84.16621398925781,
+              15.032864570617676,
+              136.16897583007812,
+              -179.09410095214844,
+              -132.9127197265625
+            ],
+            "velx": [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            "motion_status": 0,
+            "query_started_monotonic_s": 202675.575678448,
+            "query_duration_s": 0.11260523099917918,
+            "query_finished_monotonic_s": 202675.688284272,
+            "robot_state": 1,
+            "robot_mode": 0,
+            "drl_state": 3,
+            "tcp": "GripperDA_v4",
+            "tool": "ToolWeight0",
+            "wrench": [
+              -0.44509804248809814,
+              -2.139390230178833,
+              5.032041549682617,
+              0.7890904545783997,
+              -0.19133643805980682,
+              0.49059468507766724
+            ],
+            "gripper_status": 2,
+            "gripper_width_mm": 40.6,
+            "gripper_fingertip_offset_mm": 0.0,
+            "gripper_width_with_offset_mm": 40.6
+          },
+          {
+            "posj": [
+              10.035099029541016,
+              21.433237075805664,
+              92.86467742919922,
+              -0.6803791522979736,
+              65.16509246826172,
+              100.89591979980469
+            ],
+            "posx": [
+              479.96270751953125,
+              84.16621398925781,
+              15.032864570617676,
+              136.16897583007812,
+              -179.09410095214844,
+              -132.9127197265625
+            ],
+            "velx": [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            "motion_status": 0,
+            "query_started_monotonic_s": 202675.73835577,
+            "query_duration_s": 0.11427671799901873,
+            "query_finished_monotonic_s": 202675.852633001,
+            "robot_state": 1,
+            "robot_mode": 0,
+            "drl_state": 3,
+            "tcp": "GripperDA_v4",
+            "tool": "ToolWeight0",
+            "wrench": [
+              -0.4230586290359497,
+              -2.15413236618042,
+              5.031511306762695,
+              0.7984451651573181,
+              -0.18236775696277618,
+              0.4906098544597626
+            ],
+            "gripper_status": 2,
+            "gripper_width_mm": 40.6,
+            "gripper_fingertip_offset_mm": 0.0,
+            "gripper_width_with_offset_mm": 40.6
+          },
+          {
+            "posj": [
+              10.035099029541016,
+              21.433237075805664,
+              92.86467742919922,
+              -0.6803791522979736,
+              65.16509246826172,
+              100.89591979980469
+            ],
+            "posx": [
+              479.96270751953125,
+              84.16621398925781,
+              15.032864570617676,
+              136.16897583007812,
+              -179.09410095214844,
+              -132.9127197265625
+            ],
+            "velx": [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            "motion_status": 0,
+            "query_started_monotonic_s": 202675.902730299,
+            "query_duration_s": 0.1179140399908647,
+            "query_finished_monotonic_s": 202676.020644788,
+            "robot_state": 1,
+            "robot_mode": 0,
+            "drl_state": 3,
+            "tcp": "GripperDA_v4",
+            "tool": "ToolWeight0",
+            "wrench": [
+              -0.4573914706707001,
+              -2.1617233753204346,
+              5.0607404708862305,
+              0.8026778697967529,
+              -0.19055619835853577,
+              0.49334046244621277
+            ],
+            "gripper_status": 2,
+            "gripper_width_mm": 40.6,
+            "gripper_fingertip_offset_mm": 0.0,
+            "gripper_width_with_offset_mm": 40.6
+          }
+        ],
+        "captured_unix_s": 1791795358.1663685,
+        "physical_commands": 0
+      },
+      "source": "READ_ONLY_DEVICE_QUERY",
+      "operator_confirmed": true,
+      "execution_allowed": false
+    },
+    "assembly/blue/2x3x1/0/1": {
+      "case_id": "assembly/blue/2x3x1/0/1",
+      "section": "assembly",
+      "color": "blue",
+      "brick_type": "2x3x1",
+      "orientation_deg": 0,
+      "layer": 1,
+      "planner_xy": [
+        11,
+        11
+      ],
+      "instruction": "blue 2x3x1 방향 0° · 1층 · Planner (11,11): 사람이 완전 체결한 블록을 정상 파지 높이로 수동 정렬합니다. 자동 누르기를 수행하지 않습니다.",
+      "captured_unix_s": 1791795433.607257,
+      "tcp_pose_mm_zyz_deg": [
+        471.8993225097656,
+        95.42105865478516,
+        15.272260665893555,
+        10.234113693237305,
+        -179.77880859375,
+        10.085766792297363
+      ],
+      "robot_sample": {
+        "posj": [
+          10.986414909362793,
+          21.257946014404297,
+          93.07044219970703,
+          0.12212954461574554,
+          65.89312744140625,
+          10.446514129638672
+        ],
+        "posx": [
+          471.8993225097656,
+          95.42105865478516,
+          15.272260665893555,
+          10.234113693237305,
+          -179.77880859375,
+          10.085766792297363
+        ],
+        "velx": [
+          -0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "motion_status": 0,
+        "query_started_monotonic_s": 202751.354567641,
+        "query_duration_s": 0.10701324898400344,
+        "query_finished_monotonic_s": 202751.461581247,
+        "robot_state": 1,
+        "robot_mode": 0,
+        "drl_state": 3,
+        "tcp": "GripperDA_v4",
+        "tool": "ToolWeight0",
+        "wrench": [
+          -5.231248378753662,
+          -4.210498809814453,
+          10.958099365234375,
+          0.39772236347198486,
+          -0.56007981300354,
+          -0.20574621856212616
+        ],
+        "gripper_status": 2,
+        "gripper_width_mm": 40.6,
+        "gripper_fingertip_offset_mm": 0.0,
+        "gripper_width_with_offset_mm": 40.6
+      },
+      "receipt": {
+        "samples": [
+          {
+            "posj": [
+              10.986414909362793,
+              21.257946014404297,
+              93.07044219970703,
+              0.12212954461574554,
+              65.89312744140625,
+              10.446514129638672
+            ],
+            "posx": [
+              471.8993225097656,
+              95.42105865478516,
+              15.272260665893555,
+              10.234113693237305,
+              -179.77880859375,
+              10.085766792297363
+            ],
+            "velx": [
+              -0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            "motion_status": 0,
+            "query_started_monotonic_s": 202751.026602892,
+            "query_duration_s": 0.11354680798831396,
+            "query_finished_monotonic_s": 202751.140150088,
+            "robot_state": 1,
+            "robot_mode": 0,
+            "drl_state": 3,
+            "tcp": "GripperDA_v4",
+            "tool": "ToolWeight0",
+            "wrench": [
+              -5.243377685546875,
+              -4.207198619842529,
+              10.960428237915039,
+              0.39433321356773376,
+              -0.5624353289604187,
+              -0.2077808380126953
+            ],
+            "gripper_status": 2,
+            "gripper_width_mm": 40.6,
+            "gripper_fingertip_offset_mm": 0.0,
+            "gripper_width_with_offset_mm": 40.6
+          },
+          {
+            "posj": [
+              10.986414909362793,
+              21.257946014404297,
+              93.07044219970703,
+              0.12212954461574554,
+              65.89312744140625,
+              10.446514129638672
+            ],
+            "posx": [
+              471.8993225097656,
+              95.42105865478516,
+              15.272260665893555,
+              10.234113693237305,
+              -179.77880859375,
+              10.085766792297363
+            ],
+            "velx": [
+              -0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            "motion_status": 0,
+            "query_started_monotonic_s": 202751.190213292,
+            "query_duration_s": 0.1141758400190156,
+            "query_finished_monotonic_s": 202751.304389644,
+            "robot_state": 1,
+            "robot_mode": 0,
+            "drl_state": 3,
+            "tcp": "GripperDA_v4",
+            "tool": "ToolWeight0",
+            "wrench": [
+              -5.259664058685303,
+              -4.2286787033081055,
+              10.946998596191406,
+              0.4019937813282013,
+              -0.5717355608940125,
+              -0.20475943386554718
+            ],
+            "gripper_status": 2,
+            "gripper_width_mm": 40.6,
+            "gripper_fingertip_offset_mm": 0.0,
+            "gripper_width_with_offset_mm": 40.6
+          },
+          {
+            "posj": [
+              10.986414909362793,
+              21.257946014404297,
+              93.07044219970703,
+              0.12212954461574554,
+              65.89312744140625,
+              10.446514129638672
+            ],
+            "posx": [
+              471.8993225097656,
+              95.42105865478516,
+              15.272260665893555,
+              10.234113693237305,
+              -179.77880859375,
+              10.085766792297363
+            ],
+            "velx": [
+              -0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            "motion_status": 0,
+            "query_started_monotonic_s": 202751.354567641,
+            "query_duration_s": 0.10701324898400344,
+            "query_finished_monotonic_s": 202751.461581247,
+            "robot_state": 1,
+            "robot_mode": 0,
+            "drl_state": 3,
+            "tcp": "GripperDA_v4",
+            "tool": "ToolWeight0",
+            "wrench": [
+              -5.231248378753662,
+              -4.210498809814453,
+              10.958099365234375,
+              0.39772236347198486,
+              -0.56007981300354,
+              -0.20574621856212616
+            ],
+            "gripper_status": 2,
+            "gripper_width_mm": 40.6,
+            "gripper_fingertip_offset_mm": 0.0,
+            "gripper_width_with_offset_mm": 40.6
+          }
+        ],
+        "captured_unix_s": 1791795433.607257,
+        "physical_commands": 0
+      },
+      "source": "READ_ONLY_DEVICE_QUERY",
+      "operator_confirmed": true,
+      "execution_allowed": false
+    },
+    "assembly/yellow/2x3x1/90/1": {
+      "case_id": "assembly/yellow/2x3x1/90/1",
+      "section": "assembly",
+      "color": "yellow",
+      "brick_type": "2x3x1",
+      "orientation_deg": 90,
+      "layer": 1,
+      "planner_xy": [
+        11,
+        11
+      ],
+      "instruction": "yellow 2x3x1 방향 90° · 1층 · Planner (11,11): 사람이 완전 체결한 블록을 정상 파지 높이로 수동 정렬합니다. 자동 누르기를 수행하지 않습니다.",
+      "captured_unix_s": 1791795497.3272028,
+      "tcp_pose_mm_zyz_deg": [
+        480.94757080078125,
+        84.27879333496094,
+        15.223151206970215,
+        53.172096252441406,
+        -179.2993621826172,
+        144.56996154785156
+      ],
+      "robot_sample": {
+        "posj": [
+          9.848092079162598,
+          22.3572998046875,
+          91.48393249511719,
+          -0.3995600938796997,
+          66.66625213623047,
+          101.06688690185547
+        ],
+        "posx": [
+          480.94757080078125,
+          84.27879333496094,
+          15.223151206970215,
+          53.172096252441406,
+          -179.2993621826172,
+          144.56996154785156
+        ],
+        "velx": [
+          0.0,
+          0.0,
+          -0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "motion_status": 0,
+        "query_started_monotonic_s": 202815.074847574,
+        "query_duration_s": 0.10656225800630637,
+        "query_finished_monotonic_s": 202815.181410324,
+        "robot_state": 1,
+        "robot_mode": 0,
+        "drl_state": 3,
+        "tcp": "GripperDA_v4",
+        "tool": "ToolWeight0",
+        "wrench": [
+          -10.753238677978516,
+          -2.9944260120391846,
+          6.289093971252441,
+          0.5200479626655579,
+          -0.34814101457595825,
+          0.559878408908844
+        ],
+        "gripper_status": 2,
+        "gripper_width_mm": 40.6,
+        "gripper_fingertip_offset_mm": 0.0,
+        "gripper_width_with_offset_mm": 40.6
+      },
+      "receipt": {
+        "samples": [
+          {
+            "posj": [
+              9.848092079162598,
+              22.357200622558594,
+              91.48393249511719,
+              -0.3995600938796997,
+              66.66625213623047,
+              101.06688690185547
+            ],
+            "posx": [
+              480.9477844238281,
+              84.2788314819336,
+              15.223998069763184,
+              53.17766189575195,
+              -179.2994384765625,
+              144.57553100585938
+            ],
+            "velx": [
+              0.0,
+              0.0,
+              -0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            "motion_status": 0,
+            "query_started_monotonic_s": 202814.745469881,
+            "query_duration_s": 0.1149571179994382,
+            "query_finished_monotonic_s": 202814.860427363,
+            "robot_state": 1,
+            "robot_mode": 0,
+            "drl_state": 3,
+            "tcp": "GripperDA_v4",
+            "tool": "ToolWeight0",
+            "wrench": [
+              -10.786608695983887,
+              -2.9852421283721924,
+              6.277371883392334,
+              0.5139867067337036,
+              -0.3475155234336853,
+              0.5566611289978027
+            ],
+            "gripper_status": 2,
+            "gripper_width_mm": 40.6,
+            "gripper_fingertip_offset_mm": 0.0,
+            "gripper_width_with_offset_mm": 40.6
+          },
+          {
+            "posj": [
+              9.848092079162598,
+              22.357200622558594,
+              91.48393249511719,
+              -0.3995600938796997,
+              66.66625213623047,
+              101.06688690185547
+            ],
+            "posx": [
+              480.9477844238281,
+              84.2788314819336,
+              15.223998069763184,
+              53.17766189575195,
+              -179.2994384765625,
+              144.57553100585938
+            ],
+            "velx": [
+              0.0,
+              0.0,
+              -0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            "motion_status": 0,
+            "query_started_monotonic_s": 202814.910599734,
+            "query_duration_s": 0.1140736770175863,
+            "query_finished_monotonic_s": 202815.024673747,
+            "robot_state": 1,
+            "robot_mode": 0,
+            "drl_state": 3,
+            "tcp": "GripperDA_v4",
+            "tool": "ToolWeight0",
+            "wrench": [
+              -10.773865699768066,
+              -2.9907426834106445,
+              6.2821431159973145,
+              0.518860936164856,
+              -0.35028329491615295,
+              0.5611312389373779
+            ],
+            "gripper_status": 2,
+            "gripper_width_mm": 40.6,
+            "gripper_fingertip_offset_mm": 0.0,
+            "gripper_width_with_offset_mm": 40.6
+          },
+          {
+            "posj": [
+              9.848092079162598,
+              22.3572998046875,
+              91.48393249511719,
+              -0.3995600938796997,
+              66.66625213623047,
+              101.06688690185547
+            ],
+            "posx": [
+              480.94757080078125,
+              84.27879333496094,
+              15.223151206970215,
+              53.172096252441406,
+              -179.2993621826172,
+              144.56996154785156
+            ],
+            "velx": [
+              0.0,
+              0.0,
+              -0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            "motion_status": 0,
+            "query_started_monotonic_s": 202815.074847574,
+            "query_duration_s": 0.10656225800630637,
+            "query_finished_monotonic_s": 202815.181410324,
+            "robot_state": 1,
+            "robot_mode": 0,
+            "drl_state": 3,
+            "tcp": "GripperDA_v4",
+            "tool": "ToolWeight0",
+            "wrench": [
+              -10.753238677978516,
+              -2.9944260120391846,
+              6.289093971252441,
+              0.5200479626655579,
+              -0.34814101457595825,
+              0.559878408908844
+            ],
+            "gripper_status": 2,
+            "gripper_width_mm": 40.6,
+            "gripper_fingertip_offset_mm": 0.0,
+            "gripper_width_with_offset_mm": 40.6
+          }
+        ],
+        "captured_unix_s": 1791795497.3272028,
+        "physical_commands": 0
+      },
+      "source": "READ_ONLY_DEVICE_QUERY",
+      "operator_confirmed": true,
+      "execution_allowed": false
+    },
+    "assembly/yellow/2x3x1/0/1": {
+      "case_id": "assembly/yellow/2x3x1/0/1",
+      "section": "assembly",
+      "color": "yellow",
+      "brick_type": "2x3x1",
+      "orientation_deg": 0,
+      "layer": 1,
+      "planner_xy": [
+        11,
+        11
+      ],
+      "instruction": "yellow 2x3x1 방향 0° · 1층 · Planner (11,11): 사람이 완전 체결한 블록을 정상 파지 높이로 수동 정렬합니다. 자동 누르기를 수행하지 않습니다.",
+      "captured_unix_s": 1791795575.1687105,
+      "tcp_pose_mm_zyz_deg": [
+        472.14813232421875,
+        95.18111419677734,
+        14.174100875854492,
+        73.1888198852539,
+        179.36546325683594,
+        74.01113891601562
+      ],
+      "robot_sample": {
+        "posj": [
+          10.544309616088867,
+          20.946372985839844,
+          93.71125793457031,
+          0.7424280643463135,
+          65.05646514892578,
+          10.713403701782227
+        ],
+        "posx": [
+          472.14813232421875,
+          95.18111419677734,
+          14.174100875854492,
+          73.1888198852539,
+          179.36546325683594,
+          74.01113891601562
+        ],
+        "velx": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ],
+        "motion_status": 0,
+        "query_started_monotonic_s": 202892.916092614,
+        "query_duration_s": 0.10680813499493524,
+        "query_finished_monotonic_s": 202893.022901129,
+        "robot_state": 1,
+        "robot_mode": 0,
+        "drl_state": 3,
+        "tcp": "GripperDA_v4",
+        "tool": "ToolWeight0",
+        "wrench": [
+          -6.674504280090332,
+          -3.839571475982666,
+          3.6194708347320557,
+          0.3025866746902466,
+          -0.9176267385482788,
+          0.030335087329149246
+        ],
+        "gripper_status": 2,
+        "gripper_width_mm": 40.6,
+        "gripper_fingertip_offset_mm": 0.0,
+        "gripper_width_with_offset_mm": 40.6
+      },
+      "receipt": {
+        "samples": [
+          {
+            "posj": [
+              10.544210433959961,
+              20.946372985839844,
+              93.71125793457031,
+              0.7424280643463135,
+              65.05646514892578,
+              10.713403701782227
+            ],
+            "posx": [
+              472.1482849121094,
+              95.1802978515625,
+              14.174100875854492,
+              73.188720703125,
+              179.36546325683594,
+              74.01113891601562
+            ],
+            "velx": [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            "motion_status": 0,
+            "query_started_monotonic_s": 202892.581853574,
+            "query_duration_s": 0.11033640100504272,
+            "query_finished_monotonic_s": 202892.692190283,
+            "robot_state": 1,
+            "robot_mode": 0,
+            "drl_state": 3,
+            "tcp": "GripperDA_v4",
+            "tool": "ToolWeight0",
+            "wrench": [
+              -6.717156410217285,
+              -3.871321439743042,
+              3.5279171466827393,
+              0.3146362602710724,
+              -0.9377340078353882,
+              0.031984925270080566
+            ],
+            "gripper_status": 2,
+            "gripper_width_mm": 40.6,
+            "gripper_fingertip_offset_mm": 0.0,
+            "gripper_width_with_offset_mm": 40.6
+          },
+          {
+            "posj": [
+              10.544210433959961,
+              20.946372985839844,
+              93.71125793457031,
+              0.7424280643463135,
+              65.05646514892578,
+              10.713403701782227
+            ],
+            "posx": [
+              472.1482849121094,
+              95.1802978515625,
+              14.174100875854492,
+              73.188720703125,
+              179.36546325683594,
+              74.01113891601562
+            ],
+            "velx": [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            "motion_status": 0,
+            "query_started_monotonic_s": 202892.74225623,
+            "query_duration_s": 0.12366977499914356,
+            "query_finished_monotonic_s": 202892.865926362,
+            "robot_state": 1,
+            "robot_mode": 0,
+            "drl_state": 3,
+            "tcp": "GripperDA_v4",
+            "tool": "ToolWeight0",
+            "wrench": [
+              -6.678957939147949,
+              -3.872429370880127,
+              3.5805866718292236,
+              0.3157672882080078,
+              -0.9195573925971985,
+              0.03375232219696045
+            ],
+            "gripper_status": 2,
+            "gripper_width_mm": 40.6,
+            "gripper_fingertip_offset_mm": 0.0,
+            "gripper_width_with_offset_mm": 40.6
+          },
+          {
+            "posj": [
+              10.544309616088867,
+              20.946372985839844,
+              93.71125793457031,
+              0.7424280643463135,
+              65.05646514892578,
+              10.713403701782227
+            ],
+            "posx": [
+              472.14813232421875,
+              95.18111419677734,
+              14.174100875854492,
+              73.1888198852539,
+              179.36546325683594,
+              74.01113891601562
+            ],
+            "velx": [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            "motion_status": 0,
+            "query_started_monotonic_s": 202892.916092614,
+            "query_duration_s": 0.10680813499493524,
+            "query_finished_monotonic_s": 202893.022901129,
+            "robot_state": 1,
+            "robot_mode": 0,
+            "drl_state": 3,
+            "tcp": "GripperDA_v4",
+            "tool": "ToolWeight0",
+            "wrench": [
+              -6.674504280090332,
+              -3.839571475982666,
+              3.6194708347320557,
+              0.3025866746902466,
+              -0.9176267385482788,
+              0.030335087329149246
+            ],
+            "gripper_status": 2,
+            "gripper_width_mm": 40.6,
+            "gripper_fingertip_offset_mm": 0.0,
+            "gripper_width_with_offset_mm": 40.6
+          }
+        ],
+        "captured_unix_s": 1791795575.1687105,
+        "physical_commands": 0
+      },
+      "source": "READ_ONLY_DEVICE_QUERY",
+      "operator_confirmed": true,
+      "execution_allowed": false
+    }
+  }
+}
