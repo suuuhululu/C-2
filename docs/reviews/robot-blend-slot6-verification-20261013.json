@@ -1,0 +1,80 @@
+{
+  "scope": "LOCAL_BLENDING_TRANSIT_TOLERANCES_AND_ENDPOINT_FINISH",
+  "checks": [
+    {
+      "tests": 1107,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 1,
+      "report": "local-test-report:robot-unit.xml",
+      "exit_code": 0,
+      "passed": 1106,
+      "duration_s": 22.216
+    },
+    {
+      "tests": 21,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "report": "local-test-report:real-adapter-mock.xml",
+      "exit_code": 0,
+      "passed": 21,
+      "duration_s": 88.185
+    }
+  ],
+  "recorded_S06_reproduced_with_old_policy": true,
+  "recorded_S06_finishes_target_once_with_new_policy": true,
+  "slot_cycle": {
+    "slots": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      1
+    ],
+    "types": [
+      "2x2x1",
+      "2x3x1"
+    ],
+    "colors": [
+      "yellow",
+      "blue"
+    ],
+    "modes": [
+      "ROBOT_GRIP",
+      "HUMAN_ASSEMBLY"
+    ],
+    "completed_mock_steps": 56,
+    "blend_endpoint_residual_mm": 6.2
+  },
+  "thresholds": {
+    "transit_position_mm": 10.0,
+    "transit_orientation_deg": 5.0,
+    "corridor_mm": 80.0,
+    "blend_timeout_floor_s": 45.0,
+    "endpoint_position_mm": 1.0,
+    "endpoint_orientation_deg": 1.0
+  },
+  "guards_tested": [
+    "final_position_not_reached",
+    "robot_state",
+    "gripper_state",
+    "stale_feedback",
+    "nonfinite_force",
+    "corridor_outside_80mm",
+    "invalid_settings"
+  ],
+  "skipped_reason": "Existing external A onsite module unavailable during unit collection",
+  "syntax_and_source_parity": true,
+  "devices_executed": false,
+  "physical_slot6_verified": false,
+  "active_process_resume_changed": false,
+  "fixed_local_branch": "work/suhyun-hmi-backend-robot-db",
+  "publication": "FOLLOWUP_PR_TO_CODEX_INTEGRATION_ROUND1",
+  "reproduce_commands": [
+    "python3 scripts/test_robot_trial_offline.py",
+    "C_DESIGN_USE_LLM=0 C2_ROBOT_ROOT=\"$PWD/robot_control_integration\" PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 python3 -m pytest tests/integration/test_mvp_full_real_adapter.py -q --tb=short"
+  ]
+}

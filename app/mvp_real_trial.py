@@ -89,7 +89,7 @@ class FullFeatureRealTrial(MvpIntegration):
             raise ValueError('SUPPLY_TEACHING_REQUIRED_FOR_FULL_REAL_TRIAL')
         self.contact_alignment_trial=contact_alignment_trial
         p=self.inputs['profile']
-        p.update(empty_return_skip_place=True,palm_handover_before_contact=True,
+        p.update(empty_return_skip_place=True,palm_handover_before_contact=True,noncontact_force_guard=False,
             ik_fk_position_tolerance_mm=.5,ik_fk_orientation_tolerance_deg=.5,
             transfer_velocity=276.48,transfer_acceleration=96.,
             descent_acceleration=12.,pickup_descent_acceleration=12.)
@@ -98,7 +98,10 @@ class FullFeatureRealTrial(MvpIntegration):
             p['native_press']['alignment_trial']=True
             p['continuous_transport']=True
             p.update(reaction_descent_velocity=6.,reaction_descent_acceleration=6.)
-            p['transport_blending']['relaxed_constraints']=True
+            p.update(motion_position_tolerance_mm=1.,motion_orientation_tolerance_deg=1.)
+            p['transport_blending'].update(relaxed_constraints=True,
+                transit_position_tolerance_mm=10.,transit_orientation_tolerance_deg=5.,
+                corridor_margin_mm=40.,timeout_floor_s=45.,finish_endpoint=True)
         self.review_ref=None
         self.pending_read=None
         self.next_fake_check='MATCH'

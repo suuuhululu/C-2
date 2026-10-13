@@ -22,7 +22,7 @@ def guard(sample, connection, limit, *, automatic, force_norm_limit=None, requir
             raise ValueError('POSITIVE_FINITE_FORCE_NORM_LIMIT_REQUIRED')
         if math.dist(sample['wrench'][:3], [0., 0., 0.]) >= force_norm_limit:
             raise RuntimeError('FORCE_NORM_STOP_LIMIT_REACHED')
-    if abs(sample['wrench'][2]) >= limit:
+    if limit is not None and abs(sample['wrench'][2]) >= limit:
         raise RuntimeError('FZ_STOP_LIMIT_REACHED')
     if sample['query_duration_s'] > .5:
         raise RuntimeError('FEEDBACK_TOO_OLD')
@@ -44,12 +44,16 @@ def run(driver, connection, target, limit, record, *, clearance_z=None,
         required_gripper_status=2,
         transfer_acceleration=None, descent_acceleration=None,
         ik_fk_position_tolerance_mm=.05, ik_fk_orientation_tolerance_deg=.05,
+        position_tolerance_mm=.05, orientation_tolerance_deg=.05,
         clock=time.monotonic, sleep=time.sleep):
     attempted = False
     stillness_policy=getattr(getattr(driver,'session',None),'value',{}).get('stillness',{})
     try:
         if any(type(v) not in (int,float) or not math.isfinite(v) or not 0<v<=1 for v in (ik_fk_position_tolerance_mm,ik_fk_orientation_tolerance_deg)):
             raise ValueError('INVALID_IK_FK_TOLERANCES')
+        if any(type(v) not in (int,float) or not math.isfinite(v) or not 0<v<=1
+               for v in (position_tolerance_mm,orientation_tolerance_deg)):
+            raise ValueError('INVALID_MOTION_ARRIVAL_TOLERANCES')
         if transfer_only and (lift_only or finish_lift):
             raise ValueError('INVALID_TRANSFER_ONLY_REQUEST')
         if any(not math.isfinite(v) or v <= 0 for v in (transfer_rate, descent_rate)):
@@ -136,7 +140,7 @@ def run(driver, connection, target, limit, record, *, clearance_z=None,
                 guard(sample, connection, limit, automatic=True, force_norm_limit=force_norm_stop_n,
                       required_gripper_status=required_gripper_status)
                 distance, angle = pose_error(sample['posx'], pose)
-                if motion_still(sample,stillness_policy) and distance <= .05 and angle <= .05:
+                if motion_still(sample,stillness_policy) and distance <= position_tolerance_mm and angle <= orientation_tolerance_deg:
                     break
                 if clock() >= deadline:
                     raise TimeoutError('MOTION_TIMEOUT')

@@ -68,13 +68,15 @@ def native_press(driver,connection,plan,profile,travel,record,*,clock,sleep):
     c=json.loads((Path(__file__).resolve().parents[1]/'interfaces/assembly_contact_trial.json').read_text())
     c['mode']='REAL' if driver.mode=='REAL' else 'FAKE'
     c['connection'].update(connection)
+    if policy.get('alignment_trial',False):
+        # Reaction descent validates feedback and stops at the measured 35N norm.
+        # A free-force baseline belongs only to the separate native-force trial.
+        return reaction_stop_press(driver,connection,plan,profile,travel,record,clock=clock,sleep=sleep)
     free=[driver.sample() for _ in range(3)]
     for s in free:
         validate_sample(s,c)
         if not still(s) or math.hypot(*s['wrench'][:3])>=c['free_force_max_n']:
             raise RuntimeError('NATIVE_PRESS_FREE_REFERENCE_REQUIRED')
-    if policy.get('alignment_trial',False):
-        return reaction_stop_press(driver,connection,plan,profile,travel,record,clock=clock,sleep=sleep)
     start=free[-1]
     c.update(reviewed=True,floor_z_mm=start['posx'][2]-travel,
         force_window_mm=plan['settings']['reference_pose'][2]+policy['seek_above_reference_mm']-(start['posx'][2]-travel),

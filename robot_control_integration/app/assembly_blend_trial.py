@@ -74,12 +74,26 @@ def corridor_distance(position, route):
 
 def run_blend(driver, connection, targets, profile, record, *, held=2,
               clock=time.monotonic, sleep=time.sleep):
+    if type(profile.get('noncontact_force_guard',True)) is not bool:
+        raise ValueError('EXPLICIT_NONCONTACT_FORCE_GUARD_BOOLEAN_REQUIRED')
+    force_limit=profile['force_stop_n'] if profile.get('noncontact_force_guard',True) else None
     config = profile['transport_blending']
     if config.get('reviewed') is not True:
         raise ValueError('BLEND_ROUTE_REVIEW_REQUIRED')
     radius, rate, acceleration = config['radius_mm'], profile['transfer_velocity'], profile['transfer_acceleration']
     relaxed = config.get('relaxed_constraints',False)
     position_tolerance,orientation_tolerance = (1.,1.) if relaxed else (.05,.05)
+    transit_position = config.get('transit_position_tolerance_mm',position_tolerance)
+    transit_orientation = config.get('transit_orientation_tolerance_deg',orientation_tolerance)
+    corridor_margin = config.get('corridor_margin_mm',.5)
+    timeout_floor = config.get('timeout_floor_s',0.)
+    finish_endpoint = config.get('finish_endpoint',False)
+    if (type(finish_endpoint) is not bool or
+            any(type(v) not in (int,float) or not math.isfinite(v) or v<minimum
+                for v,minimum in ((transit_position,position_tolerance),
+                    (transit_orientation,orientation_tolerance),(corridor_margin,0.),(timeout_floor,0.))) or
+            (not finish_endpoint and (transit_position>position_tolerance or transit_orientation>orientation_tolerance))):
+        raise ValueError('INVALID_BLEND_TRANSIT_TOLERANCES')
     if any(type(v) not in (int,float) or not math.isfinite(v) or v <= 0 for v in (rate, acceleration)):
         raise ValueError('POSITIVE_FINITE_BLEND_RATES_REQUIRED')
     policy = getattr(getattr(driver,'session',None),'value',{}).get('stillness',{})
@@ -89,8 +103,12 @@ def run_blend(driver, connection, targets, profile, record, *, held=2,
                 max(map(abs,speed[:3]))<=policy.get('linear_mm_s',0.) and
                 max(map(abs,speed[3:]))<=policy.get('angular_deg_s',0.))
     def checked(sample):
-        guard(sample, connection, profile['force_stop_n'], automatic=True,
-              force_norm_limit=profile['force_stop_n'], required_gripper_status=held)
+        try:
+            guard(sample, connection, force_limit, automatic=True,
+                  force_norm_limit=force_limit, required_gripper_status=held)
+        except (RuntimeError,ValueError) as error:
+            record('MOTION_GUARD_REJECTED',dict(reason=str(error),sample=sample,force_limit_n=force_limit))
+            raise
     def settled():
         # Use the same reviewed window as control ownership, including after IK queries.
         if hasattr(driver,'stillness'):
@@ -130,7 +148,8 @@ def run_blend(driver, connection, targets, profile, record, *, held=2,
                 return current
         route = [current['posx'], *points]
         distance = sum(math.dist(a[:3], b[:3]) for a,b in zip(route, route[1:]))
-        deadline = clock()+distance/rate*3+10
+        deadline = clock()+max(timeout_floor,distance/rate*3+10)
+        finishing = False
         radii = segment_radii(current['posx'],points,radius) if relaxed else radius
         record('MOVE_REQUEST', dict(segment='BLENDED_TRANSIT', targets=points, radius_mm=radius,
                                    segment_radii_mm=radii,
@@ -142,18 +161,33 @@ def run_blend(driver, connection, targets, profile, record, *, held=2,
             driver.move_blending_async(points, radii, [rate,rate], [acceleration,acceleration])
         while True:
             sample = driver.sample()
-            guard(sample, connection, profile['force_stop_n'], automatic=True,
-                  force_norm_limit=profile['force_stop_n'], required_gripper_status=held)
-            if corridor_distance(sample['posx'], route) > radius+.5:
+            record('MOTION_SAMPLE', dict(segment='BLEND_ENDPOINT_FINISH' if finishing else 'BLENDED_TRANSIT', sample=sample))
+            checked(sample)
+            if corridor_distance(sample['posx'], route) > radius+corridor_margin:
                 raise RuntimeError('BLEND_LEFT_REVIEWED_CORRIDOR')
-            record('MOTION_SAMPLE', dict(segment='BLENDED_TRANSIT', sample=sample))
             mm, deg = pose_error(sample['posx'], points[-1])
-            if still(sample) and mm <= position_tolerance and deg <= orientation_tolerance:
+            arrival_mm = position_tolerance if finishing or len(points)==1 else transit_position
+            arrival_deg = orientation_tolerance if finishing or len(points)==1 else transit_orientation
+            if still(sample) and mm <= arrival_mm and deg <= arrival_deg:
                 sample=settled();mm,deg=pose_error(sample['posx'],points[-1])
-                if not still(sample) or mm>position_tolerance or deg>orientation_tolerance:
+                if not still(sample) or mm>arrival_mm or deg>arrival_deg:
                     if clock()>=deadline:raise TimeoutError('BLEND_MOTION_TIMEOUT')
                     continue
+                if not finishing and (mm>position_tolerance or deg>orientation_tolerance):
+                    # A stopped blend near the destination is a transit boundary,
+                    # not permission to descend. Finish the unchanged endpoint once.
+                    record('BLEND_TRANSIT_COMPLETE',dict(final_sample=sample,
+                        position_error_mm=mm,orientation_error_deg=deg,
+                        position_tolerance_mm=transit_position,orientation_tolerance_deg=transit_orientation))
+                    record('MOVE_REQUEST',dict(segment='BLEND_ENDPOINT_FINISH',target=points[-1],
+                        velocity=[rate,rate],acceleration=[acceleration,acceleration]))
+                    driver.move_line_async(points[-1],[rate,rate],[acceleration,acceleration])
+                    finishing=True
+                    deadline=clock()+math.dist(sample['posx'][:3],points[-1][:3])/rate*3+10
+                    sleep(.05)
+                    continue
                 record('BLEND_COMPLETE', dict(final_sample=sample, endpoint_verified=True,
+                    endpoint_finish_sent=finishing,
                     position_tolerance_mm=position_tolerance,orientation_tolerance_deg=orientation_tolerance))
                 return sample
             if clock() >= deadline:
