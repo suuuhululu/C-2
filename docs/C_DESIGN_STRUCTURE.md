@@ -127,7 +127,7 @@ scripts/
 | x, y | 0~23, Board의 stud 위치, footprint 최소 모서리 (Robot mm 좌표 아님) |
 | layer | 1~5, **1-based** (layer 1 = Board 위 첫 LEGO 층, 최대 5층: 2026-10-06 팀장 결정) |
 | orientation_deg | 2x3x1: 0 = X 2 / Y 3 stud, 90 = X 3 / Y 2 stud. 2x2x1: 0 |
-| support | 바로 아래 layer와 겹치는 고유 stud 총 2개 이상(아래 블록 개수 무관, 중복 stud 중복 합산 없음). 2026-10-06 A/C Day4 기하 합의이며 실제 체결·물리 안정성 기준은 아님 |
+| support | 바로 아래 layer와 겹치는 고유 stud 수 ≥ min(4, 그 블록의 stud 수): 2x2x1 4/4, 2x3x1 6 중 4, 1x2x1 2/2(아래 블록 개수 무관, 중복 합산 없음, layer 1 제외). 2026-10-13 Robot-only 결착 안정성 규칙(C 생성 Candidate 전체). 당시(2026-10-06 A/C Day4 합의)는 합계 2 이상. 실제 체결·물리 안정성 기준은 아님 |
 
 `docs/reference/` GT 원본의 0-based layer 표기는 원자료 규약이며 C 구현에는 적용하지 않습니다.
 

@@ -592,20 +592,28 @@ Preview 검토(§4.4)가 MODIFY이면 C가 새 **Candidate** Design을 만들어
 | footprint가 Board 0~23 밖 | `out_of_board` |
 | 블록 수 1~40 밖 | `brick_count` |
 | 같은 layer 안 footprint overlap | `overlap` |
-| support: layer ≥ 2 블록은 바로 아래 layer 블록들과 겹치는 stud 수의 합계가 2 이상(아래 블록 개수 무관, 같은 stud 중복 합산 없음) | `support` |
+| support: layer ≥ 2 블록은 바로 아래 layer 블록들과 겹치는 고유 stud 수가 `min(4, 그 블록의 stud 수)` 이상(2x2x1 4/4, 2x3x1 6 중 4 이상, 1x2x1 2/2; 아래 블록 개수 무관, 같은 stud 중복 합산 없음, 바로 아래 한 층만 계산) | `support` |
 | connectivity: 위아래 layer stud 겹침으로 연결했을 때 전체가 하나 | `connectivity` |
 | Revised: §8.3 Current 보존 | `assembled_not_preserved` |
 
-support는 **2026-10-06 세은(A)의 동의와 수현(D)의 회신으로 통일한 A/C Day4 기하 기준**입니다([A와 C의 지지 판정](09_C_B_BACKEND_HANDOFF.md#a와-c의-지지-판정)). 바로 아래층의 고유 stud 총 2개 이상을 확인하며, layer=1은 Board 위 첫 층으로 이 검사에서 제외합니다. 이 수치는 실제 체결·물리 안정성 검증 완료 또는 최종 프로젝트 전체의 영구 제한을 뜻하지 않습니다.
+support는 **2026-10-13 Robot-only 결착 안정성 규칙**(사용자 최종 기준)입니다. 로봇 단독 조립 실물 시험에서 2 stud만 걸린 상부 블록이 눌림·결착 중 기울거나 무너질 수 있어, C가 생성·수정하는 **모든 Candidate**(Initial v1, Revised v2+, Difference REVISE, Direct Design Change, Review MODIFY 재생성, Planning Failure 재설계)에 다음을 hard rule로 적용합니다. layer ≥ 2 블록마다 바로 아래 한 layer의 블록들과 겹치는 **고유 stud 수 ≥ `min(MIN_SUPPORT_STUDS(4), 그 블록의 stud 수)`**. 같은 stud는 한 번만 세고(같은 layer overlap은 `overlap`으로 별도 거부), 두 층 아래는 세지 않으며, layer=1은 Board 위 첫 층으로 제외합니다. 입력 Design·Current 판정(`validate_design`, `validate_revised`, `current_support_violations`)도 같은 함수를 쓰며 production에 2-stud 예외는 없습니다. 이 수치는 실제 체결·물리 안정성 검증 완료를 뜻하지 않습니다.
+
+| 블록 | 필요한 지지 stud | 비고 |
+|---|---|---|
+| `2x2x1` (4 stud) | 4 / 4 | 사실상 아래층 위에 완전히 얹혀야 함 |
+| `2x3x1` (6 stud) | 4 / 6 이상 | 3 stud(한 줄만 걸침)는 거부 |
+| `1x2x1` (2 stud, red) | 2 / 2 | 예외적으로 두 stud 모두(현행과 동일) |
 
 | Case | 바로 아래 layer와의 겹침 | 결과 |
 |---|---|---|
-| A | 아래 블록 1개와 2 stud (또는 3·4 stud) | 통과 |
-| B | 아래 블록 2개와 각 1 stud, 합계 2 | 통과 |
-| C | 아래 블록 여러 개, 합계 2 이상 | 통과 |
-| D | 합계 0 또는 1 | 거부 |
+| A | `2x2x1`이 아래 블록 1개와 4 stud | 통과 |
+| A' | `2x2x1`이 아래 블록 1개와 2 또는 3 stud | 거부(당시 규칙에서는 통과) |
+| B | `2x2x1`이 아래 블록 2개에 2 + 2 stud | 통과 |
+| B' | 아래 블록 2개에 각 1 stud(합계 2) | 거부(당시 규칙에서는 통과) |
+| C | `2x3x1`이 아래 블록 여러 개와 고유 stud 합계 4 이상 | 통과 |
+| D | 요구치 미만(0·1 stud 포함) | 거부 |
 
-`1x2x1`(Stage 2)은 stud가 2개뿐이므로 layer ≥ 2에 둘 때 **두 stud 모두** 바로 아래층 블록 위에 있어야 통과합니다(한 블록 위 Case A, 두 블록에 1 stud씩 Case B). 1 stud만 겹치면 Case D로 거부됩니다. 규칙 자체(`MIN_SUPPORT_STUDS = 2`)는 바뀌지 않았습니다.
+**당시 기록(2026-10-06 ~ 10-12)**: support는 세은(A)의 동의와 수현(D)의 회신으로 통일한 A/C Day4 기하 기준 "바로 아래층 고유 stud 총 2개 이상"(`MIN_SUPPORT_STUDS = 2`)이었습니다([A와 C의 지지 판정](09_C_B_BACKEND_HANDOFF.md#a와-c의-지지-판정)). A planner(`planning_trial/planner.py`)의 자체 검사는 여전히 2 stud이며, C 출력이 새 규칙을 만족하면 A 검사를 항상 통과하므로 A/D 변경은 없습니다. 2-stud 기준으로 기록된 과거 fixture·문서(예: `tests/fixtures/c_stage3/*`의 2026-10-11 Sol 기록)는 당시 기준의 역사 기록으로 보존하며, production 입력으로 다시 쓸 때는 새 규칙에 맞춘 사본을 씁니다.
 
 입력 검사(`INVALID_INPUT`):
 
@@ -675,7 +683,7 @@ C의 Validator 통과는 후보 검증이며 최종 채택이 아닙니다.
 | `should_stop` 콜백으로 STOP·닫힌 요청 연결 | §4 | D (수현) |
 | `on_question` 콜백으로 HMI 화면 표시 | §4.2 | D (수현) |
 | Difference `{expected, actual}` 블록 쌍 | §5.2 | D (수현) |
-| support "아래 블록 개수와 무관하게 겹침 합계 2 stud 이상, 중복 합산 없음"(Case A~D)을 A Plan 검증과 같은 기준으로 사용 — 2026-10-06 A 동의·D 회신으로 통일 | §9.1 | A (세은) |
+| support: 당시(2026-10-06 A 동의·D 회신) "겹침 합계 2 stud 이상, 중복 합산 없음"을 A Plan 검증과 같은 기준으로 사용. 2026-10-13부터 C 생성 Candidate는 `min(4, 블록 stud 수)`로 강화(C-only, A 검증 기준 2는 그대로이며 C 출력 ⊂ A 수용 집합) — A에 변경 통보 | §9.1 | A (세은) |
 | A가 Step 목표를 블록 여섯 값으로 참조 | §7 | A (세은) |
 | 최대 층수 5: 2026-10-07 사용자 요청으로 공유 계약(06·00), A planner, D 블록·관측 영역 검사와 HMI 참조 Schema를 1..5로 통일. 30블록 C→A→D/Qt 오프라인 검증은 STATUS 참조. 실제 Vision 판별·Robot 직접 결착은 미검증 | §2, §9.1 | A (세은), D (수현), 공유 문서 Owner |
 
