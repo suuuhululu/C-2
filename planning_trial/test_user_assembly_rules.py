@@ -127,14 +127,19 @@ def test_total_four_studs_does_not_erase_per_lower_hold(context):
     assert all(option_cost(o)==(1,0,2) for o in grips)
 
 
-def test_press_plus_two_lower_holds_cannot_use_three_hands(context):
+def test_press_plus_two_lower_holds_keeps_all_three_human_actions(context):
     bases=[b(4,5),b(4,7)]
     lowers=[b(5,5,2),b(5,7,2)]
     upper=b(6,6,3,"2x3x1")
     options,info=mode_options(upper,bases+lowers,context)
     assert info["support_studs"]==3 and len(info["weak_supports"])==2
     assert info["press_assessment"]["required"]
-    assert options==[]
+    assert options
+    robot = [o for o in options if o['mode']=='ROBOT_GRIP']
+    assert robot and all(o['assistance_kind']=='PRESS_AND_HOLD' for o in robot)
+    assert all(len(o['human_actions'])==3 and len(o['support_targets'])==2 for o in robot)
+    assert all(sum(a['action']=='PRESS' for a in o['human_actions'])==1 and
+               sum(a['action']=='HOLD' for a in o['human_actions'])==2 for o in robot)
 
 
 def test_human_press_space_is_not_checked_when_robot_grip_is_clear(context):

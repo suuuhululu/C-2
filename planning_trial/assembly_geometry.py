@@ -264,10 +264,7 @@ def hand_options(brick, current, context, other_boxes=(), *, assembly=False):
 
 def support_assignments(weak, brick, current, context, tool_boxes=(), assembly_hand=None,
                         press_hand=None):
-    # Keep the two-hand resource limit and each required lower-block hold.
-    reserved = assembly_hand or press_hand
-    if len(weak) > (1 if reserved is not None else 2):
-        return []
+    # Keep every required lower-block hold; participant capacity is not capped here.
     choices = [hand_options(w["block"], current, context) for w in weak]
     return [[{**w, **hand} for w, hand in zip(weak, assignment)]
             for assignment in product(*choices)]

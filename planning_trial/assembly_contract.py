@@ -35,6 +35,9 @@ def schema():
     defs['WholePlanResult']['properties']['provenance'] = {'const': 'ACTUAL_A_FUNCTIONS_LOCAL_ADAPTER_NO_D_RECEIPT'}
     defs['HumanAction']['properties']['access_assessment'] = {
         'enum': ['GEOMETRIC_CANDIDATE_NOT_RUNTIME_VERIFIED', 'HUMAN_ACCESS_NOT_CHECKED']}
+    # Current policy reports required hands without limiting the participant count.
+    # Keep the immutable v4 review contract intact.
+    defs['Action']['properties']['human_hands_used'].pop('maximum', None)
     defs['ReviewError']['properties']['code']['enum'] += ['INVALID_INPUT', 'REFERENCE_MISMATCH', 'UNSUPPORTED_METHOD']
     defs['AssemblyContext']['properties']['geometry']['properties']['body_height_mm'] = {'type': 'number', 'exclusiveMinimum': 0}
     defs['Policy']['properties']['hand_hold_height_m'] = {'type': 'number', 'exclusiveMinimum': 0}

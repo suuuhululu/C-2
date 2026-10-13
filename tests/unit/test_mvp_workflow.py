@@ -207,6 +207,20 @@ def test_robot_only_offline_chair_without_feasible_order_opens_c_not_robot(h):
     assert not any(p=='robot.EXECUTE' for p,_ in h.ports)
 
 
+def test_a_failure_block_details_reach_c_without_robot_execution(h):
+    w=h.workflow;w.start();h.check()
+    w.settings['assembly_context']['obstacles']=[[-16,-16,-1,400,400,40]]
+    w.approved=dict(design_version=1,blocks=[block()]);w.plan()
+    payload=deepcopy(w.active['request'])
+    result=handle_whole_plan(payload['input'])
+    assert result['calculation_status']=='NO_FEASIBLE_ORDER'
+    assert result['stage_errors'][0]['block']==block()
+    w.receive('a.whole',payload['request_id'],result)
+    assert w.active['port']=='c.plan_failure'
+    assert w.active['request']['calculation_result']['stage_errors']==result['stage_errors']
+    assert not any(p=='robot.EXECUTE' for p,_ in h.ports)
+
+
 def test_duplicate_stale_and_conflicting_check_results_remain_distinct(h):
     from uuid import uuid4
     w=h.workflow
