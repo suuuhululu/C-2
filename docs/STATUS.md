@@ -757,3 +757,12 @@ GPU 현재 A snapshot92파일을 CPU deliverables/GPU_A_수정본_CPU보관_2026
 - [실제 명령·결과와 미검증](A_DOCUMENTATION_VERIFICATION_20261012.md)을 기록했다. 기준 Isaac0.5 불일치는 별도 기능 변경 eb78ad7과 분리하며 이번 PR에는 기능 변경을 포함하지 않는다.
 - 파일 이동/삭제·계산/계약/보정 수정·새 dependency 도입·전역 설치·Git 이력 재작성·Robot/ROS/Isaac 실행·제어권 변경을 수행하지 않았다. 사람 리뷰·실제 연결·실기 검증은 남아 있다.
 - GitHub에서 직접 받은 새 clone(0e6248f)에서도 API34/34, A448 passed/1 skipped, 보존253/253 SHA·상대 링크44개를 확인했다. 로컬 clone과 원격 clone의 수치는 합산하지 않는다.
+
+
+## 2026-10-12 A 손 수 상한 제거·실패 진단 보완
+
+- 사용자 요청으로 최대 2손 제한을 계산·후검사·현재 0.5.1 계약에서 함께 제거했다. 필요한 동작/손 수, 지지/겹침/삽입/로봇 접근 검사는 유지한다.
+- D 현재 원본에서 승인 24블록 실패를 재현했으며, 제한 제거 후 같은 설계/Current로 CPU 약 0.82초·GPU 약 0.47초에 전체 계획 생성. 3손 단계 3개를 포함한다.
+- CPU A/C 전달 검사 480개, GPU A 검사 458개 통과(합산하지 않음). 실패는 기존 block/reason으로 구체화하고 실제 물리 미판정 범위를 표시했다.
+- [입력 복원 근거·변경·검증·적용 위치](A_HAND_COUNT_POLICY_20261012.md). D 작업 폴더/로봇/제어권은 변경하지 않았다. `codex/a-plan-failure-diagnostics-20261012`를 통합 브랜치 대상으로 리뷰하며 병합·배포·실기 검증은 별도다.
+- 2026-10-13 제출 전 통합 `7b1a5ff`에 충돌 없이 정렬했다. 관련 검사479 PASS / 1 FAIL(A458 PASS, Workflow21 PASS / 1 FAIL). C의 `test_inspection_context_keeps_expected_and_unknown_regions_for_c`는 변경 없는 통합 사본에서도 같은 IndexError로 실패했으며 이번 패치에서 수정/제외하지 않았다. 기존480 PASS는 이전 통합 기준 결과다.
