@@ -14,6 +14,8 @@ def test_every_block_column_wraps_six_to_one_independently(monkeypatch, column):
     runtime.inbox = Queue()
     runtime.robot = SimpleNamespace(events=Queue())
     runtime.scene, runtime.slot_indices = [], {}
+    runtime.consumed_executions, runtime.scene_executions = set(), set()
+    runtime.auto_gestures = False
     runtime.robot_sample, runtime.ready_signal = None, None
     block = dict(brick_type=column[0], color=column[1], x=6, y=6, layer=1, orientation_deg=0)
     prepared, received = [], []
@@ -24,16 +26,23 @@ def test_every_block_column_wraps_six_to_one_independently(monkeypatch, column):
     for slot in [1,2,3,4,5,6,1,2,3,4,5,6,1]:
         runtime.emit('d.prepare_step', dict(step=dict(after=block)))
         assert prepared[-1] == slot
-        runtime.robot.events.put(dict(event='INSPECTION_REQUIRED', data={}))
+        runtime.workflow.execution_id = f'execution-{len(prepared)}'
+        runtime.workflow.reason = None
+        runtime.workflow.step_inputs = dict(slot=dict(brick_type=column[0], color=column[1], slot_index=slot))
+        data = dict(execution_id=runtime.workflow.execution_id)
+        runtime.robot.events.put(dict(event='GRIP_SUCCEEDED', data=dict(data,label='PICKUP_CLOSE')))
+        runtime.robot.events.put(dict(event='INSPECTION_REQUIRED', data=data))
         runtime.poll()
         assert runtime.workflow.status == 'RUNNING'
         row = next(r for r in runtime.workflow.supply if (r['brick_type'],r['color']) == column)
         assert row['next_slot'] == (1 if slot == 6 else slot+1)
         assert row['needs_refill'] is False
         assert all(r['next_slot']==1 for r in runtime.workflow.supply if (r['brick_type'],r['color'])!=column)
-    assert len(received)==13
-    # 자동 재관측은 같은 블록을 다시 소비한 것으로 계산하지 않는다.
-    runtime.robot.events.put(dict(event='INSPECTION_REQUIRED', data=dict(automatic_reinspection=True)))
+    assert len(received)==26
+    # 수동/자동 재검사 및 중복 집기 완료는 같은 블록을 다시 소비하지 않는다.
+    runtime.robot.events.put(dict(event='INSPECTION_REQUIRED', data=dict(data,automatic_reinspection=False)))
+    runtime.robot.events.put(dict(event='INSPECTION_REQUIRED', data=dict(data,automatic_reinspection=True)))
+    runtime.robot.events.put(dict(event='GRIP_SUCCEEDED', data=dict(data,label='PICKUP_CLOSE')))
     runtime.poll()
     assert runtime.slot_indices[column] == 2
 

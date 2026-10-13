@@ -120,6 +120,35 @@ def test_real_trial_contact_waits_for_actual_alignment_or_holds(monkeypatch, rea
         assert not any(e=='TRIAL_STEP_EXECUTED' for e,_ in events)
 
 
+@pytest.mark.parametrize('fault',[None,'grip','position','tcp'])
+def test_full_trial_automatic_contact_uses_actual_stopped_grasp_without_gesture(monkeypatch,fault):
+    import app.integration_runtime as module
+    rt,raw,events,clock,_=setup()
+    rt.session.value.update(b_observation_kind='SYNTHETIC',operator_review_ref='UNIT_REVIEW',
+                            trial_alignment_pending=False,alignment_evidence_ref=None)
+    pre=next(args[1] for kind,args in rt.operations if kind=='move' and args[0]=='PRE_CONTACT')
+    raw.value.update(posx=pre.copy(),gripper_status=2,gripper_width_mm=40.)
+    raw.mode='REAL';rt.operations=[('contact',None)]
+    calls=[]
+    monkeypatch.setattr(module,'validate_execution',lambda *args:None)
+    def pressure(*args,**kwargs):
+        calls.append(kwargs)
+        return dict(status='FORCE_THRESHOLD_REACHED_STOP_VERIFIED',final_sample=raw.sample())
+    monkeypatch.setattr(module,'press',pressure)
+    if fault=='grip':raw.value['gripper_status']=0
+    if fault=='position':raw.value['posx'][0]+=2.
+    if fault=='tcp':raw.value['tcp']='WRONG_TCP'
+    result=rt.run()
+    assert not [e for e,_ in events if e=='SIGNAL_REQUESTED']
+    assert not rt.session.value['alignment_evidence_ref']
+    if fault is None:
+        assert result['status']=='AWAITING_INSPECTION',result
+        assert len(calls)==1 and any(e=='AUTOMATIC_CONTACT_READY' for e,_ in events)
+    else:
+        assert result['status']=='RECOVERY_REQUIRED',result
+        assert not calls and not any(e=='CONTACT_SUCCEEDED' for e,_ in events)
+
+
 def test_alignment_timeout_can_resume_at_pre_contact_but_started_contact_cannot(monkeypatch):
     import app.integration_runtime as module
     rt,raw,events,clock,d=setup()
@@ -389,6 +418,26 @@ def test_horizontal_blend_and_pickup_rate_are_applied_to_actual_mock_commands():
     assert rates['PRE_CONTACT']['velocity']==[d['d_profile']['descent_velocity']]*2
 
 
+def test_requested_trial_rates_and_larger_radius_reach_motion_commands():
+    d=document();d['d_profile'].update(transport_blending=dict(radius_mm=40.,reviewed=True),
+        transfer_velocity=230.4,pickup_descent_velocity=24.,pickup_descent_acceleration=6.,
+        assembly_approach_velocity=24.,assembly_approach_acceleration=6.,
+        descent_velocity=24.,descent_acceleration=6.,pre_contact_slow_distance_mm=10.)
+    clock=Clock();events=[];raw=StepReplayDriver(d['d_profile']['steps']['fake/S01']['reference_pose'])
+    rt=StepRuntime(raw,dict(tcp='GripperDA_v4',tool='ToolWeight0'),
+        lambda e,v:events.append((e,deepcopy(v))),clock=clock,sleep=clock.sleep)
+    rt.start(d['step'],d['d_profile'],d['session'])
+    assert rt.run()['status']=='AWAITING_INSPECTION'
+    assert len(raw.blends)==2 and all(b['radius']==40. and b['velocity']==[230.4]*2 for b in raw.blends)
+    label=None;rates={}
+    for event,data in events:
+        if event=='MOVE_STARTED':label=data['label']
+        if event=='MOVE_REQUEST' and data['segment']=='DESCENT':rates[label]=data
+    for label in ('PICKUP_LOWER','ASSEMBLY_APPROACH','PRE_CONTACT'):
+        assert rates[label]['velocity']==[24.]*2 and rates[label]['acceleration']==[6.]*2
+    assert d['d_profile']['force_stop_n']==35.
+
+
 def test_stop_mid_blend_does_not_restart_the_batch_or_repick():
     rt,raw,events,clock,d=setup()
     rt.profile['transport_blending']=dict(radius_mm=15.,reviewed=True)
@@ -511,14 +560,25 @@ def test_withdrawn_hand_before_open_keeps_gripper_closed():
     assert len(raw.grips)==2 and raw.value['gripper_status']==2
 
 
-def test_new_hand_before_tray_descent_blocks_lowering_and_opening():
-    rt,raw,_,clock,_=setup(mode='HUMAN_ASSEMBLY',assistance='MANUAL_ASSEMBLY')
+def test_new_hand_before_tray_descent_reopens_receive_and_hands_over_once():
+    rt,raw,events,clock,_=setup(mode='HUMAN_ASSEMBLY',assistance='MANUAL_ASSEMBLY')
+    reopened=[False]
     def hook():
-        if rt.request:signal(rt,hand_present=rt.pending=='tray',receiving_ready=False)
+        reopened[0]=any(e=='HANDOVER_RECEIVE_REOPENED' for e,_ in events)
+        if rt.request:
+            if rt.request['kind']=='RECEIVE':
+                signal(rt,hand_present=rt.pending=='tray' or reopened[0],receiving_ready=reopened[0])
+            else:signal(rt,ready=True)
     clock.hook=hook
     result=rt.run()
-    assert result['status']=='RECOVERY_REQUIRED' and result['reason']=='HAND_PRESENT_BEFORE_LOWER'
-    assert len(raw.grips)==2 and raw.value['gripper_status']==2
+    assert result['status']=='AWAITING_INSPECTION',result
+    assert reopened[0] and raw.value['gripper_status']==0
+    labels=[v.get('label') for e,v in events if e=='GRIP_SUCCEEDED']
+    assert labels.count('PICKUP_CLOSE')==1 and labels.count('DIRECT_HANDOVER')==1
+    assert 'TRAY_RELEASE' not in labels and not any(e=='EXECUTION_HELD' for e,_ in events)
+    assert rt.profile['place_pose'] not in raw.moves  # 새 손 감지 후 트레이 하강은 실행하지 않는다.
+    requests=[v['request_id'] for e,v in events if e=='SIGNAL_REQUEST' and v['kind']=='RECEIVE']
+    assert len(set(requests))>=2
 
 
 def test_stop_during_tray_descent_resume_requests_fresh_hand_observation():
@@ -537,3 +597,192 @@ def test_stop_during_tray_descent_resume_requests_fresh_hand_observation():
     assert rt.operations[rt.cursor][0]=='receive'
     assert rt.run()['status']=='AWAITING_INSPECTION'
     assert len(raw.grips)==grips+1
+
+
+@pytest.mark.parametrize('mode,assistance',[
+    ('ROBOT_GRIP','PRESS'), ('ROBOT_GRIP','HOLD'), ('ROBOT_GRIP','PRESS_AND_HOLD'),
+    ('HUMAN_ASSEMBLY','MANUAL_ASSEMBLY'), ('HUMAN_ASSEMBLY','MANUAL_ASSEMBLY_AND_HOLD')])
+def test_all_assistance_actions_wait_for_scoped_input_and_b_before_release_guidance(mode,assistance):
+    rt,raw,events,clock,d=setup(mode=mode,assistance=assistance)
+    def respond():
+        if rt.request:
+            signal(rt,hand_present=False,receiving_ready=False) if rt.request['kind']=='RECEIVE' else signal(rt,ready=True)
+    clock.hook=respond
+    assert rt.run()['status']=='AWAITING_INSPECTION'
+    requests=[v['kind'] for e,v in events if e=='SIGNAL_REQUEST']
+    assisted=assistance!='MANUAL_ASSEMBLY'
+    assert ('HELP_READY' in requests) is assisted
+    if assistance in ('PRESS','PRESS_AND_HOLD'):
+        assert 'ASSEMBLY_ACK' in requests
+        assert not any(e=='CONTACT_SUCCEEDED' for e,_ in events)
+    if assistance=='HOLD':assert any(e=='CONTACT_SUCCEEDED' for e,_ in events)
+    assert not any(e=='HELP_RELEASE_GUIDANCE' for e,_ in events)
+    assert rt.inspection(dict(plan_id=rt.plan['plan_id'],step_id='S01',
+        execution_id=d['session']['execution_id'],decision='KEEP',
+        current=dict(current_revision=1,blocks=[rt.plan['block']])))=='IDLE'
+    assert any(e=='HELP_RELEASE_GUIDANCE' for e,_ in events) is assisted
+
+
+def test_unanswered_help_holds_without_lowering_release_or_contact():
+    rt,raw,events,clock,d=setup(assistance='PRESS')
+    result=rt.run()
+    assert result['status']=='RECOVERY_REQUIRED' and result['reason']=='HELP_READY_TIMEOUT'
+    assert not any(e=='CONTACT_SUCCEEDED' for e,_ in events)
+    assert not any(e=='INSPECTION_REQUIRED' for e,_ in events)
+    assert not any(e=='GRIP_STARTED' and v['label']=='SUPPORTED_RELEASE' for e,v in events)
+    assert raw.value['gripper_status']==2
+
+
+def test_wait_c_stop_uses_driver_stop_and_fresh_stillness_evidence():
+    rt,raw,events,_,d=setup()
+    rt.run()
+    rt.inspection(dict(decision='CALL_C',current=dict(current_revision=1,blocks=[]),
+        plan_id=d['step']['plan_id'],step_id=d['step']['step_id'],execution_id=d['session']['execution_id']))
+    assert rt.state=='WAIT_C'
+    rt.stop()
+    assert rt.state=='STOPPED' and rt.stopped_sample is not None
+    result=next(v for e,v in events if e=='STOP_VERIFIED')
+    assert result['previous_state']=='WAIT_C' and result['actual_stop_verified']
+    assert any(e=='STOP_WINDOW_RESULT' and v['stillness_window_verified'] for e,v in events)
+
+
+def test_processing_error_requires_explicit_reinspection_and_preserves_reason():
+    rt,raw,events,_,d=setup()
+    rt.run();grips=len(raw.grips);cursor=rt.cursor
+    rt.inspection(dict(decision='ERROR',reason='PROCESSING_FAILED',
+        plan_id=d['step']['plan_id'],step_id=d['step']['step_id'],execution_id=d['session']['execution_id']),conditions_ready=True)
+    assert rt.state=='WAIT_REINSPECTION'
+    assert [e for e,_ in events].count('INSPECTION_REQUIRED')==1
+    waiting=next(v for e,v in events if e=='REINSPECTION_WAIT')
+    assert waiting['inspection_status']=='ERROR' and waiting['reason']=='PROCESSING_FAILED'
+    rt.reinspect()
+    assert rt.state=='AWAITING_INSPECTION' and rt.cursor==cursor and len(raw.grips)==grips
+    assert [e for e,_ in events].count('INSPECTION_REQUIRED')==2
+
+
+def test_small_fk_roundtrip_difference_is_warning_and_large_difference_is_hold():
+    for error,expected in ((.1,'AWAITING_INSPECTION'),(1.,'RECOVERY_REQUIRED')):
+        rt,raw,events,clock,d=setup()
+        rt.profile['ik_fk_position_tolerance_mm']=.5;rt.profile['ik_fk_orientation_tolerance_deg']=.5
+        def fk(p,**kwargs):return [p[0]+error,*p[1:]] if raw.value['gripper_status']==0 else p.copy()
+        raw.check_pose=fk
+        result=rt.run()
+        assert result['status']==expected,result
+        assert any(e=='IK_FK_CHECK' and v['position_error_mm']>=error-.001 for e,v in events)
+        if error==.1:assert any(e=='IK_FK_NUMERICAL_WARNING' for e,_ in events)
+        else:assert not raw.grips[1:] and result['reason']=='IK_FK_ROUNDTRIP_MISMATCH'
+
+
+def test_empty_return_skips_place_and_loaded_blend_ends_above_assembly():
+    rt,raw,events,clock,d=setup()
+    p=deepcopy(rt.profile);p.update(empty_return_skip_place=True,transport_blending=dict(radius_mm=15.,reviewed=True))
+    ops=rt.make_operations(rt.plan,p,'assembly')
+    assert ops[2][0]=='move' and ops[2][1][0]=='BODY_EMPTY'
+    assert not any(k=='move' and a[0]=='PLACE_EMPTY' for k,a in ops)
+    loaded=next(a[0] for k,a in ops if k=='blend' and a[1]==2)
+    assert loaded[-2][:2]==p['place_pose'][:2]
+    assert loaded[-1][:2]==rt.plan['settings']['reference_pose'][:2]
+    assert not any(k=='move' and a[0]=='TARGET_HIGH' for k,a in ops)
+
+
+@pytest.mark.parametrize('turn',[0,90])
+def test_full_trial_passes_place_in_one_loaded_blend_and_rotates_only_at_target(turn):
+    rt,raw,events,clock,d=setup(brick_type='2x3x1',angle=turn)
+    rt.profile.update(empty_return_skip_place=True,transport_blending=dict(radius_mm=15.,reviewed=True))
+    rt.operations=rt.make_operations(rt.plan,rt.profile,'assembly')
+    result=rt.run()
+    assert result['status']=='AWAITING_INSPECTION',result
+    loaded=raw.blends[-1]['targets']
+    assert len(loaded)==4
+    assert loaded[-2][:2]==rt.profile['place_pose'][:2]
+    assert loaded[-1][:2]==rt.plan['settings']['reference_pose'][:2]
+    assert not any(e=='MOVE_STARTED' and v.get('label')=='PLACE_LOADED' for e,v in events)
+    rotations=[v for e,v in events if e=='MOVE_STARTED' and v.get('label')=='TARGET_HIGH']
+    assert len(rotations)==(1 if turn else 0)
+
+
+def test_blend_rejection_before_command_can_resume_but_sent_motion_cannot():
+    rt,raw,events,clock,d=setup();original=raw.check_pose
+    rt.profile['transport_blending']=dict(radius_mm=15.,reviewed=True)
+    d['d_profile']=deepcopy(rt.profile)
+    rt.operations=rt.make_operations(rt.plan,rt.profile,'assembly')
+    def bad(p,**kwargs):
+        if p[:2]==rt.profile['body_bypass_xy_mm']:return [p[0]+1.,*p[1:]]
+        return original(p,**kwargs)
+    raw.check_pose=bad
+    result=rt.run()
+    assert result['status']=='RECOVERY_REQUIRED' and rt.can_resume()
+    assert not raw.blends and not rt.blend_command_sent
+    raw.check_pose=original
+    session=deepcopy(d['session']);session.update(execution_id=str(uuid4()),resume_current_revision=rt.plan['current_revision'])
+    rt.start(d['step'],d['d_profile'],session,resume=True)
+    assert rt.run()['status']=='AWAITING_INSPECTION'
+    assert len(raw.grips)==3
+
+
+def test_palm_loaded_override_releases_only_after_new_receive_then_requires_thumb():
+    rt,raw,events,clock,d=setup();rt.profile['palm_handover_before_contact']=True
+    requested=[False]
+    def hook():
+        if not requested[0] and rt.pending=='move' and rt.operations[rt.cursor][1][0]=='TARGET_HIGH':
+            requested[0]=rt.request_handover()
+        if rt.request:
+            if rt.request['kind']=='RECEIVE':signal(rt,hand_present=True,receiving_ready=True)
+            else:signal(rt,ready=True)
+    clock.hook=hook
+    assert rt.run()['status']=='AWAITING_INSPECTION'
+    assert requested[0] and raw.grips[-1][0]==rt.plan['settings']['release_width_mm']
+    assert not rt.contact_started and rt.contact is None
+    assert any(e=='HANDOVER_OVERRIDE' and v['actual_stop_verified'] for e,v in events)
+    assert [v['kind'] for e,v in events if e=='SIGNAL_REQUEST']==['RECEIVE','ASSEMBLY_ACK']
+    assert [v['label'] for e,v in events if e=='GRIP_SUCCEEDED'].count('PICKUP_CLOSE')==1
+    assert rt.plan['mode']=='ROBOT_GRIP' and not any(e=='CONTACT_SUCCEEDED' for e,_ in events)
+    assert not rt.request_handover()
+
+
+def test_early_palm_intent_is_deferred_until_pickup_and_contact_cannot_be_overridden():
+    rt,raw,events,clock,d=setup();rt.profile['palm_handover_before_contact']=True
+    assert rt.request_handover() and rt.handover_intent_pending
+    assert not rt.session.handover_requested and not raw.grips
+    def hook():
+        if rt.request:
+            if rt.request['kind']=='RECEIVE':signal(rt,hand_present=True,receiving_ready=True)
+            else:signal(rt,ready=True)
+    clock.hook=hook
+    assert rt.run()['status']=='AWAITING_INSPECTION'
+    assert raw.grips[-1][0]==rt.plan['settings']['release_width_mm'] and not rt.contact_started
+    rt.state='RUNNING';rt.contact_started=True;rt.handover_active=False
+    assert not rt.request_handover()
+
+
+def test_stop_during_override_receive_does_not_open_or_emit_inspection():
+    rt,raw,events,clock,d=setup();rt.profile['palm_handover_before_contact']=True
+    rt.request_handover()
+    def hook():
+        if rt.request and rt.request['kind']=='RECEIVE':rt.session.request_stop()
+    clock.hook=hook
+    assert rt.run()['status']=='STOPPED'
+    assert raw.value['gripper_status']==2 and len(raw.grips)==2
+    assert not any(e=='INSPECTION_REQUIRED' for e,_ in events)
+
+
+def test_stop_after_pre_descent_recovery_confirms_stop_and_resume_rechecks_receiver():
+    rt,raw,events,clock,d=setup(mode='HUMAN_ASSEMBLY',assistance='MANUAL_ASSEMBLY')
+    # 직전 버전에서 하강 전 손 감지로 종료된 상태를 재현한다.
+    rt.state='RECOVERY_REQUIRED';rt.pending='tray';rt.recovery_reason='HAND_PRESENT_BEFORE_LOWER'
+    raw.value['gripper_status']=2;raw.value['gripper_width_mm']=40.
+    rt.stopped_sample=deepcopy(raw.value)
+    rt.cursor=next(i for i,(kind,_) in enumerate(rt.operations) if kind=='tray')
+    counts=(len(raw.moves),len(raw.grips));events.clear()
+    rt.stop()
+    assert rt.state=='RECOVERY_REQUIRED' and rt.pending=='tray' and rt.can_resume()
+    assert counts==(len(raw.moves),len(raw.grips)) and raw.value['gripper_status']==2
+    verified=next(v for e,v in events if e=='STOP_VERIFIED')
+    assert verified['actual_stop_verified'] and verified['previous_state']=='RECOVERY_REQUIRED'
+    held=next(v for e,v in events if e=='EXECUTION_HELD')
+    assert held['resume_allowed'] is True
+    value=dict(d['session'],execution_id=str(uuid4()),resume_current_revision=0)
+    rt.start(d['step'],d['d_profile'],value,resume=True)
+    assert rt.operations[rt.cursor][0]=='receive'
+    assert counts==(len(raw.moves),len(raw.grips))
+    assert not any(e=='INSPECTION_REQUIRED' for e,_ in events)

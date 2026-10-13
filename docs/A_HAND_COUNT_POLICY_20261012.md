@@ -34,6 +34,8 @@ python3 -m pytest -q planning_trial tests/unit/test_mvp_workflow.py
 
 2026-10-13 PR 제출 전 최신 통합 `7b1a5ff`에 충돌 없이 맞춰 위 명령을 다시 실행했다. 결과는 479 PASS / 1 FAIL이다(A 458 PASS, Workflow 21 PASS / 1 FAIL). 실패는 `test_inspection_context_keeps_expected_and_unknown_regions_for_c`의 `seen[0]` IndexError이며, 수정이 전혀 없는 통합 `7b1a5ff` 사본에서도 같은 실패를 재현했다. 기존 C 경로와 테스트의 불일치로 별도 보고하며 이번 A 패치에 C 코드 수정이나 검사 제외를 넣지 않았다. 앞의 480 PASS는 이전 통합 `727d101` 기준 기록이고, 최신 통합 전체 검사가 모두 통과했다는 뜻으로 사용하지 않는다.
 
+PR #34 게시 중 PR #33이 병합돼 통합 기준이 `f247132`로 갱신됐다. 최신 통합을 이력 재작성 없이 병합하고, 같은 위치에 추가된 Workflow 검사의 충돌은 양쪽 검사 모두를 보존해 해결했다. `python3 -m pytest -q planning_trial tests/unit/test_mvp_workflow.py tests/unit/test_mvp_pr30_relay.py` 결과는 **501 PASS / 0 FAIL**이다. 이전 기준의 실패 검사도 PR #33에서 입력이 정렬돼 현재 통과한다. PR #33의 D 실행 코드·교시 자세는 그대로 유지하며 이번 PR의 추가 기능은 손 수 정책과 실패 진단이다. 이 검증은 장치 없는 계산/전달 경계 검사이며 실물 확인이 아니다.
+
 수현님 통합 시 위 세 A 핵심 파일과 현재 계약 검증기를 함께 맞춰야 한다. 이전 검증기는 human_hands_used=3 결과를 거절할 수 있다. 원래 승인 설계·Current를 보존한 새 전체 계산으로 시작한다. D KEEP 보류 수정은 이번 A 패치에서 변경하지 않았다.
 
 이번 결과는 조립 순서·도움·이동 후보의 계산 검증이다. MoveIt 궤적 계산·Isaac 물리 실행·D 실제 도움 준비 확인·실물 체결 성공을 확인한 결과가 아니다. 로봇 시작·이동·그리퍼/힘/모드/controller 변경·제어권 요청은 하지 않았다.

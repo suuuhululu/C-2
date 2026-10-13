@@ -184,5 +184,9 @@ def test_stale_or_command_boundary_proof_forces_new_window(invalidate):
     sample=d.stillness();n=sum(e=='STILLNESS_WINDOW_VERIFIED' for e,v in events)
     if invalidate=='fresh_read':d.sample()
     if invalidate=='expired':clock.sleep(1.)
-    d.own('MOTION' if invalidate=='movement_owner' else 'WAIT',verified_snapshot=sample)
+    if invalidate=='movement_owner':
+        d.own('MOTION',verified_snapshot=sample)
+        # A motion command consumes the owner-switch proof; the old window cannot authorize WAIT.
+        d.move_line_async(raw.value['posx'].copy(),[1.,1.],[1.,1.])
+    d.own('WAIT',verified_snapshot=sample)
     assert sum(e=='STILLNESS_WINDOW_VERIFIED' for e,v in events)==n+1
