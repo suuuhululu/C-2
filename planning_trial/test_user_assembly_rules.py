@@ -95,14 +95,63 @@ def test_contact_hull_handles_line_boundary_and_non_rectangle(points,point,insid
     assert point_in_hull(point,convex_hull(points)) is inside
 
 
-def test_partial_board_supported_contact_requests_press_not_lower_hold(context):
-    lower,upper=b(),b(7,6,2)
-    options,info=mode_options(upper,[lower],context)
+@pytest.mark.parametrize("lower_layer", [1, 2])
+def test_partial_contact_on_fully_attached_lower_needs_no_help(context, lower_layer):
+    current=[b(layer=layer) for layer in range(1,lower_layer+1)]
+    upper=b(7,6,lower_layer+1)
+    options,info=mode_options(upper,current,context)
     grips=[o for o in options if o["mode"]=="ROBOT_GRIP"]
-    assert info["press_assessment"]["required"]
-    assert grips and all(o["assistance_kind"]=="PRESS" for o in grips)
-    assert all(o["support_targets"]==[] and option_cost(o)==(1,0,1) for o in grips)
-    assert all(o["press_hand"]["force_command"] is None for o in grips)
+    press=info["press_assessment"]
+    assert info["support_studs"]==2 and info["weak_supports"]==[]
+    assert not point_in_hull(press["nominal_robot_point_xy_stud"],press["contact_hull_xy_stud"])
+    assert press["required"] is False
+    assert grips and all(o["assistance_kind"]=="NONE" and option_cost(o)==(0,0,0) for o in grips)
+    assert all(o["support_targets"]==[] and o["press_hand"] is None and o["human_actions"]==[] for o in grips)
+
+
+def test_two_weak_connections_with_outside_centre_request_press_and_hold(context):
+    current=[b(4,6),b(5,6,2)]
+    upper=b(6,6,3)
+    options,info=mode_options(upper,current,context)
+    assert info["support_studs"]==2
+    assert [(w["upper_studs"],w["lower_studs"]) for w in info["weak_supports"]]==[(2,2)]
+    assert info["press_assessment"]["required"] is True
+    grips=[o for o in options if o["mode"]=="ROBOT_GRIP"]
+    assert grips and all(o["assistance_kind"]=="PRESS_AND_HOLD" for o in grips)
+    assert all([(a["action"],a["target_block"]) for a in o["human_actions"]]==[
+        ("HOLD",current[1]),("PRESS",upper)] for o in grips)
+
+
+def test_four_upper_contacts_do_not_request_help_on_weak_lower(context):
+    current=[b(4,6),b(5,6,2)]
+    upper=b(5,6,3)
+    options,info=mode_options(upper,current,context)
+    assert info["support_studs"]==4 and info["weak_supports"]==[]
+    assert info["press_assessment"]["required"] is False
+    grips=[o for o in options if o["mode"]=="ROBOT_GRIP"]
+    assert grips and all(o["assistance_kind"]=="NONE" and o["human_actions"]==[] for o in grips)
+
+
+def test_weak_lower_with_centre_on_contact_boundary_only_requests_hold(context):
+    current=[b(4,6),b(7,4),b(5,6,2),b(7,5,2)]
+    upper=b(6,6,3)
+    options,info=mode_options(upper,current,context)
+    press=info["press_assessment"]
+    assert info["support_studs"]==3 and len(info["weak_supports"])==2
+    assert press["contact_hull_xy_stud"]==[[6,6],[7,6],[6,7]]
+    assert point_in_hull(press["nominal_robot_point_xy_stud"],press["contact_hull_xy_stud"])
+    assert press["required"] is False
+    grips=[o for o in options if o["mode"]=="ROBOT_GRIP"]
+    assert grips and all(o["assistance_kind"]=="HOLD" for o in grips)
+
+
+def test_disabled_press_policy_keeps_required_lower_hold(context):
+    current,upper=weak_chain()
+    context["human_press_policy"]="NONE"
+    options,info=mode_options(upper,current,context)
+    assert info["weak_supports"] and info["press_assessment"]["required"] is False
+    grips=[o for o in options if o["mode"]=="ROBOT_GRIP"]
+    assert grips and all(o["assistance_kind"]=="HOLD" and o["press_hand"] is None for o in grips)
 
 
 def test_press_and_hold_targets_different_blocks(context):
@@ -143,13 +192,13 @@ def test_press_plus_two_lower_holds_keeps_all_three_human_actions(context):
 
 
 def test_human_press_space_is_not_checked_when_robot_grip_is_clear(context):
-    lower,upper=b(),b(7,6,2)
+    current,upper=weak_chain()
     # Cover every one-pitch upper finger patch, but keep the side-body grip height free.
-    context["obstacles"]=[[104,88,45,136,120,61]]
-    options,info=mode_options(upper,[lower],context)
+    context["obstacles"]=[[88,56,65,120,104,81]]
+    options,info=mode_options(upper,current,context)
     assert info["press_assessment"]["required"]
     grips = [o for o in options if o['mode'] == 'ROBOT_GRIP']
-    assert grips and all(o['assistance_kind'] == 'PRESS' for o in grips)
+    assert grips and all(o['assistance_kind'] == 'PRESS_AND_HOLD' for o in grips)
     assert all(o['press_hand']['access_assessment'] == 'HUMAN_ACCESS_NOT_CHECKED' for o in grips)
 
 

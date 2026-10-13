@@ -8,6 +8,14 @@
 - 미검증: 실제 마이크·TTS·HMI·로봇·카메라·DB, D 경유 실제 음성 E2E, 해석 LLM의 `constraints` 키 충족률, "낮게·넓게"(soft) 정량 평가.
 - 다음 작업·AFFECTED INTERFACE: [C_DESIGN_ROBOT_RULE_HANDOFF.md](C_DESIGN_ROBOT_RULE_HANDOFF.md) — A 검증 기준 2 유지 안내, 공유 문서(06/09/00) 병기 제안, D의 metadata 새 키 pass-through 확인, 이전 2-stud Approved/Current 재생 시 INVALID_INPUT/escalation, 제약의 요청 단위 한계(세션 유지는 D inspection_context 합의 필요), Current 블록 수 = 상한 clamp 시 운영 문구. PR 생성·병합은 별도 요청.
 
+## 2026-10-13 — A PRESS를 아래 블록의 두 결착 조건에 연결
+
+- 사용자 결정: 아래 블록 L과 자기 아래층의 결착이 4점 미만이고, 이번 목표 U와 L의 결착도 4점 미만인 `HOLD` 대상이 있을 때만 중심 위치로 사람 `PRESS`를 추가 판단한다. 보드 위 1층 L은 제외한다. U의 중심이 아래층 전체 접촉점 지지 영역 밖이면 `PRESS_AND_HOLD`, 안이나 경계면 `HOLD`다. `human_press_policy=NONE`은 추가 눌러주기를 끈다.
+- 기존 `contacts().weak_supports`를 재사용해 공통 A의 `human_press_assessment()`만 수정했다. 보드에 4점 결착된 1층 2×2 위에 2층 2×2가 2점 결합하는 사례와, 4점 결착된 2층 L 위의 부분 결합은 로봇 접근 가능 시 `ROBOT_GRIP/NONE`이다. 기본 최소 2점 지지·겹침·삽입·그리퍼 접근 검사는 유지한다. API 0.5.1·공통 필드·기존 PRESS enum·D 실행/제스처·교시·힘 설정은 변경하지 않았다.
+- 실제 검증: 관련 pytest **548 passed / failures 0 / errors 0 / skipped 0 / 종료0**. A 전체 465개, Workflow/PR30 전달 49개, 모의 통합 34개다. 회귀 검사에서 변경 전 안정된 L의 부분 접촉 2사례에 불필요한 PRESS가 발생함을 확인했고, 변경 후 두 결착 임계값·중심 경계·다중 L 지지·눌러주기 해제 정책을 검사했다. 전체 계획→직전 재평가→이동 후보와 REAL 문서 검증→MOCK D 실행에서 해당 2×2 배치의 도움 요청 없이 Robot 결착 및 기존 도움 단계 STOP/RESUME를 확인했다.
+- 재현: 저장소 루트에서 `C2_ROBOT_ROOT="$PWD/robot_control_integration" QT_QPA_PLATFORM=offscreen python3 -m pytest -q planning_trial tests/unit/test_mvp_workflow.py tests/unit/test_mvp_pr30_relay.py tests/integration/test_mvp_scenarios.py tests/integration/test_mvp_full_real_adapter.py --junitxml=reports/press-lower-attachment-tests.xml`. JUnit은 로컬 reports에 보관한다(Git 제외). 변경 Python 5개 AST 문법·README 정책 링크·git diff --check도 통과했다. lint/type 설정은 미구성이다.
+- 기준 `codex/integration-round1@ebeeef2`와 `codex/integration-round2@ebeeef2`는 동일하며 두 브랜치 대상으로 각각 PR을 준비한다. 작업 브랜치는 `codex/press-lower-attachment-rule`이다. 실제 Robot·ROS·Camera·Isaac·외부 API·DB는 실행하지 않았다. 새 판단에서 Robot 결착으로 바뀌는 단계의 실물 결과는 미검증이며, PR 사람 리뷰와 통합 후 현장 재시험이 필요하다. 기존 사용자 작업 폴더와 보존 fixture는 변경하지 않았다.
+
 ## 2026-10-13 — PR #36: 공급 MoveL·결착40N·영역 보정·확인 버튼
 
 - full-real 공급 접근은 상승→BODY_BYPASS→SUPPLY_TRANSIT→현재 Step 슬롯 상부의 단독 MoveL로 바꿨다. loaded MoveB는 유지한다. 마지막 슬롯 정렬24mm/s·12mm/s², 기존 집기·결착 하강 구조를 유지하며 이전 슬롯 복귀를 제거한다.
