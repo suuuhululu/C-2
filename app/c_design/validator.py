@@ -16,9 +16,15 @@
       2x3x1은 0(X 2 / Y 3 stud) 또는 90(X 3 / Y 2 stud), 2x2x1은 0
     - 블록 수 1~MAX_BLOCKS(40, Stage 2 사용자 결정: Revised richness와 충돌 방지)
     - Board 범위, overlap, support, connectivity
-    - support 규칙 "바로 아래 layer와 겹치는 stud 합계 2 이상(아래 Block 개수 무관,
-      같은 stud 중복 합산 없음)"은 2026-10-06 A 동의·D 회신으로 통일한 Day4
-      기하 기준이다. 실제 체결·물리 안정성 검증을 의미하지 않는다.
+    - support 규칙(2026-10-13 Robot-only 결착 안정성, 사용자 최종 기준): layer ≥ 2 Block은 바로 아래
+      한 layer의 Block들과 겹치는 고유 stud 수가 required = min(MIN_SUPPORT_STUDS(4), 그 Block의 stud 수)
+      이상이어야 한다. 2x2x1은 4/4 전부, 2x3x1은 6 중 4 이상, 1x2x1(red)은 2/2 전부. 아래 Block 개수는
+      무관하고 같은 stud를 두 번 세지 않는다. layer 1은 검사하지 않는다. 이 규칙은 C가 생성·수정하는 모든
+      Candidate(Initial·Revised·Difference REVISE·Direct Design Change·Review MODIFY·Planning Failure
+      재설계)와 입력 Design·Current 판정에 같은 함수로 적용되며 production에 2-stud 예외는 없다.
+      (당시 기록: 2026-10-06 ~ 10-12는 "합계 2 이상"이 A/C 공통 Day4 기하 기준이었다. A planner의 자체
+      검사는 여전히 2이며 C 출력 ≥ required이면 A 검사를 항상 통과한다.) 실제 체결·물리 안정성 검증을
+      의미하지 않는다.
     - Design은 정확히 {design_version, blocks} 두 key만 허용(§2). 다른 top-level
       key는 unknown_key
     - 조립된 Block 보존(Revised): current에 있는 각 Block의 6값 조합이 candidate의
@@ -60,8 +66,9 @@ ALLOWED_COMBINATIONS = {
 BOARD_RANGE = range(0, 24)
 MAX_LAYER = 5
 MAX_BLOCKS = 40  # Stage 2 사용자 결정(30 → 40): Revised richness(v2 ≥ v1 + 6)가 상한과 충돌하지 않게
-# 2026-10-06 A 동의·D 회신으로 통일한 Day4 기하 기준(물리 안정성 검증 아님).
-MIN_SUPPORT_STUDS = 2
+# 2026-10-13 Robot-only 결착 안정성(사용자 최종 기준): Block별 요구 지지 stud = min(MIN_SUPPORT_STUDS, 그 Block의 stud 수).
+# 당시 기록: 2026-10-06 ~ 10-12 Day4 기하 기준은 합계 2 이상이었다(A planner는 여전히 2). 물리 안정성 검증 아님.
+MIN_SUPPORT_STUDS = 4
 
 
 def footprint(block):
@@ -186,6 +193,14 @@ def _overlap_violations(nodes):
     return reasons
 
 
+def required_support_studs(block):
+    """layer ≥ 2 Block이 바로 아래 layer와 겹쳐야 하는 고유 stud 수: min(MIN_SUPPORT_STUDS, 그 Block의 stud 수).
+
+    2x2x1 → 4(전부), 2x3x1 → 4(6 중), 1x2x1 → 2(전부). brick_type/orientation이 유효해야 한다.
+    """
+    return min(MIN_SUPPORT_STUDS, len(footprint(block)))
+
+
 def _support_violations(nodes):
     by_layer = {}
     for node in nodes:
@@ -195,9 +210,16 @@ def _support_violations(nodes):
         if node["layer"] < 2:
             continue
         below = by_layer.get(node["layer"] - 1, [])
-        shared = sum(len(node["footprint"] & other["footprint"]) for other in below)
-        if shared < MIN_SUPPORT_STUDS:
-            reasons.append(_reason("support", [node["block"]], f"block support studs={shared} < {MIN_SUPPORT_STUDS}"))
+        # 고유 stud 집합: 아래 Block이 몇 개든 같은 stud는 한 번만 센다(같은 layer overlap은 별도 거부).
+        shared = set()
+        for other in below:
+            shared |= node["footprint"] & other["footprint"]
+        total = len(node["footprint"])
+        required = required_support_studs(node["block"])
+        if len(shared) < required:
+            reasons.append(_reason("support", [node["block"]],
+                                   f"block support studs={len(shared)} < {required} "
+                                   f"(min({MIN_SUPPORT_STUDS}, {total}) of its {total} studs must rest on the layer directly below)"))
     return reasons
 
 

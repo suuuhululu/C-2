@@ -159,7 +159,7 @@ def test_schema_and_validator_limits_are_final():
     assert validator.ALLOWED_COMBINATIONS == {"yellow": frozenset({"2x2x1", "2x3x1"}), "blue": frozenset({"2x2x1", "2x3x1"}),
                                              "red": frozenset({"1x2x1"})}
     assert validator.BOARD_RANGE == range(0, 24) and validator.MAX_LAYER == 5 and validator.MAX_BLOCKS == 40
-    assert validator.MIN_SUPPORT_STUDS == 2
+    assert validator.MIN_SUPPORT_STUDS == 4  # 2026-10-13 robot-only rule, min(4, studs) per brick
     design = _load("approved_design.json")
     assert validator.validate_design(dict(design, facing="+X")) != []  # unknown top-level key is rejected
     assert validator.validate_design({"design_version": 1, "blocks": [dict(design["blocks"][0], facing="+X")]}) != []

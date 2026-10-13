@@ -19,7 +19,8 @@ _REAL_GENERATE_REVISED = llm.generate_revised_design  # saved before any test re
 ENVELOPE_KEYS = {"status", "hri_result", "design", "design_metadata", "questions", "error"}
 REVISED_METADATA_KEYS = {"design_name", "design_family", "design_summary", "visible_features", "human_interpretation",
                          "change_summary", "interpretation_status", "judge", "design_intent", "regenerations", "style_hint",
-                         "source", "error"}
+                         "user_constraints", "constraint_clamp", "source", "error"}
+# user_constraints: 2026-10-13 Wave 3 명시 제약(없으면 None). constraint_clamp: Wave 4 Current 때문에 올린 제약 기록(없으면 None)
 MOCK_REVISED_METADATA_KEYS = REVISED_METADATA_KEYS - {"style_hint"}
 
 def judge(**overrides):
@@ -222,7 +223,7 @@ def test_h_initial_metadata_llm(monkeypatch):
         "visible_features": ["좌석 6×6"], "human_interpretation": None,
         "judge": {"silhouette_clarity": "clear", "recognizable_family": True, "completeness_score": 4},
         "preference": _request("ANY"), "selected_family": "high-back chair", "family_source": "random", "style_hint": None,
-        "family_design_match": "clear", "source": "LLM", "error": None,
+        "family_design_match": "clear", "user_constraints": None, "source": "LLM", "error": None,
     }
     assert result["questions"] == []  # 텍스트 모드: 첫 발화는 호출자가 받았고, 되묻기가 필요 없으면 질문이 없다
     assert set(result["design"]) == {"design_version", "blocks"} and result["design"]["design_version"] == 1
@@ -320,7 +321,7 @@ def test_keep_and_mock_revise_metadata(scenario, monkeypatch):
 
 INITIAL_METADATA_KEYS = {"design_name", "design_family", "design_summary", "visible_features", "human_interpretation",
                          "judge", "preference", "selected_family", "family_source", "style_hint", "family_design_match",
-                         "source", "error"}
+                         "user_constraints", "source", "error"}  # user_constraints: Wave 3 명시 제약(없으면 None)
 REQUEST_KEYS = ("object", "preference", "family", "style_hint", "sufficient", "follow_up", "reply")  # llm.REQUEST_KEYS(A)
 FOLLOW_UP = "어떤 느낌의 의자가 좋으세요? 팔걸이나 색, 모양을 말씀해 주셔도 돼요."
 
