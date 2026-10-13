@@ -142,7 +142,9 @@ def test_measured_real_adapter_keeps_all_methods_and_actual_a_apis(monkeypatch,t
         docs=r.robot.documents
         assert len(docs)==7
         assert {d['step']['action']['mode'] for d in docs}=={'ROBOT_GRIP','HUMAN_ASSEMBLY'}
-        assert {'NONE','PRESS','PRESS_AND_HOLD','MANUAL_ASSEMBLY'} <= {d['step']['action']['assistance_kind'] for d in docs}
+        assert {d['step']['action']['assistance_kind'] for d in docs}=={'NONE','PRESS_AND_HOLD','MANUAL_ASSEMBLY'}
+        assert all(d['step']['action']['assistance_kind']=='NONE' for d in docs
+                   if d['step']['action']['mode']=='ROBOT_GRIP' and d['step']['block']['layer']==2)
         assert all(d['session']['backend']=='REAL' and d['session']['b_observation_kind']=='SYNTHETIC' for d in docs)
         assert all(not d['motion']['execution_allowed'] for d in docs)
         assert all(d['state_basis']=='SYNTHETIC_B_NOT_CAMERA_CONFIRMED' for d in docs)
@@ -154,6 +156,23 @@ def test_measured_real_adapter_keeps_all_methods_and_actual_a_apis(monkeypatch,t
         assert any(v['event']=='ROBOT_HELP_RELEASE_GUIDANCE' and not v['result']['b_confirmed'] for v in rows)
         with pytest.raises(ValueError,match='SYNTHETIC_GESTURE_CANNOT'):
             r.gesture('THUMBS_UP')
+    finally:r.close()
+
+
+def test_board_attached_two_by_two_partial_contact_executes_without_help(monkeypatch,tmp_path):
+    blocks=[brick(6,kind='2x2x1'),brick(7,2,kind='2x2x1')]
+    r=install(monkeypatch,tmp_path,dict(design_version=1,blocks=blocks))
+    try:
+        r.review_preparation(True);assert r.command('START')
+        settle(r,lambda:r.workflow.status=='COMPLETE')
+        assert len(r.robot.documents)==2
+        action=r.robot.documents[1]['step']['action']
+        assert action['mode']=='ROBOT_GRIP' and action['support_studs']==2
+        assert action['assistance_kind']=='NONE' and action['human_actions']==[] and action['human_hands_used']==0
+        log=[json.loads(v) for v in (tmp_path/(r.workflow.job_id+'.jsonl')).read_text().splitlines()]
+        assert sum(row['event']=='ROBOT_CONTACT_SUCCEEDED' for row in log)==2
+        assert not any(row['event']=='ROBOT_SIGNAL_REQUEST' and row['result']['kind']=='HELP_READY' for row in log)
+        assert r.workflow.current['blocks']==blocks
     finally:r.close()
 
 
