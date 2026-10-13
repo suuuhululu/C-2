@@ -1,0 +1,328 @@
+{
+  "status": "PROVISIONAL_NOT_FOR_MOTION",
+  "measurement_date": "2026-10-07",
+  "source": "User supplied direct-teaching measurements of four outermost corner stud centres",
+  "robot_reference": "BASE",
+  "position_unit": "mm",
+  "tcp_orientation_convention": "ZYZ Euler degrees",
+  "stud_pitch_mm": 16.0,
+  "grid_index_range": [
+    0,
+    23
+  ],
+  "stud_span_mm": 368.0,
+  "reference_plane": "Empty assembly board stud tops",
+  "tcp": {
+    "name": "GripperDA_v4",
+    "configured_flange_from_tcp_pose": [
+      0,
+      0,
+      228,
+      0,
+      0,
+      0
+    ],
+    "gripper_state": "FULLY_CLOSED",
+    "physical_tip_coincides_with_tcp": null
+  },
+  "raw_measurements": [
+    {
+      "point": "A",
+      "grid": [
+        0,
+        0
+      ],
+      "posx": [
+        286.02,
+        -94.68,
+        16.43,
+        25.43,
+        -179.58,
+        26.01
+      ],
+      "posj": null
+    },
+    {
+      "point": "B",
+      "grid": [
+        23,
+        0
+      ],
+      "posx": [
+        654.45,
+        -95.76,
+        17.51,
+        62.14,
+        -179.57,
+        62.76
+      ],
+      "posj": null
+    },
+    {
+      "point": "D",
+      "grid": [
+        0,
+        23
+      ],
+      "posx": [
+        288.1,
+        272.5,
+        17.34,
+        28.96,
+        -179.51,
+        29.21
+      ],
+      "posj": null
+    },
+    {
+      "point": "C",
+      "grid": [
+        23,
+        23
+      ],
+      "posx": [
+        654.44,
+        270.74,
+        17.83,
+        161.16,
+        -179.26,
+        161.46
+      ],
+      "posj": null
+    }
+  ],
+  "model_assumption": "Displayed TCP XYZ used as contact-point proxy; no tip correction applied",
+  "rigid_16mm_fit": {
+    "method": "Least-squares orthonormal planar fit (SVD), 16mm pitch fixed",
+    "T_robot_base_from_board_mm": [
+      [
+        0.999992119416804,
+        0.003341843751591189,
+        -0.0021431716284483334,
+        286.1390507770153
+      ],
+      [
+        -0.003345426764621573,
+        0.9999930088717783,
+        -0.0016704272896369973,
+        -95.18315510771684
+      ],
+      [
+        0.002137574338260317,
+        0.0016775839494227558,
+        0.9999963082372062,
+        16.575510875066314
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ]
+    ],
+    "T_robot_base_from_board_m": [
+      [
+        0.999992119416804,
+        0.003341843751591189,
+        -0.0021431716284483334,
+        0.28613905077701535
+      ],
+      [
+        -0.003345426764621573,
+        0.9999930088717783,
+        -0.0016704272896369973,
+        -0.09518315510771684
+      ],
+      [
+        0.002137574338260317,
+        0.0016775839494227558,
+        0.9999963082372062,
+        0.016575510875066313
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ]
+    ],
+    "point_residual_xyz_mm": [
+      [
+        -0.11905077701533173,
+        0.5031551077168359,
+        -0.14551087506631433
+      ],
+      [
+        0.3138492776008661,
+        0.65427215709758,
+        0.14786176845388965
+      ],
+      [
+        0.7311507223991498,
+        -0.3142721570975482,
+        0.14713823154611205
+      ],
+      [
+        -0.9259492229846273,
+        -0.8431551077168251,
+        -0.14948912493368738
+      ]
+    ],
+    "point_residual_norm_mm": {
+      "A": 0.5371327253966747,
+      "B": 0.7405650053668601,
+      "D": 0.8093194837479584,
+      "C": 1.2612055731276508
+    },
+    "max_residual_mm": 1.2612055731276508,
+    "rmse_mm": 0.8778646843802843
+  },
+  "affine_comparison": {
+    "method": "Least-squares affine XYZ from grid; allows pitch and orthogonality distortion",
+    "origin_xyz_mm": [
+      286.54249999999985,
+      -94.51,
+      16.5775
+    ],
+    "x_step_xyz_mm": [
+      15.97326086956522,
+      -0.06173913043478052,
+      0.034130434782608854
+    ],
+    "y_step_xyz_mm": [
+      0.045000000000001705,
+      15.949565217391301,
+      0.02673913043478269
+    ],
+    "effective_pitch_mm": [
+      15.973416648105962,
+      15.949651112325775
+    ],
+    "axis_angle_deg": 90.05959699730174,
+    "point_residual_norm_mm": [
+      0.568913438055264,
+      0.5689134380555071,
+      0.5689134380555453,
+      0.5689134380553053
+    ],
+    "max_residual_mm": 0.5689134380555453,
+    "rmse_mm": 0.5689134380554054
+  },
+  "diagnostics": {
+    "measured_edge_lengths_mm": {
+      "AB": 368.43316585237005,
+      "AD": 367.1870189698977,
+      "DC": 366.344555439275,
+      "BC": 366.5001398362626
+    },
+    "parallelogram_closure_xyz_mm": [
+      -2.090000000000032,
+      -0.6800000000000068,
+      -0.5900000000000034
+    ],
+    "parallelogram_closure_norm_mm": 2.275653752221578,
+    "plane_signed_residuals_mm": [
+      -0.14609567564988635,
+      0.1460956756498865,
+      0.1460956756498861,
+      -0.1460956756498859
+    ],
+    "independent_validation_points": [],
+    "acceptance_threshold_mm": null
+  },
+  "tip_correction_if_measured": "p_contact_base = p_displayed_tcp_base + R_ZYZ(A,B,C) @ delta_tip_in_configured_tcp_mm",
+  "isaac_mapping": {
+    "length_unit": "m",
+    "transform_reference": "robot Base, not simulator world",
+    "sim_world_from_robot_base": null,
+    "runtime_verified": false
+  },
+  "assembly_target": {
+    "tcp_to_held_block_bottom": null,
+    "layer_height_mm": null,
+    "pre_contact_pose": null,
+    "motion_path": null
+  },
+  "limitations": [
+    "Fit residuals reuse the same four measured points; they do not establish positioning accuracy.",
+    "2mm camera click acceptance is not an insertion or robot-fit acceptance threshold.",
+    "Do not add or subtract 228mm again from displayed TCP XYZ.",
+    "TCP ABC describe measurement tool orientations, not board orientation.",
+    "No joint angles, correction, grasp offset, approach height, force or speed were inferred."
+  ],
+  "grasp_measurement": {
+    "measurement_date": "2026-10-07",
+    "brick_type": "2x2x1",
+    "color": "blue",
+    "pad_to_block_bottom_protrusion_mm": 5.0,
+    "confirmed_by": "User direct ruler reading",
+    "reference_points": [
+      "Lowest end of black rubber gripping pad",
+      "Lower edge of blue block body"
+    ],
+    "measurement_scope": "Scalar protrusion only; not a calibrated TCP-to-block transform",
+    "photos": [
+      {
+        "source_path": "/tmp/codex-clipboard-63ea5a94-6081-45ee-9472-2064ad0dc604.png",
+        "local_evidence_path": "logs/assembly_grasp_5mm_20261007/grasp_photo_1.png",
+        "sha256": "780523aa10092455d155114243c31987e7d0831c6a9cb42bee1fad981fa861d0"
+      },
+      {
+        "source_path": "/tmp/codex-clipboard-b82c38b0-c14a-42b4-b709-eb4d4232816c.png",
+        "local_evidence_path": "logs/assembly_grasp_5mm_20261007/grasp_photo_2.png",
+        "sha256": "0e5076043917a0d02d9df75c7ad5a6ea550808a45e174e88e6f452aeda176610"
+      }
+    ],
+    "gripper_width_mm": null,
+    "tcp_to_held_pad_tip_mm": null,
+    "tcp_from_block_bottom_mm": null,
+    "transform_verified": null,
+    "closed_pad_to_held_pad_shift_mm": null
+  },
+  "assembly_preparation": {
+    "first_trial_starts": "ALREADY_HOLDING_BLOCK",
+    "supply_pick_included": false,
+    "target": {
+      "brick_type": "2x2x1",
+      "color": "blue",
+      "x": 11,
+      "y": 11,
+      "layer": 1,
+      "orientation_deg": 0
+    },
+    "target_source": "User selected centre grid (11,11)",
+    "surface_reference": "Empty-board stud top plane; not fully seated block bottom plane",
+    "clearance_mm": null,
+    "board_verified": null,
+    "approach": {
+      "status": "HOLD",
+      "executable": false,
+      "missing": [
+        "TCP_TO_BLOCK_BOTTOM_TRANSFORM",
+        "BOARD_FRAME_VERIFICATION",
+        "GRASP_TRANSFORM_VERIFICATION",
+        "APPROACH_CLEARANCE_MM"
+      ],
+      "reported_pad_protrusion_mm": 5.0,
+      "nominal_stud_surface_center_base_mm": [
+        470.7525,
+        88.19999999999999,
+        17.2775
+      ],
+      "base_from_precontact_tcp_mm": null
+    },
+    "tcp_goal_source": "Measured transforms required; no command conversion or dispatch",
+    "trial_assumptions": {
+      "configured_tcp_matches_current_pad_end": true,
+      "source": "User: assume the existing TCP is correct for a trial",
+      "status": "ASSUMED_NOT_VERIFIED",
+      "assumed_flange_to_pad_end_mm": 228.0,
+      "measured_pad_to_bottom_mm": 5.0,
+      "conditional_axial_distance_mm": 5.0,
+      "axial_relation": "Valid only if the measured height follows Tool Z and the block bottom is perpendicular to that axis",
+      "usable_as_full_tcp_to_block_transform": false,
+      "physical_verification_changed": false,
+      "force_or_motion_limits_assumed": false
+    }
+  }
+}

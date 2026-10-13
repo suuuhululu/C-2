@@ -1,56 +1,50 @@
-# Adaptive Co Assembly — C-2 팀 개발 안내
+# Adaptive Co-Assembly — 통합 실행
 
-LLM과 사용자가 대화로 **커스텀 의자**를 설계·확정하면 조립 순서와 경로를 생성하고 Backend·HMI에 반영합니다. 로봇은 supply board에서 블록을 집어 assembly board에 직접 결착하며, 지지가 필요한 부분은 사람에게 고정 도움을 요청합니다. 계획에 필요한 블록 사용 종료 → Vision 확인과 Backend 최종 조립 판정 → 사용자별 DB 저장·웹앱 반영의 세 단계로 마칩니다.
+C가 블록 설계 후보를 만들고 사용자가 승인하면, A가 조립 순서·사람 도움·이동 후보를 계산한다. D가 HMI와 로봇 실행·검사를 관리하며 작업 기록을 PostgreSQL과 웹에 저장한다.
 
-**2026-10-07 최종 MVP 목표이며 개발 과정에서 수정될 수 있습니다.** 문서 목표와 현재 구현·실제 장치 검증은 구분합니다.
+이 배포는 `codex/integration-round1`의 **ebeeef2**(2026-10-13, PR #36 반영)에서 실행에 필요한 파일만 가져온다. 검사·재생 표본·개별 demo·과거 보고서·Isaac/MoveIt은 기본 구성에서 제외한다. A 계산 코드는 하나이며, 파일명이 sample/fixture/fake/trial이어도 현재 실행에서 사용하는 코드·설정·교시 자료는 유지한다.
 
-## 처음 읽는 순서
+## 시작 순서
 
-1. [최종 MVP 흐름·세 단계 종료·현재 구현과의 차이](docs/10_FINAL_MVP.md)
-2. [최신 결정·남은 합의](docs/00_CURRENT_DECISIONS.md)
-3. [진행 상황과 검증 기록](docs/STATUS.md)
-4. [개발·통합 단계](docs/01_DAY_PLAN.md) · [팀원 협업 안내](docs/02_TEAM_GUIDE.md)
-5. [기존 Day4 계약과 최종 MVP 이행](docs/06_CONTRACT_DRAFT.md) · [C/B 기존 연결 합의](docs/09_C_B_BACKEND_HANDOFF.md)
-6. [수현 접촉 실행·사람 지원 연구 설계](docs/suhyun_individual_research_topic.md)
-7. [환경·측정 확인](docs/03_MEASUREMENT_GUIDE.md) · [Git·PR·문서 관리](docs/05_REPOSITORY_GUIDE.md)
-8. [Isaac Sim 후속 검토](docs/04_ISAAC_SIM.md)
+1. [설치·환경 설정](docs/INSTALL.md)에서 사용할 기능의 의존성과 외부 자료를 준비한다.
+2. [실행 안내](docs/RUN.md)의 장치 없는 통합 실행으로 HMI·C 승인·A 계산·MOCK 진행을 확인한다. 별도 설계 예제 파일을 주입하지 않고 C 생성 함수를 사용한다.
+3. DB가 필요하면 같은 안내에서 계정·제작자 로그인·저장·웹 조회를 설정한다.
+4. 현장 REAL 시험은 설치·교시·장치 조건을 확인한 뒤 [REAL 절차](docs/RUN.md#현장-real-시험)를 사용한다. offline C도 REAL 진입점에서는 실제 로봇을 실행한다.
 
-협업 문서는 레포 안 Markdown으로 관리합니다. 새 AI 채팅은 [AGENTS.md](AGENTS.md)를 먼저 읽습니다.
+## 코드 위치
 
-## 현재 구현과 최종 목표
+| 부분 | 현재 진입점/위치 |
+|---|---|
+| C·A·HMI·MOCK 통합 | `python3 -m app.mvp_integration` |
+| 현장 C·A·D 시험 | `python3 -m app.mvp_real_trial` |
+| C 설계·검토·수정 | `app/c_design/main.py` |
+| A 전체 계획·재평가·이동 후보 | `planning_trial/assembly_adapter.py`의 세 handle API |
+| D 별도 실행 프로세스 | `robot_control_integration/scripts/robot_integration_runtime.py` |
+| B 상태·검사 연결 | `perception/perception_mvp/team_connection.py` |
+| DB CLI / 웹 | `python3 -m history` / `python3 -m history.web` |
 
-GitHub main `95259bd`에는 C Design·A Planner·Backend·Qt·기존 Board 전달 연결 및 독립 PostgreSQL 이력 코드가 있습니다. 아래는 소스와 기존 기록을 확인한 결과이며 이번 문서 작업에서 앱·장치 시험을 다시 실행한 결과가 아닙니다.
+[모듈 연결·계약](docs/INTEGRATION.md)은 호출 순서, Current/revision 책임, 실패·도움·체결 경계를 설명한다.
 
-| 구분 | 현재 게시 구현 | 최종 MVP 목표 / 남은 작업 |
-|---|---|---|
-| 설계 | Initial/Revised·텍스트·음성 입력 | 커스텀 의자 설계 대화·명시적 확정 |
-| 계획 | PLACE 순서·기하·Remaining/Replan | 조립 순서와 경로 생성·Backend 채택·HMI 반영 |
-| 물리 조립 | Robot 공급판→고정 place board 전달, 사람 조립 | Robot 공급판→assembly board 직접 결착 |
-| 사람 지원 | 기존 의도 질문·물리 정리 안내 | 지지 필요 판단·고정 도움 요청·준비 응답·실행 알림 |
-| 완료 | 기존 관측 기반 Step·Design 비교 | 블록 사용 종료와 최종 Vision/Backend 판정·저장/반영 구분 |
-| HMI / 웹 | Qt 단일 화면; 사용자별 웹 화면 없음 | 지지·진행·종료 표시 및 웹앱 개인 설계·조립 기록; Qt/웹 분담 미확정 |
-| 저장 | Job별 JSONL→별도 PostgreSQL 적재·조회, users 표 | 사용자–Job 소유자 연결·현재 설계/조립 기록 저장·웹앱 조회 |
+## 지원 범위와 확인 수준
 
-실제 Camera 생산자, Robot STOP/재개·직접 결착·지원 제스처, 최종 완성상태 판정과 사용자별 DB/웹 전체 연결은 별도 검증이 필요합니다. 기존 시험 기록은 [STATUS](docs/STATUS.md), 기본 실행은 [실행 버전 기록](docs/D_RUNTIME_BASELINE.md)과 [Robot/HMI 안내](docs/D_BACKEND_RUN_ROBOT_PLAN.md), DB는 [이력 안내](docs/D_DB_HISTORY.md)를 확인합니다. 기존 명령은 전달 공정용이며 직접 결착 실행 명령이 아닙니다.
+소프트웨어 범위는 24×24 stud, layer 1~5, C 후보 1~40블록이다. 노랑·파랑은 2×2×1/2×3×1, 빨강은 1×2×1을 지원한다. 실제 공급·교시·관측·체결 가능 범위는 같은 의미가 아니다.
 
-## 전체 흐름
+| 범위 | 이 배포에서의 의미 |
+|---|---|
+| MOCK 통합 | 실제 C/A/B 상태 함수와 가상 D 실행·합성 관측을 사용한다. 실물 조립 증거가 아니다 |
+| 현장 REAL 진입점 | 실제 D 로봇·제스처와 **합성 B 관측**을 사용한다. Camera→B 실제 전체 판 관측 성공으로 보고하지 않는다 |
+| A 이동 결과 | waypoint/motion proposal이다. MoveIt 전체 궤적 계산·충돌 회피 엔진은 이번 배포에 포함하지 않는다 |
+| DB·웹 | 제작자 로그인·Job 소유권·명시 저장·조회·선택 공개 코드가 포함된다. 저장 성공과 조립 확인은 별도 상태다 |
+| 외부 환경 | ROS/DRCF2·RG2·제스처 모델·개인 API 키·PostgreSQL 데이터는 별도로 준비한다 |
 
-```text
-서비스 시작 → LLM/사용자 커스텀 의자 대화 → 설계 확정
-→ 조립 순서·경로 생성 → Backend 채택·HMI 반영
-→ [필요하면 고정 도움 요청·준비 확인] → 공급판 집기·조립판 결착
-→ Step 증거 확인 → 다음 Step
-→ 1. 필요한 블록 모두 사용
-→ 2. Vision 완성상태 확인·Backend 최종 조립 판정과 종료
-→ 3. 사용자별 현재 설계·조립 기록 DB 저장·웹앱 반영
-```
+이 배포의 준비 과정에서 실제 Robot·Camera·제어권·그리퍼·힘/모드/controller를 변경하지 않는다. 실제 장치·관측 정확도·40N 체결 결과는 현장 검증 범위다.
 
-계획·경로와 실행 전제가 준비되면 첫 Step을 바로 실행합니다. HIGH 지지는 준비 응답과 알림 후 실행합니다. 정상 Step마다 수동 승인을 요구하지 않으며, 명령 완료·블록 사용 종료만으로 조립 완료를 선언하지 않습니다. 불확실·실패·저장/반영 실패는 각각 기록·표시합니다.
+## 보존 자료
 
-## 환경·지원 범위와 근거
+main에서 제외한 자료는 GitHub에 남는다. 이력을 재작성하거나 원본을 덮어쓰지 않는다.
 
-기존 환경은 사용자 제공 Ubuntu 24.04 / Docker 29.8.2 / NVIDIA 4060 / Python 3.12.3 / ROS2 Jazzy / M0609 / D435i / RG2입니다. 기존 구현 범위는 4점·6점 × 노랑·파랑, 24×24 stud, 최대 4층입니다. 최종 의자 구조·직접 결착 가능 범위와 보정은 확인이 필요하며 블록·층 범위를 임의 확대하지 않습니다.
+- [통합 전체 원본·실측·검사·B 자료·Isaac](https://github.com/suuuhululu/C-2/tree/archive/integration-20261013-ebeeef2)
+- [이전 main 전체](https://github.com/suuuhululu/C-2/tree/archive/main-20261013-afd75d0)
+- [원본 파일 목록·Git blob·제외 경로 명세](https://github.com/suuuhululu/C-2/blob/codex/archive-runtime-20261013/ARCHIVE_MANIFEST.json)
 
-- 최신 목표는 [최종 MVP](docs/10_FINAL_MVP.md), 상세 연구 근거는 [첨부 연구 설계](docs/suhyun_individual_research_topic.md)를 봅니다.
-- [참고자료 적용 안내](docs/reference/README.md)의 원본 정책·과거 계획·GT는 보존합니다. 과거 TBD·Day4 흐름보다 최신 사용자 결정이 우선합니다.
-- 원본 사진·Depth·영상은 레포에 포함되지 않습니다. GT 이미지 파일명은 원자료 기록입니다.
+Isaac/MoveIt은 별도 개발 완료 후 추가한다. 회귀 검사가 필요하면 위 통합 보존 기준에서 가져온다. 현재 실행용 main에 없는 예제/검사 명령을 기본 사용법으로 실행하지 않는다.

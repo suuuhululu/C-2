@@ -8,6 +8,7 @@ from PyQt5.QtCore import QObject, Qt, pyqtSignal
 
 from app.c_design import main as c_main, voice
 from app.contracts import _text, validate_block
+from app.c_candidate import open_candidate, on_review, valid_review
 from app.planning_connection import current_blocks_for_c, on_c_intervention
 
 
@@ -64,63 +65,45 @@ class CTextConnection(QObject):
         self.voice_received.emit(identity, dict(phase=phase, status=status, notice=notice,
                                                text=text, reason=reason))
 
-    def listen(self, identity, phase, cancelled):
-        if cancelled.is_set():
-            return None
-        self.audio(identity, phase, "STARTED", f"마이크 녹음 시작 · {voice.WAIT_SECONDS:g}초 안에 말해주세요.")
-        text = voice.listen()
-        reason = (voice.last_error() or "VOICE_IO_FAILED") if text is None else "SILENCE" if not text.strip() else None
-        self.audio(identity, phase, "FAILED" if reason else "RESULT",
-                   "음성 입력 실패: " + reason if reason else "인식한 문장: " + text,
-                   text=text, reason=reason)
-        return text
-
     def voice_call(self, kind, payload, cancelled):
-        """C 음성 I/O만 재사용한다. 무한 음성 재질문 대신 D의 의도 정책을 유지한다."""
-        identity = payload["request_id"]
-        questions = []
-
-        def fail(reason):
-            return dict(status="FAILED", hri_result=None, design=None, questions=questions,
-                        error=dict(code="VOICE_IO_FAILED", message=reason, details=[]))
-
-        def intervene(answers):
-            return c_main.run_intervention(deepcopy(payload["design"]), current_blocks_for_c(payload),
-                differences_for_c(payload["difference"]), text_answers=answers,
-                on_question=lambda text: self.question_received.emit(identity, text),
-                should_stop=cancelled.is_set)
-
-        if kind != "initial":
-            if payload.get("question"):
-                questions = [payload["question"]]
-                self.question_received.emit(identity, questions[-1])
-            else:
-                preview = intervene([])
-                questions = preview.get("questions", [])
-                if preview.get("status") != "OK" or cancelled.is_set():
-                    return preview
-            if cancelled.is_set():
-                return fail("STOPPED")
-            if not questions:
-                return fail("C 질문이 없어 음성 응답을 요청하지 않습니다.")
-            self.audio(identity, "TTS_QUESTION", "STARTED", "질문 음성 재생 중 · AI 생성 음성")
-            voice.speak(questions[-1])
-            error = voice.last_error()
-            self.audio(identity, "TTS_QUESTION", "FAILED" if error else "RESULT",
-                       "질문 음성 실패: " + error if error else "질문 음성 재생 완료", reason=error)
-            if error:
-                return fail(error)
-        text = self.listen(identity, "STT_GOAL" if kind == "initial" else "STT_ANSWER", cancelled)
-        if cancelled.is_set():
-            return dict(status="CANCELLED", hri_result=None, design=None, questions=questions,
-                        error=dict(code="STOPPED", message="stopped by D/HMI", details=[]))
-        if text is None or not text.strip():
-            return fail(voice.last_error() or "SILENCE: 음성 입력이 없어 진행을 보류합니다.")
+        """C가 TTS→beep→STT 수명주기를 단독 소유한다."""
         if kind == "initial":
-            return c_main.create_initial_design(text=text, should_stop=cancelled.is_set)
-        return intervene([text])
+            return c_main.create_initial_design(text=None, should_stop=cancelled.is_set,
+                on_question=lambda text: self.question_received.emit(payload["request_id"], text),
+                on_progress=lambda event: self.progress(payload["request_id"], event, cancelled))
+        return c_main.run_intervention(deepcopy(payload["design"]), current_blocks_for_c(payload),
+            differences_for_c(payload["difference"]), text_answers=None,
+            on_question=lambda text: self.question_received.emit(payload["request_id"], text),
+            should_stop=cancelled.is_set,
+            on_progress=lambda event: self.progress(payload["request_id"], event, cancelled))
+
+    def progress(self, identity, event, cancelled):
+        if cancelled.is_set():
+            raise InterruptedError("C_STOPPED")
+        if not self.voice_mode:
+            return
+        if voice.last_error():
+            # C가 다음 STT를 열기 전 on_progress 경계에서 실패를 보류한다. D는 음성 I/O를 수행하지 않는다.
+            raise ValueError("C_VOICE_IO_FAILED")
+        stage, message = event["stage"], event.get("message")
+        self.audio(identity, stage, "FAILED" if stage == "FAILED" else "RESULT",
+                   message or stage, reason=message if stage == "FAILED" else None)
+
+    def preview_ready(self, identity):
+        review = self.backend.state.get("c_review")
+        if not review or review["request_id"] != identity or review["phase"] != "PREVIEW":
+            return
+        if (review["job_id"] != self.backend.state["job_id"] or
+                review["base_current_revision"] != self.backend.state["current"]["current_revision"]):
+            self.backend._hold("C_REVIEW_CONTEXT_CHANGED")
+            self.publish()
+            return
+        self.backend._state["c_review"]["phase"] = "REVIEW"
+        self.start("review", self.backend.state["c_review"])
 
     def valid(self, kind, payload):
+        if kind == "review":
+            return valid_review(self.backend, payload)
         state = self.backend.state
         key = "planning_request" if kind == "initial" else "question_request"
         request = state[key]
@@ -149,13 +132,22 @@ class CTextConnection(QObject):
         self.active = (kind, payload, cancelled)
         self.backend._event("C_CALL_STARTED", request_id=payload["request_id"],
                             result=dict(kind=kind, question_preview=preview, voice_mode=self.voice_mode))
-        voice_call = self.voice_mode and (kind == "initial" or preview)
+        voice_call = self.voice_mode and kind != "review" and (kind == "initial" or preview)
         if voice_call:
             preview = False
 
         def call():
             try:
-                if voice_call:
+                if kind == "review":
+                    context = dict(previous_design=deepcopy(payload["previous_design"]),
+                        current=current_blocks_for_c(payload), differences=differences_for_c(payload["difference"])) if payload["kind"] == "revised" else {}
+                    response = c_main.review_design_candidate(deepcopy(payload["design"]), kind=payload["kind"],
+                        design_metadata=deepcopy(payload["design_metadata"]), **context,
+                        text_answers=None if self.voice_mode else list(answers),
+                        on_question=lambda text: self.question_received.emit(payload["request_id"], text),
+                        should_stop=cancelled.is_set,
+                        on_progress=lambda event: self.progress(payload["request_id"], event, cancelled))
+                elif voice_call:
                     response = self.voice_call(kind, payload, cancelled)
                 elif kind == "initial":
                     response = c_main.create_initial_design(text=self.initial_text, should_stop=cancelled.is_set)
@@ -167,31 +159,63 @@ class CTextConnection(QObject):
                         should_stop=cancelled.is_set)
             except Exception as error:
                 # 예상 밖 callback/provider 예외도 성공·UNCLEAR로 숨기지 않는다. secret 본문은 기록하지 않는다.
-                response = dict(status="FAILED", error=dict(code="C_CONNECTION_EXCEPTION",
-                                message=type(error).__name__), design=None, hri_result=None, questions=[])
+                audio_error = voice.last_error() if self.voice_mode else None
+                code = "STOPPED" if cancelled.is_set() else "VOICE_IO_FAILED" if audio_error else "C_CONNECTION_EXCEPTION"
+                message = audio_error or type(error).__name__
+                if audio_error:
+                    self.audio(payload["request_id"], "VOICE_IO", "FAILED", message, reason=message)
+                response = dict(status="CANCELLED" if cancelled.is_set() else "FAILED", error=dict(code=code, message=message),
+                                design=None, hri_result=None, questions=[])
             self.result_received.emit((kind, payload, response, preview))
 
         Thread(target=call, daemon=True).start()
 
     def question(self, identity, text):
+        review = self.backend.state.get("c_review")
+        if review and review["request_id"] == identity and valid_review(self.backend, review):
+            self.backend._state["c_review"]["question"] = text
+            self.backend._state["question"] = text
+            self.publish()
+            return
+        request = self.backend.state["planning_request"]
+        if request and request["request_id"] == identity and self.valid("initial", request):
+            self.backend._state["question"] = text
+            self.publish()
+            return
         if self.backend.on_question(identity, text):
             self.publish()
 
     def finish(self, value):
         kind, payload, response, preview = value
+        if (not self.active or self.active[0] != kind or
+                self.active[1]["request_id"] != payload["request_id"]):
+            self.backend._ignored(payload["request_id"])
+            return
         self.active = None
         identity = payload["request_id"]
         if not self.valid(kind, payload):
             self.backend._ignored(identity)
             self.publish()
             return
+        if not isinstance(response, dict):
+            self.backend._hold("C_RESPONSE_INVALID: expected object")
+            self.publish()
+            return
         self.backend._event("C_CALL_RESULT", request_id=identity,
                             result=dict(kind=kind, question_preview=preview, response=response))
-        if preview and response.get("status") == "OK":
+        if kind == "review":
+            on_review(self.backend, payload, response)
+            if self.voice_mode and (self.backend.state.get("c_review") or {}).get("phase") == "WAIT_ANSWER":
+                self.backend._hold("C_REVIEW_UNCLEAR: 음성 검토에서 승인을 확인하지 못했습니다.")
+        elif kind == "initial":
+            open_candidate(self.backend, "initial", payload, response)
+        elif response.get("status") == "OK" and response.get("hri_result") == "REVISE":
+            open_candidate(self.backend, "revised", payload, response)
+        elif response.get("status") == "CANCELLED":
+            self.backend._hold("C_INTERVENTION_CANCELLED: " + str(response.get("error")))
+        elif preview and response.get("status") == "OK":
             # 응답 없이 질문을 표시한 호출은 사용자 의도 결과가 아니다.
             self.backend._event("C_QUESTION_PREVIEW", request_id=identity, result=response)
-        elif kind == "initial":
-            self.backend.on_initial_design(identity, response)
         else:
             on_c_intervention(self.backend, identity, response)
             state = self.backend.state
@@ -212,6 +236,12 @@ class CTextConnection(QObject):
         _text(text, "c.answer.text")
         if not text.strip():
             raise ValueError("빈 답변은 의도 선택으로 처리하지 않습니다.")
+        review = self.backend.state.get("c_review")
+        if review:
+            if self.active or review["request_id"] != identity or review["phase"] != "WAIT_ANSWER":
+                raise ValueError("표시된 활성 후보의 검토 요청 ID를 확인하세요.")
+            self.start("review", review, answers=[text])
+            return
         state, request = self.backend.state, self.backend.state["question_request"]
         if self.active or request is None or request["request_id"] != identity or state["choice_required"]:
             raise ValueError("활성 질문 ID를 확인하세요. C 호출 중이거나 명시 선택 대기 중입니다.")
@@ -223,6 +253,12 @@ class CTextConnection(QObject):
 
     def show_next_input(self):
         state = self.backend.state
+        review = state.get("c_review")
+        if review and not self.active and review["phase"] == "WAIT_ANSWER":
+            if not self.voice_mode:
+                print("C 후보 검토 입력: " + json.dumps(dict(event="answer", request_id=review["request_id"],
+                    text="좋아요"), ensure_ascii=False), flush=True)
+            return
         request = state["question_request"]
         if not self.active and request and state["workflow_status"] == "WAIT_INTENT":
             if state["choice_required"]:

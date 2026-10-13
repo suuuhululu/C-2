@@ -6,6 +6,7 @@ from .completion import _current
 from .contracts import (
     _array, _block, _integer, _object, _text, validate_design, validate_observed,
 )
+from .hmi_mvp_contracts import MVP_FIELDS, validate_mvp_fields
 
 
 WORKFLOW_STATUSES = (
@@ -23,9 +24,10 @@ COMMAND_FIELDS = {
     "CONTINUE_AFTER_CORRECTION": ("command", "job_id", "request_id"),
     "SUPPLY_REFILLED": ("command", "job_id", "brick_type", "color"),
 }
-SUPPLY_COLUMNS = {
+LEGACY_SUPPLY_COLUMNS = {
     (brick, color) for brick in ("2x2x1", "2x3x1") for color in ("yellow", "blue")
 }
+SUPPLY_COLUMNS = LEGACY_SUPPLY_COLUMNS | {("1x2x1", "red")}
 
 
 def _nullable_text(value: object, path: str) -> None:
@@ -39,11 +41,10 @@ def _boolean(value: object, path: str) -> None:
 
 
 def _column(value: dict, path: str) -> tuple[str, str]:
-    if value["brick_type"] not in ("2x2x1", "2x3x1"):
-        raise ValueError(f"{path}.brick_type: unsupported supply column")
-    if value["color"] not in ("yellow", "blue"):
-        raise ValueError(f"{path}.color: unsupported supply column")
-    return value["brick_type"], value["color"]
+    column = value["brick_type"], value["color"]
+    if column not in SUPPLY_COLUMNS:
+        raise ValueError(f"{path}.brick_type/color: unsupported supply column")
+    return column
 
 
 def _button(value: object, path: str, fields=("visible", "enabled")) -> dict:
@@ -124,8 +125,8 @@ def _monitor(value: object, step: dict) -> dict:
         if item["needs_refill"] is not None:
             _boolean(item["needs_refill"], f"{item_path}.needs_refill")
         columns[key] = item
-    if columns.keys() != SUPPLY_COLUMNS:
-        raise ValueError(f"{path}.supply: requires all four supply columns")
+    if columns.keys() not in (LEGACY_SUPPLY_COLUMNS, SUPPLY_COLUMNS):
+        raise ValueError(f"{path}.supply: requires all four supply columns (legacy) or five Stage3 columns")
     return columns
 
 
@@ -177,7 +178,8 @@ def _actions(value: object, workflow: str, notice: dict, columns: dict, *, trial
 
 
 def validate_hmi_snapshot(value: object) -> dict:
-    optional = tuple(key for key in ("transfer_target", "manual_trial", "reported_placement") if isinstance(value, dict) and key in value)
+    optional = tuple(key for key in ("transfer_target", "manual_trial", "reported_placement", "observation_kind") + MVP_FIELDS
+                     if isinstance(value, dict) and key in value)
     snapshot = _object(value, ("workflow_status", "step", "progress", "monitor",
                                "notice", "actions", "design", "current") + optional, "snapshot")
     _current(snapshot["current"])
@@ -200,6 +202,10 @@ def validate_hmi_snapshot(value: object) -> dict:
             and snapshot["monitor"]["robot"]["status"] == "STOP_PENDING"):
         raise ValueError("snapshot.monitor.robot.status: STOP_PENDING is not confirmed STOPPED")
     real_trial = snapshot["monitor"]["robot"]["mode"] == "REAL"
+    full_operator_trial = snapshot.get("observation_kind") == "SYNTHETIC"
+    if "observation_kind" in snapshot and (not full_operator_trial or not real_trial or
+            "transfer_target" in snapshot or "manual_trial" in snapshot):
+        raise ValueError("snapshot.observation_kind: explicit REAL full trial with synthetic B required")
     manual_trial = snapshot.get("manual_trial", False)
     if "manual_trial" in snapshot and (manual_trial is not True or not real_trial):
         raise ValueError("snapshot.manual_trial: explicit REAL manual trial required")
@@ -218,14 +224,17 @@ def validate_hmi_snapshot(value: object) -> dict:
         _column(target, "snapshot.transfer_target")
         _integer(target["slot"], 1, 6, "snapshot.transfer_target.slot")
     trial_start = (snapshot["workflow_status"] == "IDLE" and snapshot["actions"]["job_id"] is None
-                   and snapshot["monitor"]["robot"]["status"] == "IDLE") if real_trial else None
+                   and snapshot["monitor"]["robot"]["status"] == "IDLE") if real_trial and not full_operator_trial else None
     startup = snapshot["actions"]["job_id"] is None
     robot_status = snapshot["monitor"]["robot"]["status"]
     controls = (trial_start, snapshot["workflow_status"] not in ("IDLE", "COMPLETE", "STOPPED") or
                 startup and robot_status in ("BUSY", "STOP_PENDING"),
                 snapshot["workflow_status"] == "STOPPED" or startup and robot_status == "STOPPED")
     _actions(snapshot["actions"], snapshot["workflow_status"], notice, columns, trial_start=trial_start, trial_controls=controls)
-    if real_trial and manual_trial:
+    if full_operator_trial:
+        if progress["total"] > 40:
+            raise ValueError("snapshot: full REAL trial requires at most 40 software Steps")
+    elif real_trial and manual_trial:
         if (snapshot["workflow_status"] not in ("IDLE", "PREPARING", "DELIVERING", "WAIT_ASSEMBLY", "WAIT_INTENT", "REPLANNING", "WAIT_CORRECTION", "HOLD", "STOPPED", "COMPLETE") or
                 progress["total"] > 24):
             raise ValueError("snapshot: manual REAL trial requires bounded workflow within four six-slot rows")
@@ -234,6 +243,7 @@ def validate_hmi_snapshot(value: object) -> dict:
                 snapshot["design"] is not None or step["target"] is not None or
                 progress != dict(completed=0, total=0)):
             raise ValueError("snapshot: REAL currently supports a single transfer trial, no simulated assembly/STOP proof")
+    validate_mvp_fields(snapshot)
     return deepcopy(snapshot)
 
 

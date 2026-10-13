@@ -1,6 +1,6 @@
 """Build initial and remaining PLACE Plans using the team's Day4 contract.
 
-The caller provides Backend's adopted actual blocks and their revision.
+The caller relays B-confirmed Current and its B-issued revision through D.
 Samples and live integration use the same calculation and validation.
 """
 
@@ -12,10 +12,16 @@ from pathlib import Path
 from uuid import uuid4
 
 
+# ---- Input validation (common C/A/D contract) -------------------------------------------------------------------
+# Constants, occupied_cells, validate_brick, check_support and validate_design recheck the C Machine Design contract
+# (final inventory: yellow/blue 2x2x1·2x3x1, red 1x2x1 only; layer 1..5; 1..40 placements). Planning logic starts at
+# calculate_remaining_blocks below. Keep the two parts separate so a future merge with the Backend-side planner
+# edits (PR #22: same rules, different wording) only touches this section.
 BOARD_SIZE = 24
-MAX_LAYER = 4
+MAX_LAYER = 5
+MAX_BLOCKS = 40  # C MAX_BLOCKS (2026-10-08 final inventory); A rejects 41+ placements instead of planning them.
 MIN_SUPPORT_STUDS = 2  # A/C rule confirmed in Backend's 2026-10-06 reply.
-BRICK_SIZES = {"2x2x1": (2, 2), "2x3x1": (2, 3)}
+BRICK_SIZES = {"2x2x1": (2, 2), "2x3x1": (2, 3), "1x2x1": (1, 2)}
 BLOCK_FIELDS = ("brick_type", "color", "x", "y", "layer", "orientation_deg")
 
 
@@ -55,13 +61,15 @@ def validate_brick(value, index):
     brick = {field: value[field] for field in BLOCK_FIELDS}
     if brick["brick_type"] not in tuple(BRICK_SIZES):
         raise PlanningError(f"{prefix}: unsupported brick_type", brick)
-    if brick["color"] not in ("yellow", "blue"):
-        raise PlanningError(f"{prefix}: color must be yellow or blue", brick)
+    if brick["color"] not in ("yellow", "blue", "red"):
+        raise PlanningError(f"{prefix}: unsupported color", brick)
+    if (brick['color']=='red') != (brick['brick_type']=='1x2x1'):
+        raise PlanningError(f"{prefix}: red supply supports only 1x2x1; other supply supports yellow/blue 2x2/2x3",brick)
     for field in ("x", "y"):
         if type(brick[field]) is not int or not 0 <= brick[field] < BOARD_SIZE:
             raise PlanningError(f"{prefix}: {field} must be an integer from 0 to 23", brick)
     if type(brick["layer"]) is not int or not 1 <= brick["layer"] <= MAX_LAYER:
-        raise PlanningError(f"{prefix}: layer must be an integer from 1 to 4", brick)
+        raise PlanningError(f"{prefix}: layer must be an integer from 1 to {MAX_LAYER}", brick)
     allowed = (0,) if brick["brick_type"] == "2x2x1" else (0, 90)
     angle = brick["orientation_deg"]
     if type(angle) is not int or angle not in allowed:
@@ -95,6 +103,8 @@ def validate_design(design):
     values = design.get("blocks")
     if not isinstance(values, list) or not values:
         raise ValueError("blocks must be a nonempty list")
+    if len(values) > MAX_BLOCKS:
+        raise ValueError(f"blocks must contain 1..{MAX_BLOCKS} placements; got {len(values)}")
     bricks = [validate_brick(value, i) for i, value in enumerate(values)]
     occupancy = {}
     for i, brick in enumerate(bricks):
@@ -109,6 +119,8 @@ def validate_design(design):
     return bricks
 
 
+
+# ---- Planning logic (A-owned: remaining, order, Step, Replan) ------------------------------------------------------
 def calculate_remaining_blocks(design, current_blocks):
     """Subtract adopted actual placements from the full target.
 
@@ -178,7 +190,7 @@ def check_placement(brick, occupied, label):
         )
 
 
-def validate_plan(design, current_blocks, current_revision, plan):
+def validate_plan(design, current_blocks, current_revision, plan, *, finish_layers=True):
     """Replay PLACE effects from adopted Current; this is not runtime Expected."""
     targets = validate_design(design)
     calculate_remaining_blocks(design, current_blocks)  # verifies preservation and quantity
@@ -204,10 +216,16 @@ def validate_plan(design, current_blocks, current_revision, plan):
     for i, step in enumerate(plan["steps"]):
         label = f"steps[{i}]"
         brick = validate_step(step, i, seen)
-        lower = {sid for sid, b in seen.items() if b["layer"] < brick["layer"]}
+        lower = {
+            sid for sid, b in seen.items()
+            if (b["layer"] < brick["layer"] if finish_layers else
+                b["layer"] == brick["layer"] - 1 and
+                {(x, y) for x, y, _ in occupied_cells(b)}.intersection(
+                    (x, y) for x, y, _ in occupied_cells(brick)))
+        }
         if not lower.issubset(step["prerequisites"]):
             raise ValueError(f"{label}: missing lower-layer prerequisite")
-        if any(b["layer"] > brick["layer"] for b in seen.values()):
+        if finish_layers and any(b["layer"] > brick["layer"] for b in seen.values()):
             raise ValueError(f"{label}: finish each lower layer before the next layer")
         check_placement(brick, occupied, label)
         occupied.update(occupied_cells(brick))
@@ -217,11 +235,15 @@ def validate_plan(design, current_blocks, current_revision, plan):
         raise ValueError("Current plus Plan placements must match all Design blocks and quantities")
 
 
-def build_plan(design, current_blocks, current_revision):
+def build_plan(design, current_blocks, current_revision, *, ordered_blocks=None,
+               finish_layers=True):
     """Shared calculation API for initial planning and preservation-based Replan."""
     if type(current_revision) is not int or current_revision < 0:
         raise ValueError("current_revision must be a nonnegative integer")
-    ordered = calculate_remaining_blocks(design, current_blocks)
+    remaining = calculate_remaining_blocks(design, current_blocks)
+    ordered = remaining if ordered_blocks is None else ordered_blocks
+    if Counter(map(block_key, ordered)) != Counter(map(block_key, remaining)):
+        raise ValueError("Ordered blocks must contain exactly the remaining target placements")
     steps = []
     for number, brick in enumerate(ordered, start=1):
         steps.append({
@@ -231,7 +253,10 @@ def build_plan(design, current_blocks, current_revision):
             "after": brick,
             "prerequisites": [
                 step["step_id"] for step in steps
-                if step["after"]["layer"] < brick["layer"]
+                if (step["after"]["layer"] < brick["layer"] if finish_layers else
+                    step["after"]["layer"] == brick["layer"] - 1 and
+                    {(x, y) for x, y, _ in occupied_cells(step["after"])}.intersection(
+                        (x, y) for x, y, _ in occupied_cells(brick)))
             ],
             "requires_delivery": True,
         })
@@ -241,7 +266,8 @@ def build_plan(design, current_blocks, current_revision):
         "base_current_revision": current_revision,
         "steps": steps,
     }
-    validate_plan(design, current_blocks, current_revision, plan)
+    validate_plan(design, current_blocks, current_revision, plan,
+                  finish_layers=finish_layers)
     return plan
 
 
@@ -287,6 +313,16 @@ def plan_from_current(design, current):
             "errors": [{"reason": str(exc), "block": getattr(exc, "block", None)}],
         }
     return {"status": "READY", "plan": plan, "errors": []}
+
+
+def plan_assembly_from_current(design, current, assembly_context):
+    """Draft assembly-mode optimizer; uses the same geometry/Plan validators.
+
+    Returns a separate candidate envelope, not the existing D execution contract.
+    No SIM/REAL calculation branch or robot motion command is introduced.
+    """
+    from planning_trial.assembly_optimizer import plan_assembly
+    return plan_assembly(design, current, assembly_context)
 
 
 def validate_initial_plan(design, plan):

@@ -12,7 +12,7 @@ from uuid import UUID
 import psycopg
 
 from history import report, store
-from history.records import InputError
+from history.records import CONTRACTS, InputError
 
 
 def _job(value):
@@ -28,6 +28,18 @@ def _json(value):
     raise TypeError(f"cannot encode {type(value).__name__}")
 
 
+def _password(args):
+    if args.password_stdin:
+        line = sys.stdin.readline()
+        return line[:-1] if line.endswith("\n") else line
+    if not sys.stdin.isatty():
+        raise ValueError("interactive password input requires a terminal; use --password-stdin")
+    password = getpass("Password: ")
+    if args.command == "create-user" and password != getpass("Confirm password: "):
+        raise ValueError("password confirmation differs")
+    return password
+
+
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     commands = parser.add_subparsers(dest="command", required=True)
@@ -36,6 +48,8 @@ def main(argv=None) -> int:
     ingest.add_argument("paths", nargs="+", type=Path)
     ingest.add_argument("--source-root", required=True, type=Path,
                         help="stable root; relative paths identify logs across host/container")
+    ingest.add_argument("--contract", choices=CONTRACTS, default="day4",
+                        help="offline archive mapping; never change an already imported source contract")
     commands.add_parser("jobs")
     commands.add_parser("users", help="DB-local account identities, no password hashes")
     create = commands.add_parser("create-user")
@@ -45,13 +59,25 @@ def main(argv=None) -> int:
     check = commands.add_parser("check-user", help="check credentials, no session created")
     check.add_argument("username")
     check.add_argument("--password-stdin", action="store_true")
+    binding = commands.add_parser("bind-job", help="privileged local operator binding, not a user API")
+    binding.add_argument("job_id", type=_job)
+    binding.add_argument("username")
+    binding.add_argument("--reason", required=True)
+    for name in ("my-jobs", "my-designs", "my-job", "save-job"):
+        query = commands.add_parser(name, help="authenticate for this command only; no session")
+        query.add_argument("username")
+        query.add_argument("--password-stdin", action="store_true")
+        if name in ("my-job", "save-job"):
+            query.add_argument("job_id", type=_job)
+        if name == "save-job":
+            query.add_argument("--save-key", required=True)
     timeline = commands.add_parser("timeline")
     timeline.add_argument("job_id", type=_job)
     reasons = commands.add_parser("reasons")
     reasons.add_argument("--job-id", type=_job)
     artifacts = commands.add_parser("artifacts")
     artifacts.add_argument("job_id", type=_job)
-    for name in ("designs", "currents", "plans", "hri"):
+    for name in ("designs", "currents", "plans", "hri", "checks"):
         query = commands.add_parser(name, help="recorded history only, no live state query")
         query.add_argument("job_id", type=_job)
     export = commands.add_parser("report")
@@ -65,20 +91,28 @@ def main(argv=None) -> int:
             if args.command == "init":
                 store.initialize(connection)
                 result = dict(schema="c2_history", initialized=True)
+            elif args.command == "bind-job":
+                from history import personal
+                result = personal.bind_job(connection,args.job_id,args.username,args.reason)
+            elif args.command in ("my-jobs", "my-designs", "my-job", "save-job"):
+                from history import accounts, personal
+                identity = accounts.authenticate(connection,args.username,_password(args))
+                if identity is None:
+                    raise ValueError("invalid username or password")
+                user_id = identity["user_id"]
+                if args.command == "my-job":
+                    result = personal.bundle(connection,args.job_id,user_id)
+                elif args.command == "save-job":
+                    result = personal.save_job(connection,args.job_id,user_id,args.save_key)
+                else:
+                    rows = personal.user_rows(connection,user_id)
+                    result = (report.jobs if args.command == "my-jobs" else report.designs)(rows)
             elif args.command in ("users", "create-user", "check-user"):
                 from history import accounts
                 if args.command == "users":
                     result = accounts.list_users(connection)
                 else:
-                    if args.password_stdin:
-                        line = sys.stdin.readline()
-                        password = line[:-1] if line.endswith("\n") else line
-                    else:
-                        if not sys.stdin.isatty():
-                            raise ValueError("interactive password input requires a terminal; use --password-stdin")
-                        password = getpass("Password: ")
-                        if args.command == "create-user" and password != getpass("Confirm password: "):
-                            raise ValueError("password confirmation differs")
+                    password = _password(args)
                     if args.command == "create-user":
                         result = accounts.create_user(connection,args.username,args.display_name,password)
                     else:
@@ -94,13 +128,16 @@ def main(argv=None) -> int:
                         source = resolved.relative_to(root).as_posix()
                     except ValueError as error:
                         raise ValueError(f"{path}: outside source root") from error
-                    imported = store.ingest(connection, resolved, source)
+                    imported = store.ingest(connection, resolved, source, contract=args.contract)
                     result.append(imported)
                     # Previous files are committed even if a later file fails.
                     print(json.dumps(imported, ensure_ascii=False), flush=True)
                 return 0
             elif args.command == "artifacts":
                 result = store.artifacts(connection, args.job_id)
+            elif args.command == "checks":
+                from history.final_mvp import checks
+                result = checks(store.timeline(connection,args.job_id))
             else:
                 rows = store.timeline(connection, getattr(args, "job_id", None))
                 if args.command == "jobs":
@@ -117,6 +154,10 @@ def main(argv=None) -> int:
                                   durations=report.durations(rows), artifacts=store.artifacts(connection,args.job_id))
                     result.update(designs=report.designs(rows), currents=report.currents(rows),
                                   plans=report.plans(rows), hri=report.hri(rows))
+                    from history.final_mvp import checks, completion
+                    from history.personal import storage_status
+                    result.update(checks=checks(rows), completion=completion(rows),
+                                  storage=storage_status(connection,args.job_id))
                     args.output.parent.mkdir(parents=True, exist_ok=True)
                     args.output.write_text(json.dumps(result, ensure_ascii=False, indent=2, default=_json)+"\n",
                                            encoding="utf-8")

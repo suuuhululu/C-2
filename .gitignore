@@ -2,6 +2,7 @@
 .env
 .env.*
 !.env.example
+!.env.history.example
 .venv/
 __pycache__/
 *.py[cod]
@@ -21,3 +22,14 @@ data/raw/
 # Large local recordings
 *.webm
 *.mp4
+reports/
+
+# Local labeling datasets and drafts
+/perception/labeling/hand_dataset/images/
+/perception/labeling/hand_dataset/labels/
+/perception/labeling/hand_dataset/previews/
+/perception/labeling/hand_dataset/review_required/
+/perception/labeling/hand_dataset/*.zip
+/perception/labeling/supply_obb/images/
+/perception/labeling/supply_obb/annotations/
+/perception/labeling/supply_top_review_20261012/
