@@ -50,6 +50,9 @@ class StepRuntime:
         if (resume and self.state != 'STOPPED' and not self.can_resume()) or (not resume and self.state not in ('IDLE', 'WAIT_C')):
             raise RuntimeError('STEP_BUSY_OR_INSPECTION_PENDING')
         plan = build_plan(step, profile)
+        if type(profile.get('noncontact_force_guard',True)) is not bool:
+            raise ValueError('EXPLICIT_NONCONTACT_FORCE_GUARD_BOOLEAN_REQUIRED')
+        motion_force_limit=profile['force_stop_n'] if profile.get('noncontact_force_guard',True) else None
         trial = value.get('no_vision_trial', False)
         if type(trial) is not bool:
             raise ValueError('EXPLICIT_NO_VISION_TRIAL_BOOLEAN_REQUIRED')
@@ -113,7 +116,7 @@ class StepRuntime:
                 self.operations.insert(self.cursor, ('receive', None))
         else:
             sample = driver.stillness()
-            guard(sample, self.connection, profile['force_stop_n'], automatic=True, required_gripper_status=0)
+            guard(sample, self.connection, motion_force_limit, automatic=True, required_gripper_status=0)
             if self.raw.mode == 'REAL' and trial:
                 expected = pose(value.get('planned_start_pose'), 'planned_start_pose')
                 mm, deg = pose_error(sample['posx'], expected)
@@ -129,12 +132,15 @@ class StepRuntime:
         session.claim_execution()
         self.used_executions.add(value['execution_id'])
         self.session, self.driver, self.plan, self.profile = session, driver, plan, deepcopy(profile)
+        self.motion_force_limit=motion_force_limit
         self.no_vision_trial = trial
         driver.automatic_confirmation = True
         self.signal, self.signal_seq, self.request = None, -1, None
         self.pending, self.state = None, 'RUNNING'
         self.recovery_reason = None
-        self.emit('EXECUTION_STARTED', dict(resume=resume, cursor=self.cursor, physical_verified=False))
+        self.emit('EXECUTION_STARTED', dict(resume=resume, cursor=self.cursor, physical_verified=False,
+            noncontact_force_guard=profile.get('noncontact_force_guard',True),
+            contact_stop_force_n=profile['force_stop_n']))
 
     def can_resume(self):
         if self.stopped_sample is None:
@@ -245,14 +251,14 @@ class StepRuntime:
         loaded=[pick_high,point(p['supply_transit_xy_mm'],pickup[3:]),
             point(p['body_bypass_xy_mm'],pickup[3:]),point(p['place_pose'][:2],pickup[3:]),
             point(target[:2],target[3:])]
-        returning=[point(p['body_bypass_xy_mm'],target[3:]),
-            point(p['supply_transit_xy_mm'],pickup[3:]),pick_high]
+        # B inspects at assembly clearance. The next admitted Step owns the
+        # empty corridor to its actual pickup; never return to this Step's slot.
         return [('grip',('PREPARE_OPEN',s.get('pickup_open_width_mm',s['release_width_mm']),0)),
             ('blend',(empty,0,height)),('move',('PICKUP_LOWER',pickup,0,True)),
             ('grip',('PICKUP_CLOSE',s['pickup_width_mm'],2)),('blend',(loaded,2)),
             ('move',('PRE_CONTACT',self.pre_contact_pose(s,p),2,True)),
             ('contact',None),('grip',('SEATED_RELEASE',s['release_width_mm'],0)),
-            ('blend',(returning,0,height))]
+            ('lift',(height,0))]
 
     @staticmethod
     def pre_contact_pose(settings,profile):
@@ -286,7 +292,7 @@ class StepRuntime:
     def switch_to_handover(self):
         self.driver.stop()  # ACK and a fresh stopped window; no release here.
         stopped=deepcopy(self.driver.snapshot)
-        guard(stopped,self.connection,self.profile['force_stop_n'],automatic=True,required_gripper_status=2)
+        guard(stopped,self.connection,self.motion_force_limit,automatic=True,required_gripper_status=2)
         self.session.handover_requested=False
         self.session.check()
         self.close_signal_request()
@@ -304,7 +310,7 @@ class StepRuntime:
                 t=max(0.,min(1.,sum((x-y)*v for x,y,v in zip(stopped['posx'][:3],a[:3],delta))/length))
                 distances.append(math.dist(stopped['posx'][:3],[x+t*v for x,v in zip(a[:3],delta)]))
             index=min(range(len(distances)),key=distances.__getitem__)
-            if distances[index]>p['transport_blending']['radius_mm']+.5:
+            if distances[index]>p['transport_blending']['radius_mm']+p['transport_blending'].get('corridor_margin_mm',.5):
                 raise RuntimeError('HANDOVER_STOP_OUTSIDE_LOADED_CORRIDOR')
             route=arg[0][index:]
         else:
@@ -424,7 +430,7 @@ class StepRuntime:
             if label == 'TRAY_LOWER' and event == 'MOVE_REQUEST' and data['segment'] == 'DESCENT':
                 self.check_receive_signal(ready=False)
             self.emit(event, data)
-        run(self.driver, self.connection, target, p['force_stop_n'], record,
+        run(self.driver, self.connection, target, self.motion_force_limit, record,
             clearance_z=max(current[2], target[2]), transfer_only=target[2]>=current[2]-.05,
             transfer_rate=descent if slow else p['transfer_velocity'],
             descent_rate=descent,
@@ -432,7 +438,9 @@ class StepRuntime:
             descent_acceleration=descent_acc,
             ik_fk_position_tolerance_mm=p.get('ik_fk_position_tolerance_mm',.05),
             ik_fk_orientation_tolerance_deg=p.get('ik_fk_orientation_tolerance_deg',.05),
-            set_automatic_mode=False, force_norm_stop_n=p['force_stop_n'], required_gripper_status=held,
+            position_tolerance_mm=p.get('motion_position_tolerance_mm',.05),
+            orientation_tolerance_deg=p.get('motion_orientation_tolerance_deg',.05),
+            set_automatic_mode=False, force_norm_stop_n=self.motion_force_limit, required_gripper_status=held,
             clock=self.clock, sleep=self.sleep)
         sample = self.driver.stillness()
         mm, deg = pose_error(sample['posx'], target)
@@ -471,7 +479,7 @@ class StepRuntime:
             # arm feedback; completion here uses gripper state/width. The next arm owner
             # must establish a new stopped window before sending any return motion.
             guard(dict(sample, gripper_status=status), self.connection,
-                  math.inf if reaction_release else self.profile['force_stop_n'],
+                  math.inf if reaction_release else self.motion_force_limit,
                   automatic=True, required_gripper_status=status)
             if type(sample['gripper_width_mm']) not in (int, float) or not math.isfinite(sample['gripper_width_mm']):
                 raise RuntimeError('INVALID_GRIPPER_WIDTH_FEEDBACK')

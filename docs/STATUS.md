@@ -775,3 +775,19 @@ GPU 현재 A snapshot92파일을 CPU deliverables/GPU_A_수정본_CPU보관_2026
 - [입력 복원 근거·변경·검증·적용 위치](A_HAND_COUNT_POLICY_20261012.md). D 작업 폴더/로봇/제어권은 변경하지 않았다. `codex/a-plan-failure-diagnostics-20261012`를 통합 브랜치 대상으로 리뷰하며 병합·배포·실기 검증은 별도다.
 - 2026-10-13 제출 전 통합 `7b1a5ff`에 충돌 없이 정렬했다. 관련 검사479 PASS / 1 FAIL(A458 PASS, Workflow21 PASS / 1 FAIL). C의 `test_inspection_context_keeps_expected_and_unknown_regions_for_c`는 변경 없는 통합 사본에서도 같은 IndexError로 실패했으며 이번 패치에서 수정/제외하지 않았다. 기존480 PASS는 이전 통합 기준 결과다.
 - PR #34(`gimseeun`) 게시 중 통합에 PR #33이 반영돼 `f247132`로 갱신됐다. 최신 통합을 일반 merge로 반영하고 양쪽 Workflow 검사를 보존해 충돌 해결. A/Workflow/PR30 전달 검사501 PASS / 0 FAIL(19.16초). 이전 기준 실패 검사도 PR #33의 입력 정렬 후 통과한다. 최종 범위는 원래13파일이며 실물/제어권 변경은 없다.
+
+
+## 2026-10-13 09:39 REAL 후속 — D 빈 복귀·힘 검사 범위 수정
+
+- 이전 Step의 공급 슬롯으로 복귀하던 연속 이송을 제거했다. 결착 후 조립 위치 위로 상승/검사하고 다음 Step의 최신 선택 슬롯으로 경유 접근한다.
+- 사용자 요청대로 `full-real`의 비결착 단계에서 앱의 35N 합력/Fz 검사를 해제했다. 결착의 전체 반력35N STOP·정지 확인·개방과 장치/피드백 검사는 유지한다.
+- 실제 검사: D 오프라인1,076 passed·외부 A 자료 collection skip1, A/D REAL 문서+MOCK21 passed, Workflow/슬롯43 passed. 실제 Robot/ROS/카메라/외부 API/DB 미실행. 물리 부드러움/충돌/결착 성공은 재시험 필요.
+- 원격 A PR34 반영(`ca3101a`) 확인, 로컬 A는 자동 동기화하지 않았다. 로컬 D 실행 소스/검토 복사본만 수정했으며 commit/push/PR/merge·브랜치 전환 없음. 상세는 `docs/D_FULL_FEATURE_REAL_TRIAL_20261012.md` 최신 절 참조.
+
+
+## 2026-10-13 S06 블렌딩 경유 기준 확대 — 후속 PR 반영
+
+- 요청: 블렌딩 도중의 과도한 판정을 완화하고 공급 슬롯6을 포함해 진행. contact-alignment 시험의 경유10mm/5°, 경로80mm, timeout 최솟값45초를 적용했다. 도달/정지 확인 후 즉시 진행하며 고정45초 대기를 넣지 않았다.
+- MoveB가 목표 근처에서 멈추면 원래 최종 목표까지 MoveL 한 번으로 마친 후1mm/1° 도착을 확인한다. 교시·속도/가속도·블렌딩 반경40·결착 XYZ 반력35N 조건은 유지한다. 최종 미도달은 실패/보류이며 집기로 넘기지 않는다. 구 실행의 `resume_allowed=False`를 터미널/로그 편집으로 바꾸는 복구 기능은 추가하지 않았다.
+- 실제 검증: D 오프라인1,106 passed/collection skip1, 최신 로컬 A/D REAL 문서→MOCK21 passed, 모두 종료0. 기록된 S06의 기존 timeout 재현/새 정책 도착,4점/6점×노랑/파랑×로봇/사람 인계에서1→2→3→4→5→6→1(56가상Step), 정상/실패 경로를 검사했다. Python/실행 명령 구문과 D 소스 복사본 일치도 확인했다. 외부A onsite 자료 부재1건 제외.
+- 실물/실행 중 프로세스 미검증. 사용자 요청으로 후속 PR 게시 대상에 포함한다. 실물 검증·병합은 별도이며 로컬 고정 개발 브랜치를 유지한다. [검증 기록](reviews/robot-blend-slot6-verification-20261013.json), [실행 안내](D_FULL_FEATURE_REAL_TRIAL_20261012.md).

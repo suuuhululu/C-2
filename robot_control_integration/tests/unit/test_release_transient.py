@@ -22,10 +22,11 @@ def test_opening_transient_after_verified_stop_does_not_abort_release(motion_sta
     result=rt.run()
     assert result['status']=='AWAITING_INSPECTION',result
     assert rt.contact['stop']['stillness_verified'] and len(raw.grips)==3
-    assert len(raw.blends)==3 and raw.value['gripper_status']==0
+    assert len(raw.blends)==2 and raw.value['gripper_status']==0
     names=[e for e,v in events]
     opened=next(i for i,(e,v) in enumerate(events) if e=='GRIP_SUCCEEDED' and v['label']=='SEATED_RELEASE')
-    assert names.index('CONTACT_SUCCEEDED')<opened<max(i for i,e in enumerate(names) if e=='BLEND_COMPLETE')
+    lifted=next(i for i,(e,v) in enumerate(events) if e=='MOVE_SUCCEEDED' and v['label']=='LIFT')
+    assert names.index('CONTACT_SUCCEEDED')<opened<lifted<names.index('INSPECTION_REQUIRED')
 
 
 def test_persistent_arm_movement_after_open_holds_before_return_not_during_open():

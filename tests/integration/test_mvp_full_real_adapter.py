@@ -119,6 +119,13 @@ def test_next_supply_slot_prepares_with_stopped_residual_velocity(monkeypatch,tm
         assert [d['step']['reservation']['slot_id'] for d in docs]==[f'{color}_{kind}_01',f'{color}_{kind}_02']
         pickups=[next(iter(d['d_profile']['steps'].values()))['pickup_pose'] for d in docs]
         assert pickups[0]!=pickups[1]
+        if contact_trial:
+            first_settings=next(iter(docs[0]['d_profile']['steps'].values()))
+            next_start=docs[1]['session']['planned_start_pose']
+            assert next_start[:2]==pytest.approx(first_settings['reference_pose'][:2])
+            assert next_start[:2]!=pytest.approx(pickups[0][:2])
+            assert next_start[2]>=docs[0]['d_profile']['clearance_z_mm']
+            assert all(d['d_profile']['noncontact_force_guard'] is False for d in docs)
         assert r.slot_indices[(kind,color)]==3
         assert all(d['session']['stillness']['linear_mm_s']==5. for d in docs)
     finally:r.close()
@@ -251,12 +258,19 @@ def test_trial_option_uses_same_a_d_route_and_reaction_stop_profile(monkeypatch,
         doc=r.robot.documents[0]
         assert doc['d_profile']['native_press']['alignment_trial']
         assert doc['d_profile']['continuous_transport']
+        assert doc['d_profile']['noncontact_force_guard'] is False
+        assert doc['d_profile']['force_stop_n']==35.
         assert doc['d_profile']['reaction_descent_velocity']==6.
         assert doc['d_profile']['reaction_descent_acceleration']==6.
         assert doc['session']['stillness']['linear_mm_s']==5.
         assert doc['session']['stillness']['angular_deg_s']==5.
         assert doc['session']['stillness']['position_mm']==1.
         assert doc['d_profile']['transport_blending']['relaxed_constraints']
+        blend=doc['d_profile']['transport_blending']
+        assert blend['transit_position_tolerance_mm']==10. and blend['transit_orientation_tolerance_deg']==5.
+        assert blend['corridor_margin_mm']==40. and blend['timeout_floor_s']==45. and blend['finish_endpoint']
+        assert doc['d_profile']['motion_position_tolerance_mm']==1.
+        assert doc['d_profile']['motion_orientation_tolerance_deg']==1.
         assert 'PLACE_BOARD_EMPTY' not in [w['label'] for w in doc['motion']['motion_proposal']['segments'][0]['waypoints']]
         assert 'pre_contact_slow_distance_mm' not in doc['d_profile']
         assert doc['d_profile']['palm_handover_before_contact']
@@ -267,14 +281,18 @@ def test_trial_option_uses_same_a_d_route_and_reaction_stop_profile(monkeypatch,
         assert pressure['native_force_commands']==0 and pressure['force_control_target_n'] is None
         assert pressure['threshold_force_norm_n']>=35. and pressure['stop']['stillness_verified']
         moves=[v['result'] for v in rows if v['event']=='ROBOT_MOVE_STARTED']
-        assert not any(v.get('label') in ('LIFT','TARGET_HIGH','ASSEMBLY_APPROACH') for v in moves)
+        assert not any(v.get('label') in ('TARGET_HIGH','ASSEMBLY_APPROACH') for v in moves)
+        lift=next(v for v in moves if v.get('label')=='LIFT')
+        assert lift['target'][:2]==pressure['final_sample']['posx'][:2]
+        assert lift['target'][2]>=doc['d_profile']['clearance_z_mm']
         assert sum(v.get('label')=='PRE_CONTACT' for v in moves)==1
         descents=[v['result'] for v in rows if v['event']=='ROBOT_MOVE_REQUEST' and v['result'].get('segment')=='DESCENT']
         assert len(descents)==3 and descents[-1]['velocity']==[6.,6.]
         assert descents[-1]['acceleration']==[6.,6.]
         batches=[v['result'] for v in rows if v['event']=='ROBOT_SINGLE_WRITER_BLEND']
-        assert len(batches)==3 and len(batches[1]['targets'])==5
-        assert batches[-1]['targets'][-1][:2]==next(iter(doc['d_profile']['steps'].values()))['pickup_pose'][:2]
+        assert len(batches)==2 and len(batches[1]['targets'])==5
+        assert batches[0]['targets'][-1][:2]==next(iter(doc['d_profile']['steps'].values()))['pickup_pose'][:2]
+        assert batches[1]['targets'][-1][:2]==pressure['final_sample']['posx'][:2]
     finally:r.close()
 
 

@@ -285,3 +285,20 @@ def test_vertical_lift_uses_existing_arrival_tolerance_to_avoid_duplicate_comman
     assert driver.moves[0]==[*original[:2],194.,*original[3:]]
     assert result['contact_sample'] is None
     if commands==2:assert driver.moves[-1]==destination
+
+
+def test_reviewed_arrival_tolerance_accepts_small_feedback_error_at_original_target():
+    driver=Driver()
+    driver.after_move=lambda:driver.value['posx'].__setitem__(0,driver.value['posx'][0]+.4)
+    result=run(driver,CONNECTION,TARGET,35.,lambda *e:None,
+        position_tolerance_mm=1.,orientation_tolerance_deg=1.)
+    assert result['final_sample']['posx'][0]==TARGET[0]+.4
+    assert driver.moves[-1]==TARGET and not driver.stops
+
+
+@pytest.mark.parametrize('tolerance',[0.,True,float('nan'),1.1])
+def test_invalid_motion_arrival_tolerance_rejected_before_commands(tolerance):
+    driver=Driver()
+    with pytest.raises(ValueError,match='INVALID_MOTION_ARRIVAL_TOLERANCES'):
+        run(driver,CONNECTION,TARGET,35.,lambda *e:None,position_tolerance_mm=tolerance)
+    assert not driver.moves
