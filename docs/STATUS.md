@@ -7,6 +7,20 @@
 - 실제 검증(2026-10-13): C unit 1190 passed, C integration 139 passed, A planning_trial 458 passed(무변경), D 호환 13파일 121 P·82 S·22 F·11 E(실패·오류 node ID 33건이 ebeeef2 기준선과 동일, 새 실패 0), 루트 전체 40 F·16 E node ID 56건 기준선 동일(새 실패 0; passed는 신규 테스트로 증가), compileall·`git diff --check` 0. 실제 gpt-6.1-sol 텍스트 smoke 21회(scripts/c_stage3_integration_smoke.py text + 충돌 driver; 저장소 밖 출력): FAILED 0, 새 Candidate 27개 모두 validator PASS·support ≥ min(4, studs), "3층까지만" 3/3 ≤3층, Revised "3층 이하로 간단하게" 3/3 ≤3층·블록 감소·Current 보존, 무제한 4~5층·Revised 36~40블록(expressive 기본 유지), "간단하고 낮고 넓게" 3·4·4층 13~27블록, "블록 적게·작은" 17~21블록, Current 4층 + "3층 이하" 3/3 충돌 질문(REVISE→4층 clamp·보존·APPROVE / KEEP / UNCLEAR). 독립 리뷰(Opus A structural, Opus B HRI)는 `C_DESIGN_PROGRESS.md` 2026-10-13 행 참조.
 - 미검증: 실제 마이크·TTS·HMI·로봇·카메라·DB, D 경유 실제 음성 E2E, 해석 LLM의 `constraints` 키 충족률, "낮게·넓게"(soft) 정량 평가.
 - 다음 작업·AFFECTED INTERFACE: [C_DESIGN_ROBOT_RULE_HANDOFF.md](C_DESIGN_ROBOT_RULE_HANDOFF.md) — A 검증 기준 2 유지 안내, 공유 문서(06/09/00) 병기 제안, D의 metadata 새 키 pass-through 확인, 이전 2-stud Approved/Current 재생 시 INVALID_INPUT/escalation, 제약의 요청 단위 한계(세션 유지는 D inspection_context 합의 필요), Current 블록 수 = 상한 clamp 시 운영 문구. PR 생성·병합은 별도 요청.
+## 2026-10-13 — REAL 슬롯1~5·외부 DRCF2·roboton2 후속 PR
+
+- PR #39가 병합된 `codex/integration-round1 @ 115271e` 기준으로 현장 수정만 반영했다. full-real은 종류/색상별1→2→3→4→5→1 순환하며 빈 슬롯6 준비·실행 문서 생성·기존 문서 재개를 거부한다. 사용자 전제는1~5번 항상 보충·6번 항상 비어 있음이다. 집기 성공 확인/중복 소비 보호, MOCK/레거시 기본6슬롯, 공통 계약·기존 교시·A 좌표 모델과 PR36의40N/공급 MoveL/loaded MoveB는 유지한다.
+- runtime guard는 `C2_DRIVER_ROOT`의 외부 DRCF2 경로를 읽고 실제 dsr01에 두 라이브러리가 모두 로드됐는지 검사한다. roboton2의 ms-02 고정 경로를 제거하고 C2_ROBOT_ROOT/checkout 기본 경로·Camera/RViz 옵션을 연결했다. 기존 TCP/Tool 선택 및 mode 복원 절차를 사용한다. [다른 PC 안내](D_ROBOT_TRIAL_OTHER_PC_20261013.md)를 갱신했다.
+- 최신 기준의 장치/네트워크 차단 D 오프라인 **1,157 passed**, 종료0 (53.49초). 슬롯/드라이버 설정/실제 A/D 문서→MOCK/영역 보정/통합 시나리오 **66 passed**, 종료0 (247.64초). 슬롯1,2,3,4,5,1,2 예약·6번 차단·기존 재검사/재개/인계·PR39의 사람 PRESS 규칙을 함께 확인했다.
+- roboton2 기본/env 경로 해석 및 `--show-args`, Python AST·가이드 Bash13블록 문법·diff 검사 통과. PR 검증 중 실제 장치 기동/이동·카메라·외부 API·DB 연결은 수행하지 않았다. PC 전용 alias/실행 스크립트·API 키·모델·드라이버 바이너리·개인 DB 데이터는 게시 범위에서 제외했다. 실물 결착 품질과 사람이 필요한 지지/재개 판단은 별도 검증 대상이다.
+
+## 2026-10-13 — A PRESS를 아래 블록의 두 결착 조건에 연결
+
+- 사용자 결정: 아래 블록 L과 자기 아래층의 결착이 4점 미만이고, 이번 목표 U와 L의 결착도 4점 미만인 `HOLD` 대상이 있을 때만 중심 위치로 사람 `PRESS`를 추가 판단한다. 보드 위 1층 L은 제외한다. U의 중심이 아래층 전체 접촉점 지지 영역 밖이면 `PRESS_AND_HOLD`, 안이나 경계면 `HOLD`다. `human_press_policy=NONE`은 추가 눌러주기를 끈다.
+- 기존 `contacts().weak_supports`를 재사용해 공통 A의 `human_press_assessment()`만 수정했다. 보드에 4점 결착된 1층 2×2 위에 2층 2×2가 2점 결합하는 사례와, 4점 결착된 2층 L 위의 부분 결합은 로봇 접근 가능 시 `ROBOT_GRIP/NONE`이다. 기본 최소 2점 지지·겹침·삽입·그리퍼 접근 검사는 유지한다. API 0.5.1·공통 필드·기존 PRESS enum·D 실행/제스처·교시·힘 설정은 변경하지 않았다.
+- 실제 검증: 관련 pytest **548 passed / failures 0 / errors 0 / skipped 0 / 종료0**. A 전체 465개, Workflow/PR30 전달 49개, 모의 통합 34개다. 회귀 검사에서 변경 전 안정된 L의 부분 접촉 2사례에 불필요한 PRESS가 발생함을 확인했고, 변경 후 두 결착 임계값·중심 경계·다중 L 지지·눌러주기 해제 정책을 검사했다. 전체 계획→직전 재평가→이동 후보와 REAL 문서 검증→MOCK D 실행에서 해당 2×2 배치의 도움 요청 없이 Robot 결착 및 기존 도움 단계 STOP/RESUME를 확인했다.
+- 재현: 저장소 루트에서 `C2_ROBOT_ROOT="$PWD/robot_control_integration" QT_QPA_PLATFORM=offscreen python3 -m pytest -q planning_trial tests/unit/test_mvp_workflow.py tests/unit/test_mvp_pr30_relay.py tests/integration/test_mvp_scenarios.py tests/integration/test_mvp_full_real_adapter.py --junitxml=reports/press-lower-attachment-tests.xml`. JUnit은 로컬 reports에 보관한다(Git 제외). 변경 Python 5개 AST 문법·README 정책 링크·git diff --check도 통과했다. lint/type 설정은 미구성이다.
+- 기준 `codex/integration-round1@ebeeef2`와 `codex/integration-round2@ebeeef2`는 동일하며 두 브랜치 대상으로 각각 PR을 준비한다. 작업 브랜치는 `codex/press-lower-attachment-rule`이다. 실제 Robot·ROS·Camera·Isaac·외부 API·DB는 실행하지 않았다. 새 판단에서 Robot 결착으로 바뀌는 단계의 실물 결과는 미검증이며, PR 사람 리뷰와 통합 후 현장 재시험이 필요하다. 기존 사용자 작업 폴더와 보존 fixture는 변경하지 않았다.
 
 ## 2026-10-13 — PR #36: 공급 MoveL·결착40N·영역 보정·확인 버튼
 

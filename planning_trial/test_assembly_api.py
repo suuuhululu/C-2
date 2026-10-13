@@ -183,6 +183,29 @@ def test_preservation_and_support_errors_keep_legacy_result_branches():
     assert result['planning_result']['status'] == 'INVALID'
 
 
+@pytest.mark.parametrize('lower_layer', [1, 2])
+def test_partial_contact_on_attached_lower_stays_unassisted_across_all_apis(lower_layer):
+    lower=[brick(layer=layer) for layer in range(1,lower_layer+1)]
+    upper=brick(x=7,layer=lower_layer+1)
+    req=whole_request({'design_version':1,'blocks':lower+[upper]},
+                      {'current_revision':lower_layer,'blocks':lower})
+    before=deepcopy(req)
+    whole=handle_whole_plan(req)
+    assert whole['planning_result']['status']=='READY' and len(whole['action_proposals'])==1
+    re_req=reassess_request(req,whole)
+    assessment=handle_step_reassessment(re_req)
+    motion=handle_step_motion(motion_request(re_req,assessment))
+    assert assessment['status']==motion['status']=='CANDIDATE'
+    for action in (whole['action_proposals'][0],assessment['action_proposal']):
+        assert action['mode']=='ROBOT_GRIP' and action['support_studs']==2
+        assert action['assistance_kind']=='NONE' and action['human_actions']==[]
+        assert action['human_hands_used']==0 and action['assistance_cost']==[0,0,0]
+    assert motion['motion_proposal']['handoff_to']=='D_CONTACT'
+    assert motion['motion_proposal']['terminal_gripper_policy']=='HOLD_NO_AUTOMATIC_OPEN'
+    assert all(result['execution_allowed'] is False for result in (whole,assessment,motion))
+    assert req==before
+
+
 def test_press_hold_geometry_keeps_targets_separate_without_inventing_hold_force():
     lower = [{'brick_type': '2x3x1', 'color': 'blue', 'x': x, 'y': 4, 'layer': layer, 'orientation_deg': 0}
              for x, layer in ((4, 1), (5, 2))]

@@ -336,7 +336,9 @@ def human_press_assessment(brick, support, context):
             (min(y for x,y in cells)+max(y for x,y in cells))/2)
     hull=convex_hull(support["supported_cells"])
     active=context.get("human_press_policy","NONE")=="CONTACT_HULL"
-    return {"required":active and not point_in_hull(centre,hull),
+    # PRESS supplements HOLD only when both connections of a lower block are weak.
+    # Board-supported first-layer blocks and >=4-stud connections need no PRESS.
+    return {"required":active and bool(support["weak_supports"]) and not point_in_hull(centre,hull),
             "policy":context.get("human_press_policy","NONE"),
             "nominal_robot_point_xy_stud":list(centre),"contact_hull_xy_stud":[list(p) for p in hull],
             "basis":"GEOMETRIC_HEURISTIC_NOT_FORCE_OR_STABILITY_PROOF"}

@@ -48,16 +48,17 @@ def test_single_plan_mixes_direct_assisted_manual_and_gestures_then_b_final(tmp_
         assert r.workflow.current['current_revision']==len(design['blocks'])
         actions=r.workflow.whole_result['action_proposals']
         assert {a['mode'] for a in actions}=={'ROBOT_GRIP','HUMAN_ASSEMBLY'}
-        assert {'NONE','PRESS','PRESS_AND_HOLD','MANUAL_ASSEMBLY'} <= {a['assistance_kind'] for a in actions}
+        assert {a['assistance_kind'] for a in actions}=={'NONE','PRESS_AND_HOLD','MANUAL_ASSEMBLY'}
+        assert all(a['assistance_kind']=='NONE' for a in actions if a['mode']=='ROBOT_GRIP' and a['block']['layer']==2)
         log=rows(tmp_path);names=[row['event'] for row in log]
-        assert names.count('ROBOT_CONTACT_SUCCEEDED')==3
+        assert names.count('ROBOT_CONTACT_SUCCEEDED')==4
         cues=[row['result'] for row in log if row['event']=='ROBOT_GESTURE_READY_CONFIRMED']
         assert {'HELP_READY','ASSEMBLY_ACK','RECEIVE'} <= {c['kind'] for c in cues}
         assert all(c['source']=='FAKE' for c in cues)
         labels=[row['result']['label'] for row in log if row['event']=='ROBOT_GRIP_STARTED']
         assert ('DIRECT_HANDOVER' in labels) is direct
         assert ('TRAY_RELEASE' in labels) is (not direct)
-        assert names.count('ROBOT_HELP_RELEASE_GUIDANCE')==2
+        assert names.count('ROBOT_HELP_RELEASE_GUIDANCE')==1
         assert names.count('ASSEMBLY_COMPLETED')==1
         assert r.workflow.bundle['plan']['base_current_revision']==0
         assert not any(row['event']=='ROBOT_COMMAND_REJECTED' for row in log)
@@ -71,13 +72,13 @@ def test_stop_at_help_resume_keeps_design_and_pickup_but_requires_new_thumb(tmp_
     try:
         r.command('START');poll_until(r,lambda:r.ready_signal is not None and r.ready_signal['kind']=='HELP_READY')
         before=deepcopy(r.workflow.approved);old=deepcopy(r.ready_signal)
-        assert r.workflow.current['current_revision']==1
+        assert r.workflow.current['current_revision']==2
         r.command('STOP');poll_until(r,lambda:r.workflow.status=='STOPPED')
         assert r.command('RESUME')
         poll_until(r,lambda:r.ready_signal is not None and r.ready_signal['request_id']!=old['request_id'])
         assert r.ready_signal['kind']=='HELP_READY'
         assert r.workflow.approved==before
-        assert r.workflow.current['current_revision']==1
+        assert r.workflow.current['current_revision']==2
         r.auto_gestures=True
         poll_until(r,lambda:r.workflow.status=='COMPLETE')
         log=rows(tmp_path)
