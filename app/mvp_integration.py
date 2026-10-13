@@ -430,7 +430,7 @@ def main(runtime_class=MvpIntegration, *, real_trial=False):
     parser.add_argument('--design',type=Path,help='명시적인 FAKE C 후보 파일; 생략하면 C 생성 함수 사용')
     parser.add_argument('--c-mode',choices=('offline','live'),default='offline')
     if real_trial:
-        parser.add_argument('--contact-alignment-trial',action='store_true',help='연속 결착 하강 · 전체 반력 35N 정지 시험; 실물 미검증')
+        parser.add_argument('--contact-alignment-trial',action='store_true',help='연속 결착 하강 · 전체 반력 40N 정지 시험; 실물 미검증')
         parser.add_argument('--execute',action='store_true',required=True,
             help='실제 Robot·카메라 제스처 연결 허용. B 관측은 가짜 시험 입력')
     args=parser.parse_args()
@@ -447,7 +447,7 @@ def main(runtime_class=MvpIntegration, *, real_trial=False):
     window.creator_bar.setVisible(runtime.history_dsn is not None)
     if real_trial:
         from PyQt5.QtWidgets import QCheckBox, QPushButton, QComboBox
-        trial_suffix=' · 결착 반력 35N 정지 시험' if args.contact_alignment_trial else ''
+        trial_suffix=' · 결착 반력 40N 정지 시험' if args.contact_alignment_trial else ''
         review=QCheckBox('실물 시험 준비: 빈 조립판·공급 보충·교시 경로·도움/인계 영역 확인 · B는 가짜'+trial_suffix)
         window.layout().insertWidget(1,review)
         review.toggled.connect(runtime.review_preparation)
@@ -458,6 +458,11 @@ def main(runtime_class=MvpIntegration, *, real_trial=False):
         fake_check.addItems(['B 가짜: 기본 일치','B 가짜: 다음 Step 불일치',
                             'B 가짜: 다음 Step 관측 불가','B 가짜: 다음 Step ERROR'])
         window.layout().insertWidget(3,fake_check)
+        operator_confirm=QPushButton('확인')
+        operator_confirm.setVisible(False)
+        window.layout().insertWidget(4,operator_confirm)
+        operator_confirm.clicked.connect(lambda:runtime.confirm_operator(runtime.ready_signal['request_id'])
+            if runtime.ready_signal else None)
         fake_check.currentIndexChanged.connect(lambda index:setattr(runtime,'next_fake_check',
             ('MATCH','MISMATCH','UNOBSERVABLE','ERROR')[index]))
         window.setWindowTitle('전체 기능 실물 시험 · REAL Robot/제스처 · 가짜 B'+trial_suffix)
@@ -488,6 +493,16 @@ def main(runtime_class=MvpIntegration, *, real_trial=False):
                 RECEIVE='받을 준비가 됐으면 편 손을 보여주세요. 인계 대기 중 편 손은 정지가 아니라 받기 응답입니다.',
                 ASSEMBLY_ACK='다음 스텝으로 넘어갈까요? 사람 조립을 마쳤으면 엄지척을 2초 보여주세요. B 관측은 가짜입니다.')
             window.notice.setPlainText(messages[runtime.ready_signal['kind']])
+        if real_trial:
+            request=runtime.ready_signal
+            available=bool(request and request.get('operator_button_allowed') and
+                runtime.workflow.status not in ('STOPPED','HOLD'))
+            operator_confirm.setVisible(available)
+            operator_confirm.setEnabled(available and not request.get('_operator_sent',False))
+            if available:
+                operator_confirm.setText(dict(RECEIVE='손으로 받을 준비 완료',HELP_READY='도움 준비 완료',
+                    ASSEMBLY_ACK='조립 완료 · 검사 진행',ALIGNMENT_READY='정렬 확인 완료')[request['kind']])
+                window.notice.setPlainText(window.notice.toPlainText()+'\n제스처가 인식되지 않으면 확인 버튼을 누르세요.')
         if runtime.c_pending:window.notice.setPlainText(runtime.question)
     def request(value):
         accepted=runtime.request(value)

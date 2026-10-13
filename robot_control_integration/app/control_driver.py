@@ -136,13 +136,14 @@ class ControlledDriver:
             self.command_outcome_unknown = True
             raise
 
-    def command_gripper(self, width_mm, force_n, *, precondition=None, during_stillness=None):
+    def command_gripper(self, width_mm, force_n, *, precondition=None, during_stillness=None, verified_snapshot=None):
         self.session.require_lease(self.session.lease, 'GRIPPER')
         monitor = getattr(self, 'human_receive_monitor', None)
         if monitor is not None:
             during_stillness = monitor
         # An immediate gripper command can consume the fresh owner-switch proof once.
-        reuse = (during_stillness is None and precondition is None and self.last_verified_sample is not None and
+        reuse = (during_stillness is None and (precondition is None or
+                 verified_snapshot is not None and verified_snapshot is self.last_verified_sample) and self.last_verified_sample is not None and
                  self.verified_sequence == self.session.state_sequence and
                  self.clock()-self.verified_at <= self.session.value['stillness']['sample_max_duration_s'])
         if reuse:

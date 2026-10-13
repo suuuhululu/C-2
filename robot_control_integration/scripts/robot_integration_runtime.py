@@ -125,7 +125,7 @@ def main():
                     if runtime is None:
                         connection = dict(tcp='GripperDA_v4', tool='ToolWeight0')
                         if args.mode == 'MOCK':
-                            raw = StepReplayDriver(plan['settings']['reference_pose'])
+                            raw = StepReplayDriver(plan['settings']['reference_pose'],reaction_force_n=profile['force_stop_n'])
                             if 'request' in document or session.get('no_vision_trial') is True:
                                 from scipy.spatial.transform import Rotation
                                 start=(document['request']['robot_state'] if 'request' in document
@@ -137,6 +137,7 @@ def main():
                         runtime = StepRuntime(raw, connection, emit)
                     elif args.mode == 'MOCK' and command != 'RESUME':
                         runtime.raw.reference = plan['settings']['reference_pose'].copy()
+                        runtime.raw.reaction_force_n = profile['force_stop_n']
                     if args.mode == 'REAL':
                         from app.assembly_step_bridge import ROOT
                         import hashlib
@@ -160,6 +161,10 @@ def main():
                     if runtime is None: raise RuntimeError('NO_RUNTIME')
                     runtime.accept_signal(message['signal'])
                     emit('SIGNAL_ACCEPTED', dict(request_id=message['signal']['request_id']))
+                elif command == 'OPERATOR_CONFIRM':
+                    if runtime is None:raise RuntimeError('NO_RUNTIME')
+                    if message.get('ready') is not True:raise ValueError('EXPLICIT_OPERATOR_CONFIRMATION_REQUIRED')
+                    runtime.confirm_operator(message.get('request_id'))
                 elif command == 'ALIGNMENT_CONFIRM':
                     if runtime is None or not getattr(runtime, 'no_vision_trial', False) or not runtime.request or runtime.request['kind'] != 'ALIGNMENT_READY':
                         raise RuntimeError('NO_OPERATOR_ALIGNMENT_PENDING')

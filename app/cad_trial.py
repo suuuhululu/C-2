@@ -175,6 +175,10 @@ def step_geometry(inputs, step, action, slot_index):
     if step['after']['brick_type']=='2x2x1' and abs(turn)==90:
         reference[0]-=1.5
         correction[0]-=1.5
+    # 2026-10-13 사용자 실물 보정: 조립 grid x>11 구간의 목표 사본에 Base X -1mm 추가.
+    if step['after']['x']>11:
+        reference[0]-=1.
+        correction[0]-=1.
     from planning_trial.supply_pick import calculate_supply_pick
     if inputs.get('taught_supply') is not None:
         slot_key = f"{step['after']['color']}_{step['after']['brick_type']}_{slot_index:02d}"

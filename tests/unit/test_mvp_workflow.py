@@ -435,3 +435,23 @@ def test_confirmed_pre_descent_handover_hold_enables_resume(h):
     w.robot_event(dict(event='EXECUTION_HELD',data=dict(execution_id=identity,status='RECOVERY_REQUIRED',reason='HAND_PRESENT_BEFORE_LOWER',resume_allowed=True)))
     assert w.status=='STOPPED' and w.snapshot()['actions']['resume']['enabled'] is True
     assert w.resume() and w.status=='PREPARING' and w.reason=='B_INITIAL_CHECK_PENDING'
+
+
+@pytest.mark.parametrize('reason',['HANDOVER_READINESS_LOST','HELP_READY_TIMEOUT','ASSEMBLY_ACK_TIMEOUT','BLEND_MOTION_TIMEOUT','MOTION_TIMEOUT'])
+def test_confirmed_known_checkpoint_recovery_enables_hmi_resume_for_gesture_and_motion(reason,h):
+    h.approved(dict(design_version=1,blocks=[block()]))
+    w=h.workflow;identity=w.execution_id
+    w.robot_event(dict(event='STOP_VERIFIED',data=dict(execution_id=identity,actual_stop_verified=True)))
+    w.robot_event(dict(event='EXECUTION_HELD',data=dict(execution_id=identity,status='RECOVERY_REQUIRED',reason=reason,resume_allowed=True)))
+    assert w.status=='STOPPED' and w.reason==reason
+    assert w.snapshot()['actions']['resume']['enabled'] is True
+    assert w.resume() and w.initial_purpose=='RESUME'
+
+
+def test_thumb_wait_hmi_offers_operator_button_instead_of_promising_automatic_inspection(h):
+    h.approved(dict(design_version=1,blocks=[block()]))
+    w=h.workflow
+    w.robot_event(dict(event='SIGNAL_REQUEST',data=dict(execution_id=w.execution_id,
+        request_id='thumb-resume-request',plan_id=w.bundle['plan']['plan_id'],step_id=w.step()['step_id'],
+        kind='ASSEMBLY_ACK',timeout_s=10.,timeout_holds=True)))
+    assert '조립 완료 버튼' in w.help['instruction'] and '10초 뒤에는' not in w.help['instruction']

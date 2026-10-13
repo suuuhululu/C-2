@@ -550,14 +550,22 @@ def test_stop_after_delivery_resumes_inspection_without_another_pickup():
 
 
 def test_withdrawn_hand_before_open_keeps_gripper_closed():
-    rt,raw,_,clock,_=setup(mode='HUMAN_ASSEMBLY',assistance='MANUAL_ASSEMBLY')
-    def hook():
-        if rt.request:
-            signal(rt,hand_present=True,receiving_ready=rt.pending!='grip')
-    clock.hook=hook
+    rt,raw,events,clock,_=setup(mode='HUMAN_ASSEMBLY',assistance='MANUAL_ASSEMBLY')
+    record=rt.record
+    def observe(event,data):
+        record(event,data)
+        if event=='GRIP_STARTED' and data['label']=='DIRECT_HANDOVER':
+            signal(rt,hand_present=True,receiving_ready=False)
+        if event=='HANDOVER_RECEIVE_REOPENED':
+            assert len(raw.grips)==2 and raw.value['gripper_status']==2
+            rt.session.request_stop()
+    rt.record=observe
+    clock.hook=lambda:signal(rt,hand_present=True,receiving_ready=True) if rt.request else None
     result=rt.run()
-    assert result['status']=='RECOVERY_REQUIRED' and result['reason']=='HANDOVER_READINESS_LOST'
+    assert result['status']=='STOPPED' and result['reason']=='STOP_REQUESTED'
+    assert rt.can_resume() and not rt.handover_release_sent
     assert len(raw.grips)==2 and raw.value['gripper_status']==2
+    assert any(e=='HANDOVER_RECEIVE_REOPENED' for e,v in events)
 
 
 def test_new_hand_before_tray_descent_reopens_receive_and_hands_over_once():

@@ -457,7 +457,7 @@ class MvpWorkflow:
 
     def robot_event(self, value):
         event, data = value['event'], value['data']
-        if event=='COMMAND_REJECTED' and data.get('command')=='SIGNAL' and data.get('reason') in ('NO_ACTIVE_SIGNAL_REQUEST','STALE_SIGNAL'):
+        if event=='COMMAND_REJECTED' and data.get('command') in ('SIGNAL','OPERATOR_CONFIRM') and data.get('reason') in ('NO_ACTIVE_SIGNAL_REQUEST','STALE_SIGNAL'):
             self.event('LATE_GESTURE_IGNORED',data)
             return False
         stopped_idle_execution = (event == 'STOP_VERIFIED' and self.reason == 'STOP_PENDING'
@@ -513,7 +513,9 @@ class MvpWorkflow:
                 self.help=dict(request_id=data['request_id'],plan_id=data['plan_id'],step_id=data['step_id'],
                     kind='HANDOVER' if data['kind']=='RECEIVE' else 'HUMAN_ASSEMBLY',target=deepcopy(self.step()['after']),phase='REQUESTED',
                     instruction=('전달판 상공에서 대기합니다. 받을 준비가 확인되면 손으로 인계하고, 손이 없으면 전달판에 내려놓습니다.'
-                        if data['kind']=='RECEIVE' else '목표 위치에 조립하고 엄지척을 보여주세요. 10초 뒤에는 B가 실제 배치를 검사합니다.'))
+                        if data['kind']=='RECEIVE' else
+                        '목표 위치에 조립하고 엄지척을 보여주세요. 인식되지 않으면 조립 완료 버튼을 누르세요.'
+                        if data.get('timeout_holds') else '목표 위치에 조립하고 엄지척을 보여주세요. 10초 뒤에는 B가 실제 배치를 검사합니다.'))
         elif event == 'SIGNAL_REQUEST_CLOSED':
             self.signal_request = None
             if self.help: self.help['phase'] = 'MAINTAIN'

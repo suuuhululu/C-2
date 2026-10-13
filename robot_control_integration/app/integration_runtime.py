@@ -36,11 +36,16 @@ class StepRuntime:
         self.blend_command_sent = False
         self.handover_active = False
         self.handover_intent_pending = False
+        self.handover_release_sent = False
+        self.operator_receive_confirmed = False
         self.blend_start = None
         self.recovery_reason = None
 
     def emit(self, event, data):
         # STOP evidence must still be emitted after the execution is cancelled.
+        if (event=='SINGLE_WRITER_GRIPPER' and self.cursor<len(self.operations)
+                and self.operations[self.cursor][0]=='handover'):
+            self.handover_release_sent=True
         self.record(event, dict(data, execution_id=self.session.value['execution_id'] if self.session else None,
                                plan_id=self.plan['plan_id'] if self.plan else None,
                                step_id=self.plan['step_id'] if self.plan else None,
@@ -52,7 +57,13 @@ class StepRuntime:
         plan = build_plan(step, profile)
         if type(profile.get('noncontact_force_guard',True)) is not bool:
             raise ValueError('EXPLICIT_NONCONTACT_FORCE_GUARD_BOOLEAN_REQUIRED')
+        if type(profile.get('supply_approach_blending',True)) is not bool:
+            raise ValueError('EXPLICIT_SUPPLY_APPROACH_BLENDING_BOOLEAN_REQUIRED')
         motion_force_limit=profile['force_stop_n'] if profile.get('noncontact_force_guard',True) else None
+        if type(profile.get('operator_cue_timeout_holds',False)) is not bool:
+            raise ValueError('EXPLICIT_OPERATOR_CUE_TIMEOUT_BOOLEAN_REQUIRED')
+        if type(profile.get('operator_cue_buttons',False)) is not bool:
+            raise ValueError('EXPLICIT_OPERATOR_CUE_BUTTONS_BOOLEAN_REQUIRED')
         trial = value.get('no_vision_trial', False)
         if type(trial) is not bool:
             raise ValueError('EXPLICIT_NO_VISION_TRIAL_BOOLEAN_REQUIRED')
@@ -99,10 +110,13 @@ class StepRuntime:
         session = ControlSession(value, plan, self.emit, clock=self.clock, wall=self.wall)
         driver = ControlledDriver(self.raw, session, self.connection, clock=self.clock, sleep=self.sleep)
         if resume:
-            initial_open = self.state == 'RECOVERY_REQUIRED' and self.cursor == 0 and self.operations[0][1][0] == 'PREPARE_OPEN'
+            initial_open = (self.state == 'RECOVERY_REQUIRED' and self.cursor == 0 and bool(self.operations)
+                and self.operations[0][0]=='grip' and self.operations[0][1][0] == 'PREPARE_OPEN')
             waiting_contact = self.pending == 'contact' and self.can_resume()
             waiting_blend = self.pending == 'blend' and self.can_resume()
-            if plan != self.plan or profile != self.profile or (self.pending in ('grip', 'contact', 'blend') and not (initial_open or waiting_contact or waiting_blend)) or self.stopped_sample is None:
+            waiting_handover = (self.cursor<len(self.operations) and self.operations[self.cursor][0]=='handover'
+                and not self.handover_release_sent and self.can_resume())
+            if plan != self.plan or profile != self.profile or (self.pending in ('grip', 'contact', 'blend') and not (initial_open or waiting_contact or waiting_blend or waiting_handover)) or self.stopped_sample is None:
                 raise RuntimeError('RESUME_REQUIRES_UNCHANGED_STEP_AND_KNOWN_OPERATION')
             sample = driver.stillness()
             mm, deg = pose_error(sample['posx'], self.stopped_sample['posx'])
@@ -111,6 +125,11 @@ class StepRuntime:
                 raise RuntimeError('RESUME_STATE_CHANGED_REQUIRES_RECOVERY')
             if value.get('resume_current_revision') != plan['current_revision']:
                 raise RuntimeError('RESUME_REQUIRES_LATEST_CURRENT_CHECK')
+            if waiting_blend and self.blend_command_sent:
+                targets,held,*_=self.operations[self.cursor][1]
+                # Resume the known, stopped near-end batch at its last endpoint,
+                # never replay the old supply/body waypoints.
+                self.operations[self.cursor]=('move',('BLEND_RESUME_ENDPOINT',targets[-1],held,False))
             if self.cursor < len(self.operations) and self.operations[self.cursor][0] == 'tray':
                 # STOP으로 닫힌 수신 관측은 재사용하지 않는다. 하강 전 새 관측/준비를 요청한다.
                 self.operations.insert(self.cursor, ('receive', None))
@@ -129,6 +148,7 @@ class StepRuntime:
             self.inspection_attempt = 0
             self.handover_active = False
             self.handover_intent_pending = False
+            self.handover_release_sent = False
         session.claim_execution()
         self.used_executions.add(value['execution_id'])
         self.session, self.driver, self.plan, self.profile = session, driver, plan, deepcopy(profile)
@@ -136,6 +156,7 @@ class StepRuntime:
         self.no_vision_trial = trial
         driver.automatic_confirmation = True
         self.signal, self.signal_seq, self.request = None, -1, None
+        self.operator_receive_confirmed = False
         self.pending, self.state = None, 'RUNNING'
         self.recovery_reason = None
         self.emit('EXECUTION_STARTED', dict(resume=resume, cursor=self.cursor, physical_verified=False,
@@ -145,6 +166,10 @@ class StepRuntime:
     def can_resume(self):
         if self.stopped_sample is None:
             return False
+        if (self.state in ('STOPPED','RECOVERY_REQUIRED') and self.pending in ('grip','handover')
+                and self.cursor<len(self.operations) and self.operations[self.cursor][0]=='handover'
+                and not self.handover_release_sent and self.stopped_sample['gripper_status']==2
+                and not self.driver.command_outcome_unknown):return True
         if self.pending == 'contact' and not self.contact_started and self.stopped_sample['gripper_status'] == 2:
             target = self.contact_start_pose()
             mm,deg = pose_error(self.stopped_sample['posx'],target)
@@ -152,6 +177,22 @@ class StepRuntime:
         if (self.pending=='blend' and not self.blend_command_sent
                 and self.state in ('STOPPED','RECOVERY_REQUIRED')
                 and not self.driver.command_outcome_unknown):return True
+        if (self.state in ('STOPPED','RECOVERY_REQUIRED') and not self.driver.command_outcome_unknown
+                and self.pending=='blend' and self.blend_command_sent
+                and self.recovery_reason=='BLEND_MOTION_TIMEOUT'
+                and self.profile.get('transport_blending',{}).get('finish_endpoint') is True
+                and self.cursor<len(self.operations) and self.operations[self.cursor][0]=='blend'):
+            targets,held,*_=self.operations[self.cursor][1]
+            mm,deg=pose_error(self.stopped_sample['posx'],targets[-1])
+            config=self.profile['transport_blending']
+            return (self.stopped_sample['gripper_status']==held and
+                mm<=config['transit_position_tolerance_mm'] and deg<=config['transit_orientation_tolerance_deg'])
+        if (self.state=='RECOVERY_REQUIRED' and not self.driver.command_outcome_unknown
+                and self.pending in ('help','ack')
+                and self.recovery_reason in ('HELP_READY_TIMEOUT','ASSEMBLY_ACK_TIMEOUT')):return True
+        if (self.state=='RECOVERY_REQUIRED' and not self.driver.command_outcome_unknown
+                and self.pending in ('move','lift')
+                and self.recovery_reason in ('MOTION_TIMEOUT','TARGET_NOT_REACHED')):return True
         if (self.state=='RECOVERY_REQUIRED' and self.pending=='tray'
                 and self.recovery_reason=='HAND_PRESENT_BEFORE_LOWER'
                 and self.stopped_sample['gripper_status']==2
@@ -161,7 +202,7 @@ class StepRuntime:
         # Opening an empty gripper before any arm motion can be reissued explicitly.
         # Pickup close/contact/release must never be replayed when their outcome is unknown.
         return (self.state == 'RECOVERY_REQUIRED' and self.cursor == 0 and self.pending == 'grip'
-                and bool(self.operations) and self.operations[0][1][0] == 'PREPARE_OPEN'
+                and bool(self.operations) and self.operations[0][0]=='grip' and self.operations[0][1][0] == 'PREPARE_OPEN'
                 and self.stopped_sample['gripper_status'] == 0)
 
     def make_operations(self, plan, profile, zone):
@@ -185,10 +226,11 @@ class StepRuntime:
             if not skip_place:route.append(('BODY_EMPTY',profile['body_bypass_xy_mm']))
             route.append(('SUPPLY_EMPTY',profile['supply_transit_xy_mm']))
         route.append(('PICKUP_HIGH', pickup[:2]))
-        if profile.get('transport_blending') and len(route) >= 2:
+        if profile.get('transport_blending') and profile.get('supply_approach_blending',True) and len(route) >= 2:
             ops.append(('blend', ([[*xy, height, *pickup[3:]] for _,xy in route], 0)))
         else:
-            ops += [('move', (label, [*xy, height, *pickup[3:]], 0, False)) for label, xy in route]
+            ops += [('move', (label, [*xy, height, *pickup[3:]], 0,
+                label=='PICKUP_HIGH' and not profile.get('supply_approach_blending',True))) for label, xy in route]
         ops += [('move', ('PICKUP_LOWER', pickup, 0, True)), ('grip', ('PICKUP_CLOSE', s['pickup_width_mm'], 2)),
                 ('lift', (height, 2))]
         loaded = [('SUPPLY_LOADED', profile['supply_transit_xy_mm']), ('BODY_LOADED', profile['body_bypass_xy_mm']), ('PLACE_LOADED', profile['place_pose'][:2])]
@@ -253,8 +295,15 @@ class StepRuntime:
             point(target[:2],target[3:])]
         # B inspects at assembly clearance. The next admitted Step owns the
         # empty corridor to its actual pickup; never return to this Step's slot.
+        approach=[('blend',(empty,0,height))]
+        if not p.get('supply_approach_blending',True):
+            # Keep the taught corridor, but approach the selected slot with
+            # serial MoveL commands. The last alignment uses the pickup rate.
+            labels=['PICKUP_HIGH'] if zone=='supply' else ['BODY_EMPTY','SUPPLY_EMPTY','PICKUP_HIGH']
+            approach=[('lift',(height,0))]+[('move',(label,point,0,label=='PICKUP_HIGH'))
+                for label,point in zip(labels,empty)]
         return [('grip',('PREPARE_OPEN',s.get('pickup_open_width_mm',s['release_width_mm']),0)),
-            ('blend',(empty,0,height)),('move',('PICKUP_LOWER',pickup,0,True)),
+            *approach,('move',('PICKUP_LOWER',pickup,0,True)),
             ('grip',('PICKUP_CLOSE',s['pickup_width_mm'],2)),('blend',(loaded,2)),
             ('move',('PRE_CONTACT',self.pre_contact_pose(s,p),2,True)),
             ('contact',None),('grip',('SEATED_RELEASE',s['release_width_mm'],0)),
@@ -347,8 +396,13 @@ class StepRuntime:
                 raise ValueError('OLD_SIGNAL_SEQUENCE')
             if value.get('source') not in ('SENSOR', 'HMI', 'FAKE') or (self.raw.mode == 'REAL' and value['source'] == 'FAKE'):
                 raise ValueError('INVALID_SIGNAL_SOURCE')
-            if self.request['kind'] == 'RECEIVE':
-                if value['source'] == 'HMI' or type(value.get('hand_present')) is not bool or type(value.get('receiving_ready')) is not bool:
+            manual_receive = self.request['kind']=='RECEIVE' and value['source']=='HMI'
+            if manual_receive:
+                if (not self.profile.get('operator_cue_buttons',False) or value.get('ready') is not True
+                        or value.get('verified') is not True):
+                    raise ValueError('HAND_PRESENCE_SENSOR_REQUIRED')
+            elif self.request['kind'] == 'RECEIVE':
+                if type(value.get('hand_present')) is not bool or type(value.get('receiving_ready')) is not bool:
                     raise ValueError('HAND_PRESENCE_SENSOR_REQUIRED')
                 if value['receiving_ready'] and (not value['hand_present'] or value.get('verified') is not True):
                     raise ValueError('RECEIVING_READINESS_NOT_VERIFIED')
@@ -359,16 +413,36 @@ class StepRuntime:
                     not 0 <= self.clock()-observed <= self.session.value['frame_max_age_s']):
                 raise ValueError('STALE_SIGNAL_OBSERVATION')
             self.signal_seq, self.signal = seq, (deepcopy(value), observed)
+            if manual_receive:self.operator_receive_confirmed=True
+
+    def confirm_operator(self, request_id):
+        with self.signal_lock:
+            request=deepcopy(self.request)
+        if not self.profile.get('operator_cue_buttons',False):
+            raise RuntimeError('OPERATOR_CUE_BUTTONS_DISABLED')
+        if request is None:raise RuntimeError('NO_ACTIVE_SIGNAL_REQUEST')
+        if request_id!=request['request_id']:raise ValueError('STALE_SIGNAL')
+        if request['kind'] not in ('RECEIVE','HELP_READY','ASSEMBLY_ACK','ALIGNMENT_READY'):
+            raise ValueError('UNSUPPORTED_OPERATOR_CONFIRMATION')
+        # A button is an explicit operator answer, never fabricated camera evidence.
+        self.accept_signal(dict(request,sequence=self.signal_seq+1,source='HMI',ready=True,
+            verified=True,observed_monotonic_s=self.clock()))
+        self.emit('OPERATOR_CONFIRMATION_ACCEPTED',dict(request_id=request_id,kind=request['kind'],
+            source='HMI',assembly_completion=False,current_update=False))
 
     def wait_signal(self, kind, timeout=None, *, keep=False):
         self.driver.own('WAIT')
+        if kind=='RECEIVE' and self.operator_receive_confirmed:return True
         with self.signal_lock:
             self.request = dict(request_id=str(uuid4()), kind=kind, execution_id=self.session.value['execution_id'],
                                 **{k:self.plan[k] for k in ('plan_id', 'step_id', 'current_revision')})
             self.signal = None
-        self.emit('SIGNAL_REQUEST', dict(self.request, timeout_s=timeout))
+        self.emit('SIGNAL_REQUEST', dict(self.request, timeout_s=timeout,
+            timeout_holds=kind=='ASSEMBLY_ACK' and self.profile.get('operator_cue_timeout_holds',False),
+            operator_button_allowed=self.profile.get('operator_cue_buttons',False)))
         begin = self.clock()
         retaining = False
+        fallback_shown = False
         try:
             while True:
                 self.session.check()
@@ -383,6 +457,9 @@ class StepRuntime:
                     (row[0]['source'] == 'HMI' or
                      row[0].get('confirmation_kind') == 'OPERATOR_GESTURE_NOT_ALIGNMENT_MEASUREMENT'))
                 if kind == 'RECEIVE':
+                    if self.operator_receive_confirmed:
+                        retaining=keep
+                        return True
                     if fresh and row[0]['hand_present'] and row[0]['receiving_ready']:
                         retaining = keep
                         return True
@@ -394,7 +471,11 @@ class StepRuntime:
                     retaining = keep
                     return True
                 elif timeout is not None and self.clock()-begin >= timeout:
-                    return False
+                    if not self.profile.get('operator_cue_buttons',False):return False
+                    if not fallback_shown:
+                        fallback_shown=True
+                        self.emit('OPERATOR_CONFIRMATION_REQUIRED',dict(request_id=self.request['request_id'],
+                            kind=kind,reason='GESTURE_CONFIRMATION_TIMEOUT',assembly_completion=False))
                 self.sleep(.05)
         finally:
             if not retaining: self.close_signal_request()
@@ -407,6 +488,8 @@ class StepRuntime:
 
     def check_receive_signal(self, *, ready):
         self.session.check()
+        if ready and self.operator_receive_confirmed:return
+        if not ready and self.operator_receive_confirmed:raise RuntimeError('HAND_PRESENT_BEFORE_LOWER')
         with self.signal_lock:
             row = self.signal
         if row is None or self.clock()-row[1] > self.session.value['frame_max_age_s']:
@@ -460,9 +543,10 @@ class StepRuntime:
             if math.dist(current['posx'][:2], self.plan['settings']['reference_pose'][:2]) > 2:
                 raise RuntimeError('CONTACT_TARGET_DRIFT')
         self.driver.own('GRIPPER',verified_snapshot=self.driver.last_verified_sample
-            if label in ('PREPARE_OPEN','PICKUP_CLOSE') or reaction_release else None)
+            if label in ('PREPARE_OPEN','PICKUP_CLOSE','DIRECT_HANDOVER') or reaction_release else None)
         self.emit('GRIP_STARTED', dict(label=label))
-        self.driver.command_gripper(width, self.profile['gripper_force_n'], precondition=precondition)
+        self.driver.command_gripper(width, self.profile['gripper_force_n'], precondition=precondition,
+            verified_snapshot=self.driver.last_verified_sample if label=='DIRECT_HANDOVER' else None)
         bounds = release_feedback_range(self.plan['settings'], width) if status == 0 else [0, 110]
         if label == 'PREPARE_OPEN' and 'pickup_start_open_range_mm' in self.plan['settings']:
             bounds = self.plan['settings']['pickup_start_open_range_mm']
@@ -560,15 +644,28 @@ class StepRuntime:
                         ('grip', ('TRAY_RELEASE', self.plan['settings']['release_width_mm'], 0)),
                         ('lift', (self.profile['clearance_z_mm'], 0))]
                 elif kind == 'handover':
-                    self.wait_signal('RECEIVE', keep=True)
-                    self.pending = 'grip'
-                    try:
-                        self.grip('DIRECT_HANDOVER', self.plan['settings']['release_width_mm'], 0,
-                                  precondition=lambda:self.check_receive_signal(ready=True))
-                    finally:
-                        self.close_signal_request()
+                    while True:
+                        self.pending='handover'
+                        self.wait_signal('RECEIVE', keep=True)
+                        self.pending='grip'
+                        try:
+                            self.grip('DIRECT_HANDOVER', self.plan['settings']['release_width_mm'], 0,
+                                      precondition=lambda:self.check_receive_signal(ready=True))
+                            self.operator_receive_confirmed=False
+                            break
+                        except RuntimeError as error:
+                            if (str(error) not in ('HANDOVER_READINESS_LOST','RECEIVE_OBSERVATION_STALE')
+                                    or self.handover_release_sent or self.driver.command_outcome_unknown):raise
+                            # No opening was sent. Keep holding at this stopped pose
+                            # and ask for a new receiving cue, without replaying transport.
+                            self.emit('HANDOVER_RECEIVE_REOPENED',dict(reason=str(error),
+                                release_command_sent=False,assembly_completion=False))
+                        finally:
+                            self.close_signal_request()
                 elif kind == 'ack':
                     received = self.wait_signal('ASSEMBLY_ACK', 10.)
+                    if not received and self.profile.get('operator_cue_timeout_holds',False):
+                        raise TimeoutError('ASSEMBLY_ACK_TIMEOUT')
                     self.emit('ASSEMBLY_CUE_FINISHED', dict(received=received, assembly_completion=False))
                 elif kind == 'help':
                     if not self.wait_signal('HELP_READY', self.session.value['request_timeout_s']):

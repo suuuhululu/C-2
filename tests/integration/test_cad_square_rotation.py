@@ -12,9 +12,10 @@ pytestmark=pytest.mark.skipif(not (ROOT/'scripts/robot_integration_runtime.py').
 @pytest.mark.parametrize('color',['yellow','blue'])
 @pytest.mark.parametrize('axis',['x','y'])
 @pytest.mark.parametrize('slot',[1,2,6])
-def test_square_rotation_offsets_assembly_base_x_only(color,axis,slot):
+@pytest.mark.parametrize('x',[11,12,15])
+def test_square_rotation_offsets_assembly_base_x_only(color,axis,slot,x):
     inputs=measured_inputs(ROOT)
-    block=dict(brick_type='2x2x1',color=color,x=12,y=12,layer=1,orientation_deg=0)
+    block=dict(brick_type='2x2x1',color=color,x=x,y=12,layer=1,orientation_deg=0)
     step=dict(step_id='S02',operation='PLACE',before=None,after=block,prerequisites=[],requires_delivery=True)
     action=dict(grip_axis=axis)
     nominal=calculate_step_tcp(step,profile=inputs['frame']['calculation_profiles']['assembly'],grip_axis=axis)
@@ -26,7 +27,7 @@ def test_square_rotation_offsets_assembly_base_x_only(color,axis,slot):
             baseline[j]+=(trial[k]-inputs['layers'][1]['target'][('x','y')[k]])*assembly['coefficient_xyz_mm'][name][j]
     existing=rotation_correction(assembly,trial,turn=turn)
     frame,profile,_,correction=step_geometry(inputs,step,action,slot)
-    settings=profile['steps']['cad/S02'];offset=-1.5 if turn else 0.
+    settings=profile['steps']['cad/S02'];offset=(-1.5 if turn else 0.)+(-1. if x>11 else 0.)
     assert correction==pytest.approx([existing[0]+offset,existing[1]])
     assert settings['reference_pose'][:2]==pytest.approx([baseline[0]+existing[0]+offset,baseline[1]+existing[1]])
     assert settings['reference_pose'][2:]==baseline[2:]
