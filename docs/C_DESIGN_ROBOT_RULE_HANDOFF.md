@@ -8,6 +8,7 @@ C 파트(시율)가 `work/siyul-c-robot-rule`(base `codex/integration-round1 @ e
 |---|---|---|
 | support hard rule | layer ≥ 2 블록은 바로 아래층과 겹침 합계 2 stud 이상(A/C 공통 Day4 기하 기준) | C가 생성·수정하는 **모든 Candidate**(Initial, Revised, Difference REVISE, Direct Design Change, Review MODIFY, Planning Failure 재설계)에 **고유 stud ≥ min(4, 블록 stud 수)**: 2x2x1 4/4, 2x3x1 ≥4/6, 1x2x1 2/2. 입력 Design·Current 판정도 같은 함수(`validate_design`, `validate_revised`, `current_support_violations`). production 2-stud 예외 없음 |
 | 5층·풍부함·expressive | Revised 프롬프트·judge·`+6` 블록 하한이 사실상 강제 | **기본 선호(soft)**. 사용자가 명시한 제한(N층 이하, 낮게, 간단하게, 블록 적게/N개까지, 작게)이 우선하면 하한·richer 재생성·5층 안내를 적용하지 않음. MAX_LAYER 5·MAX_BLOCKS 40은 상한 |
+| 제약 강도 정책(사용자 결정 2026-10-13, B-N1 = DEFERRED_FOLLOWUP) | — | **수치가 명시된 constraint(N층 이하, 블록 N개 이하)는 강제 적용**(designer `user_constraint` 거부 + Current clamp). **정성적 표현(작게·넓게·블록 적게·낮게)은 현재 soft preference로 유지**하며, 향후 UX/Design Quality 개선에서 정량 기준을 별도 정의한다. 이번 변경에서 강제 상한·family 제외를 추가하지 않았다(실제 Sol smoke에서 기능 실패가 아닌 효과 약함으로 확인) |
 | 우선순위 | 명문화 없음 | Initial: hard rule > 사용자 명시 요구 > 품질 > (제한 없을 때) expressive > facing. Revised: Current 보존 > hard rule > 이번 요구 > 품질/expressive > facing |
 | Current 충돌 | 감지 없음 | 요청 상한이 조립된 Current와 충돌하면(예: Current 4층 + "3층 이하") Current를 지우지 않고 **기존 질문 루프로 1회 재선택**(KEEP / REVISE(clamp) / UNCLEAR / CANCEL). Review MODIFY는 clamp + ack 고지 |
 
@@ -15,7 +16,7 @@ C 파트(시율)가 `work/siyul-c-robot-rule`(base `codex/integration-round1 @ e
 
 - `planning_trial/planner.py`의 `MIN_SUPPORT_STUDS = 2`는 그대로다. C 출력이 ≥ min(4, studs)이면 A의 ≥2 검사를 항상 통과한다(C 출력 ⊂ A 수용 집합). 1x2x1 2/2도 통과.
 - A의 별개 기준(`assembly_geometry.contacts` weak 임계 4는 아래 블록별, `ROBOT_RELEASE_PRESS`는 footprint 전체 지지)은 이번 규칙이 보장하지 않는다. 2x3x1이 4/6만 지지되면 여전히 release 불가·weak일 수 있다.
-- 공유 문서 `docs/06_CONTRACT_DRAFT.md:37`, `docs/09_C_B_BACKEND_HANDOFF.md:28,89`, `docs/00_CURRENT_DECISIONS.md:46`의 "A/C 지지 기준 2 stud 통일" 문장은 **A 검증 기준으로는 여전히 참**이고 C 생성 기준만 강화됐다. 공유 문서에 "C 생성 Candidate는 2026-10-13부터 min(4, studs)(C_DESIGN_CONTRACT §9.1)"을 한 줄 병기하는 것을 제안한다(C 단독 수정 안 함).
+- 공유 문서 `docs/06_CONTRACT_DRAFT.md:37`, `docs/09_C_B_BACKEND_HANDOFF.md:28,89`, `docs/00_CURRENT_DECISIONS.md:46`, `docs/02_TEAM_GUIDE.md:31`의 "A/C 지지 기준 2 stud 통일" 문장은 **2026-10-06~10-12의 historical / old contract**다. A 검증 기준(2)으로는 여전히 참이지만 C 생성 계약은 아니다. 공유 문서에 "C 생성 Candidate는 2026-10-13부터 min(4, studs)(C_DESIGN_CONTRACT §9.1)"을 한 줄 병기하는 것을 제안한다(공유 문서는 C 단독으로 수정하지 않았다).
 - A 소유 historical fixture(`planning_trial/fixtures/planning_failure_9a091aa3.json`, `search_limit_26blocks_20261012.json`)는 2~3 stud 지지 블록을 가진 당시 기록이며 그대로 둔다.
 
 ## 3. B (홍동) — 변경 없음
@@ -23,6 +24,8 @@ C 파트(시율)가 `work/siyul-c-robot-rule`(base `codex/integration-round1 @ e
 - Observed·Current/revision 계약 불변. B가 확정한 Current는 C에서 `current_support_violations`로만 판정되며(입력 오류 아님), 2~3 stud 블록이 실제로 놓인 Current에서는 REVISE가 §8.11 escalation(재설계 불가)으로 간다 — 아래 D 항목 참고.
 
 ## 4. D (수현) — 알아둘 것·결정 요청
+
+요약 체크리스트: (a) C support contract 변경 — 2x2x1 4/4, 2x3x1 ≥4/6, 1x2x1(red) 2/2, 모든 C Candidate 경로 동일 적용, production 2-stud 예외 없음. (b) 옛 2-stud Approved/Current 재생 시 INVALID_INPUT/escalation 가능(아래 1). (c) 새 metadata `user_constraints`·`constraint_clamp` pass-through 확인 필요(아래 3). (d) user constraint는 요청 단위이며 세션 지속은 D `inspection_context` 합의 필요(아래 4). (e) Current가 이미 요청 상한을 넘으면 C가 질문 뒤 clamp(REVISE) / KEEP / UNCLEAR로 처리하며 Current를 지우지 않음(CONTRACT §8.16). (f) 공유 문서의 "A/C 2 stud 통일" 문구는 historical/old contract(§2). (g) D production diff 0, D 변경은 승인된 synthetic test fixture 2건뿐(아래 2).
 
 1. **이전 규칙으로 만든 Approved/Current의 후속 HRI 동작 변화**: 2-stud 기준으로 승인된 Approved Design은 `run_intervention`/`run_design_change`/`review_design_candidate`(kind="initial"은 후보 자체, kind="revised"는 previous_design) 입력 검사에서 `FAILED / INVALID_INPUT`이 되고, 2~3 stud 블록이 놓인 Current는 REVISE 시 escalation(can_redesign=False)으로 간다. 새 실행 흐름(Initial v1부터 새 규칙)에서는 생기지 않는 상황이며, 과거 Job 재생·fixture 재사용 시에만 해당한다.
 2. **D 소유 테스트 2건의 합성 입력 수정**(사용자 결정, commit `01e8ddf`): `tests/integration/test_five_layer_pipeline.py::thirty_blocks`(홀수층 2x3x1 0°, 짝수층 90°로 같은 6×6 덮기)와 `tests/unit/test_mvp_supply_cycle.py::test_design_count_limit_remains_forty_in_c_and_a`(피라미드 11+10+9+8+7 중 41개). D production·assertion·목적은 그대로다.

@@ -581,6 +581,8 @@ Preview 검토(§4.4)가 MODIFY이면 C가 새 **Candidate** Design을 만들어
 
 ### 8.15 사용자 명시 제약과 우선순위 (Robot-only design rule update Wave 3, 2026-10-13)
 
+> 제약 강도 정책(사용자 결정 2026-10-13, B-N1 = DEFERRED_FOLLOWUP): 수치가 명시된 constraint(`max_layer`, `max_blocks`)는 강제 적용한다(designer `user_constraint` 거부, Current clamp). 정성적 표현(작게·넓게·블록 적게·낮게·간단하게)은 현재 soft preference(프롬프트·family 선택·richness 해제)로 유지하며, 향후 UX/Design Quality 개선에서 정량 기준을 별도 정의한다. 실제 Sol smoke(2026-10-13)에서 정성적 표현은 기능 실패 없이 효과가 약한 수준으로 관찰됐다.
+
 "5층·풍부함·화려함·expressive"는 **기본 선호(soft)** 이고 사용자가 명시한 요구가 우선합니다. `MAX_LAYER = 5`·`MAX_BLOCKS = 40`은 상한이지 목표가 아닙니다. 새 공개 함수·인자·hri/status/error 값은 없고, Design JSON(`{design_version, blocks}`)·validator 계약도 그대로입니다.
 
 **우선순위**
