@@ -350,6 +350,50 @@ def test_revised_scenario_c_all_four_legs_one_shifted(initial_design):
     _assert_assembled_preserved(result_design, current)
 
 
+# Mock Revised over every single-leg move of up to 2 studs (24 directions x 4 legs, 72 with a valid Current).
+# Pinned 2026-10-13 under the min(4, studs) support rule: 20 moves give a valid Revised Design, the other 52 cannot be
+# rebuilt by the Mock (its seat would not connect), never a support failure. Before the y / diagonal fix only 10 of the
+# 20 passed (one-row y moves left a layer-2 connector or the layer-4 bridge on 3 studs).
+MOCK_REVISED_OK_MOVES = {
+    (0, -1, -1), (0, -1, 0), (0, 0, -1), (0, 1, -1), (0, 1, 0),
+    (1, -1, -1), (1, -1, 0), (1, 0, -1), (1, 1, -1), (1, 1, 0),
+    (2, -1, 0), (2, -1, 1), (2, 0, 1), (2, 1, 0), (2, 1, 1),
+    (3, -1, 0), (3, -1, 1), (3, 0, 1), (3, 1, 0), (3, 1, 1),
+}
+MOCK_REVISED_Y_MOVES_FIXED = {(0, -1, -1), (0, 0, -1), (0, 1, -1), (1, -1, -1), (1, 0, -1), (1, 1, -1),
+                              (2, -1, 1), (2, 1, 1), (3, -1, 1), (3, 1, 1)}
+
+
+def test_mock_revised_single_leg_moves_table(initial_design):
+    legs = _blocks_at(initial_design, 1)
+    ok, failed_rules, cases = set(), Counter(), 0
+    for index, leg in enumerate(legs):
+        for dx in range(-2, 3):
+            for dy in range(-2, 3):
+                if dx == dy == 0:
+                    continue
+                moved = _shift(leg, dx=dx, dy=dy)
+                current = [dict(other) for i, other in enumerate(legs) if i != index] + [moved]
+                if (validator._check_block(moved, reject_unknown_keys=False)[0]
+                        or validator._check_current(current)):
+                    continue  # off the board or overlapping another leg: not a valid Current
+                cases += 1
+                differences = [{"expected": leg, "actual": moved}]
+                result = designer.build_revised_design(initial_design, current, differences, max_attempts=1, delay=0)
+                if result["design"] is None:
+                    failed_rules.update({reason["rule"] for reason in result["reasons"]})
+                    continue
+                ok.add((index, dx, dy))
+                assert validator.validate_design(result["design"]) == []
+                assert validator.validate_revised({"blocks": result["design"]["blocks"]}, current) == []
+                assert result["design"]["design_version"] == initial_design["design_version"] + 1
+                _assert_assembled_preserved(result["design"], current)
+    assert cases == 72
+    assert ok == MOCK_REVISED_OK_MOVES
+    assert MOCK_REVISED_Y_MOVES_FIXED <= ok
+    assert set(failed_rules) == {"connectivity"}  # no Mock candidate is rejected for support
+
+
 def test_revised_result_no_boundary_keys(initial_design):
     legs = _blocks_at(initial_design, 1)
     b1, b2 = legs[0], legs[1]
@@ -395,7 +439,7 @@ def test_revised_version_unchanged_when_candidate_equals_input_layout():
 def test_revised_version_increments_when_layout_changes():
     design = _tiny_chair_design()
     leg, seat = design["blocks"]
-    moved_seat = dict(seat, x=seat["x"] + 1)
+    moved_seat = dict(seat, y=seat["y"] + 1)  # still 4/4 on the 2x3x1 leg (2026-10-13 rule)
     current = [dict(leg)]
     differences = [{"expected": seat, "actual": seat}]
 
@@ -804,7 +848,7 @@ def test_too_few_blocks_until_the_limit_fails_with_the_reason():
 def test_min_blocks_none_does_not_check_richness():
     design = _tiny_chair_design()
     leg, seat = design["blocks"]
-    moved_seat = dict(seat, x=seat["x"] + 1)
+    moved_seat = dict(seat, y=seat["y"] + 1)  # still 4/4 on the 2x3x1 leg (2026-10-13 rule)
 
     def gen(design_in, current_in, differences_in, reasons):
         return {"blocks": [dict(leg), moved_seat]}

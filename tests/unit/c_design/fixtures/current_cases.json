@@ -227,8 +227,8 @@
         }
       ],
       "expected_input_rules": [],
-      "support_violation": false,
-      "_note": "block0 actually placed one layer up (1 -> 2) at (11,10) over block1 with 2 shared studs, so only the layer/assembly point changes and support_violation stays false."
+      "support_violation": true,
+      "_note": "block0 actually placed one layer up (1 -> 2) at (11,10) over block1 with 2 shared studs. The input is still accepted (no input rule), but since 2026-10-13 a 2x2x1 needs all 4 studs supported, so current_support_violations flags it (escalation, §8.11). Until 2026-10-12 (2-stud rule) this was not a violation."
     },
     {
       "case": "support_violation",

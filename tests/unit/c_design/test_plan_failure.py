@@ -311,7 +311,9 @@ def test_candidate_review_after_plan_failure_keeps_v2_and_planning_context(monke
     first = main.run_design_change(approved, current, reason="x", planning_failure=failure_with_block, text_answers=["2번"])
     candidate, meta = first["design"], first["design_metadata"]
     even_taller = {"blocks": _taller(approved)["blocks"] + [dict(brick_type="1x2x1", color="red", x=10, y=8, layer=3, orientation_deg=0)]}
-    monkeypatch.setattr(llm, "generate_revised_design", lambda *a, **k: (calls["generate"].append(k), deepcopy(even_taller))[1])
+    # Wave 3: 명시 제약은 kwarg가 아니라 llm.stated_limits 컨텍스트로 온다(결정 D-1) → 호출 순간의 값을 함께 기록한다.
+    monkeypatch.setattr(llm, "generate_revised_design", lambda *a, **k: (calls["generate"].append(
+        dict(k, stated_limits=llm.active_stated_limits())), deepcopy(even_taller))[1])
     monkeypatch.setattr(llm, "interpret_review_answer", lambda *a, **k: {"decision": "MODIFY", "style_hint": "더 단순하게", "scope": "patch",
                                                                        "concept": "", "reason": "r", "reply": "p"})
     modified = main.review_design_candidate(candidate, kind="revised", design_metadata=meta, previous_design=approved, current=current,
@@ -320,6 +322,9 @@ def test_candidate_review_after_plan_failure_keeps_v2_and_planning_context(monke
     assert modified["status"] == "OK" and modified["hri_result"] == dialogue.MODIFY
     assert modified["design"]["design_version"] == 2 and modified["design_metadata"]["review"]["round"] == 1
     assert calls["generate"][-1]["change_request"] == llm.planning_failure_change_request(failure_with_block)
+    # Wave 3(2026-10-13): "더 단순하게"는 명시 제약 → +6 하한을 걸지 않고 제약을 생성기에 넘긴다(더 큰 후보도 수치 위반은 아니다).
+    assert calls["generate"][-1]["min_blocks"] is None and calls["generate"][-1]["stated_limits"] == {"complexity": "simple"}
+    assert "constraints" not in calls["generate"][-1]  # 기존 caller·fake 호환: 새 kwarg 없음
     assert main.review_design_candidate(candidate, kind="revised", previous_design=approved, current=current, differences=[],
                                         change_reason="x", planning_failure={"failure_code": "X"},
                                         text_answers=["좋아"])["error"]["code"] == "INVALID_INPUT"

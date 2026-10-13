@@ -129,7 +129,7 @@ class TestStage2RuleLines:
         assert ("- Allowed brick/colour combinations (stock): yellow: 2x2x1, 2x3x1; blue: 2x2x1, 2x3x1; red: 1x2x1 only. "
                 "Never red 2x2x1 or 2x3x1, never yellow or blue 1x2x1.") in rules
         assert ("- red 1x2x1 is the only red piece: use it for small features (trim, rail, accent, wing edge, armrest cap, "
-                "backrest detail, border), not for large surfaces; it still needs 2 studs of support below. Red is optional, "
+                "backrest detail, border), not for large surfaces; both of its 2 studs must rest on blocks of the layer directly below. Red is optional, "
                 "never required in quantity.") in rules
         assert "red is available for accents" not in rules and "narrow supports" not in rules
         assert f"- blocks: 1..{validator.MAX_BLOCKS}." in rules and validator.MAX_BLOCKS == 40
@@ -270,7 +270,7 @@ class TestPromptReinforcement:
     def test_support_self_check_uses_the_validator_constant(self):
         text = llm.SYSTEM_PROMPT.lower()
         assert "before output" in text
-        assert f"at least {validator.MIN_SUPPORT_STUDS}" in text
+        assert f"at least min({validator.MIN_SUPPORT_STUDS}" in text and validator.MIN_SUPPORT_STUDS == 4
         assert "layer directly below" in text
 
     def test_connectivity_self_check(self):
@@ -628,8 +628,9 @@ class TestJudgeDescribe:
 
     def test_judge_signature_has_no_intent(self):
         import inspect
+        # Wave 3(2026-10-13): 명시 제약(stated_limits)만 선택 인자로 더해졌다. design intent 인자는 여전히 없다.
         assert list(inspect.signature(llm.judge_revised_design).parameters) == [
-            "previous", "design", "current", "differences", "should_stop"]
+            "previous", "design", "current", "differences", "should_stop", "constraints"]
 
     def test_judge_uses_default_judge_model_not_design_model(self, monkeypatch, with_fake_key):
         monkeypatch.setenv("OPENAI_MODEL", "gpt-6.1-sol")
@@ -1455,3 +1456,13 @@ class TestRicherRevised:
         for prompt in (llm.SYSTEM_PROMPT_INITIAL, llm.SYSTEM_PROMPT_REVISED):
             assert sentence in prompt and "mixing orientation 0 and 90, always with both of its studs supported" in prompt
             assert "visible band" not in prompt and "thin legs" not in prompt
+
+
+def test_build_hint_bridge_sentence_matches_the_validator():
+    """Opus A Wave 3 review W3-N1: 2x3x1이 두 블록에 2 + 2 stud로 걸치면 고유 4 stud라 validator가 통과시킨다."""
+    def b(x, y, layer, brick_type="2x2x1"):
+        return {"brick_type": brick_type, "color": "blue", "x": x, "y": y, "layer": layer, "orientation_deg": 0}
+    bridge = [b(0, 0, 1), b(0, 3, 1), b(0, 1, 2, "2x3x1")]
+    assert validator.validate_design({"design_version": 1, "blocks": bridge}) == []
+    assert "2 + 2 is enough, 1 + 2 is not" in llm._BUILD_HINTS
+    assert "is not enough; make it rest on 4" not in llm._BUILD_HINTS

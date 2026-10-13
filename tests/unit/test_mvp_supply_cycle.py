@@ -69,9 +69,11 @@ def test_real_plan_preflight_does_not_limit_plan_to_remaining_supply_slots():
 def test_design_count_limit_remains_forty_in_c_and_a():
     from app.c_design import validator
     from planning_trial.planner import validate_design
-    # 위층을 한 stud씩 엇갈려 놓아 한 구조로 연결된 41개 입력을 만든다.
-    blocks=[dict(brick_type='2x2x1',color='yellow',x=2*i+(layer+1)%2,y=0,layer=layer,
-        orientation_deg=0) for layer,count in [(1,11),(2,10),(3,11),(4,9)] for i in range(count)]
+    # 위층을 한 stud씩 엇갈려 놓되 층마다 양 끝을 한 칸씩 안으로 들여 모든 위층 블록이 아래 두 블록에 2+2=4 stud로
+    # 얹히게 한 41개 입력(2026-10-13 C support 규칙 min(4, stud 수); 이전의 끝단 블록은 2 stud뿐이라 새 규칙에서 무효).
+    # 피라미드 11+10+9+8+7 = 45개에서 앞 41개를 쓴다. 테스트 목적(40개 통과·41개 거부)은 그대로다.
+    blocks=[dict(brick_type='2x2x1',color='yellow',x=2*i+(layer-1),y=0,layer=layer,
+        orientation_deg=0) for layer,count in [(1,11),(2,10),(3,9),(4,8),(5,7)] for i in range(count)][:41]
     design=dict(design_version=1,blocks=blocks[:40])
     assert validator.validate_design(design)==[]
     assert len(validate_design(design))==40

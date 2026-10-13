@@ -66,20 +66,37 @@ def make_hri_difference(approved):
     """사람이 1층 블록 하나를 다른 방향(90° 회전, 제자리)으로 놓은 Difference. Current = 1층 블록 전체(회전 블록 포함).
 
     CONTRACT §5.2를 만족하고(check_intervention_input == []), Current 자체가 support를 지키며, Approved의 나머지 블록을
-    그대로 얹어도 유효한(연결·지지 유지) 블록을 고른다. 그런 블록이 없으면 smoke.make_difference(위치 이동)로 돌아간다.
+    그대로 얹어도 유효한(연결·지지 유지) 블록을 고른다. 회전이 안 되면 색만 다른 블록(기하 동일), 그것도 안 되면
+    smoke.make_difference(위치 이동)로 돌아간다.
     """
     legs = [b for b in approved["blocks"] if b["layer"] == 1]
     upper = [b for b in approved["blocks"] if b["layer"] != 1]
+
+    def usable(current, differences):
+        return (validator.check_intervention_input(approved, current, differences) == []
+                and not validator.current_support_violations(current)
+                and validator.validate_revised({"blocks": current + upper}, current) == [])
+
     for leg in legs:
         if 90 not in validator.ORIENTATIONS.get(leg["brick_type"], ()) or 0 not in validator.ORIENTATIONS.get(leg["brick_type"], ()):
             continue
         rotated = dict(leg, orientation_deg=90 - leg["orientation_deg"])
         current = [rotated if b is leg else dict(b) for b in legs]
         differences = [{"expected": dict(leg), "actual": rotated}]
-        if (validator.check_intervention_input(approved, current, differences) == []
-                and not validator.current_support_violations(current)
-                and validator.validate_revised({"blocks": current + upper}, current) == []):
+        if usable(current, differences):
             return current, differences, "orientation"
+    # 2026-10-13 support 규칙(블록별 min(4, stud 수)) 아래에서는 다리를 돌리거나 옮기면 그 위 블록의 지지가 깨져 Approved의
+    # 나머지를 그대로 얹을 수 없는 경우가 많다. 기하를 바꾸지 않는 "다른 색 블록을 놓은" Difference를 그 다음 후보로 쓴다.
+    swap = {"yellow": "blue", "blue": "yellow"}
+    for leg in legs:
+        other = swap.get(leg["color"])
+        if other is None or leg["brick_type"] not in validator.ALLOWED_COMBINATIONS[other]:
+            continue
+        recoloured = dict(leg, color=other)
+        current = [recoloured if b is leg else dict(b) for b in legs]
+        differences = [{"expected": dict(leg), "actual": recoloured}]
+        if usable(current, differences):
+            return current, differences, "color"
     current, differences = smoke.make_difference(approved)
     return current, differences, "position"
 

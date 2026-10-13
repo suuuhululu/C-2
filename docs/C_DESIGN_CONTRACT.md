@@ -451,6 +451,8 @@ Stage 2 Wave 3에서 Initial(LLM)에 `preference`·`selected_family`·`family_so
 | `design_intent` | 항상 null(Stage 2 Wave 4부터 설계 의도 단계 없음, 키는 호환을 위해 유지) |
 | `regenerations` | judge 결과로 다시 만든 횟수(0 또는 1, §8.12·§8.13) |
 | `style_hint` | Intervention 답변의 LLM 해석이 준 바람(한국어 구) 또는 null(Rule로 결정·힌트 없음) |
+| `user_constraints` | (2026-10-13 Wave 3, §8.15) 이번 요청에서 사용자가 명시한 제약 `{max_layer, max_blocks, height, complexity, block_budget, footprint}` 중 말한 키만(Current로 clamp한 값), 없으면 null. Initial(LLM·Mock)·Mock Revised에도 같은 키가 있습니다(Mock은 기록만, 설계에 반영하지 않음). D는 pass-through이며 분기에 쓰지 않습니다 |
+| `constraint_clamp` | (2026-10-13 Wave 4, §8.16, Revised·Mock Revised만) 요청 제약을 이미 조립된 Current 때문에 올렸으면 `{requested, applied}`(둘 다 제약 dict), 아니면 null. D는 pass-through |
 | `source` | `"LLM"` / `"MOCK"` |
 | `error` | null 또는 `{kind, message}`: `judge_error`(judge 응답 오류·필수 필드 누락·예상 밖 값, 재생성 없음), `regeneration_failed`(재생성이 유효 후보를 못 냄, 첫 설계 유지), `describe_error`(Initial 설명 실패), `request_error`(Initial 요청 해석 실패·`REQUEST_KEYS` 누락, ANY로 보고 무작위 family로 계속, Stage 2 Wave 4b; 이전 이름 `preference_error`). 여러 개면 마지막 오류 |
 
@@ -504,8 +506,8 @@ LLM 출력은 블록 여섯 값의 목록(`{"blocks": [...]}`)뿐입니다. 버�
 |---|
 | 사람이 앉는 가구로 한눈에 보임: 분명한 좌석, 좌석을 받치는 지지, 그 family에 필요한 큰 부분(전폭 높은 등받이, 양쪽 팔걸이, plinth, rail, crown) |
 | 특징은 보일 만큼 크게(블록 두 개 이상 또는 한 줄 전체), 대칭이거나 의도적으로 균형. 한쪽만 튀어나온 블록 금지 |
-| layer 5를 특징의 일부로 사용(crown, headrest, stepped top, tall back). validator 규칙이 아님 |
-| 필요한 만큼 블록 사용(최대 40). 블록 수를 줄이는 것은 목표가 아님 |
+| layer 5를 특징의 일부로 사용(crown, headrest, stepped top, tall back). validator 규칙이 아님. **사용자가 제한을 말하지 않았을 때의 기본 선호**이며 "3층까지만·낮게·간단하게·블록 적게·작게"가 이깁니다(§8.15) |
+| 필요한 만큼 블록 사용(최대 40). 블록 수를 줄이는 것은 기본 목표가 아님. 40은 상한이지 목표가 아니며 사용자의 "블록 적게·간단하게"가 이깁니다(§8.15) |
 | 기계적 평행이동이 아닌 전체 재설계(§8.6). 이전 Design과 다른 구조·family도 허용(§8.12) |
 | **Canonical facing**(Wave 2, 2026-10-12): 좌석의 정면(앉으러 오는 열린 쪽)은 +X(큰 x), 등받이는 좌석의 low-x 변(설계에서 x가 가장 작은 블록들), 팔걸이는 y 양 끝. HMI Preview(`app/hmi_board.BoardView`, 투영 `((y−x)·cos30°, (x+y)·sin30°−z)`)가 +X 쪽에서 보므로 화면 왼쪽 아래 = 정면, 오른쪽 위 = 등받이. 등받이 없는 family(stool·ottoman·bench)에 방향 표시용 등받이를 붙이지 않음. `llm._FACING_RULE` 하나를 `SYSTEM_PROMPT_INITIAL`·`SYSTEM_PROMPT_REVISED`가 공유(Initial·MODIFY·Difference REVISE·직접 Design Change 네 경로 모두 이 둘을 지남). **Revised 우선순위: Current 보존 → validator hard rule → facing**(`_REVISED_PRIORITIES`의 facing 줄): Current 블록을 옮기거나 돌려 정면을 맞추지 않고, Current가 이미 다른 방향을 고정하면 그 방향을 따른다(테스트 판정 FOLLOWS_CURRENT). validator·Design 형식에는 facing 항목이 없고 판정은 테스트 전용 `tests/unit/c_design/c_facing_helper.py`(PASS / FAIL / UNDEFINED / FOLLOWS_CURRENT)로만 한다 |
 
@@ -543,17 +545,17 @@ Initial Design에는 고정 블록이 없으므로 escalation이 없습니다.
 - **재생성 실패**: 재생성이 유효 후보를 못 내면 첫 설계와 그 judge를 그대로 반환합니다(`regeneration_failed`). 재생성 중 STOP이면 `CANCELLED` / `STOPPED`.
 - 세 가지 반복은 서로 독립입니다: LLM provider API 재시도(§10, `llm.RETRY_BACKOFF`), 후보 탈락 재생성(§8.10, designer 시도 수), judge 재생성(최대 1회).
 - escalation 뒤 "계속 찾기"로 다시 생성할 때도 ②·③을 똑같이 적용합니다. Mock 모드에는 judge가 없습니다.
-- layer 5 사용·큰 특징·블록 수는 프롬프트의 soft goal이며 validator 규칙이 아닙니다. validator는 §9.1 그대로입니다(블록 수 상한만 40, Stage 2).
+- layer 5 사용·큰 특징·블록 수는 프롬프트의 soft goal이며 validator 규칙이 아닙니다. validator는 §9.1 그대로입니다(블록 수 상한만 40, Stage 2). 2026-10-13 Wave 3부터 이 expressive 원칙은 **사용자가 제한을 말하지 않았을 때의 기본 선호**입니다. 사용자가 풍부함을 줄이는 제한(N층 이하·낮게·간단·블록 적게·작게)을 말하면 Revised 우선순위가 바뀝니다(§8.15).
 
 ### 8.13 Stage 2 Revised 정책: After 구조(설계 의도 없음)·free-family·chair-first·richer (2026-10-08 사용자 결정, Wave 4)
 
 - **목표**: 사람 배치를 문자 그대로 해석하는 것도, 최소 수정도 아닙니다. Current를 출발 조건이자 영감 단서로 쓰고, 이전 Design보다 **더 풍부하고 완성도 높으며 의자처럼 읽히는**(분명한 좌석, 읽히는 등받이, 앉는 방향) Revised Design을 만듭니다. 이전 Design은 맥락일 뿐이며, 핵심 문장 "Preserve the Current exactly. Treat the previous Design as context, not as geometry to preserve."와 조립 순서 규칙(새 블록을 이미 놓인 블록 아래층에 두지 않음)은 그대로입니다.
 - **흐름(LLM 모드)**: Intervention 답변 해석(`dialogue.parse_response`, 필요 시 `llm.interpret_intervention_answer`로 `style_hint`, §4.2) → `llm.generate_revised_design` 직접 호출(설계 의도 호출 없음, §8.10 재생성 포함) → validator → judge → 필요 시 재생성 1회 → 재judge. `generate_design_intent`·`SYSTEM_PROMPT_INTENT`·`INTENT_KEYS`는 삭제했습니다. `design_metadata.design_intent`는 가짜로 채우지 않고 null입니다(§6.1).
 - **생성** (`llm.generate_revised_design(design, current, differences, reasons=None, should_stop=None, feedback=None, min_blocks=None, style_hint=None, previous_candidate=None, scope=None)`; 마지막 두 인자는 Stage 3 Wave 2 Preview 검토 MODIFY 재생성용, §8.14): 사용자 메시지 첫 줄은 "The user chose REVISE. Design a complete seating-furniture piece around the blocks already on the board."이고 Current·Difference·이전 Design(맥락)·탈락 사유·최소 블록 수 문장·judge 피드백(재생성 때만)·`_REVISED_GUIDANCE`는 그대로입니다. 끝에 "Style hint from the person (follow it first): <style_hint 또는 없음>"과 "Choose the furniture family yourself; it may differ from the previous Design. The result must read as a chair first (a clear seat, a readable backrest, an obvious sitting direction) and be richer and more complete than the previous Design (at least M blocks, at most 40). Red exists only as 1x2x1: use it for trims, rails, accents or edges; the body is yellow/blue 2x2x1 and 2x3x1." (2026-10-08 최종 재고) 문단을 넣습니다(`min_blocks`가 None이면 괄호의 블록 수 부분을 뺍니다). system prompt(`SYSTEM_PROMPT_REVISED`)는 그대로입니다.
-- **richness**: `designer.RICHNESS_MIN_DELTA = 6`, `designer.revised_min_blocks(design) = min(이전 블록 수 + 6, MAX_BLOCKS)`. LLM 모드에서만 `min_blocks`를 `designer.build_revised_design`과 `llm.generate_revised_design`에 넘깁니다(escalation 뒤 남은 4회와 judge 재생성 포함, Mock은 `None`). 값이 있으면 validator를 통과한 후보라도 블록이 그보다 적으면 `{"rule": "too_few_blocks", "blocks": [], "message": "Revised Design has N blocks; at least M required (previous K + 6, at most 40)"}`로 탈락시키고 §8.10 loop가 다시 만듭니다(validator 규칙은 그대로). `llm.generate_revised_design`은 값이 있으면 "The Revised Design must contain at least M blocks (the previous Design had K); use the extra blocks for meaningful chair structure, never filler."도 넣습니다.
+- **richness**: `designer.RICHNESS_MIN_DELTA = 6`, `designer.revised_min_blocks(design) = min(이전 블록 수 + 6, MAX_BLOCKS)`. (2026-10-13 Wave 3: 사용자가 풍부함을 줄이는 제한을 말하면 `min_blocks`는 None입니다, §8.15.) LLM 모드에서만 `min_blocks`를 `designer.build_revised_design`과 `llm.generate_revised_design`에 넘깁니다(escalation 뒤 남은 4회와 judge 재생성 포함, Mock은 `None`). 값이 있으면 validator를 통과한 후보라도 블록이 그보다 적으면 `{"rule": "too_few_blocks", "blocks": [], "message": "Revised Design has N blocks; at least M required (previous K + 6, at most 40)"}`로 탈락시키고 §8.10 loop가 다시 만듭니다(validator 규칙은 그대로). `llm.generate_revised_design`은 값이 있으면 "The Revised Design must contain at least M blocks (the previous Design had K); use the extra blocks for meaningful chair structure, never filler."도 넣습니다.
 - **judge** (`llm.judge_revised_design(previous, design, current, differences, should_stop=None)`): 설계 의도 인자와 payload의 `design_intent`를 없앴고, 설계 자체와 previous·Current·difference(추가·제거 블록 포함)만으로 판단합니다. `feature_check`(계획한 특징 대조)는 뺐고 `interpretation_status`는 judge가 본 family·특징이 블록에 얼마나 분명한지로 정의합니다. 나머지 출력 키(`design_name`, `design_family`, `family_guess_without_name`, `family_confidence`, `visible_features`, `change_summary`, `interpretation_status`, `recognizable_family`, `silhouette_clarity`, `explanation_required_to_understand`, `family_recognisable`, `looks_designed_not_patched`, `layer5_meaningful`, `completeness_score`, `human_story`, `silhouette_tags`, `chair_likeness`, `richer_than_previous`, `richer_why`, `awkward`, `reads_as_seating`, `why_it_is_complete`)는 유지합니다.
 - **judge 모델**: `llm.DEFAULT_JUDGE_MODEL = "gpt-4.1-mini"`, 환경 변수 `OPENAI_JUDGE_MODEL`(`llm.JUDGE_MODEL_ENV`)로 바꿀 수 있습니다(예: gpt-6.1-sol로 복귀). key는 `OPENAI_LLM_API_KEY` 그대로이며, 생성·Initial 설명은 `OPENAI_MODEL`(없으면 `DEFAULT_MODEL`)을 그대로 씁니다. `llm._call`·`_json_call`의 `model=None` 인자로 judge(와 Stage 2 Wave 4c부터 요청·답변 해석의 보조 모델 `OPENAI_AUX_MODEL`, §4)만 모델을 넘깁니다. gpt-4.1-mini는 reasoning 접두어가 아니므로 temperature·max_tokens payload입니다. 선택 근거는 [Judge Blind Test](C_DESIGN_JUDGE_BLIND_TEST.md)이며 실물 테스트 후 재검토합니다. judge는 최종 물리 안전 판정기가 아니라 Design 품질 보조 필터입니다.
-- **재생성(최대 1회)**: 조건은 `recognizable_family is False` 또는 `silhouette_clarity == "ambiguous"` 또는 `chair_likeness == "not_chair"` 또는 `richer_than_previous is False`이며 상한 `main.METADATA_REGENERATIONS_MAX = 1`은 그대로입니다. 필수 필드(`_JUDGE_REQUIRED`: `recognizable_family`, `silhouette_clarity`, `reads_as_seating`, `explanation_required_to_understand`, `chair_likeness`, `richer_than_previous`)가 빠지거나 예상 밖 값이면 `judge_error`(재생성 없음). 재생성 피드백(`llm.judge_feedback_text`)은 "keep the same family"와 judge의 family 추정·신뢰도·실루엣·설명 필요 여부·`interpretation_status`·awkward를 담습니다.
+- **재생성(최대 1회)**: 조건은 `recognizable_family is False` 또는 `silhouette_clarity == "ambiguous"` 또는 `chair_likeness == "not_chair"` 또는 `richer_than_previous is False`(2026-10-13 Wave 3: 사용자가 풍부함을 줄이는 제한을 말했으면 이 마지막 조건은 쓰지 않음, §8.15)이며 상한 `main.METADATA_REGENERATIONS_MAX = 1`은 그대로입니다. 필수 필드(`_JUDGE_REQUIRED`: `recognizable_family`, `silhouette_clarity`, `reads_as_seating`, `explanation_required_to_understand`, `chair_likeness`, `richer_than_previous`)가 빠지거나 예상 밖 값이면 `judge_error`(재생성 없음). 재생성 피드백(`llm.judge_feedback_text`)은 "keep the same family"와 judge의 family 추정·신뢰도·실루엣·설명 필요 여부·`interpretation_status`·awkward를 담습니다.
 - **Intervention 자유 답변 해석** (`llm.interpret_intervention_answer(text, differences, should_stop=None)`): 입력은 답변 원문과 difference의 `expected`/`actual`만(Design 전체는 보내지 않음). 반환 `{decision: "KEEP" / "REVISE" / "UNCLEAR" / "CANCEL", style_hint, reason, reply}`(`llm.INTERVENTION_ANSWER_KEYS`, `reply`는 Stage 2 Wave 4c acknowledgment, §4.2) 또는 `{"llm_error": …}`. REVISE = 의도한 배치이니 Current를 살린 새 설계, KEEP = 실수라 원래 자리로 고침. `reason`은 자연스러운 존댓말 한 문장. 답변 원문의 지시·key·코드는 따르지 않습니다. 해석한 `style_hint`는 `generate_revised_design`에 바로 넘깁니다.
 - **red·1x2x1 (2026-10-08 최종 재고로 갱신)**: 공통 build hint는 "본체(좌석·지지·등받이·팔걸이)는 yellow/blue 2x2x1·2x3x1, red는 1x2x1뿐이므로 지지된 stud 위의 얇은 trim·rail·accent·edge(top rail, seat edge, armrest caps, backrest detail)에만 쓰고 0/90을 섞되 두 stud 모두 지지"입니다. red는 선택이며 수량을 요구하지 않습니다. 허용 조합은 §2(철학·구조 불변). 하위 호환 이름 `FURNITURE_FAMILIES`는 카탈로그 키입니다.
 
@@ -577,6 +579,61 @@ Preview 검토(§4.4)가 MODIFY이면 C가 새 **Candidate** Design을 만들어
 - 직전 후보 문단은 사용자 메시지에만 더하며 Initial·Revised system prompt와 설계 철학(§8.12·§8.13)은 바꾸지 않습니다. 재생성 후보도 §9.1 hard constraint(재고 조합 포함)를 그대로 통과해야 합니다.
 - **unchanged_candidate (Stage 3 Wave 3, 2026-10-11)**: `designer.build_initial_design(..., differ_from=None)`·`build_revised_design(..., differ_from=None)`에 직전 후보를 주면 validator를 통과했어도 블록 multiset이 직전 후보와 같은 후보는 `{"rule": "unchanged_candidate", "blocks": [], "message": "candidate has the same blocks as the previous candidate; apply the requested change visibly"}`로 탈락시키고 같은 재생성 loop(§8.10, 최대 `MAX_ATTEMPTS`)이 사유를 생성기에 넘겨 다시 만듭니다. `review_design_candidate`의 MODIFY 재생성만 `differ_from=candidate`를 넘기며 `create_initial_design`·`run_intervention`은 None(기존 동작)입니다. 근거: Wave 3 fake-voice smoke에서 gpt-6.1-sol이 patch "등받이를 더 높게"에 직전 후보와 같은 37블록을 돌려준 사례. 끝까지 같으면 `FAILED`/`DESIGN_GENERATION_FAILED`(hri_result MODIFY)입니다.
 
+### 8.15 사용자 명시 제약과 우선순위 (Robot-only design rule update Wave 3, 2026-10-13)
+
+> 제약 강도 정책(사용자 결정 2026-10-13, B-N1 = DEFERRED_FOLLOWUP): 수치가 명시된 constraint(`max_layer`, `max_blocks`)는 강제 적용한다(designer `user_constraint` 거부, Current clamp). 정성적 표현(작게·넓게·블록 적게·낮게·간단하게)은 현재 soft preference(프롬프트·family 선택·richness 해제)로 유지하며, 향후 UX/Design Quality 개선에서 정량 기준을 별도 정의한다. 실제 Sol smoke(2026-10-13)에서 정성적 표현은 기능 실패 없이 효과가 약한 수준으로 관찰됐다.
+
+"5층·풍부함·화려함·expressive"는 **기본 선호(soft)** 이고 사용자가 명시한 요구가 우선합니다. `MAX_LAYER = 5`·`MAX_BLOCKS = 40`은 상한이지 목표가 아닙니다. 새 공개 함수·인자·hri/status/error 값은 없고, Design JSON(`{design_version, blocks}`)·validator 계약도 그대로입니다.
+
+**우선순위**
+
+| 경로 | 순서 |
+|---|---|
+| Initial(LLM) | validator hard rule(§9.1, support = min(4, studs)) > 사용자 명시 요구 > 기본 품질(앉는 가구로 읽힘) > (제한이 없을 때) expressive·높이 활용 > canonical facing |
+| Revised·Direct Design Change·Planning failure·Revised MODIFY | **Current exact preservation**(§8.3) > hard rule > 이번 요청의 명시 요구 > 품질·expressive > facing. 사용자 요구로 Current를 이동·회전·삭제·색 변경하지 않음 |
+
+**제약 형식(내부 값, Design·envelope 최상위에는 없음)**: `{max_layer: 1..5, max_blocks: 1..40, height: "low"|"high", complexity: "simple"|"rich", block_budget: "fewer"|"more", footprint: "wide"|"narrow"}` 중 사용자가 말한 키만.
+
+**전달 방식(결정 D-1)**: main은 `llm.generate_initial_design`·`generate_revised_design`·`judge_revised_design`·`choose_initial_family`에 새 인자를 넘기지 않고 `with llm.stated_limits(constraints):` 컨텍스트(`contextvars.ContextVar`, 호출 thread·블록 밖으로 새지 않음) 안에서 호출합니다. 네 함수는 `constraints` 인자가 None이면 `llm.active_stated_limits()`를 읽습니다(인자는 테스트·직접 호출용). 그래서 기존 caller와 D 테스트의 fake가 시그니처 변경 없이 동작합니다. `designer.build_*_design(…, constraints=None)`은 C 내부 호출이라 인자로 넘깁니다.
+
+- **모으는 곳**: 발화 원문의 규칙 추출 `dialogue.extract_constraints(text)`(결정적)이 우선이고, 기존 해석 호출 4곳(`interpret_initial_request`·`interpret_intervention_answer`·Design Change 해석·`interpret_review_answer`)이 함께 내는 **선택 키** `"constraints"`(`*_KEYS`에는 없음, 값 검증 후 보충)를 `dialogue.merge_constraints`로 합칩니다. 새 LLM 호출은 없습니다.
+- **추출 규칙**: "N층까지(만)·이하·이내·으로·짜리" 같은 한정 표현 → `max_layer`(1..5; "N층 이상"은 상한이 아니라 `height: high`). "3층에 팔걸이"(위치), "등받이를 4층까지 올려줘"·"등받이는 3층 높이로"(부위 단어 뒤 = 부위 높이), "15층"은 제한이 아닙니다(2026-10-13 Opus A Wave 3 리뷰 W3-N2/N3). "낮게" → low("낮에"는 시간이라 제외), "높게" → high(단 "등받이를 높이고"처럼 부위 단어 바로 뒤의 높낮이나 명사 "높이는/높이가"는 전체 높이가 아님). "간단·단순·심플" → simple, "화려·풍성" → rich. "블록 적게·조금만" → fewer, "블록 N개까지·이하·만"(블록이라는 말이 있을 때만, 1..40) → `max_blocks` N과 fewer, "블록 많이·최대한" → more. "넓게" → wide, "좁게·작은·아담" → narrow(등받이·팔걸이·다리 바로 뒤의 폭은 그 부위 모양이라 제외, 좌석·받침의 폭은 footprint).
+- **ANY 빠른 경로**: "아무거나 간단하게·알아서 3층까지만·블록 적게 아무거나"처럼 제약 단어가 있으면 규칙 ANY로 끝내지 않고 해석으로 보냅니다. 제한이 없는 "아무거나 만들어 주세요"는 예전처럼 LLM 없이 무작위 family입니다.
+- **풍부함을 줄이는 제한** `dialogue.restricts_richness`: `max_layer` < 5("5층까지 써도 돼"는 제한이 아님), `max_blocks`, `height: low`, `complexity: simple`, `block_budget: fewer`, `footprint: narrow` 중 하나. "넓게·화려하게·높게·블록 많이"는 풍부함을 줄이지 않으므로 기본 선호가 그대로 적용됩니다.
+
+**적용**
+
+| 대상 | 제한 없음(기존과 같음) | 제약 있음 |
+|---|---|---|
+| Initial family 선택 `llm.choose_initial_family(preference, rng=None, constraints=None)` | 카탈로그 균등 | `height: low` 또는 `max_layer ≤ 3`이면 무작위 선택에서 `llm.TALL_FAMILIES` 제외. 사용자가 이름을 댄 family는 유지하고 프롬프트가 특징을 낮춤 |
+| Initial system prompt | `_DEFAULT_PREFERENCE`: 제한이 없을 때만 높이·블록 예산을 풍부하게 쓰고, 상한은 목표가 아님(숫자 없음) | 같은 system prompt. `_FAMILY_GIVEN`: 명시 제한이 family 정의 특징보다 이김 |
+| Initial·Revised 사용자 메시지 | 기존 문장 그대로(바이트 동일, Wave 2 대비 확인) | "Stated limits from the person (these win over every default preference, family feature, richness or height goal …): …" 문단 추가 |
+| Revised guidance `llm.revised_guidance(constraints, design_change)` | `_REVISED_GUIDANCE`(First~Sixth, Fifth layer 5·Sixth 블록 수, "plain low single-seat chair is not acceptable") 그대로 | 풍부함을 줄이는 제한이면 First Current → Second rules → **Third 사용자 명시 요구** → Fourth 앉는 가구 → Fifth 특징 크기(제한이 막는 특징·높이·블록은 더하지 않음) → Then facing. 끝 문장은 "realise the person's stated direction (it may be lower, simpler or smaller …)". 그 밖 제약(넓게·화려하게)은 기존 guidance + stated-limits 문단 |
+| Revised `min_blocks`(§8.13 +6) | 이전 + 6 | 풍부함을 줄이는 제한이면 None |
+| judge `llm.judge_revised_design(…, constraints=None)` | payload 그대로 | payload에 `stated_limits`; system prompt는 낮게·간단·작게 요청이면 더 작거나 낮은 설계를 `richer_than_previous: false` 근거로 쓰지 않음 |
+| judge 재생성 `main._needs_regeneration(judge, constraints)` | §8.13 조건 그대로 | 풍부함을 줄이는 제한이면 `richer_than_previous is False`는 재생성 사유가 아님 |
+| 후보 검사 `designer.constraint_violations(blocks, constraints)` | 없음 | LLM 후보에만 `max_layer`·`max_blocks` 초과를 `{"rule": "user_constraint", …}`로 탈락시켜 같은 loop가 다시 만듦(validator 규칙 아님). Mock은 고정 설계라 검사하지 않고 metadata에 기록만 |
+| Current와 수치 제약 | — | `main._clamp_to_current`: 요청 `max_layer`가 Current 최대층보다 낮으면 Current 최대층으로, `max_blocks`가 Current 블록 수보다 작으면 Current 블록 수로 올림(이미 조립된 층·블록을 지우지 않음). 충돌 질문은 Wave 4 |
+| Review MODIFY | — | 후보 metadata의 `user_constraints`를 이어받고 이번 답의 제약이 같은 키를 덮음("3층까지만" 뒤 "등받이 더 높게"도 3층 유지). revised는 Current로 clamp |
+| metadata | `user_constraints: null` | `user_constraints`: 이번 요청의 제약(§6.1) |
+
+**알려진 한계(요청 단위)**: 제약은 한 번의 C 호출(요청) 안에서 모으고 씁니다. Initial의 "3층까지만"이 이후 Intervention·Design Change 호출로 자동으로 이어지지 않습니다(그 호출의 답에서 다시 추출). Review MODIFY만 후보 metadata의 `user_constraints`를 이어받습니다. 세션 단위로 유지하려면 D가 다음 호출의 `inspection_context`(또는 동등 경로)로 승인 Design의 `design_metadata.user_constraints`를 넘겨야 하며, 이 연결은 Wave 6 D handoff 항목입니다.
+
+### 8.16 Current와 명시 제약의 충돌 (Robot-only design rule update Wave 4, 2026-10-13)
+
+이미 조립된 Current는 지우지 않습니다(§8.3). 사용자의 요청이 조립된 Current와 맞지 않으면 C는 Current를 깨거나 억지로 맞추지 않고, **기존 HRI 값만으로** 다시 확인합니다. 새 공개 함수·인자·hri/status/error 값은 없습니다. D `mvp_workflow.receive_c`의 허용 집합(`c.intent`·`c.plan_failure`: KEEP/REVISE/UNCLEAR, `c.review`: APPROVE/MODIFY/UNCLEAR, 그 밖은 status ≠ OK)과 대조하는 테스트가 있습니다(`tests/unit/c_design/test_constraint_conflict.py`, D 소스 read-only 파싱).
+
+**충돌 판정** `main.constraints_vs_current(constraints, current, removal=None)`(결정적, LLM 없음): 요청 `max_layer` < Current 최대층, 요청 `max_blocks` < Current 블록 수, 조립된 블록 제거 요구(`dialogue.removal_request`: 빼다·없애다·제거·치우다가 "조립된·쌓은·놓인·이미" 또는 Current에 있는 "N층"과 함께 나오고 부정이 아닐 때. "빨간 장식은 빼고"처럼 아직 조립 전인 부분은 충돌이 아님).
+
+| 경로 | 처리 |
+|---|---|
+| Intervention·Direct Design Change·Planning failure의 REVISE | 생성·ACK **전에** 설명 + 두 선택 질문 1회(`dialogue.build_constraint_conflict_question`, 존댓말·코드 없음). 예: "지금 4층까지 이미 조립돼 있어서 그 부분은 그대로 두어야 해요. / 지금 설계를 그대로 둘까요, 아니면 조립된 부분은 두고 나머지만 낮게 바꿀까요?" Intervention은 KEEP 선택을 "놓인 블록을 원래대로 돌리고 지금 설계를 그대로 둘까요"로 말합니다. 답은 Design Change와 같은 parser(`dialogue.parse_constraint_conflict_response` = "나머지만" → REVISE + `parse_design_change_response`, LLM 모드는 같은 해석 함수 fallback) |
+| 답: REVISE | 이번 답의 새 제한을 더하고(규칙 우선) Current로 clamp한 제약으로 생성. ACK는 이 확인 뒤에만, 해석 `reply` 대신 `dialogue.constraint_clamp_ack`("이미 조립된 4층까지는 그대로 두고 나머지만 맞춰서 다시 만들어볼게요")로 말해 지킬 수 없는 약속을 하지 않습니다. `design_metadata.constraint_clamp = {requested, applied}` |
+| 답: KEEP / CANCEL | 기존 `keep()`(OK/KEEP, 설계 그대로) / `CANCELLED`·`USER_CANCEL` |
+| 답: UNCLEAR | 재질문 1회(`CONSTRAINT_CONFLICT_REASK_LEAD` + 질문). 두 번째도 불명확하면 `OK/UNCLEAR`(음성도 같은 한도: 같은 답을 반복하는 fake에서도 끝남). 텍스트 답 소진·음성 I/O 실패·STOP은 기존과 같음 |
+| Review MODIFY(revised, LLM) | 질문 없이 Current로 clamp해 재생성하고 ack 뒤에 고지 한 문장(`dialogue.constraint_clamp_notice`: "다만 이미 조립된 4층까지는 그대로 두고 나머지만 맞출게요"). 다음 Preview 검토가 확인 단계. `constraint_clamp` 기록 |
+| 충돌 없음(사례 F: Current에 4층이 없고 "3층 이하로") | 질문 없이 그 제약으로 생성(v2 ≤ 3층, Current 보존) |
+
 ## 9. 검증 책임
 
 ### 9.1 C (validator, LLM 없이 A / D / HMI 없이 단독 통과)
@@ -592,20 +649,28 @@ Preview 검토(§4.4)가 MODIFY이면 C가 새 **Candidate** Design을 만들어
 | footprint가 Board 0~23 밖 | `out_of_board` |
 | 블록 수 1~40 밖 | `brick_count` |
 | 같은 layer 안 footprint overlap | `overlap` |
-| support: layer ≥ 2 블록은 바로 아래 layer 블록들과 겹치는 stud 수의 합계가 2 이상(아래 블록 개수 무관, 같은 stud 중복 합산 없음) | `support` |
+| support: layer ≥ 2 블록은 바로 아래 layer 블록들과 겹치는 고유 stud 수가 `min(4, 그 블록의 stud 수)` 이상(2x2x1 4/4, 2x3x1 6 중 4 이상, 1x2x1 2/2; 아래 블록 개수 무관, 같은 stud 중복 합산 없음, 바로 아래 한 층만 계산) | `support` |
 | connectivity: 위아래 layer stud 겹침으로 연결했을 때 전체가 하나 | `connectivity` |
 | Revised: §8.3 Current 보존 | `assembled_not_preserved` |
 
-support는 **2026-10-06 세은(A)의 동의와 수현(D)의 회신으로 통일한 A/C Day4 기하 기준**입니다([A와 C의 지지 판정](09_C_B_BACKEND_HANDOFF.md#a와-c의-지지-판정)). 바로 아래층의 고유 stud 총 2개 이상을 확인하며, layer=1은 Board 위 첫 층으로 이 검사에서 제외합니다. 이 수치는 실제 체결·물리 안정성 검증 완료 또는 최종 프로젝트 전체의 영구 제한을 뜻하지 않습니다.
+support는 **2026-10-13 Robot-only 결착 안정성 규칙**(사용자 최종 기준)입니다. 로봇 단독 조립 실물 시험에서 2 stud만 걸린 상부 블록이 눌림·결착 중 기울거나 무너질 수 있어, C가 생성·수정하는 **모든 Candidate**(Initial v1, Revised v2+, Difference REVISE, Direct Design Change, Review MODIFY 재생성, Planning Failure 재설계)에 다음을 hard rule로 적용합니다. layer ≥ 2 블록마다 바로 아래 한 layer의 블록들과 겹치는 **고유 stud 수 ≥ `min(MIN_SUPPORT_STUDS(4), 그 블록의 stud 수)`**. 같은 stud는 한 번만 세고(같은 layer overlap은 `overlap`으로 별도 거부), 두 층 아래는 세지 않으며, layer=1은 Board 위 첫 층으로 제외합니다. 입력 Design·Current 판정(`validate_design`, `validate_revised`, `current_support_violations`)도 같은 함수를 쓰며 production에 2-stud 예외는 없습니다. 이 수치는 실제 체결·물리 안정성 검증 완료를 뜻하지 않습니다.
+
+| 블록 | 필요한 지지 stud | 비고 |
+|---|---|---|
+| `2x2x1` (4 stud) | 4 / 4 | 사실상 아래층 위에 완전히 얹혀야 함 |
+| `2x3x1` (6 stud) | 4 / 6 이상 | 3 stud(한 줄만 걸침)는 거부 |
+| `1x2x1` (2 stud, red) | 2 / 2 | 예외적으로 두 stud 모두(현행과 동일) |
 
 | Case | 바로 아래 layer와의 겹침 | 결과 |
 |---|---|---|
-| A | 아래 블록 1개와 2 stud (또는 3·4 stud) | 통과 |
-| B | 아래 블록 2개와 각 1 stud, 합계 2 | 통과 |
-| C | 아래 블록 여러 개, 합계 2 이상 | 통과 |
-| D | 합계 0 또는 1 | 거부 |
+| A | `2x2x1`이 아래 블록 1개와 4 stud | 통과 |
+| A' | `2x2x1`이 아래 블록 1개와 2 또는 3 stud | 거부(당시 규칙에서는 통과) |
+| B | `2x2x1`이 아래 블록 2개에 2 + 2 stud | 통과 |
+| B' | 아래 블록 2개에 각 1 stud(합계 2) | 거부(당시 규칙에서는 통과) |
+| C | `2x3x1`이 아래 블록 여러 개와 고유 stud 합계 4 이상 | 통과 |
+| D | 요구치 미만(0·1 stud 포함) | 거부 |
 
-`1x2x1`(Stage 2)은 stud가 2개뿐이므로 layer ≥ 2에 둘 때 **두 stud 모두** 바로 아래층 블록 위에 있어야 통과합니다(한 블록 위 Case A, 두 블록에 1 stud씩 Case B). 1 stud만 겹치면 Case D로 거부됩니다. 규칙 자체(`MIN_SUPPORT_STUDS = 2`)는 바뀌지 않았습니다.
+**당시 기록(2026-10-06 ~ 10-12)**: support는 세은(A)의 동의와 수현(D)의 회신으로 통일한 A/C Day4 기하 기준 "바로 아래층 고유 stud 총 2개 이상"(`MIN_SUPPORT_STUDS = 2`)이었습니다([A와 C의 지지 판정](09_C_B_BACKEND_HANDOFF.md#a와-c의-지지-판정)). A planner(`planning_trial/planner.py`)의 자체 검사는 여전히 2 stud이며, C 출력이 새 규칙을 만족하면 A 검사를 항상 통과하므로 A/D 변경은 없습니다. 2-stud 기준으로 기록된 과거 fixture·문서(예: `tests/fixtures/c_stage3/*`의 2026-10-11 Sol 기록)는 당시 기준의 역사 기록으로 보존하며, production 입력으로 다시 쓸 때는 새 규칙에 맞춘 사본을 씁니다.
 
 입력 검사(`INVALID_INPUT`):
 
@@ -675,7 +740,7 @@ C의 Validator 통과는 후보 검증이며 최종 채택이 아닙니다.
 | `should_stop` 콜백으로 STOP·닫힌 요청 연결 | §4 | D (수현) |
 | `on_question` 콜백으로 HMI 화면 표시 | §4.2 | D (수현) |
 | Difference `{expected, actual}` 블록 쌍 | §5.2 | D (수현) |
-| support "아래 블록 개수와 무관하게 겹침 합계 2 stud 이상, 중복 합산 없음"(Case A~D)을 A Plan 검증과 같은 기준으로 사용 — 2026-10-06 A 동의·D 회신으로 통일 | §9.1 | A (세은) |
+| support: 당시(2026-10-06 A 동의·D 회신) "겹침 합계 2 stud 이상, 중복 합산 없음"을 A Plan 검증과 같은 기준으로 사용. 2026-10-13부터 C 생성 Candidate는 `min(4, 블록 stud 수)`로 강화(C-only, A 검증 기준 2는 그대로이며 C 출력 ⊂ A 수용 집합) — A에 변경 통보 | §9.1 | A (세은) |
 | A가 Step 목표를 블록 여섯 값으로 참조 | §7 | A (세은) |
 | 최대 층수 5: 2026-10-07 사용자 요청으로 공유 계약(06·00), A planner, D 블록·관측 영역 검사와 HMI 참조 Schema를 1..5로 통일. 30블록 C→A→D/Qt 오프라인 검증은 STATUS 참조. 실제 Vision 판별·Robot 직접 결착은 미검증 | §2, §9.1 | A (세은), D (수현), 공유 문서 Owner |
 
