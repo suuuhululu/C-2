@@ -8,6 +8,7 @@ from threading import RLock, Thread
 from .backend_adapter import deliver_observed
 from .contracts import validate_block
 from .inspection import VisionInspection
+from .runtime_log import progress, periodic_progress
 
 
 def connect_inspection(submit_result, *, observe, geometry_reference, initial_current=None,
@@ -116,9 +117,13 @@ class InspectionConnection:
                     difference=None, observation=None, reason=reason)
 
     def _publish(self, response):
+        progress(response, '검사 취소' if response['status'] == 'CANCELED' else '검사 결과', status=response['status'],
+                 comparison=response.get('comparison'), reason=response.get('reason'))
         try:
             self.submit_result(deepcopy(response))
+            progress(response, '결과 전달 완료·검사 종료', acceptance='NOT_CONFIRMED_BY_B')
         except Exception as error:
+            progress(response, '결과 전달 실패', reason=str(error))
             # Transport failure is not a canceled/failed B state transaction.
             self.last_delivery_error = dict(check_id=response['check_id'], error=str(error),
                                            response=deepcopy(response))
@@ -158,6 +163,7 @@ class InspectionConnection:
                 self._publish(self._failure(request, 'ERROR', str(error)))
                 return
             self._seen[identity], self._active = request, identity
+            progress(request, '검사 시작')
             self._set_display(dict(**request, display_stage='OBSERVING',
                 previous_current=deepcopy(context['current']), current=deepcopy(context['current']),
                 expected=deepcopy(context['expected']), comparison=None))
@@ -189,7 +195,8 @@ class InspectionConnection:
                 if not self.is_active(identity):
                     continue
                 try:
-                    observed, diagnostics = self.observe(deepcopy(context), lambda: self.is_active(identity))
+                    with periodic_progress(context, lambda: self.is_active(identity)):
+                        observed, diagnostics = self.observe(deepcopy(context), lambda: self.is_active(identity))
                     if observed['check_id'] != identity or observed['observation_seq'] != context['observation_seq']:
                         raise ValueError('capture must retain bundle check_id/sequence')
                     with self._lock:

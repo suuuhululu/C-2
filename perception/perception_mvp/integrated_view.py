@@ -27,7 +27,8 @@ def color_crop(rgb, roi_mask=None):
 
 def measure_instance(rgb, mask, part_class, depth, info, calibration, layer_heights_mm=None,
                      height_tolerance_mm=None, *, height_reference_offset_mm=0., depth_range_m=None,
-                     max_height_spread_mm=None, block_stud_height_mm=0., surface_diagnostics=None):
+                     max_height_spread_mm=None, block_stud_height_mm=0., surface_diagnostics=None,
+                     top_plane_stud_mm=0.):
     from .live_view import board_point
     if calibration is None or depth is None or info is None:
         raise ValueError('calibration_or_synced_depth_missing')
@@ -49,13 +50,18 @@ def measure_instance(rgb, mask, part_class, depth, info, calibration, layer_heig
     pose = calibration['camera_pose']
     board = (camera-np.asarray(pose['t_camera_from_board_mm'])) @ np.asarray(pose['R_camera_from_board'])
     board[:, 2] *= pose['height_normal_sign']
+    if block_stud_height_mm and top_plane_stud_mm:
+        raise ValueError('choose one block stud basis')
+    if not np.isfinite(top_plane_stud_mm) or top_plane_stud_mm < 0:
+        raise ValueError('invalid_top_plane_stud')
     if block_stud_height_mm:
         from .opencv_live import body_surface_points
         keep, studs = body_surface_points(board, stud_height_mm=block_stud_height_mm,
                                           return_pair=True, diagnostics=surface_diagnostics)
         outline_support = keep | studs
     else:
-        keep = top_surface_points(board)  # Explicit legacy calls retain their existing datum.
+        keep = (top_surface_points(board, diagnostics=surface_diagnostics)
+                if surface_diagnostics is not None else top_surface_points(board))
         outline_support = keep
     if max_height_spread_mm is not None:
         from .depth_grid import height_spread_within
@@ -84,10 +90,11 @@ def measure_instance(rgb, mask, part_class, depth, info, calibration, layer_heig
     _, anchor = grid_anchor(center, size, axis, pitch)
     if not np.isfinite(height_reference_offset_mm):
         raise ValueError('invalid_height_reference_offset')
-    reference_height = height + height_reference_offset_mm + block_stud_height_mm
+    stud_added = block_stud_height_mm or top_plane_stud_mm  # Added once; never to the outline plane.
+    reference_height = height + height_reference_offset_mm + stud_added
     result = dict(grid=anchor.tolist(), axis_angle_deg=axis, height_mm=reference_height,
-                  body_height_mm=height + height_reference_offset_mm,
-                  block_stud_added_mm=block_stud_height_mm,
+                  body_height_mm=(height + height_reference_offset_mm if stud_added else None),
+                  block_stud_added_mm=stud_added,
                   layer=None, reason='layer_reference_missing')
     if layer_heights_mm is not None:
         levels = np.asarray(layer_heights_mm, float)
@@ -107,7 +114,7 @@ def measure_instance(rgb, mask, part_class, depth, info, calibration, layer_heig
 def process_frame(rgb, model, confidence, depth=None, info=None, calibration=None,
                   layer_heights_mm=None, height_tolerance_mm=None, *, roi_mask=None,
                   height_reference_offset_mm=0., depth_range_m=None, max_height_spread_mm=None,
-                  block_stud_height_mm=0.):
+                  block_stud_height_mm=0., top_plane_stud_mm=0.):
     if rgb.dtype != np.uint8 or rgb.ndim != 3 or rgb.shape[2] != 3:
         raise ValueError('uint8 RGB required')
     if not np.isfinite(confidence) or not 0 < confidence <= 1:
@@ -159,6 +166,7 @@ def process_frame(rgb, model, confidence, depth=None, info=None, calibration=Non
                                               depth_range_m=depth_range_m,
                                               max_height_spread_mm=max_height_spread_mm,
                                               block_stud_height_mm=block_stud_height_mm,
+                                              top_plane_stud_mm=top_plane_stud_mm,
                                               surface_diagnostics=surface_diagnostics))
             except (ValueError, KeyError, cv2.error) as error:
                 record['reason'] = str(error)

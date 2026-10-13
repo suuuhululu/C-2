@@ -14,6 +14,7 @@ from .backend_adapter import deliver_observed
 from .contracts import validate_block
 from .contracts import candidate_to_block
 from .depth_grid import process_saved
+from .runtime_log import progress
 from .backend_adapter import build_observed
 
 DEFAULT_CYCLE_OUTPUT = Path(__file__).resolve().parent.parent / "recordings" / "observation_cycles"
@@ -99,8 +100,10 @@ def run_observation_cycle(gate, hand_detector, hand_stream, capture_view, manife
         return workflow_valid() is True and bundle_valid() is True
 
     try:
+        progress(context, '이동 요청·도착 대기', view='V0')
         if not valid() or confirm_view("V0") is not True or not valid():
             raise RuntimeError("safe stopped V0 and active context required")
+        progress(context, '정지 확인', view='V0')
         condition = context.get('start_condition', 'HUMAN_ASSEMBLY' if
                                 context.get('check_kind', 'STEP') == 'STEP' else 'STOPPED_CLEAR')
         if condition not in ('HUMAN_ASSEMBLY', 'STOPPED_CLEAR'):
@@ -110,13 +113,25 @@ def run_observation_cycle(gate, hand_detector, hand_stream, capture_view, manife
         else:
             gate.reset_for_reobservation(require_entry=False)
         hand_detector.reset()
-        wait_for_hand_ready(hand_stream(), hand_detector, gate, valid, frame_sink=frame_sink)
+        progress(context, '손 조건·영상 안정 확인 대기', view='V0', start_condition=condition)
+        last_hand_state = [None]
+        def hand_status(rgb, depth, event, quality):
+            state = (event.get('state'), event.get('reason'), event.get('observation_allowed'))
+            if state != last_hand_state[0]:
+                last_hand_state[0] = state
+                progress(context, '손 조건·안정 상태', view='V0', state=state[0],
+                         reason=state[1], ready=state[2])
+            if frame_sink is not None:
+                frame_sink(rgb, depth, event, quality)
+        wait_for_hand_ready(hand_stream(), hand_detector, gate, valid, frame_sink=hand_status)
+        progress(context, '손 조건·영상 안정 확인 완료', view='V0')
         if not valid():
             raise RuntimeError("observation request cancelled after hand waiting")
         return observe_cycle(gate, capture_view, context, weights, calibration, config,
             detector_confidence, callback=callback, confirm_view=confirm_view,
             bundle_valid=valid, view_sink=view_sink, output_root=output_root)
-    except Exception:
+    except Exception as error:
+        progress(context, '관측 시작 실패·중단', reason=str(error))
         gate.state = "HOLD"
         raise
 
@@ -154,11 +169,15 @@ def observe_cycle(gate, capture_view, manifest, weights, calibration, config,
             context, calibration, config, weights, detector_confidence)
         for view_id in order:
             require_valid()
+            progress(context, '이동 요청·도착 대기', view=view_id)
             if confirm_view(view_id) is not True:
                 raise RuntimeError("actual stop, safety and image stability required")
             require_valid()
+            progress(context, '정지 확인', view=view_id)
+            progress(context, '관측 중·RGB-D 수신 시작', view=view_id)
             record = capture_view(view_id)
             rgb, raw, aligned, meta = load_frame(record["directory"])
+            progress(context, 'RGB-D 수신 완료', view=view_id)
             if (meta["mode"] != "REAL" or meta["view_id"] != view_id or
                     (meta.get("check_id"), meta.get("observation_seq")) != (check, seq) or
                     meta.get("calibration_id") != calibration["calibration_id"]):
@@ -176,6 +195,7 @@ def observe_cycle(gate, capture_view, manifest, weights, calibration, config,
                                             meta, record["directory"])
             write_cycle_json(view_directory / "capture_evidence.json", dict(
                 verified_regions=regions, verification_basis=record.get("verification_basis")))
+            progress(context, '분석 시작', view=view_id)
             detections = infer_masks(rgb, weights, detector_confidence)
             result = process_saved(record["directory"], detections, calibration, config)
             # Only positively measured occupied footprints; no empty-space fallback.
@@ -188,6 +208,9 @@ def observe_cycle(gate, capture_view, manifest, weights, calibration, config,
                 if candidate['status'] == 'CANDIDATE':
                     candidate['block'] = candidate_to_block(candidate, config['center_to_anchor_offsets_stud'])
             unknown = any(c["status"] == "UNKNOWN" for c in result["candidates"])
+            progress(context, '분석 완료·관측 불가' if unknown else '분석 완료', view=view_id,
+                     detected=len(result['candidates']),
+                     reasons=[c.get('reason') for c in result['candidates'] if c['status'] == 'UNKNOWN'])
             views.append({"check_id": check, "observation_seq": seq,
                 "calibration_id": calibration["calibration_id"], "view_id": view_id,
                 "visible_blocks": [candidate_to_block(c, config["center_to_anchor_offsets_stud"])
@@ -222,6 +245,7 @@ def observe_cycle(gate, capture_view, manifest, weights, calibration, config,
         write_cycle_json(archive / "submission.json", dict(status="CALLBACK_RETURNED",
             check_id=check, observation_seq=seq, backend_acceptance="NOT_CONFIRMED_BY_B"))
     except Exception as error:
+        progress(context, '관측 실패·중단', reason=str(error))
         gate.state = "HOLD"
         if archive is not None:
             write_cycle_json(archive / "failure.json", dict(check_id=check,

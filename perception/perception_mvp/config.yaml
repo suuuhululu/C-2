@@ -33,7 +33,9 @@ geometry:
   layer_reference_status: trial_average_unvalidated_board_baseline
   layer_height_reference: BOARD_FLAT_SURFACE_ZERO
   board_stud_height_m: 0.004
-  block_surface_height_basis: BODY_TOP_PLUS_STUD
+  # 2026-10-13 user decision: saved aligned Depth does not resolve the 4mm studs (they are
+  # visible in RGB only). Measure the supported top plane and add the physical stud once.
+  block_surface_height_basis: TOP_PLANE_PLUS_STUD
   block_stud_height_m: 0.004
   # Nominal stud spans, not individually measured plastic body dimensions.
   footprint_sizes_m:

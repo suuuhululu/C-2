@@ -16,7 +16,7 @@ def test_default_five_layers_use_endpoint_average_and_nonoverlapping_tolerance()
     assert np.all(2 * settings['tolerance_mm'] < np.diff(levels))
     assert settings['height_reference_offset_mm'] == 4.
     assert settings['max_height_spread_mm'] == 5.
-    assert settings['block_stud_height_mm'] == 4.
+    assert settings['block_stud_height_mm'] == 0.  # Direct measured top: no stud addition.
     assert settings['status'] == 'trial_average_unvalidated_board_baseline'
 
 

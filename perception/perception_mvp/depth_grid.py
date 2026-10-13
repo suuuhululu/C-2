@@ -86,10 +86,11 @@ def config_for_view(config, view):
 
 def validate_config(config):
     if config.get('block_surface_height_basis') is not None:
-        if (config['block_surface_height_basis'] != 'BODY_TOP_PLUS_STUD' or
+        if (config['block_surface_height_basis'] not in (
+                    'BODY_TOP_PLUS_STUD', 'DIRECT_STUD_TOP', 'TOP_PLANE_PLUS_STUD') or
                 not np.isfinite(config.get('block_stud_height_m', np.nan)) or
                 config['block_stud_height_m'] <= 0):
-            raise ValueError('explicit body-top basis and positive block stud height required')
+            raise ValueError('explicit surface basis and positive physical block stud height required')
     missing = [key for key, value in config.items() if value is None]
     if missing:
         raise ValueError("measured geometry settings not provided: " + ", ".join(missing))
@@ -167,7 +168,7 @@ def height_spread_within(heights, limit):
 
 
 def measure_candidate(mask, part_class, confidence, depth, scale, intrinsics,
-                      camera_to_board, config):
+                      camera_to_board, config, *, rgb=None):
     validate_config(config)
     transform = validate_geometry(scale, intrinsics, camera_to_board)
     rotation = transform[:3, :3]
@@ -197,7 +198,31 @@ def measure_candidate(mask, part_class, confidence, depth, scale, intrinsics,
         except ValueError as error:
             return unknown(str(error))
         board = board[body]
-    heights = board[:, 2]
+    height_board = board
+    outline = None
+    surface_basis = config.get('block_surface_height_basis')
+    if surface_basis in ('DIRECT_STUD_TOP', 'TOP_PLANE_PLUS_STUD'):
+        from .opencv_live import top_surface_points, rgb_top_quad
+        if surface_basis == 'TOP_PLANE_PLUS_STUD':
+            # The measured plane is the block top face; the physical stud is added once
+            # for layer comparison only. No second surface is required.
+            stud_increment = config['block_stud_height_m']
+        if rgb is None:
+            return unknown('rgb_outline_input_missing')
+        if rgb.shape != (*mask.shape, 3) or rgb.dtype != np.uint8:
+            raise ValueError('uint8 aligned RGB required for outline')
+        try:
+            selected = top_surface_points(board * 1000., minimum_points=config['min_depth_pixels'])
+            height_board = board[selected]
+        except ValueError as error:
+            return unknown(str(error))
+        support_mask = np.zeros(mask.shape, bool)
+        support_mask[v[selected], u[selected]] = True
+        try:
+            outline = rgb_top_quad(rgb, mask, support_mask)
+        except ValueError as error:
+            return unknown(str(error))
+    heights = height_board[:, 2]
     if not height_spread_within(heights, config["max_height_spread_m"]):
         return unknown("surface_height_conflict")
     body_height = float(np.median(heights))
@@ -205,7 +230,20 @@ def measure_candidate(mask, part_class, confidence, depth, scale, intrinsics,
     layer_index = int(np.argmin(np.abs(np.asarray(config["top_heights_m"]) - height)))
     if abs(config["top_heights_m"][layer_index] - height) > config["height_tolerance_m"]:
         return unknown("height_not_in_measured_layer")
-    rect = cv2.minAreaRect(board[:, :2].astype(np.float32))
+    footprint_points = board[:, :2]
+    if outline is not None:
+        # Unit-depth deprojection gives camera rays including lens distortion.
+        rays = deproject_pixels(outline[:, 0], outline[:, 1], np.ones(4),
+                                intrinsics, depth.shape[1], depth.shape[0]) @ rotation.T
+        origin = transform[:3, 3]
+        if np.any(np.abs(rays[:, 2]) < 1e-8):
+            return unknown('top_plane_ray_parallel')
+        # RGB corners are intersected with the measured plane, never the +stud height.
+        distances = (body_height-origin[2])/rays[:, 2]
+        if not np.isfinite(distances).all() or np.any(distances <= 0):
+            return unknown('top_plane_behind_camera')
+        footprint_points = (origin + distances[:, None]*rays)[:, :2]
+    rect = cv2.minAreaRect(footprint_points.astype(np.float32))
     center, sides, angle = rect
     pitch = config["stud_pitch_m"]
     expected = np.asarray(config["footprint_sizes_m"][part_class], dtype=float)
@@ -236,7 +274,9 @@ def measure_candidate(mask, part_class, confidence, depth, scale, intrinsics,
         return unknown("outside_board")
     return {"status": "CANDIDATE", "part_class": part_class,
             "surface_center_m": list(map(float, center)), "grid_center_stud": snapped.tolist(),
-            "top_height_m": height, "body_surface_height_m": body_height,
+            "top_height_m": height,
+            "surface_height_basis": config.get('block_surface_height_basis', 'LEGACY'),
+            "body_surface_height_m": body_height if stud_increment else None,
             "block_stud_added_m": stud_increment, "measured_layer_index": layer_index,
             "axis_angle_deg": int(axis_angle), "model_confidence": float(confidence),
             "valid_depth_fraction": float(valid.sum() / mask.sum()),
@@ -265,7 +305,7 @@ def occupied_region_evidence(candidates, config):
 
 def process_saved(directory, detections, calibration, config):
     detections = tuple(detections)
-    _, _, depth, metadata = load_frame(directory)
+    rgb, _, depth, metadata = load_frame(directory)
     config = config_for_view(config, metadata['view_id'])
     validate_config(config)
     if calibration["calibration_id"] != config["calibration_id"]:
@@ -273,13 +313,14 @@ def process_saved(directory, detections, calibration, config):
     transform = calibration["views"][metadata["view_id"]]
     validate_geometry(metadata["depth_scale_m"], metadata["camera_info"]["aligned"], transform)
     results = [measure_candidate(mask, cls, conf, depth, metadata["depth_scale_m"],
-                                metadata["camera_info"]["aligned"], transform, config)
+                                metadata["camera_info"]["aligned"], transform, config, rgb=rgb)
                for mask, cls, conf in detections]
     result = {"internal_format": "visible_candidates_v1", "status": "PARTIAL",
             "scene_id": metadata["scene_id"], "view_id": metadata["view_id"],
             "captured_at": metadata["captured_at"], "candidates": results,
             "reason": "whole_board_coverage_and_occlusion_not_verified"}
-    if config.get('block_surface_height_basis') == 'BODY_TOP_PLUS_STUD':
+    if config.get('block_surface_height_basis') in (
+            'BODY_TOP_PLUS_STUD', 'DIRECT_STUD_TOP', 'TOP_PLANE_PLUS_STUD'):
         result.update(occupied_region_evidence(results, config))
         if (config.get('layer_height_reference') == 'BOARD_FLAT_SURFACE_ZERO' and
                 len(config['top_heights_m']) == 5):
