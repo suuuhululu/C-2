@@ -183,13 +183,15 @@ def _initial_metadata(described, choice):
             key: described.get(key) for key in ("silhouette_clarity", "recognizable_family", "completeness_score")},
         "preference": choice["preference"], "selected_family": choice["family"], "family_source": choice["source"],
         "style_hint": choice["style_hint"], "family_design_match": described.get("family_design_match"),
+        "user_constraints": dict(choice.get("constraints") or {}) or None,  # Wave 3: 명시 제약(없으면 None)
         "source": "LLM", "error": error,
     }
 
 
-def _mock_metadata(revised):
+def _mock_metadata(revised, constraints=None):
     metadata = {"design_name": _MOCK_NAME, "design_family": _MOCK_FAMILY, "design_summary": _MOCK_SUMMARY,
-                "visible_features": [], "human_interpretation": None, "judge": None, "source": "MOCK", "error": None}
+                "visible_features": [], "human_interpretation": None, "judge": None, "source": "MOCK", "error": None,
+                "user_constraints": dict(constraints or {}) or None}  # Mock은 고정 설계라 제약을 반영하지 못하고 기록만 한다
     if revised:
         metadata.update(change_summary=[], interpretation_status=None, design_intent=None, regenerations=0)
     return metadata
@@ -204,11 +206,14 @@ def _judge_problem(judge):
     return f"missing or invalid judge fields: {bad}" if bad else None
 
 
-def _needs_regeneration(judge):
+def _needs_regeneration(judge, constraints=None):
     # 사용자 기준: family를 알아볼 수 없거나 실루엣이 모호할 때, Stage 2부터 의자로 읽히지 않거나 이전보다 풍부하지
     # 않을 때. awkward·weakly visible·feature mismatch만으로는 하지 않는다.
+    # Wave 3(2026-10-13): 사용자가 낮게·단순하게·블록 적게·N층 이하를 명시했으면 "이전보다 풍부하지 않음"은 재생성 사유가 아니다
+    # (풍부함은 기본 선호일 뿐 사용자 요구보다 약하다).
+    not_richer = judge["richer_than_previous"] is False and not dialogue.restricts_richness(constraints)
     return (judge["recognizable_family"] is False or judge["silhouette_clarity"] == "ambiguous"
-            or judge["chair_likeness"] == "not_chair" or judge["richer_than_previous"] is False)
+            or judge["chair_likeness"] == "not_chair" or not_richer)
 
 
 def _verdict(judge):
@@ -218,8 +223,8 @@ def _verdict(judge):
     return "SHOWCASE" if showcase else "NOT_YET"
 
 
-def _revised_metadata(judge, regenerations, error, style_hint):
-    """Revised(LLM) design_metadata. 설명은 judge(판단 가능한 응답 또는 None)에서만 온다."""
+def _revised_metadata(judge, regenerations, error, style_hint, constraints=None):
+    """Revised(LLM) design_metadata. 설명은 judge(판단 가능한 응답 또는 None)에서만 온다. user_constraints는 이번 요청의 명시 제약."""
     seen = judge or {}
     story = seen.get("human_story")
     return {
@@ -239,7 +244,8 @@ def _revised_metadata(judge, regenerations, error, style_hint):
             "richer_than_previous": judge["richer_than_previous"], "richer_why": judge.get("richer_why"),
             "verdict": _verdict(judge),
         },
-        "design_intent": None, "regenerations": regenerations, "style_hint": style_hint, "source": "LLM", "error": error,
+        "design_intent": None, "regenerations": regenerations, "style_hint": style_hint,
+        "user_constraints": dict(constraints or {}) or None, "source": "LLM", "error": error,
     }
 
 
@@ -295,12 +301,13 @@ def _needs_follow_up(request):
     return request["object"] == "UNCLEAR" or request["sufficient"] is not True
 
 
-def _family_choice(request, error):
-    """해석된 요청(또는 None = 아무거나) → {family, source, preference, style_hint, concept, error}.
+def _family_choice(request, error, constraints=None):
+    """해석된 요청(또는 None = 아무거나) → {family, source, preference, style_hint, concept, constraints, error}.
 
     CREATIVE는 카탈로그 family로 환원하지 않고(family None) style_hint 전체를 concept로 생성에 넘긴다.
+    constraints(Wave 3)는 발화에서 뽑은 명시 제약(낮게·3층 이하면 무작위 family에서 키 큰 family 제외).
     """
-    family = llm.choose_initial_family(request)
+    family = llm.choose_initial_family(request, **_constraints_kwargs(constraints))
     mode = request.get("preference") if request is not None else None
     style_hint = request.get("style_hint") if request is not None else None
     style_hint = style_hint if isinstance(style_hint, str) and style_hint else None
@@ -311,7 +318,7 @@ def _family_choice(request, error):
     else:
         source = "random"
     return {"family": family, "source": source, "preference": request, "style_hint": style_hint,
-            "concept": style_hint if mode == "CREATIVE" else None, "error": error}
+            "concept": style_hint if mode == "CREATIVE" else None, "constraints": dict(constraints or {}), "error": error}
 
 
 def _change_request(change_reason, planning_failure):
@@ -319,8 +326,22 @@ def _change_request(change_reason, planning_failure):
     return llm.planning_failure_change_request(planning_failure) if planning_failure is not None else change_reason
 
 
+def _constraints_kwargs(constraints):
+    """제약이 있을 때만 kwargs로 넘긴다(기존 fake·구 시그니처 호환: 없으면 호출 인자가 Wave 3 이전과 같다)."""
+    return {"constraints": dict(constraints)} if constraints else {}
+
+
+def _clamp_to_current(constraints, current):
+    """Revised 수치 제약을 Current와 충돌하지 않게 올린다(이미 조립된 층을 지우지 않는다, §8.3). 질문·고지는 Wave 4."""
+    c = dict(constraints or {})
+    layers = [b.get("layer") for b in (current or []) if isinstance(b, dict) and isinstance(b.get("layer"), int)]
+    if layers and isinstance(c.get("max_layer"), int) and c["max_layer"] < max(layers):
+        c["max_layer"] = max(layers)
+    return c
+
+
 def _revised_builder(approved, current, differences, make_generate, min_blocks, should_stop, differ_from=None,
-                     design_change=False):
+                     design_change=False, constraints=None):
     """approved(Revised 버전 기준 Design)·Current를 보존하는 Revised 후보 생성 함수 build(max_attempts, feedback=None).
 
     differ_from은 검토 MODIFY 재생성의 직전 후보(같은 블록이면 designer가 탈락시켜 다시 만든다).
@@ -330,13 +351,13 @@ def _revised_builder(approved, current, differences, make_generate, min_blocks, 
         return designer.build_revised_design(
             approved, current, differences, generate=make_generate(feedback), max_attempts=max_attempts,
             delay=designer.RETRY_DELAY, should_stop=should_stop, min_blocks=min_blocks, differ_from=differ_from,
-            design_change=design_change,
+            design_change=design_change, constraints=constraints,
         )
     return build
 
 
 def _finish_revised(result, *, approved, current, differences, build, use_llm, should_stop, progress, questions, hri_result,
-                    style_hint):
+                    style_hint, constraints=None):
     """Revised 설계 결과 → envelope. LLM이면 judge 후 조건이 맞을 때만 재생성(최대 METADATA_REGENERATIONS_MAX회).
 
     run_intervention(REVISE)과 review_design_candidate(Revised 후보 MODIFY)가 같이 쓴다.
@@ -346,12 +367,13 @@ def _finish_revised(result, *, approved, current, differences, build, use_llm, s
     progress("VALIDATING")
     if not use_llm:
         progress("READY_REVISED")
-        return _result("OK", hri_result, result["design"], questions, design_metadata=_mock_metadata(revised=True))
+        return _result("OK", hri_result, result["design"], questions, design_metadata=_mock_metadata(revised=True, constraints=constraints))
     final = result["design"]
     regenerations, usable_judge, error = 0, None, None
     while True:
         progress("JUDGING")
-        judge = llm.judge_revised_design(approved, final, current, differences, should_stop=should_stop)
+        judge = llm.judge_revised_design(approved, final, current, differences, should_stop=should_stop,
+                                         **_constraints_kwargs(constraints))
         if _llm_error_kind(judge) == "stopped":
             return _stopped(questions)
         problem = _judge_problem(judge)
@@ -359,7 +381,7 @@ def _finish_revised(result, *, approved, current, differences, build, use_llm, s
             error = _meta_error("judge_error", problem)  # 재생성하지 않고 그대로 끝낸다
             break
         usable_judge = judge
-        if regenerations >= METADATA_REGENERATIONS_MAX or not _needs_regeneration(judge):
+        if regenerations >= METADATA_REGENERATIONS_MAX or not _needs_regeneration(judge, constraints):
             break
         regenerations += 1
         progress("REGENERATING")
@@ -372,7 +394,7 @@ def _finish_revised(result, *, approved, current, differences, build, use_llm, s
         final = again["design"]
         progress("VALIDATING")
     progress("READY_REVISED")
-    metadata = _revised_metadata(usable_judge, regenerations, error, style_hint)
+    metadata = _revised_metadata(usable_judge, regenerations, error, style_hint, constraints)
     return _result("OK", hri_result, final, questions, design_metadata=metadata)
 
 
@@ -411,7 +433,8 @@ def _initial(text, should_stop, preference_text, on_question, progress):
             return _from_designer(result, None, [])
         progress("VALIDATING")
         progress("READY")
-        return _result("OK", None, result["design"], design_metadata=_mock_metadata(revised=False))
+        return _result("OK", None, result["design"],
+                       design_metadata=_mock_metadata(revised=False, constraints=dialogue.extract_constraints(text)))
 
     questions = []
 
@@ -453,6 +476,7 @@ def _initial(text, should_stop, preference_text, on_question, progress):
                 return voice_failed()
 
     request, error, fallback = None, None, False
+    spoken = [text]  # 명시 제약은 발화 원문(첫 발화 + 되묻기 답)에서 규칙으로 뽑는다(Wave 3)
     if stop_requested():
         return _stopped(questions)
     progress("UNDERSTANDING")
@@ -479,6 +503,7 @@ def _initial(text, should_stop, preference_text, on_question, progress):
                 answer = hear() if voice_mode else preference_text
                 if answer is None:
                     return voice_failed()
+                spoken.append(answer)
                 progress("UNDERSTANDING")
             request = None
             if not dialogue.is_meaningful(answer):
@@ -499,7 +524,12 @@ def _initial(text, should_stop, preference_text, on_question, progress):
         return _result("FAILED", questions=questions, code="UNSUPPORTED_OBJECT",
                        message="the request is not seating furniture")
 
-    choice = _family_choice(request, error)
+    # 명시 제약(Wave 3): 규칙 추출(결정적)이 우선, LLM 해석의 선택 키 "constraints"는 값 검증 후 보충. 제약은 family 선택·
+    # 생성 프롬프트·후보 검사(designer)·metadata로 이어지며 validator 계약은 바꾸지 않는다.
+    constraints = dialogue.merge_constraints(
+        dialogue.extract_constraints(" / ".join(part for part in spoken if isinstance(part, str))),
+        request.get("constraints") if isinstance(request, dict) else None)
+    choice = _family_choice(request, error, constraints)
     # 생성 전에 항상 요청을 되짚는다(ack). 해석의 reply가 있으면 그것, 없으면(규칙 "아무거나"·침묵·해석 실패·되묻기 뒤
     # 무작위) 확인 문장. 음성 모드에서는 바로 읽어 첫 응답이 Design 생성을 기다리지 않게 한다.
     reply = None if fallback else (request or {}).get("reply")
@@ -513,8 +543,10 @@ def _initial(text, should_stop, preference_text, on_question, progress):
     def generate(object_type, reasons):
         note_attempt(reasons)
         return llm.generate_initial_design(object_type, reasons, should_stop=should_stop, family=choice["family"],
-                                           style_hint=choice["style_hint"], concept=choice["concept"])
-    result = designer.build_initial_design("CHAIR", generate=generate, delay=designer.RETRY_DELAY, should_stop=should_stop)
+                                           style_hint=choice["style_hint"], concept=choice["concept"],
+                                           **_constraints_kwargs(choice["constraints"]))
+    result = designer.build_initial_design("CHAIR", generate=generate, delay=designer.RETRY_DELAY, should_stop=should_stop,
+                                           **_constraints_kwargs(choice["constraints"]))
     if result["design"] is None:
         return _from_designer(result, None, questions)
     progress("VALIDATING")
@@ -635,10 +667,19 @@ def _intervention(design, current, differences, text_answers, on_question, shoul
             # UNCLEAR, 또는 재설계할 수 없는데 "계속 찾기": 같은 질문으로 명시 선택을 기다린다.
             ask(question)
 
-    # LLM 모드에서 답변의 style_hint와 확인 문장(reply)을 요청 단위로 모은다.
-    state = {"style_hint": None, "reply": None, "reason": None, "stopped": False, "interpreted": False}
-    # Revised(LLM)는 이전 Design보다 풍부해야 한다(§8.13). Mock 후보는 결정론적 이동뿐이라 검사하지 않는다.
-    min_blocks = designer.revised_min_blocks(design) if use_llm else None
+    # LLM 모드에서 답변의 style_hint와 확인 문장(reply)을 요청 단위로 모은다. constraints(Wave 3)는 답변 원문의 규칙 추출 +
+    # LLM 해석의 선택 키를 합친 명시 제약이며 Current와 충돌하지 않게 clamp해서 쓴다.
+    state = {"style_hint": None, "reply": None, "reason": None, "stopped": False, "interpreted": False, "constraints": {}}
+
+    def effective_constraints():
+        return _clamp_to_current(state["constraints"], current)
+
+    def effective_min_blocks():
+        # Revised(LLM)는 이전 Design보다 풍부해야 한다(§8.13). Mock 후보는 결정론적 이동뿐이라 검사하지 않는다.
+        # Wave 3: 사용자가 낮게·단순하게·블록 적게·N층 이하를 명시하면 +6 하한을 적용하지 않는다(요구가 기본 선호보다 우선).
+        if not use_llm or dialogue.restricts_richness(state["constraints"]):
+            return None
+        return designer.revised_min_blocks(design)
 
     def ask_answer_llm(text):
         """llm 답변 해석 1회. 쓸 수 있는 dict 또는 None(STOP이면 state["stopped"], 실패·키 누락이면 그냥 None)."""
@@ -670,6 +711,8 @@ def _intervention(design, current, differences, text_answers, on_question, shoul
         revise = answer["decision"] == dialogue.REVISE
         state["style_hint"] = usable_hint(answer) if revise else None
         state["reply"] = usable_reply(answer) if revise else None
+        if revise:
+            state["constraints"] = dialogue.merge_constraints(dialogue.extract_constraints(text), answer.get("constraints"))
         return answer["decision"]
 
     def usable_reply(answer):
@@ -686,24 +729,30 @@ def _intervention(design, current, differences, text_answers, on_question, shoul
     # Planning failure(Wave 4)는 raw reason 대신 C가 만든 짧은 change request를 넣는다.
     change_kwargs = {"change_request": _change_request(change_reason, planning_failure)} if design_change else {}
 
-    def make_generate(feedback=None):
-        if not use_llm:
-            return None
+    def make_build():
+        """이번 답변의 제약·하한으로 Revised builder를 만든다(답변이 정해진 뒤 revise()에서 호출)."""
+        min_blocks = effective_min_blocks()
+        constraints = effective_constraints()
 
-        def generate(design, current, differences, reasons):
-            note_attempt(reasons)
-            return llm.generate_revised_design(design, current, differences, reasons, should_stop=should_stop,
-                                               feedback=feedback, min_blocks=min_blocks, style_hint=state["style_hint"],
-                                               **change_kwargs)
-        return generate
+        def make_generate(feedback=None):
+            if not use_llm:
+                return None
 
-    build = _revised_builder(design, current, differences, make_generate, min_blocks, should_stop,
-                             design_change=design_change)
+            def generate(design, current, differences, reasons):
+                note_attempt(reasons)
+                return llm.generate_revised_design(design, current, differences, reasons, should_stop=should_stop,
+                                                   feedback=feedback, min_blocks=min_blocks, style_hint=state["style_hint"],
+                                                   **change_kwargs, **_constraints_kwargs(constraints))
+            return generate
 
-    def finish(result):
+        return _revised_builder(design, current, differences, make_generate, min_blocks, should_stop,
+                                design_change=design_change, constraints=constraints)
+
+    def finish(result, build):
         return _finish_revised(result, approved=design, current=current, differences=differences, build=build,
                                use_llm=use_llm, should_stop=should_stop, progress=progress, questions=questions,
-                               hri_result=dialogue.REVISE, style_hint=state["style_hint"])
+                               hri_result=dialogue.REVISE, style_hint=state["style_hint"],
+                               constraints=effective_constraints())
 
     def revise():
         if validator.current_support_violations(current):
@@ -713,18 +762,19 @@ def _intervention(design, current, differences, text_answers, on_question, shoul
             # 생성 전에 항상 확인(ack): 해석 reply(LLM이 REVISE로 해석한 경우) 또는 확인 문장(숫자 답·해석 실패).
             fallback = dialogue.design_change_revise_ack_fallback if design_change else dialogue.revise_ack_fallback
             progress("ACK", state["reply"] or fallback(state["style_hint"]), say=True)
+        build = make_build()
         progress("GENERATING_REVISED")
         result = build(FIRST_ATTEMPTS)
         # 설계 성공·STOP·provider 실패는 escalation 대상이 아니다(후보 탈락만 escalation).
         if result["design"] is not None or any(r["rule"] in ("stopped", "llm_call_failed") for r in result["reasons"]):
-            return finish(result)
+            return finish(result, build)
         ended = escalate(can_redesign=True)
         if ended is not None:
             return ended
         if stop_requested():
             return _stopped(questions)
         progress("GENERATING_REVISED")
-        return finish(build(EXTRA_ATTEMPTS))
+        return finish(build(EXTRA_ATTEMPTS), build)
 
     if design_change:
         question = (dialogue.build_plan_failure_question(planning_failure) if planning_failure is not None
@@ -747,6 +797,8 @@ def _intervention(design, current, differences, text_answers, on_question, shoul
             progress("UNDERSTANDING")
         choice = parse(reply, interpret_answer if use_llm else None)
         source = "llm" if state["interpreted"] else "rule"  # decision을 정한 쪽(아래 style_hint 전용 호출과 무관)
+        if choice == dialogue.REVISE and not state["interpreted"]:
+            state["constraints"] = dialogue.extract_constraints(reply)  # Rule REVISE(숫자 답 포함)도 원문의 명시 제약은 받는다
         if (use_llm and choice == dialogue.REVISE and not state["interpreted"]
                 and not dialogue.is_number_answer(reply)):
             # Rule이 REVISE로 정한 자유 답변("일부러 놨어요. 팔걸이로 살려주세요")에서 바람만 받는다. decision은 Rule 그대로,
@@ -754,6 +806,8 @@ def _intervention(design, current, differences, text_answers, on_question, shoul
             answer = ask_answer_llm(reply)
             state["style_hint"] = usable_hint(answer)
             state["reply"] = usable_reply(answer) if answer is not None and answer["decision"] == dialogue.REVISE else None
+            if answer is not None:
+                state["constraints"] = dialogue.merge_constraints(state["constraints"], answer.get("constraints"))
         if state["stopped"]:
             return _stopped(questions)
         if use_llm:
@@ -838,7 +892,12 @@ def _review(candidate, kind, design_metadata, previous_design, current, differen
     voice_mode = text_answers is None
     answers = None if voice_mode else iter(text_answers)
     state = {"style_hint": None, "scope": None, "concept": None, "reply": None, "reason": None, "stopped": False,
-             "interpreted": False, "answers": 0}
+             "interpreted": False, "answers": 0, "constraints": {}}
+    # Wave 3: 이 후보를 만들 때의 명시 제약은 이어지고, 이번 답변의 제약이 같은 키를 덮는다("3층까지만" 뒤 "등받이 더 높게"도 3층 유지).
+    inherited = metadata.get("user_constraints") if isinstance(metadata.get("user_constraints"), dict) else {}
+
+    def effective_constraints():
+        return dialogue.merge_constraints(dict(inherited, **state["constraints"]), None)
 
     def ask(sentence):
         questions.append(sentence)
@@ -877,11 +936,13 @@ def _review(candidate, kind, design_metadata, previous_design, current, differen
         return answer["decision"]
 
     def take_modify(answer):
-        """MODIFY 해석에서 바꿀 방향·재생성 방식·갱신 concept을 받는다(없으면 None)."""
+        """MODIFY 해석에서 바꿀 방향·재생성 방식·갱신 concept·명시 제약을 받는다(없으면 None)."""
         state["style_hint"] = text_of(answer, "style_hint")
         scope = text_of(answer, "scope")
         state["scope"] = scope if scope in REVIEW_SCOPES else None
         state["concept"] = text_of(answer, "concept")
+        if answer is not None:
+            state["constraints"] = dialogue.merge_constraints(state["constraints"], answer.get("constraints"))
 
     def review_of(decision, source, round_):
         return {"kind": kind, "decision": decision, "style_hint": state["style_hint"], "scope": state["scope"],
@@ -897,8 +958,11 @@ def _review(candidate, kind, design_metadata, previous_design, current, differen
         state["scope"] = scope
         hint = state["style_hint"]
         review = review_of(dialogue.MODIFY, source, base_round + 1)
+        constraints = effective_constraints()
         if kind == "revised":
-            min_blocks = designer.revised_min_blocks(previous_design)
+            constraints = _clamp_to_current(constraints, current)
+            # Wave 3: 낮게·단순하게·블록 적게·N층 이하를 명시했으면 +6 하한(§8.13)을 적용하지 않는다.
+            min_blocks = None if dialogue.restricts_richness(constraints) else designer.revised_min_blocks(previous_design)
 
             note_attempt = _attempt_logger(progress)
             change_kwargs = {"change_request": _change_request(change_reason, planning_failure)} if design_change else {}
@@ -908,15 +972,17 @@ def _review(candidate, kind, design_metadata, previous_design, current, differen
                     note_attempt(reasons_)
                     return llm.generate_revised_design(design_, current_, differences_, reasons_, should_stop=should_stop,
                                                        feedback=feedback, min_blocks=min_blocks, style_hint=hint,
-                                                       previous_candidate=candidate, scope=scope, **change_kwargs)
+                                                       previous_candidate=candidate, scope=scope, **change_kwargs,
+                                                       **_constraints_kwargs(constraints))
                 return generate
 
             build = _revised_builder(previous_design, current, differences, make_generate, min_blocks, should_stop,
-                                     differ_from=candidate, design_change=design_change)
+                                     differ_from=candidate, design_change=design_change, constraints=constraints)
             progress("GENERATING_REVISED")
             envelope = _finish_revised(build(designer.MAX_ATTEMPTS), approved=previous_design, current=current,
                                        differences=differences, build=build, use_llm=use_llm, should_stop=should_stop,
-                                       progress=progress, questions=questions, hri_result=dialogue.MODIFY, style_hint=hint)
+                                       progress=progress, questions=questions, hri_result=dialogue.MODIFY, style_hint=hint,
+                                       constraints=constraints)
         else:
             family, concept = None, None
             if scope == "patch":
@@ -929,7 +995,7 @@ def _review(candidate, kind, design_metadata, previous_design, current, differen
             elif scope == "concept_change":
                 concept = state["concept"]
             choice = {"family": family, "source": scope, "preference": metadata.get("preference"), "style_hint": hint,
-                      "concept": concept, "error": None}
+                      "concept": concept, "constraints": constraints, "error": None}
 
             note_attempt = _attempt_logger(progress)
 
@@ -937,11 +1003,12 @@ def _review(candidate, kind, design_metadata, previous_design, current, differen
                 note_attempt(reasons_)
                 return llm.generate_initial_design(object_type, reasons_, should_stop=should_stop, family=family,
                                                    style_hint=hint, concept=concept, previous_candidate=candidate,
-                                                   scope=scope)
+                                                   scope=scope, **_constraints_kwargs(constraints))
             progress("GENERATING")
             # 직전 후보와 같은 블록은 designer가 탈락시킨다(요청한 변경이 반영된 새 후보만 돌려준다).
             result = designer.build_initial_design("CHAIR", generate=generate, delay=designer.RETRY_DELAY,
-                                                   should_stop=should_stop, differ_from=candidate)
+                                                   should_stop=should_stop, differ_from=candidate,
+                                                   **_constraints_kwargs(constraints))
             if result["design"] is None:
                 return _from_designer(result, dialogue.MODIFY, questions)
             progress("VALIDATING")
@@ -970,7 +1037,8 @@ def _review(candidate, kind, design_metadata, previous_design, current, differen
         if not dialogue.is_meaningful(reply):
             continue  # 침묵: 한 번만 다시 묻는다
         state["answers"] += 1
-        state.update(style_hint=None, scope=None, concept=None, reply=None, reason=None, interpreted=False)
+        state.update(style_hint=None, scope=None, concept=None, reply=None, reason=None, interpreted=False,
+                     constraints=dialogue.extract_constraints(reply))
         progress("REVIEW_UNDERSTANDING")
         decision = dialogue.parse_review_response(reply, interpret if use_llm else None)
         source = "llm" if state["interpreted"] else "rule"

@@ -251,6 +251,8 @@ _PREFERENCE_FEATURE_WORDS = (
     "빨간", "빨강", "노란", "노랑", "파란", "파랑", "색", "화려", "멋", "예쁜", "예쁘", "귀여", "심플", "단순",
     "튼튼", "벤치", "소파", "스툴", "왕좌", "흔들", "1인", "2인", "두명", "여러명",
     "처럼", "같은", "책상", "테이블", "탁자", "집", "자동차", "로봇", "선반", "침대", "탑",
+    # 2026-10-13 사용자 제약(층수·단순함·블록 수·규모)은 "아무거나"와 함께 말해도 제약이다 → ANY 빠른 경로로 삼키지 않는다.
+    "간단", "소박", "미니멀", "층", "블록", "적게", "적은", "조금만", "개만", "풍성", "장식",
 )
 # 앉는 가구가 아닌 흔한 사물. 앉는 가구 단어 없이 이것만 요구하면 LLM 해석 없이 지원 밖으로 본다(Mock의 parse_goal과
 # 같은 보장: "자동차 만들어줘"에는 LLM 호출이 없다). "자동차 모양 의자"처럼 앉는 가구 단어가 있으면 LLM에 맡긴다.
@@ -395,6 +397,126 @@ def is_unsupported_request(text):
     norm = _normalize(text or "")
     return (any(word in norm for word in _NON_SEATING_OBJECTS)
             and not any(word in norm for word in _SEATING_WORDS))
+
+
+# ---------------------------------------------------------------------------
+# 사용자 명시 제약(2026-10-13, Robot-only design rule update Wave 3). 발화 원문에서 규칙으로 뽑는 결정적 제약이며, 보조 LLM
+# 해석이 함께 내는 선택 키 "constraints"보다 우선한다(merge_constraints). 값은 아래 다섯 키만 쓰고 없는 키는 넣지 않는다.
+# 우선순위: Initial = validator hard rule > 사용자 명시 요구 > 기본 품질 > (제한 없을 때) expressive 기본 선호 > facing.
+# Revised = Current 보존 > hard rule > 이번 요구 > 품질/expressive > facing. 제약은 설계 JSON·validator 계약을 바꾸지 않는다.
+# ---------------------------------------------------------------------------
+
+CONSTRAINT_KEYS = ("max_layer", "height", "complexity", "block_budget", "footprint")
+CONSTRAINT_VALUES = {"height": ("low", "high"), "complexity": ("simple", "rich"), "block_budget": ("fewer", "more"),
+                     "footprint": ("wide", "narrow")}
+MAX_LAYER_LIMIT = 5  # validator.MAX_LAYER와 같다(순환 import를 피하려고 값만 둔다; validator가 진실)
+
+_LAYER_RE = re.compile(r"([1-5])\s*층")
+_LAYER_MIN_MARKERS = ("이상", "넘", "보다높", "보다더")
+_PART_WORDS = ("등받이", "팔걸이", "다리", "좌석", "받침", "쿠션", "머리")
+_SIMPLE_WORDS = ("간단", "단순", "심플", "소박", "미니멀", "담백")
+_RICH_WORDS = ("화려", "풍성", "호화", "장식", "웅장")
+_FEWER_WORDS = ("블록적게", "블록을적게", "블록은적게", "블록조금", "블록을조금", "적은블록", "블록수를줄", "블록줄", "블록을줄", "블록개수줄",
+                "최소한의블록", "블록을덜", "블록덜", "조금만써", "조금만사용", "개만써", "개이하로", "개까지", "개정도만")
+_MORE_WORDS = ("블록많이", "블록을많이", "블록더", "블록을더", "많은블록", "블록을최대한", "블록최대한", "블록을아끼지")
+_WIDE_WORDS = ("넓", "널찍", "와이드")
+_NARROW_WORDS = ("좁", "작은", "작게", "아담", "콤팩트", "컴팩트", "소형")
+
+
+def _part_before(norm, index, window=6):
+    """index 바로 앞 window자 안에 부위 단어가 있으면 그 부위(등받이를 높이고 → 전체 높이 제약 아님)."""
+    head = norm[max(0, index - window):index]
+    return any(part in head for part in _PART_WORDS)
+
+
+def extract_constraints(text):
+    """발화 원문 → 명시된 제약만 담은 dict(없으면 {}). 규칙 기반이라 결정적이며 LLM 없이도 동작한다.
+
+    - "3층까지만/3층 이하/3층으로/3층짜리" → max_layer 3. "3층 이상/보다 높게"는 상한이 아니므로 height high만.
+    - "낮게/낮은" → height low, "높게/높은" → height high. 부위 단어("등받이를 높이고") 바로 뒤의 높낮이는 전체 높이가 아니다.
+    - "간단/단순/심플/소박/미니멀" → complexity simple, "화려/풍성/장식" → complexity rich.
+    - "블록 적게/조금만/N개까지" → block_budget fewer, "블록 많이/최대한" → more.
+    - "넓게/널찍" → footprint wide, "좁게/작은/아담/콤팩트" → narrow.
+    """
+    norm = _normalize(text or "")
+    if not norm:
+        return {}
+    found = {}
+    for match in _LAYER_RE.finditer(norm):
+        tail = norm[match.end():match.end() + 4]
+        if any(tail.startswith(marker) for marker in _LAYER_MIN_MARKERS):
+            found["height"] = "high"
+            continue
+        found["max_layer"] = int(match.group(1))
+    for index, char in enumerate(norm):
+        if char == "낮" and not _part_before(norm, index):
+            found.setdefault("height", "low")
+        elif char == "높" and not _part_before(norm, index):
+            found.setdefault("height", "high")
+    if any(word in norm for word in _SIMPLE_WORDS):
+        found["complexity"] = "simple"
+    elif any(word in norm for word in _RICH_WORDS):
+        found["complexity"] = "rich"
+    if any(word in norm for word in _FEWER_WORDS):
+        found["block_budget"] = "fewer"
+    elif any(word in norm for word in _MORE_WORDS):
+        found["block_budget"] = "more"
+    if any(word in norm for word in _WIDE_WORDS):
+        found["footprint"] = "wide"
+    elif any(word in norm for word in _NARROW_WORDS):
+        found["footprint"] = "narrow"
+    return found
+
+
+def _valid_constraint(key, value):
+    if key == "max_layer":
+        return isinstance(value, int) and not isinstance(value, bool) and 1 <= value <= MAX_LAYER_LIMIT
+    return value in CONSTRAINT_VALUES.get(key, ())
+
+
+def merge_constraints(rule_based, interpreted):
+    """규칙 추출(결정적, 우선)과 LLM 해석의 선택 키 "constraints"(값 검증 후)를 합친다. 결과는 유효한 키·값만 가진 dict."""
+    merged = {}
+    if isinstance(interpreted, dict):
+        for key, value in interpreted.items():
+            if key in CONSTRAINT_KEYS and _valid_constraint(key, value):
+                merged[key] = value
+    for key, value in (rule_based or {}).items():
+        if key in CONSTRAINT_KEYS and _valid_constraint(key, value):
+            merged[key] = value
+    return merged
+
+
+def restricts_richness(constraints):
+    """사용자가 작게·낮게·단순하게를 명시했는가 → Revised +6 블록 하한과 judge의 richer 재생성을 적용하지 않는다."""
+    c = constraints or {}
+    return (c.get("max_layer") is not None or c.get("height") == "low" or c.get("complexity") == "simple"
+            or c.get("block_budget") == "fewer")
+
+
+def constraints_sentence(constraints):
+    """제약을 사람이 읽는 한국어 구로(ack·로그용). 없으면 ""."""
+    c = constraints or {}
+    parts = []
+    if c.get("max_layer") is not None:
+        parts.append(f"{c['max_layer']}층 이하")
+    if c.get("height") == "low":
+        parts.append("낮은 높이")
+    elif c.get("height") == "high":
+        parts.append("높은 형태")
+    if c.get("complexity") == "simple":
+        parts.append("간단한 구성")
+    elif c.get("complexity") == "rich":
+        parts.append("풍성한 구성")
+    if c.get("block_budget") == "fewer":
+        parts.append("적은 블록")
+    elif c.get("block_budget") == "more":
+        parts.append("많은 블록")
+    if c.get("footprint") == "wide":
+        parts.append("넓은 좌석")
+    elif c.get("footprint") == "narrow":
+        parts.append("작은 크기")
+    return "·".join(parts)
 
 
 def parse_initial_request(text):

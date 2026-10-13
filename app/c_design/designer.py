@@ -58,6 +58,28 @@ MAX_ATTEMPTS = 10
 RICHNESS_MIN_DELTA = 6
 
 
+def constraint_violations(blocks, constraints):
+    """사용자 수치 제약(Wave 3, 2026-10-13) 위반 사유. LLM 후보에만 적용한다(Mock은 고정 설계라 제약을 반영할 수 없다).
+
+    max_layer: 그보다 높은 layer의 블록이 있으면 "user_constraint". validator 규칙이 아니라 후보 거부 사유이며 같은 재생성
+    loop이 다시 만든다. 호출자(main)는 Current와 충돌하지 않게 clamp한 값을 넘긴다(Current가 이미 그 층을 쓰면 상한이 올라간다).
+    """
+    c = constraints or {}
+    reasons = []
+    max_layer = c.get("max_layer")
+    if isinstance(max_layer, int) and not isinstance(max_layer, bool):
+        too_high = [b for b in blocks if isinstance(b, dict) and isinstance(b.get("layer"), int) and b["layer"] > max_layer]
+        if too_high:
+            reasons.append({"rule": "user_constraint", "blocks": too_high,
+                            "message": f"design uses layer {max(b['layer'] for b in too_high)} but the person asked for at most "
+                                       f"{max_layer} layers"})
+    max_blocks = c.get("max_blocks")
+    if isinstance(max_blocks, int) and not isinstance(max_blocks, bool) and len(blocks) > max_blocks:
+        reasons.append({"rule": "user_constraint", "blocks": [],
+                        "message": f"design has {len(blocks)} blocks but the person asked for at most {max_blocks}"})
+    return reasons
+
+
 def revised_min_blocks(design):
     """Revised Design의 최소 블록 수: 이전 블록 수 + RICHNESS_MIN_DELTA, validator.MAX_BLOCKS로 자른다."""
     return min(len(design["blocks"]) + RICHNESS_MIN_DELTA, validator.MAX_BLOCKS)
@@ -115,7 +137,7 @@ def _generate_until_valid(make_candidate, finalize, max_attempts, delay, should_
 
 
 def build_initial_design(object_type, generate=None, max_attempts=MAX_ATTEMPTS, delay=RETRY_DELAY, should_stop=None,
-                         differ_from=None):
+                         differ_from=None, constraints=None):
     """Initial Design(design_version=1)을 만든다(§3.3).
 
     differ_from(Design)가 있으면 그 블록과 같은 후보는 "unchanged_candidate"로 탈락시켜 같은 loop이 다시 만든다
@@ -150,6 +172,10 @@ def build_initial_design(object_type, generate=None, max_attempts=MAX_ATTEMPTS, 
         reasons = validator.validate_design(design)
         if reasons:
             return None, reasons
+        if generate is not None and constraints:
+            limit_reasons = constraint_violations(design["blocks"], constraints)
+            if limit_reasons:
+                return None, limit_reasons
         if differ_from is not None and _same_blocks(design["blocks"], differ_from["blocks"]):
             return None, [_unchanged_reason()]
         return design, []
@@ -164,7 +190,7 @@ def build_initial_design(object_type, generate=None, max_attempts=MAX_ATTEMPTS, 
 
 
 def build_revised_design(design, current, differences, generate=None, max_attempts=MAX_ATTEMPTS, delay=RETRY_DELAY, should_stop=None,
-                         min_blocks=None, differ_from=None, design_change=False):
+                         min_blocks=None, differ_from=None, design_change=False, constraints=None):
     """Revised Design(입력 design.design_version + 1, 레이아웃이 실제로 바뀔 때만)을
     만든다. full object, patch 아님. differ_from(직전 Revised 후보)과 같은 블록이면 "unchanged_candidate"로 탈락(§8.14).
 
@@ -211,6 +237,11 @@ def build_revised_design(design, current, differences, generate=None, max_attemp
 
         parsed = json.loads(candidate) if isinstance(candidate, str) else candidate
         blocks = [dict(block) for block in parsed["blocks"]]
+
+        if generate is not None and constraints:
+            limit_reasons = constraint_violations(blocks, constraints)
+            if limit_reasons:
+                return None, limit_reasons
 
         if min_blocks is not None and len(blocks) < min_blocks:
             # 규칙은 통과했지만 이전보다 충분히 풍부하지 않다: 같은 loop이 사유를 받아 다시 만든다.

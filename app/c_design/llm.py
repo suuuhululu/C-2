@@ -51,7 +51,7 @@ from collections import Counter
 import urllib.error
 import urllib.request
 
-from app.c_design import validator
+from app.c_design import dialogue, validator
 
 API_URL = "https://api.openai.com/v1/chat/completions"
 DEFAULT_MODEL = "gpt-4o-mini"
@@ -188,7 +188,9 @@ CATALOG_TEXT = "".join(f"- {family}: {'; '.join(features)}\n" for family, featur
 # Initial system prompt에는 family가 주어지면 그것을 구현하라는 한 문장, concept가 주어지면 앉는 가구로 추상화하라는
 # 한 문장만 더한다(예시 JSON 없음). family와 concept는 함께 주어지지 않는다.
 _FAMILY_GIVEN = ("If the user message names a selected family, realise that family: every defining visible feature listed "
-                 "for it must be clearly visible in the blocks.\n")
+                 "for it must be clearly visible in the blocks. If the user message states limits (for example at most 3 "
+                 "layers, a low seat, a simple piece, few blocks), the stated limits win over any defining feature that "
+                 "conflicts with them (a tall back becomes a lower back, a crown is dropped).\n")
 _CONCEPT_GIVEN = ("Instead of a family, a concept may be given that is not a furniture type (e.g. an apple or a cloud): "
                   "still design a real seating piece and let its silhouette, proportions and colour accents recall the "
                   "concept, never a sculpture.\n")
@@ -205,9 +207,18 @@ _FACING_RULE = (
     "(stool, ottoman, bench) stay without it.\n"
 )
 
+# 기본 선호(2026-10-13 Wave 3): 제한이 없을 때만 높이·블록을 적극 쓰는 풍부한 설계를 선호한다. 사용자가 명시한 제한(층수·
+# 높이·단순함·블록 수·규모)이 항상 이 선호와 family 특징보다 앞선다. MAX_LAYER·MAX_BLOCKS는 상한이지 목표가 아니다.
+_DEFAULT_PREFERENCE = (
+    "Default preference, only when the person stated no limit: make the piece visually rich and complete and use the "
+    f"available height (up to layer {validator.MAX_LAYER}) and block budget (up to {validator.MAX_BLOCKS}) where the chosen "
+    "type benefits from it. Any limit the person stated (number of layers, low height, simplicity, fewer blocks, footprint) "
+    f"always wins over this preference; layer {validator.MAX_LAYER} and {validator.MAX_BLOCKS} blocks are upper bounds, never "
+    "goals.\n"
+)
 SYSTEM_PROMPT_INITIAL = (
     _PREAMBLE + _RULES_INITIAL + "\n" + _SEATING_CONCEPT + _BUILD_HINTS + _FACING_RULE + _PROCEDURE + _FAMILY_GIVEN
-    + _CONCEPT_GIVEN + _SELF_CHECK
+    + _CONCEPT_GIVEN + _DEFAULT_PREFERENCE + _SELF_CHECK
 )
 
 # Revised(EXPRESSIVE v4, 2026-10-07 사용자 승인): Current만 고정하고 이전 Design은 맥락으로만 쓴다. 나머지 블록은 자유롭게
@@ -228,11 +239,12 @@ A feature counts only when it is clearly visible in the silhouette: it spans at 
 """
 SYSTEM_PROMPT_REVISED = (
     _PREAMBLE + _RULES_INITIAL + "\n" + _SEATING_CONCEPT + _BUILD_HINTS + _FACING_RULE + _EXPRESSIVE_HINTS +
-    "Design principle: you are designing a NEW, complete, showcase-worthy piece of the requested family, bigger and bolder than the previous design. The blocks already on the "
+    "Design principle: you are designing a NEW, complete, showcase-worthy piece of the requested family, bigger and bolder than the previous design when the person stated no limit; "
+    "a limit the person stated (number of layers, low height, simplicity, fewer blocks, footprint) always wins over this preference and over the recipes above. The blocks already on the "
     "board stay exactly where they are and must be visible parts of the piece; everything else is yours. The previous adopted design "
     "is only context (what the user asked for: seating furniture, its rough scale and colour scheme, any good trait worth carrying over), never geometry to keep: "
     "its seat, legs, backrest, footprint and family need not survive. Favour large, balanced, visually distinctive volumes "
-    f"(full-width tall back, both armrests, wide plinth, crown) over a plain low chair; use layer {validator.MAX_LAYER} as a real feature; use as many blocks as the concept needs (up to {validator.MAX_BLOCKS}).\n"
+    f"(full-width tall back, both armrests, wide plinth, crown) over a plain low chair; use layer {validator.MAX_LAYER} as a real feature; use as many blocks as the concept needs (up to {validator.MAX_BLOCKS}) — all of this only within the person's stated limits, which may call for a lower, simpler or smaller piece.\n"
     "Assembly-order rule (the planner rejects violations): a new block can only be placed on top of or beside what is already on "
     "the board, never on a lower layer under the footprint of an already-placed block.\n"
     + _PROCEDURE + _SELF_CHECK
@@ -262,7 +274,9 @@ SYSTEM_PROMPT_JUDGE = (
     "no evaluative words such as 화려하다/뻔하다), \"silhouette_tags\": [3-5 short English tags describing the silhouette, e.g. wide-seat, full-width-tall-back, both-armrests, plinth, crown-top, side-rails], "
     "\"chair_likeness\": \"clear\"|\"weak\"|\"not_chair\" (clear = a seat, a readable backrest and an obvious sitting direction at a glance; "
     "not_chair = a person would not read it as something to sit on), \"richer_than_previous\": true/false (clearly richer and more "
-    "complete than the previous design, not just bigger), \"richer_why\": one Korean sentence, "
+    "complete than the previous design, not just bigger; when the input carries stated_limits asking for a lower, simpler or smaller "
+    "piece or fewer blocks, judge instead whether the new design realises that stated direction better than the previous one while "
+    "staying a recognisable seat — a smaller or lower design is then NOT a reason for false), \"richer_why\": one Korean sentence, "
     "\"awkward\": one Korean sentence or '없음'}. Be strict: a name does not make a feature. JSON only."
 )
 
@@ -306,7 +320,9 @@ SYSTEM_PROMPT_REQUEST = (
     "and carries its key point (SPECIFIC: the kind and features; CREATIVE: the concept; ANY: that you will choose a fitting "
     "style), conversational and not a formal announcement, not wordy, and worded freshly each time rather than a fixed "
     "template, e.g. '좋아요. 길고 편안한 벤치 형태로 만들어볼게요.', '좋아요. 바나나의 곡선 느낌을 살린 의자로 만들어볼게요.', "
-    "or for ANY '좋아요. 제가 어울리는 스타일을 골라서 멋진 의자를 만들어볼게요.'}. JSON only."
+    "or for ANY '좋아요. 제가 어울리는 스타일을 골라서 멋진 의자를 만들어볼게요.'; "
+    "\"constraints\": optional object with only the limits the person explicitly stated in this answer, {\"max_layer\": 1-5 ('3층까지만', '3층 이하'), \"height\": \"low\"|\"high\" ('낮게', '높게' about the whole piece, not one part), \"complexity\": \"simple\"|\"rich\" ('간단하게', '화려하게'), \"block_budget\": \"fewer\"|\"more\" ('블록 적게'), \"footprint\": \"wide\"|\"narrow\" ('넓게', '작게')}; omit every key they did not state, never guess, omit the whole object if none; "
+    "keep stated limits also in style_hint}. JSON only."
 )
 # 요청 해석 응답에 있어야 하는 키(main이 확인한다).
 REQUEST_KEYS = ("object", "preference", "family", "style_hint", "sufficient", "follow_up", "reply")
@@ -337,7 +353,9 @@ SYSTEM_PROMPT_INTERVENTION_ANSWER = (
     "each time rather than a fixed template: for REVISE it confirms the new design and reflects the style_hint (e.g. "
     "'알겠습니다. 더 길고 넓은 형태로 다시 만들어볼게요.', '좋아요. 더 차갑고 정돈된 분위기의 의자로 바꿔볼게요.', '알겠습니다. "
     "할로윈 분위기가 더 잘 느껴지도록 다시 만들어볼게요.'), for KEEP it says you will continue once the block is moved back "
-    "(e.g. '네, 원래 자리로 고쳐 주시면 그대로 진행할게요.'), for UNCLEAR or CANCEL \"\"}. JSON only."
+    "(e.g. '네, 원래 자리로 고쳐 주시면 그대로 진행할게요.'), for UNCLEAR or CANCEL \"\"; "
+    "\"constraints\": optional object with only the limits the person explicitly stated in this answer, {\"max_layer\": 1-5 ('3층까지만', '3층 이하'), \"height\": \"low\"|\"high\" ('낮게', '높게' about the whole piece, not one part), \"complexity\": \"simple\"|\"rich\" ('간단하게', '화려하게'), \"block_budget\": \"fewer\"|\"more\" ('블록 적게'), \"footprint\": \"wide\"|\"narrow\" ('넓게', '작게')}; omit every key they did not state, never guess, omit the whole object if none; "
+    "the system never deletes already assembled blocks to satisfy a limit}. JSON only."
 )
 # Intervention 답변 해석 응답에 있어야 하는 키(main이 확인한다). reply는 Stage 2 Wave 4c acknowledgment.
 INTERVENTION_ANSWER_KEYS = ("decision", "style_hint", "reason", "reply")
@@ -369,7 +387,9 @@ SYSTEM_PROMPT_DESIGN_CHANGE_ANSWER = (
     "natural Korean sentence in polite speech (존댓말), worded freshly each time: for REVISE it confirms the new design, says the "
     "already assembled blocks stay, and reflects the style_hint (e.g. '알겠습니다. 조립된 부분은 그대로 두고 등받이를 더 높인 "
     "설계로 다시 만들어볼게요.'), for KEEP it confirms the Design stays as it is (e.g. '네, 지금 설계 그대로 진행할게요.'), for "
-    "UNCLEAR or CANCEL \"\"}. JSON only."
+    "UNCLEAR or CANCEL \"\"; "
+    "\"constraints\": optional object with only the limits the person explicitly stated in this answer, {\"max_layer\": 1-5 ('3층까지만', '3층 이하'), \"height\": \"low\"|\"high\" ('낮게', '높게' about the whole piece, not one part), \"complexity\": \"simple\"|\"rich\" ('간단하게', '화려하게'), \"block_budget\": \"fewer\"|\"more\" ('블록 적게'), \"footprint\": \"wide\"|\"narrow\" ('넓게', '작게')}; omit every key they did not state, never guess, omit the whole object if none; "
+    "the system never deletes already assembled blocks to satisfy a limit}. JSON only."
 )
 
 # Preview 검토 답변 해석(Stage 3 Wave 1). D가 Candidate Design을 HMI에 띄운 뒤 사람에게 "어떠신가요?"라고 물은 답을
@@ -409,7 +429,9 @@ SYSTEM_PROMPT_REVIEW = (
     "back right away, one natural Korean sentence in polite speech (존댓말), worded freshly each time rather than a fixed "
     "template: for APPROVE that you will go ahead with this design (e.g. '좋아요. 이 디자인으로 진행할게요.'), for MODIFY it "
     "reflects the style_hint (e.g. '좋아요. 등받이를 조금 더 높여서 다시 만들어볼게요.'), for CANCEL that the design work stops "
-    "here (e.g. '알겠습니다. 이번 디자인 작업은 여기서 멈출게요.'), for UNCLEAR \"\"}. JSON only."
+    "here (e.g. '알겠습니다. 이번 디자인 작업은 여기서 멈출게요.'), for UNCLEAR \"\"; "
+    "\"constraints\": optional object with only the limits the person explicitly stated in this answer, {\"max_layer\": 1-5 ('3층까지만', '3층 이하'), \"height\": \"low\"|\"high\" ('낮게', '높게' about the whole piece, not one part), \"complexity\": \"simple\"|\"rich\" ('간단하게', '화려하게'), \"block_budget\": \"fewer\"|\"more\" ('블록 적게'), \"footprint\": \"wide\"|\"narrow\" ('넓게', '작게')}; omit every key they did not state, never guess, omit the whole object if none; "
+    "a limit stated earlier still applies unless they change it}. JSON only."
 )
 # 검토 답변 해석 응답에 있어야 하는 키(main이 확인한다).
 REVIEW_KEYS = ("decision", "style_hint", "scope", "concept", "reason", "reply")
@@ -447,6 +469,63 @@ _REVISED_DESIGN_CHANGE_NOTE = ("Apply the requested change first and make it cle
 _REVISED_PRIORITIES = _REVISED_GUIDANCE
 _REVISED_GUIDANCE = _REVISED_PRIORITIES + _REVISED_DIFFERENCE_NOTE + _REVISED_CLOSING  # Intervention 문자열은 Wave 3 이전과 동일
 _REVISED_DESIGN_CHANGE_GUIDANCE = _REVISED_PRIORITIES + _REVISED_DESIGN_CHANGE_NOTE + _REVISED_CLOSING
+
+# 2026-10-13 Robot-only rule update Wave 3: 사용자가 이번 요청에서 명시한 제한이 있으면 Revised 우선순위를 "Current 보존 > 규칙 >
+# 사용자 명시 요구 > 품질 > facing"으로 쓴다. 제한이 없으면 위 _REVISED_PRIORITIES(expressive 기본 선호)를 그대로 쓴다.
+_CONSTRAINT_PHRASES = {
+    ("max_layer", None): "use at most {n} layers (no block above layer {n})",
+    ("height", "low"): "keep the whole piece low",
+    ("height", "high"): "make the piece tall (within the rules)",
+    ("complexity", "simple"): "keep it simple: no decorative extras, only the parts the seat needs",
+    ("complexity", "rich"): "make it rich and elaborate",
+    ("block_budget", "fewer"): "use few blocks: a compact design, a smaller block count than the previous Design is correct",
+    ("block_budget", "more"): "use more blocks (up to the limit)",
+    ("footprint", "wide"): "make the seating area wide",
+    ("footprint", "narrow"): "keep the footprint small",
+}
+
+
+def constraints_text(constraints):
+    """명시 제약 → 프롬프트 한 줄(영어). 없으면 ""."""
+    c = constraints or {}
+    phrases = []
+    for key in dialogue.CONSTRAINT_KEYS:
+        if key not in c or c[key] is None:
+            continue
+        if key == "max_layer":
+            phrases.append(_CONSTRAINT_PHRASES[("max_layer", None)].format(n=c[key]))
+        elif (key, c[key]) in _CONSTRAINT_PHRASES:
+            phrases.append(_CONSTRAINT_PHRASES[(key, c[key])])
+    return "; ".join(phrases)
+
+
+def _stated_limits_paragraph(constraints):
+    text = constraints_text(constraints)
+    if not text:
+        return ""
+    return ("Stated limits from the person (these win over every default preference, family feature, richness or height "
+            f"goal in this message and in the system message): {text}.\n")
+
+
+def _revised_priorities_with_limits(constraints):
+    """제한이 있을 때의 Revised 우선순위 문단(Current 보존 > 규칙 > 사용자 명시 요구 > 품질 > facing)."""
+    limits = constraints_text(constraints)
+    return f"""Revised Design goal: Preserve the Current exactly. Treat the previous Design as context, not as geometry to preserve. All non-Current blocks are future targets and may be freely moved, removed, replaced, or added. Redesign the remaining structure from scratch if that produces a more coherent, realistic seating-furniture design within the person's stated limits; the seat position, support layout, backrest, footprint and even the furniture family may change. In priority order:
+- First, every Current block appears exactly as required above (brick_type, color, x, y, layer, orientation_deg unchanged).
+- Second, the result passes every rule above, and no new block sits on a lower layer under an already-placed block.
+- Third, the person's stated requirements for this revision win over everything below: {limits}. A lower, simpler or smaller design than the previous one is correct when that is what they asked for.
+- Fourth, the result reads at a glance as seating furniture: a clear seat, support that visibly carries it, and the parts the chosen family needs within the limits.
+- Fifth, every feature that is present is big enough to see (at least two blocks or a whole row, symmetric or deliberately balanced); do not add features, height or blocks that the limits exclude.
+- Then, where the Current blocks allow it, keep the canonical facing from the system message (open front toward +X, backrest along the low-x edge). This never outranks the Current: do not move, rotate, recolour or drop a Current block to achieve it, and if the Current already fixes a different facing (for example a backrest row already built at high x), follow the Current's facing instead.
+All blocks not in the Current are future targets: move, remove, replace or add them freely. Use the previous adopted design only as context. """
+
+
+def revised_guidance(constraints=None, design_change=False):
+    """Revised 메시지 guidance: 제한이 있으면 사용자 요구 우선 버전, 없으면 기존 expressive 버전."""
+    note = _REVISED_DESIGN_CHANGE_NOTE if design_change else _REVISED_DIFFERENCE_NOTE
+    if constraints_text(constraints):
+        return _revised_priorities_with_limits(constraints) + note + _REVISED_CLOSING
+    return _REVISED_DESIGN_CHANGE_GUIDANCE if design_change else _REVISED_GUIDANCE
 
 
 def _error(kind, message):
@@ -486,7 +565,7 @@ def _check_previous_candidate(previous_candidate, scope):
 
 
 def _initial_user_message(object_type, reasons, family=None, style_hint=None, concept=None, previous_candidate=None,
-                          scope=None):
+                          scope=None, constraints=None):
     """family·style_hint·concept가 없으면 기존 메시지 그대로. family가 있으면 그 defining features를 함께 적는다.
 
     concept(CREATIVE)가 있으면 실제 앉는 가구로 추상화하라는 문단을 넣는다. CREATIVE에서는 style_hint가 concept와
@@ -517,6 +596,7 @@ def _initial_user_message(object_type, reasons, family=None, style_hint=None, co
     return (
         f"Target object: {object_type}.\n"
         + _INITIAL_GOAL
+        + _stated_limits_paragraph(constraints)
         + selected
         + f"Previous candidate was rejected for: {_reasons_text(reasons)}\n"
         "Return a complete new design."
@@ -524,7 +604,7 @@ def _initial_user_message(object_type, reasons, family=None, style_hint=None, co
 
 
 def _revised_user_message(design, current, differences, reasons, feedback=None, min_blocks=None, style_hint=None,
-                          previous_candidate=None, scope=None, change_request=None):
+                          previous_candidate=None, scope=None, change_request=None, constraints=None):
     """feedback(judge 피드백 문단)은 재생성 때만 넣는다. 끝에 style_hint·family 자유·chair-first·richer 문단을 넣는다.
 
     min_blocks가 있으면 최소 블록 수 문장을 넣는다(richness, designer.revised_min_blocks); 없으면 블록 수 문장을 뺀다.
@@ -533,16 +613,18 @@ def _revised_user_message(design, current, differences, reasons, feedback=None, 
     block 문단) 대신 사용자의 변경 요청과 Design-Change 문단을 넣는다. None이면 기존 Intervention 메시지 그대로다.
     """
     count = ("" if min_blocks is None else f" (at least {min_blocks} blocks, at most {validator.MAX_BLOCKS})")
+    limited = bool(constraints_text(constraints))
     if change_request is None:
         intro = "The user chose REVISE. Design a complete seating-furniture piece around the blocks already on the board.\n"
         context_line = f"Differences (expected vs actual): {json.dumps(differences, ensure_ascii=False)}\n"
-        guidance = _REVISED_GUIDANCE
     else:
         intro = ("The user asked to change the adopted Design while assembly is in progress (no misplaced block: the Current "
                  "is simply what has been built so far). Design a complete seating-furniture piece around the blocks already "
                  "on the board.\n")
         context_line = f"User requested change: {json.dumps(change_request, ensure_ascii=False)}\n"
-        guidance = _REVISED_DESIGN_CHANGE_GUIDANCE
+    guidance = revised_guidance(constraints, design_change=change_request is not None)
+    richer = ("realise the person's stated direction (it may be lower, simpler or smaller than the previous Design)" if limited
+              else "be richer and more complete than the previous Design")
     return (
         intro
         + "Latest Current (actually placed blocks). Every Current block must appear in the final Revised Design with brick_type, color, x, y, "
@@ -559,10 +641,10 @@ def _revised_user_message(design, current, differences, reasons, feedback=None, 
            "use the extra blocks for meaningful chair structure, never filler.\n")
         + (feedback or "") + guidance
         + f"Style hint from the person (follow it first): {style_hint or '없음'}\n"
-        "Choose the furniture family yourself; it may differ from the previous Design. The result must read as a chair first "
-        "(a clear seat, a readable backrest, an obvious sitting direction) and be richer and more complete than the previous "
-        f"Design{count}. Red exists only as 1x2x1: use it for trims, rails, accents or edges; the body is yellow/blue 2x2x1 and "
-        "2x3x1.\n"
+        + _stated_limits_paragraph(constraints)
+        + "Choose the furniture family yourself; it may differ from the previous Design. The result must read as a chair first "
+        f"(a clear seat, a readable backrest, an obvious sitting direction) and {richer}{count}. Red exists only as 1x2x1: use "
+        "it for trims, rails, accents or edges; the body is yellow/blue 2x2x1 and 2x3x1.\n"
     )
 
 
@@ -676,23 +758,32 @@ def _call(user_message, should_stop, temperature=0, system_prompt=None, model=No
     return last_error
 
 
-def choose_initial_family(preference, rng=None):
+# 카탈로그 정의 특징이 "맨 위층까지 올라가는" family. 사용자가 낮게 또는 3층 이하를 명시하면 무작위 선택에서 뺀다(Wave 3).
+TALL_FAMILIES = ("high-back chair", "wingback chair", "throne", "canopy chair", "bar-stool-like seat")
+
+
+def choose_initial_family(preference, rng=None, constraints=None):
     """Initial family. 선호가 SPECIFIC이고 family가 카탈로그 키면 그 family, CREATIVE면 None(concept로 생성),
     그 밖에는 카탈로그에서 균등 확률 선택.
 
     preference는 None 또는 interpret_initial_request 결과 dict. 이력·가중치는 쓰지 않는다. 테스트는
-    rng=random.Random(seed)를 넣는다.
+    rng=random.Random(seed)를 넣는다. constraints(Wave 3)가 낮게·3층 이하를 말하면 무작위 선택에서 TALL_FAMILIES를 뺀다
+    (SPECIFIC으로 이름을 댄 family는 그대로 두고 프롬프트의 "stated limits win"이 특징을 낮춘다).
     """
     kind = preference.get("preference") if isinstance(preference, dict) else None
     if kind == "SPECIFIC" and preference.get("family") in FAMILY_CATALOG:
         return preference["family"]
     if kind == "CREATIVE":
         return None
-    return (rng or random).choice(sorted(FAMILY_CATALOG))
+    pool = sorted(FAMILY_CATALOG)
+    c = constraints or {}
+    if c.get("height") == "low" or (c.get("max_layer") is not None and c["max_layer"] <= 3):
+        pool = [family for family in pool if family not in TALL_FAMILIES]
+    return (rng or random).choice(pool)
 
 
 def generate_initial_design(object_type, reasons=None, should_stop=None, family=None, style_hint=None, concept=None,
-                            previous_candidate=None, scope=None):
+                            previous_candidate=None, scope=None, constraints=None):
     """Initial Design 후보. 사용자 발화 원문은 보내지 않고 해석된 object_type(과 고른 family 또는 concept·style_hint)만
     보낸다. family와 concept는 함께 줄 수 없다(ValueError).
 
@@ -703,12 +794,12 @@ def generate_initial_design(object_type, reasons=None, should_stop=None, family=
         raise ValueError("family and concept are mutually exclusive")
     _check_previous_candidate(previous_candidate, scope)
     return _call(_initial_user_message(object_type, reasons, family=family, style_hint=style_hint, concept=concept,
-                                       previous_candidate=previous_candidate, scope=scope),
+                                       previous_candidate=previous_candidate, scope=scope, constraints=constraints),
                  should_stop, system_prompt=SYSTEM_PROMPT_INITIAL)
 
 
 def generate_revised_design(design, current, differences, reasons=None, should_stop=None, feedback=None, min_blocks=None,
-                            style_hint=None, previous_candidate=None, scope=None, change_request=None):
+                            style_hint=None, previous_candidate=None, scope=None, change_request=None, constraints=None):
     """Revised Design 후보. Current만 보존하고 나머지는 family를 자유롭게 골라 재설계한다(검증은 validator).
 
     design은 채택(Approved) Design이다(버전 기준). Preview 검토 MODIFY 재생성(Stage 3 Wave 2)은 직전 Revised 후보
@@ -721,7 +812,7 @@ def generate_revised_design(design, current, differences, reasons=None, should_s
     return _call(
         _revised_user_message(design, current, differences, reasons, feedback=feedback, min_blocks=min_blocks,
                               style_hint=style_hint, previous_candidate=previous_candidate, scope=scope,
-                              change_request=change_request), should_stop,
+                              change_request=change_request, constraints=constraints), should_stop,
         temperature, system_prompt=SYSTEM_PROMPT_REVISED,
     )
 
@@ -816,11 +907,14 @@ def _block_delta(previous, design):
             [dict(zip(validator.BLOCK_FIELDS, k)) for k in sorted((before - after).elements())])
 
 
-def judge_revised_design(previous, design, current, differences, should_stop=None):
-    """완성된 Revised Design 평가(dict) 또는 llm_error. 키 확인은 main이 한다. 모델은 JUDGE_MODEL_ENV 또는 DEFAULT_JUDGE_MODEL."""
+def judge_revised_design(previous, design, current, differences, should_stop=None, constraints=None):
+    """완성된 Revised Design 평가(dict) 또는 llm_error. 키 확인은 main이 한다. 모델은 JUDGE_MODEL_ENV 또는 DEFAULT_JUDGE_MODEL.
+    constraints(Wave 3)가 있으면 stated_limits로 함께 보내 richer_than_previous를 요청 방향 기준으로 판단하게 한다."""
     added, removed = _block_delta(previous, design)
     payload = {"previous_design": previous, "new_design": design, "current_blocks": current,
                "difference": differences, "blocks_added": added, "blocks_removed": removed}
+    if constraints_text(constraints):
+        payload["stated_limits"] = constraints_text(constraints)
     return _json_call(SYSTEM_PROMPT_JUDGE, "Judge this revised design.\n" + json.dumps(payload, ensure_ascii=False), should_stop,
                       model=os.environ.get(JUDGE_MODEL_ENV) or DEFAULT_JUDGE_MODEL)
 
