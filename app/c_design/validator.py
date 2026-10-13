@@ -215,7 +215,7 @@ def _support_violations(nodes):
         for other in below:
             shared |= node["footprint"] & other["footprint"]
         total = len(node["footprint"])
-        required = min(MIN_SUPPORT_STUDS, total)
+        required = required_support_studs(node["block"])
         if len(shared) < required:
             reasons.append(_reason("support", [node["block"]],
                                    f"block support studs={len(shared)} < {required} "
