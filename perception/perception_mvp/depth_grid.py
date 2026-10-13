@@ -212,7 +212,8 @@ def measure_candidate(mask, part_class, confidence, depth, scale, intrinsics,
         if rgb.shape != (*mask.shape, 3) or rgb.dtype != np.uint8:
             raise ValueError('uint8 aligned RGB required for outline')
         try:
-            selected = top_surface_points(board * 1000., minimum_points=config['min_depth_pixels'])
+            selected = top_surface_points(board * 1000., minimum_points=config['min_depth_pixels'],
+                                          pixels=(v, u, mask.shape))
             height_board = board[selected]
         except ValueError as error:
             return unknown(str(error))
@@ -322,6 +323,9 @@ def process_saved(directory, detections, calibration, config):
     if config.get('block_surface_height_basis') in (
             'BODY_TOP_PLUS_STUD', 'DIRECT_STUD_TOP', 'TOP_PLANE_PLUS_STUD'):
         result.update(occupied_region_evidence(results, config))
+        # Kept separately so a View role can use clear-column evidence without occupied layers.
+        result['occupied_regions'] = list(result['verified_regions'])
+        result['empty_regions'] = []
         if (config.get('layer_height_reference') == 'BOARD_FLAT_SURFACE_ZERO' and
                 len(config['top_heights_m']) == 5):
             from .region_evidence import empty_column_evidence
@@ -336,6 +340,7 @@ def process_saved(directory, detections, calibration, config):
             empty_regions = [region for region in empty['verified_regions']
                              if (region['x'], region['y']) not in occupied_columns]
             result['verified_regions'] += empty_regions
+            result['empty_regions'] = list(empty_regions)
             result['verification_basis'] = dict(occupied=result['verification_basis'],
                 empty=empty['verification_basis'] if empty_regions else None) if result['verified_regions'] else None
             result['empty_column_diagnostics'] = empty['rejection_counts']
@@ -343,31 +348,74 @@ def process_saved(directory, detections, calibration, config):
 
 
 def process_saved_bundle(recordings, calibration, config, check_id, observation_seq,
-                         previous_accepted_blocks, target_after, *, scene_stable):
+                         previous_accepted_blocks, target_after, *, scene_stable,
+                         unknown_policy='VIEW'):
     """recordings: directory/detections/verified_regions, independently verified inputs.
 
     Existing single-frame CLI remains a candidate preview. This function connects
     its actual calculations to common Observed without treating ROI as verified.
+
+    unknown_policy:
+      'VIEW' (default, unchanged): any UNKNOWN candidate makes the whole view UNOBSERVABLE
+          with empty verified regions.
+      'CANDIDATE': an UNKNOWN candidate only drops itself. Measured candidates and
+          measured evidence of the same view are kept. The UNKNOWN candidate never becomes a
+          block and its cells are never added as verified: occupied evidence skips it and
+          empty-column evidence excludes every detection mask and requires Depth rays to
+          pass the whole column. Regions supplied by the caller cannot be cross-checked
+          against an unmeasured candidate, so they are dropped for that view. The partial
+          failure stays visible as an issue (so MATCH is not reached silently) and in
+          diagnostics['partial_unknown_candidates'].
+      'ROLES': V0 owns layers (blocks and occupied footprints); D1/D3 are auxiliary and only
+          add clear-column evidence and a same-layer cross-check (see view_roles). A D1/D3
+          UNKNOWN candidate is not gating; a V0 one is. Live observe_cycle uses this policy.
     """
-    views, source_diagnostics, scene_ids = [], [], set()
+    if unknown_policy not in ('VIEW', 'CANDIDATE', 'ROLES'):
+        raise ValueError("unknown_policy must be VIEW, CANDIDATE or ROLES")
+    views, source_diagnostics, scene_ids, partial = [], [], set(), []
+    role_notes, role_gating = {}, []
     for recording in recordings:
         result = process_saved(recording["directory"], recording["detections"], calibration, config)
         scene_ids.add(result["scene_id"])
         candidates = result["candidates"]
+        if unknown_policy == 'ROLES':
+            from .view_roles import build_role_view
+            identity = {"check_id": check_id, "observation_seq": observation_seq,
+                        "calibration_id": calibration["calibration_id"]}
+            view, notes, gating = build_role_view(identity, result, recording["verified_regions"],
+                lambda c: candidate_to_block(c, config["center_to_anchor_offsets_stud"]))
+            role_notes[result["view_id"]] = notes
+            role_gating += gating
+            views.append(view)
+            source_diagnostics.append(result)
+            continue
         unknown = any(c["status"] == "UNKNOWN" for c in candidates)
         blocks = [candidate_to_block(c, config["center_to_anchor_offsets_stud"])
                   for c in candidates if c["status"] == "CANDIDATE"]
-        views.append({"check_id": check_id, "observation_seq": observation_seq,
-                      "calibration_id": calibration["calibration_id"],
-                      "view_id": result["view_id"], "visible_blocks": blocks,
-                      "verified_regions": [] if unknown else (
-                          recording["verified_regions"] + result.get('verified_regions', [])),
-                      "status": "UNOBSERVABLE" if unknown else "OK",
-                      "reason": "unknown_detection" if unknown else None})
+        view = {"check_id": check_id, "observation_seq": observation_seq,
+                "calibration_id": calibration["calibration_id"],
+                "view_id": result["view_id"], "visible_blocks": blocks}
+        if unknown and unknown_policy == 'CANDIDATE':
+            view.update(verified_regions=list(result.get('verified_regions', [])),
+                        status="OK", reason=None)
+            partial.append(dict(view_id=result["view_id"],
+                reasons=[c.get("reason") for c in candidates if c["status"] == "UNKNOWN"],
+                measured_candidates=len(blocks)))
+        else:
+            view.update(verified_regions=[] if unknown else (
+                            recording["verified_regions"] + result.get('verified_regions', [])),
+                        status="UNOBSERVABLE" if unknown else "OK",
+                        reason="unknown_detection" if unknown else None)
+        views.append(view)
         source_diagnostics.append(result)
     if len(scene_ids) > 1:
         raise ValueError("recordings must belong to one static scene")
     observed, diagnostics = build_observed(check_id, observation_seq, views,
         previous_accepted_blocks, target_after, scene_stable=scene_stable)
     diagnostics["source_measurements"] = source_diagnostics
+    diagnostics["partial_unknown_candidates"] = partial
+    diagnostics["issues"].extend(f"{p['view_id']}:partial_unknown_candidates" for p in partial)
+    if unknown_policy == 'ROLES':
+        from .view_roles import finalize
+        finalize(diagnostics, role_notes, role_gating)
     return observed, diagnostics

@@ -16,6 +16,7 @@ from .contracts import candidate_to_block
 from .depth_grid import process_saved
 from .runtime_log import progress
 from .backend_adapter import build_observed
+from .view_roles import AUTHORITY_VIEW, build_role_view, finalize
 
 DEFAULT_CYCLE_OUTPUT = Path(__file__).resolve().parent.parent / "recordings" / "observation_cycles"
 
@@ -158,6 +159,7 @@ def observe_cycle(gate, capture_view, manifest, weights, calibration, config,
         raise ValueError("Backend check and bundle-start sequence required")
     kind = validate_cycle_target(context)
     views, measurements, scenes = [], [], set()
+    role_notes, role_gating = {}, []
     def require_valid():
         if bundle_valid() is not True:
             raise RuntimeError("bundle interrupted or continuity/safety unverified")
@@ -198,8 +200,7 @@ def observe_cycle(gate, capture_view, manifest, weights, calibration, config,
             progress(context, '분석 시작', view=view_id)
             detections = infer_masks(rgb, weights, detector_confidence)
             result = process_saved(record["directory"], detections, calibration, config)
-            # Only positively measured occupied footprints; no empty-space fallback.
-            regions = regions + result.get('verified_regions', [])
+            # Which measured evidence a View may contribute is decided by its role (view_roles).
             write_cycle_json(view_directory / 'measured_occupancy_evidence.json', dict(
                 verified_regions=result.get('verified_regions', []),
                 verification_basis=result.get('verification_basis')))
@@ -208,17 +209,19 @@ def observe_cycle(gate, capture_view, manifest, weights, calibration, config,
                 if candidate['status'] == 'CANDIDATE':
                     candidate['block'] = candidate_to_block(candidate, config['center_to_anchor_offsets_stud'])
             unknown = any(c["status"] == "UNKNOWN" for c in result["candidates"])
-            progress(context, '분석 완료·관측 불가' if unknown else '분석 완료', view=view_id,
+            progress(context, '분석 완료·일부 후보 미확인' if unknown else '분석 완료', view=view_id,
                      detected=len(result['candidates']),
                      reasons=[c.get('reason') for c in result['candidates'] if c['status'] == 'UNKNOWN'])
-            views.append({"check_id": check, "observation_seq": seq,
-                "calibration_id": calibration["calibration_id"], "view_id": view_id,
-                "visible_blocks": [candidate_to_block(c, config["center_to_anchor_offsets_stud"])
-                    for c in result["candidates"] if c["status"] == "CANDIDATE"],
-                "verified_regions": [] if unknown else regions,
-                "status": "UNOBSERVABLE" if unknown else "OK",
-                "reason": "unknown_detection" if unknown else None})
-            views[-1]['measured_candidates'] = vote_candidates
+            # V0 owns layers and occupied footprints; D1/D3 are auxiliary (view_roles). An UNKNOWN
+            # candidate only drops itself, so one failed D1/D3 candidate no longer voids its View.
+            view, notes, gating = build_role_view(
+                dict(check_id=check, observation_seq=seq, calibration_id=calibration["calibration_id"]),
+                dict(result, view_id=view_id), regions,
+                lambda c: candidate_to_block(c, config["center_to_anchor_offsets_stud"]))
+            role_notes[view_id] = notes
+            role_gating += gating
+            views.append(view)
+            views[-1]['measured_candidates'] = vote_candidates if view_id == AUTHORITY_VIEW else []
             measurements.append(result)
             require_valid()
             partial, details = build_observed(check, seq, views,
@@ -237,6 +240,7 @@ def observe_cycle(gate, capture_view, manifest, weights, calibration, config,
             context["previous_accepted_blocks"], context.get("target_after"),
             scene_stable=True, check_kind=kind, vote_policy=config.get('class_vote_policy'))
         diagnostics["source_measurements"] = measurements
+        finalize(diagnostics, role_notes, role_gating)
         require_valid()
         write_cycle_json(archive / "observed.json", observed)
         write_cycle_json(archive / "diagnostics.json", diagnostics)

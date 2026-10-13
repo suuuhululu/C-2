@@ -173,7 +173,7 @@ def test_geometry_and_explicit_layer_reference(monkeypatch):
     assert body_result['block_stud_added_mm'] == 4. and body_result['layer'] == 1
     with monkeypatch.context() as patch:
         patch.setattr('perception_mvp.integrated_view.top_surface_points',
-                      lambda points: np.ones(len(points), bool))
+                      lambda points, **kwargs: np.ones(len(points), bool))
         mixed_depth = depth.copy()
         mixed_depth[:15] = 794  # Synthetic heights 22/28mm: spread6mm.
         with pytest.raises(ValueError, match='surface_height_conflict'):
@@ -200,7 +200,10 @@ def test_geometry_and_explicit_layer_reference(monkeypatch):
     result = measure_instance(rgb, mask, 'yellow_2x2', depth, info, calibration,
         levels, settings['tolerance_mm'], height_reference_offset_mm=4.)
     assert result['layer'] is None and result['reason'] == 'height_outside_layer_reference'
-    for difference, expected_layer in ((-2.5, 1), (2.5, 1), (-2.6, None), (2.6, None)):
+    tolerance = settings['tolerance_mm']  # Configured layer tolerance (+/-5mm since 2026-10-14).
+    assert tolerance == pytest.approx(5.)
+    for difference, expected_layer in ((-tolerance, 1), (tolerance, 1),
+                                       (-(tolerance + .1), None), (tolerance + .1, None)):
         calibration['camera_pose']['t_camera_from_board_mm'][2] = 800 + levels[0] + difference - 4
         result = measure_instance(rgb, mask, 'yellow_2x2', depth, info, calibration,
             levels, settings['tolerance_mm'], height_reference_offset_mm=4.)

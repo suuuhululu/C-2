@@ -65,14 +65,18 @@ geometry:
   min_depth_m: 0.334
   max_depth_m: 0.763
   depth_ranges_m:
-    V0: {min_depth_m: 0.443, max_depth_m: 0.573}
-    D1: {min_depth_m: 0.334, max_depth_m: 0.763}
-    D3: {min_depth_m: 0.397, max_depth_m: 0.696}
+    V0: {min_depth_m: 0.441, max_depth_m: 0.573}
+    D1: {min_depth_m: 0.332, max_depth_m: 0.763}
+    D3: {min_depth_m: 0.395, max_depth_m: 0.696}
+  # min_depth lowered 2mm after the layer tolerance widened to 5mm (top layer + 5mm is closer to the camera); max unchanged.
   depth_range_status: calibration_derived_trial_not_depth_validated
   depth_range_margin_m: 0.005
   grid_tolerance_stud: 0.25  # Existing grid_anchor trial threshold.
   size_tolerance_m: 0.0056  # Existing 0.35-stud size tolerance at 16mm pitch.
-  height_tolerance_m: 0.0025
-  # Trial P95-P5 limit; matches the 5mm total layer tolerance width, not measured noise.
+  # Layer tolerance widened from 0.0025 to 0.005 (owner decision 2026-10-14) so the layer index
+  # survives D1/D3 board-baseline offsets. Layer spacing is 18.625mm; code requires 2*tolerance < spacing.
+  # Still a trial value, not a measured accuracy.
+  height_tolerance_m: 0.005
+  # Trial P95-P5 limit, unchanged at 5mm and independent of the layer tolerance above; not measured noise.
   max_height_spread_m: 0.005
   angle_tolerance_deg: 10.0  # Existing integrated-view trial threshold.

@@ -5,7 +5,7 @@ from copy import deepcopy
 import numpy as np
 import pytest
 
-from rgbd_io import save_frame
+from perception_mvp.rgbd_io import save_frame
 from perception_mvp import main as runtime
 
 
@@ -152,7 +152,7 @@ def test_coverage_without_evidence_rejected(inputs):
 
 
 def test_missing_model_does_not_return_fixture(inputs, monkeypatch):
-    from saved_perception import infer_masks
+    from perception_mvp.yolo_pipeline import infer_masks
     monkeypatch.setattr(runtime, "infer_masks", infer_masks)
     with pytest.raises(FileNotFoundError, match="weights"):
         run(inputs)

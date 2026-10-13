@@ -60,8 +60,9 @@ def measure_instance(rgb, mask, part_class, depth, info, calibration, layer_heig
                                           return_pair=True, diagnostics=surface_diagnostics)
         outline_support = keep | studs
     else:
-        keep = (top_surface_points(board, diagnostics=surface_diagnostics)
-                if surface_diagnostics is not None else top_surface_points(board))
+        pixels = (v, u, mask.shape)  # Lets the horizontal-patch pass see which points are neighbours.
+        keep = (top_surface_points(board, diagnostics=surface_diagnostics, pixels=pixels)
+                if surface_diagnostics is not None else top_surface_points(board, pixels=pixels))
         outline_support = keep
     if max_height_spread_mm is not None:
         from .depth_grid import height_spread_within

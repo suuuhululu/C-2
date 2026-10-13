@@ -54,9 +54,23 @@ def test_outline_is_projected_on_measured_plane_not_stud_height():
                                rtol=0, atol=1e-9)
 
 
-def test_plane_plus_stud_outside_layer_tolerance_stays_unknown():
-    # A plane at 22mm would become 26mm after the stud: 4mm from layer 1, outside +/-2.5mm.
+def test_layer_tolerance_is_five_millimetres_and_below_half_spacing():
+    config = inputs()[-1]
+    spacing = min(b - a for a, b in zip(config['top_heights_m'], config['top_heights_m'][1:]))
+    assert config['height_tolerance_m'] == .005 and 2 * config['height_tolerance_m'] < spacing
+
+
+def test_plane_plus_stud_within_layer_tolerance_is_measured():
+    # A plane at 22mm becomes 26mm after the stud: 4mm from layer 1, inside +/-5mm.
     mask, rgb, depth, transform, intrinsics, config = inputs(22.)
+    result = measure_candidate(mask, 'yellow_2x2', .9, depth, .001, intrinsics,
+                               transform, config, rgb=rgb)
+    assert result['status'] == 'CANDIDATE' and result['measured_layer_index'] == 0
+
+
+def test_plane_plus_stud_outside_layer_tolerance_stays_unknown():
+    # A plane at 24mm becomes 28mm after the stud: 6mm from layer 1, outside +/-5mm.
+    mask, rgb, depth, transform, intrinsics, config = inputs(24.)
     result = measure_candidate(mask, 'yellow_2x2', .9, depth, .001, intrinsics,
                                transform, config, rgb=rgb)
     assert result['status'] == 'UNKNOWN' and result['reason'] == 'height_not_in_measured_layer'

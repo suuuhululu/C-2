@@ -1,5 +1,58 @@
 # 현재 진행 상황
 
+## 2026-10-13 — 3D 오버레이 가독성 조정
+
+- 사용자 실카메라 피드백으로 면 기본 불투명도 15%→8%(배경 92%), Expected의 3픽셀 초록 경계선을 모든 면 1픽셀로 변경했다. 블록 면 색상과 상태 비교 로직은 유지한다. 표시 관련 회귀 36 passed, 종료 0; 대상 diff --check 통과. 실제 화면 가독성은 재실행 후 사용자 확인 필요. Git 게시/장치 명령 없음.
+
+## 2026-10-13 — 3D 오버레이 면에 블록 색상 적용
+
+- 관련 visualization/live-overlay/round1 검사 59 passed, 1 skipped(D 소비자 경로 미제공), 종료 0. 대상 diff --check 통과. 실제 카메라 화면 색 확인은 재실행 후 필요.
+
+- 사용자 요청으로 visualization의 반투명 입체 면·스터드 색을 각 블록의 color(yellow/blue/red)로 변경했다. Expected는 설계 색, Current/이전 상태는 실제 확정 색을 유지한다. 비교 상태는 기존 분홍/초록 경계·굵기·범례로 구분한다. 공통 비교/Observed·D 코드는 변경 없음. 15% 불투명도와 투영 조건 유지.
+- 세 색 면 색상과 실제 파랑/목표 노랑 불일치 보존 회귀를 추가. 실제 RGB 테스트의 합성 상태는 기존 노랑 예시이며 실제 Design 생산자 입력으로 대체돼야 설계별 색을 표시한다. 실기 검증/목표 색으로 실제 관측 보정/로봇 명령/Git 게시 없음.
+
+## 2026-10-13 — 실제 ROS 영상 3D 오버레이 단독 시험 모드
+
+- 첫 신규 검사에서 3개 높이만 준 fixture가 기존 투영의 4/5층 형식과 맞지 않아 1 failed/54 passed. helper도 4/5개 기준을 명시하도록 수정하고 fixture를 해당 형식으로 정정한 뒤 재검사했다. 기존 투영 조건은 완화하지 않았다.
+
+- live_view에 --live-overlay-test를 추가. 실제 /camera/color/image_raw·RGB CameraInfo와 선택 View 보정으로 시험용 2×2 1~3층 상태를 투영한다. 모델 추론·B Current 확정·Observed/Robot 출력·c 저장은 비활성이다. 상태는 SYNTHETIC, 높이는 기존 시험 설정임을 화면에 표시한다. 실제 정지 s 뒤 b=비교 전/a=합성 확정 후로 auto 모드 전환을 확인한다. m/관측점 전환은 숨김·시험 단계 초기화, 실제 Robot 이동 명령 없음.
+- 실제 RGB 해상도/내부 파라미터·왜곡·수신 최신성을 검사하며 기준면은 기존 stud plane에서 평평한 보드면으로 4mm 변환한다. 이는 시험 투영이며 실제 Depth 높이/좌표 정확도 통과를 뜻하지 않는다. 기존 외부 작업 변경은 보존.
+- 관련 live-overlay/live-view/visualization 검사 55 passed, 종료 0; 대상 diff --check 통과. 실제 카메라 창은 사용자의 재실행 후 확인 필요. Git 게시/장치 이동 없음.
+
+## 2026-10-13 — 팀 production 좌표 경로 RGB외곽으로 통일
+
+- DIRECT_STUD_TOP의 measure_candidate에 실제RGB 전달, 기존rgb_top_quad 공간근거검사를사용하고 CameraInfo ray→측정높이평면→보드XY로변환. process_saved가원본RGB를전달. RGB누락UNKNOWN, Depth-only자동fallback금지. legacy계산은명시기존입력만유지. 다른팀/원자료/index보존.
+- 신규정상좌표·층/스터드중복가산없음/RGB누락보류회귀포함 관련22검사통과, 종료0. 실제V0 3층기록 원본RGB/Depth/26s production시험은height_not_in_measured_layer UNKNOWN, 종료0. broader검사47통과·1실패는기존test_runtime의saved_perception import부재이며숨기거나제외수정하지않았다. 실제D/장치연결미검증.
+
+## 2026-10-13 — RGB외곽/Depth높이 공간근거 분리
+
+- 사용자 승인으로 외곽내부Depth밀도55%를최소50점/4구역각12점/양축분포50%시험검사로대체. production DIRECT_TOP도같은함수적용, 기존마스크/포함/기하/층조건유지. 편중/중앙/가림/부족거부회귀추가. 다른팀/원자료/index유지.
+- 실제6장 재생 종료0: 1개grid[9,13]·H54.775mm 출력, layer 미확정(3층 기준과4.475mm 차이). 나머지13개 평면/Depth 보류. 좌표GT/실기/D 연결 미검증. spatial_top 결과 보존. 추가 회전/가림 회귀 포함 관련60검사 통과, 종료0.
+
+## 2026-10-13 — 외곽 실패 조건 확인(판정 변경 전)
+
+- 기존converged_top 결과/코드검토: V0 통과plane의RGB4점후보는존재, 마스크85%/점포함80%통과, 내부37.58%로55%조건실패. 직접스터드점의면적점유와전체RGB외곽검사의의미차이확인. 실제스터드GT판별은미검증.
+- 판정조건변경은하지않음. RGB외곽/Depth높이증거분리와새공간근거검사적용방향확인필요. 문서diff검사, 새모델/장치시험없음. 다른팀/원자료/index유지.
+
+## 2026-10-13 — 직접 윗면 평면 수렴 개선
+
+- 3회 제한을 최대20회 수렴 검사로 교체, 판정 임계값 유지. 관련39검사 통과, 실제6장재생 종료0. V0 3층기록1개는17회에윗면추출통과했으나 외곽보류, 평면11/Depth2/외곽1보류·좌표층확정0개. 원자료/다른팀/기준/index 보존. 실제 성공으로보고하지 않음. converged_top 결과보존.
+
+## 2026-10-13 — 직접 윗면 Depth 실패 수치 확인
+
+- 사용자 선택으로 DIRECT_STUD_TOP 유지. top_surface_points에 중간 평면 후보 지지/높이/기울기 진단 추가, 반환값/판정조건 유지. 관련38검사 통과·실제6장재생 종료0. 확정0개 유지.
+- 후보지지 대부분7.5~24.6%로25% 미달, 일부V0 중간후보25.3/37.5%도 최종평면 조건 실패. 중간높이를 정상으로 반환하지 않는다. 결과 direct_top_diagnostics에 보존, 원자료/다른팀/index 변경 없음. 보정자세/실측Depth확인 미완료.
+
+## 2026-10-13 — 윗면 높이 직접 측정으로 기본 방식 통일
+
+- 사용자 승인으로 DIRECT_STUD_TOP 설정, live/replay/production에서 측정 top에 블록4mm 가산 제거. 두면 분리 필수조건 제거, 지지된 최고 평면 선택·단일 outlier 거부. 보드datum/층 기준·원자료/D 코드/index는 유지. 기존 명시 BODY 방식은 호환 경로다.
+- 실제6장14검출 재생 종료0이나 좌표·층 확정0개: 평면/Depth 지지 검사가 계속 보류. DIRECT_TOP_REFINED 결과를 이전결과와 구분. 방식전환을 정확도 해결/팀 전체 시험 성공으로 보고하지 않는다. 장치GT·보정 반복성 미검증.
+
+## 2026-10-13 — 저장 RGB-D 외곽 후보 보완·재시험
+
+- B opencv_live의 RGB contour에 convex hull 후보를 추가하고 작은 외곽 notch/부족한 Depth 거부 검사를 추가. 원본/임계값/다른 팀 파일/Git index 유지. 최초 tuple/list 오류 수정 후 관련51검사 통과(종료0).
+- 실제6장/14검출 재생 종료0, 표면 분리4개·좌표/층 확정0개로 기존 대비 실영상 개선 없음. convex_outline_fixed 결과와 오류 실행 기록을 구분 보존. 외곽 지지 부족 및 표면 분리10개 실패가 계속되어 정확도 완료로 보고하지 않는다. 자세 반복성·보드 기준면 실물 확인이 필요하며 임의 보정/기준 완화는 하지 않았다.
+
 ## 2026-10-13 — 팀 전체 실물 시험용 B 실제 ROS 연결 진입점
 
 - connect_real_inspection으로 실제 ROS capture_inspection_view→make_inspection_observer→기존 비동기 B 판정/결과 큐를 결선했다. Controller 정지/pose/활성/연속성 callback은 실제 주입 필수. 표본 fallback·로봇 명령·D 파일 수정 없음. 실제 모델 파일/보정 ID 확인, 기존 자동 촬영/사이클 저장 경로 유지.
@@ -884,3 +937,16 @@ GPU 현재 A snapshot92파일을 CPU deliverables/GPU_A_수정본_CPU보관_2026
 
 - 사용자 요청으로 현 브랜치 코드·설정·테스트·인계 문서를 commit/push한다. 별도 worktree 및 pull/merge는 하지 않는다. 신규 공급 모델 .pt와 assembly replay/empty column 시험 산출물은 ignore로 로컬 보존. 기존 손 모델 추적 제거 변경을 포함한다.
 - 실제 검사: 공급+perception_mvp+legacy pytest 443 passed, 1 skipped; git diff --check 정상. 이는 실제 팀 연결/로봇 파지 검증 완료를 뜻하지 않는다.
+
+- 2026-10-13 사용자 요청: 이전 공급 OBB 코드/테스트와 로컬 학습 준비 스크립트 3개를 원격 브랜치 최신 트리에서 제거. 외부 unused_code_backup_20261013에 로컬 보존. 현재 모델 종류 거부 검증은 test_segmentation으로 이동. 관련 pytest 53 passed, diff 검사 정상. 무관한 미커밋 변경 보존. 과거 Git 이력은 다시 쓰지 않는다.
+
+
+## 2026-10-13 D 회신 기반 공급 측정·취소 타입 초안
+
+- 1차는 관측·정지→요청→영상 측정 응답 확인, 보정 이동/슬롯 소모/집기 성공 처리 제외에 합의. interface_draft에 SupplyMeasure.srv/SupplyCancel.srv와 측정 6개·취소 3개 구조 예시 작성. 패키지 c2_perception_interfaces, 상태 매핑·재취소 규칙은 제안으로 D 확인 필요. 실제 ROS 패키지/서버/클라이언트는 미구현.
+- D 실물 운영 슬롯 1~5만 요청하며 6 교시 자료 유지. 빨강 행/4점 닫힘 축은 확인 필요. 가상 좌표 예시는 실제 측정·보정 자료가 아님.
+- 실제 검사: srv 필드와 JSON 예시의 정확한 필드·형·배열 길이·ID/geometry validity 정합 검사 9개 예시 정상, 공급 pytest 53 passed, diff 검사 정상. ROS 타입 생성/실제 통신/카메라·로봇 검증 미실시.
+
+- 2026-10-13 RUN_GUIDE.md 작성: 저장소 루트 기준 상대 경로로 모델/config 준비·저장 RGB replay·ROS RGB 단독 시험·D Python 함수 호출 안내. TEMPLATE 미확정 값과 실제 연결 미완료를 명시. CLI --help, 경로/코드펜스/개인 절대 경로 미포함 확인. 실제 카메라·D 연결 실행은 이번 문서 작업에서 하지 않음.
+
+- 2026-10-13 RUN_GUIDE 최신화: 팀장님 PC에서 첨부 모델을 저장소 상대 경로 models/supply_top_yolo26s_seg_20261013/best.pt로 배치하는 방법, SHA256 확인, 함께 전달할 저장 RGB/ROI 및 값이 채워진 local 설정·요청 추가. 개인 절대 경로 없음과 코드펜스 정합 확인. 코드·모델 및 실제 시험 동작 변경 없음.

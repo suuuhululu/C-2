@@ -36,7 +36,7 @@ def grid_anchor(center, size, angle, pitch, tolerance=.25):
     return continuous, anchor
 
 
-def top_surface_points(board, *, band_mm=.75, minimum_points=50, diagnostics=None):
+def _converged_top_surface_points(board, *, band_mm=.75, minimum_points=50, diagnostics=None):
     """Select a supported Board-parallel surface, not the entire side-wall cloud.
 
     These geometric trial limits are not calibrated deployment thresholds. A
@@ -84,6 +84,126 @@ def top_surface_points(board, *, band_mm=.75, minimum_points=50, diagnostics=Non
             if diagnostics is not None:
                 diagnostics['refinement_limit_rejections'] += 1
     raise ValueError('top_surface_not_board_parallel' if rejected_plane else 'top_surface_depth_insufficient')
+
+
+def _horizontal_patch_points(board, pixels, *, band_mm=.75, minimum_points=50,
+                             slope_limit=.3, sigma=2.5, diagnostics=None):
+    """Top face from locally horizontal points: side walls are removed before levels are compared.
+
+    Needs the image pixel (v, u, image_shape) of every board point. Local slope comes from
+    Gaussian-smoothed Board coordinates; only points whose local slope is below slope_limit
+    stay, then the highest level with enough support (and a plane within 10 degrees) wins.
+    Trial values (slope_limit, sigma) are not calibrated thresholds.
+    """
+    v, u, shape = pixels
+    v, u = np.asarray(v, int), np.asarray(u, int)
+    if len(v) != len(board) or len(u) != len(board) or not np.isfinite(board).all():
+        raise ValueError('top_surface_depth_insufficient')
+    top, left = int(v.min()), int(u.min())
+    rows, cols = int(v.max()) - top + 1, int(u.max()) - left + 1
+    if rows < 5 or cols < 5 or rows > shape[0] or cols > shape[1]:
+        raise ValueError('top_surface_depth_insufficient')
+    grid = np.full((rows, cols, 3), np.nan)
+    grid[v - top, u - left] = board
+    weight = np.isfinite(grid[..., 0]).astype(np.float64)
+    size = int(3 * sigma) * 2 + 1
+    density = cv2.GaussianBlur(weight, (size, size), sigma)
+    smooth = []
+    for channel in range(3):
+        numerator = cv2.GaussianBlur(np.where(weight > 0, grid[..., channel], 0.), (size, size), sigma)
+        with np.errstate(divide='ignore', invalid='ignore'):
+            smooth.append(np.where(density > .3, numerator / density, np.nan))
+    gx, gy, gz = smooth
+    du, dv = (lambda a: np.gradient(a, axis=1)), (lambda a: np.gradient(a, axis=0))
+    determinant = du(gx) * dv(gy) - dv(gx) * du(gy)
+    with np.errstate(divide='ignore', invalid='ignore'):
+        slope_x = (du(gz) * dv(gy) - dv(gz) * du(gy)) / determinant
+        slope_y = (du(gx) * dv(gz) - dv(gx) * du(gz)) / determinant
+    slope = np.hypot(slope_x, slope_y)[v - top, u - left]
+    flat = np.isfinite(slope) & (slope < slope_limit)
+    heights = board[:, 2]
+    if diagnostics is not None:
+        diagnostics.update(horizontal_points=int(flat.sum()), valid_points=len(board))
+    if flat.sum() < minimum_points:
+        raise ValueError('top_surface_depth_insufficient')
+    design = np.column_stack((board[:, :2] - np.mean(board[:, :2], axis=0), np.ones(len(board))))
+    limit = np.tan(np.deg2rad(10.))
+    # A higher flat patch that is too small or tilted to trust must reject the candidate:
+    # silently falling to a lower block's top would report a wrong (lower) layer.
+    ambiguous = max(10, minimum_points // 3)
+    for level in np.unique(np.round(heights[flat] * 2.) / 2.)[::-1]:
+        keep = flat & (np.abs(heights - level) <= band_mm)
+        if keep.sum() < ambiguous:
+            continue
+        if keep.sum() >= max(minimum_points, .2 * flat.sum()):
+            plane, _, rank, _ = np.linalg.lstsq(design[keep], heights[keep], rcond=None)
+            if rank == 3 and np.linalg.norm(plane[:2]) <= limit:
+                if diagnostics is not None:
+                    diagnostics.update(selection_basis='horizontal_patch', selected_points=int(keep.sum()),
+                                       selected_slope=float(np.linalg.norm(plane[:2])))
+                return keep
+        raise ValueError('top_surface_not_board_parallel')
+    raise ValueError('top_surface_depth_insufficient')
+
+
+def top_surface_points(board, *, band_mm=.75, minimum_points=50, diagnostics=None, pixels=None):
+    """Supported Board-parallel top plane: converged plane first, then two bounded fallbacks.
+
+    The first pass is unchanged (membership reaches a fixed point). A noisy or
+    slightly tilted real top can make membership cycle without a fixed point and
+    then every level is rejected although a plane carries the points. Only after
+    the first pass fails, a level whose refinement hit the 20-iteration bound may
+    be accepted if the last fitted plane's own inliers satisfy the same limits:
+    same residual band, at least minimum_points, at least 25% support, and a
+    refit slope not above 10 degrees. Single outliers, lines, tilted planes and
+    widely spread clouds are still rejected. This is a trial rule, not a
+    calibrated threshold; diagnostics['selection_basis'] records which pass won.
+
+    Third pass, only when `pixels=(v, u, image_shape)` is given and both earlier passes
+    failed: side walls and lower blocks inside an oblique-view mask can leave too little
+    of the top face for a band consensus, so locally horizontal points are selected first
+    (_horizontal_patch_points). If that also fails, the first failure is raised.
+    """
+    try:
+        keep = _converged_top_surface_points(board, band_mm=band_mm, minimum_points=minimum_points,
+                                             diagnostics=diagnostics)
+        if diagnostics is not None:
+            diagnostics['selection_basis'] = 'converged_plane'
+        return keep
+    except ValueError as first_failure:
+        failure = first_failure
+    heights = board[:, 2]
+    design = np.column_stack((board[:, :2]-np.mean(board[:, :2], axis=0), np.ones(len(board))))
+    limit = np.tan(np.deg2rad(10.))
+    for level in np.unique(np.round(heights * 2.) / 2.)[::-1]:
+        keep = np.abs(heights-level) <= band_mm
+        for _ in range(20):
+            if keep.sum() < minimum_points:
+                break
+            plane, _, rank, _ = np.linalg.lstsq(design[keep], heights[keep], rcond=None)
+            if rank < 3 or np.linalg.norm(plane[:2]) > limit:
+                break
+            refined = np.abs(heights-design @ plane) <= band_mm
+            if np.array_equal(refined, keep):
+                break
+            keep = refined
+        else:
+            own = np.abs(heights-design @ plane) <= band_mm
+            if own.sum() >= minimum_points and own.mean() >= .25:
+                refit, _, rank, _ = np.linalg.lstsq(design[own], heights[own], rcond=None)
+                if rank == 3 and np.linalg.norm(refit[:2]) <= limit:
+                    if diagnostics is not None:
+                        diagnostics.update(selection_basis='bounded_consensus_no_fixed_point',
+                                           selected_fraction=float(own.mean()),
+                                           selected_slope=float(np.linalg.norm(refit[:2])))
+                    return own
+    if pixels is not None:
+        try:
+            return _horizontal_patch_points(board, pixels, band_mm=band_mm,
+                                            minimum_points=minimum_points, diagnostics=diagnostics)
+        except ValueError:
+            pass
+    raise failure
 
 
 def body_surface_points(board, *, stud_height_mm=4., band_mm=.75, minimum_points=50,

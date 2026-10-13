@@ -12,7 +12,7 @@ def test_default_five_layers_use_endpoint_average_and_nonoverlapping_tolerance()
     levels = np.asarray(settings['top_heights_mm'])
     assert levels == pytest.approx([22., 40.625, 59.25, 77.875, 96.5])
     assert np.diff(levels) == pytest.approx([18.625] * 4)
-    assert settings['tolerance_mm'] == 2.5
+    assert settings['tolerance_mm'] == 5.0  # owner decision 2026-10-14 (was 2.5)
     assert np.all(2 * settings['tolerance_mm'] < np.diff(levels))
     assert settings['height_reference_offset_mm'] == 4.
     assert settings['max_height_spread_mm'] == 5.

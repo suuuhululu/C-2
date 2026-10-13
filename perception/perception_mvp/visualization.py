@@ -30,7 +30,7 @@ def freeze_overlay_states(current_blocks, expected_blocks, version_context, *, a
 
 
 def render_state_overlay(rgb, snapshot, projection, *, stopped, projection_valid,
-                         hidden_reason=None, alpha=.15, labels=None):
+                         hidden_reason=None, alpha=.08, labels=None):
     """Invalid projection hides guidance rather than drawing invented geometry."""
     try:
         return _render_state_overlay(rgb, snapshot, projection, stopped=stopped,
@@ -45,7 +45,7 @@ def render_state_overlay(rgb, snapshot, projection, *, stopped, projection_valid
 
 
 def _render_state_overlay(rgb, snapshot, projection, *, stopped, projection_valid,
-                          hidden_reason=None, alpha=.15, labels=None):
+                          hidden_reason=None, alpha=.08, labels=None):
     """Return live RGB guidance + separate display diagnostics, never Observed.
 
     projection: actual camera_to_board, RGB intrinsics, measured grid_origin_m
@@ -92,9 +92,11 @@ def _render_state_overlay(rgb, snapshot, projection, *, stopped, projection_vali
     distortion = np.zeros(5) if intr["model"] == "none" else np.asarray(intr["coefficients"])
     current_keys = {placement_key(b) for b in snapshot["current"]}
     skipped, faces = [], []
-    for name, color in (("current", (255, 100, 220)), ("expected", (80, 255, 100))):
+    block_rgb = {'yellow': (255, 220, 0), 'blue': (30, 100, 255), 'red': (255, 45, 45)}
+    for name, edge_color in (("current", (255, 100, 220)), ("expected", (80, 255, 100))):
         for block in snapshot[name]:
             validate_block(block)
+            color = block_rgb[block['color']]
             # Shared placements retain Current's colour instead of being tinted twice.
             if name == "expected" and placement_key(block) in current_keys:
                 continue
@@ -129,9 +131,8 @@ def _render_state_overlay(rgb, snapshot, projection, *, stopped, projection_vali
             if behind_camera:
                 skipped.append({"state": name, "reason": "behind_camera"})
                 continue
-            new = name == "expected" and placement_key(block) not in current_keys
             faces.extend((depth, polygon, tuple(int(c*shade) for c in color),
-                          color, 3 if new else 1) for depth,polygon,shade in projected)
+                          edge_color, 1) for depth,polygon,shade in projected)
     # Painter ordering preserves perspective; transparent guidance is intentionally
     # see-through and does not assert real-image occlusion or observed occupancy.
     for _, polygon, fill, edge, thickness in sorted(faces, key=lambda face: -face[0]):
@@ -148,6 +149,8 @@ def _render_state_overlay(rgb, snapshot, projection, *, stopped, projection_vali
     labels = labels or ('Current (confirmed)', 'Expected (THIS check)')
     for index, (label, color) in enumerate(zip(labels, ((255,100,220), (80,255,100)))):
         cv2.putText(output, label, (8, 22 + index * 20), cv2.FONT_HERSHEY_SIMPLEX, .45, color, 1)
+    cv2.putText(output, 'Faces: block color | Edges: comparison state', (8, 62),
+                cv2.FONT_HERSHEY_SIMPLEX, .4, (180,180,180), 1)
     return output, {"overlay_visible": True, "reason": None, "guidance_only": True,
                     "skipped": skipped, "render_mode": "3d_volume",
                     "rendered_faces": len(faces),

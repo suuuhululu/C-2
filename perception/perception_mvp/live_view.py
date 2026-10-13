@@ -278,12 +278,56 @@ def board_point(pixel, depth, info, calibration):
     return board
 
 
+def live_overlay_test_payload(calibration, info, image_shape, reference, position, stage, frame_stamp):
+    """Real calibration/RGB; synthetic placements only, never B Current/Observed."""
+    from .contracts import validate_block
+    height, width = image_shape[:2]
+    if calibration['independently_validated'] is not True or calibration['image_size'] != [width, height]:
+        raise ValueError('validated calibration/RGB size mismatch')
+    k = np.asarray(info['k'], float).reshape(3, 3)
+    if [info['width'], info['height']] != [width, height] or not np.allclose(k, calibration['intrinsics']['camera_matrix']):
+        raise ValueError('live RGB intrinsics differ from calibration')
+    if info['distortion_model'] != 'plumb_bob' or np.any(np.asarray(info['d']) != 0):
+        raise ValueError('test projection requires calibrated zero-distortion RGB')
+    pose = calibration['camera_pose']
+    rotation = np.asarray(pose['R_camera_from_board'], float)
+    if pose['height_normal_sign'] != 1:
+        raise ValueError('test flat-board transform requires positive height normal')
+    transform = np.eye(4)
+    transform[:3,:3] = rotation
+    transform[:3,3] = (np.asarray(pose['t_camera_from_board_mm']) -
+                       rotation[:,2]*reference['height_reference_offset_mm']) / 1000.
+    levels = np.asarray(reference['top_heights_mm'], float) / 1000.
+    if len(levels) not in (4, 5):
+        raise ValueError('test projection needs four or five explicitly configured layer heights')
+    blocks = [dict(brick_type='2x2x1', color='yellow', x=position[0], y=position[1],
+                   layer=layer, orientation_deg=0) for layer in (1,2,3)]
+    for block in blocks:
+        validate_block(block)
+    before = dict(current_revision=0, blocks=blocks[:2])
+    current = before if stage == 'OBSERVING' else dict(current_revision=1, blocks=blocks)
+    state = dict(check_id='LOCAL-SYNTHETIC-TEST', display_stage=stage,
+        comparison=None if stage == 'OBSERVING' else 'MATCH', previous_current=before,
+        current=current, expected=blocks)
+    projection = dict(camera_to_board=np.linalg.inv(transform).tolist(),
+        rgb_intrinsics=dict(model='none',fx=float(k[0,0]),fy=float(k[1,1]),cx=float(k[0,2]),cy=float(k[1,2])),
+        grid_origin_m=[0.,0.],stud_pitch_m=calibration['pitch_mm']/1000.,
+        top_heights_m=levels.tolist(),stud_height_m=.004)
+    return dict(state=state, projection=projection, projection_valid=True,
+        height_reference='board_flat_surface', phase='COMPARISON',
+        view_id=calibration['view_id'], frame_stamp_ns=frame_stamp)
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--view', choices=('V0', 'D1', 'D3'), required=True)
     parser.add_argument('--comparison-overlay', type=Path,
                         help='Local comparison state + actual frame/projection JSON; not Observed')
     parser.add_argument('--overlay-mode', choices=('auto', 'target', 'changes'), default='auto')
+    parser.add_argument('--live-overlay-test', action='store_true',
+                        help='Actual ROS RGB + explicitly synthetic state; no YOLO/Robot/cycle')
+    parser.add_argument('--overlay-test-position', nargs=2, type=int, default=[9, 13],
+                        metavar=('X', 'Y'), help='Synthetic 2x2 anchor, not an observed coordinate')
     parser.add_argument('--output', type=Path, required=True)
     parser.add_argument('--calibration', type=Path)
     parser.add_argument('--roi-root', type=Path,
@@ -313,6 +357,9 @@ def main(argv=None):
                         help='Manual diagnostic confirmation, NOT a Controller safety signal')
     args = parser.parse_args(argv)
     args.weights = resolve_live_weights(args.weights, args.integrated)
+    if args.live_overlay_test and (not args.manual_views or not args.calibration_root or
+            args.integrated or args.weights or args.hand_config or args.comparison_overlay):
+        parser.error('--live-overlay-test requires --manual-views + --calibration-root; no inference/state-file modes')
     if args.comparison_overlay and not args.integrated:
         parser.error('--comparison-overlay requires --integrated')
     if args.diagnostic_geometry and not args.integrated:
@@ -334,11 +381,11 @@ def main(argv=None):
         parser.error('--opencv-separated needs calibration + stopped-and-clear, without YOLO weights')
     if args.integrated and (not args.weights or args.opencv_separated):
         parser.error('--integrated requires --weights and excludes --opencv-separated')
-    if args.layer_reference and not args.integrated:
+    if args.layer_reference and not (args.integrated or args.live_overlay_test):
         parser.error('--layer-reference requires --integrated')
     if args.hand_config and not args.integrated:
         parser.error('--hand-config requires --integrated')
-    if args.manual_views and (not args.integrated or not args.calibration_root or args.calibration):
+    if args.manual_views and (not (args.integrated or args.live_overlay_test) or not args.calibration_root or args.calibration):
         parser.error('--manual-views requires --integrated + --calibration-root, without --calibration')
     if args.calibration_root and not args.manual_views:
         parser.error('--calibration-root requires --manual-views')
@@ -358,7 +405,8 @@ def main(argv=None):
         model = load_hand_model(args.weights)
     else:
         model = load_segmentation_model(args.weights, allowed_classes=LIVE_CLASSES if args.integrated else None) if args.weights else None
-    layer_reference = load_layer_reference(args.layer_reference) if args.integrated else {}
+    layer_reference = load_layer_reference(args.layer_reference) if args.integrated or args.live_overlay_test else {}
+    test_stage = 'OBSERVING'
     if layer_reference:
         print('LAYER REFERENCE: ' + str(layer_reference.get('status', 'EXPLICIT_OVERRIDE_NOT_VALIDATED')))
     from .hand_cycle import live_hand_event
@@ -429,7 +477,7 @@ def main(argv=None):
         receiver_thread.start()
 
     try:
-        if not args.integrated:
+        if not args.integrated and not args.live_overlay_test:
             start_receiving()
         else:
             print('STOPPED OBSERVATION: no receiving while moving; one RGB-D pair, one analysis. '
@@ -462,10 +510,11 @@ def main(argv=None):
                 if args.view == 'V0' and hand_detector is None:
                     hand_detector, hand_gate, hand_error = load_live_hand(args.view, args.hand_config)
                 view_generation = selection.generation
+                test_stage = 'OBSERVING'
                 print(f'VIEW {args.view}: '+('STOPPED (manual)' if selection.stopped else 'MOVING/UNCONFIRMED'))
             measurement = None
             loop_started = time.monotonic()
-            if args.integrated:
+            if args.integrated or args.live_overlay_test:
                 if args.stopped_and_clear and frozen_canvas is None:
                     start_receiving()
                 elif receiver_thread is not None:
@@ -646,6 +695,26 @@ def main(argv=None):
                 cv2.putText(canvas, 'RESULT FROZEN | receiving OFF | r:new observation' if frozen_canvas is not None
                             else 'RECEIVING ON: stopped observation' if receiver_thread is not None
                             else 'RECEIVING OFF', (8, 136), 0, .42, (0, 220, 255), 1)
+            if args.live_overlay_test:
+                from .visualization import render_comparison_overlay
+                try:
+                    if not messages or 'rgb' not in messages or 'rgb' not in infos:
+                        raise ValueError('live RGB and RGB CameraInfo required')
+                    if time.monotonic()-received.get('rgb', 0.) > 1.:
+                        raise ValueError('live RGB stale')
+                    payload = live_overlay_test_payload(calibration, info_dict(infos['rgb']),
+                        image_array(messages['rgb']).shape, layer_reference, args.overlay_test_position,
+                        test_stage, stamp(messages['rgb']))
+                    overlay, report = render_comparison_overlay(cv2.cvtColor(canvas, cv2.COLOR_BGR2RGB),
+                        payload, view=args.view, frame_stamp_ns=stamp(messages['rgb']),
+                        stopped=args.stopped_and_clear, hand_clear=args.stopped_and_clear, mode='auto')
+                    canvas = cv2.cvtColor(overlay, cv2.COLOR_RGB2BGR)
+                except (ValueError, KeyError) as error:
+                    cv2.putText(canvas, '3D TEST hidden: '+str(error), (8, 155),0,.45,(0,180,255),1)
+                cv2.putText(canvas, 'LIVE RGB + SYNTHETIC STATES / TRIAL HEIGHTS / NOT ASSEMBLY VERIFICATION',
+                            (8, 178),0,.42,(0,180,255),1)
+                cv2.putText(canvas, 'b:before comparison | a:simulate confirmed | m:move | s:stopped | q:quit',
+                            (8, 198),0,.42,(0,180,255),1)
             if args.comparison_overlay:
                 from .visualization import render_comparison_overlay
                 try:
@@ -665,6 +734,15 @@ def main(argv=None):
             key = cv2.waitKey(1) & 255
             if key == ord('q') or cv2.getWindowProperty(name, cv2.WND_PROP_VISIBLE) < 1:
                 break
+            if args.live_overlay_test and key in (ord('a'), ord('b')):
+                if not args.stopped_and_clear:
+                    print('Overlay test stage blocked: confirm actual stop first')
+                else:
+                    test_stage = 'CONFIRMED' if key == ord('a') else 'OBSERVING'
+                continue
+            if args.live_overlay_test and key == ord('c'):
+                print('Overlay-only test: capture/Observed/Robot output disabled')
+                continue
             if args.integrated and key == ord('r'):
                 if not args.stopped_and_clear:
                     print('Re-observation blocked: actual stop confirmation required')
