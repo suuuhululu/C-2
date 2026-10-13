@@ -1,5 +1,16 @@
 # 현재 진행 상황
 
+## 2026-10-13 — 팀 전체 실물 시험용 B 실제 ROS 연결 진입점
+
+- connect_real_inspection으로 실제 ROS capture_inspection_view→make_inspection_observer→기존 비동기 B 판정/결과 큐를 결선했다. Controller 정지/pose/활성/연속성 callback은 실제 주입 필수. 표본 fallback·로봇 명령·D 파일 수정 없음. 실제 모델 파일/보정 ID 확인, 기존 자동 촬영/사이클 저장 경로 유지.
+- 관련 real_connection/camera_observer/ros_capture/team_connection/round1 검사 63 passed·1 skipped, 종료0. 실제 장치 미연결·D 주입/소유 스레드 전달은 현장 확인 필요. ROUND1_REAL_HANDOFF.md에 실제 호출과 완료 기준 전달. 실제 좌표·층 0개 병목은 해결됐다고 보고하지 않는다. Git 게시 없음.
+
+## 2026-10-13 — B 1차 표본 연결 시험 우선 준비
+
+- 실제 영상 정확도 개선은 후속으로 분리. 명시적 SYNTHETIC_NOT_CAMERA 표본 observer를 D의 기존 connect_inspection에 주입할 수 있게 추가하고 ROUND1_SAMPLE_QUICKSTART.md에 실행·큐·Plan·취소 연결 방법을 기록했다. 자동 Camera fallback, D 파일 변경, Git 게시 없음.
+- 실제 재생 7 checks PASS, 관련 replay/team_connection/round1 검사 35 passed·1 skipped, 종료0. 전체 검사 시 365 passed·1 skipped·1 failed: 기존 legacy saved_perception의 패키지 import 경로 충돌(test_runtime)이 남아 있으며 전체 통과로 보고하지 않는다. 최초 전체 실행의 수집 오류도 경로 문제였으며 관련 범위 명령을 안내했다.
+- 실제 Camera/Robot 미연결. 좌표·층 확정/실제 D 대기·STOP·큐 수신 공동 시험은 미검증. 표본 통과를 실물 성공으로 취급하지 않는다.
+
 ## 2026-10-12 — B 보조 클래스 투표 코드·사이클 연결
 
 - class_vote.py에 metric 중심/높이 기반 보수적 연결, View당 1표, 유효 CANDIDATE 표·UNKNOWN 기권, 2대1/일치/단일표 채택, 동률·모호성·기하 충돌 보류 및 근거 로그 구현. Losing View 검출을 winner 검출로 조작하지 않는다. 기존 빈 영역 충돌 검사 유지.
@@ -738,9 +749,138 @@ GPU 현재 A snapshot92파일을 CPU deliverables/GPU_A_수정본_CPU보관_2026
 - 실제 검증: supply 검사 **31 passed**, 전체 supply/perception_mvp/legacy **304 passed, 1 skipped**, 각각 종료 0. 모델 결과 adapter/중심/회전/width-height 교환/2x2 동등성/잘못된 모델 거부/색상 우선/crop 원본 좌표 복원을 합성·대체 추론으로 검사했다. compileall·git diff --check 종료 0. 기존 skip은 제공되지 않은 PR22 Consumer 검사이며 실제 D 계약 검증으로 표시하지 않는다. lint/type 미구성.
 - 미검증: 학습된 실제 OBB 모델·실제 RealSense/ROS 수신·중심/각도 오차·D 변환/Service·파지. OBB는 직사각형 예측이므로 원근 사다리꼴 윗면과 정확한 중심이 일치한다고 보장하지 않는다. 라벨 검수/독립 장면 및 실제 crop 평가가 필요하다. 최신 D 빨강 1x2x1과 기존 로컬 별칭 red_2x1/2x1x1 매핑은 연결 시 합의 필요하다. 다음: OBB 라벨링 마무리·학습 → 실제 중심/각도 평가 → D 픽셀/각도 보정 연결. commit/push/PR 없음.
 
+## 2026-10-13 — B 조립판 검사 시작 조건 보완
+
+### 후속 — 평면 기반 body/stud 재수집 및 비평행 거부
+
+- 허용기울기를인정하면서고정수평band로잘라내던단계를관측된body평면의residual band로최대3회재수집하도록수정했다. body/stud각각의최소점수·10도기울기·±0.75mm band·joint25%·RGB외곽55%·층±2.5mm는유지한다. 같은XY에서약4mm간격인지추가검사해중앙값만맞는비평행patch를거부한다. 보정원본/층·거리값을변경하지않았다.
+- 같은실제6장/26s모델/14검출에서분리통과3→4,몸체스터드보류11→10,외곽보류3→4,좌표·층확정0이다. 최신 parallel_surface_refinement 및이전/중간결과를별도보존했다. 외곽지지33.8/47.1/41.4%의부족및D1추가분리검출의4점외곽없음을확인했다.단계진행증가를전체성공으로표시하지않는다.
+- B회귀365 passed,1 skipped(18.12초),종료0. skip은PR22 Consumer미제공이다. 허용기울기표면재수집/10도초과/비평행거부와기존실패경로를검증했다. 실제좌표·층·외곽/GT정확도/보정자세정합/Controller/D연결은미완료다. 다른팀코드/Git게시없음.
+
+### 후속 — 장치 없는 확인 영역 생산 로직/실제 저장 Depth 진단
+
+- BODY_TOP_PLUS_STUD measurement의성공candidate footprint/layer만 positive확인영역으로생성했다. 아래층/주변empty를추정하지않는다. 빈공간은3D grid column ray-box 교차로관측Depth가뒤쪽까지도달할때만생성한다. 원본Depth0/거리범위밖/객체mask/앞쪽가림/clip/지원부족은미확인이다. 실제config flat0의6.5~99mm공간이며현재블록계약의시험기하모델이지안전/센서GT가아니다. 생산자와저장영상bundle에연결하고근거를기록했다. 공통Observed6필드는유지한다.
+- 기존실제빈보드3장/실제모델에서 검출mask0을 확인한 뒤 현재보정으로 진단계산했다. V0 366/D1 269/D3 442 columns, 진단합집합556/576이며20칸미확인이다. 개별missing/range/clip원인을파일에기록했다. 과거자세/현재보정불일치가능성과서로다른시각을명시하고실제D INITIAL은채택하지않았다. 원본/앞선결과를보존하고empty_column_review_20261013_detailed 및 docs/REGION_EVIDENCE_20261013.md에기록했다.
+- B회귀362 passed,1 skipped(18.06초),종료0. skip은PR22 Consumer미제공이다. 초기상태충분/부족,레이가림/누락/범위밖/객체/clip,positive관측층한정,belowhistory보존,저장→판정연결을합성으로검증했다. 실물block 좌표·층확정은여전히0개,표면/외곽추출·실제보정정합·전체coverage·Controller/D주입은미완료다. 실제장치/다른팀코드/Git게시없음.
+
+### 후속 — 장치 없이 실제 저장자료 표면 추출 개선/재검증
+
+- 사용자 요청으로 기존 실제6장에 대한 실패단계 분석을 진행했다. 분리 이후 body만25%를 요구하고 외곽 증거도body만 사용하는 구조를 확인해, 윗면 지지는 확인된body+studs로 검사하고 높이/역투영은body만 사용하는 방식으로 수정했다. 기존25%/55%/최소점수·기울기·4mm 간격/층 허용 오차는 낮추지 않았다. 표면/외곽 단계별 실패 진단을 내부records에 추가했다.
+- 같은26s모델/6장 실제재생에서 분리 통과1→3개, 분리 보류13→11개, RGB외곽 보류1→3개이며 좌표·층 확정은여전히0개다. 외곽 내부표면 증거32.1%/44.9%/41.2%로55% 기준 미달을 확인했다. 단계 진행 개선을 전체 판정 성공으로 표시하지 않는다. 원본/첫 결과/중간 결과/최신 outline_diagnostics 결과를 별도 보존하고 docs/ASSEMBLY_REPLAY_20261013.md에 기록했다.
+- 수정 후 B회귀340 passed,1 skipped (2.55초), 종료0. skip은 PR22 Consumer미제공이다. 새 회귀는body/stud joint지원과body만 높이사용, joint지원부족 거부, outline에stud증거 전달을 확인했다. 실제Robot/Camera연결/GT정확도/verified_regions/D공동시험은 미완료이며 다른 팀 코드/commit/push 없음.
+
+### 후속 — 실시간 검증 준비/대기
+
+- 사용자 요청에 따라 미완료 사항은 이후 요청 시 정리할 수 있도록 기록을 유지한다. 현재 실행 환경의 ROS topic list는 제한시간 내 정상 결과를 얻지 못했고 네트워크 읽기 접근도 허용되지 않아 실시간 Camera 시험을 진행하지 않았다. 이것을 카메라 고장/노드 중지의 증거로 단정하지 않는다. Robot 명령/Camera 재시작/기준값 완화는 실행하지 않았다.
+- 다음 입력은 실제 V0/D1/D3 보정 자세에서 정지 후 새로 촬영한 빈 보드와 노랑2x2 한 개1층 RGB-D다. 사용자가 실제 stop/빈 보드/블록 배치를 확인해야 하며 기존 시험 결과를 새 촬영의 검증으로 표시하지 않는다. 현재 BODY_TOP_PLUS_STUD 실물 판정 보류/확인 영역 생성/Camera→D 연결 미완료 상태를 유지한다.
+
+### 후속 — 실제 저장RGB-D6장/학습모델 재생
+
+- assembly_replay로 실제 원본RGB/Depth/CameraInfo와 현재26s segment 모델 및 integrated_view 설정을 재사용했다. 3View각2장/검출14개 중 좌표·층 확정0, 몸체/스터드 구분 보류13, RGB 윗면 외곽 보류1이다. 실행 종료0을 판정 성공으로 표시하지 않는다. 원본metadata/보정/임계값은 바꾸지 않았다. output report/실제처리 PNG와 docs/ASSEMBLY_REPLAY_20261013.md에 입력/결과를 기록했다.
+- V0첫 영상의 유효Depth2984/마스크3004에도4mm 표면 pair body support 최대21.2%로25% 시험 조건에 못 미쳤다. V03층 기록은 표면 분리 이후 외곽 추출에서 실패한다. 당시 자세/현재 보정 반복성·GT는 미검증이며 다른 View 원인을 이 결과로 단정하지 않는다. 다음은 현재 실제 자세의 빈 보드/1층 데이터로 기준면·표면 추출을 확인하는 작업이다.
+- B 회귀338 passed, 1 skipped, 종료0. skip은 PR22 Consumer 미제공이다. 새 replay 단위 검사는 대체 모델/메시지로 보고/오류/덮어쓰기 금지만 검증하며 위 실제6장 결과와 구분한다. Robot/Controller/D 실제 연결/새 촬영/Git 게시 없음.
+
+### 후속 — 위치별 최상층 몸체 측정 후 스터드4mm 한 번 추가
+
+- 사용자 요청에 따라 default Geometry/live_view에 BODY_TOP_PLUS_STUD를 적용했다. 각 instance의 높은 몸체/스터드4mm 표면 쌍을 확인해 몸체만 측정하고4mm를 한 번 추가한다. 기존 층 기준표는 변경하지 않으며 board reference 이동4mm와 분리한다. 몸체/스터드 구분이 안 되면 body_stud_surfaces_unverified로 보류한다. 기존 명시적 legacy 설정 호출은 유지하며 JSON override는 block_stud_height_mm를 명시해야 적용된다.
+- 표면 쌍 추출의±0.75mm band/최소50점(생산자는 설정)/기울기10도는 시험값이다. 단일 평면을 몸체라고 가정하거나 스터드 표면에 다시4mm를 추가하지 않는다. body 높이와 추가량을 내부 결과에 기록하고 두 경로의 높이 품질 검사는 선택된 몸체에 적용한다. 부분 가림/작은 스터드 표면에서 관측불가가 늘 수 있어 실물 평가가 필요하다.
+- 실제 B 검사336 passed, 1 skipped (1.98초), 종료0.1~5층/다른 위치 높이/최상층만4mm/단일·잘못된 표면 간격 거부/production body→layer 및 화면의 board4mm+block4mm 중복 방지를 합성 데이터로 확인했다. skip은 PR22 Consumer 미제공이다. 실제 카메라 정확도/verified_regions/D 연결은 미검증이다. 다른 팀 코드·원본 보정/Git 게시 없음.
+
+### 후속 — 높이 분산 시험값5mm와 실제 설정 형식 검사
+
+- 층 허용오차±2.5mm의 전체 폭5mm를 높이 P95-P5 품질 제한의 시험 초기값으로 적용했다. 실측 sensor 잡음 검증으로 표시하지 않는다. 기존 production 검사와 기본 통합 화면의 윗면 검사에 동일 limit을 연결하되 production 유효 mask와 화면 추출 윗면의 검사 대상 차이는 문서에 명시했다. 잘못된 값/높이 누락은 실패,5mm 경계는 허용,5.1mm는 보류한다. 단위 변환의 경계 float 반올림만 machine-epsilon으로 처리한다.
+- 실제 B 검사327 passed, 1 skipped, 종료0. default Geometry는 validate_config를 통과하며 null은 없다. skip은 PR22 Consumer 미제공이다. 실제 보드 부착 기준/Depth 오차/표면 추출/확인 영역/Controller→B→D 공동 시험은 여전히 미검증이다. 직접USB camera3값은 ROS에 쓰이지 않아 null 유지한다. 다른 팀 코드/commit/push 없음.
+
+### 후속 — 보정 기반 관측점별 Depth 범위
+
+- 사용자 요청으로 기존3개 Camera-to-Board 보정에서 flat-board0~99mm(5층96.5mm+2.5mm), nominal24x24 board 경계의8개 모서리를 역변환해 카메라 optical Z 최소/최대를 계산했다. 시험용Z 여유5mm와 바깥 방향mm 반올림을 적용한 V0 443~573mm/D1 334~763mm/D3 397~696mm를 config depth_ranges_m에 설정했다. Z 여유는 센서 정확도/층 오차의 검증값이 아니다. Euclidean 카메라 거리와 구분한다.
+- depth_grid.process_saved는 실제 metadata View별 제한을 사용하며 설정된 View 누락을 공통 범위로 숨기지 않는다. 기존 직접 함수용 global min/max는 합집합 호환값이다. 기본 통합 화면도 View별 제한을 적용한다. 명시적 layer-reference override에는 depth_ranges_m도 제공해야 동일 제한이 적용된다. 보정 원본/Robot/D 파일은 수정하지 않았다.
+- B 검사319 passed, 1 skipped (2.18초), 종료0; diff check 종료0. 계산 모서리/실제 설정의 바깥 경계/누락 View 거부/기존 global호환/저장 및 통합 화면의 거리 밖 Depth 거부를 검사했다. skip은 PR22 Consumer 미제공이다. 실제 빈 보드/5층 Depth 검증은 미실행이고 calibration_derived_trial_not_depth_validated로 표시한다. Geometry 높이 분산 null/실제 확인 영역/Controller→B→D 연결은 별도 남아 있다. Git 게시 없음.
+
+### 후속 — 기존 손/Geometry 자료의 기본 실행 설정 연결
+
+- 저장된 V0 손 profile의 ROI/polygon/해상도/시험 quality·안정값을 config.yaml에 반영했다. 기본 live_view는 --hand-config 없이 이를 읽고 상대 모델 경로를 perception 기준으로 해석한다. 기존 별도 profile/D1·D3 비활성은 유지한다. 새 ROI 저장 때 다른 ROI의 시험 quality를 승계하지 않도록 기존 미설정 정책을 유지했다.
+- runtime 보정ID를 연결하고24x24/16mm 피치의 명목 보드 경계/블록 크기, 공통 footprint 기반 중심 격자/anchor offsets를 반영했다. 기존 integrated/grid_anchor의 임계값을 temporary_test로 재사용했다. 실제 몸체 실측/새 센서 정확도 검증으로 표시하지 않는다. Depth 거리 하한·상한·높이 분산3개 및 직접USB camera 설정은 근거 없이 채우지 않았다. 전체 판 확인 영역 생성도 별도 필요하다.
+- 실제 B 검사314 passed, 1 skipped, 종료0. skip은 PR22 Consumer 미제공이다. 초기 검사에서 새 ROI가 기존 trial profile을 승계하는 문제를 발견해 두 ROI 저장 경로를 수정 후 전체 범위를 재실행했다. 실제 장치/Controller/D 주입 시험은 미실행이다. 다른 팀 코드 변경/Git 게시 없음.
+
+### 후속 — 사용자 요청 층 허용 오차 ±2.5mm
+
+- config.yaml height_tolerance_m를0.0025로 축소했다. 층 증가량18.625mm와 기준 높이는 유지한다. 기본 live_view 설정에도 동일 적용하며 명시적 --layer-reference는 기존대로 우선한다. README 현재값을 갱신했다. 앞선 ±5mm 기록은 이전 시험값이다.
+- 관련 층 설정/통합 화면 합성 검사14 passed, 종료0. ±2.5mm 경계는 허용하고 ±2.6mm는 층 미확정으로 남기는 회귀를 확인했다. 보드 부착1층 기준 및 센서 오차의 실제 검증은 별도이며 다른 팀 코드/Git 게시 없음.
+
+### 후속 — 사용자 채택 평균 증가량 기반 시험용 층 기준
+
+- 사용자 제공 블록 단독 1층 약22mm·5층96.5mm에서 (96.5-22)/4=18.625mm/층을 채택했다. config.yaml top_heights_m는 [0.022,0.040625,0.05925,0.077875,0.0965], height_tolerance_m는 시험용0.005로 설정했다. 1층22mm는 보드 부착 실측이 아닌 임시 절편이며 trial_average_unvalidated_board_baseline으로 명시한다. 근거 없는 전체 Geometry 값은 채우지 않았다.
+- live_view는 --layer-reference가 없을 때 config의 층 기준을 읽는다. 기존 stud-top0 보정의 높이에4mm를 더해 flat-board0 기준 높이로 분류/표시하며 원래 stud-top 높이로 윗면 역투영 계산을 유지한다. 명시적 JSON override는 유지한다. 16mm는 XY 스터드 간격이며 층 간격으로 쓰지 않는다. 평균 기준5층/허용 구간 밖 미확정/기준면 차이를 회귀 검사했다.
+- 이전 작업의 board_pose_bundle 및 파생 assembly_runtime_pitch16_flat0_20261013.json은 기존 V0/D1/D3 pose를 metre Camera-to-Board 변환으로 변환하고4mm datum 이동을 명시한다. 원본 보정은 보존했다. 실측 층 GT나 로봇 좌표 보정이 아니다.
+- 현재 B 검사304 passed, 1 skipped (2.09초), 종료0. skip은 PR22 Consumer 소스 미제공이다. 실제 보드 부착1층 기준·Depth 반복 오차·Camera→D 공동 시험은 미검증이다. 설정을 validated로 승격하지 않았다. 다른 팀 파일 수정/Git 게시 없음.
+
+### 후속 — V0 손 영상 ROS 수신 연결
+
+- ros_capture.stream_ros_hand로 카메라 PC의 raw RGB/aligned Depth를 수신하는 V0 전용 generator를 구현했다. 실제 V0 정지와 활성 요청 조건을 요구하며 별도 ROS Context/Executor/수신 스레드에서 제한된 큐의 최신 동기화 묶음만 손 판정에 제공한다. 대기 중 손 추론과 ROS 수신을 분리했고 반복/오래된 프레임으로 안정 시간을 늘리지 않는다. 기존 wait_for_hand_ready가 준비 완료/실패 때 generator를 닫는다. make_inspection_observer의 hand_stream=None과 실제 is_stopped(View) hook으로 선택한다. 기존 명시적 stream 호출은 유지한다.
+- 실제 검증: perception_mvp/tests 297 passed, 1 skipped (1.64초), 종료0; diff check 종료0. ROS 대체 메시지의 별도 수신 스레드·정상 종료·STOP·이동 중 무구독·반복/오래된 프레임 실패와 request 활성 조건 연결을 검사했다. skip은 PR22 Consumer 소스 미제공이다. 현재 저장된 V0 손 ROI/모델 파일은 존재하지만 TRIAL_VALUES_UNVALIDATED이며 실물 검증 완료가 아니다.
+- 실제 Camera/Controller 및 D 주입은 미검증이다. 확인 영역 생성은 실제 빈 공간/가림 근거와 보정 입력이 필요하며 ROI를 전체 확인으로 승격하지 않았다. config.yaml의 Geometry/층별 top_heights 미입력 및 보드 flat0mm와 기존 stud-top 보정의 정합은 남아 있다. 실제 장치/공동 시험 결과로 표시하지 않는다. A/C/D 파일·실측값·층 기준 변경/commit/push 없음.
+
+### 후속 — ROS 촬영 파일의 검사 입력 호환
+
+### 후속 — 정지 후 ROS 단발 촬영 callable
+
+- ros_capture.capture_inspection_view를 실제 ROS 단발 수신 callable로 추가했다. REAL/V0·D1·D3, 실제 Controller pose/정지 hook, 요청 활성 상태를 요구한다. B 전용 ROS Context/Executor에서 RGB RELIABLE depth1과 Depth/CameraInfo sensor_data로 수신하고 요청 후 프레임·50ms 동기화·250ms 신선도를 확인해 한 묶음을 저장한다. 수신 종료 후 확인 영역 함수로 전달하며 미제공은 확인 영역 없음이다. D Context 종료/Robot 명령/재시작/ROI의 확인 영역 승격은 없다. 실제 PC 간 ROS 시계 동기화가 필요하다.
+- 관련 합성 ROS 수신·저장/live/observer/시작조건/runtime 검사89 passed, 종료0. 정상 단발 저장·수신 종료 순서·취소 전/수신 중/확인 영역 처리 중·이동 중 구독 금지·오래된 프레임 시간 초과·근거 없는 확인 영역 거부를 확인했다. 실제 RealSense/Controller/Camera→D 및 Geometry/층 설정은 미검증/미연결이다. 다음: V0 손 수신 ROS 연결 및 실제 확인 영역 생성/보정 입력 준비. Git 게시 없음.
+
+- 기존 rgbd_io.save_capture에 선택적 검사 context(scene/실제 pose/calibration/check/sequence)를 추가했다. 기존 context 없는 진단 저장은 유지한다. 실제 ROS K/D를 역투영 입력 필드로 기록해 load_frame 형식과 연결했다. 잘못된 context·미지원 왜곡 모델·비동기 프레임을 거부하며 기존 파일 덮어쓰기를 금지한다. verified_regions/Geometry/층 기준을 임의 생성하지 않았다. D/Controller 코드는 변경하지 않았다.
+- 검증: ROS 합성 메시지 신규6개 및 기존 live/runtime 관련 검사 합계54 passed (2.07초), 종료0. 실제 RealSense/ROS 수신 시험은 미실행이며 실제 capture_view 주입·영역 확인 근거·층 보정값은 여전히 필요하다. 이 변경은 저장 연결부이지 전체 Camera→D 연결 완료가 아니다. Git 게시 없음.
+
+- 팀 요청에 따라 D가 엄지척 또는 로봇 작업 완료 후 요청하는 make_inspection_observer의 STEP 기본을 STOPPED_CLEAR로 수정했다. INITIAL/FINAL도 동일하다. 실제 정지·손 없음·영상 안정 확인은 유지하며 새 손 진입/이탈 3초를 재요구하지 않는다. 독립 HUMAN_ASSEMBLY 명시 호출과 로컬 live_view는 유지한다. 엄지척 인식/Robot 명령/D 파일은 수정하지 않았다.
+- 관련 시작 조건·카메라 observer·INITIAL/FINAL 판정·팀 callback 검사: 60 passed, 1 skipped (3.61초), 종료 0. 실제 장치 검증과 구분한다. 실제 촬영 함수 주입·확인 영역 근거·실측 Geometry/5층 기준은 아직 필요하며 정상 전체 판 확인을 임의 생성하지 않았다. 다음: D 실제 촬영/정지 hook 및 실측 설정을 제공받아 Camera→B→D 공동 시험. Git 게시 없음.
+
 ## 2026-10-12 — 서플라이 요청 함수 연결부·RGB replay 추가
 
 - 사용자가 현 시점 구현 가능한 작업을 요청했고 D의 Service 이름/타입은 아직 미정이라고 확인했다. 공통 ROS 타입/Service를 임의 추가하지 않고 supply_vision/request_session.py에 SupplyRequestSession의 submit/observe/cancel/expire를 구현했다. 명시적 TEST/REAL 모드, config 복사 고정, 단일 활성 요청, session 내 요청 ID 재사용 금지, 요청 이후/현재 이하 프레임, 추론 중 취소/만료 결과 폐기와 오류 원인 유지가 있다. mode가 REAL이어도 LOCAL_ONLY 결과이며 Robot 실행권한이 아니다.
 - 기존 단발 ROS 진단 실행도 동일 session으로 요청/결과를 처리한다. replay.py는 원본 저장 RGB·실제 OBB 모델·실측 config·TEST 요청으로 ROS 없이 인식 결과 JSON을 저장한다. 원본/기존 출력 덮어쓰기 없음. request_TEMPLATE에 mode 미입력을 명시하고 README·BACKEND_HANDOFF에 호출 예시/오류 경계/transport 미연결을 기록했다.
 - 실제 검증: supply 단위 검사 **43 passed**, 전체 supply/perception_mvp/legacy **325 passed, 1 skipped**, 각각 종료 0. 단위의 모델/clock/process는 합성·대체 연결이며 실제 D 통신 증거가 아니다. compileall·replay --help·git diff --check 종료 0. 기존 skip은 미제공 Consumer 소스 검사다. lint/type 미구성.
 - 미검증: 실제 학습된 supply OBB 모델이 현재 모델 경로에서 확인되지 않음, 실제 RGB replay 추론/RealSense/ROS 수신·Service·Robot. 슬롯 ROI/HSV/관측·보정 설정은 실제값 필요. Service 타입/취소·응답 오류 형식/worker 연결은 D 합의 후 추가한다. 영상 callback이 STOP executor를 막지 않도록 실제 연결은 별도 검증한다. 새 클래스는 요청 취소가 추론 완료 결과를 무효화하는 독립 책임 때문에 1개로 제한했다. 신규 dependency/로봇 명령/자동 재실행/공통 계약 변경 없음. 사용자 미완료 변경을 보존했고 commit/push/PR 없음.
+
+## 2026-10-13 — 공급판 윗면 세그멘테이션 Colab T4 학습 준비·연결 보류
+
+- 사용자 ZIP은 train 6/valid 2, 5클래스, polygon 216/72개이며 ZIP CRC·클래스·유효 좌표/면적·이미지/라벨 대응·동일 decode 이미지 중복 검사를 통과했다. ZIP SHA256 a08e0240798435f15558e5404f3a33be0ae5f627fbc5315e487441f525315a30. 검증 사진은 정배치/회전 각 1장이다. 같은 촬영 환경의 소규모 시험으로 독립 성능/중심/파지 검증이 아니다.
+- 초기 CPU 실행은 사용자 Colab 정정 직후 Ctrl-C로 종료 130, CSV 기준 4epoch만 보존했다. 완료 모델로 채택하지 않는다. 이후 학습 스크립트는 T4 GPU 검사와 device=0만 허용하도록 수정했다. 원본·데이터·부분 기록을 삭제하지 않았다.
+- 원본 ZIP을 포함한 /home/roh/Documents/ChatGPT/협동2/supply_seg_training_20261013/C2_supply_top_YOLO26s_seg_T4_20261013.ipynb를 준비하고 Colab에 업로드했다. 노트 https://colab.research.google.com/drive/1Ox0Aa2_X8N0clmE8eWt7EFxk0dRvVz4b . 실제 GPU:Tesla T4와 CUDA:0 확인, 데이터 검사 성공, 학습 초기화 출력 확인. epoch 시작 전 런타임 재연결이 발생했고 완료는 없다.
+- T4를 유지한 채 Colab 2025.10 런타임으로 전환을 시도했으나 활성 세션 수 제한이 나타났다. 이전 동일 노트 GPU 세션 종료가 자동 승인 검토에 거절됨(세션 종료 명시 승인 부족과 런타임 손실 위험). 종료 허용을 사용자에게 요청했고 우회 실행하지 않았다. 현재 실제 T4 학습 완료·결과 다운로드는 미수행이다.
+- 최대60epoch/patience15/imgsz640/batch4/mask_ratio2/seed42/Ultralytics8.4.173의 YOLO26s-seg 시험이다. 기본 온라인 증강은 유지하되 mosaic/mixup/copy_paste는 0이다. data_local.yaml은 잘못된 상대경로와 없는 test 경로를 로컬 복사에서만 정리했다. 공식 초기 가중치 SHA256 3da1d83e31caec96f9300eb4064f4f62882c133c7c264d63dfe61a7c197837a4 확인. 노트 JSON·코드 컴파일 검사 종료0, 라벨 미리보기 직접 확인. 운영 supply 코드 OBB→segment 전환·실제 D/Robot는 이번 학습 범위에서 수행하지 않았다.
+
+2026-10-13 후속: 사용자가 이전 동일 서플라이 GPU 세션 종료를 명시 승인했다. 해당 세션만 종료하고 Colab 2025.10/T4에서 다시 실행해 **60epoch 완료 및 TRAINING_COMPLETED/RESULT_ZIP** 출력을 확인했다. Python3.12.12/torch2.8.0+cu126/Ultralytics8.4.173, YOLO26s-seg, GPU Tesla T4다. 검증 mask mAP50=0.9800403, mAP50-95=0.5100232, box mAP50=0.9874194, mAP50-95=0.7604046. 2장 검증의 시험 지표이며 실제 중심·파지 정확도/독립 일반화 검증이 아니다. 모델/곡선/요약과 결과 ZIP은 Colab에서 생성됐지만 로컬 결과 ZIP 다운로드는 아직 확인하지 못했다. 관측 요약은 저장소 밖 supply_seg_training_20261013/COLAB_OBSERVED_SUMMARY.json에 보존했다. 다음은 모델 결과 로컬 보존·마스크 검수·supply OBB 실행기 segment 전환·D 인계 계약 확인이다.
+
+
+## 2026-10-13 서플라이 윗면 segmentation 전환 (로컬 검사)
+
+- 사용자 요청: 학습한 YOLO26s-seg를 서플라이 인식에 반영. main.py의 OBB adapter를 segment boxes+원본 크기 masks로 전환하고 OpenCV HSV 색상 후보 선행을 유지했다. seg_geometry.py는 윗면 마스크 네 모서리의 대각선 교점·변 중점·영상 긴 축 방향을 계산한다. 잘림/분리/네 모서리 추정 실패는 UNKNOWN/HOLD. 기존 요청 수명·픽셀 출력·로봇 실행 경계 유지.
+- 실제 검사: supply tests 49 passed; supply+perception_mvp+legacy 회귀 393 passed, 1 skipped (이후 미사용 색상 검증 중복 함수 정리 후 supply 49 passed 재검사). git diff --check 정상. lint/type check 미구성.
+- 모델: 기존 Colab 60 epoch 완료 출력은 남아 있으나 재연결한 새 런타임에서 best.pt 존재 False. 이전 로컬 CPU best는 중단된 결과여서 사용하지 않는다. 모델 다운로드·실제 모델 재현은 아직 미완료이며 T4 복구 학습을 진행한다.
+- 미검증: 실제 RGB 윗면 중심/각도 오차, HSV 후보 및 crop 모델 성능, D 픽셀→로봇 보정·서비스·실제 파지. 실측 슬롯/보정 없는 template은 실행 설정이 아니다.
+
+- 2026-10-13 T4 복구 학습: 사용자 원본 ZIP 업로드 완료 후 60 epoch 재완료. Colab recovery 노트 13NRfYjUhL7-0qiMsyCxVVTihEy29NLcr. best SHA256 4a55859c59fc77eb32f8270e7d0b123809efc6589b6f337729148f2165c5d486, mask mAP50=0.9800403/mAP50-95=0.5100232. Colab 파일 존재 확인. 기본 다운로드·파일 패널·직접 링크로 로컬 전달을 시도했으나 로컬 파일 미확인이며 이후 브라우저 연결이 끊겼다. 완료 모델의 로컬 반영·실제 모델 재현은 아직 미완료. 학습 재실행 대신 현 런타임 best.pt 다운로드를 우선해야 한다.
+
+
+## 2026-10-13 서플라이 D 명명·예약 슬롯 정합
+
+- 사용자 지시대로 서플라이 요청/config/응답을 view_id=SUPPLY_VIEW로 변경. 빨강 D 타입 1x2x1을 학습 라벨 red_2x1로 명시 매핑하고 이전 2x1x1 별칭은 거부. slot_id={color}_{brick_type}_{번호2자리} 출력 및 요청 예약 슬롯 검증/후보 제한 추가. Service는 여전히 로컬 초안이며 타입·운영 timeout·보정은 미확정. 기존 D 교시점·TCP·높이·로봇 실행 코드는 변경하지 않음.
+- 학습 모델 로컬 저장 확인: /home/roh/Documents/ChatGPT/협동2/supply_seg_training_20261013/completed_T4/weights/best.pt, SHA256 4a55859c59fc77eb32f8270e7d0b123809efc6589b6f337729148f2165c5d486. 실제 이미지 2장 전체 추론은 수행했으나 단일 블록 HSV crop 추론은 모두 no_detection/HOLD. 이 문제는 별도 후속 인식 작업이며 이번 D 계약 변경으로 해결됐다고 표시하지 않는다.
+- 실제 검증: 서플라이 관련 pytest 55 passed, git diff --check 정상. 실제 D Service/관측 이동/보정·파지 미검증.
+
+
+## 2026-10-13 기존 공급 ROI 슬롯 방향 연결 및 모델 입력 수정
+
+- 사용자 확정 오른쪽→왼쪽 1~6을 모든 종류의 세로줄에 적용. 기존 20261012T002844481743Z ROI를 보존하여 저장 영상의 노랑·파랑 24개 슬롯 시험 영역 구성. 빨강 두 행 중 D 대상 행은 사용자가 로봇팀 확인 필요라고 응답하여 제외.
+- HSV 색상 후보 선행 유지 후 YOLO는 학습 시와 같은 전체 원본 영상을 한 번 추론하고 후보와 색상 대조. 작은 crop 미검출 경로 제거. 실제 완료 모델 저장 영상 replay 결과 CANDIDATES, 예약 blue_2x3x1_01 중심 후보 반환. 슬롯별 결과 {'CENTER_CANDIDATE': 13, 'multiple_detections': 11}. 이는 실제 중심 정확도/파지 성공 검증이 아니다.
+- 시험 설정/결과/이미지는 외부 completed_T4 폴더에 저장. 임계값 및 슬롯 경계는 저장 영상의 시험용이며 최신 카메라/보정 검증 미완료. 실제 Service 및 D 보정 미연결. 관련 테스트 55 passed.
+
+- 2026-10-13 요청 대상만 중심 계산하도록 범위 축소: 종류·색상+D 예약 slot_id 하나로 HSV 설정/슬롯 진단/기하 계산 제한. 전체 원본 YOLO 추론 문맥 유지하되 다른 슬롯의 중심은 계산하지 않고 반환하지 않는다. 다른 슬롯 중복은 요청 결과에 영향 없음. 요청 슬롯 내부 복수 검출 판정은 유지. 관련 pytest 55 passed, git diff --check 정상. 이번 범위 변경 후 실제 카메라/파지는 미검증.
+
+- 2026-10-13 사용자 첨부 supply_top_yolo26s_seg_best.pt로 전체 블록 진단 실행. 기존 infer_color_candidates/geometry_from_mask 호출, 저장 원본 rgb.png, conf=.25, OpenCV class-agnostic NMS IoU=.5로 47개 예측을 36개 외곽으로 정리(동일 위치 중첩 예측 11개). 외곽 36개/중심 후보 33개, 네 모서리 조건 실패 3개는 보류. imagegen/수동 중심/라벨 GT로 중심 생성하지 않음. 실제 파지 미검증. 외부 all_blocks_model_test에 실행 스크립트·JSON·이미지 보존. 운영 요청 슬롯 제한은 유지.
+
+
+## 2026-10-13 현재 B 브랜치 보존 커밋
+
+- 사용자 요청으로 현 브랜치 코드·설정·테스트·인계 문서를 commit/push한다. 별도 worktree 및 pull/merge는 하지 않는다. 신규 공급 모델 .pt와 assembly replay/empty column 시험 산출물은 ignore로 로컬 보존. 기존 손 모델 추적 제거 변경을 포함한다.
+- 실제 검사: 공급+perception_mvp+legacy pytest 443 passed, 1 skipped; git diff --check 정상. 이는 실제 팀 연결/로봇 파지 검증 완료를 뜻하지 않는다.

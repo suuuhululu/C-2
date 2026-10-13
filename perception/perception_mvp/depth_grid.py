@@ -4,12 +4,92 @@ import numpy as np
 
 from .rgbd_io import load_frame
 from .backend_adapter import build_observed
-from .contracts import candidate_to_block, LIVE_CLASSES
+from .contracts import candidate_to_block, LIVE_CLASSES, footprint
 
 CLASSES = LIVE_CLASSES
 
 
+def board_pose_bundle(calibrations, calibration_id, *, stud_height_mm):
+    """Convert existing validated stud-top poses to flat-board metre transforms.
+
+    This changes only the runtime datum, never the original calibration or layer
+    measurements. Callers must use top_heights_m measured from that same datum.
+    """
+    if set(calibrations) != {'V0', 'D1', 'D3'}:
+        raise ValueError('three actual View calibrations required')
+    if not isinstance(calibration_id, str) or not calibration_id.strip():
+        raise ValueError('explicit runtime calibration ID required')
+    if not np.isfinite(stud_height_mm) or stud_height_mm <= 0:
+        raise ValueError('measured positive board stud height required')
+    transforms = {}
+    for view, source in calibrations.items():
+        if (source['view_id'] != view or source['independently_validated'] is not True or
+                source['rows'] != 24 or source['cols'] != 24 or source['pitch_mm'] != 16.):
+            raise ValueError('validated 24x24/pitch16 View calibration required')
+        if source['reference_plane'] != 'plane through reference points, normally empty stud tops':
+            raise ValueError('explicit stud-top source datum required')
+        pose = source['camera_pose']
+        if pose['height_normal_sign'] != 1:
+            raise ValueError('right-handed positive height pose required; no reflection fallback')
+        rotation = np.asarray(pose['R_camera_from_board'], dtype=float)
+        translation = np.asarray(pose['t_camera_from_board_mm'], dtype=float) / 1000.
+        if rotation.shape != (3, 3) or translation.shape != (3,):
+            raise ValueError('measured 3x3 rotation and three-component translation required')
+        transform = np.eye(4)
+        transform[:3, :3] = rotation.T
+        transform[:3, 3] = -rotation.T @ translation
+        transform[2, 3] += stud_height_mm / 1000.
+        # Same rigid-transform validation used by actual Depth processing.
+        validate_geometry(.001, dict(model='none', fx=1., fy=1., cx=0., cy=0.), transform)
+        transforms[view] = transform.tolist()
+    return dict(calibration_id=calibration_id, views=transforms,
+                height_reference='BOARD_FLAT_SURFACE_ZERO',
+                source_reference='BOARD_STUD_TOP_ZERO', board_stud_height_mm=float(stud_height_mm))
+
+
+def depth_ranges_from_board(calibration, board_bounds_m, top_height_m, *, margin_m):
+    """Camera optical Z bounds of the board-to-top cuboid, not ray length.
+
+    Linear rigid transforms attain extrema at corners. Margin is an explicitly
+    chosen trial allowance, not a measured sensor accuracy or safety allowance.
+    """
+    from itertools import product
+    bounds = np.asarray(board_bounds_m, float)
+    if (bounds.shape != (2, 2) or not np.isfinite(bounds).all() or
+            np.any(bounds[:, 0] >= bounds[:, 1]) or not np.isfinite(top_height_m) or
+            top_height_m <= 0 or not np.isfinite(margin_m) or margin_m < 0):
+        raise ValueError('finite board bounds, positive top height and nonnegative margin required')
+    if calibration.get('height_reference') != 'BOARD_FLAT_SURFACE_ZERO':
+        raise ValueError('flat-board zero calibration required')
+    corners = np.array(list(product(bounds[0], bounds[1], [0., top_height_m])))
+    result = {}
+    for view, matrix in calibration['views'].items():
+        transform = validate_geometry(.001, dict(model='none', fx=1., fy=1., cx=0., cy=0.), matrix)
+        camera = (corners - transform[:3, 3]) @ transform[:3, :3]
+        minimum, maximum = float(camera[:, 2].min()) - margin_m, float(camera[:, 2].max()) + margin_m
+        if minimum <= 0:
+            raise ValueError('board volume is behind/too close to camera: ' + view)
+        result[view] = dict(min_depth_m=minimum, max_depth_m=maximum)
+    return result
+
+
+def config_for_view(config, view):
+    """Use explicit per-View limits; missing configured View never falls back."""
+    ranges = config.get('depth_ranges_m')
+    if ranges is None:
+        return config  # Existing callers with explicit global limits remain valid.
+    if view not in ranges:
+        raise ValueError('depth range missing for View: ' + view)
+    return dict(config, min_depth_m=ranges[view]['min_depth_m'],
+                max_depth_m=ranges[view]['max_depth_m'])
+
+
 def validate_config(config):
+    if config.get('block_surface_height_basis') is not None:
+        if (config['block_surface_height_basis'] != 'BODY_TOP_PLUS_STUD' or
+                not np.isfinite(config.get('block_stud_height_m', np.nan)) or
+                config['block_stud_height_m'] <= 0):
+            raise ValueError('explicit body-top basis and positive block stud height required')
     missing = [key for key, value in config.items() if value is None]
     if missing:
         raise ValueError("measured geometry settings not provided: " + ", ".join(missing))
@@ -74,6 +154,18 @@ def deproject_pixels(u, v, distances, intrinsics, width, height):
                        for x, y, z in zip(u, v, distances)], dtype=float)
 
 
+def height_spread_within(heights, limit):
+    """P95-P5 in caller's units; layer-reference accuracy is a separate check."""
+    values = np.asarray(heights, float)
+    if (values.ndim != 1 or not values.size or not np.isfinite(values).all() or
+            not np.isfinite(limit) or limit <= 0):
+        raise ValueError('finite surface heights and positive spread limit required')
+    spread = np.quantile(values, .95) - np.quantile(values, .05)
+    # Unit conversion can round the exact boundary upward by a few float bits.
+    rounding = 4 * np.finfo(float).eps * max(float(np.max(np.abs(values))), limit)
+    return bool(spread <= limit + rounding)
+
+
 def measure_candidate(mask, part_class, confidence, depth, scale, intrinsics,
                       camera_to_board, config):
     validate_config(config)
@@ -95,10 +187,21 @@ def measure_candidate(mask, part_class, confidence, depth, scale, intrinsics,
     distances = z[valid]
     camera = deproject_pixels(u, v, distances, intrinsics, depth.shape[1], depth.shape[0])
     board = camera @ rotation.T + transform[:3, 3]
+    stud_increment = 0.
+    if config.get('block_surface_height_basis') == 'BODY_TOP_PLUS_STUD':
+        from .opencv_live import body_surface_points
+        stud_increment = config['block_stud_height_m']
+        try:
+            body = body_surface_points(board * 1000., stud_height_mm=stud_increment * 1000.,
+                                       minimum_points=config['min_depth_pixels'])
+        except ValueError as error:
+            return unknown(str(error))
+        board = board[body]
     heights = board[:, 2]
-    if np.quantile(heights, .95) - np.quantile(heights, .05) > config["max_height_spread_m"]:
+    if not height_spread_within(heights, config["max_height_spread_m"]):
         return unknown("surface_height_conflict")
-    height = float(np.median(heights))
+    body_height = float(np.median(heights))
+    height = body_height + stud_increment
     layer_index = int(np.argmin(np.abs(np.asarray(config["top_heights_m"]) - height)))
     if abs(config["top_heights_m"][layer_index] - height) > config["height_tolerance_m"]:
         return unknown("height_not_in_measured_layer")
@@ -133,15 +236,38 @@ def measure_candidate(mask, part_class, confidence, depth, scale, intrinsics,
         return unknown("outside_board")
     return {"status": "CANDIDATE", "part_class": part_class,
             "surface_center_m": list(map(float, center)), "grid_center_stud": snapped.tolist(),
-            "top_height_m": height, "measured_layer_index": layer_index,
+            "top_height_m": height, "body_surface_height_m": body_height,
+            "block_stud_added_m": stud_increment, "measured_layer_index": layer_index,
             "axis_angle_deg": int(axis_angle), "model_confidence": float(confidence),
             "valid_depth_fraction": float(valid.sum() / mask.sum()),
             "threshold_status": config["threshold_status"], "calibration_id": config["calibration_id"]}
 
 
+def occupied_region_evidence(candidates, config):
+    """Positive measured footprints only; no empty cells or hidden-layer claims."""
+    regions = []
+    for candidate in candidates:
+        if candidate['status'] == 'UNKNOWN':
+            continue
+        if candidate['status'] != 'CANDIDATE' or candidate['calibration_id'] != config['calibration_id']:
+            raise ValueError('measured candidate and matching calibration required')
+        block = candidate_to_block(candidate, config['center_to_anchor_offsets_stud'])
+        cells = footprint(block)
+        xs, ys = [cell[0] for cell in cells], [cell[1] for cell in cells]
+        region = dict(x=min(xs), y=min(ys), width=max(xs) - min(xs) + 1,
+                      height=max(ys) - min(ys) + 1, layer=block['layer'])
+        if region not in regions:
+            regions.append(region)
+    return dict(verified_regions=regions, verification_basis=(dict(
+        kind='MEASURED_OCCUPIED_FOOTPRINT_ONLY', calibration_id=config['calibration_id'],
+        excludes=['empty-space inference', 'hidden layers', 'whole-board coverage']) if regions else None))
+
+
 def process_saved(directory, detections, calibration, config):
-    validate_config(config)
+    detections = tuple(detections)
     _, _, depth, metadata = load_frame(directory)
+    config = config_for_view(config, metadata['view_id'])
+    validate_config(config)
     if calibration["calibration_id"] != config["calibration_id"]:
         raise ValueError("calibration/config versions differ")
     transform = calibration["views"][metadata["view_id"]]
@@ -149,10 +275,30 @@ def process_saved(directory, detections, calibration, config):
     results = [measure_candidate(mask, cls, conf, depth, metadata["depth_scale_m"],
                                 metadata["camera_info"]["aligned"], transform, config)
                for mask, cls, conf in detections]
-    return {"internal_format": "visible_candidates_v1", "status": "PARTIAL",
+    result = {"internal_format": "visible_candidates_v1", "status": "PARTIAL",
             "scene_id": metadata["scene_id"], "view_id": metadata["view_id"],
             "captured_at": metadata["captured_at"], "candidates": results,
             "reason": "whole_board_coverage_and_occlusion_not_verified"}
+    if config.get('block_surface_height_basis') == 'BODY_TOP_PLUS_STUD':
+        result.update(occupied_region_evidence(results, config))
+        if (config.get('layer_height_reference') == 'BOARD_FLAT_SURFACE_ZERO' and
+                len(config['top_heights_m']) == 5):
+            from .region_evidence import empty_column_evidence
+            exclusion = np.zeros(depth.shape, bool)
+            for mask, _, _ in detections:
+                exclusion |= mask
+            empty = empty_column_evidence(depth, metadata['depth_scale_m'],
+                metadata['camera_info']['aligned'], transform, config, object_mask=exclusion)
+            occupied_columns = {(x, y) for region in result['verified_regions']
+                                for x in range(region['x'], region['x'] + region['width'])
+                                for y in range(region['y'], region['y'] + region['height'])}
+            empty_regions = [region for region in empty['verified_regions']
+                             if (region['x'], region['y']) not in occupied_columns]
+            result['verified_regions'] += empty_regions
+            result['verification_basis'] = dict(occupied=result['verification_basis'],
+                empty=empty['verification_basis'] if empty_regions else None) if result['verified_regions'] else None
+            result['empty_column_diagnostics'] = empty['rejection_counts']
+    return result
 
 
 def process_saved_bundle(recordings, calibration, config, check_id, observation_seq,
@@ -173,7 +319,8 @@ def process_saved_bundle(recordings, calibration, config, check_id, observation_
         views.append({"check_id": check_id, "observation_seq": observation_seq,
                       "calibration_id": calibration["calibration_id"],
                       "view_id": result["view_id"], "visible_blocks": blocks,
-                      "verified_regions": [] if unknown else recording["verified_regions"],
+                      "verified_regions": [] if unknown else (
+                          recording["verified_regions"] + result.get('verified_regions', [])),
                       "status": "UNOBSERVABLE" if unknown else "OK",
                       "reason": "unknown_detection" if unknown else None})
         source_diagnostics.append(result)

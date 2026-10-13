@@ -31,6 +31,10 @@ def save_roi(root, rgb, points, message, *, board='supply', view='V0'):
         import yaml
         from .live_view import DEFAULT_INTEGRATED_WEIGHTS
         hand = yaml.safe_load(Path(__file__).with_name('config.yaml').read_text())['hand']
+        # New assembly ROI needs its own quality/stability validation.
+        for key in ('confidence', 'min_valid_depth_fraction', 'stable_mean_difference',
+                    'stable_seconds', 'max_frame_gap_seconds'):
+            hand[key] = None
         hand.update(board_roi_v0=[int(polygon[:, 0].min()), int(polygon[:, 1].min()),
                                  int(polygon[:, 0].max())+1, int(polygon[:, 1].max())+1],
                     board_polygon_v0=polygon.tolist(), board_image_size=[width, height],

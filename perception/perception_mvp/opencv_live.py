@@ -65,7 +65,86 @@ def top_surface_points(board, *, band_mm=3., minimum_points=50):
     return keep
 
 
-def rgb_top_quad(rgb, mask, top_mask):
+def body_surface_points(board, *, stud_height_mm=4., band_mm=.75, minimum_points=50,
+                        return_pair=False, diagnostics=None):
+    """Highest supported body/stud plane pair; never subtract studs from a lone plane.
+
+    Trial separation requires two board-parallel surfaces approximately4mm apart.
+    A single body/stud surface is ambiguous and remains unobservable.
+    """
+    board = np.asarray(board, float)
+    if (board.ndim != 2 or board.shape[1] != 3 or len(board) < 2 * minimum_points or
+            not np.isfinite(board).all() or not 0 < 2 * band_mm < stud_height_mm):
+        raise ValueError('body_stud_surfaces_unverified')
+    heights = board[:, 2]
+    rejected = dict(body_points=0, stud_points=0, top_support=0, plane=0, separation=0)
+    xy = board[:, :2] - np.mean(board[:, :2], axis=0)
+    design = np.column_stack((xy, np.ones(len(board))))
+    def fit(selection):
+        if selection.sum() < minimum_points:
+            return None
+        coefficients, _, rank, _ = np.linalg.lstsq(design[selection], heights[selection], rcond=None)
+        if rank < 3 or np.linalg.norm(coefficients[:2]) > np.tan(np.deg2rad(10.)):
+            return None
+        return coefficients
+    if diagnostics is not None:
+        diagnostics.update(valid_points=len(board), rejection_counts=rejected)
+    levels = np.unique(np.round(heights * 2.) / 2.)
+    for level in levels[::-1]:
+        body = np.abs(heights - level) <= band_mm
+        studs = np.abs(heights - (level + stud_height_mm)) <= band_mm
+        if body.sum() < minimum_points:
+            rejected['body_points'] += 1
+            continue
+        if studs.sum() < minimum_points:
+            rejected['stud_points'] += 1
+            continue
+        parallel = True
+        # Respect the accepted plane slope instead of keeping a horizontal slice.
+        # Residual band, minimum evidence and final joint-support limits are unchanged.
+        for iteration in range(3):
+            plane, stud_plane = fit(body), fit(studs)
+            if plane is None or stud_plane is None:
+                parallel = False
+                break
+            predicted = design @ plane
+            refined_body = np.abs(heights - predicted) <= band_mm
+            refined_studs = np.abs(heights - predicted - stud_height_mm) <= band_mm
+            if np.array_equal(body, refined_body) and np.array_equal(studs, refined_studs):
+                break
+            body, studs = refined_body, refined_studs
+        plane, stud_plane = fit(body), fit(studs)
+        if plane is None or stud_plane is None:
+            parallel = False
+        if not parallel:
+            rejected['plane'] += 1
+            continue
+        # Two patches must be parallel at the same XY positions, not just have
+        # medians 4mm apart at different corners of a sloping block.
+        paired_gap = design[body | studs] @ (stud_plane - plane)
+        if np.any(np.abs(paired_gap - stud_height_mm) > band_mm):
+            rejected['separation'] += 1
+            continue
+        # Top evidence includes body AND studs; height still uses only the body.
+        if (body | studs).mean() < .25:
+            rejected['top_support'] += 1
+            continue
+        body_height = float(np.median(heights[body]))
+        stud_height = float(np.median(heights[studs]))
+        separation = float(np.median(heights[studs] - design[studs] @ plane))
+        if abs(separation - stud_height_mm) <= band_mm:
+            if diagnostics is not None:
+                diagnostics.update(body_points=int(body.sum()), stud_points=int(studs.sum()),
+                    joint_top_fraction=float((body | studs).mean()), body_height_mm=body_height,
+                    stud_surface_height_mm=stud_height, stud_separation_on_body_plane_mm=separation,
+                    plane_refinement_iterations=iteration + 1,
+                    body_plane_slope=float(np.linalg.norm(plane[:2])))
+            return (body, studs) if return_pair else body
+        rejected['separation'] += 1
+    raise ValueError('body_stud_surfaces_unverified')
+
+
+def rgb_top_quad(rgb, mask, top_mask, *, diagnostics=None):
     """RGB edges propose four corners; measured top pixels check their support.
 
     No rectangle is invented from a partial Depth patch or an occluded contour.
@@ -78,20 +157,30 @@ def rgb_top_quad(rgb, mask, top_mask):
     color_contours, _ = cv2.findContours(mask.astype(np.uint8), cv2.RETR_EXTERNAL,
                                         cv2.CHAIN_APPROX_SIMPLE)
     options = []
+    rejected = dict(shape=0, mask_support=0, top_containment=0, interior_support=0)
+    if diagnostics is not None:
+        diagnostics.update(rejection_counts=rejected, best_interior_fraction=0.)
     for contour in contours + color_contours:
         quad = cv2.approxPolyDP(contour, .025*cv2.arcLength(contour, True), True)
         area = cv2.contourArea(quad)
         if len(quad) != 4 or not cv2.isContourConvex(quad) or area < 150:
+            rejected['shape'] += 1
             continue
         inside = np.zeros(mask.shape, np.uint8)
         cv2.fillConvexPoly(inside, quad, 1)
         pixels = inside.astype(bool)
         if np.count_nonzero(pixels & mask) / pixels.sum() < .85:
+            rejected['mask_support'] += 1
             continue
         if np.count_nonzero(pixels & top_mask) / max(1, top_mask.sum()) < .8:
+            rejected['top_containment'] += 1
             continue
         interior = cv2.erode(inside, np.ones((3, 3), np.uint8)).astype(bool)
-        if not interior.any() or np.count_nonzero(interior & top_mask) / interior.sum() < .55:
+        fraction = float(np.count_nonzero(interior & top_mask) / max(1, interior.sum()))
+        if diagnostics is not None:
+            diagnostics['best_interior_fraction'] = max(diagnostics['best_interior_fraction'], fraction)
+        if not interior.any() or fraction < .55:
+            rejected['interior_support'] += 1
             continue
         options.append((area, quad.reshape(4, 2)))
     if not options:

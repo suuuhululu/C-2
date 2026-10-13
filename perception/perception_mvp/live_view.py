@@ -57,6 +57,11 @@ def save_hand_roi(directory, rgb, rectangle, rgb_message):
     import yaml
     settings = yaml.safe_load(Path(__file__).with_name('config.yaml').read_text())
     hand = settings['hand']
+    # A newly selected ROI is not validated by another ROI's saved trial profile.
+    hand.pop('board_polygon_v0', None)
+    for key in ('confidence', 'min_valid_depth_fraction', 'stable_mean_difference',
+                'stable_seconds', 'max_frame_gap_seconds'):
+        hand[key] = None
     hand['board_roi_v0'] = [x, y, x + width, y + height]
     hand['board_image_size'] = [rgb.shape[1], rgb.shape[0]]
     hand['weights'] = str(DEFAULT_INTEGRATED_WEIGHTS.parent.parent /
@@ -96,6 +101,23 @@ class ViewSelection:
         return changed
 
 
+def load_layer_reference(path=None):
+    """Explicit JSON overrides defaults; config trial datum is flat-board zero."""
+    if path is not None:
+        return json.loads(Path(path).read_text())
+    import yaml
+    config = yaml.safe_load(Path(__file__).with_name('config.yaml').read_text())['geometry']
+    levels = config.get('top_heights_m')
+    if levels is None:
+        return {}
+    return dict(top_heights_mm=[value * 1000. for value in levels],
+                tolerance_mm=config['height_tolerance_m'] * 1000.,
+                height_reference_offset_mm=config['board_stud_height_m'] * 1000.,
+                status=config['layer_reference_status'], depth_ranges_m=config.get('depth_ranges_m'),
+                max_height_spread_mm=config['max_height_spread_m'] * 1000.,
+                block_stud_height_mm=config['block_stud_height_m'] * 1000.)
+
+
 def load_view_calibrations(root):
     calibrations = {}
     for view in ('V0', 'D1', 'D3'):
@@ -112,10 +134,13 @@ def load_live_hand(view, path):
     if view != 'V0':
         return None, None, None
     try:
-        if path is None:
-            raise ValueError('--hand-config required for V0 hand detection')
         import yaml
-        detector, gate = live_hand_components(view, yaml.safe_load(path.read_text())['hand'])
+        default = path is None
+        path = Path(__file__).with_name('config.yaml') if default else Path(path)
+        settings = yaml.safe_load(path.read_text())['hand']
+        if default and not Path(settings['weights']).is_absolute():
+            settings['weights'] = str(Path(__file__).resolve().parent.parent / settings['weights'])
+        detector, gate = live_hand_components(view, settings)
         return detector, gate, None
     except (ValueError, KeyError, OSError) as error:
         print('HAND UNKNOWN: '+str(error))
@@ -272,7 +297,7 @@ def main(argv=None):
     parser.add_argument('--diagnostic-geometry', action='store_true',
                         help='Stopped local Depth/Grid display without hand gate; NOT cycle permission')
     parser.add_argument('--layer-reference', type=Path,
-                        help='JSON: top_heights_mm (four or five Board-referenced measured levels; fifth needs measurement), tolerance_mm')
+                        help='Optional JSON override: top_heights_mm, tolerance_mm, height_reference_offset_mm; defaults from config.yaml')
     parser.add_argument('--hand-config', type=Path,
                         help='V0 hand settings YAML/JSON (hand section); ignored at D1/D3')
     parser.add_argument('--hand-detect-only', action='store_true',
@@ -330,7 +355,9 @@ def main(argv=None):
         model = load_hand_model(args.weights)
     else:
         model = load_segmentation_model(args.weights, allowed_classes=LIVE_CLASSES if args.integrated else None) if args.weights else None
-    layer_reference = json.loads(args.layer_reference.read_text()) if args.layer_reference else {}
+    layer_reference = load_layer_reference(args.layer_reference) if args.integrated else {}
+    if layer_reference:
+        print('LAYER REFERENCE: ' + str(layer_reference.get('status', 'EXPLICIT_OVERRIDE_NOT_VALIDATED')))
     from .hand_cycle import live_hand_event
     hand_detector, hand_gate, hand_error = None, None, None
     if args.integrated and args.view == 'V0':
@@ -526,7 +553,14 @@ def main(argv=None):
                             info_dict(infos['aligned']) if has_geometry else None,
                             calibration if args.stopped_and_clear else None,
                             layer_reference.get('top_heights_mm'), layer_reference.get('tolerance_mm'),
-                            roi_mask=view_rois[args.view][0] if view_rois else None)
+                            roi_mask=view_rois[args.view][0] if view_rois else None,
+                            height_reference_offset_mm=layer_reference.get('height_reference_offset_mm', 0.),
+                            depth_range_m=(
+                                [layer_reference['depth_ranges_m'][args.view][key]
+                                 for key in ('min_depth_m', 'max_depth_m')]
+                                if layer_reference.get('depth_ranges_m') else None),
+                            max_height_spread_mm=layer_reference.get('max_height_spread_mm'),
+                            block_stud_height_mm=layer_reference.get('block_stud_height_mm', 0.))
                         for record in records:
                             if record.get('reason') == 'calibration_or_synced_depth_missing':
                                 record['reason'] = ', '.join(input_reasons)

@@ -29,6 +29,49 @@ def connect_inspection(submit_result, *, observe, geometry_reference, initial_cu
     return connection
 
 
+def connect_real_inspection(submit_result, *, gate, hand_detector, weights, calibration,
+                            config, detector_confidence, scene_id, output_root,
+                            confirm_view, is_stopped, robot_pose, workflow_valid,
+                            bundle_valid, initial_current=None, display_sink=None):
+    """Wire actual ROS capture into B's inspection worker, not a fixture runtime.
+
+    Controller supplies arrival/stop/pose and interruption hooks. confirm_view
+    may wait for movement but must return only after the actual View is stopped.
+    STOP closes workflow_valid/bundle_valid AND cancels the active check in D.
+    This function never issues movement or treats cancellation as physical stop.
+    """
+    from pathlib import Path
+    from .main import make_inspection_observer
+    from .ros_capture import capture_inspection_view
+
+    hooks = (confirm_view, is_stopped, robot_pose, workflow_valid, bundle_valid)
+    if not all(callable(hook) for hook in hooks):
+        raise ValueError('actual Controller stop/pose/continuity hooks required')
+    if not isinstance(scene_id, str) or not scene_id.strip():
+        raise ValueError('actual scene_id required')
+    if not Path(weights).is_file():
+        raise ValueError('actual block weights file required')
+    profile = calibration['calibration_id']
+    if config['calibration_id'] != profile or set(calibration['views']) != {'V0', 'D1', 'D3'}:
+        raise ValueError('three View calibration and Geometry IDs must agree')
+    calibration, config = deepcopy(calibration), deepcopy(config)
+
+    def capture(manifest, view, active):
+        valid = lambda: active() is True and workflow_valid() is True and bundle_valid() is True
+        return capture_inspection_view(manifest, view, valid,
+            output_root=Path(output_root) / 'captures', scene_id=scene_id,
+            calibration_id=profile, robot_pose=robot_pose, is_stopped=is_stopped)
+
+    observer = make_inspection_observer(gate, hand_detector, None, capture,
+        weights, calibration, config, detector_confidence,
+        confirm_view=confirm_view, workflow_valid=workflow_valid,
+        bundle_valid=bundle_valid, is_stopped=is_stopped,
+        output_root=Path(output_root) / 'cycles')
+    return connect_inspection(submit_result, observe=observer,
+        geometry_reference=profile, initial_current=initial_current,
+        display_sink=display_sink)
+
+
 class InspectionConnection:
     """Serial B state owner, asynchronous capture, synchronous cancel boundary."""
     def __init__(self, submit_result, observe, geometry_reference, current, display_sink=None):

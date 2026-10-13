@@ -32,16 +32,21 @@ def make_inspection_observer(gate, hand_detector, hand_stream, capture_view,
                              weights, calibration, config, detector_confidence, *,
                              confirm_view, workflow_valid, bundle_valid,
                              frame_sink=None, view_sink=None, output_root=None,
-                             start_condition=None):
+                             start_condition=None, is_stopped=None):
     """B observe(context, is_active) callable for connect_inspection.
 
     capture_view(manifest, view, is_active) must supply actual saved RGB-D and
     occupancy evidence. Controller/Camera hooks are required, never simulated here.
+    D owns completion gestures: the default is STOPPED_CLEAR for all check kinds.
+    Explicit HUMAN_ASSEMBLY remains available for standalone hand-driven callers.
+    hand_stream=None selects ROS V0 hand reception and requires is_stopped(view).
     """
     def observe(context, is_active):
         manifest = deepcopy(context)
+        # D requests inspection after the gesture or completed robot operation.
+        # Another mandatory hand entry would block this already completed step.
         condition = (start_condition(deepcopy(context)) if start_condition is not None else
-                     'HUMAN_ASSEMBLY' if context['check_kind'] == 'STEP' else 'STOPPED_CLEAR')
+                     'STOPPED_CLEAR')
         if condition not in ('HUMAN_ASSEMBLY', 'STOPPED_CLEAR'):
             raise ValueError('explicit HUMAN_ASSEMBLY or STOPPED_CLEAR start condition required')
         manifest['start_condition'] = condition
@@ -50,7 +55,13 @@ def make_inspection_observer(gate, hand_detector, hand_stream, capture_view,
                         previous_accepted_blocks=deepcopy(current['blocks']) if current is not None else [],
                         target_after=manifest.get('target_after'))
         valid = lambda: is_active() is True and workflow_valid() is True
-        return run_observation_cycle(gate, hand_detector, hand_stream,
+        stream_factory = hand_stream
+        if stream_factory is None:
+            if not callable(is_stopped):
+                raise ValueError('ROS hand reception requires actual is_stopped(View) hook')
+            from .ros_capture import stream_ros_hand
+            stream_factory = lambda: stream_ros_hand(valid, is_stopped)
+        return run_observation_cycle(gate, hand_detector, stream_factory,
             lambda view: capture_view(deepcopy(manifest), view, is_active), manifest,
             weights, calibration, config, detector_confidence, callback=lambda value: None,
             confirm_view=confirm_view, workflow_valid=valid, bundle_valid=bundle_valid,
@@ -167,6 +178,11 @@ def observe_cycle(gate, capture_view, manifest, weights, calibration, config,
                 verified_regions=regions, verification_basis=record.get("verification_basis")))
             detections = infer_masks(rgb, weights, detector_confidence)
             result = process_saved(record["directory"], detections, calibration, config)
+            # Only positively measured occupied footprints; no empty-space fallback.
+            regions = regions + result.get('verified_regions', [])
+            write_cycle_json(view_directory / 'measured_occupancy_evidence.json', dict(
+                verified_regions=result.get('verified_regions', []),
+                verification_basis=result.get('verification_basis')))
             vote_candidates = deepcopy(result['candidates'])
             for candidate in vote_candidates:
                 if candidate['status'] == 'CANDIDATE':

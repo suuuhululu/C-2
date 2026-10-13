@@ -26,13 +26,20 @@ def color_crop(rgb, roi_mask=None):
 
 
 def measure_instance(rgb, mask, part_class, depth, info, calibration, layer_heights_mm=None,
-                     height_tolerance_mm=None):
+                     height_tolerance_mm=None, *, height_reference_offset_mm=0., depth_range_m=None,
+                     max_height_spread_mm=None, block_stud_height_mm=0., surface_diagnostics=None):
     from .live_view import board_point
     if calibration is None or depth is None or info is None:
         raise ValueError('calibration_or_synced_depth_missing')
     if depth.dtype != np.uint16 or depth.shape != mask.shape:
         raise ValueError('aligned_depth_format_mismatch')
-    v, u = np.nonzero(mask & (depth > 0))
+    valid = mask & (depth > 0)
+    if depth_range_m is not None:
+        low, high = depth_range_m
+        if not np.isfinite([low, high]).all() or not 0 < low < high:
+            raise ValueError('invalid_depth_range')
+        valid &= (depth.astype(float) * .001 >= low) & (depth.astype(float) * .001 <= high)
+    v, u = np.nonzero(valid)
     if len(u) < 50 or len(u)/max(1, mask.sum()) < .8:
         raise ValueError('insufficient_depth')
     board_point((int(u[0]), int(v[0])), depth, info, calibration)
@@ -42,13 +49,25 @@ def measure_instance(rgb, mask, part_class, depth, info, calibration, layer_heig
     pose = calibration['camera_pose']
     board = (camera-np.asarray(pose['t_camera_from_board_mm'])) @ np.asarray(pose['R_camera_from_board'])
     board[:, 2] *= pose['height_normal_sign']
-    keep = top_surface_points(board)
+    if block_stud_height_mm:
+        from .opencv_live import body_surface_points
+        keep, studs = body_surface_points(board, stud_height_mm=block_stud_height_mm,
+                                          return_pair=True, diagnostics=surface_diagnostics)
+        outline_support = keep | studs
+    else:
+        keep = top_surface_points(board)  # Explicit legacy calls retain their existing datum.
+        outline_support = keep
+    if max_height_spread_mm is not None:
+        from .depth_grid import height_spread_within
+        if not height_spread_within(board[keep, 2], max_height_spread_mm):
+            raise ValueError('surface_height_conflict')
     height = float(np.median(board[keep, 2]))
     top = np.zeros(mask.shape, bool)
-    top[v[keep], u[keep]] = True
+    top[v[outline_support], u[outline_support]] = True
     # Use the YOLO instance boundary, not an HSV component that could join touching bricks.
     from .opencv_live import rgb_top_quad
-    quad = rgb_top_quad(rgb, mask, top)
+    quad = (rgb_top_quad(rgb, mask, top, diagnostics=surface_diagnostics.setdefault('outline', {}))
+            if surface_diagnostics is not None else rgb_top_quad(rgb, mask, top))
     corners = corners_at_height(quad, height, info, calibration)
     center, sides, angle = cv2.minAreaRect(corners.astype(np.float32))
     size = tuple(sorted(map(int, part_class.split('_')[1].split('x'))))
@@ -63,7 +82,12 @@ def measure_instance(rgb, mask, part_class, depth, info, calibration, layer_heig
     if abs((angle-axis+period/2) % period-period/2) > 10:
         raise ValueError('orientation_off_grid')
     _, anchor = grid_anchor(center, size, axis, pitch)
-    result = dict(grid=anchor.tolist(), axis_angle_deg=axis, height_mm=height,
+    if not np.isfinite(height_reference_offset_mm):
+        raise ValueError('invalid_height_reference_offset')
+    reference_height = height + height_reference_offset_mm + block_stud_height_mm
+    result = dict(grid=anchor.tolist(), axis_angle_deg=axis, height_mm=reference_height,
+                  body_height_mm=height + height_reference_offset_mm,
+                  block_stud_added_mm=block_stud_height_mm,
                   layer=None, reason='layer_reference_missing')
     if layer_heights_mm is not None:
         levels = np.asarray(layer_heights_mm, float)
@@ -72,8 +96,8 @@ def measure_instance(rgb, mask, part_class, depth, info, calibration, layer_heig
                 not np.isfinite(height_tolerance_mm) or height_tolerance_mm <= 0 or
                 2*height_tolerance_mm >= np.min(np.diff(levels))):
             raise ValueError('invalid_or_overlapping_layer_reference')
-        index = int(np.argmin(abs(levels-height)))
-        if abs(levels[index]-height) <= height_tolerance_mm:
+        index = int(np.argmin(abs(levels-reference_height)))
+        if abs(levels[index]-reference_height) <= height_tolerance_mm:
             result.update(layer=index+1, reason=None)
         else:
             result['reason'] = 'height_outside_layer_reference'
@@ -81,7 +105,9 @@ def measure_instance(rgb, mask, part_class, depth, info, calibration, layer_heig
 
 
 def process_frame(rgb, model, confidence, depth=None, info=None, calibration=None,
-                  layer_heights_mm=None, height_tolerance_mm=None, *, roi_mask=None):
+                  layer_heights_mm=None, height_tolerance_mm=None, *, roi_mask=None,
+                  height_reference_offset_mm=0., depth_range_m=None, max_height_spread_mm=None,
+                  block_stud_height_mm=0.):
     if rgb.dtype != np.uint8 or rgb.ndim != 3 or rgb.shape[2] != 3:
         raise ValueError('uint8 RGB required')
     if not np.isfinite(confidence) or not 0 < confidence <= 1:
@@ -125,11 +151,19 @@ def process_frame(rgb, model, confidence, depth=None, info=None, calibration=Non
         if boundary:
             record['reason'] = 'instance_crosses_roi_boundary'
         elif color == name.split('_')[0]:
+            surface_diagnostics = {}
             try:
                 record.update(measure_instance(rgb, mask, name, depth, info, calibration,
-                                              layer_heights_mm, height_tolerance_mm))
+                                              layer_heights_mm, height_tolerance_mm,
+                                              height_reference_offset_mm=height_reference_offset_mm,
+                                              depth_range_m=depth_range_m,
+                                              max_height_spread_mm=max_height_spread_mm,
+                                              block_stud_height_mm=block_stud_height_mm,
+                                              surface_diagnostics=surface_diagnostics))
             except (ValueError, KeyError, cv2.error) as error:
                 record['reason'] = str(error)
+            if surface_diagnostics:
+                record['surface_diagnostics'] = surface_diagnostics
         records.append(record)
     return records
 
