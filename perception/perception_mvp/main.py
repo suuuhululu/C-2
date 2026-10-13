@@ -167,6 +167,10 @@ def observe_cycle(gate, capture_view, manifest, weights, calibration, config,
                 verified_regions=regions, verification_basis=record.get("verification_basis")))
             detections = infer_masks(rgb, weights, detector_confidence)
             result = process_saved(record["directory"], detections, calibration, config)
+            vote_candidates = deepcopy(result['candidates'])
+            for candidate in vote_candidates:
+                if candidate['status'] == 'CANDIDATE':
+                    candidate['block'] = candidate_to_block(candidate, config['center_to_anchor_offsets_stud'])
             unknown = any(c["status"] == "UNKNOWN" for c in result["candidates"])
             views.append({"check_id": check, "observation_seq": seq,
                 "calibration_id": calibration["calibration_id"], "view_id": view_id,
@@ -175,11 +179,12 @@ def observe_cycle(gate, capture_view, manifest, weights, calibration, config,
                 "verified_regions": [] if unknown else regions,
                 "status": "UNOBSERVABLE" if unknown else "OK",
                 "reason": "unknown_detection" if unknown else None})
+            views[-1]['measured_candidates'] = vote_candidates
             measurements.append(result)
             require_valid()
             partial, details = build_observed(check, seq, views,
                 context["previous_accepted_blocks"], context.get("target_after"),
-                scene_stable=True, check_kind=kind)
+                scene_stable=True, check_kind=kind, vote_policy=config.get('class_vote_policy'))
             write_cycle_json(view_directory / "measurement.json", result)
             write_cycle_json(view_directory / "view_result.json", views[-1])
             write_cycle_json(view_directory / "partial_observed.json", partial)
@@ -191,7 +196,7 @@ def observe_cycle(gate, capture_view, manifest, weights, calibration, config,
         require_valid()
         observed, diagnostics = build_observed(check, seq, views,
             context["previous_accepted_blocks"], context.get("target_after"),
-            scene_stable=True, check_kind=kind)
+            scene_stable=True, check_kind=kind, vote_policy=config.get('class_vote_policy'))
         diagnostics["source_measurements"] = measurements
         require_valid()
         write_cycle_json(archive / "observed.json", observed)
