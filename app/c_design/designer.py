@@ -325,7 +325,10 @@ def _chair_upper(legs):
             out.append(_block("2x3x1", side_x, f0, 90, 2, "yellow"))
             out.append(_block("2x3x1", link_x, f1, 0, 2, "yellow"))
             out.append(_block("2x3x1", side_x, k1 - 1, 90, 2, "yellow"))
-            back_row[side] = k1 - 1
+            # 등받이 행을 한 칸 앞(k1 - 2)에 둔다: connector(행 k1 - 2, 2열)와 뒤 좌석(행 k1 - 1, 3열)에 5 stud로 얹히고,
+            # 반대쪽(맞붙은 다리)의 등받이 행과 같아져 layer 4 bridge가 양쪽에 2+2 = 4 stud로 걸린다
+            # (2026-10-13 support 규칙 min(4, studs); 이전에는 k1 - 1이라 bridge가 3 stud였다).
+            back_row[side] = k1 - 2
         else:
             return None
 

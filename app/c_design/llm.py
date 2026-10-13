@@ -90,9 +90,9 @@ _RULE_LINES = f"""Rules (the validator rejects any violation):
 - Allowed brick/colour combinations (stock): {_STOCK_TEXT} only. Never red 2x2x1 or 2x3x1, never yellow or blue 1x2x1.
 - layer: integer 1..{validator.MAX_LAYER}; layer 1 sits on the board.
 - orientation_deg: 1x2x1 uses 0 (X 1 stud, Y 2 studs) or 90 (X 2 studs, Y 1 stud); 2x3x1 uses 0 (X 2 studs, Y 3 studs) or 90 (X 3 studs, Y 2 studs); 2x2x1 always 0.
-- red 1x2x1 is the only red piece: use it for small features (trim, rail, accent, wing edge, armrest cap, backrest detail, border), not for large surfaces; it still needs {validator.MIN_SUPPORT_STUDS} studs of support below. Red is optional, never required in quantity.
+- red 1x2x1 is the only red piece: use it for small features (trim, rail, accent, wing edge, armrest cap, backrest detail, border), not for large surfaces; both of its 2 studs must rest on blocks of the layer directly below. Red is optional, never required in quantity.
 - blocks: 1..{validator.MAX_BLOCKS}. No two blocks on the same layer may share a stud.
-- Every block on layer >= 2 must overlap blocks on the layer directly below by at least {validator.MIN_SUPPORT_STUDS} studs in total.
+- Support (robot-only assembly): every block on layer >= 2 must rest on blocks of the layer directly below with at least min({validator.MIN_SUPPORT_STUDS}, its own stud count) unique studs: a 2x2x1 needs all 4 of its studs supported, a 2x3x1 at least 4 of its 6, a 1x2x1 both of its 2. Only the layer directly below counts; the same stud is never counted twice. A block hanging over an edge or a gap with 2 or 3 of 4 studs supported is rejected.
 - All blocks must form one connected structure through stud overlaps between adjacent layers."""
 _OUTPUT_SCHEMA = (
     'Output schema: {"design_version": <int>, "blocks": [{"brick_type": ..., "color": ..., "x": ..., "y": ..., '
@@ -102,8 +102,9 @@ _OUTPUT_SCHEMA = (
 _RULES_INITIAL = _RULE_LINES + "\n" + _OUTPUT_SCHEMA
 
 _SELF_CHECK = (
-    "Before output, for every block on layer >= 2 count the studs it shares with blocks on the layer "
-    f"directly below and confirm the total is at least {validator.MIN_SUPPORT_STUDS}; then confirm all blocks "
+    "Before output, for every block on layer >= 2 count the unique studs it shares with blocks on the layer "
+    f"directly below and confirm the count is at least min({validator.MIN_SUPPORT_STUDS}, the block's own stud count): "
+    "4 for a 2x2x1 (all of them), 4 of 6 for a 2x3x1, 2 for a 1x2x1 (both); then confirm all blocks "
     "form one connected structure through stud overlaps between adjacent layers. Output the final JSON only "
     "after both checks pass."
 )
@@ -132,7 +133,7 @@ What every seating piece has:
 Recognition is the main goal: seen as a whole silhouette, the design must read as furniture for sitting, not as a tower, wall, shelf, bar, bridge or an arbitrary block sculpture. Keep the seating area itself free: nothing stands on the surface a person would sit on.
 Size and height are free within the rules: choose the width, depth, number of layers and block count that are natural for the chosen type (a low stool needs few layers, a high-back chair more).
 """
-_BUILD_HINTS = """How to build validly with these bricks: think in layers from the board up. Blocks on one layer may touch side by side but never share a stud. A block on a higher layer must sit on blocks of the layer directly below and overlap them by at least the required studs; a solid way to join two blocks is a block above that overlaps both. Every part (support, seating area, backrest, armrests) must be joined to the rest this way, so the whole design is one connected piece.
+_BUILD_HINTS = """How to build validly with these bricks: think in layers from the board up. Blocks on one layer may touch side by side but never share a stud. A block on a higher layer must sit on blocks of the layer directly below with the required support (a 2x2x1 fully on top, a 2x3x1 with at least 4 of its 6 studs, a 1x2x1 with both studs); a solid way to join two blocks is a block above that overlaps both with enough studs on each side (for example a 2x3x1 bridging two blocks by 2 and 2 studs is not enough; make it rest on 4). Every part (support, seating area, backrest, armrests) must be joined to the rest this way, so the whole design is one connected piece.
 Colours and the thin 1x2x1: the main body (seat, supports, backrest, armrests) is yellow/blue 2x2x1 and 2x3x1; red exists only as 1x2x1, so use it only for thin trims, rails, accents and edges on top of supported studs (a top rail, a seat edge, armrest caps, a backrest detail), mixing orientation 0 and 90, always with both of its studs supported from below.
 """
 _PROCEDURE = """Work in this order (silently; output only the JSON): 1) pick a seating-furniture type that suits the rules; 2) picture its silhouette: where the seating area is, what carries it, whether it has a back or arms; 3) lay out the blocks layer by layer; 4) check every rule above; 5) output the JSON.
@@ -141,7 +142,7 @@ _PROCEDURE = """Work in this order (silently; output only the JSON): 1) pick a s
 # Initial family 카탈로그(Stage 2 Wave 2): 앉는 가구 20종과 각 family를 한눈에 알아보게 하는 defining visible features.
 # 키는 영어 family 이름, 값은 영어 특징 문구(크기 포함, 좌표 없음). Initial에서는 choose_initial_family가 고른 family와 그
 # 특징을 사용자 메시지에 넣는다. Revised는 family를 자유롭게 고른다. 출처: Fable scratch 초안
-# (family_first_3round.py CATALOG)을 블록 규칙(1x2x1·2x2x1·2x3x1, red, 5층, 40블록, 2 stud 지지)에 맞게 옮김.
+# (family_first_3round.py CATALOG)을 블록 규칙(1x2x1·2x2x1·2x3x1, red, 5층, 40블록, 당시 2 stud 지지 → 2026-10-13 min(4, studs))에 맞게 옮김.
 FAMILY_CATALOG = {
     "dining chair": ("compact seat (about 6x6)", "backrest one row deep, 1-2 layers above the seat",
                      "legs or a small base under the seat corners or sides", "no armrests"),

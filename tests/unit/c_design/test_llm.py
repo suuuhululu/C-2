@@ -129,7 +129,7 @@ class TestStage2RuleLines:
         assert ("- Allowed brick/colour combinations (stock): yellow: 2x2x1, 2x3x1; blue: 2x2x1, 2x3x1; red: 1x2x1 only. "
                 "Never red 2x2x1 or 2x3x1, never yellow or blue 1x2x1.") in rules
         assert ("- red 1x2x1 is the only red piece: use it for small features (trim, rail, accent, wing edge, armrest cap, "
-                "backrest detail, border), not for large surfaces; it still needs 2 studs of support below. Red is optional, "
+                "backrest detail, border), not for large surfaces; both of its 2 studs must rest on blocks of the layer directly below. Red is optional, "
                 "never required in quantity.") in rules
         assert "red is available for accents" not in rules and "narrow supports" not in rules
         assert f"- blocks: 1..{validator.MAX_BLOCKS}." in rules and validator.MAX_BLOCKS == 40
@@ -270,7 +270,7 @@ class TestPromptReinforcement:
     def test_support_self_check_uses_the_validator_constant(self):
         text = llm.SYSTEM_PROMPT.lower()
         assert "before output" in text
-        assert f"at least {validator.MIN_SUPPORT_STUDS}" in text
+        assert f"at least min({validator.MIN_SUPPORT_STUDS}" in text and validator.MIN_SUPPORT_STUDS == 4
         assert "layer directly below" in text
 
     def test_connectivity_self_check(self):

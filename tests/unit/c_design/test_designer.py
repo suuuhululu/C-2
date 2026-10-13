@@ -395,7 +395,7 @@ def test_revised_version_unchanged_when_candidate_equals_input_layout():
 def test_revised_version_increments_when_layout_changes():
     design = _tiny_chair_design()
     leg, seat = design["blocks"]
-    moved_seat = dict(seat, x=seat["x"] + 1)
+    moved_seat = dict(seat, y=seat["y"] + 1)  # still 4/4 on the 2x3x1 leg (2026-10-13 rule)
     current = [dict(leg)]
     differences = [{"expected": seat, "actual": seat}]
 
@@ -804,7 +804,7 @@ def test_too_few_blocks_until_the_limit_fails_with_the_reason():
 def test_min_blocks_none_does_not_check_richness():
     design = _tiny_chair_design()
     leg, seat = design["blocks"]
-    moved_seat = dict(seat, x=seat["x"] + 1)
+    moved_seat = dict(seat, y=seat["y"] + 1)  # still 4/4 on the 2x3x1 leg (2026-10-13 rule)
 
     def gen(design_in, current_in, differences_in, reasons):
         return {"blocks": [dict(leg), moved_seat]}
