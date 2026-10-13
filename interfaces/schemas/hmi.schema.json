@@ -105,7 +105,9 @@
       "type":"object", "additionalProperties":false, "required":["workflow_status","step","progress","monitor","notice","actions","design","current"],
       "allOf":[{
         "if":{"properties":{"monitor":{"properties":{"robot":{"properties":{"mode":{"const":"REAL"}}}}}}},
-        "then":{"if":{"required":["manual_trial"],"properties":{"manual_trial":{"const":true}}},
+        "then":{"if":{"required":["observation_kind"],"properties":{"observation_kind":{"const":"SYNTHETIC"}}},
+          "then":{"properties":{"progress":{"properties":{"total":{"maximum":40}}}},"not":{"anyOf":[{"required":["transfer_target"]},{"required":["manual_trial"]}]}},
+          "else":{"if":{"required":["manual_trial"],"properties":{"manual_trial":{"const":true}}},
           "then":{"properties":{
             "workflow_status":{"enum":["IDLE","PREPARING","DELIVERING","WAIT_ASSEMBLY","WAIT_INTENT","REPLANNING","WAIT_CORRECTION","HOLD","STOPPED","COMPLETE"]},
             "progress":{"properties":{"total":{"type":"integer","minimum":0,"maximum":24}}}
@@ -114,7 +116,7 @@
           "workflow_status":{"enum":["IDLE","DELIVERING","HOLD","STOPPED"]},"design":{"type":"null"},
           "step":{"properties":{"target":{"type":"null"}}},
           "progress":{"properties":{"completed":{"const":0},"total":{"const":0}}}
-        }}},
+        }}}},
         "else":{"not":{"anyOf":[{"required":["transfer_target"]},{"required":["manual_trial"]}]}}
       },{
         "if":{"properties":{"actions":{"required":["prepare_observe"]}}},
@@ -131,6 +133,7 @@
         }}
       }],
       "dependentSchemas": {
+        "observation_kind":{"properties":{"monitor":{"properties":{"robot":{"properties":{"mode":{"const":"REAL"}}}}}}},
         "completion":{"if":{"properties":{"workflow_status":{"const":"COMPLETE"}}},"then":{"properties":{"completion":{"properties":{"assembly":{"const":"MATCH"}}}}}}
       },
       "properties": {
@@ -142,7 +145,8 @@
         "current":{"$ref":"day4.schema.json#/$defs/current"},
         "transfer_target":{"$ref":"#/$defs/transfer_target"},
         "manual_trial":{"type":"boolean","const":true},
-        "reported_placement":{"$ref":"day4.schema.json#/$defs/block"}
+        "reported_placement":{"$ref":"day4.schema.json#/$defs/block"},
+        "observation_kind":{"const":"SYNTHETIC"}
       }
     },
     "command": {

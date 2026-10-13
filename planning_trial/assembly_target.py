@@ -117,6 +117,8 @@ def onsite_step_geometry(p, block, axis):
         if (not isinstance(value,list) or len(value)!=6 or
             any(type(v) not in (int,float) or not math.isfinite(v) for v in value)):
             raise ValueError('Finite D onsite pose required: '+key)
+    if 'assembly_tcp_zyz_deg' in g:
+        quaternion_xyzw_from_zyz(g['assembly_tcp_zyz_deg'])
     for key in ('approach_offset_mm','clearance_z_mm'):
         if type(g[key]) not in (int,float) or not math.isfinite(g[key]) or g[key]<=0:
             raise ValueError('Positive finite D onsite clearance required')
@@ -175,6 +177,7 @@ def calculate_step_tcp(step,*,profile=None,grip_axis=None):
         xyz=list(onsite['reference_pose'][:3])
         abc=list(onsite['pickup_pose'][3:])
         abc[0] += onsite['turn_base_z_deg']
+        if 'assembly_tcp_zyz_deg' in onsite:abc=list(onsite['assembly_tcp_zyz_deg'])
         gap=onsite['approach_offset_mm']
     pre=list(xyz);pre[2]+=gap
     trial_corrected=list(xyz);trial_corrected[2]-=2

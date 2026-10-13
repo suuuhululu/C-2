@@ -67,6 +67,18 @@ def test_stop_then_fresh_hmi_then_open_then_observe():
     assert names.index('HANDOVER_CAMERA_READY_BEFORE_MOTION')<names.index('SINGLE_WRITER_MOVE')
 
 
+@pytest.mark.parametrize('speed',[.017,5.])
+def test_handover_release_uses_session_stop_tolerance(speed):
+    execute,raw,events,s,*_=trial()
+    s.value['stillness'].update(linear_mm_s=5.,angular_deg_s=5.,position_mm=1.,orientation_deg=1.)
+    original=raw.sample
+    def sample():
+        row=original();row['velx']=[speed,0.,0.,0.,speed,0.];return row
+    raw.sample=sample
+    assert execute()['status']=='LOCAL_HANDOVER_OBSERVE_COMPLETE'
+    assert raw.grips==[(62.4,40.)]
+
+
 @pytest.mark.parametrize('start,release,status', [(False,True,'PAUSED_START'),
     (True,False,'PAUSED_HANDOVER_RECEIVING_CONFIRMATION')])
 def test_hmi_decline_never_opens_or_returns(start, release, status):

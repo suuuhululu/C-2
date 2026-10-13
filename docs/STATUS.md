@@ -1,5 +1,13 @@
 # 현재 진행 상황
 
+## 2026-10-13 — round1 Robot 시험 경로 통합
+
+- 최근 현장 시험의 전체힘35N 정지/정지 후 개방, 연속 운반, 완화된 정지 허용오차, 슬롯 순환/중복 소비 방지, 승인 후 수정 질문 반복 방지, 슬롯2 펌웨어 최소 반경 오류의 재현·명령 전 검사를 통합했다.
+- PR #30의 C 구현은 보존하고 D에서 설계 metadata·구조화 planning_failure를 전달한다. HMI에 REAL Robot + SYNTHETIC B 시험 표시를 명시하며 기존 REAL 단일 전달/수동 시험 제한은 유지한다. A는 D가 제공한 Step 조립 자세와 빈 복귀 경로 선택만 반영한다.
+- 추가 지시에 따라2×2 회전 때 Base X −1.5mm, 손바닥 인계 의미 유지, 하강 전 손 감지 시 새 인계 대기, 확인된 보류의 재개를 반영했다.
+- D 오프라인1064 passed/1 skipped, 통합 앱231 passed, A/HMI 계약257 passed, 2×2 회전12 passed, 각각 종료0. 외부 A 참고 경로가 없는 레거시 검사만 건너뛰었고 실제 장치 동작은 실행하지 않았다.
+- 실행 방법·교시 원자료·실물 검증 한계·2×2 회전/인계 정지 원인은 [REAL 시험 안내](D_FULL_FEATURE_REAL_TRIAL_20261012.md)에 기록했다. 실제 Robot/Camera/완성 조립 성공을 주장하지 않는다.
+
 ## 2026-10-12 — 손 모델 기본 경로 최신화
 
 - 사용자 요청으로 perception_mvp/config.yaml의 기본 손 weights, live_view.save_hand_roi 및 supply_roi의 V0 손 ROI 설정 생성 경로, README 손 실행 예시를 models/hand_yolo11n_added_20261012/weights/best.pt로 변경했다. 기존 저장된 V0 hand_config.json은 이미 같은 경로다. 블록 모델·시험 임계값·기존 모델·사용자 미완료 변경은 보존한다.

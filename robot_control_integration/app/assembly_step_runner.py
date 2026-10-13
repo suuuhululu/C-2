@@ -3,7 +3,7 @@ from copy import deepcopy
 import math
 import time
 
-from app.assembly_motion import pose_error
+from app.assembly_motion import pose_error,motion_still
 from app.assembly_step_bridge import pose, release_feedback_range, validate_physical
 from scripts.assembly_position_trial import run, guard
 from scripts.assembly_press_trial import press
@@ -19,6 +19,16 @@ def rotate_base_z_pose(value, degrees):
     return result
 
 
+def assembly_target_pose(settings):
+    """실측 조립 자세가 있으면 보존하고, 기존 Step은 공급 파지+회전을 사용한다."""
+    orientation=settings.get('assembly_tcp_zyz_deg')
+    if orientation is None:
+        orientation=rotate_base_z_pose(settings['pickup_pose'],settings.get('turn_base_z_deg',0))[3:]
+    if not isinstance(orientation,list) or len(orientation)!=3:
+        raise ValueError('ASSEMBLY_TCP_ZYZ_TRIPLE_REQUIRED')
+    return pose(list(settings['reference_pose'][:3])+orientation,'assembly_target_pose')
+
+
 def run_step(driver, connection, plan, profile, confirm, record, *, phase='full',
              start_zone='assembly', clock=time.monotonic, sleep=time.sleep):
     if phase not in ('full', 'pickup', 'approach', 'contact', 'release', 'retreat', 'assemble-held', 'grasp-recovery', 'human-wait', 'human-ack') or start_zone not in ('assembly', 'place', 'supply'):
@@ -26,6 +36,7 @@ def run_step(driver, connection, plan, profile, confirm, record, *, phase='full'
     if getattr(driver, 'mode', None) == 'REAL':
         validate_physical(plan, profile, phase)
     settings = plan['settings']
+    stillness_policy=getattr(getattr(driver,'session',None),'value',{}).get('stillness',{})
     result = dict(key=plan['key'], phase=phase, mode=plan['mode'],
                   assembly_completion=False, current_update=False, automatic_retry=False,
                   operator_seating_confirmed=False, status='STARTED')
@@ -51,7 +62,7 @@ def run_step(driver, connection, plan, profile, confirm, record, *, phase='full'
         # one extra exact-zero read can reject settling after a successful grasp.
         verify = getattr(driver, 'stillness', None)
         sample = verify() if callable(verify) else driver.sample()
-        if not callable(verify) and (sample['motion_status'] != 0 or any(sample['velx'])):
+        if not callable(verify) and not motion_still(sample,stillness_policy):
             emit('WAIT_SAMPLE_REJECTED', dict(kind=kind, sample=sample))
             raise RuntimeError('WAIT_REQUIRES_STOPPED_ROBOT')
         emit('WAIT_'+kind, dict(key=plan['key'], block=plan['block'], sample=sample,
@@ -98,9 +109,9 @@ def run_step(driver, connection, plan, profile, confirm, record, *, phase='full'
         if feedback_bounds is not None:
             bounds = feedback_bounds
         initial = driver.sample()
-        if initial['motion_status'] != 0 or any(initial['velx']):
+        if not motion_still(initial,stillness_policy):
             verify=getattr(driver,'stillness',None)
-            if profile.get('native_press') and callable(verify):initial=verify()
+            if callable(verify):initial=verify()
             else:raise RuntimeError('GRIPPER_COMMAND_REQUIRES_STOPPED_ROBOT')
         emit('GRIPPER_REQUEST', dict(width_mm=width, force_n=profile['gripper_force_n'],
                                     expected_status=expected, feedback_range_mm=bounds))
@@ -129,7 +140,7 @@ def run_step(driver, connection, plan, profile, confirm, record, *, phase='full'
             if not 0 <= actual_width <= 110:
                 raise RuntimeError('INVALID_GRIPPER_WIDTH_FEEDBACK')
             complete = (feedback['gripper_status'] == expected and
-                        feedback['motion_status'] == 0 and not any(feedback['velx']) and
+                        motion_still(feedback,stillness_policy) and
                         (expected == 2 or bounds[0] <= actual_width <= bounds[1]))
             completed_samples = completed_samples+1 if complete else 0
             if completed_samples >= 3:
@@ -187,7 +198,7 @@ def run_step(driver, connection, plan, profile, confirm, record, *, phase='full'
         bounds = settings['grasp_recovery_start_width_range_mm']
         width = sample['gripper_width_mm']
         mm, deg = pose_error(sample['posx'], settings['grasp_recovery_start_pose'])
-        if (sample['motion_status'] != 0 or any(sample['velx']) or mm > .05 or deg > .05 or
+        if (not motion_still(sample,stillness_policy) or mm > .05 or deg > .05 or
                 type(width) not in (int, float) or not math.isfinite(width) or
                 not bounds[0] <= width <= bounds[1]):
             raise RuntimeError('GRASP_RECOVERY_START_CHANGED')
@@ -209,7 +220,7 @@ def run_step(driver, connection, plan, profile, confirm, record, *, phase='full'
         guard(first, connection, force, automatic=True, force_norm_limit=None,
               required_gripper_status=(0 if phase in ('full', 'pickup', 'retreat', 'human-ack') or
                   (phase == 'release' and plan['mode'] == 'ROBOT_RELEASE_PRESS') else 2))
-        if first['motion_status'] != 0 or any(first['velx']):
+        if not motion_still(first,stillness_policy):
             raise RuntimeError('START_NOT_STILL')
         if phase == 'retreat':
             check_recovery(first)
@@ -244,7 +255,7 @@ def run_step(driver, connection, plan, profile, confirm, record, *, phase='full'
                     sample = driver.sample()
                     guard(sample, connection, force, automatic=True, force_norm_limit=force,
                           required_gripper_status=0)
-                    if (sample['motion_status'] != 0 or any(sample['velx']) or
+                    if (not motion_still(sample,stillness_policy) or
                             not bounds[0] <= sample['gripper_width_mm'] <= bounds[1]):
                         raise RuntimeError('PICKUP_OPEN_START_NOT_VERIFIED')
                     emit('PICKUP_START_OPEN_VERIFIED', dict(sample=sample, range_mm=bounds))
@@ -288,6 +299,8 @@ def run_step(driver, connection, plan, profile, confirm, record, *, phase='full'
                 rotation_start = driver.sample()['posx']
                 transport_orientation = rotation_start[3:]
                 target_orientation = rotate_base_z_pose(rotation_start, turn)[3:]
+                if 'assembly_tcp_zyz_deg' in settings:
+                    target_orientation=assembly_target_pose(settings)[3:]
                 emit('TURN_REFERENCE', dict(start_pose=rotation_start, turn_base_z_deg=turn,
                                           reference='CURRENT_SESSION_GRASP_BASE_Z',
                                           xy_grasp_offset_compensation_measured=False))

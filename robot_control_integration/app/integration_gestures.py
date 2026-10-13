@@ -1,4 +1,4 @@
-"""Local operator gestures for the no-B trial; never measure assembly alignment."""
+"""Stage-bound operator gestures; never measure assembly alignment or completion."""
 from copy import deepcopy
 from pathlib import Path
 import threading
@@ -33,48 +33,78 @@ class OperatorGestureInput:
 
     def gesture(self, row, now_ns):
         received = row.get('received_monotonic_ns')
-        if (row.get('provenance') != 'SENSOR' or type(received) is not int
-                or not 0 <= now_ns-received <= 300_000_000
-                or (self.watermark is not None and received <= self.watermark)):
+        r = self.runtime
+        synthetic = row.get('provenance') == 'SYNTHETIC'
+        if (row.get('provenance') not in ('SENSOR', 'SYNTHETIC')
+                or synthetic and getattr(getattr(r, 'raw', None), 'mode', None) != 'MOCK'
+                or type(received) is not int or not 0 <= now_ns-received <= 300_000_000
+                or self.watermark is not None and received <= self.watermark):
             return
         self.watermark = received
-        r = self.runtime
         identity = r.session.value['execution_id'] if r.session else self.monitor_id
-        stopped = self.stop_preview.evaluate(row.get('hands'), received, row.get('source_ns',0),
-            row.get('frame'), ('OPEN_GRIPPER',identity))
-        if stopped['candidate_event'] == 'OPEN_HAND_HELD_ORIENTATION_UNKNOWN':
-            self.record('GESTURE_STOP_REQUESTED', dict(execution_id=identity, hold_seconds=1.,
-                assembly_alignment_measured=False, actual_stop_verified=False))
-            r.stop()
+        if (row.get('execution_id') != identity or r.session and
+                row.get('source_epoch') != r.session.value['source_epoch']):
             return
-        hands = row.get('hands',[])
-        if len(hands) != 1 or hands[0].get('pose') != 'OPEN_HAND':
-            self.stop_preview.evaluate([],received,row.get('source_ns',0),row.get('frame'),('INACTIVE',identity))
         request = r.request
-        if (r.state != 'RUNNING' or not request or request['kind'] != 'ALIGNMENT_READY'
-                or request['request_id'] in self.confirmed_requests
-                or row.get('preview_request_id') != request['request_id']
-                or row.get('execution_id') != request['execution_id']
-                or row.get('source_epoch') != r.session.value['source_epoch']
-                or row.get('candidate_event') != 'THUMBS_UP_HELD'
-                or row.get('continuity_estimate') is not True
-                or now_ns-received > round(r.session.value['frame_max_age_s']*1e9)):
-            return
-        # This is the operator's readiness response, like the HMI button.
-        # The landmark candidate remains unverified as geometric alignment evidence.
-        try:
-            r.accept_signal(dict(request, sequence=r.signal_seq+1, source='SENSOR', verified=True,
+        hands = row.get('hands', [])
+        source = 'FAKE' if synthetic else 'SENSOR'
+        active = (r.state == 'RUNNING' and request is not None and
+                  row.get('preview_request_id') == request['request_id'])
+        if request and request['kind'] == 'RECEIVE':
+            # Open palm means receive only during this stopped handover request.
+            # Keep fresh hand presence until release; an old latch cannot open.
+            self.stop_preview.evaluate([], received, row.get('source_ns', 0),
+                                       row.get('frame'), ('INACTIVE', identity))
+            if not active:
+                return
+            opened = len(hands) == 1 and hands[0].get('pose') == 'OPEN_HAND'
+            if not opened:
+                self.confirmed_requests.discard(request['request_id'])
+            ready = opened and (request['request_id'] in self.confirmed_requests or
+                row.get('candidate_event') == 'OPEN_HAND_HELD_ORIENTATION_UNKNOWN' and
+                row.get('continuity_estimate') is True)
+            if ready:
+                self.confirmed_requests.add(request['request_id'])
+            signal = dict(request, sequence=r.signal_seq+1, source=source,
+                verified=ready, hand_present=bool(hands), receiving_ready=ready,
+                observed_monotonic_s=received/1e9)
+        else:
+            if getattr(r,'handover_active',False) and len(hands)==1 and hands[0].get('pose')=='OPEN_HAND':
+                self.stop_preview.evaluate([],received,row.get('source_ns',0),row.get('frame'),('INACTIVE',identity))
+                return
+            stopped = self.stop_preview.evaluate(hands, received, row.get('source_ns', 0),
+                row.get('frame'), ('OPEN_GRIPPER', identity))
+            if stopped['candidate_event'] == 'OPEN_HAND_HELD_ORIENTATION_UNKNOWN':
+                if getattr(r,'request_handover',lambda:False)():
+                    self.stop_preview.evaluate([],received,row.get('source_ns',0),row.get('frame'),('INACTIVE',identity))
+                    self.record('GESTURE_HANDOVER_REQUESTED',dict(execution_id=identity,hold_seconds=1.,actual_stop_verified=False))
+                    return
+                # 손바닥은 항상 인계 의도다. 인계 불가 상태를 STOP 명령으로 바꾸지 않는다.
+                self.record('GESTURE_HANDOVER_UNAVAILABLE', dict(execution_id=identity,
+                    hold_seconds=1., state=r.state, actual_stop_verified=False))
+                return
+            if (not active or request['kind'] not in ('ALIGNMENT_READY', 'HELP_READY', 'ASSEMBLY_ACK')
+                    or request['request_id'] in self.confirmed_requests
+                    or row.get('candidate_event') != 'THUMBS_UP_HELD'
+                    or len(hands) != 1 or hands[0].get('pose') != 'THUMBS_UP'
+                    or row.get('continuity_estimate') is not True):
+                return
+            signal = dict(request, sequence=r.signal_seq+1, source=source, verified=True,
                 ready=True, observed_monotonic_s=received/1e9,
-                confirmation_kind='OPERATOR_GESTURE_NOT_ALIGNMENT_MEASUREMENT'))
-        except (RuntimeError,ValueError) as error:
-            if str(error) not in ('NO_ACTIVE_SIGNAL_REQUEST','STALE_SIGNAL'):
+                confirmation_kind='OPERATOR_GESTURE_NOT_ALIGNMENT_MEASUREMENT')
+        try:
+            r.accept_signal(signal)
+        except (RuntimeError, ValueError) as error:
+            if str(error) not in ('NO_ACTIVE_SIGNAL_REQUEST', 'STALE_SIGNAL'):
                 raise
-            self.record('GESTURE_RESPONSE_IGNORED',dict(reason=str(error),request_id=request['request_id']))
+            self.record('GESTURE_RESPONSE_IGNORED', dict(reason=str(error), request_id=request['request_id']))
             return
-        self.confirmed_requests.add(request['request_id'])
-        self.record('GESTURE_READY_CONFIRMED',dict(request_id=request['request_id'],
-            execution_id=request['execution_id'], hold_seconds=2.,
-            pose_verified=row.get('pose_verified',False), assembly_alignment_measured=False))
+        if request['kind'] != 'RECEIVE':
+            self.confirmed_requests.add(request['request_id'])
+        self.record('GESTURE_READY_CONFIRMED', dict(request_id=request['request_id'],
+            execution_id=identity, kind=request['kind'], source=source,
+            ready=signal.get('ready', signal.get('receiving_ready')),
+            pose_verified=row.get('pose_verified', False), assembly_alignment_measured=False))
 
 
 class IntegrationGestureCamera:

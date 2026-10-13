@@ -63,7 +63,7 @@ def test_out_of_scope_design_rejected_before_device(change):
 
 
 @pytest.mark.parametrize('field,value', [('robot_mode',0),('motion_status',1),('gripper_status',2),
-    ('gripper_width_mm',-1.),('tcp','old'),('query_duration_s',.6),('velx',[1.]*6)])
+    ('gripper_width_mm',-1.),('tcp','old'),('query_duration_s',.6),('velx',[5.01]*6)])
 def test_bad_live_state_holds(field, value):
     r = receipt(); r['samples'][-1][field] = value
     frame = trial.measured_inputs(ROOT)['frame']
@@ -75,9 +75,23 @@ def test_old_receipt_and_moving_pose_are_rejected():
     r = receipt(); frame = trial.measured_inputs(ROOT)['frame']
     with pytest.raises(ValueError,match='FRESH_READ'):
         trial.live_robot_state(r, frame, now=r['captured_unix_s']+.51)
-    r['samples'][-1]['posx'][0] += .06
+    r['samples'][-1]['posx'][0] += 1.01
     with pytest.raises(ValueError,match='NOT_STILL'):
         trial.live_robot_state(r, frame)
+
+
+def test_stop_snapshot_accepts_residual_speed_and_pose_noise():
+    r=receipt();frame=trial.measured_inputs(ROOT)['frame']
+    r['samples'][0]['velx']=[-.0099941483,-.0169404615,0.,-.0000500448,-.0001962454,-.0026575383]
+    r['samples'][1]['posx'][0]+=.5
+    assert trial.live_robot_state(r,frame)['stopped_verified']
+
+
+@pytest.mark.parametrize('axis',[0,3])
+def test_stop_snapshot_accepts_reviewed_velocity_boundary(axis):
+    r=receipt();frame=trial.measured_inputs(ROOT)['frame']
+    r['samples'][-1]['velx'][axis]=5.
+    assert trial.live_robot_state(r,frame)['stopped_verified']
 
 
 def test_real_document_has_new_session_actual_refs_and_contact_gate():
@@ -90,7 +104,7 @@ def test_real_document_has_new_session_actual_refs_and_contact_gate():
     assert d['step']['current_revision'] is None
     assert 'MOCK' not in d['d_profile']['profile_id']
     assert not d['motion']['execution_allowed']
-    assert d['d_profile']['transport_blending'] == dict(radius_mm=30., reviewed=True)
+    assert d['d_profile']['transport_blending'] == dict(radius_mm=40., reviewed=True)
     assert d['d_profile']['transport_policy'] == 'REVIEWED_HORIZONTAL_BLENDING'
     assert d['session']['transport_blend_review_ref']=='UNIT_OPERATOR_REVIEW'
     # 로봇 저장소의 REAL admission만 검사. 드라이버 생성/실제 명령 없음.

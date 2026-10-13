@@ -114,12 +114,15 @@ class ControlledDriver:
 
     def own(self, owner, *, during_stillness=None, verified_snapshot=None):
         self.session.check()
-        reuse = (owner=='WAIT' and during_stillness is None and verified_snapshot is not None and
+        reuse = (owner in ('WAIT','GRIPPER','MOTION','CONTACT') and during_stillness is None and verified_snapshot is not None and
                  verified_snapshot is self.last_verified_sample and
                  self.verified_sequence == self.session.state_sequence and
                  self.clock()-self.verified_at <= self.session.value['stillness']['sample_max_duration_s'])
         sample = verified_snapshot if reuse else self.stillness(during_stillness=during_stillness)
-        self.last_verified_sample = None  # A proof can skip only one duplicate WAIT window.
+        if reuse:
+            self.session.record('OWNER_STILLNESS_REUSED',dict(owner=owner,state_sequence=self.verified_sequence,
+                age_s=self.clock()-self.verified_at))
+        self.last_verified_sample = sample if owner=='GRIPPER' and during_stillness is None else None
         self.session.check()
         return self.session.switch_owner(owner, sample, recheck=True)
 
@@ -138,7 +141,16 @@ class ControlledDriver:
         monitor = getattr(self, 'human_receive_monitor', None)
         if monitor is not None:
             during_stillness = monitor
-        self.stillness(during_stillness=during_stillness)
+        # An immediate gripper command can consume the fresh owner-switch proof once.
+        reuse = (during_stillness is None and precondition is None and self.last_verified_sample is not None and
+                 self.verified_sequence == self.session.state_sequence and
+                 self.clock()-self.verified_at <= self.session.value['stillness']['sample_max_duration_s'])
+        if reuse:
+            self.session.record('GRIPPER_STILLNESS_REUSED',dict(state_sequence=self.verified_sequence,
+                age_s=self.clock()-self.verified_at))
+        else:
+            self.stillness(during_stillness=during_stillness)
+        self.last_verified_sample = None
         if precondition is not None:
             precondition()
         self.session.check()

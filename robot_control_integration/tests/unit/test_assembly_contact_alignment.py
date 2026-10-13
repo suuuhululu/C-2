@@ -368,3 +368,117 @@ def test_rearming_preserves_operator_edited_default_profile(tmp_path,monkeypatch
     assert main(['arm','--floor-z-mm','16','--confirm-noncontact','--confirm-envelope',
                  '--log-dir',str(tmp_path/'logs')],driver_factory=factory)==0
     assert json.loads(profile.read_text())['probe_force_n']==5.
+
+
+def seating_run(surface,*,cancelled=lambda d:False,probe_load=None,configure=lambda d:None,on_observation=lambda d,v:None):
+    c=config();c.update(floor_z_mm=16.,force_window_mm=10.5,rounds=2,max_probes=20)
+    c['reference']['posx'][2]=36.6
+    d=ContactFake(c,allow_force_moves=True)
+    if probe_load is not None:
+        def measured_load(sample):
+            if d.force and d.force_target_n==20.:sample['wrench'][2]=probe_load
+        d.modify=measured_load
+    def depth():
+        rot=Rotation.from_euler('ZYZ',d.pos[3:],degrees=True)*Rotation.from_euler('ZYZ',c['reference']['posx'][3:],degrees=True).inv()
+        d.pos[2]=surface(d.pos[0]-300.,d.pos[1],np.rad2deg(rot.as_rotvec())[2])
+    d.apply_depth=depth;configure(d);clock=Clock();events=[]
+    def record(event,value):
+        events.append((event,value))
+        if event=='CONTACT_OBSERVATION':on_observation(d,value)
+    result=run_contact(d,prepare_contact(c),record,in_contact=True,
+        seating_goal_z_mm=16.5,seek_motion=([24.,24.],[12.,12.]),
+        now=clock.now,sleep=clock.sleep,cancelled=lambda:cancelled(d))
+    return result,d,events
+
+
+def test_seating_search_corrects_xy_then_finishes_vertical_press_without_roll_or_pitch():
+    result,d,events=seating_run(lambda x,y,yaw:16.7 if x<-.1 else 18.)
+    assert result['status']=='PRESS_ONLY_FORCE_LIMIT_REACHED_STOP_VERIFIED',result
+    assert result['correction'][0]<0 and result['correction'][2:4]==[0.,0.]
+    assert d.force_requests==[dict(force_n=20.,relative=False),dict(force_n=35.,relative=False)]
+    assert d.pos[2]==16.7 and not d.force and not d.compliance
+    assert all(v['q'][2:4]==[0.,0.] for e,v in events if e=='CONTACT_OBSERVATION')
+    last=next(i for i,(e,_) in enumerate(events) if e=='PRESSURE_STAGE')
+    assert not any(e=='CONTACT_MOVE_REQUEST' for e,_ in events[last:])
+    assert result['assembled'] is False
+
+
+def test_logged_18_76n_probe_continues_xy_search_instead_of_first_probe_abort():
+    result,d,events=seating_run(lambda x,y,yaw:16.7 if x<-.1 else 18.,probe_load=18.7638)
+    assert result['status']=='PRESS_ONLY_FORCE_LIMIT_REACHED_STOP_VERIFIED',result
+    assert result['correction'][0]<0
+    first=next(v for e,v in events if e=='CONTACT_OBSERVATION')
+    assert first['response_ready'] and not first['matched_load']
+    assert d.force_requests[-1]==dict(force_n=35.,relative=False)
+    assert not d.force and not d.compliance
+
+
+def test_seating_search_can_find_yaw_response_and_stops_rotation_at_target():
+    result,d,events=seating_run(lambda x,y,yaw:16.7 if yaw<-.1 else 18.)
+    assert result['status']=='PRESS_ONLY_FORCE_LIMIT_REACHED_STOP_VERIFIED',result
+    assert result['correction'][4]<0 and result['correction'][2:4]==[0.,0.]
+    assert d.pos[2]==16.7 and not d.force
+
+
+def test_already_seated_contact_does_not_search_xy_or_yaw():
+    result,d,events=seating_run(lambda x,y,yaw:16.7)
+    assert result['correction']==[0.]*5 and len(result['observations'])==2
+    assert sum(call[0]=='move' for call in d.calls)==1
+
+
+def test_seating_search_cancel_releases_force_without_gripper_commands():
+    result,d,events=seating_run(lambda x,y,yaw:18.,cancelled=lambda d:d.force)
+    assert result['status']=='CONTACT_TRIAL_ABORTED' and result['reason']=='OPERATOR_CANCELLED'
+    assert not d.force and not d.compliance and result['gripper_commands']==0
+
+
+def test_logged_half_mm_further_insertion_reaches_35n_without_recommanding_same_pose():
+    changed=False
+    def further_insertion(d,value):
+        nonlocal changed
+        if value['q'][0]<0 and not changed:
+            d.pos[2]-=.48706;changed=True
+    result,d,events=seating_run(lambda x,y,yaw:17.1 if x<-.1 else 18.,on_observation=further_insertion)
+    assert result['status']=='PRESS_ONLY_FORCE_LIMIT_REACHED_STOP_VERIFIED',result
+    observed=[v for e,v in events if e=='CONTACT_OBSERVATION' and v['q'][0]<0]
+    assert observed[1]['depth_mm']-observed[0]['depth_mm']==pytest.approx(.48706)
+    assert observed[1]['q']==observed[0]['q']
+    assert d.force_requests[-1]==dict(force_n=35.,relative=False)
+    # One vertical seek and one XY correction; repeats issue no position command.
+    assert sum(call[0]=='move' for call in d.calls)==2
+    assert any(e=='CONTACT_REOBSERVE' for e,_ in events)
+    assert not d.force and not d.compliance and result['assembled'] is False
+
+
+def test_native_tilt_is_preserved_by_xy_correction_and_repeat_observation():
+    tilted=None
+    def native_tilt(d,value):
+        nonlocal tilted
+        if tilted is None:
+            tilted=correction_pose(d.pos,[0.,0.,1.,-.8,0.])[3:]
+            d.pos[3:]=tilted
+    result,d,events=seating_run(lambda x,y,yaw:16.7 if x<-.1 else 18.,on_observation=native_tilt)
+    assert result['status']=='PRESS_ONLY_FORCE_LIMIT_REACHED_STOP_VERIFIED',result
+    correction=[v['target'] for e,v in events if e=='CONTACT_MOVE_REQUEST'][-1]
+    np.testing.assert_allclose(Rotation.from_euler('ZYZ',correction[3:],degrees=True).as_matrix(),
+        Rotation.from_euler('ZYZ',tilted,degrees=True).as_matrix(),atol=1e-12)
+    assert sum(call[0]=='move' for call in d.calls)==2
+    assert d.force_requests[-1]['force_n']==35.
+
+
+def test_idle_motion_status_during_force_descent_waits_for_depth_samples():
+    seen=[]
+    def configure(d):
+        heights=iter([22.8,21.,19.,18.,18.,18.])
+        def descent(sample):
+            if d.force and d.force_target_n==20.:
+                d.pos[2]=next(heights,18.);sample['posx'][2]=d.pos[2]
+                sample['velx'][2]=-7.779 if d.pos[2]>18. else 0.
+                seen.append(d.pos[2])
+        d.modify=descent
+    result,d,events=seating_run(lambda x,y,yaw:18.,configure=configure)
+    assert result['status']=='PRESS_ONLY_FORCE_LIMIT_REACHED_STOP_VERIFIED',result
+    first=next(v for e,v in events if e=='CONTACT_OBSERVATION')
+    assert seen[:6]==[22.8,21.,19.,18.,18.,18.]
+    assert first['sample']['posx'][2]==18. and first['noise_mm']==0.
+    assert first['response_ready'] and d.force_requests[-1]['force_n']==35.
