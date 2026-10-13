@@ -37,11 +37,19 @@ def tower(layers):
 
 
 def thirty_blocks():
-    # 인접층을 한 stud씩 엇갈려 C의 단일 연결 구조·지지 조건을 만족한다.
-    return dict(design_version=1, blocks=[dict(brick_type="2x3x1", color="yellow",
-        x=8 + col * 2 + (layer % 2), y=8 + row * 3 + (layer % 2),
-        layer=layer, orientation_deg=0)
-        for layer in range(1, 6) for row in range(2) for col in range(3)])
+    # 홀수층은 2x3x1 세로(0°) 3열×2행, 짝수층은 같은 6×6 footprint를 가로(90°) 2열×3행으로 덮는다. 층마다 모든 블록이
+    # 아래층 위에 완전히 얹히고(6/6 stud) 가로·세로가 번갈아 겹쳐 단일 연결 구조가 된다. 2026-10-13 C support 규칙
+    # (블록별 min(4, stud 수))에 맞춘 합성 입력이며 테스트 목적(5층·30블록 C→A→D→Qt)은 그대로다. 이전 1 stud 엇갈림은
+    # 가장자리 블록이 2~3 stud만 걸려 새 규칙에서 무효였다.
+    blocks = []
+    for layer in range(1, 6):
+        if layer % 2:
+            blocks += [dict(brick_type="2x3x1", color="yellow", x=8 + col * 2, y=8 + row * 3, layer=layer,
+                            orientation_deg=0) for row in range(2) for col in range(3)]
+        else:
+            blocks += [dict(brick_type="2x3x1", color="yellow", x=8 + col * 3, y=8 + row * 2, layer=layer,
+                            orientation_deg=90) for row in range(3) for col in range(2)]
+    return dict(design_version=1, blocks=blocks)
 
 
 @pytest.fixture(scope="module")
