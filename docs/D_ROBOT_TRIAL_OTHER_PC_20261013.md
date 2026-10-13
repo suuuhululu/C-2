@@ -1,8 +1,8 @@
 # 다른 PC에서 round1 Robot 시험 브랜치 실행하기
 
-[PR #36](https://github.com/suuuhululu/C-2/pull/36) · 코드 검증 commit: `0a17d2e`.
+[PR #36](https://github.com/suuuhululu/C-2/pull/36)의 공급 MoveL·40N 시험에 슬롯1~5 정책·외부 DRCF2 경로·다른 PC용 roboton2를 추가한 후속 안내다. 기준은 PR #39가 병합된 `codex/integration-round1 @ 115271e`다.
 
-대상 저장소: `suuuhululu/C-2` · 브랜치: `codex/robot-trial-fixes-20261013` · PR 기준 브랜치: `codex/integration-round1`.
+대상 저장소: `suuuhululu/C-2` · 후속 시험 브랜치: `codex/round1-trial-local-fixes-20261013` · PR 기준 브랜치: `codex/integration-round1`.
 
 이 안내의 REAL 명령은 실제 Robot·그리퍼를 움직인다. B는 가짜 관측이다. `--c-mode offline`도 C 대화만 오프라인이며 Robot은 REAL이다. 장치를 연결하지 않는 검사는 아래 오프라인 검증 절차를 사용한다. 기존 Job을 자동 복원하지 않으며 새 시험으로 시작한다.
 
@@ -10,6 +10,7 @@
 
 | 구간 | 명령/설정 |
 |---|---|
+| 공급 재고·순환 | full-real에서 종류/색상별1→2→3→4→5→1. 사용자 전제: 1~5번 항상 보충, 6번 항상 비어 있음. 슬롯6 준비·실행 문서 생성·기존 문서 재개 차단 |
 | 빈 상태에서 공급판 진입 | MoveB 비활성화. 현재 위치 상승 → BODY_BYPASS → SUPPLY_TRANSIT → **이번 Step 슬롯 상부**를 단독 MoveL로 진행. 이전 슬롯 복귀 없음 |
 | 공급 슬롯 정렬·집기 | 슬롯 상부 최종 정렬 24mm/s·12mm/s² → 집기 하강 24mm/s·12mm/s² → 기존 폭35mm·파지 힘40N |
 | 블록을 쥐고 조립판으로 이송 | 기존 MoveB 유지. 이송276.48mm/s·96mm/s², 반경40mm. 조립판 하강 직전 목표까지 진행 |
@@ -22,12 +23,14 @@
 
 위 속도는 TCP 직선 이동의 설정값이다. 관절 MoveJ 속도 설정이 아니다. 비결착 구간에는 앱의35/40N 정지 제한을 적용하지 않으며 제어기 자체 고장/충돌 상태, 파지·TCP/Tool·피드백 검사까지 해제하는 변경은 아니다. Robot의 결착이 없는 사람 PRESS/인계 방식에는 자동 결착을 추가하지 않는다.
 
+슬롯은 집기 성공 확인 시에만 진행하며 중복 이벤트·재검사로 추가 소비하지 않는다. A에는 선택된1~5번 예약을 전달하고 HMI의 다음 슬롯도 같은 값을 표시한다. 공급판을5칸짜리로 재계산하거나6번 교시 자료를 삭제하지 않는다. 6번 교시는 기존 좌표 보정 근거이며, 별도 MOCK/레거시 경로의 기본6슬롯·설계 최대40블록·공통 계약은 유지한다. 슬롯6 제외는 그 슬롯 접근의 특이점 정지에 대한 운영 우회이며 다른 경로의 물리 성공을 보장하지 않는다.
+
 ## 1. 브랜치 받기
 
 새 폴더를 사용하면 다른 PC의 기존 작업을 보존할 수 있다. private 저장소라면 해당 PC의 GitHub 인증이 먼저 필요하다.
 
 ```bash
-git clone --branch codex/robot-trial-fixes-20261013 --single-branch   https://github.com/suuuhululu/C-2.git "$HOME/C-2-robot-trial"
+git clone --branch codex/round1-trial-local-fixes-20261013 --single-branch   https://github.com/suuuhululu/C-2.git "$HOME/C-2-robot-trial"
 cd "$HOME/C-2-robot-trial"
 git branch --show-current
 git log -1 --oneline
@@ -39,12 +42,12 @@ export C2_ROBOT_ROOT="$PWD/robot_control_integration"
 ```bash
 cd "$HOME/C-2-robot-trial"
 git status --short
-git fetch origin codex/robot-trial-fixes-20261013
-git pull --ff-only origin codex/robot-trial-fixes-20261013
+git fetch origin codex/round1-trial-local-fixes-20261013
+git pull --ff-only origin codex/round1-trial-local-fixes-20261013
 export C2_ROBOT_ROOT="$PWD/robot_control_integration"
 ```
 
-저장소의 `scripts/cad_trial_ms02.sh`와 `scripts/roboton2.launch.py`에는 ms-02의 절대경로가 들어 있다. 다른 PC에서는 아래 직접 실행 방법을 사용한다. 특히 `C2_ROBOT_ROOT`를 예전 외부 D 폴더로 지정하면 새 PR의 D 코드가 실행되지 않는다.
+`scripts/cad_trial_ms02.sh`는 기존 ms-02 전용 경로를 유지한다. `scripts/roboton2.launch.py`는 `C2_ROBOT_ROOT` 또는 checkout 내부 `robot_control_integration`을 사용한다. `C2_ROBOT_ROOT`를 예전 외부 D 폴더로 지정하면 후속 D 코드가 실행되지 않는다.
 
 ## 2. 해당 PC의 기존 장치 환경 준비
 
@@ -112,11 +115,12 @@ from PyQt5.QtWidgets import QApplication
 root=Path(os.environ['C2_ROBOT_ROOT'])
 driver=Path(os.environ['C2_DRIVER_ROOT'])
 ready=json.loads((driver/'READY.json').read_text())
+libraries=ready['libraries'] if 'libraries' in ready else ready['packages']
 for name in ('dsr_hardware2','dsr_controller2'):
     expected=driver/'install'/name
     assert Path(get_package_prefix(name)).resolve()==expected.resolve(), name
     library=expected/'lib'/('lib'+name+'.so')
-    assert hashlib.sha256(library.read_bytes()).hexdigest()==ready['libraries'][name]['sha256'], name
+    assert hashlib.sha256(library.read_bytes()).hexdigest()==libraries[name]['sha256'], name
 for relative in ('scripts/robot_integration_runtime.py',
                  'fixtures/teaching_sources/operator_supply.json',
                  'logs/handover/stage02/hand_landmarker.task'):
@@ -130,7 +134,7 @@ CHECK
 
 ```bash
 python3 scripts/test_robot_trial_offline.py
-C_DESIGN_USE_LLM=0 QT_QPA_PLATFORM=offscreen PYTEST_DISABLE_PLUGIN_AUTOLOAD=1   python3 -m pytest tests/integration/test_mvp_full_real_adapter.py   tests/integration/test_cad_x_boundary_offset.py -q --tb=short
+C_DESIGN_USE_LLM=0 QT_QPA_PLATFORM=offscreen PYTEST_DISABLE_PLUGIN_AUTOLOAD=1   python3 -m pytest tests/unit/test_mvp_supply_cycle.py tests/integration/test_mvp_full_real_adapter.py   tests/integration/test_cad_x_boundary_offset.py -q --tb=short
 ```
 
 ## 5. REAL 시험 실행
@@ -149,6 +153,20 @@ python3 scripts/robot_driver_setup.py   --config "$C2_ROBOT_ROOT/interfaces/asse
 ```
 
 카메라는 기존 현장 방법으로 RGB topic `/camera/color/image_raw`를 제공한다. 이 guide에서 Camera 재보정/새 launch 구성을 생성하지 않는다.
+
+### roboton2로 함께 시작하기
+
+드라이버와 카메라를 새로 기동할 때는 위 bringup/setup 두 명령 대신 아래 복합 launch를 사용할 수 있다. 2번의 ROS·DRCF2·Python 환경을 적용한 뒤 실행한다. 현재 checkout의 설정을 사용해 드라이버 서비스 준비를 기다리고, 정지/STANDBY 및 실제 장치 여부 확인 후 기존 TCP `GripperDA_v4`·Tool `ToolWeight0`을 선택한다. 필요 시 manual mode를 사용한 뒤 원래 mode로 복원한다. TCP pose·Tool 무게를 새로 생성하거나 팔 이동을 명령하지 않는다.
+
+```bash
+export C2_CHECKOUT_ROOT="$PWD"
+alias roboton2='ros2 launch "$C2_CHECKOUT_ROOT/scripts/roboton2.launch.py" camera:=true'
+roboton2
+```
+
+성공 표시는 `ROBOTON2_READY`이고 실패 표시는 `ROBOTON2_SETUP_FAILED`다. 카메라가 따로 실행 중이면 `roboton2 camera:=false`를 사용한다. 이 복합 launch는 이미 실행 중인 드라이버를 교체하거나 중복 기동하지 않도록 운영자가 기존 프로세스를 확인한 뒤 사용한다. alias와 ROS/드라이버 환경 로딩은 각 PC의 개인 설정이며 바이너리·API 키와 함께 Git에 포함하지 않는다.
+
+현재 실행 중인 DRCF2 검사에는 `C2_DRIVER_ROOT`가 선택한 `install` 경로를 사용한다. 변수가 없으면 D root 내부 `runtime/drcf2/install` 경로를 유지한다. 실제 dsr01 프로세스에 controller/hardware 두 라이브러리가 모두 로드됐는지 검사하며, 경로 불일치나 한쪽 누락은 계속 거부한다. 경로 불일치 시 선택한 overlay와 실행 중인 프로세스를 먼저 확인한다.
 
 같은 터미널에서 전체 시험 창을 연다. **이 명령과 창의 시작 버튼은 실제 Robot을 실행한다.** 이번 공급 MoveL·40N·확인 버튼·x>11 보정이 이 명령에 적용된다.
 
@@ -170,6 +188,7 @@ python3 -m app.mvp_real_trial   --robot-root "$C2_ROBOT_ROOT" --execute --c-mode
 
 새 Job의 JSONL과 실행 JSON이 `logs/full-feature-real`에 저장된다. 실행 문서에서 다음을 확인하면 이전 코드나 외부 D를 잘못 실행했는지 구분할 수 있다.
 
+- `d_profile.supply_slot_count=5`, `supply_unavailable_slots=[6]`, `supply_slots_always_replenished=true`. 같은 종류/색상7개 예약은1,2,3,4,5,1,2이며 공급 교시6번을 사용하지 않는다.
 - `d_profile.supply_approach_blending=false`, `force_stop_n=40`, `native_press.force_n=40`, `native_press.alignment_trial=true`.
 - 공급 접근의 `ROBOT_MOVE_STARTED`: `BODY_EMPTY` → `SUPPLY_EMPTY` → `PICKUP_HIGH` → `PICKUP_LOWER`. 공급 구간 `ROBOT_SINGLE_WRITER_BLEND` 없음. loaded 이송에는 블렌딩이 남는다.
 - 결착 결과의 `press_control=POSITION_DESCENT_REACTION_STOP`, `force_control_target_n=null`, `native_force_commands=0`, 임계 반력≥40N 및 정지 검증.

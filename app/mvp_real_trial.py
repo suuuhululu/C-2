@@ -9,6 +9,13 @@ from app.cad_real_trial import REAL_STILLNESS_TOLERANCES, live_robot_state, save
 from app.mvp_integration import MvpIntegration, main
 from app.mvp_fake import execution_document
 
+FULL_REAL_SUPPLY_SLOT_COUNT = 5
+
+
+def require_available_supply_slot(slot_index):
+    if type(slot_index) is not int or not 1 <= slot_index <= FULL_REAL_SUPPLY_SLOT_COUNT:
+        raise ValueError('SUPPLY_SLOT_UNAVAILABLE: full-real uses replenished slots 1..5; slot 6 is empty')
+
 
 def real_settings(inputs):
     context = deepcopy(inputs['context'])
@@ -30,6 +37,7 @@ def real_settings(inputs):
 def prepare_measured(workflow, inputs, payload, slot_index, receipt, receipt_ref, review_ref):
     if not review_ref:
         raise ValueError('OPERATOR_PREPARATION_REQUIRED')
+    require_available_supply_slot(slot_index)
     action = workflow.whole_result['action_proposals'][len(workflow.completed)]
     frame, profile, slot, correction = step_geometry(inputs,payload['step'],action,slot_index)
     frame.update(profile_id=workflow.settings['frame_profile']['profile_id'],
@@ -57,6 +65,7 @@ def prepare_measured(workflow, inputs, payload, slot_index, receipt, receipt_ref
 
 
 def measured_document(bundle, identity, epoch):
+    require_available_supply_slot(bundle['request']['reserved_supply_slot']['slot_index'])
     doc=execution_document(bundle,identity)
     request=bundle['request'];p=doc['d_profile'];s=doc['session'];prepared=bundle['prepared']
     review=prepared['operator_review_ref'];receipt=prepared['state_receipt_ref']
@@ -83,6 +92,8 @@ def measured_document(bundle, identity, epoch):
 
 
 class FullFeatureRealTrial(MvpIntegration):
+    supply_slot_count = FULL_REAL_SUPPLY_SLOT_COUNT
+
     def __init__(self,robot_root,directory,*,contact_alignment_trial=False,**kwargs):
         self.inputs=measured_inputs(robot_root)
         if self.inputs['taught_supply'] is None:
@@ -93,7 +104,9 @@ class FullFeatureRealTrial(MvpIntegration):
             supply_approach_blending=False,force_stop_n=40.,operator_cue_timeout_holds=True,operator_cue_buttons=True,
             ik_fk_position_tolerance_mm=.5,ik_fk_orientation_tolerance_deg=.5,
             transfer_velocity=276.48,transfer_acceleration=96.,
-            descent_acceleration=12.,pickup_descent_acceleration=12.)
+            descent_acceleration=12.,pickup_descent_acceleration=12.,
+            supply_slot_count=self.supply_slot_count,supply_unavailable_slots=[6],
+            supply_slots_always_replenished=True)
         p['native_press'].update(force_n=40.,alignment_trial=True,
             review_ref='USER_40N_REACTION_STOP_20261013')
         p.pop('pre_contact_slow_distance_mm',None)
@@ -163,6 +176,7 @@ class FullFeatureRealTrial(MvpIntegration):
         elif port=='robot.RESUME':
             if self.last_document is None:raise ValueError('No stopped Step')
             document=deepcopy(self.last_document)
+            require_available_supply_slot(document['request']['reserved_supply_slot']['slot_index'])
             s=document['session'];s.update(execution_id=payload['execution_id'],
                 resume_current_revision=payload['current']['current_revision'],expires_unix_s=time.time()+600,
                 trial_alignment_pending=False,alignment_evidence_ref=None)

@@ -23,6 +23,8 @@ from planning_trial.assembly_adapter import handle_whole_plan, handle_step_reass
 
 class MvpIntegration:
     """모든 채택은 poll() 호출 스레드에서 수행한다. 작업 thread는 결과만 큐에 넣는다."""
+    supply_slot_count = 6
+
     def __init__(self, robot_root, directory, *, fixture_design=None, c_mode='offline',
                  history_dsn=None, web_url='http://127.0.0.1:8765', robot_mode='MOCK',
                  runtime_settings=None, gestures=False):
@@ -354,7 +356,7 @@ class MvpIntegration:
                 slot=self.workflow.step_inputs['slot']
                 column=slot['brick_type'],slot['color']
                 self.consumed_executions.add(self.workflow.execution_id)
-                self.slot_indices[column]=next_supply_slot(slot['slot_index'])
+                self.slot_indices[column]=next_supply_slot(slot['slot_index'],self.supply_slot_count)
                 for supply in self.workflow.supply:
                     if (supply['brick_type'],supply['color'])==column:
                         index=self.slot_indices[column]
