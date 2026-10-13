@@ -69,7 +69,7 @@ def install(monkeypatch,tmp_path,design,**kwargs):
     return r
 
 
-def settle(r,condition,seconds=65,*,receiving=False,on_poll=lambda:None):
+def settle(r,condition,seconds=65,*,receiving=False,on_poll=lambda:None,gesture_filter=lambda request:True):
     end=time.monotonic()+seconds
     while time.monotonic()<end:
         r.poll();HMI_VALIDATOR.validate(r.workflow.snapshot())
@@ -77,7 +77,7 @@ def settle(r,condition,seconds=65,*,receiving=False,on_poll=lambda:None):
         if r.c_pending:r.answer('좋아 이걸로 하자')
         on_poll()
         request=r.ready_signal
-        if request:
+        if request and gesture_filter(request):
             now=time.monotonic_ns()
             r.robot.inner.send('GESTURE_SAMPLE',sample=dict(provenance='SYNTHETIC',
                 execution_id=r.last_document['session']['execution_id'],source_epoch=r.last_document['session']['source_epoch'],
@@ -85,7 +85,7 @@ def settle(r,condition,seconds=65,*,receiving=False,on_poll=lambda:None):
                 hands=([dict(pose='OPEN_HAND',center=[100.,100.],palm_size=40.)] if receiving else []) if request['kind']=='RECEIVE' else [dict(pose='THUMBS_UP',center=[100.,100.],palm_size=40.)],
                 candidate_event=('OPEN_HAND_HELD_ORIENTATION_UNKNOWN' if receiving else None) if request['kind']=='RECEIVE' else 'THUMBS_UP_HELD',continuity_estimate=True))
         if condition():return
-        if r.workflow.status=='HOLD' and r.workflow.check is None:pytest.fail(r.workflow.reason)
+        if r.workflow.status=='HOLD' and r.workflow.check is None and r.workflow.reason!='STOP_PENDING':pytest.fail(r.workflow.reason)
         time.sleep(.03)
     pytest.fail(str((r.workflow.status,r.workflow.reason)))
 
@@ -259,7 +259,11 @@ def test_trial_option_uses_same_a_d_route_and_reaction_stop_profile(monkeypatch,
         assert doc['d_profile']['native_press']['alignment_trial']
         assert doc['d_profile']['continuous_transport']
         assert doc['d_profile']['noncontact_force_guard'] is False
-        assert doc['d_profile']['force_stop_n']==35.
+        assert doc['d_profile']['operator_cue_timeout_holds'] is True
+        assert doc['d_profile']['operator_cue_buttons'] is True
+        assert doc['d_profile']['force_stop_n']==40.
+        assert doc['d_profile']['native_press']['force_n']==40.
+        assert doc['d_profile']['supply_approach_blending'] is False
         assert doc['d_profile']['reaction_descent_velocity']==6.
         assert doc['d_profile']['reaction_descent_acceleration']==6.
         assert doc['session']['stillness']['linear_mm_s']==5.
@@ -279,20 +283,26 @@ def test_trial_option_uses_same_a_d_route_and_reaction_stop_profile(monkeypatch,
         pressure=next(v['result'] for v in rows if v['event']=='ROBOT_PRESS_RESULT')
         assert pressure['press_control']=='POSITION_DESCENT_REACTION_STOP'
         assert pressure['native_force_commands']==0 and pressure['force_control_target_n'] is None
-        assert pressure['threshold_force_norm_n']>=35. and pressure['stop']['stillness_verified']
+        assert pressure['threshold_force_norm_n']>=40. and pressure['stop']['stillness_verified']
         moves=[v['result'] for v in rows if v['event']=='ROBOT_MOVE_STARTED']
         assert not any(v.get('label') in ('TARGET_HIGH','ASSEMBLY_APPROACH') for v in moves)
-        lift=next(v for v in moves if v.get('label')=='LIFT')
+        lift=next(v for v in reversed(moves) if v.get('label')=='LIFT')
         assert lift['target'][:2]==pressure['final_sample']['posx'][:2]
         assert lift['target'][2]>=doc['d_profile']['clearance_z_mm']
         assert sum(v.get('label')=='PRE_CONTACT' for v in moves)==1
-        descents=[v['result'] for v in rows if v['event']=='ROBOT_MOVE_REQUEST' and v['result'].get('segment')=='DESCENT']
+        descents=[];phase=None
+        for row in rows:
+            if row['event']=='ROBOT_MOVE_STARTED':phase=row['result']['label']
+            if row['event']=='ROBOT_PRESS_SESSION':phase='PRESS'
+            if (row['event']=='ROBOT_MOVE_REQUEST' and row['result'].get('segment')=='DESCENT'
+                    and phase in ('PICKUP_LOWER','PRE_CONTACT','PRESS')):descents.append(row['result'])
         assert len(descents)==3 and descents[-1]['velocity']==[6.,6.]
         assert descents[-1]['acceleration']==[6.,6.]
         batches=[v['result'] for v in rows if v['event']=='ROBOT_SINGLE_WRITER_BLEND']
-        assert len(batches)==2 and len(batches[1]['targets'])==5
-        assert batches[0]['targets'][-1][:2]==next(iter(doc['d_profile']['steps'].values()))['pickup_pose'][:2]
-        assert batches[1]['targets'][-1][:2]==pressure['final_sample']['posx'][:2]
+        assert len(batches)==1 and len(batches[0]['targets'])==5
+        assert batches[0]['targets'][-1][:2]==pressure['final_sample']['posx'][:2]
+        empty_moves=[v for v in moves if v.get('label') in ('BODY_EMPTY','SUPPLY_EMPTY','PICKUP_HIGH')]
+        assert [v['label'] for v in empty_moves]==['BODY_EMPTY','SUPPLY_EMPTY','PICKUP_HIGH']
     finally:r.close()
 
 
@@ -318,4 +328,123 @@ def test_real_admission_mock_process_palm_override_keeps_plan_current_and_one_sl
         assert r.slot_indices[('2x2x1','blue')]==2 and r.workflow.current['current_revision']==1
         assert len(r.robot.documents)==1 and r.robot.documents[0]['step']['action']['mode']=='ROBOT_GRIP'
         assert r.workflow.approved['blocks']==[brick(kind='2x2x1')]
+    finally:r.close()
+
+
+def test_real_document_resume_after_thumb_wait_keeps_step_slot_and_does_not_pickup_again(monkeypatch,tmp_path):
+    blocks=[brick(x) for x in (4,6,8)]+[brick(x,2) for x in (5,7,9)]+[brick(10,3)]
+    r=install(monkeypatch,tmp_path,dict(design_version=1,blocks=blocks))
+    r.workflow.settings['assembly_context']['grip_axes']=['x']
+    stopped=[]
+    def stop_wait():
+        if r.ready_signal and r.ready_signal['kind']=='HELP_READY' and not stopped:
+            stopped.append(deepcopy(r.last_document))
+            assert r.command('STOP')
+    try:
+        r.review_preparation(True);assert r.command('START')
+        settle(r,lambda:bool(stopped) and r.workflow.status=='STOPPED',on_poll=stop_wait)
+        assert r.workflow.snapshot()['actions']['resume']['enabled'] is True
+        assert r.command('RESUME')
+        settle(r,lambda:r.workflow.status=='COMPLETE')
+        original=stopped[0]
+        resumed=[d for d in r.robot.documents if d['step']['step_id']==original['step']['step_id']]
+        assert len(resumed)==2 and resumed[0]['step']['reservation']==resumed[1]['step']['reservation']
+        assert resumed[0]['session']['execution_id']!=resumed[1]['session']['execution_id']
+        rows=[json.loads(v) for v in (tmp_path/(r.workflow.job_id+'.jsonl')).read_text().splitlines()]
+        closes=[v for v in rows if v['event']=='ROBOT_GRIP_SUCCEEDED' and
+            v['result']['label']=='PICKUP_CLOSE' and v['result']['step_id']==original['step']['step_id']]
+        assert len(closes)==1
+        assert r.workflow.current['current_revision']==7
+    finally:r.close()
+
+
+@pytest.mark.parametrize('receiving',[False,True])
+def test_real_document_button_fallback_completes_without_camera_confirmation(monkeypatch,tmp_path,receiving):
+    blocks=([brick(x) for x in (4,6,8)]+[brick(x,2) for x in (5,7,9)]+[brick(10,3)]) if not receiving else [brick()]
+    r=install(monkeypatch,tmp_path,dict(design_version=1,blocks=blocks))
+    r.workflow.settings['assembly_context']['grip_axes']=['x']
+    sent=[];palm=[False]
+    def click():
+        execution=r.workflow.execution or {}
+        if (receiving and r.last_document and r.robot_sample and
+                execution.get('phase') not in ('CONTACT','RELEASE','RETREAT','WAIT_INSPECTION')
+                and not r.ready_signal):
+            # The camera classifier requires a continuous one-second palm hold.
+            now=time.monotonic_ns()
+            r.robot.inner.send('GESTURE_SAMPLE',sample=dict(provenance='SYNTHETIC',
+                execution_id=r.last_document['session']['execution_id'],source_epoch=r.last_document['session']['source_epoch'],
+                preview_request_id=None,received_monotonic_ns=now,source_ns=now+1,frame='TEST_ONLY_CAMERA',
+                hands=[dict(pose='OPEN_HAND',center=[100.,100.],palm_size=40.)],
+                candidate_event='OPEN_HAND_HELD_ORIENTATION_UNKNOWN',continuity_estimate=True))
+            palm[0]=True
+        request=r.ready_signal
+        if request and not request.get('_operator_sent'):
+            assert not r.confirm_operator('old-request')
+            sent.append((request['request_id'],request['kind']))
+            assert r.confirm_operator(request['request_id'])
+            assert not r.confirm_operator(request['request_id'])
+    try:
+        r.review_preparation(True);assert r.command('START')
+        settle(r,lambda:r.workflow.status=='COMPLETE',on_poll=click,gesture_filter=lambda request:False)
+        rows=[json.loads(v) for v in (tmp_path/(r.workflow.job_id+'.jsonl')).read_text().splitlines()]
+        answers=[v['result'] for v in rows if v['event']=='ROBOT_OPERATOR_CONFIRMATION_ACCEPTED']
+        assert sent and answers and all(v['source']=='HMI' for v in answers)
+        assert not any(v['event']=='ROBOT_EXECUTION_HELD' for v in rows)
+        assert len({request for request,kind in sent})==len(sent)
+        assert r.workflow.current['current_revision']==len(blocks)
+        if receiving:assert any(v['kind']=='RECEIVE' for v in answers)
+        else:assert {'HELP_READY','ASSEMBLY_ACK'}<={v['kind'] for v in answers}
+    finally:r.close()
+
+
+@pytest.mark.parametrize('kind,label',[('RECEIVE','손으로 받을 준비 완료'),('HELP_READY','도움 준비 완료'),
+    ('ASSEMBLY_ACK','조립 완료 · 검사 진행'),('ALIGNMENT_READY','정렬 확인 완료')])
+def test_real_trial_ui_confirmation_button_sends_one_operator_answer(monkeypatch,tmp_path,kind,label):
+    monkeypatch.setenv('QT_QPA_PLATFORM','offscreen')
+    QtWidgets=pytest.importorskip('PyQt5.QtWidgets')
+    from types import SimpleNamespace
+    from app.qt_hmi import HmiWindow
+    from app.mvp_integration import main
+    qapp=QtWidgets.QApplication.instance() or QtWidgets.QApplication([])
+    r=install(monkeypatch,tmp_path,dict(design_version=1,blocks=[brick()]))
+    r.poll=lambda:None
+    r.ready_signal=dict(request_id='button-request',kind=kind,operator_button_allowed=True)
+    windows=[];sent=[]
+    def make_window():
+        window=HmiWindow();windows.append(window);return window
+    def inspect():
+        qapp.processEvents()
+        button=next(b for b in windows[0].findChildren(QtWidgets.QPushButton) if b.text()==label)
+        assert button.isVisible() and button.isEnabled()
+        assert '인식되지 않으면 확인 버튼' in windows[0].notice.toPlainText()
+        button.click();button.click()
+        assert sent==[('OPERATOR_CONFIRM',dict(request_id='button-request',ready=True))]
+        windows[0].close()
+        return 0
+    monkeypatch.setattr(r.robot,'send',lambda command,**data:sent.append((command,data)))
+    monkeypatch.setattr('app.qt_hmi.HmiWindow',make_window)
+    monkeypatch.setattr(QtWidgets,'QApplication',lambda _:SimpleNamespace(exec_=inspect))
+    monkeypatch.setattr(sys,'argv',['trial','--robot-root',str(ROOT),'--log-directory',str(tmp_path),'--execute'])
+    main(runtime_class=lambda *args,**kwargs:r,real_trial=True)
+
+
+def test_real_adapter_supply_cycle_1_to_6_to_1_has_only_loaded_blending(monkeypatch,tmp_path):
+    design=dict(design_version=1,blocks=[brick(x) for x in (4,6,8)]+[brick(x,2) for x in (5,7,9)]+[brick(10,3)])
+    r=install(monkeypatch,tmp_path,design,contact_alignment_trial=True)
+    try:
+        r.review_preparation(True);assert r.command('START')
+        settle(r,lambda:r.workflow.status=='COMPLETE',seconds=120)
+        docs=r.robot.documents
+        assert [d['step']['reservation']['slot_id'] for d in docs]==[
+            f'blue_2x3x1_{slot:02}' for slot in (1,2,3,4,5,6,1)]
+        rows=[json.loads(v) for v in (tmp_path/(r.workflow.job_id+'.jsonl')).read_text().splitlines()]
+        batches=[v['result'] for v in rows if v['event']=='ROBOT_SINGLE_WRITER_BLEND']
+        assert len(batches)==7
+        assert all(d['d_profile']['supply_approach_blending'] is False for d in docs)
+        moves=[v['result'] for v in rows if v['event']=='ROBOT_MOVE_STARTED']
+        assert sum(v.get('label')=='PICKUP_HIGH' for v in moves)==7
+        pickups=[v['result'] for v in rows if v['event']=='ROBOT_MOVE_STARTED' and v['result'].get('label')=='PICKUP_LOWER']
+        assert len(pickups)==7
+        assert [v['target'] for v in pickups]==[next(iter(d['d_profile']['steps'].values()))['pickup_pose'] for d in docs]
+        assert all(d['d_profile']['force_stop_n']==40. and not d['d_profile']['supply_approach_blending'] for d in docs)
     finally:r.close()

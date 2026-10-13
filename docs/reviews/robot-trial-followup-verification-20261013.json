@@ -1,0 +1,126 @@
+{
+  "date": "2026-10-13",
+  "branch": "codex/robot-trial-fixes-20261013",
+  "base": "codex/integration-round1",
+  "base_commit": "2aaa2ae",
+  "results": [
+    {
+      "tests": 1140,
+      "errors": 0,
+      "failures": 0,
+      "skipped": 1,
+      "passed": 1139,
+      "exit_code": 0,
+      "artifact": "d-offline.xml"
+    },
+    {
+      "tests": 179,
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0,
+      "passed": 179,
+      "exit_code": 0,
+      "artifact": "app-and-geometry.xml"
+    },
+    {
+      "tests": 24,
+      "errors": 0,
+      "failures": 0,
+      "skipped": 0,
+      "passed": 24,
+      "exit_code": 0,
+      "artifact": "branch-portability.xml"
+    },
+    {
+      "tests": 101,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "passed": 101,
+      "exit_code": 0,
+      "artifact": "branch-geometry.xml"
+    },
+    {
+      "tests": 51,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "passed": 51,
+      "exit_code": 0,
+      "artifact": "branch-workflow.xml"
+    }
+  ],
+  "scope": [
+    "Supply empty approach uses serial MoveL; loaded MoveB retained",
+    "Full REAL measured XYZ reaction stop >=40 N; zero desired-force commands",
+    "Assembly grid x>11 adds Base X -1 mm once; previous rotation correction retained",
+    "Stage-bound operator confirmation buttons and known stopped checkpoint resume",
+    "Other-PC guide: checkout, dependencies, model/driver preparation, offline checks and explicit REAL launch"
+  ],
+  "device_commands_sent_by_verification": false,
+  "real_robot_test_performed": false,
+  "other_pc_installation_performed": false,
+  "known_unverified": [
+    "Controller physical underreach cause",
+    "40 N full seating and gripper slip",
+    "Other-PC ROS/driver/camera/model compatibility"
+  ],
+  "d_mirror_byte_identical": [
+    "app/assembly_native_press.py",
+    "app/assembly_step_runner.py",
+    "app/control_driver.py",
+    "app/integration_runtime.py",
+    "scripts/robot_integration_runtime.py",
+    "tests/unit/test_control_driver.py",
+    "tests/unit/test_integration_runtime.py",
+    "tests/unit/test_handover_receive_resume.py",
+    "tests/unit/test_supply_approach_movel_40n.py"
+  ],
+  "app_modified_methods_identical": [
+    [
+      "app/cad_trial.py",
+      "step_geometry",
+      null
+    ],
+    [
+      "app/mvp_integration.py",
+      "main",
+      null
+    ],
+    [
+      "app/mvp_real_trial.py",
+      "__init__",
+      "FullFeatureRealTrial"
+    ],
+    [
+      "app/mvp_real_trial.py",
+      "confirm_operator",
+      "FullFeatureRealTrial"
+    ],
+    [
+      "app/mvp_workflow.py",
+      "robot_event",
+      "MvpWorkflow"
+    ]
+  ],
+  "existing_C_callback_differences_preserved": true,
+  "lint_type_check": "not configured in relevant pyproject files",
+  "guide_bash_syntax_blocks_checked": 12,
+  "code_hashes": {
+    "robot_control_integration/app/assembly_native_press.py": "5b3ec67dcfb967cccdae791e2b182b8ab691ed8b109320f6584c9202fc61f330",
+    "robot_control_integration/app/assembly_step_runner.py": "a75652e171e85a901c740ad06de410b475841ce2c10358d3eb9fd6498859b1bc",
+    "robot_control_integration/app/control_driver.py": "7ddc4773cc0090c226ad16ef7eaebab65a7b2662bb602f1e0dec167dc40fc610",
+    "robot_control_integration/app/integration_runtime.py": "155e3d5363c942183088878098343a3a267a8e001aab6ed05c8bbc38f8d3751d",
+    "robot_control_integration/scripts/robot_integration_runtime.py": "d0147cfa4a5a7256b94ad8689f257af05c6d61c2914a07d1e07553a9b934c8fc",
+    "robot_control_integration/tests/unit/test_control_driver.py": "6841fe2ed661cca5f525e72c7374944d624da113d9d8f41c28de96392607fa13",
+    "robot_control_integration/tests/unit/test_integration_runtime.py": "e708c88b990334dc1c4aea6bc43e62de33e14fa4bdbbcf1fbf134417d3ac5d7a",
+    "robot_control_integration/tests/unit/test_handover_receive_resume.py": "63417b7cd3a5dddebb07069bc8b95ddabb30261788a7770a124f82b5024549ee",
+    "robot_control_integration/tests/unit/test_supply_approach_movel_40n.py": "d59d9e48285019be13456764d1eee446be982002295bc232faf16cb40eee16e9"
+  },
+  "previous_local_evidence_preserved": [
+    "logs/handover-resume-20261013",
+    "logs/x-over-11-offset-20261013"
+  ],
+  "test_scope_note": "MOCK driver is deterministic workflow feedback, not physics simulation. D tests prohibit network/device connection and redirect physical locks. App tests replace REAL transport with MOCK after REAL document validation.",
+  "existing_portable_teaching_test_fallback_preserved": true
+}

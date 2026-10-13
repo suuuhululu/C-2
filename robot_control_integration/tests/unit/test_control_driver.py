@@ -258,3 +258,17 @@ def test_lost_command_ack_cannot_be_hidden_by_an_idle_stop_window():
     result=next(d for e,d in events if e=='STOP_WINDOW_RESULT')
     assert result['stillness_window_verified'] and not result['actual_stop_verified']
     assert result['pending_command_outcome_unknown']
+
+
+@pytest.mark.parametrize('change',['fresh','expired','new_sample','wrong_proof'])
+def test_handover_precondition_still_runs_when_consuming_current_stop_proof(change):
+    s,plan,_,events,clock=setup();raw=StepReplayDriver(plan['settings']['reference_pose'])
+    driver=ControlledDriver(raw,s,CONNECTION,clock=clock,sleep=clock.sleep)
+    driver.own('GRIPPER');proof=driver.last_verified_sample
+    verified=sum(e=='STILLNESS_WINDOW_VERIFIED' for e,_ in events);calls=[]
+    if change=='expired':clock.sleep(s.value['stillness']['sample_max_duration_s']+.01)
+    if change=='new_sample':driver.sample()
+    if change=='wrong_proof':proof=dict(proof)
+    driver.command_gripper(62.,40.,precondition=lambda:calls.append(True),verified_snapshot=proof)
+    assert calls==[True] and raw.grips==[(62.,40.)]
+    assert sum(e=='STILLNESS_WINDOW_VERIFIED' for e,_ in events)==verified+(change!='fresh')

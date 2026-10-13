@@ -105,8 +105,9 @@ assert rt.raw is None
         moved=deepcopy(step);moved['after'].update(x=x,y=y)
         _,p,_,c=step_geometry(inputs,moved,action,1)
         actual=next(iter(p['steps'].values()))['reference_pose']
-        assert actual[:2]==pytest.approx([expected_xy[j]+delta[j] for j in range(2)])
-        assert actual[2:]==pytest.approx([expected_z]+taught[3:]) and c==[offset_x,0.]
+        region_offset=-1. if x>11 else 0.
+        assert actual[:2]==pytest.approx([expected_xy[0]+delta[0]+region_offset,expected_xy[1]+delta[1]])
+        assert actual[2:]==pytest.approx([expected_z]+taught[3:]) and c==[offset_x+region_offset,0.]
 
 
 @pytest.mark.parametrize('kind,color',[('2x3x1','blue'),('2x3x1','yellow'),('1x2x1','red')])
@@ -129,7 +130,7 @@ def test_board_calibration_shared_by_actual_a_and_d(kind,color,angle,layer):
         frame,profile,_,correction=step_geometry(inputs,step,action,1)
         s=next(iter(profile['steps'].values()))
         pose=board_target_pose(cal,b,inputs['layers'])
-        offset_x=1.5 if kind=='2x3x1' and angle==90 else 0.
+        offset_x=(1.5 if kind=='2x3x1' and angle==90 else 0.)+(-1. if x>11 else 0.)
         pose[0]+=offset_x
         assert s['reference_pose']==pytest.approx(pose) and correction==[offset_x,0.]
         repeated=step_geometry(inputs,step,action,1)

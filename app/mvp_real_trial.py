@@ -90,9 +90,12 @@ class FullFeatureRealTrial(MvpIntegration):
         self.contact_alignment_trial=contact_alignment_trial
         p=self.inputs['profile']
         p.update(empty_return_skip_place=True,palm_handover_before_contact=True,noncontact_force_guard=False,
+            supply_approach_blending=False,force_stop_n=40.,operator_cue_timeout_holds=True,operator_cue_buttons=True,
             ik_fk_position_tolerance_mm=.5,ik_fk_orientation_tolerance_deg=.5,
             transfer_velocity=276.48,transfer_acceleration=96.,
             descent_acceleration=12.,pickup_descent_acceleration=12.)
+        p['native_press'].update(force_n=40.,alignment_trial=True,
+            review_ref='USER_40N_REACTION_STOP_20261013')
         p.pop('pre_contact_slow_distance_mm',None)
         if contact_alignment_trial:
             p['native_press']['alignment_trial']=True
@@ -108,6 +111,15 @@ class FullFeatureRealTrial(MvpIntegration):
         super().__init__(robot_root,directory,**kwargs,robot_mode='REAL',
             runtime_settings=real_settings(self.inputs),gestures=True)
         self.directory=Path(directory)
+
+    def confirm_operator(self,request_id):
+        request=self.ready_signal
+        if (not request or request['request_id']!=request_id or request.get('_operator_sent')
+                or self.workflow.status in ('STOPPED','HOLD')
+                or not request.get('operator_button_allowed')):return False
+        request['_operator_sent']=True
+        self.robot.send('OPERATOR_CONFIRM',request_id=request_id,ready=True)
+        return True
 
     def observe(self,context,active):
         value,diagnostic=super().observe(context,active)

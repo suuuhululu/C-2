@@ -452,7 +452,8 @@ class StepReplayDriver:
     """장치·네트워크·물리 lock을 사용하지 않는 결정론적 workflow 대역. 물리 시뮬레이터가 아니다."""
     mode = 'MOCK'
 
-    def __init__(self, reference):
+    def __init__(self, reference, *, reaction_force_n=35.):
+        self.reaction_force_n=reaction_force_n
         self.reference = reference.copy()
         self.value = dict(posx=[418., -181., 112., *reference[3:]], velx=[0.]*6,
                           motion_status=0, query_duration_s=0., tcp='GripperDA_v4', tool='ToolWeight0',
@@ -490,7 +491,7 @@ class StepReplayDriver:
         if (math.dist(target[:2], self.reference[:2]) < .01 and
                 target[2] < self.reference[2]+.2 <= current[2]):
             self.value['posx'] = [*target[:2], self.reference[2]+.2, *target[3:]]
-            self.value['wrench'][2] = 35.
+            self.value['wrench'][2] = self.reaction_force_n
         else:
             self.value['posx'] = target.copy()
 

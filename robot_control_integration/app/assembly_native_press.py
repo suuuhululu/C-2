@@ -13,12 +13,13 @@ def validate_native_press(plan,profile):
     if policy is None:return None
     if (not isinstance(policy,dict) or policy.get('enabled') is not True or
             not isinstance(policy.get('review_ref'),str) or not policy['review_ref'].strip() or
-            policy.get('force_n')!=35. or profile['force_stop_n']!=35. or
+            policy.get('force_n') not in ((35.,40.) if policy.get('alignment_trial') is True else (35.,))
+            or profile['force_stop_n']!=policy.get('force_n') or
             plan['mode']!='ROBOT_GRIP' or plan['assistance_kind'] not in ('NONE','HOLD') or
             plan['block']['brick_type'] not in ('2x2x1','2x3x1','1x2x1') or
             type(plan['settings'].get('turn_base_z_deg')) not in (int,float) or
             plan['settings']['turn_base_z_deg'] not in (0,90,-90)):
-        raise ValueError('REVIEWED_NATIVE_35N_ROBOT_GRIP_REQUIRED')
+        raise ValueError('REVIEWED_NATIVE_PRESS_ROBOT_GRIP_REQUIRED')
     for key,upper in (('seek_above_reference_mm',20.),('hold_s',3.)):
         v=policy.get(key)
         if type(v) not in (float,int) or not math.isfinite(v) or not 0<v<=upper:
@@ -30,7 +31,7 @@ def validate_native_press(plan,profile):
 
 def reaction_stop_press(driver,connection,plan,profile,travel,record,*,clock,sleep):
     # The current trial presses by descent and stops on measured reaction.
-    # 35N is a STOP threshold, never a desired-force command or a hold target.
+    # The reviewed force value is a STOP threshold, never a desired-force command or hold target.
     goal=plan['settings']['reference_pose'][2]
     def emit(event,data):
         if event=='PRESS_SESSION':
@@ -39,7 +40,7 @@ def reaction_stop_press(driver,connection,plan,profile,travel,record,*,clock,sle
                 seating_z_upper_limit_mm=goal+SEATING_Z_ABOVE_TOLERANCE_MM,
                 alignment_search=False)
         record('PRESS_THRESHOLD_RESULT' if event=='PRESS_RESULT' else event,data)
-    result=press(driver,connection,emit,max_travel_mm=travel,force_stop_n=35.,
+    result=press(driver,connection,emit,max_travel_mm=travel,force_stop_n=profile['force_stop_n'],
         velocity=profile.get('reaction_descent_velocity',profile['descent_velocity']),
         acceleration=profile.get('reaction_descent_acceleration',profile['descent_acceleration']),
         ik_fk_position_tolerance_mm=profile.get('ik_fk_position_tolerance_mm',.05),
@@ -69,7 +70,7 @@ def native_press(driver,connection,plan,profile,travel,record,*,clock,sleep):
     c['mode']='REAL' if driver.mode=='REAL' else 'FAKE'
     c['connection'].update(connection)
     if policy.get('alignment_trial',False):
-        # Reaction descent validates feedback and stops at the measured 35N norm.
+        # Reaction descent stops at the configured measured XYZ norm.
         # A free-force baseline belongs only to the separate native-force trial.
         return reaction_stop_press(driver,connection,plan,profile,travel,record,clock=clock,sleep=sleep)
     free=[driver.sample() for _ in range(3)]
