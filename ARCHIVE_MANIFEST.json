@@ -13594,5 +13594,893 @@
     "tests/web/test_design_rendering.cjs"
   ],
   "git_blob_hash": "Git object SHA-1, not SHA-256; fixed commit + blob permit exact recovery",
-  "policy": "Original source, measurements, tests and reports remain in fixed tags/source tree. No history rewrite or force push."
+  "policy": "Original source, measurements, tests and reports remain in fixed tags/source tree. No history rewrite or force push.",
+  "runtime_release": {
+    "branch": "codex/main-runtime-20261013",
+    "commit": "24edb7cca052c3fb6d6e8d4a31dc651aa542795c",
+    "files": [
+      {
+        "path": ".env.history.example",
+        "mode": "100644",
+        "blob": "10a963ca72b79775d8fbecb28ef13a1cf98dc891",
+        "bytes": 363
+      },
+      {
+        "path": ".gitignore",
+        "mode": "100644",
+        "blob": "64d50b54d418106900c511c9b262e8dbd8950a89",
+        "bytes": 682
+      },
+      {
+        "path": "CODEOWNERS",
+        "mode": "100644",
+        "blob": "1142709a3902db869e6e8b979444ffc926002778",
+        "bytes": 91
+      },
+      {
+        "path": "README.md",
+        "mode": "100644",
+        "blob": "9986b00bbb54b8be0a8b93dfa44a3322550e7c91",
+        "bytes": 4044
+      },
+      {
+        "path": "app/__init__.py",
+        "mode": "100644",
+        "blob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
+        "bytes": 0
+      },
+      {
+        "path": "app/assembly_board_calibration.py",
+        "mode": "100644",
+        "blob": "4efc332f79797176a844fe0e94f229e14692ae6a",
+        "bytes": 4712
+      },
+      {
+        "path": "app/c_candidate.py",
+        "mode": "100644",
+        "blob": "2d6203fc52df0c5b6470c9d1a4832eced0924cf8",
+        "bytes": 6092
+      },
+      {
+        "path": "app/c_design/__init__.py",
+        "mode": "100644",
+        "blob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
+        "bytes": 0
+      },
+      {
+        "path": "app/c_design/designer.py",
+        "mode": "100644",
+        "blob": "4f10221acfc41be0dec66a067a0eb5d3a39cd915",
+        "bytes": 18801
+      },
+      {
+        "path": "app/c_design/dialogue.py",
+        "mode": "100644",
+        "blob": "c93a1525d3fa0f49d82d4f7e5bdef6a7b59acd6f",
+        "bytes": 35129
+      },
+      {
+        "path": "app/c_design/llm.py",
+        "mode": "100644",
+        "blob": "f86948c566825b81245b5b61558ac47b9379c604",
+        "bytes": 69418
+      },
+      {
+        "path": "app/c_design/main.py",
+        "mode": "100644",
+        "blob": "8abeb2b4dcbfcd4e7e60167f315bf057a35a714a",
+        "bytes": 59195
+      },
+      {
+        "path": "app/c_design/validator.py",
+        "mode": "100644",
+        "blob": "d2e80f63f2029a1e9ed299e75d68c4c3e8d71ade",
+        "bytes": 19445
+      },
+      {
+        "path": "app/c_design/voice.py",
+        "mode": "100644",
+        "blob": "90e2ca68b8995a0918aab79e45575e23e3f9596c",
+        "bytes": 38235
+      },
+      {
+        "path": "app/c_text_connection.py",
+        "mode": "100644",
+        "blob": "a49edd857fc8bf0584cbe11780a7f755dfaff836",
+        "bytes": 15428
+      },
+      {
+        "path": "app/cad_real_trial.py",
+        "mode": "100644",
+        "blob": "66f5a137fe98d424b3cd7fdfd94bf2463f4ef859",
+        "bytes": 22000
+      },
+      {
+        "path": "app/cad_trial.py",
+        "mode": "100644",
+        "blob": "12194c12d2ffc98b9c27542ef453322025ce8bd9",
+        "bytes": 22354
+      },
+      {
+        "path": "app/cad_trial_hmi.py",
+        "mode": "100644",
+        "blob": "1a4f0e5fc0d6e82d1ccedfab2e8bda8abc9e9038",
+        "bytes": 19475
+      },
+      {
+        "path": "app/completion.py",
+        "mode": "100644",
+        "blob": "2a882446e8d017d795a4f8e96ae1bd5a7f77887e",
+        "bytes": 7785
+      },
+      {
+        "path": "app/contracts.py",
+        "mode": "100644",
+        "blob": "5f52ee92e49913f29bb0ff1926527a1e805a64bc",
+        "bytes": 8449
+      },
+      {
+        "path": "app/current.py",
+        "mode": "100644",
+        "blob": "f3cffeef7835f98e81e36b461f91611365fda8f4",
+        "bytes": 8837
+      },
+      {
+        "path": "app/hmi_assistance.py",
+        "mode": "100644",
+        "blob": "86f1ab93533827172b2d5ea62ba4de3fe2eaecb3",
+        "bytes": 3251
+      },
+      {
+        "path": "app/hmi_board.py",
+        "mode": "100644",
+        "blob": "22a138434209d677c4c49465788317215af4de54",
+        "bytes": 13917
+      },
+      {
+        "path": "app/hmi_completion.py",
+        "mode": "100644",
+        "blob": "6d56e5d4612e5750bd56b1b64d209c18bbc249d3",
+        "bytes": 3750
+      },
+      {
+        "path": "app/hmi_contracts.py",
+        "mode": "100644",
+        "blob": "ed3fc0566358f48071de63f841fd666fc9f0dd4a",
+        "bytes": 15181
+      },
+      {
+        "path": "app/hmi_design_dialogue.py",
+        "mode": "100644",
+        "blob": "b593967bfd4e9abcc7e09b8238a254369e2b9a94",
+        "bytes": 3468
+      },
+      {
+        "path": "app/hmi_execution.py",
+        "mode": "100644",
+        "blob": "c02ed4f6d9a4833a0b428ccdbbdf9fbb84c5b20c",
+        "bytes": 4674
+      },
+      {
+        "path": "app/hmi_inspection.py",
+        "mode": "100644",
+        "blob": "912d55a4467accdccd29f25d501c9ce29a88b1f4",
+        "bytes": 3987
+      },
+      {
+        "path": "app/hmi_mvp_contracts.py",
+        "mode": "100644",
+        "blob": "4886e38c8ccff460d30904101d7a53454d92cda4",
+        "bytes": 13588
+      },
+      {
+        "path": "app/hmi_user_requests.py",
+        "mode": "100644",
+        "blob": "619ffe3718807e2c9445a168a12822d551a091bb",
+        "bytes": 3824
+      },
+      {
+        "path": "app/jsonl_log.py",
+        "mode": "100644",
+        "blob": "e30052e1812f80be39079dd64af087df866bf2ae",
+        "bytes": 828
+      },
+      {
+        "path": "app/mvp_calculation.py",
+        "mode": "100644",
+        "blob": "b12c8d5dedcf85705b3f05bbe787cad622f7ff69",
+        "bytes": 1990
+      },
+      {
+        "path": "app/mvp_fake.py",
+        "mode": "100644",
+        "blob": "82f3803afdd45dfb730e1c88f7ba9ae551bee391",
+        "bytes": 5918
+      },
+      {
+        "path": "app/mvp_integration.py",
+        "mode": "100644",
+        "blob": "14dbf5fcd3b48a9e3b4edcbf54c570e3983cbd3f",
+        "bytes": 31928
+      },
+      {
+        "path": "app/mvp_real_trial.py",
+        "mode": "100644",
+        "blob": "0261926f7ef07516a462f151151265f7e9d7f2f2",
+        "bytes": 14725
+      },
+      {
+        "path": "app/mvp_workflow.py",
+        "mode": "100644",
+        "blob": "c5bca1baa185e119fe133840d81caf5eab284e98",
+        "bytes": 38121
+      },
+      {
+        "path": "app/planning_connection.py",
+        "mode": "100644",
+        "blob": "e85d73ee8aa443c0103e2c27c4b8fd8b7638b5c9",
+        "bytes": 3634
+      },
+      {
+        "path": "app/qt_hmi.py",
+        "mode": "100644",
+        "blob": "f7d1a4728b282e459b6373ea0f909a8c6a06ad6d",
+        "bytes": 23192
+      },
+      {
+        "path": "app/replan.py",
+        "mode": "100644",
+        "blob": "7a8e109e80e5772595ec48a4163720eac8de7b04",
+        "bytes": 11150
+      },
+      {
+        "path": "app/robot_process.py",
+        "mode": "100644",
+        "blob": "595bbe279b4ec633953b3946d9247346cf1a9c45",
+        "bytes": 2553
+      },
+      {
+        "path": "app/robot_teaching.py",
+        "mode": "100644",
+        "blob": "30ff3975a37e552fcde693183b096dcef51b89f2",
+        "bytes": 14460
+      },
+      {
+        "path": "app/supply_slots.py",
+        "mode": "100644",
+        "blob": "5c0a9d8246b04fbfbce7a78e8f95f86c47733df9",
+        "bytes": 302
+      },
+      {
+        "path": "docs/INSTALL.md",
+        "mode": "100644",
+        "blob": "f83fd772cb33d3e8b56d3cc90cea74787ffd089a",
+        "bytes": 6373
+      },
+      {
+        "path": "docs/INTEGRATION.md",
+        "mode": "100644",
+        "blob": "6523bdfd98924772360b550b69aa74ce5805703a",
+        "bytes": 6752
+      },
+      {
+        "path": "docs/RUN.md",
+        "mode": "100644",
+        "blob": "4c9b46275c9783fb2ff8e84fd262990825d3e6fd",
+        "bytes": 8755
+      },
+      {
+        "path": "history/__init__.py",
+        "mode": "100644",
+        "blob": "7495d8c90a47217f1f276609de9575d27dcd45b2",
+        "bytes": 79
+      },
+      {
+        "path": "history/__main__.py",
+        "mode": "100644",
+        "blob": "b8f513656fdadcd5d4a5c6d5871a276825b90274",
+        "bytes": 9083
+      },
+      {
+        "path": "history/accounts.py",
+        "mode": "100644",
+        "blob": "f17ddb421b2d627476367a20a6683b07df79e7fc",
+        "bytes": 3097
+      },
+      {
+        "path": "history/final_mvp.py",
+        "mode": "100644",
+        "blob": "5dc005ac308804e15b603cf560918e4d20121df5",
+        "bytes": 7527
+      },
+      {
+        "path": "history/gallery.py",
+        "mode": "100644",
+        "blob": "c7994af690dc73638b71320e412cc8eb994c4e63",
+        "bytes": 2979
+      },
+      {
+        "path": "history/migrations/001_personal_history.sql",
+        "mode": "100644",
+        "blob": "49bf4978a1ac452e0dc94adb398d9a3115f8d771",
+        "bytes": 1150
+      },
+      {
+        "path": "history/migrations/002_design_publications.sql",
+        "mode": "100644",
+        "blob": "4236709f339ef43a206122d0a8f494a61e2e550b",
+        "bytes": 356
+      },
+      {
+        "path": "history/mvp_save.py",
+        "mode": "100644",
+        "blob": "725409504c5aa6961498e38c3abf3a61174e6df3",
+        "bytes": 3695
+      },
+      {
+        "path": "history/personal.py",
+        "mode": "100644",
+        "blob": "1574308e77c5322b6371ababb1c97dd727e70e9e",
+        "bytes": 5138
+      },
+      {
+        "path": "history/records.py",
+        "mode": "100644",
+        "blob": "21ca32277ad838daa9114049e7ffc54873690b77",
+        "bytes": 14685
+      },
+      {
+        "path": "history/report.py",
+        "mode": "100644",
+        "blob": "52dc5905751eb1f9e14cf33bc148c393763ed9f0",
+        "bytes": 14389
+      },
+      {
+        "path": "history/schema.sql",
+        "mode": "100644",
+        "blob": "7589ba8edc55832f711d6bc5c5738614fb6d9b90",
+        "bytes": 2028
+      },
+      {
+        "path": "history/store.py",
+        "mode": "100644",
+        "blob": "6db21652441a00cca7d5bb80a4480a552b8470de",
+        "bytes": 7072
+      },
+      {
+        "path": "history/web.py",
+        "mode": "100644",
+        "blob": "65a97e0553ea8c343fab912a23c1d071497d6d6e",
+        "bytes": 10675
+      },
+      {
+        "path": "history/web_assets/app.js",
+        "mode": "100644",
+        "blob": "234701834c7519574afe63fc685b71c436157254",
+        "bytes": 22321
+      },
+      {
+        "path": "history/web_assets/index.html",
+        "mode": "100644",
+        "blob": "c165968cf885f16d3b6e8f9755a25776920ecd7b",
+        "bytes": 5460
+      },
+      {
+        "path": "history/web_assets/style.css",
+        "mode": "100644",
+        "blob": "1a000739705381186490f505fca5f7755c841139",
+        "bytes": 7200
+      },
+      {
+        "path": "perception/perception_mvp/backend_adapter.py",
+        "mode": "100644",
+        "blob": "a3d41adcaea0148e8b859951b3b0b80ac63605ea",
+        "bytes": 5606
+      },
+      {
+        "path": "perception/perception_mvp/contracts.py",
+        "mode": "100644",
+        "blob": "af505636220faefa5fe1319dd1252154280b3e3f",
+        "bytes": 4013
+      },
+      {
+        "path": "perception/perception_mvp/inspection.py",
+        "mode": "100644",
+        "blob": "b7bef0dd91f7a58ce4880b6556083956931a0879",
+        "bytes": 15472
+      },
+      {
+        "path": "perception/perception_mvp/multiview.py",
+        "mode": "100644",
+        "blob": "8477ad8571d07c86be36762c6f63783c6feaf516",
+        "bytes": 5257
+      },
+      {
+        "path": "perception/perception_mvp/team_connection.py",
+        "mode": "100644",
+        "blob": "940af7230733821bc4a9e2f52843b19a06ab1908",
+        "bytes": 15017
+      },
+      {
+        "path": "planning_trial/assembly_adapter.py",
+        "mode": "100644",
+        "blob": "6b1a74115e66f5c8f8df711ddd5f9ae54ca611ea",
+        "bytes": 13073
+      },
+      {
+        "path": "planning_trial/assembly_api_fixtures.py",
+        "mode": "100644",
+        "blob": "9da4db1aa665838f5467a155b394c1308d2138fa",
+        "bytes": 6680
+      },
+      {
+        "path": "planning_trial/assembly_contract.py",
+        "mode": "100644",
+        "blob": "a30132b4f1ecaf3cd7013e89ff8d14ae1add0e71",
+        "bytes": 13348
+      },
+      {
+        "path": "planning_trial/assembly_geometry.py",
+        "mode": "100644",
+        "blob": "96f63eef3edbd4beb92f2ed143cd4f194a39e566",
+        "bytes": 18312
+      },
+      {
+        "path": "planning_trial/assembly_motion.py",
+        "mode": "100644",
+        "blob": "56391e509e588e2537f7cc7dda85c0225f960101",
+        "bytes": 12562
+      },
+      {
+        "path": "planning_trial/assembly_optimizer.py",
+        "mode": "100644",
+        "blob": "4b72c79b6aff5a19709366513b97171dd07a7eca",
+        "bytes": 31977
+      },
+      {
+        "path": "planning_trial/assembly_profiles.py",
+        "mode": "100644",
+        "blob": "35bbba6484b59a7c7cfe03cefdef1eb33de721a7",
+        "bytes": 1586
+      },
+      {
+        "path": "planning_trial/assembly_target.py",
+        "mode": "100644",
+        "blob": "bf0f5a9275cd66b8b53c5409e6969567b045858a",
+        "bytes": 24192
+      },
+      {
+        "path": "planning_trial/assembly_wire.py",
+        "mode": "100644",
+        "blob": "e60616381d5d343b7b60640f2144ddecd23ff458",
+        "bytes": 4449
+      },
+      {
+        "path": "planning_trial/connection_contract_review_20261008_v4/examples/01_robot_grip/01_whole.request.json",
+        "mode": "100644",
+        "blob": "f83e8126623918dab7dd14847891d1beb79075be",
+        "bytes": 2520
+      },
+      {
+        "path": "planning_trial/connection_contract_review_20261008_v4/schema.json",
+        "mode": "100644",
+        "blob": "845d74af3b741ac865a4138135839d0d98ba3929",
+        "bytes": 51543
+      },
+      {
+        "path": "planning_trial/handoffs/assembly_trial_20261008_received/isaac_sim_assembly_20261008/data/points.json",
+        "mode": "100644",
+        "blob": "bdd6c3e437a96a0486b3a7f192570d0f1861a182",
+        "bytes": 7345
+      },
+      {
+        "path": "planning_trial/handoffs/assembly_trial_20261008_received/isaac_sim_assembly_20261008/data/position_analysis.json",
+        "mode": "100644",
+        "blob": "a6f908326fe508b8d980c93a436e58cf31ee65b4",
+        "bytes": 1504
+      },
+      {
+        "path": "planning_trial/handoffs/assembly_trial_20261008_received/isaac_sim_assembly_20261008/data/sequence_plan.json",
+        "mode": "100644",
+        "blob": "03d0fae9eff643f6935bf0bc63663cea8282f934",
+        "bytes": 7000
+      },
+      {
+        "path": "planning_trial/measurement_geometry.py",
+        "mode": "100644",
+        "blob": "89c1cec1d8e111e099ad003f37f9774be06065fb",
+        "bytes": 470
+      },
+      {
+        "path": "planning_trial/measurements/abs_reference_properties.user_20261008.json",
+        "mode": "100644",
+        "blob": "45cda4dfbdc7a4462b2f76ceca9cd62fbbb17b1a",
+        "bytes": 1043
+      },
+      {
+        "path": "planning_trial/measurements/block_geometry.user_20261008.rev2.json",
+        "mode": "100644",
+        "blob": "3512f42a04b77b7b76c1378bf11542b9a2badb33",
+        "bytes": 1369
+      },
+      {
+        "path": "planning_trial/measurements/closed_tip_reference.user_20261007.json",
+        "mode": "100644",
+        "blob": "633251365dd0c84556b60d5eecb4f8c1640d9664",
+        "bytes": 965
+      },
+      {
+        "path": "planning_trial/measurements/first_supply_grasp.user_20261007.json",
+        "mode": "100644",
+        "blob": "028d04b6fa74d450aee53846d8bc2a79b9397c9e",
+        "bytes": 1876
+      },
+      {
+        "path": "planning_trial/measurements/pedestal_grasp.user_20261007.json",
+        "mode": "100644",
+        "blob": "8457c376cb511d277f598a4d1b6a6aa3bb79322a",
+        "bytes": 2113
+      },
+      {
+        "path": "planning_trial/measurements/supply_board_corners.user_20261007.pass2.json",
+        "mode": "100644",
+        "blob": "e2eadbd3261daa778a0780a3d72afd383ece753b",
+        "bytes": 4679
+      },
+      {
+        "path": "planning_trial/measurements/supply_grasp_depth_policy.user_20261008.json",
+        "mode": "100644",
+        "blob": "178e8bc590778c300acd67d7ab116f4aa33b40e7",
+        "bytes": 892
+      },
+      {
+        "path": "planning_trial/measurements/supply_layout.user_20261007.json",
+        "mode": "100644",
+        "blob": "d665967ef775f814167c4407088aa8ed8c7336bf",
+        "bytes": 5398
+      },
+      {
+        "path": "planning_trial/planner.py",
+        "mode": "100644",
+        "blob": "851f3ab64b223bfdd3e1de30d3a6c2a39115d9f9",
+        "bytes": 16591
+      },
+      {
+        "path": "planning_trial/planning_bundle.py",
+        "mode": "100644",
+        "blob": "12c72f32bca7634a5463653856de91f3425d10a9",
+        "bytes": 4080
+      },
+      {
+        "path": "planning_trial/sample_user_rules_5mm_measured_rev2_inputs.json",
+        "mode": "100644",
+        "blob": "cb6b8b3810c68bc59ceefd23dd0d5c93df309ebf",
+        "bytes": 2126
+      },
+      {
+        "path": "planning_trial/supply_pick.py",
+        "mode": "100644",
+        "blob": "4a64b38fd89b63d061eeabd47ace6c4b9952a3e0",
+        "bytes": 19481
+      },
+      {
+        "path": "requirements-history.txt",
+        "mode": "100644",
+        "blob": "a70f942df4d8577764782a1b0c0e2bd32e79ff25",
+        "bytes": 107
+      },
+      {
+        "path": "requirements.txt",
+        "mode": "100644",
+        "blob": "f3a538c5ee30d1842b5b127983f0d8eafbd04bf9",
+        "bytes": 157
+      },
+      {
+        "path": "robot_control_integration/app/__init__.py",
+        "mode": "100644",
+        "blob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
+        "bytes": 0
+      },
+      {
+        "path": "robot_control_integration/app/assembly_blend_trial.py",
+        "mode": "100644",
+        "blob": "a9c8f28d93180529e87da6ae1a275ddc6e98161a",
+        "bytes": 12211
+      },
+      {
+        "path": "robot_control_integration/app/assembly_contact_alignment.py",
+        "mode": "100644",
+        "blob": "0ed25922f141d20c6d90065927a75186223a2f8a",
+        "bytes": 31898
+      },
+      {
+        "path": "robot_control_integration/app/assembly_contact_fake.py",
+        "mode": "100644",
+        "blob": "4195452078c26d167dfe66a23938839a8e12f45e",
+        "bytes": 3434
+      },
+      {
+        "path": "robot_control_integration/app/assembly_motion.py",
+        "mode": "100644",
+        "blob": "09c957b428a62e54a98d26f2437d27ac28ec0c82",
+        "bytes": 13852
+      },
+      {
+        "path": "robot_control_integration/app/assembly_motion_ros.py",
+        "mode": "100644",
+        "blob": "f3a100293f5ccf1cc6a8eb7da88a0de986782cfe",
+        "bytes": 11431
+      },
+      {
+        "path": "robot_control_integration/app/assembly_native_press.py",
+        "mode": "100644",
+        "blob": "8226bcf0feb8ea6a015a38b4845669a092c85d8d",
+        "bytes": 6874
+      },
+      {
+        "path": "robot_control_integration/app/assembly_position_alignment.py",
+        "mode": "100644",
+        "blob": "9ef1eb759423e430f3c0f2aae1d2e9de263ac8c8",
+        "bytes": 6166
+      },
+      {
+        "path": "robot_control_integration/app/assembly_step_bridge.py",
+        "mode": "100644",
+        "blob": "75077c9980d65d61a13beea277fe68aa759960f4",
+        "bytes": 18428
+      },
+      {
+        "path": "robot_control_integration/app/assembly_step_runner.py",
+        "mode": "100644",
+        "blob": "d2cffb77664631e12fec350e3e0fc315a7094345",
+        "bytes": 29663
+      },
+      {
+        "path": "robot_control_integration/app/automatic_stage_trial.py",
+        "mode": "100644",
+        "blob": "f809076faffbfe6b37b7a5b2e1bfeccbb21a1243",
+        "bytes": 5549
+      },
+      {
+        "path": "robot_control_integration/app/contracts.py",
+        "mode": "100644",
+        "blob": "433b9d32df07313647e8fd81a72406613639fb77",
+        "bytes": 6991
+      },
+      {
+        "path": "robot_control_integration/app/control_camera.py",
+        "mode": "100644",
+        "blob": "ba7af75076c78943d229eb0129fb9075a75cc01f",
+        "bytes": 4733
+      },
+      {
+        "path": "robot_control_integration/app/control_driver.py",
+        "mode": "100644",
+        "blob": "91ee5527e8441c61981b105c742c4fe3ac4e0079",
+        "bytes": 14788
+      },
+      {
+        "path": "robot_control_integration/app/control_session.py",
+        "mode": "100644",
+        "blob": "23bf6a1e4590ef035529d3cb46f6cb76e9d0ec45",
+        "bytes": 13224
+      },
+      {
+        "path": "robot_control_integration/app/gesture_handover_trial.py",
+        "mode": "100644",
+        "blob": "e9dca5cf9b211a0baf13a9d5c350db968262e970",
+        "bytes": 16165
+      },
+      {
+        "path": "robot_control_integration/app/handover_camera_test.py",
+        "mode": "100644",
+        "blob": "9645366c77519edef9207e8c994ff5cf02006bde",
+        "bytes": 10376
+      },
+      {
+        "path": "robot_control_integration/app/handover_gesture.py",
+        "mode": "100644",
+        "blob": "0171a5142f76594ff8947919f205b36d37854ce1",
+        "bytes": 5644
+      },
+      {
+        "path": "robot_control_integration/app/handover_gesture_camera.py",
+        "mode": "100644",
+        "blob": "3a9876b46417a3e46fb64d30601e23746367a143",
+        "bytes": 14716
+      },
+      {
+        "path": "robot_control_integration/app/handover_gesture_gripper.py",
+        "mode": "100644",
+        "blob": "18751a25f2e17029ec76c548c7c9b36b71b82195",
+        "bytes": 4864
+      },
+      {
+        "path": "robot_control_integration/app/handover_pose_preview.py",
+        "mode": "100644",
+        "blob": "b588e8eb5d6fbfcc8e4f7d337f241cf0882bfd76",
+        "bytes": 6627
+      },
+      {
+        "path": "robot_control_integration/app/handover_vision.py",
+        "mode": "100644",
+        "blob": "39abbbab83dfb818b8bdcb58ec15e1858f1515cc",
+        "bytes": 7307
+      },
+      {
+        "path": "robot_control_integration/app/human_step_gestures.py",
+        "mode": "100644",
+        "blob": "2e7411b0f4f80b808b99ceb0ba9591dba0551ebf",
+        "bytes": 9081
+      },
+      {
+        "path": "robot_control_integration/app/integration_gestures.py",
+        "mode": "100644",
+        "blob": "eb7f17d0c454b0e7a2dd60416aae45f2feb7f822",
+        "bytes": 7963
+      },
+      {
+        "path": "robot_control_integration/app/integration_motion_binding.py",
+        "mode": "100644",
+        "blob": "0e5673f24517a9ada413455cc10161930d993e50",
+        "bytes": 3528
+      },
+      {
+        "path": "robot_control_integration/app/integration_runtime.py",
+        "mode": "100644",
+        "blob": "6350deec89eb52949f31f5103644b6fc316da871",
+        "bytes": 54052
+      },
+      {
+        "path": "robot_control_integration/app/jsonl_log.py",
+        "mode": "100644",
+        "blob": "e30052e1812f80be39079dd64af087df866bf2ae",
+        "bytes": 828
+      },
+      {
+        "path": "robot_control_integration/calibration/assembly_board_16mm_20261007.json",
+        "mode": "100644",
+        "blob": "e368bb6f2e53e1159ea4133d5ddc73493bbf7219",
+        "bytes": 8535
+      },
+      {
+        "path": "robot_control_integration/calibration/layer_records.json",
+        "mode": "100644",
+        "blob": "9c8255111bbf20e113883893a55561abea84483f",
+        "bytes": 16567
+      },
+      {
+        "path": "robot_control_integration/driver/drcf2-release-version-query.patch",
+        "mode": "100644",
+        "blob": "0ca3256059448923141ba2366283a5c1b5521c93",
+        "bytes": 912
+      },
+      {
+        "path": "robot_control_integration/driver/source_reference.json",
+        "mode": "100644",
+        "blob": "aefd9560e9c96c847cd51614f7aedc19ff329bde",
+        "bytes": 561
+      },
+      {
+        "path": "robot_control_integration/fixtures/teaching_sources/operator_assembly_6point_layer1.json",
+        "mode": "100644",
+        "blob": "1e7fcaa4ecdff5746f1429c5672a529bcd507429",
+        "bytes": 26136
+      },
+      {
+        "path": "robot_control_integration/fixtures/teaching_sources/operator_assembly_board_by_studs.json",
+        "mode": "100644",
+        "blob": "eae96846ede4d9678101fe23038b107ac8e9c678",
+        "bytes": 113143
+      },
+      {
+        "path": "robot_control_integration/fixtures/teaching_sources/operator_supply.json",
+        "mode": "100644",
+        "blob": "2dc74333e8c595cd00ba72f5c9356a555e62d259",
+        "bytes": 96321
+      },
+      {
+        "path": "robot_control_integration/fixtures/teaching_sources/supply_slot1_grasp_summary.json",
+        "mode": "100644",
+        "blob": "77b440a085034d7cd1f725385fb90f14690c68b7",
+        "bytes": 2231
+      },
+      {
+        "path": "robot_control_integration/interfaces/assembly_contact_trial.json",
+        "mode": "100644",
+        "blob": "ac51e8cc4bcf3074072ee83a7c635b7038c3faa1",
+        "bytes": 1302
+      },
+      {
+        "path": "robot_control_integration/scripts/assembly_contact_trial.py",
+        "mode": "100644",
+        "blob": "437f5e19bd44f3bdc87a877905f0c39b470fca56",
+        "bytes": 13412
+      },
+      {
+        "path": "robot_control_integration/scripts/assembly_position_trial.py",
+        "mode": "100644",
+        "blob": "e1c9d15fbdf6529ca99296f197c713635011a09e",
+        "bytes": 12429
+      },
+      {
+        "path": "robot_control_integration/scripts/assembly_press_trial.py",
+        "mode": "100644",
+        "blob": "e9babcf641adb322152ad52502128c7e6e5a07da",
+        "bytes": 6530
+      },
+      {
+        "path": "robot_control_integration/scripts/assembly_step_trial.py",
+        "mode": "100644",
+        "blob": "8ddf433424be635598ec67ac1f03220f95bd38fb",
+        "bytes": 9591
+      },
+      {
+        "path": "robot_control_integration/scripts/onsite_slot2_force_trial.py",
+        "mode": "100644",
+        "blob": "7da617a1a692b21a12c6ccf54b4081349a433454",
+        "bytes": 9309
+      },
+      {
+        "path": "robot_control_integration/scripts/robot_integration_runtime.py",
+        "mode": "100644",
+        "blob": "78a3ad95914f20b269df80860156afba6f7424c8",
+        "bytes": 12176
+      },
+      {
+        "path": "robot_control_integration/settings/integration_native35/profile.reference.json",
+        "mode": "100644",
+        "blob": "b5ab6c60cc337872394d1d8d00bf87a307edec33",
+        "bytes": 7585
+      },
+      {
+        "path": "scripts/cad_trial_ms02.sh",
+        "mode": "100644",
+        "blob": "d3fda7c9fdef7261d3a814e158b8692818a0edad",
+        "bytes": 3700
+      },
+      {
+        "path": "scripts/robot_driver_setup.py",
+        "mode": "100644",
+        "blob": "9f2ec6df9a2d1595069c8c825905d1ea5ebecbbc",
+        "bytes": 4115
+      },
+      {
+        "path": "scripts/roboton2.launch.py",
+        "mode": "100644",
+        "blob": "b8506d4c5b2512590f09c6e03cf18e68f5225899",
+        "bytes": 1131
+      }
+    ],
+    "application_source_basis": "ebeeef2a861abd2ab69257e7b083c4ded2a971cc",
+    "CODEOWNERS": "preserved unchanged from main",
+    "documentation_files": [
+      "README.md",
+      "docs/INSTALL.md",
+      "docs/INTEGRATION.md",
+      "docs/RUN.md"
+    ],
+    "pull_request": "https://github.com/suuuhululu/C-2/pull/37"
+  },
+  "validation": {
+    "core": {
+      "tests": 1772,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "D": {
+      "tests": 1154,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "not_run": [
+      "actual Robot/ROS/controller/authority/gripper/force",
+      "actual Camera/vision/gesture",
+      "external LLM/STT/TTS",
+      "PostgreSQL storage and DB-backed web roundtrip",
+      "fresh other-PC model/driver installation"
+    ]
+  }
 }
