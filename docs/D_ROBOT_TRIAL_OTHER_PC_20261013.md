@@ -1,5 +1,7 @@
 # 다른 PC에서 round1 Robot 시험 브랜치 실행하기
 
+[PR #36](https://github.com/suuuhululu/C-2/pull/36) · 코드 검증 commit: `0a17d2e`.
+
 대상 저장소: `suuuhululu/C-2` · 브랜치: `codex/robot-trial-fixes-20261013` · PR 기준 브랜치: `codex/integration-round1`.
 
 이 안내의 REAL 명령은 실제 Robot·그리퍼를 움직인다. B는 가짜 관측이다. `--c-mode offline`도 C 대화만 오프라인이며 Robot은 REAL이다. 장치를 연결하지 않는 검사는 아래 오프라인 검증 절차를 사용한다. 기존 Job을 자동 복원하지 않으며 새 시험으로 시작한다.

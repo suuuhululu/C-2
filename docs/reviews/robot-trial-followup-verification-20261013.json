@@ -122,5 +122,15 @@
     "logs/x-over-11-offset-20261013"
   ],
   "test_scope_note": "MOCK driver is deterministic workflow feedback, not physics simulation. D tests prohibit network/device connection and redirect physical locks. App tests replace REAL transport with MOCK after REAL document validation.",
-  "existing_portable_teaching_test_fallback_preserved": true
+  "existing_portable_teaching_test_fallback_preserved": true,
+  "publication": {
+    "pr": 36,
+    "url": "https://github.com/suuuhululu/C-2/pull/36",
+    "state": "OPEN",
+    "base": "codex/integration-round1",
+    "head": "codex/robot-trial-fixes-20261013",
+    "tested_code_commit": "0a17d2e4dd55eb1ae59eeb6be8056576e82a9c7d",
+    "merged": false,
+    "github_status_checks_at_creation": []
+  }
 }

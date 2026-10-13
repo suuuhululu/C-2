@@ -1,12 +1,12 @@
 # 현재 진행 상황
 
-## 2026-10-13 — 후속 PR: 공급 MoveL·결착40N·영역 보정·확인 버튼
+## 2026-10-13 — PR #36: 공급 MoveL·결착40N·영역 보정·확인 버튼
 
 - full-real 공급 접근은 상승→BODY_BYPASS→SUPPLY_TRANSIT→현재 Step 슬롯 상부의 단독 MoveL로 바꿨다. loaded MoveB는 유지한다. 마지막 슬롯 정렬24mm/s·12mm/s², 기존 집기·결착 하강 구조를 유지하며 이전 슬롯 복귀를 제거한다.
 - Robot 결착의 XYZ 전체 반력 임계값을40N으로 적용했다. desired-force/힘 유지 명령은 없다. 조립 Grid x>11의 Base X −1mm는 기존6점/2×2 회전 보정에 한 번 합산한다. 공급 교시 원자료는 변경하지 않았다.
 - 인계/도움/조립 완료/정렬 요청에 HMI 확인 버튼을 제공하고 알려진 정지 체크포인트에서 수동 재개한다. 오래된 요청·미확인 개방 명령을 반복하지 않는다. [시나리오](reviews/robot-resume-scenarios-20261013.md).
 - 실제 최종 검사: D 오프라인1,139 passed·기존 외부 A 자료 수집 skip1·종료0. Workflow/Robot 프로세스/실제 A/D REAL 문서→MOCK/화면 버튼/보정179 passed·종료0. PR checkout의 공급1→6→1·화면 버튼·경계 보정24 passed·종료0. D9파일 byte 일치·앱 변경5메서드 AST 일치, 가이드 bash12블록 문법 확인. [검증 기록](reviews/robot-trial-followup-verification-20261013.json).
-- [다른 PC 실행 가이드](D_ROBOT_TRIAL_OTHER_PC_20261013.md)에 브랜치 받기·환경/모델 준비·장치 없는 검사·REAL 명령·속도/힘/움직임 정보를 기록했다. DRCF2 바이너리·손 모델·API 키는 Git에 포함하지 않는다. 기존 C callback 차이/로컬 개발 브랜치·사용자 변경은 보존한다. 사용자 요청으로 후속 PR을 게시하며 병합은 수행하지 않는다.
+- [다른 PC 실행 가이드](D_ROBOT_TRIAL_OTHER_PC_20261013.md)에 브랜치 받기·환경/모델 준비·장치 없는 검사·REAL 명령·속도/힘/움직임 정보를 기록했다. DRCF2 바이너리·손 모델·API 키는 Git에 포함하지 않는다. 기존 C callback 차이/로컬 개발 브랜치·사용자 변경은 보존한다. 사용자 요청으로 [PR #36](https://github.com/suuuhululu/C-2/pull/36)을 `codex/integration-round1` 대상으로 게시했다. head는 `codex/robot-trial-fixes-20261013`이며 병합은 수행하지 않았다.
 - 실제 Robot/ROS/Camera/외부 API/DB·다른 PC 설치는 미수행. MoveB/최종 MoveL의 제어기 미도달 물리 원인, 새40N의 완전 결착/미끄러짐은 현장 재검증 대상이다. 기존 프로세스의 실시간 변경·Job 복원은 제공하지 않는다. lint/type 설정은 미구성이다.
 
 ## 2026-10-13 — 손/엄지척 인식 실패의 확인 버튼·재개 점검 (로컬)
