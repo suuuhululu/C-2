@@ -1,0 +1,10 @@
+{
+  "upstream": "https://github.com/doosan-robotics/doosan-robot2",
+  "upstream_commit": "31750d68ed2855c780a8169c39aadb0a2cd80e1f",
+  "patched_path": "dsr_hardware2/src/dsr_hw_interface2.cpp",
+  "patched_source_sha256": "07b9d0eb1329a56ca732155c86f720be66302d03633ece3a0b1f822c5e2ce83a",
+  "patch_sha256": "25d6d6199f948daa65b63212305ff289129551e0e412a6226958a9dffe35c167",
+  "DRCF_VER": 2,
+  "meaning": "Preserved existing local source fix: query version explicitly even in Release/NDEBUG; failed query returns ERROR",
+  "rebuilt_during_this_update": false
+}

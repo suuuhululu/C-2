@@ -1,0 +1,5 @@
+# 기존 통합 계산·HMI의 검증 환경. ROS/장치·음성·DB는 INSTALL 안내 참조.
+PyQt5==5.15.10
+numpy==1.26.4
+scipy==1.11.4
+jsonschema==4.10.3
