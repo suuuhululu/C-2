@@ -32,7 +32,8 @@ center_uv, corners_uv, grasp_midpoints_uv, orientation_deg는 영상 후보이�
 UNKNOWN: 미검출/낮은 신뢰도/다중 검출/슬롯 침범/HSV-모델 색상 불일치/다른 종류/무효 외곽.
 성공도 CENTER_CANDIDATE/LOCAL_ONLY이며 실행 허가가 아니다. 미검출은 EMPTY 증거가 아니다.
 HSV 누락률과 원본 전체 영상의 인식 성능은 별도로 검증해야 한다.
-obb_geometry.py와 기존 top_surface HSV 함수는 이전 검사 근거로 보존하되 현재 추론에 사용하지 않는다.
+이전 OBB 코드와 학습 준비 스크립트는 저장소에서 제외하고 로컬 백업으로 보존한다.
+top_surface.py의 quad_geometry/validate_surface는 현재 segmentation 경로에서 사용한다.
 
 ## 입력 파일
 

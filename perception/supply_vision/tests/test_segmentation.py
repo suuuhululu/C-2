@@ -1,10 +1,11 @@
+import sys
 from types import SimpleNamespace
 
 import cv2
 import numpy as np
 import pytest
 
-from supply_vision.main import infer
+from supply_vision.main import infer, load_model
 from supply_vision.seg_geometry import geometry_from_mask
 from test_centers import SETTINGS
 
@@ -59,3 +60,11 @@ def test_mask_perspective_center_and_square_equivalence():
 def test_unreliable_mask_held(contours,clipped,reason):
     with pytest.raises(ValueError,match=reason):
         geometry_from_mask(contours,'blue_2x3',0,SETTINGS,clipped)
+
+
+@pytest.mark.parametrize('task',['detect','obb'])
+def test_non_segment_model_rejected(monkeypatch,tmp_path,task):
+    weights=tmp_path/'best.pt';weights.write_bytes(b'fixture')
+    monkeypatch.setitem(sys.modules,'ultralytics',SimpleNamespace(YOLO=lambda path:SimpleNamespace(task=task)))
+    with pytest.raises(ValueError,match='segmentation model required'):
+        load_model(weights)
