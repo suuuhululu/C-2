@@ -307,7 +307,8 @@ def _family_choice(request, error, constraints=None):
     CREATIVE는 카탈로그 family로 환원하지 않고(family None) style_hint 전체를 concept로 생성에 넘긴다.
     constraints(Wave 3)는 발화에서 뽑은 명시 제약(낮게·3층 이하면 무작위 family에서 키 큰 family 제외).
     """
-    family = llm.choose_initial_family(request, **_constraints_kwargs(constraints))
+    with llm.stated_limits(constraints):
+        family = llm.choose_initial_family(request)
     mode = request.get("preference") if request is not None else None
     style_hint = request.get("style_hint") if request is not None else None
     style_hint = style_hint if isinstance(style_hint, str) and style_hint else None
@@ -326,17 +327,16 @@ def _change_request(change_reason, planning_failure):
     return llm.planning_failure_change_request(planning_failure) if planning_failure is not None else change_reason
 
 
-def _constraints_kwargs(constraints):
-    """제약이 있을 때만 kwargs로 넘긴다(기존 fake·구 시그니처 호환: 없으면 호출 인자가 Wave 3 이전과 같다)."""
-    return {"constraints": dict(constraints)} if constraints else {}
-
-
 def _clamp_to_current(constraints, current):
-    """Revised 수치 제약을 Current와 충돌하지 않게 올린다(이미 조립된 층을 지우지 않는다, §8.3). 질문·고지는 Wave 4."""
+    """Revised 수치 제약을 Current와 충돌하지 않게 올린다(이미 조립된 층·블록을 지우지 않는다, §8.3): max_layer는 Current 최대층
+    이상, max_blocks는 Current 블록 수 이상. 질문·고지는 Wave 4."""
     c = dict(constraints or {})
-    layers = [b.get("layer") for b in (current or []) if isinstance(b, dict) and isinstance(b.get("layer"), int)]
+    blocks = [b for b in (current or []) if isinstance(b, dict)]
+    layers = [b.get("layer") for b in blocks if isinstance(b.get("layer"), int)]
     if layers and isinstance(c.get("max_layer"), int) and c["max_layer"] < max(layers):
         c["max_layer"] = max(layers)
+    if isinstance(c.get("max_blocks"), int) and c["max_blocks"] < len(blocks):
+        c["max_blocks"] = len(blocks)
     return c
 
 
@@ -372,8 +372,8 @@ def _finish_revised(result, *, approved, current, differences, build, use_llm, s
     regenerations, usable_judge, error = 0, None, None
     while True:
         progress("JUDGING")
-        judge = llm.judge_revised_design(approved, final, current, differences, should_stop=should_stop,
-                                         **_constraints_kwargs(constraints))
+        with llm.stated_limits(constraints):  # 결정 D-1: 새 kwarg 없이 컨텍스트로 전달(기존 fake·caller 호환)
+            judge = llm.judge_revised_design(approved, final, current, differences, should_stop=should_stop)
         if _llm_error_kind(judge) == "stopped":
             return _stopped(questions)
         problem = _judge_problem(judge)
@@ -542,11 +542,11 @@ def _initial(text, should_stop, preference_text, on_question, progress):
 
     def generate(object_type, reasons):
         note_attempt(reasons)
-        return llm.generate_initial_design(object_type, reasons, should_stop=should_stop, family=choice["family"],
-                                           style_hint=choice["style_hint"], concept=choice["concept"],
-                                           **_constraints_kwargs(choice["constraints"]))
+        with llm.stated_limits(choice["constraints"]):
+            return llm.generate_initial_design(object_type, reasons, should_stop=should_stop, family=choice["family"],
+                                               style_hint=choice["style_hint"], concept=choice["concept"])
     result = designer.build_initial_design("CHAIR", generate=generate, delay=designer.RETRY_DELAY, should_stop=should_stop,
-                                           **_constraints_kwargs(choice["constraints"]))
+                                           constraints=choice["constraints"] or None)
     if result["design"] is None:
         return _from_designer(result, None, questions)
     progress("VALIDATING")
@@ -740,9 +740,10 @@ def _intervention(design, current, differences, text_answers, on_question, shoul
 
             def generate(design, current, differences, reasons):
                 note_attempt(reasons)
-                return llm.generate_revised_design(design, current, differences, reasons, should_stop=should_stop,
-                                                   feedback=feedback, min_blocks=min_blocks, style_hint=state["style_hint"],
-                                                   **change_kwargs, **_constraints_kwargs(constraints))
+                with llm.stated_limits(constraints):
+                    return llm.generate_revised_design(design, current, differences, reasons, should_stop=should_stop,
+                                                       feedback=feedback, min_blocks=min_blocks,
+                                                       style_hint=state["style_hint"], **change_kwargs)
             return generate
 
         return _revised_builder(design, current, differences, make_generate, min_blocks, should_stop,
@@ -970,10 +971,11 @@ def _review(candidate, kind, design_metadata, previous_design, current, differen
             def make_generate(feedback=None):
                 def generate(design_, current_, differences_, reasons_):
                     note_attempt(reasons_)
-                    return llm.generate_revised_design(design_, current_, differences_, reasons_, should_stop=should_stop,
-                                                       feedback=feedback, min_blocks=min_blocks, style_hint=hint,
-                                                       previous_candidate=candidate, scope=scope, **change_kwargs,
-                                                       **_constraints_kwargs(constraints))
+                    with llm.stated_limits(constraints):
+                        return llm.generate_revised_design(design_, current_, differences_, reasons_,
+                                                           should_stop=should_stop, feedback=feedback,
+                                                           min_blocks=min_blocks, style_hint=hint,
+                                                           previous_candidate=candidate, scope=scope, **change_kwargs)
                 return generate
 
             build = _revised_builder(previous_design, current, differences, make_generate, min_blocks, should_stop,
@@ -1001,14 +1003,15 @@ def _review(candidate, kind, design_metadata, previous_design, current, differen
 
             def generate(object_type, reasons_):
                 note_attempt(reasons_)
-                return llm.generate_initial_design(object_type, reasons_, should_stop=should_stop, family=family,
-                                                   style_hint=hint, concept=concept, previous_candidate=candidate,
-                                                   scope=scope, **_constraints_kwargs(constraints))
+                with llm.stated_limits(constraints):
+                    return llm.generate_initial_design(object_type, reasons_, should_stop=should_stop, family=family,
+                                                       style_hint=hint, concept=concept, previous_candidate=candidate,
+                                                       scope=scope)
             progress("GENERATING")
             # 직전 후보와 같은 블록은 designer가 탈락시킨다(요청한 변경이 반영된 새 후보만 돌려준다).
             result = designer.build_initial_design("CHAIR", generate=generate, delay=designer.RETRY_DELAY,
                                                    should_stop=should_stop, differ_from=candidate,
-                                                   **_constraints_kwargs(constraints))
+                                                   constraints=constraints or None)
             if result["design"] is None:
                 return _from_designer(result, dialogue.MODIFY, questions)
             progress("VALIDATING")

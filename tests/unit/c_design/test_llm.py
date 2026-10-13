@@ -628,8 +628,9 @@ class TestJudgeDescribe:
 
     def test_judge_signature_has_no_intent(self):
         import inspect
+        # Wave 3(2026-10-13): 명시 제약(stated_limits)만 선택 인자로 더해졌다. design intent 인자는 여전히 없다.
         assert list(inspect.signature(llm.judge_revised_design).parameters) == [
-            "previous", "design", "current", "differences", "should_stop"]
+            "previous", "design", "current", "differences", "should_stop", "constraints"]
 
     def test_judge_uses_default_judge_model_not_design_model(self, monkeypatch, with_fake_key):
         monkeypatch.setenv("OPENAI_MODEL", "gpt-6.1-sol")

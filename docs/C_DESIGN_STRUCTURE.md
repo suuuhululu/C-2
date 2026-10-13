@@ -117,6 +117,15 @@ scripts/
 | `designer.py` | Design 생성 | Mock Initial / Revised 구현(WAVE 3), LLM 생성기 주입 자리(`generate`). Initial / Revised 생성, 보존 대상 Python 결정, 탈락 사유로 재생성(최대 10회), 배치가 바뀐 경우에만 검증 통과 후 버전 +1 Stage 2 Wave 2: `RICHNESS_MIN_DELTA = 6`, `revised_min_blocks(design)`(이전 + 6, 상한 MAX_BLOCKS), `build_revised_design(…, min_blocks=None)`이 validator 통과 후보라도 블록이 적으면 `too_few_blocks`로 탈락시켜 같은 loop가 재생성 | 조립 순서, NextPart, Robot 좌표 |
 | `validator.py` | Design 검증 | brick_type(1x2x1·2x2x1·2x3x1, Stage 2에 1x2x1 추가), color(yellow·blue·red, Stage 2에 red 추가), 색 × brick_type 허용 조합(`ALLOWED_COMBINATIONS`, 2026-10-08 최종 재고: yellow·blue = 2x2x1·2x3x1, red = 1x2x1만, 위반은 `invalid_combination`, Current·Difference·Revised에도 적용), x / y, orientation_deg(`ORIENTATIONS`: 1x2x1·2x3x1은 0/90, 2x2x1은 0), footprint(`BRICK_SIZES` 표, 90도면 X·Y 교환), layer 1~5, 블록 수 1~40(`MAX_BLOCKS`, Stage 2 30 → 40), Board 범위, overlap, support(A/C 기하 합의: 바로 아래층 고유 stud 총 2개 이상, 아래 블록 개수 무관), connectivity, Current 보존(여섯 값), malformed, Robot field 유입 거부 | LLM 호출, Plan 검증 |
 
+**2026-10-13 Robot-only design rule update Wave 3 — 사용자 명시 제약(계약 §8.15)**: 아래 함수만 더해졌고 공개 함수·envelope·Design 형식은 그대로입니다.
+
+| 파일 | 함수·상수 | 역할 |
+|---|---|---|
+| `dialogue.py` | `CONSTRAINT_KEYS`, `extract_constraints(text)`, `merge_constraints(rule, llm)`, `restricts_richness(c)`, `constraints_sentence(c)` | 발화 원문 규칙 추출(결정적, 우선) + 해석 선택 키 `constraints` 값 검증 병합, 풍부함을 줄이는 제한 판정 |
+| `llm.py` | `stated_limits(constraints)`(컨텍스트 매니저)·`active_stated_limits()`, `_DEFAULT_PREFERENCE`, `constraints_text`, `revised_guidance(constraints, design_change)`, `TALL_FAMILIES`, `choose_initial_family`·`generate_initial_design`·`generate_revised_design`·`judge_revised_design`(`constraints=None`이면 컨텍스트 값) | 기본 선호는 제한이 없을 때만, 제한 문단·Revised 우선순위(Third = 사용자 요구), judge `stated_limits`, 낮은 요청의 family 제외. main은 새 kwarg 없이 컨텍스트로 전달(기존 fake 호환) |
+| `designer.py`(Opus A 소유) | `constraint_violations(blocks, constraints)`, `build_*_design(…, constraints=None)` | LLM 후보의 `max_layer`·`max_blocks` 초과를 `user_constraint`로 탈락(Mock 미적용) |
+| `main.py` | `_clamp_to_current`(max_layer·max_blocks), `_needs_regeneration(judge, constraints)` | Initial·Intervention·Design Change·Planning failure·Review MODIFY에서 제약 운반, 제한 시 `min_blocks` None·richer 재생성 제외, Current로 clamp, `design_metadata.user_constraints` |
+
 ### 공통 LEGO / Board 규약 (Day 4 MVP)
 
 | 항목 | 값 |

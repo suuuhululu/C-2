@@ -406,27 +406,55 @@ def is_unsupported_request(text):
 # Revised = Current 보존 > hard rule > 이번 요구 > 품질/expressive > facing. 제약은 설계 JSON·validator 계약을 바꾸지 않는다.
 # ---------------------------------------------------------------------------
 
-CONSTRAINT_KEYS = ("max_layer", "height", "complexity", "block_budget", "footprint")
+CONSTRAINT_KEYS = ("max_layer", "max_blocks", "height", "complexity", "block_budget", "footprint")
 CONSTRAINT_VALUES = {"height": ("low", "high"), "complexity": ("simple", "rich"), "block_budget": ("fewer", "more"),
                      "footprint": ("wide", "narrow")}
 MAX_LAYER_LIMIT = 5  # validator.MAX_LAYER와 같다(순환 import를 피하려고 값만 둔다; validator가 진실)
+MAX_BLOCKS_LIMIT = 40  # validator.MAX_BLOCKS와 같다(같은 이유)
 
 _LAYER_RE = re.compile(r"([1-5])\s*층")
+# "블록 20개까지/이하/만/이내" → max_blocks(블록이라는 말이 붙을 때만: "다리는 4개만"은 블록 수가 아니다). norm은 공백이 없다.
+_BLOCK_COUNT_RE = re.compile(r"블록(?:을|은|는|도)?(\d{1,2})개(?:까지|이하|만|이내|정도만|정도로)")
 _LAYER_MIN_MARKERS = ("이상", "넘", "보다높", "보다더")
 _PART_WORDS = ("등받이", "팔걸이", "다리", "좌석", "받침", "쿠션", "머리")
 _SIMPLE_WORDS = ("간단", "단순", "심플", "소박", "미니멀", "담백")
 _RICH_WORDS = ("화려", "풍성", "호화", "장식", "웅장")
 _FEWER_WORDS = ("블록적게", "블록을적게", "블록은적게", "블록조금", "블록을조금", "적은블록", "블록수를줄", "블록줄", "블록을줄", "블록개수줄",
-                "최소한의블록", "블록을덜", "블록덜", "조금만써", "조금만사용", "개만써", "개이하로", "개까지", "개정도만")
+                "최소한의블록", "블록을덜", "블록덜", "조금만써", "조금만사용")
+# 개수 꼬리말은 "블록"이라는 말이 함께 있을 때만 블록 수 제약이다("다리는 4개까지만"은 블록 수가 아니다).
+_FEWER_COUNT_WORDS = ("개만써", "개이하로", "개까지", "개정도만")
 _MORE_WORDS = ("블록많이", "블록을많이", "블록더", "블록을더", "많은블록", "블록을최대한", "블록최대한", "블록을아끼지")
 _WIDE_WORDS = ("넓", "널찍", "와이드")
 _NARROW_WORDS = ("좁", "작은", "작게", "아담", "콤팩트", "컴팩트", "소형")
 
 
-def _part_before(norm, index, window=6):
+# 폭(넓/좁)은 좌석·받침에 붙으면 앉는 면 전체의 폭이지만, 등받이·팔걸이·다리 같은 한 부위에 붙으면 그 부위의 모양이다.
+_FOOTPRINT_PART_WORDS = tuple(part for part in _PART_WORDS if part not in ("좌석", "받침"))
+_NOUN_PARTICLES = "는가를도은의"  # "높이는/높이가"(명사 높이)는 높게 해 달라는 말이 아니다
+
+
+def _part_before(norm, index, window=6, parts=_PART_WORDS):
     """index 바로 앞 window자 안에 부위 단어가 있으면 그 부위(등받이를 높이고 → 전체 높이 제약 아님)."""
     head = norm[max(0, index - window):index]
-    return any(part in head for part in _PART_WORDS)
+    return any(part in head for part in parts)
+
+
+def _height_noun(norm, index):
+    """norm[index]가 명사 "높이"의 "높"인가("의자 높이는 3층까지만"): 뒤에 조사가 오거나 문장이 끝난다."""
+    if norm[index:index + 2] != "높이":
+        return False
+    return index + 2 >= len(norm) or norm[index + 2] in _NOUN_PARTICLES
+
+
+def _whole_piece_word(norm, words, parts):
+    """words 중 하나가 부위 단어 바로 뒤가 아닌 자리에 나오는가(전체 형태에 대한 말)."""
+    for word in words:
+        start = norm.find(word)
+        while start != -1:
+            if not _part_before(norm, start, parts=parts):
+                return True
+            start = norm.find(word, start + 1)
+    return False
 
 
 def extract_constraints(text):
@@ -435,8 +463,9 @@ def extract_constraints(text):
     - "3층까지만/3층 이하/3층으로/3층짜리" → max_layer 3. "3층 이상/보다 높게"는 상한이 아니므로 height high만.
     - "낮게/낮은" → height low, "높게/높은" → height high. 부위 단어("등받이를 높이고") 바로 뒤의 높낮이는 전체 높이가 아니다.
     - "간단/단순/심플/소박/미니멀" → complexity simple, "화려/풍성/장식" → complexity rich.
-    - "블록 적게/조금만/N개까지" → block_budget fewer, "블록 많이/최대한" → more.
-    - "넓게/널찍" → footprint wide, "좁게/작은/아담/콤팩트" → narrow.
+    - "블록 적게/조금만/N개까지" → block_budget fewer, "블록 많이/최대한" → more. "블록 N개까지/이하/만"(1..40)은 max_blocks N도.
+    - "넓게/널찍" → footprint wide, "좁게/작은/아담/콤팩트" → narrow. "팔걸이가 넓은"처럼 등받이·팔걸이·다리 같은 부위 바로
+      뒤의 폭은 그 부위의 모양이라 footprint가 아니다(좌석·받침의 폭은 footprint). 명사 "높이는/높이가"는 높게가 아니다.
     """
     norm = _normalize(text or "")
     if not norm:
@@ -448,22 +477,27 @@ def extract_constraints(text):
             found["height"] = "high"
             continue
         found["max_layer"] = int(match.group(1))
+    for match in _BLOCK_COUNT_RE.finditer(norm):
+        count = int(match.group(1))
+        if 1 <= count <= MAX_BLOCKS_LIMIT:
+            found["max_blocks"] = count
+            found["block_budget"] = "fewer"
     for index, char in enumerate(norm):
         if char == "낮" and not _part_before(norm, index):
             found.setdefault("height", "low")
-        elif char == "높" and not _part_before(norm, index):
+        elif char == "높" and not _part_before(norm, index) and not _height_noun(norm, index):
             found.setdefault("height", "high")
     if any(word in norm for word in _SIMPLE_WORDS):
         found["complexity"] = "simple"
     elif any(word in norm for word in _RICH_WORDS):
         found["complexity"] = "rich"
-    if any(word in norm for word in _FEWER_WORDS):
+    if any(word in norm for word in _FEWER_WORDS) or ("블록" in norm and any(word in norm for word in _FEWER_COUNT_WORDS)):
         found["block_budget"] = "fewer"
     elif any(word in norm for word in _MORE_WORDS):
         found["block_budget"] = "more"
-    if any(word in norm for word in _WIDE_WORDS):
+    if _whole_piece_word(norm, _WIDE_WORDS, _FOOTPRINT_PART_WORDS):
         found["footprint"] = "wide"
-    elif any(word in norm for word in _NARROW_WORDS):
+    elif _whole_piece_word(norm, _NARROW_WORDS, _FOOTPRINT_PART_WORDS):
         found["footprint"] = "narrow"
     return found
 
@@ -471,6 +505,8 @@ def extract_constraints(text):
 def _valid_constraint(key, value):
     if key == "max_layer":
         return isinstance(value, int) and not isinstance(value, bool) and 1 <= value <= MAX_LAYER_LIMIT
+    if key == "max_blocks":
+        return isinstance(value, int) and not isinstance(value, bool) and 1 <= value <= MAX_BLOCKS_LIMIT
     return value in CONSTRAINT_VALUES.get(key, ())
 
 
@@ -488,10 +524,11 @@ def merge_constraints(rule_based, interpreted):
 
 
 def restricts_richness(constraints):
-    """사용자가 작게·낮게·단순하게를 명시했는가 → Revised +6 블록 하한과 judge의 richer 재생성을 적용하지 않는다."""
+    """사용자가 작게·낮게·단순하게를 명시했는가 → Revised +6 블록 하한·judge의 richer 재생성·expressive 기본 문단(5층 활용,
+    블록 적극 사용)을 적용하지 않는다. "넓게·화려하게·높게·블록 많이"는 풍부함을 줄이지 않으므로 False(기본 선호 유지)."""
     c = constraints or {}
-    return (c.get("max_layer") is not None or c.get("height") == "low" or c.get("complexity") == "simple"
-            or c.get("block_budget") == "fewer")
+    return (c.get("max_layer") is not None or c.get("max_blocks") is not None or c.get("height") == "low"
+            or c.get("complexity") == "simple" or c.get("block_budget") == "fewer" or c.get("footprint") == "narrow")
 
 
 def constraints_sentence(constraints):
@@ -500,6 +537,8 @@ def constraints_sentence(constraints):
     parts = []
     if c.get("max_layer") is not None:
         parts.append(f"{c['max_layer']}층 이하")
+    if c.get("max_blocks") is not None:
+        parts.append(f"블록 {c['max_blocks']}개 이하")
     if c.get("height") == "low":
         parts.append("낮은 높이")
     elif c.get("height") == "high":

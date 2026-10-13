@@ -315,7 +315,8 @@ def test_revised_review_sequence_keeps_version_2_and_preserves_current(monkeypat
     assert [r["design_metadata"]["review"]["round"] for r in (first, second, done)] == [1, 2, 2]
     assert done["hri_result"] == "APPROVE" and done["design"] == second["design"]
     for response in responses:
-        assert beyond_historical_rule(validator.validate_revised({"blocks": response["design"]["blocks"]}, given["current"])) == []
+        # production 응답(fake 후보 = under_current_rule 사본)은 현행 규칙 전체를 통과해야 한다(필터는 기록 fixture 검사 전용, D-2).
+        assert validator.validate_revised({"blocks": response["design"]["blocks"]}, given["current"]) == []
         assert preserves(response["design"], given["current"])
     revised_calls = [call for call in fake.calls if call[0] == "generate_revised_design"]
     assert len(revised_calls) == 3  # REVISE + two MODIFY; APPROVE generates nothing
@@ -430,7 +431,7 @@ def test_final_lifecycle_versions_and_rounds(monkeypatch):
         assert set(response) == ENVELOPE_KEYS
         assert_inventory(response["design"])
     for response in responses[3:]:
-        assert beyond_historical_rule(validator.validate_revised({"blocks": response["design"]["blocks"]}, current)) == []
+        assert validator.validate_revised({"blocks": response["design"]["blocks"]}, current) == []  # production 응답(D-2)
         assert preserves(response["design"], current)
     assert modified["design"] != initial["design"] and revised_modify["design"] != revise["design"]
     assert approved["design"] == modified["design"] and revised_approve["design"] == revised_modify["design"]

@@ -279,14 +279,18 @@ def test_w1_initial_prompt_has_no_expressive_default_and_no_user_priority_item()
 
 
 # ---------------------------------------------------------------------------
-# 4. User constraints are lost or free-text only today (Wave 3)
+# 4. User constraints (Wave 3 acceptance, 2026-10-13). Wave 1 pinned that the ANY fast path swallowed stated limits and
+#    that no structured constraint existed; Wave 3 keeps those limits (rule extraction + optional interpretation key).
 # ---------------------------------------------------------------------------
 
 
-@pytest.mark.parametrize("text", ["아무거나 간단하게", "알아서 3층까지만", "블록 적게 아무거나"])
-def test_w1_any_fast_path_swallows_stated_limits(text):
-    # The rule-based ANY shortcut returns ANY (no LLM interpretation, no style_hint) for these.
-    assert dialogue.parse_initial_request(text) == dialogue.ANY
+@pytest.mark.parametrize("text, expected", [("아무거나 간단하게", {"complexity": "simple"}),
+                                            ("알아서 3층까지만", {"max_layer": 3}),
+                                            ("블록 적게 아무거나", {"block_budget": "fewer"})])
+def test_w3_any_with_stated_limits_is_not_swallowed(text, expected):
+    # Wave 1: these returned ANY (no interpretation, limit lost). Now they go to interpretation and the rule keeps the limit.
+    assert dialogue.parse_initial_request(text) is None
+    assert dialogue.extract_constraints(text) == expected
 
 
 @pytest.mark.parametrize("text", ["아무거나 낮게", "3층까지만 만들어줘"])
@@ -294,11 +298,16 @@ def test_w1_other_limit_phrases_go_to_llm_interpretation(text):
     assert dialogue.parse_initial_request(text) is None
 
 
-def test_w1_no_structured_constraint_fields_exist_today():
+def test_w3_constraints_are_optional_interpretation_keys_with_rule_extraction():
+    # Interpretation responses stay valid without "constraints" (optional key, not in the required key tuples).
     assert "constraints" not in llm.REQUEST_KEYS
     assert "constraints" not in llm.INTERVENTION_ANSWER_KEYS
     assert "constraints" not in llm.REVIEW_KEYS
-    assert not hasattr(dialogue, "extract_constraints")
+    for prompt in (llm.SYSTEM_PROMPT_REQUEST, llm.SYSTEM_PROMPT_INTERVENTION_ANSWER, llm.SYSTEM_PROMPT_DESIGN_CHANGE_ANSWER,
+                   llm.SYSTEM_PROMPT_REVIEW):
+        assert '"constraints": optional object' in prompt
+    assert dialogue.CONSTRAINT_KEYS == ("max_layer", "max_blocks", "height", "complexity", "block_budget", "footprint")
+    assert dialogue.extract_constraints("낮고 넓게, 3층까지만") == {"max_layer": 3, "height": "low", "footprint": "wide"}
 
 
 # ---------------------------------------------------------------------------
