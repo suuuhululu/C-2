@@ -19,6 +19,11 @@ from planning_trial.assembly_wire import normalize_action, pose_mm_zyz
 from planning_trial.planner import plan_assembly_from_current
 
 
+# Share the reviewed tolerances with execution: a completed move still reports
+# small residual velocities, including when preparing the next supply slot.
+REAL_STILLNESS_TOLERANCES = dict(linear_mm_s=5.,angular_deg_s=5.,position_mm=1.,orientation_deg=1.)
+
+
 def save(path, value):
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -92,13 +97,15 @@ def live_robot_state(receipt, frame, *, now=None):
             raise ValueError('STALE_STOP_SAMPLE')
         if (sample['robot_state'] not in (1, 2) or sample['robot_mode'] != 1 or
                 sample['drl_state'] != 3 or sample['motion_status'] != 0 or
-                max(map(abs, sample['velx'])) > .01):
+                max(map(abs, sample['velx'][:3])) > REAL_STILLNESS_TOLERANCES['linear_mm_s'] or
+                max(map(abs, sample['velx'][3:])) > REAL_STILLNESS_TOLERANCES['angular_deg_s']):
             raise ValueError('ROBOT_NOT_STOPPED_AND_READY')
         if not 0 <= sample['gripper_width_mm'] <= 110:
             raise ValueError('INVALID_GRIPPER_WIDTH_FEEDBACK')
         a = Rotation.from_euler('ZYZ', first['posx'][3:], degrees=True)
         b = Rotation.from_euler('ZYZ', sample['posx'][3:], degrees=True)
-        if math.dist(first['posx'][:3], sample['posx'][:3]) > .05 or (a.inv()*b).magnitude()*180/math.pi > .05:
+        if (math.dist(first['posx'][:3], sample['posx'][:3]) > REAL_STILLNESS_TOLERANCES['position_mm'] or
+                (a.inv()*b).magnitude()*180/math.pi > REAL_STILLNESS_TOLERANCES['orientation_deg']):
             raise ValueError('START_POSE_NOT_STILL')
     # PREPARE_OPEN opens the empty gripper before any arm movement. Its >44mm
     # completion check belongs to D after that command, not to this start snapshot.
@@ -124,6 +131,7 @@ def execution_document(prepared, row, state, *, review_ref, receipt_ref, start_z
         settings['physical_reference_reviewed'] = True
         settings['operator_review_ref'] = review_ref
     session = doc['session']
+    session['stillness'].update(REAL_STILLNESS_TOLERANCES)
     epoch = 'LIVE_CAD_'+str(uuid4())
     session.update(backend='REAL', provenance='LIVE_D_RUNTIME', source_epoch=epoch,
         profile_id=profile['profile_id'], exclusive_control_reviewed=True,

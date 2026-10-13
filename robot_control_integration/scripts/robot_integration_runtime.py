@@ -24,6 +24,7 @@ def main():
     lock = threading.Lock()
     runtime, worker, resources = None, None, []
     camera = None
+    fake_gestures = None
     def ensure_camera():
         nonlocal camera
         if args.gestures:
@@ -146,6 +147,15 @@ def main():
                     with redirect_stdout(sys.stderr): ensure_camera()
                     runtime.start(step, profile, session, resume=command=='RESUME', start_zone=document.get('start_zone', 'assembly'))
                     worker = threading.Thread(target=execute, daemon=False); worker.start()
+                elif command == 'GESTURE_SAMPLE':
+                    if args.mode != 'MOCK': raise ValueError('SYNTHETIC_GESTURE_REQUIRES_MOCK')
+                    if runtime is None: raise RuntimeError('NO_RUNTIME')
+                    if fake_gestures is None:
+                        from app.integration_gestures import OperatorGestureInput
+                        fake_gestures = OperatorGestureInput(runtime, emit)
+                    if message['sample'].get('provenance') != 'SYNTHETIC':
+                        raise ValueError('SYNTHETIC_GESTURE_REQUIRED')
+                    fake_gestures.gesture(message['sample'], time.monotonic_ns())
                 elif command == 'SIGNAL':
                     if runtime is None: raise RuntimeError('NO_RUNTIME')
                     runtime.accept_signal(message['signal'])

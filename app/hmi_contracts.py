@@ -178,7 +178,7 @@ def _actions(value: object, workflow: str, notice: dict, columns: dict, *, trial
 
 
 def validate_hmi_snapshot(value: object) -> dict:
-    optional = tuple(key for key in ("transfer_target", "manual_trial", "reported_placement") + MVP_FIELDS
+    optional = tuple(key for key in ("transfer_target", "manual_trial", "reported_placement", "observation_kind") + MVP_FIELDS
                      if isinstance(value, dict) and key in value)
     snapshot = _object(value, ("workflow_status", "step", "progress", "monitor",
                                "notice", "actions", "design", "current") + optional, "snapshot")
@@ -202,6 +202,10 @@ def validate_hmi_snapshot(value: object) -> dict:
             and snapshot["monitor"]["robot"]["status"] == "STOP_PENDING"):
         raise ValueError("snapshot.monitor.robot.status: STOP_PENDING is not confirmed STOPPED")
     real_trial = snapshot["monitor"]["robot"]["mode"] == "REAL"
+    full_operator_trial = snapshot.get("observation_kind") == "SYNTHETIC"
+    if "observation_kind" in snapshot and (not full_operator_trial or not real_trial or
+            "transfer_target" in snapshot or "manual_trial" in snapshot):
+        raise ValueError("snapshot.observation_kind: explicit REAL full trial with synthetic B required")
     manual_trial = snapshot.get("manual_trial", False)
     if "manual_trial" in snapshot and (manual_trial is not True or not real_trial):
         raise ValueError("snapshot.manual_trial: explicit REAL manual trial required")
@@ -220,14 +224,17 @@ def validate_hmi_snapshot(value: object) -> dict:
         _column(target, "snapshot.transfer_target")
         _integer(target["slot"], 1, 6, "snapshot.transfer_target.slot")
     trial_start = (snapshot["workflow_status"] == "IDLE" and snapshot["actions"]["job_id"] is None
-                   and snapshot["monitor"]["robot"]["status"] == "IDLE") if real_trial else None
+                   and snapshot["monitor"]["robot"]["status"] == "IDLE") if real_trial and not full_operator_trial else None
     startup = snapshot["actions"]["job_id"] is None
     robot_status = snapshot["monitor"]["robot"]["status"]
     controls = (trial_start, snapshot["workflow_status"] not in ("IDLE", "COMPLETE", "STOPPED") or
                 startup and robot_status in ("BUSY", "STOP_PENDING"),
                 snapshot["workflow_status"] == "STOPPED" or startup and robot_status == "STOPPED")
     _actions(snapshot["actions"], snapshot["workflow_status"], notice, columns, trial_start=trial_start, trial_controls=controls)
-    if real_trial and manual_trial:
+    if full_operator_trial:
+        if progress["total"] > 40:
+            raise ValueError("snapshot: full REAL trial requires at most 40 software Steps")
+    elif real_trial and manual_trial:
         if (snapshot["workflow_status"] not in ("IDLE", "PREPARING", "DELIVERING", "WAIT_ASSEMBLY", "WAIT_INTENT", "REPLANNING", "WAIT_CORRECTION", "HOLD", "STOPPED", "COMPLETE") or
                 progress["total"] > 24):
             raise ValueError("snapshot: manual REAL trial requires bounded workflow within four six-slot rows")

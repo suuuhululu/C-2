@@ -1,15 +1,15 @@
 #!/usr/bin/env bash
 # ms-02 전용 환경. driver/real/voice/stack을 명시했을 때만 실제 장치에 연결한다.
 set -eo pipefail
-TASK_C2_ROOT=/home/ms-02/C_2
+TASK_C2_ROOT=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)
 if [ -f /home/ms-02/.config/c2/api.env ]; then
     source /home/ms-02/.config/c2/api.env
 fi
 if [ -f /home/ms-02/.config/c2/models.env ]; then
     source /home/ms-02/.config/c2/models.env
 fi
-TASK_ROBOT_ROOT='/home/ms-02/C-2_협동2자료/work/c2-virtual-inputs-20261011/D_robot_control_integration_20261011/robot_control_integration_20261010'
-TASK_DRIVER_ROOT="$TASK_ROBOT_ROOT/runtime/drcf2"
+TASK_ROBOT_ROOT=${C2_ROBOT_ROOT:-"$TASK_C2_ROOT/robot_control_integration"}
+TASK_DRIVER_ROOT=${C2_DRIVER_ROOT:-'/home/ms-02/C-2_협동2자료/work/c2-virtual-inputs-20261011/D_robot_control_integration_20261011/robot_control_integration_20261010/runtime/drcf2'}
 source /opt/ros/jazzy/setup.bash
 source /home/ms-02/cobot2_ws/install/local_setup.bash
 COLCON_CURRENT_PREFIX="$TASK_DRIVER_ROOT/install" source "$TASK_DRIVER_ROOT/install/local_setup.bash"
@@ -52,6 +52,18 @@ case "$TASK_COMMAND" in
         if [ "$TASK_COMMAND" = real ]; then TASK_EXTRA=(--execute); fi
         exec python3 -m app.cad_real_trial --robot-root "$TASK_ROBOT_ROOT" --design "$TASK_DESIGN" "${TASK_EXTRA[@]}" "$@"
         ;;
+    full-real|full-real-offline)
+        export C_DESIGN_USE_LLM=1
+        TASK_C_MODE=live
+        if [ "$TASK_COMMAND" = full-real-offline ]; then
+            export C_DESIGN_USE_LLM=0
+            TASK_C_MODE=offline
+        fi
+        exec python3 -m app.mvp_real_trial --robot-root "$TASK_ROBOT_ROOT" --execute --c-mode "$TASK_C_MODE" --log-directory logs/full-feature-real "$@"
+        ;;
+    teach)
+        exec python3 -m app.robot_teaching --robot-root "$TASK_ROBOT_ROOT" "$@"
+        ;;
     voice)
         export C_DESIGN_USE_LLM=1
         exec python3 -m app.cad_real_trial --robot-root "$TASK_ROBOT_ROOT" --voice --execute "$@"
@@ -60,5 +72,5 @@ case "$TASK_COMMAND" in
         export C_DESIGN_USE_LLM=1
         exec python3 -m app.cad_real_trial --robot-root "$TASK_ROBOT_ROOT" --design interfaces/fixtures/cad_trial_yellow_blue_five_layers.json --llm-context --execute "$@"
         ;;
-    *) echo '사용: bash scripts/cad_trial_ms02.sh --check|driver|prepare|real [설계파일]|voice|stack [--voice]' >&2; exit 2 ;;
+    *) echo '사용: bash scripts/cad_trial_ms02.sh --check|driver|prepare|real [설계파일]|voice|stack [--voice]|full-real|full-real-offline|teach [--section supply|assembly|handover|route|all]' >&2; exit 2 ;;
 esac

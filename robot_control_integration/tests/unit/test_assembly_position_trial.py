@@ -272,3 +272,16 @@ def test_initial_invalid_state_never_moves(changes):
     with pytest.raises(RuntimeError):
         run(driver, CONNECTION, TARGET, 30.056, lambda *e: None)
     assert driver.moves == [] and driver.stops == 0
+
+
+@pytest.mark.parametrize('dx,da,commands',[(.017,0.,1),(0.,.03,1),(.08,0.,2),(0.,.08,2)])
+def test_vertical_lift_uses_existing_arrival_tolerance_to_avoid_duplicate_command(dx,da,commands):
+    driver=Driver();driver.value['robot_mode']=1
+    original=driver.value['posx'].copy()
+    destination=original.copy();destination[0]+=dx;destination[2]=194.;destination[3]+=da
+    result=run(driver,CONNECTION,destination,35.,lambda *e:None,
+        clearance_z=194.,transfer_only=True,set_automatic_mode=False,sleep=lambda _:None)
+    assert len(driver.moves)==commands
+    assert driver.moves[0]==[*original[:2],194.,*original[3:]]
+    assert result['contact_sample'] is None
+    if commands==2:assert driver.moves[-1]==destination

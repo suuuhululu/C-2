@@ -178,7 +178,7 @@ def test_inspection_context_keeps_expected_and_unknown_regions_for_c(h,monkeypat
         return dict(decision='KEEP',reason='시험',style_hint='',reply='목표 유지')
     monkeypatch.setenv('C_DESIGN_USE_LLM','1')
     monkeypatch.setattr(llm,'interpret_intervention_answer',interpret)
-    response=c.run_design_change(dict(design_version=1,blocks=[block()]),[],reason='USER_DESIGN_CHANGE',text_answers=['기존 목표 그대로 갈래'],inspection_context=context)
+    response=c.run_design_change(dict(design_version=1,blocks=[block()]),[],reason='USER_DESIGN_CHANGE',text_answers=['이 배치하고 비교해서 결정해줘'],inspection_context=context)
     assert response['hri_result']=='KEEP' and seen[0]['expected']==context['expected']
     assert seen[0]['difference']['unobservable']==[block()]
 
@@ -196,11 +196,87 @@ def test_robot_only_offline_chair_without_feasible_order_opens_c_not_robot(h):
     w.settings['assembly_context']['supported_modes']=['ROBOT_GRIP']
     w.approved=c.create_initial_design(text='의자')['design'];w.plan()
     payload=deepcopy(w.active['request'])
-    result=handle_whole_plan(payload['input'])
+    import json
+    from pathlib import Path
+    # D 소비부 계약 검사: 실제 A의 의자 개선과 무관하게 실패 응답을 유지한다.
+    result=json.loads((Path(__file__).resolve().parents[2]/'interfaces/fixtures/mvp_a_no_feasible_order.json').read_text())
     assert result['calculation_status']=='NO_FEASIBLE_ORDER'
+    result['context']=deepcopy(payload['input']['context'])
     w.receive('a.whole',payload['request_id'],result)
     assert w.active['port']=='c.plan_failure' and w.status=='WAIT_INTENT'
     assert not any(p=='robot.EXECUTE' for p,_ in h.ports)
+
+
+def test_duplicate_stale_and_conflicting_check_results_remain_distinct(h):
+    from uuid import uuid4
+    w=h.workflow
+    h.approved(dict(design_version=1,blocks=[block(),block(2)]))
+    h.ports.clear();h.scene=[block()]
+    w.robot_event(dict(event='INSPECTION_REQUIRED',data=dict(execution_id=w.execution_id)))
+    h.check()
+    accepted=deepcopy(w.inspection);current=deepcopy(w.current);completed=deepcopy(w.completed)
+    ports=deepcopy(h.ports)
+    assert not w.receive_check(accepted)
+    assert w.current==current and w.completed==completed and h.ports==ports
+    stale=deepcopy(accepted);stale['check_id']=str(uuid4())
+    assert not w.receive_check(stale)
+    assert w.check_conflict is None
+    conflict=deepcopy(accepted)
+    extra=block();extra['x']=15
+    conflict['current']['current_revision']+=1
+    conflict['current']['blocks'].append(extra)
+    conflict['observation']['visible_blocks'].append(extra)
+    conflict['comparison']='MISMATCH';conflict['difference']['unexpected']=[extra]
+    assert not w.receive_check(conflict)
+    assert w.reason=='STOP_PENDING' and h.ports[-1][0]=='robot.STOP'
+    assert w.check_conflict['original']==accepted and w.check_conflict['conflicting']==conflict
+    assert w.current==current and w.completed==completed
+    w.robot_event(dict(event='STOP_VERIFIED',data=dict(execution_id=w.execution_id,actual_stop_verified=True)))
+    assert w.status=='HOLD' and w.reason=='CONFLICTING_CHECK_RESULT'
+    assert not w.resume() and not w.reinspect()
+    assert w.snapshot()['notice']['reason']=='CONFLICTING_CHECK_RESULT'
+
+
+def test_revise_without_design_waits_then_reviews_the_same_request_candidate(h):
+    w=h.workflow;h.approved(dict(design_version=1,blocks=[block()]))
+    before=(deepcopy(w.approved),deepcopy(w.current),deepcopy(w.completed))
+    h.ports.clear();w.status='WAIT_INTENT'
+    request=w.call('c.intent',dict(design=w.approved,current=w.current,reason='USER_DESIGN_CHANGE'))
+    assert w.receive('c.intent',request['request_id'],dict(status='OK',hri_result='REVISE',design=None,questions=['수정 중']))
+    assert w.status=='WAIT_INTENT' and w.reason=='DESIGN_CHANGE_PENDING'
+    assert w.active['request']['request_id']==request['request_id']
+    assert (w.approved,w.current,w.completed)==before and w.candidate is None
+    assert not any(p.startswith('a.') or p=='robot.EXECUTE' for p,_ in h.ports)
+    candidate=dict(design_version=2,blocks=[block(color='yellow')])
+    assert w.receive('c.intent',request['request_id'],dict(status='OK',hri_result='REVISE',design=candidate))
+    assert w.candidate['design']==candidate and w.approved==before[0]
+    assert w.preview_ready(w.candidate['request_id'])
+    request=w.active['request']
+    assert w.active['port']=='c.review'
+    assert w.receive('c.review',request['request_id'],dict(status='OK',hri_result='APPROVE',design=candidate))
+    assert w.approved==candidate and w.active['port']=='a.whole'
+
+
+def test_stop_closes_delayed_revise_request_and_rejects_late_design(h):
+    w=h.workflow;h.approved(dict(design_version=1,blocks=[block()]))
+    w.status='WAIT_INTENT'
+    request=w.call('c.intent',dict(design=w.approved,current=w.current,reason='USER_DESIGN_CHANGE'))
+    w.receive('c.intent',request['request_id'],dict(status='OK',hri_result='REVISE',design=None))
+    before=deepcopy(w.approved)
+    assert w.stop()
+    assert not w.receive('c.intent',request['request_id'],dict(status='OK',hri_result='REVISE',design=dict(design_version=2,blocks=[block()])))
+    assert w.approved==before and w.candidate is None
+
+
+@pytest.mark.parametrize('mode,expected',[('FAKE','STOPPED'),('REAL','HOLD')])
+def test_stop_idle_is_only_mock_idle_confirmation(h,mode,expected):
+    w=h.workflow;w.mode=mode
+    w.start();h.check()
+    assert w.execution_id is None and w.stop()
+    w.robot_event(dict(event='STOP_IDLE',data=dict(actual_stop_verified=False,physical_commands=0)))
+    assert w.status==expected
+    if mode=='REAL':assert w.reason=='STOP_PENDING' and not w.resume()
+    w.snapshot()
 
 
 def test_offline_chair_with_manual_help_returns_complete_candidate(h):
@@ -218,3 +294,130 @@ def test_offline_chair_with_manual_help_returns_complete_candidate(h):
                for a in actions for human in a['human_actions'])
     assert result['execution_allowed'] is False
     assert not any(p=='robot.EXECUTE' for p,_ in h.ports)
+
+
+@pytest.mark.parametrize('allowed',[True,False])
+def test_hmi_preserves_recovery_reason_and_only_enables_verified_resumable_step(h,allowed):
+    h.approved(dict(design_version=1,blocks=[block()]))
+    w=h.workflow;identity=w.execution_id
+    w.robot_event(dict(event='STOP_VERIFIED',data=dict(execution_id=identity,actual_stop_verified=True)))
+    w.robot_event(dict(event='EXECUTION_HELD',data=dict(execution_id=identity,status='RECOVERY_REQUIRED',
+        reason='IK_FK_ROUNDTRIP_MISMATCH',resume_allowed=allowed)))
+    assert w.status==('STOPPED' if allowed else 'HOLD') and w.reason=='IK_FK_ROUNDTRIP_MISMATCH'
+    assert w.snapshot()['actions']['resume']['enabled'] is allowed
+    if not allowed:assert not w.resume()
+
+
+def test_plan_failure_keep_preserves_goal_and_current_without_repeating_same_request(h):
+    w=h.workflow;w.start();h.check()
+    w.approved=dict(design_version=1,blocks=[block()]);w.plan()
+    request=deepcopy(w.active)
+    result=handle_whole_plan(request['request']['input'])
+    result.update(calculation_status='NO_FEASIBLE_ORDER',planning_result=None,action_proposals=[],shared_planning_bundle=None,
+        stage_errors=[dict(code='NO_FEASIBLE_ORDER',reason='NO_FEASIBLE_ORDER',block=None)])
+    assert w.receive('a.whole',request['request']['request_id'],result)
+    active=deepcopy(w.active);goal=deepcopy(w.approved);current=deepcopy(w.current)
+    calls=len(h.ports);generation=w.generation;reason=w.reason
+    assert w.receive('c.plan_failure',active['request']['request_id'],dict(status='OK',hri_result='KEEP',design=goal))
+    assert w.status=='HOLD' and w.active is None and w.reason==reason
+    assert w.approved==goal and w.current==current and w.bundle is None
+    assert len(h.ports)==calls and w.generation==generation
+    assert not w.receive('c.plan_failure',active['request']['request_id'],dict(status='OK',hri_result='KEEP',design=goal))
+    assert w.snapshot()['user_requests']['change_design']['enabled']
+    assert w.change_design() and w.active['port']=='c.intent'
+
+
+def test_plan_failure_unclear_preserves_approval_and_waits_for_explicit_change(h):
+    w=h.workflow;w.start();h.check()
+    w.approved=dict(design_version=1,blocks=[block()]);w.plan()
+    request=deepcopy(w.active)
+    result=handle_whole_plan(request['request']['input'])
+    result.update(calculation_status='NO_FEASIBLE_ORDER',planning_result=None,action_proposals=[],shared_planning_bundle=None,
+        stage_errors=[dict(code='NO_FEASIBLE_ORDER',reason='NO_FEASIBLE_ORDER',block=None)])
+    assert w.receive('a.whole',request['request']['request_id'],result)
+    active=deepcopy(w.active);goal=deepcopy(w.approved);current=deepcopy(w.current);calls=len(h.ports)
+    response=c.run_design_change(goal,current['blocks'],reason=active['request']['reason'],text_answers=['음','음'])
+    assert response['hri_result']=='UNCLEAR'
+    assert w.receive('c.plan_failure',active['request']['request_id'],response)
+    assert w.status=='HOLD' and w.active is None and len(h.ports)==calls
+    assert w.approved==goal and w.current==current and w.bundle is None
+    assert not w.receive('c.plan_failure',active['request']['request_id'],response)
+    assert w.snapshot()['user_requests']['change_design']['enabled']
+    assert w.change_design() and w.active['port']=='c.intent'
+
+
+@pytest.mark.parametrize('code',['SEARCH_LIMIT','CALCULATION_ERROR','INVALID_CONTEXT'])
+def test_non_design_planning_failures_do_not_ask_to_change_approved_design(h,code):
+    w=h.workflow;w.start();h.check()
+    w.approved=dict(design_version=1,blocks=[block()]);w.plan()
+    request=deepcopy(w.active);calls=len(h.ports)
+    result=handle_whole_plan(request['request']['input'])
+    result.update(calculation_status=code,planning_result=None,action_proposals=[],shared_planning_bundle=None,
+        stage_errors=[dict(code=code,reason=code,block=None)])
+    assert w.receive('a.whole',request['request']['request_id'],result)
+    assert w.status=='HOLD' and w.active is None and len(h.ports)==calls
+
+
+def test_plan_failure_question_keeps_machine_details_in_result_not_speech(h):
+    w=h.workflow;w.start();h.check()
+    w.approved=dict(design_version=1,blocks=[block()]);w.plan()
+    request=deepcopy(w.active)
+    result=handle_whole_plan(request['request']['input'])
+    result.update(calculation_status='NO_FEASIBLE_ORDER',planning_result=None,action_proposals=[],shared_planning_bundle=None,
+        stage_errors=[dict(code='NO_FEASIBLE_ORDER',reason='NO_FEASIBLE_ORDER',block=None)])
+    assert w.receive('a.whole',request['request']['request_id'],result)
+    assert w.active['request']['calculation_result']==result
+    response=c.run_design_change(w.approved,[],reason=w.active['request']['reason'],text_answers=['1번'])
+    assert response['hri_result']=='KEEP'
+    assert all('NO_FEASIBLE_ORDER' not in q and "'code'" not in q for q in response['questions'])
+
+
+def test_c_candidate_metadata_is_preserved_for_review(h):
+    w=h.workflow;w.start();h.check()
+    request=deepcopy(w.active['request'])
+    metadata=dict(description='공급판 시험 구조',concept='test')
+    design=dict(design_version=1,blocks=[block()])
+    assert w.receive('c.initial',request['request_id'],dict(status='OK',hri_result=None,
+        design=design,design_metadata=metadata))
+    metadata['description']='changed outside workflow'
+    assert w.preview_ready(w.candidate['request_id'])
+    assert w.active['request']['design_metadata']['description']=='공급판 시험 구조'
+
+
+def test_plan_failure_uses_pr30_structured_contract_and_keep_holds(h):
+    import json
+    from pathlib import Path
+    w=h.workflow;w.start();h.check();w.approved=dict(design_version=1,blocks=[block()]);w.plan()
+    request=deepcopy(w.active['request'])
+    result=json.loads((Path(__file__).resolve().parents[2]/'interfaces/fixtures/mvp_a_no_feasible_order.json').read_text())
+    result['context']=deepcopy(request['input']['context'])
+    assert w.receive('a.whole',request['request_id'],result)
+    payload=deepcopy(w.active['request']);failure=payload['planning_failure']
+    assert failure['failure_code']=='NO_FEASIBLE_ORDER' and failure['redesign_required'] is True
+    response=c.run_design_change(payload['design'],payload['current']['blocks'],
+        reason=payload['reason'],planning_failure=failure,text_answers=['유지할래'])
+    assert response['status']=='OK' and response['hri_result']=='KEEP'
+    assert w.receive('c.plan_failure',payload['request_id'],response)
+    assert w.status=='HOLD' and w.active is None
+    assert not any(port=='robot.EXECUTE' for port,_ in h.ports)
+
+
+def test_stop_after_handover_recovery_leaves_confirmed_hold_instead_of_stop_pending(h):
+    h.approved(dict(design_version=1,blocks=[block()]))
+    w=h.workflow;identity=w.execution_id
+    w.robot_event(dict(event='STOP_VERIFIED',data=dict(execution_id=identity,actual_stop_verified=True)))
+    w.robot_event(dict(event='EXECUTION_HELD',data=dict(execution_id=identity,status='RECOVERY_REQUIRED',reason='HAND_PRESENT_BEFORE_LOWER',resume_allowed=False)))
+    assert w.stop() and w.reason=='STOP_PENDING'
+    w.robot_event(dict(event='STOP_VERIFIED',data=dict(execution_id=identity,actual_stop_verified=True,previous_state='RECOVERY_REQUIRED')))
+    w.robot_event(dict(event='EXECUTION_HELD',data=dict(execution_id=identity,status='RECOVERY_REQUIRED',reason='RECOVERY_REQUIRED',resume_allowed=False)))
+    assert w.status=='HOLD' and w.reason=='RECOVERY_REQUIRED' and w.robot_status=='STOPPED'
+    assert w.snapshot()['actions']['resume']['enabled'] is False and not w.resume()
+
+
+def test_confirmed_pre_descent_handover_hold_enables_resume(h):
+    h.approved(dict(design_version=1,blocks=[block()]))
+    w=h.workflow;identity=w.execution_id
+    w.robot_event(dict(event='STOP_VERIFIED',data=dict(execution_id=identity,actual_stop_verified=True)))
+    w.robot_event(dict(event='EXECUTION_HELD',data=dict(execution_id=identity,status='RECOVERY_REQUIRED',reason='HAND_PRESENT_BEFORE_LOWER',resume_allowed=True)))
+    assert w.status=='STOPPED' and w.snapshot()['actions']['resume']['enabled'] is True
+    assert w.resume() and w.status=='PREPARING' and w.reason=='B_INITIAL_CHECK_PENDING'

@@ -50,14 +50,14 @@ def test_request_closed_during_camera_response_is_ignored_without_stopping():
     assert not accepted
 
 
-def test_open_hand_stops_during_motion_without_alignment_request():
+def test_open_hand_without_handover_capability_never_becomes_stop():
     r,g,accepted,stops,events=setup();r.request=None
     for n in range(12):
         t=1_000_000_000+n*100_000_000
         sample=row(t,'OPEN_HAND');sample['candidate_event']=None
         g.gesture(sample,t)
-    assert stops==[True] and not accepted
-    assert events[-1][0]=='GESTURE_STOP_REQUESTED'
+    assert not stops and not accepted
+    assert events[-1][0]=='GESTURE_HANDOVER_UNAVAILABLE'
 
 
 def test_interrupted_or_stale_open_hand_does_not_stop():
@@ -67,4 +67,76 @@ def test_interrupted_or_stale_open_hand_does_not_stop():
         g.gesture(row(t,'OPEN_HAND'),t)
     g.gesture(row(1_500_000_000,'FIST'),1_500_000_000)
     g.gesture(row(2_000_000_000,'OPEN_HAND'),2_500_000_000)
+    assert not stops and not accepted
+
+
+import pytest
+
+
+@pytest.mark.parametrize('kind',['ALIGNMENT_READY','HELP_READY','ASSEMBLY_ACK'])
+def test_thumb_confirms_each_active_stage_and_never_reuses_old_request(kind):
+    r,g,accepted,stops,events=setup();r.request['kind']=kind
+    g.gesture(row(1_000_000_000),1_100_000_000)
+    assert len(accepted)==1 and accepted[0]['ready'] and not stops
+    r.request=dict(r.request,request_id='R2')
+    g.gesture(row(1_200_000_000),1_300_000_000)
+    assert len(accepted)==1
+    g.gesture(row(1_400_000_000,request='R2'),1_500_000_000)
+    assert len(accepted)==2
+
+
+def test_open_palm_receives_only_during_handover_and_presence_stays_fresh():
+    r,g,accepted,stops,events=setup();r.request['kind']='RECEIVE'
+    sample=row(1_000_000_000,'OPEN_HAND')
+    sample['candidate_event']='OPEN_HAND_HELD_ORIENTATION_UNKNOWN'
+    g.gesture(sample,1_100_000_000)
+    assert accepted[-1]['receiving_ready'] and not stops
+    sample=row(1_200_000_000,'OPEN_HAND');sample['candidate_event']=None
+    g.gesture(sample,1_300_000_000)
+    assert accepted[-1]['receiving_ready']
+    sample=row(1_400_000_000);sample['hands']=[]
+    g.gesture(sample,1_500_000_000)
+    assert not accepted[-1]['hand_present'] and not accepted[-1]['receiving_ready']
+    sample=row(1_600_000_000,'OPEN_HAND');sample['candidate_event']=None
+    g.gesture(sample,1_700_000_000)
+    assert not accepted[-1]['receiving_ready'] and not stops
+
+
+def test_missing_or_stale_hand_does_not_authorize_release_or_absence():
+    r,g,accepted,_,_=setup();r.request['kind']='RECEIVE'
+    sample=row(1_000_000_000);sample['hands']=[]
+    g.gesture(sample,1_400_000_000)
+    assert not accepted
+    sample=row(2_000_000_000,'OPEN_HAND',request='old')
+    sample['candidate_event']='OPEN_HAND_HELD_ORIENTATION_UNKNOWN'
+    g.gesture(sample,2_100_000_000)
+    assert not accepted
+
+
+def test_fake_camera_sample_is_never_accepted_as_real_sensor():
+    r,g,accepted,_,_=setup();r.raw=SimpleNamespace(mode='REAL')
+    sample=row(1_000_000_000);sample['provenance']='SYNTHETIC'
+    g.gesture(sample,1_100_000_000)
+    assert not accepted
+    r.raw.mode='MOCK';sample=row(1_200_000_000);sample['provenance']='SYNTHETIC'
+    g.gesture(sample,1_300_000_000)
+    assert accepted[-1]['source']=='FAKE'
+
+
+def test_open_palm_during_eligible_loaded_motion_requests_handover_instead_of_stop():
+    r,g,accepted,stops,events=setup();r.request=None;requested=[]
+    r.request_handover=lambda:requested.append(True) or True
+    for n in range(12):
+        t=1_000_000_000+n*100_000_000
+        sample=row(t,'OPEN_HAND');sample['candidate_event']=None
+        g.gesture(sample,t)
+    assert requested==[True] and not stops and not accepted
+    assert events[-1][0]=='GESTURE_HANDOVER_REQUESTED'
+
+
+def test_held_palm_is_not_reinterpreted_as_stop_during_committed_handover():
+    r,g,accepted,stops,events=setup();r.request=None;r.handover_active=True
+    for n in range(15):
+        t=1_000_000_000+n*100_000_000
+        g.gesture(row(t,'OPEN_HAND'),t)
     assert not stops and not accepted

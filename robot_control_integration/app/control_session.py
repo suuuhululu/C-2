@@ -47,6 +47,10 @@ def validate_session(value, plan, *, backend):
             raise ValueError('ONSITE_REVIEW_REQUIRED')
         if 'MOCK' in s['source_epoch'].upper() or 'TEST' in s['source_epoch'].upper():
             raise ValueError('TEST_EPOCH_CANNOT_EXECUTE_REAL')
+        if s.get('b_observation_kind') is not None and (s['b_observation_kind'] != 'SYNTHETIC'
+                or not s.get('operator_review_ref') or
+                not s.get('d_runtime',{}).get('current_ref','').startswith('SYNTHETIC_B_CURRENT:')):
+            raise ValueError('EXPLICIT_SYNTHETIC_B_OPERATOR_TRIAL_REQUIRED')
     from app.automatic_stage_trial import validate_policy
     validate_policy(s, plan)
     return s
@@ -102,11 +106,16 @@ def validate_execution(plan, profile, session, phase):
     if phase == 'release' and not session.get('seating_evidence_ref'):
         raise ValueError('FRESH_SEATING_EVIDENCE_REQUIRED_FOR_RELEASE')
     settings = plan['settings']
-    if phase in ('contact', 'full', 'assemble-held') and settings.get('turn_base_z_deg') and settings.get('xy_grasp_rotation_compensation_measured') is not True:
+    reviewed_robot_trial = (session.get('b_observation_kind') == 'SYNTHETIC'
+        and bool(session.get('operator_review_ref')) and phase in ('full', 'contact'))
+    # 로봇 단독 시험은 준비 확인 후 D의 실제 정지/파지/인계 검사로 진행한다.
+    # 사람의 엄지척을 물리 정렬 측정 결과로 만들지 않는다.
+    if phase in ('contact', 'full', 'assemble-held') and settings.get('turn_base_z_deg') and settings.get('xy_grasp_rotation_compensation_measured') is not True and not reviewed_robot_trial:
         raise ValueError('ROTATED_GRASP_XY_COMPENSATION_NOT_MEASURED')
-    pending_trial_alignment = (phase == 'full' and session.get('no_vision_trial') is True
+    pending_trial_alignment = (phase == 'full' and (session.get('no_vision_trial') is True or
+                               session.get('b_observation_kind') == 'SYNTHETIC')
                                and session.get('trial_alignment_pending') is True)
-    if phase in ('contact', 'full', 'assemble-held') and plan['assistance_kind'] == 'NONE' and not session.get('alignment_evidence_ref') and not pending_trial_alignment:
+    if phase in ('contact', 'full', 'assemble-held') and plan['assistance_kind'] == 'NONE' and not session.get('alignment_evidence_ref') and not pending_trial_alignment and not reviewed_robot_trial:
         raise ValueError('FRESH_ALIGNMENT_EVIDENCE_REQUIRED')
 
 
@@ -117,6 +126,7 @@ class ControlSession:
         self.binding = {k: plan[k] for k in ('plan_id', 'step_id', 'current_revision')}
         self.record, self.clock, self.wall = record, clock, wall
         self.cancelled, self.cancel_reason = False, None
+        self.handover_requested = False
         self.request, self.owner, self.lease = None, 'NONE', None
         self.used_requests = set()
         self.state_sequence = 0
@@ -132,6 +142,7 @@ class ControlSession:
     def check(self):
         if self.cancelled:
             raise RuntimeError(self.cancel_reason)
+        if self.handover_requested:raise RuntimeError('HANDOVER_REQUESTED')
         if self.wall() >= self.value['expires_unix_s'] or self.clock()-self.started >= self.duration:
             raise RuntimeError('SESSION_EXPIRED')
 
