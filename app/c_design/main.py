@@ -188,12 +188,13 @@ def _initial_metadata(described, choice):
     }
 
 
-def _mock_metadata(revised, constraints=None):
+def _mock_metadata(revised, constraints=None, clamp=None):
     metadata = {"design_name": _MOCK_NAME, "design_family": _MOCK_FAMILY, "design_summary": _MOCK_SUMMARY,
                 "visible_features": [], "human_interpretation": None, "judge": None, "source": "MOCK", "error": None,
                 "user_constraints": dict(constraints or {}) or None}  # Mock은 고정 설계라 제약을 반영하지 못하고 기록만 한다
     if revised:
-        metadata.update(change_summary=[], interpretation_status=None, design_intent=None, regenerations=0)
+        metadata.update(change_summary=[], interpretation_status=None, design_intent=None, regenerations=0,
+                        constraint_clamp=deepcopy(clamp))  # Wave 4: Current 때문에 올린 제약 {requested, applied} 또는 None
     return metadata
 
 
@@ -223,7 +224,7 @@ def _verdict(judge):
     return "SHOWCASE" if showcase else "NOT_YET"
 
 
-def _revised_metadata(judge, regenerations, error, style_hint, constraints=None):
+def _revised_metadata(judge, regenerations, error, style_hint, constraints=None, clamp=None):
     """Revised(LLM) design_metadata. 설명은 judge(판단 가능한 응답 또는 None)에서만 온다. user_constraints는 이번 요청의 명시 제약."""
     seen = judge or {}
     story = seen.get("human_story")
@@ -245,7 +246,8 @@ def _revised_metadata(judge, regenerations, error, style_hint, constraints=None)
             "verdict": _verdict(judge),
         },
         "design_intent": None, "regenerations": regenerations, "style_hint": style_hint,
-        "user_constraints": dict(constraints or {}) or None, "source": "LLM", "error": error,
+        "user_constraints": dict(constraints or {}) or None, "constraint_clamp": deepcopy(clamp),
+        "source": "LLM", "error": error,
     }
 
 
@@ -340,6 +342,28 @@ def _clamp_to_current(constraints, current):
     return c
 
 
+def constraints_vs_current(constraints, current, removal=None):
+    """명시 제약·제거 요구와 이미 조립된 Current의 충돌(Wave 4, §8.16) → {} 또는 {"max_layer"/"max_blocks": {requested,
+    current}, "removal": {layers}}. 결정적 비교라 LLM이 필요 없다(해석 LLM은 Current를 모른다)."""
+    c = constraints or {}
+    blocks = [b for b in (current or []) if isinstance(b, dict)]
+    layers = {b["layer"] for b in blocks if isinstance(b.get("layer"), int)}
+    conflict = {}
+    if layers and isinstance(c.get("max_layer"), int) and c["max_layer"] < max(layers):
+        conflict["max_layer"] = {"requested": c["max_layer"], "current": max(layers)}
+    if isinstance(c.get("max_blocks"), int) and c["max_blocks"] < len(blocks):
+        conflict["max_blocks"] = {"requested": c["max_blocks"], "current": len(blocks)}
+    if removal and blocks and (removal.get("assembled") or set(removal.get("layers") or ()) & layers):
+        conflict["removal"] = {"layers": sorted(set(removal.get("layers") or ()) & layers)}
+    return conflict
+
+
+def _clamp_record(requested, applied):
+    """Current 때문에 올린 수치 제약 기록(metadata.constraint_clamp) 또는 None."""
+    requested, applied = dict(requested or {}), dict(applied or {})
+    return {"requested": requested, "applied": applied} if requested != applied else None
+
+
 def _revised_builder(approved, current, differences, make_generate, min_blocks, should_stop, differ_from=None,
                      design_change=False, constraints=None):
     """approved(Revised 버전 기준 Design)·Current를 보존하는 Revised 후보 생성 함수 build(max_attempts, feedback=None).
@@ -357,7 +381,7 @@ def _revised_builder(approved, current, differences, make_generate, min_blocks, 
 
 
 def _finish_revised(result, *, approved, current, differences, build, use_llm, should_stop, progress, questions, hri_result,
-                    style_hint, constraints=None):
+                    style_hint, constraints=None, clamp=None):
     """Revised 설계 결과 → envelope. LLM이면 judge 후 조건이 맞을 때만 재생성(최대 METADATA_REGENERATIONS_MAX회).
 
     run_intervention(REVISE)과 review_design_candidate(Revised 후보 MODIFY)가 같이 쓴다.
@@ -367,7 +391,8 @@ def _finish_revised(result, *, approved, current, differences, build, use_llm, s
     progress("VALIDATING")
     if not use_llm:
         progress("READY_REVISED")
-        return _result("OK", hri_result, result["design"], questions, design_metadata=_mock_metadata(revised=True, constraints=constraints))
+        return _result("OK", hri_result, result["design"], questions,
+                       design_metadata=_mock_metadata(revised=True, constraints=constraints, clamp=clamp))
     final = result["design"]
     regenerations, usable_judge, error = 0, None, None
     while True:
@@ -394,7 +419,7 @@ def _finish_revised(result, *, approved, current, differences, build, use_llm, s
         final = again["design"]
         progress("VALIDATING")
     progress("READY_REVISED")
-    metadata = _revised_metadata(usable_judge, regenerations, error, style_hint, constraints)
+    metadata = _revised_metadata(usable_judge, regenerations, error, style_hint, constraints, clamp)
     return _result("OK", hri_result, final, questions, design_metadata=metadata)
 
 
@@ -669,7 +694,8 @@ def _intervention(design, current, differences, text_answers, on_question, shoul
 
     # LLM 모드에서 답변의 style_hint와 확인 문장(reply)을 요청 단위로 모은다. constraints(Wave 3)는 답변 원문의 규칙 추출 +
     # LLM 해석의 선택 키를 합친 명시 제약이며 Current와 충돌하지 않게 clamp해서 쓴다.
-    state = {"style_hint": None, "reply": None, "reason": None, "stopped": False, "interpreted": False, "constraints": {}}
+    state = {"style_hint": None, "reply": None, "reason": None, "stopped": False, "interpreted": False, "constraints": {},
+             "removal": None}
 
     def effective_constraints():
         return _clamp_to_current(state["constraints"], current)
@@ -753,12 +779,65 @@ def _intervention(design, current, differences, text_answers, on_question, shoul
         return _finish_revised(result, approved=design, current=current, differences=differences, build=build,
                                use_llm=use_llm, should_stop=should_stop, progress=progress, questions=questions,
                                hri_result=dialogue.REVISE, style_hint=state["style_hint"],
-                               constraints=effective_constraints())
+                               constraints=effective_constraints(),
+                               clamp=_clamp_record(state["constraints"], effective_constraints()))
+
+    def resolve_conflict(conflict):
+        """Wave 4(§8.16): 요청이 조립된 Current와 충돌하면 생성·ACK 전에 설명 + 두 선택 질문. 답은 최대 2번(질문 + 재질문 1회)만
+        받아 음성에서도 끝난다. KEEP·CANCEL·소진은 종료 envelope, REVISE(조립된 부분은 두고 나머지만)는 None."""
+        question = dialogue.build_constraint_conflict_question(conflict, state["constraints"], design_change=design_change)
+        ask(question)
+        before = dict(state["constraints"])
+        for attempt in range(2):
+            if stop_requested():
+                return _stopped(questions)
+            reply = next_reply()
+            if reply is _STOP:
+                return _stopped(questions)
+            if reply is None:
+                return no_reply()
+            seen = {}
+
+            def interpret_conflict(text):
+                answer = ask_answer_llm(text)  # 같은 해석 함수(KEEP/REVISE/UNCLEAR/CANCEL); style_hint·reply는 덮지 않는다
+                if answer is None:
+                    return dialogue.UNCLEAR
+                seen["constraints"] = answer.get("constraints")
+                return answer["decision"]
+            state["interpreted"], state["reason"] = False, None
+            if use_llm:
+                progress("UNDERSTANDING")
+            choice = dialogue.parse_constraint_conflict_response(reply, interpret_conflict if use_llm else None)
+            if state["stopped"]:
+                return _stopped(questions)
+            if use_llm:
+                progress("HRI_INTERPRET", f"decision={choice} source={'llm' if state['interpreted'] else 'rule'} "
+                                          f"reason={state['reason'] or ''} conflict={sorted(conflict)}")
+            if choice == dialogue.KEEP:
+                return keep()
+            if choice == dialogue.CANCEL:
+                return _user_cancel(questions)
+            if choice == dialogue.REVISE:
+                # 이번 답에 새 제한이 있으면 더하고(규칙 우선), Current와 겹치는 수치는 clamp한다. 제거 요구는 "조립된 부분은
+                # 두고"로 정리됐다.
+                state["constraints"] = dialogue.merge_constraints(dict(before, **dialogue.extract_constraints(reply)),
+                                                                  seen.get("constraints"))
+                state["removal"] = None
+                return None
+            if attempt == 0:
+                ask(dialogue.build_constraint_conflict_reask(question))
+        return _result("OK", dialogue.UNCLEAR, None, questions)
 
     def revise():
         if validator.current_support_violations(current):
             # Current를 그대로 보존하면 어떤 후보도 support를 통과할 수 없다(§8.11 즉시 진입).
             return escalate(can_redesign=False)
+        conflict = constraints_vs_current(state["constraints"], current, state["removal"])
+        if conflict:
+            ended = resolve_conflict(conflict)
+            if ended is not None:
+                return ended
+            state["reply"] = dialogue.constraint_clamp_ack(conflict)  # 해석 reply는 지킬 수 없는 약속일 수 있어 대신한다
         if use_llm:
             # 생성 전에 항상 확인(ack): 해석 reply(LLM이 REVISE로 해석한 경우) 또는 확인 문장(숫자 답·해석 실패).
             fallback = dialogue.design_change_revise_ack_fallback if design_change else dialogue.revise_ack_fallback
@@ -800,6 +879,8 @@ def _intervention(design, current, differences, text_answers, on_question, shoul
         source = "llm" if state["interpreted"] else "rule"  # decision을 정한 쪽(아래 style_hint 전용 호출과 무관)
         if choice == dialogue.REVISE and not state["interpreted"]:
             state["constraints"] = dialogue.extract_constraints(reply)  # Rule REVISE(숫자 답 포함)도 원문의 명시 제약은 받는다
+        if choice == dialogue.REVISE:
+            state["removal"] = dialogue.removal_request(reply)  # Wave 4: 조립된 블록 제거 요구는 충돌 질문으로
         if (use_llm and choice == dialogue.REVISE and not state["interpreted"]
                 and not dialogue.is_number_answer(reply)):
             # Rule이 REVISE로 정한 자유 답변("일부러 놨어요. 팔걸이로 살려주세요")에서 바람만 받는다. decision은 Rule 그대로,
@@ -960,6 +1041,7 @@ def _review(candidate, kind, design_metadata, previous_design, current, differen
         hint = state["style_hint"]
         review = review_of(dialogue.MODIFY, source, base_round + 1)
         constraints = effective_constraints()
+        requested = dict(constraints)
         if kind == "revised":
             constraints = _clamp_to_current(constraints, current)
             # Wave 3: 낮게·단순하게·블록 적게·N층 이하를 명시했으면 +6 하한(§8.13)을 적용하지 않는다.
@@ -984,7 +1066,7 @@ def _review(candidate, kind, design_metadata, previous_design, current, differen
             envelope = _finish_revised(build(designer.MAX_ATTEMPTS), approved=previous_design, current=current,
                                        differences=differences, build=build, use_llm=use_llm, should_stop=should_stop,
                                        progress=progress, questions=questions, hri_result=dialogue.MODIFY, style_hint=hint,
-                                       constraints=constraints)
+                                       constraints=constraints, clamp=_clamp_record(requested, constraints))
         else:
             family, concept = None, None
             if scope == "patch":
@@ -1060,6 +1142,12 @@ def _review(candidate, kind, design_metadata, previous_design, current, differen
             ack = state["reply"] or dialogue.approve_ack()
         elif decision == dialogue.MODIFY:
             ack = state["reply"] or dialogue.modify_ack_fallback(state["style_hint"])
+            if kind == "revised" and use_llm:
+                # Wave 4(§8.16): 검토 MODIFY는 질문 대신 Current로 맞춰(clamp) 만들고 그 사실을 ack 뒤에 알린다(다음 Preview
+                # 검토가 확인 단계). 해석 reply가 지킬 수 없는 약속을 했어도 고지가 뒤따른다.
+                conflict = constraints_vs_current(effective_constraints(), current, dialogue.removal_request(reply))
+                if conflict:
+                    ack = ack + "\n" + dialogue.constraint_clamp_notice(conflict)
         else:
             ack = state["reply"] or dialogue.cancel_ack()
         state["reply"] = ack

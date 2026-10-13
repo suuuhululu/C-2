@@ -311,12 +311,14 @@ def test_w3_constraints_are_optional_interpretation_keys_with_rule_extraction():
 
 
 # ---------------------------------------------------------------------------
-# 5. Current-vs-request conflicts are not detected today (Wave 4)
+# 5. Current-vs-request conflicts (Wave 4 acceptance, 2026-10-13). Wave 1 pinned that no conflict detection existed;
+#    Wave 4 compares stated limits with the assembled Current deterministically and asks before generating.
 # ---------------------------------------------------------------------------
 
 
-def test_w1_no_conflict_detection_before_revise_today():
-    # There is no helper comparing stated limits with the assembled Current; the only Current-related
-    # pre-check before generation is the support-violation escalation.
-    assert not hasattr(main, "constraints_vs_current")
-    assert not hasattr(dialogue, "build_constraint_conflict_question")
+def test_w4_conflict_detection_exists_before_revise():
+    current = [block(layer=1), block(layer=2), block(layer=3), block(layer=4)]
+    assert main.constraints_vs_current({"max_layer": 3}, current) == {"max_layer": {"requested": 3, "current": 4}}
+    assert main.constraints_vs_current({"max_layer": 4}, current) == {}
+    question = dialogue.build_constraint_conflict_question({"max_layer": {"requested": 3, "current": 4}}, design_change=True)
+    assert question.startswith("지금 4층까지 이미 조립돼 있어서")

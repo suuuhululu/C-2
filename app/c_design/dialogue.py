@@ -412,7 +412,9 @@ CONSTRAINT_VALUES = {"height": ("low", "high"), "complexity": ("simple", "rich")
 MAX_LAYER_LIMIT = 5  # validator.MAX_LAYER와 같다(순환 import를 피하려고 값만 둔다; validator가 진실)
 MAX_BLOCKS_LIMIT = 40  # validator.MAX_BLOCKS와 같다(같은 이유)
 
-_LAYER_RE = re.compile(r"([1-5])\s*층")
+_LAYER_RE = re.compile(r"(?<!\d)([1-5])\s*층")  # "15층"의 5를 잡지 않는다
+# 층수 상한은 한정 표현일 때만이다("3층까지·이하·이내·으로·짜리·만"). "3층에 팔걸이"는 위치, "등받이를 4층까지"는 부위 높이다.
+_LAYER_LIMIT_TAILS = ("까지", "이하", "이내", "으로", "로", "짜리", "만", "정도")
 # "블록 20개까지/이하/만/이내" → max_blocks(블록이라는 말이 붙을 때만: "다리는 4개만"은 블록 수가 아니다). norm은 공백이 없다.
 _BLOCK_COUNT_RE = re.compile(r"블록(?:을|은|는|도)?(\d{1,2})개(?:까지|이하|만|이내|정도만|정도로)")
 _LAYER_MIN_MARKERS = ("이상", "넘", "보다높", "보다더")
@@ -460,7 +462,8 @@ def _whole_piece_word(norm, words, parts):
 def extract_constraints(text):
     """발화 원문 → 명시된 제약만 담은 dict(없으면 {}). 규칙 기반이라 결정적이며 LLM 없이도 동작한다.
 
-    - "3층까지만/3층 이하/3층으로/3층짜리" → max_layer 3. "3층 이상/보다 높게"는 상한이 아니므로 height high만.
+    - "3층까지만/3층 이하/3층으로/3층짜리" → max_layer 3(한정 표현일 때만: "3층에 팔걸이"는 위치, "등받이를 4층까지 올려줘"·
+      "등받이는 3층 높이로"처럼 부위 단어 뒤는 부위 높이, "15층"은 무시). "3층 이상/보다 높게"는 상한이 아니므로 height high만.
     - "낮게/낮은" → height low, "높게/높은" → height high. 부위 단어("등받이를 높이고") 바로 뒤의 높낮이는 전체 높이가 아니다.
     - "간단/단순/심플/소박/미니멀" → complexity simple, "화려/풍성/장식" → complexity rich.
     - "블록 적게/조금만/N개까지" → block_budget fewer, "블록 많이/최대한" → more. "블록 N개까지/이하/만"(1..40)은 max_blocks N도.
@@ -474,7 +477,10 @@ def extract_constraints(text):
     for match in _LAYER_RE.finditer(norm):
         tail = norm[match.end():match.end() + 4]
         if any(tail.startswith(marker) for marker in _LAYER_MIN_MARKERS):
-            found["height"] = "high"
+            if not _part_before(norm, match.start()):
+                found["height"] = "high"
+            continue
+        if _part_before(norm, match.start()) or not any(tail.startswith(marker) for marker in _LAYER_LIMIT_TAILS):
             continue
         found["max_layer"] = int(match.group(1))
     for match in _BLOCK_COUNT_RE.finditer(norm):
@@ -483,7 +489,7 @@ def extract_constraints(text):
             found["max_blocks"] = count
             found["block_budget"] = "fewer"
     for index, char in enumerate(norm):
-        if char == "낮" and not _part_before(norm, index):
+        if char == "낮" and not _part_before(norm, index) and norm[index + 1:index + 2] != "에":  # "낮에"는 시간
             found.setdefault("height", "low")
         elif char == "높" and not _part_before(norm, index) and not _height_noun(norm, index):
             found.setdefault("height", "high")
@@ -527,7 +533,9 @@ def restricts_richness(constraints):
     """사용자가 작게·낮게·단순하게를 명시했는가 → Revised +6 블록 하한·judge의 richer 재생성·expressive 기본 문단(5층 활용,
     블록 적극 사용)을 적용하지 않는다. "넓게·화려하게·높게·블록 많이"는 풍부함을 줄이지 않으므로 False(기본 선호 유지)."""
     c = constraints or {}
-    return (c.get("max_layer") is not None or c.get("max_blocks") is not None or c.get("height") == "low"
+    # max_layer가 MAX_LAYER 이상("5층까지 써도 돼")이면 실제 제한이 아니다.
+    layer_limited = isinstance(c.get("max_layer"), int) and c["max_layer"] < MAX_LAYER_LIMIT
+    return (layer_limited or c.get("max_blocks") is not None or c.get("height") == "low"
             or c.get("complexity") == "simple" or c.get("block_budget") == "fewer" or c.get("footprint") == "narrow")
 
 
@@ -556,6 +564,94 @@ def constraints_sentence(constraints):
     elif c.get("footprint") == "narrow":
         parts.append("작은 크기")
     return "·".join(parts)
+
+
+# ---------------------------------------------------------------------------
+# Current와 명시 제약의 충돌(2026-10-13 Robot-only design rule update Wave 4). 이미 조립된 블록은 지우지 않는다: 요청이 조립된
+# 층·블록 수·블록 제거를 요구하면 생성 전에 한 번 설명하고 "설계 그대로(KEEP) / 조립된 부분은 두고 나머지만(REVISE)"를 다시
+# 묻는다. 새 hri·status·error 값은 없다(KEEP / REVISE / UNCLEAR / CANCEL). 판정은 main.constraints_vs_current가 한다.
+# ---------------------------------------------------------------------------
+
+_REMOVE_WORDS = ("빼", "없애", "제거", "치워", "허물", "부숴", "부수", "뜯")
+_ASSEMBLED_WORDS = ("조립된", "조립한", "조립해둔", "쌓은", "쌓아둔", "쌓인", "놓인", "놓은", "놓아둔", "올린", "올려둔", "이미",
+                    "만들어진", "지금있는")
+_LAYER_REF_RE = re.compile(r"([1-5])\s*층")
+CONSTRAINT_CONFLICT_REASK_LEAD = "지금 설계를 그대로 둘지, 조립된 부분은 두고 나머지만 바꿀지 말씀해 주세요."
+_CONFLICT_REVISE_WORDS = ("나머지",)  # "조립된 건 두고 나머지만": 질문의 두 번째 선택을 그대로 받은 말
+
+
+def removal_request(text):
+    """조립된 블록을 빼거나 없애 달라는 말인가 → {"assembled": bool, "layers": [층…]} 또는 None.
+
+    빼다·없애다·제거 같은 말이 "조립된/쌓은/놓인/이미" 같은 말이나 "N층"과 함께 있을 때만 본다("빨간 장식은 빼고"처럼 아직 조립
+    전인 부분을 빼는 말은 Revised가 자유롭게 바꿀 수 있으므로 충돌이 아니다). 부정("빼지 말고")은 요청이 아니다.
+    """
+    norm = _normalize(text or "")
+    if not norm or not any(word in norm for word in _REMOVE_WORDS) or _has_negation(norm):
+        return None
+    layers = sorted({int(match.group(1)) for match in _LAYER_REF_RE.finditer(norm)})
+    assembled = any(word in norm for word in _ASSEMBLED_WORDS)
+    if not assembled and not layers:
+        return None
+    return {"assembled": assembled, "layers": layers}
+
+
+def _conflict_direction(conflict, constraints):
+    c = constraints or {}
+    if "max_layer" in conflict or c.get("height") == "low":
+        return "낮게 "
+    if "max_blocks" in conflict or c.get("block_budget") == "fewer" or c.get("complexity") == "simple":
+        return "간단하게 "
+    return ""
+
+
+def build_constraint_conflict_question(conflict, constraints=None, design_change=False):
+    """충돌 설명 + 두 선택 질문(존댓말, 코드·필드명 없음). conflict는 main.constraints_vs_current 결과."""
+    lines = []
+    if "max_layer" in conflict:
+        lines.append(f"지금 {conflict['max_layer']['current']}층까지 이미 조립돼 있어서 그 부분은 그대로 두어야 해요.")
+    if "max_blocks" in conflict:
+        lines.append(f"지금 블록 {conflict['max_blocks']['current']}개가 이미 조립돼 있어서 그보다 적게 만들 수는 없어요.")
+    if "removal" in conflict:
+        lines.append("이미 조립된 블록은 제가 빼거나 없앨 수 없어서 그대로 두어야 해요.")
+    keep = "지금 설계를 그대로 둘까요" if design_change else "놓인 블록을 원래대로 돌리고 지금 설계를 그대로 둘까요"
+    lines.append(f"{keep}, 아니면 조립된 부분은 두고 나머지만 {_conflict_direction(conflict, constraints)}바꿀까요?")
+    return "\n".join(lines)
+
+
+def build_constraint_conflict_reask(question):
+    return "\n".join([CONSTRAINT_CONFLICT_REASK_LEAD, question])
+
+
+def parse_constraint_conflict_response(text, llm_fallback=None):
+    """충돌 질문 답 → KEEP(설계 그대로) / REVISE(조립된 부분은 두고 나머지만) / UNCLEAR / CANCEL.
+
+    질문이 Design Change와 같은 두 선택이므로 같은 parser(parse_design_change_response: "그대로"·"유지" → KEEP,
+    "바꿔"·"2번" → REVISE, 취소)를 쓰고, 질문의 두 번째 선택을 그대로 받은 "나머지만"만 먼저 REVISE로 본다.
+    """
+    norm = _normalize(text or "")
+    if (norm and any(word in norm for word in _CONFLICT_REVISE_WORDS) and not _has_cancel_phrase(norm)
+            and not _has_negation(norm)):
+        return REVISE
+    return parse_design_change_response(text, llm_fallback)
+
+
+def constraint_clamp_ack(conflict):
+    """충돌 질문에 REVISE로 답한 뒤 생성 전 확인 문장(해석 reply 대신: 지킬 수 없는 약속을 하지 않는다)."""
+    if "max_layer" in conflict:
+        return f"알겠습니다. 이미 조립된 {conflict['max_layer']['current']}층까지는 그대로 두고 나머지만 맞춰서 다시 만들어볼게요."
+    if "max_blocks" in conflict:
+        return f"알겠습니다. 이미 조립된 블록 {conflict['max_blocks']['current']}개는 그대로 두고 나머지만 맞춰서 다시 만들어볼게요."
+    return "알겠습니다. 이미 조립된 블록은 그대로 두고 나머지만 다시 만들어볼게요."
+
+
+def constraint_clamp_notice(conflict):
+    """Review MODIFY(revised)에서 질문 없이 맞춘 경우 ack 뒤에 붙이는 고지 한 문장."""
+    if "max_layer" in conflict:
+        return f"다만 이미 조립된 {conflict['max_layer']['current']}층까지는 그대로 두고 나머지만 맞출게요."
+    if "max_blocks" in conflict:
+        return f"다만 이미 조립된 블록 {conflict['max_blocks']['current']}개는 그대로 둘게요."
+    return "다만 이미 조립된 블록은 그대로 둘게요."
 
 
 def parse_initial_request(text):

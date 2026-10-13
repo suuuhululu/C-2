@@ -1456,3 +1456,13 @@ class TestRicherRevised:
         for prompt in (llm.SYSTEM_PROMPT_INITIAL, llm.SYSTEM_PROMPT_REVISED):
             assert sentence in prompt and "mixing orientation 0 and 90, always with both of its studs supported" in prompt
             assert "visible band" not in prompt and "thin legs" not in prompt
+
+
+def test_build_hint_bridge_sentence_matches_the_validator():
+    """Opus A Wave 3 review W3-N1: 2x3x1이 두 블록에 2 + 2 stud로 걸치면 고유 4 stud라 validator가 통과시킨다."""
+    def b(x, y, layer, brick_type="2x2x1"):
+        return {"brick_type": brick_type, "color": "blue", "x": x, "y": y, "layer": layer, "orientation_deg": 0}
+    bridge = [b(0, 0, 1), b(0, 3, 1), b(0, 1, 2, "2x3x1")]
+    assert validator.validate_design({"design_version": 1, "blocks": bridge}) == []
+    assert "2 + 2 is enough, 1 + 2 is not" in llm._BUILD_HINTS
+    assert "is not enough; make it rest on 4" not in llm._BUILD_HINTS

@@ -122,9 +122,10 @@ scripts/
 | 파일 | 함수·상수 | 역할 |
 |---|---|---|
 | `dialogue.py` | `CONSTRAINT_KEYS`, `extract_constraints(text)`, `merge_constraints(rule, llm)`, `restricts_richness(c)`, `constraints_sentence(c)` | 발화 원문 규칙 추출(결정적, 우선) + 해석 선택 키 `constraints` 값 검증 병합, 풍부함을 줄이는 제한 판정 |
+| `dialogue.py`(Wave 4) | `removal_request`, `build_constraint_conflict_question`·`build_constraint_conflict_reask`, `parse_constraint_conflict_response`, `constraint_clamp_ack`·`constraint_clamp_notice` | Current 충돌 설명·두 선택 질문·답 해석·확인/고지 문장(계약 §8.16) |
 | `llm.py` | `stated_limits(constraints)`(컨텍스트 매니저)·`active_stated_limits()`, `_DEFAULT_PREFERENCE`, `constraints_text`, `revised_guidance(constraints, design_change)`, `TALL_FAMILIES`, `choose_initial_family`·`generate_initial_design`·`generate_revised_design`·`judge_revised_design`(`constraints=None`이면 컨텍스트 값) | 기본 선호는 제한이 없을 때만, 제한 문단·Revised 우선순위(Third = 사용자 요구), judge `stated_limits`, 낮은 요청의 family 제외. main은 새 kwarg 없이 컨텍스트로 전달(기존 fake 호환) |
 | `designer.py`(Opus A 소유) | `constraint_violations(blocks, constraints)`, `build_*_design(…, constraints=None)` | LLM 후보의 `max_layer`·`max_blocks` 초과를 `user_constraint`로 탈락(Mock 미적용) |
-| `main.py` | `_clamp_to_current`(max_layer·max_blocks), `_needs_regeneration(judge, constraints)` | Initial·Intervention·Design Change·Planning failure·Review MODIFY에서 제약 운반, 제한 시 `min_blocks` None·richer 재생성 제외, Current로 clamp, `design_metadata.user_constraints` |
+| `main.py` | `_clamp_to_current`(max_layer·max_blocks), `_needs_regeneration(judge, constraints)`, Wave 4: `constraints_vs_current`(충돌 판정), `_clamp_record`, `_intervention.resolve_conflict`(충돌 질문 ≤2답) | Initial·Intervention·Design Change·Planning failure·Review MODIFY에서 제약 운반, 제한 시 `min_blocks` None·richer 재생성 제외, Current로 clamp, `design_metadata.user_constraints` |
 
 ### 공통 LEGO / Board 규약 (Day 4 MVP)
 

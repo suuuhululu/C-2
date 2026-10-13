@@ -451,7 +451,8 @@ Stage 2 Wave 3에서 Initial(LLM)에 `preference`·`selected_family`·`family_so
 | `design_intent` | 항상 null(Stage 2 Wave 4부터 설계 의도 단계 없음, 키는 호환을 위해 유지) |
 | `regenerations` | judge 결과로 다시 만든 횟수(0 또는 1, §8.12·§8.13) |
 | `style_hint` | Intervention 답변의 LLM 해석이 준 바람(한국어 구) 또는 null(Rule로 결정·힌트 없음) |
-| `user_constraints` | (2026-10-13 Wave 3, §8.15) 이번 요청에서 사용자가 명시한 제약 `{max_layer, height, complexity, block_budget, footprint}` 중 말한 키만(Current로 clamp한 값), 없으면 null. Initial(LLM·Mock)·Mock Revised에도 같은 키가 있습니다(Mock은 기록만, 설계에 반영하지 않음). D는 pass-through이며 분기에 쓰지 않습니다 |
+| `user_constraints` | (2026-10-13 Wave 3, §8.15) 이번 요청에서 사용자가 명시한 제약 `{max_layer, max_blocks, height, complexity, block_budget, footprint}` 중 말한 키만(Current로 clamp한 값), 없으면 null. Initial(LLM·Mock)·Mock Revised에도 같은 키가 있습니다(Mock은 기록만, 설계에 반영하지 않음). D는 pass-through이며 분기에 쓰지 않습니다 |
+| `constraint_clamp` | (2026-10-13 Wave 4, §8.16, Revised·Mock Revised만) 요청 제약을 이미 조립된 Current 때문에 올렸으면 `{requested, applied}`(둘 다 제약 dict), 아니면 null. D는 pass-through |
 | `source` | `"LLM"` / `"MOCK"` |
 | `error` | null 또는 `{kind, message}`: `judge_error`(judge 응답 오류·필수 필드 누락·예상 밖 값, 재생성 없음), `regeneration_failed`(재생성이 유효 후보를 못 냄, 첫 설계 유지), `describe_error`(Initial 설명 실패), `request_error`(Initial 요청 해석 실패·`REQUEST_KEYS` 누락, ANY로 보고 무작위 family로 계속, Stage 2 Wave 4b; 이전 이름 `preference_error`). 여러 개면 마지막 오류 |
 
@@ -594,9 +595,9 @@ Preview 검토(§4.4)가 MODIFY이면 C가 새 **Candidate** Design을 만들어
 **전달 방식(결정 D-1)**: main은 `llm.generate_initial_design`·`generate_revised_design`·`judge_revised_design`·`choose_initial_family`에 새 인자를 넘기지 않고 `with llm.stated_limits(constraints):` 컨텍스트(`contextvars.ContextVar`, 호출 thread·블록 밖으로 새지 않음) 안에서 호출합니다. 네 함수는 `constraints` 인자가 None이면 `llm.active_stated_limits()`를 읽습니다(인자는 테스트·직접 호출용). 그래서 기존 caller와 D 테스트의 fake가 시그니처 변경 없이 동작합니다. `designer.build_*_design(…, constraints=None)`은 C 내부 호출이라 인자로 넘깁니다.
 
 - **모으는 곳**: 발화 원문의 규칙 추출 `dialogue.extract_constraints(text)`(결정적)이 우선이고, 기존 해석 호출 4곳(`interpret_initial_request`·`interpret_intervention_answer`·Design Change 해석·`interpret_review_answer`)이 함께 내는 **선택 키** `"constraints"`(`*_KEYS`에는 없음, 값 검증 후 보충)를 `dialogue.merge_constraints`로 합칩니다. 새 LLM 호출은 없습니다.
-- **추출 규칙**: "N층까지만·N층 이하·N층으로" → `max_layer`(1..5; "N층 이상"은 상한이 아니라 `height: high`). "낮게" → low, "높게" → high(단 "등받이를 높이고"처럼 부위 단어 바로 뒤의 높낮이나 명사 "높이는/높이가"는 전체 높이가 아님). "간단·단순·심플" → simple, "화려·풍성" → rich. "블록 적게·조금만" → fewer, "블록 N개까지·이하·만"(블록이라는 말이 있을 때만, 1..40) → `max_blocks` N과 fewer, "블록 많이·최대한" → more. "넓게" → wide, "좁게·작은·아담" → narrow(등받이·팔걸이·다리 바로 뒤의 폭은 그 부위 모양이라 제외, 좌석·받침의 폭은 footprint).
+- **추출 규칙**: "N층까지(만)·이하·이내·으로·짜리" 같은 한정 표현 → `max_layer`(1..5; "N층 이상"은 상한이 아니라 `height: high`). "3층에 팔걸이"(위치), "등받이를 4층까지 올려줘"·"등받이는 3층 높이로"(부위 단어 뒤 = 부위 높이), "15층"은 제한이 아닙니다(2026-10-13 Opus A Wave 3 리뷰 W3-N2/N3). "낮게" → low("낮에"는 시간이라 제외), "높게" → high(단 "등받이를 높이고"처럼 부위 단어 바로 뒤의 높낮이나 명사 "높이는/높이가"는 전체 높이가 아님). "간단·단순·심플" → simple, "화려·풍성" → rich. "블록 적게·조금만" → fewer, "블록 N개까지·이하·만"(블록이라는 말이 있을 때만, 1..40) → `max_blocks` N과 fewer, "블록 많이·최대한" → more. "넓게" → wide, "좁게·작은·아담" → narrow(등받이·팔걸이·다리 바로 뒤의 폭은 그 부위 모양이라 제외, 좌석·받침의 폭은 footprint).
 - **ANY 빠른 경로**: "아무거나 간단하게·알아서 3층까지만·블록 적게 아무거나"처럼 제약 단어가 있으면 규칙 ANY로 끝내지 않고 해석으로 보냅니다. 제한이 없는 "아무거나 만들어 주세요"는 예전처럼 LLM 없이 무작위 family입니다.
-- **풍부함을 줄이는 제한** `dialogue.restricts_richness`: `max_layer`, `max_blocks`, `height: low`, `complexity: simple`, `block_budget: fewer`, `footprint: narrow` 중 하나. "넓게·화려하게·높게·블록 많이"는 풍부함을 줄이지 않으므로 기본 선호가 그대로 적용됩니다.
+- **풍부함을 줄이는 제한** `dialogue.restricts_richness`: `max_layer` < 5("5층까지 써도 돼"는 제한이 아님), `max_blocks`, `height: low`, `complexity: simple`, `block_budget: fewer`, `footprint: narrow` 중 하나. "넓게·화려하게·높게·블록 많이"는 풍부함을 줄이지 않으므로 기본 선호가 그대로 적용됩니다.
 
 **적용**
 
@@ -613,6 +614,23 @@ Preview 검토(§4.4)가 MODIFY이면 C가 새 **Candidate** Design을 만들어
 | Current와 수치 제약 | — | `main._clamp_to_current`: 요청 `max_layer`가 Current 최대층보다 낮으면 Current 최대층으로, `max_blocks`가 Current 블록 수보다 작으면 Current 블록 수로 올림(이미 조립된 층·블록을 지우지 않음). 충돌 질문은 Wave 4 |
 | Review MODIFY | — | 후보 metadata의 `user_constraints`를 이어받고 이번 답의 제약이 같은 키를 덮음("3층까지만" 뒤 "등받이 더 높게"도 3층 유지). revised는 Current로 clamp |
 | metadata | `user_constraints: null` | `user_constraints`: 이번 요청의 제약(§6.1) |
+
+**알려진 한계(요청 단위)**: 제약은 한 번의 C 호출(요청) 안에서 모으고 씁니다. Initial의 "3층까지만"이 이후 Intervention·Design Change 호출로 자동으로 이어지지 않습니다(그 호출의 답에서 다시 추출). Review MODIFY만 후보 metadata의 `user_constraints`를 이어받습니다. 세션 단위로 유지하려면 D가 다음 호출의 `inspection_context`(또는 동등 경로)로 승인 Design의 `design_metadata.user_constraints`를 넘겨야 하며, 이 연결은 Wave 6 D handoff 항목입니다.
+
+### 8.16 Current와 명시 제약의 충돌 (Robot-only design rule update Wave 4, 2026-10-13)
+
+이미 조립된 Current는 지우지 않습니다(§8.3). 사용자의 요청이 조립된 Current와 맞지 않으면 C는 Current를 깨거나 억지로 맞추지 않고, **기존 HRI 값만으로** 다시 확인합니다. 새 공개 함수·인자·hri/status/error 값은 없습니다. D `mvp_workflow.receive_c`의 허용 집합(`c.intent`·`c.plan_failure`: KEEP/REVISE/UNCLEAR, `c.review`: APPROVE/MODIFY/UNCLEAR, 그 밖은 status ≠ OK)과 대조하는 테스트가 있습니다(`tests/unit/c_design/test_constraint_conflict.py`, D 소스 read-only 파싱).
+
+**충돌 판정** `main.constraints_vs_current(constraints, current, removal=None)`(결정적, LLM 없음): 요청 `max_layer` < Current 최대층, 요청 `max_blocks` < Current 블록 수, 조립된 블록 제거 요구(`dialogue.removal_request`: 빼다·없애다·제거·치우다가 "조립된·쌓은·놓인·이미" 또는 Current에 있는 "N층"과 함께 나오고 부정이 아닐 때. "빨간 장식은 빼고"처럼 아직 조립 전인 부분은 충돌이 아님).
+
+| 경로 | 처리 |
+|---|---|
+| Intervention·Direct Design Change·Planning failure의 REVISE | 생성·ACK **전에** 설명 + 두 선택 질문 1회(`dialogue.build_constraint_conflict_question`, 존댓말·코드 없음). 예: "지금 4층까지 이미 조립돼 있어서 그 부분은 그대로 두어야 해요. / 지금 설계를 그대로 둘까요, 아니면 조립된 부분은 두고 나머지만 낮게 바꿀까요?" Intervention은 KEEP 선택을 "놓인 블록을 원래대로 돌리고 지금 설계를 그대로 둘까요"로 말합니다. 답은 Design Change와 같은 parser(`dialogue.parse_constraint_conflict_response` = "나머지만" → REVISE + `parse_design_change_response`, LLM 모드는 같은 해석 함수 fallback) |
+| 답: REVISE | 이번 답의 새 제한을 더하고(규칙 우선) Current로 clamp한 제약으로 생성. ACK는 이 확인 뒤에만, 해석 `reply` 대신 `dialogue.constraint_clamp_ack`("이미 조립된 4층까지는 그대로 두고 나머지만 맞춰서 다시 만들어볼게요")로 말해 지킬 수 없는 약속을 하지 않습니다. `design_metadata.constraint_clamp = {requested, applied}` |
+| 답: KEEP / CANCEL | 기존 `keep()`(OK/KEEP, 설계 그대로) / `CANCELLED`·`USER_CANCEL` |
+| 답: UNCLEAR | 재질문 1회(`CONSTRAINT_CONFLICT_REASK_LEAD` + 질문). 두 번째도 불명확하면 `OK/UNCLEAR`(음성도 같은 한도: 같은 답을 반복하는 fake에서도 끝남). 텍스트 답 소진·음성 I/O 실패·STOP은 기존과 같음 |
+| Review MODIFY(revised, LLM) | 질문 없이 Current로 clamp해 재생성하고 ack 뒤에 고지 한 문장(`dialogue.constraint_clamp_notice`: "다만 이미 조립된 4층까지는 그대로 두고 나머지만 맞출게요"). 다음 Preview 검토가 확인 단계. `constraint_clamp` 기록 |
+| 충돌 없음(사례 F: Current에 4층이 없고 "3층 이하로") | 질문 없이 그 제약으로 생성(v2 ≤ 3층, Current 보존) |
 
 ## 9. 검증 책임
 

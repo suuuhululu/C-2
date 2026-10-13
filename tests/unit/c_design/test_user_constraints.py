@@ -55,6 +55,19 @@ def test_extract_constraints_examples(text, expected):
     assert dialogue.extract_constraints(text) == expected
 
 
+@pytest.mark.parametrize("text", ["3층에 팔걸이 추가해줘", "2층에 빨간 블록 하나 더", "등받이는 3층 높이로",
+                                  "등받이를 4층까지 올려줘", "15층", "낮에 앉을 의자"])
+def test_layer_words_that_are_not_limits(text):
+    # Opus A Wave 3 review W3-N2/N3: 위치("N층에")·부위 높이(부위 단어 뒤)·두 자리 숫자·"낮에"(시간)는 제한이 아니다.
+    assert dialogue.extract_constraints(text) == {}
+
+
+def test_max_layer_at_the_upper_bound_is_not_a_restriction():
+    assert dialogue.extract_constraints("5층까지 써도 돼") == {"max_layer": 5}
+    assert dialogue.restricts_richness({"max_layer": 5}) is False                # MAX_LAYER와 같으면 실제 제한 아님(W3-N3)
+    assert dialogue.restricts_richness({"max_layer": 4}) is True
+
+
 def test_merge_constraints_rule_wins_and_llm_values_are_validated():
     rule = {"max_layer": 3}
     interpreted = {"max_layer": 4, "height": "low", "complexity": "fancy", "block_budget": "fewer", "bogus": 1}
@@ -67,7 +80,7 @@ def test_merge_constraints_rule_wins_and_llm_values_are_validated():
 
 @pytest.mark.parametrize("constraints, restricts", [
     ({}, False), (None, False),
-    ({"max_layer": 5}, True), ({"height": "low"}, True), ({"complexity": "simple"}, True),
+    ({"max_layer": 3}, True), ({"height": "low"}, True), ({"complexity": "simple"}, True),
     ({"block_budget": "fewer"}, True), ({"footprint": "narrow"}, True),
     ({"height": "high"}, False), ({"complexity": "rich"}, False), ({"block_budget": "more"}, False),
     ({"footprint": "wide"}, False),

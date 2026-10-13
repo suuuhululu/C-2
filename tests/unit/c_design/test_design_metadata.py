@@ -19,7 +19,8 @@ _REAL_GENERATE_REVISED = llm.generate_revised_design  # saved before any test re
 ENVELOPE_KEYS = {"status", "hri_result", "design", "design_metadata", "questions", "error"}
 REVISED_METADATA_KEYS = {"design_name", "design_family", "design_summary", "visible_features", "human_interpretation",
                          "change_summary", "interpretation_status", "judge", "design_intent", "regenerations", "style_hint",
-                         "user_constraints", "source", "error"}  # user_constraints: 2026-10-13 Wave 3 명시 제약(없으면 None)
+                         "user_constraints", "constraint_clamp", "source", "error"}
+# user_constraints: 2026-10-13 Wave 3 명시 제약(없으면 None). constraint_clamp: Wave 4 Current 때문에 올린 제약 기록(없으면 None)
 MOCK_REVISED_METADATA_KEYS = REVISED_METADATA_KEYS - {"style_hint"}
 
 def judge(**overrides):
