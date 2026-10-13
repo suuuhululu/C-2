@@ -7,6 +7,12 @@
 - 실제 검증(2026-10-13): C unit 1190 passed, C integration 139 passed, A planning_trial 458 passed(무변경), D 호환 13파일 121 P·82 S·22 F·11 E(실패·오류 node ID 33건이 ebeeef2 기준선과 동일, 새 실패 0), 루트 전체 40 F·16 E node ID 56건 기준선 동일(새 실패 0; passed는 신규 테스트로 증가), compileall·`git diff --check` 0. 실제 gpt-6.1-sol 텍스트 smoke 21회(scripts/c_stage3_integration_smoke.py text + 충돌 driver; 저장소 밖 출력): FAILED 0, 새 Candidate 27개 모두 validator PASS·support ≥ min(4, studs), "3층까지만" 3/3 ≤3층, Revised "3층 이하로 간단하게" 3/3 ≤3층·블록 감소·Current 보존, 무제한 4~5층·Revised 36~40블록(expressive 기본 유지), "간단하고 낮고 넓게" 3·4·4층 13~27블록, "블록 적게·작은" 17~21블록, Current 4층 + "3층 이하" 3/3 충돌 질문(REVISE→4층 clamp·보존·APPROVE / KEEP / UNCLEAR). 독립 리뷰(Opus A structural, Opus B HRI)는 `C_DESIGN_PROGRESS.md` 2026-10-13 행 참조.
 - 미검증: 실제 마이크·TTS·HMI·로봇·카메라·DB, D 경유 실제 음성 E2E, 해석 LLM의 `constraints` 키 충족률, "낮게·넓게"(soft) 정량 평가.
 - 다음 작업·AFFECTED INTERFACE: [C_DESIGN_ROBOT_RULE_HANDOFF.md](C_DESIGN_ROBOT_RULE_HANDOFF.md) — A 검증 기준 2 유지 안내, 공유 문서(06/09/00) 병기 제안, D의 metadata 새 키 pass-through 확인, 이전 2-stud Approved/Current 재생 시 INVALID_INPUT/escalation, 제약의 요청 단위 한계(세션 유지는 D inspection_context 합의 필요), Current 블록 수 = 상한 clamp 시 운영 문구. PR 생성·병합은 별도 요청.
+## 2026-10-13 — round2 REAL 슬롯1~5·외부 DRCF2·roboton2 후속 PR
+
+- [round1 PR #41](https://github.com/suuuhululu/C-2/pull/41)의 변경을 PR #40이 병합된 `codex/integration-round2 @ 8818518`에 적용했다. 코드 충돌은 없으며 round1 PR은 별도로 유지한다. full-real은 종류/색상별1→2→3→4→5→1 순환하며 빈 슬롯6 준비·실행 문서 생성·기존 문서 재개를 거부한다. 사용자 전제는1~5번 항상 보충·6번 항상 비어 있음이다. 집기 성공 확인/중복 소비 보호, MOCK/레거시 기본6슬롯, 공통 계약·기존 교시·A 좌표 모델과 PR36의40N/공급 MoveL/loaded MoveB는 유지한다.
+- runtime guard는 `C2_DRIVER_ROOT`의 외부 DRCF2 경로를 읽고 실제 dsr01에 두 라이브러리가 모두 로드됐는지 검사한다. roboton2의 ms-02 고정 경로를 제거하고 C2_ROBOT_ROOT/checkout 기본 경로·Camera/RViz 옵션을 연결했다. 기존 TCP/Tool 선택 및 mode 복원 절차를 사용한다. [다른 PC 안내](D_ROBOT_TRIAL_OTHER_PC_20261013.md)를 갱신했다.
+- round2 별도 작업 공간에서 재실행: 장치/네트워크 차단 D 오프라인 **1,157 passed**, 종료0 (54.09초). 슬롯/드라이버 설정/실제 A/D 문서→MOCK/영역 보정/통합 시나리오 **66 passed**, 종료0 (256.91초). 슬롯1,2,3,4,5,1,2 예약·6번 차단·기존 재검사/재개/인계·PR40의 사람 PRESS 규칙을 함께 확인했다.
+- roboton2 기본/env 경로 해석 및 `--show-args`, Python AST·가이드 Bash13블록 문법·diff 검사 통과. PR 검증 중 실제 장치 기동/이동·카메라·외부 API·DB 연결은 수행하지 않았다. PC 전용 alias/실행 스크립트·API 키·모델·드라이버 바이너리·개인 DB 데이터는 게시 범위에서 제외했다. 실물 결착 품질과 사람이 필요한 지지/재개 판단은 별도 검증 대상이다.
 
 ## 2026-10-13 — A PRESS를 아래 블록의 두 결착 조건에 연결
 

@@ -9,8 +9,10 @@ from app.hmi_contracts import SUPPLY_COLUMNS
 
 
 @pytest.mark.parametrize('column', sorted(SUPPLY_COLUMNS))
-def test_every_block_column_wraps_six_to_one_independently(monkeypatch, column):
+@pytest.mark.parametrize('slot_count', [6, 5])
+def test_every_block_column_wraps_available_slots_independently(monkeypatch, column, slot_count):
     runtime = mvp_integration.MvpIntegration.__new__(mvp_integration.MvpIntegration)
+    runtime.supply_slot_count = slot_count
     runtime.inbox = Queue()
     runtime.robot = SimpleNamespace(events=Queue())
     runtime.scene, runtime.slot_indices = [], {}
@@ -23,7 +25,8 @@ def test_every_block_column_wraps_six_to_one_independently(monkeypatch, column):
         supply=[dict(brick_type=k, color=c, next_slot=1, needs_refill=False) for k,c in SUPPLY_COLUMNS],
         step=lambda:dict(after=block), prepared_step=prepared.append, robot_event=received.append)
     monkeypatch.setattr(mvp_integration, 'prepare', lambda workflow,payload,**kwargs: kwargs['slot_index'])
-    for slot in [1,2,3,4,5,6,1,2,3,4,5,6,1]:
+    slots = list(range(1,slot_count+1))*2+[1]
+    for slot in slots:
         runtime.emit('d.prepare_step', dict(step=dict(after=block)))
         assert prepared[-1] == slot
         runtime.workflow.execution_id = f'execution-{len(prepared)}'
@@ -35,10 +38,10 @@ def test_every_block_column_wraps_six_to_one_independently(monkeypatch, column):
         runtime.poll()
         assert runtime.workflow.status == 'RUNNING'
         row = next(r for r in runtime.workflow.supply if (r['brick_type'],r['color']) == column)
-        assert row['next_slot'] == (1 if slot == 6 else slot+1)
+        assert row['next_slot'] == (1 if slot == slot_count else slot+1)
         assert row['needs_refill'] is False
         assert all(r['next_slot']==1 for r in runtime.workflow.supply if (r['brick_type'],r['color'])!=column)
-    assert len(received)==26
+    assert len(received)==len(slots)*2
     # 수동/자동 재검사 및 중복 집기 완료는 같은 블록을 다시 소비하지 않는다.
     runtime.robot.events.put(dict(event='INSPECTION_REQUIRED', data=dict(data,automatic_reinspection=False)))
     runtime.robot.events.put(dict(event='INSPECTION_REQUIRED', data=dict(data,automatic_reinspection=True)))
