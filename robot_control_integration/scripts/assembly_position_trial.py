@@ -43,6 +43,7 @@ def run(driver, connection, target, limit, record, *, clearance_z=None,
         lift_only=False, transfer_only=False, set_automatic_mode=True, force_norm_stop_n=None,
         required_gripper_status=2,
         transfer_acceleration=None, descent_acceleration=None,
+        angular_velocity=None, angular_acceleration=None,
         ik_fk_position_tolerance_mm=.05, ik_fk_orientation_tolerance_deg=.05,
         position_tolerance_mm=.05, orientation_tolerance_deg=.05,
         clock=time.monotonic, sleep=time.sleep):
@@ -62,6 +63,9 @@ def run(driver, connection, target, limit, record, *, clearance_z=None,
                          descent_rate if descent_acceleration is None else descent_acceleration)
         if any(not math.isfinite(v) or v <= 0 for v in accelerations):
             raise ValueError('POSITIVE_FINITE_ACCELERATIONS_REQUIRED')
+        for value in (angular_velocity, angular_acceleration):
+            if value is not None and (type(value) not in (int, float) or not math.isfinite(value) or value <= 0):
+                raise ValueError('POSITIVE_FINITE_ANGULAR_RATE_REQUIRED')
         if finish_lift and clearance_z is None:
             raise ValueError('FINISH_LIFT_REQUIRES_CLEARANCE_HEIGHT')
         first = driver.sample()
@@ -130,10 +134,13 @@ def run(driver, connection, target, limit, record, *, clearance_z=None,
                       required_gripper_status=required_gripper_status)
             rate = descent_rate if label == 'DESCENT' else transfer_rate
             acceleration = accelerations[1 if label == 'DESCENT' else 0]
-            deadline = clock() + math.dist(sample['posx'][:3], pose[:3])/rate*3 + 10
-            record('MOVE_REQUEST', dict(segment=label, target=pose, velocity=[rate, rate], acceleration=[acceleration, acceleration]))
+            velocity_vector = [rate, rate if angular_velocity is None else angular_velocity]
+            acceleration_vector = [acceleration, acceleration if angular_acceleration is None else angular_acceleration]
+            distance, angle = pose_error(sample['posx'], pose)
+            deadline = clock() + max(distance/rate, angle/velocity_vector[1])*3 + 10
+            record('MOVE_REQUEST', dict(segment=label, target=pose, velocity=velocity_vector, acceleration=acceleration_vector))
             attempted = True  # ACK 실패도 명령 전달 가능성이 있어 STOP을 요청한다.
-            driver.move_line_async(pose, [rate, rate], [acceleration, acceleration])
+            driver.move_line_async(pose, velocity_vector, acceleration_vector)
             while True:
                 sample = driver.sample()
                 record('MOTION_SAMPLE', dict(segment=label, sample=sample))

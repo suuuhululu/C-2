@@ -1,6 +1,7 @@
 """비접촉 시험의 REAL ROS/Modbus 연결. 생성자 호출 전에는 장치 라이브러리를 import하지 않는다."""
 
 import time
+import math
 from numbers import Real
 from uuid import uuid4
 
@@ -49,6 +50,8 @@ class AssemblyMotionRos:
         return self.clients[path]
 
     def call(self, path, typename, **fields):
+        pump = getattr(self, "ui_pump", None)
+        if pump is not None:pump()
         client = self.client(path, typename)
         timeout = self.config["timing"]["service_timeout_s"]
         if path.startswith("force/"):
@@ -64,7 +67,13 @@ class AssemblyMotionRos:
         if getattr(self, 'external_executor', False):
             deadline = time.monotonic()+timeout
             while not future.done() and time.monotonic() < deadline:
+                if pump is not None:pump()
                 time.sleep(.01)
+        elif pump is not None:
+            deadline=time.monotonic()+timeout
+            while not future.done() and time.monotonic()<deadline:
+                self.ros.spin_until_future_complete(self.node,future,timeout_sec=.01)
+                pump()
         else:
             self.ros.spin_until_future_complete(self.node, future, timeout_sec=timeout)
         if not future.done():
@@ -91,6 +100,25 @@ class AssemblyMotionRos:
         return result.registers[0]
 
     def sample(self):
+        window=self.config.get('timing',{}).get('stopped_sample_retry_window_s',0.)
+        deadline=time.monotonic()+window
+        while True:
+            result=self._sample_once()
+            if result['query_duration_s']<=.5 or window<=0:return result
+            connection=self.config['connection']
+            limit=self.config.get('stale_retry_force_stop_n',35.)
+            stopped=(result['motion_status']==0 and max(map(abs,result['velx']))==0.)
+            equipment=(result['robot_state'] in (1,2) and result['robot_mode'] in (0,1) and result['drl_state']==3
+                and result['gripper_status'] in (0,2) and result['tcp']==connection['tcp'] and result['tool']==connection['tool'])
+            if not stopped or not equipment or math.dist(result['wrench'][:3],[0.,0.,0.])>=limit:return result
+            record=getattr(self,'feedback_record',None)
+            if record is not None:record('FEEDBACK_REFRESH_WAIT',dict(sample=result,reason='COMPLETED_QUERY_EXCEEDED_0_5S',moving=False))
+            if time.monotonic()>=deadline:return result
+            pump=getattr(self,'ui_pump',None)
+            if pump is not None:pump()
+            time.sleep(.02)
+
+    def _sample_once(self):
         begin = time.monotonic()
         result = self.motion_feedback()
         result.update(robot_state=self.call("system/get_robot_state", "GetRobotState").robot_state,

@@ -1,0 +1,35 @@
+{
+  "version": "raised-grasp-press/1",
+  "reason": "GRIPPER_COLLISION",
+  "binding": {
+    "color": "yellow",
+    "brick_type": "2x2x1",
+    "slot": 1,
+    "span": 2,
+    "step_id": "REPLACE_WITH_ACTIVE_STEP",
+    "support_request_id": null
+  },
+  "target": {
+    "color": "yellow",
+    "brick_type": "2x2x1",
+    "x": 11,
+    "y": 11,
+    "layer": 1,
+    "orientation_deg": 0
+  },
+  "tcp": "GripperDA_v4",
+  "tool": "ToolWeight0",
+  "pickup_pose": null,
+  "landing_pose": null,
+  "pad_contact_pose": null,
+  "measurement_ref": null,
+  "human_support_required": null,
+  "grasp_stability_verified": false,
+  "neighbor_clearance_verified": false,
+  "landing_support_verified": false,
+  "pad_contact_verified": false,
+  "pad_bottom_from_block_bottom_mm": 15.0,
+  "baseline_pad_bottom_from_block_bottom_mm": 5.0,
+  "requested_raise_mm": 10.0,
+  "height_definition": "GRIPPER_PAD_BOTTOM_ABOVE_BLOCK_BOTTOM"
+}

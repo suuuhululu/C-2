@@ -54,6 +54,34 @@ def test_transfer_only_holds_height_and_never_descends():
     assert result['status'] == 'ABOVE_TARGET_REACHED_NO_DESCENT'
 
 
+def test_separate_linear_vertical_and_angular_rates():
+    driver=Driver();requests=[]
+    def move(pose,velocity,acceleration):
+        requests.append((velocity.copy(),acceleration.copy()))
+        driver.value['posx']=pose.copy()
+    driver.move_line_async=move
+    run(driver,CONNECTION,TARGET,30.056,lambda *e:None,clearance_z=111.,
+        transfer_rate=120.,descent_rate=24.,transfer_acceleration=48.,descent_acceleration=48.,
+        angular_velocity=6.,angular_acceleration=3.,sleep=lambda _:None)
+    assert requests==[([120.,6.],[48.,3.]),([24.,6.],[48.,3.])]
+
+
+def test_slow_angular_motion_timeout_accounts_for_rotation():
+    driver=Driver();now=[0.];pending=[None]
+    destination=driver.value['posx'].copy();destination[3]+=90.
+    def move(pose,velocity,acceleration):
+        pending[0]=pose.copy();driver.value['motion_status']=1
+    def sample():
+        if pending[0] is not None and now[0]>=15.:
+            driver.value.update(posx=pending[0],motion_status=0)
+        return deepcopy(driver.value)
+    driver.move_line_async=move;driver.sample=sample
+    result=run(driver,CONNECTION,destination,30.056,lambda *e:None,transfer_only=True,
+               transfer_rate=120.,angular_velocity=6.,angular_acceleration=3.,
+               clock=lambda:now[0],sleep=lambda delay:now.__setitem__(0,now[0]+delay))
+    assert result['status']=='ABOVE_TARGET_REACHED_NO_DESCENT' and now[0]>=15.
+
+
 def test_transfer_only_lifts_to_same_height_destination_without_descending():
     driver = Driver()
     driver.value['robot_mode'] = 1
