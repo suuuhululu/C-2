@@ -1,5 +1,21 @@
 # 현재 진행 상황
 
+## 2026-10-14 — D 네 단계 오프라인 replay와 한 사이클 실기 안내
+
+- 사용자 요청에 따라 비전 파지 → 기울기/XY 보정 → 위에서 누르기 시험을 준비했다. 실기 실행 코드는 추가 변경하지 않고 기존 `held_corner_stud_trial.py --integrated-cycle --same-xy-press`와 공급·조립 팝업을 사용한다. 기본은 노랑2×2 슬롯1, (11,11)1층, 기존 HOME/빈 그리퍼다. 새 실물 실행 검사·차단은 추가하지 않았다.
+- 반복 실행 파일에서 native 전체 **1,384 passed**(38.95초), 비전/3D geometry **29 passed**(기존 ZYZ 경고5), 네 단계 실제함수 MOCK **1사이클 통과**, 실물 명령 preview **physical_commands=0**, 모두 종료0을 확인했다. MOCK은 합성RGB OpenCV 인식·등록6점 SVD 자세/XY 보정·실제 D 이동/press 함수를 연결했다. 함수 monkeypatch는 없으며 영상/파지관계/힘응답은 합성값이다. 물리 시뮬레이션/실물 성공 근거로 표시하지 않는다.
+- [한 사이클 명령·팝업·3D 관측 안내](D_ROUND2_ONE_CYCLE_TRIAL_20261014.md)를 작성했다. 실제 기본 팝업은 영상 yaw만 자동 보정, X는 교시 XY, H/J/K는 기준 TCP 복귀 시험이다. 실제 RGB-D 등록 capture producer는 미연결이며, generic 정렬 loop는 별도 XY 수렴 완료를 확인하지 않는다. O 놓기/패드닫기 → P 동일XY45N반력중단누르기 → U 종료를 안내했다.
+- 이 채팅의 실행 파일·XML·MOCK 결과는 `/home/rokey/Documents/ChatGPT/로봇제어 개발/reports/round2_d_cycle_trial_20261014/`에 저장했다. 공급/조립 순서를 따라볼 오프라인 화면도 준비해 넓은/좁은 화면과 단계 이동을 확인했다. 실제 Robot/ROS/Camera 연결·그리퍼·접촉 시험, 새 commit/push/PR은 수행하지 않았다.
+
+## 2026-10-14 — D Round2 후속 정합성·추가 실물 검사 제거 (로컬)
+
+- 기준은 PR #46이 병합된 `codex/integration-round2 @ b0d22e5`, 작업 브랜치는 `codex/round2-d-consistency-20261014`다. 사용자 최신 지시로 이번 후속 수정에서 추가했던 실물 실행 검사·차단을 제거했다. 새 측정/승인 증거·실행 세대/만료·분리 단계 제한·각속도 필수값·잔류 하중 보류·정렬 누적 이동/시간 예산은 실행 조건으로 요구하지 않는다. 기준 커밋의 기존 검사는 유지한다.
+- 수직/수평 속도 분리와 상승 경로, 선택적 각속도 전달, 기존 실행 권한/STOP 연결과 공개 3인자 확인 콜백, 직전 빈 패드 상태의 다음 Step·분리 release 연결, Round2 held 실행 및 사람 전달의 native_press 분리를 보완했다. 영상의 신선도·clock domain·로봇 pose 시각 대응·이동 후 노출·물리 모서리 대응 검증은 유지한다.
+- 최종 실제 검사: 장치·외부 연결을 차단한 native 오프라인 **1,384 passed / 0 failed / 0 errors / 0 skipped**, 종료0(37.01초). `python3 scripts/test_robot_trial_offline.py -p no:cacheprovider --junitxml=/tmp/round2-d-consistency-no-extra-gates-20261014.xml`로 검사 제거 후 실행했다. 변경 Python10개 AST·제안 JSON1개·연결 문서 링크5개·diff 검사도 통과했다. 기존 lint/type 설정은 미구성이다.
+- 별도 기하/비전 검사190 passed(변경 없는 모듈, 기존 ZYZ 경고5). 마지막 검사 제거 전 A/D 시스템 검사550 passed/8 failed는 기준선과 실패 node ID·메시지가 동일한 C 지지 규칙/이전 합성 입력 충돌이다. 기존 검사를 약화하지 않았다. 마지막 제거 뒤에는 native 결과만 최신 전체 재실행 결과로 표시한다.
+- [A 연결안과 검증 범위](D_ROUND2_CONSISTENCY_A_HANDOFF_20261014.md), [검토용 SYNTHETIC A/D 후보](../robot_control_integration/interfaces/round2_a_handoff.proposed.json)를 준비했다. A의 파지 입력·관측 경유지·작업 방식 계약 확인 후 기존 HMI dispatch와 B 검사/종료/저장 연결을 이어간다. 새 공통 API나 실물 실행 차단 조건을 확정하지 않았다.
+- 실제 Robot/ROS/Camera/DB/API·충돌/접촉 물리 시뮬레이션은 실행하지 않았다. 실제 RGB-D producer와 실물 결착 품질, 전체 HMI 자동 연결은 미검증이다. 변경은 로컬 미커밋이며 commit/push/새 PR·Slack 발송은 수행하지 않았다.
+
 ## 2026-10-13 — C Robot-only design rule: support min(4, studs)·사용자 제약 우선·Current 충돌 HRI (`work/siyul-c-robot-rule`, base ebeeef2)
 
 - 변경(C-only, A/B/D production 무변경): `app/c_design/validator.py` support hard rule을 "바로 아래 한 층과 고유 stud ≥ min(4, 블록 stud 수)"(2x2x1 4/4·2x3x1 ≥4/6·1x2x1 2/2, 중복 금지, layer 1 제외)로 강화하고 `validate_design`·`validate_revised`·`current_support_violations`가 같은 함수를 쓰므로 Initial·Revised·Difference REVISE·Direct Design Change·Review MODIFY·Planning Failure 재설계 전 경로와 입력·Current 판정에 동일 적용(production 2-stud 예외 없음). `llm.py` 규칙 줄·self-check·build hint를 블록별 규칙으로, Initial 기본 선호 문단과 Revised 우선순위(Current 보존 > 규칙 > 사용자 명시 요구 > 품질/expressive > facing)를 추가. `dialogue.py` 규칙 기반 `extract_constraints`(N층 이하·낮게·간단하게·블록 적게/N개·넓게/작게) + 해석 LLM 선택 키 `constraints`, `llm.stated_limits` 컨텍스트로 전달(기존 fake 시그니처 호환). 제한 시 `+6` 블록 하한·judge richer 재생성·5층 안내 해제, family 무작위 선택에서 키 큰 family 제외. `main.py` Current 충돌(요청 상한 < Current 최대층/블록 수, 조립 블록 제거 요구)을 생성·ACK 전에 감지해 기존 질문 루프로 1회 재선택(KEEP/REVISE(clamp)/UNCLEAR/CANCEL), Review MODIFY는 clamp+고지. `designer.py` Mock Revised가 다리 1칸 y·대각 이동에서도 4-stud bridge(72경우 10→20 성공), LLM 후보에 `user_constraint`(max_layer/max_blocks) 거부. metadata `user_constraints`·`constraint_clamp` 추가. 새 hri/status/error 값·공개 API 변경 없음.
@@ -840,3 +856,8 @@ GPU 현재 A snapshot92파일을 CPU deliverables/GPU_A_수정본_CPU보관_2026
 - PR 복사본 검증: native 전체+관련 비전1498개, 등록 기하/파지 계획29개 통과(합계1527개). 실제 device command 없음. 일반/held preview 정상, source/JSON 및 diff 확인. 4층 채택 실측 선택·축 힘35N 불일치·미검증 패드 datum 승격도 점검해 수정.
 
 - 검토용 Draft PR #46 게시: https://github.com/suuuhululu/C-2/pull/46 ; base=codex/integration-round2, head=codex/round2-robot-control-20261014. merge하지 않았으며 기존 작업 checkout/다른 변경은 보존했다.
+
+### 2026-10-14 노랑4점 한 블록의 stud 걸림 후 회전 결착 실험
+- 사용자 사진/6.63초 영상을 확인. 먼저 닿은 부분이 실제 stud에 걸려 더 밀리지 않는다는 작업자 관찰을 채택. 걸림을 지점으로 눕히는 동작을 기존 수직 결착과 분리했다.
+- 접촉선 중심으로 TCP XYZ와 자세를 함께 회전시키는 별도 기하 preview/CLI/합성 fixture 추가. 노랑2×2 한 블록 범위, 기본10도와 좌표는 예시이며 실제 교시/영상 측정으로 표시하지 않음.
+- 관련 기하·기존 기울기 tests24개 통과. 접촉선 불변량/원호/복귀/다른 블록 배제 검증. 실제 접촉 후 회전 제어·자동 stud 걸림 판정·장치 실행은 미연결. 기존 step 기본동작 변경 없음. 상세: D_YELLOW4_EDGE_FIRST_SEATING_20261014.md.

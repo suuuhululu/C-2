@@ -1,0 +1,15 @@
+{
+  "schema_version": "yellow4-edge-first-preview/1",
+  "mode": "PREVIEW_ONLY",
+  "source_kind": "SYNTHETIC_GEOMETRY_EXAMPLE_NOT_ROBOT_TEACHING",
+  "coordinate_frame": "ILLUSTRATIVE_LOCAL_MM_FRAME_NOT_ROBOT_BASE",
+  "block": {
+    "color": "yellow", "brick_type": "2x2x1",
+    "x": 17, "y": 17, "layer": 1, "orientation_deg": 0
+  },
+  "seated_reference_tcp_mm_zyz_deg": [0, 0, 30, 0, 180, 0],
+  "contact_line_points_mm": [[-8, -8, 0], [8, -8, 0]],
+  "initial_tilt_deg": 10,
+  "angular_step_deg": 0.5,
+  "note": "10deg, the TCP and contact line are illustrative inputs, not inferred measurements from the video or executable robot poses."
+}
