@@ -1137,3 +1137,12 @@ GPU 현재 A snapshot92파일을 CPU deliverables/GPU_A_수정본_CPU보관_2026
 - 영상 모서리·목표 변으로 dX/dY를 계산해 X/I에 전달한다. 파지 보상으로 TCP가 이동해도 블록 목표·실측 패드 목표는 유지한다. A 원본 RELEASE_PRESS/도움 정보를 보존하는 로봇 실행 분기와 빈 패드 다음 Step 전이를 연결했다.
 - 게시 사본의 외부 연결 차단 native 1,509 PASS, 영상 XY/가상 격자49 PASS, 합성3Step THREE_CYCLES_COMPLETED/물리명령0. 범위는 합산하지 않는다. 최신 교시·영상XY·공중놓기 실물과 방출 후 재관측은 미검증이며 상공해제 높이는 미정이다.
 - [현장 수정·검증](D_ROUND2_ROBOT_FIELD_FIXES_20261014.md), [세 사이클 명령](D_ROUND2_THREE_STEP_TRIAL_20261014.md). 서비스의 A–D 전달 수정은 별도 PR이며 B Current·revision·완료 소유를 유지한다.
+
+
+## 2026-10-14 A 0.5.2 → D 놓기·가압 서비스 연결
+
+- 병합된 A PR50의 mode/assembly_strategy/gripper/사람도움 원본을 보존한다. 일반 조립은 A motion을 사용하고 RELEASE_PRESS만 D 전용 프로필 결과로 연결한다. A의 UNSUPPORTED_METHOD와 execution_allowed=false를 성공으로 바꾸지 않는다. D 결과를 요청/assessment/프로필SHA에 연결하고 B Current·revision·완료 소유를 유지한다.
+- full-real의 선택 --release-press-profile 파일을 전체 블록6필드+공급슬롯identity로 선택하여 교시 pose/폭·명시힘/속도/target-only 설정을 전달한다. 상공해제 높이는 사용자 결정 미정이며 seated/pad pose로 대체하지 않고 INPUTS_REQUIRED를 유지한다. 빈닫힌패드 context를 다음 준비 조회에 전달한다.
+- 최신 A와 로봇 PR을 적용한 사본에서 A·Workflow·HMI·D 652 PASS, 실제 A예제→실측파일형식의SYNTHETIC→실제준비→D→native MOCK→B검사대기/HMI 계약1 PASS(겹치는 범위 합산 없음). 장치 연결·물리명령0, 원본 REAL문서는 검사만 했다.
+- 확장모의통합28 PASS/8 FAIL. 8개는 이전 baseline과같은nodeID/C최소지지거절이며새실패없다. 기존검사/기대결과를완화하지않았다. 최신물리조립·실제B서비스끝까지검증은미검증이다.
+- [XY·A–D 연결·프로필 입력과 한계](D_ROUND2_XY_STRATEGY_CONNECTION_20261014.md). 로봇제어PR 위에별도연결PR로게시하며병합은사람리뷰후진행한다.

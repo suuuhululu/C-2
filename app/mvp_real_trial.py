@@ -4,7 +4,7 @@ from pathlib import Path
 import time
 from uuid import uuid4
 
-from app.cad_trial import measured_inputs, step_geometry
+from app.cad_trial import measured_inputs, step_geometry, load_release_press_profile
 from app.cad_real_trial import REAL_STILLNESS_TOLERANCES, live_robot_state, save
 from app.mvp_integration import MvpIntegration, main
 from app.mvp_fake import execution_document
@@ -48,7 +48,7 @@ def prepare_measured(workflow, inputs, payload, slot_index, receipt, receipt_ref
         frame['calculation_profiles']['assembly']['d_onsite_step']['empty_return_skip_place']=True
     if action['mode'] == 'HUMAN_ASSEMBLY':
         frame['calculation_profiles']['assembly'].pop('d_onsite_step',None)
-    robot = live_robot_state(receipt,frame)
+    robot = live_robot_state(receipt,frame,empty_gripper_context=receipt.get('last_step_gripper_context'))
     robot.update(source_epoch=workflow.epoch,state_sequence=len(workflow.completed)+1,
         stop_observation_ref=receipt_ref,freshness_policy_ref='D_LIVE_QUERY_0.5_SECONDS')
     slot.update(bound_workflow_generation=workflow.generation,valid_until_ref=receipt_ref)
@@ -94,7 +94,7 @@ def measured_document(bundle, identity, epoch):
 class FullFeatureRealTrial(MvpIntegration):
     supply_slot_count = FULL_REAL_SUPPLY_SLOT_COUNT
 
-    def __init__(self,robot_root,directory,*,contact_alignment_trial=False,**kwargs):
+    def __init__(self,robot_root,directory,*,contact_alignment_trial=False,release_press_profile=None,**kwargs):
         self.inputs=measured_inputs(robot_root)
         if self.inputs['taught_supply'] is None:
             raise ValueError('SUPPLY_TEACHING_REQUIRED_FOR_FULL_REAL_TRIAL')
@@ -118,6 +118,7 @@ class FullFeatureRealTrial(MvpIntegration):
             p['transport_blending'].update(relaxed_constraints=True,
                 transit_position_tolerance_mm=10.,transit_orientation_tolerance_deg=5.,
                 corridor_margin_mm=40.,timeout_floor_s=45.,finish_endpoint=True)
+        self.inputs['release_press_profile']=load_release_press_profile(release_press_profile)
         self.review_ref=None
         self.pending_read=None
         self.next_fake_check='MATCH'
@@ -192,7 +193,8 @@ class FullFeatureRealTrial(MvpIntegration):
         try:
             path=self.directory/self.workflow.job_id/(str(uuid4())+'.state.json')
             save(path,value)
-            live_robot_state(value,self.workflow.settings['frame_profile'])
+            live_robot_state(value,self.workflow.settings['frame_profile'],
+                empty_gripper_context=value.get('last_step_gripper_context'))
             if pending['kind']=='stop':
                 if self.workflow.reason=='STOP_PENDING':
                     self.workflow.robot_event(dict(event='STOP_VERIFIED',data=dict(actual_stop_verified=True,
