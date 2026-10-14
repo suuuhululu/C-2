@@ -159,3 +159,30 @@ def test_input_output_are_independent():
     data=reference();before=deepcopy(data);result=evaluate(data)
     result['action']['contacts']['supported_cells'].clear()
     assert data==before
+
+
+@pytest.mark.parametrize('case_id',[
+    'ordinary_robot','release_press','partial_support_manual',
+    'robot_hold','robot_press_and_hold','release_press_with_hold'])
+def test_full_handoff_examples_replay_with_matching_contract_and_references(case_id):
+    data=json.loads((Path(__file__).parent/'fixtures/round2_strategy.examples.json').read_text())
+    case=next(c for c in data['examples'] if c['case_id']==case_id);messages=case['messages']
+    assert set(messages)=={'whole_request','whole_result','reassessment_request',
+                          'reassessment_result','motion_request','motion_result'}
+    for message in messages.values():
+        validate_message(message)
+        if message['message_type'].endswith('Result'):assert message['execution_allowed'] is False
+    whole=handle_whole_plan(messages['whole_request'])
+    action=whole['action_proposals'][0]
+    assert action.get('assembly_strategy')==case['expected_strategy']
+    assert action['assistance_kind']==case['expected_assistance_kind']
+    assessment=handle_step_reassessment(messages['reassessment_request'])
+    assert assessment['action_proposal']==messages['reassessment_result']['action_proposal']
+    assert messages['motion_request']['assessed_action']==assessment['action_proposal']
+    assert messages['motion_request']['assessment_id']==messages['reassessment_result']['assessment_id']
+    assert messages['motion_request']['assessment_input_digest']==assessment['assessment_input_digest']
+    motion=handle_step_motion(messages['motion_request'])
+    assert motion['status']==messages['motion_result']['status']
+    if case['expected_strategy']:
+        assert motion['motion_proposal'] is None and motion['errors'][0]['code']=='UNSUPPORTED_METHOD'
+    else:assert motion['motion_proposal'] is not None

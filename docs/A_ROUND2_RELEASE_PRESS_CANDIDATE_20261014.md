@@ -57,3 +57,28 @@ print(r["status"], r["assembly_strategy"], r["execution_allowed"])
 일반 삽입용 StepMotion API는 RELEASE_PRESS를 UNSUPPORTED_METHOD로 반환하고 경로를 생성하지 않는다. D가 이 새 분류를 받아 전용 실행 프로파일을 적용해야 한다. 기존 D 소비자가 0.5.1 또는 MINIMAL_OPEN만 받는다면 0.5.2 분류 계약의 소비자 수정이 필요하다. 이를 A의 운반 경로 수정이나 D 실기 구현 완료로 표시하지 않는다.
 
 재현: `python3 -m pytest -q planning_trial tests/unit/test_mvp_workflow.py tests/unit/test_mvp_pr30_relay.py --junitxml=reports/round2-release-press-classification-tests.xml`. 실제 결과는 STATUS에 기록한다. 실제 Robot/ROS/Camera/MoveIt/외부 API/DB 실행은 수행하지 않는다.
+
+## D 연결용 전체 반환 예시
+
+[round2_strategy.examples.json](../planning_trial/fixtures/round2_strategy.examples.json)에 실제 A 함수로 생성한 **6개 사례의 전체 메시지**를 저장했다. 각 사례의 `messages`에는 WholePlan·StepReassessment·StepMotion의 request/result 6개가 생략 없이 들어 있다. Plan/Step/Current revision/assessment ID/digest/슬롯 예약 참조도 서로 일치한다.
+
+| case_id | mode / strategy | 사람 도움 | StepMotion |
+|---|---|---|---|
+| ordinary_robot | ROBOT_GRIP / 기존 조립 | NONE | CANDIDATE |
+| release_press | ROBOT_GRIP / RELEASE_PRESS | NONE | BLOCKED / UNSUPPORTED_METHOD |
+| partial_support_manual | HUMAN_ASSEMBLY | MANUAL_ASSEMBLY | CANDIDATE; SYNTHETIC 전달판 입력 |
+| robot_hold | ROBOT_GRIP / 기존 조립 | HOLD | CANDIDATE |
+| robot_press_and_hold | ROBOT_GRIP / 기존 조립 | PRESS_AND_HOLD | CANDIDATE |
+| release_press_with_hold | ROBOT_GRIP / RELEASE_PRESS | HOLD | BLOCKED / UNSUPPORTED_METHOD |
+
+사람 PRESS 단독은 이번 정책의 반환 예시가 아니다. 약한 아래 블록을 HOLD해야 하고 중심이 접촉 지지 영역 밖일 때만 사람 PRESS가 추가되므로 PRESS_AND_HOLD로 제시한다. `RELEASE_PRESS` 전략명과 사람 도움 PRESS를 구분한다.
+
+예시는 SYNTHETIC 검토 입력이며 실제 D 교시·실행 프로파일·C가 승인한 실물 Design이 아니다. 전체 API 입력에 포함된 기존 TCP 후보는 기존 A 계산 자료이고, 새 놓기·가압 경로는 생성하지 않는다. A의 부분 지지/도움 API 사례와 C의 현재 최소4점 Design 규칙도 구분한다. 모든 실행 허용 값은 false이고 B Current는 fixture다.
+
+새 예시 재생성(출력 UUID는 매 실행 바뀌며 한 묶음 안의 참조는 일치):
+
+```bash
+python3 -m planning_trial.run_round2_strategy_examples --output reports/round2_strategy.examples.json
+```
+
+저장된 예시의 스키마·참조 일치·현재 A 재계산 검사는 `planning_trial/test_round2_release_press.py`에 포함했다. 수현님 후속 작업 브랜치는 전달받은 `codex/round2-d-consistency-20261014`, 공통 PR 대상은 `codex/integration-round2`다.

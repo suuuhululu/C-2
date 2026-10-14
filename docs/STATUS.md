@@ -4,9 +4,10 @@
 
 - 사용자 최종 확인: A는 기존 그리퍼 접근 불가 + 바로 아래층 밑면 결합점 전체 존재일 때 놓기·가압 방식이 필요하다고 반환한다. D가 실측 파지·TCP·해제 높이·개방/후퇴/닫기/가압·실제 운반 경로를 담당한다. 원본 ZIP·교시·이전 검토 기록은 보존한다.
 - 전체 계획과 Step 재평가에 `mode=ROBOT_GRIP, assembly_strategy=RELEASE_PRESS`를 추가했다. 기존 접근 가능은 일반 조립, 부분 지지의 접근 불가는 사람 조립이며 아래 블록 HOLD/PRESS 정책은 유지한다. 기존 사람 조립 선택도 새 정책으로 재평가한다. full-support 배치를 그리퍼 막힘만으로 순서 불가라고 가지치기하지 않는다. 부분 지지만 가능한 Design의 기존 순서 불가 증명은 유지한다.
+- D 인계 자료: 일반 로봇·RELEASE_PRESS·부분 지지 사람 조립·HOLD·PRESS_AND_HOLD·RELEASE_PRESS/HOLD의 6사례를 실제 A 함수로 생성했다. `planning_trial/fixtures/round2_strategy.examples.json`에 사례별 3 API의 전체 request/result를 생략 없이 저장하고, generator와 계약/참조/재계산 검사를 추가했다. 예시는 검토용 SYNTHETIC이며 실제 D 교시나 C 승인 Design이 아니다.
 - AFFECTED INTERFACE: 계산 초안 0.5.2의 새 Action 필드와 gripper.release_strategy=RELEASE_PRESS. 기존 mode 두 분류를 유지한다. 일반 삽입용 StepMotion은 해당 분류를 UNSUPPORTED_METHOD로 반환하며 놓기·가압 경로를 생성하지 않는다. [반환/소비 계약](A_ROUND2_RELEASE_PRESS_CANDIDATE_20261014.md). D/HMI 소비자 연결은 미구현이며 0.5.1 소비자의 버전/전략 해석을 맞춰야 한다.
 - 수현 첨부의 원래 파랑2×3 (13,11,L2) 배치는 6/6점 지지 + 접근 불가로 RELEASE_PRESS/NONE을 반환한다. 변경된 시험 배치는 일반 ROBOT_GRIP/NONE이다. 실측15mm·해제 높이 프로파일 없이 JSON 입력을 재계산했으며 첨부 코드는 실행하지 않았다. 모든 execution_allowed=false, B Current/revision/완료 책임 유지.
-- 실제 검증: A planning_trial + Workflow/PR30 전달 검사 **538 passed, failures/errors/skipped 0, 종료0**. 추가 D 모의 통합은 **28 passed / 8 failed**, 변경 전 b0d22e5에서 해당 8개를 재현해 실패 node ID와 원인이 동일함을 확인했다(기존 C 최소4점 규칙에 부적합한 2~3점 지지 fixture, 새 실패0). 통합 전체 PASS로 표시하지 않는다. 새 분류 24검사 포함, AST 11파일·fixture JSON·git diff --check 확인. JUnit/첨부 배치 재계산은 reports에 로컬 보관한다. 실제 Robot/ROS/Camera/MoveIt/외부 API/DB 실행, D 실제 전략 소비, 실물 결착 품질은 미검증. feature branch `codex/round2-release-press-candidate`에서 `codex/integration-round2` 대상 PR로 검토한다.
+- 실제 검증: A planning_trial + Workflow/PR30 전달 검사 **544 passed, failures/errors/skipped 0, 종료0**. 추가 D 모의 통합은 **28 passed / 8 failed**, 변경 전 b0d22e5에서 해당 8개를 재현해 실패 node ID와 원인이 동일함을 확인했다(기존 C 최소4점 규칙에 부적합한 2~3점 지지 fixture, 새 실패0). 통합 전체 PASS로 표시하지 않는다. 새 분류/전체 인계 예시 30검사 포함, API 예제 실행 34/34 PASS, AST 11파일·fixture JSON·git diff --check 확인. JUnit/첨부 배치 재계산은 reports에 로컬 보관한다. 실제 Robot/ROS/Camera/MoveIt/외부 API/DB 실행, D 실제 전략 소비, 실물 결착 품질은 미검증. feature branch `codex/round2-release-press-candidate`에서 `codex/integration-round2` 대상 PR로 검토한다.
 
 
 ## 2026-10-13 — C Robot-only design rule: support min(4, studs)·사용자 제약 우선·Current 충돌 HRI (`work/siyul-c-robot-rule`, base ebeeef2)
