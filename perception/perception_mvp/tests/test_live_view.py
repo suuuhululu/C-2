@@ -132,6 +132,21 @@ def test_rgb_outline_rejects_small_depth_patch_inside_whole_mask():
         rgb_top_quad(rgb, mask, top)
 
 
+def test_convex_outline_proposal_keeps_depth_support_requirement():
+    from perception_mvp.opencv_live import rgb_top_quad
+    mask = np.zeros((100, 100), bool)
+    mask[20:80, 20:80] = True
+    mask[40:50, 20:25] = False  # Small inward boundary notch, not a missing half.
+    rgb = np.zeros((100, 100, 3), np.uint8)
+    rgb[mask] = [240, 30, 30]
+    quad = rgb_top_quad(rgb, mask, mask)
+    assert quad.shape == (4, 2)
+    top = np.zeros_like(mask)
+    top[30:40, 30:40] = True
+    with pytest.raises(ValueError, match='outline_unverified'):
+        rgb_top_quad(rgb, mask, top)
+
+
 def test_red_hue_wrap_excludes_other_colors_and_low_saturation():
     hsv = np.array([[[0, 200, 200], [179, 200, 200], [30, 200, 200],
                      [110, 200, 200], [0, 0, 200]]], dtype=np.uint8)

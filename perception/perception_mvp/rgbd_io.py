@@ -195,7 +195,21 @@ def info_dict(message):
             "d": list(message.d), "k": list(message.k), "r": list(message.r), "p": list(message.p)}
 
 
-def save_capture(directory, messages, infos, topics, view, max_delta_ms):
+def save_capture(directory, messages, infos, topics, view, max_delta_ms, *, context=None):
+    """Save ROS evidence; optional context binds a real inspection, not coverage."""
+    from copy import deepcopy
+    context = deepcopy(context)
+    if context is not None:
+        required = {"scene_id", "robot_pose", "calibration_id", "check_id", "observation_seq"}
+        if set(context) != required:
+            raise ValueError("inspection capture context requires scene/pose/calibration/check/sequence")
+        for key in ("scene_id", "calibration_id", "check_id"):
+            if not isinstance(context[key], str) or not context[key].strip():
+                raise ValueError("nonempty capture context required: " + key)
+        if not isinstance(context["robot_pose"], dict) or not context["robot_pose"]:
+            raise ValueError("actual robot pose metadata required")
+        if type(context["observation_seq"]) is not int or context["observation_seq"] < 0:
+            raise ValueError("nonnegative observation sequence required")
     rgb, raw, aligned = [image_array(messages[k]) for k in ("rgb", "raw", "aligned")]
     if messages["rgb"].encoding not in ("rgb8", "bgr8") or any(
             messages[k].encoding != "16UC1" for k in ("raw", "aligned")):
@@ -223,6 +237,22 @@ def save_capture(directory, messages, infos, topics, view, max_delta_ms):
         "robot_pose": None, "calibration_id": None,
         "limitations": ["pose_and_board_calibration_not_recorded", "not_ready_for_board_geometry",
                         "ROS_driver_filters_not_verified", "not_backend_observation"]}
+    if context is not None:
+        # Preserve ROS CameraInfo and expose deprojection fields used by depth_grid.
+        for key, info in infos.items():
+            model = {"plumb_bob": "brown_conrady", "": "none"}.get(info.distortion_model)
+            if model is None:
+                raise ValueError("unsupported ROS distortion model: " + info.distortion_model)
+            coefficients = list(info.d)
+            if model == "brown_conrady" and len(coefficients) != 5:
+                raise ValueError("five measured distortion coefficients required")
+            metadata["camera_info"][key].update(fx=info.k[0], fy=info.k[4],
+                cx=info.k[2], cy=info.k[5], model=model, coefficients=coefficients)
+        metadata.update(context)
+        metadata["scope"] = "INSPECTION_CAPTURE_NOT_VERIFIED_OCCUPANCY"
+        metadata["limitations"] = ["ROS_driver_filters_not_verified", "not_backend_observation",
+                                   "verified_regions_require_separate_occupancy_evidence"]
+        validate_frame(rgb, raw, aligned, metadata)
     encoded = json.dumps(metadata, ensure_ascii=False, allow_nan=False, indent=2)
     directory.mkdir(parents=True, exist_ok=False)
     # Raw and aligned are distinct arrays; never copy aligned values into the raw file.

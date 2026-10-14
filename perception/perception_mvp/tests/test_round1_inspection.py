@@ -147,6 +147,36 @@ def test_initial_actual_empty_enables_plan(connection):
     assert result['current'] == dict(current_revision=0,blocks=[])
 
 
+def test_display_sink_emits_observing_then_confirmed_and_cancel():
+    events, responses = [], []
+    value = connect_inspection(responses.append, geometry_reference='test-profile',
+        initial_current=dict(current_revision=0,blocks=[]), display_sink=events.append,
+        observe=lambda ctx, active: (observation(ctx,[block()]),{}))
+    try:
+        value.load_plan(*materials([block()]),geometry_reference='test-profile')
+        value.request(request('auto')); value._queue.join()
+        stages = [e['display_stage'] for e in events if e is not None]
+        assert stages == ['OBSERVING','CONFIRMED']
+        assert events[-1]['current']['current_revision'] == 1
+        value.cancel('auto')
+        assert events[-1] is None
+    finally:
+        value.close()
+
+
+def test_display_snapshot_preserves_previous_current_and_cancel_clears(connection):
+    value, _, _ = connection
+    value.load_plan(*materials([block()]), geometry_reference='test-profile')
+    execute(connection, request('display'), [block()])
+    snapshot = value.comparison_display_state()
+    assert snapshot['previous_current'] == dict(current_revision=0, blocks=[])
+    assert snapshot['current'] == dict(current_revision=1, blocks=[block()])
+    snapshot['current']['blocks'].clear()
+    assert value.comparison_display_state()['current']['blocks'] == [block()]
+    value.cancel('display')
+    assert value.comparison_display_state() is None
+
+
 @pytest.mark.parametrize('regions', [
     [dict(x=0, y=0, width=1, height=1, layer=1)],
     [dict(x=0, y=0, width=24, height=24, layer=1)],

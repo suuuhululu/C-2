@@ -19,16 +19,20 @@ def public_designs(connection) -> list[dict]:
 
 def creator_library(connection, user) -> dict:
     with connection.transaction():
-        rows = personal.user_rows(connection,user["user_id"])
+        rows = personal.user_rows(connection,user["user_id"],events=personal.DESIGN_VIEW_EVENTS)
         states = connection.execute("""SELECT p.job_id::text,p.design_version,p.is_published
             FROM c2_history.design_publications p JOIN c2_history.jobs j USING(job_id)
             WHERE j.owner_user_id=%s""", (user["user_id"],)).fetchall()
         published = {(row["job_id"],row["design_version"]):row["is_published"] for row in states}
-        designs = report.designs(rows)
+        designs = [{key:design[key] for key in ("job_id","design_version","design","adopted_at")}
+                   for design in report.designs(rows)]
         for design in designs:
             design["creator"] = dict(display_name=user["display_name"],username=user["username"])
             design["published"] = published.get((design["job_id"],design["design_version"]),False)
-        return dict(jobs=report.jobs(rows),designs=designs)
+        jobs = report.jobs(rows)
+        for job in jobs:
+            job.update(store.job_counts(connection,job["job_id"]))
+        return dict(jobs=jobs,designs=designs)
 
 
 def set_publication(connection, job_id: str, version: int, user_id: str, published: bool) -> dict:
@@ -36,7 +40,7 @@ def set_publication(connection, job_id: str, version: int, user_id: str, publish
         raise ValueError("invalid publication fields")
     with connection.transaction():
         personal._owned_job(connection,job_id,user_id,lock="UPDATE")
-        design = next((item["design"] for item in report.designs(store.timeline(connection,job_id))
+        design = next((item["design"] for item in report.designs(store.timeline(connection,job_id,events=("PLAN_ADOPTED",)))
                        if item["design_version"] == version),None)
         if design is None:
             raise ValueError("Design unavailable to this user")

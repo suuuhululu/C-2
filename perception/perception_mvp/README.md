@@ -1,9 +1,66 @@
 # 실제 Perception 처리 코드
 
+## 2026-10-13 시험용 평균 층 기준
+
+- body/stud 추출은 관측된body 평면의residual band로최대3회재수집한다. 허용기울기내의표면을수평slice로잘라버리지않으며, 둘의동일XY간격이4mm±0.75mm로유지되는지도검사한다. 검사수치와원본보정/층기준은변경하지않았다. 단일표면/비평행/지원부족은미확인이다. 같은실제6장에서는분리통과4개이지만좌표·층확정0개라실물판정완료로표시하지않는다.
+
+- 확인 영역 생성은 `depth_grid.occupied_region_evidence`(측정 완료 블록의 실제 footprint/layer만)와 `region_evidence.empty_column_evidence`(1~5층 공간을 지나는 모든 검사ray가 뒤쪽까지 clear할 때만)로 연결했다. 감지되지 않은 곳/ROI/가려진 아래층을 EMPTY로 간주하지 않는다. 원본 Depth누락/거리범위/객체mask/가림/시야잘림은 미확인으로 남긴다. 과거 실제 빈 보드3장 진단상556/576칸 합집합이며 실제같은check bundle/현재보드 확정이 아니다. 상세 근거와 미완료 범위는 `perception/docs/REGION_EVIDENCE_20261013.md`다.
+
+- 표면 분리 이후 높이는 몸체만 사용한다. 윗면 존재25%/RGB 외곽의 표면 증거는 확인된 몸체+스터드를 합쳐 사용한다. 분리 때문에 몸체만으로 전체 윗면 지지 비율을 요구하지 않는다. `surface_diagnostics`는 점수/지지 비율/거부 조건/외곽 내부 증거를 기록하며 공통 Observed 필드를 확장하지 않는다. 실제6장 재시험의 최신 실패/미완료 범위는 docs/ASSEMBLY_REPLAY_20261013.md를 참고한다.
+
+- 최신 사용자 요청: 각 위치의 최상층은 `BODY_TOP_PLUS_STUD`로 측정한다. 몸체 윗면을 추출하고 그 위치에 스터드4mm를 한 번만 더한 높이를 기존 층 기준과 비교한다. 층수×4mm를 더하지 않고 기존 기준표에도4mm를 다시 더하지 않는다. board stud-top→flat-board datum 이동4mm와 block stud4mm는 서로 다른 연산이다. 몸체 좌표로 윗면 역투영을 계산하며 저장 결과의 body_surface_height_m/body_height_mm와 block_stud_added_m/mm로 연산을 확인할 수 있다.
+- 시험 추출은 약4mm 간격의 두 board-parallel 표면이 충분히 관측된 경우 높은 몸체/스터드 쌍의 몸체만 선택한다. 현재 높이 band±0.75mm, 최소50픽셀(생산자는 설정값), plane 기울기10도는 실물 검증 전 시험값이다. 단일 표면만 있거나 둘을 구별하지 못하면 body_stud_surfaces_unverified로 보류하며 이미 측정된 스터드 높이에 다시4mm를 더하는 fallback은 없다. 이는 의도한 몸체/스터드 구분의 실제 성능 검증이나 전체 확인 영역 생성 완료가 아니다. 명시적 layer-reference JSON에는 block_stud_height_mm:4를 제공해야 화면에 이 방식이 적용된다.
+
+- 기본 손 설정은 저장된 V0 hand_config의 ROI·polygon·해상도·confidence/안정·Depth 품질값을 재사용한다. `--hand-config` 미지정 시 config.yaml을 읽고 모델 상대 경로는 perception 폴더 기준으로 해석한다. 별도 설정을 지정하면 그 설정이 우선하며 D1/D3 손 모델은 로드하지 않는다. 실제 보드/카메라 위치가 달라지면 기존 ROI의 적용 조건을 다시 확인한다. 새 ROI를 생성할 때는 이전 ROI의 품질값을 자동 확정하지 않는다.
+- Geometry calibration_id는 `assembly_pitch16_flat0_20261013`으로 연결했다. 중심→최소 스터드 좌표 변환은 공통 footprint/방향 계약에서 계산했고, 보드 경계[-8,376]mm 및 블록 크기32x32/32x48/16x32mm는16mm 피치에서 계산한 명목값이다. 플라스틱 몸체를 새로 실측한 값이 아니다. 기존 integrated/grid_anchor의 시험값(유효Depth80%, 최소50픽셀, 좌표0.25stud, 크기0.35stud, 방향10도)을 재사용하고 `temporary_test`로 표시한다.
+- Depth 범위는 flat-board 변환에서 보드 경계[-8,376]mm×[-8,376]mm, 높이0~99mm(5층96.5mm+층 오차2.5mm)의8개 모서리를 카메라로 역변환해 optical Z 최소/최대를 구한다. 추가5mm는 시험용 카메라-Z 여유이며 층 오차±2.5mm와 별개이고 센서 정확도 근거가 아니다. 경계를 바깥 방향1mm로 반올림한 기본값은 V0 443~573mm, D1 334~763mm, D3 397~696mm다. `depth_ranges_from_board`로 재계산할 수 있다. 보드 전체 물리 영역을 사용하며 화면에 보이지 않는 위치의 관측 가능성을 주장하지 않는다.
+- `process_saved`는 metadata의 View에 해당하는 `depth_ranges_m`를 선택하며 설정된 View가 빠지면 실패한다. 공통 min/max는 전체 합집합의 이전 직접 함수 호출 호환값이며 production 저장 영상은 View별 범위를 사용한다. 기본 통합 live_view에도 View별 범위를 적용한다. 명시적 --layer-reference JSON을 사용하는 경우 depth_ranges_m도 포함해야 같은 제한을 적용한다. 상태는 calibration_derived_trial_not_depth_validated다.
+- `max_height_spread_m=0.005`는 한 블록 표면의 P95-P5가5mm 이하인지 검사하는 시험값이다. ±2.5mm 층 허용 오차의 전체 폭5mm를 품질 게이트의 초기 제한으로 재사용했으며 실측 잡음의 통계적 검증값은 아니다. 이는 표면 내부 일관성 검사이고 층 기준 대비 정확도와 다르다. BODY_TOP_PLUS_STUD를 사용하는 production/기본 live_view는 추출한 몸체 표면에서 검사한다. 차이 초과는 surface_height_conflict로 보류한다. 역투영 방식이 달라 두 경로의 검사 대상 픽셀이 같다고 주장하지 않는다.
+- 현재 Geometry 설정은 null 없이 형식 검사를 통과하지만 시험값의 정확도/전체 확인 영역 생성/실제 연결 완료는 아니다. ROS 경로에서 사용하지 않는 직접 USB camera serial/fps/timeout는 임의로 채우지 않는다. 실제 빈 보드/5층 Depth와 보정 자세 반복성을 검증한 뒤 범위를 확정해야 한다. 명시적 layer-reference override에는 max_height_spread_mm를 제공해야 화면에 동일 품질 제한이 적용된다.
+
+- 사용자 채택 증가량: `(96.5 - 22) / 4 = 18.625mm/층`. 1층부터 기준 높이는 22 / 40.625 / 59.25 / 77.875 / 96.5mm, 시험용 허용 오차는 ±2.5mm다. 블록 단독 실측으로 만든 모델이며 보드 부착1층22mm는 검증 전 임시 절편이다. 실물 보드 기준 높이 검증 결과나 깊이 센서 정확도로 표시하지 않는다.
+- `config.yaml`의 geometry에 저장하고 통합 live_view의 기본 층 판정에 사용한다. `--layer-reference` JSON을 주면 그 설정이 우선한다. 기본 화면 높이/층 판정은 기존 stud-top0 높이에4mm를 더한 flat-board0 기준이며, 윗면 역투영에는 원래 높이를 사용한다. 범위 밖은 L:?이다. 16mm 스터드 피치는 XY 좌표용이며 층 증가량과 별개다.
+- B 생산자용 flat-board 변환은 `perception/calibration/assembly_runtime_pitch16_flat0_20261013.json`이다. 기존 3개 pose와 사용자 실측 board stud4mm로 도출한 변환이며 새 실기 보정 검증이 아니다. `config` calibration_id/나머지 Geometry 설정 및 실제 확인 영역 준비는 여전히 필요하다. 기본 live_view 계산과 생산자 함수 주입은 별도 연결이다.
+
+## 비교 구간 3D 안내 표시
+
+기본 overlay-mode는 auto다. B 요청 처리 시작의 OBSERVING에서는 target을,
+MATCH/MISMATCH 확정의 CONFIRMED에서는 changes를 선택한다. UNOBSERVABLE은
+변화 확정 화면으로 전환하지 않고 목표 비교를 유지한다. 새 검사/계획·취소/오류/종료는
+표시를 지운다. connect_inspection의 선택 display_sink는 해당 상태/None을
+화면 소유 스레드에 enqueue하는 callback이다. 공통 D 결과 봉투는 변경하지 않는다.
+표시 sink·실제 비교 프레임/투영 입력의 실행기 결선은 여전히 필요하며,
+이 옵션을 추가했다고 기존 단독 카메라 명령이 팀 검사 결과를 자동 생성하지는 않는다.
+
+`InspectionConnection.comparison_display_state()`는 B 비교 확정 전의 previous_current,
+확정 후 current, 실제 비교 expected 및 check/Plan/Step 문맥을 복사해 제공한다.
+공통 Observed 및 D 결과 봉투는 바꾸지 않는다. 새 검사/계획·취소·종료에서
+이전 표시 상태를 무효화한다. 표시 자체는 완료·Robot 권한이 아니다.
+
+`visualization.render_comparison_overlay()`의 mode는 target(Current/Expected),
+changes(이전/현재 Current)다. 호출자는 실제 RGB와 payload를 전달한다:
+state(위 snapshot), projection(기존 3D 투영 입력), projection_valid,
+phase=COMPARISON, view_id, 실제 frame_stamp_ns, height_reference=board_flat_surface.
+평평한 보드 윗면을 Z=0으로 쓴 실제 투영/층 높이 입력만 채택한다.
+기존 stud 기준 transform에 표시용 문자열만 붙여 사용하지 않는다.
+
+로컬 live_view는 선택 옵션 `--comparison-overlay <실제 표시 입력.json>`과
+`--overlay-mode target|changes`로 같은 함수를 호출한다. 이 JSON은 로컬 화면
+전달용이며 새 필수 공통 계약이 아니다. 팀 실행에서는 동일 함수를 호출하는
+화면 연결부를 쓰면 된다. D production 결선이나 입력 파일 자동 생산은 이 수정으로
+완료되지 않았다. actual compare frame과 stamp/View가 다르거나 이동 중·V0 손
+조건 미확인·취소 phase·높이 기준 미확인이면 숨긴다. 관측 진단 옵션은 손 조건을
+우회해 3D 비교를 허용하지 않는다. 아직 실제 Current/Expected 입력 없이
+기존 명령만 실행하면 3D 안내는 나타나지 않는다.
+
 ## 2026-10-12 PR29 리뷰 — 검사 시작 조건과 촬영/분석 경계
 
+- 자동 단발 촬영 함수는 `ros_capture.capture_inspection_view(manifest, view, is_active, *, output_root, scene_id, calibration_id, robot_pose, is_stopped, verify_occupancy=None)`다. `functools.partial`로 실제 장면 ID/보정 ID, Controller의 `robot_pose(view)`와 `is_stopped(view)`를 지정하면 `make_inspection_observer`의 `capture_view` 인자로 사용할 수 있다. Robot 이동 명령은 없다. 고정 ROS raw RGB/원본 Depth/aligned Depth 및 CameraInfo 토픽을 전용 Context/Executor에서 수신하고 한 묶음 저장 후 종료한다. D ROS Context를 종료하지 않는다. 정지/활성 요청을 반복 확인하며 요청 후 프레임·기본 50ms 동기화·250ms 신선도를 요구한다. ROS PC 간 시계 동기화가 필요하며 오래된 프레임/시간 초과는 실패로 반환한다. RGB는 RELIABLE depth1, Depth/CameraInfo는 sensor_data QoS다.
+- `verify_occupancy(directory, manifest, view)`는 실제 저장 영상에 근거한 `verified_regions`·`verification_basis`를 반환해야 한다. 미제공 시 확인 영역은 빈 목록이며 정상 판정 근거가 아니다. ROI를 확인 영역으로 바꾸지 않는다. Controller/확인 영역 함수와 실제 Geometry/층 높이 설정이 없으면 이 함수만으로 전체 시나리오가 완성되지 않는다.
+- V0 손 수신은 `ros_capture.stream_ros_hand(is_active, is_stopped)`를 제공한다. `make_inspection_observer(..., hand_stream=None, is_stopped=실제정지확인함수)`로 선택하면 요청 활성 조건과 연동된다. V0 정지 후 raw RGB와 aligned 16UC1 Depth를 별도 수신 스레드에서 받고 기존 HandDetector/HandCycle로 판정한다. 매 분석에는 새로운 최신 동기화 묶음을 사용하며 큐는 제한된다. 준비 완료/STOP/이동/통신 오류 시 stream을 닫고 B 전용 Context만 종료한다. 손 추론 중 block YOLO는 실행하지 않고 준비 완료 후 별도 RGB-D 단발 촬영/분석을 수행한다. 기본 한 프레임 수신 제한15초, 동기화50ms, 신선도250ms이며 실제 성능은 장치에서 검증해야 한다. 영상 끊김/UNKNOWN을 손 없음으로 취급하지 않는다. 이 손 감지는 엄지척 인식이나 안전 인증이 아니다.
+- ROS 수신 저장 연결: `rgbd_io.save_capture(directory, messages, infos, topics, view, 50., context=context)`에 `scene_id`, 실제 `robot_pose`(frame/단위/기준 포함), `calibration_id`, `check_id`, 정수 `observation_seq`를 제공한다. 메시지는 실제 정지 후 새로 받은 RGB/raw Depth/aligned Depth이며 수신 측이 요청 최신성과 STOP/취소를 확인해야 한다. ROS CameraInfo 원문을 유지하고 실제 K/D를 Depth 역투영 필드로 함께 기록한다. 이 파일은 `load_frame` 입력 형식과 호환된다. `context` 없는 기존 진단 촬영 의미는 유지한다. 이 함수는 수신 구독/Controller 이동을 수행하지 않으며 `verified_regions`나 층 기준을 생성하지 않는다. 실제 확인 영역 근거는 별도 필요하다.
 - make_inspection_observer의 INITIAL/FINAL 기본 시작 조건은 STOPPED_CLEAR다. 새 손 진입과 손 이탈 3초 대기는 요구하지 않는다. 실제 V0 정지·안전 확인, 손 ABSENT·설정된 영상 안정 시간·프레임 품질 확인은 계속 필요하다. 저장된 시험 안정값은 밝기 차이 평균 3 이하·연속 1초이며 안전 인증이나 독립 성능 검증값이 아니다. UNKNOWN이나 손 PRESENT를 무시하는 무조건 촬영이 아니다.
-- STEP의 기본은 기존 HUMAN_ASSEMBLY(새 진입→이탈 >3초→안정)다. 로봇 직접 결착 후 STEP은 D와 합의한 작업 문맥에 따라 make_inspection_observer(..., start_condition=함수)로 STOPPED_CLEAR를 명시한다. 함수는 고정된 검사 context를 받아 HUMAN_ASSEMBLY 또는 STOPPED_CLEAR를 반환한다. STEP 종류만 보고 로봇/사람 작업을 임의 추정하지 않으며 공통 요청/Observed 필드는 추가하지 않았다.
+- 2026-10-13 팀 요청 기준: D가 엄지척(사람 조립 완료) 또는 로봇 작업 완료 후 STEP 검사를 요청한다. make_inspection_observer의 STEP 기본도 STOPPED_CLEAR로 변경했다. 새 손 진입/이탈 3초를 다시 기다리지 않고 실제 정지·손 없음·영상 안정을 확인한다. 엄지척 인식은 D 책임이며 B가 MATCH로 치환하지 않는다. 독립 손 기반 호출은 start_condition 함수로 HUMAN_ASSEMBLY를 명시할 수 있다. 공통 요청/Observed 필드는 변경하지 않았다. 로컬 live_view의 독립 손 사이클은 이번 변경 대상이 아니다.
 - hand 대기와 begin_observation에는 프레임 유효성 검사를 유지한다. 실제 V0 캡처 문맥을 확인한 뒤 freeze_capture로 CAPTURED 단계에 들어가며, 이후 CPU 분석 시간이 마지막 손 프레임 age를 증가시켰다는 이유로 finish_observation을 실패시키지 않는다. 기존 bundle_valid/is_active/STOP·취소 검사는 분석 후·전달 전에도 유지한다.
 - 수신 종료 뒤 새 손 진입을 감지할 수 있다고 주장하지 않는다. 캡처 후 장면 연속성/로봇 이동/STOP은 실제 Controller·capture hook의 유효성 근거가 필요하다. 이 변경은 D 실행기나 로컬 live_view의 시작 정책을 자동 교체하는 것이 아니다.
 - 실제 검증: B MVP/legacy/calibration/supply 및 로컬 소비자 입력 검증 함수 대조 310 passed, 종료 0. 새 손 진입 없는 INITIAL/FINAL, 사람 STEP 진입 필수, 명시 로봇 STEP, UNKNOWN/불안정 차단, 1초 허용 간격·1.1초 분석의 상태기계 및 캡처/분석 경로를 검사했다. 합성 clock·관측/장치 hook 결과이며 실제 Camera/Robot 시험은 아니다. 기존 사용자 변경 보존. 다른 팀 코드·문서 및 STATUS.md 변경·commit/push 없음.
@@ -183,7 +240,7 @@ V0 손 대기 동안 frame_sink로 영상을 표시하고 각 View 결과는 vie
 source /opt/ros/jazzy/setup.bash
 cd /home/roh/C-2/perception
 python3 -m perception_mvp.live_view --view V0 --hand-detect-only \
-  --weights /home/roh/C-2/perception/models/hand_yolo11n_trial_20261010/hand_yolo11n_trial_best.pt \
+  --weights /home/roh/C-2/perception/models/hand_yolo11n_added_20261012/weights/best.pt \
   --confidence 0.25 --output /home/roh/C-2/perception/recordings/hand_live_test
 ```
 

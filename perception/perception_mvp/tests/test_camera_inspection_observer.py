@@ -64,8 +64,36 @@ def test_observer_freezes_capture_context_and_respects_cancellation(monkeypatch,
         assert manifest['previous_accepted_blocks'] == ([] if kind == 'INITIAL' else [target])
         return dict(check_id='original'), {}
     monkeypatch.setattr(runtime, 'run_observation_cycle', cycle)
-    observer = make_inspection_observer(None, None, None, capture, None, {}, {}, .25,
+    observer = make_inspection_observer(None, None, lambda: iter(()), capture, None, {}, {}, .25,
         confirm_view=lambda v: True, workflow_valid=lambda: True, bundle_valid=lambda: True)
     result, _ = observer(context, lambda: active[0])
     assert result['check_id'] == saved['check_id']
     assert captures == ['V0', 'D1', 'D3']
+
+
+def test_observer_ros_hand_stream_uses_request_active_and_stop_hooks(monkeypatch):
+    import perception_mvp.main as runtime
+    import perception_mvp.ros_capture as ros
+    active = [True]
+    stopped = lambda view: view == 'V0'
+    def stream(valid, stop):
+        assert valid() and stop is stopped
+        active[0] = False
+        assert not valid()
+        return iter(())
+    def cycle(gate, detector, stream_factory, *args, **kwargs):
+        list(stream_factory())
+        return {}, {}
+    monkeypatch.setattr(ros, 'stream_ros_hand', stream)
+    monkeypatch.setattr(runtime, 'run_observation_cycle', cycle)
+    observer = make_inspection_observer(None, None, None, None, None, {}, {}, .25,
+        confirm_view=lambda view: True, workflow_valid=lambda: True, bundle_valid=lambda: True,
+        is_stopped=stopped)
+    observer(dict(check_kind='INITIAL', current=None), lambda: active[0])
+
+
+def test_ros_hand_stream_without_stop_hook_is_rejected():
+    observer = make_inspection_observer(None, None, None, None, None, {}, {}, .25,
+        confirm_view=lambda view: True, workflow_valid=lambda: True, bundle_valid=lambda: True)
+    with pytest.raises(ValueError, match='is_stopped'):
+        observer(dict(check_kind='INITIAL', current=None), lambda: True)

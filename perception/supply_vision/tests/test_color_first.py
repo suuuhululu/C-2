@@ -18,18 +18,19 @@ def test_no_color_skips_yolo(monkeypatch):
     assert infer_color_candidates(None,np.zeros((180,200,3),np.uint8),config()) == []
 
 
-def test_original_crop_and_full_image_box(monkeypatch):
+def test_original_full_frame_after_color_gate(monkeypatch):
     frame = np.zeros((180,200,3),np.uint8)
     cv2.rectangle(frame,(40,30),(120,130),(255,0,0),-1)
     calls = []
     def detector(model, crop, confidence):
         calls.append(crop.copy())
-        np.testing.assert_array_equal(crop,frame[27:134,37:124])
-        return [{'box':[3,3,84,104],'class_name':'blue_2x3','confidence':.9}]
+        np.testing.assert_array_equal(crop,frame)
+        return [{'box':[40,30,121,131],'mask_contours_uv':[[[40,30],[121,30],[121,131],[40,131]]],'class_name':'blue_2x3','confidence':.9}]
     monkeypatch.setattr('supply_vision.main.infer',detector)
     detections = infer_color_candidates(None,frame,config())
     assert len(calls) == 1
     assert detections[0]['box'] == [40,30,121,131]
+    assert detections[0]['mask_contours_uv'][0] == [[40,30],[121,30],[121,131],[40,131]]
     assert detections[0]['opencv_color'] == 'blue'
     assert not detections[0]['color_mismatch']
 
@@ -38,7 +39,7 @@ def test_color_disagreement_held(monkeypatch):
     frame = np.zeros((180,200,3),np.uint8)
     cv2.rectangle(frame,(40,30),(120,130),(0,255,255),-1)
     monkeypatch.setattr('supply_vision.main.infer',lambda *a:
-                        [{'box':[3,3,84,104],'class_name':'blue_2x3','confidence':.9}])
+                        [{'box':[40,30,121,131],'mask_contours_uv':[[[40,30],[121,30],[121,131],[40,131]]],'class_name':'blue_2x3','confidence':.9}])
     detections = infer_color_candidates(None,frame,config())
     state = assign_slots(config(),detections,.8)[0]
     assert state['status'] == 'UNKNOWN'

@@ -42,8 +42,8 @@ def test_two_regions_rejected():
 
 
 def test_request_gate_before_inference():
-    config = {'image_size':[150,150], 'observation_id':'supply', 'config_id':'v1'}
-    request = {'observation_id':'supply','config_id':'v1','stopped':True,
+    config = {'image_size':[150,150], 'view_id':'SUPPLY_VIEW', 'config_id':'v1'}
+    request = {'view_id':'SUPPLY_VIEW','config_id':'v1','stopped':True,
                'not_before_ns':100,'expires_at_ns':200}
     frame = np.zeros((150,150,3),np.uint8)
     for stamp in (99,100,201):
@@ -56,22 +56,22 @@ def test_request_gate_before_inference():
 
 def test_pipeline_candidate_and_no_detection(monkeypatch):
     import supply_vision.main as module
-    config = {'image_size':[200,180], 'observation_id':'supply','config_id':'v1',
+    config = {'image_size':[200,180], 'view_id':'SUPPLY_VIEW','config_id':'v1',
               'calibration_id':'draft1','confidence':.8,'candidate_confidence':.2,
               'surface':SETTINGS, 'slots':[{'brick_type':'2x3x1','color':'blue','slot':3,
                'grasp_edge_pair':1,'roi_xyxy':[10,10,150,150]}]}
-    request = {'request_id':'r1','step_id':'step1','observation_id':'supply',
+    request = {'request_id':'r1','step_id':'step1','view_id':'SUPPLY_VIEW',
                'config_id':'v1','stopped':True,'not_before_ns':100,'expires_at_ns':200,
-               'brick_type':'2x3x1','color':'blue'}
+               'brick_type':'2x3x1','color':'blue','slot_id':'blue_2x3x1_03'}
     frame = np.zeros((180,200,3),np.uint8)
     cv2.rectangle(frame,(40,30),(120,130),(255,0,0),-1)
-    monkeypatch.setattr(module,'infer',lambda *a:[{'box':[3,3,84,104],
+    monkeypatch.setattr(module,'infer',lambda *a:[{'box':[40,30,121,131],'mask_contours_uv':[[[40,30],[121,30],[121,131],[40,131]]],
                         'class_name':'blue_2x3','confidence':.9}])
     result = process(frame,None,config,request,150)
     assert result['status'] == 'CANDIDATES'
     assert result['candidates'][0]['slot'] == 3
     assert result['units'] == 'pixel'
-    np.testing.assert_allclose(result['candidates'][0]['geometry']['center_uv'], [80,80], atol=.01)
+    np.testing.assert_allclose(result['candidates'][0]['geometry']['center_uv'], [80.5,80.5], atol=.01)
     monkeypatch.setattr(module,'infer',lambda *a:[])
     result = process(frame,None,config,request,160)
     assert result['status'] == 'HOLD'

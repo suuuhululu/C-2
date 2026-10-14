@@ -1,12 +1,14 @@
 """A file import is one transaction, independent of the running process."""
 
 from pathlib import Path
+import os
 
 import psycopg
 from psycopg.rows import dict_row
 from psycopg.types.json import Jsonb
 
 from history.records import InputError, adopted_artifacts, read_source
+from history import archive, selection
 
 
 SCHEMA = Path(__file__).with_name("schema.sql")
@@ -74,33 +76,52 @@ def _save_event(connection, record: dict) -> bool:
     return True
 
 
-def ingest(connection, path: Path, source: str, *, contract: str = "day4") -> dict:
+def ingest(connection, path: Path, source: str, *, contract: str = "day4",
+           policy: str | None = None, archive_root: Path | None = None) -> dict:
+    if policy not in (None, "all", "operational-v1"):
+        raise InputError(f"{source}: unsupported ingest policy")
     inserted = 0
     with connection.transaction():
         # Serialize imports of the same source, including concurrent app invocations.
         connection.execute("SELECT pg_advisory_xact_lock(hashtextextended(%s,0))", (source,))
-        records, pending = read_source(path, source, contract=contract)
-        connection.execute("""INSERT INTO c2_history.sources(source_key,last_line,contract)
-            VALUES (%s,0,%s) ON CONFLICT DO NOTHING""", (source,contract))
-        state = connection.execute("SELECT last_line,contract FROM c2_history.sources WHERE source_key=%s",
+        root = archive_root or Path(os.environ.get("HISTORY_ARCHIVE_ROOT", path.parent / "history_archive"))
+        preserved = archive.snapshot(path, root)
+        records, pending = read_source(Path(preserved["path"]), source, contract=contract)
+        connection.execute("""INSERT INTO c2_history.sources(source_key,last_line,contract,ingest_policy)
+            VALUES (%s,0,%s,%s) ON CONFLICT DO NOTHING""", (source,contract,policy or "operational-v1"))
+        state = connection.execute("SELECT last_line,contract,ingest_policy,prefix_sha256 FROM c2_history.sources WHERE source_key=%s",
                                    (source,)).fetchone()
         if state["contract"] != contract:
             raise InputError(f"{source}: archive contract differs from previous import")
+        if policy is not None and policy != state["ingest_policy"]:
+            raise InputError(f"{source}: ingest policy differs from previous import")
         previous = state["last_line"]
         if len(records) < previous:
             raise InputError(f"{source}:{len(records)+1}: previously imported source truncated")
-        for record in records:
+        if state["prefix_sha256"] is not None:
+            if archive.prefix_digest(records[:previous]) != state["prefix_sha256"]:
+                raise InputError(f"{source}: previously imported line changed; original archive retained")
+            new_records = records[previous:]
+        else:
+            # Legacy sources keep full import semantics until their prefix is verified.
+            new_records = records
+        for record in new_records:
+            if state["ingest_policy"] == "operational-v1" and not selection.should_store(record["document"]):
+                continue
             try:
                 inserted += _save_event(connection, record)
             except (ValueError, psycopg.Error) as error:
                 # Driver diagnostics never include connection strings or raw input values.
                 detail = str(error) if isinstance(error, ValueError) else f"DB write failed ({error.sqlstate})"
                 raise InputError(f"{source}:{record['line']}: {detail}") from error
-        connection.execute("UPDATE c2_history.sources SET last_line=%s WHERE source_key=%s", (len(records), source))
+        connection.execute("""UPDATE c2_history.sources SET last_line=%s,prefix_sha256=%s,
+            archive_path=%s,archive_sha256=%s,archive_bytes=%s WHERE source_key=%s""",
+            (len(records),archive.prefix_digest(records),preserved["path"],preserved["sha256"],preserved["bytes"],source))
     return dict(source=source, inserted=inserted, skipped=len(records)-inserted, pending_line=pending)
 
 
-def timeline(connection, job_id: str | None = None, *, owner_user_id: str | None = None) -> list[dict]:
+def timeline(connection, job_id: str | None = None, *, owner_user_id: str | None = None,
+             operational: bool = False, events: tuple[str, ...] | None = None) -> list[dict]:
     clauses, params = [], []
     if job_id is not None:
         clauses.append("e.job_id=%s")
@@ -108,12 +129,26 @@ def timeline(connection, job_id: str | None = None, *, owner_user_id: str | None
     if owner_user_id is not None:
         clauses.append("e.job_id IN (SELECT job_id FROM c2_history.jobs WHERE owner_user_id=%s)")
         params.append(owner_user_id)
+    if operational:
+        predicate, values = selection.sql_condition("e")
+        clauses.append(predicate)
+        params.extend(values)
+    if events is not None:
+        clauses.append("e.event = ANY(%s)")
+        params.append(list(events))
     clause = "WHERE " + " AND ".join(clauses) if clauses else ""
     return connection.execute(f"""SELECT source_key, line_number, occurred_at,
         job_id::text, plan_id, step_id, request_id, event, outcome, reason,
         design_version, base_current_revision, observation_seq, document, raw_line, s.contract
         FROM c2_history.events e JOIN c2_history.sources s USING(source_key) {clause}
         ORDER BY occurred_at, source_key, line_number""", params).fetchall()
+
+
+def job_counts(connection, job_id: str) -> dict:
+    return connection.execute("""SELECT count(*) AS event_count,max(occurred_at) AS last_seen_at,
+        (SELECT event FROM c2_history.events WHERE job_id=%s
+         ORDER BY occurred_at DESC,source_key DESC,line_number DESC LIMIT 1) AS last_event
+        FROM c2_history.events WHERE job_id=%s""", (job_id,job_id)).fetchone()
 
 
 def artifacts(connection, job_id: str) -> list[dict]:

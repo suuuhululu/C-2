@@ -8,9 +8,11 @@ from threading import RLock, Thread
 from .backend_adapter import deliver_observed
 from .contracts import validate_block
 from .inspection import VisionInspection
+from .runtime_log import progress, periodic_progress
 
 
-def connect_inspection(submit_result, *, observe, geometry_reference, initial_current=None):
+def connect_inspection(submit_result, *, observe, geometry_reference, initial_current=None,
+                       display_sink=None):
     """10/8 entry point: D binds request/cancel/load_plan explicitly.
 
     submit_result must enqueue into D's owning thread (not mutate Qt/Backend here).
@@ -21,20 +23,68 @@ def connect_inspection(submit_result, *, observe, geometry_reference, initial_cu
         raise ValueError('actual observe and D result callback required')
     if not isinstance(geometry_reference, str) or not geometry_reference:
         raise ValueError('geometry reference required')
-    connection = InspectionConnection(submit_result, observe, geometry_reference, initial_current)
+    if display_sink is not None and not callable(display_sink):
+        raise ValueError('display_sink must enqueue into the display owner thread')
+    connection = InspectionConnection(submit_result, observe, geometry_reference, initial_current, display_sink)
     connection._worker.start()
     return connection
 
 
+def connect_real_inspection(submit_result, *, gate, hand_detector, weights, calibration,
+                            config, detector_confidence, scene_id, output_root,
+                            confirm_view, is_stopped, robot_pose, workflow_valid,
+                            bundle_valid, initial_current=None, display_sink=None):
+    """Wire actual ROS capture into B's inspection worker, not a fixture runtime.
+
+    Controller supplies arrival/stop/pose and interruption hooks. confirm_view
+    may wait for movement but must return only after the actual View is stopped.
+    STOP closes workflow_valid/bundle_valid AND cancels the active check in D.
+    This function never issues movement or treats cancellation as physical stop.
+    """
+    from pathlib import Path
+    from .main import make_inspection_observer
+    from .ros_capture import capture_inspection_view
+
+    hooks = (confirm_view, is_stopped, robot_pose, workflow_valid, bundle_valid)
+    if not all(callable(hook) for hook in hooks):
+        raise ValueError('actual Controller stop/pose/continuity hooks required')
+    if not isinstance(scene_id, str) or not scene_id.strip():
+        raise ValueError('actual scene_id required')
+    if not Path(weights).is_file():
+        raise ValueError('actual block weights file required')
+    profile = calibration['calibration_id']
+    if config['calibration_id'] != profile or set(calibration['views']) != {'V0', 'D1', 'D3'}:
+        raise ValueError('three View calibration and Geometry IDs must agree')
+    calibration, config = deepcopy(calibration), deepcopy(config)
+
+    def capture(manifest, view, active):
+        valid = lambda: active() is True and workflow_valid() is True and bundle_valid() is True
+        return capture_inspection_view(manifest, view, valid,
+            output_root=Path(output_root) / 'captures', scene_id=scene_id,
+            calibration_id=profile, robot_pose=robot_pose, is_stopped=is_stopped)
+
+    observer = make_inspection_observer(gate, hand_detector, None, capture,
+        weights, calibration, config, detector_confidence,
+        confirm_view=confirm_view, workflow_valid=workflow_valid,
+        bundle_valid=bundle_valid, is_stopped=is_stopped,
+        output_root=Path(output_root) / 'cycles')
+    return connect_inspection(submit_result, observe=observer,
+        geometry_reference=profile, initial_current=initial_current,
+        display_sink=display_sink)
+
+
 class InspectionConnection:
     """Serial B state owner, asynchronous capture, synchronous cancel boundary."""
-    def __init__(self, submit_result, observe, geometry_reference, current):
+    def __init__(self, submit_result, observe, geometry_reference, current, display_sink=None):
         self.submit_result, self.observe = submit_result, observe
         self.geometry_reference = geometry_reference
         self.inspection = VisionInspection(current)
         self._lock, self._queue = RLock(), Queue()
         self._active, self._closed, self._seen = None, False, {}
         self.last_delivery_error = None
+        self._display_state = None
+        self.display_sink = display_sink
+        self.last_display_error = None
         self._worker = Thread(target=self._run, name='b-inspection-worker', daemon=True)
 
     def load_plan(self, design, plan, plan_base_current, *, geometry_reference):
@@ -45,6 +95,21 @@ class InspectionConnection:
                 raise ValueError('geometry reference mismatch')
             self.inspection.load_plan(design, plan, plan_base_current,
                                       geometry_reference=geometry_reference)
+            self._set_display(None)
+
+    def comparison_display_state(self):
+        """Local display snapshot, not an extension of the common result schema."""
+        with self._lock:
+            return deepcopy(self._display_state)
+
+    def _set_display(self, state):
+        self._display_state = deepcopy(state)
+        if self.display_sink is not None:
+            try:
+                self.display_sink(deepcopy(state))
+            except Exception as error:
+                self.last_display_error = str(error)
+                self._display_state = None
 
     @staticmethod
     def _failure(request, status, reason):
@@ -52,9 +117,13 @@ class InspectionConnection:
                     difference=None, observation=None, reason=reason)
 
     def _publish(self, response):
+        progress(response, '검사 취소' if response['status'] == 'CANCELED' else '검사 결과', status=response['status'],
+                 comparison=response.get('comparison'), reason=response.get('reason'))
         try:
             self.submit_result(deepcopy(response))
+            progress(response, '결과 전달 완료·검사 종료', acceptance='NOT_CONFIRMED_BY_B')
         except Exception as error:
+            progress(response, '결과 전달 실패', reason=str(error))
             # Transport failure is not a canceled/failed B state transaction.
             self.last_delivery_error = dict(check_id=response['check_id'], error=str(error),
                                            response=deepcopy(response))
@@ -86,6 +155,7 @@ class InspectionConnection:
                 return  # Completed/canceled identical requests never trigger capture twice.
             if self._active is not None:
                 raise ValueError('cancel current check before replacement')
+            self._set_display(None)
             try:
                 context = self.inspection.start_check(request, geometry_reference=self.geometry_reference)
             except (ValueError, LookupError) as error:
@@ -93,6 +163,10 @@ class InspectionConnection:
                 self._publish(self._failure(request, 'ERROR', str(error)))
                 return
             self._seen[identity], self._active = request, identity
+            progress(request, '검사 시작')
+            self._set_display(dict(**request, display_stage='OBSERVING',
+                previous_current=deepcopy(context['current']), current=deepcopy(context['current']),
+                expected=deepcopy(context['expected']), comparison=None))
             self._queue.put((request, dict(context, check_kind=kind, observation_seq=0,
                                            geometry_reference=self.geometry_reference)))
 
@@ -102,6 +176,8 @@ class InspectionConnection:
 
     def cancel(self, identity):
         with self._lock:
+            if self._display_state and self._display_state['check_id'] == identity:
+                self._set_display(None)
             self.inspection.cancel(identity)
             if self._active == identity:
                 self._active = None
@@ -119,7 +195,8 @@ class InspectionConnection:
                 if not self.is_active(identity):
                     continue
                 try:
-                    observed, diagnostics = self.observe(deepcopy(context), lambda: self.is_active(identity))
+                    with periodic_progress(context, lambda: self.is_active(identity)):
+                        observed, diagnostics = self.observe(deepcopy(context), lambda: self.is_active(identity))
                     if observed['check_id'] != identity or observed['observation_seq'] != context['observation_seq']:
                         raise ValueError('capture must retain bundle check_id/sequence')
                     with self._lock:
@@ -127,6 +204,11 @@ class InspectionConnection:
                             continue
                         result = self.inspection.finish_check(request, observed,
                             geometry_reference=self.geometry_reference, issues=diagnostics.get('issues', ()))
+                        self._set_display(dict(**request,
+                            display_stage='CONFIRMED' if result['comparison'] in ('MATCH', 'MISMATCH') else 'UNOBSERVABLE',
+                            previous_current=deepcopy(result.get('previous_current')),
+                            current=deepcopy(result['current']), expected=deepcopy(result['expected']),
+                            comparison=result['comparison']))
                         comparison = result['comparison']
                         unavailable = comparison == 'UNOBSERVABLE' or (
                             request['check_kind'] == 'INITIAL' and (
@@ -146,6 +228,7 @@ class InspectionConnection:
                 except Exception as error:
                     with self._lock:
                         if self.is_active(identity):
+                            self._set_display(None)
                             self.inspection.cancel(identity)
                             self._active = None
                             self._publish(self._failure(request, 'ERROR', 'PROCESSING_FAILED: ' + str(error)))
@@ -159,6 +242,7 @@ class InspectionConnection:
             if self._active is not None:
                 self.cancel(self._active)
             self._closed = True
+            self._set_display(None)
             self._queue.put(None)
         self._worker.join(timeout=1.)
 

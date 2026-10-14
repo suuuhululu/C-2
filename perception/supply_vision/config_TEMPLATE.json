@@ -1,18 +1,37 @@
 {
   "config_id": null,
-  "observation_id": null,
   "calibration_id": null,
   "rgb_topic": "/camera/color/image_raw",
-  "image_size": [null, null],
+  "weights": "../models/supply_top_yolo26s_seg_20261013/best.pt",
+  "image_size": [
+    null,
+    null
+  ],
   "candidate_confidence": null,
   "confidence": null,
   "slots": [
-    {"brick_type": "2x3x1", "color": "blue", "slot": 1, "roi_xyxy": [null, null, null, null], "grasp_edge_pair": null}
+    {
+      "brick_type": "2x3x1",
+      "color": "blue",
+      "slot": 1,
+      "roi_xyxy": [
+        null,
+        null,
+        null,
+        null
+      ],
+      "grasp_edge_pair": null
+    }
   ],
   "surface": {
     "minimum_area": null,
     "approx_fraction": null,
     "minimum_fill": null,
-    "hsv_ranges": {"yellow": [], "blue": [], "red": []}
-  }
+    "hsv_ranges": {
+      "yellow": [],
+      "blue": [],
+      "red": []
+    }
+  },
+  "view_id": "SUPPLY_VIEW"
 }
