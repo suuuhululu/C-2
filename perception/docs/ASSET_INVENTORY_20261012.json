@@ -1,0 +1,4512 @@
+{
+  "generated": "2026-10-12",
+  "source_head": "c67d3721675d0b6bed30b29a22315bb47a96a9ab",
+  "scope": "Current B asset working tree; no deletion/transfer. Full SHA below.",
+  "git_commit_reference": "https://github.com/suuuhululu/C-2/tree/c67d372/perception",
+  "files": [
+    {
+      "path": "perception/calibration/.gitignore",
+      "bytes": 52,
+      "sha256": "5f5aae3fb4bb4eab30c258c5f1323cea7287c6a51d985f54701cd951f44ad8bc",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/calibration/HANDOFF_STATUS.md",
+      "bytes": 757,
+      "sha256": "6e68f9e3c5f5beec71e210eecfec43b37cf91385118a8e1c775f63ee1061ca15",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/calibration/HONGDONG_DELIVERY_NOTE.md",
+      "bytes": 1433,
+      "sha256": "35a788566817f3f8932eaea849569047ee125ea2919fc6f41f8c5d13bb573285",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/calibration/HONGDONG_VISION_GUIDE.md",
+      "bytes": 12383,
+      "sha256": "ad3bfd27e136f41907344a9e5c2b91e629443b143ce0965178876046b0edc3fe",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/calibration/MANIFEST.json",
+      "bytes": 4772,
+      "sha256": "3a45b7cf7b9734de2578d5bc7d9b4f80a879cc9de929a4785f1ceb6cc59fd630",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/calibration/README_ko.md",
+      "bytes": 24373,
+      "sha256": "96417ada636c1c7c6d0543a75fedc1d6717fb42fe0fcaa983e498ac76bba2d6e",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/calibration/build_handoff.py",
+      "bytes": 4000,
+      "sha256": "66266fbd2234188623b49b4a97bdf240b2753db189fc7ad56b15e7f147a0a83c",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/calibration/capture_ros.py",
+      "bytes": 3520,
+      "sha256": "4ed045c18792f697e5e3ba3895d6683707e39db65200334357d2ae895ce4b607",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/calibration/captures/empty.intrinsics.json",
+      "bytes": 545,
+      "sha256": "481639dc392e144b94f12a8554a3e36e043d38093a388fb439c57a84547de82e",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/calibration/captures/empty.png",
+      "bytes": 1187086,
+      "sha256": "5154db834b542156c2aaa866ce49418731a7fab8b96864be1a74722cb336308d",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/calibration/captures/validation_points.json",
+      "bytes": 704,
+      "sha256": "2ec15390a19a8c2926195c57675732dd9ed3f77bc62bac0c36c97685bef488c0",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/calibration/captures/validation_points_zero_based_corrected.json",
+      "bytes": 1496,
+      "sha256": "e91f7531d4ee21f0d2d101f951ed37810092d32caf6e4f3cbc6c4c6922da29da",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/calibration/examples/intrinsics_FORMAT_ONLY.json",
+      "bytes": 318,
+      "sha256": "99c890f7ccee5a10464473781a170724a2ea25b95326a2588edc06ef477ac713",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/calibration/examples/marker_layout_FORMAT_ONLY.json",
+      "bytes": 712,
+      "sha256": "f49fd156f62f10dd395cc5fb79f9a27aad6ab2999ddb7b765e9fa787d0c00ba6",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/calibration/examples/points_FORMAT_ONLY.json",
+      "bytes": 627,
+      "sha256": "f13e9c85685c96d89c621ab5daf093dac567ed85be593bda431890309242b003",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/calibration/examples/robot_points_FORMAT_ONLY.json",
+      "bytes": 618,
+      "sha256": "0a1743e5dfbe31aeaa5beb60fb4cc480c51a6c17f6859579c2c9c5793db1f265",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/calibration/geometry.py",
+      "bytes": 13384,
+      "sha256": "7e4e630191ee6b8fab587e0cd74dde37f1044b15a49e2a7c4c40def1a57cd984",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/calibration/lego_grid.py",
+      "bytes": 24556,
+      "sha256": "45b89629fb8b4542843cc843cb67c7885467ccdda4e040a225a6e3889c6da169",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/calibration/requirements.txt",
+      "bytes": 160,
+      "sha256": "224e8a8a43cf0c5f135164358c128856a079b882b2bcbe914e2285b2039b082e",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/calibration/runs/view01/calibration.json",
+      "bytes": 3281,
+      "sha256": "73a83510b9ecc7a2dc73af0d540aabf363f3cb460c828c7db32ca3167b7a2658",
+      "state": "local_untracked"
+    },
+    {
+      "path": "perception/calibration/runs/view01/empty.png",
+      "bytes": 1187086,
+      "sha256": "5154db834b542156c2aaa866ce49418731a7fab8b96864be1a74722cb336308d",
+      "state": "local_untracked"
+    },
+    {
+      "path": "perception/calibration/runs/view01/grid_overlay.png",
+      "bytes": 1285977,
+      "sha256": "1002bad67ad5157d639419a7e7e9e1b2888c6fad98b48d38cede711c23c4ff9e",
+      "state": "local_untracked"
+    },
+    {
+      "path": "perception/calibration/runs/view01/stud_coordinates.csv",
+      "bytes": 33457,
+      "sha256": "0e930190c3985172963abdc9e330b284ed6cd989d6cc39baeceba7cfab3ca699",
+      "state": "local_untracked"
+    },
+    {
+      "path": "perception/calibration/runs/view01/validation.json",
+      "bytes": 398,
+      "sha256": "5dd65fee24a6565b3ef1aa514bd6089a1fee7998f2cbe5e8992af8d51c5270ef",
+      "state": "local_untracked"
+    },
+    {
+      "path": "perception/calibration/runs/view01/validation_zero_based_corrected.json",
+      "bytes": 427,
+      "sha256": "ce1af868d2a15ba91a444ede90b8b01c6eb16c2e8ec8eb7faad97b62038aae3a",
+      "state": "local_untracked"
+    },
+    {
+      "path": "perception/calibration/tests/test_geometry.py",
+      "bytes": 11342,
+      "sha256": "6d3516bc05bb1822cd028973e563eef4bfd6843ec03e828fed6e1e5bd0b41bb0",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/calibration/tests/test_vision_coordinates.py",
+      "bytes": 1976,
+      "sha256": "da3018df0eef22260cc92f6d21a1c09fe074ee4198eae52df9bd792202a8804c",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/calibration/vision_coordinates.py",
+      "bytes": 3344,
+      "sha256": "3aa02424c7b3912671e36e9f7307e49bde0474a2d7799c4a8492662bc7a483e7",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/calibration/vision_demo_node.py",
+      "bytes": 4284,
+      "sha256": "719e95e8c43af03c3837bd1f147d6a0b3596a67fa94522a9d336788a2623ba10",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/labeling/hand_dataset/C2_hand_trial_clean.ipynb",
+      "bytes": 4049,
+      "sha256": "b1b3ea6facb2f948e25a472072c953f7926d3d6f752588f858e366d9eaa3f46e",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/labeling/hand_dataset/README.md",
+      "bytes": 3479,
+      "sha256": "6e276c4513723dbf1472308d6b860df0b652f836aee327214c5d64cf61563e8b",
+      "state": "tracked",
+      "matches_head": false
+    },
+    {
+      "path": "perception/labeling/hand_dataset/classes.txt",
+      "bytes": 5,
+      "sha256": "fad6926e5d29328d046acfeec861ebb77e575b98dc481be745dff8308484ff49",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/labeling/hand_dataset/colab_added_20261012.py",
+      "bytes": 2156,
+      "sha256": "ac5428b2114643d3521858cb524bf6c074f7fd784a27f2f7f536631394ccf860",
+      "state": "local_untracked"
+    },
+    {
+      "path": "perception/labeling/hand_dataset/colab_run_hand.py",
+      "bytes": 2820,
+      "sha256": "55272d5d05fb6c08aaae245baf91c34593c904725364cc8daa16dabad4f90065",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/labeling/hand_dataset/colab_train_trial.py",
+      "bytes": 2895,
+      "sha256": "7a0d993a001a899fad83d3fbef6f790b52c145001a3d474bb564b61efbc8a6d6",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/labeling/hand_dataset/data_added_20261012.yaml",
+      "bytes": 163,
+      "sha256": "0d816152274ea61fcdbff316f8ab34256d094c567f6ea70a4cf72cda08a70959",
+      "state": "local_untracked"
+    },
+    {
+      "path": "perception/labeling/hand_dataset/data_trial.yaml",
+      "bytes": 156,
+      "sha256": "ad62f5193b7f183a79cdaf485b8d6f85f19d4004ff7443a4b13782cab2903e0c",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/labeling/hand_dataset/hand_added_20261012.zip",
+      "bytes": 26767688,
+      "sha256": "0a45ba2a26666932917eecb978a8268df8753c78cbe1055e6e6ce2e518331da5",
+      "state": "local_untracked"
+    },
+    {
+      "path": "perception/labeling/hand_dataset/hand_train_trial.zip",
+      "bytes": 11889099,
+      "sha256": "309e48b379c73a3a8f4228573ba46abf435204de7aa5c2c6ee068a2d7a8282aa",
+      "state": "local_untracked"
+    },
+    {
+      "path": "perception/labeling/hand_dataset/images/train/hand_v0_00s.png",
+      "bytes": 696047,
+      "sha256": "753bb3fec6c7f58f1b6721427c289c3f5e5413c68e1c4f9b68849a26a0cb67c6",
+      "state": "local_untracked"
+    },
+    {
+      "path": "perception/labeling/hand_dataset/images/train/hand_v0_02s.png",
+      "bytes": 838302,
+      "sha256": "25c7261ce447630c3969a59f2ff4df7e5f4cd918eab6e1d8e96f962270c55aa3",
+      "state": "local_untracked"
+    },
+    {
+      "path": "perception/labeling/hand_dataset/images/train/hand_v0_04s.png",
+      "bytes": 919118,
+      "sha256": "c3991f43383077f6879f7572ade923af1fb41162a5906e96ca24295f28462b49",
+      "state": "local_untracked"
+    },
+    {
+      "path": "perception/labeling/hand_dataset/images/train/hand_v0_08s.png",
+      "bytes": 879009,
+      "sha256": "7bdfa9c77f67c5cf7ba57221f4662546b8e65a7993e19fff4e6e981e859fad78",
+      "state": "local_untracked"
+    },
+    {
+      "path": "perception/labeling/hand_dataset/images/train/hand_v0_10s.png",
+      "bytes": 877171,
+      "sha256": "5ce3a57a2d8ebc7bd1406ee67e553400f0980c955e542f87b594ccdd82638be9",
+      "state": "local_untracked"
+    },
+    {
+      "path": "perception/labeling/hand_dataset/images/train/hand_v0_12s.png",
+      "bytes": 818340,
+      "sha256": "cdc14be78275c2eb9486505f1faed9c5b67f0b89af75ec3e0c01b7ac1cd014cd",
+      "state": "local_untracked"
+    },
+    {
+      "path": "perception/labeling/hand_dataset/images/train/hand_v0_14s.png",
+      "bytes": 833402,
+      "sha256": "0b4a42006984b99dd8d2d06ecbe0938e358ed3240ee441d3d91f57a5678e448e",
+      "state": "local_untracked"
+    },
+    {
+      "path": "perception/labeling/hand_dataset/images/train/hand_v0_16s.png",
+      "bytes": 819432,
+      "sha256": "e51f618ca1790ff7057237483b0cac5e03820892eee58a98aa2e7ae21be89df7",
+      "state": "local_untracked"
+    },
+    {
+      "path": "perception/labeling/hand_dataset/images/train/hand_v0_20261012_100343.png",
+      "bytes": 1140551,
+      "sha256": "c2e0a15a8a80038c2804696db9f44efcafe0dd79cea323e2000d495fc3b5bbbe",
+      "state": "local_untracked"
+    },
+    {
+      "path": "perception/labeling/hand_dataset/images/train/hand_v0_20261012_100349.png",
+      "bytes": 1140612,
+      "sha256": "910ab8513159343dbfa62e6728018677f408870f8ebaeb913aec31b91c8cbb79",
+      "state": "local_untracked"
+    },
+    {
+      "path": "perception/labeling/hand_dataset/images/train/hand_v0_20261012_100358.png",
+      "bytes": 1186616,
+      "sha256": "a2f26b854160b96f24958af7aa9cdcc06998659cfed081a990d900000f8ddcbf",
+      "state": "local_untracked"
+    },
+    {
+      "path": "perception/labeling/hand_dataset/images/train/hand_v0_20261012_100403.png",
+      "bytes": 1160541,
+      "sha256": "cfc2414bf2721141f3cf26f52089283f72db1365a941d970e0e848252573d0c0",
+      "state": "local_untracked"
+    },
+    {
+      "path": "perception/labeling/hand_dataset/images/train/hand_v0_20261012_100406.png",
+      "bytes": 1174034,
+      "sha256": "ad4a1fa7044a6dfbc4318179d58fb417164beebb9b12534dbb53f4fa69613c72",
+      "state": "local_untracked"
+    },
+    {
+      "path": "perception/labeling/hand_dataset/images/train/hand_v0_20261012_100411.png",
+      "bytes": 1162353,
+      "sha256": "ca93bdcf3c0997f8b4544f336ec29a8461699762d0a648b423623f83fc2c57d2",
+      "state": "local_untracked"
+    },
+    {
+      "path": "perception/labeling/hand_dataset/images/train/hand_v0_20261012_100426.png",
+      "bytes": 1123269,
+      "sha256": "16f770900ae922f938792cdcaf67268fc3f2e961f8af69f20c324beb94bd7cdc",
+      "state": "local_untracked"
+    },
+    {
+      "path": "perception/labeling/hand_dataset/images/train/hand_v0_20261012_100427.png",
+      "bytes": 1124079,
+      "sha256": "d389b5fcc69437f3c88e56eed4a402dc1126c8258b1a752fd1e59e1246454488",
+      "state": "local_untracked"
+    },
+    {
+      "path": "perception/labeling/hand_dataset/images/train/hand_v0_20261012_100429.png",
+      "bytes": 1143097,
+      "sha256": "12706593fdb5c8cd3b75feadfef764f35edbbaa4d8263ee25fda6fd140d74aab",
+      "state": "local_untracked"
+    },
+    {
+      "path": "perception/labeling/hand_dataset/images/train/hand_v0_20261012_100432.png",
+      "bytes": 1126953,
+      "sha256": "393a72716620014d081bd323b2d5b6b5a3a35d983b175da6d085714cdc54277d",
+      "state": "local_untracked"
+    },
+    {
+      "path": "perception/labeling/hand_dataset/images/train/hand_v0_20261012_100435.png",
+      "bytes": 1134423,
+      "sha256": "aa070eba3e1584a54d3098f4256e6fbc81f18228fadeb43c26831bc55f80eff0",
+      "state": "local_untracked"
+    },
+    {
+      "path": "perception/labeling/hand_dataset/images/train/hand_v0_20261012_100437.png",
+      "bytes": 1157056,
+      "sha256": "466af162992b6a4fc2f36c13db53be84b07fcd10295e9fb88fb6909b18e47a2f",
+      "state": "local_untracked"
+    },
+    {
+      "path": "perception/labeling/hand_dataset/images/train/hand_v0_20261012_100439.png",
+      "bytes": 1120244,
+      "sha256": "4a38247da6e721a7b8b167ccd2740af83bf1a14b02e7555974a24b4e7b162cfc",
+      "state": "local_untracked"
+    },
+    {
+      "path": "perception/labeling/hand_dataset/images/train/hand_v0_20s.png",
+      "bytes": 871733,
+      "sha256": "94a2429907cdabcc9f8b976367bdaf1c036cf462d6789771e931b051fd6e4225",
+      "state": "local_untracked"
+    },
+    {
+      "path": "perception/labeling/hand_dataset/images/train/hand_v0_22s.png",
+      "bytes": 837202,
+      "sha256": "5533d3623bef12a363c0783914f57f2bbe21495f463fe95f0606f8b463c2e6b3",
+      "state": "local_untracked"
+    },
+    {
+      "path": "perception/labeling/hand_dataset/images/train/hand_v0_24s.png",
+      "bytes": 822483,
+      "sha256": "24e4ba16996a5792935f5a4f6243041f4698f7a165ae192af8a074e67aa3c066",
+      "state": "local_untracked"
+    },
+    {
+      "path": "perception/labeling/hand_dataset/images/train/hand_v0_26s.png",
+      "bytes": 826277,
+      "sha256": "444e19144f76d6542d245647e7cb1f32379a0dd354a1273df4b7c2097e5919ea",
+      "state": "local_untracked"
+    },
+    {
+      "path": "perception/labeling/hand_dataset/images/train/hand_v0_28s.png",
+      "bytes": 913312,
+      "sha256": "6d4e6a2aee55ae39fc4eac4ddc14f86bc25612c7801aba10ecdf45b77c2dfdac",
+      "state": "local_untracked"
+    },
+    {
+      "path": "perception/labeling/hand_dataset/images/train/hand_v0_34s.png",
+      "bytes": 885714,
+      "sha256": "f1312b46eabbd825001d874439238e7057adb09201cdcbac408b2ffd3d3634e7",
+      "state": "local_untracked"
+    },
+    {
+      "path": "perception/labeling/hand_dataset/images/train/hand_v0_36s.png",
+      "bytes": 741453,
+      "sha256": "8803e0a5e3de428c7a8c2f09609cebdd5c6572981eff6df4f4c2a15c3d27784d",
+      "state": "local_untracked"
+    },
+    {
+      "path": "perception/labeling/hand_dataset/images/train/hand_v0_38s.png",
+      "bytes": 847024,
+      "sha256": "3a55184bebef6250bada412f6da19fd4b5d502bc5790899ae382f55297e84477",
+      "state": "local_untracked"
+    },
+    {
+      "path": "perception/labeling/hand_dataset/labels/train/hand_v0_00s.txt",
+      "bytes": 92,
+      "sha256": "55e7f990dcf14242d1df7712da5bd4169f0234956ab3bc4e332fe26e3cd222df",
+      "state": "local_untracked"
+    },
+    {
+      "path": "perception/labeling/hand_dataset/labels/train/hand_v0_02s.txt",
+      "bytes": 92,
+      "sha256": "471ee7828aaf6ab4579455569ae3c76de62bdef36111a423499793c2649a5590",
+      "state": "local_untracked"
+    },
+    {
+      "path": "perception/labeling/hand_dataset/labels/train/hand_v0_04s.txt",
+      "bytes": 92,
+      "sha256": "237286e07452f9c10169014522074be1f0e51cd90e6a9b922396792a5c8edeff",
+      "state": "local_untracked"
+    },
+    {
+      "path": "perception/labeling/hand_dataset/labels/train/hand_v0_08s.txt",
+      "bytes": 92,
+      "sha256": "977b48bd97c0ea6b5a72e8ee130f518003fcb56e1768a005222f7f44acd13ff4",
+      "state": "local_untracked"
+    },
+    {
+      "path": "perception/labeling/hand_dataset/labels/train/hand_v0_10s.txt",
+      "bytes": 92,
+      "sha256": "ca71e9f2de191799c03f01632ab188eb10c92abe75e66d9b427f530121e58822",
+      "state": "local_untracked"
+    },
+    {
+      "path": "perception/labeling/hand_dataset/labels/train/hand_v0_12s.txt",
+      "bytes": 46,
+      "sha256": "98915956266403895a4d5c4210277e031fad4d268bdc3c6b7e99f941985dace9",
+      "state": "local_untracked"
+    },
+    {
+      "path": "perception/labeling/hand_dataset/labels/train/hand_v0_14s.txt",
+      "bytes": 46,
+      "sha256": "2457194f846ab7793c348d7b34d10a06c101c5fd636d52c4424141ae042baebb",
+      "state": "local_untracked"
+    },
+    {
+      "path": "perception/labeling/hand_dataset/labels/train/hand_v0_16s.txt",
+      "bytes": 92,
+      "sha256": "6129929f6a75759dda521c9828f1989e8c185d718a5d3eca28ad780630a770fb",
+      "state": "local_untracked"
+    },
+    {
+      "path": "perception/labeling/hand_dataset/labels/train/hand_v0_20261012_100343.txt",
+      "bytes": 92,
+      "sha256": "9a97a9932a6016115485fb432291f62e2cab6ebb7d079f14f47ce7a4aa1818d6",
+      "state": "local_untracked"
+    },
+    {
+      "path": "perception/labeling/hand_dataset/labels/train/hand_v0_20261012_100349.txt",
+      "bytes": 92,
+      "sha256": "43582020148df4a4c3ff4de510e01b86579223988a725ad3e0560664701c1973",
+      "state": "local_untracked"
+    },
+    {
+      "path": "perception/labeling/hand_dataset/labels/train/hand_v0_20261012_100358.txt",
+      "bytes": 92,
+      "sha256": "30533fead21a409f9a99c75ea6e2746d53e501183a5956a4b2428f52d58fe219",
+      "state": "local_untracked"
+    },
+    {
+      "path": "perception/labeling/hand_dataset/labels/train/hand_v0_20261012_100403.txt",
+      "bytes": 92,
+      "sha256": "b03c9523f75d63d38e23c9f2346766a65c562fa0818e21f55f74a1a1c61862a5",
+      "state": "local_untracked"
+    },
+    {
+      "path": "perception/labeling/hand_dataset/labels/train/hand_v0_20261012_100406.txt",
+      "bytes": 92,
+      "sha256": "17405f8facd7cb680786fe864734d85a634ac2cf5db12c73d6e02a4123b48dee",
+      "state": "local_untracked"
+    },
+    {
+      "path": "perception/labeling/hand_dataset/labels/train/hand_v0_20261012_100411.txt",
+      "bytes": 92,
+      "sha256": "631ed921bb3112154cfcb1f2feb1548cb35e6e80b74482828f13b342f77f3223",
+      "state": "local_untracked"
+    },
+    {
+      "path": "perception/labeling/hand_dataset/labels/train/hand_v0_20261012_100426.txt",
+      "bytes": 92,
+      "sha256": "79b1cacb78602771571c64a9918b3fb4d27469fba68451462d3ae7c86f91a645",
+      "state": "local_untracked"
+    },
+    {
+      "path": "perception/labeling/hand_dataset/labels/train/hand_v0_20261012_100427.txt",
+      "bytes": 92,
+      "sha256": "51ea8acc1304035b34f2d771ab409688813e22fd4f5ae9fa7198ccc30123423c",
+      "state": "local_untracked"
+    },
+    {
+      "path": "perception/labeling/hand_dataset/labels/train/hand_v0_20261012_100429.txt",
+      "bytes": 92,
+      "sha256": "923b1ab579f95b99f9a4c96cfdcc0f58f7b11e1a962151a6717943b0b94413ab",
+      "state": "local_untracked"
+    },
+    {
+      "path": "perception/labeling/hand_dataset/labels/train/hand_v0_20261012_100432.txt",
+      "bytes": 92,
+      "sha256": "b8e1f77e6013a331922b7713d2ee3d52b108fe55e56bfa872d4050c31a6c37af",
+      "state": "local_untracked"
+    },
+    {
+      "path": "perception/labeling/hand_dataset/labels/train/hand_v0_20261012_100435.txt",
+      "bytes": 92,
+      "sha256": "30648f55c7466b47edda6cc191d23e7f9a8d6ca7db74885de87447b0db6b2b44",
+      "state": "local_untracked"
+    },
+    {
+      "path": "perception/labeling/hand_dataset/labels/train/hand_v0_20261012_100437.txt",
+      "bytes": 92,
+      "sha256": "fc50b4d25b2df9ea3035c738121d02ae1ab2a76fd78877c14c3391850d26be33",
+      "state": "local_untracked"
+    },
+    {
+      "path": "perception/labeling/hand_dataset/labels/train/hand_v0_20261012_100439.txt",
+      "bytes": 92,
+      "sha256": "bc8b286129971d44bdf032da2c57c6e1ee1feec5b31db9d78c93f06d0dcb58cf",
+      "state": "local_untracked"
+    },
+    {
+      "path": "perception/labeling/hand_dataset/labels/train/hand_v0_20s.txt",
+      "bytes": 92,
+      "sha256": "b0aae905b80ea22fc3e91f09f180bb5dc6b1efc7d70db5fc60367959f34de7da",
+      "state": "local_untracked"
+    },
+    {
+      "path": "perception/labeling/hand_dataset/labels/train/hand_v0_22s.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "state": "local_untracked"
+    },
+    {
+      "path": "perception/labeling/hand_dataset/labels/train/hand_v0_24s.txt",
+      "bytes": 92,
+      "sha256": "82c65e00f29fdcce4ccb85e7948716e6ee54e29c0deca484c61eb8f8e78f2e00",
+      "state": "local_untracked"
+    },
+    {
+      "path": "perception/labeling/hand_dataset/labels/train/hand_v0_26s.txt",
+      "bytes": 92,
+      "sha256": "b82d30de237d0d561999a827b69e384013384400ea5a8568ba7d4b428f44cacd",
+      "state": "local_untracked"
+    },
+    {
+      "path": "perception/labeling/hand_dataset/labels/train/hand_v0_28s.txt",
+      "bytes": 92,
+      "sha256": "8ec1ff22c68323ff4ce45a0ec9e164092e20f429ef7c5e202531521c7d3e2f04",
+      "state": "local_untracked"
+    },
+    {
+      "path": "perception/labeling/hand_dataset/labels/train/hand_v0_34s.txt",
+      "bytes": 46,
+      "sha256": "ceb215da63cd2e24af18155e79a4536914e192269259d39f2c845dde852957f3",
+      "state": "local_untracked"
+    },
+    {
+      "path": "perception/labeling/hand_dataset/labels/train/hand_v0_36s.txt",
+      "bytes": 92,
+      "sha256": "8af4dc31e5619f441a3d6e75aa9d81dc35cdaad88f23c0c4c97dda0147f626ef",
+      "state": "local_untracked"
+    },
+    {
+      "path": "perception/labeling/hand_dataset/labels/train/hand_v0_38s.txt",
+      "bytes": 92,
+      "sha256": "db7c963f32550ccde8eb201c0205a5b135fdecd025cc19e88838bc56bd594d49",
+      "state": "local_untracked"
+    },
+    {
+      "path": "perception/labeling/hand_dataset/labels/train.cache",
+      "bytes": 8215,
+      "sha256": "83ac97bc8d2bf91a7bb58bd39736f04a4864410bbf85c0fdf47e75f3fb2be1c1",
+      "state": "local_untracked"
+    },
+    {
+      "path": "perception/labeling/hand_dataset/provenance.json",
+      "bytes": 7786,
+      "sha256": "067d51e494b3e7a0274c06e1f2f8394aab5eaca4d8216b33af20a72ffdd3d23d",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/labeling/hand_dataset/provenance_20261012.json",
+      "bytes": 8152,
+      "sha256": "2209d459c8bf36d0e4baa74b8a9864d93701041aeed87c82e9b84a44c26eea3f",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/labeling/hand_dataset/review_required/images/hand_v0_06s.png",
+      "bytes": 790906,
+      "sha256": "b82947f98a3e9a982727149633b0a2ecfbc766f735faa46360909c44a59e6385",
+      "state": "local_untracked"
+    },
+    {
+      "path": "perception/labeling/hand_dataset/review_required/images/hand_v0_18s.png",
+      "bytes": 812918,
+      "sha256": "3f04677b7e6dcfcc805719a7330175b50a0d9f84b4374325c385888026af76fd",
+      "state": "local_untracked"
+    },
+    {
+      "path": "perception/labeling/hand_dataset/review_required/images/hand_v0_30s.png",
+      "bytes": 751692,
+      "sha256": "710b1b7b118e5fe3bcc8ba564d11aacf3c1819a1edf20f6903aa9c1663c95449",
+      "state": "local_untracked"
+    },
+    {
+      "path": "perception/labeling/hand_dataset/review_required/images/hand_v0_32s.png",
+      "bytes": 764632,
+      "sha256": "01ecd377a1ea493fa3782b0b0bd4887afe0100ce6ffbb4fc6678d38373fc8f03",
+      "state": "local_untracked"
+    },
+    {
+      "path": "perception/labeling/hand_dataset/review_required/labels/hand_v0_06s.txt",
+      "bytes": 92,
+      "sha256": "43e4808f742dd27889ff5ff1f976b276e826b0eab841aa75f24b35e514513d22",
+      "state": "local_untracked"
+    },
+    {
+      "path": "perception/labeling/hand_dataset/review_required/labels/hand_v0_18s.txt",
+      "bytes": 92,
+      "sha256": "3537c91827fa565e358346d0bfcbd62cd086c210ecbb8c44558c9f9407c2f079",
+      "state": "local_untracked"
+    },
+    {
+      "path": "perception/labeling/hand_dataset/review_required/labels/hand_v0_30s.txt",
+      "bytes": 92,
+      "sha256": "9ea95407b554c6fa4e9731009b2583425599d91bba5c356dd902ba4a9a30c476",
+      "state": "local_untracked"
+    },
+    {
+      "path": "perception/labeling/hand_dataset/review_required/labels/hand_v0_32s.txt",
+      "bytes": 92,
+      "sha256": "f4c7e9104fd6c52b21d570ed0df533caddfac8ae3bf83418422a0b7be4fc597d",
+      "state": "local_untracked"
+    },
+    {
+      "path": "perception/labeling/hand_dataset/train_added_20261012.py",
+      "bytes": 1691,
+      "sha256": "1a498587ca6e17f299869bfca85e76c7848f0a1dbc53d0eac4234cda49beca79",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/labeling/provenance.json",
+      "bytes": 560,
+      "sha256": "518e74008d1e5b20ad365d5874249cc38a71d9ad83f4ebad77736c43defa9340",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/labeling/supply_obb/README.md",
+      "bytes": 1476,
+      "sha256": "76aaa42a11f42ee37ad10b70d1e54024138d1441a82ba5fb4453b075a07a7a24",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/labeling/supply_obb/classes.txt",
+      "bytes": 48,
+      "sha256": "11492cf6ddfd4abef4cd844815e8b4fafcae55488ff4f9d754b1932423d8176c",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/labeling/supply_obb/image_sources.json",
+      "bytes": 3105,
+      "sha256": "93d9614fec421078ac9bfdcfa71d76e35017b5c6a41668f4a07c7dcec0c6faf2",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/labeling/supply_obb/images/supply_20261010_173244_177418.json",
+      "bytes": 22118,
+      "sha256": "1095c88371c0c31a01b6227c6132e93ab891326bee9700903effde8dd915d07b",
+      "state": "local_untracked"
+    },
+    {
+      "path": "perception/labeling/supply_obb/images/supply_20261010_173244_177418.png",
+      "bytes": 1204544,
+      "sha256": "3eb5d6a4bfa6c93592e10cca8dbb72bfc6f96600d12de3050fc98260ae846442",
+      "state": "local_untracked"
+    },
+    {
+      "path": "perception/labeling/supply_obb/images/supply_20261010_173313_600166.png",
+      "bytes": 1205446,
+      "sha256": "a49e83fda79278ee297b4b413e26d52c0195ce16b6b60bccc039cfc391c86658",
+      "state": "local_untracked"
+    },
+    {
+      "path": "perception/labeling/supply_obb/images/supply_20261010_173319_994194.png",
+      "bytes": 1204631,
+      "sha256": "a9d97a0395e9891701270ed771b26f12e17c61f872d473a91343ef2aae634a82",
+      "state": "local_untracked"
+    },
+    {
+      "path": "perception/labeling/supply_obb/images/supply_20261010_173322_368152.png",
+      "bytes": 1204477,
+      "sha256": "8a979bb342c21d02722497679379dd95a19012a8b543cf90484d343e6d3f3ac4",
+      "state": "local_untracked"
+    },
+    {
+      "path": "perception/labeling/supply_obb/images/supply_20261010_173325_884629.png",
+      "bytes": 1201857,
+      "sha256": "4252e12c319434dfd82644d0fa3d34f153da5ecf5d935232ba280f8100e24d00",
+      "state": "local_untracked"
+    },
+    {
+      "path": "perception/labeling/supply_obb/images/supply_20261010_173329_330442.png",
+      "bytes": 1200670,
+      "sha256": "ce4a21d9be0c28c0847999ba6c7e1f3206ab5a38aa6c5acf0148042016103b65",
+      "state": "local_untracked"
+    },
+    {
+      "path": "perception/labeling/supply_obb/images/supply_20261010_173332_470410.png",
+      "bytes": 1201849,
+      "sha256": "a325a17bb71775de3be8a2d10a842507324f9d3cce5edeab56efddc9fb333662",
+      "state": "local_untracked"
+    },
+    {
+      "path": "perception/labeling/supply_obb/images/supply_20261010_173338_457115.png",
+      "bytes": 1201212,
+      "sha256": "c6dff38196d7abf755a99608fb165e08d43ca98438ed8fed989b7a9b41f77f1e",
+      "state": "local_untracked"
+    },
+    {
+      "path": "perception/labeling/supply_obb/images/supply_20261010_173417_332094.png",
+      "bytes": 1237380,
+      "sha256": "39afd7d687299590287446d02d536712572fc644c5c6e1332f4d628ba0b0b08b",
+      "state": "local_untracked"
+    },
+    {
+      "path": "perception/labeling/supply_obb/images/supply_20261010_173419_713319.png",
+      "bytes": 1237411,
+      "sha256": "38003542d6305d169281a7698991a83a389e18531758b21ba320207150088a8c",
+      "state": "local_untracked"
+    },
+    {
+      "path": "perception/labeling/supply_obb/images/supply_20261010_173458_689162.png",
+      "bytes": 1205989,
+      "sha256": "004ec20087e25990a6cfe7db95a86f81db51489469a76c76f557629085b77a35",
+      "state": "local_untracked"
+    },
+    {
+      "path": "perception/labeling/supply_obb/images/supply_20261010_173501_289346.png",
+      "bytes": 1194536,
+      "sha256": "4f27d8a356710b47e291245d382dec8b60e80e00a07a54cbe6266e74905afc6f",
+      "state": "local_untracked"
+    },
+    {
+      "path": "perception/labeling/supply_obb/images/supply_20261012_092844.png",
+      "bytes": 1232320,
+      "sha256": "c1934785b47b7a999f7e3836b3264998731244299f80fae8a41aabb74cc30827",
+      "state": "local_untracked"
+    },
+    {
+      "path": "perception/labeling/supply_top_review_20261012/draw_draft.py",
+      "bytes": 3026,
+      "sha256": "9c6ac86214216503c3780d92918a45b6b9095d49854b35cc9e1d2c21f67ba36e",
+      "state": "local_untracked"
+    },
+    {
+      "path": "perception/labeling/supply_top_review_20261012/top_faces_closeup.png",
+      "bytes": 619529,
+      "sha256": "c3319f675fd87d7b85e17ccbda4ff25578bd88d56bfcc445101a00c4828a0ef2",
+      "state": "local_untracked"
+    },
+    {
+      "path": "perception/labeling/supply_top_review_20261012/top_faces_draft.json",
+      "bytes": 11783,
+      "sha256": "cbf7ce656d490887631f32bd300d913b42e3b8ff2f1583e363fda47e89e5a00c",
+      "state": "local_untracked"
+    },
+    {
+      "path": "perception/labeling/supply_top_review_20261012/top_faces_draft.png",
+      "bytes": 1230688,
+      "sha256": "df099ad458a6d71042d796586d0caab397a5bf08995b5e4755fd635f407b5c5a",
+      "state": "local_untracked"
+    },
+    {
+      "path": "perception/models/block_v1_six_runs_20261010/blocks_yolo11n_best.pt",
+      "bytes": 5993380,
+      "sha256": "85b69972fc077ae5fb722a15e2720e4a1f149222f9435ec154a7b13924efc85e",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/models/block_v1_six_runs_20261010/blocks_yolo26n_best.pt",
+      "bytes": 6531549,
+      "sha256": "0acf4dcf4bc5a14a85706ba27a0eafbd013be1b727525100c822d605002c67c7",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/models/block_v1_six_runs_20261010/blocks_yolo26s_best.pt",
+      "bytes": 23335325,
+      "sha256": "03bbfc963ba643ee1860220eb3fe856351841539db8282c83c3019332dd6a1b2",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/models/block_v1_six_runs_20261010/mask_iou_eval.py",
+      "bytes": 4746,
+      "sha256": "7692ddb8c635100eb367d8eda54245db53bd67771c36e10d8c7a07310ac8955f",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/models/hand_yolo11n_added_20261012/BoxF1_curve.png",
+      "bytes": 115660,
+      "sha256": "ffa104a5ba6fa62bcccae7a1b11ecbca3dfb7b97312ee00a183005b0a25fd800",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/models/hand_yolo11n_added_20261012/BoxPR_curve.png",
+      "bytes": 74807,
+      "sha256": "75dad870df05d2997864149642aedce33e5bf108ff7daecb5786f067204438a4",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/models/hand_yolo11n_added_20261012/BoxP_curve.png",
+      "bytes": 95551,
+      "sha256": "40ee85f204647a3fcf28372e660a045a053b18394b33e42eed338a0af5513e6c",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/models/hand_yolo11n_added_20261012/BoxR_curve.png",
+      "bytes": 100597,
+      "sha256": "499c54727754d777e65d9107bf68a7ee7cdc4e6ecf4a6dc21a0cd20fc27d3536",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/models/hand_yolo11n_added_20261012/TRIAL_SUMMARY.json",
+      "bytes": 310,
+      "sha256": "c3c75af2352071601a3591a78ca18b8f994267f77981d1847098a973685a5d7d",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/models/hand_yolo11n_added_20261012/args.yaml",
+      "bytes": 1724,
+      "sha256": "1a1577fc83dd56e9be729ad434673560678f7822ae4e9096cd3fb7e641ec26ee",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/models/hand_yolo11n_added_20261012/colab_training_output.txt",
+      "bytes": 54,
+      "sha256": "32c7b9ca7e7998c2a7362d774d0336bac6f55bd59510620920f9b7b2f8ab2d60",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/models/hand_yolo11n_added_20261012/confusion_matrix.png",
+      "bytes": 105989,
+      "sha256": "4d260059eeaa3671dcc650985f4483cffda4ccde47a8f3578e9d49a9d9ad8f87",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/models/hand_yolo11n_added_20261012/confusion_matrix_normalized.png",
+      "bytes": 89992,
+      "sha256": "e532b5f1eb352fa6be0bf06d331f2248a232caec544810c4065c4f7f32960a4b",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/models/hand_yolo11n_added_20261012/hand_added_result_20261012.zip",
+      "bytes": 19850417,
+      "sha256": "866d66dd5b2cf80ac1d7de1032dfbb3c0c2b75d698801b9cd24970f7a880dd9b",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/models/hand_yolo11n_added_20261012/in_sample_preview/hand_v0_00s.jpg",
+      "bytes": 182187,
+      "sha256": "3362e3e3515bd8d5abaae0665494a3f83fe8fd1764d3f06452b62bd9b74468e6",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/models/hand_yolo11n_added_20261012/in_sample_preview/hand_v0_02s.jpg",
+      "bytes": 195315,
+      "sha256": "06e608c8d1df38e4f20ff638423d809e815c4decb82aa0fd7c389e65ccda6e5f",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/models/hand_yolo11n_added_20261012/in_sample_preview/hand_v0_04s.jpg",
+      "bytes": 208570,
+      "sha256": "875d4e7510979e8b8c8f889b9060a93f32ec73a09531ef0f817e1c6799bdbc9e",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/models/hand_yolo11n_added_20261012/in_sample_preview/hand_v0_08s.jpg",
+      "bytes": 206595,
+      "sha256": "7a64b2442fc713617b0ad22d57e04d1563b15e307ad0e1499432114b574a5f2b",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/models/hand_yolo11n_added_20261012/in_sample_preview/hand_v0_10s.jpg",
+      "bytes": 199296,
+      "sha256": "0a17d8198a61026f4c6d3637178a9a6b6f3e214684c14066a14978bb2561319c",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/models/hand_yolo11n_added_20261012/in_sample_preview/hand_v0_12s.jpg",
+      "bytes": 187112,
+      "sha256": "996f7846a5323bf39a89b672ec96d3c067fd872b2b5c541e9b7bd3c235d403a8",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/models/hand_yolo11n_added_20261012/in_sample_preview/hand_v0_14s.jpg",
+      "bytes": 188210,
+      "sha256": "7e389e3775704180febd745447572f3a51e7c7a87b2da8a77ef19ba517a9e74e",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/models/hand_yolo11n_added_20261012/in_sample_preview/hand_v0_16s.jpg",
+      "bytes": 196892,
+      "sha256": "8d834497d08887b08a50d9106432158238adfc91da5d4fc4ae9cedcdb10eb4da",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/models/hand_yolo11n_added_20261012/in_sample_preview/hand_v0_20261012_100343.jpg",
+      "bytes": 282041,
+      "sha256": "fae4f87771611788e2d9dac74d4ae25fb830e39b9dafafa0b650332f4851cb4f",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/models/hand_yolo11n_added_20261012/in_sample_preview/hand_v0_20261012_100349.jpg",
+      "bytes": 283016,
+      "sha256": "28e1155fd2062f9e39ad5305ff5485cc4055abbd8dba45d4a37f3361cd01b353",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/models/hand_yolo11n_added_20261012/in_sample_preview/hand_v0_20261012_100358.jpg",
+      "bytes": 291030,
+      "sha256": "c60edc297f35e8734aa626a154ca211b44f92ec88b42544b26ec8c87a0c7b86e",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/models/hand_yolo11n_added_20261012/in_sample_preview/hand_v0_20261012_100403.jpg",
+      "bytes": 286733,
+      "sha256": "6200af1b4ab98ed103a9b300711ffc4cb587f14e2f178288f03d128429532686",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/models/hand_yolo11n_added_20261012/in_sample_preview/hand_v0_20261012_100406.jpg",
+      "bytes": 292293,
+      "sha256": "63ff8ceada51ba282b98e15a6ae12ad3a71e7bc0745bcf30dcc001f7c116009b",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/models/hand_yolo11n_added_20261012/in_sample_preview/hand_v0_20261012_100411.jpg",
+      "bytes": 284711,
+      "sha256": "2f792c7b4b2216f08a4ae784a6cc03cc22090026f433a9d5905075d79bb54a82",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/models/hand_yolo11n_added_20261012/in_sample_preview/hand_v0_20261012_100426.jpg",
+      "bytes": 275563,
+      "sha256": "0c767e6b0b6e065e491fe6f4673ff1ed113665f380e90b6958634f75efeedb17",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/models/hand_yolo11n_added_20261012/in_sample_preview/hand_v0_20261012_100427.jpg",
+      "bytes": 273010,
+      "sha256": "2a44ff40f292495e50ed253358d41654df18b05dea0109c4efd682a3ca8ba55c",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/models/hand_yolo11n_added_20261012/in_sample_preview/hand_v0_20261012_100429.jpg",
+      "bytes": 279892,
+      "sha256": "72253690605b271e172551973391bf3ed6f3086e93fdb60397af291e1add467f",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/models/hand_yolo11n_added_20261012/in_sample_preview/hand_v0_20261012_100432.jpg",
+      "bytes": 273381,
+      "sha256": "0bbf7072eb0952d1d2d54617051d2ac45cd5b0a69bcab566b561a3d0b2161f44",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/models/hand_yolo11n_added_20261012/in_sample_preview/hand_v0_20261012_100435.jpg",
+      "bytes": 276222,
+      "sha256": "b07514ae685e9a367b8aab59da25c48c2969c4ddae768aa9213796d7b55eada2",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/models/hand_yolo11n_added_20261012/in_sample_preview/hand_v0_20261012_100437.jpg",
+      "bytes": 285608,
+      "sha256": "8c489bedbf2aaa90152896714d64ad6ed1f6aad373f49db4306ace5c7c3a3a84",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/models/hand_yolo11n_added_20261012/in_sample_preview/hand_v0_20261012_100439.jpg",
+      "bytes": 276663,
+      "sha256": "31cf870cdf7e2d72ef99d162c5f2d5021088a23c87548a29fb19ff351e88e5b5",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/models/hand_yolo11n_added_20261012/in_sample_preview/hand_v0_20s.jpg",
+      "bytes": 201635,
+      "sha256": "42b4f861b846951c1b0c06c27313fd0df1a647fe697abf6b8dcdb813d09b48f1",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/models/hand_yolo11n_added_20261012/in_sample_preview/hand_v0_22s.jpg",
+      "bytes": 186450,
+      "sha256": "187e410c3b6c9343be9fa2190693eb0b6a18a88df3b0959f516ffe5294cc3b5d",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/models/hand_yolo11n_added_20261012/in_sample_preview/hand_v0_24s.jpg",
+      "bytes": 193381,
+      "sha256": "2fe3dc9f28b876fca5eab7ef007e0c1cba999c94c4961cfd8ed75bccf71b8c29",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/models/hand_yolo11n_added_20261012/in_sample_preview/hand_v0_26s.jpg",
+      "bytes": 193708,
+      "sha256": "72dcf8792c59636363dc97b8b45978561157001024946490216437016f65e338",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/models/hand_yolo11n_added_20261012/in_sample_preview/hand_v0_28s.jpg",
+      "bytes": 202831,
+      "sha256": "3feaae4758cc593f005b5bed56799128da822f12aeab58a919abfe0300631ad0",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/models/hand_yolo11n_added_20261012/in_sample_preview/hand_v0_34s.jpg",
+      "bytes": 194449,
+      "sha256": "0d71114ebaee7076238651218b1026be33e39c9fe10168d6484a5e19a3c6f69c",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/models/hand_yolo11n_added_20261012/in_sample_preview/hand_v0_36s.jpg",
+      "bytes": 189369,
+      "sha256": "35fe49ce39551c152250de3c46731f74f0b1c3cfe079786b31333c8721126f73",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/models/hand_yolo11n_added_20261012/in_sample_preview/hand_v0_38s.jpg",
+      "bytes": 200409,
+      "sha256": "4ab5a814e7a278500fe30f877294a4026af897b21216158fed959719ca23a00d",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/models/hand_yolo11n_added_20261012/labels.jpg",
+      "bytes": 109681,
+      "sha256": "86e76a37ff1799e769829d37046e961dee8497b29ccbba11f8b4417006f515ae",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/models/hand_yolo11n_added_20261012/results.csv",
+      "bytes": 4730,
+      "sha256": "8f6ff562ea5af8c5ce23b5789699e8457b2c2a65d37019942c4e2a75857031f0",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/models/hand_yolo11n_added_20261012/results.png",
+      "bytes": 224712,
+      "sha256": "265fd802acf272bc75574fe62bc0fec601973622fa6578f55fd65c32b3b7413e",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/models/hand_yolo11n_added_20261012/train_batch0.jpg",
+      "bytes": 336176,
+      "sha256": "a1aacfb90b2e56a415a2f640d749ba0bafd92b3147cae0c9657ee7686c22d061",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/models/hand_yolo11n_added_20261012/train_batch1.jpg",
+      "bytes": 336667,
+      "sha256": "64b4267377f71673d627b165a114433fcb412ee76475cd10be009b1e594fd41c",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/models/hand_yolo11n_added_20261012/train_batch2.jpg",
+      "bytes": 337657,
+      "sha256": "8e5df3450d478b3bd59acf9127ae7b45e7558300863c44f941153a2037b9b6db",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/models/hand_yolo11n_added_20261012/train_batch200.jpg",
+      "bytes": 262056,
+      "sha256": "6666eeb5836a16b90967b6bd471c4281ac573488a01b6468de09877a13543a15",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/models/hand_yolo11n_added_20261012/train_batch201.jpg",
+      "bytes": 265098,
+      "sha256": "4c0f702cdc932a2b8c6a5559f8f612ef72a8eecbaa52423d8bd7bfb1a64531ab",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/models/hand_yolo11n_added_20261012/train_batch202.jpg",
+      "bytes": 271480,
+      "sha256": "17e3aa08cc7a4848b1772995c7bb42b493e884eed4516e95847626de2045adc3",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/models/hand_yolo11n_added_20261012/val_batch0_labels.jpg",
+      "bytes": 338834,
+      "sha256": "7d25b86fe0cdba99aea71bc5e0332ab9e93aadbd8f7a1185de535f4ea9e2baa2",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/models/hand_yolo11n_added_20261012/val_batch0_pred.jpg",
+      "bytes": 348847,
+      "sha256": "b11457911fe1d27d492e2a7cea054bbd5d3ea0f83416885e87cd86616efcb5ee",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/models/hand_yolo11n_added_20261012/val_batch1_labels.jpg",
+      "bytes": 262346,
+      "sha256": "ca506a7f63977ea440f63432f284873e3a3aef31b79bfbbb329998cccb18b3ab",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/models/hand_yolo11n_added_20261012/val_batch1_pred.jpg",
+      "bytes": 275488,
+      "sha256": "11f385508619ffb8967d5141e6b115da0e08f3f36c8992f7ec61b2dcbf8b2ba9",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/models/hand_yolo11n_added_20261012/weights/best.pt",
+      "bytes": 5449946,
+      "sha256": "55f150003a1ef36850cc9a902d6d0ae7bfd6b04d3b44e14876612323ef6df072",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/models/hand_yolo11n_added_20261012/weights/last.pt",
+      "bytes": 5449946,
+      "sha256": "33cceafa9c16457e9e79516a24dd9d8354babda3c0fec7aff4562a747663a626",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/models/hand_yolo11n_trial_20261010/hand_yolo11n_trial_best.pt",
+      "bytes": 5450266,
+      "sha256": "1329c1a4a8f7e4cee1996c83cf3d0d695425b56546503df213b057fbd1c5d08f",
+      "state": "missing_locally_preserved_in_git_commit",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/assembly_01/step_00_empty/V0/20261006T084518851632Z/depth_aligned.npy",
+      "bytes": 1843328,
+      "sha256": "daec8b4817f2202dc7d7c5d8cecf9e1876909232199c9930599ebb50bf888a59",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/assembly_01/step_00_empty/V0/20261006T084518851632Z/depth_aligned.png",
+      "bytes": 175571,
+      "sha256": "80097d694b663fbe655cba08eed64458b61d0a37155a6f65e467162e4387f997",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/assembly_01/step_00_empty/V0/20261006T084518851632Z/depth_raw.npy",
+      "bytes": 814208,
+      "sha256": "e82cec6e86d424bea9d82fafb186e02906d74151d40885762dfe3301d5f0a8d6",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/assembly_01/step_00_empty/V0/20261006T084518851632Z/depth_raw.png",
+      "bytes": 133616,
+      "sha256": "6fc778e26534c66af2e79e9ddae87b3a4699f497522723ad047a696f8708748f",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/assembly_01/step_00_empty/V0/20261006T084518851632Z/metadata.json",
+      "bytes": 3505,
+      "sha256": "dd079e779ea0d14f81862fb841f2478d6276222bb7bb955d4185bbd33c981433",
+      "state": "tracked",
+      "matches_head": true,
+      "capture": {
+        "view_id": "V0",
+        "captured_at": "2026-10-06T08:45:20.236884+00:00",
+        "mode": "REAL",
+        "scope": "CAPTURE_ONLY",
+        "recording_format": "ros_rgbd_capture_v1"
+      }
+    },
+    {
+      "path": "perception/recordings/assembly_01/step_00_empty/V0/20261006T084518851632Z/rgb.npy",
+      "bytes": 2764928,
+      "sha256": "3122b02a060b2a3dac2a9ece6e42d2eaa06cafb56ac6f67ebde490e99c30edcd",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/assembly_01/step_00_empty/V0/20261006T084518851632Z/rgb.png",
+      "bytes": 1192115,
+      "sha256": "5c36aa1c3da62cc23e2a33d11501f89d6f84d72ec99ccf6c84d3ec804c3cdd04",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/assembly_board_roi/D1/20261012T013855408603Z/assembly_roi.json",
+      "bytes": 520,
+      "sha256": "2d2c8a4b7c2a40f10baa32c6203612debb33b5d8c045bc553b70f5f49ee7d695",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/assembly_board_roi/D1/20261012T013855408603Z/rgb.png",
+      "bytes": 1178408,
+      "sha256": "d15be371a5def23dd4674526891aa43b620500c5eb00602c320ab777bf57374e",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/assembly_board_roi/D1/20261012T013855408603Z/roi_preview.png",
+      "bytes": 1188856,
+      "sha256": "88218711d9e4e714c677f69da3a5c931742e6ee8f21a5bbf2e12f9a9f02573df",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/assembly_board_roi/D3/20261012T014212174388Z/assembly_roi.json",
+      "bytes": 516,
+      "sha256": "3d4e744fea7527acc4eb359c72e0c830e179c65ce251a5cf0612278e596507b9",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/assembly_board_roi/D3/20261012T014212174388Z/rgb.png",
+      "bytes": 1192557,
+      "sha256": "4e0d5a483be873fc3d4aa59290878d5cd0658833a0fde5a822043a548d3cf9d0",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/assembly_board_roi/D3/20261012T014212174388Z/roi_preview.png",
+      "bytes": 1199350,
+      "sha256": "1683040d472f50c6b781eb68fad6071ce4a036caa9cd1c6d2b9af959f285304f",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/assembly_board_roi/V0/20261012T004735740339Z/assembly_roi.json",
+      "bytes": 399,
+      "sha256": "95f6adeaf94a47d77e537955618f8227a478e9ea676b6905fa42467019966d38",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/assembly_board_roi/V0/20261012T004735740339Z/hand_config.json",
+      "bytes": 659,
+      "sha256": "24624f3998db57bf66cc410d1a04eef2cd29ab2672112561fd38cfc783b73f0e",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/assembly_board_roi/V0/20261012T004735740339Z/rgb.png",
+      "bytes": 1100287,
+      "sha256": "3a2b51d6bd8f81f151394075b0a52204352fa80ce2a9c754b65496f157996b84",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/assembly_board_roi/V0/20261012T004735740339Z/roi_preview.png",
+      "bytes": 1107081,
+      "sha256": "aa9e2869c68d40c414fcc35206cd919c47eb6a5ca14fc2651ee91158bbc46277",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/block_depth_check/scene_01_yellow_2x2_layer_01/D1/20261007T094443029961Z/depth_aligned.npy",
+      "bytes": 1843328,
+      "sha256": "5590526427c800917712f1329fd30e5f5e6daaf1d3bb9cd5458cd803f5fdccc7",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/block_depth_check/scene_01_yellow_2x2_layer_01/D1/20261007T094443029961Z/depth_aligned.png",
+      "bytes": 222442,
+      "sha256": "b0890f7f8ca2cab1e55b8f1122bdc077dbca849a71dca0d38e73e5efc5499c68",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/block_depth_check/scene_01_yellow_2x2_layer_01/D1/20261007T094443029961Z/depth_raw.npy",
+      "bytes": 814208,
+      "sha256": "1c4d89184f449efa2dce27e1f3f1cbded52aec8848daadde203c4f10fb0e98c4",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/block_depth_check/scene_01_yellow_2x2_layer_01/D1/20261007T094443029961Z/depth_raw.png",
+      "bytes": 180754,
+      "sha256": "e7b857b4afa8da22be2c1b0266c6bdcb8c841dadc6a507b0df0fd26ce7da57f5",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/block_depth_check/scene_01_yellow_2x2_layer_01/D1/20261007T094443029961Z/metadata.json",
+      "bytes": 3505,
+      "sha256": "58d01faed96541207678846d0a7b89b74043fc962575a4225aba62a48fbc4d1a",
+      "state": "tracked",
+      "matches_head": true,
+      "capture": {
+        "view_id": "D1",
+        "captured_at": "2026-10-07T09:44:44.266719+00:00",
+        "mode": "REAL",
+        "scope": "CAPTURE_ONLY",
+        "recording_format": "ros_rgbd_capture_v1"
+      }
+    },
+    {
+      "path": "perception/recordings/block_depth_check/scene_01_yellow_2x2_layer_01/D1/20261007T094443029961Z/rgb.npy",
+      "bytes": 2764928,
+      "sha256": "4eba8a63b2c259e0288acda252ee3efa093efbff82aadd9af7447717fd72c354",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/block_depth_check/scene_01_yellow_2x2_layer_01/D1/20261007T094443029961Z/rgb.png",
+      "bytes": 1102305,
+      "sha256": "36856afb90d638a98a1232b105f01d730bd46ebb9762167574e657fc05ea7cd9",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/block_depth_check/scene_01_yellow_2x2_layer_01/D3/20261007T094539003160Z/depth_aligned.npy",
+      "bytes": 1843328,
+      "sha256": "6a9257efc041e9b900ba326aee908850bbb7f53cea4e960332d54e4469688d5e",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/block_depth_check/scene_01_yellow_2x2_layer_01/D3/20261007T094539003160Z/depth_aligned.png",
+      "bytes": 227914,
+      "sha256": "620af6b41f211ba0a6ef5f9583085412d355aa8c89b3c148f7a926ce905cb4ed",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/block_depth_check/scene_01_yellow_2x2_layer_01/D3/20261007T094539003160Z/depth_raw.npy",
+      "bytes": 814208,
+      "sha256": "634c0e7f4766f721752b24bf82edd7c9338a647d3cb972c8aef3b67089afb5a4",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/block_depth_check/scene_01_yellow_2x2_layer_01/D3/20261007T094539003160Z/depth_raw.png",
+      "bytes": 173231,
+      "sha256": "1387e2507cad7ab5b936917ff0a3f87958e4de2b2ac303ac68e90c380ed2c0c9",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/block_depth_check/scene_01_yellow_2x2_layer_01/D3/20261007T094539003160Z/metadata.json",
+      "bytes": 3500,
+      "sha256": "4c085b649d17ed9b84b7009c82baadc75df3423c3bf232be99c00582a54b36d3",
+      "state": "tracked",
+      "matches_head": true,
+      "capture": {
+        "view_id": "D3",
+        "captured_at": "2026-10-07T09:45:40.398289+00:00",
+        "mode": "REAL",
+        "scope": "CAPTURE_ONLY",
+        "recording_format": "ros_rgbd_capture_v1"
+      }
+    },
+    {
+      "path": "perception/recordings/block_depth_check/scene_01_yellow_2x2_layer_01/D3/20261007T094539003160Z/rgb.npy",
+      "bytes": 2764928,
+      "sha256": "3e4051974783b2e4fcfc182db54619344d54724afbf8af07aaa08c3cfc8d64ab",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/block_depth_check/scene_01_yellow_2x2_layer_01/D3/20261007T094539003160Z/rgb.png",
+      "bytes": 1092932,
+      "sha256": "97db0b63e18c3ab9e30e738e8c6aa113bd76c21e293858ce26084cc05bfaf04b",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/block_depth_check/scene_01_yellow_2x2_layer_01/V0/20261007T094351691156Z/depth_aligned.npy",
+      "bytes": 1843328,
+      "sha256": "502adaf3796542139f6d6052b02f84078bff91c03f4ff9696cb4a03546881c8e",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/block_depth_check/scene_01_yellow_2x2_layer_01/V0/20261007T094351691156Z/depth_aligned.png",
+      "bytes": 169922,
+      "sha256": "110a8db644ccddfe01fcdc3d52451d1e062eb1ad7931b33e83ea38323542b04b",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/block_depth_check/scene_01_yellow_2x2_layer_01/V0/20261007T094351691156Z/depth_raw.npy",
+      "bytes": 814208,
+      "sha256": "33752c6c351f3fa4ce42f5ccaed7b520ad5e692daeefb656caf2a977ba3c94b6",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/block_depth_check/scene_01_yellow_2x2_layer_01/V0/20261007T094351691156Z/depth_raw.png",
+      "bytes": 134077,
+      "sha256": "7103b6acc19a8f88ebe9d11a437c9f754979ac04df09850a42181e8e53d1a3ae",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/block_depth_check/scene_01_yellow_2x2_layer_01/V0/20261007T094351691156Z/metadata.json",
+      "bytes": 3511,
+      "sha256": "8ed9e99a5f8e9c2f417bebb2ec7c9d1e551fa065294ed3a3f730ec447be48028",
+      "state": "tracked",
+      "matches_head": true,
+      "capture": {
+        "view_id": "V0",
+        "captured_at": "2026-10-07T09:43:53.087568+00:00",
+        "mode": "REAL",
+        "scope": "CAPTURE_ONLY",
+        "recording_format": "ros_rgbd_capture_v1"
+      }
+    },
+    {
+      "path": "perception/recordings/block_depth_check/scene_01_yellow_2x2_layer_01/V0/20261007T094351691156Z/rgb.npy",
+      "bytes": 2764928,
+      "sha256": "2afc82933e517a88ae1a1338eef36f1243bad202857b5ace6ef77f34adcd1c74",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/block_depth_check/scene_01_yellow_2x2_layer_01/V0/20261007T094351691156Z/rgb.png",
+      "bytes": 1177475,
+      "sha256": "a790f919a64fd086f09d7d8ab984e52516ccf45b14089280dfd48316a659d000",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/block_depth_check/scene_01_yellow_2x2_layer_01/top_depth_review/D1_top_roi.png",
+      "bytes": 1102739,
+      "sha256": "a8f74f1672355ad6d3fc072acfcb4d4401a74dbdb24da994261b6612eef75f7e",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/block_depth_check/scene_01_yellow_2x2_layer_01/top_depth_review/D3_top_roi.png",
+      "bytes": 1093124,
+      "sha256": "6c6b36eb2bf6fc027ccf4d679ab1c26ca0072e8c9c7f5398cd913dc1d3d34779",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/block_depth_check/scene_01_yellow_2x2_layer_01/top_depth_review/REVIEW.md",
+      "bytes": 1998,
+      "sha256": "673643c1568225b3410771ab3594eb190e5aeda33a582c4beb2ef8b34a60a260",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/block_depth_check/scene_01_yellow_2x2_layer_01/top_depth_review/V0_top_roi.png",
+      "bytes": 1177541,
+      "sha256": "737fc6046984e72b836e6da729520fa7b262f5a0277b4d8f9659cc7463e88dca",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/block_depth_check/scene_01_yellow_2x2_layer_01/top_depth_review/block_height_report.json",
+      "bytes": 4478,
+      "sha256": "c9c713cedaa03ae07bbaf2266641fd7c36147863f580a2573ecc97dc6c78c3cb",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/block_depth_check/scene_01_yellow_2x2_layer_01/top_review_inputs.json",
+      "bytes": 1251,
+      "sha256": "bc3c90f7f6220f47aa91b403b73c2fd3a892489cd17764285b0f23917c92d7fb",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/block_depth_check/scene_02_yellow_2x2_layer_02/D1/20261007T105733133222Z/depth_aligned.npy",
+      "bytes": 1843328,
+      "sha256": "e5fc1454191296426e78bcf76d4decb511e1735059cae452d6d4653cea47871c",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/block_depth_check/scene_02_yellow_2x2_layer_02/D1/20261007T105733133222Z/depth_aligned.png",
+      "bytes": 226627,
+      "sha256": "88eb9e56b7f7273270414cf4a142eda2d2947bb10c47952412a19a79c5605350",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/block_depth_check/scene_02_yellow_2x2_layer_02/D1/20261007T105733133222Z/depth_raw.npy",
+      "bytes": 814208,
+      "sha256": "c74f4a627fcdc2a46d425332b8e38cae00c5d3dbe7fb5897157218122dfca375",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/block_depth_check/scene_02_yellow_2x2_layer_02/D1/20261007T105733133222Z/depth_raw.png",
+      "bytes": 174094,
+      "sha256": "a74b86bbdf26e141126b84c165ee19b8c6d96b16f592b1d68729b8c5fa16927f",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/block_depth_check/scene_02_yellow_2x2_layer_02/D1/20261007T105733133222Z/metadata.json",
+      "bytes": 3501,
+      "sha256": "9ddde849f33a298d96bdb40b002f4e3e91e661b8bb1a8f5b928bdf39a36ed488",
+      "state": "tracked",
+      "matches_head": true,
+      "capture": {
+        "view_id": "D1",
+        "captured_at": "2026-10-07T10:57:35.905144+00:00",
+        "mode": "REAL",
+        "scope": "CAPTURE_ONLY",
+        "recording_format": "ros_rgbd_capture_v1"
+      }
+    },
+    {
+      "path": "perception/recordings/block_depth_check/scene_02_yellow_2x2_layer_02/D1/20261007T105733133222Z/rgb.npy",
+      "bytes": 2764928,
+      "sha256": "c88622d4f5b3fe4b8accd6087741e7853dec5c6a8e80a46215426caa54866a96",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/block_depth_check/scene_02_yellow_2x2_layer_02/D1/20261007T105733133222Z/rgb.png",
+      "bytes": 1228302,
+      "sha256": "4e35cf89d952327e0838cb4e879e6d5356ddef258b64a5916f17440cecaccd6b",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/block_depth_check/scene_02_yellow_2x2_layer_02/D3/20261007T105810419609Z/depth_aligned.npy",
+      "bytes": 1843328,
+      "sha256": "d024beaf2ba64b387113f20a449069bc797b3721d73a09933131b47d93ddd02d",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/block_depth_check/scene_02_yellow_2x2_layer_02/D3/20261007T105810419609Z/depth_aligned.png",
+      "bytes": 228529,
+      "sha256": "aedac5dcebe771bba81cba0a6c1b9292711fac7639aef8ddbb82c82cf1fa9b00",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/block_depth_check/scene_02_yellow_2x2_layer_02/D3/20261007T105810419609Z/depth_raw.npy",
+      "bytes": 814208,
+      "sha256": "10d26bc0c5a2ad769c9a20d4d8a3220f68a988a3e50a52339687b26c7229e903",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/block_depth_check/scene_02_yellow_2x2_layer_02/D3/20261007T105810419609Z/depth_raw.png",
+      "bytes": 172448,
+      "sha256": "0e25403a3d20a8d4678d255c3dac03c51de08dd698af3e18a1df1f3e849567db",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/block_depth_check/scene_02_yellow_2x2_layer_02/D3/20261007T105810419609Z/metadata.json",
+      "bytes": 3505,
+      "sha256": "9a2035682c5d31a482ba686c0cb887bc19fd197dca978225bd3c8200778ce5d2",
+      "state": "tracked",
+      "matches_head": true,
+      "capture": {
+        "view_id": "D3",
+        "captured_at": "2026-10-07T10:58:12.170583+00:00",
+        "mode": "REAL",
+        "scope": "CAPTURE_ONLY",
+        "recording_format": "ros_rgbd_capture_v1"
+      }
+    },
+    {
+      "path": "perception/recordings/block_depth_check/scene_02_yellow_2x2_layer_02/D3/20261007T105810419609Z/rgb.npy",
+      "bytes": 2764928,
+      "sha256": "beccf96695f13e4ff879a25b90e9403f7f1da2cc742a919286207f465bfcfacf",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/block_depth_check/scene_02_yellow_2x2_layer_02/D3/20261007T105810419609Z/rgb.png",
+      "bytes": 1076220,
+      "sha256": "a0480f26fd00199b27dd92dca7c092517b2b9d18ffadc5c23eaea887b7932095",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/block_depth_check/scene_02_yellow_2x2_layer_02/V0/20261007T105654373062Z/depth_aligned.npy",
+      "bytes": 1843328,
+      "sha256": "3484f0a57ff3deb151e70bd3b07cfc3ee832aeac64f25ff66c1f670c1fbfcbfa",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/block_depth_check/scene_02_yellow_2x2_layer_02/V0/20261007T105654373062Z/depth_aligned.png",
+      "bytes": 174290,
+      "sha256": "2fd7e5f8555d7c6d545dfdd4505076e90a2b1b9971ac5e86017453d108ca9e80",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/block_depth_check/scene_02_yellow_2x2_layer_02/V0/20261007T105654373062Z/depth_raw.npy",
+      "bytes": 814208,
+      "sha256": "9fb04fd1396bde771b0a939aed227f1f18e20f41a309eeb64dcffbeb473a75c5",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/block_depth_check/scene_02_yellow_2x2_layer_02/V0/20261007T105654373062Z/depth_raw.png",
+      "bytes": 135814,
+      "sha256": "6f1f7aee1ea2ac28e275117d28a0a611c6a958ee695bf8eafc667dbd3f5f3ecd",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/block_depth_check/scene_02_yellow_2x2_layer_02/V0/20261007T105654373062Z/metadata.json",
+      "bytes": 3505,
+      "sha256": "e2cd5408d894597b6a97be8932bf533f6b9300bad4733b9845ff9e56d978ba9e",
+      "state": "tracked",
+      "matches_head": true,
+      "capture": {
+        "view_id": "V0",
+        "captured_at": "2026-10-07T10:56:56.142829+00:00",
+        "mode": "REAL",
+        "scope": "CAPTURE_ONLY",
+        "recording_format": "ros_rgbd_capture_v1"
+      }
+    },
+    {
+      "path": "perception/recordings/block_depth_check/scene_02_yellow_2x2_layer_02/V0/20261007T105654373062Z/rgb.npy",
+      "bytes": 2764928,
+      "sha256": "dee81c149e8e348b6c510320efd730ac77b05ab8ece78336efa3a90d136f93b8",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/block_depth_check/scene_02_yellow_2x2_layer_02/V0/20261007T105654373062Z/rgb.png",
+      "bytes": 1203829,
+      "sha256": "6b0917e46e35c797a1f33a4ecd1338f6a4ab42924051a8b8f7271b14d08627e8",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/block_depth_check/scene_02_yellow_2x2_layer_02/top_depth_review/D1_top_roi.png",
+      "bytes": 1228796,
+      "sha256": "93e1f0e2430b97422cfccc00c4ba827308225866ef94e53416d841fc38cebaa2",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/block_depth_check/scene_02_yellow_2x2_layer_02/top_depth_review/D3_top_roi.png",
+      "bytes": 1076415,
+      "sha256": "8f5444f7b43f2f6a5299dc917024b6e11a6a1375e923d537c1741c283b23459a",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/block_depth_check/scene_02_yellow_2x2_layer_02/top_depth_review/REVIEW.md",
+      "bytes": 1596,
+      "sha256": "89b6c9bfab6960180a7509553630b24d464022afcdaa88354f3c874c7d0b667c",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/block_depth_check/scene_02_yellow_2x2_layer_02/top_depth_review/V0_top_roi.png",
+      "bytes": 1203897,
+      "sha256": "69e93ad3fa8abf230176f591fc12ac6fb6520cf01b3fec5e1df22c8c16403ac4",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/block_depth_check/scene_02_yellow_2x2_layer_02/top_depth_review/block_height_report.json",
+      "bytes": 4513,
+      "sha256": "deb82138b94410213d085a8d90c556e23185f2e1f22725b66b7c8dde5d4233b4",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/block_depth_check/scene_02_yellow_2x2_layer_02/top_review_inputs.json",
+      "bytes": 1251,
+      "sha256": "b48bb0f57ccafb132b60051042aa3435747e41736d7504348b257cedbdbce286",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/block_depth_check/scene_03_yellow_2x2_layer_03/D1/20261007T110423836402Z/depth_aligned.npy",
+      "bytes": 1843328,
+      "sha256": "3668879077c588704d4412cf77a77800fb65b2d58fa10426c4a5e98db086fd51",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/block_depth_check/scene_03_yellow_2x2_layer_03/D1/20261007T110423836402Z/depth_aligned.png",
+      "bytes": 223703,
+      "sha256": "aa713810cdaeb239e4ca8abc5368bfd010a090b46100bc2631e1c16b97da96f8",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/block_depth_check/scene_03_yellow_2x2_layer_03/D1/20261007T110423836402Z/depth_raw.npy",
+      "bytes": 814208,
+      "sha256": "2607a6b9dba4795137e88069e4d89dbd512d1e66837f67b18580c0db596b9635",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/block_depth_check/scene_03_yellow_2x2_layer_03/D1/20261007T110423836402Z/depth_raw.png",
+      "bytes": 171639,
+      "sha256": "2d7338fdc4e57127bc17c40f9d493c241495d2e3bd8372b1a6fee2dc6d7a18b7",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/block_depth_check/scene_03_yellow_2x2_layer_03/D1/20261007T110423836402Z/metadata.json",
+      "bytes": 3505,
+      "sha256": "79f16c3f9d0e40dee75bcccebb8fdd8cd83082c1a261767e835e9f5b672275fc",
+      "state": "tracked",
+      "matches_head": true,
+      "capture": {
+        "view_id": "D1",
+        "captured_at": "2026-10-07T11:04:25.179324+00:00",
+        "mode": "REAL",
+        "scope": "CAPTURE_ONLY",
+        "recording_format": "ros_rgbd_capture_v1"
+      }
+    },
+    {
+      "path": "perception/recordings/block_depth_check/scene_03_yellow_2x2_layer_03/D1/20261007T110423836402Z/rgb.npy",
+      "bytes": 2764928,
+      "sha256": "97126122cf6969fa0e9c3c87b5297ac5682ec671caae245049d60f1774c041d6",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/block_depth_check/scene_03_yellow_2x2_layer_03/D1/20261007T110423836402Z/rgb.png",
+      "bytes": 1151284,
+      "sha256": "6b48781c16dc229f8c496dd521330028bb3215ba99e4e00fccfaf26878a694d3",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/block_depth_check/scene_03_yellow_2x2_layer_03/D3/20261007T110504844991Z/depth_aligned.npy",
+      "bytes": 1843328,
+      "sha256": "4f3d624669584463af099774aebc5e647e5e2d501972ed557aa34cf827c1f895",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/block_depth_check/scene_03_yellow_2x2_layer_03/D3/20261007T110504844991Z/depth_aligned.png",
+      "bytes": 233686,
+      "sha256": "09dca021af9554a228adfdd12b4423dc6a5d548be58bdf27a0bd43545f648803",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/block_depth_check/scene_03_yellow_2x2_layer_03/D3/20261007T110504844991Z/depth_raw.npy",
+      "bytes": 814208,
+      "sha256": "6ac5018d7876b3adc96ed87b4d7677ebd111c3fbaa06b9682260d990a394bfd8",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/block_depth_check/scene_03_yellow_2x2_layer_03/D3/20261007T110504844991Z/depth_raw.png",
+      "bytes": 174378,
+      "sha256": "9b8fba89450edaccbe0893fdbf24480b808d043a6539a1860053f378ed6ac728",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/block_depth_check/scene_03_yellow_2x2_layer_03/D3/20261007T110504844991Z/metadata.json",
+      "bytes": 3505,
+      "sha256": "b55d795d68a6d6066046a02d4db82ffda6eb9132f2ca3d60ccd60c53e848d88e",
+      "state": "tracked",
+      "matches_head": true,
+      "capture": {
+        "view_id": "D3",
+        "captured_at": "2026-10-07T11:05:06.177902+00:00",
+        "mode": "REAL",
+        "scope": "CAPTURE_ONLY",
+        "recording_format": "ros_rgbd_capture_v1"
+      }
+    },
+    {
+      "path": "perception/recordings/block_depth_check/scene_03_yellow_2x2_layer_03/D3/20261007T110504844991Z/rgb.npy",
+      "bytes": 2764928,
+      "sha256": "719cbe2c3b9f41ab1bc32d0d5a8709e1e559a94e32d9f09c918dcc8cd0f239d4",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/block_depth_check/scene_03_yellow_2x2_layer_03/D3/20261007T110504844991Z/rgb.png",
+      "bytes": 1081616,
+      "sha256": "b2447dcf5b682a2db8cbe47c19ea01be4a254b335d8911356fa71050de29a1a4",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/block_depth_check/scene_03_yellow_2x2_layer_03/V0/20261007T110344124429Z/depth_aligned.npy",
+      "bytes": 1843328,
+      "sha256": "fc8d47e4fda359503f91489009ea5599211cc9e6f831fe7bca75f0fce3a8f0fb",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/block_depth_check/scene_03_yellow_2x2_layer_03/V0/20261007T110344124429Z/depth_aligned.png",
+      "bytes": 172485,
+      "sha256": "fb718a91d8826abd650825ec2ea0ab82a20a92a2568bc6297361af68699f6d42",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/block_depth_check/scene_03_yellow_2x2_layer_03/V0/20261007T110344124429Z/depth_raw.npy",
+      "bytes": 814208,
+      "sha256": "c0535dd10f4ee8c5b2a18999601ddfb85b0c326584863c731e455c4d1f923f16",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/block_depth_check/scene_03_yellow_2x2_layer_03/V0/20261007T110344124429Z/depth_raw.png",
+      "bytes": 133669,
+      "sha256": "d9bf48c1ccf448ead9d2dfdead17e3c553f5bb3f2d5f73a2368933c1a80e9250",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/block_depth_check/scene_03_yellow_2x2_layer_03/V0/20261007T110344124429Z/metadata.json",
+      "bytes": 3505,
+      "sha256": "d166212a88de8b38ace9479f400b8e7291647881c00bbd16371feb29c0a76e62",
+      "state": "tracked",
+      "matches_head": true,
+      "capture": {
+        "view_id": "V0",
+        "captured_at": "2026-10-07T11:03:45.085854+00:00",
+        "mode": "REAL",
+        "scope": "CAPTURE_ONLY",
+        "recording_format": "ros_rgbd_capture_v1"
+      }
+    },
+    {
+      "path": "perception/recordings/block_depth_check/scene_03_yellow_2x2_layer_03/V0/20261007T110344124429Z/rgb.npy",
+      "bytes": 2764928,
+      "sha256": "226c269f9ad2a6e73d422b2e7f4c5a703b6863b59e2a783c1994f20233a3a5a9",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/block_depth_check/scene_03_yellow_2x2_layer_03/V0/20261007T110344124429Z/rgb.png",
+      "bytes": 1104960,
+      "sha256": "3de12ad503e9ca5ae572c716856503f710e120ee5272608f0f9b987f85aeb724",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/block_depth_check/scene_03_yellow_2x2_layer_03/top_depth_review/D1_top_roi.png",
+      "bytes": 1151789,
+      "sha256": "213126f12d0cb99cc3c9a4de0995d3117d20ed9cdc6e0b6c840309332d9c3c3c",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/block_depth_check/scene_03_yellow_2x2_layer_03/top_depth_review/D3_top_roi.png",
+      "bytes": 1081876,
+      "sha256": "ce86a70ec0c784a9877259eb17ab50817d5caacc53c4ad3514329ac1c6f896df",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/block_depth_check/scene_03_yellow_2x2_layer_03/top_depth_review/REVIEW.md",
+      "bytes": 1179,
+      "sha256": "d7a8f017192a48bc392bb4477ea45efd1640be14e5645bf5e8be8d18dbfe4bdd",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/block_depth_check/scene_03_yellow_2x2_layer_03/top_depth_review/V0_top_roi.png",
+      "bytes": 1105160,
+      "sha256": "377bc3b58c3817b52bcf9b0e9905e0fd526025e436d35c860d4ecbcc7530e5a5",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/block_depth_check/scene_03_yellow_2x2_layer_03/top_depth_review/block_height_report.json",
+      "bytes": 4469,
+      "sha256": "7623230a35e7daacfc7c96763a574b586d3b8ecb135b0177ce3f226d50ee4b9f",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/block_depth_check/scene_03_yellow_2x2_layer_03/top_review_inputs.json",
+      "bytes": 1251,
+      "sha256": "5549a446743728e271e2198c1ea5be892d2210505d8e16fa78a941391f2c476a",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/block_depth_check/scene_04_yellow_2x2_layer_04/D1/20261007T111013763500Z/depth_aligned.npy",
+      "bytes": 1843328,
+      "sha256": "501a6fe2a8a7e2cbf22311d306d68738cf03a89ab8078293933c102ae1365fe3",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/block_depth_check/scene_04_yellow_2x2_layer_04/D1/20261007T111013763500Z/depth_aligned.png",
+      "bytes": 220870,
+      "sha256": "c1dc8b1e7bcec6664d3e275317d174bef422d4132034928c688ca24e205dcd4a",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/block_depth_check/scene_04_yellow_2x2_layer_04/D1/20261007T111013763500Z/depth_raw.npy",
+      "bytes": 814208,
+      "sha256": "ff73fc6a7dfc55441b4b93c9b311cd2dd783327c2995e41d1997335e31e5fc1a",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/block_depth_check/scene_04_yellow_2x2_layer_04/D1/20261007T111013763500Z/depth_raw.png",
+      "bytes": 175205,
+      "sha256": "987da3ea71b1f1eb40b29c216ec5e83782ab50cd6a57337c9bf1985c61c43e6f",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/block_depth_check/scene_04_yellow_2x2_layer_04/D1/20261007T111013763500Z/metadata.json",
+      "bytes": 3505,
+      "sha256": "20a980e6ebdd8b71c431c20174da7ec2c49365170f82ad4610804f6bbfd0c8de",
+      "state": "tracked",
+      "matches_head": true,
+      "capture": {
+        "view_id": "D1",
+        "captured_at": "2026-10-07T11:10:14.690419+00:00",
+        "mode": "REAL",
+        "scope": "CAPTURE_ONLY",
+        "recording_format": "ros_rgbd_capture_v1"
+      }
+    },
+    {
+      "path": "perception/recordings/block_depth_check/scene_04_yellow_2x2_layer_04/D1/20261007T111013763500Z/rgb.npy",
+      "bytes": 2764928,
+      "sha256": "25f2881c1338785b320f3dab10554364b83c265e33d0cd95299f016709b593bc",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/block_depth_check/scene_04_yellow_2x2_layer_04/D1/20261007T111013763500Z/rgb.png",
+      "bytes": 1227769,
+      "sha256": "e635b806498d3e3680ed6554b2c8b6c7fb593775a90ed9f539f8767f797a7126",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/block_depth_check/scene_04_yellow_2x2_layer_04/D3/20261007T111050162520Z/depth_aligned.npy",
+      "bytes": 1843328,
+      "sha256": "d7498030040b90e23efe5cb66d6784fbdfee215aa451687bac7811c18b5f87dd",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/block_depth_check/scene_04_yellow_2x2_layer_04/D3/20261007T111050162520Z/depth_aligned.png",
+      "bytes": 229455,
+      "sha256": "34a98db38b16b884b9c4c33868d986ea5ed11c6e77d82c9780b277b0f5a04759",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/block_depth_check/scene_04_yellow_2x2_layer_04/D3/20261007T111050162520Z/depth_raw.npy",
+      "bytes": 814208,
+      "sha256": "98e193427a87ba211290ad804cf5df818aa79930bfdeb4e9a4ef967873b9274d",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/block_depth_check/scene_04_yellow_2x2_layer_04/D3/20261007T111050162520Z/depth_raw.png",
+      "bytes": 172597,
+      "sha256": "d618cb4fb7a33a5399b85f2752ab4211f5ecfc1d73e0855a08063b65a1347f6b",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/block_depth_check/scene_04_yellow_2x2_layer_04/D3/20261007T111050162520Z/metadata.json",
+      "bytes": 3505,
+      "sha256": "3c42cd392ccc943ebf149e930f233648e549e776ea895f1f1938643b536932bc",
+      "state": "tracked",
+      "matches_head": true,
+      "capture": {
+        "view_id": "D3",
+        "captured_at": "2026-10-07T11:10:51.636438+00:00",
+        "mode": "REAL",
+        "scope": "CAPTURE_ONLY",
+        "recording_format": "ros_rgbd_capture_v1"
+      }
+    },
+    {
+      "path": "perception/recordings/block_depth_check/scene_04_yellow_2x2_layer_04/D3/20261007T111050162520Z/rgb.npy",
+      "bytes": 2764928,
+      "sha256": "62ccb8be6b0b31b62710467bbc359dec93e7fb333179e1c5b312d73ade96e99b",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/block_depth_check/scene_04_yellow_2x2_layer_04/D3/20261007T111050162520Z/rgb.png",
+      "bytes": 1105472,
+      "sha256": "444699f56dfdb5932fd925c83436e7d1993c4d6019b6d0a220b9826e2771f362",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/block_depth_check/scene_04_yellow_2x2_layer_04/V0/20261007T110932735783Z/depth_aligned.npy",
+      "bytes": 1843328,
+      "sha256": "92812474cb6bbe0b199c43090f04b1e1d811bcd13d6da2f44e5490f0c5fa8099",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/block_depth_check/scene_04_yellow_2x2_layer_04/V0/20261007T110932735783Z/depth_aligned.png",
+      "bytes": 170455,
+      "sha256": "1552236511e00d1b3ad3cd60023198542a7159913ab16012e0ccc6e15b0c090e",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/block_depth_check/scene_04_yellow_2x2_layer_04/V0/20261007T110932735783Z/depth_raw.npy",
+      "bytes": 814208,
+      "sha256": "1c647e4ad4e801a2736bc56def3ab61b9023182ad8d43d9fef615c826c7b23d2",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/block_depth_check/scene_04_yellow_2x2_layer_04/V0/20261007T110932735783Z/depth_raw.png",
+      "bytes": 134866,
+      "sha256": "1d58294f4de6e5b926988a4d3cf3a671d0bc407a373f840002a3e5772e4c9564",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/block_depth_check/scene_04_yellow_2x2_layer_04/V0/20261007T110932735783Z/metadata.json",
+      "bytes": 3511,
+      "sha256": "07e465be7b70a6cd65c6ff5d5f8dae8193a0b2d883bc1a7f6c8b92dcef437778",
+      "state": "tracked",
+      "matches_head": true,
+      "capture": {
+        "view_id": "V0",
+        "captured_at": "2026-10-07T11:09:35.003913+00:00",
+        "mode": "REAL",
+        "scope": "CAPTURE_ONLY",
+        "recording_format": "ros_rgbd_capture_v1"
+      }
+    },
+    {
+      "path": "perception/recordings/block_depth_check/scene_04_yellow_2x2_layer_04/V0/20261007T110932735783Z/rgb.npy",
+      "bytes": 2764928,
+      "sha256": "aba18443a4e787716501833eb51a34b5ce8a52d03df4bac2e126ee10e4dc2b0e",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/block_depth_check/scene_04_yellow_2x2_layer_04/V0/20261007T110932735783Z/rgb.png",
+      "bytes": 1122530,
+      "sha256": "9e65a323a78c53f3b0f24cb662b5c3ad3443363c4e500b90536bfafb9f9684b2",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/block_depth_check/scene_04_yellow_2x2_layer_04/top_depth_review/D1_top_roi.png",
+      "bytes": 1228311,
+      "sha256": "c8c51b286e1a383e1cd5ac4cb26c9cbb89983c2a1395211584f6d4bf1a2f11f8",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/block_depth_check/scene_04_yellow_2x2_layer_04/top_depth_review/D3_top_roi.png",
+      "bytes": 1105816,
+      "sha256": "74c5c348b806e862bd328ee1d09fc6819129afe171c7c61b12bdbebcc73925d7",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/block_depth_check/scene_04_yellow_2x2_layer_04/top_depth_review/REVIEW.md",
+      "bytes": 1462,
+      "sha256": "a830ba54cdede43832be3ef885b9aa1d48ac65c9f0f4e562d67858cd55ec1019",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/block_depth_check/scene_04_yellow_2x2_layer_04/top_depth_review/V0_top_roi.png",
+      "bytes": 1122607,
+      "sha256": "c56e83cfd1fb1cb6f42614af41d15b28d8e1f7eb1b8ea0862d7d9c7dbf438cbe",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/block_depth_check/scene_04_yellow_2x2_layer_04/top_depth_review/block_height_report.json",
+      "bytes": 4496,
+      "sha256": "17f28cf3e029729ab77a6a9e10c2f6aa8e7c87540dcefc4ff1f43bf8c1eb539a",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/block_depth_check/scene_04_yellow_2x2_layer_04/top_review_inputs.json",
+      "bytes": 1251,
+      "sha256": "ddb39939ffb3032cf3727957930908bc9320206192349221a23e2617f4a7e547",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/block_depth_check/scene_04_yellow_2x2_layer_04_repeat/D1/20261007T111714128286Z/depth_aligned.npy",
+      "bytes": 1843328,
+      "sha256": "0948ce5338c0a827dc8768cb429f363017121021874e9fb57e7e3f6a15b2025d",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/block_depth_check/scene_04_yellow_2x2_layer_04_repeat/D1/20261007T111714128286Z/depth_aligned.png",
+      "bytes": 222146,
+      "sha256": "b034ddab56854e9751909d2b1bf9735083ce289b61050ad6cefd0963456a343b",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/block_depth_check/scene_04_yellow_2x2_layer_04_repeat/D1/20261007T111714128286Z/depth_raw.npy",
+      "bytes": 814208,
+      "sha256": "1f302b00cec44720ed92d8847a5380dd7959087ed648c4f53c2104ee0215f7fe",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/block_depth_check/scene_04_yellow_2x2_layer_04_repeat/D1/20261007T111714128286Z/depth_raw.png",
+      "bytes": 173160,
+      "sha256": "8c45091d7d03bdf3de4fcbb8dab18cf8706c6b41251377d18da1e096b2f5fd6e",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/block_depth_check/scene_04_yellow_2x2_layer_04_repeat/D1/20261007T111714128286Z/metadata.json",
+      "bytes": 3505,
+      "sha256": "023dc1b1567f20b0950693c56f88ce8452aa72e569080301c733aac61e8a7de1",
+      "state": "tracked",
+      "matches_head": true,
+      "capture": {
+        "view_id": "D1",
+        "captured_at": "2026-10-07T11:17:15.491197+00:00",
+        "mode": "REAL",
+        "scope": "CAPTURE_ONLY",
+        "recording_format": "ros_rgbd_capture_v1"
+      }
+    },
+    {
+      "path": "perception/recordings/block_depth_check/scene_04_yellow_2x2_layer_04_repeat/D1/20261007T111714128286Z/rgb.npy",
+      "bytes": 2764928,
+      "sha256": "1ba552ca90f1880bb413534d40d983c6a09ec5c57de53b4204bd9ac692506cc7",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/block_depth_check/scene_04_yellow_2x2_layer_04_repeat/D1/20261007T111714128286Z/rgb.png",
+      "bytes": 1150657,
+      "sha256": "3685f8eb51b346e6b66fc5e3e636512bd41ef0b24ed2661fafa1bc3a8a2192f3",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/block_depth_check/scene_04_yellow_2x2_layer_04_repeat/D1/20261007T111718560066Z/depth_aligned.npy",
+      "bytes": 1843328,
+      "sha256": "28b23200abcc7f9bef6aa25f5525f4ec049ef7f439f6530f30295fd2772bea82",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/block_depth_check/scene_04_yellow_2x2_layer_04_repeat/D1/20261007T111718560066Z/depth_aligned.png",
+      "bytes": 223120,
+      "sha256": "b99d0d366e08a9429b8c2007c19714e8d5638d3c2d0e25da1b10a4edb78a5c10",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/block_depth_check/scene_04_yellow_2x2_layer_04_repeat/D1/20261007T111718560066Z/depth_raw.npy",
+      "bytes": 814208,
+      "sha256": "0097a99588102358ec1c1c5e57e06bcda488ad6917d2a1dbc564530393aada13",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/block_depth_check/scene_04_yellow_2x2_layer_04_repeat/D1/20261007T111718560066Z/depth_raw.png",
+      "bytes": 174287,
+      "sha256": "cc9051b128df43190f26368fe284e81c8f8c75fdb4ab0380d454e8b568bfc1ce",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/block_depth_check/scene_04_yellow_2x2_layer_04_repeat/D1/20261007T111718560066Z/metadata.json",
+      "bytes": 3501,
+      "sha256": "1253adec651bb8641b190cc3f7abda9e7c41af2fcb9120766e1fa79265561d48",
+      "state": "tracked",
+      "matches_head": true,
+      "capture": {
+        "view_id": "D1",
+        "captured_at": "2026-10-07T11:17:19.624785+00:00",
+        "mode": "REAL",
+        "scope": "CAPTURE_ONLY",
+        "recording_format": "ros_rgbd_capture_v1"
+      }
+    },
+    {
+      "path": "perception/recordings/block_depth_check/scene_04_yellow_2x2_layer_04_repeat/D1/20261007T111718560066Z/rgb.npy",
+      "bytes": 2764928,
+      "sha256": "64b27b26f475c23b62d5ca2b73b66cd3406981d879ff22e5ed7e79ccdb9d4644",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/block_depth_check/scene_04_yellow_2x2_layer_04_repeat/D1/20261007T111718560066Z/rgb.png",
+      "bytes": 1149981,
+      "sha256": "f28d027a5713b8086acc4cbf0e16b0e939cf76fca165706fcdd51e604b581b03",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/block_depth_check/scene_04_yellow_2x2_layer_04_repeat/D1/20261007T111722269168Z/depth_aligned.npy",
+      "bytes": 1843328,
+      "sha256": "f4f302d246be5b0540ff4ad6bbbff03ca9bdc19daf38a4f84497e0f4d0b7f0c9",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/block_depth_check/scene_04_yellow_2x2_layer_04_repeat/D1/20261007T111722269168Z/depth_aligned.png",
+      "bytes": 221645,
+      "sha256": "5c53e15a6cb13058d326dea95990e2a95fc81eca363fb96b20bd471daf86afd3",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/block_depth_check/scene_04_yellow_2x2_layer_04_repeat/D1/20261007T111722269168Z/depth_raw.npy",
+      "bytes": 814208,
+      "sha256": "d1f0e18a60a4213597bdc88ec36d6276254cbd84c4374b44dfdbd1dbe92844de",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/block_depth_check/scene_04_yellow_2x2_layer_04_repeat/D1/20261007T111722269168Z/depth_raw.png",
+      "bytes": 172582,
+      "sha256": "0493af47f2d0ad8e0326d9071053215ee55b6357de97b9cb5dce850acd720c6a",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/block_depth_check/scene_04_yellow_2x2_layer_04_repeat/D1/20261007T111722269168Z/metadata.json",
+      "bytes": 3505,
+      "sha256": "afeed32dd8520c52f53cde0544c56b4687033ba98434da28215dcec9509a7235",
+      "state": "tracked",
+      "matches_head": true,
+      "capture": {
+        "view_id": "D1",
+        "captured_at": "2026-10-07T11:17:23.561653+00:00",
+        "mode": "REAL",
+        "scope": "CAPTURE_ONLY",
+        "recording_format": "ros_rgbd_capture_v1"
+      }
+    },
+    {
+      "path": "perception/recordings/block_depth_check/scene_04_yellow_2x2_layer_04_repeat/D1/20261007T111722269168Z/rgb.npy",
+      "bytes": 2764928,
+      "sha256": "6be4f78aeea44ae18b14d6e0e0e4587dfd87a62f99eb52feedc94a6ef76f3c06",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/block_depth_check/scene_04_yellow_2x2_layer_04_repeat/D1/20261007T111722269168Z/rgb.png",
+      "bytes": 1148786,
+      "sha256": "05d6f5570b9707551af2a32ced91d1f6fef09f400f07580f8434a9810151ebcb",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/block_depth_check/scene_04_yellow_2x2_layer_04_repeat/D3/20261007T111756071963Z/depth_aligned.npy",
+      "bytes": 1843328,
+      "sha256": "869acfb598a60e31a86c830a604a753fe5d4d5814890d11a8e302ac49be1e4c3",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/block_depth_check/scene_04_yellow_2x2_layer_04_repeat/D3/20261007T111756071963Z/depth_aligned.png",
+      "bytes": 228731,
+      "sha256": "cccca270fa1cccd45c2b5e2351e1b883f0299088654e663d9f618dab75beb3cc",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/block_depth_check/scene_04_yellow_2x2_layer_04_repeat/D3/20261007T111756071963Z/depth_raw.npy",
+      "bytes": 814208,
+      "sha256": "c648a9c768ed060bd222c75cc24e46fd7f3789d7ec384c6f11bab430f98dc1e4",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/block_depth_check/scene_04_yellow_2x2_layer_04_repeat/D3/20261007T111756071963Z/depth_raw.png",
+      "bytes": 174609,
+      "sha256": "9f1adfa89870fa02c30129d883380bedb1187e6b39de8520b84a5482451aff73",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/block_depth_check/scene_04_yellow_2x2_layer_04_repeat/D3/20261007T111756071963Z/metadata.json",
+      "bytes": 3505,
+      "sha256": "864cb7fb4336f093d4a9b9ff14fd00a36a60330b5ebc42629c338b504e67347e",
+      "state": "tracked",
+      "matches_head": true,
+      "capture": {
+        "view_id": "D3",
+        "captured_at": "2026-10-07T11:17:57.212855+00:00",
+        "mode": "REAL",
+        "scope": "CAPTURE_ONLY",
+        "recording_format": "ros_rgbd_capture_v1"
+      }
+    },
+    {
+      "path": "perception/recordings/block_depth_check/scene_04_yellow_2x2_layer_04_repeat/D3/20261007T111756071963Z/rgb.npy",
+      "bytes": 2764928,
+      "sha256": "932f0b653a5cf3237a840b0bcc4fd74eac8452b9a49fe1a302e98250324c72f6",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/block_depth_check/scene_04_yellow_2x2_layer_04_repeat/D3/20261007T111756071963Z/rgb.png",
+      "bytes": 1080605,
+      "sha256": "148ebcc50d0c728ed8537fd2d66efd316058e2be5c8a430597e8dade50f72ede",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/block_depth_check/scene_04_yellow_2x2_layer_04_repeat/D3/20261007T111800354038Z/depth_aligned.npy",
+      "bytes": 1843328,
+      "sha256": "905c62653f492fc9f204a4c71ef03021fba2a780e7836593164e2fd607e7bc84",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/block_depth_check/scene_04_yellow_2x2_layer_04_repeat/D3/20261007T111800354038Z/depth_aligned.png",
+      "bytes": 231093,
+      "sha256": "5b660599d4afc4015a7015c0c10e61e2540d74bacbf400997f8c8109193fa9a8",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/block_depth_check/scene_04_yellow_2x2_layer_04_repeat/D3/20261007T111800354038Z/depth_raw.npy",
+      "bytes": 814208,
+      "sha256": "096f404ec9a1924d4e1b4264fa5b5a1fab752678e63d4bcda540c9754c366053",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/block_depth_check/scene_04_yellow_2x2_layer_04_repeat/D3/20261007T111800354038Z/depth_raw.png",
+      "bytes": 174663,
+      "sha256": "9fbd85865260c4f7926c5c780b0db4bd840abb36d462f0f19c49c88f5722fa73",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/block_depth_check/scene_04_yellow_2x2_layer_04_repeat/D3/20261007T111800354038Z/metadata.json",
+      "bytes": 3505,
+      "sha256": "537063daae158a00613b648654c9f9b4fe3f8c9b63fe9272153f8b405dd2b218",
+      "state": "tracked",
+      "matches_head": true,
+      "capture": {
+        "view_id": "D3",
+        "captured_at": "2026-10-07T11:18:01.402658+00:00",
+        "mode": "REAL",
+        "scope": "CAPTURE_ONLY",
+        "recording_format": "ros_rgbd_capture_v1"
+      }
+    },
+    {
+      "path": "perception/recordings/block_depth_check/scene_04_yellow_2x2_layer_04_repeat/D3/20261007T111800354038Z/rgb.npy",
+      "bytes": 2764928,
+      "sha256": "15e0c173ebb3764a1fdf8ed7b287bdd843b452d4fd6a33e43f45e9742b4aaef1",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/block_depth_check/scene_04_yellow_2x2_layer_04_repeat/D3/20261007T111800354038Z/rgb.png",
+      "bytes": 1079318,
+      "sha256": "0238c250f28fa98413322629bdafa5311fb5f8bd976beeb73b92bd8a26dd1191",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/block_depth_check/scene_04_yellow_2x2_layer_04_repeat/D3/20261007T111804225696Z/depth_aligned.npy",
+      "bytes": 1843328,
+      "sha256": "70e48c63a2fbf0ab9a8e1686e9882ca1862fbfff4bf206aa8024af9c054d42d0",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/block_depth_check/scene_04_yellow_2x2_layer_04_repeat/D3/20261007T111804225696Z/depth_aligned.png",
+      "bytes": 229702,
+      "sha256": "6c23ba847d022c458596455b28906e8898144adf549f2684fb3952a91816bf5b",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/block_depth_check/scene_04_yellow_2x2_layer_04_repeat/D3/20261007T111804225696Z/depth_raw.npy",
+      "bytes": 814208,
+      "sha256": "eee7cc91545b37cbb979f9fe9248725fa8096ffbbc5ce438400103257cde9d7f",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/block_depth_check/scene_04_yellow_2x2_layer_04_repeat/D3/20261007T111804225696Z/depth_raw.png",
+      "bytes": 174845,
+      "sha256": "97e07acae3fd2494e99f8193ea591b53a7dcd9dff89101a87e377cda22e03aba",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/block_depth_check/scene_04_yellow_2x2_layer_04_repeat/D3/20261007T111804225696Z/metadata.json",
+      "bytes": 3505,
+      "sha256": "ecd6e4be5d06204183a065e34f25d71f0e648ebf24ac24d3ed571af613d339ce",
+      "state": "tracked",
+      "matches_head": true,
+      "capture": {
+        "view_id": "D3",
+        "captured_at": "2026-10-07T11:18:07.092835+00:00",
+        "mode": "REAL",
+        "scope": "CAPTURE_ONLY",
+        "recording_format": "ros_rgbd_capture_v1"
+      }
+    },
+    {
+      "path": "perception/recordings/block_depth_check/scene_04_yellow_2x2_layer_04_repeat/D3/20261007T111804225696Z/rgb.npy",
+      "bytes": 2764928,
+      "sha256": "35e9eebb4638f215f38a579e59d69e618f61e5eba55dee9c520e7a49cfd02b12",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/block_depth_check/scene_04_yellow_2x2_layer_04_repeat/D3/20261007T111804225696Z/rgb.png",
+      "bytes": 1080959,
+      "sha256": "3e068781218d15e453bfa28c1c165953fc0b48dc31b9bbda4ce38554f31cce41",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/block_depth_check/scene_04_yellow_2x2_layer_04_repeat/V0/20261007T111625535367Z/depth_aligned.npy",
+      "bytes": 1843328,
+      "sha256": "7d9f3d664935bb5e5c9a2976e66177f5142f1cbd917ebb81ed603b3232e371b8",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/block_depth_check/scene_04_yellow_2x2_layer_04_repeat/V0/20261007T111625535367Z/depth_aligned.png",
+      "bytes": 173473,
+      "sha256": "b7dee59c2ececc0972465bff6a463f47c986b1d0e5e30265b54df5f43195f151",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/block_depth_check/scene_04_yellow_2x2_layer_04_repeat/V0/20261007T111625535367Z/depth_raw.npy",
+      "bytes": 814208,
+      "sha256": "c8e0a7457e928a22b243774dbc65ca0f378d1b69beed9c4b367b00bd361024a1",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/block_depth_check/scene_04_yellow_2x2_layer_04_repeat/V0/20261007T111625535367Z/depth_raw.png",
+      "bytes": 134245,
+      "sha256": "21be58eb5d0d8ef1589edd0f146a7d05e73de226a5c19543c05acff206617d1b",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/block_depth_check/scene_04_yellow_2x2_layer_04_repeat/V0/20261007T111625535367Z/metadata.json",
+      "bytes": 3505,
+      "sha256": "8224727209ef7d1ed79b3c4c0ff40fe3ef47b2f5bb897144fe8475e2cb290831",
+      "state": "tracked",
+      "matches_head": true,
+      "capture": {
+        "view_id": "V0",
+        "captured_at": "2026-10-07T11:16:26.774273+00:00",
+        "mode": "REAL",
+        "scope": "CAPTURE_ONLY",
+        "recording_format": "ros_rgbd_capture_v1"
+      }
+    },
+    {
+      "path": "perception/recordings/block_depth_check/scene_04_yellow_2x2_layer_04_repeat/V0/20261007T111625535367Z/rgb.npy",
+      "bytes": 2764928,
+      "sha256": "0376479b8e06fa3a3ba9ae3ab1097aa33a5e8b7aff3af0a25229588bcbab67e6",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/block_depth_check/scene_04_yellow_2x2_layer_04_repeat/V0/20261007T111625535367Z/rgb.png",
+      "bytes": 1094714,
+      "sha256": "31afc5f2825c9330663a605df1a5a721044506a2e2410553257b0208158aface",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/block_depth_check/scene_04_yellow_2x2_layer_04_repeat/V0/20261007T111631417433Z/depth_aligned.npy",
+      "bytes": 1843328,
+      "sha256": "374ee44a4eba4c515e77dc82b418ffe656964dd96b76a116b87ee39532a1cb86",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/block_depth_check/scene_04_yellow_2x2_layer_04_repeat/V0/20261007T111631417433Z/depth_aligned.png",
+      "bytes": 171984,
+      "sha256": "85acd8b04061da3299eba21de50f1f3a385dc1aa3465ad544766960b8697c277",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/block_depth_check/scene_04_yellow_2x2_layer_04_repeat/V0/20261007T111631417433Z/depth_raw.npy",
+      "bytes": 814208,
+      "sha256": "5948ff5510477c9548d72be5abd53cc0cbb3af6f73d417b872dc54ee265ac018",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/block_depth_check/scene_04_yellow_2x2_layer_04_repeat/V0/20261007T111631417433Z/depth_raw.png",
+      "bytes": 133184,
+      "sha256": "02d8e2be9989b0a2eab59c3c30e0c90dbd27522ed50058561a3ba1b5459ac498",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/block_depth_check/scene_04_yellow_2x2_layer_04_repeat/V0/20261007T111631417433Z/metadata.json",
+      "bytes": 3505,
+      "sha256": "11254ef073b1aee5d4e157af174205349fcd4481964f4dfa577ae02ff787ea05",
+      "state": "tracked",
+      "matches_head": true,
+      "capture": {
+        "view_id": "V0",
+        "captured_at": "2026-10-07T11:16:32.428726+00:00",
+        "mode": "REAL",
+        "scope": "CAPTURE_ONLY",
+        "recording_format": "ros_rgbd_capture_v1"
+      }
+    },
+    {
+      "path": "perception/recordings/block_depth_check/scene_04_yellow_2x2_layer_04_repeat/V0/20261007T111631417433Z/rgb.npy",
+      "bytes": 2764928,
+      "sha256": "5ddfab63bc7cd8df163d768bc926339ace23aa90cfe6340999caf86b50a16f20",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/block_depth_check/scene_04_yellow_2x2_layer_04_repeat/V0/20261007T111631417433Z/rgb.png",
+      "bytes": 1094400,
+      "sha256": "a00c8fd4baab0151179a094586c6c48b2899df5e1305804860ec195c0b5c6ee2",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/block_depth_check/scene_04_yellow_2x2_layer_04_repeat/V0/20261007T111637092687Z/depth_aligned.npy",
+      "bytes": 1843328,
+      "sha256": "e58c3a723163ec78791c65cb77bcc2acf33f01b03f275e86ec9dc96a127cfaca",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/block_depth_check/scene_04_yellow_2x2_layer_04_repeat/V0/20261007T111637092687Z/depth_aligned.png",
+      "bytes": 171131,
+      "sha256": "09ca9cfcac9ecd00e0a366c0cf3b2163c51a22a2f2a16164544b0570334894a2",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/block_depth_check/scene_04_yellow_2x2_layer_04_repeat/V0/20261007T111637092687Z/depth_raw.npy",
+      "bytes": 814208,
+      "sha256": "51969f5c153dbeb5986348ee14ecd914a35f68a22a2afeae0fc428d1a181b764",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/block_depth_check/scene_04_yellow_2x2_layer_04_repeat/V0/20261007T111637092687Z/depth_raw.png",
+      "bytes": 135626,
+      "sha256": "c7fb5a2b74d28debf950fd62dd07d2fb6b4221288ae6407e5c3d1f5c6d57bbac",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/block_depth_check/scene_04_yellow_2x2_layer_04_repeat/V0/20261007T111637092687Z/metadata.json",
+      "bytes": 3505,
+      "sha256": "b9fa9ecf4c3bdbb894a4072c34e20ecb51b62e2093a63e3de563fc39fe785768",
+      "state": "tracked",
+      "matches_head": true,
+      "capture": {
+        "view_id": "V0",
+        "captured_at": "2026-10-07T11:16:38.361176+00:00",
+        "mode": "REAL",
+        "scope": "CAPTURE_ONLY",
+        "recording_format": "ros_rgbd_capture_v1"
+      }
+    },
+    {
+      "path": "perception/recordings/block_depth_check/scene_04_yellow_2x2_layer_04_repeat/V0/20261007T111637092687Z/rgb.npy",
+      "bytes": 2764928,
+      "sha256": "fa3a04318e0110b5ad65e46586caf2203a9aae8a45a62260588beb8550c34b62",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/block_depth_check/scene_04_yellow_2x2_layer_04_repeat/V0/20261007T111637092687Z/rgb.png",
+      "bytes": 1094091,
+      "sha256": "9366d6814ee98c45851712b8122b63a1e7e414ef0bef9bda6604d40727d73613",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/block_depth_check/scene_04_yellow_2x2_layer_04_repeat/repeat_depth_review/D1_20261007T111714128286Z_top_roi.png",
+      "bytes": 1151145,
+      "sha256": "e0adc98a995c6d7cb7144e10c239e938717037d909196d4823e61a8804f955be",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/block_depth_check/scene_04_yellow_2x2_layer_04_repeat/repeat_depth_review/D1_20261007T111718560066Z_top_roi.png",
+      "bytes": 1150482,
+      "sha256": "3a23cb15e3e261fb390333f58828f909fce520bb112e01a035c31bcd7e28e64b",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/block_depth_check/scene_04_yellow_2x2_layer_04_repeat/repeat_depth_review/D1_20261007T111722269168Z_top_roi.png",
+      "bytes": 1149332,
+      "sha256": "44a2b44d084cf125da47bc1e3e87bcd17dab142105411e18701ee87c29693e1b",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/block_depth_check/scene_04_yellow_2x2_layer_04_repeat/repeat_depth_review/D3_20261007T111756071963Z_top_roi.png",
+      "bytes": 1080920,
+      "sha256": "bf72eb80d3e9bc2a51f0927316f5275c3a5124da98f16fd74368cdaaf5e062b4",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/block_depth_check/scene_04_yellow_2x2_layer_04_repeat/repeat_depth_review/D3_20261007T111800354038Z_top_roi.png",
+      "bytes": 1079635,
+      "sha256": "7718558164ae57f8e84428e9864910565018edd0491fa1de2f1f31e236fb1130",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/block_depth_check/scene_04_yellow_2x2_layer_04_repeat/repeat_depth_review/D3_20261007T111804225696Z_top_roi.png",
+      "bytes": 1081286,
+      "sha256": "f42e611cf82b128bb24469037022e7a32cab1443a418f9439d5594fbe1f8602a",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/block_depth_check/scene_04_yellow_2x2_layer_04_repeat/repeat_depth_review/REVIEW.md",
+      "bytes": 1425,
+      "sha256": "8b31f6bd6b85f136c02c8deaef4c6573b7d692ce8892a1bc21f7972c7f370a04",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/block_depth_check/scene_04_yellow_2x2_layer_04_repeat/repeat_depth_review/V0_20261007T111625535367Z_top_roi.png",
+      "bytes": 1094832,
+      "sha256": "3a47ce30fb971a85aba816ce86d31c611aff9305f35e4d962aa35d2d19000843",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/block_depth_check/scene_04_yellow_2x2_layer_04_repeat/repeat_depth_review/V0_20261007T111631417433Z_top_roi.png",
+      "bytes": 1094531,
+      "sha256": "ac11c7c958b51a9acb85341b17f583322381e34b5508d050e3fd924e7bb13a82",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/block_depth_check/scene_04_yellow_2x2_layer_04_repeat/repeat_depth_review/V0_20261007T111637092687Z_top_roi.png",
+      "bytes": 1094199,
+      "sha256": "0f99c549decd0fbf66f8b182218f85ab56b0da7abac7ce36ff516dfeac660c30",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/block_depth_check/scene_04_yellow_2x2_layer_04_repeat/repeat_depth_review/repeat_height_report.json",
+      "bytes": 13499,
+      "sha256": "0773c26d36ea6942c56e50d5c2c5a4c8df9e175b93bb46981e314863a90479cf",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/board_calibration/D1/20261006T095405213812Z/depth_aligned.npy",
+      "bytes": 1843328,
+      "sha256": "26ac9e7fd6bce26c60292aad099a90e64297fd399eb1c110faedb6bbba8dbb5c",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/board_calibration/D1/20261006T095405213812Z/depth_aligned.png",
+      "bytes": 183349,
+      "sha256": "dcc0a003b760ed7a37ae047d07b86129bd62c5c7f7213d101225bc6f30799e2e",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/board_calibration/D1/20261006T095405213812Z/depth_raw.npy",
+      "bytes": 814208,
+      "sha256": "3af1a4e9957abc6b93246045bfda43173f479460be404669aef66f7f21415bd1",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/board_calibration/D1/20261006T095405213812Z/depth_raw.png",
+      "bytes": 156870,
+      "sha256": "d20123e9b055d4776ec89b372f06a488ab28d6434999f3acdc04cdcd60bc0b56",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/board_calibration/D1/20261006T095405213812Z/metadata.json",
+      "bytes": 3505,
+      "sha256": "28a924b19986f311c5cc37b52360369411d1fcd927f915f7500df3a1d369bd10",
+      "state": "tracked",
+      "matches_head": true,
+      "capture": {
+        "view_id": "D1",
+        "captured_at": "2026-10-06T09:54:07.489359+00:00",
+        "mode": "REAL",
+        "scope": "CAPTURE_ONLY",
+        "recording_format": "ros_rgbd_capture_v1"
+      }
+    },
+    {
+      "path": "perception/recordings/board_calibration/D1/20261006T095405213812Z/rgb.npy",
+      "bytes": 2764928,
+      "sha256": "ff32050a0e8847a57158a0d5102d08a881be103aeef4f3af12d3a04fd6ecf242",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/board_calibration/D1/20261006T095405213812Z/rgb.png",
+      "bytes": 1172677,
+      "sha256": "1d3128bdd594364216761b89481734260fcb19aa5760a4c50f5ca5f5f3aad25c",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/board_calibration/D3/20261006T102103025220Z/depth_aligned.npy",
+      "bytes": 1843328,
+      "sha256": "4218d093a614ce6f0b8af01fc30d0a42e18d54eee8658ca039d55b4f8b0524ce",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/board_calibration/D3/20261006T102103025220Z/depth_aligned.png",
+      "bytes": 160003,
+      "sha256": "4019308ee493682b4bcacef797c4a289f6b4016357695a752fed3452a3968576",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/board_calibration/D3/20261006T102103025220Z/depth_raw.npy",
+      "bytes": 814208,
+      "sha256": "4d735c65bf07f88832e16f81b092bad802594bf93cf962f045a7d9c6e2bb1f83",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/board_calibration/D3/20261006T102103025220Z/depth_raw.png",
+      "bytes": 116670,
+      "sha256": "a535254f34be9f631dc31069faf3fd39849c707e00d7a297a891f7b35d289dd4",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/board_calibration/D3/20261006T102103025220Z/metadata.json",
+      "bytes": 3505,
+      "sha256": "e206b589334d0cb67081eb89d21a02b5f90c39dde469c9b988af96f9c0cea536",
+      "state": "tracked",
+      "matches_head": true,
+      "capture": {
+        "view_id": "D3",
+        "captured_at": "2026-10-06T10:21:04.958103+00:00",
+        "mode": "REAL",
+        "scope": "CAPTURE_ONLY",
+        "recording_format": "ros_rgbd_capture_v1"
+      }
+    },
+    {
+      "path": "perception/recordings/board_calibration/D3/20261006T102103025220Z/rgb.npy",
+      "bytes": 2764928,
+      "sha256": "8429dd6e5fea833a026331c40496c885217ada97a07edcaa82d40aa3e94f3ffa",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/board_calibration/D3/20261006T102103025220Z/rgb.png",
+      "bytes": 1221466,
+      "sha256": "d26793068b4d530557aa8a6679dcf1fc7d9bc2f10ee466f17acf2b4be14d5009",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/board_calibration/V0/20261006T094606094988Z/depth_aligned.npy",
+      "bytes": 1843328,
+      "sha256": "5a944e0a8dcc8d9cb49ec85945629bb9d6f1928322b1e57651984682e0d5aeb8",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/board_calibration/V0/20261006T094606094988Z/depth_aligned.png",
+      "bytes": 167659,
+      "sha256": "8111b46da5f1448142a6524691c37d5292e8a61e56721cd8c6f7d47ed1ad84e5",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/board_calibration/V0/20261006T094606094988Z/depth_raw.npy",
+      "bytes": 814208,
+      "sha256": "2f642b6c018ef8a1cb7de7aaf0a3d59fff2bd13238745644959c19a77ca69275",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/board_calibration/V0/20261006T094606094988Z/depth_raw.png",
+      "bytes": 117230,
+      "sha256": "d540175dd5706a54fb5e07675f76c3cc00928aff0567f6812b738ff60b8871cc",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/board_calibration/V0/20261006T094606094988Z/metadata.json",
+      "bytes": 3505,
+      "sha256": "9e98fb2b2b26963b0a211fc1a9908891f9b6218a2502eb99c879515c4feec533",
+      "state": "tracked",
+      "matches_head": true,
+      "capture": {
+        "view_id": "V0",
+        "captured_at": "2026-10-06T09:46:07.072227+00:00",
+        "mode": "REAL",
+        "scope": "CAPTURE_ONLY",
+        "recording_format": "ros_rgbd_capture_v1"
+      }
+    },
+    {
+      "path": "perception/recordings/board_calibration/V0/20261006T094606094988Z/rgb.npy",
+      "bytes": 2764928,
+      "sha256": "2129b369bcded583e7db95240551efb4c230dc1d1216dce49a0ef2ca53f9949d",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/board_calibration/V0/20261006T094606094988Z/rgb.png",
+      "bytes": 1236903,
+      "sha256": "68bcebaecbe56fc80ac316b9e6e1318a2d78b4da2e488bbda51d380661a2cc11",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/board_calibration_D1/D1/captures/empty.intrinsics.json",
+      "bytes": 531,
+      "sha256": "4b75aa83639368c3a0f5e477f19f05a70e396cd9c9899ed4fe3fa7fd410b2825",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/board_calibration_D1/D1/captures/empty.png",
+      "bytes": 1230506,
+      "sha256": "f60833b76dc94c30255e44ca628b0ac0ced560ffa89b5333e641ffbb8b39a00e",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/board_calibration_D1/D1/captures/validation_clicked_points.json",
+      "bytes": 738,
+      "sha256": "a2fb39d2f4bd374067e0d049d7caa2f22c66c696f3ec495e4011aa1a3f0b0d26",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/board_calibration_D1/D1/run/calibration.json",
+      "bytes": 3521,
+      "sha256": "34eb051b796b43e15b33de15afa3235ab9235c124b4df562d10321b2b66e4b43",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/board_calibration_D1/D1/run/empty.png",
+      "bytes": 1230506,
+      "sha256": "f60833b76dc94c30255e44ca628b0ac0ced560ffa89b5333e641ffbb8b39a00e",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/board_calibration_D1/D1/run/grid_overlay.png",
+      "bytes": 1309209,
+      "sha256": "5d5ef0ba76f73b5e04f2b4faa10a92e3e05c8cdda978e0cffb21c29cf4a8c350",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/board_calibration_D1/D1/run/stud_coordinates.csv",
+      "bytes": 32942,
+      "sha256": "9e4ddff9a4567d360d8ab68821ab774df5398bcec22387977c4eb6b4253a0288",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/board_calibration_D1/D1/run/validation_clicked_points_pitch16.json",
+      "bytes": 761,
+      "sha256": "8594afd58fda006516b02a382f994449e02b11c046a94f1f35b45fd8735b3714",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/board_calibration_D1/D1/run/validation_error_report.json",
+      "bytes": 425,
+      "sha256": "5c6d011578d4ed1b5193b68e57ea1004f12ae8b24d5c6b2a2c3b97f36074220e",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/board_calibration_D1/D1/run_pitch16/calibration.json",
+      "bytes": 3521,
+      "sha256": "34eb051b796b43e15b33de15afa3235ab9235c124b4df562d10321b2b66e4b43",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/board_calibration_D1/D1/run_pitch16/empty.png",
+      "bytes": 1230506,
+      "sha256": "f60833b76dc94c30255e44ca628b0ac0ced560ffa89b5333e641ffbb8b39a00e",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/board_calibration_D1/D1/run_pitch16/grid_overlay.png",
+      "bytes": 1309209,
+      "sha256": "5d5ef0ba76f73b5e04f2b4faa10a92e3e05c8cdda978e0cffb21c29cf4a8c350",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/board_calibration_D1/D1/run_pitch16/stud_coordinates.csv",
+      "bytes": 32942,
+      "sha256": "9e4ddff9a4567d360d8ab68821ab774df5398bcec22387977c4eb6b4253a0288",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/board_calibration_D1/D1/run_pitch16/validation_clicked_points_pitch16.json",
+      "bytes": 761,
+      "sha256": "8594afd58fda006516b02a382f994449e02b11c046a94f1f35b45fd8735b3714",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/board_calibration_D1/D1/run_pitch16/validation_error_report.json",
+      "bytes": 425,
+      "sha256": "5c6d011578d4ed1b5193b68e57ea1004f12ae8b24d5c6b2a2c3b97f36074220e",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/board_calibration_D1/D1/run_pitch17_archive/calibration.json",
+      "bytes": 3249,
+      "sha256": "e0571c0c92f6633c11bdfb74a1bd3ca986a5041ce43b10823dba94b041958ff4",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/board_calibration_D1/D1/run_pitch17_archive/empty.png",
+      "bytes": 1230506,
+      "sha256": "f60833b76dc94c30255e44ca628b0ac0ced560ffa89b5333e641ffbb8b39a00e",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/board_calibration_D1/D1/run_pitch17_archive/grid_overlay.png",
+      "bytes": 1309209,
+      "sha256": "5d5ef0ba76f73b5e04f2b4faa10a92e3e05c8cdda978e0cffb21c29cf4a8c350",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/board_calibration_D1/D1/run_pitch17_archive/stud_coordinates.csv",
+      "bytes": 32952,
+      "sha256": "08fd088be6dfe57d13e53c1cac6d80c6cbda577c820d7bbb595ab80dcaf0e29c",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/board_calibration_D1/D1/run_pitch17_archive/validation_error_report.json",
+      "bytes": 426,
+      "sha256": "a60646b9e811fc20246ea703c1335e5c1d48f099108987e56efce9f64dd410f6",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/board_calibration_D3/D3/captures/empty.intrinsics.json",
+      "bytes": 531,
+      "sha256": "ea1293346b4d6b6aa29c09d96e0de89973872d177b0f432e7e55d2f692ae2f15",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/board_calibration_D3/D3/captures/empty.png",
+      "bytes": 1085059,
+      "sha256": "c0c97ac1d70b1eb3eb74c9d0b71b08cbbe8a81c6c2b72eff8083c311568cdde8",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/board_calibration_D3/D3/captures/validation_clicked_points.json",
+      "bytes": 738,
+      "sha256": "a09187bd28ac0226cc79ced2aa07e6a6218d45f72e87294d0645ef43b4ac41ab",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/board_calibration_D3/D3/run/calibration.json",
+      "bytes": 3518,
+      "sha256": "c05b8bbc3ffd24cb6fa2aae305bf411eeb24629fd0a533fa9278f4d03a1027be",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/board_calibration_D3/D3/run/empty.png",
+      "bytes": 1085059,
+      "sha256": "c0c97ac1d70b1eb3eb74c9d0b71b08cbbe8a81c6c2b72eff8083c311568cdde8",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/board_calibration_D3/D3/run/grid_overlay.png",
+      "bytes": 1191147,
+      "sha256": "d2238ba7a6234149832e7cd40664c4f642ff2088b31dadbbed9e85b162ae998e",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/board_calibration_D3/D3/run/stud_coordinates.csv",
+      "bytes": 32864,
+      "sha256": "2eb7e3bb410410acc9d02e0b500aecb5d8e9519fc3987bd565077c0700ade664",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/board_calibration_D3/D3/run/validation_clicked_points_pitch16.json",
+      "bytes": 761,
+      "sha256": "99afb3affbf8e9c04b762b71ebe4885668e67b1b43648f8618b31c80fce9832b",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/board_calibration_D3/D3/run/validation_error_report.json",
+      "bytes": 423,
+      "sha256": "cdaeadf45c52e148eddef6a74ee7d5efca89a0f2f504b808d723768a78329598",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/board_calibration_D3/D3/run_pitch16/calibration.json",
+      "bytes": 3518,
+      "sha256": "c05b8bbc3ffd24cb6fa2aae305bf411eeb24629fd0a533fa9278f4d03a1027be",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/board_calibration_D3/D3/run_pitch16/empty.png",
+      "bytes": 1085059,
+      "sha256": "c0c97ac1d70b1eb3eb74c9d0b71b08cbbe8a81c6c2b72eff8083c311568cdde8",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/board_calibration_D3/D3/run_pitch16/grid_overlay.png",
+      "bytes": 1191147,
+      "sha256": "d2238ba7a6234149832e7cd40664c4f642ff2088b31dadbbed9e85b162ae998e",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/board_calibration_D3/D3/run_pitch16/stud_coordinates.csv",
+      "bytes": 32864,
+      "sha256": "2eb7e3bb410410acc9d02e0b500aecb5d8e9519fc3987bd565077c0700ade664",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/board_calibration_D3/D3/run_pitch16/validation_clicked_points_pitch16.json",
+      "bytes": 761,
+      "sha256": "99afb3affbf8e9c04b762b71ebe4885668e67b1b43648f8618b31c80fce9832b",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/board_calibration_D3/D3/run_pitch16/validation_error_report.json",
+      "bytes": 423,
+      "sha256": "cdaeadf45c52e148eddef6a74ee7d5efca89a0f2f504b808d723768a78329598",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/board_calibration_D3/D3/run_pitch17_archive/calibration.json",
+      "bytes": 3264,
+      "sha256": "54e13815ae582a7190dddc80fe1faac892fc11a35700fe1a357993a4c1a89c6b",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/board_calibration_D3/D3/run_pitch17_archive/empty.png",
+      "bytes": 1085059,
+      "sha256": "c0c97ac1d70b1eb3eb74c9d0b71b08cbbe8a81c6c2b72eff8083c311568cdde8",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/board_calibration_D3/D3/run_pitch17_archive/grid_overlay.png",
+      "bytes": 1191147,
+      "sha256": "d2238ba7a6234149832e7cd40664c4f642ff2088b31dadbbed9e85b162ae998e",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/board_calibration_D3/D3/run_pitch17_archive/stud_coordinates.csv",
+      "bytes": 32918,
+      "sha256": "7e157fe29f481ced32647676442123dc345836dca864870e9db7dfbef6d2be37",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/board_calibration_D3/D3/run_pitch17_archive/validation_error_report.json",
+      "bytes": 426,
+      "sha256": "f388f822e338f58cb9f3add9a8204c832b78a08e76533bd162ddbd303dfc9c4c",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/board_calibration_V0/V0/captures/calibration_points_8_ai_corrected.json",
+      "bytes": 1017,
+      "sha256": "e1ad7189a4c6302dec896d122bdad6862842fb5d2722de8db3dd1ed8cf6bc42e",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/board_calibration_V0/V0/captures/empty.intrinsics.json",
+      "bytes": 531,
+      "sha256": "bb4fd1260ac22b8f14459c5997cdaaa867c0c4b1a3b6c8141fa78079f1d239aa",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/board_calibration_V0/V0/captures/empty.png",
+      "bytes": 1162652,
+      "sha256": "e5d89d7e5d105d0c5258290d65c2ba642dafcef0795f500d9fa9751e9183575e",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/board_calibration_V0/V0/captures/validation_clicked_points.json",
+      "bytes": 738,
+      "sha256": "1c68f4a47b2255ec2507c24748826fe704633e27cf920c57e9e097852e071ecc",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/board_calibration_V0/V0/run/calibration.json",
+      "bytes": 4025,
+      "sha256": "38cdb7d2496d995883bf00c84042f0bebcd71072126f0f79e81fb865dfeb387d",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/board_calibration_V0/V0/run/empty.png",
+      "bytes": 1162652,
+      "sha256": "e5d89d7e5d105d0c5258290d65c2ba642dafcef0795f500d9fa9751e9183575e",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/board_calibration_V0/V0/run/grid_overlay.png",
+      "bytes": 1253648,
+      "sha256": "afac7c28816d1f2f616b837d9a3157b128b59811db5c8f08dbd5f714a19d7c3e",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/board_calibration_V0/V0/run/stud_coordinates.csv",
+      "bytes": 32857,
+      "sha256": "14df717b327513a9f8e4a465f9c79d1ce21b202015145303d68079e551b8a590",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/board_calibration_V0/V0/run/validation_clicked_points_pitch16.json",
+      "bytes": 761,
+      "sha256": "aa18adfa525ac29e4221dc8e702fee0e95db10485dccee9ca91c5b438f12eff3",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/board_calibration_V0/V0/run/validation_error_report.json",
+      "bytes": 424,
+      "sha256": "e4cdd085c70d5d11442969372af68910d330d027e189cd7fc2c30f9371f9b025",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/board_calibration_V0/V0/run_pitch16/calibration.json",
+      "bytes": 4025,
+      "sha256": "38cdb7d2496d995883bf00c84042f0bebcd71072126f0f79e81fb865dfeb387d",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/board_calibration_V0/V0/run_pitch16/empty.png",
+      "bytes": 1162652,
+      "sha256": "e5d89d7e5d105d0c5258290d65c2ba642dafcef0795f500d9fa9751e9183575e",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/board_calibration_V0/V0/run_pitch16/grid_overlay.png",
+      "bytes": 1253648,
+      "sha256": "afac7c28816d1f2f616b837d9a3157b128b59811db5c8f08dbd5f714a19d7c3e",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/board_calibration_V0/V0/run_pitch16/stud_coordinates.csv",
+      "bytes": 32857,
+      "sha256": "14df717b327513a9f8e4a465f9c79d1ce21b202015145303d68079e551b8a590",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/board_calibration_V0/V0/run_pitch16/validation_clicked_points_pitch16.json",
+      "bytes": 761,
+      "sha256": "aa18adfa525ac29e4221dc8e702fee0e95db10485dccee9ca91c5b438f12eff3",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/board_calibration_V0/V0/run_pitch16/validation_error_report.json",
+      "bytes": 424,
+      "sha256": "e4cdd085c70d5d11442969372af68910d330d027e189cd7fc2c30f9371f9b025",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/board_calibration_V0/V0/run_pitch17_archive/calibration.json",
+      "bytes": 3767,
+      "sha256": "046bfd70d5d4a7954ca3fc374293c49de47195abae995221c1c0fce1aa48a827",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/board_calibration_V0/V0/run_pitch17_archive/empty.png",
+      "bytes": 1162652,
+      "sha256": "e5d89d7e5d105d0c5258290d65c2ba642dafcef0795f500d9fa9751e9183575e",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/board_calibration_V0/V0/run_pitch17_archive/grid_overlay.png",
+      "bytes": 1253648,
+      "sha256": "afac7c28816d1f2f616b837d9a3157b128b59811db5c8f08dbd5f714a19d7c3e",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/board_calibration_V0/V0/run_pitch17_archive/stud_coordinates.csv",
+      "bytes": 32923,
+      "sha256": "c9f279c3d269bf2285af77dfbd66d73574f291eaae3d0028c3a96e4a3f51e19e",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/board_calibration_V0/V0/run_pitch17_archive/validation_error_report.json",
+      "bytes": 426,
+      "sha256": "9c32eb76e8275b5a8d241dddc0163670163e13129cb85ffef274e248f83b78c9",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/empty_board_depth/D1/20261007T093600059227Z/depth_aligned.npy",
+      "bytes": 1843328,
+      "sha256": "95b04cc95f2bf39338801311586992676a4e90cd2047674e50954acb002fdebb",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/empty_board_depth/D1/20261007T093600059227Z/depth_aligned.png",
+      "bytes": 218102,
+      "sha256": "8585faf5f0b6df3c4011cd185c711d70507553ea02c5abbaefe6eaef0b010b52",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/empty_board_depth/D1/20261007T093600059227Z/depth_raw.npy",
+      "bytes": 814208,
+      "sha256": "cd8240e95d65ec0feb1e9c505cfcd92c132554afe6897485b25a1c379805071e",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/empty_board_depth/D1/20261007T093600059227Z/depth_raw.png",
+      "bytes": 180078,
+      "sha256": "ac129b7962bac15251b21372411d197de6fffbcbd05e2803726a0615a5ae2e02",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/empty_board_depth/D1/20261007T093600059227Z/metadata.json",
+      "bytes": 3505,
+      "sha256": "38d2ad46ec04c47dc0f80d72b27abe6dd6c8e0ed4d8323c9d2f67cd6fc68943d",
+      "state": "tracked",
+      "matches_head": true,
+      "capture": {
+        "view_id": "D1",
+        "captured_at": "2026-10-07T09:36:01.281546+00:00",
+        "mode": "REAL",
+        "scope": "CAPTURE_ONLY",
+        "recording_format": "ros_rgbd_capture_v1"
+      }
+    },
+    {
+      "path": "perception/recordings/empty_board_depth/D1/20261007T093600059227Z/rgb.npy",
+      "bytes": 2764928,
+      "sha256": "1040693beba883359e692c0b8b2551b100c9f3eb9f7acf72d8ab8fd57469bd58",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/empty_board_depth/D1/20261007T093600059227Z/rgb.png",
+      "bytes": 1130943,
+      "sha256": "721e67509cc4ffa113530ef0678e6e816f3935875ee9fdfdf905795eba20585d",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/empty_board_depth/D1/depth_baseline_review_20261007T093600059227Z/depth_baseline_report.json",
+      "bytes": 1597,
+      "sha256": "cd4414a00642527dc59ee8813aeac1080f5cd401e368842f9f054c16c348ccfa",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/empty_board_depth/D1/depth_baseline_review_20261007T093600059227Z/depth_roi_review.png",
+      "bytes": 1106854,
+      "sha256": "0a41f1f7396cfa6153fdbba8022b4b6990419e8ddec47ca0a219a17ad5001015",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/empty_board_depth/D3/20261007T055935222566Z/depth_aligned.npy",
+      "bytes": 1843328,
+      "sha256": "c06d58387bd5a135c0154bb171f3586a9994a3327a42a9f4579c074acd0f686b",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/empty_board_depth/D3/20261007T055935222566Z/depth_aligned.png",
+      "bytes": 226149,
+      "sha256": "ae0637988efb26eff9875a698127b788de3b3eca8e97abc6042516db5e6a22fa",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/empty_board_depth/D3/20261007T055935222566Z/depth_raw.npy",
+      "bytes": 814208,
+      "sha256": "05933f2cfcc2f6f670db0a4c8a8773fa1cf0142cf849d129237d2b09521edfa6",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/empty_board_depth/D3/20261007T055935222566Z/depth_raw.png",
+      "bytes": 170226,
+      "sha256": "4b75c7f36e0784ddf618833dab6d4cddb46aec8f61e644d4c27a714d6999d2f4",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/empty_board_depth/D3/20261007T055935222566Z/metadata.json",
+      "bytes": 3505,
+      "sha256": "a636a0423fcb4d40c7071be3426746a4f42ae3834a1371bea25e25844d494796",
+      "state": "tracked",
+      "matches_head": true,
+      "capture": {
+        "view_id": "D3",
+        "captured_at": "2026-10-07T05:59:36.303300+00:00",
+        "mode": "REAL",
+        "scope": "CAPTURE_ONLY",
+        "recording_format": "ros_rgbd_capture_v1"
+      }
+    },
+    {
+      "path": "perception/recordings/empty_board_depth/D3/20261007T055935222566Z/rgb.npy",
+      "bytes": 2764928,
+      "sha256": "966c7b8bca512c385941e7c1b38e7f17df0db1e563215455cf794db9d3b65787",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/empty_board_depth/D3/20261007T055935222566Z/rgb.png",
+      "bytes": 1157457,
+      "sha256": "beb08cb6d1097edb364e783e53964494670c41c09fba77cf9c31b4a3eb2192db",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/empty_board_depth/D3/depth_baseline_review/depth_baseline_report.json",
+      "bytes": 1582,
+      "sha256": "cd1399507df01e23264c3887f738853ef9c2a74d2165ba21d1a926487e809a0e",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/empty_board_depth/D3/depth_baseline_review/depth_roi_review.png",
+      "bytes": 1124443,
+      "sha256": "89c668d1ccb2ca0693251fa4adfe959471da95406c3a7e79895679a50466a9d5",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/empty_board_depth/DEPTH_BASELINE_REVIEW.md",
+      "bytes": 5639,
+      "sha256": "45dbb3ee7b140dbac9812c1c154656d157694379ae8635960d4d8a9464d1ebf1",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/empty_board_depth/V0/20261007T055736220382Z/depth_aligned.npy",
+      "bytes": 1843328,
+      "sha256": "28ff1794b345574b74e52c74ce7c76fb86d8d8bf6802360a54db28084c0ee667",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/empty_board_depth/V0/20261007T055736220382Z/depth_aligned.png",
+      "bytes": 173829,
+      "sha256": "7f0fc4716717f5199929130377f75166dbd3fdc532db1fd42f1ae57a55f4a1f9",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/empty_board_depth/V0/20261007T055736220382Z/depth_raw.npy",
+      "bytes": 814208,
+      "sha256": "c7ccb4ed50f92606f7779bae2cb58ee0520fc6ff7f39d3f21d2818e2696a081f",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/empty_board_depth/V0/20261007T055736220382Z/depth_raw.png",
+      "bytes": 133344,
+      "sha256": "02e990a296c595bf41f0ff50401b1fa7831134c7a4c881cf91a86caa1e1c0ab9",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/empty_board_depth/V0/20261007T055736220382Z/metadata.json",
+      "bytes": 3495,
+      "sha256": "bad3fa551f2f3250b7da34ab615af542776071c72dcb0e82c15269ecb5d0281f",
+      "state": "tracked",
+      "matches_head": true,
+      "capture": {
+        "view_id": "V0",
+        "captured_at": "2026-10-07T05:57:37.431477+00:00",
+        "mode": "REAL",
+        "scope": "CAPTURE_ONLY",
+        "recording_format": "ros_rgbd_capture_v1"
+      }
+    },
+    {
+      "path": "perception/recordings/empty_board_depth/V0/20261007T055736220382Z/rgb.npy",
+      "bytes": 2764928,
+      "sha256": "de04a7edda6f3267adadd525cef6b11d9b1185e4e9446276b556cc37f7f79c73",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/empty_board_depth/V0/20261007T055736220382Z/rgb.png",
+      "bytes": 1184693,
+      "sha256": "984510b1351563b742b3982074a7c7591457a25269735a155da62c59fcff5405",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/empty_board_depth/V0/depth_baseline_review/depth_baseline_report.json",
+      "bytes": 1582,
+      "sha256": "9b916284c6abd59349f5fab4d5a7d2d922d3811a474e1458b6daffde1a17d590",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/empty_board_depth/V0/depth_baseline_review/depth_roi_review.png",
+      "bytes": 1142172,
+      "sha256": "e1f5347cde1a0b8b363b5ba617f975cfd9427e18ad21518ef864398563ce92d3",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/hand_test/prediction/hand_v0_00s.jpg",
+      "bytes": 182926,
+      "sha256": "68dd7d18370b56eda580ddb7550f62ae74b33dcb030eeead2b07ebb0b369936e",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/hand_test/prediction/hand_v0_02s.jpg",
+      "bytes": 189851,
+      "sha256": "de6b21d380acafe8547b5c6943cb730fe305ae8a9de8c610ec2001a262e316b3",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/hand_test/prediction/hand_v0_04s.jpg",
+      "bytes": 202882,
+      "sha256": "d2ff8e975d5e38be8a074bbe768cc718464cceea357bc7f40ffe4a25c3f5f45c",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/hand_test/prediction/hand_v0_08s.jpg",
+      "bytes": 195293,
+      "sha256": "435c769e671985500734add9ff9e27f2d56549a4b5eed862af8e3a7f8e01b999",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/hand_test/prediction/hand_v0_10s.jpg",
+      "bytes": 199318,
+      "sha256": "4bd581cbb027b6137640464dbb8cb6218e525e0fe493bb5836b8b9a046ecb321",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/hand_test/prediction/hand_v0_12s.jpg",
+      "bytes": 181524,
+      "sha256": "d9af169f1ddf86a5ce9e44d1544f50105de7c0be99891ed4ee2239be2f8f11df",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/hand_test/prediction/hand_v0_14s.jpg",
+      "bytes": 187424,
+      "sha256": "b25b10205f56b651035e4e81ef30b2c14c2a5d92ba456d12649a1e42141a1422",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/hand_test/prediction/hand_v0_16s.jpg",
+      "bytes": 191024,
+      "sha256": "6f44681d8030a52df7d5fd34488fb9aa15146a4979c4f0cdf924811dd5bede9c",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/hand_test/prediction/hand_v0_20s.jpg",
+      "bytes": 187866,
+      "sha256": "8e2d46aa61c962e39cbae29894906e9ba6922841dc40ec549416b449743f7d10",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/hand_test/prediction/hand_v0_22s.jpg",
+      "bytes": 180245,
+      "sha256": "bae5612aaeecce7759201a86abc0bbb19598f1eaf3a73b21d4f68479c7e874df",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/hand_test/prediction/hand_v0_24s.jpg",
+      "bytes": 180005,
+      "sha256": "29ad00accce85b739014038293936ed844572e02d88c9b6e63a2463bf0a120bc",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/hand_test/prediction/hand_v0_26s.jpg",
+      "bytes": 187908,
+      "sha256": "7a4f473fab55b07e33549f62c687077d83f6605120ccfe19855eae3370389423",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/hand_test/prediction/hand_v0_28s.jpg",
+      "bytes": 189227,
+      "sha256": "1945ef3e14fa5af5ab177da97fafb5764dd91330121e9fcad5c95ebd7dc90e34",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/hand_test/prediction/hand_v0_34s.jpg",
+      "bytes": 194418,
+      "sha256": "e74d510cc48b2e6088af8945997755b427ed1a7e99b15bbdd57a69affcba764a",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/hand_test/prediction/hand_v0_36s.jpg",
+      "bytes": 181864,
+      "sha256": "746db9a9569894d667e8bb8379343f5ed25d4e9a4d22628f8c4f3703edabdf39",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/hand_test/prediction/hand_v0_38s.jpg",
+      "bytes": 201022,
+      "sha256": "7800f258bd73d4c6ce621cb613bd7582138cbcbc0fefeaed414ecdbc3b475ac5",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/supply_board_roi/20261012T002844481743Z/rgb.png",
+      "bytes": 1232320,
+      "sha256": "c1934785b47b7a999f7e3836b3264998731244299f80fae8a41aabb74cc30827",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/supply_board_roi/20261012T002844481743Z/roi_preview.png",
+      "bytes": 1238886,
+      "sha256": "10376d9b0ac7d59eea67da4a6543b3c34b143f52f210336d08f8315c1e6cab0b",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/supply_board_roi/20261012T002844481743Z/supply_roi.json",
+      "bytes": 397,
+      "sha256": "9babdebf34d95476142d0ebdb7c3fdaa90cf0d2327228eaa4b0513734ae1077a",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/supply_board_test/20261012T003652858704Z/detections.json",
+      "bytes": 5296,
+      "sha256": "7f8f246855e764cd8fdcd33b8b7a1bacd65da0914f1d599905958125c8315951",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/supply_board_test/20261012T003652858704Z/preview.png",
+      "bytes": 1238463,
+      "sha256": "fbaa2f4c86bf3b6f94e36e4a29e8e17911d2723ce05233fbfe7e0b0f5ab79585",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/supply_rgb/supply_20261010_173244_177418.png",
+      "bytes": 1204544,
+      "sha256": "3eb5d6a4bfa6c93592e10cca8dbb72bfc6f96600d12de3050fc98260ae846442",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/supply_rgb/supply_20261010_173313_600166.png",
+      "bytes": 1205446,
+      "sha256": "a49e83fda79278ee297b4b413e26d52c0195ce16b6b60bccc039cfc391c86658",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/supply_rgb/supply_20261010_173319_994194.png",
+      "bytes": 1204631,
+      "sha256": "a9d97a0395e9891701270ed771b26f12e17c61f872d473a91343ef2aae634a82",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/supply_rgb/supply_20261010_173322_368152.png",
+      "bytes": 1204477,
+      "sha256": "8a979bb342c21d02722497679379dd95a19012a8b543cf90484d343e6d3f3ac4",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/supply_rgb/supply_20261010_173325_884629.png",
+      "bytes": 1201857,
+      "sha256": "4252e12c319434dfd82644d0fa3d34f153da5ecf5d935232ba280f8100e24d00",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/supply_rgb/supply_20261010_173329_330442.png",
+      "bytes": 1200670,
+      "sha256": "ce4a21d9be0c28c0847999ba6c7e1f3206ab5a38aa6c5acf0148042016103b65",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/supply_rgb/supply_20261010_173332_470410.png",
+      "bytes": 1201849,
+      "sha256": "a325a17bb71775de3be8a2d10a842507324f9d3cce5edeab56efddc9fb333662",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/supply_rgb/supply_20261010_173338_457115.png",
+      "bytes": 1201212,
+      "sha256": "c6dff38196d7abf755a99608fb165e08d43ca98438ed8fed989b7a9b41f77f1e",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/supply_rgb/supply_20261010_173417_332094.png",
+      "bytes": 1237380,
+      "sha256": "39afd7d687299590287446d02d536712572fc644c5c6e1332f4d628ba0b0b08b",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/supply_rgb/supply_20261010_173419_713319.png",
+      "bytes": 1237411,
+      "sha256": "38003542d6305d169281a7698991a83a389e18531758b21ba320207150088a8c",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/supply_rgb/supply_20261010_173458_689162.png",
+      "bytes": 1205989,
+      "sha256": "004ec20087e25990a6cfe7db95a86f81db51489469a76c76f557629085b77a35",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/supply_rgb/supply_20261010_173501_289346.png",
+      "bytes": 1194536,
+      "sha256": "4f27d8a356710b47e291245d382dec8b60e80e00a07a54cbe6266e74905afc6f",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/yolo_blocks/session_01/scene_01_four_classes_separated/CAPTURE_REVIEW.md",
+      "bytes": 1947,
+      "sha256": "7f8822abc3f5dea69d7477d971095aa9f543e7add1763d355f53ef30a5d63a56",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/yolo_blocks/session_01/scene_01_four_classes_separated/D1/20261007T113105581770Z/depth_aligned.npy",
+      "bytes": 1843328,
+      "sha256": "c1f3dedece8aab0428292bfc8b540ed9c90f8185b7b3fe542b7c6dcba4ea8de7",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/yolo_blocks/session_01/scene_01_four_classes_separated/D1/20261007T113105581770Z/depth_aligned.png",
+      "bytes": 226716,
+      "sha256": "43ca0f1d57468b52ff9c1838f4d9198c0923339d68bca1c749bb58b3fd2bccd3",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/yolo_blocks/session_01/scene_01_four_classes_separated/D1/20261007T113105581770Z/depth_raw.npy",
+      "bytes": 814208,
+      "sha256": "58fa4b704c495d418c9a1d55d070c0866b6747b984775505f654fce55556afb4",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/yolo_blocks/session_01/scene_01_four_classes_separated/D1/20261007T113105581770Z/depth_raw.png",
+      "bytes": 174921,
+      "sha256": "6a0ae6c8a9e238d8f7400d87d010acc2d5b5801f1c4400c6eed49efea42e3452",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/yolo_blocks/session_01/scene_01_four_classes_separated/D1/20261007T113105581770Z/metadata.json",
+      "bytes": 3510,
+      "sha256": "d96d82e81d796e68e2d5a34b605c9a2cd4de2fc474a7d07772674acaabe5f888",
+      "state": "tracked",
+      "matches_head": true,
+      "capture": {
+        "view_id": "D1",
+        "captured_at": "2026-10-07T11:31:07.660166+00:00",
+        "mode": "REAL",
+        "scope": "CAPTURE_ONLY",
+        "recording_format": "ros_rgbd_capture_v1"
+      }
+    },
+    {
+      "path": "perception/recordings/yolo_blocks/session_01/scene_01_four_classes_separated/D1/20261007T113105581770Z/rgb.npy",
+      "bytes": 2764928,
+      "sha256": "26162843daae4ba6787969bf65f989e5a060e6b660060f674bc9b26d2097d3e8",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/yolo_blocks/session_01/scene_01_four_classes_separated/D1/20261007T113105581770Z/rgb.png",
+      "bytes": 1232105,
+      "sha256": "45ffcb159a60eec96b41e8dc5b147387be3c414f3cbfb7e1ba92e75c32a25034",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/yolo_blocks/session_01/scene_01_four_classes_separated/D3/20261007T113149040376Z/depth_aligned.npy",
+      "bytes": 1843328,
+      "sha256": "0b53718c354a7b6cee76adf8d4f9919075192c0af027ad21e3399fd9dc661239",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/yolo_blocks/session_01/scene_01_four_classes_separated/D3/20261007T113149040376Z/depth_aligned.png",
+      "bytes": 232120,
+      "sha256": "774811483b09ea2dc16f77cbc2ffdd77922af5bdcdabe2d823a416413a7f4692",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/yolo_blocks/session_01/scene_01_four_classes_separated/D3/20261007T113149040376Z/depth_raw.npy",
+      "bytes": 814208,
+      "sha256": "41215cae6705d09ccace073cb1742f2a908a9960890952cce815aea9ecf9608e",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/yolo_blocks/session_01/scene_01_four_classes_separated/D3/20261007T113149040376Z/depth_raw.png",
+      "bytes": 173049,
+      "sha256": "01ef546c1c272535954eae9b058704fce0a496ee772be677cf52143078ac9d18",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/yolo_blocks/session_01/scene_01_four_classes_separated/D3/20261007T113149040376Z/metadata.json",
+      "bytes": 3505,
+      "sha256": "d21b84ed1594c3396d20bb644d76d8f4377c2aa5ee9faecbb4c730b1b5a44804",
+      "state": "tracked",
+      "matches_head": true,
+      "capture": {
+        "view_id": "D3",
+        "captured_at": "2026-10-07T11:31:50.348228+00:00",
+        "mode": "REAL",
+        "scope": "CAPTURE_ONLY",
+        "recording_format": "ros_rgbd_capture_v1"
+      }
+    },
+    {
+      "path": "perception/recordings/yolo_blocks/session_01/scene_01_four_classes_separated/D3/20261007T113149040376Z/rgb.npy",
+      "bytes": 2764928,
+      "sha256": "7b6c18dbfcbda53bfc4ebd4387b5892a03e4788a2ee1299f38358f47898d4dda",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/yolo_blocks/session_01/scene_01_four_classes_separated/D3/20261007T113149040376Z/rgb.png",
+      "bytes": 1089741,
+      "sha256": "41af6dbd593d8a861533b45495ddb072ad2a7a9a850db8d88f3466b719e8aade",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/yolo_blocks/session_01/scene_01_four_classes_separated/V0/20261007T113023931330Z/depth_aligned.npy",
+      "bytes": 1843328,
+      "sha256": "7d822002762fc59fae5e7dfb787d7541599363afc70a424d59da2c815ef13288",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/yolo_blocks/session_01/scene_01_four_classes_separated/V0/20261007T113023931330Z/depth_aligned.png",
+      "bytes": 177949,
+      "sha256": "3e97393092c72a45f381948a4da6a084a0de7f1d956997231febca9e12ae06af",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/yolo_blocks/session_01/scene_01_four_classes_separated/V0/20261007T113023931330Z/depth_raw.npy",
+      "bytes": 814208,
+      "sha256": "2c9ef7c73773ff875c0b5f9d6dea262ee5f5503c2a62c72c4afc709dd09a6d3e",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/yolo_blocks/session_01/scene_01_four_classes_separated/V0/20261007T113023931330Z/depth_raw.png",
+      "bytes": 137322,
+      "sha256": "272de3b7120cc7b5e008df988d6978a68646b1a1e8de581dfc673e846b264b99",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/yolo_blocks/session_01/scene_01_four_classes_separated/V0/20261007T113023931330Z/metadata.json",
+      "bytes": 3505,
+      "sha256": "96eff2a499de8ea21430229bbf5172c7a244d5419c3ca43e24c87035bce27e55",
+      "state": "tracked",
+      "matches_head": true,
+      "capture": {
+        "view_id": "V0",
+        "captured_at": "2026-10-07T11:30:25.131244+00:00",
+        "mode": "REAL",
+        "scope": "CAPTURE_ONLY",
+        "recording_format": "ros_rgbd_capture_v1"
+      }
+    },
+    {
+      "path": "perception/recordings/yolo_blocks/session_01/scene_01_four_classes_separated/V0/20261007T113023931330Z/rgb.npy",
+      "bytes": 2764928,
+      "sha256": "911333f99891ff705c9ed8d1fd676d1273a225af0f66d8af4504f34dab367118",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/yolo_blocks/session_01/scene_01_four_classes_separated/V0/20261007T113023931330Z/rgb.png",
+      "bytes": 1211141,
+      "sha256": "4a413c638d7d6d4daad90bdabb71908375adc470c14f64242aa482ddecca3abf",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/yolo_layer_labeling/D1/scene_02_layer_2/20261008T012604330253Z/D1_scene02_layer2_20261008_102604_330253.png",
+      "bytes": 1128711,
+      "sha256": "9c4c28674491d11c813baed7cea1bf46a4ef5b2810aa7f8946a5b83699cb31b0",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/yolo_layer_labeling/D1/scene_02_layer_2/20261008T012604330253Z/depth_aligned.npy",
+      "bytes": 1843328,
+      "sha256": "baf963ca22bc3adc87bcb81ba3d61fcf1811f1e1005dad59d96adbfd4a7f8252",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/yolo_layer_labeling/D1/scene_02_layer_2/20261008T012604330253Z/depth_aligned.png",
+      "bytes": 242184,
+      "sha256": "ad6411654c48be84bbb626a149a71c7121d4e99bde591ee6191f4dd4e9023623",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/yolo_layer_labeling/D1/scene_02_layer_2/20261008T012604330253Z/depth_raw.npy",
+      "bytes": 814208,
+      "sha256": "0f1114916af80d55c96a679148f77cde5edf0eea02c747e805cd3476fb16595b",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/yolo_layer_labeling/D1/scene_02_layer_2/20261008T012604330253Z/depth_raw.png",
+      "bytes": 185261,
+      "sha256": "843a290cefc4ebe098ceaf4f1a6cd83fba99231bbeedab2c32eb5d023e603a73",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/yolo_layer_labeling/D1/scene_02_layer_2/20261008T012604330253Z/metadata.json",
+      "bytes": 3505,
+      "sha256": "b161082ce3951e22adea5ecd9e26f0b6d8e57c61163bcf75712c20b8674c51b1",
+      "state": "tracked",
+      "matches_head": true,
+      "capture": {
+        "view_id": "D1",
+        "captured_at": "2026-10-08T01:26:07.062465+00:00",
+        "mode": "REAL",
+        "scope": "CAPTURE_ONLY",
+        "recording_format": "ros_rgbd_capture_v1"
+      }
+    },
+    {
+      "path": "perception/recordings/yolo_layer_labeling/D1/scene_02_layer_2/20261008T012604330253Z/rgb.npy",
+      "bytes": 2764928,
+      "sha256": "5d392a40263d1d5ab5f6f98ac64ad5281d42762edf6f23a7c004149b07158f64",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/yolo_layer_labeling/D1/scene_03_layer_3/20261008T013602070365Z/D1_scene03_layer3_20261008_103602_070365.png",
+      "bytes": 1111993,
+      "sha256": "733e55721dae39b0f6eafcdcf59a28b4b13fac09d7dd0720e6ba3b0f6a9bea60",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/yolo_layer_labeling/D1/scene_03_layer_3/20261008T013602070365Z/depth_aligned.npy",
+      "bytes": 1843328,
+      "sha256": "73815be54e168acecc4b971c3cbcf502fb91550fd0a93e385afb6add0d70baf7",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/yolo_layer_labeling/D1/scene_03_layer_3/20261008T013602070365Z/depth_aligned.png",
+      "bytes": 240431,
+      "sha256": "bd2369108bef752a849e94453ce0d3e5ee75193fe5bc7bb8263c192470082c88",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/yolo_layer_labeling/D1/scene_03_layer_3/20261008T013602070365Z/depth_raw.npy",
+      "bytes": 814208,
+      "sha256": "5cd04536208db4faa817fa51e1b84e5a872dbce3c6c08d021d7553ca3fa585c4",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/yolo_layer_labeling/D1/scene_03_layer_3/20261008T013602070365Z/depth_raw.png",
+      "bytes": 187137,
+      "sha256": "3961d6e5b1dfe0caeea07d1f81f21bf32a04be6df8094366fbd1b24b28f7b931",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/yolo_layer_labeling/D1/scene_03_layer_3/20261008T013602070365Z/metadata.json",
+      "bytes": 3505,
+      "sha256": "091a1de3f9382c6fdd484f9a2d9b86a18abd0d57a319f62e2901225826448e9a",
+      "state": "tracked",
+      "matches_head": true,
+      "capture": {
+        "view_id": "D1",
+        "captured_at": "2026-10-08T01:36:04.873587+00:00",
+        "mode": "REAL",
+        "scope": "CAPTURE_ONLY",
+        "recording_format": "ros_rgbd_capture_v1"
+      }
+    },
+    {
+      "path": "perception/recordings/yolo_layer_labeling/D1/scene_03_layer_3/20261008T013602070365Z/rgb.npy",
+      "bytes": 2764928,
+      "sha256": "66b46e245250902171dac038b634b885db9c7814be78c35d89821ff2e829ba08",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/yolo_layer_labeling/D1/scene_04_layer_4/20261008T014023353088Z/D1_scene04_layer4_20261008_104023_353088.png",
+      "bytes": 1140439,
+      "sha256": "d461707c94f58915bb9154b1f57bac4a21c9c9c787ad11af8275dbb02cc5893c",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/yolo_layer_labeling/D1/scene_04_layer_4/20261008T014023353088Z/depth_aligned.npy",
+      "bytes": 1843328,
+      "sha256": "57282873a60a1b5086e78f7c3c06548e7337a7441958054b5e640bc2aaaf7796",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/yolo_layer_labeling/D1/scene_04_layer_4/20261008T014023353088Z/depth_aligned.png",
+      "bytes": 231901,
+      "sha256": "07e7245e4aad82e240326be0eb30a75ddd5d57c76e06a35f6ed829acbb5acdf0",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/yolo_layer_labeling/D1/scene_04_layer_4/20261008T014023353088Z/depth_raw.npy",
+      "bytes": 814208,
+      "sha256": "c9fc3003a7400450b41061be8e38efda943d2248df01ea8b35d62e9cceeded73",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/yolo_layer_labeling/D1/scene_04_layer_4/20261008T014023353088Z/depth_raw.png",
+      "bytes": 182789,
+      "sha256": "da0206acdd0b514cb1ab8a24867c378a33f07d8a71f85c6576bebcc5eae95353",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/yolo_layer_labeling/D1/scene_04_layer_4/20261008T014023353088Z/metadata.json",
+      "bytes": 3505,
+      "sha256": "e6493ada655237d3b3c4e2781ee19dd9faa54b34a6dca2f048ae573a6a0027b2",
+      "state": "tracked",
+      "matches_head": true,
+      "capture": {
+        "view_id": "D1",
+        "captured_at": "2026-10-08T01:40:25.687886+00:00",
+        "mode": "REAL",
+        "scope": "CAPTURE_ONLY",
+        "recording_format": "ros_rgbd_capture_v1"
+      }
+    },
+    {
+      "path": "perception/recordings/yolo_layer_labeling/D1/scene_04_layer_4/20261008T014023353088Z/rgb.npy",
+      "bytes": 2764928,
+      "sha256": "c084e27c1596cc97770e6e4f2f6590e84008faaee1bb2c1f66ab7c306dcda9f3",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/yolo_layer_labeling/D3/scene_02_layer_2/20261008T012721093673Z/D3_scene02_layer2_20261008_102721_093673.png",
+      "bytes": 1095062,
+      "sha256": "94674b11c606231701087f19451279f618b1c00a1bf0b48aec1c685423532898",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/yolo_layer_labeling/D3/scene_02_layer_2/20261008T012721093673Z/depth_aligned.npy",
+      "bytes": 1843328,
+      "sha256": "6331563e2a17e95257dcb9783d8ee2a462a4d4f4f7a1af0fe6dbc15a8894b31e",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/yolo_layer_labeling/D3/scene_02_layer_2/20261008T012721093673Z/depth_aligned.png",
+      "bytes": 240480,
+      "sha256": "75d8c0cbf7dcfa0254df71c1f4a756f9a30bf81a52ac43e5e02e618bc60cf6cd",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/yolo_layer_labeling/D3/scene_02_layer_2/20261008T012721093673Z/depth_raw.npy",
+      "bytes": 814208,
+      "sha256": "d78ef374b647ddfd6bd50d971663edadc651f4ec0449068b5a23432efb874c21",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/yolo_layer_labeling/D3/scene_02_layer_2/20261008T012721093673Z/depth_raw.png",
+      "bytes": 171408,
+      "sha256": "a8e7a9d4272a5c2bedad8de20e96c5f9b0dacdb2687b3efc22979b0333a2757d",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/yolo_layer_labeling/D3/scene_02_layer_2/20261008T012721093673Z/metadata.json",
+      "bytes": 3505,
+      "sha256": "7c543d128ac7085481761ce79c8b7e25e538dbaddba9c33b9b822dc3e23970cd",
+      "state": "tracked",
+      "matches_head": true,
+      "capture": {
+        "view_id": "D3",
+        "captured_at": "2026-10-08T01:27:22.842455+00:00",
+        "mode": "REAL",
+        "scope": "CAPTURE_ONLY",
+        "recording_format": "ros_rgbd_capture_v1"
+      }
+    },
+    {
+      "path": "perception/recordings/yolo_layer_labeling/D3/scene_02_layer_2/20261008T012721093673Z/rgb.npy",
+      "bytes": 2764928,
+      "sha256": "56baa4da340f3fad937408d9570322870082d2cea401dcee004e905c4f755842",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/yolo_layer_labeling/D3/scene_03_layer_3/20261008T013649631707Z/D3_scene03_layer3_20261008_103649_631707.png",
+      "bytes": 1095339,
+      "sha256": "7a40d3bf88fb4af27d86e6ca089172b84212d741c1f36d072a99802e63eb14a6",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/yolo_layer_labeling/D3/scene_03_layer_3/20261008T013649631707Z/depth_aligned.npy",
+      "bytes": 1843328,
+      "sha256": "a81d4b60899a71a1597172e7c94e3e36d35eb1250bc5bf86d915b138aff0f2ce",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/yolo_layer_labeling/D3/scene_03_layer_3/20261008T013649631707Z/depth_aligned.png",
+      "bytes": 244744,
+      "sha256": "8430a0547d598063aa5ce0a610eade761c16aeaf3f40a5fa19c0e4dfb95d2559",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/yolo_layer_labeling/D3/scene_03_layer_3/20261008T013649631707Z/depth_raw.npy",
+      "bytes": 814208,
+      "sha256": "ccfb88f8ff0f52a4005e34214a2d6ccac29086d0f622935661314a6bf5df50a7",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/yolo_layer_labeling/D3/scene_03_layer_3/20261008T013649631707Z/depth_raw.png",
+      "bytes": 180623,
+      "sha256": "1bd866f2f7608d929aa6ba6109408233f26176cb2bc6098a9cd809d9d8813879",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/yolo_layer_labeling/D3/scene_03_layer_3/20261008T013649631707Z/metadata.json",
+      "bytes": 3505,
+      "sha256": "49da8362bca89cf422753362bcc0a8c26a2ffc518ef99202d3f823d62d9320bd",
+      "state": "tracked",
+      "matches_head": true,
+      "capture": {
+        "view_id": "D3",
+        "captured_at": "2026-10-08T01:36:51.378367+00:00",
+        "mode": "REAL",
+        "scope": "CAPTURE_ONLY",
+        "recording_format": "ros_rgbd_capture_v1"
+      }
+    },
+    {
+      "path": "perception/recordings/yolo_layer_labeling/D3/scene_03_layer_3/20261008T013649631707Z/rgb.npy",
+      "bytes": 2764928,
+      "sha256": "a1e863c8cb219a0216d1849e58c3305e0a697cc7d1e6bb1497335261d83acea5",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/yolo_layer_labeling/D3/scene_04_layer_4/20261008T014108057478Z/D3_scene04_layer4_20261008_104108_057478.png",
+      "bytes": 1129772,
+      "sha256": "3c122c372896dfa155e4d3cce92fa3c46bbd49056d4df0191e3d3fd5a1a1dcd9",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/yolo_layer_labeling/D3/scene_04_layer_4/20261008T014108057478Z/depth_aligned.npy",
+      "bytes": 1843328,
+      "sha256": "34844963db141a538a1f32865a88ed06a8323611b0921de56f926cec34734116",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/yolo_layer_labeling/D3/scene_04_layer_4/20261008T014108057478Z/depth_aligned.png",
+      "bytes": 246403,
+      "sha256": "b525a4f8b0f55ce3c7675e2a12ffd6ecac2c986488eaa6af91a67b2c4be8dac3",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/yolo_layer_labeling/D3/scene_04_layer_4/20261008T014108057478Z/depth_raw.npy",
+      "bytes": 814208,
+      "sha256": "2d06fc6ee2743c8271beea184a6c17b6e983e292d090b74a16d3912c7716a2bf",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/yolo_layer_labeling/D3/scene_04_layer_4/20261008T014108057478Z/depth_raw.png",
+      "bytes": 179075,
+      "sha256": "84865bb1484d5c282e8f6d8e0258ebf4fb0fccec96a261b33999980f7997361c",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/yolo_layer_labeling/D3/scene_04_layer_4/20261008T014108057478Z/metadata.json",
+      "bytes": 3505,
+      "sha256": "8e5463eea8435fcbcecaf2f6f5c59d89abec3311eed378e8942018c5d11810cb",
+      "state": "tracked",
+      "matches_head": true,
+      "capture": {
+        "view_id": "D3",
+        "captured_at": "2026-10-08T01:41:09.284054+00:00",
+        "mode": "REAL",
+        "scope": "CAPTURE_ONLY",
+        "recording_format": "ros_rgbd_capture_v1"
+      }
+    },
+    {
+      "path": "perception/recordings/yolo_layer_labeling/D3/scene_04_layer_4/20261008T014108057478Z/rgb.npy",
+      "bytes": 2764928,
+      "sha256": "f4a459812c504e88b0b5d944c5594415cd2ffd8de9d62ebb5bd16ad844c81c01",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/yolo_layer_labeling/V0/scene_02_layer_2/20261008T012212436681Z/V0_scene02_layer2_20261008_102212_436681.png",
+      "bytes": 1100666,
+      "sha256": "d310b4282a0ca9edfaf91d4f5a83f2f56694e1c271efcbd96363652a0e7ad536",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/yolo_layer_labeling/V0/scene_02_layer_2/20261008T012212436681Z/depth_aligned.npy",
+      "bytes": 1843328,
+      "sha256": "83088fb17f35f52cf8fd5d8d45896e985a9e1f564760b8f9aa65046aa90906b5",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/yolo_layer_labeling/V0/scene_02_layer_2/20261008T012212436681Z/depth_aligned.png",
+      "bytes": 178055,
+      "sha256": "364cba77d853db1b95148562c5fee771cd3552f42d97d7b609a73d2cdef74cc5",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/yolo_layer_labeling/V0/scene_02_layer_2/20261008T012212436681Z/depth_raw.npy",
+      "bytes": 814208,
+      "sha256": "531868a40be17ba25fe0ff31920ceced26c08a83bc23de33d4499ed4f5681a7f",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/yolo_layer_labeling/V0/scene_02_layer_2/20261008T012212436681Z/depth_raw.png",
+      "bytes": 135106,
+      "sha256": "1086b5c970ff8aaf46ce4afc3719f7dbf7c3edb9fdb08a3b45f3aa7aecc2e692",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/yolo_layer_labeling/V0/scene_02_layer_2/20261008T012212436681Z/metadata.json",
+      "bytes": 3500,
+      "sha256": "6e7e0cbc97caf87bd1098e459fcc69e4132b9bf0270d6043fb5cf950bebe0533",
+      "state": "tracked",
+      "matches_head": true,
+      "capture": {
+        "view_id": "V0",
+        "captured_at": "2026-10-08T01:22:14.031029+00:00",
+        "mode": "REAL",
+        "scope": "CAPTURE_ONLY",
+        "recording_format": "ros_rgbd_capture_v1"
+      }
+    },
+    {
+      "path": "perception/recordings/yolo_layer_labeling/V0/scene_02_layer_2/20261008T012212436681Z/rgb.npy",
+      "bytes": 2764928,
+      "sha256": "b73a5655edc733f5ad63a516a259ced1a893c07f0fdb060a9d7446da2b8842e1",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/yolo_layer_labeling/V0/scene_03_layer_3/20261008T013256028464Z/V0_scene03_layer3_20261008_103256_028464.png",
+      "bytes": 1115004,
+      "sha256": "b09af21710f3261687d0e5e6c6bfc73fbb8bae59470037e3ef7e791d43607a22",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/yolo_layer_labeling/V0/scene_03_layer_3/20261008T013256028464Z/depth_aligned.npy",
+      "bytes": 1843328,
+      "sha256": "54c5980a42693c5ae93837fc68d129757c6f5ea433bfc7753e80581677ccb6b7",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/yolo_layer_labeling/V0/scene_03_layer_3/20261008T013256028464Z/depth_aligned.png",
+      "bytes": 176107,
+      "sha256": "cc2f0ca1c8b5c49d3b543393b538a2097a9b602416183d853026cb670d44804d",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/yolo_layer_labeling/V0/scene_03_layer_3/20261008T013256028464Z/depth_raw.npy",
+      "bytes": 814208,
+      "sha256": "a09c3f7336c48ef56ab53f14bdf59df712d1dbeecaf4fb13bf1d803a08ac354b",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/yolo_layer_labeling/V0/scene_03_layer_3/20261008T013256028464Z/depth_raw.png",
+      "bytes": 133419,
+      "sha256": "d43077225145257d9a67bf052c1a47b095e1c0eddbd2ceacaf2496703c17fad3",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/yolo_layer_labeling/V0/scene_03_layer_3/20261008T013256028464Z/metadata.json",
+      "bytes": 3505,
+      "sha256": "6f4ebcb9416038817391ecb1aac6ff3ccb574da6ab1f9c639855f5fafb7c8672",
+      "state": "tracked",
+      "matches_head": true,
+      "capture": {
+        "view_id": "V0",
+        "captured_at": "2026-10-08T01:32:57.747605+00:00",
+        "mode": "REAL",
+        "scope": "CAPTURE_ONLY",
+        "recording_format": "ros_rgbd_capture_v1"
+      }
+    },
+    {
+      "path": "perception/recordings/yolo_layer_labeling/V0/scene_03_layer_3/20261008T013256028464Z/rgb.npy",
+      "bytes": 2764928,
+      "sha256": "1d6824e8eff8a179f371cf911013facb8f297e1aa44b3e3c7f3338ef125f5d13",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/yolo_layer_labeling/V0/scene_04_layer_4/20261008T013936885802Z/V0_scene04_layer4_20261008_103936_885802.png",
+      "bytes": 1215564,
+      "sha256": "f6a77f78fbb4c281283ee0064d82f557b369e2dab55e0f0c13d2acb09d0df101",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/yolo_layer_labeling/V0/scene_04_layer_4/20261008T013936885802Z/depth_aligned.npy",
+      "bytes": 1843328,
+      "sha256": "40b84c79e074a59dbea4ffbfa58040996afda70e96389568792c0692f5957a67",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/yolo_layer_labeling/V0/scene_04_layer_4/20261008T013936885802Z/depth_aligned.png",
+      "bytes": 174244,
+      "sha256": "9aa1ce5c855508cb48d592b6d2dec2e64ea9035b31ee49c27e8e9c934cecf7eb",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/yolo_layer_labeling/V0/scene_04_layer_4/20261008T013936885802Z/depth_raw.npy",
+      "bytes": 814208,
+      "sha256": "56b2682051931663d1d0660e0ce407f23949d2a1ac10c448c77a271f28a6baad",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/yolo_layer_labeling/V0/scene_04_layer_4/20261008T013936885802Z/depth_raw.png",
+      "bytes": 134039,
+      "sha256": "f00b129c89f5e92569102c5791bc987d251c0877cc24945ddbd0e187d4875335",
+      "state": "tracked",
+      "matches_head": true
+    },
+    {
+      "path": "perception/recordings/yolo_layer_labeling/V0/scene_04_layer_4/20261008T013936885802Z/metadata.json",
+      "bytes": 3505,
+      "sha256": "82add42e8eb8637488b9ae8bf83fde5f40a081d6b135bb6193018f6a7efdfbc0",
+      "state": "tracked",
+      "matches_head": true,
+      "capture": {
+        "view_id": "V0",
+        "captured_at": "2026-10-08T01:39:38.575561+00:00",
+        "mode": "REAL",
+        "scope": "CAPTURE_ONLY",
+        "recording_format": "ros_rgbd_capture_v1"
+      }
+    },
+    {
+      "path": "perception/recordings/yolo_layer_labeling/V0/scene_04_layer_4/20261008T013936885802Z/rgb.npy",
+      "bytes": 2764928,
+      "sha256": "d1ed4bfadc81bda490dfd517723e09245d1c44e3c759b579f57b06168785b055",
+      "state": "tracked",
+      "matches_head": true
+    }
+  ]
+}

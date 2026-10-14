@@ -5,7 +5,7 @@ from copy import deepcopy
 import numpy as np
 import pytest
 
-from rgbd_io import save_frame
+from perception_mvp.rgbd_io import save_frame
 from perception_mvp import main as runtime
 
 
@@ -78,6 +78,44 @@ def test_actual_geometry_path_without_coverage_stays_unobservable(inputs):
     assert diagnostics["capture_context"][0]["coverage_status"] == "unverified"
 
 
+def test_body_measurement_adds_stud_once_before_layer_classification(inputs, tmp_path):
+    from perception_mvp.rgbd_io import load_frame, save_frame
+    from perception_mvp.depth_grid import process_saved
+    rgb, raw, aligned, meta = load_frame(inputs[0]['recordings'][0]['directory'])
+    aligned[7:10, 7:11] = 1004  # Synthetic two planes: body10mm and studs14mm.
+    path = tmp_path / 'body_studs'
+    save_frame(path, rgb, raw, aligned, meta)
+    mask = np.zeros((24, 24), bool)
+    mask[5:16, 5:16] = True
+    config = deepcopy(inputs[1])
+    config.update(block_surface_height_basis='BODY_TOP_PLUS_STUD', block_stud_height_m=.004,
+                  top_heights_m=[.014, .024, .034, .044])
+    result = process_saved(path, [(mask, 'blue_2x2', .9)], inputs[2], config)
+    candidate = result['candidates'][0]
+    assert candidate['status'] == 'CANDIDATE'
+    assert candidate['body_surface_height_m'] == pytest.approx(.010)
+    assert candidate['top_height_m'] == pytest.approx(.014)
+    assert candidate['block_stud_added_m'] == .004
+    assert candidate['measured_layer_index'] == 0
+    assert result['verified_regions'] == [dict(x=1, y=1, width=2, height=2, layer=1)]
+    assert result['verification_basis']['kind'] == 'MEASURED_OCCUPIED_FOOTPRINT_ONLY'
+    inputs[0]['recordings'][0]['directory'] = str(path)
+    inputs[1].update(config)
+    observed, _ = run(inputs)
+    assert observed['status'] == 'OK'
+    assert observed['visible_blocks'] == [inputs[0]['target_after']]
+    assert observed['verified_regions'] == result['verified_regions']
+
+
+def test_saved_processing_uses_view_specific_depth_limits(inputs):
+    from perception_mvp.depth_grid import process_saved
+    mask = np.ones((24, 24), bool)
+    inputs[1]['depth_ranges_m'] = {'V0': dict(min_depth_m=1.1, max_depth_m=1.2)}
+    result = process_saved(inputs[0]['recordings'][0]['directory'], [(mask, 'blue_2x2', .9)],
+                           inputs[2], inputs[1])
+    assert result['candidates'][0]['reason'] == 'insufficient_depth'
+
+
 def test_verified_evidence_and_callback(inputs):
     record = inputs[0]["recordings"][0]
     record.update(verified_regions=[{"x": 1, "y": 1, "width": 2, "height": 2, "layer": 1}],
@@ -114,7 +152,7 @@ def test_coverage_without_evidence_rejected(inputs):
 
 
 def test_missing_model_does_not_return_fixture(inputs, monkeypatch):
-    from saved_perception import infer_masks
+    from perception_mvp.yolo_pipeline import infer_masks
     monkeypatch.setattr(runtime, "infer_masks", infer_masks)
     with pytest.raises(FileNotFoundError, match="weights"):
         run(inputs)

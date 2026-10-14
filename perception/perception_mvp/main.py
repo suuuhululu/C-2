@@ -14,7 +14,9 @@ from .backend_adapter import deliver_observed
 from .contracts import validate_block
 from .contracts import candidate_to_block
 from .depth_grid import process_saved
+from .runtime_log import progress
 from .backend_adapter import build_observed
+from .view_roles import AUTHORITY_VIEW, build_role_view, finalize
 
 DEFAULT_CYCLE_OUTPUT = Path(__file__).resolve().parent.parent / "recordings" / "observation_cycles"
 
@@ -32,16 +34,21 @@ def make_inspection_observer(gate, hand_detector, hand_stream, capture_view,
                              weights, calibration, config, detector_confidence, *,
                              confirm_view, workflow_valid, bundle_valid,
                              frame_sink=None, view_sink=None, output_root=None,
-                             start_condition=None):
+                             start_condition=None, is_stopped=None):
     """B observe(context, is_active) callable for connect_inspection.
 
     capture_view(manifest, view, is_active) must supply actual saved RGB-D and
     occupancy evidence. Controller/Camera hooks are required, never simulated here.
+    D owns completion gestures: the default is STOPPED_CLEAR for all check kinds.
+    Explicit HUMAN_ASSEMBLY remains available for standalone hand-driven callers.
+    hand_stream=None selects ROS V0 hand reception and requires is_stopped(view).
     """
     def observe(context, is_active):
         manifest = deepcopy(context)
+        # D requests inspection after the gesture or completed robot operation.
+        # Another mandatory hand entry would block this already completed step.
         condition = (start_condition(deepcopy(context)) if start_condition is not None else
-                     'HUMAN_ASSEMBLY' if context['check_kind'] == 'STEP' else 'STOPPED_CLEAR')
+                     'STOPPED_CLEAR')
         if condition not in ('HUMAN_ASSEMBLY', 'STOPPED_CLEAR'):
             raise ValueError('explicit HUMAN_ASSEMBLY or STOPPED_CLEAR start condition required')
         manifest['start_condition'] = condition
@@ -50,7 +57,13 @@ def make_inspection_observer(gate, hand_detector, hand_stream, capture_view,
                         previous_accepted_blocks=deepcopy(current['blocks']) if current is not None else [],
                         target_after=manifest.get('target_after'))
         valid = lambda: is_active() is True and workflow_valid() is True
-        return run_observation_cycle(gate, hand_detector, hand_stream,
+        stream_factory = hand_stream
+        if stream_factory is None:
+            if not callable(is_stopped):
+                raise ValueError('ROS hand reception requires actual is_stopped(View) hook')
+            from .ros_capture import stream_ros_hand
+            stream_factory = lambda: stream_ros_hand(valid, is_stopped)
+        return run_observation_cycle(gate, hand_detector, stream_factory,
             lambda view: capture_view(deepcopy(manifest), view, is_active), manifest,
             weights, calibration, config, detector_confidence, callback=lambda value: None,
             confirm_view=confirm_view, workflow_valid=valid, bundle_valid=bundle_valid,
@@ -88,8 +101,10 @@ def run_observation_cycle(gate, hand_detector, hand_stream, capture_view, manife
         return workflow_valid() is True and bundle_valid() is True
 
     try:
+        progress(context, '이동 요청·도착 대기', view='V0')
         if not valid() or confirm_view("V0") is not True or not valid():
             raise RuntimeError("safe stopped V0 and active context required")
+        progress(context, '정지 확인', view='V0')
         condition = context.get('start_condition', 'HUMAN_ASSEMBLY' if
                                 context.get('check_kind', 'STEP') == 'STEP' else 'STOPPED_CLEAR')
         if condition not in ('HUMAN_ASSEMBLY', 'STOPPED_CLEAR'):
@@ -99,13 +114,25 @@ def run_observation_cycle(gate, hand_detector, hand_stream, capture_view, manife
         else:
             gate.reset_for_reobservation(require_entry=False)
         hand_detector.reset()
-        wait_for_hand_ready(hand_stream(), hand_detector, gate, valid, frame_sink=frame_sink)
+        progress(context, '손 조건·영상 안정 확인 대기', view='V0', start_condition=condition)
+        last_hand_state = [None]
+        def hand_status(rgb, depth, event, quality):
+            state = (event.get('state'), event.get('reason'), event.get('observation_allowed'))
+            if state != last_hand_state[0]:
+                last_hand_state[0] = state
+                progress(context, '손 조건·안정 상태', view='V0', state=state[0],
+                         reason=state[1], ready=state[2])
+            if frame_sink is not None:
+                frame_sink(rgb, depth, event, quality)
+        wait_for_hand_ready(hand_stream(), hand_detector, gate, valid, frame_sink=hand_status)
+        progress(context, '손 조건·영상 안정 확인 완료', view='V0')
         if not valid():
             raise RuntimeError("observation request cancelled after hand waiting")
         return observe_cycle(gate, capture_view, context, weights, calibration, config,
             detector_confidence, callback=callback, confirm_view=confirm_view,
             bundle_valid=valid, view_sink=view_sink, output_root=output_root)
-    except Exception:
+    except Exception as error:
+        progress(context, '관측 시작 실패·중단', reason=str(error))
         gate.state = "HOLD"
         raise
 
@@ -132,6 +159,7 @@ def observe_cycle(gate, capture_view, manifest, weights, calibration, config,
         raise ValueError("Backend check and bundle-start sequence required")
     kind = validate_cycle_target(context)
     views, measurements, scenes = [], [], set()
+    role_notes, role_gating = {}, []
     def require_valid():
         if bundle_valid() is not True:
             raise RuntimeError("bundle interrupted or continuity/safety unverified")
@@ -143,11 +171,15 @@ def observe_cycle(gate, capture_view, manifest, weights, calibration, config,
             context, calibration, config, weights, detector_confidence)
         for view_id in order:
             require_valid()
+            progress(context, '이동 요청·도착 대기', view=view_id)
             if confirm_view(view_id) is not True:
                 raise RuntimeError("actual stop, safety and image stability required")
             require_valid()
+            progress(context, '정지 확인', view=view_id)
+            progress(context, '관측 중·RGB-D 수신 시작', view=view_id)
             record = capture_view(view_id)
             rgb, raw, aligned, meta = load_frame(record["directory"])
+            progress(context, 'RGB-D 수신 완료', view=view_id)
             if (meta["mode"] != "REAL" or meta["view_id"] != view_id or
                     (meta.get("check_id"), meta.get("observation_seq")) != (check, seq) or
                     meta.get("calibration_id") != calibration["calibration_id"]):
@@ -165,21 +197,36 @@ def observe_cycle(gate, capture_view, manifest, weights, calibration, config,
                                             meta, record["directory"])
             write_cycle_json(view_directory / "capture_evidence.json", dict(
                 verified_regions=regions, verification_basis=record.get("verification_basis")))
+            progress(context, '분석 시작', view=view_id)
             detections = infer_masks(rgb, weights, detector_confidence)
             result = process_saved(record["directory"], detections, calibration, config)
+            # Which measured evidence a View may contribute is decided by its role (view_roles).
+            write_cycle_json(view_directory / 'measured_occupancy_evidence.json', dict(
+                verified_regions=result.get('verified_regions', []),
+                verification_basis=result.get('verification_basis')))
+            vote_candidates = deepcopy(result['candidates'])
+            for candidate in vote_candidates:
+                if candidate['status'] == 'CANDIDATE':
+                    candidate['block'] = candidate_to_block(candidate, config['center_to_anchor_offsets_stud'])
             unknown = any(c["status"] == "UNKNOWN" for c in result["candidates"])
-            views.append({"check_id": check, "observation_seq": seq,
-                "calibration_id": calibration["calibration_id"], "view_id": view_id,
-                "visible_blocks": [candidate_to_block(c, config["center_to_anchor_offsets_stud"])
-                    for c in result["candidates"] if c["status"] == "CANDIDATE"],
-                "verified_regions": [] if unknown else regions,
-                "status": "UNOBSERVABLE" if unknown else "OK",
-                "reason": "unknown_detection" if unknown else None})
+            progress(context, '분석 완료·일부 후보 미확인' if unknown else '분석 완료', view=view_id,
+                     detected=len(result['candidates']),
+                     reasons=[c.get('reason') for c in result['candidates'] if c['status'] == 'UNKNOWN'])
+            # V0 owns layers and occupied footprints; D1/D3 are auxiliary (view_roles). An UNKNOWN
+            # candidate only drops itself, so one failed D1/D3 candidate no longer voids its View.
+            view, notes, gating = build_role_view(
+                dict(check_id=check, observation_seq=seq, calibration_id=calibration["calibration_id"]),
+                dict(result, view_id=view_id), regions,
+                lambda c: candidate_to_block(c, config["center_to_anchor_offsets_stud"]))
+            role_notes[view_id] = notes
+            role_gating += gating
+            views.append(view)
+            views[-1]['measured_candidates'] = vote_candidates if view_id == AUTHORITY_VIEW else []
             measurements.append(result)
             require_valid()
             partial, details = build_observed(check, seq, views,
                 context["previous_accepted_blocks"], context.get("target_after"),
-                scene_stable=True, check_kind=kind)
+                scene_stable=True, check_kind=kind, vote_policy=config.get('class_vote_policy'))
             write_cycle_json(view_directory / "measurement.json", result)
             write_cycle_json(view_directory / "view_result.json", views[-1])
             write_cycle_json(view_directory / "partial_observed.json", partial)
@@ -191,8 +238,9 @@ def observe_cycle(gate, capture_view, manifest, weights, calibration, config,
         require_valid()
         observed, diagnostics = build_observed(check, seq, views,
             context["previous_accepted_blocks"], context.get("target_after"),
-            scene_stable=True, check_kind=kind)
+            scene_stable=True, check_kind=kind, vote_policy=config.get('class_vote_policy'))
         diagnostics["source_measurements"] = measurements
+        finalize(diagnostics, role_notes, role_gating)
         require_valid()
         write_cycle_json(archive / "observed.json", observed)
         write_cycle_json(archive / "diagnostics.json", diagnostics)
@@ -201,6 +249,7 @@ def observe_cycle(gate, capture_view, manifest, weights, calibration, config,
         write_cycle_json(archive / "submission.json", dict(status="CALLBACK_RETURNED",
             check_id=check, observation_seq=seq, backend_acceptance="NOT_CONFIRMED_BY_B"))
     except Exception as error:
+        progress(context, '관측 실패·중단', reason=str(error))
         gate.state = "HOLD"
         if archive is not None:
             write_cycle_json(archive / "failure.json", dict(check_id=check,

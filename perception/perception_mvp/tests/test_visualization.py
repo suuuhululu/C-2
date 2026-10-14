@@ -4,7 +4,7 @@ import cv2
 import numpy as np
 import pytest
 
-from rgbd_io import save_frame
+from perception_mvp.rgbd_io import save_frame
 from perception_mvp.main import main
 from perception_mvp.visualization import color_masks, save_color_review
 from perception_mvp.visualization import freeze_overlay_states, render_state_overlay, _block_surfaces
@@ -23,6 +23,110 @@ def overlay_inputs():
     current = [dict(brick_type='2x2x1',color='yellow',x=2,y=2,layer=1,orientation_deg=0)]
     target = current + [dict(current[0],layer=2)]
     return np.zeros((320,400,3),np.uint8), freeze_overlay_states(current,target,{}), projection
+
+
+def test_overlay_default_opacity_eight_percent_and_thin_edges(monkeypatch):
+    rgb,snapshot,projection = overlay_inputs()
+    blends, widths = [], []
+    blend = cv2.addWeighted
+    lines = cv2.polylines
+    def capture_blend(first,alpha,second,beta,gamma,*args,**kwargs):
+        blends.append((alpha,beta))
+        return blend(first,alpha,second,beta,gamma,*args,**kwargs)
+    def capture_lines(image,points,closed,color,thickness,*args,**kwargs):
+        widths.append(thickness)
+        return lines(image,points,closed,color,thickness,*args,**kwargs)
+    monkeypatch.setattr('perception_mvp.visualization.cv2.addWeighted',capture_blend)
+    monkeypatch.setattr('perception_mvp.visualization.cv2.polylines',capture_lines)
+    _,report = render_state_overlay(rgb,snapshot,projection,stopped=True,projection_valid=True)
+    assert report['overlay_visible'] and blends and widths
+    assert all(alpha == .08 and beta == .92 for alpha,beta in blends)
+    assert set(widths) == {1}
+
+
+@pytest.mark.parametrize('color,kind,rgb_color',[
+    ('yellow','2x2x1',(255,220,0)), ('blue','2x2x1',(30,100,255)),
+    ('red','1x2x1',(255,45,45))])
+def test_overlay_faces_follow_block_color(monkeypatch,color,kind,rgb_color):
+    rgb,snapshot,projection = overlay_inputs()
+    fills = []
+    original = cv2.fillConvexPoly
+    def capture(image, polygon, fill, *args, **kwargs):
+        fills.append(tuple(fill))
+        return original(image, polygon, fill, *args, **kwargs)
+    monkeypatch.setattr('perception_mvp.visualization.cv2.fillConvexPoly',capture)
+    snapshot['current'] = []
+    snapshot['expected'] = [dict(snapshot['expected'][0],color=color,brick_type=kind)]
+    _,report = render_state_overlay(rgb,snapshot,projection,stopped=True,projection_valid=True)
+    assert report['overlay_visible'] and fills == [rgb_color]
+
+
+def test_actual_wrong_color_is_not_replaced_by_design_color(monkeypatch):
+    rgb,snapshot,projection = overlay_inputs()
+    snapshot['current'][0]['color'] = 'blue'
+    snapshot['expected'] = [dict(snapshot['current'][0],color='yellow')]
+    fills = []
+    original = cv2.fillConvexPoly
+    def capture(image,polygon,fill,*args,**kwargs):
+        fills.append(tuple(fill))
+        return original(image,polygon,fill,*args,**kwargs)
+    monkeypatch.setattr('perception_mvp.visualization.cv2.fillConvexPoly',capture)
+    _,report = render_state_overlay(rgb,snapshot,projection,stopped=True,projection_valid=True)
+    assert report['overlay_visible']
+    assert (30,100,255) in fills and (255,220,0) in fills
+    assert snapshot['current'][0]['color'] == 'blue'
+
+
+@pytest.mark.parametrize('stage,comparison,legend', [
+    ('OBSERVING', None, 'Current (confirmed)'),
+    ('CONFIRMED', 'MATCH', 'Previous confirmed Current'),
+    ('CONFIRMED', 'MISMATCH', 'Previous confirmed Current'),
+    ('UNOBSERVABLE', 'UNOBSERVABLE', 'Current (confirmed)')])
+def test_automatic_overlay_mode_tracks_actual_comparison_stage(monkeypatch, stage, comparison, legend):
+    from perception_mvp.visualization import render_comparison_overlay
+    rgb, snapshot, projection = overlay_inputs()
+    state = dict(check_id='auto', display_stage=stage, comparison=comparison,
+        previous_current=dict(blocks=snapshot['current']),
+        current=dict(blocks=snapshot['expected']), expected=snapshot['expected'])
+    payload = dict(state=state, projection=projection, projection_valid=True,
+        height_reference='board_flat_surface', phase='COMPARISON', view_id='V0', frame_stamp_ns=123)
+    texts = []
+    monkeypatch.setattr('perception_mvp.visualization.cv2.putText',
+                        lambda image,text,*args: texts.append(text))
+    _, report = render_comparison_overlay(rgb, payload, view='V0', frame_stamp_ns=123,
+                                         stopped=True, hand_clear=True)
+    assert report['overlay_visible'] and texts[0] == legend
+
+
+@pytest.mark.parametrize('mode', ['changes', 'target'])
+def test_comparison_overlay_modes_use_confirmed_states(mode):
+    from perception_mvp.visualization import render_comparison_overlay
+    rgb, snapshot, projection = overlay_inputs()
+    state = dict(check_id='c1', previous_current=dict(current_revision=0, blocks=snapshot['current']),
+        current=dict(current_revision=1, blocks=snapshot['expected']), expected=snapshot['expected'])
+    payload = dict(state=state, projection=projection, projection_valid=True,
+                   height_reference='board_flat_surface', phase='COMPARISON', view_id='V0', frame_stamp_ns=123)
+    result, report = render_comparison_overlay(rgb, payload, view='V0', frame_stamp_ns=123,
+        stopped=True, hand_clear=True, mode=mode)
+    assert report['overlay_visible'] and report['render_mode'] == '3d_volume'
+    assert np.any(result != rgb)
+
+
+@pytest.mark.parametrize('field,value,reason', [
+    ('phase', 'CANCELED', 'not_comparison_phase'),
+    ('view_id', 'D1', 'comparison_frame_mismatch'),
+    ('frame_stamp_ns', 456, 'comparison_frame_mismatch'),
+    ('height_reference', 'stud_top', 'board_flat_height_reference_unconfirmed')])
+def test_comparison_overlay_hides_invalid_context(field, value, reason):
+    from perception_mvp.visualization import render_comparison_overlay
+    rgb, snapshot, projection = overlay_inputs()
+    payload = dict(state=dict(check_id='c1',current=dict(blocks=snapshot['current']),
+        expected=snapshot['expected']), projection=projection, projection_valid=True,
+        height_reference='board_flat_surface', phase='COMPARISON', view_id='V0', frame_stamp_ns=123)
+    payload[field] = value
+    _, report = render_comparison_overlay(rgb, payload, view='V0', frame_stamp_ns=123,
+                                         stopped=True, hand_clear=True)
+    assert not report['overlay_visible'] and report['reason'] == reason
 
 
 def test_overlay_projects_top_and_sides_and_preserves_inputs():

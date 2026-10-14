@@ -7,7 +7,7 @@ from .multiview import merge_views, compare_previous
 
 
 def build_observed(check_id, observation_seq, views, previous_accepted_blocks,
-                   target_after, *, scene_stable, check_kind='STEP'):
+                   target_after, *, scene_stable, check_kind='STEP', vote_policy=None):
     if not isinstance(check_id, str) or not check_id:
         raise ValueError("Backend check_id required")
     if type(observation_seq) is not int or observation_seq < 0:
@@ -20,7 +20,7 @@ def build_observed(check_id, observation_seq, views, previous_accepted_blocks,
         validate_block(block)
     if any((v["check_id"], v["observation_seq"]) != (check_id, observation_seq) for v in views):
         raise ValueError("view identifiers differ from requested bundle")
-    merged = merge_views(views, scene_stable=scene_stable)
+    merged = merge_views(views, scene_stable=scene_stable, vote_policy=vote_policy)
     regions, visible = merged["verified_regions"], merged["visible_blocks"]
     verified = region_cells(regions)
     if check_kind == 'STEP':
@@ -42,6 +42,7 @@ def build_observed(check_id, observation_seq, views, previous_accepted_blocks,
     diagnostics = {"check_id": check_id, "observation_seq": observation_seq,
                    "issues": merged["issues"], "view_ids": [v["view_id"] for v in views],
                    "block_evidence": merged.get("block_evidence", []),
+                   "class_vote_log": merged.get("class_vote_log", []),
                    "tracking": compare_previous(visible, previous_accepted_blocks, regions),
                    "format_status": "proposed_diagnostics"}
     return observed, diagnostics

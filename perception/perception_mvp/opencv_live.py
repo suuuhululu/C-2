@@ -36,7 +36,20 @@ def grid_anchor(center, size, angle, pitch, tolerance=.25):
     return continuous, anchor
 
 
-def top_surface_points(board, *, band_mm=3., minimum_points=50):
+def _supported(count, total, expected_top_points, min_support_fraction, minimum_points):
+    """Support test: share of the mask (default 25%) or, when given, share of the expected top face."""
+    if expected_top_points is not None and min_support_fraction is not None:
+        return count >= max(minimum_points, min_support_fraction * expected_top_points)
+    return count / total >= .25
+
+
+def expected_top_pixel_count(top_area_m2, z_m, fx, fy):
+    """Pixels a fully visible, board-parallel top face of this area covers at depth z."""
+    return float(top_area_m2 * fx * fy / (z_m * z_m))
+
+
+def _converged_top_surface_points(board, *, band_mm=.75, minimum_points=50, diagnostics=None,
+                                  expected_top_points=None, min_support_fraction=None):
     """Select a supported Board-parallel surface, not the entire side-wall cloud.
 
     These geometric trial limits are not calibrated deployment thresholds. A
@@ -45,27 +58,336 @@ def top_surface_points(board, *, band_mm=3., minimum_points=50):
     if len(board) < minimum_points or not np.isfinite(board).all():
         raise ValueError('top_surface_depth_insufficient')
     heights = board[:, 2]
-    edges = np.arange(np.min(heights)-band_mm, np.max(heights)+band_mm+1., 1.)
-    counts, edges = np.histogram(heights, bins=edges)
-    support = np.convolve(counts, np.ones(int(2*band_mm)+1), mode='same')
-    level = (edges[int(np.argmax(support))]+edges[int(np.argmax(support))+1])/2
-    keep = np.abs(heights-level) <= band_mm
-    if keep.sum() < minimum_points or keep.mean() < .25:
+    if diagnostics is not None:
+        diagnostics.update(valid_points=len(board), best_parallel_points=0,
+                           best_parallel_fraction=0., plane_rejections=0,
+                           refinement_limit_rejections=0)
+    design = np.column_stack((board[:, :2]-np.mean(board[:, :2], axis=0), np.ones(len(board))))
+    rejected_plane = False
+    # Highest supported plane, not max pixel or the densest lower body plane.
+    # A second surface 4mm below is no longer a prerequisite.
+    for level in np.unique(np.round(heights * 2.) / 2.)[::-1]:
+        keep = np.abs(heights-level) <= band_mm
+        # Residual membership may need more than three fits with quantized Depth.
+        # Stop when membership converges; bounded work keeps cancellation latency
+        # finite. Never accept an unconverged last fit as a confirmed surface.
+        for iteration in range(20):
+            if keep.sum() < minimum_points:
+                break
+            plane, _, rank, _ = np.linalg.lstsq(design[keep], heights[keep], rcond=None)
+            if rank < 3 or np.linalg.norm(plane[:2]) > np.tan(np.deg2rad(10.)):
+                rejected_plane = True
+                if diagnostics is not None:
+                    diagnostics['plane_rejections'] += 1
+                break
+            if diagnostics is not None and keep.sum() > diagnostics['best_parallel_points']:
+                diagnostics.update(best_parallel_points=int(keep.sum()),
+                    best_parallel_fraction=float(keep.mean()),
+                    best_parallel_height_mm=float(np.median(heights[keep])),
+                    best_parallel_slope=float(np.linalg.norm(plane[:2])))
+            refined = np.abs(heights-design @ plane) <= band_mm
+            if np.array_equal(refined, keep):
+                if _supported(keep.sum(), len(keep), expected_top_points, min_support_fraction, minimum_points):
+                    if diagnostics is not None:
+                        diagnostics['selected_refinement_iterations'] = iteration + 1
+                    return keep
+                break
+            keep = refined
+        else:
+            if diagnostics is not None:
+                diagnostics['refinement_limit_rejections'] += 1
+    raise ValueError('top_surface_not_board_parallel' if rejected_plane else 'top_surface_depth_insufficient')
+
+
+def _horizontal_patch_points(board, pixels, *, band_mm=.75, minimum_points=50,
+                             slope_limit=.3, sigma=2.5, diagnostics=None):
+    """Top face from locally horizontal points: side walls are removed before levels are compared.
+
+    Needs the image pixel (v, u, image_shape) of every board point. Local slope comes from
+    Gaussian-smoothed Board coordinates; only points whose local slope is below slope_limit
+    stay, then the highest level with enough support (and a plane within 10 degrees) wins.
+    Trial values (slope_limit, sigma) are not calibrated thresholds.
+    """
+    v, u, shape = pixels
+    v, u = np.asarray(v, int), np.asarray(u, int)
+    if len(v) != len(board) or len(u) != len(board) or not np.isfinite(board).all():
         raise ValueError('top_surface_depth_insufficient')
-    # A visible side sliced by a height band must not masquerade as a top plane.
-    patch = board[keep]
-    design = np.column_stack((patch[:, :2]-np.mean(patch[:, :2], axis=0), np.ones(len(patch))))
-    plane, _, rank, _ = np.linalg.lstsq(design, patch[:, 2], rcond=None)
-    if rank < 3 or np.linalg.norm(plane[:2]) > np.tan(np.deg2rad(10.)):
+    top, left = int(v.min()), int(u.min())
+    rows, cols = int(v.max()) - top + 1, int(u.max()) - left + 1
+    if rows < 5 or cols < 5 or rows > shape[0] or cols > shape[1]:
+        raise ValueError('top_surface_depth_insufficient')
+    grid = np.full((rows, cols, 3), np.nan)
+    grid[v - top, u - left] = board
+    weight = np.isfinite(grid[..., 0]).astype(np.float64)
+    size = int(3 * sigma) * 2 + 1
+    density = cv2.GaussianBlur(weight, (size, size), sigma)
+    smooth = []
+    for channel in range(3):
+        numerator = cv2.GaussianBlur(np.where(weight > 0, grid[..., channel], 0.), (size, size), sigma)
+        with np.errstate(divide='ignore', invalid='ignore'):
+            smooth.append(np.where(density > .3, numerator / density, np.nan))
+    gx, gy, gz = smooth
+    du, dv = (lambda a: np.gradient(a, axis=1)), (lambda a: np.gradient(a, axis=0))
+    determinant = du(gx) * dv(gy) - dv(gx) * du(gy)
+    with np.errstate(divide='ignore', invalid='ignore'):
+        slope_x = (du(gz) * dv(gy) - dv(gz) * du(gy)) / determinant
+        slope_y = (du(gx) * dv(gz) - dv(gx) * du(gz)) / determinant
+    slope = np.hypot(slope_x, slope_y)[v - top, u - left]
+    flat = np.isfinite(slope) & (slope < slope_limit)
+    heights = board[:, 2]
+    if diagnostics is not None:
+        diagnostics.update(horizontal_points=int(flat.sum()), valid_points=len(board))
+    if flat.sum() < minimum_points:
+        raise ValueError('top_surface_depth_insufficient')
+    design = np.column_stack((board[:, :2] - np.mean(board[:, :2], axis=0), np.ones(len(board))))
+    limit = np.tan(np.deg2rad(10.))
+    # A higher flat patch that is too small or tilted to trust must reject the candidate:
+    # silently falling to a lower block's top would report a wrong (lower) layer.
+    ambiguous = max(10, minimum_points // 3)
+    for level in np.unique(np.round(heights[flat] * 2.) / 2.)[::-1]:
+        keep = flat & (np.abs(heights - level) <= band_mm)
+        if keep.sum() < ambiguous:
+            continue
+        if keep.sum() >= max(minimum_points, .2 * flat.sum()):
+            plane, _, rank, _ = np.linalg.lstsq(design[keep], heights[keep], rcond=None)
+            if rank == 3 and np.linalg.norm(plane[:2]) <= limit:
+                if diagnostics is not None:
+                    diagnostics.update(selection_basis='horizontal_patch', selected_points=int(keep.sum()),
+                                       selected_slope=float(np.linalg.norm(plane[:2])))
+                return keep
         raise ValueError('top_surface_not_board_parallel')
-    level = float(np.median(patch[:, 2]))
-    keep = np.abs(heights-level) <= band_mm
-    if keep.sum() < minimum_points or keep.mean() < .25:
-        raise ValueError('top_surface_depth_insufficient')
-    return keep
+    raise ValueError('top_surface_depth_insufficient')
 
 
-def rgb_top_quad(rgb, mask, top_mask):
+def top_surface_points(board, *, band_mm=.75, minimum_points=50, diagnostics=None, pixels=None,
+                       expected_top_points=None, min_support_fraction=None):
+    """Supported Board-parallel top plane: converged plane first, then two bounded fallbacks.
+
+    The first pass is unchanged (membership reaches a fixed point). A noisy or
+    slightly tilted real top can make membership cycle without a fixed point and
+    then every level is rejected although a plane carries the points. Only after
+    the first pass fails, a level whose refinement hit the 20-iteration bound may
+    be accepted if the last fitted plane's own inliers satisfy the same limits:
+    same residual band, at least minimum_points, at least 25% support, and a
+    refit slope not above 10 degrees. Single outliers, lines, tilted planes and
+    widely spread clouds are still rejected. This is a trial rule, not a
+    calibrated threshold; diagnostics['selection_basis'] records which pass won.
+
+    Third pass, only when `pixels=(v, u, image_shape)` is given and both earlier passes
+    failed: side walls and lower blocks inside an oblique-view mask can leave too little
+    of the top face for a band consensus, so locally horizontal points are selected first
+    (_horizontal_patch_points). If that also fails, the first failure is raised.
+    """
+    try:
+        keep = _converged_top_surface_points(board, band_mm=band_mm, minimum_points=minimum_points,
+                                             diagnostics=diagnostics, expected_top_points=expected_top_points,
+                                             min_support_fraction=min_support_fraction)
+        if diagnostics is not None:
+            diagnostics['selection_basis'] = 'converged_plane'
+        return keep
+    except ValueError as first_failure:
+        failure = first_failure
+    heights = board[:, 2]
+    design = np.column_stack((board[:, :2]-np.mean(board[:, :2], axis=0), np.ones(len(board))))
+    limit = np.tan(np.deg2rad(10.))
+    for level in np.unique(np.round(heights * 2.) / 2.)[::-1]:
+        keep = np.abs(heights-level) <= band_mm
+        for _ in range(20):
+            if keep.sum() < minimum_points:
+                break
+            plane, _, rank, _ = np.linalg.lstsq(design[keep], heights[keep], rcond=None)
+            if rank < 3 or np.linalg.norm(plane[:2]) > limit:
+                break
+            refined = np.abs(heights-design @ plane) <= band_mm
+            if np.array_equal(refined, keep):
+                break
+            keep = refined
+        else:
+            own = np.abs(heights-design @ plane) <= band_mm
+            if own.sum() >= minimum_points and _supported(own.sum(), len(own), expected_top_points,
+                                                          min_support_fraction, minimum_points):
+                refit, _, rank, _ = np.linalg.lstsq(design[own], heights[own], rcond=None)
+                if rank == 3 and np.linalg.norm(refit[:2]) <= limit:
+                    if diagnostics is not None:
+                        diagnostics.update(selection_basis='bounded_consensus_no_fixed_point',
+                                           selected_fraction=float(own.mean()),
+                                           selected_slope=float(np.linalg.norm(refit[:2])))
+                    return own
+    if pixels is not None:
+        try:
+            return _horizontal_patch_points(board, pixels, band_mm=band_mm,
+                                            minimum_points=minimum_points, diagnostics=diagnostics)
+        except ValueError:
+            pass
+    raise failure
+
+
+# Trial values for the core retry below; not calibrated thresholds.
+TOP_CORE_EROSION_PX = (3, 5, 7, 9)
+TOP_CORE_MIN_POINTS = 150
+
+
+def core_min_points_for(part_class):
+    """Core-retry support: 150 points, scaled down (never up) for blocks smaller than 2x2."""
+    try:
+        a, b = (int(x) for x in str(part_class).split('_')[-1].split('x'))
+        return max(50, int(TOP_CORE_MIN_POINTS * min(1., a * b / 4.)))
+    except (ValueError, TypeError):
+        return TOP_CORE_MIN_POINTS
+
+
+def top_surface_points_core_retry(board, v, u, mask, *, minimum_points=50, diagnostics=None, selector=None,
+                                  part_class=None):
+    """Top plane as before; only if that fails for a non-parallel surface, retry on the mask core.
+
+    A block seen obliquely (typically one stacked on another) has a mask whose rim carries side-wall
+    and lower-block depth, so its small top face never reaches the support share. The unchanged
+    selection runs first, so blocks that already worked keep their exact result. The retry shrinks
+    the mask by a few pixels and needs a clearly supported plane (TOP_CORE_MIN_POINTS). Returns
+    (keep over all points, erosion_px; 0 = unchanged selection).
+    """
+    selector = selector or top_surface_points
+    core_min = core_min_points_for(part_class) if part_class else TOP_CORE_MIN_POINTS
+    try:
+        return selector(board, minimum_points=minimum_points, diagnostics=diagnostics,
+                        pixels=(v, u, mask.shape)), 0
+    except ValueError as first:
+        failure = first
+    if str(failure) != 'top_surface_not_board_parallel':
+        raise failure
+    v, u = np.asarray(v, int), np.asarray(u, int)
+    attempts = []
+    for radius in TOP_CORE_EROSION_PX:
+        core = cv2.erode(mask.astype(np.uint8), np.ones((2*radius+1, 2*radius+1), np.uint8)) > 0
+        inner = core[v, u]
+        row = dict(radius_px=int(radius), core_points=int(inner.sum()), min_required=int(core_min))
+        attempts.append(row)
+        if inner.sum() < core_min:
+            row['result'] = 'core_too_small'
+            continue
+        try:
+            sub = selector(board[inner], minimum_points=minimum_points,
+                           pixels=(v[inner], u[inner], mask.shape))
+        except ValueError as error:
+            row['result'] = str(error)
+            continue
+        row['selected_points'] = int(sub.sum())
+        if sub.sum() < core_min:
+            row['result'] = 'support_below_minimum'
+            continue
+        row['result'] = 'accepted'
+        keep = np.zeros(len(board), bool)
+        keep[np.flatnonzero(inner)[sub]] = True
+        if diagnostics is not None:
+            diagnostics.update(selection_basis='mask_core_retry', core_erosion_px=int(radius),
+                               selected_points=int(keep.sum()), core_retry_attempts=attempts)
+        return keep, int(radius)
+    if diagnostics is not None:
+        diagnostics['core_retry_attempts'] = attempts
+    raise failure
+
+
+def body_surface_points(board, *, stud_height_mm=4., band_mm=.75, minimum_points=50,
+                        return_pair=False, diagnostics=None):
+    """Highest supported body/stud plane pair; never subtract studs from a lone plane.
+
+    Trial separation requires two board-parallel surfaces approximately4mm apart.
+    A single body/stud surface is ambiguous and remains unobservable.
+    """
+    board = np.asarray(board, float)
+    if (board.ndim != 2 or board.shape[1] != 3 or len(board) < 2 * minimum_points or
+            not np.isfinite(board).all() or not 0 < 2 * band_mm < stud_height_mm):
+        raise ValueError('body_stud_surfaces_unverified')
+    heights = board[:, 2]
+    rejected = dict(body_points=0, stud_points=0, top_support=0, plane=0, separation=0)
+    xy = board[:, :2] - np.mean(board[:, :2], axis=0)
+    design = np.column_stack((xy, np.ones(len(board))))
+    def fit(selection):
+        if selection.sum() < minimum_points:
+            return None
+        coefficients, _, rank, _ = np.linalg.lstsq(design[selection], heights[selection], rcond=None)
+        if rank < 3 or np.linalg.norm(coefficients[:2]) > np.tan(np.deg2rad(10.)):
+            return None
+        return coefficients
+    if diagnostics is not None:
+        diagnostics.update(valid_points=len(board), rejection_counts=rejected)
+    levels = np.unique(np.round(heights * 2.) / 2.)
+    for level in levels[::-1]:
+        body = np.abs(heights - level) <= band_mm
+        studs = np.abs(heights - (level + stud_height_mm)) <= band_mm
+        if body.sum() < minimum_points:
+            rejected['body_points'] += 1
+            continue
+        if studs.sum() < minimum_points:
+            rejected['stud_points'] += 1
+            continue
+        parallel = True
+        # Respect the accepted plane slope instead of keeping a horizontal slice.
+        # Residual band, minimum evidence and final joint-support limits are unchanged.
+        for iteration in range(3):
+            plane, stud_plane = fit(body), fit(studs)
+            if plane is None or stud_plane is None:
+                parallel = False
+                break
+            predicted = design @ plane
+            refined_body = np.abs(heights - predicted) <= band_mm
+            refined_studs = np.abs(heights - predicted - stud_height_mm) <= band_mm
+            if np.array_equal(body, refined_body) and np.array_equal(studs, refined_studs):
+                break
+            body, studs = refined_body, refined_studs
+        plane, stud_plane = fit(body), fit(studs)
+        if plane is None or stud_plane is None:
+            parallel = False
+        if not parallel:
+            rejected['plane'] += 1
+            continue
+        # Two patches must be parallel at the same XY positions, not just have
+        # medians 4mm apart at different corners of a sloping block.
+        paired_gap = design[body | studs] @ (stud_plane - plane)
+        if np.any(np.abs(paired_gap - stud_height_mm) > band_mm):
+            rejected['separation'] += 1
+            continue
+        # Top evidence includes body AND studs; height still uses only the body.
+        if (body | studs).mean() < .25:
+            rejected['top_support'] += 1
+            continue
+        body_height = float(np.median(heights[body]))
+        stud_height = float(np.median(heights[studs]))
+        separation = float(np.median(heights[studs] - design[studs] @ plane))
+        if abs(separation - stud_height_mm) <= band_mm:
+            if diagnostics is not None:
+                diagnostics.update(body_points=int(body.sum()), stud_points=int(studs.sum()),
+                    joint_top_fraction=float((body | studs).mean()), body_height_mm=body_height,
+                    stud_surface_height_mm=stud_height, stud_separation_on_body_plane_mm=separation,
+                    plane_refinement_iterations=iteration + 1,
+                    body_plane_slope=float(np.linalg.norm(plane[:2])))
+            return (body, studs) if return_pair else body
+        rejected['separation'] += 1
+    raise ValueError('body_stud_surfaces_unverified')
+
+
+def distributed_top_support(top_mask, quad):
+    """Trial spatial evidence: >=50 points, four quadrants, half-span on both axes.
+
+    This checks spread, not dense coverage of the gaps between studs. The quad
+    is a coordinate domain only, never inferred Depth or an accepted footprint.
+    """
+    quad = np.asarray(quad, np.float32).reshape(4, 2)
+    center = quad.mean(axis=0)
+    quad = quad[np.argsort(np.arctan2(quad[:, 1]-center[1], quad[:, 0]-center[0]))]
+    transform = cv2.getPerspectiveTransform(quad, np.array([[0, 0], [1, 0], [1, 1], [0, 1]], np.float32))
+    y, x = np.nonzero(top_mask)
+    if len(x) < 50:
+        return False
+    points = cv2.perspectiveTransform(np.column_stack((x, y)).astype(np.float32)[None], transform)[0]
+    points = points[np.all((points >= 0) & (points <= 1), axis=1)]
+    if len(points) < 50 or np.any(np.ptp(points, axis=0) < .5):
+        return False
+    quadrant = (points[:, 0] >= .5).astype(int) + 2*(points[:, 1] >= .5).astype(int)
+    return bool(np.all(np.bincount(quadrant, minlength=4) >= 12))
+
+
+def rgb_top_quad(rgb, mask, top_mask, *, diagnostics=None):
     """RGB edges propose four corners; measured top pixels check their support.
 
     No rectangle is invented from a partial Depth patch or an occluded contour.
@@ -78,20 +400,34 @@ def rgb_top_quad(rgb, mask, top_mask):
     color_contours, _ = cv2.findContours(mask.astype(np.uint8), cv2.RETR_EXTERNAL,
                                         cv2.CHAIN_APPROX_SIMPLE)
     options = []
-    for contour in contours + color_contours:
+    rejected = dict(shape=0, mask_support=0, top_containment=0, spatial_support=0)
+    if diagnostics is not None:
+        diagnostics.update(rejection_counts=rejected, best_interior_fraction=0.)
+    # Rounded studs and boundary notches can add vertices to a convex top face.
+    # Hulls only propose corners: all measured support checks remain mandatory.
+    proposals = list(contours) + list(color_contours)
+    proposals += [cv2.convexHull(contour) for contour in proposals]
+    for contour in proposals:
         quad = cv2.approxPolyDP(contour, .025*cv2.arcLength(contour, True), True)
         area = cv2.contourArea(quad)
         if len(quad) != 4 or not cv2.isContourConvex(quad) or area < 150:
+            rejected['shape'] += 1
             continue
         inside = np.zeros(mask.shape, np.uint8)
         cv2.fillConvexPoly(inside, quad, 1)
         pixels = inside.astype(bool)
         if np.count_nonzero(pixels & mask) / pixels.sum() < .85:
+            rejected['mask_support'] += 1
             continue
         if np.count_nonzero(pixels & top_mask) / max(1, top_mask.sum()) < .8:
+            rejected['top_containment'] += 1
             continue
         interior = cv2.erode(inside, np.ones((3, 3), np.uint8)).astype(bool)
-        if not interior.any() or np.count_nonzero(interior & top_mask) / interior.sum() < .55:
+        fraction = float(np.count_nonzero(interior & top_mask) / max(1, interior.sum()))
+        if diagnostics is not None:
+            diagnostics['best_interior_fraction'] = max(diagnostics['best_interior_fraction'], fraction)
+        if not interior.any() or not distributed_top_support(top_mask & interior, quad):
+            rejected['spatial_support'] += 1
             continue
         options.append((area, quad.reshape(4, 2)))
     if not options:

@@ -1,0 +1,18 @@
+{
+  "calibration_id": "assembly_pitch16_flat0_20261013",
+  "views": {
+    "V0": [[0.9999976607207254,-0.0005551096248171388,-0.002090551692859789,0.12491940817872688],[-0.0006570210487250284,-0.9987952365079878,-0.04906774757714241,0.20454903912568892],[-0.002060795093553898,0.04906900633044313,-0.9987932647656999,0.5571329821509946],[0,0,0,1]],
+    "D1": [[-0.5126699175609025,-0.6413610822474675,0.5708112803777223,-0.17190061683606553],[-0.8583620964518027,0.39803815788136954,-0.3236975999992462,0.4063650256658909],[-0.01959762748303029,-0.655912789209635,-0.7545822327276686,0.4120707264723758],[0,0,0,1]],
+    "D3": [[0.9544787369036746,0.28676182061829125,0.0820853155835422,0.15526901719141203],[0.22398972255686556,-0.8708127224205024,0.4376229046330772,-0.09087693680888245],[0.19697447801089651,-0.3993154901907462,-0.8954039280157636,0.5232556120150255],[0,0,0,1]]
+  },
+  "height_reference": "BOARD_FLAT_SURFACE_ZERO",
+  "source_reference": "BOARD_STUD_TOP_ZERO",
+  "board_stud_height_mm": 4.0,
+  "status": "DERIVED_FROM_EXISTING_POSES_NOT_NEW_DEPTH_VALIDATION",
+  "limitations": ["Use only at the calibrated actual V0/D1/D3 poses and unchanged board/camera mounting", "Layer top heights must be measured from the same flat-board datum", "This transform is not verified_regions or robot-coordinate calibration"],
+  "source_files_relative_to_perception": {
+    "V0": "recordings/board_calibration_V0/V0/run/calibration.json",
+    "D1": "recordings/board_calibration_D1/D1/run/calibration.json",
+    "D3": "recordings/board_calibration_D3/D3/run/calibration.json"
+  }
+}
