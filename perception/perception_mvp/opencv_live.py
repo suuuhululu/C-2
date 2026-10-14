@@ -36,7 +36,20 @@ def grid_anchor(center, size, angle, pitch, tolerance=.25):
     return continuous, anchor
 
 
-def _converged_top_surface_points(board, *, band_mm=.75, minimum_points=50, diagnostics=None):
+def _supported(count, total, expected_top_points, min_support_fraction, minimum_points):
+    """Support test: share of the mask (default 25%) or, when given, share of the expected top face."""
+    if expected_top_points is not None and min_support_fraction is not None:
+        return count >= max(minimum_points, min_support_fraction * expected_top_points)
+    return count / total >= .25
+
+
+def expected_top_pixel_count(top_area_m2, z_m, fx, fy):
+    """Pixels a fully visible, board-parallel top face of this area covers at depth z."""
+    return float(top_area_m2 * fx * fy / (z_m * z_m))
+
+
+def _converged_top_surface_points(board, *, band_mm=.75, minimum_points=50, diagnostics=None,
+                                  expected_top_points=None, min_support_fraction=None):
     """Select a supported Board-parallel surface, not the entire side-wall cloud.
 
     These geometric trial limits are not calibrated deployment thresholds. A
@@ -74,7 +87,7 @@ def _converged_top_surface_points(board, *, band_mm=.75, minimum_points=50, diag
                     best_parallel_slope=float(np.linalg.norm(plane[:2])))
             refined = np.abs(heights-design @ plane) <= band_mm
             if np.array_equal(refined, keep):
-                if keep.mean() >= .25:
+                if _supported(keep.sum(), len(keep), expected_top_points, min_support_fraction, minimum_points):
                     if diagnostics is not None:
                         diagnostics['selected_refinement_iterations'] = iteration + 1
                     return keep
@@ -146,7 +159,8 @@ def _horizontal_patch_points(board, pixels, *, band_mm=.75, minimum_points=50,
     raise ValueError('top_surface_depth_insufficient')
 
 
-def top_surface_points(board, *, band_mm=.75, minimum_points=50, diagnostics=None, pixels=None):
+def top_surface_points(board, *, band_mm=.75, minimum_points=50, diagnostics=None, pixels=None,
+                       expected_top_points=None, min_support_fraction=None):
     """Supported Board-parallel top plane: converged plane first, then two bounded fallbacks.
 
     The first pass is unchanged (membership reaches a fixed point). A noisy or
@@ -166,7 +180,8 @@ def top_surface_points(board, *, band_mm=.75, minimum_points=50, diagnostics=Non
     """
     try:
         keep = _converged_top_surface_points(board, band_mm=band_mm, minimum_points=minimum_points,
-                                             diagnostics=diagnostics)
+                                             diagnostics=diagnostics, expected_top_points=expected_top_points,
+                                             min_support_fraction=min_support_fraction)
         if diagnostics is not None:
             diagnostics['selection_basis'] = 'converged_plane'
         return keep
@@ -189,7 +204,8 @@ def top_surface_points(board, *, band_mm=.75, minimum_points=50, diagnostics=Non
             keep = refined
         else:
             own = np.abs(heights-design @ plane) <= band_mm
-            if own.sum() >= minimum_points and own.mean() >= .25:
+            if own.sum() >= minimum_points and _supported(own.sum(), len(own), expected_top_points,
+                                                          min_support_fraction, minimum_points):
                 refit, _, rank, _ = np.linalg.lstsq(design[own], heights[own], rcond=None)
                 if rank == 3 and np.linalg.norm(refit[:2]) <= limit:
                     if diagnostics is not None:
@@ -203,6 +219,71 @@ def top_surface_points(board, *, band_mm=.75, minimum_points=50, diagnostics=Non
                                             minimum_points=minimum_points, diagnostics=diagnostics)
         except ValueError:
             pass
+    raise failure
+
+
+# Trial values for the core retry below; not calibrated thresholds.
+TOP_CORE_EROSION_PX = (3, 5, 7, 9)
+TOP_CORE_MIN_POINTS = 150
+
+
+def core_min_points_for(part_class):
+    """Core-retry support: 150 points, scaled down (never up) for blocks smaller than 2x2."""
+    try:
+        a, b = (int(x) for x in str(part_class).split('_')[-1].split('x'))
+        return max(50, int(TOP_CORE_MIN_POINTS * min(1., a * b / 4.)))
+    except (ValueError, TypeError):
+        return TOP_CORE_MIN_POINTS
+
+
+def top_surface_points_core_retry(board, v, u, mask, *, minimum_points=50, diagnostics=None, selector=None,
+                                  part_class=None):
+    """Top plane as before; only if that fails for a non-parallel surface, retry on the mask core.
+
+    A block seen obliquely (typically one stacked on another) has a mask whose rim carries side-wall
+    and lower-block depth, so its small top face never reaches the support share. The unchanged
+    selection runs first, so blocks that already worked keep their exact result. The retry shrinks
+    the mask by a few pixels and needs a clearly supported plane (TOP_CORE_MIN_POINTS). Returns
+    (keep over all points, erosion_px; 0 = unchanged selection).
+    """
+    selector = selector or top_surface_points
+    core_min = core_min_points_for(part_class) if part_class else TOP_CORE_MIN_POINTS
+    try:
+        return selector(board, minimum_points=minimum_points, diagnostics=diagnostics,
+                        pixels=(v, u, mask.shape)), 0
+    except ValueError as first:
+        failure = first
+    if str(failure) != 'top_surface_not_board_parallel':
+        raise failure
+    v, u = np.asarray(v, int), np.asarray(u, int)
+    attempts = []
+    for radius in TOP_CORE_EROSION_PX:
+        core = cv2.erode(mask.astype(np.uint8), np.ones((2*radius+1, 2*radius+1), np.uint8)) > 0
+        inner = core[v, u]
+        row = dict(radius_px=int(radius), core_points=int(inner.sum()), min_required=int(core_min))
+        attempts.append(row)
+        if inner.sum() < core_min:
+            row['result'] = 'core_too_small'
+            continue
+        try:
+            sub = selector(board[inner], minimum_points=minimum_points,
+                           pixels=(v[inner], u[inner], mask.shape))
+        except ValueError as error:
+            row['result'] = str(error)
+            continue
+        row['selected_points'] = int(sub.sum())
+        if sub.sum() < core_min:
+            row['result'] = 'support_below_minimum'
+            continue
+        row['result'] = 'accepted'
+        keep = np.zeros(len(board), bool)
+        keep[np.flatnonzero(inner)[sub]] = True
+        if diagnostics is not None:
+            diagnostics.update(selection_basis='mask_core_retry', core_erosion_px=int(radius),
+                               selected_points=int(keep.sum()), core_retry_attempts=attempts)
+        return keep, int(radius)
+    if diagnostics is not None:
+        diagnostics['core_retry_attempts'] = attempts
     raise failure
 
 

@@ -106,12 +106,19 @@ def load_layer_reference(path=None):
     if path is not None:
         return json.loads(Path(path).read_text())
     import yaml
+    from .depth_grid import params_from_geometry
     config = yaml.safe_load(Path(__file__).with_name('config.yaml').read_text())['geometry']
     levels = config.get('top_heights_m')
     if levels is None:
         return {}
     return dict(top_heights_mm=[value * 1000. for value in levels],
                 tolerance_mm=config['height_tolerance_m'] * 1000.,
+                first_layer_min_mm=(config['first_layer_min_height_m'] * 1000.
+                    if config.get('first_layer_min_height_m') is not None else None),
+                first_layer_max_mm=(config['first_layer_max_height_m'] * 1000.
+                    if config.get('first_layer_max_height_m') is not None else None),
+                board_baseline_params=params_from_geometry(config, 1000.),
+                board_bounds_mm=(np.asarray(config['board_bounds_m'], float) * 1000.).tolist(),
                 height_reference_offset_mm=config['board_stud_height_m'] * 1000.,
                 status=config['layer_reference_status'], depth_ranges_m=config.get('depth_ranges_m'),
                 max_height_spread_mm=config['max_height_spread_m'] * 1000.,
@@ -613,7 +620,11 @@ def main(argv=None):
                                 if layer_reference.get('depth_ranges_m') else None),
                             max_height_spread_mm=layer_reference.get('max_height_spread_mm'),
                             block_stud_height_mm=layer_reference.get('block_stud_height_mm', 0.),
-                            top_plane_stud_mm=layer_reference.get('top_plane_stud_mm', 0.))
+                            top_plane_stud_mm=layer_reference.get('top_plane_stud_mm', 0.),
+                            first_layer_min_mm=layer_reference.get('first_layer_min_mm'),
+                            first_layer_max_mm=layer_reference.get('first_layer_max_mm'),
+                            board_baseline_params=layer_reference.get('board_baseline_params'),
+                            board_bounds_mm=layer_reference.get('board_bounds_mm'))
                         for record in records:
                             if record.get('reason') == 'calibration_or_synced_depth_missing':
                                 record['reason'] = ', '.join(input_reasons)

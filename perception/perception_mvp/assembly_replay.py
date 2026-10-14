@@ -39,7 +39,11 @@ def main(argv=None):
                 depth_range_m=(limits['min_depth_m'], limits['max_depth_m']),
                 max_height_spread_mm=reference['max_height_spread_mm'],
                 block_stud_height_mm=reference['block_stud_height_mm'],
-                top_plane_stud_mm=reference.get('top_plane_stud_mm', 0.))
+                top_plane_stud_mm=reference.get('top_plane_stud_mm', 0.),
+                first_layer_min_mm=reference.get('first_layer_min_mm'),
+                first_layer_max_mm=reference.get('first_layer_max_mm'),
+                board_baseline_params=reference.get('board_baseline_params'),
+                board_bounds_mm=reference.get('board_bounds_mm'))
             row.update(view=view, captured_at=meta['captured_at'],
                 records=[{key: value for key, value in record.items() if key != 'mask'} for record in records])
             canvas = cv2.cvtColor(rgb, cv2.COLOR_RGB2BGR)

@@ -1,4 +1,6 @@
 """Visible top-surface measurement; outputs are internal candidates only."""
+from dataclasses import dataclass
+
 import cv2
 import numpy as np
 
@@ -7,6 +9,134 @@ from .backend_adapter import build_observed
 from .contracts import candidate_to_block, LIVE_CLASSES, footprint
 
 CLASSES = LIVE_CLASSES
+
+
+# --- Layer rule (shared by the team path here and by integrated_view/live_view; unit agnostic) ---
+# A height belongs to the nearest layer when within +/- tolerance of that layer's reference.
+# Owner decision 2026-10-14: layer 1 is first_layer_min..first_layer_max (6..25mm) when a minimum
+# is configured; without a maximum, layer 1 ends at reference + tolerance. Layers 2..5 keep the
+# symmetric band.
+def validate_first_layer_range(first_layer_min, first_layer_max, levels, tolerance=0.):
+    if first_layer_min is None and first_layer_max is None:
+        return
+    levels = np.asarray(levels, float)
+    if first_layer_min is not None and (
+            not np.isfinite(first_layer_min) or not 0 <= first_layer_min < levels[0]):
+        raise ValueError('invalid_first_layer_min')
+    if first_layer_max is not None and (
+            not np.isfinite(first_layer_max) or first_layer_max < levels[0] or
+            (len(levels) > 1 and first_layer_max >= levels[1] - tolerance)):
+        raise ValueError('invalid_first_layer_max')
+
+
+def layer_band_index(height, levels, tolerance, first_layer_min=None, first_layer_max=None):
+    """Return the zero-based layer index or None when the height is outside every band."""
+    levels = np.asarray(levels, float)
+    validate_first_layer_range(first_layer_min, first_layer_max, levels, tolerance)
+    index = int(np.argmin(np.abs(levels - height)))
+    if index == 0 and (first_layer_min is not None or first_layer_max is not None):
+        low = first_layer_min if first_layer_min is not None else levels[0] - tolerance
+        high = first_layer_max if first_layer_max is not None else levels[0] + tolerance
+    else:
+        low, high = levels[index] - tolerance, levels[index] + tolerance
+    # Unit conversion can move an exact boundary by a few float bits; never reject it for that.
+    inside = ((low <= height or np.isclose(height, low, rtol=1e-9, atol=0.)) and
+              (height <= high or np.isclose(height, high, rtol=1e-9, atol=0.)))
+    return index if inside else None
+
+
+# --- Per-capture board baseline (owner decision 2026-10-14, option A; mm or m, caller's unit) ---
+# Depth can read the board plate a few mm away from the calibration datum (measured 2026-10-14:
+# about -5mm at V0). Each capture fits the board plane from pixels NOT on a detected block, and a
+# block's layer height is taken relative to that plane. The expected plate height comes from the
+# caller (flat-board zero: 0, stud-top zero: minus the board stud height). An unreliable fit raises
+# ValueError and the block stays UNKNOWN; never a silent fallback. Trial method, not validated.
+GEOMETRY_KEYS = ('board_baseline', 'board_baseline_min_points', 'board_baseline_max_tilt_deg',
+                 'board_baseline_max_residual_std_m', 'board_baseline_max_correction_m',
+                 'board_baseline_exclusion_px', 'board_baseline_z_window_m')
+
+
+@dataclass(frozen=True)
+class BoardPlane:
+    a: float
+    b: float
+    c: float
+    expected_plate_z: float
+    points: int
+    residual_std: float
+    tilt_deg: float
+
+    def bias_at(self, x, y):
+        """Measured plate height minus its expected height at (x, y); subtract it from heights."""
+        return float(self.a * x + self.b * y + self.c - self.expected_plate_z)
+
+
+def params_from_geometry(config, unit_per_m):
+    """Fit parameters from config.geometry, or None when the baseline is not enabled."""
+    mode = config.get('board_baseline')
+    if mode is None:
+        return None
+    if mode != 'PLATE_PLANE_FIT':
+        raise ValueError('unsupported_board_baseline_mode')
+    missing = [key for key in GEOMETRY_KEYS if config.get(key) is None]
+    if missing:
+        raise ValueError('board_baseline_settings_missing: ' + ', '.join(missing))
+    return dict(min_points=int(config['board_baseline_min_points']),
+                max_tilt_deg=float(config['board_baseline_max_tilt_deg']),
+                max_residual_std=float(config['board_baseline_max_residual_std_m']) * unit_per_m,
+                max_correction=float(config['board_baseline_max_correction_m']) * unit_per_m,
+                exclusion_px=int(config['board_baseline_exclusion_px']),
+                z_window=float(config['board_baseline_z_window_m']) * unit_per_m)
+
+
+def exclusion_mask(union, pixels):
+    """Detected blocks grown by `pixels`, so their edges never enter the board fit."""
+    import cv2
+    size = 2 * int(pixels) + 1
+    return cv2.dilate(union.astype(np.uint8), np.ones((size, size), np.uint8)) > 0
+
+
+def sampled_pixels(valid, stride=4):
+    """Every `stride`-th valid pixel on a regular grid (keeps the fit fast and unbiased)."""
+    keep = np.zeros(valid.shape, bool)
+    keep[::stride, ::stride] = True
+    return np.nonzero(valid & keep)
+
+
+def fit_board_plane(points, *, expected_plate_z, bounds, min_points, max_tilt_deg,
+                    max_residual_std, max_correction, z_window, **_ignored):
+    """Robust plane z = a*x + b*y + c through board-frame points (x, y, z)."""
+    points = np.asarray(points, float)
+    if points.ndim != 2 or points.shape[1] != 3 or not np.isfinite(points).all():
+        raise ValueError('board_baseline_invalid_points')
+    (x0, x1), (y0, y1) = np.asarray(bounds, float)
+    inside = ((points[:, 0] >= x0) & (points[:, 0] <= x1) & (points[:, 1] >= y0) &
+              (points[:, 1] <= y1) & (abs(points[:, 2] - expected_plate_z) <= z_window))
+    points = points[inside]
+    if len(points) < min_points:
+        raise ValueError('board_baseline_insufficient_points')
+    design = np.column_stack((points[:, 0], points[:, 1], np.ones(len(points))))
+    keep = np.ones(len(points), bool)
+    for _ in range(5):  # Clip the studs/noise tails; the dominant surface is the plate.
+        coef = np.linalg.lstsq(design[keep], points[keep, 2], rcond=None)[0]
+        residual = points[:, 2] - design @ coef
+        spread = residual[keep].std()
+        keep = abs(residual) <= 2 * spread + 1e-12
+        if keep.sum() < min_points:
+            raise ValueError('board_baseline_insufficient_points')
+    coef = np.linalg.lstsq(design[keep], points[keep, 2], rcond=None)[0]
+    residual = points[keep, 2] - design[keep] @ coef
+    tilt = float(np.degrees(np.arctan(np.hypot(coef[0], coef[1]))))
+    if tilt > max_tilt_deg:
+        raise ValueError('board_baseline_tilted')
+    if residual.std() > max_residual_std:
+        raise ValueError('board_baseline_noisy')
+    plane = BoardPlane(float(coef[0]), float(coef[1]), float(coef[2]), float(expected_plate_z),
+                       int(keep.sum()), float(residual.std()), tilt)
+    centre = points[:, :2].mean(axis=0)
+    if abs(plane.bias_at(*centre)) > max_correction:
+        raise ValueError('board_baseline_out_of_range')
+    return plane
 
 
 def board_pose_bundle(calibrations, calibration_id, *, stud_height_mm):
@@ -108,6 +238,8 @@ def validate_config(config):
         raise ValueError("four or five increasing measured top heights required; fifth layer needs its measured height")
     if config["height_tolerance_m"] * 2 >= np.min(np.diff(heights)):
         raise ValueError("layer tolerance intervals overlap")
+    validate_first_layer_range(config.get("first_layer_min_height_m"),
+                               config.get("first_layer_max_height_m"), heights, config["height_tolerance_m"])
     if config["min_depth_m"] >= config["max_depth_m"]:
         raise ValueError("invalid depth range")
     if config["threshold_status"] not in ("temporary_test", "validated"):
@@ -167,8 +299,29 @@ def height_spread_within(heights, limit):
     return bool(spread <= limit + rounding)
 
 
+def frame_board_baseline(detections, depth, scale, intrinsics, transform, config):
+    """Fit this capture's board plate plane (m, flat-board-zero frame) away from detected blocks."""
+    params = params_from_geometry(config, 1.)
+    if params is None:
+        return None
+    if config.get('layer_height_reference') != 'BOARD_FLAT_SURFACE_ZERO':
+        raise ValueError('board_baseline_requires_flat_board_zero')
+    union = np.zeros(depth.shape, bool)
+    for mask, _, _ in detections:
+        union |= mask
+    z = depth.astype(float) * scale
+    valid = ((depth > 0) & (z >= config['min_depth_m']) & (z <= config['max_depth_m']) &
+             ~exclusion_mask(union, params['exclusion_px']))
+    v, u = sampled_pixels(valid)
+    if not len(u):
+        raise ValueError('board_baseline_insufficient_points')
+    camera = deproject_pixels(u, v, z[v, u], intrinsics, depth.shape[1], depth.shape[0])
+    board = camera @ transform[:3, :3].T + transform[:3, 3]
+    return fit_board_plane(board, expected_plate_z=0., bounds=config['board_bounds_m'], **params)
+
+
 def measure_candidate(mask, part_class, confidence, depth, scale, intrinsics,
-                      camera_to_board, config, *, rgb=None):
+                      camera_to_board, config, *, rgb=None, board_plane=None):
     validate_config(config)
     transform = validate_geometry(scale, intrinsics, camera_to_board)
     rotation = transform[:3, :3]
@@ -212,8 +365,10 @@ def measure_candidate(mask, part_class, confidence, depth, scale, intrinsics,
         if rgb.shape != (*mask.shape, 3) or rgb.dtype != np.uint8:
             raise ValueError('uint8 aligned RGB required for outline')
         try:
-            selected = top_surface_points(board * 1000., minimum_points=config['min_depth_pixels'],
-                                          pixels=(v, u, mask.shape))
+            from .opencv_live import top_surface_points_core_retry
+            selected, _ = top_surface_points_core_retry(board * 1000., v, u, mask,
+                                                        minimum_points=config['min_depth_pixels'],
+                                                        part_class=part_class)
             height_board = board[selected]
         except ValueError as error:
             return unknown(str(error))
@@ -227,9 +382,13 @@ def measure_candidate(mask, part_class, confidence, depth, scale, intrinsics,
     if not height_spread_within(heights, config["max_height_spread_m"]):
         return unknown("surface_height_conflict")
     body_height = float(np.median(heights))
-    height = body_height + stud_increment
-    layer_index = int(np.argmin(np.abs(np.asarray(config["top_heights_m"]) - height)))
-    if abs(config["top_heights_m"][layer_index] - height) > config["height_tolerance_m"]:
+    # The board baseline only corrects the layer height; body_height still feeds the outline plane.
+    bias = (board_plane.bias_at(float(np.median(height_board[:, 0])), float(np.median(height_board[:, 1])))
+            if board_plane is not None else 0.)
+    height = body_height - bias + stud_increment
+    layer_index = layer_band_index(height, config["top_heights_m"], config["height_tolerance_m"],
+                                  config.get("first_layer_min_height_m"), config.get("first_layer_max_height_m"))
+    if layer_index is None:
         return unknown("height_not_in_measured_layer")
     footprint_points = board[:, :2]
     if outline is not None:
@@ -276,6 +435,7 @@ def measure_candidate(mask, part_class, confidence, depth, scale, intrinsics,
     return {"status": "CANDIDATE", "part_class": part_class,
             "surface_center_m": list(map(float, center)), "grid_center_stud": snapped.tolist(),
             "top_height_m": height,
+            "board_baseline_bias_m": (bias if board_plane is not None else None),
             "surface_height_basis": config.get('block_surface_height_basis', 'LEGACY'),
             "body_surface_height_m": body_height if stud_increment else None,
             "block_stud_added_m": stud_increment, "measured_layer_index": layer_index,
@@ -312,9 +472,19 @@ def process_saved(directory, detections, calibration, config):
     if calibration["calibration_id"] != config["calibration_id"]:
         raise ValueError("calibration/config versions differ")
     transform = calibration["views"][metadata["view_id"]]
-    validate_geometry(metadata["depth_scale_m"], metadata["camera_info"]["aligned"], transform)
-    results = [measure_candidate(mask, cls, conf, depth, metadata["depth_scale_m"],
-                                metadata["camera_info"]["aligned"], transform, config, rgb=rgb)
+    matrix = validate_geometry(metadata["depth_scale_m"], metadata["camera_info"]["aligned"], transform)
+    board_plane, baseline_error = None, None
+    try:
+        board_plane = frame_board_baseline(detections, depth, metadata["depth_scale_m"],
+                                           metadata["camera_info"]["aligned"], matrix, config)
+    except ValueError as error:
+        if str(error) == 'board_baseline_requires_flat_board_zero':
+            raise  # Configuration error, not a per-capture measurement failure.
+        baseline_error = str(error)  # Blocks stay UNKNOWN; never an uncorrected layer.
+    results = [dict(status="UNKNOWN", reason=baseline_error, part_class=cls) if baseline_error else
+               measure_candidate(mask, cls, conf, depth, metadata["depth_scale_m"],
+                                 metadata["camera_info"]["aligned"], transform, config, rgb=rgb,
+                                 board_plane=board_plane)
                for mask, cls, conf in detections]
     result = {"internal_format": "visible_candidates_v1", "status": "PARTIAL",
             "scene_id": metadata["scene_id"], "view_id": metadata["view_id"],

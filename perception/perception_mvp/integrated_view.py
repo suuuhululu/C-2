@@ -28,7 +28,8 @@ def color_crop(rgb, roi_mask=None):
 def measure_instance(rgb, mask, part_class, depth, info, calibration, layer_heights_mm=None,
                      height_tolerance_mm=None, *, height_reference_offset_mm=0., depth_range_m=None,
                      max_height_spread_mm=None, block_stud_height_mm=0., surface_diagnostics=None,
-                     top_plane_stud_mm=0.):
+                     top_plane_stud_mm=0., first_layer_min_mm=None, first_layer_max_mm=None,
+                     board_plane=None):
     from .live_view import board_point
     if calibration is None or depth is None or info is None:
         raise ValueError('calibration_or_synced_depth_missing')
@@ -60,9 +61,9 @@ def measure_instance(rgb, mask, part_class, depth, info, calibration, layer_heig
                                           return_pair=True, diagnostics=surface_diagnostics)
         outline_support = keep | studs
     else:
-        pixels = (v, u, mask.shape)  # Lets the horizontal-patch pass see which points are neighbours.
-        keep = (top_surface_points(board, diagnostics=surface_diagnostics, pixels=pixels)
-                if surface_diagnostics is not None else top_surface_points(board, pixels=pixels))
+        from .opencv_live import top_surface_points_core_retry
+        keep, _ = top_surface_points_core_retry(board, v, u, mask, diagnostics=surface_diagnostics,
+                                                selector=top_surface_points, part_class=part_class)
         outline_support = keep
     if max_height_spread_mm is not None:
         from .depth_grid import height_spread_within
@@ -92,9 +93,14 @@ def measure_instance(rgb, mask, part_class, depth, info, calibration, layer_heig
     if not np.isfinite(height_reference_offset_mm):
         raise ValueError('invalid_height_reference_offset')
     stud_added = block_stud_height_mm or top_plane_stud_mm  # Added once; never to the outline plane.
-    reference_height = height + height_reference_offset_mm + stud_added
+    # The board baseline only corrects the layer height; `height` (calibration datum) still feeds the outline.
+    bias = (board_plane.bias_at(float(np.median(board[keep, 0])), float(np.median(board[keep, 1])))
+            if board_plane is not None else 0.)
+    level = height - bias
+    reference_height = level + height_reference_offset_mm + stud_added
     result = dict(grid=anchor.tolist(), axis_angle_deg=axis, height_mm=reference_height,
-                  body_height_mm=(height + height_reference_offset_mm if stud_added else None),
+                  board_baseline_bias_mm=(bias if board_plane is not None else None),
+                  body_height_mm=(level + height_reference_offset_mm if stud_added else None),
                   block_stud_added_mm=stud_added,
                   layer=None, reason='layer_reference_missing')
     if layer_heights_mm is not None:
@@ -104,18 +110,45 @@ def measure_instance(rgb, mask, part_class, depth, info, calibration, layer_heig
                 not np.isfinite(height_tolerance_mm) or height_tolerance_mm <= 0 or
                 2*height_tolerance_mm >= np.min(np.diff(levels))):
             raise ValueError('invalid_or_overlapping_layer_reference')
-        index = int(np.argmin(abs(levels-reference_height)))
-        if abs(levels[index]-reference_height) <= height_tolerance_mm:
+        from .depth_grid import layer_band_index
+        index = layer_band_index(reference_height, levels, height_tolerance_mm, first_layer_min_mm,
+                            first_layer_max_mm)
+        if index is not None:
             result.update(layer=index+1, reason=None)
         else:
             result['reason'] = 'height_outside_layer_reference'
     return result
 
 
+def frame_board_baseline(depth, info, calibration, union, params, bounds_mm, expected_plate_z_mm,
+                         depth_range_m=None):
+    """Fit this capture's board plate plane (mm, calibration board frame) away from detected blocks."""
+    from .depth_grid import exclusion_mask, fit_board_plane, sampled_pixels
+    from .live_view import board_point
+    if depth.dtype != np.uint16 or depth.shape != union.shape:
+        raise ValueError('aligned_depth_format_mismatch')
+    valid = (depth > 0) & ~exclusion_mask(union, params['exclusion_px'])
+    if depth_range_m is not None:
+        low, high = depth_range_m
+        valid &= (depth.astype(float) * .001 >= low) & (depth.astype(float) * .001 <= high)
+    v, u = sampled_pixels(valid)
+    if not len(u):
+        raise ValueError('board_baseline_insufficient_points')
+    board_point((int(u[0]), int(v[0])), depth, info, calibration)  # Same calibration checks as blocks.
+    k = np.asarray(info['k']).reshape(3, 3)
+    z = depth[v, u].astype(float)
+    camera = np.column_stack(((u-k[0, 2])*z/k[0, 0], (v-k[1, 2])*z/k[1, 1], z))
+    pose = calibration['camera_pose']
+    board = (camera-np.asarray(pose['t_camera_from_board_mm'])) @ np.asarray(pose['R_camera_from_board'])
+    board[:, 2] *= pose['height_normal_sign']
+    return fit_board_plane(board, expected_plate_z=expected_plate_z_mm, bounds=bounds_mm, **params)
+
+
 def process_frame(rgb, model, confidence, depth=None, info=None, calibration=None,
                   layer_heights_mm=None, height_tolerance_mm=None, *, roi_mask=None,
                   height_reference_offset_mm=0., depth_range_m=None, max_height_spread_mm=None,
-                  block_stud_height_mm=0., top_plane_stud_mm=0.):
+                  block_stud_height_mm=0., top_plane_stud_mm=0., first_layer_min_mm=None,
+                  first_layer_max_mm=None, board_baseline_params=None, board_bounds_mm=None):
     if rgb.dtype != np.uint8 or rgb.ndim != 3 or rgb.shape[2] != 3:
         raise ValueError('uint8 RGB required')
     if not np.isfinite(confidence) or not 0 < confidence <= 1:
@@ -136,6 +169,16 @@ def process_frame(rgb, model, confidence, depth=None, info=None, calibration=Non
     masks = result.masks.data.cpu().numpy() > .5
     if masks.shape[1:] != crop.shape[:2]:
         raise ValueError('mask_resolution_mismatch')
+    board_plane, baseline_error = None, None
+    if board_baseline_params is not None and depth is not None and info is not None and calibration is not None:
+        union = np.zeros(rgb.shape[:2], bool)
+        for small in masks:
+            union[y0:y1, x0:x1] |= small
+        try:
+            board_plane = frame_board_baseline(depth, info, calibration, union, board_baseline_params,
+                                               board_bounds_mm, -height_reference_offset_mm, depth_range_m)
+        except ValueError as error:
+            baseline_error = str(error)  # Blocks stay UNKNOWN; never an uncorrected layer.
     records = []
     for small, cls, score in zip(masks, result.boxes.cls.cpu().numpy(), result.boxes.conf.cpu().numpy()):
         name = model.names[int(cls)]
@@ -158,6 +201,8 @@ def process_frame(rgb, model, confidence, depth=None, info=None, calibration=Non
                       reason='color_missing_or_conflict', layer=None)
         if boundary:
             record['reason'] = 'instance_crosses_roi_boundary'
+        elif color == name.split('_')[0] and baseline_error is not None:
+            record['reason'] = baseline_error
         elif color == name.split('_')[0]:
             surface_diagnostics = {}
             try:
@@ -168,6 +213,9 @@ def process_frame(rgb, model, confidence, depth=None, info=None, calibration=Non
                                               max_height_spread_mm=max_height_spread_mm,
                                               block_stud_height_mm=block_stud_height_mm,
                                               top_plane_stud_mm=top_plane_stud_mm,
+                                              first_layer_min_mm=first_layer_min_mm,
+                                              first_layer_max_mm=first_layer_max_mm,
+                                              board_plane=board_plane,
                                               surface_diagnostics=surface_diagnostics))
             except (ValueError, KeyError, cv2.error) as error:
                 record['reason'] = str(error)
