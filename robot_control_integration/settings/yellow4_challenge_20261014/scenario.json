@@ -45,7 +45,9 @@
     "robot_pose_units": "XYZ_mm_ZYZ_deg",
     "axis_points_units": "mm_in_named_frame",
     "loaded_pivot_verified": false,
-    "simple_time_reversal_validated": false
+    "simple_time_reversal_validated": false,
+    "preview_schema_version": "yellow4-pivot-preview/2",
+    "grasp_transform": "T_tcp_block: block coordinates mapped into TCP coordinates"
   },
   "field_inputs": {
     "supply_pick_tcp": null,
@@ -84,8 +86,8 @@
     "hardware_commands_stage_0": 0
   },
   "progress": {
-    "completed_stage": 0,
-    "next_stage": 1,
+    "completed_stage": 1,
+    "next_stage": 2,
     "stages": [
       {
         "id": 0,
@@ -98,7 +100,7 @@
         "id": 1,
         "name": "결착·분리 공통 접촉축 기하와 preview",
         "verification_kind": "SOFTWARE",
-        "status": "PENDING",
+        "status": "COMPLETE",
         "physical_test_verified": false
       },
       {
@@ -158,5 +160,26 @@
     "hardware_test_performed": false
   },
   "design_document": "docs/D_YELLOW4_CHALLENGE_STAGES_20261014.md",
-  "prompt_document": "docs/D_YELLOW4_CHALLENGE_PROMPTS_20261014.md"
+  "prompt_document": "docs/D_YELLOW4_CHALLENGE_PROMPTS_20261014.md",
+  "stage_1_verification": {
+    "status": "PASS",
+    "related_tests_passed": 44,
+    "new_regression_cases": 20,
+    "legacy_cli_preserved": true,
+    "both_operations_previewed": true,
+    "diagram_visually_checked": true,
+    "physical_commands": 0,
+    "hardware_test_performed": false,
+    "measured_inputs_verified": false,
+    "preview_config": "robot_control_integration/fixtures/yellow4_pivot_preview.json",
+    "diagram": "docs/assets/yellow4-challenge-stage1.png",
+    "checks": [
+      "arbitrary axis / signed rotation / fixed contact points / rigid grasp",
+      "input-to-output frame equivariance and scene points",
+      "changed grasp relation preserves block path and changes TCP orbit",
+      "separate removal input and no fallback / invalid inputs",
+      "linear TCP+shortest SO3 midpoint chord error bound",
+      "both-operation JSON+PNG CLI / unchanged legacy preview"
+    ]
+  }
 }

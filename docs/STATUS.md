@@ -872,3 +872,10 @@ GPU 현재 A snapshot92파일을 CPU deliverables/GPU_A_수정본_CPU보관_2026
 - 0단계 완료/다음1단계로 기록. 최초 파지/착좌 상대 변환·접촉축·회전 파라미터는 미확인으로 유지. 기존45N은 선택적 위치 누름 중단값으로만 유지하며 접촉/분리 감지나 일정 힘 제어로 사용하지 않음.
 - 실제 검사: 관련 기하·기울기·정렬 tests24 PASS, preview CLI 정상 및 물리명령0/실행허용false, 시나리오 범위/증거/단계 기록·8개 프롬프트·상대 문서 링크·diff 확인. 새 제어 동작/ROS 연결 없음. 실물 결착·분리 및 실제 접촉축·그리퍼 접근/판 고정 미검증.
 - Round2 기본 step/Plan/B Current·팀원 checkout·기존 교시와 profile은 수정하지 않았음. 다음 입력은 1단계 공통 기하/별도 결착·분리 preview 구현 프롬프트.
+
+### 2026-10-14 노랑4점 challenge 1단계 — 파지 관계·명시 프레임·별도 분리 기하
+- edge_first_seating의 기존v1/기본 CLI를 보존하고 v2 입력을 추가. T_tcp_block 강체 파지 관계와 T_output_frame으로 블록/TCP/축/stud 좌표를 명시적으로 계산. 파지 관계 변경 시 블록 회전 경로를 유지하며 TCP 원호만 반영.
+- 결착 tilt→0, 분리0→tilt는 각 작업의 별도 축/각도/간격을 읽으며 결착 축 fallback/자동 역재생 없음. 분리 끝은 부분 기울임이고 전체 해제/회수를 완료로 기록하지 않음.
+- 합성 v2 fixture와 --operation assembly/removal/both, --plot PNG/SVG를 추가. docs/assets/yellow4-challenge-stage1.png에 접촉축·블록 시작/중간/끝·TCP 원호·네 stud 중심 표시. 현재 환경 Matplotlib을 선택적 그림 출력에 사용; 설치/ROS 계약/기존 제어 경로 변경 없음.
+- 실제 검사44 PASS(기존24+신규20). 임의축·회전부호·프레임 변환·강체관계·파지 높이·접촉점 유지·별도 분리 입력·실패 경로·SO(3) 보간 가정의 chord 오차·JSON/PNG CLI를 검증. 기본v1 CLI 재실행 정상, 그림 시각 확인.
+- scenario 1단계 COMPLETE/다음2단계 기록. 실제 장치 명령0; 접촉/간섭/체결/분리 및15mm 파지 실측 미검증. field_inputs null과 모든 실물 verified=false 유지. 다음은 기존 교시/보정 연결·관측 팝업·read-only 실측 캡처 단계.

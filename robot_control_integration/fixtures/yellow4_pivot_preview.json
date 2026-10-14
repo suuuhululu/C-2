@@ -1,0 +1,131 @@
+{
+  "schema_version": "yellow4-pivot-preview/2",
+  "mode": "PREVIEW_ONLY",
+  "operation": "assembly",
+  "source_kind": "SYNTHETIC_GEOMETRY_EXAMPLE_NOT_ROBOT_TEACHING",
+  "coordinate_frame": "SYNTHETIC_BOARD",
+  "output_frame": "SYNTHETIC_PREVIEW_WORLD",
+  "frame_pose_in_output_mm_zyz_deg": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+  ],
+  "block": {
+    "color": "yellow",
+    "brick_type": "2x2x1",
+    "x": 17,
+    "y": 17,
+    "layer": 1,
+    "orientation_deg": 0
+  },
+  "seated_block_pose_mm_zyz_deg": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+  ],
+  "tcp_to_block_pose_mm_zyz_deg": [
+    0,
+    0,
+    30,
+    0,
+    180,
+    0
+  ],
+  "block_geometry": {
+    "bottom_corners_in_block_mm": [
+      [
+        -8,
+        -8,
+        0
+      ],
+      [
+        8,
+        -8,
+        0
+      ],
+      [
+        8,
+        8,
+        0
+      ],
+      [
+        -8,
+        8,
+        0
+      ]
+    ],
+    "height_mm": 10
+  },
+  "target_studs": {
+    "frame": "SYNTHETIC_BOARD",
+    "centers_mm": [
+      [
+        -4,
+        -4,
+        0
+      ],
+      [
+        4,
+        -4,
+        0
+      ],
+      [
+        4,
+        4,
+        0
+      ],
+      [
+        -4,
+        4,
+        0
+      ]
+    ]
+  },
+  "operations": {
+    "assembly": {
+      "contact_line": {
+        "frame": "SYNTHETIC_BOARD",
+        "points_mm": [
+          [
+            -8,
+            -8,
+            0
+          ],
+          [
+            8,
+            -8,
+            0
+          ]
+        ]
+      },
+      "tilt_deg": 10,
+      "angular_step_deg": 0.5
+    },
+    "removal": {
+      "contact_line": {
+        "frame": "SYNTHETIC_BOARD",
+        "points_mm": [
+          [
+            -8,
+            -8,
+            0
+          ],
+          [
+            -8,
+            8,
+            0
+          ]
+        ]
+      },
+      "tilt_deg": -8,
+      "angular_step_deg": 0.5
+    }
+  },
+  "note": "All lengths, axes and angles are illustrative inputs. The axis is a hypothesis, not a measured stud contact. Removal uses a separately supplied axis; its endpoint is partial tilt, not verified full detachment."
+}

@@ -50,3 +50,38 @@
 접촉/해제 판정은 초기 실물에서는 작업자 관찰과 로그를 연결한다. 자동 판정은 동일 시험 기록에서 검증된 경우에 연결한다. 압력이 줄었다는 이유만으로 ALL_STUDS_RELEASED나 SEATED로 전이하지 않는다. STOP/응답 미확정 시 기존 정지 처리를 유지하고 그리퍼를 자동 개방하거나 전체 동작을 재시도하지 않는다.
 
 코드 준비와 실물 단계 완료는 각각 기록한다. 3~7단계는 사용자 실물 결과가 없는 동안 PREPARED_FOR_FIELD_TEST로 유지하며 단계 완료로 승격하지 않는다. 단계 완료 후 다음 프롬프트를 제공하고 사용자가 입력한 단계만 이어서 개발한다. 미확인 값은 그 값을 필요로 하지 않는 소프트웨어 작업을 막지 않는다.
+
+## 1단계 산출물 — 공통 기하와 두 작업 preview
+
+`app/edge_first_seating.py`에 v2 preview를 연결했다. 기존 v1 fixture/기본 CLI는 보존했다. v2는 하나의 노랑 블록과 별도로 지정된 assembly/removal 접촉축·각도·샘플 간격을 사용한다. 제거 preview의 끝은 부분 회전이며 전체 해제를 판정하거나 수직 회수하지 않는다.
+
+### 입력 좌표의 의미
+
+- `coordinate_frame`: seated block pose, 접촉축, 목표 stud 중심의 입력 프레임. 접촉축/stud의 `frame`이 다르면 변환을 명시해야 한다. camera/base로 추정하지 않는다.
+- `output_frame`, `frame_pose_in_output_mm_zyz_deg`: 입력 프레임의 출력 프레임 내 자세 `T_output_frame`. 프레임 이름이 같으면 identity 변환을 사용한다. 출력 XYZ/자세/축/stud는 모두 출력 프레임 기준이다.
+- `seated_block_pose_mm_zyz_deg`: 블록 기준 좌표의 입력 프레임 내 자세 `T_frame_block`.
+- `tcp_to_block_pose_mm_zyz_deg`: **블록 좌표를 TCP 좌표로 옮기는** 강체 파지 변환 `T_tcp_block`. 블록 원점이 TCP에서 어디에 있는지 나타내며 base의 파지 pose가 아니다.
+- `block_geometry`: 블록 로컬 XYZ의 순서 있는 네 바닥 모서리와 +Z 높이. `target_studs`는 네 중심의 입력 프레임 좌표다.
+- `operations.assembly/removal`: 작업별 `contact_line` 두 점, 부호 있는 `tilt_deg`, 양의 `angular_step_deg`. 결착은 tilt→0, 분리는0→tilt로 각각 샘플링한다. 다른 작업의 축을 fallback으로 채우지 않는다.
+
+계산 관계는 `T_output_block = T_output_frame × T_frame_block`, `T_output_tcp = T_output_block × inverse(T_tcp_block)`이다. 출력 프레임의 접촉축으로 TCP XYZ/자세를 함께 회전하고, 각 waypoint에서 `T_output_block = T_output_tcp × T_tcp_block`을 유지한다. 파지 관계를 바꾸면 TCP 원호가 바뀌며 같은 블록 회전 경로를 유지한다.
+
+`chord_error_bound_mm`는 직선 TCP XYZ와 최단 SO(3) 자세 보간을 가정한 구간의 기하 오차 상한이다. 실제 MoveL 제어기 보간·접촉 유지의 실측 결과가 아니다. 샘플 간격은 설정으로 받으며 실제 접촉 시험에서 확인한다.
+
+### 장치 연결 없는 실행
+
+저장소 루트에서 두 작업의 JSON과 경로 그림을 함께 생성한다.
+
+```bash
+python3 robot_control_integration/scripts/yellow4_edge_first_preview.py \
+  --config robot_control_integration/fixtures/yellow4_pivot_preview.json \
+  --operation both \
+  --output /tmp/yellow4-challenge-stage1-preview.json \
+  --plot /tmp/yellow4-challenge-stage1.png
+```
+
+`--operation assembly` 또는 `--operation removal`로 한 작업만 출력할 수 있다. `--plot`은 PNG/SVG 파일을 저장하며 장치 창/카메라를 열지 않는다. 관측 팝업은 2단계 범위다. 실행 옵션/장치 명령은 없다. 그림 저장은 현재 환경의 Matplotlib을 사용하며 ROS/그리퍼 패키지를 추가하지 않았다.
+
+![합성 결착·분리 경로](assets/yellow4-challenge-stage1.png)
+
+길이·높이·축·10°/-8°는 합성 입력이다. 실제 치수·stud 걸림 위치·권장 각도로 채택하지 않는다. 빨간 선은 가정한 접촉축, 초록 점은 목표 stud 중심, 파란 원호는 TCP, 색상별 블록은 시작·중간·끝 자세다. 점선은 강체 파지의 TCP–블록 관계다. 접촉/간섭/체결/완전 해제는 이 그림으로 검증하지 않았다.
