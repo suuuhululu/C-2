@@ -76,7 +76,8 @@ def test_observer_ros_hand_stream_uses_request_active_and_stop_hooks(monkeypatch
     import perception_mvp.ros_capture as ros
     active = [True]
     stopped = lambda view: view == 'V0'
-    def stream(valid, stop):
+    def stream(valid, stop, *, context, workflow_valid):
+        assert context['check_kind'] == 'INITIAL' and workflow_valid() is True
         assert valid() and stop is stopped
         active[0] = False
         assert not valid()

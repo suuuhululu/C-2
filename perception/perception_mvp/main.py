@@ -62,7 +62,8 @@ def make_inspection_observer(gate, hand_detector, hand_stream, capture_view,
             if not callable(is_stopped):
                 raise ValueError('ROS hand reception requires actual is_stopped(View) hook')
             from .ros_capture import stream_ros_hand
-            stream_factory = lambda: stream_ros_hand(valid, is_stopped)
+            stream_factory = lambda: stream_ros_hand(is_active, is_stopped,
+                context=manifest, workflow_valid=workflow_valid)
         return run_observation_cycle(gate, hand_detector, stream_factory,
             lambda view: capture_view(deepcopy(manifest), view, is_active), manifest,
             weights, calibration, config, detector_confidence, callback=lambda value: None,
@@ -132,7 +133,7 @@ def run_observation_cycle(gate, hand_detector, hand_stream, capture_view, manife
             detector_confidence, callback=callback, confirm_view=confirm_view,
             bundle_valid=valid, view_sink=view_sink, output_root=output_root)
     except Exception as error:
-        progress(context, '관측 시작 실패·중단', reason=str(error))
+        progress(context, '관측 시작 실패·중단', view=getattr(error, 'view', None), reason=str(error))
         gate.state = "HOLD"
         raise
 
@@ -249,7 +250,7 @@ def observe_cycle(gate, capture_view, manifest, weights, calibration, config,
         write_cycle_json(archive / "submission.json", dict(status="CALLBACK_RETURNED",
             check_id=check, observation_seq=seq, backend_acceptance="NOT_CONFIRMED_BY_B"))
     except Exception as error:
-        progress(context, '관측 실패·중단', reason=str(error))
+        progress(context, '관측 실패·중단', view=getattr(error, 'view', None), reason=str(error))
         gate.state = "HOLD"
         if archive is not None:
             write_cycle_json(archive / "failure.json", dict(check_id=check,

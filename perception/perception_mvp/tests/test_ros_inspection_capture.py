@@ -180,6 +180,65 @@ def test_moving_view_does_not_subscribe(tmp_path, fake_ros):
     assert fake_ros.subscriptions == []
 
 
+@pytest.mark.parametrize('view', ['V0', 'D1', 'D3'])
+@pytest.mark.parametrize('field,value,code', [
+    ('request_active', False, 'INSPECTION_REQUEST_INACTIVE'),
+    ('workflow_valid', False, 'WORKFLOW_INVALID'),
+    ('bundle_valid', False, 'BUNDLE_INVALID'),
+    ('is_stopped', False, 'VIEW_NOT_STOPPED'),
+    ('is_stopped', np.bool_(True), 'VIEW_NOT_STOPPED'),
+    ('is_stopped', 1, 'VIEW_NOT_STOPPED'),
+])
+def test_capture_failure_identifies_exact_condition_and_view(
+        tmp_path, fake_ros, capsys, view, field, value, code):
+    import json
+    from perception_mvp.ros_capture import capture_inspection_view
+    values = dict(request_active=True, workflow_valid=True, bundle_valid=True, is_stopped=True)
+    values[field] = value
+    called = []
+    def read(key):
+        called.append(key)
+        return values[key]
+    with pytest.raises(RuntimeError, match=code) as caught:
+        capture_inspection_view(dict(mode='REAL', check_id='diagnostic', check_kind='INITIAL',
+                                     observation_seq=0), view, lambda: read('request_active'),
+            output_root=tmp_path, scene_id='synthetic', calibration_id='fixture',
+            robot_pose=lambda v: {}, is_stopped=lambda v: read('is_stopped'),
+            workflow_valid=lambda: read('workflow_valid'), bundle_valid=lambda: read('bundle_valid'))
+    event = json.loads(capsys.readouterr().out.split('관측 조건 실패 ', 1)[1])
+    assert event['check_id'] == 'diagnostic' and event['view'] == view
+    assert event['failed_condition'] == field and event['failure_code'] == code
+    assert event['conditions'][field]['value'] == repr(value)
+    assert event['conditions'][field]['type'] == f'{type(value).__module__}.{type(value).__name__}'
+    assert caught.value.view == view and f'view={view}' in str(caught.value)
+    assert called.count(field) == 1 and called[-1] == field
+    assert not fake_ros.subscriptions and not list(tmp_path.iterdir())
+
+
+def test_hand_failure_logs_request_context_and_workflow_without_opening_ros(fake_ros, capsys):
+    from perception_mvp.ros_capture import stream_ros_hand
+    with pytest.raises(RuntimeError, match='WORKFLOW_INVALID.*view=V0') as caught:
+        next(stream_ros_hand(lambda: True, lambda view: True,
+            context=dict(check_id='hand-step', check_kind='STEP'), workflow_valid=lambda: False))
+    output = capsys.readouterr().out
+    assert 'hand-step' in output and 'HAND_RECEPTION' in output and 'workflow_valid' in output
+    assert caught.value.view == 'V0' and not fake_ros.subscriptions
+
+
+def test_stop_hook_exception_is_reported_without_rechecking(fake_ros, capsys):
+    from perception_mvp.ros_capture import _require_observation_state
+    calls = []
+    def stopped(view):
+        calls.append(view)
+        raise LookupError('controller state unavailable')
+    with pytest.raises(RuntimeError, match='STATE_CHECK_FAILED.*is_stopped.*view=D3') as caught:
+        _require_observation_state(dict(check_id='hook-failure'), 'D3', 'RGBD_CAPTURE',
+                                   lambda: True, stopped)
+    assert calls == ['D3'] and isinstance(caught.value.__cause__, LookupError)
+    assert 'controller state unavailable' in capsys.readouterr().out
+    assert caught.value.view == 'D3' and not fake_ros.subscriptions
+
+
 def test_coverage_without_basis_cannot_become_verified(tmp_path, fake_ros):
     with pytest.raises(ValueError, match='actual evidence'):
         receive(tmp_path, fake_ros, verify_occupancy=lambda *args: dict(
