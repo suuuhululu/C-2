@@ -1,0 +1,6 @@
+# In-sample trial only; no independent validation set.
+path: /home/roh/C-2/perception/labeling/hand_dataset
+train: images/train
+val: images/train
+names:
+  0: hand

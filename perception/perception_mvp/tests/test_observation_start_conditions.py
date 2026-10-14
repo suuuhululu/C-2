@@ -105,7 +105,8 @@ def test_clear_wait_never_accepts_unknown_or_unstable(presence, stable):
 
 @pytest.mark.parametrize('kind,explicit,expected', [
     ('INITIAL', None, 'STOPPED_CLEAR'), ('FINAL', None, 'STOPPED_CLEAR'),
-    ('STEP', None, 'HUMAN_ASSEMBLY'), ('STEP', 'STOPPED_CLEAR', 'STOPPED_CLEAR'),
+    ('STEP', None, 'STOPPED_CLEAR'), ('STEP', 'STOPPED_CLEAR', 'STOPPED_CLEAR'),
+    ('STEP', 'HUMAN_ASSEMBLY', 'HUMAN_ASSEMBLY'),
     ('FINAL', 'HUMAN_ASSEMBLY', 'HUMAN_ASSEMBLY')])
 def test_request_start_policy_is_explicit_and_not_step_guessing(monkeypatch, kind, explicit, expected):
     import perception_mvp.main as runtime
@@ -113,7 +114,7 @@ def test_request_start_policy_is_explicit_and_not_step_guessing(monkeypatch, kin
         assert manifest['start_condition'] == expected
         return manifest, {}
     monkeypatch.setattr(runtime, 'run_observation_cycle', cycle)
-    observer = runtime.make_inspection_observer(None, None, None, None, None, {}, {}, .25,
+    observer = runtime.make_inspection_observer(None, None, lambda: iter(()), None, None, {}, {}, .25,
         confirm_view=lambda v: True, workflow_valid=lambda: True, bundle_valid=lambda: True,
         start_condition=None if explicit is None else lambda ctx: explicit)
     observer(dict(check_kind=kind, check_id='fixed', observation_seq=0, current=None), lambda: True)

@@ -34,3 +34,13 @@ reports/
 /perception/labeling/supply_obb/images/
 /perception/labeling/supply_obb/annotations/
 /perception/labeling/supply_top_review_20261012/
+
+# Local vision training and replay outputs (keep on this machine)
+/perception/models/supply_top_yolo26s_seg_20261013/*.pt
+/perception/recordings/assembly_replay_20261013*/
+/perception/recordings/empty_column_review_20261013*/
+
+# Retired supply OBB and local training helper
+/perception/supply_vision/obb_geometry.py
+/perception/supply_vision/tests/test_obb.py
+/perception/supply_vision/train_top_seg_trial.py

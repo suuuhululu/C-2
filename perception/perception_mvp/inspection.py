@@ -192,6 +192,7 @@ class VisionInspection:
             comparison = 'UNOBSERVABLE'
         historical = [deepcopy(b) for b in merged if placement_key(b) not in seen]
         result = dict(**context, comparison=comparison, current=deepcopy(next_current),
+            previous_current=deepcopy(self._current),
             expected=deepcopy(expected), difference=dict(missing=missing, unexpected=unexpected,
                 unobservable=unknown), observed_blocks=deepcopy(visible), retained_history=historical,
             verified_regions=deepcopy(observed["verified_regions"]),

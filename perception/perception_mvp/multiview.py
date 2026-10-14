@@ -4,12 +4,20 @@ from copy import deepcopy
 from .contracts import footprint, placement_key, region_cells
 
 
-def merge_views(views, *, scene_stable):
+def merge_views(views, *, scene_stable, vote_policy=None):
     if views:
         identity = (views[0]["check_id"], views[0]["observation_seq"], views[0]["calibration_id"])
         if any((v["check_id"], v["observation_seq"], v["calibration_id"]) != identity for v in views):
             raise ValueError("mixed check/sequence/calibration in bundle")
-    return _merge_views(views, scene_stable=scene_stable)
+    vote_log = []
+    if vote_policy is not None and scene_stable:
+        from .class_vote import prepare_class_votes
+        views, vote_log = prepare_class_votes(views, vote_policy)
+    result = _merge_views(views, scene_stable=scene_stable)
+    result['class_vote_log'] = vote_log
+    result['issues'].extend('class_vote:'+v['decision'] for v in vote_log
+                            if v['decision'] not in ('SELECTED', 'ABSTAIN'))
+    return result
 
 
 def merge_local_views(views, *, scene_stable):

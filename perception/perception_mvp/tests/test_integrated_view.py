@@ -155,7 +155,56 @@ def test_geometry_and_explicit_layer_reference(monkeypatch):
     assert result['grid'] == [4, 4]
     assert result['height_mm'] == 22
     assert result['layer'] == 1 and result['reason'] is None
+    from copy import deepcopy
+    body_calibration = deepcopy(calibration)
+    body_calibration['camera_pose']['t_camera_from_board_mm'][2] = 814
+    body_depth = depth.copy()
+    body_depth[10:20, 10:20] = 796  # Body14mm/stud18mm relative to board stud tops.
+    with monkeypatch.context() as patch:
+        def outline(rgb, mask, support):
+            assert support[10:20, 10:20].all()  # Studs support outline, not body height.
+            return np.zeros((4, 2))
+        patch.setattr(opencv_live, 'rgb_top_quad', outline)
+        body_result = measure_instance(rgb, mask, 'yellow_2x2', body_depth, info, body_calibration,
+            [22, 40.625, 59.25, 77.875, 96.5], 2.5,
+            height_reference_offset_mm=4., block_stud_height_mm=4.)
+    assert body_result['body_height_mm'] == 18.  # Flat board0 datum.
+    assert body_result['height_mm'] == 22.  # Add block studs once, not twice.
+    assert body_result['block_stud_added_mm'] == 4. and body_result['layer'] == 1
+    with monkeypatch.context() as patch:
+        patch.setattr('perception_mvp.integrated_view.top_surface_points',
+                      lambda points, **kwargs: np.ones(len(points), bool))
+        mixed_depth = depth.copy()
+        mixed_depth[:15] = 794  # Synthetic heights 22/28mm: spread6mm.
+        with pytest.raises(ValueError, match='surface_height_conflict'):
+            measure_instance(rgb, mask, 'yellow_2x2', mixed_depth, info, calibration,
+                max_height_spread_mm=5.)
+    with pytest.raises(ValueError, match='insufficient_depth'):
+        measure_instance(rgb, mask, 'yellow_2x2', depth, info, calibration,
+            depth_range_m=(.4, .6))  # Synthetic frame is 0.8m.
     result = measure_instance(rgb, mask, 'yellow_2x2', depth, info, calibration)
     assert result['layer'] is None and result['reason'] == 'layer_reference_missing'
     with pytest.raises(ValueError, match='overlapping'):
         measure_instance(rgb, mask, 'yellow_2x2', depth, info, calibration, [22, 42, 62, 82], 11)
+    from perception_mvp.live_view import load_layer_reference
+    settings = load_layer_reference()
+    levels = settings['top_heights_mm']
+    for layer, flat_height in enumerate(levels, start=1):
+        calibration['camera_pose']['t_camera_from_board_mm'][2] = 800 + flat_height - 4
+        result = measure_instance(rgb, mask, 'yellow_2x2', depth, info, calibration,
+            levels, settings['tolerance_mm'], height_reference_offset_mm=4.)
+        assert result['height_mm'] == pytest.approx(flat_height)
+        assert result['layer'] == layer
+    gap_height = (levels[0] + levels[1]) / 2
+    calibration['camera_pose']['t_camera_from_board_mm'][2] = 800 + gap_height - 4
+    result = measure_instance(rgb, mask, 'yellow_2x2', depth, info, calibration,
+        levels, settings['tolerance_mm'], height_reference_offset_mm=4.)
+    assert result['layer'] is None and result['reason'] == 'height_outside_layer_reference'
+    tolerance = settings['tolerance_mm']  # Configured layer tolerance (+/-5mm since 2026-10-14).
+    assert tolerance == pytest.approx(5.)
+    for difference, expected_layer in ((-tolerance, 1), (tolerance, 1),
+                                       (-(tolerance + .1), None), (tolerance + .1, None)):
+        calibration['camera_pose']['t_camera_from_board_mm'][2] = 800 + levels[0] + difference - 4
+        result = measure_instance(rgb, mask, 'yellow_2x2', depth, info, calibration,
+            levels, settings['tolerance_mm'], height_reference_offset_mm=4.)
+        assert result['layer'] == expected_layer
