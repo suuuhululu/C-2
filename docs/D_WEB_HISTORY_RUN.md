@@ -1,5 +1,8 @@
 # 웹 도안 갤러리·DB 실행 안내 — 2026-10-12
 
+**최신 2026-10-14:** 웹은 도안 중심으로 표시하고 원본 로그는 별도 보존한다.
+신규 DB 적재 정책·보관 위치·재적재 규칙은 [원본 보존·DB 선별 적재](D_HISTORY_SELECTION.md)를 따른다.
+
 ## 반영 범위
 
 통합 기준은 `codex/integration-round1`의 `02137d80ef28bab678e49855d7b6150219028881`이다. 기존 계정·JSONL 적재·작업 소유권·개인 조회/저장 코드를 재사용하고, 제작자별 도안 관리와 선택 공개 웹앱을 추가한다. `DB 개발용`·`웹앱`의 최신 결정 및 HMI 제외 지시를 반영한다.
@@ -32,7 +35,7 @@ export PGPASSWORD
 python3 -m history init
 ```
 
-기존 `HISTORY_DATABASE_DSN`을 설정한 경우 그 DSN을 우선 사용한다. `init`은 기존 migration 적용 함수로 002 공개 테이블을 추가하며 계정·작업·이력을 초기화하지 않는다. 적용할 DB를 확인하고 기존 데이터는 별도 백업한다.
+기존 `HISTORY_DATABASE_DSN`을 설정한 경우 그 DSN을 우선 사용한다. `init`은 기존 migration 적용 함수로 002 공개 테이블과 003 원본 보존·정책 메타데이터를 추가하며 계정·작업·이력을 초기화하지 않는다. 적용할 DB를 확인하고 기존 데이터는 별도 백업한다.
 
 앱 계정이 없다면 다음 명령으로 생성한다. 각 명령에서 사용자 비밀번호를 숨겨 입력받으며, DB 접속 비밀번호와 앱 비밀번호를 구분한다. 이미 존재하는 계정은 기존 정책대로 덮어쓰지 않는다. 이 PR은 현재 PC의 계정 데이터나 비밀번호를 배포하지 않는다.
 
@@ -50,15 +53,17 @@ python3 -m history.web --port 8765
 
 웹은 새로고침 뒤에도 선택한 GALLERY / MY DESIGNS 보기를 유지한다. 목록 조회 중에는
 Loading designs를 표시하며, 아직 응답을 받지 못한 상태를 빈 목록으로 표시하지 않는다.
-개인 상세는 최근 100개 이벤트만 표시하지만 전체 건수와 설계·검사·완료·저장 근거는
-전체 기록으로 계산한다. EXPORT JSON은 기존 전체 기록을 조회해 내보낸다. 기록 JSON은
-각 항목을 펼칠 때 표시한다. 원본 JSONL·DB 이벤트는 삭제하거나 선별 적재하지 않는다.
+개인 상세는 모형·층별 설계·제작자·완료·저장·공개 상태를 표시한다. 로그·대화·원본 경로는
+표시하지 않으며, EXPORT DESIGN JSON은 선택한 Design 버전만 내보낸다.
+전체 DB 기록의 운영 CLI·인증된 전체 API는 유지한다. 신규 source는 진단 샘플을 선별 적재하고
+원본 JSONL을 별도 보존하며, 기존 DB 이벤트는 삭제하지 않는다.
 
 운영 DB가 아닌 이름이 `_test`로 끝나는 별도 DB의 DSN을 `HISTORY_TEST_DSN` 환경변수에 제공한다. pytest/jsonschema는 기존 프로젝트 검사 환경을 사용한다.
 
 ```bash
 PYTHONPATH=.:tests/unit:tests/integration python3 -m pytest \
   tests/unit/test_history.py tests/unit/test_history_views.py \
+  tests/unit/test_history_selection.py tests/integration/test_history_selection_db.py \
   tests/unit/test_history_final_mvp.py tests/unit/test_accounts.py \
   tests/integration/test_history_db.py tests/integration/test_accounts_db.py \
   tests/integration/test_history_personal_db.py tests/integration/test_history_web.py -q

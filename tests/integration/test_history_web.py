@@ -168,37 +168,43 @@ def test_library_detail_export_isolate_owner_and_unowned_jobs(server, db):
         assert request(server,"/api/jobs/"+job+"/save",dict(save_key=uuid4().hex),cookie=cookie)[0] == 404
 
 
-def test_detail_summary_caps_recent_timeline_but_keeps_full_evidence_and_export(server, db, tmp_path):
+def test_design_summary_omits_logs_while_full_export_preserves_all_events(server, db, tmp_path):
     connection, users, jobs = db
     cookie = login(server, users[0])
     path = "/api/jobs/" + jobs[0]
     status, _, original = request(server, path, cookie=cookie)
     assert status == 200
     documents = [dict(timestamp="2026-10-12T00:00:00+00:00", job_id=jobs[0], plan_id="P1",
-                      step_id=None, request_id=None, event="MOTION_SAMPLE", reason=None,
+                      step_id=None, request_id=None, event="ROBOT_MOTION_SAMPLE", reason=None,
                       result=dict(sample_index=index)) for index in range(125)]
     source = tmp_path / "long-timeline.jsonl"
     source.write_text("".join(json.dumps(document) + "\n" for document in documents))
-    store.ingest(connection, source, "long-timeline/" + uuid4().hex, contract=CONTRACT)
+    store.ingest(connection, source, "long-timeline/" + uuid4().hex, contract=CONTRACT, policy="all")
 
     status, _, summary = request(server, path + "/summary", cookie=cookie)
     assert status == 200
     status, _, exported = request(server, path, cookie=cookie)
     assert status == 200
-    assert summary["timeline_total"] == len(original["timeline"]) + len(documents)
-    assert len(summary["timeline"]) == 100
-    assert len(exported["timeline"]) == summary["timeline_total"]
+    assert set(summary) == {"owner", "jobs", "designs", "completion", "storage"}
+    assert len(exported["timeline"]) == len(original["timeline"]) + len(documents)
     assert exported["timeline"][:len(original["timeline"])] == original["timeline"]
-    assert summary["timeline"] == exported["timeline"][-100:]
-    assert summary["timeline"][0]["document"]["result"]["sample_index"] == 25
-    assert summary["timeline"][-1]["document"]["result"]["sample_index"] == 124
-    # Adoption/completion records are older than the visible tail but still inform the summary.
-    assert {row["event"] for row in summary["timeline"]} == {"MOTION_SAMPLE"}
+    assert [row["document"] for row in exported["timeline"][-125:]] == documents
+    assert summary["jobs"][0]["event_count"] == len(exported["timeline"])
     assert summary["completion"]["assembly"] == "RECORDED"
     assert len(summary["designs"]) == 1
-    for section in ("owner", "jobs", "artifacts", "designs", "plans", "currents", "checks",
-                    "completion", "storage", "hri", "reason_counts", "durations", "episodes"):
+    assert summary["designs"][0]["design_version"] == 1
+    assert summary["designs"][0]["design"] == exported["designs"][0]["design"]
+    for section in ("owner", "storage"):
         assert summary[section] == exported[section]
+    assert set(summary["completion"]) == {"assembly", "work_exhaustion"}
+    assert summary["completion"] == {key:exported["completion"][key]
+                                     for key in ("assembly", "work_exhaustion")}
+    serialized = json.dumps(summary)
+    for omitted in ("timeline", "raw_line", "source_key", "line_number", "archive_path",
+                    "adoptions", "sample_index", "currents", "checks", "artifacts"):
+        assert f'"{omitted}"' not in serialized
+    assert str(source) not in serialized
+    assert "long-timeline/" not in serialized
 
 
 def test_detail_summary_requires_auth_and_retains_owner_isolation(server, db):
@@ -210,11 +216,38 @@ def test_detail_summary_requires_auth_and_retains_owner_isolation(server, db):
     owner_cookie = login(server, users[0])
     status, _, summary = request(server, path, cookie=owner_cookie)
     assert status == 200
-    assert summary["timeline_total"] == len(summary["timeline"]) == 5
+    assert set(summary) == {"owner", "jobs", "designs", "completion", "storage"}
     assert [job["job_id"] for job in summary["jobs"]] == [jobs[0]]
     for job in (jobs[1], jobs[2], str(uuid4())):
         assert request(server, "/api/jobs/" + job + "/summary", cookie=owner_cookie)[0] == 404
     assert "password" not in json.dumps(summary)
+
+
+def test_design_summary_handles_legacy_diagnostic_only_job_without_fake_design(server, db, tmp_path):
+    connection, users, _ = db
+    job = str(uuid4())
+    documents = [dict(timestamp="2026-10-12T00:00:00+00:00", job_id=job, plan_id=None,
+                      step_id=None, request_id=None, event="ROBOT_MOTION_SAMPLE", reason=None,
+                      result=dict(sample_index=index)) for index in range(3)]
+    source = tmp_path / "legacy-diagnostic-only.jsonl"
+    source.write_text("".join(json.dumps(document) + "\n" for document in documents))
+    store.ingest(connection, source, "diagnostic-only/" + uuid4().hex, contract=CONTRACT, policy="all")
+    personal.bind_job(connection, job, users[0]["username"], "HTTP legacy diagnostic fixture owner")
+    cookie = login(server, users[0])
+
+    status, _, summary = request(server, "/api/jobs/" + job + "/summary", cookie=cookie)
+
+    assert status == 200
+    assert set(summary) == {"owner", "jobs", "designs", "completion", "storage"}
+    assert len(summary["jobs"]) == 1 and summary["jobs"][0]["job_id"] == job
+    assert summary["jobs"][0]["result"] == "NO_COMPLETION_RECORDED"
+    assert summary["jobs"][0]["event_count"] == 3
+    assert summary["designs"] == []
+    assert summary["completion"]["assembly"] == "NOT_RECORDED"
+    assert summary["storage"]["imported_event_count"] == 3
+    assert "sample_index" not in json.dumps(summary)
+    full = request(server, "/api/jobs/" + job, cookie=cookie)
+    assert full[0] == 200 and [row["document"] for row in full[2]["timeline"]] == documents
 
 
 def test_storage_receipt_idempotent_and_never_changes_assembly(server, db):

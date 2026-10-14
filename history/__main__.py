@@ -50,6 +50,10 @@ def main(argv=None) -> int:
                         help="stable root; relative paths identify logs across host/container")
     ingest.add_argument("--contract", choices=CONTRACTS, default="day4",
                         help="offline archive mapping; never change an already imported source contract")
+    ingest.add_argument("--policy", choices=("all", "operational-v1"),
+                        help="new sources default to operational-v1; existing sources keep their policy")
+    ingest.add_argument("--archive-root", type=Path,
+                        help="original snapshots; default: source-root/history_archive")
     commands.add_parser("jobs")
     commands.add_parser("users", help="DB-local account identities, no password hashes")
     create = commands.add_parser("create-user")
@@ -128,7 +132,11 @@ def main(argv=None) -> int:
                         source = resolved.relative_to(root).as_posix()
                     except ValueError as error:
                         raise ValueError(f"{path}: outside source root") from error
-                    imported = store.ingest(connection, resolved, source, contract=args.contract)
+                    imported = store.ingest(connection, resolved, source, contract=args.contract,
+                                            policy=args.policy, archive_root=args.archive_root or
+                                            Path(os.environ.get("HISTORY_ARCHIVE_ROOT", root / "history_archive")))
+                    imported["archive"] = connection.execute("""SELECT ingest_policy,archive_path,
+                        archive_sha256,archive_bytes FROM c2_history.sources WHERE source_key=%s""", (source,)).fetchone()
                     result.append(imported)
                     # Previous files are committed even if a later file fails.
                     print(json.dumps(imported, ensure_ascii=False), flush=True)

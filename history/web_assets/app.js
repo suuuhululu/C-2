@@ -4,7 +4,6 @@ const isFilePreview = location.protocol === 'file:';
 const viewStorageKey = 'c2-history-view';
 let user = null, library = {jobs: [], designs: []}, view = 'gallery', selected = null;
 let detailSequence = 0, librarySequence = 0, saveKey = null, selectedVersion = null;
-const events = {JOB_STARTED:'Job started', PLAN_ADOPTED:'Design and plan adopted', CURRENT_ADOPTED:'Current state adopted', CHECK_RESULT:'Assembly check', PLAN_WORK_EXHAUSTED:'Plan work exhausted', ASSEMBLY_COMPLETED:'Assembly completion recorded', JOB_COMPLETED:'Job completion recorded', INTENT_RECEIVED:'Intent received', DELIVERY_RESULT:'Delivery result', STEP_CONFIRMED:'Step confirmed'};
 function el(tag, text, className) {
   const node = document.createElement(tag);
   if (text !== undefined) node.textContent = text;
@@ -215,18 +214,6 @@ function facts(items) {
   for (const [key,value] of items) { const row=el('div');row.append(el('dt',key),el('dd',value));list.append(row); }
   return list;
 }
-function rawSection(title, items, label) {
-  const section = el('section', undefined, 'record-section'); section.append(el('h3', `${title} / ${items.length}`));
-  if (!items.length) section.append(el('p','No record'));
-  items.forEach((item,index) => {
-    const details=el('details'); details.append(el('summary',label(item,index)));
-    details.addEventListener('toggle',()=>{
-      if (details.open && details.children.length === 1) details.append(el('pre',JSON.stringify(item,null,2)));
-    });
-    section.append(details);
-  });
-  return section;
-}
 async function openDetail(jobId, version = null) {
   const sequence = ++detailSequence; selected = null; selectedVersion = version; saveKey = crypto.randomUUID();
   $('#detail-actions').hidden = false; $('#publish').disabled = true; $('#publication-status').textContent = '';
@@ -236,7 +223,7 @@ async function openDetail(jobId, version = null) {
   try {
     const result = await api(`/api/jobs/${jobId}/summary`);
     if (sequence !== detailSequence || !$('#detail-dialog').open) return;
-    selected = result; renderDetail(version); $('#export').disabled=false;
+    selected = result; renderDetail(version);
   } catch(error) { if (sequence === detailSequence) $('#detail-notice').textContent=error.message; }
 }
 function renderDetail(version) {
@@ -244,6 +231,8 @@ function renderDetail(version) {
   const design=designs.find(d => d.design_version === (version ?? selectedVersion)) ?? designs.at(-1);
   selectedVersion = design ? design.design_version : null;
   const item = library.designs.find(d=>d.job_id === job.job_id && d.design_version === selectedVersion);
+  $('#export').disabled = !design;
+  $('#export').textContent = 'EXPORT DESIGN JSON ↓';
   $('#publish').disabled = !item;
   $('#publish').textContent = item && item.published ? 'UNPUBLISH DESIGN' : 'PUBLISH DESIGN ↗';
   $('#publication-status').textContent = item && item.published ? 'Published in the public gallery.' : 'Not published. Only you can manage this design.';
@@ -257,18 +246,19 @@ function renderDetail(version) {
     select.append(new Option('Overview · top layer','all'));
     [...new Set(design.design.blocks.map(b=>b.layer))].sort().forEach(layer=>select.append(new Option(`Layer ${layer}`,layer)));
     select.addEventListener('change',()=>drawing.replaceChildren(board(design.design.blocks,select.value === 'all' ? null : Number(select.value))));
-    picker.append(select);visual.append(drawing,picker);
+    picker.append(select);visual.append(modelArt(design.design.blocks),drawing,picker);
     const legend=el('div',undefined,'legend');for(const [color,name] of [['yellow','Yellow'],['blue','Blue'],['red','Red']]){const part=el('span');part.append(el('i',undefined,color),document.createTextNode(name));legend.append(part);}visual.append(legend);
   } else visual.append(el('p','No adopted design recorded'));
-  grid.append(visual,facts([['Assembly completion',complete(job) ? 'Evidence recorded' : 'No evidence recorded'],['Plan work exhausted',selected.completion.work_exhaustion === 'RECORDED' ? 'Recorded' : 'No final MVP record'],['DB snapshot confirmation',selected.storage.status === 'SAVED' ? 'Current snapshot confirmed' : 'Current snapshot unconfirmed'],['Imported events',`${selected.timeline_total ?? selected.timeline.length}`],['Job started',date(job.started_at)],['Last record',date(job.last_seen_at)]]));body.append(grid);
-  body.append(el('p','These are imported DB records. Completion evidence refers to the final adopted design. Snapshot confirmation acknowledges the currently imported events; it does not confirm assembly completion.'));
-  body.append(rawSection('ADOPTED DESIGNS',selected.designs,item=>`v${item.design_version} · ${date(item.adopted_at)}`));
-  body.append(rawSection('PLANS',selected.plans,item=>`${item.plan_id} · ${item.is_last_adopted ? 'Last adopted' : 'Previously adopted'}`));
-  body.append(rawSection('CURRENT STATES',selected.currents,item=>`revision ${item.current_revision} · ${item.kind}`));
-  body.append(rawSection('CHECKS',selected.checks,item=>`${item.response.check_kind} / ${item.response.status} / ${item.response.comparison ?? 'No comparison'} · ${item.disposition}`));
-  body.append(rawSection('INTENT RESPONSES',selected.hri,item=>`request ${item.request_id}`));
-  if (selected.timeline_total > selected.timeline.length) body.append(el('p',`Showing the latest ${selected.timeline.length} of ${selected.timeline_total} events. EXPORT JSON includes the full record.`));
-  body.append(rawSection('TIMELINE',selected.timeline,item=>`${date(item.occurred_at)} · ${events[item.event] ?? item.event}${item.reason ? ` / ${item.reason}` : ''}`));
+  grid.append(visual,facts([
+    ['Creator',item ? `${item.creator.display_name} (@${item.creator.username})` : 'No record'],
+    ['Assembly completion',complete(job) ? 'Confirmed' : 'Not confirmed'],
+    ['Assembly plan',selected.completion.work_exhaustion === 'RECORDED' ? 'All planned steps processed' : 'Not finished'],
+    ['Snapshot confirmation',selected.storage.status === 'SAVED' ? 'Confirmed' : 'Not confirmed'],
+    ['Design adopted',date(design?.adopted_at)],
+    ['Job started',date(job.started_at)],
+    ['Last updated',date(job.last_seen_at)],
+    ['Snapshot saved',date(selected.storage.receipt?.saved_at)]
+  ]));body.append(grid);
   $('#save').disabled=selected.storage.status === 'SAVED';
   $('#save').textContent=selected.storage.status === 'SAVED' ? 'DB SNAPSHOT CONFIRMED' : 'CONFIRM DB SNAPSHOT ↗';
 }
@@ -290,16 +280,14 @@ $('#login-form').addEventListener('submit',async event=>{
   catch(error){$('#login-error').textContent=error.message;}finally{button.disabled=false;}
 });
 $('#logout').addEventListener('click',async()=>{try{await api('/api/logout',{});await signedOut();}catch(error){notice(error.message,true);}});
-$('#export').addEventListener('click',async()=>{
-  if (!selected) return;
-  const jobId=selected.owner.job_id, sequence=detailSequence; $('#export').disabled=true;
+$('#export').addEventListener('click',()=>{
+  if (!selected || selectedVersion === null) return;
+  const design=selected.designs.find(item=>item.design_version === selectedVersion);
+  if (!design) return;
   try {
-    const result=await api(`/api/jobs/${jobId}`);
-    if (sequence !== detailSequence || !selected) return;
-    const url=URL.createObjectURL(new Blob([JSON.stringify(result,null,2)],{type:'application/json'})),link=el('a');
-    link.href=url;link.download=`c2-${jobId}.json`;link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
-  } catch(error) { if (sequence === detailSequence) $('#detail-notice').textContent=error.message; }
-  finally { if (sequence === detailSequence && selected) $('#export').disabled=false; }
+    const url=URL.createObjectURL(new Blob([JSON.stringify(design.design,null,2)],{type:'application/json'})),link=el('a');
+    link.href=url;link.download=`c2-${selected.owner.job_id}-design-v${selectedVersion}.json`;link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
+  } catch(error) { $('#detail-notice').textContent=error.message; }
 });
 $('#save').addEventListener('click',async()=>{
   if(!selected)return;const jobId=selected.owner.job_id, sequence=detailSequence;$('#save').disabled=true;

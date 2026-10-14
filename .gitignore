@@ -15,6 +15,7 @@ build/
 install/
 log/
 logs/
+history_archive/
 data/raw/
 *.bag
 *.db3

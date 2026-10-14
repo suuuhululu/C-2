@@ -10,17 +10,13 @@ const designEntries = [1,2,3].map(version => ({
   creator:identity, published:false,
   design:{design_version:version, blocks:[{brick_type:'2x2x1',color:'blue',x:4,y:4,layer:1,orientation_deg:0}]}
 }));
-const timeline = Array.from({length:9}, (_,index) => ({
-  event:'MOTION_SAMPLE', occurred_at:'2026-10-12T00:00:00Z', reason:null,
-  document:{result:{sample_index:index}}
-}));
-const fullRecord = {
+const summaryRecord = {
   owner:{job_id:jobId},
   jobs:[{job_id:jobId,result:'NO_COMPLETION_RECORDED',started_at:'2026-10-12T00:00:00Z',last_seen_at:'2026-10-12T00:00:00Z'}],
-  designs:designEntries, plans:[], currents:[], checks:[], hri:[],
-  completion:{work_exhaustion:'NOT_RECORDED'}, storage:{status:'PENDING'}, timeline
+  designs:designEntries.map(({creator,published,...design})=>design),
+  completion:{assembly:'NOT_RECORDED',work_exhaustion:'NOT_RECORDED'},
+  storage:{status:'PENDING',receipt:null}
 };
-const summaryRecord = {...fullRecord, timeline:timeline.slice(-2), timeline_total:timeline.length};
 const clone = value => JSON.parse(JSON.stringify(value));
 const flatten = value => [value,...value.children.flatMap(flatten)];
 const flush = () => new Promise(resolve => setImmediate(resolve));
@@ -49,8 +45,10 @@ function element(tag) {
   };
 }
 
-async function app({storage=new Map(), authenticated=true, detailStatus=200, storageUnavailable=false}={}) {
+async function app({storage=new Map(), authenticated=true, detailStatus=200,
+                    storageUnavailable=false, libraryWait=null, libraryStatus=200}={}) {
   const elements = new Map(), requests = [], blobs = [], anchors = [];
+  const entries=clone(designEntries), record=clone(summaryRecord);
   const get = selector => {
     if (!elements.has(selector)) elements.set(selector, element('div'));
     return elements.get(selector);
@@ -82,9 +80,22 @@ async function app({storage=new Map(), authenticated=true, detailStatus=200, sto
       else if (path === '/api/login') { authenticated=true; body=identity; }
       else if (path === '/api/logout') { authenticated=false; body={ok:true}; }
       else if (path === '/api/gallery') body={jobs:[],designs:[],queried_at:'2026-10-12T00:00:00Z'};
-      else if (path === '/api/library') body={jobs:fullRecord.jobs,designs:designEntries,queried_at:'2026-10-12T00:00:00Z'};
-      else if (path === `/api/jobs/${jobId}/summary`) { status=detailStatus; body=status===200 ? summaryRecord : {error:'Fixture detail request failed.'}; }
-      else if (path === `/api/jobs/${jobId}`) body=fullRecord;
+      else if (path === '/api/library') {
+        if (libraryWait) await libraryWait;
+        status=libraryStatus;
+        body=status===200 ? {jobs:record.jobs,designs:entries,queried_at:'2026-10-12T00:00:00Z'} : {error:'Fixture library request failed.'};
+      }
+      else if (path === `/api/jobs/${jobId}/summary`) { status=detailStatus; body=status===200 ? record : {error:'Fixture detail request failed.'}; }
+      else if (path === `/api/jobs/${jobId}/save`) {
+        record.storage={status:'SAVED',receipt:{saved_at:'2026-10-12T00:01:00Z'}};
+        body=record.storage.receipt;
+      }
+      else if (path.startsWith(`/api/designs/${jobId}/`) && path.endsWith('/publication')) {
+        const version=Number(path.split('/')[4]);
+        const design=entries.find(item=>item.design_version===version);
+        design.published=JSON.parse(options.body).published;
+        body={published:design.published};
+      }
       else throw new Error(`Unexpected fixture request: ${path}`);
       return {ok:status>=200 && status<300,status,json:async()=>clone(body)};
     },
@@ -134,7 +145,7 @@ async function verifyNavigation() {
   assert.equal(page.get('#hero-subtitle').textContent,'MY DESIGNS');
 }
 
-async function verifyPrivateDetailsAndFullExport() {
+async function verifyPrivateDetailsAndDesignExport() {
   const page = await app();
   for (const card of page.get('#gallery').children) {
     const version = Number(card.attrs['aria-label'].match(/v(\d+)/)[1]);
@@ -145,39 +156,41 @@ async function verifyPrivateDetailsAndFullExport() {
     assert.equal(page.get('#export').disabled,false);
     const content = flatten(page.get('#detail-body'));
     assert.ok(content.some(node=>node.tag==='h2' && node.textContent===`Design / v${version}`));
-    assert.equal(content.filter(node=>node.tag==='pre').length,0);
-    assert.ok(content.some(node=>node.textContent==='Showing the latest 2 of 9 events. EXPORT JSON includes the full record.'));
+    assert.equal(content.filter(node=>['pre','details','summary','h3'].includes(node.tag)).length,0);
+    assert.ok(content.some(node=>node.tag==='dd' && node.textContent==='Fixture creator (@fixture_creator)'));
+    assert.ok(content.some(node=>node.tag==='dt' && node.textContent==='Design adopted'));
+    assert.ok(content.some(node=>node.tag==='dt' && node.textContent==='Snapshot saved'));
+    assert.ok(!content.some(node=>node.textContent==='Imported events'));
+    assert.equal(page.get('#export').textContent,'EXPORT DESIGN JSON ↓');
+    const requestsBefore=page.requests.length;
+    await page.get('#export').click();
+    assert.equal(page.requests.length,requestsBefore,'Design export does not fetch operator history');
+    assert.deepEqual(JSON.parse(await page.blobs.at(-1).text()),designEntries.find(item=>item.design_version===version).design);
+    assert.equal(page.anchors.at(-1).download,`c2-${jobId}-design-v${version}.json`);
+    assert.equal(page.anchors.at(-1).clicked,true);
     page.get('#detail-dialog').close();
   }
+  assert.equal(page.blobs.length,3);
+  assert.ok(page.requests.every(item=>item.method==='GET'),'Viewing/exporting never saves or publishes designs');
   await page.get('#gallery').children[0].click();
   const detailRequests = page.requests.filter(item=>item.path.startsWith(`/api/jobs/${jobId}`));
   assert.ok(detailRequests.every(item=>item.path.endsWith('/summary')));
-  await page.get('#export').click();
-  assert.deepEqual(page.requests.at(-1),{path:`/api/jobs/${jobId}`,method:'GET'});
-  assert.equal(page.blobs.length,1);
-  assert.deepEqual(JSON.parse(await page.blobs[0].text()),fullRecord);
-  assert.equal(page.anchors.at(-1).download,`c2-${jobId}.json`);
-  assert.equal(page.anchors.at(-1).clicked,true);
-  assert.equal(page.get('#export').disabled,false);
+  await page.get('#save').click();
+  assert.deepEqual(page.requests.slice(-2),[
+    {path:`/api/jobs/${jobId}/save`,method:'POST'},
+    {path:`/api/jobs/${jobId}/summary`,method:'GET'}
+  ]);
+  assert.equal(page.get('#save').disabled,true);
+  assert.equal(page.get('#publish').disabled,false);
+  await page.get('#publish').click();
+  assert.deepEqual(page.requests.slice(-2),[
+    {path:`/api/designs/${jobId}/3/publication`,method:'POST'},
+    {path:'/api/library',method:'GET'}
+  ]);
+  assert.equal(page.get('#publish').textContent,'UNPUBLISH DESIGN');
 }
 
-async function verifyLazyRawRecordsAndDetailErrors() {
-  const page = await app();
-  let serializations = 0;
-  const item = {toJSON(){serializations++;return {evidence:'small fixture'};}};
-  const section = page.context.rawSection('FIXTURE',[item],()=> 'Open fixture evidence');
-  const details = section.children.find(node=>node.tag==='details');
-  assert.equal(serializations,0);
-  assert.equal(details.children.length,1);
-  details.open=true; await details.emit('toggle');
-  assert.equal(serializations,1);
-  assert.equal(details.children.at(-1).tag,'pre');
-  assert.deepEqual(JSON.parse(details.children.at(-1).textContent),{evidence:'small fixture'});
-  details.open=false; await details.emit('toggle');
-  details.open=true; await details.emit('toggle');
-  assert.equal(serializations,1);
-  assert.equal(details.children.length,2);
-
+async function verifyDetailErrors() {
   for (const detailStatus of [403,500]) {
     const failed = await app({detailStatus});
     await failed.get('#gallery').children[0].click();
@@ -188,9 +201,29 @@ async function verifyLazyRawRecordsAndDetailErrors() {
   }
 }
 
+async function verifyListLoadingAndFailureStates() {
+  let resolveLibrary;
+  const libraryWait=new Promise(resolve=>{resolveLibrary=resolve;});
+  const pending=await app({libraryWait});
+  assert.equal(pending.get('#gallery').children.length,0);
+  assert.equal(pending.get('#empty').hidden,false);
+  assert.equal(pending.get('#empty h2').textContent,'Loading designs…');
+  assert.equal(pending.get('#refresh').disabled,true);
+  resolveLibrary(); await flush();
+  assert.equal(pending.get('#gallery').children.length,3);
+  assert.equal(pending.get('#empty').hidden,true);
+  assert.equal(pending.get('#refresh').disabled,false);
+  const failed=await app({libraryStatus:500});
+  assert.equal(failed.get('#empty').hidden,false);
+  assert.equal(failed.get('#empty h2').textContent,'Could not load designs.');
+  assert.equal(failed.get('#empty p').textContent,'Fixture library request failed.');
+  assert.equal(failed.get('#refresh').disabled,false);
+}
+
 (async()=>{
   await verifyNavigation();
-  await verifyPrivateDetailsAndFullExport();
-  await verifyLazyRawRecordsAndDetailErrors();
-  console.log('Login/reload view, gallery choice, logout, summary details, v1–v3 publication, lazy JSON, full export and detail errors: OK');
+  await verifyPrivateDetailsAndDesignExport();
+  await verifyDetailErrors();
+  await verifyListLoadingAndFailureStates();
+  console.log('Login/reload view, v1–v3 design-only details/export, explicit save/publication, loading and error states: OK');
 })().catch(error=>{console.error(error);process.exitCode=1;});
