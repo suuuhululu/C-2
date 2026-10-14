@@ -886,3 +886,11 @@ GPU 현재 A snapshot92파일을 CPU deliverables/GPU_A_수정본_CPU보관_2026
 - 읽기 전용 ROS getter/FK/check_motion 비동기 조회, 선택적 RG2 holding register 읽기, 단일worker 이미지 분석, 두 번 클릭ROI/윗면모서리/축 후보, SPACE 원본/overlay/feedback/타임스탬프 저장. move/stop/tool-set/grip/write register client 없음.
 - 실제 검사91 PASS(신규16 포함), 기본/보완prepare와 저장영상 headless 관측 정상. ROS_DOMAIN_ID20에서 실제 RGB/CameraInfo와 정지홈 posj/posx/velx/wrench/TCP/tool 읽기 캡처1회 성공. 이후 확인은 로봇 피드백 수신/RGB 없음 상태라15초 대기 후 관측만 종료; 중복ROS shutdown 오류를 수정하고 회귀/깨끗한 종료 확인. 모터/그리퍼 명령0.
 - 실측 자료 자체는 로컬 ignored logs/yellow4-challenge-stage2-20261014에 보존하고 Git에 업로드하지 않음. 높이 정정 이전의 live snapshot과 기본5mm 설정으로 재생한 기록을 구분. 현재창 키보드 조작/실제5mm 파지 관계/접촉축/판 고정 미검증. scenario2 PREPARED_FOR_FIELD_TEST/다음2 유지, 완료1은 유지. 3단계 프롬프트는 자료 확인 후 무접촉 시험 준비에 사용.
+
+### 2026-10-14 노랑4점 challenge 3단계 — 무접촉 원호·MoveL·팝업·실제 피드백 기록 준비
+- 기존 measured-input 어댑터와 edge_first_seating을 사용해 선택 작업의 블록/접촉축/TCP/비교용 가상 stud 전체를 기존 이송 높이로 BASE 평행 이동. 파지 관계는 유지하며 기본5mm에 +10mm를 적용하지 않음. 실측 관계/선택 접촉축이 없으면 장치 연결 없는 누락 preview. 분리 축이 없어도 결착 기하를 준비할 수 있음.
+- 기존 AssemblyMotionRos와 관측기가 ROS node 하나를 공유. 공급판 이송→몸체 우회→조립판 관측 경유와 원호/기준점 복귀 모두 MoveL. home 시작은 공급판 관측점 먼저 방문. 기존 사용자 이동120/상하·원호12mm/s와 각속도6°/s를 읽고 명시 override만 반영. 공급 집기/그리퍼 개폐/접촉/누름 명령 없음.
+- command/actual TCP·SO(3) 오차·그리퍼 폭 변화·raw wrench·RGB stamp/수신시간 journal, 시작/경유/원호/종료 RGB·overlay 저장. worker에서 분석/저장하며 UI/ROS 대기 중 계속 처리. 정지한 느린 샘플은 읽기만 기다리고 이동 오류/응답 불명은 STOP·재전송/개방 없음. 닫힌 팝업·journal 오류가 STOP 처리를 막지 않는 회귀 포함.
+- 과거 BODY_BYPASS→PLACE 39N/잔류21N 중단 근거를 보존하고 새 현장 경로 확인을 받음. 기하적 Z 여유20mm는 전체 간섭 검증이 아님. 픽셀 투영은 provisional, actual TCP 자세와 실제 블록 평면을 구분. HJK 복귀/명령 완료를 원호 접촉축 유지·파지 유지·체결 완료로 승격하지 않음.
+- 실제 소프트웨어 검사226 PASS(신규20 포함): air trial 및 관측/기하/held/기존 motion backend/position trial. 공유 ROS 초기화의 signal 처리도 확인해 운영자 STOP 전에 context가 닫히지 않도록 함. 현재 입력 CLI preview 정상(PREPARED_MISSING_FIELD_GEOMETRY, STANDARD5, 120/12, 물리명령0). 합성 단위 입력의 상공 그림을 /tmp에 생성해 시각 확인했으며 실측 profile로 저장하지 않음. 모터/그리퍼 명령0.
+- scenario3 PREPARED_FOR_FIELD_TEST, 실측 관계·결착 축·실제 경로 여유·사용자 원호/파지 결과 미확인. 완료1/다음2 및 기존 관측 기록은 보존. 실행 준비와 실물 완료를 분리했고 4단계 전체 프롬프트에 입력/3단계 결과 확인을 선행하도록 반영. 다른 checkout/Round2 기본 step/Plan/B Current 수정 없음. 상세 실행 안내는 D_YELLOW4_CHALLENGE_STAGES_20261014.md의3단계 절.

@@ -119,8 +119,9 @@
         "id": 3,
         "name": "조립판 상공 무접촉 원호·회전 시험",
         "verification_kind": "REAL_NO_CONTACT",
-        "status": "PENDING",
-        "physical_test_verified": false
+        "status": "PREPARED_FOR_FIELD_TEST",
+        "physical_test_verified": false,
+        "software_verified": true
       },
       {
         "id": 4,
@@ -212,5 +213,35 @@
       "offline CLI and recorded-sensor replay with standard5, no movement/grip commands",
       "known assembly input retained when removal axis is still unmeasured"
     ]
+  },
+  "stage_3_verification": {
+    "status": "PREPARED_FOR_FIELD_TEST",
+    "related_tests_passed": 226,
+    "physical_commands": 0,
+    "default_grasp_mode": "STANDARD",
+    "default_pad_bottom_height_mm": 5,
+    "runtime_rates_basis": "EXISTING_HELD_INTEGRATED_USER_SETTINGS",
+    "existing_teaching_unchanged": true,
+    "geometry_inputs_status": "PAIRED_FIELD_GRASP_RELATION_AND_ASSEMBLY_AXIS_STILL_PENDING",
+    "real_air_motion_executed": false,
+    "interactive_desktop_popup_verified": false,
+    "checks": [
+      "same BASE translation for block, TCP, contact line and virtual air studs; original grasp unchanged",
+      "assembly and removal independently selected; absent removal axis does not block assembly",
+      "all route segments use existing MoveL backend; third place-board waypoint replaced by assembly observation",
+      "home supply observation, supply/body/assembly transit, air-reference return",
+      "source settings rates, source force-stop evidence and explicit field route-clear confirmation",
+      "fresh stopped feedback wait without motion resend; moving fault stops",
+      "command/actual TCP and SO(3) error, width drift, raw wrench and timestamped RGB checkpoint evidence",
+      "single shared ROS node and worker analysis/saving; popup escape and failed journal cannot prevent stop",
+      "node-free current-input CLI preview, synthetic air-path visual check kept separate from field measurements"
+    ],
+    "remaining": [
+      "actual standard5 grasp relation",
+      "actual assembly contact axis and direction",
+      "field route clearance",
+      "operator real no-contact arc/grip/camera results"
+    ],
+    "new_regression_cases": 20
   }
 }

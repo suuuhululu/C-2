@@ -140,3 +140,60 @@ python3 robot_control_integration/scripts/yellow4_observe.py prepare --measureme
 분리 축이 아직 없어도 확인된 결착 기하를 먼저 사용한다. 누락된 분리 축/치수는 missing_measurements로 남긴다.
 
 paired pose로 `T_tcp_block = inverse(T_base_tcp) × T_base_block`을 계산해 1단계 기하에 연결한다. 반력/접촉/체결 성공으로 승격하지 않는다. 현재 실측 양식은 null이고 실제 파지 관계·축·판 고정은 확인이 남아 있으므로 2단계는 PREPARED_FOR_FIELD_TEST로 기록한다. 다음3단계는 실측 입력/미확인 항목을 먼저 읽어 필요한 실물 준비와 무접촉 경로 시험을 분리한다.
+
+## 3단계 산출물 — 무접촉 XYZ 원호·자세 회전 시험 준비
+
+`app/yellow4_air_trial.py`, `scripts/yellow4_air_trial.py`, `settings/yellow4_challenge_20261014/air_trial.json`을 추가했다. 기존 `AssemblyMotionRos`의 MoveL을 사용하며 관측기와 같은 ROS node를 공유한다. Round2 기본 step/Plan/B Current, 원본 교시와 다른 checkout은 변경하지 않는다. 기본 STANDARD는5mm이며 +10mm를 적용하지 않는다.
+
+### 경로와 입력
+
+실측 입력의 착좌 TCP가 기존 이송 높이에 도달하도록 BASE Z 평행 이동량을 계산하고 **블록 pose·TCP 원호·선택 접촉축·비교용 가상 stud를 모두 같은 양만큼 이동**한다. TCP–블록 상대 변환은 유지한다. 가상 stud는 실제 상공에 존재하는 stud가 아니다. 기본 높이194.73294067382812mm는 기존 이송 설정에서 읽는다. `air_tcp_z_mm`으로 별도 높이를 지정할 수 있으며 전체 블록의 원호가 지면 stud보다 최소20mm 위인지 계산한다. 이 수직 여유 계산은 주변 구조/그리퍼/로봇 링크의 전체 간섭 검증이 아니다.
+
+관측 자료의 paired BASE TCP·block pose, 실제 블록 로컬 치수, 대상 stud, 선택 작업의 실제 접촉축/회전 방향/각도/간격을 사용한다. 값이 없으면 `PREPARED_MISSING_FIELD_GEOMETRY`와 누락 항목을 출력하고 장치 연결 없이 마친다. 분리 축이 null이어도 결착 축이 있으면 assembly 시험을 준비한다. removal은 독립된 입력을 요구한다. 보드 고정 확인이 없다는 사실도 보존하며 무접촉 시험 결과로 접촉 시험의 고정을 승인하지 않는다.
+
+모든 경유는 MoveL이다. supply 시작은 수직 상승 → 공급판 이송점 → 몸체 우회점 → 조립판 관측점 → 상공 기준점 → 접촉축 원호 → 상공 기준점 복귀다. home 시작은 공급판 관측점을 먼저 방문한다. assembly 시작은 현재 위치에서 수직 상승 후 조립판 관측점으로 간다. 마지막 기존 place-board 경유점은 상공 기준점 XY의 조립판 관측점으로 대체했다. 공급 집기·그리퍼 개폐·착좌·누름은 이 단계에서 수행하지 않는다. 이미 해당 파지 관계로 잡은 노랑 한 블록을 사용한다.
+
+속도는 기존 held 통합 설정에서 이동120mm/s, 상하/원호12mm/s, 각속도6°/s, 가속도48mm/s²·3°/s²를 읽는다. `rates`에 명시한 값만 덮어쓴다. 무접촉 조건을 향후 접촉 회전 속도로 자동 채택하지 않는다.
+
+### 사용자 실행
+
+현재 준비 상태부터 확인한다. 아래 명령은 장치에 연결하지 않는다.
+
+```bash
+cd "/home/rokey/Documents/ChatGPT/로봇제어 개발/c2_integration_challenge"
+python3 robot_control_integration/scripts/yellow4_air_trial.py --output logs/yellow4-challenge-stage3-preview
+```
+
+실제 paired 관계와 접촉축을 입력한 **별도 실측 파일**이 있는 경우 preview를 만든다. `/절대경로/measurements.json`은 그 파일로 바꾼다. pending 양식과 합성 fixture는 실제 시험 입력이 아니다.
+
+```bash
+python3 robot_control_integration/scripts/yellow4_air_trial.py \
+  --measurements /절대경로/measurements.json \
+  --operation assembly --start-zone supply \
+  --output logs/yellow4-challenge-stage3
+```
+
+preview.json에서 원본 출처/파지 모드·관계, 지면/상공 기하, 원호/자세/수직 여유를 확인하고 air-path.png를 비교한다. 실제 경로가 비어 있는 것을 확인한 뒤 데스크톱 터미널에서 실행한다.
+
+```bash
+source /opt/ros/jazzy/setup.bash
+source /home/rokey/cobot2_ws/install/setup.bash
+export ROS_DOMAIN_ID=20
+python3 robot_control_integration/scripts/yellow4_air_trial.py \
+  --measurements /절대경로/measurements.json \
+  --operation assembly --start-zone supply \
+  --output logs/yellow4-challenge-stage3 \
+  --execute --confirm-hand-clear --confirm-route-clear
+```
+
+시작 위치에 따라 `--start-zone home` 또는 `assembly`를 사용한다. `--empty-gripper`는 그리퍼 폭/상태를 유지한 채 TCP만 시험한다. 빈 그리퍼 결과는 실제 블록 파지 유지 검증이 아니다. 이전 몸체 우회→place 이동에서39N/잔류21N 힘 중단이 기록돼 있으므로 그 기록을 preview에 보존하고 새 MoveL 경로의 현장 확인을 `--confirm-route-clear`로 받는다. 원본 복귀 비활성 표시를 해제하거나 과거 경로를 검증 완료로 바꾸지 않는다.
+
+### 팝업·기록·남은 검증
+
+팝업에 목표/실제 TCP, 위치·SO(3) 오차, 폭, raw 힘/모멘트, RGB 나이를 표시하고 입력 기하의 축/예상 원호를 카메라로 투영한다. 투영은 기존 provisional 자료의 진단이며 실제 블록 roll/pitch 측정이나 영상–pose 동기화 확인이 아니다. OpenCV 분석·원본/overlay 저장은 worker에서 수행하고 서비스 대기/settling 중 ROS와 창 입력을 계속 처리한다. ESC/창 닫기/신호는 정지 요청을 보낸다. 팝업 종료나 journal 실패가 정지 요청/응답 처리를 막지 않도록 별도 ROS spin을 사용한다.
+
+run별 events.jsonl에 command/actual TCP, 전체 SO(3) 자세 오차, gripper 폭·초기 폭 대비 변화, raw wrench, ROS RGB stamp와 수신 시각을 저장한다. 시작·각 원호/경유 도착·종료에는 RGB/overlay/capture.json/prepared.json을 저장한다. 이는 시각별 영상 프레임이며 연속 동영상 녹화/영상–pose 독립 동기화 검증은 아니다. 느린 **정지 상태** 피드백은 읽기만 다시 기다린다. 이동 중 피드백 지연/장치 오류/힘 중단/명령 응답 불명은 정지하고 명령 재전송·그리퍼 개방을 하지 않는다.
+
+모든 endpoint IK/FK와 실제 도착 오차를 확인한다. 이산 MoveL은 원호의 chord를 따라가며 SO(3) 보간 가정의 계산 오차와 실제 제어기 동작은 구분한다. 실제 중간 피드백/영상으로 원호·파지 유지·간섭을 검토해야 한다. H/J/K 기준 자세 복귀를 원호/블록 평면 검증으로 대체하지 않는다.
+
+현재 코드는 PREPARED_FOR_FIELD_TEST다. 실제5mm 파지 관계·결착 접촉축 입력 및 사용자 실물 결과가 없으므로 원호 검증 완료/체결 완료를 기록하지 않는다. 4단계 개발 요청 시 이 입력과3단계 실물 기록을 먼저 확인한다.

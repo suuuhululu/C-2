@@ -1,0 +1,11 @@
+{
+  "schema_version": "yellow4-air-trial/1",
+  "minimum_block_clearance_mm": 20,
+  "air_tcp_z_mm": null,
+  "rates": {},
+  "sample_max_duration_s": 0.5,
+  "position_tolerance_mm": 0.05,
+  "rotation_tolerance_deg": 0.05,
+  "motion_timeout_margin_s": 10,
+  "note": "Rates are read from existing held integrated config (transit120/vertical12/angular6). Air height defaults to the existing taught transport height. This file contains no fabricated grasp or axis."
+}

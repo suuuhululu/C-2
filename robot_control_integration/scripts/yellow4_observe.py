@@ -23,12 +23,18 @@ class ReadOnlyRos:
         ('wrench','aux_control/get_tool_force','GetToolForce','tool_force'),
         ('tcp','tcp/get_current_tcp','GetCurrentTcp','info'),('tool','tool/get_current_tool','GetCurrentTool','info')]
 
-    def __init__(self,bundle,read_gripper=False):
+    def __init__(self,bundle,read_gripper=False,node_name=None,disable_signal_handlers=False):
         import rclpy
         from dsr_msgs2 import srv
         from sensor_msgs.msg import Image,CameraInfo
         from rclpy.qos import qos_profile_sensor_data
-        self.ros=rclpy;rclpy.init(args=[]);self.node=rclpy.create_node('yellow4_read_only_'+uuid4().hex[:8])
+        self.ros=rclpy
+        if disable_signal_handlers:
+            from rclpy.signals import SignalHandlerOptions
+            # A shared motion trial must send STOP before its ROS context closes.
+            rclpy.init(args=[],signal_handler_options=SignalHandlerOptions.NO)
+        else:rclpy.init(args=[])
+        self.node=rclpy.create_node(node_name or 'yellow4_read_only_'+uuid4().hex[:8])
         prefix='/'+bundle['connection']['robot_id']+'/dsr_controller2/'
         self.clients=[self.node.create_client(getattr(srv,t),prefix+p) for _,p,t,_ in self.SERVICES]
         self.srv=srv;self.index=0;self.pending=None;self.sample={};self.times={}
