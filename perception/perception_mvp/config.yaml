@@ -77,10 +77,14 @@ geometry:
   # survives D1/D3 board-baseline offsets. Layer spacing is 18.625mm; code requires 2*tolerance < spacing.
   # Still a trial value, not a measured accuracy.
   height_tolerance_m: 0.005
-  # Layer 1 range (owner decision 2026-10-14): a measured top from 6mm up to 25mm is layer 1.
-  # Layers 2..5 keep the symmetric +/- tolerance band. Trial values, not a measured accuracy.
+  # Layer ranges (owner decision 2026-10-14): contiguous bands on the final height (top plane + board
+  # baseline + one block stud). Layer 1 is first_layer_min..layer_upper_bounds_m[0]; layer n is
+  # layer_upper_bounds_m[n-2]..layer_upper_bounds_m[n-1]; above the last bound or below 6mm is UNKNOWN.
+  # Stud-top of the top block = 18.6mm * n + 4mm (22.6/41.2/59.8/78.4/97.0mm); each upper bound is that
+  # +2mm (layer 1: 24.3mm). Lower-layer studs sit inside the block above and are not added.
+  # Trial values from the 18.6mm block pitch, not a measured accuracy; replaces the +/-5mm band.
   first_layer_min_height_m: 0.006
-  first_layer_max_height_m: 0.025
+  layer_upper_bounds_m: [0.0243, 0.0432, 0.0618, 0.0804, 0.099]
   # Per-capture board baseline (owner decision 2026-10-14): fit the board plate plane away from detected
   # blocks and take layer heights relative to it. Measured 2026-10-14: V0 depth read the plate about 5mm
   # below the calibration datum. Trial method; an unreliable fit leaves blocks UNKNOWN, never uncorrected.
