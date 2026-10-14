@@ -56,7 +56,7 @@ def normalize_action(option, plan, step, assembly_context):
     contacts = [{'lower_block': deepcopy(c['block']), 'upper_overlap_studs': c['upper_studs'],
                  'lower_overlap_studs': c['lower_studs'], 'board_supported': c['block']['layer'] == 1}
                 for c in option['contacts']['weak_supports']]
-    return {'plan_id': plan['plan_id'], 'step_id': step['step_id'], 'block': deepcopy(step['after']),
+    action = {'plan_id': plan['plan_id'], 'step_id': step['step_id'], 'block': deepcopy(step['after']),
             'mode': option['mode'], 'grip_axis': option['grip_axis'],
             'gripper': {'pickup_policy': 'D_EXISTING_PICKUP',
                         'release_strategy': 'D_EXISTING_TRAY_RELEASE' if manual else option['release_strategy'],
@@ -68,6 +68,10 @@ def normalize_action(option, plan, step, assembly_context):
             'human_hands_used': len(human), 'assistance_cost': list(option_cost(option)),
             'selection_basis': ('완성 가능한 전체 계획 확보 후 사람 도움 최소화; MoveIt 운반 검증은 별도' if assembly_context.get('planning_priority','COMPLETE_DESIGN_THEN_MIN_HELP')=='COMPLETE_DESIGN_THEN_MIN_HELP' else '기존 A 계산 후보를 동일 공간 설정으로 검증하고 선택'),
             'requires_runtime_reassessment': True, 'optimality_verified': False}
+    if option.get('assembly_strategy'):
+        action['assembly_strategy'] = option['assembly_strategy']
+        action['robot_force_model'] = 'NOT_ROBOT_INSERTION'
+    return action
 
 
 def comparable_action(action):
