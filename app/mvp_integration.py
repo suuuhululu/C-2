@@ -27,7 +27,10 @@ class MvpIntegration:
 
     def __init__(self, robot_root, directory, *, fixture_design=None, c_mode='offline',
                  history_dsn=None, web_url='http://127.0.0.1:8765', robot_mode='MOCK',
-                 runtime_settings=None, gestures=False):
+                 runtime_settings=None, gestures=False, round3_step_replay=None):
+        if round3_step_replay is not None and robot_mode != 'MOCK':
+            raise ValueError('ROUND3_STEP_REPLAY_IS_MOCK_ONLY')
+        self.round3_step_replay = deepcopy(round3_step_replay)
         if robot_mode not in ('MOCK', 'REAL'):
             raise ValueError('explicit robot mode required')
         if c_mode not in ('offline', 'live'):
@@ -111,6 +114,8 @@ class MvpIntegration:
                 self.workflow.dialogue['assistant_text']=self.question
         elif port == 'robot.EXECUTE':
             self.last_document = execution_document(payload['bundle'],payload['execution_id'])
+            if self.round3_step_replay is not None:
+                self.last_document['round2_replay'] = deepcopy(self.round3_step_replay)
             self.robot.send('EXECUTE',document=deepcopy(self.last_document))
         elif port == 'robot.RESUME':
             if self.last_document is None:
@@ -431,6 +436,8 @@ def main(runtime_class=MvpIntegration, *, real_trial=False):
     parser.add_argument('--log-directory',type=Path,default=Path('logs/mvp-integration'))
     parser.add_argument('--design',type=Path,help='명시적인 FAKE C 후보 파일; 생략하면 C 생성 함수 사용')
     parser.add_argument('--c-mode',choices=('offline','live'),default='offline')
+    parser.add_argument('--round3-step-replay', type=Path,
+        help='합성 측정 JSON으로 A 한 Step→round2 제어 연결 검사. MOCK 전용')
     if real_trial:
         parser.add_argument('--round3-fixed-step', action='store_true',
             help='T1 고정 현장 시험만 HMI에서 실행. C/A 실행·B 완료·최종 저장과 분리')
@@ -438,6 +445,8 @@ def main(runtime_class=MvpIntegration, *, real_trial=False):
         parser.add_argument('--execute',action='store_true',required=True,
             help='실제 Robot·카메라 제스처 연결 허용. B 관측은 가짜 시험 입력')
     args=parser.parse_args()
+    if real_trial and args.round3_step_replay is not None:
+        parser.error('--round3-step-replay는 MOCK HMI 전용입니다.')
     if real_trial and args.round3_fixed_step and args.contact_alignment_trial:
         parser.error('T1 고정 시험은 기존 round2 설정을 사용합니다. --contact-alignment-trial과 함께 사용하지 마세요.')
     if real_trial and args.round3_fixed_step and args.design:
@@ -452,7 +461,9 @@ def main(runtime_class=MvpIntegration, *, real_trial=False):
         history_dsn=os.environ.get('HISTORY_DATABASE_DSN'),
         web_url=os.environ.get('HISTORY_WEB_URL','http://127.0.0.1:8765'),
         **(dict(contact_alignment_trial=args.contact_alignment_trial,
-                **({'round3_fixed_step':True} if args.round3_fixed_step else {})) if real_trial else {}))
+                **({'round3_fixed_step':True} if args.round3_fixed_step else {})) if real_trial else
+            ({'round3_step_replay':json.loads(args.round3_step_replay.read_text())}
+                if args.round3_step_replay is not None else {})))
     window.creator_bar.setVisible(runtime.history_dsn is not None)
     if real_trial:
         from PyQt5.QtWidgets import QCheckBox, QPushButton, QComboBox
@@ -517,6 +528,9 @@ def main(runtime_class=MvpIntegration, *, real_trial=False):
                     ASSEMBLY_ACK='조립 완료 · 검사 진행',ALIGNMENT_READY='정렬 확인 완료')[request['kind']])
                 window.notice.setPlainText(window.notice.toPlainText()+'\n제스처가 인식되지 않으면 확인 버튼을 누르세요.')
         if runtime.c_pending:window.notice.setPlainText(runtime.question)
+        if args.round3_step_replay is not None:
+            window.heading.setText('통합 2단계 · A 한 Step → round2 제어 · 합성 관측/반력 · 실제 장치 없음')
+            window.setWindowTitle('Round3 A Step 연결 검사 · MOCK 전용')
         if real_trial and args.round3_fixed_step:
             window.setWindowTitle('Round3 · T1 고정 로봇 시험 · 최종 조립 판정 아님')
             window.heading.setText('T1: 노랑 2×2 슬롯4 → (9,9,L2) · 기존 8블록 배치 필요')

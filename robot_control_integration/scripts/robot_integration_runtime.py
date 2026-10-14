@@ -110,6 +110,8 @@ def main():
                 if command in ('EXECUTE', 'RESUME'):
                     if worker and worker.is_alive(): raise RuntimeError('EXECUTION_BUSY')
                     document = message['document']
+                    if 'round2_replay' in document and (args.mode != 'MOCK' or command != 'EXECUTE'):
+                        raise ValueError('ROUND3_STEP_REPLAY_IS_MOCK_EXECUTE_ONLY')
                     step = (step_from_messages(document['assessment'], document['request'], document['motion'],
                                                case_id=document['case_id']) if 'assessment' in document else document['step'])
                     profile, session = document['d_profile'], document['session']
@@ -123,6 +125,14 @@ def main():
                     elif session.get('no_vision_trial') is True:
                         from app.integration_motion_binding import verify_motion
                         verify_motion(document['motion']['motion_proposal'], plan, profile, document['robot_state'])
+                    if 'round2_replay' in document:
+                        if runtime is not None:
+                            raise RuntimeError('ROUND3_SINGLE_STEP_REPLAY_RESTART_REQUIRED')
+                        from app.round3_step_replay import Round3StepReplay
+                        runtime = Round3StepReplay(document, emit)
+                        runtime.start()
+                        worker = threading.Thread(target=execute, daemon=False); worker.start()
+                        continue
                     if args.mode == 'MOCK' and session.get('backend') != 'TEST': raise ValueError('MOCK_REQUIRES_TEST_SESSION')
                     if args.mode == 'REAL':
                         from app.control_session import validate_execution

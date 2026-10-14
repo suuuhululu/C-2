@@ -1,0 +1,13 @@
+{
+  "provenance": "SYNTHETIC",
+  "providers": ["pickup", "alignment"],
+  "measured": {
+    "block": {"brick_type": "2x2x1", "color": "blue", "x": 11, "y": 11, "layer": 1, "orientation_deg": 0},
+    "pad_contact_pose": [476.0, 176.0, 50.0, 0.0, 180.0, 0.0],
+    "press_width_mm": 4.0,
+    "landing_support_verified": true,
+    "release_sweep_verified": true,
+    "press_sweep_verified": true,
+    "measurement_ref": "SYNTHETIC_TEST_ONLY_NOT_PHYSICAL_TEACHING"
+  }
+}

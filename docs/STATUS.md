@@ -1,5 +1,14 @@
 # 현재 진행 상황
 
+## 2026-10-15 — 통합 2단계: 실제 A 한 Step → round2 MOCK 연결
+
+- 로컬 `codex/integration-round3`에서 작업. 기존 T1 고정 실물 시험과 full-real 실행은 유지한다. 사용자 요청으로 이번 변경을 commit하고 원격 `codex/integration-round3`에 게시한다. main 병합은 하지 않는다.
+- `app.mvp_integration --round3-step-replay <합성 JSON>`에서 실제 A whole/assess/motion 결과를 기존 EXECUTE 채널로 전달하고 새 MOCK 전용 연결이 `prepare_round2_step/run_round2_step` 및 기존 제어 세션/runner를 호출한다.
+- 지원 범위는 필요한 패드 자료가 있는 무도움 로봇 놓기·누르기 한 Step이다. 패드/provider 누락·블록 불일치는 이동 전 보류. REAL/RESUME/두 번째 실행 차단. 실제 OpenCV/yaw/접촉 대신 명시적 합성 provider와 StepReplayDriver를 사용한다.
+- 결과는 HMI HOLD. 가상 파지 성공의 슬롯 소비 외에 B Current·단계 완료·최종 저장은 갱신하지 않는다. STOP은 세션 취소와 가상 정지를 수행하며 이후 명령·늦은 성공 채택을 막는다.
+- 검증: 실제 A→native stdio 정상·자료 누락·STOP·REAL 차단과 기존 T1/통신 검사 25 passed. 관련 native round2/정렬/원본 RELEASE_PRESS 회귀 121 passed, 1388 deselected. 구문/diff 검사 통과. 기존 full-real UI/실행 문서 선택 검사 5 passed, 27 deselected.
+- 실제 장치·ROS·카메라·음성 API·DB 미실행. 합성 입력은 교시/보정/힘의 실물 증거가 아니다. [구조·실행·미검증 범위](D_ROUND3_A_STEP_REPLAY.md).
+
 ## 2026-10-15 — Round3 HMI → T1 고정 로봇 시험 연결
 
 - 기준: 원격 `codex/integration-round2`의 `5652b694`; 로컬 `codex/integration-round3` 생성. 기존 미추적 실측자료는 변경하지 않았다. commit/push/PR은 수행하지 않았다.

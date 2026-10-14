@@ -482,6 +482,13 @@ class MvpWorkflow:
             self.status, self.reason, self.robot_status = 'STOPPED', 'NO_MOCK_MOTION_PENDING', 'STOPPED'
             if self.check_conflict:
                 self.status, self.reason = 'HOLD', 'CONFLICTING_CHECK_RESULT'
+        elif event == 'ROUND3_STEP_REPLAY_RESULT':
+            if (self.mode != 'FAKE' or data.get('provenance') != 'SYNTHETIC'
+                    or self.reason == 'STOP_PENDING' or self.status == 'STOPPED' or self.check_conflict):
+                return False
+            self.status, self.reason = 'HOLD', 'ROUND3_STEP_REPLAY_FINISHED_NOT_ASSEMBLY_CONFIRMED'
+            self.robot_resume_allowed = False
+            self.robot_status = 'IDLE'
         elif event == 'EXECUTION_HELD':
             self.robot_resume_allowed=data.get('resume_allowed',True)
             if not self.robot_resume_allowed:self.status='HOLD'
