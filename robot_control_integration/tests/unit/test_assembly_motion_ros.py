@@ -252,3 +252,28 @@ def test_stale_query_never_waits_through_motion_force_or_equipment_fault(case):
     def read():calls.append(1);return late
     item._sample_once=read
     assert item.sample() is late and calls==[1]
+
+
+def test_target_only_stopped_requery_accepts_velocity_jitter_and_60n_residual_then_uses_fresh_read(monkeypatch):
+    from copy import deepcopy
+    item=driver();late=item.sample();late.update(query_duration_s=.7,velx=[.002]*6,wrench=[0.,0.,60.,0.,0.,0.])
+    fresh=deepcopy(late);fresh['query_duration_s']=.12
+    reads=[late,fresh];events=[]
+    item.config.update(target_only_motion=True,stale_retry_force_stop_n=None)
+    item.config['timing']['stopped_sample_retry_window_s']=5.
+    item._sample_once=lambda:reads.pop(0)
+    item.feedback_record=lambda event,data:events.append((event,data))
+    monkeypatch.setattr('app.assembly_motion_ros.time.sleep',lambda _:None)
+    assert item.sample() is fresh and not reads
+    assert events[0][0]=='FEEDBACK_REFRESH_WAIT' and late['query_duration_s']==.7
+
+
+@pytest.mark.parametrize('case',['moving','equipment'])
+def test_target_only_stale_requery_still_does_not_wait_through_motion_or_equipment_fault(case):
+    item=driver();late=item.sample();late.update(query_duration_s=.7,velx=[.002]*6,wrench=[0.,0.,60.,0.,0.,0.])
+    if case=='moving':late['motion_status']=2
+    else:late['tcp']='WRONG_TCP'
+    item.config.update(target_only_motion=True,stale_retry_force_stop_n=None)
+    item.config['timing']['stopped_sample_retry_window_s']=5.
+    calls=[];item._sample_once=lambda:(calls.append(1) or late)
+    assert item.sample() is late and calls==[1]

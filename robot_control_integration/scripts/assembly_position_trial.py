@@ -15,6 +15,11 @@ from app.assembly_motion_ros import AssemblyMotionRos
 from app.jsonl_log import JsonlLog
 
 
+def trial_motion_still(sample, policy=None):
+    """The opted-in trial uses controller completion; numeric velocity is diagnostic."""
+    return sample['motion_status'] == 0
+
+
 def guard(sample, connection, limit, *, automatic, force_norm_limit=None, required_gripper_status=2):
     vector(sample['wrench'], 6, 'wrench')
     if force_norm_limit is not None:
@@ -46,13 +51,15 @@ def run(driver, connection, target, limit, record, *, clearance_z=None,
         angular_velocity=None, angular_acceleration=None,
         ik_fk_position_tolerance_mm=.05, ik_fk_orientation_tolerance_deg=.05,
         position_tolerance_mm=.05, orientation_tolerance_deg=.05,
+        target_only_motion=False,
         clock=time.monotonic, sleep=time.sleep):
     attempted = False
     stillness_policy=getattr(getattr(driver,'session',None),'value',{}).get('stillness',{})
+    stopped=trial_motion_still if target_only_motion else motion_still
     try:
-        if any(type(v) not in (int,float) or not math.isfinite(v) or not 0<v<=1 for v in (ik_fk_position_tolerance_mm,ik_fk_orientation_tolerance_deg)):
+        if not target_only_motion and any(type(v) not in (int,float) or not math.isfinite(v) or not 0<v<=1 for v in (ik_fk_position_tolerance_mm,ik_fk_orientation_tolerance_deg)):
             raise ValueError('INVALID_IK_FK_TOLERANCES')
-        if any(type(v) not in (int,float) or not math.isfinite(v) or not 0<v<=1
+        if not target_only_motion and any(type(v) not in (int,float) or not math.isfinite(v) or not 0<v<=1
                for v in (position_tolerance_mm,orientation_tolerance_deg)):
             raise ValueError('INVALID_MOTION_ARRIVAL_TOLERANCES')
         if transfer_only and (lift_only or finish_lift):
@@ -73,7 +80,7 @@ def run(driver, connection, target, limit, record, *, clearance_z=None,
         guard(first, connection, limit, automatic=not set_automatic_mode, force_norm_limit=force_norm_stop_n,
               required_gripper_status=required_gripper_status)
         still_deadline = clock()+5.
-        while not motion_still(first,stillness_policy):
+        while not stopped(first,stillness_policy):
             if clock() >= still_deadline:
                 raise RuntimeError('START_NOT_STILL')
             sleep(.05)
@@ -81,10 +88,10 @@ def run(driver, connection, target, limit, record, *, clearance_z=None,
             record('INITIAL_STILL_WAIT_SAMPLE', first)
             guard(first, connection, limit, automatic=not set_automatic_mode,
                   force_norm_limit=force_norm_stop_n, required_gripper_status=required_gripper_status)
-        if not lift_only and not transfer_only and clearance_z is None and first['posx'][2] <= target[2]:
+        if not target_only_motion and not lift_only and not transfer_only and clearance_z is None and first['posx'][2] <= target[2]:
             raise RuntimeError('START_NOT_ABOVE_TARGET')
         height = first['posx'][2] if clearance_z is None else clearance_z
-        if not math.isfinite(height) or height < first['posx'][2]-.05 or (not lift_only and not transfer_only and height <= target[2]):
+        if not math.isfinite(height) or (not target_only_motion and (height < first['posx'][2]-.05 or (not lift_only and not transfer_only and height <= target[2]))):
             raise RuntimeError('INVALID_TRANSFER_HEIGHT')
         above = [*target[:2], height, *target[3:]]
         route = [('DESCENT', target)]
@@ -101,12 +108,12 @@ def run(driver, connection, target, limit, record, *, clearance_z=None,
         if finish_lift:
             route.append(('LIFT_OUT', above))
         if lift_only:
-            if clearance_z is None or height <= first['posx'][2] or finish_lift:
+            if clearance_z is None or finish_lift or (not target_only_motion and height <= first['posx'][2]):
                 raise ValueError('INVALID_LIFT_ONLY_REQUEST')
             route = [('LIFT', [*first['posx'][:2], height, *first['posx'][3:]])]
         if transfer_only:
             route = [(label, pose) for label, pose in route if label != 'DESCENT']
-        for _, pose in route:
+        for _, pose in ([] if target_only_motion else route):
             fk = driver.check_pose(pose)
             mm, deg = pose_error(fk, pose)
             record('IK_FK_CHECK', dict(target=pose, fk=fk, position_error_mm=mm, orientation_error_deg=deg))
@@ -124,7 +131,7 @@ def run(driver, connection, target, limit, record, *, clearance_z=None,
             guard(sample, connection, limit, automatic=True, force_norm_limit=force_norm_stop_n,
                   required_gripper_status=required_gripper_status)
             still_deadline = clock()+5.
-            while not motion_still(sample,stillness_policy):
+            while not stopped(sample,stillness_policy):
                 if clock() >= still_deadline:
                     raise RuntimeError('PRE_MOVE_NOT_STILL')
                 sleep(.05)
@@ -147,17 +154,22 @@ def run(driver, connection, target, limit, record, *, clearance_z=None,
                 guard(sample, connection, limit, automatic=True, force_norm_limit=force_norm_stop_n,
                       required_gripper_status=required_gripper_status)
                 distance, angle = pose_error(sample['posx'], pose)
-                if motion_still(sample,stillness_policy) and distance <= position_tolerance_mm and angle <= orientation_tolerance_deg:
+                if stopped(sample,stillness_policy) and (target_only_motion or (distance <= position_tolerance_mm and angle <= orientation_tolerance_deg)):
                     break
                 if clock() >= deadline:
                     raise TimeoutError('MOTION_TIMEOUT')
                 sleep(.05)
             if label == 'DESCENT':
                 contact_sample = sample
+        final_target=route[-1][1] if route else target
+        target_error_mm,target_error_deg=pose_error(sample['posx'],final_target)
         result = dict(status=('ABOVE_TARGET_REACHED_NO_DESCENT' if transfer_only else
                               'CLEARANCE_REACHED_NO_DESCENT' if lift_only else 'POSITION_TARGET_REACHED_SEATING_NOT_VERIFIED'), final_sample=sample,
                       contact_sample=contact_sample, returned_to_clearance=finish_lift,
-                      gripper_commands=0, target_posx=target)
+                      gripper_commands=0, target_posx=target,comparison_target_posx=final_target,
+                      target_only_motion=target_only_motion,target_error_mm=target_error_mm,target_error_deg=target_error_deg,
+                      exact_target_verified=not target_only_motion and target_error_mm==0. and target_error_deg==0.,
+                      arrival_basis='CONTROLLER_MOTION_COMPLETE' if target_only_motion else 'POSITION_AND_ORIENTATION_TOLERANCE')
         record('RESULT', result)
         return result
     except BaseException as error:
@@ -168,7 +180,7 @@ def run(driver, connection, target, limit, record, *, clearance_z=None,
                 stop['acknowledged'] = True
                 feedback = driver.motion_feedback()
                 stop['feedback'] = feedback
-                stop['stillness_verified'] = motion_still(feedback,stillness_policy)
+                stop['stillness_verified'] = stopped(feedback,stillness_policy)
             except Exception as stop_error:
                 stop['error'] = str(stop_error)
         record('ABORT', dict(reason=str(error) or type(error).__name__, stop=stop))

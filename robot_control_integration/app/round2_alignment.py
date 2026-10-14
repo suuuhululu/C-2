@@ -3,6 +3,7 @@ from copy import deepcopy
 import importlib.util
 import math
 from pathlib import Path
+import time
 import numpy as np
 from scipy.spatial.transform import Rotation
 from app.assembly_step_bridge import pose
@@ -14,10 +15,54 @@ def _binding(plan):
     return binding(plan)
 
 
-def validate_alignment_candidate(plan,profile,sample,result):
+def _capture_timing(sample,result,profile,now_monotonic_ns,not_before_monotonic_ns=None):
+    """Source-clock age and pose skew are separate from the mapped exposure clock.
+
+    The capture producer owns the reviewed source-to-process-monotonic mapping.
+    A ROS image stamp must never be compared directly with a monotonic barrier.
+    """
+    limits=profile.get('round2_capture_limits') if profile else None
+    required=('max_frame_age_ns','max_pose_skew_ns','max_clock_mapping_error_ns')
+    if not isinstance(limits,dict) or any(type(limits.get(k)) is not int or limits[k]<=0 for k in required):
+        raise ValueError('ROUND2_REVIEWED_CAPTURE_LIMITS_REQUIRED')
+    timing=result.get('capture_timing')
+    if not isinstance(timing,dict):raise ValueError('ROUND2_CAPTURE_TIMING_REQUIRED')
+    domain=timing.get('clock_domain')
+    if not isinstance(domain,str) or not domain.strip() or timing.get('pose_clock_domain')!=domain:
+        raise ValueError('ROUND2_CAPTURE_CLOCK_DOMAIN_MISMATCH')
+    stamp=result.get('frame_stamp_ns')
+    fields=('clock_now_ns','pose_stamp_ns','exposure_monotonic_ns','exposure_mapping_error_ns')
+    if (type(stamp) is not int or stamp<=0 or type(now_monotonic_ns) is not int or now_monotonic_ns<0
+            or any(type(timing.get(k)) is not int or timing[k]<0 for k in fields)):
+        raise ValueError('ROUND2_CAPTURE_CLOCK_VALUES_REQUIRED')
+    if not isinstance(timing.get('clock_mapping_ref'),str) or not timing['clock_mapping_ref'].strip():
+        raise ValueError('ROUND2_CAPTURE_CLOCK_MAPPING_REQUIRED')
+    error=timing['exposure_mapping_error_ns']
+    exposure=timing['exposure_monotonic_ns']
+    if error>limits['max_clock_mapping_error_ns']:
+        raise ValueError('ROUND2_CAPTURE_CLOCK_MAPPING_UNCERTAINTY')
+    if (not 0<=timing['clock_now_ns']-stamp<=limits['max_frame_age_ns']
+            or exposure+error>now_monotonic_ns
+            or now_monotonic_ns-(exposure-error)>limits['max_frame_age_ns']):
+        raise ValueError('ROUND2_CAPTURE_OLD_OR_FUTURE_FRAME')
+    if sample is None or pose(timing.get('pose_posx'),'capture_pose')!=pose(sample.get('posx'),'current_pose'):
+        raise ValueError('ROUND2_CAPTURE_POSE_SAMPLE_MISMATCH')
+    if abs(timing['pose_stamp_ns']-stamp)>limits['max_pose_skew_ns']:
+        raise ValueError('ROUND2_CAPTURE_POSE_FRAME_SKEW')
+    if not_before_monotonic_ns is not None:
+        if type(not_before_monotonic_ns) is not int or not_before_monotonic_ns<0:
+            raise ValueError('ROUND2_ALIGNMENT_MOTION_BARRIER_REQUIRED')
+        if exposure-error<=not_before_monotonic_ns:
+            raise ValueError('ROUND2_AFTER_ALIGNMENT_REQUIRES_POST_MOTION_EXPOSURE')
+
+
+def validate_alignment_candidate(plan,profile,sample,result,*,now_monotonic_ns=None):
     if result.get('binding')!=_binding(plan):raise ValueError('ROUND2_ALIGNMENT_STEP_BINDING_MISMATCH')
+    _capture_timing(sample,result,profile,time.monotonic_ns() if now_monotonic_ns is None else now_monotonic_ns)
     direction_only=result.get('reference_kind')=='EXISTING_BOARD_PARALLEL_DIRECTIONS'
     if direction_only:
+        if not isinstance(result.get('edge_id'),str) or not result['edge_id'].strip():
+            raise ValueError('ROUND2_PHYSICAL_EDGE_ID_REQUIRED')
         approach=pose(result.get('approach_pose'),'aligned_approach')
         landing=pose(result.get('landing_pose'),'aligned_landing')
         if approach[:3]!=sample['posx'][:3] or pose_error(sample['posx'],approach)[1]>.501:
@@ -56,12 +101,26 @@ def validate_alignment_candidate(plan,profile,sample,result):
     return result
 
 
-def validate_alignment_observation(plan,candidate,observed,profile=None):
+def validate_alignment_observation(plan,candidate,observed,profile=None,*,sample=None,
+                                   now_monotonic_ns=None,not_before_monotonic_ns=None):
     if observed.get('binding')!=_binding(plan) or observed.get('reference_kind')!=candidate.get('reference_kind'):
         raise ValueError('ROUND2_AFTER_ALIGNMENT_REFERENCE_MISMATCH')
     if type(observed.get('frame_stamp_ns')) is not int or observed['frame_stamp_ns']<=candidate['frame_stamp_ns']:
         raise ValueError('ROUND2_AFTER_ALIGNMENT_REQUIRES_NEW_FRAME')
+    before_timing=candidate.get('capture_timing');after_timing=observed.get('capture_timing')
+    if not isinstance(before_timing,dict) or not isinstance(after_timing,dict):
+        raise ValueError('ROUND2_CAPTURE_TIMING_REQUIRED')
+    if after_timing.get('clock_domain')!=before_timing.get('clock_domain'):
+        raise ValueError('ROUND2_AFTER_ALIGNMENT_CLOCK_DOMAIN_MISMATCH')
+    if not_before_monotonic_ns is None:
+        raise ValueError('ROUND2_ALIGNMENT_MOTION_BARRIER_REQUIRED')
+    _capture_timing(sample,observed,profile,time.monotonic_ns() if now_monotonic_ns is None else now_monotonic_ns,
+                    not_before_monotonic_ns)
     if candidate['reference_kind']=='EXISTING_BOARD_PARALLEL_DIRECTIONS':
+        if not isinstance(observed.get('edge_id'),str) or not observed['edge_id'].strip():
+            raise ValueError('ROUND2_PHYSICAL_EDGE_ID_REQUIRED')
+        if observed.get('edge_id')!=candidate.get('edge_id'):
+            raise ValueError('ROUND2_AFTER_ALIGNMENT_EDGE_IDENTITY_MISMATCH')
         yaw=observed.get('yaw_error_deg')
         if type(yaw) not in (int,float) or not math.isfinite(yaw):raise ValueError('ROUND2_MEASURED_YAW_REQUIRED')
         return observed.get('status')=='DIRECTION_ALIGNMENT_OBSERVATION' and abs(yaw)<=.5
@@ -91,6 +150,8 @@ def registered_surface_provider(capture,limits):
     def observe(stage,plan,sample):
         data=capture(stage,deepcopy(plan),deepcopy(sample))
         if data.get('status')=='UNAVAILABLE':return dict(status='UNAVAILABLE',reason=data.get('reason'))
+        if not isinstance(data.get('capture_timing'),dict):
+            return dict(status='UNAVAILABLE',reason='ROUND2_CAPTURE_TIMING_REQUIRED')
         if data.get('binding')!=_binding(plan) or data.get('registered_for_current_grasp') is not True or not data.get('registration_ref'):
             raise ValueError('ROUND2_CURRENT_GRASP_REGISTRATION_REQUIRED')
         observation,target=data['observation'],data['target']
@@ -98,7 +159,8 @@ def registered_surface_provider(capture,limits):
             raise ValueError('ROUND2_FEATURE_BINDING_MISMATCH')
         fitted=geometry.align_top(observation,target,sample['posx'],limits)
         common=dict(binding=_binding(plan),reference_kind='REGISTERED_BLOCK_AND_STUD_PLANES',
-            frame_stamp_ns=data['frame_stamp_ns'],registration_ref=data['registration_ref'])
+            frame_stamp_ns=data['frame_stamp_ns'],registration_ref=data['registration_ref'],
+            capture_timing=deepcopy(data['capture_timing']))
         if stage=='BEFORE':
             if data.get('target_at_alignment_clearance') is not True:
                 raise ValueError('ROUND2_ALIGNMENT_TARGET_MUST_BE_AT_CLEARANCE')
@@ -118,15 +180,28 @@ def registered_surface_provider(capture,limits):
 def virtual_grid_direction_provider(capture,grid_config,*,near_contact_offset_mm):
     """Use existing calibration for direction; no stud-center registration required.
 
-    capture supplies a fresh image, CameraInfo and two labelled/tracked body-top
-    edge endpoints. This provider measures yaw only, never roll/pitch or XY.
+    capture supplies a request-bound image, CameraInfo, capture_timing and two
+    labelled/tracked body-top edge endpoints. A nonempty edge_id is required to
+    identify the same physical edge across frames. This provider measures yaw
+    only, never roll/pitch or XY.
     """
     from supply_vision.virtual_board_grid import VirtualBoardGrid
     grid=VirtualBoardGrid(grid_config)
-    state=dict(gain=None,before_error=None,step=None,axis=None)
+    state=dict(gain=None,before_error=None,step=None,axis=None,binding=None,edge_id=None)
     def observe(stage,plan,sample):
         packet=capture(stage,deepcopy(plan),deepcopy(sample))
         if packet.get('status')=='UNAVAILABLE':return packet
+        active=_binding(plan)
+        if packet.get('binding')!=active:raise ValueError('ROUND2_CAPTURE_STEP_BINDING_MISMATCH')
+        if not isinstance(packet.get('capture_timing'),dict):
+            return dict(status='UNAVAILABLE',reason='ROUND2_CAPTURE_TIMING_REQUIRED')
+        edge_id=packet.get('edge_id')
+        if not isinstance(edge_id,str) or not edge_id.strip():
+            return dict(status='UNAVAILABLE',reason='ROUND2_PHYSICAL_EDGE_ID_REQUIRED')
+        if state['binding']!=active or state['edge_id']!=edge_id:
+            state.update(gain=None,before_error=None,step=None,axis=None,binding=deepcopy(active),edge_id=edge_id)
+        if stage!='BEFORE' and state['step'] is None:
+            return dict(status='UNAVAILABLE',reason='ROUND2_DIRECTION_EDGE_CHANGED_AFTER_COMMAND')
         edge=packet.get('edge_uv',[])
         _,report=grid.overlay(packet['frame_bgr'],sample,packet.get('camera_info'),
             layer=plan['block']['layer'],clearance_mm=packet.get('clearance_mm',20.),
@@ -136,7 +211,8 @@ def virtual_grid_direction_provider(capture,grid_config,*,near_contact_offset_mm
         state['axis']=report['selected_grid_axis']
         common=dict(binding=_binding(plan),reference_kind='EXISTING_BOARD_PARALLEL_DIRECTIONS',
             frame_stamp_ns=packet['frame_stamp_ns'],roll_pitch_observed=False,
-            stud_center_coincidence_required=False,xy_correction=False,projection=report)
+            stud_center_coincidence_required=False,xy_correction=False,projection=report,
+            edge_id=edge_id,capture_timing=deepcopy(packet['capture_timing']))
         if stage=='BEFORE':
             gain=state['gain']
             step=0. if abs(error)<=.5 else .5 if gain is None else float(np.clip(-error/gain,-.5,.5))
@@ -156,27 +232,36 @@ def virtual_grid_direction_provider(capture,grid_config,*,near_contact_offset_mm
     return observe
 
 
-def automatic_surface_alignment(driver,plan,profile,provider,move,record):
+def automatic_surface_alignment(driver,plan,profile,provider,move,record,*,clock=time.monotonic_ns):
     """No fixed retry count; each move requires fresh registered surface evidence."""
-    iteration=0;last_stamp=None
+    iteration=0;last_stamp=None;last_domain=None
     while True:
         sample=driver.sample()
         candidate=provider('BEFORE',deepcopy(plan),deepcopy(sample))
         record('ROUND2_ALIGNMENT_BEFORE',candidate)
         if candidate.get('status') not in ('SURFACE_ALIGNMENT_CANDIDATE','DIRECTION_ALIGNMENT_CANDIDATE'):
-            return dict(status='WAITING_SURFACE_MEASUREMENT',iteration=iteration)
+            return dict(status='WAITING_SURFACE_MEASUREMENT',reason=candidate.get('reason'),iteration=iteration)
+        timing=candidate.get('capture_timing')
+        domain=timing.get('clock_domain') if isinstance(timing,dict) else None
+        if last_domain is not None and domain!=last_domain:
+            raise ValueError('ROUND2_NEXT_ITERATION_CLOCK_DOMAIN_MISMATCH')
         if last_stamp is not None and candidate.get('frame_stamp_ns',0)<=last_stamp:
             raise ValueError('ROUND2_NEXT_ITERATION_REQUIRES_NEW_FRAME')
-        validate_alignment_candidate(plan,profile,sample,candidate)
-        if max(pose_error(sample['posx'],candidate['approach_pose']))>1e-6:
+        validate_alignment_candidate(plan,profile,sample,candidate,now_monotonic_ns=clock())
+        distance,angle=pose_error(sample['posx'],candidate['approach_pose'])
+        if max(distance,angle)>1e-6:
             move('ROUND2_SURFACE_ALIGNMENT',candidate['approach_pose'],2,profile['descent_velocity'])
-        actual=driver.sample()
+        completed=clock()
+        actual=deepcopy(driver.sample())
+        actual['round2_capture_not_before_monotonic_ns']=completed
         observed=provider('AFTER',deepcopy(plan),deepcopy(actual))
         record('ROUND2_ALIGNMENT_AFTER',observed)
         if observed.get('status')=='UNAVAILABLE':
-            return dict(status='WAITING_SURFACE_MEASUREMENT',iteration=iteration+1)
-        done=validate_alignment_observation(plan,candidate,observed,profile)
+            return dict(status='WAITING_SURFACE_MEASUREMENT',reason=observed.get('reason'),iteration=iteration+1)
+        done=validate_alignment_observation(plan,candidate,observed,profile,sample=actual,
+            now_monotonic_ns=clock(),not_before_monotonic_ns=completed)
         last_stamp=observed['frame_stamp_ns']
+        last_domain=observed['capture_timing']['clock_domain']
         iteration+=1
         record('ROUND2_ALIGNMENT_ITERATION',dict(iteration=iteration,converged=done,
             roll_error_deg=observed['roll_error_deg'],pitch_error_deg=observed['pitch_error_deg'],

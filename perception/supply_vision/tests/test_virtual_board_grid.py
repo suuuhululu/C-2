@@ -91,3 +91,72 @@ def test_layer4_uses_adopted_record_and_preserves_historical_rows():
     target=dict(brick_type='2x2x1',color='yellow',x=11,y=11,layer=4,orientation_deg=0)
     assert layer_reference(m.layer_records,target)['sample']['posx'][2]==pytest.approx(71.60824584960938)
     assert m.layer_records==before
+
+
+def display_fixture():
+    """Synthetic camera looks along board +Z; pixel positions have an analytic oracle."""
+    m=model();m.T_base_board=np.eye(4);m.T_tool_camera=np.eye(4);m.T_tool_tcp=np.eye(4)
+    frame=np.zeros((480,640,3),np.uint8)
+    info=SimpleNamespace(width=640,height=480,header=SimpleNamespace(frame_id='camera_color_optical_frame'),
+        distortion_model='plumb_bob',k=[500.,0.,320.,0.,500.,240.,0.,0.,1.],d=[0.]*5)
+    sample=dict(posx=[0.,0.,-1000.,0.,0.,0.])
+    return m,frame,info,sample
+
+
+@pytest.mark.parametrize('color,kind,x,y,orientation,center,extent,footprint',[
+    ('yellow','2x2x1',3,5,0,[56.,88.],[31.8,31.8],[2,2]),
+    ('blue','2x3x1',4,9,0,[72.,160.],[31.8,47.9],[2,3]),
+    ('yellow','2x3x1',11,9,0,[184.,160.],[31.8,47.9],[2,3]),
+    ('blue','2x3x1',4,9,90,[80.,152.],[47.9,31.8],[3,2]),
+    ('red','1x2x1',4,9,0,[64.,152.],[15.6,31.8],[1,2]),
+])
+def test_common_block_projects_its_occupied_stud_center_and_measured_rectangle(color,kind,x,y,orientation,center,extent,footprint):
+    from copy import deepcopy
+    m,frame,info,sample=display_fixture()
+    target=dict(color=color,brick_type=kind,x=x,y=y,layer=1,orientation_deg=orientation)
+    before=deepcopy((target,m.layer_records))
+    _,report=m.overlay(frame,sample,info,target=target)
+    assert report['target']==target and report['target_footprint_studs']==footprint
+    assert report['target_center_board_mm']==pytest.approx(center)
+    assert report['target_outer_extent_mm']==pytest.approx(extent)
+    # Pinhole projection in the synthetic camera, independently of project_base().
+    signs=np.array([[-1.,-1.],[1.,-1.],[1.,1.],[-1.,1.]])
+    corners=np.asarray(center)+signs*np.asarray(extent)/2
+    depth=1000.+report['hover_body_top_offset_mm']
+    expected=corners*500./depth+[320.,240.]
+    assert np.asarray(report['target_hover_outline_uv'])==pytest.approx(expected)
+    assert not report['execution_allowed'] and not report['projection_independently_verified']
+    assert (target,m.layer_records)==before
+
+
+@pytest.mark.parametrize('orientation',[0,90])
+@pytest.mark.parametrize('layer',[2,4,5])
+def test_rectangular_target_layer_uses_existing_yellow_square_height_anchor(orientation,layer):
+    m,frame,info,sample=display_fixture()
+    target=dict(color='blue',brick_type='2x3x1',x=4,y=9,layer=layer,orientation_deg=orientation)
+    _,legacy=m.overlay(frame,sample,info,layer)
+    # The explicit common block is authoritative, including its layer.
+    _,actual=m.overlay(frame,sample,info,target=target)
+    assert actual['target']==target
+    assert actual['layer_height_reference_target']==dict(
+        color='yellow',brick_type='2x2x1',x=11,y=11,layer=layer,orientation_deg=0)
+    assert actual['support_plane_offset_mm']==legacy['support_plane_offset_mm']
+    assert actual['body_top_offset_mm']==legacy['body_top_offset_mm']
+    assert actual['hover_body_top_offset_mm']-actual['body_top_offset_mm']==20.
+    assert actual['target_hover_outline_uv']!=actual['target_seated_outline_uv']
+
+
+def test_legacy_square_arguments_match_explicit_square_target():
+    m,frame,info,sample=display_fixture()
+    legacy_canvas,legacy=m.overlay(frame,sample,info,2,20.,(),None,(12,9))
+    target=dict(color='yellow',brick_type='2x2x1',x=12,y=9,layer=2,orientation_deg=0)
+    explicit_canvas,explicit=m.overlay(frame,sample,info,target=target)
+    assert np.array_equal(legacy_canvas,explicit_canvas) and legacy==explicit
+
+
+def test_blue_target_hover_outline_is_blue():
+    m,frame,info,sample=display_fixture()
+    target=dict(color='blue',brick_type='2x3x1',x=4,y=9,layer=1,orientation_deg=0)
+    canvas,report=m.overlay(frame,sample,info,clearance_mm=100.,target=target)
+    u,v=np.asarray(report['target_hover_outline_uv'][0],int)
+    assert canvas[v,u].tolist()==[255,100,0]

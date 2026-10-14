@@ -107,10 +107,10 @@ class AssemblyMotionRos:
             if result['query_duration_s']<=.5 or window<=0:return result
             connection=self.config['connection']
             limit=self.config.get('stale_retry_force_stop_n',35.)
-            stopped=(result['motion_status']==0 and max(map(abs,result['velx']))==0.)
+            stopped=(result['motion_status']==0 and (self.config.get('target_only_motion',False) or max(map(abs,result['velx']))==0.))
             equipment=(result['robot_state'] in (1,2) and result['robot_mode'] in (0,1) and result['drl_state']==3
                 and result['gripper_status'] in (0,2) and result['tcp']==connection['tcp'] and result['tool']==connection['tool'])
-            if not stopped or not equipment or math.dist(result['wrench'][:3],[0.,0.,0.])>=limit:return result
+            if not stopped or not equipment or (limit is not None and math.dist(result['wrench'][:3],[0.,0.,0.])>=limit):return result
             record=getattr(self,'feedback_record',None)
             if record is not None:record('FEEDBACK_REFRESH_WAIT',dict(sample=result,reason='COMPLETED_QUERY_EXCEEDED_0_5S',moving=False))
             if time.monotonic()>=deadline:return result

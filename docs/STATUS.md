@@ -1128,3 +1128,12 @@ GPU 현재 A snapshot92파일을 CPU deliverables/GPU_A_수정본_CPU보관_2026
 - 같은 로컬 DB에서 도안 library 조회0.047초, summary 조회0.649초/응답11,159bytes를 한 번 측정했다. 서버 DB 조회 기준이며 전체 사용자 응답 시간 상한이나 성능 보장은 아니다. 전체 이력·원본은 운영 CLI/API와 별도 파일로 유지한다. [정책·실행·한계](D_HISTORY_SELECTION.md).
 - 로컬 웹 서버에 적용했다. 실제 게시·삭제·Robot/ROS/장치 동작은 실행하지 않았다. 사용자 요청에 따라 위 변경을 integration-round2 대상 PR로 게시하며 병합은 사람 리뷰 대상이다.
 - [PR #49](https://github.com/suuuhululu/C-2/pull/49) 게시 완료: base=`codex/integration-round2`, head=`codex/web-design-refresh-20261014`. 현재 OPEN이며 병합하지 않았다.
+
+
+## 2026-10-14 D 현장 후속·세 사이클·영상 XY
+
+- 접촉 반력과 일반 이동의 힘 검사를 분리하고 None 비교 오류를 수정했다. 명시 target_only_motion 설정에서 좌표·자세·IK/FK 정밀도 차단을 사용하지 않으며 영상 신선도와 기존 STOP/장치 피드백을 유지한다.
+- T1 슬롯4/(9,9,L2) → T2 슬롯3/(13,11,L2) → T3 슬롯5/(15,14,L3) 세 사이클 진입점과 포터블 wrapper를 제공한다. T2 중앙 파지·완전 결착·닫힌 패드 교시를 사용하며 이전 +10mm를 추가하지 않는다. 약8mm는 사용자 추정이다.
+- 영상 모서리·목표 변으로 dX/dY를 계산해 X/I에 전달한다. 파지 보상으로 TCP가 이동해도 블록 목표·실측 패드 목표는 유지한다. A 원본 RELEASE_PRESS/도움 정보를 보존하는 로봇 실행 분기와 빈 패드 다음 Step 전이를 연결했다.
+- 게시 사본의 외부 연결 차단 native 1,509 PASS, 영상 XY/가상 격자49 PASS, 합성3Step THREE_CYCLES_COMPLETED/물리명령0. 범위는 합산하지 않는다. 최신 교시·영상XY·공중놓기 실물과 방출 후 재관측은 미검증이며 상공해제 높이는 미정이다.
+- [현장 수정·검증](D_ROUND2_ROBOT_FIELD_FIXES_20261014.md), [세 사이클 명령](D_ROUND2_THREE_STEP_TRIAL_20261014.md). 서비스의 A–D 전달 수정은 별도 PR이며 B Current·revision·완료 소유를 유지한다.

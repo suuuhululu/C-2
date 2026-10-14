@@ -1,0 +1,79 @@
+{
+  "version": "round2-T2-operator-teaching-bundle/1",
+  "status": "THREE_REAL_POSES_RECORDED_NOT_YET_ADOPTED",
+  "step_id": "T2",
+  "target": {
+    "x": 13,
+    "y": 11,
+    "layer": 2,
+    "orientation_deg": 0
+  },
+  "brick_type": "2x3x1",
+  "color": "blue",
+  "supply_slot": 3,
+  "tcp": "GripperDA_v4",
+  "tool": "ToolWeight0",
+  "pickup": {
+    "source": "/home/rokey/Documents/ChatGPT/로봇제어 개발/reports/round2_three_step_trial_20261014/teaching/1791950479350574649/supply-blue-2x3-slot3-centered-closed.json",
+    "tcp_pose_mm_zyz_deg": [
+      -459.1122741699219,
+      11.112536430358887,
+      50.55427551269531,
+      9.841970443725586,
+      179.1219482421875,
+      10.311335563659668
+    ],
+    "captured_unix_s": 1791950480.629014
+  },
+  "landing": {
+    "source": "/home/rokey/Documents/ChatGPT/로봇제어 개발/reports/round2_three_step_trial_20261014/teaching/1791950664449002092/assembly-blue-2x3-13-11-layer2-grasp-height-approx8mm.json",
+    "tcp_pose_mm_zyz_deg": [
+      503.7802734375,
+      91.63031005859375,
+      37.008758544921875,
+      159.39271545410156,
+      179.65969848632812,
+      159.3231201171875
+    ],
+    "captured_unix_s": 1791950665.8940659
+  },
+  "pad_top": {
+    "source": "/home/rokey/Documents/ChatGPT/로봇제어 개발/reports/round2_three_step_trial_20261014/teaching/1791953461552409272/T2-blue-2x3-13-11-layer2-pad-top-contact.json",
+    "tcp_pose_mm_zyz_deg": [
+      504.09613037109375,
+      91.23787689208984,
+      55.559078216552734,
+      161.0828094482422,
+      179.6298065185547,
+      161.05162048339844
+    ],
+    "captured_unix_s": 1791953462.6642728,
+    "gripper_width_mm": 9.3,
+    "operator_reported_top_contact": true
+  },
+  "operator_confirmation": {
+    "user_text": "네 안풀고 옮겨서 결착했습니다.",
+    "gripper_not_released_between_captures": true,
+    "same_grasp_relation_maintained": true,
+    "full_seating_confirmed": true,
+    "confirmation_basis": "HUMAN_OPERATOR_REPORT",
+    "confirmed_unix_s": 1791951591.9300194,
+    "confirmed_kst": "2026-10-14T13:19:51.930019+09:00"
+  },
+  "grasp_height_estimate_mm": 8.0,
+  "grasp_height_independently_measured": false,
+  "additional_base_z_offset_mm": 0.0,
+  "delta_pad_from_landing_xyz_mm": [
+    0.31585693359375,
+    -0.39243316650390625,
+    18.55031967163086
+  ],
+  "preserve_distinct_pickup_landing_pad_attitudes": true,
+  "pixel_to_base_center_mapping_registered": false,
+  "pad_contact_independently_sensor_verified": false,
+  "physical_commands": 0,
+  "control_config_adopted": false,
+  "execution_allowed": false,
+  "source_pair": "/home/rokey/Documents/ChatGPT/로봇제어 개발/reports/round2_three_step_trial_20261014/teaching/1791951591930398232/T2-centered-continuous-grasp-pickup-landing-pair.json",
+  "bundled_unix_s": 1791953496.5067298
+}
