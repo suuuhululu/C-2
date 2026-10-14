@@ -861,3 +861,7 @@ GPU 현재 A snapshot92파일을 CPU deliverables/GPU_A_수정본_CPU보관_2026
 - 사용자 사진/6.63초 영상을 확인. 먼저 닿은 부분이 실제 stud에 걸려 더 밀리지 않는다는 작업자 관찰을 채택. 걸림을 지점으로 눕히는 동작을 기존 수직 결착과 분리했다.
 - 접촉선 중심으로 TCP XYZ와 자세를 함께 회전시키는 별도 기하 preview/CLI/합성 fixture 추가. 노랑2×2 한 블록 범위, 기본10도와 좌표는 예시이며 실제 교시/영상 측정으로 표시하지 않음.
 - 관련 기하·기존 기울기 tests24개 통과. 접촉선 불변량/원호/복귀/다른 블록 배제 검증. 실제 접촉 후 회전 제어·자동 stud 걸림 판정·장치 실행은 미연결. 기존 step 기본동작 변경 없음. 상세: D_YELLOW4_EDGE_FIRST_SEATING_20261014.md.
+
+### 2026-10-14 노랑4점 실험 브랜치 분리
+- 사용자 지시로 codex/integration-challenge를 새로 만들고 원격 게시. 작업 checkout은 c2_integration_challenge. 노랑4점 실험5파일은 이 브랜치로 옮겼으며 일반 Round2 파일/다른 미완료 변경은 보존.
+- Round2 대상 실험 Draft PR47은 병합하지 않고 닫음. 후속 접촉·회전 결착 개발은 challenge에서 진행. 관련 기하 preview는 장치 명령을 보내지 않음.
