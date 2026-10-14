@@ -1,3 +1,16 @@
+2026-10-14 현재 확장: A 계산 API 0.5.2 — 놓기·가압 방식 분류
+
+기존 그리퍼 접근 불가 + 바로 아래층 밑면 결합점 전체 존재이면 Action에
+mode=ROBOT_GRIP, assembly_strategy=RELEASE_PRESS,
+gripper.release_strategy=RELEASE_PRESS, robot_force_model=NOT_ROBOT_INSERTION을 반환한다.
+아래 블록 도움 정책은 유지한다. A는 이 분류에 실측15mm·해제 높이·가압 궤적을 요구하지 않는다.
+실제 동작 프로파일/실행은 D가 담당한다. StepMotion의 일반 삽입 경로에는 적용하지 않으며
+UNSUPPORTED_METHOD를 반환한다. 모든 execution_allowed=false는 유지한다.
+이 반환을 소비하려면 D의 API 버전/전략 해석 정합이 필요하다.
+상세: docs/A_ROUND2_RELEASE_PRESS_CANDIDATE_20261014.md.
+
+아래 0.5.1 안내는 2026-10-11 기준 기록이며 새 분류에는 위 0.5.2 확장이 우선한다.
+
 A 계산 API 0.5.1 — 1차 통합 계약 정합, 2026-10-11
 
 현재 범위: layer 정수 1~5. 6층 이상·bool·float는 A에서 거절한다.

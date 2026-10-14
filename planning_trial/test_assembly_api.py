@@ -121,6 +121,7 @@ def test_help_polygon_and_units_use_stud_top_origin_and_no_fake_hold_force():
 
 def test_manual_branch_needs_explicit_tray_and_holds_until_d_release():
     context = whole_request()['assembly_context']; context['grip_axes'] = ['x']
+    context['supported_modes'] = ['HUMAN_ASSEMBLY']
     sides = [brick(x=4), brick(x=8)]
     req = whole_request({'design_version': 1, 'blocks': sides+[brick()]}, {'current_revision': 2, 'blocks': sides}, context)
     whole = handle_whole_plan(req)
@@ -282,22 +283,24 @@ def test_tampered_common_bundle_is_rejected_by_local_consumer(mutation):
     with pytest.raises(ValueError): receive_result_for_review(result, req)
 
 
-def test_only_grip_enabled_blocks_instead_of_selecting_manual_or_press():
+def test_robot_mode_can_report_release_press_without_enabling_legacy_press_mode():
     ctx = whole_request()['assembly_context']
     ctx.update(grip_axes=['x'], supported_modes=['ROBOT_GRIP'], press_contact_model_confirmed=True)
     sides = [brick(x=4), brick(x=8)]
     req = whole_request({'design_version': 1, 'blocks': sides+[brick()]},
                         {'current_revision': 2, 'blocks': sides}, ctx)
     whole = handle_whole_plan(req)
-    assert whole['calculation_status'] == 'NO_FEASIBLE_ORDER'
-    assert whole['planning_result'] is whole['shared_planning_bundle'] is None
-    assert whole['stage_errors'][0]['code'] == 'NO_FEASIBLE_ORDER'
+    assert whole['calculation_status'] == 'COMPLETED'
+    assert whole['action_proposals'][0]['mode'] == 'ROBOT_GRIP'
+    assert whole['action_proposals'][0]['assembly_strategy'] == 'RELEASE_PRESS'
+    assert not whole['execution_allowed']
 
 
 def test_reassessment_with_no_supported_feasible_option_is_blocked():
     ctx = whole_request()['assembly_context']; ctx['grip_axes'] = ['x']
-    sides = [brick(x=4), brick(x=8)]
-    req = whole_request({'design_version': 1, 'blocks': sides+[brick()]},
+    # Partial lower support cannot acquire a release/press classification.
+    sides = [brick(y=5), brick(x=4), brick(x=8), brick(x=4,layer=2), brick(x=8,layer=2)]
+    req = whole_request({'design_version': 1, 'blocks': sides+[brick(layer=2)]},
                         {'current_revision': 2, 'blocks': sides}, ctx)
     whole = handle_whole_plan(req)
     re_req = reassess_request(req, whole)

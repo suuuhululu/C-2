@@ -201,6 +201,8 @@ def test_robot_only_offline_chair_without_feasible_order_opens_c_not_robot(h):
     # D 소비부 계약 검사: 실제 A의 의자 개선과 무관하게 실패 응답을 유지한다.
     result=json.loads((Path(__file__).resolve().parents[2]/'interfaces/fixtures/mvp_a_no_feasible_order.json').read_text())
     assert result['calculation_status']=='NO_FEASIBLE_ORDER'
+    from planning_trial.assembly_contract import VERSION
+    result['schema_version']=VERSION
     result['context']=deepcopy(payload['input']['context'])
     w.receive('a.whole',payload['request_id'],result)
     assert w.active['port']=='c.plan_failure' and w.status=='WAIT_INTENT'
@@ -405,6 +407,8 @@ def test_plan_failure_uses_pr30_structured_contract_and_keep_holds(h):
     request=deepcopy(w.active['request'])
     result=json.loads((Path(__file__).resolve().parents[2]/'interfaces/fixtures/mvp_a_no_feasible_order.json').read_text())
     result['context']=deepcopy(request['input']['context'])
+    from planning_trial.assembly_contract import VERSION
+    result['schema_version']=VERSION
     assert w.receive('a.whole',request['request_id'],result)
     payload=deepcopy(w.active['request']);failure=payload['planning_failure']
     assert failure['failure_code']=='NO_FEASIBLE_ORDER' and failure['redesign_required'] is True
