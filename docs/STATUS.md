@@ -5,8 +5,12 @@
 - 변경(B-only, perception/): 층 기준을 측정 윗면 평면 + 스터드 4mm(TOP_PLANE_PLUS_STUD)로 변경했다. 층 허용 오차는 ±2.5mm→±5mm(층 간격 18.625mm, 2×허용<간격 유지), 깊이 범위 min_depth는 V0 0.441·D1 0.332·D3 0.395로 2mm 낮췄다(캘리브레이션 무변경).
 - UNKNOWN은 후보 단위로 처리한다. 후보 하나가 실패해도 그 후보만 제외하고 시점 전체를 무효화하지 않는다. V0의 UNKNOWN은 MATCH를 막고(비교는 UNOBSERVABLE), D1/D3의 UNKNOWN은 막지 않는다.
 - 역할 분리(view_roles.py): 층·블록·점유 footprint는 V0만 결정하고, D1/D3는 빈 칸 증거와 같은 층 교차 확인만 담당한다. opencv_live의 윗면 선택을 보강했다.
-- 테스트: `cd perception && python -m pytest perception_mvp/tests` 432 passed, 1 skipped(합성 데이터 단위 테스트). 새 테스트 5파일, 기존 테스트의 옛 import(rgbd_io, saved_perception) 수정, perception/conftest.py 추가(저장소 루트를 경로에 추가, 백엔드 파일 무변경).
-- 미검증: 실제 YOLO·카메라·로봇, D/A/C 연동, 공급 비전. D1/D3 윗면 선택은 저장 촬영본에서 아직 실패하며 층은 V0만 사용한다. D가 UNOBSERVABLE을 받았을 때의 동작은 확인하지 못했다. README의 ±2.5mm 문구는 아직 갱신하지 않았다.
+- 테스트: `cd perception && python -m pytest perception_mvp/tests` 450 passed, 1 skipped(합성 데이터 단위 테스트). 새 테스트 7파일, 기존 테스트의 옛 import(rgbd_io, saved_perception) 수정, perception/conftest.py 추가(저장소 루트를 경로에 추가, 백엔드 파일 무변경).
+- 미검증: 실제 YOLO·카메라·로봇, D/A/C 연동, 공급 비전. D1/D3 윗면 선택은 저장 촬영본에서 아직 실패하며 층은 V0만 사용한다. D가 UNOBSERVABLE을 받았을 때의 동작은 확인하지 못했다.
+- 추가(2026-10-14, 실카메라 V0 시험 뒤): 1층은 측정 윗면 6~25mm(2~5층 ±5mm 유지, 규칙은 depth_grid.py `layer_band_index` 한 곳). V0 실측에서 판이 보정 기준보다 약 5mm 낮게 읽혀(−4.5~−5.3mm) 1층이 L?로 나와, 캡처마다 판 평면을 맞춰 높이를 보정한다(`board_baseline`, depth_grid.py). 평면이 불안하면(점 부족·기울기 3° 초과·편차 5mm 초과·보정 15mm 초과) 보정하지 않고 UNKNOWN이다. 쌓은 블럭은 첫 윗면 선택이 `top_surface_not_board_parallel`로 실패할 때만 영역을 3/5/7/9px 줄여 재시도한다(최소 점 150개, 2x1은 75개). 첫 시도에 성공하던 블럭 결과는 같다.
+- 실카메라 V0 저장 캡처를 실제 YOLO 모델로 재생: 1층 노랑·파랑 L1(20.4/20.8mm), 파랑 2x2 2층 L2(40.2mm, 위치·층 사용자 확인). 빨강 2x1 2층은 윗면 점이 53개뿐이라 L?(같은 장면에서 프레임마다 판정이 달라 6장 중 1장 통과). 여러 프레임 중앙값은 시험했으나 효과가 불분명해 도입하지 않았다. 팀 통합·D/A/C 연결 시험은 아니다.
+- 추가 미검증·한계: 중심부 재시도 기준값은 캡처 한 장에서 정한 시험값이고 단위 테스트가 없다. 바닥 보정은 판 위 블럭이 많이 덮으면(약 40%) 평면이 약 1.5mm 끌릴 수 있는 시험 방법이다. README와 docs 두 문서에 현재 ±5mm·1층 6~25mm를 반영했다(과거 재생 기록 본문은 유지).
+- 팀장 확인 필요(추가): 1층 6~25mm, 보드 바닥 보정 방식.
 - 팀장 확인 필요: V0만 층 결정, D1/D3 UNKNOWN 비차단, 허용 오차 ±5mm, 윗면 선택 완화.
 
 ## 2026-10-13 — 3D 오버레이 가독성 조정
