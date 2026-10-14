@@ -120,7 +120,8 @@ def execute(driver,plan,start_zone,record,observe_supply,operator,*,sleep=time.s
         before=stopped();preflight(target);mm,deg=pose_error(before['posx'],target)
         if max(mm,deg)<=.05:return before
         vertical=math.dist(before['posx'][:2],target[:2])<=.05
-        velocity=[c['linear_velocity_mm_s'],c['angular_velocity_deg_s']] if loaded_contact else [rates['vertical'] if vertical else rates['transit'],rates['angular']]
+        recovery_z_change=plan.get('stage')==7 and label.startswith('RECOVERY_ROUTE_') and abs(before['posx'][2]-target[2])>.05
+        velocity=[c['linear_velocity_mm_s'],c['angular_velocity_deg_s']] if loaded_contact else [rates['vertical'] if vertical or recovery_z_change else rates['transit'],rates['angular']]
         acceleration=[c['linear_acceleration_mm_s2'],c['angular_acceleration_deg_s2']] if loaded_contact else [rates['linear_acceleration'],rates['angular_acceleration']]
         record('MOVE_REQUEST',dict(label=label,target=target,velocity=velocity,acceleration=acceleration))
         attempted=True;driver.move_line_async(target,velocity,acceleration);moves+=1
@@ -146,7 +147,7 @@ def execute(driver,plan,start_zone,record,observe_supply,operator,*,sleep=time.s
     def post_release_grip(width_mm,*,empty_pad=False):
         nonlocal expected,attempted,releases,pad_closes
         stopped();record('GRIP_REQUEST',dict(width_mm=width_mm,force_n=runtime['gripper_force_n'],
-            context='EMPTY_CLOSED_PAD' if empty_pad else 'OBSERVED_SEATING_RELEASE'))
+            context='EMPTY_CLOSED_PAD' if empty_pad else 'OBSERVED_RECOVERY_RELEASE' if plan.get('stage')==7 else 'OBSERVED_SEATING_RELEASE'))
         attempted=True;driver.command_gripper(width_mm,runtime['gripper_force_n'])
         if empty_pad:pad_closes+=1
         else:releases+=1
@@ -160,6 +161,43 @@ def execute(driver,plan,start_zone,record,observe_supply,operator,*,sleep=time.s
             if clock()>deadline:raise TimeoutError('GRIPPER_FEEDBACK_TIMEOUT')
             sleep(.1)
     try:
+        if plan.get('stage')==7:
+            from app.yellow4_recovery_trial import check_continuation
+            expected=2
+            first=stopped(False);errors=check_continuation(plan,first)
+            r=plan['recovery_settings'];width=first['gripper_width_mm'];baseline=first['wrench'];contact=True
+            record('START',dict(sample=first,operation='removal',grasp_id=plan['grasp_id'],continuation_error=errors,
+                axis=plan['completion_geometry']['contact_line_points_mm'],automatic_release_classifier=False))
+            ask('CURRENT_PARTIAL_STATE_CHECK',('PARTIAL_STATE_GRASP_BOARD_AND_AXIS_MATCH',),automatic=False)
+            # Tiny feedback differences are bounded by check_continuation; never translate the axis.
+            axis=plan['completion_geometry']['contact_line_points_mm'];origin=stopped(False)['posx']
+            check_continuation(plan,last)
+            targets=[rotate_about_contact_line(origin,axis,p['tilt_deg']) for p in plan['completion_geometry']['waypoints']]
+            for target in targets:preflight(target)
+            driver.call('system/set_robot_mode','SetRobotMode',robot_mode=1)
+            for i,target in enumerate(targets[1:]):move(f'COMPLETE_RELEASE_{i:03d}',target,loaded_contact=True)
+            ask('ALL_STUDS_RELEASE_VERIFICATION',('ALL_STUDS_RELEASED_GRIP_AND_BOARD_STABLE',))
+            record('LIFT_PERMISSION',dict(sample=last,basis=r['release_validation'],operator_report=True,
+                independent_automatic_release_verified=False,force_drop_is_release_classifier=False))
+            contact=False
+            free=stopped()['posx'];high=[*free[:2],free[2]+r['clearance_mm'],*free[3:]]
+            targets=[high,*[p['tcp_pose_mm_zyz_deg'] for p in r['recovery_waypoints']]]
+            for target in targets:preflight(target)
+            # A recovery route may not undo the vertical clearance before reaching the drop pose.
+            if any(target[2]<high[2] for target in targets[1:-1]):raise RuntimeError('RECOVERY_TRANSIT_BELOW_RELEASE_CLEARANCE')
+            move('RELEASED_VERTICAL_CLEARANCE',high)
+            for i,target in enumerate(targets[1:]):move(f'RECOVERY_ROUTE_{i:03d}',target)
+            ask('RECOVERY_RELEASE_INSPECTION',('RETURN_POSE_BLOCK_SUPPORTED_HAND_CLEAR',))
+            width=None
+            post_release_grip(runtime['open_mm'])
+            ask('RECOVERY_AND_EMPTY_TARGET_INSPECTION',('RECOVERED_BLOCK_TARGET_EMPTY_BOARD_STABLE',))
+            result=dict(status='RECOVERY_COMMANDS_AND_OPERATOR_REPORTS_NOT_INDEPENDENTLY_VERIFIED',backend=driver.mode,
+                physical_commands=moves+releases+1 if driver.mode=='REAL' else 0,move_line_requests=moves,
+                gripper_close_commands=0,gripper_release_commands=releases,press_commands=0,final_sample=stopped(),
+                operator_all_studs_released=True,operator_target_empty_and_board_stable=True,
+                all_studs_released_independently_verified=False,removal_completion=False,assembly_completion=False,
+                force_drop_is_release_classifier=False,automatic_recovery_after_stop=False)
+            record('RESULT',result);return result
         if plan.get('stage')==6:
             from app.yellow4_removal_trial import removal_route
             # status2 also describes closed empty pads; establish the physical context first.

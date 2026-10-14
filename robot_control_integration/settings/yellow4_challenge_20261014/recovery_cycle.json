@@ -1,0 +1,47 @@
+{
+  "schema_version": "yellow4-recovery-cycle/1",
+  "recovery": {
+    "completion_axis": null,
+    "rotation_deg": null,
+    "angular_step_deg": null,
+    "parameter_source": null,
+    "contact": {
+      "linear_velocity_mm_s": null,
+      "angular_velocity_deg_s": null,
+      "linear_acceleration_mm_s2": null,
+      "angular_acceleration_deg_s2": null,
+      "force_stop_n": null,
+      "moment_delta_stop_nm": null,
+      "width_drift_stop_mm": null,
+      "axis_registration_tolerance_mm": null
+    },
+    "resume_position_tolerance_mm": 0.05,
+    "resume_rotation_tolerance_deg": 0.05,
+    "resume_width_tolerance_mm": 1,
+    "resume_tolerance_source": "EXISTING_CHALLENGE_TCP_COMPLETION_TOLERANCE_AND_REGRASP_TEST_CANDIDATE_NOT_FIELD_VERIFIED",
+    "field_review": null,
+    "release_validation": null,
+    "clearance_mm": null,
+    "recovery_route_source": null,
+    "recovery_waypoints": null
+  },
+  "cycle": {
+    "repeat_count": 1,
+    "return_zone": "supply",
+    "return_zone_source": null,
+    "reset_source": null,
+    "inputs": {
+      "observations": "robot_control_integration/settings/yellow4_challenge_20261014/observation.json",
+      "seating_settings": "robot_control_integration/settings/yellow4_challenge_20261014/seating_trial.json",
+      "contact_settings": "robot_control_integration/settings/yellow4_challenge_20261014/contact_trial.json",
+      "removal_settings": "robot_control_integration/settings/yellow4_challenge_20261014/removal_trial.json",
+      "assembly_measurements": null,
+      "removal_measurements": null,
+      "air_run": null,
+      "assembly_partial_run": null,
+      "seating_run": null,
+      "removal_partial_run": null
+    }
+  },
+  "note": "Stage7 code-preparation input only. No fabricated axis, release classifier or recovery poses. Repeat count is configurable; each next iteration requires stopped supply/reset inspection."
+}

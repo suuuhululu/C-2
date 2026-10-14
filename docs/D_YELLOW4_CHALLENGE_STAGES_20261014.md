@@ -425,3 +425,73 @@ python3 robot_control_integration/scripts/yellow4_contact_trial.py --stage 6 \
 ```
 
 재파지/원호 계약·양쪽 회전·임의 프레임·접촉선 유지·파지 변경·STD5/HUMAN15·출처 보존·빈 패드status0/2·분리 관찰·fault/ACK·node-free CLI/팝업 경로 검사를 합성 fixture와 Fake backend로 수행한다. 실제 로봇 시험/팝업 조작/부분 해제/판 고정·간섭 결과는 미검증이며 다음7단계는 실제 부분 결과를 별도로 확인하고 완전 해제·회수 코드를 준비한다.
+
+## 7단계 산출물 — 완전 해제·회수 및 결착/분리 반복 코드 준비
+
+사용자 요청에 따라 실물 시험은 미루고 코드/계약 검사를 진행했다. 기존2단계 read-only 자료와3·5·6단계 미완성 preview는 보존했다.3~6단계 REAL 결과와 현재 실제 부분 해제/판 고정/파지 유지/회수 위치는 아직 미확인이다. 따라서7단계도 **PREPARED_FOR_FIELD_TEST**이며 소프트웨어 준비와 실물 완료를 구분한다. 개발 단계0~7의 코드는 준비했지만 물리 진행 completed_stage1/next_stage2를 올리지 않는다.
+
+`app/yellow4_recovery_trial.py`는 독립 완전 해제/회수 준비와 반복 흐름을 제공한다. `scripts/yellow4_contact_trial.py --stage 7`은6단계 실제 부분 파지 상태에서 이어 수행하는 독립 시험이고, `scripts/yellow4_cycle_trial.py`는 공급 최초 파지부터 결착→개방 후 검사→별도 재파지→부분/완전 해제→회수→빈 목표 검사를 반복한다. 두 launcher가 같은 `run_session`의 독점 잠금·ROS node·팝업·기록·MoveL writer를 재사용하며 동시에 두 제어 루프를 만들지 않는다. 기본 단계4와 다른 checkout/Round2 step/Plan/B Current·원본 교시를 변경하지 않는다.
+
+### 완전 해제 입력과 관찰 기준
+
+`settings/yellow4_challenge_20261014/recovery_cycle.json`의 `recovery`가7단계 입력이다. 접촉 조건·축·회수 pose를 합성값으로 채우지 않고 null로 남긴다.4단계 후보6mm/s·1°/s·45N·1Nm을 전용하지 않는다. 기존120/12mm/s 및 각속도 설정은 비접촉 이송에서 읽고, 접촉 속도/가속도·합력/기준 대비 모멘트 변화/폭 변화/축 허용값은 별도로 설정한다. 회수 중 Z가 바뀌는 이동은 기존 상하 속도를 사용한다.
+
+- `completion_axis`: `source_kind=OPERATOR_FIELD_MEASUREMENT`, `evidence_ref`, `coordinate_frame`, `frame_pose_in_base_mm_zyz_deg`, `points_mm` 두 점. 부분 해제 후의 실제 접촉축을 별도 입력한다. BASE 입력은 identity 변환이고 다른 명시 프레임은 BASE로 변환한다. 이전 결착/부분 분리 축과 같다고 추정하지 않는다.
+- `rotation_deg`, `angular_step_deg`: 부분 상태에서 추가로 회전하는 부호 있는 각도와 간격이다. 이미 누적된 기울기와 구분한다. 완전 해제의 각도는 물리 해제 판정이 아니다.
+- `contact`, `parameter_source`, `field_review`: 독립 조건과 근거. 검토에는 `evidence_ref`, `partial_contact_state_checked`, `axis_after_partial_checked`, `grasp_maintained`, `board_fixed`, `conditions_confirmed`가 필요하다.
+- `release_validation`: 현재 지원하는 방식은 `method=VALIDATED_OPERATOR_OBSERVATION`, `evidence_ref`, `validated_on_real_logs=true`다. 실제 로그에서 전체 해제/대상 한 블록/판·파지 유지의 관찰 방법을 확인한 뒤 설정한다. 이 설정만으로 현재 블록을 해제됐다고 판정하지 않고 팝업의 현재 W 확인을 별도로 기다린다. 자동 classifier는 없으며 미검증/null이면 실행 준비가 아니다. 힘 저하나 로봇 명령 완료가 이 검증을 대신하지 않는다.
+- `clearance_mm`, `recovery_route_source`, `recovery_waypoints`: 실제 전체 해제 후 수직 이탈 여유와 BASE 좌표의 회수 경로다. 각 waypoint는 `frame=BASE`, `evidence_ref`, `tcp_pose_mm_zyz_deg`를 갖는다. 최종 drop pose 전의 이송점은 확보한 이탈 높이 아래로 내려가지 않는다. 공급 TCP를 drop pose로 복사하지 않는다.
+- `resume_*_tolerance`와 `resume_tolerance_source`: 현재 TCP의 XYZ/SO(3)/폭을6단계 마지막 실제 기록과 비교하는 허용값과 근거다. 기본0.05mm/0.05°/1mm는 기존 수치/시험 후보이며 실물 허용 범위 검증이 아니다. 조건 검토에서 확인한다.
+
+`--removal-run`은6단계 REAL 결과·고정 preview·재파지/한쪽 해제 관찰·5단계 출처를 읽는다. ABORT/CYCLE_ABORT·전체 해제/미해제 결과·빈 패드 폭·장치/대상/파지 모드 차이는 이어 수행 근거로 사용하지 않는다. 실제 새 피드백이 마지막 위치·자세·폭에서 허용값 이상 달라졌으면 **모드 변경/이동/개방 없이 중단**한다. 파지 상태2만으로 블록 파지를 추정하지 않는다.
+
+### 독립7단계 순서
+
+**G 현재 부분 상태/판/파지/축 확인 → 추가 XYZ+SO(3) 회전 → W 전체 stud 해제와 판/파지 유지 확인 → 같은 실제 XY/자세로 수직 이탈 → 설정 MoveL 회수 경로 → O 블록 지지/회수 pose/손 이탈 확인 → 한번 개방 → I 회수 블록·빈 목표·판 유지 확인**이다. 허용된 작은 피드백 차이는 실제 TCP를 원호 시작점으로 사용하되 축은 이동시키지 않는다. 의도적 회전 중 자동 수평/XY/HJK 보정이 없다.
+
+W 이전에는 인양하지 않는다. N 미해제/U UNKNOWN, L 들림/S 미끄러짐/M 접촉부 이동 및 ESC/창 닫기·힘/모멘트/폭 변화·응답 불명은 상태를 보존한다. 자동 개방·명령 재전송·재시도·역회전·회수/복구가 없다. 정상 O에서의 개방은 실제 회수 지지 확인 후 요청한 개방이며 오류 복구가 아니다.
+
+`operator_all_studs_released`와 `operator_target_empty_and_board_stable`는 작업자 보고다. `all_studs_released_independently_verified=false`, `removal_completion=false`, `assembly_completion=false`를 유지한다. 현재 camera가 목표/회수 블록을 보지 못하면 현장 관찰로 확인하거나 UNKNOWN을 선택한다. 자동 empty-board/블록 RPY 판정 제공자는 없다.
+
+### 반복 시나리오
+
+`cycle.inputs`는 observation·실측 assembly/removal 관계·3단계 air run·4단계 partial run·5단계 seating run·6단계 removal run 및 각 설정의 경로다. 경로는 checkout 기준 또는 절대 경로로 받는다. 기존 파일을 읽고 path/SHA와 run 출처를 저장한다. 실제 앞 단계 자료가 없으면 각 phase의 누락을 표시하고 전체 경로를 실행 가능으로 표시하지 않는다.
+
+`repeat_count`는 양의 정수이며 `--repeat`로 사용자 지정할 수 있다. `return_zone`/`return_zone_source`는 실제 회수 경로 끝의 위치 구역과 근거다. `reset_source`는 매 다음 반복 전의 공급 슬롯/빈 목표 검사 근거다. 회수 블록이 공급 교시 파지 관계로 저절로 돌아왔다고 가정하지 않는다. 필요한 수동 재배치 후 정지 상태에서 **Y: 같은 노랑 한 블록 공급 준비·빈 목표·손 이탈**을 확인한다. 확인 전 다음 최초 공급 파지를 실행하지 않는다.
+
+각 반복은5→6→7로 수행하고 직전 실제6단계 피드백을7단계의 비교 기준으로 사용한다. 등록 재파지/축/샘플링/부분 접촉 조건이 검증 자료와 달라지면 실행 후보를 거절한다. 단계 오류나 reset UNKNOWN 뒤에는 다음 phase/반복을 실행하지 않는다. 기존5단계 선택적 패드 누름은 STOP 뒤 자동 전이를 피하기 위해 반복 시나리오 실행 준비에서 제외한다. 독립5단계의 선택 누름 경로는 유지하며 수동 상태 확인 후 별도 분리 시험을 진행할 수 있다.
+
+### 현재 preview 및 향후 실물 명령
+
+장치 연결 없이 두 preview를 생성한다.
+
+```bash
+cd "/home/rokey/Documents/ChatGPT/로봇제어 개발/c2_integration_challenge"
+python3 robot_control_integration/scripts/yellow4_contact_trial.py --stage 7 --output logs/yellow4-challenge-stage7-preview
+python3 robot_control_integration/scripts/yellow4_cycle_trial.py --output logs/yellow4-challenge-cycle-preview
+```
+
+실측과 검토를 준비한 뒤 먼저 execute 없이 실제 파일의 preview/그림을 확인한다. 아래 실물 명령은 이번 개발에서 실행하지 않았다.
+
+```bash
+source /opt/ros/jazzy/setup.bash
+source /home/rokey/cobot2_ws/install/setup.bash
+export ROS_DOMAIN_ID=20
+python3 robot_control_integration/scripts/yellow4_contact_trial.py --stage 7 \
+  --config /절대경로/recovery-cycle-reviewed.json \
+  --removal-run /절대경로/stage6/run-실제부분기록 \
+  --output logs/yellow4-challenge-stage7 \
+  --execute --confirm-hand-clear --confirm-route-clear --confirm-partial-state
+python3 robot_control_integration/scripts/yellow4_cycle_trial.py \
+  --config /절대경로/recovery-cycle-reviewed.json --repeat 1 \
+  --start-zone home --output logs/yellow4-challenge-cycle \
+  --execute --confirm-hand-clear --confirm-route-clear --confirm-target-empty
+```
+
+후자의 config에는 `cycle.inputs`의 실제 파일 경로가 모두 있어야 한다. 반복을 늘리기 전에 한 회 실물 결과와 공급 재배치/경로/판 유지 결과를 확인한다.
+
+command/actual TCP·SO(3) 오차·폭/raw wrench·시간/관찰·전이 근거·최대5Hz RGB/overlay를 보존한다. cycle journal에 반복/phase와 고정 preview를 저장하고 저장 worker에 phase snapshot을 넘겨 다음 경로와 혼동하지 않는다. 영상/pose의 독립 동기화나 실제 축 유지 검증은 별도다. 소프트웨어 성공 조건은 명시 상태 확인 후 경로/개방/검사가 이어지고 오류 때 추가 쓰기가 없는 것이다. 실물 성공 조건은 목표 한 블록만 실제 회수되고 아래 구조/판/회수 상태가 유지되는 것으로 별도 확인한다. 현재 실물 성공/실패 조건과 자동 분류 성능은 UNKNOWN이다.
+
+실물 검증 재개 순서는2단계 관계/축/판 고정 →3 상공 원호 →4 걸림/부분 회전 →5 완전 결착/개방 후 유지 →6 부분 분리 →7 독립 완전 해제/회수 →단일 cycle →확인된 조건에서 반복이다. HJK 복귀·45N 중단·preview·합성 테스트를 이 증거로 대신하지 않는다. 새로운 일반 Round2 통합이나 다른 블록 확대는 포함하지 않았다.
+
+변경 규모는 실행 준비/흐름·정상/실패 검사·기록/안내의10파일이며 새 클래스/dependency/framework/ROS 계약 변경은 없다. 기존 contact 실행 파일이400줄을 넘는 것은 공통 guard/MoveL/STOP을 유지하면서7단계 분기를 추가한 결과다. 독립 제어 루프를 복제하거나 기본 경로를 분리/재설계하는 대안보다 기존 검증 흐름을 보존하는 방식을 택했다. 실물 적용/merge에 필요한 사람 리뷰를 소프트웨어 검사로 대체하지 않는다.

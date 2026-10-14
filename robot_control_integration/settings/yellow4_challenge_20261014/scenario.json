@@ -151,11 +151,14 @@
         "id": 7,
         "name": "완전 분리·회수·결착/분리 시나리오 연결",
         "verification_kind": "REAL_CYCLE",
-        "status": "PENDING",
-        "physical_test_verified": false
+        "status": "PREPARED_FOR_FIELD_TEST",
+        "physical_test_verified": false,
+        "software_verified": true
       }
     ],
-    "next_development_stage": 7
+    "next_development_stage": null,
+    "software_prepared_through_stage": 7,
+    "next_action": "USER_DEFERRED_FIELD_TESTS; resume measurements at stage2 before physical3-7 and cycles"
   },
   "stage_0_verification": {
     "status": "PASS",
@@ -358,6 +361,43 @@
       "independent regrasp TCP-block relation/width/height and removal axis/direction",
       "reviewed source-backed removal contact conditions and route/regrasp clearance",
       "operator current empty gripper context and actual partial-release/board/grasp observations"
+    ]
+  },
+  "stage_7_verification": {
+    "status": "PREPARED_FOR_FIELD_TEST",
+    "related_tests_passed": 383,
+    "new_regression_cases": 36,
+    "physical_commands": 0,
+    "user_workflow": "DEVELOP_SOFTWARE_FIRST_DEFER_REAL_TRIALS",
+    "real_complete_removal_recovery_or_cycle_executed": false,
+    "interactive_desktop_popup_verified": false,
+    "available_field_records": "STAGE2_READ_ONLY_CAPTURES_AND_STAGE3_STAGE5_STAGE6_MISSING_INPUT_PREVIEWS_ONLY",
+    "default_grasp_mode": "STANDARD",
+    "default_pad_bottom_height_mm": 5,
+    "automatic_release_classifier": false,
+    "constant_force_control": false,
+    "writes_b_current": false,
+    "test_environment": "Fake motion contract ID isolated in test process; actual dsr01 lock and assertion/source contracts unchanged",
+    "checks": [
+      "separate partial-state completion axis/frame/direction/spacing, preserved grasp and signed XYZ/SO3 arc",
+      "REAL stage6 partial holding snapshot, scope/grasp/equipment/width/stopped feedback and stage5 provenance",
+      "fresh TCP/SO3/width comparison before writes; changed state does not shift axis or resume automatically",
+      "validated observation method plus current all-studs/board/grip report gates vertical clearance; no force-drop inference",
+      "source-backed recovery route, supported drop before one opening and target/block/board inspection",
+      "force/moment/width/unknown/ACK faults hold without lift/open/retry/reverse",
+      "same backend two-iteration 5-6-7 cycles; OpenCV attempted/fallback each first grasp; fresh partial feedback per recovery",
+      "qualified geometry and partial conditions binding, independent return-zone/reset sources, manual stopped reset before next iteration",
+      "cycle phase/iteration failures do not continue or resend STOP; pressure-terminal transition excluded",
+      "asynchronous image capture uses phase snapshot, delta-from-partial angle label and timestamped feedback/evidence",
+      "node-free pending and complete synthetic contract previews, all three cycle path diagrams, repeat override"
+    ],
+    "remaining": [
+      "real stage2 grasp/board/axis inputs and stage3-6 motion/contact/seating/partial results",
+      "current partial engagement, unchanged grasp and board fixation",
+      "measured contact axis after partial release and full-release conditions",
+      "real-log validation of all-studs release observation method",
+      "measured vertical clearance, recovery path/drop support/return zone and source reset arrangement",
+      "actual complete release/recovery/empty-target/board stability and single then repeated cycle results"
     ]
   }
 }
