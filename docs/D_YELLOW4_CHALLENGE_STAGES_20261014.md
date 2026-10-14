@@ -197,3 +197,83 @@ run별 events.jsonl에 command/actual TCP, 전체 SO(3) 자세 오차, gripper �
 모든 endpoint IK/FK와 실제 도착 오차를 확인한다. 이산 MoveL은 원호의 chord를 따라가며 SO(3) 보간 가정의 계산 오차와 실제 제어기 동작은 구분한다. 실제 중간 피드백/영상으로 원호·파지 유지·간섭을 검토해야 한다. H/J/K 기준 자세 복귀를 원호/블록 평면 검증으로 대체하지 않는다.
 
 현재 코드는 PREPARED_FOR_FIELD_TEST다. 실제5mm 파지 관계·결착 접촉축 입력 및 사용자 실물 결과가 없으므로 원호 검증 완료/체결 완료를 기록하지 않는다. 4단계 개발 요청 시 이 입력과3단계 실물 기록을 먼저 확인한다.
+
+## 4단계 산출물 — 공급 최초 파지·걸림 관찰·부분 회전 준비
+
+`app/yellow4_contact_trial.py`, `scripts/yellow4_contact_trial.py`, `settings/yellow4_challenge_20261014/contact_trial.json`을 추가했다. 노랑2×2 하나의 공급 파지부터 시작하며 STANDARD 공급 TCP는 기존5mm 교시 그대로다. HUMAN_REPLACEMENT의15mm는 동일 grasp_id/mode/height에 묶인 별도 실측 공급 TCP가 있어야 하며 +10mm 후보로 대체하지 않는다. 다른 checkout, 기본 Round2 step/Plan/B Current와 원본 교시는 변경하지 않는다.
+
+### 실제 입력과 준비 상태
+
+사용자가 실행한3단계 preview는 `PREPARED_MISSING_FIELD_GEOMETRY / physical_commands=0`이다. 실제 상공 회전 결과가 아니다. 현재4단계는 코드 준비 상태이고 실행 가능한 실측 프로파일은 아직 없다. 기존 공급판/층/카메라 자료는 즉시 읽되 paired TCP–블록 관계, 착좌 블록 pose, 실제 결착 축/방향, 판 고정과3단계 실제 원호·파지 검토가 남아 있다. 분리 축은4단계 필수 입력에서 제외한다.
+
+`--air-run`은3단계 실제 run 디렉터리다. events.jsonl의 REAL 완료/held context와 **run 내부 preview.json**을 읽는다. 실패/빈 그리퍼 시험을 결착 검증으로 쓰지 않고 대상·TCP/tool·파지 관계·착좌 기준·블록 치수·stud·축·기울임 방향이 이번 입력과 일치하는지 검사한다. 3단계 launcher에도 run별 preview 복사본을 추가해 후속 preview가 원래 실행 입력을 덮어쓰지 않도록 했다. `contact_trial.json` 복사본의 `air_trial_review`에는 실제 검토 근거 `evidence_ref`, `arc_observed=true`, `grip_maintained=true`를 기록한다. 작업자 검토와 로봇 명령 완료를 구분하며 자동 실물 성공 판정으로 승격하지 않는다.
+
+### 시험 후보 설정과 흐름
+
+사용자 응답은 접촉 속도·중단값 미정, 지나치게 느리지 않게 준비였다. 아래 값은 설정으로 변경 가능한 **미검증 시험 후보**다. 물성/안전 한도/실측 조건으로 표시하지 않는다.
+
+| 항목 | 후보와 근거 |
+|---|---|
+| 비접촉 이송/상하 | 기존 통합120/12mm/s 설정 읽기 |
+| 접촉 하강·원호/회전 |6mm/s·1°/s; 이전 하강6 요청과 개발 후보, 무접촉120/12를 접촉에 복사하지 않음 |
+| 접촉 가속도 |12mm/s²·1°/s² 개발 후보 |
+| 정렬 높이/검색 진입 |목표+20mm, 기울임 후 명목 접촉 pose+2mm로 접근 |
+| 수동 검색 |N마다0.5mm, 명목 접촉 pose 아래2mm까지; 간격/범위는 설정 |
+| 부분 회전 |2° 후보, 실측 최초 기울임보다 작아야 함;0° 완전 착좌까지 이동하지 않음 |
+| 합력 중단 |raw XYZ 합력45N; 이전 사용자 중단값 재사용, stud 걸림 기준/일정 힘 제어가 아님 |
+| 모멘트 중단 |접촉 직전 기준 대비 XYZ 모멘트 변화 norm1Nm; 이전 held 시험 README의 후보, raw 전체 모멘트 한도와 구분 |
+| 파지/등록 검사 |실제 최초 파지 폭 대비2mm 변화 중단, 명목 걸림 TCP와0.5mm 등록 오차 후보; 실물값 아님 |
+
+시작은 빈 그리퍼를60mm로 연 정지 상태, 공급1번 노랑2×2, 빈 목표 위치다. 3단계에서 잡고 있던 블록은 사용자가 공급판에 돌려놓고 시작 상태를 준비한다. 자동 회수/개방 기능은 없다. home/assembly→공급판 관측은 기존 MoveL 경유, 파지 후 공급판 이송→몸체 우회→조립판 관측으로 이동한다. 과거 몸체 우회 경로의39N/잔류21N 중단 근거를 보존하며 `--confirm-route-clear`는 새 현장 경로 확인이다.
+
+공급판에서 OpenCV stud 중심을 계산하고 검출/미검출·metric XY 보조 적용·좌표 fallback을 기록한다. 카메라 지연 시 정지 상태에서 피드백/팝업을 처리하며 기다린다. 공급 ROI는 B→두 클릭으로 바꿀 수 있다. 원본 ROI/교시를 덮어쓰지 않는다. mapping 검증과 같은 관측 pose가 없으면 검출돼도 metric XY를 적용하지 않는다. 정확히 분석에 사용한 원본 영상·샘플·RGB stamp도 저장한다.
+
+파지 후 G로 실제 블록 존재와 등록된 파지 관계를 확인한다. 조립판에서는 실측 착좌 TCP의+20mm pose로 이동하고 A로 블록/격자 방향을 확인한다. 이는 기준 pose 적용과 작업자 확인이며 자동 실제 윗면 roll/pitch 측정·보정이 아니다. T→두 클릭의 윗면 모서리는 기존 가상 격자와 **픽셀 yaw 진단**에만 사용한다. 이후에는 수평 복귀/XY 보정/HJK 루프를 호출하지 않는다. 의도적 기울임도 접촉축을 상공으로 옮긴 XYZ+자세 waypoint로 수행한다.
+
+기울임 후 접촉 직전 raw wrench를 기준으로 저장한다. entry pose까지 이동한 뒤 N으로 제한 검색, E로 실제 stud 걸림을 보고한다. 눌림 힘이45N 미만이라는 이유로 자동 걸림 전이하지 않는다. 실제 걸림 TCP와 등록된 축의 차이가 크면 임의로 축을 평행 이동하지 않고 재측정 사유를 남긴다. R 후 실제 정지 걸림 TCP를 시작점으로 명시된 BASE 접촉축에 대해 부분 XYZ+자세 원호를 계산한다. I로 결과를 기록하고 **부분 기울임·파지 유지 상태에서 종료**한다. 끝에서 완전 착좌/개방/상승/윗면 누름으로 넘어가지 않는다.
+
+| 팝업 입력 | 의미 |
+|---|---|
+| G / A |각 해당 대기 단계에서 실제 파지 관계 / 정렬 확인 |
+| N / E |정지 검색 단계에서 다음 제한 하강 / stud 걸림 보고 |
+| R / I |부분 회전 실행 / 부분 결과 관찰 기록 |
+| B / T / C |공급 ROI / 윗면 모서리 두 클릭 / 진단 선택 초기화; 이동 명령 없음 |
+| L / S / M / U |판·구조 들림 / 파지 미끄러짐 / 접촉부 이동 / 미확인 보고 후 STOP |
+| ESC / 창 닫기 |STOP, 자동 개방·재전송·재시도 없음 |
+
+해당 대기 단계의 키만 받으며 움직이는 중의 사전 확인 키는 다음 단계로 가져가지 않는다. fault/ESC는 항상 처리한다. 단일 ROS node/기존 writer와 worker 분석·저장을 사용한다. events.jsonl에 명령·실제 TCP/SO(3) 오차·폭 변화·raw 힘/모멘트·기준 모멘트 변화·작업자 입력과 확정 관찰·시간을 저장한다. 동작 중 최대5Hz와 단계별 RGB/overlay를 저장하며 연속 동영상/영상–pose 독립 동기화 검증은 아니다. STOP 후 오류 시점 영상 저장을 마친 뒤 정리한다. 기록 실패가 STOP을 막지 않는다.
+
+### 사용자 명령
+
+현재 자료로 장치 연결 없이 준비 상태를 확인한다.
+
+```bash
+cd "/home/rokey/Documents/ChatGPT/로봇제어 개발/c2_integration_challenge"
+python3 robot_control_integration/scripts/yellow4_contact_trial.py --output logs/yellow4-challenge-stage4-preview
+```
+
+실측 입력과3단계 실제 run/검토가 준비된 뒤 별도 contact 설정 복사본을 사용한다. 아래 `/절대경로/...`는 실제 파일로 바꾼다. 현재 pending 양식과 preview 출력만으로 실행하지 않는다.
+
+```bash
+python3 robot_control_integration/scripts/yellow4_contact_trial.py \
+  --measurements /절대경로/measurements.json \
+  --config /절대경로/contact-trial-reviewed.json \
+  --air-run /절대경로/yellow4-stage3/run-실제기록 \
+  --start-zone home --output logs/yellow4-challenge-stage4
+```
+
+preview.json의 입력/후보/누락과 partial-path.png를 확인하고 기존 ROS 환경에서 사용자가 실행한다.
+
+```bash
+source /opt/ros/jazzy/setup.bash
+source /home/rokey/cobot2_ws/install/setup.bash
+export ROS_DOMAIN_ID=20
+python3 robot_control_integration/scripts/yellow4_contact_trial.py \
+  --measurements /절대경로/measurements.json \
+  --config /절대경로/contact-trial-reviewed.json \
+  --air-run /절대경로/yellow4-stage3/run-실제기록 \
+  --start-zone home --output logs/yellow4-challenge-stage4 \
+  --execute --confirm-hand-clear --confirm-route-clear --confirm-target-empty
+```
+
+현재4단계는 PREPARED_FOR_FIELD_TEST다. 미측정 입력/3단계 실제 결과/이번 걸림·부분 회전 실물 결과가 남아 있다. 5단계 요청 시 이 기록을 먼저 검토하며 명령 완료나 I 입력을 완전 체결 완료로 판단하지 않는다.

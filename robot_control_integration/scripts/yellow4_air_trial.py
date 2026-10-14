@@ -23,13 +23,16 @@ from supply_vision.virtual_board_grid import VirtualBoardGrid
 
 
 class TrialWindow:
-    def __init__(self,observer,bundle,plan):
-        self.observer=observer;self.bundle=deepcopy(bundle);self.bundle['geometry_config']=plan['air_config']
+    def __init__(self,observer,bundle,plan,*,title=None):
+        self.observer=observer;self.bundle=deepcopy(bundle);self.bundle['geometry_config']=plan.get('air_config',bundle['geometry_config'])
         self.plan=plan;self.sample=None;self.label='PREPARING'
         self.target=None;self.canvas=None;self.report={};self.pool=ThreadPoolExecutor(max_workers=1);self.pending=None
         self.error='not sampled'
         self.last_draw=0;self.last_analysis=0;self.grid=VirtualBoardGrid(bundle['virtual_grid'])
-        self.title='Yellow4 AIR PIVOT | ESC STOP | no grip / contact / press'
+        self.title=title or 'Yellow4 AIR PIVOT | ESC STOP | no grip / contact / press'
+        self.view='assembly';self.key_handler=None;self.instructions=[]
+        self.edge=[];self.roi=None
+        self.banner='AIR TEST / one MoveL writer / no contact / no gripper commands'
         cv2.namedWindow(self.title,cv2.WINDOW_NORMAL);cv2.resizeWindow(self.title,1100,800)
 
     def pump(self):
@@ -38,25 +41,28 @@ class TrialWindow:
         if self.pending is not None and self.pending.done():
             self.canvas,self.report=self.pending.result();self.pending=None;self.last_analysis=now
         if self.pending is None and self.observer.frame is not None and self.sample is not None and now-self.last_analysis>.2:
-            self.pending=self.pool.submit(analyze,self.observer.frame.copy(),self.bundle,'assembly',
-                sample=self.sample.copy(),info=self.observer.info,grid=self.grid)
+            self.pending=self.pool.submit(self.analyze_frame,self.observer.frame.copy(),self.sample.copy(),
+                self.observer.info,self.view,deepcopy(self.edge),self.roi)
         if now-self.last_draw<.04:return
         self.last_draw=now
         frame=self.canvas if self.canvas is not None else self.observer.frame
         if frame is None:frame=np.zeros((480,640,3),np.uint8)
-        ui=np.zeros((frame.shape[0]+244,frame.shape[1],3),np.uint8);ui[244:]=frame
+        header=244+27*len(self.instructions)
+        ui=np.zeros((frame.shape[0]+header,frame.shape[1],3),np.uint8);ui[header:]=frame
         fmt=lambda value:None if value is None else [round(float(v),3) for v in value]
-        lines=['AIR TEST / one MoveL writer / no contact / no gripper commands',
+        lines=[self.banner,
             f"Phase: {self.label} | grasp: {self.plan['grasp_mode']} / {self.plan['intended_pad_bottom_height_mm']}mm",
             f'Target TCP: {fmt(self.target)}',f"Actual TCP: {fmt(None if self.sample is None else self.sample.get('posx'))}",
             f'Position / SO(3) error: {self.error}',
             f"Width: {None if self.sample is None else self.sample.get('gripper_width_mm')} | Raw wrench: {fmt(None if self.sample is None else self.sample.get('wrench'))}",
             f"RGB age s: {None if self.observer.rgb_time is None else round(now-self.observer.rgb_time,2)} | image/pose sync NOT verified",
-            'Saved geometry/feedback errors in events.jsonl | ESC stops trial motion']
+            'Saved geometry/feedback errors in events.jsonl | ESC stops trial motion',*self.instructions]
         for i,line in enumerate(lines):cv2.putText(ui,line,(8,24+i*27),cv2.FONT_HERSHEY_SIMPLEX,.40,(255,255,255),1)
         cv2.imshow(self.title,ui)
-        if cv2.waitKey(1)&255==27 or cv2.getWindowProperty(self.title,cv2.WND_PROP_VISIBLE)<1:
+        key=cv2.waitKey(1)&255
+        if key==27 or cv2.getWindowProperty(self.title,cv2.WND_PROP_VISIBLE)<1:
             raise KeyboardInterrupt('OPERATOR_STOP')
+        if self.key_handler is not None and key!=255:self.key_handler(key)
 
     def feedback(self,event,data):
         if event in ('START','PREVIEW_ACTUAL_START','FEEDBACK_REFRESH_WAIT'):self.sample=data['sample']
@@ -64,6 +70,9 @@ class TrialWindow:
         if event=='MOVE_REQUEST':self.label=data['label'];self.target=data['target']
         if event in ('MOTION_SAMPLE','WAYPOINT_REACHED'):
             self.sample=data['sample'];self.error=f"{data['position_error_mm']:.4f} mm / {data['so3_error_deg']:.4f} deg"
+
+    def analyze_frame(self,frame,sample,info,view,edge,roi):
+        return analyze(frame,self.bundle,view,sample=sample,info=info,grid=self.grid,edge=edge,roi=roi)
 
     def close(self):
         self.pool.shutdown(wait=False,cancel_futures=True)
@@ -105,6 +114,7 @@ def main(argv=None):
     if os.environ.get('ROS_DOMAIN_ID')!=str(plan['connection']['ros_domain_id']):raise ValueError('ROS_DOMAIN_MISMATCH')
     if not (os.environ.get('DISPLAY') or os.environ.get('WAYLAND_DISPLAY')):raise RuntimeError('DESKTOP_DISPLAY_REQUIRED')
     run_dir=args.output/('run-'+str(time.time_ns()));run_dir.mkdir()
+    (run_dir/'preview.json').write_text(json.dumps(plan,ensure_ascii=False,indent=2,allow_nan=False)+'\n')
     with open('/tmp/c2-assembly-'+plan['connection']['robot_id']+'.lock','a') as lock:
         fcntl.flock(lock,fcntl.LOCK_EX|fcntl.LOCK_NB)
         observer=ReadOnlyRos(bundle,node_name='yellow4_air_trial_'+uuid4().hex[:8],disable_signal_handlers=True);driver=None;window=None;old={}

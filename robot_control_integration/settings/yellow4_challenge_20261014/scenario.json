@@ -127,8 +127,9 @@
         "id": 4,
         "name": "최초 stud 걸림·부분 회전 결착 시험",
         "verification_kind": "REAL_CONTACT",
-        "status": "PENDING",
-        "physical_test_verified": false
+        "status": "PREPARED_FOR_FIELD_TEST",
+        "physical_test_verified": false,
+        "software_verified": true
       },
       {
         "id": 5,
@@ -151,7 +152,8 @@
         "status": "PENDING",
         "physical_test_verified": false
       }
-    ]
+    ],
+    "next_development_stage": 5
   },
   "stage_0_verification": {
     "status": "PASS",
@@ -243,5 +245,45 @@
       "operator real no-contact arc/grip/camera results"
     ],
     "new_regression_cases": 20
+  },
+  "stage_4_verification": {
+    "status": "PREPARED_FOR_FIELD_TEST",
+    "related_tests_passed": 269,
+    "new_regression_cases": 28,
+    "physical_commands": 0,
+    "default_pad_bottom_height_mm": 5,
+    "default_grasp_mode": "STANDARD",
+    "contact_parameter_status": "DEVELOPMENT_TRIAL_CANDIDATES_NOT_FIELD_VALIDATED",
+    "contact_settings": "robot_control_integration/settings/yellow4_challenge_20261014/contact_trial.json",
+    "user_contact_conditions_reply": "NO_FIXED_VALUES_REQUEST_NOT_EXCESSIVELY_SLOW",
+    "stage3_user_preview": {
+      "path": "logs/yellow4-challenge-stage3-preview/preview.json",
+      "sha256": "2490cfde142efc9bfa7cb1211365223f2d926cfa3aa013e6077f16ff5bdeaf62",
+      "status": "PREPARED_MISSING_FIELD_GEOMETRY",
+      "physical_commands": 0,
+      "real_air_trial_result": false
+    },
+    "real_contact_trial_executed": false,
+    "interactive_desktop_popup_verified": false,
+    "checks": [
+      "existing standard5 supply pose, OpenCV assistance/fallback and vision source image retained",
+      "human15 cannot use unmeasured plus10 supply fallback",
+      "same measured grasp/axis/block/studs bound to REAL held air-run snapshot plus operator review",
+      "no removal axis requirement; board fixation remains required for contact",
+      "positive/negative partial XYZ/SO3 pivot, rigid relation and contact line preserved in geometry",
+      "MoveL home/supply observations and three transit waypoints; intentional tilt excludes leveling/XY loops",
+      "operator engagement, bounded search and partial-only endpoint; no full seating, release or press",
+      "force45 STOP separate from engagement; baseline-relative moment and width drift stops",
+      "unknown command ACK, failed journal, absent engagement and operator fault preserve grasp without resend",
+      "nonblocking ROI/top-edge inputs, timestamped source image and motion/fault RGB frames",
+      "node-free current-input preview and synthetic path visual check; no measurement promotion"
+    ],
+    "remaining": [
+      "measured TCP-block relation and seated block pose",
+      "actual assembly axis and direction",
+      "board fixation",
+      "stage3 REAL held arc run and operator review",
+      "stage4 operator engagement/partial-motion/grasp/structure observations"
+    ]
   }
 }

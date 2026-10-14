@@ -1,0 +1,220 @@
+"""One yellow4 operator-observed engagement and partial pivot; no release/press."""
+from copy import deepcopy
+import math
+import time
+import numpy as np
+from app.assembly_motion import motion_still,pose_error,vector
+from app.edge_first_seating import preview,rotate_about_contact_line,pose_matrix,transform_points
+from app.yellow4_air_trial import load_runtime
+from scripts.assembly_position_trial import guard
+from scripts.supply_pick_release_trial import startup_targets
+
+
+def prepare_contact(bundle,settings,air_evidence=None):
+    if settings.get('schema_version')!='yellow4-contact-trial/1' or not settings.get('parameter_source'):
+        raise ValueError('CONTACT_SETTINGS_WITH_PARAMETER_SOURCE_REQUIRED')
+    c=deepcopy(settings['contact'])
+    for key,value in c.items():
+        if type(value) not in (int,float) or not math.isfinite(value) or value<=0:
+            raise ValueError('POSITIVE_FINITE_CONTACT_PARAMETER_REQUIRED:'+key)
+    if not c['entry_clearance_mm']<c['approach_clearance_mm'] or c['descent_step_mm']>c['entry_clearance_mm']+c['search_below_nominal_mm']:
+        raise ValueError('CONTACT_ENTRY_AND_SEARCH_INTERVAL_INVALID')
+    runtime,rates=load_runtime(bundle,{'rates':{}})
+    runtime['startup_route']['place_xy']=bundle['selected_seated_tcp_candidate'][:2].copy()
+    missing=[v for v in bundle['missing_measurements'] if v!='removal_contact_axis']
+    review=settings.get('air_trial_review')
+    if not review or not review.get('evidence_ref') or review.get('arc_observed') is not True or review.get('grip_maintained') is not True:
+        missing.append('stage3_operator_arc_and_grasp_review')
+    if air_evidence is None:missing.append('stage3_real_air_run')
+    pickup=bundle['selected_pickup_tcp_candidate'].copy();measured=settings.get('measured_supply_pickup')
+    if measured is not None:
+        if not measured.get('evidence_ref') or bundle.get('measurement') is None or any(measured.get(k)!=bundle['measurement'].get(k)
+                for k in ('grasp_id','grasp_mode','pad_bottom_from_block_bottom_mm')):
+            raise ValueError('SUPPLY_PICKUP_SAME_MEASURED_GRASP_REQUIRED')
+        pickup=vector(measured['tcp_pose_mm_zyz_deg'],6,'measured supply pickup')
+    elif bundle['grasp_mode']=='HUMAN_REPLACEMENT':missing.append('measured_human15_supply_pickup')
+    plan=dict(status='PREPARED_MISSING_CONTACT_INPUTS',execution_ready=False,physical_commands=0,
+        target=deepcopy(bundle['target']),connection=deepcopy(bundle['connection']),sources=deepcopy(bundle['sources']),
+        grasp_mode=bundle['grasp_mode'],intended_pad_bottom_height_mm=bundle['intended_pad_bottom_height_mm'],
+        grasp_id=None if bundle.get('measurement') is None else bundle['measurement']['grasp_id'],
+        pickup_tcp=pickup,supply_row=deepcopy(bundle['supply_row']),runtime=runtime,rates=rates,contact=c,
+        parameter_source=settings['parameter_source'],parameter_field_verified=False,settings=deepcopy(settings),
+        previous_route_stop_evidence=runtime.get('return_high_blocked_reason'),operation='assembly',
+        missing_measurements=missing,assembly_completion=False,automatic_leveling_during_intentional_tilt=False,
+        engagement_classifier='OPERATOR_OBSERVATION_NOT_FORCE_THRESHOLD',gripper_release_commands=0)
+    geometry=bundle.get('geometry_config')
+    if geometry is None or geometry['operations'].get('assembly') is None:return plan
+    g=preview(geometry,'assembly');angle=g['waypoints'][0]['tilt_deg']
+    if c['partial_rotation_deg']>=abs(angle):raise ValueError('STAGE4_MUST_STOP_BEFORE_FULL_SEATING')
+    remaining=angle-math.copysign(c['partial_rotation_deg'],angle)
+    step=geometry['operations']['assembly']['angular_step_deg'];count=math.ceil(c['partial_rotation_deg']/step)
+    angles=np.linspace(angle,remaining,count+1).tolist();partial=deepcopy(g);partial['waypoints']=[]
+    seated=g['waypoints'][-1];reference=g['seated_reference_tcp_mm_zyz_deg'];axis=g['contact_line_points_mm']
+    for a in angles:
+        tcp=rotate_about_contact_line(reference,axis,a)
+        block=rotate_about_contact_line(g['seated_reference_block_mm_zyz_deg'],axis,a)
+        transform=pose_matrix(block)@np.linalg.inv(pose_matrix(seated['block_mm_zyz_deg']))
+        partial['waypoints'].append(dict(tilt_deg=a,tcp_mm_zyz_deg=tcp,block_mm_zyz_deg=block,
+            block_corners_mm=transform_points(transform,seated['block_corners_mm']).tolist()))
+    partial['sequence']=['OPERATOR_STUD_ENGAGEMENT','PARTIAL_PIVOT','INSPECT_REMAINING_TILT']
+    partial['chord_error_bound_mm']=g['tcp_orbit_radius_mm']*(1-math.cos(math.radians(c['partial_rotation_deg']/count)/2))
+    if air_evidence is not None:
+        result=air_evidence['result'];old=air_evidence['preview'];context=air_evidence['context']
+        if (result.get('backend')!='REAL' or result.get('status')!='AIR_ROUTE_COMMANDS_COMPLETED_NOT_INDEPENDENTLY_VERIFIED'
+                or result.get('physical_commands',0)<=0 or context.get('empty_gripper_trial') is not False):
+            raise ValueError('STAGE3_REAL_HELD_AIR_RUN_REQUIRED')
+        if old['operation']!='assembly' or old['target']!=plan['target'] or old['connection']!=plan['connection'] or old['grasp_mode']!=plan['grasp_mode']:
+            raise ValueError('STAGE3_SCOPE_OR_EQUIPMENT_MISMATCH')
+        old_g=old['ground_geometry']
+        if (max(pose_error(old_g['tcp_to_block_pose_mm_zyz_deg'],g['tcp_to_block_pose_mm_zyz_deg']))>1e-6
+                or max(pose_error(old_g['seated_reference_tcp_mm_zyz_deg'],reference))>1e-6
+                or not np.allclose(old_g['contact_line_points_mm'],axis,atol=1e-6,rtol=0)
+                or old_g['block_geometry']!=g['block_geometry']
+                or not np.allclose(old_g['target_stud_centers_mm'],g['target_stud_centers_mm'],atol=1e-6,rtol=0)
+                or old_g['waypoints'][0]['tilt_deg']!=angle):raise ValueError('STAGE3_GRASP_OR_ASSEMBLY_AXIS_CHANGED')
+    runtime['startup_route']['place_xy']=reference[:2].copy()
+    tilt_path=[dict(p,tcp_mm_zyz_deg=[*p['tcp_mm_zyz_deg'][:2],p['tcp_mm_zyz_deg'][2]+c['approach_clearance_mm'],*p['tcp_mm_zyz_deg'][3:]])
+        for p in reversed(g['waypoints'])]
+    entry=partial['waypoints'][0]['tcp_mm_zyz_deg'].copy();entry[2]+=c['entry_clearance_mm']
+    plan.update(partial_geometry=partial,ground_geometry=g,geometry_config=deepcopy(geometry),
+        intentional_tilt_waypoints=tilt_path,contact_entry_tcp=entry,remaining_tilt_deg=remaining,
+        execution_ready=not missing,status='PARTIAL_CONTACT_TRIAL_PREVIEW' if not missing else plan['status'])
+    return plan
+
+
+def execute(driver,plan,start_zone,record,observe_supply,operator,*,sleep=time.sleep,clock=time.monotonic):
+    if not plan['execution_ready']:raise ValueError('CONTACT_FIELD_INPUTS_AND_AIR_REVIEW_REQUIRED')
+    c=plan['contact'];runtime=plan['runtime'];rates=plan['rates'];connection=plan['connection']
+    expected=0;attempted=False;contact=False;baseline=None;width=None;last=None;moves=0;grips=0
+    def sample(automatic=True,busy=False):
+        nonlocal last
+        while True:
+            last=driver.sample();force=c['force_stop_n'] if contact else runtime['force_stop_n']
+            status=last['gripper_status']
+            if busy and status not in (0,1,2):raise RuntimeError('GRIPPER_FAULT')
+            checked=dict(last,gripper_status=expected if busy else status)
+            if math.hypot(*last['wrench'][:3])>=force:raise RuntimeError('FORCE_NORM_STOP_LIMIT_REACHED')
+            if contact:
+                delta=math.dist(last['wrench'][3:],baseline[3:])
+                if delta>=c['moment_delta_stop_nm']:raise RuntimeError('CONTACT_MOMENT_DELTA_STOP')
+            if width is not None and abs(last['gripper_width_mm']-width)>=c['width_drift_stop_mm']:
+                raise RuntimeError('GRASP_WIDTH_DRIFT_STOP')
+            if last['query_duration_s']<=.5:
+                guard(checked,connection,None,automatic=automatic,force_norm_limit=force,required_gripper_status=expected)
+                return last
+            guard(dict(checked,query_duration_s=.5),connection,None,automatic=automatic,force_norm_limit=force,required_gripper_status=expected)
+            if not motion_still(last):raise RuntimeError('STALE_MOVING_FEEDBACK')
+            record('FEEDBACK_REFRESH_WAIT',dict(sample=last,motion_command_resent=False));sleep(.02)
+    def stopped(automatic=True):
+        while True:
+            s=sample(automatic)
+            if motion_still(s):return s
+            record('SETTLING_WAIT',s);sleep(.02)
+    def preflight(target):
+        mm,deg=pose_error(driver.check_pose(target),target)
+        if max(mm,deg)>.05:raise RuntimeError('IK_FK_TARGET_MISMATCH')
+    def move(label,target,*,loaded_contact=False):
+        nonlocal moves,attempted
+        before=stopped();preflight(target);mm,deg=pose_error(before['posx'],target)
+        if max(mm,deg)<=.05:return before
+        vertical=math.dist(before['posx'][:2],target[:2])<=.05
+        velocity=[c['linear_velocity_mm_s'],c['angular_velocity_deg_s']] if loaded_contact else [rates['vertical'] if vertical else rates['transit'],rates['angular']]
+        acceleration=[c['linear_acceleration_mm_s2'],c['angular_acceleration_deg_s2']] if loaded_contact else [rates['linear_acceleration'],rates['angular_acceleration']]
+        record('MOVE_REQUEST',dict(label=label,target=target,velocity=velocity,acceleration=acceleration))
+        attempted=True;driver.move_line_async(target,velocity,acceleration);moves+=1
+        deadline=clock()+max(mm/velocity[0],deg/velocity[1])*3+10
+        while True:
+            s=sample();mm,deg=pose_error(s['posx'],target)
+            record('MOTION_SAMPLE',dict(label=label,target=target,sample=s,position_error_mm=mm,so3_error_deg=deg,
+                gripper_width_drift_mm=None if width is None else s['gripper_width_mm']-width,
+                moment_delta_norm_nm=None if baseline is None else math.dist(s['wrench'][3:],baseline[3:])))
+            if motion_still(s) and max(mm,deg)<=.05:break
+            if clock()>deadline:raise TimeoutError('MOTION_TIMEOUT')
+            sleep(.02)
+        record('WAYPOINT_REACHED',dict(label=label,target=target,sample=s,position_error_mm=mm,so3_error_deg=deg));return s
+    def ask(phase,allowed):
+        def poll():
+            s=stopped();record('OPERATOR_WAIT_SAMPLE',dict(phase=phase,sample=s));return s
+        answer=operator(phase,allowed,poll)
+        record('OPERATOR_INPUT',dict(phase=phase,answer=answer,last_sample=last,operator_report_not_automatic_classifier=True))
+        s=stopped();record('OPERATOR_OBSERVATION',dict(phase=phase,answer=answer,sample=s,
+            operator_report_not_automatic_classifier=True))
+        if answer not in allowed:raise RuntimeError('OPERATOR_OBSERVATION_UNKNOWN_OR_STOP:'+str(answer))
+        return answer,s
+    try:
+        first=stopped(False)
+        if first['gripper_width_mm']<runtime['open_mm']-1:raise RuntimeError('START_WITH_OPEN_EMPTY_GRIPPER_REQUIRED')
+        start=startup_targets(runtime,first['posx'],start_zone)
+        for _,target in start:preflight(target)
+        record('START',dict(sample=first,grasp_mode=plan['grasp_mode'],grasp_id=plan['grasp_id'],route=[dict(label=l,tcp=t) for l,t in start]))
+        driver.call('system/set_robot_mode','SetRobotMode',robot_mode=1)
+        for label,target in start:move(label,target)
+        record('VISION_OBSERVATION_BEGIN',dict(sample=stopped(),vision_attempted=False,stage='WAIT_RGB_AND_ANALYSIS'))
+        report=observe_supply(stopped);pickup=vector(report['pickup_tcp_candidate'],6,'vision supply pickup')
+        # A measured human15 pose overrides only the taught pose; metric assistance is XY only.
+        pickup=[pickup[0]+plan['pickup_tcp'][0]-plan['supply_row']['pickup_pose'][0],
+            pickup[1]+plan['pickup_tcp'][1]-plan['supply_row']['pickup_pose'][1],*plan['pickup_tcp'][2:]]
+        record('VISION_DECISION',dict(**report['supply_decision'],commanded_pickup_pose=pickup))
+        high=pickup.copy();high[2]=runtime['pickup_clearance_z_mm']
+        view=runtime['observation_pose'];low_view=[*view[:2],high[2],*view[3:]]
+        for target in (low_view,high,pickup):preflight(target)
+        if max(pose_error(stopped()['posx'],view))>.5:raise RuntimeError('SUPPLY_OBSERVATION_POSE_CHANGED')
+        move('SUPPLY_OBSERVATION_LOWER',low_view);move('SUPPLY_BLOCK_HIGH',high);move('SUPPLY_BLOCK_DESCEND',pickup)
+        record('GRIP_REQUEST',dict(width_mm=plan['supply_row']['close_mm'],force_n=runtime['gripper_force_n']))
+        attempted=True;driver.command_gripper(plan['supply_row']['close_mm'],runtime['gripper_force_n']);grips+=1
+        deadline=clock()+10;stable=0
+        while True:
+            s=sample(busy=True);stable=stable+1 if s['gripper_status']==2 and motion_still(s) else 0
+            if stable>=3:break
+            if clock()>deadline:raise TimeoutError('GRIPPER_FEEDBACK_TIMEOUT')
+            sleep(.1)
+        expected=2;width=s['gripper_width_mm']
+        ask('GRASP_RELATION_CHECK',('GRASP_MATCH',));move('LOADED_SUPPLY_RISE',high)
+        ref=plan['ground_geometry']['seated_reference_tcp_mm_zyz_deg'];transfer=max(view[2],high[2],ref[2]+c['approach_clearance_mm'])
+        move('LOADED_VERTICAL_LIFT',[*high[:2],transfer,*high[3:]])
+        for label,xy in [('SUPPLY_TRANSIT',runtime['startup_route']['supply_transit_xy']),('BODY_BYPASS',runtime['startup_route']['body_bypass_xy']),('ASSEMBLY_OBSERVATION',ref[:2])]:
+            move(label,[*xy,transfer,*ref[3:]])
+        aligned=[*ref[:2],ref[2]+c['approach_clearance_mm'],*ref[3:]]
+        move('ALIGN_ABOVE_TARGET',aligned);ask('ALIGNMENT_CHECK',('ALIGNED',))
+        # No leveling/yaw/XY loop runs after the operator accepts alignment.
+        for i,p in enumerate(plan['intentional_tilt_waypoints']):move(f'INTENTIONAL_TILT_{i:03d}',p['tcp_mm_zyz_deg'],loaded_contact=True)
+        baseline=stopped()['wrench'];contact=True
+        record('CONTACT_BASELINE',dict(sample=last,baseline_wrench=baseline,force_is_engagement_classifier=False))
+        s=move('CONTACT_ENTRY',plan['contact_entry_tcp'],loaded_contact=True)
+        floor=plan['partial_geometry']['waypoints'][0]['tcp_mm_zyz_deg'][2]-c['search_below_nominal_mm']
+        while True:
+            answer,s=ask('STUD_ENGAGEMENT_CHECK',('NO_ENGAGEMENT_NEXT','STUD_ENGAGED'))
+            if answer=='STUD_ENGAGED':break
+            if s['posx'][2]<=floor+.05:raise RuntimeError('CONTACT_SEARCH_EXHAUSTED_WITHOUT_ENGAGEMENT')
+            target=s['posx'].copy();target[2]=max(floor,target[2]-c['descent_step_mm'])
+            move('CONTACT_DESCENT_STEP',target,loaded_contact=True)
+        nominal=plan['partial_geometry']['waypoints'][0]['tcp_mm_zyz_deg'];mm,deg=pose_error(s['posx'],nominal)
+        record('ENGAGEMENT_AXIS_CHECK',dict(sample=s,position_error_mm=mm,so3_error_deg=deg,
+            axis=plan['ground_geometry']['contact_line_points_mm'],axis_physically_verified=False))
+        if mm>c['axis_registration_tolerance_mm'] or deg>.05:raise RuntimeError('ENGAGEMENT_OUTSIDE_REGISTERED_AXIS_REMEASURE_REQUIRED')
+        ask('PARTIAL_PIVOT_READY',('PIVOT_READY',));engaged=stopped()['posx']
+        start_angle=plan['partial_geometry']['waypoints'][0]['tilt_deg'];axis=plan['ground_geometry']['contact_line_points_mm']
+        for i,p in enumerate(plan['partial_geometry']['waypoints'][1:]):
+            move(f'PARTIAL_PIVOT_{i:03d}',rotate_about_contact_line(engaged,axis,p['tilt_deg']-start_angle),loaded_contact=True)
+        _,final=ask('PARTIAL_RESULT_INSPECTION',('PARTIAL_OBSERVED',))
+        result=dict(status='PARTIAL_PIVOT_COMMANDS_COMPLETED_OPERATOR_REPORT_NOT_SEATING',backend=driver.mode,
+            physical_commands=moves+grips+1 if driver.mode=='REAL' else 0,move_line_requests=moves,gripper_close_commands=grips,
+            gripper_release_commands=0,press_commands=0,remaining_tilt_deg=plan['remaining_tilt_deg'],final_sample=final,
+            assembly_completion=False,loaded_pivot_physically_verified=False,operator_report_received=True)
+        record('RESULT',result);return result
+    except BaseException as error:
+        failure=None;feedback=None
+        if attempted:
+            previous=getattr(driver,'ui_pump',None)
+            if hasattr(driver,'stop_ui_pump'):driver.ui_pump=driver.stop_ui_pump
+            try:driver.stop();feedback=driver.motion_feedback()
+            except Exception as stop_error:failure=str(stop_error)
+            finally:
+                if hasattr(driver,'stop_ui_pump'):driver.ui_pump=previous
+        try:
+            record('ABORT',dict(reason=str(error),sample=last,assembly_completion=False,automatic_open_or_retry=False))
+            if feedback is not None:record('STOP_FEEDBACK',feedback)
+            if failure is not None:record('STOP_FAILED',dict(reason=failure))
+        except Exception as log_error:error.add_note('ABORT_LOGGING_FAILED: '+str(log_error))
+        if failure is not None:error.add_note('STOP_FAILED: '+failure)
+        raise

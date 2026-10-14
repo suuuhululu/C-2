@@ -894,3 +894,12 @@ GPU 현재 A snapshot92파일을 CPU deliverables/GPU_A_수정본_CPU보관_2026
 - 과거 BODY_BYPASS→PLACE 39N/잔류21N 중단 근거를 보존하고 새 현장 경로 확인을 받음. 기하적 Z 여유20mm는 전체 간섭 검증이 아님. 픽셀 투영은 provisional, actual TCP 자세와 실제 블록 평면을 구분. HJK 복귀/명령 완료를 원호 접촉축 유지·파지 유지·체결 완료로 승격하지 않음.
 - 실제 소프트웨어 검사226 PASS(신규20 포함): air trial 및 관측/기하/held/기존 motion backend/position trial. 공유 ROS 초기화의 signal 처리도 확인해 운영자 STOP 전에 context가 닫히지 않도록 함. 현재 입력 CLI preview 정상(PREPARED_MISSING_FIELD_GEOMETRY, STANDARD5, 120/12, 물리명령0). 합성 단위 입력의 상공 그림을 /tmp에 생성해 시각 확인했으며 실측 profile로 저장하지 않음. 모터/그리퍼 명령0.
 - scenario3 PREPARED_FOR_FIELD_TEST, 실측 관계·결착 축·실제 경로 여유·사용자 원호/파지 결과 미확인. 완료1/다음2 및 기존 관측 기록은 보존. 실행 준비와 실물 완료를 분리했고 4단계 전체 프롬프트에 입력/3단계 결과 확인을 선행하도록 반영. 다른 checkout/Round2 기본 step/Plan/B Current 수정 없음. 상세 실행 안내는 D_YELLOW4_CHALLENGE_STAGES_20261014.md의3단계 절.
+
+### 2026-10-14 노랑4점 challenge 4단계 — 공급 최초 파지·stud 걸림 관찰·부분 회전 준비
+- 사용자 실행3단계 출력은 PREPARED_MISSING_FIELD_GEOMETRY/물리명령0. ignored log preview 원본과SHA를 진행 기록에 연결하고 실제 원호 검증으로 승격하지 않음.2단계 paired 관계/축/판 고정 및3단계 실제 held 시험·작업자 검토는 아직 미확인.
+- 기존5mm 공급 교시와 OpenCV stud/검출·미검출·XY 보조·좌표fallback을 읽어 최초 파지→G 파지 확인→MoveL 이송/관측→목표+20 기준 pose/A 정렬 확인→XYZ+자세 의도적 기울임→제한 접촉 하강/N·E 걸림 관찰→R 부분 원호→I 관찰로 연결.15mm 보완 모드는 별도 실측 공급 TCP/동일 grasp_id 없이 +10mm 후보로 실행하지 않음.
+- 사용자는 접촉 조건 미정/너무 느리지 않게 요청. contact_trial.json에 미검증 후보6mm/s·1°/s,2° 부분 회전, 진입+2mm/0.5mm 검색/명목 아래2mm를 명시. raw45N은 중단에만 사용, 이전 held README의 모멘트 변화1Nm 후보는 접촉 직전 기준 대비 변화로 구분. 물성 한도·실측 조건·일정 힘 유지·자동 걸림 판정으로 표시하지 않음.
+- 등록 BASE 접촉축에 실제 정지 걸림 TCP를 지점으로 부분 원호를 계산. 걸림 pose가 등록과 크게 다르면 축을 임의 이동하지 않음. 의도적 기울임 뒤 수평/XY/HJK 루프 없음. 끝은 부분 기울임·파지 유지이며 완전 착좌/개방/상승/누름으로 자동 전이하지 않음. 들림/미끄러짐/접촉부 이동/UNKNOWN, force/moment/폭 변화, 응답 불명/기록 실패는STOP·상태 보존·재전송/개방 없음.
+- 공통 팝업/ROS node와 기존 AssemblyMotionRos writer 재사용. 비차단 ROI/윗면 모서리 두 클릭, 픽셀 yaw와 실제 블록 RPY 구분. command/actual/SO(3)/raw wrench/폭/입력·확정 관찰·시간 journal, 원본 공급 분석 영상과 동작 중 최대5Hz/단계/오류 RGB 프레임 저장.3단계 run별 preview 고정 복사본 추가로 후속 parent preview 덮어쓰기와 구분.
+- 관련 검사269 PASS(신규28 포함): contact/air/관측/기하/held/기존 motion backend/position/supply. 양쪽 회전 방향·강체 관계·0° 완전 착좌 배제·설정 실패·3단계 scope/축/판 고정·STD5/HUMAN15·vision 보조/fallback·제한 검색·fault/ACK/journal·팝업 입력·부분 경로 표시·run 자료 연결 검증. 현재 node-free preview 정상/실측 누락 표시, 합성 부분 원호 그림 시각 확인. Robot/그리퍼 명령0, 실제 팝업 조작·걸림·부분 회전 실물 결과 미검증.
+- scenario4 PREPARED_FOR_FIELD_TEST. 기존 completed1/next2는 물리 준비 기준으로 보존하고 next_development_stage5를 구분. 실행 안내/5단계 전체 프롬프트 갱신. Round2 기본 step/Plan/B Current·다른 checkout·원본 교시 변경 없음. 새 dependency/framework/제어 서비스 없음. 상세는 D_YELLOW4_CHALLENGE_STAGES_20261014.md의4단계 절.

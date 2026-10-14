@@ -1,0 +1,29 @@
+{
+  "schema_version": "yellow4-contact-trial/1",
+  "parameter_source": "DEVELOPMENT_TRIAL_CANDIDATES_NOT_FIELD_VALIDATED",
+  "contact": {
+    "approach_clearance_mm": 20,
+    "entry_clearance_mm": 2,
+    "search_below_nominal_mm": 2,
+    "descent_step_mm": 0.5,
+    "partial_rotation_deg": 2,
+    "linear_velocity_mm_s": 6,
+    "angular_velocity_deg_s": 1,
+    "linear_acceleration_mm_s2": 12,
+    "angular_acceleration_deg_s2": 1,
+    "force_stop_n": 45,
+    "moment_delta_stop_nm": 1,
+    "width_drift_stop_mm": 2,
+    "axis_registration_tolerance_mm": 0.5
+  },
+  "sources": {
+    "approach_clearance": "PRIOR_USER_TARGET_PLUS20_OBSERVATION_REQUEST",
+    "linear_velocity": "PRIOR_USER_DESCENT6_REQUEST_REUSED_AS_CONTACT_TRIAL_CANDIDATE",
+    "angular_velocity_and_search_limits": "PROPOSED_DEVELOPMENT_VALUES_USER_NO_FIXED_CONDITIONS_20261014",
+    "force_stop": "PRIOR_USER45N_STOP_ONLY_NOT_ENGAGEMENT_OR_CONSTANT_FORCE",
+    "moment_delta_stop": "robot_control_integration/settings/held_corner_stud_20261014/README.md: historical trial 1Nm delta; not material limit"
+  },
+  "air_trial_review": null,
+  "measured_supply_pickup": null,
+  "note": "Operator E reports stud engagement. These rates/limits are unvalidated trial candidates, not measured block geometry. air_trial_review requires evidence_ref, arc_observed=true and grip_maintained=true. HUMAN_REPLACEMENT additionally needs measured_supply_pickup bound to the same grasp_id/mode/height."
+}
