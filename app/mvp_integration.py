@@ -432,10 +432,16 @@ def main(runtime_class=MvpIntegration, *, real_trial=False):
     parser.add_argument('--design',type=Path,help='명시적인 FAKE C 후보 파일; 생략하면 C 생성 함수 사용')
     parser.add_argument('--c-mode',choices=('offline','live'),default='offline')
     if real_trial:
+        parser.add_argument('--round3-fixed-step', action='store_true',
+            help='T1 고정 현장 시험만 HMI에서 실행. C/A 실행·B 완료·최종 저장과 분리')
         parser.add_argument('--contact-alignment-trial',action='store_true',help='연속 결착 하강 · 전체 반력 40N 정지 시험; 실물 미검증')
         parser.add_argument('--execute',action='store_true',required=True,
             help='실제 Robot·카메라 제스처 연결 허용. B 관측은 가짜 시험 입력')
     args=parser.parse_args()
+    if real_trial and args.round3_fixed_step and args.contact_alignment_trial:
+        parser.error('T1 고정 시험은 기존 round2 설정을 사용합니다. --contact-alignment-trial과 함께 사용하지 마세요.')
+    if real_trial and args.round3_fixed_step and args.design:
+        parser.error('T1 고정 시험에는 --design을 사용할 수 없습니다. 기존 T1 시나리오만 실행합니다.')
     from PyQt5.QtCore import QTimer
     from PyQt5.QtWidgets import QApplication, QInputDialog, QLineEdit, QMessageBox
     from app.qt_hmi import HmiWindow
@@ -445,7 +451,8 @@ def main(runtime_class=MvpIntegration, *, real_trial=False):
     runtime=runtime_class(args.robot_root,args.log_directory,fixture_design=design,c_mode=args.c_mode,
         history_dsn=os.environ.get('HISTORY_DATABASE_DSN'),
         web_url=os.environ.get('HISTORY_WEB_URL','http://127.0.0.1:8765'),
-        **({'contact_alignment_trial':args.contact_alignment_trial} if real_trial else {}))
+        **(dict(contact_alignment_trial=args.contact_alignment_trial,
+                **({'round3_fixed_step':True} if args.round3_fixed_step else {})) if real_trial else {}))
     window.creator_bar.setVisible(runtime.history_dsn is not None)
     if real_trial:
         from PyQt5.QtWidgets import QCheckBox, QPushButton, QComboBox
@@ -468,6 +475,10 @@ def main(runtime_class=MvpIntegration, *, real_trial=False):
         fake_check.currentIndexChanged.connect(lambda index:setattr(runtime,'next_fake_check',
             ('MATCH','MISMATCH','UNOBSERVABLE','ERROR')[index]))
         window.setWindowTitle('전체 기능 실물 시험 · REAL Robot/제스처 · 가짜 B'+trial_suffix)
+        if args.round3_fixed_step:
+            review.setText('T1 시험 준비 확인: 기존 8블록 사전배치·노랑 2×2 슬롯4·빈 그리퍼 HOME·작업영역 확인')
+            voice.hide()
+            fake_check.hide()
     def publish():
         runtime.poll()
         snapshot=runtime.workflow.snapshot()
@@ -506,6 +517,17 @@ def main(runtime_class=MvpIntegration, *, real_trial=False):
                     ASSEMBLY_ACK='조립 완료 · 검사 진행',ALIGNMENT_READY='정렬 확인 완료')[request['kind']])
                 window.notice.setPlainText(window.notice.toPlainText()+'\n제스처가 인식되지 않으면 확인 버튼을 누르세요.')
         if runtime.c_pending:window.notice.setPlainText(runtime.question)
+        if real_trial and args.round3_fixed_step:
+            window.setWindowTitle('Round3 · T1 고정 로봇 시험 · 최종 조립 판정 아님')
+            window.heading.setText('T1: 노랑 2×2 슬롯4 → (9,9,L2) · 기존 8블록 배치 필요')
+            window.buttons['START'].setText('T1 고정 시험 시작')
+            window.buttons['RESUME'].setEnabled(False)
+            running = runtime.fixed_trial is not None and runtime.fixed_trial.process is not None and runtime.fixed_trial.process.poll() is None
+            window.buttons['STOP'].setEnabled(running)
+            window.dialogue_input.hide()
+            window.dialogue_send.hide()
+            if runtime.fixed_trial is not None:
+                window.notice.setPlainText((runtime.workflow.reason or '')+'\n기록: '+str(runtime.fixed_trial.directory))
     def request(value):
         accepted=runtime.request(value)
         if 'request_id' in value:

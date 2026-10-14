@@ -1,5 +1,16 @@
 # 현재 진행 상황
 
+## 2026-10-15 — Round3 HMI → T1 고정 로봇 시험 연결
+
+- 기준: 원격 `codex/integration-round2`의 `5652b694`; 로컬 `codex/integration-round3` 생성. 기존 미추적 실측자료는 변경하지 않았다. commit/push/PR은 수행하지 않았다.
+- `full-real --round3-fixed-step`에서 HMI 로그인(기존 DB 설정 시)·준비 확인·시작 버튼 → 기존 round2 현장 시험의 T1 단독 실행 → 종료 결과·기록 경로 표시를 연결했다. native CLI에 `--only-step T1`을 추가했으며 T2/T3는 실행하지 않는다.
+- OpenCV 공급 검출/선택적 XY 보정, 영상 yaw 자동 조정, 윗면 반력45N 누르기는 기존 현장 시험 함수를 재사용한다. 보정 자료 미검증 시 교시 좌표 유지, 실제 모서리 지정/팝업 조작과 기존 삽입·힘·정지 조건을 유지한다.
+- STOP/창 종료는 기존 시험 프로세스의 SIGINT→driver.stop/정리를 사용한다. 강제 kill·자동 재개 없음. 프로세스 종료를 실제 정지 검증으로 표시하지 않는다.
+- 시험 종료 후 HOLD이며 B Current·최종 조립 완료·저장은 갱신하지 않는다. C 음성 설계와 A의 임의 Step을 새 제어에 연결하는 작업은 후속 범위다. 설명/실행 방법: [고정 HMI 안내](D_ROUND3_FIXED_HMI.md).
+- 검증: 새 HMI/프로세스/중단/결과 검증 및 단일 T1 합성 재생, 기존 공급 좌표·선택한 기존 HMI/프로세스 회귀 검사 43 passed, 16 deselected(기존 실패 포함 전체 검사 결과는 아래 별도 기록). 관련 native round2/정렬/공급 검사 120 passed, 1389 deselected. 합성 T1 재생은 physical_commands=0, image_yaw_replayed=false이며 실제 yaw/접촉 물리 검증이 아니다.
+- 기존 full-real adapter + robot process 검사: 33 passed, 5 failed. 실패5건은 수정 전 두 HMI 모듈을 원격 round2 원본으로 로드한 비교에서도 동일 재현됐다(비교 선택 6건 중 5 failed, 1 passed). 테스트 설계가 현재 C의 최소 지지 규칙을 위반해 INVALID_INPUT으로 거부됨. 기존 실패를 숨기거나 테스트/규칙을 완화하지 않았다.
+- 미검증: 실제 Robot/ROS/Camera/음성 API/DB 로그인·실물 정지·결착·현장 팝업 조작. 자동 CI/lint/type 도구는 추가하지 않았다.
+
 ## 2026-10-14 — B INITIAL 관측을 V0 단독으로 변경
 
 - INITIAL 생산자의 관측 순서와 사이클 순서 검증을 V0 단독으로 변경했다. STEP·FINAL은 V0→D1→D3를 유지한다. 관측 근거가 부족한 INITIAL 보류, 기존 보정·Depth/Grid·Current/revision·STOP/취소 조건은 유지한다. D 파일은 변경하지 않았다.

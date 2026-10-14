@@ -94,7 +94,11 @@ def measured_document(bundle, identity, epoch):
 class FullFeatureRealTrial(MvpIntegration):
     supply_slot_count = FULL_REAL_SUPPLY_SLOT_COUNT
 
-    def __init__(self,robot_root,directory,*,contact_alignment_trial=False,**kwargs):
+    def __init__(self,robot_root,directory,*,contact_alignment_trial=False,round3_fixed_step=False,**kwargs):
+        self.fixed_step = round3_fixed_step
+        self.fixed_trial = None
+        self.fixed_result = None
+        self.fixed_robot_root = Path(robot_root)
         self.inputs=measured_inputs(robot_root)
         if self.inputs['taught_supply'] is None:
             raise ValueError('SUPPLY_TEACHING_REQUIRED_FOR_FULL_REAL_TRIAL')
@@ -153,6 +157,8 @@ class FullFeatureRealTrial(MvpIntegration):
         self.review_ref='OPERATOR_FULL_FEATURE_'+str(uuid4()) if checked else None
 
     def command(self,name):
+        if self.fixed_step:
+            return self.fixed_command(name)
         if name=='START' and not self.review_ref:return False
         if name=='STOP':
             idle=self.workflow.execution_id is None
@@ -163,6 +169,40 @@ class FullFeatureRealTrial(MvpIntegration):
                 self.robot.send('READ_STATE')
             return accepted
         return super().command(name)
+
+    def fixed_command(self, name):
+        if (name == 'STOP' and self.fixed_trial is not None and self.fixed_trial.process is not None
+                and self.fixed_trial.process.poll() is None):
+            self.fixed_trial.stop()
+            self.workflow.robot_status = 'STOP_PENDING'
+            self.workflow.status, self.workflow.reason = 'HOLD', '정지 요청 전송 · 실제 정지 확인 필요'
+            return True
+        if (name != 'START' or self.workflow.status != 'IDLE' or not self.review_ref
+                or self.login_pending or self.owner_state == 'PENDING'):
+            return False
+        if self.history_dsn is not None and self.creator is None:
+            self.creator_reason = '시작 전에 제작자 로그인이 필요합니다.'
+            return False
+        from app.round3_fixed_trial import FixedStepProcess
+        self.workflow.job_id = str(uuid4())
+        self.job_creator = deepcopy(self.creator)
+        self.workflow.status = 'DELIVERING'
+        self.workflow.robot_status = 'BUSY'
+        self.workflow.reason = 'T1 고정 시험 · 공급 인식 → yaw 정렬 → 조립·윗면 누르기 · 기존 팝업 조작 필요'
+        if not self.workflow.event('ROUND3_FIXED_TRIAL_STARTED', dict(step_id='T1',
+                source='round2_three_step_trial', assembly_completion=False, current_update=False)):
+            return False
+        if self.job_creator is not None:
+            self.link_creator()
+        self.fixed_trial = FixedStepProcess(self.fixed_robot_root,
+            self.directory / self.workflow.job_id / 'fixed-trial')
+        try:
+            self.fixed_trial.start()
+        except (OSError, ValueError, RuntimeError) as error:
+            self.workflow.status, self.workflow.reason = 'HOLD', str(error)
+            self.workflow.robot_status = 'ERROR'
+            return False
+        return True
 
     def emit(self,port,payload):
         if port=='d.prepare_step':
@@ -211,6 +251,18 @@ class FullFeatureRealTrial(MvpIntegration):
 
     def poll(self):
         super().poll()
+        if self.fixed_step:
+            if self.fixed_trial is not None and self.fixed_result is None:
+                result = self.fixed_trial.poll()
+                if result is not None:
+                    self.fixed_result = result
+                    self.workflow.status = 'HOLD'
+                    self.workflow.robot_status = None  # Process exit is not measured physical stillness.
+                    self.workflow.reason = ('T1 동작 시험 종료 · 실제 조립·정지 확인 필요 · B 판정·최종 저장 미연결'
+                        if result['status'] == 'FIXED_STEP_EXECUTED' else
+                        'T1 시험 중단/실패 · 실제 정지 확인 후 console.log와 events.jsonl 확인')
+                    self.workflow.event('ROUND3_FIXED_TRIAL_RESULT', result)
+            return
         if self.pending_read and time.monotonic()-self.pending_read['opened']>20:
             self.pending_read=None
             self.workflow.status,self.workflow.reason='HOLD','LIVE_STATE_QUERY_TIMEOUT'
@@ -218,6 +270,11 @@ class FullFeatureRealTrial(MvpIntegration):
             self.workflow.release_instruction='B는 가짜입니다. 실물 구조의 안정을 직접 확인한 뒤 도움을 해제해주세요.'
         if self.workflow.help and self.workflow.help['kind']=='HUMAN_ASSEMBLY':
             self.workflow.help['instruction']='목표 위치에 조립한 뒤 엄지척을 보여주세요. 10초 안에 확인하지 못하면 관측을 보류하고 다시 검사합니다. B는 가짜입니다.'
+
+    def close(self):
+        if self.fixed_trial is not None:
+            self.fixed_trial.close()
+        super().close()
 
     def answer_voice(self):
         if self.c_mode!='live' or self.c_pending is None:return False

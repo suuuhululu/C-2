@@ -272,9 +272,14 @@ def main(argv=None):
     p.add_argument('--confirm-hand-clear', action='store_true')
     p.add_argument('--start-zone', choices=('home', 'assembly', 'supply'), default='home')
     p.add_argument('--tilt-accuracy-test', action='store_true')
+    p.add_argument('--only-step', choices=('T1',), help='Run only the first step on the original eight-block baseline')
     args = p.parse_args(argv)
     scenario = read(args.scenario)
     prepared = prepare(scenario)
+    if args.only_step:
+        if prepared[0]['case']['step_id'] != args.only_step:
+            raise ValueError('FIXED_STEP_MUST_BE_FIRST_ON_ORIGINAL_BASELINE')
+        prepared = prepared[:1]
     for item in prepared:
         item['config']['tilt_accuracy_test'] = args.tilt_accuracy_test
     if args.command == 'preview' or (args.command == 'run' and not args.execute):
@@ -340,10 +345,14 @@ def main(argv=None):
                     for sig, handler in old.items():
                         signal.signal(sig, handler)
                     driver.close()
+        if args.only_step and result['status'] == 'THREE_CYCLES_COMPLETED':
+            result['status'] = 'FIXED_STEP_EXECUTED'
+        if args.command == 'run':
+            result.update(provenance='LIVE_D_RUNTIME', backend='REAL')
         result['output_directory'] = str(directory.resolve())
         (directory / 'result.json').write_text(json.dumps(result, ensure_ascii=False, indent=2) + '\n')
         print(json.dumps(result, ensure_ascii=False, indent=2))
-        return 0 if result['status'] == 'THREE_CYCLES_COMPLETED' else 2
+        return 0 if result['status'] in ('THREE_CYCLES_COMPLETED', 'FIXED_STEP_EXECUTED') else 2
 
 
 if __name__ == '__main__':
