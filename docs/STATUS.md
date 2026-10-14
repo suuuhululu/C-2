@@ -1098,3 +1098,23 @@ GPU 현재 A snapshot92파일을 CPU deliverables/GPU_A_수정본_CPU보관_2026
 - PR 복사본 검증: native 전체+관련 비전1498개, 등록 기하/파지 계획29개 통과(합계1527개). 실제 device command 없음. 일반/held preview 정상, source/JSON 및 diff 확인. 4층 채택 실측 선택·축 힘35N 불일치·미검증 패드 datum 승격도 점검해 수정.
 
 - 검토용 Draft PR #46 게시: https://github.com/suuuhululu/C-2/pull/46 ; base=codex/integration-round2, head=codex/round2-robot-control-20261014. merge하지 않았으며 기존 작업 checkout/다른 변경은 보존했다.
+
+### 2026-10-14 로컬 웹 목록 새로고침·대용량 상세 조회 수정
+
+- `b0d22e5` 기준 별도 웹 checkout의 `codex/web-design-refresh-20261014`에서 수정. 직접 로그인과 세션 복원의 보기 차이를 해소하고, GALLERY / MY DESIGNS 선택을 탭의 sessionStorage에 유지한다. 목록 조회 중에는 로딩 상태를 표시하며 오류는 빈 정상 목록으로 감추지 않는다.
+- 개인 상세에 소유자 인증을 유지하는 `/api/jobs/{id}/summary`를 추가했다. 전체 이력으로 설계·검사·완료·저장 근거를 계산하되 화면 timeline은 최근 100개와 전체 건수를 반환한다. 기존 전체 상세 API와 EXPORT JSON은 전체 기록을 유지한다. 항목 JSON은 펼칠 때 생성한다.
+- 실제 기존 작업의 디자인 버전1·2·3, 이벤트62,185개를 읽기 조회로 확인했다. 전체 timeline JSON164,373,310바이트에서 summary 응답866,536바이트로 줄었으며, 이 환경의 summary DB 조회·직렬화6.9초를 측정했다. 고빈도 camera/motion 로그가 많아 서버의 전체 이력 읽기 비용은 남아 있다.
+- 별도 `c2_history_web_test` DB에서 기존 HTTP/개인 이력 검사와 새 summary 범위·소유자 격리 검사를 실행해22 passed, skip0. 실제 app.js를 실행하는 DOM 대역의 새 보기 복원/소유v1–v3 Publish 활성/summary 조회/전체 export/오류/lazy JSON 검사와 기존 SVG 검사, JS/Python 문법·diff 검사를 통과했다.
+- 실제 로그인된 브라우저에서 페이지 새로고침 후 MY DESIGNS의v1·v2·v3 카드와 로딩 안내를 확인하고, v3 상세의 Publish 버튼 활성화를 확인했다. 실제 게시 버튼은 누르지 않았다.
+- 로컬 서버에 적용했다. 기존 원본 로그·계정·Job·DB 이벤트·게시 상태는 보존했다. GitHub push/PR/merge, Robot/ROS/카메라 동작, 실제 디자인 게시·삭제는 수행하지 않았다. 이벤트 선별 적재 정책은 이번 조회 수정에 포함하지 않았다.
+
+### 2026-10-14 원본 보존·선별 DB 적재·도안 중심 웹 (위 초기 수정의 후속)
+
+- 통합 대상 `codex/integration-round2`의 최신 `e868bba`를 일반 merge로 반영했다. 사용자 지시에 따라 웹은 로그를 불러오지 않고 도안·제작자·최종 채택 설계의 완료/저장/공개 상태만 조회한다. EXPORT DESIGN JSON은 선택 버전의 Design만 내보내며 전체 이력 API를 호출하지 않는다.
+- 신규 source는 `operational-v1`을 기본으로 일반 ROBOT_CAMERA_CANDIDATE/ROBOT_MOTION_SAMPLE만 제외한다. 신호 후보·명시적 오류/실패·사유·알 수 없는 이벤트는 보존한다. 기존 source의 all 정책·업무 기록·소유권·영수증·공개 상태는 유지한다.
+- 원본은 별도 SHA-256 파일명 스냅샷으로 보존하고, 미완결 꼬리까지 bytes를 유지한다. 선별 전 모든 완결 행을 검사하며 prefix 해시로 제외한 행의 수정·잘림도 거절한다. 003 migration은 source 보관/선별 메타데이터만 추가한다. Docker /records 읽기 전용은 유지하고 /reports/original_logs에 보관한다.
+- 최신 통합 반영 후 관련 Python/실제 별도 PostgreSQL 검사233 passed, 외부 Robot 자료/5층 MOCK 산출물 미준비4 skipped, 실패0. DOM/설계 export·SVG 검사와 JS/Python 문법·diff 확인 통과. Docker에서 실제 읽기 전용 입력·쓰기 가능한 별도 보관·선별 적재와 원본 bytes 유지도 확인했다.
+- 기존 원본62,186행을 분리 시험 DB의 rollback 범위에서 적재해7,294건 선택, Design v1/v2/v3·제스처 후보·마지막 CAMERA_FAILED 보존을 확인했다. 원본64,575,350bytes 사본과 운영 DB 백업은 로컬에 별도 보관하고 Git에 포함하지 않았다. 운영 DB events62,185/jobs1/users1/artifacts9/영수증1/공개0이 유지됨을 확인했다.
+- 같은 로컬 DB에서 도안 library 조회0.047초, summary 조회0.649초/응답11,159bytes를 한 번 측정했다. 서버 DB 조회 기준이며 전체 사용자 응답 시간 상한이나 성능 보장은 아니다. 전체 이력·원본은 운영 CLI/API와 별도 파일로 유지한다. [정책·실행·한계](D_HISTORY_SELECTION.md).
+- 로컬 웹 서버에 적용했다. 실제 게시·삭제·Robot/ROS/장치 동작은 실행하지 않았다. 사용자 요청에 따라 위 변경을 integration-round2 대상 PR로 게시하며 병합은 사람 리뷰 대상이다.
+- [PR #49](https://github.com/suuuhululu/C-2/pull/49) 게시 완료: base=`codex/integration-round2`, head=`codex/web-design-refresh-20261014`. 현재 OPEN이며 병합하지 않았다.
