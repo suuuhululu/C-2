@@ -29,6 +29,7 @@ def measure_instance(rgb, mask, part_class, depth, info, calibration, layer_heig
                      height_tolerance_mm=None, *, height_reference_offset_mm=0., depth_range_m=None,
                      max_height_spread_mm=None, block_stud_height_mm=0., surface_diagnostics=None,
                      top_plane_stud_mm=0., first_layer_min_mm=None, first_layer_max_mm=None,
+                     layer_upper_bounds_mm=None,
                      board_plane=None):
     from .live_view import board_point
     if calibration is None or depth is None or info is None:
@@ -112,7 +113,7 @@ def measure_instance(rgb, mask, part_class, depth, info, calibration, layer_heig
             raise ValueError('invalid_or_overlapping_layer_reference')
         from .depth_grid import layer_band_index
         index = layer_band_index(reference_height, levels, height_tolerance_mm, first_layer_min_mm,
-                            first_layer_max_mm)
+                            first_layer_max_mm, upper_bounds=layer_upper_bounds_mm)
         if index is not None:
             result.update(layer=index+1, reason=None)
         else:
@@ -148,7 +149,8 @@ def process_frame(rgb, model, confidence, depth=None, info=None, calibration=Non
                   layer_heights_mm=None, height_tolerance_mm=None, *, roi_mask=None,
                   height_reference_offset_mm=0., depth_range_m=None, max_height_spread_mm=None,
                   block_stud_height_mm=0., top_plane_stud_mm=0., first_layer_min_mm=None,
-                  first_layer_max_mm=None, board_baseline_params=None, board_bounds_mm=None):
+                  first_layer_max_mm=None, board_baseline_params=None, board_bounds_mm=None,
+                  layer_upper_bounds_mm=None):
     if rgb.dtype != np.uint8 or rgb.ndim != 3 or rgb.shape[2] != 3:
         raise ValueError('uint8 RGB required')
     if not np.isfinite(confidence) or not 0 < confidence <= 1:
@@ -215,6 +217,7 @@ def process_frame(rgb, model, confidence, depth=None, info=None, calibration=Non
                                               top_plane_stud_mm=top_plane_stud_mm,
                                               first_layer_min_mm=first_layer_min_mm,
                                               first_layer_max_mm=first_layer_max_mm,
+                                              layer_upper_bounds_mm=layer_upper_bounds_mm,
                                               board_plane=board_plane,
                                               surface_diagnostics=surface_diagnostics))
             except (ValueError, KeyError, cv2.error) as error:

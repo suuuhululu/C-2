@@ -117,6 +117,8 @@ def load_layer_reference(path=None):
                     if config.get('first_layer_min_height_m') is not None else None),
                 first_layer_max_mm=(config['first_layer_max_height_m'] * 1000.
                     if config.get('first_layer_max_height_m') is not None else None),
+                layer_upper_bounds_mm=([value * 1000. for value in config['layer_upper_bounds_m']]
+                    if config.get('layer_upper_bounds_m') is not None else None),
                 board_baseline_params=params_from_geometry(config, 1000.),
                 board_bounds_mm=(np.asarray(config['board_bounds_m'], float) * 1000.).tolist(),
                 height_reference_offset_mm=config['board_stud_height_m'] * 1000.,
@@ -623,6 +625,7 @@ def main(argv=None):
                             top_plane_stud_mm=layer_reference.get('top_plane_stud_mm', 0.),
                             first_layer_min_mm=layer_reference.get('first_layer_min_mm'),
                             first_layer_max_mm=layer_reference.get('first_layer_max_mm'),
+                            layer_upper_bounds_mm=layer_reference.get('layer_upper_bounds_mm'),
                             board_baseline_params=layer_reference.get('board_baseline_params'),
                             board_bounds_mm=layer_reference.get('board_bounds_mm'))
                         for record in records:

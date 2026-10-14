@@ -61,24 +61,26 @@ def test_layer_tolerance_is_five_millimetres_and_below_half_spacing():
 
 
 def test_plane_plus_stud_inside_the_layer_one_range_is_measured():
-    # A plane at 20mm becomes 24mm after the stud: inside layer 1's 6..25mm range (owner decision 2026-10-14).
+    # A plane at 20mm becomes 24mm after the stud: inside layer 1's 6..24.3mm range (owner decision 2026-10-14).
     mask, rgb, depth, transform, intrinsics, config = inputs(20.)
     result = measure_candidate(mask, 'yellow_2x2', .9, depth, .001, intrinsics,
                                transform, config, rgb=rgb)
     assert result['status'] == 'CANDIDATE' and result['measured_layer_index'] == 0
 
 
-def test_plane_plus_stud_above_the_layer_one_range_is_unknown():
-    # A plane at 22mm becomes 26mm after the stud: above 25mm and far below layer 2's band.
-    mask, rgb, depth, transform, intrinsics, config = inputs(22.)
-    result = measure_candidate(mask, 'yellow_2x2', .9, depth, .001, intrinsics,
-                               transform, config, rgb=rgb)
-    assert result['status'] == 'UNKNOWN' and result['reason'] == 'height_not_in_measured_layer'
+def test_plane_plus_stud_just_above_layer_one_belongs_to_layer_two():
+    # Contiguous bands: a plane at 20.4mm becomes 24.4mm, the first height above layer 1's 24.3mm bound.
+    for plane_mm, expected in ((20.2, 0), (20.4, 1), (22., 1), (39., 1), (39.4, 2)):
+        mask, rgb, depth, transform, intrinsics, config = inputs(plane_mm)
+        result = measure_candidate(mask, 'yellow_2x2', .9, depth, .001, intrinsics,
+                                   transform, config, rgb=rgb)
+        assert result['status'] == 'CANDIDATE', plane_mm
+        assert result['measured_layer_index'] == expected, plane_mm
 
 
-def test_plane_plus_stud_outside_layer_tolerance_stays_unknown():
-    # A plane at 24mm becomes 28mm after the stud: 6mm from layer 1, outside +/-5mm.
-    mask, rgb, depth, transform, intrinsics, config = inputs(24.)
+def test_plane_plus_stud_above_the_last_layer_bound_is_unknown():
+    # A plane at 96mm becomes 100mm after the stud: above layer 5's 99mm bound.
+    mask, rgb, depth, transform, intrinsics, config = inputs(96.)
     result = measure_candidate(mask, 'yellow_2x2', .9, depth, .001, intrinsics,
                                transform, config, rgb=rgb)
     assert result['status'] == 'UNKNOWN' and result['reason'] == 'height_not_in_measured_layer'

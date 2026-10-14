@@ -42,6 +42,7 @@ def main(argv=None):
                 top_plane_stud_mm=reference.get('top_plane_stud_mm', 0.),
                 first_layer_min_mm=reference.get('first_layer_min_mm'),
                 first_layer_max_mm=reference.get('first_layer_max_mm'),
+                layer_upper_bounds_mm=reference.get('layer_upper_bounds_mm'),
                 board_baseline_params=reference.get('board_baseline_params'),
                 board_bounds_mm=reference.get('board_bounds_mm'))
             row.update(view=view, captured_at=meta['captured_at'],

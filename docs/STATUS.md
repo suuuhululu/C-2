@@ -1,5 +1,9 @@
 # 현재 진행 상황
 
+## 2026-10-14 — B INITIAL 관측을 V0 단독으로 변경
+
+- INITIAL 생산자의 관측 순서와 사이클 순서 검증을 V0 단독으로 변경했다. STEP·FINAL은 V0→D1→D3를 유지한다. 관측 근거가 부족한 INITIAL 보류, 기존 보정·Depth/Grid·Current/revision·STOP/취소 조건은 유지한다. D 파일은 변경하지 않았다.
+- 검증: `PYTHONPATH=.:perception python3 -m pytest -q perception/perception_mvp/tests` → 484 passed, 1 skipped(PR22 소비자 코드 미제공), 종료 0. V0 단독 INITIAL 촬영·전달·저장과 근거 부족 보류, STEP·FINAL 단독 관측 거절을 확인했다. 실제 통합 PC·로봇 이동 재시험과 Git 게시는 미실행이다.
 ## 2026-10-14 — A 놓기·가압 판단을 조립 방식 분류로 축소
 
 - 사용자 최종 확인: A는 기존 그리퍼 접근 불가 + 바로 아래층 밑면 결합점 전체 존재일 때 놓기·가압 방식이 필요하다고 반환한다. D가 실측 파지·TCP·해제 높이·개방/후퇴/닫기/가압·실제 운반 경로를 담당한다. 원본 ZIP·교시·이전 검토 기록은 보존한다.

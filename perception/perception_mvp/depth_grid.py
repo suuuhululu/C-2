@@ -12,10 +12,12 @@ CLASSES = LIVE_CLASSES
 
 
 # --- Layer rule (shared by the team path here and by integrated_view/live_view; unit agnostic) ---
-# A height belongs to the nearest layer when within +/- tolerance of that layer's reference.
+# Default: a height belongs to the nearest layer when within +/- tolerance of that layer's reference.
 # Owner decision 2026-10-14: layer 1 is first_layer_min..first_layer_max (6..25mm) when a minimum
-# is configured; without a maximum, layer 1 ends at reference + tolerance. Layers 2..5 keep the
-# symmetric band.
+# is configured; without a maximum, layer 1 ends at reference + tolerance.
+# Owner decision 2026-10-14 (later): when upper_bounds are given, the layers are contiguous bands.
+# Layer 1 is first_layer_min..upper_bounds[0]; layer n is upper_bounds[n-2]..upper_bounds[n-1];
+# a shared edge belongs to the lower layer; above the last bound (or below first_layer_min) is None.
 def validate_first_layer_range(first_layer_min, first_layer_max, levels, tolerance=0.):
     if first_layer_min is None and first_layer_max is None:
         return
@@ -29,9 +31,34 @@ def validate_first_layer_range(first_layer_min, first_layer_max, levels, toleran
         raise ValueError('invalid_first_layer_max')
 
 
-def layer_band_index(height, levels, tolerance, first_layer_min=None, first_layer_max=None):
+def validate_layer_upper_bounds(upper_bounds, levels, first_layer_min=None):
+    """Upper edge per layer: finite, increasing, one per layer, each at or above its own reference."""
+    if upper_bounds is None:
+        return
+    bounds = np.asarray(upper_bounds, float)
+    levels = np.asarray(levels, float)
+    if (bounds.shape != levels.shape or not np.isfinite(bounds).all() or np.any(np.diff(bounds) <= 0) or
+            np.any(bounds < levels) or np.any(bounds[:-1] >= levels[1:])):
+        raise ValueError('invalid_layer_upper_bounds')
+    if first_layer_min is not None and (not np.isfinite(first_layer_min) or
+                                        not 0 <= first_layer_min < bounds[0]):
+        raise ValueError('invalid_first_layer_min')
+
+
+def layer_band_index(height, levels, tolerance, first_layer_min=None, first_layer_max=None,
+                     upper_bounds=None):
     """Return the zero-based layer index or None when the height is outside every band."""
     levels = np.asarray(levels, float)
+    if upper_bounds is not None:
+        validate_layer_upper_bounds(upper_bounds, levels, first_layer_min)
+        bounds = np.asarray(upper_bounds, float)
+        low = first_layer_min if first_layer_min is not None else bounds[0] - (bounds[1] - bounds[0])
+        if height < low and not np.isclose(height, low, rtol=1e-9, atol=0.):
+            return None
+        for index, bound in enumerate(bounds):
+            if height <= bound or np.isclose(height, bound, rtol=1e-9, atol=0.):
+                return index
+        return None
     validate_first_layer_range(first_layer_min, first_layer_max, levels, tolerance)
     index = int(np.argmin(np.abs(levels - height)))
     if index == 0 and (first_layer_min is not None or first_layer_max is not None):
@@ -240,6 +267,7 @@ def validate_config(config):
         raise ValueError("layer tolerance intervals overlap")
     validate_first_layer_range(config.get("first_layer_min_height_m"),
                                config.get("first_layer_max_height_m"), heights, config["height_tolerance_m"])
+    validate_layer_upper_bounds(config.get("layer_upper_bounds_m"), heights, config.get("first_layer_min_height_m"))
     if config["min_depth_m"] >= config["max_depth_m"]:
         raise ValueError("invalid depth range")
     if config["threshold_status"] not in ("temporary_test", "validated"):
@@ -387,7 +415,8 @@ def measure_candidate(mask, part_class, confidence, depth, scale, intrinsics,
             if board_plane is not None else 0.)
     height = body_height - bias + stud_increment
     layer_index = layer_band_index(height, config["top_heights_m"], config["height_tolerance_m"],
-                                  config.get("first_layer_min_height_m"), config.get("first_layer_max_height_m"))
+                                  config.get("first_layer_min_height_m"), config.get("first_layer_max_height_m"),
+                                  upper_bounds=config.get("layer_upper_bounds_m"))
     if layer_index is None:
         return unknown("height_not_in_measured_layer")
     footprint_points = board[:, :2]
