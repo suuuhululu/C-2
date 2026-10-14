@@ -1,0 +1,307 @@
+{
+  "connection": {
+    "robot_id": "dsr01",
+    "ros_domain_id": 20,
+    "gripper_ip": "192.168.1.1",
+    "tcp": "GripperDA_v4",
+    "tool": "ToolWeight0"
+  },
+  "observation_pose": [
+    -443.4389343261719,
+    -38.81204605102539,
+    374.3517761230469,
+    8.74850845336914,
+    178.39500427246094,
+    8.59197998046875
+  ],
+  "blocks": [
+    {
+      "color": "yellow",
+      "brick_type": "2x2x1",
+      "slot": 1,
+      "span": 2,
+      "pickup_pose": [
+        -327.85296630859375,
+        193.36367797851562,
+        52.078731536865234,
+        102.85449981689453,
+        -176.07705688476562,
+        104.31108093261719
+      ],
+      "pose_source": "robot_control_integration/fixtures/teaching_sources/operator_supply.json",
+      "close_mm": 35.0,
+      "original_slot_pose": [
+        -327.85296630859375,
+        193.36367797851562,
+        52.078731536865234,
+        102.85449981689453,
+        -176.07705688476562,
+        104.31108093261719
+      ],
+      "slot_coordinate_basis": "EXISTING_INTEGRATION_SUPPLY_TEACHING_WITH_EXISTING_INTERPOLATION",
+      "axis_base_z_turn_deg": 0,
+      "axis_rotation_status": "EXISTING_TWO_STUD_AXIS",
+      "axis_xy_correction_mm": [
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "color": "yellow",
+      "brick_type": "2x3x1",
+      "slot": 2,
+      "span": 3,
+      "pickup_pose": [
+        -393.6773986816406,
+        134.99899291992188,
+        48.91222381591797,
+        25.965773074677912,
+        177.26971453222032,
+        -62.701268760230604
+      ],
+      "pose_source": "robot_control_integration/fixtures/teaching_sources/operator_supply.json",
+      "close_mm": 40.0,
+      "original_slot_pose": [
+        -392.2115020751953,
+        140.78577423095703,
+        48.91222381591797,
+        -64.03422692532209,
+        177.26971453222032,
+        -62.701268760230604
+      ],
+      "slot_coordinate_basis": "EXISTING_INTEGRATION_SUPPLY_TEACHING_WITH_EXISTING_INTERPOLATION",
+      "axis_base_z_turn_deg": 90,
+      "axis_rotation_status": "TRIAL_CANDIDATE_NOT_PHYSICALLY_VERIFIED",
+      "axis_xy_correction_mm": [
+        -1.4658966064453125,
+        -5.786781311035156
+      ]
+    },
+    {
+      "color": "blue",
+      "brick_type": "2x2x1",
+      "slot": 3,
+      "span": 2,
+      "pickup_pose": [
+        -457.457275390625,
+        70.50921630859375,
+        50.43630599975586,
+        122.93928527832031,
+        -177.34364318847656,
+        124.11911010742188
+      ],
+      "pose_source": "robot_control_integration/fixtures/teaching_sources/operator_supply.json",
+      "close_mm": 35.0,
+      "original_slot_pose": [
+        -457.457275390625,
+        70.50921630859375,
+        50.43630599975586,
+        122.93928527832031,
+        -177.34364318847656,
+        124.11911010742188
+      ],
+      "slot_coordinate_basis": "EXISTING_INTEGRATION_SUPPLY_TEACHING_WITH_EXISTING_INTERPOLATION",
+      "axis_base_z_turn_deg": 0,
+      "axis_rotation_status": "EXISTING_TWO_STUD_AXIS",
+      "axis_xy_correction_mm": [
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "color": "blue",
+      "brick_type": "2x3x1",
+      "slot": 4,
+      "span": 3,
+      "pickup_pose": [
+        -523.9770660400391,
+        10.93272082010905,
+        48.273502349853516,
+        42.79177755673052,
+        177.32961367283596,
+        -46.12526485710051
+      ],
+      "pose_source": "robot_control_integration/fixtures/teaching_sources/operator_supply.json",
+      "close_mm": 40.0,
+      "rejected_teaching": {
+        "pickup_pose": [
+          454.39703369140625,
+          85.85386657714844,
+          45.63211441040039,
+          123.88050842285156,
+          -178.61183166503906,
+          124.1709976196289
+        ],
+        "pose_source": "robot_control_integration/settings/supply_sequence_20261014/slot4-teaching-1791924674165302564.json",
+        "reason": "ASSEMBLY_POSE_RECORDED_AS_SUPPLY"
+      },
+      "original_slot_pose": [
+        -522.5111694335938,
+        16.719502131144207,
+        48.273502349853516,
+        -47.208222443269484,
+        177.32961367283596,
+        -46.12526485710051
+      ],
+      "slot_coordinate_basis": "EXISTING_INTEGRATION_SUPPLY_TEACHING_WITH_EXISTING_INTERPOLATION",
+      "axis_base_z_turn_deg": 90,
+      "axis_rotation_status": "TRIAL_CANDIDATE_NOT_PHYSICALLY_VERIFIED",
+      "axis_xy_correction_mm": [
+        -1.4658966064453125,
+        -5.786781311035156
+      ]
+    },
+    {
+      "color": "red",
+      "brick_type": "1x2x1",
+      "slot": 5,
+      "span": 1,
+      "pickup_pose": [
+        -586.1466217041016,
+        -50.241860707600914,
+        48.91156133015951,
+        74.24779561131135,
+        178.91127289892884,
+        -14.59148022991485
+      ],
+      "pose_source": "robot_control_integration/fixtures/teaching_sources/operator_supply.json",
+      "close_mm": 20.0,
+      "rejected_teaching": {
+        "pickup_pose": [
+          454.39703369140625,
+          85.85386657714844,
+          45.63211441040039,
+          123.88050842285156,
+          -178.61183166503906,
+          124.1709976196289
+        ],
+        "pose_source": "robot_control_integration/settings/supply_sequence_20261014/slot5-teaching-1791924675858307299.json",
+        "reason": "ASSEMBLY_POSE_RECORDED_AS_SUPPLY"
+      },
+      "original_slot_pose": [
+        -587.1710510253906,
+        -44.0242551167806,
+        48.91156133015951,
+        -15.752204388688666,
+        178.91127289892884,
+        -14.59148022991485
+      ],
+      "slot_coordinate_basis": "EXISTING_INTEGRATION_SUPPLY_TEACHING_WITH_EXISTING_INTERPOLATION",
+      "axis_base_z_turn_deg": 90,
+      "axis_rotation_status": "TRIAL_CANDIDATE_NOT_PHYSICALLY_VERIFIED",
+      "axis_xy_correction_mm": [
+        1.0244293212890625,
+        -6.2176055908203125
+      ]
+    }
+  ],
+  "open_mm": 60.0,
+  "gripper_force_n": 40.0,
+  "force_stop_n": 35.0,
+  "velocity": 24.0,
+  "acceleration": 48.0,
+  "angular_velocity": 6.0,
+  "angular_acceleration": 3.0,
+  "scope": "LOCAL_VISION_DIAGNOSTIC_PICK_RELEASE_NO_ASSEMBLY",
+  "rates_status": "USER_RISE24_DESCENT24_TRANSIT120_ACCEL48_ANGULAR6_ACCEL3",
+  "vision": {
+    "rgb_topic": "/camera/color/image_raw",
+    "layout": "robot_control_integration/settings/supply_sequence_20261014/opencv_stud_layout.json",
+    "weights": null,
+    "model_deps": null,
+    "confidence": 0.3,
+    "green_gray": false,
+    "center_basis": "STUD_ARRAY",
+    "backend": "opencv_studs"
+  },
+  "teaching_xy_bounds_mm": [
+    [
+      -681.1200561523438,
+      -297.85296630859375
+    ],
+    [
+      -80.39606857299805,
+      233.4738006591797
+    ]
+  ],
+  "axis_corrections": {
+    "3": {
+      "reference_slot": 2,
+      "reference_color": "yellow",
+      "reference_type": "2x3x1",
+      "original_pose": [
+        -392.2115020751953,
+        140.78577423095703,
+        48.91222381591797,
+        -64.03422692532209,
+        177.26971453222032,
+        -62.701268760230604
+      ],
+      "rotated_pose": [
+        -393.6773986816406,
+        134.99899291992188,
+        45.74927520751953,
+        128.96139526367188,
+        179.6641845703125,
+        -141.7808380126953
+      ],
+      "delta_xy_mm": [
+        -1.4658966064453125,
+        -5.786781311035156
+      ],
+      "original_source": "robot_control_integration/fixtures/teaching_sources/operator_supply.json",
+      "rotated_source": "logs/round2-field-prep-20261014-5eb9a39a/ready-pack/new-axis-gripper-command-reports.json",
+      "basis": "OPERATOR_ROTATED_GRASP_MINUS_EXISTING_SLOT_COORDINATE",
+      "physical_transfer_verified": false
+    },
+    "1": {
+      "reference_slot": 2,
+      "reference_color": "red",
+      "reference_type": "1x2x1",
+      "original_pose": [
+        -396.92417907714844,
+        -49.11936569213867,
+        49.61886405944824,
+        -19.748137982254498,
+        178.86052602812785,
+        -19.360533466344823
+      ],
+      "rotated_pose": [
+        -395.8997497558594,
+        -55.336971282958984,
+        49.89592361450195,
+        34.26015853881836,
+        179.89491271972656,
+        123.39974212646484
+      ],
+      "delta_xy_mm": [
+        1.0244293212890625,
+        -6.2176055908203125
+      ],
+      "original_source": "robot_control_integration/fixtures/teaching_sources/operator_supply.json",
+      "rotated_source": "logs/round2-field-prep-20261014-5eb9a39a/ready-pack/new-axis-gripper-command-reports.json",
+      "basis": "OPERATOR_ROTATED_GRASP_MINUS_EXISTING_SLOT_COORDINATE",
+      "physical_transfer_verified": false
+    }
+  },
+  "startup_route": {
+    "place_xy": [
+      418.2707214355469,
+      -181.1972198486328
+    ],
+    "body_bypass_xy": [
+      -27.878286361694336,
+      -411.9568176269531
+    ],
+    "supply_transit_xy": [
+      -364.8591304347826,
+      -171.54
+    ],
+    "source": "robot_control_integration/settings/integration_native35/profile.reference.json"
+  },
+  "rise_velocity": 24.0,
+  "transit_velocity": 120.0,
+  "rise_acceleration": 48.0,
+  "transit_acceleration": 48.0,
+  "pickup_clearance_z_mm": 194.73294067382812
+}

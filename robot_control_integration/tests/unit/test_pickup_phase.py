@@ -152,3 +152,57 @@ def test_invalid_pickup_open_range_is_rejected_before_devices(bounds):
     step = next(step for step in STEPS if step['case_id']+'/'+step['step_id'] == plan['key'])
     with pytest.raises(ValueError, match='INVALID_PICKUP_START_OPEN_RANGE'):
         build_plan(step, profile)
+
+
+def center_trial(target_change=None, assisted=False, status='VISION_GRASP_PLAN_FOR_REVIEW'):
+    plan, driver = fixture_plan()
+    plan['settings']['pickup_center_max_shift_mm'] = 2.
+    taught = plan['settings']['pickup_pose'].copy()
+    events, calls = [], []
+
+    def provider(bound_plan, sample):
+        calls.append((bound_plan, sample))
+        target = taught.copy()
+        if target_change:
+            index, delta = target_change
+            target[index] += delta
+        return dict(status=status, policy='COORDINATE_FIRST_WITH_OPTIONAL_CENTER',
+                    candidate_tcp_mm_zyz_deg=target, center_assist_applied=assisted,
+                    reason='NOT_RECOGNIZED' if not assisted else None)
+
+    result = run_step(driver, CONNECTION, plan, MOCK_PROFILE, lambda *_: True,
+                      lambda event, data: events.append((event, data)),
+                      phase='pickup', pickup_center=provider, sleep=lambda _: None)
+    return result, driver, events, calls, taught
+
+
+def test_fresh_center_is_applied_at_clearance_then_vertical_lower():
+    result, driver, events, calls, taught = center_trial((0, 1.), True)
+    assert result['status'] == 'PAUSED_PICKUP_COMPLETE_HOLDING'
+    assert len(calls) == 1 and calls[0][1]['gripper_status'] == 0
+    assert calls[0][1]['posx'][2] >= MOCK_PROFILE['clearance_z_mm']
+    moves = [data for event, data in events if event == 'STEP_MOVE']
+    assert moves[-2]['label'] == 'PICKUP_CENTER_ALIGN'
+    assert moves[-2]['target'][:2] == moves[-1]['target'][:2]
+    assert driver.value['posx'] == [taught[0]+1., *taught[1:]]
+    assert not result['assembly_completion']
+
+
+def test_unrecognized_center_preserves_exact_taught_pickup():
+    _, driver, events, _, taught = center_trial()
+    assert driver.value['posx'] == taught
+    assert not any(event == 'STEP_MOVE' and data['label'] == 'PICKUP_CENTER_ALIGN'
+                   for event, data in events)
+    assert any(event == 'PICKUP_CENTER_DECISION' for event, _ in events)
+
+
+@pytest.mark.parametrize('change,assisted,status,error', [
+    ((2, .1), True, 'VISION_GRASP_PLAN_FOR_REVIEW', 'PRESERVE_Z_ORIENTATION'),
+    ((3, .1), True, 'VISION_GRASP_PLAN_FOR_REVIEW', 'PRESERVE_Z_ORIENTATION'),
+    ((0, 3.), True, 'VISION_GRASP_PLAN_FOR_REVIEW', 'OUTSIDE_REVIEWED_BOUND'),
+    ((0, 1.), False, 'VISION_GRASP_PLAN_FOR_REVIEW', 'PRESERVE_TAUGHT_POSE'),
+    (None, False, 'BLOCKED', 'PICKUP_CENTER_BLOCKED'),
+])
+def test_invalid_or_blocked_center_never_falls_through_to_close(change, assisted, status, error):
+    with pytest.raises(ValueError, match=error):
+        center_trial(change, assisted, status)

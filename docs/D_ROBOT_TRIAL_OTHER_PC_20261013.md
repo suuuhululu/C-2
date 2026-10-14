@@ -1,8 +1,8 @@
-# 다른 PC에서 round1 Robot 시험 브랜치 실행하기
+# 다른 PC에서 round2 Robot 시험 브랜치 실행하기
 
-[PR #36](https://github.com/suuuhululu/C-2/pull/36)의 공급 MoveL·40N 시험에 슬롯1~5 정책·외부 DRCF2 경로·다른 PC용 roboton2를 추가한 후속 안내다. 기준은 PR #39가 병합된 `codex/integration-round1 @ 115271e`다.
+[PR #36](https://github.com/suuuhululu/C-2/pull/36)의 공급 MoveL·40N 시험에 슬롯1~5 정책·외부 DRCF2 경로·다른 PC용 roboton2를 추가한 후속 안내다. [round1 PR #41](https://github.com/suuuhululu/C-2/pull/41)의 변경을 PR #40이 병합된 `codex/integration-round2 @ 8818518`에 동일하게 반영했다.
 
-대상 저장소: `suuuhululu/C-2` · 후속 시험 브랜치: `codex/round1-trial-local-fixes-20261013` · PR 기준 브랜치: `codex/integration-round1`.
+대상 저장소: `suuuhululu/C-2` · 후속 시험 브랜치: `codex/round2-trial-local-fixes-20261013` · PR 기준 브랜치: `codex/integration-round2`.
 
 이 안내의 REAL 명령은 실제 Robot·그리퍼를 움직인다. B는 가짜 관측이다. `--c-mode offline`도 C 대화만 오프라인이며 Robot은 REAL이다. 장치를 연결하지 않는 검사는 아래 오프라인 검증 절차를 사용한다. 기존 Job을 자동 복원하지 않으며 새 시험으로 시작한다.
 
@@ -30,7 +30,7 @@
 새 폴더를 사용하면 다른 PC의 기존 작업을 보존할 수 있다. private 저장소라면 해당 PC의 GitHub 인증이 먼저 필요하다.
 
 ```bash
-git clone --branch codex/round1-trial-local-fixes-20261013 --single-branch   https://github.com/suuuhululu/C-2.git "$HOME/C-2-robot-trial"
+git clone --branch codex/round2-trial-local-fixes-20261013 --single-branch   https://github.com/suuuhululu/C-2.git "$HOME/C-2-robot-trial"
 cd "$HOME/C-2-robot-trial"
 git branch --show-current
 git log -1 --oneline
@@ -42,8 +42,8 @@ export C2_ROBOT_ROOT="$PWD/robot_control_integration"
 ```bash
 cd "$HOME/C-2-robot-trial"
 git status --short
-git fetch origin codex/round1-trial-local-fixes-20261013
-git pull --ff-only origin codex/round1-trial-local-fixes-20261013
+git fetch origin codex/round2-trial-local-fixes-20261013
+git pull --ff-only origin codex/round2-trial-local-fixes-20261013
 export C2_ROBOT_ROOT="$PWD/robot_control_integration"
 ```
 

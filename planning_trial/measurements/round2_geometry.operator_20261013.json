@@ -1,0 +1,109 @@
+{
+  "schema_version": "round2-user-measurement-reference/1",
+  "reported_date": "2026-10-13",
+  "source_kind": "USER_REPORTED_CALIPER_MEASUREMENT",
+  "method": "User measured with vernier caliper and supplied five RGB photographs in this chat.",
+  "measured_at": null,
+  "execution_allowed": false,
+  "physical_gate_passed": false,
+  "reported_dimensions": {
+    "span_1_outer_length_mm": 15.6,
+    "span_2_outer_length_mm": 31.8,
+    "span_3_outer_length_mm": 47.9,
+    "body_height_without_studs_mm": 19.6,
+    "height_with_studs_mm": 24.0,
+    "stud_diameter_mm": 9.4,
+    "gripping_pad_thickness_mm": 1.6,
+    "gripping_pad_face_height_mm": 30.0,
+    "gripping_pad_face_width_mm": 20.7
+  },
+  "uncertainty": {
+    "user_statement": "치수는 버니어캘리퍼로 잰 크기라 1mm내외로 오차가 있을 수 있습니다.",
+    "approximate_possible_length_error_mm": 1.0,
+    "interpretation": "Approximate reported error, not a certified bound, standard deviation, instrument resolution or robot acceptance tolerance.",
+    "instrument_resolution_mm": null,
+    "repeat_measurements": null,
+    "derived_value_uncertainty": null
+  },
+  "corrections": {
+    "withdrawn_pad_area_value": 11.4,
+    "withdrawn_pad_area_unit": "mm^2",
+    "withdrawn_value_usable": false,
+    "latest_user_statement": "세로로 30.0mm에 가로로 20.7mm입니다. 잡는쪽 패드 면적"
+  },
+  "derived": {
+    "stud_height_from_difference_mm": 4.4,
+    "stud_height_formula": "24.0 - 19.6",
+    "stud_height_directly_measured": false,
+    "rectangular_pad_face_area_mm2": 621.0,
+    "pad_area_formula": "30.0 * 20.7",
+    "pad_area_basis": "Nominal rectangular area of the reported gripping-pad face; not actual loaded brick contact area or combined area of both pads.",
+    "raised_grasp_candidate_mm": 9.4,
+    "raised_grasp_formula": "prior reported pad-bottom height 5.0 + derived stud height 4.4",
+    "raised_grasp_measured": false,
+    "assembly_layer_increment_mm": null
+  },
+  "photos": [
+    {
+      "filename": "image (10).png",
+      "evidence_path": "logs/round2-stage1-20261013/user-caliper/photos/image (10).png",
+      "sha256": "f1cacda3919d04809979aba0a4e4108bc297a5648d9e2d6e1c89fd352fdbc8af",
+      "brick_type": "1x2x1", "color": "red", "reported_grip_span_studs": 1
+    },
+    {
+      "filename": "image (9).png",
+      "evidence_path": "logs/round2-stage1-20261013/user-caliper/photos/image (9).png",
+      "sha256": "a47047fdda1ec684a06d53d3d110279ec5a14066aa4efc438bdcaca18da54066",
+      "brick_type": "2x2x1", "color": "blue", "reported_grip_span_studs": 2
+    },
+    {
+      "filename": "image (8).png",
+      "evidence_path": "logs/round2-stage1-20261013/user-caliper/photos/image (8).png",
+      "sha256": "a1c6fda552129faf2e8be9cfef947af5481b509968e3617bbd8ed97389183c0b",
+      "brick_type": "1x2x1", "color": "red", "reported_grip_span_studs": 2
+    },
+    {
+      "filename": "image (7).png",
+      "evidence_path": "logs/round2-stage1-20261013/user-caliper/photos/image (7).png",
+      "sha256": "e68ef70a99b7a90015fe6a9deea9bed296ffdcbe7126f7fd001cb7798234d02b",
+      "brick_type": "2x3x1", "color": "blue", "reported_grip_span_studs": 3
+    },
+    {
+      "filename": "image (6).png",
+      "evidence_path": "logs/round2-stage1-20261013/user-caliper/photos/image (6).png",
+      "sha256": "fa5452a3a88ff6d05652a38ddfb15cbfea330d3ed020049e3d0a5c8e4f1c310c",
+      "brick_type": "2x3x1", "color": "blue", "reported_grip_span_studs": 2
+    }
+  ],
+  "photo_evidence": {
+    "identity_basis": "USER_CONFIRMED_PHOTO_LABEL",
+    "visual_scope": "PARTIAL_RGB_VISUAL_OBSERVATION",
+    "description": "The held brick is partly visible at the bottom of each image; lower edges and parts of the gripper/contact faces are cropped.",
+    "captured_at": null,
+    "camera_model": null,
+    "camera_info": null,
+    "aligned_depth": null,
+    "robot_pose": null,
+    "grip_height_verified": false,
+    "metric_pose_verified": false,
+    "transport_stability_verified": false,
+    "force_press_verified": false
+  },
+  "pending": {
+    "socket_dimensions": null,
+    "stud_center_pitch_remeasurement_mm": null,
+    "actual_loaded_pad_contact_area_mm2": null,
+    "actual_jaw_gap_and_command_mapping": null,
+    "left_right_pad_equivalence": null,
+    "tcp_to_brick_transform": null,
+    "assembled_pair_height_remeasurement_mm": null,
+    "force_and_seating_capture_envelope": null,
+    "top_press_contact_surface": null
+  },
+  "limitations": [
+    "Use as the latest reported individual dimensions while retaining older measurements and taught poses.",
+    "Outer block lengths do not replace stud center pitch or the six-slot supply-board model.",
+    "Do not change layer increments, TCP poses, gripper commands or force thresholds from these measurements alone.",
+    "Photos provide static grasp examples, not repeated automatic pickup, transport, force or complete-seating verification."
+  ]
+}

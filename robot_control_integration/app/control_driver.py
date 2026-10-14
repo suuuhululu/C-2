@@ -200,7 +200,8 @@ class ControlledDriver:
 
 
 def execute_step(raw, session, connection, plan, profile, confirm, record, *, phase='contact',
-                 start_zone='assembly', camera_poll=None, clock=time.monotonic, sleep=time.sleep):
+                 start_zone='assembly', camera_poll=None, pickup_center=None,
+                 clock=time.monotonic, sleep=time.sleep):
     from app.human_step_gestures import validate_policy as validate_human_policy, STAGES, wait_stage
     validate_human_policy(plan, profile, session.value)
     from app.assembly_native_press import validate_native_press
@@ -258,7 +259,8 @@ def execute_step(raw, session, connection, plan, profile, confirm, record, *, ph
                                   camera_poll, clock=clock, sleep=sleep)
         else:
             result = run_step(driver, connection, plan, profile, answer, emit,
-                              phase=phase, start_zone=start_zone, clock=clock, sleep=sleep)
+                              phase=phase, start_zone=start_zone, pickup_center=pickup_center,
+                              clock=clock, sleep=sleep)
         session.check()
         result.update(execution_id=session.value['execution_id'], backend=session.value['backend'],
                       final_state_sequence=session.state_sequence, physical_verified=False,

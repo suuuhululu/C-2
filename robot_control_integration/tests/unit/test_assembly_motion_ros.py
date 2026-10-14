@@ -224,3 +224,31 @@ def test_pressure_stages_use_absolute_controller_mode():
     assert [fields['mod'] for _,_,fields in item.calls]==[0,0]
     assert [fields['fd'][2] for _,_,fields in item.calls]==[-25.,-30.]
     assert all(fields['dir']==[0,0,1,0,0,0] for _,_,fields in item.calls)
+
+
+def test_stopped_slow_query_is_replaced_by_new_read_without_faking_timing(monkeypatch):
+    from copy import deepcopy
+    item=driver();original=item.sample();late=deepcopy(original);late['query_duration_s']=.7
+    fresh=deepcopy(original);fresh['query_duration_s']=.12;fresh['posx'][2]+=.1
+    reads=[late,fresh];events=[]
+    item._sample_once=lambda:reads.pop(0)
+    item.config['timing']['stopped_sample_retry_window_s']=5.
+    item.feedback_record=lambda event,data:events.append((event,data))
+    monkeypatch.setattr('app.assembly_motion_ros.time.sleep',lambda _:None)
+    result=item.sample()
+    assert result is fresh and result['query_duration_s']==.12
+    assert late['query_duration_s']==.7 and events[0][1]['sample'] is late
+    assert not reads and events[0][0]=='FEEDBACK_REFRESH_WAIT'
+
+
+@pytest.mark.parametrize('case',['moving','force','equipment'])
+def test_stale_query_never_waits_through_motion_force_or_equipment_fault(case):
+    item=driver();late=item.sample();late['query_duration_s']=.7
+    if case=='moving':late['motion_status']=1
+    if case=='force':late['wrench'][2]=35.
+    if case=='equipment':late['tcp']='WRONG_TCP'
+    item.config['timing']['stopped_sample_retry_window_s']=5.
+    calls=[]
+    def read():calls.append(1);return late
+    item._sample_once=read
+    assert item.sample() is late and calls==[1]

@@ -30,12 +30,12 @@ def assembly_target_pose(settings):
 
 
 def run_step(driver, connection, plan, profile, confirm, record, *, phase='full',
-             start_zone='assembly', clock=time.monotonic, sleep=time.sleep):
+             start_zone='assembly', pickup_center=None, assembly_alignment=None, clock=time.monotonic, sleep=time.sleep):
     if phase not in ('full', 'pickup', 'approach', 'contact', 'release', 'retreat', 'assemble-held', 'grasp-recovery', 'human-wait', 'human-ack') or start_zone not in ('assembly', 'place', 'supply'):
         raise ValueError('INVALID_PHASE_OR_START_ZONE')
     if getattr(driver, 'mode', None) == 'REAL':
         validate_physical(plan, profile, phase)
-    settings = plan['settings']
+    settings = deepcopy(plan['settings'])
     stillness_policy=getattr(getattr(driver,'session',None),'value',{}).get('stillness',{})
     result = dict(key=plan['key'], phase=phase, mode=plan['mode'],
                   assembly_completion=False, current_update=False, automatic_retry=False,
@@ -52,6 +52,7 @@ def run_step(driver, connection, plan, profile, confirm, record, *, phase='full'
             plan['assistance_kind']!='MANUAL_ASSEMBLY'):
         raise ValueError('HUMAN_WAIT_REQUIRES_MANUAL_TARGET_HIGH_HANDOVER')
     events = []
+    empty_pad_status=0
 
     def emit(event, data):
         events.append(event)
@@ -78,7 +79,8 @@ def run_step(driver, connection, plan, profile, confirm, record, *, phase='full'
         upward = target[2] >= current[2]
         emit('STEP_MOVE', dict(label=label, target=target, gripper_status=held))
         run(driver, connection, target, force, emit,
-            clearance_z=max(current[2], target[2]), transfer_only=upward,
+            clearance_z=(target[2] if target[2]>current[2]+.05 else None) if profile.get('round2') else max(current[2], target[2]),
+            transfer_only=target[2]>=current[2]-.05 if profile.get('round2') else upward,
             transfer_rate=rate, descent_rate=rate, transfer_acceleration=acceleration,
             descent_acceleration=acceleration, set_automatic_mode=False,
             force_norm_stop_n=force, required_gripper_status=held, clock=clock, sleep=sleep)
@@ -101,7 +103,7 @@ def run_step(driver, connection, plan, profile, confirm, record, *, phase='full'
             for label,xy in route:
                 transit(label, xy, orientation, held)
 
-    def grip(width, expected, feedback_bounds=None):
+    def grip(width, expected, feedback_bounds=None, *, empty_pad=False):
         if type(width) not in (int, float) or not math.isfinite(width) or not 0 <= width <= 110:
             raise ValueError('D_MEASURED_GRIPPER_WIDTH_REQUIRED')
         bounds = (release_feedback_range(settings, width) if expected == 0 and
@@ -109,6 +111,8 @@ def run_step(driver, connection, plan, profile, confirm, record, *, phase='full'
         if feedback_bounds is not None:
             bounds = feedback_bounds
         initial = driver.sample()
+        if empty_pad and (expected!=0 or initial['gripper_status']!=0 or width>12.):
+            raise ValueError('EMPTY_PAD_CLOSE_REQUIRES_RELEASED_GRIPPER')
         if not motion_still(initial,stillness_policy):
             verify=getattr(driver,'stillness',None)
             if callable(verify):initial=verify()
@@ -139,12 +143,13 @@ def run_step(driver, connection, plan, profile, confirm, record, *, phase='full'
                 raise RuntimeError('GRIPPER_SAFETY_OR_STATUS_FAULT')
             if not 0 <= actual_width <= 110:
                 raise RuntimeError('INVALID_GRIPPER_WIDTH_FEEDBACK')
-            complete = (feedback['gripper_status'] == expected and
+            empty_complete=(empty_pad and feedback['gripper_status'] in (0,2) and actual_width<=12.)
+            complete = ((empty_complete or feedback['gripper_status'] == expected) and
                         motion_still(feedback,stillness_policy) and
-                        (expected == 2 or bounds[0] <= actual_width <= bounds[1]))
+                        (empty_complete or expected == 2 or bounds[0] <= actual_width <= bounds[1]))
             completed_samples = completed_samples+1 if complete else 0
             if completed_samples >= 3:
-                return
+                return feedback['gripper_status']
             if clock() >= deadline:
                 raise TimeoutError('GRIPPER_COMPLETION_NOT_VERIFIED')
             sleep(.05)
@@ -278,10 +283,43 @@ def run_step(driver, connection, plan, profile, confirm, record, *, phase='full'
             if start_zone != 'supply':
                 route += [('BODY_BYPASS_EMPTY', profile['body_bypass_xy_mm']),
                           ('SUPPLY_20_0_EMPTY', profile['supply_transit_xy_mm'])]
+            if profile.get('round2_supply_observation_pose') is not None:
+                transits(route,pickup[3:],0)
+                move('ROUND2_SUPPLY_OBSERVATION',pose(profile['round2_supply_observation_pose'],'supply_observation'),0)
+                route=[]
             route.append(('PICKUP_APPROACH', pickup[:2]))
-            transits(route, pickup[3:], 0)
+            if profile.get('round2_supply_observation_pose') is None:
+                transits(route, pickup[3:], 0)
             if not wait('PICKUP_ALIGNMENT'):
                 return paused('PICKUP_ALIGNMENT')
+            if pickup_center is not None:
+                # Capture at the stopped approach, never reuse a correction from
+                # an earlier slot. Provider failures propagate through STOP.
+                sample = driver.sample()
+                correction = pickup_center(deepcopy(plan), deepcopy(sample))
+                if not isinstance(correction, dict):
+                    raise ValueError('INVALID_PICKUP_CENTER_RESULT')
+                if correction.get('status') != 'VISION_GRASP_PLAN_FOR_REVIEW':
+                    raise ValueError('PICKUP_CENTER_BLOCKED:'+str(correction.get('reason')))
+                if correction.get('policy') != 'COORDINATE_FIRST_WITH_OPTIONAL_CENTER':
+                    raise ValueError('COORDINATE_FIRST_PICKUP_POLICY_REQUIRED')
+                target = pose(correction.get('candidate_tcp_mm_zyz_deg'), 'vision_pickup_pose')
+                if target[2:] != pickup[2:]:
+                    raise ValueError('PICKUP_CENTER_MUST_PRESERVE_Z_ORIENTATION')
+                assisted = correction.get('center_assist_applied')
+                if assisted is not True and target != pickup:
+                    raise ValueError('PICKUP_FALLBACK_MUST_PRESERVE_TAUGHT_POSE')
+                if assisted is True:
+                    limit = settings.get('pickup_center_max_shift_mm')
+                    if (type(limit) not in (int, float) or not math.isfinite(limit)
+                            or limit <= 0 or math.dist(target[:2], pickup[:2]) > limit):
+                        raise ValueError('PICKUP_CENTER_OUTSIDE_REVIEWED_BOUND')
+                    # Correct laterally at clearance; lower vertically afterward.
+                    transit('PICKUP_CENTER_ALIGN', target[:2], pickup[3:], 0)
+                emit('PICKUP_CENTER_DECISION', correction)
+                pickup = target
+            if profile.get('round2_supply_observation_pose') is not None:
+                transit('PICKUP_APPROACH',pickup[:2],pickup[3:],0)
             move('PICKUP_LOWER', pickup, 0,
                  speed=profile.get('pickup_descent_velocity',profile['descent_velocity']),
                  acceleration=profile.get('pickup_descent_acceleration',profile['descent_acceleration']))
@@ -312,7 +350,7 @@ def run_step(driver, connection, plan, profile, confirm, record, *, phase='full'
                 route += [('SUPPLY_20_0', profile['supply_transit_xy_mm']),
                           ('BODY_BYPASS', profile['body_bypass_xy_mm'])]
             if start_zone in ('supply', 'place'):
-                route.append(('PLACE_BOARD', profile['place_pose'][:2]))
+                route.append(('ROUND2_ASSEMBLY_OBSERVATION',reference[:2]) if profile.get('round2') and plan['mode']!='HUMAN_ASSEMBLY' else ('PLACE_BOARD', profile['place_pose'][:2]))
             merged_human_target=(bool(human_config) and bool(profile.get('transport_blending')) and
                 start_zone=='supply' and
                 math.dist(profile['place_pose'][:2],reference[:2])>2*profile['transport_blending']['radius_mm'] and
@@ -376,6 +414,18 @@ def run_step(driver, connection, plan, profile, confirm, record, *, phase='full'
             else:
                 if not wait('ALIGNMENT_AND_PARALLEL'):
                     return paused('ALIGNMENT')
+                if assembly_alignment is not None:
+                    from app.round2_alignment import automatic_surface_alignment
+                    aligned=automatic_surface_alignment(driver,plan,profile,assembly_alignment,move,emit)
+                    if aligned['status']!='SURFACE_ALIGNMENT_CONVERGED':
+                        return paused('SURFACE_ALIGNMENT_MEASUREMENT')
+                    correction=aligned['candidate']
+                    # Registered producer supplies landing/press Z for this aligned grasp.
+                    reference=pose(correction['landing_pose'],'aligned_landing')
+                    settings.update(reference_pose=reference.copy(),release_pose=reference.copy(),
+                        assembly_tcp_zyz_deg=reference[3:])
+                    settings['press_start_pose']=[*reference[:2],correction['pad_contact_z_mm']+profile['near_contact_offset_mm'],*reference[3:]]
+                    settings['press_approach_pose']=[*reference[:2],correction['pad_contact_z_mm']+profile['approach_offset_mm'],*reference[3:]]
                 if not human_config and plan['assistance_kind'] in ('HOLD', 'PRESS_AND_HOLD'):
                     ready = 'HUMAN_READY' if plan['assistance_kind'] == 'HOLD' else 'HUMAN_HOLD_READY'
                     if not wait(ready):
@@ -402,10 +452,24 @@ def run_step(driver, connection, plan, profile, confirm, record, *, phase='full'
                     if not wait('RELEASE_FOR_TOP_PRESS'):
                         return paused('RELEASE_FOR_TOP_PRESS')
                     grip(settings['release_width_mm'], 0)
-                    move('PRESS_TOOL_APPROACH', settings['press_approach_pose'], 0)
-                    grip(settings['press_width_mm'], 0)
-                    move('PRESS_TOOL_LOWER', settings['press_start_pose'], 0, profile['descent_velocity'])
-                    contact = press_down(profile['max_press_travel_mm'], 0)
+                    if plan.get('raised_human_step') or plan.get('round2_vertical_top_press'):
+                        released_pose=driver.sample()['posx'].copy()
+                        empty_high=released_pose.copy()
+                        empty_high[2]=max(height,settings['press_approach_pose'][2])
+                        move('RAISED_EMPTY_VERTICAL_RETREAT',empty_high,0)
+                        empty_pad_status=grip(settings['press_width_mm'],0,empty_pad=bool(profile.get('round2')))
+                        press_start=released_pose.copy()
+                        press_start[2]=settings['press_start_pose'][2]
+                        if press_start[2]>=empty_high[2]:
+                            raise ValueError('TOP_PRESS_REQUIRES_DOWNWARD_START')
+                        emit('CENTERED_VERTICAL_PRESS',dict(center_xy=released_pose[:2],
+                            force_stop_n=force,force_control_target_n=None))
+                        move('PRESS_TOOL_LOWER',press_start,empty_pad_status,profile['descent_velocity'])
+                    else:
+                        move('PRESS_TOOL_APPROACH', settings['press_approach_pose'], 0)
+                        grip(settings['press_width_mm'], 0)
+                        move('PRESS_TOOL_LOWER', settings['press_start_pose'], 0, profile['descent_velocity'])
+                    contact = press_down(profile['max_press_travel_mm'], empty_pad_status)
                     result['contact_status'] = contact['status']
                 else:
                     # Grasp height changes the contact Z. Monitor force continuously;
@@ -435,7 +499,7 @@ def run_step(driver, connection, plan, profile, confirm, record, *, phase='full'
                 if not wait('RELEASE'):
                     return paused('RELEASE')
                 grip(settings['release_width_mm'], 0)
-            lift(0)
+            lift(empty_pad_status if plan['mode']=='ROBOT_RELEASE_PRESS' else 0)
         result.update(status='AWAITING_BACKEND_OBSERVATION', events=events)
         emit('STEP_RESULT', result)
         return result
@@ -452,8 +516,9 @@ class StepReplayDriver:
     """장치·네트워크·물리 lock을 사용하지 않는 결정론적 workflow 대역. 물리 시뮬레이터가 아니다."""
     mode = 'MOCK'
 
-    def __init__(self, reference, *, reaction_force_n=35.):
+    def __init__(self, reference, *, reaction_force_n=35.,grasp_width_mm=None):
         self.reaction_force_n=reaction_force_n
+        self.grasp_widths=(35.,40.) if grasp_width_mm is None else (grasp_width_mm,)
         self.reference = reference.copy()
         self.value = dict(posx=[418., -181., 112., *reference[3:]], velx=[0.]*6,
                           motion_status=0, query_duration_s=0., tcp='GripperDA_v4', tool='ToolWeight0',
@@ -497,7 +562,7 @@ class StepReplayDriver:
 
     def command_gripper(self, width, force):
         self.grips.append((width, force))
-        self.value.update(gripper_status=2 if width in (35.,40.) else 0,
+        self.value.update(gripper_status=2 if width in self.grasp_widths else 0,
                           gripper_width_mm=40.6 if width==35. else width)
         self.value['wrench'][2] = 5.
 
