@@ -865,3 +865,10 @@ GPU 현재 A snapshot92파일을 CPU deliverables/GPU_A_수정본_CPU보관_2026
 ### 2026-10-14 노랑4점 실험 브랜치 분리
 - 사용자 지시로 codex/integration-challenge를 새로 만들고 원격 게시. 작업 checkout은 c2_integration_challenge. 노랑4점 실험5파일은 이 브랜치로 옮겼으며 일반 Round2 파일/다른 미완료 변경은 보존.
 - Round2 대상 실험 Draft PR47은 병합하지 않고 닫음. 후속 접촉·회전 결착 개발은 challenge에서 진행. 관련 기하 preview는 장치 명령을 보내지 않음.
+
+### 2026-10-14 노랑4점 challenge 0단계 — 회전 결착·분리 순차 개발
+- 사용자 요청으로 노랑2×2 한 블록의 결착 후 분리/회수 독립 시나리오를 설계. CMU 2023의 전용 도구 부착·비틀기와 2025의 선관측/집기/놓기/검사를 확인하고 RG2 적용 검증과 구분. 접촉축+TCP 원호 전략이며 결착 궤적 단순 역재생을 분리 검증으로 표시하지 않음.
+- D_YELLOW4_CHALLENGE_STAGES_20261014.md에 0~7단계 순서·입출력·완료 증거·실물 상태 흐름, D_YELLOW4_CHALLENGE_PROMPTS_20261014.md에 각 단계 입력 프롬프트를 저장. settings/yellow4_challenge_20261014/scenario.json은 개발 기록이며 실행 가능한 robot profile이 아님.
+- 0단계 완료/다음1단계로 기록. 최초 파지/착좌 상대 변환·접촉축·회전 파라미터는 미확인으로 유지. 기존45N은 선택적 위치 누름 중단값으로만 유지하며 접촉/분리 감지나 일정 힘 제어로 사용하지 않음.
+- 실제 검사: 관련 기하·기울기·정렬 tests24 PASS, preview CLI 정상 및 물리명령0/실행허용false, 시나리오 범위/증거/단계 기록·8개 프롬프트·상대 문서 링크·diff 확인. 새 제어 동작/ROS 연결 없음. 실물 결착·분리 및 실제 접촉축·그리퍼 접근/판 고정 미검증.
+- Round2 기본 step/Plan/B Current·팀원 checkout·기존 교시와 profile은 수정하지 않았음. 다음 입력은 1단계 공통 기하/별도 결착·분리 preview 구현 프롬프트.

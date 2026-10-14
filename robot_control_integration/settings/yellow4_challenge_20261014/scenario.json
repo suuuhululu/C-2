@@ -1,0 +1,162 @@
+{
+  "schema_version": "yellow4-challenge-development/1",
+  "purpose": "DEVELOPMENT_SCENARIO_NOT_EXECUTABLE_ROBOT_PROFILE",
+  "branch": "codex/integration-challenge",
+  "scope": {
+    "color": "yellow",
+    "brick_type": "2x2x1",
+    "block_count": 1,
+    "integration_round2_default_changed": false,
+    "writes_b_current": false
+  },
+  "proposed_target": {
+    "x": 17,
+    "y": 17,
+    "layer": 1,
+    "orientation_deg": 0,
+    "source": "PRIOR_USER_TARGET_AND_PREVIEW_EXAMPLE",
+    "current_setup_verified": false,
+    "configurable": true
+  },
+  "operations": {
+    "assembly": [
+      "ALIGN_ABOVE_TARGET",
+      "INTENTIONAL_TILT",
+      "FIRST_CONTACT",
+      "STUD_ENGAGED_TRANSLATION_BLOCKED",
+      "PIVOT_SEATING",
+      "SEATING_INSPECTION",
+      "RELEASE",
+      "OPTIONAL_CLOSED_PAD_PRESS",
+      "POST_RELEASE_INSPECTION"
+    ],
+    "removal": [
+      "INSPECT_SEATED_BLOCK",
+      "GRASP_SEATED_BLOCK",
+      "PIVOT_PARTIAL_RELEASE",
+      "ALL_STUDS_RELEASED",
+      "VERTICAL_CLEARANCE",
+      "RETURN_BLOCK",
+      "POST_REMOVAL_INSPECTION"
+    ]
+  },
+  "geometry": {
+    "model": "FIXED_CONTACT_LINE_WITH_RIGID_GRASP_INITIAL_HYPOTHESIS",
+    "robot_pose_units": "XYZ_mm_ZYZ_deg",
+    "axis_points_units": "mm_in_named_frame",
+    "loaded_pivot_verified": false,
+    "simple_time_reversal_validated": false
+  },
+  "field_inputs": {
+    "supply_pick_tcp": null,
+    "seated_tcp_with_same_grasp": null,
+    "tcp_to_block_transform": null,
+    "board_frame": null,
+    "assembly_contact_line": null,
+    "removal_contact_line": null,
+    "initial_tilt_deg": null,
+    "loaded_angular_speed_deg_s": null,
+    "loaded_translation_speed_mm_s": null,
+    "contact_force_moment_profile": null,
+    "engagement_classifier": null,
+    "release_classifier": null,
+    "note": "Existing measured sources are read first; missing values remain unknown. Synthetic preview values are not promoted to robot-base measurements."
+  },
+  "grasp_policy": {
+    "intended_pad_bottom_height_from_block_bottom_mm": 15,
+    "user_plus_10mm_trial_is_measured_15mm_profile": false,
+    "removal_grasp_reuses_supply_pose_blindly": false
+  },
+  "press_policy": {
+    "optional": true,
+    "method": "POSITION_DESCENT_STOP_AT_RAW_FORCE_NORM",
+    "force_stop_n": 45,
+    "source": "PRIOR_USER_CONFIRMED_PRESS_STOP",
+    "constant_force_control": false,
+    "use_as_engagement_or_release_threshold": false
+  },
+  "evidence_policy": {
+    "command_completed_is_seated": false,
+    "force_drop_alone_is_detached": false,
+    "synthetic_is_measured": false,
+    "unloaded_pose_return_is_block_plane_alignment": false,
+    "automatic_leveling_during_intentional_tilt": false,
+    "hardware_commands_stage_0": 0
+  },
+  "progress": {
+    "completed_stage": 0,
+    "next_stage": 1,
+    "stages": [
+      {
+        "id": 0,
+        "name": "범위·시나리오·증거·단계 프롬프트",
+        "verification_kind": "SOFTWARE",
+        "status": "COMPLETE",
+        "physical_test_verified": false
+      },
+      {
+        "id": 1,
+        "name": "결착·분리 공통 접촉축 기하와 preview",
+        "verification_kind": "SOFTWARE",
+        "status": "PENDING",
+        "physical_test_verified": false
+      },
+      {
+        "id": 2,
+        "name": "기존 좌표 연결·실측 관계·관측 팝업",
+        "verification_kind": "READ_ONLY_FIELD",
+        "status": "PENDING",
+        "physical_test_verified": false
+      },
+      {
+        "id": 3,
+        "name": "조립판 상공 무접촉 원호·회전 시험",
+        "verification_kind": "REAL_NO_CONTACT",
+        "status": "PENDING",
+        "physical_test_verified": false
+      },
+      {
+        "id": 4,
+        "name": "최초 stud 걸림·부분 회전 결착 시험",
+        "verification_kind": "REAL_CONTACT",
+        "status": "PENDING",
+        "physical_test_verified": false
+      },
+      {
+        "id": 5,
+        "name": "완전 회전 결착·개방·결과 검사",
+        "verification_kind": "REAL_ASSEMBLY",
+        "status": "PENDING",
+        "physical_test_verified": false
+      },
+      {
+        "id": 6,
+        "name": "결착 블록 재파지·부분 회전 분리",
+        "verification_kind": "REAL_PARTIAL_REMOVAL",
+        "status": "PENDING",
+        "physical_test_verified": false
+      },
+      {
+        "id": 7,
+        "name": "완전 분리·회수·결착/분리 시나리오 연결",
+        "verification_kind": "REAL_CYCLE",
+        "status": "PENDING",
+        "physical_test_verified": false
+      }
+    ]
+  },
+  "stage_0_verification": {
+    "status": "PASS",
+    "checks": [
+      "scenario scope/evidence/progress consistency",
+      "all eight stage prompts and relative document links",
+      "edge-first geometry / held tilt / round2 alignment: 24 tests passed",
+      "preview CLI: physical_commands=0, execution_allowed=false, assembly_completion=false",
+      "git diff --check"
+    ],
+    "physical_commands": 0,
+    "hardware_test_performed": false
+  },
+  "design_document": "docs/D_YELLOW4_CHALLENGE_STAGES_20261014.md",
+  "prompt_document": "docs/D_YELLOW4_CHALLENGE_PROMPTS_20261014.md"
+}
