@@ -829,3 +829,14 @@ GPU 현재 A snapshot92파일을 CPU deliverables/GPU_A_수정본_CPU보관_2026
 - MoveB가 목표 근처에서 멈추면 원래 최종 목표까지 MoveL 한 번으로 마친 후1mm/1° 도착을 확인한다. 교시·속도/가속도·블렌딩 반경40·결착 XYZ 반력35N 조건은 유지한다. 최종 미도달은 실패/보류이며 집기로 넘기지 않는다. 구 실행의 `resume_allowed=False`를 터미널/로그 편집으로 바꾸는 복구 기능은 추가하지 않았다.
 - 실제 검증: D 오프라인1,106 passed/collection skip1, 최신 로컬 A/D REAL 문서→MOCK21 passed, 모두 종료0. 기록된 S06의 기존 timeout 재현/새 정책 도착,4점/6점×노랑/파랑×로봇/사람 인계에서1→2→3→4→5→6→1(56가상Step), 정상/실패 경로를 검사했다. Python/실행 명령 구문과 D 소스 복사본 일치도 확인했다. 외부A onsite 자료 부재1건 제외.
 - 실물/실행 중 프로세스 미검증. 사용자 요청으로 후속 PR 게시 대상에 포함한다. 실물 검증·병합은 별도이며 로컬 고정 개발 브랜치를 유지한다. [검증 기록](reviews/robot-blend-slot6-verification-20261013.json), [실행 안내](D_FULL_FEATURE_REAL_TRIAL_20261012.md).
+
+### 2026-10-14 Round2 세 분기·각도 자동 반복·하드코딩 점검
+- 일반 step 준비/실행 API와 preview 진입점을 추가. ROBOT_FASTENING, HUMAN_SUPPORT_PLACE_BOARD, HUMAN_FASTENING_ROBOT_COMPLEMENT/FALLBACK 분리. 원본 plan/profile 및 B 완료 소유 보존.
+- 기존 board calibration의 층별 평행 방향을 실제 모서리 근처에서 투영. 중심 일치 없이 yaw 비교. held integrated 기본 자동 yaw, 새 영상 모서리 추적, 포함 경계±0.50°, 반복 횟수 상한 없음. 실제 등록 평면 provider가 있을 때만 자동 RPY로 표기; HJK는 기준 복귀 시험.
+- 사용자 +10mm 시험을 최초 공급 파지/안착에 함께 적용하고 빈 패드 접촉은 유지. 실측15mm 검증으로 표시하지 않음.
+- 목표11,11 로그·복귀 속도/힘 중복값 수정, OpenCV 슬롯별 임계값 우선, Round2 이동 속도 profile 설정, 닫힌 빈 패드 status2 동작 보완. 런타임 경로 상대경로 지원.
+- native 전체 단위테스트1346개 통과(2026-10-14 현재 작업본). PR 복사본에서 다시 검증 예정. 장치 모션 미실행. 기존 StepRuntime HMI 자동 호출 연결과 실제 윗면 producer/높은 파지 실물 검증은 완료 주장하지 않음. 상세: D_ROUND2_ROBOT_CONTROL_AUDIT_20261014.md.
+
+- PR 복사본 검증: native 전체+관련 비전1498개, 등록 기하/파지 계획29개 통과(합계1527개). 실제 device command 없음. 일반/held preview 정상, source/JSON 및 diff 확인. 4층 채택 실측 선택·축 힘35N 불일치·미검증 패드 datum 승격도 점검해 수정.
+
+- 검토용 Draft PR #46 게시: https://github.com/suuuhululu/C-2/pull/46 ; base=codex/integration-round2, head=codex/round2-robot-control-20261014. merge하지 않았으며 기존 작업 checkout/다른 변경은 보존했다.

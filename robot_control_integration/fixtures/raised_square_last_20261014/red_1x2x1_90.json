@@ -1,0 +1,46 @@
+{
+  "current": [
+    {
+      "color": "red",
+      "brick_type": "1x2x1",
+      "x": 8,
+      "y": 8,
+      "layer": 1,
+      "orientation_deg": 0
+    },
+    {
+      "color": "red",
+      "brick_type": "1x2x1",
+      "x": 9,
+      "y": 8,
+      "layer": 1,
+      "orientation_deg": 90
+    },
+    {
+      "color": "red",
+      "brick_type": "1x2x1",
+      "x": 10,
+      "y": 9,
+      "layer": 1,
+      "orientation_deg": 0
+    }
+  ],
+  "target": {
+    "color": "red",
+    "brick_type": "1x2x1",
+    "x": 8,
+    "y": 10,
+    "layer": 1,
+    "orientation_deg": 90
+  },
+  "board_size": [
+    24,
+    24
+  ],
+  "fixture_kind": "TEST_GRID_ONLY",
+  "square_outer_size_studs": 3,
+  "source_mode": "HUMAN_ASSEMBLY",
+  "reason": "GRIPPER_COLLISION",
+  "physical_commands": 0,
+  "physical_clearance_verified": false
+}

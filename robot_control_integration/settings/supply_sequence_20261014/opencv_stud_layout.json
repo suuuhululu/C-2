@@ -1,0 +1,513 @@
+{
+  "schema_version": "round2-supply-roi-draft/1",
+  "data_kind": "MANUAL_SAVED_RGB_ROI_DRAFT_NOT_GRASP_GROUND_TRUTH",
+  "config_id": "round2_supply_roi_640x480_rtl_draft_20261013",
+  "view_id": "SUPPLY_VIEW",
+  "calibration_id": "UNMEASURED_PIXEL_DRAFT_ONLY",
+  "rgb_topic": "/camera/color/image_raw",
+  "image_size": [
+    640,
+    480
+  ],
+  "layout_status": "FIELD_UNVALIDATED",
+  "threshold_status": "FIELD_UNVALIDATED",
+  "slot_direction": "right_to_left",
+  "candidate_confidence": 0.25,
+  "confidence": 0.5,
+  "threshold_source": "REUSED_HONGDONG_REPLAY_DEFAULTS_NOT_FIELD_ACCURACY_VALIDATED",
+  "surface": {
+    "minimum_area": 100,
+    "approx_fraction": 0.02,
+    "minimum_fill": 0.9,
+    "hsv_ranges": {
+      "yellow": [
+        [
+          [
+            20,
+            150,
+            80
+          ],
+          [
+            38,
+            255,
+            255
+          ]
+        ]
+      ],
+      "blue": [
+        [
+          [
+            95,
+            100,
+            35
+          ],
+          [
+            135,
+            255,
+            255
+          ]
+        ]
+      ],
+      "red": [
+        [
+          [
+            0,
+            100,
+            45
+          ],
+          [
+            10,
+            255,
+            255
+          ]
+        ],
+        [
+          [
+            170,
+            100,
+            45
+          ],
+          [
+            179,
+            255,
+            255
+          ]
+        ]
+      ]
+    }
+  },
+  "setup_id": "round2-reconnected-supply-20261013-e3b39235",
+  "camera_serial": "207522075633",
+  "rgb_frame_id": "camera_color_optical_frame",
+  "clock_domain": "ROS_SYSTEM_TIME_DOMAIN_20",
+  "source_evidence": {
+    "rgb_path": "logs/round2-reconnected-supply-20261013-e3b39235/rgb.png",
+    "rgb_sha256": "de75887af446caede14b6a191c30690203414dca09655c159da675535e3c51e9",
+    "rgb_source_path": "logs/round2-reconnected-supply-20261013-e3b39235/rgb-source.json",
+    "rgb_source_sha256": "d4d380ada523d07135226e0117378fd4e2b59693d6ca8ff6a0c58acd1b6f490c",
+    "original_stamp_ns": 1791884785260870117,
+    "original_payload_sha256": "25242754f078a7c0f365ffbadb038db622f502127742e720f8b49076708f808a",
+    "image_resized": false,
+    "roi_method": "MANUAL_REGION_DRAFT_FROM_VIEWED_ORIGINAL_RGB",
+    "slot_direction_source": "USER_CONFIRMED_RIGHT_1_LEFT_5_AND_NEXT_LEFT_6_EMPTY_IN_CHAT",
+    "requires_operator_roi_confirmation": true,
+    "physical_center_yaw_ground_truth": false
+  },
+  "supply_policy": {
+    "reservation_slots": [
+      1,
+      2,
+      3,
+      4,
+      5
+    ],
+    "empty_slot": 6,
+    "cycle": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      1
+    ],
+    "missing_reserved_block": "HOLD_REFILL_REQUIRED",
+    "automatic_other_slot_substitution": false,
+    "source6_teaching_and_coordinate_model": "PRESERVED_NOT_CHANGED"
+  },
+  "capture_holds": [
+    {
+      "color": "yellow",
+      "brick_type": "2x2x1",
+      "slot": 1,
+      "slot_id": "yellow_2x2x1_01",
+      "status": "HOLD_REFILL_REQUIRED",
+      "source": "USER_CONFIRMED_SLOT1_IS_THE_EMPTY_LOCATION",
+      "applies_to": "THIS_SAVED_CAPTURE_ONLY",
+      "cleared_by": "NEW_OPERATOR_REFILL_CONFIRMATION_AND_FRESH_OBSERVATION"
+    }
+  ],
+  "slot6_empty_reference": [
+    {
+      "color": "yellow",
+      "brick_type": "2x2x1",
+      "slot": 6,
+      "roi_xyxy": [
+        79,
+        40,
+        151,
+        100
+      ],
+      "status": "POLICY_EMPTY_OPERATOR_CONFIRMATION_REQUIRED",
+      "reservable": false
+    },
+    {
+      "color": "yellow",
+      "brick_type": "2x3x1",
+      "slot": 6,
+      "roi_xyxy": [
+        79,
+        102,
+        151,
+        181
+      ],
+      "status": "POLICY_EMPTY_OPERATOR_CONFIRMATION_REQUIRED",
+      "reservable": false
+    },
+    {
+      "color": "blue",
+      "brick_type": "2x2x1",
+      "slot": 6,
+      "roi_xyxy": [
+        79,
+        186,
+        151,
+        245
+      ],
+      "status": "POLICY_EMPTY_OPERATOR_CONFIRMATION_REQUIRED",
+      "reservable": false
+    },
+    {
+      "color": "blue",
+      "brick_type": "2x3x1",
+      "slot": 6,
+      "roi_xyxy": [
+        79,
+        247,
+        151,
+        326
+      ],
+      "status": "POLICY_EMPTY_OPERATOR_CONFIRMATION_REQUIRED",
+      "reservable": false
+    },
+    {
+      "color": "red",
+      "brick_type": "1x2x1",
+      "slot": 6,
+      "roi_xyxy": [
+        79,
+        330,
+        151,
+        381
+      ],
+      "status": "POLICY_EMPTY_OPERATOR_CONFIRMATION_REQUIRED",
+      "reservable": false
+    }
+  ],
+  "slots": [
+    {
+      "color": "yellow",
+      "brick_type": "2x2x1",
+      "slot": 1,
+      "roi_xyxy": [
+        452,
+        37,
+        514,
+        99
+      ],
+      "grasp_edge_pair": 0
+    },
+    {
+      "color": "yellow",
+      "brick_type": "2x2x1",
+      "slot": 2,
+      "roi_xyxy": [
+        384,
+        37,
+        440,
+        99
+      ],
+      "grasp_edge_pair": 0
+    },
+    {
+      "color": "yellow",
+      "brick_type": "2x2x1",
+      "slot": 3,
+      "roi_xyxy": [
+        311,
+        37,
+        367,
+        99
+      ],
+      "grasp_edge_pair": 0
+    },
+    {
+      "color": "yellow",
+      "brick_type": "2x2x1",
+      "slot": 4,
+      "roi_xyxy": [
+        236,
+        37,
+        292,
+        99
+      ],
+      "grasp_edge_pair": 0
+    },
+    {
+      "color": "yellow",
+      "brick_type": "2x2x1",
+      "slot": 5,
+      "roi_xyxy": [
+        161,
+        37,
+        217,
+        99
+      ],
+      "grasp_edge_pair": 0
+    },
+    {
+      "color": "yellow",
+      "brick_type": "2x3x1",
+      "slot": 1,
+      "roi_xyxy": [
+        458,
+        99,
+        514,
+        175
+      ],
+      "grasp_edge_pair": 0
+    },
+    {
+      "color": "yellow",
+      "brick_type": "2x3x1",
+      "slot": 2,
+      "roi_xyxy": [
+        384,
+        99,
+        440,
+        175
+      ],
+      "grasp_edge_pair": 0
+    },
+    {
+      "color": "yellow",
+      "brick_type": "2x3x1",
+      "slot": 3,
+      "roi_xyxy": [
+        311,
+        99,
+        367,
+        175
+      ],
+      "grasp_edge_pair": 0
+    },
+    {
+      "color": "yellow",
+      "brick_type": "2x3x1",
+      "slot": 4,
+      "roi_xyxy": [
+        236,
+        99,
+        292,
+        175
+      ],
+      "grasp_edge_pair": 0
+    },
+    {
+      "color": "yellow",
+      "brick_type": "2x3x1",
+      "slot": 5,
+      "roi_xyxy": [
+        161,
+        99,
+        217,
+        175
+      ],
+      "grasp_edge_pair": 0
+    },
+    {
+      "color": "blue",
+      "brick_type": "2x2x1",
+      "slot": 1,
+      "roi_xyxy": [
+        458,
+        183,
+        514,
+        245
+      ],
+      "grasp_edge_pair": 0
+    },
+    {
+      "color": "blue",
+      "brick_type": "2x2x1",
+      "slot": 2,
+      "roi_xyxy": [
+        384,
+        183,
+        440,
+        245
+      ],
+      "grasp_edge_pair": 0
+    },
+    {
+      "color": "blue",
+      "brick_type": "2x2x1",
+      "slot": 3,
+      "roi_xyxy": [
+        311,
+        183,
+        367,
+        245
+      ],
+      "grasp_edge_pair": 0
+    },
+    {
+      "color": "blue",
+      "brick_type": "2x2x1",
+      "slot": 4,
+      "roi_xyxy": [
+        236,
+        183,
+        292,
+        245
+      ],
+      "grasp_edge_pair": 0
+    },
+    {
+      "color": "blue",
+      "brick_type": "2x2x1",
+      "slot": 5,
+      "roi_xyxy": [
+        161,
+        183,
+        217,
+        245
+      ],
+      "grasp_edge_pair": 0
+    },
+    {
+      "color": "blue",
+      "brick_type": "2x3x1",
+      "slot": 1,
+      "roi_xyxy": [
+        458,
+        245,
+        514,
+        321
+      ],
+      "grasp_edge_pair": 0
+    },
+    {
+      "color": "blue",
+      "brick_type": "2x3x1",
+      "slot": 2,
+      "roi_xyxy": [
+        384,
+        245,
+        440,
+        321
+      ],
+      "grasp_edge_pair": 0
+    },
+    {
+      "color": "blue",
+      "brick_type": "2x3x1",
+      "slot": 3,
+      "roi_xyxy": [
+        311,
+        245,
+        367,
+        321
+      ],
+      "grasp_edge_pair": 0
+    },
+    {
+      "color": "blue",
+      "brick_type": "2x3x1",
+      "slot": 4,
+      "roi_xyxy": [
+        236,
+        245,
+        292,
+        321
+      ],
+      "grasp_edge_pair": 0
+    },
+    {
+      "color": "blue",
+      "brick_type": "2x3x1",
+      "slot": 5,
+      "roi_xyxy": [
+        161,
+        245,
+        217,
+        321
+      ],
+      "grasp_edge_pair": 0
+    },
+    {
+      "color": "red",
+      "brick_type": "1x2x1",
+      "slot": 1,
+      "roi_xyxy": [
+        456,
+        337,
+        516,
+        375
+      ],
+      "grasp_edge_pair": 1
+    },
+    {
+      "color": "red",
+      "brick_type": "1x2x1",
+      "slot": 2,
+      "roi_xyxy": [
+        382,
+        337,
+        442,
+        375
+      ],
+      "grasp_edge_pair": 1
+    },
+    {
+      "color": "red",
+      "brick_type": "1x2x1",
+      "slot": 3,
+      "roi_xyxy": [
+        309,
+        337,
+        369,
+        375
+      ],
+      "grasp_edge_pair": 1
+    },
+    {
+      "color": "red",
+      "brick_type": "1x2x1",
+      "slot": 4,
+      "roi_xyxy": [
+        234,
+        337,
+        294,
+        375
+      ],
+      "grasp_edge_pair": 1
+    },
+    {
+      "color": "red",
+      "brick_type": "1x2x1",
+      "slot": 5,
+      "roi_xyxy": [
+        159,
+        337,
+        219,
+        375
+      ],
+      "grasp_edge_pair": 1
+    }
+  ],
+  "metric_allowed": false,
+  "execution_allowed": false,
+  "physical_gate_passed": false,
+  "required_before_real": [
+    "operator_confirm_25_ROIS",
+    "refill_yellow_2x2_slot1",
+    "fresh_scene_request_binding",
+    "independent_center_axis_ground_truth",
+    "field_threshold_validation",
+    "calibrated_metric_transform_chain",
+    "measured_tcp_to_block_relationship",
+    "independent_error_tolerance_acceptance"
+  ],
+  "opencv_roi_source": "/home/rokey/Documents/ChatGPT/로봇제어 개발/supply_centerline_test_20261014/live_compare_supply_20261014/slots.json",
+  "opencv_roi_basis": "OTHER_CHAT_LIVE_COMPARE_RIGHT_TO_LEFT_SLOT_ORDER"
+}
