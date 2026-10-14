@@ -1,0 +1,29 @@
+{
+  "source_kind": "OPERATOR_FIELD_MEASUREMENT",
+  "evidence_ref": null,
+  "frame": "BASE",
+  "target": {
+    "color": "yellow",
+    "brick_type": "2x2x1",
+    "x": 17,
+    "y": 17,
+    "layer": 1,
+    "orientation_deg": 0
+  },
+  "slot": 1,
+  "tcp": "GripperDA_v4",
+  "tool": "ToolWeight0",
+  "grasp_id": null,
+  "pad_bottom_from_block_bottom_mm": null,
+  "tcp_pose_mm_zyz_deg": null,
+  "block_pose_mm_zyz_deg": null,
+  "block_geometry": null,
+  "target_studs": null,
+  "operations": {
+    "assembly": null,
+    "removal": null
+  },
+  "board_fixation_confirmed": false,
+  "note": "Pending template. Paired TCP and block poses must describe the same seated grasp. STANDARD uses 5mm; HUMAN_REPLACEMENT uses 15mm. A role label or 2D clicks do not measure this relation.",
+  "grasp_mode": "STANDARD"
+}

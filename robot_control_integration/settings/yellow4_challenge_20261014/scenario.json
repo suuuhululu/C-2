@@ -65,9 +65,12 @@
     "note": "Existing measured sources are read first; missing values remain unknown. Synthetic preview values are not promoted to robot-base measurements."
   },
   "grasp_policy": {
-    "intended_pad_bottom_height_from_block_bottom_mm": 15,
     "user_plus_10mm_trial_is_measured_15mm_profile": false,
-    "removal_grasp_reuses_supply_pose_blindly": false
+    "removal_grasp_reuses_supply_pose_blindly": false,
+    "default_mode": "STANDARD",
+    "standard_pad_bottom_height_mm": 5,
+    "human_replacement_pad_bottom_height_mm": 15,
+    "source": "USER_CLARIFIED_STANDARD5_HUMAN_ASSEMBLY_REPLACEMENT15_20261014"
   },
   "press_policy": {
     "optional": true,
@@ -107,8 +110,10 @@
         "id": 2,
         "name": "기존 좌표 연결·실측 관계·관측 팝업",
         "verification_kind": "READ_ONLY_FIELD",
-        "status": "PENDING",
-        "physical_test_verified": false
+        "status": "PREPARED_FOR_FIELD_TEST",
+        "physical_test_verified": false,
+        "software_verified": true,
+        "read_only_channels_observed": true
       },
       {
         "id": 3,
@@ -180,6 +185,32 @@
       "separate removal input and no fallback / invalid inputs",
       "linear TCP+shortest SO3 midpoint chord error bound",
       "both-operation JSON+PNG CLI / unchanged legacy preview"
+    ]
+  },
+  "stage_2_verification": {
+    "software_status": "PASS",
+    "field_status": "PENDING_GRASP_RELATION_AXES_AND_BOARD_FIXATION",
+    "related_tests_passed": 91,
+    "new_regression_cases": 16,
+    "physical_commands": 0,
+    "default_grasp_mode": "STANDARD",
+    "default_pad_bottom_height_mm": 5,
+    "human_replacement_pad_bottom_height_mm": 15,
+    "existing_teaching_unchanged": true,
+    "live_read_capture_obtained": true,
+    "latest_live_state": "ROBOT_FEEDBACK_RECEIVED_RGB_ABSENT_WAITING",
+    "interactive_desktop_popup_verified": false,
+    "capture_directory": "logs/yellow4-challenge-stage2-20261014",
+    "checks": [
+      "source hashes and existing anchored layer target calculation",
+      "standard5 exact taught poses; explicit human15 plus10 candidate",
+      "OpenCV attempted/recognized/metric assist/fallback separate",
+      "nonblocking ROI selection and single-worker analysis; capture pairs input image and feedback",
+      "yaw direction only, pixel axis not measured3D, current TCP/tool binding",
+      "paired measured BASE TCP/block relation and scope/height/mode binding",
+      "ROS query-only fake transport, real read-only camera/feedback snapshot, RGB-wait and clean cancellation",
+      "offline CLI and recorded-sensor replay with standard5, no movement/grip commands",
+      "known assembly input retained when removal axis is still unmeasured"
     ]
   }
 }

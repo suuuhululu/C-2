@@ -1,0 +1,12 @@
+{
+  "schema_version": "yellow4-observation-settings/1",
+  "slot": 1,
+  "camera_info_topic": "/camera/color/camera_info",
+  "sources": {
+    "scenario": "robot_control_integration/settings/yellow4_challenge_20261014/scenario.json",
+    "supply_config": "robot_control_integration/settings/supply_sequence_20261014/config.json",
+    "held_config": "robot_control_integration/settings/held_corner_stud_20261014/config.json",
+    "raised_profile": "robot_control_integration/settings/raised_grasp_press_20261014/profile.pending.json"
+  },
+  "grasp_mode": "STANDARD"
+}

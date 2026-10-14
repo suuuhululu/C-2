@@ -879,3 +879,10 @@ GPU 현재 A snapshot92파일을 CPU deliverables/GPU_A_수정본_CPU보관_2026
 - 합성 v2 fixture와 --operation assembly/removal/both, --plot PNG/SVG를 추가. docs/assets/yellow4-challenge-stage1.png에 접촉축·블록 시작/중간/끝·TCP 원호·네 stud 중심 표시. 현재 환경 Matplotlib을 선택적 그림 출력에 사용; 설치/ROS 계약/기존 제어 경로 변경 없음.
 - 실제 검사44 PASS(기존24+신규20). 임의축·회전부호·프레임 변환·강체관계·파지 높이·접촉점 유지·별도 분리 입력·실패 경로·SO(3) 보간 가정의 chord 오차·JSON/PNG CLI를 검증. 기본v1 CLI 재실행 정상, 그림 시각 확인.
 - scenario 1단계 COMPLETE/다음2단계 기록. 실제 장치 명령0; 접촉/간섭/체결/분리 및15mm 파지 실측 미검증. field_inputs null과 모든 실물 verified=false 유지. 다음은 기존 교시/보정 연결·관측 팝업·read-only 실측 캡처 단계.
+
+### 2026-10-14 노랑4점 challenge 2단계 — 기본5mm/보완15mm·기존 좌표·read-only 관측
+- 사용자 최신 확인: 기본 로봇 파지는 바닥 기준5mm. 사람 직접 결착 보완 경로만15mm. challenge 기본STANDARD는 공급/착좌 교시 그대로 사용, HUMAN_REPLACEMENT에만 명시적 +10mm 시험 후보 적용. 기존 일반/사람 step 제어와 팀원 checkout 변경 없음.
+- yellow4_observation 어댑터와 yellow4_observe CLI에 기존 OpenCV stud center/fallback·층별 기록/격자·카메라 투영·TCP/tool/치수/출처SHA를 연결. 픽셀 yaw/2D 접촉축과 실제 블록 RPY/3D 축을 구분. 실제paired BASE TCP/block 자료가 들어올 때 강체 파지 관계를 계산하되 접촉/체결/완전 해제 완료로 표시하지 않음.
+- 읽기 전용 ROS getter/FK/check_motion 비동기 조회, 선택적 RG2 holding register 읽기, 단일worker 이미지 분석, 두 번 클릭ROI/윗면모서리/축 후보, SPACE 원본/overlay/feedback/타임스탬프 저장. move/stop/tool-set/grip/write register client 없음.
+- 실제 검사91 PASS(신규16 포함), 기본/보완prepare와 저장영상 headless 관측 정상. ROS_DOMAIN_ID20에서 실제 RGB/CameraInfo와 정지홈 posj/posx/velx/wrench/TCP/tool 읽기 캡처1회 성공. 이후 확인은 로봇 피드백 수신/RGB 없음 상태라15초 대기 후 관측만 종료; 중복ROS shutdown 오류를 수정하고 회귀/깨끗한 종료 확인. 모터/그리퍼 명령0.
+- 실측 자료 자체는 로컬 ignored logs/yellow4-challenge-stage2-20261014에 보존하고 Git에 업로드하지 않음. 높이 정정 이전의 live snapshot과 기본5mm 설정으로 재생한 기록을 구분. 현재창 키보드 조작/실제5mm 파지 관계/접촉축/판 고정 미검증. scenario2 PREPARED_FOR_FIELD_TEST/다음2 유지, 완료1은 유지. 3단계 프롬프트는 자료 확인 후 무접촉 시험 준비에 사용.
