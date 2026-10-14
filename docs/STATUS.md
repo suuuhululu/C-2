@@ -24,7 +24,6 @@
 - 실제 검증: A planning_trial + Workflow/PR30 전달 검사 **544 passed, failures/errors/skipped 0, 종료0**. 추가 D 모의 통합은 **28 passed / 8 failed**, 변경 전 b0d22e5에서 해당 8개를 재현해 실패 node ID와 원인이 동일함을 확인했다(기존 C 최소4점 규칙에 부적합한 2~3점 지지 fixture, 새 실패0). 통합 전체 PASS로 표시하지 않는다. 새 분류/전체 인계 예시 30검사 포함, API 예제 실행 34/34 PASS, AST 11파일·fixture JSON·git diff --check 확인. JUnit/첨부 배치 재계산은 reports에 로컬 보관한다. 실제 Robot/ROS/Camera/MoveIt/외부 API/DB 실행, D 실제 전략 소비, 실물 결착 품질은 미검증. [PR #50](https://github.com/suuuhululu/C-2/pull/50)을 gimseeun 계정으로 `codex/integration-round2` 대상으로 게시했다. 최신 대상 cf8031d를 feature branch에 합쳐 STATUS 충돌의 양쪽 기록을 보존했고, A/Workflow 검사는 다시 544 passed다. PR 병합·D 실제 연결은 별도다.
 
 
-
 ## 2026-10-14 — B 비전: 층 기준·허용 오차·V0/D1·D3 역할 분리 (`work/hongdong-vision-round1-v2`)
 
 - 변경(B-only, perception/): 층 기준을 측정 윗면 평면 + 스터드 4mm(TOP_PLANE_PLUS_STUD)로 변경했다. 층 허용 오차는 ±2.5mm→±5mm(층 간격 18.625mm, 2×허용<간격 유지), 깊이 범위 min_depth는 V0 0.441·D1 0.332·D3 0.395로 2mm 낮췄다(캘리브레이션 무변경).
