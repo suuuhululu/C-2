@@ -251,14 +251,14 @@ function renderDetail(version) {
   } else visual.append(el('p','No adopted design recorded'));
   grid.append(visual,facts([
     ['Creator',item ? `${item.creator.display_name} (@${item.creator.username})` : 'No record'],
-    ['Assembly completion',complete(job) ? 'Confirmed' : 'Not confirmed'],
-    ['Assembly plan',selected.completion.work_exhaustion === 'RECORDED' ? 'All planned steps processed' : 'Not finished'],
+    ['Final design assembly',complete(job) ? 'Completion recorded' : 'No completion recorded'],
+    ['Final assembly plan',selected.completion.work_exhaustion === 'RECORDED' ? 'All planned steps processed' : 'Not finished'],
     ['Snapshot confirmation',selected.storage.status === 'SAVED' ? 'Confirmed' : 'Not confirmed'],
     ['Design adopted',date(design?.adopted_at)],
     ['Job started',date(job.started_at)],
     ['Last updated',date(job.last_seen_at)],
     ['Snapshot saved',date(selected.storage.receipt?.saved_at)]
-  ]));body.append(grid);
+  ]));body.append(grid,el('p','Completion status refers to the final adopted design.'));
   $('#save').disabled=selected.storage.status === 'SAVED';
   $('#save').textContent=selected.storage.status === 'SAVED' ? 'DB SNAPSHOT CONFIRMED' : 'CONFIRM DB SNAPSHOT ↗';
 }
