@@ -6,7 +6,7 @@ from pathlib import Path
 
 from jsonschema import Draft202012Validator
 
-VERSION = 'assembly-ad-calculation-draft/0.5.1'
+VERSION = 'assembly-ad-calculation-draft/0.5.2'
 ROOT = Path(__file__).resolve().parent
 V4_SCHEMA = ROOT/'connection_contract_review_20261008_v4/schema.json'
 
@@ -38,6 +38,15 @@ def schema():
     # Current policy reports required hands without limiting the participant count.
     # Keep the immutable v4 review contract intact.
     defs['Action']['properties']['human_hands_used'].pop('maximum', None)
+    defs['Action']['properties']['assembly_strategy'] = {'const': 'RELEASE_PRESS'}
+    defs['Gripper']['properties']['release_strategy']['enum'].append('RELEASE_PRESS')
+    defs['Action']['allOf'] = [{
+        'if': {'required': ['assembly_strategy']},
+        'then': {'properties': {'mode': {'const': 'ROBOT_GRIP'},
+                              'gripper': {'properties': {'release_strategy': {'const': 'RELEASE_PRESS'}}},
+                              'robot_force_model': {'const': 'NOT_ROBOT_INSERTION'}}}}, {
+        'if': {'properties': {'gripper': {'properties': {'release_strategy': {'const': 'RELEASE_PRESS'}}}}},
+        'then': {'required': ['assembly_strategy']}}]
     defs['ReviewError']['properties']['code']['enum'] += ['INVALID_INPUT', 'REFERENCE_MISMATCH', 'UNSUPPORTED_METHOD']
     defs['AssemblyContext']['properties']['geometry']['properties']['body_height_mm'] = {'type': 'number', 'exclusiveMinimum': 0}
     defs['Policy']['properties']['hand_hold_height_m'] = {'type': 'number', 'exclusiveMinimum': 0}

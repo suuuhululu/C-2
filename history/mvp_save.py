@@ -57,7 +57,7 @@ def verify_web_job(url, job_id, username, password, receipt):
         cookie=response.getheader('Set-Cookie')
         if response.status != 200 or not cookie:
             raise ValueError('WEB_LOGIN_FAILED')
-        client.request('GET','/api/jobs/'+str(UUID(job_id)),headers={'Cookie':cookie.split(';')[0]})
+        client.request('GET','/api/jobs/'+str(UUID(job_id))+'/summary',headers={'Cookie':cookie.split(';')[0]})
         response=client.getresponse()
         body=json.loads(response.read())
         if response.status != 200:

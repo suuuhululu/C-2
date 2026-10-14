@@ -68,7 +68,7 @@ def test_observer_freezes_capture_context_and_respects_cancellation(monkeypatch,
         confirm_view=lambda v: True, workflow_valid=lambda: True, bundle_valid=lambda: True)
     result, _ = observer(context, lambda: active[0])
     assert result['check_id'] == saved['check_id']
-    assert captures == (['V0'] if kind == 'INITIAL' else ['V0', 'D1', 'D3'])
+    assert captures == ['V0', 'D1', 'D3']
 
 
 def test_observer_ros_hand_stream_uses_request_active_and_stop_hooks(monkeypatch):

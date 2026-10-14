@@ -97,6 +97,7 @@ def main():
     run('12_press_excluded', 'motion', motion_request(press_re, press_assessed), 'CANDIDATE')
 
     context = deepcopy(initial['assembly_context']); context['grip_axes'] = ['x']
+    context['supported_modes'] = ['HUMAN_ASSEMBLY']
     sides = [brick(x=4), brick(x=8)]
     manual_req = whole_request({'design_version': 1, 'blocks': sides+[brick()]}, {'current_revision': 2, 'blocks': sides}, context)
     manual_whole = run('13_manual_missing_tray', 'whole', manual_req, 'READY')
@@ -139,7 +140,7 @@ def main():
     run('19_old_profile_version', 'motion', changed, 'BLOCKED')
     only_grip = deepcopy(manual_req); only_grip['assembly_context']['supported_modes'] = ['ROBOT_GRIP']
     only_grip['assembly_context']['press_contact_model_confirmed'] = True
-    run('20_no_supported_method', 'whole', only_grip, 'NO_FEASIBLE_ORDER')
+    run('20_release_press_classification', 'whole', only_grip, 'READY')
     re_no_method = deepcopy(reassessment)
     re_no_method['assembly_context']['grip_axes'] = ['x']
     # Block the chosen x corridor with a fixture obstacle, not actual observation.

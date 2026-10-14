@@ -70,13 +70,15 @@ def test_alternative_grip_axis_is_not_pruned(context):
     assert all(a['grip_axis'] == 'y' for a in result['assembly_actions'][1:])
 
 
-def test_existing_current_is_not_reordered_to_clear_a_corridor(context):
+def test_existing_current_is_preserved_and_blocked_full_support_uses_release_press(context):
     blocks = [brick(7, 10, kind='2x3x1', angle=90), brick(7, 12, kind='2x3x1', angle=90)]
     result = optimizer.plan_assembly({'design_version': 1, 'blocks': blocks},
                                      {'current_revision': 4, 'blocks': blocks[:1]}, context)
-    assert result['status'] == 'NO_FEASIBLE_ORDER'
-    assert result['optimization']['expanded_states'] == 0
-    assert result['optimization']['blocked_candidates'][0]['block'] == blocks[1]
+    assert result['status'] == 'CANDIDATE'
+    assert len(result['assembly_actions']) == 1
+    assert result['assembly_actions'][0]['block'] == blocks[1]
+    assert result['assembly_actions'][0]['assembly_strategy'] == 'RELEASE_PRESS'
+    assert result['planning_result']['plan']['base_current_revision'] == 4
 
 
 @pytest.mark.parametrize('modes', [['ROBOT_GRIP'], ['HUMAN_ASSEMBLY'],
@@ -125,8 +127,22 @@ def test_approved_26_block_reference_fails_before_subset_search():
     assert result['optimization']['expanded_states'] == 0
     assert result['planning_result'] is None
     blocked = result['optimization']['blocked_candidates']
-    for target in data['design']['blocks'][:4]:
-        assert any(item['block'] == target for item in blocked)
+    # Full board support no longer proves the original four floor blocks blocked.
+    # The remaining ordering cycle includes a grip-constrained partial-support block.
+    from planning_trial.assembly_geometry import contacts
+    from planning_trial.planner import block_key
+    assert blocked
+    pending = {block_key(item['block']) for item in blocked}
+    requirements = {block_key(item['block']): {block_key(b) for b in item['assessment']['required_before']}
+                    for item in blocked}
+    while pending:
+        available = {key for key in pending if not requirements[key] & pending}
+        if not available: break
+        pending -= available
+    assert pending  # The returned dependencies still prove an ordering cycle.
+    assert any(contacts(item['block'], data['current']['blocks'] + data['design']['blocks'])['support_studs']
+               < contacts(item['block'], data['current']['blocks'] + data['design']['blocks'])['total_studs']
+               for item in blocked if block_key(item['block']) in pending)
 
 
 def test_proven_failure_reaches_adapter_with_raw_audit():

@@ -153,9 +153,12 @@ class HistoryHandler(BaseHTTPRequestHandler):
                     self._reply(200, dict(**gallery.creator_library(connection,user),
                                          queried_at=datetime.now().astimezone()))
             else:
-                job_id = str(UUID(path.removeprefix("/api/jobs/")))
+                job_path = path.removeprefix("/api/jobs/")
+                summary = job_path.endswith("/summary")
+                job_id = str(UUID(job_path.removesuffix("/summary") if summary else job_path))
                 try:
-                    result = personal.bundle(connection, job_id, user["user_id"])
+                    query = personal.design_summary if summary else personal.bundle
+                    result = query(connection, job_id, user["user_id"])
                 except ValueError as error:
                     if str(error) != "Job unavailable to this user":
                         raise

@@ -100,6 +100,16 @@ def mode_options(brick, current, context):
     weak, options, reasons = support["weak_supports"], [], []
     press_assessment = human_press_assessment(brick, support, context)
     supported_modes = context.get('supported_modes', MODES)
+    normal_grips = grip_options(brick, current, context)
+    # A classifies the required strategy; D supplies and verifies release/press motion.
+    release_tools = []
+    if (not normal_grips and context.get('space_model') == 'STUD_RULES'
+            and support['support_studs'] == support['total_studs']):
+        nominal = deepcopy(context)
+        nominal['obstacles'] = []
+        release_tools = [dict(tool, tool_boxes=[], release_strategy='RELEASE_PRESS',
+                              clearance_pitch_per_side=None, assembly_strategy='RELEASE_PRESS')
+                         for tool in grip_options(brick, [], nominal)]
     # A held block may be inserted with human support despite adjacent voids.
     # The unheld release/press method still requires full footprint support.
     for mode in MODES[:2]:
@@ -115,7 +125,7 @@ def mode_options(brick, current, context):
                 continue
             tools = press_options(brick, current, context)
         else:
-            tools = grip_options(brick, current, context)
+            tools = normal_grips or release_tools
         if not tools:
             reasons.append(mode + ": local approach/release envelope blocked")
         for tool in tools:
@@ -136,6 +146,8 @@ def mode_options(brick, current, context):
                                     "support_targets": assignment, "assembly_hand": None,
                                     "press_hand":press,"press_assessment":press_assessment,
                                     "contacts": support})
+                    if tool.get('assembly_strategy'):
+                        options[-1]['assembly_strategy'] = tool['assembly_strategy']
     # One hand assembles; every required lower-block hold remains a separate action.
     hands = (hand_options(brick, current, context, assembly=True)
              if 'HUMAN_ASSEMBLY' in supported_modes else [])
@@ -180,6 +192,8 @@ def mode_options(brick, current, context):
                 press_assessment["required"] else 0)) if enabled else None,
             "human_hand_limit": None, "human_hand_limit_applied": False})
     return options, {**support, "press_assessment":press_assessment, "mode_checks": mode_checks,
+                     "ordinary_grip_available": bool(normal_grips),
+                     "release_press_motion_checked": False,
                      "human_access_space_checked": False, "robot_ik_full_path_checked": False,
                      "reason": "; ".join(dict.fromkeys(reasons))}
 
@@ -194,8 +208,8 @@ def _order_precedence(remaining, current, context):
 
     An overlapping upper placement permanently prevents insertion from above,
     regardless of assembly mode. Disjoint footprints do not require whole layers.
-    Grip edges additionally require every enabled axis to be blocked in the
-    monotone STUD_RULES model; alternative assembly modes skip that grip proof.
+    A blocked grip corridor is not an ordering prohibition: release/press can
+    become available once the full lower footprint is present.
     """
     predecessors = [0] * len(remaining)
     footprints = [footprint(brick) for brick in remaining]
@@ -203,13 +217,16 @@ def _order_precedence(remaining, current, context):
         for j, upper in enumerate(remaining):
             if lower["layer"] < upper["layer"] and footprints[i] & footprints[j]:
                 predecessors[j] |= 1 << i
-    if (context.get("space_model") != "STUD_RULES" or
-            context.get("supported_modes") != ["ROBOT_GRIP"]):
+    if (context.get('space_model') != 'STUD_RULES' or
+            context.get('supported_modes') != ['ROBOT_GRIP']):
         return predecessors, None
     for i, brick in enumerate(remaining):
+        possible_support = contacts(brick, current + remaining)
+        if possible_support['support_studs'] == possible_support['total_studs']:
+            continue  # Full support can enable release/press after lower placements.
         if not grip_options(brick, current, context):
-            return predecessors, [{"block": brick, "assessment": {
-                "reason": "ROBOT_GRIP corridor blocked by Current/static obstacles; adding blocks cannot clear it"}}]
+            return predecessors, [{'block': brick, 'assessment': {
+                'reason': 'ROBOT_GRIP corridor blocked and full lower support is absent even in the complete Design'}}]
         for j, other in enumerate(remaining):
             if i != j and not grip_options(brick, current + [other], context):
                 predecessors[j] |= 1 << i
@@ -218,9 +235,9 @@ def _order_precedence(remaining, current, context):
         available = sum(1 << i for i, required in enumerate(predecessors)
                         if not resolved & (1 << i) and required & resolved == required)
         if not available:
-            return predecessors, [{"block": brick, "assessment": {
-                "reason": "ROBOT_GRIP necessary ordering blocked by a cycle",
-                "required_before": [remaining[j] for j in range(len(remaining))
+            return predecessors, [{'block': brick, 'assessment': {
+                'reason': 'ROBOT_GRIP necessary ordering blocked by a cycle; release/press unavailable on grip-constrained blocks',
+                'required_before': [remaining[j] for j in range(len(remaining))
                                     if predecessors[i] & (1 << j)]}}
                 for i, brick in enumerate(remaining) if not resolved & (1 << i)]
         resolved |= available
@@ -389,7 +406,7 @@ def order_search(remaining,current,context):
 
 
 def action_signature(option):
-    return (option["mode"], option["grip_axis"], option["release_strategy"],
+    return (option["mode"], option["grip_axis"], option["release_strategy"], option.get('assembly_strategy'),
             tuple((block_key(t["block"]), t["side"]) for t in option["support_targets"]),
             option["assembly_hand"]["side"] if option["assembly_hand"] else None,
             (option["press_hand"]["side"],tuple(option["press_hand"]["contact_point_board_mm"]))
