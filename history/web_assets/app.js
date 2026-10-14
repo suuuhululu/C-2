@@ -1,6 +1,7 @@
 'use strict';
 const $ = (selector) => document.querySelector(selector);
 const isFilePreview = location.protocol === 'file:';
+const viewStorageKey = 'c2-history-view';
 let user = null, library = {jobs: [], designs: []}, view = 'gallery', selected = null;
 let detailSequence = 0, librarySequence = 0, saveKey = null, selectedVersion = null;
 const events = {JOB_STARTED:'Job started', PLAN_ADOPTED:'Design and plan adopted', CURRENT_ADOPTED:'Current state adopted', CHECK_RESULT:'Assembly check', PLAN_WORK_EXHAUSTED:'Plan work exhausted', ASSEMBLY_COMPLETED:'Assembly completion recorded', JOB_COMPLETED:'Job completion recorded', INTENT_RECEIVED:'Intent received', DELIVERY_RESULT:'Delivery result', STEP_CONFIRMED:'Step confirmed'};
@@ -31,6 +32,9 @@ function updateView() {
     button.classList.toggle('active',active); button.setAttribute('aria-pressed',String(active));
   });
   $('#filter').hidden = view === 'gallery';
+  $('#hero-subtitle').textContent = view === 'mine' ? 'MY DESIGNS' : '#C–2';
+  $('.collection').setAttribute('aria-label', view === 'mine' ? 'My assembly designs' : 'Published assembly designs');
+  try { sessionStorage.setItem(viewStorageKey, view); } catch (_) { /* View preferences are optional. */ }
 }
 async function signedOut() {
   user = null; library = {jobs:[], designs:[]}; selected = null; view = 'gallery';
@@ -44,7 +48,10 @@ async function signedOut() {
 async function signedIn(identity, manage = false) {
   user = identity; $('#identity').textContent = identity.username; $('#identity').hidden = false;
   $('#login-open').hidden = true; $('#logout').hidden = false;
-  if (manage) view = 'mine'; updateView(); await refresh();
+  let savedView = null;
+  try { savedView = sessionStorage.getItem(viewStorageKey); } catch (_) { /* View preferences are optional. */ }
+  view = manage || savedView !== 'gallery' ? 'mine' : 'gallery';
+  updateView(); await refresh();
 }
 async function chooseView(next) {
   if (next === 'mine' && !user) { showLogin(); return; }
@@ -56,13 +63,26 @@ async function refresh() {
   if (view === 'mine' && !user) { showLogin(); return; }
   const sequence = ++librarySequence;
   $('#refresh').disabled = true; notice('Loading designs.');
+  if (!library.designs.length) {
+    $('#welcome').hidden = true; $('#empty').hidden = false;
+    $('#empty h2').textContent = 'Loading designs…';
+    $('#empty p').textContent = 'Reading your records. Please wait.';
+  }
   try {
     const result = await api(view === 'gallery' ? '/api/gallery' : '/api/library');
     if (sequence !== librarySequence) return;
     library = result; render();
     notice(view === 'gallery' ? `${library.designs.length} published designs · open to all visitors` : `${library.designs.length} designs · choose what to publish`);
     $('#updated').textContent = `UPDATED ${date(library.queried_at)}`;
-  } catch (error) { if (sequence === librarySequence) notice(error.message, true); }
+  } catch (error) {
+    if (sequence === librarySequence) {
+      notice(error.message, true);
+      if (!library.designs.length) {
+        $('#empty h2').textContent = 'Could not load designs.';
+        $('#empty p').textContent = error.message;
+      }
+    }
+  }
   finally { $('#refresh').disabled = false; }
 }
 function svgNode(tag, attrs) {
@@ -198,7 +218,13 @@ function facts(items) {
 function rawSection(title, items, label) {
   const section = el('section', undefined, 'record-section'); section.append(el('h3', `${title} / ${items.length}`));
   if (!items.length) section.append(el('p','No record'));
-  items.forEach((item,index) => { const details=el('details');details.append(el('summary',label(item,index)),el('pre',JSON.stringify(item,null,2)));section.append(details); });
+  items.forEach((item,index) => {
+    const details=el('details'); details.append(el('summary',label(item,index)));
+    details.addEventListener('toggle',()=>{
+      if (details.open && details.children.length === 1) details.append(el('pre',JSON.stringify(item,null,2)));
+    });
+    section.append(details);
+  });
   return section;
 }
 async function openDetail(jobId, version = null) {
@@ -208,7 +234,7 @@ async function openDetail(jobId, version = null) {
   $('#export').disabled=true; $('#save').disabled=true;
   if (!$('#detail-dialog').open) $('#detail-dialog').showModal();
   try {
-    const result = await api(`/api/jobs/${jobId}`);
+    const result = await api(`/api/jobs/${jobId}/summary`);
     if (sequence !== detailSequence || !$('#detail-dialog').open) return;
     selected = result; renderDetail(version); $('#export').disabled=false;
   } catch(error) { if (sequence === detailSequence) $('#detail-notice').textContent=error.message; }
@@ -234,13 +260,14 @@ function renderDetail(version) {
     picker.append(select);visual.append(drawing,picker);
     const legend=el('div',undefined,'legend');for(const [color,name] of [['yellow','Yellow'],['blue','Blue'],['red','Red']]){const part=el('span');part.append(el('i',undefined,color),document.createTextNode(name));legend.append(part);}visual.append(legend);
   } else visual.append(el('p','No adopted design recorded'));
-  grid.append(visual,facts([['Assembly completion',complete(job) ? 'Evidence recorded' : 'No evidence recorded'],['Plan work exhausted',selected.completion.work_exhaustion === 'RECORDED' ? 'Recorded' : 'No final MVP record'],['DB snapshot confirmation',selected.storage.status === 'SAVED' ? 'Current snapshot confirmed' : 'Current snapshot unconfirmed'],['Imported events',`${selected.timeline.length}`],['Job started',date(job.started_at)],['Last record',date(job.last_seen_at)]]));body.append(grid);
+  grid.append(visual,facts([['Assembly completion',complete(job) ? 'Evidence recorded' : 'No evidence recorded'],['Plan work exhausted',selected.completion.work_exhaustion === 'RECORDED' ? 'Recorded' : 'No final MVP record'],['DB snapshot confirmation',selected.storage.status === 'SAVED' ? 'Current snapshot confirmed' : 'Current snapshot unconfirmed'],['Imported events',`${selected.timeline_total ?? selected.timeline.length}`],['Job started',date(job.started_at)],['Last record',date(job.last_seen_at)]]));body.append(grid);
   body.append(el('p','These are imported DB records. Completion evidence refers to the final adopted design. Snapshot confirmation acknowledges the currently imported events; it does not confirm assembly completion.'));
   body.append(rawSection('ADOPTED DESIGNS',selected.designs,item=>`v${item.design_version} · ${date(item.adopted_at)}`));
   body.append(rawSection('PLANS',selected.plans,item=>`${item.plan_id} · ${item.is_last_adopted ? 'Last adopted' : 'Previously adopted'}`));
   body.append(rawSection('CURRENT STATES',selected.currents,item=>`revision ${item.current_revision} · ${item.kind}`));
   body.append(rawSection('CHECKS',selected.checks,item=>`${item.response.check_kind} / ${item.response.status} / ${item.response.comparison ?? 'No comparison'} · ${item.disposition}`));
   body.append(rawSection('INTENT RESPONSES',selected.hri,item=>`request ${item.request_id}`));
+  if (selected.timeline_total > selected.timeline.length) body.append(el('p',`Showing the latest ${selected.timeline.length} of ${selected.timeline_total} events. EXPORT JSON includes the full record.`));
   body.append(rawSection('TIMELINE',selected.timeline,item=>`${date(item.occurred_at)} · ${events[item.event] ?? item.event}${item.reason ? ` / ${item.reason}` : ''}`));
   $('#save').disabled=selected.storage.status === 'SAVED';
   $('#save').textContent=selected.storage.status === 'SAVED' ? 'DB SNAPSHOT CONFIRMED' : 'CONFIRM DB SNAPSHOT ↗';
@@ -263,10 +290,20 @@ $('#login-form').addEventListener('submit',async event=>{
   catch(error){$('#login-error').textContent=error.message;}finally{button.disabled=false;}
 });
 $('#logout').addEventListener('click',async()=>{try{await api('/api/logout',{});await signedOut();}catch(error){notice(error.message,true);}});
-$('#export').addEventListener('click',()=>{if(!selected)return;const url=URL.createObjectURL(new Blob([JSON.stringify(selected,null,2)],{type:'application/json'})),link=el('a');link.href=url;link.download=`c2-${selected.owner.job_id}.json`;link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);});
+$('#export').addEventListener('click',async()=>{
+  if (!selected) return;
+  const jobId=selected.owner.job_id, sequence=detailSequence; $('#export').disabled=true;
+  try {
+    const result=await api(`/api/jobs/${jobId}`);
+    if (sequence !== detailSequence || !selected) return;
+    const url=URL.createObjectURL(new Blob([JSON.stringify(result,null,2)],{type:'application/json'})),link=el('a');
+    link.href=url;link.download=`c2-${jobId}.json`;link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
+  } catch(error) { if (sequence === detailSequence) $('#detail-notice').textContent=error.message; }
+  finally { if (sequence === detailSequence && selected) $('#export').disabled=false; }
+});
 $('#save').addEventListener('click',async()=>{
   if(!selected)return;const jobId=selected.owner.job_id, sequence=detailSequence;$('#save').disabled=true;
-  try{await api(`/api/jobs/${jobId}/save`,{save_key:saveKey});const result=await api(`/api/jobs/${jobId}`);if(sequence!==detailSequence||!selected)return;selected=result;renderDetail(null);$('#detail-notice').textContent='Confirmation of the current DB event snapshot has been recorded.';}
+  try{await api(`/api/jobs/${jobId}/save`,{save_key:saveKey});const result=await api(`/api/jobs/${jobId}/summary`);if(sequence!==detailSequence||!selected)return;selected=result;renderDetail(null);$('#detail-notice').textContent='Confirmation of the current DB event snapshot has been recorded.';}
   catch(error){if(sequence===detailSequence){$('#detail-notice').textContent=error.message;$('#save').disabled=false;}}
 });
 $('#publish').addEventListener('click',async()=>{

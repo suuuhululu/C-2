@@ -80,7 +80,7 @@ def save_job(connection, job_id: str, user_id: str, save_key: str) -> dict:
         return receipt
 
 
-def bundle(connection, job_id: str, user_id: str) -> dict:
+def bundle(connection, job_id: str, user_id: str, *, timeline_limit: int | None = None) -> dict:
     with connection.transaction():
         owner = _owned_job(connection,job_id,user_id)
         rows = store.timeline(connection,job_id)
@@ -89,4 +89,8 @@ def bundle(connection, job_id: str, user_id: str) -> dict:
             completion=completion(rows), storage=storage_status(connection,job_id))
         result.update({name:getattr(report,name)(rows) for name in
                        ("designs","plans","currents","hri","reason_counts","durations","episodes")})
+        if timeline_limit is not None:
+            # Reports and snapshot evidence still cover every imported event.
+            result["timeline_total"] = len(rows)
+            result["timeline"] = rows[-timeline_limit:]
         return result

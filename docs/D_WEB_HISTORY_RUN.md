@@ -48,6 +48,12 @@ python3 -m history.web --port 8765
 
 ## 검증 재현
 
+웹은 새로고침 뒤에도 선택한 GALLERY / MY DESIGNS 보기를 유지한다. 목록 조회 중에는
+Loading designs를 표시하며, 아직 응답을 받지 못한 상태를 빈 목록으로 표시하지 않는다.
+개인 상세는 최근 100개 이벤트만 표시하지만 전체 건수와 설계·검사·완료·저장 근거는
+전체 기록으로 계산한다. EXPORT JSON은 기존 전체 기록을 조회해 내보낸다. 기록 JSON은
+각 항목을 펼칠 때 표시한다. 원본 JSONL·DB 이벤트는 삭제하거나 선별 적재하지 않는다.
+
 운영 DB가 아닌 이름이 `_test`로 끝나는 별도 DB의 DSN을 `HISTORY_TEST_DSN` 환경변수에 제공한다. pytest/jsonschema는 기존 프로젝트 검사 환경을 사용한다.
 
 ```bash
@@ -57,6 +63,7 @@ PYTHONPATH=.:tests/unit:tests/integration python3 -m pytest \
   tests/integration/test_history_db.py tests/integration/test_accounts_db.py \
   tests/integration/test_history_personal_db.py tests/integration/test_history_web.py -q
 node tests/web/test_design_rendering.cjs
+node tests/web/test_design_navigation.cjs
 node --check history/web_assets/app.js
 ```
 

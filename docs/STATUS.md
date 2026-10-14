@@ -840,3 +840,12 @@ GPU 현재 A snapshot92파일을 CPU deliverables/GPU_A_수정본_CPU보관_2026
 - PR 복사본 검증: native 전체+관련 비전1498개, 등록 기하/파지 계획29개 통과(합계1527개). 실제 device command 없음. 일반/held preview 정상, source/JSON 및 diff 확인. 4층 채택 실측 선택·축 힘35N 불일치·미검증 패드 datum 승격도 점검해 수정.
 
 - 검토용 Draft PR #46 게시: https://github.com/suuuhululu/C-2/pull/46 ; base=codex/integration-round2, head=codex/round2-robot-control-20261014. merge하지 않았으며 기존 작업 checkout/다른 변경은 보존했다.
+
+### 2026-10-14 로컬 웹 목록 새로고침·대용량 상세 조회 수정
+
+- `b0d22e5` 기준 별도 웹 checkout의 `codex/web-design-refresh-20261014`에서 수정. 직접 로그인과 세션 복원의 보기 차이를 해소하고, GALLERY / MY DESIGNS 선택을 탭의 sessionStorage에 유지한다. 목록 조회 중에는 로딩 상태를 표시하며 오류는 빈 정상 목록으로 감추지 않는다.
+- 개인 상세에 소유자 인증을 유지하는 `/api/jobs/{id}/summary`를 추가했다. 전체 이력으로 설계·검사·완료·저장 근거를 계산하되 화면 timeline은 최근 100개와 전체 건수를 반환한다. 기존 전체 상세 API와 EXPORT JSON은 전체 기록을 유지한다. 항목 JSON은 펼칠 때 생성한다.
+- 실제 기존 작업의 디자인 버전1·2·3, 이벤트62,185개를 읽기 조회로 확인했다. 전체 timeline JSON164,373,310바이트에서 summary 응답866,536바이트로 줄었으며, 이 환경의 summary DB 조회·직렬화6.9초를 측정했다. 고빈도 camera/motion 로그가 많아 서버의 전체 이력 읽기 비용은 남아 있다.
+- 별도 `c2_history_web_test` DB에서 기존 HTTP/개인 이력 검사와 새 summary 범위·소유자 격리 검사를 실행해22 passed, skip0. 실제 app.js를 실행하는 DOM 대역의 새 보기 복원/소유v1–v3 Publish 활성/summary 조회/전체 export/오류/lazy JSON 검사와 기존 SVG 검사, JS/Python 문법·diff 검사를 통과했다.
+- 실제 로그인된 브라우저에서 페이지 새로고침 후 MY DESIGNS의v1·v2·v3 카드와 로딩 안내를 확인하고, v3 상세의 Publish 버튼 활성화를 확인했다. 실제 게시 버튼은 누르지 않았다.
+- 로컬 서버에 적용했다. 기존 원본 로그·계정·Job·DB 이벤트·게시 상태는 보존했다. GitHub push/PR/merge, Robot/ROS/카메라 동작, 실제 디자인 게시·삭제는 수행하지 않았다. 이벤트 선별 적재 정책은 이번 조회 수정에 포함하지 않았다.
