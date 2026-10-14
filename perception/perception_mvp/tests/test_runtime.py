@@ -196,11 +196,18 @@ def test_capture_cli_context_forwarded(tmp_path, monkeypatch):
         "check_id": "check", "observation_seq": 0, "calibration_id": "cal"}}]
 
 
-@pytest.mark.parametrize("order", [["V0", "D3", "D1"], ["V0", "D2", "D4"]])
-def test_live_cycle_rejects_nonagreed_order(inputs, order):
+@pytest.mark.parametrize('kind,order,expected', [
+    ('STEP', ['V0', 'D3', 'D1'], 'V0 -> D1 -> D3'),
+    ('STEP', ['V0', 'D2', 'D4'], 'V0 -> D1 -> D3'),
+    ('STEP', ['V0'], 'V0 -> D1 -> D3'),
+    ('FINAL', ['V0'], 'V0 -> D1 -> D3'),
+    ('INITIAL', ['V0', 'D1', 'D3'], 'must be V0$'),
+])
+def test_live_cycle_rejects_nonagreed_order(inputs, kind, order, expected):
     manifest, config, calibration, _ = inputs
     manifest["view_order"] = order
-    with pytest.raises(ValueError, match="V0 -> D1 -> D3"):
+    manifest['check_kind'] = kind
+    with pytest.raises(ValueError, match=expected):
         runtime.observe_cycle(None, None, manifest, None, calibration, config, .5,
                               callback=None, confirm_view=None, bundle_valid=None)
 
@@ -213,10 +220,11 @@ def test_cycle_initial_final_capture_archive_and_no_fake_target(inputs, monkeypa
     import time
     from perception_mvp.hand_cycle import HandCycle
     manifest, config, calibration, meta = inputs
-    manifest.update(check_kind=kind, target_after=None, view_order=['V0', 'D1', 'D3'])
+    order = ['V0'] if kind == 'INITIAL' else ['V0', 'D1', 'D3']
+    manifest.update(check_kind=kind, target_after=None, view_order=order)
     gate = HandCycle(.2, 10.)
     gate.state, gate.last_time = 'READY', time.monotonic()
-    captured, delivered = [], []
+    captured, confirmed, delivered = [], [], []
     regions = [dict(x=0, y=0, width=24, height=24, layer=i) for i in range(1, 6)] if full else []
     def capture(view):
         captured.append(view)
@@ -225,10 +233,13 @@ def test_cycle_initial_final_capture_archive_and_no_fake_target(inputs, monkeypa
         (np.zeros((2, 2, 3), np.uint8), np.full((2, 2), 1000, np.uint16),
          np.full((2, 2), 1000, np.uint16), dict(meta, view_id=view)))
     monkeypatch.setattr(runtime, 'process_saved', lambda *args: dict(candidates=[]))
+    def confirm(view):
+        confirmed.append(view)
+        return True
     observed, _ = runtime.observe_cycle(gate, capture, manifest, None, calibration, config, .25,
-        callback=delivered.append, confirm_view=lambda v: True, bundle_valid=lambda: True,
+        callback=delivered.append, confirm_view=confirm, bundle_valid=lambda: True,
         output_root=tmp_path/'cycles')
-    assert captured == ['V0', 'D1', 'D3']
+    assert captured == confirmed == order
     assert observed['status'] == status and delivered == [observed]
     archive = next((tmp_path/'cycles').iterdir())
     saved = json.loads((archive/'observed.json').read_text())

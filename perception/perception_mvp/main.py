@@ -30,6 +30,11 @@ def validate_cycle_target(context):
     return kind
 
 
+def inspection_view_order(kind):
+    """INITIAL is a V0-only baseline inspection; assembly checks retain three Views."""
+    return ['V0'] if kind == 'INITIAL' else ['V0', 'D1', 'D3']
+
+
 def make_inspection_observer(gate, hand_detector, hand_stream, capture_view,
                              weights, calibration, config, detector_confidence, *,
                              confirm_view, workflow_valid, bundle_valid,
@@ -53,7 +58,7 @@ def make_inspection_observer(gate, hand_detector, hand_stream, capture_view,
             raise ValueError('explicit HUMAN_ASSEMBLY or STOPPED_CLEAR start condition required')
         manifest['start_condition'] = condition
         current = manifest.get('current')
-        manifest.update(mode='REAL', view_order=['V0', 'D1', 'D3'],
+        manifest.update(mode='REAL', view_order=inspection_view_order(manifest.get('check_kind', 'STEP')),
                         previous_accepted_blocks=deepcopy(current['blocks']) if current is not None else [],
                         target_after=manifest.get('target_after'))
         valid = lambda: is_active() is True and workflow_valid() is True
@@ -90,8 +95,9 @@ def run_observation_cycle(gate, hand_detector, hand_stream, capture_view, manife
     """
     from .hand_cycle import wait_for_hand_ready
     context = deepcopy(manifest)
-    if context.get("mode") != "REAL" or context.get("view_order") != ["V0", "D1", "D3"]:
-        raise ValueError("explicit REAL V0 -> D1 -> D3 cycle required")
+    expected_order = inspection_view_order(context.get('check_kind', 'STEP'))
+    if context.get("mode") != "REAL" or context.get("view_order") != expected_order:
+        raise ValueError('explicit REAL observation order required: ' + ' -> '.join(expected_order))
     check, seq = context.get("check_id"), context.get("observation_seq")
     if not isinstance(check, str) or not check or type(seq) is not int or seq < 0:
         raise ValueError("Backend check and bundle-start sequence required")
@@ -151,8 +157,9 @@ def observe_cycle(gate, capture_view, manifest, weights, calibration, config,
     """
     context, calibration, config = deepcopy(manifest), deepcopy(calibration), deepcopy(config)
     order = context["view_order"]
-    if order != ["V0", "D1", "D3"]:
-        raise ValueError("observation order must be V0 -> D1 -> D3")
+    expected_order = inspection_view_order(context.get('check_kind', 'STEP'))
+    if order != expected_order:
+        raise ValueError('observation order must be ' + ' -> '.join(expected_order))
     if context["mode"] != "REAL":
         raise ValueError("explicit REAL cycle required")
     check, seq = context["check_id"], context["observation_seq"]

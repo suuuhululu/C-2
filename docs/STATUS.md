@@ -1,5 +1,10 @@
 # 현재 진행 상황
 
+## 2026-10-14 — B INITIAL 관측을 V0 단독으로 변경
+
+- INITIAL 생산자의 관측 순서와 사이클 순서 검증을 V0 단독으로 변경했다. STEP·FINAL은 V0→D1→D3를 유지한다. 관측 근거가 부족한 INITIAL 보류, 기존 보정·Depth/Grid·Current/revision·STOP/취소 조건은 유지한다. D 파일은 변경하지 않았다.
+- 검증: `PYTHONPATH=.:perception python3 -m pytest -q perception/perception_mvp/tests` → 484 passed, 1 skipped(PR22 소비자 코드 미제공), 종료 0. V0 단독 INITIAL 촬영·전달·저장과 근거 부족 보류, STEP·FINAL 단독 관측 거절을 확인했다. 실제 통합 PC·로봇 이동 재시험과 Git 게시는 미실행이다.
+
 ## 2026-10-14 — B 비전: 층 기준·허용 오차·V0/D1·D3 역할 분리 (`work/hongdong-vision-round1-v2`)
 
 - 변경(B-only, perception/): 층 기준을 측정 윗면 평면 + 스터드 4mm(TOP_PLANE_PLUS_STUD)로 변경했다. 층 허용 오차는 ±2.5mm→±5mm(층 간격 18.625mm, 2×허용<간격 유지), 깊이 범위 min_depth는 V0 0.441·D1 0.332·D3 0.395로 2mm 낮췄다(캘리브레이션 무변경).
