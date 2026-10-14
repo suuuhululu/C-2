@@ -35,6 +35,9 @@ class MvpIntegration:
             and 'saved_observations' in round3_step_replay)
         if self.saved_observation_replay and round3_step_replay.get('provenance') != 'SYNTHETIC':
             raise ValueError('SAVED_OBSERVATION_REPLAY_REQUIRES_SYNTHETIC_INPUT')
+        self.design_change_replay = bool(round3_step_replay and round3_step_replay.get('design_change_replay'))
+        if self.design_change_replay and (not self.saved_observation_replay or c_mode != 'offline'):
+            raise ValueError('DESIGN_CHANGE_REPLAY_REQUIRES_SAVED_OFFLINE_INPUT')
         self.saved_observation_index = 0
         if robot_mode not in ('MOCK', 'REAL'):
             raise ValueError('explicit robot mode required')
@@ -68,6 +71,9 @@ class MvpIntegration:
         self.workflow = MvpWorkflow(self.emit, runtime_settings or settings(), directory,
                                     mode='REAL' if robot_mode == 'REAL' else 'FAKE')
         self.workflow.saved_observation_replay = self.saved_observation_replay
+        self.workflow.design_change_replay = self.design_change_replay
+        self.workflow.replay_change_from_version = (fixture_design['design_version']
+            if self.design_change_replay and fixture_design is not None else None)
         self.b = connect_inspection(lambda value:self.inbox.put(('b',value)),
             observe=self.observe, geometry_reference=self.workflow.settings['geometry_reference'])
         self.workflow.b = self.b
@@ -89,6 +95,9 @@ class MvpIntegration:
             packet = deepcopy(records[index])
             if packet['check_kind'] != context['check_kind']:
                 raise ValueError('SAVED_OBSERVATION_KIND_MISMATCH')
+            if self.design_change_replay and context['check_kind'] != 'INITIAL':
+                if packet.get('design_version') != self.workflow.approved['design_version']:
+                    raise ValueError('SAVED_OBSERVATION_DESIGN_VERSION_MISMATCH')
             if context['check_kind'] == 'STEP' and packet.get('target_block') != self.workflow.step()['after']:
                 raise ValueError('SAVED_OBSERVATION_STEP_MISMATCH')
             if not active():
@@ -144,6 +153,7 @@ class MvpIntegration:
                         raise ValueError('SAVED_REPLAY_EXACT_STEP_MEASUREMENT_REQUIRED')
                     replay['measured'] = matches[0]
                     replay.pop('saved_observations')
+                    replay.pop('revised_candidates', None)
                     replay['saved_observation_flow'] = True
                 self.last_document['round2_replay'] = replay
             self.robot.send('EXECUTE',document=deepcopy(self.last_document))
@@ -179,18 +189,28 @@ class MvpIntegration:
                     differences=pairs,text_answers=[text],should_stop=token.is_set,
                     change_reason=payload.get('change_reason'),
                     design_metadata=payload.get('design_metadata'),planning_failure=payload.get('planning_failure'))
+            replay_kwargs = {}
+            if self.design_change_replay:
+                def generate(design, current, differences, reasons):
+                    candidates = [v for v in self.round3_step_replay.get('revised_candidates', [])
+                        if v['from_design_version'] == design['design_version']
+                        and v['current'] == current and v['reason'] == payload['reason']]
+                    if len(candidates) != 1:
+                        raise ValueError('REPLAY_REVISED_CANDIDATE_BINDING_REQUIRED')
+                    return dict(blocks=deepcopy(candidates[0]['blocks']))
+                replay_kwargs['revised_generator'] = generate
             if pairs:
                 return c_main.run_intervention(payload['design'],payload['current']['blocks'],pairs,
-                    text_answers=[text],should_stop=token.is_set,inspection_context=context)
+                    text_answers=[text],should_stop=token.is_set,inspection_context=context,**replay_kwargs)
             return c_main.run_design_change(payload['design'],payload['current']['blocks'],
                 reason=payload['reason'],text_answers=[text],should_stop=token.is_set,inspection_context=context,
-                planning_failure=payload.get('planning_failure'))
+                planning_failure=payload.get('planning_failure'),**replay_kwargs)
         self.background(port,payload,call)
         return True
 
     def command(self, name):
-        if self.saved_observation_replay and name in (
-                'RESUME', 'REINSPECT', 'REQUEST_DESIGN_CHANGE', 'CONTINUE_AFTER_CORRECTION'):
+        if self.saved_observation_replay and (name in ('RESUME', 'REINSPECT', 'CONTINUE_AFTER_CORRECTION')
+                or name == 'REQUEST_DESIGN_CHANGE' and not self.design_change_replay):
             return False  # The file describes one fixed capture sequence, not a new scene.
         if name == 'START':
             if self.workflow.status not in ('IDLE','COMPLETE') or self.workflow.storage=='PENDING':return False
@@ -567,6 +587,8 @@ def main(runtime_class=MvpIntegration, *, real_trial=False):
                 '통합 2단계 · A 한 Step → round2 제어 · 합성 관측/반력 · 실제 장치 없음')
             window.setWindowTitle('Round3 ABCD 저장 관측 검사 · MOCK 전용' if runtime.saved_observation_replay else
                 'Round3 A Step 연결 검사 · MOCK 전용')
+            if runtime.design_change_replay:
+                window.heading.setText('설계 변경·차이 대응 → 승인 → A 재계획 · 저장 관측 MOCK 전용')
             if runtime.saved_observation_replay:
                 window.reinspection_button.hide()
         if real_trial and args.round3_fixed_step:

@@ -584,18 +584,20 @@ def _initial(text, should_stop, preference_text, on_question, progress):
     return _result("OK", None, result["design"], questions, design_metadata=_initial_metadata(described, choice))
 
 
-def run_intervention(design, current, differences, text_answers=None, on_question=None, should_stop=None, on_progress=None, inspection_context=None):
+def run_intervention(design, current, differences, text_answers=None, on_question=None, should_stop=None, on_progress=None, inspection_context=None,
+                     revised_generator=None):
     """실제 차이에 대한 사용자 의도 확인 (§4.2). 예외를 밖으로 던지지 않는다(on_question·on_progress 제외).
 
     on_progress: 진행 단계마다 {"stage", "message", "at"}로 호출(PROGRESS_STAGES, 표시·로그용).
+    revised_generator: offline 텍스트 재현용 후보 공급 함수. Current 보존·후보 검증·승인을 우회하지 않는다.
     """
     progress = _reporter(on_progress, text_answers is None and _use_llm())
     return _report_end(progress, _intervention(design, current, differences, text_answers, on_question, should_stop,
-                                               progress, inspection_context=inspection_context))
+                                               progress, inspection_context=inspection_context, revised_generator=revised_generator))
 
 
 def run_design_change(design, current, *, reason, text_answers=None, on_question=None, should_stop=None, on_progress=None,
-                      inspection_context=None, planning_failure=None):
+                      inspection_context=None, planning_failure=None, revised_generator=None):
     """직접 Design Change (§4.6, PR #26 → Wave 3): Difference 없이 채택 Design을 바꿀지 묻고, REVISE면 Current를 보존한
     Revised Candidate를 만든다. 관측 차이를 만들어서 run_intervention에 넣지 않는다.
 
@@ -608,6 +610,7 @@ def run_design_change(design, current, *, reason, text_answers=None, on_question
     (코드·detail을 읽지 않음)이고 Revised 생성에는 llm.planning_failure_change_request가 들어간다. redesign_required가 True가
     아니거나 failure_code가 REDESIGN_FAILURE_CODES 밖이면 질문·TTS 없이 FAILED / PLANNING_FAILURE_NOT_REDESIGN.
     KEEP은 채택 Design 그대로를 뜻하며 C는 A를 다시 부르지 않는다(같은 Design의 Plan은 이미 실패했으므로 D는 HOLD).
+    revised_generator는 offline 텍스트 재현 전용이며 LLM/음성 모드에서는 거부한다.
     """
     if not isinstance(reason, str) or not reason.strip():
         return _result('FAILED', code='INVALID_INPUT', message='change reason required')
@@ -622,11 +625,14 @@ def run_design_change(design, current, *, reason, text_answers=None, on_question
                                    f"a design-change request; C asked nothing")
     progress = _reporter(on_progress, text_answers is None and _use_llm())
     return _report_end(progress, _intervention(design, current, [], text_answers, on_question,
-        should_stop, progress, change_reason=reason, inspection_context=inspection_context, planning_failure=planning_failure))
+        should_stop, progress, change_reason=reason, inspection_context=inspection_context,
+        planning_failure=planning_failure, revised_generator=revised_generator))
 
 
 def _intervention(design, current, differences, text_answers, on_question, should_stop, progress, change_reason=None, inspection_context=None,
-                  planning_failure=None):
+                  planning_failure=None, revised_generator=None):
+    if revised_generator is not None and (_use_llm() or text_answers is None):
+        return _result('FAILED', code='REPLAY_GENERATOR_TEXT_ONLY', message='offline text replay only')
     # 두 모드(Wave 3): change_reason이 있으면 직접 Design Change(질문·parser·LLM 해석·입력 검사·Revised 메시지가 다름),
     # 없으면 Difference Intervention(기존 그대로). 응답 턴·escalation·Revised 생성 loop·judge는 공유한다.
     design_change = change_reason is not None
@@ -762,7 +768,7 @@ def _intervention(design, current, differences, text_answers, on_question, shoul
 
         def make_generate(feedback=None):
             if not use_llm:
-                return None
+                return revised_generator
 
             def generate(design, current, differences, reasons):
                 note_attempt(reasons)

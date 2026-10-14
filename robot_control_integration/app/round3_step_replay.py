@@ -56,8 +56,9 @@ class Round3StepReplay:
         if self.raw is not None:
             self.raw.stop()
         if self.state in ('AWAITING_INSPECTION', 'RECOVERY_REQUIRED'):
+            previous = self.state
             self.state = 'STOPPED'
-            self.emit('STOP_VERIFIED', dict(actual_stop_verified=True, synthetic_stop=True))
+            self.emit('STOP_VERIFIED', dict(actual_stop_verified=True, synthetic_stop=True, previous_state=previous))
 
     def held(self, reason):
         self.state = 'STOPPED' if self.session.cancelled else 'RECOVERY_REQUIRED'

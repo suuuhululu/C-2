@@ -1,5 +1,15 @@
 # 현재 진행 상황
 
+## 2026-10-15 — 중간 설계 변경/조립 차이 → C 승인 → A 재계획 → D 가상 재개
+
+- 사용자 요청으로 변경/차이 대응 replay를 commit하고 원격 `codex/integration-round3`에 게시한다. main은 병합하지 않는다. 기존 T1/full-real/ABCD 저장 관측의 기본 동작은 유지한다.
+- `design_change_replay=true`인 합성·MOCK·offline 모드에만 사용자 설계 변경과 B 불일치 후 C 의도 대화를 허용한다. 첫 B MATCH 후에는 변경 요청을 기다리는 경계를 제공한다. 진행 중 변경 요청도 그 경계에서 처리한다.
+- C의 실제 대화/검증/버전 증가/별도 승인을 호출하되 새 후보 생성은 버전·사유·Current가 일치하는 저장 후보 provider를 사용한다. optional revised_generator는 offline text에만 허용하고 일반 C 함수의 기본 동작은 유지한다.
+- 새 후보 승인 전 A 재계획/추가 D 실행을 하지 않는다. 승인 후 B Current를 기준으로 새 plan_id/execution_id를 사용해 미조립 한 Step만 실행한다. Current 삭제 후보·후보/측정 누락·구버전 저장 관측은 보류한다. RESUME로 예전 파지를 반복하지 않는다.
+- 첫 Step 종료 후 C 승인 대기에서 STOP 검증이 누락되던 MOCK 경계를 수정했다. 합성 정지/이전 상태/마지막 execution_id가 일치할 때만 채택한다. 실제 장치의 정지 조건은 변경하지 않았다.
+- 검증: 사용자 변경/불일치 재계획·승인 전 STOP·자료 오류·provider 격리 11 passed, 기존 C 단위 118 passed, T1/통합2/통신 25 passed, 저장 관측 ABCD 12 passed, 기존 full-real 선택 5 passed(27 deselected). 실제 로봇/ROS/카메라/마이크/외부 API/DB는 실행하지 않았다.
+- [시나리오·실행·로그 안내](D_ROUND3_DESIGN_CHANGE_REPLAY.md). 고정 합성 후보/관측 기반 연결 검증이며 자유 설계 생성·실제 인식·결착 성공 검증이 아니다.
+
 ## 2026-10-15 — ABCD 저장 관측 연결: D 가상 결과 → B 비교 → 다음 Step
 
 - 사용자 요청으로 round3에 구현한 저장 관측 연결을 commit하고 원격 `codex/integration-round3`에 게시한다. main은 병합하지 않는다. T1 고정 실물 시험·full-real·통합 2단계 단독 replay를 유지한다.

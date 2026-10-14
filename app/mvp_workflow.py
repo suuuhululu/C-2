@@ -23,6 +23,8 @@ class MvpWorkflow:
         self.log_directory = log_directory
         self.b = None
         self.saved_observation_replay = False
+        self.design_change_replay = False
+        self.replay_change_from_version = None
         self.job_id = None
         self.epoch = str(uuid4())
         self.generation = 0
@@ -195,7 +197,7 @@ class MvpWorkflow:
             self.status, self.reason = 'HOLD', result['reason'] or result['comparison']
             if kind == 'FINAL':
                 self.assembly = result['comparison']
-            if self.saved_observation_replay:
+            if self.saved_observation_replay and not self.design_change_replay:
                 return True  # Inspect the saved mismatch; do not auto-replan through C.
             if result['comparison'] == 'MISMATCH':
                 if self.robot_waiting:
@@ -234,6 +236,9 @@ class MvpWorkflow:
         self.robot_status = 'IDLE'
         if self.change_pending:
             self.open_intent('USER_DESIGN_CHANGE')
+        elif (self.design_change_replay and self.approved['design_version'] == self.replay_change_from_version
+                and len(self.completed) == 1):
+            self.status, self.reason = 'HOLD', 'DESIGN_CHANGE_REPLAY_AWAITING_USER_REQUEST'
         elif self.step() is None:
             self.status = 'WAIT_ASSEMBLY'
             self.event('PLAN_WORK_EXHAUSTED', plan_id=self.bundle['plan']['plan_id'])
@@ -463,8 +468,11 @@ class MvpWorkflow:
         if event=='COMMAND_REJECTED' and data.get('command') in ('SIGNAL','OPERATOR_CONFIRM') and data.get('reason') in ('NO_ACTIVE_SIGNAL_REQUEST','STALE_SIGNAL'):
             self.event('LATE_GESTURE_IGNORED',data)
             return False
+        stopped_idle_state = (data.get('previous_state') == 'IDLE' or
+            self.mode == 'FAKE' and data.get('synthetic_stop') is True
+            and data.get('provenance') == 'SYNTHETIC' and data.get('previous_state') == 'AWAITING_INSPECTION')
         stopped_idle_execution = (event == 'STOP_VERIFIED' and self.reason == 'STOP_PENDING'
-            and self.execution_id is None and data.get('previous_state') == 'IDLE'
+            and self.execution_id is None and stopped_idle_state
             and data.get('execution_id') == self.last_execution_id)
         if data.get('execution_id') and data['execution_id'] != self.execution_id and not stopped_idle_execution:
             return False
@@ -666,6 +674,6 @@ class MvpWorkflow:
             snapshot['assistance'] = deepcopy(self.help)
         if self.mode=='REAL' and self.settings.get('observation_kind')=='SYNTHETIC':
             snapshot['observation_kind']='SYNTHETIC'
-        if self.saved_observation_replay:
+        if self.saved_observation_replay and not self.design_change_replay:
             snapshot['user_requests']['change_design']['enabled'] = False
         return validate_hmi_snapshot(snapshot)

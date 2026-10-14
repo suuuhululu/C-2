@@ -1,0 +1,157 @@
+{
+  "provenance": "SYNTHETIC",
+  "providers": [
+    "pickup",
+    "alignment"
+  ],
+  "measurements": [
+    {
+      "block": {"brick_type": "2x2x1", "color": "blue", "x": 11, "y": 11, "layer": 1, "orientation_deg": 0},
+      "pad_contact_pose": [
+        476.0,
+        176.0,
+        50.0,
+        0.0,
+        180.0,
+        0.0
+      ],
+      "press_width_mm": 4.0,
+      "landing_support_verified": true,
+      "release_sweep_verified": true,
+      "press_sweep_verified": true,
+      "measurement_ref": "SYNTHETIC_TEST_ONLY_NOT_PHYSICAL_TEACHING"
+    },
+    {
+      "block": {"brick_type": "2x2x1", "color": "blue", "x": 11, "y": 11, "layer": 2, "orientation_deg": 0},
+      "pad_contact_pose": [
+        476.0,
+        176.0,
+        69.0,
+        0.0,
+        180.0,
+        0.0
+      ],
+      "press_width_mm": 4.0,
+      "landing_support_verified": true,
+      "release_sweep_verified": true,
+      "press_sweep_verified": true,
+      "measurement_ref": "SYNTHETIC_TEST_ONLY_NOT_PHYSICAL_TEACHING"
+    },
+    {
+      "block": {"brick_type": "2x2x1", "color": "yellow", "x": 11, "y": 11, "layer": 2, "orientation_deg": 0},
+      "pad_contact_pose": [
+        476.0,
+        176.0,
+        69.0,
+        0.0,
+        180.0,
+        0.0
+      ],
+      "press_width_mm": 4.0,
+      "landing_support_verified": true,
+      "release_sweep_verified": true,
+      "press_sweep_verified": true,
+      "measurement_ref": "SYNTHETIC_TEST_ONLY_NOT_PHYSICAL_TEACHING"
+    }
+  ],
+  "saved_observations": [
+    {
+      "check_kind": "INITIAL",
+      "observation": {
+        "status": "OK",
+        "visible_blocks": [],
+        "verified_regions": [
+          {"x": 0, "y": 0, "width": 24, "height": 24, "layer": 1},
+          {"x": 0, "y": 0, "width": 24, "height": 24, "layer": 2},
+          {"x": 0, "y": 0, "width": 24, "height": 24, "layer": 3},
+          {"x": 0, "y": 0, "width": 24, "height": 24, "layer": 4},
+          {"x": 0, "y": 0, "width": 24, "height": 24, "layer": 5}
+        ],
+        "reason": null
+      }
+    },
+    {
+      "check_kind": "STEP",
+      "target_block": {"brick_type": "2x2x1", "color": "blue", "x": 11, "y": 11, "layer": 1, "orientation_deg": 0},
+      "observation": {
+        "status": "OK",
+        "visible_blocks": [
+          {"brick_type": "2x2x1", "color": "yellow", "x": 11, "y": 11, "layer": 1, "orientation_deg": 0}
+        ],
+        "verified_regions": [
+          {"x": 0, "y": 0, "width": 24, "height": 24, "layer": 1},
+          {"x": 0, "y": 0, "width": 24, "height": 24, "layer": 2},
+          {"x": 0, "y": 0, "width": 24, "height": 24, "layer": 3},
+          {"x": 0, "y": 0, "width": 24, "height": 24, "layer": 4},
+          {"x": 0, "y": 0, "width": 24, "height": 24, "layer": 5}
+        ],
+        "reason": null
+      },
+      "design_version": 1
+    },
+    {
+      "check_kind": "STEP",
+      "target_block": {"brick_type": "2x2x1", "color": "blue", "x": 11, "y": 11, "layer": 2, "orientation_deg": 0},
+      "observation": {
+        "status": "OK",
+        "visible_blocks": [
+          {"brick_type": "2x2x1", "color": "yellow", "x": 11, "y": 11, "layer": 1, "orientation_deg": 0},
+          {"brick_type": "2x2x1", "color": "blue", "x": 11, "y": 11, "layer": 2, "orientation_deg": 0}
+        ],
+        "verified_regions": [
+          {"x": 0, "y": 0, "width": 24, "height": 24, "layer": 1},
+          {"x": 0, "y": 0, "width": 24, "height": 24, "layer": 2},
+          {"x": 0, "y": 0, "width": 24, "height": 24, "layer": 3},
+          {"x": 0, "y": 0, "width": 24, "height": 24, "layer": 4},
+          {"x": 0, "y": 0, "width": 24, "height": 24, "layer": 5}
+        ],
+        "reason": null
+      },
+      "design_version": 2
+    },
+    {
+      "check_kind": "FINAL",
+      "observation": {
+        "status": "OK",
+        "visible_blocks": [
+          {"brick_type": "2x2x1", "color": "yellow", "x": 11, "y": 11, "layer": 1, "orientation_deg": 0},
+          {"brick_type": "2x2x1", "color": "blue", "x": 11, "y": 11, "layer": 2, "orientation_deg": 0}
+        ],
+        "verified_regions": [
+          {"x": 0, "y": 0, "width": 24, "height": 24, "layer": 1},
+          {"x": 0, "y": 0, "width": 24, "height": 24, "layer": 2},
+          {"x": 0, "y": 0, "width": 24, "height": 24, "layer": 3},
+          {"x": 0, "y": 0, "width": 24, "height": 24, "layer": 4},
+          {"x": 0, "y": 0, "width": 24, "height": 24, "layer": 5}
+        ],
+        "reason": null
+      },
+      "design_version": 2
+    }
+  ],
+  "design_change_replay": true,
+  "revised_candidates": [
+    {
+      "from_design_version": 1,
+      "reason": "USER_DESIGN_CHANGE",
+      "current": [
+        {"brick_type": "2x2x1", "color": "blue", "x": 11, "y": 11, "layer": 1, "orientation_deg": 0}
+      ],
+      "blocks": [
+        {"brick_type": "2x2x1", "color": "blue", "x": 11, "y": 11, "layer": 1, "orientation_deg": 0},
+        {"brick_type": "2x2x1", "color": "yellow", "x": 11, "y": 11, "layer": 2, "orientation_deg": 0}
+      ]
+    },
+    {
+      "from_design_version": 1,
+      "reason": "B_MISMATCH",
+      "current": [
+        {"brick_type": "2x2x1", "color": "yellow", "x": 11, "y": 11, "layer": 1, "orientation_deg": 0}
+      ],
+      "blocks": [
+        {"brick_type": "2x2x1", "color": "yellow", "x": 11, "y": 11, "layer": 1, "orientation_deg": 0},
+        {"brick_type": "2x2x1", "color": "blue", "x": 11, "y": 11, "layer": 2, "orientation_deg": 0}
+      ]
+    }
+  ]
+}
