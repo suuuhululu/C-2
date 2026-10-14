@@ -9,6 +9,7 @@ from app.assembly_motion import pose_error,motion_still
 from app.assembly_blend_trial import run_blend
 from app.assembly_step_bridge import build_plan, pose, release_feedback_range
 from app.assembly_step_runner import assembly_target_pose
+from app.assembly_strategy import has_source_release_press, is_release_press
 from app.control_driver import ControlledDriver
 from app.control_session import ControlSession, validate_execution
 from scripts.assembly_position_trial import run, guard
@@ -40,6 +41,9 @@ class StepRuntime:
         self.operator_receive_confirmed = False
         self.blend_start = None
         self.recovery_reason = None
+        self.release_press_reference = None
+        self.empty_pad_status = 0
+        self.robot_press_executed = False
 
     def emit(self, event, data):
         # STOP evidence must still be emitted after the execution is cancelled.
@@ -101,7 +105,7 @@ class StepRuntime:
             raise ValueError('EXECUTION_ALREADY_USED')
         if self.raw.mode == 'REAL':
             validate_execution(plan, profile, value, 'full')
-            if profile.get('native_press'):
+            if profile.get('native_press') and not has_source_release_press(plan):
                 from scripts.onsite_slot2_force_trial import require_drcf2_runtime
                 require_drcf2_runtime()
                 self.raw.check_contact_services(native_force=True)
@@ -135,7 +139,9 @@ class StepRuntime:
                 self.operations.insert(self.cursor, ('receive', None))
         else:
             sample = driver.stillness()
-            guard(sample, self.connection, motion_force_limit, automatic=True, required_gripper_status=0)
+            context=getattr(self.raw,'last_step_gripper_context',None)
+            empty_status=context['gripper_status'] if context and context.get('state')=='EMPTY_PAD_CLOSED' else 0
+            guard(sample, self.connection, motion_force_limit, automatic=True, required_gripper_status=empty_status)
             if self.raw.mode == 'REAL' and trial:
                 expected = pose(value.get('planned_start_pose'), 'planned_start_pose')
                 mm, deg = pose_error(sample['posx'], expected)
@@ -149,6 +155,9 @@ class StepRuntime:
             self.handover_active = False
             self.handover_intent_pending = False
             self.handover_release_sent = False
+            self.release_press_reference = None
+            self.empty_pad_status = 0
+            self.robot_press_executed = False
         session.claim_execution()
         self.used_executions.add(value['execution_id'])
         self.session, self.driver, self.plan, self.profile = session, driver, plan, deepcopy(profile)
@@ -170,7 +179,8 @@ class StepRuntime:
                 and self.cursor<len(self.operations) and self.operations[self.cursor][0]=='handover'
                 and not self.handover_release_sent and self.stopped_sample['gripper_status']==2
                 and not self.driver.command_outcome_unknown):return True
-        if self.pending == 'contact' and not self.contact_started and self.stopped_sample['gripper_status'] == 2:
+        contact_status=self.empty_pad_status if has_source_release_press(self.plan) else 2
+        if self.pending == 'contact' and not self.contact_started and self.stopped_sample['gripper_status'] == contact_status:
             target = self.contact_start_pose()
             mm,deg = pose_error(self.stopped_sample['posx'],target)
             return self.state in ('STOPPED','RECOVERY_REQUIRED') and mm <= 1 and deg <= 1
@@ -210,6 +220,7 @@ class StepRuntime:
         height = max(profile['clearance_z_mm'], reference[2]+profile['approach_offset_mm'],
                      pickup[2]+profile['approach_offset_mm'], profile['place_pose'][2]+profile['approach_offset_mm'])
         if (profile.get('continuous_transport') and plan['mode']=='ROBOT_GRIP'
+                and not is_release_press(plan)
                 and plan['assistance_kind']=='NONE' and profile.get('native_press',{}).get('alignment_trial')):
             return self.continuous_operations(plan,profile,height,zone)
         # Pickup clearance and post-contact release are separate D commands.
@@ -234,7 +245,10 @@ class StepRuntime:
         ops += [('move', ('PICKUP_LOWER', pickup, 0, True)), ('grip', ('PICKUP_CLOSE', s['pickup_width_mm'], 2)),
                 ('lift', (height, 2))]
         loaded = [('SUPPLY_LOADED', profile['supply_transit_xy_mm']), ('BODY_LOADED', profile['body_bypass_xy_mm']), ('PLACE_LOADED', profile['place_pose'][:2])]
+        if has_source_release_press(plan):
+            loaded[-1]=('ROUND2_ASSEMBLY_OBSERVATION',reference[:2])
         merged_target = (plan['mode'] != 'HUMAN_ASSEMBLY' and
+            not has_source_release_press(plan) and
             profile.get('empty_return_skip_place',False) and bool(profile.get('transport_blending')) and
             math.dist(profile['place_pose'][:2],reference[:2]) > 2*profile['transport_blending']['radius_mm'])
         if merged_target:
@@ -268,7 +282,15 @@ class StepRuntime:
             ops.append(('move', ('PRE_CONTACT', target, 2, True)))
             assisted = plan['assistance_kind'] in ('HOLD', 'PRESS', 'PRESS_AND_HOLD')
             if assisted: ops.append(('help', None))
-            if plan['assistance_kind'] in ('PRESS', 'PRESS_AND_HOLD'):
+            if has_source_release_press(plan):
+                ops += [('move',('RELEASE_POSITION',s['release_pose'],2,True)),
+                        ('grip',('RELEASE_FOR_TOP_PRESS',s['release_width_mm'],0))]
+                if plan['assistance_kind'] in ('PRESS','PRESS_AND_HOLD'):
+                    ops += [('lift',(height,0)),('ack',None)]
+                else:
+                    ops += [('pad_lift',height),('pad_close',s['press_width_mm']),
+                            ('pad_approach',None),('pad_lower',None),('pad_contact',None),('pad_retreat',height)]
+            elif plan['assistance_kind'] in ('PRESS', 'PRESS_AND_HOLD'):
                 # 기존 D 계약: 사람이 누를 수 있도록 near-contact에서 놓고 후퇴한다.
                 # 이 방식에 Robot force press를 덧붙이지 않는다.
                 near = [*reference[:3], *orientation]
@@ -316,6 +338,8 @@ class StepRuntime:
         return target
 
     def contact_start_pose(self):
+        if has_source_release_press(self.plan) and self.release_press_reference is not None:
+            return self.plan['settings']['press_start_pose'].copy()
         return self.pre_contact_pose(self.plan['settings'],self.profile)
 
     def request_handover(self):
@@ -524,13 +548,15 @@ class StepRuntime:
             position_tolerance_mm=p.get('motion_position_tolerance_mm',.05),
             orientation_tolerance_deg=p.get('motion_orientation_tolerance_deg',.05),
             set_automatic_mode=False, force_norm_stop_n=self.motion_force_limit, required_gripper_status=held,
+            target_only_motion=p.get('target_only_motion',False),
+            angular_velocity=p.get('angular_velocity'),angular_acceleration=p.get('angular_acceleration'),
             clock=self.clock, sleep=self.sleep)
         sample = self.driver.stillness()
         mm, deg = pose_error(sample['posx'], target)
-        if mm > 1 or deg > 1: raise RuntimeError('TARGET_NOT_REACHED')
+        if not p.get('target_only_motion',False) and (mm > 1 or deg > 1): raise RuntimeError('TARGET_NOT_REACHED')
         self.emit('MOVE_SUCCEEDED', dict(label=label, sample=sample, actual_stop_verified=True))
 
-    def grip(self, label, width, status, *, precondition=None):
+    def grip(self, label, width, status, *, precondition=None,empty_pad=False):
         reaction_release=(label=='SEATED_RELEASE' and self.contact is not None and
             self.contact.get('press_control')=='POSITION_DESCENT_REACTION_STOP' and
             self.contact.get('release_after_verified_reaction_stop') is True and
@@ -545,9 +571,10 @@ class StepRuntime:
         self.driver.own('GRIPPER',verified_snapshot=self.driver.last_verified_sample
             if label in ('PREPARE_OPEN','PICKUP_CLOSE','DIRECT_HANDOVER') or reaction_release else None)
         self.emit('GRIP_STARTED', dict(label=label))
+        self.raw.last_step_gripper_context=None
         self.driver.command_gripper(width, self.profile['gripper_force_n'], precondition=precondition,
             verified_snapshot=self.driver.last_verified_sample if label=='DIRECT_HANDOVER' else None)
-        bounds = release_feedback_range(self.plan['settings'], width) if status == 0 else [0, 110]
+        bounds = [0,12.] if empty_pad else release_feedback_range(self.plan['settings'], width) if status == 0 else [0, 110]
         if label == 'PREPARE_OPEN' and 'pickup_start_open_range_mm' in self.plan['settings']:
             bounds = self.plan['settings']['pickup_start_open_range_mm']
         deadline = self.clock()+10
@@ -567,11 +594,12 @@ class StepRuntime:
                   automatic=True, required_gripper_status=status)
             if type(sample['gripper_width_mm']) not in (int, float) or not math.isfinite(sample['gripper_width_mm']):
                 raise RuntimeError('INVALID_GRIPPER_WIDTH_FEEDBACK')
-            count = count+1 if (sample['gripper_status'] == status and bounds[0] <= sample['gripper_width_mm'] <= bounds[1]
+            ready_status=sample['gripper_status'] in (0,2) if empty_pad else sample['gripper_status']==status
+            count = count+1 if ready_status and (bounds[0] <= sample['gripper_width_mm'] <= bounds[1]
                                and (reaction_release or motion_still(sample,self.session.value['stillness']))) else 0
             if count >= 3:
                 self.emit('GRIP_SUCCEEDED', dict(label=label, sample=sample))
-                return
+                return sample['gripper_status']
             self.sleep(.05)
         raise TimeoutError('GRIP_COMPLETION_NOT_VERIFIED')
 
@@ -619,6 +647,46 @@ class StepRuntime:
                 elif kind == 'lift':
                     target = self.driver.sample()['posx']; target[2] = max(target[2], argument[0])
                     self.move('LIFT', target, argument[1])
+                elif kind == 'pad_lift':
+                    self.release_press_reference=self.driver.sample()['posx'].copy()
+                    target=self.release_press_reference.copy()
+                    target[2]=max(argument,self.plan['settings']['press_approach_pose'][2])
+                    self.move('EMPTY_PAD_VERTICAL_RETREAT',target,0,True)
+                elif kind == 'pad_close':
+                    self.pending='grip'
+                    self.empty_pad_status=self.grip('EMPTY_PAD_CLOSE',argument,0,empty_pad=True)
+                    replay_reference=getattr(self.raw,'use_press_tool_reference',None)
+                    if self.raw.mode=='MOCK' and callable(replay_reference):
+                        contact=self.plan['settings']['press_start_pose'].copy()
+                        contact[2]=self.plan['settings']['press_start_pose'][2]-self.profile['near_contact_offset_mm']
+                        replay_reference(contact)
+                    self.raw.last_step_gripper_context=dict(state='EMPTY_PAD_CLOSED',gripper_status=self.empty_pad_status)
+                    self.emit('EMPTY_PAD_CLOSED_CONTEXT',self.raw.last_step_gripper_context)
+                elif kind == 'pad_approach':
+                    target=self.plan['settings']['press_approach_pose'].copy()
+                    target[2]=max(target[2],self.driver.sample()['posx'][2])
+                    self.move('PRESS_TOOL_APPROACH',target,self.empty_pad_status)
+                elif kind == 'pad_lower':
+                    target=self.plan['settings']['press_start_pose'].copy()
+                    self.move('PRESS_TOOL_LOWER',target,self.empty_pad_status,True)
+                elif kind == 'pad_contact':
+                    self.pending='contact'
+                    self.driver.own('CONTACT')
+                    self.contact_started=True
+                    self.robot_press_executed=True
+                    self.contact=press(self.driver,self.connection,self.emit,
+                        max_travel_mm=self.profile['max_press_travel_mm'],force_stop_n=self.profile['force_stop_n'],
+                        velocity=self.profile['descent_velocity'],acceleration=self.profile['descent_acceleration'],
+                        target_only_motion=self.profile.get('target_only_motion',False),
+                        angular_velocity=self.profile.get('angular_velocity'),angular_acceleration=self.profile.get('angular_acceleration'),
+                        required_gripper_status=self.empty_pad_status,clock=self.clock,sleep=self.sleep)
+                    if self.contact['status']!='FORCE_THRESHOLD_REACHED_STOP_VERIFIED':
+                        raise RuntimeError('CONTACT_NOT_VERIFIED')
+                    self.emit('CONTACT_SUCCEEDED',dict(status=self.contact['status'],robot_press_executed=True,
+                        assembly_strategy=self.plan['assembly_strategy'],assembly_completion=False))
+                elif kind == 'pad_retreat':
+                    target=self.driver.sample()['posx'];target[2]=max(target[2],argument)
+                    self.move('EMPTY_PAD_FINAL_RETREAT',target,self.empty_pad_status,True)
                 elif kind == 'receive':
                     direct = self.wait_signal('RECEIVE', 3., keep=True)
                     # Replace the remaining tray operation once, keeping the cursor valid on STOP.
@@ -667,6 +735,9 @@ class StepRuntime:
                     if not received and self.profile.get('operator_cue_timeout_holds',False):
                         raise TimeoutError('ASSEMBLY_ACK_TIMEOUT')
                     self.emit('ASSEMBLY_CUE_FINISHED', dict(received=received, assembly_completion=False))
+                    if has_source_release_press(self.plan):
+                        self.emit('HUMAN_PRESS_FINISHED',dict(received=received,human_actions=self.plan['human_actions'],
+                            robot_press_executed=False,assembly_completion=False))
                 elif kind == 'help':
                     if not self.wait_signal('HELP_READY', self.session.value['request_timeout_s']):
                         raise TimeoutError('HELP_READY_TIMEOUT')
@@ -731,8 +802,9 @@ class StepRuntime:
                 return dict(status=self.state, vision_confirmed=False,
                             assembly_completion=False, current_update=False)
             self.state = 'AWAITING_INSPECTION'
-            self.emit('INSPECTION_REQUIRED', dict(purpose='STEP', assembly_completion=False, current_update=False))
-            return dict(status=self.state, assembly_completion=False, current_update=False)
+            strategy_result=dict(robot_press_executed=self.robot_press_executed) if has_source_release_press(self.plan) else {}
+            self.emit('INSPECTION_REQUIRED', dict(purpose='STEP', assembly_completion=False, current_update=False,**strategy_result))
+            return dict(status=self.state, assembly_completion=False, current_update=False,**strategy_result)
         except Exception as error:
             if str(error)=='HANDOVER_REQUESTED' and not self.session.cancelled:
                 try:

@@ -25,6 +25,155 @@ def signal(rt, **fields):
     rt.accept_signal(dict(rt.request, sequence=rt.signal_seq+1, source='FAKE',verified=True,**fields))
 
 
+def strategy_runtime(assistance='NONE',record_hook=None,profile_overrides=None):
+    from tests.unit.test_assembly_strategy import source_case,StrategyReplay
+    from app.round2_step_controller import prepare_round2_step
+    from app.assembly_step_bridge import build_plan
+    from scripts.robot_control_trial import test_session
+    step,profile=source_case(assistance)
+    prepared=prepare_round2_step(build_plan(step,profile),profile)
+    profile=prepared['profile'];profile['max_press_travel_mm']=12.
+    if profile_overrides:profile.update(profile_overrides)
+    value=test_session(prepared['execution_candidate'])
+    raw=StrategyReplay();clock=Clock();events=[]
+    def capture(e,v):
+        events.append((e,deepcopy(v)))
+        if record_hook:record_hook(rt,e,v)
+    rt=StepRuntime(raw,dict(tcp='GripperDA_v4',tool='ToolWeight0'),capture,clock=clock,sleep=clock.sleep)
+    rt.start(step,profile,value,start_zone='supply')
+    def respond():
+        if rt.request:signal(rt,ready=True)
+    clock.hook=respond
+    return rt,raw,events,clock,dict(step=step,d_profile=profile,session=value)
+
+
+@pytest.mark.parametrize('assistance',['NONE','HOLD','PRESS','PRESS_AND_HOLD'])
+def test_source_release_press_service_keeps_a_help_and_b_ownership(assistance):
+    rt,raw,events,clock,d=strategy_runtime(assistance)
+    result=rt.run()
+    assert result['status']=='AWAITING_INSPECTION',result
+    assert rt.plan['mode']=='ROBOT_GRIP' and rt.plan['assistance_kind']==assistance
+    assert rt.plan['human_actions']==d['step']['action']['human_actions']
+    human_press=assistance in ('PRESS','PRESS_AND_HOLD')
+    assert result['robot_press_executed'] is (not human_press)
+    assert sum(e=='PRESS_SESSION' for e,_ in events)==(0 if human_press else 1)
+    assert not result['assembly_completion'] and not result['current_update']
+    labels=[v['label'] for e,v in events if e=='MOVE_SUCCEEDED']
+    assert 'ROUND2_ASSEMBLY_OBSERVATION' in labels and 'PLACE_LOADED' not in labels
+    assert labels.index('PRE_CONTACT')<labels.index('RELEASE_POSITION')
+    if human_press:
+        assert not any(e=='EMPTY_PAD_CLOSED_CONTEXT' for e,_ in events)
+        assert any(e=='HUMAN_PRESS_FINISHED' and v['human_actions']==rt.plan['human_actions'] for e,v in events)
+    else:
+        assert raw.value['gripper_status']==2
+        assert labels.index('RELEASE_POSITION')<labels.index('EMPTY_PAD_VERTICAL_RETREAT')<labels.index('PRESS_TOOL_LOWER')<labels.index('EMPTY_PAD_FINAL_RETREAT')
+        pressure=next(v for e,v in events if e=='PRESS_SESSION')
+        assert pressure['force_stop_n']==45. and pressure['max_travel_mm']==12.
+    assert not any(e=='HELP_RELEASE_GUIDANCE' for e,_ in events)
+    rt.inspection(dict(plan_id=rt.plan['plan_id'],step_id=rt.plan['step_id'],
+        execution_id=d['session']['execution_id'],decision='KEEP',
+        current=dict(current_revision=1,blocks=[rt.plan['block']])))
+    assert rt.state=='IDLE'
+    assert any(e=='HELP_RELEASE_GUIDANCE' for e,_ in events) is (assistance!='NONE')
+
+
+def test_source_release_press_stop_after_open_resumes_without_another_release():
+    def interrupt(rt,event,data):
+        if event=='GRIP_SUCCEEDED' and data['label']=='RELEASE_FOR_TOP_PRESS':rt.session.request_stop()
+    rt,raw,events,_,d=strategy_runtime(record_hook=interrupt)
+    assert rt.run()['status']=='STOPPED'
+    assert rt.can_resume() and raw.value['gripper_status']==0
+    value=deepcopy(d['session']);value.update(execution_id=str(uuid4()),resume_current_revision=0)
+    rt.start(d['step'],d['d_profile'],value,resume=True)
+    assert rt.run()['status']=='AWAITING_INSPECTION'
+    assert sum(e=='GRIP_SUCCEEDED' and v['label']=='RELEASE_FOR_TOP_PRESS' for e,v in events)==1
+    assert sum(width==35. for width,_ in raw.grips)==1
+
+
+def test_source_release_press_stop_during_pad_close_does_not_reissue_gripper():
+    rt,raw,_,_,d=strategy_runtime()
+    original=raw.command_gripper
+    def interrupted(width,force):
+        original(width,force)
+        if width==4.:rt.session.request_stop()
+    raw.command_gripper=interrupted
+    assert rt.run()['status']=='STOPPED' and not rt.can_resume()
+    count=len(raw.grips)
+    value=deepcopy(d['session']);value.update(execution_id=str(uuid4()),resume_current_revision=0)
+    with pytest.raises(RuntimeError,match='KNOWN_OPERATION'):
+        rt.start(d['step'],d['d_profile'],value,resume=True)
+    assert len(raw.grips)==count and sum(width==4. for width,_ in raw.grips)==1
+
+
+def test_source_release_press_stop_after_pad_contact_resumes_retreat_only():
+    def interrupt(rt,event,data):
+        if event=='PRESS_RESULT':rt.session.request_stop()
+    rt,raw,events,_,d=strategy_runtime(record_hook=interrupt)
+    assert rt.run()['status']=='STOPPED' and rt.can_resume()
+    value=deepcopy(d['session']);value.update(execution_id=str(uuid4()),resume_current_revision=0)
+    rt.start(d['step'],d['d_profile'],value,resume=True)
+    assert rt.run()['status']=='AWAITING_INSPECTION'
+    assert sum(e=='PRESS_SESSION' for e,_ in events)==1
+
+
+@pytest.mark.parametrize('target_only',[False,True])
+def test_source_release_press_respects_explicit_target_only_fk_policy(target_only):
+    rt,raw,_,_,_=strategy_runtime(profile_overrides=dict(target_only_motion=target_only))
+    raw.check_pose=lambda target,**kwargs:[target[0]+5.,*target[1:]]
+    result=rt.run()
+    if target_only:
+        assert result['status']=='AWAITING_INSPECTION' and result['robot_press_executed']
+    else:
+        assert result['status']=='RECOVERY_REQUIRED' and not rt.robot_press_executed
+
+
+def test_source_release_press_uses_full_measured_pad_pose_after_vertical_release_retreat():
+    rt,raw,events,_,_=strategy_runtime()
+    start=[406.,73.,61.,25.,179.,26.]
+    rt.plan['settings'].update(press_start_pose=start,
+        press_approach_pose=[*start[:2],81.,*start[3:]])
+    assert rt.run()['status']=='AWAITING_INSPECTION'
+    moves=[v for e,v in events if e=='MOVE_SUCCEEDED']
+    labels=[v['label'] for v in moves]
+    assert labels.index('EMPTY_PAD_VERTICAL_RETREAT')<labels.index('PRESS_TOOL_APPROACH')<labels.index('PRESS_TOOL_LOWER')
+    lower=next(v for v in moves if v['label']=='PRESS_TOOL_LOWER')
+    assert lower['sample']['posx']==start
+    approach=next(v for v in moves if v['label']=='PRESS_TOOL_APPROACH')
+    assert approach['sample']['posx'][:2]==start[:2]
+    assert approach['sample']['posx'][3:]==start[3:]
+    assert approach['sample']['posx'][2]>start[2]
+
+
+def test_closed_empty_pad_from_release_press_can_start_an_ordinary_next_step():
+    rt,raw,events,_,d=strategy_runtime()
+    assert rt.run()['status']=='AWAITING_INSPECTION'
+    rt.inspection(dict(plan_id=rt.plan['plan_id'],step_id=rt.plan['step_id'],
+        execution_id=d['session']['execution_id'],decision='KEEP',
+        current=dict(current_revision=1,blocks=[rt.plan['block']])))
+    assert raw.last_step_gripper_context==dict(state='EMPTY_PAD_CLOSED',gripper_status=2)
+    ordinary=document()
+    raw.reference=ordinary['d_profile']['steps']['fake/S01']['reference_pose'].copy()
+    grips=len(raw.grips);events.clear()
+    rt.start(ordinary['step'],ordinary['d_profile'],ordinary['session'])
+    assert rt.run()['status']=='AWAITING_INSPECTION'
+    assert len(raw.grips)==grips+3
+    labels=[v['label'] for e,v in events if e=='GRIP_SUCCEEDED']
+    assert labels==['PREPARE_OPEN','PICKUP_CLOSE','SEATED_RELEASE']
+    assert raw.last_step_gripper_context is None
+
+
+def test_source_release_press_loaded_blend_has_one_target_observation_endpoint():
+    rt,_,_,_,_=strategy_runtime()
+    rt.profile.update(empty_return_skip_place=True,
+        transport_blending=dict(radius_mm=15.,reviewed=True))
+    operations=rt.make_operations(rt.plan,rt.profile,'assembly')
+    targets=next(argument[0] for kind,argument in operations
+        if kind=='blend' and argument[1]==2)
+    assert targets[-1][:2]==rt.plan['settings']['reference_pose'][:2]
+    assert len(targets)==3
+    assert all(a[:3]!=b[:3] for a,b in zip(targets,targets[1:]))
+
+
 @pytest.mark.parametrize('brick,color,angle', [('2x2x1','yellow',0),('2x2x1','blue',0),
     ('2x3x1','yellow',0),('2x3x1','yellow',90),('2x3x1','blue',0),('2x3x1','blue',90),
     ('1x2x1','red',0),('1x2x1','red',90)])

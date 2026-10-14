@@ -193,3 +193,92 @@ def test_home_start_uses_existing_three_waypoints_in_reverse_then_supply_observa
     assert [p[:2] for _,p in route[1:3]]==[c['startup_route']['body_bypass_xy'],c['startup_route']['supply_transit_xy']]
     assert route[-1][1]==c['observation_pose']
     assert all(p[2]==c['observation_pose'][2] for _,p in route)
+
+
+@pytest.mark.parametrize('color,kind,slot,span,close', [
+    ('yellow','2x2x1',4,2,35.),('blue','2x3x1',3,3,40.),('yellow','2x3x1',5,3,40.)])
+def test_explicit_trial_row_picks_exact_identity_without_changing_legacy_order(monkeypatch,color,kind,slot,span,close):
+    value=config();events=[];commands=[];seen=[]
+    row=dict(color=color,brick_type=kind,slot=slot,span=span,close_mm=close,
+        pickup_pose=[-410.,slot*20.,50.,0.,180.,0.],pose_source='SYNTHETIC_TEST_ONLY')
+    before=deepcopy(row)
+    class Driver:
+        def __init__(self):
+            self.value=dict(posx=value['observation_pose'].copy(),velx=[0.]*6,motion_status=0,
+                wrench=[0.]*6,query_duration_s=.01,tcp='GripperDA_v4',tool='ToolWeight0',
+                gripper_status=0,gripper_width_mm=60.,robot_state=1,robot_mode=1,drl_state=3)
+        def sample(self):return deepcopy(self.value)
+        def check_pose(self,target):return target
+        def command_gripper(self,width,force):
+            commands.append((width,force));self.value.update(gripper_status=2,gripper_width_mm=width)
+        def stop(self):raise AssertionError('Successful explicit pick must not stop')
+    driver=Driver()
+    def move(d,connection,target,limit,record,**kwargs):d.value['posx']=target.copy()
+    def observe(selected):seen.append(deepcopy(selected));return decision(selected)
+    monkeypatch.setattr(trial,'run',move)
+    trial.execute(driver,value,lambda event,data:events.append(event),observe,
+        trial_row=row,hold_at_pickup=True,sleep=lambda _:None)
+    assert seen==[before] and row==before
+    assert commands==[(close,value['gripper_force_n'])]
+    assert driver.value['posx']==row['pickup_pose'] and driver.value['gripper_status']==2
+    assert 'PICKUP_COMPLETE_HOLDING' in events and 'RELEASE_FEEDBACK' not in events
+    assert [tuple(r[k] for k in ('color','brick_type','slot','span')) for r in value['blocks']]==trial.ORDER
+
+
+@pytest.mark.parametrize('change,error', [
+    ('above_view','OBSERVATION_MUST_BE_ABOVE_PICKUP'),('missing_source','EXACT_SLOT_AXIS_TEACHING_REQUIRED'),
+    ('force','EXISTING_FORCE_LIMIT_EXCEEDED')])
+def test_explicit_row_retains_existing_checks_before_accessing_driver(change,error):
+    value=config();row=deepcopy(value['blocks'][0]);row['slot']=4
+    if change=='above_view':row['pickup_pose'][2]=value['observation_pose'][2]
+    if change=='missing_source':row['pose_source']=None
+    if change=='force':value['force_stop_n']=46.
+    class NoDevice:
+        def sample(self):raise AssertionError('No device access before existing validation')
+    with pytest.raises(ValueError,match=error):
+        trial.execute(NoDevice(),value,lambda *_:None,lambda _:None,trial_row=row,hold_at_pickup=True)
+
+
+@pytest.mark.parametrize('stale_after_vision',[False,True])
+def test_target_only_supply_accepts_controller_stopped_pose_drift_but_rejects_stale_feedback(stale_after_vision):
+    from app.assembly_step_runner import StepReplayDriver
+    value=config();value.update(target_only_motion=True,motion_force_stop_n=None)
+    class Replay(StepReplayDriver):
+        def __init__(self):
+            super().__init__([-400.,0.,-100.,0.,180.,0.])
+            self.value.update(posx=value['observation_pose'].copy(),posj=[10.]*6,gripper_status=0,
+                gripper_width_mm=60.,velx=[.002]*6)
+            self.value['posx'][0]+=1.
+        def check_pose(self,target):raise AssertionError('No numeric endpoint preflight for target-only trial')
+        def call(self,*a,**kw):self.value['robot_mode']=1
+        def move_line_async(self,target,velocity,acceleration):
+            super().move_line_async(target,velocity,acceleration)
+            self.value['posx'][0]+=1.;self.value['posx'][3]+=2.
+    driver=Replay();events=[]
+    def observe(row):
+        assert max(trial.pose_error(driver.value['posx'],value['observation_pose']))>.5
+        if stale_after_vision:driver.value['query_duration_s']=.8
+        return decision(row)
+    execute=lambda:trial.execute(driver,value,lambda event,data:events.append(event),observe,
+        slot=1,hold_at_pickup=True,start_zone='home',sleep=lambda _:None)
+    if stale_after_vision:
+        with pytest.raises(RuntimeError,match='FEEDBACK_TOO_OLD'):execute()
+        assert not driver.grips and driver.stops
+    else:
+        execute()
+        assert driver.moves[-1]==value['blocks'][0]['pickup_pose']
+        assert driver.value['posx'][0]==value['blocks'][0]['pickup_pose'][0]+1.
+        assert driver.grips==[(35.,value['gripper_force_n'])] and 'PICKUP_COMPLETE_HOLDING' in events
+
+
+def test_live_supply_camera_still_rejects_old_images_in_target_only_mode(monkeypatch):
+    from types import SimpleNamespace
+    camera=trial.LiveVision.__new__(trial.LiveVision)
+    message=SimpleNamespace(header=SimpleNamespace(stamp=SimpleNamespace(sec=0,nanosec=0)))
+    camera.node=SimpleNamespace(get_clock=lambda:SimpleNamespace(now=lambda:SimpleNamespace(nanoseconds=1_000_000_000)))
+    camera.ros=SimpleNamespace(spin_once=lambda *a,**kw:setattr(camera,'message',message))
+    camera.display=lambda *a:None;camera.pump_sleep=lambda _:None
+    camera.config=dict(target_only_motion=True)
+    clock=iter([0.,1.,2.,3.,4.,6.]);monkeypatch.setattr(trial.time,'monotonic',lambda:next(clock))
+    report=camera.observe(config()['blocks'][0])
+    assert report['reason']=='NO_FRESH_RGB' and not report['inference_completed'] and not report['recognized']

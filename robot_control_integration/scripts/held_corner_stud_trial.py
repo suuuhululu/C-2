@@ -18,14 +18,19 @@ ROOT=NATIVE.parent
 sys.path[:0]=[str(NATIVE),str(ROOT/'perception')]
 from app.assembly_motion import motion_still, pose_error
 from app.assembly_motion_ros import AssemblyMotionRos
-from scripts.assembly_position_trial import guard,run
+from scripts.assembly_position_trial import guard,run,trial_motion_still
 from scripts import supply_pick_release_trial as supply
+
+
+def motion_completed(sample,config):
+    stopped=trial_motion_still if config.get('target_only_motion',False) else motion_still
+    return stopped(sample)
 
 
 def loaded_route(config, current):
     height=config['pickup_clearance_z_mm']
     if current[2]>height:
-        if not config.get('integrated_cycle') or current[2]>height+.5:
+        if not config.get('target_only_motion',False) and (not config.get('integrated_cycle') or current[2]>height+.5):
             raise ValueError('PICKUP_START_BELOW_TRANSPORT_HEIGHT_REQUIRED')
         height=current[2]
     route=config['startup_route']
@@ -45,7 +50,7 @@ def loaded_route(config, current):
 def return_high_targets(config,sample,start_zone):
     if start_zone=='home':
         joints=sample.get('posj',[])
-        if len(joints)!=6 or max(abs(a-b) for a,b in zip(joints,[0.,0.,90.,0.,90.,0.]))>.05:
+        if not config.get('target_only_motion',False) and (len(joints)!=6 or max(abs(a-b) for a,b in zip(joints,[0.,0.,90.,0.,90.,0.]))>.05):
             raise ValueError('CURRENT_HOME_0_0_90_0_90_0_REQUIRED')
         current=sample['posx'];height=max(current[2],config['pickup_clearance_z_mm'])
         targets=[]
@@ -53,7 +58,7 @@ def return_high_targets(config,sample,start_zone):
             targets.append(('HOME_VERTICAL_LIFT',[*current[:2],height,*current[3:]]))
         targets.append(('HOME_TARGET_HIGH',[*config['assembly_target_xy'],height,*current[3:]]))
         return targets
-    if start_zone!='supply' or max(pose_error(sample['posx'],config['observation_pose']))>.5:
+    if start_zone!='supply' or (not config.get('target_only_motion',False) and max(pose_error(sample['posx'],config['observation_pose']))>.5):
         raise ValueError('RETURN_HIGH_START_AT_SUPPLY_OBSERVATION_REQUIRED')
     current=sample['posx'];height=config['pickup_clearance_z_mm'];route=config['startup_route']
     targets=[('RETURN_SUPPLY_LOWER',[*current[:2],height,*current[3:]])]
@@ -67,31 +72,34 @@ def return_high_targets(config,sample,start_zone):
 
 
 def return_high(driver,config,record,start_zone):
-    if start_zone!='home' and config.get('return_high_enabled') is False:
+    if not config.get('target_only_motion',False) and start_zone!='home' and config.get('return_high_enabled') is False:
         raise RuntimeError('RETURN_HIGH_ROUTE_DISABLED_AFTER_FORCE_STOP: '+config.get('return_high_blocked_reason','review required'))
+    limit=supply.motion_force_limit(config)
     first=driver.sample();status=first['gripper_status']
-    guard(first,config['connection'],config['force_stop_n'],automatic=False,force_norm_limit=config['force_stop_n'],required_gripper_status=status)
-    if not motion_still(first):raise RuntimeError('RETURN_HIGH_REQUIRES_STOPPED_ROBOT')
-    if start_zone=='home' and math.dist(first['wrench'][:3],[0,0,0])>=10.:
+    guard(first,config['connection'],limit,automatic=False,force_norm_limit=limit,required_gripper_status=status)
+    if not motion_completed(first,config):raise RuntimeError('RETURN_HIGH_REQUIRES_STOPPED_ROBOT')
+    if not config.get('target_only_motion',False) and start_zone=='home' and math.dist(first['wrench'][:3],[0,0,0])>=10.:
         raise RuntimeError('HOME_RESIDUAL_FORCE_TOO_HIGH')
     targets=return_high_targets(config,first,start_zone)
-    for label,target in targets:
-        fk=driver.check_pose(target);error=pose_error(fk,target)
-        record('RETURN_ENDPOINT_CHECK',dict(label=label,target=target,fk=fk,error=error))
-        if max(error)>.05:raise RuntimeError('RETURN_HIGH_ENDPOINT_IK_FK_MISMATCH:'+label)
+    if not config.get('target_only_motion',False):
+        for label,target in targets:
+            fk=driver.check_pose(target);error=pose_error(fk,target)
+            record('RETURN_ENDPOINT_CHECK',dict(label=label,target=target,fk=fk,error=error))
+            if max(error)>.05:raise RuntimeError('RETURN_HIGH_ENDPOINT_IK_FK_MISMATCH:'+label)
     fresh=driver.sample()
-    if (max(pose_error(fresh['posx'],first['posx']))>.05 or
-            max(abs(a-b) for a,b in zip(fresh['posj'],first['posj']))>.05 or
-            fresh['gripper_status']!=status or not motion_still(fresh)):
+    if (fresh['gripper_status']!=status or not motion_completed(fresh,config) or
+            (not config.get('target_only_motion',False) and
+             (max(pose_error(fresh['posx'],first['posx']))>.05 or
+              max(abs(a-b) for a,b in zip(fresh['posj'],first['posj']))>.05))):
         raise RuntimeError('RETURN_HIGH_START_CHANGED')
     try:
         for label,target in targets:
             current=driver.sample()['posx'];rate=config.get('rise_velocity',24.) if abs(target[2]-current[2])>.05 else config.get('transit_velocity',120.)
             record(label,dict(target=target,gripper_status=status))
-            run(driver,config['connection'],target,config['force_stop_n'],record,clearance_z=target[2] if target[2]>current[2]+.05 else None,
-                transfer_only=target[2]>=current[2],required_gripper_status=status,force_norm_stop_n=config['force_stop_n'],
+            run(driver,config['connection'],target,limit,record,clearance_z=target[2] if target[2]>current[2]+.05 else None,
+                transfer_only=target[2]>=current[2],required_gripper_status=status,force_norm_stop_n=limit,
                 transfer_rate=rate,descent_rate=config.get('descent_velocity',6.),transfer_acceleration=48.,descent_acceleration=48.,
-                angular_velocity=6.,angular_acceleration=3.)
+                target_only_motion=config.get('target_only_motion',False),angular_velocity=6.,angular_acceleration=3.)
         record('RETURN_HIGH_COMPLETE',dict(sample=driver.sample(),gripper_commands=0,assembly_completion=False))
         target=config.get('alignment_target',{}).get('target',dict(x=11,y=11))
         print(f"복귀 완료: ({target['x']},{target['y']}) 상공 / 그리퍼 조작 없음",flush=True)
@@ -100,25 +108,27 @@ def return_high(driver,config,record,start_zone):
 
 
 def transfer(driver,config,record,sleep=time.sleep):
+    limit=supply.motion_force_limit(config)
     first=wait_for_held_stop(driver,config,record,sleep=sleep)
-    guard(first,config['connection'],config['force_stop_n'],automatic=True,force_norm_limit=config['force_stop_n'],required_gripper_status=2)
-    if not motion_still(first): raise RuntimeError('STOPPED_HELD_START_REQUIRED')
+    guard(first,config['connection'],limit,automatic=True,force_norm_limit=limit,required_gripper_status=2)
+    if not motion_completed(first,config): raise RuntimeError('STOPPED_HELD_START_REQUIRED')
     route=loaded_route(config,first['posx'])
-    for label,target in route:
-        fk=driver.check_pose(target);error=pose_error(fk,target)
-        record('HELD_ENDPOINT_CHECK',dict(label=label,target=target,fk=fk,error=error))
-        if max(error)>.05: raise RuntimeError('HELD_ENDPOINT_IK_FK_MISMATCH:'+label)
+    if not config.get('target_only_motion',False):
+        for label,target in route:
+            fk=driver.check_pose(target);error=pose_error(fk,target)
+            record('HELD_ENDPOINT_CHECK',dict(label=label,target=target,fk=fk,error=error))
+            if max(error)>.05: raise RuntimeError('HELD_ENDPOINT_IK_FK_MISMATCH:'+label)
     fresh=driver.sample()
-    if not motion_still(fresh) or max(pose_error(first['posx'],fresh['posx']))>.05:
+    if not motion_completed(fresh,config) or (not config.get('target_only_motion',False) and max(pose_error(first['posx'],fresh['posx']))>.05):
         raise RuntimeError('HELD_START_CHANGED')
     try:
         for label,target in route:
             rate=config.get('rise_velocity',24.) if label=='HELD_VERTICAL_LIFT' else config.get('transit_velocity',120.)
             record(label,dict(target=target,velocity_mm_s=rate))
             clearance=target[2] if label=='HELD_VERTICAL_LIFT' and target[2]>driver.sample()['posx'][2]+.05 else None
-            run(driver,config['connection'],target,config['force_stop_n'],record,clearance_z=clearance,transfer_only=True,
-                force_norm_stop_n=config['force_stop_n'],required_gripper_status=2,transfer_rate=rate,descent_rate=6.,
-                transfer_acceleration=48.,descent_acceleration=48.,angular_velocity=6.,angular_acceleration=3.,sleep=sleep)
+            run(driver,config['connection'],target,limit,record,clearance_z=clearance,transfer_only=True,
+                force_norm_stop_n=limit,required_gripper_status=2,transfer_rate=rate,descent_rate=6.,
+                transfer_acceleration=48.,descent_acceleration=48.,target_only_motion=config.get('target_only_motion',False),angular_velocity=6.,angular_acceleration=3.,sleep=sleep)
         record('ASSEMBLY_HIGH_REACHED_HOLDING',driver.sample())
     except BaseException:
         driver.stop();raise
@@ -133,29 +143,32 @@ def observation_frame_timing(stamp_ns, now_ros_ns, received_monotonic, now_monot
 
 
 def wait_for_held_stop(driver,config,record,required_gripper_status=2, *, sleep=time.sleep,clock=time.monotonic,automatic=True):
+    limit=supply.motion_force_limit(config)
     deadline=clock()+5.
     while True:
         sample=driver.sample()
-        guard(sample,config['connection'],config['force_stop_n'],automatic=automatic,force_norm_limit=config['force_stop_n'],
+        guard(sample,config['connection'],limit,automatic=automatic,force_norm_limit=limit,
               required_gripper_status=required_gripper_status)
-        if motion_still(sample):return sample
+        if motion_completed(sample,config):return sample
         record('ALIGNMENT_SETTLING_WAIT',sample)
         if clock()>=deadline:raise RuntimeError('ALIGNMENT_STOP_WAIT_TIMEOUT')
         sleep(.05)
 
 
 def local_held_move(driver,config,target,record,sleep=time.sleep,required_gripper_status=2):
+    limit=supply.motion_force_limit(config)
     sample=wait_for_held_stop(driver,config,record,required_gripper_status,sleep=sleep)
-    error=pose_error(driver.check_pose(target),target)
-    if max(error)>.05:raise RuntimeError('LOCAL_ALIGNMENT_ENDPOINT_IK_FK_MISMATCH')
+    if not config.get('target_only_motion',False):
+        error=pose_error(driver.check_pose(target),target)
+        if max(error)>.05:raise RuntimeError('LOCAL_ALIGNMENT_ENDPOINT_IK_FK_MISMATCH')
     dz=target[2]-sample['posx'][2]
     # Let run read the settled starting height for descent and level correction.
-    run(driver,config['connection'],target,config['force_stop_n'],record,
+    run(driver,config['connection'],target,limit,record,
         clearance_z=target[2] if dz>.05 else None,transfer_only=dz>=-.05,
-        required_gripper_status=required_gripper_status,force_norm_stop_n=config['force_stop_n'],
+        required_gripper_status=required_gripper_status,force_norm_stop_n=limit,
         transfer_rate=config.get('rise_velocity',24.) if dz>.05 else config.get('transit_velocity',120.),
         descent_rate=config.get('descent_velocity',6.),
-        transfer_acceleration=48.,descent_acceleration=48.,angular_velocity=6.,angular_acceleration=3.,sleep=sleep)
+        transfer_acceleration=48.,descent_acceleration=48.,target_only_motion=config.get('target_only_motion',False),angular_velocity=6.,angular_acceleration=3.,sleep=sleep)
 
 
 def target_layer_approach(config,layer,clearance_mm=20.,target_x=11,target_y=11):
@@ -197,7 +210,7 @@ def target_layer_approach(config,layer,clearance_mm=20.,target_x=11,target_y=11)
 
 def approach_cycle_targets(sample,config,descend_mm=None,approach_z_mm=None):
     current=sample['posx']
-    if (math.dist(current[:2],config['assembly_target_xy'])>2.
+    if not config.get('target_only_motion',False) and (math.dist(current[:2],config['assembly_target_xy'])>2.
             or abs(current[2]-config['pickup_clearance_z_mm'])>.5):
         raise RuntimeError('APPROACH_CYCLE_START_AT_ASSEMBLY_HIGH_REQUIRED')
     if descend_mm is not None:
@@ -211,10 +224,32 @@ def approach_cycle_targets(sample,config,descend_mm=None,approach_z_mm=None):
             raise ValueError('FINITE_APPROACH_Z_REQUIRED')
         target_z=approach_z_mm
     minimum=config.get('alignment_approach_z_mm',100.)
-    if not minimum<=target_z<current[2]:
+    if not config.get('target_only_motion',False) and not minimum<=target_z<current[2]:
         raise ValueError('APPROACH_BELOW_TARGET_CLEARANCE_OR_ABOVE_HIGH')
     lower=current.copy();lower[:2]=config['assembly_target_xy'];lower[2]=target_z
+    if config.get('alignment_use_recorded_attitude'):
+        lower[3:]=config['alignment_target']['placement_tcp_reference'][3:]
     return lower,current[2]
+
+
+def visual_xy_target(sample,config,candidate):
+    """Correct a misgrasp's TCP goal while keeping the block/pad world target."""
+    if candidate.get('status')!='HELD_EDGE_XY_CANDIDATE':
+        raise ValueError('VISUAL_XY_CANDIDATE_REQUIRED')
+    delta=candidate['delta_base_xy_mm']
+    if len(delta)!=2 or any(type(v) not in (int,float) or not math.isfinite(v) for v in delta):
+        raise ValueError('FINITE_VISUAL_XY_TRANSLATION_REQUIRED')
+    target=sample['posx'].copy();target[:2]=[target[i]+delta[i] for i in range(2)]
+    landing=config['alignment_target']['placement_tcp_reference'].copy()
+    landing[:2]=target[:2];landing[3:]=target[3:]
+    updated=deepcopy(config)
+    updated['alignment_target']['placement_tcp_reference']=landing
+    updated['assembly_target_xy']=landing[:2]
+    # The block is being aligned to the same fixed target. Moving the empty-pad
+    # goal by the grasp correction would press away from that block's centre.
+    updated['vision_xy_pad_basis']='FIXED_OPERATOR_PAD_TARGET_AFTER_GRASP_COMPENSATION'
+    updated['vision_xy_result']=deepcopy(candidate)
+    return target,updated
 
 
 def initial_yaw_target(sample,config,degrees):
@@ -262,12 +297,12 @@ def validate_yaw_trial_pose(sample,config):
     if 'alignment_approach_z_mm' not in config:
         raise ValueError('SELECT_TARGET_LAYER_FOR_YAW_TEST')
     z=sample['posx'][2]
-    if (math.dist(sample['posx'][:2],config['assembly_target_xy'])>2.
+    if not config.get('target_only_motion',False) and (math.dist(sample['posx'][:2],config['assembly_target_xy'])>2.
             or not config['alignment_approach_z_mm']-.05<=z<=config['pickup_clearance_z_mm']+.5):
         raise ValueError('YAW_TEST_REQUIRES_TARGET_CLEARANCE_AND_XY')
 
 
-def observe(driver,config,directory,record, *, approach_cycle=False, descend_mm=None, approach_z_mm=None, virtual_grid=False, yaw_test=False, initial_yaw_deg=0., xy_seat_test=False):
+def observe(driver,config,directory,record, *, approach_cycle=False, descend_mm=None, approach_z_mm=None, virtual_grid=False, yaw_test=False, initial_yaw_deg=0., xy_seat_test=False, support_ready=None):
     import cv2
     import numpy as np
     from sensor_msgs.msg import Image,CameraInfo
@@ -291,6 +326,10 @@ def observe(driver,config,directory,record, *, approach_cycle=False, descend_mm=
     camera_thread=threading.Thread(target=camera_executor.spin,daemon=True)
     camera_thread.start()
     xy_aligned=False;seating_result=None;released=False;pad_reference=None;pad_status=None;press_done=False
+    press_result=None;support_active=False;operator_stopped=False;stop_reason=None
+    motion_limit=supply.motion_force_limit(config)
+    block_target=config['alignment_target']['target']
+    block_label=f"{block_target['color']} {block_target['brick_type']}"
     tilt_reference=None;tilt_probe_done=False;tilt_result=None;center_press_plan=None
     auto_yaw=bool(config.get('auto_yaw'));auto_yaw_paused=False;yaw_converged_logged=False
     cycle_high_z=None;yaw_total=0.;yaw_gain=None;pending_probe=None;history=deque(maxlen=5);direction_confirmed=auto_yaw
@@ -304,6 +343,7 @@ def observe(driver,config,directory,record, *, approach_cycle=False, descend_mm=
         if key!=255:pending_keys.append(key)
     driver.ui_pump=pump_ui
     manual_edge=[];edge_selection=dict(active=False);edge_gray=None;edge_stamp=None
+    target_edge_index=None;xy_candidate=None
     def edge_click(event,x,y,flags,param):
         nonlocal edge_gray,edge_stamp
         if event==cv2.EVENT_LBUTTONDOWN and edge_selection['active'] and y>=225:
@@ -323,11 +363,12 @@ def observe(driver,config,directory,record, *, approach_cycle=False, descend_mm=
             perturb=initial_yaw_target(first,config,initial_yaw_deg) if initial_yaw_deg else None
             if perturb is not None:lower[3:]=perturb[3:]
             aligned_high=lower.copy();aligned_high[2]=cycle_high_z
-            for target in ([perturb] if perturb is not None else [])+[aligned_high,lower]:
-                if max(pose_error(driver.check_pose(target),target))>.05:
-                    raise RuntimeError('APPROACH_CYCLE_ENDPOINT_IK_FK_MISMATCH')
-            if max(pose_error(first['posx'],driver.sample()['posx']))>.05:
-                raise RuntimeError('INITIAL_YAW_START_CHANGED')
+            if not config.get('target_only_motion',False):
+                for target in ([perturb] if perturb is not None else [])+[aligned_high,lower]:
+                    if max(pose_error(driver.check_pose(target),target))>.05:
+                        raise RuntimeError('APPROACH_CYCLE_ENDPOINT_IK_FK_MISMATCH')
+                if max(pose_error(first['posx'],driver.sample()['posx']))>.05:
+                    raise RuntimeError('INITIAL_YAW_START_CHANGED')
             if perturb is not None:
                 record('INITIAL_YAW_COMMAND',dict(before_pose=first['posx'],target=perturb,command_deg=initial_yaw_deg))
                 local_held_move(driver,config,perturb,record)
@@ -368,19 +409,34 @@ def observe(driver,config,directory,record, *, approach_cycle=False, descend_mm=
                 else:manual_edge[:]=tracked
                 edge_gray=gray;edge_stamp=stamp
             h,w=frame.shape[:2];full=[0,0,w,h]
-            block=geometry.visible_colored_block(frame,block_roi or full,'yellow',surface)
+            block=geometry.visible_colored_block(frame,block_roi or full,block_target['color'],surface)
             if virtual_grid:
                 studs=dict(candidates=[],scope='VIRTUAL_BOARD_GRID_NO_CIRCLE_DETECTION')
                 info=messages.get('info',(None,None))[0]
                 layer=config.get('alignment_target',{}).get('target',{}).get('layer',1)
                 clearance=config.get('alignment_target',{}).get('clearance_mm',20.)
                 projected_canvas,angles=projector.overlay(frame,sample,info,layer,clearance,
-                    ([manual_edge] if len(manual_edge)==2 else []),axis_index,target_xy=tuple(config['alignment_target']['target'][k] for k in ('x','y')))
+                    ([manual_edge] if len(manual_edge)==2 else []),axis_index,target_xy=tuple(block_target[k] for k in ('x','y')),target=block_target)
                 if len(manual_edge)!=2:
                     angles['reason']='CLICK_TWO_VISIBLE_TOP_EDGE_ENDPOINTS'
                     angles['relative_angle_deg']=None
                 elif auto_yaw and axis_index is None and angles.get('relative_angle_deg') is not None:
                     axis_index=angles['selected_grid_axis']
+                if config.get('vision_xy_alignment'):
+                    from supply_vision.held_xy_alignment import held_edge_xy_candidate
+                    depth_msg=messages.get('depth',(None,None))[0];depth_array=None;depth_stamp=None;depth_frame=None
+                    if depth_msg is not None and depth_msg.encoding=='16UC1':
+                        depth_array=np.frombuffer(depth_msg.data,np.dtype('<u2' if not depth_msg.is_bigendian else '>u2')).reshape(depth_msg.height,depth_msg.step//2)[:,:depth_msg.width]
+                        depth_stamp=depth_msg.header.stamp.sec*10**9+depth_msg.header.stamp.nanosec
+                        depth_frame=depth_msg.header.frame_id
+                    xy_candidate=held_edge_xy_candidate(manual_edge,target_edge_index,info,angles,
+                        depth=depth_array,depth_scale_mm=1.,rgb_stamp_ns=stamp,
+                        depth_stamp_ns=depth_stamp,depth_frame_id=depth_frame)
+                    outline=angles.get('target_hover_outline_uv',[])
+                    if len(outline)==4 and all(all(v is not None for v in point) for point in outline):
+                        for edge_index in range(4):
+                            midpoint=np.mean([outline[edge_index],outline[(edge_index+1)%4]],axis=0).astype(int)
+                            cv2.putText(projected_canvas,str(edge_index+1),tuple(midpoint),cv2.FONT_HERSHEY_SIMPLEX,.65,(255,255,255),2)
             else:
                 hsv=cv2.cvtColor(frame,cv2.COLOR_BGR2HSV)
                 green=cv2.inRange(hsv,np.array([35,40,30],np.uint8),np.array([90,255,255],np.uint8))
@@ -430,25 +486,26 @@ def observe(driver,config,directory,record, *, approach_cycle=False, descend_mm=
                 record('AUTO_YAW_CONVERGED',dict(relative_angle_deg=float(np.median([v[1] for v in history])),
                     tolerance_deg=.5,frame_stamp_ns=stamp,stud_center_coincidence_required=False,
                     roll_pitch_observed=False,assembly_completion=False))
-                yaw_converged_logged=True;roi_notice='Yaw within +/-0.50 deg. X: taught XY, I: insert, U: rise.'
+                yaw_converged_logged=True;roi_notice='Yaw aligned. 1-4: corresponding target edge, X: visual XY, I: insert.' if config.get('vision_xy_alignment') else 'Yaw within +/-0.50 deg. X: taught XY, I: insert, U: rise.'
             panel=np.zeros((225,w,3),np.uint8)
             if config.get('tilt_accuracy_test') and tilt_reference is not None:
                 from scripts.held_tilt_accuracy import rotation_error
                 tilt=rotation_error(tilt_reference,sample['posx'])
                 roi_notice=f"Tilt X {tilt['base_x_deg']:+.3f} Y {tilt['base_y_deg']:+.3f} deg | "+(tilt_result['status'] if tilt_result else 'J inject, K correct')
-            for i,text in enumerate([f"HELD yellow2x2 | target ({config['alignment_target']['target']['x']},{config['alignment_target']['target']['y']}) | Z "+f"{sample['posx'][2]:.1f}mm",
-                ('Reference: EXISTING GRID DIRECTION | XY registration not used' if virtual_grid else 'Block: '+block['status']+' | circular candidates: '+str(len(studs['candidates']))),
+            for i,text in enumerate([f"HELD {block_label} | target ({block_target['x']},{block_target['y']}) | Z "+f"{sample['posx'][2]:.1f}mm",
+                ('XY '+(f"dX {xy_candidate['delta_base_xy_mm'][0]:+.2f} dY {xy_candidate['delta_base_xy_mm'][1]:+.2f}mm | "+xy_candidate['height_source'] if xy_candidate and xy_candidate['status']=='HELD_EDGE_XY_CANDIDATE' else str((xy_candidate or {}).get('reason','Select E top edge + 1-4'))) if config.get('vision_xy_alignment') else 'Reference: EXISTING GRID DIRECTION | XY registration not used' if virtual_grid else 'Block: '+block['status']+' | circular candidates: '+str(len(studs['candidates']))),
                 ('E: click top-edge endpoints | B: block ROI | SPACE: save' if virtual_grid else 'B: select HELD block | S: target studs | SPACE: capture'),
-                ('O: release/vertical rise/close | P: SAME XY press' if config.get('same_xy_press') else 'O: release/close | T teach TOP | P press' if config.get('integrated_cycle') and not config.get('pad_reference_at_target_physically_verified',True) else 'O: checked release then saved-pad PRESS + rise' if config.get('integrated_cycle') else 'Coordinate XY / insertion armed; O releases only after your check' if xy_seat_test else 'Candidate view; R: local yaw trial, no release / press'),
+                ('O: release/vertical rise/close | P: '+('MEASURED PAD target' if config.get('operator_teaching') else 'SAME XY press') if config.get('same_xy_press') else 'O: release/close | T teach TOP | P press' if config.get('integrated_cycle') and not config.get('pad_reference_at_target_physically_verified',True) else 'O: checked release then saved-pad PRESS + rise' if config.get('integrated_cycle') else 'Coordinate XY / insertion armed; O releases only after your check' if xy_seat_test else 'Candidate view; R: local yaw trial, no release / press'),
                 'Angle difference: '+(f"{angles['relative_angle_deg']:+.2f} deg" if angles.get('relative_angle_deg') is not None else str(angles.get('reason'))),
                 ('AUTO yaw +/-0.50 deg | Roll/pitch: not measured by this edge' if auto_yaw else 'A: switch grid axis | local pixel angle, not robot yaw'),
-                roi_notice or ('Cyan: grid | Yellow: hover outline | Magenta: seated outline' if virtual_grid else 'S: include 3+ rows AND columns, not a single stud'),
+                ('HUMAN SUPPORT: keep holding lower structure through press/rise | ' if support_active else '')+(roi_notice or ('Cyan: grid | Yellow: hover outline | Magenta: seated outline' if virtual_grid else 'S: include 3+ rows AND columns, not a single stud')),
                 'Camera time: '+('verified' if timing['timestamp_verified'] else 'UNVERIFIED - preview only'),
                 ('H reference | J tilt+0.5XY | K correct | X/I/O | U rise' if config.get('tilt_accuracy_test') else 'X: XY | I: insert | O: release/lift/close | T: pad touch | P: press | U: rise' if xy_seat_test else 'G: confirm grid DIRECTION | R: 0.5deg trial | U: rise' if yaw_test else 'R: bounded yaw trial | U: rise / finish | ESC: STOP')]):
                 cv2.putText(panel,text,(5,20+24*i),cv2.FONT_HERSHEY_SIMPLEX,.46,(255,255,255),1)
             cv2.imshow(window,np.vstack((panel,canvas)))
             key=pending_keys.popleft() if pending_keys else cv2.waitKey(1)&255
-            if key==27 or cv2.getWindowProperty(window,cv2.WND_PROP_VISIBLE)<1:break
+            if key==27 or cv2.getWindowProperty(window,cv2.WND_PROP_VISIBLE)<1:
+                operator_stopped=True;stop_reason='ESC_OR_WINDOW_CLOSED';break
             automatic_request=(auto_yaw and not auto_yaw_paused and key==255 and stable and pending_probe is None
                 and len(manual_edge)==2 and seating_result is None and not released
                 and abs(float(np.median([v[1] for v in history])))>.5)
@@ -458,7 +515,20 @@ def observe(driver,config,directory,record, *, approach_cycle=False, descend_mm=
                 edge_gray=None;edge_stamp=None
                 auto_yaw_paused=False;yaw_converged_logged=False
                 history.clear();yaw_gain=None;pending_probe=None;direction_confirmed=auto_yaw
+                xy_aligned=False
+                if config.get('vision_xy_alignment'):
+                    axis_index=target_edge_index%2 if target_edge_index is not None else None
                 roi_notice='Click TWO visible body TOP edge endpoints (not front/bottom).'
+                continue
+            if config.get('vision_xy_alignment') and key in (ord('1'),ord('2'),ord('3'),ord('4')):
+                selected_edge_index=key-ord('1')
+                if target_edge_index is not None and selected_edge_index!=target_edge_index:
+                    manual_edge.clear();edge_gray=None;edge_stamp=None
+                    edge_selection['active']=False
+                target_edge_index=selected_edge_index;xy_aligned=False
+                axis_index=target_edge_index%2;history.clear();yaw_gain=None;pending_probe=None
+                auto_yaw_paused=False;yaw_converged_logged=False
+                roi_notice=f'Target edge {target_edge_index+1} selected. E: same physical TOP edge endpoints; X: apply XY.'
                 continue
             if key==ord('u'):
                 if cycle_high_z is not None:
@@ -477,18 +547,33 @@ def observe(driver,config,directory,record, *, approach_cycle=False, descend_mm=
                 if not xy_seat_test or released or seating_result is not None:
                     roi_notice='XY/seat trial not armed, or insertion already attempted.'
                     continue
-                from scripts.held_xy_seating_trial import xy_target
-                target=xy_target(driver.sample(),config)
-                record('COORDINATE_XY_CORRECTION',dict(target=target,vision_xy_used=False))
-                local_held_move(driver,config,target,record)
-                xy_aligned=True;roi_notice='Taught XY reached. Review yaw; I attempts slow insertion.'
+                if config.get('vision_xy_alignment'):
+                    if not timing['timestamp_verified'] or not xy_candidate or xy_candidate['status']!='HELD_EDGE_XY_CANDIDATE':
+                        roi_notice='Fresh image, camera info and E top edge + matching 1-4 target edge are needed for XY.'
+                        continue
+                    target,updated=visual_xy_target(sample,config,xy_candidate)
+                    record('VISUAL_XY_CORRECTION',dict(candidate=xy_candidate,target=target,vision_xy_used=True,
+                        physical_accuracy_verified=False,frame_stamp_ns=stamp))
+                    local_held_move(driver,config,target,record)
+                    config=updated;messages.pop('rgb',None);last_rgb_time=time.monotonic()
+                    history.clear();yaw_gain=None;pending_probe=None;yaw_converged_logged=False
+                    record('VISUAL_XY_LANDING_PRESERVED',dict(landing=config['alignment_target']['placement_tcp_reference'],
+                        pad_contact=config['integrated_pad_contact_pose'],
+                        pad_basis=config['vision_xy_pad_basis'],assembly_completion=False))
+                    xy_aligned=True;roi_notice='Visual XY applied; I preserves corrected XY. Projection is unverified; review the new image.'
+                else:
+                    from scripts.held_xy_seating_trial import xy_target
+                    target=xy_target(driver.sample(),config)
+                    record('COORDINATE_XY_CORRECTION',dict(target=target,vision_xy_used=False))
+                    local_held_move(driver,config,target,record)
+                    xy_aligned=True;roi_notice='Taught XY reached. Review yaw; I attempts slow insertion.'
             if key in (ord('h'),ord('j'),ord('k')) and config.get('tilt_accuracy_test'):
                 if (seating_result is not None and not released) or (released and pad_reference is None):
                     roi_notice='Tilt before insertion, or after T has lifted empty pads10mm.';continue
                 tilt_status=pad_status if released else 2
                 fresh=wait_for_held_stop(driver,config,record,tilt_status)
                 if released:
-                    if fresh['posx'][2]<pad_reference[2]+9.5:
+                    if not config.get('target_only_motion',False) and fresh['posx'][2]<pad_reference[2]+9.5:
                         roi_notice='Empty-pad tilt requires T rise10mm.';continue
                 else:validate_yaw_trial_pose(fresh,config)
                 from scripts.held_tilt_accuracy import perturbed_pose,rotation_error,accuracy_result
@@ -499,7 +584,7 @@ def observe(driver,config,directory,record, *, approach_cycle=False, descend_mm=
                 elif tilt_reference is None:
                     roi_notice='H records an operator-selected reference first.'
                 elif key==ord('j'):
-                    if math.dist(fresh['posx'][:3],tilt_reference[:3])>.1:
+                    if not config.get('target_only_motion',False) and math.dist(fresh['posx'][:3],tilt_reference[:3])>.1:
                         roi_notice='Position changed. Record H again.';continue
                     goal=perturbed_pose(tilt_reference,.5,.5)
                     local_held_move(driver,config,goal,record,required_gripper_status=tilt_status)
@@ -520,6 +605,12 @@ def observe(driver,config,directory,record, *, approach_cycle=False, descend_mm=
                 if not xy_seat_test or not xy_aligned or released:
                     roi_notice='I requires taught XY correction X and a held block.'
                     continue
+                if support_ready is not None and not support_active:
+                    record('TRIAL_HUMAN_SUPPORT_REQUEST',dict(target=deepcopy(block_target),policy='USER_SELECTED_HOLD_LOWER_STRUCTURE_DURING_ROBOT_FASTENING'))
+                    if support_ready(config) is not True:
+                        operator_stopped=True;stop_reason='HUMAN_SUPPORT_CANCELLED';break
+                    support_active=True
+                    record('TRIAL_HUMAN_SUPPORT_READY',dict(target=deepcopy(block_target),maintain_through='SEATING_PRESS_AND_RISE'))
                 from scripts.held_xy_seating_trial import insert
                 seating_result=insert(driver,config,record)
                 roi_notice=seating_result['status']+' | O: visually checked release/lift/close; U: rise'
@@ -544,9 +635,9 @@ def observe(driver,config,directory,record, *, approach_cycle=False, descend_mm=
                 deadline=time.monotonic()+10.
                 while True:
                     closed=driver.sample()
-                    guard(dict(closed,gripper_status=0),config['connection'],config['force_stop_n'],automatic=True,force_norm_limit=config['force_stop_n'],required_gripper_status=0)
+                    guard(dict(closed,gripper_status=0),config['connection'],motion_limit,automatic=True,force_norm_limit=motion_limit,required_gripper_status=0)
                     if closed['gripper_status'] not in (0,1,2):raise RuntimeError('GRIPPER_FAULT')
-                    if closed['gripper_status'] in (0,2) and closed['gripper_width_mm']<=12. and motion_still(closed):break
+                    if closed['gripper_status'] in (0,2) and closed['gripper_width_mm']<=12. and motion_completed(closed,config):break
                     if time.monotonic()>=deadline:raise TimeoutError('EMPTY_PAD_CLOSE_TIMEOUT')
                     time.sleep(.05)
                 pad_status=closed['gripper_status']
@@ -555,7 +646,8 @@ def observe(driver,config,directory,record, *, approach_cycle=False, descend_mm=
                     roi_notice='Same release XY/attitude saved. P: straight descent/press/rise; no T needed.'
                     continue
                 if config.get('integrated_cycle') and config.get('pad_reference_at_target_physically_verified',True):
-                    closed_pad_cycle(driver,config,config['integrated_pad_contact_pose'],pad_status,record)
+                    press_result=closed_pad_cycle(driver,config,config['integrated_pad_contact_pose'],pad_status,record)
+                    press_done=True
                     break
                 roi_notice='Pads closed. Touch TOP manually, stop, return AUTO, then T records/lifts.'
             if key==ord('t'):
@@ -574,19 +666,20 @@ def observe(driver,config,directory,record, *, approach_cycle=False, descend_mm=
                         roi_notice='Same-XY pressure trial already executed.';continue
                     from scripts.held_xy_seating_trial import same_xy_press_cycle
                     result=same_xy_press_cycle(driver,config,center_press_plan,pad_status,record,local_held_move)
-                    press_done=True;roi_notice='Same-XY trial: '+result['status']+' | U rise/finish'
+                    press_result=result;press_done=True;roi_notice='Same-XY trial: '+result['status']+' | U rise/finish'
                     continue
                 if pad_reference is None or press_done:
                     roi_notice='P requires T top-touch capture; pressing already done requires fresh T.';continue
                 from scripts.held_xy_seating_trial import press_from_top_touch
                 start=wait_for_held_stop(driver,config,record,pad_status)
-                if max(pose_error(start['posx'],[*pad_reference[:2],pad_reference[2]+10.,*pad_reference[3:]]))>.1:
+                if not config.get('target_only_motion',False) and max(pose_error(start['posx'],[*pad_reference[:2],pad_reference[2]+10.,*pad_reference[3:]]))>.1:
                     roi_notice='Pose changed: touch TOP and record with T again.';continue
                 result=press_from_top_touch(driver,config,pad_reference,record,pad_status)
                 press_done=True
                 target=driver.sample()['posx'].copy();target[2]=pad_reference[2]+10.
                 local_held_move(driver,config,target,record,required_gripper_status=pad_status)
                 record('EMPTY_PAD_PRESS_AND_RISE_RESULT',dict(result=result,assembly_completion=False,automatic_tilt_alignment=False))
+                press_result=result
                 roi_notice='Press/rise finished: '+result['status']
             if key==ord('r'):
                 if seating_result is not None or released:
@@ -630,6 +723,8 @@ def observe(driver,config,directory,record, *, approach_cycle=False, descend_mm=
                 history.clear();messages.pop('rgb',None);last_rgb_time=time.monotonic()
             if key==ord('a'):
                 axis_index=1-angles.get('selected_grid_axis',0)
+                if config.get('vision_xy_alignment'):
+                    target_edge_index=None;xy_aligned=False
                 auto_yaw_paused=False;yaw_converged_logged=False
                 history.clear();yaw_gain=None;pending_probe=None;direction_confirmed=auto_yaw
             if key in (ord('b'),ord('s')):
@@ -666,6 +761,8 @@ def observe(driver,config,directory,record, *, approach_cycle=False, descend_mm=
                 Path(str(base)+'.json').write_text(json.dumps(report,ensure_ascii=False,indent=2))
                 record('HELD_ALIGNMENT_OBSERVATION_SAVED',dict(output=str(base),block_status=block['status'],candidates=len(studs['candidates'])))
                 print('관측 저장:',base,flush=True);last_saved=stamp
+    except KeyboardInterrupt as failure:
+        operator_stopped=True;stop_reason=str(failure) or 'OPERATOR_INTERRUPT'
     finally:
         active_error=sys.exc_info()[1]
         driver.ui_pump=previous_pump
@@ -679,6 +776,14 @@ def observe(driver,config,directory,record, *, approach_cycle=False, descend_mm=
             camera_executor.shutdown(timeout_sec=2.)
             camera_thread.join(timeout=2.)
             cv2.destroyAllWindows();node.destroy_node()
+    result=dict(status='STOPPED_BY_OPERATOR' if operator_stopped else 'CYCLE_COMPLETED' if press_done else 'INCOMPLETE',
+        released=released,press_done=press_done,press_result=press_result,support_active=support_active,
+        stop_reason=stop_reason,assembly_completion=False)
+    record('HELD_OBSERVATION_RESULT',result)
+    if support_active:
+        record('TRIAL_HUMAN_SUPPORT_FINISHED',dict(status=result['status'],released=released,press_done=press_done,
+            may_release_support=result['status']=='CYCLE_COMPLETED'))
+    return result
 
 
 def integrated_config(config,supply_config):
@@ -701,9 +806,10 @@ def closed_pad_cycle(driver,config,reference,status,record):
     current=wait_for_held_stop(driver,config,record,status)
     high=reference.copy();high[2]=max(current['posx'][2],config['pickup_clearance_z_mm'])
     above=reference.copy();above[2]+=10.
-    for target in (high,above):
-        if max(pose_error(driver.check_pose(target),target))>.05:
-            raise RuntimeError('PAD_CYCLE_ENDPOINT_IK_FK_MISMATCH')
+    if not config.get('target_only_motion',False):
+        for target in (high,above):
+            if max(pose_error(driver.check_pose(target),target))>.05:
+                raise RuntimeError('PAD_CYCLE_ENDPOINT_IK_FK_MISMATCH')
     record('CLOSED_PAD_CYCLE_START',dict(contact_reference=reference,automatic_tilt_alignment=False))
     local_held_move(driver,config,high,record,required_gripper_status=status)
     local_held_move(driver,config,above,record,required_gripper_status=status)
@@ -723,10 +829,11 @@ def saved_pad_press(driver,config,path,record):
     captured=saved['samples'][-1]
     current=driver.sample()
     status=current['gripper_status']
-    guard(current,config['connection'],config['force_stop_n'],automatic=False,force_norm_limit=config['force_stop_n'],required_gripper_status=status)
+    limit=supply.motion_force_limit(config)
+    guard(current,config['connection'],limit,automatic=False,force_norm_limit=limit,required_gripper_status=status)
     if status not in (0,2) or current['gripper_width_mm']>12. or abs(current['gripper_width_mm']-captured['gripper_width_mm'])>1.:
         raise RuntimeError('CAPTURED_EMPTY_CLOSED_PAD_STATE_CHANGED')
-    if not motion_still(current) or max(pose_error(current['posx'],reference))>.5:
+    if not motion_completed(current,config) or (not config.get('target_only_motion',False) and max(pose_error(current['posx'],reference))>.5):
         raise RuntimeError('CURRENT_PAD_TOUCH_POSITION_CHANGED')
     record('SAVED_PAD_TOUCH_ADOPTED_FOR_OPERATOR_TRIAL',dict(source=str(path),pose=reference,
         automatic_geometry_verified=False,empty_pad_context='OPERATOR_CURRENT_CAPTURE_AFTER_RELEASE'))
@@ -829,7 +936,7 @@ def main(argv=None):
     if not args.execute:
         print(json.dumps(dict(status='PREVIEW_NO_DEVICE_CONNECTION',source_slot=1,block='yellow2x2/span2',target=[args.target_x,args.target_y],
             held_transport_height_mm=config['pickup_clearance_z_mm'],auto_correction=config['auto_yaw'],correction_scope='YAW_DIRECTION_ONLY',roll_pitch_observed=False,initial_yaw_deg=args.initial_yaw_deg,approach_cycle=args.approach_cycle,approach_z_mm=(args.approach_z_mm if args.approach_z_mm is not None else config.get('alignment_approach_z_mm',100.)) if args.approach_cycle else None,release=args.integrated_cycle,pressure=args.integrated_cycle,tilt_accuracy_test=args.tilt_accuracy_test,
-            force_stop_n=config['force_stop_n'],pad_contact_at_target_physically_verified=config.get('pad_reference_at_target_physically_verified',True),vision_backend=config['vision'].get('backend','YOLO'),integrated_cycle=args.integrated_cycle,
+            force_stop_n=config['force_stop_n'],motion_force_stop_n=supply.motion_force_limit(config),target_only_motion=config.get('target_only_motion',False),pad_contact_at_target_physically_verified=config.get('pad_reference_at_target_physically_verified',True),vision_backend=config['vision'].get('backend','YOLO'),integrated_cycle=args.integrated_cycle,
             transit_mm_s=config.get('transit_velocity'),rise_descent_mm_s=config.get('velocity'),
             loaded_waypoints=([config['startup_route']['supply_transit_xy'],config['startup_route']['body_bypass_xy'],config['assembly_target_xy']] if args.integrated_cycle else None),physical_commands=0),indent=2));return 0
     if not args.confirm_hand_clear:p.error('--confirm-hand-clear required')
@@ -840,7 +947,7 @@ def main(argv=None):
     directory=args.config.parent/('trial-'+str(time.time_ns()));directory.mkdir()
     with open('/tmp/c2-assembly-dsr01.lock','a') as lock:
         fcntl.flock(lock,fcntl.LOCK_EX|fcntl.LOCK_NB)
-        driver=AssemblyMotionRos(dict(mode='REAL',connection=config['connection'],timing=dict(service_timeout_s=3.,stopped_sample_retry_window_s=5.),stale_retry_force_stop_n=config['force_stop_n']))
+        driver=AssemblyMotionRos(dict(mode='REAL',connection=config['connection'],timing=dict(service_timeout_s=3.,stopped_sample_retry_window_s=5.),stale_retry_force_stop_n=supply.motion_force_limit(config),target_only_motion=config.get('target_only_motion',False)))
         old={}
         try:
             if driver.robot_system()!=0:raise RuntimeError('PHYSICAL_ROBOT_REQUIRED')
@@ -858,7 +965,7 @@ def main(argv=None):
                         return 0
                     if args.rise_only:
                         sample=driver.sample()
-                        if math.dist(sample['posx'][:2],config['assembly_target_xy'])>2.:
+                        if not config.get('target_only_motion',False) and math.dist(sample['posx'][:2],config['assembly_target_xy'])>2.:
                             raise RuntimeError('RISE_ONLY_REQUIRES_TARGET_XY')
                         if sample['gripper_status'] not in (0,2):
                             raise RuntimeError('RISE_ONLY_GRIPPER_STATUS_REQUIRED')
@@ -880,7 +987,7 @@ def main(argv=None):
                         finally:vision.close()
                     if args.resume_transfer:
                         current=wait_for_held_stop(driver,config,record)
-                        if math.dist(current['posx'][:2],config['blocks'][0]['pickup_pose'][:2])>2. or abs(current['posx'][2]-config['pickup_clearance_z_mm'])>.5:
+                        if not config.get('target_only_motion',False) and (math.dist(current['posx'][:2],config['blocks'][0]['pickup_pose'][:2])>2. or abs(current['posx'][2]-config['pickup_clearance_z_mm'])>.5):
                             raise RuntimeError('RESUME_TRANSFER_REQUIRES_HELD_AT_PICKUP_HIGH')
                         record('RESUME_HELD_TRANSFER',dict(sample=current,repeat_pickup=False))
                         transfer(driver,config,record)

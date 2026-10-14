@@ -7,6 +7,7 @@ from scripts import held_corner_stud_trial as held
 
 def config():
     value=json.loads((held.NATIVE/'settings/held_corner_stud_20261014/config.json').read_text())
+    value['target_only_motion']=False
     return held.target_layer_approach(value,1)
 
 
@@ -236,6 +237,7 @@ def test_integrated_transfer_accepts_recorded_lift_settling_and_uses_fresh_level
 
 def test_user45n_combined_force_policy_allows36_and_stops45_before_move(monkeypatch):
     d=Driver();c=config();assert c['force_stop_n']==45.
+    c.pop('motion_force_stop_n',None)  # Legacy configs still apply the shared force limit.
     d.value['wrench']=[0.,0.,36.,0.,0.,0.]
     assert held.wait_for_held_stop(d,c,lambda *_:None)['wrench'][2]==36.
     d.value['wrench'][2]=45.
@@ -274,3 +276,161 @@ def test_same_xy_pressure_sequence_descends_and_rises_without_gripper_or_rotatio
     with pytest.raises(RuntimeError,match='DATUM_CHANGED'):
         seating.same_xy_press_cycle(d,c,plan,2,lambda *_:None,move)
     assert len(presses)==1
+
+
+class ResidualPressureReplay:
+    """Construct a MOCK driver with persistent load after pressure STOP."""
+    @staticmethod
+    def driver(contact,initial,residual):
+        from app.assembly_step_runner import StepReplayDriver
+        class Replay(StepReplayDriver):
+            def __init__(self):
+                super().__init__(contact,reaction_force_n=48.)
+                self.after_pressure_stop=False
+                self.value.update(posx=initial.copy(),gripper_status=2,gripper_width_mm=9.3)
+            def call(self,*args,**kwargs):self.value['robot_mode']=kwargs['robot_mode']
+            def stop(self):
+                super().stop();self.after_pressure_stop=True;self.value['wrench']=residual.copy()
+            def move_line_async(self,target,velocity,acceleration):
+                super().move_line_async(target,velocity,acceleration)
+                if self.after_pressure_stop:self.value['wrench']=residual.copy()
+        return Replay()
+
+
+@pytest.mark.parametrize('residual', [
+    [0.,0.,48.,0.,0.,0.],
+    # Settled wrench from trial-1791942058617563884/PRESS_RESULT; replay is synthetic.
+    [-16.34885597229004,.6475402116775513,55.48013687133789,.9723607897758484,-.08659768104553223,.30773189663887024],
+    [0.,0.,60.,0.,0.,0.]])
+def test_actual_press_then_rise_keeps_45n_contact_cutoff_without_rejecting_residual_load(residual):
+    c=config();assert c['motion_force_stop_n'] is None and c['force_stop_n']==45.
+    release=c['alignment_target']['placement_tcp_reference'].copy()
+    c['integrated_pad_contact_pose']=[*release[:2],release[2]+15.,*release[3:]]
+    plan=seating.same_xy_press_plan(release,c)
+    d=ResidualPressureReplay.driver(plan['estimated_contact_pose'],plan['rise_pose'],residual)
+    events=[]
+    result=seating.same_xy_press_cycle(d,c,plan,2,lambda event,data:events.append((event,deepcopy(data))),
+        lambda *a,**kw:held.local_held_move(*a,**kw,sleep=lambda _:None))
+    assert result['status']=='FORCE_THRESHOLD_REACHED_STOP_VERIFIED' and result['force_stop_n']==45.
+    assert result['threshold_force_norm_n']==48. and result['stop']['stillness_verified']
+    assert result['final_sample']['wrench']==residual and d.value['wrench']==residual
+    assert d.value['posx']==plan['rise_pose'] and d.stops and not d.grips
+    assert held.wait_for_held_stop(d,c,lambda *_:None)['wrench']==residual
+    assert any(event=='PRESS_RESULT' for event,_ in events) and not result['assembly_completion']
+
+
+def test_omitted_motion_limit_preserves_legacy_post_pressure_force_abort():
+    c=config();c.pop('motion_force_stop_n')
+    release=c['alignment_target']['placement_tcp_reference'].copy()
+    c['integrated_pad_contact_pose']=[*release[:2],release[2]+15.,*release[3:]]
+    plan=seating.same_xy_press_plan(release,c)
+    d=ResidualPressureReplay.driver(plan['estimated_contact_pose'],plan['rise_pose'],[0.,0.,60.,0.,0.,0.])
+    events=[]
+    with pytest.raises(RuntimeError,match='FORCE_NORM_STOP_LIMIT_REACHED'):
+        seating.same_xy_press_cycle(d,c,plan,2,lambda event,data:events.append(event),
+            lambda *a,**kw:held.local_held_move(*a,**kw,sleep=lambda _:None))
+    assert 'PRESS_RESULT' in events and d.value['posx'][2]<plan['rise_pose'][2]
+
+
+def test_actual_seating_still_stops_at_contact_and_returns_held_result_with_60n_residual():
+    c=config();goal=c['alignment_target']['placement_tcp_reference'].copy()
+    contact=goal.copy();contact[2]+=3.
+    initial=[*goal[:2],c['alignment_approach_z_mm'],*goal[3:]]
+    d=ResidualPressureReplay.driver(contact,initial,[0.,0.,60.,0.,0.,0.])
+    result=seating.insert(d,c,lambda *_:None,sleep=lambda _:None)
+    assert result['status']=='FORCE_STOPPED_BEFORE_VERIFIED_SEATING'
+    assert result['final_sample']['wrench'][2]==60. and d.value['gripper_status']==2
+    assert not result['assembly_completion'] and not d.grips
+    # Separating the force values does not bypass the existing seating-position requirement.
+    with pytest.raises(RuntimeError,match='AT_SEATING_TARGET'):
+        seating.release(d,c,lambda *_:None,sleep=lambda _:None)
+    assert not d.grips
+
+
+@pytest.mark.parametrize('field,value,error', [
+    ('tcp','WrongTCP','TCP_TOOL_MISMATCH'),('gripper_status',1,'ROBOT_OR_GRIP_NOT_READY'),
+    ('query_duration_s',.8,'FEEDBACK_TOO_OLD'),('drl_state',2,'DRL_NOT_STOPPED'),
+    ('robot_mode',0,'AUTOMATIC_MODE_REQUIRED')])
+def test_separated_motion_force_keeps_equipment_and_freshness_guards(field,value,error):
+    c=config();d=Driver();d.value['wrench'][2]=60.;d.value[field]=value
+    with pytest.raises(RuntimeError,match=error):held.wait_for_held_stop(d,c,lambda *_:None)
+    assert not d.grips
+
+
+def test_target_only_xy_uses_requested_coordinates_from_far_or_low_start():
+    d=Driver();c=config();c['target_only_motion']=True
+    d.value['posx'][0]+=25.;d.value['posx'][1]-=17.;d.value['posx'][2]-=30.
+    before=d.sample()['posx']
+    target=seating.xy_target(d.sample(),c)
+    assert target[:2]==c['assembly_target_xy'] and target[2:]==before[2:]
+
+
+@pytest.mark.parametrize('height',['above','below','at_goal'])
+def test_target_only_seating_commands_configured_xy_and_z_from_any_position(height):
+    d=Driver();c=config();c['target_only_motion']=True
+    goal=c['alignment_target']['placement_tcp_reference'][2]
+    d.value['posx'][:2]=[100.,-50.]
+    d.value['posx'][2]=goal+dict(above=20.,below=-3.,at_goal=0.)[height]
+    targets=seating.seating_targets(d.sample(),c)
+    assert targets==[[*c['assembly_target_xy'],goal,*d.value['posx'][3:]]]
+
+
+def test_target_only_insertion_accepts_stopped_velocity_and_pose_jitter_without_ik_gate(monkeypatch):
+    c=config();c['target_only_motion']=True;d=Driver();calls=[];now=[0.]
+    d.value['velx']=[.02,0.,0.,.01,0.,0.]
+    d.value['posx'][0]+=4.;d.value['posx'][2]-=30.
+    original_sample=d.sample
+    def sample():
+        d.value['posx'][0]+=.07;d.value['posx'][2]+=.053
+        return original_sample()
+    d.sample=sample
+    def no_ik(*_):raise AssertionError('target-only trial must not query endpoint IK')
+    d.check_pose=no_ik
+    def move(driver,connection,target,limit,record,**kwargs):
+        calls.append((target.copy(),kwargs));driver.value['posx']=target.copy()
+    monkeypatch.setattr(seating,'run',move)
+    result=seating.insert(d,c,lambda *_:None,sleep=lambda delay:now.__setitem__(0,now[0]+delay),clock=lambda:now[0])
+    assert result['status']=='SEATING_TARGET_REACHED_HOLDING_NOT_VERIFIED'
+    assert calls[0][0][:3]==[*c['assembly_target_xy'],c['alignment_target']['placement_tcp_reference'][2]]
+    assert calls[0][1]['target_only_motion'] is True and now[0]==0.
+    assert not result['actual_seating_verified'] and not result['assembly_completion'] and not d.grips
+
+
+def test_target_only_release_accepts_height_offset_and_stopped_velocity():
+    c=config();c['target_only_motion']=True;d=Driver();now=[0.]
+    d.value['velx']=[.02,0.,0.,0.,0.,0.];d.value['posx'][2]+=3.
+    seating.release(d,c,lambda *_:None,sleep=lambda delay:now.__setitem__(0,now[0]+delay),clock=lambda:now[0])
+    assert d.grips==[(60.,40.)]
+
+
+@pytest.mark.parametrize('field,value,error',[
+    ('motion_status',1,'AT_SEATING_TARGET'),('tcp','WrongTCP','TCP_TOOL_MISMATCH'),
+    ('gripper_status',1,'ROBOT_OR_GRIP_NOT_READY'),('query_duration_s',.8,'FEEDBACK_TOO_OLD'),
+])
+def test_target_only_release_still_requires_device_and_controller_stop(field,value,error):
+    c=config();c['target_only_motion']=True;d=Driver();d.value[field]=value
+    with pytest.raises(RuntimeError,match=error):seating.release(d,c,lambda *_:None)
+    assert not d.grips
+
+
+def test_target_only_top_touch_press_forwards_profile_despite_pose_offset(monkeypatch):
+    from scripts import assembly_press_trial
+    c=config();c['target_only_motion']=True;d=Driver();calls=[]
+    reference=d.value['posx'].copy();d.value['posx'][0]+=7.;d.value['posx'][2]+=10.4
+    monkeypatch.setattr(assembly_press_trial,'press',lambda *args,**kwargs:calls.append(kwargs) or dict(status='FORCE_THRESHOLD_REACHED_STOP_VERIFIED'))
+    result=seating.press_from_top_touch(d,c,reference,lambda *_:None,2)
+    assert result['status']=='FORCE_THRESHOLD_REACHED_STOP_VERIFIED' and calls[0]['target_only_motion'] is True
+
+
+def test_target_only_same_xy_press_retains_saved_goals_without_datum_precision_gate(monkeypatch):
+    from scripts import assembly_press_trial
+    c=config();c['target_only_motion']=True;d=Driver()
+    release=d.sample()['posx'];c['integrated_pad_contact_pose']=[*release[:2],release[2]+15.,*release[3:]]
+    plan=seating.same_xy_press_plan(release,c);d.value['posx']=plan['rise_pose'].copy()
+    d.value['posx'][0]+=3.;d.value['posx'][3]+=2.;moves=[];calls=[]
+    def move(driver,config,target,record,**kwargs):
+        moves.append(target.copy());driver.value['posx']=target.copy()
+    monkeypatch.setattr(assembly_press_trial,'press',lambda *args,**kwargs:calls.append(kwargs) or dict(status='FORCE_THRESHOLD_REACHED_STOP_VERIFIED'))
+    result=seating.same_xy_press_cycle(d,c,plan,2,lambda *_:None,move)
+    assert result['status']=='FORCE_THRESHOLD_REACHED_STOP_VERIFIED' and calls[0]['target_only_motion'] is True
+    assert moves==[plan['above_pose'],plan['rise_pose']] and not d.grips

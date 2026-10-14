@@ -330,3 +330,54 @@ def test_invalid_motion_arrival_tolerance_rejected_before_commands(tolerance):
     with pytest.raises(ValueError,match='INVALID_MOTION_ARRIVAL_TOLERANCES'):
         run(driver,CONNECTION,TARGET,35.,lambda *e:None,position_tolerance_mm=tolerance)
     assert not driver.moves
+
+
+def test_target_only_trial_commands_original_goal_accepts_stopped_pose_error_and_velocity_jitter():
+    driver=Driver();events=[]
+    driver.value['velx']=[.003,-.002,.004,.0002,0.,-.0001]
+    driver.check_pose=lambda _:(_ for _ in ()).throw(AssertionError('No numeric IK/FK admission for this trial'))
+    def off_target():
+        driver.value['posx'][0]+=2.;driver.value['posx'][3]+=3.
+    driver.after_move=off_target
+    result=run(driver,CONNECTION,TARGET,None,lambda event,data:events.append(event),
+        target_only_motion=True,sleep=lambda _:None)
+    assert driver.moves[-1]==TARGET and result['final_sample']['posx'][0]==TARGET[0]+2.
+    assert result['final_sample']['posx'][3]==TARGET[3]+3. and not driver.stops
+    assert result['arrival_basis']=='CONTROLLER_MOTION_COMPLETE' and not result['exact_target_verified']
+    assert result['target_only_motion'] and result['target_error_mm']==2. and result['target_error_deg']==pytest.approx(3.)
+    assert 'IK_FK_CHECK' not in events
+
+
+def test_target_only_trial_waits_for_controller_motion_completion_even_with_zero_velocity():
+    driver=Driver();now=[0.];pending=[None]
+    def move(pose,velocity,acceleration):
+        driver.moves.append(pose.copy());pending[0]=pose.copy();driver.value['motion_status']=2
+    def sample():
+        if pending[0] is not None and now[0]>=.1:
+            driver.value.update(posx=[pending[0][0]+1.,*pending[0][1:]],motion_status=0)
+        return deepcopy(driver.value)
+    driver.move_line_async=move;driver.sample=sample
+    result=run(driver,CONNECTION,TARGET,None,lambda *_:None,target_only_motion=True,
+        transfer_only=True,clock=lambda:now[0],sleep=lambda delay:now.__setitem__(0,now[0]+delay))
+    assert now[0]>=.1 and result['final_sample']['motion_status']==0 and len(driver.moves)==1
+
+
+@pytest.mark.parametrize('when',['initial','after_move'])
+def test_target_only_trial_still_rejects_stale_feedback_and_stops_dispatched_motion(when):
+    driver=Driver()
+    if when=='initial':driver.value['query_duration_s']=.8
+    else:driver.after_move=lambda:driver.value.update(query_duration_s=.8)
+    with pytest.raises(RuntimeError,match='FEEDBACK_TOO_OLD'):
+        run(driver,CONNECTION,TARGET,None,lambda *_:None,target_only_motion=True,sleep=lambda _:None)
+    assert bool(driver.moves)==(when=='after_move') and driver.stops==(1 if when=='after_move' else 0)
+
+
+def test_target_only_trial_contact_force_stop_keeps_45n_and_controller_stop_verification():
+    driver=Driver();driver.value['robot_mode']=1
+    driver.after_move=lambda:driver.value.update(wrench=[0.,0.,48.,0.,0.,0.],velx=[.001]*6)
+    events=[]
+    with pytest.raises(RuntimeError,match='FORCE_NORM_STOP_LIMIT_REACHED'):
+        run(driver,CONNECTION,TARGET,45.,lambda event,data:events.append((event,data)),
+            force_norm_stop_n=45.,target_only_motion=True,set_automatic_mode=False,sleep=lambda _:None)
+    abort=[data for event,data in events if event=='ABORT'][0]
+    assert driver.stops==1 and abort['stop']['acknowledged'] and abort['stop']['stillness_verified']

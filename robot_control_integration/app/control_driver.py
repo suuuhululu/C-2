@@ -200,8 +200,9 @@ class ControlledDriver:
 
 
 def execute_step(raw, session, connection, plan, profile, confirm, record, *, phase='contact',
-                 start_zone='assembly', camera_poll=None, pickup_center=None,
+                 start_zone='assembly', camera_poll=None, pickup_center=None, assembly_alignment=None,
                  clock=time.monotonic, sleep=time.sleep):
+    if isinstance(raw,ControlledDriver):raw=raw.raw
     from app.human_step_gestures import validate_policy as validate_human_policy, STAGES, wait_stage
     validate_human_policy(plan, profile, session.value)
     from app.assembly_native_press import validate_native_press
@@ -213,7 +214,7 @@ def execute_step(raw, session, connection, plan, profile, confirm, record, *, ph
             require_drcf2_runtime()
             raw.check_contact_services(native_force=True)
     session.claim_execution()
-    driver = ControlledDriver(raw, session, connection, clock=clock, sleep=sleep)
+    driver=ControlledDriver(raw,session,connection,clock=clock,sleep=sleep)
 
     def emit(event, data):
         session.check()
@@ -260,6 +261,7 @@ def execute_step(raw, session, connection, plan, profile, confirm, record, *, ph
         else:
             result = run_step(driver, connection, plan, profile, answer, emit,
                               phase=phase, start_zone=start_zone, pickup_center=pickup_center,
+                              assembly_alignment=assembly_alignment,
                               clock=clock, sleep=sleep)
         session.check()
         result.update(execution_id=session.value['execution_id'], backend=session.value['backend'],

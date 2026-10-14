@@ -17,7 +17,7 @@ sys.path.insert(1, str(NATIVE_ROOT.parent/"perception"))
 
 from app.assembly_motion import motion_still, pose_error, vector
 from app.assembly_motion_ros import AssemblyMotionRos
-from scripts.assembly_position_trial import guard, run
+from scripts.assembly_position_trial import guard, run, trial_motion_still
 
 ORDER = [('yellow', '2x2x1', 1, 2), ('yellow', '2x3x1', 2, 3),
          ('blue', '2x2x1', 3, 2), ('blue', '2x3x1', 4, 3), ('red', '1x2x1', 5, 1)]
@@ -47,9 +47,17 @@ def validate(config, require_ready=False):
     for row, identity in zip(config['blocks'], ORDER):
         if tuple(row[k] for k in ('color', 'brick_type', 'slot', 'span')) != identity:
             raise ValueError('FIXED_BLOCK_ORDER_REQUIRED')
+    return validate_rows(config, config['blocks'], require_ready)
+
+
+def validate_rows(config, rows, require_ready=False):
+    """Retain the trial's device/pose limits for explicitly selected rows."""
+    vector(config['observation_pose'], 6, 'observation_pose')
+    for row in rows:
+        identity = tuple(row[k] for k in ('color', 'brick_type', 'slot', 'span'))
         if row['pickup_pose'] is not None:
             target = vector(row['pickup_pose'], 6, 'pickup_pose')
-            if target[2] >= config['observation_pose'][2]:
+            if not config.get('target_only_motion',False) and target[2] >= config['observation_pose'][2]:
                 raise ValueError('OBSERVATION_MUST_BE_ABOVE_PICKUP')
         if require_ready and (row['pickup_pose'] is None or not row['pose_source']):
             raise ValueError('EXACT_SLOT_AXIS_TEACHING_REQUIRED:'+str(identity))
@@ -76,6 +84,11 @@ def selected_blocks(config, slot=None):
     if not rows or any(row['pickup_pose'] is None or not row['pose_source'] for row in rows):
         raise ValueError('선택한 블록의 실제 파지 교시가 필요합니다.')
     return rows
+
+
+def motion_force_limit(config):
+    """Separate ordinary motion from contact cutoff; omitted fields stay legacy."""
+    return config.get('motion_force_stop_n', config['force_stop_n'])
 
 
 def segment_rates(config, current, target):
@@ -112,24 +125,30 @@ def startup_targets(config, current, zone):
     return targets
 
 
-def execute(driver, config, record, observe, *, slot=None, start_zone="assembly", display=None, hold_at_pickup=False, sleep=time.sleep, clock=time.monotonic):
-    rows = selected_blocks(config, slot)
+def execute(driver, config, record, observe, *, slot=None, trial_row=None, start_zone="assembly", display=None, hold_at_pickup=False, sleep=time.sleep, clock=time.monotonic):
+    if trial_row is None:
+        rows = selected_blocks(config, slot)
+    else:
+        rows = [deepcopy(trial_row)]
+        validate_rows(config, rows, require_ready=True)
     if hold_at_pickup and len(rows)!=1:
         raise ValueError('HOLD_TRIAL_REQUIRES_ONE_BLOCK')
     connection = config['connection']
-    limit = config['force_stop_n']
+    limit = motion_force_limit(config)
+    target_only=config.get('target_only_motion',False)
+    stopped=trial_motion_still if target_only else motion_still
     view = config['observation_pose']
     low_view = list(view); low_view[2] = config['pickup_clearance_z_mm']
-    if not max(row['pickup_pose'][2] for row in rows) < low_view[2] < view[2]:
+    if not target_only and not max(row['pickup_pose'][2] for row in rows) < low_view[2] < view[2]:
         raise ValueError('PICKUP_CLEARANCE_BETWEEN_PICK_AND_VIEW_REQUIRED')
     initial = driver.sample()
     if start_zone=='home':
         deadline=clock()+5.
-        while not motion_still(initial):
+        while not stopped(initial):
             guard(initial,connection,limit,automatic=False,force_norm_limit=limit,required_gripper_status=initial['gripper_status'])
             if clock()>=deadline:raise RuntimeError('HOME_STOP_WAIT_TIMEOUT')
             sleep(.05);initial=driver.sample()
-        if len(initial.get('posj',[]))!=6 or max(abs(a-b) for a,b in zip(initial['posj'],[0.,0.,90.,0.,90.,0.]))>.5:
+        if not target_only and (len(initial.get('posj',[]))!=6 or max(abs(a-b) for a,b in zip(initial['posj'],[0.,0.,90.,0.,90.,0.]))>.5):
             raise RuntimeError('CURRENT_HOME_0_0_90_0_90_0_REQUIRED')
         if config.get('integrated_cycle') and initial['gripper_width_mm']<=12.:
             guard(initial,connection,limit,automatic=False,force_norm_limit=limit,required_gripper_status=initial['gripper_status'])
@@ -146,16 +165,16 @@ def execute(driver, config, record, observe, *, slot=None, start_zone="assembly"
     if initial['gripper_width_mm'] < config['open_mm']-1:
         raise RuntimeError('START_WITH_OPEN_60MM_GRIPPER_REQUIRED')
     deadline=clock()+5.
-    while not motion_still(initial):
+    while not stopped(initial):
         if clock()>=deadline:raise RuntimeError('STOPPED_START_WAIT_TIMEOUT')
         sleep(.05);initial=driver.sample()
         guard(initial,connection,limit,automatic=False,force_norm_limit=limit,required_gripper_status=0)
     startup = startup_targets(config, initial['posx'], start_zone)
-    for _, target in startup:
+    for _, target in ([] if target_only else startup):
         if max(pose_error(driver.check_pose(target), target)) > .05:
             raise RuntimeError('START_ROUTE_ENDPOINT_IK_FK_MISMATCH')
-    # All endpoint geometry is checked before issuing any motion/gripper command.
-    for row in rows:
+    # Coordinate preflight remains available for the legacy path.
+    for row in ([] if target_only else rows):
         high = row['pickup_pose'].copy(); high[2] = low_view[2]
         for target in (low_view, high, row['pickup_pose'], view):
             if max(pose_error(driver.check_pose(target), target)) > .05:
@@ -172,13 +191,13 @@ def execute(driver, config, record, observe, *, slot=None, start_zone="assembly"
             force_norm_stop_n=limit, transfer_rate=rate, descent_rate=rate,
             transfer_acceleration=acceleration, descent_acceleration=acceleration,
             angular_velocity=config['angular_velocity'], angular_acceleration=config['angular_acceleration'],
-            sleep=sleep, clock=clock)
+            target_only_motion=target_only, sleep=sleep, clock=clock)
 
     def grip(width, expected):
         before = driver.sample()
         guard(before, connection, limit, automatic=True, force_norm_limit=limit,
               required_gripper_status=0)
-        if not motion_still(before):
+        if not stopped(before):
             raise RuntimeError('GRIP_REQUIRES_STOPPED_ROBOT')
         driver.command_gripper(width, config['gripper_force_n'])
         deadline = clock()+10
@@ -190,7 +209,7 @@ def execute(driver, config, record, observe, *, slot=None, start_zone="assembly"
                   force_norm_limit=limit, required_gripper_status=0)
             if sample['gripper_status'] not in (0, 1, 2):
                 raise RuntimeError('GRIPPER_FAULT')
-            okay = sample['gripper_status'] == expected and motion_still(sample)
+            okay = sample['gripper_status'] == expected and stopped(sample)
             if expected == 0:
                 okay = okay and sample['gripper_width_mm'] >= width-1
             stable = stable+1 if okay else 0
@@ -202,7 +221,7 @@ def execute(driver, config, record, observe, *, slot=None, start_zone="assembly"
 
     try:
         fresh = driver.sample()
-        if not motion_still(fresh) or max(pose_error(fresh['posx'], initial['posx'])) > .05:
+        if not stopped(fresh) or (not target_only and max(pose_error(fresh['posx'], initial['posx'])) > .05):
             raise RuntimeError('START_CHANGED_AFTER_PREFLIGHT')
         for label, target in startup:
             move(label, target)
@@ -217,7 +236,7 @@ def execute(driver, config, record, observe, *, slot=None, start_zone="assembly"
             # Inference is stationary; recheck actual view before any movement.
             fresh = driver.sample()
             guard(fresh, connection, limit, automatic=False, force_norm_limit=limit, required_gripper_status=0)
-            if not motion_still(fresh) or max(pose_error(fresh['posx'], view)) > .5:
+            if not stopped(fresh) or (not target_only and max(pose_error(fresh['posx'], view)) > .5):
                 raise RuntimeError('OBSERVATION_POSE_CHANGED')
             high = target.copy(); high[2] = low_view[2]
             move('OBSERVATION_TO_TRANSIT_HEIGHT', low_view)
@@ -233,7 +252,7 @@ def execute(driver, config, record, observe, *, slot=None, start_zone="assembly"
             # Validate held state before opening; use the normal feedback loop below.
             sample = driver.sample()
             guard(sample, connection, limit, automatic=True, force_norm_limit=limit, required_gripper_status=2)
-            if not motion_still(sample):
+            if not stopped(sample):
                 raise RuntimeError('RELEASE_REQUIRES_STOPPED_ROBOT')
             driver.command_gripper(config['open_mm'], config['gripper_force_n'])
             deadline = clock()+10
@@ -244,7 +263,7 @@ def execute(driver, config, record, observe, *, slot=None, start_zone="assembly"
                       force_norm_limit=limit, required_gripper_status=0)
                 if sample['gripper_status'] not in (0, 1, 2):
                     raise RuntimeError('GRIPPER_FAULT')
-                okay = (sample['gripper_status'] == 0 and motion_still(sample)
+                okay = (sample['gripper_status'] == 0 and stopped(sample)
                         and sample['gripper_width_mm'] >= config['open_mm']-1)
                 stable = stable+1 if okay else 0
                 if stable >= 3:
@@ -495,6 +514,8 @@ def main(argv=None):
     parser.add_argument('--green-gray', action='store_true', help='Experimental green-to-gray model input')
     args = parser.parse_args(argv)
     config = validate(load_config(args.config))
+    target_only=config.get('target_only_motion',False)
+    stopped=trial_motion_still if target_only else motion_still
     if args.green_gray:
         config['vision']['green_gray']=True
     if args.command == 'preview' or (args.command == 'run' and not args.execute):
@@ -526,14 +547,14 @@ def main(argv=None):
                 error = pose_error(last['posx'], config['observation_pose'])
                 print(json.dumps(dict(status='READ_ONLY_PRECHECK', pending_slots=pending,
                     observation_position_error_mm=error[0], observation_angle_error_deg=error[1],
-                    observation_ready=all(motion_still(s) and max(pose_error(s['posx'], config['observation_pose'])) <= .5 for s in samples),
+                    observation_ready=all(stopped(s) and (target_only or max(pose_error(s['posx'], config['observation_pose'])) <= .5) for s in samples),
                     gripper_status=last['gripper_status'], gripper_width_mm=last['gripper_width_mm'],
                     open_ready=all(s['gripper_status']==0 and s['gripper_width_mm']>=config['open_mm']-1 for s in samples),
                     physical_commands=0), ensure_ascii=False, indent=2))
                 return 0
             if args.command == 'teach':
                 samples = [driver.sample() for _ in range(3)]
-                if any(not motion_still(s) or s['tcp'] != config['connection']['tcp'] or s['tool'] != config['connection']['tool'] for s in samples):
+                if any(not stopped(s) or s['tcp'] != config['connection']['tcp'] or s['tool'] != config['connection']['tool'] for s in samples):
                     raise RuntimeError('STOPPED_CORRECT_TCP_TOOL_REQUIRED')
                 if any(max(pose_error(samples[0]['posx'], s['posx'])) > .05 for s in samples):
                     raise RuntimeError('TEACHING_NOT_STABLE')

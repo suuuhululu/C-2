@@ -11,18 +11,20 @@ import time
 from uuid import uuid4
 
 from scripts.assembly_contact_trial import TEMPLATE, save
-from scripts.assembly_position_trial import run, guard
+from scripts.assembly_position_trial import run, guard, trial_motion_still
 from app.assembly_motion import motion_still
 from app.jsonl_log import JsonlLog
 
 
 def press(driver, connection, record, *, max_travel_mm=5., force_stop_n=35.,
           velocity=2., acceleration=1., required_gripper_status=2,
+          angular_velocity=None, angular_acceleration=None,
           ik_fk_position_tolerance_mm=.05, ik_fk_orientation_tolerance_deg=.05,
-          clock=time.monotonic, sleep=time.sleep):
+          target_only_motion=False, clock=time.monotonic, sleep=time.sleep):
     if any(type(v) not in (int, float) or not math.isfinite(v) or v <= 0
            for v in (max_travel_mm, force_stop_n, velocity, acceleration)):
         raise ValueError('POSITIVE_FINITE_PRESS_PARAMETERS_REQUIRED')
+    stopped=trial_motion_still if target_only_motion else motion_still
     latest = {}
     stillness_policy=getattr(getattr(driver,'session',None),'value',{}).get('stillness',{})
     def capture(event, payload):
@@ -42,11 +44,12 @@ def press(driver, connection, record, *, max_travel_mm=5., force_stop_n=35.,
         result = run(driver, connection, endpoint, force_stop_n, capture,
                      transfer_rate=velocity, descent_rate=velocity,
                      transfer_acceleration=acceleration, descent_acceleration=acceleration,
+                     angular_velocity=angular_velocity,angular_acceleration=angular_acceleration,
                      set_automatic_mode=False, force_norm_stop_n=force_stop_n,
                      required_gripper_status=required_gripper_status,
                      ik_fk_position_tolerance_mm=ik_fk_position_tolerance_mm,
                      ik_fk_orientation_tolerance_deg=ik_fk_orientation_tolerance_deg,
-                     clock=clock, sleep=sleep)
+                     target_only_motion=target_only_motion, clock=clock, sleep=sleep)
         result['status'] = 'MAX_TRAVEL_REACHED_WITHOUT_FORCE_THRESHOLD'
     except RuntimeError as error:
         if str(error) not in ('FORCE_NORM_STOP_LIMIT_REACHED', 'FZ_STOP_LIMIT_REACHED'):
@@ -61,7 +64,7 @@ def press(driver, connection, record, *, max_travel_mm=5., force_stop_n=35.,
         while not stop['stillness_verified']:
             feedback = driver.motion_feedback()
             capture('STOP_SETTLING_FEEDBACK', feedback)
-            stop.update(feedback=feedback, stillness_verified=motion_still(feedback,stillness_policy))
+            stop.update(feedback=feedback, stillness_verified=stopped(feedback,stillness_policy))
             if stop['stillness_verified']:
                 break
             if clock() >= deadline:
