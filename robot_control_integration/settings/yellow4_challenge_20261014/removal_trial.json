@@ -1,0 +1,18 @@
+{
+  "schema_version": "yellow4-removal-trial/1",
+  "regrasp_clearance_mm": 20,
+  "clearance_source": "PRIOR_USER_TARGET_PLUS20_OBSERVATION_REQUEST_NOT_REGRASP_CLEARANCE_VERIFICATION",
+  "parameter_source": null,
+  "contact": {
+    "linear_velocity_mm_s": null,
+    "angular_velocity_deg_s": null,
+    "linear_acceleration_mm_s2": null,
+    "angular_acceleration_deg_s2": null,
+    "force_stop_n": null,
+    "moment_delta_stop_nm": null,
+    "width_drift_stop_mm": null,
+    "axis_registration_tolerance_mm": null
+  },
+  "field_review": null,
+  "note": "Stage6 development input only. Set independent removal conditions and sources after field review; assembly candidates are not automatically copied. Regrasp measurements are supplied separately."
+}

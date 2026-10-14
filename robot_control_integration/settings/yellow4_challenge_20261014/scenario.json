@@ -143,8 +143,9 @@
         "id": 6,
         "name": "결착 블록 재파지·부분 회전 분리",
         "verification_kind": "REAL_PARTIAL_REMOVAL",
-        "status": "PENDING",
-        "physical_test_verified": false
+        "status": "PREPARED_FOR_FIELD_TEST",
+        "physical_test_verified": false,
+        "software_verified": true
       },
       {
         "id": 7,
@@ -154,7 +155,7 @@
         "physical_test_verified": false
       }
     ],
-    "next_development_stage": 6
+    "next_development_stage": 7
   },
   "stage_0_verification": {
     "status": "PASS",
@@ -324,6 +325,39 @@
       "stage4 REAL partial engagement and verified trial conditions",
       "stage5 real full pivot and release stability observation",
       "measured closed pad profile only if optional press is selected"
+    ]
+  },
+  "stage_6_verification": {
+    "status": "PREPARED_FOR_FIELD_TEST",
+    "related_tests_passed": 347,
+    "new_regression_cases": 37,
+    "physical_commands": 0,
+    "user_workflow": "DEVELOP_SOFTWARE_FIRST_DEFER_REAL_TRIALS",
+    "real_partial_removal_executed": false,
+    "interactive_desktop_popup_verified": false,
+    "available_field_records": "STAGE2_READ_ONLY_CAPTURES_AND_STAGE3_STAGE5_MISSING_INPUT_PREVIEWS_ONLY",
+    "default_grasp_mode": "STANDARD",
+    "default_pad_bottom_height_mm": 5,
+    "assembly_conditions_copied_to_removal": false,
+    "test_environment": "Fake contract robot ID isolated in test process; real exclusive lock and tests unchanged",
+    "checks": [
+      "independent removal regrasp pose/relation/height/width and named frame/contact axis; source inputs preserved",
+      "REAL Stage5 snapshot and operator seating/post-release reports with Stage3/4 provenance; current block review remains separate",
+      "arbitrary-axis positive/negative XYZ and SO3 pivot, transformed frames and contact-line/rigid relation invariance",
+      "changed regrasp changes TCP orbit without changing block pivot; STANDARD5 and measured HUMAN15 without supply plus10",
+      "MoveL existing first/second transits and assembly observation; no supply pickup during removal",
+      "open empty and closed empty status0/2 context established before regrasp; status2 alone is not block holding",
+      "one-side/remaining engagement, all-release report and no-release report all end holding without automatic lift/open/return",
+      "force/moment/width/operator fault/unknown ACK preserve state without command resend or axis relocation",
+      "node-free current/missing-input and complete synthetic-contract CLI, stage6 target-seated flag and popup removal projection",
+      "command/actual TCP/SO3/width/raw wrench/time and RGB evidence reuse; synthetic figure not field evidence"
+    ],
+    "remaining": [
+      "actual stage2 grasp/axis and stage3/4/5 real motion, engagement and seating results",
+      "current seated block pose/tilt and board fixation",
+      "independent regrasp TCP-block relation/width/height and removal axis/direction",
+      "reviewed source-backed removal contact conditions and route/regrasp clearance",
+      "operator current empty gripper context and actual partial-release/board/grasp observations"
     ]
   }
 }

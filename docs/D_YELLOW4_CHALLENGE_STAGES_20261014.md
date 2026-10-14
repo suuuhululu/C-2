@@ -340,3 +340,88 @@ python3 robot_control_integration/scripts/yellow4_contact_trial.py --stage 5 \
 ```
 
 기존 command/actual/SO(3)/폭/raw wrench/작업자 입력·시간·최대5Hz RGB/overlay 기록을 유지하고 실제 개방 pose·패드 높이 계산·누름 결과를 추가 저장한다. 압력 구간도 실제 TCP/SO(3) 오차를 기록한다. 실제 팝업 조작/결착/개방 후 유지/패드 누름은 미검증이다. 다음6단계는 이 결과와 완전 결착된 노랑 한 블록을 확인하고 별도 분리 재파지/축 자료로 준비한다.
+
+## 6단계 산출물 — 독립 재파지·부분 회전 분리 코드 준비
+
+사용자 요청에 따라 실물 시험은 뒤로 미루고 개발만 진행했다. 현재2단계 센서 캡처와3·5단계 미완성 preview가 있고3~5단계 REAL 완료 run은 없다. 현재 블록의 실제 결착/위치/기울기/판 고정/빈 패드 상태도 이번 개발에서 확인하지 않았다. **PREPARED_FOR_FIELD_TEST**는 코드 준비이며 실행 가능한 실측 프로파일이나 실물 분리 성공을 뜻하지 않는다. 기존 completed_stage1/physical next_stage2를 보존하고 next_development_stage7로 구분한다.
+
+`app/yellow4_removal_trial.py`는 공급 파지와 별개의 재파지 입력을 받아 Stage1 임의 축/프레임 기하를 호출한다. `scripts/yellow4_contact_trial.py --stage 6`으로 기존 MoveL writer·ROS node·독점 잠금·팝업·원본 영상/시간 기록을 재사용한다. 기본 CLI 단계4와 Round2 기본 step/Plan/B Current·다른 checkout·원본 공급 교시는 유지한다. 새 서비스/클래스/dependency는 없다. 같은 guard/MoveL/STOP/기록 로직을 복제하는 별도 실행기 대신 기존 challenge 실행기에 분리 분기를 연결했다.
+
+### 독립 입력과 출처
+
+`settings/yellow4_challenge_20261014/removal_trial.json`의 속도/가속도·힘/기준 대비 모멘트 변화·폭 변화·축 등록 허용값은 null이다. 4단계 후보6mm/s·1°/s·45N·1Nm을 분리에 자동 복사하지 않는다. 공급판과 관측/이송의 기존 사용자120/12mm/s 설정은 출처를 읽어 재사용한다. 재파지 상공20mm는 이전 사용자 관측 여유의 재사용이며 실제 간섭 여유 검증이 아니다. 접촉 속도/가속도·중단값과 `parameter_source`, 현재 블록·판 고정·재파지 관계·분리축·조건의 검토를 별도 지정한다.
+
+`field_review`에는 `evidence_ref`와 `current_seated_block_verified`, `board_fixed`, `regrasp_relation_checked`, `removal_axis_checked`, `conditions_confirmed`를 실제 확인 후 true로 기록한다. `--seating-run`은5단계 실제 run의 고정 preview/events에서 REAL 결과·착좌 및 개방 후 작업자 관찰·앞3/4단계 출처를 확인한다. ABORT/FAKE/누락 결과는 사용하지 않는다. 로봇 명령 완료/작업자 보고만으로 현재 결착을 독립 검증했다고 판단하지 않고 별도 현재 실측/검토를 요구한다.
+
+`--measurements`에는 아래 **미완성 입력 형식**을 채운 별도 파일을 제공한다. null은 확인이 필요한 값이며 이 예제는 실행할 수 없다. `target`/TCP/tool은 preview에 표시된 실제 연결 대상과 일치해야 한다.
+
+```json
+{
+  "schema_version": "yellow4-removal-measurement/1",
+  "source_kind": "OPERATOR_FIELD_MEASUREMENT",
+  "evidence_ref": null,
+  "target": null,
+  "tcp": null,
+  "tool": null,
+  "grasp_id": null,
+  "grasp_mode": "STANDARD",
+  "pad_bottom_from_block_bottom_mm": 5,
+  "coordinate_frame": null,
+  "frame_pose_in_base_mm_zyz_deg": null,
+  "board_fixation_confirmed": false,
+  "regrasp_tcp_pose_mm_zyz_deg": null,
+  "seated_block_pose_mm_zyz_deg": null,
+  "block_geometry": null,
+  "target_studs": {"frame": null, "centers_mm": null},
+  "close_mm": null,
+  "width_tolerance_mm": null,
+  "removal": {"tilt_deg": null, "angular_step_deg": null,
+    "contact_line": {"frame": null, "points_mm": null}}
+}
+```
+
+pose 단위는 XYZ mm/ZYZ deg이고 축 두 점/stud 네 중심의 frame은 `coordinate_frame`이다. `frame_pose_in_base_mm_zyz_deg`는 T_BASE_frame, BASE 자체면 identity다. 재파지 TCP와 현재 착좌 블록 pose를 같은 입력 프레임에서 측정해 T_tcp_block=inverse(T_frame_tcp)×T_frame_block을 계산한다. 실제 분리 축은 별도로 명시하며 assembly 축이 없어도 분리 기하를 계산할 수 있다. 축이 결착과 같거나 경로가 역재생 가능하다고 추정하지 않는다. 각도 부호/간격은 `removal`에서 읽는다. 실제 파지 관계를 변경하면 TCP 원호는 달라지고 블록의 같은 접촉축 회전을 유지한다.
+
+기본 STANDARD5/보완 HUMAN15를 그대로 구분한다.15mm 모드도 별도 재파지 pose/관계가 필요하고 base-Z+10mm나 공급판 TCP를 사용하지 않는다. `close_mm`과 실제 폭 허용범위는 빈 닫힌 패드/60mm 개방과 구분 가능해야 한다(기존 빈 패드 범위12mm 이하). 검토 기록·pose·block geometry/stud 자료의 출처를 보존한다.5단계 등록 블록 pose와 현재 실측 pose 차이는 기록하며 실제 기울기는 실측 입력 외에 팝업 픽셀 yaw만으로 생성하지 않는다.
+
+### 실행 흐름과 팝업
+
+초기 실제 그리퍼 폭/status와 함께 **V: OPEN_EMPTY / D: CLOSED_EMPTY_PAD**를 작업자가 확인한다. status2를 블록 파지로 간주하지 않는다. 닫힌 빈 패드가 확인된 경우에만 한번 개방하고, 공급판으로 파지하러 가지 않는다. home/supply 시작은 기존 첫·둘째 MoveL 경유 → 마지막 경유를 조립판 재파지 관측점으로 연결한다. assembly 시작도 수직 여유 확보 후 관측점에 간다.
+
+**A: 현재 대상 완전 결착·판 고정 확인 → 등록 재파지 TCP로 하강 → 그리퍼 닫기 → G: 실제 재파지 관계 확인 → R: 분리 원호 시작 → I/W/N: 결과 관찰** 순서다. 접촉 직전 raw 모멘트를 기준으로 하강·닫기·회전 중 변화와 합력·폭 drift를 감시한다. 실제 정지 재파지 TCP가 등록 축/자세 허용범위 안에 있을 때만 같은 BASE 축에서 XYZ+SO(3) 원호를 수행한다. 실제 위치에 맞추려고 축을 임의 이동하지 않는다. 의도적 분리 회전 중 수평 복귀·XY·HJK 보정이 없다.
+
+- I: 한쪽 해제·남은 stud 결합, W: 전체 해제 관찰, N: 해제 관찰 안 됨을 작업자 보고로 구분한다. **세 결과 모두 자동 상승·회수·개방 없이 마지막 파지를 유지한다.** W도 독립 전체 해제 검증이나 인양 허가가 아니다.
+- L: 조립판/아래 구조 들림, S: 파지 미끄러짐, M: 접촉부 이동, U: UNKNOWN 및 ESC/창 닫기는 중단한다. 자동 개방/재전송/재시도/축 이동/상태 복구가 없다.
+- 결과의 `removal_completion=false`, `all_studs_released_independently_verified=false`, 실제 block RPY null을 유지한다. 힘 저하/명령 완료/기하의 마지막 각도만으로 해제 판정하지 않는다. STOP 이후 현재 상태에서 자동 이어서 실행하는 기능은 없다.
+
+command/actual TCP·SO(3) 오차·폭·raw 힘/모멘트·모멘트 변화·현재/등록 블록 pose 차이·관찰/중단 원인과 시간, 최대5Hz 원본 RGB/overlay를 기존 worker로 기록한다. 영상/pose의 독립 동기화나 실제 접촉축 유지 검증을 주장하지 않는다. ROS/팝업은 이동·응답·관찰 대기 중 계속 처리한다. 과거39N/잔류21N 경로 간섭 기록과 별도 경로 여유 확인을 유지한다.
+
+### 사용자 명령 — 현재는 preview만
+
+```bash
+cd "/home/rokey/Documents/ChatGPT/로봇제어 개발/c2_integration_challenge"
+python3 robot_control_integration/scripts/yellow4_contact_trial.py --stage 6 --output logs/yellow4-challenge-stage6-preview
+```
+
+실측 준비를 재개할 때 다음 기존 도구로 수동 정지 위치의 센서/카메라를 읽고 SPACE로 저장할 수 있다. 로봇/그리퍼 자동 명령은 없다. 이것만으로 블록 pose·접촉축·파지 높이가 측정된 것으로 채택하지 않는다. `--measurements`에 분리 양식을 이 관측 도구로 넘기지 않는다(서로 다른 계약이다).
+
+```bash
+python3 robot_control_integration/scripts/yellow4_observe.py observe --live --read-gripper \
+  --view assembly --role SEATED_GRASP_CANDIDATE --output logs/yellow4-challenge-stage6-read-only
+```
+
+실측 자료와5단계 실제 run/검토가 준비되면 아래 실제 파일 경로를 채워 먼저 execute 없이 preview/`removal-path.png`를 확인한다. 이번 개발에서는 이 실물 명령을 실행하지 않았다.
+
+```bash
+source /opt/ros/jazzy/setup.bash
+source /home/rokey/cobot2_ws/install/setup.bash
+export ROS_DOMAIN_ID=20
+python3 robot_control_integration/scripts/yellow4_contact_trial.py --stage 6 \
+  --config /절대경로/removal-trial-reviewed.json \
+  --measurements /절대경로/removal-measured.json \
+  --seating-run /절대경로/stage5/run-실제기록 \
+  --start-zone home --output logs/yellow4-challenge-stage6 \
+  --execute --confirm-hand-clear --confirm-route-clear --confirm-target-seated
+```
+
+재파지/원호 계약·양쪽 회전·임의 프레임·접촉선 유지·파지 변경·STD5/HUMAN15·출처 보존·빈 패드status0/2·분리 관찰·fault/ACK·node-free CLI/팝업 경로 검사를 합성 fixture와 Fake backend로 수행한다. 실제 로봇 시험/팝업 조작/부분 해제/판 고정·간섭 결과는 미검증이며 다음7단계는 실제 부분 결과를 별도로 확인하고 완전 해제·회수 코드를 준비한다.

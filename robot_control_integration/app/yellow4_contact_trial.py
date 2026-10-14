@@ -1,4 +1,4 @@
-"""Yellow4 contact trial; Stage4 partial hold and explicit Stage5 completion."""
+"""Yellow4 contact trials; partial/full seating and independent partial removal."""
 from copy import deepcopy
 import math
 import time
@@ -134,12 +134,12 @@ def execute(driver,plan,start_zone,record,observe_supply,operator,*,sleep=time.s
             if clock()>deadline:raise TimeoutError('MOTION_TIMEOUT')
             sleep(.02)
         record('WAYPOINT_REACHED',dict(label=label,target=target,sample=s,position_error_mm=mm,so3_error_deg=deg));return s
-    def ask(phase,allowed):
+    def ask(phase,allowed,*,automatic=True):
         def poll():
-            s=stopped();record('OPERATOR_WAIT_SAMPLE',dict(phase=phase,sample=s));return s
+            s=stopped(automatic);record('OPERATOR_WAIT_SAMPLE',dict(phase=phase,sample=s));return s
         answer=operator(phase,allowed,poll)
         record('OPERATOR_INPUT',dict(phase=phase,answer=answer,last_sample=last,operator_report_not_automatic_classifier=True))
-        s=stopped();record('OPERATOR_OBSERVATION',dict(phase=phase,answer=answer,sample=s,
+        s=stopped(automatic);record('OPERATOR_OBSERVATION',dict(phase=phase,answer=answer,sample=s,
             operator_report_not_automatic_classifier=True))
         if answer not in allowed:raise RuntimeError('OPERATOR_OBSERVATION_UNKNOWN_OR_STOP:'+str(answer))
         return answer,s
@@ -160,6 +160,63 @@ def execute(driver,plan,start_zone,record,observe_supply,operator,*,sleep=time.s
             if clock()>deadline:raise TimeoutError('GRIPPER_FEEDBACK_TIMEOUT')
             sleep(.1)
     try:
+        if plan.get('stage')==6:
+            from app.yellow4_removal_trial import removal_route
+            # status2 also describes closed empty pads; establish the physical context first.
+            initial=driver.sample();expected=initial['gripper_status']
+            if expected not in (0,2):raise RuntimeError('INITIAL_GRIPPER_NOT_IDLE')
+            first=stopped(False)
+            record('START',dict(sample=first,grasp_mode=plan['grasp_mode'],grasp_id=plan['grasp_id'],
+                operation='removal',block_held_is_not_inferred_from_status2=True))
+            answer,_=ask('INITIAL_EMPTY_GRIPPER_CHECK',('OPEN_EMPTY','CLOSED_EMPTY_PAD'),automatic=False)
+            if (answer=='OPEN_EMPTY' and (expected!=0 or first['gripper_width_mm']<runtime['open_mm']-1)
+                    or answer=='CLOSED_EMPTY_PAD' and first['gripper_width_mm']>12):
+                raise RuntimeError('OPERATOR_EMPTY_STATE_AND_WIDTH_MISMATCH')
+            segments=removal_route(plan,first['posx'],start_zone)
+            for _,target in segments:preflight(target)
+            preflight(plan['regrasp_tcp'])
+            for p in plan['partial_geometry']['waypoints']:preflight(p['tcp_mm_zyz_deg'])
+            def removal_grip(width_mm,holding):
+                nonlocal attempted,expected,grips
+                record('GRIP_REQUEST',dict(width_mm=width_mm,force_n=runtime['gripper_force_n'],
+                    context='REMOVAL_REGRASP' if holding else 'OBSERVED_EMPTY_PAD_OPEN'))
+                attempted=True;driver.command_gripper(width_mm,runtime['gripper_force_n']);grips+=1
+                deadline=clock()+10;stable=0
+                while True:
+                    s=sample(busy=True)
+                    complete=(s['gripper_status']==2 and abs(s['gripper_width_mm']-width_mm)<=plan['regrasp_width_tolerance_mm']) if holding else s['gripper_status']==0 and s['gripper_width_mm']>=width_mm-1
+                    stable=stable+1 if complete and motion_still(s) else 0
+                    record('GRIP_FEEDBACK',dict(sample=s,regrasp_context=holding))
+                    if stable>=3:expected=s['gripper_status'];return s
+                    if clock()>deadline:raise TimeoutError('REMOVAL_GRIPPER_FEEDBACK_TIMEOUT')
+                    sleep(.1)
+            driver.call('system/set_robot_mode','SetRobotMode',robot_mode=1)
+            if answer=='CLOSED_EMPTY_PAD':removal_grip(runtime['open_mm'],False)
+            for label,target in segments:move(label,target)
+            ask('SEATED_BLOCK_CURRENT_CHECK',('CURRENT_BLOCK_SEATED_AND_BOARD_FIXED',))
+            baseline=stopped()['wrench'];contact=True
+            record('CONTACT_BASELINE',dict(sample=last,baseline_wrench=baseline,force_is_release_classifier=False))
+            move('REMOVAL_REGRASP_DESCEND',plan['regrasp_tcp'],loaded_contact=True)
+            s=removal_grip(plan['regrasp_width_mm'],True);width=s['gripper_width_mm']
+            ask('REMOVAL_GRASP_RELATION_CHECK',('REMOVAL_GRASP_MATCH',))
+            _,s=ask('PARTIAL_REMOVAL_READY',('REMOVAL_PIVOT_READY',))
+            mm,deg=pose_error(s['posx'],plan['regrasp_tcp'])
+            if mm>c['axis_registration_tolerance_mm'] or deg>.05:
+                raise RuntimeError('REMOVAL_REGRASP_OUTSIDE_REGISTERED_AXIS_REMEASURE_REQUIRED')
+            origin=s['posx'].copy();axis=plan['partial_geometry']['contact_line_points_mm']
+            record('REMOVAL_AXIS_CHECK',dict(sample=s,axis=axis,position_error_mm=mm,so3_error_deg=deg,
+                contact_axis_physically_verified=False))
+            for i,p in enumerate(plan['partial_geometry']['waypoints'][1:]):
+                move(f'PARTIAL_REMOVAL_{i:03d}',rotate_about_contact_line(origin,axis,p['tilt_deg']),loaded_contact=True)
+            answer,final=ask('PARTIAL_REMOVAL_RESULT',('ONE_SIDE_RELEASED_REMAINING_ENGAGED','ALL_RELEASED_OBSERVED','NO_RELEASE_OBSERVED'))
+            result=dict(status='PARTIAL_REMOVAL_COMMANDS_AND_OPERATOR_REPORT_NOT_INDEPENDENTLY_VERIFIED',backend=driver.mode,
+                physical_commands=moves+grips+1 if driver.mode=='REAL' else 0,move_line_requests=moves,
+                gripper_close_commands=1,empty_pad_open_commands=grips-1,gripper_release_commands=0,press_commands=0,
+                operator_release_observation=answer,final_sample=final,final_model_tilt_deg=plan['remaining_tilt_deg'],
+                actual_block_rpy_deg=None,removal_completion=False,assembly_completion=False,
+                all_studs_released_independently_verified=False,automatic_lift_or_return=False,
+                automatic_leveling_during_intentional_tilt=False,force_drop_is_release_classifier=False)
+            record('RESULT',result);return result
         first=stopped(False)
         if first['gripper_width_mm']<runtime['open_mm']-1:raise RuntimeError('START_WITH_OPEN_EMPTY_GRIPPER_REQUIRED')
         start=startup_targets(runtime,first['posx'],start_zone)
@@ -303,7 +360,8 @@ def execute(driver,plan,start_zone,record,observe_supply,operator,*,sleep=time.s
             finally:
                 if hasattr(driver,'stop_ui_pump'):driver.ui_pump=previous
         try:
-            record('ABORT',dict(reason=str(error),sample=last,assembly_completion=False,automatic_open_or_retry=False))
+            record('ABORT',dict(reason=str(error),sample=last,operation=plan['operation'],assembly_completion=False,
+                removal_completion=False,release_observation='UNKNOWN',automatic_open_or_retry=False))
             if feedback is not None:record('STOP_FEEDBACK',feedback)
             if failure is not None:record('STOP_FAILED',dict(reason=failure))
             if nested_stop is not None:record('PAD_STOP_STATE',nested_stop)

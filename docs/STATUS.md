@@ -912,3 +912,12 @@ GPU 현재 A snapshot92파일을 CPU deliverables/GPU_A_수정본_CPU보관_2026
 - source/run preview·command/actual/SO(3)/raw힘·모멘트/폭·시간·RGB 기록 유지, 실제 release pose·패드 높이·압력 결과 추가. 최초 공급 파지부터 반복하는 새 시험이며 부분 상태에서 자동 resume/회수하지 않음. 실제 plane RPY producer 부재는UNKNOWN/null, B 완료 소유 보존.
 - 최종 관련 검사310 PASS(신규26 포함): seating/contact/air/관측/기하/held/기존 motion backend/position/supply/press. 처음 공유dsr01 잠금 경합으로301 PASS/9 FAIL; Fake transport 템플릿의 로봇ID를 시험 프로세스 안에서 별도 값으로 분리해 원래 flock/검사/소스를 유지한 전체 재검사310 PASS. 검사 삭제/건너뛰기/안전 조건 완화/실제 잠금 해제 없음. 현재 node-free5단계 preview 정상/실측·3·4단계 누락 표시. 합성 그림은 /tmp QA용이며 실측 profile로 승격하지 않음.
 - Robot/그리퍼 명령0. 실제 팝업·완전 회전·개방 후 유지·빈 패드 누름 미검증. scenario5 준비/next_development_stage6, completed1/물리next2와 미확인 입력 보존. 실행 안내/6단계 전체 프롬프트 갱신. 새 dependency/framework/서비스 없음. 상세는 D_YELLOW4_CHALLENGE_STAGES_20261014.md의5단계 절.
+
+### 2026-10-14 노랑4점 challenge 6단계 — 독립 재파지·부분 회전 분리 코드 준비
+- 사용자 실물 시험 연기/개발 우선 요청을 반영했다.2단계 read-only 자료와3·5단계 미완성 preview(각 물리명령0)를 확인했으며3~5단계 REAL 결과 없음. 현재 실제 결착/위치/기울기/판 고정/그리퍼 상태는 확인하지 않고UNKNOWN으로 유지했다. 코드 준비를 실물 검증 완료로 승격하지 않는다.
+- 독립 removal 측정 계약/준비 어댑터와 null 접촉조건 양식 추가. 조립판 재파지 TCP+블록 pose로 파지 상대변환을 계산하고 명시된 분리축/프레임/방향/각도/간격으로 Stage1 XYZ+SO(3) 기하를 재사용한다. 공급 TCP 복사/결착축 fallback/역재생/+10mm 없음. STANDARD5/별도 HUMAN15 유지.5단계 REAL 결과·착좌/개방 후 관찰·3/4단계 출처와 현재 상태/판 고정 검토를 구분한다.
+- 기존 challenge CLI/실행기의 --stage6 분기. 초기 V 개방 빈 그리퍼/D 닫힌 빈 패드 확인(status0/2)→필요시 한번 빈 패드 개방→MoveL 첫·둘째 경유/조립판 관측→A 현재 결착/판 고정→등록 재파지 하강/닫기→G 관계 확인→R 독립 원호→I 한쪽/잔여 결합 또는W 전체 관찰 또는N 해제 안 됨. 모든 정상 결과는 마지막 파지 유지이며 자동 상승/회수/개방 없음. 상태2만으로 파지를 추정하지 않는다.
+- 의도적 기울임 중 수평/XY/HJK 보정과 축 위치 변경 없음. 접촉속도/가속도·합력/모멘트 변화/폭 변화·축 허용값과 출처는 독립 설정으로 받으며4단계6/1·45N·1Nm 후보를 자동 복사하지 않는다. 과거39N/잔류21N 경로 근거 보존. 들림/미끄러짐/접촉 이동/UNKNOWN·힘/폭/모멘트·응답 불명 시STOP·상태 보존·재전송/개방/회수 없음.
+- 기존 writer/ROS node/독점 잠금/팝업 worker·command/actual TCP/SO(3)/폭/raw wrench·RGB/시간·관찰/오류 기록 재사용. 분리용 축/예상 경로를 표시하며 픽셀yaw와 실제RPY/독립 전체 해제 판정을 구분한다. 명령 완료·힘 저하·전체 해제 작업자 보고도 removal_completion=false다.
+- 최종 관련 검사347 PASS(신규37): removal/seating/contact/air/관측/기하/held/기존 motion backend/position/supply/press. 기존 Fake motion 계약의 robot ID만 검사 프로세스 안에서 분리해 실제dsr01 잠금 경합을 피했으며 source/assertion/잠금 조건/검사를 유지했다. 중간2건 실패는 ZYZ 재변환의 부동소수점 직접 비교였고 실제 XYZ+SO(3) 행렬을1e-9 허용값으로 검증하도록 수정한 뒤 전체 재검사했다. 새 dependency/framework/클래스 없음.
+- Robot/그리퍼 명령0, 실제 팝업·재파지·부분 해제/판 들림/간섭 결과 미검증. scenario6 PREPARED_FOR_FIELD_TEST/next_development_stage7, completed1/물리next2 보존. 실행 안내·분리 입력 계약·preview/실물 명령·7단계 전체 프롬프트 갱신. 다른 checkout·Round2 기본 step/Plan/B Current·원본 교시 수정 없음. 상세는 D_YELLOW4_CHALLENGE_STAGES_20261014.md의6단계 절.
