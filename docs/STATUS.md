@@ -1,5 +1,21 @@
 # 현재 진행 상황
 
+## 2026-10-15 — 공급판 RGB-D 중심 → 로봇 XY 보정 연결
+
+- 요청 범위: OpenCV 스터드 중심과 정렬 Depth를 로봇 Base 좌표로 변환하고, 교시 당시 기준 표면 중심과의 상대 변위 XY만 파지 목표에 반영한다. Z/회전/힘/속도/기존 T1·full-real 기본 동작과 B 상태 소유는 유지한다.
+- 새 `app/supply_stud/depth_center.py`와 `LiveVision` 연결에 RGB/정렬 Depth/CameraInfo 수신·시각/해상도/frame 검사·블록 내부 깊이 패치·CameraInfo 역투영·TCP–카메라 변환·슬롯/교시 기준 바인딩·변위/높이/교시 범위·정지/자세/이동 직전 유효시간 검사를 추가했다. 1280×720→640×360+상하60 여백 처리 후 검출 좌표를 원본으로 역변환하며 Depth 자체는 원본 좌표에서 읽는다.
+- 명시한 `vision.depth_center_profile` 또는 native/독립 공급판 CLI의 `--supply-depth-profile`만 활성화한다. 활성 경로에서 누락·인식 실패·자료 만료·보정 범위 초과는 파지 전 중단하며 교시 위치로 조용히 대체하지 않는다. 실제 프로파일은 합성 replay에서 거부한다. 기존 기본 설정·교시·보정 원자료는 바꾸지 않았다.
+- 실제 검증: native 관련 7파일 **156 passed, 종료0(2.05초)**, 기존 HMI T1 **10 passed, 종료0(0.59초)**. RGB-D 합성 정상/실패, 1280 역변환, 회전된 카메라 좌표, receiver→목표→가상 파지, 보정 필수 경로의 fallback 차단·만료·자세 변경, 미검증 프로파일의 장치 접근 전 차단을 포함한다. compileall·diff 공백·템플릿 JSON·문서 링크 검사 통과. 별도 lint/type check는 미구성이다. 최초 native pytest는 공유 perception 경로 누락으로 수집 실패했고 `PYTHONPATH="$PWD:$PWD/../perception"` 지정 후 위 전체 native 검사를 실행했다.
+- BLOCKER: 실제 공급판용 카메라–TCP 보정과 교시 기준 표면 중심·1280 변환 영상의 슬롯 영역 검증이 없다. 기존 PROVISIONAL/표시용 보정으로 대체하지 않았고 템플릿은 미검증·실행 불가다. REQUIRED CHANGE: 로봇 PC의 실측 자료로 별도 프로파일/layout을 준비하고 정지 관측→중심 좌표→제한된 실물 파지 순서로 검증. AFFECTED INTERFACE: D 내부 선택적 공급판 RGB-D 입력/XY 보정이며 공통 ABCD 계약은 변경하지 않는다. REASON: 픽셀/표면 위치와 실제 TCP 파지 위치는 동일하지 않다.
+- 실제 Robot/ROS/카메라/외부 API/DB는 실행하지 않았다. [프로파일·실행·한계 안내](D_ROUND3_SUPPLY_DEPTH_CENTER.md). 이후 사용자 요청으로 관련 코드/설정 템플릿/시험/문서와 앞선 시뮬레이션 기록을 `codex/integration-round3`에 commit/push한다. main 병합은 하지 않는다. 실측자료 폴더는 게시 대상에서 제외한다. 축소 영상 중심 검출의 정확도 한계를 문서에 명시했으며 원본 영상 직접 중심 검출은 미반영이다.
+
+## 2026-10-15 — B·D 카메라 연계 예상 흐름의 장치 없는 시뮬레이션
+
+- 사용자 요청으로 기존 저장 관측 ABCD·설계 변경 replay와 B의 모의 ROS 촬영/관측자/실제 연결 바인딩 검사를 재실행했다. 실행 코드·카메라 연결 구조는 변경하지 않았다.
+- 검증: `tests/integration/test_round3_abcd_saved_observations.py`, `test_round3_design_change_replay.py`, `perception/perception_mvp/tests/test_ros_inspection_capture.py`, `test_camera_inspection_observer.py`, `test_real_connection.py` 총 **74 passed, 종료 0, 116.36초**. 실행 자료는 `/tmp/round3-camera-flow-20261015`에 임시 보관한다.
+- 정상 두 Step은 각각 D 가상 실행 후 B MATCH를 거쳐 진행하고 별도 FINAL MATCH를 확인했다. 불일치/관측 불가/자료 누락 보류, C 승인 뒤 남은 블록 재계획, STOP·늦은 결과 차단을 확인했다. B 촬영의 오래된 영상/이동 중/취소 조건은 모의 ROS로 확인했다.
+- 미검증: 실제 ROS 발행·B/D 동시 구독·QoS 호환·카메라 장치 충돌·OpenCV 집기 보정/yaw·실제 가압/결착·음성/DB. D 가상 실행은 합성 pickup/alignment이고 B 통합 입력은 저장 관측이다. 실제 B 촬영 경로를 HMI에 연결한 통합 시험이나 물리 시뮬레이터 실행은 아니다. 다음 작업은 실제 이동·정지/촬영 연결 및 로봇 PC의 토픽 수신 조건 확인이다.
+
 ## 2026-10-15 — 중간 설계 변경/조립 차이 → C 승인 → A 재계획 → D 가상 재개
 
 - 사용자 요청으로 변경/차이 대응 replay를 commit하고 원격 `codex/integration-round3`에 게시한다. main은 병합하지 않는다. 기존 T1/full-real/ABCD 저장 관측의 기본 동작은 유지한다.

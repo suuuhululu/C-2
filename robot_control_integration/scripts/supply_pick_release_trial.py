@@ -8,6 +8,7 @@ from pathlib import Path
 import signal
 import time
 import sys
+from collections import deque
 from copy import deepcopy
 from uuid import uuid4
 
@@ -28,7 +29,7 @@ DEFAULT = ROOT/'settings/supply_sequence_20261014/config.json'
 def load_config(path):
     """Runtime paths may be relative to the checkout; historical sources stay intact."""
     value=json.loads(Path(path).read_text())
-    fields=[('vision','layout'),('vision','weights'),('vision','model_deps'),
+    fields=[('vision','layout'),('vision','weights'),('vision','model_deps'),('vision','depth_center_profile'),
         ('virtual_grid','board_calibration'),('virtual_grid','static_tf'),('virtual_grid','block_geometry'),
         ('virtual_grid','layer_records'),('assembly_target_source',)]
     for keys in fields:
@@ -229,12 +230,22 @@ def execute(driver, config, record, observe, *, slot=None, trial_row=None, start
         for row in rows:
             record('BLOCK_BEGIN', row)
             decision = observe(deepcopy(row))
+            if config['vision'].get('depth_center_profile') and not decision.get('depth_center_required'):
+                raise RuntimeError('SUPPLY_DEPTH_OBSERVER_REQUIRED')
             target = center_target(row, decision)
             record('VISION_DECISION', dict(**decision, commanded_pickup_pose=target))
             if display is not None:
                 display(row, decision)
             # Inference is stationary; recheck actual view before any movement.
             fresh = driver.sample()
+            if decision.get('depth_center_required'):
+                captured = decision['depth_center']
+                # ROS reception checks freshness; bind the next movement to the
+                # same stopped pose even in the legacy target-only trial mode.
+                if time.monotonic_ns() > captured['expires_monotonic_ns']:
+                    raise RuntimeError('SUPPLY_DEPTH_EXPIRED_BEFORE_PICKUP')
+                if max(pose_error(fresh['posx'], captured['capture_pose'])) > .05:
+                    raise RuntimeError('SUPPLY_DEPTH_POSE_CHANGED_AFTER_CAPTURE')
             guard(fresh, connection, limit, automatic=False, force_norm_limit=limit, required_gripper_status=0)
             if not stopped(fresh) or (not target_only and max(pose_error(fresh['posx'], view)) > .5):
                 raise RuntimeError('OBSERVATION_POSE_CHANGED')
@@ -288,6 +299,16 @@ def center_target(row, decision):
     decision['fallback_reason'] = decision.get('reason') or 'METRIC_MAPPING_NOT_VERIFIED'
     if decision.get('slot_id') != f"{row['color']}_{row['brick_type']}_{row['slot']:02d}":
         raise ValueError('VISION_SLOT_BINDING_MISMATCH')
+    if decision.get('depth_center_required'):
+        correction = decision.get('depth_center', {})
+        if correction.get('status') != 'READY' or correction.get('source_pickup_pose') != target:
+            raise ValueError('SUPPLY_DEPTH_CORRECTION_REQUIRED')
+        candidate = vector(correction['target'], 6, 'depth_target')
+        if (candidate[2:] != target[2:] or math.dist(candidate[:2], target[:2]) > correction['max_shift_mm']):
+            raise ValueError('SUPPLY_DEPTH_XY_ONLY_BOUND_REQUIRED')
+        decision.update(center_assist_applied=True, fallback_reason=None,
+                        delta_xy_mm=correction['delta_xy_mm'])
+        return candidate
     if decision.get('recognized') is not True or decision.get('center_available', True) is not True:
         return target
     mapping = row.get('center_mapping')
@@ -355,13 +376,23 @@ class GreenGrayModel:
 
 class LiveVision:
     def __init__(self, driver, config, evidence_dir):
-        from sensor_msgs.msg import Image
+        from sensor_msgs.msg import Image, CameraInfo
         from rclpy.qos import qos_profile_sensor_data
+        self.depth_profile = None
+        if config['vision'].get('depth_center_profile'):
+            from app.supply_stud.depth_center import load_profile
+            if config['vision'].get('backend') != 'opencv_studs':
+                raise ValueError('SUPPLY_DEPTH_REQUIRES_OPENCV_STUDS')
+            self.depth_profile = load_profile(config['vision']['depth_center_profile'],
+                                              config['vision']['layout'], config)
+        self.driver = driver
         self.ros = driver.ros
         self.node = self.ros.create_node('supply_sequence_vision_'+uuid4().hex[:8])
         self.config, self.directory = config, evidence_dir
         self.message = None
         self.frame = None
+        self.depth_messages = deque(maxlen=10)
+        self.info_messages = deque(maxlen=10)
         self.window = 'Supply vision - ESC to stop'
         import cv2
         if not os.environ.get('DISPLAY') and not os.environ.get('WAYLAND_DISPLAY'):
@@ -370,6 +401,13 @@ class LiveVision:
         cv2.resizeWindow(self.window, 960, 720)
         self.subscription = self.node.create_subscription(Image, config['vision']['rgb_topic'],
             self.receive, qos_profile_sensor_data)
+        self.rgbd_subscriptions = []
+        if self.depth_profile is not None:
+            self.rgbd_subscriptions = [
+                self.node.create_subscription(Image, '/camera/aligned_depth_to_color/image_raw',
+                    self.depth_messages.append, qos_profile_sensor_data),
+                self.node.create_subscription(CameraInfo, '/camera/color/camera_info',
+                    self.info_messages.append, qos_profile_sensor_data)]
         self.layout = json.loads(Path(config['vision']['layout']).read_text())
         if config['vision'].get('backend') == 'opencv_studs':
             return
@@ -396,6 +434,13 @@ class LiveVision:
                       inference_completed=False, center_available=False, reason=None, center_uv=None)
         self.message = None
         self.frame = None
+        profile = getattr(self, 'depth_profile', None)
+        before = None
+        if profile is not None:
+            self.depth_messages.clear(); self.info_messages.clear()
+            before = self.driver.sample()
+            if not trial_motion_still(before) or max(pose_error(before['posx'], self.config['observation_pose'])) > .5:
+                raise RuntimeError('SUPPLY_DEPTH_STOPPED_VIEW_REQUIRED')
         self.display(row, dict(recognized=False, reason='WAITING_FRESH_RGB'))
         start = self.node.get_clock().now().nanoseconds
         deadline = time.monotonic()+5
@@ -407,14 +452,26 @@ class LiveVision:
                 stamp = msg.header.stamp.sec*10**9+msg.header.stamp.nanosec
                 now = self.node.get_clock().now().nanoseconds
                 if start < stamp <= now and now-stamp < 300_000_000:
+                    if profile is not None:
+                        def paired(messages):
+                            return any(start < m.header.stamp.sec*10**9+m.header.stamp.nanosec <= now
+                                and abs(m.header.stamp.sec*10**9+m.header.stamp.nanosec-stamp) <= 50_000_000
+                                for m in messages)
+                        if not paired(self.depth_messages) or not paired(self.info_messages):
+                            continue
                     break
         else:
+            if profile is not None:
+                raise TimeoutError('SUPPLY_DEPTH_NO_FRESH_RGBD_PACKET')
             result['reason'] = 'NO_FRESH_RGB'
             return result
         if msg.encoding not in ('rgb8', 'bgr8') or msg.step < msg.width*3:
             raise ValueError('UNSUPPORTED_RGB_ENCODING')
         rgb = np.frombuffer(msg.data, dtype=np.uint8).reshape(msg.height, msg.step)[:, :msg.width*3].reshape(msg.height, msg.width, 3).copy()
         frame = cv2.cvtColor(rgb, cv2.COLOR_RGB2BGR) if msg.encoding == 'rgb8' else rgb
+        if profile is not None:
+            from app.supply_stud.depth_center import processing_frame
+            frame = processing_frame(frame, profile['input_size'])
         self.frame = frame.copy()
         self.display(row, dict(recognized=False, reason='RUNNING_INFERENCE'))
         path = self.directory/('vision-slot'+str(row['slot'])+'-'+str(time.time_ns())+'.png')
@@ -424,6 +481,22 @@ class LiveVision:
             from app.supply_stud.backend import observe
             result = observe(frame, self.layout, row, stamp)
             result['rgb_evidence'] = str(path.resolve())
+            if profile is not None:
+                from app.supply_stud.depth_center import rgbd_target
+                current = self.driver.sample()
+                if (not trial_motion_still(current)
+                        or max(pose_error(before['posx'], current['posx'])) > .05):
+                    raise RuntimeError('SUPPLY_DEPTH_POSE_CHANGED_DURING_CAPTURE')
+                def nearest(messages):
+                    return min(messages, key=lambda m: abs(m.header.stamp.sec*10**9+m.header.stamp.nanosec-stamp))
+                now_ns = self.node.get_clock().now().nanoseconds
+                correction = rgbd_target(row, result, nearest(self.depth_messages), nearest(self.info_messages),
+                    msg, current, profile, now_ns,
+                    self.config['teaching_xy_bounds_mm'])
+                correction['capture_pose'] = current['posx'].copy()
+                correction['expires_monotonic_ns'] = time.monotonic_ns() + 300_000_000 - (now_ns - stamp)
+                result.update(depth_center_required=True, depth_center=correction)
+                path.with_suffix('.json').write_text(json.dumps(result, ensure_ascii=False, allow_nan=False))
             return result
         from supply_vision.seg_backend import validate_config
         request = dict(request_id=uuid4().hex, step_id='SUPPLY_UNIT_'+str(row['slot']),
@@ -512,8 +585,12 @@ def main(argv=None):
     parser.add_argument('--execute', action='store_true')
     parser.add_argument('--confirm-hand-clear', action='store_true')
     parser.add_argument('--green-gray', action='store_true', help='Experimental green-to-gray model input')
+    parser.add_argument('--supply-depth-profile', type=Path,
+                        help='Opt-in verified RGB-D supply XY correction profile')
     args = parser.parse_args(argv)
     config = validate(load_config(args.config))
+    if args.supply_depth_profile:
+        config['vision']['depth_center_profile'] = str(args.supply_depth_profile.resolve())
     target_only=config.get('target_only_motion',False)
     stopped=trial_motion_still if target_only else motion_still
     if args.green_gray:

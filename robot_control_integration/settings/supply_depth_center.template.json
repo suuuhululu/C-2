@@ -1,0 +1,16 @@
+{
+  "schema_version": "supply-depth-center/1",
+  "independently_verified": false,
+  "calibration_ref": null,
+  "connection": {"robot_id": "dsr01", "tcp": "GripperDA_v4", "tool": "ToolWeight0"},
+  "observation_pose": null,
+  "layout_sha256": null,
+  "camera_frame": "camera_color_optical_frame",
+  "input_size": [1280, 720],
+  "T_tcp_camera_mm": null,
+  "depth_range_mm": null,
+  "max_depth_spread_mm": null,
+  "max_height_error_mm": null,
+  "max_shift_mm": null,
+  "references": []
+}

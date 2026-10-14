@@ -273,6 +273,7 @@ def main(argv=None):
     p.add_argument('--start-zone', choices=('home', 'assembly', 'supply'), default='home')
     p.add_argument('--tilt-accuracy-test', action='store_true')
     p.add_argument('--only-step', choices=('T1',), help='Run only the first step on the original eight-block baseline')
+    p.add_argument('--supply-depth-profile', type=Path, help='Verified RGB-D supply XY correction profile')
     args = p.parse_args(argv)
     scenario = read(args.scenario)
     prepared = prepare(scenario)
@@ -282,6 +283,13 @@ def main(argv=None):
         prepared = prepared[:1]
     for item in prepared:
         item['config']['tilt_accuracy_test'] = args.tilt_accuracy_test
+        if args.supply_depth_profile:
+            if args.command == 'replay':
+                raise ValueError('SUPPLY_DEPTH_REAL_PROFILE_NOT_FOR_SYNTHETIC_REPLAY')
+            cfg = item['config']
+            cfg['vision']['depth_center_profile'] = str(args.supply_depth_profile.resolve())
+            from app.supply_stud.depth_center import load_profile
+            load_profile(cfg['vision']['depth_center_profile'], cfg['vision']['layout'], cfg)
     if args.command == 'preview' or (args.command == 'run' and not args.execute):
         result = dict(status='PREVIEW_NO_DEVICE_CONNECTION', physical_commands=0,
                       total_cycles=len(prepared), preplaced=scenario['preplaced'], steps=prepared)
