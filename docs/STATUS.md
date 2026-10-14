@@ -838,3 +838,5 @@ GPU 현재 A snapshot92파일을 CPU deliverables/GPU_A_수정본_CPU보관_2026
 - native 전체 단위테스트1346개 통과(2026-10-14 현재 작업본). PR 복사본에서 다시 검증 예정. 장치 모션 미실행. 기존 StepRuntime HMI 자동 호출 연결과 실제 윗면 producer/높은 파지 실물 검증은 완료 주장하지 않음. 상세: D_ROUND2_ROBOT_CONTROL_AUDIT_20261014.md.
 
 - PR 복사본 검증: native 전체+관련 비전1498개, 등록 기하/파지 계획29개 통과(합계1527개). 실제 device command 없음. 일반/held preview 정상, source/JSON 및 diff 확인. 4층 채택 실측 선택·축 힘35N 불일치·미검증 패드 datum 승격도 점검해 수정.
+
+- 검토용 Draft PR #46 게시: https://github.com/suuuhululu/C-2/pull/46 ; base=codex/integration-round2, head=codex/round2-robot-control-20261014. merge하지 않았으며 기존 작업 checkout/다른 변경은 보존했다.
