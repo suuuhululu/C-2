@@ -44,6 +44,15 @@ def prepare(workflow, payload, *, slot_index=1, robot_sample=None):
         pickup_width_mm=40., release_width_mm=62., turn_base_z_deg=turn,
         physical_reference_reviewed=False, xy_grasp_rotation_compensation_measured=False,
         pickup_start_open_range_mm=[61.,110.], release_feedback_range_mm=[61.,110.])
+    if action.get('assembly_strategy') == 'RELEASE_PRESS':
+        # Explicit synthetic geometry for the announced strategy, never a REAL datum.
+        release = target.copy(); release[2] += 4.5
+        pad = target.copy(); pad[2] += 20.
+        d['steps']['mvp/'+step['step_id']].update(release_pose=release,
+            press_approach_pose=[*pad[:2], pad[2]+10., *pad[3:]],
+            press_start_pose=[*pad[:2], pad[2]+1., *pad[3:]], press_width_mm=4.)
+        d.update(force_stop_n=45., max_press_travel_mm=12.,
+                 round2_motion=dict(transfer_velocity=120., vertical_velocity=12.))
     transit = [dict(label=label, xy_mm=xy) for label,xy in
         [('SUPPLY_20_0',d['supply_transit_xy_mm']), ('BODY_BYPASS',d['body_bypass_xy_mm']), ('PLACE_BOARD',d['place_pose'][:2])]]
     if action['mode'] == 'HUMAN_ASSEMBLY':
@@ -78,4 +87,5 @@ def execution_document(bundle, execution_id):
         stillness=dict(window_s=.1,max_gap_s=.25,timeout_s=3,min_samples=3,sample_max_duration_s=.5,
             position_mm=.05,orientation_deg=.05,linear_mm_s=.01,angular_deg_s=.01))
     return dict(assessment=bundle['assessment'],request=request,motion=bundle['motion'],case_id='mvp',
+                motion_source=bundle.get('motion_source', 'A_STEP_MOTION'),
                 step=step,d_profile=bundle['d_profile'],session=session,fixture_kind='FAKE_NO_DEVICE')

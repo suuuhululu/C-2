@@ -78,7 +78,7 @@ def prepare(design, root):
     return dict(design=deepcopy(design), inputs=inputs, plan=plan, whole=whole, preview=preview)
 
 
-def live_robot_state(receipt, frame, *, now=None):
+def live_robot_state(receipt, frame, *, now=None,empty_gripper_context=None):
     """실제 조회를 A 입력으로 변환한다. 가짜 정지/파지 응답을 만들지 않는다."""
     now = time.time() if now is None else now
     age = now-receipt.get('captured_unix_s', 0)
@@ -109,7 +109,9 @@ def live_robot_state(receipt, frame, *, now=None):
             raise ValueError('START_POSE_NOT_STILL')
     # PREPARE_OPEN opens the empty gripper before any arm movement. Its >44mm
     # completion check belongs to D after that command, not to this start snapshot.
-    if any(sample['gripper_status'] != 0 for sample in samples):
+    closed_pad=(isinstance(empty_gripper_context,dict) and
+        empty_gripper_context.get('state')=='EMPTY_PAD_CLOSED' and empty_gripper_context.get('gripper_status')==2)
+    if any(sample['gripper_status'] != 0 and not (closed_pad and sample['gripper_status']==2) for sample in samples):
         raise ValueError('OPEN_EMPTY_GRIPPER_REQUIRED')
     sample = samples[-1]
     return dict(tcp_setting_name=frame['tcp_setting_name'], tcp_frame_id=frame['tcp_frame_id'],

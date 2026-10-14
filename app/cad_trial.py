@@ -108,6 +108,57 @@ def measured_inputs(robot_root, *, supply_teaching_path=None, assembly_board_tea
                 source_sha256=sha256(source.read_bytes()).hexdigest())
 
 
+RELEASE_PRESS_STEP_SETTINGS = ('pickup_pose','reference_pose','release_pose','press_start_pose',
+    'press_approach_pose','pickup_width_mm','release_width_mm','press_width_mm',
+    'pickup_open_width_mm','pickup_start_open_range_mm','release_feedback_range_mm','assembly_tcp_zyz_deg')
+RELEASE_PRESS_PROFILE_SETTINGS = ('force_stop_n','max_press_travel_mm','target_only_motion','round2_motion',
+    'transfer_velocity','transfer_acceleration','descent_velocity','descent_acceleration',
+    'pickup_descent_velocity','pickup_descent_acceleration','angular_velocity','angular_acceleration')
+
+
+def load_release_press_profile(path):
+    """Read explicit poses keyed by block and supply slot; never infer release Z."""
+    if path is None:return None
+    path=Path(path).resolve();raw=path.read_bytes();document=json.loads(raw)
+    if not isinstance(document.get('entries'),list):
+        raise ValueError('RELEASE_PRESS_PROFILE_ENTRIES_REQUIRED')
+    return dict(entries=deepcopy(document['entries']),source_ref=dict(path=str(path),
+        sha256=sha256(raw).hexdigest(),profile_id=document.get('profile_id'),
+        calibration_refs=deepcopy(document.get('calibration_refs',{}))))
+
+
+def apply_release_press_profile(inputs,step,action,slot_index,frame,profile):
+    configured=inputs.get('release_press_profile')
+    if not configured or action.get('mode')!='ROBOT_GRIP' or action.get('assembly_strategy')!='RELEASE_PRESS':
+        return
+    block=step['after'];slot=dict(color=block['color'],brick_type=block['brick_type'],slot_index=slot_index)
+    fields=('brick_type','color','x','y','layer','orientation_deg')
+    matches=[entry for entry in configured['entries']
+        if all(entry.get('block',{}).get(k)==block[k] for k in fields) and entry.get('supply_slot')==slot]
+    if len(matches)>1:raise ValueError('RELEASE_PRESS_PROFILE_IDENTITY_DUPLICATE')
+    if not matches:return
+    entry=matches[0];settings=profile['steps']['cad/'+step['step_id']]
+    supplied=entry.get('settings',{})
+    settings.update({key:deepcopy(supplied[key]) for key in RELEASE_PRESS_STEP_SETTINGS if key in supplied})
+    if isinstance(supplied.get('reference_pose'),list) and len(supplied['reference_pose'])==6 and 'assembly_tcp_zyz_deg' not in supplied:
+        settings['assembly_tcp_zyz_deg']=deepcopy(supplied['reference_pose'][3:])
+    parameters=entry.get('profile_settings',{})
+    profile.update({key:deepcopy(parameters[key]) for key in RELEASE_PRESS_PROFILE_SETTINGS if key in parameters})
+    rates=parameters.get('round2_motion',{})
+    if 'transfer_velocity' in rates:profile['transfer_velocity']=deepcopy(rates['transfer_velocity'])
+    if 'vertical_velocity' in rates:
+        profile['descent_velocity']=profile['pickup_descent_velocity']=deepcopy(rates['vertical_velocity'])
+    source=dict(deepcopy(configured['source_ref']),block=deepcopy(block),supply_slot=slot,
+        measurement_refs=deepcopy(entry.get('measurement_refs',{})))
+    profile['release_press_profile_ref']=source
+    profile.pop('native_press',None)
+    onsite=frame['calculation_profiles']['assembly']['d_onsite_step']
+    for key in ('pickup_pose','reference_pose','assembly_tcp_zyz_deg'):
+        if key in supplied or key=='assembly_tcp_zyz_deg' and 'reference_pose' in supplied and key in settings:
+            onsite[key]=deepcopy(settings[key])
+    onsite['release_press_profile_ref']=deepcopy(source)
+
+
 def rotation_correction(profile, trial_xy, *, turn):
     """조립판 Y의 수평 방향을 Base XY로 변환한다. 설계 grid/Z는 바꾸지 않는다."""
     if abs(turn) != 90:
@@ -233,6 +284,7 @@ def step_geometry(inputs, step, action, slot_index):
         physical_reference_reviewed=False, xy_grasp_rotation_compensation_measured=False)}
     if taught_target is not None:
         profile['steps']['cad/'+step['step_id']]['assembly_tcp_zyz_deg']=list(taught_target[3:])
+    apply_release_press_profile(inputs,step,action,slot_index,frame,profile)
     return frame, profile, slot, correction
 
 

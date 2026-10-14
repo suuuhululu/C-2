@@ -8,8 +8,8 @@ from app.hmi_contracts import validate_hmi_snapshot
 from app.jsonl_log import JsonlLog
 from app.mvp_calculation import whole_input, assessment_input, motion_input
 from history.final_mvp import validate_response
-from planning_trial.assembly_adapter import receive_result_for_review
-from planning_trial.assembly_contract import validate_message
+from app.release_press_connection import (validate_a_message, review_a_result,
+                                         release_press, validate_d_motion)
 from planning_trial.planning_bundle import validate_planning_bundle
 
 
@@ -286,7 +286,10 @@ class MvpWorkflow:
             if self.awaiting_revised_design:
                 self.active = active
             return accepted
-        validate_message(result)
+        if port == 'd.release_press':
+            validate_d_motion(result, self.step_inputs['request'], self.step_inputs['d_profile'])
+        else:
+            validate_a_message(result)
         if result.get('context') != active['request']['input']['context'] or result.get('execution_allowed') is not False:
             self.status, self.reason = 'HOLD', 'A_RESULT_CONTEXT_OR_PERMISSION_DIFFERS'
             return False
@@ -327,7 +330,7 @@ class MvpWorkflow:
             else:
                 self.calculate_next()
         elif port == 'a.assess':
-            if receive_result_for_review(result, active['request']['input'])['decision']!='STORE_FOR_REVIEW':
+            if review_a_result(result, active['request']['input'])['decision']!='STORE_FOR_REVIEW':
                 self.status,self.reason='HOLD','A_ASSESSMENT_REFERENCE_DIFFERS'
                 return False
             if result['status'] != 'CANDIDATE':
@@ -336,13 +339,20 @@ class MvpWorkflow:
             self.step_inputs['assessment'] = deepcopy(result)
             self.step_inputs['request'] = motion_input(self.step_inputs['assessment_request'], result,
                 self.step_inputs['frame_profile'], self.step_inputs['slot'], self.step_inputs['robot_state'])
-            self.call('a.motion', dict(input=self.step_inputs['request']))
-        elif port == 'a.motion':
+            action = result['action_proposal']
+            port = 'd.release_press' if release_press(action) else 'a.motion'
+            payload = dict(input=self.step_inputs['request'])
+            if port == 'd.release_press':
+                payload['d_profile'] = deepcopy(self.step_inputs['d_profile'])
+            self.call(port, payload)
+        elif port in ('a.motion', 'd.release_press'):
             request = self.step_inputs['request']
-            if receive_result_for_review(result, request)['decision'] != 'STORE_FOR_REVIEW' or result['status'] != 'CANDIDATE':
+            if ((port == 'a.motion' and review_a_result(result, request)['decision'] != 'STORE_FOR_REVIEW')
+                    or result['status'] != 'CANDIDATE'):
                 self.status, self.reason = 'HOLD', str(result.get('errors'))
                 return True
             self.step_inputs['motion'] = deepcopy(result)
+            self.step_inputs['motion_source'] = 'D_PROFILE' if port == 'd.release_press' else 'A_STEP_MOTION'
             if self.change_pending:
                 self.open_intent('USER_DESIGN_CHANGE')
                 return True

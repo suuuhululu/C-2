@@ -93,6 +93,10 @@ class MvpIntegration:
         if port.startswith('a.'):
             functions = {'a.whole':handle_whole_plan,'a.assess':handle_step_reassessment,'a.motion':handle_step_motion}
             self.background(port,payload,lambda token:functions[port](deepcopy(payload['input'])))
+        elif port == 'd.release_press':
+            from app.release_press_connection import d_motion
+            self.background(port, payload, lambda token: d_motion(
+                deepcopy(payload['input']), deepcopy(payload['d_profile'])))
         elif port == 'd.prepare_step':
             block = payload['step']['after']
             column = block['brick_type'],block['color']
@@ -432,6 +436,8 @@ def main(runtime_class=MvpIntegration, *, real_trial=False):
     parser.add_argument('--design',type=Path,help='명시적인 FAKE C 후보 파일; 생략하면 C 생성 함수 사용')
     parser.add_argument('--c-mode',choices=('offline','live'),default='offline')
     if real_trial:
+        parser.add_argument('--release-press-profile',type=Path,
+            help='블록 전체 배치·공급 슬롯과 일치하는 명시적 해제/빈 패드 교시 JSON')
         parser.add_argument('--contact-alignment-trial',action='store_true',help='연속 결착 하강 · 전체 반력 40N 정지 시험; 실물 미검증')
         parser.add_argument('--execute',action='store_true',required=True,
             help='실제 Robot·카메라 제스처 연결 허용. B 관측은 가짜 시험 입력')
@@ -445,7 +451,8 @@ def main(runtime_class=MvpIntegration, *, real_trial=False):
     runtime=runtime_class(args.robot_root,args.log_directory,fixture_design=design,c_mode=args.c_mode,
         history_dsn=os.environ.get('HISTORY_DATABASE_DSN'),
         web_url=os.environ.get('HISTORY_WEB_URL','http://127.0.0.1:8765'),
-        **({'contact_alignment_trial':args.contact_alignment_trial} if real_trial else {}))
+        **({'contact_alignment_trial':args.contact_alignment_trial,
+            'release_press_profile':args.release_press_profile} if real_trial else {}))
     window.creator_bar.setVisible(runtime.history_dsn is not None)
     if real_trial:
         from PyQt5.QtWidgets import QCheckBox, QPushButton, QComboBox

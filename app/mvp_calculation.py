@@ -17,6 +17,7 @@ def whole_input(design, current, settings, job_id, generation, epoch):
 
 def assessment_input(whole, result, current, index, frame):
     request = reassess_request(whole, result, current, index)
+    request['schema_version'] = result['schema_version']
     request['context'].update(request_id=str(uuid4()), frame_profile_id=frame['profile_id'],
                               frame_profile_version=frame['profile_version'])
     request['frame_profile'] = deepcopy(frame)
@@ -29,6 +30,7 @@ def assessment_input(whole, result, current, index, frame):
 
 def motion_input(assessment, result, frame, slot, robot_state):
     request = motion_request(assessment, result, profile=frame)
+    request['schema_version'] = result['schema_version']
     request['context']['request_id'] = str(uuid4())
     request['reserved_supply_slot'] = deepcopy(slot)
     request['robot_state'] = deepcopy(robot_state)
