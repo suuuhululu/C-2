@@ -11,7 +11,10 @@ import sys
 from uuid import uuid4
 
 ROOT = Path(__file__).resolve().parents[1]
-DEFAULT_A = (ROOT.parent/'planning_reference' if (ROOT.parent/'planning_reference/planning_trial').is_dir()
+# Use one checkout for A calculators and their draft fixtures. planning_trial is
+# a namespace package: mixing repository and external paths can mix schemas.
+DEFAULT_A = (ROOT.parent if (ROOT.parent/'planning_trial').is_dir()
+             else ROOT.parent/'planning_reference' if (ROOT.parent/'planning_reference/planning_trial').is_dir()
              else Path('/home/rokey/Documents/ChatGPT/협동2'))
 DEFAULT_D = ROOT/'settings/onsite_blue_slot1_11_11_l2_20261011/auto-blend-1fec868f-e364-408b-8cea-fd897635b65c.smooth040.assembly.profile.json'
 
@@ -52,7 +55,11 @@ def calculate(document, source_hash):
     req = whole_request(dict(design_version=1, blocks=support+[block]),
                         dict(current_revision=len(support), blocks=support), profile=profile)
     whole = handle_whole_plan(req)
-    if whole['planning_result']['status'] != 'READY':raise ValueError('A WholePlan not READY')
+    if whole['planning_result'] is None or whole['planning_result']['status'] != 'READY':
+        raise ValueError('A WholePlan not READY: '+json.dumps({
+            'calculation_status': whole['calculation_status'],
+            'stage_errors': whole['stage_errors'],
+        }, ensure_ascii=False))
     reassessment = reassess_request(req, whole)
     assessed = handle_step_reassessment(reassessment)
     if assessed['status'] != 'CANDIDATE' or assessed['action_proposal']['mode'] != 'ROBOT_GRIP':
@@ -84,7 +91,7 @@ def compare(document, bundle):
     initial = bundle['motion_request']['robot_state']['tcp_pose']
     high = max(initial['xyz_m'][2]*1000, height, s['pickup_pose'][2]+30.0)
     place = d['place_pose'][:2]; abc = s['pickup_pose'][3:]
-    empty_expected = [('PLACE_BOARD_EMPTY_HIGH',place+[high]+abc),('PLACE_BOARD_EMPTY',place+[height]+abc),
+    empty_expected = [('PLACE_BOARD_EMPTY',place+[height]+abc),
         ('BODY_BYPASS_EMPTY',d['body_bypass_xy_mm']+[height]+abc),
         ('SUPPLY_20_0_EMPTY',d['supply_transit_xy_mm']+[height]+abc),
         ('ABOVE_PICK',s['pickup_pose'][:2]+[height]+abc),('PICK_TCP',s['pickup_pose'])]
@@ -105,7 +112,7 @@ def compare(document, bundle):
         rows.append(dict(label='EMPTY/'+label, D_xyz_mm=[v*1000 for v in wire['xyz_m']], A_minus_D_xyz_mm=delta,
                          attitude_matches=abs(1-dot)<1e-10, passed=max(map(abs,delta))<1e-8 and abs(1-dot)<1e-10))
     labels = [w['label'] for w in proposal['segments'][0]['waypoints']]
-    path_ok = labels==['RISE_FROM_CURRENT','PLACE_BOARD_EMPTY_HIGH','PLACE_BOARD_EMPTY','BODY_BYPASS_EMPTY','SUPPLY_20_0_EMPTY','ABOVE_PICK','PICK_TCP']
+    path_ok = labels==['RISE_FROM_CURRENT','PLACE_BOARD_EMPTY','BODY_BYPASS_EMPTY','SUPPLY_20_0_EMPTY','ABOVE_PICK','PICK_TCP']
     loaded_ok = [w['label'] for w in actual]==[label for label,_ in expected]
     return dict(status='A_D_ONSITE_OFFLINE_MATCH' if all(r['passed'] for r in rows) and path_ok and loaded_ok else 'MISMATCH',
                 positions=rows, empty_route_labels=labels, empty_route_matches=path_ok, loaded_route_matches=loaded_ok,
@@ -122,7 +129,8 @@ def main():
     parser.add_argument('--output', type=Path, default=ROOT/'logs/a-d-onsite'/str(uuid4()))
     parser.add_argument('--a-project', type=Path, default=DEFAULT_A)
     args = parser.parse_args()
-    sys.path.insert(0, str(args.a_project.resolve()))
+    sys.path.insert(0, str(ROOT))
+    sys.path.insert(1, str(args.a_project.resolve()))
     raw = args.d_profile.read_bytes(); document = json.loads(raw)
     pickup_path = Path(document['pickup_source']['path'])
     if not pickup_path.is_absolute():pickup_path=ROOT/pickup_path

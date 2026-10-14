@@ -198,6 +198,8 @@
   "open_mm": 60.0,
   "gripper_force_n": 40.0,
   "force_stop_n": 45.0,
+  "motion_force_stop_n": null,
+  "target_only_motion": true,
   "velocity": 24.0,
   "acceleration": 48.0,
   "angular_velocity": 6.0,

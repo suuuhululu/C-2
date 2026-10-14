@@ -260,7 +260,7 @@ def test_user_rules_optimizer_matches_all_six_permutations(inputs):
         opts,_=mode_options(step["after"],current,inputs["assembly_context"])
         baseline=tuple(a+b for a,b in zip(baseline,min(map(option_cost,opts))))
         current.append(step["after"])
-    assert baseline==(1,1,1)
+    assert baseline==(0,0,0)  # Full-support blocked grips now use release/press.
 
 
 def test_layer_completion_is_possible_after_excluding_human_access_space(context):

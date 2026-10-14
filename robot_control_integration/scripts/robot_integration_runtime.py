@@ -1,6 +1,7 @@
 """한 줄 JSON 명령을 받는 Robot 실행 프로세스. 기본 MOCK; REAL은 명시적으로만 연결."""
 import argparse
 from contextlib import redirect_stdout
+from copy import deepcopy
 import fcntl
 import json
 import os
@@ -13,6 +14,7 @@ import time
 from app.assembly_step_bridge import build_plan, step_from_messages
 from app.assembly_step_runner import StepReplayDriver
 from app.integration_runtime import StepRuntime
+from app.assembly_strategy import has_source_release_press, validate_d_profile_motion
 
 
 def main():
@@ -102,7 +104,8 @@ def main():
                         for _ in range(3):
                             samples.append(runtime.raw.sample())
                             time.sleep(.05)
-                    emit('STATE_SNAPSHOT',dict(samples=samples,captured_unix_s=time.time(),physical_commands=0))
+                    emit('STATE_SNAPSHOT',dict(samples=samples,captured_unix_s=time.time(),physical_commands=0,
+                        last_step_gripper_context=deepcopy(getattr(runtime.raw,'last_step_gripper_context',None))))
                     continue
                 if command in ('EXECUTE', 'RESUME'):
                     if worker and worker.is_alive(): raise RuntimeError('EXECUTION_BUSY')
@@ -112,8 +115,11 @@ def main():
                     profile, session = document['d_profile'], document['session']
                     plan = build_plan(step, profile)
                     if 'assessment' in document:
-                        from app.integration_motion_binding import verify_motion
-                        verify_motion(document['motion']['motion_proposal'], plan, profile, document['request']['robot_state'])
+                        if has_source_release_press(plan) and step.get('motion_source')=='D_PROFILE':
+                            validate_d_profile_motion(document['motion'],document['request'],profile,plan['key'])
+                        else:
+                            from app.integration_motion_binding import verify_motion
+                            verify_motion(document['motion']['motion_proposal'], plan, profile, document['request']['robot_state'])
                     elif session.get('no_vision_trial') is True:
                         from app.integration_motion_binding import verify_motion
                         verify_motion(document['motion']['motion_proposal'], plan, profile, document['robot_state'])

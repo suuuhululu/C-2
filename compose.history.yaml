@@ -25,6 +25,7 @@ services:
       PGDATABASE: ${HISTORY_DB_NAME:-c2_history}
       PGUSER: c2_history
       PGPASSWORD: ${HISTORY_DB_PASSWORD:?set HISTORY_DB_PASSWORD in your local environment}
+      HISTORY_ARCHIVE_ROOT: /reports/original_logs
     depends_on:
       db:
         condition: service_healthy

@@ -4,6 +4,15 @@
 
 - INITIAL 생산자의 관측 순서와 사이클 순서 검증을 V0 단독으로 변경했다. STEP·FINAL은 V0→D1→D3를 유지한다. 관측 근거가 부족한 INITIAL 보류, 기존 보정·Depth/Grid·Current/revision·STOP/취소 조건은 유지한다. D 파일은 변경하지 않았다.
 - 검증: `PYTHONPATH=.:perception python3 -m pytest -q perception/perception_mvp/tests` → 484 passed, 1 skipped(PR22 소비자 코드 미제공), 종료 0. V0 단독 INITIAL 촬영·전달·저장과 근거 부족 보류, STEP·FINAL 단독 관측 거절을 확인했다. 실제 통합 PC·로봇 이동 재시험과 Git 게시는 미실행이다.
+## 2026-10-14 — A 놓기·가압 판단을 조립 방식 분류로 축소
+
+- 사용자 최종 확인: A는 기존 그리퍼 접근 불가 + 바로 아래층 밑면 결합점 전체 존재일 때 놓기·가압 방식이 필요하다고 반환한다. D가 실측 파지·TCP·해제 높이·개방/후퇴/닫기/가압·실제 운반 경로를 담당한다. 원본 ZIP·교시·이전 검토 기록은 보존한다.
+- 전체 계획과 Step 재평가에 `mode=ROBOT_GRIP, assembly_strategy=RELEASE_PRESS`를 추가했다. 기존 접근 가능은 일반 조립, 부분 지지의 접근 불가는 사람 조립이며 아래 블록 HOLD/PRESS 정책은 유지한다. 기존 사람 조립 선택도 새 정책으로 재평가한다. full-support 배치를 그리퍼 막힘만으로 순서 불가라고 가지치기하지 않는다. 부분 지지만 가능한 Design의 기존 순서 불가 증명은 유지한다.
+- D 인계 자료: 일반 로봇·RELEASE_PRESS·부분 지지 사람 조립·HOLD·PRESS_AND_HOLD·RELEASE_PRESS/HOLD의 6사례를 실제 A 함수로 생성했다. `planning_trial/fixtures/round2_strategy.examples.json`에 사례별 3 API의 전체 request/result를 생략 없이 저장하고, generator와 계약/참조/재계산 검사를 추가했다. 예시는 검토용 SYNTHETIC이며 실제 D 교시나 C 승인 Design이 아니다.
+- AFFECTED INTERFACE: 계산 초안 0.5.2의 새 Action 필드와 gripper.release_strategy=RELEASE_PRESS. 기존 mode 두 분류를 유지한다. 일반 삽입용 StepMotion은 해당 분류를 UNSUPPORTED_METHOD로 반환하며 놓기·가압 경로를 생성하지 않는다. [반환/소비 계약](A_ROUND2_RELEASE_PRESS_CANDIDATE_20261014.md). D/HMI 소비자 연결은 미구현이며 0.5.1 소비자의 버전/전략 해석을 맞춰야 한다.
+- 수현 첨부의 원래 파랑2×3 (13,11,L2) 배치는 6/6점 지지 + 접근 불가로 RELEASE_PRESS/NONE을 반환한다. 변경된 시험 배치는 일반 ROBOT_GRIP/NONE이다. 실측15mm·해제 높이 프로파일 없이 JSON 입력을 재계산했으며 첨부 코드는 실행하지 않았다. 모든 execution_allowed=false, B Current/revision/완료 책임 유지.
+- 실제 검증: A planning_trial + Workflow/PR30 전달 검사 **544 passed, failures/errors/skipped 0, 종료0**. 추가 D 모의 통합은 **28 passed / 8 failed**, 변경 전 b0d22e5에서 해당 8개를 재현해 실패 node ID와 원인이 동일함을 확인했다(기존 C 최소4점 규칙에 부적합한 2~3점 지지 fixture, 새 실패0). 통합 전체 PASS로 표시하지 않는다. 새 분류/전체 인계 예시 30검사 포함, API 예제 실행 34/34 PASS, AST 11파일·fixture JSON·git diff --check 확인. JUnit/첨부 배치 재계산은 reports에 로컬 보관한다. 실제 Robot/ROS/Camera/MoveIt/외부 API/DB 실행, D 실제 전략 소비, 실물 결착 품질은 미검증. [PR #50](https://github.com/suuuhululu/C-2/pull/50)을 gimseeun 계정으로 `codex/integration-round2` 대상으로 게시했다. 최신 대상 cf8031d를 feature branch에 합쳐 STATUS 충돌의 양쪽 기록을 보존했고, A/Workflow 검사는 다시 544 passed다. PR 병합·D 실제 연결은 별도다.
+
 
 ## 2026-10-14 — B 비전: 층 기준·허용 오차·V0/D1·D3 역할 분리 (`work/hongdong-vision-round1-v2`)
 
@@ -1103,3 +1112,32 @@ GPU 현재 A snapshot92파일을 CPU deliverables/GPU_A_수정본_CPU보관_2026
 - PR 복사본 검증: native 전체+관련 비전1498개, 등록 기하/파지 계획29개 통과(합계1527개). 실제 device command 없음. 일반/held preview 정상, source/JSON 및 diff 확인. 4층 채택 실측 선택·축 힘35N 불일치·미검증 패드 datum 승격도 점검해 수정.
 
 - 검토용 Draft PR #46 게시: https://github.com/suuuhululu/C-2/pull/46 ; base=codex/integration-round2, head=codex/round2-robot-control-20261014. merge하지 않았으며 기존 작업 checkout/다른 변경은 보존했다.
+
+### 2026-10-14 로컬 웹 목록 새로고침·대용량 상세 조회 수정
+
+- `b0d22e5` 기준 별도 웹 checkout의 `codex/web-design-refresh-20261014`에서 수정. 직접 로그인과 세션 복원의 보기 차이를 해소하고, GALLERY / MY DESIGNS 선택을 탭의 sessionStorage에 유지한다. 목록 조회 중에는 로딩 상태를 표시하며 오류는 빈 정상 목록으로 감추지 않는다.
+- 개인 상세에 소유자 인증을 유지하는 `/api/jobs/{id}/summary`를 추가했다. 전체 이력으로 설계·검사·완료·저장 근거를 계산하되 화면 timeline은 최근 100개와 전체 건수를 반환한다. 기존 전체 상세 API와 EXPORT JSON은 전체 기록을 유지한다. 항목 JSON은 펼칠 때 생성한다.
+- 실제 기존 작업의 디자인 버전1·2·3, 이벤트62,185개를 읽기 조회로 확인했다. 전체 timeline JSON164,373,310바이트에서 summary 응답866,536바이트로 줄었으며, 이 환경의 summary DB 조회·직렬화6.9초를 측정했다. 고빈도 camera/motion 로그가 많아 서버의 전체 이력 읽기 비용은 남아 있다.
+- 별도 `c2_history_web_test` DB에서 기존 HTTP/개인 이력 검사와 새 summary 범위·소유자 격리 검사를 실행해22 passed, skip0. 실제 app.js를 실행하는 DOM 대역의 새 보기 복원/소유v1–v3 Publish 활성/summary 조회/전체 export/오류/lazy JSON 검사와 기존 SVG 검사, JS/Python 문법·diff 검사를 통과했다.
+- 실제 로그인된 브라우저에서 페이지 새로고침 후 MY DESIGNS의v1·v2·v3 카드와 로딩 안내를 확인하고, v3 상세의 Publish 버튼 활성화를 확인했다. 실제 게시 버튼은 누르지 않았다.
+- 로컬 서버에 적용했다. 기존 원본 로그·계정·Job·DB 이벤트·게시 상태는 보존했다. GitHub push/PR/merge, Robot/ROS/카메라 동작, 실제 디자인 게시·삭제는 수행하지 않았다. 이벤트 선별 적재 정책은 이번 조회 수정에 포함하지 않았다.
+
+### 2026-10-14 원본 보존·선별 DB 적재·도안 중심 웹 (위 초기 수정의 후속)
+
+- 통합 대상 `codex/integration-round2`의 최신 `e868bba`를 일반 merge로 반영했다. 사용자 지시에 따라 웹은 로그를 불러오지 않고 도안·제작자·최종 채택 설계의 완료/저장/공개 상태만 조회한다. EXPORT DESIGN JSON은 선택 버전의 Design만 내보내며 전체 이력 API를 호출하지 않는다.
+- 신규 source는 `operational-v1`을 기본으로 일반 ROBOT_CAMERA_CANDIDATE/ROBOT_MOTION_SAMPLE만 제외한다. 신호 후보·명시적 오류/실패·사유·알 수 없는 이벤트는 보존한다. 기존 source의 all 정책·업무 기록·소유권·영수증·공개 상태는 유지한다.
+- 원본은 별도 SHA-256 파일명 스냅샷으로 보존하고, 미완결 꼬리까지 bytes를 유지한다. 선별 전 모든 완결 행을 검사하며 prefix 해시로 제외한 행의 수정·잘림도 거절한다. 003 migration은 source 보관/선별 메타데이터만 추가한다. Docker /records 읽기 전용은 유지하고 /reports/original_logs에 보관한다.
+- 최신 통합 반영 후 관련 Python/실제 별도 PostgreSQL 검사233 passed, 외부 Robot 자료/5층 MOCK 산출물 미준비4 skipped, 실패0. DOM/설계 export·SVG 검사와 JS/Python 문법·diff 확인 통과. Docker에서 실제 읽기 전용 입력·쓰기 가능한 별도 보관·선별 적재와 원본 bytes 유지도 확인했다.
+- 기존 원본62,186행을 분리 시험 DB의 rollback 범위에서 적재해7,294건 선택, Design v1/v2/v3·제스처 후보·마지막 CAMERA_FAILED 보존을 확인했다. 원본64,575,350bytes 사본과 운영 DB 백업은 로컬에 별도 보관하고 Git에 포함하지 않았다. 운영 DB events62,185/jobs1/users1/artifacts9/영수증1/공개0이 유지됨을 확인했다.
+- 같은 로컬 DB에서 도안 library 조회0.047초, summary 조회0.649초/응답11,159bytes를 한 번 측정했다. 서버 DB 조회 기준이며 전체 사용자 응답 시간 상한이나 성능 보장은 아니다. 전체 이력·원본은 운영 CLI/API와 별도 파일로 유지한다. [정책·실행·한계](D_HISTORY_SELECTION.md).
+- 로컬 웹 서버에 적용했다. 실제 게시·삭제·Robot/ROS/장치 동작은 실행하지 않았다. 사용자 요청에 따라 위 변경을 integration-round2 대상 PR로 게시하며 병합은 사람 리뷰 대상이다.
+- [PR #49](https://github.com/suuuhululu/C-2/pull/49) 게시 완료: base=`codex/integration-round2`, head=`codex/web-design-refresh-20261014`. 현재 OPEN이며 병합하지 않았다.
+
+
+## 2026-10-14 D 현장 후속·세 사이클·영상 XY
+
+- 접촉 반력과 일반 이동의 힘 검사를 분리하고 None 비교 오류를 수정했다. 명시 target_only_motion 설정에서 좌표·자세·IK/FK 정밀도 차단을 사용하지 않으며 영상 신선도와 기존 STOP/장치 피드백을 유지한다.
+- T1 슬롯4/(9,9,L2) → T2 슬롯3/(13,11,L2) → T3 슬롯5/(15,14,L3) 세 사이클 진입점과 포터블 wrapper를 제공한다. T2 중앙 파지·완전 결착·닫힌 패드 교시를 사용하며 이전 +10mm를 추가하지 않는다. 약8mm는 사용자 추정이다.
+- 영상 모서리·목표 변으로 dX/dY를 계산해 X/I에 전달한다. 파지 보상으로 TCP가 이동해도 블록 목표·실측 패드 목표는 유지한다. A 원본 RELEASE_PRESS/도움 정보를 보존하는 로봇 실행 분기와 빈 패드 다음 Step 전이를 연결했다.
+- 게시 사본의 외부 연결 차단 native 1,509 PASS, 영상 XY/가상 격자49 PASS, 합성3Step THREE_CYCLES_COMPLETED/물리명령0. 범위는 합산하지 않는다. 최신 교시·영상XY·공중놓기 실물과 방출 후 재관측은 미검증이며 상공해제 높이는 미정이다.
+- [현장 수정·검증](D_ROUND2_ROBOT_FIELD_FIXES_20261014.md), [세 사이클 명령](D_ROUND2_THREE_STEP_TRIAL_20261014.md). 서비스의 A–D 전달 수정은 별도 PR이며 B Current·revision·완료 소유를 유지한다.

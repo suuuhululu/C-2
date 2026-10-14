@@ -15,12 +15,13 @@ A 계산은 이 폴더의 단일 코드로 CPU·SIM·REAL 호출부가 공유한
 | `assembly_adapter.handle_step_motion(request)` | 평가 결과 + 공급 예약 + 로봇 상태 + 좌표 프로필 → 이동 후보 | waypoint 계산. MoveIt 궤적 계산·장치 실행 시간은 포함하지 않음 |
 | `python3 -m planning_trial.run_assembly_apis` | 자체 제공 정상·실패 Fixture → 요청·원시 결과·반환·검사 보고서 | 장치 없는 전체 API 예제 |
 
-계약은 `assembly-ad-calculation-draft/0.5.1`, 공통 계획 자료는 `a-b-d-planning-bundle-draft/0.1.1`이며 둘 다 초안이다. 모든 확장 A 반환의 `execution_allowed=false`를 유지한다. 구현 상세는 [계획 정책](../docs/A_ORDER_SEARCH_POLICY_20261012.md)을 본다.
+계약은 `assembly-ad-calculation-draft/0.5.2`, 공통 계획 자료는 `a-b-d-planning-bundle-draft/0.1.1`이며 둘 다 초안이다. 모든 확장 A 반환의 `execution_allowed=false`를 유지한다. 구현 상세는 [계획 정책](../docs/A_ORDER_SEARCH_POLICY_20261012.md)을 본다.
 
 - 24×24 stud, 정수 layer 1~5, Design 1~40블록.
 - 노랑·파랑 `2x2x1 / 2x3x1`, 빨강 `1x2x1`. `x / y`는 점유 영역의 최소 모서리이며 stud 단위다. `orientation_deg`는 0/90도이고 2×2는 0도다.
 - 확장 계획의 새 기본 입력은 낮은 층을 모두 완료한 뒤 다음 층으로 진행한다. 상태 수 제한은 적용하지 않는다. 도움 최적화의 30초 기준은 전체 응답 시간 상한이 아니다.
 - 확장 API 지원 방식은 `ROBOT_GRIP / HUMAN_ASSEMBLY`. 사람 도움에는 지지·눌러주기·직접 조립이 포함될 수 있다. `ROBOT_RELEASE_PRESS`를 실행 가능한 방식으로 추가하지 않는다.
+- 전체 밑면 지지·기존 그리퍼 접근 불가 배치는 [놓기·가압 방식 분류](../docs/A_ROUND2_RELEASE_PRESS_CANDIDATE_20261014.md)를 전체 계획/Step 재평가에서 `mode=ROBOT_GRIP, assembly_strategy=RELEASE_PRESS`로 반환한다. A는 이 분류에 실측 파지·해제 높이를 요구하지 않는다. D가 실제 동작을 담당하며 기존 삽입용 StepMotion에는 적용하지 않는다.
 - 2026-10-13 사용자 결정: 아래 블록 L이 자기 아래층과 4점 미만으로 결착되고, 이번 목표 U와 L의 결착도 4점 미만일 때 L에 `HOLD`를 요청한다. 보드에 직접 놓인 1층 L은 전체 지지로 취급해 제외한다. 조건은 각 L별로 검사하며 U의 전체 접촉점 수로 합산해 약한 L을 제외하지 않는다.
 - `CONTACT_HULL`의 사람 `PRESS`는 위 `HOLD` 대상이 있고 U의 중심이 바로 아래층 전체 접촉점의 지지 영역 밖에 있을 때만 추가한다. 중심이 영역 안이나 경계에 있으면 `HOLD`만 요청한다. 로봇 후보는 `NONE / HOLD / PRESS_AND_HOLD`로 구분되며, 4점 결착된 L 위에 U가 2점 결합하는 경우는 중심이 벗어나도 도움을 요청하지 않는다. `human_press_policy=NONE`은 추가 눌러주기를 끈다. 이 규칙은 결착력·물리 안정성의 실측 판정이 아니다.
 - 사람 손 접근 공간 검사는 제외되어 `HUMAN_ACCESS_NOT_CHECKED`로 표시한다. 사람 손 수의 최대 2개 제한도 제거했으며 필요한 손 수와 HOLD/PRESS/MANUAL_PLACE는 그대로 반환한다. 지지·겹침·삽입·로봇 접근 검사는 유지한다. D는 실제 도움 인원과 준비 응답을 관리한다.

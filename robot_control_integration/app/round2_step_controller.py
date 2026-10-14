@@ -4,6 +4,7 @@ import math
 from app.human_step_raised_press import adapt_human_step
 from app.assembly_step_bridge import pose
 from app.assembly_step_runner import run_step
+from app.assembly_strategy import has_source_release_press, is_release_press
 
 SUPPORT={'HOLD','PRESS_AND_HOLD','MANUAL_ASSEMBLY_AND_HOLD'}
 
@@ -15,12 +16,26 @@ def binding(plan):
 def prepare_round2_step(plan,profile,measured=None):
     source=deepcopy(plan);candidate=deepcopy(plan);p=deepcopy(profile)
     kind=plan['mode'];assistance=plan['assistance_kind'];reason=None
-    if assistance in SUPPORT:
+    if has_source_release_press(plan):
+        branch='ROBOT_RELEASE_PRESS'
+        candidate.update(d_execution_strategy='RELEASE_PRESS',round2_vertical_top_press=True)
+        s=candidate['settings']
+        if measured is not None:
+            pad=measured.get('pad_contact_pose')
+            if pad is not None:
+                pad=pose(pad,'closed_pad_contact')
+                s.update(press_start_pose=[*pad[:2],pad[2]+p['near_contact_offset_mm'],*pad[3:]],
+                    press_approach_pose=[*pad[:2],pad[2]+p['approach_offset_mm'],*pad[3:]])
+            if 'press_width_mm' in measured:s['press_width_mm']=measured['press_width_mm']
+        p.pop('native_press',None)
+        p['steps'][plan['key']]=deepcopy(s)
+    elif assistance in SUPPORT:
         branch='HUMAN_SUPPORT_PLACE_BOARD'
         candidate.update(mode='HUMAN_ASSEMBLY',assistance_kind='MANUAL_ASSEMBLY_AND_HOLD',
             source_mode=kind,source_assistance_kind=assistance,human_actions=['HOLD','MANUAL_ASSEMBLY'])
         # Place-board delivery, not the old direct target handover policy.
         candidate['settings'].pop('human_step_gestures',None)
+        p.pop('native_press',None)
         p['steps'][plan['key']]=deepcopy(candidate['settings'])
         reason='BOTTOM_SUPPORT_REQUIRES_PLACE_BOARD_DELIVERY'
     elif kind=='HUMAN_ASSEMBLY':
@@ -66,9 +81,9 @@ def prepare_round2_step(plan,profile,measured=None):
             raise ValueError('ROUND2_POSITIVE_MOTION_RATES_REQUIRED')
     p.update(round2=True,round2_motion=deepcopy(rates),transfer_velocity=rates['transfer_velocity'],
         descent_velocity=rates['vertical_velocity'],pickup_descent_velocity=rates['vertical_velocity'],assembly_approach_velocity=rates['vertical_velocity'])
-    p['force_stop_n']=45.
+    if not has_source_release_press(plan):p['force_stop_n']=45.
     p.pop('transport_blending',None)
-    robot=candidate['mode']=='ROBOT_RELEASE_PRESS'
+    robot=is_release_press(candidate)
     if robot:
         candidate['round2_vertical_top_press']=True
         p.update(press_control='POSITION_DESCENT_REACTION_STOP',force_control_target_n=None)
@@ -81,7 +96,7 @@ def prepare_round2_step(plan,profile,measured=None):
         source_plan_preserved=True,assembly_completion=False,current_update=False)
 
 
-def run_round2_step(driver,connection,prepared,confirm,record,*,pickup_center,assembly_alignment=None,
+def run_round2_step(driver,connection,prepared,confirm,record,*,pickup_center,assembly_alignment=None,session=None,
                     phase='full',start_zone='assembly',clock=None,sleep=None):
     if prepared.get('version')!='round2-step/1':raise ValueError('ROUND2_PREPARED_STEP_REQUIRED')
     if pickup_center is None:raise ValueError('ROUND2_OPENCV_PROVIDER_REQUIRED')
@@ -92,15 +107,27 @@ def run_round2_step(driver,connection,prepared,confirm,record,*,pickup_center,as
         return dict(status='WAITING_ALIGNMENT_PROVIDER',assembly_completion=False,current_update=False)
     if getattr(driver,'mode',None)=='REAL':
         # Same single-writer/session/physical review as the existing live runner.
-        if not hasattr(driver,'session'):raise ValueError('ROUND2_CONTROLLED_LIVE_SESSION_REQUIRED')
+        active_session=session if session is not None else getattr(driver,'session',None)
+        if active_session is None:raise ValueError('ROUND2_CONTROLLED_LIVE_SESSION_REQUIRED')
         from app.control_session import validate_execution
-        validate_execution(plan,profile,driver.session.value,phase)
+        validate_execution(plan,profile,active_session.value,phase)
     record('ROUND2_STEP_BRANCH',dict(branch=prepared['branch'],binding=binding(plan),reason=prepared['reason'],
-        source_mode=prepared['source_plan']['mode'],execution_mode=plan['mode'],assembly_completion=False))
+        source_mode=prepared['source_plan']['mode'],execution_mode=plan['mode'],
+        assembly_strategy=plan.get('assembly_strategy'),d_execution_strategy=plan.get('d_execution_strategy'),
+        assembly_completion=False))
     options=dict(phase=phase,start_zone=start_zone,pickup_center=pickup_center,
         assembly_alignment=assembly_alignment if prepared['robot_complement_selected'] else None)
     if clock is not None:options['clock']=clock
     if sleep is not None:options['sleep']=sleep
-    result=run_step(driver,connection,plan,profile,confirm,record,**options)
+    active_session=session if session is not None else getattr(driver,'session',None)
+    if active_session is not None:
+        from app.control_driver import execute_step
+        if clock is None and hasattr(driver,'clock'):options['clock']=driver.clock
+        if sleep is None and hasattr(driver,'sleep'):options['sleep']=driver.sleep
+        def bound_confirm(request,active_plan,sample,control_session):
+            return confirm(request['kind'],active_plan,sample)
+        result=execute_step(driver,active_session,connection,plan,profile,bound_confirm,record,**options)
+    else:
+        result=run_step(driver,connection,plan,profile,confirm,record,**options)
     result.update(round2_branch=prepared['branch'],source_mode=prepared['source_plan']['mode'],assembly_completion=False,current_update=False)
     return result

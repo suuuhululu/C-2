@@ -6,6 +6,9 @@ import json
 from history import report, store
 from history.final_mvp import checks, completion
 
+DESIGN_VIEW_EVENTS = ("JOB_STARTED", "JOB_COMPLETED", "PLAN_ADOPTED", "CHECK_RESULT",
+                      "PLAN_WORK_EXHAUSTED", "ASSEMBLY_COMPLETED")
+
 
 def bind_job(connection, job_id: str, username: str, reason: str) -> dict:
     """Privileged local operator action, never an endpoint for self-claiming a Job."""
@@ -38,8 +41,8 @@ def _owned_job(connection, job_id, user_id, *, lock="SHARE"):
     return row
 
 
-def user_rows(connection, user_id: str) -> list[dict]:
-    return store.timeline(connection, owner_user_id=user_id)
+def user_rows(connection, user_id: str, *, events: tuple[str, ...] | None = None) -> list[dict]:
+    return store.timeline(connection, owner_user_id=user_id, events=events)
 
 
 def _manifest(connection, job_id):
@@ -90,3 +93,20 @@ def bundle(connection, job_id: str, user_id: str) -> dict:
         result.update({name:getattr(report,name)(rows) for name in
                        ("designs","plans","currents","hri","reason_counts","durations","episodes")})
         return result
+
+
+def design_summary(connection, job_id: str, user_id: str) -> dict:
+    """Design viewer data only; logs remain in the operator's full history API."""
+    with connection.transaction():
+        owner = _owned_job(connection,job_id,user_id)
+        rows = store.timeline(connection,job_id,events=DESIGN_VIEW_EVENTS)
+        stages = completion(rows)
+        jobs = report.jobs(rows)
+        job = jobs[0] if jobs else dict(job_id=job_id,started_at=None,result="NO_COMPLETION_RECORDED")
+        job.update(store.job_counts(connection,job_id))
+        return dict(owner=owner,
+            jobs=[{key:job[key] for key in ("job_id","started_at","last_seen_at","result","event_count")}],
+            designs=[{key:design[key] for key in ("job_id","design_version","design","adopted_at")}
+                     for design in report.designs(rows)],
+            completion={key:stages[key] for key in ("assembly","work_exhaustion")},
+            storage=storage_status(connection,job_id))

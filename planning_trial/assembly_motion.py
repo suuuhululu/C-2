@@ -54,6 +54,9 @@ def plan_step_motion(*, plan, step_id, latest_current, action, supply_slot,
             raise MotionBlocked('REFERENCE_MISMATCH', 'Action does not match Plan Step', target)
         if action['mode'] not in IMPLEMENTED_MOTION_MODES:
             raise MotionBlocked('UNSUPPORTED_METHOD', 'Motion method not implemented; no automatic fallback', target)
+        if action.get('assembly_strategy') == 'RELEASE_PRESS':
+            raise MotionBlocked('UNSUPPORTED_METHOD',
+                'RELEASE_PRESS is an A strategy classification; D owns its execution profile, not this insertion route', target)
         options, _ = mode_options(target, blocks, assembly_context)
         if not any(comparable_action(normalize_action(o, plan, step, assembly_context)) == comparable_action(action) for o in options):
             raise MotionBlocked('NO_FEASIBLE_METHOD', 'Action not feasible in latest Current/context', target)

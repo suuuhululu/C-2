@@ -3,6 +3,7 @@ from copy import deepcopy
 import json
 import math
 from pathlib import Path
+from app.assembly_strategy import has_source_release_press, is_release_press
 
 ROOT = Path(__file__).resolve().parents[1]
 FIXTURES = ROOT / 'fixtures/a_step_samples_20261010'
@@ -69,10 +70,13 @@ def step_from_messages(assessment, request, motion, *, case_id=None, summary=Non
     else:
         revision = assessment['assessment_current_revision']
         motion = None
-    return dict(case_id=summary['case_id'], step_id=action['step_id'], plan_id=action['plan_id'],
+    step = dict(case_id=summary['case_id'], step_id=action['step_id'], plan_id=action['plan_id'],
                 block=deepcopy(action['block']), action=deepcopy(action), current_revision=revision,
                 reservation=deepcopy(summary.get('reserved_supply_slot')), summary=summary,
                 request=request, motion=motion, source_execution_allowed=False)
+    if has_source_release_press(action) and motion and motion.get('producer')=='D_RELEASE_PRESS_PROFILE':
+        step['motion_source']='D_PROFILE'
+    return step
 
 
 def load_steps(directory=FIXTURES):
@@ -203,16 +207,27 @@ def build_plan(step, profile):
             raise ValueError('INVALID_PICKUP_START_OPEN_RANGE')
     action = step['action']
     mode, assistance = action['mode'], action.get('assistance_kind', 'NONE')
+    strategy_plan = dict(mode=mode, assembly_strategy=action.get('assembly_strategy'))
+    release_press = is_release_press(strategy_plan)
+    human_release_press = has_source_release_press(strategy_plan) and assistance in ('PRESS', 'PRESS_AND_HOLD')
     if mode not in ('ROBOT_GRIP', 'HUMAN_ASSEMBLY', 'ROBOT_RELEASE_PRESS') or assistance not in (
             'NONE', 'HOLD', 'PRESS', 'PRESS_AND_HOLD', 'MANUAL_ASSEMBLY', 'MANUAL_ASSEMBLY_AND_HOLD'):
         raise ValueError('UNSUPPORTED_METHOD')
     footprint = trial_footprint(step['block'])
     operations = ['PICK_AND_CONFIRM', 'LIFT', 'SUPPLY_20_0', 'BODY_BYPASS', 'PLACE_BOARD']
+    if has_source_release_press(strategy_plan):operations[-1]='ROUND2_ASSEMBLY_OBSERVATION'
     if mode == 'HUMAN_ASSEMBLY':
         operations += ['TRAY_LOWER', 'CONFIRM_RELEASE', 'OPEN', 'RETREAT', 'HUMAN_ASSEMBLY_ACK']
     else:
         operations += ['TARGET_APPROACH_20MM', 'CONFIRM_ALIGNMENT']
-        if mode == 'ROBOT_RELEASE_PRESS':
+        if human_release_press:
+            if assistance == 'PRESS_AND_HOLD':
+                operations.append('HUMAN_HOLD_READY')
+            operations += ['RELEASE_POSITION', 'CONFIRM_SUPPORTED_RELEASE', 'OPEN', 'RETREAT',
+                           'HUMAN_PRESS_AND_HOLD_ACK']
+        elif release_press:
+            if has_source_release_press(strategy_plan) and assistance == 'HOLD':
+                operations.append('HUMAN_READY')
             operations += ['RELEASE_POSITION', 'CONFIRM_RELEASE', 'OPEN', 'PRESS_TOOL_APPROACH',
                            'CLOSE_EMPTY_PRESS_TOOL', 'PRESS_TOOL_LOWER', 'PRESS_35N']
         elif assistance in ('PRESS', 'PRESS_AND_HOLD'):
@@ -223,7 +238,7 @@ def build_plan(step, profile):
                 operations.append('HUMAN_READY')
             operations += ['DESCEND_TO_NEAR_CONTACT', 'PRESS_35N']
         operations += ['CONFIRM_FULL_SEATING']
-        if mode != 'ROBOT_RELEASE_PRESS' and assistance not in ('PRESS', 'PRESS_AND_HOLD'):
+        if not release_press and assistance not in ('PRESS', 'PRESS_AND_HOLD'):
             operations += ['CONFIRM_RELEASE', 'OPEN']
         if assistance not in ('PRESS', 'PRESS_AND_HOLD'):
             operations.append('RETREAT')
@@ -237,15 +252,23 @@ def build_plan(step, profile):
             operations.insert(5,'TARGET_HIGH_HUMAN_WAIT')
             operations.insert(6,'THUMBS_UP_'+ready)
     operations.append('BACKEND_OBSERVATION_REQUIRED')
-    plan = dict(key=key, plan_id=step['plan_id'], step_id=step['step_id'], block=step['block'],
-                current_revision=step['current_revision'], reservation=step['reservation'],
-                mode=mode, assistance_kind=assistance, human_actions=action.get('human_actions', []),
+    plan = dict(key=key, plan_id=step['plan_id'], step_id=step['step_id'], block=deepcopy(step['block']),
+                current_revision=step['current_revision'], reservation=deepcopy(step['reservation']),
+                mode=mode, assistance_kind=assistance, human_actions=deepcopy(action.get('human_actions', [])),
                 trial_footprint=footprint, operations=operations, settings=settings,
                 source_execution_allowed=False, hardware_verified=False, assembly_completion=False)
+    plan['source_action'] = deepcopy(action)
+    if 'gripper' in action:
+        plan['gripper'] = deepcopy(action['gripper'])
+    if 'assembly_strategy' in action:
+        plan['assembly_strategy'] = action['assembly_strategy']
+    if release_press:
+        plan['d_execution_strategy'] = 'RELEASE_PRESS'
+    if has_source_release_press(plan):plan['round2_vertical_top_press']=True
     from app.human_step_gestures import validate_policy as validate_human_policy
     validate_human_policy(plan, profile)
     from app.assembly_native_press import validate_native_press
-    validate_native_press(plan,profile)
+    if not has_source_release_press(plan):validate_native_press(plan,profile)
     return plan
 
 
@@ -303,9 +326,10 @@ def validate_physical(plan, profile, phase):
         height = max(profile['clearance_z_mm'], s['reference_pose'][2]+profile['approach_offset_mm'])
         if not 0 < height-start[2] <= 30.:
             raise ValueError('RECOVERY_REQUIRES_UPWARD_TRAVEL_AT_MOST_30MM')
-    if phase == 'assemble-held' and (plan['mode'] != 'ROBOT_GRIP' or plan['assistance_kind'] != 'NONE'):
+    held_mode=plan['mode']=='ROBOT_GRIP' or (profile.get('round2') and plan['mode']=='ROBOT_RELEASE_PRESS')
+    if phase == 'assemble-held' and (not held_mode or plan['assistance_kind'] != 'NONE'):
         raise ValueError('HELD_ASSEMBLY_REQUIRES_UNASSISTED_ROBOT_GRIP')
-    if plan['mode'] == 'ROBOT_RELEASE_PRESS' and phase in ('full', 'contact'):
+    if is_release_press(plan) and not (has_source_release_press(plan) and plan['assistance_kind'] in ('PRESS','PRESS_AND_HOLD')) and phase in ('full', 'contact'):
         for name in ('release_pose', 'press_approach_pose', 'press_start_pose'):
             pose(s[name], name)
         if type(s['press_width_mm']) not in (int, float) or not 0 <= s['press_width_mm'] <= 110:

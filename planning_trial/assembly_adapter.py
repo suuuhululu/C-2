@@ -130,7 +130,9 @@ def handle_step_reassessment(request, *, audit=None):
                 return _finish(out, raw, audit)
             options = [normalize_action(o, plan, step, request['assembly_context'])
                        for o in sorted(raw['options'], key=lambda o: (option_cost(o), o['mode'], o['grip_axis'] or '', o['release_strategy'] or ''))]
-            out['action_proposal'] = next((a for a in options if previous is not None and comparable_action(a) == comparable_action(previous)), options[0])
+            # A legacy manual selection must not hide the newly required strategy.
+            release = next((a for a in options if a.get('assembly_strategy') == 'RELEASE_PRESS'), None)
+            out['action_proposal'] = release or next((a for a in options if previous is not None and comparable_action(a) == comparable_action(previous)), options[0])
             out['assessment_input_digest'] = assessment_input_digest(request['frame_profile'], request['assembly_context'])
         else:
             if raw['status'] == 'NO_FEASIBLE_METHOD':

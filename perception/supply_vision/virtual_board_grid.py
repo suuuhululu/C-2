@@ -107,7 +107,12 @@ class VirtualBoardGrid:
         self.layer_records=json.loads(Path(config['layer_records']).read_text())
         self.sources={key:dict(path=str(Path(path).resolve()),sha256=sha256(Path(path).read_bytes()).hexdigest()) for key,path in config.items()}
 
-    def overlay(self,frame,sample,info,layer=1,clearance_mm=20.,edges=(),axis_index=None,target_xy=(11,11)):
+    def overlay(self,frame,sample,info,layer=1,clearance_mm=20.,edges=(),axis_index=None,target_xy=(11,11),*,target=None):
+        """An explicit common block supplies the display footprint and target layer.
+
+        Layer offsets still come from the existing yellow 2x2 teaching anchor.
+        Omitting target preserves the legacy yellow 2x2 target_xy/layer view.
+        """
         report=dict(status='VIRTUAL_GRID_PREVIEW',execution_allowed=False,physical_commands=0,
             calibration_status=self.board['status'],physical_tip_coincides_with_tcp=self.board['tcp']['physical_tip_coincides_with_tcp'],
             sources=self.sources,projection_independently_verified=False,native_flange_frame_assumption='link_6',robot_correction=None,relative_angle_deg=None)
@@ -117,10 +122,13 @@ class VirtualBoardGrid:
             report.update(status='UNKNOWN',reason='CAMERA_INFO_SIZE_OR_FRAME_MISMATCH');return frame.copy(),report
         if info.distortion_model not in ('plumb_bob','rational_polynomial'):
             report.update(status='UNKNOWN',reason='UNSUPPORTED_DISTORTION_MODEL');return frame.copy(),report
+        target=(dict(brick_type='2x2x1',color='yellow',x=target_xy[0],y=target_xy[1],layer=layer,orientation_deg=0)
+            if target is None else dict(target))
+        layer=target['layer']
         if not 1<=layer<=5 or clearance_mm<0:raise ValueError('TARGET_LAYER_AND_CLEARANCE_REQUIRED')
-        target=dict(brick_type='2x2x1',color='yellow',x=target_xy[0],y=target_xy[1],layer=layer,orientation_deg=0)
+        layer_anchor=dict(brick_type='2x2x1',color='yellow',x=11,y=11,layer=layer,orientation_deg=0)
         def seated_z(n):
-            return layer_reference(self.layer_records,dict(target,layer=n,x=11,y=11))['sample']['posx'][2]
+            return layer_reference(self.layer_records,dict(layer_anchor,layer=n))['sample']['posx'][2]
         support_height=seated_z(layer)-seated_z(1)
         body_height=self.geometry['body_height_without_studs_mm'];stud_height=self.geometry['height_with_studs_mm']-body_height
         top_height=support_height+body_height-stud_height
@@ -138,11 +146,14 @@ class VirtualBoardGrid:
                     a,b=np.clip(uv,-10000,10000).astype(int)
                     cv2.line(canvas,tuple(a),tuple(b),(255,180,0),1)
                     segments.append(uv.tolist())
-        center=np.array([(target_xy[0]+.5)*pitch,(target_xy[1]+.5)*pitch])
-        half=self.geometry['span_2_outer_length_mm']/2
-        outline_local=[[center[0]+dx*half,center[1]+dy*half,top_height+clearance_mm] for dx,dy in [(-1,-1),(1,-1),(1,1),(-1,1)]]
+        nx,ny=map(int,target['brick_type'].split('x')[:2])
+        if target['orientation_deg']==90:nx,ny=ny,nx
+        center=np.array([(target['x']+(nx-1)/2)*pitch,(target['y']+(ny-1)/2)*pitch])
+        extent=np.array([self.geometry[f'span_{n}_outer_length_mm'] for n in (nx,ny)])
+        outline_local=[[center[0]+dx*extent[0]/2,center[1]+dy*extent[1]/2,top_height+clearance_mm] for dx,dy in [(-1,-1),(1,-1),(1,1),(-1,1)]]
         outline,valid=pixels(outline_local)
-        if valid.all():cv2.polylines(canvas,[np.clip(outline,-10000,10000).astype(np.int32)],True,(0,255,255),2)
+        color={'yellow':(0,255,255),'blue':(255,100,0),'red':(0,0,255)}[target['color']]
+        if valid.all():cv2.polylines(canvas,[np.clip(outline,-10000,10000).astype(np.int32)],True,color,2)
         seated,_=pixels([[p[0],p[1],top_height] for p in outline_local])
         if np.isfinite(seated).all():cv2.polylines(canvas,[np.clip(seated,-10000,10000).astype(np.int32)],True,(255,100,255),1)
         axes=[]
@@ -175,9 +186,13 @@ class VirtualBoardGrid:
                 cv2.line(canvas,tuple(np.asarray(segment[0],int)),tuple(np.asarray(segment[1],int)),(255,255,0),2)
             cv2.line(canvas,tuple(edge[0].astype(int)),tuple(edge[1].astype(int)),(0,0,255),2)
         report.update(target=target,support_plane_offset_mm=support_height,body_top_offset_mm=top_height,
+            target_footprint_studs=[nx,ny],target_center_board_mm=center.tolist(),target_outer_extent_mm=extent.tolist(),
+            layer_height_reference_target=layer_anchor,
             hover_body_top_offset_mm=top_height+clearance_mm,clearance_mm=clearance_mm,
             grid_segments_uv=segments,target_hover_outline_uv=[[float(value) if np.isfinite(value) else None for value in point] for point in outline],
             target_seated_outline_uv=[[float(value) if np.isfinite(value) else None for value in point] for point in seated],
             T_base_from_camera_mm=T_base_camera.tolist(),reason=None if report['relative_angle_deg'] is not None else 'VISIBLE_BODY_EDGE_REQUIRED',
+            T_base_from_board_mm=self.T_base_board.tolist(),
+            target_hover_outline_base_mm=base(outline_local).tolist(),
             datum_basis='EXISTING_BOARD_CONTACT_PROXY_AND_LAYER_TCP_HEIGHT_DIFFERENCES')
         return canvas,report
