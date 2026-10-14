@@ -58,10 +58,10 @@ def connect_real_inspection(submit_result, *, gate, hand_detector, weights, cali
     calibration, config = deepcopy(calibration), deepcopy(config)
 
     def capture(manifest, view, active):
-        valid = lambda: active() is True and workflow_valid() is True and bundle_valid() is True
-        return capture_inspection_view(manifest, view, valid,
+        return capture_inspection_view(manifest, view, active,
             output_root=Path(output_root) / 'captures', scene_id=scene_id,
-            calibration_id=profile, robot_pose=robot_pose, is_stopped=is_stopped)
+            calibration_id=profile, robot_pose=robot_pose, is_stopped=is_stopped,
+            workflow_valid=workflow_valid, bundle_valid=bundle_valid)
 
     observer = make_inspection_observer(gate, hand_detector, None, capture,
         weights, calibration, config, detector_confidence,

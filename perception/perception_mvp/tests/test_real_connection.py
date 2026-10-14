@@ -18,9 +18,11 @@ def test_real_binding_preserves_controller_and_capture_contract(tmp_path, monkey
         assert kwargs['robot_pose']('D1') == {'view': 'D1'}
         assert kwargs['calibration_id'] == 'cal'
         assert kwargs['output_root'] == tmp_path / 'captures'
+        assert kwargs['workflow_valid'] is hooks['workflow_valid']
+        assert kwargs['bundle_valid'] is hooks['bundle_valid']
         assert active()
         state[0] = False
-        assert not active()
+        assert active() and kwargs['workflow_valid']() is False
         return {'directory': 'real-record'}
     def make(*args, **kwargs):
         assert args[2] is None  # ROS hand stream, not a synthetic iterator

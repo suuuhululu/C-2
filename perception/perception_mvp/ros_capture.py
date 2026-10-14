@@ -9,11 +9,46 @@ from threading import Event, Lock, Thread
 import numpy as np
 
 from .rgbd_io import image_array, info_dict, save_capture, stamp, ros_main as main
+from .runtime_log import progress
 
 __all__ = ["image_array", "info_dict", "save_capture", "stamp", "main", "capture_inspection_view", "stream_ros_hand"]
 
 
-def stream_ros_hand(is_active, is_stopped, *, timeout=15., max_delta_ms=50., max_age_ms=250.):
+def _require_observation_state(context, view, phase, is_active, is_stopped,
+                               workflow_valid=None, bundle_valid=None):
+    # Preserve strict True and short-circuit order. Do not re-read a failed hook
+    # for logging: a later value could hide the actual interruption.
+    checks = [('request_active', is_active, 'INSPECTION_REQUEST_INACTIVE', 'inspection cancelled'),
+              ('workflow_valid', workflow_valid, 'WORKFLOW_INVALID', 'workflow invalid'),
+              ('bundle_valid', bundle_valid, 'BUNDLE_INVALID', 'bundle invalid'),
+              ('is_stopped', lambda: is_stopped(view), 'VIEW_NOT_STOPPED', 'View not stopped')]
+    states = {name: {'evaluated': False} for name, _, _, _ in checks}
+    for name, hook, code, message in checks:
+        if hook is None:
+            continue
+        try:
+            value = hook()
+        except Exception as cause:
+            states[name] = dict(evaluated=True, error=str(cause))
+            progress(context or {}, '관측 조건 확인 실패',
+                     view=view, phase=phase, failed_condition=name,
+                     failure_code='STATE_CHECK_FAILED', conditions=states)
+            error = RuntimeError(f'STATE_CHECK_FAILED: {name}; view={view}; phase={phase}: {cause}')
+            error.view = view
+            raise error from cause
+        states[name] = dict(evaluated=True, value=repr(value),
+                            type=f'{type(value).__module__}.{type(value).__name__}', passed=value is True)
+        if value is not True:
+            progress(context or {}, '관측 조건 실패', view=view, phase=phase,
+                     failed_condition=name, failure_code=code, conditions=states)
+            error = RuntimeError(f'{code}: {message}; view={view}; phase={phase}; '
+                                 f'{name}={value!r} ({states[name]["type"]})')
+            error.view = view
+            raise error
+
+
+def stream_ros_hand(is_active, is_stopped, *, timeout=15., max_delta_ms=50., max_age_ms=250.,
+                    context=None, workflow_valid=None):
     """Stopped V0 RGB/aligned Depth generator for hand_stream; no block inference.
 
     ROS reception runs separately from the caller's hand inference. Queues are
@@ -23,8 +58,8 @@ def stream_ros_hand(is_active, is_stopped, *, timeout=15., max_delta_ms=50., max
     if any(not np.isfinite(value) or value <= 0 for value in (timeout, max_delta_ms, max_age_ms)):
         raise ValueError('positive finite hand reception limits required')
     def require_active():
-        if is_active() is not True or is_stopped('V0') is not True:
-            raise RuntimeError('V0 hand reception cancelled or not stopped')
+        _require_observation_state(context, 'V0', 'HAND_RECEPTION', is_active,
+                                   is_stopped, workflow_valid)
     require_active()
     import rclpy
     from rclpy.context import Context
@@ -102,7 +137,8 @@ def stream_ros_hand(is_active, is_stopped, *, timeout=15., max_delta_ms=50., max
 
 def capture_inspection_view(manifest, view, is_active, *, output_root, scene_id,
                             calibration_id, robot_pose, is_stopped, timeout=15.,
-                            max_delta_ms=50., max_age_ms=250., verify_occupancy=None):
+                            max_delta_ms=50., max_age_ms=250., verify_occupancy=None,
+                            workflow_valid=None, bundle_valid=None):
     """capture_view callable for main.make_inspection_observer (bind keyword args).
 
     Pose/stop hooks belong to Controller. ROS clocks must be synchronized; stale
@@ -115,8 +151,8 @@ def capture_inspection_view(manifest, view, is_active, *, output_root, scene_id,
     if any(not np.isfinite(value) or value <= 0 for value in (timeout, max_delta_ms, max_age_ms)):
         raise ValueError('positive finite reception limits required')
     def require_active():
-        if is_active() is not True or is_stopped(view) is not True:
-            raise RuntimeError('inspection cancelled or View not stopped')
+        _require_observation_state(context, view, 'RGBD_CAPTURE', is_active,
+                                   is_stopped, workflow_valid, bundle_valid)
     require_active()
     metadata = dict(scene_id=scene_id, calibration_id=calibration_id,
         robot_pose=deepcopy(robot_pose(view)), check_id=context['check_id'],
