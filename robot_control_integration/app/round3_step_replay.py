@@ -55,6 +55,9 @@ class Round3StepReplay:
         self.session.request_stop('ROUND3_REPLAY_STOP')
         if self.raw is not None:
             self.raw.stop()
+        if self.state in ('AWAITING_INSPECTION', 'RECOVERY_REQUIRED'):
+            self.state = 'STOPPED'
+            self.emit('STOP_VERIFIED', dict(actual_stop_verified=True, synthetic_stop=True))
 
     def held(self, reason):
         self.state = 'STOPPED' if self.session.cancelled else 'RECOVERY_REQUIRED'
@@ -127,7 +130,8 @@ class Round3StepReplay:
                 return
             self.state = 'AWAITING_INSPECTION'
             self.emit('ROUND3_STEP_REPLAY_RESULT', dict(result=result, assembly_completion=False,
-                current_update=False, inspection_requested=False))
+                current_update=False, inspection_requested=False, sample=raw.sample(),
+                saved_observation_flow=self.config.get('saved_observation_flow') is True))
         except Exception as error:
             if self.raw is not None:
                 self.raw.stop()

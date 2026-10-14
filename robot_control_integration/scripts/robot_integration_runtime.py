@@ -27,6 +27,7 @@ def main():
     runtime, worker, resources = None, None, []
     camera = None
     fake_gestures = None
+    round3_used_executions = set()
     def ensure_camera():
         nonlocal camera
         if args.gestures:
@@ -126,10 +127,16 @@ def main():
                         from app.integration_motion_binding import verify_motion
                         verify_motion(document['motion']['motion_proposal'], plan, profile, document['robot_state'])
                     if 'round2_replay' in document:
-                        if runtime is not None:
-                            raise RuntimeError('ROUND3_SINGLE_STEP_REPLAY_RESTART_REQUIRED')
                         from app.round3_step_replay import Round3StepReplay
+                        if runtime is not None and not (isinstance(runtime, Round3StepReplay)
+                                and runtime.state == 'AWAITING_INSPECTION'
+                                and runtime.config.get('saved_observation_flow') is True
+                                and document['round2_replay'].get('saved_observation_flow') is True):
+                            raise RuntimeError('ROUND3_SINGLE_STEP_REPLAY_RESTART_REQUIRED')
+                        if session['execution_id'] in round3_used_executions:
+                            raise ValueError('ROUND3_EXECUTION_ALREADY_USED')
                         runtime = Round3StepReplay(document, emit)
+                        round3_used_executions.add(session['execution_id'])
                         runtime.start()
                         worker = threading.Thread(target=execute, daemon=False); worker.start()
                         continue

@@ -1,5 +1,15 @@
 # 현재 진행 상황
 
+## 2026-10-15 — ABCD 저장 관측 연결: D 가상 결과 → B 비교 → 다음 Step
+
+- 사용자 요청으로 round3에 구현한 저장 관측 연결을 commit하고 원격 `codex/integration-round3`에 게시한다. main은 병합하지 않는다. T1 고정 실물 시험·full-real·통합 2단계 단독 replay를 유지한다.
+- 저장 관측 설정이 있을 때 D의 한 Step 가상 결과를 B STEP 요청에 연결한다. B MATCH 후에만 완료 Step을 기록하고 A의 다음 단계 재평가/모션→D 실행으로 진행한다. 마지막 Step 이후 별도 FINAL 저장 관측 MATCH가 있어야 합성 흐름 COMPLETE가 된다.
+- MISMATCH는 관측된 B Current를 채택하되 HOLD에 머물고 자동 C 재계획을 하지 않는다. UNOBSERVABLE/ERROR도 HOLD. 자료 없음·순서·대상 오류를 자동 가상 scene으로 대체하지 않는다.
+- Step별 합성 측정 목록을 정확한 블록으로 선택한다. 이 모드에만 연속 MOCK 실행을 허용하고 execution_id 재사용은 막는다. D 종료 표본을 다음 A 계산의 시작 상태로 전달한다.
+- B 대기 중 STOP과 늦은 결과·중복 D 종료를 처리한다. 저장 관측 순서와 다른 장면을 만들 수 있는 재개·재검사·설계 변경은 이 모드에서 차단한다. REAL은 기존 차단을 유지한다.
+- 실제 C 검토/승인(최초 후보는 fixture), 실제 A 계산, 실제 B 비교, native round2 MOCK runner를 호출하는 두 Step 저장 관측 예제와 통합 검사를 추가했다. 정상, 첫째/둘째/FINAL 불일치·관측 불가, 자료 오류, B 대기 중 STOP을 검증했다. 기존 T1/통합2/통신 25 passed, full-real 선택 5 passed, 27 deselected.
+- 실제 로봇/ROS/카메라/음성 API/DB 미실행. 저장 관측·정렬·반력은 합성이며 실제 인식·결착·물리적 완성 판정이 아니다. [실행과 로그 안내](D_ROUND3_ABCD_SAVED_REPLAY.md).
+
 ## 2026-10-15 — 통합 2단계: 실제 A 한 Step → round2 MOCK 연결
 
 - 로컬 `codex/integration-round3`에서 작업. 기존 T1 고정 실물 시험과 full-real 실행은 유지한다. 사용자 요청으로 이번 변경을 commit하고 원격 `codex/integration-round3`에 게시한다. main 병합은 하지 않는다.

@@ -22,6 +22,7 @@ class MvpWorkflow:
         self.log_failed = False
         self.log_directory = log_directory
         self.b = None
+        self.saved_observation_replay = False
         self.job_id = None
         self.epoch = str(uuid4())
         self.generation = 0
@@ -194,6 +195,8 @@ class MvpWorkflow:
             self.status, self.reason = 'HOLD', result['reason'] or result['comparison']
             if kind == 'FINAL':
                 self.assembly = result['comparison']
+            if self.saved_observation_replay:
+                return True  # Inspect the saved mismatch; do not auto-replan through C.
             if result['comparison'] == 'MISMATCH':
                 if self.robot_waiting:
                     self.robot_inspection('CALL_C')
@@ -484,11 +487,18 @@ class MvpWorkflow:
                 self.status, self.reason = 'HOLD', 'CONFLICTING_CHECK_RESULT'
         elif event == 'ROUND3_STEP_REPLAY_RESULT':
             if (self.mode != 'FAKE' or data.get('provenance') != 'SYNTHETIC'
-                    or self.reason == 'STOP_PENDING' or self.status == 'STOPPED' or self.check_conflict):
+                    or self.reason == 'STOP_PENDING' or self.status != 'DELIVERING'
+                    or self.check is not None or self.check_conflict):
                 return False
-            self.status, self.reason = 'HOLD', 'ROUND3_STEP_REPLAY_FINISHED_NOT_ASSEMBLY_CONFIRMED'
             self.robot_resume_allowed = False
             self.robot_status = 'IDLE'
+            if self.saved_observation_replay and data.get('saved_observation_flow') is True:
+                self.status = 'WAIT_ASSEMBLY'
+                self.robot_waiting = False
+                if self.execution:self.execution['phase'] = 'WAIT_INSPECTION'
+                self.request_check('STEP')
+            else:
+                self.status, self.reason = 'HOLD', 'ROUND3_STEP_REPLAY_FINISHED_NOT_ASSEMBLY_CONFIRMED'
         elif event == 'EXECUTION_HELD':
             self.robot_resume_allowed=data.get('resume_allowed',True)
             if not self.robot_resume_allowed:self.status='HOLD'
@@ -656,4 +666,6 @@ class MvpWorkflow:
             snapshot['assistance'] = deepcopy(self.help)
         if self.mode=='REAL' and self.settings.get('observation_kind')=='SYNTHETIC':
             snapshot['observation_kind']='SYNTHETIC'
+        if self.saved_observation_replay:
+            snapshot['user_requests']['change_design']['enabled'] = False
         return validate_hmi_snapshot(snapshot)

@@ -31,6 +31,11 @@ class MvpIntegration:
         if round3_step_replay is not None and robot_mode != 'MOCK':
             raise ValueError('ROUND3_STEP_REPLAY_IS_MOCK_ONLY')
         self.round3_step_replay = deepcopy(round3_step_replay)
+        self.saved_observation_replay = (round3_step_replay is not None
+            and 'saved_observations' in round3_step_replay)
+        if self.saved_observation_replay and round3_step_replay.get('provenance') != 'SYNTHETIC':
+            raise ValueError('SAVED_OBSERVATION_REPLAY_REQUIRES_SYNTHETIC_INPUT')
+        self.saved_observation_index = 0
         if robot_mode not in ('MOCK', 'REAL'):
             raise ValueError('explicit robot mode required')
         if c_mode not in ('offline', 'live'):
@@ -62,6 +67,7 @@ class MvpIntegration:
         self.owner_state = 'NOT_STARTED'
         self.workflow = MvpWorkflow(self.emit, runtime_settings or settings(), directory,
                                     mode='REAL' if robot_mode == 'REAL' else 'FAKE')
+        self.workflow.saved_observation_replay = self.saved_observation_replay
         self.b = connect_inspection(lambda value:self.inbox.put(('b',value)),
             observe=self.observe, geometry_reference=self.workflow.settings['geometry_reference'])
         self.workflow.b = self.b
@@ -75,6 +81,21 @@ class MvpIntegration:
     def observe(self, context, active):
         if not active():
             raise ValueError('inspection canceled')
+        if self.saved_observation_replay:
+            records = self.round3_step_replay['saved_observations']
+            index = self.saved_observation_index
+            if index >= len(records):
+                raise ValueError('SAVED_OBSERVATION_MISSING')
+            packet = deepcopy(records[index])
+            if packet['check_kind'] != context['check_kind']:
+                raise ValueError('SAVED_OBSERVATION_KIND_MISMATCH')
+            if context['check_kind'] == 'STEP' and packet.get('target_block') != self.workflow.step()['after']:
+                raise ValueError('SAVED_OBSERVATION_STEP_MISMATCH')
+            if not active():
+                raise ValueError('inspection canceled')
+            self.saved_observation_index += 1
+            value = packet['observation']
+            return dict(value, check_id=context['check_id'], observation_seq=context['observation_seq']), {}
         value = deepcopy(self.observations.pop(0)) if self.observations else dict(status='OK',
             visible_blocks=deepcopy(self.scene),
             verified_regions=[dict(x=0,y=0,width=24,height=24,layer=i) for i in range(1,6)],reason=None)
@@ -115,7 +136,16 @@ class MvpIntegration:
         elif port == 'robot.EXECUTE':
             self.last_document = execution_document(payload['bundle'],payload['execution_id'])
             if self.round3_step_replay is not None:
-                self.last_document['round2_replay'] = deepcopy(self.round3_step_replay)
+                replay = deepcopy(self.round3_step_replay)
+                if self.saved_observation_replay:
+                    block = self.last_document['step']['block']
+                    matches = [m for m in replay.pop('measurements', []) if m['block'] == block]
+                    if len(matches) != 1:
+                        raise ValueError('SAVED_REPLAY_EXACT_STEP_MEASUREMENT_REQUIRED')
+                    replay['measured'] = matches[0]
+                    replay.pop('saved_observations')
+                    replay['saved_observation_flow'] = True
+                self.last_document['round2_replay'] = replay
             self.robot.send('EXECUTE',document=deepcopy(self.last_document))
         elif port == 'robot.RESUME':
             if self.last_document is None:
@@ -159,6 +189,9 @@ class MvpIntegration:
         return True
 
     def command(self, name):
+        if self.saved_observation_replay and name in (
+                'RESUME', 'REINSPECT', 'REQUEST_DESIGN_CHANGE', 'CONTINUE_AFTER_CORRECTION'):
+            return False  # The file describes one fixed capture sequence, not a new scene.
         if name == 'START':
             if self.workflow.status not in ('IDLE','COMPLETE') or self.workflow.storage=='PENDING':return False
             if self.login_pending or self.owner_state=='PENDING':return False
@@ -166,6 +199,7 @@ class MvpIntegration:
                 self.creator_reason='시작 전에 제작자 로그인이 필요합니다.'
                 return False
             self.scene, self.slot_indices = [],{}
+            self.saved_observation_index = 0
             self.consumed_executions.clear()
             self.scene_executions.clear()
             self.cancelled = Event()
@@ -529,8 +563,12 @@ def main(runtime_class=MvpIntegration, *, real_trial=False):
                 window.notice.setPlainText(window.notice.toPlainText()+'\n제스처가 인식되지 않으면 확인 버튼을 누르세요.')
         if runtime.c_pending:window.notice.setPlainText(runtime.question)
         if args.round3_step_replay is not None:
-            window.heading.setText('통합 2단계 · A 한 Step → round2 제어 · 합성 관측/반력 · 실제 장치 없음')
-            window.setWindowTitle('Round3 A Step 연결 검사 · MOCK 전용')
+            window.heading.setText('ABCD 저장 관측 검사 · 실제 장치 없음' if runtime.saved_observation_replay else
+                '통합 2단계 · A 한 Step → round2 제어 · 합성 관측/반력 · 실제 장치 없음')
+            window.setWindowTitle('Round3 ABCD 저장 관측 검사 · MOCK 전용' if runtime.saved_observation_replay else
+                'Round3 A Step 연결 검사 · MOCK 전용')
+            if runtime.saved_observation_replay:
+                window.reinspection_button.hide()
         if real_trial and args.round3_fixed_step:
             window.setWindowTitle('Round3 · T1 고정 로봇 시험 · 최종 조립 판정 아님')
             window.heading.setText('T1: 노랑 2×2 슬롯4 → (9,9,L2) · 기존 8블록 배치 필요')
