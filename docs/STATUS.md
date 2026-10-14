@@ -1117,3 +1117,4 @@ GPU 현재 A snapshot92파일을 CPU deliverables/GPU_A_수정본_CPU보관_2026
 - 기존 원본62,186행을 분리 시험 DB의 rollback 범위에서 적재해7,294건 선택, Design v1/v2/v3·제스처 후보·마지막 CAMERA_FAILED 보존을 확인했다. 원본64,575,350bytes 사본과 운영 DB 백업은 로컬에 별도 보관하고 Git에 포함하지 않았다. 운영 DB events62,185/jobs1/users1/artifacts9/영수증1/공개0이 유지됨을 확인했다.
 - 같은 로컬 DB에서 도안 library 조회0.047초, summary 조회0.649초/응답11,159bytes를 한 번 측정했다. 서버 DB 조회 기준이며 전체 사용자 응답 시간 상한이나 성능 보장은 아니다. 전체 이력·원본은 운영 CLI/API와 별도 파일로 유지한다. [정책·실행·한계](D_HISTORY_SELECTION.md).
 - 로컬 웹 서버에 적용했다. 실제 게시·삭제·Robot/ROS/장치 동작은 실행하지 않았다. 사용자 요청에 따라 위 변경을 integration-round2 대상 PR로 게시하며 병합은 사람 리뷰 대상이다.
+- [PR #49](https://github.com/suuuhululu/C-2/pull/49) 게시 완료: base=`codex/integration-round2`, head=`codex/web-design-refresh-20261014`. 현재 OPEN이며 병합하지 않았다.
