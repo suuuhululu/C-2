@@ -135,8 +135,9 @@
         "id": 5,
         "name": "완전 회전 결착·개방·결과 검사",
         "verification_kind": "REAL_ASSEMBLY",
-        "status": "PENDING",
-        "physical_test_verified": false
+        "status": "PREPARED_FOR_FIELD_TEST",
+        "physical_test_verified": false,
+        "software_verified": true
       },
       {
         "id": 6,
@@ -153,7 +154,7 @@
         "physical_test_verified": false
       }
     ],
-    "next_development_stage": 5
+    "next_development_stage": 6
   },
   "stage_0_verification": {
     "status": "PASS",
@@ -284,6 +285,45 @@
       "board fixation",
       "stage3 REAL held arc run and operator review",
       "stage4 operator engagement/partial-motion/grasp/structure observations"
+    ]
+  },
+  "stage_5_verification": {
+    "status": "PREPARED_FOR_FIELD_TEST",
+    "related_tests_passed": 310,
+    "new_regression_cases": 26,
+    "physical_commands": 0,
+    "default_grasp_mode": "STANDARD",
+    "default_pad_bottom_height_mm": 5,
+    "optional_press_enabled_by_default": false,
+    "real_seating_release_press_executed": false,
+    "interactive_desktop_popup_verified": false,
+    "available_field_records": "READ_ONLY_STAGE2_CAPTURES_AND_MISSING_GEOMETRY_STAGE3_PREVIEW_ONLY",
+    "contact_conditions_promoted_to_material_limits": false,
+    "test_environment": "Fake noncontact contract robot ID isolated in test process; real exclusive lock unchanged",
+    "initial_shared_lock_run": {
+      "passed": 301,
+      "failed_due_to_lock_contention": 9,
+      "tests_not_skipped": true
+    },
+    "checks": [
+      "existing standard5 first grasp and OpenCV assist/fallback; human15 requires measured input",
+      "REAL stage4 run and operator engagement/partial/conditions review, exact registered geometry and sampling binding",
+      "recorded contact configuration and available referenced measurements/air run reused without duplicate inputs",
+      "positive and negative full XYZ/SO3 pivot, observed seating before one intentional opening",
+      "actual after-open XY/attitude preserved for vertical rise and optional press; no nominal XY reset",
+      "press disabled does not require pad datum; enabled requires measured target/tool/grasp/pose/profile conditions",
+      "registered plane-based press Z, closed empty pad status0/2 and transient busy+grip bits",
+      "position press raw45N STOP and no-threshold travel result separate from seating; no native force control",
+      "known pressure stop allows passive inspection only; no automatic retreat, opening or motion resend",
+      "force/moment/width/unknown/ACK faults stop before release; pressure faults retain current empty-pad state",
+      "current node-free preview, software regression and synthetic diagram visual check; no measurement promotion"
+    ],
+    "remaining": [
+      "measured grasp relation/seated block/contact axis/board fixation",
+      "stage3 REAL air arc and operator review",
+      "stage4 REAL partial engagement and verified trial conditions",
+      "stage5 real full pivot and release stability observation",
+      "measured closed pad profile only if optional press is selected"
     ]
   }
 }

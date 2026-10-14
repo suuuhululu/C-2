@@ -277,3 +277,66 @@ python3 robot_control_integration/scripts/yellow4_contact_trial.py \
 ```
 
 현재4단계는 PREPARED_FOR_FIELD_TEST다. 미측정 입력/3단계 실제 결과/이번 걸림·부분 회전 실물 결과가 남아 있다. 5단계 요청 시 이 기록을 먼저 검토하며 명령 완료나 I 입력을 완전 체결 완료로 판단하지 않는다.
+
+## 5단계 산출물 — 완전 회전·개방 후 검사·선택적 중심 누름 준비
+
+`app/yellow4_seating_trial.py`와 `settings/yellow4_challenge_20261014/seating_trial.json`을 추가하고 기존 contact 실행기에 `--stage 5`를 연결했다. 기본 옵션은 계속4단계다. 공급 최초5mm 파지·OpenCV 검출/미검출/metric 보조/fallback·MoveL 경유와 관측·수동 걸림·부분 회전까지 같은 코드를 사용한다. 원본 공급/착좌/TCP/tool/보정, Round2 기본 step/Plan/B Current 및 다른 checkout은 변경하지 않는다. HUMAN_REPLACEMENT는 별도 실측15mm 공급 파지/같은 grasp_id 관계가 필요하며 +10mm 후보로 실행하지 않는다.
+
+### 입력과 실제 검증 경계
+
+현재 저장된 자료에는 읽기 전용2단계 캡처와3단계 미완성 preview만 있으며 실제3·4단계 회전 run은 없다. 따라서5단계는 **PREPARED_FOR_FIELD_TEST**다. 실제 파지 관계·착좌 블록 pose·축/방향·판 고정 및 앞 단계 실물 확인을 합성값으로 채우지 않는다. 분리 축은 결착 필수 조건으로 추가하지 않는다.
+
+`--partial-run`의4단계 run 내부 preview.json/events.jsonl에서 REAL 부분 회전 결과, 실제 작업자 걸림/부분 관찰 기록, 대상·grasp_id·파지 pose/관계·축·각도/간격·블록/stud·접촉 조건을 확인한다. ABORT/개방/누름을 수행한 run이나 달라진 조건은4단계 근거로 사용하지 않는다. `partial_trial_review`에는 실제 근거 `evidence_ref`와 `contact_axis_observed`, `rotation_direction_confirmed`, `grip_maintained`, `board_fixed`, `conditions_confirmed`를 실제 검토 후 true로 기록한다. 소프트웨어가 후보6mm/s·1°/s·45N·모멘트 변화1Nm을 실물 조건이나 물성 한도로 자동 승격하지 않는다.
+
+별도 `--contact-config`가 없으면4단계 run에 저장된 실제 사용 설정을 우선한다. `--measurements`/`--air-run`도 명시하지 않은 경우 기록된 출처 파일이 현재 존재하면 읽어 사용한다. 파일이 없으면 미확인으로 남기며 새 pose/축/실측 관계를 생성하지 않는다. 다른 파일을 명시하면 기록과 일치하는지 검사한다. 새로운 실물 시험은 공급판에서 다시 시작하며4단계 종료 위치에서 이어 움직이는 resume 명령이 아니다.
+
+### 결착·검사 순서
+
+공급판 빈 그리퍼60mm·1번 노랑 한 블록·빈 목표·정지 상태로 시작한다.4단계까지 G/A/N·E/R/I를 동일하게 수행한 뒤 **F로 나머지 접촉축 회전 → O로 착좌 상태 확인/개방 → 실제 개방 pose의 XY·자세 유지 수직 상승 → I로 개방 후 블록 위치/윗면 상태/유지 확인**을 수행한다. 의도적 기울임 이후에는 yaw/XY/수평/HJK 보정을 호출하지 않는다. 나머지 원호는 현재 실제 부분 회전 TCP에서 같은 BASE 축에 대한 XYZ+SO(3) 회전으로 계산하며 목표 모델 각도0°까지 간다.
+
+O는 작업자 착좌 관찰이고 I는 개방 후 유지 관찰이다. 실제 블록 RPY 수치/독립 위치 판정은 producer가 없어 UNKNOWN/null로 기록한다. `operator_reported_seated=true`와 `assembly_completion=false`를 구분한다. 위치·힘·모멘트·폭/미끄러짐·응답 불명·STOP이 먼저 발생하면 개방·자동 복구·재전송을 수행하지 않는다. 정상적으로 요청한 개방 이후의 실패도 다시 닫거나 개방을 반복하지 않고 현재 상태를 보존한다.
+
+### 선택적 닫힌 패드 누름
+
+기본 `press.enabled=false`이므로 패드 자료가 없다는 이유로 기본 결착/개방 후보를 막지 않는다. 누름을 선택할 경우 `press.profile`에 **실측 닫힌 빈 패드 접촉 TCP**와 같은 대상/grasp_id/TCP/tool 관계를 제공한다. 높이/자세가 null인 기존15mm pending 양식이나 단순 base-Z+10mm를 패드 datum으로 사용하지 않는다.
+
+프로파일 필드: `evidence_ref`, `pad_contact_verified=true`, `frame="BASE"`, 동일 `target`, `grasp_id`, `tcp`, `tool`, `contact_tcp_pose_mm_zyz_deg`, `parameter_ref`, 양의 `near_contact_offset_mm`, `max_travel_mm`, `velocity_mm_s`, `acceleration_mm_s2`, `empty_width_mm`, `empty_width_tolerance_mm`, `force_stop_n=45`. 접촉 pose는 등록된 착좌 XY/자세와 일치해야 한다. 숫자는 실제 캡처/검토 자료에서 지정한다. empty 폭12mm 이하 조건은 기존 RG2 빈 패드 경로에서 읽는 범위이며 status0/2를 둘 다 처리한다. status2만으로 블록을 쥐었다고 판정하지 않는다.
+
+누름 전 실제 개방 후 FK pose를 사용해 XY·자세를 고정한다. 등록된 블록 평면의 normal과 실측 패드 접촉 pose로 실제 XY에서의 접촉 Z를 계산하고 명시된 near offset을 적용한다. 이 계산은 현재 놓인 블록의 실제 평면 재측정이 아니다. 같은 자세의 datum/현재 관찰이 불명확하면 UNKNOWN/중단으로 남긴다. 높이는 실제 개방 pose+검토한 clearance와 측정된 near-contact 높이+clearance 중 높은 값으로 수직 상승한다.
+
+I로 개방 후 유지 확인 → P로 선택 누름 시작 → 빈 그리퍼 닫기 → 같은 XY/자세로 near-contact까지 수직 하강 → 기존 `assembly_press_trial.press`의 위치 하강을 수행한다. raw 합력45N은 STOP 조건이며 일정45N 유지 힘 제어가 아니다. 패드 접근/누름에는45N과 기준 모멘트 변화 검사를 유지한다. 네이티브 force/compliance 명령은 호출하지 않는다.
+
+결과는 `FORCE_THRESHOLD_REACHED_STOP_VERIFIED` 또는 `MAX_TRAVEL_REACHED_WITHOUT_FORCE_THRESHOLD`이며 둘 다 체결 성공 판정이 아니다. 압력 중단/이동 한도 종료 후 자동 상승/개방/재시도 없이 정지 위치에서 I로 관찰한다. 확인된 압력 STOP 뒤의 수동 관찰에서는 같은45N을 다시 실패로 처리하지 않지만 장치·그리퍼·피드백 검사는 계속한다. 오류/창 닫기와 nested 누름 STOP은 UI 없이 ROS 응답을 처리하며 이미 요청한 STOP/이동을 자동 재전송하지 않는다.
+
+### 사용자 실행
+
+현재 상태를 장치 연결 없이 확인한다.
+
+```bash
+cd "/home/rokey/Documents/ChatGPT/로봇제어 개발/c2_integration_challenge"
+python3 robot_control_integration/scripts/yellow4_contact_trial.py --stage 5 --output logs/yellow4-challenge-stage5-preview
+```
+
+앞 단계 실제 run과 검토가 준비된 뒤 `seating_trial.json`의 별도 검토 복사본을 사용한다. 아래 경로는 실제 파일로 바꾸고 원호 그림/preview의 출처와 누락을 먼저 확인한다. 기본은 누름 제외다.
+
+```bash
+python3 robot_control_integration/scripts/yellow4_contact_trial.py --stage 5 \
+  --config /절대경로/seating-trial-reviewed.json \
+  --partial-run /절대경로/stage4/run-실제기록 \
+  --start-zone home --output logs/yellow4-challenge-stage5
+```
+
+기록된 원본 파일이 다른 위치에 있다면 `--measurements /절대경로/measurements.json --air-run /절대경로/stage3/run-실제기록 --contact-config /절대경로/contact-trial-reviewed.json`으로 명시한다. source/관계/조건을 다시 검사한다. 실제 장치 실행은 데스크톱 터미널에서 사용자만 수행한다.
+
+```bash
+source /opt/ros/jazzy/setup.bash
+source /home/rokey/cobot2_ws/install/setup.bash
+export ROS_DOMAIN_ID=20
+python3 robot_control_integration/scripts/yellow4_contact_trial.py --stage 5 \
+  --config /절대경로/seating-trial-reviewed.json \
+  --partial-run /절대경로/stage4/run-실제기록 \
+  --start-zone home --output logs/yellow4-challenge-stage5 \
+  --execute --confirm-hand-clear --confirm-route-clear --confirm-target-empty
+```
+
+기존 command/actual/SO(3)/폭/raw wrench/작업자 입력·시간·최대5Hz RGB/overlay 기록을 유지하고 실제 개방 pose·패드 높이 계산·누름 결과를 추가 저장한다. 압력 구간도 실제 TCP/SO(3) 오차를 기록한다. 실제 팝업 조작/결착/개방 후 유지/패드 누름은 미검증이다. 다음6단계는 이 결과와 완전 결착된 노랑 한 블록을 확인하고 별도 분리 재파지/축 자료로 준비한다.

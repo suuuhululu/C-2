@@ -1,0 +1,11 @@
+{
+  "schema_version": "yellow4-seating-trial/1",
+  "partial_trial_review": null,
+  "post_release_clearance_mm": 20,
+  "post_release_clearance_source": "PRIOR_USER_TARGET_PLUS20_OBSERVATION_REQUEST",
+  "press": {
+    "enabled": false,
+    "profile": null
+  },
+  "note": "Stage5 preparation only. partial_trial_review requires evidence_ref, contact_axis_observed, rotation_direction_confirmed, grip_maintained, board_fixed and conditions_confirmed (all true). Existing contact candidates are not promoted by software. Optional press needs measured closed-pad contact TCP and target/tool/grasp binding; no guessed heights."
+}

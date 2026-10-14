@@ -1,4 +1,4 @@
-"""Preview or explicitly run operator-observed yellow4 partial seating only."""
+"""Preview or explicitly run yellow4 Stage4 partial or Stage5 seating trials."""
 import argparse
 from copy import deepcopy
 import fcntl
@@ -14,6 +14,7 @@ import numpy as np
 ROOT=Path(__file__).resolve().parents[2]
 sys.path[:0]=[str(ROOT/'robot_control_integration'),str(ROOT/'perception')]
 from app.yellow4_contact_trial import prepare_contact,execute
+from app.yellow4_seating_trial import prepare_seating
 from app.yellow4_observation import prepare,analyze,source,save_capture
 from app.assembly_motion_ros import AssemblyMotionRos
 from scripts.yellow4_air_trial import TrialWindow,_pump_sleep
@@ -24,14 +25,14 @@ from supply_vision.virtual_board_grid import project_base
 
 class ContactWindow(TrialWindow):
     def __init__(self,observer,bundle,plan):
-        super().__init__(observer,bundle,plan,title='Yellow4 CONTACT | operator engagement / partial pivot | ESC STOP')
+        super().__init__(observer,bundle,plan,title=f"Yellow4 STAGE {plan.get('stage',4)} | operator contact trial | ESC STOP")
         c=plan['contact']
         self.banner=f"CONTACT CANDIDATES: {c['linear_velocity_mm_s']}mm/s, {c['angular_velocity_deg_s']}deg/s | STOP {c['force_stop_n']}N / dM {c['moment_delta_stop_nm']}Nm"
         self.view='supply';self.active={};self.answer=None;self.key_handler=self.key
         self.evidence_root=None;self.evidence_futures=[]
         self.selection=None;self.clicks=[]
         self.instructions=['G grasp / A aligned / N next descent / E stud engaged / R partial pivot / I inspected',
-            'Only highlighted phase keys accepted; L board lift / S grip slip / M contact moved / U unknown = STOP',
+            'STOP: L board/structure lift | S grip slip | M contact moved | U unknown | ESC',
             'B supply ROI / T click TOP edge endpoints / C clear | pixel yaw only; block roll/pitch UNKNOWN']
         cv2.setMouseCallback(self.title,self.click)
 
@@ -44,14 +45,14 @@ class ContactWindow(TrialWindow):
         # The Stage2 helper's default path reaches 0 degrees; Stage4 displays only its partial arc.
         canvas,report=analyze(frame,dict(self.bundle,geometry_config=None),view,
             sample=sample,info=info,grid=self.grid,edge=edge,roi=roi,stamp_ns=stamp_ns)
-        g=self.plan['partial_geometry'];reference=report.get('grid_reference',{})
+        g=self.plan.get('seating_geometry',self.plan['partial_geometry']);reference=report.get('grid_reference',{})
         if info is not None and 'T_base_from_camera_mm' in reference:
             transform=np.array(reference['T_base_from_camera_mm'])
             path,ok=project_base([p['tcp_mm_zyz_deg'][:3] for p in g['waypoints']],transform,info['k'],info['d'])
             axis,valid=project_base(g['contact_line_points_mm'],transform,info['k'],info['d'])
             if ok.all():cv2.polylines(canvas,[path.astype(np.int32)],False,(255,0,255),2)
             if valid.all():cv2.line(canvas,tuple(axis[0].astype(int)),tuple(axis[1].astype(int)),(0,140,255),3)
-        report.update(planned_path_source='PARTIAL_CONTACT_GEOMETRY_NOT_PHYSICALLY_VERIFIED',
+        report.update(planned_path_source='FULL_CONTACT_GEOMETRY_NOT_PHYSICALLY_VERIFIED' if self.plan.get('stage')==5 else 'PARTIAL_CONTACT_GEOMETRY_NOT_PHYSICALLY_VERIFIED',
             planned_partial_tilt_deg=[g['waypoints'][0]['tilt_deg'],g['waypoints'][-1]['tilt_deg']])
         return canvas,report
 
@@ -75,7 +76,8 @@ class ContactWindow(TrialWindow):
             self.selection=None;self.clicks=[]
 
     def operator(self,phase,allowed,poll):
-        keys={'GRASP_MATCH':'G','ALIGNED':'A','NO_ENGAGEMENT_NEXT':'N','STUD_ENGAGED':'E','PIVOT_READY':'R','PARTIAL_OBSERVED':'I'}
+        keys={'GRASP_MATCH':'G','ALIGNED':'A','NO_ENGAGEMENT_NEXT':'N','STUD_ENGAGED':'E','PIVOT_READY':'R','PARTIAL_OBSERVED':'I',
+            'FULL_PIVOT_READY':'F','SEATED_READY_TO_RELEASE':'O','POST_RELEASE_STABLE':'I','PRESS_READY':'P','POST_PRESS_OBSERVED':'I'}
         self.active={keys[a]:a for a in allowed};self.answer=None;self.label=phase
         self.instructions[0]='NOW: '+' / '.join(f'{k}: {v}' for k,v in self.active.items())
         try:
@@ -107,6 +109,12 @@ class ContactWindow(TrialWindow):
             self.sample=data['sample']
         if event=='MOVE_REQUEST' and data['label']=='ASSEMBLY_OBSERVATION':self.view='assembly'
         if event=='MOVE_REQUEST':self.instructions[0]='MOVING: phase confirmation keys disabled; fault keys / ESC remain active'
+        if event=='PAD_MOVE_REQUEST':
+            self.label='PAD_'+data['segment'];self.target=data['target']
+            self.instructions[0]='PRESS MOVING: no automatic release/retry; ESC/fault keys active'
+        if event=='PAD_WRENCH_SAMPLE':self.sample=data['sample']
+        if event=='PAD_MOTION_SAMPLE':
+            self.sample=data['sample'];self.error=f"{data['position_error_mm']:.4f} mm / {data['so3_error_deg']:.4f} deg"
 
     def save_evidence(self,path,frame,sample,info,stamp,captured_unix,view,event,edge,roi):
         canvas,report=self.analyze_frame(frame,sample,info,view,edge,roi,stamp_ns=stamp)
@@ -126,29 +134,62 @@ def read_air_evidence(run):
         sources=dict(events=source(run/'events.jsonl'),preview=source(run/'preview.json')))
 
 
+def read_partial_evidence(run):
+    events=[json.loads(line) for line in (run/'events.jsonl').read_text().splitlines()]
+    if any(e['event']=='ABORT' for e in events):raise ValueError('ABORTED_PARTIAL_RUN_IS_NOT_COMPLETION_EVIDENCE')
+    result=next((e['data'] for e in reversed(events) if e['event']=='RESULT'),None)
+    if result is None:raise ValueError('PARTIAL_RUN_RESULT_REQUIRED')
+    return dict(result=result,events=events,preview=json.loads((run/'preview.json').read_text()),
+        sources=dict(events=source(run/'events.jsonl'),preview=source(run/'preview.json')))
+
+
 def main(argv=None):
     p=argparse.ArgumentParser(description=__doc__)
-    p.add_argument('--config',type=Path,default=ROOT/'robot_control_integration/settings/yellow4_challenge_20261014/contact_trial.json')
+    p.add_argument('--stage',type=int,choices=(4,5),default=4)
+    p.add_argument('--config',type=Path)
+    p.add_argument('--contact-config',type=Path)
     p.add_argument('--observations',type=Path,default=ROOT/'robot_control_integration/settings/yellow4_challenge_20261014/observation.json')
     p.add_argument('--measurements',type=Path);p.add_argument('--air-run',type=Path);p.add_argument('--output',type=Path,required=True)
+    p.add_argument('--partial-run',type=Path)
     p.add_argument('--start-zone',choices=('home','supply','assembly'),default='home')
     p.add_argument('--execute',action='store_true');p.add_argument('--confirm-hand-clear',action='store_true')
     p.add_argument('--confirm-route-clear',action='store_true');p.add_argument('--confirm-target-empty',action='store_true')
-    args=p.parse_args(argv);settings=json.loads(args.config.read_text());obs=json.loads(args.observations.read_text())
+    args=p.parse_args(argv)
+    args.config=args.config or ROOT/('robot_control_integration/settings/yellow4_challenge_20261014/'+('seating_trial.json' if args.stage==5 else 'contact_trial.json'))
+    settings=json.loads(args.config.read_text());obs=json.loads(args.observations.read_text())
+    partial=read_partial_evidence(args.partial_run) if args.stage==5 and args.partial_run else None
+    # Reuse the exact inputs recorded by Stage4 when no new file is explicitly selected.
+    if partial is not None:
+        refs=partial['preview']['sources']
+        if args.measurements is None and refs.get('field_measurements'):
+            candidate=Path(refs['field_measurements']['path'])
+            if candidate.exists():args.measurements=candidate
+        if args.air_run is None and refs.get('air_run'):
+            candidate=Path(refs['air_run']['events']['path']).parent
+            if (candidate/'events.jsonl').exists():args.air_run=candidate
     bundle=prepare(ROOT,obs,json.loads(args.measurements.read_text()) if args.measurements else None)
     bundle['camera_info_topic']=obs['camera_info_topic']
     air_evidence=read_air_evidence(args.air_run) if args.air_run else None
-    plan=prepare_contact(bundle,settings,air_evidence)
-    plan['sources'].update(contact_settings=source(args.config),observation_settings=source(args.observations))
+    if args.stage==5:
+        if args.contact_config is not None:contact_settings=json.loads(args.contact_config.read_text());contact_source=source(args.contact_config)
+        elif partial is not None:contact_settings=deepcopy(partial['preview']['settings']);contact_source=dict(recorded_in=partial['sources']['preview'])
+        else:
+            args.contact_config=ROOT/'robot_control_integration/settings/yellow4_challenge_20261014/contact_trial.json'
+            contact_settings=json.loads(args.contact_config.read_text());contact_source=source(args.contact_config)
+        plan=prepare_seating(bundle,contact_settings,settings,air_evidence,partial)
+        plan['sources'].update(seating_settings=source(args.config),contact_settings=contact_source)
+        if partial is not None:plan['sources']['partial_run']=partial['sources']
+    else:plan=prepare_contact(bundle,settings,air_evidence);plan['sources']['contact_settings']=source(args.config)
+    plan['sources']['observation_settings']=source(args.observations)
     if args.measurements:plan['sources']['field_measurements']=source(args.measurements)
     if args.air_run:plan['sources']['air_run']=air_evidence['sources']
     plan['sources']['historical_moment_trial']=source(ROOT/'robot_control_integration/settings/held_corner_stud_20261014/README.md')
     args.output.mkdir(parents=True,exist_ok=True)
     (args.output/'preview.json').write_text(json.dumps(plan,ensure_ascii=False,indent=2,allow_nan=False)+'\n')
-    if 'partial_geometry' in plan:save_plot([plan['partial_geometry']],args.output/'partial-path.png')
+    if 'partial_geometry' in plan:save_plot([plan.get('seating_geometry',plan['partial_geometry'])],args.output/('seating-path.png' if args.stage==5 else 'partial-path.png'))
     if not args.execute:
         print(json.dumps({k:plan[k] for k in ('status','execution_ready','grasp_mode','contact','missing_measurements','physical_commands')},ensure_ascii=False,indent=2));return 0
-    if not plan['execution_ready']:p.error('실측 파지/결착 축/판 고정 및 3단계 실제 시험·검토 기록이 필요합니다. preview.json을 확인하세요.')
+    if not plan['execution_ready']:p.error('실측 입력과 앞 단계 실제 시험·검토 기록이 필요합니다. preview.json의 누락 항목을 확인하세요.')
     if not all((args.confirm_hand_clear,args.confirm_route_clear,args.confirm_target_empty)):p.error('--confirm-hand-clear --confirm-route-clear --confirm-target-empty required')
     if os.environ.get('ROS_DOMAIN_ID')!=str(plan['connection']['ros_domain_id']):raise ValueError('ROS_DOMAIN_MISMATCH')
     if not (os.environ.get('DISPLAY') or os.environ.get('WAYLAND_DISPLAY')):raise RuntimeError('DESKTOP_DISPLAY_REQUIRED')
@@ -172,8 +213,8 @@ def main(argv=None):
                     nonlocal last_motion_image
                     window.feedback(event,data);now=time.time()
                     journal.write(json.dumps(dict(event=event,data=data,unix_s=now,rgb_stamp_ns=observer.stamp_ns),ensure_ascii=False,allow_nan=False)+'\n');journal.flush()
-                    motion_image=event=='MOTION_SAMPLE' and now-last_motion_image>=.2
-                    if (event in ('START','WAYPOINT_REACHED','OPERATOR_OBSERVATION','RESULT','ABORT') or motion_image) and observer.frame is not None:
+                    motion_image=event in ('MOTION_SAMPLE','PAD_MOTION_SAMPLE') and now-last_motion_image>=.2
+                    if (event in ('START','WAYPOINT_REACHED','OPERATOR_OBSERVATION','ACTUAL_RELEASE_POSE','PAD_PRESS_RESULT','RESULT','ABORT') or motion_image) and observer.frame is not None:
                         if motion_image:last_motion_image=now
                         sample=data.get('sample',data.get('final_sample'))
                         evidence.append(window.pool.submit(window.save_evidence,run/('evidence-'+str(time.time_ns())),

@@ -1,4 +1,4 @@
-"""One yellow4 operator-observed engagement and partial pivot; no release/press."""
+"""Yellow4 contact trial; Stage4 partial hold and explicit Stage5 completion."""
 from copy import deepcopy
 import math
 import time
@@ -86,23 +86,24 @@ def execute(driver,plan,start_zone,record,observe_supply,operator,*,sleep=time.s
     if not plan['execution_ready']:raise ValueError('CONTACT_FIELD_INPUTS_AND_AIR_REVIEW_REQUIRED')
     c=plan['contact'];runtime=plan['runtime'];rates=plan['rates'];connection=plan['connection']
     expected=0;attempted=False;contact=False;baseline=None;width=None;last=None;moves=0;grips=0
+    press_terminal=False;pad_phase=False;nested_stop=None;releases=0;pad_closes=0;pad_moves=0
     def sample(automatic=True,busy=False):
         nonlocal last
         while True:
-            last=driver.sample();force=c['force_stop_n'] if contact else runtime['force_stop_n']
+            last=driver.sample();force=45 if pad_phase else c['force_stop_n'] if contact else runtime['force_stop_n']
             status=last['gripper_status']
-            if busy and status not in (0,1,2):raise RuntimeError('GRIPPER_FAULT')
+            if busy and status not in (0,1,2,3):raise RuntimeError('GRIPPER_FAULT')
             checked=dict(last,gripper_status=expected if busy else status)
-            if math.hypot(*last['wrench'][:3])>=force:raise RuntimeError('FORCE_NORM_STOP_LIMIT_REACHED')
+            if not press_terminal and math.hypot(*last['wrench'][:3])>=force:raise RuntimeError('FORCE_NORM_STOP_LIMIT_REACHED')
             if contact:
                 delta=math.dist(last['wrench'][3:],baseline[3:])
                 if delta>=c['moment_delta_stop_nm']:raise RuntimeError('CONTACT_MOMENT_DELTA_STOP')
             if width is not None and abs(last['gripper_width_mm']-width)>=c['width_drift_stop_mm']:
                 raise RuntimeError('GRASP_WIDTH_DRIFT_STOP')
             if last['query_duration_s']<=.5:
-                guard(checked,connection,None,automatic=automatic,force_norm_limit=force,required_gripper_status=expected)
+                guard(checked,connection,None,automatic=automatic,force_norm_limit=None if press_terminal else force,required_gripper_status=expected)
                 return last
-            guard(dict(checked,query_duration_s=.5),connection,None,automatic=automatic,force_norm_limit=force,required_gripper_status=expected)
+            guard(dict(checked,query_duration_s=.5),connection,None,automatic=automatic,force_norm_limit=None if press_terminal else force,required_gripper_status=expected)
             if not motion_still(last):raise RuntimeError('STALE_MOVING_FEEDBACK')
             record('FEEDBACK_REFRESH_WAIT',dict(sample=last,motion_command_resent=False));sleep(.02)
     def stopped(automatic=True):
@@ -115,6 +116,7 @@ def execute(driver,plan,start_zone,record,observe_supply,operator,*,sleep=time.s
         if max(mm,deg)>.05:raise RuntimeError('IK_FK_TARGET_MISMATCH')
     def move(label,target,*,loaded_contact=False):
         nonlocal moves,attempted
+        if press_terminal:raise RuntimeError('PRESS_TERMINAL_INSPECTION_ONLY_NO_AUTOMATIC_MOTION')
         before=stopped();preflight(target);mm,deg=pose_error(before['posx'],target)
         if max(mm,deg)<=.05:return before
         vertical=math.dist(before['posx'][:2],target[:2])<=.05
@@ -141,6 +143,22 @@ def execute(driver,plan,start_zone,record,observe_supply,operator,*,sleep=time.s
             operator_report_not_automatic_classifier=True))
         if answer not in allowed:raise RuntimeError('OPERATOR_OBSERVATION_UNKNOWN_OR_STOP:'+str(answer))
         return answer,s
+    def post_release_grip(width_mm,*,empty_pad=False):
+        nonlocal expected,attempted,releases,pad_closes
+        stopped();record('GRIP_REQUEST',dict(width_mm=width_mm,force_n=runtime['gripper_force_n'],
+            context='EMPTY_CLOSED_PAD' if empty_pad else 'OBSERVED_SEATING_RELEASE'))
+        attempted=True;driver.command_gripper(width_mm,runtime['gripper_force_n'])
+        if empty_pad:pad_closes+=1
+        else:releases+=1
+        deadline=clock()+10;stable=0
+        while True:
+            s=sample(busy=True);status=s['gripper_status'];actual=s['gripper_width_mm']
+            complete=(status in (0,2) and abs(actual-width_mm)<=plan['press']['profile']['empty_width_tolerance_mm']) if empty_pad else status==0 and actual>=width_mm-1
+            stable=stable+1 if complete and motion_still(s) else 0
+            record('GRIP_FEEDBACK',dict(sample=s,empty_pad_context=empty_pad))
+            if stable>=3:expected=status;return s
+            if clock()>deadline:raise TimeoutError('GRIPPER_FEEDBACK_TIMEOUT')
+            sleep(.1)
     try:
         first=stopped(False)
         if first['gripper_width_mm']<runtime['open_mm']-1:raise RuntimeError('START_WITH_OPEN_EMPTY_GRIPPER_REQUIRED')
@@ -197,6 +215,79 @@ def execute(driver,plan,start_zone,record,observe_supply,operator,*,sleep=time.s
         for i,p in enumerate(plan['partial_geometry']['waypoints'][1:]):
             move(f'PARTIAL_PIVOT_{i:03d}',rotate_about_contact_line(engaged,axis,p['tilt_deg']-start_angle),loaded_contact=True)
         _,final=ask('PARTIAL_RESULT_INSPECTION',('PARTIAL_OBSERVED',))
+        if plan.get('stage')==5:
+            from app.yellow4_seating_trial import press_targets
+            ask('FULL_PIVOT_READY',('FULL_PIVOT_READY',))
+            partial_angle=plan['remaining_tilt_deg'];partial_tcp=stopped()['posx']
+            remainder=[p for p in plan['seating_geometry']['waypoints'] if abs(p['tilt_deg'])<abs(partial_angle)]
+            for i,p in enumerate(remainder):
+                move(f'FULL_PIVOT_{i:03d}',rotate_about_contact_line(partial_tcp,axis,p['tilt_deg']-partial_angle),loaded_contact=True)
+            # User observation precedes the one intentional release, never a force-stop recovery.
+            ask('SEATING_RELEASE_INSPECTION',('SEATED_READY_TO_RELEASE',))
+            before_release=stopped()['posx'];clearance=plan['post_release_clearance_mm'];p=plan['press']['profile']
+            targets=press_targets(plan,before_release,p,clearance) if plan['press']['enabled'] else None
+            high=targets['high'] if targets else [*before_release[:2],before_release[2]+clearance,*before_release[3:]]
+            preflight(high)
+            if targets:preflight(targets['start'])
+            contact=False;width=None
+            post_release_grip(runtime['open_mm'])
+            released=stopped()['posx'].copy()
+            record('ACTUAL_RELEASE_POSE',dict(sample=last,released_pose=released,block_rpy_deg=None,block_position_independently_verified=False))
+            targets=press_targets(plan,released,p,clearance) if plan['press']['enabled'] else None
+            high=targets['high'] if targets else [*released[:2],released[2]+clearance,*released[3:]]
+            move('POST_RELEASE_VERTICAL_RISE',high)
+            ask('POST_RELEASE_INSPECTION',('POST_RELEASE_STABLE',))
+            pressed=None
+            if plan['press']['enabled']:
+                from scripts.assembly_press_trial import press
+                ask('CLOSED_PAD_PRESS_READY',('PRESS_READY',))
+                pad_phase=True
+                post_release_grip(p['empty_width_mm'],empty_pad=True)
+                record('CENTERED_VERTICAL_PRESS',dict(released_pose=released,targets=targets,
+                    empty_pad_status=expected,force_stop_n=45,constant_force_control=False))
+                baseline=stopped()['wrench'];contact=True
+                move('CLOSED_PAD_VERTICAL_LOWER',targets['start'],loaded_contact=True)
+                press_baseline=baseline
+                pad_target=None
+                def press_record(event,data):
+                    nonlocal pad_moves,nested_stop,pad_target,last
+                    if event=='MOVE_REQUEST':pad_moves+=1;pad_target=data['target']
+                    if event=='ABORT':nested_stop=data['stop']
+                    s=data.get('sample') if isinstance(data,dict) else None
+                    if event in ('INITIAL_SAMPLE','INITIAL_STILL_WAIT_SAMPLE'):s=data
+                    if s is not None and 'wrench' in s:
+                        last=s
+                        delta=math.dist(s['wrench'][3:],press_baseline[3:])
+                        record('PAD_WRENCH_SAMPLE',dict(sample=s,moment_delta_norm_nm=delta))
+                        if delta>=c['moment_delta_stop_nm']:raise RuntimeError('PAD_MOMENT_DELTA_STOP')
+                    if event=='MOTION_SAMPLE' and pad_target is not None:
+                        mm,deg=pose_error(s['posx'],pad_target)
+                        data=dict(data,target=pad_target,position_error_mm=mm,so3_error_deg=deg)
+                    record('PAD_'+event,data)
+                previous_stop=driver.stop
+                def pad_stop():
+                    previous_pump=getattr(driver,'ui_pump',None)
+                    if hasattr(driver,'stop_ui_pump'):driver.ui_pump=driver.stop_ui_pump
+                    try:return previous_stop()
+                    finally:
+                        if hasattr(driver,'stop_ui_pump'):driver.ui_pump=previous_pump
+                driver.stop=pad_stop
+                try:
+                    pressed=press(driver,connection,press_record,max_travel_mm=p['max_travel_mm'],force_stop_n=45,
+                        velocity=p['velocity_mm_s'],acceleration=p['acceleration_mm_s2'],required_gripper_status=expected,
+                        clock=clock,sleep=sleep)
+                finally:driver.stop=previous_stop
+                # A verified pressure stop permits passive inspection only; no automatic retreat/release.
+                contact=False;press_terminal=True
+                _,final=ask('POST_PRESS_INSPECTION',('POST_PRESS_OBSERVED',))
+            else:final=stopped()
+            result=dict(status='FULL_SEATING_COMMANDS_AND_OPERATOR_REPORT_NOT_INDEPENDENTLY_VERIFIED',backend=driver.mode,
+                physical_commands=moves+grips+releases+pad_closes+pad_moves+1 if driver.mode=='REAL' else 0,
+                move_line_requests=moves+pad_moves,gripper_close_commands=grips+pad_closes,gripper_release_commands=releases,
+                press_commands=pad_moves,press_result=pressed,remaining_tilt_deg=0,final_sample=final,
+                operator_reported_seated=True,operator_reported_post_release_stable=True,
+                block_position_independently_verified=False,block_rpy_deg=None,assembly_completion=False,constant_force_control=False)
+            record('RESULT',result);return result
         result=dict(status='PARTIAL_PIVOT_COMMANDS_COMPLETED_OPERATOR_REPORT_NOT_SEATING',backend=driver.mode,
             physical_commands=moves+grips+1 if driver.mode=='REAL' else 0,move_line_requests=moves,gripper_close_commands=grips,
             gripper_release_commands=0,press_commands=0,remaining_tilt_deg=plan['remaining_tilt_deg'],final_sample=final,
@@ -204,7 +295,7 @@ def execute(driver,plan,start_zone,record,observe_supply,operator,*,sleep=time.s
         record('RESULT',result);return result
     except BaseException as error:
         failure=None;feedback=None
-        if attempted:
+        if attempted and not (nested_stop and nested_stop.get('requested')):
             previous=getattr(driver,'ui_pump',None)
             if hasattr(driver,'stop_ui_pump'):driver.ui_pump=driver.stop_ui_pump
             try:driver.stop();feedback=driver.motion_feedback()
@@ -215,6 +306,7 @@ def execute(driver,plan,start_zone,record,observe_supply,operator,*,sleep=time.s
             record('ABORT',dict(reason=str(error),sample=last,assembly_completion=False,automatic_open_or_retry=False))
             if feedback is not None:record('STOP_FEEDBACK',feedback)
             if failure is not None:record('STOP_FAILED',dict(reason=failure))
+            if nested_stop is not None:record('PAD_STOP_STATE',nested_stop)
         except Exception as log_error:error.add_note('ABORT_LOGGING_FAILED: '+str(log_error))
         if failure is not None:error.add_note('STOP_FAILED: '+failure)
         raise
