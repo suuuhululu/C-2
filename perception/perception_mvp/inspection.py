@@ -6,7 +6,8 @@ correction from actual deviations. A new approved Plan explicitly replaces model
 from copy import deepcopy
 from threading import RLock
 
-from .contracts import footprint, placement_key, region_cells, validate_block
+from .contracts import (footprint, placement_key, region_cells, validate_block,
+                        unverified_columns, INITIAL_MAX_UNKNOWN_COLUMNS)
 
 
 def _blocks(blocks):
@@ -83,6 +84,7 @@ class VisionInspection:
         self._plan = None
         self._active = None
         self._used_checks = set()
+        self._unknown_columns = set()
 
     @property
     def current(self):
@@ -111,6 +113,9 @@ class VisionInspection:
         if base["current_revision"] != self._current["current_revision"] or _keys(base["blocks"]) != _keys(self._current["blocks"]):
             raise ValueError("new Plan baseline differs from B Current")
         design, plan, models = build_step_models(design, plan, base)
+        for step in plan['steps']:
+            if {(x, y) for x, y, _ in footprint(step['after'])} & self._unknown_columns:
+                raise ValueError('PLAN_REGION_UNVERIFIED: additional INITIAL observation required')
         if self._plan is not None and plan["plan_id"] == self._plan["plan_id"]:
             raise ValueError("new Plan must have a new identifier")
         self._design, self._plan, self._models = design, plan, models
@@ -133,6 +138,9 @@ class VisionInspection:
         self._active = dict(check_id=check_id, plan_id=plan_id, step_id=step_id)
         self._used_checks.add(check_id)
         target = next(s["after"] for s in self._plan["steps"] if s["step_id"] == step_id)
+        if {(x, y) for x, y, _ in footprint(target)} & self._unknown_columns:
+            self._active = None
+            raise ValueError('PLAN_REGION_UNVERIFIED: additional INITIAL observation required')
         return dict(**deepcopy(self._active), expected=deepcopy(self._models[step_id]),
                     current=self.current, target_after=deepcopy(target))
 
@@ -258,7 +266,8 @@ class VisionInspection:
                                 expected=None, difference=dict(missing=[], unexpected=[], unobservable=[]))
                 visible = _blocks(observed['visible_blocks'])
                 verified = region_cells(observed['verified_regions'])
-                if not self._initialized and _unverified_regions(verified):
+                unknown_columns = unverified_columns(verified)
+                if len(unknown_columns) > INITIAL_MAX_UNKNOWN_COLUMNS:
                     self._active = None
                     raise ValueError('INITIAL_STATE_UNAVAILABLE: initial board coverage incomplete')
                 if not verified or any(not footprint(b) <= verified for b in visible):
@@ -270,8 +279,10 @@ class VisionInspection:
                 self._current = dict(current_revision=self._current['current_revision'] +
                                      int(_keys(blocks) != _keys(old)), blocks=blocks)
                 self._initialized, self._active = True, None
+                self._unknown_columns = unknown_columns
                 return dict(comparison=None, current=self.current, expected=None,
-                            difference=dict(missing=[], unexpected=[], unobservable=[]))
+                            difference=dict(missing=[], unexpected=[], unobservable=[]),
+                            unverified_regions=_unverified_regions(verified))
             if kind != 'FINAL' or geometry_reference != self._geometry_reference:
                 raise ValueError('invalid FINAL context')
             return self._finish(observed, plan_id=context['plan_id'], step_id=None,

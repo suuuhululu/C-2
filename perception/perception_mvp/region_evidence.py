@@ -5,10 +5,11 @@ import numpy as np
 
 def empty_column_evidence(depth, scale, intrinsics, camera_to_board, config, *, object_mask=None,
                           _minimum_layers=None):
-    """Every sampled ray through a column must reach beyond its allowed volume.
+    """Every valid sampled ray must reach beyond its allowed volume.
 
     Columns span all five layers, excluding the board/stud allowance at the base.
-    Occluders, zero Depth, clipped columns or unsupported distortion leave unknown.
+    Sparse zero Depth may be tolerated by an explicit quality threshold. Measured
+    occluders, out-of-range values and clipped columns still leave unknown.
     This is calibrated geometry evidence, not a safety detector/ground-truth label.
     """
     from itertools import product
@@ -18,6 +19,9 @@ def empty_column_evidence(depth, scale, intrinsics, camera_to_board, config, *, 
     if object_mask is not None and (object_mask.shape != depth.shape or object_mask.dtype != bool):
         raise ValueError('object exclusion mask must match aligned Depth')
     transform = validate_geometry(scale, intrinsics, camera_to_board)
+    minimum_fraction = config.get('empty_min_valid_fraction', 1.0)
+    if not np.isfinite(minimum_fraction) or not 0 < minimum_fraction <= 1:
+        raise ValueError('empty_min_valid_fraction must be in (0, 1]')
     model = intrinsics['model']
     if model not in ('none', 'brown_conrady'):
         raise ValueError('empty-column projection requires none/brown_conrady distortion')
@@ -91,13 +95,17 @@ def empty_column_evidence(depth, scale, intrinsics, camera_to_board, config, *, 
                 rejected['blocked'] += 1
                 continue
             observed = depth[v[intersects], u[intersects]].astype(float) * scale
-            if np.any((observed < config['min_depth_m']) | (observed > config['max_depth_m'])):
+            valid = observed > 0
+            out_of_range = valid & ((observed < config['min_depth_m']) |
+                                    (observed > config['max_depth_m']))
+            if (np.any(out_of_range) or valid.sum() < config['min_depth_pixels'] or
+                    valid.mean() < minimum_fraction):
                 rejected['invalid_depth'] += 1
                 rejected['missing_depth'] += int(np.any(observed == 0))
                 rejected['depth_out_of_range'] += int(np.any((observed > 0) & (
                     (observed < config['min_depth_m']) | (observed > config['max_depth_m']))))
                 continue
-            if np.any(observed < far[intersects]):
+            if np.any(observed[valid] < far[intersects][valid]):
                 rejected['blocked'] += 1
                 continue
             # Same observed clear volume proves each permitted layer, not hidden history.
@@ -106,7 +114,12 @@ def empty_column_evidence(depth, scale, intrinsics, camera_to_board, config, *, 
     return dict(verified_regions=regions, verification_basis=(dict(
         kind='DEPTH_RAYS_CLEAR_FIVE_LAYER_COLUMN', calibration_id=config['calibration_id'],
         height_reference='BOARD_FLAT_SURFACE_ZERO', volume_bottom_m=bottom, volume_top_m=top,
-        all_sampled_rays_required=True) if regions else None), rejection_counts=rejected)
+        all_sampled_rays_required=minimum_fraction == 1.0,
+        minimum_valid_fraction=minimum_fraction,
+        minimum_valid_pixels=config['min_depth_pixels'],
+        spatial_scope='CALIBRATED_BOARD_3D_COLUMNS_NOT_RGB_ROI',
+        missing_depth_policy='ZERO_ONLY; ALL_NONZERO_RAYS_MUST_CLEAR') if regions else None),
+        rejection_counts=rejected)
 
 
 def empty_above_block_evidence(depth, scale, intrinsics, camera_to_board, config, *,
@@ -123,9 +136,9 @@ def empty_above_block_evidence(depth, scale, intrinsics, camera_to_board, config
     evidence = empty_column_evidence(depth, scale, intrinsics, camera_to_board, config,
                                     object_mask=object_mask, _minimum_layers=minimum)
     if evidence['verification_basis'] is not None:
-        evidence['verification_basis'] = dict(
+        evidence['verification_basis'].update(
             kind='DEPTH_RAYS_CLEAR_ABOVE_MEASURED_BLOCK', calibration_id=config['calibration_id'],
-            height_reference='BOARD_FLAT_SURFACE_ZERO', all_sampled_rays_required=True,
+            height_reference='BOARD_FLAT_SURFACE_ZERO',
             lower_bound_basis='MEASURED_LAYER_NOMINAL_TOP_PLUS_EXISTING_TOLERANCE',
             column_minimum_layers=[dict(x=x, y=y, first_empty_layer=layer)
                                    for (x, y), layer in sorted(minimum.items()) if layer <= 5],

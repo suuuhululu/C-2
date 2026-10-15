@@ -561,8 +561,10 @@ def process_saved(directory, detections, calibration, config):
                 len(config['top_heights_m']) == 5):
             from .region_evidence import empty_column_evidence, empty_above_block_evidence
             exclusion = np.zeros(depth.shape, bool)
-            if roi_mask is not None:
-                exclusion |= ~roi_mask
+            # The RGB ROI outlines the board image, not the projection of its
+            # five-layer volume. Side-view rays may leave that polygon. The ray
+            # engine bounds them to calibrated board columns and tests real Depth;
+            # removing the 2D clipping does not mark pixels outside the ROI empty.
             for mask, _, _ in detections:
                 exclusion |= mask
             empty = empty_column_evidence(depth, metadata['depth_scale_m'],
@@ -581,8 +583,6 @@ def process_saved(directory, detections, calibration, config):
             # layers must not generate free-space claims above a borrowed height.
             if metadata['view_id'] == 'V0' and result['occupied_regions']:
                 unknown_mask = np.zeros(depth.shape, bool)
-                if roi_mask is not None:
-                    unknown_mask |= ~roi_mask
                 for (mask, _, _), candidate in zip(detections, results):
                     if candidate['status'] != 'CANDIDATE':
                         unknown_mask |= mask

@@ -26,6 +26,64 @@ def materials(blocks):
         dict(current_revision=0, blocks=[]))
 
 
+def initial_regions_missing_columns(count):
+    return [dict(x=x, y=y, width=1, height=1, layer=layer)
+            for y in range(24) for x in range(24) if y * 24 + x >= count
+            for layer in range(1, 6)]
+
+
+def test_one_unverified_layer_blocks_entire_column_and_loaded_step():
+    from perception_mvp.inspection import VisionInspection
+    from perception_mvp.contracts import unverified_columns, region_cells
+    core = VisionInspection(dict(current_revision=0, blocks=[]))
+    core.load_plan(*materials([block()]), geometry_reference='test-profile')
+    req = request('new-initial', 'INITIAL')
+    core.start_check(req, geometry_reference='test-profile')
+    observed = observation(dict(check_id=req['check_id'], observation_seq=0), [])
+    observed['verified_regions'] = [r for r in initial_regions_missing_columns(0)
+                                   if (r['x'], r['y'], r['layer']) != (3, 5, 5)]
+    assert unverified_columns(region_cells(observed['verified_regions'])) == {(3, 5)}
+    core.finish_check(req, observed, geometry_reference='test-profile')
+    with pytest.raises(ValueError, match='PLAN_REGION_UNVERIFIED'):
+        core.start('blocked-step', 'p', 's0', geometry_reference='test-profile')
+
+
+@pytest.mark.parametrize('missing,accepted', [(0, True), (1, True), (60, True), (61, False)])
+def test_initial_unknown_column_boundary_and_plan_guard(missing, accepted):
+    from perception_mvp.inspection import VisionInspection
+    from perception_mvp.backend_adapter import build_observed
+    core = VisionInspection(None)
+    req = request('init', 'INITIAL')
+    core.start_check(req, geometry_reference='test-profile')
+    observed = observation(dict(check_id='init', observation_seq=0), [])
+    observed['verified_regions'] = initial_regions_missing_columns(missing)
+    view = dict(observed, view_id='V0', calibration_id='test-profile')
+    built, _ = build_observed('init', 0, [view], [], None,
+                              scene_stable=True, check_kind='INITIAL')
+    assert (built['status'] == 'OK') == accepted
+    if not accepted:
+        with pytest.raises(ValueError, match='coverage incomplete'):
+            core.finish_check(req, observed, geometry_reference='test-profile')
+        return
+    result = core.finish_check(req, observed, geometry_reference='test-profile')
+    assert result['current']['blocks'] == []
+    assert bool(result['unverified_regions']) == bool(missing)
+    # A plan entirely in measured columns is still usable.
+    core.load_plan(*materials([block()]), geometry_reference='test-profile')
+    if missing:
+        target = dict(block(), x=0, y=0)
+        design, plan, base = materials([target])
+        plan['plan_id'] = 'blocked'
+        with pytest.raises(ValueError, match='PLAN_REGION_UNVERIFIED'):
+            core.load_plan(design, plan, base, geometry_reference='test-profile')
+        # Repeat INITIAL with actual full evidence releases the restriction.
+        req = request('reobserve', 'INITIAL')
+        core.start_check(req, geometry_reference='test-profile')
+        observed = observation(dict(check_id='reobserve', observation_seq=1), [])
+        core.finish_check(req, observed, geometry_reference='test-profile')
+        core.load_plan(design, plan, base, geometry_reference='test-profile')
+
+
 def observation(context, blocks, *, layers=None, status='OK'):
     return dict(check_id=context['check_id'], observation_seq=context['observation_seq'],
         status=status, visible_blocks=deepcopy(blocks),

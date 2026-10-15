@@ -59,6 +59,43 @@ def test_clipped_volume_does_not_verify_whole_board():
     assert evidence['rejection_counts']['clipped'] > 0
 
 
+def test_explicit_quality_rule_tolerates_sparse_zero_depth_only():
+    args = list(inputs())
+    args[4]['empty_min_valid_fraction'] = .99
+    args[0][200, 200] = 0
+    evidence = empty_column_evidence(*args)
+    assert len(evidence['verified_regions']) == 24 * 24 * 5
+    assert evidence['verification_basis']['all_sampled_rays_required'] is False
+    assert evidence['verification_basis']['minimum_valid_fraction'] == .99
+
+
+@pytest.mark.parametrize('value', [100, 1000, 400])
+def test_sparse_missing_policy_never_ignores_measured_obstacles_or_range_errors(value):
+    args = list(inputs())
+    args[4]['empty_min_valid_fraction'] = .99
+    args[0][200, 200] = 0
+    args[0][200, 201] = value
+    evidence = empty_column_evidence(*args)
+    assert len(evidence['verified_regions']) < 24 * 24 * 5
+
+
+def test_large_missing_patch_stays_unknown_with_relaxed_quality_rule():
+    args = list(inputs())
+    args[4]['empty_min_valid_fraction'] = .99
+    args[0][190:210, 190:210] = 0
+    evidence = empty_column_evidence(*args)
+    assert len(evidence['verified_regions']) < 24 * 24 * 5
+    assert evidence['rejection_counts']['missing_depth'] > 0
+
+
+@pytest.mark.parametrize('fraction', [0, -1, 1.01, float('nan')])
+def test_invalid_empty_quality_threshold_rejected(fraction):
+    args = list(inputs())
+    args[4]['empty_min_valid_fraction'] = fraction
+    with pytest.raises(ValueError, match='empty_min_valid_fraction'):
+        empty_column_evidence(*args)
+
+
 @pytest.mark.parametrize('layer', range(1, 6))
 def test_depth_verifies_only_air_above_a_measured_block(layer):
     args = list(inputs())

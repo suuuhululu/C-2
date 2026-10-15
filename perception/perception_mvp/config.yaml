@@ -61,6 +61,9 @@ geometry:
   min_confidence: 0.25  # Existing block inference trial setting, not validated accuracy.
   min_valid_fraction: 0.8  # Existing integrated-view trial threshold.
   min_depth_pixels: 50  # Existing integrated-view trial threshold.
+  # Trial empty-space quality rule: tolerate <=1% zero Depth only, not obstacles
+  # or nonzero out-of-range samples. This is not a safety/ground-truth guarantee.
+  empty_min_valid_fraction: 0.99
   # Optical Z range of the calibrated board volume up to 5F+2.5mm (99mm).
   # Additional 5mm camera-Z margin is a trial allowance, not sensor accuracy.
   min_depth_m: 0.334

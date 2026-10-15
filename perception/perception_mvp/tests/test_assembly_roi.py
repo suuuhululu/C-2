@@ -94,7 +94,9 @@ def test_observer_uses_frozen_roi_without_live_view_cli(tmp_path, monkeypatch, u
     assert seen[0]['V0']['polygon_px'] == [[2, 2], [9, 2], [2, 8]]
 
 
-def test_production_drops_outside_candidates_and_never_verifies_outside_roi(tmp_path, monkeypatch):
+@pytest.mark.parametrize('outside_depth', [500, 400, 0])
+def test_rgb_roi_does_not_clip_depth_volume_but_depth_must_prove_clearance(
+        tmp_path, monkeypatch, outside_depth):
     import yaml
     from pathlib import Path
     from perception_mvp import depth_grid
@@ -107,6 +109,8 @@ def test_production_drops_outside_candidates_and_never_verifies_outside_roi(tmp_
     transform = np.diag([1., -1., -1., 1.])
     transform[:3, 3] = [.184, .184, .5]
     depth = np.full((400, 400), 500, np.uint16)
+    # This ray crosses board column (0, 0), outside the small RGB ROI.
+    depth[346:350, 51:55] = outside_depth
     meta = dict(scene_id='synthetic', view_id='V0', captured_at='synthetic',
         camera_info={'aligned': dict(model='none', fx=400., fy=400., cx=200., cy=200.)},
         depth_scale_m=.001, mode='REAL', robot_pose={'basis': 'synthetic only'})
@@ -129,7 +133,7 @@ def test_production_drops_outside_candidates_and_never_verifies_outside_roi(tmp_
     assert result['candidates'][1]['reason'] == 'instance_crosses_roi_boundary'
     assert result['assembly_roi']['dropped_outside_candidates'] == 1
     cells = region_cells(result['verified_regions'])
-    assert (0, 0, 1) not in cells
+    assert ((0, 0, 1) in cells) == (outside_depth == 500)
     assert len(cells) < 24*24*5
 
 

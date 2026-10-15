@@ -352,8 +352,20 @@ ACTUAL_BUNDLE_JSON 필수 항목: mode=REAL, check_id, observation_seq, scene_st
 target_after(공통 배치), previous_accepted_blocks(실제 Backend 채택 상태), recordings 목록.
 각 recording은 directory를 지정하며 상대경로는 manifest 기준입니다.
 실제 독립 점유 검증이 있는 경우에만 verified_regions와 verification_basis를 입력합니다.
-영상에서 확인 영역을 자동 산출하는 모듈은 아직 없습니다. ROI/검출 0개를 빈 보드 근거로 입력하면 안 됩니다.
+확인 영역은 보정된 보드의 3D 열과 실제 Depth 광선으로 산출합니다. ROI/검출 0개만으로 빈 보드를 확정하지 않습니다.
+RGB ROI는 블록 검출·보드 평면 추출에 사용하며, 측면에서 ROI 밖으로 투영되는
+보드 상부 공간까지 자르는 마스크로 사용하지 않습니다. 빈 공간은 보정된 24×24·5층
+범위에서만 검사하며 영상 밖으로 잘린 범위, 장애물, 거리 범위 이탈은 미확인으로 유지합니다.
+`geometry.empty_min_valid_fraction: 0.99`는 빈 공간 검사에서 0인 Depth를 최대 1%만
+허용하는 시험용 품질 기준입니다(미설정 시 100%). 유효값 최소 50개와 모든 유효
+광선의 공간 통과 조건은 유지합니다. 결손 복원이나 안전 보장은 아닙니다.
 확인 근거가 부족하면 실제 검출 블록을 담더라도 UNOBSERVABLE로 반환합니다.
+
+INITIAL은 사용자 지정 기준으로 미확인 보드 열 최대60개까지 허용하고 61개부터 보류합니다.
+한 층이라도 미확인이면 해당 (x,y) 열 전체를 미확인1칸으로 셉니다(전체576칸).
+미확인 칸은 빈 공간으로 확정하지 않으며, B는 그 칸에 걸치는 Plan 로드와 Step 시작을
+`PLAN_REGION_UNVERIFIED`로 거부합니다. 해당 범위를 실제 확인하는 추가 INITIAL 후
+계획을 다시 전달해야 합니다. STEP·FINAL 비교 기준과 로봇의 정지 조건은 변경하지 않습니다.
 
 calibration은 calibration_id와 V0/D1~D4별 Camera→Board rigid 4x4 views 행렬(translation m)입니다.
 config.geometry는 실측 stud pitch/footprint/상면 1~5층 높이/중심 lattice/anchor 차이/허용 오차를 받습니다.
