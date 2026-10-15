@@ -1,0 +1,86 @@
+{
+  "schema_version": "supply-depth-center/1",
+  "independently_verified": false,
+  "calibration_ref": "../evidence/18-educational-acceptance.proposed.json",
+  "connection": {
+    "robot_id": "dsr01",
+    "tcp": "GripperDA_v4",
+    "tool": "ToolWeight0"
+  },
+  "observation_pose": [
+    -443.4389343261719,
+    -38.81204605102539,
+    374.3517761230469,
+    8.74850845336914,
+    178.39500427246094,
+    8.59197998046875
+  ],
+  "layout_sha256": "9e2bf0769507e1dddf353db2cdcf6d80e4e005cf4d1be496089f4d3a6bc89881",
+  "camera_frame": "camera_color_optical_frame",
+  "input_size": [
+    1280,
+    720
+  ],
+  "T_tcp_camera_mm": [
+    [
+      -0.9999635624634272,
+      -0.008369145375815991,
+      0.0016826024875705725,
+      33.09374824303023
+    ],
+    [
+      0.008405168606817885,
+      -0.9997073818010725,
+      0.022682678702836245,
+      75.70563520391863
+    ],
+    [
+      0.00149227549188417,
+      0.022695994759506358,
+      0.9997412990047638,
+      -253.56893588074402
+    ],
+    [
+      0.0,
+      0.0,
+      0.0,
+      1.0
+    ]
+  ],
+  "max_shift_mm": 10.0,
+  "max_height_error_mm": 10.0,
+  "max_depth_spread_mm": 10.0,
+  "depth_range_mm": [
+    518.0,
+    542.0
+  ],
+  "references": [
+    {
+      "slot_id": "blue_2x3x1_01",
+      "pickup_pose": [
+        -331.85260009765625,
+        9.898046493530273,
+        50.785804748535156,
+        125.3236312866211,
+        -177.62391662597656,
+        126.60347747802734
+      ],
+      "surface_center_base_mm": [
+        -327.60374391032826,
+        19.503865917050618,
+        107.4702672094262
+      ]
+    }
+  ],
+  "reference_accepted": true,
+  "educational_acceptance": {
+    "scope": "APPROVED_EDUCATIONAL_SUPPLY_REGISTRY",
+    "operator_accepted": true,
+    "evidence_ref": "../profile.json",
+    "reference_basis": "OBSERVED_MODEL_BASELINE_NOT_PAIRED_GROUND_TRUTH"
+  },
+  "verification_scope": "OBSERVED_MODEL_BASELINE_NOT_PAIRED_GROUND_TRUTH",
+  "source_placement_basis": "OPERATOR_REPORTED_CENTER_AND_RETURN_AFTER_KEEP_PLACEMENT_INSTRUCTION",
+  "max_packet_age_ms": 310.0,
+  "limit_basis": "USER_APPROVED_SUPPLY_XY_NORM_HEIGHT_AND_PATCH_SPREAD_10MM_20261015_NOT_ACCURACY_CERTIFICATION"
+}

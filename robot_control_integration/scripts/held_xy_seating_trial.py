@@ -47,7 +47,7 @@ def seating_targets(sample,config,step_mm=1.):
 
 def insert(driver,config,record, *, sleep=time.sleep,clock=time.monotonic):
     first=driver.sample()
-    raw_stop=config['force_stop_n'];velocity=config.get('seating_velocity',6.)
+    raw_stop=config.get('seating_force_stop_n',config['force_stop_n']);velocity=config.get('seating_velocity',6.)
     guard(first,config['connection'],raw_stop,automatic=True,force_norm_limit=raw_stop,required_gripper_status=2)
     deadline=clock()+5.
     while not motion_completed(first,config):
@@ -90,6 +90,14 @@ def insert(driver,config,record, *, sleep=time.sleep,clock=time.monotonic):
 
 
 def release(driver,config,record, *, operator_seated=False,sleep=time.sleep,clock=time.monotonic):
+    restricted='release_width_mm' in config
+    width=config.get('release_width_mm',config['open_mm'])
+    bounds=config.get('release_feedback_range_mm')
+    if restricted and (type(width) not in (int,float) or not math.isfinite(width) or not 0<width<=48.
+            or not isinstance(bounds,list) or len(bounds)!=2
+            or any(type(v) not in (int,float) or not math.isfinite(v) for v in bounds)
+            or not 0<=bounds[0]<=width<=bounds[1]<=55.):
+        raise ValueError('ASSEMBLY_RELEASE_POLICY_INVALID')
     limit=motion_force_limit(config)
     first=driver.sample()
     guard(first,config['connection'],limit,automatic=True,force_norm_limit=limit,required_gripper_status=2)
@@ -98,13 +106,21 @@ def release(driver,config,record, *, operator_seated=False,sleep=time.sleep,cloc
             and not operator_seated and abs(first['posx'][2]-goal)>.1):
         raise RuntimeError('RELEASE_REQUIRES_STOPPED_AT_SEATING_TARGET')
     record('RELEASE_HEIGHT_DIAGNOSTIC',dict(z_error_mm=first['posx'][2]-goal,operator_seated=operator_seated,assembly_completion=False))
-    driver.command_gripper(config['open_mm'],config['gripper_force_n'])
+    record('SEATED_RELEASE_COMMAND',dict(width_mm=width,
+        feedback_range_mm=bounds if restricted else None,assembly_completion=False))
+    driver.command_gripper(width,config['gripper_force_n'])
     deadline=clock()+10;stable=0
     while clock()<deadline:
         sample=driver.sample()
         guard(dict(sample,gripper_status=0),config['connection'],limit,automatic=True,force_norm_limit=limit,required_gripper_status=0)
         if sample['gripper_status'] not in (0,1,2):raise RuntimeError('GRIPPER_FAULT')
-        okay=sample['gripper_status']==0 and motion_completed(sample,config) and sample['gripper_width_mm']>=config['open_mm']-1
+        if restricted and sample['gripper_width_mm']>bounds[1]:
+            driver.stop()
+            raise RuntimeError('SEATED_RELEASE_WIDTH_EXCEEDS_LIMIT '
+                f'width_mm={sample["gripper_width_mm"]} allowed_mm={bounds}')
+        opened=(bounds[0]<=sample['gripper_width_mm']<=bounds[1] if restricted
+                else sample['gripper_width_mm']>=width-1)
+        okay=sample['gripper_status']==0 and motion_completed(sample,config) and opened
         stable=stable+1 if okay else 0
         if stable>=3:
             record('SEATED_RELEASE_OPERATOR_CONFIRMED',dict(sample=sample,assembly_completion=False));return
@@ -119,10 +135,12 @@ def press_from_top_touch(driver,config,reference,record,required_gripper_status,
     if not config.get('target_only_motion',False) and max(pose_error(first['posx'],expected))>.1:
         raise RuntimeError('PAD_PRESS_REQUIRES_CAPTURED_TOP_PLUS10MM')
     velocity=config.get('press_velocity',6.)
+    force_stop=config.get('press_force_stop_n',config['force_stop_n'])
     record('EMPTY_PAD_PRESS_SESSION',dict(top_touch_pose=reference,velocity_mm_s=velocity,
-        force_stop_n=config['force_stop_n'],force_control_target_n=None,
+        force_stop_n=force_stop,force_abort_n=config.get('press_force_abort_n'),force_control_target_n=None,
         control='POSITION_DESCENT_REACTION_STOP',automatic_tilt_alignment=False))
-    return press(driver,config['connection'],record,max_travel_mm=12.,force_stop_n=config['force_stop_n'],
+    return press(driver,config['connection'],record,max_travel_mm=12.,force_stop_n=force_stop,
+        force_abort_n=config.get('press_force_abort_n'),
         velocity=velocity,acceleration=1.,required_gripper_status=required_gripper_status,sleep=sleep,
         target_only_motion=config.get('target_only_motion',False))
 
@@ -161,7 +179,9 @@ def same_xy_press_cycle(driver,config,plan,status,record,move):
         raise RuntimeError('SAME_XY_PRESS_RELEASE_DATUM_CHANGED')
     record('SAME_XY_PRESS_START',plan)
     move(driver,config,plan['above_pose'],record,required_gripper_status=status)
-    result=press(driver,config['connection'],record,max_travel_mm=12.,force_stop_n=config['force_stop_n'],
+    result=press(driver,config['connection'],record,max_travel_mm=12.,
+        force_stop_n=config.get('press_force_stop_n',config['force_stop_n']),
+        force_abort_n=config.get('press_force_abort_n'),
         velocity=config.get('press_velocity',12.),acceleration=1.,required_gripper_status=status,
         target_only_motion=config.get('target_only_motion',False))
     move(driver,config,plan.get('press_rise_pose',plan['rise_pose']),record,required_gripper_status=status)

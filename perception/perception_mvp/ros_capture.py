@@ -3,6 +3,8 @@ from collections import deque
 from copy import deepcopy
 from datetime import datetime, timezone
 from pathlib import Path
+from itertools import product
+import json
 import time
 from threading import Event, Lock, Thread
 
@@ -12,6 +14,45 @@ from .rgbd_io import image_array, info_dict, save_capture, stamp, ros_main as ma
 from .runtime_log import progress
 
 __all__ = ["image_array", "info_dict", "save_capture", "stamp", "main", "capture_inspection_view", "stream_ros_hand"]
+
+
+def _select_packet(queues, start_ns, now_ns, max_delta_ms, max_age_ms, last_stamp=-1):
+    """Newest RGB with a valid buffered bundle, not necessarily the newest arrival."""
+    valid = {key: [msg for msg in queue if stamp(msg) >= start_ns
+                   and 0 <= (now_ns-stamp(msg))/1e6 <= max_age_ms]
+             for key, queue in queues.items()}
+    others = [key for key in queues if key != 'rgb']
+    for rgb in sorted(valid['rgb'], key=stamp, reverse=True):
+        if stamp(rgb) <= last_stamp:
+            continue
+        for depths in product(*(valid[key] for key in others)):
+            messages = dict(zip(others, depths), rgb=rgb)
+            stamps = [stamp(msg) for msg in messages.values()]
+            if (max(stamps)-min(stamps))/1e6 <= max_delta_ms:
+                return messages
+    return None
+
+
+def _reception_timeout(context, view, phase, queues, counts, start_ns, now_ns,
+                       timeout, max_delta_ms, max_age_ms, message, infos=None, topics=None):
+    latest = {key: stamp(queue[-1]) if queue else None for key, queue in queues.items()}
+    stamps = [value for value in latest.values() if value is not None]
+    missing = [key for key, queue in queues.items() if not queue]
+    if infos is not None:
+        missing += [key+'_info' for key in queues if key not in infos]
+    report = dict(missing_topics=[(topics or {}).get(key, key) for key in missing],
+                  received_counts=dict(counts), latest_stamp_ns=latest,
+                  latest_age_ms={key: (now_ns-value)/1e6 if value is not None else None
+                                 for key, value in latest.items()},
+                  latest_span_ms=(max(stamps)-min(stamps))/1e6 if len(stamps) == len(queues) else None,
+                  latest_before_request={key: value < start_ns if value is not None else None
+                                         for key, value in latest.items()},
+                  request_start_ns=start_ns, now_ns=now_ns, timeout_seconds=timeout,
+                  max_delta_ms=max_delta_ms, max_age_ms=max_age_ms)
+    progress(context or {}, '영상 수신 시간 초과', view=view, phase=phase, reception=report)
+    error = TimeoutError(message + '; view=' + view + '; reception=' + json.dumps(report))
+    error.view, error.reception = view, report
+    return error
 
 
 def _require_observation_state(context, view, phase, is_active, is_stopped,
@@ -64,12 +105,13 @@ def stream_ros_hand(is_active, is_stopped, *, timeout=15., max_delta_ms=50., max
     import rclpy
     from rclpy.context import Context
     from rclpy.executors import SingleThreadedExecutor
-    from rclpy.qos import QoSProfile, ReliabilityPolicy, qos_profile_sensor_data
+    from rclpy.qos import QoSProfile, ReliabilityPolicy
     from sensor_msgs.msg import Image
     ros_context = Context()
     rclpy.init(args=[], context=ros_context)
     node, executor, worker = None, None, None
     queues = {'rgb': deque(maxlen=10), 'aligned': deque(maxlen=10)}
+    counts = dict.fromkeys(queues, 0)
     lock, changed = Lock(), Event()
     failures = []
     try:
@@ -79,11 +121,12 @@ def stream_ros_hand(is_active, is_stopped, *, timeout=15., max_delta_ms=50., max
         def receive(message, key):
             with lock:
                 queues[key].append(message)
+                counts[key] += 1
             changed.set()
         node.create_subscription(Image, '/camera/color/image_raw',
-            lambda msg: receive(msg, 'rgb'), QoSProfile(depth=1, reliability=ReliabilityPolicy.RELIABLE))
+            lambda msg: receive(msg, 'rgb'), QoSProfile(depth=1, reliability=ReliabilityPolicy.BEST_EFFORT))
         node.create_subscription(Image, '/camera/aligned_depth_to_color/image_raw',
-            lambda msg: receive(msg, 'aligned'), qos_profile_sensor_data)
+            lambda msg: receive(msg, 'aligned'), QoSProfile(depth=1, reliability=ReliabilityPolicy.BEST_EFFORT))
         executor.add_node(node)
         def spin():
             try:
@@ -103,16 +146,11 @@ def stream_ros_hand(is_active, is_stopped, *, timeout=15., max_delta_ms=50., max
                 changed.wait(.05)
                 changed.clear()
                 with lock:
-                    rgb = queues['rgb'][-1] if queues['rgb'] else None
-                    depth = (min(queues['aligned'], key=lambda msg: abs(stamp(msg) - stamp(rgb)))
-                             if rgb is not None and queues['aligned'] else None)
-                if rgb is None or depth is None or stamp(rgb) <= last_stamp:
+                    packet = _select_packet(queues, start_ns, node.get_clock().now().nanoseconds,
+                                            max_delta_ms, max_age_ms, last_stamp)
+                if packet is None:
                     continue
-                stamps = [stamp(rgb), stamp(depth)]
-                now_ns = node.get_clock().now().nanoseconds
-                if (min(stamps) < start_ns or (max(stamps) - min(stamps)) / 1e6 > max_delta_ms or
-                        any(not 0 <= (now_ns - value) / 1e6 <= max_age_ms for value in stamps)):
-                    continue
+                rgb, depth = packet['rgb'], packet['aligned']
                 if rgb.encoding not in ('rgb8', 'bgr8') or depth.encoding != '16UC1':
                     raise ValueError('hand stream requires RGB8/BGR8 and aligned 16UC1 Depth')
                 rgb_array, depth_array = image_array(rgb), image_array(depth)
@@ -123,7 +161,13 @@ def stream_ros_hand(is_active, is_stopped, *, timeout=15., max_delta_ms=50., max
                 yield rgb_array, depth_array, time.monotonic()
                 break
             else:
-                raise TimeoutError('fresh synchronized V0 hand RGB/Depth unavailable; check topics/clocks')
+                with lock:
+                    error = _reception_timeout(context, 'V0', 'HAND_RECEPTION', queues, counts,
+                        start_ns, node.get_clock().now().nanoseconds, timeout, max_delta_ms, max_age_ms,
+                        'fresh synchronized V0 hand RGB/Depth unavailable; check topics/clocks',
+                        topics={'rgb': '/camera/color/image_raw',
+                                'aligned': '/camera/aligned_depth_to_color/image_raw'})
+                raise error
         raise RuntimeError('V0 ROS context stopped')
     finally:
         if executor is not None:
@@ -165,46 +209,72 @@ def capture_inspection_view(manifest, view, is_active, *, output_root, scene_id,
     from sensor_msgs.msg import Image, CameraInfo
     ros_context = Context()
     rclpy.init(args=[], context=ros_context)
-    node = None
-    executor = None
+    node, executor, worker = None, None, None
+    lock, changed = Lock(), Event()
+    failures = []
     try:
         executor = SingleThreadedExecutor(context=ros_context)
         node = rclpy.create_node('b_inspection_capture', context=ros_context)
         start_ns = node.get_clock().now().nanoseconds
         queues = {key: deque(maxlen=10) for key in ('rgb', 'raw', 'aligned')}
+        counts = dict.fromkeys((*queues, *(key+'_info' for key in queues)), 0)
         infos = {}
+        def receive(message, key, info=False):
+            with lock:
+                counts[key+'_info' if info else key] += 1
+                if info:
+                    infos[key] = message
+                else:
+                    queues[key].append(message)
+            changed.set()
         topics = {'rgb': '/camera/color/image_raw', 'raw': '/camera/depth/image_rect_raw',
                   'aligned': '/camera/aligned_depth_to_color/image_raw'}
         for key, topic in list(topics.items()):
-            qos = QoSProfile(depth=1, reliability=ReliabilityPolicy.RELIABLE) if key == 'rgb' else qos_profile_sensor_data
-            node.create_subscription(Image, topic, lambda msg, k=key: queues[k].append(msg), qos)
+            qos = QoSProfile(depth=1, reliability=ReliabilityPolicy.BEST_EFFORT)
+            node.create_subscription(Image, topic, lambda msg, k=key: receive(msg, k), qos)
             info_topic = {'rgb': '/camera/color/camera_info', 'raw': '/camera/depth/camera_info',
                           'aligned': '/camera/aligned_depth_to_color/camera_info'}[key]
             topics[key + '_info'] = info_topic
             node.create_subscription(CameraInfo, info_topic,
-                lambda msg, k=key: infos.update({k: msg}), qos_profile_sensor_data)
+                lambda msg, k=key: receive(msg, k, info=True), qos_profile_sensor_data)
+        executor.add_node(node)
+        def spin():
+            try:
+                executor.spin()
+            except Exception as error:
+                failures.append(error)
+                changed.set()
+        worker = Thread(target=spin, name='b-inspection-receiver', daemon=True)
+        worker.start()
         deadline = time.monotonic() + timeout
         while rclpy.ok(context=ros_context) and time.monotonic() < deadline:
+            # Controller queries may block; image callbacks keep running independently.
+            # Pick the packet AFTER the query so its latency does not age a chosen packet.
+            changed.wait(.05)
+            changed.clear()
             require_active()
-            rclpy.spin_once(node, executor=executor, timeout_sec=.05)
-            if len(infos) != 3 or not all(queues.values()):
+            if failures:
+                raise RuntimeError('inspection ROS reception failed') from failures[0]
+            with lock:
+                messages = (_select_packet(queues, start_ns, node.get_clock().now().nanoseconds,
+                                           max_delta_ms, max_age_ms) if len(infos) == 3 else None)
+                captured_infos = dict(infos)
+            if messages is None:
                 continue
-            rgb = queues['rgb'][-1]
-            messages = {'rgb': rgb, **{key: min(queues[key], key=lambda msg: abs(stamp(msg) - stamp(rgb)))
-                                      for key in ('raw', 'aligned')}}
-            stamps = [stamp(msg) for msg in messages.values()]
-            now_ns = node.get_clock().now().nanoseconds
-            if (min(stamps) < start_ns or (max(stamps) - min(stamps)) / 1e6 > max_delta_ms or
-                    any(not 0 <= (now_ns - value) / 1e6 <= max_age_ms for value in stamps)):
-                continue
-            require_active()
-            save_capture(directory, messages, infos, topics, view, max_delta_ms, context=metadata)
+            save_capture(directory, messages, captured_infos, topics, view, max_delta_ms, context=metadata)
             break
         else:
-            raise TimeoutError('fresh synchronized ROS RGB/raw/aligned Depth or CameraInfo unavailable; check topics/clocks')
+            with lock:
+                error = _reception_timeout(context, view, 'RGBD_CAPTURE', queues, counts,
+                    start_ns, node.get_clock().now().nanoseconds, timeout, max_delta_ms, max_age_ms,
+                    'fresh synchronized ROS RGB/raw/aligned Depth or CameraInfo unavailable; check topics/clocks',
+                    infos=infos, topics=topics)
+            raise error
     finally:
         if executor is not None:
             executor.shutdown()
+        if worker is not None:
+            worker.join(timeout=1.)
         if node is not None:
             node.destroy_node()
         rclpy.shutdown(context=ros_context)

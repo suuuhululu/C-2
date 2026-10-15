@@ -145,12 +145,28 @@ def frame_board_baseline(depth, info, calibration, union, params, bounds_mm, exp
     return fit_board_plane(board, expected_plate_z=expected_plate_z_mm, bounds=bounds_mm, **params)
 
 
+
+def stud_layer_record(rgb, mask, depth, info, calibration, params, layer_heights_mm, height_tolerance_mm,
+                      height_reference_offset_mm, depth_range_m, stud_mm, first_layer_min_mm,
+                      first_layer_max_mm, layer_upper_bounds_mm, board_plane):
+    from .stud_layer import stud_layer
+    try:
+        return stud_layer(rgb, mask, depth, info, calibration, params,
+                          layer_heights_mm=layer_heights_mm, height_tolerance_mm=height_tolerance_mm,
+                          height_reference_offset_mm=height_reference_offset_mm,
+                          depth_range_m=depth_range_m, block_stud_mm=stud_mm,
+                          first_layer_min_mm=first_layer_min_mm, first_layer_max_mm=first_layer_max_mm,
+                          layer_upper_bounds_mm=layer_upper_bounds_mm, board_plane=board_plane)
+    except (ValueError, KeyError, cv2.error) as error:
+        return dict(scope='LAYER_ONLY_STUD_MIDPOINT', layer=None, height_mm=None, reason=str(error))
+
+
 def process_frame(rgb, model, confidence, depth=None, info=None, calibration=None,
                   layer_heights_mm=None, height_tolerance_mm=None, *, roi_mask=None,
                   height_reference_offset_mm=0., depth_range_m=None, max_height_spread_mm=None,
                   block_stud_height_mm=0., top_plane_stud_mm=0., first_layer_min_mm=None,
                   first_layer_max_mm=None, board_baseline_params=None, board_bounds_mm=None,
-                  layer_upper_bounds_mm=None):
+                  layer_upper_bounds_mm=None, stud_layer_params=None, stud_layer_stud_mm=0.):
     if rgb.dtype != np.uint8 or rgb.ndim != 3 or rgb.shape[2] != 3:
         raise ValueError('uint8 RGB required')
     if not np.isfinite(confidence) or not 0 < confidence <= 1:
@@ -205,6 +221,9 @@ def process_frame(rgb, model, confidence, depth=None, info=None, calibration=Non
             record['reason'] = 'instance_crosses_roi_boundary'
         elif color == name.split('_')[0] and baseline_error is not None:
             record['reason'] = baseline_error
+            if stud_layer_params is not None:
+                record['stud_layer'] = dict(scope='LAYER_ONLY_STUD_MIDPOINT', layer=None, height_mm=None,
+                                            reason=baseline_error)
         elif color == name.split('_')[0]:
             surface_diagnostics = {}
             try:
@@ -224,6 +243,18 @@ def process_frame(rgb, model, confidence, depth=None, info=None, calibration=Non
                 record['reason'] = str(error)
             if surface_diagnostics:
                 record['surface_diagnostics'] = surface_diagnostics
+            if stud_layer_params is not None:
+                # The stud midpoint owns layer/height; outline geometry still owns XY/axis.
+                record['stud_layer'] = stud_layer_record(
+                    rgb, mask, depth, info, calibration, stud_layer_params, layer_heights_mm,
+                    height_tolerance_mm, height_reference_offset_mm, depth_range_m, stud_layer_stud_mm,
+                    first_layer_min_mm, first_layer_max_mm, layer_upper_bounds_mm, board_plane)
+                stud = record['stud_layer']
+                record['layer'] = stud.get('layer')
+                record['height_mm'] = stud.get('height_mm')
+                record['layer_source'] = 'STUD_MIDPOINT'
+                if record.get('reason') in (None, 'layer_reference_missing', 'height_outside_layer_reference'):
+                    record['reason'] = stud.get('reason')
         records.append(record)
     return records
 
@@ -245,10 +276,14 @@ def draw_integrated(canvas, records, *, show_height=False):
             kind = 'color? ' + record['part_class'].split('_', 1)[1]
         grid = record.get('grid')
         xy = f"({grid[0]}, {grid[1]})" if grid is not None else 'XY:?'
-        layer = f"L{record['layer']}" if record.get('layer') is not None else 'L:?'
+        stud = record.get('stud_layer')
+        # With the stud-midpoint result present, the shown layer is that result; otherwise the old one.
+        shown_layer = stud.get('layer') if stud is not None else record.get('layer')
+        layer = f"L{shown_layer}" if shown_layer is not None else 'L:?'
         line = f'{kind} | {xy} | {layer}'
-        if show_height and record.get('height_mm') is not None:
-            line += f" | H:{record['height_mm']:.1f}mm"
+        shown_height = stud.get('height_mm') if stud is not None else record.get('height_mm')
+        if show_height and shown_height is not None:
+            line += f" | H:{shown_height:.1f}mm"
         (width, height), baseline = cv2.getTextSize(line, cv2.FONT_HERSHEY_SIMPLEX, .4, 1)
         x = max(0, min(int(xs.min()), canvas.shape[1]-width-4))
         y = min(canvas.shape[0]-baseline-2, int(ys.max())+height+6)

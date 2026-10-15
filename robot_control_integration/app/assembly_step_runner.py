@@ -32,8 +32,10 @@ def assembly_target_pose(settings):
 
 def run_step(driver, connection, plan, profile, confirm, record, *, phase='full',
              start_zone='assembly', pickup_center=None, assembly_alignment=None, clock=time.monotonic, sleep=time.sleep):
-    if phase not in ('full', 'pickup', 'approach', 'contact', 'release', 'retreat', 'assemble-held', 'grasp-recovery', 'human-wait', 'human-ack') or start_zone not in ('assembly', 'place', 'supply'):
+    if phase not in ('full', 'pickup', 'approach', 'contact', 'release', 'retreat', 'assemble-held', 'handover-held', 'grasp-recovery', 'human-wait', 'human-ack') or start_zone not in ('assembly', 'place', 'supply'):
         raise ValueError('INVALID_PHASE_OR_START_ZONE')
+    if phase=='handover-held' and (plan['mode']!='HUMAN_ASSEMBLY' or start_zone!='supply' or plan['settings'].get('human_step_gestures')):
+        raise ValueError('HANDOVER_HELD_REQUIRES_PLACE_BOARD_MANUAL_DELIVERY')
     angular={name:profile[name] for name in ('angular_velocity','angular_acceleration')
              if profile.get(name) is not None} if profile.get('round2') else {}
     if getattr(driver, 'mode', None) == 'REAL':
@@ -42,6 +44,7 @@ def run_step(driver, connection, plan, profile, confirm, record, *, phase='full'
     release_press = is_release_press(plan)
     human_release_press = has_source_release_press(plan) and plan['assistance_kind'] in ('PRESS', 'PRESS_AND_HOLD')
     stillness_policy=getattr(getattr(driver,'session',None),'value',{}).get('stillness',{})
+    if phase=='handover-held':stillness_policy=profile['handover_stillness']
     result = dict(key=plan['key'], phase=phase, mode=plan['mode'],
                   assembly_completion=False, current_update=False, automatic_retry=False,
                   operator_seating_confirmed=False, status='STARTED')
@@ -52,7 +55,7 @@ def run_step(driver, connection, plan, profile, confirm, record, *, phase='full'
     source_release_press=has_source_release_press(plan)
     motion_force=(None if profile.get('noncontact_force_guard') is False else
                   profile.get('motion_force_stop_n',force)) if source_release_press else force
-    target_only=source_release_press and profile.get('target_only_motion',False)
+    target_only=(source_release_press or phase=='handover-held') and profile.get('target_only_motion',False)
     motion_options=dict(angular)
     if target_only:motion_options['target_only_motion']=True
     stopped=trial_motion_still if target_only else motion_still
@@ -378,7 +381,7 @@ def run_step(driver, connection, plan, profile, confirm, record, *, phase='full'
             # Separate the first real slot grasp from loaded transport and seating.
             if phase == 'pickup':
                 return paused('PICKUP_COMPLETE_HOLDING')
-        if phase in ('full', 'approach', 'assemble-held'):
+        if phase in ('full', 'approach', 'assemble-held', 'handover-held'):
             turn = settings.get('turn_base_z_deg')
             if turn is not None:
                 # Capture once: transport preserves this grasp; yaw is applied above the target.
@@ -427,7 +430,7 @@ def run_step(driver, connection, plan, profile, confirm, record, *, phase='full'
                 move('TARGET_APPROACH_20MM', target)
             if phase == 'approach':
                 return paused('APPROACH_REACHED')
-        if phase in ('full', 'contact', 'assemble-held', 'human-wait'):
+        if phase in ('full', 'contact', 'assemble-held', 'handover-held', 'human-wait'):
             if plan['mode'] == 'HUMAN_ASSEMBLY':
                 if human_config:
                     if not wait('HUMAN_ASSEMBLY_RECEIVE'):

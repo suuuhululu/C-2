@@ -1,0 +1,42 @@
+{
+  "scope": "FIXED_T1_YELLOW_2X2_SLOT4_ONLY",
+  "operator_accepted": true,
+  "measured_residual_xy_mm": 1.7050900703594027,
+  "operator_statement": "교육용 프로젝트이므로 이번 약1.71mm 오차를 허용하고 진행한다는 사용자 명시적 지시",
+  "acceptance_type": "POST_MEASUREMENT_EDUCATIONAL_ACCEPTANCE_NOT_PRECISION_CERTIFICATION",
+  "evidence_ref": "/home/rokey/Documents/ChatGPT/로봇제어 개발/c2_integration_round3/logs/supply-depth-reference/pair-20261015T080359/validation-01-height-matched-02/relative-displacement-validation.json",
+  "evidence_sha256": "b11ded5e9618adce52946fe78475486b51f279488fe183c0b1f1f0a6e5ede1f1",
+  "grasp_or_assembly_success_verified": false,
+  "limits": {
+    "depth_range_mm": [
+      525.0,
+      538.0
+    ],
+    "max_depth_spread_mm": 4.0,
+    "max_height_error_mm": 7.0,
+    "max_shift_mm": 3.0
+  },
+  "limit_basis": {
+    "depth_range_mm": "사용자 2026-10-15 명시 승인으로 하한527→525mm 확장. 추가실측20장의 유효패치525~526mm 포함. 상한538mm 및 다른검사 유지.",
+    "max_depth_spread_mm": "같은40장 실제 최대 패치편차4",
+    "max_height_error_mm": "같은40장의 기준표면 대비최대높이차6.902735mm를0.1mm단위로올림",
+    "max_shift_mm": "같은40장 계산XY최대2.967059mm를0.1mm단위로올림;3mm넘는보정은거부",
+    "limitations": "슬롯4/기존관측자세/이번카메라설정/고정T1 한정. 일반적인 전방향 정밀도·실파지·결착 인증 아님"
+  },
+  "amendments": [
+    {
+      "date": "2026-10-15",
+      "operator_statement": "네 허용 오차를 더 넓혀도됩니다",
+      "previous_depth_range_mm": [
+        527.0,
+        538.0
+      ],
+      "depth_range_mm": [
+        525.0,
+        538.0
+      ],
+      "evidence_ref": "/home/rokey/Documents/ChatGPT/로봇제어 개발/c2_integration_round3/logs/depth-diagnosis/20261015T083259/offline-depth-lower-bound-comparison.json",
+      "zero_depth_accepted": false
+    }
+  ]
+}

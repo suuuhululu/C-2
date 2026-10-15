@@ -44,7 +44,9 @@ def main(argv=None):
                 first_layer_max_mm=reference.get('first_layer_max_mm'),
                 layer_upper_bounds_mm=reference.get('layer_upper_bounds_mm'),
                 board_baseline_params=reference.get('board_baseline_params'),
-                board_bounds_mm=reference.get('board_bounds_mm'))
+                board_bounds_mm=reference.get('board_bounds_mm'),
+                stud_layer_params=reference.get('stud_layer_params'),
+                stud_layer_stud_mm=reference.get('stud_layer_stud_mm', 0.))
             row.update(view=view, captured_at=meta['captured_at'],
                 records=[{key: value for key, value in record.items() if key != 'mask'} for record in records])
             canvas = cv2.cvtColor(rgb, cv2.COLOR_RGB2BGR)

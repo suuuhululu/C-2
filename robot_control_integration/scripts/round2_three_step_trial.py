@@ -7,6 +7,7 @@ import argparse
 from copy import deepcopy
 import fcntl
 import json
+import math
 import os
 from pathlib import Path
 import signal
@@ -38,7 +39,10 @@ def prepare(scenario):
         app.__path__.append(root_app)
     from app.cad_trial import measured_inputs, step_geometry
     from app.round2_grasp_offset_trial import apply_held_offset_trial
-    from app.round2_operator_teaching import apply_teaching, apply_supply_pickup_teaching
+    from app.round2_operator_teaching import apply_teaching, apply_supply_pickup_teaching, retarget_assembly_reference
+    speed_scale = scenario.get('free_motion_speed_scale', 1.)
+    if type(speed_scale) not in (int, float) or speed_scale not in (1., 2.):
+        raise ValueError('FREE_MOTION_SPEED_SCALE_MUST_BE_ONE_OR_TWO')
     inputs = measured_inputs(NATIVE)
     base = held.integrated_config(
         supply.load_config(NATIVE / 'settings/held_corner_stud_20261014/config.json'),
@@ -58,7 +62,10 @@ def prepare(scenario):
                    pose_basis=profile['supply_pose_basis'], axis_basis='ORIGINAL_TAUGHT_TWO_STUD_AXIS')
         cfg = deepcopy(base)
         reference = settings['reference_pose'].copy()
+        # Assembly clearance and supply/tray opening have separate reviewed bounds.
         cfg.update(blocks=[row], assembly_target_xy=reference[:2],
+                   open_mm=53.,open_feedback_range_mm=[40.,80.],
+                   release_width_mm=47., release_feedback_range_mm=[32., 55.],
                    alignment_approach_z_mm=reference[2] + 20., auto_yaw=True,
                    same_xy_press=True, tilt_accuracy_test=False,
                    pad_reference_at_target_physically_verified=False,
@@ -67,7 +74,10 @@ def prepare(scenario):
                        clearance_mm=20., current_grasp_relation_verified=False,
                        source=profile.get('assembly_teaching_ref', str(NATIVE / 'calibration/layer_records.json'))),
                    integrated_pad_contact_pose=[*reference[:2], reference[2] + pad_offset, *reference[3:]],
+                   press_force_stop_n=70.,
                    pad_contact_basis='TRANSFERRED_HEIGHT_OFFSET_OPERATOR_TRIAL_NOT_NEW_MEASUREMENT')
+        if case['step_id'] == 'T2':
+            cfg['seating_force_stop_n'] = 55.
         if case.get('operator_teaching_file'):
             cfg = apply_teaching(cfg, read(DEFAULT.parent / case['operator_teaching_file']))
             cfg['alignment_use_recorded_attitude'] = True
@@ -82,8 +92,41 @@ def prepare(scenario):
         if case.get('supply_layout_file'):
             path = Path(case['supply_layout_file'])
             cfg['vision']['layout'] = str((path if path.is_absolute() else ROOT / path).resolve())
+        offset_axes = [axis for axis in ('x','y') if f'assembly_board_{axis}_offset_mm' in case]
+        if len(offset_axes) > 1:
+            raise ValueError('ASSEMBLY_BOARD_OFFSET_AXES_CONFLICT')
+        if offset_axes:
+            axis = offset_axes[0]
+            field = f'assembly_board_{axis}_offset_mm'
+            if (type(case[field]) not in (int, float)
+                    or case[field] != 1.5
+                    or case['step_id'] != 'T2' or case['supply_slot'] != 3
+                    or target != dict(brick_type='2x3x1', color='blue', x=13, y=11, layer=2, orientation_deg=0)):
+                raise ValueError(f'T2_BOARD_{axis.upper()}_OFFSET_SCOPE_MISMATCH')
+            board = inputs['board_calibration']
+            if board is None:
+                raise ValueError('BOARD_OFFSET_REQUIRES_ADOPTED_BOARD_TEACHING')
+            tangent = board['fits']['2x3x1/0'][f'{axis}_step_xyz_mm'][:2]
+            norm = math.hypot(*tangent)
+            if not math.isfinite(norm) or norm <= 0:
+                raise ValueError('BOARD_DIRECTION_INVALID')
+            delta = [case[field] * value / norm for value in tangent]
+            baseline = cfg['alignment_target']['placement_tcp_reference'].copy()
+            reference = [baseline[0] + delta[0], baseline[1] + delta[1], *baseline[2:]]
+            cfg = retarget_assembly_reference(cfg, reference)
+            cfg['assembly_board_offset'] = dict(frame_id='assembly_board', **{f'board_{axis}_mm':1.5},
+                delta_base_xy_mm=delta, baseline_placement_pose=baseline,
+                source_ref=board['source_ref'], source_sha256=board['source_sha256'],
+                physically_verified=False)
+        if speed_scale != 1.:
+            for key in ('velocity', 'rise_velocity', 'transit_velocity', 'descent_velocity'):
+                cfg[key] *= speed_scale
+            cfg['free_motion_speed_scale'] = speed_scale
         cfg['assembly_xy_correction_enabled'] = False
         cfg['vision_xy_alignment'] = False
+        if (target['color'],target['brick_type'])==('red','1x2x1'):
+            cfg['blocks'][0].update(close_mm=20.,grip_feedback_range_mm=[10.,40.],span=1,
+                axis_basis='ORIGINAL_TAUGHT_ONE_STUD_AXIS')
         prepared.append(dict(case=deepcopy(case), config=cfg, reservation=reservation,
                              correction_xy_mm=correction, physical_accuracy_verified=False))
     return prepared
@@ -95,8 +138,9 @@ def open_empty_pad(driver, cfg, record, *, sleep=time.sleep, clock=time.monotoni
     motion_limit = supply.motion_force_limit(cfg)
     guard(current, cfg['connection'], motion_limit, automatic=False,
           force_norm_limit=motion_limit, required_gripper_status=current['gripper_status'])
-    record('NEXT_STEP_EMPTY_PAD_OPEN', dict(sample=current, width_mm=cfg['open_mm']))
-    driver.command_gripper(cfg['open_mm'], cfg['gripper_force_n'])
+    width=cfg['release_width_mm'];bounds=cfg['release_feedback_range_mm']
+    record('NEXT_STEP_EMPTY_PAD_OPEN', dict(sample=current, width_mm=width,feedback_range_mm=bounds))
+    driver.command_gripper(width, cfg['gripper_force_n'])
     deadline = clock() + 10.
     while True:
         sample = driver.sample()
@@ -104,7 +148,7 @@ def open_empty_pad(driver, cfg, record, *, sleep=time.sleep, clock=time.monotoni
               force_norm_limit=motion_limit, required_gripper_status=0)
         if sample['gripper_status'] not in (0, 1, 2):
             raise RuntimeError('GRIPPER_FAULT')
-        if sample['gripper_status'] == 0 and sample['gripper_width_mm'] >= cfg['open_mm'] - 1 and held.motion_completed(sample,cfg):
+        if sample['gripper_status'] == 0 and supply.width_in_range(sample,bounds) and held.motion_completed(sample,cfg):
             return
         if clock() >= deadline:
             raise TimeoutError('GRIPPER_FEEDBACK_TIMEOUT')
@@ -124,6 +168,45 @@ def support_finished_popup():
     support_dialog('Step 3 - support finished', [
         'Robot press and vertical rise finished.',
         'You can release the lower structure.', 'ENTER: close'])
+
+
+def trial_step_popup(case, index, total):
+    return support_dialog('Round3 - next physical step', [
+        f"Step {index+1}/{total}: {case['step_id']} {case['target']['color']} {case['target']['brick_type']}",
+        'Check placement, supply, empty HOME and clear route.',
+        'This is a trial; B has NOT confirmed assembly.',
+        'ENTER: execute this step / ESC: end trial'])
+
+
+def trial_return_home(driver, cfg, record, review_ref):
+    from app.inspection_motion import InspectionMotion
+    from app.round3_initial_inspection import DEFAULT as initial_settings, load_settings
+    empty = driver.sample()
+    if (empty['gripper_status'] != 2 or not 0 <= empty['gripper_width_mm'] <= 12.
+            or not held.motion_completed(empty, cfg)):
+        raise RuntimeError('TRIAL_STOPPED_EMPTY_CLOSED_PAD_REQUIRED')
+    record('TRIAL_EMPTY_PAD_VERIFIED', dict(step_id=cfg['trial_step']['step_id'], sample=empty))
+    open_empty_pad(driver, cfg, record)
+    settings = load_settings(initial_settings)
+    settings['route_reviewed'] = True
+    motion = InspectionMotion(driver, cfg['connection'])
+    receipt = motion.confirm('THREE_STEP_HOME_' + cfg['trial_step']['step_id'], 'HOME', settings, review_ref)
+    if receipt['stopped_verified'] is not True:
+        raise RuntimeError('TRIAL_HOME_NOT_VERIFIED')
+    record('TRIAL_HOME_RETURNED', dict(step_id=cfg['trial_step']['step_id'], receipt=receipt))
+    return receipt
+
+
+def confirm_bound_step(case, index, total, document_path, config, scenario, profile, binding,
+                       *, popup=trial_step_popup):
+    if popup(case, index, total) is not True:
+        return False
+    # Operator review can outlast the short approval lease. Recheck after ENTER,
+    # before any pickup motion, so a waiting popup cannot revive an expired Step.
+    from app.round3_approved_step import validate_binding
+    if validate_binding(read(document_path), config, scenario, profile) != binding:
+        raise ValueError('REAL_B_STEP_BINDING_CHANGED_DURING_CONFIRMATION')
+    return True
 
 
 def support_dialog(title, lines):
@@ -148,38 +231,48 @@ def support_dialog(title, lines):
 
 def run_sequence(driver, prepared, directory, record, *, start_zone='home', vision_factory=supply.LiveVision,
                  observe_cycle=held.observe, support_ready=support_popup, support_finished=support_finished_popup,
-                 sleep=time.sleep, clock=time.monotonic):
-    completed = []
+                 sleep=time.sleep, clock=time.monotonic, step_ready=None, home_after_step=None):
+    completed, home_returns = [], []
     for index, item in enumerate(prepared):
         cfg = deepcopy(item['config'])
         case = item['case']
-        record('THREE_STEP_BEGIN', dict(step=case, row=cfg['blocks'][0], source_A_preserved=True))
+        if step_ready is not None:
+            record('TRIAL_STEP_CONFIRMATION_REQUIRED', dict(step=case, index=index, total=len(prepared), completed_steps=completed.copy()))
+            if step_ready(case, index, len(prepared)) is not True:
+                return dict(status='SEQUENCE_STOPPED', completed_steps=completed,
+                    stopped_step=case['step_id'], home_returns=home_returns, assembly_completion=False, current_update=False)
+        record('THREE_STEP_BEGIN', dict(step=case, index=index, total=len(prepared), row=cfg['blocks'][0], source_A_preserved=True))
         step_dir = directory / case['step_id']
         step_dir.mkdir(parents=True, exist_ok=True)
-        if index:
+        if index and home_after_step is None:
             open_empty_pad(driver, cfg, record, sleep=sleep, clock=clock)
             cfg['startup_route']['place_xy'] = driver.sample()['posx'][:2]
         vision = vision_factory(driver, cfg, step_dir)
         try:
             vision.display(cfg['blocks'][0], dict(reason='PREPARING_PICKUP'))
             supply.execute(driver, cfg, record, vision.observe, trial_row=cfg['blocks'][0],
-                           start_zone=start_zone if index == 0 else 'assembly',
-                           display=vision.display, hold_at_pickup=True, sleep=vision.pump_sleep, clock=clock)
+                           start_zone='home' if home_after_step is not None else start_zone if index == 0 else 'assembly',
+                           display=vision.display, hold_at_pickup=True, sleep=vision.pump_sleep, clock=clock,
+                           **(dict(finalize_observation=vision.finalize_depth)
+                              if cfg['vision'].get('defer_depth_pose_validation') else {}))
             held.transfer(driver, cfg, record, sleep=vision.pump_sleep)
         finally:
             vision.close()
         result = observe_cycle(driver, cfg, step_dir, record, approach_cycle=True,
                                virtual_grid=True, yaw_test=True, xy_seat_test=True,
                                support_ready=support_ready if case['human_hold'] else None)
-        record('THREE_STEP_RESULT', dict(step_id=case['step_id'], result=result))
-        if result['status'] != 'CYCLE_COMPLETED':
+        record('THREE_STEP_RESULT', dict(step_id=case['step_id'], index=index, total=len(prepared), result=result))
+        if (result['status'] != 'CYCLE_COMPLETED'
+                or home_after_step is not None and (result.get('released') is not True or result.get('press_done') is not True)):
             return dict(status='SEQUENCE_STOPPED', completed_steps=completed,
                         stopped_step=case['step_id'], result=result, assembly_completion=False, current_update=False)
         completed.append(case['step_id'])
         if case['human_hold']:
             support_finished()
+        if home_after_step is not None:
+            home_returns.append(home_after_step(driver, cfg, record))
     return dict(status='THREE_CYCLES_COMPLETED', completed_steps=completed,
-                assembly_completion=False, current_update=False)
+                home_returns=home_returns, assembly_completion=False, current_update=False)
 
 
 class TrialReplay(StepReplayDriver):
@@ -289,10 +382,14 @@ def main(argv=None):
     p.add_argument('--only-step', choices=('T1', 'T2', 'T3'), help='One native case; T2/T3 require an approved A step binding')
     p.add_argument('--execution-profile', type=Path, help='Conditionally approved educational 25-slot supply registry')
     p.add_argument('--approved-step-document', type=Path, help='D approved design/A step binding for the matching native skill')
+    p.add_argument('--three-step-trial', action='store_true', help='Approved camera-free three-step trial, manual confirmation and HOME after each step')
+    p.add_argument('--return-home-after-step', action='store_true', help='Real B sequence: one bound Step, empty opening and verified HOME before releasing the writer')
     p.add_argument('--supply-depth-profile', type=Path, help='Verified RGB-D supply XY correction profile')
     p.add_argument('--educational-depth-demo', action='store_true',
                    help='Explicitly use an operator-accepted educational profile for fixed T1 only')
     args = p.parse_args(argv)
+    if args.return_home_after_step and (not args.only_step or not args.approved_step_document or args.three_step_trial):
+        p.error('--return-home-after-step requires one approved --only-step')
     if args.educational_depth_demo and (args.only_step != 'T1' or not args.supply_depth_profile
                                        or args.command == 'replay'):
         p.error('--educational-depth-demo requires --only-step T1 and --supply-depth-profile; no replay')
@@ -300,7 +397,9 @@ def main(argv=None):
         p.error('--execution-profile cannot be combined with older depth options or synthetic replay')
     if args.only_step in ('T2', 'T3') and not args.approved_step_document:
         p.error('T2/T3 single-step requires --approved-step-document')
-    if args.approved_step_document and (not args.only_step or not args.execution_profile or args.command == 'replay'):
+    if args.three_step_trial and (args.only_step or not args.approved_step_document or not args.execution_profile or args.command == 'replay'):
+        p.error('--three-step-trial requires an approved sequence/profile and cannot use --only-step/replay')
+    if args.approved_step_document and (not (args.only_step or args.three_step_trial) or not args.execution_profile or args.command == 'replay'):
         p.error('--approved-step-document requires --only-step and --execution-profile; no replay')
     scenario = read(args.scenario)
     prepared = prepare(scenario)
@@ -330,9 +429,16 @@ def main(argv=None):
             load_profile(cfg['vision']['depth_center_profile'], cfg['vision']['layout'], cfg)
     service_binding = None
     if args.approved_step_document:
-        from app.round3_approved_step import validate_binding
-        service_binding = validate_binding(read(args.approved_step_document), prepared[0]['config'],
-                                           scenario, args.execution_profile)
+        from app.round3_approved_step import validate_binding, validate_trial_sequence
+        if args.three_step_trial:
+            prepared, service_binding = validate_trial_sequence(read(args.approved_step_document), prepared,
+                                                               scenario, args.execution_profile)
+        else:
+            document = read(args.approved_step_document)
+            if bool(document.get('execution_scope') == 'ROUND3_REAL_B_THREE_STEP') != args.return_home_after_step:
+                raise ValueError('REAL_B_SEQUENCE_REQUIRES_HOME_HANDOFF')
+            service_binding = validate_binding(document, prepared[0]['config'],
+                                               scenario, args.execution_profile)
     if args.command == 'preview' or (args.command == 'run' and not args.execute):
         result = dict(status='PREVIEW_NO_DEVICE_CONNECTION', physical_commands=0,
                       total_cycles=len(prepared), preplaced=scenario['preplaced'], steps=prepared)
@@ -353,6 +459,10 @@ def main(argv=None):
             entry = dict(event=event, data=deepcopy(data), unix_s=time.time())
             events.append(entry)
             journal.write(json.dumps(entry, ensure_ascii=False, allow_nan=False) + '\n'); journal.flush()
+            if event in ('TRIAL_STEP_CONFIRMATION_REQUIRED','THREE_STEP_BEGIN','THREE_STEP_RESULT','TRIAL_HOME_RETURNED'):
+                pending = directory / 'progress.pending.json'
+                pending.write_text(json.dumps(entry, ensure_ascii=False, allow_nan=False))
+                pending.replace(directory / 'progress.json')
             if event == 'THREE_STEP_BEGIN':
                 print(event, json.dumps(data['step'], ensure_ascii=False), flush=True)
             elif event == 'THREE_STEP_RESULT':
@@ -397,7 +507,12 @@ def main(argv=None):
                     for sig in (signal.SIGINT, signal.SIGTERM):
                         old[sig] = signal.signal(sig, interrupt)
                     driver.feedback_record = record
-                    result = run_sequence(driver, prepared, directory, record, start_zone=args.start_zone)
+                    result = run_sequence(driver, prepared, directory, record, start_zone=args.start_zone,
+                        **(dict(step_ready=(lambda case,i,n:confirm_bound_step(case,i,n,
+                            args.approved_step_document, prepared[0]['config'], scenario,
+                            args.execution_profile, service_binding)) if args.return_home_after_step else trial_step_popup,
+                            home_after_step=lambda d,c,r:trial_return_home(d,c,r,read(args.approved_step_document)['operator_review_ref']))
+                           if args.three_step_trial or args.return_home_after_step else {}))
                 except BaseException:
                     driver.stop()
                     raise

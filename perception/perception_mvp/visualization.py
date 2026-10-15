@@ -197,12 +197,65 @@ def render_comparison_overlay(rgb, payload, *, view, frame_stamp_ns, stopped,
             labels = ('Current (confirmed)', 'Expected (THIS check)')
         else:
             raise ValueError('unknown overlay mode')
-        return render_state_overlay(rgb, snapshot, payload.get('projection'), stopped=stopped,
+        output, report = render_state_overlay(rgb, snapshot, payload.get('projection'), stopped=stopped,
             projection_valid=payload.get('projection_valid') is True,
             hidden_reason=reason, labels=labels)
+        if report['overlay_visible'] and state.get('comparison') in ('MISMATCH', 'UNOBSERVABLE'):
+            text = 'WARNING: '+state['comparison']
+            difference = state.get('difference') or {}
+            for missing in difference.get('missing', []):
+                actual = next((b for b in difference.get('unexpected', []) if
+                    all(b[k] == missing[k] for k in ('x','y','layer','brick_type','orientation_deg')) and
+                    b['color'] != missing['color']), None)
+                if actual:
+                    text += f" | ({missing['x']},{missing['y']}) L{missing['layer']}: expected {missing['color']} / actual {actual['color']}"
+                    break
+            cv2.putText(output, text, (8, 85), cv2.FONT_HERSHEY_SIMPLEX, .5, (255,40,40), 1)
+            report['comparison_warning'] = text
+        return output, report
     except (KeyError, TypeError, ValueError) as error:
         return render_state_overlay(rgb, None, None, stopped=stopped, projection_valid=False,
                                     hidden_reason='comparison_input_invalid: '+str(error))
+
+
+def projected_color_test(rgb, block, projection):
+    """Local RGB color probe only. Does not verify identity, Grid, layer or assembly.
+
+    Interior footprint (65%), >=20% colored coverage and >=70% dominant colored
+    vote are explicit TRIAL values, not accepted deployment accuracy criteria.
+    """
+    from .opencv_live import color_mask
+    validate_block(block)
+    cells = footprint(block)
+    xs, ys = [c[0] for c in cells], [c[1] for c in cells]
+    center = np.array([(min(xs)+max(xs))/2, (min(ys)+max(ys))/2])
+    half = np.array([max(xs)-min(xs)+1, max(ys)-min(ys)+1])*.5*.65
+    origin, pitch = np.asarray(projection['grid_origin_m']), projection['stud_pitch_m']
+    xy = np.array([center+half*[a,b] for a,b in [(-1,-1),(1,-1),(1,1),(-1,1)]])*pitch+origin
+    z = projection['top_heights_m'][block['layer']-1]-projection.get('stud_height_m',0.)
+    points = np.c_[xy, np.full(4,z), np.ones(4)]
+    camera = (np.linalg.inv(projection['camera_to_board'])@points.T).T[:,:3]
+    if np.any(camera[:,2] <= 0):
+        return dict(status='UNKNOWN',actual=None,reason='behind_camera')
+    intr = projection['rgb_intrinsics']
+    k = np.array([[intr['fx'],0,intr['cx']],[0,intr['fy'],intr['cy']],[0,0,1.]])
+    distortion = np.zeros(5) if intr['model']=='none' else np.asarray(intr['coefficients'])
+    pixels = cv2.projectPoints(camera,np.zeros(3),np.zeros(3),k,distortion)[0].reshape(-1,2)
+    if not np.isfinite(pixels).all() or np.any(pixels < 0) or np.any(pixels >= [rgb.shape[1],rgb.shape[0]]):
+        return dict(status='UNKNOWN',actual=None,reason='projected_region_outside_image')
+    region = np.zeros(rgb.shape[:2],np.uint8)
+    cv2.fillConvexPoly(region,np.rint(pixels).astype(np.int32),1)
+    hsv = cv2.cvtColor(rgb,cv2.COLOR_RGB2HSV)
+    counts = {color:int(np.count_nonzero(color_mask(hsv,color)&region.astype(bool)))
+              for color in ('yellow','blue','red')}
+    total = sum(counts.values())
+    coverage = total/max(1,int(region.sum()))
+    dominant = max(counts,key=counts.get)
+    confidence = counts[dominant]/max(1,total)
+    actual = dominant if coverage >= .2 and confidence >= .7 else None
+    return dict(status='UNKNOWN' if actual is None else 'MATCH' if actual==block['color'] else 'MISMATCH',
+                actual=actual,expected=block['color'],counts=counts,
+                coverage=coverage,dominant_fraction=confidence,trial_only=True)
 
 
 def _block_surfaces(corners, bottom, top, cells, origin, pitch, stud_height):

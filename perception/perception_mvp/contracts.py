@@ -5,6 +5,15 @@ BLOCK_FIELDS = {"brick_type", "color", "x", "y", "layer", "orientation_deg"}
 CLASS_NAMES = {0: "yellow_2x2", 1: "yellow_2x3", 2: "blue_2x2", 3: "blue_2x3"}
 LIVE_CLASSES = (*CLASS_NAMES.values(), "red_2x1")
 
+# INITIAL tolerance counts board columns, not individual layer cells. A single
+# unverified layer makes its whole column unavailable for subsequent placement.
+INITIAL_MAX_UNKNOWN_COLUMNS = 60
+
+
+def unverified_columns(verified):
+    return {(x, y) for y in range(24) for x in range(24)
+            if any((x, y, layer) not in verified for layer in range(1, 6))}
+
 
 def footprint(block):
     width, height = {"1x2x1": (1, 2), "2x2x1": (2, 2), "2x3x1": (2, 3)}[block["brick_type"]]

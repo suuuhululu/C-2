@@ -1,4 +1,4 @@
-"""전체 C/A/D 실물 시험. B는 명시적인 가짜 관측이며 Camera 판정이 아니다."""
+"""C/A/D 실물 시험과 명시적으로 선택하는 실제 B 관측 연결."""
 from copy import deepcopy
 import json
 from pathlib import Path
@@ -7,6 +7,7 @@ import sys
 from threading import Event, Thread
 import time
 from uuid import uuid4
+from queue import Queue
 
 from app.cad_trial import measured_inputs, step_geometry
 from app.cad_real_trial import REAL_STILLNESS_TOLERANCES, live_robot_state, save
@@ -99,7 +100,8 @@ class FullFeatureRealTrial(MvpIntegration):
     supply_slot_count = FULL_REAL_SUPPLY_SLOT_COUNT
 
     def __init__(self,robot_root,directory,*,contact_alignment_trial=False,round3_fixed_step=False,
-                 fixed_trial_scenario=None,supply_depth_profile=None,educational_depth_demo=False,execution_profile=None,**kwargs):
+                 fixed_trial_scenario=None,supply_depth_profile=None,educational_depth_demo=False,execution_profile=None,
+                 gestures=True,**kwargs):
         self.fixed_step = round3_fixed_step
         self.fixed_trial = None
         self.fixed_result = None
@@ -133,7 +135,7 @@ class FullFeatureRealTrial(MvpIntegration):
         self.pending_read=None
         self.next_fake_check='MATCH'
         super().__init__(robot_root,directory,**kwargs,robot_mode='REAL',
-            runtime_settings=real_settings(self.inputs),gestures=True)
+            runtime_settings=real_settings(self.inputs),gestures=gestures)
         self.directory=Path(directory)
 
     def confirm_operator(self,request_id):
@@ -310,15 +312,38 @@ class FullFeatureRealTrial(MvpIntegration):
 
 
 class ApprovedStepRealTrial(FullFeatureRealTrial):
-    """One approved A step through its native case; B owns the saved initial Current."""
+    """One native A step using a real B archive or an explicitly labeled trial baseline."""
     approved_step_mode = True
 
     def __init__(self, robot_root, directory, *, initial_observation, fixed_trial_scenario,
-                 execution_profile, live_inspection=False, inspection_config=None, **kwargs):
+                 execution_profile, live_inspection=False, inspection_config=None,
+                 camera_free_trial=False, three_step_trial=False, live_three_step=False, **kwargs):
         from app.round3_approved_step import load_initial_capture
         self.scenario_path = Path(fixed_trial_scenario).resolve()
         self.registry_path = Path(execution_profile).resolve()
-        self.initial_observation, self.initial_packet = load_initial_capture(initial_observation)
+        self.camera_free_trial = camera_free_trial
+        self.three_step_trial = three_step_trial
+        self.live_three_step = live_three_step
+        if live_three_step and (not live_inspection or camera_free_trial or three_step_trial):
+            raise ValueError('REAL_B_THREE_STEP_REQUIRES_REAL_INITIAL_AND_LIVE_INSPECTION')
+        if three_step_trial and not camera_free_trial:
+            raise ValueError('THREE_STEP_TRIAL_REQUIRES_CAMERA_FREE_TRIAL')
+        self.trial_archive_status, self.trial_archive_reason = 'NOT_STARTED', None
+        self.trial_db_recorded = False
+        self.trial_archive_inbox = Queue()
+        self.scenario = json.loads(self.scenario_path.read_text())
+        if camera_free_trial:
+            if initial_observation is not None or live_inspection or inspection_config is not None:
+                raise ValueError('CAMERA_FREE_TRIAL_CANNOT_USE_REAL_B_OBSERVATION')
+            from app.round3_approved_step import file_digest
+            self.initial_observation = dict(status='OK',
+                visible_blocks=[deepcopy(row['block']) for row in self.scenario['preplaced']],
+                verified_regions=[dict(x=0,y=0,width=24,height=24,layer=i) for i in range(1,6)], reason=None)
+            self.initial_packet = dict(source_kind='SYNTHETIC_SCENARIO_NOT_B_OBSERVATION',
+                generated_unix_s=time.time(), geometry_reference='SYNTHETIC_ROUND3_SCENARIO',
+                source_sha256={str(path):file_digest(path) for path in (self.scenario_path,self.registry_path)})
+        else:
+            self.initial_observation, self.initial_packet = load_initial_capture(initial_observation)
         packet = self.initial_packet
         self.live_inspection_mode = live_inspection
         self.live_observer = None
@@ -329,7 +354,6 @@ class ApprovedStepRealTrial(FullFeatureRealTrial):
             self.inspection_settings = load_settings(inspection_config or DEFAULT)
             if self.inspection_settings['calibration_id'] != packet['geometry_reference']:
                 raise ValueError('APPROVED_STEP_LIVE_INSPECTION_GEOMETRY_MISMATCH')
-        self.scenario = json.loads(self.scenario_path.read_text())
         # The native preview resolves the same teaching, layout and authenticated registry as run.
         preview = subprocess.run([sys.executable, '-m', 'scripts.round2_three_step_trial', 'preview',
             '--scenario', str(self.scenario_path),
@@ -342,9 +366,9 @@ class ApprovedStepRealTrial(FullFeatureRealTrial):
         self.initial_consumed = False
         self.service_binding = None
         super().__init__(robot_root, directory, fixed_trial_scenario=self.scenario_path,
-                         execution_profile=self.registry_path, **kwargs)
-        self.workflow.settings['observation_kind'] = ('REAL_CAMERA_STEP_FINAL' if live_inspection
-                                                     else 'SAVED_REAL_INITIAL_ONLY')
+                         execution_profile=self.registry_path, gestures=not (camera_free_trial or live_three_step), **kwargs)
+        self.workflow.settings['observation_kind'] = ('SYNTHETIC_SCENARIO_NOT_B_OBSERVATION' if camera_free_trial
+            else 'REAL_CAMERA_STEP_FINAL' if live_inspection else 'SAVED_REAL_INITIAL_ONLY')
         self.workflow.settings['geometry_reference'] = packet['geometry_reference']
 
     def observe(self, context, active):
@@ -367,12 +391,13 @@ class ApprovedStepRealTrial(FullFeatureRealTrial):
         from app.round3_approved_step import file_digest
         packet = self.initial_packet
         if (not active() or self.initial_consumed or context['check_kind'] != 'INITIAL'
-                or not 0 <= time.time() - packet['captured_unix_s'] <= 300
+                or not 0 <= time.time() - packet['generated_unix_s' if self.camera_free_trial else 'captured_unix_s'] <= 300
                 or any(file_digest(path) != digest for path, digest in packet['source_sha256'].items())):
             raise ValueError('APPROVED_STEP_FRESH_INITIAL_OBSERVATION_REQUIRED')
         self.initial_consumed = True
         return dict(deepcopy(self.initial_observation), check_id=context['check_id'],
-                    observation_seq=context['observation_seq']), dict(observation_kind='SAVED_REAL_INITIAL_ONLY')
+                    observation_seq=context['observation_seq']), dict(
+                        observation_kind=self.workflow.settings['observation_kind'])
 
     def command(self, name):
         if self.live_inspection_mode and self.fixed_result is not None and name == 'STOP':
@@ -388,7 +413,8 @@ class ApprovedStepRealTrial(FullFeatureRealTrial):
             return False
         accepted = super().command(name)
         if accepted and name == 'START':
-            return self.workflow.event('ROUND3_INITIAL_CAPTURE_SOURCE', self.initial_packet)
+            return self.workflow.event('ROUND3_CAMERA_FREE_TRIAL_STARTED' if self.camera_free_trial
+                else 'ROUND3_INITIAL_CAPTURE_SOURCE', self.initial_packet)
         return accepted
 
     def state_snapshot(self, value):
@@ -406,7 +432,9 @@ class ApprovedStepRealTrial(FullFeatureRealTrial):
         try:
             baseline = [row['block'] for row in self.scenario['preplaced']]
             targets = [row['target'] for row in self.scenario['steps']]
-            if (not same_blocks(self.workflow.current['blocks'], baseline)
+            prefix = (self.workflow.bundle['expected_steps'][len(self.workflow.completed)]['before_blocks']
+                      if self.live_three_step else baseline)
+            if (not same_blocks(self.workflow.current['blocks'], prefix)
                     or not same_blocks(self.workflow.approved['blocks'], baseline + targets)):
                 raise ValueError('APPROVED_STEP_SCENARIO_MISMATCH')
             matches = [cfg for cfg in self.native_configs if cfg['trial_step']['target'] == payload['step']['after']]
@@ -420,21 +448,42 @@ class ApprovedStepRealTrial(FullFeatureRealTrial):
                 cfg['trial_step']['supply_slot'], value, str(path), self.review_ref)
             pick = deepcopy(cfg['blocks'][0]['pickup_pose'])
             reference = deepcopy(cfg['alignment_target']['placement_tcp_reference'])
+            native_settings = {key:deepcopy(cfg[key]) for key in
+                ('release_width_mm','release_feedback_range_mm','seating_force_stop_n','press_force_stop_n',
+                 'free_motion_speed_scale','assembly_board_offset',
+                 'velocity','rise_velocity','transit_velocity','descent_velocity',
+                 'seating_velocity','press_velocity') if key in cfg}
+            for key in ('seating_force_stop_n','press_force_stop_n'):
+                if key in cfg:prepared['d_profile'][key] = cfg[key]
             frame = prepared['frame_profile']['calculation_profiles']
             frame['supply']['d_taught_slot'] = dict(identity=dict(brick_type=target['brick_type'],
                 color=target['color'], slot_index=cfg['trial_step']['supply_slot']), tcp_mm_zyz_deg=pick,
                 source_sha256=cfg['educational_supply_binding']['registry_sha256'])
             frame['assembly']['d_onsite_step'].update(pickup_pose=pick, reference_pose=reference,
-                assembly_tcp_zyz_deg=reference[3:])
+                assembly_tcp_zyz_deg=reference[3:], **deepcopy(native_settings))
             next(iter(prepared['d_profile']['steps'].values())).update(pickup_pose=pick,
-                reference_pose=reference, assembly_tcp_zyz_deg=reference[3:])
+                reference_pose=reference, assembly_tcp_zyz_deg=reference[3:], **deepcopy(native_settings))
             self.workflow.prepared_step(prepared)
         except (ValueError, KeyError, OSError) as error:
             self.workflow.status, self.workflow.reason = 'HOLD', str(error)
             self.workflow.event('APPROVED_STEP_PREPARATION_FAILED', dict(reason=str(error), robot_motion_sent=False))
 
     def emit(self, port, payload):
-        if port == 'd.prepare_step' and self.live_inspection_mode and self.fixed_result is not None:
+        if port == 'd.prepare_step' and self.live_three_step and self.fixed_result is not None:
+            outcome = self.live_observer.outcomes.get(self.workflow.completed[-1]['check_id'], {}) if self.workflow.completed else {}
+            if not all(outcome.get(key) is True for key in ('home_return_verified','writer_released','actual_stop_verified')):
+                self.workflow.status, self.workflow.reason = 'HOLD', 'REAL_B_HOME_WRITER_HANDOFF_REQUIRED'
+                return
+            # B has accepted this prefix and released the observation writer. Query a
+            # fresh start state through the existing D process before reassessment.
+            from app.mvp_integration import RobotProcess
+            self.fixed_trial.close()
+            self.fixed_trial = self.fixed_result = None
+            self.robot = RobotProcess(self.fixed_robot_root, mode='REAL',
+                config=self.fixed_robot_root / 'interfaces/assembly_contact_trial.json', gestures=False)
+            self.robot_retired = False
+            super().emit(port, payload)
+        elif port == 'd.prepare_step' and self.live_inspection_mode and self.fixed_result is not None:
             # Preserve B Current and C/A results. A later native binding must cover the
             # changed Current/prefix/support before another physical step can start.
             self.workflow.status, self.workflow.reason = 'HOLD', 'REMAINING_NATIVE_STEP_BINDING_REQUIRED'
@@ -447,8 +496,30 @@ class ApprovedStepRealTrial(FullFeatureRealTrial):
                 execution_id=payload['execution_id'], operator_review_ref=self.review_ref,
                 expires_unix_s=time.time() + 120, native_config_sha256=digest(self.native_config),
                 scenario_sha256=digest(self.scenario), execution_profile_sha256=file_digest(self.registry_path))
-            self.service_binding = validate_binding(document, self.native_config, self.scenario, self.registry_path)
-            path = self.directory / self.workflow.job_id / 'approved-step.json'
+            if self.live_three_step:
+                from app.round3_initial_inspection import DEFAULT
+                initial = [r for r in self.workflow.accepted_checks.values() if r['check_kind']=='INITIAL']
+                if len(initial) != 1:
+                    raise ValueError('REAL_B_SEQUENCE_ONE_INITIAL_REQUIRED')
+                document.update(execution_scope='ROUND3_REAL_B_THREE_STEP',
+                    b_initial_response=deepcopy(initial[0]),
+                    b_confirmed_steps=[deepcopy(self.workflow.accepted_checks[r['check_id']]) for r in self.workflow.completed],
+                    manual_step_confirmation=True, home_after_each_step=True, home_settings_sha256=file_digest(DEFAULT))
+            if self.camera_free_trial:
+                document.update(trial_scope='SIXPART_REAL_D_THREE_STEP_TRIAL' if self.three_step_trial else 'SIXPART_REAL_D_SINGLE_STEP',
+                    state_basis='SYNTHETIC_SCENARIO_NOT_B_OBSERVATION',
+                    physical_assembly_verified=False, baseline_source_sha256=self.initial_packet['source_sha256'])
+            if self.three_step_trial:
+                from app.round3_initial_inspection import DEFAULT
+                from app.round3_approved_step import trial_sequence_entries, validate_trial_sequence
+                prepared = [dict(case=cfg['trial_step'],config=cfg) for cfg in self.native_configs]
+                document.update(native_sequence=trial_sequence_entries(self.workflow.bundle, prepared),
+                    manual_step_confirmation=True, home_after_each_step=True, home_settings_sha256=file_digest(DEFAULT))
+                _, self.service_binding = validate_trial_sequence(document, prepared, self.scenario, self.registry_path)
+            else:
+                self.service_binding = validate_binding(document, self.native_config, self.scenario, self.registry_path)
+            path = self.directory / self.workflow.job_id / (payload['execution_id'] + '.approved-step.json'
+                if self.live_three_step else 'approved-step.json')
             try:
                 if self.live_inspection_mode:
                     from app.round3_live_inspection import LiveInspectionObserver
@@ -467,9 +538,11 @@ class ApprovedStepRealTrial(FullFeatureRealTrial):
                 self.robot.close()
                 self.robot_retired = True
                 self.fixed_trial = FixedStepProcess(self.fixed_robot_root,
-                    self.directory / self.workflow.job_id / 'approved-native', scenario=self.scenario_path,
+                    self.directory / self.workflow.job_id / ('native-' + payload['execution_id']
+                        if self.live_three_step else 'approved-native'), scenario=self.scenario_path,
                     execution_profile=self.registry_path, approved_step_document=path,
-                    native_step=self.native_config['trial_step']['step_id'])
+                    native_step=self.native_config['trial_step']['step_id'], three_step_trial=self.three_step_trial,
+                    return_home_after_step=self.live_three_step)
                 self.fixed_trial.start()
             except (OSError, ValueError, RuntimeError) as error:
                 self.workflow.status, self.workflow.reason = 'HOLD', str(error)
@@ -489,18 +562,78 @@ class ApprovedStepRealTrial(FullFeatureRealTrial):
             result = self.fixed_trial.poll()
             if result is not None:
                 self.fixed_result = result
-                matched = (result['status'] == 'FIXED_STEP_EXECUTED'
+                matched = (result['status'] == ('THREE_STEP_TRIAL_EXECUTED' if self.three_step_trial else 'FIXED_STEP_EXECUTED')
                     and result['native_result'].get('service_binding') == self.service_binding
                     and self.workflow.reason != 'STOP_PENDING' and not self.fixed_trial.stopping)
                 self.workflow.status, self.workflow.robot_status = 'HOLD', None
                 self.workflow.robot_resume_allowed = False
-                self.workflow.reason = ('APPROVED_STEP_EXECUTED_B_CONFIRMATION_REQUIRED' if matched
+                self.workflow.reason = (('THREE_STEP_TRIAL_EXECUTED_B_CONFIRMATION_REQUIRED' if self.three_step_trial
+                    else 'APPROVED_STEP_EXECUTED_B_CONFIRMATION_REQUIRED') if matched
                     else 'APPROVED_STEP_INTERRUPTED_OR_FAILED_VERIFY_PHYSICAL_STATE')
                 self.workflow.event('ROUND3_APPROVED_STEP_RESULT', dict(result, binding_matched=matched))
                 if matched and self.live_inspection_mode and not self.workflow.log_failed:
                     self.workflow.execution_closed = True
                     self.workflow.status = 'WAIT_ASSEMBLY'
                     self.workflow.request_check('STEP')
+                if self.camera_free_trial:
+                    self.archive_trial()
+        while not self.trial_archive_inbox.empty():
+            job, status, reason = self.trial_archive_inbox.get_nowait()
+            if job == self.workflow.job_id:
+                if status == 'DB_RECORDED':
+                    self.trial_db_recorded = True
+                self.trial_archive_status, self.trial_archive_reason = status, reason
+
+    def archive_trial(self):
+        """Persist an unverified trial, preserving the normal FINAL-gated save path."""
+        if (not self.camera_free_trial or self.fixed_result is None or self.history_dsn is None
+                or not self.creator or not self.job_creator or self.login_pending
+                or self.creator['user_id'] != self.job_creator['user_id']
+                or self.trial_archive_status in ('PENDING','DB_RECORDED')):
+            return False
+        job, creator = self.workflow.job_id, deepcopy(self.job_creator)
+        credentials, web_only = self._credentials, self.trial_db_recorded
+        if not credentials or credentials[0] != creator['username']:
+            return False
+        self.trial_archive_status, self.trial_archive_reason = 'PENDING', None
+        if not self.workflow.event('ROUND3_TRIAL_ARCHIVE_REQUESTED', dict(
+                trial_scope='SIXPART_REAL_D_THREE_STEP_TRIAL' if self.three_step_trial else 'SIXPART_REAL_D_SINGLE_STEP',
+                web_only=web_only, assembly_completion=False)):
+            self.trial_archive_status = 'FAILED'
+            return False
+        def run():
+            try:
+                from history import store
+                from history.mvp_save import link_current_job, verify_web_job
+                if not web_only:
+                    with store.connect(self.history_dsn) as connection:
+                        link_current_job(connection,self.workflow.log_directory,job,creator)
+                    self.trial_archive_inbox.put((job,'DB_RECORDED',None))
+                verify_web_job(self.web_url,job,*credentials,None)
+                self.trial_archive_inbox.put((job,'SUCCEEDED',None))
+            except Exception as error:
+                self.trial_archive_inbox.put((job,'FAILED',
+                    str(error) if isinstance(error,ValueError) else type(error).__name__))
+        worker = Thread(target=run,daemon=True)
+        self.workers.append(worker)
+        worker.start()
+        return True
+
+    def trial_display(self):
+        order = ['T2','T1','T3']
+        progress = self.fixed_trial.progress() if self.fixed_trial is not None else None
+        data = progress.get('data',{}) if progress else {}
+        event = progress.get('event') if progress else None
+        identity = data.get('step',{}).get('step_id') or data.get('step_id') or order[0]
+        identity = identity if identity in order else order[0]
+        index = order.index(identity)
+        completed = index + (1 if event=='TRIAL_HOME_RETURNED' else 0)
+        if self.fixed_result is not None and self.fixed_result['status']=='THREE_STEP_TRIAL_EXECUTED':
+            completed = 3
+        cases = {case['step_id']:case for case in self.scenario['steps']}
+        return dict(step_id=identity,index=index,completed=completed,event=event,target=cases[identity]['target'],
+            trial_expected=[deepcopy(row['block']) for row in self.scenario['preplaced']]
+                +[deepcopy(cases[step]['target']) for step in order[:completed]])
 
     def stop_retired_inspection(self):
         from app.round3_initial_inspection import open_motion

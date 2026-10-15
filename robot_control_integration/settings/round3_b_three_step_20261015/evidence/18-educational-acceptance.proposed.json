@@ -1,0 +1,32 @@
+{
+  "scope": "T2_BLUE_2X3_SLOT3_SUPPLY_ONLY",
+  "operator_accepted": false,
+  "approval_mechanism": "EXPLICIT_RUNNER_T2_EDUCATIONAL_FLAG",
+  "evidence_ref": "/home/rokey/Documents/ChatGPT/로봇제어 개발/c2_integration_round3/logs/supply-depth-reference/T2-runtime-matched-20261015T113333/observation-height-matched/surface-quality-candidate.json",
+  "evidence_sha256": "766384fe9e29812db1883f865942b873355f7b8d51a4dab710938aeb9f105dab",
+  "measured_residual_xy_mm": null,
+  "limits": {
+    "max_shift_mm": 1.0,
+    "max_height_error_mm": 2.0,
+    "max_depth_spread_mm": 2.0,
+    "depth_range_mm": [
+      521.0,
+      527.0
+    ],
+    "max_packet_age_ms": 310.0
+  },
+  "limit_basis": {
+    "max_shift_mm": "Proposed conservative 1mm trial cap; observed stationary XY variation 0.0933mm, not a displacement-accuracy certification.",
+    "max_height_error_mm": "Proposed 2mm reject bound; measured stationary surface Z variation 1.002mm.",
+    "max_depth_spread_mm": "Measured maximum patch spread 1mm plus proposed 1mm margin.",
+    "depth_range_mm": "Measured valid patches 523..525mm plus proposed 2mm margin at either end."
+  },
+  "not_T1_acceptance_transfer": true,
+  "packet_age_amendment": {
+    "operator_explicitly_requested": true,
+    "operator_statement": "기준을 걍늘려 / 310으로",
+    "previous_ms": 300,
+    "new_ms": 310,
+    "skew_limit_ms_unchanged": 50
+  }
+}

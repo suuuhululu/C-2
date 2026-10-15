@@ -45,7 +45,7 @@ def save_current_job(connection, log_directory, job_id, username, password, save
 
 
 def verify_web_job(url, job_id, username, password, receipt):
-    """같은 로컬 웹에 인증 후 현재 저장 영수증이 조회되는지 확인한다."""
+    """인증 후 저장 영수증을 확인한다. receipt=None은 미완료 시험 이력 조회만 확인한다."""
     address = urlsplit(url)
     if address.scheme != 'http' or address.hostname != '127.0.0.1' or address.path not in ('', '/'):
         raise ValueError('LOCAL_HISTORY_WEB_URL_REQUIRED')
@@ -62,6 +62,11 @@ def verify_web_job(url, job_id, username, password, receipt):
         body=json.loads(response.read())
         if response.status != 200:
             raise ValueError('WEB_JOB_UNAVAILABLE')
+        if receipt is None:
+            if (body['completion']['assembly'] != 'NOT_RECORDED'
+                    or body['storage']['status'] != 'PENDING' or not body['designs']):
+                raise ValueError('WEB_UNVERIFIED_TRIAL_REQUIRED')
+            return body
         stored=body['storage']
         if stored['status'] != 'SAVED' or stored['receipt']['manifest_sha256'] != receipt['manifest_sha256']:
             raise ValueError('WEB_SAVED_MANIFEST_DIFFERS')

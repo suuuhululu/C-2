@@ -507,7 +507,7 @@ def render_creator(window, runtime):
 
 
 def main(runtime_class=MvpIntegration, *, real_trial=False):
-    parser=argparse.ArgumentParser(description='C/A 전체 함수·REAL Robot/카메라 제스처 시험. B 관측/Current는 가짜입니다.' if real_trial else __doc__)
+    parser=argparse.ArgumentParser(description='C/A/D 실물 시험. 실제 B 관측은 전용 실행 옵션으로 선택합니다.' if real_trial else __doc__)
     parser.add_argument('--robot-root',required=True,type=Path)
     parser.add_argument('--log-directory',type=Path,default=Path('logs/mvp-integration'))
     parser.add_argument('--design',type=Path,help='C 미리보기 후보 파일; 사용자 승인과 구분. 생략하면 C 생성 함수 사용')
@@ -519,6 +519,12 @@ def main(runtime_class=MvpIntegration, *, real_trial=False):
             help='T1 고정 현장 시험만 HMI에서 실행. C/A 실행·B 완료·최종 저장과 분리')
         parser.add_argument('--round3-approved-step', action='store_true',
             help='C 승인·실제 A 한 Step을 대응 native 교시·공급 프로파일에 연결하고 B 확인 전 보류')
+        parser.add_argument('--round3-camera-free-trial', action='store_true',
+            help='6부분 시험: 명시적 합성 시작 기준·C 승인·A 첫 Step·실제 native D 후 HOLD; B 카메라 제외')
+        parser.add_argument('--round3-three-step-trial', action='store_true',
+            help='B 제외 시험의 T2→T1→T3 개별 확인·실행과 각 Step 후 개방/HOME 복귀')
+        parser.add_argument('--round3-b-three-step', action='store_true',
+            help='실제 INITIAL → C 승인 → T2·T1·T3 각각 HOME·실제 B MATCH 후 진행 → 실제 FINAL')
         parser.add_argument('--round3-live-inspection', action='store_true',
             help='승인 Step native 종료 뒤 실제 B STEP 검사. 후속 native 실행은 별도 연결까지 보류')
         parser.add_argument('--inspection-config', type=Path,
@@ -526,7 +532,7 @@ def main(runtime_class=MvpIntegration, *, real_trial=False):
         parser.add_argument('--initial-observation', type=Path,
             help='실제 B INITIAL 저장 폴더(context.json/observed.json/V0·D1·D3 metadata.json)')
         parser.add_argument('--fixed-trial-scenario', type=Path,
-            help='고정 T1 native 시험에 전달할 별도 시나리오')
+            help='native 단발 시험에 전달할 시나리오')
         parser.add_argument('--execution-profile', type=Path, help='교육용 조건부 공급 실행 프로파일')
         parser.add_argument('--supply-depth-profile', type=Path,
             help='고정 T1 native 시험에 전달할 공급판 RGB-D 보정 프로파일')
@@ -534,17 +540,28 @@ def main(runtime_class=MvpIntegration, *, real_trial=False):
             help='고정 T1에만 교육용 공급판 보정 수용 옵션 전달')
         parser.add_argument('--contact-alignment-trial',action='store_true',help='연속 결착 하강 · 전체 반력 40N 정지 시험; 실물 미검증')
         parser.add_argument('--execute',action='store_true',required=True,
-            help='실제 Robot·카메라 제스처 연결 허용. B 관측은 가짜 시험 입력')
+            help='선택한 모드의 실제 Robot·카메라 연결 허용')
     args=parser.parse_args()
     if real_trial and args.round3_step_replay is not None:
         parser.error('--round3-step-replay는 MOCK HMI 전용입니다.')
+    if real_trial and args.round3_b_three_step:
+        if args.round3_camera_free_trial or args.round3_three_step_trial or not args.initial_observation:
+            parser.error('--round3-b-three-step에는 실제 --initial-observation이 필요하며 합성 B 시험과 혼용할 수 없습니다.')
+        args.round3_approved_step = args.round3_live_inspection = True
+    if real_trial and args.round3_three_step_trial and not args.round3_camera_free_trial:
+        parser.error('--round3-three-step-trial은 --round3-camera-free-trial 전용입니다.')
+    if real_trial and args.round3_camera_free_trial:
+        if (args.round3_approved_step or args.round3_fixed_step or args.initial_observation
+                or args.round3_live_inspection or args.inspection_config):
+            parser.error('6부분 시험은 실제 B 관측/다른 실행 모드와 혼용할 수 없습니다.')
+        args.round3_approved_step = True
     if real_trial and (args.round3_live_inspection or args.inspection_config) and not args.round3_approved_step:
         parser.error('--round3-live-inspection/--inspection-config는 --round3-approved-step 전용입니다.')
     if real_trial and args.inspection_config and not args.round3_live_inspection:
         parser.error('--inspection-config에는 --round3-live-inspection이 필요합니다.')
     if real_trial and args.round3_approved_step:
         if (args.round3_fixed_step or args.contact_alignment_trial or args.supply_depth_profile
-                or args.educational_depth_demo or not args.initial_observation
+                or args.educational_depth_demo or not (args.initial_observation or args.round3_camera_free_trial)
                 or not args.fixed_trial_scenario or not args.execution_profile):
             parser.error('--round3-approved-step에는 --initial-observation/--fixed-trial-scenario/--execution-profile이 필요하며 다른 시험 모드와 혼용할 수 없습니다.')
         from app.mvp_real_trial import ApprovedStepRealTrial
@@ -562,11 +579,12 @@ def main(runtime_class=MvpIntegration, *, real_trial=False):
         parser.error('T1 고정 시험은 기존 round2 설정을 사용합니다. --contact-alignment-trial과 함께 사용하지 마세요.')
     if real_trial and args.round3_fixed_step and args.design:
         parser.error('T1 고정 시험에는 --design을 사용할 수 없습니다. 기존 T1 시나리오만 실행합니다.')
-    from PyQt5.QtCore import QTimer
+    from PyQt5.QtCore import QTimer, QSize
     from PyQt5.QtWidgets import QApplication, QInputDialog, QLineEdit, QMessageBox
     from app.qt_hmi import HmiWindow
     app=QApplication([])
-    window=HmiWindow()
+    window=HmiWindow(**({'window_size':QSize(1400,1000)}
+        if real_trial and args.round3_camera_free_trial else {}))
     design=json.loads(args.design.read_text()) if args.design else None
     runtime=runtime_class(args.robot_root,args.log_directory,fixture_design=design,c_mode=args.c_mode,
         history_dsn=os.environ.get('HISTORY_DATABASE_DSN'),
@@ -578,7 +596,10 @@ def main(runtime_class=MvpIntegration, *, real_trial=False):
                    if args.round3_fixed_step else
                    dict(initial_observation=args.initial_observation, fixed_trial_scenario=args.fixed_trial_scenario,
                         execution_profile=args.execution_profile, live_inspection=args.round3_live_inspection,
-                        inspection_config=args.inspection_config) if args.round3_approved_step else {})) if real_trial else
+                        inspection_config=args.inspection_config,
+                        camera_free_trial=args.round3_camera_free_trial,
+                        three_step_trial=args.round3_three_step_trial,
+                        live_three_step=args.round3_b_three_step) if args.round3_approved_step else {})) if real_trial else
             ({'round3_step_replay':json.loads(args.round3_step_replay.read_text())}
                 if args.round3_step_replay is not None else {})))
     window.creator_bar.setVisible(runtime.history_dsn is not None)
@@ -610,6 +631,18 @@ def main(runtime_class=MvpIntegration, *, real_trial=False):
         if args.round3_approved_step:
             review.setText('승인 Step 시험 준비: 관측 이후 8블록 배치 유지·공급 슬롯 준비·빈 그리퍼 HOME·기존 경로 확인')
             fake_check.hide()
+            if args.round3_b_three_step:
+                review.setText('실제 B 3-Step 준비: 초기 관측 후 8블록 유지·세 공급 슬롯·빈 HOME·복귀 경로·T3 지지 준비 확인')
+        if args.round3_camera_free_trial:
+            review.setText('6부분 실물 시험: 사전 8블록·공급 슬롯·빈 그리퍼 HOME·경로 확인 · 시작 구조는 시험 기준')
+            if args.round3_three_step_trial:
+                review.setText('3-Step 실물 시험: 사전8블록·세 공급 슬롯·빈 HOME·각 Step 후 개방/HOME 경로·T3 지지 준비 확인')
+            archive_trial = QPushButton('시험 이력 DB·웹 반영 재시도')
+            window.creator_bar.layout().insertWidget(3,archive_trial)
+            archive_trial.clicked.connect(runtime.archive_trial)
+            if runtime.c_mode == 'offline':voice.hide()
+            if os.environ.get('C2_SIXPART_USERNAME') and os.environ.get('C2_SIXPART_PASSWORD'):
+                runtime.login(os.environ['C2_SIXPART_USERNAME'],os.environ['C2_SIXPART_PASSWORD'])
     def publish():
         runtime.poll()
         snapshot=runtime.workflow.snapshot()
@@ -694,6 +727,44 @@ def main(runtime_class=MvpIntegration, *, real_trial=False):
                     and runtime.workflow.inspection['status'] in ('ERROR', 'UNOBSERVABLE'))
                 if runtime.workflow.check is not None:
                     window.buttons['STOP'].setEnabled(True)
+                if args.round3_b_three_step:
+                    window.setWindowTitle('Round3 · 실제 B와 3-Step 통합 · T2 → T1 → T3')
+                    window.heading.setText('C 승인 → A 재평가 → Step 확인·실행 → 개방·HOME → B 실제 검사')
+                    window.footer.setText('B MATCH 후 다음 Step · T3 지지 준비 확인 · FINAL MATCH 후 조립 완료')
+                    window.user_request_controls.buttons['change_design'].setEnabled(False)
+            if args.round3_camera_free_trial:
+                window.setWindowTitle('6부분 통합 시험 · 실제 D 한 Step · B 카메라 제외')
+                window.heading.setText('C 승인 → A 첫 Step → 실제 D · 시작 구조는 고정 시험 기준')
+                window.target_caption.setText('실선: 사전 배치 시험 기준 · B 관측 없음\n점선: A가 선택한 첫 목표')
+                window.inspection_view.board_panels[0].setTitle('시험 기준 구조 · 실관측 없음')
+                window.inspection_view.summary.setText('B 실시간 관측 미사용 · 사전 배치 시험 기준')
+                window.inspection_view.details.setPlainText('등록된 사전 8블록 배치를 계획의 시험 기준으로 사용합니다. '
+                    'D 실행 후 관측된 Current나 조립 완료로 갱신하지 않습니다.')
+                window.footer.setText('D 단발 실행 후 HOLD · B Current/조립 완료 미확인 · 시험 이력으로 기록')
+                archive_trial.setEnabled(runtime.trial_archive_status == 'FAILED')
+                if runtime.trial_archive_status != 'NOT_STARTED':
+                    message = dict(PENDING='시험 이력 반영 중',DB_RECORDED='DB 기록됨 · 웹 확인 중',
+                        SUCCEEDED='시험 이력 DB·웹 확인 완료 · 조립 확인 전',FAILED='시험 이력 반영 실패 · 재시도 가능')
+                    window.notice.setPlainText((runtime.workflow.reason or '')+'\n'
+                        +message[runtime.trial_archive_status]+'\n'+(runtime.trial_archive_reason or runtime.web_url))
+                if args.round3_three_step_trial:
+                    from app.qt_hmi import fields
+                    from PyQt5.QtWidgets import QTableWidgetItem
+                    display = runtime.trial_display()
+                    window.setWindowTitle('3-Step 실물 시험 · T2 → T1 → T3 · B 미확인')
+                    window.heading.setText('C 설계 승인 → A 순서 → Step별 실행 확인 → 실제 D → 빈 그리퍼 개방·HOME')
+                    window.progress.setText(f"D 시험 실행 {display['completed']} / 3 · B 조립 확인 0 / 3")
+                    window.step_panel.setTitle(f"실물 시험 Step {display['index']+1}/3 · {display['step_id']}")
+                    window.target_board.set_assembly(dict(snapshot['current'],blocks=display['trial_expected']),display['target'])
+                    window.target_caption.setText('실선: 시험 예상 배치 · B 실관측 없음\n점선: 이번 실물 시험 목표')
+                    window.comparison.setText('시험 목표 · B 비교/Current 갱신 없음')
+                    for row,text in enumerate(fields(display['target'])):
+                        window.table.setItem(row,1,QTableWidgetItem(text))
+                        window.table.setItem(row,2,QTableWidgetItem('B 미관측'))
+                    window.footer.setText('각 Step 팝업 ENTER로 실행 · 성공 후 개방/HOME · 실패 시 HOLD · 정식 B 완료 아님')
+                    if display['event']=='TRIAL_STEP_CONFIRMATION_REQUIRED' and runtime.fixed_result is None:
+                        window.status.setText('다음 Step 확인 대기 · 실물 팝업에서 ENTER/ESC')
+                        window.notice.setPlainText('직전 결착·다음 공급 슬롯·빈 HOME·손 이탈을 확인하고 실물 팝업에서 ENTER를 누르세요. T3는 별도 지지 확인을 받습니다.')
     def request(value):
         accepted=runtime.request(value)
         if 'request_id' in value:

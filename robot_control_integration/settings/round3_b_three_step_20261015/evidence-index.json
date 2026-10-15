@@ -1,0 +1,186 @@
+{
+  "byte_identical_sources": [
+    {
+      "file": "evidence/01-reference-reconciliation.json",
+      "original_source": "logs/supply-slot-model/post-red-reconcile-20261015T111258/reference-reconciliation.json",
+      "sha256": "1c3088dc4b2fa0254265f662ffe362117731bb4e4d688637d5fff21f1f5802e5",
+      "interpretation": "BYTE_IDENTICAL_ARCHIVE; NESTED_PATHS_ARE_HISTORICAL_NOT_RUNTIME_DEPENDENCIES"
+    },
+    {
+      "file": "evidence/02-report.json",
+      "original_source": "logs/supply-slot-model/post-red-reconcile-20261015T111258/audit/report.json",
+      "sha256": "8edef652568a84b86fe6e147e133b7a7c33de43236240ae26a9e3872ac64c17d",
+      "interpretation": "BYTE_IDENTICAL_ARCHIVE; NESTED_PATHS_ARE_HISTORICAL_NOT_RUNTIME_DEPENDENCIES"
+    },
+    {
+      "file": "evidence/03-layout.candidate.json",
+      "original_source": "logs/supply-slot-model/post-red-reconcile-20261015T111258/audit/layout.candidate.json",
+      "sha256": "121d43c01db0c0636deccabdbcf6dcaef96cc4416281c3efa1bad6d68ac84e2a",
+      "interpretation": "BYTE_IDENTICAL_ARCHIVE; NESTED_PATHS_ARE_HISTORICAL_NOT_RUNTIME_DEPENDENCIES"
+    },
+    {
+      "file": "evidence/04-operator_supply.json",
+      "original_source": "robot_control_integration/fixtures/teaching_sources/operator_supply.json",
+      "sha256": "55ca811850af36d0c4b7e579f9b33ba9ae31fee7592eb63578271018199daa3e",
+      "interpretation": "BYTE_IDENTICAL_ARCHIVE; NESTED_PATHS_ARE_HISTORICAL_NOT_RUNTIME_DEPENDENCIES"
+    },
+    {
+      "file": "evidence/05-config.json",
+      "original_source": "robot_control_integration/settings/round3_supply_rgbd_20261015/slot4-execution-20261015/config.json",
+      "sha256": "5bb2f78fff8494a48387a121b884493ce764d3ecfa076794257c5d097a62baeb",
+      "interpretation": "BYTE_IDENTICAL_ARCHIVE; NESTED_PATHS_ARE_HISTORICAL_NOT_RUNTIME_DEPENDENCIES"
+    },
+    {
+      "file": "evidence/06-trial-summary.json",
+      "original_source": "logs/supply-rgbd-slot4-trial/1792031150121333215/trial-summary.json",
+      "sha256": "fb5fd05235da3731fd830b69e4ff9100a0116da89680ded1d0866ec12d2d45ab",
+      "interpretation": "BYTE_IDENTICAL_ARCHIVE; NESTED_PATHS_ARE_HISTORICAL_NOT_RUNTIME_DEPENDENCIES"
+    },
+    {
+      "file": "evidence/07-supply-depth-center.educational.json",
+      "original_source": "robot_control_integration/settings/round3_educational_t1_20261015/supply-depth-center.educational.json",
+      "sha256": "09534aabc16dd02d3467367180ec6fc6980698ec5b50d821e7fd99f91ac62b97",
+      "interpretation": "BYTE_IDENTICAL_ARCHIVE; NESTED_PATHS_ARE_HISTORICAL_NOT_RUNTIME_DEPENDENCIES"
+    },
+    {
+      "file": "evidence/08-slot4-layout.json",
+      "original_source": "robot_control_integration/settings/round3_educational_t1_20261015/slot4-layout.json",
+      "sha256": "0d736101978e37be5a0cb843cc9c6be0d895a0ff95f3fe2f82ab637dbcbffd0a",
+      "interpretation": "BYTE_IDENTICAL_ARCHIVE; NESTED_PATHS_ARE_HISTORICAL_NOT_RUNTIME_DEPENDENCIES"
+    },
+    {
+      "file": "evidence/09-educational-acceptance.json",
+      "original_source": "robot_control_integration/settings/round3_educational_t1_20261015/educational-acceptance.json",
+      "sha256": "1f59cd009fedee2aee434fdba9434d1dc19e213bb8080e5ce609c494b3a6fea8",
+      "interpretation": "BYTE_IDENTICAL_ARCHIVE; NESTED_PATHS_ARE_HISTORICAL_NOT_RUNTIME_DEPENDENCIES"
+    },
+    {
+      "file": "evidence/10-pickup.json",
+      "original_source": "logs/supply-depth-reference/pair-20261015T080359/pickup/pickup.json",
+      "sha256": "0a6db9f074bf616b395c4961ab330971bc9344ee7f948559d1b44cf9d191d0b1",
+      "interpretation": "BYTE_IDENTICAL_ARCHIVE; NESTED_PATHS_ARE_HISTORICAL_NOT_RUNTIME_DEPENDENCIES"
+    },
+    {
+      "file": "evidence/11-config.json",
+      "original_source": "robot_control_integration/settings/round3_supply_rgbd_20261015/T2-slot3-execution-20261015/config.json",
+      "sha256": "b3ccb28e05b478c7e75b72eadfe86ce6866a9f20759f9c0d9491882323c78626",
+      "interpretation": "BYTE_IDENTICAL_ARCHIVE; NESTED_PATHS_ARE_HISTORICAL_NOT_RUNTIME_DEPENDENCIES"
+    },
+    {
+      "file": "evidence/12-trial-summary.json",
+      "original_source": "logs/supply-rgbd-T2-slot3-trial/1792033310942237285/trial-summary.json",
+      "sha256": "f7138126e06b00dc50491abfa9fec069eec10bcd30ec433bb68e0f1b65a7d054",
+      "interpretation": "BYTE_IDENTICAL_ARCHIVE; NESTED_PATHS_ARE_HISTORICAL_NOT_RUNTIME_DEPENDENCIES"
+    },
+    {
+      "file": "evidence/13-surface-quality-candidate.json",
+      "original_source": "logs/supply-depth-reference/T2-runtime-matched-20261015T113333/observation-height-matched/surface-quality-candidate.json",
+      "sha256": "766384fe9e29812db1883f865942b873355f7b8d51a4dab710938aeb9f105dab",
+      "interpretation": "BYTE_IDENTICAL_ARCHIVE; NESTED_PATHS_ARE_HISTORICAL_NOT_RUNTIME_DEPENDENCIES"
+    },
+    {
+      "file": "evidence/14-pickup.json",
+      "original_source": "logs/supply-depth-reference/T2-runtime-matched-20261015T113333/pickup-height-matched/pickup.json",
+      "sha256": "8bd9b1b4adc6d3704b9b0467d2ca91d171ac0e9604b5ba2b8f9acbf399ce8d28",
+      "interpretation": "BYTE_IDENTICAL_ARCHIVE; NESTED_PATHS_ARE_HISTORICAL_NOT_RUNTIME_DEPENDENCIES"
+    },
+    {
+      "file": "evidence/15-capture.json",
+      "original_source": "logs/supply-depth-reference/T2-runtime-matched-20261015T113333/observation-height-matched/capture.json",
+      "sha256": "6939de24002253559d5e59daad831957fe1c035cc26f2679b11a4f566e143c8f",
+      "interpretation": "BYTE_IDENTICAL_ARCHIVE; NESTED_PATHS_ARE_HISTORICAL_NOT_RUNTIME_DEPENDENCIES"
+    },
+    {
+      "file": "evidence/16-slot3-layout.json",
+      "original_source": "robot_control_integration/settings/round3_supply_rgbd_20261015/T2-slot3-execution-20261015/slot3-layout.json",
+      "sha256": "9a0f93cdeb425c7fc4d4dcc851109f207689e5b400200cb342ec7ded33b5d16f",
+      "interpretation": "BYTE_IDENTICAL_ARCHIVE; NESTED_PATHS_ARE_HISTORICAL_NOT_RUNTIME_DEPENDENCIES"
+    },
+    {
+      "file": "evidence/17-supply-depth-center.educational.json",
+      "original_source": "robot_control_integration/settings/round3_supply_rgbd_20261015/T2-slot3-execution-20261015/supply-depth-center.educational.json",
+      "sha256": "2af49613560e0c1d5562f80f3cf028048e22eec5b0e70af62fc74531e34efd75",
+      "interpretation": "BYTE_IDENTICAL_ARCHIVE; NESTED_PATHS_ARE_HISTORICAL_NOT_RUNTIME_DEPENDENCIES"
+    },
+    {
+      "file": "evidence/18-educational-acceptance.proposed.json",
+      "original_source": "robot_control_integration/settings/round3_supply_rgbd_20261015/T2-slot3-execution-20261015/educational-acceptance.proposed.json",
+      "sha256": "ce4a9bd5a7fd4e402aa9301b05814cd9eea11f2ec0b3d8b48c514e677fa3c7d8",
+      "interpretation": "BYTE_IDENTICAL_ARCHIVE; NESTED_PATHS_ARE_HISTORICAL_NOT_RUNTIME_DEPENDENCIES"
+    },
+    {
+      "file": "evidence/19-reference-bundle.candidate.json",
+      "original_source": "robot_control_integration/settings/round3_supply_rgbd_20261015/reference-bundle.candidate.json",
+      "sha256": "92f3bf44330467fc7ffbe23246308d6c67c42590dc9e70e5369c23946d24bcae",
+      "interpretation": "BYTE_IDENTICAL_ARCHIVE; NESTED_PATHS_ARE_HISTORICAL_NOT_RUNTIME_DEPENDENCIES"
+    },
+    {
+      "file": "evidence/20-remaining-slots-teaching-grasp-review.json",
+      "original_source": "external-reports/remaining-slots-teaching-grasp-review.json",
+      "sha256": "d1c2f09a7c83f5cfcb5c505e5b01b5bbd4b03a2ba2fe26d33f18e454848b6ecb",
+      "interpretation": "BYTE_IDENTICAL_ARCHIVE; NESTED_PATHS_ARE_HISTORICAL_NOT_RUNTIME_DEPENDENCIES"
+    },
+    {
+      "file": "evidence/21-pickup.json",
+      "original_source": "logs/supply-depth-reference/manual-yellow-2x2-slot2-20261015T102557/pickup/pickup.json",
+      "sha256": "0f2d2f44a6c742cc043bf6c0991ec57b334bde3594a13367d17eaaf24416a618",
+      "interpretation": "BYTE_IDENTICAL_ARCHIVE; NESTED_PATHS_ARE_HISTORICAL_NOT_RUNTIME_DEPENDENCIES"
+    },
+    {
+      "file": "evidence/22-operator-review.json",
+      "original_source": "logs/supply-slot2-reapproach/1792028718726814565/operator-review.json",
+      "sha256": "39fcddbc11ee064b5f0f58d2ea7ed6b33e7336265f42846a209db6652ca3e1be",
+      "interpretation": "BYTE_IDENTICAL_ARCHIVE; NESTED_PATHS_ARE_HISTORICAL_NOT_RUNTIME_DEPENDENCIES"
+    },
+    {
+      "file": "evidence/23-yellow-2x3-slot3-history-review.json",
+      "original_source": "logs/supply-slot-model/post-red-reconcile-20261015T111258/yellow-2x3-slot3-history-review.json",
+      "sha256": "5ad814b503e62ef5a9a52b728395f6cc996fa8cae58214c56c9d1cbf1533b5ea",
+      "interpretation": "BYTE_IDENTICAL_ARCHIVE; NESTED_PATHS_ARE_HISTORICAL_NOT_RUNTIME_DEPENDENCIES"
+    },
+    {
+      "file": "evidence/24-pickup.json",
+      "original_source": "logs/supply-depth-reference/T3-pair-20261015T094504/pickup/pickup.json",
+      "sha256": "fcb31104a572abf7d5edaadf3fb58d088a27223e3cab8ce80da9db0bc29bb53a",
+      "interpretation": "BYTE_IDENTICAL_ARCHIVE; NESTED_PATHS_ARE_HISTORICAL_NOT_RUNTIME_DEPENDENCIES"
+    },
+    {
+      "file": "evidence/25-pickup.json",
+      "original_source": "logs/supply-depth-reference/manual-red-slot1-20261015T110138/pickup/pickup.json",
+      "sha256": "5eea217e9b7cc84f5524ab88e0104e8dc20a6e9701cd02568266f7ad7a11d4ec",
+      "interpretation": "BYTE_IDENTICAL_ARCHIVE; NESTED_PATHS_ARE_HISTORICAL_NOT_RUNTIME_DEPENDENCIES"
+    },
+    {
+      "file": "evidence/26-operator-review.json",
+      "original_source": "logs/supply-red-slot1-trial/1792030144985357132/operator-review.json",
+      "sha256": "7b1cd97c395ce5fd59eb3bd7e25dd1f7eb1c114a6c76467ddef4e73bb9922170",
+      "interpretation": "BYTE_IDENTICAL_ARCHIVE; NESTED_PATHS_ARE_HISTORICAL_NOT_RUNTIME_DEPENDENCIES"
+    }
+  ],
+  "archival_references_not_required_at_runtime": [
+    {
+      "original_source": "external/slots.json",
+      "included": false
+    },
+    {
+      "original_source": "logs/supply-depth-reference/T3-pair-20261015T094504/observation",
+      "included": false
+    },
+    {
+      "original_source": "logs/supply-depth-reference/T3-pair-20261015T094504/observation",
+      "included": false
+    },
+    {
+      "original_source": "logs/supply-depth-reference/pair-20261015T080359/observation",
+      "included": false
+    },
+    {
+      "original_source": "logs/supply-depth-reference/pair-20261015T080359/observation/surface-quality-audit.json",
+      "included": false
+    },
+    {
+      "original_source": "external/slot4.processing-layout.draft.json",
+      "included": false
+    }
+  ]
+}

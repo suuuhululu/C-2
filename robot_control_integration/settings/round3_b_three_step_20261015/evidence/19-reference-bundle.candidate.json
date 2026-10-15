@@ -1,0 +1,163 @@
+{
+  "schema_version": "supply-rgbd-reference-bundle-candidate/1",
+  "status": "THREE_REFERENCE_MEASUREMENTS_AVAILABLE_NOT_FOR_EXECUTION",
+  "scope": "THREE_MEASURED_TARGET_SLOTS_ONLY",
+  "camera_frame": "camera_color_optical_frame",
+  "input_size": [
+    1280,
+    720
+  ],
+  "connection": {
+    "robot_id": "dsr01",
+    "tcp": "GripperDA_v4",
+    "tool": "ToolWeight0"
+  },
+  "observation_pose": [
+    -443.4389343261719,
+    -38.81204605102539,
+    374.3517761230469,
+    8.74850845336914,
+    178.39500427246094,
+    8.59197998046875
+  ],
+  "T_tcp_camera_mm": [
+    [
+      -0.9999635624634272,
+      -0.008369145375815991,
+      0.0016826024875705725,
+      33.09374824303023
+    ],
+    [
+      0.008405168606817885,
+      -0.9997073818010725,
+      0.022682678702836245,
+      75.70563520391863
+    ],
+    [
+      0.00149227549188417,
+      0.022695994759506358,
+      0.9997412990047638,
+      -253.56893588074402
+    ],
+    [
+      0.0,
+      0.0,
+      0.0,
+      1.0
+    ]
+  ],
+  "references": [
+    {
+      "step_id": "T1",
+      "slot_id": "yellow_2x2x1_04",
+      "pickup_pose_recorded_mm_zyz_deg": [
+        -519.361083984375,
+        196.43150329589844,
+        49.38444137573242,
+        1.3798952102661133,
+        178.19931030273438,
+        1.3129518032073975
+      ],
+      "surface_center_base_mm": [
+        -530.3690546447399,
+        203.0710332180487,
+        100.15330756522832
+      ],
+      "roi_xyxy_processing": [
+        255,
+        91,
+        300,
+        135
+      ],
+      "capture_source": "/home/rokey/Documents/ChatGPT/로봇제어 개발/c2_integration_round3/logs/supply-depth-reference/pair-20261015T080359/observation/surface-candidate.json",
+      "capture_sha256": "fbafc6db980cd77d129e5b3303317543df8fefd3429874e97041bf8dafe1bac5",
+      "reference_capture_frames": 20,
+      "independently_verified": false,
+      "execution_approved": false,
+      "validation_status": "EDUCATIONAL_SINGLE_DISPLACEMENT",
+      "observed_xy_residual_mm": 1.7050900703594027,
+      "observed_depth_patch_range_mm": [
+        528.0,
+        533.0
+      ]
+    },
+    {
+      "step_id": "T2",
+      "slot_id": "blue_2x3x1_03",
+      "pickup_pose_recorded_mm_zyz_deg": [
+        -456.0434265136719,
+        10.631243705749512,
+        47.923831939697266,
+        8.009647369384766,
+        179.70550537109375,
+        8.306770324707031
+      ],
+      "surface_center_base_mm": [
+        -458.20709670802324,
+        17.762059850146134,
+        102.03319034061258
+      ],
+      "roi_xyxy_processing": [
+        311,
+        245,
+        367,
+        321
+      ],
+      "capture_source": "/home/rokey/Documents/ChatGPT/로봇제어 개발/c2_integration_round3/logs/supply-depth-reference/T2-pair-20261015T093321/observation/surface-candidate.json",
+      "capture_sha256": "5212591644cdb6fca5889954fe84b74294ae32c9680425a7a3ef2f9e6fe2b61f",
+      "reference_capture_frames": 20,
+      "independently_verified": false,
+      "execution_approved": false,
+      "validation_status": "DIAGNOSTIC_HEIGHT_ATTITUDE_CHANGED",
+      "observed_xy_residual_mm": 0.5363211952590023,
+      "observed_depth_patch_range_mm": [
+        524.0,
+        525.0
+      ]
+    },
+    {
+      "step_id": "T3",
+      "slot_id": "yellow_2x3x1_05",
+      "pickup_pose_recorded_mm_zyz_deg": [
+        -581.63427734375,
+        139.91748046875,
+        47.27861404418945,
+        5.880496025085449,
+        178.29222106933594,
+        5.513185501098633
+      ],
+      "surface_center_base_mm": [
+        -592.2821686184436,
+        143.0490622484778,
+        98.43590845103938
+      ],
+      "roi_xyxy_processing": [
+        198,
+        134,
+        245,
+        192
+      ],
+      "capture_source": "/home/rokey/Documents/ChatGPT/로봇제어 개발/c2_integration_round3/logs/supply-depth-reference/T3-pair-20261015T094504/observation/surface-candidate.json",
+      "capture_sha256": "a95b0cb6f7800168fb8edb689b99c0695a1169bb5b12afbc002011428a891416",
+      "reference_capture_frames": 20,
+      "independently_verified": false,
+      "execution_approved": false,
+      "validation_status": "DIAGNOSTIC_HEIGHT_ATTITUDE_CHANGED",
+      "observed_depth_patch_range_mm": [
+        528.0,
+        531.0
+      ],
+      "observed_xy_residual_mm": 1.0684887838532218,
+      "validation_source": "/home/rokey/Documents/ChatGPT/로봇제어 개발/c2_integration_round3/logs/supply-depth-reference/T3-pair-20261015T094504/validation-02/relative-displacement-validation.json",
+      "height_change_mm": 0.9154090881347656,
+      "attitude_change_deg": 0.3838546451470787,
+      "validation_placement_confirmation_pending": false,
+      "validation_placement_unchanged_operator_confirmed": true
+    }
+  ],
+  "assembly_xy_correction_enabled": false,
+  "physical_commands": 0,
+  "measured_ranges_are_acceptance_limits": false,
+  "all_supply_slots_verified": false,
+  "runtime_adoption_blocker": "T2/T3 newly recorded grasp Z/attitude differ from existing landing/pad teaching relation; preserve existing runtime poses until resolved."
+}

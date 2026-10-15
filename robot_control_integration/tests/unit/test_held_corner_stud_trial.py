@@ -292,13 +292,14 @@ def popup_replay(monkeypatch,tmp_path):
         operations.append('press');move(d,config,plan['rise_pose'],record,required_gripper_status=status)
         return dict(status='FORCE_THRESHOLD_REACHED_STOP_VERIFIED',assembly_completion=False)
     monkeypatch.setattr(held,'local_held_move',move)
+    real_insert=seating.insert
     monkeypatch.setattr(seating,'insert',insert)
     monkeypatch.setattr(seating,'same_xy_press_cycle',press)
     def run(keys,support_ready=None):
         commands=iter(keys);monkeypatch.setattr(cv2,'waitKey',lambda _:next(commands))
         return held.observe(driver,c,tmp_path,lambda event,data:events.append((event,deepcopy(data))),
             virtual_grid=True,xy_seat_test=True,support_ready=support_ready)
-    return SimpleNamespace(run=run,driver=driver,config=c,events=events,labels=labels,
+    return SimpleNamespace(run=run,driver=driver,config=c,events=events,labels=labels,real_insert=real_insert,
         projected=projected,operations=operations,directory=tmp_path)
 
 
@@ -327,6 +328,28 @@ def test_popup_support_cancellation_never_inserts_or_releases(popup_replay):
     assert not result['released'] and not result['press_done'] and not result['support_active']
     assert 'insert' not in replay.operations and 'press' not in replay.operations
     assert replay.driver.stops==1
+
+
+@pytest.mark.parametrize('feedback', [47.,61.2])
+def test_O_key_uses_scoped_47mm_policy_and_blocks_rise_when_overwide(popup_replay,feedback):
+    replay=popup_replay;grips=[]
+    replay.config.update(assembly_xy_correction_enabled=False,auto_yaw=False,
+        release_width_mm=47.,release_feedback_range_mm=[44.,50.])
+    def command(width,force):
+        grips.append((width,force))
+        replay.driver.value.update(gripper_status=2 if width==4. else 0,
+            gripper_width_mm=9.2 if width==4. else feedback)
+    replay.driver.command_gripper=command
+    keys=[ord('i'),ord('o'),ord('p'),ord('u')]
+    if feedback>50.:
+        with pytest.raises(RuntimeError,match='SEATED_RELEASE_WIDTH_EXCEEDS_LIMIT'):
+            replay.run(keys)
+        assert replay.operations==['insert'] and grips==[(47.,40.)]
+    else:
+        result=replay.run(keys)
+        assert result['status']=='CYCLE_COMPLETED' and result['released'] and result['press_done']
+        assert grips==[(47.,40.),(4.,40.)]
+        assert replay.config['open_mm']==60.
 
 
 def test_popup_rise_without_press_reports_incomplete(popup_replay):
@@ -398,9 +421,34 @@ def test_disabled_assembly_xy_ignores_x_and_allows_insert_without_x(popup_replay
     assert any('Assembly XY correction: OFF' in label for label in replay.labels)
 
 
-def test_disabled_assembly_xy_does_not_bypass_automatic_yaw_review(popup_replay):
+def test_I_key_uses_operator_yaw_review_without_an_automatic_angle(popup_replay):
     replay=popup_replay
     replay.config.update(assembly_xy_correction_enabled=False,vision_xy_alignment=False,auto_yaw=True)
     replay.run([ord('i'),27])
-    assert 'insert' not in replay.operations
-    assert any('fresh, stable yaw' in label for label in replay.labels)
+    assert replay.operations==['insert']
+    review=next(data for event,data in replay.events if event=='SEATING_YAW_OPERATOR_CONFIRMED')
+    assert review['basis']=='I_KEY_VISUAL_REVIEW' and review['relative_angle_deg'] is None
+    assert not review['stable'] and not review['automatic_angle_acceptance_used']
+    assert not review['actual_seating_verified']
+    assert not any(event=='LOCAL_YAW_TRIAL' for event,_ in replay.events)
+    assert any('visually aligned -> insert' in label for label in replay.labels)
+
+
+def test_operator_yaw_review_still_requires_T3_support(popup_replay):
+    replay=popup_replay
+    replay.config.update(assembly_xy_correction_enabled=False,auto_yaw=True)
+    result=replay.run([ord('i')],lambda _:False)
+    assert result['stop_reason']=='HUMAN_SUPPORT_CANCELLED'
+    assert 'insert' not in replay.operations and not result['released']
+
+
+def test_operator_yaw_review_preserves_actual_insertion_force_guard(popup_replay,monkeypatch):
+    from scripts import held_xy_seating_trial as seating
+    replay=popup_replay
+    replay.config.update(assembly_xy_correction_enabled=False,auto_yaw=True,
+        motion_force_stop_n=None,seating_force_stop_n=55.)
+    replay.driver.value['wrench']=[0.,0.,56.,0.,0.,0.]
+    monkeypatch.setattr(seating,'insert',replay.real_insert)
+    with pytest.raises(RuntimeError,match='(FORCE_NORM|FZ)_STOP_LIMIT_REACHED'):
+        replay.run([ord('i')])
+    assert not replay.operations and replay.driver.stops>=1

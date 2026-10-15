@@ -1,0 +1,1004 @@
+{
+  "schema_version": "supply-slot-reference-reconciliation/1",
+  "status": "CANDIDATES_RECONCILED_NOT_RUNTIME_PROFILE",
+  "summary": {
+    "total_slots": 25,
+    "observation_consistent": 20,
+    "observation_review_required": 5,
+    "paired_measured_references": 3,
+    "slots_with_direct_measured_teaching": 13,
+    "slots_without_direct_measured_teaching": 12,
+    "new_manual_single_approach_grasp_confirmed": 2,
+    "source_hash_mismatches": 0
+  },
+  "slots": [
+    {
+      "slot_id": "yellow_2x2x1_01",
+      "roi_xyxy_processing": [
+        416,
+        79,
+        473,
+        136
+      ],
+      "audit_frames": 19,
+      "recognized_frames": 19,
+      "valid_depth_frames": 10,
+      "observation_status": "REVIEW_REQUIRED",
+      "review_reasons": [
+        "DEPTH_OR_PACKET_REACQUIRE"
+      ],
+      "observed_surface_center_base_candidate_mm": [
+        -330.40740573206506,
+        211.34168934086034,
+        99.06566313080776
+      ],
+      "candidate_surface_is_grasp_tcp": false,
+      "observed_baseline_is_independent_ground_truth": false,
+      "paired_measured_reference": null,
+      "teaching": {
+        "pose": [
+          -327.85296630859375,
+          193.36367797851562,
+          52.078731536865234,
+          102.85449981689453,
+          -176.07705688476562,
+          104.31108093261719
+        ],
+        "source": "/home/rokey/Documents/ChatGPT/로봇제어 개발/c2_integration_round3/robot_control_integration/fixtures/teaching_sources/operator_supply.json#supply/yellow/2x2x1/1",
+        "kind": "DIRECT_ORIGINAL_OPERATOR_TEACHING",
+        "automatically_adopted": false
+      },
+      "reference_vs_selected_teaching_pose_exactly_equal": null,
+      "executable_pickup_pose": null,
+      "reference_accepted": false,
+      "runtime_execution_approved": false,
+      "automatic_depth_failure_fallback_enabled": false
+    },
+    {
+      "slot_id": "yellow_2x2x1_02",
+      "roi_xyxy_processing": [
+        362,
+        80,
+        415,
+        137
+      ],
+      "audit_frames": 19,
+      "recognized_frames": 19,
+      "valid_depth_frames": 1,
+      "observation_status": "REVIEW_REQUIRED",
+      "review_reasons": [
+        "DEPTH_OR_PACKET_REACQUIRE"
+      ],
+      "observed_surface_center_base_candidate_mm": [
+        -397.80175500328835,
+        206.29415560625466,
+        104.67944622672519
+      ],
+      "candidate_surface_is_grasp_tcp": false,
+      "observed_baseline_is_independent_ground_truth": false,
+      "paired_measured_reference": null,
+      "teaching": {
+        "pose": [
+          -389.8049621582031,
+          194.62765502929688,
+          48.550514221191406,
+          167.70477294921875,
+          -177.71961975097656,
+          167.3773956298828
+        ],
+        "source": "/home/rokey/Documents/ChatGPT/로봇제어 개발/c2_integration_round3/logs/supply-depth-reference/manual-yellow-2x2-slot2-20261015T102557/pickup/pickup.json",
+        "kind": "NEW_MANUAL_TEACHING_SINGLE_APPROACH_GRASP_CONFIRMED",
+        "automatically_adopted": false,
+        "physical_grasp_evidence": "/home/rokey/Documents/ChatGPT/로봇제어 개발/c2_integration_round3/logs/supply-slot2-reapproach/1792028718726814565/operator-review.json"
+      },
+      "reference_vs_selected_teaching_pose_exactly_equal": null,
+      "executable_pickup_pose": null,
+      "reference_accepted": false,
+      "runtime_execution_approved": false,
+      "automatic_depth_failure_fallback_enabled": false
+    },
+    {
+      "slot_id": "yellow_2x2x1_03",
+      "roi_xyxy_processing": [
+        306,
+        81,
+        358,
+        138
+      ],
+      "audit_frames": 19,
+      "recognized_frames": 19,
+      "valid_depth_frames": 15,
+      "observation_status": "REVIEW_REQUIRED",
+      "review_reasons": [
+        "DEPTH_OR_PACKET_REACQUIRE"
+      ],
+      "observed_surface_center_base_candidate_mm": [
+        -463.2597257611645,
+        206.63179016095876,
+        95.98498511516391
+      ],
+      "candidate_surface_is_grasp_tcp": false,
+      "observed_baseline_is_independent_ground_truth": false,
+      "paired_measured_reference": null,
+      "teaching": {
+        "pose": [
+          -455.40081787109375,
+          198.84207153320312,
+          51.01224136352539,
+          107.78492736816406,
+          -176.3149871826172,
+          109.21537017822266
+        ],
+        "source": "/home/rokey/Documents/ChatGPT/로봇제어 개발/c2_integration_round3/robot_control_integration/fixtures/teaching_sources/operator_supply.json#supply/yellow/2x2x1/3",
+        "kind": "DIRECT_ORIGINAL_OPERATOR_TEACHING",
+        "automatically_adopted": false
+      },
+      "reference_vs_selected_teaching_pose_exactly_equal": null,
+      "executable_pickup_pose": null,
+      "reference_accepted": false,
+      "runtime_execution_approved": false,
+      "automatic_depth_failure_fallback_enabled": false
+    },
+    {
+      "slot_id": "yellow_2x2x1_04",
+      "roi_xyxy_processing": [
+        250,
+        82,
+        303,
+        140
+      ],
+      "audit_frames": 19,
+      "recognized_frames": 19,
+      "valid_depth_frames": 19,
+      "observation_status": "OBSERVATION_CONSISTENT_ONLY",
+      "review_reasons": [],
+      "observed_surface_center_base_candidate_mm": [
+        -529.3881881165667,
+        203.98054369182194,
+        97.1994073125552
+      ],
+      "candidate_surface_is_grasp_tcp": false,
+      "observed_baseline_is_independent_ground_truth": false,
+      "paired_measured_reference": {
+        "capture_source": "/home/rokey/Documents/ChatGPT/로봇제어 개발/c2_integration_round3/logs/supply-depth-reference/pair-20261015T080359/observation/surface-candidate.json",
+        "pickup_record_source": "/home/rokey/Documents/ChatGPT/로봇제어 개발/c2_integration_round3/logs/supply-depth-reference/pair-20261015T080359/pickup/pickup.json",
+        "validation_status": "EDUCATIONAL_SINGLE_DISPLACEMENT",
+        "observed_xy_residual_mm": 1.7050900703594027,
+        "independently_verified": false,
+        "execution_approved": false
+      },
+      "teaching": {
+        "pose": [
+          -519.361083984375,
+          196.43150329589844,
+          49.38444137573242,
+          1.3798952102661133,
+          178.19931030273438,
+          1.3129518032073975
+        ],
+        "source": "/home/rokey/Documents/ChatGPT/로봇제어 개발/c2_integration_round3/logs/supply-depth-reference/pair-20261015T080359/pickup/pickup.json",
+        "kind": "PAIRED_MEASUREMENT_TEACHING_NOT_RUNTIME_ADOPTED",
+        "automatically_adopted": false
+      },
+      "reference_vs_selected_teaching_pose_exactly_equal": true,
+      "executable_pickup_pose": null,
+      "reference_accepted": false,
+      "runtime_execution_approved": false,
+      "automatic_depth_failure_fallback_enabled": false
+    },
+    {
+      "slot_id": "yellow_2x2x1_05",
+      "roi_xyxy_processing": [
+        194,
+        83,
+        246,
+        140
+      ],
+      "audit_frames": 19,
+      "recognized_frames": 19,
+      "valid_depth_frames": 19,
+      "observation_status": "OBSERVATION_CONSISTENT_ONLY",
+      "review_reasons": [],
+      "observed_surface_center_base_candidate_mm": [
+        -593.2498303818797,
+        203.12771940645456,
+        95.51840091203462
+      ],
+      "candidate_surface_is_grasp_tcp": false,
+      "observed_baseline_is_independent_ground_truth": false,
+      "paired_measured_reference": null,
+      "teaching": null,
+      "reference_vs_selected_teaching_pose_exactly_equal": null,
+      "executable_pickup_pose": null,
+      "reference_accepted": false,
+      "runtime_execution_approved": false,
+      "automatic_depth_failure_fallback_enabled": false
+    },
+    {
+      "slot_id": "yellow_2x3x1_01",
+      "roi_xyxy_processing": [
+        419,
+        124,
+        472,
+        192
+      ],
+      "audit_frames": 19,
+      "recognized_frames": 19,
+      "valid_depth_frames": 19,
+      "observation_status": "OBSERVATION_CONSISTENT_ONLY",
+      "review_reasons": [],
+      "observed_surface_center_base_candidate_mm": [
+        -331.71176740263496,
+        152.29766371990712,
+        106.93912452377026
+      ],
+      "candidate_surface_is_grasp_tcp": false,
+      "observed_baseline_is_independent_ground_truth": false,
+      "paired_measured_reference": null,
+      "teaching": {
+        "pose": [
+          -328.5872497558594,
+          138.45257568359375,
+          49.16362380981445,
+          115.04324340820312,
+          -177.26100158691406,
+          116.4085693359375
+        ],
+        "source": "/home/rokey/Documents/ChatGPT/로봇제어 개발/c2_integration_round3/robot_control_integration/fixtures/teaching_sources/operator_supply.json#supply/yellow/2x3x1/1",
+        "kind": "DIRECT_ORIGINAL_OPERATOR_TEACHING",
+        "automatically_adopted": false
+      },
+      "reference_vs_selected_teaching_pose_exactly_equal": null,
+      "executable_pickup_pose": null,
+      "reference_accepted": false,
+      "runtime_execution_approved": false,
+      "automatic_depth_failure_fallback_enabled": false
+    },
+    {
+      "slot_id": "yellow_2x3x1_02",
+      "roi_xyxy_processing": [
+        363,
+        125,
+        416,
+        192
+      ],
+      "audit_frames": 19,
+      "recognized_frames": 19,
+      "valid_depth_frames": 19,
+      "observation_status": "OBSERVATION_CONSISTENT_ONLY",
+      "review_reasons": [],
+      "observed_surface_center_base_candidate_mm": [
+        -396.7535697860733,
+        148.24524991132841,
+        104.14251763556854
+      ],
+      "candidate_surface_is_grasp_tcp": false,
+      "observed_baseline_is_independent_ground_truth": false,
+      "paired_measured_reference": null,
+      "teaching": null,
+      "reference_vs_selected_teaching_pose_exactly_equal": null,
+      "executable_pickup_pose": null,
+      "reference_accepted": false,
+      "runtime_execution_approved": false,
+      "automatic_depth_failure_fallback_enabled": false
+    },
+    {
+      "slot_id": "yellow_2x3x1_03",
+      "roi_xyxy_processing": [
+        307,
+        126,
+        360,
+        193
+      ],
+      "audit_frames": 19,
+      "recognized_frames": 19,
+      "valid_depth_frames": 16,
+      "observation_status": "REVIEW_REQUIRED",
+      "review_reasons": [
+        "DEPTH_OR_PACKET_REACQUIRE"
+      ],
+      "observed_surface_center_base_candidate_mm": [
+        -463.09721268419264,
+        145.48687551961035,
+        105.34821979853575
+      ],
+      "candidate_surface_is_grasp_tcp": false,
+      "observed_baseline_is_independent_ground_truth": false,
+      "paired_measured_reference": null,
+      "teaching": {
+        "pose": [
+          -455.83575439453125,
+          143.1189727783203,
+          48.660823822021484,
+          116.89387512207031,
+          -177.27774047851562,
+          118.19446563720703
+        ],
+        "source": "/home/rokey/Documents/ChatGPT/로봇제어 개발/c2_integration_round3/robot_control_integration/fixtures/teaching_sources/operator_supply.json#supply/yellow/2x3x1/3",
+        "kind": "DIRECT_ORIGINAL_OPERATOR_TEACHING",
+        "automatically_adopted": false
+      },
+      "reference_vs_selected_teaching_pose_exactly_equal": null,
+      "executable_pickup_pose": null,
+      "reference_accepted": false,
+      "runtime_execution_approved": false,
+      "automatic_depth_failure_fallback_enabled": false,
+      "historic_supply_grasp_review": "/home/rokey/Documents/ChatGPT/로봇제어 개발/c2_integration_round3/logs/supply-slot-model/post-red-reconcile-20261015T111258/yellow-2x3-slot3-history-review.json"
+    },
+    {
+      "slot_id": "yellow_2x3x1_04",
+      "roi_xyxy_processing": [
+        251,
+        127,
+        304,
+        195
+      ],
+      "audit_frames": 19,
+      "recognized_frames": 19,
+      "valid_depth_frames": 19,
+      "observation_status": "OBSERVATION_CONSISTENT_ONLY",
+      "review_reasons": [],
+      "observed_surface_center_base_candidate_mm": [
+        -526.9557267084695,
+        145.7412907044769,
+        99.69671583633351
+      ],
+      "candidate_surface_is_grasp_tcp": false,
+      "observed_baseline_is_independent_ground_truth": false,
+      "paired_measured_reference": null,
+      "teaching": null,
+      "reference_vs_selected_teaching_pose_exactly_equal": null,
+      "executable_pickup_pose": null,
+      "reference_accepted": false,
+      "runtime_execution_approved": false,
+      "automatic_depth_failure_fallback_enabled": false
+    },
+    {
+      "slot_id": "yellow_2x3x1_05",
+      "roi_xyxy_processing": [
+        195,
+        127,
+        248,
+        195
+      ],
+      "audit_frames": 19,
+      "recognized_frames": 19,
+      "valid_depth_frames": 19,
+      "observation_status": "OBSERVATION_CONSISTENT_ONLY",
+      "review_reasons": [],
+      "observed_surface_center_base_candidate_mm": [
+        -591.4476577761029,
+        141.52436003585535,
+        96.90728326819067
+      ],
+      "candidate_surface_is_grasp_tcp": false,
+      "observed_baseline_is_independent_ground_truth": false,
+      "paired_measured_reference": {
+        "capture_source": "/home/rokey/Documents/ChatGPT/로봇제어 개발/c2_integration_round3/logs/supply-depth-reference/T3-pair-20261015T094504/observation/surface-candidate.json",
+        "pickup_record_source": "/home/rokey/Documents/ChatGPT/로봇제어 개발/c2_integration_round3/logs/supply-depth-reference/T3-pair-20261015T094504/pickup/pickup.json",
+        "validation_status": "DIAGNOSTIC_HEIGHT_ATTITUDE_CHANGED",
+        "observed_xy_residual_mm": 1.0684887838532218,
+        "independently_verified": false,
+        "execution_approved": false
+      },
+      "teaching": {
+        "pose": [
+          -581.63427734375,
+          139.91748046875,
+          47.27861404418945,
+          5.880496025085449,
+          178.29222106933594,
+          5.513185501098633
+        ],
+        "source": "/home/rokey/Documents/ChatGPT/로봇제어 개발/c2_integration_round3/logs/supply-depth-reference/T3-pair-20261015T094504/pickup/pickup.json",
+        "kind": "PAIRED_MEASUREMENT_TEACHING_NOT_RUNTIME_ADOPTED",
+        "automatically_adopted": false
+      },
+      "reference_vs_selected_teaching_pose_exactly_equal": true,
+      "executable_pickup_pose": null,
+      "reference_accepted": false,
+      "runtime_execution_approved": false,
+      "automatic_depth_failure_fallback_enabled": false
+    },
+    {
+      "slot_id": "blue_2x2x1_01",
+      "roi_xyxy_processing": [
+        421,
+        190,
+        474,
+        247
+      ],
+      "audit_frames": 19,
+      "recognized_frames": 19,
+      "valid_depth_frames": 19,
+      "observation_status": "OBSERVATION_CONSISTENT_ONLY",
+      "review_reasons": [],
+      "observed_surface_center_base_candidate_mm": [
+        -329.5315434249112,
+        77.38702358577682,
+        104.97716327258661
+      ],
+      "candidate_surface_is_grasp_tcp": false,
+      "observed_baseline_is_independent_ground_truth": false,
+      "paired_measured_reference": null,
+      "teaching": {
+        "pose": [
+          -329.9087829589844,
+          68.5289535522461,
+          50.48456573486328,
+          118.29946899414062,
+          -177.67820739746094,
+          119.57559967041016
+        ],
+        "source": "/home/rokey/Documents/ChatGPT/로봇제어 개발/c2_integration_round3/robot_control_integration/fixtures/teaching_sources/operator_supply.json#supply/blue/2x2x1/1",
+        "kind": "DIRECT_ORIGINAL_OPERATOR_TEACHING",
+        "automatically_adopted": false
+      },
+      "reference_vs_selected_teaching_pose_exactly_equal": null,
+      "executable_pickup_pose": null,
+      "reference_accepted": false,
+      "runtime_execution_approved": false,
+      "automatic_depth_failure_fallback_enabled": false
+    },
+    {
+      "slot_id": "blue_2x2x1_02",
+      "roi_xyxy_processing": [
+        365,
+        191,
+        417,
+        248
+      ],
+      "audit_frames": 19,
+      "recognized_frames": 19,
+      "valid_depth_frames": 19,
+      "observation_status": "OBSERVATION_CONSISTENT_ONLY",
+      "review_reasons": [],
+      "observed_surface_center_base_candidate_mm": [
+        -395.93614602774375,
+        78.06567195780184,
+        106.27403589724577
+      ],
+      "candidate_surface_is_grasp_tcp": false,
+      "observed_baseline_is_independent_ground_truth": false,
+      "paired_measured_reference": null,
+      "teaching": null,
+      "reference_vs_selected_teaching_pose_exactly_equal": null,
+      "executable_pickup_pose": null,
+      "reference_accepted": false,
+      "runtime_execution_approved": false,
+      "automatic_depth_failure_fallback_enabled": false
+    },
+    {
+      "slot_id": "blue_2x2x1_03",
+      "roi_xyxy_processing": [
+        309,
+        192,
+        361,
+        249
+      ],
+      "audit_frames": 19,
+      "recognized_frames": 19,
+      "valid_depth_frames": 19,
+      "observation_status": "OBSERVATION_CONSISTENT_ONLY",
+      "review_reasons": [],
+      "observed_surface_center_base_candidate_mm": [
+        -458.21554611508697,
+        75.50900618090121,
+        104.5908972939693
+      ],
+      "candidate_surface_is_grasp_tcp": false,
+      "observed_baseline_is_independent_ground_truth": false,
+      "paired_measured_reference": null,
+      "teaching": {
+        "pose": [
+          -457.457275390625,
+          70.50921630859375,
+          50.43630599975586,
+          122.93928527832031,
+          -177.34364318847656,
+          124.11911010742188
+        ],
+        "source": "/home/rokey/Documents/ChatGPT/로봇제어 개발/c2_integration_round3/robot_control_integration/fixtures/teaching_sources/operator_supply.json#supply/blue/2x2x1/3",
+        "kind": "DIRECT_ORIGINAL_OPERATOR_TEACHING",
+        "automatically_adopted": false
+      },
+      "reference_vs_selected_teaching_pose_exactly_equal": null,
+      "executable_pickup_pose": null,
+      "reference_accepted": false,
+      "runtime_execution_approved": false,
+      "automatic_depth_failure_fallback_enabled": false
+    },
+    {
+      "slot_id": "blue_2x2x1_04",
+      "roi_xyxy_processing": [
+        253,
+        193,
+        306,
+        250
+      ],
+      "audit_frames": 19,
+      "recognized_frames": 19,
+      "valid_depth_frames": 19,
+      "observation_status": "OBSERVATION_CONSISTENT_ONLY",
+      "review_reasons": [],
+      "observed_surface_center_base_candidate_mm": [
+        -522.9760028646572,
+        74.07033325695205,
+        102.8705278196461
+      ],
+      "candidate_surface_is_grasp_tcp": false,
+      "observed_baseline_is_independent_ground_truth": false,
+      "paired_measured_reference": null,
+      "teaching": null,
+      "reference_vs_selected_teaching_pose_exactly_equal": null,
+      "executable_pickup_pose": null,
+      "reference_accepted": false,
+      "runtime_execution_approved": false,
+      "automatic_depth_failure_fallback_enabled": false
+    },
+    {
+      "slot_id": "blue_2x2x1_05",
+      "roi_xyxy_processing": [
+        197,
+        194,
+        250,
+        251
+      ],
+      "audit_frames": 19,
+      "recognized_frames": 19,
+      "valid_depth_frames": 19,
+      "observation_status": "OBSERVATION_CONSISTENT_ONLY",
+      "review_reasons": [],
+      "observed_surface_center_base_candidate_mm": [
+        -587.7407522497354,
+        72.61215726061116,
+        101.1500563732609
+      ],
+      "candidate_surface_is_grasp_tcp": false,
+      "observed_baseline_is_independent_ground_truth": false,
+      "paired_measured_reference": null,
+      "teaching": null,
+      "reference_vs_selected_teaching_pose_exactly_equal": null,
+      "executable_pickup_pose": null,
+      "reference_accepted": false,
+      "runtime_execution_approved": false,
+      "automatic_depth_failure_fallback_enabled": false
+    },
+    {
+      "slot_id": "blue_2x3x1_01",
+      "roi_xyxy_processing": [
+        421,
+        236,
+        474,
+        304
+      ],
+      "audit_frames": 19,
+      "recognized_frames": 19,
+      "valid_depth_frames": 19,
+      "observation_status": "OBSERVATION_CONSISTENT_ONLY",
+      "review_reasons": [],
+      "observed_surface_center_base_candidate_mm": [
+        -327.60374391032826,
+        19.503865917050618,
+        107.4702672094262
+      ],
+      "candidate_surface_is_grasp_tcp": false,
+      "observed_baseline_is_independent_ground_truth": false,
+      "paired_measured_reference": null,
+      "teaching": {
+        "pose": [
+          -331.85260009765625,
+          9.898046493530273,
+          50.785804748535156,
+          125.3236312866211,
+          -177.62391662597656,
+          126.60347747802734
+        ],
+        "source": "/home/rokey/Documents/ChatGPT/로봇제어 개발/c2_integration_round3/robot_control_integration/fixtures/teaching_sources/operator_supply.json#supply/blue/2x3x1/1",
+        "kind": "DIRECT_ORIGINAL_OPERATOR_TEACHING",
+        "automatically_adopted": false
+      },
+      "reference_vs_selected_teaching_pose_exactly_equal": null,
+      "executable_pickup_pose": null,
+      "reference_accepted": false,
+      "runtime_execution_approved": false,
+      "automatic_depth_failure_fallback_enabled": false
+    },
+    {
+      "slot_id": "blue_2x3x1_02",
+      "roi_xyxy_processing": [
+        365,
+        237,
+        418,
+        304
+      ],
+      "audit_frames": 19,
+      "recognized_frames": 19,
+      "valid_depth_frames": 19,
+      "observation_status": "OBSERVATION_CONSISTENT_ONLY",
+      "review_reasons": [],
+      "observed_surface_center_base_candidate_mm": [
+        -393.7471531258983,
+        18.018987540534702,
+        104.71258563102424
+      ],
+      "candidate_surface_is_grasp_tcp": false,
+      "observed_baseline_is_independent_ground_truth": false,
+      "paired_measured_reference": null,
+      "teaching": null,
+      "reference_vs_selected_teaching_pose_exactly_equal": null,
+      "executable_pickup_pose": null,
+      "reference_accepted": false,
+      "runtime_execution_approved": false,
+      "automatic_depth_failure_fallback_enabled": false
+    },
+    {
+      "slot_id": "blue_2x3x1_03",
+      "roi_xyxy_processing": [
+        309,
+        238,
+        362,
+        305
+      ],
+      "audit_frames": 19,
+      "recognized_frames": 19,
+      "valid_depth_frames": 19,
+      "observation_status": "OBSERVATION_CONSISTENT_ONLY",
+      "review_reasons": [],
+      "observed_surface_center_base_candidate_mm": [
+        -457.7325346741634,
+        15.120044120851567,
+        103.97559974743751
+      ],
+      "candidate_surface_is_grasp_tcp": false,
+      "observed_baseline_is_independent_ground_truth": false,
+      "paired_measured_reference": {
+        "capture_source": "/home/rokey/Documents/ChatGPT/로봇제어 개발/c2_integration_round3/logs/supply-depth-reference/T2-pair-20261015T093321/observation/surface-candidate.json",
+        "pickup_record_source": "/home/rokey/Documents/ChatGPT/로봇제어 개발/c2_integration_round3/logs/supply-depth-reference/T2-pair-20261015T093321/pickup/pickup.json",
+        "validation_status": "DIAGNOSTIC_HEIGHT_ATTITUDE_CHANGED",
+        "observed_xy_residual_mm": 0.5363211952590023,
+        "independently_verified": false,
+        "execution_approved": false
+      },
+      "teaching": {
+        "pose": [
+          -458.20672607421875,
+          15.277674674987793,
+          47.877689361572266,
+          133.00794982910156,
+          -177.2348175048828,
+          134.07420349121094
+        ],
+        "source": "/home/rokey/Documents/ChatGPT/로봇제어 개발/c2_integration_round3/robot_control_integration/fixtures/teaching_sources/operator_supply.json#supply/blue/2x3x1/3",
+        "kind": "DIRECT_ORIGINAL_OPERATOR_TEACHING",
+        "automatically_adopted": false
+      },
+      "reference_vs_selected_teaching_pose_exactly_equal": false,
+      "executable_pickup_pose": null,
+      "reference_accepted": false,
+      "runtime_execution_approved": false,
+      "automatic_depth_failure_fallback_enabled": false
+    },
+    {
+      "slot_id": "blue_2x3x1_04",
+      "roi_xyxy_processing": [
+        253,
+        239,
+        306,
+        307
+      ],
+      "audit_frames": 19,
+      "recognized_frames": 19,
+      "valid_depth_frames": 19,
+      "observation_status": "OBSERVATION_CONSISTENT_ONLY",
+      "review_reasons": [],
+      "observed_surface_center_base_candidate_mm": [
+        -521.8936481764557,
+        16.366077766503384,
+        100.34249638139704
+      ],
+      "candidate_surface_is_grasp_tcp": false,
+      "observed_baseline_is_independent_ground_truth": false,
+      "paired_measured_reference": null,
+      "teaching": null,
+      "reference_vs_selected_teaching_pose_exactly_equal": null,
+      "executable_pickup_pose": null,
+      "reference_accepted": false,
+      "runtime_execution_approved": false,
+      "automatic_depth_failure_fallback_enabled": false
+    },
+    {
+      "slot_id": "blue_2x3x1_05",
+      "roi_xyxy_processing": [
+        197,
+        240,
+        250,
+        308
+      ],
+      "audit_frames": 19,
+      "recognized_frames": 19,
+      "valid_depth_frames": 19,
+      "observation_status": "OBSERVATION_CONSISTENT_ONLY",
+      "review_reasons": [],
+      "observed_surface_center_base_candidate_mm": [
+        -587.6907157058093,
+        13.807710817876341,
+        100.56689131349572
+      ],
+      "candidate_surface_is_grasp_tcp": false,
+      "observed_baseline_is_independent_ground_truth": false,
+      "paired_measured_reference": null,
+      "teaching": null,
+      "reference_vs_selected_teaching_pose_exactly_equal": null,
+      "executable_pickup_pose": null,
+      "reference_accepted": false,
+      "runtime_execution_approved": false,
+      "automatic_depth_failure_fallback_enabled": false
+    },
+    {
+      "slot_id": "red_1x2x1_01",
+      "roi_xyxy_processing": [
+        422,
+        305,
+        477,
+        345
+      ],
+      "audit_frames": 19,
+      "recognized_frames": 14,
+      "valid_depth_frames": 14,
+      "observation_status": "REVIEW_REQUIRED",
+      "review_reasons": [
+        "VISION_OR_ROI_REVIEW",
+        "MODEL_GEOMETRY_REVIEW_BEFORE_ADDITIONAL_TEACHING"
+      ],
+      "observed_surface_center_base_candidate_mm": [
+        -325.7179066185088,
+        -44.05981179029905,
+        103.23347691139759
+      ],
+      "candidate_surface_is_grasp_tcp": false,
+      "observed_baseline_is_independent_ground_truth": false,
+      "paired_measured_reference": null,
+      "teaching": {
+        "pose": [
+          -329.1131286621094,
+          -54.51852798461914,
+          49.28318405151367,
+          167.2609405517578,
+          -178.44448852539062,
+          167.41226196289062
+        ],
+        "source": "/home/rokey/Documents/ChatGPT/로봇제어 개발/c2_integration_round3/logs/supply-depth-reference/manual-red-slot1-20261015T110138/pickup/pickup.json",
+        "kind": "NEW_MANUAL_TEACHING_SINGLE_APPROACH_GRASP_CONFIRMED",
+        "automatically_adopted": false,
+        "physical_grasp_evidence": "/home/rokey/Documents/ChatGPT/로봇제어 개발/c2_integration_round3/logs/supply-red-slot1-trial/1792030144985357132/operator-review.json"
+      },
+      "reference_vs_selected_teaching_pose_exactly_equal": null,
+      "executable_pickup_pose": null,
+      "reference_accepted": false,
+      "runtime_execution_approved": false,
+      "automatic_depth_failure_fallback_enabled": false
+    },
+    {
+      "slot_id": "red_1x2x1_02",
+      "roi_xyxy_processing": [
+        366,
+        306,
+        421,
+        345
+      ],
+      "audit_frames": 19,
+      "recognized_frames": 19,
+      "valid_depth_frames": 19,
+      "observation_status": "OBSERVATION_CONSISTENT_ONLY",
+      "review_reasons": [],
+      "observed_surface_center_base_candidate_mm": [
+        -391.6959229723619,
+        -45.47710554211784,
+        102.05497838834617
+      ],
+      "candidate_surface_is_grasp_tcp": false,
+      "observed_baseline_is_independent_ground_truth": false,
+      "paired_measured_reference": null,
+      "teaching": null,
+      "reference_vs_selected_teaching_pose_exactly_equal": null,
+      "executable_pickup_pose": null,
+      "reference_accepted": false,
+      "runtime_execution_approved": false,
+      "automatic_depth_failure_fallback_enabled": false
+    },
+    {
+      "slot_id": "red_1x2x1_03",
+      "roi_xyxy_processing": [
+        310,
+        307,
+        365,
+        346
+      ],
+      "audit_frames": 19,
+      "recognized_frames": 19,
+      "valid_depth_frames": 19,
+      "observation_status": "OBSERVATION_CONSISTENT_ONLY",
+      "review_reasons": [],
+      "observed_surface_center_base_candidate_mm": [
+        -455.38772194635106,
+        -46.90717090860524,
+        100.36437331846014
+      ],
+      "candidate_surface_is_grasp_tcp": false,
+      "observed_baseline_is_independent_ground_truth": false,
+      "paired_measured_reference": null,
+      "teaching": {
+        "pose": [
+          -460.5726013183594,
+          -47.8426628112793,
+          48.03293991088867,
+          159.2352294921875,
+          -178.9697723388672,
+          159.70248413085938
+        ],
+        "source": "/home/rokey/Documents/ChatGPT/로봇제어 개발/c2_integration_round3/robot_control_integration/fixtures/teaching_sources/operator_supply.json#supply/red/1x2x1/3",
+        "kind": "DIRECT_ORIGINAL_OPERATOR_TEACHING",
+        "automatically_adopted": false
+      },
+      "reference_vs_selected_teaching_pose_exactly_equal": null,
+      "executable_pickup_pose": null,
+      "reference_accepted": false,
+      "runtime_execution_approved": false,
+      "automatic_depth_failure_fallback_enabled": false
+    },
+    {
+      "slot_id": "red_1x2x1_04",
+      "roi_xyxy_processing": [
+        253,
+        308,
+        309,
+        348
+      ],
+      "audit_frames": 19,
+      "recognized_frames": 19,
+      "valid_depth_frames": 19,
+      "observation_status": "OBSERVATION_CONSISTENT_ONLY",
+      "review_reasons": [],
+      "observed_surface_center_base_candidate_mm": [
+        -519.9625624061912,
+        -48.274366713469206,
+        100.65174323081987
+      ],
+      "candidate_surface_is_grasp_tcp": false,
+      "observed_baseline_is_independent_ground_truth": false,
+      "paired_measured_reference": null,
+      "teaching": null,
+      "reference_vs_selected_teaching_pose_exactly_equal": null,
+      "executable_pickup_pose": null,
+      "reference_accepted": false,
+      "runtime_execution_approved": false,
+      "automatic_depth_failure_fallback_enabled": false
+    },
+    {
+      "slot_id": "red_1x2x1_05",
+      "roi_xyxy_processing": [
+        198,
+        308,
+        253,
+        348
+      ],
+      "audit_frames": 19,
+      "recognized_frames": 19,
+      "valid_depth_frames": 19,
+      "observation_status": "OBSERVATION_CONSISTENT_ONLY",
+      "review_reasons": [],
+      "observed_surface_center_base_candidate_mm": [
+        -585.4247895625147,
+        -51.11546936394373,
+        99.87733415404375
+      ],
+      "candidate_surface_is_grasp_tcp": false,
+      "observed_baseline_is_independent_ground_truth": false,
+      "paired_measured_reference": null,
+      "teaching": null,
+      "reference_vs_selected_teaching_pose_exactly_equal": null,
+      "executable_pickup_pose": null,
+      "reference_accepted": false,
+      "runtime_execution_approved": false,
+      "automatic_depth_failure_fallback_enabled": false
+    }
+  ],
+  "physical_commands": 0,
+  "runtime_config_changed": false,
+  "assembly_xy_correction_enabled": false,
+  "shared_grasp_offset_transfer_approved": false,
+  "unmeasured_slot_pose_interpolation_adopted": false,
+  "all_25_slots_RGBD_verified": false,
+  "thresholds_are_execution_acceptance_limits": false,
+  "limitations": [
+    "Fresh observation is after manual restoration, not a new same-placement pickup/surface pair.",
+    "Original taught TCP positions are not block surface centers.",
+    "T2/T3 paired grasp height/attitude relation remains diagnostic.",
+    "Single valid depth frame is insufficient for stable baseline adoption.",
+    "Stored model capture_holds and slot6 empty metadata describe historical captures, not current occupancy."
+  ],
+  "next_readonly_action": "Review explicit teaching-only exception policy and model-based observation candidates; no further manual teaching is required by this audit alone.",
+  "source_sha256": {
+    "/home/rokey/Documents/ChatGPT/로봇제어 개발/c2_integration_round3/robot_control_integration/settings/supply_sequence_20261014/opencv_stud_layout.json": "83bfc7a36f653ddd89845df3c421cd4dd0ff247ae508bf6b4b1b329a26f9e4fc",
+    "/home/rokey/Documents/ChatGPT/로봇제어 개발/c2_integration_round3/robot_control_integration/settings/round3_supply_rgbd_20261015/reference-bundle.candidate.json": "92f3bf44330467fc7ffbe23246308d6c67c42590dc9e70e5369c23946d24bcae",
+    "/home/rokey/Documents/ChatGPT/로봇제어 개발/c2_integration_round3/planning_trial/measurements/round2_geometry.operator_20261013.json": "b23f0b1aee416be868fd7265b855a845c924ca3b9ae43058676fdefa7389ebf8",
+    "/home/rokey/Documents/ChatGPT/로봇제어 개발/c2_integration_round3/logs/supply-slot-model/post-red-reconcile-20261015T111258/capture/capture.json": "cb2a70bd6ed75b91229b51ff3d99e2732e4dbd929fcbdd2dcf35330d96c2523c",
+    "/home/rokey/Documents/ChatGPT/로봇제어 개발/c2_integration_round3/logs/supply-slot-model/post-red-reconcile-20261015T111258/capture/frame-00.json": "4a597afcfd32973731a63502907a8f9fae29603632c7d90c58563c3eb992626c",
+    "/home/rokey/Documents/ChatGPT/로봇제어 개발/c2_integration_round3/logs/supply-slot-model/post-red-reconcile-20261015T111258/capture/frame-01.json": "bad41b49f47ba322bf292658bb04ec4721c664ce3e04e67d8727f2b3935e703a",
+    "/home/rokey/Documents/ChatGPT/로봇제어 개발/c2_integration_round3/logs/supply-slot-model/post-red-reconcile-20261015T111258/capture/frame-02.json": "6f50f38f05e19b2a6fc31ae79299f7aa8a173da6f36dd28e8974b22e2fa0af8c",
+    "/home/rokey/Documents/ChatGPT/로봇제어 개발/c2_integration_round3/logs/supply-slot-model/post-red-reconcile-20261015T111258/capture/frame-03.json": "82c2a8675bc49f97a77b68d9bd99bf507d0f8fa1a9896149d0882c126789b0ff",
+    "/home/rokey/Documents/ChatGPT/로봇제어 개발/c2_integration_round3/logs/supply-slot-model/post-red-reconcile-20261015T111258/capture/frame-04.json": "8a7446af4d0a8b161cb266573014b5589e3d4cfe8f18e5bf8d066453749ddeb0",
+    "/home/rokey/Documents/ChatGPT/로봇제어 개발/c2_integration_round3/logs/supply-slot-model/post-red-reconcile-20261015T111258/capture/frame-05.json": "f284a04cb326e5bcca7156cddc05185ca18e09536fd809a1963dab41df1135e9",
+    "/home/rokey/Documents/ChatGPT/로봇제어 개발/c2_integration_round3/logs/supply-slot-model/post-red-reconcile-20261015T111258/capture/frame-06.json": "8750fe0ee4d6796c629784af6bf447a4bff868ea750668ca74084ac9bc5debe5",
+    "/home/rokey/Documents/ChatGPT/로봇제어 개발/c2_integration_round3/logs/supply-slot-model/post-red-reconcile-20261015T111258/capture/frame-07.json": "f042a93380e6675e78cc6e31ccb481b2439b0dcb20843d9b36ab98ff6e0dc705",
+    "/home/rokey/Documents/ChatGPT/로봇제어 개발/c2_integration_round3/logs/supply-slot-model/post-red-reconcile-20261015T111258/capture/frame-08.json": "2912bb8855073eb35ad480a65372a3c9ebe293e809dce6ed713ba26cc37104b1",
+    "/home/rokey/Documents/ChatGPT/로봇제어 개발/c2_integration_round3/logs/supply-slot-model/post-red-reconcile-20261015T111258/capture/frame-09.json": "c3308125e3508208932fc659c7cbeb6c5e8e34f2ea30979bc273b6a5e1b3fb1a",
+    "/home/rokey/Documents/ChatGPT/로봇제어 개발/c2_integration_round3/logs/supply-slot-model/post-red-reconcile-20261015T111258/capture/frame-10.json": "1305ce2cd5f5abbc53b36f16f3735db28f84674faa452031f5b0f1cb10742a4b",
+    "/home/rokey/Documents/ChatGPT/로봇제어 개발/c2_integration_round3/logs/supply-slot-model/post-red-reconcile-20261015T111258/capture/frame-11.json": "ba14fa452d6d3c39afe6fcdd0a1a1d084b0ee3e21210c41a1a295216275cd5ce",
+    "/home/rokey/Documents/ChatGPT/로봇제어 개발/c2_integration_round3/logs/supply-slot-model/post-red-reconcile-20261015T111258/capture/frame-12.json": "0189fe24fdde63036daf0a54b70f0b2d384db3aa5e7dc94adef85cb318179365",
+    "/home/rokey/Documents/ChatGPT/로봇제어 개발/c2_integration_round3/logs/supply-slot-model/post-red-reconcile-20261015T111258/capture/frame-13.json": "d2ab00326b10ba9008182546a403a68db4b592f146b50b15420e150cda0c1465",
+    "/home/rokey/Documents/ChatGPT/로봇제어 개발/c2_integration_round3/logs/supply-slot-model/post-red-reconcile-20261015T111258/capture/frame-14.json": "29cf80a08f4fdf66f375f39b2358b90e84ddd4c194acd57a4bdd25c49266275b",
+    "/home/rokey/Documents/ChatGPT/로봇제어 개발/c2_integration_round3/logs/supply-slot-model/post-red-reconcile-20261015T111258/capture/frame-15.json": "24feaf32f478ab2022aacbd368f56809163a847e26fe482b8301115e5d8098fe",
+    "/home/rokey/Documents/ChatGPT/로봇제어 개발/c2_integration_round3/logs/supply-slot-model/post-red-reconcile-20261015T111258/capture/frame-16.json": "0436919ca62d5618ff1d41d7964bb7f759598b672f6ef749763d44f240713262",
+    "/home/rokey/Documents/ChatGPT/로봇제어 개발/c2_integration_round3/logs/supply-slot-model/post-red-reconcile-20261015T111258/capture/frame-17.json": "1510dca42d211ca72b102c3d67b7e6016ed3af76bf1c5b56b41486d935028eb3",
+    "/home/rokey/Documents/ChatGPT/로봇제어 개발/c2_integration_round3/logs/supply-slot-model/post-red-reconcile-20261015T111258/capture/frame-18.json": "fa41d50a61095abe3ea6c0afb3bab2713a50f28364f0447c0a4c2d0e1fbc102a",
+    "/home/rokey/Documents/ChatGPT/로봇제어 개발/c2_integration_round3/logs/supply-slot-model/post-red-reconcile-20261015T111258/capture/frame-19.json": "1e0d79010d7f420b8329d9bf12fb764f91e23a883f56668dc096f7104f3068ba",
+    "/home/rokey/Documents/ChatGPT/로봇제어 개발/c2_integration_round3/logs/supply-slot-model/post-red-reconcile-20261015T111258/capture/frame-00.rgb.png": "472bd1b9be5181ee1fa4cd7cbb227420b40ce23716ee267f7dea1c6f55e34bde",
+    "/home/rokey/Documents/ChatGPT/로봇제어 개발/c2_integration_round3/logs/supply-slot-model/post-red-reconcile-20261015T111258/capture/frame-01.rgb.png": "72e4e2e2daabf7c65acbdb395516cc6d044d6fe98bb1a5728d15b152a1b3bac4",
+    "/home/rokey/Documents/ChatGPT/로봇제어 개발/c2_integration_round3/logs/supply-slot-model/post-red-reconcile-20261015T111258/capture/frame-02.rgb.png": "03dea7c719c43d4468f4f8e6517f18f20bd8c3f8b306b4d9078289bc78c9c5e1",
+    "/home/rokey/Documents/ChatGPT/로봇제어 개발/c2_integration_round3/logs/supply-slot-model/post-red-reconcile-20261015T111258/capture/frame-03.rgb.png": "4f30f151b6e1569ff985ccfc9dfc4b0a0da91b2e8069407044886e68d5f9a085",
+    "/home/rokey/Documents/ChatGPT/로봇제어 개발/c2_integration_round3/logs/supply-slot-model/post-red-reconcile-20261015T111258/capture/frame-04.rgb.png": "96c42c37c2cf8c9b95d0438908f37605087668ee547d7e25523229a01a26efd1",
+    "/home/rokey/Documents/ChatGPT/로봇제어 개발/c2_integration_round3/logs/supply-slot-model/post-red-reconcile-20261015T111258/capture/frame-05.rgb.png": "ade1e4814123df56bce7c6304414d8965b88f5e0215f0fec9b61baf2648a6d3b",
+    "/home/rokey/Documents/ChatGPT/로봇제어 개발/c2_integration_round3/logs/supply-slot-model/post-red-reconcile-20261015T111258/capture/frame-06.rgb.png": "95f2d0ac7fddf5bd80c9851b4e711faba8389929e9bfc2e5fc43abe325ee12b9",
+    "/home/rokey/Documents/ChatGPT/로봇제어 개발/c2_integration_round3/logs/supply-slot-model/post-red-reconcile-20261015T111258/capture/frame-07.rgb.png": "6be760b8537a4106e67c644f78110a1b03a5b1331d732419ffe3d8ec7b5ce784",
+    "/home/rokey/Documents/ChatGPT/로봇제어 개발/c2_integration_round3/logs/supply-slot-model/post-red-reconcile-20261015T111258/capture/frame-08.rgb.png": "d12408d3c40fdd635efd7a190506de7158e4cddf9b6b6c86d3dd724c261ee242",
+    "/home/rokey/Documents/ChatGPT/로봇제어 개발/c2_integration_round3/logs/supply-slot-model/post-red-reconcile-20261015T111258/capture/frame-09.rgb.png": "594f9160a848960db2f0e402b0662a5e1774c7683ae67e967e390bc68eb25dca",
+    "/home/rokey/Documents/ChatGPT/로봇제어 개발/c2_integration_round3/logs/supply-slot-model/post-red-reconcile-20261015T111258/capture/frame-10.rgb.png": "de63471d964a19f7f192089ad5ffd6ffd78833225e8521491aad26bd569754dc",
+    "/home/rokey/Documents/ChatGPT/로봇제어 개발/c2_integration_round3/logs/supply-slot-model/post-red-reconcile-20261015T111258/capture/frame-11.rgb.png": "7cd4e231a5eaa7c8b11af1fe170341dd8cc08cb101376896131f783c87edfa41",
+    "/home/rokey/Documents/ChatGPT/로봇제어 개발/c2_integration_round3/logs/supply-slot-model/post-red-reconcile-20261015T111258/capture/frame-12.rgb.png": "27c769bae9fdac4aedbd1213e37be29c0b7dd960b6d84e33b8d09353e925ff1d",
+    "/home/rokey/Documents/ChatGPT/로봇제어 개발/c2_integration_round3/logs/supply-slot-model/post-red-reconcile-20261015T111258/capture/frame-13.rgb.png": "3ccca5aa8e728f4a64c6b44a43a311bbf6e1c38b62506fee899cdbbe31e0e06f",
+    "/home/rokey/Documents/ChatGPT/로봇제어 개발/c2_integration_round3/logs/supply-slot-model/post-red-reconcile-20261015T111258/capture/frame-14.rgb.png": "40c57921f2e521a51f8101a147dfce5a4a7005804a3c63aee853ce38cf8eebf6",
+    "/home/rokey/Documents/ChatGPT/로봇제어 개발/c2_integration_round3/logs/supply-slot-model/post-red-reconcile-20261015T111258/capture/frame-15.rgb.png": "d099f34b2a6983039aa1fb8d2f36da13a52fb01c389df47944b7fc08bb57ae50",
+    "/home/rokey/Documents/ChatGPT/로봇제어 개발/c2_integration_round3/logs/supply-slot-model/post-red-reconcile-20261015T111258/capture/frame-16.rgb.png": "bf8e325d1cc18f6acdfe08b84185b618da607abe833174736cac0a0d4b262268",
+    "/home/rokey/Documents/ChatGPT/로봇제어 개발/c2_integration_round3/logs/supply-slot-model/post-red-reconcile-20261015T111258/capture/frame-17.rgb.png": "b7f09a423342f26eb1c7b26797e3a3e75a8c98b9a70ea095a21826cf07679e4f",
+    "/home/rokey/Documents/ChatGPT/로봇제어 개발/c2_integration_round3/logs/supply-slot-model/post-red-reconcile-20261015T111258/capture/frame-18.rgb.png": "0b6494499f8767702fc68b573110ef9399cf59fa5b1be78b8f72d2a8e68c4518",
+    "/home/rokey/Documents/ChatGPT/로봇제어 개발/c2_integration_round3/logs/supply-slot-model/post-red-reconcile-20261015T111258/capture/frame-19.rgb.png": "1bdf29354f1f5f135d561973c05b8ac4f97d753e5cf87abdcba72baef5f972e1",
+    "/home/rokey/Documents/ChatGPT/로봇제어 개발/c2_integration_round3/logs/supply-slot-model/post-red-reconcile-20261015T111258/capture/frame-00.depth-mm.png": "b2b7b8de099d91c8232423b7396d030526dd198bea596ac7907eb2548bc6916b",
+    "/home/rokey/Documents/ChatGPT/로봇제어 개발/c2_integration_round3/logs/supply-slot-model/post-red-reconcile-20261015T111258/capture/frame-01.depth-mm.png": "7dbe1ea724fc2c33f6cf1ce2c467b544d7cf721656d5131add36dc4d16568e01",
+    "/home/rokey/Documents/ChatGPT/로봇제어 개발/c2_integration_round3/logs/supply-slot-model/post-red-reconcile-20261015T111258/capture/frame-02.depth-mm.png": "fd6e7e86eaaf39306c75011f3321e1f99e4d0cb3d3dac1ac786548ceb5cf2c91",
+    "/home/rokey/Documents/ChatGPT/로봇제어 개발/c2_integration_round3/logs/supply-slot-model/post-red-reconcile-20261015T111258/capture/frame-03.depth-mm.png": "ad3eaf137388e72979405b2caf597f69106bf6d550a3ccc0479b1047168ad238",
+    "/home/rokey/Documents/ChatGPT/로봇제어 개발/c2_integration_round3/logs/supply-slot-model/post-red-reconcile-20261015T111258/capture/frame-04.depth-mm.png": "f89fabf992d35a776578ec1f46611d6c6a38d92b6db2c8765ca4251308aadb26",
+    "/home/rokey/Documents/ChatGPT/로봇제어 개발/c2_integration_round3/logs/supply-slot-model/post-red-reconcile-20261015T111258/capture/frame-05.depth-mm.png": "6b18a27cd89d14a1b2b5e62c5f61b37aeba150e43ffe5884d74b0266b32675b0",
+    "/home/rokey/Documents/ChatGPT/로봇제어 개발/c2_integration_round3/logs/supply-slot-model/post-red-reconcile-20261015T111258/capture/frame-06.depth-mm.png": "ed01a864308c274d29973a8054d34cb5043647319ff4fa639460e436c218c650",
+    "/home/rokey/Documents/ChatGPT/로봇제어 개발/c2_integration_round3/logs/supply-slot-model/post-red-reconcile-20261015T111258/capture/frame-07.depth-mm.png": "e585d3007d260ef3be43fe3456154d6c02aede00a558892e5f7a02efb8520f15",
+    "/home/rokey/Documents/ChatGPT/로봇제어 개발/c2_integration_round3/logs/supply-slot-model/post-red-reconcile-20261015T111258/capture/frame-08.depth-mm.png": "7791a74861f00434ee7e0455d4149c198dc85c579d5f1eb9115caa3a66fbc82f",
+    "/home/rokey/Documents/ChatGPT/로봇제어 개발/c2_integration_round3/logs/supply-slot-model/post-red-reconcile-20261015T111258/capture/frame-09.depth-mm.png": "694fbe41c2e57270e74e263a428fe5562ab7519239818db274785e77cb7120eb",
+    "/home/rokey/Documents/ChatGPT/로봇제어 개발/c2_integration_round3/logs/supply-slot-model/post-red-reconcile-20261015T111258/capture/frame-10.depth-mm.png": "f499ff0438a3b9fd5c90692811d7356afe63df448140866fe61f9ebfa4ee1ba5",
+    "/home/rokey/Documents/ChatGPT/로봇제어 개발/c2_integration_round3/logs/supply-slot-model/post-red-reconcile-20261015T111258/capture/frame-11.depth-mm.png": "bd63b9c6a59e85cc2aa1f3725692e2942df28db44a15172f93953b9e5a6e4270",
+    "/home/rokey/Documents/ChatGPT/로봇제어 개발/c2_integration_round3/logs/supply-slot-model/post-red-reconcile-20261015T111258/capture/frame-12.depth-mm.png": "9750e8b092d9bc2cd1b1244c6fb5466980b016c8284b03aecd3bbe1b7a0bf053",
+    "/home/rokey/Documents/ChatGPT/로봇제어 개발/c2_integration_round3/logs/supply-slot-model/post-red-reconcile-20261015T111258/capture/frame-13.depth-mm.png": "06de1f0a147f099669b0c13a84ef42491a6b0b2dc92d9ba5501577d35f2bb6e3",
+    "/home/rokey/Documents/ChatGPT/로봇제어 개발/c2_integration_round3/logs/supply-slot-model/post-red-reconcile-20261015T111258/capture/frame-14.depth-mm.png": "ca7d0ae5bf3fd166603944b971bb64ca2fd67b55713665824abd99190ebbdd2a",
+    "/home/rokey/Documents/ChatGPT/로봇제어 개발/c2_integration_round3/logs/supply-slot-model/post-red-reconcile-20261015T111258/capture/frame-15.depth-mm.png": "cf76756cc99168ed8341f60053508c74ccc69f2859156f2fdb1d69e91f52c86c",
+    "/home/rokey/Documents/ChatGPT/로봇제어 개발/c2_integration_round3/logs/supply-slot-model/post-red-reconcile-20261015T111258/capture/frame-16.depth-mm.png": "716da2c60dcac7b2ea1f67f6d668fdeba16d30586a1fae7149c9e3ed96a2dc8f",
+    "/home/rokey/Documents/ChatGPT/로봇제어 개발/c2_integration_round3/logs/supply-slot-model/post-red-reconcile-20261015T111258/capture/frame-17.depth-mm.png": "29b347d913c024553d94fd50b795cf64d8773fc7a6a3e8ba2bd1be932f0923ce",
+    "/home/rokey/Documents/ChatGPT/로봇제어 개발/c2_integration_round3/logs/supply-slot-model/post-red-reconcile-20261015T111258/capture/frame-18.depth-mm.png": "a4d6fa755efddf4b87a2f2c70f84dced458af45406eedb65e9f1d4b7dc5611cb",
+    "/home/rokey/Documents/ChatGPT/로봇제어 개발/c2_integration_round3/logs/supply-slot-model/post-red-reconcile-20261015T111258/capture/frame-19.depth-mm.png": "5c8a7397befde1ba97cfd0de3ec4fdd157464fc21ecf2970e0141e9528318612",
+    "/home/rokey/Documents/ChatGPT/로봇제어 개발/c2_integration_round3/logs/supply-slot-model/20261015-model-05/layout.candidate.json": "121d43c01db0c0636deccabdbcf6dcaef96cc4416281c3efa1bad6d68ac84e2a",
+    "/home/rokey/Documents/ChatGPT/로봇제어 개발/c2_integration_round3/logs/supply-depth-reference/pair-20261015T080359/observation/surface-candidate.json": "fbafc6db980cd77d129e5b3303317543df8fefd3429874e97041bf8dafe1bac5",
+    "/home/rokey/Documents/ChatGPT/로봇제어 개발/c2_integration_round3/logs/supply-depth-reference/pair-20261015T080359/pickup/pickup.json": "0a6db9f074bf616b395c4961ab330971bc9344ee7f948559d1b44cf9d191d0b1",
+    "/home/rokey/Documents/ChatGPT/로봇제어 개발/reports/round3_robot_pc_20261015/calibration/T_tcp_v4_camera_from_v1_208_to_v4_228.npy": "9ba2ebd2fbb840cb7dd19dbde22b6618201dbc222e607fc5d82ce2936df831a4",
+    "/home/rokey/Documents/ChatGPT/로봇제어 개발/c2_integration_round3/logs/supply-depth-reference/T2-pair-20261015T093321/observation/surface-candidate.json": "5212591644cdb6fca5889954fe84b74294ae32c9680425a7a3ef2f9e6fe2b61f",
+    "/home/rokey/Documents/ChatGPT/로봇제어 개발/c2_integration_round3/logs/supply-depth-reference/T2-pair-20261015T093321/pickup/pickup.json": "8e3a20adcb1e7291ab5deee3c4beed5b4317aa383a12112e14433aba3fc81e80",
+    "/home/rokey/Documents/ChatGPT/로봇제어 개발/c2_integration_round3/logs/supply-depth-reference/T3-pair-20261015T094504/observation/surface-candidate.json": "a95b0cb6f7800168fb8edb689b99c0695a1169bb5b12afbc002011428a891416",
+    "/home/rokey/Documents/ChatGPT/로봇제어 개발/c2_integration_round3/logs/supply-depth-reference/T3-pair-20261015T094504/pickup/pickup.json": "fcb31104a572abf7d5edaadf3fb58d088a27223e3cab8ce80da9db0bc29bb53a",
+    "/home/rokey/Documents/ChatGPT/로봇제어 개발/c2_integration_round3/logs/supply-depth-reference/manual-yellow-2x2-slot2-20261015T102557/pickup/pickup.json": "0f2d2f44a6c742cc043bf6c0991ec57b334bde3594a13367d17eaaf24416a618",
+    "/home/rokey/Documents/ChatGPT/로봇제어 개발/c2_integration_round3/logs/supply-slot2-reapproach/1792028718726814565/operator-review.json": "39fcddbc11ee064b5f0f58d2ea7ed6b33e7336265f42846a209db6652ca3e1be",
+    "/home/rokey/Documents/ChatGPT/로봇제어 개발/c2_integration_round3/logs/supply-depth-reference/manual-red-slot1-20261015T110138/pickup/pickup.json": "5eea217e9b7cc84f5524ab88e0104e8dc20a6e9701cd02568266f7ad7a11d4ec",
+    "/home/rokey/Documents/ChatGPT/로봇제어 개발/c2_integration_round3/logs/supply-red-slot1-trial/1792030144985357132/operator-review.json": "7b1cd97c395ce5fd59eb3bd7e25dd1f7eb1c114a6c76467ddef4e73bb9922170",
+    "/home/rokey/Documents/ChatGPT/로봇제어 개발/c2_integration_round1/logs/full-feature-real-slots1to5/c5413b6d-48f1-4e5b-a088-e2ef712a4235.jsonl": "e3742bb67edcc71ea81cf71bdb8b35cf9c921f82263ab8ef9f98b35b7cd0d500",
+    "/home/rokey/Documents/ChatGPT/로봇제어 개발/c2_integration_round1/logs/full-feature-real-slots1to5/c5413b6d-48f1-4e5b-a088-e2ef712a4235/d6943c7a-a90f-4030-9299-b1b1e4a4ecaf.execution.json": "697565c3f95a2c9ebda66a8ae6063cbfe0966c1734e18fcc4dc187661694746e",
+    "/home/rokey/Documents/ChatGPT/로봇제어 개발/c2_integration_round1/logs/full-feature-real-slots1to5/c5413b6d-48f1-4e5b-a088-e2ef712a4235/408095ed-a387-4799-a7a7-1512e8769a1e.execution.json": "9b6721a1b110dd474ea506d8685984504cf94a52591f0194777f1945cdfa5984",
+    "/home/rokey/Documents/ChatGPT/로봇제어 개발/c2_integration_round1/logs/full-feature-real-slots1to5/c5413b6d-48f1-4e5b-a088-e2ef712a4235/0337c694-92a6-4ba7-bb9c-6adeb4fa8f3c.execution.json": "380b401cd284268d67c016f44757adb950d075eec4174204bd58de7d0a5ec9c2"
+  }
+}

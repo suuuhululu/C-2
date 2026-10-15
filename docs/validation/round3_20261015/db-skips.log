@@ -1,0 +1,4 @@
+ss                                                                       [100%]
+=========================== short test summary info ============================
+SKIPPED [2] tests/integration/test_round3_approved_step.py:253: set HISTORY_TEST_DSN for actual PostgreSQL personal history checks
+2 skipped, 27 deselected in 0.55s

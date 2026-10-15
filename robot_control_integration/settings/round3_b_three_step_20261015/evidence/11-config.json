@@ -1,0 +1,247 @@
+{
+  "connection": {
+    "robot_id": "dsr01",
+    "ros_domain_id": 20,
+    "gripper_ip": "192.168.1.1",
+    "tcp": "GripperDA_v4",
+    "tool": "ToolWeight0"
+  },
+  "observation_pose": [
+    -443.4389343261719,
+    -38.81204605102539,
+    374.3517761230469,
+    8.74850845336914,
+    178.39500427246094,
+    8.59197998046875
+  ],
+  "pickup_clearance_z_mm": 194.73294067382812,
+  "teaching_xy_bounds_mm": [
+    [
+      -681.1200561523438,
+      -297.85296630859375
+    ],
+    [
+      -80.39606857299805,
+      233.4738006591797
+    ]
+  ],
+  "startup_route": {
+    "place_xy": [
+      472.05499267578125,
+      85.7425765991211
+    ],
+    "body_bypass_xy": [
+      -27.878286361694336,
+      -411.9568176269531
+    ],
+    "supply_transit_xy": [
+      -364.8591304347826,
+      -171.54
+    ],
+    "source": "robot_control_integration/settings/integration_native35/profile.reference.json"
+  },
+  "force_stop_n": 45.0,
+  "open_mm": 60.0,
+  "gripper_force_n": 40.0,
+  "velocity": 12.0,
+  "acceleration": 48.0,
+  "angular_velocity": 6.0,
+  "angular_acceleration": 3.0,
+  "rise_velocity": 12.0,
+  "transit_velocity": 120.0,
+  "rise_acceleration": 48.0,
+  "transit_acceleration": 48.0,
+  "trial_step": {
+    "step_id": "T2",
+    "target": {
+      "brick_type": "2x3x1",
+      "color": "blue",
+      "x": 13,
+      "y": 11,
+      "layer": 2,
+      "orientation_deg": 0
+    },
+    "supply_slot": 3,
+    "human_hold": false,
+    "hold_lower": null,
+    "raised_z_trial_mm": 0.0,
+    "source_A": {
+      "mode": "ROBOT_GRIP",
+      "assistance_kind": "NONE",
+      "grip_axis": "x",
+      "execution_allowed": false,
+      "reassessment_status": "CANDIDATE",
+      "motion_status": "CANDIDATE"
+    },
+    "original_blocked_layout_A": {
+      "plan_id": "P-44fa22080179457cbe0dc9e5655a991e",
+      "step_id": "S02",
+      "block": {
+        "brick_type": "2x3x1",
+        "color": "blue",
+        "x": 13,
+        "y": 11,
+        "layer": 2,
+        "orientation_deg": 0
+      },
+      "mode": "HUMAN_ASSEMBLY",
+      "grip_axis": null,
+      "gripper": {
+        "pickup_policy": "D_EXISTING_PICKUP",
+        "release_strategy": "D_EXISTING_TRAY_RELEASE",
+        "release_owner": "D",
+        "policy_at_wait": "D_TRAY_RELEASE_AND_RETREAT",
+        "numeric_open_command": null
+      },
+      "support_studs": 6,
+      "contacts": [],
+      "robot_force_model": "NOT_ROBOT_INSERTION",
+      "assistance_kind": "MANUAL_ASSEMBLY",
+      "human_actions": [
+        {
+          "action": "MANUAL_PLACE",
+          "target_block": {
+            "brick_type": "2x3x1",
+            "color": "blue",
+            "x": 13,
+            "y": 11,
+            "layer": 2,
+            "orientation_deg": 0
+          },
+          "contact_regions": [
+            {
+              "frame_id": "assembly_board",
+              "vertices_xyz_m": [
+                [
+                  0.2,
+                  0.184,
+                  0.0145
+                ],
+                [
+                  0.2,
+                  0.2,
+                  0.0145
+                ],
+                [
+                  0.2,
+                  0.2,
+                  0.0335
+                ],
+                [
+                  0.2,
+                  0.184,
+                  0.0335
+                ]
+              ]
+            },
+            {
+              "frame_id": "assembly_board",
+              "vertices_xyz_m": [
+                [
+                  0.232,
+                  0.184,
+                  0.0145
+                ],
+                [
+                  0.232,
+                  0.2,
+                  0.0145
+                ],
+                [
+                  0.232,
+                  0.2,
+                  0.0335
+                ],
+                [
+                  0.232,
+                  0.184,
+                  0.0335
+                ]
+              ]
+            }
+          ],
+          "approach_sides": [
+            "-x",
+            "+x"
+          ],
+          "hand_count": 1,
+          "force_direction_base": null,
+          "force_magnitude_n": null,
+          "effect": "사람이 직접 조립",
+          "access_assessment": "HUMAN_ACCESS_NOT_CHECKED"
+        }
+      ],
+      "human_hands_used": 1,
+      "assistance_cost": [
+        1,
+        1,
+        1
+      ],
+      "selection_basis": "완성 가능한 전체 계획 확보 후 사람 도움 최소화; MoveIt 운반 검증은 별도",
+      "requires_runtime_reassessment": true,
+      "optimality_verified": false
+    },
+    "policy": "OPERATOR_RECORDED_CONTINUOUS_GRASP_T2",
+    "support_studs": 6,
+    "total_studs": 6,
+    "policy_note": "Current A permits the adjusted layout. The original blocked layout is preserved separately. Three operator-recorded TCP poses replace the old +10mm trial; grasp height is only estimated.",
+    "previous_raised_z_trial_mm": 10.0,
+    "operator_teaching_file": "T2.operator_teaching.json"
+  },
+  "schema_version": "supply-rgbd-single-trial/1",
+  "scope": "T2_SUPPLY_APPROACH_CLOSE_HOLD_ONLY",
+  "blocks": [
+    {
+      "color": "blue",
+      "brick_type": "2x3x1",
+      "slot": 3,
+      "span": 2,
+      "close_mm": 35.0,
+      "pickup_pose": [
+        -453.0871887207031,
+        9.289710998535156,
+        50.55364227294922,
+        9.845041275024414,
+        179.12184143066406,
+        10.314308166503906
+      ],
+      "pose_source": "/home/rokey/Documents/ChatGPT/로봇제어 개발/c2_integration_round3/logs/supply-depth-reference/T2-runtime-matched-20261015T113333/pickup-height-matched/pickup.json",
+      "pose_basis": "RUNTIME_HEIGHT_ATTITUDE_MATCHED_PAIRED_OPERATOR_PRE_CLOSE_TEACHING",
+      "axis_basis": "ORIGINAL_TAUGHT_TWO_STUD_AXIS",
+      "baseline_pickup_pose": [
+        -458.20672607421875,
+        15.277674674987793,
+        47.877689361572266,
+        133.00794982910156,
+        -177.2348175048828,
+        134.07420349121094
+      ]
+    }
+  ],
+  "vision": {
+    "rgb_topic": "/camera/color/image_raw",
+    "layout": "/home/rokey/Documents/ChatGPT/로봇제어 개발/c2_integration_round3/robot_control_integration/settings/round3_supply_rgbd_20261015/T2-slot3-execution-20261015/slot3-layout.json",
+    "weights": null,
+    "model_deps": null,
+    "confidence": 0.3,
+    "green_gray": false,
+    "center_basis": "STUD_ARRAY",
+    "backend": "opencv_studs",
+    "depth_center_profile": "/home/rokey/Documents/ChatGPT/로봇제어 개발/c2_integration_round3/robot_control_integration/settings/round3_supply_rgbd_20261015/T2-slot3-execution-20261015/supply-depth-center.educational.json",
+    "allow_educational_t2_depth_profile": true
+  },
+  "assembly_xy_correction_enabled": false,
+  "automatic_lift": false,
+  "target_only_motion": false,
+  "automatic_teaching_fallback_enabled": false,
+  "operator_accepted_t2_educational_profile": false,
+  "source_sha256": {
+    "/home/rokey/Documents/ChatGPT/로봇제어 개발/c2_integration_round3/logs/supply-depth-reference/T2-runtime-matched-20261015T113333/observation-height-matched/surface-quality-candidate.json": "766384fe9e29812db1883f865942b873355f7b8d51a4dab710938aeb9f105dab",
+    "/home/rokey/Documents/ChatGPT/로봇제어 개발/c2_integration_round3/logs/supply-depth-reference/T2-runtime-matched-20261015T113333/pickup-height-matched/pickup.json": "8bd9b1b4adc6d3704b9b0467d2ca91d171ac0e9604b5ba2b8f9acbf399ce8d28",
+    "/home/rokey/Documents/ChatGPT/로봇제어 개발/c2_integration_round3/logs/supply-depth-reference/T2-runtime-matched-20261015T113333/observation-height-matched/capture.json": "6939de24002253559d5e59daad831957fe1c035cc26f2679b11a4f566e143c8f",
+    "/home/rokey/Documents/ChatGPT/로봇제어 개발/c2_integration_round3/robot_control_integration/settings/round3_supply_rgbd_20261015/T2-slot3-execution-20261015/slot3-layout.json": "9a0f93cdeb425c7fc4d4dcc851109f207689e5b400200cb342ec7ded33b5d16f",
+    "/home/rokey/Documents/ChatGPT/로봇제어 개발/c2_integration_round3/robot_control_integration/settings/round3_supply_rgbd_20261015/T2-slot3-execution-20261015/supply-depth-center.educational.json": "2af49613560e0c1d5562f80f3cf028048e22eec5b0e70af62fc74531e34efd75",
+    "/home/rokey/Documents/ChatGPT/로봇제어 개발/c2_integration_round3/robot_control_integration/settings/round3_supply_rgbd_20261015/T2-slot3-execution-20261015/educational-acceptance.proposed.json": "ce4a9bd5a7fd4e402aa9301b05814cd9eea11f2ec0b3d8b48c514e677fa3c7d8",
+    "/home/rokey/Documents/ChatGPT/로봇제어 개발/c2_integration_round3/robot_control_integration/settings/round3_supply_rgbd_20261015/reference-bundle.candidate.json": "92f3bf44330467fc7ffbe23246308d6c67c42590dc9e70e5369c23946d24bcae"
+  }
+}

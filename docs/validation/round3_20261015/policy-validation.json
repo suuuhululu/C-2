@@ -1,0 +1,719 @@
+{
+  "provenance": "OFFLINE_PREPARED_CONFIGS_NOT_PHYSICAL_OR_B_CURRENT",
+  "slots": [
+    {
+      "slot_id": "yellow_2x2x1_01",
+      "open_mm": 53.0,
+      "open_feedback_range_mm": [
+        40.0,
+        80.0
+      ],
+      "assembly_release_mm": 47.0,
+      "assembly_feedback_range_mm": [
+        32.0,
+        55.0
+      ],
+      "close_mm": 35.0,
+      "grip_feedback_range_mm": null,
+      "pickup_pose": [
+        -327.85296630859375,
+        193.36367797851562,
+        52.078731536865234,
+        102.85449981689453,
+        -176.07705688476562,
+        104.31108093261719
+      ],
+      "seating_force_stop_n": 50.0,
+      "press_force_stop_n": 60.0,
+      "press_force_abort_n": 70.0,
+      "contact_velocity_mm_s": 3.0
+    },
+    {
+      "slot_id": "yellow_2x2x1_02",
+      "open_mm": 53.0,
+      "open_feedback_range_mm": [
+        40.0,
+        80.0
+      ],
+      "assembly_release_mm": 47.0,
+      "assembly_feedback_range_mm": [
+        32.0,
+        55.0
+      ],
+      "close_mm": 35.0,
+      "grip_feedback_range_mm": null,
+      "pickup_pose": [
+        -389.8049621582031,
+        194.62765502929688,
+        48.550514221191406,
+        167.70477294921875,
+        -177.71961975097656,
+        167.3773956298828
+      ],
+      "seating_force_stop_n": 50.0,
+      "press_force_stop_n": 60.0,
+      "press_force_abort_n": 70.0,
+      "contact_velocity_mm_s": 3.0
+    },
+    {
+      "slot_id": "yellow_2x2x1_03",
+      "open_mm": 53.0,
+      "open_feedback_range_mm": [
+        40.0,
+        80.0
+      ],
+      "assembly_release_mm": 47.0,
+      "assembly_feedback_range_mm": [
+        32.0,
+        55.0
+      ],
+      "close_mm": 35.0,
+      "grip_feedback_range_mm": null,
+      "pickup_pose": [
+        -455.40081787109375,
+        198.84207153320312,
+        51.01224136352539,
+        107.78492736816406,
+        -176.3149871826172,
+        109.21537017822266
+      ],
+      "seating_force_stop_n": 50.0,
+      "press_force_stop_n": 60.0,
+      "press_force_abort_n": 70.0,
+      "contact_velocity_mm_s": 3.0
+    },
+    {
+      "slot_id": "yellow_2x2x1_04",
+      "open_mm": 53.0,
+      "open_feedback_range_mm": [
+        40.0,
+        80.0
+      ],
+      "assembly_release_mm": 47.0,
+      "assembly_feedback_range_mm": [
+        32.0,
+        55.0
+      ],
+      "close_mm": 35.0,
+      "grip_feedback_range_mm": null,
+      "pickup_pose": [
+        -519.361083984375,
+        196.43150329589844,
+        49.38444137573242,
+        1.3798952102661133,
+        178.19931030273438,
+        1.3129518032073975
+      ],
+      "seating_force_stop_n": 50.0,
+      "press_force_stop_n": 60.0,
+      "press_force_abort_n": 70.0,
+      "contact_velocity_mm_s": 3.0
+    },
+    {
+      "slot_id": "yellow_2x2x1_05",
+      "open_mm": 53.0,
+      "open_feedback_range_mm": [
+        40.0,
+        80.0
+      ],
+      "assembly_release_mm": 47.0,
+      "assembly_feedback_range_mm": [
+        32.0,
+        55.0
+      ],
+      "close_mm": 35.0,
+      "grip_feedback_range_mm": null,
+      "pickup_pose": [
+        -582.6072387695312,
+        201.92989095052087,
+        49.63486353556314,
+        -66.62497422688047,
+        176.95779420699344,
+        -65.37898855239303
+      ],
+      "seating_force_stop_n": 50.0,
+      "press_force_stop_n": 60.0,
+      "press_force_abort_n": 70.0,
+      "contact_velocity_mm_s": 3.0
+    },
+    {
+      "slot_id": "yellow_2x3x1_01",
+      "open_mm": 53.0,
+      "open_feedback_range_mm": [
+        40.0,
+        80.0
+      ],
+      "assembly_release_mm": 47.0,
+      "assembly_feedback_range_mm": [
+        32.0,
+        55.0
+      ],
+      "close_mm": 35.0,
+      "grip_feedback_range_mm": null,
+      "pickup_pose": [
+        -328.5872497558594,
+        138.45257568359375,
+        49.16362380981445,
+        115.04324340820312,
+        -177.26100158691406,
+        116.4085693359375
+      ],
+      "seating_force_stop_n": 50.0,
+      "press_force_stop_n": 60.0,
+      "press_force_abort_n": 70.0,
+      "contact_velocity_mm_s": 3.0
+    },
+    {
+      "slot_id": "yellow_2x3x1_02",
+      "open_mm": 53.0,
+      "open_feedback_range_mm": [
+        40.0,
+        80.0
+      ],
+      "assembly_release_mm": 47.0,
+      "assembly_feedback_range_mm": [
+        32.0,
+        55.0
+      ],
+      "close_mm": 35.0,
+      "grip_feedback_range_mm": null,
+      "pickup_pose": [
+        -392.21150207519537,
+        140.78577423095703,
+        48.91222381591797,
+        -64.03422692532209,
+        177.26971453222032,
+        -62.701268760230604
+      ],
+      "seating_force_stop_n": 50.0,
+      "press_force_stop_n": 60.0,
+      "press_force_abort_n": 70.0,
+      "contact_velocity_mm_s": 3.0
+    },
+    {
+      "slot_id": "yellow_2x3x1_03",
+      "open_mm": 53.0,
+      "open_feedback_range_mm": [
+        40.0,
+        80.0
+      ],
+      "assembly_release_mm": 47.0,
+      "assembly_feedback_range_mm": [
+        32.0,
+        55.0
+      ],
+      "close_mm": 35.0,
+      "grip_feedback_range_mm": null,
+      "pickup_pose": [
+        -455.83575439453125,
+        143.1189727783203,
+        48.660823822021484,
+        116.89387512207031,
+        -177.27774047851562,
+        118.19446563720703
+      ],
+      "seating_force_stop_n": 50.0,
+      "press_force_stop_n": 60.0,
+      "press_force_abort_n": 70.0,
+      "contact_velocity_mm_s": 3.0
+    },
+    {
+      "slot_id": "yellow_2x3x1_04",
+      "open_mm": 53.0,
+      "open_feedback_range_mm": [
+        40.0,
+        80.0
+      ],
+      "assembly_release_mm": 47.0,
+      "assembly_feedback_range_mm": [
+        32.0,
+        55.0
+      ],
+      "close_mm": 35.0,
+      "grip_feedback_range_mm": null,
+      "pickup_pose": [
+        -520.3038940429689,
+        144.9141082763672,
+        49.23760350545248,
+        -63.40328076476846,
+        177.3619036264888,
+        -62.25114797070221
+      ],
+      "seating_force_stop_n": 50.0,
+      "press_force_stop_n": 60.0,
+      "press_force_abort_n": 70.0,
+      "contact_velocity_mm_s": 3.0
+    },
+    {
+      "slot_id": "yellow_2x3x1_05",
+      "open_mm": 53.0,
+      "open_feedback_range_mm": [
+        40.0,
+        80.0
+      ],
+      "assembly_release_mm": 47.0,
+      "assembly_feedback_range_mm": [
+        32.0,
+        55.0
+      ],
+      "close_mm": 35.0,
+      "grip_feedback_range_mm": null,
+      "pickup_pose": [
+        -584.7720336914064,
+        146.70924377441406,
+        49.814383188883454,
+        -63.724894927828835,
+        177.44595310218776,
+        -62.72121483688852
+      ],
+      "seating_force_stop_n": 50.0,
+      "press_force_stop_n": 60.0,
+      "press_force_abort_n": 70.0,
+      "contact_velocity_mm_s": 3.0
+    },
+    {
+      "slot_id": "blue_2x2x1_01",
+      "open_mm": 53.0,
+      "open_feedback_range_mm": [
+        40.0,
+        80.0
+      ],
+      "assembly_release_mm": 47.0,
+      "assembly_feedback_range_mm": [
+        32.0,
+        55.0
+      ],
+      "close_mm": 35.0,
+      "grip_feedback_range_mm": null,
+      "pickup_pose": [
+        -329.9087829589844,
+        68.5289535522461,
+        50.48456573486328,
+        118.29946899414062,
+        -177.67820739746094,
+        119.57559967041016
+      ],
+      "seating_force_stop_n": 50.0,
+      "press_force_stop_n": 60.0,
+      "press_force_abort_n": 70.0,
+      "contact_velocity_mm_s": 3.0
+    },
+    {
+      "slot_id": "blue_2x2x1_02",
+      "open_mm": 53.0,
+      "open_feedback_range_mm": [
+        40.0,
+        80.0
+      ],
+      "assembly_release_mm": 47.0,
+      "assembly_feedback_range_mm": [
+        32.0,
+        55.0
+      ],
+      "close_mm": 35.0,
+      "grip_feedback_range_mm": null,
+      "pickup_pose": [
+        -393.68302917480474,
+        69.51908493041994,
+        50.46043586730957,
+        -59.22627063093166,
+        177.51291337386212,
+        -57.99829135112511
+      ],
+      "seating_force_stop_n": 50.0,
+      "press_force_stop_n": 60.0,
+      "press_force_abort_n": 70.0,
+      "contact_velocity_mm_s": 3.0
+    },
+    {
+      "slot_id": "blue_2x2x1_03",
+      "open_mm": 53.0,
+      "open_feedback_range_mm": [
+        40.0,
+        80.0
+      ],
+      "assembly_release_mm": 47.0,
+      "assembly_feedback_range_mm": [
+        32.0,
+        55.0
+      ],
+      "close_mm": 35.0,
+      "grip_feedback_range_mm": null,
+      "pickup_pose": [
+        -457.457275390625,
+        70.50921630859375,
+        50.43630599975586,
+        122.93928527832031,
+        -177.34364318847656,
+        124.11911010742188
+      ],
+      "seating_force_stop_n": 50.0,
+      "press_force_stop_n": 60.0,
+      "press_force_abort_n": 70.0,
+      "contact_velocity_mm_s": 3.0
+    },
+    {
+      "slot_id": "blue_2x2x1_04",
+      "open_mm": 53.0,
+      "open_feedback_range_mm": [
+        40.0,
+        80.0
+      ],
+      "assembly_release_mm": 47.0,
+      "assembly_feedback_range_mm": [
+        32.0,
+        55.0
+      ],
+      "close_mm": 35.0,
+      "grip_feedback_range_mm": null,
+      "pickup_pose": [
+        -521.3122355143229,
+        72.83158874511717,
+        49.143953959147126,
+        -59.31966315480079,
+        177.44884152892047,
+        -58.1141593254022
+      ],
+      "seating_force_stop_n": 50.0,
+      "press_force_stop_n": 60.0,
+      "press_force_abort_n": 70.0,
+      "contact_velocity_mm_s": 3.0
+    },
+    {
+      "slot_id": "blue_2x2x1_05",
+      "open_mm": 53.0,
+      "open_feedback_range_mm": [
+        40.0,
+        80.0
+      ],
+      "assembly_release_mm": 47.0,
+      "assembly_feedback_range_mm": [
+        32.0,
+        55.0
+      ],
+      "close_mm": 35.0,
+      "grip_feedback_range_mm": null,
+      "pickup_pose": [
+        -585.1671956380209,
+        75.15396118164061,
+        47.85160191853842,
+        -61.76766072310973,
+        177.54978784793002,
+        -60.53647892286923
+      ],
+      "seating_force_stop_n": 50.0,
+      "press_force_stop_n": 60.0,
+      "press_force_abort_n": 70.0,
+      "contact_velocity_mm_s": 3.0
+    },
+    {
+      "slot_id": "blue_2x3x1_01",
+      "open_mm": 53.0,
+      "open_feedback_range_mm": [
+        40.0,
+        80.0
+      ],
+      "assembly_release_mm": 47.0,
+      "assembly_feedback_range_mm": [
+        32.0,
+        55.0
+      ],
+      "close_mm": 35.0,
+      "grip_feedback_range_mm": null,
+      "pickup_pose": [
+        -331.85260009765625,
+        9.898046493530273,
+        50.785804748535156,
+        125.3236312866211,
+        -177.62391662597656,
+        126.60347747802734
+      ],
+      "seating_force_stop_n": 50.0,
+      "press_force_stop_n": 60.0,
+      "press_force_abort_n": 70.0,
+      "contact_velocity_mm_s": 3.0
+    },
+    {
+      "slot_id": "blue_2x3x1_02",
+      "open_mm": 53.0,
+      "open_feedback_range_mm": [
+        40.0,
+        80.0
+      ],
+      "assembly_release_mm": 47.0,
+      "assembly_feedback_range_mm": [
+        32.0,
+        55.0
+      ],
+      "close_mm": 35.0,
+      "grip_feedback_range_mm": null,
+      "pickup_pose": [
+        -395.02966308593756,
+        12.587860584259033,
+        49.33174705505371,
+        -50.54710367422485,
+        177.43495012931803,
+        -49.374049679339805
+      ],
+      "seating_force_stop_n": 50.0,
+      "press_force_stop_n": 60.0,
+      "press_force_abort_n": 70.0,
+      "contact_velocity_mm_s": 3.0
+    },
+    {
+      "slot_id": "blue_2x3x1_03",
+      "open_mm": 53.0,
+      "open_feedback_range_mm": [
+        40.0,
+        80.0
+      ],
+      "assembly_release_mm": 47.0,
+      "assembly_feedback_range_mm": [
+        32.0,
+        55.0
+      ],
+      "close_mm": 35.0,
+      "grip_feedback_range_mm": null,
+      "pickup_pose": [
+        -453.0871887207031,
+        9.289710998535156,
+        50.55427551269531,
+        9.841970443725586,
+        179.1219482421875,
+        10.311335563659668
+      ],
+      "seating_force_stop_n": 50.0,
+      "press_force_stop_n": 60.0,
+      "press_force_abort_n": 70.0,
+      "contact_velocity_mm_s": 3.0
+    },
+    {
+      "slot_id": "blue_2x3x1_04",
+      "open_mm": 53.0,
+      "open_feedback_range_mm": [
+        40.0,
+        80.0
+      ],
+      "assembly_release_mm": 47.0,
+      "assembly_feedback_range_mm": [
+        32.0,
+        55.0
+      ],
+      "close_mm": 35.0,
+      "grip_feedback_range_mm": null,
+      "pickup_pose": [
+        -522.5111694335939,
+        16.719502131144196,
+        48.273502349853516,
+        -47.208222443269484,
+        177.32961367283596,
+        -46.12526485710051
+      ],
+      "seating_force_stop_n": 50.0,
+      "press_force_stop_n": 60.0,
+      "press_force_abort_n": 70.0,
+      "contact_velocity_mm_s": 3.0
+    },
+    {
+      "slot_id": "blue_2x3x1_05",
+      "open_mm": 53.0,
+      "open_feedback_range_mm": [
+        40.0,
+        80.0
+      ],
+      "assembly_release_mm": 47.0,
+      "assembly_feedback_range_mm": [
+        32.0,
+        55.0
+      ],
+      "close_mm": 35.0,
+      "grip_feedback_range_mm": null,
+      "pickup_pose": [
+        -586.8156127929689,
+        18.161329587300628,
+        48.669315338134766,
+        -47.439686246789904,
+        177.42437219368642,
+        -46.34002538057534
+      ],
+      "seating_force_stop_n": 50.0,
+      "press_force_stop_n": 60.0,
+      "press_force_abort_n": 70.0,
+      "contact_velocity_mm_s": 3.0
+    },
+    {
+      "slot_id": "red_1x2x1_01",
+      "open_mm": 53.0,
+      "open_feedback_range_mm": [
+        40.0,
+        80.0
+      ],
+      "assembly_release_mm": 47.0,
+      "assembly_feedback_range_mm": [
+        32.0,
+        55.0
+      ],
+      "close_mm": 20.0,
+      "grip_feedback_range_mm": [
+        10.0,
+        40.0
+      ],
+      "pickup_pose": [
+        -329.1131286621094,
+        -54.51852798461914,
+        49.28318405151367,
+        167.2609405517578,
+        -178.44448852539062,
+        167.41226196289062
+      ],
+      "seating_force_stop_n": 50.0,
+      "press_force_stop_n": 60.0,
+      "press_force_abort_n": 70.0,
+      "contact_velocity_mm_s": 3.0
+    },
+    {
+      "slot_id": "red_1x2x1_02",
+      "open_mm": 53.0,
+      "open_feedback_range_mm": [
+        40.0,
+        80.0
+      ],
+      "assembly_release_mm": 47.0,
+      "assembly_feedback_range_mm": [
+        32.0,
+        55.0
+      ],
+      "close_mm": 20.0,
+      "grip_feedback_range_mm": [
+        10.0,
+        40.0
+      ],
+      "pickup_pose": [
+        -396.9241790771485,
+        -49.11936569213867,
+        49.61886405944824,
+        -19.748137982254498,
+        178.86052602812785,
+        -19.360533466344823
+      ],
+      "seating_force_stop_n": 50.0,
+      "press_force_stop_n": 60.0,
+      "press_force_abort_n": 70.0,
+      "contact_velocity_mm_s": 3.0
+    },
+    {
+      "slot_id": "red_1x2x1_03",
+      "open_mm": 53.0,
+      "open_feedback_range_mm": [
+        40.0,
+        80.0
+      ],
+      "assembly_release_mm": 47.0,
+      "assembly_feedback_range_mm": [
+        32.0,
+        55.0
+      ],
+      "close_mm": 20.0,
+      "grip_feedback_range_mm": [
+        10.0,
+        40.0
+      ],
+      "pickup_pose": [
+        -460.57260131835943,
+        -47.8426628112793,
+        48.03293991088867,
+        159.2352294921875,
+        -178.9697723388672,
+        159.70248413085938
+      ],
+      "seating_force_stop_n": 50.0,
+      "press_force_stop_n": 60.0,
+      "press_force_abort_n": 70.0,
+      "contact_velocity_mm_s": 3.0
+    },
+    {
+      "slot_id": "red_1x2x1_04",
+      "open_mm": 53.0,
+      "open_feedback_range_mm": [
+        40.0,
+        80.0
+      ],
+      "assembly_release_mm": 47.0,
+      "assembly_feedback_range_mm": [
+        32.0,
+        55.0
+      ],
+      "close_mm": 20.0,
+      "grip_feedback_range_mm": [
+        10.0,
+        40.0
+      ],
+      "pickup_pose": [
+        -523.8718261718751,
+        -45.93345896402994,
+        48.47225062052408,
+        -18.18445625186151,
+        178.94167531844232,
+        -17.37046767145125
+      ],
+      "seating_force_stop_n": 50.0,
+      "press_force_stop_n": 60.0,
+      "press_force_abort_n": 70.0,
+      "contact_velocity_mm_s": 3.0
+    },
+    {
+      "slot_id": "red_1x2x1_05",
+      "open_mm": 53.0,
+      "open_feedback_range_mm": [
+        40.0,
+        80.0
+      ],
+      "assembly_release_mm": 47.0,
+      "assembly_feedback_range_mm": [
+        32.0,
+        55.0
+      ],
+      "close_mm": 20.0,
+      "grip_feedback_range_mm": [
+        10.0,
+        40.0
+      ],
+      "pickup_pose": [
+        -587.1710510253907,
+        -44.02425511678061,
+        48.911561330159515,
+        -15.752204388688666,
+        178.91127289892884,
+        -14.59148022991485
+      ],
+      "seating_force_stop_n": 50.0,
+      "press_force_stop_n": 60.0,
+      "press_force_abort_n": 70.0,
+      "contact_velocity_mm_s": 3.0
+    }
+  ],
+  "place_board": {
+    "command_mm": 53.0,
+    "feedback_range_mm": [
+      40.0,
+      80.0
+    ]
+  },
+  "assembly": {
+    "command_mm": 47.0,
+    "feedback_range_mm": [
+      32.0,
+      55.0
+    ]
+  },
+  "red_one_stud_axis": {
+    "command_mm": 20.0,
+    "feedback_range_mm": [
+      10.0,
+      40.0
+    ],
+    "required_status": 2
+  },
+  "device_connections": 0,
+  "physical_commands": 0
+}

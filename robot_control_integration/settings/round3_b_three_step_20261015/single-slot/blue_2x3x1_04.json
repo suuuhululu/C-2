@@ -1,0 +1,91 @@
+{
+  "connection": {
+    "robot_id": "dsr01",
+    "ros_domain_id": 20,
+    "gripper_ip": "192.168.1.1",
+    "tcp": "GripperDA_v4",
+    "tool": "ToolWeight0"
+  },
+  "observation_pose": [
+    -443.4389343261719,
+    -38.81204605102539,
+    374.3517761230469,
+    8.74850845336914,
+    178.39500427246094,
+    8.59197998046875
+  ],
+  "pickup_clearance_z_mm": 194.73294067382812,
+  "teaching_xy_bounds_mm": [
+    [
+      -681.1200561523438,
+      -297.85296630859375
+    ],
+    [
+      -80.39606857299805,
+      233.4738006591797
+    ]
+  ],
+  "startup_route": {
+    "place_xy": [
+      472.05499267578125,
+      85.7425765991211
+    ],
+    "body_bypass_xy": [
+      -27.878286361694336,
+      -411.9568176269531
+    ],
+    "supply_transit_xy": [
+      -364.8591304347826,
+      -171.54
+    ],
+    "source": "robot_control_integration/settings/integration_native35/profile.reference.json"
+  },
+  "force_stop_n": 45.0,
+  "open_mm": 60.0,
+  "gripper_force_n": 40.0,
+  "velocity": 12.0,
+  "acceleration": 48.0,
+  "angular_velocity": 6.0,
+  "angular_acceleration": 3.0,
+  "rise_velocity": 12.0,
+  "transit_velocity": 120.0,
+  "rise_acceleration": 48.0,
+  "transit_acceleration": 48.0,
+  "schema_version": "educational-supply-single-trial/1",
+  "scope": "EDUCATIONAL_APPROACH_CLOSE_HOLD_ONLY",
+  "blocks": [
+    {
+      "color": "blue",
+      "brick_type": "2x3x1",
+      "slot": 4,
+      "span": 2,
+      "close_mm": 35.0,
+      "pickup_pose": [
+        -522.5111694335938,
+        16.719502131144207,
+        48.273502349853516,
+        -47.208222443269484,
+        177.32961367283596,
+        -46.12526485710051
+      ],
+      "pose_source": "../profile.json",
+      "pose_basis": "EXISTING_1_3_6_INTERPOLATION_NOT_MEASURED",
+      "axis_basis": "ORIGINAL_TAUGHT_AXIS"
+    }
+  ],
+  "vision": {
+    "rgb_topic": "/camera/color/image_raw",
+    "layout": "../evidence/16-slot3-layout.json",
+    "weights": null,
+    "model_deps": null,
+    "confidence": 0.3,
+    "green_gray": false,
+    "center_basis": "STUD_ARRAY",
+    "backend": "opencv_studs"
+  },
+  "assembly_xy_correction_enabled": false,
+  "automatic_lift": false,
+  "target_only_motion": false,
+  "automatic_teaching_fallback_enabled": false,
+  "operator_accepted_t2_educational_profile": false
+}

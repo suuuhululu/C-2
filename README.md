@@ -1,5 +1,9 @@
 # Adaptive Co Assembly — C-2 팀 개발 안내
 
+> 2026-10-15 round3 최신 게시 준비본(원격 인증 대기): [현재 실행·환경·검증](docs/D_ROUND3_PUBLISHED_RUNTIME_20261015.md).
+> round4 로봇 단독 개발: [교시·ABCD 설계 인계](docs/D_ROUND4_ROBOT_ONLY_HANDOFF_20261015.md), [새 채팅 프롬프트](docs/ROUND4_NEW_CHAT_PROMPT.ko.txt).
+> round4는 round3 복사 출발점이며 새 기능의 실물 완료를 뜻하지 않습니다.
+
 **Round3 순서별 실행 안내:** [서비스 최종 통합 실행·안내 가이드](docs/D_ROUND3_SERVICE_INTEGRATION_RUNBOOK.md). 무동작 프로파일 검사부터 INITIAL, 승인된 실제 A Step, B 확인·중간 변경·최종 사용자 저장까지 현재 명령과 개발이 필요한 단계를 구분합니다.
 
 > **2026-10-12 최신 문서 기준:** [최종 대화 반영·원격/로컬 상태](docs/16_FINAL_INTEGRATION_CHAT_SYNC_20261012.md)와 [발표·배포 문서 10종](docs/final_mvp/README.md)을 우선합니다. B가 Expected/전체 판 비교/Current·revision, D가 실행·지정 검사·진행/HMI/제스처/기존 이력·웹을 맡습니다. A 3분류 호출과 후보 실행권 분리는 유지합니다. 로컬 D 수정·계획 실패 KEEP 보류와 원격 미반영 상태를 구분하며 아래 본문은 이전 시점 기록으로 보존합니다.

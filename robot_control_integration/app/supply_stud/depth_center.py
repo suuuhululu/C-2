@@ -173,9 +173,15 @@ def rgbd_target(row, decision, depth_msg, info, rgb_msg, sample, profile, now_ns
     camera_point = np.array([ray[0]*z, ray[1]*z, z, 1.])
     base_point = (pose_matrix(sample['posx']) @ _transform(profile['T_tcp_camera_mm']) @ camera_point)[:3]
     delta = base_point - reference
-    if (not np.isfinite(delta).all() or np.linalg.norm(delta[:2]) > profile['max_shift_mm']
-            or abs(delta[2]) > profile['max_height_error_mm']):
-        raise ValueError('SUPPLY_DEPTH_DISPLACEMENT_OUT_OF_BOUND')
+    xy_shift = float(np.linalg.norm(delta[:2]))
+    height_error = float(abs(delta[2]))
+    if (not np.isfinite(delta).all() or xy_shift > profile['max_shift_mm']
+            or height_error > profile['max_height_error_mm']):
+        raise ValueError('SUPPLY_DEPTH_DISPLACEMENT_OUT_OF_BOUND '
+                         f'finite={bool(np.isfinite(delta).all())} delta_xyz_mm={delta.tolist()} '
+                         f'xy_shift_mm={xy_shift:.3f} allowed_xy_mm={profile["max_shift_mm"]} '
+                         f'height_error_mm={height_error:.3f} '
+                         f'allowed_height_mm={profile["max_height_error_mm"]}')
     target = vector(row['pickup_pose'], 6, 'pickup_pose')
     target[:2] = (np.asarray(target[:2]) + delta[:2]).tolist()
     if any(not a <= value <= b for value, (a, b) in zip(target[:2], bounds)):

@@ -1,0 +1,35 @@
+{
+  "schema_version": "supply-preclose-teaching-record/1",
+  "status": "OPERATOR_IDENTIFIED_PRE_CLOSE_PICKUP_POSE",
+  "slot_id": "yellow_2x3x1_05",
+  "color": "yellow",
+  "brick_type": "2x3x1",
+  "slot": 5,
+  "tcp": "GripperDA_v4",
+  "tool": "ToolWeight0",
+  "tcp_pose_mm_zyz_deg": [
+    -581.63427734375,
+    139.91748046875,
+    47.27861404418945,
+    5.880496025085449,
+    178.29222106933594,
+    5.513185501098633
+  ],
+  "pose_source": "/home/rokey/Documents/ChatGPT/로봇제어 개발/c2_integration_round3/logs/supply-depth-reference/T3-pair-20261015T094504/pickup/pose-samples.json",
+  "previous_runtime_pickup_pose": [
+    -584.7720336914064,
+    146.70924377441406,
+    49.814383188883454,
+    -63.724894927828835,
+    177.44595310218776,
+    -62.72121483688852
+  ],
+  "operator_confirmation": "User invoked teach-pickup after manual alignment before closing",
+  "runtime_config_changed": false,
+  "gripper_command_sent": false,
+  "physical_grasp_verified": false,
+  "surface_center_base_mm": null,
+  "surface_reference_accepted": false,
+  "physical_commands": 0,
+  "pose_source_sha256": "9001a31ec69d5b079dea131e77f51e43dfab8caf354b412726c5e039b3105a35"
+}

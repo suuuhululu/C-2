@@ -1,0 +1,109 @@
+{
+  "scope": "REMAINING_OBSERVATION_EXCEPTION_TEACHING_AND_GRASP_EVIDENCE_REVIEW",
+  "physical_commands": 0,
+  "runtime_config_changed": false,
+  "slots": [
+    {
+      "slot_id": "yellow_2x2x1_01",
+      "direct_teaching_available": true,
+      "taught_pose_mm_zyz_deg": [
+        -327.85296630859375,
+        193.36367797851562,
+        52.078731536865234,
+        102.85449981689453,
+        -176.07705688476562,
+        104.31108093261719
+      ],
+      "recorded_at_kst": "2026-10-12T15:17:15.483702+09:00",
+      "manual_alignment_operator_confirmed": true,
+      "teaching_capture_gripper_status": 0,
+      "teaching_capture_did_not_grip": true,
+      "real_grasp_and_loaded_transport_log_found": true,
+      "same_six_coordinate_teaching_matches_real_log": true,
+      "source_log": "/home/rokey/Documents/ChatGPT/로봇제어 개발/reports/round2_d_evaluation_20261014/evidence/events.jsonl",
+      "physical_success_operator_confirmation_in_current_session": false,
+      "fresh_manual_teaching_required_now": false,
+      "runtime_execution_approved": false,
+      "real_log_close_width_mm": 35.0,
+      "actual_grip_width_mm": 40.4,
+      "grip_status": 2,
+      "later_assembly_abort": "FORCE_NORM_STOP_LIMIT_REACHED",
+      "assembly_abort_does_not_erase_prior_supply_grasp": true,
+      "additional_real_log": "/home/rokey/Documents/ChatGPT/로봇제어 개발/reports/round2_entry_collision_20261014/events.jsonl",
+      "historical_scope": "REAL_SUPPLY_GRASP_LIFT_AND_TRANSPORT_NOT_FINAL_ASSEMBLY_SUCCESS"
+    },
+    {
+      "slot_id": "yellow_2x2x1_03",
+      "direct_teaching_available": true,
+      "taught_pose_mm_zyz_deg": [
+        -455.40081787109375,
+        198.84207153320312,
+        51.01224136352539,
+        107.78492736816406,
+        -176.3149871826172,
+        109.21537017822266
+      ],
+      "recorded_at_kst": "2026-10-12T15:18:03.826499+09:00",
+      "manual_alignment_operator_confirmed": true,
+      "teaching_capture_gripper_status": 0,
+      "teaching_capture_did_not_grip": true,
+      "real_grasp_and_loaded_transport_log_found": true,
+      "same_six_coordinate_teaching_matches_real_log": true,
+      "source_log": "/home/rokey/Documents/ChatGPT/로봇제어 개발/c2_integration_round1/logs/full-feature-real-slots1to5/c5413b6d-48f1-4e5b-a088-e2ef712a4235.jsonl",
+      "physical_success_operator_confirmation_in_current_session": false,
+      "fresh_manual_teaching_required_now": false,
+      "runtime_execution_approved": false,
+      "execution_metadata": "/home/rokey/Documents/ChatGPT/로봇제어 개발/c2_integration_round1/logs/full-feature-real-slots1to5/c5413b6d-48f1-4e5b-a088-e2ef712a4235/f39f131e-7d27-452c-b6c5-4231acbeabc3.execution.json",
+      "backend": "REAL",
+      "provenance": "LIVE_D_RUNTIME",
+      "B_observation_kind": "SYNTHETIC",
+      "physical_assembly_verified": false,
+      "execution_ids": [
+        "f39f131e-7d27-452c-b6c5-4231acbeabc3",
+        "91d29a98-cc65-4142-91e2-9c15830efcae"
+      ],
+      "real_pickup_close_events": 2,
+      "actual_grip_width_mm": 40.4,
+      "grip_status": 2,
+      "held_transport_endpoint_verified": true,
+      "duplicate_archived_copy_excluded": true,
+      "historical_scope": "REAL_SUPPLY_GRASP_AND_LOADED_TRANSPORT_ONLY_SYNTHETIC_B_NOT_ACTUAL_ASSEMBLY_CONFIRMATION"
+    },
+    {
+      "slot_id": "red_1x2x1_01",
+      "direct_teaching_available": true,
+      "taught_pose_mm_zyz_deg": [
+        -333.2757568359375,
+        -50.39606857299805,
+        51.20478820800781,
+        161.09739685058594,
+        -178.75100708007812,
+        161.4053497314453
+      ],
+      "recorded_at_kst": "2026-10-12T15:28:43.983097+09:00",
+      "manual_alignment_operator_confirmed": true,
+      "teaching_capture_gripper_status": 0,
+      "teaching_capture_did_not_grip": true,
+      "real_grasp_and_loaded_transport_log_found": false,
+      "same_six_coordinate_teaching_matches_real_log": false,
+      "source_log": null,
+      "physical_success_operator_confirmation_in_current_session": false,
+      "fresh_manual_teaching_required_now": false,
+      "runtime_execution_approved": false,
+      "search_result": "NO_MATCHING_REAL_GRASP_LOG_FOUND_IN_INSPECTED_WORKSPACE",
+      "recommendation": "Keep original direct teaching; prepare one-slot approach/grasp trial before any re-teaching."
+    }
+  ],
+  "next_physical_trial_recommended": "red_1x2x1_01_USING_EXISTING_DIRECT_TEACHING",
+  "next_trial_not_prepared_or_executed": true,
+  "new_manual_teaching_required_now": 0,
+  "historic_logs_do_not_verify_current_placement_or_RGBD_profile": true,
+  "B_actual_assembly_confirmed": false,
+  "final_DB_saved": false,
+  "source_sha256": {
+    "/home/rokey/Documents/ChatGPT/로봇제어 개발/c2_integration_round3/robot_control_integration/fixtures/teaching_sources/operator_supply.json": "55ca811850af36d0c4b7e579f9b33ba9ae31fee7592eb63578271018199daa3e",
+    "/home/rokey/Documents/ChatGPT/로봇제어 개발/reports/round2_d_evaluation_20261014/evidence/events.jsonl": "a0b0236ac88a74a1dc226d66f4ea0087349650901a142e6becbb3c76a41de96d",
+    "/home/rokey/Documents/ChatGPT/로봇제어 개발/c2_integration_round1/logs/full-feature-real-slots1to5/c5413b6d-48f1-4e5b-a088-e2ef712a4235.jsonl": "e3742bb67edcc71ea81cf71bdb8b35cf9c921f82263ab8ef9f98b35b7cd0d500",
+    "/home/rokey/Documents/ChatGPT/로봇제어 개발/c2_integration_round1/logs/full-feature-real-slots1to5/c5413b6d-48f1-4e5b-a088-e2ef712a4235/f39f131e-7d27-452c-b6c5-4231acbeabc3.execution.json": "8e0ae48c0600135a4fc065ac54d0c85937876a306915b126dbd84e5c118a7883"
+  }
+}

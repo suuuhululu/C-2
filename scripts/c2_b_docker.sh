@@ -11,6 +11,19 @@ run_args=(run --rm --init --network host --shm-size 512m --user "$(id -u):$(id -
   -e C2_B_CPU_THREADS=2 -e OMP_NUM_THREADS=2 -e MKL_NUM_THREADS=2
   --mount "type=bind,src=$checkout_root,dst=/workspace,readonly"
   --mount "type=bind,src=$checkout_root/logs,dst=/workspace/logs")
+# Reuse the host DDS interface selection; a container default may miss localhost-only peers.
+if [[ -n "${CYCLONEDDS_URI:-}" ]]; then
+  if [[ "$CYCLONEDDS_URI" == file://* ]]; then
+    cyclone_config="${CYCLONEDDS_URI#file://}"
+    [[ -f "$cyclone_config" && -r "$cyclone_config" ]] || {
+      echo 'CYCLONEDDS_URI configuration file is missing or unreadable.' >&2; exit 2;
+    }
+    run_args+=(--mount "type=bind,src=$cyclone_config,dst=/tmp/c2-cyclonedds.xml,readonly"
+      -e CYCLONEDDS_URI=file:///tmp/c2-cyclonedds.xml)
+  else
+    run_args+=(-e CYCLONEDDS_URI)
+  fi
+fi
 if [[ "${1:-}" == --gui ]]; then
   shift
   [[ -n "${DISPLAY:-}" && -f "${XAUTHORITY:-}" ]] || {

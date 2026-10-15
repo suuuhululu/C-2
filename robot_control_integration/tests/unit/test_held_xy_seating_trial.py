@@ -131,15 +131,18 @@ def test_first_contact_does_not_abort_continuous_seating(monkeypatch):
     assert requests[0][1]['descent_rate']==6. and not d.stops
 
 
-def test_empty_pad_press_uses_touch_pose_and_existing_reaction_stop(monkeypatch):
+@pytest.mark.parametrize('press_limit', [None,56.25,70.])
+def test_empty_pad_press_uses_touch_pose_and_existing_reaction_stop(monkeypatch,press_limit):
     from scripts import assembly_press_trial
     d=Driver();reference=d.value['posx'].copy();d.value['posx'][2]+=10.
     calls=[]
     def press(*args,**kwargs):calls.append(kwargs);return dict(status='FORCE_THRESHOLD_REACHED_STOP_VERIFIED')
     monkeypatch.setattr(assembly_press_trial,'press',press)
-    result=seating.press_from_top_touch(d,config(),reference,lambda *_:None,2)
+    c=config()
+    if press_limit is not None:c['press_force_stop_n']=press_limit
+    result=seating.press_from_top_touch(d,c,reference,lambda *_:None,2)
     assert result['status']=='FORCE_THRESHOLD_REACHED_STOP_VERIFIED'
-    assert calls[0]['velocity']==6. and calls[0]['force_stop_n']==45.
+    assert calls[0]['velocity']==6. and calls[0]['force_stop_n']==(press_limit or 45.)
     assert calls[0]['required_gripper_status']==2 and calls[0]['max_travel_mm']==12.
     d.value['posx'][0]+=1.
     with pytest.raises(RuntimeError,match='CAPTURED_TOP'):
@@ -154,6 +157,60 @@ def test_operator_release_records_height_without_claiming_seating():
     diagnostic=next(data for event,data in events if event=='RELEASE_HEIGHT_DIAGNOSTIC')
     assert diagnostic['z_error_mm']==3. and diagnostic['operator_seated']
     assert not diagnostic['assembly_completion'] and d.grips==[(60.,40.)]
+
+
+@pytest.mark.parametrize('feedback', [32., 47., 50.3, 55.])
+def test_assembly_release_uses_47mm_and_waits_for_bounded_actual_width(feedback):
+    c=config();c.update(release_width_mm=47.,release_feedback_range_mm=[32.,55.])
+    class ReleaseDriver(Driver):
+        def command_gripper(self,width,force):
+            self.grips.append((width,force))
+            self.value.update(gripper_status=0,gripper_width_mm=feedback)
+    d=ReleaseDriver();events=[]
+    seating.release(d,c,lambda event,data:events.append((event,data)),operator_seated=True,sleep=lambda _:None)
+    assert d.grips==[(47.,40.)] and c['open_mm']==60. and not d.stops
+    command=next(data for event,data in events if event=='SEATED_RELEASE_COMMAND')
+    assert command['width_mm']==47. and command['feedback_range_mm']==[32.,55.]
+    assert events[-1][0]=='SEATED_RELEASE_OPERATOR_CONFIRMED'
+    assert events[-1][1]['sample']['gripper_width_mm']==feedback
+
+
+@pytest.mark.parametrize('feedback', [55.1,61.2])
+def test_assembly_release_overwide_feedback_blocks_following_operations(feedback):
+    c=config();c.update(release_width_mm=47.,release_feedback_range_mm=[32.,55.])
+    class OverwideDriver(Driver):
+        def command_gripper(self,width,force):
+            self.grips.append((width,force))
+            self.value.update(gripper_status=0,gripper_width_mm=feedback)
+    d=OverwideDriver();events=[]
+    with pytest.raises(RuntimeError,match='SEATED_RELEASE_WIDTH_EXCEEDS_LIMIT'):
+        seating.release(d,c,lambda event,data:events.append((event,data)),operator_seated=True,sleep=lambda _:None)
+    assert d.grips==[(47.,40.)] and d.stops==1
+    assert not any(event=='SEATED_RELEASE_OPERATOR_CONFIRMED' for event,data in events)
+
+
+@pytest.mark.parametrize('width,bounds', [(60.,[44.,60.]),(48.1,[44.,50.]),
+                                        (float('nan'),[44.,50.]),(47.,[44.,60.])])
+def test_invalid_assembly_release_policy_sends_no_gripper_command(width,bounds):
+    c=config();c.update(release_width_mm=width,release_feedback_range_mm=bounds)
+    d=Driver()
+    with pytest.raises(ValueError,match='ASSEMBLY_RELEASE_POLICY_INVALID'):
+        seating.release(d,c,lambda *_:None,operator_seated=True)
+    assert not d.grips and not d.stops
+
+
+def test_assembly_release_under_32mm_never_confirms_release():
+    c=config();c.update(release_width_mm=47.,release_feedback_range_mm=[32.,55.])
+    class UnderopenDriver(Driver):
+        def command_gripper(self,width,force):
+            self.grips.append((width,force))
+            self.value.update(gripper_status=0,gripper_width_mm=31.9)
+    d=UnderopenDriver();now=[0.];events=[]
+    with pytest.raises(TimeoutError,match='SEATED_RELEASE_TIMEOUT'):
+        seating.release(d,c,lambda event,data:events.append((event,data)),operator_seated=True,
+            sleep=lambda delay:now.__setitem__(0,now[0]+delay),clock=lambda:now[0])
+    assert d.grips==[(47.,40.)] and d.stops==1
+    assert not any(event=='SEATED_RELEASE_OPERATOR_CONFIRMED' for event,data in events)
 
 
 def test_saved_pad_contact_runs_only_lift_press_lift(monkeypatch,tmp_path):
@@ -174,6 +231,44 @@ def test_saved_pad_contact_runs_only_lift_press_lift(monkeypatch,tmp_path):
     with pytest.raises(RuntimeError,match='POSITION_CHANGED'):
         held.saved_pad_press(d,config(),p,lambda *_:None)
     assert len(moves)==2
+
+
+@pytest.mark.parametrize('fail', [False,True])
+def test_p_uses_reaction_60_abort_70_and_never_rises_after_failure(monkeypatch,fail):
+    from scripts import assembly_press_trial
+    d=Driver();c=config()
+    c.update(press_control='POSITION_DESCENT_REACTION_STOP',press_force_target_n=None,press_force_stop_n=60.,press_force_abort_n=70.,
+             seating_force_stop_n=50.,press_velocity=3.)
+    c['integrated_pad_contact_pose']=d.value['posx'].copy()
+    release=d.value['posx'].copy();plan=seating.same_xy_press_plan(release,c)
+    calls=[];moves=[]
+    def pressure(driver,connection,record,**kwargs):
+        calls.append(kwargs)
+        if fail:raise RuntimeError('PRESS_FORCE_ABORT_LIMIT_REACHED')
+        return dict(status='FORCE_THRESHOLD_REACHED_STOP_VERIFIED',native_force_commands=0)
+    def move(driver,c,target,record,**kwargs):
+        moves.append(target.copy());driver.value['posx']=target.copy()
+    monkeypatch.setattr(assembly_press_trial,'press',pressure)
+    if fail:
+        with pytest.raises(RuntimeError,match='PRESS_FORCE_ABORT_LIMIT_REACHED'):
+            seating.same_xy_press_cycle(d,c,plan,2,lambda *_:None,move)
+        assert moves==[plan['above_pose']]
+    else:
+        seating.same_xy_press_cycle(d,c,plan,2,lambda *_:None,move)
+        assert moves==[plan['above_pose'],plan.get('press_rise_pose',plan['rise_pose'])]
+    assert calls[0]['force_stop_n']==60. and calls[0]['force_abort_n']==70.
+    assert c['seating_force_stop_n']==50. and c['force_stop_n']==45. and not d.grips
+
+
+def test_top_touch_p_uses_reaction_stop_without_native_force(monkeypatch):
+    from scripts import assembly_press_trial
+    d=Driver();c=config();reference=d.value['posx'].copy();d.value['posx'][2]+=10.
+    c.update(press_control='POSITION_DESCENT_REACTION_STOP',press_force_target_n=None,press_force_stop_n=60.,press_force_abort_n=70.)
+    calls=[]
+    monkeypatch.setattr(assembly_press_trial,'press',
+        lambda *args,**kwargs:calls.append(kwargs) or dict(status='RELEASED'))
+    assert seating.press_from_top_touch(d,c,reference,lambda *_:None,2)['status']=='RELEASED'
+    assert calls[0]['force_stop_n']==60. and calls[0]['force_abort_n']==70.
 
 
 def test_integrated_config_uses_current_supply_detector_without_mutating_sources():
@@ -293,11 +388,11 @@ def test_same_xy_pressure_sequence_descends_and_rises_without_gripper_or_rotatio
 class ResidualPressureReplay:
     """Construct a MOCK driver with persistent load after pressure STOP."""
     @staticmethod
-    def driver(contact,initial,residual):
+    def driver(contact,initial,residual,reaction_force_n=48.):
         from app.assembly_step_runner import StepReplayDriver
         class Replay(StepReplayDriver):
             def __init__(self):
-                super().__init__(contact,reaction_force_n=48.)
+                super().__init__(contact,reaction_force_n=reaction_force_n)
                 self.after_pressure_stop=False
                 self.value.update(posx=initial.copy(),gripper_status=2,gripper_width_mm=9.3)
             def call(self,*args,**kwargs):self.value['robot_mode']=kwargs['robot_mode']
@@ -307,6 +402,39 @@ class ResidualPressureReplay:
                 super().move_line_async(target,velocity,acceleration)
                 if self.after_pressure_stop:self.value['wrench']=residual.copy()
         return Replay()
+
+
+@pytest.mark.parametrize('limit,reaction,status', [(56.25,50.,'MAX_TRAVEL_REACHED_WITHOUT_FORCE_THRESHOLD'),
+    (56.25,57.,'FORCE_THRESHOLD_REACHED_STOP_VERIFIED'),(70.,69.,'MAX_TRAVEL_REACHED_WITHOUT_FORCE_THRESHOLD'),
+    (70.,71.,'FORCE_THRESHOLD_REACHED_STOP_VERIFIED')])
+def test_P_override_preserves_travel_speed_and_I_force_limit(limit,reaction,status):
+    c=config();c['press_force_stop_n']=limit;c['seating_force_stop_n']=55.;c['press_velocity']=12.
+    release=c['alignment_target']['placement_tcp_reference'].copy()
+    c['integrated_pad_contact_pose']=[*release[:2],release[2]+15.,*release[3:]]
+    plan=seating.same_xy_press_plan(release,c)
+    d=ResidualPressureReplay.driver(plan['estimated_contact_pose'],plan['rise_pose'],
+        [0.,0.,reaction,0.,0.,0.],reaction_force_n=reaction)
+    if reaction<limit:
+        # Explicit endpoint outcome under a subthreshold load; the generic
+        # contact replay otherwise stays at first touch without progressing.
+        original_move=d.move_line_async
+        def reach_endpoint(target,velocity,acceleration):
+            original_move(target,velocity,acceleration)
+            d.value['posx']=target.copy()
+        d.move_line_async=reach_endpoint
+    result=seating.same_xy_press_cycle(d,c,plan,2,lambda *_:None,
+        lambda *a,**kw:held.local_held_move(*a,**kw,sleep=lambda _:None))
+    assert result['status']==status and result['force_stop_n']==limit
+    assert result['max_travel_mm']==12. and not result['assembly_completion']
+    assert c['force_stop_n']==45. and c['seating_force_stop_n']==55. and not d.grips
+    contact=release.copy();contact[2]+=3.
+    first=[*release[:2],c['alignment_approach_z_mm'],*release[3:]]
+    insertion=ResidualPressureReplay.driver(contact,first,[0.,0.,56.,0.,0.,0.],reaction_force_n=56.)
+    events=[]
+    seated=seating.insert(insertion,c,lambda event,data:events.append((event,data)),sleep=lambda _:None)
+    assert seated['status']=='FORCE_STOPPED_BEFORE_VERIFIED_SEATING'
+    start=next(data for event,data in events if event=='SEATING_TRIAL_START')
+    assert start['raw_force_stop_n']==55.
 
 
 @pytest.mark.parametrize('residual', [

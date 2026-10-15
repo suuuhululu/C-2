@@ -157,16 +157,13 @@ def pose(value, name):
 
 
 def release_feedback_range(settings, width):
-    """Require sufficient opening; legacy task upper bounds no longer abort release.
-
-    110mm is the RG2 measurement range, not a task clearance restriction.
-    """
-    bounds = settings.get('release_feedback_range_mm', [max(0., width-1.), min(110., width+1.)])
+    """Use the reviewed range for this release location, including its upper bound."""
+    bounds = settings.get('release_feedback_range_mm', [max(0., width-1.), 110.])
     if (not isinstance(bounds, list) or len(bounds) != 2 or
             any(type(v) not in (int, float) or not math.isfinite(v) for v in bounds) or
             not 0 <= bounds[0] <= width <= bounds[1] <= 110):
         raise ValueError('INVALID_RELEASE_FEEDBACK_RANGE')
-    return [bounds[0], 110.]
+    return bounds.copy()
 
 
 def build_plan(step, profile):
@@ -275,6 +272,13 @@ def build_plan(step, profile):
 def validate_physical(plan, profile, phase):
     """샘플의 false 플래그를 변경하는 대신 별도 D 교시 설정의 준비 상태를 검사한다."""
     s = plan['settings']
+    if phase=='handover-held':
+        policy=profile.get('handover_stillness',{})
+        if (plan['mode']!='HUMAN_ASSEMBLY' or s.get('human_step_gestures')
+                or not profile.get('physical_route_reviewed')
+                or any(type(policy.get(k)) not in (int,float) or not math.isfinite(policy[k])
+                    or not 0<policy[k]<=5. for k in ('linear_mm_s','angular_deg_s'))):
+            raise ValueError('REVIEWED_PLACE_BOARD_HANDOVER_REQUIRED')
     if s.get('human_step_gestures') and phase not in ('full','pickup','approach','human-wait','human-ack'):
         raise ValueError('HUMAN_GESTURE_TRIAL_REQUIRES_FULL_OR_UPPER_APPROACH')
     if phase in ('human-wait','human-ack') and (plan['mode']!='HUMAN_ASSEMBLY' or
@@ -312,7 +316,7 @@ def validate_physical(plan, profile, phase):
         pose(s['pickup_pose'], 'pickup_pose')
         if type(s['pickup_width_mm']) not in (int, float) or not 0 <= s['pickup_width_mm'] <= 110:
             raise ValueError('D_MEASURED_PICKUP_WIDTH_REQUIRED')
-    if phase in ('full', 'pickup', 'release', 'retreat', 'handover', 'assemble-held'):
+    if phase in ('full', 'pickup', 'release', 'retreat', 'handover', 'assemble-held', 'handover-held'):
         width = s['release_width_mm']
         if type(width) not in (int, float) or not 0 <= width <= 110:
             raise ValueError('D_MEASURED_RELEASE_WIDTH_REQUIRED')

@@ -509,7 +509,7 @@ def observe(driver,config,directory,record, *, approach_cycle=False, descend_mm=
                 ('AUTO yaw +/-0.50 deg | Roll/pitch: not measured by this edge' if auto_yaw else 'A: switch grid axis | local pixel angle, not robot yaw'),
                 ('HUMAN SUPPORT: keep holding lower structure through press/rise | ' if support_active else '')+(roi_notice or ('Cyan: grid | Yellow: hover outline | Magenta: seated outline' if virtual_grid else 'S: include 3+ rows AND columns, not a single stud')),
                 'Camera time: '+('verified' if timing['timestamp_verified'] else 'UNVERIFIED - preview only'),
-                ('I: vertical insert | O: release/lift/close | P: press | U: rise | X: disabled' if not assembly_xy_enabled
+                ('I: visually aligned -> insert | O: release/lift/close | P: press | U: rise' if not assembly_xy_enabled
                  else 'H reference | J tilt+0.5XY | K correct | X/I/O | U rise' if config.get('tilt_accuracy_test') else 'X: XY | I: insert | O: release/lift/close | T: pad touch | P: press | U: rise' if xy_seat_test else 'G: confirm grid DIRECTION | R: 0.5deg trial | U: rise' if yaw_test else 'R: bounded yaw trial | U: rise / finish | ESC: STOP')]):
                 cv2.putText(panel,text,(5,20+24*i),cv2.FONT_HERSHEY_SIMPLEX,.46,(255,255,255),1)
             cv2.imshow(window,np.vstack((panel,canvas)))
@@ -619,10 +619,11 @@ def observe(driver,config,directory,record, *, approach_cycle=False, descend_mm=
                 if not xy_seat_test or (assembly_xy_enabled and not xy_aligned) or released:
                     roi_notice='I requires taught XY correction X and a held block.'
                     continue
-                if not assembly_xy_enabled and auto_yaw and (not timing['timestamp_verified'] or not stable
-                        or not history or abs(float(np.median([v[1] for v in history])))>.5):
-                    roi_notice='I requires a fresh, stable yaw within +/-0.50 deg. E: held TOP edge.'
-                    continue
+                auto_yaw_paused=True
+                record('SEATING_YAW_OPERATOR_CONFIRMED',dict(basis='I_KEY_VISUAL_REVIEW',
+                    relative_angle_deg=angles.get('relative_angle_deg'), stable=stable,
+                    camera_timestamp_verified=timing['timestamp_verified'],
+                    automatic_angle_acceptance_used=False, actual_seating_verified=False))
                 if support_ready is not None and not support_active:
                     record('TRIAL_HUMAN_SUPPORT_REQUEST',dict(target=deepcopy(block_target),policy='USER_SELECTED_HOLD_LOWER_STRUCTURE_DURING_ROBOT_FASTENING'))
                     if support_ready(config) is not True:
@@ -677,7 +678,7 @@ def observe(driver,config,directory,record, *, approach_cycle=False, descend_mm=
                     target=config['alignment_target']['target'],automatic_geometry_verified=False))
                 target=pad_reference.copy();target[2]+=10.
                 local_held_move(driver,config,target,record,required_gripper_status=pad_status)
-                roi_notice=f"Top-touch recorded; lifted10mm. P presses to{config['force_stop_n']:g}N reaction then rises."
+                roi_notice=f"Top-touch recorded; lifted10mm. P reaction stop {config.get('press_force_stop_n',config['force_stop_n']):g}N then rises."
             if key==ord('p'):
                 if center_press_plan is not None:
                     if press_done:

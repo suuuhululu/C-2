@@ -17,6 +17,7 @@ from app.jsonl_log import JsonlLog
 
 
 def press(driver, connection, record, *, max_travel_mm=5., force_stop_n=35.,
+          force_abort_n=None,
           velocity=2., acceleration=1., required_gripper_status=2,
           angular_velocity=None, angular_acceleration=None,
           ik_fk_position_tolerance_mm=.05, ik_fk_orientation_tolerance_deg=.05,
@@ -24,21 +25,31 @@ def press(driver, connection, record, *, max_travel_mm=5., force_stop_n=35.,
     if any(type(v) not in (int, float) or not math.isfinite(v) or v <= 0
            for v in (max_travel_mm, force_stop_n, velocity, acceleration)):
         raise ValueError('POSITIVE_FINITE_PRESS_PARAMETERS_REQUIRED')
+    if force_abort_n is not None and (type(force_abort_n) not in (int,float) or
+            not math.isfinite(force_abort_n) or force_abort_n <= force_stop_n):
+        raise ValueError('PRESS_ABORT_LIMIT_MUST_EXCEED_REACTION_STOP')
     stopped=trial_motion_still if target_only_motion else motion_still
     latest = {}
     stillness_policy=getattr(getattr(driver,'session',None),'value',{}).get('stillness',{})
     def capture(event, payload):
         latest[event] = deepcopy(payload)
-        if event in ('INITIAL_SAMPLE', 'INITIAL_STILL_WAIT_SAMPLE'):
+        sample = None
+        if event in ('INITIAL_SAMPLE', 'INITIAL_STILL_WAIT_SAMPLE', 'PRESS_STOP_SAMPLE'):
             latest['guard_sample'] = deepcopy(payload)
+            sample = payload
         elif event in ('PRE_MOVE_SAMPLE', 'PRE_MOVE_STILL_WAIT_SAMPLE', 'MOTION_SAMPLE'):
             latest['guard_sample'] = deepcopy(payload['sample'])
+            sample = payload['sample']
         record(event, payload)
+        if sample is not None and force_abort_n is not None and math.hypot(*sample['wrench'][:3]) >= force_abort_n:
+            raise RuntimeError('PRESS_FORCE_ABORT_LIMIT_REACHED')
     first = driver.sample()
     endpoint = first['posx'].copy()
     endpoint[2] -= max_travel_mm
     capture('PRESS_SESSION', dict(initial_sample=first, travel_endpoint_posx=endpoint,
                                  max_travel_mm=max_travel_mm, force_stop_n=force_stop_n,
+                                 force_abort_n=force_abort_n,press_control='POSITION_DESCENT_REACTION_STOP',
+                                 force_control_target_n=None,
                                  endpoint_is_seating_target=False))
     try:
         result = run(driver, connection, endpoint, force_stop_n, capture,
@@ -72,6 +83,7 @@ def press(driver, connection, record, *, max_travel_mm=5., force_stop_n=35.,
             sleep(.05)
         threshold = latest['guard_sample']
         final = driver.sample()
+        capture('PRESS_STOP_SAMPLE', final)
         # A force threshold must not hide grip loss, a wrong TCP or stale feedback.
         # Pressure is already stopped; check equipment without re-testing that same threshold.
         for sample in (threshold, final):
@@ -83,6 +95,8 @@ def press(driver, connection, record, *, max_travel_mm=5., force_stop_n=35.,
                       final_sample=final)
     result.update(assembly_completion=False, calibration_adopted=False,
                   gripper_commands=0, native_force_commands=0,
+                  press_control='POSITION_DESCENT_REACTION_STOP',force_control_target_n=None,
+                  force_abort_n=force_abort_n,
                   max_travel_mm=max_travel_mm, force_stop_n=force_stop_n)
     capture('PRESS_RESULT', result)
     return result

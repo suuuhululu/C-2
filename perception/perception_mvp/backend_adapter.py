@@ -2,7 +2,8 @@
 from copy import deepcopy
 import json
 
-from .contracts import footprint, region_cells, validate_block
+from .contracts import (footprint, region_cells, validate_block, unverified_columns,
+                        INITIAL_MAX_UNKNOWN_COLUMNS)
 from .multiview import merge_views, compare_previous
 
 
@@ -27,8 +28,7 @@ def build_observed(check_id, observation_seq, views, previous_accepted_blocks,
         readable = footprint(target_after) <= verified
         reason = 'target_region_unverified'
     elif check_kind == 'INITIAL':
-        readable = all((x, y, layer) in verified for layer in range(1, 6)
-                       for y in range(24) for x in range(24))
+        readable = len(unverified_columns(verified)) <= INITIAL_MAX_UNKNOWN_COLUMNS
         reason = 'initial_scope_unverified'
     else:
         # FINAL spatial comparison remains VisionInspection's responsibility.

@@ -1,0 +1,255 @@
+{
+  "slot_id": "yellow_2x3x1_03",
+  "status": "HISTORIC_REAL_SUPPLY_GRASP_AND_TRANSPORT_EVIDENCE_FOUND",
+  "scope": "HISTORIC_TEACHING_ONLY_NOT_FRESH_RGBD_OR_ASSEMBLY_VERIFICATION",
+  "taught_pose_mm_zyz_deg": [
+    -455.83575439453125,
+    143.1189727783203,
+    48.660823822021484,
+    116.89387512207031,
+    -177.27774047851562,
+    118.19446563720703
+  ],
+  "executions": [
+    {
+      "execution_id": "d6943c7a-a90f-4030-9299-b1b1e4a4ecaf",
+      "exact_pickup_pose_matches": true,
+      "backend": "REAL",
+      "provenance": "LIVE_D_RUNTIME",
+      "fixture_kind": "REAL_D_SYNTHETIC_B_OPERATOR_TRIAL",
+      "physical_assembly_verified": false,
+      "pickup_close_evidence": [
+        {
+          "event": "ROBOT_GRIP_SUCCEEDED",
+          "result": {
+            "label": "PICKUP_CLOSE",
+            "sample": {
+              "posj": [
+                -199.25733947753906,
+                20.4017333984375,
+                88.76482391357422,
+                2.0721163749694824,
+                72.8302993774414,
+                -198.9491424560547
+              ],
+              "posx": [
+                -455.7645568847656,
+                143.08590698242188,
+                48.60035705566406,
+                117.03751373291016,
+                -177.27035522460938,
+                118.33637237548828
+              ],
+              "velx": [
+                0.0,
+                0.0,
+                -0.0,
+                0.0,
+                0.0,
+                0.0
+              ],
+              "motion_status": 0,
+              "query_started_monotonic_s": 184816.990840498,
+              "query_duration_s": 0.12455568398581818,
+              "query_finished_monotonic_s": 184817.115397238,
+              "robot_state": 1,
+              "robot_mode": 1,
+              "drl_state": 3,
+              "tcp": "GripperDA_v4",
+              "tool": "ToolWeight0",
+              "wrench": [
+                4.424548625946045,
+                -2.4348080158233643,
+                5.753264904022217,
+                0.7963828444480896,
+                1.0160632133483887,
+                -0.21827375888824463
+              ],
+              "gripper_status": 2,
+              "gripper_width_mm": 40.6,
+              "gripper_fingertip_offset_mm": 0.0,
+              "gripper_width_with_offset_mm": 40.6
+            },
+            "execution_id": "d6943c7a-a90f-4030-9299-b1b1e4a4ecaf",
+            "plan_id": "P-88a6f48df4604e98967df5345c5e3660",
+            "step_id": "S03",
+            "current_revision": 20
+          }
+        }
+      ],
+      "loaded_transport_evidence": [
+        {
+          "gripper_status": 2,
+          "gripper_width_mm": 40.6,
+          "endpoint_verified": true,
+          "timestamp": "2026-10-13T05:22:19.952530+00:00"
+        }
+      ],
+      "metadata_path": "/home/rokey/Documents/ChatGPT/로봇제어 개발/c2_integration_round1/logs/full-feature-real-slots1to5/c5413b6d-48f1-4e5b-a088-e2ef712a4235/d6943c7a-a90f-4030-9299-b1b1e4a4ecaf.execution.json"
+    },
+    {
+      "execution_id": "408095ed-a387-4799-a7a7-1512e8769a1e",
+      "exact_pickup_pose_matches": true,
+      "backend": "REAL",
+      "provenance": "LIVE_D_RUNTIME",
+      "fixture_kind": "REAL_D_SYNTHETIC_B_OPERATOR_TRIAL",
+      "physical_assembly_verified": false,
+      "pickup_close_evidence": [
+        {
+          "event": "ROBOT_GRIP_SUCCEEDED",
+          "result": {
+            "label": "PICKUP_CLOSE",
+            "sample": {
+              "posj": [
+                -199.25743103027344,
+                20.40192985534668,
+                88.76470947265625,
+                2.0719683170318604,
+                72.8302993774414,
+                -198.9488525390625
+              ],
+              "posx": [
+                -455.7646484375,
+                143.08766174316406,
+                48.59935760498047,
+                117.04080200195312,
+                -177.2703857421875,
+                118.34000396728516
+              ],
+              "velx": [
+                0.0,
+                0.0,
+                -0.0,
+                0.0,
+                0.0,
+                0.0
+              ],
+              "motion_status": 0,
+              "query_started_monotonic_s": 185218.67175017,
+              "query_duration_s": 0.12446270999498665,
+              "query_finished_monotonic_s": 185218.796213897,
+              "robot_state": 1,
+              "robot_mode": 1,
+              "drl_state": 3,
+              "tcp": "GripperDA_v4",
+              "tool": "ToolWeight0",
+              "wrench": [
+                4.288425445556641,
+                -2.110640525817871,
+                5.631894111633301,
+                0.8242015838623047,
+                0.9354046583175659,
+                -0.27827346324920654
+              ],
+              "gripper_status": 2,
+              "gripper_width_mm": 40.6,
+              "gripper_fingertip_offset_mm": 0.0,
+              "gripper_width_with_offset_mm": 40.6
+            },
+            "execution_id": "408095ed-a387-4799-a7a7-1512e8769a1e",
+            "plan_id": "P-88a6f48df4604e98967df5345c5e3660",
+            "step_id": "S08",
+            "current_revision": 25
+          }
+        }
+      ],
+      "loaded_transport_evidence": [
+        {
+          "gripper_status": 2,
+          "gripper_width_mm": 40.6,
+          "endpoint_verified": true,
+          "timestamp": "2026-10-13T05:29:03.954718+00:00"
+        }
+      ],
+      "metadata_path": "/home/rokey/Documents/ChatGPT/로봇제어 개발/c2_integration_round1/logs/full-feature-real-slots1to5/c5413b6d-48f1-4e5b-a088-e2ef712a4235/408095ed-a387-4799-a7a7-1512e8769a1e.execution.json"
+    },
+    {
+      "execution_id": "0337c694-92a6-4ba7-bb9c-6adeb4fa8f3c",
+      "exact_pickup_pose_matches": true,
+      "backend": "REAL",
+      "provenance": "LIVE_D_RUNTIME",
+      "fixture_kind": "REAL_D_SYNTHETIC_B_OPERATOR_TRIAL",
+      "physical_assembly_verified": false,
+      "pickup_close_evidence": [
+        {
+          "event": "ROBOT_GRIP_SUCCEEDED",
+          "result": {
+            "label": "PICKUP_CLOSE",
+            "sample": {
+              "posj": [
+                -199.25743103027344,
+                20.401634216308594,
+                88.76387786865234,
+                2.0719683170318604,
+                72.83045196533203,
+                -198.9488525390625
+              ],
+              "posx": [
+                -455.7706298828125,
+                143.08978271484375,
+                48.60672378540039,
+                117.02671813964844,
+                -177.27110290527344,
+                118.32589721679688
+              ],
+              "velx": [
+                0.0,
+                0.0,
+                -0.0,
+                0.0,
+                0.0,
+                0.0
+              ],
+              "motion_status": 0,
+              "query_started_monotonic_s": 186013.910555769,
+              "query_duration_s": 0.12403006499516778,
+              "query_finished_monotonic_s": 186014.034586461,
+              "robot_state": 1,
+              "robot_mode": 1,
+              "drl_state": 3,
+              "tcp": "GripperDA_v4",
+              "tool": "ToolWeight0",
+              "wrench": [
+                4.441366672515869,
+                -2.2742743492126465,
+                5.7974700927734375,
+                0.8059350848197937,
+                0.9352995753288269,
+                -0.2869400978088379
+              ],
+              "gripper_status": 2,
+              "gripper_width_mm": 40.6,
+              "gripper_fingertip_offset_mm": 0.0,
+              "gripper_width_with_offset_mm": 40.6
+            },
+            "execution_id": "0337c694-92a6-4ba7-bb9c-6adeb4fa8f3c",
+            "plan_id": "P-88a6f48df4604e98967df5345c5e3660",
+            "step_id": "S17",
+            "current_revision": 34
+          }
+        }
+      ],
+      "loaded_transport_evidence": [
+        {
+          "gripper_status": 2,
+          "gripper_width_mm": 40.6,
+          "endpoint_verified": true,
+          "timestamp": "2026-10-13T05:42:16.586481+00:00"
+        }
+      ],
+      "metadata_path": "/home/rokey/Documents/ChatGPT/로봇제어 개발/c2_integration_round1/logs/full-feature-real-slots1to5/c5413b6d-48f1-4e5b-a088-e2ef712a4235/0337c694-92a6-4ba7-bb9c-6adeb4fa8f3c.execution.json"
+    }
+  ],
+  "new_manual_teaching_required_now": false,
+  "current_placement_verified": false,
+  "RGBD_reference_adopted": false,
+  "B_actual_assembly_confirmed": false,
+  "final_DB_saved": false,
+  "physical_commands": 0,
+  "source_sha256": {
+    "/home/rokey/Documents/ChatGPT/로봇제어 개발/c2_integration_round1/logs/full-feature-real-slots1to5/c5413b6d-48f1-4e5b-a088-e2ef712a4235.jsonl": "e3742bb67edcc71ea81cf71bdb8b35cf9c921f82263ab8ef9f98b35b7cd0d500",
+    "/home/rokey/Documents/ChatGPT/로봇제어 개발/c2_integration_round1/logs/full-feature-real-slots1to5/c5413b6d-48f1-4e5b-a088-e2ef712a4235/d6943c7a-a90f-4030-9299-b1b1e4a4ecaf.execution.json": "697565c3f95a2c9ebda66a8ae6063cbfe0966c1734e18fcc4dc187661694746e",
+    "/home/rokey/Documents/ChatGPT/로봇제어 개발/c2_integration_round1/logs/full-feature-real-slots1to5/c5413b6d-48f1-4e5b-a088-e2ef712a4235/408095ed-a387-4799-a7a7-1512e8769a1e.execution.json": "9b6721a1b110dd474ea506d8685984504cf94a52591f0194777f1945cdfa5984",
+    "/home/rokey/Documents/ChatGPT/로봇제어 개발/c2_integration_round1/logs/full-feature-real-slots1to5/c5413b6d-48f1-4e5b-a088-e2ef712a4235/0337c694-92a6-4ba7-bb9c-6adeb4fa8f3c.execution.json": "380b401cd284268d67c016f44757adb950d075eec4174204bd58de7d0a5ec9c2"
+  }
+}

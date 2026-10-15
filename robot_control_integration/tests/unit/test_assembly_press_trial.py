@@ -43,6 +43,30 @@ class Driver:
         return feedback
 
 
+@pytest.mark.parametrize('force', [60.,65.,69.9])
+def test_p_reaction_stop_60_has_no_compliance_or_native_force_commands(force):
+    d=Driver(force=force)
+    result=press(d,CONNECTION,lambda *_:None,force_stop_n=60.,force_abort_n=70.,
+                 max_travel_mm=12.,velocity=3.,sleep=lambda _:None)
+    assert result['status']=='FORCE_THRESHOLD_REACHED_STOP_VERIFIED'
+    assert result['native_force_commands']==0 and result['force_control_target_n'] is None
+    assert result['force_stop_n']==60. and result['force_abort_n']==70.
+    assert len(d.moves)==1 and d.stops==1
+
+
+@pytest.mark.parametrize('final_only', [False,True])
+def test_p_70n_is_fault_even_if_crossed_after_the_60n_stop(final_only):
+    d=Driver(force=60. if final_only else 70.)
+    original=d.stop
+    def stop():
+        original()
+        if final_only:d.value['wrench'][2]=70.
+    d.stop=stop
+    with pytest.raises(RuntimeError,match='PRESS_FORCE_ABORT_LIMIT_REACHED'):
+        press(d,CONNECTION,lambda *_:None,force_stop_n=60.,force_abort_n=70.,sleep=lambda _:None)
+    assert d.stops>=1 and len(d.moves)==1
+
+
 @pytest.mark.parametrize('force', [35., 36.])
 def test_threshold_stops_before_travel_endpoint_without_claiming_seating(force):
     d = Driver(force)

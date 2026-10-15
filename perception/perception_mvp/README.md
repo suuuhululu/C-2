@@ -1,5 +1,18 @@
 # 실제 Perception 처리 코드
 
+## 2026-10-15 팀 통합 조립판 ROI 연결
+
+- `make_inspection_observer` 및 이를 사용하는 `connect_real_inspection`은 기본으로 패키지 기준 `recordings/assembly_board_roi`의 V0·D1·D3 최신 `assembly_roi.json`을 읽는다. 단독 live_view의 `--roi-root` 지정과 독립적으로 적용한다. 다른 위치는 geometry의 `assembly_roi_root`로 지정하며 상대 경로는 perception 폴더 기준이다. config.yaml에도 이 기본 경로를 명시했다.
+- 관측 전에 ROI 설정을 고정하고 cycle context에 남긴다. 각 View에서 `조립판 ROI 적용` 로그와 `<cycle>/<View>/assembly_roi.json`, measurement의 `assembly_roi`로 적용 파일·polygon·해상도를 확인한다. 지정된 파일 누락·View/해상도 불일치는 오류이며 전체 화면으로 자동 대체하지 않는다. 현재 저장된 ROI는 1280×720용이다.
+- YOLO는 ROI 외접 사각형의 원본 RGB를 분석하고 mask를 원본 영상 좌표로 복원한다. polygon 밖 후보는 제외하고 경계에 걸친 후보는 UNKNOWN으로 유지한다. 저장 영상 재분석도 동일한 ROI 필터를 적용한다. 보드 기준면과 빈 공간 검사에 ROI 밖 픽셀을 사용하지 않으며 ROI 자체가 빈 공간 확인 근거가 되지는 않는다.
+- 실제 초기 검사에서의 후보 3개가 ROI 밖 오검출이었는지는 미확인이다. 수정본 적용 후 같은 pose/해상도의 원본과 mask로 재검증해야 한다. ROI 안의 오검출 및 미확인 Depth가 자동 해결됐다는 의미는 아니다.
+
+## 2026-10-15 INITIAL의 블록 위 빈 공간 확인 보완
+
+- V0에서 좌표·층이 확정된 블록의 footprint에 대해 `empty_above_block_evidence`가 위쪽 공간을 별도로 검사한다. 예를 들어 2층 블록 위의 3~5층 공간을 통과한 모든 유효 Depth ray가 그 공간 뒤쪽 표면에 도달해야 확인 영역으로 추가한다. 블록이 있다는 이유만으로 위쪽이 비었다고 추정하지 않는다.
+- 기존 층 기준과 높이 허용값으로 검사 하한을 정한다. UNKNOWN 후보 mask, 0 Depth, 거리 범위 이탈, 가림, 영상 바깥 영역은 제외한다. 확인하지 않은 아래층은 추가하지 않으며 D1/D3의 미채택 층을 근거로 상부 공간을 확정하지 않는다. 원래의 전체 빈 열 증거와 새 상부 증거는 `verification_basis`/진단에 구분해 남긴다.
+- 윗면 검출·좌표·층 임계값 및 INITIAL 전체 범위 조건은 유지한다. 실제 실패 촬영 자료의 보정 오차/윗면 탈락 원인은 별도 분석과 실물 재검증이 필요하다.
+
 ## 2026-10-13 시험용 평균 층 기준
 
 - body/stud 추출은 관측된body 평면의residual band로최대3회재수집한다. 허용기울기내의표면을수평slice로잘라버리지않으며, 둘의동일XY간격이4mm±0.75mm로유지되는지도검사한다. 검사수치와원본보정/층기준은변경하지않았다. 단일표면/비평행/지원부족은미확인이다. 같은실제6장에서는분리통과4개이지만좌표·층확정0개라실물판정완료로표시하지않는다.
@@ -55,7 +68,9 @@ phase=COMPARISON, view_id, 실제 frame_stamp_ns, height_reference=board_flat_su
 
 ## 2026-10-12 PR29 리뷰 — 검사 시작 조건과 촬영/분석 경계
 
-- 자동 단발 촬영 함수는 `ros_capture.capture_inspection_view(manifest, view, is_active, *, output_root, scene_id, calibration_id, robot_pose, is_stopped, verify_occupancy=None)`다. `functools.partial`로 실제 장면 ID/보정 ID, Controller의 `robot_pose(view)`와 `is_stopped(view)`를 지정하면 `make_inspection_observer`의 `capture_view` 인자로 사용할 수 있다. Robot 이동 명령은 없다. 고정 ROS raw RGB/원본 Depth/aligned Depth 및 CameraInfo 토픽을 전용 Context/Executor에서 수신하고 한 묶음 저장 후 종료한다. D ROS Context를 종료하지 않는다. 정지/활성 요청을 반복 확인하며 요청 후 프레임·기본 50ms 동기화·250ms 신선도를 요구한다. ROS PC 간 시계 동기화가 필요하며 오래된 프레임/시간 초과는 실패로 반환한다. RGB는 RELIABLE depth1, Depth/CameraInfo는 sensor_data QoS다.
+- 2026-10-15 수신 보완: 통합 촬영의 ROS 콜백은 전용 수신 스레드에서 처리해 Controller 상태 조회가 느려도 수신을 계속한다. 상태 확인이 끝난 뒤 최신 유효 묶음을 선택하며, 정상/실패 모두 수신기를 종료한다. 기존 15초 대기·50ms 동기화·250ms 최신성·정지/취소 조건은 유지한다.
+
+- 자동 단발 촬영 함수는 `ros_capture.capture_inspection_view(manifest, view, is_active, *, output_root, scene_id, calibration_id, robot_pose, is_stopped, verify_occupancy=None)`다. `functools.partial`로 실제 장면 ID/보정 ID, Controller의 `robot_pose(view)`와 `is_stopped(view)`를 지정하면 `make_inspection_observer`의 `capture_view` 인자로 사용할 수 있다. Robot 이동 명령은 없다. 고정 ROS raw RGB/원본 Depth/aligned Depth 및 CameraInfo 토픽을 전용 Context/Executor에서 수신하고 한 묶음 저장 후 종료한다. D ROS Context를 종료하지 않는다. 정지/활성 요청을 반복 확인하며 요청 후 프레임·기본 50ms 동기화·250ms 신선도를 요구한다. ROS PC 간 시계 동기화가 필요하며 오래된 프레임/시간 초과는 실패로 반환한다. RGB·원본 Depth·정렬 Depth 구독은 BEST_EFFORT depth1, CameraInfo는 기존 BEST_EFFORT인 sensor_data QoS다. V0 손 수신·live_view·공급판 ROI RGB 구독에도 동일한 BEST_EFFORT 방침을 적용한다.
 - `verify_occupancy(directory, manifest, view)`는 실제 저장 영상에 근거한 `verified_regions`·`verification_basis`를 반환해야 한다. 미제공 시 확인 영역은 빈 목록이며 정상 판정 근거가 아니다. ROI를 확인 영역으로 바꾸지 않는다. Controller/확인 영역 함수와 실제 Geometry/층 높이 설정이 없으면 이 함수만으로 전체 시나리오가 완성되지 않는다.
 - V0 손 수신은 `ros_capture.stream_ros_hand(is_active, is_stopped)`를 제공한다. `make_inspection_observer(..., hand_stream=None, is_stopped=실제정지확인함수)`로 선택하면 요청 활성 조건과 연동된다. V0 정지 후 raw RGB와 aligned 16UC1 Depth를 별도 수신 스레드에서 받고 기존 HandDetector/HandCycle로 판정한다. 매 분석에는 새로운 최신 동기화 묶음을 사용하며 큐는 제한된다. 준비 완료/STOP/이동/통신 오류 시 stream을 닫고 B 전용 Context만 종료한다. 손 추론 중 block YOLO는 실행하지 않고 준비 완료 후 별도 RGB-D 단발 촬영/분석을 수행한다. 기본 한 프레임 수신 제한15초, 동기화50ms, 신선도250ms이며 실제 성능은 장치에서 검증해야 한다. 영상 끊김/UNKNOWN을 손 없음으로 취급하지 않는다. 이 손 감지는 엄지척 인식이나 안전 인증이 아니다.
 - ROS 수신 저장 연결: `rgbd_io.save_capture(directory, messages, infos, topics, view, 50., context=context)`에 `scene_id`, 실제 `robot_pose`(frame/단위/기준 포함), `calibration_id`, `check_id`, 정수 `observation_seq`를 제공한다. 메시지는 실제 정지 후 새로 받은 RGB/raw Depth/aligned Depth이며 수신 측이 요청 최신성과 STOP/취소를 확인해야 한다. ROS CameraInfo 원문을 유지하고 실제 K/D를 Depth 역투영 필드로 함께 기록한다. 이 파일은 `load_frame` 입력 형식과 호환된다. `context` 없는 기존 진단 촬영 의미는 유지한다. 이 함수는 수신 구독/Controller 이동을 수행하지 않으며 `verified_regions`나 층 기준을 생성하지 않는다. 실제 확인 영역 근거는 별도 필요하다.
@@ -337,8 +352,20 @@ ACTUAL_BUNDLE_JSON 필수 항목: mode=REAL, check_id, observation_seq, scene_st
 target_after(공통 배치), previous_accepted_blocks(실제 Backend 채택 상태), recordings 목록.
 각 recording은 directory를 지정하며 상대경로는 manifest 기준입니다.
 실제 독립 점유 검증이 있는 경우에만 verified_regions와 verification_basis를 입력합니다.
-영상에서 확인 영역을 자동 산출하는 모듈은 아직 없습니다. ROI/검출 0개를 빈 보드 근거로 입력하면 안 됩니다.
+확인 영역은 보정된 보드의 3D 열과 실제 Depth 광선으로 산출합니다. ROI/검출 0개만으로 빈 보드를 확정하지 않습니다.
+RGB ROI는 블록 검출·보드 평면 추출에 사용하며, 측면에서 ROI 밖으로 투영되는
+보드 상부 공간까지 자르는 마스크로 사용하지 않습니다. 빈 공간은 보정된 24×24·5층
+범위에서만 검사하며 영상 밖으로 잘린 범위, 장애물, 거리 범위 이탈은 미확인으로 유지합니다.
+`geometry.empty_min_valid_fraction: 0.99`는 빈 공간 검사에서 0인 Depth를 최대 1%만
+허용하는 시험용 품질 기준입니다(미설정 시 100%). 유효값 최소 50개와 모든 유효
+광선의 공간 통과 조건은 유지합니다. 결손 복원이나 안전 보장은 아닙니다.
 확인 근거가 부족하면 실제 검출 블록을 담더라도 UNOBSERVABLE로 반환합니다.
+
+INITIAL은 사용자 지정 기준으로 미확인 보드 열 최대60개까지 허용하고 61개부터 보류합니다.
+한 층이라도 미확인이면 해당 (x,y) 열 전체를 미확인1칸으로 셉니다(전체576칸).
+미확인 칸은 빈 공간으로 확정하지 않으며, B는 그 칸에 걸치는 Plan 로드와 Step 시작을
+`PLAN_REGION_UNVERIFIED`로 거부합니다. 해당 범위를 실제 확인하는 추가 INITIAL 후
+계획을 다시 전달해야 합니다. STEP·FINAL 비교 기준과 로봇의 정지 조건은 변경하지 않습니다.
 
 calibration은 calibration_id와 V0/D1~D4별 Camera→Board rigid 4x4 views 행렬(translation m)입니다.
 config.geometry는 실측 stud pitch/footprint/상면 1~5층 높이/중심 lattice/anchor 차이/허용 오차를 받습니다.

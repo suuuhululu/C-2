@@ -1,6 +1,7 @@
 """Trial flow, math and cleanup tests. No robot/physical safety validation."""
 from copy import deepcopy
 import json
+from pathlib import Path
 import time
 
 import numpy as np
@@ -13,6 +14,17 @@ from scripts.assembly_contact_trial import TEMPLATE,main,save
 
 
 def config():return fake_config(json.loads(TEMPLATE.read_text()))
+
+
+@pytest.fixture(autouse=True)
+def isolated_mock_writer_lock(tmp_path,monkeypatch):
+    # Fake-transport CLI tests must never contend with the onsite robot writer.
+    original = Path.open
+    def open_path(path,*args,**kwargs):
+        if path == Path('/tmp/c2-assembly-dsr01.lock'):
+            path = tmp_path/'fake-writer.lock'
+        return original(path,*args,**kwargs)
+    monkeypatch.setattr(Path,'open',open_path)
 
 
 class Clock:

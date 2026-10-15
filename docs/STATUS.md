@@ -1,5 +1,174 @@
 # 현재 진행 상황
 
+## 2026-10-15 round3 게시·round4 분기 준비
+
+- 사용자 요청으로 별도 게시 복사본에 bundle1288625 인계와 최신 verified/runtime을 합쳤다. 원본 작업본/실행 runtime의 파일·미커밋 상태는 보존했다. 로컬 env/키/DSN/운영 로그/claim/cache는 제외했다. 로컬 round4는 최종 round3와 같은 커밋에서 분기하며 로봇 단독 production 코드는 아직 바꾸지 않는다.
+- 원격 확인 head93ef967이며 CLI 인증 부재/GitHub 앱403으로 원격 게시를 대기한다. 사용자가 이 PC의 Git 인증 준비 후 알리기로 했다. 원격 ref는 변경하지 않았다. 로컬 인계1288625를 부모로 보존한 최신 커밋/round4 복사본을 준비하며 인증 후 fast-forward 게시한다.
+- 일반 Git checkout에서도 같은 진입점을 사용하도록3개 launcher의 환경 기준 위치를 보완했다. C2_ROUND3_BASE_ROOT/C2_SERVICE_LOCAL_ENV로 비공개 환경을 지정하고 실제 코드 ROOT/cwd는 checkout에 고정한다. 모델 기본값3역할gpt-6.1-sol을 보존한다.
+- 게시 복사본에서 service/HMI/launcher70 passed, native282 passed, B550 passed/외부 PR22 consumer1 skipped이며 새 실물/실제DB/LLM API 호출은0이다. 마지막 기본 모델 변경 뒤 launcher7 passed로 재확인했다. 근거 docs/validation/round3_20261015, 실행 docs/D_ROUND3_PUBLISHED_RUNTIME_20261015.md.
+- round4는 기존에 없는1/3점축·모든 파지90도·조립2×2/2×3목표0도와90도TCP 교시, 공급/조립 J6 분리, RGB-D 중앙값/블록 중심↔TCP 및 비누적 변환, 빨강0도=X2/Y1·90도=X1/Y2 새 의미와 과거 기록 호환, 지원 판정/단독 capability·자동 결착·실제 B STEP/FINAL·저장까지 검토한다. 상세 docs/D_ROUND4_ROBOT_ONLY_HANDOFF_20261015.md와 새 채팅 요청문을 준비했다.
+
+## 2026-10-15 위치별 그리퍼 개방과 빨강 1점축 파지 범위
+
+- 사용자 최신 요청으로 활성 runtime의 공급/HOME 준비 개방과 place board 전달 개방은53mm·실제 폭40~80mm, 조립판 O 및 조립판 위 가압 후 빈 패드 개방은47mm·32~55mm로 연결했다. 이미 열린 상태를 확인하는 구간은 해당 범위를 사용하며 불필요한 개방 명령을 추가하지 않았다. 빨강1×2의1점축 파지는 전체5슬롯에20mm 닫힘·실제 폭10~40mm를 적용했다. 파지 감지 상태2/기존 정지·장치·3표본 확인은 유지한다.
+- 실제 Job69f17f49의 INITIAL은 성공했고 S01 파랑2×3 전달판 개방 명령47mm에 실제50.3mm였다. 공용 개방 함수는 설정 상한을110mm로 바꿔 통과시켰지만 새 인계 연결은44~50mm를 다시 검사해 HANDOVER_RELEASE_NOT_VERIFIED로 HOME 전에 보류했다. 공용 함수가 명시된 상한을 보존하도록 바꾸고 전달판 마지막 확인도 같은40~80mm 설정을 사용한다. 마지막 거부 시 실측 상태와 범위를 기록한다. 과거 실패 결과는 보존했다.
+- 전달판 인계는 손 제스처 없이 HMI의 전달판 비움·손 이탈 확인→내려놓기/개방→상승/HOME→사람 조립 완료·손 이탈→실제 B 검사 순서다. 제스처 미감지에 따른 자동 대체 실행은 추가하지 않았다. 힘/속도/교시/공급 RGB-D 범위·B Current/revision/판정·자동 복구 정책은 변경하지 않았다.
+- 검증: 기존 관련 native171 passed, 서비스/승인/HMI/5층129 passed·실제 DB 환경2 skipped. 추가 경계/표시 최종45 passed이며, 공용 함수의 미지정 legacy 범위 보존 후 영향 범위31 passed(슬롯/파지/전달),44 passed(bridge)를 재검사했다. 조립판 하한32mm 수정 뒤 seating61 passed다. 겹치는 검사는 합산하지 않는다. 25개 실제 파생 설정(빨강5개 포함), CLI preview/문법/배포 무결성을 확인했다. 근거는 상위evidence/gripper-context-policy에 보존했다. HISTORY_TEST_DSN 없는2건은 실제 DB 검증으로 표시하지 않는다.
+- 전달판50.3mm와40/80mm 경계 허용,80.1mm는 후퇴/HOME 전에 보류, 조립판32/55mm 허용·31.9/55.1mm 차단, 빨강10/40mm 허용·범위 밖/NaN/파지 감지 없음 차단은 모의 피드백 검증이다. 에이전트 장치 연결/물리 명령0이며 새 설정의 실물 성공은 미확인이다. 기존 HMI를 닫고 새 작업으로 시작해야 변경된 코드/config 해시를 사용한다.
+
+## 2026-10-15 로봇 단독 불가 Step의 place board 인계
+
+- 사용자의 명시 지시로 A의 전체 계획에 HUMAN_ASSEMBLY를 허용했다. 기존 x축 native 단독 제약 때문에 90도2×3에서 NO_FEASIBLE_ORDER가 발생했으며, 실제 최신 Job e712bb15의 빈 판 INITIAL은 성공했다. C/A footprint와 지지는 일치했고, 해당90도 블록은 빈 주변에서도 x 파지 후보0/y 후보가 존재했다. 이 문제를 B 카메라 실패로 해석하지 않는다.
+- 로봇 단독 범위는 기존 native ROBOT_GRIP/x/NONE이다. 다른 도움/전략이 필요하면 해당 Step을 actual A HUMAN_ASSEMBLY 재평가·전달판 motion으로 계산한다. ROBOT_GRIP 동작을 임의로 manual로 재표기하지 않는다. A의 기하적 PATH_BLOCKED/NO_FEASIBLE_METHOD/UNSUPPORTED_METHOD도 장치 명령 전에만 actual A manual 후보를 요청한다. 상태/상관 ID/Current/정지·설정 오류나 이미 시작한 로봇 실패는 인계로 우회하지 않는다.
+- 기존 공급 RGB-D/교시/25슬롯 바인딩을 재사용해 집고, 기존 D runner의 공급 경유점·BODY_BYPASS·PLACE_BOARD·전달판 접근/개방/후퇴를 사용한다. 이미 집은 manual 블록 전용 handover-held 진입점을 제한적으로 추가했고 기존 assemble-held의 단독 로봇 제한은 유지했다. 전달판 route/높이는 actual A motion과 D profile을 대조하고 native force/compliance를 사용하지 않는다. 직접 조립 I50/P60·70N 보류/접촉3mm/s는 유지한다.
+- HMI에서 전달판 비움/손 이탈 체크 → 최신 HOME 상태를 재조회해 A binding 재생성 → D 인계/47mm 개방·후퇴·HOME·정지/writer 해제 → 사람 조립 완료/손 이탈 체크 → 실제 B STEP 순서다. 두 체크는 매번 기본 해제다. 목표 좌표/층/방향과 필요한 아래 블록 지지를 표시한다. 사람 완료 신호는 B MATCH/Current 채택이 아니며 B 실패 후 작업자 시험 확인도 별도로 유지한다. 전부 실제 STEP MATCH인 경우 별도 FINAL을 수행하고 DB/웹에 실제 B 완료 여부를 반영한다.
+- 실제 저장 승인 설계를 장치 없이 다시 계산해21블록/37블록 모두 A READY였다. 최초 A 선택은 각각 robot15/manual6, robot25/manual12다.21블록의 가상 상태·예상 prefix로 모든 Step의 D binding까지 계산하면 native5/manual16이다. 이 자료는 명시적 offline fixture이고 실제 B Current/실물 조립 성공이 아니다. 슬롯 재사용 전 REFILL 확인도 유지한다.
+- 변경 후 새 서비스/HMI/실제 D runner 모의 인계37 passed, 관련 native280 passed, 실제 분리 _test DB/HTTP4 passed를 확인했다. 직접 조립/인계·사람 미확인·B 실패·STOP/HOME/writer 실패·잘못된 phase와 인계 후 실제 B/FINAL·개인 웹 완료 구분을 검사했다. 넓은 서비스/기존5층 회귀는83 passed/1 HMI fixture failed였고, 실제 STEP_READY에 있는 supply_slot을 fixture에도 보완한 뒤 HMI를 포함한 최종37개를 다시 통과했다. 문법/preview/체크박스 화면도 확인했다. 새 실물 인계/연속 조립 검증은 미실시이며 에이전트 장치 명령0이다.
+- 근거 evidence/place-board-handover/, 운영 안내 ROUND3_SERVICE.ko.txt. 기존 전체 HMI를 닫고 scripts/round3_service.bash hmi로 새 작업을 연다. 음성 기능은 이번 인계 변경에 포함하지 않았다.
+
+## 2026-10-15 C GPT-6.1 로컬 설정·첨부 키 파일 연결
+
+- 사용자 요청으로 전체 통합 HMI의 로컬 환경에 OPENAI_MODEL/OPENAI_AUX_MODEL/OPENAI_JUDGE_MODEL=gpt-6.1-sol을 명시했다. 설계 생성·대화 해석·검토 모두 같은 모델을 사용한다. 실제 C 코드는 OPENAI_MODEL을 읽으므로 OPENAI_LLM_MODEL을 새로 만들지 않았다.
+- 첨부한 외부 키 파일을 환경에서 읽어 OPENAI_LLM_API_KEY로 전달한다. 키 값은 소스/manifest/문서/로그로 복사하지 않았다. 로컬 환경 파일은 Git 제외·권한600이며 전체 HMI launcher가 읽는다. 기존 HMI는 종료/재실행해야 반영된다.
+- shell 문법, 키 로드 여부, 세 환경변수와 mock HTTP 경계에서 실제 구성된 요청의 model=gpt-6.1-sol을 확인했다. 실제 API 호출/장치 명령0이며 인증·과금/응답 성공은 검증하지 않았다. 공식 모델 페이지 https://developers.openai.com/api/docs/models/gpt-6.1-sol 를 확인했다.
+
+## 2026-10-15 빈 판 C·A·B·D·HMI·DB·웹 연결 / I50·P60·70N 보류
+
+- 사용자의 최신 지시로 새 `scripts/round3_service.bash hmi` 진입점을 준비했다. 빈 판 INITIAL → 사용자 로그인/C 실제 설계 대화·미리보기·별도 승인 → 실제 A 전체 계획·매 Step 재평가/motion → 등록 native D 단발 → 빈 그리퍼 개방/HOME → 실제 B STEP → 별도 FINAL → 인증된 사용자 DB/웹 저장을 연결한다. HMI를 열기만 하면 장치 명령이 없다. 기존 고정5층/3-Step 시험과 구분하며 C 대체 Mock으로 REAL 실행하지 않는다. 실행 시 C API 키가 없으면 터미널에서 숨김 입력한다.
+- A의 선택을 D의 실제 교시/슬롯/config 해시에 바인딩한다. 현 native 실행 지원은 ROBOT_GRIP/x·NONE 또는 단일 HOLD이며 다른 동작으로 바꿔 실행하지 않는다. 25개 등록 슬롯의 설정 binding을 장치 없이 확인했고 실물 성공/정밀도 증거는 아니다. 매 Step 시작 전 명시 확인, I/O/P/U와 지지 안내를 유지한다. 정상 native 종료 뒤 개방·HOME 후 B를 검사한다. 최초 집기 경유점과 교시·오프셋·그리퍼/RGB-D 원자료는 보존했다.
+- 새 C 후보는 별도 미리보기 승인을 거치고 A가 남은 Step만 재계획한다. B 실패를 넘기는 체크박스는 매번 해제 상태다. B 판정·Current·revision과 원래 실패를 보존하며 작업자 계획 기준은 별도로 기록한다. 이 기준과 B Current가 다른 상태의 새 Plan은 B 계약상 보류될 수 있다. B 전체 STEP MATCH와 별도 FINAL MATCH 없이 완료 이벤트를 생성하지 않는다. 미확인 시험도 DB/개인 웹에 저장하되 완료로 표시하지 않는다. DB 성공 뒤 웹 실패는 저장 영수증을 재사용해 웹 확인만 재시도하며 로봇 동작을 반복하지 않는다.
+- PR55 추가 검토 32157af433a6f3cd07e2a56b32a5867c6f0bd096의 B10파일과 INITIAL coverage 인계3파일을 이전 해시와 대조한 뒤 반영했다. INITIAL 미확인 최대60열·빈 공간0 Depth 결손 최대1% 기준이며 미확인 열은 빈칸으로 만들지 않고 해당 Plan/Step을 PLAN_REGION_UNVERIFIED로 차단한다. 새 B connection은 저장 실제3View verified_regions를 public INITIAL transaction으로 재채택해 제한을 보존한다. 작업자 빈 판 확인은 실제 B INITIAL 성공으로 바꾸지 않는다.
+- 새 B의 동일 과거 빈 판 영상 재분석은 88→5 미확인열/2440→2855층칸으로 INITIAL OK였으나 신규 촬영/실물 PASS가 아니다. 이전8블록 영상은66 미확인열로 계속 UNOBSERVABLE다. B 검토 소스와 동일 해시/로그를 보존했다(B550 passed/1 외부 PR22 skipped, Docker550/1 skipped). 과거 촬영은 실행용으로 재사용하지 않는다.
+- 추가했던 P 컴플라이언스/native desired-force 경로를 제거했다. 기존35N 접촉 실험은 보존한다. 최신 실행 설정은 I 반력 정지50N/P 반력 정지60N/P raw XYZ 합력70N 이상 오류·HOLD/접촉3mm/s, 일반 이동 기존2배, O47mm/피드백44~50mm다. 60N 일정 힘 유지나70N 실제 상한을 보장하는 제어가 아니며 조회/STOP 지연으로 힘이 더 올라갈 수 있다. 한계 초과·STOP/HOME/writer/로봇 오류의 자동 해제·상승·복귀·재실행은 없다.
+- HMI의 '이번 단계 예상 구조'가 직전 B 결과에 머물던 오류를 수정했다. 현재 Step까지 계획 prefix를 독립 표시하고 계획 기준임을 명시한다. B Current가 비어 있어도 예상 구조를 갱신하며 Current를 채우지 않는다. 실행 중 변경 감지 검사는 유지하므로 새 코드 적용 뒤 기존 HMI를 완전히 닫고 새 시험본을 사용한다. 사용자가 실행 중 적용 연기를 요청한 동안 공유 제어/B 소스를 보존했고, 해당 실행이 HOLD/종료된 뒤 반영했다.
+- 현장 최신 9c08d518 시험은 P3mm/s/60N 기준에서 최초 표본69.626N, 정지 후 상승 직전 약97.53N이었다. 컨트롤러9015 External_Force는98.558N>global-normal96N을 기록했고 LIFT move_line이 실패했다. 후속 move_stop도 실패해 실제 정지는 미확인이다. 카메라나 native 힘 제어의 실패로 해석하지 않는다. 이후70N 오류/HOLD 설정으로 바꿨으며 새 물리 검증은 시행하지 않았다. TP 현재 보호/정지 상태와 수동 복구는 현장에서 확인한다.
+- 변경 후 검증: 관련 native284 passed, 전체 round3 통합181 passed/4 DB 환경 skipped, 새 서비스/C·A 재계획/HMI 별도24 passed, 실제 분리 _test PostgreSQL+웹25 passed(실제 서비스 생성 이력의 B 완료/수동 확인 구분 포함). HMI 예상2단계/Current 불변 스크린샷·문법·preview도 확인했다. 실 C API/신규 INITIAL/연속 실물/FINAL은 미검증이며 에이전트 장치 명령0이다. 근거 `evidence/no-compliance-service-integration/`, 안내 `ROUND3_SERVICE.ko.txt`, 최신 무결성은 배포 manifest/verify.py다.
+
+## 2026-10-15 PR55 ROI 추가 통합·5층 P 목표65N / 합력 차단100N
+
+- PR55 `791369f83f518f5b3d0e9664219b06636e27994a`의 B 변경9파일을 검토본 해시와 대조한 뒤 현재 runtime에만 반영했다. V0/D1/D3별 ROI 로드·crop 추론/원본 mask 복원·ROI 밖 제외/경계 UNKNOWN·상부 빈 공간 증거 변경이다. 기존 공급 깊이 처리 지연 수정·교시·설정·실행 로그는 보존했다. 기존 C-2-round3 checkout은 이번 작업에서 수정하지 않았다.
+- 5층 시험의 P만 기존 위치 하강/반력 정지에서 ABS native 힘 제어 목표65N·raw XYZ 합력 차단100N으로 분리했다. I45N·일반 이동2배·접촉 접근12mm/s·O47mm/피드백44~50mm·공급 RGB-D 허용값은 유지했다. 기존 contact runner의 강성·전환0.2초·유지3초·3mm 힘 제어 구간을 재사용하며, 시작점부터 총12mm 한도다. 기존35N 정렬/검색 시험과 C 승인3-Step의 가압 설정은 변경하지 않았다.
+- P 정상 종료에는 힘 해제·STOP·컴플라이언스 해제 ACK/정지 확인이 필요하다. 정확히65N 도달했다는 별도 완료 인증은 추가하지 않았다. 100N은 PC 조회 중단 기준이며 실제 힘 상한/컨트롤러 보호 해제를 뜻하지 않는다. P 오류 후 자동 상승/HOME·재실행·오류 리셋은 없다. HMI/preview에65N 목표와100N 차단을 구분해 표시하고 source freeze에 해당 D/B 코드와 ROI3개를 포함했다.
+- 장치 없는 검증: B534 passed/1 외부 PR22 Consumer skipped, native 제어313 passed. HMI·INITIAL/STEP/FINAL·승인·5층·wrapper 검증 결과는 `evidence/roi-force-65-amendment/integration-tests.log`에 기록했다. Fake-transport contact CLI 테스트의 lock은 테스트 폴더로 격리해 실제 writer와 충돌하지 않게 했다. 에이전트의 물리 명령0이다.
+- 담당 검토의 과거 실제 INITIAL 영상 재분석은 이전4개/1910셀에서 최신5개/1796셀로 바뀌었으나 둘 다 UNOBSERVABLE/initial_scope_unverified다. 정답 라벨이 없어 인식 정확도 개선·악화를 단정하지 않는다. ROI 파일 로드 성공을 INITIAL 성공으로 취급하지 않는다.
+- 현장 후속 실패 `f361ad59-033e-4e9f-9d3d-d7bba98456b5`: P 접근 완료 시 Fz39.03N, compliance ACK 직전 컨트롤러3501(`RC_ERROR_SYSTEM_EXTERNER_JOINT_VALUE`), 이후1903 `MOTION_HOLD rejected eConfigDesiredForce`가 기록됐다.65N 명령의3초 응답 시간 초과로 HOLD했고,65N 유지/상승/HOME 성공은 확인되지 않았다. cleanup STOP/force release/compliance release ACK는 있으나 명령 상태가 불확실해 stopped=null을 유지했다. 실제 정지·현장 오류 해제는 별도 확인 대상이다. 이 경로가 다시 발생하면 힘 명령 전에 상태를 조회해 오류를 기록하도록 보완했으며, 시간 초과를 늘리거나 자동 재전송하지 않는다.
+- 다음 현장 확인: 펜던트3501 원인/제어 가능 상태 확인 → 새 HMI/새 시험본 → 첫 층 P의 실제65N 응답·100N guard·힘 해제·상승/HOME 확인.5층 실물 성공/실제 B MATCH/별도 FINAL은 미완료다.
+
+## 2026-10-15 사용자 우선 수정: 공통 수평10mm·P 가압70N
+
+- 실행 Job `54932678-de97-4ae5-8adc-7b2e942ab26f`는 T2 CYCLE_COMPLETED/released/press_done 후 빈 그리퍼 개방·실제 HOME 도착/정지 영수증을 남겼다. 두 번째 T1 노랑2×2 슬롯4 공급 관측에서 deltaXYZ=[4.408816,-5.408747,5.936021]mm·수평6.978mm>5mm로 집기 전에 중단했다. 높이는7mm 이내였다. 서비스 최종 STOP/HOME=false는 전체 실패 결과로 보존하며 앞선 T2 HOME 영수증과 구분한다. 후속 실제 읽기 CheckMotion0/success=true다.
+- 사용자의 명시 지시로 RGB-D20슬롯 전체 수평거리10mm, T1/T2/T3 모두 P 가압 반력 정지70N으로 변경했다. I는T2 55N/나머지45N, 가압12mm/s·최대12mm·그 외 깊이/높이/편차·일반 속도/그리퍼·기존 정지 검사를 유지한다. 선택은 `execution-t2-x1p5-fast2-xy10-20261015`이며 `xy5`는 수평5mm 복구용 설정만 선택한다. 과거 세트와 원본은 보존했다.70N은 일정 힘 명령이나 완전 결착 보장이 아니다.
+- 정지 상태에서 RGB-D20장을 읽기 저장했다(`t1-stop-review-54932678`). 관측 자세 차0.013923mm/0.000050도·촬영 전후 자세 동일이다. 실제 패킷 재생에서 수평5mm는0/20 통과, 수평10mm는18/20 통과했다. 나머지2장은 높이7.935~7.936mm>기존7mm라 계속 거부되며 높이 기준을 추가 완화하지 않았다.18개 허용 표본 수평6.880~7.458mm, 중앙 deltaXYZ=[4.354968,-5.724334,5.948575]mm다. 기준점 채택/교시 변경·물리 명령0이다.
+- 관련 native224 passed(1.89초), 서비스/HMI/승인·별도 DB/웹43 passed(22.16초), 합계267 passed/skip0이다. 두 가압 기준56.25/70의 미도달/정지·I55 유지, 현재 전체 세트 해시와3개 무장치 preview를 확인했다. 근거 `xy10-p70-native-tests.log`, `xy10-p70-service-tests.log`, `xy10-p70-validation.json`이다. 새10mm/P70 실물 재시험은 하지 않았다. 사용자 요청을 우선해 B 별도 통합본은 현재 HMI에 적용하지 않았다. 새3-Step HMI는 사전8블록·공급·빈 HOME을 준비한 새 시험에서 실행하며 완료된 T2를 현재 배치에서 반복하지 않는다.
+
+## 2026-10-15 3-Step 개별 실물 시험 HMI · 판+X1.5mm · 일반 이동2배
+
+- 사용자가 대상을 T2 파랑2×3 슬롯3으로 정정하고, 공급 집기가 아닌 조립판 결착 위치를 판+X로1.5mm만 이동하도록 최종 지정했다. 채택된 `operator_assembly_board_by_studs.json`의2×3/0도 X축 수평 방향으로 변환해 Base deltaXY=[1.4999937915852044,-0.004315692973631374]mm를 T2 착지·가압 기준에 한 번 적용한다. 기존 `retarget_assembly_reference`로 패드 관계를 유지하고 원본 교시/공급RGB-D/집기Z·회전은 보존했다. 반복 prepare가 누적되지 않음을 검사했다.
+- 일반 직선 이동만2배로 선택했다. 상승/일반 하강12→24mm/s, 운반120→240mm/s이며 결착I/가압P는12mm/s, 가속도/각속도/힘·그리퍼는 유지한다. 앞서 선택한 공통 깊이518~542mm·수평5mm·높이 최소5mm(기존7mm 유지)·깊이편차4mm도 유지한다. 새 전체 세트 `reports/restore-20261015/execution-t2-x1p5-fast2-xy5-20261015`와 T2 XY1 선택용 짝을 만들고 최종XY5를 선택했다. 원본·이전 세트는 보존한다.
+- `--round3-camera-free-trial --round3-three-step-trial`은 C 별도 승인과 실제 A 전체 순서T2→T1→T3를 세 native 설정/해시에 묶는 제한된 실물 시험이다. 각 Step 전 실물 팝업 ENTER 확인, T3 별도 지지 준비/해제 확인을 받는다. 정상 CYCLE_COMPLETED/released/press_done 뒤 실제 빈 닫힌 패드(폭≤12mm·상태2·정지) 확인→기존 개방 피드백 확인→기존 InspectionMotion의 검토된 HOME/FK/3표본 도착 확인을 사용한다. 각 Step 후 HOME이며 다음 실행은 별도 확인을 기다린다. 실패/취소/HOME 미확인 시 다음 Step/자동 복구·반복은 없다. HOME 관절 속도는 기존 값을 유지했다.
+- B Current·revision·완료는 변경하지 않는다. HMI의 D 시험 실행 수와 시험 예상 배치를 B 확인0/3과 구분하며, 정상3개 종료도 HOLD/B 확인 필요로 남긴다. 첫 A Step 상세 승인 계약과 전체 A 순서/native 매핑을 검사하는 시험이며 후속 실제 B STEP/FINAL·각 Step 최신 B Current 기반 재계획 연결 완료를 의미하지 않는다. DB/웹은 미확인 시험 이력으로 기록한다. 사용자의 최신 지시로 B/PR55 별도 연결은 뒤로 미룬다.
+- 최종 native 관련221 passed(1.79초), C/A 승인·HMI/프로세스·중단·실제 별도 시험 DB/HTTP 관련43 passed(21.64초), 합계264 passed/skip0이다. 두 세트의25슬롯 binding/전체 해시·각3개 무장치 preview·기존 설정 대조·문법/공백 검사를 확인했다. 세 native 전체 해시 변경/순서 변조·취소·HOME 누락 거부, 표시용 예상 배치의 Current 불변을 검사했다. 근거 `three-step-native-tests.log`, `three-step-service-tests.log`, `three-step-configuration-validation.json`이다. 새 오프셋·속도·3-Step 개방/HOME의 실물 검증은 하지 않았으며 에이전트 물리 명령0이다.
+- `sixpart.bash hmi`는 이제3-Step HMI, `hmi1`은 기존 단발 HMI다. 기존 창을 종료하고 이미 추가된 블록을 제거해 사전8블록/공급 세 슬롯·빈 HOME을 준비한 새 시험에서만 실행한다. HMI 실행 자체는 C 승인이 아니며, 승인 뒤에도 각 실물 Step 팝업 확인을 받는다.
+
+## 2026-10-15 RGB-D 20슬롯 공통 깊이518~542mm · 수평/높이 최소5mm · 편차4mm
+
+- 사용자가 T2 외 슬롯도 깊이 범위를 넓혀 통일하고 다른 허용값도 조정하도록 요청한 뒤, 수평·높이 최소5mm와 깊이 편차4mm를 명시 선택했다. 기존 슬롯별 깊이는520~539mm에 걸쳐 있어 모든 현재 범위를 포함하는 공통518~542mm로 정했다. 앞선 T2 전용518~527mm 설정을 보존하고 새 전체 세트 `reports/restore-20261015/execution-all-depth518-542-xy5-20261015`를 선택했다. 실제 적용은 새 HMI·새 C 승인부터다.
+- RGBD_XY 20슬롯의 `depth_range_mm=[518,542]`, `max_shift_mm=5`, `max_height_error_mm=max(기존값,5)`, `max_depth_spread_mm=4`를 적용했다. T1 노랑2×2 슬롯4의 기존 높이7mm는 유지한다. 수평은 전체 XY 거리이며 깊이 편차는 블록 내부3×3 패치의 최대−최소다. 기준 표면·교시·집기Z/회전·영상 시각310ms/동기50ms 등 기존값·힘·속도·그리퍼·조립판 보정 정책은 바꾸지 않았다. 넓은 깊이 범위 안에서도 별도 변위·블록 내부 패치 검사를 유지한다.
+- TEACHING_ONLY 5슬롯은 깊이 보정을 쓰지 않으므로 모드/교시를 유지하고 허용값을 새로 만들지 않았다. 25개 슬롯 모두 조건부 실행 대상이라는 계약을 유지한다. `xy1` 선택용 짝 세트도 만들었으며 이 명령은 T2 수평만1mm로 되돌리고 다른 슬롯과 새 공통 깊이/높이/편차는 유지한다. 두 선택을 실제 파일로 확인한 뒤 최종 `xy5`를 선택했다. 원본과 이전 세트·시험 로그는 보존했다.
+- 최종 설정 후 depth/profile 관련78 passed(0.45초), 두 세트의 각25개 실제 설정 binding·전체 출처/산출물 해시, 각3개 native 무장치 preview를 확인했다. 슬롯별 합성 경계는 각 세트260개(합계520개): 깊이518/542 허용·517/543 거부, 패치 편차4 허용·5 거부, 해당 수평/높이 경계 허용·0.001mm 초과 차단을 확인했다. 경계별 기준점을 구성한 합성 검사이며 실제 카메라 측정이나 실물 성능 검증이 아니다. 다른 native 설정은 경로/registry 해시 외에 동일하고 원본 교시·집기Z가 유지된다. 근거 `all-tolerances-spread4-tests.log`, `all-tolerances-spread4-validation.json`, 새 세트의 `validation.json`이다.
+- 이번 작업의 실제 로봇/그리퍼/STOP 명령0이며 새 허용값의 실물 시험·B Current/완료 갱신은 하지 않았다. T2 단발 후 HOLD와 실제 B 확인 요구, 남은 Step binding 미완성 범위는 그대로다.
+
+## 2026-10-15 T2 슬롯3 원시 깊이 허용 범위518~527mm
+
+- 최신 사용자 실행 Job `a0214308-0840-4e51-b8c3-19e8c06251a1`의 승인 문서/native 설정에 I55N·P56.25N·O47mm/실폭44~50mm가 적용된 것을 확인했다. 공급 관측의 블록 내부3×3 깊이가 모두520mm로 기존521~527mm를 벗어나 `SUPPLY_DEPTH_SURFACE_UNAVAILABLE`로 중단했다. 영상98.369322ms/skew0·중심 인식 성공이며 집기 하강/파지 전이다. 새 반력 기준의 실물 적용 성공이나 B Current/완료로 해석하지 않는다.
+- 사용자의 명시적 요청으로 T2 파랑2×3 슬롯3만 원시 깊이 하한521→518mm로 변경했다. 새 전체 세트 `reports/restore-20261015/execution-t2-xy5-height5-depth518-20261015`를 선택하고 수평1mm 선택용 짝 세트도 같은 깊이 범위로 만들었다. 원본/기존 설정·기록을 보존했으며 registry의 해당 depth 해시와 변경 근거를 갱신했다. 수평거리5mm·높이차5mm·깊이편차2mm·310ms/50ms·기준점/교시/집기Z·I55/P56.25/O47과 다른 슬롯을 유지했다. 깊이 범위 통과 뒤에도 별도 수평/높이 검사를 거친다.
+- 관련 depth/profile 검사78 passed(0.43초), 두 세트의 각3개 native preview(장치 연결/물리 명령0), 25슬롯의 출처/산출물 해시·설정 비교를 확인했다. 모의 범위 경계518/527mm 허용·517/528mm 거부 및520mm 허용을 확인했고, 다른 native 설정은 세트 경로/registry 해시 외에 동일하다. `xy1`/`xy5` 선택을 확인한 뒤 최종XY5로 선택했다. 근거는 `depth518-tests.log`, `depth518-validation.json`, 각 세트의 `validation.json`이다. 새 깊이 범위의 실물 재시험은 하지 않았다.
+- 추가 읽기 전용 촬영은 `ROBOT_NOT_STOPPED`로 영상 수집 전에 중단됐다. 후속 별도 읽기의 CheckMotion0/success=true와 구분해 기록하며 실패 실행의 STOP 영수증이나 HOME 확인으로 대체하지 않는다. 이번 작업의 팔/그리퍼/STOP 쓰기0이다. 다음 새 HMI·새 승인부터 적용하며 자동 HOME/재시도/Current 변경은 없다.
+
+## 2026-10-15 T2 I 하강55N · P 가압56.25N 분리와 웹 재기동
+
+- 사용자 화면의 `APPROVED_STEP_EXECUTED_B_CONFIRMATION_REQUIRED`는 B 제외 단발 실행을 마친 뒤 실제 B 확인을 기다리는 의도된 HOLD다. 최신 Job `f5d27562-038c-4dd8-a015-6e1f4d652348`/native `1792050815862668885`는 T2 `FIXED_STEP_EXECUTED`·CYCLE_COMPLETED/released/press_done=true·binding 일치다. 실제 O 명령47mm/폭48.4mm로 새44~50mm 조건이 통과했다. I는 기존45N에서 `FORCE_STOPPED_BEFORE_VERIFIED_SEATING`, P는 합력45.069858N에서 STOP ACK/정지를 확인했다. P 시작Z66.128494/12mm 하강 한도Z54.128494 대비 정지Z54.136219mm로 한도 끝 부근이다. 이 결과를 완전 결착/B Current/FINAL 완료로 표시하지 않는다.
+- 사용자가 P 가압 기준25% 증가와 하강 반력55N을 명시 요청했다. T2만 `seating_force_stop_n=55`(I), `press_force_stop_n=56.25`(45×1.25, P)를 연결했다. 기존 공용 공급 기준 `force_stop_n=45`는 그대로 두어 공급부45N/그리퍼40N 검사를 완화하지 않았다. T1/T3는 I/P45N을 유지한다. O47mm/실폭44~50mm·집기/교시/수평5mm·속도·P 하강12mm/12mm/s·상승·정지/장치 검사는 유지했다.
+- P는 정하중 명령이 아닌 위치 하강 중 raw 합력으로 정지하는 기존 방식이다.56.25N은 정지 기준이며 실제 가압력이 정확히25% 증가한다는 보장은 없다.12mm 한도가 먼저 오면 기존 `MAX_TRAVEL_REACHED_WITHOUT_FORCE_THRESHOLD`로 보고하며 거리 확대나 자동 추가 가압을 하지 않는다. 새 승인 문서의 D profile/현장 설정도 I55/P56.25를 기록하고 native config 해시로 검증한다. 기존 HMI·승인/실행 ID를 재사용하지 않으며 같은 T2가 남은 현재 배치에서 재실행하지 않는다.
+- 관련 native114 passed(1.53초), 실제 DB/로컬 HTTP와 명시적 가짜 D의 승인·해시/저장 통합26 passed(19.66초), 합계140 passed/skip0다. 새 native3개 preview/AST/공백 검사를 확인했다. T2 설정에서 두 개의 단계별 반력 필드 외의 값이 이전47mm 설정과 동일하고 T1/T3는 동일함을 대조했다. 모의 가압50N의 한도 종료·57N의56.25N 정지와 I55N 정지, 기존45N 경로를 검사했다. 실물 새 I55/P56.25는 아직 시행하지 않았고 에이전트 로봇/그리퍼/STOP 쓰기0이다. 근거 `press56-tests.log`, `press56-approved-step-tests.log`, `press56-validation.json`.
+- 화면의 시험 이력 재시도 ConnectionRefusedError는 로컬8767 웹이 종료된 별도 문제였다. 포트 미청취(errno111)를 확인하고 기존 웹만127.0.0.1:8767에 재기동했다. 카메라/로봇/DB 재기동 없이 최신 Job의 해당 계정 웹 조회를 실제 확인했고 assembly=NOT_RECORDED/storage=PENDING이다. HMI의 시험 이력 반영 재시도는 웹 조회만 하며 물리 동작을 반복하지 않는다.
+
+## 2026-10-15 6부분 시험 첫 T2 native 완료 확인 · O 개방47mm/실폭44~50mm 수정
+
+- 사용자 완료 보고 후 Job `c301edec-880a-4d4f-992d-89f45fcd1f44`, execution `0cdf37c2-77f9-4461-bd24-d0c6d4fa6586`, native `1792049805614665684` 원본을 확인했다. C 별도 APPROVE→실제 A 첫 S01/T2→파랑2×3 슬롯3 RGB-D 보정[-0.091731,-4.634372]mm→파지/이송→native I/O/P/U로 `CYCLE_COMPLETED`, released/press_done=true, `FIXED_STEP_EXECUTED`/종료0·service binding 일치다. 조립판 위 상승 후 HOLD이며 전체 조립/B 확인 완료로 승격하지 않는다.
+- native 압력 단계의 STOP ACK/정지 확인은 true다. 서비스 최종 `actual_stop_verified=false`는 별도 최종 STOP 영수증 미연결 상태로 보존했다. 후속 실제 읽기는 robot_state1/CheckMotion0·관절[9.694836,21.113264,64.584244,0.308492,94.620430,11.860610]/모두success=true이며 HOME은 아니다. 에이전트 이동/그리퍼/STOP 쓰기0이다.
+- 해당 제작자 계정으로 로컬 웹 로그인·Job summary 조회를 실제 수행해 DB/웹 시험 이력 접근과 설계1개를 확인했다. assembly=NOT_RECORDED/storage=PENDING으로 정식 FINAL 저장이 아닌 미확인 시험 이력이다. B Current/completed 갱신·별도 FINAL·T1/T3 실물 실행은 하지 않았다. 근거는 `reports/restore-20261015/sixpart-first-native-completed.json`이다.
+- 사용자가 O 개방값48mm 이하 누락을 지적했고 최신 지시로 명령47mm/실제 폭44~50mm를 지정했다. 완료된 원본 실행의 O는 공용 `open_mm=60`을 사용했고 실제61.2mm였다. CAD 참조의 release48은 native 설정에 전달되지 않아 적용되지 않았다. 원본 실행/교시/프로파일·로그는 바꾸지 않았다.
+- native `round2_three_step_trial.prepare`의 T1/T2/T3 설정에 O 전용 `release_width_mm=47`/`release_feedback_range_mm=[44,50]`를 연결했다. `held_xy_seating_trial.release`는 이 전용 설정을 검증해47mm를 명령하고 실제44~50mm·정지·gripper_status0의 안정3표본 뒤에만 반환한다. 상한50mm 초과는 STOP/오류로 후속 상승·4mm 빈 패드 닫기·P를 차단하며 자동 재닫기를 하지 않는다. 44mm 미만은 기존10초 확인 창에서 성공 처리하지 않으며 시간 초과 시 STOP한다. 기존 장치/힘/시각 guard와 공급/HOME `open_mm=60`을 보존했고 전용 필드 없는 과거 관측 시험의 동작은 유지했다.
+- 새 승인 문서의 frame/D profile에도 실제 native의47mm/44~50mm를 반영해 기존 참고48mm와 실행 값의 차이를 제거했다. config 해시가 바뀌므로 이전 HMI/승인 문서/실행 ID를 재사용하지 않는다. 같은 현재 배치에서 완료된 T2를 다시 실행하지 않는다.
+- O 실제 키 경로의 정상47mm·이상61.2mm 모의, 경계44/50mm 허용·43.9/50.1mm 거부, 잘못된 설정 무명령, 기존 공급 열림/동작 보존을 포함한 관련 native111 passed(1.39초)다. 새 native3개 preview는 장치0이며 이전 설정과 차이가 O 전용 두 필드뿐임을 확인했다. 실제 DB/HTTP와 명시적 가짜 D의 승인 문서/해시/정지/이력·웹 통합26 passed(19.30초), 합계137 passed/skip0이며 AST/공백 검사도 통과했다. 실제47mm O 재시험/완전 결착·B 비교는 아직 미검증이다.
+
+## 2026-10-15 T2 정지 관측·누적 보정 점검 · 사용자 요청 수평5mm/복구 선택
+
+- 사용자가 두 번째 HOLD 뒤 로봇을 움직이지 않는 관측 진단을 요청했다. 기존 `capture_supply_depth_reference.Reader`의 네 읽기 서비스만 사용해 T2 관측 위치에서 RGB/정렬Depth/CameraInfo20장을 저장했다. 관측 자세 차이0.024323mm/0.000041°·촬영 전후 TCP 차이0이며 TCP/Tool은 GripperDA_v4/ToolWeight0다. 실제 이동/STOP/그리퍼 명령·카메라 재시작0이다.
+- 20/20장 인식·유효 깊이 성공, 수평 차이4.497567~4.591519mm/중앙 deltaXYZ[-0.110961,-4.537888,+1.849629]mm다. 중앙 대비 수평 변동 최대0.059194mm·깊이522~523mm·기존 깊이/편차 검사 통과다. 원래 짝 기준과 영상 중심이 대략v+7.968px 차이이며 카메라 K/D/크기/frame과 저장된 TCP-camera 행렬은 동일하다. 실제 장착/블록·판 위치가 그대로인지는 독립 확인하지 않아 특정 물리 원인이나 실측 정확도를 단정하지 않는다. T1/T3 한 장의 참고 비교도 차이가 있었지만 해당 기준을 채택하거나 다른 슬롯을 변경하지 않았다.
+- 사용자가 블록 재배치 가능성과 보정 누적을 점검하고 수평 허용값5mm 시험 및 문제 시 복구를 요청했다. bind/execute의 deepcopy, rgbd_target의 새 vector, center_target의 교시 복사/보정 후보 직접 반환을 확인했다. 매 목표는 원래 교시+(이번 관측 표면−고정 기준)이며 이전 delta를 누적하거나 교시/프로파일에 저장하지 않는다. 반복 동일/이동/원점 복귀/역방향5mm 관측에서도 같은 절대 목표와 원본 불변을 새 회귀로 확인했다.
+- 원본 portable 및 높이5mm·수평1mm 세트를 보존하고 `reports/restore-20261015/execution-t2-xy5-height5-20261015`에 T2 슬롯3 수평 거리 상한만1→5mm로 변경했다. registry 대응 해시·변경 근거를 갱신하고 다른 슬롯/집기Z·회전·힘·속도·그리퍼·ROI·깊이·310ms/50ms·조립XY 정책을 유지했다. 전체 XY 거리5mm이며 축마다5mm가 아니다. 수정된 값은 실제 집기 XY 보정에 적용된다. 다음 C 승인 문서가 새 설정 해시에 묶이며 과거 실행 ID를 재사용하지 않는다.
+- 관련 합성103 passed(0.60초), 새 전체 설정 native3개 preview와 출처/산출물 해시 검사가 통과했다. 이번 실촬영20장을 당시 시각/실제 CameraInfo/현재 TCP로 장치 없이 재생해 이전XY1은20/20거절, 새XY5는20/20허용·같은 목표 재호출 중복 보정 없음·집기Z/회전 불변을 확인했다. 실시간 새 실행 허가/파지·결착 성공으로 해석하지 않는다. 근거는 `t2-stationary-review/analysis.json`, `xy5-offline-validation.json`, `t2-no-accumulation-review.json`, `t2-xy5-tests.log`다.
+- `sixpart.bash xy1`은 다음 새 HMI의 수평1mm·높이5mm 설정만 선택하고 움직이지 않으며 `xy5`는 수평5mm를 선택한다. 두 선택을 실제 실행·파일 검증했고 최종 선택은XY5다. 정상/문제 때 자동 동작·복구·재시도/Current 변경을 추가하지 않았다. 현재 로봇은 공급 관측 위치이며 새 HMI를 실행하기 전에 기존 창 종료·빈 HOME 확인이 필요하다. 다음 사용자 명시 HOME→새 HMI 준비/C 별도 승인→T2 단발 시험, 종료 후 HOLD와 실제 상태 확인이다. 새 허용값으로 로봇/그리퍼를 아직 재실행하지 않았다.
+
+## 2026-10-15 T2 공급 관측 중단 진단 · 사용자 요청 높이 허용값 조정
+
+- 사용자 실행 Job `0caa30a7-d658-4fc0-ad32-b60906b3f421`에서 C APPROVE→실제 A 첫 S01/T2→native 관측 이동까지 진행했다. native `1792048452546239717`은 공급 관측 도착 후 파랑2×3 슬롯3의 스터드 중심 인식에 성공했으나 `SUPPLY_DEPTH_DISPLACEMENT_OUT_OF_BOUND`로 중단했다. 패킷142.258ms/skew0이며 RGB-D 수신·ROI 이탈 오류가 아니다. 원시 깊이521~527mm/편차2mm와 블록 내부3×3 patch 검사를 통과한 뒤 로봇Base 기준점 대비 변위 검사에서 실패했다. 기존 로그에는 실제 deltaXYZ가 없어 수평/높이/비정상수치 중 원인을 확정하지 않는다.
+- 마지막 native 관측 표본은 motion_status0/속도0/그리퍼 폭52mm였고 집기 하강·그리퍼 명령 전이다. native 최종 result가 없어 서비스 결과는 실패/HOLD·actual_stop_verified=false·Current/completed 갱신 없음이다. 첫 사후 조회는 서비스 대기10초 후 종료124였으며, 기존 loopback DDS URI를 명시한 후속 실제 조회는 GetRobotState1/CheckMotion0/GetCurrentPosj≈[0,0,90,0,90,0]·모두success=true로 HOME 관절/동작정지를 확인했다. 후속 단발 읽기를 과거 실패 실행의 STOP 영수증으로 대체하지 않는다. 에이전트 이동/그리퍼/카메라 재기동0이다.
+- 최신 사용자 명시 요청으로 T2 슬롯3의 관측 높이 허용값2→5mm를 별도 로컬 전체 세트 `reports/restore-20261015/execution-t2-height5-20261015`에 적용했다. 원본 portable의 모든 바이트를 보존했고 새 세트는 해당 depth 필드와 registry의 대응 artifact 해시/변경 근거만 갱신했다. 수평 상한1mm, 깊이521~527mm·편차2mm·310ms/50ms, 기준점·교시·집기Z/회전·힘·속도·조립XY 정책은 그대로다. `sixpart.bash`가 새 세트로 새 HMI를 열며 기존 실행 ID/승인 문서는 재사용하지 않는다. 사용자 요청의 시험 허용 변경이며 정확도 검증 또는 이번 실패 원인 해결로 표시하지 않는다.
+- depth_center 실패 문자열에 finite/deltaXYZ/실제수평거리·높이차/각허용값을 추가했다. 기존 오류 코드·거부/보류 경로를 유지하고 값을 대체하거나 자동 재실행하지 않는다. 관련 합성 검사86 passed(0.54초), native3개 preview 종료0/장치 연결0을 확인했다. 높이±5mm 허용·±5.001mm 거부·기본2mm 유지·수평1mm 초과 차단과 기존 집기Z/회전 불변을 검사했다. 새 설정 실물 시험은 아직 시행하지 않았다. 다음은 사용자 실제 상태 조회→검토된 경로로 빈 HOME 확인→새 HMI의 C 별도 승인→단발 실행이다.
+- 후속 사용자 실행 Job `2bb4599d-4a66-4cca-9040-3140ade4a5e6`/native `1792049066887795270`의 새 프로파일 해시 적용과 C APPROVE/A T2 바인딩을 확인했다. 공급 관측 도착·슬롯3 중심 인식 성공 후 같은 변위 검사로 HOLD: deltaXYZ=[-0.100005,-4.565083,+1.827949]mm, 수평4.566mm>1mm이며 높이1.828mm≤5mm다. 즉 이번 중단은 높이가 아닌 수평 변위다. 패킷92.274ms/skew0, 집기 하강/그리퍼 명령0, 서비스 actual_stop_verified=false/Current 미갱신이다. 사용자가 보낸 `NOT_CONFIRMED_BY_B`는 결과 전달 로그이며 이 D 오류의 원인이 아니다. 후속 읽기 CheckMotion0/success=true 확인, 추가 허용값 변경·자동 재실행/로봇 쓰기0. 원시 로그와 별도 `t2-height5-second-failure.json`을 보존했다.
+
+## 2026-10-15 B 실시간 카메라 제외 · 6부분 통합과 D 실물 단발 시험 준비
+
+- 사용자가 A/C/D/HMI/DB/웹을 먼저 연결하고 D는 실물로 실행하도록 요청했다. 포맷 후 새 PC이며 기존 DB/웹 환경은 없다고 확인했다. 요청한 round2 원격 브랜치를 비교용 `reference/integration-round2`로 fetch했고 SHA는 `5652b694fa08a10339e3e5ddadf5cb6dca6d5876`이다. round2의 REAL D/합성 B/로그인·개인 이력 연결을 참고했으며 전체 merge·브랜치 전환·push는 하지 않았다. A RELEASE_PRESS 0.5.2와 B 층 허용값 등 다른 변경은 가져오지 않았다.
+- `--round3-camera-free-trial` 선택 모드를 추가했다. portable scenario의 사전8블록을 `SYNTHETIC_SCENARIO_NOT_B_OBSERVATION`이라는 명시적 시험 기준으로 기존 B 계약에 공급하며, 실제 INITIAL archive나 촬영 시각을 만들지 않는다. 실제 C 검토/승인→A 계획/재평가/모션→첫 T2 native 대응과 일회 실행을 사용한다. 원래 `--round3-approved-step`의 실제 INITIAL 요구·300초/해시 검사와 live-inspection 경계는 유지한다.
+- 이 시험의 native 문서·service binding에 `SIXPART_REAL_D_SINGLE_STEP`·실물 조립 미확인·시험 기준 출처 해시를 기록한다. HMI는 시험 기준 구조와 B 실관측 없음을 표시한다. T2 실행 후 HOLD, completed/Current 갱신 없음, 새 START/RESUME/REINSPECT로 반복 실행 없음이다. 다음 T1/T3 연결과 P09 지지 차이는 계속 후속 범위다. 25슬롯 portable 세트·교시·동작/힘/영상 기준을 바꾸지 않았다. D의 공급 RGB-D는 유지하며 이 모드의 읽기 전용 D 프로세스는 별도 제스처 카메라를 열지 않는다.
+- D 단발 결과 후 인증된 제작자에게 시험 Job을 DB 적재하고 웹에서 미완료 설계/이력을 조회한다. 정식 FINAL 저장 영수증은 발급하지 않으며 완료 저장 조건을 완화하지 않았다. DB 반영 후 웹 실패 재시도는 웹 조회만 수행한다. 다른 사용자·진행 중 중복 요청은 거절하며 물리 동작을 다시 실행하지 않는다.
+- 프로젝트 `.venv`에 기존 요구사항 psycopg/binary3.3.6만 설치했다. 로컬 시험용 PostgreSQL17 이미지를 받고 Compose 프로젝트 `c2-round3-sixpart-20261015`의 새 볼륨/DB `c2_round3_sixpart_test`를 시작했다. 127.0.0.1:55439에만 노출하며 기존 볼륨/계정은 수정하지 않았다. 앱은 `.env.sixpart-local.bash`(600)에 접속 정보·전용 시험 계정을 보관한다. 비밀값은 출력/게시하지 않았다. 웹은 127.0.0.1:8767에서 기동했고 HTTP200·스키마·시험 롤백 후 사용자1/Job0을 확인했다.
+- 관련 승인/native/live/저장 회귀는 실제 별도 DB/로컬 HTTP와 명시적 가짜 D를 사용해40 passed1skipped(37.04초)다. skip은 기존 5층 재생 로그 부재1건이며 해당 로그를 만들기 위한 무관한 전체 시험을 추가하지 않았다. 새 6부분 사례는 실제 C/A·로그인/DB/HTTP·소유자 격리·웹 재시도에서 D launch1회/미완료 유지 확인을 포함한다. HMI 계약167 passed, 기존 native 관측 이동/ROS adapter48 passed, 합계255 passed1skipped다. 후속 HMI 문구/레이아웃 수정 후 해당 UI2개를 재실행해 통과했고 1400×1000 합성 화면을 직접 검토했다. HOME wrapper도 정상/실패2개 명시 fixture와 기본 무동작 preview를 확인했다.
+- 로컬 `reports/restore-20261015/sixpart.bash`는 preview/home/web/hmi를 각각 명시적으로 실행한다. HOME은 이전 사용자 확인 경로·기존 InspectionMotion과 기존23deg/s·1mm/1°·실장치 guard를 사용하며, 실패 시 자동 재이동하지 않는다. HOME 성공 확인 후 HMI를 열어 전용 시험 계정 로그인→준비 체크→C 미리보기/별도 승인→첫 T2 파랑2×3 슬롯3→(13,11,L2,0°)를 실행하도록 준비했다. 에이전트의 실제 로봇/그리퍼 명령0이며 실제 HOME/T2/결착 성공·새 B INITIAL/STEP/FINAL·전체 서비스 완성은 아직 검증하지 않았다.
+
+## 2026-10-15 새 PC 별도 작업본 복원·Python/DRCF2 파일 확인 — 장치 미연결
+
+- 사용자 요청에 따라 `/home/rokey/협동2/C-2-round3`에 인계 bundle을 독립 clone했다. 브랜치는 `codex/integration-round3`, HEAD는 `1288625239ecdf517ae1b78fa05226a9bd7f8a33`이며 bundle 검증과 소스 2,070개 해시 대조가 통과했다. 기존 작업본·Downloads 원본은 수정하지 않았고 commit/push/PR/merge는 수행하지 않았다.
+- `.venv`는 Python 3.12.3의 `--system-site-packages --without-pip`으로 만들었다. 로컬 전용 `.env.round3-local.bash`에서 `PYTHONNOUSERSITE=1`을 적용해 사용자 영역 NumPy 2.5.4와 시스템 SciPy의 충돌을 피한다. NumPy 1.26.4·SciPy 1.11.4·pymodbus 3.6.9·ROS Python/메시지·cv_bridge·Qt import와 GetCurrentPosj/MoveStop 타입 지원을 확인했다. 패키지 설치·시스템 Python 변경은 없다.
+- `C2_ROS_WS`와 `C2_DRIVER_ROOT`는 기존 `/home/rokey/cobot2_ws`를 선택한다. 동봉 소스와 Doosan 1,352개·onrobot 78개·bringup 14개 파일이 일치한다. 두 설치 라이브러리는 실제 빌드 산출물과 Build ID/코드 영역이 일치하고 컴파일 기록은 `DRCF_VERSION=2`다. 선택된 package prefix와 공유 라이브러리 의존성도 확인했다. 설치 시 RPATH 변경으로 파일 전체 해시는 빌드 디렉터리와 다르며 과거 PC의 바이너리 해시를 재사용하지 않았다. 재빌드는 하지 않았다.
+- 이 PC의 `READY.json`은 없으며 원본 READY를 복사하거나 새 실물 승인 기록을 만들지 않았다. 실행 중 드라이버의 실제 로드 경로·서비스 가용성·현장 정지/제어권·HOME은 미확인이다. ROS 노드 생성·서비스 호출·Robot/Camera/Gripper 연결과 물리 명령은 모두 0이다.
+- portable 25슬롯 validate, INITIAL preview(V0→D1→D3), 서비스 preflight가 각각 종료0으로 통과했다. 20 RGBD_XY+5 TEACHING_ONLY, 후보11블록, T2→T1→T3와 T3 추가 지지 차이가 유지된다. 합성 prefix는 B Current가 아니며 사용자 승인은 false다. 사용자 터미널의 동일 검사 출력도 같은 결과다.
+- 동봉 손 모델을 `robot_control_integration/logs/handover/stage02/hand_landmarker.task`로 복원하고 원본 해시 일치를 확인했다. 모델은 실행하지 않았다. 전용 환경의 MediaPipe·psycopg는 미설치이며 제스처/DB/웹 검증은 후속 범위다. 근거는 로컬 `reports/restore-20261015/`에 저장했다.
+- 후속 사용자 제공 ROS 목록에서 `get_current_posj`/`move_stop`이 각각 `dsr_msgs2/srv/GetCurrentPosj`/`MoveStop`으로 발견됐다. 서비스 존재 확인이며 응답 시간·실제 STOP·과거 실패 원인 해결의 증거는 아니다. `/dsr01/dsr_rokey_basic_py`도 보이며 로컬 `rokey_cobot2/basic/jog_complete.py`가 같은 노드명으로 이동/그리퍼 버튼이 있는 `Pos 설정` 창을 만든다. 실제 프로세스 정체와 드라이버 로드 경로는 아직 미확인이고 자동 종료·재기동하지 않았다. 원본 출력과 검토 JSON은 로컬 reports에 보존했다.
+- 후속 사용자 단발 조회는 GetRobotState=`3/STATE_SAFE_OFF`, CheckMotion=`0`, GetCurrentPosj=`[3.79983544,18.40449905,40.56082916,-3.10641146,121.00118256,0.39996752]`이며 세 응답 모두 success=true다. 이번 조회에서 응답 시간 초과는 재현되지 않았으나 실제 응답 시간은 측정하지 않았다. INITIAL 중 실패 원인 해결·STOP 경로·HOME·B Current 확보의 증거는 아니다. 사용자에게 현재 무동작 진단에서는 서보를 다시 켜지 않고 SAFE_OFF를 유지하도록 안내했다. 원본 값은 `reports/restore-20261015/user-readonly-state.json`에 기록했다.
+- 이후 사용자 요청으로 이 PC의 환경 source→roboton2(camera=false, rviz=false)와 별도 10fps/Infra OFF 카메라 기동 명령을 안내했고, 사용자가 기동했다고 보고했다. 로컬 드라이버 초기화는 제어권 요청과 Servo ON을 시도하므로 서보 OFF 유지용 명령이 아님을 먼저 설명했다. 에이전트가 장치를 직접 기동하거나 안전 상태를 해제하지 않았다.
+- 재기동 후 사용자 터미널의 rg 미설치로 목록 필터가 중단돼 grep으로 바꿨다. 후속 출력에서 두 필수 서비스와 GetRobotState=`1/STATE_STANDBY, success=true`를 확인했다. 재기동 후 동작 상태·관절·TCP/Tool·카메라 전송은 아직 결과 대기다. 원본 SAFE_OFF 조회와 새 STANDBY 보고는 별도 JSON으로 보존하며 STOP 경로·HOME·B Current 검증으로 승격하지 않는다.
+- 남은 읽기 검사를 짧은 한 줄로 실행할 수 있도록 로컬 `reports/restore-20261015/check-readonly.bash`를 준비했다. CheckMotion/GetCurrentPosj/GetCurrentTcp/GetCurrentTool 네 조회와 동봉 verify_rgbd.py만 수행하고, 실행마다 별도 결과 폴더를 만들며 실패 시 중단한다. bash/내장 Python 구문과 고정 조회 대상을 확인했다.
+- 사용자 실행 결과 `live-readonly.9rpgjC`의 원시 파일을 직접 검토했다. CheckMotion=0·관절 조회 성공·TCP GripperDA_v4·Tool ToolWeight0가 확인됐다. RGB239/정렬Depth240/양쪽Info239개, 모두1280×720·camera_color_optical_frame, 약29.9785Hz, 나이44.018~60.358ms·대응packet skew0ms이며 각 토픽의 발견된 발행자는1개다. 이번8초 전송은 기존250ms/50ms 기준 이내이며 인식/보정/조립 성공이나 실제 STOP 검증은 아니다. 인계의10fps와 현재30fps를 구분하고 설정 변경·재기동은 하지 않았다. 정리와 원본 해시는 해당 폴더 review.json에 기록했다.
+- 현재 카메라 profile/Infra1·2/USB 연결 정보를 읽는 `reports/restore-20261015/check-camera-config.bash`의 사용자 실행 결과를 원시 파일로 확인했다. `camera-config.v2tDlx`는 RGB1280×720×30/Depth848×480×30, Infra1·2=false, D435i USB3.2다. 이전 PC의10fps 전송 근거와 이 PC의30fps·8초 전송 근거를 구분해 보존하며 현재 설정을 유지한다. 이번 확인에서 카메라 매개변수 변경·재기동은 없다.
+- `reports/restore-20261015/check-runtime.bash`의 사용자 실행 `runtime-check.lPGjfU`를 원시 파일로 확인했다. 실제 로봇0·자동 모드1이고 로컬 dsr01 driver PID100392 한 개의 controller/hardware 매핑 경로·inode·검증 해시가 모두 일치한다. 두 B 모델 파일도 존재한다. 이 결과를 다른 PC의 제어권이나 실제 STOP 시험 완료로 해석하지 않는다.
+- 유일한 실패는 B 이미지 미등록이다. 저장된 Docker 오류는 `No such image: c2-b-vision:pr48-20261014`이며 daemon 접근 실패가 아니다. 검사 도구가 stdout의 빈 줄 때문에 stderr를 화면에 보여주지 못하던 부분을 수정하고 bash/내장 Python 구문을 다시 확인했다. 동봉 이미지 tar.gz의 크기1,116,825,274바이트와 SHA256을 manifest에 재대조해 일치했다(`vision-archive-recheck.json`). 다음은 사용자 터미널에서 docker load 후 같은 검사로 image ID를 대조하는 것이다. 이 기록 시점에는 이미지 load·컨테이너 기동·드라이버 재시작·INITIAL/조립·live 연속 옵션·MoveStop을 실행하지 않았다.
+- 사용자 docker load 후 `runtime-check.Y12HOc`의 원시 summary에서 image ID가 인계값과 일치하고 여섯 파일/실행 환경 항목이 모두 true임을 확인했다. 정지 응답·실제 B 관측 성공으로 승격하지 않는다.
+- 사용자가 실제 이동을 허용했고, 빈 그리퍼·손 이탈·HOME/V0/D1/D3 경로 검토·사전8블록 준비를 모두 확인했다. 직접 사용자 확인은 로컬 `operator-readiness.json`에 기록했으며 C 후보 승인과 구분한다. 같은 현장 준비를 재승인받지 않고 STOP 경로 확인 후 INITIAL로 이어간다.
+- 현재 환경에서 INITIAL/live integration19개와 native inspection/ROS adapter48개, 총67개 기존 모의 검사가 통과했다. 첫 native 명령은 환경 source의 cd로 대상 경로를 찾지 못해0개였고 C2_ROBOT_ROOT로 이동한 재실행에서48개가 통과했다. 장치 연결0이다. 새 STOP helper도 명시 fixture4개로 정상1회/움직임과FK불일치시0회/STOP실패시재시도0회를 확인했다.
+- 로컬 `check-before-initial.bash`는 네트워크 없는 임시 B 컨테이너에서 두 모델을 먼저 로딩하고, 동일 INITIAL open_motion/InspectionMotion 경로로 읽기 표본3개·V0/D1/D3 FK 일치·STOP1회와 기존3표본 정지 피드백을 검사한다. 기존0.5초 피드백/서비스와1mm·1°/정지 기준을 유지하며 이동·그리퍼·힘·모드 변경은 호출하지 않는다. 기본 check-stop.py preview는 장치 연결0으로 확인했다. 실제 B 모델 로딩·STOP 시험은 사용자 실행 결과 대기이며 INITIAL/조립을 자동 실행하지 않는다.
+- 사용자 실행 `preinitial.Bf5kmd`는 모델 로딩 뒤 보조 검사에서 멈췄다. 에이전트가 블록 모델을 detect로 잘못 제한한 것이 원인이며, 실제 B는 `yolo_pipeline.load_segmentation_model`로 segment를 요구한다. checkpoint를 실행하지 않고 pickle opcode로 SegmentationModel/Segment26/task=segment를 확인했고 파일 해시도 원본과 일치한다. 보조 검사는 기존 B의 엄격한 segmentation loader와 손 detect loader를 그대로 사용하도록 수정했다. 모델·클래스·판정 임계값·B production은 변경하지 않았다.
+- 위 실패에는 stop-result.json이 없고 shell이 로봇 단계 전에 종료돼 실제 STOP/이동/그리퍼 명령0이다. 실패 로그와 검토 JSON은 보존했다. YOLO_CONFIG_DIR는 기존 실행 스크립트와 같은 /tmp로 맞춰 없는 하위 경로 경고를 피했다. 수정 후 bash/Python 구문·loader 호출 대조와 B 관련 선택 모의9개 통과(467 deselected)를 확인했다. 실제 수정 보조 검사·STOP 시험은 사용자 재실행 결과 대기다.
+- 사용자 재실행 `preinitial.XqpU54`의 원시 로그에서 손 detect/블록 segment 5종 모델 로딩과 `STOP_SERVICE_AND_FEEDBACK_VERIFIED`를 확인했다. 실제 정지 상태에서 기존 native STOP1회와 3표본 정지 피드백·writer 해제가 통과했으며 이동/그리퍼 명령0, Current=null, home_return_verified=false다. 조회 표본은 HOME 관절값 부근·속도0·CheckMotion0·STANDBY1·자동1·DRL3·빈 패드52mm이고 전체 표본 조회 시간0.107~0.131초다. V0/D1/D3 FK 위치 오차0.411/0.287/0.830mm·회전0.170/0.039/0.084°로 기존1mm/1° 이내다. 정지 중 STOP 검사이며 이동 중 정지 시험이나 과거 HAND_RECEPTION 시간 초과 원인 해결의 증거로 승격하지 않는다.
+- 이미 확인받은 현장 준비 조건으로 INITIAL만 한 번 수행하는 로컬 `reports/restore-20261015/run-initial.bash`를 준비하고 bash 구문·diff 공백을 검사했다. 기존 production CLI와 확인 플래그를 사용하며 V0→D1→D3 관측 성공 후 HOME으로 복귀한다. 에이전트는 이 파일을 실행하지 않았고 실제 새 INITIAL/B Current·HOME 복귀는 사용자 실행 결과 대기다. 조립·후속 Step·live 연속 실행·자동 재시도는 포함하지 않는다.
+- 사용자 INITIAL `f6053e6f-edcc-4a41-9f72-967ef4e7a738`의 result/events/B response 원본을 확인했다. V0 도착0.398mm/0.170°·정지 확인 후 `fresh synchronized V0 hand RGB/Depth unavailable; check topics/clocks`로 HOLD다. Current=null, home_return_verified=false, actual_stop_verified=true, writer_released=true, 조립/그리퍼 명령0이다. 실패 종료 표본은 V0·속도0·CheckMotion0·STANDBY1·그리퍼0/52mm·조회0.114초다. 이전 PC의 STOP 부재와 구분하며 이번 성공 STOP을 현재 시각의 지속 정지 보증이나 INITIAL 성공으로 해석하지 않는다.
+- 원인 확정 전에 재실행/자동 HOME/카메라 재기동/임계값 변경을 하지 않는다. 로컬 `check-b-camera.bash`와 metadata 전용 수신기를 준비해 호스트와 동일 B 실행 wrapper의 컨테이너에서 각각8초 수신·RGB RELIABLE/BEST_EFFORT 차이·정렬/원본 Depth·CameraInfo·발행자 QoS·시각/영상 나이·RGB/Depth skew를 비교한다. 로봇 client·모델 추론·B Current 생성은 없으며 bash/Python 구문·diff 공백을 확인했다. 실제 비교 결과는 사용자 실행 대기다.
+- 사용자 비교 `b-camera.UX1yAu` 원본에서 호스트 raw Depth481/raw Info480개(Depth 나이11.814~18.754ms), RGB 두 QoS·정렬Depth·관련Info는0개를 확인했다. 컨테이너는7개 수신 모두0이고 발행자 목록도 모두 비었다. 양쪽 domain20·CycloneDDS·실제 시계이며, RGB 수신 자체가 없어 RGB/Depth 시각 차이로 원인을 확정할 수 없다. 앞선 정상 RGB-D 전송 근거와 현재 결손을 구분한다. 사용자가 준 기동 로그는 RGB/Depth30fps 시작과 HARDWARE_CLOCK 경고이며 현재 RGB 중단의 확정 원인은 아니다. 비교·원본 해시는 해당 review.json에 기록했다.
+- 이 PC의 .bashrc는 CYCLONEDDS_URI로 lo 전용 설정을 선택하지만 기존 B wrapper는 해당 환경/파일을 전달하지 않았다. scripts/c2_b_docker.sh에서 file:// 설정을 읽기 전용 mount하고 URI를 전달하도록 수정했다. 파일 누락/읽기 불가 시 컨테이너 실행 전에 실패하며 inline URI와 미설정 동작을 보존한다. fake Docker4개와 기존 INITIAL/live integration19개, 총23 passed/종료0이며 bash 구문·diff 공백 통과, 실제 컨테이너/ROS 연결0이다. 임계값·로봇 제어·카메라 설정·이미지는 변경하지 않았다.
+- 다음은 수정 wrapper로 같은 무동작 비교를 사용자 실행하여 DDS 발견·RGB 수신을 확인하는 것이다. 로컬 검사에 현재 카메라 parameter dump 조회를 추가했다. 컨테이너 발견 회복과 호스트 RGB/정렬Depth 중단 원인은 아직 실측 대기이며 INITIAL/카메라를 자동 재실행·재기동하지 않는다.
+- 사용자 비교 `b-camera.jLa8qu`에서 수정 후 컨테이너가 모든 카메라 발행자를 발견하고 raw Depth481/raw Info480개를 수신했다. 컨테이너 raw Depth 나이11.776~14.987ms로 DDS 설정 전달 후 실제 발견·수신 회복을 확인했다. 호스트도 raw481/Info480이며 RGB 두 QoS·정렬Depth·관련Info는 양쪽 모두0이다. parameter dump는 enable_color/depth/sync/rgbd와align_depth=true, Infra1/2=false, RGB1280×720×30·Depth848×480×30, use_sim_time=false다. RGB/정렬Depth 전송과 INITIAL은 여전히 미통과다.
+- 다음 장치 조작은 사용자가 기존 카메라 터미널을 직접 종료하고 인계에서 전송을 확인한10fps·Infra OFF 설정으로 카메라만1회 기동한 뒤 같은 무동작 비교를 수행하는 것이다. 로컬 `start-camera-10fps.bash`는 기존 /camera가 보이면 중복 기동을 거부하며 자동 재시작/반복은 없다. bash 구문·diff 공백을 검사했고 에이전트가 이 파일이나 실제 카메라를 실행하지 않았다. 로봇 드라이버·교시·그리퍼·B 임계값·alias는 변경하지 않았다. 30fps 중단의 상세 원인과10fps 전송 회복 여부는 아직 미확정이다.
+- 후속 사용자 비교 `b-camera.DXCzpD`에서 호스트 RGB239/정렬Depth240, 컨테이너 RGB240/정렬Depth240개와 원본Depth·3종Info 수신을 확인했다. 양쪽 모두 각 발행자1개·기존형식/해상도/frame·수신 전 시각 없음, 전체 영상 나이43.429~56.162ms·RGB/Depth 최근접skew0ms로 기존250ms/50ms 이내다. 손 수신기의 RELIABLE RGB도 양쪽239/240개로 실제 수신됐다. 원본·해시와 검토 항목은 해당 review.json에 기록했다. 실제 B 모델 추론·8블록 INITIAL 채택 성공으로 승격하지 않는다.
+- 이번 실제 parameter dump는 RGB1280×720×30·Depth848×480×30, Infra1/2=false·정렬/sync/rgbd=true다. 안내한10fps 기동의 실행 여부를 추정하거나10fps 성공으로 기록하지 않으며, 현재30fps 전송이 통과했으므로 추가 설정 변경/재기동은 하지 않는다. 기존 승인된 현장 준비 조건으로 사용자가 `run-initial.bash`를1회 실행해 세 View/B Current/HOME/정지/writer 결과를 확인하는 다음 단계를 안내한다. 재시도/조립 자동 실행은 없다.
+- 사용자 INITIAL `a9c88d28-666c-4236-ae76-48c0e1ff1ca2` 원시 result/events/failure를 확인했다. V0 도착0.412mm/0.170° 확인 후 세 영상/CameraInfo 촬영 수신 시간 초과로 HOLD이며 Current=null·HOME=false·actual_stop_verified=true·writer_released=true·조립/그리퍼0이다. 마지막 정지 조회0.114초·STANDBY1·빈52mm다. D1/D3 성공 또는 INITIAL 채택으로 표시하지 않는다.
+- capture_inspection_view가 매 콜백 사이에 동기식 제어 상태 조회를 수행하는 구조에서, 6개 토픽을 한 콜백씩 받는 모의 executor와60ms 조회 지연으로 촬영 시간 초과를 재현했다. 기존 손 수신기와 같이 촬영 수신도 전용 thread에서 계속 처리하고 최신 bounded queue·CameraInfo 사본을 lock으로 선택하도록 수정했다. 상태/취소/정지 확인은 기존 순서로 유지하며 마지막 조회 후 영상 나이를 다시 확인한다. timeout15초·나이250ms·skew50ms·로봇 제어 기준을 변경하지 않았다. receiver 오류/취소/만료는 실패로 정리하고 Current를 만들지 않는다.
+- 수정 전 회귀 재현 로그는 capture-before-fix-tests.log이며, 수정 후 촬영 관련41 passed, B 전체478 passed1skipped(기존 PR22 consumer 미제공), root INITIAL/live/wrapper23 passed로 해당 범위 모두 종료0이다. 촬영41개는 B 전체에 포함되므로 합산하지 않는다. 실제 ROS/카메라/로봇/컨테이너 실행0이며 실물 수신/전체 INITIAL 회복은 아직 미확인이다. 변경은 수신 처리와 관련 테스트에 한정했다.
+- 사용자가 담당자에게 B 제외 A/C/D/HMI/DB/웹앱 우선 통합 가능 여부를 검토 요청 중이라고 알렸다. 카메라 실시간 인식을 대기하지 않는 소프트웨어 통합은 기존 runbook의 L1~L3 병행 범위로 안내한다. B 소유 Current/revision/MATCH/FINAL 경계는 명시적 시험 자료로 유지하고 D 모의 실행·별도 시험 DB/웹을 실제 실물 완료와 구분해야 한다. 이 질문만으로 6부분 전체 신규 구현·DB 설치·운영 데이터 저장을 시작하지 않았고, 추가 INITIAL 실물 재실행도 안내하지 않았다.
+
 ## 2026-10-15 다른 PC·새 채팅 인계와 INITIAL 실패 보존
 
 - 사용자 요청으로 현재 round3 서비스 연결 변경을 대상 브랜치에 로컬 커밋하고, 독립 Git bundle·실행 설정 원본/휴대본·외부 런타임·검증 근거·새 채팅 인계문을 ZIP으로 전달한다. 원격 push/PR/merge는 요청 범위에 포함하지 않았다. 다른 PC의 경로 지정용 `scripts/round3_environment.example.bash`와 [인계 안내](D_ROUND3_HANDOFF_20261015.md)를 추가했다. 기존 공급판·motion 수치·B 최신성/정지 임계값은 변경하지 않았다.
@@ -1719,3 +1888,59 @@ ROS_DOMAIN_ID=20 C_DESIGN_USE_LLM=0 python3 -m app.mvp_real_trial \
 - docs/ROUND3_GIT_UPLOAD_FILES.txt에 파일 단위 업로드 목록, ROUND3_GIT_UPLOAD_REVIEW.ko.txt에 코드/프로파일/별도 승인 Step 공용 변경과 로컬 제외 범위를 기록. 공용 파일의 승인 Step 수정은 제거하지 않고 별도 검토 묶음으로 표시. stage/commit/push 미실행.
 - execution-portable-20261015 새 배포본 생성. source_sha256을 배포본 기준 상대경로로 지원하고, 필수 JSON26개를 evidence에 바이트 동일 복사. 원본 현장 프로파일·영상·logs/reports는 보존하고 .gitignore로 구분. 활성 설정의 /home 경로 제거, 중첩 원본 기록의 경로는 비실행 역사 출처로 유지. 기존 좌표·제한값·20 RGB-D/5교시 승인·미검증 상태 동일 대조.
 - HEAD+선별 목록만 복사한 별도 경로에서 원래 PC 경로 읽기 차단 후 25슬롯 load/단일 설정 및 native3Step preview 통과. 별도 checkout 관련 native241 + HMI/승인 Step26=267 테스트 통과. packaging-validation.json에 결과 저장. 장치 연결0/동작0, 실제 후속 B 판정·DB·전체 ABCD 완료 주장 없음.
+
+
+## 2026-10-15 PR55 실제 B 3-Step 별도 검토본
+
+- 이 항목은 PR55_round3_verified/runtime 별도 폴더만의 구현/검증이다. 원본 C-2-round3 및 실행 HMI·장치를 변경하지 않았다. PR55 최신 확인 SHA: `2d3f001f905670af04a096dac87b8af99f090d48`.
+- `--round3-b-three-step`: 실제 저장 INITIAL→C 승인→A T2/T1/T3·매번 재평가→native 단발 실행·빈 개방/HOME→실제 B STEP MATCH→다음 Step→별도 FINAL. B Current/revision/Expected/비교 소유를 유지한다. 고정 3-Step 외 설계/순서는 차단한다.
+- 최신 사용자 지시의 공통 수평10mm/P70N, T2 판+X1.5mm, 일반 이동2배/접촉12mm/s, I 기존값·하강12mm·O47mm를 보존했다. 현장 프로파일은 별도 `settings/round3_b_three_step_20261015`에 원본 바이트 그대로 복사했다.
+- 승인 prefix/슬롯/현재 revision/교시·HOME 해시/만료를 검증한다. native와 B의 writer를 순차 인계하고, 각 팝업 ENTER 뒤 승인 만료를 재확인한다. B 관측 순번은 check_id마다0이며 global 증가로 검사하지 않는다. native의 과거 app.contracts 이름 충돌을 피해 B의 배치 검증을 사용한다. T3의 별도 native 지지 팝업은 유지한다.
+- 실제 C/A/B 로직과 명시적 장치 fixture: 루트127 passed/2 PostgreSQL DSN skipped, native211 passed, PR55 B 전체512 passed/1 외부 PR22 Consumer skipped, B 실제 Docker(네트워크·장치 없음)72 passed. 패치 무적용 검사/AST/YAML/JSON/프로파일 preview 통과. 결과는 상위 evidence 폴더의 이번 작업 로그다.
+- 실물 L4·새 INITIAL 성공·실제 B 영상 판정·로봇 결착·DB/웹 저장은 시행하지 않았다. stud_layer는 진단값으로 실제 process_saved 관측을 대신하지 않는다. D3 원시 정지 실패 자료가 없어 원인을 확정하지 않았으며 정지 검사를 완화하지 않았다.
+- 실행: `bash scripts/round3_b_three_step.bash initial` 이후 성공 결과의 `initial_capture_directory`를 `bash scripts/round3_b_three_step.bash hmi <cycle-directory>`에 지정한다. 기본 `preview`는 장치 없는 검사다. 상위 README_FIRST.ko.txt/REVIEW.ko.txt와 manifest/verify.py에 전달 절차·범위·해시·검증 한계를 기록했다. commit/push/PR 게시/merge 없음.
+
+
+## 2026-10-15 수신 후 최신 사용자 설정 병합
+
+- 이 별도 runtime에 T2 판+X1.5mm를 제거하고 판+Y1.5mm만 적용했다. 두 축 동시 입력은 거절한다. I 키는 사용자의 육안 각도 확인으로 바로 결착을 시작하며 자동 yaw를 일시 정지한다. T3 지지 확인·장치/힘/정지 검사는 유지한다.
+- `settings/round3_b_three_step_20261015` 전체 묶음의 공급 RGB-D20슬롯에 수평거리·높이편차·3×3깊이퍼짐 모두10mm를 적용했다. 기준면·집기Z/자세·관측 pose·원자료 해시·절대 깊이518~542/최신310ms/동기50ms와 다른 설정을 유지한다. TEACHING_ONLY5개는 그대로다.
+- 실제 B 전용 Step 분리/HOME/writer 해제/승인 prefix/ENTER 후 만료 재확인을 보존했다. launcher는 원래 PC의 private `.env.sixpart-local.bash` 계정/DB 설정을 source하되 프로젝트/PYTHONPATH/프로파일은 이 runtime으로 바인딩한다. 비밀값은 복사/출력하지 않았다. 가짜 interpreter/환경만으로 launcher 경로를 검증했다.
+- 변경 후 native220 passed, 실제 C/A/B와 명시적 장치 fixture 통합45 passed/2 PostgreSQL DSN skipped. 두 설정 묶음의25슬롯/20RGB-D와 모든 원자료/설정 해시를 확인하고 initial/native preview를 장치 없이 실행했다. 새 INITIAL, 실제 RGB-D 판정/결착/DB·웹 저장은 미실행이다. 전달 당시 B512/1skip·Docker72 검사는 해당 B 파일이 바이트 동일함을 확인해 근거로 보존하며 이번 재실행 수치로 표시하지 않는다.
+- 전달 원본 manifest·변경 전 파일은 상위 evidence에 보존했다. 현재 실행 대상은 이 runtime과 갱신된 manifest/verify.py다. reviewed.patch/reviewed-code.tar.gz는 수신 당시 역사 자료다. latest-local.patch/최신 로컬 변경 목록은 이번 보정만 나타내며 원본 main에 전체 덮어쓰지 않는다. 로봇 명령0/장치 연결0/commit·push0.
+
+## 2026-10-15 빈 판 랜덤 5층 D·B 시험
+
+- 최신 요청으로 별도 `app/round3_stack_five.py`와 실행 helper를 추가했다. 기본 preview는 무동작이다. 노랑·파랑 2×2/2×3 20슬롯에서 중복 없는 랜덤5개를 고정하고 기본 (13,11) 최소 점·0°·1~5층에 적층한다. 빨강 1×2 5슬롯은 제외한다. 기존 C 승인 3-Step·DB/웹 모드와 분리된 D·B 장치 시험이다.
+- run은 실제 빈 판 INITIAL 성공·빈 B Current·HOME/writer 인계를 확인한 뒤 각 native 단발→개방·가압·상승/HOME→실제 B STEP MATCH를 진행한다. 마지막은 별도 FINAL이다. B 소유 Current/비교를 생성 목표로 대체하지 않는다. 오류·중단·비교 실패 때 다음 집기/자동 재실행은 없다.
+- P 반력 정지 기준60N·I45N·접촉12mm/s·일반 이동2배·O47mm/44~50mm를 적용했다. 최신 사용자 요청으로 추가 60N 도달/정지확인 인증 조건은 제거했다. 기존 native가 가압 후 정상 완료하면 진행하며 최대 이동 한도 종료의 60N 미도달 자체를 보류 사유로 추가하지 않는다. P 생략·실제 장치/STOP 오류·HOME 실패는 기존대로 보류한다.
+- 2×2 위 2×3의 기존 사람 지지 준비/해제 안내를 재사용한다. blue2×3 슬롯3의 원래 T2 교시는 원래 타깃으로 정상 로드한 뒤 기존 실측 판/층 모델 차이만큼 전달한다. 원본 교시 타깃 검사를 약화하지 않으며 새 층 경로는 실물 미검증이다. 계획·설정/소스 해시를 고정하고 같은 plan의 재실행을 차단한다. native 실패 뒤 STOP도 실패하면 최초 원인과 STOP 오류를 별도 보존한다.
+- 이전 저장 INITIAL e74246df의 실제 YOLO/세 View 오프라인 재생에서 입력 영상 수신은 정상이며 V0 확인4개/D1·D3 확인0개를 재현했다. 미확인 형상·가림과 초기 전체 층 영역 증거 부족이 남는다. 빈 판 성공으로 간주하거나 기존 실패 관측을 재사용하지 않는다. B 인식 코드는 이 시험 추가에서 변경하지 않았다.
+- 실행·확인 순서는 상위 `STACK_FIVE.ko.txt`를 따른다. 이번 작업의 실제 로봇/그리퍼/STOP/카메라 연결은0이며 실물5층 성공·B 최종 판정은 미검증이다.
+- 변경 후5층/기존 B3-Step 통합37 passed, native 가압·결착·키 조작·3Step 관련139 passed(합계176)를 확인했다. 정상5STEP/FINAL 및 실패 보류, 전체20슬롯·층1~5 설정, 60N 미도달/최대 이동 정상 종료 허용, P 생략/중단 차단, 최초 오류 보존을 장치 fixture로 검증했다. 새 preview의5개 설정/소스 해시 검증·Python AST·shell 구문도 통과했다. 원시 로그는 상위 `evidence/initial-fix-20261015/stack-five-tests-current.log`, `stack-five-native-tests.log`다.
+
+### 이후 요청: 이번 5층 시험의 B 실패 작업자 체크박스
+
+- `--operator-b-review`에서만 INITIAL의 기존 범위 미확인 실패와 층별 B 실패를 기록 후 체크박스로 진행할 수 있다. 해제된 체크·비활성 계속 버튼으로 시작하며 취소/창 닫기는 보류한다. 건별 재확인이고 자동 통과/재실행은 없다. 원래 INITIAL/STEP 응답·실패 파일을 수정하지 않는다.
+- INITIAL 실패 시 실제 정지/writer 해제 확인 후 작업자가 빈 판을 확인하면 기존 검토 HOME 경로로 복귀한다. 초기 비교 기준의 출처는 `OPERATOR_VISUAL_EMPTY_BOARD_TEST_ONLY`이며 INITIAL의 B Current=null/HOLD를 유지한다. 실제 B STEP이 생성한 Current만 결과 Current에 채택한다.
+- 층별 예외는 로봇 정지·HOME·writer 해제가 확인된 B 결과에만 적용한다. 작업자가 확인한 시험 진행 prefix와 실제 B Current/비교/확인된 Step 목록을 구분한다. B MATCH를 만들거나 confirmed-Step 집합에 수동 승인 층을 넣지 않는다. native 오류/STOP/HOME/writer/취소/응답 식별 불일치는 체크박스로 넘기지 않는다.
+- 실제 STEP MATCH가 누락되면 FINAL 전체 MATCH 요구는 유지하여 FINAL을 실행하지 않고 사유를 기록한다. 수동 확인이 하나라도 있으면 결과는 `FIVE_STEPS_EXECUTED_WITH_OPERATOR_REVIEW`, physical_completion=false이며 B 전체 조립/DB/웹 완료로 표시하지 않는다. 기존 C 승인3-Step 및 B 공통 코드/계약은 변경하지 않았다.
+- 변경 후5층/기존 B3-Step 통합54 passed(실제 B 상태/비교, 명시적 장치 fixture)를 확인했다. INITIAL 실패 보존/수동 기준 표시, 층별 MISMATCH/UNOBSERVABLE/ERROR 건별 확인 후5층 진행, 실제 B Current 보존/FINAL 게이트 유지, 체크 초기 해제/버튼 비활성/취소, HOME·정지·writer 실패 차단과 검토 HOME 실제 피드백 요구를 포함한다. 로그는 `evidence/initial-fix-20261015/stack-five-operator-review-tests.log`이며 로봇/그리퍼/STOP/카메라 연결0이다.
+
+### 5층 시험의 기존 HMI 화면 연결
+
+- `bash scripts/round3_stack_five.bash hmi`: 기존 HmiWindow/BoardView/InspectionView를 재사용한5층 시험 화면이다. 전체 목표·실제 B Current·B 예상/차이·현재 목표/관측과 층별 공급/D 실행/B 판정 표를 표시한다. 기존 C 승인3-Step/계정/DB/웹 Job과 분리된 시험이며 그 완료 이력으로 저장하지 않는다.
+- HMI 준비 체크/시작→INITIAL→매 층 HMI 실행 확인→기존 관측창 I/O/P/U·지지 안내→HOME→실제 B STEP 순서다. B 실패 체크박스를 HMI 안으로 연결했다. 원래 B 판정/Current를 보존하고 수동 진행 층을 별도 표시하며 FINAL 실제 MATCH 조건을 유지한다.
+- 기존 native/CV 실행은 별도 자식 프로세스의 주 스레드에서 유지한다. 식별자가 결합된 요청/응답만 승인하고 EOF/잘못된 응답/취소를 승인으로 해석하지 않는다. HMI의 정지 요청은 기존 SIGINT 경로로 전달하며 프로세스 종료를 실제 정지로 표시하지 않는다. 시작 직후 정지와 늦은 확인 요청을 차단하고 실행 중 창 닫기는 정지 처리 후 닫도록 유지한다.
+- HMI를 열거나 새 시험본을 만들 때 같은 seed/선택의 별도 plan을 만들고 장치에 연결하지 않는다. 기존 실행 폴더/기록과 중복 실행 방지를 유지한다. 사용한 CLI plan은 FileExistsError 대신 `PLAN_ALREADY_USED_CREATE_NEW_PREVIEW`로 장치 연결 전에 안내한다. 이전5d36b2a3 시험은 완료0개, 첫 공급 슬롯 관측 후 `SUPPLY_DEPTH_EXPIRED_BEFORE_PICKUP`이며 그 깊이 최신성 기준을 완화하지 않았다.
+- 변경 후5층 HMI/프로토콜/실제 B 비교/기존 B3-Step 관련63 passed, 기존 HMI 화면/버튼/실행 표시103 passed(합계166)를 확인했다. 장치 없는 실제 자식 프로세스의 체크/승인 왕복과 실제 run_stack→HMI 정상/수동 흐름을 포함한다. 5행 표시·체크 초기 해제·버튼 비활성·중복 시작·오래된 승인/EOF·B Current 보존·완료 구분을 확인했다.
+- 1200×900 대응 화면과 작은 화면의5행 표시를 장치 없이 확인했다. 화면 검증 이미지는 상위 evidence의 `stack-five-hmi-ready.png`, `stack-five-hmi-initial-review.png`이며 저장 실패 결과를 표시한 재생 화면이다. 실제 ROS/로봇/그리퍼/STOP/카메라 연결0·commit/push0이며 실물5층/B 확인 성공은 미검증이다.
+
+### 공급 깊이 집기 전 만료의 처리 지연 수정
+
+- 최신 c6259e1d 시험의 첫 yellow2×3 슬롯4는 인식 성공, 깊이522mm/퍼짐0mm/XY2.237mm/높이6.863mm였다. 검증204.034ms로310ms 이내였지만 결과 화면 갱신과 추가 전체 상태 조회 후 `SUPPLY_DEPTH_EXPIRED_BEFORE_PICKUP`으로 보류됐다. 완료 조립0이며 원본 영상·로그를 보존했다.
+- 별도5층 build의 RGB-D 경로에만 `defer_depth_evidence`와 `defer_depth_pose_validation`을 활성화했다. 기존 지연 저장을 사용하고, 실제 수신 RGB/Depth/CameraInfo·선택 슬롯/프레임을 단발 결합한 뒤 집기 함수에서 얻은 한 번의 최신 전체 응답으로 RGB-D와 자세/장치 검사를 함께 완료한다. 촬영 후 검증용 상태 조회는2→1회이며 모션별 상태 조회/정지·TCP/Tool·그리퍼·힘 검사와 실제 촬영 전후 .05 자세 변화 검사는 유지한다. 캐시된 로봇 상태를 재사용하거나 검사 성공을 임의 생성하지 않는다.
+- 결과 화면 그리기는 검증 뒤 첫 기존 수직 구간 완료 후 수행한다. 증거 PNG/JSON은 카메라 정리 시 성공/실패 모두 저장한다. 픽업 XYZ·Z/자세·경로·힘·속도·P60·O47과 등록 슬롯/보정 자료, RGB-D310ms/동기50ms/10mm 한계는 바꾸지 않았다. TEACHING_ONLY와 기존3-Step의 기본 실행 순서는 유지한다.
+- 계산 전 monotonic 시점을 만료 기준에 고정하여 보정 계산 지연이 유효 시간을 늘리지 않게 했다. 실제 만료/다른 프레임·슬롯/자세변화/동작 중/그리퍼·TCP·힘·오래된 상태 응답은 계속 집기 전에 보류한다. 자동 재촬영/로봇 재실행/카메라 재시작은 추가하지 않았다. `SUPPLY_DEPTH_HANDOFF`에 잔여ms/조회ms/적용 경로를 기록한다.
+- 변경 후 공급 RGB-D/집기/3Step native157 passed와5층/HMI/실제 B 계약63 passed(합계220)를 확인했다. 가상 조회114ms·인식16ms·저장20ms·화면180ms 조건에서 기존 경로 만료를 재현하고 수정 경로의 데이터 나이189ms·잔여121ms와 검증용 조회1회를 확인했다. 이 수치는 모의 시간이며 실물 개선 측정이 아니다. 만료/보정계산·로그 지연/프레임 결합/자세·그리퍼·TCP·힘·오래된 피드백의 차단과 모션 상태 조회 유지도 검사했다.
+- 원시 로그는 상위 `evidence/initial-fix-20261015/stack-five-depth-latency-native-tests.log`, `stack-five-depth-latency-hmi-tests.log`다. 새 preview의 설정/소스 해시를 사용한다. 기존 HMI는 재시작해야 한다. 장치 연결/로봇·그리퍼·STOP 명령0·commit/push0이며 실제 재집기·5층/B 성공은 별도 현장 확인이다.

@@ -65,6 +65,12 @@ def validate_rows(config, rows, require_ready=False):
             raise ValueError('EXACT_SLOT_AXIS_TEACHING_REQUIRED:'+str(identity))
         if not 0 <= row['close_mm'] < config['open_mm'] <= 110:
             raise ValueError('OPEN_MUST_CLEAR_EVERY_GRASP')
+        for bounds,width in [(config.get('open_feedback_range_mm'),config['open_mm']),
+                             (row.get('grip_feedback_range_mm'),row['close_mm'])]:
+            if bounds is not None:
+                vector(bounds,2,'gripper feedback range')
+                if not 0<=bounds[0]<=width<=bounds[1]<=110:
+                    raise ValueError('INVALID_GRIPPER_FEEDBACK_RANGE')
     for key in ('force_stop_n', 'gripper_force_n', 'velocity', 'acceleration', 'angular_velocity', 'angular_acceleration', 'rise_velocity', 'transit_velocity', 'rise_acceleration', 'transit_acceleration'):
         if type(config[key]) not in (int, float) or not math.isfinite(config[key]) or config[key] <= 0:
             raise ValueError('INVALID_'+key)
@@ -91,6 +97,11 @@ def selected_blocks(config, slot=None):
 def motion_force_limit(config):
     """Separate ordinary motion from contact cutoff; omitted fields stay legacy."""
     return config.get('motion_force_stop_n', config['force_stop_n'])
+
+
+def width_in_range(sample,bounds):
+    width=sample['gripper_width_mm']
+    return type(width) in (int,float) and math.isfinite(width) and bounds[0]<=width<=bounds[1]
 
 
 def segment_rates(config, current, target):
@@ -127,7 +138,7 @@ def startup_targets(config, current, zone):
     return targets
 
 
-def execute(driver, config, record, observe, *, slot=None, trial_row=None, start_zone="assembly", display=None, hold_at_pickup=False, sleep=time.sleep, clock=time.monotonic):
+def execute(driver, config, record, observe, *, slot=None, trial_row=None, start_zone="assembly", display=None, hold_at_pickup=False, sleep=time.sleep, clock=time.monotonic, finalize_observation=None):
     if trial_row is None:
         rows = selected_blocks(config, slot)
     else:
@@ -135,6 +146,9 @@ def execute(driver, config, record, observe, *, slot=None, trial_row=None, start
         validate_rows(config, rows, require_ready=True)
     if hold_at_pickup and len(rows)!=1:
         raise ValueError('HOLD_TRIAL_REQUIRES_ONE_BLOCK')
+    deferred_pose=bool(config['vision'].get('defer_depth_pose_validation'))
+    if deferred_pose and (not config['vision'].get('depth_center_profile') or not callable(finalize_observation)):
+        raise ValueError('SUPPLY_DEPTH_FINALIZER_REQUIRED')
     connection = config['connection']
     limit = motion_force_limit(config)
     target_only=config.get('target_only_motion',False)
@@ -144,6 +158,7 @@ def execute(driver, config, record, observe, *, slot=None, trial_row=None, start
     if not target_only and not max(row['pickup_pose'][2] for row in rows) < low_view[2] < view[2]:
         raise ValueError('PICKUP_CLEARANCE_BETWEEN_PICK_AND_VIEW_REQUIRED')
     initial = driver.sample()
+    open_bounds=config.get('open_feedback_range_mm',[config['open_mm']-1,110.])
     if start_zone=='home':
         deadline=clock()+5.
         while not stopped(initial):
@@ -160,11 +175,13 @@ def execute(driver, config, record, observe, *, slot=None, trial_row=None, start
             while True:
                 sleep(.05);initial=driver.sample()
                 guard(dict(initial,gripper_status=0),connection,limit,automatic=False,force_norm_limit=limit,required_gripper_status=0)
-                if initial['gripper_status']==0 and initial['gripper_width_mm']>=config['open_mm']-1:break
+                if initial['gripper_status']==0 and width_in_range(initial,open_bounds):break
                 if initial['gripper_status'] not in (0,1,2):raise RuntimeError('GRIPPER_FAULT')
                 if clock()>=deadline:raise TimeoutError('HOME_OPEN_TIMEOUT')
     guard(initial, connection, limit, automatic=False, force_norm_limit=limit, required_gripper_status=0)
-    if not initial['gripper_width_mm'] >= MIN_START_OPEN_MM:
+    if 'open_feedback_range_mm' in config and not width_in_range(initial,open_bounds):
+        raise RuntimeError('START_WITH_OPEN_GRIPPER_IN_RANGE_REQUIRED: '+str(open_bounds))
+    if 'open_feedback_range_mm' not in config and not initial['gripper_width_mm'] >= MIN_START_OPEN_MM:
         raise RuntimeError('START_WITH_OPEN_AT_LEAST_50MM_GRIPPER_REQUIRED')
     deadline=clock()+5.
     while not stopped(initial):
@@ -195,7 +212,7 @@ def execute(driver, config, record, observe, *, slot=None, trial_row=None, start
             angular_velocity=config['angular_velocity'], angular_acceleration=config['angular_acceleration'],
             target_only_motion=target_only, sleep=sleep, clock=clock)
 
-    def grip(width, expected):
+    def grip(width, expected, feedback_bounds=None):
         before = driver.sample()
         guard(before, connection, limit, automatic=True, force_norm_limit=limit,
               required_gripper_status=0)
@@ -213,10 +230,13 @@ def execute(driver, config, record, observe, *, slot=None, trial_row=None, start
                 raise RuntimeError('GRIPPER_FAULT')
             okay = sample['gripper_status'] == expected and stopped(sample)
             if expected == 0:
-                okay = okay and sample['gripper_width_mm'] >= width-1
+                okay = okay and width_in_range(sample,open_bounds)
+            elif feedback_bounds is not None:
+                okay = okay and width_in_range(sample,feedback_bounds)
             stable = stable+1 if okay else 0
             if stable >= 3:
-                record('GRIP_FEEDBACK', dict(command_mm=width, expected_status=expected, sample=sample))
+                record('GRIP_FEEDBACK', dict(command_mm=width, expected_status=expected,
+                    feedback_range_mm=feedback_bounds if expected==2 else open_bounds,sample=sample))
                 return
             sleep(.1)
         raise TimeoutError('GRIPPER_FEEDBACK_TIMEOUT')
@@ -231,6 +251,13 @@ def execute(driver, config, record, observe, *, slot=None, trial_row=None, start
         for row in rows:
             record('BLOCK_BEGIN', row)
             decision = observe(deepcopy(row))
+            if deferred_pose:
+                # One post-frame full query feeds both RGB-D pose validation
+                # and the existing pre-pick equipment/pose checks below.
+                query_start=time.monotonic()
+                fresh=driver.sample()
+                decision['pose_query_ms']=(time.monotonic()-query_start)*1000
+                decision=finalize_observation(deepcopy(row),decision,fresh)
             if config['vision'].get('depth_center_profile') and not decision.get('depth_center_required'):
                 raise RuntimeError('SUPPLY_DEPTH_OBSERVER_REQUIRED')
             target = center_target(row, decision)
@@ -239,26 +266,36 @@ def execute(driver, config, record, observe, *, slot=None, trial_row=None, start
                 decision.update(supply_execution_mode='TEACHING_ONLY',
                     fallback_reason='EXPLICIT_APPROVED_TEACHING_MODE_NO_RGBD_ATTEMPT')
             record('VISION_DECISION', dict(**decision, commanded_pickup_pose=target))
-            if display is not None:
+            if display is not None and not deferred_pose:
                 display(row, decision)
             # Inference is stationary; recheck actual view before any movement.
-            fresh = driver.sample()
+            if not deferred_pose:
+                fresh = driver.sample()
             if decision.get('depth_center_required'):
                 captured = decision['depth_center']
                 # ROS reception checks freshness; bind the next movement to the
                 # same stopped pose even in the legacy target-only trial mode.
-                if time.monotonic_ns() > captured['expires_monotonic_ns']:
+                checked_ns=time.monotonic_ns()
+                if checked_ns > captured['expires_monotonic_ns']:
                     raise RuntimeError('SUPPLY_DEPTH_EXPIRED_BEFORE_PICKUP')
                 if max(pose_error(fresh['posx'], captured['capture_pose'])) > .05:
                     raise RuntimeError('SUPPLY_DEPTH_POSE_CHANGED_AFTER_CAPTURE')
             guard(fresh, connection, limit, automatic=False, force_norm_limit=limit, required_gripper_status=0)
             if not stopped(fresh) or (not target_only and max(pose_error(fresh['posx'], view)) > .5):
                 raise RuntimeError('OBSERVATION_POSE_CHANGED')
+            if decision.get('depth_center_required'):
+                record('SUPPLY_DEPTH_HANDOFF',dict(slot_id=decision['slot_id'],
+                    remaining_ms=(captured['expires_monotonic_ns']-checked_ns)/1e6,
+                    pose_query_ms=decision.get('pose_query_ms'),
+                    deferred_pose_validation=deferred_pose,
+                    equipment_and_pose_verified=True))
             high = target.copy(); high[2] = low_view[2]
             move('OBSERVATION_TO_TRANSIT_HEIGHT', low_view)
+            if display is not None and deferred_pose:
+                display(row, decision)
             move('BLOCK_HIGH', high)
             move('BLOCK_DESCEND', target)
-            grip(row['close_mm'], 2)
+            grip(row['close_mm'], 2, row.get('grip_feedback_range_mm'))
             if hold_at_pickup:
                 record('PICKUP_COMPLETE_HOLDING', dict(slot=row['slot'], sample=driver.sample(), assembly_completion=False))
                 return
@@ -280,7 +317,7 @@ def execute(driver, config, record, observe, *, slot=None, trial_row=None, start
                 if sample['gripper_status'] not in (0, 1, 2):
                     raise RuntimeError('GRIPPER_FAULT')
                 okay = (sample['gripper_status'] == 0 and stopped(sample)
-                        and sample['gripper_width_mm'] >= config['open_mm']-1)
+                        and width_in_range(sample,open_bounds))
                 stable = stable+1 if okay else 0
                 if stable >= 3:
                     record('RELEASE_FEEDBACK', sample)
@@ -397,6 +434,7 @@ class LiveVision:
         self.message = None
         self.frame = None
         self.pending_evidence = []
+        self.pending_depth = None
         self.depth_messages = deque(maxlen=10)
         self.info_messages = deque(maxlen=10)
         self.window = 'Supply vision - ESC to stop'
@@ -443,6 +481,7 @@ class LiveVision:
         self.message = None
         self.frame = None
         profile = getattr(self, 'depth_profile', None)
+        self.pending_depth = None
         deferred = bool(profile is not None and self.config['vision'].get('defer_depth_evidence'))
         from app.supply_stud.depth_center import packet_age_limit_ns
         selection_max_age_ns = packet_age_limit_ns(profile or {})
@@ -498,39 +537,26 @@ class LiveVision:
         if self.config['vision'].get('backend') == 'opencv_studs':
             from app.supply_stud.backend import observe
             result = observe(frame, self.layout, row, stamp)
+            if result.get('frame_stamp_ns',stamp)!=stamp:
+                raise ValueError('SUPPLY_DEPTH_CAPTURE_BINDING_MISMATCH')
+            result['frame_stamp_ns']=stamp
             result['rgb_evidence'] = str(path.resolve())
             result['inference_ms'] = (time.monotonic()-inference_start)*1000
             result['packet_at_selection'] = dict(rgb_age_ms=selected_age_ms, max_age_ms=selection_max_age_ns/1e6)
             if pending is not None: pending['decision'] = result
             if profile is not None:
-                from app.supply_stud.depth_center import rgbd_target
+                def nearest(messages):
+                    return min(messages, key=lambda m: abs(m.header.stamp.sec*10**9+m.header.stamp.nanosec-stamp))
+                depth_msg, info_msg = nearest(self.depth_messages), nearest(self.info_messages)
+                self.pending_depth=dict(row=deepcopy(row),before=before,rgb=msg,depth=depth_msg,info=info_msg,
+                    stamp=stamp,max_age_ns=selection_max_age_ns,path=path,deferred=deferred)
+                if self.config['vision'].get('defer_depth_pose_validation'):
+                    result['depth_center_required']=True
+                    return result
                 pose_query_start = time.monotonic()
                 current = self.driver.sample()
                 result['pose_query_ms'] = (time.monotonic()-pose_query_start)*1000
-                if (not trial_motion_still(current)
-                        or max(pose_error(before['posx'], current['posx'])) > .05):
-                    raise RuntimeError('SUPPLY_DEPTH_POSE_CHANGED_DURING_CAPTURE')
-                def nearest(messages):
-                    return min(messages, key=lambda m: abs(m.header.stamp.sec*10**9+m.header.stamp.nanosec-stamp))
-                now_ns = self.node.get_clock().now().nanoseconds
-                depth_msg, info_msg = nearest(self.depth_messages), nearest(self.info_messages)
-                packet_stamps = [m.header.stamp.sec*10**9+m.header.stamp.nanosec for m in (msg, depth_msg, info_msg)]
-                result['packet_at_validation'] = dict(ages_ms=[(now_ns-t)/1e6 for t in packet_stamps],
-                    skew_ms=(max(packet_stamps)-min(packet_stamps))/1e6,
-                    deferred_evidence=deferred)
-                try:
-                    correction = rgbd_target(row, result, depth_msg, info_msg,
-                        msg, current, profile, now_ns, self.config['teaching_xy_bounds_mm'])
-                except ValueError as exc:
-                    result['depth_error'] = str(exc)
-                    if not deferred:
-                        path.with_suffix('.json').write_text(json.dumps(result, ensure_ascii=False, allow_nan=False))
-                    raise
-                correction['capture_pose'] = current['posx'].copy()
-                correction['expires_monotonic_ns'] = time.monotonic_ns() + selection_max_age_ns - (now_ns - stamp)
-                result.update(depth_center_required=True, depth_center=correction)
-                if not deferred:
-                    path.with_suffix('.json').write_text(json.dumps(result, ensure_ascii=False, allow_nan=False))
+                return self.finalize_depth(row,result,current)
             return result
         from supply_vision.seg_backend import validate_config
         request = dict(request_id=uuid4().hex, step_id='SUPPLY_UNIT_'+str(row['slot']),
@@ -551,6 +577,37 @@ class LiveVision:
             frame_stamp_ns=stamp, frame_id=msg.header.frame_id, image=str(path.resolve()),
             response=response, layout_status=layout.get('layout_status'),
             detection_status=state['status'])
+        return result
+
+    def finalize_depth(self,row,result,current):
+        from app.supply_stud.depth_center import rgbd_target
+        packet=self.pending_depth
+        self.pending_depth=None  # A sample may finalize only its own capture once.
+        if (packet is None or packet['row']!=row or result.get('frame_stamp_ns')!=packet['stamp']):
+            raise ValueError('SUPPLY_DEPTH_CAPTURE_BINDING_MISMATCH')
+        if (not trial_motion_still(current)
+                or max(pose_error(packet['before']['posx'],current['posx']))>.05):
+            raise RuntimeError('SUPPLY_DEPTH_POSE_CHANGED_DURING_CAPTURE')
+        validation_monotonic_ns=time.monotonic_ns()
+        now_ns=self.node.get_clock().now().nanoseconds
+        messages=[packet[k] for k in ('rgb','depth','info')]
+        stamps=[m.header.stamp.sec*10**9+m.header.stamp.nanosec for m in messages]
+        result['packet_at_validation']=dict(ages_ms=[(now_ns-s)/1e6 for s in stamps],
+            skew_ms=(max(stamps)-min(stamps))/1e6,deferred_evidence=packet['deferred'],
+            deferred_pose_validation=bool(self.config['vision'].get('defer_depth_pose_validation')))
+        try:
+            correction=rgbd_target(row,result,packet['depth'],packet['info'],packet['rgb'],
+                current,self.depth_profile,now_ns,self.config['teaching_xy_bounds_mm'])
+        except ValueError as exc:
+            result['depth_error']=str(exc)
+            if not packet['deferred']:
+                packet['path'].with_suffix('.json').write_text(json.dumps(result,ensure_ascii=False,allow_nan=False))
+            raise
+        correction['capture_pose']=current['posx'].copy()
+        correction['expires_monotonic_ns']=validation_monotonic_ns+packet['max_age_ns']-(now_ns-packet['stamp'])
+        result.update(depth_center_required=True,depth_center=correction)
+        if not packet['deferred']:
+            packet['path'].with_suffix('.json').write_text(json.dumps(result,ensure_ascii=False,allow_nan=False))
         return result
 
     def display(self, row, decision):

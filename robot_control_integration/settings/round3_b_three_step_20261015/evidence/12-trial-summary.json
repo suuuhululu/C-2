@@ -1,0 +1,56 @@
+{
+  "status": "T2_EDUCATIONAL_RGBD_SINGLE_GRASP_CLEANED_UP",
+  "slot_id": "blue_2x3x1_03",
+  "supply_rgbd_applied": true,
+  "operator_exact_grasp_confirmed": true,
+  "delta_xy_mm": [
+    0.009718532017870984,
+    0.032230607511490206
+  ],
+  "max_packet_age_ms": 310,
+  "trial_count": 1,
+  "cleanup_confirmed": true,
+  "cleanup_checks": [
+    {
+      "stopped": true,
+      "observation_error_mm_deg": [
+        0.0007202811129841841,
+        1.5407723092281324e-05
+      ],
+      "gripper_status": 0,
+      "gripper_width_mm": 52.0
+    },
+    {
+      "stopped": true,
+      "observation_error_mm_deg": [
+        0.0007202811129841841,
+        1.5407723092281324e-05
+      ],
+      "gripper_status": 0,
+      "gripper_width_mm": 52.0
+    },
+    {
+      "stopped": true,
+      "observation_error_mm_deg": [
+        0.0007202811129841841,
+        1.5407723092281324e-05
+      ],
+      "gripper_status": 0,
+      "gripper_width_mm": 52.0
+    }
+  ],
+  "automatic_lift_verified": false,
+  "repeatability_verified": false,
+  "assembly_completion": false,
+  "B_actual_assembly_confirmed": false,
+  "final_DB_saved": false,
+  "all_25_slots_RGBD_verified": false,
+  "physical_commands_sent_by_agent": 0,
+  "source_sha256": {
+    "/home/rokey/Documents/ChatGPT/로봇제어 개발/c2_integration_round3/logs/supply-rgbd-T2-slot3-trial/1792033310942237285/operator-review.json": "06288e4b07dc039efe2fc96ff7a8ece8c5e358cd98c423c58e297ca8064fc3b6",
+    "/home/rokey/Documents/ChatGPT/로봇제어 개발/c2_integration_round3/logs/supply-rgbd-T2-slot3-trial/1792033310942237285/cleanup-readonly-1792033463953276813.json": "730fe0fb1e157a6233145f1323f7d62734128560d9faec1caa83c1cb1eee7c53",
+    "/home/rokey/Documents/ChatGPT/로봇제어 개발/c2_integration_round3/logs/supply-rgbd-T2-slot3-trial/1792033310942237285/events.jsonl": "6c8fd19c5f94c41cfa477e49a2ada550b97eac2ac47d910607a492d6cd96e255",
+    "/home/rokey/Documents/ChatGPT/로봇제어 개발/c2_integration_round3/logs/supply-rgbd-T2-slot3-trial/1792033310942237285/result.json": "e20eaf5bbce526ae40f0feb30fec0b5e4c43e0b07fc78807074d5f44c74443be",
+    "/home/rokey/Documents/ChatGPT/로봇제어 개발/c2_integration_round3/logs/supply-rgbd-T2-slot3-trial/1792033310942237285/config-snapshot.json": "a5f90763ef61a4624d92560153dc66b1a170c98256288cc739c8849a309b6ee5"
+  }
+}

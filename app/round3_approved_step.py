@@ -61,6 +61,24 @@ def load_initial_capture(directory):
     return observed, packet
 
 
+def restore_initial_inspection(connection, directory, expected_current):
+    """Before Plan load, restore B's coverage restrictions as well as its Current."""
+    observed, packet = load_initial_capture(directory)
+    if (observed['status'] != 'OK'
+            or packet['geometry_reference'] != connection.geometry_reference
+            or not 0 <= time.time() - packet['captured_unix_s'] <= 300):
+        raise ValueError('FRESH_REAL_INITIAL_REQUIRED_FOR_B_RESTORE')
+    request = dict(check_id=observed['check_id'],check_kind='INITIAL',plan_id=None,step_id=None)
+    # The connection's worker is idle here. Use B's public transaction methods;
+    # a Current-only constructor cannot reconstruct unverified board columns.
+    connection.inspection.start_check(request,geometry_reference=connection.geometry_reference)
+    result = connection.inspection.finish_check(request,observed,
+        geometry_reference=connection.geometry_reference)
+    if result['current'] != expected_current:
+        raise ValueError('RESTORED_INITIAL_DIFFERS_FROM_B_CURRENT')
+    return packet
+
+
 def validate_binding(document, config, scenario, execution_profile):
     """Recheck the saved approval/A/config binding before the native writer opens."""
     if (document['schema_version'] != 'round3-approved-step/1'
@@ -73,11 +91,14 @@ def validate_binding(document, config, scenario, execution_profile):
     case = config['trial_step']
     baseline = [row['block'] for row in scenario['preplaced']]
     targets = [row['target'] for row in scenario['steps']]
-    if (document['approved'] != plan['design'] or prepared['current'] != plan['plan_base_current']
-            or not same_blocks(prepared['current']['blocks'], baseline)
+    live_sequence = document.get('execution_scope') == 'ROUND3_REAL_B_THREE_STEP'
+    index = validate_b_prefix(document, plan, scenario) if live_sequence else 0
+    expected_current = (document['b_confirmed_steps'][-1]['current'] if index else plan['plan_base_current'])
+    if (document['approved'] != plan['design'] or prepared['current'] != expected_current
+            or not same_blocks(plan['plan_base_current']['blocks'], baseline)
             or not same_blocks(document['approved']['blocks'], baseline + targets)
             or not same_blocks([s['after'] for s in plan['plan']['steps']], targets)
-            or prepared['step'] != plan['plan']['steps'][0]
+            or prepared['step'] != plan['plan']['steps'][index]
             or request['plan'] != plan['plan'] or request['selected_step'] != prepared['step']
             or request['latest_current'] != prepared['current']
             or prepared['step']['operation'] != 'PLACE' or prepared['step']['before'] is not None
@@ -119,7 +140,93 @@ def validate_binding(document, config, scenario, execution_profile):
         raise ValueError('APPROVED_STEP_TEACHING_OR_PROFILE_CHANGED')
     if prepared['motion']['motion_proposal']['pickup_tcp_pose'] != pose_mm_zyz(settings['pickup_pose']):
         raise ValueError('APPROVED_STEP_A_PICKUP_POSE_MISMATCH')
-    return dict(execution_id=document['execution_id'], plan_id=action['plan_id'],
+    binding = dict(execution_id=document['execution_id'], plan_id=action['plan_id'],
                 step_id=action['step_id'], current_revision=prepared['current']['current_revision'],
                 design_version=document['approved']['design_version'], native_step_id=case['step_id'],
                 slot_id=slot['slot_id'], binding_sha256=digest(document))
+    if live_sequence:
+        from app.round3_initial_inspection import DEFAULT
+        if (document.get('home_after_each_step') is not True
+                or document.get('manual_step_confirmation') is not True
+                or document.get('home_settings_sha256') != file_digest(DEFAULT)):
+            raise ValueError('REAL_B_SEQUENCE_HOME_REVIEW_REQUIRED')
+        binding.update(execution_scope=document['execution_scope'], b_confirmed_step_count=index)
+    if 'trial_scope' in document:
+        sources = document.get('baseline_source_sha256', {})
+        registry = str(Path(execution_profile).resolve())
+        if (document['trial_scope'] not in ('SIXPART_REAL_D_SINGLE_STEP','SIXPART_REAL_D_THREE_STEP_TRIAL')
+                or document.get('state_basis') != 'SYNTHETIC_SCENARIO_NOT_B_OBSERVATION'
+                or document.get('physical_assembly_verified') is not False
+                or not isinstance(sources,dict) or len(sources) != 2 or registry not in sources
+                or any(file_digest(path) != value for path,value in sources.items())):
+            raise ValueError('CAMERA_FREE_TRIAL_SOURCE_REQUIRED')
+        scenario_paths = [Path(path) for path in sources if path != registry]
+        if len(scenario_paths) != 1 or json.loads(scenario_paths[0].read_text()) != scenario:
+            raise ValueError('CAMERA_FREE_TRIAL_SCENARIO_CHANGED')
+        binding.update(trial_scope=document['trial_scope'], physical_assembly_verified=False)
+    return binding
+
+
+def validate_b_prefix(document, plan, scenario):
+    """Require B's accepted prefix, never manufacture Current from native success."""
+    # Native and root D both use the package name app. Use B's placement
+    # validator here so native's historical four-layer app.contracts cannot win.
+    from perception.perception_mvp.inspection import _current
+    initial, checks = document['b_initial_response'], document['b_confirmed_steps']
+    steps = plan['plan']['steps']
+    cases = {digest(case['target']): case for case in scenario['steps']}
+    order = [cases.get(digest(step['after']), {}).get('step_id') for step in steps]
+    if (order != ['T2', 'T1', 'T3'] or len(checks) >= len(steps)
+            or initial['check_kind'] != 'INITIAL' or initial['status'] != 'OK'
+            or initial['current'] != plan['plan_base_current']):
+        raise ValueError('REAL_B_SEQUENCE_INITIAL_OR_ORDER_MISMATCH')
+    _current(initial['current'])
+    previous = initial
+    identities = {initial['check_id']}
+    for index, result in enumerate(checks):
+        if (result['check_kind'] != 'STEP' or result['status'] != 'OK'
+                or result['comparison'] != 'MATCH' or any(result['difference'].values())
+                or result['plan_id'] != plan['plan']['plan_id']
+                or result['step_id'] != steps[index]['step_id']
+                or result['check_id'] in identities
+                # B starts observation_seq at zero for each independent check_id.
+                or type(result['observation']['observation_seq']) is not int
+                or result['observation']['observation_seq'] < 0
+                or result['current']['current_revision'] <= previous['current']['current_revision']
+                or not same_blocks(result['current']['blocks'], plan['expected_steps'][index]['after_blocks'])):
+            raise ValueError('REAL_B_SEQUENCE_CONFIRMED_PREFIX_REQUIRED')
+        _current(result['current'])
+        identities.add(result['check_id'])
+        previous = result
+    return len(checks)
+
+
+def trial_sequence_entries(planning_bundle, prepared):
+    """Bind the approved A order to fixed native cases, without creating B Current."""
+    result = []
+    for step in planning_bundle['plan']['steps']:
+        matches = [item for item in prepared if item['case']['target'] == step['after']]
+        if len(matches) != 1 or step['operation'] != 'PLACE' or step['before'] is not None:
+            raise ValueError('TRIAL_EXACT_NATIVE_TARGET_REQUIRED')
+        item = matches[0]
+        result.append(dict(a_step_id=step['step_id'], native_step=item['case']['step_id'],
+            native_config_sha256=digest(item['config']), additional_native_support_required=item['case']['human_hold']))
+    if [item['native_step'] for item in result] != ['T2','T1','T3']:
+        raise ValueError('TRIAL_REVIEWED_A_ORDER_T2_T1_T3_REQUIRED')
+    return result
+
+
+def validate_trial_sequence(document, prepared, scenario, execution_profile):
+    from app.round3_initial_inspection import DEFAULT
+    if (document.get('trial_scope') != 'SIXPART_REAL_D_THREE_STEP_TRIAL'
+            or len(prepared) != 3 or document.get('manual_step_confirmation') is not True
+            or document.get('home_after_each_step') is not True
+            or document.get('home_settings_sha256') != file_digest(DEFAULT)):
+        raise ValueError('TRIAL_SEQUENCE_REVIEW_REQUIRED')
+    expected = trial_sequence_entries(document['planning_bundle'], prepared)
+    if document.get('native_sequence') != expected:
+        raise ValueError('TRIAL_SEQUENCE_CONFIG_CHANGED')
+    ordered = [next(item for item in prepared if item['case']['step_id']==entry['native_step']) for entry in expected]
+    binding = validate_binding(document, ordered[0]['config'], scenario, execution_profile)
+    binding['trial_sequence_sha256'] = digest(expected)
+    return ordered, binding
