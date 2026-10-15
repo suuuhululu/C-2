@@ -1,5 +1,19 @@
 # 현재 진행 상황
 
+## 2026-10-15 — B 팀 통합 조립판 ROI 연결
+
+- 표준 통합 observer가 단독 화면과 같은 recordings/assembly_board_roi의 관측점별 최신 assembly_roi.json을 기본 로드하도록 연결했다. geometry.assembly_roi_root는 perception 기준 경로이며 config에 기본값을 명시했다. 관측 시작 시 고정한 JSON profile을 context에 보존한다. View별 ROI 적용 로그·assembly_roi.json·measurement의 assembly_roi로 적용 여부를 확인할 수 있다.
+- infer_masks가 ROI 외접 사각형에서 추론하고 원본 크기 mask를 복원한다. polygon 밖 후보는 버리고 경계 후보는 UNKNOWN으로 유지한다. process_saved도 독립적으로 후보 ROI를 검사하며 보드 plane/전체 빈 열/블록 위 빈 공간 검사에서 ROI 밖을 배제한다. ROI 파일 누락·View/해상도 불일치를 전체 영상 추론으로 감추지 않는다. 표준 저장 영상 재생도 같은 설정을 사용한다.
+- 합성 검사에서 관측점별 설정 고정·누락/해상도 오류·원본 mask 복원·경계 UNKNOWN·ROI 밖 후보 제거·빈 영역 오확정 방지와 3View cycle의 ROI 로그/아카이브를 확인했다. B 전체 검사534 passed, 1 skipped(PR22 소비자 경로 미제공), 종료0. 문법 및 diff 확인. 로컬 실제 저장 ROI 3개 모두1280×720으로 로드됨을 확인했으며 실물 카메라 재실행 증거는 아니다.
+- 통합 PC에 코드 및 기존 ROI 3개를 반영하고 B 실행기를 재시작한 뒤 재시험해야 한다. 이전 실패 후보3개의 실제 위치는 원본/마스크 미제공으로 미확인이다. D production 코드·보정·층 임계값은 변경하지 않았고 Git 게시도 수행하지 않았다. 이미 stage된 상부 빈 영역 보완과 미완료 HUD 등 사용자 변경을 보존했다.
+
+## 2026-10-15 — B INITIAL 상부 빈 공간 증거 누락 보완
+
+- 기존 process_saved는 검출 mask를 전체 빈 열 검사에서 제외하고, 확정 블록 칸도 모든 층의 빈 열 결과에서 제외했다. 따라서 측정한 footprint의 현재 층만 증거가 되고 상부 빈 층은 빠졌다. V0 측정 완료 footprint의 위쪽 공간을 별도 Depth ray/volume 검사로 확인해 verified_regions/empty_regions에 추가했다.
+- 하한은 측정된 최고 occupied layer의 명목 top+기존 높이 허용값이며 상한은 기존 5층 top+허용값이다. 공간 뒤쪽까지 모든 교차 ray의 유효 Depth가 도달해야 통과한다. UNKNOWN mask/누락 Depth/거리 이탈/가림/시야 잘림은 미확인을 유지한다. 숨은 아래층과 보이지 않는 블록의 빈 공간은 추론하지 않는다. D1/D3 층은 새 증거의 입력으로 쓰지 않는다.
+- 관련 기하/확인영역/View역할/INITIAL·FINAL/관측 runtime 검사128 passed, 1 skipped(PR22 소비자 경로 미제공), 종료0. 1~5층별 상부, 가림/원본 Depth 0/UNKNOWN mask/범위·영상 잘림, 생산자 연결을 합성 자료로 검사했다. 기존 윗면 검출·보정·층·INITIAL 임계값은 변경하지 않았다.
+- 현재 통합 실패 영상은 이 PC에 제공되지 않아 실제 69%에서의 개선량 및 미확정 4블록 원인은 미검증이다. 해당 check_id 자료로 보정·윗면 추출을 별도 분석해야 한다. D 파일·로봇 명령 및 Git 게시 작업은 수행하지 않았다.
+
 ## 2026-10-15 — B 리뷰 보완: 이력 복구·sL 검사·촬영 수신 분리
 
 - 444386b에서 삭제된 이 파일을 삭제 직전 444386b^의 1,189줄 원문으로 복구하고, 새 기록을 넣기 전 Git blob 해시 일치를 확인했다. 다른 문서의 로컬 삭제는 이번 복구 범위에 포함하지 않았다.

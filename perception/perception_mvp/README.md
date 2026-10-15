@@ -1,5 +1,18 @@
 # 실제 Perception 처리 코드
 
+## 2026-10-15 팀 통합 조립판 ROI 연결
+
+- `make_inspection_observer` 및 이를 사용하는 `connect_real_inspection`은 기본으로 패키지 기준 `recordings/assembly_board_roi`의 V0·D1·D3 최신 `assembly_roi.json`을 읽는다. 단독 live_view의 `--roi-root` 지정과 독립적으로 적용한다. 다른 위치는 geometry의 `assembly_roi_root`로 지정하며 상대 경로는 perception 폴더 기준이다. config.yaml에도 이 기본 경로를 명시했다.
+- 관측 전에 ROI 설정을 고정하고 cycle context에 남긴다. 각 View에서 `조립판 ROI 적용` 로그와 `<cycle>/<View>/assembly_roi.json`, measurement의 `assembly_roi`로 적용 파일·polygon·해상도를 확인한다. 지정된 파일 누락·View/해상도 불일치는 오류이며 전체 화면으로 자동 대체하지 않는다. 현재 저장된 ROI는 1280×720용이다.
+- YOLO는 ROI 외접 사각형의 원본 RGB를 분석하고 mask를 원본 영상 좌표로 복원한다. polygon 밖 후보는 제외하고 경계에 걸친 후보는 UNKNOWN으로 유지한다. 저장 영상 재분석도 동일한 ROI 필터를 적용한다. 보드 기준면과 빈 공간 검사에 ROI 밖 픽셀을 사용하지 않으며 ROI 자체가 빈 공간 확인 근거가 되지는 않는다.
+- 실제 초기 검사에서의 후보 3개가 ROI 밖 오검출이었는지는 미확인이다. 수정본 적용 후 같은 pose/해상도의 원본과 mask로 재검증해야 한다. ROI 안의 오검출 및 미확인 Depth가 자동 해결됐다는 의미는 아니다.
+
+## 2026-10-15 INITIAL의 블록 위 빈 공간 확인 보완
+
+- V0에서 좌표·층이 확정된 블록의 footprint에 대해 `empty_above_block_evidence`가 위쪽 공간을 별도로 검사한다. 예를 들어 2층 블록 위의 3~5층 공간을 통과한 모든 유효 Depth ray가 그 공간 뒤쪽 표면에 도달해야 확인 영역으로 추가한다. 블록이 있다는 이유만으로 위쪽이 비었다고 추정하지 않는다.
+- 기존 층 기준과 높이 허용값으로 검사 하한을 정한다. UNKNOWN 후보 mask, 0 Depth, 거리 범위 이탈, 가림, 영상 바깥 영역은 제외한다. 확인하지 않은 아래층은 추가하지 않으며 D1/D3의 미채택 층을 근거로 상부 공간을 확정하지 않는다. 원래의 전체 빈 열 증거와 새 상부 증거는 `verification_basis`/진단에 구분해 남긴다.
+- 윗면 검출·좌표·층 임계값 및 INITIAL 전체 범위 조건은 유지한다. 실제 실패 촬영 자료의 보정 오차/윗면 탈락 원인은 별도 분석과 실물 재검증이 필요하다.
+
 ## 2026-10-13 시험용 평균 층 기준
 
 - body/stud 추출은 관측된body 평면의residual band로최대3회재수집한다. 허용기울기내의표면을수평slice로잘라버리지않으며, 둘의동일XY간격이4mm±0.75mm로유지되는지도검사한다. 검사수치와원본보정/층기준은변경하지않았다. 단일표면/비평행/지원부족은미확인이다. 같은실제6장에서는분리통과4개이지만좌표·층확정0개라실물판정완료로표시하지않는다.

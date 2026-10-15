@@ -3,7 +3,8 @@ import cv2
 import numpy as np
 
 
-def empty_column_evidence(depth, scale, intrinsics, camera_to_board, config, *, object_mask=None):
+def empty_column_evidence(depth, scale, intrinsics, camera_to_board, config, *, object_mask=None,
+                          _minimum_layers=None):
     """Every sampled ray through a column must reach beyond its allowed volume.
 
     Columns span all five layers, excluding the board/stud allowance at the base.
@@ -37,7 +38,14 @@ def empty_column_evidence(depth, scale, intrinsics, camera_to_board, config, *, 
                     depth_out_of_range=0, blocked=0)
     for y in range(24):
         for x in range(24):
-            low = np.array([(x - .5) * pitch, (y - .5) * pitch, bottom])
+            first_layer = 1 if _minimum_layers is None else _minimum_layers.get((x, y), 6)
+            if first_layer > 5:
+                continue
+            # A measured lower block is not empty. Test only the volume above its
+            # permitted top, and still require Depth rays to clear that volume.
+            column_bottom = (bottom if first_layer == 1 else
+                             config['top_heights_m'][first_layer - 2] + config['height_tolerance_m'])
+            low = np.array([(x - .5) * pitch, (y - .5) * pitch, column_bottom])
             high = np.array([(x + .5) * pitch, (y + .5) * pitch, top])
             corners = np.array(list(product(*zip(low, high))))
             camera = corners @ camera_from_board[:3, :3].T + camera_from_board[:3, 3]
@@ -93,8 +101,33 @@ def empty_column_evidence(depth, scale, intrinsics, camera_to_board, config, *, 
                 rejected['blocked'] += 1
                 continue
             # Same observed clear volume proves each permitted layer, not hidden history.
-            regions.extend(dict(x=x, y=y, width=1, height=1, layer=layer) for layer in range(1, 6))
+            regions.extend(dict(x=x, y=y, width=1, height=1, layer=layer)
+                           for layer in range(first_layer, 6))
     return dict(verified_regions=regions, verification_basis=(dict(
         kind='DEPTH_RAYS_CLEAR_FIVE_LAYER_COLUMN', calibration_id=config['calibration_id'],
         height_reference='BOARD_FLAT_SURFACE_ZERO', volume_bottom_m=bottom, volume_top_m=top,
         all_sampled_rays_required=True) if regions else None), rejection_counts=rejected)
+
+
+def empty_above_block_evidence(depth, scale, intrinsics, camera_to_board, config, *,
+                               occupied_regions, object_mask=None):
+    """Depth proof above measured footprints; never infer hidden lower layers.
+
+    Only use this with the authority View's measured occupied regions. Unknown
+    instance masks remain excluded. An occupied footprint alone proves no air.
+    """
+    from .contracts import region_cells
+    minimum = {}
+    for x, y, layer in region_cells(occupied_regions):
+        minimum[x, y] = max(minimum.get((x, y), 1), layer + 1)
+    evidence = empty_column_evidence(depth, scale, intrinsics, camera_to_board, config,
+                                    object_mask=object_mask, _minimum_layers=minimum)
+    if evidence['verification_basis'] is not None:
+        evidence['verification_basis'] = dict(
+            kind='DEPTH_RAYS_CLEAR_ABOVE_MEASURED_BLOCK', calibration_id=config['calibration_id'],
+            height_reference='BOARD_FLAT_SURFACE_ZERO', all_sampled_rays_required=True,
+            lower_bound_basis='MEASURED_LAYER_NOMINAL_TOP_PLUS_EXISTING_TOLERANCE',
+            column_minimum_layers=[dict(x=x, y=y, first_empty_layer=layer)
+                                   for (x, y), layer in sorted(minimum.items()) if layer <= 5],
+            volume_top_m=config['top_heights_m'][-1] + config['height_tolerance_m'])
+    return evidence

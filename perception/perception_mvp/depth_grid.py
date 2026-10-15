@@ -337,7 +337,7 @@ def height_spread_within(heights, limit):
     return bool(spread <= limit + rounding)
 
 
-def frame_board_baseline(detections, depth, scale, intrinsics, transform, config):
+def frame_board_baseline(detections, depth, scale, intrinsics, transform, config, *, roi_mask=None):
     """Fit this capture's board plate plane (m, flat-board-zero frame) away from detected blocks."""
     params = params_from_geometry(config, 1.)
     if params is None:
@@ -345,6 +345,8 @@ def frame_board_baseline(detections, depth, scale, intrinsics, transform, config
     if config.get('layer_height_reference') != 'BOARD_FLAT_SURFACE_ZERO':
         raise ValueError('board_baseline_requires_flat_board_zero')
     union = np.zeros(depth.shape, bool)
+    if roi_mask is not None:
+        union |= ~roi_mask
     for mask, _, _ in detections:
         union |= mask
     z = depth.astype(float) * scale
@@ -504,9 +506,23 @@ def occupied_region_evidence(candidates, config):
 
 
 def process_saved(directory, detections, calibration, config):
+    from .assembly_roi import freeze_rois, mask_for_view
     detections = tuple(detections)
     rgb, _, depth, metadata = load_frame(directory)
+    config = freeze_rois(config)
     config = config_for_view(config, metadata['view_id'])
+    roi_mask = mask_for_view(config, metadata['view_id'], rgb.shape)
+    outside_count = 0
+    if roi_mask is not None:
+        kept = []
+        for mask, cls, conf in detections:
+            if mask.dtype != bool or mask.shape != roi_mask.shape:
+                raise ValueError('boolean mask must match assembly ROI resolution')
+            if np.any(mask & roi_mask):
+                kept.append((mask, cls, conf))
+            else:
+                outside_count += 1
+        detections = tuple(kept)
     validate_config(config)
     if calibration["calibration_id"] != config["calibration_id"]:
         raise ValueError("calibration/config versions differ")
@@ -515,12 +531,15 @@ def process_saved(directory, detections, calibration, config):
     board_plane, baseline_error = None, None
     try:
         board_plane = frame_board_baseline(detections, depth, metadata["depth_scale_m"],
-                                           metadata["camera_info"]["aligned"], matrix, config)
+                                           metadata["camera_info"]["aligned"], matrix, config,
+                                           **({'roi_mask': roi_mask} if roi_mask is not None else {}))
     except ValueError as error:
         if str(error) == 'board_baseline_requires_flat_board_zero':
             raise  # Configuration error, not a per-capture measurement failure.
         baseline_error = str(error)  # Blocks stay UNKNOWN; never an uncorrected layer.
-    results = [dict(status="UNKNOWN", reason=baseline_error, part_class=cls) if baseline_error else
+    results = [dict(status='UNKNOWN', reason='instance_crosses_roi_boundary', part_class=cls)
+               if roi_mask is not None and np.any(mask & ~roi_mask) else
+               dict(status="UNKNOWN", reason=baseline_error, part_class=cls) if baseline_error else
                measure_candidate(mask, cls, conf, depth, metadata["depth_scale_m"],
                                  metadata["camera_info"]["aligned"], transform, config, rgb=rgb,
                                  board_plane=board_plane)
@@ -529,6 +548,9 @@ def process_saved(directory, detections, calibration, config):
             "scene_id": metadata["scene_id"], "view_id": metadata["view_id"],
             "captured_at": metadata["captured_at"], "candidates": results,
             "reason": "whole_board_coverage_and_occlusion_not_verified"}
+    if roi_mask is not None:
+        result['assembly_roi'] = dict(config['assembly_roi_profiles'][metadata['view_id']],
+                                      dropped_outside_candidates=outside_count)
     if config.get('block_surface_height_basis') in (
             'BODY_TOP_PLUS_STUD', 'DIRECT_STUD_TOP', 'TOP_PLANE_PLUS_STUD'):
         result.update(occupied_region_evidence(results, config))
@@ -537,8 +559,10 @@ def process_saved(directory, detections, calibration, config):
         result['empty_regions'] = []
         if (config.get('layer_height_reference') == 'BOARD_FLAT_SURFACE_ZERO' and
                 len(config['top_heights_m']) == 5):
-            from .region_evidence import empty_column_evidence
+            from .region_evidence import empty_column_evidence, empty_above_block_evidence
             exclusion = np.zeros(depth.shape, bool)
+            if roi_mask is not None:
+                exclusion |= ~roi_mask
             for mask, _, _ in detections:
                 exclusion |= mask
             empty = empty_column_evidence(depth, metadata['depth_scale_m'],
@@ -553,6 +577,22 @@ def process_saved(directory, detections, calibration, config):
             result['verification_basis'] = dict(occupied=result['verification_basis'],
                 empty=empty['verification_basis'] if empty_regions else None) if result['verified_regions'] else None
             result['empty_column_diagnostics'] = empty['rejection_counts']
+            # Only V0's occupied layers are authoritative. Auxiliary measured
+            # layers must not generate free-space claims above a borrowed height.
+            if metadata['view_id'] == 'V0' and result['occupied_regions']:
+                unknown_mask = np.zeros(depth.shape, bool)
+                if roi_mask is not None:
+                    unknown_mask |= ~roi_mask
+                for (mask, _, _), candidate in zip(detections, results):
+                    if candidate['status'] != 'CANDIDATE':
+                        unknown_mask |= mask
+                above = empty_above_block_evidence(depth, metadata['depth_scale_m'],
+                    metadata['camera_info']['aligned'], transform, config,
+                    occupied_regions=result['occupied_regions'], object_mask=unknown_mask)
+                result['verified_regions'] += above['verified_regions']
+                result['empty_regions'] += above['verified_regions']
+                result['verification_basis']['above_blocks'] = above['verification_basis']
+                result['above_block_diagnostics'] = above['rejection_counts']
     return result
 
 

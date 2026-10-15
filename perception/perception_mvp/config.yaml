@@ -19,6 +19,7 @@ hand:
   max_frame_gap_seconds: 1.0
   exit_seconds: 3.0  # strict >3 seconds per user decision
 geometry:
+  assembly_roi_root: recordings/assembly_board_roi
   calibration_id: assembly_pitch16_flat0_20261013
   coordinate_rules: '+X A->B, +Y A->D; origin reference stud centre; zero-based minimum footprint anchor; layer 1..5'
   point_reference: visible_surface_center
