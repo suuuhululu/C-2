@@ -107,7 +107,9 @@ def test_hmi_start_gates_login_and_review_then_runs_exactly_one_trial(tmp_path, 
     monkeypatch.setenv('C_DESIGN_USE_LLM','0')
     monkeypatch.setattr('app.mvp_integration.RobotProcess', IdleTransport)
     runtime = FullFeatureRealTrial(ROOT/'robot_control_integration', tmp_path,
-        round3_fixed_step=True, history_dsn='not-connected', c_mode='offline')
+        round3_fixed_step=True, history_dsn='not-connected', c_mode='offline',
+        fixed_trial_scenario=tmp_path/'scenario.json',supply_depth_profile=tmp_path/'depth.json',
+        educational_depth_demo=True)
     try:
         assert not runtime.command('START')
         runtime.review_preparation(True)
@@ -116,6 +118,9 @@ def test_hmi_start_gates_login_and_review_then_runs_exactly_one_trial(tmp_path, 
         linked = []
         monkeypatch.setattr(runtime, 'link_creator', lambda: linked.append(deepcopy(runtime.job_creator)))
         assert runtime.command('START')
+        assert child.command[child.command.index('--scenario')+1] == str(tmp_path/'scenario.json')
+        assert child.command[child.command.index('--supply-depth-profile')+1] == str(tmp_path/'depth.json')
+        assert '--educational-depth-demo' in child.command
         assert linked == [runtime.creator]
         assert runtime.c_pending is None and runtime.workflow.check is None
         assert runtime.robot.sent == []  # No old EXECUTE/READ_STATE route.
@@ -132,6 +137,23 @@ def test_hmi_start_gates_login_and_review_then_runs_exactly_one_trial(tmp_path, 
         runtime.workflow.snapshot()  # Existing HMI schema is still valid.
     finally:
         runtime.close()
+
+
+def test_educational_child_requires_explicit_profile_before_start(tmp_path):
+    with pytest.raises(ValueError,match='REQUIRES_SUPPLY_DEPTH_PROFILE'):
+        FixedStepProcess(ROOT/'robot_control_integration',tmp_path/'trial',educational_depth_demo=True)
+    assert not (tmp_path/'trial').exists()
+
+
+@pytest.mark.parametrize('options', [
+    ['--educational-depth-demo','--round3-fixed-step'],
+    ['--supply-depth-profile','unused.json']])
+def test_hmi_rejects_incomplete_or_nonfixed_calibration_options(tmp_path, options):
+    result=subprocess.run([sys.executable,'-m','app.mvp_real_trial','--robot-root',
+        str(ROOT/'robot_control_integration'),'--execute',*options],cwd=ROOT,
+        text=True,capture_output=True,timeout=20)
+    assert result.returncode == 2
+    assert 'error:' in result.stderr
 
 
 def test_native_single_step_replay_never_executes_T2_T3(tmp_path):
@@ -183,3 +205,15 @@ def test_fixed_mode_ui_uses_real_start_signal_without_old_execute(tmp_path, monk
     monkeypatch.setattr(sys, 'argv', ['trial','--robot-root',str(ROOT/'robot_control_integration'),
         '--log-directory',str(tmp_path),'--execute','--round3-fixed-step'])
     main(runtime_class=lambda *a,**kw:runtime, real_trial=True)
+
+
+def test_conditionally_approved_supply_registry_forwarded(tmp_path, child):
+    registry=tmp_path/'profile.json'
+    process=FixedStepProcess(ROOT/'robot_control_integration',tmp_path/'trial',execution_profile=registry)
+    process.start()
+    index=child.command.index('--execution-profile')
+    assert child.command[index+1]==str(registry.resolve())
+    assert '--educational-depth-demo' not in child.command
+    with pytest.raises(ValueError,match='CONFLICTING_SUPPLY_PROFILE_OPTIONS'):
+        FixedStepProcess(ROOT/'robot_control_integration',tmp_path/'other',execution_profile=registry,
+                         supply_depth_profile=tmp_path/'old.json')

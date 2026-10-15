@@ -234,6 +234,8 @@ def approach_cycle_targets(sample,config,descend_mm=None,approach_z_mm=None):
 
 def visual_xy_target(sample,config,candidate):
     """Correct a misgrasp's TCP goal while keeping the block/pad world target."""
+    if not config.get('assembly_xy_correction_enabled', True):
+        raise ValueError('ASSEMBLY_XY_CORRECTION_DISABLED')
     if candidate.get('status')!='HELD_EDGE_XY_CANDIDATE':
         raise ValueError('VISUAL_XY_CANDIDATE_REQUIRED')
     delta=candidate['delta_base_xy_mm']
@@ -325,6 +327,10 @@ def observe(driver,config,directory,record, *, approach_cycle=False, descend_mm=
     camera_executor.add_node(node)
     camera_thread=threading.Thread(target=camera_executor.spin,daemon=True)
     camera_thread.start()
+    assembly_xy_enabled=config.get('assembly_xy_correction_enabled',True)
+    if not assembly_xy_enabled:
+        record('ASSEMBLY_XY_CORRECTION_DISABLED',dict(reason='OPERATOR_REQUEST',
+            assembly_target_xy=config['assembly_target_xy'],supply_xy_correction_changed=False))
     xy_aligned=False;seating_result=None;released=False;pad_reference=None;pad_status=None;press_done=False
     press_result=None;support_active=False;operator_stopped=False;stop_reason=None
     motion_limit=supply.motion_force_limit(config)
@@ -486,21 +492,25 @@ def observe(driver,config,directory,record, *, approach_cycle=False, descend_mm=
                 record('AUTO_YAW_CONVERGED',dict(relative_angle_deg=float(np.median([v[1] for v in history])),
                     tolerance_deg=.5,frame_stamp_ns=stamp,stud_center_coincidence_required=False,
                     roll_pitch_observed=False,assembly_completion=False))
-                yaw_converged_logged=True;roi_notice='Yaw aligned. 1-4: corresponding target edge, X: visual XY, I: insert.' if config.get('vision_xy_alignment') else 'Yaw within +/-0.50 deg. X: taught XY, I: insert, U: rise.'
+                yaw_converged_logged=True;roi_notice=('Yaw aligned. Assembly XY OFF. I: vertical insert, U: rise.' if not assembly_xy_enabled
+                    else 'Yaw aligned. 1-4: corresponding target edge, X: visual XY, I: insert.' if config.get('vision_xy_alignment')
+                    else 'Yaw within +/-0.50 deg. X: taught XY, I: insert, U: rise.')
             panel=np.zeros((225,w,3),np.uint8)
             if config.get('tilt_accuracy_test') and tilt_reference is not None:
                 from scripts.held_tilt_accuracy import rotation_error
                 tilt=rotation_error(tilt_reference,sample['posx'])
                 roi_notice=f"Tilt X {tilt['base_x_deg']:+.3f} Y {tilt['base_y_deg']:+.3f} deg | "+(tilt_result['status'] if tilt_result else 'J inject, K correct')
             for i,text in enumerate([f"HELD {block_label} | target ({block_target['x']},{block_target['y']}) | Z "+f"{sample['posx'][2]:.1f}mm",
-                ('XY '+(f"dX {xy_candidate['delta_base_xy_mm'][0]:+.2f} dY {xy_candidate['delta_base_xy_mm'][1]:+.2f}mm | "+xy_candidate['height_source'] if xy_candidate and xy_candidate['status']=='HELD_EDGE_XY_CANDIDATE' else str((xy_candidate or {}).get('reason','Select E top edge + 1-4'))) if config.get('vision_xy_alignment') else 'Reference: EXISTING GRID DIRECTION | XY registration not used' if virtual_grid else 'Block: '+block['status']+' | circular candidates: '+str(len(studs['candidates']))),
+                ('Assembly XY correction: OFF | supply RGB-D XY: unchanged' if not assembly_xy_enabled else
+                ('XY '+(f"dX {xy_candidate['delta_base_xy_mm'][0]:+.2f} dY {xy_candidate['delta_base_xy_mm'][1]:+.2f}mm | "+xy_candidate['height_source'] if xy_candidate and xy_candidate['status']=='HELD_EDGE_XY_CANDIDATE' else str((xy_candidate or {}).get('reason','Select E top edge + 1-4'))) if config.get('vision_xy_alignment') else 'Reference: EXISTING GRID DIRECTION | XY registration not used' if virtual_grid else 'Block: '+block['status']+' | circular candidates: '+str(len(studs['candidates'])))),
                 ('E: click top-edge endpoints | B: block ROI | SPACE: save' if virtual_grid else 'B: select HELD block | S: target studs | SPACE: capture'),
                 ('O: release/vertical rise/close | P: '+('MEASURED PAD target' if config.get('operator_teaching') else 'SAME XY press') if config.get('same_xy_press') else 'O: release/close | T teach TOP | P press' if config.get('integrated_cycle') and not config.get('pad_reference_at_target_physically_verified',True) else 'O: checked release then saved-pad PRESS + rise' if config.get('integrated_cycle') else 'Coordinate XY / insertion armed; O releases only after your check' if xy_seat_test else 'Candidate view; R: local yaw trial, no release / press'),
                 'Angle difference: '+(f"{angles['relative_angle_deg']:+.2f} deg" if angles.get('relative_angle_deg') is not None else str(angles.get('reason'))),
                 ('AUTO yaw +/-0.50 deg | Roll/pitch: not measured by this edge' if auto_yaw else 'A: switch grid axis | local pixel angle, not robot yaw'),
                 ('HUMAN SUPPORT: keep holding lower structure through press/rise | ' if support_active else '')+(roi_notice or ('Cyan: grid | Yellow: hover outline | Magenta: seated outline' if virtual_grid else 'S: include 3+ rows AND columns, not a single stud')),
                 'Camera time: '+('verified' if timing['timestamp_verified'] else 'UNVERIFIED - preview only'),
-                ('H reference | J tilt+0.5XY | K correct | X/I/O | U rise' if config.get('tilt_accuracy_test') else 'X: XY | I: insert | O: release/lift/close | T: pad touch | P: press | U: rise' if xy_seat_test else 'G: confirm grid DIRECTION | R: 0.5deg trial | U: rise' if yaw_test else 'R: bounded yaw trial | U: rise / finish | ESC: STOP')]):
+                ('I: vertical insert | O: release/lift/close | P: press | U: rise | X: disabled' if not assembly_xy_enabled
+                 else 'H reference | J tilt+0.5XY | K correct | X/I/O | U rise' if config.get('tilt_accuracy_test') else 'X: XY | I: insert | O: release/lift/close | T: pad touch | P: press | U: rise' if xy_seat_test else 'G: confirm grid DIRECTION | R: 0.5deg trial | U: rise' if yaw_test else 'R: bounded yaw trial | U: rise / finish | ESC: STOP')]):
                 cv2.putText(panel,text,(5,20+24*i),cv2.FONT_HERSHEY_SIMPLEX,.46,(255,255,255),1)
             cv2.imshow(window,np.vstack((panel,canvas)))
             key=pending_keys.popleft() if pending_keys else cv2.waitKey(1)&255
@@ -544,6 +554,10 @@ def observe(driver,config,directory,record, *, approach_cycle=False, descend_mm=
                 record('GRID_DIRECTION_OPERATOR_REVIEW',dict(frame_stamp_ns=stamp,axes_deg=angles.get('axes_deg'),basis='OPERATOR_VISUAL_PARALLELISM_ONLY',xy_registration_verified=False))
                 roi_notice='Direction review recorded. R: first 0.5deg probe.'
             if key==ord('x'):
+                if not assembly_xy_enabled:
+                    roi_notice='Assembly XY correction is OFF. After yaw review, I: vertical insert.'
+                    record('ASSEMBLY_XY_CORRECTION_SKIPPED',dict(reason='DISABLED_BY_OPERATOR',physical_commands=0))
+                    continue
                 if not xy_seat_test or released or seating_result is not None:
                     roi_notice='XY/seat trial not armed, or insertion already attempted.'
                     continue
@@ -602,8 +616,12 @@ def observe(driver,config,directory,record, *, approach_cycle=False, descend_mm=
                     roi_notice=tilt_result['status']+' | visually check; then P press.' if released else tilt_result['status']+' | visually check block; then X/I.'
                 continue
             if key==ord('i'):
-                if not xy_seat_test or not xy_aligned or released:
+                if not xy_seat_test or (assembly_xy_enabled and not xy_aligned) or released:
                     roi_notice='I requires taught XY correction X and a held block.'
+                    continue
+                if not assembly_xy_enabled and auto_yaw and (not timing['timestamp_verified'] or not stable
+                        or not history or abs(float(np.median([v[1] for v in history])))>.5):
+                    roi_notice='I requires a fresh, stable yaw within +/-0.50 deg. E: held TOP edge.'
                     continue
                 if support_ready is not None and not support_active:
                     record('TRIAL_HUMAN_SUPPORT_REQUEST',dict(target=deepcopy(block_target),policy='USER_SELECTED_HOLD_LOWER_STRUCTURE_DURING_ROBOT_FASTENING'))
@@ -778,7 +796,7 @@ def observe(driver,config,directory,record, *, approach_cycle=False, descend_mm=
             cv2.destroyAllWindows();node.destroy_node()
     result=dict(status='STOPPED_BY_OPERATOR' if operator_stopped else 'CYCLE_COMPLETED' if press_done else 'INCOMPLETE',
         released=released,press_done=press_done,press_result=press_result,support_active=support_active,
-        stop_reason=stop_reason,assembly_completion=False)
+        stop_reason=stop_reason,assembly_completion=False,assembly_xy_correction_enabled=assembly_xy_enabled)
     record('HELD_OBSERVATION_RESULT',result)
     if support_active:
         record('TRIAL_HUMAN_SUPPORT_FINISHED',dict(status=result['status'],released=released,press_done=press_done,

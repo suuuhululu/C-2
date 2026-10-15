@@ -1197,3 +1197,477 @@ GPU 현재 A snapshot92파일을 CPU deliverables/GPU_A_수정본_CPU보관_2026
 - 영상 모서리·목표 변으로 dX/dY를 계산해 X/I에 전달한다. 파지 보상으로 TCP가 이동해도 블록 목표·실측 패드 목표는 유지한다. A 원본 RELEASE_PRESS/도움 정보를 보존하는 로봇 실행 분기와 빈 패드 다음 Step 전이를 연결했다.
 - 게시 사본의 외부 연결 차단 native 1,509 PASS, 영상 XY/가상 격자49 PASS, 합성3Step THREE_CYCLES_COMPLETED/물리명령0. 범위는 합산하지 않는다. 최신 교시·영상XY·공중놓기 실물과 방출 후 재관측은 미검증이며 상공해제 높이는 미정이다.
 - [현장 수정·검증](D_ROUND2_ROBOT_FIELD_FIXES_20261014.md), [세 사이클 명령](D_ROUND2_THREE_STEP_TRIAL_20261014.md). 서비스의 A–D 전달 수정은 별도 PR이며 B Current·revision·완료 소유를 유지한다.
+
+
+## 2026-10-15 로봇 PC Round3 준비 점검 (실물 T1 미실행)
+
+- `codex/integration-round3` / `bda07e5`를 별도 작업본으로 준비하고 기존 미커밋 교시·설정은 보존했다. main 병합·강제 초기화·push·설치·드라이버 재빌드는 하지 않았다.
+- 실제 환경: `/home/rokey/cobot2_ws`, 기존 `robot_control_integration_20261010/runtime/drcf2`, `c2_integration_round1/.venv`의 Python 3.12.3. 필수 import 및 DRCF2 두 라이브러리의 기존 READY 해시·동적 의존성을 확인했다.
+- 이번 실행: 공급판 합성 검사 63 passed, T1 제어 검사 80 passed, HMI 고정 T1 모의 검사 10 passed. native T1 preview/replay 통과. replay는 SYNTHETIC/MOCK·physical_commands=0이며 물리 정확도·결착을 검증하지 않는다.
+- 기존 round2 로봇/그리퍼 드라이버를 발견해 중복 실행하지 않았다. 읽기 조회상 TCP=GripperDA_v4/Tool=ToolWeight0, HOME 근처이나 실제 빈 그리퍼·현장 준비 완료는 미확인이다. 로봇/그리퍼 동작·모드 변경 명령은 보내지 않았다.
+- 카메라 D435i는 USB2.1 연결이다. 1280x720x30 요청은 거부 후 640x480x15로 복귀했고 실제640x480 메시지를 확인했다. 지원 설정1280x720x15에서도 프레임 손상과8초간 RGB/정렬Depth/CameraInfo 미수신으로 요구 해상도 전송은 통과하지 못했다. 점검용 카메라는 정상 종료, 기존 로봇 드라이버는 유지했다.
+- 이 작업 폴더에서 발견한 RGB-D 프로파일은 미검증 템플릿뿐이다. 이를 지정한 preview는 SUPPLY_DEPTH_CALIBRATION_NOT_VERIFIED로 거부됐다. 기존2D등록·미완성 측정을3D보정으로 승격하지 않았다.
+- BLOCKER: 카메라 연결/프레임 정상화, 검증된 camera→TCP 변환, T1 슬롯4 교시 기준 표면중심, 변환640x480영상 ROI/크기조건·깊이/오차/XY 허용범위와 설정 바인딩. 회전·Z·힘·속도는 변경하지 않았다.
+- 실제 native/HMI T1, 파지·결착, B 실제 조립 확인, 최종 DB 저장은 미실행이다. 다음은 USB3 연결 확인과 실측자료 확보 후 profile preview → 사용자 직접 native T1 → 결과검토 → HMI T1 순서다. `--start-zone home`은 HOME 이동 명령이 아니다.
+- 로컬 증거·환경설정·터미널별 재개 명령: [점검 보고서](</home/rokey/Documents/ChatGPT/로봇제어 개발/reports/round3_robot_pc_20261015/RESULT_AND_NEXT_STEPS.ko.txt>).
+
+
+### 2026-10-15 후속: roboton/realsense/roboton2 비교 및 카메라 결론 정정
+
+- USB2.1에서도 RGB1280x720x10/Depth848x480x10/Infra1·2 OFF 설정으로 실제 RGB·정렬Depth·양쪽CameraInfo가1280x720, 약9.994Hz로20초간정상수신됐다. RGB200/Depth201/각Info200개, 대응packet 최대시각차0ms, 관측나이약120~144ms. 앞선30/15fps실패만으로USB3변경을필수전제로한판단은정정한다.
+- 개별 `realsense` 함수는 Infra1/2를 명시적으로 끄지 않아 실제IR640x480x15 두 스트림이 추가 기동됐고, 프레임손상과8초간RGB-D/Info미수신이 발생했다. IR OFF 조합에서는 시험 중 손상 경고 없이 수신됐다.
+- 현재 `roboton2` alias는 round2 현장수정본을 가리킨다. 내부bringup의camera=false가같은launch context에남아바깥카메라조건도false가됨을장치실행없이재현했다. 마지막CLI camera=true가무시되는문제는아니다. 통합카메라Node는실제로건너뛰어진다.
+- round3@bda07e5의통합launch는위10fps별도Node가없고설치bringup의30fps설정에의존하므로alias와동일경로로취급하지않는다.
+- 비교는기존로봇드라이버유지상태에서카메라만단독실행했다. alias/launch원본수정과로봇·그리퍼동작없음. 시험카메라정상종료. 기동시hash_map/rcutils/typesupport오류는별도미해결이며장시간안정성이나실보정정확도검증은아니다.
+- 실측RGB-D프로파일과슬롯기준표면중심등은여전히미준비이며실물T1은실행하지않았다. 근거: [alias·카메라 비교](</home/rokey/Documents/ChatGPT/로봇제어 개발/reports/round3_robot_pc_20261015/ALIAS_CAMERA_REVIEW.ko.txt>).
+
+
+### 2026-10-15 슬롯4 기준 표면 원자료 기록 준비
+
+- 사용자는 기존 Calibration_Tutorial 보정으로 실제 좌표 이동 정확도를 검증했다고 확인했다. 이를 기존 외부 보정 검증 근거로 채택하고, 체커보드 재측정 대신 슬롯 기준점 측정으로 진행한다. 당시 TCP/현재 TCP 및 장착 바인딩은 별도 확인 중이다.
+- `scripts/capture_supply_depth_reference.py`를 추가했다. capture는 허용된 조회 서비스4종과 RGB-D/CameraInfo만 사용하며 로봇·그리퍼 동작/기동/TCP변경을 하지 않는다. 실제 관측 자세·TCP/Tool·정지·메시지 크기/frame/시각을 검사하고 원본과 변환영상을 새 폴더에 기록한다. analyze는 실제 ROI와 저장 파일로 표면점 후보를 계산한다. 기존 교시XYZ를 표면중심으로 대체하지 않으며 reference_accepted=false를 유지한다.
+- 새 합성 검사7개와 기존 RGB-D 검사34개, 총41 passed. 실제 원자료 capture 및 실물 T1은 미실행. 현재 ROS에는 camera만 확인돼 로봇 드라이버는 작업자가 준비해야 한다.
+- 기존 보정행렬/교시/현장 설정은 변경하지 않았다. 새 동작 pose·속도·힘을 만들지 않았다. 기록문턱0.5mm/0.5deg는 측정자세확인용이며 실제 파지 합격허용오차가 아니다.
+- 로그/터미널별안내: [슬롯4 기록](</home/rokey/Documents/ChatGPT/로봇제어 개발/reports/round3_robot_pc_20261015/SLOT4_REFERENCE_CAPTURE.ko.txt>).
+
+
+### 2026-10-15 TCP v1→v4 변환 및 기준 촬영 첫 시도
+
+- 사용자 확인: 기존 실물 좌표 이동 검증 시 TCP는GripperDA_v1(Z208mm), 현재는GripperDA_v4(Z228mm)이며 회전0/0/0과 Z이외 조건이 같다. 기존행렬 앞에TCP좌표 Translation(0,0,-20mm)을곱해 별도v4용파생행렬을만들었다. 원본해시동일, 로봇TCP정의/파지Z/관측pose변경없음.
+- 합성 좌표계 변환 일관성 검사의 최대오차1.42e-14mm. 이는대수검사이며새실물검증주장이아니다. 파생자료와근거는로컬reports/round3_robot_pc_20261015/calibration에보존했다.
+- 사용자가실행한capture의precheck: 현재BaseTCP[-518.242,195.492,47.420,...], 기준관측자세차이409.119mm/1.253deg. 조건에따라촬영중단, physical_commands=0. 이오류는20mm TCP차이와별개다. 실패원자료는logs/supply-depth-reference/20261015T074530에보존했다.
+- 기록도구중단안내에실제/기준자세와차이를추가했다. 관련합성검사7passed. 실제RGB-D기준촬영/ROI/슬롯표면Base좌표채택/실물T1은여전히미완료다.
+
+
+### 2026-10-15 슬롯4 수동 교시 의미 확인
+
+- 사용자는 현재 GripperDA_v4 TCP 자세가 노랑2×2 슬롯4를 파지하기 위해 그리퍼를 닫기 직전 자세임을 확인했다. 이를 실제 센서 precheck와 연결한 별도 pre-close 교시 기록으로 보존했다. 실제 파지 성공이나 표면 중심 확인으로 해석하지 않는다.
+- 기록: reports/round3_robot_pc_20261015/slot4-teaching/yellow_2x2x1_04.preclose.json (저장소 상위 로컬 reports). 출처는 logs/supply-depth-reference/20261015T074903/precheck.json이다. 원본과 기존 실행 설정은 보존했고 runtime_config_changed=false다.
+- 다음은 블록의 기준 위치·방향을 유지한 채 기존 관측 자세에서 RGB-D를 기록하는 단계다. 표면 중심 분석/프로파일 작성 때 이 새 pre-close 기록과 묶고 기존 INTERPOLATED pickup을 조용히 대신 사용하지 않는다. 최종 실행에는 교시값과 표면 기준점을 함께 연결해야 한다.
+- 그리퍼 닫기·로봇 이동 명령은 보내지 않았다.
+
+
+### 2026-10-15 기준 표면 촬영·품질 확인 및 배치 확인 정정
+
+- 사용자가관측자세에서촬영한5장(20261015T075833)은RGB/정렬Depth/CameraInfo동기0ms와촬영전후정지조건을충족했다. 변환640x480영상에서맨위노랑2x2오른쪽부터4번째ROI[255,91,300,135]를확인해같은스터드검출과3x3패치로표면후보를계산했다. 새pre-close교시파일을명시적으로바인딩하는analyze옵션을추가해기존보간pickup이자동재사용되지않게했다. 실행설정은변경하지않았다.
+- 초기5장깊이532~537mm, 계산표면Z범위약4.97mm. 추가읽기전용20장촬영은로봇·그리퍼명령없이완료됐으나10장에패치깊이0이있어엄격분석이INVALID_DEPTH_PATCH로중단됐다. 전체20장의실패내역을surface-quality-audit.json에보존했다. 나머지10장깊이525~529mm는진단값이며실패프레임을버리고합격처리하지않았다.
+- 사용자는처음블록유지라고확인했다가살짝건드렸을가능성을보고했다. 최신확인에따라원5장및추가20장을이전파지교시의기준점으로채택하지않는다. 원본이미지·메타데이터·기존교시자료는보존하고파생자료상태를NOT_ADOPTABLE_POSSIBLE_BLOCK_MOVEMENT로갱신했다.
+- 새teach-pickup은수동으로맞춘노랑2x2슬롯4의닫기직전TCP를조회만해별도기록한다. 관측높이/공급판범위밖/TCP불일치면거부하고, 실제파지성공이나표면중심으로승격하지않는다. capture --pickup-record는새기록을촬영설정사본에만바인딩한다. runtime변경없음.
+- 관련합성검사43passed(reference-pair-tests.log). 다음은새pre-close교시→블록유지→관측자세촬영의한쌍취득과깊이품질확인이다. 외부보정v1→v4변환은보존한다. 기준점채택/실물T1/B확인/DB저장은미실행이다.
+
+
+### 2026-10-15 새 슬롯4 측정 묶음 pair-20261015T080359
+
+- 새pre-close교시와관측20장연결이일치하고사용자가이번블록위치·방향유지를확인했다. 파지TCP는[-519.361084,196.431503,49.384441,1.379895,178.199310,1.312952]이다.
+- 20장모두스터드검출/3x3패치비영검사통과. 깊이529~532mm, 패치최대편차2mm. 계산표면Base중앙값[-530.369055,203.071033,100.153308]mm, 변동폭XYZ[0.295434,0.956890,2.985623]mm. TCP파지점과표면점은구분한다.
+- 각관측나이140.475~294.790ms/packet시각차0ms, 촬영전후pose차0.001052mm/0.000201deg. 제외프레임없음. 원자료/분석은해당pair폴더에보존했다.
+- 사용자는기존허용기준이없다고확인했다. 현시점20장의변동을허용기준으로대체하지않는다. 독립상대XY변위검증과공정허용기준검토가다음단계다.
+- 비활성프로파일/슬롯4전용ROI초안을상위reports/round3_robot_pc_20261015/slot4-profile-draft-pair080359에만저장했다. 허용값4종은null, independently_verified=false이며load_profile거부를확인했다. 실행설정/원본보정/속도·힘·회전변경없음.
+- 사용자가직접실행한MoveLine의vel[30,30]/acc[60,60]은T1기본설정으로반영하지않았다. 이번agent동작은저장파일분석뿐이다. 실제T1/파지·결착/B확인/DB저장은미실행이다.
+
+
+### 2026-10-15 validation-01 수동 파지 교시 비교
+
+- 사용자가저장한검증파지교시는기준대비Base XYZ [+2.523804,+0.033249,-1.373463]mm, 실제회전차0.229962deg이다. TCP/Tool은일치한다.
+- 계획한동일높이XY검증과달리Z도변해원자료와pickup-comparison.json을보존하고순수XY검증점채택을보류했다. 서로다른파지간의공정허용오차를새로확정한것은아니다. RGB-D검증촬영은아직없다.
+- 다음은블록을더옮기지않고기준파지Z/방향을유지해수동정렬한뒤새폴더에기록하는단계다. 로봇·그리퍼명령과실행설정변경없음.
+
+
+### 2026-10-15 독립 검증점1 관측 비교
+
+- validation-01-height-matched-02의수동교시변위XYZ[+2.674561,-0.280029,-0.129997]mm/회전차0.203894deg에대해RGB-D변위XYZ[+1.599257,+1.043245,-1.933472]mm. XY차이1.705090mm로실측됐고합격기준없음/수동정렬재현성미정이므로통과확정하지않았다.
+- 저장20장모두검출·비영패치검사통과하나Depth527~537mm/패치최대편차4mm/표면Z범위약9.94mm. 추가읽기전용라이브20packet의처리후관측나이는138.89~164.06ms/만료0/표면패치오류2건. 카메라설정은조회만했다. emitter켜짐, Infra꺼짐, temporal/spatial/hole-filling꺼짐을확인했다.
+- 감도분해를위한고정Depth계산에서도XY차이약1.18mm가남았으나이는진단전용이며실Depth대체나명령으로사용하지않았다. 깊이·수동정렬·외부보정의영향을한원인으로단정하지않는다.
+- 기존보정재학습/허용범위확대/불량프레임제외합격처리/실행설정변경없음. 프로파일비활성유지. 결과는해당validation폴더의relative-displacement-validation.json 및VALIDATION_RESULT.ko.txt에보존했다. 실제T1/파지·결착/B판정/DB저장은미실행이다.
+
+
+### 2026-10-15 사용자 교육용 수용 및 native T1 준비
+
+- 사용자는 교육용프로젝트에서이번약1.71mm XY차이를수용하고진행하도록명시했다. 정밀검증표시를승격하지않고independently_verified=false와실측오차·수용근거를기록한별도교육용프로파일을준비했다. --educational-depth-demo 명시옵션은슬롯4고정T1에만허용되며기본실행과다른step에는적용되지않는다.
+- 품질거부한계는실측40장근거의Depth527~538mm/패치편차4mm/높이차7mm/XY보정3mm다. XY정확도오차1.705mm와보정상한은구분한다. 0깊이·시각·frame·구성바인딩·범위초과검사는유지했다. 진단불량을교시좌표로대체하거나자동재시도하지않는다.
+- 새pre-close교시와실영상T1전용ROI를별도scenario에연결했다. 기존기본설정·교시원본·조립판/패드기준·속도·힘·가속도변경없음. 교육용로그에는verification_basis와수용오차를남긴다.
+- 관련검사173passed, 기존HMI모의검사10passed. 장치없는native preview1cycle통과. 저장실측40packet오프라인검사통과/파지Z·회전보존. 이번agent실물동작명령0.
+- 설정·근거·실행안내: robot_control_integration/settings/round3_educational_t1_20261015. 실제native T1은빈그리퍼HOME과사전8블록준비후사용자가직접실행한다. --start-zone home은HOME이동이아니다. 새교육용HMI연결은native실물결과확인후진행한다. 실제파지·결착/B실조립확인/DB저장은미실행이다.
+
+## 2026-10-15 교육용 T1 RGB-D 구독 초기화 오류 수정
+
+- 현장 중단 원인: LiveVision의 Depth/CameraInfo 콜백에 builtin deque.append를 직접 전달하여 Jazzy rclpy의 inspect.signature 검사에서 ValueError 발생. 두 콜백을 한 인자 Python lambda로 감쌌다. 좌표/교시/속도/힘/보정 허용값은 변경하지 않았다.
+- 기존 실패 기록 logs/round3-t1-educational/1792020460302561358/events.jsonl 및 1792020480987337920/events.jsonl 보존. 둘 다 THREE_STEP_BEGIN만 있고 해당 생성 실패는 supply.execute/held.transfer 이전에 발생한다.
+- 검증: inspect.signature 및 실제 콜백 전달 재현 검사 추가. 관련 depth/three-step 단위 검사 53 passed (reports/round3_robot_pc_20261015/rgbd-callback-regression.log). 최초 검사는 perception import 경로 미지정으로 수집 실패했으며 올바른 PYTHONPATH로 재실행했다.
+- 장치 읽기 전용 확인: 실제 LiveVision 생성과 RGB/정렬Depth/CameraInfo 구독 성공, 세 스트림 모두 1280x720, camera_color_optical_frame, 동일 stamp 수신. reports/round3_robot_pc_20261015/rgbd-callback-live-readonly.json. 구독만 수행했으며 로봇/그리퍼 명령 0.
+- 미검증: 수정 후 실제 T1 파지/이송/결착, B 실제 확인, DB 저장. 다음은 사용자 빈 HOME/사전배치 확인 후 기존 native T1 명령 직접 재실행. --start-zone home은 HOME 이동 명령이 아니다.
+
+## 2026-10-15 시작 그리퍼 열림 기준 50mm
+- 사용자 지시에 따라 supply 실행 시작 및 read-only check의 open_ready 기준을 정확히 50mm 이상으로 변경. 49.9mm 거부/50·55·60mm 허용 경계 검사 포함 관련 86 passed (reports/round3_robot_pc_20261015/start-open-50mm-regression.log). 기존 자동 열기/놓기 명령 폭 60mm, 파지 폭·힘·속도는 유지. 장치 동작 없이 검증.
+
+## 2026-10-15 native T1 표면 Depth 누락 중단
+- 사용자 실행 logs/round3-t1-educational/1792020581120128613: HOME→공급 관측 이동 5 MOVE_REQUEST 후 START_OBSERVATION_REACHED/BLOCK_BEGIN에서 종료. 파지 하강/그리퍼 닫기/이송 완료 기록 없음. 실패 packet의 raw depth는 당시 저장되지 않아 해당 packet의 구체적 위반은 단정하지 않는다.
+- 현재 자세 읽기 전용 재확인: 기존 관측 자세와 0.003mm 차이. logs/supply-depth-reference/depth-failure-1792020581120128613에 신규 RGB-D 20장 보존. 슬롯4 인식 20/20, Depth zero 포함 8/20, 범위 위반 9/20, patch편차 위반 8/20, 기존표면검사 통과 11/20 (중복 집계). surface-failure-audit.json에 전부 기록. 장치 동작 0, 기준점/허용범위 변경 없음.
+- 오류 메시지에 zero_pixels/min/max/spread/허용범위를 추가하여 다음 실패 원인을 구분. 0값 보간/교시 fallback/자동재시도 추가 없음. 시작 50mm 변경 포함 관련 87 passed (reports/round3_robot_pc_20261015/surface-failure-regression.log).
+- 실제 파지/결착/B확인/DB저장 미검증. 카메라 Depth 누락 개선/관측 재확인이 필요하며 현재 관측 자세에서 --start-zone home으로 바로 재실행하지 않는다.
+
+## 2026-10-15 사용자 Depth 진단 자료 20261015T083259
+- logs/depth-diagnosis/20261015T083259/observation 신규20장 분석. 인식20/20, 표면검사14/20, zero1/20, zero없는 범위초과5/20(525~526mm로현재하한527미달), 편차초과1/20. 최대기록age294.951584ms,skew0. surface-quality-audit.json 저장. 허용범위/카메라설정 변경/장치동작 없음. USB D435i 480M 연결 유지.
+- 앞선 안내 ros2 param dump --output-dir는 해당 Jazzy CLI에서 미지원. ros2 param dump /camera stdout을 camera.yaml로 저장하여 수정. RGB1280x720x10,Depth848x480x10,IR1/2false,emitter1/laser150 확인. Depth0와 좁은깊이범위 이탈을 구분하며 USB대역폭만으로 원인 단정하지 않음.
+
+## 2026-10-15 승인된 교육용 T1 깊이 범위 525~538mm
+- 사용자 명시 승인에 따라 교육용 프로파일 하한527→525mm만 확장. 상한538mm/패치편차4mm/표면높이차7mm/XY보정3mm/Depth0거부/시각·frame·pose검사 유지. 원본 프로파일·수용기록·안내문은 reports/round3_robot_pc_20261015/depth-lower-bound-525-before에 보존. 교육용수용기록/안내문 갱신, independently_verified=false 유지.
+- 추가실측20장 오프라인 비교525하한19/20통과,Depth0한장거부. 관련검사87passed (depth-525-regression.log), 변경프로파일 native preview 통과 physical_commands=0/1cycle (depth-525-preview.log). 로봇/그리퍼 동작 없음.
+- 다음: 현재 관측 자세 유지 후 읽기 전용20장 확인. 유효 Depth 확보 후 사용자가 기존 현장경로로 빈 HOME 복귀, native T1 직접 재시도. 실파지/결착/B확인/최종DB는 여전히 미검증.
+
+## 2026-10-15 T1 조립 상공 자동 yaw 중 FEEDBACK_TOO_OLD
+- 실행1792021004130705049: 상태조회 query_duration_s=0.5140925109881209로 guard 0.5초 초과. ABORT reason FEEDBACK_TOO_OLD, stop requested/acknowledged/stillness_verified 모두true. 마지막 motion_status0, gripper_status2(파지보고). 삽입/결착 성공 아님.
+- XY 대상변 미선택 화면 후 번호 선택 시 기존 약0도 수렴과 달리 YAW_REQUEST 약-89~-85도 발생하고 +0.5도 반복. 선택한 목표변과 manual TOP edge의 대응은 사용자 확인 필요. 번호별축은 target_edge_index%2와 보드X/Y로 연결되며 해당 대응 자체를 코드결함으로 단정하지 않음. 자동 yaw는 기존코드에서누적2도제한 미적용인 점 확인, 임의 설정 변경하지 않음.
+- 현재읽기전용 AssemblyMotionRos _sample_once20회: 0.013313~0.052041초,0.5초초과0,모두정지,최종gripper_status2. 로그 logs/depth-diagnosis/20261015T083259/feedback-latency-readonly.json. 호출화이트리스트10개조회/FK계산과그리퍼레지스터읽기만수행, physical_commands0. 기존실행의UI/부하조건과동일하지않아단발지연의최종원인은미확정.
+- feedback최신성기준/교시/높이/힘/속도변경없음. 다음은 사용자목표변번호와E클릭변방향확인 및 파지중장치복구절차확정. 현재상태에서T1재실행/HOME명령/그리퍼개방안내없음.
+
+## 2026-10-15 SPACE 저장 자료에서 목표 변 방향 안내 정정
+- assembly-observation-1792021689571627095.json 실제 투영의 outline UV 확인: edge1 y731~736(화면아래),edge3 y578~582(화면위). 이전 응답의 화면위=1 단정은 잘못된 안내였으며 사용자에게 명시 정정. 번호는 보드꼭짓점 순서로 정의돼 화면방향 고정이 아님. 기존수렴yaw는평행도만검사하므로반대물리변1/3을구분하지못함.
+- 저장manualTOP점은[737.20,657.76],[878.23,653.35]. 저장자료가정높이계산: edge1 XY[-8.424,-15.863]mm, edge3[-8.317,+15.937]mm. 두후보모두실행한값아님. xyz변경/보정합격표시없음. 저장당시headerage0.897480374s, timestamp_verified=false, depthpaired=false. 최신후보아닌오프라인진단으로만사용. xy-edge-identity-review.json 보존.
+- 다음사용자조작은3번으로대상변변경(기존점초기화),E로실제동일몸체윗면변두끝점재선택,최신저장검토. E두번째클릭이자동yaw재개가능함을안내. X/I/O/P는현단계진행하지않음. 장치명령0.
+
+## 2026-10-15 최신 SPACE 및 실제 TOP 변 식별 검토
+- assembly-observation-1792021870833650667: timestamp_verified=true/headerage0.173s, yaw-0.2395deg, RGBDpairedfalse. 사용자가3선택후화면dX-8.48,dY+15.85로위쪽목표변후보전환확인.
+- 실제overlay 시각검토: held몸체맨위가로변은원본영상대략(718,533)→(818,530). 저장manual점은(736.12,656.71)→(880.95,653.92)로아래쪽가로선에위치하며동일물리TOP위쪽변과불일치. 클릭시점오선택/추적이탈원인은미확정. 이XY18mm를실측검증된보정으로채택하지않고X진행보류. 다음E재선택은맨위빨간긴가로선양끝(비스듬한오른쪽변이시작되기전)명확히안내. 장치명령0.
+
+## 2026-10-15 작업자 실물 식별로 TOP 변 해석 정정
+- 사용자가 사진맨위블록은이미조립된아래층블록이며기존선택선이그리퍼파지블록의윗면위쪽변임을명시확인. 직전시각검토에서맨위블록을파지블록으로오인했던해석을취소. 기존manual점유지,3번목표윗변대응사용. 추가좌표/높이/회전교시변경없음. X는기존교육용시각XY후보약[-8.48,+15.85]mm(가정높이기반,18mm가량)이며공급판보정3mm/실측잔차1.71mm와별개,정밀도검증으로표시하지않음. 사용자직접X1회후영상/로그확인,삽입I는그뒤안내.
+
+## 2026-10-15 사용자 요청: 조립판 XY만 전체 고정 시나리오에서 제거
+- 최종 지시 "아니 조립판 XY만 빼줘" 반영. round2_three_step_trial.prepare의 T1/T2/T3 모두 assembly_xy_correction_enabled=false/vision_xy_alignment=false. 공급 RGB-D 중심보정/교육용525~538mm 프로파일은 그대로 유지. 고정HMI T1도 동일native경로이므로 조립XY비활성. HMI의교육용공급프로파일연결/실물검증을새로완료했다고표시하지않음.
+- held popup X는이동없이비활성기록만남김. 시각/좌표XY헬퍼는false설정시거부. I의X선행요구제거,기존autoYaw인경우fresh+stable±0.5도검사유지. target_only모드의I삽입도현재XY/회전그대로Z만변경하여숨은XY맞춤없음. 기존공급/목표교시·높이·힘·속도·yaw방식유지. 다른독립legacyXY시험도구의명시실험은별도기본동작유지.
+- 실제로X가보낸명령: 실행1792021495111988214 delta[-8.496914788,+15.987023915]mm,목표[430.8497954,69.5771728,53.6360207,...]. height_assumed=true,depth_reason VALID_DEPTH_AT_BOTH_ENDPOINTS_REQUIRED,projection_independently_verified=false. 이후추적상실. 사용자가이상동작/의도위치차이를보고했고ESC정지+블록제거확인. 미검증18mm가정기반보정을실행하도록안내한판단오류를사용자에게인정. 삽입/파지성공/결착/B/DB완료로해석하지않음.
+- 투영 불일치진단: 기존조립T_tcp_camera와공급실측변환의이동성분차[-10.836,-12.879,+48.642]mm. 물리이동오차그자체로단정하지않음. 변환후보는원본scenario에연결하지않았고,최종XY제거지시에따라임시caseoverride코드제거. 후보3파일은reports/round3_robot_pc_20261015/assembly-xy-disabled에미채택자료로보존. 기존yaw투영보정교체하지않음.
+- 최종검증: 관련unit158passed(assembly-xy-disabled-regression.log),고정HMI모의10passed(assembly-xy-disabled-hmi-regression.log). native3cycle replay T1/T2/T3완료/SYNTHETIC/physical_commands0,XYdisabled3건/보정실행0건. 교육용nativepreview 공급depthprofile있음+조립XYfalse/physical_commands0. 관련로그상위reports/round3_robot_pc_20261015 및 logs/round3-no-assembly-xy-replay,logs/round3-t1-preview-no-assembly-xy.
+- 검사중기존legacyXY헬퍼시험은명시enabled=true환경으로분리해의미유지. 루트HMI와nativeunit을단일pytest로수집시app패키지충돌이있어각환경에서분리실행. native합성replay의기존xy_target호출도비활성경로에맞춰제거후전체관련검사를재실행.
+- 안내 RUN_GUIDE.ko.txt갱신: 조립판1~4/X사용없음,E(yaw)→I→O→P→U. 실물재시험은아직시행하지않음. 다음사용자준비는슬롯4복원/빈그리퍼HOME(시작폭50이상)/손제거,새native실행. 블록제거를HOME완료나파지상태정상으로가정하지않음.
+
+## 2026-10-15 조립XY제거후 native 고정T1 한사이클 실행 기록
+- 사용자상승·종료보고. logs/round3-t1-educational/1792022485750917572/result.json REAL/LIVE_D_RUNTIME/FIXED_STEP_EXECUTED/completed_steps[T1]. assembly_completion=false/current_update=false 유지. native-t1-review.json에결과분류저장.
+- 조립XYdisabled1건/시각·좌표XY실행0건, 공급RGB-D 보정 및 파지피드백 기록 있음. I결과 FORCE_STOPPED_BEFORE_VERIFIED_SEATING; 사용자O입력에의한release확인기록후 P FORCE_THRESHOLD_REACHED_STOP_VERIFIED, U상승·정지기록, cycle released=true/press_done=true/CYCLE_COMPLETED. 힘기준정지를실제결착성공으로채택하지않음.
+- 실제결착은현재작업자에게의도한6점블록아래쪽4자리/들뜸·기울어짐여부확인질문진행중. B실제조립확인/최종DB저장없음. 다음조건: 실결착확인후HMI동일T1시험준비. T2자동진행없음.
+
+## 2026-10-15 native T1 실제 결착 작업자 확인
+- 사용자 "의도한 위치에 정상 결착됨" 확인. native-t1-review.json을 NATIVE_T1_EXECUTED_OPERATOR_CONFIRMED_SEATED/physical_seating_operator_confirmed=true로갱신. runtime원본result불변. 교육용조건의실파지/이송/삽입시도/놓기/누르기/상승한사이클과작업자실결착확인까지기록. B실제확인/Current갱신/DB저장false유지. 다음HMI동일T1연결에필요한명시native옵션전달구현·모의검사중.
+
+## 2026-10-15 native 성공 조건의 HMI 고정T1 전달 준비
+- HMI명령에 --fixed-trial-scenario/--supply-depth-profile/--educational-depth-demo 추가. 고정T1에서만허용,교육용옵션은명시프로파일필수. FullFeatureRealTrial→FixedStepProcess→native --scenario/--supply-depth-profile/--educational-depth-demo 전달. 기존default와 --only-step T1/단일writer/STOP/HOLD/B미채택/DB미시작계약유지. 기존공급교시파일수정없음.
+- focused HMI모의검사13passed(hmi-fixed-profile-focused.log),로그인/준비확인·START→정확한프로파일전달·중복START/RESUME거부·STOP·HOLD검사포함. CLI잘못조합은Qt/장치연결전거부. 실물HMI START하지않음. HMI_T1_RUN_GUIDE.ko.txt작성.
+- 추가일반공정회귀49중43passed/6failed(hmi-educational-profile-forwarding.log). 5실패는현재지지4stud규칙과불일치하는기존fixture INVALID_INPUT,1실패는__new__fixture의design_change_replay누락. 변경전HEAD app3모듈을메모리에만로드해대표3검사에서도동일실패재현(hmi-baseline-failures-check.log). 작업폴더되돌리기/검사약화없음,이번고정T1밖기존실패수정하지않음. 전체공정회귀PASS나ABCD전체통합완료로표시하지않음.
+- 다음사용자준비: native T1결착2x2만제거하여기존8블록복원,공급슬롯4준비,빈그리퍼HOME/50mm이상,카메라·드라이버유지. 위새옵션명시한HMI를사용자실행후준비체크→START가실제T1시작. E(yaw)→I→O→P→U,조립XY는OFF/공급RGBD는ON. 실물HMI결과후실결착과로그를다시확인.
+
+## 2026-10-15 HMI 고정T1 실물 한사이클 및 작업자 정상결착 확인
+- HMI job5df8bf06-9555-44de-9ce7-5e68c0fcd2fa/fixed-trial/1792023131659776973/result.json FIXED_STEP_EXECUTED/REAL/LIVE_D_RUNTIME/completed_steps[T1]. CYCLE_COMPLETED/released=true/press_done=true/최종상승기록. 사용자 "아까랑 똑같이 잘 끝났음!!" 확인. hmi-t1-review.json에작업자정상결착확인과기계로그를분리저장.
+- 공급RGBD XY적용[-0.505086496,-1.048506114]mm,교육용수용 OPERATOR_ACCEPTED_EDUCATIONAL_T1. 조립XYdisabled1/보정실행0. I FORCE_STOPPED_BEFORE_VERIFIED_SEATING,P FORCE_THRESHOLD_REACHED_STOP_VERIFIED이며실제결착은작업자확인근거. 힘정지만으로실제결착완료라표시하지않음.
+- native와HMI각1회고정T1의실파지·이송·조립·놓기·누르기·상승 및작업자정상결착확인까지이번검증범위완료. fixed-t1-native-and-hmi-summary.json을상위reports/round3_robot_pc_20261015에저장. HMI HOLD는B최종판정/Current갱신/DB저장으로자동진행하지않는고정시험의설계상상태이며미확인필드는유지.
+- B실제조립확인=false,최종DB저장=false,정밀보정독립검증=false,ABCD전체통합완료=false. T2자동시작/재개/자동재시험없음. 다음은결착물과로그보존,이번HMI창종료가능. T2/실제B확인/DB연결은별도후속범위.
+
+## 2026-10-15 고정T1 시험 정리 완료
+- 사용자 HMI창닫음 및 결착물복구완료보고. 최종summary의operator_cleanup에기록. 로봇HOME재확인/공급상태/카메라·드라이버종료여부는추가가정하지않음. native/HMI고정T1실행과작업자정상결착확인까지이번검증범위종료. 장치동작없이기록만갱신. 다음물리시험은별도준비상태확인후진행.
+
+## 2026-10-15 후속T2 공급RGB-D 보정 기준 측정 준비
+- 사용자T1정리후그리퍼열림/HOME복귀보고및다음요청. T2는파랑2x3슬롯3→(13,11,L2,0°). 최초기존교시단독시험선택후사용자가공급판보정진행및전체교시계산저장가능여부질문으로방향수정. T2프로파일은없으며T1노랑슬롯4프로파일재사용/타슬롯검증완료표시하지않음.
+- 측정recorder에 --step T2지원(기본T1호환). 기존T2교시bundle에서정확한blue_2x3x1_03아이덴티티/TCPTool/pose를불러와teach-pickup/capture/analyze에반영. T2 snapshot은t2-config.json,slotid동적기록,T1파일명유지. Reference설정선택은T1/T2만허용. 로봇/그리퍼쓰기API추가없음.
+- 관련검사64passed(t2-reference-recorder-regression.log). T2새preclose기록이T1slot4에묶일수없음검사포함. 실제새자료미측정/프로파일미채택/실물T2미실행.
+- 현재native --only-step은T1한정인것확인. 측정전T2자동실행안내없음. 공급RGB-D보정없는기존경로는1280x720영상과640x480layout처리정합성도추가확인필요. T2측정후실행경로와검사를준비할예정.
+- 전체다른슬롯은새프레임에서표면중심/XY후보를계산할수있어도1개블록으로파지Z/회전/조립/누름전체교시를확정불가. 직접측정/계산후보/실물검증을구분해저장. 다음사용자작업은기존수동경로로파랑2x3슬롯3닫기직전정렬후 --step T2 teach-pickup기록,블록배치유지하여관측촬영연결.
+
+## 2026-10-15 사용자 후속 방향: T1/T2/T3 공통 RGB-D 프로파일
+- 사용자T2보정이T1과유사하면T3까지측정해전체RGB-D기준으로사용희망. 공통카메라/TCP변환을공유하면서슬롯별실측기준중심·교시·ROI를별도references로보존하는통합프로파일방향으로정리. 단일평균XY를전슬롯에적용하거나미측정슬롯을검증완료로승격하지않음.
+- 신규기준생성직후delta≈0은정확도검증아님. 슬롯별독립변위검증의실측대계산오차/방향일관성을비교해야공통적용범위를평가할수있음. 세슬롯만검증한경우해당세슬롯범위이며다른슬롯의실측참조는추가등록필요. Depth허용범위는슬롯위치/높이에따라별도실측후기록.
+- 현재T1만native/HMI정상결착확인,T2/T3새보정자료미확보. 다음은T2닫기직전교시기록과배치유지관측촬영. 실제동작자동실행없음.
+
+## 2026-10-15 T2 신규 파지 원자료 T2-pair-20261015T093321
+- 사용자teach-pickup완료,blue_2x3x1_03/GripperDA_v4/ToolWeight0및3회동일자세확인. 새TCP[-456.0434265,10.6312437,47.9238319,8.0096474,179.7055054,8.3067703]. 기존T2 Z50.5542755대비-2.6304436mm이며회전도다름. 실행교시변경하지않고원자료만보존,record-review.json에차이기록.
+- 후속RGBD관측촬영은현재블록배치유지와기존관측자세0.5mm/0.5deg범위에서만수행. 이파지자료를새runtime으로채택하기전기존T2landing/pad의그립관계와높이차를해결해야함. 카메라/그리퍼자동동작없음.
+
+## 2026-10-15 T2 기준 RGB-D20장 분석 완료(미채택후보)
+- T2-pair-20261015T093321/observation: 사용자가운데파랑2x3슬롯3및교시→촬영배치유지확인. ROI[311,245,367,321],동일v4derivedmatrix로analyze완료.20/20인식/Depth양수,패치524~525mm,최대편차1mm,표면Base중앙[-458.2070967,17.76205985,102.03319034]mm,표면변동XYZ[0.0960724,0.0816975,1.0019116]mm. 최대age299.578541ms/skew0,촬영전후pose동일. surface-candidate.json/surface-quality-audit.json보존,reference_accepted=false.
+- T1교육용Depth525~538mm를T2로자동전용하지않음. T2기준생성자료만으로T1대비정확도/공통보정유효성확인불가. 기존파지좌표와표면중심의직접차이도파지기하영향을받으므로보정정확도잔차로단정하지않음. 다음은T2블록작은평행변위후동일측정Z/자세의교시+관측독립검증. 기존T2runtime높이/회전/landing/pad는미변경이며새측정pose와의차이해결전실행채택없음.
+
+## 2026-10-15 T2 validation-01 파지 기록 진단
+- 새pose[-455.8390808,7.5730915,48.6454086,5.4452844,178.1812134,5.1830091],기준대비deltaXYZ[0.2043457,-3.0581522,+0.7215767]mm,XY3.0649718mm,SO3회전차1.6240938deg. 동일높이/자세가아니므로순수XY검증합격으로채택하지않음. validation-pose-review.json에진단용표시.
+- 추가RGBD촬영으로독립적인품질·변위진단은진행하되공통프로파일완료/실행허용치확장없음. 사용자기존수동경로관측복귀후--stepT2capture20장예정. 원자료보존/장치명령0.
+
+## 2026-10-15 T2 RGB-D 변위 진단 결과와 T3 기록 준비
+- T2 validation-01: 20/20 인식·유효 Depth, 523~524mm/패치 최대 편차1mm, 최대age298.426551ms/skew0, 촬영pose차0.0042mm/0.00083deg. 사용자 교시→촬영 블록 불변 확인.
+- RGB-D deltaXYZ[-0.2556172,-2.7823361,+1.9262575]mm, 교시deltaXYZ[+0.2043457,-3.0581522,+0.7215767]mm, XY차[-0.4599629,+0.2758161]mm/크기0.5363212mm. 높이차0.7216mm/자세차1.6241deg 영향이 남아 교육용 진단으로 분류. 순수XY 정밀검증 합격이나runtime채택 아님. T1잔차1.70509mm와 구분 기록.
+- 사용자 희망의 T3용 --step T3(노랑2x3슬롯5)를 읽기 전용 recorder에 추가. 관련65passed(t3-reference-recorder-regression.log), T1/T2호환·기존자료보존. T3미측정/공통profile미적용/실물T2·T3미실행. 진척은 reports/round3_robot_pc_20261015/supply-rgbd-three-reference-progress.json에 저장. 다음은T3닫기직전수동교시기록.
+
+## 2026-10-15 T3 첫 파지 원자료 기록
+- T3-pair-20261015T094504/pickup: yellow_2x3x1_05/GripperDA_v4/ToolWeight0 확인. 새pose[-581.6342773,139.9174805,47.2786140,5.8804960,178.2922211,5.5131855], 기존 보간pickup Z49.8143832 대비-2.5357691mm. record-review.json에 XYZ/실회전차2.8602deg 기록. 실행교시 불변, 실파지/결착 미검증. 다음은 블록배치 유지 및 기존 공급 관측자세로 사용자 수동이동 후 T3 capture20장. 장치명령0.
+
+## 2026-10-15 T3 기준20장 분석 및 세슬롯 공통후보 자료 보존
+- T3-pair-20261015T094504/observation: 노랑2x3맨왼쪽슬롯5와교시→촬영배치유지사용자확인. 실제영상ROI[198,134,245,192]로분석(기존ROI[161,99,217,175]는현재영상과불일치,원본설정미변경). 20/20인식·유효Depth,528~531mm,patch최대편차1mm,표면Base중앙[-592.2821686,143.0490622,98.4359085]mm,XYZ범위[0.4520970,0.4321975,2.0041126]mm. 최대age299.785787ms/skew0,촬영pose차0.00617mm/0.00105deg. surface-quality-audit.json 저장.
+- settings/round3_supply_rgbd_20261015/reference-bundle.candidate.json에 T1/T2/T3세슬롯별교시·표면중심·ROI·Depth관측범위·자료hash와공통T_tcp_camera를저장. 실행프로파일과다른candidate schema로의도치않은적용방지. 모든execution_approved/independently_verified=false,미측정슬롯검증없음. T2잔차의높이·자세차영향유지,T3독립변위검증미완료. 기존성공T1프로파일불변.
+- 다음T3약2mm평행변위후기준Z47.278614/A5.880496/B178.292221/C5.513186을유지한새교시→배치유지관측검증. 실제동작자동실행없음.
+
+## 2026-10-15 T3 validation-01 기록 실패 후 보존·재조회
+- 사용자FileExistsError보고. validation-01/pickup에는pickup.json없이teaching-error.json의READ_SERVICE_TIMEOUT:motion/check_motion만존재. 오류폴더보존/삭제·덮어쓰기없음. 후속단일Reader조회에서도READ_SERVICE_UNAVAILABLE발생,기존driver/camera실행및ROS서비스목록확인후CLI CheckMotion실응답status0/successtrue확인. 재시작/드라이버재빌드/설치없음.
+- 사용자기존teach-pickup요청범위의읽기전용재기록을새validation-02/pickup에수행성공. 장치쓰기0/runtime설정미변경. validation-pose-review.json에기준대비차이보존. 다음사용자관측복귀후이새폴더로capture진행.
+
+## 2026-10-15 T3 validation-02 RGB-D 변위 진단 완료
+- 20/20인식·유효Depth,526~529mm/patch최대편차1mm,최대age288.548336ms/skew0,촬영pose차0.00572mm/0.00041deg. RGBD deltaXYZ[+0.1857017,-2.1501657,+0.4384815]mm,수동교시deltaXYZ[+0.1932373,-3.2186279,+0.9154091]mm,XY잔차[-0.0075356,+1.0684622]mm/크기1.0684888mm. 높이0.9154mm/회전0.38385deg차영향유지. 사용자이번교시→촬영배치불변확인질문진행중.
+- T1 1.70509/T2 0.536321/T3 1.068489mm로측정세트비교가능. 공통reference-bundle.candidate.json과progress갱신. 평균상수오프셋으로전슬롯치환없음,실행profile/교시미변경,미측정슬롯인증없음.
+- 실행채택전남은사항: T2기준새Z47.9238 vs기존50.5543/T3새47.2786 vs기존49.8144 및회전차는기존landing/pad의그립관계에영향. 카메라XY측정성공만으로새파지6pose를기존조립교시에조용히연결하지않음. 현재reference후보는실행용아님.
+
+## 2026-10-15 전체 재교시 대신 25슬롯 모델 후보·관측 우선 방식 구현
+- 사용자 명시 동의에 따라 scripts/model_supply_rgbd_slots.py 추가. 현재 5종×5슬롯/오른쪽1~왼쪽5 템플릿만 사용, 과거24슬롯 모델 미전용. T1/T2/T3 현재 영상 중심으로 초기 ROI 정렬 후 첫 프레임의 시각 중심들에서 공통 열 간격/줄별 원점을 중앙값으로 추정. 실측 외곽 치수와 CameraInfo/Depth의 정면 근사 크기도 비교. 수동 그리퍼 교시나 Base 실행좌표를 모델로 확정하지 않음.
+- 별도 candidate schema/실행허용false/미측정pickup_pose_candidate=null. --model-layout으로 고정된 모델 재사용, 새 촬영으로 자동 재맞춤 금지. TCP/Tool/관측자세/내외부 카메라 변환 바인딩 검사. 깊이0/가림/검출 실패를 빈 슬롯이나 교시 대체로 처리하지 않음. 기존 실행 T1 프로파일/실행 교시/높이/회전/힘/속도 불변, 조립XY OFF 유지.
+- 원자료 T3 observation의 첫1장 모델 생성/나머지19장 대조: logs/supply-slot-model/20261015-model-05 (25후보,20슬롯 관측 일치/5슬롯 검토). 첫 프레임의 인식24중심에서 행 모델을 맞춘 반복성 결과로 독립 정밀검증 아님. 중간 model-01~04 자료 보존, 첫 시도 geometry JSON키 오류 수정 후 재실행.
+- 기존 Realsense/DRCF2 프로세스 유지, 재시작/중복실행/장치쓰기 없음. 읽기전용 capture20장: logs/supply-slot-model/20261015-fresh-01/capture. 관측자세 차이 사실상0,수집 성공. 새 촬영에 고정 모델 적용 결과는 fresh-02-audit에 보존. RGB1280x720/정렬Depth16UC1/color optical frame/수집age300ms/skew50ms 검사 유지. 3px/4mm/외곽크기비율0.7~1.3은 관측 검토 임시 기준이며 실행 허용치 아님.
+- 관련 unit63passed(reports/round3_robot_pc_20261015/supply-slot-model-regression.log). 3anchor퇴화/ROI범위/패킷시각·frame·해상도/한블록변위의모델왜곡/고정모델TCP·변환·슬롯binding 검사. 실파지/결착/B/DB 검사 아님.
+- 이전 사용자 T3 검증 배치불변 확인을 진단/progress/reference 후보에 반영. 변경 전 JSON은 reports/round3_robot_pc_20261015/t3-placement-confirmation-before 보존, profile_approved/independently_verified=false 유지.
+- 안내: reports/round3_robot_pc_20261015/SUPPLY_SLOT_MODEL_GUIDE.ko.txt. 다음: 새 관측의 예외 슬롯별 ROI/깊이0/배열 인식을 먼저 진단하고, 남는 물리 대응 오차만 수동 추가측정. T2/T3 신규파지 Z/회전과 기존결착·누름교시 관계는 실행 채택 전 별도 확인 필요. 전체슬롯 실파지/ABCD실물통합 완료 아님.
+- 새 촬영 최종 관측 결과: fresh-02-audit는25후보 중19슬롯 관측 일치/6슬롯 검토. 노랑2x2슬롯1·빨강1x2슬롯1은각1/19배열실패,노랑2x2슬롯2·3/노랑2x3슬롯3·4는깊이0. 현재수동재교시필요확정0개. 고정layout이원본과JSON동일함/25개execution_allowed=false·pickup_pose_candidate=null 검증. summary는 reports/round3_robot_pc_20261015/supply-slot-model-summary.json.
+- 중심3x3 Depth진단: 노랑2x2슬롯2의19장171픽셀 중152개0,슬롯3은2개0;노랑2x3슬롯3은45개0,슬롯4는30개0. 원자료와 center-depth-zero-diagnosis.json 보존. 허용치확장/깊이메우기/교시대체없음. 다음우선순위는노랑2x2슬롯2 깊이유효성문제의추가관측검토.
+
+## 2026-10-15 관측 자세 사용자 확인 후 읽기전용 재촬영
+- recheck-20261015T101247/capture20장,기존관측pose차0.000mm/0.000deg/TCPTool일치/정지확인. 고정model-05그대로19장대조:18슬롯일치/7슬롯검토. 로봇·그리퍼쓰기0/카메라설정변경0/중복driver실행없음.
+- 노랑2x2슬롯2는RGB배열19/19인식,유효중심Depth0/19. 첫프레임외곽내부(경계5x5침식)유효Depth22.9%,다른여러슬롯은95%이상. 한프레임진단이며표면Z대체나평면보정에사용하지않음. interior-depth-diagnosis.json/summary.json보존. ROI나교시오류로확정하지않고광학관측품질문제로우선분류,직사광/반사원인은작업자현장확인필요.
+- 추가교시요구없음. 다음은블록·카메라·로봇배치유지하에해당블록조명·반사·가림을확인하고조명조건변경여부를기록한후재촬영. 임의필터깊이메우기/레이저·노출변경/실파지/B/DB없음.
+
+## 2026-10-15 반사 없음 보고 후 원본Depth 비교 및 PC부하 진단
+- 사용자 슬롯표시내반사없음보고. raw-vs-aligned-20261015-01에정지/관측pose/TCP확인후RGB/정렬Depth/원본Depth/양CameraInfo/정렬extrinsics20쌍읽기전용저장. 원본848x480/정렬1280x720,최대수집age296.285ms/시각차0. 장치쓰기/설정변경/재시작0. 초기diagnostic inline환경PYTHONPATH에서ROS경로가빠진문제를상속경로보존으로수정,드라이버설치/빌드없음.
+- 설치된Extrinsics.msg의column-major/미터규약대로실측raw유효점3D를RGB로재투영해대조. 노랑2x2슬롯2는20중정렬중심3x3완전유효1장,원본유효점의RGB중심3px이내공급없음14장. 가장가까운원본유효점재투영거리0.91~25.50px. 파랑2x3슬롯3은정렬중심20/20유효,raw3px내유효점20/20. T1노랑2x2슬롯4도이번중심patch9/20만완전유효라과거성공을항상깊이유효함으로표시하지않음. 원본Depth부터국소결측이있어단순정렬실패/PC지연만으로확정불가. 탐색영역용가정깊이510/530/550mm는좌표/Depth대체에사용하지않음. raw-aligned-comparison.json 보존.
+- 사용자100HzOverrun질문:현재PCi5-8265U4코어8논리/메모리7.6GiB,5초vmstatCPUidle53~56%,관측시available약3.2GiB/Swap4GiB점유. 순간전체CPU포화확인없음,swap점유만으로현재메모리압박단정하지않음. controller시작로그FIFO_RT설정Operation_not_permitted확인(일반TS정책). 로그6건Overrun:시작직후최대151.883ms,그외10.875~39.910ms. 부하/스케줄링기여가능성과Depth국소결측을분리. reports/round3_robot_pc_20261015/pc-load-and-depth-diagnosis.json 보존. 커널/권한/governor/camera옵션/100Hz임의변경없음.
+- 실제controller프로세스/proc/812198/limits의Max_realtime_priority=0/0확인. FIFO설정권한실패의실제제약근거이며실행중권한/한도변경없음. Max_locked_memory약1.026GB이며unlimited라고가정하지않음.
+
+## 2026-10-15 노랑2x2슬롯2 기존교시·실파지기록 확인
+- 현재공급자료 확인: fixtures/teaching_sources/operator_supply.json에는노랑2x2슬롯1/3/6직접교시만있고슬롯2없음. app/robot_teaching.supply_teaching은슬롯1/3XYZ선형·회전Slerp보간. 현재계산후보[-391.6268921,196.1028748,51.5454865,-74.7571976,176.1995179,-73.3136861],실행채택/실파지검증아님. 현재default logs/teaching-20261012/supply.json없어fixturefallback사용.
+- 과거성공: docs/STATUS의2026-10-06노랑4점2번픽앤플레이스/observe복귀작업자확인있음. 해당5969d3bf원시jsonl은이번PC검색에서찾지못함. 별도협동2/isaac_preview/handoff/robot_cycles/yellow4_row_success_2026-10-04.json에는2~6번작업자완료확인있음(독립명령로그없음). 당시원본스크립트의슬롯2XYZ[-388.215,215.959,-5.0896]는현재값과달라현재배치그대로의성공증거로재사용불가.
+- reports/round3_robot_pc_20261015/yellow-2x2-slot2-teaching-record-review.json에출처hash/구분보존. 로봇그리퍼0/실행설정미변경. 다음권장:누락슬롯2만명시바인딩하여현재닫기직전자세를읽기전용기록. 기존T1/T2/T3recorder는slot2미지원이므로T1명령재사용금지. 지금실파지·결착·B·DB완료없음.
+
+## 2026-10-15 사용자 슬롯2 도착 후 읽기전용 자세 기록
+- recorder teach-pickup에 --slot-id 추가. 현재25슬롯목록과대조하여명시적대상만허용,1~5범위밖거부. T1/T2/T3호환및 --step상호배타, capture/analyze에는미지원. T1조립목표를물려받지않는최소측정config사용. 기존runtime교시/장치쓰기API변경없음. 관련65passed(explicit-slot-teaching-regression.log),T1슬롯4오바인딩거부/슬롯6거부포함.
+- 사용자현재슬롯2도착보고범위에서3회정지/TCPGripperDA_v4/ToolWeight0및공급판범위확인후manual-yellow-2x2-slot2-20261015T102557/pickup에원시pose와후보기록. XYZ[-389.8049622,194.6276550,48.5505142],ZYZ[167.7047729,-177.7196198,167.3773956]. 기존보간대비deltaXYZ[+1.8219299,-1.4752197,-2.9949722]mm/실회전차3.8113247deg. record-review.json보존.
+- 도착보고만으로정확한닫기직전중앙정렬완료를단정하지않고pickup.json을MANUAL_SLOT_POSE_RECORDED_PRE_CLOSE_CONFIRMATION_PENDING/확인null로분류. 최초도구출력원본은pickup.before-confirmation-note.json에보존. 실행설정미채택/물리파지성공false/RGBD기준미검증/B·DBfalse. 다음은작업자닫기직전자세확인후슬롯2교시기반시험설정검토. 현재그리퍼닫기/이동명령없음.
+
+## 2026-10-15 슬롯2 닫기직전 수동교시 작업자 확인
+- 사용자 "닫기직전" 명시확인. manual-yellow-2x2-slot2-20261015T102557/pickup/pickup.json의교시후보를작업자확인닫기직전기록으로분류,확인전사본보존. 실파지false/RGBD기준미채택/runtime설정미변경유지.
+- 기존T1성공파지목표35mm/설정힘40N을원본설정·이벤트와대조. 다음사용자작업은현재정지자세/손제거후기존제어화면에서그리퍼만동일조건닫기,아직상승·이송없음. 에이전트는개폐·이동명령0. 닫힘보고후실제grip피드백을읽기전용확인예정.
+
+## 2026-10-15 슬롯2 수동닫힘 후 파지피드백 조회
+- 사용자닫힘보고후Reader의정지/TCPTool/현재pose조회및RG2 Modbus258~275읽기만수행. 5회status2(grip감지true/busyfalse/기타비트0),실제폭40.6mm/offset0. 교시대비pose차0.000mm/0.000deg. grip-feedback-readonly.json보존,에이전트장치쓰기0.
+- 파지신호확인과실제블록들기성공은구분. 아직상승/실물보유/결착/B/DB미확인. 다음작업자는기존수동조작으로Base+Z만블록이공급판에서떨어지는만큼올려보유확인,XY·회전자세·기존속도·힘유지. 자동상승/관측복귀/조립없음.
+
+## 2026-10-15 슬롯2 수동상승 실제들기 확인
+- 사용자 "들림" 확인. 상승후읽기조회5회RG2status2/폭40.6mm유지,로봇정지/TCPTool동일. 원래닫기직전대비deltaXYZ[-2.2221985,+0.0901031,+74.6661224]mm/실회전차0.2536675deg. 순수Z변위라고표시하지않음. lift-feedback-readonly.json보존,에이전트장치쓰기0.
+- physical_grasp_verified=true의범위는이번수동파지·실제들기1회작업자확인+유지된그립신호. 재현성/자동접근/이송/결착/공급RGBD기준/B/DB는미검증. 닫기직전원본pose불변,상승pose로교시덮어쓰기없음. metadata확인전사본보존.
+- 다음작업자는동일슬롯2원위치에기존수동절차로내려놓고안착후그리퍼개방하여배치복원. 공중개방/자동복귀/자동다음시험없음. 복원확인전관측촬영·HOME자동명령없음.
+
+## 2026-10-15 슬롯2 열림 확인 및 관측 복귀 대기
+- 사용자열림보고후읽기조회3회status0/폭52.0mm/busyfalse/파지감지false. 현재TCP[-388.8684998,193.4604950,48.4002113,167.7324677,-177.7233276,167.3249969],기록대비deltaXYZ[+0.9364624,-1.1671600,-0.1503029]mm/실회전0.0801649deg. 원교시와XY약1.50mm다르며배치정확복원·불변이라고단정하지않음.
+- open-feedback-readonly.json보존,닫기직전교시불변/에이전트쓰기0. 다음은빈그리퍼수직이탈후기존수동경로관측복귀,촬영으로슬롯2배치대조. 낮은현재위치에서관측점으로대각직선이동명령안내없음. 새자동파지/결착/B/DB미검증.
+
+## 2026-10-15 슬롯2 수동시험 후 관측복귀·배치 영상 확인
+- 사용자관측복귀보고후읽기전용capture20장:slot2-restored-20261015T103522. 기존관측pose차0.000mm/0.000deg,그리퍼status0/폭52.0mm. 고정model-05재사용/분석프로세스OpenCV·BLAS스레드1로제한(장치설정아님),19장대조21슬롯일치/4검토. 에이전트장치쓰기0.
+- 슬롯2이번인식19/19/유효중심깊이19/19. 복원전recheck중앙UV[388.465655,108.839604]→[390.019540,110.144115],delta[1.553886,1.304512]processing_px. 시각적으로해당위치의블록존재확인이나정확원배치불변아님. 기존수동닫기직전교시와이번RGBD를동일배치대응쌍으로채택하지않음. 미세재배치후깊이유효성이달라졌다는관측이며PC성능원인제거증명아님.
+- 잔여검토:노랑2x2슬롯1/3/4(각19중1깊이불량),빨강1x2슬롯1(14/19인식). 모두기존직접교시기록있고노랑슬롯4는이번T1수동/실기근거도별도로존재. 현재신규재교시요구0,기존기록보존하며관측불안정과실행검증을구분. restoration-review.json보존. 기존T1성공runtime/교시·높이·힘·속도·조립XY_OFF불변,B/DB미진행.
+
+## 2026-10-15 슬롯2 교시좌표 단일 재접근 시험 준비(실행 미시행)
+- 사용자 진행 요청. scripts/slot2_pickup_trial.py 추가,기존 supply.execute의trial_row+hold_at_pickup재사용. 정확한yellow_2x2x1_02/작업자닫기직전확인·수동들기기록/TCPTool바인딩필수. 공급RGBD/영상XY/조립XY없음,자동실패fallback아님. 1개닫기후holding정지,상승·놓기·조립없음. preview기본/--execute+손제거·슬롯준비flags모두필수,공통writer lock/sourcehash검사/기존중단경로유지.
+- 기존T1속도12/120·가속48·회전6/3·닫기35·힘40N·중단45N 및수동교시6pose그대로. 새단일시험은target_only_motion=false로수치정지/IK-FK/도달검사를활성,기존T1전역config/runner/높이/힘/교시는변경없음. 관측pose0.5mm/0.5deg및빈그리퍼>=50필수,home명령/시작자동개방없음.
+- unit55passed(slot2-reapproach-regression.log),preview무연결통과. 실제read-only-check-20261015T104249는정지3회/폭52/힘피드백/TCPTool및4endpoint IK-FK모두통과,physical_commands0. 초기endpoint진단도0.00464~0.00490mm/0.00059deg이하. 경로충돌/실제자동접근·파지재현을완료했다고표시하지않음.
+- SLOT2_REAPPROACH_GUIDE.ko.txt에일반터미널사용자직접실행명령/예상움직임/로그/중단/종료후holding상태와다음보고정리. 복원블록XY약1.5mm변화가능성을명시,자동좌표보정없음. 실제run미실행/B·DBfalse/전체통합완료아님.
+
+## 2026-10-15 슬롯2 자동 재접근·파지 1회 작업자 정확파지 확인
+- 사용자 "파지 정확히 잘됨". run1792028718726814565/result는 APPROACH_GRIP_SIGNAL_HOLDING_NO_LIFT_TEST,events3이동/닫기1회/status2/폭40.6/정지확인. 원문rawresult·events불변,operator-review.json에작업자실물정확파지확인·로그hash별도기록. 독립읽기조회도원래교시pose동일/TCPTool정상/3회status2폭40.6유지. 에이전트장치쓰기0.
+- 실행은공급RGBD·XY보정미적용의명시교시모드,속도12/120·가속48·회전6/3·닫기35·힘40유지. 종료후저위치holding상태이며자동상승·놓기·조립없음. 과거수동들기1회와이번자동접근파지1회를구분,자동들기/반복재현성/결착/B/DB미검증.
+- slot-policies.candidate.json의slot2공급전용단일시험근거만갱신(이전사본상위reports보존),전체시나리오실행·조립grasp관계승인아님. 다음은현재공급판위치에서작업자그리퍼개방후수직이탈·기존수동경로관측복귀. 자동복귀/재시험없음.
+
+## 2026-10-15 슬롯2 단일 시험 정리 완료
+- 사용자복귀보고후읽기조회:기존관측pose거리0.000mm/실회전0.0000067deg,정지/TCPTool정상,그리퍼status0/폭52mm. cleanup-readonly.json에CLEANUP_CONFIRMED,operator-review의cleanup_pending=false. 에이전트개폐/이동0.
+- 슬롯2단일교시닫기직전기록·수동들기1회·자동재접근정확파지1회작업자확인·빈관측복귀까지정리. 공급RGBD검증/자동상승/결착/전슬롯반복재현/B/DB는미검증. 기존T1native/HMI성공기록과구분. 다음은남은관측예외의기존직접교시/실파지근거대조,새전체재교시나T1재시험을자동추가하지않음.
+
+## 2026-10-15 남은 예외 슬롯1/3·빨강1 기존 실파지 근거 대조
+- 세슬롯모두operator_supply직접교시/작업자정렬확인자료있음. 교시당시status0/폭44.9/physical_commands0이며이자료자체는실파지성공증거아님.
+- 노랑2x2슬롯1:reports/round2_d_evaluation_20261014/evidence/events.jsonl의BLOCK_BEGIN6pose가현재직접교시와완전동일. GRIP_FEEDBACKstatus2/폭40.4,HELD_VERTICAL_LIFT·이송·상공holding로그있음. 이후누름FORCE_NORM_STOP_LIMIT_REACHED중단과공급파지를구분. round2_entry_collision실행도동일공급파지이후조립진입오류이며전체성공아님.
+- 노랑2x2슬롯3:c2_integration_round1/logs/full-feature-real-slots1to5/c5413...의f39f.../91d29...두실행은현재직접교시6pose일치,REAL/LIVE_D_RUNTIME. PICKUP_CLOSE status2/폭40.4 및이송종료grip2/endpoint_verified로그확인. B는SYNTHETIC,physical_assembly_verified=false이므로실제B/결착/전체통합완료근거로미사용. archive원본사본hash동일하여중복횟수제외.
+- 빨강1x2슬롯1:직접교시는있으나이번조회범위에서동일좌표실파지로그미발견. 실제성공으로승격하지않음. 새교시보다기존좌표로단일접근·파지시험준비우선권장. 노랑1/3재교시·중복파지시험은우선생략,현재배치/새RGBD정밀검증보증아님.
+- reports/round3_robot_pc_20261015/remaining-slots-teaching-grasp-review.json에출처/해시/범위기록. 장치동작0/실행설정변경0,새빨강시험미준비·미실행. 다음은빨강슬롯1기존교시/해당종류파지설정의단일시험준비이며현재관측자세유지.
+
+## 2026-10-15 빨강 1x2 슬롯1 단일 교시 파지 시험 준비
+- 사용자 진행 지시에 따라 기존 slot2_pickup_trial에 명시 red_1x2x1_01 선택만 추가. 원본 operator_supply의 직접교시 정체성/TCPTool/작업자확인/read-only영수증을 검증, 슬롯1 6pose 그대로 사용. 기존 빨강 닫기20mm와 T1 힘40N/속도·가속/중단45N 유지. 슬롯5 후보의90도회전·XY이동 미사용, 원자료execution_allowed=false불변·실파지검증으로승격없음. 공급RGBD/조립XY없음.
+- 기본yellow슬롯2 인터페이스·검증 유지. red선택은 별도 --confirm-red-slot1-ready 및손제거flag필수, 공통writer lock/실행전sourcehash/중단·hold경로재사용. red전용로그분리. 자동상승/놓기/조립/복구없음.
+- 관련단위62passed (red-slot1-regression.log), preview무연결통과. 실장치read-only 1792029501261072146/precheck.json: 관측자세정지3회/status0폭52/TCPGripperDA_v4/ToolWeight0,4endpoint IKFK최대0.004891mm/0.000590deg,physical_commands0. 경로충돌여유/빨강실파지/들기/결착/B/DB미검증.
+- RED_SLOT1_PICKUP_GUIDE.ko.txt에사용자직접실행명령·사전배치·이동3회/닫기1회·종료시낮은위치holding·다음실물확인안내. 에이전트실제run미실행. 다음은작업자단일시험실행및실제패드정렬·파지상태보고.
+
+## 2026-10-15 빨강 슬롯1 재교시 기록 확인
+- manual-red-slot1-20261015T110138/pickup/pickup.json: 슬롯1/TCPGripperDA_v4/ToolWeight0 및원시pose샘플hash확인,3회좌표동일. 새XYZ[-329.113129,-54.518528,49.283184],회전[167.260941,-178.444489,167.412262]. 기존교시대비위치 6.166mm/실회전 0.375deg. teaching-review.json 별도기록,원본보존/실행설정미반영/실파지미검증/에이전트장치동작0. 다음작업자기존빨강닫기20mm·힘40N으로수동닫기후정지,상승전확인.
+
+## 2026-10-15 빨강 슬롯1 수동 닫기 후 읽기 확인
+- 사용자닫힘보고. closed-readonly-1792029757420482177.json: 3회모두gripper_status2/폭39.9mm/정지,새교시pose차0.00120mm/0.000115deg이하. 장치쓰기0. 닫기명령설정값20mm와실측폭39.9mm를구분하며폭만으로정확파지판정하지않음. 다음작업자양패드의빨강블록중앙접촉및주변비접촉육안확인후수직들기단계. 실물정확파지/들기/결착/B/DB미검증.
+
+## 2026-10-15 빨강 슬롯1 2点面 교시 수동 들기 확인
+- 사용자2점축파지기준/정확파지/들림보고. lift-readonly-1792029861562990397.json: {"stopped": true, "rise_base_z_mm": 22.991741180419922, "xy_drift_mm": 0.9383912897546505, "rotation_change_deg": 0.20657911038817578, "gripper_status": 2, "gripper_width_mm": 39.9}. 3회읽기조회,에이전트장치동작0。연속들기궤적미관측/자동재접근미검증/실행설정미반영/원본교시불변。작업자수동들기와조회시holding근거만기록,결착/B/DB미검증。다음작업자원위치수동복원·개방후관측복귀。
+
+## 2026-10-15 빨강 슬롯1 새 교시 재접근 준비 및 관측 복귀 확인
+- 사용자원위치내림/개방/복귀보고후조회. logs/supply-red-slot1-trial/1792030098504025905/precheck.json: 기존관측자세정지/빈그리퍼status0폭51.5/TCPTool정상/새교시4endpoint IKFK통과,physical_commands0. 경로충돌여유·새교시자동접근파지는미검증.
+- 기존slot2 runner의red전용경로에새수동교시schema지원추가,별도manual-grasp-review의작업자정렬·정확파지·수동들기·2점축확인및원본/근거hash필수. 실행전검토파일도재확인. 기존직접교시/노랑슬롯2경로유지. 새6pose그대로·20mm/40N·기존속도힘유지,공급RGBD/조립XY없음. 원자료physical_grasp_verified=false불변,검토는별도manual-grasp-review.json에단일수동시험범위만기록.
+- 관련67passed(red-slot1-reteaching-regression.log),무동작검사통과. 새교시경로를명시한RED_SLOT1_RETAUGHT_PICKUP_GUIDE.ko.txt작성. 실제run은사용자직접실행안내만,에이전트이동/개폐0. 다음새교시자동접근·닫기후holding정지상태와작업자실파지확인. 자동상승/조립/B/DB검증아님.
+
+## 2026-10-15 빨강 슬롯1 새2점축 교시 자동재접근 정확파지1회
+- 사용자잘잡음확인。run1792030144985357132/result APPROACH_GRIP_SIGNAL_HOLDING_NO_LIFT_TEST,원본교시hash/새6pose일치。operator-review.json에작업자확인과원시result/events해시별도저장,원본불변。읽기3회 {"stopped": true, "pose_error_mm_deg": [0.0011951696744528445, 0.00011411908360342733], "gripper_status": 2, "gripper_width_mm": 39.9}. 에이전트이동/개폐0。공급RGBD/조립XY미적용。수동들기1회와이번자동접근닫기1회구분,자동들기/반복정밀도/결착/B/DB미검증。다음작업자현재공급위치에서개방·수직이탈·관측복귀,cleanup_pending=true。
+
+## 2026-10-15 빨강 슬롯1 새 교시 단일 파지 시험 정리
+- 사용자개방·관측복귀보고후읽기3회: {"stopped": true, "observation_error_mm_deg": [0.0013520666960485292, 0.00024487637971535035], "gripper_status": 0, "gripper_width_mm": 51.7}. CLEANUP_CONFIRMED; cleanup-readonly-1792030294335302830.json 저장,별도operator-review cleanup_pending=False. 에이전트이동/개폐0,원시실행로그·교시원본불변。
+- 빨강2점면기준새수동교시→수동파지·들기1회→새교시자동재접근·정확파지1회→개방·관측복귀까지근거분리。전역시나리오·RGBD프로파일미변경. 공급RGBD보정/전체25슬롯정밀도/결착/B/DB미검증. 다음후보정책에예외교시·실파지근거반영및미검증범위구분.
+
+- 빨강슬롯1새교시·자동접근파지1회·복귀근거를 slot-policies.candidate.json에반영,변경전후보는상위reports에별도보존. 실행승인/RGBD채택/자동실패fallback은25개모두false유지. 다음장치없는검사는25슬롯관측후보와측정기준연결정합성,미측정슬롯후보유지.
+
+## 2026-10-15 빨강 정리 후 25슬롯 관측·측정기준 연결 검사
+- post-red-reconcile-20261015T111258: 관측pose정지에서RGBD20장촬영(장치동작0),기존model-05 ROI고정재사용·재적합없음. 19평가프레임중20슬롯관측일관/5슬롯검토:노랑2x2의1(깊이10/19),2(1/19),3(15/19),노랑2x3의3(16/19),빨강1x2의1(인식14/19·모델중심차). 관측변동을재교시필요/실파지실패로판정하지않음.
+- reference-reconciliation.json에25슬롯각각관측표면후보/교시근거/짝지은기준연결. 기준3개와원본파일hash/행렬/표면중앙값/슬롯/TCP정합확인,불일치0. 직접측정교시13슬롯·없는12슬롯구분,미측정파지좌표는생성·채택하지않음. 전체runtime/RGBD채택/fallback false,기존실행설정불변.
+- slot-policies.candidate.json 최신관측수치·연결보고경로만반영,이전사본상위reports보존. 노랑2x3슬롯3을추가깊이검토대상분류,새교시보다기존실파지이력조회우선. REFERENCE_RECONCILIATION.ko.txt에25행상태표·제한·다음단계기록. 관측20개일관은실파지/결착/B/DB/전체통합완료아님.
+
+- 추가노랑2x3슬롯3조회: 기존직접교시와완전동일PICKUP_LOWER의실행3건발견,3건모두BLEND_COMPLETE시grip2/폭40.6/endpoint_verified확인. 별도yellow-2x3-slot3-history-review.json에세실행각각증거구분,실행별파지·이송증거를구분. REAL_D_SYNTHETIC_B_OPERATOR_TRIAL,실물B/결착근거아님. 추가수동교시우선불필요,후보정책참조갱신/실행설정불변.
+
+## 2026-10-15 교육용 공급 프로파일 초안 작성
+- 사용자초안요청에따라 robot_control_integration/settings/round3_supply_rgbd_20261015/draft-20261015T111950/profile.draft.json 및layout.snapshot.json/PROFILE_REVIEW.ko.txt/validation.json작성. RGBD관측후보20·명시교시전용예외5,직접측정교시13·없는12구분. ROI/관측표면후보/교시·실파지·짝지은기준출처해시연결,없는파지좌표·전슬롯허용값null유지.
+- 기존T1한정교육오차를전슬롯으로확장하지않음,공급RGBD실패시자동교시전환없음. 기존각슬롯회전/Z·힘·속도보존,빨강새2점축교시출처사용/슬롯5회전이식없음,조립XYfalse.
+- 25유일슬롯/20·5/누락12/근거해시/새빨강pose정합검사통과,실행loader는schema불일치로거절확인. 별도신규draft schema이며실행로더·기존설정수정없음. 장치동작0/실물시험미실행/B·DB·전체통합완료아님. 다음초안검토후제한슬롯실행프로파일을별도준비.
+
+## 2026-10-15 첫 실행용 공급 RGBD 슬롯4 프로파일 준비
+- 사용자진행/실행용프로파일·슬롯선정질문에따라기존교육용RGBD근거있는노랑2x2슬롯4선택. slot4-execution-20261015/config.json: 기존슬롯4짝교시·표면기준·교육T1한정허용값그대로/최신25슬롯후보기준채택아님. 회전/Z·힘·속도불변,공급RGBD접근닫기후hold정지한정/자동상승·조립XY·조립동작없음. 전역25슬롯config불변.
+- scripts/supply_rgbd_single_trial.py추가: preview기본무연결/check실시간조회전용/run명시execute+slot4준비+손제거,공통writerlock/근거hash/기존depth로더범위검사/preflight/기존supply.execute(trial_row,hold_at_pickup)재사용. start_zone=supply고정,홈이동없음. LiveVision에무동작검사용show_window=false만추가,기존run영상ESC중단유지.
+- 저장최신20영상기존프로파일보정재생20/20통과(실시간검사아님). 관련106passed(slot4-rgbd-execution-regression.log). 실제readonly1792031051887270108: 빈그리퍼폭 51.7mm/정지/TCPTool정상,실시간보정 [1.0174396223551412, 0.524348460389291]mm/깊이532.0mm,보정후endpoint IKFK통과/physical_commands0. 허용값확대없음/실제파지run에이전트미실행.
+- RUN_GUIDE.ko.txt에일반터미널직접실행/슬롯4배치/3이동닫기1회/holding종료/로그/다음단계기록. 다음작업자단일실행및실파지확인. 전체25슬롯보정·결착/B/DB미검증.
+
+## 2026-10-15 슬롯4 RGB-D 보정 접근·정확파지 단일시험 작업자확인
+- 사용자정확파지보고. run1792031150121333215: RGBD READY/center_assist_applied=true/fallback_reason=null,XY [0.9514035700007071, 1.2443317058278467]mm실제명령반영. 원래Z/회전불변,닫기35mm·힘40N유지. result RGBD_APPROACH_GRIP_SIGNAL_HOLDING_NO_LIFT_TEST/정지/status2폭40.4.
+- 독립읽기3회 {"stopped": true, "commanded_target_error_mm_deg": [0.0015242687866802525, 0.00013369494537889698], "gripper_status": 2, "gripper_width_mm": 40.4}. 원시result/events불변,operator-review.json에작업자확인·해시·적용범위별도저장. 에이전트이동/개폐0,cleanup_pending=true.
+- 교육용고정슬롯4 RGBD보정접근·파지1회성공범위만확인,자동상승/결착/전체25슬롯정밀도/실제B/최종DB미검증. 다음작업자현재공급위치에서그리퍼개방후수직이탈·관측복귀.
+
+## 2026-10-15 슬롯4 RGB-D 단일 파지 시험 정리 완료
+- 사용자개방·관측복귀확인후읽기3회:기존관측point거리0.002190mm/회전0.000276deg/정지/그리퍼status0·52mm. cleanup-readonly-1792031300789147102.json 및trial-summary.json의source_files에실제경로연결. cleanup_confirmed=true/별도operator-review cleanup_pending=false. 원시result/events보존·에이전트이동개폐0.
+- trial-summary.json에소프트웨어106통과/저장영상20·실시간조회/실제RGBD보정XY[0.95140357,1.24433171]파지1회/작업자확인/복귀분리. 보고서상위reports/SLOT4_RGBD_TRIAL_SUMMARY.ko.txt작성. 이번자동상승/반복정밀도/결착/B/DB미검증,이전native/HMIT1결착과별도.
+- 후보정책에슬롯4기존교육용범위성공근거만연결/이전정책백업보존,전역runtime설정변경없음/25슬롯실행승인·RGBD채택·자동fallback false유지. 다음권장T2파랑2x3슬롯3기준높이·자세와허용범위검토후별도프로파일준비,다음물리시험미시작.
+
+## 2026-10-15 교육용 공급 최소 시험 목록
+- 사용자최소시험목록요청. reports/round3_robot_pc_20261015/MINIMUM_SUPPLY_TEST_PLAN.ko.txt 및minimum-supply-test-plan.json작성. 완료슬롯4RGBD/노랑슬롯2교시/빨강슬롯1새2점축교시/기존native-HMIT1결착재시험생략.
+- 추가실물기본1회=T2파랑2x3슬롯3(2x3·3점면·다른행대표),기준높이자세정합·슬롯한정허용값·무동작검사통과전실행없음. T3노랑2x3슬롯5는구체적위치오차잔류시만조건부/기본생략. 파랑2x2별도실물시험기본추가없음,미검증슬롯을완료로승격하지않음.
+- 25개일괄영상·기준검토/예외5명시/미측정교시12후보유지,전체재교시요구아님. 대표교육검증과전체정밀도·반복성·결착/B/DB구분. 장치동작0/실행설정변경0. 다음T2무동작기준정합검사·개별프로파일준비.
+
+## 2026-10-15 T2 실행 준비: 기존2점축 및 기준불일치 확인
+- 사용자진행지시. reference_config(T2)는파랑2x3슬롯3/span2/닫기35mm/힘40N,기존실행교시[-459.112274,11.112536,50.554276,9.841970,179.121948,10.311336]. 최소시험계획의3점면대표설명을2점축유지로정정·이전JSON보존. 축/파지설정변경없음.
+- 기존RGBD짝측정과기존실행교시는위치4.070467mm/실회전0.608683deg차,측정Z가2.630444mm낮음. 별도변위검증도Z0.721577mm/자세1.624094deg차로진단범위. 임의보정/기준혼합/새높이채택없음.
+- logs/supply-depth-reference/T2-runtime-matched-20261015T113333: 기존교시4endpoint IKFK/관측정지/빈52mm무동작검사통과,새20장촬영·슬롯3인식/깊이검토 20/20; 관측깊이범위[523.0, 523.0]mm. 장치동작0. profile.pending.json은execution_allowed=false/허용값null,실행용준비미완료사유명시.
+- NEXT_MEASUREMENT.ko.txt에기존T2 Z/회전유지·XY현재블록중앙수동정렬후teach-pickup기록안내. 한슬롯기준연결측정필요/전체재교시요구아님. 다음새교시일치검사·블록위치유지짝촬영후슬롯한정교육허용범위검토. 자동파지/조립/B/DB미실행.
+
+## 2026-10-15 T2 재기록 확인: 높이·자세 불일치 유지
+- 사용자기록보고후T2-runtime-matched-20261015T113333/pickup 확인: 슬롯/TCPTool/hash정상,3회pose동일. 새pose [-453.08966064453125, 9.289710998535156, 48.208892822265625, 0.40635234117507935, 177.58763122558594, 0.4011799693107605]; 기존실행대비Z -2.3453826904296875mm/실회전 1.6246506687731952deg. 기존높이·회전일치로표시하지않음. 측정값원본보존/실행설정미변경/실파지미검증/장치동작0.
+- teaching-review.json에정합검토결과기록. 반복교시요청또는새공급전용교시채택을임의결정하지않고사용자의도확인필요. 다음블록위치유지및기준선택확인후짝촬영연결.
+
+## 2026-10-15 T2 높이·자세 보정 명령 준비
+- 사용자평균요청후이동명령안내로지시변경,평균자료미생성/기존설정불변. 읽기조회정지·빈그리퍼52mm/TCPTool정상. 현재[-453.088226,9.289664,48.205864,0.405994,177.587219,0.400821]에서XY동일·기존Z/ZYZ목표[50.554276,9.841970,179.121948,10.311336]로의MoveLine명령안내준비. 실제Z+2.348412mm/실회전1.625044deg,기존속도12/6·가속48/3유지.
+- z-attitude-correction-precheck-1792031940186478641.json에조회·목표IKFK오차0.004722mm/0.000436deg기록,장치동작0. 경로중간충돌여유검증아님. 사용자직접이동후성공응답·새pose기록필요,관측짝촬영/실파지미검증.
+
+## 2026-10-15 T2 높이·자세 보정 도착 및 교시 별도 저장
+- 사용자이동완료후조회: correction-arrival-readonly-1792032018241655222.json,기존Z오차0.000069mm/실회전오차0.000122deg/정지·빈52mm확인. 에이전트명령은조회만/실제이동은사용자수행. 평균적용없음.
+- pickup-height-matched/pickup.json 별도read-only기록,기존pickup원본보존·전역실행설정불변. hash/3회pose동일/기존높이·회전일치검사통과. profile.pending은짝관측·교정후패드중앙작업자확인·T2한정허용범위대기,execution_allowed=false.
+- 다음기존2점축패드중앙정렬이유지됐는지작업자확인후닫지않고수직이탈·기존경로관측복귀,블록위치방향유지짝촬영. 실파지·새RGBD기준승인으로표시하지않음.
+
+## 2026-10-15 T2 높이·자세 일치 교시/관측 연결 및 실행 프로파일 준비
+- 사용자교정후중앙맞음·관측복귀확인. observation-height-matched20장저장,기존관측점차0.007mm수준. 19장유효/1장영상나이300.07479ms로엄격거부,기준완화없음. 깊이패치523~525mm/최대편차1mm/기준XYZ변동XY0.093218mm·Z1.001129mm. 새로운surface-quality-candidate.json은측정후보이며독립정밀도검증아님.
+- T2-slot3-execution-20261015에새2점축높이일치교시와짝표면기준/별도ROI/허용범위제안/실행config준비. 제안XY1mm·표면높이차2mm·깊이521~527·패치2mm는T2제안시험경계(미승인),T1범위자동전용아님. --accept-t2-educational-profile명시옵션없이는check/run연결전거부. 원본profile operator_accepted=false보존·실행cfg에명시선택기록.
+- depth_center로더에T2공급한정정확slot/pose·span2·T2scope·explicitflag·조립XYfalse/자동상승false바인딩추가,T1기존범위검사유지. 단일runner T2선택/slot3준비flag·전용로그·기존hold제어재사용,교육확인근거문자열T1/T2구분. 관련108passed(장치없는합성fixture),저장19장제안범위통과/오래된1장거부,실장치경유점·빈52mm무동작통과。
+- RUN_GUIDE.ko.txt에선택의미·먼저check직접실행·결과확인후별도run안내. 실제T2실시간교육옵션선택/물리파지아직미실행,전역시나리오변경0·에이전트장치동작0. 다음작업자제안범위명시선택후실시간무동작검사결과확인.
+
+## 2026-10-15 T2 사용자 명시 선택 후 실시간 무동작 검사 통과
+- 사용자통과보고 및 logs/supply-rgbd-T2-slot3-trial/1792032585285241080/live-check.json 확인. READ_ONLY_RGBD_READY/physical_commands0,실행snapshot operator_accepted_t2_educational_profile=true로T2한정제안범위명시선택확인. 보정XY[0.021601494646972697, 0.10821001449746959]mm/깊이524.0mm/보정경유점IKFK통과.
+- 다음사용자단일run명령안내,공급보정접근·닫기후hold정지/기존2점축닫기35·힘40N유지/자동상승·조립없음. 실제T2물리시험은아직미실행,전역설정변경0/에이전트장치동작0.
+
+## 2026-10-15 T2 실행 전 신선도 중단 진단·처리 순서 수정
+- 사용자SUPPLY_DEPTH_FRESH_SYNCHRONIZED_PACKET_REQUIRED보고. run1792032615502602493은TRIAL_START/START_OBSERVATION_REACHED/BLOCK_BEGIN만있고이동·닫기전중단(기존예외STOP요청경로수행). 원로그시각상세없어단일원인확정은불가,계산전GUI표시/PNG저장을불필요지연으로확인.
+- 단일runner에OpenCV1thread·depth증거defer·이동전중복표시제거,종료·정지finally에PNG/JSONflush. ESC감시유지,기존기타실행은defer기본false유지. 패킷별나이/skew/인식시간/pose조회시간기록및실패시진단저장. 300ms/50ms·공간·힘·속도기준불변,오래된영상거부지속. 합성정상/오래됨/실패/증거지연저장검사포함114passed.
+- 첫실제조회시별도FK서비스timeout발생,사용자로봇재연결보고후새driverPID909788/카메라712101 각1개·ROSdomain20확인. 에이전트재시작/설치없음. 재연결후check1792032960843084158통과,gui-readonly-1792032992581798158도이동없이통과:패킷198.786967ms/skew0/인식31.74648ms/pose조회25.14935ms.
+- reports/T2-freshness-diagnosis-and-fix.json에범위·제한·로그기록. 실제파지재시도는미실행,다음사용자한줄run명령안내. 에이전트이동·개폐0/원교시·기준·프로파일한계불변.
+
+## 2026-10-15 사용자 요청 T2 영상 신선도 310ms 적용
+- 사용자기준늘림/310명시지시. T2profile max_packet_age_ms=310추가·승인자료amendment/manifest해시일치갱신,이전3개설정상위reports백업보존. 신선도선택·rgbd_target최종검사·이동전만료계산공통값적용. T1등필드없는기존profile은300ms유지,토픽skew50ms·공간/힘/속도기준불변.
+- 직전실패1792033060803653046은모든ages301.647878ms/skew0,인식30.837675ms·pose조회21.095642ms,이동/닫기전중단. 처리예산100ms필터개발시도는사용자310명시지시에따라적용하지않음. 기존증거defer최적화유지.
+- 관련118passed(T2-310ms-regression.log),301.647878ms/309.999999ms허용·311ms거부·기본300ms와skew50ms거부유지검사. 실제설정load/근거hash검사도통과. 새물리시험미실행/에이전트장치동작0. 다음사용자같은단일T2run명령재실행후파지상태확인.
+
+## 2026-10-15 T2 교육용 RGB-D 보정 단일 파지 성공 작업자 확인
+- 사용자파지잘함. run1792033310942237285: RGBD보정applied=true/fallback없음,XY[0.009718532,0.032230608]mm/검사패킷225.126514ms·skew0/깊이524mm. 기존2점축·교시Z/회전·닫기35mm·힘40N유지,사용자요청310ms한계범위.
+- result RGBD_APPROACH_GRIP_SIGNAL_HOLDING_NO_LIFT_TEST,작업자정확파지확인별도operator-review.json기록/원시result/events보존. 독립읽기3회 {"stopped": true, "commanded_target_error_mm_deg": [0.0008759105466503392, 0.00011551249225823034], "gripper_status": 2, "gripper_width_mm": 40.4}. 에이전트이동개폐0。cleanup_pending=true,자동상승/반복정밀도/결착/B/DB/25슬롯실물검증아님.
+- 교육용대표RGBD공급파지T1슬롯4·T2슬롯3각1회확인,기본계획의추가대표시험은T2로완료. 다음사용자현재공급위치개방·수직이탈·관측복귀후일괄프로파일연결작업,새실물시험자동추가없음。
+
+## 2026-10-15 T2 대표 RGB-D 파지 시험 정리 완료
+- 사용자개방·복귀보고후독립읽기3회: {"stopped": true, "observation_error_mm_deg": [0.0007202811129841841, 1.5407723092281324e-05], "gripper_status": 0, "gripper_width_mm": 52.0}. T2_EDUCATIONAL_RGBD_SINGLE_GRASP_CLEANED_UP; cleanup-readonly-1792033463953276813.json 및trial-summary.json저장/원시로그보존,operator-review cleanup_pending=False. 에이전트이동개폐0.
+- T1슬롯4/T2슬롯3 교육용대표RGBD공급파지각1회및교시예외파지근거확보. 전체25슬롯실행좌표·표면기준·실행조건일괄연결은별도미완료,결착/B/DB/전체통합완료아님. 다음현재관측자세유지·일괄프로파일연결검사,추가물리시험자동시작없음.
+
+## 2026-10-15 교육용 조건부 공급 실행 프로파일 완성
+- 사용자 모델 기반 확장·실행 승인 요청에 따라 settings/round3_supply_rgbd_20261015/execution-approved-20261015/profile.json 생성. 20개 RGBD_XY(짝 실측·단일 파지2개 + 관측 모델18개), 5개 TEACHING_ONLY(노랑2×2 슬롯1/2/3, 노랑2×3 슬롯3, 빨강1×2 슬롯1). 슬롯6 제외. 승인과 실제 파지·독립 정확도 검증을 분리하고 원자료/기존 시험 설정 보존.
+- organize_supply_profile.py가 저장 근거 해시·기존 앵커 보간·25개 단일 실행 설정/20개 깊이 프로파일/ROI를 생성·검사. execution_profile.py가 명시적 승인과 출처 해시·슬롯 모드를 검증. RGB-D 실패 시 교시 전환 없음, 교시 예외는 등록된 정확한 자세만 허용. 모델18개 상대 XY 상한1mm, 각 슬롯 관측 기반 깊이/편차/높이 설계 한계이며 정확도 인증 아님.
+- --execution-profile 선택 옵션을 단일 공급 runner, native T1~T3, HMI 고정 T1에 연결. 기존 높이·회전·힘·속도·닫힘 폭 유지, 조립판 XY 비활성 유지. 일반 C/A/B/D 자동 실행 경로에는 자동 적용하지 않음.
+- 실제 저장 프로파일25개 load/bind 및 native3개 preview 검사 통과. native143 + HMI14 =157개 관련 테스트 통과. validation.json/integration-validation.json/native-tests.log/hmi-tests.log/manifest.json에 결과 저장. 장치 연결0·동작0; 다른 팀 장치 인계 상태 유지.
+- 현재 RGB-D 단일 실파지 확인2개/교시 전용 단일 실파지 확인2개, 나머지 개별 파지·반복정밀도 미검증. B 실제 조립 확인/최종 DB 저장/전체 ABCD 완료를 주장하지 않음. 다음 제어권 반환 후 장착·TCP·영상·시각·배치 재확인, 선택 슬롯 무동작 check 후 작업자 실행. 사용법 RUN_GUIDE.ko.txt.
+
+## 2026-10-15 Round3 서비스 연결: 승인된 실제 A 첫 Step → 해당 native 교시·공급 프로파일
+
+### 시작 상태와 서비스 경계
+
+- 작업 위치 `c2_integration_round3`, 브랜치 `codex/integration-round3`, HEAD `bda07e5`. 이후 커밋은 없었지만 공급판·교시·HMI 관련 미커밋 변경과 새 실행 프로파일이 있었다. 작업 전 diff/status를 상위 로컬 `reports/round3_service_step_20261015/preexisting.patch`, `preexisting-status.txt`에 보존했다. 기존 변경·원자료를 되돌리지 않았다.
+- 사용자 지정 `robot_control_integration/settings/round3_supply_rgbd_20261015/execution-approved-20261015/profile.json`을 사용했다. 20개 RGBD_XY와 5개 TEACHING_ONLY 모두 조건부 실물 실행 대상이다. 개별 미검증을 실행 대상 제외로 해석하지 않으며, 개별 파지·반복성·전체 조립 검증 여부는 별도 기록한다.
+
+| 서비스 구간 | 이번 확인 / 연결 범위 |
+|---|---|
+| 로그인·시작·사용자 소유자 | 기존 계정/Job 소유자 경로 유지. DB 설정 시 기존 로그인 시작 조건 적용. 이번 작업에서 DB 연결 검증하지 않음 |
+| C 설계·미리보기·별도 APPROVE | 기존 C 호출·미리보기·승인 경로 재사용. 승인이 없으면 A 및 native 실행 없음 |
+| A 전체 계획·단계 재평가·모션 | 실제 A 함수 사용. A 순서를 T1로 덮어쓰지 않음. 기존 8블록+T1/T2/T3 설계에서 첫 Step은 T2 |
+| D 실제 실행 | 새 명시 모드에서 A 첫 Step의 여섯 배치 필드에 맞는 native case·교시·슬롯·공급 프로파일을 연결. 한 Step만 실행 가능 |
+| B 초기 Current | B의 실제 저장 INITIAL 자료를 다시 B 검사 소유자에 전달하여 채택. 합성 scene이나 설계를 Current로 대체하지 않음 |
+| D 실행 후 B STEP / 다음 Step | 이번 실물 경로에는 미연결. 동작 성공도 HOLD, Current·completed 유지 |
+| C 중간 변경·새 승인·A 재계획 | 기존 저장 관측 MOCK 재생 경로는 유지. 새 native 한 Step이 시작된 뒤에는 변경·재개·재검사 자동 실행 없음 |
+| 별도 FINAL B·종료·사용자별 저장/표시 | 기존 모의/독립 구현과 구분. 이번 native 결과로 COMPLETE/DB 저장을 시작하지 않음 |
+
+### 구현과 입출력
+
+- `app.mvp_real_trial.ApprovedStepRealTrial`과 `--round3-approved-step` 추가. 기존 `--round3-fixed-step`, 일반 REAL 시험, MOCK 재생의 기본 동작은 유지한다.
+- 제한 설계는 지정 scenario의 사전배치 8개와 T1/T2/T3 목표 3개다. 사전배치+T1만을 설계로 쓰면 C 연결성 검사에서 탈락하므로 검사를 약화하지 않고 연결된 전체 후보를 승인받는다. 실행은 A가 실제 선택한 첫 Step 한 개이며, 나머지도 이후 실물 실행 대상이다.
+- native 무동작 preview로 기존 교시·보정·등록 슬롯을 읽고, 대응 pickup/assembly 기준을 A 재평가·모션 입력에 함께 제공한다. 실행 시 native가 동일 설정을 다시 생성하고 해시를 비교한다. A의 운반 후보를 새 저수준 궤적으로 실행하지 않고, 매칭된 기존 D native skill을 사용한다.
+- `approved-step.json`에 C 승인 설계, B 기준 Current, A shared bundle·재평가/모션 요청·결과, 예약 슬롯, 실행 ID, 교시 설정 해시, 프로파일 해시, 준비 확인과 120초 실행 인계 기한을 저장한다. native의 `--approved-step-document`가 Plan/Step/revision/generation·슬롯·설계·교시·프로파일 일치를 장치 연결 전에 재검사한다.
+- REAL READ_STATE 프로세스를 종료·join하여 기존 writer lock을 해제한 뒤 native가 동일 lock을 획득한다. native는 실행 ID를 독점 기록하여 같은 실행을 자동 재시도하지 않는다. STOP은 native SIGINT로 전달하며 프로세스 종료를 실제 정지 확인으로 표시하지 않는다. 늦은 성공·다른 실행 결과는 성공으로 채택하지 않는다.
+- native 결과에 `service_binding`을 추가했다. 공통 ABCD/ROS 메시지는 변경하지 않았다. HMI의 `observation_kind`에는 `SAVED_REAL_INITIAL_ONLY`를 명시적으로 추가하여 가짜 B, 초기 저장 실관측, 후속 B 미연결을 구분한다. 제어 높이·자세·힘·속도·그리퍼 폭·조립판 XY 정책은 변경하지 않았다.
+- 약 10개 파일의 작은 연결 변경이다. 기존 프로세스와 native skill 재사용으로 새 서비스/DB/dependency/추상 계층을 추가하지 않았다. 전체 연속 실행까지 한 번에 확장하는 방안은 제외했다. 수동 코드 리뷰는 별도이며 AI 검사를 사람 리뷰로 표시하지 않는다.
+
+### #55 확인과 초기 관측 입력
+
+- [홍동 PR #55](https://github.com/suuuhululu/C-2/pull/55), 확인 SHA `04a382157b60a7697c0c4570478bda37211e5e1c`, OPEN, 대상 `codex/integration-round2`. round3 HEAD의 조상이 아니며 이번 작업에서 merge/cherry-pick하지 않았다.
+- INITIAL을 V0 단독에서 V0→D1→D3로 복구한다. 새 `stud_layer`는 live/replay `process_frame`의 추가 층 진단값이며, 실제 관측 사이클의 `process_saved`→B 비교 입력 경로를 대체하지 않는다. 48/48 진단을 전체 B 조립 확인 성공으로 해석하지 않는다.
+- D3 `confirm_view` 이후 `is_stopped=False` 문제는 PR에 미해결로 기록돼 있다. 해당 `inspection-state-failures` 원시 JSON은 현재 작업 폴더에서 찾지 못했으므로 원인을 단정하거나 정지 검사를 완화하지 않았다.
+- `--initial-observation`은 B가 성공 저장한 **INITIAL cycle 디렉터리**다. `context.json`, `observed.json`, `V0/metadata.json`, `D1/metadata.json`, `D3/metadata.json`을 읽는다. mode=REAL, check_kind=INITIAL, 세 View, 동일 check_id/observation_seq/calibration_id/scene_id, timezone 포함 촬영시각을 검사한다. 초기 채택은 가장 오래된 촬영부터 300초 이내이며 원본 파일 해시와 source identity를 Job 로그에 보존한다. 실패·관측 불가·파일 변경·오래된 자료는 B 오류/보류이며 가짜 MATCH로 보완하지 않는다.
+
+### 실행 준비 예시 (이번 작업에서 실물 실행하지 않음)
+
+상위 로컬 `reports/round3_service_step_20261015/limited-design.candidate.json`은 기존 scenario에서 만든 11블록 **검토 후보**이며 승인 결과가 아니다. 준비 체크박스는 초기 관측 후 8블록 배치 유지·대상 공급 슬롯·빈 그리퍼 HOME·기존 경로 확인이다. `--start-zone home`은 HOME 이동 명령이 아니다. 정상 ROS 환경의 터미널에서 아래 초기 관측 경로를 실제 최신 B cycle 폴더로 지정한다. `HISTORY_DATABASE_DSN`이 설정돼 있으면 기존 제작자 로그인도 필요하다.
+
+```bash
+ROS_DOMAIN_ID=20 C_DESIGN_USE_LLM=0 python3 -m app.mvp_real_trial \
+  --robot-root ./robot_control_integration \
+  --log-directory ./logs/round3-approved-service \
+  --round3-approved-step \
+  --initial-observation /absolute/path/to/new-initial-capture \
+  --fixed-trial-scenario ./robot_control_integration/settings/round3_educational_t1_20261015/scenario.json \
+  --execution-profile ./robot_control_integration/settings/round3_supply_rgbd_20261015/execution-approved-20261015/profile.json \
+  --design ../reports/round3_service_step_20261015/limited-design.candidate.json \
+  --execute
+```
+
+준비 확인→시작→C 후보 미리보기→사용자 명시 승인의 순서로 진행한다. C 응답란은 기존 기능을 사용한다. `C_DESIGN_USE_LLM=1 --c-mode live`는 기존 C 음성/LLM 경로를 선택한다. 어느 경우든 승인 후 A가 계획하고 기존 native 관측·실행 팝업으로 한 Step만 실행한다. 실행 성공 후에도 `APPROVED_STEP_EXECUTED_B_CONFIRMATION_REQUIRED` HOLD이며 남은 Step·Current 갱신·최종 저장으로 진행하지 않는다.
+
+### 검증·남은 작업
+
+- 새 연결 검사는 실제 C review·A 계획/재평가/모션·B 채택 함수를 사용하고 장치 transport/실행 결과만 명시적으로 모의한다. 승인 전 차단, A 자동 첫 Step T2 유지, native 소비자 preview, Step·슬롯·revision·프로파일·만료 불일치, STOP 후 늦은 결과, 초기 세 View 누락/장면·ID 오류/원본 변경/오래됨/관측 불가, HMI JSON Schema·Qt 표시를 확인했다. 새 연결 12 passed (`final-approved-step-tests.log`), 고정 T1·HMI 계약·Workflow 포함 관련 검사 177 passed (`final-focused-tests.log`).
+- 확장 회귀 검사: `final-root-tests.log` 203 passed / 5 failed. 다섯 실패 모두 `test_mvp_full_real_adapter.py`의 오래된 2~3점 지지 설계가 C의 최소4점 검사에서 거절된 결과다. 작업 전 코드(HEAD+보존한 미커밋 patch)를 별도 폴더에 복원하여 같은 다섯 node ID와 같은 support 오류를 재현했다(`baseline-failures.log`, 5 failed). 이번 변경으로 생긴 실패로 분류하거나 전체 PASS로 표시하지 않는다.
+- native 제어/교시/공급 프로파일 관련 152 passed (`native-regression.log`). 별도 저장 관측/중간 변경 재생을 포함한 회귀 검사 197 passed / 5 skipped (`root-regression.log`, 당시 C2_ROBOT_ROOT 조건). #55 최신 소스 별도 검사 76 passed (`pr55-tests.log`). 모두 장치 없는 검사이며 현재 장치 상태를 증명하지 않는다.
+- 변경 Python 8개 AST 파싱, HMI JSON 파싱과 `git diff --check` 통과. 제공 실행 프로파일은 native 전체 preview에 기록된 SHA256과 최종 파일 SHA256이 동일하다. 검사 로그·후보·PR diff/검토 소스·작업 전 비교 소스는 상위 로컬 `reports/round3_service_step_20261015`에 보존했다.
+- 실물 L4, 실제 B INITIAL 촬영/채택, live C 음성/API, 실제 D 결착·후속 B STEP/FINAL, PostgreSQL/사용자별 최종 저장은 이번 작업에서 실행하지 않았다. 최신 성공 INITIAL cycle 폴더도 현재 작업 자료에서 찾지 못했다. 로봇/그리퍼 명령과 카메라 연결 0. lint/type checker는 저장소에 미구성이며 새 도구를 설치하지 않았다.
+- 다음은 #55의 INITIAL 세 View 실행과 D3 정지 판정 원자료 확인→성공 저장 cycle을 새 모드에 공급→한 실제 A Step의 D 실행·로그 확인이다. 그 뒤 별도 작은 작업으로 B 실제 STEP 비교·MATCH 진행, 중간 변경/별도 승인·Current 유지 재계획, FINAL 확인·사용자별 저장을 연결한다. 커밋/push/PR 게시/merge는 수행하지 않았다.
+
+## 2026-10-15 Git 업로드 대상 선별 및 공급 프로파일 의존자료 정리
+- docs/ROUND3_GIT_UPLOAD_FILES.txt에 파일 단위 업로드 목록, ROUND3_GIT_UPLOAD_REVIEW.ko.txt에 코드/프로파일/별도 승인 Step 공용 변경과 로컬 제외 범위를 기록. 공용 파일의 승인 Step 수정은 제거하지 않고 별도 검토 묶음으로 표시. stage/commit/push 미실행.
+- execution-portable-20261015 새 배포본 생성. source_sha256을 배포본 기준 상대경로로 지원하고, 필수 JSON26개를 evidence에 바이트 동일 복사. 원본 현장 프로파일·영상·logs/reports는 보존하고 .gitignore로 구분. 활성 설정의 /home 경로 제거, 중첩 원본 기록의 경로는 비실행 역사 출처로 유지. 기존 좌표·제한값·20 RGB-D/5교시 승인·미검증 상태 동일 대조.
+- HEAD+선별 목록만 복사한 별도 경로에서 원래 PC 경로 읽기 차단 후 25슬롯 load/단일 설정 및 native3Step preview 통과. 별도 checkout 관련 native241 + HMI/승인 Step26=267 테스트 통과. packaging-validation.json에 결과 저장. 장치 연결0/동작0, 실제 후속 B 판정·DB·전체 ABCD 완료 주장 없음.

@@ -12,6 +12,39 @@ from app.supply_stud.depth_center import load_profile, processing_frame, rgbd_ta
 from scripts import supply_pick_release_trial as trial
 
 
+def test_live_subscription_callbacks_have_ros_inspectable_signature(tmp_path, monkeypatch):
+    import inspect
+    import sys
+    import cv2
+    from app.supply_stud import depth_center
+
+    callbacks = {}
+    def subscribe(kind, topic, callback, qos):
+        # rclpy validates callback signatures at subscription construction.
+        assert len(inspect.signature(callback).parameters) == 1
+        callbacks[topic] = callback
+        return topic
+
+    monkeypatch.setitem(sys.modules, 'sensor_msgs.msg', NS(Image=object, CameraInfo=object))
+    monkeypatch.setitem(sys.modules, 'rclpy.qos', NS(qos_profile_sensor_data=object()))
+    monkeypatch.setenv('DISPLAY', ':synthetic')
+    monkeypatch.setattr(cv2, 'namedWindow', lambda *args: None)
+    monkeypatch.setattr(cv2, 'resizeWindow', lambda *args: None)
+    monkeypatch.setattr(depth_center, 'load_profile', lambda *args: {'synthetic': True})
+    layout = tmp_path/'layout.json'; layout.write_text('{}')
+    config = dict(vision=dict(depth_center_profile='synthetic', backend='opencv_studs',
+                             layout=str(layout), rgb_topic='/camera/color/image_raw'))
+    driver = NS(ros=NS(create_node=lambda name: NS(create_subscription=subscribe)))
+    camera = trial.LiveVision(driver, config, tmp_path)
+    rgb, depth, info = object(), object(), object()
+    callbacks['/camera/color/image_raw'](rgb)
+    callbacks['/camera/aligned_depth_to_color/image_raw'](depth)
+    callbacks['/camera/color/camera_info'](info)
+    assert camera.message is rgb
+    assert list(camera.depth_messages) == [depth]
+    assert list(camera.info_messages) == [info]
+
+
 def inputs(size=(640, 480)):
     width, height = size
     header = NS(stamp=NS(sec=1, nanosec=100_000_000), frame_id='camera_color_optical_frame')
@@ -56,6 +89,15 @@ def test_camera_and_tcp_rotations_are_applied_before_base_displacement():
     # Rotating camera translation (5,-3) by +90 produces (3,5).
     args[6]['references'][0]['surface_center_base_mm'] = [-398., 3., 710.]
     assert rgbd_target(*args)['delta_xy_mm'] == pytest.approx([1., 2.])
+
+
+def test_surface_failure_reports_missing_depth_without_replacing_it():
+    args = list(inputs())
+    depth = np.frombuffer(args[2].data, '<u2').copy().reshape(480, 640)
+    depth[240, 320] = 0
+    args[2].data = depth.tobytes()
+    with pytest.raises(ValueError, match='SURFACE_UNAVAILABLE zero_pixels=1/9 min_mm=0.0 max_mm=400.0'):
+        rgbd_target(*args)
 
 
 def test_letterbox_retains_shape_field_and_inverse_coordinates():
@@ -129,8 +171,50 @@ def test_profile_is_bound_to_reviewed_setup_and_layout(tmp_path):
     with pytest.raises(ValueError, match='NOT_VERIFIED'): load_profile(path, layout, config)
 
 
-@pytest.mark.parametrize('fault', [None, 'moving', 'changed', 'missing_depth'])
-def test_live_receiver_connects_rgbd_correction_or_blocks_before_target(tmp_path, monkeypatch, fault):
+def test_educational_acceptance_requires_explicit_fixed_t1_and_preserves_setup_gate(tmp_path):
+    a = inputs(); profile = deepcopy(a[6])
+    row = dict(color='yellow', brick_type='2x2x1', slot=4, pickup_pose=a[0]['pickup_pose'])
+    layout = tmp_path/'layout.json'; layout.write_text('{"image_size":[640,480]}')
+    config = dict(connection=dict(robot_id='test', tcp='tcp', tool='tool'),
+        observation_pose=a[5]['posx'], vision={}, blocks=[row],
+        trial_step=dict(step_id='T1', target=dict(color='yellow', brick_type='2x2x1',
+            x=9, y=9, layer=2, orientation_deg=0)))
+    profile.update(independently_verified=False, connection=config['connection'],
+        observation_pose=config['observation_pose'], layout_sha256=sha256(layout.read_bytes()).hexdigest(),
+        references=[dict(slot_id='yellow_2x2x1_04', pickup_pose=row['pickup_pose'],
+                         surface_center_base_mm=profile['references'][0]['surface_center_base_mm'])],
+        educational_acceptance=dict(operator_accepted=True,
+            scope='FIXED_T1_YELLOW_2X2_SLOT4_ONLY', measured_residual_xy_mm=1.71,
+            evidence_ref='SYNTHETIC_TEST_ONLY'))
+    path = tmp_path/'profile.json'; path.write_text(json.dumps(profile))
+    with pytest.raises(ValueError, match='NOT_VERIFIED'): load_profile(path, layout, config)
+    config['vision']['allow_educational_depth_profile'] = True
+    assert load_profile(path, layout, config)['independently_verified'] is False
+    config['trial_step']['step_id'] = 'T2'
+    with pytest.raises(ValueError, match='NOT_VERIFIED'): load_profile(path, layout, config)
+    config['trial_step']['step_id'] = 'T1'
+    config['blocks'][0]['slot'] = 3
+    with pytest.raises(ValueError, match='NOT_VERIFIED'): load_profile(path, layout, config)
+    config['blocks'][0]['slot'] = 4
+    layout.write_text('{"image_size": [640,480]}')
+    with pytest.raises(ValueError, match='SETUP_BINDING'): load_profile(path, layout, config)
+
+
+@pytest.mark.parametrize('fault,reason', [('zero','SURFACE_UNAVAILABLE'),
+    ('stale','FRESH_SYNCHRONIZED'), ('frame','REGISTERED_FRAME'), ('shift','DISPLACEMENT')])
+def test_educational_profile_does_not_relax_rgbd_rejection(fault, reason):
+    a = list(inputs()); a[6]['independently_verified'] = False
+    a[6]['educational_acceptance'] = dict(measured_residual_xy_mm=1.71)
+    if fault == 'zero': a[2].data = np.zeros((480,640), '<u2').tobytes()
+    elif fault == 'stale': a[7] += 400_000_000
+    elif fault == 'frame': a[2].header.frame_id = 'wrong_frame'
+    else: a[6]['max_shift_mm'] = .1
+    with pytest.raises(ValueError, match=reason): rgbd_target(*a)
+
+
+@pytest.mark.parametrize('deferred', [False, True])
+@pytest.mark.parametrize('fault', [None, 'moving', 'changed', 'missing_depth', 'stale_after_inference'])
+def test_live_receiver_connects_rgbd_correction_or_blocks_before_target(tmp_path, monkeypatch, fault, deferred):
     from app.supply_stud import backend
     row, decision, depth, info, rgb, sample, profile, now, bounds = inputs((1280, 720))
     camera = trial.LiveVision.__new__(trial.LiveVision)
@@ -138,6 +222,8 @@ def test_live_receiver_connects_rgbd_correction_or_blocks_before_target(tmp_path
     camera.config = dict(observation_pose=sample['posx'], teaching_xy_bounds_mm=bounds,
                          vision=dict(backend='opencv_studs'))
     camera.layout = {}; camera.directory = tmp_path; camera.message = None
+    camera.pending_evidence = []
+    camera.config['vision']['defer_depth_evidence'] = deferred
     camera.display = lambda *a: None; camera.pump_sleep = lambda _: None
     calls = []
     def sampling():
@@ -147,24 +233,38 @@ def test_live_receiver_connects_rgbd_correction_or_blocks_before_target(tmp_path
         calls.append(True)
         return current
     camera.driver = NS(sample=sampling)
-    clock = iter([1_000_000_000] + [now]*20)
+    validation_now = 1_410_000_000 if fault == 'stale_after_inference' else now
+    clock = iter([1_000_000_000, now] + [validation_now]*20)
     camera.node = NS(get_clock=lambda: NS(now=lambda: NS(nanoseconds=next(clock))))
     def spin(*a, **kw):
         camera.message = rgb; camera.info_messages.append(info)
         if fault != 'missing_depth': camera.depth_messages.append(depth)
     camera.ros = NS(spin_once=spin)
-    ticks = iter([0., 0., 6.]); monkeypatch.setattr(trial.time, 'monotonic', lambda: next(ticks))
+    ticks = iter([0., 0., 6.] if fault == 'missing_depth' else [0.]*30)
+    monkeypatch.setattr(trial.time, 'monotonic', lambda: next(ticks))
     def infer(frame, *a):
         assert frame.shape == (480, 640, 3)
         return deepcopy(decision)
     monkeypatch.setattr(backend, 'observe', infer)
     if fault:
-        with pytest.raises((RuntimeError, TimeoutError), match='SUPPLY_DEPTH'):
+        expected = ValueError if fault == 'stale_after_inference' else (RuntimeError, TimeoutError)
+        with pytest.raises(expected, match='SUPPLY_DEPTH'):
             camera.observe(row)
-        assert not list(tmp_path.glob('*.json'))
+        if fault != 'stale_after_inference' or deferred:
+            assert not list(tmp_path.glob('*.json'))
+        if fault == 'stale_after_inference':
+            camera.flush_evidence()
+            evidence = json.loads(next(tmp_path.glob('*.json')).read_text())
+            assert evidence['packet_at_validation']['ages_ms'] == [310.]*3
+            assert 'FRESH_SYNCHRONIZED' in evidence['depth_error']
+            assert 'depth_center' not in evidence
     else:
         result = camera.observe(row)
         assert trial.center_target(row, result)[:2] == pytest.approx([-399., 2.])
+        if deferred:
+            assert not list(tmp_path.glob('*.png')) and not list(tmp_path.glob('*.json'))
+            assert result['packet_at_validation']['deferred_evidence']
+            camera.flush_evidence()
         assert list(tmp_path.glob('*.json'))
 
 
@@ -210,3 +310,37 @@ def test_native_t1_rejects_unverified_profile_before_device(command, monkeypatch
     template = trial.ROOT/'settings/supply_depth_center.template.json'
     with pytest.raises(ValueError, match='CALIBRATION_NOT_VERIFIED'):
         native.main([command, '--only-step', 'T1', '--supply-depth-profile', str(template)])
+
+
+def test_readonly_headless_camera_never_uses_window_or_key_functions(tmp_path, monkeypatch):
+    import sys
+    import cv2
+    monkeypatch.setitem(sys.modules, 'sensor_msgs.msg', NS(Image=object, CameraInfo=object))
+    monkeypatch.setitem(sys.modules, 'rclpy.qos', NS(qos_profile_sensor_data=object()))
+    monkeypatch.delenv('DISPLAY', raising=False); monkeypatch.delenv('WAYLAND_DISPLAY', raising=False)
+    def forbidden(*a, **kw): pytest.fail('Headless check called a window function')
+    for name in ('namedWindow', 'resizeWindow', 'imshow', 'waitKey', 'destroyWindow'):
+        monkeypatch.setattr(cv2, name, forbidden)
+    layout = tmp_path/'layout.json'; layout.write_text('{}')
+    node = NS(create_subscription=lambda *a: object(), destroy_node=lambda: None)
+    camera = trial.LiveVision(NS(ros=NS(create_node=lambda _: node)),
+        dict(vision=dict(show_window=False, layout=str(layout), backend='opencv_studs', rgb_topic='rgb')),tmp_path)
+    camera.display({}, {}); camera.pump_sleep(0); camera.close()
+
+
+@pytest.mark.parametrize('age_ns,accepted', [(301_647_878, True), (309_999_999, True), (311_000_000, False)])
+def test_explicit_310ms_profile_accepts_only_inside_requested_limit(age_ns, accepted):
+    a = list(inputs()); a[6] = deepcopy(a[6]); a[6]['max_packet_age_ms'] = 310.
+    stamp = a[4].header.stamp.sec*10**9+a[4].header.stamp.nanosec
+    a[7] = stamp+age_ns
+    if accepted: assert rgbd_target(*a)['status'] == 'READY'
+    else:
+        with pytest.raises(ValueError, match='FRESH_SYNCHRONIZED'):rgbd_target(*a)
+
+
+def test_310ms_setting_does_not_change_default_or_skew_guard():
+    a = list(inputs()); a[7] = 1_401_647_878
+    with pytest.raises(ValueError, match='FRESH_SYNCHRONIZED'):rgbd_target(*a)
+    a[6] = deepcopy(a[6]); a[6]['max_packet_age_ms'] = 310.
+    a[2] = deepcopy(a[2]); a[2].header.stamp.nanosec -= 60_000_000
+    with pytest.raises(ValueError, match='FRESH_SYNCHRONIZED'):rgbd_target(*a)

@@ -24,6 +24,7 @@ ORDER = [('yellow', '2x2x1', 1, 2), ('yellow', '2x3x1', 2, 3),
          ('blue', '2x2x1', 3, 2), ('blue', '2x3x1', 4, 3), ('red', '1x2x1', 5, 1)]
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT = ROOT/'settings/supply_sequence_20261014/config.json'
+MIN_START_OPEN_MM = 50.0
 
 
 def load_config(path):
@@ -163,8 +164,8 @@ def execute(driver, config, record, observe, *, slot=None, trial_row=None, start
                 if initial['gripper_status'] not in (0,1,2):raise RuntimeError('GRIPPER_FAULT')
                 if clock()>=deadline:raise TimeoutError('HOME_OPEN_TIMEOUT')
     guard(initial, connection, limit, automatic=False, force_norm_limit=limit, required_gripper_status=0)
-    if initial['gripper_width_mm'] < config['open_mm']-1:
-        raise RuntimeError('START_WITH_OPEN_60MM_GRIPPER_REQUIRED')
+    if not initial['gripper_width_mm'] >= MIN_START_OPEN_MM:
+        raise RuntimeError('START_WITH_OPEN_AT_LEAST_50MM_GRIPPER_REQUIRED')
     deadline=clock()+5.
     while not stopped(initial):
         if clock()>=deadline:raise RuntimeError('STOPPED_START_WAIT_TIMEOUT')
@@ -233,6 +234,10 @@ def execute(driver, config, record, observe, *, slot=None, trial_row=None, start
             if config['vision'].get('depth_center_profile') and not decision.get('depth_center_required'):
                 raise RuntimeError('SUPPLY_DEPTH_OBSERVER_REQUIRED')
             target = center_target(row, decision)
+            binding = config.get('educational_supply_binding', {})
+            if binding.get('execution_mode') == 'TEACHING_ONLY':
+                decision.update(supply_execution_mode='TEACHING_ONLY',
+                    fallback_reason='EXPLICIT_APPROVED_TEACHING_MODE_NO_RGBD_ATTEMPT')
             record('VISION_DECISION', dict(**decision, commanded_pickup_pose=target))
             if display is not None:
                 display(row, decision)
@@ -391,23 +396,26 @@ class LiveVision:
         self.config, self.directory = config, evidence_dir
         self.message = None
         self.frame = None
+        self.pending_evidence = []
         self.depth_messages = deque(maxlen=10)
         self.info_messages = deque(maxlen=10)
         self.window = 'Supply vision - ESC to stop'
         import cv2
-        if not os.environ.get('DISPLAY') and not os.environ.get('WAYLAND_DISPLAY'):
+        self.show_window = config['vision'].get('show_window', True)
+        if self.show_window and not os.environ.get('DISPLAY') and not os.environ.get('WAYLAND_DISPLAY'):
             raise RuntimeError('비전 팝업은 데스크톱 터미널에서 실행해야 합니다. DISPLAY가 없습니다.')
-        cv2.namedWindow(self.window, cv2.WINDOW_NORMAL)
-        cv2.resizeWindow(self.window, 960, 720)
+        if self.show_window:
+            cv2.namedWindow(self.window, cv2.WINDOW_NORMAL)
+            cv2.resizeWindow(self.window, 960, 720)
         self.subscription = self.node.create_subscription(Image, config['vision']['rgb_topic'],
             self.receive, qos_profile_sensor_data)
         self.rgbd_subscriptions = []
         if self.depth_profile is not None:
             self.rgbd_subscriptions = [
                 self.node.create_subscription(Image, '/camera/aligned_depth_to_color/image_raw',
-                    self.depth_messages.append, qos_profile_sensor_data),
+                    lambda message: self.depth_messages.append(message), qos_profile_sensor_data),
                 self.node.create_subscription(CameraInfo, '/camera/color/camera_info',
-                    self.info_messages.append, qos_profile_sensor_data)]
+                    lambda message: self.info_messages.append(message), qos_profile_sensor_data)]
         self.layout = json.loads(Path(config['vision']['layout']).read_text())
         if config['vision'].get('backend') == 'opencv_studs':
             return
@@ -435,6 +443,9 @@ class LiveVision:
         self.message = None
         self.frame = None
         profile = getattr(self, 'depth_profile', None)
+        deferred = bool(profile is not None and self.config['vision'].get('defer_depth_evidence'))
+        from app.supply_stud.depth_center import packet_age_limit_ns
+        selection_max_age_ns = packet_age_limit_ns(profile or {})
         before = None
         if profile is not None:
             self.depth_messages.clear(); self.info_messages.clear()
@@ -451,7 +462,7 @@ class LiveVision:
             if msg is not None:
                 stamp = msg.header.stamp.sec*10**9+msg.header.stamp.nanosec
                 now = self.node.get_clock().now().nanoseconds
-                if start < stamp <= now and now-stamp < 300_000_000:
+                if start < stamp <= now and now-stamp < selection_max_age_ns:
                     if profile is not None:
                         def paired(messages):
                             return any(start < m.header.stamp.sec*10**9+m.header.stamp.nanosec <= now
@@ -473,30 +484,53 @@ class LiveVision:
             from app.supply_stud.depth_center import processing_frame
             frame = processing_frame(frame, profile['input_size'])
         self.frame = frame.copy()
-        self.display(row, dict(recognized=False, reason='RUNNING_INFERENCE'))
+        selected_age_ms = (now-stamp)/1e6
         path = self.directory/('vision-slot'+str(row['slot'])+'-'+str(time.time_ns())+'.png')
-        if not cv2.imwrite(str(path), frame):
-            raise OSError('VISION_EVIDENCE_SAVE_FAILED')
+        pending = None
+        if deferred:
+            pending = dict(path=path, frame=frame.copy(), decision=None)
+            self.pending_evidence.append(pending)
+        else:
+            self.display(row, dict(recognized=False, reason='RUNNING_INFERENCE'))
+            if not cv2.imwrite(str(path), frame):
+                raise OSError('VISION_EVIDENCE_SAVE_FAILED')
+        inference_start = time.monotonic()
         if self.config['vision'].get('backend') == 'opencv_studs':
             from app.supply_stud.backend import observe
             result = observe(frame, self.layout, row, stamp)
             result['rgb_evidence'] = str(path.resolve())
+            result['inference_ms'] = (time.monotonic()-inference_start)*1000
+            result['packet_at_selection'] = dict(rgb_age_ms=selected_age_ms, max_age_ms=selection_max_age_ns/1e6)
+            if pending is not None: pending['decision'] = result
             if profile is not None:
                 from app.supply_stud.depth_center import rgbd_target
+                pose_query_start = time.monotonic()
                 current = self.driver.sample()
+                result['pose_query_ms'] = (time.monotonic()-pose_query_start)*1000
                 if (not trial_motion_still(current)
                         or max(pose_error(before['posx'], current['posx'])) > .05):
                     raise RuntimeError('SUPPLY_DEPTH_POSE_CHANGED_DURING_CAPTURE')
                 def nearest(messages):
                     return min(messages, key=lambda m: abs(m.header.stamp.sec*10**9+m.header.stamp.nanosec-stamp))
                 now_ns = self.node.get_clock().now().nanoseconds
-                correction = rgbd_target(row, result, nearest(self.depth_messages), nearest(self.info_messages),
-                    msg, current, profile, now_ns,
-                    self.config['teaching_xy_bounds_mm'])
+                depth_msg, info_msg = nearest(self.depth_messages), nearest(self.info_messages)
+                packet_stamps = [m.header.stamp.sec*10**9+m.header.stamp.nanosec for m in (msg, depth_msg, info_msg)]
+                result['packet_at_validation'] = dict(ages_ms=[(now_ns-t)/1e6 for t in packet_stamps],
+                    skew_ms=(max(packet_stamps)-min(packet_stamps))/1e6,
+                    deferred_evidence=deferred)
+                try:
+                    correction = rgbd_target(row, result, depth_msg, info_msg,
+                        msg, current, profile, now_ns, self.config['teaching_xy_bounds_mm'])
+                except ValueError as exc:
+                    result['depth_error'] = str(exc)
+                    if not deferred:
+                        path.with_suffix('.json').write_text(json.dumps(result, ensure_ascii=False, allow_nan=False))
+                    raise
                 correction['capture_pose'] = current['posx'].copy()
-                correction['expires_monotonic_ns'] = time.monotonic_ns() + 300_000_000 - (now_ns - stamp)
+                correction['expires_monotonic_ns'] = time.monotonic_ns() + selection_max_age_ns - (now_ns - stamp)
                 result.update(depth_center_required=True, depth_center=correction)
-                path.with_suffix('.json').write_text(json.dumps(result, ensure_ascii=False, allow_nan=False))
+                if not deferred:
+                    path.with_suffix('.json').write_text(json.dumps(result, ensure_ascii=False, allow_nan=False))
             return result
         from supply_vision.seg_backend import validate_config
         request = dict(request_id=uuid4().hex, step_id='SUPPLY_UNIT_'+str(row['slot']),
@@ -520,6 +554,8 @@ class LiveVision:
         return result
 
     def display(self, row, decision):
+        if not getattr(self, 'show_window', True):
+            return
         import cv2
         import numpy as np
         canvas = self.frame.copy() if self.frame is not None else np.zeros((480,640,3), dtype=np.uint8)
@@ -558,6 +594,9 @@ class LiveVision:
         self.pump_sleep(0)
 
     def pump_sleep(self, duration):
+        if not getattr(self, 'show_window', True):
+            time.sleep(duration)
+            return
         import cv2
         deadline=time.monotonic()+duration
         while True:
@@ -570,10 +609,24 @@ class LiveVision:
                 return
             time.sleep(min(.02,remaining))
 
+    def flush_evidence(self):
+        import cv2
+        for entry in getattr(self, 'pending_evidence', []):
+            if not cv2.imwrite(str(entry['path']), entry['frame']):
+                raise OSError('VISION_EVIDENCE_SAVE_FAILED')
+            if entry['decision'] is not None:
+                entry['path'].with_suffix('.json').write_text(
+                    json.dumps(entry['decision'], ensure_ascii=False, allow_nan=False))
+        self.pending_evidence = []
+
     def close(self):
         import cv2
-        cv2.destroyWindow(self.window)
-        self.node.destroy_node()
+        try:
+            self.flush_evidence()
+        finally:
+            if getattr(self, 'show_window', True):
+                cv2.destroyWindow(self.window)
+            self.node.destroy_node()
 
 
 def main(argv=None):
@@ -626,7 +679,7 @@ def main(argv=None):
                     observation_position_error_mm=error[0], observation_angle_error_deg=error[1],
                     observation_ready=all(stopped(s) and (target_only or max(pose_error(s['posx'], config['observation_pose'])) <= .5) for s in samples),
                     gripper_status=last['gripper_status'], gripper_width_mm=last['gripper_width_mm'],
-                    open_ready=all(s['gripper_status']==0 and s['gripper_width_mm']>=config['open_mm']-1 for s in samples),
+                    open_ready=all(s['gripper_status']==0 and s['gripper_width_mm']>=MIN_START_OPEN_MM for s in samples),
                     physical_commands=0), ensure_ascii=False, indent=2))
                 return 0
             if args.command == 'teach':

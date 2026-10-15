@@ -62,6 +62,7 @@ class MvpIntegration:
         self.robot_sample=None
         self.robot_sequence=0
         self.closed = False
+        self.robot_retired = False
         self.history_dsn, self.web_url = history_dsn, web_url
         self.creator = self.job_creator = None
         self._credentials = None  # Memory only; never part of snapshots or JSONL.
@@ -428,6 +429,8 @@ class MvpIntegration:
                 target=self.workflow.step()['after']
                 self.scene_executions.add(self.workflow.execution_id)
                 if target not in self.scene:self.scene.append(deepcopy(target))
+            elif row['event']=='PROCESS_EXITED' and self.robot_retired:
+                continue  # A reviewed native skill now owns the device writer.
             elif row['event']=='PROCESS_EXITED' and not self.closed:
                 self.workflow.status,self.workflow.reason='HOLD','ROBOT_PROCESS_EXITED'
             self.workflow.robot_event(row)
@@ -488,19 +491,46 @@ def main(runtime_class=MvpIntegration, *, real_trial=False):
     parser=argparse.ArgumentParser(description='C/A 전체 함수·REAL Robot/카메라 제스처 시험. B 관측/Current는 가짜입니다.' if real_trial else __doc__)
     parser.add_argument('--robot-root',required=True,type=Path)
     parser.add_argument('--log-directory',type=Path,default=Path('logs/mvp-integration'))
-    parser.add_argument('--design',type=Path,help='명시적인 FAKE C 후보 파일; 생략하면 C 생성 함수 사용')
+    parser.add_argument('--design',type=Path,help='C 미리보기 후보 파일; 사용자 승인과 구분. 생략하면 C 생성 함수 사용')
     parser.add_argument('--c-mode',choices=('offline','live'),default='offline')
     parser.add_argument('--round3-step-replay', type=Path,
         help='합성 측정 JSON으로 A 한 Step→round2 제어 연결 검사. MOCK 전용')
     if real_trial:
         parser.add_argument('--round3-fixed-step', action='store_true',
             help='T1 고정 현장 시험만 HMI에서 실행. C/A 실행·B 완료·최종 저장과 분리')
+        parser.add_argument('--round3-approved-step', action='store_true',
+            help='C 승인·실제 A 한 Step을 대응 native 교시·공급 프로파일에 연결하고 B 확인 전 보류')
+        parser.add_argument('--initial-observation', type=Path,
+            help='실제 B INITIAL 저장 폴더(context.json/observed.json/V0·D1·D3 metadata.json)')
+        parser.add_argument('--fixed-trial-scenario', type=Path,
+            help='고정 T1 native 시험에 전달할 별도 시나리오')
+        parser.add_argument('--execution-profile', type=Path, help='교육용 조건부 공급 실행 프로파일')
+        parser.add_argument('--supply-depth-profile', type=Path,
+            help='고정 T1 native 시험에 전달할 공급판 RGB-D 보정 프로파일')
+        parser.add_argument('--educational-depth-demo', action='store_true',
+            help='고정 T1에만 교육용 공급판 보정 수용 옵션 전달')
         parser.add_argument('--contact-alignment-trial',action='store_true',help='연속 결착 하강 · 전체 반력 40N 정지 시험; 실물 미검증')
         parser.add_argument('--execute',action='store_true',required=True,
             help='실제 Robot·카메라 제스처 연결 허용. B 관측은 가짜 시험 입력')
     args=parser.parse_args()
     if real_trial and args.round3_step_replay is not None:
         parser.error('--round3-step-replay는 MOCK HMI 전용입니다.')
+    if real_trial and args.round3_approved_step:
+        if (args.round3_fixed_step or args.contact_alignment_trial or args.supply_depth_profile
+                or args.educational_depth_demo or not args.initial_observation
+                or not args.fixed_trial_scenario or not args.execution_profile):
+            parser.error('--round3-approved-step에는 --initial-observation/--fixed-trial-scenario/--execution-profile이 필요하며 다른 시험 모드와 혼용할 수 없습니다.')
+        from app.mvp_real_trial import ApprovedStepRealTrial
+        runtime_class = ApprovedStepRealTrial
+    if real_trial and args.initial_observation and not args.round3_approved_step:
+        parser.error('--initial-observation은 --round3-approved-step 전용입니다.')
+    if real_trial and not (args.round3_fixed_step or args.round3_approved_step) and (args.fixed_trial_scenario is not None
+            or args.supply_depth_profile is not None or args.educational_depth_demo or args.execution_profile is not None):
+        parser.error('별도 native 시나리오/공급판 보정 옵션은 --round3-fixed-step에서만 사용할 수 있습니다.')
+    if real_trial and args.execution_profile is not None and (args.supply_depth_profile is not None or args.educational_depth_demo):
+        parser.error('--execution-profile과 이전 공급 보정 옵션은 함께 사용할 수 없습니다.')
+    if real_trial and args.educational_depth_demo and args.supply_depth_profile is None:
+        parser.error('--educational-depth-demo에는 --supply-depth-profile이 필요합니다.')
     if real_trial and args.round3_fixed_step and args.contact_alignment_trial:
         parser.error('T1 고정 시험은 기존 round2 설정을 사용합니다. --contact-alignment-trial과 함께 사용하지 마세요.')
     if real_trial and args.round3_fixed_step and args.design:
@@ -515,7 +545,12 @@ def main(runtime_class=MvpIntegration, *, real_trial=False):
         history_dsn=os.environ.get('HISTORY_DATABASE_DSN'),
         web_url=os.environ.get('HISTORY_WEB_URL','http://127.0.0.1:8765'),
         **(dict(contact_alignment_trial=args.contact_alignment_trial,
-                **({'round3_fixed_step':True} if args.round3_fixed_step else {})) if real_trial else
+                **({'round3_fixed_step':True,'fixed_trial_scenario':args.fixed_trial_scenario,
+                    'supply_depth_profile':args.supply_depth_profile,'educational_depth_demo':args.educational_depth_demo,
+                    'execution_profile':args.execution_profile}
+                   if args.round3_fixed_step else
+                   dict(initial_observation=args.initial_observation, fixed_trial_scenario=args.fixed_trial_scenario,
+                        execution_profile=args.execution_profile) if args.round3_approved_step else {})) if real_trial else
             ({'round3_step_replay':json.loads(args.round3_step_replay.read_text())}
                 if args.round3_step_replay is not None else {})))
     window.creator_bar.setVisible(runtime.history_dsn is not None)
@@ -543,6 +578,9 @@ def main(runtime_class=MvpIntegration, *, real_trial=False):
         if args.round3_fixed_step:
             review.setText('T1 시험 준비 확인: 기존 8블록 사전배치·노랑 2×2 슬롯4·빈 그리퍼 HOME·작업영역 확인')
             voice.hide()
+            fake_check.hide()
+        if args.round3_approved_step:
+            review.setText('승인 Step 시험 준비: 관측 이후 8블록 배치 유지·공급 슬롯 준비·빈 그리퍼 HOME·기존 경로 확인')
             fake_check.hide()
     def publish():
         runtime.poll()
@@ -602,6 +640,22 @@ def main(runtime_class=MvpIntegration, *, real_trial=False):
             window.dialogue_send.hide()
             if runtime.fixed_trial is not None:
                 window.notice.setPlainText((runtime.workflow.reason or '')+'\n기록: '+str(runtime.fixed_trial.directory))
+        if real_trial and args.round3_approved_step:
+            window.setWindowTitle('Round3 · C 승인 → A 한 Step → 실제 D · B 후속 확인 대기')
+            window.heading.setText('기존 8블록 + T1/T2/T3 설계 승인 · 첫 A Step만 실제 실행 · 초기 B 저장 관측 사용')
+            window.buttons['START'].setText('준비 확인 · 설계 시작')
+            progress = snapshot['progress']
+            window.progress.setText(f"현재 Plan · B 조립 확인 {progress['completed']} / {progress['total']} Step")
+            window.design_caption.setText('C 승인 설계 · D 실행 결과는 B 조립 확인과 구분')
+            window.footer.setText('REAL · 초기 B 저장 실관측 · 실행 후 B 확인·연속 실행·최종 저장 미연결')
+            window.buttons['RESUME'].setEnabled(False)
+            window.reinspection_button.hide()
+            if runtime.fixed_trial is not None:
+                window.user_request_controls.buttons['change_design'].setEnabled(False)
+                window.buttons['STOP'].setEnabled(runtime.fixed_trial.process is not None
+                    and runtime.fixed_trial.process.poll() is None)
+                window.notice.setPlainText((runtime.workflow.reason or '실제 D 한 Step 실행 중')
+                    + '\n기록: ' + str(runtime.fixed_trial.directory))
     def request(value):
         accepted=runtime.request(value)
         if 'request_id' in value:

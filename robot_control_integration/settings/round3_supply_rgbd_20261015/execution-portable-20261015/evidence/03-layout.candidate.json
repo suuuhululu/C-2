@@ -1,0 +1,711 @@
+{
+  "schema_version": "supply-rgbd-model-layout-candidate/1",
+  "data_kind": "MANUAL_SAVED_RGB_ROI_DRAFT_NOT_GRASP_GROUND_TRUTH",
+  "config_id": "round3_model_candidates_25",
+  "view_id": "SUPPLY_VIEW",
+  "calibration_id": "SHARED_TRANSFORM_CANDIDATE_NOT_INDEPENDENTLY_VERIFIED",
+  "rgb_topic": "/camera/color/image_raw",
+  "image_size": [
+    640,
+    480
+  ],
+  "layout_status": "OBSERVATION_CANDIDATE_NOT_FOR_EXECUTION",
+  "threshold_status": "FIELD_UNVALIDATED",
+  "slot_direction": "right_to_left",
+  "candidate_confidence": 0.25,
+  "confidence": 0.5,
+  "threshold_source": "REUSED_HONGDONG_REPLAY_DEFAULTS_NOT_FIELD_ACCURACY_VALIDATED",
+  "surface": {
+    "minimum_area": 100,
+    "approx_fraction": 0.02,
+    "minimum_fill": 0.9,
+    "hsv_ranges": {
+      "yellow": [
+        [
+          [
+            20,
+            150,
+            80
+          ],
+          [
+            38,
+            255,
+            255
+          ]
+        ]
+      ],
+      "blue": [
+        [
+          [
+            95,
+            100,
+            35
+          ],
+          [
+            135,
+            255,
+            255
+          ]
+        ]
+      ],
+      "red": [
+        [
+          [
+            0,
+            100,
+            45
+          ],
+          [
+            10,
+            255,
+            255
+          ]
+        ],
+        [
+          [
+            170,
+            100,
+            45
+          ],
+          [
+            179,
+            255,
+            255
+          ]
+        ]
+      ]
+    }
+  },
+  "setup_id": "round2-reconnected-supply-20261013-e3b39235",
+  "camera_serial": "207522075633",
+  "rgb_frame_id": "camera_color_optical_frame",
+  "clock_domain": "ROS_SYSTEM_TIME_DOMAIN_20",
+  "supply_policy": {
+    "reservation_slots": [
+      1,
+      2,
+      3,
+      4,
+      5
+    ],
+    "empty_slot": 6,
+    "cycle": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      1
+    ],
+    "missing_reserved_block": "HOLD_REFILL_REQUIRED",
+    "automatic_other_slot_substitution": false,
+    "source6_teaching_and_coordinate_model": "PRESERVED_NOT_CHANGED"
+  },
+  "capture_holds": [
+    {
+      "color": "yellow",
+      "brick_type": "2x2x1",
+      "slot": 1,
+      "slot_id": "yellow_2x2x1_01",
+      "status": "HOLD_REFILL_REQUIRED",
+      "source": "USER_CONFIRMED_SLOT1_IS_THE_EMPTY_LOCATION",
+      "applies_to": "THIS_SAVED_CAPTURE_ONLY",
+      "cleared_by": "NEW_OPERATOR_REFILL_CONFIRMATION_AND_FRESH_OBSERVATION"
+    }
+  ],
+  "slot6_empty_reference": [
+    {
+      "color": "yellow",
+      "brick_type": "2x2x1",
+      "slot": 6,
+      "roi_xyxy": [
+        79,
+        40,
+        151,
+        100
+      ],
+      "status": "POLICY_EMPTY_OPERATOR_CONFIRMATION_REQUIRED",
+      "reservable": false
+    },
+    {
+      "color": "yellow",
+      "brick_type": "2x3x1",
+      "slot": 6,
+      "roi_xyxy": [
+        79,
+        102,
+        151,
+        181
+      ],
+      "status": "POLICY_EMPTY_OPERATOR_CONFIRMATION_REQUIRED",
+      "reservable": false
+    },
+    {
+      "color": "blue",
+      "brick_type": "2x2x1",
+      "slot": 6,
+      "roi_xyxy": [
+        79,
+        186,
+        151,
+        245
+      ],
+      "status": "POLICY_EMPTY_OPERATOR_CONFIRMATION_REQUIRED",
+      "reservable": false
+    },
+    {
+      "color": "blue",
+      "brick_type": "2x3x1",
+      "slot": 6,
+      "roi_xyxy": [
+        79,
+        247,
+        151,
+        326
+      ],
+      "status": "POLICY_EMPTY_OPERATOR_CONFIRMATION_REQUIRED",
+      "reservable": false
+    },
+    {
+      "color": "red",
+      "brick_type": "1x2x1",
+      "slot": 6,
+      "roi_xyxy": [
+        79,
+        330,
+        151,
+        381
+      ],
+      "status": "POLICY_EMPTY_OPERATOR_CONFIRMATION_REQUIRED",
+      "reservable": false
+    }
+  ],
+  "slots": [
+    {
+      "color": "yellow",
+      "brick_type": "2x2x1",
+      "slot": 1,
+      "roi_xyxy": [
+        416,
+        79,
+        473,
+        136
+      ],
+      "grasp_edge_pair": 0,
+      "expected_center_uv": [
+        444.14894024531014,
+        107.85061958101062
+      ]
+    },
+    {
+      "color": "yellow",
+      "brick_type": "2x2x1",
+      "slot": 2,
+      "roi_xyxy": [
+        362,
+        80,
+        415,
+        137
+      ],
+      "grasp_edge_pair": 0,
+      "expected_center_uv": [
+        388.1667925516762,
+        108.75651470820105
+      ]
+    },
+    {
+      "color": "yellow",
+      "brick_type": "2x2x1",
+      "slot": 3,
+      "roi_xyxy": [
+        306,
+        81,
+        358,
+        138
+      ],
+      "grasp_edge_pair": 0,
+      "expected_center_uv": [
+        332.1846448580423,
+        109.66240983539149
+      ]
+    },
+    {
+      "color": "yellow",
+      "brick_type": "2x2x1",
+      "slot": 4,
+      "roi_xyxy": [
+        250,
+        82,
+        303,
+        140
+      ],
+      "grasp_edge_pair": 0,
+      "expected_center_uv": [
+        276.2024971644084,
+        110.56830496258192
+      ]
+    },
+    {
+      "color": "yellow",
+      "brick_type": "2x2x1",
+      "slot": 5,
+      "roi_xyxy": [
+        194,
+        83,
+        246,
+        140
+      ],
+      "grasp_edge_pair": 0,
+      "expected_center_uv": [
+        220.22034947077447,
+        111.47420008977235
+      ]
+    },
+    {
+      "color": "yellow",
+      "brick_type": "2x3x1",
+      "slot": 1,
+      "roi_xyxy": [
+        419,
+        124,
+        472,
+        192
+      ],
+      "grasp_edge_pair": 0,
+      "expected_center_uv": [
+        445.04613717397046,
+        157.84651120503761
+      ]
+    },
+    {
+      "color": "yellow",
+      "brick_type": "2x3x1",
+      "slot": 2,
+      "roi_xyxy": [
+        363,
+        125,
+        416,
+        192
+      ],
+      "grasp_edge_pair": 0,
+      "expected_center_uv": [
+        389.06398948033655,
+        158.75240633222805
+      ]
+    },
+    {
+      "color": "yellow",
+      "brick_type": "2x3x1",
+      "slot": 3,
+      "roi_xyxy": [
+        307,
+        126,
+        360,
+        193
+      ],
+      "grasp_edge_pair": 0,
+      "expected_center_uv": [
+        333.0818417867026,
+        159.65830145941848
+      ]
+    },
+    {
+      "color": "yellow",
+      "brick_type": "2x3x1",
+      "slot": 4,
+      "roi_xyxy": [
+        251,
+        127,
+        304,
+        195
+      ],
+      "grasp_edge_pair": 0,
+      "expected_center_uv": [
+        277.0996940930687,
+        160.56419658660892
+      ]
+    },
+    {
+      "color": "yellow",
+      "brick_type": "2x3x1",
+      "slot": 5,
+      "roi_xyxy": [
+        195,
+        127,
+        248,
+        195
+      ],
+      "grasp_edge_pair": 0,
+      "expected_center_uv": [
+        221.1175463994348,
+        161.47009171379935
+      ]
+    },
+    {
+      "color": "blue",
+      "brick_type": "2x2x1",
+      "slot": 1,
+      "roi_xyxy": [
+        421,
+        190,
+        474,
+        247
+      ],
+      "grasp_edge_pair": 0,
+      "expected_center_uv": [
+        447.0093139012648,
+        218.77372789382943
+      ]
+    },
+    {
+      "color": "blue",
+      "brick_type": "2x2x1",
+      "slot": 2,
+      "roi_xyxy": [
+        365,
+        191,
+        417,
+        248
+      ],
+      "grasp_edge_pair": 0,
+      "expected_center_uv": [
+        391.0271662076309,
+        219.67962302101986
+      ]
+    },
+    {
+      "color": "blue",
+      "brick_type": "2x2x1",
+      "slot": 3,
+      "roi_xyxy": [
+        309,
+        192,
+        361,
+        249
+      ],
+      "grasp_edge_pair": 0,
+      "expected_center_uv": [
+        335.045018513997,
+        220.5855181482103
+      ]
+    },
+    {
+      "color": "blue",
+      "brick_type": "2x2x1",
+      "slot": 4,
+      "roi_xyxy": [
+        253,
+        193,
+        306,
+        250
+      ],
+      "grasp_edge_pair": 0,
+      "expected_center_uv": [
+        279.06287082036306,
+        221.49141327540073
+      ]
+    },
+    {
+      "color": "blue",
+      "brick_type": "2x2x1",
+      "slot": 5,
+      "roi_xyxy": [
+        197,
+        194,
+        250,
+        251
+      ],
+      "grasp_edge_pair": 0,
+      "expected_center_uv": [
+        223.08072312672914,
+        222.39730840259116
+      ]
+    },
+    {
+      "color": "blue",
+      "brick_type": "2x3x1",
+      "slot": 1,
+      "roi_xyxy": [
+        421,
+        236,
+        474,
+        304
+      ],
+      "grasp_edge_pair": 0,
+      "expected_center_uv": [
+        447.71094216240783,
+        270.0256980260214
+      ]
+    },
+    {
+      "color": "blue",
+      "brick_type": "2x3x1",
+      "slot": 2,
+      "roi_xyxy": [
+        365,
+        237,
+        418,
+        304
+      ],
+      "grasp_edge_pair": 0,
+      "expected_center_uv": [
+        391.7287944687739,
+        270.93159315321185
+      ]
+    },
+    {
+      "color": "blue",
+      "brick_type": "2x3x1",
+      "slot": 3,
+      "roi_xyxy": [
+        309,
+        238,
+        362,
+        305
+      ],
+      "grasp_edge_pair": 0,
+      "expected_center_uv": [
+        335.74664677514,
+        271.8374882804023
+      ]
+    },
+    {
+      "color": "blue",
+      "brick_type": "2x3x1",
+      "slot": 4,
+      "roi_xyxy": [
+        253,
+        239,
+        306,
+        307
+      ],
+      "grasp_edge_pair": 0,
+      "expected_center_uv": [
+        279.7644990815061,
+        272.7433834075927
+      ]
+    },
+    {
+      "color": "blue",
+      "brick_type": "2x3x1",
+      "slot": 5,
+      "roi_xyxy": [
+        197,
+        240,
+        250,
+        308
+      ],
+      "grasp_edge_pair": 0,
+      "expected_center_uv": [
+        223.78235138787215,
+        273.64927853478315
+      ]
+    },
+    {
+      "color": "red",
+      "brick_type": "1x2x1",
+      "slot": 1,
+      "roi_xyxy": [
+        422,
+        305,
+        477,
+        345
+      ],
+      "grasp_edge_pair": 1,
+      "expected_center_uv": [
+        449.00315570831276,
+        324.8471175299751
+      ]
+    },
+    {
+      "color": "red",
+      "brick_type": "1x2x1",
+      "slot": 2,
+      "roi_xyxy": [
+        366,
+        306,
+        421,
+        345
+      ],
+      "grasp_edge_pair": 1,
+      "expected_center_uv": [
+        393.02100801467884,
+        325.7530126571655
+      ]
+    },
+    {
+      "color": "red",
+      "brick_type": "1x2x1",
+      "slot": 3,
+      "roi_xyxy": [
+        310,
+        307,
+        365,
+        346
+      ],
+      "grasp_edge_pair": 1,
+      "expected_center_uv": [
+        337.0388603210449,
+        326.65890778435596
+      ]
+    },
+    {
+      "color": "red",
+      "brick_type": "1x2x1",
+      "slot": 4,
+      "roi_xyxy": [
+        253,
+        308,
+        309,
+        348
+      ],
+      "grasp_edge_pair": 1,
+      "expected_center_uv": [
+        281.056712627411,
+        327.5648029115464
+      ]
+    },
+    {
+      "color": "red",
+      "brick_type": "1x2x1",
+      "slot": 5,
+      "roi_xyxy": [
+        198,
+        308,
+        253,
+        348
+      ],
+      "grasp_edge_pair": 1,
+      "expected_center_uv": [
+        225.07456493377708,
+        328.4706980387368
+      ]
+    }
+  ],
+  "metric_allowed": false,
+  "execution_allowed": false,
+  "physical_gate_passed": false,
+  "required_before_real": [
+    "operator_confirm_25_ROIS",
+    "refill_yellow_2x2_slot1",
+    "fresh_scene_request_binding",
+    "independent_center_axis_ground_truth",
+    "field_threshold_validation",
+    "calibrated_metric_transform_chain",
+    "measured_tcp_to_block_relationship",
+    "independent_error_tolerance_acceptance"
+  ],
+  "opencv_roi_source": "/home/rokey/Documents/ChatGPT/로봇제어 개발/supply_centerline_test_20261014/live_compare_supply_20261014/slots.json",
+  "opencv_roi_basis": "OTHER_CHAT_LIVE_COMPARE_RIGHT_TO_LEFT_SLOT_ORDER",
+  "template_source_evidence": {
+    "rgb_path": "logs/round2-reconnected-supply-20261013-e3b39235/rgb.png",
+    "rgb_sha256": "de75887af446caede14b6a191c30690203414dca09655c159da675535e3c51e9",
+    "rgb_source_path": "logs/round2-reconnected-supply-20261013-e3b39235/rgb-source.json",
+    "rgb_source_sha256": "d4d380ada523d07135226e0117378fd4e2b59693d6ca8ff6a0c58acd1b6f490c",
+    "original_stamp_ns": 1791884785260870117,
+    "original_payload_sha256": "25242754f078a7c0f365ffbadb038db622f502127742e720f8b49076708f808a",
+    "image_resized": false,
+    "roi_method": "MANUAL_REGION_DRAFT_FROM_VIEWED_ORIGINAL_RGB",
+    "slot_direction_source": "USER_CONFIRMED_RIGHT_1_LEFT_5_AND_NEXT_LEFT_6_EMPTY_IN_CHAT",
+    "requires_operator_roi_confirmation": true,
+    "physical_center_yaw_ground_truth": false
+  },
+  "source_evidence": {
+    "capture_source": "/home/rokey/Documents/ChatGPT/로봇제어 개발/c2_integration_round3/logs/supply-depth-reference/T3-pair-20261015T094504/observation",
+    "model_frame": "frame-00.json",
+    "physical_center_ground_truth": false
+  },
+  "model_binding": {
+    "connection": {
+      "robot_id": "dsr01",
+      "tcp": "GripperDA_v4",
+      "tool": "ToolWeight0"
+    },
+    "observation_pose": [
+      -443.4389343261719,
+      -38.81204605102539,
+      374.3517761230469,
+      8.74850845336914,
+      178.39500427246094,
+      8.59197998046875
+    ],
+    "T_tcp_camera_mm": [
+      [
+        -0.9999635624634272,
+        -0.008369145375815991,
+        0.0016826024875705725,
+        33.09374824303023
+      ],
+      [
+        0.008405168606817885,
+        -0.9997073818010725,
+        0.022682678702836245,
+        75.70563520391863
+      ],
+      [
+        0.00149227549188417,
+        0.022695994759506358,
+        0.9997412990047638,
+        -253.56893588074402
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ]
+    ],
+    "camera": {
+      "k": [
+        907.924560546875,
+        0.0,
+        652.287109375,
+        0.0,
+        907.717529296875,
+        366.0758972167969,
+        0.0,
+        0.0,
+        1.0
+      ],
+      "d": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "distortion_model": "plumb_bob",
+      "width": 1280,
+      "height": 720,
+      "frame_id": "camera_color_optical_frame"
+    }
+  },
+  "model_fit": {
+    "bootstrap_affine": [
+      [
+        0.7409263941367332,
+        0.023685480494888906
+      ],
+      [
+        0.019215403961279166,
+        0.7389066581248503
+      ],
+      [
+        79.1346398417454,
+        55.98191924192172
+      ]
+    ],
+    "step_uv": [
+      -55.98214769363392,
+      0.9058951271904334
+    ],
+    "anchors": [
+      "yellow_2x2x1_04",
+      "blue_2x3x1_03",
+      "yellow_2x3x1_05"
+    ],
+    "baseline_center_count": 24,
+    "capture_source": "/home/rokey/Documents/ChatGPT/로봇제어 개발/c2_integration_round3/logs/supply-depth-reference/T3-pair-20261015T094504/observation",
+    "model_frame": "frame-00.json"
+  }
+}

@@ -672,8 +672,8 @@ class MvpWorkflow:
             snapshot['execution'] = deepcopy(self.execution)
         if self.help and displayed and self.help['step_id'] == displayed['step_id']:
             snapshot['assistance'] = deepcopy(self.help)
-        if self.mode=='REAL' and self.settings.get('observation_kind')=='SYNTHETIC':
-            snapshot['observation_kind']='SYNTHETIC'
+        if self.mode=='REAL' and self.settings.get('observation_kind') in ('SYNTHETIC', 'SAVED_REAL_INITIAL_ONLY'):
+            snapshot['observation_kind']=self.settings['observation_kind']
         if self.saved_observation_replay and not self.design_change_replay:
             snapshot['user_requests']['change_design']['enabled'] = False
         return validate_hmi_snapshot(snapshot)

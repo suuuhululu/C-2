@@ -383,3 +383,24 @@ def test_target_only_popup_accepts_off_target_pose_and_velocity_diagnostics(popu
     assert result['status']=='CYCLE_COMPLETED' and result['press_done'] and result['released']
     assert replay.operations.count('insert')==1 and replay.operations.count('press')==1
     assert not result['assembly_completion']
+
+
+def test_disabled_assembly_xy_ignores_x_and_allows_insert_without_x(popup_replay):
+    replay=popup_replay
+    replay.config.update(assembly_xy_correction_enabled=False,vision_xy_alignment=False,auto_yaw=False)
+    result=replay.run([ord('x'),ord('i'),27])
+    assert replay.operations == ['insert']
+    assert not result['assembly_xy_correction_enabled']
+    names=[event for event,data in replay.events]
+    assert 'ASSEMBLY_XY_CORRECTION_DISABLED' in names
+    assert 'ASSEMBLY_XY_CORRECTION_SKIPPED' in names
+    assert not {'VISUAL_XY_CORRECTION','COORDINATE_XY_CORRECTION'}.intersection(names)
+    assert any('Assembly XY correction: OFF' in label for label in replay.labels)
+
+
+def test_disabled_assembly_xy_does_not_bypass_automatic_yaw_review(popup_replay):
+    replay=popup_replay
+    replay.config.update(assembly_xy_correction_enabled=False,vision_xy_alignment=False,auto_yaw=True)
+    replay.run([ord('i'),27])
+    assert 'insert' not in replay.operations
+    assert any('fresh, stable yaw' in label for label in replay.labels)

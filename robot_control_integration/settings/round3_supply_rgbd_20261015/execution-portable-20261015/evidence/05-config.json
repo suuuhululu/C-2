@@ -1,0 +1,126 @@
+{
+  "connection": {
+    "robot_id": "dsr01",
+    "ros_domain_id": 20,
+    "gripper_ip": "192.168.1.1",
+    "tcp": "GripperDA_v4",
+    "tool": "ToolWeight0"
+  },
+  "observation_pose": [
+    -443.4389343261719,
+    -38.81204605102539,
+    374.3517761230469,
+    8.74850845336914,
+    178.39500427246094,
+    8.59197998046875
+  ],
+  "pickup_clearance_z_mm": 194.73294067382812,
+  "teaching_xy_bounds_mm": [
+    [
+      -681.1200561523438,
+      -297.85296630859375
+    ],
+    [
+      -80.39606857299805,
+      233.4738006591797
+    ]
+  ],
+  "startup_route": {
+    "place_xy": [
+      472.05499267578125,
+      85.7425765991211
+    ],
+    "body_bypass_xy": [
+      -27.878286361694336,
+      -411.9568176269531
+    ],
+    "supply_transit_xy": [
+      -364.8591304347826,
+      -171.54
+    ],
+    "source": "robot_control_integration/settings/integration_native35/profile.reference.json"
+  },
+  "force_stop_n": 45.0,
+  "open_mm": 60.0,
+  "gripper_force_n": 40.0,
+  "velocity": 12.0,
+  "acceleration": 48.0,
+  "angular_velocity": 6.0,
+  "angular_acceleration": 3.0,
+  "rise_velocity": 12.0,
+  "transit_velocity": 120.0,
+  "rise_acceleration": 48.0,
+  "transit_acceleration": 48.0,
+  "trial_step": {
+    "step_id": "T1",
+    "target": {
+      "brick_type": "2x2x1",
+      "color": "yellow",
+      "x": 9,
+      "y": 9,
+      "layer": 2,
+      "orientation_deg": 0
+    },
+    "supply_slot": 4,
+    "human_hold": false,
+    "hold_lower": null,
+    "raised_z_trial_mm": 0.0,
+    "source_A": {
+      "mode": "ROBOT_GRIP",
+      "assistance_kind": "NONE",
+      "grip_axis": "x",
+      "execution_allowed": false,
+      "reassessment_status": "CANDIDATE",
+      "motion_status": "CANDIDATE"
+    },
+    "original_blocked_layout_A": null,
+    "policy": "ROBOT_FASTENING",
+    "support_studs": 4,
+    "total_studs": 4,
+    "policy_note": "Current A robot placement."
+  },
+  "schema_version": "supply-rgbd-single-trial/1",
+  "scope": "FIXED_T1_SUPPLY_APPROACH_CLOSE_HOLD_ONLY",
+  "blocks": [
+    {
+      "color": "yellow",
+      "brick_type": "2x2x1",
+      "slot": 4,
+      "span": 2,
+      "close_mm": 35.0,
+      "pickup_pose": [
+        -519.361083984375,
+        196.43150329589844,
+        49.38444137573242,
+        1.3798952102661133,
+        178.19931030273438,
+        1.3129518032073975
+      ],
+      "pose_source": "/home/rokey/Documents/ChatGPT/로봇제어 개발/c2_integration_round3/logs/supply-depth-reference/pair-20261015T080359/pickup/pickup.json",
+      "pose_basis": "MEASURED_PRE_CLOSE_T1_REFERENCE_PAIR",
+      "axis_basis": "ORIGINAL_TAUGHT_TWO_STUD_AXIS"
+    }
+  ],
+  "vision": {
+    "rgb_topic": "/camera/color/image_raw",
+    "layout": "/home/rokey/Documents/ChatGPT/로봇제어 개발/c2_integration_round3/robot_control_integration/settings/round3_educational_t1_20261015/slot4-layout.json",
+    "weights": null,
+    "model_deps": null,
+    "confidence": 0.3,
+    "green_gray": false,
+    "center_basis": "STUD_ARRAY",
+    "backend": "opencv_studs",
+    "depth_center_profile": "/home/rokey/Documents/ChatGPT/로봇제어 개발/c2_integration_round3/robot_control_integration/settings/round3_educational_t1_20261015/supply-depth-center.educational.json",
+    "allow_educational_depth_profile": true
+  },
+  "assembly_xy_correction_enabled": false,
+  "automatic_lift": false,
+  "target_only_motion": false,
+  "source_sha256": {
+    "/home/rokey/Documents/ChatGPT/로봇제어 개발/c2_integration_round3/robot_control_integration/settings/round3_educational_t1_20261015/supply-depth-center.educational.json": "09534aabc16dd02d3467367180ec6fc6980698ec5b50d821e7fd99f91ac62b97",
+    "/home/rokey/Documents/ChatGPT/로봇제어 개발/c2_integration_round3/robot_control_integration/settings/round3_educational_t1_20261015/slot4-layout.json": "0d736101978e37be5a0cb843cc9c6be0d895a0ff95f3fe2f82ab637dbcbffd0a",
+    "/home/rokey/Documents/ChatGPT/로봇제어 개발/c2_integration_round3/robot_control_integration/settings/round3_educational_t1_20261015/educational-acceptance.json": "1f59cd009fedee2aee434fdba9434d1dc19e213bb8080e5ce609c494b3a6fea8",
+    "/home/rokey/Documents/ChatGPT/로봇제어 개발/c2_integration_round3/logs/supply-depth-reference/pair-20261015T080359/pickup/pickup.json": "0a6db9f074bf616b395c4961ab330971bc9344ee7f948559d1b44cf9d191d0b1"
+  },
+  "automatic_teaching_fallback_enabled": false
+}

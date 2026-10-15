@@ -38,7 +38,7 @@ def prepare(scenario):
         app.__path__.append(root_app)
     from app.cad_trial import measured_inputs, step_geometry
     from app.round2_grasp_offset_trial import apply_held_offset_trial
-    from app.round2_operator_teaching import apply_teaching
+    from app.round2_operator_teaching import apply_teaching, apply_supply_pickup_teaching
     inputs = measured_inputs(NATIVE)
     base = held.integrated_config(
         supply.load_config(NATIVE / 'settings/held_corner_stud_20261014/config.json'),
@@ -73,7 +73,17 @@ def prepare(scenario):
             cfg['alignment_use_recorded_attitude'] = True
         elif case.get('raised_z_trial_mm'):
             cfg = apply_held_offset_trial(cfg, case['raised_z_trial_mm'])
-        cfg['vision_xy_alignment'] = True
+        if case.get('operator_pickup_file'):
+            if case.get('operator_teaching_file') or case.get('raised_z_trial_mm'):
+                raise ValueError('CONFLICTING_PICKUP_TEACHING_OVERRIDES')
+            path = Path(case['operator_pickup_file'])
+            path = path if path.is_absolute() else ROOT / path
+            cfg = apply_supply_pickup_teaching(cfg, read(path), str(path.resolve()))
+        if case.get('supply_layout_file'):
+            path = Path(case['supply_layout_file'])
+            cfg['vision']['layout'] = str((path if path.is_absolute() else ROOT / path).resolve())
+        cfg['assembly_xy_correction_enabled'] = False
+        cfg['vision_xy_alignment'] = False
         prepared.append(dict(case=deepcopy(case), config=cfg, reservation=reservation,
                              correction_xy_mm=correction, physical_accuracy_verified=False))
     return prepared
@@ -240,7 +250,11 @@ def replay_cycle(driver, cfg, directory, record, **kwargs):
     driver.reference = cfg['integrated_pad_contact_pose'].copy()
     lower, _ = held.approach_cycle_targets(driver.sample(), cfg)
     held.local_held_move(driver, cfg, lower, record, sleep=lambda _: None)
-    held.local_held_move(driver, cfg, seating.xy_target(driver.sample(), cfg), record, sleep=lambda _: None)
+    if cfg.get('assembly_xy_correction_enabled', True):
+        held.local_held_move(driver, cfg, seating.xy_target(driver.sample(), cfg), record, sleep=lambda _: None)
+    else:
+        record('ASSEMBLY_XY_CORRECTION_DISABLED',dict(reason='OPERATOR_REQUEST',
+            assembly_target_xy=cfg['assembly_target_xy'],supply_xy_correction_changed=False))
     callback = kwargs.get('support_ready')
     if callback is not None:
         record('TRIAL_HUMAN_SUPPORT_REQUEST', cfg['trial_step'])
@@ -272,24 +286,53 @@ def main(argv=None):
     p.add_argument('--confirm-hand-clear', action='store_true')
     p.add_argument('--start-zone', choices=('home', 'assembly', 'supply'), default='home')
     p.add_argument('--tilt-accuracy-test', action='store_true')
-    p.add_argument('--only-step', choices=('T1',), help='Run only the first step on the original eight-block baseline')
+    p.add_argument('--only-step', choices=('T1', 'T2', 'T3'), help='One native case; T2/T3 require an approved A step binding')
+    p.add_argument('--execution-profile', type=Path, help='Conditionally approved educational 25-slot supply registry')
+    p.add_argument('--approved-step-document', type=Path, help='D approved design/A step binding for the matching native skill')
     p.add_argument('--supply-depth-profile', type=Path, help='Verified RGB-D supply XY correction profile')
+    p.add_argument('--educational-depth-demo', action='store_true',
+                   help='Explicitly use an operator-accepted educational profile for fixed T1 only')
     args = p.parse_args(argv)
+    if args.educational_depth_demo and (args.only_step != 'T1' or not args.supply_depth_profile
+                                       or args.command == 'replay'):
+        p.error('--educational-depth-demo requires --only-step T1 and --supply-depth-profile; no replay')
+    if args.execution_profile and (args.supply_depth_profile or args.educational_depth_demo or args.command == 'replay'):
+        p.error('--execution-profile cannot be combined with older depth options or synthetic replay')
+    if args.only_step in ('T2', 'T3') and not args.approved_step_document:
+        p.error('T2/T3 single-step requires --approved-step-document')
+    if args.approved_step_document and (not args.only_step or not args.execution_profile or args.command == 'replay'):
+        p.error('--approved-step-document requires --only-step and --execution-profile; no replay')
     scenario = read(args.scenario)
     prepared = prepare(scenario)
     if args.only_step:
-        if prepared[0]['case']['step_id'] != args.only_step:
+        if not args.approved_step_document and prepared[0]['case']['step_id'] != args.only_step:
             raise ValueError('FIXED_STEP_MUST_BE_FIRST_ON_ORIGINAL_BASELINE')
-        prepared = prepared[:1]
+        prepared = [item for item in prepared if item['case']['step_id'] == args.only_step]
+        if len(prepared) != 1:
+            raise ValueError('EXACT_NATIVE_STEP_REQUIRED')
     for item in prepared:
         item['config']['tilt_accuracy_test'] = args.tilt_accuracy_test
+        if args.execution_profile:
+            from app.supply_stud.execution_profile import bind
+            item['config'] = bind(item['config'], args.execution_profile)
+            cfg = item['config']
+            if cfg['vision'].get('depth_center_profile'):
+                from app.supply_stud.depth_center import load_profile
+                load_profile(cfg['vision']['depth_center_profile'], cfg['vision']['layout'], cfg)
         if args.supply_depth_profile:
             if args.command == 'replay':
                 raise ValueError('SUPPLY_DEPTH_REAL_PROFILE_NOT_FOR_SYNTHETIC_REPLAY')
             cfg = item['config']
+            if args.educational_depth_demo:
+                cfg['vision']['allow_educational_depth_profile'] = True
             cfg['vision']['depth_center_profile'] = str(args.supply_depth_profile.resolve())
             from app.supply_stud.depth_center import load_profile
             load_profile(cfg['vision']['depth_center_profile'], cfg['vision']['layout'], cfg)
+    service_binding = None
+    if args.approved_step_document:
+        from app.round3_approved_step import validate_binding
+        service_binding = validate_binding(read(args.approved_step_document), prepared[0]['config'],
+                                           scenario, args.execution_profile)
     if args.command == 'preview' or (args.command == 'run' and not args.execute):
         result = dict(status='PREVIEW_NO_DEVICE_CONNECTION', physical_commands=0,
                       total_cycles=len(prepared), preplaced=scenario['preplaced'], steps=prepared)
@@ -338,6 +381,15 @@ def main(argv=None):
                     stale_retry_force_stop_n=supply.motion_force_limit(prepared[0]['config']),
                     target_only_motion=prepared[0]['config'].get('target_only_motion',False)))
                 try:
+                    if service_binding is not None:
+                        # Claim before any motion. An interrupted execution requires a new review.
+                        claims = NATIVE / 'logs/approved-step-claims'
+                        claims.mkdir(parents=True, exist_ok=True)
+                        from hashlib import sha256
+                        claim = sha256(service_binding['execution_id'].encode()).hexdigest()
+                        with (claims / (claim + '.json')).open('x') as stream:
+                            json.dump(service_binding, stream)
+                        record('APPROVED_A_STEP_BOUND', service_binding)
                     if driver.robot_system() != 0:
                         raise RuntimeError('PHYSICAL_ROBOT_REQUIRED')
                     def interrupt(*_):
@@ -357,6 +409,8 @@ def main(argv=None):
             result['status'] = 'FIXED_STEP_EXECUTED'
         if args.command == 'run':
             result.update(provenance='LIVE_D_RUNTIME', backend='REAL')
+        if service_binding is not None:
+            result['service_binding'] = service_binding
         result['output_directory'] = str(directory.resolve())
         (directory / 'result.json').write_text(json.dumps(result, ensure_ascii=False, indent=2) + '\n')
         print(json.dumps(result, ensure_ascii=False, indent=2))

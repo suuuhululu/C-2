@@ -1,0 +1,1226 @@
+{
+  "schema_version": "educational-supply-execution/1",
+  "operator_conditional_execution_approved": true,
+  "approval_basis": "USER_REQUESTED_MODEL_BASED_EDUCATIONAL_EXPANSION_AND_FINAL_EXECUTION_PROFILE_20261015",
+  "connection": {
+    "robot_id": "dsr01",
+    "tcp": "GripperDA_v4",
+    "tool": "ToolWeight0"
+  },
+  "observation_pose": [
+    -443.4389343261719,
+    -38.81204605102539,
+    374.3517761230469,
+    8.74850845336914,
+    178.39500427246094,
+    8.59197998046875
+  ],
+  "camera_binding": {
+    "k": [
+      907.924560546875,
+      0.0,
+      652.287109375,
+      0.0,
+      907.717529296875,
+      366.0758972167969,
+      0.0,
+      0.0,
+      1.0
+    ],
+    "d": [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+    ],
+    "distortion_model": "plumb_bob",
+    "width": 1280,
+    "height": 720,
+    "frame_id": "camera_color_optical_frame"
+  },
+  "assembly_xy_correction_enabled": false,
+  "all_slots_physically_verified": false,
+  "hardware_revalidation_required_after_team_handoff": true,
+  "automatic_device_start": false,
+  "assembly_completion": false,
+  "B_actual_assembly_confirmed": false,
+  "final_DB_saved": false,
+  "slots": [
+    {
+      "slot_id": "yellow_2x2x1_01",
+      "execution_mode": "TEACHING_ONLY",
+      "execution_approved": true,
+      "approval_scope": "EDUCATIONAL_CONDITIONAL_SUPPLY_ONLY",
+      "reference_basis": "EXPLICIT_ORIGINAL_OR_UPDATED_TEACHING_NO_DEPTH_CORRECTION",
+      "pickup_pose": [
+        -327.85296630859375,
+        193.36367797851562,
+        52.078731536865234,
+        102.85449981689453,
+        -176.07705688476562,
+        104.31108093261719
+      ],
+      "pickup_pose_is_measured": true,
+      "teaching_source": {
+        "pose": [
+          -327.85296630859375,
+          193.36367797851562,
+          52.078731536865234,
+          102.85449981689453,
+          -176.07705688476562,
+          104.31108093261719
+        ],
+        "source": "evidence/04-operator_supply.json#supply/yellow/2x2x1/1",
+        "kind": "DIRECT_ORIGINAL_OPERATOR_TEACHING",
+        "automatically_adopted": false
+      },
+      "interpolation_anchors": null,
+      "baseline_surface_center_base_mm": null,
+      "depth_profile": null,
+      "automatic_depth_failure_fallback_enabled": false,
+      "current_single_grasp_evidence": null,
+      "independently_verified": false,
+      "all_placements_or_repeatability_verified": false,
+      "config": "single-slot/yellow_2x2x1_01.json",
+      "observation_counts": {
+        "audit_frames": 19,
+        "recognized_frames": 19,
+        "valid_depth_frames": 10
+      }
+    },
+    {
+      "slot_id": "yellow_2x2x1_02",
+      "execution_mode": "TEACHING_ONLY",
+      "execution_approved": true,
+      "approval_scope": "EDUCATIONAL_CONDITIONAL_SUPPLY_ONLY",
+      "reference_basis": "EXPLICIT_ORIGINAL_OR_UPDATED_TEACHING_NO_DEPTH_CORRECTION",
+      "pickup_pose": [
+        -389.8049621582031,
+        194.62765502929688,
+        48.550514221191406,
+        167.70477294921875,
+        -177.71961975097656,
+        167.3773956298828
+      ],
+      "pickup_pose_is_measured": true,
+      "teaching_source": {
+        "pose": [
+          -389.8049621582031,
+          194.62765502929688,
+          48.550514221191406,
+          167.70477294921875,
+          -177.71961975097656,
+          167.3773956298828
+        ],
+        "source": "evidence/21-pickup.json",
+        "kind": "NEW_MANUAL_TEACHING_SINGLE_APPROACH_GRASP_CONFIRMED",
+        "automatically_adopted": false,
+        "physical_grasp_evidence": "evidence/22-operator-review.json"
+      },
+      "interpolation_anchors": null,
+      "baseline_surface_center_base_mm": null,
+      "depth_profile": null,
+      "automatic_depth_failure_fallback_enabled": false,
+      "current_single_grasp_evidence": "evidence/22-operator-review.json",
+      "independently_verified": false,
+      "all_placements_or_repeatability_verified": false,
+      "config": "single-slot/yellow_2x2x1_02.json",
+      "observation_counts": {
+        "audit_frames": 19,
+        "recognized_frames": 19,
+        "valid_depth_frames": 1
+      }
+    },
+    {
+      "slot_id": "yellow_2x2x1_03",
+      "execution_mode": "TEACHING_ONLY",
+      "execution_approved": true,
+      "approval_scope": "EDUCATIONAL_CONDITIONAL_SUPPLY_ONLY",
+      "reference_basis": "EXPLICIT_ORIGINAL_OR_UPDATED_TEACHING_NO_DEPTH_CORRECTION",
+      "pickup_pose": [
+        -455.40081787109375,
+        198.84207153320312,
+        51.01224136352539,
+        107.78492736816406,
+        -176.3149871826172,
+        109.21537017822266
+      ],
+      "pickup_pose_is_measured": true,
+      "teaching_source": {
+        "pose": [
+          -455.40081787109375,
+          198.84207153320312,
+          51.01224136352539,
+          107.78492736816406,
+          -176.3149871826172,
+          109.21537017822266
+        ],
+        "source": "evidence/04-operator_supply.json#supply/yellow/2x2x1/3",
+        "kind": "DIRECT_ORIGINAL_OPERATOR_TEACHING",
+        "automatically_adopted": false
+      },
+      "interpolation_anchors": null,
+      "baseline_surface_center_base_mm": null,
+      "depth_profile": null,
+      "automatic_depth_failure_fallback_enabled": false,
+      "current_single_grasp_evidence": null,
+      "independently_verified": false,
+      "all_placements_or_repeatability_verified": false,
+      "config": "single-slot/yellow_2x2x1_03.json",
+      "observation_counts": {
+        "audit_frames": 19,
+        "recognized_frames": 19,
+        "valid_depth_frames": 15
+      }
+    },
+    {
+      "slot_id": "yellow_2x2x1_04",
+      "execution_mode": "RGBD_XY",
+      "execution_approved": true,
+      "approval_scope": "EDUCATIONAL_CONDITIONAL_SUPPLY_ONLY",
+      "reference_basis": "PAIRED_MEASURED_AND_SINGLE_GRASP_TESTED",
+      "pickup_pose": [
+        -519.361083984375,
+        196.43150329589844,
+        49.38444137573242,
+        1.3798952102661133,
+        178.19931030273438,
+        1.3129518032073975
+      ],
+      "pickup_pose_is_measured": true,
+      "teaching_source": {
+        "pose": [
+          -519.361083984375,
+          196.43150329589844,
+          49.38444137573242,
+          1.3798952102661133,
+          178.19931030273438,
+          1.3129518032073975
+        ],
+        "source": "evidence/10-pickup.json",
+        "kind": "PAIRED_MEASURED"
+      },
+      "interpolation_anchors": null,
+      "baseline_surface_center_base_mm": [
+        -530.3690546447399,
+        203.0710332180487,
+        100.15330756522832
+      ],
+      "depth_profile": "depth/yellow_2x2x1_04.json",
+      "automatic_depth_failure_fallback_enabled": false,
+      "current_single_grasp_evidence": "evidence/06-trial-summary.json",
+      "independently_verified": false,
+      "all_placements_or_repeatability_verified": false,
+      "config": "single-slot/yellow_2x2x1_04.json",
+      "observation_counts": {
+        "audit_frames": 19,
+        "recognized_frames": 19,
+        "valid_depth_frames": 19
+      }
+    },
+    {
+      "slot_id": "yellow_2x2x1_05",
+      "execution_mode": "RGBD_XY",
+      "execution_approved": true,
+      "approval_scope": "EDUCATIONAL_CONDITIONAL_SUPPLY_ONLY",
+      "reference_basis": "OBSERVED_MODEL_BASELINE_NOT_PAIRED_GROUND_TRUTH",
+      "pickup_pose": [
+        -582.6072387695312,
+        201.92989095052084,
+        49.63486353556315,
+        -66.62497422688047,
+        176.95779420699344,
+        -65.37898855239303
+      ],
+      "pickup_pose_is_measured": false,
+      "teaching_source": null,
+      "interpolation_anchors": [
+        {
+          "key": "supply/yellow/2x2x1/3",
+          "weight": 0.33333333333333337
+        },
+        {
+          "key": "supply/yellow/2x2x1/6",
+          "weight": 0.6666666666666666
+        }
+      ],
+      "baseline_surface_center_base_mm": [
+        -593.2498303818797,
+        203.12771940645456,
+        95.51840091203462
+      ],
+      "depth_profile": "depth/yellow_2x2x1_05.json",
+      "automatic_depth_failure_fallback_enabled": false,
+      "current_single_grasp_evidence": null,
+      "independently_verified": false,
+      "all_placements_or_repeatability_verified": false,
+      "config": "single-slot/yellow_2x2x1_05.json",
+      "observation_counts": {
+        "audit_frames": 19,
+        "recognized_frames": 19,
+        "valid_depth_frames": 19
+      }
+    },
+    {
+      "slot_id": "yellow_2x3x1_01",
+      "execution_mode": "RGBD_XY",
+      "execution_approved": true,
+      "approval_scope": "EDUCATIONAL_CONDITIONAL_SUPPLY_ONLY",
+      "reference_basis": "OBSERVED_MODEL_BASELINE_NOT_PAIRED_GROUND_TRUTH",
+      "pickup_pose": [
+        -328.5872497558594,
+        138.45257568359375,
+        49.16362380981445,
+        115.04324340820312,
+        -177.26100158691406,
+        116.4085693359375
+      ],
+      "pickup_pose_is_measured": true,
+      "teaching_source": {
+        "pose": [
+          -328.5872497558594,
+          138.45257568359375,
+          49.16362380981445,
+          115.04324340820312,
+          -177.26100158691406,
+          116.4085693359375
+        ],
+        "source": "evidence/04-operator_supply.json#supply/yellow/2x3x1/1",
+        "kind": "DIRECT_ORIGINAL_OPERATOR_TEACHING",
+        "automatically_adopted": false
+      },
+      "interpolation_anchors": null,
+      "baseline_surface_center_base_mm": [
+        -331.71176740263496,
+        152.29766371990712,
+        106.93912452377026
+      ],
+      "depth_profile": "depth/yellow_2x3x1_01.json",
+      "automatic_depth_failure_fallback_enabled": false,
+      "current_single_grasp_evidence": null,
+      "independently_verified": false,
+      "all_placements_or_repeatability_verified": false,
+      "config": "single-slot/yellow_2x3x1_01.json",
+      "observation_counts": {
+        "audit_frames": 19,
+        "recognized_frames": 19,
+        "valid_depth_frames": 19
+      }
+    },
+    {
+      "slot_id": "yellow_2x3x1_02",
+      "execution_mode": "RGBD_XY",
+      "execution_approved": true,
+      "approval_scope": "EDUCATIONAL_CONDITIONAL_SUPPLY_ONLY",
+      "reference_basis": "OBSERVED_MODEL_BASELINE_NOT_PAIRED_GROUND_TRUTH",
+      "pickup_pose": [
+        -392.2115020751953,
+        140.78577423095703,
+        48.91222381591797,
+        -64.03422692532209,
+        177.26971453222032,
+        -62.701268760230604
+      ],
+      "pickup_pose_is_measured": false,
+      "teaching_source": null,
+      "interpolation_anchors": [
+        {
+          "key": "supply/yellow/2x3x1/1",
+          "weight": 0.5
+        },
+        {
+          "key": "supply/yellow/2x3x1/3",
+          "weight": 0.5
+        }
+      ],
+      "baseline_surface_center_base_mm": [
+        -396.7535697860733,
+        148.24524991132841,
+        104.14251763556854
+      ],
+      "depth_profile": "depth/yellow_2x3x1_02.json",
+      "automatic_depth_failure_fallback_enabled": false,
+      "current_single_grasp_evidence": null,
+      "independently_verified": false,
+      "all_placements_or_repeatability_verified": false,
+      "config": "single-slot/yellow_2x3x1_02.json",
+      "observation_counts": {
+        "audit_frames": 19,
+        "recognized_frames": 19,
+        "valid_depth_frames": 19
+      }
+    },
+    {
+      "slot_id": "yellow_2x3x1_03",
+      "execution_mode": "TEACHING_ONLY",
+      "execution_approved": true,
+      "approval_scope": "EDUCATIONAL_CONDITIONAL_SUPPLY_ONLY",
+      "reference_basis": "EXPLICIT_ORIGINAL_OR_UPDATED_TEACHING_NO_DEPTH_CORRECTION",
+      "pickup_pose": [
+        -455.83575439453125,
+        143.1189727783203,
+        48.660823822021484,
+        116.89387512207031,
+        -177.27774047851562,
+        118.19446563720703
+      ],
+      "pickup_pose_is_measured": true,
+      "teaching_source": {
+        "pose": [
+          -455.83575439453125,
+          143.1189727783203,
+          48.660823822021484,
+          116.89387512207031,
+          -177.27774047851562,
+          118.19446563720703
+        ],
+        "source": "evidence/04-operator_supply.json#supply/yellow/2x3x1/3",
+        "kind": "DIRECT_ORIGINAL_OPERATOR_TEACHING",
+        "automatically_adopted": false
+      },
+      "interpolation_anchors": null,
+      "baseline_surface_center_base_mm": null,
+      "depth_profile": null,
+      "automatic_depth_failure_fallback_enabled": false,
+      "current_single_grasp_evidence": null,
+      "independently_verified": false,
+      "all_placements_or_repeatability_verified": false,
+      "config": "single-slot/yellow_2x3x1_03.json",
+      "observation_counts": {
+        "audit_frames": 19,
+        "recognized_frames": 19,
+        "valid_depth_frames": 16
+      }
+    },
+    {
+      "slot_id": "yellow_2x3x1_04",
+      "execution_mode": "RGBD_XY",
+      "execution_approved": true,
+      "approval_scope": "EDUCATIONAL_CONDITIONAL_SUPPLY_ONLY",
+      "reference_basis": "OBSERVED_MODEL_BASELINE_NOT_PAIRED_GROUND_TRUTH",
+      "pickup_pose": [
+        -520.3038940429688,
+        144.9141082763672,
+        49.237603505452476,
+        -63.40328076476846,
+        177.3619036264888,
+        -62.25114797070221
+      ],
+      "pickup_pose_is_measured": false,
+      "teaching_source": null,
+      "interpolation_anchors": [
+        {
+          "key": "supply/yellow/2x3x1/3",
+          "weight": 0.6666666666666667
+        },
+        {
+          "key": "supply/yellow/2x3x1/6",
+          "weight": 0.3333333333333333
+        }
+      ],
+      "baseline_surface_center_base_mm": [
+        -526.9557267084695,
+        145.7412907044769,
+        99.69671583633351
+      ],
+      "depth_profile": "depth/yellow_2x3x1_04.json",
+      "automatic_depth_failure_fallback_enabled": false,
+      "current_single_grasp_evidence": null,
+      "independently_verified": false,
+      "all_placements_or_repeatability_verified": false,
+      "config": "single-slot/yellow_2x3x1_04.json",
+      "observation_counts": {
+        "audit_frames": 19,
+        "recognized_frames": 19,
+        "valid_depth_frames": 19
+      }
+    },
+    {
+      "slot_id": "yellow_2x3x1_05",
+      "execution_mode": "RGBD_XY",
+      "execution_approved": true,
+      "approval_scope": "EDUCATIONAL_CONDITIONAL_SUPPLY_ONLY",
+      "reference_basis": "OBSERVED_MODEL_BASELINE_NOT_PAIRED_GROUND_TRUTH",
+      "pickup_pose": [
+        -581.63427734375,
+        139.91748046875,
+        47.27861404418945,
+        5.880496025085449,
+        178.29222106933594,
+        5.513185501098633
+      ],
+      "pickup_pose_is_measured": true,
+      "teaching_source": {
+        "pose": [
+          -581.63427734375,
+          139.91748046875,
+          47.27861404418945,
+          5.880496025085449,
+          178.29222106933594,
+          5.513185501098633
+        ],
+        "source": "evidence/24-pickup.json",
+        "kind": "PAIRED_MEASUREMENT_TEACHING_NOT_RUNTIME_ADOPTED",
+        "automatically_adopted": false
+      },
+      "interpolation_anchors": null,
+      "baseline_surface_center_base_mm": [
+        -591.4476577761029,
+        141.52436003585535,
+        96.90728326819067
+      ],
+      "depth_profile": "depth/yellow_2x3x1_05.json",
+      "automatic_depth_failure_fallback_enabled": false,
+      "current_single_grasp_evidence": null,
+      "independently_verified": false,
+      "all_placements_or_repeatability_verified": false,
+      "config": "single-slot/yellow_2x3x1_05.json",
+      "observation_counts": {
+        "audit_frames": 19,
+        "recognized_frames": 19,
+        "valid_depth_frames": 19
+      }
+    },
+    {
+      "slot_id": "blue_2x2x1_01",
+      "execution_mode": "RGBD_XY",
+      "execution_approved": true,
+      "approval_scope": "EDUCATIONAL_CONDITIONAL_SUPPLY_ONLY",
+      "reference_basis": "OBSERVED_MODEL_BASELINE_NOT_PAIRED_GROUND_TRUTH",
+      "pickup_pose": [
+        -329.9087829589844,
+        68.5289535522461,
+        50.48456573486328,
+        118.29946899414062,
+        -177.67820739746094,
+        119.57559967041016
+      ],
+      "pickup_pose_is_measured": true,
+      "teaching_source": {
+        "pose": [
+          -329.9087829589844,
+          68.5289535522461,
+          50.48456573486328,
+          118.29946899414062,
+          -177.67820739746094,
+          119.57559967041016
+        ],
+        "source": "evidence/04-operator_supply.json#supply/blue/2x2x1/1",
+        "kind": "DIRECT_ORIGINAL_OPERATOR_TEACHING",
+        "automatically_adopted": false
+      },
+      "interpolation_anchors": null,
+      "baseline_surface_center_base_mm": [
+        -329.5315434249112,
+        77.38702358577682,
+        104.97716327258661
+      ],
+      "depth_profile": "depth/blue_2x2x1_01.json",
+      "automatic_depth_failure_fallback_enabled": false,
+      "current_single_grasp_evidence": null,
+      "independently_verified": false,
+      "all_placements_or_repeatability_verified": false,
+      "config": "single-slot/blue_2x2x1_01.json",
+      "observation_counts": {
+        "audit_frames": 19,
+        "recognized_frames": 19,
+        "valid_depth_frames": 19
+      }
+    },
+    {
+      "slot_id": "blue_2x2x1_02",
+      "execution_mode": "RGBD_XY",
+      "execution_approved": true,
+      "approval_scope": "EDUCATIONAL_CONDITIONAL_SUPPLY_ONLY",
+      "reference_basis": "OBSERVED_MODEL_BASELINE_NOT_PAIRED_GROUND_TRUTH",
+      "pickup_pose": [
+        -393.6830291748047,
+        69.51908493041992,
+        50.46043586730957,
+        -59.22627063093166,
+        177.51291337386212,
+        -57.99829135112511
+      ],
+      "pickup_pose_is_measured": false,
+      "teaching_source": null,
+      "interpolation_anchors": [
+        {
+          "key": "supply/blue/2x2x1/1",
+          "weight": 0.5
+        },
+        {
+          "key": "supply/blue/2x2x1/3",
+          "weight": 0.5
+        }
+      ],
+      "baseline_surface_center_base_mm": [
+        -395.93614602774375,
+        78.06567195780184,
+        106.27403589724577
+      ],
+      "depth_profile": "depth/blue_2x2x1_02.json",
+      "automatic_depth_failure_fallback_enabled": false,
+      "current_single_grasp_evidence": null,
+      "independently_verified": false,
+      "all_placements_or_repeatability_verified": false,
+      "config": "single-slot/blue_2x2x1_02.json",
+      "observation_counts": {
+        "audit_frames": 19,
+        "recognized_frames": 19,
+        "valid_depth_frames": 19
+      }
+    },
+    {
+      "slot_id": "blue_2x2x1_03",
+      "execution_mode": "RGBD_XY",
+      "execution_approved": true,
+      "approval_scope": "EDUCATIONAL_CONDITIONAL_SUPPLY_ONLY",
+      "reference_basis": "OBSERVED_MODEL_BASELINE_NOT_PAIRED_GROUND_TRUTH",
+      "pickup_pose": [
+        -457.457275390625,
+        70.50921630859375,
+        50.43630599975586,
+        122.93928527832031,
+        -177.34364318847656,
+        124.11911010742188
+      ],
+      "pickup_pose_is_measured": true,
+      "teaching_source": {
+        "pose": [
+          -457.457275390625,
+          70.50921630859375,
+          50.43630599975586,
+          122.93928527832031,
+          -177.34364318847656,
+          124.11911010742188
+        ],
+        "source": "evidence/04-operator_supply.json#supply/blue/2x2x1/3",
+        "kind": "DIRECT_ORIGINAL_OPERATOR_TEACHING",
+        "automatically_adopted": false
+      },
+      "interpolation_anchors": null,
+      "baseline_surface_center_base_mm": [
+        -458.21554611508697,
+        75.50900618090121,
+        104.5908972939693
+      ],
+      "depth_profile": "depth/blue_2x2x1_03.json",
+      "automatic_depth_failure_fallback_enabled": false,
+      "current_single_grasp_evidence": null,
+      "independently_verified": false,
+      "all_placements_or_repeatability_verified": false,
+      "config": "single-slot/blue_2x2x1_03.json",
+      "observation_counts": {
+        "audit_frames": 19,
+        "recognized_frames": 19,
+        "valid_depth_frames": 19
+      }
+    },
+    {
+      "slot_id": "blue_2x2x1_04",
+      "execution_mode": "RGBD_XY",
+      "execution_approved": true,
+      "approval_scope": "EDUCATIONAL_CONDITIONAL_SUPPLY_ONLY",
+      "reference_basis": "OBSERVED_MODEL_BASELINE_NOT_PAIRED_GROUND_TRUTH",
+      "pickup_pose": [
+        -521.3122355143229,
+        72.83158874511719,
+        49.14395395914713,
+        -59.31966315480079,
+        177.44884152892047,
+        -58.1141593254022
+      ],
+      "pickup_pose_is_measured": false,
+      "teaching_source": null,
+      "interpolation_anchors": [
+        {
+          "key": "supply/blue/2x2x1/3",
+          "weight": 0.6666666666666667
+        },
+        {
+          "key": "supply/blue/2x2x1/6",
+          "weight": 0.3333333333333333
+        }
+      ],
+      "baseline_surface_center_base_mm": [
+        -522.9760028646572,
+        74.07033325695205,
+        102.8705278196461
+      ],
+      "depth_profile": "depth/blue_2x2x1_04.json",
+      "automatic_depth_failure_fallback_enabled": false,
+      "current_single_grasp_evidence": null,
+      "independently_verified": false,
+      "all_placements_or_repeatability_verified": false,
+      "config": "single-slot/blue_2x2x1_04.json",
+      "observation_counts": {
+        "audit_frames": 19,
+        "recognized_frames": 19,
+        "valid_depth_frames": 19
+      }
+    },
+    {
+      "slot_id": "blue_2x2x1_05",
+      "execution_mode": "RGBD_XY",
+      "execution_approved": true,
+      "approval_scope": "EDUCATIONAL_CONDITIONAL_SUPPLY_ONLY",
+      "reference_basis": "OBSERVED_MODEL_BASELINE_NOT_PAIRED_GROUND_TRUTH",
+      "pickup_pose": [
+        -585.1671956380209,
+        75.15396118164062,
+        47.851601918538414,
+        -61.76766072310973,
+        177.54978784793002,
+        -60.53647892286923
+      ],
+      "pickup_pose_is_measured": false,
+      "teaching_source": null,
+      "interpolation_anchors": [
+        {
+          "key": "supply/blue/2x2x1/3",
+          "weight": 0.33333333333333337
+        },
+        {
+          "key": "supply/blue/2x2x1/6",
+          "weight": 0.6666666666666666
+        }
+      ],
+      "baseline_surface_center_base_mm": [
+        -587.7407522497354,
+        72.61215726061116,
+        101.1500563732609
+      ],
+      "depth_profile": "depth/blue_2x2x1_05.json",
+      "automatic_depth_failure_fallback_enabled": false,
+      "current_single_grasp_evidence": null,
+      "independently_verified": false,
+      "all_placements_or_repeatability_verified": false,
+      "config": "single-slot/blue_2x2x1_05.json",
+      "observation_counts": {
+        "audit_frames": 19,
+        "recognized_frames": 19,
+        "valid_depth_frames": 19
+      }
+    },
+    {
+      "slot_id": "blue_2x3x1_01",
+      "execution_mode": "RGBD_XY",
+      "execution_approved": true,
+      "approval_scope": "EDUCATIONAL_CONDITIONAL_SUPPLY_ONLY",
+      "reference_basis": "OBSERVED_MODEL_BASELINE_NOT_PAIRED_GROUND_TRUTH",
+      "pickup_pose": [
+        -331.85260009765625,
+        9.898046493530273,
+        50.785804748535156,
+        125.3236312866211,
+        -177.62391662597656,
+        126.60347747802734
+      ],
+      "pickup_pose_is_measured": true,
+      "teaching_source": {
+        "pose": [
+          -331.85260009765625,
+          9.898046493530273,
+          50.785804748535156,
+          125.3236312866211,
+          -177.62391662597656,
+          126.60347747802734
+        ],
+        "source": "evidence/04-operator_supply.json#supply/blue/2x3x1/1",
+        "kind": "DIRECT_ORIGINAL_OPERATOR_TEACHING",
+        "automatically_adopted": false
+      },
+      "interpolation_anchors": null,
+      "baseline_surface_center_base_mm": [
+        -327.60374391032826,
+        19.503865917050618,
+        107.4702672094262
+      ],
+      "depth_profile": "depth/blue_2x3x1_01.json",
+      "automatic_depth_failure_fallback_enabled": false,
+      "current_single_grasp_evidence": null,
+      "independently_verified": false,
+      "all_placements_or_repeatability_verified": false,
+      "config": "single-slot/blue_2x3x1_01.json",
+      "observation_counts": {
+        "audit_frames": 19,
+        "recognized_frames": 19,
+        "valid_depth_frames": 19
+      }
+    },
+    {
+      "slot_id": "blue_2x3x1_02",
+      "execution_mode": "RGBD_XY",
+      "execution_approved": true,
+      "approval_scope": "EDUCATIONAL_CONDITIONAL_SUPPLY_ONLY",
+      "reference_basis": "OBSERVED_MODEL_BASELINE_NOT_PAIRED_GROUND_TRUTH",
+      "pickup_pose": [
+        -395.0296630859375,
+        12.587860584259033,
+        49.33174705505371,
+        -50.54710367422485,
+        177.43495012931803,
+        -49.374049679339805
+      ],
+      "pickup_pose_is_measured": false,
+      "teaching_source": null,
+      "interpolation_anchors": [
+        {
+          "key": "supply/blue/2x3x1/1",
+          "weight": 0.5
+        },
+        {
+          "key": "supply/blue/2x3x1/3",
+          "weight": 0.5
+        }
+      ],
+      "baseline_surface_center_base_mm": [
+        -393.7471531258983,
+        18.018987540534702,
+        104.71258563102424
+      ],
+      "depth_profile": "depth/blue_2x3x1_02.json",
+      "automatic_depth_failure_fallback_enabled": false,
+      "current_single_grasp_evidence": null,
+      "independently_verified": false,
+      "all_placements_or_repeatability_verified": false,
+      "config": "single-slot/blue_2x3x1_02.json",
+      "observation_counts": {
+        "audit_frames": 19,
+        "recognized_frames": 19,
+        "valid_depth_frames": 19
+      }
+    },
+    {
+      "slot_id": "blue_2x3x1_03",
+      "execution_mode": "RGBD_XY",
+      "execution_approved": true,
+      "approval_scope": "EDUCATIONAL_CONDITIONAL_SUPPLY_ONLY",
+      "reference_basis": "PAIRED_MEASURED_AND_SINGLE_GRASP_TESTED",
+      "pickup_pose": [
+        -453.0871887207031,
+        9.289710998535156,
+        50.55364227294922,
+        9.845041275024414,
+        179.12184143066406,
+        10.314308166503906
+      ],
+      "pickup_pose_is_measured": true,
+      "teaching_source": {
+        "pose": [
+          -453.0871887207031,
+          9.289710998535156,
+          50.55364227294922,
+          9.845041275024414,
+          179.12184143066406,
+          10.314308166503906
+        ],
+        "source": "evidence/14-pickup.json",
+        "kind": "PAIRED_MEASURED"
+      },
+      "interpolation_anchors": null,
+      "baseline_surface_center_base_mm": [
+        -457.12841164267655,
+        17.355678045744202,
+        103.05199545971368
+      ],
+      "depth_profile": "depth/blue_2x3x1_03.json",
+      "automatic_depth_failure_fallback_enabled": false,
+      "current_single_grasp_evidence": "evidence/12-trial-summary.json",
+      "independently_verified": false,
+      "all_placements_or_repeatability_verified": false,
+      "config": "single-slot/blue_2x3x1_03.json",
+      "observation_counts": {
+        "audit_frames": 19,
+        "recognized_frames": 19,
+        "valid_depth_frames": 19
+      }
+    },
+    {
+      "slot_id": "blue_2x3x1_04",
+      "execution_mode": "RGBD_XY",
+      "execution_approved": true,
+      "approval_scope": "EDUCATIONAL_CONDITIONAL_SUPPLY_ONLY",
+      "reference_basis": "OBSERVED_MODEL_BASELINE_NOT_PAIRED_GROUND_TRUTH",
+      "pickup_pose": [
+        -522.5111694335938,
+        16.719502131144207,
+        48.273502349853516,
+        -47.208222443269484,
+        177.32961367283596,
+        -46.12526485710051
+      ],
+      "pickup_pose_is_measured": false,
+      "teaching_source": null,
+      "interpolation_anchors": [
+        {
+          "key": "supply/blue/2x3x1/3",
+          "weight": 0.6666666666666667
+        },
+        {
+          "key": "supply/blue/2x3x1/6",
+          "weight": 0.3333333333333333
+        }
+      ],
+      "baseline_surface_center_base_mm": [
+        -521.8936481764557,
+        16.366077766503384,
+        100.34249638139704
+      ],
+      "depth_profile": "depth/blue_2x3x1_04.json",
+      "automatic_depth_failure_fallback_enabled": false,
+      "current_single_grasp_evidence": null,
+      "independently_verified": false,
+      "all_placements_or_repeatability_verified": false,
+      "config": "single-slot/blue_2x3x1_04.json",
+      "observation_counts": {
+        "audit_frames": 19,
+        "recognized_frames": 19,
+        "valid_depth_frames": 19
+      }
+    },
+    {
+      "slot_id": "blue_2x3x1_05",
+      "execution_mode": "RGBD_XY",
+      "execution_approved": true,
+      "approval_scope": "EDUCATIONAL_CONDITIONAL_SUPPLY_ONLY",
+      "reference_basis": "OBSERVED_MODEL_BASELINE_NOT_PAIRED_GROUND_TRUTH",
+      "pickup_pose": [
+        -586.8156127929688,
+        18.161329587300617,
+        48.669315338134766,
+        -47.439686246789904,
+        177.42437219368642,
+        -46.34002538057534
+      ],
+      "pickup_pose_is_measured": false,
+      "teaching_source": null,
+      "interpolation_anchors": [
+        {
+          "key": "supply/blue/2x3x1/3",
+          "weight": 0.33333333333333337
+        },
+        {
+          "key": "supply/blue/2x3x1/6",
+          "weight": 0.6666666666666666
+        }
+      ],
+      "baseline_surface_center_base_mm": [
+        -587.6907157058093,
+        13.807710817876341,
+        100.56689131349572
+      ],
+      "depth_profile": "depth/blue_2x3x1_05.json",
+      "automatic_depth_failure_fallback_enabled": false,
+      "current_single_grasp_evidence": null,
+      "independently_verified": false,
+      "all_placements_or_repeatability_verified": false,
+      "config": "single-slot/blue_2x3x1_05.json",
+      "observation_counts": {
+        "audit_frames": 19,
+        "recognized_frames": 19,
+        "valid_depth_frames": 19
+      }
+    },
+    {
+      "slot_id": "red_1x2x1_01",
+      "execution_mode": "TEACHING_ONLY",
+      "execution_approved": true,
+      "approval_scope": "EDUCATIONAL_CONDITIONAL_SUPPLY_ONLY",
+      "reference_basis": "EXPLICIT_ORIGINAL_OR_UPDATED_TEACHING_NO_DEPTH_CORRECTION",
+      "pickup_pose": [
+        -329.1131286621094,
+        -54.51852798461914,
+        49.28318405151367,
+        167.2609405517578,
+        -178.44448852539062,
+        167.41226196289062
+      ],
+      "pickup_pose_is_measured": true,
+      "teaching_source": {
+        "pose": [
+          -329.1131286621094,
+          -54.51852798461914,
+          49.28318405151367,
+          167.2609405517578,
+          -178.44448852539062,
+          167.41226196289062
+        ],
+        "source": "evidence/25-pickup.json",
+        "kind": "NEW_MANUAL_TEACHING_SINGLE_APPROACH_GRASP_CONFIRMED",
+        "automatically_adopted": false,
+        "physical_grasp_evidence": "evidence/26-operator-review.json"
+      },
+      "interpolation_anchors": null,
+      "baseline_surface_center_base_mm": null,
+      "depth_profile": null,
+      "automatic_depth_failure_fallback_enabled": false,
+      "current_single_grasp_evidence": "evidence/26-operator-review.json",
+      "independently_verified": false,
+      "all_placements_or_repeatability_verified": false,
+      "config": "single-slot/red_1x2x1_01.json",
+      "observation_counts": {
+        "audit_frames": 19,
+        "recognized_frames": 14,
+        "valid_depth_frames": 14
+      }
+    },
+    {
+      "slot_id": "red_1x2x1_02",
+      "execution_mode": "RGBD_XY",
+      "execution_approved": true,
+      "approval_scope": "EDUCATIONAL_CONDITIONAL_SUPPLY_ONLY",
+      "reference_basis": "OBSERVED_MODEL_BASELINE_NOT_PAIRED_GROUND_TRUTH",
+      "pickup_pose": [
+        -396.92417907714844,
+        -49.11936569213867,
+        49.61886405944824,
+        -19.748137982254498,
+        178.86052602812785,
+        -19.360533466344823
+      ],
+      "pickup_pose_is_measured": false,
+      "teaching_source": null,
+      "interpolation_anchors": [
+        {
+          "key": "supply/red/1x2x1/1",
+          "weight": 0.5
+        },
+        {
+          "key": "supply/red/1x2x1/3",
+          "weight": 0.5
+        }
+      ],
+      "baseline_surface_center_base_mm": [
+        -391.6959229723619,
+        -45.47710554211784,
+        102.05497838834617
+      ],
+      "depth_profile": "depth/red_1x2x1_02.json",
+      "automatic_depth_failure_fallback_enabled": false,
+      "current_single_grasp_evidence": null,
+      "independently_verified": false,
+      "all_placements_or_repeatability_verified": false,
+      "config": "single-slot/red_1x2x1_02.json",
+      "observation_counts": {
+        "audit_frames": 19,
+        "recognized_frames": 19,
+        "valid_depth_frames": 19
+      }
+    },
+    {
+      "slot_id": "red_1x2x1_03",
+      "execution_mode": "RGBD_XY",
+      "execution_approved": true,
+      "approval_scope": "EDUCATIONAL_CONDITIONAL_SUPPLY_ONLY",
+      "reference_basis": "OBSERVED_MODEL_BASELINE_NOT_PAIRED_GROUND_TRUTH",
+      "pickup_pose": [
+        -460.5726013183594,
+        -47.8426628112793,
+        48.03293991088867,
+        159.2352294921875,
+        -178.9697723388672,
+        159.70248413085938
+      ],
+      "pickup_pose_is_measured": true,
+      "teaching_source": {
+        "pose": [
+          -460.5726013183594,
+          -47.8426628112793,
+          48.03293991088867,
+          159.2352294921875,
+          -178.9697723388672,
+          159.70248413085938
+        ],
+        "source": "evidence/04-operator_supply.json#supply/red/1x2x1/3",
+        "kind": "DIRECT_ORIGINAL_OPERATOR_TEACHING",
+        "automatically_adopted": false
+      },
+      "interpolation_anchors": null,
+      "baseline_surface_center_base_mm": [
+        -455.38772194635106,
+        -46.90717090860524,
+        100.36437331846014
+      ],
+      "depth_profile": "depth/red_1x2x1_03.json",
+      "automatic_depth_failure_fallback_enabled": false,
+      "current_single_grasp_evidence": null,
+      "independently_verified": false,
+      "all_placements_or_repeatability_verified": false,
+      "config": "single-slot/red_1x2x1_03.json",
+      "observation_counts": {
+        "audit_frames": 19,
+        "recognized_frames": 19,
+        "valid_depth_frames": 19
+      }
+    },
+    {
+      "slot_id": "red_1x2x1_04",
+      "execution_mode": "RGBD_XY",
+      "execution_approved": true,
+      "approval_scope": "EDUCATIONAL_CONDITIONAL_SUPPLY_ONLY",
+      "reference_basis": "OBSERVED_MODEL_BASELINE_NOT_PAIRED_GROUND_TRUTH",
+      "pickup_pose": [
+        -523.871826171875,
+        -45.933458964029946,
+        48.472250620524086,
+        -18.18445625186151,
+        178.94167531844232,
+        -17.37046767145125
+      ],
+      "pickup_pose_is_measured": false,
+      "teaching_source": null,
+      "interpolation_anchors": [
+        {
+          "key": "supply/red/1x2x1/3",
+          "weight": 0.6666666666666667
+        },
+        {
+          "key": "supply/red/1x2x1/6",
+          "weight": 0.3333333333333333
+        }
+      ],
+      "baseline_surface_center_base_mm": [
+        -519.9625624061912,
+        -48.274366713469206,
+        100.65174323081987
+      ],
+      "depth_profile": "depth/red_1x2x1_04.json",
+      "automatic_depth_failure_fallback_enabled": false,
+      "current_single_grasp_evidence": null,
+      "independently_verified": false,
+      "all_placements_or_repeatability_verified": false,
+      "config": "single-slot/red_1x2x1_04.json",
+      "observation_counts": {
+        "audit_frames": 19,
+        "recognized_frames": 19,
+        "valid_depth_frames": 19
+      }
+    },
+    {
+      "slot_id": "red_1x2x1_05",
+      "execution_mode": "RGBD_XY",
+      "execution_approved": true,
+      "approval_scope": "EDUCATIONAL_CONDITIONAL_SUPPLY_ONLY",
+      "reference_basis": "OBSERVED_MODEL_BASELINE_NOT_PAIRED_GROUND_TRUTH",
+      "pickup_pose": [
+        -587.1710510253906,
+        -44.0242551167806,
+        48.91156133015951,
+        -15.752204388688666,
+        178.91127289892884,
+        -14.59148022991485
+      ],
+      "pickup_pose_is_measured": false,
+      "teaching_source": null,
+      "interpolation_anchors": [
+        {
+          "key": "supply/red/1x2x1/3",
+          "weight": 0.33333333333333337
+        },
+        {
+          "key": "supply/red/1x2x1/6",
+          "weight": 0.6666666666666666
+        }
+      ],
+      "baseline_surface_center_base_mm": [
+        -585.4247895625147,
+        -51.11546936394373,
+        99.87733415404375
+      ],
+      "depth_profile": "depth/red_1x2x1_05.json",
+      "automatic_depth_failure_fallback_enabled": false,
+      "current_single_grasp_evidence": null,
+      "independently_verified": false,
+      "all_placements_or_repeatability_verified": false,
+      "config": "single-slot/red_1x2x1_05.json",
+      "observation_counts": {
+        "audit_frames": 19,
+        "recognized_frames": 19,
+        "valid_depth_frames": 19
+      }
+    }
+  ],
+  "source_path_basis": "BUNDLE_RELATIVE",
+  "source_sha256": {
+    "evidence/01-reference-reconciliation.json": "1c3088dc4b2fa0254265f662ffe362117731bb4e4d688637d5fff21f1f5802e5",
+    "evidence/02-report.json": "8edef652568a84b86fe6e147e133b7a7c33de43236240ae26a9e3872ac64c17d",
+    "evidence/03-layout.candidate.json": "121d43c01db0c0636deccabdbcf6dcaef96cc4416281c3efa1bad6d68ac84e2a",
+    "evidence/04-operator_supply.json": "55ca811850af36d0c4b7e579f9b33ba9ae31fee7592eb63578271018199daa3e",
+    "evidence/05-config.json": "5bb2f78fff8494a48387a121b884493ce764d3ecfa076794257c5d097a62baeb",
+    "evidence/06-trial-summary.json": "fb5fd05235da3731fd830b69e4ff9100a0116da89680ded1d0866ec12d2d45ab",
+    "evidence/07-supply-depth-center.educational.json": "09534aabc16dd02d3467367180ec6fc6980698ec5b50d821e7fd99f91ac62b97",
+    "evidence/08-slot4-layout.json": "0d736101978e37be5a0cb843cc9c6be0d895a0ff95f3fe2f82ab637dbcbffd0a",
+    "evidence/09-educational-acceptance.json": "1f59cd009fedee2aee434fdba9434d1dc19e213bb8080e5ce609c494b3a6fea8",
+    "evidence/10-pickup.json": "0a6db9f074bf616b395c4961ab330971bc9344ee7f948559d1b44cf9d191d0b1",
+    "evidence/11-config.json": "b3ccb28e05b478c7e75b72eadfe86ce6866a9f20759f9c0d9491882323c78626",
+    "evidence/12-trial-summary.json": "f7138126e06b00dc50491abfa9fec069eec10bcd30ec433bb68e0f1b65a7d054",
+    "evidence/13-surface-quality-candidate.json": "766384fe9e29812db1883f865942b873355f7b8d51a4dab710938aeb9f105dab",
+    "evidence/14-pickup.json": "8bd9b1b4adc6d3704b9b0467d2ca91d171ac0e9604b5ba2b8f9acbf399ce8d28",
+    "evidence/15-capture.json": "6939de24002253559d5e59daad831957fe1c035cc26f2679b11a4f566e143c8f",
+    "evidence/16-slot3-layout.json": "9a0f93cdeb425c7fc4d4dcc851109f207689e5b400200cb342ec7ded33b5d16f",
+    "evidence/17-supply-depth-center.educational.json": "2af49613560e0c1d5562f80f3cf028048e22eec5b0e70af62fc74531e34efd75",
+    "evidence/18-educational-acceptance.proposed.json": "ce4a9bd5a7fd4e402aa9301b05814cd9eea11f2ec0b3d8b48c514e677fa3c7d8",
+    "evidence/19-reference-bundle.candidate.json": "92f3bf44330467fc7ffbe23246308d6c67c42590dc9e70e5369c23946d24bcae",
+    "evidence/20-remaining-slots-teaching-grasp-review.json": "d1c2f09a7c83f5cfcb5c505e5b01b5bbd4b03a2ba2fe26d33f18e454848b6ecb",
+    "evidence/21-pickup.json": "0f2d2f44a6c742cc043bf6c0991ec57b334bde3594a13367d17eaaf24416a618",
+    "evidence/22-operator-review.json": "39fcddbc11ee064b5f0f58d2ea7ed6b33e7336265f42846a209db6652ca3e1be",
+    "evidence/23-yellow-2x3-slot3-history-review.json": "5ad814b503e62ef5a9a52b728395f6cc996fa8cae58214c56c9d1cbf1533b5ea",
+    "evidence/24-pickup.json": "fcb31104a572abf7d5edaadf3fb58d088a27223e3cab8ce80da9db0bc29bb53a",
+    "evidence/25-pickup.json": "5eea217e9b7cc84f5524ab88e0104e8dc20a6e9701cd02568266f7ad7a11d4ec",
+    "evidence/26-operator-review.json": "7b1cd97c395ce5fd59eb3bd7e25dd1f7eb1c114a6c76467ddef4e73bb9922170"
+  },
+  "packaging_scope": "RELOCATABLE_RUNTIME_WITH_IMMUTABLE_JSON_EVIDENCE_NOT_RAW_REPLAY_DATASET",
+  "artifacts_sha256": {
+    "scenario.json": "27534dcd13535f3adbe9c2426bfcec2eb578f75c11d88dda07fb74c653569771",
+    "layout.json": "9e2bf0769507e1dddf353db2cdcf6d80e4e005cf4d1be496089f4d3a6bc89881",
+    "evidence-index.json": "2c2de05c68bd1c89a973791519ba5a59bd55a04196f6362eecef48cd18c1f342",
+    "depth/yellow_2x3x1_02.json": "5b55c898c9375108f130944ea20ca1cc412f1acbae523dc0d48706cc9039198f",
+    "depth/blue_2x3x1_04.json": "ae384859ad47565f49e699087dca14693c76334feb70caee6d21f4e41744abe2",
+    "depth/red_1x2x1_02.json": "070cbe1baaa2ca04fdfff7c45f1aaa4432ee9c10cb3d7d739d59673dae0da3b0",
+    "depth/blue_2x2x1_04.json": "85d9a68e8c553803b6332d9a314a13eca4cb4f7b802934faa87526021f3bca46",
+    "depth/blue_2x3x1_01.json": "e856276a1c3b1d05aff19bbb174174196e27d01fbe966f846a3b4d119fffbc3d",
+    "depth/blue_2x3x1_03.json": "3eff8bd8a33814331d12da3371e23ae661428d60896c4d85a9052b76c505b172",
+    "depth/red_1x2x1_05.json": "e46d5e881a32e3a39fb461ea28416336a6914db84388a0fba3f50f33bf6c2c54",
+    "depth/yellow_2x3x1_01.json": "b9e434b0f3fe482dd84f7980fcba4b69d353190ca19d98860d04c077af222585",
+    "depth/yellow_2x3x1_04.json": "49c4b859cfa757ae53068c126b62f8eb6845fc748205238c071f0a178eff0e26",
+    "depth/blue_2x3x1_05.json": "5a98eeb37148ce4a709a81d88f45443e69b25334001be660ebe2d50be837109a",
+    "depth/red_1x2x1_04.json": "cf535736204e930984c83438091b361997816fedf4ae39b62351f68c495f0eb6",
+    "depth/yellow_2x2x1_04.json": "2dd0a909cd3af16660d3e7cf2e184fac699cc2f39915727fedb3aad906df19ac",
+    "depth/yellow_2x3x1_05.json": "4951bf729c95409b8e240ac8745162d532df961148657122da94d49dd385ddf6",
+    "depth/blue_2x2x1_02.json": "ed243546b38d9ee84c4ad3cddc618cb61644e0283c0b9572896652e917072be1",
+    "depth/blue_2x3x1_02.json": "58da0e1e54f850290653174694cfbb3e7257744a66606f7c672d5e1a1504a015",
+    "depth/blue_2x2x1_03.json": "652ff495d63c69db27ff256838d6657348bc13adfef81a2b3cee2d0e41b42cc6",
+    "depth/blue_2x2x1_01.json": "34577ce4e1dbdab631f02a536e79c4e7d2a6cbe22e5f163d2c6ca25cca53997f",
+    "depth/red_1x2x1_03.json": "16b92a58fb8aae8768fc4c330ad31de8d5734513e516e37761c1a878b1413b71",
+    "depth/blue_2x2x1_05.json": "19ddf2b4a27fc2cdca41bd0a5387de77f3bb3f6abcd9b77ab8d68366d2f985f7",
+    "depth/yellow_2x2x1_05.json": "0c084be080788919f42a4dee98b8daf2749c667ddd0e8342c6d407acc8d7230f",
+    "single-slot/yellow_2x3x1_02.json": "69634b9635cf17c4047c7f2df194d8d0c8db1477c3a679a799e09217321bb5da",
+    "single-slot/blue_2x3x1_04.json": "829670c9ec5b69b8620430f5f06fa049a9bb601a6faa35854c00925ed1b502ba",
+    "single-slot/red_1x2x1_02.json": "78a0da50a559ca8ffe22adc05b8c3db63951ef6973a5b06e8b4c1999596247d9",
+    "single-slot/blue_2x2x1_04.json": "01c9b15fa8e94944270616c1c2cb6cddee7d8e4b4fa1e64f130108170a7fb3f9",
+    "single-slot/blue_2x3x1_01.json": "57c4845c4c411f8f0a380fd201210c42eb6b5d8523d935163572ad5fb1ef4212",
+    "single-slot/blue_2x3x1_03.json": "3d95df0ee7bcdf0f1640e38e9a4cc5f9bab5a354e9e6d78462735f3d8e09a291",
+    "single-slot/yellow_2x2x1_02.json": "b408cd7e4401a2b11041b57fc89ac3278906c08597fa2449a9016f83c96bc3c5",
+    "single-slot/red_1x2x1_01.json": "930e9697512af93e620bfa50dc12bdabe656339dc0029ad321954540287ce9b9",
+    "single-slot/red_1x2x1_05.json": "d1194f133519caa92d9c59195fba34e0b122fed0889c878c8bfa4eda2fb5ad3d",
+    "single-slot/yellow_2x3x1_01.json": "9e0df7317d80eb60511347e42f3c6b489d95630be98f18f676f9d26a1826557d",
+    "single-slot/yellow_2x3x1_04.json": "693c659cc8c0502b591df3683f8445e9913e1f0e30342f2fbd5a9d42ab62d155",
+    "single-slot/blue_2x3x1_05.json": "589c3a93d1962c12cece3ba7f6d7b2f61b9d9c9f6972027c8f2b36cb5f74a197",
+    "single-slot/red_1x2x1_04.json": "fd04d64e0353146529a9e01dbeb6e0156761f7f9325216db5f5a4ac74fc764ce",
+    "single-slot/yellow_2x2x1_01.json": "e1c4c61e4e54fc5ffe2b6bb39c99950082f21982085802f34591ffc16c58f1f8",
+    "single-slot/yellow_2x2x1_04.json": "6d21285c21e7e6c4e1b7af161a38414e1195f34105687bb42c4a4286ca6c2280",
+    "single-slot/yellow_2x3x1_05.json": "5664d5ff650261766187f2a2752561eb73d9eebb821b80769338d964421048bf",
+    "single-slot/blue_2x2x1_02.json": "7d99cbf4119f9259eb42db3c2a75739f8b338fff277b4a8b552bf56d7198c21b",
+    "single-slot/yellow_2x2x1_03.json": "d0ab4c941a08a752a693a7e54bfc677604b375704689cbb1fe97268f30f7e457",
+    "single-slot/blue_2x3x1_02.json": "7e0400ccf9293b6d484896439af7b26ad05eca2e6c2e97b7a0eefb6708bfb24b",
+    "single-slot/blue_2x2x1_03.json": "ff1ff2061c726647bf191718b375ee5f2d5224b01374d51a62a9399af802c32e",
+    "single-slot/blue_2x2x1_01.json": "17476f1e7846a70ef3915b42978005bde653c881133c2546226cdc03a0f908b8",
+    "single-slot/red_1x2x1_03.json": "b2cae946647de95a57ff6920bc0cd1e7db95e7365c26298fcd5a68a1bda1d9c5",
+    "single-slot/yellow_2x3x1_03.json": "91a3a371f43078e48a53bf810305f410d88c7d61ae549e2b239d998277ab6f2a",
+    "single-slot/blue_2x2x1_05.json": "d75e366e51d71f0fb9d755bd3ece924e28d7c2919243338150e88538026c1d0f",
+    "single-slot/yellow_2x2x1_05.json": "ad21bca7ad1e03d604dc6391e223e345e554c7a3ca82d658d63a12161eada9bb",
+    "teaching/T1-preclose.json": "0a6db9f074bf616b395c4961ab330971bc9344ee7f948559d1b44cf9d191d0b1"
+  }
+}

@@ -11,6 +11,18 @@ def config():
     return held.target_layer_approach(value,1)
 
 
+def test_disabled_assembly_xy_preserves_current_xy_during_vertical_insertion():
+    c=config();c.update(assembly_xy_correction_enabled=False,target_only_motion=True)
+    pose=[c['assembly_target_xy'][0]+.1,c['assembly_target_xy'][1]-.1,c['alignment_approach_z_mm'],1.,178.,2.]
+    sample=dict(posx=pose)
+    targets=seating.seating_targets(sample,c)
+    assert targets == [[*pose[:2],c['alignment_target']['placement_tcp_reference'][2],*pose[3:]]]
+    with pytest.raises(ValueError,match='ASSEMBLY_XY_CORRECTION_DISABLED'):
+        seating.xy_target(sample,c)
+    with pytest.raises(ValueError,match='ASSEMBLY_XY_CORRECTION_DISABLED'):
+        held.visual_xy_target(sample,c,{})
+
+
 class Driver:
     def __init__(self):
         c=config()

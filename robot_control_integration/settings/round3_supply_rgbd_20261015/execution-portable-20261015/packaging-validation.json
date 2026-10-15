@@ -1,0 +1,35 @@
+{
+  "status": "SELECTED_FILES_AND_PORTABLE_DEPENDENCIES_VALIDATED",
+  "tests": {
+    "native": 241,
+    "HMI_and_approved_step": 26,
+    "total": 267,
+    "scope": "TARGETED_OFFLINE_TESTS_NOT_ALL_REPOSITORY_TESTS"
+  },
+  "relocation": {
+    "status": "OFFLINE_EXECUTION_BINDINGS_VALIDATED",
+    "slots": 25,
+    "RGBD_conditionally_approved": 20,
+    "teaching_only_approved": 5,
+    "current_RGBD_single_grasp_verified": 2,
+    "current_teaching_single_grasp_verified": 2,
+    "model_RGBD_without_individual_grasp_verification": 18,
+    "physical_commands": 0,
+    "device_connections": 0,
+    "all_slots_physically_verified": false,
+    "B_actual_assembly_confirmed": false,
+    "final_DB_saved": false,
+    "relocated_checkout": true,
+    "original_robot_PC_reads_blocked": true,
+    "native_preview_steps": 3,
+    "standalone_configs_checked": 25
+  },
+  "original_pose_limits_and_modes_unchanged": true,
+  "immutable_JSON_evidence_files": 26,
+  "active_files_without_home_paths": 48,
+  "device_connections": 0,
+  "physical_commands": 0,
+  "commit_created": false,
+  "pushed": false,
+  "staged": false
+}

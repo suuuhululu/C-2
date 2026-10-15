@@ -1,0 +1,43 @@
+Round3 Git 업로드 대상 검토 — 2026-10-15
+
+업로드 목록: docs/ROUND3_GIT_UPLOAD_FILES.txt (저장소 기준 경로, 정확한 파일 단위)
+현재 브랜치: codex/integration-round3. 이 작업은 commit/push/staging을 수행하지 않습니다.
+
+묶음 A: 현장 실행 수정
+- 시작 그리퍼 열림 50mm, 공급 RGB-D 신선도310ms 선택 적용, 기존 T1은300ms 유지.
+- 조립판 XY 비활성, T1 놓기·가압·상승 절차와 현장 실패 진단.
+- native/HMI 고정 시험 프로파일 전달과 관련 회귀 테스트.
+
+묶음 B: 공급 프로파일 및 측정 도구
+- 캡처·관측 모델·프로파일 생성/검사·교시/단일 파지 시험 도구와 테스트.
+- execution-portable-20261015: 25슬롯 실행 설정, 20개 깊이 기준, ROI, 시나리오, T1 교시, JSON26개 근거 사본.
+- source_sha256은 배포 폴더 기준 상대경로, 바이트 동일 근거 사본의 해시를 유지.
+- reference-bundle.candidate.json은 측정 모델 도구의 기존 기본 입력이며 실행 승인 프로파일과 구분.
+
+묶음 C: 별도 검토가 필요한 승인 Step/HMI 변경
+- app/round3_approved_step.py, tests/integration/test_round3_approved_step.py.
+- app/hmi_contracts.py, app/mvp_workflow.py, interfaces/schemas/hmi.schema.json.
+- app/mvp_real_trial.py, app/mvp_integration.py, app/round3_fixed_trial.py와 native round2_three_step_trial.py에 공용 수정이 섞여 있음.
+- 현재 파일 그대로 업로드한다면 이 묶음도 함께 포함해야 합니다. 파일 일부만 빼면 import/CLI/검증 계약이 불완전해집니다.
+- 별도 커밋으로 나누려면 공용 파일의 변경 블록을 나누어 검토해야 하며 이 작업에서는 다른 작업 내용을 되돌리거나 재구성하지 않았습니다.
+- 저장된 실제 INITIAL 관측을 쓰는 승인 Step 경로는 전체 실시간 B 후속 검사·DB 완료와 다릅니다. 장치 통합 성공으로 표시하지 않습니다.
+
+로컬 보존 / 업로드 제외
+- logs/ 원영상·정렬 Depth·진단·시험 JSONL, reports/ 임시 결과와 실패 export 사본.
+- 기존 round3_educational_t1_20261015, execution-approved-20261015, T2/slot4 개별 실행 폴더, draft, slot-policies.candidate.
+- 위 원본은 삭제·수정하지 않고 .gitignore에 로컬 보존 대상으로 추가했습니다.
+- 필수 JSON은 portable/evidence로 복사하고 원본 바이트를 보존했습니다. 중첩된 과거 경로는 기록이며 실행 의존 경로가 아닙니다.
+- 보정 수치·제한값·모드 승인·실파지 미검증 상태는 유지합니다. 다른 장치에서 재보정 없이 사용 가능하다는 뜻이 아닙니다.
+
+검증 결과는 아래에 추가 기록합니다.
+
+검증 결과
+- HEAD에 명시한 선별 파일만 복사한 /tmp 별도 checkout에서 native 관련241개 + HMI/승인 Step26개 =267개 테스트 통과. 전체 저장소 테스트 완료 주장은 아님.
+- 원래 로봇 PC 저장소·상위 reports의 파일 읽기를 차단하고 25개 단일 공급 설정 및 native T1~T3 미리보기 통과. 원본 logs/ 없이 실행 의존 해시 검증 통과.
+- 원본 대비 모든 슬롯의 파지 좌표·모드·실측 여부·RGB-D 기준·허용치·변환 행렬 일치 확인. 활성 설정에서 /home/ 절대경로 제거.
+- evidence26개 원본 바이트 및 source_sha256 유지. 원영상/Depth/bag 재분석은 현장 원자료가 별도로 필요.
+- 결과: 배포 폴더 packaging-validation.json. 장치 연결·동작0. Stage/commit/push 없음.
+
+다음 작업
+- 이 목록과 묶음 C의 공용 코드 변경을 사람이 검토한 후, 요청 시 명시 목록만 stage하여 커밋할 수 있습니다. git add .는 사용하지 않습니다.
+- 로봇 PC의 기존 프로파일은 그대로 유효하며, Git 공유·다른 경로에서는 execution-portable-20261015/profile.json 및 scenario.json을 사용합니다.

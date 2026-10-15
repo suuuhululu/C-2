@@ -11,12 +11,63 @@ from supply_vision.held_xy_alignment import _camera, _transform
 from supply_vision.virtual_board_grid import pose_matrix
 
 
+def packet_age_limit_ns(profile):
+    value = profile.get('max_packet_age_ms', 300.)
+    if type(value) not in (int, float) or not np.isfinite(value) or not 0 < value <= 310:
+        raise ValueError('SUPPLY_DEPTH_PACKET_AGE_LIMIT_INVALID')
+    return int(value*1_000_000)
+
+
+def _validate_t2_educational_binding(profile, config):
+    accepted = profile['educational_acceptance']
+    rows = config.get('blocks', [])
+    refs = profile.get('references', [])
+    if (config.get('scope') != 'T2_SUPPLY_APPROACH_CLOSE_HOLD_ONLY'
+            or config.get('operator_accepted_t2_educational_profile') is not True
+            or config.get('vision', {}).get('allow_educational_t2_depth_profile') is not True
+            or config.get('assembly_xy_correction_enabled') is not False
+            or config.get('automatic_lift') is not False
+            or config.get('trial_step', {}).get('step_id') != 'T2'
+            or accepted.get('approval_mechanism') != 'EXPLICIT_RUNNER_T2_EDUCATIONAL_FLAG'
+            or not accepted.get('evidence_ref')
+            or len(rows) != 1 or len(refs) != 1
+            or tuple(rows[0].get(k) for k in ('color', 'brick_type', 'slot', 'span'))
+                != ('blue', '2x3x1', 3, 2)
+            or refs[0].get('slot_id') != 'blue_2x3x1_03'
+            or refs[0].get('pickup_pose') != rows[0]['pickup_pose']):
+        raise ValueError('SUPPLY_DEPTH_T2_EXPLICIT_SINGLE_SUPPLY_SCOPE_REQUIRED')
+
+
 def load_profile(path, layout_path, config):
     profile = json.loads(Path(path).read_text())
     if (profile.get('schema_version') != 'supply-depth-center/1'
-            or profile.get('independently_verified') is not True
             or not isinstance(profile.get('calibration_ref'), str) or not profile['calibration_ref'].strip()):
         raise ValueError('SUPPLY_DEPTH_CALIBRATION_NOT_VERIFIED')
+    if profile.get('independently_verified') is not True:
+        if profile.get('educational_acceptance', {}).get('scope') == 'APPROVED_EDUCATIONAL_SUPPLY_REGISTRY':
+            from app.supply_stud.execution_profile import bound_depth_profile
+            profile = bound_depth_profile(path, profile, config)
+        elif profile.get('educational_acceptance', {}).get('scope') == 'T2_BLUE_2X3_SLOT3_SUPPLY_ONLY':
+            _validate_t2_educational_binding(profile, config)
+        else:
+            accepted = profile.get('educational_acceptance', {})
+            step = config.get('trial_step', {})
+            expected = dict(color='yellow', brick_type='2x2x1', x=9, y=9, layer=2, orientation_deg=0)
+            rows = config.get('blocks', [])
+            residual = accepted.get('measured_residual_xy_mm')
+            if (config.get('vision', {}).get('allow_educational_depth_profile') is not True
+                    or accepted.get('operator_accepted') is not True
+                    or accepted.get('scope') != 'FIXED_T1_YELLOW_2X2_SLOT4_ONLY'
+                    or not isinstance(accepted.get('evidence_ref'), str) or not accepted['evidence_ref']
+                    or type(residual) not in (int, float) or not np.isfinite(residual) or residual <= 0
+                    or step.get('step_id') != 'T1' or step.get('target') != expected
+                    or len(rows) != 1
+                    or (rows[0]['color'], rows[0]['brick_type'], rows[0]['slot']) != ('yellow', '2x2x1', 4)):
+                raise ValueError('SUPPLY_DEPTH_CALIBRATION_NOT_VERIFIED')
+            refs = profile.get('references', [])
+            if (len(refs) != 1 or refs[0].get('slot_id') != 'yellow_2x2x1_04'
+                    or refs[0].get('pickup_pose') != rows[0]['pickup_pose']):
+                raise ValueError('SUPPLY_DEPTH_EDUCATIONAL_REFERENCE_BINDING_MISMATCH')
     required = {'connection', 'observation_pose', 'layout_sha256', 'T_tcp_camera_mm', 'input_size',
                 'camera_frame', 'max_shift_mm', 'max_height_error_mm', 'max_depth_spread_mm',
                 'depth_range_mm', 'references'}
@@ -26,6 +77,7 @@ def load_profile(path, layout_path, config):
             or profile['observation_pose'] != config['observation_pose']
             or profile['layout_sha256'] != sha256(Path(layout_path).read_bytes()).hexdigest()):
         raise ValueError('SUPPLY_DEPTH_SETUP_BINDING_MISMATCH')
+    packet_age_limit_ns(profile)
     _transform(profile['T_tcp_camera_mm'])
     if profile['input_size'] not in ([640, 480], [1280, 720]):
         raise ValueError('SUPPLY_DEPTH_INPUT_SIZE_UNSUPPORTED')
@@ -85,9 +137,11 @@ def rgbd_target(row, decision, depth_msg, info, rgb_msg, sample, profile, now_ns
     def stamp(message):
         return message.header.stamp.sec * 10**9 + message.header.stamp.nanosec
     stamps = [stamp(m) for m in (rgb_msg, depth_msg, info)]
-    if (any(not 0 <= now_ns - s <= 300_000_000 for s in stamps)
+    if (any(not 0 <= now_ns - s <= packet_age_limit_ns(profile) for s in stamps)
             or max(stamps) - min(stamps) > 50_000_000):
-        raise ValueError('SUPPLY_DEPTH_FRESH_SYNCHRONIZED_PACKET_REQUIRED')
+        raise ValueError('SUPPLY_DEPTH_FRESH_SYNCHRONIZED_PACKET_REQUIRED '
+                         f'ages_ms={[(now_ns-s)/1e6 for s in stamps]} '
+                         f'skew_ms={(max(stamps)-min(stamps))/1e6:.3f}')
     if depth_msg.encoding != '16UC1' or depth_msg.step < width * 2 or depth_msg.step % 2:
         raise ValueError('SUPPLY_DEPTH_16UC1_MM_REQUIRED')
     dtype = np.dtype('>u2' if depth_msg.is_bigendian else '<u2')
@@ -108,7 +162,12 @@ def rgbd_target(row, decision, depth_msg, info, rgb_msg, sample, profile, now_ns
     low, high = profile['depth_range_mm']
     if (not np.isfinite(patch).all() or (patch < low).any() or (patch > high).any()
             or np.ptp(patch) > profile['max_depth_spread_mm']):
-        raise ValueError('SUPPLY_DEPTH_SURFACE_UNAVAILABLE')
+        raise ValueError('SUPPLY_DEPTH_SURFACE_UNAVAILABLE '
+                         f'zero_pixels={int((patch == 0).sum())}/9 '
+                         f'min_mm={float(np.min(patch)):.1f} max_mm={float(np.max(patch)):.1f} '
+                         f'spread_mm={float(np.ptp(patch)):.1f} '
+                         f'allowed_depth_mm={low}..{high} '
+                         f'allowed_spread_mm={profile["max_depth_spread_mm"]}')
     z = float(np.median(patch))
     ray = cv2.undistortPoints(center.reshape(1, 1, 2), k, distortion).reshape(2)
     camera_point = np.array([ray[0]*z, ray[1]*z, z, 1.])
@@ -126,4 +185,11 @@ def rgbd_target(row, decision, depth_msg, info, rgb_msg, sample, profile, now_ns
         reference_surface_center_base_mm=reference.tolist(), depth_patch_mm=patch.tolist(),
         camera_info=dict(k=list(info.k), d=list(info.d), width=width, height=height),
         delta_xy_mm=delta[:2].tolist(), depth_mm=z, frame_stamp_ns=stamps[0],
-        calibration_ref=profile['calibration_ref'], max_shift_mm=profile['max_shift_mm'])
+        calibration_ref=profile['calibration_ref'], max_shift_mm=profile['max_shift_mm'],
+        verification_basis=('INDEPENDENTLY_VERIFIED' if profile.get('independently_verified') is True
+                            else ('OPERATOR_CONDITIONALLY_APPROVED_SUPPLY_MODEL'
+                                  if profile.get('educational_acceptance', {}).get('scope') == 'APPROVED_EDUCATIONAL_SUPPLY_REGISTRY'
+                                  else 'OPERATOR_ACCEPTED_EDUCATIONAL_T2_SUPPLY_ONLY'
+                                  if profile.get('educational_acceptance', {}).get('scope') == 'T2_BLUE_2X3_SLOT3_SUPPLY_ONLY'
+                                  else 'OPERATOR_ACCEPTED_EDUCATIONAL_T1')),
+        educational_residual_xy_mm=profile.get('educational_acceptance', {}).get('measured_residual_xy_mm'))

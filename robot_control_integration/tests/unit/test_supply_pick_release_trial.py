@@ -197,7 +197,8 @@ def test_home_start_uses_existing_three_waypoints_in_reverse_then_supply_observa
 
 @pytest.mark.parametrize('color,kind,slot,span,close', [
     ('yellow','2x2x1',4,2,35.),('blue','2x3x1',3,3,40.),('yellow','2x3x1',5,3,40.)])
-def test_explicit_trial_row_picks_exact_identity_without_changing_legacy_order(monkeypatch,color,kind,slot,span,close):
+@pytest.mark.parametrize('start_width', [49.9, 50., 55., 60.])
+def test_explicit_trial_row_picks_exact_identity_without_changing_legacy_order(monkeypatch,color,kind,slot,span,close,start_width):
     value=config();events=[];commands=[];seen=[]
     row=dict(color=color,brick_type=kind,slot=slot,span=span,close_mm=close,
         pickup_pose=[-410.,slot*20.,50.,0.,180.,0.],pose_source='SYNTHETIC_TEST_ONLY')
@@ -206,7 +207,7 @@ def test_explicit_trial_row_picks_exact_identity_without_changing_legacy_order(m
         def __init__(self):
             self.value=dict(posx=value['observation_pose'].copy(),velx=[0.]*6,motion_status=0,
                 wrench=[0.]*6,query_duration_s=.01,tcp='GripperDA_v4',tool='ToolWeight0',
-                gripper_status=0,gripper_width_mm=60.,robot_state=1,robot_mode=1,drl_state=3)
+                gripper_status=0,gripper_width_mm=start_width,robot_state=1,robot_mode=1,drl_state=3)
         def sample(self):return deepcopy(self.value)
         def check_pose(self,target):return target
         def command_gripper(self,width,force):
@@ -216,6 +217,13 @@ def test_explicit_trial_row_picks_exact_identity_without_changing_legacy_order(m
     def move(d,connection,target,limit,record,**kwargs):d.value['posx']=target.copy()
     def observe(selected):seen.append(deepcopy(selected));return decision(selected)
     monkeypatch.setattr(trial,'run',move)
+    if start_width < 50.:
+        with pytest.raises(RuntimeError, match='START_WITH_OPEN_AT_LEAST_50MM'):
+            trial.execute(driver,value,lambda event,data:events.append(event),observe,
+                trial_row=row,hold_at_pickup=True,sleep=lambda _:None)
+        assert commands == [] and seen == []
+        assert driver.value['posx'] == value['observation_pose']
+        return
     trial.execute(driver,value,lambda event,data:events.append(event),observe,
         trial_row=row,hold_at_pickup=True,sleep=lambda _:None)
     assert seen==[before] and row==before

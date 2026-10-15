@@ -9,6 +9,26 @@ import warnings
 from app.assembly_motion import vector
 
 
+def apply_supply_pickup_teaching(config, bundle, source):
+    """Install only the operator's pre-close pose; do not retarget assembly poses."""
+    value = deepcopy(config)
+    if (bundle.get('schema_version') != 'supply-preclose-teaching-record/1'
+            or bundle.get('status') != 'OPERATOR_IDENTIFIED_PRE_CLOSE_PICKUP_POSE'
+            or any(bundle.get(k) != value['connection'][k] for k in ('tcp', 'tool'))):
+        raise ValueError('SUPPLY_PICKUP_TEACHING_BINDING_MISMATCH')
+    rows = [r for r in value['blocks']
+            if f"{r['color']}_{r['brick_type']}_{r['slot']:02d}" == bundle.get('slot_id')]
+    if len(rows) != 1:
+        raise ValueError('SUPPLY_PICKUP_TEACHING_SLOT_MISMATCH')
+    row = rows[0]
+    row.setdefault('baseline_pickup_pose', deepcopy(row['pickup_pose']))
+    row['pickup_pose'] = vector(bundle['tcp_pose_mm_zyz_deg'], 6, 'operator pre-close pose')
+    row.update(pose_source=source, pose_basis='OPERATOR_RECORDED_PRE_CLOSE_POSE',
+               axis_basis='OPERATOR_RECORDED_PRE_CLOSE_AXES')
+    row.pop('center_mapping', None)
+    return value
+
+
 def retarget_pose(taught_landing, taught_pad, current_release):
     """Return T_release @ inv(T_landing) @ T_pad, using robot ZYZ degrees."""
     from scipy.spatial.transform import Rotation

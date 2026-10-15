@@ -1,6 +1,9 @@
 """전체 C/A/D 실물 시험. B는 명시적인 가짜 관측이며 Camera 판정이 아니다."""
 from copy import deepcopy
+import json
 from pathlib import Path
+import subprocess
+import sys
 import time
 from uuid import uuid4
 
@@ -94,11 +97,14 @@ def measured_document(bundle, identity, epoch):
 class FullFeatureRealTrial(MvpIntegration):
     supply_slot_count = FULL_REAL_SUPPLY_SLOT_COUNT
 
-    def __init__(self,robot_root,directory,*,contact_alignment_trial=False,round3_fixed_step=False,**kwargs):
+    def __init__(self,robot_root,directory,*,contact_alignment_trial=False,round3_fixed_step=False,
+                 fixed_trial_scenario=None,supply_depth_profile=None,educational_depth_demo=False,execution_profile=None,**kwargs):
         self.fixed_step = round3_fixed_step
         self.fixed_trial = None
         self.fixed_result = None
         self.fixed_robot_root = Path(robot_root)
+        self.fixed_native_options=dict(scenario=fixed_trial_scenario,supply_depth_profile=supply_depth_profile,
+                                       educational_depth_demo=educational_depth_demo,execution_profile=execution_profile)
         self.inputs=measured_inputs(robot_root)
         if self.inputs['taught_supply'] is None:
             raise ValueError('SUPPLY_TEACHING_REQUIRED_FOR_FULL_REAL_TRIAL')
@@ -195,7 +201,7 @@ class FullFeatureRealTrial(MvpIntegration):
         if self.job_creator is not None:
             self.link_creator()
         self.fixed_trial = FixedStepProcess(self.fixed_robot_root,
-            self.directory / self.workflow.job_id / 'fixed-trial')
+            self.directory / self.workflow.job_id / 'fixed-trial', **self.fixed_native_options)
         try:
             self.fixed_trial.start()
         except (OSError, ValueError, RuntimeError) as error:
@@ -300,6 +306,150 @@ class FullFeatureRealTrial(MvpIntegration):
                 planning_failure=payload.get('planning_failure'))
         self.background(port,payload,call)
         return True
+
+
+class ApprovedStepRealTrial(FullFeatureRealTrial):
+    """One approved A step through its native case; B owns the saved initial Current."""
+    approved_step_mode = True
+
+    def __init__(self, robot_root, directory, *, initial_observation, fixed_trial_scenario,
+                 execution_profile, **kwargs):
+        from app.round3_approved_step import load_initial_capture
+        self.scenario_path = Path(fixed_trial_scenario).resolve()
+        self.registry_path = Path(execution_profile).resolve()
+        self.initial_observation, self.initial_packet = load_initial_capture(initial_observation)
+        packet = self.initial_packet
+        self.scenario = json.loads(self.scenario_path.read_text())
+        # The native preview resolves the same teaching, layout and authenticated registry as run.
+        preview = subprocess.run([sys.executable, '-m', 'scripts.round2_three_step_trial', 'preview',
+            '--scenario', str(self.scenario_path),
+            '--execution-profile', str(self.registry_path)], cwd=robot_root,
+            text=True, capture_output=True, timeout=30)
+        if preview.returncode:
+            raise ValueError('APPROVED_STEP_NATIVE_PREVIEW_FAILED: ' + preview.stderr)
+        self.native_configs = [item['config'] for item in json.loads(preview.stdout)['steps']]
+        self.native_config = None
+        self.initial_consumed = False
+        self.service_binding = None
+        super().__init__(robot_root, directory, fixed_trial_scenario=self.scenario_path,
+                         execution_profile=self.registry_path, **kwargs)
+        self.workflow.settings['observation_kind'] = 'SAVED_REAL_INITIAL_ONLY'
+        self.workflow.settings['geometry_reference'] = packet['geometry_reference']
+
+    def observe(self, context, active):
+        from app.round3_approved_step import file_digest
+        packet = self.initial_packet
+        if (not active() or self.initial_consumed or context['check_kind'] != 'INITIAL'
+                or not 0 <= time.time() - packet['captured_unix_s'] <= 300
+                or any(file_digest(path) != digest for path, digest in packet['source_sha256'].items())):
+            raise ValueError('APPROVED_STEP_FRESH_INITIAL_OBSERVATION_REQUIRED')
+        self.initial_consumed = True
+        return dict(deepcopy(self.initial_observation), check_id=context['check_id'],
+                    observation_seq=context['observation_seq']), dict(observation_kind='SAVED_REAL_INITIAL_ONLY')
+
+    def command(self, name):
+        if name in ('RESUME', 'REINSPECT', 'CONTINUE_AFTER_CORRECTION'):
+            return False
+        if self.fixed_trial is not None and name != 'STOP':
+            return False
+        accepted = super().command(name)
+        if accepted and name == 'START':
+            return self.workflow.event('ROUND3_INITIAL_CAPTURE_SOURCE', self.initial_packet)
+        return accepted
+
+    def state_snapshot(self, value):
+        from app.round3_approved_step import same_blocks
+        pending = self.pending_read
+        if pending is not None and pending['kind'] != 'prepare':
+            return super().state_snapshot(value)
+        self.pending_read = None
+        if pending is None or pending['kind'] != 'prepare':
+            return
+        payload = pending['payload']
+        if (payload['generation'] != self.workflow.generation or payload['current'] != self.workflow.current
+                or self.workflow.status != 'REPLANNING' or self.workflow.reason == 'STOP_PENDING'):
+            return
+        try:
+            baseline = [row['block'] for row in self.scenario['preplaced']]
+            targets = [row['target'] for row in self.scenario['steps']]
+            if (not same_blocks(self.workflow.current['blocks'], baseline)
+                    or not same_blocks(self.workflow.approved['blocks'], baseline + targets)):
+                raise ValueError('APPROVED_STEP_SCENARIO_MISMATCH')
+            matches = [cfg for cfg in self.native_configs if cfg['trial_step']['target'] == payload['step']['after']]
+            if len(matches) != 1:
+                raise ValueError('APPROVED_STEP_EXACT_NATIVE_TEACHING_REQUIRED')
+            self.native_config = cfg = matches[0]
+            target = payload['step']['after']
+            path = self.directory / self.workflow.job_id / (str(uuid4()) + '.state.json')
+            save(path, value)
+            prepared = prepare_measured(self.workflow, self.inputs, payload,
+                cfg['trial_step']['supply_slot'], value, str(path), self.review_ref)
+            pick = deepcopy(cfg['blocks'][0]['pickup_pose'])
+            reference = deepcopy(cfg['alignment_target']['placement_tcp_reference'])
+            frame = prepared['frame_profile']['calculation_profiles']
+            frame['supply']['d_taught_slot'] = dict(identity=dict(brick_type=target['brick_type'],
+                color=target['color'], slot_index=cfg['trial_step']['supply_slot']), tcp_mm_zyz_deg=pick,
+                source_sha256=cfg['educational_supply_binding']['registry_sha256'])
+            frame['assembly']['d_onsite_step'].update(pickup_pose=pick, reference_pose=reference,
+                assembly_tcp_zyz_deg=reference[3:])
+            next(iter(prepared['d_profile']['steps'].values())).update(pickup_pose=pick,
+                reference_pose=reference, assembly_tcp_zyz_deg=reference[3:])
+            self.workflow.prepared_step(prepared)
+        except (ValueError, KeyError, OSError) as error:
+            self.workflow.status, self.workflow.reason = 'HOLD', str(error)
+            self.workflow.event('APPROVED_STEP_PREPARATION_FAILED', dict(reason=str(error), robot_motion_sent=False))
+
+    def emit(self, port, payload):
+        if port == 'robot.EXECUTE':
+            from app.round3_approved_step import digest, file_digest, validate_binding
+            from app.round3_fixed_trial import FixedStepProcess
+            document = dict(schema_version='round3-approved-step/1', approved=deepcopy(self.workflow.approved),
+                planning_bundle=deepcopy(self.workflow.bundle), prepared=deepcopy(payload['bundle']),
+                execution_id=payload['execution_id'], operator_review_ref=self.review_ref,
+                expires_unix_s=time.time() + 120, native_config_sha256=digest(self.native_config),
+                scenario_sha256=digest(self.scenario), execution_profile_sha256=file_digest(self.registry_path))
+            self.service_binding = validate_binding(document, self.native_config, self.scenario, self.registry_path)
+            path = self.directory / self.workflow.job_id / 'approved-step.json'
+            try:
+                save(path, document)
+            except OSError as error:
+                self.workflow.status, self.workflow.reason = 'HOLD', str(error)
+                self.workflow.event('APPROVED_STEP_SAVE_FAILED', dict(reason=str(error), robot_motion_sent=False))
+                return
+            if not self.workflow.event('ROUND3_APPROVED_STEP_BOUND', self.service_binding):
+                return
+            # READ_STATE owns the old ROS writer lock. Close and join before native takes it.
+            try:
+                self.robot.close()
+                self.robot_retired = True
+                self.fixed_trial = FixedStepProcess(self.fixed_robot_root,
+                    self.directory / self.workflow.job_id / 'approved-native', scenario=self.scenario_path,
+                    execution_profile=self.registry_path, approved_step_document=path,
+                    native_step=self.native_config['trial_step']['step_id'])
+                self.fixed_trial.start()
+            except (OSError, ValueError, RuntimeError) as error:
+                self.workflow.status, self.workflow.reason = 'HOLD', str(error)
+                self.workflow.event('APPROVED_STEP_START_FAILED', dict(reason=str(error), assembly_completion=False))
+        elif port == 'robot.STOP' and self.robot_retired:
+            if self.fixed_trial is not None:
+                self.fixed_trial.stop()
+        else:
+            super().emit(port, payload)
+
+    def poll(self):
+        super().poll()
+        if self.fixed_trial is not None and self.fixed_result is None:
+            result = self.fixed_trial.poll()
+            if result is not None:
+                self.fixed_result = result
+                matched = (result['status'] == 'FIXED_STEP_EXECUTED'
+                    and result['native_result'].get('service_binding') == self.service_binding
+                    and self.workflow.reason != 'STOP_PENDING' and not self.fixed_trial.stopping)
+                self.workflow.status, self.workflow.robot_status = 'HOLD', None
+                self.workflow.robot_resume_allowed = False
+                self.workflow.reason = ('APPROVED_STEP_EXECUTED_B_CONFIRMATION_REQUIRED' if matched
+                    else 'APPROVED_STEP_INTERRUPTED_OR_FAILED_VERIFY_PHYSICAL_STATE')
+                self.workflow.event('ROUND3_APPROVED_STEP_RESULT', dict(result, binding_matched=matched))
 
 
 if __name__=='__main__':main(FullFeatureRealTrial,real_trial=True)

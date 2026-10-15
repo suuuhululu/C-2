@@ -1,0 +1,14 @@
+{
+  "status": "OFFLINE_EXECUTION_BINDINGS_VALIDATED",
+  "slots": 25,
+  "RGBD_conditionally_approved": 20,
+  "teaching_only_approved": 5,
+  "current_RGBD_single_grasp_verified": 2,
+  "current_teaching_single_grasp_verified": 2,
+  "model_RGBD_without_individual_grasp_verification": 18,
+  "physical_commands": 0,
+  "device_connections": 0,
+  "all_slots_physically_verified": false,
+  "B_actual_assembly_confirmed": false,
+  "final_DB_saved": false
+}

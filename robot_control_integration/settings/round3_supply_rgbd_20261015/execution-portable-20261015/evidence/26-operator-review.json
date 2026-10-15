@@ -1,0 +1,19 @@
+{
+  "status": "ONE_AUTOMATIC_REAPPROACH_GRASP_OPERATOR_CONFIRMED",
+  "operator_statement": "잘잡음",
+  "source_slot_id": "red_1x2x1_01",
+  "grasp_basis": "TWO_STUD_SIDE_AXIS",
+  "operator_exact_grasp_confirmed": true,
+  "source_record_sha256": "5eea217e9b7cc84f5524ab88e0104e8dc20a6e9701cd02568266f7ad7a11d4ec",
+  "result_sha256": "24da7d5bb5ef7c6fc563b0ddef346d8a4b7d2cae3f842410be84ac7a8a8e7d92",
+  "events_sha256": "8d4b01c7b1b3c2a3e4e11d9b1300c34c846e8673d6d74249fc356a1c6dd46a10",
+  "holding_readonly_file": "holding-readonly-1792030211597759261.json",
+  "cleanup_pending": false,
+  "automatic_lift_verified": false,
+  "supply_rgbd_verified": false,
+  "assembly_completion": false,
+  "B_actual_assembly_confirmed": false,
+  "final_DB_saved": false,
+  "unix_s": 1792030211.601143,
+  "cleanup_readonly_file": "cleanup-readonly-1792030294335302830.json"
+}

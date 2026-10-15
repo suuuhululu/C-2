@@ -11,6 +11,8 @@ def motion_completed(sample,config):
 
 
 def xy_target(sample,config,max_correction_mm=2.):
+    if not config.get('assembly_xy_correction_enabled',True):
+        raise ValueError('ASSEMBLY_XY_CORRECTION_DISABLED')
     target=sample['posx'].copy()
     if not config.get('target_only_motion',False):
         shift=math.dist(target[:2],config['assembly_target_xy'])
@@ -25,7 +27,10 @@ def seating_targets(sample,config,step_mm=1.):
     reference=config['alignment_target']['placement_tcp_reference']
     current=sample['posx']
     if config.get('target_only_motion',False):
-        target=current.copy();target[:2]=config['assembly_target_xy'];target[2]=reference[2]
+        target=current.copy()
+        if config.get('assembly_xy_correction_enabled',True):
+            target[:2]=config['assembly_target_xy']
+        target[2]=reference[2]
         return [target]
     if type(step_mm) not in (int,float) or not math.isfinite(step_mm) or not 0<step_mm<=1.:
         raise ValueError('POSITIVE_SEATING_STEP_MAX1MM_REQUIRED')

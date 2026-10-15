@@ -44,3 +44,11 @@ reports/
 /perception/supply_vision/obb_geometry.py
 /perception/supply_vision/tests/test_obb.py
 /perception/supply_vision/train_top_seg_trial.py
+
+# Robot-PC originals preserved locally; publish the self-contained portable bundle.
+/robot_control_integration/settings/round3_educational_t1_20261015/
+/robot_control_integration/settings/round3_supply_rgbd_20261015/execution-approved-20261015/
+/robot_control_integration/settings/round3_supply_rgbd_20261015/T2-slot3-execution-20261015/
+/robot_control_integration/settings/round3_supply_rgbd_20261015/slot4-execution-20261015/
+/robot_control_integration/settings/round3_supply_rgbd_20261015/draft-20261015T111950/
+/robot_control_integration/settings/round3_supply_rgbd_20261015/slot-policies.candidate.json

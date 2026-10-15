@@ -1,0 +1,61 @@
+{
+  "status": "FIXED_SLOT4_EDUCATIONAL_RGBD_SINGLE_GRASP_CLEANED_UP",
+  "slot_id": "yellow_2x2x1_04",
+  "scope": "EDUCATIONAL_FIXED_T1_SLOT4_SINGLE_APPROACH_GRASP_NOT_PRECISION_CERTIFICATION",
+  "supply_rgbd_applied": true,
+  "delta_xy_mm": [
+    0.9514035700007071,
+    1.2443317058278467
+  ],
+  "source_z_and_rotation_preserved": true,
+  "operator_exact_grasp_confirmed": true,
+  "trial_count": 1,
+  "cleanup_confirmed": true,
+  "cleanup_checks": [
+    {
+      "stopped": true,
+      "observation_error_mm_deg": [
+        0.002190048232178852,
+        0.00027564218039546624
+      ],
+      "gripper_status": 0,
+      "gripper_width_mm": 52.0
+    },
+    {
+      "stopped": true,
+      "observation_error_mm_deg": [
+        0.002190048232178852,
+        0.00027564218039546624
+      ],
+      "gripper_status": 0,
+      "gripper_width_mm": 52.0
+    },
+    {
+      "stopped": true,
+      "observation_error_mm_deg": [
+        0.002190048232178852,
+        0.00027564218039546624
+      ],
+      "gripper_status": 0,
+      "gripper_width_mm": 52.0
+    }
+  ],
+  "source_files": {
+    "/home/rokey/Documents/ChatGPT/로봇제어 개발/c2_integration_round3/logs/supply-rgbd-slot4-trial/1792031150121333215/result.json": "84318408f7630bfce1ce46748a3d20c8d989df95e6cea475709191d5e46baa89",
+    "/home/rokey/Documents/ChatGPT/로봇제어 개발/c2_integration_round3/logs/supply-rgbd-slot4-trial/1792031150121333215/events.jsonl": "caa7a3b0465ade15e0b541d124d2c66d6dbb61b01f2c2ca7b123b52da3ee9c05",
+    "/home/rokey/Documents/ChatGPT/로봇제어 개발/c2_integration_round3/logs/supply-rgbd-slot4-trial/1792031150121333215/operator-review.json": "0cc6b30b274167e3ef5718dca6fd7ef58eee35727751e23870f0f471d641650d",
+    "/home/rokey/Documents/ChatGPT/로봇제어 개발/c2_integration_round3/logs/supply-rgbd-slot4-trial/1792031150121333215/cleanup-readonly-1792031300789147102.json": "dd3dc07d3ab811c15abc52c24934504f13e4b09d0b16e3a1e63e9eb9d89f75a5",
+    "/home/rokey/Documents/ChatGPT/로봇제어 개발/c2_integration_round3/logs/supply-rgbd-slot4-trial/1792031150121333215/config-snapshot.json": "5bb2f78fff8494a48387a121b884493ce764d3ecfa076794257c5d097a62baeb"
+  },
+  "software_regression_passed": 106,
+  "software_regression_log": "/home/rokey/Documents/ChatGPT/로봇제어 개발/reports/round3_robot_pc_20261015/slot4-rgbd-execution-regression.log",
+  "automatic_lift_verified": false,
+  "repeatability_verified": false,
+  "assembly_completion": false,
+  "B_actual_assembly_confirmed": false,
+  "final_DB_saved": false,
+  "all_25_slots_RGBD_verified": false,
+  "ABCD_full_integration_complete": false,
+  "global_runtime_config_changed": false,
+  "physical_commands_sent_by_agent": 0
+}

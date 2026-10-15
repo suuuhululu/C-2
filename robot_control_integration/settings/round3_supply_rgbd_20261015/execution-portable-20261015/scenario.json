@@ -1,0 +1,538 @@
+{
+  "version": "round2-three-step-trial/1",
+  "cycles": 3,
+  "trial_type": "OPERATOR_COMPONENT_TRIAL",
+  "setup_analysis_status": "OFFLINE_A_C_CHECKED_NOT_PHYSICAL_APPROVAL",
+  "coordinate_reference": "MINIMUM_OCCUPIED_STUD_XY",
+  "preplaced": [
+    {
+      "label": "P01",
+      "block": {
+        "brick_type": "2x3x1",
+        "color": "yellow",
+        "x": 9,
+        "y": 9,
+        "layer": 1,
+        "orientation_deg": 0
+      },
+      "role": "Step1 foundation and left end of bridge",
+      "footprint_cells": [
+        [
+          9,
+          9
+        ],
+        [
+          9,
+          10
+        ],
+        [
+          9,
+          11
+        ],
+        [
+          10,
+          9
+        ],
+        [
+          10,
+          10
+        ],
+        [
+          10,
+          11
+        ]
+      ],
+      "support_studs": 6,
+      "total_studs": 6,
+      "C_required_support_studs": null
+    },
+    {
+      "label": "P02",
+      "block": {
+        "brick_type": "2x3x1",
+        "color": "blue",
+        "x": 11,
+        "y": 11,
+        "layer": 1,
+        "orientation_deg": 90
+      },
+      "role": "T2 left floor and right end of bridge",
+      "footprint_cells": [
+        [
+          11,
+          11
+        ],
+        [
+          11,
+          12
+        ],
+        [
+          12,
+          11
+        ],
+        [
+          12,
+          12
+        ],
+        [
+          13,
+          11
+        ],
+        [
+          13,
+          12
+        ]
+      ],
+      "support_studs": 6,
+      "total_studs": 6,
+      "C_required_support_studs": null
+    },
+    {
+      "label": "P03",
+      "block": {
+        "brick_type": "2x3x1",
+        "color": "yellow",
+        "x": 14,
+        "y": 11,
+        "layer": 1,
+        "orientation_deg": 90
+      },
+      "role": "T2 right floor",
+      "footprint_cells": [
+        [
+          14,
+          11
+        ],
+        [
+          14,
+          12
+        ],
+        [
+          15,
+          11
+        ],
+        [
+          15,
+          12
+        ],
+        [
+          16,
+          11
+        ],
+        [
+          16,
+          12
+        ]
+      ],
+      "support_studs": 6,
+      "total_studs": 6,
+      "C_required_support_studs": null
+    },
+    {
+      "label": "P04",
+      "block": {
+        "brick_type": "2x3x1",
+        "color": "blue",
+        "x": 13,
+        "y": 13,
+        "layer": 1,
+        "orientation_deg": 90
+      },
+      "role": "T2 rear floor, shifted +1 X; connects to P09",
+      "footprint_cells": [
+        [
+          13,
+          13
+        ],
+        [
+          13,
+          14
+        ],
+        [
+          14,
+          13
+        ],
+        [
+          14,
+          14
+        ],
+        [
+          15,
+          13
+        ],
+        [
+          15,
+          14
+        ]
+      ],
+      "support_studs": 6,
+      "total_studs": 6,
+      "C_required_support_studs": null
+    },
+    {
+      "label": "P05",
+      "block": {
+        "brick_type": "2x3x1",
+        "color": "yellow",
+        "x": 14,
+        "y": 15,
+        "layer": 1,
+        "orientation_deg": 90
+      },
+      "role": "P09 rear-row support, relocated and rotated",
+      "footprint_cells": [
+        [
+          14,
+          15
+        ],
+        [
+          14,
+          16
+        ],
+        [
+          15,
+          15
+        ],
+        [
+          15,
+          16
+        ],
+        [
+          16,
+          15
+        ],
+        [
+          16,
+          16
+        ]
+      ],
+      "support_studs": 6,
+      "total_studs": 6,
+      "C_required_support_studs": null
+    },
+    {
+      "label": "P06",
+      "block": {
+        "brick_type": "2x3x1",
+        "color": "blue",
+        "x": 9,
+        "y": 11,
+        "layer": 2,
+        "orientation_deg": 90
+      },
+      "role": "Left/right foundation bridge (4/6 support)",
+      "footprint_cells": [
+        [
+          9,
+          11
+        ],
+        [
+          9,
+          12
+        ],
+        [
+          10,
+          11
+        ],
+        [
+          10,
+          12
+        ],
+        [
+          11,
+          11
+        ],
+        [
+          11,
+          12
+        ]
+      ],
+      "support_studs": 4,
+      "total_studs": 6,
+      "C_required_support_studs": 4
+    },
+    {
+      "label": "P09",
+      "block": {
+        "brick_type": "2x2x1",
+        "color": "yellow",
+        "x": 15,
+        "y": 14,
+        "layer": 2,
+        "orientation_deg": 0
+      },
+      "role": "Step3 stable lower 4-stud support; operator HOLD target",
+      "footprint_cells": [
+        [
+          15,
+          14
+        ],
+        [
+          15,
+          15
+        ],
+        [
+          16,
+          14
+        ],
+        [
+          16,
+          15
+        ]
+      ],
+      "support_studs": 4,
+      "total_studs": 4,
+      "C_required_support_studs": 4
+    },
+    {
+      "label": "P10",
+      "block": {
+        "brick_type": "1x2x1",
+        "color": "red",
+        "x": 16,
+        "y": 14,
+        "layer": 1,
+        "orientation_deg": 90
+      },
+      "role": "P09 missing rear/right support stud and C-connected via P09",
+      "footprint_cells": [
+        [
+          16,
+          14
+        ],
+        [
+          17,
+          14
+        ]
+      ],
+      "support_studs": 2,
+      "total_studs": 2,
+      "C_required_support_studs": null
+    }
+  ],
+  "steps": [
+    {
+      "step_id": "T1",
+      "target": {
+        "brick_type": "2x2x1",
+        "color": "yellow",
+        "x": 9,
+        "y": 9,
+        "layer": 2,
+        "orientation_deg": 0
+      },
+      "supply_slot": 4,
+      "human_hold": false,
+      "hold_lower": null,
+      "raised_z_trial_mm": 0.0,
+      "source_A": {
+        "mode": "ROBOT_GRIP",
+        "assistance_kind": "NONE",
+        "grip_axis": "x",
+        "execution_allowed": false,
+        "reassessment_status": "CANDIDATE",
+        "motion_status": "CANDIDATE"
+      },
+      "original_blocked_layout_A": null,
+      "policy": "ROBOT_FASTENING",
+      "support_studs": 4,
+      "total_studs": 4,
+      "policy_note": "Current A robot placement.",
+      "operator_pickup_file": "robot_control_integration/settings/round3_supply_rgbd_20261015/execution-portable-20261015/teaching/T1-preclose.json",
+      "supply_layout_file": "robot_control_integration/settings/round3_supply_rgbd_20261015/execution-portable-20261015/layout.json"
+    },
+    {
+      "step_id": "T2",
+      "target": {
+        "brick_type": "2x3x1",
+        "color": "blue",
+        "x": 13,
+        "y": 11,
+        "layer": 2,
+        "orientation_deg": 0
+      },
+      "supply_slot": 3,
+      "human_hold": false,
+      "hold_lower": null,
+      "raised_z_trial_mm": 0.0,
+      "source_A": {
+        "mode": "ROBOT_GRIP",
+        "assistance_kind": "NONE",
+        "grip_axis": "x",
+        "execution_allowed": false,
+        "reassessment_status": "CANDIDATE",
+        "motion_status": "CANDIDATE"
+      },
+      "original_blocked_layout_A": {
+        "plan_id": "P-44fa22080179457cbe0dc9e5655a991e",
+        "step_id": "S02",
+        "block": {
+          "brick_type": "2x3x1",
+          "color": "blue",
+          "x": 13,
+          "y": 11,
+          "layer": 2,
+          "orientation_deg": 0
+        },
+        "mode": "HUMAN_ASSEMBLY",
+        "grip_axis": null,
+        "gripper": {
+          "pickup_policy": "D_EXISTING_PICKUP",
+          "release_strategy": "D_EXISTING_TRAY_RELEASE",
+          "release_owner": "D",
+          "policy_at_wait": "D_TRAY_RELEASE_AND_RETREAT",
+          "numeric_open_command": null
+        },
+        "support_studs": 6,
+        "contacts": [],
+        "robot_force_model": "NOT_ROBOT_INSERTION",
+        "assistance_kind": "MANUAL_ASSEMBLY",
+        "human_actions": [
+          {
+            "action": "MANUAL_PLACE",
+            "target_block": {
+              "brick_type": "2x3x1",
+              "color": "blue",
+              "x": 13,
+              "y": 11,
+              "layer": 2,
+              "orientation_deg": 0
+            },
+            "contact_regions": [
+              {
+                "frame_id": "assembly_board",
+                "vertices_xyz_m": [
+                  [
+                    0.2,
+                    0.184,
+                    0.0145
+                  ],
+                  [
+                    0.2,
+                    0.2,
+                    0.0145
+                  ],
+                  [
+                    0.2,
+                    0.2,
+                    0.0335
+                  ],
+                  [
+                    0.2,
+                    0.184,
+                    0.0335
+                  ]
+                ]
+              },
+              {
+                "frame_id": "assembly_board",
+                "vertices_xyz_m": [
+                  [
+                    0.232,
+                    0.184,
+                    0.0145
+                  ],
+                  [
+                    0.232,
+                    0.2,
+                    0.0145
+                  ],
+                  [
+                    0.232,
+                    0.2,
+                    0.0335
+                  ],
+                  [
+                    0.232,
+                    0.184,
+                    0.0335
+                  ]
+                ]
+              }
+            ],
+            "approach_sides": [
+              "-x",
+              "+x"
+            ],
+            "hand_count": 1,
+            "force_direction_base": null,
+            "force_magnitude_n": null,
+            "effect": "사람이 직접 조립",
+            "access_assessment": "HUMAN_ACCESS_NOT_CHECKED"
+          }
+        ],
+        "human_hands_used": 1,
+        "assistance_cost": [
+          1,
+          1,
+          1
+        ],
+        "selection_basis": "완성 가능한 전체 계획 확보 후 사람 도움 최소화; MoveIt 운반 검증은 별도",
+        "requires_runtime_reassessment": true,
+        "optimality_verified": false
+      },
+      "policy": "OPERATOR_RECORDED_CONTINUOUS_GRASP_T2",
+      "support_studs": 6,
+      "total_studs": 6,
+      "policy_note": "Current A permits the adjusted layout. The original blocked layout is preserved separately. Three operator-recorded TCP poses replace the old +10mm trial; grasp height is only estimated.",
+      "previous_raised_z_trial_mm": 10.0,
+      "operator_teaching_file": "T2.operator_teaching.json"
+    },
+    {
+      "step_id": "T3",
+      "target": {
+        "brick_type": "2x3x1",
+        "color": "yellow",
+        "x": 15,
+        "y": 14,
+        "layer": 3,
+        "orientation_deg": 0
+      },
+      "supply_slot": 5,
+      "human_hold": true,
+      "hold_lower": {
+        "brick_type": "2x2x1",
+        "color": "yellow",
+        "x": 15,
+        "y": 14,
+        "layer": 2,
+        "orientation_deg": 0
+      },
+      "raised_z_trial_mm": 0.0,
+      "source_A": {
+        "mode": "ROBOT_GRIP",
+        "assistance_kind": "NONE",
+        "grip_axis": "x",
+        "execution_allowed": false,
+        "reassessment_status": "CANDIDATE",
+        "motion_status": "CANDIDATE"
+      },
+      "original_blocked_layout_A": null,
+      "policy": "USER_SELECTED_HOLD_LOWER_STRUCTURE",
+      "support_studs": 4,
+      "total_studs": 6,
+      "policy_note": "User-requested HOLD, separate from A NONE."
+    }
+  ],
+  "current_update": false,
+  "assembly_completion": false,
+  "assumptions": [
+    "Original taught two-stud grasp axis for all three pickups.",
+    "Slot4/slot5 are existing interpolation; slot3 is a taught anchor.",
+    "Step2 +10mm is an operator Base-Z experiment, not verified 15mm grasp.",
+    "Step3 HOLD is user-selected; A support4/6 does not automatically require HOLD.",
+    "Pad contact Z uses an existing transferred height offset; no new physical measurement.",
+    "Live image alignment is yaw-only; X is taught-coordinate XY."
+  ],
+  "layout_validation": {
+    "final_C_errors": [],
+    "user_ordered_A_plan_valid": true,
+    "current_A_modes": [
+      "ROBOT_GRIP",
+      "ROBOT_GRIP",
+      "ROBOT_GRIP"
+    ],
+    "automatic_A_order": "T2,T1,T3 (separate original A optimization output)"
+  },
+  "scope": "EDUCATIONAL_FIXED_T1_REQUIRES_EXPLICIT_PROFILE_OPT_IN"
+}
