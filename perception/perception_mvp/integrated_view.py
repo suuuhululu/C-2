@@ -244,11 +244,17 @@ def process_frame(rgb, model, confidence, depth=None, info=None, calibration=Non
             if surface_diagnostics:
                 record['surface_diagnostics'] = surface_diagnostics
             if stud_layer_params is not None:
-                # Layer-only extra result; position and the existing fields are untouched.
+                # The stud midpoint owns layer/height; outline geometry still owns XY/axis.
                 record['stud_layer'] = stud_layer_record(
                     rgb, mask, depth, info, calibration, stud_layer_params, layer_heights_mm,
                     height_tolerance_mm, height_reference_offset_mm, depth_range_m, stud_layer_stud_mm,
                     first_layer_min_mm, first_layer_max_mm, layer_upper_bounds_mm, board_plane)
+                stud = record['stud_layer']
+                record['layer'] = stud.get('layer')
+                record['height_mm'] = stud.get('height_mm')
+                record['layer_source'] = 'STUD_MIDPOINT'
+                if record.get('reason') in (None, 'layer_reference_missing', 'height_outside_layer_reference'):
+                    record['reason'] = stud.get('reason')
         records.append(record)
     return records
 
@@ -270,13 +276,14 @@ def draw_integrated(canvas, records, *, show_height=False):
             kind = 'color? ' + record['part_class'].split('_', 1)[1]
         grid = record.get('grid')
         xy = f"({grid[0]}, {grid[1]})" if grid is not None else 'XY:?'
-        layer = f"L{record['layer']}" if record.get('layer') is not None else 'L:?'
-        line = f'{kind} | {xy} | {layer}'
-        if show_height and record.get('height_mm') is not None:
-            line += f" | H:{record['height_mm']:.1f}mm"
         stud = record.get('stud_layer')
-        if stud is not None:
-            line += f" | studL{stud['layer']}" if stud.get('layer') is not None else ' | studL:?'
+        # With the stud-midpoint result present, the shown layer is that result; otherwise the old one.
+        shown_layer = stud.get('layer') if stud is not None else record.get('layer')
+        layer = f"L{shown_layer}" if shown_layer is not None else 'L:?'
+        line = f'{kind} | {xy} | {layer}'
+        shown_height = stud.get('height_mm') if stud is not None else record.get('height_mm')
+        if show_height and shown_height is not None:
+            line += f" | H:{shown_height:.1f}mm"
         (width, height), baseline = cv2.getTextSize(line, cv2.FONT_HERSHEY_SIMPLEX, .4, 1)
         x = max(0, min(int(xs.min()), canvas.shape[1]-width-4))
         y = min(canvas.shape[0]-baseline-2, int(ys.max())+height+6)
