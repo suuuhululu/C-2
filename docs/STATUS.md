@@ -1,9 +1,80 @@
 # 현재 진행 상황
 
+## 2026-10-15 — B INITIAL 미확인60칸 허용·미확인 위치 계획 차단
+
+- 사용자 승인으로 INITIAL 전체576개 보드 열 중 미확인 최대60개를 허용하고61개부터 보류한다. 한 층이라도 미확인이면 해당 열1개로 센다. 관측 생성과 B 상태 확정에 같은 기준을 사용한다.
+- 미확인 열은 Current의 빈칸 증거로 생성하지 않고 B 내부에 별도 유지한다. 그 위치에 걸치는 Plan 로드와 기존 Plan의 Step 시작을 PLAN_REGION_UNVERIFIED로 거절한다. 실제 추가 INITIAL의 충분한 관측으로 제한을 갱신한다. Current/revision 공통 필드·D production 파일·STEP/FINAL 판정 의미는 변경하지 않았다.
+- 미확인0/1/60/61 경계, 확인된 위치의 계획 허용·미확인 위치 차단·재관측 후 해제·한 층 미확인 시 기존 Step 차단을 검증했다. B 전체550 passed, 1 skipped, 종료0 및 diff 확인. 실제 로봇 공동 시험과 D 화면의 해당 오류 안내·추가 INITIAL 요청 운영은 미검증이다. Git 게시는 수행하지 않았다.
+
+## 2026-10-15 — B 빈 공간 Depth 결손·2D ROI/3D 범위 분리
+
+- 후속 수정: RGB ROI는 검출·보드 평면에 유지하되, 보정된 보드 3D 열의 Depth 검사에는 ROI 밖 일괄 배제를 제거했다. 측면에서 상부 공간이 보드판 polygon 밖으로 투영되는 문제를 보완하며, 영상 잘림·실제 장애물·거리 범위 이탈 검사는 유지한다. 아래 ROI 연결 기록의 빈 공간 ROI 배제 설명은 이 후속으로 대체한다.
+- 빈 공간에만 empty_min_valid_fraction=0.99 시험 기준을 적용했다. 0인 결손 최대1%·유효값 최소50개를 요구하고, 나머지 모든 측정 광선은 공간을 통과해야 한다. 미설정은 기존100%. 비영점 거리 이탈·실제 장애물을 제거하지 않으며 블록 판정·전체 범위 확인 조건은 변경하지 않았다. 99%는 소수 결손 민감도를 줄이는 시험 기준이지 실물 정확도나 안전 보장이 아니다.
+- 사용자 제공 f361ad59-033e-4e9f-9d3d-d7bba98456b5.zip의 동일 Depth/보정/ROI 및 D3 재추론 후보 mask로 빈 열 함수를 재실행했다. 원본 확인488/576열(2440/2880층칸)에서 1번만 적용 시 V0/D1/D3 각각364/361/445열, 1·2번 적용 시405/420/446열·합집합571/576열(2855/2880층칸)로 증가했다. 5열 미확인은 남아 있으며 전체 INITIAL/실물 성공으로 보고하지 않는다. ROI·실측 보정값은 수정하지 않았다.
+- B 전체 검사545 passed, 1 skipped, 종료0. RGB ROI 밖 실제 Depth 장애물/결손 거절과 측정된 빈 공간 허용을 합성 검사했다. 실제 카메라·로봇 공동 시험, 남은 미확인5열 원인별 후속은 미완료. D 파일·Git 게시 작업은 수행하지 않았다.
+
+## 2026-10-15 — B 팀 통합 조립판 ROI 연결
+
+- 표준 통합 observer가 단독 화면과 같은 recordings/assembly_board_roi의 관측점별 최신 assembly_roi.json을 기본 로드하도록 연결했다. geometry.assembly_roi_root는 perception 기준 경로이며 config에 기본값을 명시했다. 관측 시작 시 고정한 JSON profile을 context에 보존한다. View별 ROI 적용 로그·assembly_roi.json·measurement의 assembly_roi로 적용 여부를 확인할 수 있다.
+- infer_masks가 ROI 외접 사각형에서 추론하고 원본 크기 mask를 복원한다. polygon 밖 후보는 버리고 경계 후보는 UNKNOWN으로 유지한다. process_saved도 독립적으로 후보 ROI를 검사하며 보드 plane/전체 빈 열/블록 위 빈 공간 검사에서 ROI 밖을 배제한다. ROI 파일 누락·View/해상도 불일치를 전체 영상 추론으로 감추지 않는다. 표준 저장 영상 재생도 같은 설정을 사용한다.
+- 합성 검사에서 관측점별 설정 고정·누락/해상도 오류·원본 mask 복원·경계 UNKNOWN·ROI 밖 후보 제거·빈 영역 오확정 방지와 3View cycle의 ROI 로그/아카이브를 확인했다. B 전체 검사534 passed, 1 skipped(PR22 소비자 경로 미제공), 종료0. 문법 및 diff 확인. 로컬 실제 저장 ROI 3개 모두1280×720으로 로드됨을 확인했으며 실물 카메라 재실행 증거는 아니다.
+- 통합 PC에 코드 및 기존 ROI 3개를 반영하고 B 실행기를 재시작한 뒤 재시험해야 한다. 이전 실패 후보3개의 실제 위치는 원본/마스크 미제공으로 미확인이다. D production 코드·보정·층 임계값은 변경하지 않았고 Git 게시도 수행하지 않았다. 이미 stage된 상부 빈 영역 보완과 미완료 HUD 등 사용자 변경을 보존했다.
+
+## 2026-10-15 — B INITIAL 상부 빈 공간 증거 누락 보완
+
+- 기존 process_saved는 검출 mask를 전체 빈 열 검사에서 제외하고, 확정 블록 칸도 모든 층의 빈 열 결과에서 제외했다. 따라서 측정한 footprint의 현재 층만 증거가 되고 상부 빈 층은 빠졌다. V0 측정 완료 footprint의 위쪽 공간을 별도 Depth ray/volume 검사로 확인해 verified_regions/empty_regions에 추가했다.
+- 하한은 측정된 최고 occupied layer의 명목 top+기존 높이 허용값이며 상한은 기존 5층 top+허용값이다. 공간 뒤쪽까지 모든 교차 ray의 유효 Depth가 도달해야 통과한다. UNKNOWN mask/누락 Depth/거리 이탈/가림/시야 잘림은 미확인을 유지한다. 숨은 아래층과 보이지 않는 블록의 빈 공간은 추론하지 않는다. D1/D3 층은 새 증거의 입력으로 쓰지 않는다.
+- 관련 기하/확인영역/View역할/INITIAL·FINAL/관측 runtime 검사128 passed, 1 skipped(PR22 소비자 경로 미제공), 종료0. 1~5층별 상부, 가림/원본 Depth 0/UNKNOWN mask/범위·영상 잘림, 생산자 연결을 합성 자료로 검사했다. 기존 윗면 검출·보정·층·INITIAL 임계값은 변경하지 않았다.
+- 현재 통합 실패 영상은 이 PC에 제공되지 않아 실제 69%에서의 개선량 및 미확정 4블록 원인은 미검증이다. 해당 check_id 자료로 보정·윗면 추출을 별도 분석해야 한다. D 파일·로봇 명령 및 Git 게시 작업은 수행하지 않았다.
+
+## 2026-10-15 — B 리뷰 보완: 이력 복구·sL 검사·촬영 수신 분리
+
+- 444386b에서 삭제된 이 파일을 삭제 직전 444386b^의 1,189줄 원문으로 복구하고, 새 기록을 넣기 전 Git blob 해시 일치를 확인했다. 다른 문서의 로컬 삭제는 이번 복구 범위에 포함하지 않았다.
+- 통합 RGB-D 촬영의 ROS 콜백을 전용 Executor/수신 스레드에서 처리한다. 로봇 상태 조회 중에도 버퍼를 갱신하고, 조회 완료 후 최신 유효 영상과 CameraInfo 스냅샷을 선택한다. 수신기 종료 후에도 활성/정지/취소 검사를 거쳐야 결과를 반환한다. 영상 BEST_EFFORT/depth1, CameraInfo sensor_data, 15초/50ms/250ms 제한과 기존 오류 진단을 유지했다.
+- sL이 layer/height를 확정하는 채택 구현에 맞춰 로컬에 남아 있던 test_stud_layer 수정을 제출 대상으로 준비했다. 좌표 등 기존 기하 필드 보존과 스터드 측정 실패 시 층 미확정을 검사한다.
+- 기존 444386b 소스를 별도 Python 프로세스에서 실행해 110ms 정지 조회와 순차 토픽 콜백 조건의 수신 시간 초과를 재현했다. 별도 지연 검사에서는 선택한 영상이 후속 상태 조회 중 약331ms로 오래되는 문제도 확인했다. 수정본의 ROS 촬영·sL·observer·실결선·통합 표시·live_view 관련 검사109 passed, 종료0. 취소/정지해제/수신스레드 오류/CameraInfo 누락 및 수신기 종료를 포함한다. 합성 검사이며 실제 카메라/로봇 성공 증거는 아니다.
+- 실제 통합 PC에 수정본 적용 후 INITIAL 수신과 진단 로그 재확인이 필요하다. 기존 Current/revision·외곽·보정·층 임계값·D production 코드는 변경하지 않았다. commit/push는 수행하지 않았다.
+
+## 2026-10-15 — B 원본·정렬 Depth 구독 RELIABLE 적용
+
+- 현장 RGB·원본 Depth·정렬 Depth 발행이 모두 RELIABLE임을 확인한 뒤 사용자 요청으로 세 영상 구독을 RELIABLE/depth1로 맞췄다. 통합 촬영·V0 손 수신·live_view·rgbd_io ROS 저장에 적용했다. CameraInfo 발행 QoS는 미확인이므로 기존 sensor_data(BEST_EFFORT)를 유지한다.
+- 관련 모의 검사69 passed, 종료0. 영상 구독 QoS와 CameraInfo 기존 설정을 확인했다. 통합 PC 적용 및 실제 수신 개선은 미검증이다. 이전 수신 진단·버퍼 선택 변경은 보존했다.
+
+## 2026-10-15 — B RGB 구독 RELIABLE 복구
+
+- 현장 RGB 발행이 RELIABLE임을 확인한 뒤 사용자 요청으로 통합 촬영·V0 손 수신·live_view·공급판 ROI의 RGB 구독을 RELIABLE/depth1로 복구했다. Depth/CameraInfo는 기존 sensor_data(BEST_EFFORT)를 유지한다. 수신 진단·유효 묶음 선택 변경은 보존했다.
+- 관련 모의 검사69 passed, 종료0. 실제 round3 실행 환경 반영·장치 재시험은 미실행이다.
+
+## 2026-10-15 — B 카메라 RGB 구독 BEST_EFFORT 전환
+
+- 사용자 요청으로 ros_capture의 통합 촬영·V0 손 수신, live_view, supply_roi의 RGB 구독을 BEST_EFFORT/depth1로 변경했다. Depth/CameraInfo는 기존 sensor_data(BEST_EFFORT)를 사용한다. 발행 카메라 노드 설정은 변경하지 않았다.
+- ROS 촬영·로컬 화면·실결선 관련 모의 검사69 passed, 종료0. RGB 구독 QoS와 수신기 종료를 확인했다. 실제 통합 PC 연결/지연 개선은 재시험 필요. 기존 RGB-D 수신 진단 변경과 미커밋 사용자 변경을 보존했다.
+
+## 2026-10-15 — B RGB-D 수신 실패 진단·버퍼 묶음 선택
+
+- ros_capture의 촬영/손 수신에서 버퍼 내 최신 유효 RGB-D 묶음을 선택한다. 최신 RGB의 Depth가 아직 없으면 이전의 유효 RGB 묶음을 사용한다. 15초 대기·50ms 시각차·250ms 최신성·요청 이후 프레임·정지/취소 검사는 유지했다.
+- 시간 초과 시 View/phase와 reception 진단(누락 토픽, 누적 수신 수, 최신 영상 시각/경과시간/시각차, 요청 이전 여부, 제한값)을 출력하고 예외에도 포함한다. 음수 경과시간은 영상 시각이 수신 노드의 현재 시각보다 미래임을 뜻한다. 최신 도착 영상 진단은 실제 선택된 묶음의 진단과 구분한다.
+- CameraInfo 3개·영상 3개 필수는 유지. 현장 10fps 프로파일 거절/실제30fps 로그는 B 수신 변경으로 해결됐다고 주장하지 않는다. D/카메라 실행기는 수정하지 않았다. ROS 촬영·observer·실결선 모의 검사57 passed、종료0. 이전 유효 묶음 선택, 누락/오래된/미래/요청 이전 영상 거절, 오류 진단/수신기 종료를 확인했다. 장치 재시험과 round3 실행 폴더 적용은 남아 있다.
+
+## 2026-10-15 — B 로컬 층 판정을 스터드 사이 Depth로 통일
+
+- 사용자 지시에 따라 integrated_view의 stud_layer 설정 사용 시 layer·height_mm을 스터드 사이 측정 결과로 채운다. 좌표·방향 및 외곽 실패 원인은 유지하며 스터드 측정 실패 시 기존 평면 층으로 되돌리지 않는다. HUD의 LAYER/H도 같은 결과를 읽는다. 기존 미커밋 표시 변경을 보존했다.
+- 관련 기존 검사 44 passed, 종료 0. 스터드 층·높이 채택, XY 보존, 스터드 실패 시 미확정을 확인했다. 실제 카메라 재실행은 미검증. 이번 범위는 로컬 integrated_view이며 팀 자동 검사 depth_grid 생산자에 같은 방식이 연결됐다는 의미는 아니다.
+
+## 2026-10-14 — 색상 불일치 화면 경고 연결
+
+- 관련 검사 65 passed, 1 skipped(D 소비자 경로 미제공), 종료 0. 대상 diff --check 통과. 이는 카메라 실측/실제 B 생산자·D 공정 통합 성공 수치가 아니다.
+
+- B 표시 상태에 기존 difference를 전달하고 3D 비교 화면에서 MISMATCH/UNOBSERVABLE 경고 표시. 같은 위치/종류/층/방향의 missing/unexpected 색상 차이는 expected/actual 색을 표시하며 실제 Current 색을 변경하지 않는다. 공통 결과 계약 및 D 코드 변경 없음.
+- live-overlay-test에 원본 실제 RGB의 예상 블록 상면 투영 안쪽 HSV 확인 추가. COLOR TEST MATCH/MISMATCH/UNKNOWN을 표시하되 합성 Current·시험 MATCH·B 조립 결과는 갱신하지 않는다. 원본 RGB를 사용해 그린 오버레이 색이 인식에 섞이지 않는다. footprint 안쪽65%, 색상 coverage20%/dominance70%는 명시적 임시 진단값으로 실물 정확도/identity/좌표·층 판정 근거가 아니다. 반사·혼색·바깥 투영은 UNKNOWN.
+- 실제 카메라 재실행에서 다른 색 블록 경고 재현은 사용자 확인 필요. 테스트는 합성 RGB/투영/상태로 분리하며 장치 이동·Git 게시 없음. 기존 사용자 변경 보존.
+
+
 ## 2026-10-14 — B INITIAL 관측을 V0 단독으로 변경
 
 - INITIAL 생산자의 관측 순서와 사이클 순서 검증을 V0 단독으로 변경했다. STEP·FINAL은 V0→D1→D3를 유지한다. 관측 근거가 부족한 INITIAL 보류, 기존 보정·Depth/Grid·Current/revision·STOP/취소 조건은 유지한다. D 파일은 변경하지 않았다.
 - 검증: `PYTHONPATH=.:perception python3 -m pytest -q perception/perception_mvp/tests` → 484 passed, 1 skipped(PR22 소비자 코드 미제공), 종료 0. V0 단독 INITIAL 촬영·전달·저장과 근거 부족 보류, STEP·FINAL 단독 관측 거절을 확인했다. 실제 통합 PC·로봇 이동 재시험과 Git 게시는 미실행이다.
+
 ## 2026-10-14 — A 놓기·가압 판단을 조립 방식 분류로 축소
 
 - 사용자 최종 확인: A는 기존 그리퍼 접근 불가 + 바로 아래층 밑면 결합점 전체 존재일 때 놓기·가압 방식이 필요하다고 반환한다. D가 실측 파지·TCP·해제 높이·개방/후퇴/닫기/가압·실제 운반 경로를 담당한다. 원본 ZIP·교시·이전 검토 기록은 보존한다.
@@ -14,7 +85,17 @@
 - 실제 검증: A planning_trial + Workflow/PR30 전달 검사 **544 passed, failures/errors/skipped 0, 종료0**. 추가 D 모의 통합은 **28 passed / 8 failed**, 변경 전 b0d22e5에서 해당 8개를 재현해 실패 node ID와 원인이 동일함을 확인했다(기존 C 최소4점 규칙에 부적합한 2~3점 지지 fixture, 새 실패0). 통합 전체 PASS로 표시하지 않는다. 새 분류/전체 인계 예시 30검사 포함, API 예제 실행 34/34 PASS, AST 11파일·fixture JSON·git diff --check 확인. JUnit/첨부 배치 재계산은 reports에 로컬 보관한다. 실제 Robot/ROS/Camera/MoveIt/외부 API/DB 실행, D 실제 전략 소비, 실물 결착 품질은 미검증. [PR #50](https://github.com/suuuhululu/C-2/pull/50)을 gimseeun 계정으로 `codex/integration-round2` 대상으로 게시했다. 최신 대상 cf8031d를 feature branch에 합쳐 STATUS 충돌의 양쪽 기록을 보존했고, A/Workflow 검사는 다시 544 passed다. PR 병합·D 실제 연결은 별도다.
 
 
+## 2026-10-15 — B 비전: 스터드 중점 층 판정·연속 층 구간 (`work/hongdong-vision-round1-v2`)
+
+- 층 구간(사용자 결정, 시험값): 최종 높이(윗면 + 바닥 보정 + 보드 스터드 기준 + 블록 스터드 4mm)를 이어진 구간으로 판정한다. 1층 6~24.5,24.5~26mm는 UNKNOWN, 2층 26~43.2, 3층 43.2~64, 4층 64~83, 5층 83~103mm이다. `config.yaml`의 `layer_upper_bounds_m`와 `first_layer_min_height_m`, 규칙은 depth_grid.py `layer_band_index` 한 곳이다. 기존 ±5mm 구간과 1층 6~25mm는 이 구간으로 대체됐다. 구간은 2026-10-14 저장 촬영 한 장면(48건)에서 맞춘 값이라 다른 장면 검증이 아니다.
+- 스터드 중점 층 판정(`perception_mvp/stud_layer.py`, 새 파일): 마스크 안에서 스터드 원 후보(회색 Canny + 타원 맞춤)를 찾고, 겹친 원을 합친 뒤 스터드 한 칸 간격(초점거리·피치·가장 가까운 깊이로 계산)에 가까운 쌍을 고른다. 두 스터드 중점 반경 6px 안 깊이 중앙값에 바닥 보정·보드 기준·블록 스터드 4mm를 더해 층을 정한다. 결과는 기존 필드를 바꾸지 않는 새 필드 `stud_layer`(층 전용)이고 위치·방향은 기존 윗면 평면·윤곽 경로가 그대로 담당한다. 설정은 `config.yaml`의 `stud_layer`이며 `process_frame`·live_view·assembly_replay가 같은 설정을 쓴다. supply_vision 파일은 수정하지 않았다.
+- 시험: 저장 촬영 8장(한 장면, 블록 6개)을 실제 YOLO 모델로 재생해 48건 모두 높이가 나왔고 쌓은 층 구간 안에 들어간 건이 48/48이다(정답은 쌓은 층 수 기준, 파랑 4층 쌓기 안 블록을 3층으로 본 것은 사진 추정). 같은 실행에서 기존 방식의 층은 48건 중 1건이었다. HSV 대용 마스크와 YOLO 마스크 결과는 같았다. 스터드 쌍 중점의 8장 반복 오차는 0.2~0.4px이다.
+- 한계·미검증: 정답 높이를 자로 잰 값이 없다. 윗면 평행 검사와 RGB 윤곽 검증을 거치지 않은 값이다. 빨강 2층은 깊이가 번져 창 안 높이 흩어짐이 평균 6.6mm이고 중앙값 36.9mm는 윗면 높이(약 43mm)보다 낮다(층 판정은 L2). 경계 여유는 0.4~0.6mm다. 위치·방향은 스터드로 구하지 않았다. 밝기 올리기·CLAHE 대비 보정은 같은 검출기에서 개선이 없었고(공급 비전의 CLAHE 코드는 읽지 못함) D1/D3·팀 통합·D/A/C 연결·실제 로봇은 시험하지 않았다. 새 테스트는 클라우드 대용 실행기에서만 통과했고 PC의 실제 pytest는 아직 실행하지 않았다.
+- 팀장 확인 필요: 연속 층 구간 값(26/43.2/64/83/103), 스터드 중점 층 판정 채택, 정답 높이 실측.
+
 ## 2026-10-14 — B 비전: 층 기준·허용 오차·V0/D1·D3 역할 분리 (`work/hongdong-vision-round1-v2`)
+
+- (2026-10-15 갱신) 이 절의 층 허용 오차 ±5mm와 1층 6~25mm 설명은 위 2026-10-15 절의 연속 층 구간으로 대체됐다. 바닥 보정·V0 역할 설명은 유지한다.
 
 - 변경(B-only, perception/): 층 기준을 측정 윗면 평면 + 스터드 4mm(TOP_PLANE_PLUS_STUD)로 변경했다. 층 허용 오차는 ±2.5mm→±5mm(층 간격 18.625mm, 2×허용<간격 유지), 깊이 범위 min_depth는 V0 0.441·D1 0.332·D3 0.395로 2mm 낮췄다(캘리브레이션 무변경).
 - UNKNOWN은 후보 단위로 처리한다. 후보 하나가 실패해도 그 후보만 제외하고 시점 전체를 무효화하지 않는다. V0의 UNKNOWN은 MATCH를 막고(비교는 UNOBSERVABLE), D1/D3의 UNKNOWN은 막지 않는다.

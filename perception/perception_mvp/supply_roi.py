@@ -67,7 +67,7 @@ def main():
     def receive(message):
         latest[:] = [image_array(message), message, time.monotonic()]
     subscription = node.create_subscription(Image, '/camera/color/image_raw', receive,
-        QoSProfile(depth=1, reliability=ReliabilityPolicy.RELIABLE))
+        QoSProfile(depth=1, reliability=ReliabilityPolicy.BEST_EFFORT))
     window = args.board.title() + ' ROI | r freeze | click corners | u undo | ENTER save | q quit'
     frozen = None
     points = []

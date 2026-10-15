@@ -20,6 +20,50 @@ def packets():
     return messages, infos
 
 
+def test_packet_selection_uses_buffered_match_when_newest_rgb_has_no_depth():
+    from perception_mvp.ros_capture import _select_packet
+    def msg(ms):
+        return N(header=N(stamp=N(sec=1, nanosec=ms*1_000_000)))
+    queues = dict(rgb=[msg(100), msg(200)], raw=[msg(100)], aligned=[msg(100)])
+    packet = _select_packet(queues, 1_000_000_000, 1_210_000_000, 50., 250.)
+    assert packet['rgb'] is queues['rgb'][0]
+    assert set(packet) == {'rgb', 'raw', 'aligned'}
+
+
+@pytest.mark.parametrize('frame_ms,now_ms,start_ms', [
+    (0, 251, 0), (101, 100, 0), (99, 110, 100)])
+def test_packet_selection_rejects_old_future_and_pre_request_frames(frame_ms, now_ms, start_ms):
+    from perception_mvp.ros_capture import _select_packet
+    msg = N(header=N(stamp=N(sec=1, nanosec=frame_ms*1_000_000)))
+    assert _select_packet(dict(rgb=[msg], aligned=[msg]),
+                          1_000_000_000+start_ms*1_000_000,
+                          1_000_000_000+now_ms*1_000_000, 50., 250.) is None
+
+
+def test_packet_selection_still_requires_all_depths_and_sync():
+    from perception_mvp.ros_capture import _select_packet
+    def msg(ms):
+        return N(header=N(stamp=N(sec=1, nanosec=ms*1_000_000)))
+    for raw in ([], [msg(49)]):
+        assert _select_packet(dict(rgb=[msg(100)], raw=raw, aligned=[msg(100)]),
+                              1_000_000_000, 1_110_000_000, 50., 250.) is None
+
+
+def test_reception_timeout_reports_missing_stream_and_negative_age(capsys):
+    from perception_mvp.ros_capture import _reception_timeout
+    msg = N(header=N(stamp=N(sec=2, nanosec=0)))
+    error = _reception_timeout(dict(check_id='fixed'), 'D3', 'RGBD_CAPTURE',
+        dict(rgb=[msg], raw=[], aligned=[msg]), dict(rgb=4, raw=0, aligned=4),
+        1_000_000_000, 1_900_000_000, 15., 50., 250., 'fresh synchronized unavailable',
+        infos={'rgb': object(), 'aligned': object()}, topics={'raw': '/raw', 'raw_info': '/raw_info'})
+    assert error.view == 'D3'
+    assert error.reception['missing_topics'] == ['/raw', '/raw_info']
+    assert error.reception['latest_age_ms']['rgb'] == -100.
+    assert error.reception['received_counts']['raw'] == 0
+    assert 'reception=' in str(error)
+    assert 'RGBD_CAPTURE' in capsys.readouterr().out
+
+
 def context():
     return dict(scene_id='synthetic', robot_pose={'basis': 'synthetic test only'},
                 calibration_id='fixture', check_id='fixed', observation_seq=2)
@@ -66,26 +110,38 @@ def test_unknown_distortion_or_unsynchronized_frames_do_not_write(tmp_path):
 def fake_ros(monkeypatch):
     import sys
     from types import ModuleType
-    state = N(closed=False, shutdown=False, frame_ns=1_000_000_000, active=True, subscriptions=[])
+    state = N(closed=False, shutdown=False, frame_ns=1_000_000_000, active=True, subscriptions=[], qoses=[],
+              continuous=False, now_ns=lambda: 1_000_000_000, missing=set(),
+              single_callback=False, emitted=0)
     messages, infos = packets()
     class Node:
         def get_clock(self):
-            return N(now=lambda: N(nanoseconds=1_000_000_000))
+            return N(now=lambda: N(nanoseconds=state.now_ns()))
         def create_subscription(self, cls, topic, callback, qos):
             state.subscriptions.append((topic, callback))
+            state.qoses.append((topic, qos))
         def destroy_node(self):
             state.closed = True
     def spin(node, **kwargs):
         from threading import get_ident
         state.receiver_thread = get_ident()
-        for topic, callback in state.subscriptions:
+        if state.continuous:
+            state.frame_ns = state.now_ns()
+        subscriptions = state.subscriptions
+        if state.single_callback:
+            subscriptions = [subscriptions[state.emitted % len(subscriptions)]]
+            state.emitted += 1
+        for topic, callback in subscriptions:
+            if topic in state.missing:
+                continue
             key = 'aligned' if 'aligned_depth' in topic else 'raw' if '/depth/' in topic else 'rgb'
             if topic.endswith('camera_info'):
                 callback(infos[key])
             else:
                 messages[key].header = N(frame_id='synthetic_optical',
                     stamp=N(sec=state.frame_ns // 1_000_000_000, nanosec=state.frame_ns % 1_000_000_000))
-                callback(messages[key])
+                from copy import deepcopy
+                callback(deepcopy(messages[key]))
     modules = {name: ModuleType(name) for name in ('rclpy', 'rclpy.context', 'rclpy.executors', 'rclpy.qos', 'sensor_msgs', 'sensor_msgs.msg')}
     modules['rclpy'].init = lambda **kw: None
     modules['rclpy'].create_node = lambda *a, **kw: Node()
@@ -100,13 +156,20 @@ def fake_ros(monkeypatch):
         def add_node(self, node):
             self.node = node
         def spin(self):
-            spin(self.node)
-            self.stop.wait()
+            try:
+                while not self.stop.is_set():
+                    modules['rclpy'].spin_once(self.node)
+                    if not state.continuous:
+                        self.stop.wait()
+                        break
+                    self.stop.wait(.005)
+            finally:
+                state.receiver_exited = True
         def shutdown(self):
             self.stop.set()
     modules['rclpy.executors'].SingleThreadedExecutor = Executor
     modules['rclpy.qos'].QoSProfile = lambda **kw: N(**kw)
-    modules['rclpy.qos'].ReliabilityPolicy = N(RELIABLE='reliable')
+    modules['rclpy.qos'].ReliabilityPolicy = N(BEST_EFFORT='best_effort')
     modules['rclpy.qos'].qos_profile_sensor_data = 'sensor_data'
     modules['sensor_msgs.msg'].Image = object
     modules['sensor_msgs.msg'].CameraInfo = object
@@ -132,6 +195,16 @@ def test_ros_one_shot_closes_before_coverage_and_preserves_context(tmp_path, fak
     assert record['verified_regions'] == []
     assert load_frame(record['directory'])[-1]['check_id'] == 'fixed'
     assert len(fake_ros.subscriptions) == 6
+    from threading import get_ident
+    assert fake_ros.receiver_thread != get_ident()
+    assert fake_ros.receiver_exited
+    rgb_qos = dict(fake_ros.qoses)['/camera/color/image_raw']
+    assert rgb_qos.reliability == 'best_effort' and rgb_qos.depth == 1
+    for topic, qos in fake_ros.qoses:
+        if topic.endswith('/camera_info'):
+            assert qos == 'sensor_data'
+        else:
+            assert qos.reliability == 'best_effort' and qos.depth == 1
 
 
 def test_cancel_before_capture_opens_no_subscriptions(tmp_path, fake_ros):
@@ -141,12 +214,101 @@ def test_cancel_before_capture_opens_no_subscriptions(tmp_path, fake_ros):
     assert fake_ros.subscriptions == [] and not list(tmp_path.iterdir())
 
 
+def test_capture_keeps_receiving_during_110ms_controller_queries(tmp_path, fake_ros, monkeypatch):
+    import time
+    from perception_mvp import ros_capture
+    fake_ros.continuous, fake_ros.now_ns = True, time.time_ns
+    checked = []
+    def slow_true():
+        time.sleep(.110)
+        checked.append(True)
+        return True
+    original = ros_capture.save_capture
+    saved_age = []
+    def save(directory, messages, *args, **kwargs):
+        saved_age.append(max((time.time_ns()-ros_capture.stamp(msg))/1e6 for msg in messages.values()))
+        assert saved_age[-1] <= 250.
+        return original(directory, messages, *args, **kwargs)
+    monkeypatch.setattr(ros_capture, 'save_capture', save)
+    record = ros_capture.capture_inspection_view(
+        dict(mode='REAL', check_id='slow-queries', observation_seq=0), 'D3', lambda: True,
+        output_root=tmp_path, scene_id='synthetic', calibration_id='fixture',
+        robot_pose=lambda view: {'basis': 'synthetic only'}, is_stopped=lambda view: slow_true(),
+        workflow_valid=slow_true, bundle_valid=slow_true, timeout=2.)
+    assert record['directory'] and saved_age and len(checked) >= 9
+    assert fake_ros.closed and fake_ros.shutdown and fake_ros.receiver_exited
+
+
+def test_capture_drains_staggered_topics_while_stop_query_waits(tmp_path, fake_ros):
+    import time
+    from perception_mvp.ros_capture import capture_inspection_view
+    fake_ros.continuous, fake_ros.single_callback, fake_ros.now_ns = True, True, time.time_ns
+    def stopped(view):
+        time.sleep(.110)
+        return True
+    record = capture_inspection_view(dict(mode='REAL', check_id='staggered', observation_seq=0),
+        'V0', lambda: True, output_root=tmp_path, scene_id='synthetic', calibration_id='fixture',
+        robot_pose=lambda view: {'basis': 'synthetic only'}, is_stopped=stopped, timeout=1.5)
+    assert record['directory'] and fake_ros.emitted >= 6
+    assert fake_ros.closed and fake_ros.shutdown and fake_ros.receiver_exited
+
+
+@pytest.mark.parametrize('failure', ['cancel', 'moving'])
+def test_background_capture_rejects_interruption_before_save(tmp_path, fake_ros, monkeypatch, failure):
+    import rclpy
+    from perception_mvp.ros_capture import capture_inspection_view
+    original = rclpy.spin_once
+    moving = [False]
+    def interrupted(*args, **kwargs):
+        original(*args, **kwargs)
+        if failure == 'cancel':
+            fake_ros.active = False
+        else:
+            moving[0] = True
+    monkeypatch.setattr(rclpy, 'spin_once', interrupted)
+    with pytest.raises(RuntimeError, match='INSPECTION_REQUEST_INACTIVE|VIEW_NOT_STOPPED'):
+        capture_inspection_view(dict(mode='REAL', check_id='interrupted', observation_seq=0),
+            'D3', lambda: fake_ros.active, output_root=tmp_path, scene_id='synthetic',
+            calibration_id='fixture', robot_pose=lambda view: {},
+            is_stopped=lambda view: not moving[0])
+    assert not list(tmp_path.iterdir())
+    assert fake_ros.closed and fake_ros.shutdown and fake_ros.receiver_exited
+
+
+def test_background_receiver_failure_is_reported_and_closed(tmp_path, fake_ros, monkeypatch):
+    import rclpy
+    def fail(*args, **kwargs):
+        raise LookupError('synthetic receiver failure')
+    monkeypatch.setattr(rclpy, 'spin_once', fail)
+    with pytest.raises(RuntimeError, match='inspection ROS reception failed') as caught:
+        receive(tmp_path, fake_ros)
+    assert isinstance(caught.value.__cause__, LookupError)
+    assert fake_ros.closed and fake_ros.shutdown and fake_ros.receiver_exited
+    assert not list(tmp_path.iterdir())
+
+
+def test_background_capture_still_rejects_missing_camera_info(tmp_path, fake_ros):
+    import time
+    fake_ros.continuous, fake_ros.now_ns = True, time.time_ns
+    fake_ros.missing.add('/camera/depth/camera_info')
+    with pytest.raises(TimeoutError) as caught:
+        receive(tmp_path, fake_ros, timeout=.08)
+    assert caught.value.reception['missing_topics'] == ['/camera/depth/camera_info']
+    assert not list(tmp_path.iterdir())
+    assert fake_ros.closed and fake_ros.shutdown and fake_ros.receiver_exited
+
+
 def test_stale_ros_packets_timeout_and_close(tmp_path, fake_ros, monkeypatch):
     fake_ros.frame_ns = 500_000_000
     ticks = iter([0., 0., 2.])
     monkeypatch.setattr('perception_mvp.ros_capture.time.monotonic', lambda: next(ticks))
-    with pytest.raises(TimeoutError, match='clocks'):
+    with pytest.raises(TimeoutError, match='clocks') as caught:
         receive(tmp_path, fake_ros, timeout=1.)
+    assert caught.value.view == 'V0'
+    assert caught.value.reception['missing_topics'] == []
+    assert caught.value.reception['latest_age_ms']['rgb'] == 500.
+    assert caught.value.reception['latest_before_request']['rgb'] is True
+    assert caught.value.reception['received_counts']['raw_info'] == 1
     assert fake_ros.closed and fake_ros.shutdown and not list(tmp_path.iterdir())
 
 
@@ -261,6 +423,8 @@ def test_ros_hand_generator_yields_rgb_depth_and_closes(fake_ros):
         stream.close()
     assert fake_ros.closed and fake_ros.shutdown
     assert len(fake_ros.subscriptions) == 2
+    assert dict(fake_ros.qoses)['/camera/color/image_raw'].reliability == 'best_effort'
+    assert dict(fake_ros.qoses)['/camera/aligned_depth_to_color/image_raw'].reliability == 'best_effort'
 
 
 def test_ros_hand_generator_stop_while_waiting_closes(fake_ros):

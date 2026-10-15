@@ -17,6 +17,7 @@ from .depth_grid import process_saved
 from .runtime_log import progress
 from .backend_adapter import build_observed
 from .view_roles import AUTHORITY_VIEW, build_role_view, finalize
+from .assembly_roi import freeze_rois, mask_for_view
 
 DEFAULT_CYCLE_OUTPUT = Path(__file__).resolve().parent.parent / "recordings" / "observation_cycles"
 
@@ -31,8 +32,8 @@ def validate_cycle_target(context):
 
 
 def inspection_view_order(kind):
-    """INITIAL is a V0-only baseline inspection; assembly checks retain three Views."""
-    return ['V0'] if kind == 'INITIAL' else ['V0', 'D1', 'D3']
+    """INITIAL, STEP and FINAL all retain the agreed three-View evidence bundle."""
+    return ['V0', 'D1', 'D3']
 
 
 def make_inspection_observer(gate, hand_detector, hand_stream, capture_view,
@@ -48,6 +49,7 @@ def make_inspection_observer(gate, hand_detector, hand_stream, capture_view,
     Explicit HUMAN_ASSEMBLY remains available for standalone hand-driven callers.
     hand_stream=None selects ROS V0 hand reception and requires is_stopped(view).
     """
+    config = freeze_rois(config, default=True)
     def observe(context, is_active):
         manifest = deepcopy(context)
         # D requests inspection after the gesture or completed robot operation.
@@ -156,6 +158,7 @@ def observe_cycle(gate, capture_view, manifest, weights, calibration, config,
     No movement commands, return-to-V0 step or next-Step decision is made here.
     """
     context, calibration, config = deepcopy(manifest), deepcopy(calibration), deepcopy(config)
+    config = freeze_rois(config)
     order = context["view_order"]
     expected_order = inspection_view_order(context.get('check_kind', 'STEP'))
     if order != expected_order:
@@ -206,7 +209,14 @@ def observe_cycle(gate, capture_view, manifest, weights, calibration, config,
             write_cycle_json(view_directory / "capture_evidence.json", dict(
                 verified_regions=regions, verification_basis=record.get("verification_basis")))
             progress(context, '분석 시작', view=view_id)
-            detections = infer_masks(rgb, weights, detector_confidence)
+            roi_mask = mask_for_view(config, view_id, rgb.shape)
+            if roi_mask is not None:
+                profile = config['assembly_roi_profiles'][view_id]
+                progress(context, '조립판 ROI 적용', view=view_id,
+                         source=profile['source'], image_size=profile['image_size'])
+                write_cycle_json(view_directory / 'assembly_roi.json', profile)
+            detections = infer_masks(rgb, weights, detector_confidence,
+                                     **({'roi_mask': roi_mask} if roi_mask is not None else {}))
             result = process_saved(record["directory"], detections, calibration, config)
             # Which measured evidence a View may contribute is decided by its role (view_roles).
             write_cycle_json(view_directory / 'measured_occupancy_evidence.json', dict(
@@ -358,8 +368,11 @@ def infer_bundle(manifest, weights, calibration, config, detector_confidence, *,
     if len(scenes) != 1:
         raise ValueError("bundle must contain one static scene")
     processed = []
-    for record, rgb, _, regions in loaded:
-        detections = infer_masks(rgb, weights, detector_confidence)
+    config = freeze_rois(config)
+    for record, rgb, meta, regions in loaded:
+        roi_mask = mask_for_view(config, meta['view_id'], rgb.shape)
+        detections = infer_masks(rgb, weights, detector_confidence,
+                                 **({'roi_mask': roi_mask} if roi_mask is not None else {}))
         processed.append({"directory": record["directory"], "detections": detections,
                           "verified_regions": regions})
     observed, diagnostics = process_saved_bundle(processed, calibration, config, check, seq,

@@ -17,6 +17,401 @@ DEFAULT_INTEGRATED_WEIGHTS = (Path(__file__).resolve().parent.parent / 'models' 
                               'block_v1_six_runs_20261010' / 'blocks_yolo26s_best.pt')
 
 
+def put_label(img, text, org, fontFace=cv2.FONT_HERSHEY_SIMPLEX, fontScale=.5,
+              color=(255, 255, 255), thickness=1, lineType=cv2.LINE_AA):
+    """Display-only text on a translucent dark box: readable on wood, board and blocks.
+    Same positional signature as cv2.putText; draws in place and never changes image size."""
+    (w, h), base = cv2.getTextSize(text, fontFace, fontScale, thickness)
+    x, y = int(org[0]), int(org[1])
+    x1, y1 = max(x - 4, 0), max(y - h - 4, 0)
+    x2, y2 = min(x + w + 4, img.shape[1]), min(y + base + 4, img.shape[0])
+    if x2 > x1 and y2 > y1:
+        roi = img[y1:y2, x1:x2]
+        roi[:] = (roi * .25 + np.array((24, 20, 16)) * .75).astype(np.uint8)
+    cv2.putText(img, text, (x, y), fontFace, fontScale, color, thickness, lineType)
+
+
+# ---------------------------------------------------------------------------
+# Live-view HUD (display only). Draws on the display canvas, never on detection input.
+# Rollback switches: HUD_LEGACY_BLOCK_LABELS=True restores draw_integrated's long per-block
+# labels; pressing h cycles FULL -> COMPACT -> OFF while running.
+# ---------------------------------------------------------------------------
+HUD_FULL, HUD_COMPACT, HUD_OFF = 0, 1, 2
+HUD_LEGACY_BLOCK_LABELS = False
+HUD_SHOW_GRID_LAYER_H = False  # True: show GRID / LAYER / H(mm) columns in the HUD table
+_HUD_FONT = cv2.FONT_HERSHEY_SIMPLEX
+_HUD_PANEL = (58, 50, 44)
+_HUD_WHITE, _HUD_GREY = (255, 255, 255), (205, 198, 190)
+_HUD_GREEN, _HUD_AMBER, _HUD_RED, _HUD_CYAN = (132, 220, 61), (0, 179, 255), (82, 82, 255), (255, 229, 0)
+_HUD_EDGE = (96, 88, 80)
+_HUD_BADGE = {'yellow': ((0, 200, 255), (0, 0, 0)), 'red': ((40, 70, 230), (255, 255, 255)),
+              'blue': ((230, 150, 40), (255, 255, 255))}
+_HUD_STAGE = ('FROZEN', 'RECEIVING', 'RX OFF', 'MOVING', 'WAITING RGB', 'WAIT', 'STALE RGB')
+_HUD_REASON = {'height_outside_layer_reference': 'RANGE', 'layer_reference_missing': 'NOREF',
+               'color_missing_or_conflict': 'COLOR', 'instance_crosses_roi_boundary': 'ROI',
+               'insufficient_depth': 'DEPTH', 'surface_height_conflict': 'SURF',
+               'partial_or_invalid_footprint': 'FOOT', 'orientation_off_grid': 'ANGLE'}
+
+
+def default_hud_mode(view):
+    return HUD_FULL if view == 'V0' else HUD_COMPACT
+
+
+def new_hud():
+    return dict(lines=[], records=None, show_height=False)
+
+
+def hud_add(hud, img, text, org, fontFace=0, fontScale=.5, color=(255, 255, 255), thickness=1,
+            lineType=cv2.LINE_AA):
+    """Collect one text line for render_hud. Same positional signature as put_label."""
+    hud['lines'].append(dict(text=str(text), org=(int(org[0]), int(org[1])), scale=float(fontScale),
+                             color=tuple(int(c) for c in color), th=int(thickness), h=int(img.shape[0])))
+
+
+def _hud_tw(text, scale, th=1):
+    return cv2.getTextSize(text, _HUD_FONT, scale, th)[0][0]
+
+
+def _hud_box(img, x1, y1, x2, y2, alpha, color=_HUD_PANEL):
+    x1, y1 = max(int(x1), 0), max(int(y1), 0)
+    x2, y2 = min(int(x2), img.shape[1]), min(int(y2), img.shape[0])
+    if x2 > x1 and y2 > y1:
+        roi = img[y1:y2, x1:x2]
+        roi[:] = (roi * (1 - alpha) + np.array(color) * alpha).astype(np.uint8)
+
+
+def _hud_text(img, s, x, y, scale=.46, color=_HUD_WHITE, th=1):
+    cv2.putText(img, s, (int(x), int(y)), _HUD_FONT, scale, color, th, cv2.LINE_AA)
+    return int(x) + _hud_tw(s, scale, th)
+
+
+def _hud_chip(img, s, x, y, color, scale=.42, filled=False):
+    x2, y2 = x + _hud_tw(s, scale, 2) + 12, y + 22
+    _hud_box(img, x, y, x2, y2, .72)
+    if filled:
+        _hud_box(img, x, y, x2, y2, .2, color)
+    cv2.rectangle(img, (x, y), (x2, y2), color, 1, cv2.LINE_AA)
+    cv2.putText(img, s, (x + 6, y + 15), _HUD_FONT, scale, color, 2, cv2.LINE_AA)
+    return x2 + 4
+
+
+def _hud_chip_row(img, chips, x, y, max_x):
+    """Chips left to right, wrapping at max_x. Returns the y for whatever comes next."""
+    cx = x
+    for s, color, filled in chips:
+        if cx + _hud_tw(s, .42, 2) + 16 > max_x and cx > x:
+            cx, y = x, y + 26
+        cx = _hud_chip(img, s, cx, y, color, filled=filled)
+    return y + 26
+
+
+def _hud_badge(img, no, cx, cy, fill, fg, r=8):
+    label = str(no)
+    if len(label) > 1:
+        r += 3
+    cv2.circle(img, (cx, cy), r + 1, (0, 0, 0), -1, cv2.LINE_AA)
+    cv2.circle(img, (cx, cy), r, fill, -1, cv2.LINE_AA)
+    cv2.circle(img, (cx, cy), r, _HUD_WHITE, 1, cv2.LINE_AA)
+    cv2.putText(img, label, (cx - _hud_tw(label, .42) // 2, cy + 4), _HUD_FONT, .42, fg, 1, cv2.LINE_AA)
+
+
+def _hud_wrap(text, scale, width, th=1):
+    lines, cur = [], ''
+    for word in text.split(' '):
+        trial = cur + ' ' + word if cur else word
+        if cur and _hud_tw(trial, scale, th) > width:
+            lines.append(cur)
+            cur = word
+        else:
+            cur = trial
+    lines.append(cur)
+    out = []
+    for line in lines:  # an over-long token (e.g. a reason code) is hard-split
+        while len(line) > 1 and _hud_tw(line, scale, th) > width:
+            k = len(line)
+            while k > 1 and _hud_tw(line[:k], scale, th) > width:
+                k -= 1
+            out.append(line[:k])
+            line = line[k:]
+        out.append(line)
+    return out
+
+
+def _hud_color(color):
+    if color[2] >= 200 and color[0] <= 80 and color[1] <= 80:
+        return _HUD_RED
+    if color[1] >= 200 and color[0] <= 120 and color[2] <= 120:
+        return _HUD_GREEN
+    if tuple(color) == (0, 180, 255):
+        return _HUD_AMBER
+    return _HUD_WHITE
+
+
+def _hud_reason_abbr(reason):
+    if reason is None:
+        return ''
+    reason = str(reason)
+    if reason in _HUD_REASON:
+        return _HUD_REASON[reason]
+    if reason.startswith('board_baseline'):
+        return 'BASE'
+    return reason.split(',')[0].strip().upper().replace('_', ' ')[:6]
+
+
+def _hud_block_order(records):
+    """Stable numbering: top-to-bottom in 60px bands, left-to-right inside a band."""
+    items = []
+    for record in records:
+        ys, xs = np.nonzero(record['mask'])
+        if xs.size:
+            items.append((record, (int(xs.min()), int(ys.min()), int(xs.max()), int(ys.max()))))
+    items.sort(key=lambda item: (item[1][1] // 60, item[1][0]))
+    return [(i + 1, record, box) for i, (record, box) in enumerate(items)]
+
+
+def draw_block_badges(canvas, records):
+    """Same tint/outline as draw_integrated; the long per-block label becomes a number badge."""
+    ordered = _hud_block_order(records)
+    for _, record, _ in ordered:
+        mask = record['mask']
+        tint = np.array((80, 220, 80) if record['reason'] is None else (0, 180, 255))
+        canvas[mask] = (.7 * canvas[mask] + .3 * tint).astype(np.uint8)
+        contours, _ = cv2.findContours(mask.astype(np.uint8), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        cv2.drawContours(canvas, contours, -1, tuple(map(int, tint)), 1)
+    height, width = canvas.shape[:2]
+    for no, record, (x0, y0, x1, y1) in ordered:
+        fill, fg = _HUD_BADGE.get(str(record.get('color', '')).lower(), ((160, 160, 160), (0, 0, 0)))
+        cx = max(14, min((x0 + x1) // 2, width - 14))
+        cy = y0 - 12
+        if cy < 14:
+            cy = min(y1 + 12, height - 14)
+        _hud_badge(canvas, no, cx, cy, fill, fg)
+    return canvas
+
+
+def _hud_cells(record, show_height):
+    part = str(record.get('part_class', ''))
+    size = part.split('_', 1)[1] if '_' in part else '-'
+    color = str(record.get('color', '')).lower()
+    if record.get('reason') == 'color_missing_or_conflict':
+        color = 'color?'
+    elif color in ('', 'unknown'):
+        color = 'unknown'
+    grid = record.get('grid')
+    layer = record.get('layer')
+    height = record.get('height_mm')
+    stud = record.get('stud_layer')
+    return dict(color=color, size=size,
+                grid='(%d,%d)' % (grid[0], grid[1]) if grid is not None else '-',
+                layer='L%d' % layer if layer is not None else '-',
+                why='' if layer is not None else _hud_reason_abbr(record.get('reason')),
+                height='%.1f' % height if show_height and height is not None else '-',
+                stud=None if stud is None else ('s%d' % stud['layer'] if stud.get('layer') is not None else 's-'))
+
+
+def _hud_parse(lines):
+    height = lines[0]['h'] if lines else 0
+    top, bottom = [], []
+    for item in lines:
+        (bottom if height >= 400 and height - item['org'][1] <= 70 else top).append(item)
+    row1, row2, reasons, notes = [], [], [], []
+
+    def add(row, chip):
+        if chip[0] not in [c[0] for c in row]:
+            row.append(chip)
+
+    for item in top:
+        text, color = item['text'], item['color']
+        if text.startswith('RESULT FROZEN'):
+            add(row1, ('FROZEN', _HUD_GREEN, True))
+            notes.append(('r: new observation', _HUD_GREY))
+        elif text.startswith('RECEIVING ON'):
+            add(row1, ('RECEIVING', _HUD_CYAN, False))
+        elif text.startswith('RECEIVING OFF'):
+            add(row1, ('RX OFF', _HUD_WHITE, False))
+        elif text.startswith('HSV -> YOLO'):
+            add(row1, ('LOCAL ONLY', _HUD_AMBER, False))
+        elif text.startswith('GEOMETRY:'):
+            reasons.extend(r.strip() for r in text[len('GEOMETRY:'):].split(',') if r.strip())
+        elif text.startswith('MEASUREMENT DISPLAY ONLY'):
+            add(row2, ('MEASURE ONLY', _HUD_AMBER, False))
+            notes.append(('NO CYCLE / ROBOT PERMISSION', _HUD_AMBER))
+        elif text.startswith('STALE RGB'):
+            add(row1, ('STALE RGB', _HUD_RED, True))
+        elif text.startswith('MOVING / UNCONFIRMED'):
+            add(row1, ('MOVING', _HUD_AMBER, True))
+            notes.append(('receiving / inference OFF', _HUD_GREY))
+        elif text.startswith('Waiting for ROS RGB'):
+            add(row1, ('WAITING RGB', _HUD_AMBER, True))
+        elif text.startswith('WAIT:'):
+            add(row1, ('WAIT', _HUD_AMBER, True))
+            notes.append((text[5:].strip(), _HUD_AMBER))
+        elif ' | c: capture' in text:
+            parts = [p.strip() for p in text.split(' | ')]
+            add(row1, (parts[0].split(' ')[0], _HUD_CYAN, False))
+            if 'LOCAL ONLY' in parts[0]:
+                add(row1, ('LOCAL ONLY', _HUD_AMBER, False))
+            notes.append((' | '.join(parts[1:]), _HUD_GREY))
+        elif text.startswith('SYNC dt:'):
+            notes.append((text, _HUD_GREY))
+        else:
+            notes.append((text, _hud_color(color)))
+    row1.sort(key=lambda c: _HUD_STAGE.index(c[0]) if c[0] in _HUD_STAGE else len(_HUD_STAGE))
+    if reasons:
+        row2.insert(0, ('WARN x%d' % len(reasons), _HUD_AMBER, False))
+    return dict(row1=row1, row2=row2, reasons=reasons, notes=notes), bottom
+
+
+def _hud_layout_top(img, parsed, records, show_height, right):
+    """Draws the FULL top-left content onto img and returns the y where it ends."""
+    y = 14
+    y = _hud_chip_row(img, parsed['row1'], 14, y, right - 4)
+    if records:
+        ordered = _hud_block_order(records)
+        studs = any(r.get('stud_layer') is not None for _, r, _ in ordered)
+        full = HUD_SHOW_GRID_LAYER_H
+        cols = [('#', 16), ('COLOR', 36), ('SIZE', 96)]
+        if full:
+            cols += [('GRID', 134), ('LAYER', 198)]
+        if studs:
+            cols.append(('sL', 250 if full else 134))
+        if full:
+            cols.append(('H(mm)', 286 if studs else 250))
+        y += 6
+        for title, cx in cols:
+            _hud_text(img, title, cx, y + 8, .36, _HUD_GREY)
+        y += 30
+        for no, record, _ in ordered:
+            cells = _hud_cells(record, show_height)
+            fill, fg = _HUD_BADGE.get(cells['color'], ((160, 160, 160), (0, 0, 0)))
+            _hud_badge(img, no, 22, y - 4, fill, fg, r=7)
+            _hud_text(img, cells['color'], 36, y)
+            _hud_text(img, cells['size'], 96, y, color=_HUD_GREY if cells['size'] == '-' else _HUD_WHITE)
+            if full:
+                _hud_text(img, cells['grid'], 134, y, color=_HUD_GREY if cells['grid'] == '-' else _HUD_WHITE)
+                end = _hud_text(img, cells['layer'], 198, y,
+                                color=_HUD_GREEN if cells['layer'] != '-' else _HUD_GREY)
+                if cells['why']:
+                    _hud_text(img, cells['why'], end + 4, y, .32, _HUD_AMBER)
+            if studs:
+                _hud_text(img, cells['stud'] or '-', 250 if full else 134, y, color=_HUD_CYAN)
+            if full:
+                _hud_text(img, cells['height'], 286 if studs else 250, y,
+                          color=_HUD_GREY if cells['height'] == '-' else _HUD_WHITE)
+            y += 22
+        y -= 4
+    if parsed['row2']:
+        y = _hud_chip_row(img, parsed['row2'], 14, y + 4, right - 4)
+    for reason in parsed['reasons']:
+        y += 2
+        for piece in _hud_wrap(reason, .34, right - 30):
+            _hud_text(img, piece, 24, y + 8, .34, _HUD_AMBER)
+            y += 14
+    for text, color in parsed['notes']:
+        y += 2
+        for piece in _hud_wrap(text, .36, right - 20):
+            _hud_text(img, piece, 16, y + 10, .36, color)
+            y += 15
+    return y + 6
+
+
+def _hud_draw_bottom(img, items):
+    """Hand/view status as chips stacked up from the bottom-left (clear of the origin marker)."""
+    height, max_x = img.shape[0], 392
+    hand, view_row, step, reason_note, other = [], [], None, '', []
+    view_keys = ''
+    for item in items:
+        text = item['text']
+        if text.startswith('HAND '):
+            parts = [p.strip() for p in text.split(' | ')]
+            head = parts[0]
+            hand.append((head, _HUD_GREEN if head.endswith('ABSENT') else
+                         _HUD_RED if head.endswith('PRESENT') else _HUD_AMBER, False))
+            for part in parts[1:]:
+                if part.startswith('exit'):
+                    try:
+                        seconds = float(part.split()[1].rstrip('s'))
+                    except (IndexError, ValueError):
+                        seconds = 0.
+                    hand.append(('exit %.2fs' % seconds, _HUD_GREEN if seconds > 3 else _HUD_AMBER, False))
+                elif part.startswith('stable'):
+                    ok = part.endswith('True')
+                    hand.append(('stable' if ok else 'unstable', _HUD_GREEN if ok else _HUD_AMBER, False))
+                else:
+                    hand.append((part, _HUD_GREEN if part == 'READY' else _HUD_AMBER, False))
+        elif ' | NOT STEP COMPLETE' in text:
+            reason_note = text.split(' | NOT STEP COMPLETE')[0]
+            step = ('NOT STEP COMPLETE', _HUD_AMBER, True)
+        elif ' | m:move' in text:
+            head, view_keys = text.split(' | ', 1)
+            view = head.split(' ')[0]
+            view_row.append((view + ' STOPPED', _HUD_GREEN, False) if 'STOPPED' in head
+                            else (view + ' MOVING', _HUD_AMBER, True))
+        else:
+            other.append((text, _hud_color(item['color'])))
+    y = height - 8
+    if reason_note:
+        for piece in reversed(_hud_wrap(reason_note, .36, max_x - 8)):
+            put_label(img, piece, (8, y - 2), 0, .36, _HUD_GREY, 1)
+            y -= 16
+        y -= 2
+    if step:
+        y -= 24
+        _hud_chip_row(img, [step], 8, y, max_x)
+        y -= 4
+    if hand:
+        rows = int((_hud_chip_row(np.zeros((1, 1, 3), np.uint8), hand, 8, 0, max_x)) // 26)
+        y -= 26 * rows
+        _hud_chip_row(img, hand, 8, y, max_x)
+    if view_row:
+        y -= 26
+        x = _hud_chip_row(img, view_row, 8, y, max_x)
+        end = 8 + sum(_hud_tw(c[0], .42, 2) + 16 for c in view_row)
+        put_label(img, view_keys, (end + 4, y + 16), 0, .36, _HUD_GREY, 1)
+    for text, color in other:
+        y -= 18
+        put_label(img, text, (8, y), 0, .4, color, 1)
+
+
+def render_hud(canvas, hud, mode=HUD_FULL):
+    """Lay the collected lines out as compact panels/chips. Display canvas only."""
+    lines = hud['lines']
+    height, width = canvas.shape[:2]
+    if height < 400:  # small status screens: keep each line where the code put it
+        for item in lines:
+            put_label(canvas, item['text'], item['org'], 0, item['scale'], item['color'], item['th'])
+        return canvas
+    if mode == HUD_OFF:
+        return canvas
+    parsed, bottom = _hud_parse(lines)
+    records, show_height = hud['records'], hud['show_height']
+    if parsed['row1'] or parsed['row2'] or parsed['notes'] or records:
+        if mode == HUD_FULL:
+            studs = bool(records) and any(r.get('stud_layer') is not None for r in records)
+            right = 8 + ((336 if studs else 296) if HUD_SHOW_GRID_LAYER_H else 256)
+            scratch = np.zeros((1, 1, 3), np.uint8)
+            end = _hud_layout_top(scratch, parsed, records, show_height, right)
+            _hud_box(canvas, 8, 8, right, end, .58)
+            cv2.rectangle(canvas, (8, 8), (right, end), _HUD_EDGE, 1)
+            _hud_layout_top(canvas, parsed, records, show_height, right)
+        else:  # COMPACT: chips only
+            chips = parsed['row1'] + parsed['row2']
+            if records:
+                chips.append(('BLOCKS %d' % len(records), _HUD_WHITE, False))
+                for no, record, _ in (_hud_block_order(records) if HUD_SHOW_GRID_LAYER_H else []):
+                    layer = record.get('layer')
+                    chips.append(('%d:%s' % (no, 'L%d' % layer if layer is not None else '-'),
+                                  _HUD_GREEN if layer is not None else _HUD_GREY, False))
+            y = _hud_chip_row(canvas, chips, 8, 8, 460)
+            for text, color in parsed['notes']:
+                if color == _HUD_RED:
+                    for piece in _hud_wrap(text, .4, 440):
+                        put_label(canvas, piece, (10, y + 10), 0, .4, color, 1)
+                        y += 16
+    _hud_draw_bottom(canvas, bottom)
+    return canvas
+
+
 def resolve_live_weights(weights, integrated):
     # Keep RGB-only and legacy four-class diagnostics independent of this model.
     return DEFAULT_INTEGRATED_WEIGHTS if integrated and weights is None else weights
@@ -127,7 +522,9 @@ def load_layer_reference(path=None):
                 block_stud_height_mm=(config['block_stud_height_m'] * 1000.
                     if config['block_surface_height_basis'] == 'BODY_TOP_PLUS_STUD' else 0.),
                 top_plane_stud_mm=(config['block_stud_height_m'] * 1000.
-                    if config['block_surface_height_basis'] == 'TOP_PLANE_PLUS_STUD' else 0.))
+                    if config['block_surface_height_basis'] == 'TOP_PLANE_PLUS_STUD' else 0.),
+                stud_layer_params=config.get('stud_layer'),
+                stud_layer_stud_mm=config['block_stud_height_m'] * 1000.)
 
 
 def load_view_calibrations(root):
@@ -425,9 +822,8 @@ def main(argv=None):
     hand_stamp, hand_event = None, None
     import rclpy
     from rclpy.qos import qos_profile_sensor_data, QoSProfile, ReliabilityPolicy
-    # Remote RGB was received with RELIABLE in the user's CLI diagnostic.
-    # Keep a short latest-frame queue; Depth/CameraInfo retain sensor-data QoS.
-    rgb_qos = QoSProfile(depth=1, reliability=ReliabilityPolicy.RELIABLE)
+    # Prefer timely sensor frames; retain only the latest pending image.
+    image_qos = QoSProfile(depth=1, reliability=ReliabilityPolicy.BEST_EFFORT)
     from sensor_msgs.msg import Image, CameraInfo
     rclpy.init()
     node = rclpy.create_node('perception_live_diagnostic')
@@ -454,6 +850,8 @@ def main(argv=None):
     tracks, candidate_stamp = [], None
     packet, packet_received = None, 0.
     frozen_canvas = None
+    frozen_hud = None
+    hud_mode = default_hud_mode(args.view)
     hand_ready_stamp = None
     view_generation = selection.generation if selection else 0
     def stop_receiving():
@@ -479,7 +877,7 @@ def main(argv=None):
         for key in ('rgb', 'raw', 'aligned'):
             subscriptions.append(node.create_subscription(Image, topics[key],
                 lambda msg, k=key, b=buffer: b.image(k, msg),
-                rgb_qos if key == 'rgb' else qos_profile_sensor_data))
+                image_qos))
             subscriptions.append(node.create_subscription(CameraInfo, topics[key+'-info'],
                 lambda msg, k=key, b=buffer: b.info(k, msg), qos_profile_sensor_data))
         receiver_thread = Thread(target=executor.spin, name='ros-rgbd-receiver', daemon=True)
@@ -510,6 +908,7 @@ def main(argv=None):
                 buffer.clear()
                 packet, packet_received, last_rgb = None, 0., None
                 frozen_canvas, hand_ready_stamp = None, None
+                hud_mode = default_hud_mode(args.view)
                 clicked.clear()
                 reference, tracks, candidate_stamp = None, [], None
                 hand_stamp, hand_event = None, None
@@ -522,6 +921,7 @@ def main(argv=None):
                 test_stage = 'OBSERVING'
                 print(f'VIEW {args.view}: '+('STOPPED (manual)' if selection.stopped else 'MOVING/UNCONFIRMED'))
             measurement = None
+            hud = new_hud()
             loop_started = time.monotonic()
             if args.integrated or args.live_overlay_test:
                 if args.stopped_and_clear and frozen_canvas is None:
@@ -531,14 +931,16 @@ def main(argv=None):
             queues, infos, received, arrivals = buffer.snapshot()
             if args.integrated and frozen_canvas is not None:
                 canvas = frozen_canvas.copy()
+                hud['lines'] = list(frozen_hud['lines'])
+                hud['records'], hud['show_height'] = frozen_hud['records'], frozen_hud['show_height']
             elif args.integrated and not args.stopped_and_clear:
                 canvas = np.zeros((180, 1000, 3), np.uint8)
-                cv2.putText(canvas, 'MOVING / UNCONFIRMED: receiving and inference OFF',
+                hud_add(hud, canvas, 'MOVING / UNCONFIRMED: receiving and inference OFF',
                             (12, 40), 0, .6, (0, 180, 255), 2)
                 messages = None
             elif not queues['rgb']:
                 canvas = np.zeros((180, 800, 3), np.uint8)
-                cv2.putText(canvas, 'Waiting for ROS RGB...', (12, 40), 0, .7, (0, 180, 255), 2)
+                hud_add(hud, canvas, 'Waiting for ROS RGB...', (12, 40), 0, .7, (0, 180, 255), 2)
                 messages = None
             else:
                 matched = synchronized_packet(queues)
@@ -574,7 +976,7 @@ def main(argv=None):
                         stamp(rgb_msg), hand_ready_stamp if args.view == 'V0' and
                         hand_ready_stamp is not None else 0)
                     if not analysis_ready:
-                        cv2.putText(canvas, 'WAIT: V0 hand entry/exit and stability' if args.view == 'V0'
+                        hud_add(hud, canvas, 'WAIT: V0 hand entry/exit and stability' if args.view == 'V0'
                                     else 'WAIT: fresh synchronized RGB-D and CameraInfo',
                                     (8, 70), 0, .5, (0, 180, 255), 1)
                 if args.opencv_separated:
@@ -595,9 +997,9 @@ def main(argv=None):
                         missing = ('aligned Depth not received' if not queues['aligned'] else
                                    'aligned CameraInfo not received' if 'aligned' not in infos else
                                    'no fresh timestamp-matched RGB/Depth')
-                        cv2.putText(canvas, 'UNKNOWN: ' + missing,
+                        hud_add(hud, canvas, 'UNKNOWN: ' + missing,
                                     (8, 70), 0, .5, (0, 0, 255), 1)
-                    cv2.putText(canvas, 'HSV TEST: separated only; no layer/Backend; thresholds temporary',
+                    hud_add(hud, canvas, 'HSV TEST: separated only; no layer/Backend; thresholds temporary',
                                 (8, 48), 0, .5, (0, 220, 255), 1)
                 if args.integrated and fresh and analysis_ready:
                     stop_receiving()  # Freeze the selected RGB-D before slow inference.
@@ -627,40 +1029,46 @@ def main(argv=None):
                             first_layer_max_mm=layer_reference.get('first_layer_max_mm'),
                             layer_upper_bounds_mm=layer_reference.get('layer_upper_bounds_mm'),
                             board_baseline_params=layer_reference.get('board_baseline_params'),
-                            board_bounds_mm=layer_reference.get('board_bounds_mm'))
+                            board_bounds_mm=layer_reference.get('board_bounds_mm'),
+                            stud_layer_params=layer_reference.get('stud_layer_params'),
+                            stud_layer_stud_mm=layer_reference.get('stud_layer_stud_mm', 0.))
                         for record in records:
                             if record.get('reason') == 'calibration_or_synced_depth_missing':
                                 record['reason'] = ', '.join(input_reasons)
-                        canvas = draw_integrated(canvas, records, show_height=args.diagnostic_geometry)
+                        canvas = (draw_integrated(canvas, records, show_height=args.diagnostic_geometry)
+                                  if HUD_LEGACY_BLOCK_LABELS else draw_block_badges(canvas, records))
+                        hud['records'], hud['show_height'] = records, args.diagnostic_geometry
                         if view_rois:
                             cv2.polylines(canvas, [view_rois[args.view][1]], True, (0, 255, 0), 2)
-                        cv2.putText(canvas, 'HSV -> YOLO -> DEPTH/GRID | trial geometry thresholds; LOCAL ONLY',
+                        hud_add(hud, canvas, 'HSV -> YOLO -> DEPTH/GRID | trial geometry thresholds; LOCAL ONLY',
                                     (8, 48), 0, .5, (0, 220, 255), 1)
                         reasons = sorted(set(input_reasons) | {
                             r['reason'] for r in records if r.get('reason')})
                         if reasons:
-                            cv2.putText(canvas, 'GEOMETRY: '+', '.join(reasons),
+                            hud_add(hud, canvas, 'GEOMETRY: '+', '.join(reasons),
                                         (8, 70), 0, .45, (0, 180, 255), 1)
                         if args.diagnostic_geometry:
-                            cv2.putText(canvas, 'MEASUREMENT DISPLAY ONLY - NO CYCLE / ROBOT PERMISSION',
+                            hud_add(hud, canvas, 'MEASUREMENT DISPLAY ONLY - NO CYCLE / ROBOT PERMISSION',
                                         (8, 92), 0, .45, (0, 180, 255), 1)
                     except (ValueError, KeyError, cv2.error) as error:
-                        cv2.putText(canvas, 'UNKNOWN: '+str(error), (8, 70), 0, .5, (0, 0, 255), 1)
+                        hud_add(hud, canvas, 'UNKNOWN: '+str(error), (8, 70), 0, .5, (0, 0, 255), 1)
                     frozen_canvas = canvas.copy()
+                    frozen_hud = dict(lines=list(hud['lines']), records=hud['records'],
+                                      show_height=hud['show_height'])
                     print('OBSERVATION FINISHED: receiving OFF; result frozen. r=new observation.', flush=True)
                 elif model and fresh and not args.integrated:
                     result = model.predict(canvas, conf=args.confidence, retina_masks=True,
                                            device='cpu', verbose=False)[0]
                     canvas = result.plot()
-                line = f'{args.view} LOCAL ONLY | c: capture | q: quit | '
+                line = f'{args.view} LOCAL ONLY | c: capture | q: quit | h: hud | '
                 line += ('OpenCV SEPARATED TEST' if args.opencv_separated else
                          'HAND ROI SETUP | r:select board' if args.select_hand_roi else
                          'INTEGRATED CPU' if args.integrated else
                          'HAND BOXES ONLY - NO CYCLE PERMISSION' if args.hand_detect_only else
                          'YOLO CPU' if model else 'NO MODEL - no automatic block coordinates')
-                cv2.putText(canvas, line, (8, 24), 0, .5, (0, 220, 255), 1)
+                hud_add(hud, canvas, line, (8, 24), 0, .5, (0, 220, 255), 1)
                 if not fresh:
-                    cv2.putText(canvas, 'STALE RGB - no measurement/capture', (8, 48), 0, .6, (0, 0, 255), 2)
+                    hud_add(hud, canvas, 'STALE RGB - no measurement/capture', (8, 48), 0, .6, (0, 0, 255), 2)
                 elif clicked and calibration and args.stopped_and_clear and synchronized and 'aligned' in infos:
                     try:
                         point = board_point(clicked[0], image_array(messages['aligned']),
@@ -671,18 +1079,18 @@ def main(argv=None):
                     except (ValueError, KeyError) as error:
                         text = 'UNKNOWN: ' + str(error)
                     cv2.circle(canvas, clicked[0], 5, (0, 0, 255), 2)
-                    cv2.putText(canvas, text, (8, 70), 0, .5, (0, 220, 255), 1)
+                    hud_add(hud, canvas, text, (8, 70), 0, .5, (0, 220, 255), 1)
                 elif args.select_hand_roi:
-                    cv2.putText(canvas, 'Press r, drag around entire assembly board, ENTER accept; q quit',
+                    hud_add(hud, canvas, 'Press r, drag around entire assembly board, ENTER accept; q quit',
                                 (8, 48), 0, .5, (0, 180, 255), 1)
                 elif args.hand_detect_only:
-                    cv2.putText(canvas, 'All image hand boxes; NOT board entry/exit; NOT a safety interlock',
+                    hud_add(hud, canvas, 'All image hand boxes; NOT board entry/exit; NOT a safety interlock',
                                 (8, 48), 0, .5, (0, 180, 255), 1)
                 elif not args.opencv_separated and not args.integrated:
-                    cv2.putText(canvas, 'XYZ unavailable unless stopped + calibration + synced Depth',
+                    hud_add(hud, canvas, 'XYZ unavailable unless stopped + calibration + synced Depth',
                                 (8, 48), 0, .5, (0, 180, 255), 1)
                 if reference is not None:
-                    cv2.putText(canvas, 'Stored lower XYZ mm: ' + ', '.join(f'{p:.2f}' for p in reference),
+                    hud_add(hud, canvas, 'Stored lower XYZ mm: ' + ', '.join(f'{p:.2f}' for p in reference),
                                 (8, 95), 0, .5, (80, 255, 80), 1)
             if args.integrated:
                 if hand_event is None:
@@ -690,23 +1098,23 @@ def main(argv=None):
                         None, None, time.monotonic(), usable=False)
                 label = (f"HAND {args.view}: {hand_event['presence']} | {hand_event['state']} | "
                          f"exit {hand_event['absent_seconds']:.2f}s (>3s) | stable {hand_event['stable']}")
-                cv2.putText(canvas, label, (8, canvas.shape[0]-32), 0, .5, (0, 220, 255), 1)
-                cv2.putText(canvas, str(hand_event['reason'])+' | NOT STEP COMPLETE',
+                hud_add(hud, canvas, label, (8, canvas.shape[0]-32), 0, .5, (0, 220, 255), 1)
+                hud_add(hud, canvas, str(hand_event['reason'])+' | NOT STEP COMPLETE',
                             (8, canvas.shape[0]-12), 0, .4, (0, 220, 255), 1)
             if selection:
                 mode = 'STOPPED (manual)' if selection.stopped else 'MOVING/UNCONFIRMED - receiving/inference OFF'
-                cv2.putText(canvas, f'{selection.view} {mode} | m:move v:V0 d:D1 f:D3 s:stop',
+                hud_add(hud, canvas, f'{selection.view} {mode} | m:move v:V0 d:D1 f:D3 s:stop',
                             (8,canvas.shape[0]-54),0,.5,(0,220,255),1)
             if args.integrated and frozen_canvas is None:
                 now = time.monotonic()
                 latest_queues, _, latest_received, _ = buffer.snapshot()
                 sync_text = sync_diagnostic_text(sync_diagnostic(latest_queues, latest_received, now, packet_received))
-                cv2.putText(canvas, sync_text, (8, 114), 0, .42, (0, 220, 255), 1)
+                hud_add(hud, canvas, sync_text, (8, 114), 0, .42, (0, 220, 255), 1)
                 if now-last_sync_log >= 2.:
                     print(sync_text+f' loop:{1000*(now-loop_started):.0f}ms', flush=True)
                     last_sync_log = now
             if args.integrated:
-                cv2.putText(canvas, 'RESULT FROZEN | receiving OFF | r:new observation' if frozen_canvas is not None
+                hud_add(hud, canvas, 'RESULT FROZEN | receiving OFF | r:new observation' if frozen_canvas is not None
                             else 'RECEIVING ON: stopped observation' if receiver_thread is not None
                             else 'RECEIVING OFF', (8, 136), 0, .42, (0, 220, 255), 1)
             if args.live_overlay_test:
@@ -724,10 +1132,10 @@ def main(argv=None):
                         stopped=args.stopped_and_clear, hand_clear=args.stopped_and_clear, mode='auto')
                     canvas = cv2.cvtColor(overlay, cv2.COLOR_RGB2BGR)
                 except (ValueError, KeyError) as error:
-                    cv2.putText(canvas, '3D TEST hidden: '+str(error), (8, 155),0,.45,(0,180,255),1)
-                cv2.putText(canvas, 'LIVE RGB + SYNTHETIC STATES / TRIAL HEIGHTS / NOT ASSEMBLY VERIFICATION',
+                    hud_add(hud, canvas, '3D TEST hidden: '+str(error), (8, 155),0,.45,(0,180,255),1)
+                hud_add(hud, canvas, 'LIVE RGB + SYNTHETIC STATES / TRIAL HEIGHTS / NOT ASSEMBLY VERIFICATION',
                             (8, 178),0,.42,(0,180,255),1)
-                cv2.putText(canvas, 'b:before comparison | a:simulate confirmed | m:move | s:stopped | q:quit',
+                hud_add(hud, canvas, 'b:before comparison | a:simulate confirmed | m:move | s:stopped | q:quit',
                             (8, 198),0,.42,(0,180,255),1)
             if args.comparison_overlay:
                 from .visualization import render_comparison_overlay
@@ -742,12 +1150,16 @@ def main(argv=None):
                         mode=args.overlay_mode)
                     canvas = cv2.cvtColor(overlay, cv2.COLOR_RGB2BGR)
                 except (OSError, ValueError) as error:
-                    cv2.putText(canvas, '3D hidden: comparison input unavailable',
+                    hud_add(hud, canvas, '3D hidden: comparison input unavailable',
                                 (8, 134), 0, .45, (0, 180, 255), 1)
+            render_hud(canvas, hud, hud_mode)
             cv2.imshow(name, canvas)
             key = cv2.waitKey(1) & 255
             if key == ord('q') or cv2.getWindowProperty(name, cv2.WND_PROP_VISIBLE) < 1:
                 break
+            if key == ord('h'):
+                hud_mode = (hud_mode + 1) % 3
+                continue
             if args.live_overlay_test and key in (ord('a'), ord('b')):
                 if not args.stopped_and_clear:
                     print('Overlay test stage blocked: confirm actual stop first')

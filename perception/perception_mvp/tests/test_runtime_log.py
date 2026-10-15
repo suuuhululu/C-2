@@ -40,7 +40,7 @@ def test_stop_confirmation_failure_logs_wait_and_failure_not_false_stop(capsys):
     class Gate:
         state = None
     gate = Gate()
-    context = dict(mode='REAL', view_order=['V0'], check_id='fail',
+    context = dict(mode='REAL', view_order=['V0', 'D1', 'D3'], check_id='fail',
                    observation_seq=0, check_kind='INITIAL')
     with pytest.raises(RuntimeError, match='stopped'):
         run_observation_cycle(gate, None, None, None, context, None, {}, {}, .25,

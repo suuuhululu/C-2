@@ -29,13 +29,20 @@ def load_segmentation_model(weights, *, trained=True, allowed_classes=None):
     return model
 
 
-def infer_masks(rgb, weights, detector_confidence, *, device="cpu"):
+def infer_masks(rgb, weights, detector_confidence, *, device="cpu", roi_mask=None):
     if rgb.dtype != np.uint8 or rgb.ndim != 3 or rgb.shape[2] != 3:
         raise ValueError("uint8 original RGB required")
     if not np.isfinite(detector_confidence) or not 0 < detector_confidence <= 1:
         raise ValueError("explicit detector threshold in (0,1] required")
+    x0, y0, x1, y1 = 0, 0, rgb.shape[1], rgb.shape[0]
+    if roi_mask is not None:
+        if roi_mask.dtype != bool or roi_mask.shape != rgb.shape[:2] or not roi_mask.any():
+            raise ValueError('nonempty assembly ROI must match RGB resolution')
+        ys, xs = np.nonzero(roi_mask)
+        x0, y0, x1, y1 = int(xs.min()), int(ys.min()), int(xs.max())+1, int(ys.max())+1
+    crop = rgb[y0:y1, x0:x1]
     model = load_segmentation_model(weights)
-    result = model.predict(rgb[:, :, ::-1].copy(), conf=detector_confidence,
+    result = model.predict(crop[:, :, ::-1].copy(), conf=detector_confidence,
                            retina_masks=True, verbose=False, device=device)[0]
     if result.boxes is None:
         raise ValueError("missing segmentation boxes")
@@ -44,10 +51,15 @@ def infer_masks(rgb, weights, detector_confidence, *, device="cpu"):
     if result.masks is None or len(result.masks.data) != len(result.boxes):
         raise ValueError("missing or mismatched instance masks")
     masks = result.masks.data.cpu().numpy() > .5
-    if masks.shape[1:] != rgb.shape[:2]:
+    if masks.shape[1:] != crop.shape[:2]:
         raise ValueError("mask resolution differs from original RGB")
-    return [(mask, model.names[int(cls)], float(conf)) for mask, cls, conf in
-            zip(masks, result.boxes.cls.cpu().numpy(), result.boxes.conf.cpu().numpy())]
+    detections = []
+    for small, cls, conf in zip(masks, result.boxes.cls.cpu().numpy(), result.boxes.conf.cpu().numpy()):
+        mask = np.zeros(rgb.shape[:2], bool)
+        mask[y0:y1, x0:x1] = small
+        if roi_mask is None or np.any(mask & roi_mask):
+            detections.append((mask, model.names[int(cls)], float(conf)))
+    return detections
 
 
 def check_labels(dataset_file, scene_manifest):
