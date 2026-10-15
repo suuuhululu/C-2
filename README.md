@@ -1,5 +1,7 @@
 # Adaptive Co Assembly — C-2 팀 개발 안내
 
+**Round3 순서별 실행 안내:** [서비스 최종 통합 실행·안내 가이드](docs/D_ROUND3_SERVICE_INTEGRATION_RUNBOOK.md). 무동작 프로파일 검사부터 INITIAL, 승인된 실제 A Step, B 확인·중간 변경·최종 사용자 저장까지 현재 명령과 개발이 필요한 단계를 구분합니다.
+
 > **2026-10-12 최신 문서 기준:** [최종 대화 반영·원격/로컬 상태](docs/16_FINAL_INTEGRATION_CHAT_SYNC_20261012.md)와 [발표·배포 문서 10종](docs/final_mvp/README.md)을 우선합니다. B가 Expected/전체 판 비교/Current·revision, D가 실행·지정 검사·진행/HMI/제스처/기존 이력·웹을 맡습니다. A 3분류 호출과 후보 실행권 분리는 유지합니다. 로컬 D 수정·계획 실패 KEEP 보류와 원격 미반영 상태를 구분하며 아래 본문은 이전 시점 기록으로 보존합니다.
 
 **A 담당 예제를 처음 실행하려면 [A 계획·도움·이동 후보 안내](planning_trial/README.md)를 먼저 보세요.** Python 환경 준비 → 예제 입력 → 장치 없는 계산 → 정상·실패 결과 확인과 동일 계획 자료의 B/D 공유를 설명합니다. [자료 분류·GitHub 보존 목록](docs/A_MATERIALS_AND_PRESERVATION.md)과 [새 사본 재현 결과](docs/A_DOCUMENTATION_VERIFICATION_20261012.md)도 연결되어 있습니다.
@@ -15,6 +17,8 @@
 LLM과 사용자가 대화로 **커스텀 의자**를 설계·확정하면 조립 순서와 경로를 생성하고 Backend·HMI에 반영합니다. 로봇은 supply board에서 블록을 집어 assembly board에 직접 결착하며, 지지가 필요한 부분은 사람에게 고정 도움을 요청합니다. 계획에 필요한 블록 사용 종료 → Vision 확인과 Backend 최종 조립 판정 → 사용자별 DB 저장·웹앱 반영의 세 단계로 마칩니다.
 
 **2026-10-07 최종 MVP 목표이며 개발 과정에서 수정될 수 있습니다.** 문서 목표와 현재 구현·실제 장치 검증은 구분합니다.
+
+다른 PC·새 채팅에서 round3 통합을 이어갈 때는 [2026-10-15 인계 안내](docs/D_ROUND3_HANDOFF_20261015.md)와 [0~9단계 실행 가이드](docs/D_ROUND3_SERVICE_INTEGRATION_RUNBOOK.md)를 먼저 확인합니다. 최근 INITIAL 실물 시도는 상태 조회/STOP 서비스 오류로 HOLD였으며 성공 관측은 확보하지 못했습니다.
 
 ## 처음 읽는 순서
 

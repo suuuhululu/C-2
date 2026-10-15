@@ -141,6 +141,15 @@ def test_final_matching_is_not_completion_until_d_conclusion_and_work_record():
     assert completion(rows(docs))["assembly"]=="UNVERIFIED_RECORD"
 
 
+def test_final_with_unobservable_evidence_cannot_be_saved_as_complete():
+    job=str(uuid4())
+    evidence=check('final',job=job)
+    evidence['result']['response']['difference']['unobservable'] = [FIXTURE['shared_plan']['design']['blocks'][0]]
+    done=event('ASSEMBLY_COMPLETED',dict(final_check_id=evidence['request_id'],design_version=1),job=job,plan='P1')
+    docs=[adoption(job),event('PLAN_WORK_EXHAUSTED',job=job,plan='P1'),evidence,done]
+    assert completion(rows(docs))['assembly']=='UNVERIFIED_RECORD'
+
+
 @pytest.mark.parametrize("name,disposition", [("unobservable","ACCEPTED"),("final","REJECTED"),("invalid_input","ACCEPTED")])
 def test_unknown_rejected_and_error_final_evidence_never_complete(name,disposition):
     job=str(uuid4()); evidence=check(name,job=job,disposition=disposition)

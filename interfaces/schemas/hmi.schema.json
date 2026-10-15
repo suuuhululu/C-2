@@ -105,7 +105,7 @@
       "type":"object", "additionalProperties":false, "required":["workflow_status","step","progress","monitor","notice","actions","design","current"],
       "allOf":[{
         "if":{"properties":{"monitor":{"properties":{"robot":{"properties":{"mode":{"const":"REAL"}}}}}}},
-        "then":{"if":{"required":["observation_kind"],"properties":{"observation_kind":{"enum":["SYNTHETIC","SAVED_REAL_INITIAL_ONLY"]}}},
+        "then":{"if":{"required":["observation_kind"],"properties":{"observation_kind":{"enum":["SYNTHETIC","SAVED_REAL_INITIAL_ONLY","REAL_CAMERA_STEP_FINAL"]}}},
           "then":{"properties":{"progress":{"properties":{"total":{"maximum":40}}}},"not":{"anyOf":[{"required":["transfer_target"]},{"required":["manual_trial"]}]}},
           "else":{"if":{"required":["manual_trial"],"properties":{"manual_trial":{"const":true}}},
           "then":{"properties":{
@@ -146,7 +146,7 @@
         "transfer_target":{"$ref":"#/$defs/transfer_target"},
         "manual_trial":{"type":"boolean","const":true},
         "reported_placement":{"$ref":"day4.schema.json#/$defs/block"},
-        "observation_kind":{"enum":["SYNTHETIC","SAVED_REAL_INITIAL_ONLY"]}
+        "observation_kind":{"enum":["SYNTHETIC","SAVED_REAL_INITIAL_ONLY","REAL_CAMERA_STEP_FINAL"]}
       }
     },
     "command": {

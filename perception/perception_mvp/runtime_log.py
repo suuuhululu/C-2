@@ -8,6 +8,17 @@ import time
 _current = local()
 
 
+@contextmanager
+def progress_sink(sink):
+    """Forward existing B progress across its process boundary."""
+    previous = getattr(_current, 'sink', None)
+    _current.sink = sink
+    try:
+        yield
+    finally:
+        _current.sink = previous
+
+
 def progress(context, message, *, view=None, **details):
     state = getattr(_current, 'state', None)
     if state is not None:
@@ -15,6 +26,9 @@ def progress(context, message, *, view=None, **details):
             state.update(message=message, view=view, stage_started=time.monotonic())
     value = dict(check_id=context.get('check_id'), check_kind=context.get('check_kind'),
                  view=view, **details)
+    sink = getattr(_current, 'sink', None)
+    if sink is not None:
+        sink(message, view, details)
     print(f"{datetime.now(timezone.utc).isoformat()} [B] {message} "
           + json.dumps(value, ensure_ascii=False, default=str), flush=True)
 

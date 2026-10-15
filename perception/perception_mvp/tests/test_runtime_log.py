@@ -2,7 +2,7 @@ import json
 from pathlib import Path
 from queue import Queue
 import pytest
-from perception_mvp.runtime_log import progress
+from perception_mvp.runtime_log import progress, progress_sink
 from perception_mvp.runtime_log import periodic_progress
 from threading import Event
 from perception_mvp.replay_inspection import make_sample_observer
@@ -17,6 +17,19 @@ def test_progress_is_immediate_single_line_with_identity(monkeypatch):
     text = calls[0][0][0]
     assert '이동 요청·도착 대기' in text and 'D1' in text and 'req' in text
     assert '\n' not in text and calls[0][1]['flush'] is True
+
+
+def test_process_progress_sink_is_restored_after_nested_failure():
+    outer, inner = [], []
+    with progress_sink(lambda *value: outer.append(value)):
+        with pytest.raises(RuntimeError):
+            with progress_sink(lambda *value: inner.append(value)):
+                progress({'check_id':'check'}, 'camera', view='D3', captured=1)
+                raise RuntimeError('TEST_FAILURE')
+        progress({'check_id':'check'}, 'hold', reason='TEST_FAILURE')
+    progress({'check_id':'next-check'}, 'outside')
+    assert inner == [('camera', 'D3', {'captured':1})]
+    assert outer == [('hold', None, {'reason':'TEST_FAILURE'})]
 
 
 def test_connection_logs_start_result_delivery_without_changing_result(capsys):
@@ -40,7 +53,7 @@ def test_stop_confirmation_failure_logs_wait_and_failure_not_false_stop(capsys):
     class Gate:
         state = None
     gate = Gate()
-    context = dict(mode='REAL', view_order=['V0'], check_id='fail',
+    context = dict(mode='REAL', view_order=['V0', 'D1', 'D3'], check_id='fail',
                    observation_seq=0, check_kind='INITIAL')
     with pytest.raises(RuntimeError, match='stopped'):
         run_observation_cycle(gate, None, None, None, context, None, {}, {}, .25,

@@ -4,6 +4,7 @@ from datetime import datetime, timezone
 import json
 from pathlib import Path
 from queue import Queue
+from threading import Event
 import signal
 import subprocess
 import sys
@@ -54,7 +55,7 @@ class Child:
     def wait(self, timeout): self.code = -2
 
 
-def install(tmp_path, monkeypatch, *, initial='OK', target=None):
+def install(tmp_path, monkeypatch, *, initial='OK', target=None, live=False):
     monkeypatch.setenv('C_DESIGN_USE_LLM', '0')
     monkeypatch.setattr('app.mvp_integration.RobotProcess', Transport)
     baseline = [p['block'] for p in json.loads(SCENARIO.read_text())['preplaced']]
@@ -78,12 +79,19 @@ def install(tmp_path, monkeypatch, *, initial='OK', target=None):
     targets = [p['target'] for p in json.loads(SCENARIO.read_text())['steps']]
     if target is not None: targets[0] = deepcopy(target)
     design = dict(design_version=1, blocks=baseline + targets)
+    if live:
+        from app.cad_real_trial import REAL_STILLNESS_TOLERANCES
+        settings = json.loads((ROOT/'interfaces/round3_initial_inspection.json').read_text())
+        settings.update(calibration_id='TEST_CAPTURE_GEOMETRY', stillness=REAL_STILLNESS_TOLERANCES)
+        monkeypatch.setattr('app.round3_initial_inspection.load_settings', lambda _:settings)
     runtime = ApprovedStepRealTrial(ROBOT, tmp_path / 'jobs', initial_observation=capture,
-        fixed_trial_scenario=SCENARIO, execution_profile=REGISTRY, fixture_design=design)
+        fixed_trial_scenario=SCENARIO, execution_profile=REGISTRY, fixture_design=design, live_inspection=live)
     child = Child()
+    child.launches = 0
     def launch(command, **kwargs):
         assert runtime.robot.closed  # Read-only ROS process released its writer lock first.
         child.command = command
+        child.launches += 1
         return child
     monkeypatch.setattr('app.round3_fixed_trial.subprocess.Popen', launch)
     return runtime, child
@@ -246,3 +254,94 @@ def test_approved_mode_ui_shows_saved_real_source_and_keeps_c_controls(tmp_path,
         '--round3-approved-step', '--initial-observation', str(tmp_path / 'initial-capture'),
         '--fixed-trial-scenario', str(SCENARIO), '--execution-profile', str(REGISTRY)])
     main(real_trial=True)
+
+
+def finish_native(runtime, child):
+    output = runtime.fixed_trial.directory/'native'
+    output.mkdir()
+    identity = runtime.service_binding
+    (output/'result.json').write_text(json.dumps(dict(status='FIXED_STEP_EXECUTED',
+        completed_steps=[identity['native_step_id']], backend='REAL', provenance='LIVE_D_RUNTIME',
+        assembly_completion=False, current_update=False, service_binding=identity)))
+    child.code = 0
+
+
+@pytest.mark.parametrize('fault', ['MATCH', 'MISMATCH', 'UNOBSERVABLE', 'ERROR', 'STOP'])
+def test_native_completion_to_actual_b_contract_without_devices(tmp_path, monkeypatch, fault):
+    entered = Event()
+    class FixtureCamera:
+        """Explicit fixture replaces only D/camera; actual B performs comparison."""
+        def __init__(self, root, settings, output, review):
+            self.output, self.outcomes = output, {}
+        def __call__(self, context, active):
+            entered.set()
+            if fault == 'STOP':
+                while active(): time.sleep(.005)
+                self.outcomes[context['check_id']] = dict(actual_stop_verified=True,
+                    stop_sample=dict(provenance='SYNTHETIC_TEST_ONLY'))
+                raise RuntimeError('TEST_CANCELED')
+            if fault == 'ERROR': raise RuntimeError('TEST_CAMERA_ERROR')
+            blocks = deepcopy(runtime.initial_observation['visible_blocks']) + [deepcopy(TARGET)]
+            if fault == 'MISMATCH': blocks[-1]['color'] = 'yellow'
+            value = dict(check_id=context['check_id'], observation_seq=context['observation_seq'],
+                status='OK', visible_blocks=blocks,
+                verified_regions=[dict(x=0,y=0,width=24,height=24,layer=i) for i in range(1,6)],reason=None)
+            if fault == 'UNOBSERVABLE':
+                value.update(status='UNOBSERVABLE', visible_blocks=[], verified_regions=[], reason='TEST_OCCLUSION')
+            return value, {}
+    monkeypatch.setattr('app.round3_live_inspection.LiveInspectionObserver', FixtureCamera)
+    runtime, child = install(tmp_path, monkeypatch, live=True)
+    try:
+        runtime.review_preparation(True)
+        assert runtime.command('START')
+        settle(runtime, lambda:runtime.fixed_trial is not None)
+        assert not entered.is_set() and len(runtime.workflow.current['blocks']) == 8
+        finish_native(runtime, child)
+        settle(runtime, entered.is_set, approve=False)
+        if fault == 'STOP':
+            assert runtime.command('STOP')
+            settle(runtime, lambda:runtime.workflow.status=='STOPPED', approve=False)
+        else:
+            settle(runtime, lambda:runtime.workflow.check is None and
+                runtime.workflow.status in ('HOLD','WAIT_INTENT'), approve=False)
+        if fault == 'MATCH':
+            assert len(runtime.workflow.completed) == 1
+            assert len(runtime.workflow.current['blocks']) == 9
+            assert runtime.workflow.current['current_revision'] == 2
+            assert runtime.workflow.reason == 'REMAINING_NATIVE_STEP_BINDING_REQUIRED'
+            assert runtime.command('REQUEST_DESIGN_CHANGE')
+            assert runtime.c_pending[0] == 'c.intent'
+        else:
+            assert runtime.workflow.completed == []
+            if fault == 'MISMATCH':
+                assert runtime.c_pending[0] == 'c.intent'
+                assert runtime.c_pending[1]['current'] == runtime.workflow.current
+                assert runtime.workflow.current['blocks'][-1]['color'] == 'yellow'
+            else: assert len(runtime.workflow.current['blocks']) == 8
+        for _ in range(3):runtime.poll()
+        assert child.launches == 1 and runtime.robot.sent == ['READ_STATE']
+        assert runtime.workflow.storage == 'NOT_STARTED'
+        assert not runtime.command('RESUME')
+    finally:runtime.close()
+
+
+def test_live_inspection_cli_requires_approved_mode_before_ui():
+    result = subprocess.run([sys.executable,'-m','app.mvp_real_trial','--robot-root',str(ROBOT),
+        '--execute','--round3-live-inspection'],cwd=ROOT,text=True,capture_output=True,timeout=15)
+    assert result.returncode == 2 and '--round3-approved-step' in result.stderr
+
+
+def test_offline_preflight_keeps_all_supply_targets_and_exposes_native_support_gap():
+    result=subprocess.run([sys.executable,'-m','app.round3_service_preflight'],cwd=ROOT,
+        text=True,capture_output=True,timeout=30)
+    assert result.returncode==0,result.stderr
+    value=json.loads(result.stdout)
+    assert value['sample_kind']=='SYNTHETIC_EXPECTED_PREFIX_NOT_B_CURRENT'
+    assert value['user_design_approved'] is False
+    assert value['physical_commands']==value['device_connections']==0
+    assert value['supply_physical_targets']==25
+    assert all(row['execution_approved'] for row in value['supply_slots'])
+    assert [row['native_step_id'] for row in value['steps']]==['T2','T1','T3']
+    assert all(row['assessment_status']=='CANDIDATE' for row in value['steps'])
+    assert value['steps'][2]['additional_native_support_required']
+    assert value['steps'][2]['native_support_target']['layer']==2

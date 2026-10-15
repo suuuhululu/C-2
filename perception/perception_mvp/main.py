@@ -31,8 +31,8 @@ def validate_cycle_target(context):
 
 
 def inspection_view_order(kind):
-    """INITIAL is a V0-only baseline inspection; assembly checks retain three Views."""
-    return ['V0'] if kind == 'INITIAL' else ['V0', 'D1', 'D3']
+    """INITIAL, STEP and FINAL retain the three-View evidence bundle (PR55)."""
+    return ['V0', 'D1', 'D3']
 
 
 def make_inspection_observer(gate, hand_detector, hand_stream, capture_view,

@@ -65,6 +65,7 @@ class MvpIntegration:
         self.robot_retired = False
         self.history_dsn, self.web_url = history_dsn, web_url
         self.creator = self.job_creator = None
+        self.save_receipt = self.saved_owner = None
         self._credentials = None  # Memory only; never part of snapshots or JSONL.
         self.login_pending = False
         self.creator_reason = None
@@ -220,6 +221,7 @@ class MvpIntegration:
                 self.creator_reason='시작 전에 제작자 로그인이 필요합니다.'
                 return False
             self.scene, self.slot_indices = [],{}
+            self.save_receipt = self.saved_owner = None
             self.saved_observation_index = 0
             self.consumed_executions.clear()
             self.scene_executions.clear()
@@ -320,23 +322,38 @@ class MvpIntegration:
         if self.job_creator and username!=self.job_creator['username']:return False
         expected_user_id = self.job_creator['user_id'] if self.job_creator else None
         job=self.workflow.job_id
-        self.workflow.storage='PENDING'
-        self.workflow.web='NOT_STARTED'
+        web_only = self.workflow.storage == 'SUCCEEDED'
+        if web_only and (self.workflow.web == 'PENDING' or self.save_receipt is None
+                or self.saved_owner is None or username != self.saved_owner['username']):
+            return False
+        receipt = deepcopy(self.save_receipt)
+        if not web_only:
+            self.workflow.storage='PENDING'
+        self.workflow.web='PENDING' if web_only else 'NOT_STARTED'
         self.workflow.save_reason=None
         def run():
             try:
-                from history import store
                 from history.mvp_save import save_current_job, verify_web_job
-                from uuid import uuid4
-                with store.connect(dsn) as connection:
-                    result=save_current_job(connection,self.workflow.log_directory,job,username,password,str(uuid4()),
-                                            expected_user_id=expected_user_id)
             except Exception as error:
-                self.inbox.put(('save',(job,None,str(error) if isinstance(error,ValueError) else type(error).__name__)))
+                reason = str(error) if isinstance(error,ValueError) else type(error).__name__
+                self.inbox.put(('web',(job,reason)) if web_only else ('save',(job,None,reason)))
                 return
-            self.inbox.put(('save',(job,result,None)))
+            if not web_only:
+                try:
+                    from history import store
+                    from uuid import uuid4
+                    with store.connect(dsn) as connection:
+                        result=save_current_job(connection,self.workflow.log_directory,job,username,password,str(uuid4()),
+                                                expected_user_id=expected_user_id)
+                    receipt_value = result['receipt']
+                except Exception as error:
+                    self.inbox.put(('save',(job,None,str(error) if isinstance(error,ValueError) else type(error).__name__)))
+                    return
+                self.inbox.put(('save',(job,result,None)))
+            else:
+                receipt_value = receipt
             try:
-                verify_web_job(web_url,job,username,password,result['receipt'])
+                verify_web_job(web_url,job,username,password,receipt_value)
                 self.inbox.put(('web',(job,None)))
             except Exception as error:
                 self.inbox.put(('web',(job,str(error) if isinstance(error,ValueError) else type(error).__name__)))
@@ -371,6 +388,8 @@ class MvpIntegration:
                     self.workflow.storage='FAILED' if error else 'SUCCEEDED'
                     self.workflow.web='NOT_STARTED' if error else 'PENDING'
                     self.workflow.save_reason=error
+                    if not error:
+                        self.save_receipt, self.saved_owner = deepcopy(result['receipt']), deepcopy(result['owner'])
                     if not error and self.job_creator:
                         self.owner_state='SUCCEEDED'
                         self.creator_reason=None
@@ -500,6 +519,10 @@ def main(runtime_class=MvpIntegration, *, real_trial=False):
             help='T1 고정 현장 시험만 HMI에서 실행. C/A 실행·B 완료·최종 저장과 분리')
         parser.add_argument('--round3-approved-step', action='store_true',
             help='C 승인·실제 A 한 Step을 대응 native 교시·공급 프로파일에 연결하고 B 확인 전 보류')
+        parser.add_argument('--round3-live-inspection', action='store_true',
+            help='승인 Step native 종료 뒤 실제 B STEP 검사. 후속 native 실행은 별도 연결까지 보류')
+        parser.add_argument('--inspection-config', type=Path,
+            help='round3 INITIAL과 동일한 실제 관측점·보정 설정')
         parser.add_argument('--initial-observation', type=Path,
             help='실제 B INITIAL 저장 폴더(context.json/observed.json/V0·D1·D3 metadata.json)')
         parser.add_argument('--fixed-trial-scenario', type=Path,
@@ -515,6 +538,10 @@ def main(runtime_class=MvpIntegration, *, real_trial=False):
     args=parser.parse_args()
     if real_trial and args.round3_step_replay is not None:
         parser.error('--round3-step-replay는 MOCK HMI 전용입니다.')
+    if real_trial and (args.round3_live_inspection or args.inspection_config) and not args.round3_approved_step:
+        parser.error('--round3-live-inspection/--inspection-config는 --round3-approved-step 전용입니다.')
+    if real_trial and args.inspection_config and not args.round3_live_inspection:
+        parser.error('--inspection-config에는 --round3-live-inspection이 필요합니다.')
     if real_trial and args.round3_approved_step:
         if (args.round3_fixed_step or args.contact_alignment_trial or args.supply_depth_profile
                 or args.educational_depth_demo or not args.initial_observation
@@ -550,7 +577,8 @@ def main(runtime_class=MvpIntegration, *, real_trial=False):
                     'execution_profile':args.execution_profile}
                    if args.round3_fixed_step else
                    dict(initial_observation=args.initial_observation, fixed_trial_scenario=args.fixed_trial_scenario,
-                        execution_profile=args.execution_profile) if args.round3_approved_step else {})) if real_trial else
+                        execution_profile=args.execution_profile, live_inspection=args.round3_live_inspection,
+                        inspection_config=args.inspection_config) if args.round3_approved_step else {})) if real_trial else
             ({'round3_step_replay':json.loads(args.round3_step_replay.read_text())}
                 if args.round3_step_replay is not None else {})))
     window.creator_bar.setVisible(runtime.history_dsn is not None)
@@ -656,6 +684,16 @@ def main(runtime_class=MvpIntegration, *, real_trial=False):
                     and runtime.fixed_trial.process.poll() is None)
                 window.notice.setPlainText((runtime.workflow.reason or '실제 D 한 Step 실행 중')
                     + '\n기록: ' + str(runtime.fixed_trial.directory))
+            if args.round3_live_inspection:
+                window.setWindowTitle('Round3 · C 승인 → A 한 Step → 실제 D → 실제 B 검사')
+                window.footer.setText('REAL · 초기 저장 실관측 + 실제 B STEP/FINAL · 남은 native 연결은 별도 검증')
+                window.user_request_controls.buttons['change_design'].setEnabled(
+                    snapshot['user_requests']['change_design']['enabled'] and runtime.fixed_result is not None)
+                window.reinspection_button.setVisible(runtime.workflow.status == 'HOLD'
+                    and runtime.workflow.inspection is not None
+                    and runtime.workflow.inspection['status'] in ('ERROR', 'UNOBSERVABLE'))
+                if runtime.workflow.check is not None:
+                    window.buttons['STOP'].setEnabled(True)
     def request(value):
         accepted=runtime.request(value)
         if 'request_id' in value:

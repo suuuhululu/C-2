@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 import subprocess
 import sys
+from threading import Event, Thread
 import time
 from uuid import uuid4
 
@@ -313,12 +314,21 @@ class ApprovedStepRealTrial(FullFeatureRealTrial):
     approved_step_mode = True
 
     def __init__(self, robot_root, directory, *, initial_observation, fixed_trial_scenario,
-                 execution_profile, **kwargs):
+                 execution_profile, live_inspection=False, inspection_config=None, **kwargs):
         from app.round3_approved_step import load_initial_capture
         self.scenario_path = Path(fixed_trial_scenario).resolve()
         self.registry_path = Path(execution_profile).resolve()
         self.initial_observation, self.initial_packet = load_initial_capture(initial_observation)
         packet = self.initial_packet
+        self.live_inspection_mode = live_inspection
+        self.live_observer = None
+        self.live_check_running = Event()
+        self.inspection_stop_worker = None
+        if live_inspection:
+            from app.round3_initial_inspection import DEFAULT, load_settings
+            self.inspection_settings = load_settings(inspection_config or DEFAULT)
+            if self.inspection_settings['calibration_id'] != packet['geometry_reference']:
+                raise ValueError('APPROVED_STEP_LIVE_INSPECTION_GEOMETRY_MISMATCH')
         self.scenario = json.loads(self.scenario_path.read_text())
         # The native preview resolves the same teaching, layout and authenticated registry as run.
         preview = subprocess.run([sys.executable, '-m', 'scripts.round2_three_step_trial', 'preview',
@@ -333,10 +343,27 @@ class ApprovedStepRealTrial(FullFeatureRealTrial):
         self.service_binding = None
         super().__init__(robot_root, directory, fixed_trial_scenario=self.scenario_path,
                          execution_profile=self.registry_path, **kwargs)
-        self.workflow.settings['observation_kind'] = 'SAVED_REAL_INITIAL_ONLY'
+        self.workflow.settings['observation_kind'] = ('REAL_CAMERA_STEP_FINAL' if live_inspection
+                                                     else 'SAVED_REAL_INITIAL_ONLY')
         self.workflow.settings['geometry_reference'] = packet['geometry_reference']
 
     def observe(self, context, active):
+        if context['check_kind'] != 'INITIAL' and self.live_inspection_mode:
+            if not self.robot_retired or self.fixed_result is None or self.live_observer is None:
+                raise ValueError('APPROVED_NATIVE_WRITER_MUST_FINISH_BEFORE_INSPECTION')
+            execution_id = self.workflow.execution_id or self.workflow.last_execution_id
+            self.live_check_running.set()
+            try:
+                return self.live_observer(context, active)
+            finally:
+                self.live_check_running.clear()
+                outcome = self.live_observer.outcomes.get(context['check_id'], {})
+                if self.cancelled.is_set() and outcome.get('actual_stop_verified') is True:
+                    self.robot.events.put(dict(event='STOP_VERIFIED', data=dict(
+                        actual_stop_verified=True, execution_id=execution_id, previous_state='IDLE',
+                        sample=outcome.get('stop_sample') or outcome.get('home_sample', {}).get('sample'),
+                        check_id=context['check_id'],
+                        evidence_ref=str(self.live_observer.output / context['check_id'] / 'd-result.json'))))
         from app.round3_approved_step import file_digest
         packet = self.initial_packet
         if (not active() or self.initial_consumed or context['check_kind'] != 'INITIAL'
@@ -348,6 +375,13 @@ class ApprovedStepRealTrial(FullFeatureRealTrial):
                     observation_seq=context['observation_seq']), dict(observation_kind='SAVED_REAL_INITIAL_ONLY')
 
     def command(self, name):
+        if self.live_inspection_mode and self.fixed_result is not None and name == 'STOP':
+            self.cancelled.set()
+            self.c_pending = None
+            return self.workflow.stop()
+        if (self.live_inspection_mode and self.fixed_result is not None
+                and name in ('REINSPECT', 'REQUEST_DESIGN_CHANGE')):
+            return MvpIntegration.command(self, name)
         if name in ('RESUME', 'REINSPECT', 'CONTINUE_AFTER_CORRECTION'):
             return False
         if self.fixed_trial is not None and name != 'STOP':
@@ -400,7 +434,12 @@ class ApprovedStepRealTrial(FullFeatureRealTrial):
             self.workflow.event('APPROVED_STEP_PREPARATION_FAILED', dict(reason=str(error), robot_motion_sent=False))
 
     def emit(self, port, payload):
-        if port == 'robot.EXECUTE':
+        if port == 'd.prepare_step' and self.live_inspection_mode and self.fixed_result is not None:
+            # Preserve B Current and C/A results. A later native binding must cover the
+            # changed Current/prefix/support before another physical step can start.
+            self.workflow.status, self.workflow.reason = 'HOLD', 'REMAINING_NATIVE_STEP_BINDING_REQUIRED'
+            self.workflow.event('ROUND3_REMAINING_NATIVE_STEP_PENDING', deepcopy(payload))
+        elif port == 'robot.EXECUTE':
             from app.round3_approved_step import digest, file_digest, validate_binding
             from app.round3_fixed_trial import FixedStepProcess
             document = dict(schema_version='round3-approved-step/1', approved=deepcopy(self.workflow.approved),
@@ -411,8 +450,13 @@ class ApprovedStepRealTrial(FullFeatureRealTrial):
             self.service_binding = validate_binding(document, self.native_config, self.scenario, self.registry_path)
             path = self.directory / self.workflow.job_id / 'approved-step.json'
             try:
+                if self.live_inspection_mode:
+                    from app.round3_live_inspection import LiveInspectionObserver
+                    self.live_observer = LiveInspectionObserver(self.fixed_robot_root.resolve().parent,
+                        self.inspection_settings, self.directory / self.workflow.job_id / 'live-inspection',
+                        self.review_ref)
                 save(path, document)
-            except OSError as error:
+            except (OSError, ValueError) as error:
                 self.workflow.status, self.workflow.reason = 'HOLD', str(error)
                 self.workflow.event('APPROVED_STEP_SAVE_FAILED', dict(reason=str(error), robot_motion_sent=False))
                 return
@@ -431,7 +475,10 @@ class ApprovedStepRealTrial(FullFeatureRealTrial):
                 self.workflow.status, self.workflow.reason = 'HOLD', str(error)
                 self.workflow.event('APPROVED_STEP_START_FAILED', dict(reason=str(error), assembly_completion=False))
         elif port == 'robot.STOP' and self.robot_retired:
-            if self.fixed_trial is not None:
+            if (self.live_inspection_mode and self.fixed_result is not None
+                    and not self.live_check_running.is_set()):
+                self.stop_retired_inspection()
+            elif self.fixed_trial is not None:
                 self.fixed_trial.stop()
         else:
             super().emit(port, payload)
@@ -450,6 +497,32 @@ class ApprovedStepRealTrial(FullFeatureRealTrial):
                 self.workflow.reason = ('APPROVED_STEP_EXECUTED_B_CONFIRMATION_REQUIRED' if matched
                     else 'APPROVED_STEP_INTERRUPTED_OR_FAILED_VERIFY_PHYSICAL_STATE')
                 self.workflow.event('ROUND3_APPROVED_STEP_RESULT', dict(result, binding_matched=matched))
+                if matched and self.live_inspection_mode and not self.workflow.log_failed:
+                    self.workflow.execution_closed = True
+                    self.workflow.status = 'WAIT_ASSEMBLY'
+                    self.workflow.request_check('STEP')
+
+    def stop_retired_inspection(self):
+        from app.round3_initial_inspection import open_motion
+        identity = self.workflow.execution_id or self.workflow.last_execution_id
+        def run():
+            try:
+                with open_motion(self.inspection_settings, Event()) as motion:
+                    sample = motion.stop()
+                row = dict(event='STOP_VERIFIED', data=dict(actual_stop_verified=True,
+                    execution_id=identity, previous_state='IDLE', sample=sample))
+            except Exception as error:
+                row = dict(event='STOP_UNVERIFIED', data=dict(execution_id=identity, reason=str(error)))
+            self.robot.events.put(row)
+        self.inspection_stop_worker = Thread(target=run, daemon=True)
+        self.inspection_stop_worker.start()
+
+    def close(self):
+        super().close()
+        if self.live_inspection_mode:
+            self.b._worker.join()
+            if self.inspection_stop_worker is not None:
+                self.inspection_stop_worker.join()
 
 
 if __name__=='__main__':main(FullFeatureRealTrial,real_trial=True)

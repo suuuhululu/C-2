@@ -136,6 +136,7 @@ def completion(rows):
             final = accepted.get(data["final_check_id"], {})
             linked = (final.get("check_kind") == "FINAL" and final.get("status") == "OK"
                 and final.get("comparison") == "MATCH" and final.get("plan_id") == row["plan_id"]
+                and not final.get('difference', {}).get('unobservable', [True])
                 and adopted.get(row["plan_id"]) == data["design_version"]
                 and row["plan_id"] == latest_plan
                 and row["plan_id"] in exhausted)

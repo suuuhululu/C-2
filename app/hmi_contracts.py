@@ -202,7 +202,7 @@ def validate_hmi_snapshot(value: object) -> dict:
             and snapshot["monitor"]["robot"]["status"] == "STOP_PENDING"):
         raise ValueError("snapshot.monitor.robot.status: STOP_PENDING is not confirmed STOPPED")
     real_trial = snapshot["monitor"]["robot"]["mode"] == "REAL"
-    full_operator_trial = snapshot.get("observation_kind") in ("SYNTHETIC", "SAVED_REAL_INITIAL_ONLY")
+    full_operator_trial = snapshot.get("observation_kind") in ("SYNTHETIC", "SAVED_REAL_INITIAL_ONLY", "REAL_CAMERA_STEP_FINAL")
     if "observation_kind" in snapshot and (not full_operator_trial or not real_trial or
             "transfer_target" in snapshot or "manual_trial" in snapshot):
         raise ValueError("snapshot.observation_kind: explicit REAL trial observation source required")

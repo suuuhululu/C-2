@@ -201,7 +201,7 @@ def test_capture_cli_context_forwarded(tmp_path, monkeypatch):
     ('STEP', ['V0', 'D2', 'D4'], 'V0 -> D1 -> D3'),
     ('STEP', ['V0'], 'V0 -> D1 -> D3'),
     ('FINAL', ['V0'], 'V0 -> D1 -> D3'),
-    ('INITIAL', ['V0', 'D1', 'D3'], 'must be V0$'),
+    ('INITIAL', ['V0'], 'V0 -> D1 -> D3'),
 ])
 def test_live_cycle_rejects_nonagreed_order(inputs, kind, order, expected):
     manifest, config, calibration, _ = inputs
@@ -220,7 +220,7 @@ def test_cycle_initial_final_capture_archive_and_no_fake_target(inputs, monkeypa
     import time
     from perception_mvp.hand_cycle import HandCycle
     manifest, config, calibration, meta = inputs
-    order = ['V0'] if kind == 'INITIAL' else ['V0', 'D1', 'D3']
+    order = ['V0', 'D1', 'D3']
     manifest.update(check_kind=kind, target_after=None, view_order=order)
     gate = HandCycle(.2, 10.)
     gate.state, gate.last_time = 'READY', time.monotonic()

@@ -1,5 +1,53 @@
 # 현재 진행 상황
 
+## 2026-10-15 다른 PC·새 채팅 인계와 INITIAL 실패 보존
+
+- 사용자 요청으로 현재 round3 서비스 연결 변경을 대상 브랜치에 로컬 커밋하고, 독립 Git bundle·실행 설정 원본/휴대본·외부 런타임·검증 근거·새 채팅 인계문을 ZIP으로 전달한다. 원격 push/PR/merge는 요청 범위에 포함하지 않았다. 다른 PC의 경로 지정용 `scripts/round3_environment.example.bash`와 [인계 안내](D_ROUND3_HANDOFF_20261015.md)를 추가했다. 기존 공급판·motion 수치·B 최신성/정지 임계값은 변경하지 않았다.
+- 실제 INITIAL run `fc31b465-45e3-45aa-abb1-485da99ac420`, check `42c3d345-e916-4693-be6c-75ce87d5508c`는 V0 도착 확인 후 `HAND_RECEPTION` 중 `aux_control/get_current_posj` 응답 시간 초과로 HOLD 종료했다. `stop_error=SERVICE_UNAVAILABLE: motion/move_stop`, Current=null, actual_stop_verified/home_return_verified=false, writer_released=true, 조립/그리퍼 명령0이다. 프로세스 종료를 실제 정지로 해석하지 않는다. 실제 정지 확인과 상태 조회·STOP 서비스 진단을 다음 장치 작업의 선행 조건으로 남겼다. 이 요청에서 추가 로봇/그리퍼 명령을 보내지 않았다.
+- 결과·이벤트 원본은 기존 logs 폴더와 인계 압축본 evidence에 보존한다. 성공 INITIAL/조립/B STEP/FINAL·실제 DB·웹 인수 완료가 아니다. 이번 전달 검증의 명령·결과는 상위 `reports/round3_handoff_20261015`와 압축본 manifest에 기록한다.
+- 커밋 전 재검사: 서비스/B801 passed1skipped, native108 passed, 저장 관측/A/변경 replay32 passed, MVP5 passed로 유효 대상 총946 passed1skipped다. 최초 MVP5건은 C2_ROBOT_ROOT 미지정으로 skip됐고 해당 경로를 지정해5건만 재실행·통과했다. skip1건은 기존 PR22 consumer 미제공이다. Python AST/JSON, bash 구문, 문서 링크/코드펜스, diff 공백, portable/원본25슬롯 실행 수치 일치, INITIAL preview와 서비스 preflight를 확인했다. 이번 검사는 장치/DB/외부 API에 연결하지 않았다.
+
+## 2026-10-15 서비스 장비 재연결 — 로봇 읽기 조회
+
+- 후속 카메라 출력(사용자 제공)은 RGB80/정렬Depth81/양쪽Info80개, 모두1280×720/camera_color_optical_frame, 약9.99Hz, 수신 시 나이120.33~195.48ms, 대응 packet skew0ms다. 이 8초 전송 검사는 통과이며 조립 인식·보정 정확도 확인은 아니다. B Docker import/설정·두 모델 파일 존재도 실제 기존 image에서 확인했다. 카메라 장치에 새 연결을 열거나 로봇 명령을 보내지 않았다.
+- INITIAL 사전 읽기에서 V0/D1/D3의 교시 joint→실제 FK와 교시 TCP 차이가 각각0.411/0.287/0.830mm, 회전0.170/0.039/0.084°로 기존1mm/1° 이내다. 현재 V0 차이0.386mm/0.170°, 실제 driver로 읽은3표본은 속도0/동작0/그리퍼0, 조회0.108~0.132초였다. 실제 읽기 경로만 허용했으며 Move/STOP/그리퍼 쓰기0. `preinitial-045539176496.json`에 보존했다. 실제 이동 경로/현장 손 이탈/빈 그리퍼·8블록 준비는 별도 현장 확인이다.
+- 첫 사전 조회는 안내의 `PYTHONPATH=.:perception`이 ROS import 경로를 덮어써 rclpy 누락으로 장치 연결 전에 HOLD였다. 실물 INITIAL 명령을 `PYTHONPATH=".:perception${PYTHONPATH:+:$PYTHONPATH}"`로 정정한 뒤 위 실제 읽기 통과를 확인했다. 설치·환경 파일 변경은 없으며 실패 기록 `preinitial-045442498666.json`도 보존했다. 300초 초기 관측 채택 창에 대비해 `logs/round3-service-guide/design.candidate.json`의11블록 검토 후보를 C validator로 검사·준비했고 사용자 승인은 하지 않았다.
+- round3 launch `camera:=false rviz:=false`와 사용자 노드 목록을 확인하고, 기존 ROS/DRCF2 환경에서 실제 조회 서비스 9종과 RG2 register 267/268을 읽었다. robot_system0, robot_state1, robot_mode1, motion_status0, drl_state3, TCP GripperDA_v4/Tool ToolWeight0, TCP 속도0 응답이다. RG2 status0/폭52.0mm/grip_detected=false이며 실제 빈 그리퍼·현장 준비를 자동 확정하지 않는다.
+- 현재 관절 `[3.7999,18.3037,40.5009,-3.1014,121.0003,0.4000]`은 HOME이 아닌 기존 V0 교시에 가깝다. 로봇 이동/그리퍼 쓰기/모드·TCP 변경 명령0. 단발 조회이며 지속 정지·카메라 촬영·INITIAL/B 채택·조립 성공 근거가 아니다. 카메라는 아직 연결 확인 전이다.
+- 원시 조회 기록: 상위 로컬 `reports/round3_service_hardware_20261015/connection-045138471178.json`. 다음은 기존 검증된 10fps·Infra1/2 OFF 카메라 기동과 RGB/정렬Depth/Info 읽기 확인이다.
+
+## 2026-10-15 장치 대기 중 0~9단계 검토와 선행 개발
+
+- 사용자 요청으로 장치 작업을 보류하고 0~9단계를 [실행 가이드의 장치 대기 검토표](D_ROUND3_SERVICE_INTEGRATION_RUNBOOK.md)에 정리했다. 이전 실물 검증 없이 확정 계약/fixture로 개발할 수 있으며, 실제 Current·파지/결착·정지·경로 성능은 장치 증거가 필요하다는 경계를 유지한다. 작업 전 변경과 미추적 파일 사본은 상위 로컬 `reports/round3_offline_service_20261015`에 보존했다. HEAD `93ef967`, 로컬 round3에서 작업하며 commit/push/merge는 하지 않았다.
+- 우선 4/7단계의 `LiveInspectionObserver`를 추가했다. 기존 Docker 관측과 round3 D driver로 STEP/FINAL을 관측하고, B가 비교·Current를 소유한다. `--round3-approved-step --round3-live-inspection`에서 native 종료·binding 일치 후 B STEP를 요청한다. MATCH만 한 Step 완료, MISMATCH는 실제 Current를 C에 전달, UNOBSERVABLE/ERROR/STOP은 진행을 보류한다. B 재검사는 새 check_id로 관측만 하며 native를 반복하지 않는다. 다음 d.prepare_step은 `REMAINING_NATIVE_STEP_BINDING_REQUIRED`로 보류하여 닫힌 reader로 명령하지 않는다. 기본 단발 실행은 그대로다.
+- 실제 관측 출처 `REAL_CAMERA_STEP_FINAL`을 D 내부 HMI 검증/표시에 추가했다. 공통 ABCD 검사 DTO, ROS 서비스, DB schema/API는 변경하지 않았다. 관측 종료 뒤 HOME/정지 확인·driver/writer 정리를 마친 후 B 결과가 확정된다. 관측 중 취소는 기존 실제 STOP 확인을 중계하고, retired native 뒤 정지는 새 조회/STOP 경로를 사용한다. 실제 정지가 확인되지 않으면 STOPPED를 만들지 않는다.
+- **남은 D 인계:** 현재 native는 조립판 위에서 빈 패드를 닫고 끝나지만 관측 이동은 열린 빈 그리퍼/HOME을 전제로 한다. 관측 시작에 기존 `InspectionMotion.confirm(..., allow_move=False)`의 읽기 전용 HOME 확인을 추가했다. 전제가 다르면 View 이동·촬영 전에 실패한다. 자동 개방/새 복귀 경로/그리퍼 상태 완화는 추가하지 않았다. 기존 release/press/수직 상승과 open_empty_pad·검토된 복귀 경로를 잇는 개발·실물 확인이 남아 있어 새 live 옵션을 정상적인 실물 연속 서비스로 안내하지 않는다.
+- 5단계의 `app.round3_service_preflight`를 추가했다. 실제 C 후보 검사·A whole/Step 재평가·native preview로 T2→T1→T3와 공급 프로파일을 확인한다. 합성 Expected prefix임을 명시하고 사용자 승인·B Current·실행 권한을 만들지 않는다. 25개 모두 실행 대상이며 현재 scenario와 연결된 세 슬롯을 구분한다. A T3 판단 NONE과 native P09 수동 지지 차이를 `additional_native_support_required=true`로 기록했다. 남은 prefix/소비 슬롯/지원/프로세스 반복 binding과 수정 후 native 재개는 후속 개발이며 장치 없이 fixture로 선행할 수 있다.
+- 8단계는 DB 저장 성공 영수증과 사용자를 보존하고 웹 실패 뒤 웹 확인만 재시도하도록 수정했다. 다른 사용자·진행 중 중복을 차단하며 DB 실패는 저장부터 재시도한다. 저장 재처리가 물리 완료·조립 실행을 바꾸지 않는다. 이력 완료 판정에도 FINAL MATCH의 unobservable 잔여를 차단하여 저장 전제를 진행부와 일치시켰다. 현재 실행 환경에 psycopg/명시적 시험 DSN이 없어 실제 DB/웹 통합은 실행하지 않았으며 설치·운영 DB 추정 연결도 하지 않았다.
+- 검증: 새 관측/INITIAL/승인 Step·기존 HMI/진행/이력/저장·B 전체 **801 passed, 1 skipped**, native 관측/motion/ROS adapter **108 passed**, 기존 저장 관측 ABCD/설계 변경/A replay·MVP 통합 **37 passed**. 총 **946 passed, 1 skipped**, 각 종료0. skip은 기존 PR22 consumer 미제공이다. 모든 D·카메라·저장 경계의 대체 입력은 명시적인 fixture이며 실제 장치 성공 증거가 아니다. 최초 새 HMI 출처 검증 실패를 로컬 enum/표시에 연결했고, psycopg 없는 단위 환경은 저장 경계를 명시적으로 대체하여 검사했다.
+- 9단계의 정상·차이·관측 불가·오류·취소·별도 FINAL·변경 승인·저장/웹 실패를 관련 회귀로 확인했다. 실제 8블록 INITIAL, native→B 인계, 남은 실물 조립·변경 후 재개·별도 FINAL·계정별 DB/웹까지의 인수 시험은 남아 있다. 사용자가 이미 INITIAL preview를 통과했으므로 장치 재개 때는 연결·읽기 조회 후 실제 INITIAL 한 번부터 이어간다. 이번에는 로봇/그리퍼/카메라/실제 ROS 장치/LLM API/DB 연결을 실행하지 않았다.
+
+## 2026-10-15 Round3 최신 로봇 제어 기반 INITIAL 실행기 연결
+
+- 기준은 로컬·원격 `codex/integration-round3`의 `93ef967869065abb971e690aae44c3fe45e468bc`다. 작업 시작 시 기존 README/STATUS 수정과 실행 가이드를 보존하고 상위 로컬 `reports/round3_initial_integration_20261015/preexisting.patch`, `preexisting-status.txt`에 기록했다. round2 작업본·원자료는 수정하지 않았다.
+- `app.round3_initial_inspection`에 INITIAL 전용 preview/run을 추가했다. 실제 B `connect_inspection`→Docker 관측→D 관측점 이동/정지·pose hook→B Current 확정→저장 archive와 Current 대조→HOME 복귀 확인→B 작업자/ROS 정리·writer 해제 순서다. 조립·그리퍼 명령은 실행하지 않는다. 성공 상태는 `INITIAL_CAPTURED_HOME_RETURNED`이며 `initial_capture_directory`를 기존 `--round3-approved-step`에 전달한다.
+- round2의 로컬 `DockerBObserver`, Docker 관측 진입점/실행 스크립트, `InspectionMotion`, 실제 HOME/V0/D1/D3 교시를 필요한 범위만 재사용했다. round2 작업본 HEAD `e868bba`는 원격보다 18커밋 뒤이며 미커밋 파일도 있어 전체 병합하지 않았다. View·속도/가속도·도착 허용값·보정/모델 경로의 동일성을 비교 기록으로 확인했다.
+- [PR #55](https://github.com/suuuhululu/C-2/pull/55) `04a382157b60a7697c0c4570478bda37211e5e1c`의 필요한 INITIAL V0→D1→D3 순서를 반영했다. PR 전체 merge/cherry-pick, stud_layer 진단·높이 임계값 변경은 하지 않았다. B Current/revision/비교 및 공통 ABCD 계약은 유지한다.
+- 정지 판정은 기존 round3 `REAL_STILLNESS_TOLERANCES`를 도착 확인과 촬영 전 조회에 동일하게 적용한다. 새 허용값을 만들지 않았으며 round2의 정확한 속도0 조건을 가져오지 않았다. D3의 실제 원인을 확정하거나 실물 실패가 해결됐다고 표시하지 않는다. 영상 최신성도 기존 B의 250ms/skew50ms를 유지하고 round2의 5000ms/200ms override를 제외했다.
+- 취소/오류는 HOLD와 실제 STOP 확인 경로로 종료한다. 닫힌 요청·다른 check/view·중복 writer를 차단하고 B worker가 끝나기 전 driver를 닫지 않는다. Ctrl+C는 취소 Event를 닫는다. HOME 또는 archive 검증 실패 시 이미 B가 확인한 Current를 유지한다. 도착 표본은 `events.jsonl`, 촬영 전 정지 불일치는 `inspection-state-failures`에 실제 속도·상태·오차와 함께 기록한다. 실제 STOP 미확인은 성공으로 표시하지 않는다.
+- round3의 `AssemblyMotionRos`, 기본 제어 설정, 세 사이클 native, portable 공급 profile/scenario가 HEAD와 바이트 동일함을 확인했다. 원래 공급판 RGB-D/교시·집기·결착·힘·속도를 변경하지 않았다. 출처 hash와 비교 결과는 상위 로컬 `reports/round3_initial_integration_20261015`에 보존했다.
+- 이번 실행 검사: 새 INITIAL 계약/프로세스·정상/관측 불가·오래된 ID·D3 정지 실패·HOME 실패·취소·archive 불일치·writer/ROS 정리 **12 passed**; native 관측 이동/기존 motion·ROS adapter **106 passed**; B 전체 **475 passed, 1 skipped**(기존 PR22 consumer 미제공); 기존 round3 승인 Step/고정 HMI/저장 관측/변경/A replay **58 passed**. 총 **651 passed, 1 skipped**, 각 종료0. D·카메라 데이터는 명시적 fixture이며 실제 장치 증거가 아니다.
+- INITIAL preview는 `PREVIEW_NO_DEVICE_CONNECTION`, V0/D1/D3, device_connections0/physical_commands0이다. 실제 native 모듈의 lazy import도 장치 없이 확인했다. 현재 Docker 이미지의 존재·ID만 조회했으며 새 container 관측·실제 ROS 연결·카메라·로봇 이동·그리퍼·외부 C API·DB는 실행하지 않았다. 별도 lint/type checker는 미구성이다.
+- [실행 가이드 1~3단계](D_ROUND3_SERVICE_INTEGRATION_RUNBOOK.md)에 preview, 현장 INITIAL 명령, 결과 파일과 다음 승인 Step 전달 방법을 추가했다. 다음 현장 작업은 무동작 preview 확인→교시 경로/빈 그리퍼/배치 확인→INITIAL 한 번이다. 실제 8블록 Current·HOME·제어권 해제 후 300초 이내 기존 C 승인/A 첫 Step 경로를 진행한다. 이후 실제 B STEP/FINAL·연속 실행·사용자 저장은 후속 작은 작업이다. commit/push/PR/merge는 수행하지 않았다.
+
+## 2026-10-15 Round3 순서별 실행·최종 통합 안내 (이전 문서 작업 시점)
+
+- 현재 `codex/integration-round3` HEAD `93ef967`, 작업 시작 시 clean을 확인했다. 이전 서비스 연결 및 portable 프로파일 패키징이 이 커밋에 포함돼 있다. 이 문서 작업은 실행 코드·교시·프로파일 수치를 변경하지 않는다.
+- [최종 통합 실행 가이드](D_ROUND3_SERVICE_INTEGRATION_RUNBOOK.md)를 추가했다. 0단계 무동작 검사→INITIAL 실행기 연결→실제 초기 관측→C 승인/A/D 한 Step→B STEP와 연속 실행→나머지 대상·중간 변경→FINAL→사용자 저장→전체 인수의 순서와 통과/보류 기준을 기록했다. 한 단계의 증거를 확인한 뒤 다음 조작을 안내한다.
+- 첫 명령 `organize_supply_profile.py validate`는 `PYTHONPATH=.:perception`이 필요하다. 처음 경로를 생략한 실행은 `supply_vision` import 실패, 위 경로로 25슬롯/20 RGB-D/5교시 검사 통과. portable native 전체 preview도 3개 case/physical_commands0 통과. validate는 기존 validation.json을 기록하며 실제 장치에 연결하지 않는다.
+- #55는 현재 OPEN, round2 대상, SHA `04a382157b60a7697c0c4570478bda37211e5e1c`로 재확인했다. round3의 INITIAL 실물 실행기는 아직 없고, 기존 `c2_integration_round2`의 CameraRealTrial/DockerBObserver/InspectionMotion 등은 이식 검토 후보로만 표시했다. 기존 round2 `one` 시험을 사전 8블록 위에 실행하도록 안내하지 않았다. 다음 개발 목표는 조립 없이 INITIAL 저장·HOME 복귀·writer 해제를 확인하는 실행기다.
+- 실제 INITIAL/로봇/카메라/DB/외부 C API 실행은 하지 않았다. 문서 링크·코드 블록·입력/출력·Git diff를 검사하며 소프트웨어 검사를 실물 검증으로 표시하지 않는다. commit/push/PR/merge는 이번 작업 범위에 포함하지 않는다.
+
 ## 2026-10-15 — 공급판 RGB-D 중심 → 로봇 XY 보정 연결
 
 - 요청 범위: OpenCV 스터드 중심과 정렬 Depth를 로봇 Base 좌표로 변환하고, 교시 당시 기준 표면 중심과의 상대 변위 XY만 파지 목표에 반영한다. Z/회전/힘/속도/기존 T1·full-real 기본 동작과 B 상태 소유는 유지한다.
