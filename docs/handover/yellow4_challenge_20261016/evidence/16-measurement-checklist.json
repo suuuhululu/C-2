@@ -1,0 +1,42 @@
+{
+  "status": "OFFLINE_PREPARATION_COMPLETE_FIELD_MEASUREMENT_DEFERRED",
+  "execution_allowed": false,
+  "physical_commands": 0,
+  "reused_evidence": "/home/rokey/Documents/ChatGPT/로봇제어 개발/c2_integration_challenge/logs/yellow4-field-prepared-20261014/evidence.json",
+  "current_setup": {
+    "block_location": null,
+    "held": null,
+    "other_trial_active": true
+  },
+  "retained_observations": {
+    "target": [
+      17,
+      17,
+      1
+    ],
+    "first_engagement_side": "GRID_Y_DECREASE",
+    "axis_direction_candidate": "GRID_X",
+    "same_grasp_width_mm": 40.6
+  },
+  "required_evidence": {
+    "block_pose_and_grasp": {
+      "status": "PENDING",
+      "method": "Same-state TCP feedback plus metric block pose in BASE from independently checked camera transform or registered fixture; visible planar body features with depth and known geometry. Check occlusion and uncertainty before adoption.",
+      "new_grasp_requires_new_pair": true
+    },
+    "initial_contact": {
+      "status": "PENDING",
+      "method": "Side-view evidence of first contacting underside feature and mating stud, scale in the same plane; determine whether fixed-line model is supported. Hidden contact is UNKNOWN.",
+      "contact_line_base_mm": null,
+      "signed_tilt_deg": null
+    }
+  },
+  "excluded": [
+    "cropped seated RGB as full block pose",
+    "supply-view RGBD as assembly measurement",
+    "5deg example as measured angle",
+    "stud-centre row as automatically verified physical pivot",
+    "new grasp combined with old seated TCP"
+  ],
+  "user_constraint": "No robot/camera/service connection or setup changes while another trial is active"
+}

@@ -1,0 +1,17 @@
+{
+  "source_kind": "EXISTING_TEACHING_REUSE_AUDIT",
+  "standard_supply_source": "robot_control_integration/fixtures/teaching_sources/operator_supply.json",
+  "standard_supply_case": "supply/yellow/2x2x1/1",
+  "standard_grasp_policy": "central two-stud faces, pad bottom +5mm, manual teaching and read-only capture",
+  "current_supply_capture": "logs/yellow4-field-supply-grasp/capture-1791964146705980926/capture.json",
+  "current_seated_capture": "logs/yellow4-field-seated-grasp/capture-1791965183566613886/capture.json",
+  "reuse_existing_supply_teaching": true,
+  "reuse_current_operator_seated_reference": true,
+  "historical_transform_search": "No calibrated full TCP-block transform found in checked sources; recent ready-pack T_tcp_from_block fields also null",
+  "other_grasps_excluded": [
+    "blue2x2 slot2 measured7.1/7.0mm",
+    "blue2x3 approximately8mm continuous pair",
+    "human15mm replacement"
+  ],
+  "hardware_commands": 0
+}

@@ -1,0 +1,26 @@
+{
+  "source_log": "/home/rokey/Documents/ChatGPT/로봇제어 개발/c2_integration_challenge/logs/yellow4-field-registration/virtual-axis-air-1791977409313610379.jsonl",
+  "test_kind": "REAL_EMPTY_GRIPPER_VIRTUAL_AXIS_AIR_DIAGNOSTIC",
+  "operator_report": "motion not visually obvious",
+  "command_endpoints": 4,
+  "actual_change_mm_deg": [
+    0.7573612386705115,
+    1.0013744799900812
+  ],
+  "xyz_delta_mm": [
+    -0.02960205078125,
+    -0.7559661865234375,
+    -0.0351409912109375
+  ],
+  "predicted_change_mm_deg": [
+    0.6981212449282714,
+    0.9999999999999937
+  ],
+  "max_endpoint_position_error_mm": 0.08754539219069168,
+  "max_endpoint_so3_error_deg": 0.010802026014286358,
+  "stopped": true,
+  "width_mm": 37.7,
+  "block_grasp_verified": false,
+  "contact_axis_verified": false,
+  "assembly_verified": false
+}

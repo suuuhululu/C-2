@@ -1,0 +1,26 @@
+{
+  "capture_ref": "/home/rokey/Documents/ChatGPT/로봇제어 개발/c2_integration_challenge/logs/yellow4-field-registration/virtual-axis-air-1791977409313610379.jsonl",
+  "posx_mm_zyz_deg": [
+    565.6837768554688,
+    181.7524871826172,
+    165.04180908203125,
+    112.86865997314453,
+    175.0176239013672,
+    113.00443267822266
+  ],
+  "posj_deg": [
+    14.496908187866211,
+    34.495704650878906,
+    49.096187591552734,
+    5.162073612213135,
+    97.1348648071289,
+    14.941929817199707
+  ],
+  "stopped": true,
+  "width_mm": 37.7,
+  "status": 0,
+  "checkpoint_scope": "Actual empty-gripper1deg virtual-axis arc ended. Not registered block/axis stage3 verification.",
+  "next_on_resume": "Fresh stopped state compare first. No automatic return/open/retry. Next prepare XYZ+SO3 virtual-axis air diagnostic; physical contact geometry remains unmeasured.",
+  "execution_allowed": false,
+  "physical_commands_for_capture": 0
+}

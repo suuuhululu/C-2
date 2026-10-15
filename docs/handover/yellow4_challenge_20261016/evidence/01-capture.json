@@ -1,0 +1,183 @@
+{
+  "schema_version": "yellow4-read-only-capture/1",
+  "role": "SUPPLY_GRASP_CANDIDATE",
+  "notes": "Operator reports stopped after yellow2x2 slot1 regrasp; held-block air preparation, not virtual-axis profile",
+  "sample": {
+    "gripper_status": 2,
+    "gripper_width_mm": 40.6,
+    "posj": [
+      -208.31130981445312,
+      3.7925968170166016,
+      109.9101791381836,
+      -3.453578472137451,
+      63.18077087402344,
+      -207.0239715576172
+    ],
+    "posx": [
+      -329.0500793457031,
+      194.4129638671875,
+      46.9764289855957,
+      107.00418853759766,
+      175.59156799316406,
+      107.18355560302734
+    ],
+    "velx": [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+    ],
+    "motion_status": 0,
+    "wrench": [
+      3.5651955604553223,
+      -1.4570575952529907,
+      8.870224952697754,
+      0.11953268200159073,
+      0.6617594957351685,
+      0.1770458072423935
+    ],
+    "tcp": "GripperDA_v4",
+    "tool": "ToolWeight0"
+  },
+  "camera_info": {
+    "width": 640,
+    "height": 480,
+    "k": [
+      605.2830810546875,
+      0.0,
+      328.19140625,
+      0.0,
+      605.14501953125,
+      244.0506134033203,
+      0.0,
+      0.0,
+      1.0
+    ],
+    "d": [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+    ],
+    "distortion_model": "plumb_bob",
+    "frame_id": "camera_color_optical_frame",
+    "stamp_ns": 1791977631919494141
+  },
+  "timing": {
+    "source": "LIVE_READ_ONLY",
+    "snapshot_time_unix_s": 1791977632.228256,
+    "rgb_stamp_ns": 1791977631919494141,
+    "field_age_s": {
+      "gripper": 0.457042961003026,
+      "posj": 0.40273102200444555,
+      "posx": 0.40273144200182287,
+      "velx": 0.2790519190020859,
+      "motion_status": 0.19299257800594205,
+      "wrench": 0.12181503600004362,
+      "tcp": 0.0605604329975904,
+      "tool": 0.00020010300067951903
+    },
+    "rgb_age_s": 0.02369794200058095,
+    "read_status": "READ_FEEDBACK_AVAILABLE",
+    "analysis_age_s": 0.024879128999600653
+  },
+  "observation": {
+    "view": "supply",
+    "physical_commands": 0,
+    "execution_allowed": false,
+    "roll_pitch_observed": false,
+    "roll_pitch_deg": null,
+    "source_kind": "IMAGE_DIAGNOSTIC_NOT_FIELD_REGISTRATION",
+    "supply_decision": {
+      "slot_id": "yellow_2x2x1_01",
+      "vision_attempted": true,
+      "inference_completed": true,
+      "recognized": false,
+      "center_available": false,
+      "center_uv": null,
+      "center_basis": "STUD_ARRAY",
+      "reason": "NO_VALID_COLOR_CONTOUR",
+      "frame_stamp_ns": 1791977631919494141,
+      "attempts": [],
+      "execution_allowed": false,
+      "center_assist_applied": false,
+      "fallback_reason": "NO_VALID_COLOR_CONTOUR"
+    },
+    "coordinate_fallback_tcp": [
+      -327.85296630859375,
+      193.36367797851562,
+      52.078731536865234,
+      102.85449981689453,
+      -176.07705688476562,
+      104.31108093261719
+    ],
+    "pickup_tcp_candidate": [
+      -327.85296630859375,
+      193.36367797851562,
+      52.078731536865234,
+      102.85449981689453,
+      -176.07705688476562,
+      104.31108093261719
+    ],
+    "top_edge_pixels": [],
+    "contact_axis_pixels": [],
+    "pixel_axis_is_measured_3d_axis": false
+  },
+  "sources": {
+    "scenario": {
+      "path": "/home/rokey/Documents/ChatGPT/로봇제어 개발/c2_integration_challenge/robot_control_integration/settings/yellow4_challenge_20261014/scenario.json",
+      "sha256": "678800e15b96fb88e8a310672aa4eacf7b4737ee7d378c584455394ba12f06ff"
+    },
+    "supply_config": {
+      "path": "/home/rokey/Documents/ChatGPT/로봇제어 개발/c2_integration_challenge/robot_control_integration/settings/supply_sequence_20261014/config.json",
+      "sha256": "64e48faeb7074dbea0448a7f14ba5c1d242dfdee6f5faa4def3f8a399023e244"
+    },
+    "held_config": {
+      "path": "/home/rokey/Documents/ChatGPT/로봇제어 개발/c2_integration_challenge/robot_control_integration/settings/held_corner_stud_20261014/config.json",
+      "sha256": "e61c44ccd69c8e26be70a7e908a0dec65e8b63022f52425ccafd288850aeeb8d"
+    },
+    "raised_profile": {
+      "path": "/home/rokey/Documents/ChatGPT/로봇제어 개발/c2_integration_challenge/robot_control_integration/settings/raised_grasp_press_20261014/profile.pending.json",
+      "sha256": "f92f538e1392790fa713e905878fd5e7edd20c7abd2a60ac611c679ed99e5e1c"
+    },
+    "board_calibration": {
+      "path": "/home/rokey/Documents/ChatGPT/로봇제어 개발/c2_integration_challenge/robot_control_integration/calibration/assembly_board_16mm_20261007.json",
+      "sha256": "c77ff4cae46828ae2450875c1d904aae5bce8e965175c47ec71b1686ebf0fa20"
+    },
+    "static_tf": {
+      "path": "/home/rokey/Documents/ChatGPT/로봇제어 개발/c2_integration_challenge/robot_control_integration/calibration/tf_static_round2_20261014.yaml",
+      "sha256": "6efca7b8d23be49afac8da3fef5b2388655cd88f639fc114c97cfb5de629d25e"
+    },
+    "block_geometry": {
+      "path": "/home/rokey/Documents/ChatGPT/로봇제어 개발/c2_integration_challenge/planning_trial/measurements/round2_geometry.operator_20261013.json",
+      "sha256": "b23f0b1aee416be868fd7265b855a845c924ca3b9ae43058676fdefa7389ebf8"
+    },
+    "layer_records": {
+      "path": "/home/rokey/Documents/ChatGPT/로봇제어 개발/c2_integration_challenge/robot_control_integration/calibration/layer_records.json",
+      "sha256": "397c6749c4b42e296788c5fc3d57452307bf8f8a91df7bd359a8671c8190a501"
+    },
+    "supply_layout": {
+      "path": "/home/rokey/Documents/ChatGPT/로봇제어 개발/c2_integration_challenge/robot_control_integration/settings/supply_sequence_20261014/opencv_stud_layout.json",
+      "sha256": "83bfc7a36f653ddd89845df3c421cd4dd0ff247ae508bf6b4b1b329a26f9e4fc"
+    }
+  },
+  "target": {
+    "color": "yellow",
+    "brick_type": "2x2x1",
+    "x": 17,
+    "y": 17,
+    "layer": 1,
+    "orientation_deg": 0
+  },
+  "grasp_mode": "STANDARD",
+  "intended_pad_bottom_height_mm": 5,
+  "robot_stopped_at_capture": true,
+  "pose_image_registration_verified": false,
+  "actual_pad_bottom_height_verified": false,
+  "block_pose_measured": false,
+  "physical_commands": 0,
+  "execution_allowed": false
+}

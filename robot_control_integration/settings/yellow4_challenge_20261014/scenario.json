@@ -50,8 +50,22 @@
     "grasp_transform": "T_tcp_block: block coordinates mapped into TCP coordinates"
   },
   "field_inputs": {
-    "supply_pick_tcp": null,
-    "seated_tcp_with_same_grasp": null,
+    "supply_pick_tcp": [
+      -329.0500793457031,
+      194.4129638671875,
+      46.9764289855957,
+      107.00418853759766,
+      175.59156799316406,
+      107.18355560302734
+    ],
+    "seated_tcp_with_same_grasp": [
+      568.1318969726562,
+      181.4790802001953,
+      13.403186798095703,
+      124.14789581298828,
+      175.525634765625,
+      123.88666534423828
+    ],
     "tcp_to_block_transform": null,
     "board_frame": null,
     "assembly_contact_line": null,
@@ -62,7 +76,7 @@
     "contact_force_moment_profile": null,
     "engagement_classifier": null,
     "release_classifier": null,
-    "note": "Existing measured sources are read first; missing values remain unknown. Synthetic preview values are not promoted to robot-base measurements."
+    "note": "Real current-grasp TCP captures recorded20261014; same-grasp/seating basis is operator report. Full TCP-block transform, board frame/contact axis and initial tilt remain unregistered. Earlier assumed geometry and virtual40mm axis are not measurements."
   },
   "grasp_policy": {
     "user_plus_10mm_trial_is_measured_15mm_profile": false,
@@ -399,5 +413,52 @@
       "measured vertical clearance, recovery path/drop support/return zone and source reset arrangement",
       "actual complete release/recovery/empty-target/board stability and single then repeated cycle results"
     ]
+  },
+  "field_session_evidence_20261014": {
+    "directory": "logs/yellow4-field-prepared-20261014",
+    "readiness_status": "PREPARED_EVIDENCE_REAL_EXECUTION_BLOCKED",
+    "current_grasp_id": "yellow4-current-grasp-1791977632253911881",
+    "board_fixation_operator_confirmed": true,
+    "target_studs_operator_confirmed": [
+      [
+        17,
+        17
+      ],
+      [
+        18,
+        17
+      ],
+      [
+        17,
+        18
+      ],
+      [
+        18,
+        18
+      ]
+    ],
+    "image_down": "GRID_Y_DECREASE",
+    "manual_contact_observations": "First engagement and initial rotation maintained; near-parallel Y+translation while light-touch engagement may remain",
+    "empty_gripper_diagnostics": {
+      "j4_1deg_real_tcp_distance_mm": 6.08294061234615,
+      "tcp_position_held_1deg_real_residual_mm": 0.16019728326829363,
+      "virtual_axis_1deg_real_tcp_distance_mm": 0.7573612386705115,
+      "virtual_axis_is_real_contact_axis": false
+    },
+    "real_loaded_registered_air_verified": false,
+    "real_rotation_seating_verified": false,
+    "real_removal_verified": false,
+    "reset_loop_suspended": true,
+    "next_user_action": "NONE_UNTIL_FIELD_REGISTRATION_AND_EXECUTION_PROFILE_READY",
+    "portable_handover": "docs/handover/yellow4_challenge_20261016/README.md"
+  },
+  "handover_20261016": {
+    "guide": "docs/handover/yellow4_challenge_20261016/README.md",
+    "prompt": "docs/handover/yellow4_challenge_20261016/RESUME_PROMPT.txt",
+    "manifest": "docs/handover/yellow4_challenge_20261016/manifest.json",
+    "last_field_constraint_source": "2026-10-15: another trial owns equipment; no device connections or setup changes",
+    "current_robot_or_grasp_state": "UNKNOWN_RECHECK_ONLY_AFTER_EQUIPMENT_AVAILABLE",
+    "historical_resume_pose_is_not_motion_target": true,
+    "real_execution_allowed": false
   }
 }

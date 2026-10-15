@@ -1,0 +1,38 @@
+"""Query-only provisional air path IK/FK; no device motion clients."""
+import json,sys
+from pathlib import Path
+import numpy as np
+import rclpy
+from dsr_msgs2.srv import Ikin,Fkin,GetSolutionSpace
+HERE=Path(__file__).resolve().parent
+ROOT=HERE.parents[1]
+sys.path.insert(0,str(ROOT/'robot_control_integration'))
+from app.edge_first_seating import pose_matrix
+rclpy.init();node=rclpy.create_node('yellow4_ik_query_only')
+clients={name:node.create_client(kind,'/dsr01/dsr_controller2/'+path) for name,kind,path in [('sol',GetSolutionSpace,'aux_control/get_solution_space'),('ik',Ikin,'motion/ikin'),('fk',Fkin,'motion/fkin')]}
+def query(name,kind,**values):
+    c=clients[name]
+    if not c.wait_for_service(timeout_sec=4):raise RuntimeError(name+'_SERVICE_UNAVAILABLE')
+    req=kind.Request()
+    for k,v in values.items():setattr(req,k,v)
+    future=c.call_async(req);rclpy.spin_until_future_complete(node,future,timeout_sec=4)
+    if not future.done():raise RuntimeError(name+'_TIMEOUT')
+    response=future.result()
+    if response is None or not response.success:raise RuntimeError(name+'_FAILED')
+    return response
+try:
+    capture=json.loads((ROOT/'logs/yellow4-field-seated-grasp/capture-1791965183566613886/capture.json').read_text())
+    sol=query('sol',GetSolutionSpace,pos=capture['sample']['posj']).sol_space
+    path=json.loads((HERE/'assembly-candidate.result.json').read_text())
+    result={'status':'PROVISIONAL_GEOMETRY_IK_DIAGNOSTIC_NOT_EXECUTABLE','physical_commands':0,'execution_allowed':False,'assumed_base_z_translation_mm':100,'sol_space':sol,'waypoints':[],'note':'5deg and contact axis/grasp geometry are assumptions. IK/FK does not validate clearance, physical grasp or engagement.'}
+    previous=None
+    for w in path['waypoints']:
+        target=list(w['tcp_mm_zyz_deg']);target[2]+=100
+        joints=[float(v) for v in query('ik',Ikin,pos=target,sol_space=sol,ref=0).conv_posj]
+        actual=[float(v) for v in query('fk',Fkin,pos=joints,ref=0).conv_posx]
+        A=pose_matrix(target);B=pose_matrix(actual)
+        angle=float(np.degrees(np.arccos(np.clip((np.trace(A[:3,:3].T@B[:3,:3])-1)/2,-1,1))))
+        result['waypoints'].append({'tilt_deg':w['tilt_deg'],'target_tcp':target,'joints_deg':joints,'fk_tcp':actual,'position_error_mm':float(np.linalg.norm(A[:3,3]-B[:3,3])),'so3_error_deg':angle,'delta_joints_from_previous_deg':None if previous is None else [a-b for a,b in zip(joints,previous)]})
+        previous=joints
+    out=HERE/'controller-ik-air-candidate.json';out.write_text(json.dumps(result,indent=2)+'\n');print('IK_QUERY_SAVED:',out,'physical_commands=0; provisional only')
+finally:node.destroy_node();rclpy.shutdown()

@@ -1,0 +1,37 @@
+{
+  "source_kind": "OPERATOR_FIELD_MEASUREMENT",
+  "evidence_ref": "/home/rokey/Documents/ChatGPT/로봇제어 개발/c2_integration_challenge/logs/yellow4-field-prepared-20261014/evidence.json",
+  "frame": "BASE",
+  "target": {
+    "color": "yellow",
+    "brick_type": "2x2x1",
+    "x": 17,
+    "y": 17,
+    "layer": 1,
+    "orientation_deg": 0
+  },
+  "slot": 1,
+  "tcp": "GripperDA_v4",
+  "tool": "ToolWeight0",
+  "grasp_id": "yellow4-current-grasp-1791977632253911881",
+  "pad_bottom_from_block_bottom_mm": null,
+  "tcp_pose_mm_zyz_deg": [
+    568.1318969726562,
+    181.4790802001953,
+    13.403186798095703,
+    124.14789581298828,
+    175.525634765625,
+    123.88666534423828
+  ],
+  "block_pose_mm_zyz_deg": null,
+  "block_geometry": null,
+  "target_studs": null,
+  "operations": {
+    "assembly": null,
+    "removal": null
+  },
+  "board_fixation_confirmed": true,
+  "note": "Real seated TCP from capture, operator confirms17,17 seating and board fixation. Nominal5mm policy is NOT independently measured height. Block pose/axis/tilt remain null; do not pass pending file to execute. Neither provisional board nor virtual40mm axis is measured registration.",
+  "grasp_mode": "STANDARD",
+  "execution_allowed": false
+}

@@ -1,0 +1,40 @@
+"""Query-only FK comparison. No motion, stop, mode or gripper clients."""
+import json
+from pathlib import Path
+import numpy as np
+import rclpy
+from dsr_msgs2.srv import Fkin
+ROOT=Path(__file__).resolve().parents[2]
+rclpy.init()
+node=rclpy.create_node('yellow4_fk_query_only')
+client=node.create_client(Fkin,'/dsr01/dsr_controller2/motion/fkin')
+try:
+    if not client.wait_for_service(timeout_sec=5):
+        raise RuntimeError('FK_SERVICE_UNAVAILABLE; no robot commands sent')
+    result={'source_kind':'CONTROLLER_FK_QUERY_ONLY','physical_commands':0,'cases':{}}
+    captures={'home':'logs/yellow4-field-joint-review/capture-1791967444118846356/capture.json',
+              'seated':'logs/yellow4-field-seated-grasp/capture-1791965183566613886/capture.json'}
+    for label,path in captures.items():
+        sample=json.loads((ROOT/path).read_text())['sample']
+        rows=[]
+        for delta in (0,-1,1):
+            joints=list(sample['posj']);joints[3]+=delta
+            request=Fkin.Request();request.pos=joints;request.ref=0
+            future=client.call_async(request)
+            rclpy.spin_until_future_complete(node,future,timeout_sec=4)
+            if not future.done():
+                raise RuntimeError('FK_QUERY_TIMEOUT; no robot commands sent')
+            response=future.result()
+            if response is None or not response.success:
+                raise RuntimeError('FK_QUERY_FAILED; no robot commands sent')
+            rows.append({'j4_delta_deg':delta,'tcp_mm_zyz_deg':list(response.conv_posx)})
+        baseline=np.array(rows[0]['tcp_mm_zyz_deg'][:3])
+        for row in rows:
+            row['tcp_displacement_mm']=float(np.linalg.norm(np.array(row['tcp_mm_zyz_deg'][:3])-baseline))
+        result['cases'][label]=rows
+    out=Path(__file__).with_name('controller-fk-j4-review.json')
+    out.write_text(json.dumps(result,indent=2)+'\n')
+    print('FK_QUERY_SAVED:',out,'physical_commands=0')
+finally:
+    node.destroy_node()
+    rclpy.shutdown()

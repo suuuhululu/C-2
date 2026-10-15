@@ -1,0 +1,29 @@
+{
+  "status": "PREPARED_EVIDENCE_REAL_EXECUTION_BLOCKED",
+  "execution_allowed": false,
+  "preparation_physical_commands": 0,
+  "required_before_real_air": [
+    "Registered block pose in the same BASE/board frame and current grasp; derive TCP-block transform from real paired pose",
+    "Registered contact line position and signed initial angle; Y-minus/X-axis direction alone is insufficient",
+    "Confirm current held state and route immediately before execution"
+  ],
+  "single_dependency_group": "FIELD_CONTACT_GEOMETRY_REGISTRATION",
+  "not_required_again": [
+    "supply slot coordinate teaching",
+    "target stud indices and image direction questions",
+    "empty-gripper J4/TCP/virtual-axis diagnostic repetitions",
+    "block reset before an executable profile exists"
+  ],
+  "automatic_contact_classifier": false,
+  "blocking_sources": {
+    "board": "PROVISIONAL_NOT_FOR_MOTION; TCP contact-point proxy, no independently validated surface offset",
+    "underside_photo": "Structure/ruler reference; hidden loaded mating contact and3Ddepth not measured"
+  },
+  "pending_measurements_file": "/home/rokey/Documents/ChatGPT/로봇제어 개발/c2_integration_challenge/logs/yellow4-field-prepared-20261014/measurements.operator-pending.json",
+  "candidate_file": "/home/rokey/Documents/ChatGPT/로봇제어 개발/c2_integration_challenge/logs/yellow4-field-prepared-20261014/assembly-candidate.preview-only.json",
+  "existing_launchers": {
+    "air": "robot_control_integration/scripts/yellow4_air_trial.py",
+    "contact": "robot_control_integration/scripts/yellow4_contact_trial.py"
+  },
+  "next_user_motion": "NONE_UNTIL_FIELD_REGISTRATION_METHOD_AND_PROFILE_ARE_READY"
+}

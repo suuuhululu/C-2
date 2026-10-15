@@ -1,0 +1,13 @@
+{
+  "source_kind": "OPERATOR_MANUAL_CONTACT_TRIAL",
+  "first_engagement_reported": true,
+  "short_rotation_contact_maintained_reported": true,
+  "near_parallel_translation_direction": "GRID_Y_INCREASE",
+  "light_touch_retains_some_engagement_reported": true,
+  "all_studs_released_verified": false,
+  "full_seating_verified": false,
+  "actual_contact_axis_measured": false,
+  "actual_angles_measured": false,
+  "model_conclusion": "Fixed axis is an initial-segment hypothesis only; near-parallel contact transition remains unknown. No automatic XY correction or axis shifting.",
+  "physical_robot_commands": 0
+}

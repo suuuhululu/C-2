@@ -1,0 +1,35 @@
+{
+  "status": "CURRENT_GRASP_OPERATOR_SEATED_PAIR",
+  "supply_capture": "/home/rokey/Documents/ChatGPT/로봇제어 개발/c2_integration_challenge/logs/yellow4-field-block-regrasp/capture-1791977632253911881/capture.json",
+  "seated_capture": "/home/rokey/Documents/ChatGPT/로봇제어 개발/c2_integration_challenge/logs/yellow4-field-current-grasp-seated/capture-1791978194788663293/capture.json",
+  "supply_tcp": [
+    -329.0500793457031,
+    194.4129638671875,
+    46.9764289855957,
+    107.00418853759766,
+    175.59156799316406,
+    107.18355560302734
+  ],
+  "seated_tcp": [
+    568.1318969726562,
+    181.4790802001953,
+    13.403186798095703,
+    124.14789581298828,
+    175.525634765625,
+    123.88666534423828
+  ],
+  "operator_target": [
+    17,
+    17,
+    1
+  ],
+  "holding_relation_basis": "OPERATOR_CONTINUOUS_GRASP_REPORT",
+  "seating_basis": "OPERATOR_REPORT",
+  "widths_mm": [
+    40.6,
+    40.6
+  ],
+  "actual_contact_axis_measured": false,
+  "full_tcp_block_transform_measured": false,
+  "execution_allowed": false
+}

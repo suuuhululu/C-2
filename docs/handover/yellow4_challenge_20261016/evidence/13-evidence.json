@@ -1,0 +1,133 @@
+{
+  "scope": {
+    "block": "yellow2x2x1",
+    "supply_slot": 1,
+    "target": [
+      17,
+      17,
+      1
+    ],
+    "covered_studs": [
+      [
+        17,
+        17
+      ],
+      [
+        18,
+        17
+      ],
+      [
+        17,
+        18
+      ],
+      [
+        18,
+        18
+      ]
+    ],
+    "first_engagement_side": "Y_DECREASE",
+    "axis_direction_candidate": "GRID_X",
+    "first_direction_basis": "OPERATOR_CORRECTED_IMAGE_MAPPING"
+  },
+  "current_grasp_pair": {
+    "supply": {
+      "path": "/home/rokey/Documents/ChatGPT/로봇제어 개발/c2_integration_challenge/logs/yellow4-field-block-regrasp/capture-1791977632253911881/capture.json",
+      "sha256": "4aae81417b03a51600d43061975eaaff205682fafd174c2b1a05155457ae2df2"
+    },
+    "seated": {
+      "path": "/home/rokey/Documents/ChatGPT/로봇제어 개발/c2_integration_challenge/logs/yellow4-field-current-grasp-seated/capture-1791978194788663293/capture.json",
+      "sha256": "513c5e2dba28a4205cb49f46b6deca7a43b05ba3d79f81f4b73e48cbb66fa1cd"
+    },
+    "supply_tcp": [
+      -329.0500793457031,
+      194.4129638671875,
+      46.9764289855957,
+      107.00418853759766,
+      175.59156799316406,
+      107.18355560302734
+    ],
+    "seated_tcp": [
+      568.1318969726562,
+      181.4790802001953,
+      13.403186798095703,
+      124.14789581298828,
+      175.525634765625,
+      123.88666534423828
+    ],
+    "widths_mm": [
+      40.6,
+      40.6
+    ],
+    "stopped": [
+      true,
+      true
+    ],
+    "same_grasp_basis": "OPERATOR_REPORT",
+    "block_pose_independently_measured": false,
+    "nominal_policy_height_mm": 5,
+    "actual_height_verified": false
+  },
+  "manual_contact": {
+    "source_kind": "OPERATOR_MANUAL_CONTACT_TRIAL",
+    "first_engagement_reported": true,
+    "short_rotation_contact_maintained_reported": true,
+    "near_parallel_translation_direction": "GRID_Y_INCREASE",
+    "light_touch_retains_some_engagement_reported": true,
+    "all_studs_released_verified": false,
+    "full_seating_verified": false,
+    "actual_contact_axis_measured": false,
+    "actual_angles_measured": false,
+    "model_conclusion": "Fixed axis is an initial-segment hypothesis only; near-parallel contact transition remains unknown. No automatic XY correction or axis shifting.",
+    "physical_robot_commands": 0
+  },
+  "empty_virtual_axis_trial": {
+    "source_log": "/home/rokey/Documents/ChatGPT/로봇제어 개발/c2_integration_challenge/logs/yellow4-field-registration/virtual-axis-air-1791977409313610379.jsonl",
+    "test_kind": "REAL_EMPTY_GRIPPER_VIRTUAL_AXIS_AIR_DIAGNOSTIC",
+    "operator_report": "motion not visually obvious",
+    "command_endpoints": 4,
+    "actual_change_mm_deg": [
+      0.7573612386705115,
+      1.0013744799900812
+    ],
+    "xyz_delta_mm": [
+      -0.02960205078125,
+      -0.7559661865234375,
+      -0.0351409912109375
+    ],
+    "predicted_change_mm_deg": [
+      0.6981212449282714,
+      0.9999999999999937
+    ],
+    "max_endpoint_position_error_mm": 0.08754539219069168,
+    "max_endpoint_so3_error_deg": 0.010802026014286358,
+    "stopped": true,
+    "width_mm": 37.7,
+    "block_grasp_verified": false,
+    "contact_axis_verified": false,
+    "assembly_verified": false
+  },
+  "excluded_as_real_block_registration": [
+    "virtual axis40mm below TCP",
+    "illustrative5deg tilt",
+    "rigid-fit provisional board stud-top minus inferred4.4mm bottom plane",
+    "old seated capture1791965183566613886: different grasp pair, no transfer to current relation"
+  ],
+  "latest_state_operator_report": "Gripper opened and robot raised; block remains on assembly. No fresh state query in this preparation. No reset requested.",
+  "sources": [
+    {
+      "path": "/home/rokey/Documents/ChatGPT/로봇제어 개발/c2_integration_challenge/robot_control_integration/fixtures/teaching_sources/operator_supply.json",
+      "sha256": "55ca811850af36d0c4b7e579f9b33ba9ae31fee7592eb63578271018199daa3e"
+    },
+    {
+      "path": "/home/rokey/Documents/ChatGPT/로봇제어 개발/c2_integration_challenge/robot_control_integration/calibration/assembly_board_16mm_20261007.json",
+      "sha256": "c77ff4cae46828ae2450875c1d904aae5bce8e965175c47ec71b1686ebf0fa20"
+    },
+    {
+      "path": "/home/rokey/Documents/ChatGPT/로봇제어 개발/c2_integration_challenge/planning_trial/measurements/round2_geometry.operator_20261013.json",
+      "sha256": "b23f0b1aee416be868fd7265b855a845c924ca3b9ae43058676fdefa7389ebf8"
+    }
+  ],
+  "real_loaded_air_trial_verified": false,
+  "real_robot_rotation_seating_verified": false,
+  "real_robot_removal_verified": false
+}

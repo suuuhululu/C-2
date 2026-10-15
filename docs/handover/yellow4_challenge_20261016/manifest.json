@@ -1,0 +1,165 @@
+{
+  "schema_version": 1,
+  "prepared_date_kst": "2026-10-16",
+  "files": [
+    {
+      "original_checkout_relative": "logs/yellow4-field-block-regrasp/capture-1791977632253911881/capture.json",
+      "portable_path": "evidence/01-capture.json",
+      "sha256": "4aae81417b03a51600d43061975eaaff205682fafd174c2b1a05155457ae2df2",
+      "historical_record_not_current_state": true
+    },
+    {
+      "original_checkout_relative": "logs/yellow4-field-current-grasp-seated/capture-1791978194788663293/capture.json",
+      "portable_path": "evidence/02-capture.json",
+      "sha256": "513c5e2dba28a4205cb49f46b6deca7a43b05ba3d79f81f4b73e48cbb66fa1cd",
+      "historical_record_not_current_state": true
+    },
+    {
+      "original_checkout_relative": "logs/yellow4-field-registration/j4-air-single-1791976957591709858.jsonl",
+      "portable_path": "evidence/03-j4-air-single-1791976957591709858.jsonl",
+      "sha256": "e3fe233cdaa33f5ba1f9af305f3ccf5a1b3e6ffeda685ea7aa1456a658800b55",
+      "historical_record_not_current_state": true
+    },
+    {
+      "original_checkout_relative": "logs/yellow4-field-registration/tcp-compensated-single-1791977162320170892.jsonl",
+      "portable_path": "evidence/04-tcp-compensated-single-1791977162320170892.jsonl",
+      "sha256": "6f7ebd7f6d8afdfb859fa238b340fa0edb51aa4789be32ab1ed12daf95d22319",
+      "historical_record_not_current_state": true
+    },
+    {
+      "original_checkout_relative": "logs/yellow4-field-registration/virtual-axis-air-1791977409313610379.jsonl",
+      "portable_path": "evidence/05-virtual-axis-air-1791977409313610379.jsonl",
+      "sha256": "aef879092642d3bf578260093d82ac9ef02aa631789310a75fa2c69483c0f853",
+      "historical_record_not_current_state": true
+    },
+    {
+      "original_checkout_relative": "logs/yellow4-field-registration/virtual-axis-air-actual-summary.json",
+      "portable_path": "evidence/06-virtual-axis-air-actual-summary.json",
+      "sha256": "8107ff7674c3eec5e72d3996b32df01b78459da683324ac3e93f9f2ca3851539",
+      "historical_record_not_current_state": true
+    },
+    {
+      "original_checkout_relative": "logs/yellow4-field-registration/manual-contact-observation.json",
+      "portable_path": "evidence/07-manual-contact-observation.json",
+      "sha256": "b45d6e60fcdd3d0ed7202ba02e6ee2c74cd1ec5f838381973789fc1d729e840c",
+      "historical_record_not_current_state": true
+    },
+    {
+      "original_checkout_relative": "logs/yellow4-field-registration/current-grasp-seated-pair.json",
+      "portable_path": "evidence/08-current-grasp-seated-pair.json",
+      "sha256": "49969b2ac412a333891f8e639c2a079ca3fb3b616b69774819f4670054df079b",
+      "historical_record_not_current_state": true
+    },
+    {
+      "original_checkout_relative": "logs/yellow4-field-registration/teaching-reuse-audit.json",
+      "portable_path": "evidence/09-teaching-reuse-audit.json",
+      "sha256": "27ce4cb923dc41ca1581a8f6c5737839fe05df916adefec0e22d0267f9a45cf0",
+      "historical_record_not_current_state": true
+    },
+    {
+      "original_checkout_relative": "logs/yellow4-field-registration/controller-fk-j4-review.json",
+      "portable_path": "evidence/10-controller-fk-j4-review.json",
+      "sha256": "8edfda5405bd1eb04edc690f9d19b336cd752345bd5b61bab5d17a559fd30f8f",
+      "historical_record_not_current_state": true
+    },
+    {
+      "original_checkout_relative": "logs/yellow4-field-registration/controller-ik-air-candidate.json",
+      "portable_path": "evidence/11-controller-ik-air-candidate.json",
+      "sha256": "fa9131eea82743b5f3e0f10d4be060afae222730c4271b69b786e536d8b23665",
+      "historical_record_not_current_state": true
+    },
+    {
+      "original_checkout_relative": "logs/yellow4-field-registration/controller-ik-transit-sampled-v3.json",
+      "portable_path": "evidence/12-controller-ik-transit-sampled-v3.json",
+      "sha256": "66e5a392c885d5f6c7447436d06d457e90910e78e1b39276eaa7ad6de24b6cf6",
+      "historical_record_not_current_state": true
+    },
+    {
+      "original_checkout_relative": "logs/yellow4-field-prepared-20261014/evidence.json",
+      "portable_path": "evidence/13-evidence.json",
+      "sha256": "6c1bf333d3d46bdb366ffa34ee49bdb22c82e85ac02fe9b4e4dee40b00667b2b",
+      "historical_record_not_current_state": true
+    },
+    {
+      "original_checkout_relative": "logs/yellow4-field-prepared-20261014/readiness.json",
+      "portable_path": "evidence/14-readiness.json",
+      "sha256": "d5aac34fb12417cf3fb945d317a02564421a29539af32902f2e728b2fd4263dd",
+      "historical_record_not_current_state": true
+    },
+    {
+      "original_checkout_relative": "logs/yellow4-field-prepared-20261014/measurements.operator-pending.json",
+      "portable_path": "evidence/15-measurements.operator-pending.json",
+      "sha256": "24069c72ea320b69055cad6cfc4107f5b36b8a6de2341d1d5d702d4680fb3593",
+      "historical_record_not_current_state": true
+    },
+    {
+      "original_checkout_relative": "logs/yellow4-measurement-prep-20261015/measurement-checklist.json",
+      "portable_path": "evidence/16-measurement-checklist.json",
+      "sha256": "00e8f9ca3fec5a4ad1b6b6b4b4ea5dce6f79c7aa26743b1b23c6c35b63c4d726",
+      "historical_record_not_current_state": true
+    },
+    {
+      "original_checkout_relative": "logs/yellow4-measurement-prep-20261015/measurement-guide.txt",
+      "portable_path": "evidence/17-measurement-guide.txt",
+      "sha256": "9ea5c5e4cba1103432b7754329bd7511ae02e925c96152bfc1dfe94127647862",
+      "historical_record_not_current_state": true
+    },
+    {
+      "original_checkout_relative": "logs/yellow4-field-resume-checkpoint/resume.json",
+      "portable_path": "evidence/18-resume.json",
+      "sha256": "b1986643abd32d24e1080d8ce2f33f3c39fe5bdcb09386376095237de4c24899",
+      "historical_record_not_current_state": true
+    },
+    {
+      "original_checkout_relative": "logs/yellow4-field-registration/j4_air_single.py",
+      "portable_path": "diagnostic_sources/j4_air_single.py.txt",
+      "sha256": "be9e69dae76116e8d7b8baf671342ff16923e6ce9d7af7fb87f9920f31637fbc",
+      "archival_source_only": true,
+      "execute_on_resume": false
+    },
+    {
+      "original_checkout_relative": "logs/yellow4-field-registration/tcp_compensated_single.py",
+      "portable_path": "diagnostic_sources/tcp_compensated_single.py.txt",
+      "sha256": "bddeb8c780dd4d42ba3bfe494cfd3dc3a9a6c31a937b02b96a375a43f9f21436",
+      "archival_source_only": true,
+      "execute_on_resume": false
+    },
+    {
+      "original_checkout_relative": "logs/yellow4-field-registration/held_attitude_single.py",
+      "portable_path": "diagnostic_sources/held_attitude_single.py.txt",
+      "sha256": "19b96405857775a44d1ca92e13e512da1f5192bf54c6a99167d67a5900b0c1ac",
+      "archival_source_only": true,
+      "execute_on_resume": false
+    },
+    {
+      "original_checkout_relative": "logs/yellow4-field-registration/virtual_axis_air_single.py",
+      "portable_path": "diagnostic_sources/virtual_axis_air_single.py.txt",
+      "sha256": "b9e3bebee1c4397961b85e72352f71668c0a3fcca1b4e092fcad0fe1283427af",
+      "archival_source_only": true,
+      "execute_on_resume": false
+    },
+    {
+      "original_checkout_relative": "logs/yellow4-field-registration/query_controller_fk.py",
+      "portable_path": "diagnostic_sources/query_controller_fk.py.txt",
+      "sha256": "cfba1f44d3814af31d3d3f8cfe43ccf3ad1b17afba25acaec4c713342f1fea42",
+      "archival_source_only": true,
+      "execute_on_resume": false
+    },
+    {
+      "original_checkout_relative": "logs/yellow4-field-registration/query_controller_ik.py",
+      "portable_path": "diagnostic_sources/query_controller_ik.py.txt",
+      "sha256": "0101a65af7c062079f3ef0b1795a0311da07500016d81568ea85a9dfda480374",
+      "archival_source_only": true,
+      "execute_on_resume": false
+    },
+    {
+      "original_checkout_relative": "logs/yellow4-field-registration/query_controller_transit_sampled_v3.py",
+      "portable_path": "diagnostic_sources/query_controller_transit_sampled_v3.py.txt",
+      "sha256": "6798e20e843b49021bca70cc4608452ff37651f354a442b5d8ac2a778a0fbfe3",
+      "archival_source_only": true,
+      "execute_on_resume": false
+    }
+  ],
+  "raw_images_videos_in_git": false,
+  "absolute_paths_in_original_receipts_are_historical": true
+}

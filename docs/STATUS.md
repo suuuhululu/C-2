@@ -931,3 +931,23 @@ GPU 현재 A snapshot92파일을 CPU deliverables/GPU_A_수정본_CPU보관_2026
 - 최종 관련 검사383 PASS(신규36): recovery/removal/seating/contact/air/관측/기하/held/기존 motion backend/position/supply/press. 양 회전·프레임·강체/접촉선·현재 상태 차이·전체 해제 관찰 gate·힘/모멘트/폭/ACK·변경된 qualification·2회 Fake 전체 흐름·reset/phase 중단·비전/fallback·snapshot·pending/complete 계약 CLI/그림 검증. 기존 Fake motion 계약 robot ID만 검사 프로세스에서 분리하고 실제 잠금/source/assertion을 유지했다. 합성 REAL-labelled fixture는 테스트 계약이며 실측 프로파일로 채택하지 않았다.
 - Robot/그리퍼 명령0. 실제 팝업·전체 해제·회수·판 유지·cycle은 미검증. scenario7 PREPARED_FOR_FIELD_TEST, software_prepared_through_stage7/next_development_stage=null, 물리completed1/next2 유지. 입력/preview·실물 명령·성공/실패/UNKNOWN 경계 및 실물2→3→4→5→6→7→단일cycle→반복 순서를 기록했다. 새8단계/일반 통합/다른 블록 확대 자동 진행 없음.
 - 복잡성:10파일, 신규클래스/dependency/framework/공통 ROS 계약 변경0. contact 실행 파일400줄 초과는 기존 guard/MoveL/STOP/로그 재사용을 위한7단계 분기이며 별도 제어 루프 복제/기본 경로 재설계를 피했다. 소프트웨어 검사가 실물 적용/merge의 사람 리뷰를 대신하지 않는다. 상세는 D_YELLOW4_CHALLENGE_STAGES_20261014.md의7단계 절.
+
+
+### 2026-10-14 노랑4점 현장 준비 재정리 — 반복 교시 중단 및 증거 연결
+- 현재 재파지의 공급 캡처1791977632253911881와 동일 파지 착좌 캡처1791978194788663293를 연결했다. 공급 TCP(-329.050,194.413,46.976), 착좌 TCP(568.132,181.479,13.403)mm; 모두 정지/폭40.6mm. 동일 파지·완전 착좌·판 고정은 작업자 보고이며 블록3Dpose 독립 측정과 구분한다. 이전 파지의 착좌 기록/격자 정정도 보존했다.
+- 실제 빈 그리퍼 J4+1도: TCP6.083mm 이동. TCP 위치 유지 자세 진단:1.004도/잔여0.160mm. 가상축(TCP 아래40mm,격자X방향)4분할1도 원호:0.757mm/1.001도, endpoint 최대0.088mm/0.011도. 모터 명령/정지 로그는 실제 증거이나 등록된 블록 파지 관계·접촉축 시험과 구분하며 stage3 완료로 승격하지 않는다. actual TCP는 제어기 FK 기반이며 독립 추적 정확도를 뜻하지 않는다.
+- 수동 접촉 관찰: Y감소 쪽 초기 걸림/짧은 회전 유지. 평행 근처 Y증가 이동, 일부 stud 걸림은 가벼운 접촉에 유지됨. 전체 해제/완전 회전 결착으로 판단하지 않으며 말단 고정축 가설은 미확인이다.
+- logs/yellow4-field-prepared-20261014에 evidence/readiness/부분 입력 양식/현재 착좌TCP를 사용하는 가정 기하 preview와 그림을 준비했다. 실제 TCP와 가정 블록pose·4.4mm 높이차·stud행 중심축·예시5도를 구분한다. 보정은 PROVISIONAL_NOT_FOR_MOTION이며 실제 mating 접촉 깊이는 미측정이다. 실물 실행 허용false, 준비 작업의 장치 명령0.
+- 본시험 blocker는 현재 파지의 블록pose/프레임·3D접촉선/부호각 등록이다. 기존 코드가 준비되지 않은 입력을 막는 조건을 유지했다. 공급/착좌 재교시·빈 그리퍼 반복·실행profile 전 reset/재파지 요구를 중단한다. 최신 사용자 보고는 개방/수직 이탈 후 블록은 조립판에 남은 상태이며 자동 이어 이동하지 않는다.
+- scenario에 실측 TCP와 출처/현장 관찰/별도 진단 결과를 연결했다. TCP-block/board frame/접촉축/각도 미확인은 null 유지, 물리 stage2~7 PREPARED_FOR_FIELD_TEST 및 완료1 유지. 실제 회전 결착/분리/회수는 미검증이다. 준비 자료JSON·출처파일·기하 불변량/preview와 diff만 확인했으며 기존383 검사 전체 재실행은 하지 않았다. Round2/Plan/B Current/원본 교시/다른 checkout 변경 없음.
+
+### 2026-10-15 회전 챌린지 추가 측정 준비
+- 기존 사진/착좌 기록/공급 시점 RGB-D와 읽기 전용 관측 도구를 확인했다. 착좌 RGB는 블록이 잘리고 공급 RGB-D는 조립판 측정에 사용할 수 없다.
+- logs/yellow4-measurement-prep-20261015에 측정 안내와 체크리스트를 저장했다. 현재 배치 응답과 실제 추가 측정은 대기 중이며 완료로 표시하지 않는다. 새 파지를 이전 착좌 TCP에 연결하지 않는다.
+- JSON 구문/근거 경로 존재 확인. 코드·실행 프로파일 변경 및 장치 명령0.
+- 사용자 확인: 다른 시험이 장비 사용 중. 이번 범위는 저장 자료 기반 준비만 수행하며 로봇/카메라/서비스에 연결하지 않음. 체크리스트를 OFFLINE_PREPARATION_COMPLETE_FIELD_MEASUREMENT_DEFERRED로 갱신. 실제 추가 측정은 보류.
+
+### 2026-10-16 challenge 다른 컴퓨터 인계
+- docs/handover/yellow4_challenge_20261016에 재개 안내/복사용 프롬프트/25개 선별 근거·진단 소스텍스트와 SHA256 manifest를 추가. 원본사진/영상과 전체로컬로그는 Git에 올리지 않고 별도 압축 보관본으로 전달한다.
+- 10월15일 다른시험 장비사용에 따른 오프라인준비 제약과 현재장비/파지UNKNOWN을 최우선으로 인계. 오래된resume좌표 자동복구·본시험미준비상태의 반복재파지 요구를 금지한다.
+- scenario에 휴대용 인계 경로를 연결. 등록된 블록pose/접촉선/부호각 미확인과 stage2~7 PREPARED_FOR_FIELD_TEST를 유지. 이번 인계는 문서·기록 정리이며 장치 접속/이동/개폐0.

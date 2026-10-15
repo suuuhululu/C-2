@@ -1,0 +1,86 @@
+"""Empty TCP-position-held attitude diagnostic; not a contact-axis arc."""
+import argparse,fcntl,json,math,signal,sys,time
+from pathlib import Path
+HERE=Path(__file__).resolve().parent;ROOT=HERE.parents[1]
+sys.path.insert(0,str(ROOT/'robot_control_integration'))
+from app.assembly_motion_ros import AssemblyMotionRos
+from app.assembly_motion import pose_error
+from app.edge_first_seating import rotate_about_contact_line
+import numpy as np
+parser=argparse.ArgumentParser();parser.add_argument('--execute',action='store_true');parser.add_argument('--confirm-hand-clear',action='store_true');args=parser.parse_args()
+expected=[15.125229835510254, 34.84660720825195, 48.471107482910156, 4.204581260681152, 97.6345443725586, 15.5025053024292]
+config=json.loads((ROOT/'robot_control_integration/interfaces/assembly_noncontact_trial.json').read_text())
+config['connection']=dict(robot_id='dsr01',ros_domain_id=20,gripper_ip='192.168.1.1',tcp='GripperDA_v4',tool='ToolWeight0')
+# Same query timeout as the existing held-corner/supply launcher.
+config['timing']=dict(service_timeout_s=3.,stop_timeout_s=3.,stopped_sample_retry_window_s=5.)
+out=HERE/('virtual-axis-air-'+str(time.time_ns())+'.jsonl')
+driver=None;attempted=False;interrupted=False
+with Path('/tmp/c2-assembly-dsr01.lock').open('a') as lock:
+    fcntl.flock(lock,fcntl.LOCK_EX|fcntl.LOCK_NB)
+    with out.open('x') as journal:
+        def record(event,data):
+            journal.write(json.dumps(dict(event=event,time=time.time(),data=data))+'\n');journal.flush()
+        def signal_handler(*unused):
+            global interrupted
+            interrupted=True
+        signal.signal(signal.SIGINT,signal_handler);signal.signal(signal.SIGTERM,signal_handler)
+        def check(sample,stopped=False):
+            if interrupted:raise RuntimeError('OPERATOR_STOP')
+            if sample['tcp']!='GripperDA_v4' or sample['tool']!='ToolWeight0':raise RuntimeError('TCP_TOOL_CHANGED')
+            if sample['robot_state'] not in (1,2) or sample['drl_state']!=3:raise RuntimeError('ROBOT_NOT_READY')
+            if sample['gripper_status']!=0 or abs(sample['gripper_width_mm']-37.7)>1:raise RuntimeError('EMPTY_OPEN_CONTEXT_CHANGED')
+            if math.dist(sample['wrench'][:3],[0,0,0])>=45:raise RuntimeError('RAW_FORCE_STOP')
+            if sample['query_duration_s']>.5:raise RuntimeError('STALE_FEEDBACK')
+            if stopped and (sample['motion_status']!=0 or max(map(abs,sample['velx']))>.01):raise RuntimeError('ROBOT_NOT_STOPPED')
+        try:
+            driver=AssemblyMotionRos(config);start=driver.sample();record('START',start);check(start,True)
+            if max(abs(a-b) for a,b in zip(start['posj'],expected))>.2:raise RuntimeError('START_JOINTS_CHANGED')
+            board=json.loads((ROOT/'robot_control_integration/calibration/assembly_board_16mm_20261007.json').read_text())
+            axis=np.array(board['rigid_16mm_fit']['T_robot_base_from_board_mm'])[:3,0]
+            center=np.array(start['posx'][:3])+np.array([0.,0.,-40.])
+            line=[(center-8*axis).tolist(),(center+8*axis).tolist()]
+            solution=driver.call('aux_control/get_solution_space','GetSolutionSpace',pos=start['posj']).sol_space
+            plans=[];previous=start['posj']
+            for angle in (.25,.5,.75,1.):
+                target_pose=rotate_about_contact_line(start['posx'],line,angle)
+                target=[float(v) for v in driver.call('motion/ikin','Ikin',pos=target_pose,sol_space=solution,ref=0).conv_posj]
+                if any(not math.isfinite(v) for v in target) or max(abs(a-b) for a,b in zip(target,previous))>5:raise RuntimeError('IK_JOINT_CHANGE')
+                verified=[float(v) for v in driver.call('motion/fkin','Fkin',pos=target,ref=0).conv_posx]
+                mm,deg=pose_error(verified,target_pose)
+                if mm>.05 or deg>.05:raise RuntimeError('IK_FK_MISMATCH')
+                if target_pose[2]<100:raise RuntimeError('AIR_HEIGHT_CHANGED')
+                plans.append(dict(angle_deg=angle,target_tcp=target_pose,target_joints=target,fk_error_mm=mm,fk_error_deg=deg))
+                previous=target
+            record('PLAN',dict(virtual_axis_base_mm=line,axis_is_measured=False,empty_gripper=True,steps=plans,gripper_commands=0,position_diagnostic_tolerance_mm=.25,rotation_diagnostic_tolerance_deg=.1,tolerances_are_not_contact_limits=True))
+            if args.execute:
+                if not args.confirm_hand_clear:raise RuntimeError('HAND_CLEAR_REQUIRED')
+                fresh=driver.sample();check(fresh,True)
+                if fresh['robot_mode']!=1:raise RuntimeError('AUTOMATIC_MODE_REQUIRED_NO_MODE_CHANGE_SENT')
+                if max(abs(a-b) for a,b in zip(fresh['posj'],start['posj']))>.05:raise RuntimeError('START_CHANGED_BEFORE_COMMAND')
+                for waypoint in plans:
+                    target_pose=waypoint['target_tcp'];target=waypoint['target_joints']
+                    record('COMMAND_INTENT',waypoint)
+                    attempted=True
+                    driver.call('motion/move_line','MoveLine',pos=target_pose,vel=[5.,1.],acc=[10.,3.],time=0.,radius=0.,ref=0,mode=0,blend_type=0,sync_type=1)
+                    deadline=time.monotonic()+10
+                    while time.monotonic()<deadline:
+                        sample=driver.sample();record('FEEDBACK',dict(angle_deg=waypoint['angle_deg'],sample=sample));check(sample)
+                        mm,deg=pose_error(sample['posx'],target_pose)
+                        if sample['motion_status']==0 and max(map(abs,sample['velx']))<.01 and max(abs(a-b) for a,b in zip(sample['posj'],target))<.1:
+                            record('STOPPED_ENDPOINT',dict(angle_deg=waypoint['angle_deg'],sample=sample,position_error_mm=mm,so3_error_deg=deg))
+                            if mm>.25 or deg>.1:raise RuntimeError('ENDPOINT_DIAGNOSTIC_ERROR_NO_NEXT_STEP')
+                            break
+                        time.sleep(.05)
+                    else:raise RuntimeError('MOTION_TIMEOUT')
+                record('EMPTY_VIRTUAL_AXIS_TRIAL_ENDED_NOT_CONTACT_VERIFIED',sample)
+                print('Virtual-axis air trial stopped; no return/open:',out)
+            else:print('PREVIEW ONLY, no motion:',out)
+        except BaseException as error:
+            if attempted and driver is not None:
+                try:driver.stop()
+                except BaseException as stop_error:print('STOP response unknown:',stop_error,file=sys.stderr)
+            try:record('ABORT',dict(error=str(error),move_attempted=attempted,no_retry=True,no_open=True))
+            except BaseException:pass
+            raise
+        finally:
+            if driver is not None:driver.close()

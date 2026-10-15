@@ -1,0 +1,71 @@
+"""Empty TCP-position-held attitude diagnostic; not a contact-axis arc."""
+import argparse,fcntl,json,math,signal,sys,time
+from pathlib import Path
+HERE=Path(__file__).resolve().parent;ROOT=HERE.parents[1]
+sys.path.insert(0,str(ROOT/'robot_control_integration'))
+from app.assembly_motion_ros import AssemblyMotionRos
+from app.assembly_motion import pose_error
+parser=argparse.ArgumentParser();parser.add_argument('--execute',action='store_true');parser.add_argument('--confirm-hand-clear',action='store_true');args=parser.parse_args()
+expected=[15.70796012878418, 34.84723663330078, 48.387996673583984, 3.214228868484497, 97.65853881835938, 16.090465545654297]
+config=json.loads((ROOT/'robot_control_integration/interfaces/assembly_noncontact_trial.json').read_text())
+config['connection']=dict(robot_id='dsr01',ros_domain_id=20,gripper_ip='192.168.1.1',tcp='GripperDA_v4',tool='ToolWeight0')
+# Same query timeout as the existing held-corner/supply launcher.
+config['timing']=dict(service_timeout_s=3.,stop_timeout_s=3.,stopped_sample_retry_window_s=5.)
+out=HERE/('tcp-compensated-single-'+str(time.time_ns())+'.jsonl')
+driver=None;attempted=False;interrupted=False
+with Path('/tmp/c2-assembly-dsr01.lock').open('a') as lock:
+    fcntl.flock(lock,fcntl.LOCK_EX|fcntl.LOCK_NB)
+    with out.open('x') as journal:
+        def record(event,data):
+            journal.write(json.dumps(dict(event=event,time=time.time(),data=data))+'\n');journal.flush()
+        def signal_handler(*unused):
+            global interrupted
+            interrupted=True
+        signal.signal(signal.SIGINT,signal_handler);signal.signal(signal.SIGTERM,signal_handler)
+        def check(sample,stopped=False):
+            if interrupted:raise RuntimeError('OPERATOR_STOP')
+            if sample['tcp']!='GripperDA_v4' or sample['tool']!='ToolWeight0':raise RuntimeError('TCP_TOOL_CHANGED')
+            if sample['robot_state'] not in (1,2) or sample['drl_state']!=3:raise RuntimeError('ROBOT_NOT_READY')
+            if sample['gripper_status']!=0 or abs(sample['gripper_width_mm']-37.7)>1:raise RuntimeError('EMPTY_OPEN_CONTEXT_CHANGED')
+            if math.dist(sample['wrench'][:3],[0,0,0])>=45:raise RuntimeError('RAW_FORCE_STOP')
+            if sample['query_duration_s']>.5:raise RuntimeError('STALE_FEEDBACK')
+            if stopped and (sample['motion_status']!=0 or max(map(abs,sample['velx']))>.01):raise RuntimeError('ROBOT_NOT_STOPPED')
+        try:
+            driver=AssemblyMotionRos(config);start=driver.sample();record('START',start);check(start,True)
+            if max(abs(a-b) for a,b in zip(start['posj'],expected))>.2:raise RuntimeError('START_JOINTS_CHANGED')
+            target=list(start['posj']);target[3]+=1
+            predicted=list(float(v) for v in driver.call('motion/fkin','Fkin',pos=target,ref=0).conv_posx)
+            mm,_=pose_error(start['posx'],predicted)
+            if mm>10 or predicted[2]<100:raise RuntimeError('UNEXPECTED_FK_DISPLACEMENT')
+            target_pose=[*start['posx'][:3],*predicted[3:]]
+            solution=driver.call('aux_control/get_solution_space','GetSolutionSpace',pos=start['posj']).sol_space
+            target=[float(v) for v in driver.call('motion/ikin','Ikin',pos=target_pose,sol_space=solution,ref=0).conv_posj]
+            if any(not math.isfinite(v) for v in target) or max(abs(a-b) for a,b in zip(target,start['posj']))>5:raise RuntimeError('COMPENSATED_IK_JOINT_CHANGE')
+            verified=[float(v) for v in driver.call('motion/fkin','Fkin',pos=target,ref=0).conv_posx]
+            position_error,angle_error=pose_error(verified,target_pose)
+            if position_error>.05 or angle_error>.05:raise RuntimeError('COMPENSATED_IK_FK_MISMATCH')
+            record('PLAN',dict(target_joints=target,target_tcp=target_pose,fk_tcp=verified,position_error_mm=position_error,angle_error_deg=angle_error,gripper_commands=0,contact_axis_trial=False))
+            if args.execute:
+                if not args.confirm_hand_clear:raise RuntimeError('HAND_CLEAR_REQUIRED')
+                fresh=driver.sample();check(fresh,True)
+                if fresh['robot_mode']!=1:raise RuntimeError('AUTOMATIC_MODE_REQUIRED_NO_MODE_CHANGE_SENT')
+                if max(abs(a-b) for a,b in zip(fresh['posj'],start['posj']))>.05:raise RuntimeError('START_CHANGED_BEFORE_COMMAND')
+                attempted=True
+                driver.call('motion/move_line','MoveLine',pos=target_pose,vel=[5.,1.],acc=[10.,3.],time=0.,radius=0.,ref=0,mode=0,blend_type=0,sync_type=1)
+                deadline=time.monotonic()+10
+                while time.monotonic()<deadline:
+                    sample=driver.sample();record('FEEDBACK',sample);check(sample)
+                    if sample['motion_status']==0 and max(map(abs,sample['velx']))<.01 and max(abs(a-b) for a,b in zip(sample['posj'],target))<.1:
+                        record('COMMAND_COMPLETED_NOT_CONTACT_VERIFIED',sample);print('TCP attitude diagnostic stopped; no return/open:',out);break
+                    time.sleep(.05)
+                else:raise RuntimeError('MOTION_TIMEOUT')
+            else:print('PREVIEW ONLY, no motion:',out)
+        except BaseException as error:
+            if attempted and driver is not None:
+                try:driver.stop()
+                except BaseException as stop_error:print('STOP response unknown:',stop_error,file=sys.stderr)
+            try:record('ABORT',dict(error=str(error),move_attempted=attempted,no_retry=True,no_open=True))
+            except BaseException:pass
+            raise
+        finally:
+            if driver is not None:driver.close()

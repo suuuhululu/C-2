@@ -1,0 +1,741 @@
+{
+  "schema_version": "yellow4-read-only-capture/1",
+  "role": "SEATED_GRASP_CANDIDATE",
+  "notes": "Operator reports17,17 full seating with current regrasp maintained; no rotation seating trial",
+  "sample": {
+    "gripper_status": 2,
+    "gripper_width_mm": 40.6,
+    "posj": [
+      14.859572410583496,
+      37.666412353515625,
+      67.60171508789062,
+      4.552942276000977,
+      76.27787017822266,
+      13.168872833251953
+    ],
+    "posx": [
+      568.1318969726562,
+      181.4790802001953,
+      13.403186798095703,
+      124.14789581298828,
+      175.525634765625,
+      123.88666534423828
+    ],
+    "velx": [
+      -0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+    ],
+    "motion_status": 0,
+    "wrench": [
+      -4.369173049926758,
+      -2.779597759246826,
+      7.16392183303833,
+      0.4369952976703644,
+      -0.722122311592102,
+      -0.2824171483516693
+    ],
+    "tcp": "GripperDA_v4",
+    "tool": "ToolWeight0"
+  },
+  "camera_info": {
+    "width": 640,
+    "height": 480,
+    "k": [
+      605.2830810546875,
+      0.0,
+      328.19140625,
+      0.0,
+      605.14501953125,
+      244.0506134033203,
+      0.0,
+      0.0,
+      1.0
+    ],
+    "d": [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+    ],
+    "distortion_model": "plumb_bob",
+    "frame_id": "camera_color_optical_frame",
+    "stamp_ns": 1791978194537037354
+  },
+  "timing": {
+    "source": "LIVE_READ_ONLY",
+    "snapshot_time_unix_s": 1791978194.76343,
+    "rgb_stamp_ns": 1791978194537037354,
+    "field_age_s": {
+      "gripper": 0.4079089870065218,
+      "posj": 0.3553981079967343,
+      "posx": 0.3553984530008165,
+      "velx": 0.2465683659975184,
+      "motion_status": 0.1859843920028652,
+      "wrench": 0.12434271200618241,
+      "tcp": 0.06171422400075244,
+      "tool": 0.00015510299999732524
+    },
+    "rgb_age_s": 0.02471635399706429,
+    "read_status": "READ_FEEDBACK_AVAILABLE",
+    "analysis_age_s": 0.02469676000328036
+  },
+  "observation": {
+    "view": "assembly",
+    "physical_commands": 0,
+    "execution_allowed": false,
+    "roll_pitch_observed": false,
+    "roll_pitch_deg": null,
+    "source_kind": "IMAGE_DIAGNOSTIC_NOT_FIELD_REGISTRATION",
+    "grid_reference": {
+      "status": "VIRTUAL_GRID_PREVIEW",
+      "execution_allowed": false,
+      "physical_commands": 0,
+      "calibration_status": "PROVISIONAL_NOT_FOR_MOTION",
+      "physical_tip_coincides_with_tcp": null,
+      "sources": {
+        "board_calibration": {
+          "path": "/home/rokey/Documents/ChatGPT/로봇제어 개발/c2_integration_challenge/robot_control_integration/calibration/assembly_board_16mm_20261007.json",
+          "sha256": "c77ff4cae46828ae2450875c1d904aae5bce8e965175c47ec71b1686ebf0fa20"
+        },
+        "static_tf": {
+          "path": "/home/rokey/Documents/ChatGPT/로봇제어 개발/c2_integration_challenge/robot_control_integration/calibration/tf_static_round2_20261014.yaml",
+          "sha256": "6efca7b8d23be49afac8da3fef5b2388655cd88f639fc114c97cfb5de629d25e"
+        },
+        "block_geometry": {
+          "path": "/home/rokey/Documents/ChatGPT/로봇제어 개발/c2_integration_challenge/planning_trial/measurements/round2_geometry.operator_20261013.json",
+          "sha256": "b23f0b1aee416be868fd7265b855a845c924ca3b9ae43058676fdefa7389ebf8"
+        },
+        "layer_records": {
+          "path": "/home/rokey/Documents/ChatGPT/로봇제어 개발/c2_integration_challenge/robot_control_integration/calibration/layer_records.json",
+          "sha256": "397c6749c4b42e296788c5fc3d57452307bf8f8a91df7bd359a8671c8190a501"
+        }
+      },
+      "projection_independently_verified": false,
+      "native_flange_frame_assumption": "link_6",
+      "robot_correction": null,
+      "relative_angle_deg": null,
+      "target": {
+        "brick_type": "2x2x1",
+        "color": "yellow",
+        "x": 17,
+        "y": 17,
+        "layer": 1,
+        "orientation_deg": 0
+      },
+      "support_plane_offset_mm": 0.0,
+      "body_top_offset_mm": 15.200000000000003,
+      "hover_body_top_offset_mm": 35.2,
+      "clearance_mm": 20.0,
+      "grid_segments_uv": [
+        [
+          [
+            -450.9555864853911,
+            1313.9092559401504
+          ],
+          [
+            -383.3331493069204,
+            184.55532979480068
+          ]
+        ],
+        [
+          [
+            -450.9555864853911,
+            1313.9092559401504
+          ],
+          [
+            722.288303685541,
+            1391.7545687159857
+          ]
+        ],
+        [
+          [
+            -404.30754854127895,
+            1317.0043763448339
+          ],
+          [
+            -341.62507254624813,
+            183.40384446955125
+          ]
+        ],
+        [
+          [
+            -447.6679020998225,
+            1259.0020472725669
+          ],
+          [
+            718.9781911521036,
+            1331.0516635682175
+          ]
+        ],
+        [
+          [
+            -357.2954163606722,
+            1320.123654582307
+          ],
+          [
+            -299.6276887941458,
+            182.24437189624334
+          ]
+        ],
+        [
+          [
+            -444.4153624085898,
+            1204.68178578092
+          ],
+          [
+            715.7068821119524,
+            1271.0603610468124
+          ]
+        ],
+        [
+          [
+            -309.9149105358565,
+            1323.2673745933887
+          ],
+          [
+            -257.3379774186965,
+            181.0768286806383
+          ]
+        ],
+        [
+          [
+            -441.1974068729942,
+            1150.9391099779987
+          ],
+          [
+            712.4736982179029,
+            1211.768221198636
+          ]
+        ],
+        [
+          [
+            -262.16168433090195,
+            1326.4358247861603
+          ],
+          [
+            -214.7528755902075,
+            179.90113026349155
+          ]
+        ],
+        [
+          [
+            -438.01348681167894,
+            1097.7648564045949
+          ],
+          [
+            709.2779768426285,
+            1153.163092351082
+          ]
+        ],
+        [
+          [
+            -214.03132235233443,
+            1329.6292981241631
+          ],
+          [
+            -171.8692775417619,
+            178.7171909001391
+          ]
+        ],
+        [
+          [
+            -434.8630650887485,
+            1045.1500544208268
+          ],
+          [
+            706.11907062592,
+            1095.2331028094886
+          ]
+        ],
+        [
+          [
+            -165.51933918818713,
+            1332.8480922167014
+          ],
+          [
+            -128.68403381415675,
+            177.5249236396514
+          ]
+        ],
+        [
+          [
+            -431.7456158116818,
+            993.0859211609979
+          ],
+          [
+            702.996347037511,
+            1037.9666528398598
+          ]
+        ],
+        [
+          [
+            -116.6211780145515,
+            1336.0925094112972
+          ],
+          [
+            -85.19395048485956,
+            176.3242403035456
+          ]
+        ],
+        [
+          [
+            -428.6606240386783,
+            941.5638566460442
+          ],
+          [
+            699.9091879548271,
+            981.3524069255036
+          ]
+        ],
+        [
+          [
+            -67.33220916871687,
+            1339.3628568883626
+          ],
+          [
+            -41.395788380573606,
+            175.11505146404642
+          ]
+        ],
+        [
+          [
+            -425.60758549509956,
+            890.5754390478486
+          ],
+          [
+            696.8569892550952,
+            925.3792862867438
+          ]
+        ],
+        [
+          [
+            -17.647728687961205,
+            1342.6594467581513
+          ],
+          [
+            2.713737726988086,
+            173.89726642188285
+          ]
+        ],
+        [
+          [
+            -422.5860062986761,
+            840.112420099952
+          ],
+          [
+            693.8391604212208,
+            870.0364616533286
+          ]
+        ],
+        [
+          [
+            32.437043186975245,
+            1345.9825961600568
+          ],
+          [
+            47.137959942542295,
+            172.67079318360896
+          ]
+        ],
+        [
+          [
+            -419.5954026931637,
+            790.1667206494014
+          ],
+          [
+            690.8551241609093,
+            815.3133462796385
+          ]
+        ],
+        [
+          [
+            82.92696354473347,
+            1349.332627364314
+          ],
+          [
+            91.88025808631969,
+            171.43553843844012
+          ]
+        ],
+        [
+          [
+            -416.6353007901529,
+            740.7304263447048
+          ],
+          [
+            687.9043160385122,
+            761.1995891932215
+          ]
+        ],
+        [
+          [
+            133.82696837352907,
+            1352.7098678761838
+          ],
+          [
+            136.9440605512377,
+            170.19140753458538
+          ]
+        ],
+        [
+          [
+            -413.70523631873357,
+            691.79578345505
+          ],
+          [
+            684.9861841191009,
+            707.6850686676254
+          ]
+        ],
+        [
+          [
+            185.1420741697624,
+            1356.1146505426855
+          ],
+          [
+            182.33284517861736,
+            168.93830445507308
+          ]
+        ],
+        [
+          [
+            -410.8047543827457,
+            643.3551948161573
+          ],
+          [
+            682.1001886243041,
+            654.7598859108689
+          ]
+        ],
+        [
+          [
+            236.87737958614375,
+            1359.5473136619491
+          ],
+          [
+            228.0501401529147,
+            167.67613179304723
+          ]
+        ],
+        [
+          [
+            -407.9334092253438,
+            595.401215898308
+          ],
+          [
+            679.2458015994421,
+            602.4143589612949
+          ]
+        ],
+        [
+          [
+            289.0380671204747,
+            1363.0082010952697
+          ],
+          [
+            274.09952491595016,
+            166.40479072652732
+          ]
+        ],
+        [
+          [
+            -405.0907640006227,
+            547.9265509922772
+          ],
+          [
+            676.4225065915587,
+            550.6390167828941
+          ]
+        ],
+        [
+          [
+            341.6294048462563,
+            1366.4976623819307
+          ],
+          [
+            320.48463110113437,
+            165.12418099261748
+          ]
+        ],
+        [
+          [
+            -402.27639055205486,
+            500.92404950906496
+          ],
+          [
+            673.6297983378948,
+            499.42459355253783
+          ]
+        ],
+        [
+          [
+            394.65674818634045,
+            1370.016052856889
+          ],
+          [
+            367.2091434881997,
+            163.8342008611462
+          ]
+        ],
+        [
+          [
+            -399.4898691975069,
+            454.38670238948686
+          ],
+          [
+            670.8671824644475,
+            448.7620231318814
+          ]
+        ],
+        [
+          [
+            448.125541730882,
+            1373.5637337713963
+          ],
+          [
+            414.2768009789694,
+            162.53474710772872
+          ]
+        ],
+        [
+          [
+            -396.7307885206094,
+            408.3076386198351
+          ],
+          [
+            668.1341751942184,
+            398.6424337170126
+          ]
+        ],
+        [
+          [
+            502.04132110087164,
+            1377.1410724166444
+          ],
+          [
+            461.69139759469886,
+            161.22571498623046
+          ]
+        ],
+        [
+          [
+            -393.99874516825594,
+            362.68012184997167
+          ],
+          [
+            665.4303030647866,
+            349.0571426592091
+          ]
+        ],
+        [
+          [
+            556.4097148586205,
+            1380.7484422505283
+          ],
+          [
+            509.456783495561,
+            159.9069982006225
+          ]
+        ],
+        [
+          [
+            -391.29334365402974,
+            317.497547110361
+          ],
+          [
+            662.7551026548753,
+            299.99765145046126
+          ]
+        ],
+        [
+          [
+            611.2364464665397,
+            1384.3862230276127
+          ],
+          [
+            557.576866022833,
+            158.57848887620807
+          ]
+        ],
+        [
+          [
+            -388.6141961673519,
+            272.75343762467685
+          ],
+          [
+            660.1081203195617,
+            251.4556408676689
+          ]
+        ],
+        [
+          [
+            666.5273362956893,
+            1388.054800932397
+          ],
+          [
+            606.0556107643986,
+            157.2400775302056
+          ]
+        ],
+        [
+          [
+            -385.960922388158,
+            228.44144171475796
+          ],
+          [
+            657.4889119338305,
+            203.422966269693
+          ]
+        ],
+        [
+          [
+            722.288303685541,
+            1391.7545687159857
+          ],
+          [
+            654.8970426441509,
+            155.8916530416726
+          ]
+        ],
+        [
+          [
+            -383.3331493069204,
+            184.55532979480068
+          ],
+          [
+            654.8970426441509,
+            155.8916530416726
+          ]
+        ]
+      ],
+      "target_hover_outline_uv": [
+        [
+          348.8082793992024,
+          515.378911544434
+        ],
+        [
+          466.35317900779705,
+          515.3574521265955
+        ],
+        [
+          462.4885400233784,
+          396.19655214097486
+        ],
+        [
+          346.4520228792439,
+          397.2885037144477
+        ]
+      ],
+      "target_seated_outline_uv": [
+        [
+          349.7659388053473,
+          490.4293593036575
+        ],
+        [
+          454.5653372750492,
+          490.2059634434091
+        ],
+        [
+          451.24839380899226,
+          384.1117764876361
+        ],
+        [
+          347.64968518908904,
+          385.1845690116325
+        ]
+      ],
+      "T_base_from_camera_mm": [
+        [
+          0.9986868955764263,
+          -0.02458571681302506,
+          -0.044944711954913036,
+          554.6726164871586
+        ],
+        [
+          -0.021503610819915465,
+          -0.9974659745654978,
+          0.06781758109670386,
+          230.81011572296836
+        ],
+        [
+          -0.04649816475546076,
+          -0.06676205593667803,
+          -0.9966848792680072,
+          222.74222946055286
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "reason": "VISIBLE_BODY_EDGE_REQUIRED",
+      "datum_basis": "EXISTING_BOARD_CONTACT_PROXY_AND_LAYER_TCP_HEIGHT_DIFFERENCES"
+    },
+    "relative_angle_deg": null,
+    "reason": "VISIBLE_BODY_EDGE_REQUIRED",
+    "top_edge_pixels": [],
+    "contact_axis_pixels": [],
+    "pixel_axis_is_measured_3d_axis": false
+  },
+  "sources": {
+    "scenario": {
+      "path": "/home/rokey/Documents/ChatGPT/로봇제어 개발/c2_integration_challenge/robot_control_integration/settings/yellow4_challenge_20261014/scenario.json",
+      "sha256": "678800e15b96fb88e8a310672aa4eacf7b4737ee7d378c584455394ba12f06ff"
+    },
+    "supply_config": {
+      "path": "/home/rokey/Documents/ChatGPT/로봇제어 개발/c2_integration_challenge/robot_control_integration/settings/supply_sequence_20261014/config.json",
+      "sha256": "64e48faeb7074dbea0448a7f14ba5c1d242dfdee6f5faa4def3f8a399023e244"
+    },
+    "held_config": {
+      "path": "/home/rokey/Documents/ChatGPT/로봇제어 개발/c2_integration_challenge/robot_control_integration/settings/held_corner_stud_20261014/config.json",
+      "sha256": "e61c44ccd69c8e26be70a7e908a0dec65e8b63022f52425ccafd288850aeeb8d"
+    },
+    "raised_profile": {
+      "path": "/home/rokey/Documents/ChatGPT/로봇제어 개발/c2_integration_challenge/robot_control_integration/settings/raised_grasp_press_20261014/profile.pending.json",
+      "sha256": "f92f538e1392790fa713e905878fd5e7edd20c7abd2a60ac611c679ed99e5e1c"
+    },
+    "board_calibration": {
+      "path": "/home/rokey/Documents/ChatGPT/로봇제어 개발/c2_integration_challenge/robot_control_integration/calibration/assembly_board_16mm_20261007.json",
+      "sha256": "c77ff4cae46828ae2450875c1d904aae5bce8e965175c47ec71b1686ebf0fa20"
+    },
+    "static_tf": {
+      "path": "/home/rokey/Documents/ChatGPT/로봇제어 개발/c2_integration_challenge/robot_control_integration/calibration/tf_static_round2_20261014.yaml",
+      "sha256": "6efca7b8d23be49afac8da3fef5b2388655cd88f639fc114c97cfb5de629d25e"
+    },
+    "block_geometry": {
+      "path": "/home/rokey/Documents/ChatGPT/로봇제어 개발/c2_integration_challenge/planning_trial/measurements/round2_geometry.operator_20261013.json",
+      "sha256": "b23f0b1aee416be868fd7265b855a845c924ca3b9ae43058676fdefa7389ebf8"
+    },
+    "layer_records": {
+      "path": "/home/rokey/Documents/ChatGPT/로봇제어 개발/c2_integration_challenge/robot_control_integration/calibration/layer_records.json",
+      "sha256": "397c6749c4b42e296788c5fc3d57452307bf8f8a91df7bd359a8671c8190a501"
+    },
+    "supply_layout": {
+      "path": "/home/rokey/Documents/ChatGPT/로봇제어 개발/c2_integration_challenge/robot_control_integration/settings/supply_sequence_20261014/opencv_stud_layout.json",
+      "sha256": "83bfc7a36f653ddd89845df3c421cd4dd0ff247ae508bf6b4b1b329a26f9e4fc"
+    }
+  },
+  "target": {
+    "color": "yellow",
+    "brick_type": "2x2x1",
+    "x": 17,
+    "y": 17,
+    "layer": 1,
+    "orientation_deg": 0
+  },
+  "grasp_mode": "STANDARD",
+  "intended_pad_bottom_height_mm": 5,
+  "robot_stopped_at_capture": true,
+  "pose_image_registration_verified": false,
+  "actual_pad_bottom_height_verified": false,
+  "block_pose_measured": false,
+  "physical_commands": 0,
+  "execution_allowed": false
+}
