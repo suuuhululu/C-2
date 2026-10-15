@@ -28,8 +28,8 @@ A의 `test_total_four_studs_does_not_erase_per_lower_hold`처럼 합계4점이�
 | A | `planning_trial/assembly_optimizer.py`, `assembly_geometry.py`, `assembly_profiles.py`, `assembly_target.py`, `assembly_wire.py` | x/y 접근, 하부 HOLD·human press·RELEASE_PRESS 평가가 존재. 가용 교시와 실제 D capability를 이용해 로봇 단독 후보/순서/모션을 선택하도록 수정 필요 |
 | B | `perception/perception_mvp/{contracts,depth_grid,inspection,backend_adapter,assembly_roi}.py` | Current/revision/공간 비교/검사 결과 소유 유지. 빨강 방향 의미 변경 시 경계 변환과 예상/실제 footprint 일치 검증 필요 |
 | D 기하·교시 | `app/cad_trial.py`, `app/assembly_board_calibration.py`, `robot_control_integration/app/round2_operator_teaching.py` | 현재교시의 적용 범위·손목/TCP 관계 확인. grip별 공급/조립 교시 binding과 좌표 계산 수정 필요 |
-| D 공급 비전 | `robot_control_integration/app/supply_stud/{execution_profile,depth_center}.py`, `scripts/supply_pick_release_trial.py` | 기존 RGB-D/깊이 중앙값·관측 자세/시각 검사 유지. 1/2/3점축 grasp 중심과 TCP 오프셋 분리 필요 |
-| D 제어 | `robot_control_integration/scripts/{held_corner_stud_trial,held_xy_seating_trial,round2_three_step_trial}.py`, `app/assembly_step_runner.py` | I/O/P/U 수동 시험과 고정 자세 가정 존재. 검증된 자동 상태 전이 및 grip/방향별 결착·해제·가압·상승 경로 구현 필요 |
+| D 공급 비전 | `robot_control_integration/app/supply_stud/{execution_profile,depth_center}.py`, `robot_control_integration/scripts/supply_pick_release_trial.py` | 기존 RGB-D/깊이 중앙값·관측 자세/시각 검사 유지. 1/2/3점축 grasp 중심과 TCP 오프셋 분리 필요 |
+| D 제어 | `robot_control_integration/scripts/{held_corner_stud_trial,held_xy_seating_trial,round2_three_step_trial}.py`, `robot_control_integration/app/assembly_step_runner.py` | I/O/P/U 수동 시험과 고정 자세 가정 존재. 검증된 자동 상태 전이 및 grip/방향별 결착·해제·가압·상승 경로 구현 필요 |
 | D 통합 | `app/round3_service.py`, `round3_handover.py`, `round3_service_hmi.py`, `round3_stack_review.py` | round3 사람 전달/지원·B 실패 체크박스 존재. round4에서 전달 fallback 및 정상 과정 수동 완료 신호를 비활성화하고 로봇 단독 capability로 연결 |
 | 저장·웹 | `history/mvp_save.py`, `history/personal.py`, `history/web.py` | 원칙적으로 재사용. robot 완료/B 완료/저장 완료를 분리하고 저장 재시도로 로봇을 재실행하지 않음 |
 
