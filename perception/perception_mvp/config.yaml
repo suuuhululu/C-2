@@ -77,14 +77,30 @@ geometry:
   # survives D1/D3 board-baseline offsets. Layer spacing is 18.625mm; code requires 2*tolerance < spacing.
   # Still a trial value, not a measured accuracy.
   height_tolerance_m: 0.005
-  # Layer ranges (owner decision 2026-10-14): contiguous bands on the final height (top plane + board
-  # baseline + one block stud). Layer 1 is first_layer_min..layer_upper_bounds_m[0]; layer n is
-  # layer_upper_bounds_m[n-2]..layer_upper_bounds_m[n-1]; above the last bound or below 6mm is UNKNOWN.
-  # Stud-top of the top block = 18.6mm * n + 4mm (22.6/41.2/59.8/78.4/97.0mm); each upper bound is that
-  # +2mm (layer 1: 24.3mm). Lower-layer studs sit inside the block above and are not added.
-  # Trial values from the 18.6mm block pitch, not a measured accuracy; replaces the +/-5mm band.
+  # Layer ranges: contiguous bands on the final height; layer 1 is first_layer_min..bounds[0], layer n is
+  # bounds[n-2]..bounds[n-1]. Above the last bound or below first_layer_min is UNKNOWN. Trial values.
   first_layer_min_height_m: 0.006
-  layer_upper_bounds_m: [0.0243, 0.0432, 0.0618, 0.0804, 0.099]
+  layer_upper_bounds_m: [0.026, 0.0432, 0.064, 0.083, 0.099]
+  # Stud-midpoint layer (owner decision 2026-10-15): RGB finds two adjacent block studs, Depth is read
+  # in a small disc at their midpoint (flat top face between the studs). Layer-only extra result
+  # `stud_layer` beside the existing record; position/orientation still come from the top-plane path.
+  # Trial values from 8 captures of one scene (6 blocks), not a measured accuracy. Pixel values are for
+  # the current V0 distance; the expected stud pair distance itself is computed from focal length,
+  # stud pitch and depth.
+  stud_layer:
+    canny_low: 40
+    canny_high: 120
+    minimum_contour_points: 5
+    minimum_diameter_px: 4.0
+    maximum_diameter_px: 80.0
+    minimum_axis_ratio: 0.35
+    maximum_normalized_residual: 0.20
+    merge_px: 5.0
+    pitch_tolerance_fraction: 0.10
+    window_radius_px: 6.0
+    minimum_window_points: 30
+    mask_dilate_px: 1
+    box_margin_px: 4
   # Per-capture board baseline (owner decision 2026-10-14): fit the board plate plane away from detected
   # blocks and take layer heights relative to it. Measured 2026-10-14: V0 depth read the plate about 5mm
   # below the calibration datum. Trial method; an unreliable fit leaves blocks UNKNOWN, never uncorrected.

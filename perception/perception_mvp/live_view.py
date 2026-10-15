@@ -127,7 +127,9 @@ def load_layer_reference(path=None):
                 block_stud_height_mm=(config['block_stud_height_m'] * 1000.
                     if config['block_surface_height_basis'] == 'BODY_TOP_PLUS_STUD' else 0.),
                 top_plane_stud_mm=(config['block_stud_height_m'] * 1000.
-                    if config['block_surface_height_basis'] == 'TOP_PLANE_PLUS_STUD' else 0.))
+                    if config['block_surface_height_basis'] == 'TOP_PLANE_PLUS_STUD' else 0.),
+                stud_layer_params=config.get('stud_layer'),
+                stud_layer_stud_mm=config['block_stud_height_m'] * 1000.)
 
 
 def load_view_calibrations(root):
@@ -627,7 +629,9 @@ def main(argv=None):
                             first_layer_max_mm=layer_reference.get('first_layer_max_mm'),
                             layer_upper_bounds_mm=layer_reference.get('layer_upper_bounds_mm'),
                             board_baseline_params=layer_reference.get('board_baseline_params'),
-                            board_bounds_mm=layer_reference.get('board_bounds_mm'))
+                            board_bounds_mm=layer_reference.get('board_bounds_mm'),
+                            stud_layer_params=layer_reference.get('stud_layer_params'),
+                            stud_layer_stud_mm=layer_reference.get('stud_layer_stud_mm', 0.))
                         for record in records:
                             if record.get('reason') == 'calibration_or_synced_depth_missing':
                                 record['reason'] = ', '.join(input_reasons)

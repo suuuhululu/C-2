@@ -24,7 +24,17 @@
 - 실제 검증: A planning_trial + Workflow/PR30 전달 검사 **544 passed, failures/errors/skipped 0, 종료0**. 추가 D 모의 통합은 **28 passed / 8 failed**, 변경 전 b0d22e5에서 해당 8개를 재현해 실패 node ID와 원인이 동일함을 확인했다(기존 C 최소4점 규칙에 부적합한 2~3점 지지 fixture, 새 실패0). 통합 전체 PASS로 표시하지 않는다. 새 분류/전체 인계 예시 30검사 포함, API 예제 실행 34/34 PASS, AST 11파일·fixture JSON·git diff --check 확인. JUnit/첨부 배치 재계산은 reports에 로컬 보관한다. 실제 Robot/ROS/Camera/MoveIt/외부 API/DB 실행, D 실제 전략 소비, 실물 결착 품질은 미검증. [PR #50](https://github.com/suuuhululu/C-2/pull/50)을 gimseeun 계정으로 `codex/integration-round2` 대상으로 게시했다. 최신 대상 cf8031d를 feature branch에 합쳐 STATUS 충돌의 양쪽 기록을 보존했고, A/Workflow 검사는 다시 544 passed다. PR 병합·D 실제 연결은 별도다.
 
 
+## 2026-10-15 — B 비전: 스터드 중점 층 판정·연속 층 구간 (`work/hongdong-vision-round1-v2`)
+
+- 층 구간(사용자 결정, 시험값): 최종 높이(윗면 + 바닥 보정 + 보드 스터드 기준 + 블록 스터드 4mm)를 이어진 구간으로 판정한다. 1층 6~26, 2층 26~43.2, 3층 43.2~64, 4층 64~83, 5층 83~99mm이고 6mm 미만·99mm 초과는 UNKNOWN이다. `config.yaml`의 `layer_upper_bounds_m`와 `first_layer_min_height_m`, 규칙은 depth_grid.py `layer_band_index` 한 곳이다. 기존 ±5mm 구간과 1층 6~25mm는 이 구간으로 대체됐다. 구간은 2026-10-14 저장 촬영 한 장면(48건)에서 맞춘 값이라 다른 장면 검증이 아니다.
+- 스터드 중점 층 판정(`perception_mvp/stud_layer.py`, 새 파일): 마스크 안에서 스터드 원 후보(회색 Canny + 타원 맞춤)를 찾고, 겹친 원을 합친 뒤 스터드 한 칸 간격(초점거리·피치·가장 가까운 깊이로 계산)에 가까운 쌍을 고른다. 두 스터드 중점 반경 6px 안 깊이 중앙값에 바닥 보정·보드 기준·블록 스터드 4mm를 더해 층을 정한다. 결과는 기존 필드를 바꾸지 않는 새 필드 `stud_layer`(층 전용)이고 위치·방향은 기존 윗면 평면·윤곽 경로가 그대로 담당한다. 설정은 `config.yaml`의 `stud_layer`이며 `process_frame`·live_view·assembly_replay가 같은 설정을 쓴다. supply_vision 파일은 수정하지 않았다.
+- 시험: 저장 촬영 8장(한 장면, 블록 6개)을 실제 YOLO 모델로 재생해 48건 모두 높이가 나왔고 쌓은 층 구간 안에 들어간 건이 48/48이다(정답은 쌓은 층 수 기준, 파랑 4층 쌓기 안 블록을 3층으로 본 것은 사진 추정). 같은 실행에서 기존 방식의 층은 48건 중 1건이었다. HSV 대용 마스크와 YOLO 마스크 결과는 같았다. 스터드 쌍 중점의 8장 반복 오차는 0.2~0.4px이다.
+- 한계·미검증: 정답 높이를 자로 잰 값이 없다. 윗면 평행 검사와 RGB 윤곽 검증을 거치지 않은 값이다. 빨강 2층은 깊이가 번져 창 안 높이 흩어짐이 평균 6.6mm이고 중앙값 36.9mm는 윗면 높이(약 43mm)보다 낮다(층 판정은 L2). 경계 여유는 0.4~0.6mm다. 위치·방향은 스터드로 구하지 않았다. 밝기 올리기·CLAHE 대비 보정은 같은 검출기에서 개선이 없었고(공급 비전의 CLAHE 코드는 읽지 못함) D1/D3·팀 통합·D/A/C 연결·실제 로봇은 시험하지 않았다. 새 테스트는 클라우드 대용 실행기에서만 통과했고 PC의 실제 pytest는 아직 실행하지 않았다.
+- 팀장 확인 필요: 연속 층 구간 값(26/43.2/64/83/99), 스터드 중점 층 판정 채택, 정답 높이 실측.
+
 ## 2026-10-14 — B 비전: 층 기준·허용 오차·V0/D1·D3 역할 분리 (`work/hongdong-vision-round1-v2`)
+
+- (2026-10-15 갱신) 이 절의 층 허용 오차 ±5mm와 1층 6~25mm 설명은 위 2026-10-15 절의 연속 층 구간으로 대체됐다. 바닥 보정·V0 역할 설명은 유지한다.
 
 - 변경(B-only, perception/): 층 기준을 측정 윗면 평면 + 스터드 4mm(TOP_PLANE_PLUS_STUD)로 변경했다. 층 허용 오차는 ±2.5mm→±5mm(층 간격 18.625mm, 2×허용<간격 유지), 깊이 범위 min_depth는 V0 0.441·D1 0.332·D3 0.395로 2mm 낮췄다(캘리브레이션 무변경).
 - UNKNOWN은 후보 단위로 처리한다. 후보 하나가 실패해도 그 후보만 제외하고 시점 전체를 무효화하지 않는다. V0의 UNKNOWN은 MATCH를 막고(비교는 UNOBSERVABLE), D1/D3의 UNKNOWN은 막지 않는다.
