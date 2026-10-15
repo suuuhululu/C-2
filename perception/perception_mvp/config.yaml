@@ -80,7 +80,7 @@ geometry:
   # Layer ranges: contiguous bands on the final height; layer 1 is first_layer_min..bounds[0], layer n is
   # bounds[n-2]..bounds[n-1]. Above the last bound or below first_layer_min is UNKNOWN. Trial values.
   first_layer_min_height_m: 0.006
-  layer_upper_bounds_m: [0.026, 0.0432, 0.064, 0.083, 0.099]
+  layer_upper_bounds_m: [0.026, 0.0432, 0.064, 0.083, 0.103]
   # Stud-midpoint layer (owner decision 2026-10-15): RGB finds two adjacent block studs, Depth is read
   # in a small disc at their midpoint (flat top face between the studs). Layer-only extra result
   # `stud_layer` beside the existing record; position/orientation still come from the top-plane path.

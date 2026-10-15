@@ -46,14 +46,14 @@ def test_invalid_range_is_refused_not_ignored():
     validate_first_layer_range(None, None, LEVELS)
 
 
-BOUNDS = [26., 43.2, 64., 83., 99.]
+BOUNDS = [26., 43.2, 64., 83., 103.]
 
 
 def test_contiguous_bands_follow_the_owner_ranges():
-    expected = {6.: 0, 24.3: 0, 26.: 0, 26.01: 1, 43.2: 1, 43.21: 2, 64.: 2, 64.01: 3, 83.: 3, 83.01: 4, 99.: 4}
+    expected = {6.: 0, 24.3: 0, 26.: 0, 26.01: 1, 43.2: 1, 43.21: 2, 64.: 2, 64.01: 3, 83.: 3, 83.01: 4, 103.: 4}
     for height, index in expected.items():
         assert layer_index(height, LEVELS, 5., 6., upper_bounds=BOUNDS) == index, height
-    for height in (5.9, 99.01, 120.):
+    for height in (5.9, 103.01, 120.):
         assert layer_index(height, LEVELS, 5., 6., upper_bounds=BOUNDS) is None, height
 
 
@@ -74,9 +74,9 @@ def test_bounds_ignore_the_symmetric_tolerance_and_first_layer_max():
 
 
 def test_invalid_bounds_are_refused():
-    for bad in ([26., 43.2, 64., 83.], [26., 43.2, 43.2, 83., 99.], [26., 43.2, 64., 83., np.nan],
-                [21., 43.2, 64., 83., 99.], [26., 43.2, 64., 83., 99., 110.],
-                [41., 43.2, 64., 83., 99.]):  # shape, order, NaN, below own level, count, touching next level
+    for bad in ([26., 43.2, 64., 83.], [26., 43.2, 43.2, 83., 103.], [26., 43.2, 64., 83., np.nan],
+                [21., 43.2, 64., 83., 103.], [26., 43.2, 64., 83., 103., 115.],
+                [41., 43.2, 64., 83., 103.]):  # shape, order, NaN, below own level, count, touching next level
         with pytest.raises(ValueError, match='invalid_layer_upper_bounds'):
             layer_index(30., LEVELS, 5., 6., upper_bounds=bad)
     with pytest.raises(ValueError, match='invalid_first_layer_min'):
@@ -87,7 +87,7 @@ def test_config_and_live_reference_carry_the_same_ranges():
     root = Path(__file__).resolve().parents[1]
     geometry = yaml.safe_load((root / 'config.yaml').read_text())['geometry']
     assert geometry['first_layer_min_height_m'] == 0.006
-    assert geometry['layer_upper_bounds_m'] == [0.026, 0.0432, 0.064, 0.083, 0.099]
+    assert geometry['layer_upper_bounds_m'] == [0.026, 0.0432, 0.064, 0.083, 0.103]
     assert geometry.get('first_layer_max_height_m') is None
     reference = load_layer_reference()
     assert reference['first_layer_min_mm'] == pytest.approx(6.)

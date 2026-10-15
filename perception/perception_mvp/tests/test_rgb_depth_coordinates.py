@@ -79,8 +79,8 @@ def test_plane_plus_stud_just_above_layer_one_belongs_to_layer_two():
 
 
 def test_plane_plus_stud_above_the_last_layer_bound_is_unknown():
-    # A plane at 96mm becomes 100mm after the stud: above layer 5's 99mm bound.
-    mask, rgb, depth, transform, intrinsics, config = inputs(96.)
+    # A plane at 100mm becomes 104mm after the stud: above layer 5's 103mm bound.
+    mask, rgb, depth, transform, intrinsics, config = inputs(100.)
     result = measure_candidate(mask, 'yellow_2x2', .9, depth, .001, intrinsics,
                                transform, config, rgb=rgb)
     assert result['status'] == 'UNKNOWN' and result['reason'] == 'height_not_in_measured_layer'

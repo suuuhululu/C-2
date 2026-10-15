@@ -11,7 +11,7 @@ PARAMS = dict(canny_low=40, canny_high=120, minimum_contour_points=5, minimum_di
               merge_px=5.0, pitch_tolerance_fraction=0.10, window_radius_px=6.0,
               minimum_window_points=30, mask_dilate_px=1, box_margin_px=4)
 LEVELS = [22., 40.625, 59.25, 77.875, 96.5]
-BOUNDS = [26., 43.2, 64., 83., 99.]
+BOUNDS = [26., 43.2, 64., 83., 103.]
 SIZE = (240, 320)  # height, width
 FX, PITCH_MM, Z0 = 600., 16., 500.
 
@@ -107,11 +107,11 @@ def test_window_without_depth_is_unknown():
 
 
 def test_height_outside_all_layers_is_unknown_but_keeps_the_height():
-    rgb, mask, depth, _ = scene(95.)  # 103mm after the datum and stud
+    rgb, mask, depth, _ = scene(100.)  # 108mm after the datum and stud
     result = run(rgb, mask, depth)
     assert result['layer'] is None
     assert result['reason'] == 'height_outside_layer_reference'
-    assert result['height_mm'] == pytest.approx(103.)
+    assert result['height_mm'] == pytest.approx(108.)
 
 
 def test_board_baseline_bias_is_subtracted():
