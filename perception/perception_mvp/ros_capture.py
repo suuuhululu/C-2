@@ -124,9 +124,9 @@ def stream_ros_hand(is_active, is_stopped, *, timeout=15., max_delta_ms=50., max
                 counts[key] += 1
             changed.set()
         node.create_subscription(Image, '/camera/color/image_raw',
-            lambda msg: receive(msg, 'rgb'), QoSProfile(depth=1, reliability=ReliabilityPolicy.RELIABLE))
+            lambda msg: receive(msg, 'rgb'), QoSProfile(depth=1, reliability=ReliabilityPolicy.BEST_EFFORT))
         node.create_subscription(Image, '/camera/aligned_depth_to_color/image_raw',
-            lambda msg: receive(msg, 'aligned'), QoSProfile(depth=1, reliability=ReliabilityPolicy.RELIABLE))
+            lambda msg: receive(msg, 'aligned'), QoSProfile(depth=1, reliability=ReliabilityPolicy.BEST_EFFORT))
         executor.add_node(node)
         def spin():
             try:
@@ -227,7 +227,7 @@ def capture_inspection_view(manifest, view, is_active, *, output_root, scene_id,
         topics = {'rgb': '/camera/color/image_raw', 'raw': '/camera/depth/image_rect_raw',
                   'aligned': '/camera/aligned_depth_to_color/image_raw'}
         for key, topic in list(topics.items()):
-            qos = QoSProfile(depth=1, reliability=ReliabilityPolicy.RELIABLE)
+            qos = QoSProfile(depth=1, reliability=ReliabilityPolicy.BEST_EFFORT)
             node.create_subscription(Image, topic, lambda msg, k=key: receive(msg, k), qos)
             info_topic = {'rgb': '/camera/color/camera_info', 'raw': '/camera/depth/camera_info',
                           'aligned': '/camera/aligned_depth_to_color/camera_info'}[key]

@@ -822,8 +822,8 @@ def main(argv=None):
     hand_stamp, hand_event = None, None
     import rclpy
     from rclpy.qos import qos_profile_sensor_data, QoSProfile, ReliabilityPolicy
-    # All three image publishers were confirmed reliable; CameraInfo remains sensor-data QoS.
-    image_qos = QoSProfile(depth=1, reliability=ReliabilityPolicy.RELIABLE)
+    # Prefer timely sensor frames; retain only the latest pending image.
+    image_qos = QoSProfile(depth=1, reliability=ReliabilityPolicy.BEST_EFFORT)
     from sensor_msgs.msg import Image, CameraInfo
     rclpy.init()
     node = rclpy.create_node('perception_live_diagnostic')

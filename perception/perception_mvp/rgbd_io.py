@@ -294,7 +294,7 @@ def ros_main(argv=None):
     from sensor_msgs.msg import Image, CameraInfo
     rclpy.init(args=[])
     node = rclpy.create_node("perception_rgbd_save")
-    image_qos = QoSProfile(depth=1, reliability=ReliabilityPolicy.RELIABLE)
+    image_qos = QoSProfile(depth=1, reliability=ReliabilityPolicy.BEST_EFFORT)
     queues = {k: deque(maxlen=10) for k in ("rgb", "raw", "aligned")}
     infos, topics, subscriptions = {}, {}, []
     try:

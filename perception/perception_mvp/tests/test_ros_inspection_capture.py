@@ -151,7 +151,7 @@ def fake_ros(monkeypatch):
             self.stop.set()
     modules['rclpy.executors'].SingleThreadedExecutor = Executor
     modules['rclpy.qos'].QoSProfile = lambda **kw: N(**kw)
-    modules['rclpy.qos'].ReliabilityPolicy = N(RELIABLE='reliable')
+    modules['rclpy.qos'].ReliabilityPolicy = N(BEST_EFFORT='best_effort')
     modules['rclpy.qos'].qos_profile_sensor_data = 'sensor_data'
     modules['sensor_msgs.msg'].Image = object
     modules['sensor_msgs.msg'].CameraInfo = object
@@ -178,12 +178,12 @@ def test_ros_one_shot_closes_before_coverage_and_preserves_context(tmp_path, fak
     assert load_frame(record['directory'])[-1]['check_id'] == 'fixed'
     assert len(fake_ros.subscriptions) == 6
     rgb_qos = dict(fake_ros.qoses)['/camera/color/image_raw']
-    assert rgb_qos.reliability == 'reliable' and rgb_qos.depth == 1
+    assert rgb_qos.reliability == 'best_effort' and rgb_qos.depth == 1
     for topic, qos in fake_ros.qoses:
         if topic.endswith('/camera_info'):
             assert qos == 'sensor_data'
         else:
-            assert qos.reliability == 'reliable' and qos.depth == 1
+            assert qos.reliability == 'best_effort' and qos.depth == 1
 
 
 def test_cancel_before_capture_opens_no_subscriptions(tmp_path, fake_ros):
@@ -318,8 +318,8 @@ def test_ros_hand_generator_yields_rgb_depth_and_closes(fake_ros):
         stream.close()
     assert fake_ros.closed and fake_ros.shutdown
     assert len(fake_ros.subscriptions) == 2
-    assert dict(fake_ros.qoses)['/camera/color/image_raw'].reliability == 'reliable'
-    assert dict(fake_ros.qoses)['/camera/aligned_depth_to_color/image_raw'].reliability == 'reliable'
+    assert dict(fake_ros.qoses)['/camera/color/image_raw'].reliability == 'best_effort'
+    assert dict(fake_ros.qoses)['/camera/aligned_depth_to_color/image_raw'].reliability == 'best_effort'
 
 
 def test_ros_hand_generator_stop_while_waiting_closes(fake_ros):
