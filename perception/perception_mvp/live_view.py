@@ -822,9 +822,8 @@ def main(argv=None):
     hand_stamp, hand_event = None, None
     import rclpy
     from rclpy.qos import qos_profile_sensor_data, QoSProfile, ReliabilityPolicy
-    # Remote RGB was received with RELIABLE in the user's CLI diagnostic.
-    # Keep a short latest-frame queue; Depth/CameraInfo retain sensor-data QoS.
-    rgb_qos = QoSProfile(depth=1, reliability=ReliabilityPolicy.RELIABLE)
+    # All three image publishers were confirmed reliable; CameraInfo remains sensor-data QoS.
+    image_qos = QoSProfile(depth=1, reliability=ReliabilityPolicy.RELIABLE)
     from sensor_msgs.msg import Image, CameraInfo
     rclpy.init()
     node = rclpy.create_node('perception_live_diagnostic')
@@ -878,7 +877,7 @@ def main(argv=None):
         for key in ('rgb', 'raw', 'aligned'):
             subscriptions.append(node.create_subscription(Image, topics[key],
                 lambda msg, k=key, b=buffer: b.image(k, msg),
-                rgb_qos if key == 'rgb' else qos_profile_sensor_data))
+                image_qos))
             subscriptions.append(node.create_subscription(CameraInfo, topics[key+'-info'],
                 lambda msg, k=key, b=buffer: b.info(k, msg), qos_profile_sensor_data))
         receiver_thread = Thread(target=executor.spin, name='ros-rgbd-receiver', daemon=True)

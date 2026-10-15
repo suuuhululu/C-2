@@ -1,5 +1,26 @@
 # 현재 진행 상황
 
+## 2026-10-15 — B 원본·정렬 Depth 구독 RELIABLE 적용
+
+- 현장 RGB·원본 Depth·정렬 Depth 발행이 모두 RELIABLE임을 확인한 뒤 사용자 요청으로 세 영상 구독을 RELIABLE/depth1로 맞췄다. 통합 촬영·V0 손 수신·live_view·rgbd_io ROS 저장에 적용했다. CameraInfo 발행 QoS는 미확인이므로 기존 sensor_data(BEST_EFFORT)를 유지한다.
+- 관련 모의 검사69 passed, 종료0. 영상 구독 QoS와 CameraInfo 기존 설정을 확인했다. 통합 PC 적용 및 실제 수신 개선은 미검증이다. 이전 수신 진단·버퍼 선택 변경은 보존했다.
+
+## 2026-10-15 — B RGB 구독 RELIABLE 복구
+
+- 현장 RGB 발행이 RELIABLE임을 확인한 뒤 사용자 요청으로 통합 촬영·V0 손 수신·live_view·공급판 ROI의 RGB 구독을 RELIABLE/depth1로 복구했다. Depth/CameraInfo는 기존 sensor_data(BEST_EFFORT)를 유지한다. 수신 진단·유효 묶음 선택 변경은 보존했다.
+- 관련 모의 검사69 passed, 종료0. 실제 round3 실행 환경 반영·장치 재시험은 미실행이다.
+
+## 2026-10-15 — B 카메라 RGB 구독 BEST_EFFORT 전환
+
+- 사용자 요청으로 ros_capture의 통합 촬영·V0 손 수신, live_view, supply_roi의 RGB 구독을 BEST_EFFORT/depth1로 변경했다. Depth/CameraInfo는 기존 sensor_data(BEST_EFFORT)를 사용한다. 발행 카메라 노드 설정은 변경하지 않았다.
+- ROS 촬영·로컬 화면·실결선 관련 모의 검사69 passed, 종료0. RGB 구독 QoS와 수신기 종료를 확인했다. 실제 통합 PC 연결/지연 개선은 재시험 필요. 기존 RGB-D 수신 진단 변경과 미커밋 사용자 변경을 보존했다.
+
+## 2026-10-15 — B RGB-D 수신 실패 진단·버퍼 묶음 선택
+
+- ros_capture의 촬영/손 수신에서 버퍼 내 최신 유효 RGB-D 묶음을 선택한다. 최신 RGB의 Depth가 아직 없으면 이전의 유효 RGB 묶음을 사용한다. 15초 대기·50ms 시각차·250ms 최신성·요청 이후 프레임·정지/취소 검사는 유지했다.
+- 시간 초과 시 View/phase와 reception 진단(누락 토픽, 누적 수신 수, 최신 영상 시각/경과시간/시각차, 요청 이전 여부, 제한값)을 출력하고 예외에도 포함한다. 음수 경과시간은 영상 시각이 수신 노드의 현재 시각보다 미래임을 뜻한다. 최신 도착 영상 진단은 실제 선택된 묶음의 진단과 구분한다.
+- CameraInfo 3개·영상 3개 필수는 유지. 현장 10fps 프로파일 거절/실제30fps 로그는 B 수신 변경으로 해결됐다고 주장하지 않는다. D/카메라 실행기는 수정하지 않았다. ROS 촬영·observer·실결선 모의 검사57 passed、종료0. 이전 유효 묶음 선택, 누락/오래된/미래/요청 이전 영상 거절, 오류 진단/수신기 종료를 확인했다. 장치 재시험과 round3 실행 폴더 적용은 남아 있다.
+
 ## 2026-10-15 — B 로컬 층 판정을 스터드 사이 Depth로 통일
 
 - 사용자 지시에 따라 integrated_view의 stud_layer 설정 사용 시 layer·height_mm을 스터드 사이 측정 결과로 채운다. 좌표·방향 및 외곽 실패 원인은 유지하며 스터드 측정 실패 시 기존 평면 층으로 되돌리지 않는다. HUD의 LAYER/H도 같은 결과를 읽는다. 기존 미커밋 표시 변경을 보존했다.

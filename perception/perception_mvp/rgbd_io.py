@@ -290,10 +290,11 @@ def ros_main(argv=None):
     # Every invocation creates a unique frame; repeated capture never overwrites data.
     directory = args.output / datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S%fZ")
     import rclpy
-    from rclpy.qos import qos_profile_sensor_data
+    from rclpy.qos import QoSProfile, ReliabilityPolicy, qos_profile_sensor_data
     from sensor_msgs.msg import Image, CameraInfo
     rclpy.init(args=[])
     node = rclpy.create_node("perception_rgbd_save")
+    image_qos = QoSProfile(depth=1, reliability=ReliabilityPolicy.RELIABLE)
     queues = {k: deque(maxlen=10) for k in ("rgb", "raw", "aligned")}
     infos, topics, subscriptions = {}, {}, []
     try:
@@ -301,7 +302,7 @@ def ros_main(argv=None):
             topic = getattr(args, key + "_topic")
             topics[key] = topic
             subscriptions.append(node.create_subscription(Image, topic,
-                lambda msg, k=key: queues[k].append(msg), qos_profile_sensor_data))
+                lambda msg, k=key: queues[k].append(msg), image_qos))
             topic = getattr(args, key + "_info_topic")
             topics[key + "_info"] = topic
             subscriptions.append(node.create_subscription(CameraInfo, topic,
