@@ -209,8 +209,9 @@ def capture_inspection_view(manifest, view, is_active, *, output_root, scene_id,
     from sensor_msgs.msg import Image, CameraInfo
     ros_context = Context()
     rclpy.init(args=[], context=ros_context)
-    node = None
-    executor = None
+    node, executor, worker = None, None, None
+    lock, changed = Lock(), Event()
+    failures = []
     try:
         executor = SingleThreadedExecutor(context=ros_context)
         node = rclpy.create_node('b_inspection_capture', context=ros_context)
@@ -219,11 +220,13 @@ def capture_inspection_view(manifest, view, is_active, *, output_root, scene_id,
         counts = dict.fromkeys((*queues, *(key+'_info' for key in queues)), 0)
         infos = {}
         def receive(message, key, info=False):
-            counts[key+'_info' if info else key] += 1
-            if info:
-                infos[key] = message
-            else:
-                queues[key].append(message)
+            with lock:
+                counts[key+'_info' if info else key] += 1
+                if info:
+                    infos[key] = message
+                else:
+                    queues[key].append(message)
+            changed.set()
         topics = {'rgb': '/camera/color/image_raw', 'raw': '/camera/depth/image_rect_raw',
                   'aligned': '/camera/aligned_depth_to_color/image_raw'}
         for key, topic in list(topics.items()):
@@ -234,27 +237,44 @@ def capture_inspection_view(manifest, view, is_active, *, output_root, scene_id,
             topics[key + '_info'] = info_topic
             node.create_subscription(CameraInfo, info_topic,
                 lambda msg, k=key: receive(msg, k, info=True), qos_profile_sensor_data)
+        executor.add_node(node)
+        def spin():
+            try:
+                executor.spin()
+            except Exception as error:
+                failures.append(error)
+                changed.set()
+        worker = Thread(target=spin, name='b-inspection-receiver', daemon=True)
+        worker.start()
         deadline = time.monotonic() + timeout
         while rclpy.ok(context=ros_context) and time.monotonic() < deadline:
+            # Controller queries may block; image callbacks keep running independently.
+            # Pick the packet AFTER the query so its latency does not age a chosen packet.
+            changed.wait(.05)
+            changed.clear()
             require_active()
-            rclpy.spin_once(node, executor=executor, timeout_sec=.05)
-            if len(infos) != 3 or not all(queues.values()):
-                continue
-            now_ns = node.get_clock().now().nanoseconds
-            messages = _select_packet(queues, start_ns, now_ns, max_delta_ms, max_age_ms)
+            if failures:
+                raise RuntimeError('inspection ROS reception failed') from failures[0]
+            with lock:
+                messages = (_select_packet(queues, start_ns, node.get_clock().now().nanoseconds,
+                                           max_delta_ms, max_age_ms) if len(infos) == 3 else None)
+                captured_infos = dict(infos)
             if messages is None:
                 continue
-            require_active()
-            save_capture(directory, messages, infos, topics, view, max_delta_ms, context=metadata)
+            save_capture(directory, messages, captured_infos, topics, view, max_delta_ms, context=metadata)
             break
         else:
-            raise _reception_timeout(context, view, 'RGBD_CAPTURE', queues, counts,
-                start_ns, node.get_clock().now().nanoseconds, timeout, max_delta_ms, max_age_ms,
-                'fresh synchronized ROS RGB/raw/aligned Depth or CameraInfo unavailable; check topics/clocks',
-                infos=infos, topics=topics)
+            with lock:
+                error = _reception_timeout(context, view, 'RGBD_CAPTURE', queues, counts,
+                    start_ns, node.get_clock().now().nanoseconds, timeout, max_delta_ms, max_age_ms,
+                    'fresh synchronized ROS RGB/raw/aligned Depth or CameraInfo unavailable; check topics/clocks',
+                    infos=infos, topics=topics)
+            raise error
     finally:
         if executor is not None:
             executor.shutdown()
+        if worker is not None:
+            worker.join(timeout=1.)
         if node is not None:
             node.destroy_node()
         rclpy.shutdown(context=ros_context)

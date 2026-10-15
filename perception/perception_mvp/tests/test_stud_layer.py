@@ -133,7 +133,7 @@ def test_parameters_must_be_explicit_and_consistent():
     validate_params(PARAMS)
 
 
-def test_process_frame_adds_layer_only_result_without_changing_other_fields():
+def test_process_frame_uses_stud_layer_and_preserves_geometry(monkeypatch):
     from types import SimpleNamespace
 
     class Tensor:
@@ -174,8 +174,18 @@ def test_process_frame_adds_layer_only_result_without_changing_other_fields():
     assert 'stud_layer' not in plain
     assert extra['stud_layer']['layer'] == 2
     assert extra['stud_layer']['height_mm'] == pytest.approx(38.)
+    assert extra['layer'] == 2
+    assert extra['height_mm'] == pytest.approx(38.)
+    assert extra['layer_source'] == 'STUD_MIDPOINT'
     for key in plain:
-        if key != 'mask':
+        if key not in ('mask', 'layer', 'height_mm', 'reason'):
             assert plain[key] == extra[key]
     canvas = draw_integrated(cv2.cvtColor(rgb, cv2.COLOR_RGB2BGR), [extra])
     assert canvas.shape == rgb.shape
+    monkeypatch.setattr('perception_mvp.integrated_view.stud_layer_record',
+                        lambda *args: dict(layer=None, height_mm=None, reason='stud_pair_not_found'))
+    failed = process_frame(rgb, Model(), .5, depth, camera_info, cal,
+                           stud_layer_params=PARAMS, stud_layer_stud_mm=4., **kwargs)[0]
+    assert failed['layer'] is None
+    assert failed['height_mm'] is None
+    assert failed['reason'] is not None

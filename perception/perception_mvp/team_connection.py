@@ -208,6 +208,7 @@ class InspectionConnection:
                             display_stage='CONFIRMED' if result['comparison'] in ('MATCH', 'MISMATCH') else 'UNOBSERVABLE',
                             previous_current=deepcopy(result.get('previous_current')),
                             current=deepcopy(result['current']), expected=deepcopy(result['expected']),
+                            difference=deepcopy(result['difference']),
                             comparison=result['comparison']))
                         comparison = result['comparison']
                         unavailable = comparison == 'UNOBSERVABLE' or (
