@@ -69,13 +69,18 @@ def test_plane_plus_stud_inside_the_layer_one_range_is_measured():
 
 
 def test_plane_plus_stud_just_above_layer_one_belongs_to_layer_two():
-    # Contiguous bands: a plane at 22.2mm becomes 26.2mm, the first height above layer 1's 26mm bound.
-    for plane_mm, expected in ((20.2, 0), (20.4, 0), (22., 0), (22.2, 1), (39., 1), (39.4, 2)):
+    # Layer 1 ends at 24.5mm and layer 2 starts above the 26mm bound; 24.5..26mm is no layer.
+    for plane_mm, expected in ((20.2, 0), (20.4, 0), (22.2, 1), (39., 1), (39.4, 2)):
         mask, rgb, depth, transform, intrinsics, config = inputs(plane_mm)
         result = measure_candidate(mask, 'yellow_2x2', .9, depth, .001, intrinsics,
                                    transform, config, rgb=rgb)
         assert result['status'] == 'CANDIDATE', plane_mm
         assert result['measured_layer_index'] == expected, plane_mm
+    for plane_mm in (20.6, 22.):  # 24.6 and 26.0mm after the stud: between layer 1 and layer 2
+        mask, rgb, depth, transform, intrinsics, config = inputs(plane_mm)
+        result = measure_candidate(mask, 'yellow_2x2', .9, depth, .001, intrinsics,
+                                   transform, config, rgb=rgb)
+        assert result['status'] == 'UNKNOWN' and result['reason'] == 'height_not_in_measured_layer', plane_mm
 
 
 def test_plane_plus_stud_above_the_last_layer_bound_is_unknown():

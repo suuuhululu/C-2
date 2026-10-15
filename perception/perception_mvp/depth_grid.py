@@ -18,6 +18,8 @@ CLASSES = LIVE_CLASSES
 # Owner decision 2026-10-14 (later): when upper_bounds are given, the layers are contiguous bands.
 # Layer 1 is first_layer_min..upper_bounds[0]; layer n is upper_bounds[n-2]..upper_bounds[n-1];
 # a shared edge belongs to the lower layer; above the last bound (or below first_layer_min) is None.
+# Owner decision 2026-10-15: with bounds, first_layer_max (if given) is layer 1's own upper edge and may
+# lie below upper_bounds[0]; heights between first_layer_max and upper_bounds[0] belong to no layer (None).
 def validate_first_layer_range(first_layer_min, first_layer_max, levels, tolerance=0.):
     if first_layer_min is None and first_layer_max is None:
         return
@@ -55,6 +57,14 @@ def layer_band_index(height, levels, tolerance, first_layer_min=None, first_laye
         low = first_layer_min if first_layer_min is not None else bounds[0] - (bounds[1] - bounds[0])
         if height < low and not np.isclose(height, low, rtol=1e-9, atol=0.):
             return None
+        if first_layer_max is not None:
+            if (not np.isfinite(first_layer_max) or first_layer_max < levels[0] or first_layer_max > bounds[0]
+                    or (first_layer_min is not None and first_layer_max <= first_layer_min)):
+                raise ValueError('invalid_first_layer_max')
+            if (height > first_layer_max and not np.isclose(height, first_layer_max, rtol=1e-9, atol=0.) and
+                    (height <= bounds[0] or np.isclose(height, bounds[0], rtol=1e-9, atol=0.)) and
+                    first_layer_max < bounds[0]):
+                return None  # gap between layer 1's own upper edge and the shared bound
         for index, bound in enumerate(bounds):
             if height <= bound or np.isclose(height, bound, rtol=1e-9, atol=0.):
                 return index

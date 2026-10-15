@@ -64,13 +64,29 @@ def test_measured_samples_and_stud_tops_land_in_their_own_layer():
     assert layer_index(20.5, LEVELS, 5., 6., upper_bounds=BOUNDS) == 0   # measured layer 1 (yellow)
     assert layer_index(40.2, LEVELS, 5., 6., upper_bounds=BOUNDS) == 1   # measured layer 2 (blue)
     # 2026-10-14 stack captures (stud-midpoint heights): 3rd layer 61.2..62.9, 4th layer 79.5..82.6.
-    for height, index in ((21.6, 0), (24.3, 0), (25.6, 0), (36.9, 1), (61.2, 2), (62.4, 2), (62.9, 2), (63.4, 2), (64., 2), (64.1, 3), (79.5, 3), (80.6, 3), (82.6, 3)):
+    for height, index in ((21.6, 0), (24.3, 0), (36.9, 1), (61.2, 2), (62.4, 2), (62.9, 2), (63.4, 2), (64., 2), (64.1, 3), (79.5, 3), (80.6, 3), (82.6, 3)):
         assert layer_index(height, LEVELS, 5., 6., upper_bounds=BOUNDS) == index, height
 
 
-def test_bounds_ignore_the_symmetric_tolerance_and_first_layer_max():
+def test_bounds_ignore_the_symmetric_tolerance():
     assert layer_index(30., LEVELS, 5., 6., 25., upper_bounds=BOUNDS) == 1
     assert layer_index(30., LEVELS, 5., 6., 25.) is None
+
+
+def test_first_layer_max_below_the_shared_bound_leaves_a_gap():
+    # Owner decision 2026-10-15: layer 1 is 6..24.5, layer 2 starts above the 26 bound; 24.5..26 is no layer.
+    def idx(height):
+        return layer_index(height, LEVELS, 5., 6., 24.5, upper_bounds=BOUNDS)
+    expected = {6.: 0, 21.6: 0, 24.3: 0, 24.5: 0, 24.51: None, 25.6: None, 26.: None, 26.01: 1, 43.2: 1, 43.21: 2,
+                64.: 2, 64.01: 3, 83.: 3, 83.01: 4, 103.: 4, 103.01: None, 5.9: None}
+    for height, index in expected.items():
+        assert idx(height) == index, height
+    for bad in (21., 26.5, np.nan):
+        with pytest.raises(ValueError, match='invalid_first_layer_max'):
+            layer_index(30., LEVELS, 5., 6., bad, upper_bounds=BOUNDS)
+    with pytest.raises(ValueError, match='invalid_first_layer_max'):
+        layer_index(30., LEVELS, 5., 24.5, 24.5, upper_bounds=BOUNDS)
+    assert layer_index(25.6, LEVELS, 5., 6., 26., upper_bounds=BOUNDS) == 0  # max equal to the bound: no gap
 
 
 def test_invalid_bounds_are_refused():
@@ -88,8 +104,8 @@ def test_config_and_live_reference_carry_the_same_ranges():
     geometry = yaml.safe_load((root / 'config.yaml').read_text())['geometry']
     assert geometry['first_layer_min_height_m'] == 0.006
     assert geometry['layer_upper_bounds_m'] == [0.026, 0.0432, 0.064, 0.083, 0.103]
-    assert geometry.get('first_layer_max_height_m') is None
+    assert geometry['first_layer_max_height_m'] == 0.0245
     reference = load_layer_reference()
     assert reference['first_layer_min_mm'] == pytest.approx(6.)
-    assert reference['first_layer_max_mm'] is None
+    assert reference['first_layer_max_mm'] == pytest.approx(24.5)
     np.testing.assert_allclose(reference['layer_upper_bounds_mm'], BOUNDS)
