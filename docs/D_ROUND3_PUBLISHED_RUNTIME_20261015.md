@@ -4,9 +4,9 @@
 `PR55_round3_verified/runtime`의 서비스/그리퍼 변경과 PR55 B32157af를 모아 게시한 것이다.
 인계 원본·기존 C-2-round3의 미커밋 변경·실행 runtime과 로컬 로그/비공개 환경은 그대로 보존했다.
 
-GitHub round3 확인 head는93ef967869065abb971e690aae44c3fe45e468bc다. 이 PC에는 Git 게시 인증이 없고
+GitHub round3 게시 전 확인 head는93ef967869065abb971e690aae44c3fe45e468bc다. 이 PC에는 Git 게시 인증이 없고
 연결된 GitHub 앱도 tree 생성을403(Resource not accessible by integration)으로 거부했다. 원격 변경은 없었다.
-사용자가 이 PC의 Git 인증을 준비한 뒤 알리기로 했으므로 원격 게시를 대기한다. 로컬에서는 bundle의 원래
+이후 사용자가 이 PC에서suuuhululu의 GitHub HTTPS 인증을 완료했다. 두 브랜치를 같은 커밋으로 함께 게시한다. 로컬에서는 bundle의 원래
 1288625 커밋을 그대로 부모로 보존하고 최신 변경을 추가한다. 따라서 인증 후 기존 round3 이력에 fast-forward
 게시할 수 있다. round4는 로컬 최종 round3와 같은 커밋에서 복사한다. 원격 게시 성공과 로컬 준비를 구분한다.
 

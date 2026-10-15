@@ -1,9 +1,9 @@
 # 현재 진행 상황
 
-## 2026-10-15 round3 게시·round4 분기 준비
+## 2026-10-15 round3 게시·round4 분기
 
 - 사용자 요청으로 별도 게시 복사본에 bundle1288625 인계와 최신 verified/runtime을 합쳤다. 원본 작업본/실행 runtime의 파일·미커밋 상태는 보존했다. 로컬 env/키/DSN/운영 로그/claim/cache는 제외했다. 로컬 round4는 최종 round3와 같은 커밋에서 분기하며 로봇 단독 production 코드는 아직 바꾸지 않는다.
-- 원격 확인 head93ef967이며 CLI 인증 부재/GitHub 앱403으로 원격 게시를 대기한다. 사용자가 이 PC의 Git 인증 준비 후 알리기로 했다. 원격 ref는 변경하지 않았다. 로컬 인계1288625를 부모로 보존한 최신 커밋/round4 복사본을 준비하며 인증 후 fast-forward 게시한다.
+- 게시 전 원격 확인 head93ef967이며 초기 CLI 인증 부재/GitHub 앱403 때 원격 ref는 변경하지 않았다. 이후 사용자suuuhululu GitHub HTTPS 로그인을 확인했다. 로컬 인계1288625를 부모로 보존한 최신 커밋/round4 복사본을 같은 커밋으로 atomic/fast-forward 게시한다.
 - 일반 Git checkout에서도 같은 진입점을 사용하도록3개 launcher의 환경 기준 위치를 보완했다. C2_ROUND3_BASE_ROOT/C2_SERVICE_LOCAL_ENV로 비공개 환경을 지정하고 실제 코드 ROOT/cwd는 checkout에 고정한다. 모델 기본값3역할gpt-6.1-sol을 보존한다.
 - 게시 복사본에서 service/HMI/launcher70 passed, native282 passed, B550 passed/외부 PR22 consumer1 skipped이며 새 실물/실제DB/LLM API 호출은0이다. 마지막 기본 모델 변경 뒤 launcher7 passed로 재확인했다. 근거 docs/validation/round3_20261015, 실행 docs/D_ROUND3_PUBLISHED_RUNTIME_20261015.md.
 - round4는 기존에 없는1/3점축·모든 파지90도·조립2×2/2×3목표0도와90도TCP 교시, 공급/조립 J6 분리, RGB-D 중앙값/블록 중심↔TCP 및 비누적 변환, 빨강0도=X2/Y1·90도=X1/Y2 새 의미와 과거 기록 호환, 지원 판정/단독 capability·자동 결착·실제 B STEP/FINAL·저장까지 검토한다. 상세 docs/D_ROUND4_ROBOT_ONLY_HANDOFF_20261015.md와 새 채팅 요청문을 준비했다.

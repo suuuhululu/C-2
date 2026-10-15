@@ -1,6 +1,6 @@
 # Adaptive Co Assembly — C-2 팀 개발 안내
 
-> 2026-10-15 round3 최신 게시 준비본(원격 인증 대기): [현재 실행·환경·검증](docs/D_ROUND3_PUBLISHED_RUNTIME_20261015.md).
+> 2026-10-15 round3 최신 통합본: [현재 실행·환경·검증](docs/D_ROUND3_PUBLISHED_RUNTIME_20261015.md).
 > round4 로봇 단독 개발: [교시·ABCD 설계 인계](docs/D_ROUND4_ROBOT_ONLY_HANDOFF_20261015.md), [새 채팅 프롬프트](docs/ROUND4_NEW_CHAT_PROMPT.ko.txt).
 > round4는 round3 복사 출발점이며 새 기능의 실물 완료를 뜻하지 않습니다.
 

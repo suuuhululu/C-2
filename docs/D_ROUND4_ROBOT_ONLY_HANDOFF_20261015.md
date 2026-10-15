@@ -2,7 +2,7 @@
 
 2026-10-15 사용자 요청. 이 문서는 개발 목표이며 round3의 사람 인계·지지 동작을 변경하지 않는다.
 `codex/integration-round4`는 최신 로컬 `codex/integration-round3`와 같은 커밋에서 시작한다.
-원격 게시 인증 대기 상태와 성공 여부는 `D_ROUND3_PUBLISHED_RUNTIME_20261015.md` 및 실제 remote ref를 확인한다.
+원격 게시 기록과 실제 성공 여부는 `D_ROUND3_PUBLISHED_RUNTIME_20261015.md` 및 실제 remote ref를 확인한다.
 새 채팅용 요청문은 [ROUND4_NEW_CHAT_PROMPT](ROUND4_NEW_CHAT_PROMPT.ko.txt)에 있다.
 
 ## 목표와 현재 한계

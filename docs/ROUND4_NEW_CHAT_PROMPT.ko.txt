@@ -3,7 +3,7 @@ C-2 round4 로봇 단독 조립 개발을 이어가주세요.
 작업 경로: /home/rokey/협동2/C-2-round4
 대상 브랜치: codex/integration-round4
 이 브랜치는 최신 로컬 codex/integration-round3와 같은 커밋에서 복사한 출발점입니다.
-원격 게시는 이 PC의 Git 인증 준비 대기였으므로 실제 remote ref를 확인하고, 인증 준비 알림 전에는 게시를 재시도하지 마세요.
+원격 round3/round4와 로컬 커밋이 같은지 대조하세요. 이 PC는 사용자의suuuhululu GitHub HTTPS 로그인을 확인한 상태이며 비공개 인증값은 Git에 넣지 않았습니다.
 round4 기능이 이미 구현·실물 검증됐다고 가정하지 마세요.
 
 먼저 Git 상태/브랜치/커밋, AGENTS.md, docs/STATUS.md,
