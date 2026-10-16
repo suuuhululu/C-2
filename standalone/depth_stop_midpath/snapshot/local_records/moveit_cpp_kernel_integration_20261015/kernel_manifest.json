@@ -1,0 +1,30 @@
+{
+  "schema": "explicit-sim-depth-raster-kernel/1",
+  "scope": "EXPLICIT_ISOLATED_SIM_NUMERICAL_TRIAL",
+  "files": [
+    {
+      "path": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/work/C-2-moveit/isaac_sim/depth_obstacles/novel_depth/expected_depth.py",
+      "sha256": "8e8fe8af85077d048d3080b77c72c2fa16d895d4754224fd67d25cd9a1a865f1"
+    },
+    {
+      "path": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/work/C-2-moveit/isaac_sim/depth_obstacles/novel_depth/raster_kernel.py",
+      "sha256": "90d785472ca436f9f963b96043fd6186c9e92a330d70eab135da84b1be9c165e"
+    },
+    {
+      "path": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/work/C-2-moveit/isaac_sim/depth_obstacles/novel_depth/raster_bbox_f64.cpp",
+      "sha256": "16accfe26aa025c5baa1bd67c2fd8415a7082db216e610f6d64dc2dfa96eb2bc"
+    },
+    {
+      "path": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/work/C-2-moveit/isaac_sim/depth_obstacles/novel_depth/raster_bbox_f64.so",
+      "sha256": "5b2fa2dc3fdc594a97b7963a4b6949b920c89821d88a29104af7a622502adbdf"
+    }
+  ],
+  "compile_command": {
+    "path": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/depth_native25_raster_cpp_stage_20261015/unit01/compile_command.json",
+    "sha256": "1db48446c4c9725c3223c9bf027b1d3c7c1f2e280d5e2a4676de4f056de6f5ea"
+  },
+  "applied_owner_report": {
+    "path": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/management/reports/depth_cpp_raster_application.json",
+    "sha256": "105308aec46f8386d6246943d055956860f5194c291b75b0858ccfe229012b46"
+  }
+}

@@ -1,0 +1,411 @@
+{
+  "schema": "depth-scoped-qualification/1.0",
+  "scope": "SIM_TEST_REPORT_ONLY",
+  "offset_uv": [
+    0.5,
+    0.5
+  ],
+  "camera_scope": {
+    "intrinsics": {
+      "width": 848,
+      "height": 480,
+      "fx": 428.5902404785156,
+      "fy": 428.5902404785156,
+      "cx": 427.5955810546875,
+      "cy": 234.27520751953125,
+      "model": "none"
+    },
+    "calibration_id": "rokey_published_raw_depth_nominal_20261014",
+    "optical_frame_id": "camera_depth_optical_frame",
+    "depth_unit": "METER",
+    "depth_scale_m": 1.0,
+    "depth_representation": "IMAGE_PLANE_Z",
+    "camera_params": {
+      "cameraAperture": [
+        23.742958068847656,
+        13.439410209655762
+      ],
+      "cameraApertureOffset": [
+        -0.10067185014486313,
+        -0.16028715670108795
+      ],
+      "cameraFisheyeLensP": [],
+      "cameraFisheyeLensS": [],
+      "cameraFisheyeMaxFOV": 0.0,
+      "cameraFisheyeNominalHeight": 0,
+      "cameraFisheyeNominalWidth": 0,
+      "cameraFisheyeOpticalCentre": [
+        0.0,
+        0.0
+      ],
+      "cameraFisheyePolynomial": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "cameraFocalLength": 12.0,
+      "cameraFocusDistance": 0.0,
+      "cameraFStop": 0.0,
+      "cameraModel": "pinhole",
+      "cameraNearFar": [
+        0.009999999776482582,
+        2.0
+      ],
+      "cameraOpenCVFx": 0.0,
+      "cameraOpenCVFy": 0.0,
+      "cameraProjection": [
+        1.0108260073611348,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.7857926130046715,
+        0.0,
+        0.0,
+        -0.00848014373332262,
+        -0.023853300353914392,
+        0.005025125515255969,
+        -1.0,
+        0.0,
+        0.0,
+        0.010050251030511938,
+        0.0
+      ],
+      "metersPerSceneUnit": 1.0,
+      "renderProductResolution": [
+        848,
+        480
+      ]
+    }
+  },
+  "camera_path": "/World/Robot/Geometry/world/base_link/link_1/link_2/link_3/link_4/link_5/link_6/GripperDA_v4_tcp/DepthStopCamera",
+  "capture_sessions": [
+    "fixed-native-1af35bd32fb94274abe224107d36dafa"
+  ],
+  "model_manifest_sha256": "6574724375c84cd7dd014f1e45049b63c63f90eac848f94a74cc412629ab3ad7",
+  "numerical_model": "FLOAT32_AFFINE_DOT_ROUNDING_TRIAL",
+  "same_face_footprint_px": 5,
+  "source_refs": [
+    {
+      "path": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/depth_native07_qualification_20261015/unit01/qualification.json",
+      "sha256": "2e1cf853bdad9feb0a7130f804c596c300662dc1317d2097d0f3d65b9ce7ecae"
+    },
+    {
+      "path": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/depth_native09_static_shadow_20261015/unit01/native09_pre_scope/scope_review.json",
+      "sha256": "a2f28588b31b84362e3d37beedc1afbbcae313ad5037df278419e977c441bf26"
+    },
+    {
+      "path": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/moveit_native09_unlabelled_static_shadow_20261015/native09_corrective02/baseline_camera_profile.json",
+      "sha256": "481efbe153ca4496196ffea8ed6c31f334140eb6a9b2b9df252d84bdc1485bba"
+    },
+    {
+      "path": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/moveit_native09_unlabelled_static_shadow_20261015/native09_corrective02/loaded_sources/baseline_camera.py",
+      "sha256": "e2403aa9749e368b4ce6d9ab714a6b0dc70b83bc2a6aa41cc803db13c14ccccc"
+    },
+    {
+      "path": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/moveit_native09_unlabelled_static_shadow_20261015/native09_corrective02/loaded_runtime_source_pins.json",
+      "sha256": "260647bfec16ff191f248bd24eb8ce1eedfd9610c5c908beb664437f97ab54e3"
+    },
+    {
+      "path": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/moveit_native09_unlabelled_static_shadow_20261015/native09_corrective02/known_depth_map/map_snapshot.json",
+      "sha256": "b18abfd3b300756aa6f29d3a212207726c2f78e65a18a9be45b95bf23046b751"
+    },
+    {
+      "path": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/moveit_native09_unlabelled_static_shadow_20261015/native09_corrective02/known_depth_map/held_definition.json",
+      "sha256": "d32a777016ed4ee39b7be467f211d1fd167f94f4aa7dd10a1cdf9ac49c6e5355"
+    },
+    {
+      "path": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/moveit_native09_unlabelled_static_shadow_20261015/native09_corrective02/known_depth_map/approved_static_ids.json",
+      "sha256": "d800e23eda9b574ef31c739130f5ff39169bc9307539a4266f2ae5cadfe978ed"
+    },
+    {
+      "path": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/moveit_native09_unlabelled_static_shadow_20261015/native09_corrective02/known_depth_map/source_refs.json",
+      "sha256": "18394cf1b0c8e792667afa7fce74b6d4ce9049622d35414f640602142d8f5390"
+    }
+  ],
+  "applicable_surface": "Original unpadded static/held box faces with full5x5 same expected face and binary64 box/triangle agreement; full129380 robot triangles still rendered",
+  "assumptions": [
+    "Float32 rounded affine inputs, affine dot7 operations, direction dot5, ray6 operations; no unknown model or pose perturbation covered.",
+    "Raw float32 IMAGE_PLANE_Z storage halfULP is separate from expected arithmetic interval.",
+    "Point/base-frame radius not defined: q, TF, calibration and foreground sensor/model errors remain unresolved."
+  ],
+  "unsupported": [
+    "self mesh",
+    "face/occlusion boundaries",
+    "expected misses",
+    "other sessions/configurations",
+    "REAL_DEPTH",
+    "RAY_RANGE model qualification"
+  ],
+  "official_observation": {
+    "status": "OFFICIAL_NOT_DEFINED",
+    "tolerance_m": null,
+    "decision": "REPORT_ONLY"
+  },
+  "future_guarantee": false,
+  "threshold_fitted_to_observed_max": false,
+  "independent_validation_selection": [
+    0,
+    1
+  ],
+  "validation_scope": "Selections fixed before interval results; source guards and receipt TTL preserved; native06 is independent capture from original native04 evidence.",
+  "native04_native06_route_call_AST_equal": {
+    "Camera": true,
+    "get_annotator": true,
+    "attach": true,
+    "initialize": true
+  },
+  "new_capture_scope_review": {
+    "scope": "ORIGINAL_SOURCE_CAMERA_RENDER_AND_PRE_OBSTACLE_MAP_ONLY_NO_ACTOR_GT",
+    "session_id": "fixed-native-1af35bd32fb94274abe224107d36dafa",
+    "route": {
+      "RtxCamera": {
+        "nonempty_count": 1,
+        "AST_equal": true
+      },
+      "CameraSensor": {
+        "nonempty_count": 1,
+        "AST_equal": true
+      },
+      "UsdGeom.Camera.Define": {
+        "nonempty_count": 1,
+        "AST_equal": true
+      },
+      "camera.AddTransformOp": {
+        "nonempty_count": 1,
+        "AST_equal": true
+      },
+      "camera.CreateClippingRangeAttr": {
+        "nonempty_count": 1,
+        "AST_equal": true
+      },
+      "self.writer.attach": {
+        "nonempty_count": 1,
+        "AST_equal": true
+      }
+    },
+    "profile_exact": true,
+    "camera_scope_exact": true,
+    "approved_static_roster_matches_prior": true,
+    "held_definition_matches_prior": true,
+    "selected": [
+      {
+        "frame_seq": 0,
+        "frame_ref": {
+          "path": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/moveit_native09_unlabelled_static_shadow_20261015/native09_corrective02/camera_preview/00000/frame_input.json",
+          "sha256": "0e312208003b4a2f22dc4591265449c346bfea7ef35efb781c40c0de1ee129ae"
+        },
+        "depth_ref": {
+          "path": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/moveit_native09_unlabelled_static_shadow_20261015/native09_corrective02/camera_preview/00000/depth.npy",
+          "sha256": "046856527c599bcfde0bc875c2992010f713d700d8faceec9f269b4c08920c52"
+        },
+        "source_stamp_s": 17.433333333,
+        "q_rad": [
+          2.8875958919525146,
+          0.021146727725863457,
+          1.9586570262908936,
+          0.03239194303750992,
+          1.1899784803390503,
+          2.8972134590148926
+        ],
+        "clock_review": {
+          "raw_reference_time": [
+            17433333333,
+            1000000000
+          ],
+          "source_published_clock_ns": 17433333333,
+          "delayed_latest_callback_ns": 17441666666,
+          "status": "INDEPENDENT_NATIVE_EVENT_SOURCE",
+          "native_event_review": {
+            "method": "INDEPENDENT_NATIVE_RENDER_PHYSICS_EVENTS",
+            "native_physics_step_index": 4184,
+            "render_request_id": 2,
+            "native_reference_time": [
+              17433333,
+              1000000
+            ],
+            "writer_native_time_mapping_s": 17.433333333,
+            "world_time_s": 17.43333424255252,
+            "event_native_simulation_time_s": 17.433333333333334,
+            "render_buffer_tag_review": {
+              "buffer_tag": {
+                "attribute": "seeun:renderRequestId",
+                "prim": "/World/Robot/Geometry/world/base_link/link_1/link_2/link_3/link_4/link_5/link_6/GripperDA_v4_tcp/DepthStopCamera",
+                "values": [
+                  2
+                ],
+                "dtype": "int32",
+                "origin": "ATTRIBUTE_ANNOTATOR_SAME_WRITER_REFERENCE_TIME_RENDER_RINGBUFFER"
+              },
+              "writer_callback_lifecycle": {
+                "writer_callback_sequence": 1,
+                "render_request_id": 3,
+                "reference_time": [
+                  17433333333,
+                  1000000000
+                ],
+                "renderer_frame_id": 0,
+                "native_at_callback": {
+                  "native_current_reference_time": [
+                    17437500,
+                    1000000
+                  ],
+                  "native_simulation_time_s": 17.4375,
+                  "native_physics_step_index": 4185,
+                  "world_time_s": 17.437500909436494,
+                  "wall_monotonic_s": 444534.694186859
+                },
+                "writer_entered_wall_monotonic_s": 444534.691969397
+              },
+              "receipt_ref": {
+                "path": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/moveit_native09_unlabelled_static_shadow_20261015/native09_corrective02/camera_preview/00000/receipt.json",
+                "sha256": "4b29f67d07b1067c5656e49491dc2b4b002e7ca9a425c9bf4d2513a4b93507c6"
+              }
+            },
+            "writer_mapping_minus_event_native_s": -3.33333360913457e-10,
+            "publisher_input_time": 17.433333333333334,
+            "graph_simulation_time": 17.433333333333334,
+            "native_reference_difference_ns": -333.0,
+            "matching_original_clock": {
+              "clock_ns": 17433333333,
+              "received_world_time_s": 17.43333424255252,
+              "received_native_physics_step_index": 4184,
+              "received_wall_monotonic_s": 444534.674836069,
+              "subscription": "/clock"
+            },
+            "latest_original_clock": {
+              "clock_ns": 17441666666,
+              "received_world_time_s": 17.44166757632047,
+              "received_native_physics_step_index": 4186,
+              "received_wall_monotonic_s": 444534.782282872,
+              "subscription": "/clock"
+            },
+            "source_refs": [
+              {
+                "path": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/moveit_native09_unlabelled_static_shadow_20261015/native09_corrective02/camera_preview/00000/render_event.json",
+                "sha256": "3667ce0c1aec573723a59a4735e257c9a4f787fa6a8e0e4a8165a8a2e7928da4"
+              },
+              {
+                "path": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/moveit_native09_unlabelled_static_shadow_20261015/native09_corrective02/camera_preview/00000/source_state.json",
+                "sha256": "e9260730fc4b3e4e1e94f57b32fde8c345f8ddcfc8633d03073e4e275d03b656"
+              },
+              {
+                "path": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/moveit_native09_unlabelled_static_shadow_20261015/native09_corrective02/camera_preview/00000/writer_event.json",
+                "sha256": "e75e466c6c234729f2d45b11d9f212a53df380b3193162bb4d40df291bede47c"
+              },
+              {
+                "path": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/moveit_native09_unlabelled_static_shadow_20261015/native09_corrective02/camera_preview/00000/clock_observation.json",
+                "sha256": "a68a9aace2bc46e20ac1ac5063bebbfb78ed4b9217bcef85a7cc052454d59ca1"
+              }
+            ]
+          },
+          "ROS_delivery_verified": true,
+          "original_producer_same_tick_verified": true
+        }
+      },
+      {
+        "frame_seq": 1,
+        "frame_ref": {
+          "path": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/moveit_native09_unlabelled_static_shadow_20261015/native09_corrective02/camera_preview/00001/frame_input.json",
+          "sha256": "9ef61eb1138db75ec35ee28a4af335b560f2e3dbb641ada5544705607f17ddcb"
+        },
+        "depth_ref": {
+          "path": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/moveit_native09_unlabelled_static_shadow_20261015/native09_corrective02/camera_preview/00001/depth.npy",
+          "sha256": "01c870b94165f8713a1044e18a059ec912396a84586ac830e7ea70d31cbe9195"
+        },
+        "source_stamp_s": 17.6375,
+        "q_rad": [
+          2.8875954151153564,
+          0.021146774291992188,
+          1.9586570262908936,
+          0.03239191323518753,
+          1.1899785995483398,
+          2.8972129821777344
+        ],
+        "clock_review": {
+          "raw_reference_time": [
+            17637500000,
+            1000000000
+          ],
+          "source_published_clock_ns": 17637500000,
+          "delayed_latest_callback_ns": 17641666666,
+          "status": "INDEPENDENT_NATIVE_EVENT_SOURCE",
+          "native_event_review": {
+            "method": "INDEPENDENT_NATIVE_RENDER_PHYSICS_EVENTS",
+            "native_physics_step_index": 4233,
+            "render_request_id": 51,
+            "native_reference_time": [
+              17637500,
+              1000000
+            ],
+            "writer_native_time_mapping_s": 17.6375,
+            "world_time_s": 17.637500919867307,
+            "event_native_simulation_time_s": 17.6375,
+            "render_buffer_tag_review": null,
+            "writer_mapping_minus_event_native_s": 0.0,
+            "publisher_input_time": 17.6375,
+            "graph_simulation_time": 17.6375,
+            "native_reference_difference_ns": 0.0,
+            "matching_original_clock": {
+              "clock_ns": 17637500000,
+              "received_world_time_s": 17.637500919867307,
+              "received_native_physics_step_index": 4233,
+              "received_wall_monotonic_s": 444540.391779398,
+              "subscription": "/clock"
+            },
+            "latest_original_clock": {
+              "clock_ns": 17641666666,
+              "received_world_time_s": 17.641667586751282,
+              "received_native_physics_step_index": 4234,
+              "received_wall_monotonic_s": 444540.437721265,
+              "subscription": "/clock"
+            },
+            "source_refs": [
+              {
+                "path": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/moveit_native09_unlabelled_static_shadow_20261015/native09_corrective02/camera_preview/00001/render_event.json",
+                "sha256": "acce3fda68c55d68ef3987379d0921a871e120c96686948d15edcf7cdbb264d6"
+              },
+              {
+                "path": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/moveit_native09_unlabelled_static_shadow_20261015/native09_corrective02/camera_preview/00001/source_state.json",
+                "sha256": "c7a678caa09feb69315624cae64189645cc21346d6519cb64ed659aaf453f8d4"
+              },
+              {
+                "path": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/moveit_native09_unlabelled_static_shadow_20261015/native09_corrective02/camera_preview/00001/writer_event.json",
+                "sha256": "3c5b855bbaed1b7d1acd8d59ff46c941c5bf87dab6d9bf08701f4bdaaab6e455"
+              },
+              {
+                "path": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/moveit_native09_unlabelled_static_shadow_20261015/native09_corrective02/camera_preview/00001/clock_observation.json",
+                "sha256": "13d6f7d1174520fc008755ae60b4b2190826069207544e1eaa4527cb4760c88a"
+              }
+            ]
+          },
+          "ROS_delivery_verified": true,
+          "original_producer_same_tick_verified": true
+        }
+      }
+    ],
+    "map_refs": {
+      "map_snapshot": {
+        "path": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/moveit_native09_unlabelled_static_shadow_20261015/native09_corrective02/known_depth_map/map_snapshot.json",
+        "sha256": "b18abfd3b300756aa6f29d3a212207726c2f78e65a18a9be45b95bf23046b751"
+      },
+      "held_definition": {
+        "path": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/moveit_native09_unlabelled_static_shadow_20261015/native09_corrective02/known_depth_map/held_definition.json",
+        "sha256": "d32a777016ed4ee39b7be467f211d1fd167f94f4aa7dd10a1cdf9ac49c6e5355"
+      },
+      "approved_static_ids": {
+        "path": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/moveit_native09_unlabelled_static_shadow_20261015/native09_corrective02/known_depth_map/approved_static_ids.json",
+        "sha256": "d800e23eda9b574ef31c739130f5ff39169bc9307539a4266f2ae5cadfe978ed"
+      },
+      "source_refs": {
+        "path": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/moveit_native09_unlabelled_static_shadow_20261015/native09_corrective02/known_depth_map/source_refs.json",
+        "sha256": "18394cf1b0c8e792667afa7fce74b6d4ce9049622d35414f640602142d8f5390"
+      },
+      "model_bundle": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/step3_gpu_model_20261013/model"
+    },
+    "post_actor_residuals_used": false
+  }
+}

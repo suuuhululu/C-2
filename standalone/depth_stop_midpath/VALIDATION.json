@@ -1,0 +1,49 @@
+{
+  "schema": "repository-standalone-validation/1",
+  "status": "CPU_SUBSET_AND_CLEAN_GIT_EXPORT_PASS",
+  "baseline_main": "32b12e19ea94791efe4593c07e068a677a7baf03",
+  "preserved_runtime_inputs": 280,
+  "preserved_source_pins": 126,
+  "preserved_model_files": 38,
+  "isolated_hash_locked_wheel_install": true,
+  "CPU_preflight_exit_code": 0,
+  "CPU_preflight_scope": "imports,34 model meshes,USD references,raster+interval kernel linkage,FCL linkage,MoveIt executable ldd,actual derived runner pre-SimulationApp path",
+  "full_vs_subset_materialized_files": 284,
+  "full_vs_subset_all_bytes_identical": true,
+  "full_vs_subset_derived_manifest_identical": true,
+  "expected_failure_paths": [
+    {
+      "case": "missing_display",
+      "exit_code": 2,
+      "expected_error": "GUI_DISPLAY_REQUIRED",
+      "no_run_created": true
+    },
+    {
+      "case": "missing_install",
+      "exit_code": 2,
+      "expected_error": "Required installation file missing",
+      "no_run_created": true
+    },
+    {
+      "case": "invalid_auto_exit",
+      "exit_code": 2,
+      "expected_error": "requires --run",
+      "no_run_created": true
+    }
+  ],
+  "new_SIM_GPU_starts": 0,
+  "new_planner_executions": 0,
+  "new_numerical_qualification_calls": 0,
+  "source_full_standalone_actual_stop_verified": true,
+  "repository_subset_actual_SIM_verified": false,
+  "real_robot_tested": false,
+  "clean_git_export_check": "PASS",
+  "root_dependencies_or_app_files_modified": false,
+  "clean_git_export_tested_tree": "993ad36bbba31eebc77b1c2cb16d38657447e787",
+  "clean_git_export_setup_exit_code": 0,
+  "clean_git_export_new_HOME_and_Unicode_path": true,
+  "clean_git_export_old_project_file_access_count": 0,
+  "root_requirements_unchanged": true,
+  "inherited_immutable_snapshot_whitespace_warnings": 12,
+  "new_adapter_whitespace_errors": 0
+}

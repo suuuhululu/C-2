@@ -1,0 +1,176 @@
+"""Day4 Consumer 입력 검사. 기하 검증·상태 채택·완료 판정은 수행하지 않는다."""
+
+from copy import deepcopy
+
+
+MAX_LAYER = 5
+BLOCK_FIELDS = ("brick_type", "color", "x", "y", "layer", "orientation_deg")
+
+
+def _object(value: object, fields: tuple[str, ...], path: str) -> dict:
+    if not isinstance(value, dict):
+        raise ValueError(f"{path}: expected object")
+    missing = set(fields) - value.keys()
+    extra = value.keys() - set(fields)
+    if missing or extra:
+        raise ValueError(f"{path}: missing={sorted(missing)}, unsupported={sorted(extra, key=repr)}")
+    return value
+
+
+def _integer(value: object, minimum: int, maximum: int | None, path: str) -> None:
+    # bool은 Python에서 int의 하위 타입이지만 계약의 좌표·버전이 아니다.
+    if type(value) is not int or value < minimum or (maximum is not None and value > maximum):
+        raise ValueError(f"{path}: expected integer in {minimum}..{maximum}")
+
+
+def _text(value: object, path: str) -> None:
+    if not isinstance(value, str) or not value:
+        raise ValueError(f"{path}: expected non-empty string")
+
+
+def _array(value: object, path: str) -> list:
+    if not isinstance(value, list):
+        raise ValueError(f"{path}: expected array")
+    return value
+
+
+def _block(value: object, path: str) -> None:
+    block = _object(value, BLOCK_FIELDS, path)
+    if block["brick_type"] not in ("1x2x1", "2x2x1", "2x3x1"):
+        raise ValueError(f"{path}.brick_type: unsupported brick type")
+    if (block["brick_type"] == "1x2x1" and block["color"] != "red" or
+            block["brick_type"] != "1x2x1" and block["color"] not in ("yellow", "blue")):
+        raise ValueError(f"{path}.color: unsupported brick_type/color inventory pair")
+    for field in ("x", "y"):
+        _integer(block[field], 0, 23, f"{path}.{field}")
+    _integer(block["layer"], 1, MAX_LAYER, f"{path}.layer")
+    _integer(block["orientation_deg"], 0, 90, f"{path}.orientation_deg")
+    angles = (0,) if block["brick_type"] == "2x2x1" else (0, 90)
+    if block["orientation_deg"] not in angles:
+        raise ValueError(f"{path}.orientation_deg: unsupported representative angle")
+
+
+def _blocks(value: object, path: str) -> None:
+    for index, block in enumerate(_array(value, path)):
+        _block(block, f"{path}[{index}]")
+
+
+def validate_block(value: object) -> dict:
+    _block(value, "block")
+    return deepcopy(value)
+
+
+def validate_design(value: object) -> dict:
+    design = _object(value, ("design_version", "blocks"), "design")
+    _integer(design["design_version"], 1, None, "design.design_version")
+    _blocks(design["blocks"], "design.blocks")
+    if len(design["blocks"]) > 40:
+        raise ValueError("design.blocks: maximum 40 placements")
+    return deepcopy(design)
+
+
+def _step(value: object, path: str) -> None:
+    step = _object(value, ("step_id", "operation", "before", "after",
+                           "prerequisites", "requires_delivery"), path)
+    _text(step["step_id"], f"{path}.step_id")
+    if step["operation"] != "PLACE" or step["before"] is not None or step["requires_delivery"] is not True:
+        raise ValueError(f"{path}: PLACE requires before=null and requires_delivery=true")
+    _block(step["after"], f"{path}.after")
+    prerequisites = _array(step["prerequisites"], f"{path}.prerequisites")
+    for index, step_id in enumerate(prerequisites):
+        _text(step_id, f"{path}.prerequisites[{index}]")
+    if len(set(prerequisites)) != len(prerequisites):
+        raise ValueError(f"{path}.prerequisites: duplicate reference")
+
+
+def validate_step(value: object) -> dict:
+    _step(value, "step")
+    return deepcopy(value)
+
+
+def validate_plan(value: object) -> dict:
+    plan = _object(value, ("plan_id", "design_version", "base_current_revision", "steps"), "plan")
+    _text(plan["plan_id"], "plan.plan_id")
+    _integer(plan["design_version"], 1, None, "plan.design_version")
+    _integer(plan["base_current_revision"], 0, None, "plan.base_current_revision")
+    earlier = set()
+    for index, step in enumerate(_array(plan["steps"], "plan.steps")):
+        path = f"plan.steps[{index}]"
+        _step(step, path)
+        if step["step_id"] in earlier:
+            raise ValueError(f"{path}.step_id: duplicate identifier")
+        # 배열 순서대로 실행할 수 있는 참조인지 검사하며 지지 관계를 생성하지 않는다.
+        if not set(step["prerequisites"]).issubset(earlier):
+            raise ValueError(f"{path}.prerequisites: must reference earlier steps in this Plan")
+        earlier.add(step["step_id"])
+    return deepcopy(plan)
+
+
+def _region(value: object, path: str) -> None:
+    region = _object(value, ("x", "y", "width", "height", "layer"), path)
+    for field in ("x", "y"):
+        _integer(region[field], 0, 23, f"{path}.{field}")
+    for field in ("width", "height"):
+        _integer(region[field], 1, 24, f"{path}.{field}")
+    _integer(region["layer"], 1, MAX_LAYER, f"{path}.layer")
+    if region["x"] + region["width"] > 24 or region["y"] + region["height"] > 24:
+        raise ValueError(f"{path}: verified region extends outside board")
+
+
+B_CURRENT_PROVENANCE = "B_CONFIRMED_D_RELAYED"  # 2026-10-08 계약: B가 확정한 Current·revision을 D가 그대로 전달
+
+
+def validate_current(value: object, path: str = "observed.current") -> dict:
+    current = _object(value, ("current_revision", "blocks"), path)
+    _integer(current["current_revision"], 0, None, f"{path}.current_revision")
+    _blocks(current["blocks"], f"{path}.blocks")
+    return deepcopy(current)
+
+
+def validate_observed(value: object) -> dict:
+    relayed = None
+    if isinstance(value, dict) and ("current" in value or "current_provenance" in value):
+        # B 확정 Current relay(2026-10-11 Wave 2): 두 키는 함께 와야 하며 D는 이 Current·revision을 재발급하지 않는다.
+        if value.get("current_provenance") != B_CURRENT_PROVENANCE or "current" not in value:
+            raise ValueError(f"observed.current_provenance: {B_CURRENT_PROVENANCE} requires observed.current")
+        relayed = validate_current(value["current"])
+        value = {key: item for key, item in value.items() if key not in ("current", "current_provenance")}
+    observed = _object(value, ("check_id", "observation_seq", "status", "visible_blocks",
+                               "verified_regions", "reason"), "observed")
+    _text(observed["check_id"], "observed.check_id")
+    _integer(observed["observation_seq"], 0, None, "observed.observation_seq")
+    if observed["status"] not in ("OK", "UNOBSERVABLE"):
+        raise ValueError("observed.status: expected OK or UNOBSERVABLE")
+    _blocks(observed["visible_blocks"], "observed.visible_blocks")
+    for index, region in enumerate(_array(observed["verified_regions"], "observed.verified_regions")):
+        _region(region, f"observed.verified_regions[{index}]")
+    if observed["status"] == "UNOBSERVABLE" or observed["reason"] is not None:
+        _text(observed["reason"], "observed.reason")
+    observed = deepcopy(observed)
+    if relayed is not None:
+        observed.update(current=relayed, current_provenance=B_CURRENT_PROVENANCE)
+    return observed
+
+
+def validate_plan_result(value: object) -> dict:
+    """실행 Plan과 오류 진단을 구분한다. 오류 배치는 범위 밖 값도 보존한다."""
+    result = _object(value, ("status", "plan", "errors"), "planner.result")
+    status = result["status"]
+    if status not in ("READY", "NEEDS_CORRECTION", "INVALID"):
+        raise ValueError("planner.status: unsupported result")
+    errors = _array(result["errors"], "planner.errors")
+    if status == "READY":
+        if errors:
+            raise ValueError("planner.errors: READY requires an empty array")
+        validate_plan(result["plan"])
+    else:
+        if result["plan"] is not None or not errors:
+            raise ValueError("planner.result: failure requires plan=null and non-empty errors")
+        for index, error in enumerate(errors):
+            path = f"planner.errors[{index}]"
+            _object(error, ("reason", "block"), path)
+            _text(error["reason"], f"{path}.reason")
+            # INVALID은 잘못된 입력 배치를 진단할 수 있으므로 정상 배치 검사를 하지 않는다.
+            if error["block"] is not None and not isinstance(error["block"], dict):
+                raise ValueError(f"{path}.block: expected object or null")
+    return deepcopy(result)

@@ -1,0 +1,143 @@
+{
+  "schema": "depth-scoped-qualification/1.0",
+  "scope": "SIM_TEST_REPORT_ONLY",
+  "offset_uv": [
+    0.5,
+    0.5
+  ],
+  "camera_scope": {
+    "intrinsics": {
+      "width": 848,
+      "height": 480,
+      "fx": 428.5902404785156,
+      "fy": 428.5902404785156,
+      "cx": 427.5955810546875,
+      "cy": 234.27520751953125,
+      "model": "none"
+    },
+    "calibration_id": "rokey_published_raw_depth_nominal_20261014",
+    "optical_frame_id": "camera_depth_optical_frame",
+    "depth_unit": "METER",
+    "depth_scale_m": 1.0,
+    "depth_representation": "IMAGE_PLANE_Z",
+    "camera_params": {
+      "cameraAperture": [
+        23.742958068847656,
+        13.439410209655762
+      ],
+      "cameraApertureOffset": [
+        -0.10067185014486313,
+        -0.16028715670108795
+      ],
+      "cameraFisheyeLensP": [],
+      "cameraFisheyeLensS": [],
+      "cameraFisheyeMaxFOV": 0.0,
+      "cameraFisheyeNominalHeight": 0,
+      "cameraFisheyeNominalWidth": 0,
+      "cameraFisheyeOpticalCentre": [
+        0.0,
+        0.0
+      ],
+      "cameraFisheyePolynomial": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "cameraFocalLength": 12.0,
+      "cameraFocusDistance": 0.0,
+      "cameraFStop": 0.0,
+      "cameraModel": "pinhole",
+      "cameraNearFar": [
+        0.009999999776482582,
+        2.0
+      ],
+      "cameraOpenCVFx": 0.0,
+      "cameraOpenCVFy": 0.0,
+      "cameraProjection": [
+        1.0108260073611348,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.7857926130046715,
+        0.0,
+        0.0,
+        -0.00848014373332262,
+        -0.023853300353914392,
+        0.005025125515255969,
+        -1.0,
+        0.0,
+        0.0,
+        0.010050251030511938,
+        0.0
+      ],
+      "metersPerSceneUnit": 1.0,
+      "renderProductResolution": [
+        848,
+        480
+      ]
+    }
+  },
+  "camera_path": "/World/Robot/Geometry/world/base_link/link_1/link_2/link_3/link_4/link_5/link_6/GripperDA_v4_tcp/DepthStopCamera",
+  "capture_sessions": [
+    "fixed-native-4a9cb7e95e474f33825b53a1d1aa90e6"
+  ],
+  "model_manifest_sha256": "6574724375c84cd7dd014f1e45049b63c63f90eac848f94a74cc412629ab3ad7",
+  "numerical_model": "FLOAT32_AFFINE_DOT_ROUNDING_TRIAL",
+  "same_face_footprint_px": 5,
+  "source_refs": [
+    {
+      "path": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/depth_native11_source_qualification_20261015/unit01/scope_review.json",
+      "sha256": "d79d2f95f1a05258dc29743746534ea79c55eca92922d2b22c73ea7fd0f6564b"
+    },
+    {
+      "path": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/moveit_native11_detection_mask_display_20261015/native11/pre_obstacle_handoff.json",
+      "sha256": "da2b98117ed60284dc0b759ac82b9a82de86a064eb8bd8e9e3b87020e941c2e0"
+    },
+    {
+      "path": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/moveit_native11_detection_mask_display_20261015/native11/baseline_camera_profile.json",
+      "sha256": "481efbe153ca4496196ffea8ed6c31f334140eb6a9b2b9df252d84bdc1485bba"
+    },
+    {
+      "path": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/moveit_native11_detection_mask_display_20261015/native11/loaded_sources/baseline_camera.py",
+      "sha256": "e32de192c1c79107b3d511cba14df80b11f43dae1d093d5625747018e56da91b"
+    },
+    {
+      "path": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/moveit_native11_detection_mask_display_20261015/native11/loaded_runtime_source_pins.json",
+      "sha256": "07bb3b0dca9b676786eaf437d2e626e7d1acddc19eafe43d5079d59ed7fff9f5"
+    },
+    {
+      "path": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/moveit_native11_detection_mask_display_20261015/native11/known_depth_map/map_snapshot.json",
+      "sha256": "726e4480b031a20dca380f01290788fbfe7874a4c2a1669862f0c4408f750e8b"
+    },
+    {
+      "path": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/moveit_native11_detection_mask_display_20261015/native11/known_depth_map/held_definition.json",
+      "sha256": "d32a777016ed4ee39b7be467f211d1fd167f94f4aa7dd10a1cdf9ac49c6e5355"
+    },
+    {
+      "path": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/moveit_native11_detection_mask_display_20261015/native11/known_depth_map/approved_static_ids.json",
+      "sha256": "d800e23eda9b574ef31c739130f5ff39169bc9307539a4266f2ae5cadfe978ed"
+    },
+    {
+      "path": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/moveit_native11_detection_mask_display_20261015/native11/known_depth_map/source_refs.json",
+      "sha256": "f93a80c367c1fed2e75042b79e0c2dacef3d29fdd1773ae01ac6044bdfa15727"
+    }
+  ],
+  "applicable_surface": "STATIC_AND_HELD_SAME_BOX_FACE_FULL_5X5_GEOMETRY_ONLY",
+  "unsupported": [
+    "SELF mesh bound",
+    "edge/occlusion ambiguous pixels",
+    "actual sensor/ray/aggregate TF point error"
+  ],
+  "official_observation": "REPORT_ONLY",
+  "future_guarantee": false,
+  "threshold_fitted_to_observed_max": false,
+  "independent_validation_selection": [
+    0,
+    1
+  ],
+  "validation_scope": "NEW_NATIVE11_PRE_OBSTACLE_ONLY"
+}

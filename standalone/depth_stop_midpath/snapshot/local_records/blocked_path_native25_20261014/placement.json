@@ -1,0 +1,124 @@
+{
+  "index": 245,
+  "time_s": 3.438034957,
+  "fraction": 0.2578947368421053,
+  "uv": [
+    432.408688426876,
+    46.820939159185485
+  ],
+  "depth_z_m": 0.17342662433847217,
+  "margin": 46.820939159185485,
+  "obstacle": {
+    "id": "PathBlockingStimulus",
+    "role": "OTHER_OBSTACLE",
+    "size_m": [
+      0.02,
+      0.02,
+      0.02
+    ],
+    "studs": false,
+    "pose": {
+      "frame_id": "base_link",
+      "xyz_m": [
+        -0.33286718567606555,
+        0.20797793258028655,
+        0.07622028539905958
+      ],
+      "quaternion_xyzw": [
+        0,
+        0,
+        0,
+        1
+      ]
+    }
+  },
+  "collision": {
+    "collision_pair": [
+      "blue_2x2x1_01",
+      "PathBlockingStimulus"
+    ],
+    "collision_part_kinds": [
+      "held",
+      "world"
+    ],
+    "collision_components": [
+      "HELD",
+      "WORLD"
+    ],
+    "collision_links": [
+      "GripperDA_v4_tcp",
+      null
+    ],
+    "collision_local_parts": [
+      [
+        [
+          -0.9998826467463702,
+          0.00018439822622096157,
+          -0.015318574762872704,
+          7.055951338735822e-05
+        ],
+        [
+          0.0007285924343685848,
+          0.9993684462788778,
+          -0.03552714082507817,
+          0.0005254785439017182
+        ],
+        [
+          0.015302349118228583,
+          -0.03553413259718775,
+          -0.9992513014912857,
+          0.002073289775007342
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      [
+        [
+          1.0,
+          0.0,
+          0.0,
+          -0.33286718567606555
+        ],
+        [
+          0.0,
+          1.0,
+          0.0,
+          0.20797793258028655
+        ],
+        [
+          0.0,
+          0.0,
+          1.0,
+          0.07622028539905958
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ]
+    ]
+  },
+  "scope": "GT_PLACEMENT_AUDIT_ONLY_NOT_DEPTH_PLANNING",
+  "checkpoint": {
+    "path": "/home/ms-02/Documents/ChatGPT/\ud611\ub3d92_\uc7a5\uc560\ubb3c\ud68c\ud53c/local_records/blocked_path_native25_20261014/checkpoint.json",
+    "sha256": "b9d201a4a2ec5a58f6415b8afdb581dcb7817d5ea390ac1780cb36e3caeb3509"
+  },
+  "baseline_request": {
+    "path": "/home/ms-02/Documents/ChatGPT/\ud611\ub3d92_\uc7a5\uc560\ubb3c\ud68c\ud53c/local_records/blocked_path_native25_20261014/baseline/common_A/TRANSPORT.request.yaml",
+    "sha256": "59c24040afc3a5e4f3ff7b41c5bfa6364b5174e94fc3f9b08487f81fd1410a5c"
+  },
+  "baseline_result": {
+    "path": "/home/ms-02/Documents/ChatGPT/\ud611\ub3d92_\uc7a5\uc560\ubb3c\ud68c\ud53c/local_records/blocked_path_native25_20261014/baseline/result.yaml",
+    "sha256": "8dc552a49073ebbd756b071d5f4f86e3a01dcb9f36876d8c8df52392e7186438"
+  },
+  "library": {
+    "path": "/home/ms-02/Documents/ChatGPT/\ud611\ub3d92_\uc7a5\uc560\ubb3c\ud68c\ud53c/local_records/step6_cumotion_20261014/offline_stop_candidate/libstop_fcl.so",
+    "sha256": "46831e8c5363cfe0ce2cc8ca789504ef583cbd26a16ee3c6a44e62c945d26734"
+  }
+}

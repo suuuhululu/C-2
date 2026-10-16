@@ -1,0 +1,16 @@
+{
+  "compiler": "g++",
+  "flags": [
+    "-std=c++17",
+    "-O2",
+    "-shared",
+    "-fPIC",
+    "-ffp-contract=off",
+    "-fno-fast-math",
+    "-fno-associative-math",
+    "-fno-tree-vectorize"
+  ],
+  "source": "staged/interval_f64.cpp",
+  "output": "staged/interval_f64.so",
+  "scope": "STAGED_CPU_BUILD_ONLY_NO_RUNTIME_COMPILATION_OR_SDK"
+}

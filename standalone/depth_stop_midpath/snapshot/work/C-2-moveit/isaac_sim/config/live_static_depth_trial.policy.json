@@ -1,0 +1,15 @@
+{
+  "scope": "EXPLICIT_STATIC_SIM_TRIAL_BUDGETS_NOT_SDK_OBSERVATION_LIMITS",
+  "point_error_m": 0.00005,
+  "pose_translation_error_m": 0.00005,
+  "pose_rotation_error_rad": 0.0001,
+  "max_sensor_to_use_delay_s": 35.0,
+  "min_visible_pixels": 16,
+  "min_pixel_span": 3,
+  "max_occlusion_s": 0.12,
+  "max_latest_observation_age_s": 0.12,
+  "max_trajectory_duration_s": 32.0,
+  "apply_stop_margin_s": 1.0,
+  "max_sensor_to_apply_wall_s": 35.0,
+  "basis": "Existing nominal SIM point/pose bounds and visible-frame policy; explicit finite trial horizon and resource budget. Conditional SIM assumptions, not measured physical error guarantees or SDK limits. A result outside these budgets must HOLD."
+}

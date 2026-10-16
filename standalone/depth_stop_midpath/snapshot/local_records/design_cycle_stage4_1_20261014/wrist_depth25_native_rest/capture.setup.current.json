@@ -1,0 +1,77 @@
+{
+  "scope": "NEW_SIM_IK_SETUP_NOT_REAL_ROBOT_JOINTS",
+  "execution_allowed": false,
+  "seed_digest": "130208ba00c6c67ab891540cef65f6bba7f2407abde00b7e44b006bb345b6497",
+  "motion_input_digest": "6906ef02895415bf497fe6154b3f745d47bf2f8a86c304f364b69414bb48ef13",
+  "model_manifest_sha256": "6574724375c84cd7dd014f1e45049b63c63f90eac848f94a74cc412629ab3ad7",
+  "initial_q_rad": [
+    2.88757917658702,
+    0.020569601599610583,
+    1.9586234336775588,
+    0.03242933918787703,
+    1.1899565672595924,
+    2.897175395228564
+  ],
+  "lift_q_rad": [
+    2.8875615228980345,
+    -0.007258438588174459,
+    1.8993725616841148,
+    0.03145284745751235,
+    1.276992049238665,
+    2.900104001832998
+  ],
+  "return_to_pickup_before_capture": true,
+  "d_gripper_reference": {
+    "fingertip_offset_mm": 0.0,
+    "pickup_width_mm": 35.0,
+    "pickup_open_width_mm": 55.0,
+    "force_n": 40.0,
+    "pad_bottom_above_block_bottom_mm": 5,
+    "sim_width_joint_mapping_verified": false,
+    "real_execution_owner": "D"
+  },
+  "sim_gripper": {
+    "open_q_rad": -0.4,
+    "close_q_rad": 0.4793595967442058,
+    "mapping_scope": "EXISTING_SIM_PRESET_NOT_REAL_WIDTH_FORCE_CALIBRATION"
+  },
+  "pickup_tcp_pose": {
+    "frame_id": "base_link",
+    "xyz_m": [
+      -0.32990878295898435,
+      0.0685289535522461,
+      0.05048456573486328
+    ],
+    "quaternion_xyzw": [
+      -0.011133825051935275,
+      -0.9997327479091903,
+      0.017730560155645995,
+      -0.009802955381891375
+    ]
+  },
+  "pre_contact_tcp_pose": {
+    "frame_id": "base_link",
+    "xyz_m": [
+      0.39156508481233016,
+      0.022239354765518846,
+      0.0730200096130371
+    ],
+    "quaternion_xyzw": [
+      -0.011133825051935275,
+      -0.9997327479091903,
+      0.017730560155645995,
+      -0.009802955381891375
+    ]
+  },
+  "MoveIt_solver_run": false,
+  "collision_feasibility_verified": false,
+  "solver_iterations": {
+    "position": 128,
+    "velocity": 32
+  },
+  "resolution_reason": "Explicit nominal contact numerical experiment: periodic gripper oscillation at 64 position/4 velocity iterations; same dt, geometry, taught q, drives, width preset and stop tolerances as visible run05",
+  "fresh_capture_case": "empty_current",
+  "setup_reference_only": true,
+  "old_observation_reused_as_current": false,
+  "physics_dt_s": 0.004166666666666667
+}
