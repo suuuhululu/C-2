@@ -1,0 +1,1012 @@
+{
+  "schema_version": "sim-scene-seed-draft/0.1.0",
+  "source_kind": "SIM_NOMINAL_SCENE_SEED",
+  "execution_allowed": false,
+  "production_B_confirmed": false,
+  "post_grasp_observed": false,
+  "current": {
+    "current_revision": 0,
+    "blocks": []
+  },
+  "a_context": {
+    "job_id": "sim-D-taught-stage3",
+    "request_id": "fixture-motion-S01",
+    "workflow_generation": 34,
+    "source_epoch": "sim-nominal-collision-case-20261013",
+    "design_version": 1,
+    "input_current_revision": 0,
+    "world_state_revision": 14,
+    "frame_profile_id": "D_CAD_REVIEW_FRAME_20261012",
+    "plan_id": "P-260eb755f726467996f6e160653df372",
+    "step_id": "S01",
+    "frame_profile_version": "1"
+  },
+  "reservation_binding": {
+    "slot_id": "blue_2x2x1_01",
+    "reservation_id": "sim-taught-sim-stage4-empty-current-1",
+    "reservation_generation": 1,
+    "bound_workflow_generation": 34
+  },
+  "motion_input_digest": "6906ef02895415bf497fe6154b3f745d47bf2f8a86c304f364b69414bb48ef13",
+  "world_objects": [
+    {
+      "id": "SupplyBoard",
+      "role": "SUPPLY_BOARD",
+      "pose": {
+        "frame_id": "base_link",
+        "xyz_m": [
+          -0.5059557441459324,
+          0.024073084868555476,
+          0.03617456573486328
+        ],
+        "quaternion_xyzw": [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      },
+      "size_m": [
+        0.37118000000000007,
+        0.37022,
+        0.004
+      ],
+      "studs": false,
+      "coordinate_kind": "SIM_BODY_CENTRE",
+      "geometry_evidence_ref": "SIM_NOMINAL_LAYOUT",
+      "prim_path": "/World/Environment/SupplyBoard"
+    },
+    {
+      "id": "AssemblyBoard",
+      "role": "ASSEMBLY_BOARD",
+      "pose": {
+        "frame_id": "base_link",
+        "xyz_m": [
+          0.47205499267578127,
+          0.08574257659912109,
+          0.0012062487030029302
+        ],
+        "quaternion_xyzw": [
+          0.0,
+          0.0,
+          -0.0019325667145277108,
+          0.9999981325912033
+        ]
+      },
+      "size_m": [
+        0.384,
+        0.384,
+        0.004
+      ],
+      "studs": false,
+      "coordinate_kind": "SIM_BODY_CENTRE",
+      "geometry_evidence_ref": "SIM_NOMINAL_LAYOUT",
+      "prim_path": "/World/Environment/AssemblyBoard"
+    },
+    {
+      "id": "yellow_2x2x1_01",
+      "role": "SUPPLY_BLOCK",
+      "pose": {
+        "frame_id": "base_link",
+        "xyz_m": [
+          -0.32785296630859373,
+          0.1933636779785156,
+          0.04767456573486328
+        ],
+        "quaternion_xyzw": [
+          0.0,
+          0.0,
+          -0.012430110832278537,
+          0.9999227431880411
+        ]
+      },
+      "size_m": [
+        0.032,
+        0.032,
+        0.019
+      ],
+      "studs": true,
+      "coordinate_kind": "SIM_BODY_CENTRE",
+      "geometry_evidence_ref": "SIM_NOMINAL_LAYOUT",
+      "prim_path": "/World/Environment/yellow_2x2x1_01",
+      "block": {
+        "color": "yellow",
+        "brick_type": "2x2x1"
+      },
+      "slot_index": 1
+    },
+    {
+      "id": "yellow_2x2x1_02",
+      "role": "SUPPLY_BLOCK",
+      "pose": {
+        "frame_id": "base_link",
+        "xyz_m": [
+          -0.39162689208984375,
+          0.19610287475585939,
+          0.04767456573486328
+        ],
+        "quaternion_xyzw": [
+          0.0,
+          0.0,
+          -0.012294230020750096,
+          0.9999244230981644
+        ]
+      },
+      "size_m": [
+        0.032,
+        0.032,
+        0.019
+      ],
+      "studs": true,
+      "coordinate_kind": "SIM_BODY_CENTRE",
+      "geometry_evidence_ref": "SIM_NOMINAL_LAYOUT",
+      "prim_path": "/World/Environment/yellow_2x2x1_02",
+      "block": {
+        "color": "yellow",
+        "brick_type": "2x2x1"
+      },
+      "slot_index": 2
+    },
+    {
+      "id": "yellow_2x2x1_03",
+      "role": "SUPPLY_BLOCK",
+      "pose": {
+        "frame_id": "base_link",
+        "xyz_m": [
+          -0.45540081787109377,
+          0.19884207153320313,
+          0.04767456573486328
+        ],
+        "quaternion_xyzw": [
+          0.0,
+          0.0,
+          -0.01216131808026751,
+          0.9999260484368584
+        ]
+      },
+      "size_m": [
+        0.032,
+        0.032,
+        0.019
+      ],
+      "studs": true,
+      "coordinate_kind": "SIM_BODY_CENTRE",
+      "geometry_evidence_ref": "SIM_NOMINAL_LAYOUT",
+      "prim_path": "/World/Environment/yellow_2x2x1_03",
+      "block": {
+        "color": "yellow",
+        "brick_type": "2x2x1"
+      },
+      "slot_index": 3
+    },
+    {
+      "id": "yellow_2x2x1_04",
+      "role": "SUPPLY_BLOCK",
+      "pose": {
+        "frame_id": "base_link",
+        "xyz_m": [
+          -0.5190040283203124,
+          0.20038598124186197,
+          0.04767456573486328
+        ],
+        "quaternion_xyzw": [
+          0.0,
+          0.0,
+          -0.011382988972342328,
+          0.9999352116822647
+        ]
+      },
+      "size_m": [
+        0.032,
+        0.032,
+        0.019
+      ],
+      "studs": true,
+      "coordinate_kind": "SIM_BODY_CENTRE",
+      "geometry_evidence_ref": "SIM_NOMINAL_LAYOUT",
+      "prim_path": "/World/Environment/yellow_2x2x1_04",
+      "block": {
+        "color": "yellow",
+        "brick_type": "2x2x1"
+      },
+      "slot_index": 4
+    },
+    {
+      "id": "yellow_2x2x1_05",
+      "role": "SUPPLY_BLOCK",
+      "pose": {
+        "frame_id": "base_link",
+        "xyz_m": [
+          -0.5826072387695312,
+          0.20192989095052083,
+          0.04767456573486328
+        ],
+        "quaternion_xyzw": [
+          0.0,
+          0.0,
+          -0.010606137230767332,
+          0.999943753344678
+        ]
+      },
+      "size_m": [
+        0.032,
+        0.032,
+        0.019
+      ],
+      "studs": true,
+      "coordinate_kind": "SIM_BODY_CENTRE",
+      "geometry_evidence_ref": "SIM_NOMINAL_LAYOUT",
+      "prim_path": "/World/Environment/yellow_2x2x1_05",
+      "block": {
+        "color": "yellow",
+        "brick_type": "2x2x1"
+      },
+      "slot_index": 5
+    },
+    {
+      "id": "yellow_2x3x1_01",
+      "role": "SUPPLY_BLOCK",
+      "pose": {
+        "frame_id": "base_link",
+        "xyz_m": [
+          -0.3285872497558594,
+          0.13845257568359376,
+          0.04767456573486328
+        ],
+        "quaternion_xyzw": [
+          0.0,
+          0.0,
+          -0.011686854466799157,
+          0.9999317063843269
+        ]
+      },
+      "size_m": [
+        0.032,
+        0.048,
+        0.019
+      ],
+      "studs": true,
+      "coordinate_kind": "SIM_BODY_CENTRE",
+      "geometry_evidence_ref": "SIM_NOMINAL_LAYOUT",
+      "prim_path": "/World/Environment/yellow_2x3x1_01",
+      "block": {
+        "color": "yellow",
+        "brick_type": "2x3x1"
+      },
+      "slot_index": 1
+    },
+    {
+      "id": "yellow_2x3x1_02",
+      "role": "SUPPLY_BLOCK",
+      "pose": {
+        "frame_id": "base_link",
+        "xyz_m": [
+          -0.39221150207519534,
+          0.14078577423095703,
+          0.04767456573486328
+        ],
+        "quaternion_xyzw": [
+          0.0,
+          0.0,
+          -0.011400633493124954,
+          0.999935010666171
+        ]
+      },
+      "size_m": [
+        0.032,
+        0.048,
+        0.019
+      ],
+      "studs": true,
+      "coordinate_kind": "SIM_BODY_CENTRE",
+      "geometry_evidence_ref": "SIM_NOMINAL_LAYOUT",
+      "prim_path": "/World/Environment/yellow_2x3x1_02",
+      "block": {
+        "color": "yellow",
+        "brick_type": "2x3x1"
+      },
+      "slot_index": 2
+    },
+    {
+      "id": "yellow_2x3x1_03",
+      "role": "SUPPLY_BLOCK",
+      "pose": {
+        "frame_id": "base_link",
+        "xyz_m": [
+          -0.4558357543945312,
+          0.1431189727783203,
+          0.04767456573486328
+        ],
+        "quaternion_xyzw": [
+          0.0,
+          0.0,
+          -0.011114547296326535,
+          0.9999382315115257
+        ]
+      },
+      "size_m": [
+        0.032,
+        0.048,
+        0.019
+      ],
+      "studs": true,
+      "coordinate_kind": "SIM_BODY_CENTRE",
+      "geometry_evidence_ref": "SIM_NOMINAL_LAYOUT",
+      "prim_path": "/World/Environment/yellow_2x3x1_03",
+      "block": {
+        "color": "yellow",
+        "brick_type": "2x3x1"
+      },
+      "slot_index": 3
+    },
+    {
+      "id": "yellow_2x3x1_04",
+      "role": "SUPPLY_BLOCK",
+      "pose": {
+        "frame_id": "base_link",
+        "xyz_m": [
+          -0.5203038940429687,
+          0.1449141082763672,
+          0.04767456573486328
+        ],
+        "quaternion_xyzw": [
+          0.0,
+          0.0,
+          -0.009835697642426951,
+          0.9999516283560355
+        ]
+      },
+      "size_m": [
+        0.032,
+        0.048,
+        0.019
+      ],
+      "studs": true,
+      "coordinate_kind": "SIM_BODY_CENTRE",
+      "geometry_evidence_ref": "SIM_NOMINAL_LAYOUT",
+      "prim_path": "/World/Environment/yellow_2x3x1_04",
+      "block": {
+        "color": "yellow",
+        "brick_type": "2x3x1"
+      },
+      "slot_index": 4
+    },
+    {
+      "id": "yellow_2x3x1_05",
+      "role": "SUPPLY_BLOCK",
+      "pose": {
+        "frame_id": "base_link",
+        "xyz_m": [
+          -0.5847720336914063,
+          0.14670924377441405,
+          0.04767456573486328
+        ],
+        "quaternion_xyzw": [
+          0.0,
+          0.0,
+          -0.008556290430308738,
+          0.9999633942770466
+        ]
+      },
+      "size_m": [
+        0.032,
+        0.048,
+        0.019
+      ],
+      "studs": true,
+      "coordinate_kind": "SIM_BODY_CENTRE",
+      "geometry_evidence_ref": "SIM_NOMINAL_LAYOUT",
+      "prim_path": "/World/Environment/yellow_2x3x1_05",
+      "block": {
+        "color": "yellow",
+        "brick_type": "2x3x1"
+      },
+      "slot_index": 5
+    },
+    {
+      "id": "blue_2x2x1_01",
+      "role": "SUPPLY_BLOCK",
+      "pose": {
+        "frame_id": "base_link",
+        "xyz_m": [
+          -0.32990878295898435,
+          0.0685289535522461,
+          0.04767456573486328
+        ],
+        "quaternion_xyzw": [
+          0.0,
+          0.0,
+          -0.01095988696570951,
+          0.9999399386351656
+        ]
+      },
+      "size_m": [
+        0.032,
+        0.032,
+        0.019
+      ],
+      "studs": true,
+      "coordinate_kind": "SIM_BODY_CENTRE",
+      "geometry_evidence_ref": "SIM_NOMINAL_LAYOUT",
+      "prim_path": "/World/Environment/blue_2x2x1_01",
+      "block": {
+        "brick_type": "2x2x1",
+        "color": "blue",
+        "x": 11,
+        "y": 11,
+        "layer": 1,
+        "orientation_deg": 0
+      },
+      "slot_index": 1
+    },
+    {
+      "id": "blue_2x2x1_02",
+      "role": "SUPPLY_BLOCK",
+      "pose": {
+        "frame_id": "base_link",
+        "xyz_m": [
+          -0.3936830291748047,
+          0.06951908493041992,
+          0.04767456573486328
+        ],
+        "quaternion_xyzw": [
+          0.0,
+          0.0,
+          -0.010504225565545516,
+          0.99994482910072
+        ]
+      },
+      "size_m": [
+        0.032,
+        0.032,
+        0.019
+      ],
+      "studs": true,
+      "coordinate_kind": "SIM_BODY_CENTRE",
+      "geometry_evidence_ref": "SIM_NOMINAL_LAYOUT",
+      "prim_path": "/World/Environment/blue_2x2x1_02",
+      "block": {
+        "color": "blue",
+        "brick_type": "2x2x1"
+      },
+      "slot_index": 2
+    },
+    {
+      "id": "blue_2x2x1_03",
+      "role": "SUPPLY_BLOCK",
+      "pose": {
+        "frame_id": "base_link",
+        "xyz_m": [
+          -0.457457275390625,
+          0.07050921630859375,
+          0.04767456573486328
+        ],
+        "quaternion_xyzw": [
+          0.0,
+          0.0,
+          -0.010046171921087326,
+          0.9999495359415553
+        ]
+      },
+      "size_m": [
+        0.032,
+        0.032,
+        0.019
+      ],
+      "studs": true,
+      "coordinate_kind": "SIM_BODY_CENTRE",
+      "geometry_evidence_ref": "SIM_NOMINAL_LAYOUT",
+      "prim_path": "/World/Environment/blue_2x2x1_03",
+      "block": {
+        "color": "blue",
+        "brick_type": "2x2x1"
+      },
+      "slot_index": 3
+    },
+    {
+      "id": "blue_2x2x1_04",
+      "role": "SUPPLY_BLOCK",
+      "pose": {
+        "frame_id": "base_link",
+        "xyz_m": [
+          -0.5213122355143229,
+          0.07283158874511719,
+          0.04767456573486328
+        ],
+        "quaternion_xyzw": [
+          0.0,
+          0.0,
+          -0.010297492605457642,
+          0.9999469794174292
+        ]
+      },
+      "size_m": [
+        0.032,
+        0.032,
+        0.019
+      ],
+      "studs": true,
+      "coordinate_kind": "SIM_BODY_CENTRE",
+      "geometry_evidence_ref": "SIM_NOMINAL_LAYOUT",
+      "prim_path": "/World/Environment/blue_2x2x1_04",
+      "block": {
+        "color": "blue",
+        "brick_type": "2x2x1"
+      },
+      "slot_index": 4
+    },
+    {
+      "id": "blue_2x2x1_05",
+      "role": "SUPPLY_BLOCK",
+      "pose": {
+        "frame_id": "base_link",
+        "xyz_m": [
+          -0.5851671956380209,
+          0.07515396118164062,
+          0.04767456573486328
+        ],
+        "quaternion_xyzw": [
+          0.0,
+          0.0,
+          -0.010548082462211604,
+          0.9999443674306938
+        ]
+      },
+      "size_m": [
+        0.032,
+        0.032,
+        0.019
+      ],
+      "studs": true,
+      "coordinate_kind": "SIM_BODY_CENTRE",
+      "geometry_evidence_ref": "SIM_NOMINAL_LAYOUT",
+      "prim_path": "/World/Environment/blue_2x2x1_05",
+      "block": {
+        "color": "blue",
+        "brick_type": "2x2x1"
+      },
+      "slot_index": 5
+    },
+    {
+      "id": "blue_2x3x1_01",
+      "role": "SUPPLY_BLOCK",
+      "pose": {
+        "frame_id": "base_link",
+        "xyz_m": [
+          -0.33185260009765627,
+          0.009898046493530273,
+          0.04767456573486328
+        ],
+        "quaternion_xyzw": [
+          0.0,
+          0.0,
+          -0.010962704598956353,
+          0.9999399077483987
+        ]
+      },
+      "size_m": [
+        0.032,
+        0.048,
+        0.019
+      ],
+      "studs": true,
+      "coordinate_kind": "SIM_BODY_CENTRE",
+      "geometry_evidence_ref": "SIM_NOMINAL_LAYOUT",
+      "prim_path": "/World/Environment/blue_2x3x1_01",
+      "block": {
+        "color": "blue",
+        "brick_type": "2x3x1"
+      },
+      "slot_index": 1
+    },
+    {
+      "id": "blue_2x3x1_02",
+      "role": "SUPPLY_BLOCK",
+      "pose": {
+        "frame_id": "base_link",
+        "xyz_m": [
+          -0.3950296630859375,
+          0.012587860584259033,
+          0.04767456573486328
+        ],
+        "quaternion_xyzw": [
+          0.0,
+          0.0,
+          -0.009988983743159511,
+          0.9999501088573264
+        ]
+      },
+      "size_m": [
+        0.032,
+        0.048,
+        0.019
+      ],
+      "studs": true,
+      "coordinate_kind": "SIM_BODY_CENTRE",
+      "geometry_evidence_ref": "SIM_NOMINAL_LAYOUT",
+      "prim_path": "/World/Environment/blue_2x3x1_02",
+      "block": {
+        "color": "blue",
+        "brick_type": "2x3x1"
+      },
+      "slot_index": 2
+    },
+    {
+      "id": "blue_2x3x1_03",
+      "role": "SUPPLY_BLOCK",
+      "pose": {
+        "frame_id": "base_link",
+        "xyz_m": [
+          -0.45820672607421875,
+          0.015277674674987793,
+          0.04767456573486328
+        ],
+        "quaternion_xyzw": [
+          0.0,
+          0.0,
+          -0.009013593986858968,
+          0.9999593767365953
+        ]
+      },
+      "size_m": [
+        0.032,
+        0.048,
+        0.019
+      ],
+      "studs": true,
+      "coordinate_kind": "SIM_BODY_CENTRE",
+      "geometry_evidence_ref": "SIM_NOMINAL_LAYOUT",
+      "prim_path": "/World/Environment/blue_2x3x1_03",
+      "block": {
+        "color": "blue",
+        "brick_type": "2x3x1"
+      },
+      "slot_index": 3
+    },
+    {
+      "id": "blue_2x3x1_04",
+      "role": "SUPPLY_BLOCK",
+      "pose": {
+        "frame_id": "base_link",
+        "xyz_m": [
+          -0.5225111694335938,
+          0.016719502131144207,
+          0.04767456573486328
+        ],
+        "quaternion_xyzw": [
+          0.0,
+          0.0,
+          -0.009179048914272746,
+          0.9999578716431154
+        ]
+      },
+      "size_m": [
+        0.032,
+        0.048,
+        0.019
+      ],
+      "studs": true,
+      "coordinate_kind": "SIM_BODY_CENTRE",
+      "geometry_evidence_ref": "SIM_NOMINAL_LAYOUT",
+      "prim_path": "/World/Environment/blue_2x3x1_04",
+      "block": {
+        "color": "blue",
+        "brick_type": "2x3x1"
+      },
+      "slot_index": 4
+    },
+    {
+      "id": "blue_2x3x1_05",
+      "role": "SUPPLY_BLOCK",
+      "pose": {
+        "frame_id": "base_link",
+        "xyz_m": [
+          -0.5868156127929688,
+          0.018161329587300618,
+          0.04767456573486328
+        ],
+        "quaternion_xyzw": [
+          0.0,
+          0.0,
+          -0.009343814073818226,
+          0.9999563456164243
+        ]
+      },
+      "size_m": [
+        0.032,
+        0.048,
+        0.019
+      ],
+      "studs": true,
+      "coordinate_kind": "SIM_BODY_CENTRE",
+      "geometry_evidence_ref": "SIM_NOMINAL_LAYOUT",
+      "prim_path": "/World/Environment/blue_2x3x1_05",
+      "block": {
+        "color": "blue",
+        "brick_type": "2x3x1"
+      },
+      "slot_index": 5
+    },
+    {
+      "id": "red_1x2x1_01",
+      "role": "SUPPLY_BLOCK",
+      "pose": {
+        "frame_id": "base_link",
+        "xyz_m": [
+          -0.3332757568359375,
+          -0.05039606857299805,
+          0.04767456573486328
+        ],
+        "quaternion_xyzw": [
+          0.0,
+          0.0,
+          0.7052294144610473,
+          0.708979176689223
+        ]
+      },
+      "size_m": [
+        0.016,
+        0.032,
+        0.019
+      ],
+      "studs": true,
+      "coordinate_kind": "SIM_BODY_CENTRE",
+      "geometry_evidence_ref": "SIM_NOMINAL_LAYOUT",
+      "prim_path": "/World/Environment/red_1x2x1_01",
+      "block": {
+        "color": "red",
+        "brick_type": "1x2x1"
+      },
+      "slot_index": 1
+    },
+    {
+      "id": "red_1x2x1_02",
+      "role": "SUPPLY_BLOCK",
+      "pose": {
+        "frame_id": "base_link",
+        "xyz_m": [
+          -0.39692417907714844,
+          -0.04911936569213867,
+          0.04767456573486328
+        ],
+        "quaternion_xyzw": [
+          0.0,
+          0.0,
+          0.7047329053319646,
+          0.7094727141633906
+        ]
+      },
+      "size_m": [
+        0.016,
+        0.032,
+        0.019
+      ],
+      "studs": true,
+      "coordinate_kind": "SIM_BODY_CENTRE",
+      "geometry_evidence_ref": "SIM_NOMINAL_LAYOUT",
+      "prim_path": "/World/Environment/red_1x2x1_02",
+      "block": {
+        "color": "red",
+        "brick_type": "1x2x1"
+      },
+      "slot_index": 2
+    },
+    {
+      "id": "red_1x2x1_03",
+      "role": "SUPPLY_BLOCK",
+      "pose": {
+        "frame_id": "base_link",
+        "xyz_m": [
+          -0.46057260131835936,
+          -0.047842662811279295,
+          0.04767456573486328
+        ],
+        "quaternion_xyzw": [
+          0.0,
+          0.0,
+          0.7042363091334218,
+          0.7099656476887707
+        ]
+      },
+      "size_m": [
+        0.016,
+        0.032,
+        0.019
+      ],
+      "studs": true,
+      "coordinate_kind": "SIM_BODY_CENTRE",
+      "geometry_evidence_ref": "SIM_NOMINAL_LAYOUT",
+      "prim_path": "/World/Environment/red_1x2x1_03",
+      "block": {
+        "color": "red",
+        "brick_type": "1x2x1"
+      },
+      "slot_index": 3
+    },
+    {
+      "id": "red_1x2x1_04",
+      "role": "SUPPLY_BLOCK",
+      "pose": {
+        "frame_id": "base_link",
+        "xyz_m": [
+          -0.523871826171875,
+          -0.04593345896402994,
+          0.04767456573486328
+        ],
+        "quaternion_xyzw": [
+          0.0,
+          0.0,
+          0.7020834374096281,
+          0.712094689570903
+        ]
+      },
+      "size_m": [
+        0.016,
+        0.032,
+        0.019
+      ],
+      "studs": true,
+      "coordinate_kind": "SIM_BODY_CENTRE",
+      "geometry_evidence_ref": "SIM_NOMINAL_LAYOUT",
+      "prim_path": "/World/Environment/red_1x2x1_04",
+      "block": {
+        "color": "red",
+        "brick_type": "1x2x1"
+      },
+      "slot_index": 4
+    },
+    {
+      "id": "red_1x2x1_05",
+      "role": "SUPPLY_BLOCK",
+      "pose": {
+        "frame_id": "base_link",
+        "xyz_m": [
+          -0.5871710510253906,
+          -0.044024255116780604,
+          0.04767456573486328
+        ],
+        "quaternion_xyzw": [
+          0.0,
+          0.0,
+          0.6999239026751687,
+          0.7142174252032507
+        ]
+      },
+      "size_m": [
+        0.016,
+        0.032,
+        0.019
+      ],
+      "studs": true,
+      "coordinate_kind": "SIM_BODY_CENTRE",
+      "geometry_evidence_ref": "SIM_NOMINAL_LAYOUT",
+      "prim_path": "/World/Environment/red_1x2x1_05",
+      "block": {
+        "color": "red",
+        "brick_type": "1x2x1"
+      },
+      "slot_index": 5
+    },
+    {
+      "id": "HandoverTray",
+      "role": "OTHER_OBSTACLE",
+      "pose": {
+        "frame_id": "base_link",
+        "xyz_m": [
+          0.417561,
+          -0.184622,
+          -0.002
+        ],
+        "quaternion_xyzw": [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      },
+      "size_m": [
+        0.18,
+        0.14,
+        0.004
+      ],
+      "studs": false,
+      "coordinate_kind": "SIM_BODY_CENTRE",
+      "geometry_evidence_ref": "SIM_NOMINAL_LAYOUT",
+      "prim_path": "/World/Environment/HandoverTray"
+    }
+  ],
+  "geometry_scope": "SIM_NOMINAL_GEOMETRY",
+  "model_scope": "SIM_NOMINAL_MODEL",
+  "final_approach_policy": {
+    "policy_ref": "PRESERVED_GPU_CARTESIAN_CORRIDOR_FOR_OFFLINE_CALCULATION",
+    "final_corridor_tolerance_m": 0.002,
+    "transition_allowance_m": 0.005,
+    "source_capture_date": "2026-10-13",
+    "source_relative_path": "gpu_moveit_original/isaac_sim/config/transport.sim.json",
+    "physical_verification": "UNVERIFIED",
+    "execution_allowed": false
+  },
+  "supply_policy": {
+    "slot_count": 5,
+    "unavailable_slots": [
+      6
+    ],
+    "always_replenished": true
+  },
+  "omitted_legacy_slots": [],
+  "nominal_physics": {
+    "block_mass_kg": 0.02,
+    "friction": 0.6,
+    "measured": false
+  },
+  "robot_base_prim": "/World/Robot/Geometry/world/base_link",
+  "robot_tcp_prim": "/World/Robot/Geometry/world/base_link/link_1/link_2/link_3/link_4/link_5/link_6/GripperDA_v4_tcp",
+  "coordinate_provenance": {
+    "scope": "D_TAUGHT_TCP_NOT_PHYSICAL_BODY_CALIBRATION",
+    "sources": {
+      "supply": {
+        "path": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/work/C-2-moveit/isaac_sim/config/taught_coordinates_20261012/supply.json",
+        "sha256": "55ca811850af36d0c4b7e579f9b33ba9ae31fee7592eb63578271018199daa3e"
+      },
+      "board": {
+        "path": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/work/C-2-moveit/isaac_sim/config/taught_coordinates_20261012/assembly_board_by_studs.json",
+        "sha256": "25d78b24504cfccab3957c06d992cd433374957d58cc2ddb2586a1bb8469c251"
+      },
+      "assembly": {
+        "path": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/work/C-2-moveit/robot_control_integration/fixtures/teaching_sources/operator_assembly_6point_layer1.json",
+        "sha256": "e4781d072e8770fa7f631aa5ef5e5f873d853a27340535b605b1399dd7266829"
+      },
+      "layers": {
+        "path": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/work/C-2-moveit/robot_control_integration/calibration/layer_records.json",
+        "sha256": "397c6749c4b42e296788c5fc3d57452307bf8f8a91df7bd359a8671c8190a501"
+      },
+      "affine": {
+        "path": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/work/C-2-moveit/robot_control_integration/calibration/assembly_board_16mm_20261007.json",
+        "sha256": "c77ff4cae46828ae2450875c1d904aae5bce8e965175c47ec71b1686ebf0fa20"
+      },
+      "profile": {
+        "path": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/work/C-2-moveit/robot_control_integration/settings/integration_native35/profile.reference.json",
+        "sha256": "ac585f4fb21d4f02bdbcecb16b503de5a9a0d6ddd9c44559920b305e24c97bf3"
+      },
+      "d_waiting_code": {
+        "path": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/work/C-2-moveit/robot_control_integration/app/assembly_step_runner.py",
+        "sha256": "a75652e171e85a901c740ad06de410b475841ce2c10358d3eb9fd6498859b1bc"
+      },
+      "d_board_code": {
+        "path": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/work/C-2-moveit/app/assembly_board_calibration.py",
+        "sha256": "82cc72fa459dea99e090ba8b0e478fa57385137053b0737574d1ce649aec8040"
+      },
+      "d_geometry_code": {
+        "path": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/work/C-2-moveit/app/cad_trial.py",
+        "sha256": "30f1a10e489c928643c351719bb0cd8406c68cf96f0a41ab6f3f9346cbcb261f"
+      },
+      "d_teaching_code": {
+        "path": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/work/C-2-moveit/app/robot_teaching.py",
+        "sha256": "5dbdfc448f13b89177bde10ea937afe5bdd473d2f4cef85c980dd12f90670c34"
+      },
+      "nominal_geometry": {
+        "path": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/step4_endpoint_moveit_20261013/empty_current/nominal_geometry.json",
+        "sha256": "ee6ea6b7ba9430c6d2aff1517b4c27f639e89b8fab665ada2ab91e5073646014"
+      },
+      "case_builder": {
+        "path": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/step4_endpoint_moveit_20261013/prepare_empty_case.py",
+        "sha256": "5245cb97fcbea33c596703c18c3d0a1e36fc18c201f305ea24a83b76751313fa"
+      }
+    },
+    "source_kind": "OPERATOR_TAUGHT_READ_ONLY",
+    "execution_allowed": false
+  },
+  "d_gripper_reference": {
+    "fingertip_offset_mm": 0.0,
+    "pickup_width_mm": 35.0,
+    "pickup_open_width_mm": 55.0,
+    "force_n": 40.0,
+    "pad_bottom_above_block_bottom_mm": 5,
+    "sim_width_joint_mapping_verified": false,
+    "real_execution_owner": "D"
+  },
+  "nominal_geometry_evidence": {
+    "scope": "EXPLICIT_SIM_NOMINAL_GEOMETRY_NOT_PHYSICAL_CALIBRATION",
+    "evidence_ref": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/step4_endpoint_moveit_20261013/empty_current/nominal_geometry.json"
+  }
+}

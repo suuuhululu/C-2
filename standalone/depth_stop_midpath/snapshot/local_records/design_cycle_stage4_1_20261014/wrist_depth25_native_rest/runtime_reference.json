@@ -1,0 +1,21 @@
+{
+  "scope": "EXISTING_SELECTED_SIM_CONFIGURATION_NOT_NEW_SOLVER_TRIAL",
+  "sources": {
+    "/home/ms-02/Documents/ChatGPT/\ud611\ub3d92_\uc7a5\uc560\ubb3c\ud68c\ud53c/local_records/design_cycle_stage4_1_20261014/full_render1_resume/setup.json": "4f60b99401b2b0d508b398819ac91d1af93cf52b559760f9df8b63cba7f8f4a2",
+    "/home/ms-02/Documents/ChatGPT/\ud611\ub3d92_\uc7a5\uc560\ubb3c\ud68c\ud53c/local_records/design_cycle_stage4_1_20261014/full_render1_resume/controllers.trial.yaml": "fdc36758bd3a391b452bd4128657454d8f0b572aa702c61d4ae937068941ddfe",
+    "/home/ms-02/Documents/ChatGPT/\ud611\ub3d92_\uc7a5\uc560\ubb3c\ud68c\ud53c/local_records/design_cycle_stage4_1_20261014/full_render1_resume/nominal_gripper_drive.json": "13180c6f9a72032c7bc7288bdb192d45f56966695934aa290db01d4d779ba037",
+    "/home/ms-02/Documents/ChatGPT/\ud611\ub3d92_\uc7a5\uc560\ubb3c\ud68c\ud53c/local_records/step4_endpoint_moveit_20261013/empty_current/capture.setup.json": "2f7570f9eac6837837ed81c0217a9c1e2888bd069910de35c8fe6db3455e72e5"
+  },
+  "physics_dt_s": 0.004166666666666667,
+  "solver_iterations": {
+    "position": 128,
+    "velocity": 32
+  },
+  "gripper_drive": {
+    "path": "/World/Robot/Physics/rg2_finger_joint",
+    "previous_max_force": 0.5,
+    "nominal_test_max_force": 1.0,
+    "previous_damping": 2.0,
+    "nominal_test_damping": 2.0
+  }
+}

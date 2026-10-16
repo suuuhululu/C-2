@@ -1,0 +1,6 @@
+{
+  "isaac_root": "AUTO",
+  "ros_setup": "/opt/ros/jazzy/setup.bash",
+  "required_isaac_version": "6.1.0",
+  "required_moveit_version": "2.12.4"
+}

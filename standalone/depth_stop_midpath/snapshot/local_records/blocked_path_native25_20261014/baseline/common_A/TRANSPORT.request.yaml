@@ -1,0 +1,2566 @@
+plan_id: P-260eb755f726467996f6e160653df372
+step_id: S01
+job_id: sim-D-taught-stage3
+request_id: fixture-motion-S01
+workflow_generation: 34
+source_epoch: sim-nominal-collision-case-20261013
+design_version: 1
+current_revision: 0
+world_revision: 14
+profile_id: D_CAD_REVIEW_FRAME_20261012
+profile_version: '1'
+assessment_id: assessment-1c5fdf5ae69c4854a13416b3b8fbf2f2
+assessment_input_digest: 515296e73584b486cb721a8d6f3837d56fd9468290267fb17d4de9434f8d9911
+scene_digest: f3b68690c372579b255f5424c6015b9775ab37c0175664382e28295522f07ea1
+motion_input_digest: 6906ef02895415bf497fe6154b3f745d47bf2f8a86c304f364b69414bb48ef13
+motion_result_digest: 2a859935ca047cb691db38763bc222d578b2c952c668d291f96a2f7e1186201a
+model_digest: e16469daf9048576a6f69936b896627c62b38d64d1cd4a547e4bf02ad6097943
+reservation_id: sim-taught-sim-stage4-empty-current-1
+reservation_generation: 1
+execute: false
+sim_execution_authorized: false
+hardware_execution_allowed: false
+a_execution_allowed: false
+kind: POSE
+phase: TRANSPORT
+held: true
+contact_phase: false
+cartesian: false
+planning_allowed: true
+goal:
+  frame_id: base_link
+  xyz_m:
+  - 0.47205499267578127
+  - 0.08574257659912109
+  - 0.03561624870300293
+  quaternion_xyzw:
+  - -0.011133825051935328
+  - -0.9997327479091903
+  - 0.017730560155646
+  - -0.009802955381891373
+expected_precontact:
+  frame_id: base_link
+  xyz_m:
+  - 0.47205499267578127
+  - 0.08574257659912109
+  - 0.03561624870300293
+  quaternion_xyzw:
+  - -0.011133825051935328
+  - -0.9997327479091903
+  - 0.017730560155646
+  - -0.009802955381891373
+transport_boundary: POST_GRASP_TO_PRE_CONTACT_POSE
+mandatory_waypoint_count: 0
+trajectory_interpolation: QUINTIC
+contact_approach_owner: D
+model_bundle:
+  bundle_path: /home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/step3_gpu_model_20261013/model
+  manifest_sha256: 6574724375c84cd7dd014f1e45049b63c63f90eac848f94a74cc412629ab3ad7
+  files:
+    robot.urdf: 26b968a120d0a5ce560c4fdf79ffeb41708a598f0497bc5ea46420d388cb8a5e
+    semantic.srdf: 4175e96ee8d6700cf25c2d50dcaac2284ae316116504f3de9d0f417547c1018d
+    joint_limits.yaml: 651c969efd8146563c36af77d1acb6e4f80d0c255e8da5e9ab7b38c23aab5360
+  scope: LOCAL_CALCULATION_MODEL_NOT_PHYSICALLY_VERIFIED
+  robot_description: "<?xml version='1.0' encoding='utf-8'?>\n<robot name=\"m0609_rg2\"\
+    >\n  <link name=\"base_link\">\n    <inertial>\n      <mass value=\"3.18\" />\n\
+    \      <origin xyz=\"-2.8e-05   -0.006045    0.038403\" />\n      <inertia ixx=\"\
+    0.017789\" ixy=\"-7.4356e-06\" ixz=\"3.0378e-06\" iyy=\"0.011135\" iyz=\"-0.00029038\"\
+    \ izz=\"0.020054\" />\n    </inertial>\n    <collision>\n      <origin rpy=\"\
+    0 0 0\" xyz=\"0 0 0\" />\n      <geometry>\n        <mesh filename=\"file:///home/ms-02/Documents/ChatGPT/%ED%98%91%EB%8F%992_%EC%9E%A5%EC%95%A0%EB%AC%BC%ED%9A%8C%ED%94%BC/work/C-2-moveit/isaac_sim/ros_ws/src/m0609_rg2_sim_model/meshes/base_link_collision_0.stl\"\
+    \ scale=\"1 1 1\" />\n      </geometry>\n    </collision>\n    <visual>\n    \
+    \  <origin rpy=\"0 0 0\" xyz=\"0 0 0\" />\n      <geometry>\n        <mesh filename=\"\
+    file:///home/ms-02/Documents/ChatGPT/%ED%98%91%EB%8F%992_%EC%9E%A5%EC%95%A0%EB%AC%BC%ED%9A%8C%ED%94%BC/work/C-2-moveit/isaac_sim/ros_ws/src/m0609_rg2_sim_model/meshes/base_link_visual_0.stl\"\
+    \ scale=\"1 1 1\" />\n      </geometry>\n      <material name=\"base_link_visual_0_material\"\
+    >\n        <color rgba=\"0.85 0.85 0.85 1\" />\n      </material>\n    </visual>\n\
+    \  </link>\n  <link name=\"base\" />\n  <joint name=\"base_link-base\" type=\"\
+    fixed\">\n    <origin rpy=\"0 0 0\" xyz=\"0 0 0.450\" />\n    <parent link=\"\
+    base_link\" />\n    <child link=\"base\" />\n  </joint>\n  <joint name=\"joint_1\"\
+    \ type=\"revolute\">\n    <parent link=\"base_link\" />\n    <child link=\"link_1\"\
+    \ />\n    <origin rpy=\"0 0 0\" xyz=\"0 0 0.1345\" />\n    <axis xyz=\"0 0 1\"\
+    \ />\n    <limit effort=\"163\" lower=\"-6.2832\" upper=\"6.2832\" velocity=\"\
+    2.618\" />\n    <dynamics friction=\"0\" />\n  </joint>\n  <link name=\"link_1\"\
+    >\n    <inertial>\n      <mass value=\"5.02\" />\n      <origin xyz=\"7.2e-05\
+    \    0.036227   -0.003417\" />\n      <inertia ixx=\"0.026195\" ixy=\"2.3904e-05\"\
+    \ ixz=\"-1.3319e-05\" iyy=\"0.016899\" iyz=\"-0.00071987\" izz=\"0.022944\" />\n\
+    \    </inertial>\n    <collision>\n      <origin rpy=\"0 0 0\" xyz=\"0 0 0\" />\n\
+    \      <geometry>\n        <mesh filename=\"file:///home/ms-02/Documents/ChatGPT/%ED%98%91%EB%8F%992_%EC%9E%A5%EC%95%A0%EB%AC%BC%ED%9A%8C%ED%94%BC/work/C-2-moveit/isaac_sim/ros_ws/src/m0609_rg2_sim_model/meshes/link_1_collision_0.stl\"\
+    \ scale=\"1 1 1\" />\n      </geometry>\n    </collision>\n    <visual>\n    \
+    \  <origin rpy=\"0 0 0\" xyz=\"0 0 0\" />\n      <geometry>\n        <mesh filename=\"\
+    file:///home/ms-02/Documents/ChatGPT/%ED%98%91%EB%8F%992_%EC%9E%A5%EC%95%A0%EB%AC%BC%ED%9A%8C%ED%94%BC/work/C-2-moveit/isaac_sim/ros_ws/src/m0609_rg2_sim_model/meshes/link_1_visual_0.stl\"\
+    \ scale=\"1 1 1\" />\n      </geometry>\n      <material name=\"link_1_visual_0_material\"\
+    >\n        <color rgba=\"0.85 0.85 0.85 1\" />\n      </material>\n    </visual>\n\
+    \  </link>\n  <joint name=\"joint_2\" type=\"revolute\">\n    <parent link=\"\
+    link_1\" />\n    <child link=\"link_2\" />\n    <origin rpy=\"0 -1.571 -1.571\"\
+    \ xyz=\"0 0.0062 0\" />\n    <axis xyz=\"0 0 1\" />\n    <limit effort=\"163\"\
+    \ lower=\"-6.2832\" upper=\"6.2832\" velocity=\"2.618\" />\n    <dynamics friction=\"\
+    0\" />\n  </joint>\n  <link name=\"link_2\">\n    <inertial>\n      <mass value=\"\
+    8.04\" />\n      <origin xyz=\"0.20447     2.6e-05     0.16005\" />\n      <inertia\
+    \ ixx=\"0.026743\" ixy=\"-0.00019461\" ixz=\"-0.00058734\" iyy=\"0.30084\" iyz=\"\
+    -6.7892e-06\" izz=\"0.29898\" />\n    </inertial>\n    <collision>\n      <origin\
+    \ rpy=\"0 0 0\" xyz=\"0 0 0\" />\n      <geometry>\n        <mesh filename=\"\
+    file:///home/ms-02/Documents/ChatGPT/%ED%98%91%EB%8F%992_%EC%9E%A5%EC%95%A0%EB%AC%BC%ED%9A%8C%ED%94%BC/work/C-2-moveit/isaac_sim/ros_ws/src/m0609_rg2_sim_model/meshes/link_2_collision_0.stl\"\
+    \ scale=\"1 1 1\" />\n      </geometry>\n    </collision>\n    <visual>\n    \
+    \  <origin rpy=\"0 0 0\" xyz=\"0 0 0\" />\n      <geometry>\n        <mesh filename=\"\
+    file:///home/ms-02/Documents/ChatGPT/%ED%98%91%EB%8F%992_%EC%9E%A5%EC%95%A0%EB%AC%BC%ED%9A%8C%ED%94%BC/work/C-2-moveit/isaac_sim/ros_ws/src/m0609_rg2_sim_model/meshes/link_2_visual_0.stl\"\
+    \ scale=\"1 1 1\" />\n      </geometry>\n      <material name=\"link_2_visual_0_material\"\
+    >\n        <color rgba=\"0.85 0.85 0.85 1\" />\n      </material>\n    </visual>\n\
+    \    <collision>\n      <origin rpy=\"0 0 0\" xyz=\"0 0 0\" />\n      <geometry>\n\
+    \        <mesh filename=\"file:///home/ms-02/Documents/ChatGPT/%ED%98%91%EB%8F%992_%EC%9E%A5%EC%95%A0%EB%AC%BC%ED%9A%8C%ED%94%BC/work/C-2-moveit/isaac_sim/ros_ws/src/m0609_rg2_sim_model/meshes/link_2_collision_1.stl\"\
+    \ scale=\"1 1 1\" />\n      </geometry>\n    </collision>\n    <visual>\n    \
+    \  <origin rpy=\"0 0 0\" xyz=\"0 0 0\" />\n      <geometry>\n        <mesh filename=\"\
+    file:///home/ms-02/Documents/ChatGPT/%ED%98%91%EB%8F%992_%EC%9E%A5%EC%95%A0%EB%AC%BC%ED%9A%8C%ED%94%BC/work/C-2-moveit/isaac_sim/ros_ws/src/m0609_rg2_sim_model/meshes/link_2_visual_1.stl\"\
+    \ scale=\"1 1 1\" />\n      </geometry>\n      <material name=\"link_2_visual_1_material\"\
+    >\n        <color rgba=\"0.85 0.85 0.85 1\" />\n      </material>\n    </visual>\n\
+    \    <collision>\n      <origin rpy=\"0 0 0\" xyz=\"0 0 0\" />\n      <geometry>\n\
+    \        <mesh filename=\"file:///home/ms-02/Documents/ChatGPT/%ED%98%91%EB%8F%992_%EC%9E%A5%EC%95%A0%EB%AC%BC%ED%9A%8C%ED%94%BC/work/C-2-moveit/isaac_sim/ros_ws/src/m0609_rg2_sim_model/meshes/link_2_collision_2.stl\"\
+    \ scale=\"1 1 1\" />\n      </geometry>\n    </collision>\n    <visual>\n    \
+    \  <origin rpy=\"0 0 0\" xyz=\"0 0 0\" />\n      <geometry>\n        <mesh filename=\"\
+    file:///home/ms-02/Documents/ChatGPT/%ED%98%91%EB%8F%992_%EC%9E%A5%EC%95%A0%EB%AC%BC%ED%9A%8C%ED%94%BC/work/C-2-moveit/isaac_sim/ros_ws/src/m0609_rg2_sim_model/meshes/link_2_visual_2.stl\"\
+    \ scale=\"1 1 1\" />\n      </geometry>\n      <material name=\"link_2_visual_2_material\"\
+    >\n        <color rgba=\"0.85 0.85 0.85 1\" />\n      </material>\n    </visual>\n\
+    \  </link>\n  <joint name=\"joint_3\" type=\"revolute\">\n    <parent link=\"\
+    link_2\" />\n    <child link=\"link_3\" />\n    <origin rpy=\"0 0 1.571\" xyz=\"\
+    0.411 0 0\" />\n    <axis xyz=\"0 0 1\" />\n    <limit effort=\"96\" lower=\"\
+    -2.618\" upper=\"2.618\" velocity=\"3.1416\" />\n    <dynamics friction=\"0\"\
+    \ />\n  </joint>\n  <link name=\"link_3\">\n    <inertial>\n      <mass value=\"\
+    3.6\" />\n      <origin xyz=\"-2.2e-05   -0.006867    0.043445\" />\n      <inertia\
+    \ ixx=\"0.018342\" ixy=\"1.1302e-05\" ixz=\"-4.5308e-06\" iyy=\"0.018239\" iyz=\"\
+    -0.00099247\" izz=\"0.01326\" />\n    </inertial>\n    <collision>\n      <origin\
+    \ rpy=\"0 0 0\" xyz=\"0 0 0\" />\n      <geometry>\n        <mesh filename=\"\
+    file:///home/ms-02/Documents/ChatGPT/%ED%98%91%EB%8F%992_%EC%9E%A5%EC%95%A0%EB%AC%BC%ED%9A%8C%ED%94%BC/work/C-2-moveit/isaac_sim/ros_ws/src/m0609_rg2_sim_model/meshes/link_3_collision_0.stl\"\
+    \ scale=\"1 1 1\" />\n      </geometry>\n    </collision>\n    <visual>\n    \
+    \  <origin rpy=\"0 0 0\" xyz=\"0 0 0\" />\n      <geometry>\n        <mesh filename=\"\
+    file:///home/ms-02/Documents/ChatGPT/%ED%98%91%EB%8F%992_%EC%9E%A5%EC%95%A0%EB%AC%BC%ED%9A%8C%ED%94%BC/work/C-2-moveit/isaac_sim/ros_ws/src/m0609_rg2_sim_model/meshes/link_3_visual_0.stl\"\
+    \ scale=\"1 1 1\" />\n      </geometry>\n      <material name=\"link_3_visual_0_material\"\
+    >\n        <color rgba=\"0.85 0.85 0.85 1\" />\n      </material>\n    </visual>\n\
+    \  </link>\n  <joint name=\"joint_4\" type=\"revolute\">\n    <parent link=\"\
+    link_3\" />\n    <child link=\"link_4\" />\n    <origin rpy=\"1.571 0 0\" xyz=\"\
+    0 -0.368 0\" />\n    <axis xyz=\"0 0 1\" />\n    <limit effort=\"50\" lower=\"\
+    -6.2832\" upper=\"6.2832\" velocity=\"3.927\" />\n    <dynamics friction=\"0\"\
+    \ />\n  </joint>\n  <link name=\"link_4\">\n    <inertial>\n      <mass value=\"\
+    3.57\" />\n      <origin xyz=\"4e-05    0.097079    -0.10981\" />\n      <inertia\
+    \ ixx=\"0.08035\" ixy=\"-4.6119e-06\" ixz=\"-8.1798e-06\" iyy=\"0.066005\" iyz=\"\
+    -0.028996\" izz=\"0.029763\" />\n    </inertial>\n    <collision>\n      <origin\
+    \ rpy=\"0 0 0\" xyz=\"0 0 0\" />\n      <geometry>\n        <mesh filename=\"\
+    file:///home/ms-02/Documents/ChatGPT/%ED%98%91%EB%8F%992_%EC%9E%A5%EC%95%A0%EB%AC%BC%ED%9A%8C%ED%94%BC/work/C-2-moveit/isaac_sim/ros_ws/src/m0609_rg2_sim_model/meshes/link_4_collision_0.stl\"\
+    \ scale=\"1 1 1\" />\n      </geometry>\n    </collision>\n    <visual>\n    \
+    \  <origin rpy=\"0 0 0\" xyz=\"0 0 0\" />\n      <geometry>\n        <mesh filename=\"\
+    file:///home/ms-02/Documents/ChatGPT/%ED%98%91%EB%8F%992_%EC%9E%A5%EC%95%A0%EB%AC%BC%ED%9A%8C%ED%94%BC/work/C-2-moveit/isaac_sim/ros_ws/src/m0609_rg2_sim_model/meshes/link_4_visual_0.stl\"\
+    \ scale=\"1 1 1\" />\n      </geometry>\n      <material name=\"link_4_visual_0_material\"\
+    >\n        <color rgba=\"0.85 0.85 0.85 1\" />\n      </material>\n    </visual>\n\
+    \    <collision>\n      <origin rpy=\"0 0 0\" xyz=\"0 0 0\" />\n      <geometry>\n\
+    \        <mesh filename=\"file:///home/ms-02/Documents/ChatGPT/%ED%98%91%EB%8F%992_%EC%9E%A5%EC%95%A0%EB%AC%BC%ED%9A%8C%ED%94%BC/work/C-2-moveit/isaac_sim/ros_ws/src/m0609_rg2_sim_model/meshes/link_4_collision_1.stl\"\
+    \ scale=\"1 1 1\" />\n      </geometry>\n    </collision>\n    <visual>\n    \
+    \  <origin rpy=\"0 0 0\" xyz=\"0 0 0\" />\n      <geometry>\n        <mesh filename=\"\
+    file:///home/ms-02/Documents/ChatGPT/%ED%98%91%EB%8F%992_%EC%9E%A5%EC%95%A0%EB%AC%BC%ED%9A%8C%ED%94%BC/work/C-2-moveit/isaac_sim/ros_ws/src/m0609_rg2_sim_model/meshes/link_4_visual_1.stl\"\
+    \ scale=\"1 1 1\" />\n      </geometry>\n      <material name=\"link_4_visual_1_material\"\
+    >\n        <color rgba=\"0.85 0.85 0.85 1\" />\n      </material>\n    </visual>\n\
+    \  </link>\n  <joint name=\"joint_5\" type=\"revolute\">\n    <parent link=\"\
+    link_4\" />\n    <child link=\"link_5\" />\n    <origin rpy=\"-1.571 0 0\" xyz=\"\
+    0 0 0\" />\n    <axis xyz=\"0 0 1\" />\n    <limit effort=\"50\" lower=\"-6.2832\"\
+    \ upper=\"6.2832\" velocity=\"3.927\" />\n    <dynamics friction=\"0\" />\n  </joint>\n\
+    \  <link name=\"link_5\">\n    <inertial>\n      <mass value=\"2.83\" />\n   \
+    \   <origin xyz=\"-6.8e-05    0.003827    0.031969\" />\n      <inertia ixx=\"\
+    0.014275\" ixy=\"2.2026e-05\" ixz=\"3.3017e-06\" iyy=\"0.012569\" iyz=\"0.00045077\"\
+    \ izz=\"0.0085318\" />\n    </inertial>\n    <collision>\n      <origin rpy=\"\
+    0 0 0\" xyz=\"0 0 0\" />\n      <geometry>\n        <mesh filename=\"file:///home/ms-02/Documents/ChatGPT/%ED%98%91%EB%8F%992_%EC%9E%A5%EC%95%A0%EB%AC%BC%ED%9A%8C%ED%94%BC/work/C-2-moveit/isaac_sim/ros_ws/src/m0609_rg2_sim_model/meshes/link_5_collision_0.stl\"\
+    \ scale=\"1 1 1\" />\n      </geometry>\n    </collision>\n    <visual>\n    \
+    \  <origin rpy=\"0 0 0\" xyz=\"0 0 0\" />\n      <geometry>\n        <mesh filename=\"\
+    file:///home/ms-02/Documents/ChatGPT/%ED%98%91%EB%8F%992_%EC%9E%A5%EC%95%A0%EB%AC%BC%ED%9A%8C%ED%94%BC/work/C-2-moveit/isaac_sim/ros_ws/src/m0609_rg2_sim_model/meshes/link_5_visual_0.stl\"\
+    \ scale=\"1 1 1\" />\n      </geometry>\n      <material name=\"link_5_visual_0_material\"\
+    >\n        <color rgba=\"0.85 0.85 0.85 1\" />\n      </material>\n    </visual>\n\
+    \  </link>\n  <joint name=\"joint_6\" type=\"revolute\">\n    <parent link=\"\
+    link_5\" />\n    <child link=\"link_6\" />\n    <origin rpy=\"1.571 0 0\" xyz=\"\
+    0 -0.121 0\" />\n    <axis xyz=\"0 0 1\" />\n    <limit effort=\"50\" lower=\"\
+    -6.2832\" upper=\"6.2832\" velocity=\"3.927\" />\n    <dynamics friction=\"0\"\
+    \ />\n  </joint>\n  <link name=\"link_6\">\n    <inertial>\n      <mass value=\"\
+    1.16\" />\n      <origin xyz=\"-3e-05    -4.5e-05     -0.0539\" />\n      <inertia\
+    \ ixx=\"0.0080226\" ixy=\"1.371e-06\" ixz=\"6.3578e-06\" iyy=\"0.0053992\" iyz=\"\
+    7.4676e-06\" izz=\"0.0053912\" />\n    </inertial>\n    <collision>\n      <origin\
+    \ rpy=\"0 0 0\" xyz=\"0 0 0\" />\n      <geometry>\n        <mesh filename=\"\
+    file:///home/ms-02/Documents/ChatGPT/%ED%98%91%EB%8F%992_%EC%9E%A5%EC%95%A0%EB%AC%BC%ED%9A%8C%ED%94%BC/work/C-2-moveit/isaac_sim/ros_ws/src/m0609_rg2_sim_model/meshes/link_6_collision_0.stl\"\
+    \ scale=\"1 1 1\" />\n      </geometry>\n    </collision>\n    <visual>\n    \
+    \  <origin rpy=\"0 0 0\" xyz=\"0 0 0\" />\n      <geometry>\n        <mesh filename=\"\
+    file:///home/ms-02/Documents/ChatGPT/%ED%98%91%EB%8F%992_%EC%9E%A5%EC%95%A0%EB%AC%BC%ED%9A%8C%ED%94%BC/work/C-2-moveit/isaac_sim/ros_ws/src/m0609_rg2_sim_model/meshes/link_6_visual_0.stl\"\
+    \ scale=\"1 1 1\" />\n      </geometry>\n      <material name=\"link_6_visual_0_material\"\
+    >\n        <color rgba=\"0.85 0.85 0.85 1\" />\n      </material>\n    </visual>\n\
+    \  </link>\n  <link name=\"tool0\" />\n  <joint name=\"joint_6-tool0\" type=\"\
+    fixed\">\n    <origin rpy=\"3.1415926535 -1.570796327 0\" xyz=\"0 0 0\" />\n \
+    \   <parent link=\"link_6\" />\n    <child link=\"tool0\" />\n  </joint>\n  <link\
+    \ name=\"rg2_base_link\">\n    <inertial>\n      <origin rpy=\"0 0 0\" xyz=\"\
+    0.0 0.0 0.0\" />\n      <mass value=\"0.7\" />\n      <inertia ixx=\"1.0E-03\"\
+    \ ixy=\"1.0E-06\" ixz=\"1.0E-06\" iyy=\"1.0E-03\" iyz=\"1.0E-06\" izz=\"1.0E-03\"\
+    \ />\n    </inertial>\n    <visual>\n      <origin rpy=\"0 0 0\" xyz=\"0 0 0\"\
+    \ />\n      <geometry>\n        <mesh filename=\"file:///home/ms-02/Documents/ChatGPT/%ED%98%91%EB%8F%992_%EC%9E%A5%EC%95%A0%EB%AC%BC%ED%9A%8C%ED%94%BC/work/C-2-moveit/isaac_sim/ros_ws/src/m0609_rg2_sim_model/meshes/rg2_base_link_visual_0.stl\"\
+    \ scale=\"1 1 1\" />\n      </geometry>\n      <material name=\"rg2_base_link_visual_0_material\"\
+    >\n        <color rgba=\"0.8 0.8 0.8 1\" />\n      </material>\n    </visual>\n\
+    \    <collision>\n      <origin rpy=\"0 0 0\" xyz=\"0 0 0\" />\n      <geometry>\n\
+    \        <mesh filename=\"file:///home/ms-02/Documents/ChatGPT/%ED%98%91%EB%8F%992_%EC%9E%A5%EC%95%A0%EB%AC%BC%ED%9A%8C%ED%94%BC/work/C-2-moveit/isaac_sim/ros_ws/src/m0609_rg2_sim_model/meshes/rg2_base_link_collision_0.stl\"\
+    \ scale=\"1 1 1\" />\n      </geometry>\n    </collision>\n  </link>\n  <joint\
+    \ name=\"joint0\" type=\"fixed\">\n    <parent link=\"tool0\" />\n    <child link=\"\
+    rg2_base_link\" />\n    <origin rpy=\"1.5708 0 1.5708\" xyz=\"0. 0. 0.\" />\n\
+    \  </joint>\n  <link name=\"rg2_left_outer_knuckle\">\n    <inertial>\n      <origin\
+    \ rpy=\"0 0 0\" xyz=\"0.0 0.0 0.0\" />\n      <mass value=\"0.05\" />\n      <inertia\
+    \ ixx=\"1.0E-03\" ixy=\"1.0E-06\" ixz=\"1.0E-06\" iyy=\"1.0E-03\" iyz=\"1.0E-06\"\
+    \ izz=\"1.0E-03\" />\n    </inertial>\n    <visual>\n      <origin rpy=\"0 0 0\"\
+    \ xyz=\"0 0 0\" />\n      <geometry>\n        <mesh filename=\"file:///home/ms-02/Documents/ChatGPT/%ED%98%91%EB%8F%992_%EC%9E%A5%EC%95%A0%EB%AC%BC%ED%9A%8C%ED%94%BC/work/C-2-moveit/isaac_sim/ros_ws/src/m0609_rg2_sim_model/meshes/rg2_left_outer_knuckle_visual_0.stl\"\
+    \ scale=\"1 1 1\" />\n      </geometry>\n      <material name=\"rg2_left_outer_knuckle_visual_0_material\"\
+    >\n        <color rgba=\"0.8 0.8 0.8 1\" />\n      </material>\n    </visual>\n\
+    \    <collision>\n      <origin rpy=\"0 0 0\" xyz=\"0 0 0\" />\n      <geometry>\n\
+    \        <mesh filename=\"file:///home/ms-02/Documents/ChatGPT/%ED%98%91%EB%8F%992_%EC%9E%A5%EC%95%A0%EB%AC%BC%ED%9A%8C%ED%94%BC/work/C-2-moveit/isaac_sim/ros_ws/src/m0609_rg2_sim_model/meshes/rg2_left_outer_knuckle_collision_0.stl\"\
+    \ scale=\"1 1 1\" />\n      </geometry>\n      <sdf resolution=\"512\" />\n  \
+    \  </collision>\n  </link>\n  <link name=\"rg2_left_inner_knuckle\">\n    <inertial>\n\
+    \      <origin rpy=\"0 0 0\" xyz=\"0.0 0.0 0.0\" />\n      <mass value=\"0.05\"\
+    \ />\n      <inertia ixx=\"1.0E-03\" ixy=\"1.0E-06\" ixz=\"1.0E-06\" iyy=\"1.0E-03\"\
+    \ iyz=\"1.0E-06\" izz=\"1.0E-03\" />\n    </inertial>\n    <visual>\n      <origin\
+    \ rpy=\"0 0 0\" xyz=\"0 0 0\" />\n      <geometry>\n        <mesh filename=\"\
+    file:///home/ms-02/Documents/ChatGPT/%ED%98%91%EB%8F%992_%EC%9E%A5%EC%95%A0%EB%AC%BC%ED%9A%8C%ED%94%BC/work/C-2-moveit/isaac_sim/ros_ws/src/m0609_rg2_sim_model/meshes/rg2_left_inner_knuckle_visual_0.stl\"\
+    \ scale=\"1 1 1\" />\n      </geometry>\n      <material name=\"rg2_left_inner_knuckle_visual_0_material\"\
+    >\n        <color rgba=\"0.8 0.8 0.8 1\" />\n      </material>\n    </visual>\n\
+    \    <collision>\n      <origin rpy=\"0 0 0\" xyz=\"0 0 0\" />\n      <geometry>\n\
+    \        <mesh filename=\"file:///home/ms-02/Documents/ChatGPT/%ED%98%91%EB%8F%992_%EC%9E%A5%EC%95%A0%EB%AC%BC%ED%9A%8C%ED%94%BC/work/C-2-moveit/isaac_sim/ros_ws/src/m0609_rg2_sim_model/meshes/rg2_left_inner_knuckle_collision_0.stl\"\
+    \ scale=\"1 1 1\" />\n      </geometry>\n      <sdf resolution=\"512\" />\n  \
+    \  </collision>\n  </link>\n  <link name=\"rg2_left_inner_finger\">\n    <inertial>\n\
+    \      <origin rpy=\"0 0 0\" xyz=\"0.0 0.0 0.0\" />\n      <mass value=\"0.05\"\
+    \ />\n      <inertia ixx=\"1.0E-03\" ixy=\"1.0E-06\" ixz=\"1.0E-06\" iyy=\"1.0E-03\"\
+    \ iyz=\"1.0E-06\" izz=\"1.0E-03\" />\n    </inertial>\n    <visual>\n      <origin\
+    \ rpy=\"0 0 0\" xyz=\"0 0 0\" />\n      <geometry>\n        <mesh filename=\"\
+    file:///home/ms-02/Documents/ChatGPT/%ED%98%91%EB%8F%992_%EC%9E%A5%EC%95%A0%EB%AC%BC%ED%9A%8C%ED%94%BC/work/C-2-moveit/isaac_sim/ros_ws/src/m0609_rg2_sim_model/meshes/rg2_left_inner_finger_visual_0.stl\"\
+    \ scale=\"1 1 1\" />\n      </geometry>\n      <material name=\"rg2_left_inner_finger_visual_0_material\"\
+    >\n        <color rgba=\"0.1 0.1 0.1 1\" />\n      </material>\n    </visual>\n\
+    \    <collision>\n      <origin rpy=\"0 0 0\" xyz=\"0 0 0\" />\n      <geometry>\n\
+    \        <mesh filename=\"file:///home/ms-02/Documents/ChatGPT/%ED%98%91%EB%8F%992_%EC%9E%A5%EC%95%A0%EB%AC%BC%ED%9A%8C%ED%94%BC/work/C-2-moveit/isaac_sim/ros_ws/src/m0609_rg2_sim_model/meshes/rg2_left_inner_finger_collision_0.stl\"\
+    \ scale=\"1 1 1\" />\n      </geometry>\n      <sdf resolution=\"512\" />\n  \
+    \  </collision>\n  </link>\n  <link name=\"rg2_right_outer_knuckle\">\n    <inertial>\n\
+    \      <origin rpy=\"0 0 0\" xyz=\"0.0 0.0 0.0\" />\n      <mass value=\"0.05\"\
+    \ />\n      <inertia ixx=\"1.0E-03\" ixy=\"1.0E-06\" ixz=\"1.0E-06\" iyy=\"1.0E-03\"\
+    \ iyz=\"1.0E-06\" izz=\"1.0E-03\" />\n    </inertial>\n    <visual>\n      <origin\
+    \ rpy=\"0 0 0\" xyz=\"0 0 0\" />\n      <geometry>\n        <mesh filename=\"\
+    file:///home/ms-02/Documents/ChatGPT/%ED%98%91%EB%8F%992_%EC%9E%A5%EC%95%A0%EB%AC%BC%ED%9A%8C%ED%94%BC/work/C-2-moveit/isaac_sim/ros_ws/src/m0609_rg2_sim_model/meshes/rg2_right_outer_knuckle_visual_0.stl\"\
+    \ scale=\"1 1 1\" />\n      </geometry>\n      <material name=\"rg2_right_outer_knuckle_visual_0_material\"\
+    >\n        <color rgba=\"0.8 0.8 0.8 1\" />\n      </material>\n    </visual>\n\
+    \    <collision>\n      <origin rpy=\"0 0 0\" xyz=\"0 0 0\" />\n      <geometry>\n\
+    \        <mesh filename=\"file:///home/ms-02/Documents/ChatGPT/%ED%98%91%EB%8F%992_%EC%9E%A5%EC%95%A0%EB%AC%BC%ED%9A%8C%ED%94%BC/work/C-2-moveit/isaac_sim/ros_ws/src/m0609_rg2_sim_model/meshes/rg2_right_outer_knuckle_collision_0.stl\"\
+    \ scale=\"1 1 1\" />\n      </geometry>\n      <sdf resolution=\"512\" />\n  \
+    \  </collision>\n  </link>\n  <link name=\"rg2_right_inner_knuckle\">\n    <inertial>\n\
+    \      <origin rpy=\"0 0 0\" xyz=\"0.0 0.0 0.0\" />\n      <mass value=\"0.05\"\
+    \ />\n      <inertia ixx=\"1.0E-03\" ixy=\"1.0E-06\" ixz=\"1.0E-06\" iyy=\"1.0E-03\"\
+    \ iyz=\"1.0E-06\" izz=\"1.0E-03\" />\n    </inertial>\n    <visual>\n      <origin\
+    \ rpy=\"0 0 0\" xyz=\"0 0 0\" />\n      <geometry>\n        <mesh filename=\"\
+    file:///home/ms-02/Documents/ChatGPT/%ED%98%91%EB%8F%992_%EC%9E%A5%EC%95%A0%EB%AC%BC%ED%9A%8C%ED%94%BC/work/C-2-moveit/isaac_sim/ros_ws/src/m0609_rg2_sim_model/meshes/rg2_right_inner_knuckle_visual_0.stl\"\
+    \ scale=\"1 1 1\" />\n      </geometry>\n      <material name=\"rg2_right_inner_knuckle_visual_0_material\"\
+    >\n        <color rgba=\"0.8 0.8 0.8 1\" />\n      </material>\n    </visual>\n\
+    \    <collision>\n      <origin rpy=\"0 0 0\" xyz=\"0 0 0\" />\n      <geometry>\n\
+    \        <mesh filename=\"file:///home/ms-02/Documents/ChatGPT/%ED%98%91%EB%8F%992_%EC%9E%A5%EC%95%A0%EB%AC%BC%ED%9A%8C%ED%94%BC/work/C-2-moveit/isaac_sim/ros_ws/src/m0609_rg2_sim_model/meshes/rg2_right_inner_knuckle_collision_0.stl\"\
+    \ scale=\"1 1 1\" />\n      </geometry>\n      <sdf resolution=\"512\" />\n  \
+    \  </collision>\n  </link>\n  <link name=\"rg2_right_inner_finger\">\n    <inertial>\n\
+    \      <origin rpy=\"0 0 0\" xyz=\"0.0 0.0 0.0\" />\n      <mass value=\"0.05\"\
+    \ />\n      <inertia ixx=\"1.0E-03\" ixy=\"1.0E-06\" ixz=\"1.0E-06\" iyy=\"1.0E-03\"\
+    \ iyz=\"1.0E-06\" izz=\"1.0E-03\" />\n    </inertial>\n    <visual>\n      <origin\
+    \ rpy=\"0 0 0\" xyz=\"0 0 0\" />\n      <geometry>\n        <mesh filename=\"\
+    file:///home/ms-02/Documents/ChatGPT/%ED%98%91%EB%8F%992_%EC%9E%A5%EC%95%A0%EB%AC%BC%ED%9A%8C%ED%94%BC/work/C-2-moveit/isaac_sim/ros_ws/src/m0609_rg2_sim_model/meshes/rg2_right_inner_finger_visual_0.stl\"\
+    \ scale=\"1 1 1\" />\n      </geometry>\n      <material name=\"rg2_right_inner_finger_visual_0_material\"\
+    >\n        <color rgba=\"0.1 0.1 0.1 1\" />\n      </material>\n    </visual>\n\
+    \    <collision>\n      <origin rpy=\"0 0 0\" xyz=\"0 0 0\" />\n      <geometry>\n\
+    \        <mesh filename=\"file:///home/ms-02/Documents/ChatGPT/%ED%98%91%EB%8F%992_%EC%9E%A5%EC%95%A0%EB%AC%BC%ED%9A%8C%ED%94%BC/work/C-2-moveit/isaac_sim/ros_ws/src/m0609_rg2_sim_model/meshes/rg2_right_inner_finger_collision_0.stl\"\
+    \ scale=\"1 1 1\" />\n      </geometry>\n      <sdf resolution=\"512\" />\n  \
+    \  </collision>\n  </link>\n  <joint name=\"rg2_finger_joint\" type=\"revolute\"\
+    >\n    <origin rpy=\"0 0 0\" xyz=\"0 -0.017178 0.125797\" />\n    <parent link=\"\
+    rg2_base_link\" />\n    <child link=\"rg2_left_outer_knuckle\" />\n    <axis xyz=\"\
+    -1 0 0\" />\n    <limit effort=\"1000\" lower=\"-0.558505\" upper=\"0.785398\"\
+    \ velocity=\"100.0\" />\n  </joint>\n  <joint name=\"rg2_left_inner_knuckle_joint\"\
+    \ type=\"revolute\">\n    <origin rpy=\"0 0 0.0\" xyz=\"0 -0.007678 0.1422970\"\
+    \ />\n    <parent link=\"rg2_base_link\" />\n    <child link=\"rg2_left_inner_knuckle\"\
+    \ />\n    <axis xyz=\"1 0 0\" />\n    <limit effort=\"1000\" lower=\"-0.785398\"\
+    \ upper=\"0.785398\" velocity=\"100.0\" />\n    <mimic joint=\"rg2_finger_joint\"\
+    \ multiplier=\"-1\" offset=\"0\" />\n  </joint>\n  <joint name=\"rg2_left_inner_finger_joint\"\
+    \ type=\"revolute\">\n    <origin rpy=\"0 0 0\" xyz=\"0 -0.039592 0.038177000000000016\"\
+    \ />\n    <parent link=\"rg2_left_outer_knuckle\" />\n    <child link=\"rg2_left_inner_finger\"\
+    \ />\n    <axis xyz=\"1 0 0\" />\n    <limit effort=\"1000\" lower=\"-0.872665\"\
+    \ upper=\"0.872665\" velocity=\"100.0\" />\n    <mimic joint=\"rg2_finger_joint\"\
+    \ multiplier=\"1\" offset=\"0\" />\n  </joint>\n  <joint name=\"rg2_right_outer_knuckle_joint\"\
+    \ type=\"revolute\">\n    <parent link=\"rg2_base_link\" />\n    <child link=\"\
+    rg2_right_outer_knuckle\" />\n    <origin rpy=\"0 0 3.141592653589793\" xyz=\"\
+    0 0.017178 0.125797\" />\n    <axis xyz=\"1 0 0\" />\n    <limit effort=\"1000\"\
+    \ lower=\"-0.785398\" upper=\"0.785398\" velocity=\"100.0\" />\n    <mimic joint=\"\
+    rg2_finger_joint\" multiplier=\"-1\" offset=\"0\" />\n  </joint>\n  <joint name=\"\
+    rg2_right_inner_knuckle_joint\" type=\"revolute\">\n    <origin rpy=\"0 0 -3.141592653589793\"\
+    \ xyz=\"0 0.007678 0.1422970\" />\n    <parent link=\"rg2_base_link\" />\n   \
+    \ <child link=\"rg2_right_inner_knuckle\" />\n    <axis xyz=\"1 0 0\" />\n   \
+    \ <limit effort=\"1000\" lower=\"-0.785398\" upper=\"0.785398\" velocity=\"100.0\"\
+    \ />\n    <mimic joint=\"rg2_finger_joint\" multiplier=\"-1\" offset=\"0\" />\n\
+    \  </joint>\n  <joint name=\"rg2_right_inner_finger_joint\" type=\"revolute\"\
+    >\n    <origin rpy=\"0 0 0\" xyz=\"0 -0.039592 0.038177000000000016\" />\n   \
+    \ <parent link=\"rg2_right_outer_knuckle\" />\n    <child link=\"rg2_right_inner_finger\"\
+    \ />\n    <axis xyz=\"1 0 0\" />\n    <limit effort=\"1000\" lower=\"-0.872665\"\
+    \ upper=\"0.872665\" velocity=\"100.0\" />\n    <mimic joint=\"rg2_finger_joint\"\
+    \ multiplier=\"1\" offset=\"0\" />\n  </joint>\n  <link name=\"world\" />\n  <joint\
+    \ name=\"preview_world_base\" type=\"fixed\">\n    <parent link=\"world\" />\n\
+    \    <child link=\"base_link\" />\n    <origin xyz=\"0 0 0\" rpy=\"0 0 0\" />\n\
+    \  </joint>\n  <link name=\"GripperDA_v4_tcp\" />\n  <joint name=\"link_6_to_GripperDA_v4_tcp\"\
+    \ type=\"fixed\">\n    <parent link=\"link_6\" />\n    <child link=\"GripperDA_v4_tcp\"\
+    \ />\n    <origin xyz=\"0.0 0.0 0.228\" rpy=\"0 0 0\" />\n  </joint>\n</robot>"
+  robot_description_semantic: "<?xml version='1.0' encoding='utf-8'?>\n<robot name=\"\
+    m0609_rg2\">\n  <group name=\"manipulator\">\n    <chain base_link=\"base_link\"\
+    \ tip_link=\"GripperDA_v4_tcp\" />\n  </group>\n  <group name=\"gripper\">\n \
+    \   <link name=\"rg2_base_link\" />\n    <link name=\"rg2_left_outer_knuckle\"\
+    \ />\n    <link name=\"rg2_left_inner_knuckle\" />\n    <link name=\"rg2_left_inner_finger\"\
+    \ />\n    <link name=\"rg2_right_outer_knuckle\" />\n    <link name=\"rg2_right_inner_knuckle\"\
+    \ />\n    <link name=\"rg2_right_inner_finger\" />\n    <joint name=\"rg2_finger_joint\"\
+    \ />\n  </group>\n  <end_effector name=\"rg2_gripper\" parent_link=\"link_6\"\
+    \ group=\"gripper\" parent_group=\"manipulator\" />\n  <group_state name=\"sim_open\"\
+    \ group=\"gripper\">\n    <joint name=\"rg2_finger_joint\" value=\"-0.4\" />\n\
+    \  </group_state>\n  <group_state name=\"sim_grasp_2wide\" group=\"gripper\">\n\
+    \    <joint name=\"rg2_finger_joint\" value=\"0.4793595967442058\" />\n  </group_state>\n\
+    \  <group_state name=\"sim_initial\" group=\"manipulator\">\n    <joint name=\"\
+    joint_1\" value=\"0\" />\n    <joint name=\"joint_2\" value=\"0\" />\n    <joint\
+    \ name=\"joint_3\" value=\"1.57\" />\n    <joint name=\"joint_4\" value=\"0\"\
+    \ />\n    <joint name=\"joint_5\" value=\"1.57\" />\n    <joint name=\"joint_6\"\
+    \ value=\"0\" />\n  </group_state>\n  <disable_collisions link1=\"base_link\"\
+    \ link2=\"link_1\" reason=\"AdjacentBody\" />\n  <disable_collisions link1=\"\
+    link_1\" link2=\"link_2\" reason=\"AdjacentBody\" />\n  <disable_collisions link1=\"\
+    link_2\" link2=\"link_3\" reason=\"AdjacentBody\" />\n  <disable_collisions link1=\"\
+    link_3\" link2=\"link_4\" reason=\"AdjacentBody\" />\n  <disable_collisions link1=\"\
+    link_4\" link2=\"link_5\" reason=\"AdjacentBody\" />\n  <disable_collisions link1=\"\
+    link_5\" link2=\"link_6\" reason=\"AdjacentBody\" />\n  <disable_collisions link1=\"\
+    link_5\" link2=\"rg2_base_link\" reason=\"AdjacentBody\" />\n  <disable_collisions\
+    \ link1=\"link_6\" link2=\"rg2_base_link\" reason=\"FixedBody\" />\n  <disable_collisions\
+    \ link1=\"link_6\" link2=\"rg2_left_inner_knuckle\" reason=\"AdjacentBody\" />\n\
+    \  <disable_collisions link1=\"link_6\" link2=\"rg2_left_outer_knuckle\" reason=\"\
+    AdjacentBody\" />\n  <disable_collisions link1=\"link_6\" link2=\"rg2_right_inner_knuckle\"\
+    \ reason=\"AdjacentBody\" />\n  <disable_collisions link1=\"link_6\" link2=\"\
+    rg2_right_outer_knuckle\" reason=\"AdjacentBody\" />\n  <disable_collisions link1=\"\
+    rg2_base_link\" link2=\"rg2_left_inner_knuckle\" reason=\"AdjacentBody\" />\n\
+    \  <disable_collisions link1=\"rg2_base_link\" link2=\"rg2_left_outer_knuckle\"\
+    \ reason=\"AdjacentBody\" />\n  <disable_collisions link1=\"rg2_base_link\" link2=\"\
+    rg2_right_inner_knuckle\" reason=\"AdjacentBody\" />\n  <disable_collisions link1=\"\
+    rg2_base_link\" link2=\"rg2_right_outer_knuckle\" reason=\"AdjacentBody\" />\n\
+    \  <disable_collisions link1=\"rg2_left_inner_finger\" link2=\"rg2_left_inner_knuckle\"\
+    \ reason=\"RG2MechanicalHinge\" />\n  <disable_collisions link1=\"rg2_left_inner_finger\"\
+    \ link2=\"rg2_left_outer_knuckle\" reason=\"AdjacentBody\" />\n  <disable_collisions\
+    \ link1=\"rg2_left_inner_knuckle\" link2=\"rg2_left_outer_knuckle\" reason=\"\
+    RG2MechanicalHinge\" />\n  <disable_collisions link1=\"rg2_right_inner_finger\"\
+    \ link2=\"rg2_right_inner_knuckle\" reason=\"RG2MechanicalHinge\" />\n  <disable_collisions\
+    \ link1=\"rg2_right_inner_finger\" link2=\"rg2_right_outer_knuckle\" reason=\"\
+    AdjacentBody\" />\n  <disable_collisions link1=\"rg2_right_inner_knuckle\" link2=\"\
+    rg2_right_outer_knuckle\" reason=\"RG2MechanicalHinge\" />\n  <passive_joint name=\"\
+    rg2_left_inner_knuckle_joint\" />\n  <passive_joint name=\"rg2_left_inner_finger_joint\"\
+    \ />\n  <passive_joint name=\"rg2_right_outer_knuckle_joint\" />\n  <passive_joint\
+    \ name=\"rg2_right_inner_knuckle_joint\" />\n  <passive_joint name=\"rg2_right_inner_finger_joint\"\
+    \ />\n</robot>"
+  joint_limits_yaml: "default_velocity_scaling_factor: 1.0\ndefault_acceleration_scaling_factor:\
+    \ 1.0\njoint_limits:\n  joint_1:\n    has_position_limits: true\n    min_position:\
+    \ -6.2832\n    max_position: 6.2832\n    has_velocity_limits: true\n    max_velocity:\
+    \ 0.35\n    has_acceleration_limits: true\n    max_acceleration: 0.7\n  joint_2:\n\
+    \    has_position_limits: true\n    min_position: -6.2832\n    max_position: 6.2832\n\
+    \    has_velocity_limits: true\n    max_velocity: 0.35\n    has_acceleration_limits:\
+    \ true\n    max_acceleration: 0.7\n  joint_3:\n    has_position_limits: true\n\
+    \    min_position: -2.618\n    max_position: 2.618\n    has_velocity_limits: true\n\
+    \    max_velocity: 0.35\n    has_acceleration_limits: true\n    max_acceleration:\
+    \ 0.7\n  joint_4:\n    has_position_limits: true\n    min_position: -6.2832\n\
+    \    max_position: 6.2832\n    has_velocity_limits: true\n    max_velocity: 0.35\n\
+    \    has_acceleration_limits: true\n    max_acceleration: 0.7\n  joint_5:\n  \
+    \  has_position_limits: true\n    min_position: -6.2832\n    max_position: 6.2832\n\
+    \    has_velocity_limits: true\n    max_velocity: 0.35\n    has_acceleration_limits:\
+    \ true\n    max_acceleration: 0.7\n  joint_6:\n    has_position_limits: true\n\
+    \    min_position: -6.2832\n    max_position: 6.2832\n    has_velocity_limits:\
+    \ true\n    max_velocity: 0.35\n    has_acceleration_limits: true\n    max_acceleration:\
+    \ 0.7\n  rg2_finger_joint:\n    has_position_limits: true\n    min_position: -0.558505\n\
+    \    max_position: 0.785398\n    has_velocity_limits: true\n    max_velocity:\
+    \ 100.0\n    has_acceleration_limits: false\n  rg2_left_inner_knuckle_joint:\n\
+    \    has_position_limits: true\n    min_position: -0.785398\n    max_position:\
+    \ 0.785398\n    has_velocity_limits: true\n    max_velocity: 100.0\n    has_acceleration_limits:\
+    \ false\n  rg2_left_inner_finger_joint:\n    has_position_limits: true\n    min_position:\
+    \ -0.872665\n    max_position: 0.872665\n    has_velocity_limits: true\n    max_velocity:\
+    \ 100.0\n    has_acceleration_limits: false\n  rg2_right_outer_knuckle_joint:\n\
+    \    has_position_limits: true\n    min_position: -0.785398\n    max_position:\
+    \ 0.785398\n    has_velocity_limits: true\n    max_velocity: 100.0\n    has_acceleration_limits:\
+    \ false\n  rg2_right_inner_knuckle_joint:\n    has_position_limits: true\n   \
+    \ min_position: -0.785398\n    max_position: 0.785398\n    has_velocity_limits:\
+    \ true\n    max_velocity: 100.0\n    has_acceleration_limits: false\n  rg2_right_inner_finger_joint:\n\
+    \    has_position_limits: true\n    min_position: -0.872665\n    max_position:\
+    \ 0.872665\n    has_velocity_limits: true\n    max_velocity: 100.0\n    has_acceleration_limits:\
+    \ false\n"
+holding_orientation:
+  frame_id: base_link
+  xyz_m:
+  - -0.3298353308944819
+  - 0.06851633195326057
+  - 0.05027731751324893
+  quaternion_xyzw:
+  - 0.011141612414188713
+  - 0.9997284555399778
+  - -0.01779021430537081
+  - 0.010118692179900461
+allow_yaw_reorientation: true
+attachment:
+- - -0.9998826467463702
+  - 0.00018439822622096157
+  - -0.015318574762872704
+  - 7.055951338735822e-05
+- - 0.0007285924343685848
+  - 0.9993684462788778
+  - -0.03552714082507817
+  - 0.0005254785439017182
+- - 0.015302349118228583
+  - -0.03553413259718775
+  - -0.9992513014912857
+  - 0.002073289775007342
+- - 0.0
+  - 0.0
+  - 0.0
+  - 1.0
+planning_snapshot:
+  q_rad:
+  - 2.8875958919525146
+  - 0.02114669233560562
+  - 1.958658218383789
+  - 0.032391950488090515
+  - 1.189980387687683
+  - 2.8972136974334717
+  grip_rad: 0.4732683002948761
+  tcp_pose:
+    frame_id: base_link
+    xyz_m:
+    - -0.3298353308944819
+    - 0.06851633195326057
+    - 0.05027731751324893
+    quaternion_xyzw:
+    - 0.011141612414188713
+    - 0.9997284555399778
+    - -0.01779021430537081
+    - 0.010118692179900461
+  world_objects:
+  - id: SupplyBoard
+    role: SUPPLY_BOARD
+    pose:
+      frame_id: base_link
+      xyz_m:
+      - -0.5059561803450483
+      - 0.024073116533523006
+      - 0.03617480787873268
+      quaternion_xyzw:
+      - 3.469446951953615e-18
+      - -1.734723475976807e-18
+      - 5.421010862427522e-20
+      - 1.0
+    size_m:
+    - 0.37118000000000007
+    - 0.37022
+    - 0.004
+    studs: false
+    coordinate_kind: SIM_BODY_CENTRE
+    geometry_evidence_ref: READ_ONLY_USD_PRIM:/World/Environment/SupplyBoard
+    prim_path: /World/Environment/SupplyBoard
+    world_pose:
+      frame_id: world
+      xyz_m:
+      - -0.5059557441459324
+      - 0.024073084868555476
+      - 0.03617456573486328
+      quaternion_xyzw:
+      - 0.0
+      - 0.0
+      - 0.0
+      - 1.0
+  - id: AssemblyBoard
+    role: ASSEMBLY_BOARD
+    pose:
+      frame_id: base_link
+      xyz_m:
+      - 0.47205455647666533
+      - 0.08574260826408862
+      - 0.0012064908468723341
+      quaternion_xyzw:
+      - 3.4761454107750234e-18
+      - -1.7280088199599564e-18
+      - -0.0019325667145277112
+      - 0.9999981325912034
+    size_m:
+    - 0.384
+    - 0.384
+    - 0.004
+    studs: false
+    coordinate_kind: SIM_BODY_CENTRE
+    geometry_evidence_ref: READ_ONLY_USD_PRIM:/World/Environment/AssemblyBoard
+    prim_path: /World/Environment/AssemblyBoard
+    world_pose:
+      frame_id: world
+      xyz_m:
+      - 0.47205499267578127
+      - 0.08574257659912109
+      - 0.0012062487030029302
+      quaternion_xyzw:
+      - 0.0
+      - 0.0
+      - -0.001932566714527711
+      - 0.9999981325912034
+  - id: yellow_2x2x1_01
+    role: SUPPLY_BLOCK
+    pose:
+      frame_id: base_link
+      xyz_m:
+      - -0.32785340060036106
+      - 0.19336369819939142
+      - 0.04767480865120888
+      quaternion_xyzw:
+      - -1.4466115653045265e-12
+      - 1.5133710805382844e-09
+      - -0.012429371346253677
+      - 0.9999227523803711
+    size_m:
+    - 0.032
+    - 0.032
+    - 0.019
+    studs: true
+    coordinate_kind: SIM_BODY_CENTRE
+    geometry_evidence_ref: READ_ONLY_USD_PRIM:/World/Environment/yellow_2x2x1_01
+    prim_path: /World/Environment/yellow_2x2x1_01
+    block:
+      color: yellow
+      brick_type: 2x2x1
+    slot_index: 1
+    world_pose:
+      frame_id: world
+      xyz_m:
+      - -0.3278529644012451
+      - 0.19336366653442383
+      - 0.04767456650733948
+      quaternion_xyzw:
+      - -1.4466150776065185e-12
+      - 1.5133710822294827e-09
+      - -0.012429371346253675
+      - 0.9999227523803711
+  - id: yellow_2x2x1_02
+    role: SUPPLY_BLOCK
+    pose:
+      frame_id: base_link
+      xyz_m:
+      - -0.3916273306731455
+      - 0.19610294885933405
+      - 0.04767480865120888
+      quaternion_xyzw:
+      - 2.5026938937437387e-09
+      - -5.66991430193111e-09
+      - -0.012294375421794892
+      - 0.9999244213104248
+    size_m:
+    - 0.032
+    - 0.032
+    - 0.019
+    studs: true
+    coordinate_kind: SIM_BODY_CENTRE
+    geometry_evidence_ref: READ_ONLY_USD_PRIM:/World/Environment/yellow_2x2x1_02
+    prim_path: /World/Environment/yellow_2x2x1_02
+    block:
+      color: yellow
+      brick_type: 2x2x1
+    slot_index: 2
+    world_pose:
+      frame_id: world
+      xyz_m:
+      - -0.39162689447402954
+      - 0.19610291719436646
+      - 0.04767456650733948
+      quaternion_xyzw:
+      - 2.5026938902318996e-09
+      - -5.669914300239435e-09
+      - -0.012294375421794892
+      - 0.9999244213104248
+  - id: yellow_2x2x1_03
+    role: SUPPLY_BLOCK
+    pose:
+      frame_id: base_link
+      xyz_m:
+      - -0.4554012607459299
+      - 0.19884209521114832
+      - 0.04767480492591858
+      quaternion_xyzw:
+      - -1.090975026328016e-09
+      - 4.271258682063941e-10
+      - -0.01216278162533896
+      - 0.9999260306358337
+    size_m:
+    - 0.032
+    - 0.032
+    - 0.019
+    studs: true
+    coordinate_kind: SIM_BODY_CENTRE
+    geometry_evidence_ref: READ_ONLY_USD_PRIM:/World/Environment/yellow_2x2x1_03
+    prim_path: /World/Environment/yellow_2x2x1_03
+    block:
+      color: yellow
+      brick_type: 2x2x1
+    slot_index: 3
+    world_pose:
+      frame_id: world
+      xyz_m:
+      - -0.45540082454681396
+      - 0.19884206354618073
+      - 0.04767456278204918
+      quaternion_xyzw:
+      - -1.0909750298394044e-09
+      - 4.2712586989853447e-10
+      - -0.012162781625338959
+      - 0.9999260306358337
+  - id: yellow_2x2x1_04
+    role: SUPPLY_BLOCK
+    pose:
+      frame_id: base_link
+      xyz_m:
+      - -0.5190044831160776
+      - 0.20038601942360407
+      - 0.04767480865120888
+      quaternion_xyzw:
+      - 3.770560209207317e-09
+      - 2.1586950329106372e-09
+      - -0.011383158611094358
+      - 0.9999352097511292
+    size_m:
+    - 0.032
+    - 0.032
+    - 0.019
+    studs: true
+    coordinate_kind: SIM_BODY_CENTRE
+    geometry_evidence_ref: READ_ONLY_USD_PRIM:/World/Environment/yellow_2x2x1_04
+    prim_path: /World/Environment/yellow_2x2x1_04
+    block:
+      color: yellow
+      brick_type: 2x2x1
+    slot_index: 4
+    world_pose:
+      frame_id: world
+      xyz_m:
+      - -0.5190040469169617
+      - 0.20038598775863647
+      - 0.04767456650733948
+      quaternion_xyzw:
+      - 3.7705602056986e-09
+      - 2.1586950346055307e-09
+      - -0.011383158611094357
+      - 0.9999352097511292
+  - id: yellow_2x2x1_05
+    role: SUPPLY_BLOCK
+    pose:
+      frame_id: base_link
+      xyz_m:
+      - -0.5826076458815805
+      - 0.20192994363605982
+      - 0.047674812376499176
+      quaternion_xyzw:
+      - 1.3082833651353856e-08
+      - -1.5399012105501918e-09
+      - -0.010608034850277745
+      - 0.999943733215332
+    size_m:
+    - 0.032
+    - 0.032
+    - 0.019
+    studs: true
+    coordinate_kind: SIM_BODY_CENTRE
+    geometry_evidence_ref: READ_ONLY_USD_PRIM:/World/Environment/yellow_2x2x1_05
+    prim_path: /World/Environment/yellow_2x2x1_05
+    block:
+      color: yellow
+      brick_type: 2x2x1
+    slot_index: 5
+    world_pose:
+      frame_id: world
+      xyz_m:
+      - -0.5826072096824646
+      - 0.20192991197109222
+      - 0.047674570232629776
+      quaternion_xyzw:
+      - 1.30828336478478e-08
+      - -1.539901208852565e-09
+      - -0.010608034850277743
+      - 0.999943733215332
+  - id: yellow_2x3x1_01
+    role: SUPPLY_BLOCK
+    pose:
+      frame_id: base_link
+      xyz_m:
+      - -0.3285876404170267
+      - 0.1384526062756777
+      - 0.04767480120062828
+      quaternion_xyzw:
+      - -4.1290440027344197e-10
+      - 2.443604886423753e-09
+      - -0.011687992983804851
+      - 0.9999316930770874
+    size_m:
+    - 0.032
+    - 0.048
+    - 0.019
+    studs: true
+    coordinate_kind: SIM_BODY_CENTRE
+    geometry_evidence_ref: READ_ONLY_USD_PRIM:/World/Environment/yellow_2x3x1_01
+    prim_path: /World/Environment/yellow_2x3x1_01
+    block:
+      color: yellow
+      brick_type: 2x3x1
+    slot_index: 1
+    world_pose:
+      frame_id: world
+      xyz_m:
+      - -0.32858720421791077
+      - 0.13845257461071014
+      - 0.04767455905675888
+      quaternion_xyzw:
+      - -4.1290440378320276e-10
+      - 2.44360488811757e-09
+      - -0.01168799298380485
+      - 0.9999316930770874
+  - id: yellow_2x3x1_02
+    role: SUPPLY_BLOCK
+    pose:
+      frame_id: base_link
+      xyz_m:
+      - -0.39221184362213535
+      - 0.140785800293088
+      - 0.047674790024757385
+      quaternion_xyzw:
+      - -8.252883327390925e-09
+      - 6.950038872067792e-10
+      - -0.01139885540881896
+      - 0.9999350309371948
+    size_m:
+    - 0.032
+    - 0.048
+    - 0.019
+    studs: true
+    coordinate_kind: SIM_BODY_CENTRE
+    geometry_evidence_ref: READ_ONLY_USD_PRIM:/World/Environment/yellow_2x3x1_02
+    prim_path: /World/Environment/yellow_2x3x1_02
+    block:
+      color: yellow
+      brick_type: 2x3x1
+    slot_index: 2
+    world_pose:
+      frame_id: world
+      xyz_m:
+      - -0.3922114074230194
+      - 0.14078576862812042
+      - 0.047674547880887985
+      quaternion_xyzw:
+      - -8.252883330899694e-09
+      - 6.95003888901617e-10
+      - -0.011398855408818959
+      - 0.9999350309371948
+  - id: yellow_2x3x1_03
+    role: SUPPLY_BLOCK
+    pose:
+      frame_id: base_link
+      xyz_m:
+      - -0.45583610643188877
+      - 0.14311900921165946
+      - 0.04767479747533798
+      quaternion_xyzw:
+      - -8.27538803670992e-09
+      - 8.489128969106317e-10
+      - -0.011112920896918125
+      - 0.9999382495880127
+    size_m:
+    - 0.032
+    - 0.048
+    - 0.019
+    studs: true
+    coordinate_kind: SIM_BODY_CENTRE
+    geometry_evidence_ref: READ_ONLY_USD_PRIM:/World/Environment/yellow_2x3x1_03
+    prim_path: /World/Environment/yellow_2x3x1_03
+    block:
+      color: yellow
+      brick_type: 2x3x1
+    slot_index: 3
+    world_pose:
+      frame_id: world
+      xyz_m:
+      - -0.4558356702327728
+      - 0.1431189775466919
+      - 0.04767455533146858
+      quaternion_xyzw:
+      - -8.27538804021771e-09
+      - 8.489128986064783e-10
+      - -0.011112920896918127
+      - 0.9999382495880127
+  - id: yellow_2x3x1_04
+    role: SUPPLY_BLOCK
+    pose:
+      frame_id: base_link
+      xyz_m:
+      - -0.5203044604186289
+      - 0.1449141371995211
+      - 0.04767479747533798
+      quaternion_xyzw:
+      - 1.6237522985087255e-09
+      - -6.295920455322999e-09
+      - -0.00983847552493496
+      - 0.9999516010284424
+    size_m:
+    - 0.032
+    - 0.048
+    - 0.019
+    studs: true
+    coordinate_kind: SIM_BODY_CENTRE
+    geometry_evidence_ref: READ_ONLY_USD_PRIM:/World/Environment/yellow_2x3x1_04
+    prim_path: /World/Environment/yellow_2x3x1_04
+    block:
+      color: yellow
+      brick_type: 2x3x1
+    slot_index: 4
+    world_pose:
+      frame_id: world
+      xyz_m:
+      - -0.5203040242195129
+      - 0.14491410553455353
+      - 0.04767455533146858
+      quaternion_xyzw:
+      - 1.623752295005312e-09
+      - -6.295920453622662e-09
+      - -0.009838475524934961
+      - 0.9999516010284424
+  - id: yellow_2x3x1_05
+    role: SUPPLY_BLOCK
+    pose:
+      frame_id: base_link
+      xyz_m:
+      - -0.5847726057891123
+      - 0.1467093098908663
+      - 0.04767479747533798
+      quaternion_xyzw:
+      - 8.259572474489798e-10
+      - 1.0318309268592028e-08
+      - -0.00855530037025156
+      - 0.9999634027481079
+    size_m:
+    - 0.032
+    - 0.048
+    - 0.019
+    studs: true
+    coordinate_kind: SIM_BODY_CENTRE
+    geometry_evidence_ref: READ_ONLY_USD_PRIM:/World/Environment/yellow_2x3x1_05
+    prim_path: /World/Environment/yellow_2x3x1_05
+    block:
+      color: yellow
+      brick_type: 2x3x1
+    slot_index: 5
+    world_pose:
+      frame_id: world
+      xyz_m:
+      - -0.5847721695899963
+      - 0.14670927822589874
+      - 0.04767455533146858
+      quaternion_xyzw:
+      - 8.259572439499776e-10
+      - 1.031830927029688e-08
+      - -0.00855530037025156
+      - 0.9999634027481079
+  - id: blue_2x2x1_01
+    role: HELD_BLOCK
+    pose:
+      frame_id: base_link
+      xyz_m:
+      - -0.32985283840935153
+      - 0.06896867789328098
+      - 0.04818573594093323
+      quaternion_xyzw:
+      - 5.993392630957242e-05
+      - -0.0026561224841155306
+      - -0.010867716339477328
+      - 0.9999374151229858
+    size_m:
+    - 0.032
+    - 0.032
+    - 0.019
+    studs: true
+    coordinate_kind: SIM_BODY_CENTRE
+    geometry_evidence_ref: READ_ONLY_USD_PRIM:/World/Environment/blue_2x2x1_01
+    prim_path: /World/Environment/blue_2x2x1_01
+    block:
+      brick_type: 2x2x1
+      color: blue
+      x: 11
+      y: 11
+      layer: 1
+      orientation_deg: 0
+    slot_index: 1
+    world_pose:
+      frame_id: world
+      xyz_m:
+      - -0.3298524022102356
+      - 0.06896864622831345
+      - 0.04818549379706383
+      quaternion_xyzw:
+      - 5.99339263095689e-05
+      - -0.002656122484115529
+      - -0.010867716339477328
+      - 0.9999374151229858
+  - id: blue_2x2x1_02
+    role: SUPPLY_BLOCK
+    pose:
+      frame_id: base_link
+      xyz_m:
+      - -0.39368342269699497
+      - 0.0695191491395235
+      - 0.04767480120062828
+      quaternion_xyzw:
+      - 7.2363892783186815e-09
+      - -3.983964818674334e-09
+      - -0.010506414981202711
+      - 0.999944806098938
+    size_m:
+    - 0.032
+    - 0.032
+    - 0.019
+    studs: true
+    coordinate_kind: SIM_BODY_CENTRE
+    geometry_evidence_ref: READ_ONLY_USD_PRIM:/World/Environment/blue_2x2x1_02
+    prim_path: /World/Environment/blue_2x2x1_02
+    block:
+      color: blue
+      brick_type: 2x2x1
+    slot_index: 2
+    world_pose:
+      frame_id: world
+      xyz_m:
+      - -0.39368298649787903
+      - 0.06951911747455597
+      - 0.04767455905675888
+      quaternion_xyzw:
+      - 7.236389274812975e-09
+      - -3.98396481697635e-09
+      - -0.010506414981202711
+      - 0.999944806098938
+  - id: blue_2x2x1_03
+    role: SUPPLY_BLOCK
+    pose:
+      frame_id: base_link
+      xyz_m:
+      - -0.4574577700022928
+      - 0.0705092791467905
+      - 0.04767480120062828
+      quaternion_xyzw:
+      - 7.216862348413343e-09
+      - -4.099137436603402e-09
+      - -0.010048269477908881
+      - 0.9999495148658752
+    size_m:
+    - 0.032
+    - 0.032
+    - 0.019
+    studs: true
+    coordinate_kind: SIM_BODY_CENTRE
+    geometry_evidence_ref: READ_ONLY_USD_PRIM:/World/Environment/blue_2x2x1_03
+    prim_path: /World/Environment/blue_2x2x1_03
+    block:
+      color: blue
+      brick_type: 2x2x1
+    slot_index: 3
+    world_pose:
+      frame_id: world
+      xyz_m:
+      - -0.4574573338031769
+      - 0.07050924748182297
+      - 0.04767455905675888
+      quaternion_xyzw:
+      - 7.216862344909209e-09
+      - -4.099137434903804e-09
+      - -0.010048269477908881
+      - 0.9999495148658752
+  - id: blue_2x2x1_04
+    role: SUPPLY_BLOCK
+    pose:
+      frame_id: base_link
+      xyz_m:
+      - -0.5213127325896494
+      - 0.07283164747059345
+      - 0.04767480120062828
+      quaternion_xyzw:
+      - 8.006583431873985e-09
+      - -4.869660995699158e-09
+      - -0.010300167648907592
+      - 0.9999469518661499
+    size_m:
+    - 0.032
+    - 0.032
+    - 0.019
+    studs: true
+    coordinate_kind: SIM_BODY_CENTRE
+    geometry_evidence_ref: READ_ONLY_USD_PRIM:/World/Environment/blue_2x2x1_04
+    prim_path: /World/Environment/blue_2x2x1_04
+    block:
+      color: blue
+      brick_type: 2x2x1
+    slot_index: 4
+    world_pose:
+      frame_id: world
+      xyz_m:
+      - -0.5213122963905334
+      - 0.07283161580562592
+      - 0.04767455905675888
+      quaternion_xyzw:
+      - 8.006583428368986e-09
+      - -4.869660994000447e-09
+      - -0.01030016764890759
+      - 0.9999469518661499
+  - id: blue_2x2x1_05
+    role: SUPPLY_BLOCK
+    pose:
+      frame_id: base_link
+      xyz_m:
+      - -0.5851676653746836
+      - 0.075154023244977
+      - 0.047674797475337975
+      quaternion_xyzw:
+      - 8.203846150752177e-09
+      - -4.745001095203738e-09
+      - -0.010546050187279195
+      - 0.9999443888664246
+    size_m:
+    - 0.032
+    - 0.032
+    - 0.019
+    studs: true
+    coordinate_kind: SIM_BODY_CENTRE
+    geometry_evidence_ref: READ_ONLY_USD_PRIM:/World/Environment/blue_2x2x1_05
+    prim_path: /World/Environment/blue_2x2x1_05
+    block:
+      color: blue
+      brick_type: 2x2x1
+    slot_index: 5
+    world_pose:
+      frame_id: world
+      xyz_m:
+      - -0.5851672291755676
+      - 0.07515399158000946
+      - 0.04767455533146858
+      quaternion_xyzw:
+      - 8.203846147246334e-09
+      - -4.7450010935058935e-09
+      - -0.010546050187279195
+      - 0.9999443888664246
+  - id: blue_2x3x1_01
+    role: SUPPLY_BLOCK
+    pose:
+      frame_id: base_link
+      xyz_m:
+      - -0.3318530510787241
+      - 0.009898073971271503
+      - 0.047674793750047684
+      quaternion_xyzw:
+      - 1.6621340536439333e-10
+      - -1.4132436943755028e-09
+      - -0.010961722222475545
+      - 0.9999399185180664
+    size_m:
+    - 0.032
+    - 0.048
+    - 0.019
+    studs: true
+    coordinate_kind: SIM_BODY_CENTRE
+    geometry_evidence_ref: READ_ONLY_USD_PRIM:/World/Environment/blue_2x3x1_01
+    prim_path: /World/Environment/blue_2x3x1_01
+    block:
+      color: blue
+      brick_type: 2x3x1
+    slot_index: 1
+    world_pose:
+      frame_id: world
+      xyz_m:
+      - -0.33185261487960815
+      - 0.009898042306303978
+      - 0.047674551606178284
+      quaternion_xyzw:
+      - 1.6621340185712373e-10
+      - -1.413243692679123e-09
+      - -0.010961722222475543
+      - 0.9999399185180664
+  - id: blue_2x3x1_02
+    role: SUPPLY_BLOCK
+    pose:
+      frame_id: base_link
+      xyz_m:
+      - -0.3950300108317606
+      - 0.012587890028953542
+      - 0.04767479747533798
+      quaternion_xyzw:
+      - 1.221897893720902e-09
+      - -1.2274991571990246e-08
+      - -0.009988778025002986
+      - 0.999950110912323
+    size_m:
+    - 0.032
+    - 0.048
+    - 0.019
+    studs: true
+    coordinate_kind: SIM_BODY_CENTRE
+    geometry_evidence_ref: READ_ONLY_USD_PRIM:/World/Environment/blue_2x3x1_02
+    prim_path: /World/Environment/blue_2x3x1_02
+    block:
+      color: blue
+      brick_type: 2x3x1
+    slot_index: 2
+    world_pose:
+      frame_id: world
+      xyz_m:
+      - -0.39502957463264465
+      - 0.012587858363986015
+      - 0.04767455533146858
+      quaternion_xyzw:
+      - 1.2218978902169726e-09
+      - -1.2274991570290438e-08
+      - -0.009988778025002984
+      - 0.999950110912323
+  - id: blue_2x3x1_03
+    role: SUPPLY_BLOCK
+    pose:
+      frame_id: base_link
+      xyz_m:
+      - -0.45820705999176425
+      - 0.015277708880603303
+      - 0.04767479747533798
+      quaternion_xyzw:
+      - 1.205675517175221e-09
+      - -1.165296572670324e-08
+      - -0.009016600413742335
+      - 0.9999593496322632
+    size_m:
+    - 0.032
+    - 0.048
+    - 0.019
+    studs: true
+    coordinate_kind: SIM_BODY_CENTRE
+    geometry_evidence_ref: READ_ONLY_USD_PRIM:/World/Environment/blue_2x3x1_03
+    prim_path: /World/Environment/blue_2x3x1_03
+    block:
+      color: blue
+      brick_type: 2x3x1
+    slot_index: 3
+    world_pose:
+      frame_id: world
+      xyz_m:
+      - -0.4582066237926483
+      - 0.015277677215635777
+      - 0.04767455533146858
+      quaternion_xyzw:
+      - 1.2056755136746324e-09
+      - -1.1652965725000013e-08
+      - -0.009016600413742335
+      - 0.9999593496322632
+  - id: blue_2x3x1_04
+    role: SUPPLY_BLOCK
+    pose:
+      frame_id: base_link
+      xyz_m:
+      - -0.5225116204146616
+      - 0.01671953499317168
+      - 0.04767480865120887
+      quaternion_xyzw:
+      - -2.2206741104989734e-09
+      - -8.38059472677056e-10
+      - -0.009180369921305847
+      - 0.9999578595161438
+    size_m:
+    - 0.032
+    - 0.048
+    - 0.019
+    studs: true
+    coordinate_kind: SIM_BODY_CENTRE
+    geometry_evidence_ref: READ_ONLY_USD_PRIM:/World/Environment/blue_2x3x1_04
+    prim_path: /World/Environment/blue_2x3x1_04
+    block:
+      color: blue
+      brick_type: 2x3x1
+    slot_index: 4
+    world_pose:
+      frame_id: world
+      xyz_m:
+      - -0.5225111842155457
+      - 0.016719503328204155
+      - 0.04767456650733948
+      quaternion_xyzw:
+      - -2.220674114000125e-09
+      - -8.380594709744026e-10
+      - -0.009180369921305845
+      - 0.9999578595161438
+  - id: blue_2x3x1_05
+    role: SUPPLY_BLOCK
+    pose:
+      frame_id: base_link
+      xyz_m:
+      - -0.5868161510352365
+      - 0.018161367624998082
+      - 0.047674797475337975
+      quaternion_xyzw:
+      - 1.6716842900744221e-09
+      - -6.447041434995126e-09
+      - -0.009341268453581304
+      - 0.9999563694000244
+    size_m:
+    - 0.032
+    - 0.048
+    - 0.019
+    studs: true
+    coordinate_kind: SIM_BODY_CENTRE
+    geometry_evidence_ref: READ_ONLY_USD_PRIM:/World/Environment/blue_2x3x1_05
+    prim_path: /World/Environment/blue_2x3x1_05
+    block:
+      color: blue
+      brick_type: 2x3x1
+    slot_index: 5
+    world_pose:
+      frame_id: world
+      xyz_m:
+      - -0.5868157148361206
+      - 0.018161335960030556
+      - 0.04767455533146858
+      quaternion_xyzw:
+      - 1.6716842865727174e-09
+      - -6.44704143329304e-09
+      - -0.009341268453581304
+      - 0.9999563694000244
+  - id: red_1x2x1_01
+    role: SUPPLY_BLOCK
+    pose:
+      frame_id: base_link
+      xyz_m:
+      - -0.3332762013797037
+      - -0.05039602704346183
+      - 0.04767480120062828
+      quaternion_xyzw:
+      - 1.0689798381318854e-08
+      - -1.7030579618054835e-08
+      - 0.7052294016868027
+      - 0.7089791893959044
+    size_m:
+    - 0.016
+    - 0.032
+    - 0.019
+    studs: true
+    coordinate_kind: SIM_BODY_CENTRE
+    geometry_evidence_ref: READ_ONLY_USD_PRIM:/World/Environment/red_1x2x1_01
+    prim_path: /World/Environment/red_1x2x1_01
+    block:
+      color: red
+      brick_type: 1x2x1
+    slot_index: 1
+    world_pose:
+      frame_id: world
+      xyz_m:
+      - -0.33327576518058777
+      - -0.05039605870842934
+      - 0.04767455905675888
+      quaternion_xyzw:
+      - 1.0689798381305846e-08
+      - -1.7030579615595105e-08
+      - 0.7052294016868027
+      - 0.7089791893959045
+  - id: red_1x2x1_02
+    role: SUPPLY_BLOCK
+    pose:
+      frame_id: base_link
+      xyz_m:
+      - -0.39692460407059116
+      - -0.04911934025585654
+      - 0.04767479747533798
+      quaternion_xyzw:
+      - 9.825870905448488e-09
+      - 1.0032891084313055e-08
+      - 0.7047329036293358
+      - 0.7094727158546446
+    size_m:
+    - 0.016
+    - 0.032
+    - 0.019
+    studs: true
+    coordinate_kind: SIM_BODY_CENTRE
+    geometry_evidence_ref: READ_ONLY_USD_PRIM:/World/Environment/red_1x2x1_02
+    prim_path: /World/Environment/red_1x2x1_02
+    block:
+      color: red
+      brick_type: 1x2x1
+    slot_index: 2
+    world_pose:
+      frame_id: world
+      xyz_m:
+      - -0.3969241678714752
+      - -0.04911937192082405
+      - 0.04767455533146858
+      quaternion_xyzw:
+      - 9.825870905432042e-09
+      - 1.0032891086774477e-08
+      - 0.7047329036293356
+      - 0.7094727158546446
+  - id: red_1x2x1_03
+    role: SUPPLY_BLOCK
+    pose:
+      frame_id: base_link
+      xyz_m:
+      - -0.460573036563801
+      - -0.04784263856709006
+      - 0.04767480865120887
+      quaternion_xyzw:
+      - -1.2913909610666937e-08
+      - 1.0384124402854219e-08
+      - 0.7042363105668225
+      - 0.7099656462669373
+    size_m:
+    - 0.016
+    - 0.032
+    - 0.019
+    studs: true
+    coordinate_kind: SIM_BODY_CENTRE
+    geometry_evidence_ref: READ_ONLY_USD_PRIM:/World/Environment/red_1x2x1_03
+    prim_path: /World/Environment/red_1x2x1_03
+    block:
+      color: red
+      brick_type: 1x2x1
+    slot_index: 3
+    world_pose:
+      frame_id: world
+      xyz_m:
+      - -0.46057260036468506
+      - -0.04784267023205757
+      - 0.04767456650733948
+      quaternion_xyzw:
+      - -1.2913909610686813e-08
+      - 1.0384124405317328e-08
+      - 0.7042363105668223
+      - 0.7099656462669373
+  - id: red_1x2x1_04
+    role: SUPPLY_BLOCK
+    pose:
+      frame_id: base_link
+      xyz_m:
+      - -0.5238722752455942
+      - -0.04593343846499922
+      - 0.047674801200628274
+      quaternion_xyzw:
+      - -2.0082623426100305e-08
+      - 1.955932646594133e-08
+      - 0.7020835232178635
+      - 0.7120946049690243
+    size_m:
+    - 0.016
+    - 0.032
+    - 0.019
+    studs: true
+    coordinate_kind: SIM_BODY_CENTRE
+    geometry_evidence_ref: READ_ONLY_USD_PRIM:/World/Environment/red_1x2x1_04
+    prim_path: /World/Environment/red_1x2x1_04
+    block:
+      color: red
+      brick_type: 1x2x1
+    slot_index: 4
+    world_pose:
+      frame_id: world
+      xyz_m:
+      - -0.5238718390464783
+      - -0.045933470129966736
+      - 0.04767455905675888
+      quaternion_xyzw:
+      - -2.0082623426135037e-08
+      - 1.9559326468411666e-08
+      - 0.7020835232178635
+      - 0.7120946049690244
+  - id: red_1x2x1_05
+    role: SUPPLY_BLOCK
+    pose:
+      frame_id: base_link
+      xyz_m:
+      - -0.5871715139273874
+      - -0.04402422718703749
+      - 0.047674801200628274
+      quaternion_xyzw:
+      - -1.8952509885299626e-08
+      - 1.8511595040993715e-08
+      - 0.6999239035022714
+      - 0.7142174243927002
+    size_m:
+    - 0.016
+    - 0.032
+    - 0.019
+    studs: true
+    coordinate_kind: SIM_BODY_CENTRE
+    geometry_evidence_ref: READ_ONLY_USD_PRIM:/World/Environment/red_1x2x1_05
+    prim_path: /World/Environment/red_1x2x1_05
+    block:
+      color: red
+      brick_type: 1x2x1
+    slot_index: 5
+    world_pose:
+      frame_id: world
+      xyz_m:
+      - -0.5871710777282715
+      - -0.044024258852005005
+      - 0.04767455905675888
+      quaternion_xyzw:
+      - -1.895250988534921e-08
+      - 1.8511595043471154e-08
+      - 0.6999239035022712
+      - 0.7142174243927002
+  - id: HandoverTray
+    role: OTHER_OBSTACLE
+    pose:
+      frame_id: base_link
+      xyz_m:
+      - 0.4175605638008841
+      - -0.1846219683350325
+      - -0.0019997578561305983
+      quaternion_xyzw:
+      - 3.469446951953615e-18
+      - -1.734723475976807e-18
+      - 5.421010862427522e-20
+      - 1.0
+    size_m:
+    - 0.18
+    - 0.14
+    - 0.004
+    studs: false
+    coordinate_kind: SIM_BODY_CENTRE
+    geometry_evidence_ref: READ_ONLY_USD_PRIM:/World/Environment/HandoverTray
+    prim_path: /World/Environment/HandoverTray
+    world_pose:
+      frame_id: world
+      xyz_m:
+      - 0.417561
+      - -0.184622
+      - -0.002
+      quaternion_xyzw:
+      - 0.0
+      - 0.0
+      - 0.0
+      - 1.0
+  selected_slot_id: blue_2x2x1_01
+terminal_gripper_policy: HOLD_NO_AUTOMATIC_OPEN
+handoff_to: D_CONTACT
+confirmation_kind: SIM_TEST_STATE
+geometry_scope: SIM_NOMINAL_GEOMETRY
+assembly_completed: false
+a_context:
+  job_id: sim-D-taught-stage3
+  request_id: fixture-motion-S01
+  workflow_generation: 34
+  source_epoch: sim-nominal-collision-case-20261013
+  design_version: 1
+  input_current_revision: 0
+  world_state_revision: 14
+  frame_profile_id: D_CAD_REVIEW_FRAME_20261012
+  plan_id: P-260eb755f726467996f6e160653df372
+  step_id: S01
+  frame_profile_version: '1'
+reservation_binding:
+  slot_id: blue_2x2x1_01
+  reservation_id: sim-taught-sim-stage4-empty-current-1
+  reservation_generation: 1
+  bound_workflow_generation: 34
+source_snapshot:
+  current:
+    current_revision: 0
+    blocks: []
+  world_objects:
+  - id: SupplyBoard
+    role: SUPPLY_BOARD
+    pose:
+      frame_id: base_link
+      xyz_m:
+      - -0.5059561803450483
+      - 0.024073116533523006
+      - 0.03617480787873268
+      quaternion_xyzw:
+      - 3.469446951953615e-18
+      - -1.734723475976807e-18
+      - 5.421010862427522e-20
+      - 1.0
+    size_m:
+    - 0.37118000000000007
+    - 0.37022
+    - 0.004
+    studs: false
+    coordinate_kind: SIM_BODY_CENTRE
+    geometry_evidence_ref: READ_ONLY_USD_PRIM:/World/Environment/SupplyBoard
+    prim_path: /World/Environment/SupplyBoard
+    world_pose:
+      frame_id: world
+      xyz_m:
+      - -0.5059557441459324
+      - 0.024073084868555476
+      - 0.03617456573486328
+      quaternion_xyzw:
+      - 0.0
+      - 0.0
+      - 0.0
+      - 1.0
+  - id: AssemblyBoard
+    role: ASSEMBLY_BOARD
+    pose:
+      frame_id: base_link
+      xyz_m:
+      - 0.47205455647666533
+      - 0.08574260826408862
+      - 0.0012064908468723341
+      quaternion_xyzw:
+      - 3.4761454107750234e-18
+      - -1.7280088199599564e-18
+      - -0.0019325667145277112
+      - 0.9999981325912034
+    size_m:
+    - 0.384
+    - 0.384
+    - 0.004
+    studs: false
+    coordinate_kind: SIM_BODY_CENTRE
+    geometry_evidence_ref: READ_ONLY_USD_PRIM:/World/Environment/AssemblyBoard
+    prim_path: /World/Environment/AssemblyBoard
+    world_pose:
+      frame_id: world
+      xyz_m:
+      - 0.47205499267578127
+      - 0.08574257659912109
+      - 0.0012062487030029302
+      quaternion_xyzw:
+      - 0.0
+      - 0.0
+      - -0.001932566714527711
+      - 0.9999981325912034
+  - id: yellow_2x2x1_01
+    role: SUPPLY_BLOCK
+    pose:
+      frame_id: base_link
+      xyz_m:
+      - -0.32785340060036106
+      - 0.19336369819939142
+      - 0.04767480865120888
+      quaternion_xyzw:
+      - -1.4466115653045265e-12
+      - 1.5133710805382844e-09
+      - -0.012429371346253677
+      - 0.9999227523803711
+    size_m:
+    - 0.032
+    - 0.032
+    - 0.019
+    studs: true
+    coordinate_kind: SIM_BODY_CENTRE
+    geometry_evidence_ref: READ_ONLY_USD_PRIM:/World/Environment/yellow_2x2x1_01
+    prim_path: /World/Environment/yellow_2x2x1_01
+    block:
+      color: yellow
+      brick_type: 2x2x1
+    slot_index: 1
+    world_pose:
+      frame_id: world
+      xyz_m:
+      - -0.3278529644012451
+      - 0.19336366653442383
+      - 0.04767456650733948
+      quaternion_xyzw:
+      - -1.4466150776065185e-12
+      - 1.5133710822294827e-09
+      - -0.012429371346253675
+      - 0.9999227523803711
+  - id: yellow_2x2x1_02
+    role: SUPPLY_BLOCK
+    pose:
+      frame_id: base_link
+      xyz_m:
+      - -0.3916273306731455
+      - 0.19610294885933405
+      - 0.04767480865120888
+      quaternion_xyzw:
+      - 2.5026938937437387e-09
+      - -5.66991430193111e-09
+      - -0.012294375421794892
+      - 0.9999244213104248
+    size_m:
+    - 0.032
+    - 0.032
+    - 0.019
+    studs: true
+    coordinate_kind: SIM_BODY_CENTRE
+    geometry_evidence_ref: READ_ONLY_USD_PRIM:/World/Environment/yellow_2x2x1_02
+    prim_path: /World/Environment/yellow_2x2x1_02
+    block:
+      color: yellow
+      brick_type: 2x2x1
+    slot_index: 2
+    world_pose:
+      frame_id: world
+      xyz_m:
+      - -0.39162689447402954
+      - 0.19610291719436646
+      - 0.04767456650733948
+      quaternion_xyzw:
+      - 2.5026938902318996e-09
+      - -5.669914300239435e-09
+      - -0.012294375421794892
+      - 0.9999244213104248
+  - id: yellow_2x2x1_03
+    role: SUPPLY_BLOCK
+    pose:
+      frame_id: base_link
+      xyz_m:
+      - -0.4554012607459299
+      - 0.19884209521114832
+      - 0.04767480492591858
+      quaternion_xyzw:
+      - -1.090975026328016e-09
+      - 4.271258682063941e-10
+      - -0.01216278162533896
+      - 0.9999260306358337
+    size_m:
+    - 0.032
+    - 0.032
+    - 0.019
+    studs: true
+    coordinate_kind: SIM_BODY_CENTRE
+    geometry_evidence_ref: READ_ONLY_USD_PRIM:/World/Environment/yellow_2x2x1_03
+    prim_path: /World/Environment/yellow_2x2x1_03
+    block:
+      color: yellow
+      brick_type: 2x2x1
+    slot_index: 3
+    world_pose:
+      frame_id: world
+      xyz_m:
+      - -0.45540082454681396
+      - 0.19884206354618073
+      - 0.04767456278204918
+      quaternion_xyzw:
+      - -1.0909750298394044e-09
+      - 4.2712586989853447e-10
+      - -0.012162781625338959
+      - 0.9999260306358337
+  - id: yellow_2x2x1_04
+    role: SUPPLY_BLOCK
+    pose:
+      frame_id: base_link
+      xyz_m:
+      - -0.5190044831160776
+      - 0.20038601942360407
+      - 0.04767480865120888
+      quaternion_xyzw:
+      - 3.770560209207317e-09
+      - 2.1586950329106372e-09
+      - -0.011383158611094358
+      - 0.9999352097511292
+    size_m:
+    - 0.032
+    - 0.032
+    - 0.019
+    studs: true
+    coordinate_kind: SIM_BODY_CENTRE
+    geometry_evidence_ref: READ_ONLY_USD_PRIM:/World/Environment/yellow_2x2x1_04
+    prim_path: /World/Environment/yellow_2x2x1_04
+    block:
+      color: yellow
+      brick_type: 2x2x1
+    slot_index: 4
+    world_pose:
+      frame_id: world
+      xyz_m:
+      - -0.5190040469169617
+      - 0.20038598775863647
+      - 0.04767456650733948
+      quaternion_xyzw:
+      - 3.7705602056986e-09
+      - 2.1586950346055307e-09
+      - -0.011383158611094357
+      - 0.9999352097511292
+  - id: yellow_2x2x1_05
+    role: SUPPLY_BLOCK
+    pose:
+      frame_id: base_link
+      xyz_m:
+      - -0.5826076458815805
+      - 0.20192994363605982
+      - 0.047674812376499176
+      quaternion_xyzw:
+      - 1.3082833651353856e-08
+      - -1.5399012105501918e-09
+      - -0.010608034850277745
+      - 0.999943733215332
+    size_m:
+    - 0.032
+    - 0.032
+    - 0.019
+    studs: true
+    coordinate_kind: SIM_BODY_CENTRE
+    geometry_evidence_ref: READ_ONLY_USD_PRIM:/World/Environment/yellow_2x2x1_05
+    prim_path: /World/Environment/yellow_2x2x1_05
+    block:
+      color: yellow
+      brick_type: 2x2x1
+    slot_index: 5
+    world_pose:
+      frame_id: world
+      xyz_m:
+      - -0.5826072096824646
+      - 0.20192991197109222
+      - 0.047674570232629776
+      quaternion_xyzw:
+      - 1.30828336478478e-08
+      - -1.539901208852565e-09
+      - -0.010608034850277743
+      - 0.999943733215332
+  - id: yellow_2x3x1_01
+    role: SUPPLY_BLOCK
+    pose:
+      frame_id: base_link
+      xyz_m:
+      - -0.3285876404170267
+      - 0.1384526062756777
+      - 0.04767480120062828
+      quaternion_xyzw:
+      - -4.1290440027344197e-10
+      - 2.443604886423753e-09
+      - -0.011687992983804851
+      - 0.9999316930770874
+    size_m:
+    - 0.032
+    - 0.048
+    - 0.019
+    studs: true
+    coordinate_kind: SIM_BODY_CENTRE
+    geometry_evidence_ref: READ_ONLY_USD_PRIM:/World/Environment/yellow_2x3x1_01
+    prim_path: /World/Environment/yellow_2x3x1_01
+    block:
+      color: yellow
+      brick_type: 2x3x1
+    slot_index: 1
+    world_pose:
+      frame_id: world
+      xyz_m:
+      - -0.32858720421791077
+      - 0.13845257461071014
+      - 0.04767455905675888
+      quaternion_xyzw:
+      - -4.1290440378320276e-10
+      - 2.44360488811757e-09
+      - -0.01168799298380485
+      - 0.9999316930770874
+  - id: yellow_2x3x1_02
+    role: SUPPLY_BLOCK
+    pose:
+      frame_id: base_link
+      xyz_m:
+      - -0.39221184362213535
+      - 0.140785800293088
+      - 0.047674790024757385
+      quaternion_xyzw:
+      - -8.252883327390925e-09
+      - 6.950038872067792e-10
+      - -0.01139885540881896
+      - 0.9999350309371948
+    size_m:
+    - 0.032
+    - 0.048
+    - 0.019
+    studs: true
+    coordinate_kind: SIM_BODY_CENTRE
+    geometry_evidence_ref: READ_ONLY_USD_PRIM:/World/Environment/yellow_2x3x1_02
+    prim_path: /World/Environment/yellow_2x3x1_02
+    block:
+      color: yellow
+      brick_type: 2x3x1
+    slot_index: 2
+    world_pose:
+      frame_id: world
+      xyz_m:
+      - -0.3922114074230194
+      - 0.14078576862812042
+      - 0.047674547880887985
+      quaternion_xyzw:
+      - -8.252883330899694e-09
+      - 6.95003888901617e-10
+      - -0.011398855408818959
+      - 0.9999350309371948
+  - id: yellow_2x3x1_03
+    role: SUPPLY_BLOCK
+    pose:
+      frame_id: base_link
+      xyz_m:
+      - -0.45583610643188877
+      - 0.14311900921165946
+      - 0.04767479747533798
+      quaternion_xyzw:
+      - -8.27538803670992e-09
+      - 8.489128969106317e-10
+      - -0.011112920896918125
+      - 0.9999382495880127
+    size_m:
+    - 0.032
+    - 0.048
+    - 0.019
+    studs: true
+    coordinate_kind: SIM_BODY_CENTRE
+    geometry_evidence_ref: READ_ONLY_USD_PRIM:/World/Environment/yellow_2x3x1_03
+    prim_path: /World/Environment/yellow_2x3x1_03
+    block:
+      color: yellow
+      brick_type: 2x3x1
+    slot_index: 3
+    world_pose:
+      frame_id: world
+      xyz_m:
+      - -0.4558356702327728
+      - 0.1431189775466919
+      - 0.04767455533146858
+      quaternion_xyzw:
+      - -8.27538804021771e-09
+      - 8.489128986064783e-10
+      - -0.011112920896918127
+      - 0.9999382495880127
+  - id: yellow_2x3x1_04
+    role: SUPPLY_BLOCK
+    pose:
+      frame_id: base_link
+      xyz_m:
+      - -0.5203044604186289
+      - 0.1449141371995211
+      - 0.04767479747533798
+      quaternion_xyzw:
+      - 1.6237522985087255e-09
+      - -6.295920455322999e-09
+      - -0.00983847552493496
+      - 0.9999516010284424
+    size_m:
+    - 0.032
+    - 0.048
+    - 0.019
+    studs: true
+    coordinate_kind: SIM_BODY_CENTRE
+    geometry_evidence_ref: READ_ONLY_USD_PRIM:/World/Environment/yellow_2x3x1_04
+    prim_path: /World/Environment/yellow_2x3x1_04
+    block:
+      color: yellow
+      brick_type: 2x3x1
+    slot_index: 4
+    world_pose:
+      frame_id: world
+      xyz_m:
+      - -0.5203040242195129
+      - 0.14491410553455353
+      - 0.04767455533146858
+      quaternion_xyzw:
+      - 1.623752295005312e-09
+      - -6.295920453622662e-09
+      - -0.009838475524934961
+      - 0.9999516010284424
+  - id: yellow_2x3x1_05
+    role: SUPPLY_BLOCK
+    pose:
+      frame_id: base_link
+      xyz_m:
+      - -0.5847726057891123
+      - 0.1467093098908663
+      - 0.04767479747533798
+      quaternion_xyzw:
+      - 8.259572474489798e-10
+      - 1.0318309268592028e-08
+      - -0.00855530037025156
+      - 0.9999634027481079
+    size_m:
+    - 0.032
+    - 0.048
+    - 0.019
+    studs: true
+    coordinate_kind: SIM_BODY_CENTRE
+    geometry_evidence_ref: READ_ONLY_USD_PRIM:/World/Environment/yellow_2x3x1_05
+    prim_path: /World/Environment/yellow_2x3x1_05
+    block:
+      color: yellow
+      brick_type: 2x3x1
+    slot_index: 5
+    world_pose:
+      frame_id: world
+      xyz_m:
+      - -0.5847721695899963
+      - 0.14670927822589874
+      - 0.04767455533146858
+      quaternion_xyzw:
+      - 8.259572439499776e-10
+      - 1.031830927029688e-08
+      - -0.00855530037025156
+      - 0.9999634027481079
+  - id: blue_2x2x1_01
+    role: HELD_BLOCK
+    pose:
+      frame_id: base_link
+      xyz_m:
+      - -0.32985283840935153
+      - 0.06896867789328098
+      - 0.04818573594093323
+      quaternion_xyzw:
+      - 5.993392630957242e-05
+      - -0.0026561224841155306
+      - -0.010867716339477328
+      - 0.9999374151229858
+    size_m:
+    - 0.032
+    - 0.032
+    - 0.019
+    studs: true
+    coordinate_kind: SIM_BODY_CENTRE
+    geometry_evidence_ref: READ_ONLY_USD_PRIM:/World/Environment/blue_2x2x1_01
+    prim_path: /World/Environment/blue_2x2x1_01
+    block:
+      brick_type: 2x2x1
+      color: blue
+      x: 11
+      y: 11
+      layer: 1
+      orientation_deg: 0
+    slot_index: 1
+    world_pose:
+      frame_id: world
+      xyz_m:
+      - -0.3298524022102356
+      - 0.06896864622831345
+      - 0.04818549379706383
+      quaternion_xyzw:
+      - 5.99339263095689e-05
+      - -0.002656122484115529
+      - -0.010867716339477328
+      - 0.9999374151229858
+  - id: blue_2x2x1_02
+    role: SUPPLY_BLOCK
+    pose:
+      frame_id: base_link
+      xyz_m:
+      - -0.39368342269699497
+      - 0.0695191491395235
+      - 0.04767480120062828
+      quaternion_xyzw:
+      - 7.2363892783186815e-09
+      - -3.983964818674334e-09
+      - -0.010506414981202711
+      - 0.999944806098938
+    size_m:
+    - 0.032
+    - 0.032
+    - 0.019
+    studs: true
+    coordinate_kind: SIM_BODY_CENTRE
+    geometry_evidence_ref: READ_ONLY_USD_PRIM:/World/Environment/blue_2x2x1_02
+    prim_path: /World/Environment/blue_2x2x1_02
+    block:
+      color: blue
+      brick_type: 2x2x1
+    slot_index: 2
+    world_pose:
+      frame_id: world
+      xyz_m:
+      - -0.39368298649787903
+      - 0.06951911747455597
+      - 0.04767455905675888
+      quaternion_xyzw:
+      - 7.236389274812975e-09
+      - -3.98396481697635e-09
+      - -0.010506414981202711
+      - 0.999944806098938
+  - id: blue_2x2x1_03
+    role: SUPPLY_BLOCK
+    pose:
+      frame_id: base_link
+      xyz_m:
+      - -0.4574577700022928
+      - 0.0705092791467905
+      - 0.04767480120062828
+      quaternion_xyzw:
+      - 7.216862348413343e-09
+      - -4.099137436603402e-09
+      - -0.010048269477908881
+      - 0.9999495148658752
+    size_m:
+    - 0.032
+    - 0.032
+    - 0.019
+    studs: true
+    coordinate_kind: SIM_BODY_CENTRE
+    geometry_evidence_ref: READ_ONLY_USD_PRIM:/World/Environment/blue_2x2x1_03
+    prim_path: /World/Environment/blue_2x2x1_03
+    block:
+      color: blue
+      brick_type: 2x2x1
+    slot_index: 3
+    world_pose:
+      frame_id: world
+      xyz_m:
+      - -0.4574573338031769
+      - 0.07050924748182297
+      - 0.04767455905675888
+      quaternion_xyzw:
+      - 7.216862344909209e-09
+      - -4.099137434903804e-09
+      - -0.010048269477908881
+      - 0.9999495148658752
+  - id: blue_2x2x1_04
+    role: SUPPLY_BLOCK
+    pose:
+      frame_id: base_link
+      xyz_m:
+      - -0.5213127325896494
+      - 0.07283164747059345
+      - 0.04767480120062828
+      quaternion_xyzw:
+      - 8.006583431873985e-09
+      - -4.869660995699158e-09
+      - -0.010300167648907592
+      - 0.9999469518661499
+    size_m:
+    - 0.032
+    - 0.032
+    - 0.019
+    studs: true
+    coordinate_kind: SIM_BODY_CENTRE
+    geometry_evidence_ref: READ_ONLY_USD_PRIM:/World/Environment/blue_2x2x1_04
+    prim_path: /World/Environment/blue_2x2x1_04
+    block:
+      color: blue
+      brick_type: 2x2x1
+    slot_index: 4
+    world_pose:
+      frame_id: world
+      xyz_m:
+      - -0.5213122963905334
+      - 0.07283161580562592
+      - 0.04767455905675888
+      quaternion_xyzw:
+      - 8.006583428368986e-09
+      - -4.869660994000447e-09
+      - -0.01030016764890759
+      - 0.9999469518661499
+  - id: blue_2x2x1_05
+    role: SUPPLY_BLOCK
+    pose:
+      frame_id: base_link
+      xyz_m:
+      - -0.5851676653746836
+      - 0.075154023244977
+      - 0.047674797475337975
+      quaternion_xyzw:
+      - 8.203846150752177e-09
+      - -4.745001095203738e-09
+      - -0.010546050187279195
+      - 0.9999443888664246
+    size_m:
+    - 0.032
+    - 0.032
+    - 0.019
+    studs: true
+    coordinate_kind: SIM_BODY_CENTRE
+    geometry_evidence_ref: READ_ONLY_USD_PRIM:/World/Environment/blue_2x2x1_05
+    prim_path: /World/Environment/blue_2x2x1_05
+    block:
+      color: blue
+      brick_type: 2x2x1
+    slot_index: 5
+    world_pose:
+      frame_id: world
+      xyz_m:
+      - -0.5851672291755676
+      - 0.07515399158000946
+      - 0.04767455533146858
+      quaternion_xyzw:
+      - 8.203846147246334e-09
+      - -4.7450010935058935e-09
+      - -0.010546050187279195
+      - 0.9999443888664246
+  - id: blue_2x3x1_01
+    role: SUPPLY_BLOCK
+    pose:
+      frame_id: base_link
+      xyz_m:
+      - -0.3318530510787241
+      - 0.009898073971271503
+      - 0.047674793750047684
+      quaternion_xyzw:
+      - 1.6621340536439333e-10
+      - -1.4132436943755028e-09
+      - -0.010961722222475545
+      - 0.9999399185180664
+    size_m:
+    - 0.032
+    - 0.048
+    - 0.019
+    studs: true
+    coordinate_kind: SIM_BODY_CENTRE
+    geometry_evidence_ref: READ_ONLY_USD_PRIM:/World/Environment/blue_2x3x1_01
+    prim_path: /World/Environment/blue_2x3x1_01
+    block:
+      color: blue
+      brick_type: 2x3x1
+    slot_index: 1
+    world_pose:
+      frame_id: world
+      xyz_m:
+      - -0.33185261487960815
+      - 0.009898042306303978
+      - 0.047674551606178284
+      quaternion_xyzw:
+      - 1.6621340185712373e-10
+      - -1.413243692679123e-09
+      - -0.010961722222475543
+      - 0.9999399185180664
+  - id: blue_2x3x1_02
+    role: SUPPLY_BLOCK
+    pose:
+      frame_id: base_link
+      xyz_m:
+      - -0.3950300108317606
+      - 0.012587890028953542
+      - 0.04767479747533798
+      quaternion_xyzw:
+      - 1.221897893720902e-09
+      - -1.2274991571990246e-08
+      - -0.009988778025002986
+      - 0.999950110912323
+    size_m:
+    - 0.032
+    - 0.048
+    - 0.019
+    studs: true
+    coordinate_kind: SIM_BODY_CENTRE
+    geometry_evidence_ref: READ_ONLY_USD_PRIM:/World/Environment/blue_2x3x1_02
+    prim_path: /World/Environment/blue_2x3x1_02
+    block:
+      color: blue
+      brick_type: 2x3x1
+    slot_index: 2
+    world_pose:
+      frame_id: world
+      xyz_m:
+      - -0.39502957463264465
+      - 0.012587858363986015
+      - 0.04767455533146858
+      quaternion_xyzw:
+      - 1.2218978902169726e-09
+      - -1.2274991570290438e-08
+      - -0.009988778025002984
+      - 0.999950110912323
+  - id: blue_2x3x1_03
+    role: SUPPLY_BLOCK
+    pose:
+      frame_id: base_link
+      xyz_m:
+      - -0.45820705999176425
+      - 0.015277708880603303
+      - 0.04767479747533798
+      quaternion_xyzw:
+      - 1.205675517175221e-09
+      - -1.165296572670324e-08
+      - -0.009016600413742335
+      - 0.9999593496322632
+    size_m:
+    - 0.032
+    - 0.048
+    - 0.019
+    studs: true
+    coordinate_kind: SIM_BODY_CENTRE
+    geometry_evidence_ref: READ_ONLY_USD_PRIM:/World/Environment/blue_2x3x1_03
+    prim_path: /World/Environment/blue_2x3x1_03
+    block:
+      color: blue
+      brick_type: 2x3x1
+    slot_index: 3
+    world_pose:
+      frame_id: world
+      xyz_m:
+      - -0.4582066237926483
+      - 0.015277677215635777
+      - 0.04767455533146858
+      quaternion_xyzw:
+      - 1.2056755136746324e-09
+      - -1.1652965725000013e-08
+      - -0.009016600413742335
+      - 0.9999593496322632
+  - id: blue_2x3x1_04
+    role: SUPPLY_BLOCK
+    pose:
+      frame_id: base_link
+      xyz_m:
+      - -0.5225116204146616
+      - 0.01671953499317168
+      - 0.04767480865120887
+      quaternion_xyzw:
+      - -2.2206741104989734e-09
+      - -8.38059472677056e-10
+      - -0.009180369921305847
+      - 0.9999578595161438
+    size_m:
+    - 0.032
+    - 0.048
+    - 0.019
+    studs: true
+    coordinate_kind: SIM_BODY_CENTRE
+    geometry_evidence_ref: READ_ONLY_USD_PRIM:/World/Environment/blue_2x3x1_04
+    prim_path: /World/Environment/blue_2x3x1_04
+    block:
+      color: blue
+      brick_type: 2x3x1
+    slot_index: 4
+    world_pose:
+      frame_id: world
+      xyz_m:
+      - -0.5225111842155457
+      - 0.016719503328204155
+      - 0.04767456650733948
+      quaternion_xyzw:
+      - -2.220674114000125e-09
+      - -8.380594709744026e-10
+      - -0.009180369921305845
+      - 0.9999578595161438
+  - id: blue_2x3x1_05
+    role: SUPPLY_BLOCK
+    pose:
+      frame_id: base_link
+      xyz_m:
+      - -0.5868161510352365
+      - 0.018161367624998082
+      - 0.047674797475337975
+      quaternion_xyzw:
+      - 1.6716842900744221e-09
+      - -6.447041434995126e-09
+      - -0.009341268453581304
+      - 0.9999563694000244
+    size_m:
+    - 0.032
+    - 0.048
+    - 0.019
+    studs: true
+    coordinate_kind: SIM_BODY_CENTRE
+    geometry_evidence_ref: READ_ONLY_USD_PRIM:/World/Environment/blue_2x3x1_05
+    prim_path: /World/Environment/blue_2x3x1_05
+    block:
+      color: blue
+      brick_type: 2x3x1
+    slot_index: 5
+    world_pose:
+      frame_id: world
+      xyz_m:
+      - -0.5868157148361206
+      - 0.018161335960030556
+      - 0.04767455533146858
+      quaternion_xyzw:
+      - 1.6716842865727174e-09
+      - -6.44704143329304e-09
+      - -0.009341268453581304
+      - 0.9999563694000244
+  - id: red_1x2x1_01
+    role: SUPPLY_BLOCK
+    pose:
+      frame_id: base_link
+      xyz_m:
+      - -0.3332762013797037
+      - -0.05039602704346183
+      - 0.04767480120062828
+      quaternion_xyzw:
+      - 1.0689798381318854e-08
+      - -1.7030579618054835e-08
+      - 0.7052294016868027
+      - 0.7089791893959044
+    size_m:
+    - 0.016
+    - 0.032
+    - 0.019
+    studs: true
+    coordinate_kind: SIM_BODY_CENTRE
+    geometry_evidence_ref: READ_ONLY_USD_PRIM:/World/Environment/red_1x2x1_01
+    prim_path: /World/Environment/red_1x2x1_01
+    block:
+      color: red
+      brick_type: 1x2x1
+    slot_index: 1
+    world_pose:
+      frame_id: world
+      xyz_m:
+      - -0.33327576518058777
+      - -0.05039605870842934
+      - 0.04767455905675888
+      quaternion_xyzw:
+      - 1.0689798381305846e-08
+      - -1.7030579615595105e-08
+      - 0.7052294016868027
+      - 0.7089791893959045
+  - id: red_1x2x1_02
+    role: SUPPLY_BLOCK
+    pose:
+      frame_id: base_link
+      xyz_m:
+      - -0.39692460407059116
+      - -0.04911934025585654
+      - 0.04767479747533798
+      quaternion_xyzw:
+      - 9.825870905448488e-09
+      - 1.0032891084313055e-08
+      - 0.7047329036293358
+      - 0.7094727158546446
+    size_m:
+    - 0.016
+    - 0.032
+    - 0.019
+    studs: true
+    coordinate_kind: SIM_BODY_CENTRE
+    geometry_evidence_ref: READ_ONLY_USD_PRIM:/World/Environment/red_1x2x1_02
+    prim_path: /World/Environment/red_1x2x1_02
+    block:
+      color: red
+      brick_type: 1x2x1
+    slot_index: 2
+    world_pose:
+      frame_id: world
+      xyz_m:
+      - -0.3969241678714752
+      - -0.04911937192082405
+      - 0.04767455533146858
+      quaternion_xyzw:
+      - 9.825870905432042e-09
+      - 1.0032891086774477e-08
+      - 0.7047329036293356
+      - 0.7094727158546446
+  - id: red_1x2x1_03
+    role: SUPPLY_BLOCK
+    pose:
+      frame_id: base_link
+      xyz_m:
+      - -0.460573036563801
+      - -0.04784263856709006
+      - 0.04767480865120887
+      quaternion_xyzw:
+      - -1.2913909610666937e-08
+      - 1.0384124402854219e-08
+      - 0.7042363105668225
+      - 0.7099656462669373
+    size_m:
+    - 0.016
+    - 0.032
+    - 0.019
+    studs: true
+    coordinate_kind: SIM_BODY_CENTRE
+    geometry_evidence_ref: READ_ONLY_USD_PRIM:/World/Environment/red_1x2x1_03
+    prim_path: /World/Environment/red_1x2x1_03
+    block:
+      color: red
+      brick_type: 1x2x1
+    slot_index: 3
+    world_pose:
+      frame_id: world
+      xyz_m:
+      - -0.46057260036468506
+      - -0.04784267023205757
+      - 0.04767456650733948
+      quaternion_xyzw:
+      - -1.2913909610686813e-08
+      - 1.0384124405317328e-08
+      - 0.7042363105668223
+      - 0.7099656462669373
+  - id: red_1x2x1_04
+    role: SUPPLY_BLOCK
+    pose:
+      frame_id: base_link
+      xyz_m:
+      - -0.5238722752455942
+      - -0.04593343846499922
+      - 0.047674801200628274
+      quaternion_xyzw:
+      - -2.0082623426100305e-08
+      - 1.955932646594133e-08
+      - 0.7020835232178635
+      - 0.7120946049690243
+    size_m:
+    - 0.016
+    - 0.032
+    - 0.019
+    studs: true
+    coordinate_kind: SIM_BODY_CENTRE
+    geometry_evidence_ref: READ_ONLY_USD_PRIM:/World/Environment/red_1x2x1_04
+    prim_path: /World/Environment/red_1x2x1_04
+    block:
+      color: red
+      brick_type: 1x2x1
+    slot_index: 4
+    world_pose:
+      frame_id: world
+      xyz_m:
+      - -0.5238718390464783
+      - -0.045933470129966736
+      - 0.04767455905675888
+      quaternion_xyzw:
+      - -2.0082623426135037e-08
+      - 1.9559326468411666e-08
+      - 0.7020835232178635
+      - 0.7120946049690244
+  - id: red_1x2x1_05
+    role: SUPPLY_BLOCK
+    pose:
+      frame_id: base_link
+      xyz_m:
+      - -0.5871715139273874
+      - -0.04402422718703749
+      - 0.047674801200628274
+      quaternion_xyzw:
+      - -1.8952509885299626e-08
+      - 1.8511595040993715e-08
+      - 0.6999239035022714
+      - 0.7142174243927002
+    size_m:
+    - 0.016
+    - 0.032
+    - 0.019
+    studs: true
+    coordinate_kind: SIM_BODY_CENTRE
+    geometry_evidence_ref: READ_ONLY_USD_PRIM:/World/Environment/red_1x2x1_05
+    prim_path: /World/Environment/red_1x2x1_05
+    block:
+      color: red
+      brick_type: 1x2x1
+    slot_index: 5
+    world_pose:
+      frame_id: world
+      xyz_m:
+      - -0.5871710777282715
+      - -0.044024258852005005
+      - 0.04767455905675888
+      quaternion_xyzw:
+      - -1.895250988534921e-08
+      - 1.8511595043471154e-08
+      - 0.6999239035022712
+      - 0.7142174243927002
+  - id: HandoverTray
+    role: OTHER_OBSTACLE
+    pose:
+      frame_id: base_link
+      xyz_m:
+      - 0.4175605638008841
+      - -0.1846219683350325
+      - -0.0019997578561305983
+      quaternion_xyzw:
+      - 3.469446951953615e-18
+      - -1.734723475976807e-18
+      - 5.421010862427522e-20
+      - 1.0
+    size_m:
+    - 0.18
+    - 0.14
+    - 0.004
+    studs: false
+    coordinate_kind: SIM_BODY_CENTRE
+    geometry_evidence_ref: READ_ONLY_USD_PRIM:/World/Environment/HandoverTray
+    prim_path: /World/Environment/HandoverTray
+    world_pose:
+      frame_id: world
+      xyz_m:
+      - 0.417561
+      - -0.184622
+      - -0.002
+      quaternion_xyzw:
+      - 0.0
+      - 0.0
+      - 0.0
+      - 1.0
+  final_approach_policy:
+    policy_ref: PRESERVED_GPU_CARTESIAN_CORRIDOR_FOR_OFFLINE_CALCULATION
+    final_corridor_tolerance_m: 0.002
+    transition_allowance_m: 0.005
+    source_capture_date: '2026-10-13'
+    source_relative_path: gpu_moveit_original/isaac_sim/config/transport.sim.json
+    physical_verification: UNVERIFIED
+    execution_allowed: false
+  a_context:
+    job_id: sim-D-taught-stage3
+    request_id: fixture-motion-S01
+    workflow_generation: 34
+    source_epoch: sim-nominal-collision-case-20261013
+    design_version: 1
+    input_current_revision: 0
+    world_state_revision: 14
+    frame_profile_id: D_CAD_REVIEW_FRAME_20261012
+    plan_id: P-260eb755f726467996f6e160653df372
+    step_id: S01
+    frame_profile_version: '1'
+  reservation_binding:
+    slot_id: blue_2x2x1_01
+    reservation_id: sim-taught-sim-stage4-empty-current-1
+    reservation_generation: 1
+    bound_workflow_generation: 34
+  q_rad:
+  - 2.8875958919525146
+  - 0.02114669233560562
+  - 1.958658218383789
+  - 0.032391950488090515
+  - 1.189980387687683
+  - 2.8972136974334717
+  grip_rad: 0.4732683002948761
+  tcp_pose:
+    frame_id: base_link
+    xyz_m:
+    - -0.3298353308944819
+    - 0.06851633195326057
+    - 0.05027731751324893
+    quaternion_xyzw:
+    - 0.011141612414188713
+    - 0.9997284555399778
+    - -0.01779021430537081
+    - 0.010118692179900461
+  attachment_tcp_to_block:
+  - - -0.9998826467463702
+    - 0.00018439822622096157
+    - -0.015318574762872704
+    - 7.055951338735822e-05
+  - - 0.0007285924343685848
+    - 0.9993684462788778
+    - -0.03552714082507817
+    - 0.0005254785439017182
+  - - 0.015302349118228583
+    - -0.03553413259718775
+    - -0.9992513014912857
+    - 0.002073289775007342
+  - - 0.0
+    - 0.0
+    - 0.0
+    - 1.0
+  holding_confirmed: true
+  stopped_verified: true
+  active_command_count: 0
+  pending_command_count: 0
+  confirmation_kind: SIM_TEST_STATE
+  confirmed_by: SIM_FILE_SNAPSHOT
+  confirmed_at: '2026-10-14T10:46:45.506603+00:00'
+  evidence_ref: file:///home/ms-02/Documents/ChatGPT/%ED%98%91%EB%8F%992_%EC%9E%A5%EC%95%A0%EB%AC%BC%ED%9A%8C%ED%94%BC/local_records/blocked_path_native25_20261014/baseline/state.json
+  production_B_confirmed: false
+  geometry_scope: SIM_NOMINAL_GEOMETRY
+  geometry_evidence_ref: file:///home/ms-02/Documents/ChatGPT/%ED%98%91%EB%8F%992_%EC%9E%A5%EC%95%A0%EB%AC%BC%ED%9A%8C%ED%94%BC/local_records/blocked_path_native25_20261014/baseline/scene.json
+  execution_allowed: false
+  simulation_provenance:
+    schema_version: sim-plan-only-input-draft/0.1.0
+    source_kind: ISAAC_SIM_SAVED_STATE
+    capture_id: native-held-geometry:a15e3454963550618560f202da834801f43dee17a9ebb210e05df357639cb8be
+    captured_at: '2026-10-14T10:46:45.506603+00:00'
+    files:
+      scene:
+        path: /home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/blocked_path_native25_20261014/baseline/scene.json
+        sha256: 691bdfdbbc0944c3b94044f09cc2e77a0ecb513958ace1182c417b706b3c0fc2
+      state:
+        path: /home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/blocked_path_native25_20261014/baseline/state.json
+        sha256: ee9c82f1ff94039204b7c301b7889e6f94240a43a293d6b2752d4c3925f7f6bf
+    geometry_scope: SIM_NOMINAL_GEOMETRY
+    model_scope: SIM_NOMINAL_MODEL
+    attachment_scope: SIM_NOMINAL_ATTACHMENT
+production_B_confirmed: false
+simulation_provenance:
+  schema_version: sim-plan-only-input-draft/0.1.0
+  source_kind: ISAAC_SIM_SAVED_STATE
+  capture_id: native-held-geometry:a15e3454963550618560f202da834801f43dee17a9ebb210e05df357639cb8be
+  captured_at: '2026-10-14T10:46:45.506603+00:00'
+  files:
+    scene:
+      path: /home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/blocked_path_native25_20261014/baseline/scene.json
+      sha256: 691bdfdbbc0944c3b94044f09cc2e77a0ecb513958ace1182c417b706b3c0fc2
+    state:
+      path: /home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/blocked_path_native25_20261014/baseline/state.json
+      sha256: ee9c82f1ff94039204b7c301b7889e6f94240a43a293d6b2752d4c3925f7f6bf
+  geometry_scope: SIM_NOMINAL_GEOMETRY
+  model_scope: SIM_NOMINAL_MODEL
+  attachment_scope: SIM_NOMINAL_ATTACHMENT
+planning_request_digest: 6c6007b986ef5cae799fdd97c6e3fdec6e269c3f9b17f62a26bb95a02a37e5cb

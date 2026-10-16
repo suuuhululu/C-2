@@ -1,0 +1,78 @@
+{
+  "profile_path": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/work/C-2-moveit/isaac_sim/depth_obstacles/config/rokey_published_raw_depth_nominal.json",
+  "profile": {
+    "schema": "wrist-sim-mount/0.1",
+    "profile_id": "rokey_published_raw_depth_nominal_20261014",
+    "source_kind": "ROKEY_PUBLISHED_STATIC_TF_CAMERAINFO_NOT_HAND_EYE",
+    "calibration_scope": "SIM_NOMINAL_FROM_REAL_PUBLISHED_TF",
+    "stream_kind": "RAW_RECTIFIED_DEPTH",
+    "optical_frame_id": "camera_depth_optical_frame",
+    "tool_frame_id": "GripperDA_v4_tcp",
+    "T_tool_camera_optical": [
+      [
+        -0.9999999999325394,
+        1.1019552500723792e-05,
+        3.672973015359907e-06,
+        0.007499717529495242
+      ],
+      [
+        -1.1019539009032517e-05,
+        -0.9999999999325387,
+        3.673218595608011e-06,
+        0.06250017667935329
+      ],
+      [
+        3.6730134922905218e-06,
+        3.6731781208937655e-06,
+        0.9999999999865083,
+        -0.20439992653450273
+      ],
+      [
+        0.0,
+        0.0,
+        0.0,
+        1.0
+      ]
+    ],
+    "intrinsics": {
+      "width": 848,
+      "height": 480,
+      "fx": 428.5902404785156,
+      "fy": 428.5902404785156,
+      "cx": 427.5955810546875,
+      "cy": 234.27520751953125,
+      "model": "none"
+    },
+    "usd_camera": {
+      "focal_length_mm": 12.0,
+      "horizontal_aperture_mm": 23.74295781592839,
+      "vertical_aperture_mm": 13.439410084487767,
+      "horizontal_aperture_offset_mm": -0.10067185059575072,
+      "vertical_aperture_offset_mm": -0.16028715373669053,
+      "principal_offset_formula_scope": "USD_PINHOLE_NOMINAL_NEEDS_PIXEL_RAY_VALIDATION"
+    },
+    "fov_deg": {
+      "horizontal": 89.38305917005317,
+      "vertical": 58.49550843694308
+    },
+    "source_evidence": {
+      "local_records/real_execution_20261014/realsense_ingress01/live_capture.json": "f8ce915d4b633c6cd3ef50bcd775e6d654a35196a3a9d3ce37a683ffb043c70f",
+      "local_records/real_execution_20261014/realsense_ingress01/paired_capture.json": "0ff876e30a7c2dce70d2c58cf2acfee368b100c2f1a60ea3fbb682fe3237f0c9",
+      "local_records/step3_gpu_model_20261013/model/robot.urdf": "26b968a120d0a5ce560c4fdf79ffeb41708a598f0497bc5ea46420d388cb8a5e"
+    },
+    "source_chain": [
+      "link_6->tool0",
+      "tool0->bracket_link",
+      "bracket_link->camera_bottom_screw_frame",
+      "camera_bottom_screw_frame->camera_link",
+      "camera_link->camera_depth_frame",
+      "camera_depth_frame->camera_depth_optical_frame"
+    ],
+    "hand_eye_independently_verified": false,
+    "dynamic_frame_clock_validated": false,
+    "hardware_execution_allowed": false
+  },
+  "detector_enabled": false,
+  "stimulus_created": false,
+  "stage_path_guides_created": false
+}

@@ -1,0 +1,1971 @@
+{
+  "schema": "standalone-runtime-preservation/1",
+  "source_root": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피",
+  "baseline": "Byte-exact runtime/model/source-pin subset of verified standalone; no prior stop/raw/log evidence",
+  "source126_exact": true,
+  "model38_exact": true,
+  "copy_method": "shutil.copy2 independent inodes; no hardlinks",
+  "files": [
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/moveit_joint_compact_trial_candidate06_20261016/source126_at_claim/000_compile_command.json",
+      "preserved": "snapshot/local_records/depth_native25_raster_cpp_stage_20261015/unit01/compile_command.json",
+      "sha256": "1db48446c4c9725c3223c9bf027b1d3c7c1f2e280d5e2a4676de4f056de6f5ea",
+      "size": 265,
+      "role": "joint06_original_source126"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/moveit_joint_compact_trial_candidate06_20261016/source126_at_claim/001_compile_command.json",
+      "preserved": "snapshot/local_records/depth_native28_interval_cpp_stage_20261015/unit01/compile_command.json",
+      "sha256": "9f6fc88c470aea46708c126ee59f24fef9c9b880b429d2efcef2ff7e282ac6f7",
+      "size": 344,
+      "role": "joint06_original_source126"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/moveit_joint_compact_trial_candidate06_20261016/source126_at_claim/002_moveit_plan_only",
+      "preserved": "snapshot/local_records/fresh_moveit_baseline_A_20261015/build/moveit_plan_only",
+      "sha256": "bf0438597fc37e49e5b551376495f1338b0a61883eaeffbd07954929cbc725e7",
+      "size": 982992,
+      "role": "joint06_original_source126"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/moveit_joint_compact_trial_candidate06_20261016/source126_at_claim/003_moveit_plan_only",
+      "preserved": "snapshot/local_records/moveit_command_start_plan_20261016/build/moveit_plan_only",
+      "sha256": "7ca75db1e39b7d6b632d4f8f4a08714c6a681d77c6a4cca83c60ac49997c8bf4",
+      "size": 997048,
+      "role": "joint06_original_source126"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/moveit_joint_compact_trial_candidate06_20261016/source126_at_claim/004_build_record.json",
+      "preserved": "snapshot/local_records/moveit_command_start_plan_20261016/build_record.json",
+      "sha256": "5fd68b411e2e4f1860b069acc6473e8292340edc64add0e2eb5ed60a6609d385",
+      "size": 2145,
+      "role": "joint06_original_source126"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/moveit_joint_compact_trial_candidate06_20261016/source126_at_claim/005_calculate_moveit.sh",
+      "preserved": "snapshot/local_records/moveit_command_start_plan_20261016/calculate_moveit.sh",
+      "sha256": "e354024e7d2306b3af3a7e69f0b210fb01451bb4d3a9ba1468b55928f20a60db",
+      "size": 347,
+      "role": "joint06_original_source126"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/moveit_joint_compact_trial_candidate06_20261016/source126_at_claim/006_kernel_manifest.json",
+      "preserved": "snapshot/local_records/moveit_cpp_kernel_integration_20261015/kernel_manifest.json",
+      "sha256": "7d149be9d47f3d6be1d9838ed259dbe6fca3bc12ed980f90c92f4f0920c940b4",
+      "size": 1577,
+      "role": "joint06_original_source126"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/moveit_joint_compact_trial_candidate06_20261016/source126_at_claim/007_interval_manifest.json",
+      "preserved": "snapshot/local_records/moveit_interval_kernel_integration_20261015/interval_manifest.json",
+      "sha256": "3ffe0e90ed4df2e4c0110efbe802edb471e4433662950970f0f479cc5541dbf4",
+      "size": 1576,
+      "role": "joint06_original_source126"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/moveit_joint_compact_trial_candidate06_20261016/source126_at_claim/008_CLAIM_TEMPLATE.json",
+      "preserved": "snapshot/local_records/moveit_joint_compact_trial_candidate02_20261016/CLAIM_TEMPLATE.json",
+      "sha256": "f993bc321e52e2dd06b6efa83dec64cd15993a8f480df23255aa5ea5723a10c3",
+      "size": 567,
+      "role": "joint06_original_source126"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/moveit_joint_compact_trial_candidate06_20261016/source126_at_claim/009_build_claim.py",
+      "preserved": "snapshot/local_records/moveit_joint_compact_trial_candidate02_20261016/build_claim.py",
+      "sha256": "315ecddfc386276f4c139d0eac2224028b0dc16008fa40bac7f337c1dc0c09b0",
+      "size": 811,
+      "role": "joint06_original_source126"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/moveit_joint_compact_trial_candidate06_20261016/source126_at_claim/010_prepare_implementation_handoff.py",
+      "preserved": "snapshot/local_records/moveit_joint_compact_trial_candidate02_20261016/prepare_implementation_handoff.py",
+      "sha256": "9cf43bb74db22a63869a6606e0f783d0868f8c9e3938c66686a2bf2b9f22550c",
+      "size": 3542,
+      "role": "joint06_original_source126"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/moveit_joint_compact_trial_candidate06_20261016/source126_at_claim/011_run_joint_candidate.sh",
+      "preserved": "snapshot/local_records/moveit_joint_compact_trial_candidate02_20261016/run_joint_candidate.sh",
+      "sha256": "d0eed351d3faca13e80cb4b4b2155c9a3ccf435c11e8a13f221d8f9a168cdb3f",
+      "size": 3256,
+      "role": "joint06_original_source126"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/moveit_joint_compact_trial_candidate06_20261016/source126_at_claim/012_CLAIM_TEMPLATE.json",
+      "preserved": "snapshot/local_records/moveit_joint_compact_trial_candidate03_20261016/CLAIM_TEMPLATE.json",
+      "sha256": "e798a25e6a1ae20bf86e2333f387fecfd5ccd3ba00da71d757cd9bb18e9337af",
+      "size": 578,
+      "role": "joint06_original_source126"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/moveit_joint_compact_trial_candidate06_20261016/source126_at_claim/013_build_claim.py",
+      "preserved": "snapshot/local_records/moveit_joint_compact_trial_candidate03_20261016/build_claim.py",
+      "sha256": "315ecddfc386276f4c139d0eac2224028b0dc16008fa40bac7f337c1dc0c09b0",
+      "size": 811,
+      "role": "joint06_original_source126"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/moveit_joint_compact_trial_candidate06_20261016/source126_at_claim/014_prepare_implementation_handoff.py",
+      "preserved": "snapshot/local_records/moveit_joint_compact_trial_candidate03_20261016/prepare_implementation_handoff.py",
+      "sha256": "07a846822f99d6492bd877386e2d7492e181761ef621e15c0880cc40a2c0dd42",
+      "size": 3407,
+      "role": "joint06_original_source126"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/moveit_joint_compact_trial_candidate06_20261016/source126_at_claim/015_run_joint_candidate.sh",
+      "preserved": "snapshot/local_records/moveit_joint_compact_trial_candidate03_20261016/run_joint_candidate.sh",
+      "sha256": "3e6f3416fdcdb00310a5bb6407ed3662d97c42fe9fd794d303fe2493c266cc54",
+      "size": 3256,
+      "role": "joint06_original_source126"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/moveit_joint_compact_trial_candidate06_20261016/source126_at_claim/016_CLAIM_TEMPLATE.json",
+      "preserved": "snapshot/local_records/moveit_joint_compact_trial_candidate04_20261016/CLAIM_TEMPLATE.json",
+      "sha256": "93435c1658c47c05065facf6a714b889f64a7dae72458ca21d56717fb9dbe7f1",
+      "size": 581,
+      "role": "joint06_original_source126"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/moveit_joint_compact_trial_candidate06_20261016/source126_at_claim/017_build_claim.py",
+      "preserved": "snapshot/local_records/moveit_joint_compact_trial_candidate04_20261016/build_claim.py",
+      "sha256": "315ecddfc386276f4c139d0eac2224028b0dc16008fa40bac7f337c1dc0c09b0",
+      "size": 811,
+      "role": "joint06_original_source126"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/moveit_joint_compact_trial_candidate06_20261016/source126_at_claim/018_prepare_implementation_handoff.py",
+      "preserved": "snapshot/local_records/moveit_joint_compact_trial_candidate04_20261016/prepare_implementation_handoff.py",
+      "sha256": "ed11d0914dd5f46e57734a3005badf69a5e60f27a3e1bd16a3c07cf4bb8041cb",
+      "size": 3425,
+      "role": "joint06_original_source126"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/moveit_joint_compact_trial_candidate06_20261016/source126_at_claim/019_run_joint_candidate.sh",
+      "preserved": "snapshot/local_records/moveit_joint_compact_trial_candidate04_20261016/run_joint_candidate.sh",
+      "sha256": "1cc22acfaef273d5e1780903b162c857697b23a96071f1958edd08afd0f96c12",
+      "size": 3256,
+      "role": "joint06_original_source126"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/moveit_joint_compact_trial_candidate06_20261016/source126_at_claim/020_CLAIM_TEMPLATE.json",
+      "preserved": "snapshot/local_records/moveit_joint_compact_trial_candidate05_20261016/CLAIM_TEMPLATE.json",
+      "sha256": "ec272bc8e987ab531ba4543ebc74bfff4aa32b57bdfa0602ed024c52fa66b8ca",
+      "size": 587,
+      "role": "joint06_original_source126"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/moveit_joint_compact_trial_candidate06_20261016/source126_at_claim/021_build_claim.py",
+      "preserved": "snapshot/local_records/moveit_joint_compact_trial_candidate05_20261016/build_claim.py",
+      "sha256": "8e1db5db528d0d0ce17d91f81b49ea9b9b97344369188b0070ccd521b15b1f23",
+      "size": 1062,
+      "role": "joint06_original_source126"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/moveit_joint_compact_trial_candidate06_20261016/source126_at_claim/022_calculator_selection.py",
+      "preserved": "snapshot/local_records/moveit_joint_compact_trial_candidate05_20261016/calculator_selection.py",
+      "sha256": "c978223889d2fabd712570355258d1fd7d273f3713060ff051eb406de1e893f0",
+      "size": 3331,
+      "role": "joint06_original_source126"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/moveit_joint_compact_trial_candidate06_20261016/source126_at_claim/023_prepare_implementation_handoff.py",
+      "preserved": "snapshot/local_records/moveit_joint_compact_trial_candidate05_20261016/prepare_implementation_handoff.py",
+      "sha256": "365e5612ff74b91451ba187f9392fd96a09ac976bc14b6a2e4f6e109b077cdb4",
+      "size": 3429,
+      "role": "joint06_original_source126"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/moveit_joint_compact_trial_candidate06_20261016/source126_at_claim/024_run_joint_candidate.sh",
+      "preserved": "snapshot/local_records/moveit_joint_compact_trial_candidate05_20261016/run_joint_candidate.sh",
+      "sha256": "043ec74a8c84df1786167785b0c12a874cc08e96f757525888db39b724fad3ce",
+      "size": 3470,
+      "role": "joint06_original_source126"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/moveit_joint_compact_trial_candidate06_20261016/source126_at_claim/025_CLAIM_TEMPLATE.json",
+      "preserved": "snapshot/local_records/moveit_joint_compact_trial_candidate06_20261016/CLAIM_TEMPLATE.json",
+      "sha256": "877a852cf96a416349f7ba258a7d6f33a8dc6912079a68c00db09619cc0200d8",
+      "size": 584,
+      "role": "joint06_original_source126"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/moveit_joint_compact_trial_candidate06_20261016/source126_at_claim/026_build_claim.py",
+      "preserved": "snapshot/local_records/moveit_joint_compact_trial_candidate06_20261016/build_claim.py",
+      "sha256": "8e1db5db528d0d0ce17d91f81b49ea9b9b97344369188b0070ccd521b15b1f23",
+      "size": 1062,
+      "role": "joint06_original_source126"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/moveit_joint_compact_trial_candidate06_20261016/source126_at_claim/027_calculator_selection.py",
+      "preserved": "snapshot/local_records/moveit_joint_compact_trial_candidate06_20261016/calculator_selection.py",
+      "sha256": "c978223889d2fabd712570355258d1fd7d273f3713060ff051eb406de1e893f0",
+      "size": 3331,
+      "role": "joint06_original_source126"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/moveit_joint_compact_trial_candidate06_20261016/source126_at_claim/028_prepare_implementation_handoff.py",
+      "preserved": "snapshot/local_records/moveit_joint_compact_trial_candidate06_20261016/prepare_implementation_handoff.py",
+      "sha256": "eaa9403d8f133deee6998769326b58f1f7efaffa5eb1c24c6ed53435088555ae",
+      "size": 3414,
+      "role": "joint06_original_source126"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/moveit_joint_compact_trial_candidate06_20261016/source126_at_claim/029_run_joint_candidate.sh",
+      "preserved": "snapshot/local_records/moveit_joint_compact_trial_candidate06_20261016/run_joint_candidate.sh",
+      "sha256": "27bc0202a49d1b35bf5ffd0ed4f5730a4a8b0e2811fff14fa6127b9d4380a0c3",
+      "size": 3470,
+      "role": "joint06_original_source126"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/moveit_joint_compact_trial_candidate06_20261016/source126_at_claim/030_prepare_implementation_handoff.py",
+      "preserved": "snapshot/local_records/moveit_joint_compact_trial_candidate_20261016/prepare_implementation_handoff.py",
+      "sha256": "2acb79e129be6387c8fa55457c264475a4f569df144c060b0d04dafff2743456",
+      "size": 3465,
+      "role": "joint06_original_source126"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/moveit_joint_compact_trial_candidate06_20261016/source126_at_claim/031_run_joint_candidate.sh",
+      "preserved": "snapshot/local_records/moveit_joint_compact_trial_candidate_20261016/run_joint_candidate.sh",
+      "sha256": "cb7ec8deb0db32ee01ac5bca65dae427251ab1ae7aa427901ba31b0861152f6f",
+      "size": 3238,
+      "role": "joint06_original_source126"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/moveit_joint_compact_trial_candidate06_20261016/source126_at_claim/032_encode_stop_clip.py",
+      "preserved": "snapshot/local_records/moveit_launch_capture_preparation_20261016/staged_v3/encode_stop_clip.py",
+      "sha256": "6ba855f859e308890925666d00b375c74239a43b70ce32a638a99d926f7f94da",
+      "size": 3444,
+      "role": "joint06_original_source126"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/moveit_joint_compact_trial_candidate06_20261016/source126_at_claim/033_observe_launch.py",
+      "preserved": "snapshot/local_records/moveit_launch_capture_preparation_20261016/staged_v3/observe_launch.py",
+      "sha256": "2056f353f8cf8143c2e4a4456700d9d9bbd9b41e3a9684dcc6c1c5c431b9f54b",
+      "size": 9598,
+      "role": "joint06_original_source126"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/moveit_joint_compact_trial_candidate06_20261016/source126_at_claim/034_calculate_moveit.sh",
+      "preserved": "snapshot/local_records/moveit_observed_support_application_20261016/calculate_moveit.sh",
+      "sha256": "e42dacef9d3b38395fedbb50379f9817dbc5ed7bbb47a761497b8507f46378be",
+      "size": 359,
+      "role": "joint06_original_source126"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/moveit_joint_compact_trial_candidate06_20261016/source126_at_claim/035_moveit_plan_only",
+      "preserved": "snapshot/local_records/moveit_observed_support_contact_guard_20261016/build/moveit_plan_only",
+      "sha256": "9ac53e3196a402e942744765ca64b86fa34c6f046caf8aa85bef0483cbc7e4f4",
+      "size": 1016528,
+      "role": "joint06_original_source126"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/moveit_joint_compact_trial_candidate06_20261016/source126_at_claim/036_moveit_plan_only",
+      "preserved": "snapshot/local_records/moveit_quintic_extrema_fix_20261015/build/moveit_plan_only",
+      "sha256": "b339e9627b617d3444b1afbd0c9e9e6387fe75a9a8d7ce87f691b0b1482a5042",
+      "size": 987488,
+      "role": "joint06_original_source126"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/moveit_joint_compact_trial_candidate06_20261016/source126_at_claim/037_calculate_moveit.sh",
+      "preserved": "snapshot/local_records/moveit_quintic_extrema_fix_20261015/calculate_moveit.sh",
+      "sha256": "94ef49a1c1a8dd3e2e22c43104635201eda53d4648821d21c2f0a8d16121a7d5",
+      "size": 348,
+      "role": "joint06_original_source126"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/moveit_joint_compact_trial_candidate06_20261016/source126_at_claim/038_owner_limits.json",
+      "preserved": "snapshot/local_records/moveit_stop_owner_publication_20261015/owner_limits.json",
+      "sha256": "0a666b88c92821301b2f8c5159ffad955e66dc6ff941db856d14585aa5e83172",
+      "size": 2393,
+      "role": "joint06_original_source126"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/moveit_joint_compact_trial_candidate06_20261016/source126_at_claim/039_mi_worker_call_example.py",
+      "preserved": "snapshot/local_records/real_execution_20261014/same_runtime_worker01/mi_worker_call_example.py",
+      "sha256": "644c5298f2e0657cd10af12ac24ed148090ebda6c25cd0e6210574e59e70ba2b",
+      "size": 2490,
+      "role": "joint06_original_source126"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/moveit_joint_compact_trial_candidate06_20261016/source126_at_claim/040_libstop_fcl.so",
+      "preserved": "snapshot/local_records/step6_cumotion_20261014/offline_stop_candidate/libstop_fcl.so",
+      "sha256": "46831e8c5363cfe0ce2cc8ca789504ef583cbd26a16ee3c6a44e62c945d26734",
+      "size": 66936,
+      "role": "joint06_original_source126"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/moveit_joint_compact_trial_candidate06_20261016/source126_at_claim/041_baseline_camera.py",
+      "preserved": "snapshot/work/C-2-moveit/isaac_sim/depth_obstacles/baseline_camera.py",
+      "sha256": "4d4f2749736993fe0ab9de4adbfb6527dfdbf2d005e87fe9a765fbe940e16b53",
+      "size": 82919,
+      "role": "joint06_original_source126"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/moveit_joint_compact_trial_candidate06_20261016/source126_at_claim/042_bounded_viewport_clip.py",
+      "preserved": "snapshot/work/C-2-moveit/isaac_sim/depth_obstacles/bounded_viewport_clip.py",
+      "sha256": "b71ff158e6535407ddc4290fd3160a55e2f1d9c3b78a0785d93cffefcb2e1786",
+      "size": 4683,
+      "role": "joint06_original_source126"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/moveit_joint_compact_trial_candidate06_20261016/source126_at_claim/043_camera_preview.py",
+      "preserved": "snapshot/work/C-2-moveit/isaac_sim/depth_obstacles/camera_preview.py",
+      "sha256": "a6559f4f7345c870ea7705b1a45035e069fbcfc60bbb060f57bc4671b841385c",
+      "size": 13172,
+      "role": "joint06_original_source126"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/moveit_joint_compact_trial_candidate06_20261016/source126_at_claim/044_capture_wrist_sim.py",
+      "preserved": "snapshot/work/C-2-moveit/isaac_sim/depth_obstacles/capture_wrist_sim.py",
+      "sha256": "c5947fcdd9394c6e6c483bafba3f5d249c05d4ddd7eb9065fa8c6cba4b814745",
+      "size": 23923,
+      "role": "joint06_original_source126"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/moveit_joint_compact_trial_candidate06_20261016/source126_at_claim/045_helper_provenance.py",
+      "preserved": "snapshot/work/C-2-moveit/isaac_sim/depth_obstacles/helper_provenance.py",
+      "sha256": "27384ed0c70dce269d0c627bc91f239547f927f6d5a250de90a20fbf37fd50d3",
+      "size": 3750,
+      "role": "joint06_original_source126"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/moveit_joint_compact_trial_candidate06_20261016/source126_at_claim/046_native_run_recording.py",
+      "preserved": "snapshot/work/C-2-moveit/isaac_sim/depth_obstacles/native_run_recording.py",
+      "sha256": "fc239b8dfcdeb1588fd0ca7c76c901c2f66694027dce08209d67903fa9c34dc3",
+      "size": 4992,
+      "role": "joint06_original_source126"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/moveit_joint_compact_trial_candidate06_20261016/source126_at_claim/047_difference.py",
+      "preserved": "snapshot/work/C-2-moveit/isaac_sim/depth_obstacles/novel_depth/difference.py",
+      "sha256": "acce33794e075fea0443fe4c5af947bef6002296c36339573d55db1e899c94bd",
+      "size": 13416,
+      "role": "joint06_original_source126"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/moveit_joint_compact_trial_candidate06_20261016/source126_at_claim/048_expected_depth.py",
+      "preserved": "snapshot/work/C-2-moveit/isaac_sim/depth_obstacles/novel_depth/expected_depth.py",
+      "sha256": "8e8fe8af85077d048d3080b77c72c2fa16d895d4754224fd67d25cd9a1a865f1",
+      "size": 24280,
+      "role": "joint06_original_source126"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/moveit_joint_compact_trial_candidate06_20261016/source126_at_claim/049_foreground_stop_notice.py",
+      "preserved": "snapshot/work/C-2-moveit/isaac_sim/depth_obstacles/novel_depth/foreground_stop_notice.py",
+      "sha256": "0d5e164314b7249f8607cc46eca085382759e500d0a11b5081e0062dd07d96c3",
+      "size": 6870,
+      "role": "joint06_original_source126"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/moveit_joint_compact_trial_candidate06_20261016/source126_at_claim/050_geometry.py",
+      "preserved": "snapshot/work/C-2-moveit/isaac_sim/depth_obstacles/novel_depth/geometry.py",
+      "sha256": "fc852e3bf9c969f69fab05a0d513265f4df67903fcf9618ad15646875340b7b5",
+      "size": 7977,
+      "role": "joint06_original_source126"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/moveit_joint_compact_trial_candidate06_20261016/source126_at_claim/051_interval_f64.cpp",
+      "preserved": "snapshot/work/C-2-moveit/isaac_sim/depth_obstacles/novel_depth/interval_f64.cpp",
+      "sha256": "c837446f95994f5a27b2fba32e156731fb6c3bbb60efc72f8ec5c056e75160fb",
+      "size": 3211,
+      "role": "joint06_original_source126"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/moveit_joint_compact_trial_candidate06_20261016/source126_at_claim/052_interval_f64.so",
+      "preserved": "snapshot/work/C-2-moveit/isaac_sim/depth_obstacles/novel_depth/interval_f64.so",
+      "sha256": "a3651ca89b8c1f23584ca804147ac8402096558361564f2ff62fb19bb9a4cbcc",
+      "size": 15656,
+      "role": "joint06_original_source126"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/moveit_joint_compact_trial_candidate06_20261016/source126_at_claim/053_interval_kernel.py",
+      "preserved": "snapshot/work/C-2-moveit/isaac_sim/depth_obstacles/novel_depth/interval_kernel.py",
+      "sha256": "b954d45dea1568de099d8e2d76e4d9d86f3002acc0e0fcd281ef6e556bb6131a",
+      "size": 4088,
+      "role": "joint06_original_source126"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/moveit_joint_compact_trial_candidate06_20261016/source126_at_claim/054_point_bounds.py",
+      "preserved": "snapshot/work/C-2-moveit/isaac_sim/depth_obstacles/novel_depth/point_bounds.py",
+      "sha256": "c96fde838b58514a115c9dbb5f8f64a0400c0efc9faea1e4e0788f62de81b50f",
+      "size": 8349,
+      "role": "joint06_original_source126"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/moveit_joint_compact_trial_candidate06_20261016/source126_at_claim/055_qualification.py",
+      "preserved": "snapshot/work/C-2-moveit/isaac_sim/depth_obstacles/novel_depth/qualification.py",
+      "sha256": "f86ab9bc75461e688c9ac543f3d5548053aa512a3734122409d6d3d4d6f3bb01",
+      "size": 12031,
+      "role": "joint06_original_source126"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/moveit_joint_compact_trial_candidate06_20261016/source126_at_claim/056_raster_bbox_f64.cpp",
+      "preserved": "snapshot/work/C-2-moveit/isaac_sim/depth_obstacles/novel_depth/raster_bbox_f64.cpp",
+      "sha256": "16accfe26aa025c5baa1bd67c2fd8415a7082db216e610f6d64dc2dfa96eb2bc",
+      "size": 1763,
+      "role": "joint06_original_source126"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/moveit_joint_compact_trial_candidate06_20261016/source126_at_claim/057_raster_bbox_f64.so",
+      "preserved": "snapshot/work/C-2-moveit/isaac_sim/depth_obstacles/novel_depth/raster_bbox_f64.so",
+      "sha256": "5b2fa2dc3fdc594a97b7963a4b6949b920c89821d88a29104af7a622502adbdf",
+      "size": 15200,
+      "role": "joint06_original_source126"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/moveit_joint_compact_trial_candidate06_20261016/source126_at_claim/058_raster_kernel.py",
+      "preserved": "snapshot/work/C-2-moveit/isaac_sim/depth_obstacles/novel_depth/raster_kernel.py",
+      "sha256": "90d785472ca436f9f963b96043fd6186c9e92a330d70eab135da84b1be9c165e",
+      "size": 2164,
+      "role": "joint06_original_source126"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/moveit_joint_compact_trial_candidate06_20261016/source126_at_claim/059_replay_saved.py",
+      "preserved": "snapshot/work/C-2-moveit/isaac_sim/depth_obstacles/novel_depth/replay_saved.py",
+      "sha256": "70b150d51304c480ef6e2c528e1559078a14b6a5a80b3ed3c25b4e44cf82e37d",
+      "size": 17915,
+      "role": "joint06_original_source126"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/moveit_joint_compact_trial_candidate06_20261016/source126_at_claim/060_projection.py",
+      "preserved": "snapshot/work/C-2-moveit/isaac_sim/depth_obstacles/projection.py",
+      "sha256": "29747eb3c2247f26c989b25ebc23784092b1ad71688486341c510e7c4196b425",
+      "size": 7307,
+      "role": "joint06_original_source126"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/moveit_joint_compact_trial_candidate06_20261016/source126_at_claim/061_render_time_probe.py",
+      "preserved": "snapshot/work/C-2-moveit/isaac_sim/depth_obstacles/render_time_probe.py",
+      "sha256": "3623ebe30eeff48fcc7248258c0e3db4cf688d6cccd5ac90c68136ed9b5aa423",
+      "size": 4423,
+      "role": "joint06_original_source126"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/moveit_joint_compact_trial_candidate06_20261016/source126_at_claim/062_unlabelled_static_shadow.py",
+      "preserved": "snapshot/work/C-2-moveit/isaac_sim/depth_obstacles/unlabelled_static_shadow.py",
+      "sha256": "56e7ec35ad630d3126c760da00fa65bc49c80d9e1c3ae5160b0e193b87c8917b",
+      "size": 6452,
+      "role": "joint06_original_source126"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/moveit_joint_compact_trial_candidate06_20261016/source126_at_claim/063_conservative_stop_evidence.py",
+      "preserved": "snapshot/work/C-2-moveit/isaac_sim/real_execution/conservative_stop_evidence.py",
+      "sha256": "fabbb926b082aa4a3ee09746f663054ad2312f24bd87e10b6a5ef4f5f708c4f5",
+      "size": 8881,
+      "role": "joint06_original_source126"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/moveit_joint_compact_trial_candidate06_20261016/source126_at_claim/064_engine_receipt.py",
+      "preserved": "snapshot/work/C-2-moveit/isaac_sim/real_execution/engine_receipt.py",
+      "sha256": "35174523f67645879960ffaf70283b1661ed51681f565291dd8b5abeb2fa3364",
+      "size": 8575,
+      "role": "joint06_original_source126"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/moveit_joint_compact_trial_candidate06_20261016/source126_at_claim/065_fresh_foreground_cancel.py",
+      "preserved": "snapshot/work/C-2-moveit/isaac_sim/real_execution/fresh_foreground_cancel.py",
+      "sha256": "ad9123346c1450cb173d38313d3e0950f92d7094c4678b2b725c18561b252553",
+      "size": 8486,
+      "role": "joint06_original_source126"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/moveit_joint_compact_trial_candidate06_20261016/source126_at_claim/066_native_boundary.py",
+      "preserved": "snapshot/work/C-2-moveit/isaac_sim/real_execution/native_boundary.py",
+      "sha256": "2aedec9ce6da65a320d3934b824d14ec15f2b8fad204b76542754d94a43335d7",
+      "size": 182789,
+      "role": "joint06_original_source126"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/moveit_joint_compact_trial_candidate06_20261016/source126_at_claim/067_novel_depth_consumer.py",
+      "preserved": "snapshot/work/C-2-moveit/isaac_sim/real_execution/novel_depth_consumer.py",
+      "sha256": "ae0f7373b328098128b2c8db39d2700c8e2950c6e0a456530f794e6f79258766",
+      "size": 33872,
+      "role": "joint06_original_source126"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/moveit_joint_compact_trial_candidate06_20261016/source126_at_claim/068_planner_bundle.py",
+      "preserved": "snapshot/work/C-2-moveit/isaac_sim/real_execution/planner_bundle.py",
+      "sha256": "1842f0810c8875b95517a8811f179ffd67d53e188834904ea4b8e0dbf1019f91",
+      "size": 11795,
+      "role": "joint06_original_source126"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/moveit_joint_compact_trial_candidate06_20261016/source126_at_claim/069_point_product_handoff.py",
+      "preserved": "snapshot/work/C-2-moveit/isaac_sim/real_execution/point_product_handoff.py",
+      "sha256": "3b4f190f3f284b89078eebc2401fe8924d860b64e0aa933e6b90b6991f05f1da",
+      "size": 7352,
+      "role": "joint06_original_source126"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/moveit_joint_compact_trial_candidate06_20261016/source126_at_claim/070_preflight.py",
+      "preserved": "snapshot/work/C-2-moveit/isaac_sim/real_execution/preflight.py",
+      "sha256": "cdf83c1e935ca69758d1a47798e4a61b4f7c8730f3ca74a29ef40ad9ec6b61f2",
+      "size": 5496,
+      "role": "joint06_original_source126"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/moveit_joint_compact_trial_candidate06_20261016/source126_at_claim/071_switch_contract.py",
+      "preserved": "snapshot/work/C-2-moveit/isaac_sim/real_execution/switch_contract.py",
+      "sha256": "37df703670b3b91f29684283dd1bdb0b7268551b7961900efe2a6003e910c780",
+      "size": 8055,
+      "role": "joint06_original_source126"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/moveit_joint_compact_trial_candidate06_20261016/source126_at_claim/072_moveit_step.cpp",
+      "preserved": "snapshot/work/C-2-moveit/isaac_sim/ros_ws/src/m0609_moveit_sim/src/moveit_step.cpp",
+      "sha256": "e3ca141638cd958d56804b76af7e2c0fcf732195421e4337871260a3cf8bb06a",
+      "size": 55615,
+      "role": "joint06_original_source126"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/moveit_joint_compact_trial_candidate06_20261016/source126_at_claim/073_bounded_sim_evidence.py",
+      "preserved": "snapshot/work/C-2-moveit/isaac_sim/scripts/bounded_sim_evidence.py",
+      "sha256": "954c1934e83a3974cfe4401fc5de2b055edcf90889dc838ba20637293b8128e6",
+      "size": 14538,
+      "role": "joint06_original_source126"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/moveit_joint_compact_trial_candidate06_20261016/source126_at_claim/074_capture_sim_runtime.py",
+      "preserved": "snapshot/work/C-2-moveit/isaac_sim/scripts/capture_sim_runtime.py",
+      "sha256": "d27f7bc82db7490292315d193dc880500807939a507b0af1e27d8b71e656452b",
+      "size": 41650,
+      "role": "joint06_original_source126"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/moveit_joint_compact_trial_candidate06_20261016/source126_at_claim/075_capture_sim_scene.py",
+      "preserved": "snapshot/work/C-2-moveit/isaac_sim/scripts/capture_sim_scene.py",
+      "sha256": "d2ff59e346dc97b8471de1f88201997b09d2da56ab62ae8aaf2f37ee74ee873d",
+      "size": 15591,
+      "role": "joint06_original_source126"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/moveit_joint_compact_trial_candidate06_20261016/source126_at_claim/076_command_start_plan.py",
+      "preserved": "snapshot/work/C-2-moveit/isaac_sim/scripts/command_start_plan.py",
+      "sha256": "3f6b71f19b956ed06d4f3e79e7c5c7f4e0a1467bc7b35f1f38dab2272af7ad81",
+      "size": 3915,
+      "role": "joint06_original_source126"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/moveit_joint_compact_trial_candidate06_20261016/source126_at_claim/077_compact_point_receiver.py",
+      "preserved": "snapshot/work/C-2-moveit/isaac_sim/scripts/compact_point_receiver.py",
+      "sha256": "1169c9a9a98997b92dad6c35431c25655d5ef6be3b9564353633ef8719917ecf",
+      "size": 18623,
+      "role": "joint06_original_source126"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/moveit_joint_compact_trial_candidate06_20261016/source126_at_claim/078_compact_points_guarded.py",
+      "preserved": "snapshot/work/C-2-moveit/isaac_sim/scripts/compact_points_guarded.py",
+      "sha256": "7a91dc3d0908f0f42de8651915ed06730fe37754e1bb35bc80c14014a0433b2c",
+      "size": 7659,
+      "role": "joint06_original_source126"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/moveit_joint_compact_trial_candidate06_20261016/source126_at_claim/079_compact_stop_handoff.py",
+      "preserved": "snapshot/work/C-2-moveit/isaac_sim/scripts/compact_stop_handoff.py",
+      "sha256": "26580f1fb0ecce686459815a8fabfd376b325bf7801cfb6777e28b112f377a51",
+      "size": 22862,
+      "role": "joint06_original_source126"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/moveit_joint_compact_trial_candidate06_20261016/source126_at_claim/080_conservative_stop_packet.py",
+      "preserved": "snapshot/work/C-2-moveit/isaac_sim/scripts/conservative_stop_packet.py",
+      "sha256": "3de17652eed52eda8a02ea94e837604ae5018f96037acbd332f83e3982e7009c",
+      "size": 10435,
+      "role": "joint06_original_source126"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/moveit_joint_compact_trial_candidate06_20261016/source126_at_claim/081_controller_start_inputs.py",
+      "preserved": "snapshot/work/C-2-moveit/isaac_sim/scripts/controller_start_inputs.py",
+      "sha256": "9fd6a3dd024229b3216aad6bc91c838ecdde2cc85c01315c6e1fdee268612c03",
+      "size": 10348,
+      "role": "joint06_original_source126"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/moveit_joint_compact_trial_candidate06_20261016/source126_at_claim/082_controller_start_observation.py",
+      "preserved": "snapshot/work/C-2-moveit/isaac_sim/scripts/controller_start_observation.py",
+      "sha256": "b82199b69e784841d654d3b8bdb6becc38ccdc7f6ea42cc352e24b094c92f65a",
+      "size": 4968,
+      "role": "joint06_original_source126"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/moveit_joint_compact_trial_candidate06_20261016/source126_at_claim/083_cumotion_geometry.py",
+      "preserved": "snapshot/work/C-2-moveit/isaac_sim/scripts/cumotion_geometry.py",
+      "sha256": "52641355fd7de65cf27391a34ba871a59b52c98696074968a5bbadf106d68bba",
+      "size": 11886,
+      "role": "joint06_original_source126"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/moveit_joint_compact_trial_candidate06_20261016/source126_at_claim/084_cumotion_timing.py",
+      "preserved": "snapshot/work/C-2-moveit/isaac_sim/scripts/cumotion_timing.py",
+      "sha256": "ca97a4cc19a38efff6ed805a62d5d011b7bcbd5252faa3abfe4c56f0d2c0a46b",
+      "size": 8081,
+      "role": "joint06_original_source126"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/moveit_joint_compact_trial_candidate06_20261016/source126_at_claim/085_current_stop_providers.py",
+      "preserved": "snapshot/work/C-2-moveit/isaac_sim/scripts/current_stop_providers.py",
+      "sha256": "0937dec1c5f29ac9a38f44f106ccfd43926359254a16c4d8c46a83cf60b25875",
+      "size": 25227,
+      "role": "joint06_original_source126"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/moveit_joint_compact_trial_candidate06_20261016/source126_at_claim/086_d_sim_transport.py",
+      "preserved": "snapshot/work/C-2-moveit/isaac_sim/scripts/d_sim_transport.py",
+      "sha256": "5fd598b85eb6190e7a90d1afcd24a57b9b67ad274d69c7ef029e9b72570eac73",
+      "size": 85335,
+      "role": "joint06_original_source126"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/moveit_joint_compact_trial_candidate06_20261016/source126_at_claim/087_dynamic_cumotion_inputs.py",
+      "preserved": "snapshot/work/C-2-moveit/isaac_sim/scripts/dynamic_cumotion_inputs.py",
+      "sha256": "e86734347943a22922b5386251fdc7f3c170ecad4e8267438445851a631ed046",
+      "size": 43423,
+      "role": "joint06_original_source126"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/moveit_joint_compact_trial_candidate06_20261016/source126_at_claim/088_held_geometry_inputs.py",
+      "preserved": "snapshot/work/C-2-moveit/isaac_sim/scripts/held_geometry_inputs.py",
+      "sha256": "41cecae08c6d0c78f66df55545431c37ad49370b526ca6c62e1001c440519e6c",
+      "size": 15198,
+      "role": "joint06_original_source126"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/moveit_joint_compact_trial_candidate06_20261016/source126_at_claim/089_initial_moveit_source.py",
+      "preserved": "snapshot/work/C-2-moveit/isaac_sim/scripts/initial_moveit_source.py",
+      "sha256": "62c0c61b34d78002c28710183521f092efaa82414a96f29adb68fdbe332037a3",
+      "size": 4620,
+      "role": "joint06_original_source126"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/moveit_joint_compact_trial_candidate06_20261016/source126_at_claim/090_joint_compact_caller.py",
+      "preserved": "snapshot/work/C-2-moveit/isaac_sim/scripts/joint_compact_caller.py",
+      "sha256": "eba9f37c4deb406acf15a5d1c716ea93aaed17867bfb065394715a9623cc4a47",
+      "size": 10773,
+      "role": "joint06_original_source126"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/moveit_joint_compact_trial_candidate06_20261016/source126_at_claim/091_live_current_cumotion_inputs.py",
+      "preserved": "snapshot/work/C-2-moveit/isaac_sim/scripts/live_current_cumotion_inputs.py",
+      "sha256": "09b04b554dfaf1fb5040171f8ec558c9c618e574b94110bb0cfc29964844bb67",
+      "size": 14819,
+      "role": "joint06_original_source126"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/moveit_joint_compact_trial_candidate06_20261016/source126_at_claim/092_moveit_command_timing.py",
+      "preserved": "snapshot/work/C-2-moveit/isaac_sim/scripts/moveit_command_timing.py",
+      "sha256": "aa13ded0b0d1f75d5804e85cd8208bd992dc2bad8cfa4cf0a26920d948020e8a",
+      "size": 6291,
+      "role": "joint06_original_source126"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/moveit_joint_compact_trial_candidate06_20261016/source126_at_claim/093_moveit_stop_cumotion_inputs.py",
+      "preserved": "snapshot/work/C-2-moveit/isaac_sim/scripts/moveit_stop_cumotion_inputs.py",
+      "sha256": "9b02ea1324304adc466f01841f0cf1dff44e2cb025204b1d91e7d39d8f30c343",
+      "size": 22603,
+      "role": "joint06_original_source126"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/moveit_joint_compact_trial_candidate06_20261016/source126_at_claim/094_online_cumotion_validity.py",
+      "preserved": "snapshot/work/C-2-moveit/isaac_sim/scripts/online_cumotion_validity.py",
+      "sha256": "190272cc314ca6d20bd74ab131917b322fe8141bb6bf5ef332bc835e937b9ffe",
+      "size": 24744,
+      "role": "joint06_original_source126"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/moveit_joint_compact_trial_candidate06_20261016/source126_at_claim/095_plan_only.py",
+      "preserved": "snapshot/work/C-2-moveit/isaac_sim/scripts/plan_only.py",
+      "sha256": "54c6e08d91c60ec6c8c9f10b7ced73a4aa4217c68eb7b70e5a99e144839d544c",
+      "size": 21215,
+      "role": "joint06_original_source126"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/moveit_joint_compact_trial_candidate06_20261016/source126_at_claim/096_prepare_cpu_model.py",
+      "preserved": "snapshot/work/C-2-moveit/isaac_sim/scripts/prepare_cpu_model.py",
+      "sha256": "b75e37f2327dad8c986406892a2b70cda00835777a8b8ebf141b05673822d5c1",
+      "size": 7418,
+      "role": "joint06_original_source126"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/moveit_joint_compact_trial_candidate06_20261016/source126_at_claim/097_prepare_cumotion_model.py",
+      "preserved": "snapshot/work/C-2-moveit/isaac_sim/scripts/prepare_cumotion_model.py",
+      "sha256": "005c03b7764caabdf5f9573a0a40383fcf6e2e981e21249e803de79636b8a600",
+      "size": 47807,
+      "role": "joint06_original_source126"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/moveit_joint_compact_trial_candidate06_20261016/source126_at_claim/098_prepare_gpu_scene.py",
+      "preserved": "snapshot/work/C-2-moveit/isaac_sim/scripts/prepare_gpu_scene.py",
+      "sha256": "13b5a134994257669573eac37f0a3d2882ac483800e09c6575088700f612fe3d",
+      "size": 7363,
+      "role": "joint06_original_source126"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/moveit_joint_compact_trial_candidate06_20261016/source126_at_claim/099_prepare_sim_snapshot.py",
+      "preserved": "snapshot/work/C-2-moveit/isaac_sim/scripts/prepare_sim_snapshot.py",
+      "sha256": "64d5dc297395bb07e632254a40f5bc1cb1d5cb899c3f4a3dc171818e227f2de9",
+      "size": 5217,
+      "role": "joint06_original_source126"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/moveit_joint_compact_trial_candidate06_20261016/source126_at_claim/100_projection_arrays.py",
+      "preserved": "snapshot/work/C-2-moveit/isaac_sim/scripts/projection_arrays.py",
+      "sha256": "534efbd405e04925a4d45d91320ef3d364895aaa41b09181bbd4b6907e526172",
+      "size": 6355,
+      "role": "joint06_original_source126"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/moveit_joint_compact_trial_candidate06_20261016/source126_at_claim/101_run_depth_stop_native.py",
+      "preserved": "snapshot/work/C-2-moveit/isaac_sim/scripts/run_depth_stop_native.py",
+      "sha256": "5f8af5d8415a69f52a4f59cf420482a206a3c4ef20ee24c4835711702e3cb58e",
+      "size": 263,
+      "role": "joint06_original_source126"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/moveit_joint_compact_trial_candidate06_20261016/source126_at_claim/102_run_fixed_depth_native.py",
+      "preserved": "snapshot/work/C-2-moveit/isaac_sim/scripts/run_fixed_depth_native.py",
+      "sha256": "9a7c9f1227fbc3d531fc44884cff9f5bea18463e967abdc1671d93ea54a716e9",
+      "size": 94595,
+      "role": "joint06_original_source126"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/moveit_joint_compact_trial_candidate06_20261016/source126_at_claim/103_saved_initial_moveit_anchor.py",
+      "preserved": "snapshot/work/C-2-moveit/isaac_sim/scripts/saved_initial_moveit_anchor.py",
+      "sha256": "82c6795bc43d57705eb710e9fe4715072942caa422c29ea4dd6ae5d9d91ea486",
+      "size": 428,
+      "role": "joint06_original_source126"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/moveit_joint_compact_trial_candidate06_20261016/source126_at_claim/104_settled_moveit_source.py",
+      "preserved": "snapshot/work/C-2-moveit/isaac_sim/scripts/settled_moveit_source.py",
+      "sha256": "0e22cdded87aa7e6e8bb87c8f7d334130241bef8e338b12618e942325bd1eabd",
+      "size": 12499,
+      "role": "joint06_original_source126"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/moveit_joint_compact_trial_candidate06_20261016/source126_at_claim/105_sim_stop_owner.py",
+      "preserved": "snapshot/work/C-2-moveit/isaac_sim/scripts/sim_stop_owner.py",
+      "sha256": "6c03aed78749222cb35a1226cb93304a8656862c4afa242687ef1e1a88707dbe",
+      "size": 18046,
+      "role": "joint06_original_source126"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/moveit_joint_compact_trial_candidate06_20261016/source126_at_claim/106_sim_tracking.py",
+      "preserved": "snapshot/work/C-2-moveit/isaac_sim/scripts/sim_tracking.py",
+      "sha256": "a081d92b47f5cc379dd6d837d68343945360b54632b8f4e5a8e7ad591dc1a4e5",
+      "size": 4725,
+      "role": "joint06_original_source126"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/moveit_joint_compact_trial_candidate06_20261016/source126_at_claim/107_sim_utils.py",
+      "preserved": "snapshot/work/C-2-moveit/isaac_sim/scripts/sim_utils.py",
+      "sha256": "9420508c658062e74d3e84e1ed834cf39e804e01d27d1defb5aebacdd6197ca5",
+      "size": 1337,
+      "role": "joint06_original_source126"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/moveit_joint_compact_trial_candidate06_20261016/source126_at_claim/108_stop_curve.py",
+      "preserved": "snapshot/work/C-2-moveit/isaac_sim/scripts/stop_curve.py",
+      "sha256": "34733a09551a24567b2795ecca535b02e7f616faa6b0ae16f8dfc904e9f908db",
+      "size": 6223,
+      "role": "joint06_original_source126"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/moveit_joint_compact_trial_candidate06_20261016/source126_at_claim/109_stop_fcl.cpp",
+      "preserved": "snapshot/work/C-2-moveit/isaac_sim/scripts/stop_fcl.cpp",
+      "sha256": "5960b21fe58c68f84eb530832e7aa1f64a051d06b18398a47c00305472a5765d",
+      "size": 1573,
+      "role": "joint06_original_source126"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/moveit_joint_compact_trial_candidate06_20261016/source126_at_claim/110_stop_fcl.py",
+      "preserved": "snapshot/work/C-2-moveit/isaac_sim/scripts/stop_fcl.py",
+      "sha256": "7b076668602a711a0ad020f54e6634695d61dbb522d232f543acd47708c4bd20",
+      "size": 11177,
+      "role": "joint06_original_source126"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/moveit_joint_compact_trial_candidate06_20261016/source126_at_claim/111_taught_moveit.py",
+      "preserved": "snapshot/work/C-2-moveit/isaac_sim/scripts/taught_moveit.py",
+      "sha256": "24e57209e05c0ea4c6f6bb5cd43f4c2b3f9630cc296905eb47228628dbfd1901",
+      "size": 11884,
+      "role": "joint06_original_source126"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/moveit_joint_compact_trial_candidate06_20261016/source126_at_claim/112_assembly_adapter.py",
+      "preserved": "snapshot/work/C-2-moveit/planning_trial/assembly_adapter.py",
+      "sha256": "2925b6e56f1414f204fe109f982d524dfbbfb841c203fcdfaea46c012653e2aa",
+      "size": 13073,
+      "role": "joint06_original_source126"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/moveit_joint_compact_trial_candidate06_20261016/source126_at_claim/113_assembly_contract.py",
+      "preserved": "snapshot/work/C-2-moveit/planning_trial/assembly_contract.py",
+      "sha256": "0dc380b52137e0a994355d699ccad4d9d5c29016ba18d31ce1d67475b9978647",
+      "size": 13348,
+      "role": "joint06_original_source126"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/moveit_joint_compact_trial_candidate06_20261016/source126_at_claim/114_assembly_geometry.py",
+      "preserved": "snapshot/work/C-2-moveit/planning_trial/assembly_geometry.py",
+      "sha256": "354151d9a71c4891ae2ba99ad3b2c5cb9f179f056b6d8740459d8207ad47c24a",
+      "size": 18429,
+      "role": "joint06_original_source126"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/moveit_joint_compact_trial_candidate06_20261016/source126_at_claim/115_assembly_motion.py",
+      "preserved": "snapshot/work/C-2-moveit/planning_trial/assembly_motion.py",
+      "sha256": "16f71ccb62a1072b0bbfd88fbaf289b3a006d6ce20c17474e0897074f1faefb7",
+      "size": 12562,
+      "role": "joint06_original_source126"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/moveit_joint_compact_trial_candidate06_20261016/source126_at_claim/116_assembly_optimizer.py",
+      "preserved": "snapshot/work/C-2-moveit/planning_trial/assembly_optimizer.py",
+      "sha256": "1fd94196ee33c9ef44f095b86a5db81f5f6c95dba92cc210ccf7d43bbb70fdea",
+      "size": 31977,
+      "role": "joint06_original_source126"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/moveit_joint_compact_trial_candidate06_20261016/source126_at_claim/117_assembly_profiles.py",
+      "preserved": "snapshot/work/C-2-moveit/planning_trial/assembly_profiles.py",
+      "sha256": "8ca8e95fd8bad62f1013da505053539e78a8962f032d6b6e450a10bddddaf27b",
+      "size": 1586,
+      "role": "joint06_original_source126"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/moveit_joint_compact_trial_candidate06_20261016/source126_at_claim/118_assembly_target.py",
+      "preserved": "snapshot/work/C-2-moveit/planning_trial/assembly_target.py",
+      "sha256": "fcc4546abf8d0bcbc9d8e4912f0030c356dae7585b3e9fba76a779ddfa71ca22",
+      "size": 24192,
+      "role": "joint06_original_source126"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/moveit_joint_compact_trial_candidate06_20261016/source126_at_claim/119_assembly_wire.py",
+      "preserved": "snapshot/work/C-2-moveit/planning_trial/assembly_wire.py",
+      "sha256": "970b5741eb8b92b9e6206c12bb0afca348ca7e62ef2fd225708d75c29bba7a41",
+      "size": 4449,
+      "role": "joint06_original_source126"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/moveit_joint_compact_trial_candidate06_20261016/source126_at_claim/120_measurement_geometry.py",
+      "preserved": "snapshot/work/C-2-moveit/planning_trial/measurement_geometry.py",
+      "sha256": "d76e48c4833acdaeff35ff2212ae1263354483eefa6f06a5fb3a5a558e6a8490",
+      "size": 470,
+      "role": "joint06_original_source126"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/moveit_joint_compact_trial_candidate06_20261016/source126_at_claim/121_planner.py",
+      "preserved": "snapshot/work/C-2-moveit/planning_trial/planner.py",
+      "sha256": "50cbcb3d13a0ee7f94e92888f706ec7ce1215989366f61feee9592d819b1e19e",
+      "size": 16591,
+      "role": "joint06_original_source126"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/moveit_joint_compact_trial_candidate06_20261016/source126_at_claim/122_planning_bundle.py",
+      "preserved": "snapshot/work/C-2-moveit/planning_trial/planning_bundle.py",
+      "sha256": "dc2737f40bd38fffb8252eecefc76db706911a4febae60f6bb58e18d011903ee",
+      "size": 4080,
+      "role": "joint06_original_source126"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/moveit_joint_compact_trial_candidate06_20261016/source126_at_claim/123_supply_pick.py",
+      "preserved": "snapshot/work/C-2-moveit/planning_trial/supply_pick.py",
+      "sha256": "f2ceb6644439cdc1df7b5e8db08654d6f896e709e2b821c8219895a5d56e2118",
+      "size": 19481,
+      "role": "joint06_original_source126"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/moveit_joint_compact_trial_candidate06_20261016/source126_at_claim/124___init__.py",
+      "preserved": "snapshot/work/C-2-moveit/robot_control_integration/app/__init__.py",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "size": 0,
+      "role": "joint06_original_source126"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/moveit_joint_compact_trial_candidate06_20261016/source126_at_claim/125_cumotion_transport.py",
+      "preserved": "snapshot/work/C-2-moveit/robot_control_integration/app/cumotion_transport.py",
+      "sha256": "a15d047772043e9be7f38ef3bd00c3a11de2a49e14c26ff2dbdc9ce8f0c47803",
+      "size": 13939,
+      "role": "joint06_original_source126"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/step3_gpu_model_20261013/model/MODEL_MANIFEST.json",
+      "preserved": "snapshot/local_records/step3_gpu_model_20261013/model/MODEL_MANIFEST.json",
+      "sha256": "6574724375c84cd7dd014f1e45049b63c63f90eac848f94a74cc412629ab3ad7",
+      "size": 9375,
+      "role": "joint06_original_model38"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/step3_gpu_model_20261013/model/robot.urdf",
+      "preserved": "snapshot/local_records/step3_gpu_model_20261013/model/robot.urdf",
+      "sha256": "26b968a120d0a5ce560c4fdf79ffeb41708a598f0497bc5ea46420d388cb8a5e",
+      "size": 22404,
+      "role": "joint06_original_model38"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/step3_gpu_model_20261013/model/semantic.srdf",
+      "preserved": "snapshot/local_records/step3_gpu_model_20261013/model/semantic.srdf",
+      "sha256": "4175e96ee8d6700cf25c2d50dcaac2284ae316116504f3de9d0f417547c1018d",
+      "size": 3577,
+      "role": "joint06_original_model38"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/step3_gpu_model_20261013/model/joint_limits.yaml",
+      "preserved": "snapshot/local_records/step3_gpu_model_20261013/model/joint_limits.yaml",
+      "sha256": "651c969efd8146563c36af77d1acb6e4f80d0c255e8da5e9ab7b38c23aab5360",
+      "size": 2545,
+      "role": "joint06_original_model38"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/work/C-2-moveit/isaac_sim/ros_ws/src/m0609_rg2_sim_model/meshes/base_link_collision_0.stl",
+      "preserved": "snapshot/work/C-2-moveit/isaac_sim/ros_ws/src/m0609_rg2_sim_model/meshes/base_link_collision_0.stl",
+      "sha256": "6670bb88425250451dca0d67e75e4e9c6587bbbe8c7c81bbe1eb5c53bb1471d9",
+      "size": 28284,
+      "role": "joint06_original_model38"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/work/C-2-moveit/isaac_sim/ros_ws/src/m0609_rg2_sim_model/meshes/base_link_visual_0.stl",
+      "preserved": "snapshot/work/C-2-moveit/isaac_sim/ros_ws/src/m0609_rg2_sim_model/meshes/base_link_visual_0.stl",
+      "sha256": "f279b304a69163e994a625ad28b111911d1930ce46919e61fee0f718daa9f7e2",
+      "size": 536984,
+      "role": "joint06_original_model38"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/work/C-2-moveit/isaac_sim/ros_ws/src/m0609_rg2_sim_model/meshes/link_1_collision_0.stl",
+      "preserved": "snapshot/work/C-2-moveit/isaac_sim/ros_ws/src/m0609_rg2_sim_model/meshes/link_1_collision_0.stl",
+      "sha256": "ac63ff239ed2eb9ea71384d78731d146a1c0a64c138fffd7302a05d6fff83aea",
+      "size": 67284,
+      "role": "joint06_original_model38"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/work/C-2-moveit/isaac_sim/ros_ws/src/m0609_rg2_sim_model/meshes/link_1_visual_0.stl",
+      "preserved": "snapshot/work/C-2-moveit/isaac_sim/ros_ws/src/m0609_rg2_sim_model/meshes/link_1_visual_0.stl",
+      "sha256": "f5585d90d8e77505b2956a36ee814ee2299a99cddb9660dd2dbfbb906b8401a0",
+      "size": 130484,
+      "role": "joint06_original_model38"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/work/C-2-moveit/isaac_sim/ros_ws/src/m0609_rg2_sim_model/meshes/link_2_collision_0.stl",
+      "preserved": "snapshot/work/C-2-moveit/isaac_sim/ros_ws/src/m0609_rg2_sim_model/meshes/link_2_collision_0.stl",
+      "sha256": "8a07b87850ac86472098851da4fca30aeadf790ac813cccefbdafebe6ff316b3",
+      "size": 79884,
+      "role": "joint06_original_model38"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/work/C-2-moveit/isaac_sim/ros_ws/src/m0609_rg2_sim_model/meshes/link_2_visual_0.stl",
+      "preserved": "snapshot/work/C-2-moveit/isaac_sim/ros_ws/src/m0609_rg2_sim_model/meshes/link_2_visual_0.stl",
+      "sha256": "a762cc7a856f43e551a50d47ca8dea01f58511872b001dcb98915921ec5cec36",
+      "size": 145684,
+      "role": "joint06_original_model38"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/work/C-2-moveit/isaac_sim/ros_ws/src/m0609_rg2_sim_model/meshes/link_2_collision_1.stl",
+      "preserved": "snapshot/work/C-2-moveit/isaac_sim/ros_ws/src/m0609_rg2_sim_model/meshes/link_2_collision_1.stl",
+      "sha256": "95f2a1d05d5e5d6613f79a79f2d61ad1be9a46288da6fdaaee7facfe8d445f9e",
+      "size": 117884,
+      "role": "joint06_original_model38"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/work/C-2-moveit/isaac_sim/ros_ws/src/m0609_rg2_sim_model/meshes/link_2_visual_1.stl",
+      "preserved": "snapshot/work/C-2-moveit/isaac_sim/ros_ws/src/m0609_rg2_sim_model/meshes/link_2_visual_1.stl",
+      "sha256": "42dba12985fc5581b8c546d9d48c7a57dc311526924bdfacd51b10e98b444a9c",
+      "size": 1373384,
+      "role": "joint06_original_model38"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/work/C-2-moveit/isaac_sim/ros_ws/src/m0609_rg2_sim_model/meshes/link_2_collision_2.stl",
+      "preserved": "snapshot/work/C-2-moveit/isaac_sim/ros_ws/src/m0609_rg2_sim_model/meshes/link_2_collision_2.stl",
+      "sha256": "c77bacf338e9bd6640fa2e8e1e28e568155dbe1725408def9c1b07f94e188f58",
+      "size": 82184,
+      "role": "joint06_original_model38"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/work/C-2-moveit/isaac_sim/ros_ws/src/m0609_rg2_sim_model/meshes/link_2_visual_2.stl",
+      "preserved": "snapshot/work/C-2-moveit/isaac_sim/ros_ws/src/m0609_rg2_sim_model/meshes/link_2_visual_2.stl",
+      "sha256": "8dd8dae3904df4cc069b6144db131cd52eeae03936481610f0aef2f47bb4a4ae",
+      "size": 145684,
+      "role": "joint06_original_model38"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/work/C-2-moveit/isaac_sim/ros_ws/src/m0609_rg2_sim_model/meshes/link_3_collision_0.stl",
+      "preserved": "snapshot/work/C-2-moveit/isaac_sim/ros_ws/src/m0609_rg2_sim_model/meshes/link_3_collision_0.stl",
+      "sha256": "4f95d61c497143d1aafdd060b92f910c8940e37f5a12a2d8fd581a1ae2166a58",
+      "size": 78984,
+      "role": "joint06_original_model38"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/work/C-2-moveit/isaac_sim/ros_ws/src/m0609_rg2_sim_model/meshes/link_3_visual_0.stl",
+      "preserved": "snapshot/work/C-2-moveit/isaac_sim/ros_ws/src/m0609_rg2_sim_model/meshes/link_3_visual_0.stl",
+      "sha256": "5816ec2644f6ea1015493416fc22e614470d01da9e44d318384225746c283088",
+      "size": 136884,
+      "role": "joint06_original_model38"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/work/C-2-moveit/isaac_sim/ros_ws/src/m0609_rg2_sim_model/meshes/link_4_collision_0.stl",
+      "preserved": "snapshot/work/C-2-moveit/isaac_sim/ros_ws/src/m0609_rg2_sim_model/meshes/link_4_collision_0.stl",
+      "sha256": "f2f6ed00cc8bf16a6cd8448bc6356a44b503048f831bfbaf6a4be387d996bc64",
+      "size": 36284,
+      "role": "joint06_original_model38"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/work/C-2-moveit/isaac_sim/ros_ws/src/m0609_rg2_sim_model/meshes/link_4_visual_0.stl",
+      "preserved": "snapshot/work/C-2-moveit/isaac_sim/ros_ws/src/m0609_rg2_sim_model/meshes/link_4_visual_0.stl",
+      "sha256": "055ade9f74c603683d5389feef7c4d7db2640175ebb37baa569d2129b868f8bc",
+      "size": 106284,
+      "role": "joint06_original_model38"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/work/C-2-moveit/isaac_sim/ros_ws/src/m0609_rg2_sim_model/meshes/link_4_collision_1.stl",
+      "preserved": "snapshot/work/C-2-moveit/isaac_sim/ros_ws/src/m0609_rg2_sim_model/meshes/link_4_collision_1.stl",
+      "sha256": "1616e8398d8e2bab9ea2bcc02d58c64599cf782217d3ff11791425598ccb6f76",
+      "size": 73984,
+      "role": "joint06_original_model38"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/work/C-2-moveit/isaac_sim/ros_ws/src/m0609_rg2_sim_model/meshes/link_4_visual_1.stl",
+      "preserved": "snapshot/work/C-2-moveit/isaac_sim/ros_ws/src/m0609_rg2_sim_model/meshes/link_4_visual_1.stl",
+      "sha256": "0349c2eddc663541f82b7299e38d50059894dcb550ede9599679c6d5ccf33cfa",
+      "size": 130484,
+      "role": "joint06_original_model38"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/work/C-2-moveit/isaac_sim/ros_ws/src/m0609_rg2_sim_model/meshes/link_5_collision_0.stl",
+      "preserved": "snapshot/work/C-2-moveit/isaac_sim/ros_ws/src/m0609_rg2_sim_model/meshes/link_5_collision_0.stl",
+      "sha256": "a853a06b74147742df97551beba469e132fdd711aef3dd42e2de217338b4ce88",
+      "size": 64784,
+      "role": "joint06_original_model38"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/work/C-2-moveit/isaac_sim/ros_ws/src/m0609_rg2_sim_model/meshes/link_5_visual_0.stl",
+      "preserved": "snapshot/work/C-2-moveit/isaac_sim/ros_ws/src/m0609_rg2_sim_model/meshes/link_5_visual_0.stl",
+      "sha256": "c98311272c56301831c606d54f34edc394e5efd31226e0024d0ae2a0a4bbc181",
+      "size": 136084,
+      "role": "joint06_original_model38"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/work/C-2-moveit/isaac_sim/ros_ws/src/m0609_rg2_sim_model/meshes/link_6_collision_0.stl",
+      "preserved": "snapshot/work/C-2-moveit/isaac_sim/ros_ws/src/m0609_rg2_sim_model/meshes/link_6_collision_0.stl",
+      "sha256": "7ce76d57d60742355e6caeb8b26b280df20669622e2ffae7ea0d78ae666ec894",
+      "size": 50584,
+      "role": "joint06_original_model38"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/work/C-2-moveit/isaac_sim/ros_ws/src/m0609_rg2_sim_model/meshes/link_6_visual_0.stl",
+      "preserved": "snapshot/work/C-2-moveit/isaac_sim/ros_ws/src/m0609_rg2_sim_model/meshes/link_6_visual_0.stl",
+      "sha256": "8c40da04000e70b0dfc310638104ea40b61bb159ae52907db447a7c1513773df",
+      "size": 127884,
+      "role": "joint06_original_model38"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/work/C-2-moveit/isaac_sim/ros_ws/src/m0609_rg2_sim_model/meshes/rg2_base_link_visual_0.stl",
+      "preserved": "snapshot/work/C-2-moveit/isaac_sim/ros_ws/src/m0609_rg2_sim_model/meshes/rg2_base_link_visual_0.stl",
+      "sha256": "23229cf67dfd0cee2f6e8e62b3d7b3f8df3cf7642db06588843f6ed5c98e3e2e",
+      "size": 500084,
+      "role": "joint06_original_model38"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/work/C-2-moveit/isaac_sim/ros_ws/src/m0609_rg2_sim_model/meshes/rg2_base_link_collision_0.stl",
+      "preserved": "snapshot/work/C-2-moveit/isaac_sim/ros_ws/src/m0609_rg2_sim_model/meshes/rg2_base_link_collision_0.stl",
+      "sha256": "448454b5c791ba6f29f6f2999738f7c236e2977d5b5a36e7cbe62aa6211c91f6",
+      "size": 28984,
+      "role": "joint06_original_model38"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/work/C-2-moveit/isaac_sim/ros_ws/src/m0609_rg2_sim_model/meshes/rg2_left_outer_knuckle_visual_0.stl",
+      "preserved": "snapshot/work/C-2-moveit/isaac_sim/ros_ws/src/m0609_rg2_sim_model/meshes/rg2_left_outer_knuckle_visual_0.stl",
+      "sha256": "0459184584920020808d0d9a2f89dbaa4eeab67c79c68bcd8dead8f8edc705ef",
+      "size": 500084,
+      "role": "joint06_original_model38"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/work/C-2-moveit/isaac_sim/ros_ws/src/m0609_rg2_sim_model/meshes/rg2_left_outer_knuckle_collision_0.stl",
+      "preserved": "snapshot/work/C-2-moveit/isaac_sim/ros_ws/src/m0609_rg2_sim_model/meshes/rg2_left_outer_knuckle_collision_0.stl",
+      "sha256": "ffbe39fb95eddfb1a612825d7aee230f1f8df08958278c7fe53227d27ea28931",
+      "size": 39384,
+      "role": "joint06_original_model38"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/work/C-2-moveit/isaac_sim/ros_ws/src/m0609_rg2_sim_model/meshes/rg2_left_inner_knuckle_visual_0.stl",
+      "preserved": "snapshot/work/C-2-moveit/isaac_sim/ros_ws/src/m0609_rg2_sim_model/meshes/rg2_left_inner_knuckle_visual_0.stl",
+      "sha256": "9515341736761cd25bdab5dced1f80b96f5c782e13caeb7b795e296d4d71d815",
+      "size": 500084,
+      "role": "joint06_original_model38"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/work/C-2-moveit/isaac_sim/ros_ws/src/m0609_rg2_sim_model/meshes/rg2_left_inner_knuckle_collision_0.stl",
+      "preserved": "snapshot/work/C-2-moveit/isaac_sim/ros_ws/src/m0609_rg2_sim_model/meshes/rg2_left_inner_knuckle_collision_0.stl",
+      "sha256": "72cb39cca2eb23e5f708f0e59f38afaa6247ae5b1fac16356b831167a96f50d1",
+      "size": 46484,
+      "role": "joint06_original_model38"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/work/C-2-moveit/isaac_sim/ros_ws/src/m0609_rg2_sim_model/meshes/rg2_left_inner_finger_visual_0.stl",
+      "preserved": "snapshot/work/C-2-moveit/isaac_sim/ros_ws/src/m0609_rg2_sim_model/meshes/rg2_left_inner_finger_visual_0.stl",
+      "sha256": "3f21b54a4219fc87fc785508435d3d88ab4ffb799cbd8802f0d1d4d45856c1e8",
+      "size": 500084,
+      "role": "joint06_original_model38"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/work/C-2-moveit/isaac_sim/ros_ws/src/m0609_rg2_sim_model/meshes/rg2_left_inner_finger_collision_0.stl",
+      "preserved": "snapshot/work/C-2-moveit/isaac_sim/ros_ws/src/m0609_rg2_sim_model/meshes/rg2_left_inner_finger_collision_0.stl",
+      "sha256": "1d8ecd5333e05f229b230d77b3781ba82a2f6e28a199c7a3093f61cf23e75f0f",
+      "size": 56984,
+      "role": "joint06_original_model38"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/work/C-2-moveit/isaac_sim/ros_ws/src/m0609_rg2_sim_model/meshes/rg2_right_outer_knuckle_visual_0.stl",
+      "preserved": "snapshot/work/C-2-moveit/isaac_sim/ros_ws/src/m0609_rg2_sim_model/meshes/rg2_right_outer_knuckle_visual_0.stl",
+      "sha256": "0459184584920020808d0d9a2f89dbaa4eeab67c79c68bcd8dead8f8edc705ef",
+      "size": 500084,
+      "role": "joint06_original_model38"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/work/C-2-moveit/isaac_sim/ros_ws/src/m0609_rg2_sim_model/meshes/rg2_right_outer_knuckle_collision_0.stl",
+      "preserved": "snapshot/work/C-2-moveit/isaac_sim/ros_ws/src/m0609_rg2_sim_model/meshes/rg2_right_outer_knuckle_collision_0.stl",
+      "sha256": "ffbe39fb95eddfb1a612825d7aee230f1f8df08958278c7fe53227d27ea28931",
+      "size": 39384,
+      "role": "joint06_original_model38"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/work/C-2-moveit/isaac_sim/ros_ws/src/m0609_rg2_sim_model/meshes/rg2_right_inner_knuckle_visual_0.stl",
+      "preserved": "snapshot/work/C-2-moveit/isaac_sim/ros_ws/src/m0609_rg2_sim_model/meshes/rg2_right_inner_knuckle_visual_0.stl",
+      "sha256": "9515341736761cd25bdab5dced1f80b96f5c782e13caeb7b795e296d4d71d815",
+      "size": 500084,
+      "role": "joint06_original_model38"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/work/C-2-moveit/isaac_sim/ros_ws/src/m0609_rg2_sim_model/meshes/rg2_right_inner_knuckle_collision_0.stl",
+      "preserved": "snapshot/work/C-2-moveit/isaac_sim/ros_ws/src/m0609_rg2_sim_model/meshes/rg2_right_inner_knuckle_collision_0.stl",
+      "sha256": "72cb39cca2eb23e5f708f0e59f38afaa6247ae5b1fac16356b831167a96f50d1",
+      "size": 46484,
+      "role": "joint06_original_model38"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/work/C-2-moveit/isaac_sim/ros_ws/src/m0609_rg2_sim_model/meshes/rg2_right_inner_finger_visual_0.stl",
+      "preserved": "snapshot/work/C-2-moveit/isaac_sim/ros_ws/src/m0609_rg2_sim_model/meshes/rg2_right_inner_finger_visual_0.stl",
+      "sha256": "3f21b54a4219fc87fc785508435d3d88ab4ffb799cbd8802f0d1d4d45856c1e8",
+      "size": 500084,
+      "role": "joint06_original_model38"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/work/C-2-moveit/isaac_sim/ros_ws/src/m0609_rg2_sim_model/meshes/rg2_right_inner_finger_collision_0.stl",
+      "preserved": "snapshot/work/C-2-moveit/isaac_sim/ros_ws/src/m0609_rg2_sim_model/meshes/rg2_right_inner_finger_collision_0.stl",
+      "sha256": "1d8ecd5333e05f229b230d77b3781ba82a2f6e28a199c7a3093f61cf23e75f0f",
+      "size": 56984,
+      "role": "joint06_original_model38"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/moveit_compact_lifecycle_application_20261016/CANONICAL_SOURCE_MODEL_MANIFEST.json",
+      "preserved": "snapshot/local_records/moveit_compact_lifecycle_application_20261016/CANONICAL_SOURCE_MODEL_MANIFEST.json",
+      "sha256": "177ce4b95b8c853e0dec1219813a0491dfcfc62e3bdbda6c9bc51ffaff0216eb",
+      "size": 44484,
+      "role": "dependency"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/moveit_joint_compact_trial_candidate06_20261016/source126_archive_map.json",
+      "preserved": "snapshot/local_records/moveit_joint_compact_trial_candidate06_20261016/source126_archive_map.json",
+      "sha256": "7c7706db467ca61cc5616ad985c45e9a84e7d965900add18dec1620af4cd85ee",
+      "size": 70024,
+      "role": "dependency"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/work/C-2-moveit/isaac_sim/scripts/live_cumotion_boundary.py",
+      "preserved": "snapshot/work/C-2-moveit/isaac_sim/scripts/live_cumotion_boundary.py",
+      "sha256": "6294feb50c14ddfe42714def035f0216684faa3efbd5af91762af3a157eb6711",
+      "size": 24376,
+      "role": "joint06_runtime_pinned_support"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/work/C-2-moveit/isaac_sim/scripts/depth_obstacle_envelope.py",
+      "preserved": "snapshot/work/C-2-moveit/isaac_sim/scripts/depth_obstacle_envelope.py",
+      "sha256": "14225c9908e52b2022f962f38115b8088752e32a64e6e7ad88ffd7537839bc14",
+      "size": 27911,
+      "role": "support_import_closure_current_readonly"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/work/C-2-moveit/isaac_sim/real_execution/held_attachment.py",
+      "preserved": "snapshot/work/C-2-moveit/isaac_sim/real_execution/held_attachment.py",
+      "sha256": "67172b2429658513b1a3cfece459198a873237b6897988b0b097c95bea1ae493",
+      "size": 10813,
+      "role": "support_import_closure_current_readonly"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/work/C-2-moveit/isaac_sim/scripts/stationary_sim_calculation.py",
+      "preserved": "snapshot/work/C-2-moveit/isaac_sim/scripts/stationary_sim_calculation.py",
+      "sha256": "b3ca94100db20f94133e89310b642ae78de876733712c9b3dd953037ac1bae59",
+      "size": 21278,
+      "role": "support_import_closure_current_readonly"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/work/C-2-moveit/isaac_sim/scripts/prepare_sim_scene.py",
+      "preserved": "snapshot/work/C-2-moveit/isaac_sim/scripts/prepare_sim_scene.py",
+      "sha256": "5908850b250202e55731eb84966cd65dfe52edec784c64b7274ab0ef41ccdede",
+      "size": 10107,
+      "role": "support_import_closure_current_readonly"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/work/C-2-moveit/isaac_sim/scripts/prepare_taught_sim.py",
+      "preserved": "snapshot/work/C-2-moveit/isaac_sim/scripts/prepare_taught_sim.py",
+      "sha256": "beb351739dab45616a33f17920a23eecb54c0c46b1d7b715bd4e256c70c27fee",
+      "size": 14312,
+      "role": "support_import_closure_current_readonly"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/work/C-2-moveit/app/cad_trial.py",
+      "preserved": "snapshot/work/C-2-moveit/app/cad_trial.py",
+      "sha256": "30f1a10e489c928643c351719bb0cd8406c68cf96f0a41ab6f3f9346cbcb261f",
+      "size": 22354,
+      "role": "support_import_closure_current_readonly"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/work/C-2-moveit/planning_trial/assembly_api_fixtures.py",
+      "preserved": "snapshot/work/C-2-moveit/planning_trial/assembly_api_fixtures.py",
+      "sha256": "1336acadd48156284f7ddb993f9b06cafec91990fd7e5047fe60bb52a372b100",
+      "size": 6680,
+      "role": "support_import_closure_current_readonly"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/work/C-2-moveit/app/supply_slots.py",
+      "preserved": "snapshot/work/C-2-moveit/app/supply_slots.py",
+      "sha256": "3cc9112fd2568f0094bd4b48d3afbf8a4f5952da5698ed2eb5f3ff0f56708e8c",
+      "size": 302,
+      "role": "support_import_closure_current_readonly"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/work/C-2-moveit/app/robot_teaching.py",
+      "preserved": "snapshot/work/C-2-moveit/app/robot_teaching.py",
+      "sha256": "5dbdfc448f13b89177bde10ea937afe5bdd473d2f4cef85c980dd12f90670c34",
+      "size": 14460,
+      "role": "support_import_closure_current_readonly"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/work/C-2-moveit/app/assembly_board_calibration.py",
+      "preserved": "snapshot/work/C-2-moveit/app/assembly_board_calibration.py",
+      "sha256": "82cc72fa459dea99e090ba8b0e478fa57385137053b0737574d1ce649aec8040",
+      "size": 4712,
+      "role": "support_import_closure_current_readonly"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/work/C-2-moveit/app/c_design/main.py",
+      "preserved": "snapshot/work/C-2-moveit/app/c_design/main.py",
+      "sha256": "8098153f562c5c2150c17545f1c15bfbcbf264e644565aa7627cd9c9485a84d2",
+      "size": 59195,
+      "role": "support_import_closure_current_readonly"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/work/C-2-moveit/app/robot_process.py",
+      "preserved": "snapshot/work/C-2-moveit/app/robot_process.py",
+      "sha256": "7137aecdfbad5f24b2791891c0e2a6040319d4296f5b06b63baf189212298076",
+      "size": 2553,
+      "role": "support_import_closure_current_readonly"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/work/C-2-moveit/app/c_design/__init__.py",
+      "preserved": "snapshot/work/C-2-moveit/app/c_design/__init__.py",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "size": 0,
+      "role": "support_import_closure_current_readonly"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/work/C-2-moveit/app/contracts.py",
+      "preserved": "snapshot/work/C-2-moveit/app/contracts.py",
+      "sha256": "f686d4ade0ffbbbd14391b3eb178789b9337de95bc331eb5be5aa073a685aaaf",
+      "size": 8449,
+      "role": "support_import_closure_current_readonly"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/work/C-2-moveit/isaac_sim/depth_obstacles/fixed_transport_review.py",
+      "preserved": "snapshot/work/C-2-moveit/isaac_sim/depth_obstacles/fixed_transport_review.py",
+      "sha256": "77237e99e8538c83f726f221e6be4ded3ed294ebba01675a4f64995d1781bb6f",
+      "size": 7103,
+      "role": "support_import_closure_current_readonly"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/work/C-2-moveit/isaac_sim/depth_obstacles/live_native_depth_owner.py",
+      "preserved": "snapshot/work/C-2-moveit/isaac_sim/depth_obstacles/live_native_depth_owner.py",
+      "sha256": "6de53b991ceae5dfff8bebb2fe44ebd279432dfded25e5ba16bbf087f8320b35",
+      "size": 70761,
+      "role": "support_import_closure_current_readonly"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/work/C-2-moveit/isaac_sim/depth_obstacles/live_depth_stop.py",
+      "preserved": "snapshot/work/C-2-moveit/isaac_sim/depth_obstacles/live_depth_stop.py",
+      "sha256": "71673ad99f36148ed6b32d1c9431bd77a832429dd512408fcdab1cab0ce1aac8",
+      "size": 24211,
+      "role": "support_import_closure_current_readonly"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/work/C-2-moveit/isaac_sim/depth_obstacles/live_sensor_bundle.py",
+      "preserved": "snapshot/work/C-2-moveit/isaac_sim/depth_obstacles/live_sensor_bundle.py",
+      "sha256": "5f89b08a8dc031f885fa9f39c2b2fe2910c4f6adca8922617c766fa8d50322bb",
+      "size": 8142,
+      "role": "support_import_closure_current_readonly"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/work/C-2-moveit/isaac_sim/depth_obstacles/rolling_owner_view.py",
+      "preserved": "snapshot/work/C-2-moveit/isaac_sim/depth_obstacles/rolling_owner_view.py",
+      "sha256": "2cb60c76385427aab2214fd1e7ec467dc89157fd7561650179f94e893cb61177",
+      "size": 1858,
+      "role": "support_import_closure_current_readonly"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/work/C-2-moveit/isaac_sim/depth_obstacles/prepared_job_selection.py",
+      "preserved": "snapshot/work/C-2-moveit/isaac_sim/depth_obstacles/prepared_job_selection.py",
+      "sha256": "d79b5fa509580dd8e3f66e90c32c53c52463f43165e26ff3f97452ad13e6c7ab",
+      "size": 3676,
+      "role": "support_import_closure_current_readonly"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/work/C-2-moveit/isaac_sim/depth_obstacles/native_resume_sender.py",
+      "preserved": "snapshot/work/C-2-moveit/isaac_sim/depth_obstacles/native_resume_sender.py",
+      "sha256": "f1d9411ce6c4f188e8f51bcc75b30bd3b99cd29eaa0362843d3196e27b80885b",
+      "size": 5954,
+      "role": "support_import_closure_current_readonly"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/work/C-2-moveit/isaac_sim/depth_obstacles/resume_monitor.py",
+      "preserved": "snapshot/work/C-2-moveit/isaac_sim/depth_obstacles/resume_monitor.py",
+      "sha256": "65be50d6bd332d5964224b1b5bf6d0024a03fa014df69940161d9a0729bce9ac",
+      "size": 1575,
+      "role": "support_import_closure_current_readonly"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/work/C-2-moveit/isaac_sim/depth_obstacles/complete_sensor_bundle.py",
+      "preserved": "snapshot/work/C-2-moveit/isaac_sim/depth_obstacles/complete_sensor_bundle.py",
+      "sha256": "14a5f5b48f8f9b393176bfc4164f4859dddad6511c9c57821f6187cd50c24370",
+      "size": 8119,
+      "role": "support_import_closure_current_readonly"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/work/C-2-moveit/isaac_sim/depth_obstacles/prepared_admission_ipc.py",
+      "preserved": "snapshot/work/C-2-moveit/isaac_sim/depth_obstacles/prepared_admission_ipc.py",
+      "sha256": "726c396b2f8304f8a510b525721330566123b795c5b4a4181d05dcedab738cac",
+      "size": 4884,
+      "role": "support_import_closure_current_readonly"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/work/C-2-moveit/isaac_sim/depth_obstacles/prepare_static_prior.py",
+      "preserved": "snapshot/work/C-2-moveit/isaac_sim/depth_obstacles/prepare_static_prior.py",
+      "sha256": "c4ca928b7dd374e4d7c30d47fdc41a879ec48f6cf4c6397018eb47a0612db3c9",
+      "size": 4441,
+      "role": "support_import_closure_current_readonly"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/work/C-2-moveit/isaac_sim/real_execution/remaining_volume.py",
+      "preserved": "snapshot/work/C-2-moveit/isaac_sim/real_execution/remaining_volume.py",
+      "sha256": "ffc358c4720527e13adf6064e7752ed0f1b0e1e01c1ffb8e494a7105c4ab5788",
+      "size": 25270,
+      "role": "support_import_closure_current_readonly"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/work/C-2-moveit/isaac_sim/real_execution/risk_spatial.py",
+      "preserved": "snapshot/work/C-2-moveit/isaac_sim/real_execution/risk_spatial.py",
+      "sha256": "a5dd64e0c2ab1a3ad82c7c6101795fd6f84172281384164dfc7ce97ef954ea86",
+      "size": 6997,
+      "role": "support_import_closure_current_readonly"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/work/C-2-moveit/isaac_sim/scripts/current_geometry_fcl.py",
+      "preserved": "snapshot/work/C-2-moveit/isaac_sim/scripts/current_geometry_fcl.py",
+      "sha256": "fb93e5abe24739de8664043c9a982ab67e0503253b02fd6fcc99b2acd7d5ea22",
+      "size": 31412,
+      "role": "support_import_closure_current_readonly"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/work/C-2-moveit/isaac_sim/scripts/cumotion_pose_engine.py",
+      "preserved": "snapshot/work/C-2-moveit/isaac_sim/scripts/cumotion_pose_engine.py",
+      "sha256": "ca7bd10f5b6b60a70954d8048853e1aa496409c5115416f7a6a3eb2e6399eb72",
+      "size": 26962,
+      "role": "support_import_closure_current_readonly"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/work/C-2-moveit/isaac_sim/scripts/cumotion_cspace_engine.py",
+      "preserved": "snapshot/work/C-2-moveit/isaac_sim/scripts/cumotion_cspace_engine.py",
+      "sha256": "5d6505c80c91763c3b5507cc53567c2fe018abae7ea3716d2436180a36503f83",
+      "size": 5722,
+      "role": "support_import_closure_current_readonly"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/work/C-2-moveit/isaac_sim/scripts/cumotion_axis_gate.py",
+      "preserved": "snapshot/work/C-2-moveit/isaac_sim/scripts/cumotion_axis_gate.py",
+      "sha256": "3afb67dba52bde04b90e42457dbfc8ae74454a01638ad07b3acffae542ad0c76",
+      "size": 6778,
+      "role": "support_import_closure_current_readonly"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/work/C-2-moveit/isaac_sim/scripts/online_cumotion_worker.py",
+      "preserved": "snapshot/work/C-2-moveit/isaac_sim/scripts/online_cumotion_worker.py",
+      "sha256": "9043b8035c24d8467379853561d8d8015576c97cc1512f0aedac6b8e87392db8",
+      "size": 40448,
+      "role": "support_import_closure_current_readonly"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/work/C-2-moveit/isaac_sim/scripts/benchmark_cumotion.py",
+      "preserved": "snapshot/work/C-2-moveit/isaac_sim/scripts/benchmark_cumotion.py",
+      "sha256": "914a05154d30c9ed9c7dd4b43d16515ce30cb2de8aa1b1186496879b01712302",
+      "size": 18316,
+      "role": "support_import_closure_current_readonly"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/work/C-2-moveit/isaac_sim/scripts/calculate_cumotion.py",
+      "preserved": "snapshot/work/C-2-moveit/isaac_sim/scripts/calculate_cumotion.py",
+      "sha256": "95c39f59249f901f597987d9a04de6dbc2cd3d5a53b8c0f10119f21882153cce",
+      "size": 25763,
+      "role": "support_import_closure_current_readonly"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/work/C-2-moveit/isaac_sim/scripts/plan_cumotion_sim.py",
+      "preserved": "snapshot/work/C-2-moveit/isaac_sim/scripts/plan_cumotion_sim.py",
+      "sha256": "6c59ce7177a6faefb8ba97e292d3e54abef4316754896692092ddc9d8b518807",
+      "size": 5855,
+      "role": "support_import_closure_current_readonly"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/work/C-2-moveit/isaac_sim/scripts/request_cumotion_admission.py",
+      "preserved": "snapshot/work/C-2-moveit/isaac_sim/scripts/request_cumotion_admission.py",
+      "sha256": "5fcb83635c335722d180741908ecf42c5a2f159ef4a6fcc3464bf1ef4fc9721c",
+      "size": 12118,
+      "role": "support_import_closure_current_readonly"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/work/C-2-moveit/isaac_sim/scripts/cspace_offline_engine.py",
+      "preserved": "snapshot/work/C-2-moveit/isaac_sim/scripts/cspace_offline_engine.py",
+      "sha256": "630241927aa7d3f6e4868eba40417b36e80af0ecfecda25f1e55cd353344ba31",
+      "size": 4121,
+      "role": "support_import_closure_current_readonly"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/work/C-2-moveit/isaac_sim/scripts/cumotion_archive_lease.py",
+      "preserved": "snapshot/work/C-2-moveit/isaac_sim/scripts/cumotion_archive_lease.py",
+      "sha256": "003a3da0f4656a762016942502ccf8cd68d41ae41758ec77a641d44c3e57dbfb",
+      "size": 8268,
+      "role": "support_import_closure_current_readonly"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/work/C-2-moveit/isaac_sim/scripts/cspace_result_protocol.py",
+      "preserved": "snapshot/work/C-2-moveit/isaac_sim/scripts/cspace_result_protocol.py",
+      "sha256": "26665552cd2da4d2e4cf23af2ac41ed8d29dc5fd1cd73504f86b5eab2fea1d9f",
+      "size": 7930,
+      "role": "support_import_closure_current_readonly"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/work/C-2-moveit/isaac_sim/real_execution/owner_records.py",
+      "preserved": "snapshot/work/C-2-moveit/isaac_sim/real_execution/owner_records.py",
+      "sha256": "5b5056b1c6fc775ea93f5f2e0f7714d0535364dc5b67d6f410550b8ba2de9eda",
+      "size": 28277,
+      "role": "support_import_closure_current_readonly"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/work/C-2-moveit/isaac_sim/depth_obstacles/bind_native_inventory.py",
+      "preserved": "snapshot/work/C-2-moveit/isaac_sim/depth_obstacles/bind_native_inventory.py",
+      "sha256": "3286e8c60cab9aa618e8e0dc70225179911fc2c19d05e6c6c0b354d433ee7b2d",
+      "size": 8404,
+      "role": "support_import_closure_current_readonly"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/work/C-2-moveit/isaac_sim/depth_obstacles/native_held_depth.py",
+      "preserved": "snapshot/work/C-2-moveit/isaac_sim/depth_obstacles/native_held_depth.py",
+      "sha256": "20b4e29de0ed571a613ee91abb68e7e635da7128cac4652940bfdd582c79153d",
+      "size": 20669,
+      "role": "support_import_closure_current_readonly"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/work/C-2-moveit/isaac_sim/scripts/native_compat.py",
+      "preserved": "snapshot/work/C-2-moveit/isaac_sim/scripts/native_compat.py",
+      "sha256": "2ccda53a5ecc385b343d8608443e077f054df6b72382ca683bc7d95c0d588c2e",
+      "size": 2266,
+      "role": "support_import_closure_current_readonly"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/blocked_path_native25_20261014/handoff.json",
+      "preserved": "snapshot/local_records/blocked_path_native25_20261014/handoff.json",
+      "sha256": "12de80fcec4ddcbc574304e1f2154ed3b6aaa8af46d315feb15f66e80df1195c",
+      "size": 34975,
+      "role": "fixed_runtime_or_qualification_input"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/blocked_path_native25_20261014/baseline/common_A/TRANSPORT.request.yaml",
+      "preserved": "snapshot/local_records/blocked_path_native25_20261014/baseline/common_A/TRANSPORT.request.yaml",
+      "sha256": "59c24040afc3a5e4f3ff7b41c5bfa6364b5174e94fc3f9b08487f81fd1410a5c",
+      "size": 90420,
+      "role": "fixed_runtime_or_qualification_input"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/blocked_path_native25_20261014/blocked_candidate/common_A/motion.request.json",
+      "preserved": "snapshot/local_records/blocked_path_native25_20261014/blocked_candidate/common_A/motion.request.json",
+      "sha256": "2ddab438a07b76e71e2943b9bfdfed6232ab4e51bfadb60e373359cb5a3e84bb",
+      "size": 22031,
+      "role": "fixed_runtime_or_qualification_input"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/blocked_path_native25_20261014/placement.json",
+      "preserved": "snapshot/local_records/blocked_path_native25_20261014/placement.json",
+      "sha256": "c6b7cbf4de9e77d0c6bcc52cc2c0f97a4e833aa25515e75aa26c3831dec2176c",
+      "size": 3008,
+      "role": "fixed_runtime_or_qualification_input"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/blocked_path_native25_20261014/baseline/scene.json",
+      "preserved": "snapshot/local_records/blocked_path_native25_20261014/baseline/scene.json",
+      "sha256": "691bdfdbbc0944c3b94044f09cc2e77a0ecb513958ace1182c417b706b3c0fc2",
+      "size": 37660,
+      "role": "fixed_runtime_or_qualification_input"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/blocked_path_native25_20261014/wrist_depth/captured_scene.usda",
+      "preserved": "snapshot/local_records/blocked_path_native25_20261014/wrist_depth/captured_scene.usda",
+      "sha256": "c358930f524beaf1a0d87ac4152300a9ef3ee71a840971e96f238e3aa8ea4135",
+      "size": 34135683,
+      "role": "fixed_runtime_or_qualification_input"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/design_cycle_stage4_1_20261014/wrist_depth25_native_rest/runtime_reference.json",
+      "preserved": "snapshot/local_records/design_cycle_stage4_1_20261014/wrist_depth25_native_rest/runtime_reference.json",
+      "sha256": "b5525defa96466a8f4f957ad40355c18942c7fa6715b8b3072e086e7fa621b08",
+      "size": 1343,
+      "role": "fixed_runtime_or_qualification_input"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/design_cycle_stage4_1_20261014/wrist_depth25_native_rest/capture.setup.current.json",
+      "preserved": "snapshot/local_records/design_cycle_stage4_1_20261014/wrist_depth25_native_rest/capture.setup.current.json",
+      "sha256": "421a3bec0c3594740ad3fe1df0e32bffc08123afc00fda7db6cd7b1e1af94127",
+      "size": 2310,
+      "role": "fixed_runtime_or_qualification_input"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/design_cycle_stage4_1_20261014/wrist_depth25_native_rest/controllers.reference.yaml",
+      "preserved": "snapshot/local_records/design_cycle_stage4_1_20261014/wrist_depth25_native_rest/controllers.reference.yaml",
+      "sha256": "fdc36758bd3a391b452bd4128657454d8f0b572aa702c61d4ae937068941ddfe",
+      "size": 1638,
+      "role": "fixed_runtime_or_qualification_input"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/step6_cumotion_20261014/blocked_path_cpu/handoff_to_moveit.json",
+      "preserved": "snapshot/local_records/step6_cumotion_20261014/blocked_path_cpu/handoff_to_moveit.json",
+      "sha256": "2efe3b0d3e4fe3a6d31e0460f84ae9c5b681309e9174dfcdd4bc7f8f4f4709ab",
+      "size": 1465,
+      "role": "fixed_runtime_or_qualification_input"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/step4_endpoint_moveit_20261013/empty_current/scene/scene.usda",
+      "preserved": "snapshot/local_records/step4_endpoint_moveit_20261013/empty_current/scene/scene.usda",
+      "sha256": "7213c9d056803e36df4b16dfd97a3ab53c7c053aec657ff43c8cd20a24924613",
+      "size": 89562,
+      "role": "fixed_runtime_or_qualification_input"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/step4_endpoint_moveit_20261013/empty_current/scene/scene.seed.json",
+      "preserved": "snapshot/local_records/step4_endpoint_moveit_20261013/empty_current/scene/scene.seed.json",
+      "sha256": "ab6e26aacee0fde3df5896187fb5c161725af3c032edff3e76be9adf08b997bd",
+      "size": 25949,
+      "role": "fixed_runtime_or_qualification_input"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/depth_native11_latency_stage03_20261015/unit01/qualify_native12_v2.py",
+      "preserved": "snapshot/local_records/depth_native11_latency_stage03_20261015/unit01/qualify_native12_v2.py",
+      "sha256": "1c65bf00d8b7b07ed47af985e3bd45b1e1def70edabb4b9b3a3c8a05f7fb96a8",
+      "size": 13252,
+      "role": "fixed_runtime_or_qualification_input"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/depth_native11_latency_stage03_20261015/unit01/native12_consumer_example.py",
+      "preserved": "snapshot/local_records/depth_native11_latency_stage03_20261015/unit01/native12_consumer_example.py",
+      "sha256": "586adcecbaeba271603f33a44f73579b2dd4e0092201bcbe89e28ccef1e63ee3",
+      "size": 1365,
+      "role": "fixed_runtime_or_qualification_input"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/depth_native07_qualification_20261015/unit01/limits.json",
+      "preserved": "snapshot/local_records/depth_native07_qualification_20261015/unit01/limits.json",
+      "sha256": "26f26fd030c33607fb18a8e2b0d2ed63ca6901eccec4686196fbf547b80f34c5",
+      "size": 170,
+      "role": "fixed_runtime_or_qualification_input"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/management/reports/depth_detection_mask_display_handoff.json",
+      "preserved": "snapshot/management/reports/depth_detection_mask_display_handoff.json",
+      "sha256": "26bedd6946771968ca8f6a9ae5ba817ab27242a78250211f5c457b9fddec8966",
+      "size": 11305,
+      "role": "fixed_runtime_or_qualification_input"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/depth_joint_compact_source_qualification_20261016/qualify_joint_candidate06_unit24.py",
+      "preserved": "snapshot/local_records/depth_joint_compact_source_qualification_20261016/qualify_joint_candidate06_unit24.py",
+      "sha256": "58f6eb564669e550d192a7ba68beab965ff9e58be4f84d5de59f75c7b8ace1bb",
+      "size": 12480,
+      "role": "fixed_runtime_or_qualification_input"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/step6_cumotion_20261014/blocked_path_cpu/execution_comparison_package.json",
+      "preserved": "snapshot/local_records/step6_cumotion_20261014/blocked_path_cpu/execution_comparison_package.json",
+      "sha256": "77e9e1755cc72051946b2d86ef350289b09e8a1e4ab009271d7c6e7ee72bfc77",
+      "size": 6933,
+      "role": "dependency"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/work/C-2-moveit/isaac_sim/config/whole.chair.current_supply.request.json",
+      "preserved": "snapshot/work/C-2-moveit/isaac_sim/config/whole.chair.current_supply.request.json",
+      "sha256": "52e071835e300805016d1e930e01ef1e2eeadce2c9cfbc7eb390a84b9973d895",
+      "size": 18750,
+      "role": "runtime_configuration"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/work/C-2-moveit/isaac_sim/config/red_supply.layout.json",
+      "preserved": "snapshot/work/C-2-moveit/isaac_sim/config/red_supply.layout.json",
+      "sha256": "70856963cde14dc747bedf2a15f06b1fd0496a0fed2b911b7a17efd7beb3efa0",
+      "size": 350,
+      "role": "runtime_configuration"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/work/C-2-moveit/isaac_sim/config/validation_three_blocks.request.json",
+      "preserved": "snapshot/work/C-2-moveit/isaac_sim/config/validation_three_blocks.request.json",
+      "sha256": "2aea943b379ba0be02937d92954164b2018f3df46a9b2edc152f76b187ebfd56",
+      "size": 17270,
+      "role": "runtime_configuration"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/work/C-2-moveit/isaac_sim/config/whole.complete_first.request.json",
+      "preserved": "snapshot/work/C-2-moveit/isaac_sim/config/whole.complete_first.request.json",
+      "sha256": "de227552832e78404e5fce90fc8fb972ba3a9d964900106995f936ad87f8275f",
+      "size": 17051,
+      "role": "runtime_configuration"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/work/C-2-moveit/isaac_sim/config/transport.sim.json",
+      "preserved": "snapshot/work/C-2-moveit/isaac_sim/config/transport.sim.json",
+      "sha256": "a25819780144f08396f5c58246b39607d00edd0bf123426ffdd6955c54e84ae2",
+      "size": 225,
+      "role": "runtime_configuration"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/work/C-2-moveit/isaac_sim/config/tray.sim.json",
+      "preserved": "snapshot/work/C-2-moveit/isaac_sim/config/tray.sim.json",
+      "sha256": "de5b6820cc9f7f5b61015cbd169eb41fb679b2471aba10eaeeedc6f517cb6607",
+      "size": 346,
+      "role": "runtime_configuration"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/work/C-2-moveit/isaac_sim/config/whole.chair.regression.request.json",
+      "preserved": "snapshot/work/C-2-moveit/isaac_sim/config/whole.chair.regression.request.json",
+      "sha256": "b0fe3579eb74199b46e6d9311348bd166a2a985ccfcfac620c4ee7f8390a33c3",
+      "size": 18286,
+      "role": "runtime_configuration"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/work/C-2-moveit/isaac_sim/config/whole.hand_review.request.json",
+      "preserved": "snapshot/work/C-2-moveit/isaac_sim/config/whole.hand_review.request.json",
+      "sha256": "cee37c574c6956cd6cb786ce061ad01713f14d3fef9792fd82bf22c55adb57c6",
+      "size": 18228,
+      "role": "runtime_configuration"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/work/C-2-moveit/isaac_sim/config/ompl.yaml",
+      "preserved": "snapshot/work/C-2-moveit/isaac_sim/config/ompl.yaml",
+      "sha256": "bb065cd912a66a29de2f0b17ea3ca82b32e48f81507fc072d694f1aec05c6ba2",
+      "size": 739,
+      "role": "runtime_configuration"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/work/C-2-moveit/isaac_sim/config/controllers.yaml",
+      "preserved": "snapshot/work/C-2-moveit/isaac_sim/config/controllers.yaml",
+      "sha256": "05b5547bc06f76e0c53201512e2435b76711df698a8135900735406e92a67d73",
+      "size": 1638,
+      "role": "runtime_configuration"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/work/C-2-moveit/isaac_sim/config/joint_limits.sim.yaml",
+      "preserved": "snapshot/work/C-2-moveit/isaac_sim/config/joint_limits.sim.yaml",
+      "sha256": "651c969efd8146563c36af77d1acb6e4f80d0c255e8da5e9ab7b38c23aab5360",
+      "size": 2545,
+      "role": "runtime_configuration"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/work/C-2-moveit/isaac_sim/config/moveit_controllers.yaml",
+      "preserved": "snapshot/work/C-2-moveit/isaac_sim/config/moveit_controllers.yaml",
+      "sha256": "c0ecca27d416ab06ecf8c916123c4c7bc5e590a5d2d505a3bad23140022934b1",
+      "size": 521,
+      "role": "runtime_configuration"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/work/C-2-moveit/isaac_sim/config/contact.sim.json",
+      "preserved": "snapshot/work/C-2-moveit/isaac_sim/config/contact.sim.json",
+      "sha256": "88b2500d0a0c82eb720976708e0792628429b274050d6e0559f6e8db52ec8c3b",
+      "size": 1682,
+      "role": "runtime_configuration"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/work/C-2-moveit/isaac_sim/config/live_static_depth_trial.policy.json",
+      "preserved": "snapshot/work/C-2-moveit/isaac_sim/config/live_static_depth_trial.policy.json",
+      "sha256": "01c09871041777395aa93c7d48c5d84bcba62fafa73fd0bffc44519d758d7969",
+      "size": 697,
+      "role": "runtime_configuration"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/work/C-2-moveit/isaac_sim/config/design.json",
+      "preserved": "snapshot/work/C-2-moveit/isaac_sim/config/design.json",
+      "sha256": "68b84e3542d68e0b81523a399157b3be86794e5fa2696fd82b455672a6778015",
+      "size": 182,
+      "role": "runtime_configuration"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/work/C-2-moveit/isaac_sim/config/whole.request.json",
+      "preserved": "snapshot/work/C-2-moveit/isaac_sim/config/whole.request.json",
+      "sha256": "9e70501117e2e989551d0bfd5720557ad03576bb1aee6aad69cc287393f40c55",
+      "size": 18179,
+      "role": "runtime_configuration"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/work/C-2-moveit/isaac_sim/config/precontact.plan_only.json",
+      "preserved": "snapshot/work/C-2-moveit/isaac_sim/config/precontact.plan_only.json",
+      "sha256": "458917643765dcfbf1bca8a9dd9d7832558e0982bd09670deee206e7d2618cb5",
+      "size": 348,
+      "role": "runtime_configuration"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/depth_native10_source_qualification_20261015/unit02/qualification.json",
+      "preserved": "snapshot/local_records/depth_native10_source_qualification_20261015/unit02/qualification.json",
+      "sha256": "2cc76d2074d4cbc94d0d45f22adfdd42ba77ddf869609786bb12f08613713fcc",
+      "size": 5184,
+      "role": "qualification_comparison_only"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/depth_native11_source_qualification_20261015/unit01/qualification.json",
+      "preserved": "snapshot/local_records/depth_native11_source_qualification_20261015/unit01/qualification.json",
+      "sha256": "3dc744b5495fd20fe70d8651541a6a5842895139a786dfc9f98f59ca7e938b24",
+      "size": 5160,
+      "role": "qualification_comparison_only"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/depth_native09_static_shadow_20261015/unit01/native09_pre_scope/qualification.json",
+      "preserved": "snapshot/local_records/depth_native09_static_shadow_20261015/unit01/native09_pre_scope/qualification.json",
+      "sha256": "0d1f946314fcd6afce7713bfd9c44adab82d391e125dcb2457a9f0e90243ea10",
+      "size": 18164,
+      "role": "qualification_comparison_only"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/moveit_native09_unlabelled_static_shadow_20261015/native09_corrective02/known_depth_map/approved_static_ids.json",
+      "preserved": "snapshot/local_records/moveit_native09_unlabelled_static_shadow_20261015/native09_corrective02/known_depth_map/approved_static_ids.json",
+      "sha256": "d800e23eda9b574ef31c739130f5ff39169bc9307539a4266f2ae5cadfe978ed",
+      "size": 755,
+      "role": "qualification_comparison_only"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/moveit_native09_unlabelled_static_shadow_20261015/native09_corrective02/known_depth_map/held_definition.json",
+      "preserved": "snapshot/local_records/moveit_native09_unlabelled_static_shadow_20261015/native09_corrective02/known_depth_map/held_definition.json",
+      "sha256": "d32a777016ed4ee39b7be467f211d1fd167f94f4aa7dd10a1cdf9ac49c6e5355",
+      "size": 3797,
+      "role": "qualification_comparison_only"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/moveit_native09_unlabelled_static_shadow_20261015/native09_corrective02/baseline_camera_profile.json",
+      "preserved": "snapshot/local_records/moveit_native09_unlabelled_static_shadow_20261015/native09_corrective02/baseline_camera_profile.json",
+      "sha256": "481efbe153ca4496196ffea8ed6c31f334140eb6a9b2b9df252d84bdc1485bba",
+      "size": 2732,
+      "role": "qualification_comparison_only"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/moveit_native09_unlabelled_static_shadow_20261015/native09_corrective02/loaded_sources/baseline_camera.py",
+      "preserved": "snapshot/local_records/moveit_native09_unlabelled_static_shadow_20261015/native09_corrective02/loaded_sources/baseline_camera.py",
+      "sha256": "e2403aa9749e368b4ce6d9ab714a6b0dc70b83bc2a6aa41cc803db13c14ccccc",
+      "size": 44760,
+      "role": "qualification_comparison_only"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/work/C-2-moveit/isaac_sim/assets/aligned_robot.sim.usda",
+      "preserved": "snapshot/work/C-2-moveit/isaac_sim/assets/aligned_robot.sim.usda",
+      "sha256": "a8c86f540bb9809c84f85399b86abe11a260edc1e796eb64941fff8bf5f56038",
+      "size": 13710,
+      "role": "USD_asset_closure"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/work/C-2-moveit/isaac_sim/assets/isaac_robot/m0609_rg2_sim_isaac.usda",
+      "preserved": "snapshot/work/C-2-moveit/isaac_sim/assets/isaac_robot/m0609_rg2_sim_isaac.usda",
+      "sha256": "562caf3258701146bf6e1c8c917238f4b22f56cf9569d3a2cda0991e82c41d48",
+      "size": 732,
+      "role": "USD_asset_closure"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/work/C-2-moveit/isaac_sim/assets/isaac_robot/payloads/base.usda",
+      "preserved": "snapshot/work/C-2-moveit/isaac_sim/assets/isaac_robot/payloads/base.usda",
+      "sha256": "03596588e224d52558d919e9ddb252240a69197910319d30d7e72d63b91c31b8",
+      "size": 35051,
+      "role": "USD_asset_closure"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/work/C-2-moveit/isaac_sim/assets/isaac_robot/payloads/Physics/mujoco.usda",
+      "preserved": "snapshot/work/C-2-moveit/isaac_sim/assets/isaac_robot/payloads/Physics/mujoco.usda",
+      "sha256": "dceeadbab1e613f06efcc1f23642a466712efd8f10a8b46568f1ed9c08342f99",
+      "size": 9870,
+      "role": "USD_asset_closure"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/work/C-2-moveit/isaac_sim/assets/isaac_robot/payloads/Physics/physics.usda",
+      "preserved": "snapshot/work/C-2-moveit/isaac_sim/assets/isaac_robot/payloads/Physics/physics.usda",
+      "sha256": "fd355c463ed4e0e24bfafbf4d17da7fb7d29d59898a776ddb51f6ef51ce64ffd",
+      "size": 28843,
+      "role": "USD_asset_closure"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/work/C-2-moveit/isaac_sim/assets/isaac_robot/payloads/Physics/physx.usda",
+      "preserved": "snapshot/work/C-2-moveit/isaac_sim/assets/isaac_robot/payloads/Physics/physx.usda",
+      "sha256": "4834fc70af3e2de6f25d5357daf4f340b70f8e75afbf6b331a1c8052b3a8b635",
+      "size": 1740,
+      "role": "USD_asset_closure"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/work/C-2-moveit/isaac_sim/assets/isaac_robot/payloads/robot.usda",
+      "preserved": "snapshot/work/C-2-moveit/isaac_sim/assets/isaac_robot/payloads/robot.usda",
+      "sha256": "a43c78711d43ea09547883684d86ab598ffef83a1d386d172a0383f558cbee35",
+      "size": 8361,
+      "role": "USD_asset_closure"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/work/C-2-moveit/isaac_sim/assets/isaac_robot/payloads/instances.usda",
+      "preserved": "snapshot/work/C-2-moveit/isaac_sim/assets/isaac_robot/payloads/instances.usda",
+      "sha256": "5b23c30e3c4d9389146d867ade9de48386b19c0c871dc529677acee3fb8912b9",
+      "size": 18807,
+      "role": "USD_asset_closure"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/work/C-2-moveit/isaac_sim/assets/isaac_robot/payloads/geometries.usd",
+      "preserved": "snapshot/work/C-2-moveit/isaac_sim/assets/isaac_robot/payloads/geometries.usd",
+      "sha256": "f273768be9c016848d49b116ca8fa872bd3beefe8379ba87edfe8dc92d66d3ad",
+      "size": 2189160,
+      "role": "USD_asset_closure"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/work/C-2-moveit/isaac_sim/assets/isaac_robot/payloads/materials.usda",
+      "preserved": "snapshot/work/C-2-moveit/isaac_sim/assets/isaac_robot/payloads/materials.usda",
+      "sha256": "5beb0dccde01f73c517ade1e9e9eb7b2834a809a8bf21d3dc51710bdecd3c0bd",
+      "size": 4686,
+      "role": "USD_asset_closure"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/work/C-2-moveit/isaac_sim/ros_ws/src/m0609_rg2_sim_model/urdf/m0609_rg2_sim.urdf",
+      "preserved": "snapshot/work/C-2-moveit/isaac_sim/ros_ws/src/m0609_rg2_sim_model/urdf/m0609_rg2_sim.urdf",
+      "sha256": "1faf53808e24330801cc6d164086f1eb796dbc3c8e83b88f62e62022142857a4",
+      "size": 17984,
+      "role": "model_source_pin"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/work/C-2-moveit/isaac_sim/ros_ws/src/m0609_rg2_sim_model/config/m0609_rg2_sim.srdf",
+      "preserved": "snapshot/work/C-2-moveit/isaac_sim/ros_ws/src/m0609_rg2_sim_model/config/m0609_rg2_sim.srdf",
+      "sha256": "4175e96ee8d6700cf25c2d50dcaac2284ae316116504f3de9d0f417547c1018d",
+      "size": 3577,
+      "role": "model_source_pin"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/work/C-2-moveit/isaac_sim/config/taught_coordinates_20261012/supply.json",
+      "preserved": "snapshot/work/C-2-moveit/isaac_sim/config/taught_coordinates_20261012/supply.json",
+      "sha256": "55ca811850af36d0c4b7e579f9b33ba9ae31fee7592eb63578271018199daa3e",
+      "size": 96321,
+      "role": "coordinate_provenance_dependency"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/work/C-2-moveit/isaac_sim/config/taught_coordinates_20261012/assembly_board_by_studs.json",
+      "preserved": "snapshot/work/C-2-moveit/isaac_sim/config/taught_coordinates_20261012/assembly_board_by_studs.json",
+      "sha256": "25d78b24504cfccab3957c06d992cd433374957d58cc2ddb2586a1bb8469c251",
+      "size": 113143,
+      "role": "coordinate_provenance_dependency"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/work/C-2-moveit/robot_control_integration/fixtures/teaching_sources/operator_assembly_6point_layer1.json",
+      "preserved": "snapshot/work/C-2-moveit/robot_control_integration/fixtures/teaching_sources/operator_assembly_6point_layer1.json",
+      "sha256": "e4781d072e8770fa7f631aa5ef5e5f873d853a27340535b605b1399dd7266829",
+      "size": 26136,
+      "role": "coordinate_provenance_dependency"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/work/C-2-moveit/robot_control_integration/calibration/layer_records.json",
+      "preserved": "snapshot/work/C-2-moveit/robot_control_integration/calibration/layer_records.json",
+      "sha256": "397c6749c4b42e296788c5fc3d57452307bf8f8a91df7bd359a8671c8190a501",
+      "size": 16567,
+      "role": "coordinate_provenance_dependency"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/work/C-2-moveit/robot_control_integration/calibration/assembly_board_16mm_20261007.json",
+      "preserved": "snapshot/work/C-2-moveit/robot_control_integration/calibration/assembly_board_16mm_20261007.json",
+      "sha256": "c77ff4cae46828ae2450875c1d904aae5bce8e965175c47ec71b1686ebf0fa20",
+      "size": 8535,
+      "role": "coordinate_provenance_dependency"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/work/C-2-moveit/robot_control_integration/settings/integration_native35/profile.reference.json",
+      "preserved": "snapshot/work/C-2-moveit/robot_control_integration/settings/integration_native35/profile.reference.json",
+      "sha256": "ac585f4fb21d4f02bdbcecb16b503de5a9a0d6ddd9c44559920b305e24c97bf3",
+      "size": 7585,
+      "role": "coordinate_provenance_dependency"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/work/C-2-moveit/robot_control_integration/app/assembly_step_runner.py",
+      "preserved": "snapshot/work/C-2-moveit/robot_control_integration/app/assembly_step_runner.py",
+      "sha256": "a75652e171e85a901c740ad06de410b475841ce2c10358d3eb9fd6498859b1bc",
+      "size": 29663,
+      "role": "coordinate_provenance_dependency"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/step4_endpoint_moveit_20261013/empty_current/nominal_geometry.json",
+      "preserved": "snapshot/local_records/step4_endpoint_moveit_20261013/empty_current/nominal_geometry.json",
+      "sha256": "ee6ea6b7ba9430c6d2aff1517b4c27f639e89b8fab665ada2ab91e5073646014",
+      "size": 7509,
+      "role": "coordinate_provenance_dependency"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/step4_endpoint_moveit_20261013/prepare_empty_case.py",
+      "preserved": "snapshot/local_records/step4_endpoint_moveit_20261013/prepare_empty_case.py",
+      "sha256": "5245cb97fcbea33c596703c18c3d0a1e36fc18c201f305ea24a83b76751313fa",
+      "size": 2934,
+      "role": "coordinate_provenance_dependency"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/work/C-2-moveit/app/c_design/designer.py",
+      "preserved": "snapshot/work/C-2-moveit/app/c_design/designer.py",
+      "sha256": "aca7b684165903865d68906be2389349079a173e921f5f922ccf1a47fbca824c",
+      "size": 18801,
+      "role": "support_import_closure_current_readonly"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/work/C-2-moveit/app/c_design/dialogue.py",
+      "preserved": "snapshot/work/C-2-moveit/app/c_design/dialogue.py",
+      "sha256": "77ca69f06d077d8f783d38f5c34dd5df7fe9d53644ca77df07a097861d5ef0ae",
+      "size": 35129,
+      "role": "support_import_closure_current_readonly"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/work/C-2-moveit/app/c_design/llm.py",
+      "preserved": "snapshot/work/C-2-moveit/app/c_design/llm.py",
+      "sha256": "356ff3425f05cc2a3d3528f08526c1e0b64ba903655558fd52946e7829b499bc",
+      "size": 69418,
+      "role": "support_import_closure_current_readonly"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/work/C-2-moveit/app/c_design/validator.py",
+      "preserved": "snapshot/work/C-2-moveit/app/c_design/validator.py",
+      "sha256": "01db5490caa3dd7cc537edd54d926616d939e17f4967dfde522c77e9a3e6a331",
+      "size": 19445,
+      "role": "support_import_closure_current_readonly"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/work/C-2-moveit/app/c_design/voice.py",
+      "preserved": "snapshot/work/C-2-moveit/app/c_design/voice.py",
+      "sha256": "ca64d3556b561f534e74396733df7111c3beee5332d3e20b7ea73f1934d209ac",
+      "size": 38235,
+      "role": "support_import_closure_current_readonly"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/work/C-2-moveit/planning_trial/connection_contract_review_20261008_v4/schema.json",
+      "preserved": "snapshot/work/C-2-moveit/planning_trial/connection_contract_review_20261008_v4/schema.json",
+      "sha256": "905bc94fa252d53f762cbde4034fdf28c97593b3ab2447a1df71578d963ba6e2",
+      "size": 51543,
+      "role": "fixed_runtime_or_qualification_input"
+    },
+    {
+      "original": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/work/C-2-moveit/isaac_sim/depth_obstacles/config/rokey_published_raw_depth_nominal.json",
+      "preserved": "snapshot/work/C-2-moveit/isaac_sim/depth_obstacles/config/rokey_published_raw_depth_nominal.json",
+      "sha256": "417a3ec1f27cca378a60d125a36ba787d77f7235e3fdf4fa2a2134c4f3e6caf0",
+      "size": 2314,
+      "role": "runtime_configuration"
+    }
+  ],
+  "excluded_nonruntime_rows": 1318
+}

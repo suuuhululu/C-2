@@ -1,0 +1,53 @@
+{
+  "scope": "CPU_D_BOUNDARY_REVIEW_LIMITS",
+  "policy_scope": "STAGED_NONEXECUTABLE_STOP_OBSERVATION_POLICY_NOT_LIVE_OWNER_EVIDENCE",
+  "max_state_age_s": 0.12,
+  "min_stop_observation_s": 0.5,
+  "criteria_sources": {
+    "max_stop_velocity_rad_s": {
+      "value": null,
+      "unit": "rad/s",
+      "source_category": "OFFICIAL_NOT_DEFINED",
+      "check_mode": "REPORT_ONLY",
+      "reference": "No adopted universal observed SDK cap supplied; preserve original D position-history STOP and independent same-UUID lifecycle evidence.",
+      "runtime_version": "CURRENT_SELECTED_SIM_OWNER_NOT_A_NUMERIC_SDK_LIMIT"
+    },
+    "max_stop_acceleration_rad_s2": {
+      "value": null,
+      "unit": "rad/s^2",
+      "source_category": "OFFICIAL_NOT_DEFINED",
+      "check_mode": "REPORT_ONLY",
+      "reference": "No adopted universal observed SDK cap supplied; preserve original D position-history STOP and independent same-UUID lifecycle evidence.",
+      "runtime_version": "CURRENT_SELECTED_SIM_OWNER_NOT_A_NUMERIC_SDK_LIMIT"
+    },
+    "q_tolerance_rad": {
+      "value": null,
+      "unit": "rad",
+      "source_category": "OFFICIAL_NOT_DEFINED",
+      "check_mode": "REPORT_ONLY",
+      "reference": "No adopted universal observed SDK cap supplied; preserve original D position-history STOP and independent same-UUID lifecycle evidence.",
+      "runtime_version": "CURRENT_SELECTED_SIM_OWNER_NOT_A_NUMERIC_SDK_LIMIT"
+    },
+    "v_tolerance_rad_s": {
+      "value": null,
+      "unit": "rad/s",
+      "source_category": "OFFICIAL_NOT_DEFINED",
+      "check_mode": "REPORT_ONLY",
+      "reference": "No adopted universal observed SDK cap supplied; preserve original D position-history STOP and independent same-UUID lifecycle evidence.",
+      "runtime_version": "CURRENT_SELECTED_SIM_OWNER_NOT_A_NUMERIC_SDK_LIMIT"
+    },
+    "a_tolerance_rad_s2": {
+      "value": null,
+      "unit": "rad/s^2",
+      "source_category": "OFFICIAL_NOT_DEFINED",
+      "check_mode": "REPORT_ONLY",
+      "reference": "No adopted universal observed SDK cap supplied; preserve original D position-history STOP and independent same-UUID lifecycle evidence.",
+      "runtime_version": "CURRENT_SELECTED_SIM_OWNER_NOT_A_NUMERIC_SDK_LIMIT"
+    }
+  },
+  "max_stop_velocity_rad_s": null,
+  "max_stop_acceleration_rad_s2": null,
+  "q_tolerance_rad": null,
+  "v_tolerance_rad_s": null,
+  "a_tolerance_rad_s2": null
+}

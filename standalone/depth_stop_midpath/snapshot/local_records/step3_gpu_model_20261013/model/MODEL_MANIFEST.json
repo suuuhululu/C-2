@@ -1,0 +1,52 @@
+{
+  "scope": "LOCAL_CALCULATION_MODEL_NOT_PHYSICALLY_VERIFIED",
+  "execution_allowed": false,
+  "tcp_frame": "GripperDA_v4_tcp",
+  "flange_to_tcp_m": 0.228,
+  "source_files": {
+    "/home/ms-02/Documents/ChatGPT/\ud611\ub3d92_\uc7a5\uc560\ubb3c\ud68c\ud53c/work/C-2-moveit/isaac_sim/ros_ws/src/m0609_rg2_sim_model/urdf/m0609_rg2_sim.urdf": "1faf53808e24330801cc6d164086f1eb796dbc3c8e83b88f62e62022142857a4",
+    "/home/ms-02/Documents/ChatGPT/\ud611\ub3d92_\uc7a5\uc560\ubb3c\ud68c\ud53c/work/C-2-moveit/isaac_sim/ros_ws/src/m0609_rg2_sim_model/config/m0609_rg2_sim.srdf": "4175e96ee8d6700cf25c2d50dcaac2284ae316116504f3de9d0f417547c1018d",
+    "/home/ms-02/Documents/ChatGPT/\ud611\ub3d92_\uc7a5\uc560\ubb3c\ud68c\ud53c/work/C-2-moveit/isaac_sim/config/joint_limits.sim.yaml": "651c969efd8146563c36af77d1acb6e4f80d0c255e8da5e9ab7b38c23aab5360"
+  },
+  "meshes": {
+    "/home/ms-02/Documents/ChatGPT/\ud611\ub3d92_\uc7a5\uc560\ubb3c\ud68c\ud53c/work/C-2-moveit/isaac_sim/ros_ws/src/m0609_rg2_sim_model/meshes/base_link_collision_0.stl": "6670bb88425250451dca0d67e75e4e9c6587bbbe8c7c81bbe1eb5c53bb1471d9",
+    "/home/ms-02/Documents/ChatGPT/\ud611\ub3d92_\uc7a5\uc560\ubb3c\ud68c\ud53c/work/C-2-moveit/isaac_sim/ros_ws/src/m0609_rg2_sim_model/meshes/base_link_visual_0.stl": "f279b304a69163e994a625ad28b111911d1930ce46919e61fee0f718daa9f7e2",
+    "/home/ms-02/Documents/ChatGPT/\ud611\ub3d92_\uc7a5\uc560\ubb3c\ud68c\ud53c/work/C-2-moveit/isaac_sim/ros_ws/src/m0609_rg2_sim_model/meshes/link_1_collision_0.stl": "ac63ff239ed2eb9ea71384d78731d146a1c0a64c138fffd7302a05d6fff83aea",
+    "/home/ms-02/Documents/ChatGPT/\ud611\ub3d92_\uc7a5\uc560\ubb3c\ud68c\ud53c/work/C-2-moveit/isaac_sim/ros_ws/src/m0609_rg2_sim_model/meshes/link_1_visual_0.stl": "f5585d90d8e77505b2956a36ee814ee2299a99cddb9660dd2dbfbb906b8401a0",
+    "/home/ms-02/Documents/ChatGPT/\ud611\ub3d92_\uc7a5\uc560\ubb3c\ud68c\ud53c/work/C-2-moveit/isaac_sim/ros_ws/src/m0609_rg2_sim_model/meshes/link_2_collision_0.stl": "8a07b87850ac86472098851da4fca30aeadf790ac813cccefbdafebe6ff316b3",
+    "/home/ms-02/Documents/ChatGPT/\ud611\ub3d92_\uc7a5\uc560\ubb3c\ud68c\ud53c/work/C-2-moveit/isaac_sim/ros_ws/src/m0609_rg2_sim_model/meshes/link_2_visual_0.stl": "a762cc7a856f43e551a50d47ca8dea01f58511872b001dcb98915921ec5cec36",
+    "/home/ms-02/Documents/ChatGPT/\ud611\ub3d92_\uc7a5\uc560\ubb3c\ud68c\ud53c/work/C-2-moveit/isaac_sim/ros_ws/src/m0609_rg2_sim_model/meshes/link_2_collision_1.stl": "95f2a1d05d5e5d6613f79a79f2d61ad1be9a46288da6fdaaee7facfe8d445f9e",
+    "/home/ms-02/Documents/ChatGPT/\ud611\ub3d92_\uc7a5\uc560\ubb3c\ud68c\ud53c/work/C-2-moveit/isaac_sim/ros_ws/src/m0609_rg2_sim_model/meshes/link_2_visual_1.stl": "42dba12985fc5581b8c546d9d48c7a57dc311526924bdfacd51b10e98b444a9c",
+    "/home/ms-02/Documents/ChatGPT/\ud611\ub3d92_\uc7a5\uc560\ubb3c\ud68c\ud53c/work/C-2-moveit/isaac_sim/ros_ws/src/m0609_rg2_sim_model/meshes/link_2_collision_2.stl": "c77bacf338e9bd6640fa2e8e1e28e568155dbe1725408def9c1b07f94e188f58",
+    "/home/ms-02/Documents/ChatGPT/\ud611\ub3d92_\uc7a5\uc560\ubb3c\ud68c\ud53c/work/C-2-moveit/isaac_sim/ros_ws/src/m0609_rg2_sim_model/meshes/link_2_visual_2.stl": "8dd8dae3904df4cc069b6144db131cd52eeae03936481610f0aef2f47bb4a4ae",
+    "/home/ms-02/Documents/ChatGPT/\ud611\ub3d92_\uc7a5\uc560\ubb3c\ud68c\ud53c/work/C-2-moveit/isaac_sim/ros_ws/src/m0609_rg2_sim_model/meshes/link_3_collision_0.stl": "4f95d61c497143d1aafdd060b92f910c8940e37f5a12a2d8fd581a1ae2166a58",
+    "/home/ms-02/Documents/ChatGPT/\ud611\ub3d92_\uc7a5\uc560\ubb3c\ud68c\ud53c/work/C-2-moveit/isaac_sim/ros_ws/src/m0609_rg2_sim_model/meshes/link_3_visual_0.stl": "5816ec2644f6ea1015493416fc22e614470d01da9e44d318384225746c283088",
+    "/home/ms-02/Documents/ChatGPT/\ud611\ub3d92_\uc7a5\uc560\ubb3c\ud68c\ud53c/work/C-2-moveit/isaac_sim/ros_ws/src/m0609_rg2_sim_model/meshes/link_4_collision_0.stl": "f2f6ed00cc8bf16a6cd8448bc6356a44b503048f831bfbaf6a4be387d996bc64",
+    "/home/ms-02/Documents/ChatGPT/\ud611\ub3d92_\uc7a5\uc560\ubb3c\ud68c\ud53c/work/C-2-moveit/isaac_sim/ros_ws/src/m0609_rg2_sim_model/meshes/link_4_visual_0.stl": "055ade9f74c603683d5389feef7c4d7db2640175ebb37baa569d2129b868f8bc",
+    "/home/ms-02/Documents/ChatGPT/\ud611\ub3d92_\uc7a5\uc560\ubb3c\ud68c\ud53c/work/C-2-moveit/isaac_sim/ros_ws/src/m0609_rg2_sim_model/meshes/link_4_collision_1.stl": "1616e8398d8e2bab9ea2bcc02d58c64599cf782217d3ff11791425598ccb6f76",
+    "/home/ms-02/Documents/ChatGPT/\ud611\ub3d92_\uc7a5\uc560\ubb3c\ud68c\ud53c/work/C-2-moveit/isaac_sim/ros_ws/src/m0609_rg2_sim_model/meshes/link_4_visual_1.stl": "0349c2eddc663541f82b7299e38d50059894dcb550ede9599679c6d5ccf33cfa",
+    "/home/ms-02/Documents/ChatGPT/\ud611\ub3d92_\uc7a5\uc560\ubb3c\ud68c\ud53c/work/C-2-moveit/isaac_sim/ros_ws/src/m0609_rg2_sim_model/meshes/link_5_collision_0.stl": "a853a06b74147742df97551beba469e132fdd711aef3dd42e2de217338b4ce88",
+    "/home/ms-02/Documents/ChatGPT/\ud611\ub3d92_\uc7a5\uc560\ubb3c\ud68c\ud53c/work/C-2-moveit/isaac_sim/ros_ws/src/m0609_rg2_sim_model/meshes/link_5_visual_0.stl": "c98311272c56301831c606d54f34edc394e5efd31226e0024d0ae2a0a4bbc181",
+    "/home/ms-02/Documents/ChatGPT/\ud611\ub3d92_\uc7a5\uc560\ubb3c\ud68c\ud53c/work/C-2-moveit/isaac_sim/ros_ws/src/m0609_rg2_sim_model/meshes/link_6_collision_0.stl": "7ce76d57d60742355e6caeb8b26b280df20669622e2ffae7ea0d78ae666ec894",
+    "/home/ms-02/Documents/ChatGPT/\ud611\ub3d92_\uc7a5\uc560\ubb3c\ud68c\ud53c/work/C-2-moveit/isaac_sim/ros_ws/src/m0609_rg2_sim_model/meshes/link_6_visual_0.stl": "8c40da04000e70b0dfc310638104ea40b61bb159ae52907db447a7c1513773df",
+    "/home/ms-02/Documents/ChatGPT/\ud611\ub3d92_\uc7a5\uc560\ubb3c\ud68c\ud53c/work/C-2-moveit/isaac_sim/ros_ws/src/m0609_rg2_sim_model/meshes/rg2_base_link_visual_0.stl": "23229cf67dfd0cee2f6e8e62b3d7b3f8df3cf7642db06588843f6ed5c98e3e2e",
+    "/home/ms-02/Documents/ChatGPT/\ud611\ub3d92_\uc7a5\uc560\ubb3c\ud68c\ud53c/work/C-2-moveit/isaac_sim/ros_ws/src/m0609_rg2_sim_model/meshes/rg2_base_link_collision_0.stl": "448454b5c791ba6f29f6f2999738f7c236e2977d5b5a36e7cbe62aa6211c91f6",
+    "/home/ms-02/Documents/ChatGPT/\ud611\ub3d92_\uc7a5\uc560\ubb3c\ud68c\ud53c/work/C-2-moveit/isaac_sim/ros_ws/src/m0609_rg2_sim_model/meshes/rg2_left_outer_knuckle_visual_0.stl": "0459184584920020808d0d9a2f89dbaa4eeab67c79c68bcd8dead8f8edc705ef",
+    "/home/ms-02/Documents/ChatGPT/\ud611\ub3d92_\uc7a5\uc560\ubb3c\ud68c\ud53c/work/C-2-moveit/isaac_sim/ros_ws/src/m0609_rg2_sim_model/meshes/rg2_left_outer_knuckle_collision_0.stl": "ffbe39fb95eddfb1a612825d7aee230f1f8df08958278c7fe53227d27ea28931",
+    "/home/ms-02/Documents/ChatGPT/\ud611\ub3d92_\uc7a5\uc560\ubb3c\ud68c\ud53c/work/C-2-moveit/isaac_sim/ros_ws/src/m0609_rg2_sim_model/meshes/rg2_left_inner_knuckle_visual_0.stl": "9515341736761cd25bdab5dced1f80b96f5c782e13caeb7b795e296d4d71d815",
+    "/home/ms-02/Documents/ChatGPT/\ud611\ub3d92_\uc7a5\uc560\ubb3c\ud68c\ud53c/work/C-2-moveit/isaac_sim/ros_ws/src/m0609_rg2_sim_model/meshes/rg2_left_inner_knuckle_collision_0.stl": "72cb39cca2eb23e5f708f0e59f38afaa6247ae5b1fac16356b831167a96f50d1",
+    "/home/ms-02/Documents/ChatGPT/\ud611\ub3d92_\uc7a5\uc560\ubb3c\ud68c\ud53c/work/C-2-moveit/isaac_sim/ros_ws/src/m0609_rg2_sim_model/meshes/rg2_left_inner_finger_visual_0.stl": "3f21b54a4219fc87fc785508435d3d88ab4ffb799cbd8802f0d1d4d45856c1e8",
+    "/home/ms-02/Documents/ChatGPT/\ud611\ub3d92_\uc7a5\uc560\ubb3c\ud68c\ud53c/work/C-2-moveit/isaac_sim/ros_ws/src/m0609_rg2_sim_model/meshes/rg2_left_inner_finger_collision_0.stl": "1d8ecd5333e05f229b230d77b3781ba82a2f6e28a199c7a3093f61cf23e75f0f",
+    "/home/ms-02/Documents/ChatGPT/\ud611\ub3d92_\uc7a5\uc560\ubb3c\ud68c\ud53c/work/C-2-moveit/isaac_sim/ros_ws/src/m0609_rg2_sim_model/meshes/rg2_right_outer_knuckle_visual_0.stl": "0459184584920020808d0d9a2f89dbaa4eeab67c79c68bcd8dead8f8edc705ef",
+    "/home/ms-02/Documents/ChatGPT/\ud611\ub3d92_\uc7a5\uc560\ubb3c\ud68c\ud53c/work/C-2-moveit/isaac_sim/ros_ws/src/m0609_rg2_sim_model/meshes/rg2_right_outer_knuckle_collision_0.stl": "ffbe39fb95eddfb1a612825d7aee230f1f8df08958278c7fe53227d27ea28931",
+    "/home/ms-02/Documents/ChatGPT/\ud611\ub3d92_\uc7a5\uc560\ubb3c\ud68c\ud53c/work/C-2-moveit/isaac_sim/ros_ws/src/m0609_rg2_sim_model/meshes/rg2_right_inner_knuckle_visual_0.stl": "9515341736761cd25bdab5dced1f80b96f5c782e13caeb7b795e296d4d71d815",
+    "/home/ms-02/Documents/ChatGPT/\ud611\ub3d92_\uc7a5\uc560\ubb3c\ud68c\ud53c/work/C-2-moveit/isaac_sim/ros_ws/src/m0609_rg2_sim_model/meshes/rg2_right_inner_knuckle_collision_0.stl": "72cb39cca2eb23e5f708f0e59f38afaa6247ae5b1fac16356b831167a96f50d1",
+    "/home/ms-02/Documents/ChatGPT/\ud611\ub3d92_\uc7a5\uc560\ubb3c\ud68c\ud53c/work/C-2-moveit/isaac_sim/ros_ws/src/m0609_rg2_sim_model/meshes/rg2_right_inner_finger_visual_0.stl": "3f21b54a4219fc87fc785508435d3d88ab4ffb799cbd8802f0d1d4d45856c1e8",
+    "/home/ms-02/Documents/ChatGPT/\ud611\ub3d92_\uc7a5\uc560\ubb3c\ud68c\ud53c/work/C-2-moveit/isaac_sim/ros_ws/src/m0609_rg2_sim_model/meshes/rg2_right_inner_finger_collision_0.stl": "1d8ecd5333e05f229b230d77b3781ba82a2f6e28a199c7a3093f61cf23e75f0f"
+  },
+  "files": {
+    "robot.urdf": "26b968a120d0a5ce560c4fdf79ffeb41708a598f0497bc5ea46420d388cb8a5e",
+    "semantic.srdf": "4175e96ee8d6700cf25c2d50dcaac2284ae316116504f3de9d0f417547c1018d",
+    "joint_limits.yaml": "651c969efd8146563c36af77d1acb6e4f80d0c255e8da5e9ab7b38c23aab5360"
+  }
+}

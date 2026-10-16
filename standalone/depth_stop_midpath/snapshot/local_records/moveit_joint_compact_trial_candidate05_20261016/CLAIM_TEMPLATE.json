@@ -1,0 +1,17 @@
+{
+  "schema": "exclusive-single-new-SIM-start-claim/2",
+  "status": "CLAIMED_ONE_FROZEN_JOINT05_VERIFIED_CALCULATOR_START_ATTEMPT",
+  "allocation": null,
+  "final_pins": null,
+  "run": null,
+  "owner": "MoveIt-Isaac",
+  "thread_id": "01a13313-78a7-7d30-86c7-6af835e401f6",
+  "at_utc": null,
+  "maximum_starts": 1,
+  "starts_used": 1,
+  "remaining_after_attempt": 0,
+  "starts_remaining": 0,
+  "consumption": "Claim consumes the only launch attempt even if preparation/startup/actual run fails; no automatic retry",
+  "resource_observation": null,
+  "prior_allocation_not_reused": true
+}

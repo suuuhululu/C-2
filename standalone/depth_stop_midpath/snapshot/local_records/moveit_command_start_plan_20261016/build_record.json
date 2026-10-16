@@ -1,0 +1,34 @@
+{
+  "schema": "mi-file-only-command-start-build/1",
+  "at_utc": "2026-10-15T15:52:55.880499+00:00",
+  "source": {
+    "path": "/home/ms-02/Documents/ChatGPT/\ud611\ub3d92_\uc7a5\uc560\ubb3c\ud68c\ud53c/local_records/moveit_command_start_plan_20261016/staged/src/moveit_step.cpp",
+    "sha256": "e3bcacc3b7e9bde5fddac1d6de8138b900b0e15641c4e091e7d375b30d6f2817"
+  },
+  "binary": {
+    "path": "/home/ms-02/Documents/ChatGPT/\ud611\ub3d92_\uc7a5\uc560\ubb3c\ud68c\ud53c/local_records/moveit_command_start_plan_20261016/build/moveit_plan_only",
+    "sha256": "7ca75db1e39b7d6b632d4f8f4a08714c6a681d77c6a4cca83c60ac49997c8bf4"
+  },
+  "cmake_source": {
+    "path": "/home/ms-02/Documents/ChatGPT/\ud611\ub3d92_\uc7a5\uc560\ubb3c\ud68c\ud53c/local_records/moveit_command_start_plan_20261016/staged/CMakeLists.txt",
+    "sha256": "7fbc47bec9a1d53591cb9687625c6a34a54ab9fe022aced1ad4f388e60ea75d2"
+  },
+  "compiler_flags": {
+    "path": "/home/ms-02/Documents/ChatGPT/\ud611\ub3d92_\uc7a5\uc560\ubb3c\ud68c\ud53c/local_records/moveit_command_start_plan_20261016/build/CMakeFiles/moveit_plan_only.dir/flags.make",
+    "sha256": "6689cc022677233b97b3aa098641576073d5f5ea8dfbf35b44bb32b72d2c2f04"
+  },
+  "link_command": {
+    "path": "/home/ms-02/Documents/ChatGPT/\ud611\ub3d92_\uc7a5\uc560\ubb3c\ud68c\ud53c/local_records/moveit_command_start_plan_20261016/build/CMakeFiles/moveit_plan_only.dir/link.txt",
+    "sha256": "f1b2ad84f0a01c4a71956765fb5c47912cb7ec556a19267bdaa95eb719a1beef"
+  },
+  "configure_command": "cmake -S local_records/moveit_command_start_plan_20261016/staged -B local_records/moveit_command_start_plan_20261016/build -DCMAKE_BUILD_TYPE=Release",
+  "build_command": "cmake --build local_records/moveit_command_start_plan_20261016/build --target moveit_plan_only -j2",
+  "build_log": {
+    "path": "/home/ms-02/Documents/ChatGPT/\ud611\ub3d92_\uc7a5\uc560\ubb3c\ud68c\ud53c/local_records/moveit_command_start_plan_20261016/build.log",
+    "sha256": "519da2c64033f80aa46490f6675a6035af40d550c5dd386c26eeaa57bb5cf6f1"
+  },
+  "build_exit_code": 0,
+  "CPU_plan_exit_code": 0,
+  "previous_binary_preserved": true,
+  "new_SDK_run": false
+}

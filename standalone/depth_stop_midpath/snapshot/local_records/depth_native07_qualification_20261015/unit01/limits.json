@@ -1,0 +1,8 @@
+{
+  "clock_basis": "SIM_TIME",
+  "threshold_status": "SIM_TEST_PARAMETER",
+  "max_age_s": 0.12,
+  "max_pose_skew_s": 0.001,
+  "min_depth_m": 0.02,
+  "max_depth_m": 2.0
+}

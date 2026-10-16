@@ -1,0 +1,210 @@
+{
+  "schema_version": "held-geometry-definition/0.1",
+  "scope": "NOMINAL_SIM_ONLY",
+  "units": "m",
+  "frame_id": "BLOCK_BODY_CENTRE",
+  "transform_convention": "COLUMN_VECTORS_LOCAL_TO_PARENT",
+  "model_manifest_sha256": "6574724375c84cd7dd014f1e45049b63c63f90eac848f94a74cc412629ab3ad7",
+  "geometry": {
+    "id": "blue_2x2x1_01",
+    "size_m": [
+      0.032,
+      0.032,
+      0.019
+    ],
+    "studs": true,
+    "block": {
+      "brick_type": "2x2x1",
+      "color": "blue",
+      "x": 11,
+      "y": 11,
+      "layer": 1,
+      "orientation_deg": 0
+    }
+  },
+  "profile": {
+    "kind": "ORIGINAL_NOMINAL_SIM_OBJECT_BOXES",
+    "source_path": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/work/C-2-moveit/isaac_sim/scripts/cumotion_geometry.py",
+    "source_sha256": "52641355fd7de65cf27391a34ba871a59b52c98696074968a5bbadf106d68bba",
+    "pieces": [
+      {
+        "kind": "BODY",
+        "index": 0,
+        "size_m": [
+          0.032,
+          0.032,
+          0.019
+        ],
+        "T_block_piece": [
+          [
+            1.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            1.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            1.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ]
+        ]
+      },
+      {
+        "kind": "STUD",
+        "index": 1,
+        "size_m": [
+          0.01,
+          0.01,
+          0.0045
+        ],
+        "T_block_piece": [
+          [
+            1.0,
+            0.0,
+            0.0,
+            -0.008
+          ],
+          [
+            0.0,
+            1.0,
+            0.0,
+            -0.008
+          ],
+          [
+            0.0,
+            0.0,
+            1.0,
+            0.01175
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ]
+        ]
+      },
+      {
+        "kind": "STUD",
+        "index": 2,
+        "size_m": [
+          0.01,
+          0.01,
+          0.0045
+        ],
+        "T_block_piece": [
+          [
+            1.0,
+            0.0,
+            0.0,
+            -0.008
+          ],
+          [
+            0.0,
+            1.0,
+            0.0,
+            0.008
+          ],
+          [
+            0.0,
+            0.0,
+            1.0,
+            0.01175
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ]
+        ]
+      },
+      {
+        "kind": "STUD",
+        "index": 3,
+        "size_m": [
+          0.01,
+          0.01,
+          0.0045
+        ],
+        "T_block_piece": [
+          [
+            1.0,
+            0.0,
+            0.0,
+            0.008
+          ],
+          [
+            0.0,
+            1.0,
+            0.0,
+            -0.008
+          ],
+          [
+            0.0,
+            0.0,
+            1.0,
+            0.01175
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ]
+        ]
+      },
+      {
+        "kind": "STUD",
+        "index": 4,
+        "size_m": [
+          0.01,
+          0.01,
+          0.0045
+        ],
+        "T_block_piece": [
+          [
+            1.0,
+            0.0,
+            0.0,
+            0.008
+          ],
+          [
+            0.0,
+            1.0,
+            0.0,
+            0.008
+          ],
+          [
+            0.0,
+            0.0,
+            1.0,
+            0.01175
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ]
+        ]
+      }
+    ]
+  },
+  "profile_digest": "20d2a15ae7a7901609e7db051484fe696ed7fef627c115e41ea7b04d97c1cf93",
+  "execution_allowed": false,
+  "hardware_execution_allowed": false
+}

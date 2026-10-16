@@ -1,0 +1,163 @@
+{
+  "schema": "depth-detection-mask-display-handoff/1.0",
+  "status": "READY_FOR_MI_INTEGRATION",
+  "published_at_utc": "2026-10-15T05:18:26.795307+00:00",
+  "automation_status": "PAUSED",
+  "GPU_allowed_now": false,
+  "active_qualification_ref": {
+    "path": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/work/C-2-moveit/isaac_sim/depth_obstacles/novel_depth/qualification.py",
+    "sha256": "f24fe228edf7328575146a30f6b7e9e46bd6923c12b11e0309270385c0d7dcf6"
+  },
+  "active_source_pins": {
+    "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/work/C-2-moveit/isaac_sim/depth_obstacles/novel_depth/geometry.py": "fc852e3bf9c969f69fab05a0d513265f4df67903fcf9618ad15646875340b7b5",
+    "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/work/C-2-moveit/isaac_sim/depth_obstacles/novel_depth/expected_depth.py": "b7f75221abeb1ae2533a4ec69bb191fa40feac2160faca91e38c1e1417882fd1",
+    "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/work/C-2-moveit/isaac_sim/depth_obstacles/novel_depth/qualification.py": "f24fe228edf7328575146a30f6b7e9e46bd6923c12b11e0309270385c0d7dcf6",
+    "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/work/C-2-moveit/isaac_sim/depth_obstacles/novel_depth/difference.py": "acce33794e075fea0443fe4c5af947bef6002296c36339573d55db1e899c94bd",
+    "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/work/C-2-moveit/isaac_sim/depth_obstacles/novel_depth/replay_saved.py": "70b150d51304c480ef6e2c528e1559078a14b6a5a80b3ed3c25b4e44cf82e37d",
+    "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/work/C-2-moveit/isaac_sim/depth_obstacles/novel_depth/point_bounds.py": "c96fde838b58514a115c9dbb5f8f64a0400c0efc9faea1e4e0788f62de81b50f"
+  },
+  "active_applied": true,
+  "active_source_frozen_after_READY": true,
+  "application_record_ref": {
+    "path": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/depth_detection_mask_display_20261015/unit01/application_record.json",
+    "sha256": "dabf909e57e09fbd12a3a873d01d39c236dc269346c145bb54e8076763e6d552"
+  },
+  "applied_diff_ref": {
+    "path": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/depth_support_latency_stage02_20261015/unit01/qualification.py.diff",
+    "sha256": "6bd9451f9b4a586f05055384d4914e6fb3cbb6af062968365fbb325f87cf9433"
+  },
+  "native10_release_ref": {
+    "path": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/moveit_native10_latency_point_publication_20261015/release.json",
+    "sha256": "e9fcdb91b11ce3da7ea55871c19828f4ebefef305d27a1ac5d204e725fbd0675"
+  },
+  "CPU_checks_ref": {
+    "path": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/depth_detection_mask_display_20261015/unit01/active_API_and_display_checks.json",
+    "sha256": "5464748df13989ee3a9bd26b2b3ec1d48638dd960ccf1109b114b24be9a04d3d"
+  },
+  "prior_full_rejection_checks_ref": {
+    "path": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/depth_support_latency_stage02_20261015/unit01/rejection_checks.json",
+    "sha256": "b0f89b8c6e97fbdf142c85923add72f9ffdb611e4d55f7745077754b61e1b6ff"
+  },
+  "mask_payload_example_ref": {
+    "path": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/depth_detection_mask_display_20261015/unit01/mask_payload_example.py",
+    "sha256": "03bdfe9be9cc0a110efa2ebf166ac457c0acc314493446965e4c8096b84fc6cc"
+  },
+  "APIs": {
+    "compute": "isaac_sim.depth_obstacles.novel_depth.replay_saved.evaluate_depth_frame(actual_depth, known_geometry, frame_state, error_model, limits, *, now_source_s)",
+    "classification_masks": "item['detection'] before any materialize_projection or diagnostic export",
+    "full_points": "isaac_sim.depth_obstacles.novel_depth.difference.materialize_projection(item[\"detection\"])",
+    "compatibility": "compare_depth continues to return original complete points/digest; saved replay API unchanged",
+    "optional_export": "replay_saved.export_depth_diagnostics; not required before 2D mask publication"
+  },
+  "mask_contract": {
+    "dtype": "numpy.bool_",
+    "shape": "(H,W) from original captured frame intrinsics; current original camera480x848",
+    "indexing": "mask[v,u] = original image row v, column u; same orientation, no transpose/flip/resample/crop or pixel-index offset",
+    "fields": {
+      "candidate_mask": "Original optical-Z foreground candidate; green policy requested by user. No confirmed-object/cluster/3D/risk meaning.",
+      "uncertain_candidate_mask": "Original unresolved valid-depth pixels; orange policy. Includes unsupported/unknown/edges/occlusions/unqualified pixels as actually classified.",
+      "reason_masks.matched_static": "Original known STATIC matches; retain base image appearance.",
+      "reason_masks.matched_self": "Original known SELF matches only when actually classified; no unknown SELF promotion.",
+      "reason_masks.matched_held": "Original known HELD matches; retain base image appearance.",
+      "reason_masks.invalid_actual": "Original invalid/out-of-range/unseen actual depth; no green/orange promotion."
+    },
+    "primary_partition": "candidate, uncertain, union of three matched masks, invalid form a disjoint complete pixel partition. Three matched masks are mutually exclusive by original owner.",
+    "overlap": "Reject inconsistent primary overlaps; do not resolve by recoloring/reclassifying. Auxiliary reason masks may overlap and are explanatory, not extra obstacle labels.",
+    "readonly": "Do not modify original arrays or flags. Example snapshots byte-identical C-order bool masks into bytes-backed nonwritable NumPy buffers. UI owns these copies, cannot set writable=true; detector arrays remain unchanged.",
+    "lifetime": "Keep source identity and owned RGB/depth/mask buffers together through queue/drop handling. No reuse of mutable borrowed producer buffers.",
+    "pixel_convention": "Preserve original frame convention and separate effective qualified convention. A [.5,.5] effective ray offset does not shift/resize display mask indices.",
+    "RGB_join": [
+      "Exact same-writer receipt pins both RGB and depth refs.",
+      "Match session_id, canonical frame clock_epoch and frame_seq, original reference_time, renderer_frame_id, render request/source proof, camera path and captured source_stamp_s.",
+      "renderer_frame_id alone may repeat; use full identity and source SHA. No nearest/latest RGB or wall-clock matching.",
+      "Validate source_frame_ref against expected.frame_state and original depth C-byte hash. Pin-check receipt/RGB/depth refs; H/W must equal original frame.",
+      "If matching RGB unavailable, omit RGB overlay or use same-frame depth base; never pair another frame."
+    ],
+    "guard": "Guarded/stale/unassociated detection is not an empty safe overlay. Preserve original status/source time; no source timestamp rewrite. Display historical data only with its actual source identity/age.",
+    "colors_and_screen_owner": "MI owns actual colors/alpha/drawing/UI; Depth provides original masks only. No Depth UI code added.",
+    "source_values_unchanged": "Original RGB, depth, recorded metadata, detector arrays and projected point output remain unchanged."
+  },
+  "validated_original_frames": [
+    {
+      "label": "baseline",
+      "session_id": "fixed-native-1af35bd32fb94274abe224107d36dafa",
+      "frame_seq": 0,
+      "source_frame_ref": {
+        "path": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/moveit_native09_unlabelled_static_shadow_20261015/native09_corrective02/camera_preview/00000/frame_input.json",
+        "sha256": "0e312208003b4a2f22dc4591265449c346bfea7ef35efb781c40c0de1ee129ae"
+      },
+      "counts": {
+        "observed_valid": 211090,
+        "foreground": 0,
+        "uncertain": 79043,
+        "matched_static": 129629,
+        "matched_self": 0,
+        "matched_held": 2418,
+        "invalid": 195950
+      },
+      "metadata_ref": {
+        "path": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/depth_detection_mask_display_20261015/unit01/baseline_display_payload_metadata.json",
+        "sha256": "b9ddca9e08adef2a65f3af711b0be981064cfe35abf565964497e57a08e4fddb"
+      },
+      "projected_digest": "c4d6e554389bd200bea98aa2c35b80ed2b446badb83beffafd6b22db280c3864"
+    },
+    {
+      "label": "positive",
+      "session_id": "fixed-native-1af35bd32fb94274abe224107d36dafa",
+      "frame_seq": 100,
+      "source_frame_ref": {
+        "path": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/moveit_native09_unlabelled_static_shadow_20261015/native09_corrective02/camera_preview/00100/frame_input.json",
+        "sha256": "5968ef40a478c008d15216bec60faf4ff7008003afb0334fa8e387c4cab34c03"
+      },
+      "counts": {
+        "observed_valid": 344189,
+        "foreground": 17592,
+        "uncertain": 41768,
+        "matched_static": 282411,
+        "matched_self": 0,
+        "matched_held": 2418,
+        "invalid": 62851
+      },
+      "metadata_ref": {
+        "path": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/depth_detection_mask_display_20261015/unit01/positive_display_payload_metadata.json",
+        "sha256": "36c459621189fa635ecf6d57f63130fd7a36a68d2afd7a19001c5406b08e68d5"
+      },
+      "projected_digest": "9c483dca754d238fbe3d898aa4932730984435f824d5b5fc30ea25c3fc3f1dbd"
+    }
+  ],
+  "frame_counts_not_interchangeable": "Native09 positive00100=17592; native10 first-positive00100=5710 belongs to another capture/session and is not substituted.",
+  "statuses": {
+    "CPU_active_patch_and_mask_contract": "VERIFIED_READY",
+    "MI_display_CPU_integration": "OWNER_PENDING",
+    "native11_actual_display": "NOT_RUN_OR_NOT_YET_SUPPLIED",
+    "native11_detector_TTL": "UNVERIFIED",
+    "point3D_error": "UNKNOWN_NAN"
+  },
+  "native11_dependency": {
+    "producer_handoff_path": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/moveit_native11_detection_mask_display_20261015/producer_handoff.json",
+    "qualification_report_path": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/management/reports/depth_native11_source_qualification.json",
+    "future_display_validation_report_path": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/management/reports/depth_native11_mask_display_verification.json",
+    "qualified_ref": null,
+    "error_ref": null,
+    "rule": "Review fresh actual pre-obstacle session/camera/model/source refs and construct fresh scope; no old session copy or posthoc retag.",
+    "consumer": "Pin-check new qualification_report.error_ref and read that model for this session. Do not reuse native09/native10 model refs for native11."
+  },
+  "limits": {
+    "original_TTL_SIM_s": 0.12,
+    "official_tolerance_m": null,
+    "point_uncertainty_bound_m": null,
+    "point_arrays": "NaN UNKNOWN",
+    "observation": "REPORT_ONLY",
+    "execution_allowed": false,
+    "world_clear_allowed": false,
+    "risk_qualified": false,
+    "stop_intent": false,
+    "display_colors_do_not_qualify_3D_or_collision_risk": true
+  },
+  "boundaries": {
+    "only_active_qualification_py_modified": true,
+    "other_Depth_sources_unchanged": true,
+    "no_MI_Ros_CU_D_UI_or_shared_projection_edits": true,
+    "no_GPU_SIM_SDK_ROS_hardware_remote_pushmerge_new_dependencies_or_other_chat_message": true
+  }
+}

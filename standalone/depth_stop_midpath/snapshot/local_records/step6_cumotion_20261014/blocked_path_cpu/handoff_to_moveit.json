@@ -1,0 +1,26 @@
+{
+  "scope": "SDK_FIXED_SCENE_EXECUTION_FORMAT_DELIVERY_NOT_D_AUTHORIZATION",
+  "package": {
+    "path": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/step6_cumotion_20261014/blocked_path_cpu/execution_comparison_package.json",
+    "sha256": "77e9e1755cc72051946b2d86ef350289b09e8a1e4ab009271d7c6e7ee72bfc77"
+  },
+  "release": {
+    "path": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/step6_cumotion_20261014/blocked_path_cpu/release.json",
+    "sha256": "9561a83ee9317f0a4bab3391d51055814eda817bfc5d0d3bcd0beb0d9e59c4d5"
+  },
+  "joint_trajectory": {
+    "path": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/step6_cumotion_20261014/blocked_path_cpu/new_joint_trajectory.json",
+    "sha256": "0d2fca0bab7bfc0861a6e1e0ba1c54860af21f00fc5e2eb3d606d042cc4611b6"
+  },
+  "D_receipt": {
+    "path": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/step6_cumotion_20261014/blocked_path_cpu/D_received_calculation.json",
+    "sha256": "cc3377ae8333d54ea591159ef15e45c0cd70aa7afc541b8d3949df2a8815a134"
+  },
+  "comparison_TCP_paths": {
+    "path": "/home/ms-02/Documents/ChatGPT/협동2_장애물회피/local_records/step6_cumotion_20261014/blocked_path_cpu/baseline_new_TCP_paths.json",
+    "sha256": "51601e02d86c3784777bbfff6d38394727aac27844003b495bda347000957948"
+  },
+  "native_execution_allowed": false,
+  "dynamic_input_ready": false,
+  "hardware_execution_allowed": false
+}

@@ -1,0 +1,141 @@
+{
+  "schema": "cumotion-blocked-path-comparison-package/0.1",
+  "status": "FIXED_SCENE_BASELINE_BLOCKED_NEW_SDK_FULL_FCL_VERIFIED_NOT_NATIVE_EXECUTED",
+  "baseline_request": {
+    "path": "/home/ms-02/Documents/ChatGPT/\ud611\ub3d92_\uc7a5\uc560\ubb3c\ud68c\ud53c/local_records/blocked_path_native25_20261014/baseline/common_A/TRANSPORT.request.yaml",
+    "sha256": "59c24040afc3a5e4f3ff7b41c5bfa6364b5174e94fc3f9b08487f81fd1410a5c"
+  },
+  "baseline_result": {
+    "path": "/home/ms-02/Documents/ChatGPT/\ud611\ub3d92_\uc7a5\uc560\ubb3c\ud68c\ud53c/local_records/blocked_path_native25_20261014/baseline/result.yaml",
+    "sha256": "8dc552a49073ebbd756b071d5f4f86e3a01dcb9f36876d8c8df52392e7186438"
+  },
+  "GT_placement": {
+    "path": "/home/ms-02/Documents/ChatGPT/\ud611\ub3d92_\uc7a5\uc560\ubb3c\ud68c\ud53c/local_records/blocked_path_native25_20261014/placement.json",
+    "sha256": "c6b7cbf4de9e77d0c6bcc52cc2c0f97a4e833aa25515e75aa26c3831dec2176c"
+  },
+  "Depth_bound": {
+    "path": "/home/ms-02/Documents/ChatGPT/\ud611\ub3d92_\uc7a5\uc560\ubb3c\ud68c\ud53c/local_records/blocked_path_native25_20261014/normalized_depth/bound.json",
+    "sha256": "4afea962f2d2f6dd1c41dfbc36ae0a840a30ea48cb0954fc36ba77cde2fad902"
+  },
+  "new_request": {
+    "path": "/home/ms-02/Documents/ChatGPT/\ud611\ub3d92_\uc7a5\uc560\ubb3c\ud68c\ud53c/local_records/blocked_path_native25_20261014/blocked_candidate/common_A/TRANSPORT.request.yaml",
+    "sha256": "f1c3be10104501ad85a97efc5e302a6d1bfcd75935877f974e4f38760aa5f531"
+  },
+  "new_envelope": {
+    "path": "/home/ms-02/Documents/ChatGPT/\ud611\ub3d92_\uc7a5\uc560\ubb3c\ud68c\ud53c/local_records/blocked_path_native25_20261014/blocked_candidate/static_calculation.envelope.json",
+    "sha256": "6e829c8920e3b282b562de0980ab5c49784ee13edd5d2529ee9f27c4f0afa808"
+  },
+  "new_model_manifest": {
+    "path": "/home/ms-02/Documents/ChatGPT/\ud611\ub3d92_\uc7a5\uc560\ubb3c\ud68c\ud53c/local_records/step6_cumotion_20261014/blocked_path_cpu/GPU_blocked25_01/cumotion_model/CUMOTION_MODEL_MANIFEST.json",
+    "sha256": "9316dc4f75a5432e5bad51951dd993588b3214fb875356814d4e3c83fdb56207"
+  },
+  "new_external_timed": {
+    "path": "/home/ms-02/Documents/ChatGPT/\ud611\ub3d92_\uc7a5\uc560\ubb3c\ud68c\ud53c/local_records/step6_cumotion_20261014/blocked_path_cpu/GPU_blocked25_01/cumotion_calculation/external_timed.input.json",
+    "sha256": "11017a960f2f2a8db0e85376a153fbeaa242d7040a414678f588f6220bb95beb"
+  },
+  "new_FCL": {
+    "path": "/home/ms-02/Documents/ChatGPT/\ud611\ub3d92_\uc7a5\uc560\ubb3c\ud68c\ud53c/local_records/step6_cumotion_20261014/blocked_path_cpu/GPU_blocked25_01/cumotion_calculation/final.fcl.yaml",
+    "sha256": "535216f3269676b039c09331d00b6f22889515db7181be42ae2c7bdd228fc57b"
+  },
+  "calculation_report": {
+    "path": "/home/ms-02/Documents/ChatGPT/\ud611\ub3d92_\uc7a5\uc560\ubb3c\ud68c\ud53c/local_records/step6_cumotion_20261014/blocked_path_cpu/GPU_blocked25_01/cumotion_calculation/calculation_report.json",
+    "sha256": "d74308b76646a18b00b54cf6b1a66ebfacad22e4f9c959b2931d439fc86aa218"
+  },
+  "D_calculation_receipt": {
+    "path": "/home/ms-02/Documents/ChatGPT/\ud611\ub3d92_\uc7a5\uc560\ubb3c\ud68c\ud53c/local_records/step6_cumotion_20261014/blocked_path_cpu/D_received_calculation.json",
+    "sha256": "cc3377ae8333d54ea591159ef15e45c0cd70aa7afc541b8d3949df2a8815a134"
+  },
+  "joint_trajectory": {
+    "path": "/home/ms-02/Documents/ChatGPT/\ud611\ub3d92_\uc7a5\uc560\ubb3c\ud68c\ud53c/local_records/step6_cumotion_20261014/blocked_path_cpu/new_joint_trajectory.json",
+    "sha256": "0d2fca0bab7bfc0861a6e1e0ba1c54860af21f00fc5e2eb3d606d042cc4611b6"
+  },
+  "TCP_paths": {
+    "path": "/home/ms-02/Documents/ChatGPT/\ud611\ub3d92_\uc7a5\uc560\ubb3c\ud68c\ud53c/local_records/step6_cumotion_20261014/blocked_path_cpu/baseline_new_TCP_paths.json",
+    "sha256": "51601e02d86c3784777bbfff6d38394727aac27844003b495bda347000957948"
+  },
+  "baseline_GT_FCL": {
+    "path": "/home/ms-02/Documents/ChatGPT/\ud611\ub3d92_\uc7a5\uc560\ubb3c\ud68c\ud53c/local_records/step6_cumotion_20261014/blocked_path_cpu/new_native25_GT_blockage_fulltrace.json",
+    "sha256": "e6feb658278b1263f158f6b737c4d4bb185534509a0ca134c130329ca9824cd0"
+  },
+  "baseline_Depth_FCL": {
+    "path": "/home/ms-02/Documents/ChatGPT/\ud611\ub3d92_\uc7a5\uc560\ubb3c\ud68c\ud53c/local_records/step6_cumotion_20261014/blocked_path_cpu/new_native25_Depth_blockage_fulltrace.json",
+    "sha256": "98085f5609da5928def87eb9c99b51257208e2a43318564935a1ac22660f1b80"
+  },
+  "new_GT_audit": {
+    "path": "/home/ms-02/Documents/ChatGPT/\ud611\ub3d92_\uc7a5\uc560\ubb3c\ud68c\ud53c/local_records/step6_cumotion_20261014/blocked_path_cpu/new_path_GT_audit_FCL.json",
+    "sha256": "2cf97288abccd1410b015c13bccfdcc4d6af477466b9265dfc229cffab2cde43"
+  },
+  "same_conditions": {
+    "goal": true,
+    "expected_precontact": true,
+    "attachment": true,
+    "holding_orientation": true,
+    "model_digest": true,
+    "q_rad": true,
+    "grip_rad": true,
+    "static_world": true
+  },
+  "limits": {
+    "final_quintic_extrema_qva_j_verified": true,
+    "max_velocity_rad_s": 0.3418247242922902,
+    "max_acceleration_rad_s2": 0.6999999999309595,
+    "max_jerk_rad_s3": 3.5079820850283276,
+    "numerical_tolerances_vaj": [
+      1e-06,
+      1e-06,
+      1e-05
+    ]
+  },
+  "quintic": {
+    "max_jerk_rad_s3": 3.507982085028307,
+    "intervals": 1086,
+    "nominal_limit_rad_s3": 5.0,
+    "numerical_tolerance_rad_s3": 1e-05
+  },
+  "goal_position_error_m": 0.00034327862268675527,
+  "goal_orientation_error_rad": 0.000803714255769025,
+  "original_first_collision_GT_s": 3.0240674820000004,
+  "original_first_collision_components": [
+    "HELD",
+    "WORLD"
+  ],
+  "trajectory_points": 1087,
+  "duration_s": 10.693436955,
+  "mandatory_waypoints": 0,
+  "attachment": [
+    [
+      -0.9998826467463702,
+      0.00018439822622096157,
+      -0.015318574762872704,
+      7.055951338735822e-05
+    ],
+    [
+      0.0007285924343685848,
+      0.9993684462788778,
+      -0.03552714082507817,
+      0.0005254785439017182
+    ],
+    [
+      0.015302349118228583,
+      -0.03553413259718775,
+      -0.9992513014912857,
+      0.002073289775007342
+    ],
+    [
+      0.0,
+      0.0,
+      0.0,
+      1.0
+    ]
+  ],
+  "grip_rad": 0.4732683002948761,
+  "model_digest": "e16469daf9048576a6f69936b896627c62b38d64d1cd4a547e4bf02ad6097943",
+  "world_geometry_digest": "bec0e679ec2968ce2733c17f4a2c9a2b540fe1f1fdd521274f428e138d2196b1",
+  "FCL_binary_sha256": "d46174da2728ffcfa407255f7ff0f9927384c19d7383b2f224140966dd9a0f96",
+  "nominal_SIM_only": true,
+  "native_execution_allowed": false,
+  "hardware_execution_allowed": false,
+  "dynamic_input_ready": false,
+  "native_execution_verified": false,
+  "next": "MoveIt-Isaac/D must validate a fresh native initial PVT/grasp/current owner and perform fixed-scene one-goal native execution + video after management GPU return. Original collision trajectory is never executed."
+}

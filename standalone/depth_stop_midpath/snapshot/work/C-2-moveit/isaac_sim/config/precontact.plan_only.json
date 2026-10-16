@@ -1,0 +1,9 @@
+{
+  "policy_ref": "PRESERVED_GPU_CARTESIAN_CORRIDOR_FOR_OFFLINE_CALCULATION",
+  "final_corridor_tolerance_m": 0.002,
+  "transition_allowance_m": 0.005,
+  "source_capture_date": "2026-10-13",
+  "source_relative_path": "gpu_moveit_original/isaac_sim/config/transport.sim.json",
+  "physical_verification": "UNVERIFIED",
+  "execution_allowed": false
+}
